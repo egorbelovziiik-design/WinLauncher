@@ -498,30 +498,30 @@ fn newest_crash_dump(game_dir: &std::path::Path) -> Option<std::path::PathBuf> {
 pub fn parse_crash_dump(text: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let mut want_next_frame = false;
-    for line in text.lines().take(120) {
-        let trimmed = line.trim();
-        if want_next_frame {
-            // The frame itself is printed on the following line as `# C  [module]`.
-            let frame = trimmed.trim_start_matches('#').trim();
-            if !frame.is_empty() {
-                out.push(format!("Problematic frame: {frame}"));
-                want_next_frame = false;
-            }
+    for raw in text.lines().take(160) {
+        // Every line of a HotSpot dump is prefixed with "# ".
+        let line = raw.trim().trim_start_matches('#').trim();
+        if line.is_empty() {
             continue;
         }
-        if trimmed.starts_with("# A fatal error") {
-            out.push(trimmed.trim_start_matches("# ").to_string());
-        } else if trimmed.starts_with("siginfo:") || trimmed.starts_with("#  EXCEPTION") {
-            out.push(trimmed.trim_start_matches("# ").trim().to_string());
-        } else if let Some(rest) = trimmed.strip_prefix("Problematic frame") {
-            let rest = rest.trim_start_matches([':', ' ']).trim();
+        if want_next_frame {
+            out.push(format!("Problematic frame: {line}"));
+            want_next_frame = false;
+            continue;
+        }
+        if line.starts_with("A fatal error") {
+            out.push(line.to_string());
+        } else if line.starts_with("EXCEPTION") || line.starts_with("siginfo:") {
+            out.push(line.to_string());
+        } else if let Some(rest) = line.strip_prefix("Problematic frame") {
+            let rest = rest.trim_start_matches(':').trim();
             if rest.is_empty() {
                 want_next_frame = true;
             } else {
                 out.push(format!("Problematic frame: {rest}"));
             }
-        } else if trimmed.starts_with("JRE version:") || trimmed.starts_with("Java VM:") {
-            out.push(trimmed.to_string());
+        } else if line.starts_with("JRE version") || line.starts_with("Java VM") {
+            out.push(line.to_string());
         }
         if out.len() >= 8 {
             break;
