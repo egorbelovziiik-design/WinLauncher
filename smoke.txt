@@ -1,21 +1,21 @@
 # WinLaucher build verification
 
-Commit: d45baf3caa4acffa9a68f9f5b17bc16952efb648
+Commit: e0ff379ad7989bc67a321eeaf72d5612023f6bc9
 
 ## Files
-- WinLaucher_1.0.4_x64_en-US.msi — 7135232 bytes
-- WinLaucher_1.0.4_x64-setup.exe — 6082608 bytes
-- WinLaucher-portable.exe — 10333184 bytes
+- WinLaucher_1.0.5_x64_en-US.msi — 7139328 bytes
+- WinLaucher_1.0.5_x64-setup.exe — 6087836 bytes
+- WinLaucher-portable.exe — 10347520 bytes
 
 ## SHA-256
-- WinLaucher_1.0.4_x64_en-US.msi: F1E65DF82F328B625D38D5F698CBC86A6E45533F218F2E9AFA98B63B780F60B1
-- WinLaucher_1.0.4_x64-setup.exe: 8A3CAB9A035BB19E26E6D0660985E93C9BC145EE12A49BC60BD1BA8D010C5D20
-- WinLaucher-portable.exe: A94F81C95EFFA8FA4C8072E06B0133C220EA8CCE2EFD89421B66F38797A7F096
+- WinLaucher_1.0.5_x64_en-US.msi: FC20534759533E936D2345FFF85B6C4F2A4D4566B327BD649467BF6152E0334C
+- WinLaucher_1.0.5_x64-setup.exe: 86F470654C9B0C26074039A14BA3C1A6B8183156C146325776E159018D3432C5
+- WinLaucher-portable.exe: 431999E9E78BAA5662381B3B59DD2D213EB485B491546A58539B2E19844D8F1C
 
 ## PE metadata
-- WinLaucher_1.0.4_x64-setup.exe: ProductName='WinLaucher' FileVersion='1.0.4' Company='' Description='WinLaucher'
-- WinLaucher-portable.exe: ProductName='WinLaucher' FileVersion='1.0.4' Company='WinLaucher' Description='WinLaucher'
+- WinLaucher_1.0.5_x64-setup.exe: ProductName='WinLaucher' FileVersion='1.0.5' Company='' Description='WinLaucher'
+- WinLaucher-portable.exe: ProductName='WinLaucher' FileVersion='1.0.5' Company='WinLaucher' Description='WinLaucher'
 
 ## Runtime smoke test (portable exe)
-- OK: process stayed alive for 15s (pid 3776)
+- OK: process stayed alive for 15s (pid 1552)
 
