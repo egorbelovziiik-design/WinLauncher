@@ -44,10 +44,20 @@ fn compatible(version: &Value, profile: &Profile, kind: &str) -> bool {
     game && (kind != "mod" || version["loaders"].as_array().is_some_and(|a| a.iter().any(|v| v == profile.loader.as_str())))
 }
 
+fn incompatible_match(project: Option<&str>, version: Option<&str>, actual_project: &str, actual_version: &str) -> bool {
+    // A version-specific incompatibility must not reject every other version
+    // of the same project. Modrinth's explicit version takes precedence.
+    if let Some(version) = version { version == actual_version }
+    else { project == Some(actual_project) }
+}
+
 pub async fn install(state: &AppState, profile: &Profile, project_id: &str, selected_version: Option<&str>, cancel: &CancellationToken) -> Result<Vec<InstalledFile>> {
     security::safe_id(project_id)?;
     let mut queue = VecDeque::from([(project_id.to_string(), selected_version.map(str::to_owned))]);
     let mut visited = HashSet::new(); let mut plans = Vec::new();
+    let existing: Vec<InstalledFile> = state.list::<InstalledFile>("installed")?.into_iter().filter(|f| f.profile_id == profile.id && f.provider == "modrinth").collect();
+    let mut incompatible = Vec::new();
+    let root_enabled = existing.iter().find(|f| f.project_id == project_id).map(|f| f.enabled).unwrap_or(true);
     // Resolve the entire required dependency graph BEFORE modifying the profile.
     while let Some((id, requested)) = queue.pop_front() {
         if plans.len() >= 512 { bail!("Слишком много зависимостей Modrinth"); }
@@ -56,9 +66,10 @@ pub async fn install(state: &AppState, profile: &Profile, project_id: &str, sele
         let kind = info.project.project_type.as_str();
         if kind == "modpack" { bail!("Модпак устанавливается в отдельный профиль через менеджер сборок"); }
         profiles::content_folder(kind)?;
-        let version: Value = if let Some(v) = requested { security::safe_id(&v)?; downloads::json(state, &format!("{API}/version/{v}")).await? }
+        let version: Value = if let Some(ref v) = requested { security::safe_id(&v)?; downloads::json(state, &format!("{API}/version/{v}")).await? }
             else { compatible_versions(state, &id, profile, kind).await?.into_iter().next().context("Нет совместимой версии для выбранного Minecraft и загрузчика")? };
         let version_id = version["id"].as_str().context("Modrinth не вернул id версии")?.to_owned();
+        if requested.as_deref().is_some_and(|wanted| wanted != version_id) { bail!("API Modrinth вернул другую закреплённую версию"); }
         if version["project_id"] != id || !compatible(&version, profile, kind) { bail!("Мод или обязательная зависимость несовместимы с профилем: {}", info.project.title); }
         if !visited.insert(id.clone()) {
             if plans.iter().any(|f: &InstalledFile| f.project_id == id && f.version_id != version_id) { bail!("Конфликт версий обязательной зависимости: {}", info.project.title); }
@@ -73,8 +84,7 @@ pub async fn install(state: &AppState, profile: &Profile, project_id: &str, sele
                         else { bail!("Не удалось определить обязательную зависимость"); };
                     queue.push_back((dependency_id, requested));
                 } else if dep["dependency_type"] == "incompatible" {
-                    let existing = state.list::<InstalledFile>("installed")?;
-                    if existing.iter().any(|f| f.profile_id == profile.id && f.enabled && (Some(f.project_id.as_str()) == dep["project_id"].as_str() || Some(f.version_id.as_str()) == dep["version_id"].as_str())) { bail!("Найдена несовместимая зависимость. Сначала отключите конфликтующий мод."); }
+                    incompatible.push((id.clone(), dep["project_id"].as_str().map(str::to_owned), dep["version_id"].as_str().map(str::to_owned)));
                 }
             }
         }
@@ -84,7 +94,14 @@ pub async fn install(state: &AppState, profile: &Profile, project_id: &str, sele
         if security::safe_relative(filename)?.components().count() != 1 { bail!("Недопустимое имя файла мода"); }
         let (algorithm, hash) = if let Some(sha) = file["hashes"]["sha512"].as_str() { ("sha512", sha) } else { ("sha1", file["hashes"]["sha1"].as_str().context("Нет контрольной суммы Modrinth")?) };
         Hash::new(algorithm, hash)?;
-        plans.push(InstalledFile { profile_id: profile.id.clone(), provider: "modrinth".into(), project_id: id, version_id, name: info.project.title, filename: filename.into(), kind: kind.into(), sha: hash.into(), hash_algorithm: algorithm.into(), enabled: true, download_url: file["url"].as_str().context("Нет ссылки загрузки")?.into(), size: file["size"].as_u64().unwrap_or(0) });
+        let enabled = crate::content::planned_enabled(existing.iter().find(|f| f.project_id == id), id != project_id && root_enabled)?;
+        plans.push(InstalledFile { profile_id: profile.id.clone(), provider: "modrinth".into(), project_id: id, version_id, name: info.project.title, filename: filename.into(), kind: kind.into(), sha: hash.into(), hash_algorithm: algorithm.into(), enabled, download_url: file["url"].as_str().context("Нет ссылки загрузки")?.into(), size: file["size"].as_u64().unwrap_or(0) });
+    }
+    let active: Vec<_> = existing.iter().filter(|f| f.enabled && !plans.iter().any(|p| p.project_id == f.project_id)).chain(plans.iter().filter(|f| f.enabled)).collect();
+    for (owner, project, version) in incompatible {
+        if active.iter().any(|f| f.project_id == owner) && active.iter().any(|f| incompatible_match(project.as_deref(), version.as_deref(), &f.project_id, &f.version_id)) {
+            bail!("В графе зависимостей Modrinth есть несовместимые активные моды. Файлы не были изменены.");
+        }
     }
     crate::content::apply(state, profile, &plans, cancel).await?; Ok(plans)
 }
@@ -101,4 +118,14 @@ pub async fn install_pack(state: &AppState, project_id: &str) -> Result<Profile>
     let path = security::within(&state.root(), &format!("downloads/{}.mrpack", hash.value))?;
     downloads::batch(state, vec![Transfer { url: file["url"].as_str().context("Нет URL")?.into(), path: path.clone(), hash, size: file["size"].as_u64() }], &guard.token).await?;
     crate::modpacks::import_inner(state, &path, &guard.token).await
+}
+
+#[cfg(test)] mod tests {
+    use super::*;
+    #[test] fn pinned_incompatibility_is_not_a_project_wide_ban() {
+        assert!(incompatible_match(Some("mod"), None, "mod", "new"));
+        assert!(incompatible_match(Some("mod"), Some("old"), "mod", "old"));
+        assert!(!incompatible_match(Some("mod"), Some("old"), "mod", "new"));
+        assert!(!incompatible_match(None, None, "mod", "new"));
+    }
 }

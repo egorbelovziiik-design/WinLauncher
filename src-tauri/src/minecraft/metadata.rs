@@ -112,7 +112,7 @@ pub fn extract_natives(archive: &Path, target: &Path, excludes: &[String]) -> Re
     if zip.len() > 20_000 { bail!("Слишком много native-файлов"); }
     let mut total_size = 0u64;
     for i in 0..zip.len() {
-        let mut entry = zip.by_index(i)?;
+        let entry = zip.by_index(i)?;
         let raw = entry.name().trim_end_matches('/').to_string();
         if raw.is_empty() || entry.is_dir() || raw.starts_with("META-INF/") || excludes.iter().any(|e| raw.starts_with(e)) { continue; }
         if entry.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) { bail!("Ссылка в native-архиве"); }

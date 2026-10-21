@@ -43,12 +43,14 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
             Ok(_) => bail!("Unlicensed launch was incorrectly allowed"),
         }
     }).await;
-    check(&mut reports, "Download and install managed Java 21 with SHA256", async {
-        let guard = state.begin_job("java")?;
-        let runtime = java::install_managed(&state, 21, &guard.token).await?;
-        if !runtime.managed || runtime.major != 21 || runtime.architecture != "amd64" { bail!("Managed Windows x64 runtime was not installed correctly"); }
-        println!("JAVA: {} at {}", runtime.version, runtime.path); Ok(())
-    }).await;
+    for major in [21, 8, 17, 25] {
+        check(&mut reports, &format!("Download and install managed Java {major} with SHA256"), async {
+            let guard = state.begin_job("java")?;
+            let runtime = java::install_managed(&state, major, &guard.token).await?;
+            if !runtime.managed || runtime.major != major || !["amd64", "x86_64"].contains(&runtime.architecture.as_str()) { bail!("Managed Windows x64 runtime was not installed correctly"); }
+            println!("JAVA: {} at {}", runtime.version, runtime.path); Ok(())
+        }).await;
+    }
     let installed = if manifest.is_some() { check(&mut reports, "Real Vanilla 1.21.4 client / libraries / natives / assets installation", async {
         minecraft::install_only(&state, &vanilla.id).await?;
         let p: Profile = state.get("profiles", &vanilla.id)?;
@@ -80,6 +82,16 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
                     let read: InstalledFile = state.get("installed", &key)?; if read.enabled { bail!("Mod toggle did not persist"); }
                     content::toggle(&state, &key)?; Ok(())
                 }).await;
+                check(&mut reports, "Update real disabled Modrinth project without silently enabling it", async {
+                    let versions = modrinth::compatible_versions(&state, &file.project_id, &fabric, "mod").await?;
+                    let older = versions.get(1).and_then(|v| v["id"].as_str()).context("No older compatible published version available for update acceptance")?;
+                    { let guard = state.begin_job("mods")?; modrinth::install(&state, &fabric, &file.project_id, Some(older), &guard.token).await?; }
+                    let key = profiles::file_id(&file); content::toggle(&state, &key)?;
+                    { let guard = state.begin_job("mods")?; modrinth::install(&state, &fabric, &file.project_id, Some(&file.version_id), &guard.token).await?; }
+                    let read: InstalledFile = state.get("installed", &key)?;
+                    if read.enabled || read.version_id != file.version_id || !state.instance(&fabric.id)?.join("mods").join(format!("{}.disabled", read.filename)).is_file() { bail!("Disabled content update did not retain the disabled state and install the requested real version"); }
+                    content::toggle(&state, &key)?; Ok(())
+                }).await;
                 check(&mut reports, "Export and reimport a real Modrinth .mrpack", async {
                     let pack = root.join("native-smoke-export.mrpack"); modpacks::export(&state, &fabric.id, &pack)?;
                     let imported = modpacks::import(&state, &pack).await?;
@@ -90,6 +102,14 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
                 check(&mut reports, "Remove mod into safe backup storage", async {
                     content::remove(&state, &profiles::file_id(&file))?;
                     if state.instance(&fabric.id)?.join("mods").join(&file.filename).exists() { bail!("Mod still exists in active mods directory"); } Ok(())
+                }).await;
+                check(&mut reports, "Resolve and download real Iris required dependencies", async {
+                    let found = modrinth::search(&state, "iris", "mod", Some(&fabric), 0, "downloads").await?;
+                    let iris = found.hits.iter().find(|p| p.slug == "iris").context("Iris was not returned by Modrinth")?;
+                    let guard = state.begin_job("mods")?;
+                    let files = modrinth::install(&state, &fabric, &iris.id, None, &guard.token).await?;
+                    if files.len() < 2 { bail!("This API version did not provide a required dependency; dependency acceptance was not exercised"); }
+                    println!("MODRINTH: {} real Iris/dependency files downloaded and hash verified", files.len()); Ok(())
                 }).await;
             }
         }

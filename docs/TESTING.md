@@ -8,39 +8,46 @@ Development: Linux x64 sandbox, Node.js 22. Rust and Windows SDK are not install
 
 ## Observed results (2026-10-21 UTC)
 
-- **PASSED**: `npm run build` (TypeScript + production Vite build).
-- **PASSED**: 10/10 frontend unit tests.
-- **PASSED**: 12/12 Playwright browser acceptance tests, latest rerun 17.7 seconds.
-- **PASSED**: axe-core automated audit of all nine main pages, default theme, Chromium 1440×1000: zero reported violations. This does not certify every theme, screen reader or native WebView2.
-- **PASSED**: Windows Rust unit-test step for commit `e236a737654754bd8f9dcf4eb58ecf38aeeec72c`.
-- **PASSED**: genuine MSVC Windows x64 executable and supported Tauri NSIS packaging for that commit: [Windows run 39645687272](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39645687272).
-- **NOT TESTED**: GUI acceptance via WebView2 CDP on that runner. The harness could not connect; a green packaging workflow is not a successful GUI/native acceptance result.
-- The latest source adds hardened Discord RPC, loader cache validation, mutation locking and native backend acceptance checks. **Its Windows verification is pending** until its own CI reports are read. Historical build results must not be attributed to untested changes.
+Evidence: [Windows run 39648271706](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39648271706), source commit `e4e677201fbbf27778ae7f84962e435d2d181baf`.
 
-The workflow writes `BACKEND-SMOKE.json/.md` from the real Windows Rust engine and `NATIVE-SMOKE.json/.md` from the compiled GUI application. Backend checks use real publisher downloads, hashes, Java processes and SQLite, with only the UI event sink omitted. Neither harness invents a licensed account or a rendered game session. Acceptance steps can fail independently of packaging; read their reports, not only the workflow badge.
+- **PASSED**: TypeScript + production Vite build; 10/10 frontend unit tests.
+- **PASSED**: 12/12 Playwright browser acceptance tests (17.7 seconds).
+- **PASSED**: axe-core audit of all nine main pages, default theme, Chromium 1440×1000: zero reported violations. This does not certify every theme, screen reader or native WebView2.
+- **PASSED**: 19/19 Windows Rust unit tests.
+- **PASSED**: genuine MSVC Windows x64 executable and supported Tauri NSIS packaging.
+- **PASSED**: 17 real native backend acceptance scenarios, on Windows 11 (26100) x64.
+- **NOT TESTED**: rendered GUI acceptance via WebView2 CDP. The real EXE remained running, but the harness could not attach. A green packaging workflow is not a successful GUI acceptance result.
+
+The API bridge delivered `BACKEND-SMOKE.json/.md`, `NATIVE-SMOKE.json/.md`, `rust-test.log` and `backend-smoke.log`; their lengths and SHA256 hashes were checked before reading. The backend harness uses the production engine with real publisher HTTPS APIs, downloaded files, hash verification, real Java processes and SQLite. Only the UI event sink is omitted; no game, catalog, download or credential is simulated.
+
+Additional disabled-mod update / pinned-dependency hardening, Java 8/17/25 checks and real NSIS install/uninstall checks are pending their own final CI run. Results above apply to the exact recorded commit, not automatically to later changes. Final deliverable reports take precedence over historical results in this section.
 
 ## Requested end-to-end checks
 
-| Check | Status | Reason / required procedure |
+| Check | Status | Verified scope / remaining limits |
 |---|---|---|
-| Install Minecraft Vanilla | NOT TESTED | Requires access to Mojang metadata/content endpoints on Windows. |
-| Real Minecraft launch | NOT TESTED | Requires Windows, real Microsoft authentication, Minecraft ownership and GPU/display. |
-| Automatic Java installation | NOT TESTED | Adoptium and runtime asset download must be exercised on Windows. |
-| Microsoft authentication | NOT TESTED | Requires a registered/approved public application and a licensed user account. |
-| Fabric | NOT TESTED | Requires real loader metadata, Java and a rendered game session. |
-| Forge | NOT TESTED | Uses the official verified installer; legacy GUI-only installers may fail in headless mode. |
-| NeoForge | NOT TESTED | Requires official installer execution and game launch. |
-| Quilt | NOT TESTED | Requires compatible version metadata and game launch. |
-| Modrinth API | NOT TESTED | The sandbox cannot reach api.modrinth.com. No fixture catalog is shown to users. |
-| CurseForge API | NOT TESTED | Requires an API key; denied distribution is not bypassed. |
-| Install, update, toggle and remove mods | NOT TESTED | Requires compatible real projects and dependency graphs. |
-| Import/export .mrpack and CurseForge ZIP | NOT TESTED | Requires real archives/files and API access; traversal unit tests are separate. |
-| Discord Rich Presence | NOT TESTED | Requires a real Application ID, registered asset and running Discord Desktop. |
-| RAM affects Java process | NOT TESTED | Argument unit tests do not substitute for inspecting an actual game JVM. |
-| Data-directory migration | NOT TESTED | Must be tested across Windows disks with user data and insufficient disk space. |
-| Theme persistence in Windows | NOT TESTED | Browser preference tests do not prove native SQLite persistence. |
-| Application restart | NOT TESTED | Requires a Windows desktop session. |
-| NSIS installer execution | NOT TESTED | Building an installer does not test its installation/uninstallation. |
+| Install Minecraft Vanilla | PASSED | Real 1.21.4 client, libraries, native archives, assets and repeated cached-file hash verification. Not every historical/snapshot version. |
+| Real licensed Minecraft launch | NOT TESTED | Requires a Microsoft Application ID, licensed account and rendered game session. |
+| Automatic Java installation | PASSED | Genuine Adoptium Java 21.0.12.1 x64, SHA256 archive, extraction, actual `java -version`. Other majors pending. |
+| Microsoft authentication / refresh | NOT TESTED | No registered Application ID or licensed account supplied. |
+| Reject unlicensed launch | PASSED | Backend refused launch without an authenticated account, before spawning a game process. |
+| Fabric installation | PASSED | Real Fabric 0.19.5 for Minecraft 1.21.4, official metadata and Maven files. Game rendering NOT TESTED. |
+| Forge installation | PASSED | Real official installer for 1.21.4, verified JAR and resulting libraries. Game rendering NOT TESTED. |
+| NeoForge installation | PASSED | Real official installer for 1.21.4 and verified resulting libraries. Game rendering NOT TESTED. |
+| Quilt installation | PASSED | Real 1.21.4 loader metadata and libraries. Game rendering NOT TESTED. |
+| Modrinth API / installation | PASSED | Genuine API search and compatible Sodium installation, hashes and actual JAR checked. |
+| Mod toggle / removal | PASSED | Real files disabled/re-enabled and moved to safe backup storage. |
+| Mod updates | NOT TESTED | Expanded older-to-newer disabled-mod acceptance check pending. |
+| Modrinth .mrpack export/import | PASSED | Exported actual installed content as verified references and reimported into a new isolated profile. |
+| CurseForge API / ZIP modpack | NOT TESTED | Requires a valid API key. Distribution restrictions are not bypassed. |
+| Discord Rich Presence | NOT TESTED | Requires Application ID, registered asset and running Discord Desktop. Protocol unit tests are not end-to-end Discord verification. |
+| RAM affects actual game JVM | NOT TESTED | Argument tests do not substitute for inspecting a licensed Minecraft process. |
+| Data-directory migration | PASSED | Real downloaded game/runtime/mod data copied, SHA256 verified, original retained. Cross-volume/user-world/failure-mode cases NOT TESTED. |
+| Native settings persistence | PASSED | Saved settings in SQLite and verified after reopening the backend. Full GUI process restart NOT TESTED. |
+| Hardware information | PASSED | Actual Windows CPU, RAM and free disk checks; GPU query executed. |
+| User-world backup / restoration | NOT TESTED | No licensed game world created for this session. Filesystem safety checks are separate. |
+| Full application restart | NOT TESTED | Requires rendered GUI acceptance. |
+| NSIS installer execution | NOT TESTED | Real silent installation/uninstallation check pending; building does not prove installation. |
 
 ## Automated tests
 

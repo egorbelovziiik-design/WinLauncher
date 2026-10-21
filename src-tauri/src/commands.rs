@@ -56,7 +56,7 @@ fn err(e: impl std::fmt::Display) -> String { security::redact(&e.to_string(), &
 #[tauri::command] pub fn remove_content(state: State<'_, AppState>, id: String) -> Response<()> { content::remove(&state, &id).map_err(err) }
 #[tauri::command] pub async fn check_mod_updates(state: State<'_, AppState>, profile_id: String) -> Response<Vec<Value>> {
     let profile: Profile = state.get("profiles", &profile_id).map_err(err)?; let mut updates = Vec::new();
-    for file in state.list::<InstalledFile>("installed").map_err(err)?.into_iter().filter(|f| f.profile_id == profile_id && f.enabled) {
+    for file in state.list::<InstalledFile>("installed").map_err(err)?.into_iter().filter(|f| f.profile_id == profile_id) {
         let latest = match file.provider.as_str() {
             "modrinth" => modrinth::compatible_versions(&state, &file.project_id, &profile, &file.kind).await.map_err(err)?.first().and_then(|v| v["id"].as_str()).map(str::to_owned),
             "curseforge" => curseforge::compatible_files(&state, &file.project_id, &profile).await.map_err(err)?.first().and_then(|v| v["id"].as_u64()).map(|n| n.to_string()),

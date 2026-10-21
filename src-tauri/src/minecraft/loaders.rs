@@ -116,7 +116,10 @@ async fn install_forge(state: &AppState, profile: &Profile, version: &str, runti
             _ = cancel.cancelled() => { child.kill().await?; bail!("Установка загрузчика отменена"); }
             r = tokio::time::timeout(std::time::Duration::from_secs(1800), child.wait()) => r.context("Установщик не завершился за 30 минут")??,
         };
-        if !status.success() { bail!("Официальный установщик {} завершился с кодом {:?}. Подробности в логах. Старые GUI-only установщики могут не поддерживать headless-режим.", profile.loader.as_str(), status.code()); }
+        if !status.success() {
+            let tail = state.logs.lock().unwrap_or_else(|e| e.into_inner()).iter().rev().filter(|line| line.source == "installer").take(8).map(|line| line.message.clone()).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n");
+            bail!("Официальный установщик {} завершился с кодом {:?}. Старые GUI-only установщики могут не поддерживать headless-режим.\n{}", profile.loader.as_str(), status.code(), tail);
+        }
     }
     let mut child: Version = serde_json::from_slice(&fs::read(&output).context("Установщик не создал JSON версии")?)?;
     if child.id != expected_version { bail!("Версия результата установщика не совпадает"); }

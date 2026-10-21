@@ -79,7 +79,7 @@ try {
   }
   for (const check of ['Licensed Microsoft OAuth login and token refresh', 'Rendered Minecraft Java game session', 'Forge installation and game launch', 'NeoForge installation and game launch', 'Quilt installation and game launch', 'CurseForge key / distribution permissions', 'Real modpack import/export', 'Discord Desktop Rich Presence', 'RAM in a running licensed game JVM', 'Data-directory migration with user worlds', 'World backups and restore', 'Settings across a full application restart', 'NSIS installer execution']) record(check, 'NOT TESTED', 'Requires additional credentials, real user data, interactive confirmation or an explicitly configured acceptance environment.');
 } catch (e) {
-  record('Native GUI smoke harness', 'NOT TESTED', String(e));
+  record('Native GUI smoke harness', /exited before WebView2|spawn.*(ENOENT|EACCES)/.test(String(e)) ? 'FAILED' : 'NOT TESTED', String(e));
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (processHandle?.pid) {

@@ -74,11 +74,17 @@ pub async fn import_inner(state: &AppState, path: &Path, cancel: &CancellationTo
         } else {
             let entries = index["files"].as_array().context("Нет списка файлов CurseForge")?;
             if entries.len() > 5000 { bail!("Слишком много файлов CurseForge"); }
+            let mut pins = std::collections::HashMap::new();
+            for entry in entries.iter().filter(|e| e["required"] != false) {
+                let project = entry["projectID"].as_u64().context("Нет projectID")?;
+                let version = entry["fileID"].as_u64().context("Нет fileID")?;
+                if pins.insert(project, version).is_some_and(|old| old != version) { bail!("В модпаке закреплены разные файлы одного проекта CurseForge"); }
+            }
             for entry in entries {
                 if entry["required"] == false { continue; }
                 let project_id = entry["projectID"].as_u64().context("Нет projectID")?.to_string();
                 let file_id = entry["fileID"].as_u64().context("Нет fileID")?.to_string();
-                let plans = crate::curseforge::resolve(state, &profile, &project_id, Some(&file_id), cancel).await?;
+                let plans = crate::curseforge::resolve_pinned(state, &profile, &project_id, Some(&file_id), &pins, cancel).await?;
                 for file in plans {
                     if let Some(old) = installed.iter().find(|f: &&InstalledFile| f.project_id == file.project_id && f.provider == file.provider) { if old.version_id != file.version_id { bail!("Конфликт версий зависимости в CurseForge-модпаке"); } }
                     else { installed.push(file); }

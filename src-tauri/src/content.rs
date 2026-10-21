@@ -9,6 +9,15 @@ fn path(state: &AppState, file: &InstalledFile) -> Result<PathBuf> {
     security::within(&state.instance(&file.profile_id)?, &format!("{folder}/{name}"))
 }
 
+/// Updating a disabled root project must not silently enable it. A newly
+/// requested project cannot silently depend on a disabled dependency either.
+pub fn planned_enabled(existing: Option<&InstalledFile>, required_dependency: bool) -> Result<bool> {
+    if let Some(file) = existing {
+        if required_dependency && !file.enabled { bail!("Обязательная зависимость {} отключена. Сначала включите её в списке установленных модов.", file.name); }
+        Ok(file.enabled)
+    } else { Ok(true) }
+}
+
 /// Stage and verify every dependency; install with rollback, then commit SQLite atomically.
 pub async fn apply(state: &AppState, profile: &Profile, plans: &[InstalledFile], cancel: &CancellationToken) -> Result<()> {
     let root = state.instance(&profile.id)?;
@@ -18,7 +27,7 @@ pub async fn apply(state: &AppState, profile: &Profile, plans: &[InstalledFile],
     let mut transfers = Vec::new(); let mut targets = HashSet::new();
     for (i, file) in plans.iter().enumerate() {
         let dest = path(state, file)?;
-        if !targets.insert(dest.clone()) { bail!("Две зависимости используют одно имя файла"); }
+        if !targets.insert(dest.to_string_lossy().to_lowercase()) { bail!("Две зависимости используют одно имя файла"); }
         if let Some(old) = existing.iter().find(|f| profiles::file_id(f) == profiles::file_id(file)) {
             let old_path = path(state, old)?;
             if old_path.exists() && !downloads::verify(&old_path, &Hash::new(&old.hash_algorithm, &old.sha)?)? { bail!("Файл {} изменён пользователем. Сохраните его отдельно перед обновлением.", old.filename); }
@@ -77,4 +86,14 @@ pub fn remove(state: &AppState, id: &str) -> Result<()> {
         if let Err(e) = state.remove("installed", id) { let _ = fs::rename(&backup, &source); return Err(e); }
     } else { state.remove("installed", id)?; }
     state.changed(); Ok(())
+}
+
+#[cfg(test)] mod tests {
+    use super::*;
+    #[test] fn disabled_updates_remain_disabled_and_dependencies_are_explicit() {
+        let file = InstalledFile { profile_id: "test".into(), provider: "modrinth".into(), project_id: "test".into(), version_id: "v1".into(), name: "Unit-test project".into(), filename: "test.jar".into(), kind: "mod".into(), sha: "a".repeat(40), hash_algorithm: "sha1".into(), enabled: false, download_url: "https://cdn.modrinth.com/test.jar".into(), size: 0 };
+        assert!(!planned_enabled(Some(&file), false).unwrap());
+        assert!(planned_enabled(Some(&file), true).is_err());
+        assert!(planned_enabled(None, true).unwrap());
+    }
 }

@@ -1,7 +1,7 @@
 use crate::{accounts::vault, downloads, models::{InstalledFile, Loader, Profile, ProjectDetail, SearchProject, SearchResults}, profiles, security, state::AppState};
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use tokio_util::sync::CancellationToken;
 const API: &str = "https://api.curseforge.com/v1";
 
@@ -43,17 +43,35 @@ pub async fn compatible_files(state: &AppState, project_id: &str, profile: &Prof
     Ok(v["data"].as_array().context("Нет файлов CurseForge")?.clone())
 }
 pub async fn resolve(state: &AppState, profile: &Profile, project_id: &str, requested: Option<&str>, cancel: &CancellationToken) -> Result<Vec<InstalledFile>> {
-    let mut queue = VecDeque::from([(id(project_id)?, requested.map(id).transpose()?)]); let mut visited = HashSet::new(); let mut plans = Vec::new();
+    resolve_pinned(state, profile, project_id, requested, &HashMap::new(), cancel).await
+}
+
+/// A pack's explicit file IDs take precedence over the latest dependency file.
+/// Do not reject a valid pinned pack merely because a newer dependency exists.
+pub async fn resolve_pinned(state: &AppState, profile: &Profile, project_id: &str, requested: Option<&str>, pins: &HashMap<u64, u64>, cancel: &CancellationToken) -> Result<Vec<InstalledFile>> {
+    let root_id = id(project_id)?;
+    let mut queue = VecDeque::from([(root_id, requested.map(id).transpose()?)]); let mut visited = HashSet::new(); let mut plans = Vec::new();
+    let existing: Vec<InstalledFile> = state.list::<InstalledFile>("installed")?.into_iter().filter(|f| f.profile_id == profile.id && f.provider == "curseforge").collect();
+    let mut incompatible = Vec::new();
+    let root_enabled = existing.iter().find(|f| f.project_id == root_id.to_string()).map(|f| f.enabled).unwrap_or(true);
     while let Some((project_id, requested)) = queue.pop_front() {
         if cancel.is_cancelled() { bail!("Операция отменена"); }
         if plans.len() > 512 { bail!("Слишком много зависимостей CurseForge"); }
-        if !visited.insert(project_id) { continue; }
+        let requested = match (requested, pins.get(&project_id).copied()) {
+            (Some(a), Some(b)) if a != b => bail!("Конфликт закреплённых версий CurseForge"),
+            (a, b) => a.or(b),
+        };
+        if !visited.insert(project_id) {
+            if requested.is_some_and(|v| plans.iter().any(|f: &InstalledFile| f.project_id == project_id.to_string() && f.version_id != v.to_string())) { bail!("Конфликт файлов обязательной зависимости CurseForge"); }
+            continue;
+        }
         let info = request(state, &format!("/mods/{project_id}"), &[]).await?;
         let info = project(&info["data"]);
         profiles::content_folder(&info.project_type)?;
         if info.project_type == "mod" && profile.loader == Loader::Vanilla { bail!("Для модов нужен профиль с загрузчиком"); }
         let file = if let Some(file_id) = requested { request(state, &format!("/mods/{project_id}/files/{file_id}"), &[]).await?["data"].clone() }
             else { compatible_files(state, &project_id.to_string(), profile).await?.into_iter().find(|f| f["isAvailable"] == true).context("Нет совместимого доступного файла CurseForge")? };
+        if requested.is_some_and(|wanted| file["id"].as_u64() != Some(wanted)) { bail!("API CurseForge вернул другой закреплённый файл"); }
         if file["modId"].as_u64() != Some(project_id) || file["isAvailable"] != true { bail!("Файл CurseForge недоступен"); }
         let versions = file["gameVersions"].as_array().context("Нет метаданных совместимости")?;
         if !versions.iter().any(|v| v == &profile.game_version) { bail!("Мод CurseForge не поддерживает выбранную версию Minecraft"); }
@@ -64,8 +82,16 @@ pub async fn resolve(state: &AppState, profile: &Profile, project_id: &str, requ
         downloads::Hash::new("sha1", hash)?;
         let filename = file["fileName"].as_str().context("Нет имени файла")?;
         if security::safe_relative(filename)?.components().count() != 1 { bail!("Небезопасное имя файла"); }
-        if let Some(deps) = file["dependencies"].as_array() { for dep in deps { if dep["relationType"] == 3 { queue.push_back((dep["modId"].as_u64().context("Нет ID зависимости")?, None)); } } }
-        plans.push(InstalledFile { profile_id: profile.id.clone(), provider: "curseforge".into(), project_id: project_id.to_string(), version_id: file["id"].as_u64().context("Нет file ID")?.to_string(), name: info.title, filename: filename.into(), kind: info.project_type, sha: hash.into(), hash_algorithm: "sha1".into(), enabled: true, download_url: url.into(), size: file["fileLength"].as_u64().unwrap_or(0) });
+        if let Some(deps) = file["dependencies"].as_array() { for dep in deps {
+            if dep["relationType"] == 3 { queue.push_back((dep["modId"].as_u64().context("Нет ID зависимости")?, None)); }
+            else if dep["relationType"] == 5 { incompatible.push((project_id.to_string(), dep["modId"].as_u64().context("Нет ID несовместимого мода")?.to_string())); }
+        } }
+        let enabled = crate::content::planned_enabled(existing.iter().find(|f| f.project_id == project_id.to_string()), project_id != root_id && root_enabled)?;
+        plans.push(InstalledFile { profile_id: profile.id.clone(), provider: "curseforge".into(), project_id: project_id.to_string(), version_id: file["id"].as_u64().context("Нет file ID")?.to_string(), name: info.title, filename: filename.into(), kind: info.project_type, sha: hash.into(), hash_algorithm: "sha1".into(), enabled, download_url: url.into(), size: file["fileLength"].as_u64().unwrap_or(0) });
+    }
+    let active: Vec<_> = existing.iter().filter(|f| f.enabled && !plans.iter().any(|p| p.project_id == f.project_id)).chain(plans.iter().filter(|f| f.enabled)).collect();
+    for (owner, other) in incompatible {
+        if active.iter().any(|f| f.project_id == owner) && active.iter().any(|f| f.project_id == other) { bail!("В графе зависимостей CurseForge есть несовместимые активные моды. Файлы не были изменены."); }
     }
     Ok(plans)
 }

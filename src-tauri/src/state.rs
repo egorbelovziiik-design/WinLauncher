@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 pub struct PendingAuth { pub device_code: String, pub interval: u64, pub expires: i64, pub client_id: String, pub next_poll: i64 }
 
 pub struct Inner {
-    pub app: Option<AppHandle>, pub base: PathBuf, pub db: Mutex<Connection>, pub settings: RwLock<Settings>,
+    pub app: Option<AppHandle>, pub db: Mutex<Connection>, pub settings: RwLock<Settings>,
     pub client: reqwest::Client, pub job: Mutex<Option<Job>>, pub cancel: Mutex<CancellationToken>,
     pub running: Mutex<Option<RunningGame>>, pub game_stop: Mutex<CancellationToken>, pub logs: Mutex<VecDeque<LogLine>>,
     pub pending_auth: Mutex<HashMap<String, PendingAuth>>, pub discord_status: RwLock<String>,
@@ -36,7 +36,7 @@ impl AppState {
         let mut settings: Settings = match saved { Ok(s) => serde_json::from_str(&s).context("Повреждены настройки SQLite")?, Err(rusqlite::Error::QueryReturnedNoRows) => Settings::default(), Err(e) => return Err(e.into()) };
         if settings.data_dir.is_empty() { settings.data_dir = base.join("data").to_string_lossy().into_owned(); }
         for folder in ["minecraft", "profiles", "runtime", "downloads", "logs", "backups"] { fs::create_dir_all(PathBuf::from(&settings.data_dir).join(folder))?; }
-        let state = Self(Arc::new(Inner { app, base, db: Mutex::new(conn), settings: RwLock::new(settings), client: security::client()?, job: Mutex::new(None), cancel: Mutex::new(CancellationToken::new()), running: Mutex::new(None), game_stop: Mutex::new(CancellationToken::new()), logs: Mutex::new(VecDeque::new()), pending_auth: Mutex::new(HashMap::new()), discord_status: RwLock::new("disabled".into()), activity: RwLock::new("Выбирает версию Minecraft".into()), exit: std::sync::atomic::AtomicBool::new(false) }));
+        let state = Self(Arc::new(Inner { app, db: Mutex::new(conn), settings: RwLock::new(settings), client: security::client()?, job: Mutex::new(None), cancel: Mutex::new(CancellationToken::new()), running: Mutex::new(None), game_stop: Mutex::new(CancellationToken::new()), logs: Mutex::new(VecDeque::new()), pending_auth: Mutex::new(HashMap::new()), discord_status: RwLock::new("disabled".into()), activity: RwLock::new("Выбирает версию Minecraft".into()), exit: std::sync::atomic::AtomicBool::new(false) }));
         state.persist_settings()?;
         state.log("info", "launcher", "WinLauncher 1.0.0. Телеметрия отключена. Данные хранятся локально.");
         Ok(state)
@@ -77,11 +77,6 @@ impl AppState {
     }
     pub fn has_running(&self) -> bool { self.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() }
     pub fn has_job(&self) -> bool { self.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() }
-    pub fn ensure_idle(&self) -> Result<()> {
-        if self.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() { bail!("Дождитесь завершения текущей операции"); }
-        if self.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() { bail!("Сначала закройте Minecraft"); }
-        Ok(())
-    }
     pub fn begin_job(&self, stage: &str) -> Result<JobGuard> {
         let mut lock = self.job.lock().unwrap_or_else(|e| e.into_inner());
         if lock.is_some() { bail!("Другая операция уже выполняется"); }
