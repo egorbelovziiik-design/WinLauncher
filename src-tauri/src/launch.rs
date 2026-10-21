@@ -16,7 +16,34 @@ use crate::paths::Paths;
 use crate::state::{lock, wlock, AppState};
 use crate::util;
 
+/// Remembers profiles that already used the "clean JVM arguments" retry so a
+/// permanently broken install cannot loop forever.
+static SAFE_RETRIED: Mutex<Option<std::collections::HashSet<String>>> = Mutex::new(None);
+
+fn take_safe_retry(profile_id: &str) -> bool {
+    let mut guard = match SAFE_RETRIED.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    let set = guard.get_or_insert_with(std::collections::HashSet::new);
+    !set.insert(profile_id.to_string())
+}
+
+fn clear_safe_retry(profile_id: &str) {
+    if let Ok(mut guard) = SAFE_RETRIED.lock() {
+        if let Some(set) = guard.as_mut() {
+            set.remove(profile_id);
+        }
+    }
+}
+
 pub fn start_launch(app: AppHandle, profile_id: String, account_id: String) {
+    // A user-initiated start may use the automatic safe-mode retry once again.
+    clear_safe_retry(&profile_id);
+    spawn_launch(app, profile_id, account_id, false);
+}
+
+fn spawn_launch(app: AppHandle, profile_id: String, account_id: String, safe: bool) {
     tauri::async_runtime::spawn(async move {
         {
             let state = app.state::<AppState>();
@@ -28,7 +55,7 @@ pub fn start_launch(app: AppHandle, profile_id: String, account_id: String) {
                 started_at: Some(chrono::Utc::now().to_rfc3339()),
             });
         }
-        if let Err(error) = launch_inner(&app, &profile_id, &account_id).await {
+        if let Err(error) = launch_inner(&app, &profile_id, &account_id, safe).await {
             let state = app.state::<AppState>();
             state.log("error", "launcher", format!("Launch failed: {error}"));
             state.set_launch(LaunchStatus {
@@ -42,7 +69,12 @@ pub fn start_launch(app: AppHandle, profile_id: String, account_id: String) {
     });
 }
 
-async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Result<(), String> {
+async fn launch_inner(
+    app: &AppHandle,
+    profile_id: &str,
+    account_id: &str,
+    safe: bool,
+) -> Result<(), String> {
     let state = app.state::<AppState>();
     let profile = state
         .profile_by_id(profile_id)
@@ -113,7 +145,7 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
     let account = accounts::launch_account(app, account_id).await?;
 
     // 5. Command line.
-    let (java_path, args) = build_launch(&merged, &profile, &account, &runtime, &paths, &settings)?;
+    let (java_path, args) = build_launch(&merged, &profile, &account, &runtime, &paths, &settings, safe)?;
     state.log(
         "info",
         "launcher",
@@ -124,6 +156,15 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
             merged.natives_dir.display()
         ),
     );
+    if settings.jvm_args.contains("debug") || safe {
+        let mut printable = args.clone();
+        if let Some(index) = printable.iter().position(|arg| arg == "--accessToken") {
+            if let Some(token) = printable.get_mut(index + 1) {
+                *token = "***".to_string();
+            }
+        }
+        state.log("info", "launcher", format!("Command: {} {}", java_path.display(), printable.join(" ")));
+    }
     if let Some(unresolved) = args.iter().find(|arg| arg.contains("${")) {
         state.log(
             "warn",
@@ -153,28 +194,12 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
     if let Some(stdout) = child.stdout.take() {
         let app = app.clone();
         let tail = Arc::clone(&tail);
-        std::thread::spawn(move || {
-            for line in BufReader::new(stdout).lines().flatten() {
-                if line.trim().is_empty() {
-                    continue;
-                }
-                push_tail(&tail, &line);
-                app.state::<AppState>().log("info", "game", line);
-            }
-        });
+        std::thread::spawn(move || pump(stdout, app, tail, "info"));
     }
     if let Some(stderr) = child.stderr.take() {
         let app = app.clone();
         let tail = Arc::clone(&tail);
-        std::thread::spawn(move || {
-            for line in BufReader::new(stderr).lines().flatten() {
-                if line.trim().is_empty() {
-                    continue;
-                }
-                push_tail(&tail, &line);
-                app.state::<AppState>().log("warn", "game", line);
-            }
-        });
+        std::thread::spawn(move || pump(stderr, app, tail, "warn"));
     }
 
     *lock(&state.child) = Some(child);
@@ -201,7 +226,10 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
 
     let watcher = app.clone();
     let watched_id = profile.id.clone();
+    let account_id_watcher = account_id.to_string();
+    let safe_launch = safe;
     let tail_watcher = Arc::clone(&tail);
+    let started = std::time::Instant::now();
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(700));
         let st = watcher.state::<AppState>();
@@ -223,11 +251,34 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
             .unwrap_or_default();
         let failed = code != Some(0);
         let reason = if failed { identify_reason(&lines) } else { String::new() };
+        let uptime = started.elapsed().as_secs();
         st.log(
             if failed { "error" } else { "info" },
             "launcher",
-            format!("Minecraft exited with code {code:?}"),
+            format!("Minecraft exited with code {code:?} after {uptime}s"),
         );
+        // A fast, unexplained exit is usually caused by a bad JVM flag or a heap
+        // that the machine cannot reserve. Retry once with pristine arguments
+        // before showing an error, so the launcher still starts the game.
+        if failed && uptime < 90 && !safe_launch && take_safe_retry(&watched_id) {
+            st.log(
+                "warn",
+                "launcher",
+                "Retrying with clean JVM arguments (no custom flags, 1 GB heap)",
+            );
+            st.set_launch_state(Some(watched_id.clone()), "starting", "Safe mode".to_string());
+            let handle = watcher.clone();
+            let pid = watched_id.clone();
+            let acct = account_id_watcher.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(400));
+                spawn_launch(handle, pid, acct, true);
+            });
+            return;
+        }
+        if !failed {
+            clear_safe_retry(&watched_id);
+        }
         if failed {
             for line in lines.iter().rev().take(60).rev() {
                 st.log("error", "game", line.clone());
@@ -299,6 +350,95 @@ pub fn identify_reason(lines: &[String]) -> String {
         .find(|line| !line.trim().is_empty())
         .map(|line| line.trim().chars().take(400).collect())
         .unwrap_or_default()
+}
+
+/// Minecraft 1.12+ writes its log as XML (`<log4j:Event ...>`). Showing that raw
+/// in the UI is unreadable and hides the crash reason, so each event is folded
+/// back into a single `logger: message` line.
+pub fn extract_attribute(block: &str, name: &str) -> Option<String> {
+    let needle = format!("{name}=\"");
+    let start = block.find(&needle)? + needle.len();
+    let rest = &block[start..];
+    let end = rest.find('"')?;
+    Some(rest[..end].to_string())
+}
+
+pub fn format_game_block(block: &str) -> Option<(String, String)> {
+    if !block.contains("<log4j:Event") {
+        return None;
+    }
+    let level = extract_attribute(block, "level").unwrap_or_else(|| "INFO".to_string());
+    let logger = extract_attribute(block, "logger").unwrap_or_default();
+    let mut parts: Vec<String> = Vec::new();
+    for chunk in block.split("<![CDATA[").skip(1) {
+        if let Some(end) = chunk.find("]]>") {
+            parts.push(chunk[..end].to_string());
+        }
+    }
+    let text = parts.join("\n").trim().to_string();
+    if text.is_empty() {
+        return None;
+    }
+    let text = if logger.is_empty() {
+        text
+    } else {
+        format!("{logger}: {text}")
+    };
+    Some((level, text))
+}
+
+fn emit_game_line(app: &AppHandle, tail: &Arc<Mutex<VecDeque<String>>>, fallback: &str, level: &str, text: &str) {
+    let text = text.trim();
+    if text.is_empty() {
+        return;
+    }
+    push_tail(tail, text);
+    let normalized = match level.to_ascii_uppercase().as_str() {
+        "ERROR" | "FATAL" => "error",
+        "WARN" => "warn",
+        "DEBUG" | "TRACE" => "debug",
+        _ => fallback,
+    };
+    app.state::<AppState>().log(normalized, "game", text.to_string());
+}
+
+fn pump<R: BufRead>(reader: R, app: AppHandle, tail: Arc<Mutex<VecDeque<String>>>, fallback: &'static str) {
+    let mut block = String::new();
+    for line in reader.lines().map_while(Result::ok) {
+        let trimmed = line.trim_end();
+        if trimmed.trim().is_empty() {
+            continue;
+        }
+        if !block.is_empty() {
+            block.push('\n');
+            block.push_str(trimmed);
+            if block.contains("</log4j:Event>") {
+                if let Some((level, text)) = format_game_block(&block) {
+                    emit_game_line(&app, &tail, fallback, &level, &text);
+                }
+                block.clear();
+            }
+            continue;
+        }
+        if trimmed.contains("<log4j:Event") {
+            if trimmed.contains("</log4j:Event>") {
+                if let Some((level, text)) = format_game_block(trimmed) {
+                    emit_game_line(&app, &tail, fallback, &level, &text);
+                }
+            } else {
+                block = trimmed.to_string();
+            }
+            continue;
+        }
+        emit_game_line(&app, &tail, fallback, fallback, trimmed);
+    }
+    if !block.is_empty() {
+        if let Some((level, text)) = format_game_block(&block) {
+            emit_game_line(&app, &tail, fallback, &level, &text);
+        } else {
+            emit_game_line(&app, &tail, fallback, fallback, &block);
+        }
+    }
 }
 
 pub fn stop(app: &AppHandle) -> Result<(), String> {
@@ -394,6 +534,7 @@ pub fn build_launch(
     runtime: &JavaRuntime,
     paths: &Paths,
     settings: &Settings,
+    safe: bool,
 ) -> Result<(PathBuf, Vec<String>), String> {
     let features = mojang::default_features();
     let game_dir = PathBuf::from(&profile.game_dir);
@@ -466,7 +607,7 @@ pub fn build_launch(
     vars.insert("resolution_height", profile.height.to_string());
 
     // JVM arguments -----------------------------------------------------
-    let ram = clamp_ram(profile.ram_mb);
+    let ram = if safe { 1024 } else { clamp_ram(profile.ram_mb) };
     let mut jvm_args: Vec<String> = vec![
         format!("-Xms{}M", (ram / 2).clamp(512, 4096)),
         format!("-Xmx{ram}M"),
@@ -492,12 +633,14 @@ pub fn build_launch(
     }
     jvm_args.push("-Dminecraft.launcher.brand=WinLaucher".to_string());
     jvm_args.push(format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")));
-    for arg in split_args(&profile.jvm_args) {
+    // Custom flags are skipped in safe mode: a single invalid -XX option makes
+    // the JVM exit with code 1 before Minecraft even starts.
+    for arg in if safe { Vec::new() } else { split_args(&profile.jvm_args) } {
         if !arg.trim().is_empty() {
             jvm_args.push(arg);
         }
     }
-    for arg in split_args(&settings.jvm_args) {
+    for arg in if safe { Vec::new() } else { split_args(&settings.jvm_args) } {
         let arg = arg.trim();
         if arg.starts_with("-Xmx") || arg.starts_with("-Xms") || arg.is_empty() {
             continue; // the profile owns the memory settings
@@ -556,7 +699,7 @@ pub fn build_launch(
         game_args.push("--height".to_string());
         game_args.push(profile.height.to_string());
     }
-    if profile.fullscreen && !game_args.iter().any(|arg| arg == "--fullscreen") {
+    if profile.fullscreen && !safe && !game_args.iter().any(|arg| arg == "--fullscreen") {
         game_args.push("--fullscreen".to_string());
     }
 
@@ -604,6 +747,21 @@ mod tests {
         ];
         let args = collect_args(&items, &mojang::default_features());
         assert_eq!(args, vec!["--demo", "--width", "1280", "--height", "720"]);
+    }
+
+    #[test]
+    fn unwraps_log4j_xml() {
+        let block = r#"  <log4j:Event logger="flk" timestamp="1792588053579" level="INFO" thread="Render thread">
+    <log4j:Message><![CDATA[Setting user: SelfTest]]></log4j:Message>
+  </log4j:Event>"#;
+        let (level, text) = format_game_block(block).expect("event must be parsed");
+        assert_eq!(level, "INFO");
+        assert_eq!(text, "flk: Setting user: SelfTest");
+        let crash = r#"<log4j:Event logger="net.minecraft" level="ERROR"><log4j:Message><![CDATA[Could not execute entrypoint]]></log4j:Message><log4j:Throwable><![CDATA[java.lang.RuntimeException: boom]]></log4j:Throwable></log4j:Event>"#;
+        let (level, text) = format_game_block(crash).unwrap();
+        assert_eq!(level, "ERROR");
+        assert!(text.contains("Could not execute entrypoint"));
+        assert!(text.contains("java.lang.RuntimeException"));
     }
 
     #[test]

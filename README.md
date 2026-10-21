@@ -11,21 +11,15 @@
 
 ## Скачать
 
-Готовые сборки лежат в разделе **[Releases → v1.0.2](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.2)**:
+Готовые сборки лежат в разделе **[Releases](https://github.com/egorbelovziiik-design/WinLauncher/releases/latest)**:
 
 | Файл | Размер | Что это |
 | --- | --- | --- |
-| [`WinLaucher_1.0.2_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.2/WinLaucher_1.0.2_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| [`WinLaucher_1.0.2_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.2/WinLaucher_1.0.2_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
-| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.2/WinLaucher-portable.exe) | 9.8 МБ | Portable: один файл, без установки |
+| `WinLaucher_1.0.4_x64-setup.exe` | ~5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| `WinLaucher_1.0.4_x64_en-US.msi` | ~6.8 МБ | Установщик MSI (Windows Installer) |
+| `WinLaucher-portable.exe` | ~9.8 МБ | Portable: один файл, без установки |
 
-SHA-256 (для проверки загрузки):
-
-```
-58B84692B662C618FE119EE9CF2E06C26859B2590A1FED3C1463AB9B4099B45B  WinLaucher-portable.exe
-A87AC0F1582C75B0064622C7757D7FCE084541DA45360C896CF040B28B23EFAB  WinLaucher_1.0.2_x64-setup.exe
-02F6AC66714C94F2F2B69FE2470FEB070EDA9610555F2B9566BDFDC1124DF4F7  WinLaucher_1.0.2_x64_en-US.msi
-```
+> Точные ссылки и SHA-256 указываются на странице релиза — они создаются вместе со сборкой.
 
 Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
 нажмите «Подробнее» → «Выполнить в любом случае». Требуется Windows 10/11 x64.
@@ -85,7 +79,10 @@ A87AC0F1582C75B0064622C7757D7FCE084541DA45360C896CF040B28B23EFAB  WinLaucher_1.0
 3. `cargo test --release --lib` — юнит-тесты логики запуска: правила версий, распаковка нативов
    LWJGL для 1.19+, maven-координаты Forge, подстановка аргументов, выбор версии Java, лимит `-Xmx`.
 4. `npm run tauri build` — реальная сборка `.exe` / `.msi`.
-5. Smoke-тест: портативный exe запускается на раннере и должен остаться живым 15 секунд
+5. End-to-end: `WinLaucher.exe --selftest 1.21.4` устанавливает настоящую версию, скачивает Java 21,
+   собирает командную строку и **запускает настоящий клиент Minecraft**; отчёт с выводом игры
+   пишется в [`selftest-report.txt`](selftest-report.txt).
+6. Smoke-тест: портативный exe запускается на раннере и должен остаться живым 15 секунд
    (то есть окно создаётся, WebView2 инициализируется, паники нет).
    Отчёт с хешами и метаданными PE пишется в [`smoke.txt`](smoke.txt).
 

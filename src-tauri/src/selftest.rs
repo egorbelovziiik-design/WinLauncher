@@ -74,7 +74,7 @@ pub fn run(app: &AppHandle, version: &str) -> String {
         merged.natives_dir.display()
     ));
 
-    let built = launch::build_launch(&merged, &profile, &account, &runtime, &paths, &settings);
+    let built = launch::build_launch(&merged, &profile, &account, &runtime, &paths, &settings, false);
     let (java_path, args) = match built {
         Ok(values) => values,
         Err(error) => {
