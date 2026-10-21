@@ -39,10 +39,32 @@ jobs:
         run: npm run build
 
       - name: Backend check (fast failure with readable errors)
-        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+        shell: pwsh
+        run: |
+          cargo check --manifest-path src-tauri/Cargo.toml --all-targets --message-format short 2>&1 | Tee-Object -FilePath cargo-check.log
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Upload backend log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-check-log
+          path: cargo-check.log
+          if-no-files-found: ignore
 
       - name: Build installers
-        run: npm run tauri build -- --verbose
+        shell: pwsh
+        run: |
+          npm run tauri build -- --verbose 2>&1 | Tee-Object -FilePath tauri-build.log
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-build-log
+          path: tauri-build.log
+          if-no-files-found: ignore
 
       - name: Collect artifacts
         shell: pwsh
