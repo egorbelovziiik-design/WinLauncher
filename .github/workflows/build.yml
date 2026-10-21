@@ -98,6 +98,46 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  publish:
+    name: Publish release with installers
+    if: github.ref_type == 'branch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download installers
+        uses: actions/download-artifact@v4
+        with:
+          name: WinLaucher-windows-x64
+          path: out
+
+      - name: Show files
+        run: ls -lh out
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: WinLaucher 1.0.0
+          make_latest: true
+          draft: false
+          body: |
+            ## WinLaucher 1.0.0 (Windows 10/11, x64)
+
+            Установщики собраны автоматически из ветки `arena/aea774bf-winlauncher`.
+
+            * `WinLaucher_1.0.0_x64-setup.exe` — установщик NSIS (для текущего пользователя, без прав администратора)
+            * `WinLaucher_1.0.0_x64_en-US.msi` — установщик MSI (Windows Installer)
+            * `WinLaucher-portable.exe` — portable-версия, запускается без установки
+
+            ### Важно
+            * Для запуска нужна Java. Лаунчер сам скачивает нужную версию (8/16/17/21) через Adoptium.
+            * Аккаунт Microsoft — вход по коду устройства через официальный OAuth Microsoft, пароль в лаунчер не вводится.
+            * CurseForge работает только с вашим личным API-ключом (в настройках). Без ключа раздел недоступен — это осознанное ограничение, ключи не встраиваются в клиент.
+            * Сборка не подписана сертификатом: Windows SmartScreen может показать предупреждение «Неизвестный издатель» — нажмите «Подробнее» → «Выполнить в любом случае».
+          files: out/*
+
   release:
     name: Attach installers to the release
     if: startsWith(github.ref, 'refs/tags/v')
