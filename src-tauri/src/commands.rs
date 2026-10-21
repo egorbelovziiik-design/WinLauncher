@@ -135,6 +135,10 @@ pub fn cancel_login(state: State<'_, AppState>, id: String) {
         .remove(&id);
 }
 #[tauri::command]
+pub fn create_offline_account(state: State<'_, AppState>, name: String) -> Response<Account> {
+    accounts::offline::create(&state, &name).map_err(err)
+}
+#[tauri::command]
 pub fn remove_account(state: State<'_, AppState>, id: String) -> Response<()> {
     accounts::remove(&state, &id).map_err(err)
 }
@@ -445,7 +449,7 @@ pub async fn minecraft_news(state: State<'_, AppState>) -> Response<Value> {
 pub async fn check_launcher_update(state: State<'_, AppState>) -> Response<Value> {
     let response = state
         .client
-        .get("https://api.github.com/repos/egorbelovziiik-design/WinLauncher/releases/latest")
+        .get("https://api.github.com/repos/egorbelovziiik-design/WinLauncher/releases?per_page=30")
         .send()
         .await
         .map_err(err)?;
@@ -460,12 +464,15 @@ pub async fn check_launcher_update(state: State<'_, AppState>) -> Response<Value
             .map_err(err)?,
     )
     .map_err(err)?;
-    let tag = value["tag_name"]
-        .as_str()
-        .unwrap_or("1.0.0")
-        .trim_start_matches('v');
-    let numbers = |s: &str| -> Vec<u32> { s.split('.').map(|n| n.parse().unwrap_or(0)).collect() };
-    Ok(
-        json!({ "available": numbers(tag) > numbers(env!("CARGO_PKG_VERSION")), "version": tag, "url": value["html_url"], "message": "Обновление устанавливается вручную. Подписанный автоматический канал ещё не опубликован." }),
-    )
+    // This repository also has independent legacy releases. Never offer one
+    // of those as an update for the native Tauri application.
+    let release = value.as_array().and_then(|releases| releases.iter().find(|r| {
+        r["draft"] != true && r["tag_name"].as_str().is_some_and(|tag| tag.starts_with("winlauncher-native-v"))
+    }));
+    let Some(release) = release else {
+        return Ok(json!({ "available": false, "version": env!("CARGO_PKG_VERSION"), "message": "В нативном канале пока нет опубликованных сборок." }));
+    };
+    let tag = release["tag_name"].as_str().unwrap_or_default().trim_start_matches("winlauncher-native-v");
+    let numbers = |s: &str| -> Vec<u32> { s.split('-').next().unwrap_or_default().split('.').map(|n| n.parse().unwrap_or(0)).collect() };
+    Ok(json!({ "available": numbers(tag) > numbers(env!("CARGO_PKG_VERSION")), "version": tag, "url": release["html_url"], "message": "Нативный предварительный канал. Установка вручную; автоматический подписанный канал не настроен." }))
 }

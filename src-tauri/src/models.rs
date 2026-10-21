@@ -113,9 +113,15 @@ pub struct Profile {
     pub installed: bool,
     pub modpack: Option<String>,
 }
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AccountKind { #[default] Microsoft, Offline }
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Account {
     pub id: String,
+    #[serde(default)]
+    pub kind: AccountKind,
     pub name: String,
     pub skin_url: Option<String>,
     pub added_at: i64,

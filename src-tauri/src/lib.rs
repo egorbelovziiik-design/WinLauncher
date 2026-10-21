@@ -65,7 +65,7 @@ pub fn run() {
             commands::get_snapshot, commands::save_settings, commands::get_system_info,
             commands::version_manifest, commands::loader_versions, commands::save_profile, commands::delete_profile,
             commands::install_game, commands::launch_game, commands::cancel_task, commands::stop_game,
-            commands::discover_java, commands::install_java, commands::begin_login, commands::poll_login, commands::cancel_login, commands::remove_account,
+            commands::discover_java, commands::install_java, commands::begin_login, commands::poll_login, commands::cancel_login, commands::remove_account, commands::create_offline_account,
             commands::save_curseforge_key, commands::search_projects, commands::project_detail, commands::project_versions, commands::install_project,
             commands::toggle_content, commands::remove_content, commands::check_mod_updates, commands::install_modrinth_pack, commands::install_curseforge_pack, commands::import_modpack, commands::export_modpack,
             commands::open_directory, commands::open_external, commands::migrate_directory,

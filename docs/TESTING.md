@@ -2,6 +2,12 @@
 
 **Verified on 2026-10-21 UTC.** Implementation, compilation, real backend execution and a rendered licensed game are different claims. A scenario marked **NOT TESTED** is not a success.
 
+## Update: explicit local offline account
+
+The user subsequently requested a local nickname-based account without Microsoft login. This supersedes the original license-only account requirement **for the new, explicitly labelled offline account type only**. Microsoft ownership validation is unchanged for Microsoft accounts. A local account is not a verified license and does not authenticate to online-mode servers. Full network-disconnected launch and rendered local gameplay are NOT TESTED.
+
+New checks cover Java-compatible offline UUID/name validation, backward-compatible Microsoft account deserialization, native SQLite creation/reopen, duplicate prevention, identity resolution without credentials and deletion. These checks are pending the new build when this source report is written; current results are generated into the release's `TESTING.md`/JSON after execution. The exact results and hashes below describe the previous build, not the new one.
+
 ## Exact build and evidence
 
 - Application source / executable build: `fd718db7b9714ef3c5fd0b8856aa185355d75f32`.
@@ -43,7 +49,7 @@ The GUI harness started the real release EXE, which remained running, but could 
 | Release / snapshot / legacy game execution | NOT TESTED | Manifest filtering is implemented, but not every version was installed or launched. |
 | Automatic Java 8 / 17 / 21 / 25 | PASSED | Genuine Adoptium Java 8u504, 17.0.20.1, 21.0.12.1 and 25.0.4.1 x64; SHA256 archives, extraction and real `java -version` for all four. |
 | Microsoft OAuth, refresh, multi-account and skins | NOT TESTED | Requires a registered/approved public Application ID and licensed user accounts. No passwords or secrets should be sent in chat. |
-| Refuse launch without an authenticated licensed account | PASSED | Backend rejected the no-account launch before spawning a game process. There is no cracked/offline fallback. |
+| Refuse launch without an authenticated licensed account | PASSED | Backend rejected the no-account launch before spawning a game process. No account was selected in this historical check. The newly added explicit local account is tested separately. |
 | Rendered licensed Minecraft / PID / exit tracking / playtime | NOT TESTED | No licensed session was started. Implementation and unit tests are not a substitute for this check. |
 | Fabric installation | PASSED | Real Fabric 0.19.5 for Minecraft 1.21.4, official metadata and Maven libraries. Game rendering NOT TESTED. |
 | Forge installation | PASSED | Verified official installer JAR executed for Minecraft 1.21.4, resulting libraries verified. Game rendering NOT TESTED. |
@@ -101,7 +107,7 @@ The app is a genuine PE32+ x86-64 Windows GUI executable. The NSIS launcher stub
 
 ## Known scope limits
 
-- No unlicensed/offline/cracked launch; no bundled third-party launcher Client IDs.
+- Explicit local offline identity is now supported on request. It never claims Microsoft authentication/ownership. No third-party launcher Client IDs are bundled.
 - Legacy Forge installers without headless support can fail with a clear error; historical compatibility is not universally verified.
 - Independent overrides for every storage subdirectory are not implemented; whole-root migration and per-profile Java/RAM are available.
 - Datapacks are discoverable/openable but are not automatically written into a selected world.

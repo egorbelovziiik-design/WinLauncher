@@ -2,8 +2,8 @@
 //! Uses the exact production engine, real HTTPS APIs, hashes and Windows Java
 //! executables. Only UI event emission is absent; nothing is mocked or invented.
 use crate::{
-    content, java, minecraft,
-    models::{InstalledFile, Loader, Profile},
+    accounts, content, java, minecraft,
+    models::{Account, AccountKind, InstalledFile, Loader, Profile},
     modpacks, modrinth, profiles, settings,
     state::AppState,
 };
@@ -121,7 +121,7 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
     .await;
     check(
         &mut reports,
-        "Reject launch without licensed Microsoft account",
+        "Reject launch when no account is selected",
         async {
             match minecraft::launch(&state, &vanilla.id, false).await {
                 Err(e) if e.to_string().contains("Microsoft") => {
@@ -131,11 +131,34 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
                     Ok(())
                 }
                 Err(e) => Err(e),
-                Ok(_) => bail!("Unlicensed launch was incorrectly allowed"),
+                Ok(_) => bail!("Launch without a selected account was incorrectly allowed"),
             }
         },
     )
     .await;
+    let local = check(&mut reports, "Create and persist a real local offline account in SQLite", async {
+        let account = accounts::offline::create(&state, "Native_Player")?;
+        if account.kind != AccountKind::Offline || account.skin_url.is_some() { bail!("Offline identity was misrepresented"); }
+        let reopened = AppState::headless(root.clone())?;
+        let stored: Account = reopened.get("accounts", &account.id)?;
+        if stored.id != accounts::offline::player_id("Native_Player")? || stored.kind != AccountKind::Offline || reopened.config().selected_account.as_deref() != Some(account.id.as_str()) { bail!("Offline account persistence failed"); }
+        let duplicate = accounts::offline::create(&state, "Native_Player")?;
+        if duplicate.id != account.id || state.list::<Account>("accounts")?.len() != 1 { bail!("Duplicate nickname created another account"); }
+        Ok(account)
+    }).await;
+    if let Some(local) = local {
+        check(&mut reports, "Offline launch identity resolves without Microsoft tokens or Client ID", async {
+            if !state.config().microsoft_client_id.is_empty() { bail!("Test requires no Client ID"); }
+            let (identity, token) = accounts::launch_identity(&state).await?;
+            if identity.id != local.id || token != "0" || identity.kind != AccountKind::Offline { bail!("Incorrect local game identity"); }
+            Ok(())
+        }).await;
+        check(&mut reports, "Delete an offline account without touching Microsoft credentials", async {
+            accounts::remove(&state, &local.id)?;
+            if !state.list::<Account>("accounts")?.is_empty() || state.config().selected_account.is_some() { bail!("Offline account was not removed"); }
+            Ok(())
+        }).await;
+    }
     for major in [21, 8, 17, 25] {
         check(
             &mut reports,

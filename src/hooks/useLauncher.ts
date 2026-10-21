@@ -37,7 +37,7 @@ export function useLaunch() {
     if (snapshot.running) { setPage('logs'); return; }
     if (snapshot.job) return;
     if (!profile) { editProfile({}); return; }
-    if (!account) { setPage('accounts'); toast.info('Подключите Microsoft-аккаунт с лицензией Minecraft Java Edition.'); return; }
+    if (!account) { setPage('accounts'); toast.info('Войдите через Microsoft или создайте локальный офлайн-аккаунт.'); return; }
     void command('launch_game', { profileId: profile.id, allowMemoryPressure: false }).catch(error => {
       const message = String(error);
       if (message.includes('MEMORY_WARNING')) confirm({ title: 'Недостаточно свободной памяти', description: message.replace(/^.*MEMORY_WARNING:\s*/, ''), label: 'Всё равно запустить', action: async () => { await command('launch_game', { profileId: profile.id, allowMemoryPressure: true }); } });

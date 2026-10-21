@@ -1,6 +1,7 @@
 pub mod vault;
+pub mod offline;
 use crate::{
-    models::Account,
+    models::{Account, AccountKind},
     state::{AppState, PendingAuth},
 };
 use anyhow::{bail, Context, Result};
@@ -264,6 +265,7 @@ async fn exchange(
         bail!("Некорректный UUID Minecraft");
     }
     let account = Account {
+        kind: AccountKind::Microsoft,
         id,
         name: profile["name"]
             .as_str()
@@ -305,7 +307,7 @@ async fn check_ownership(state: &AppState, token: &str) -> Result<()> {
         })
     });
     if !owned {
-        bail!("У аккаунта не найдена лицензия Minecraft Java Edition. Приобретите игру или проверьте подписку. Offline/cracked-вход не поддерживается.");
+        bail!("У аккаунта не найдена лицензия Minecraft Java Edition. Приобретите игру или проверьте подписку. Для Microsoft-входа требуется лицензия на этом аккаунте.");
     }
     Ok(())
 }
@@ -314,8 +316,17 @@ pub async fn launch_identity(state: &AppState) -> Result<(Account, String)> {
     let id = state
         .config()
         .selected_account
-        .context("Войдите в Microsoft-аккаунт с лицензией Minecraft")?;
+        .context("Выберите Microsoft-аккаунт или создайте локальный офлайн-профиль")?;
     let mut account: Account = state.get("accounts", &id)?;
+    if account.kind == AccountKind::Offline {
+        if offline::player_id(&account.name)? != account.id || account.skin_url.is_some() {
+            bail!("Некорректные данные офлайн-аккаунта. Удалите его и создайте заново.");
+        }
+        // Local identity has no credentials. Never refresh a Microsoft session
+        // or claim ownership for this explicitly selected account type.
+        return Ok((account, "0".into()));
+    }
+
     let mut creds: Credentials = serde_json::from_str(&vault::get(&format!("account-{id}"))?)?;
     if creds.expires_at < chrono::Utc::now().timestamp() + 300 {
         let response = state
@@ -351,8 +362,8 @@ pub async fn launch_identity(state: &AppState) -> Result<(Account, String)> {
 
 pub fn remove(state: &AppState, id: &str) -> Result<()> {
     let _operation = state.begin_job("account")?;
-    let _: Account = state.get("accounts", id)?;
-    vault::delete(&format!("account-{id}"))?;
+    let account: Account = state.get("accounts", id)?;
+    if account.kind == AccountKind::Microsoft { vault::delete(&format!("account-{id}"))?; }
     state.remove("accounts", id)?;
     if state.config().selected_account.as_deref() == Some(id) {
         state

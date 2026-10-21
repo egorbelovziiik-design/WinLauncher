@@ -125,3 +125,19 @@ test('minimum desktop width has no horizontal overflow and accessible Play', asy
   expect(bounds.page).toBeLessThanOrEqual(bounds.window);
   await expect(page.getByLabel('Боковая панель')).toBeInViewport();
 });
+
+test('offline account form validates nicknames and never fakes a native account in preview', async ({ page }) => {
+  await page.getByRole('button', { name: /Войти в аккаунт/ }).click();
+  await page.getByRole('button', { name: 'Добавить офлайн-аккаунт', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Добавить офлайн-аккаунт' });
+  const create = dialog.getByRole('button', { name: 'Создать офлайн-аккаунт' });
+  await expect(create).toBeDisabled();
+  await dialog.getByLabel('Никнейм', { exact: true }).fill('Bad Name');
+  await expect(create).toBeDisabled();
+  await dialog.getByLabel('Никнейм', { exact: true }).fill('Player_123');
+  await expect(create).toBeEnabled();
+  await expect(dialog.getByText(/Это не Microsoft-аккаунт/)).toBeVisible();
+  await create.click();
+  await expect(page.getByRole('dialog', { name: 'Нативная функция Windows' })).toBeVisible();
+  await expect(page.locator('.account-card')).toHaveCount(0);
+});
