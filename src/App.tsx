@@ -13,6 +13,7 @@ const FALLBACK_RELEASES=['26.4','26.3','26.2','26.1','1.21.11','1.21.10','1.21.9
 const parseVer=(id:string)=>{const m=String(id).match(/^(\d+)\.(\d+)(?:\.(\d+))?/);return m?[+m[1],+m[2],+(m[3]||0)]:null};
 const cmpVer=(a:number[],b:number[])=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2];
 const inSupportedRange=(v:any)=>{const p=parseVer(v.id); if(p) return cmpVer(p,[1,12,2])>=0 && cmpVer(p,[26,4,999])<=0; return new Date(v.releaseTime||0).getTime()>=new Date('2017-09-18').getTime()};
+const LOADERS=[{id:'vanilla',label:'Vanilla',icon:'🍦',color:'#94a3b8',desc:'Оригинальная игра без модов'},{id:'fabric',label:'Fabric',icon:'🧵',color:'#c2a97d',desc:'Лёгкий и быстрый, Sodium / большинство модов'},{id:'forge',label:'Forge',icon:'🔨',color:'#f59e0b',desc:'Классика крупных модов и модпаков'},{id:'neoforge',label:'NeoForge',icon:'⚒️',color:'#f97316',desc:'Современный форк Forge (1.20.2+)'},{id:'quilt',label:'Quilt',icon:'🧩',color:'#a78bfa',desc:'Форк Fabric, совместим с его модами'}] as const;
 const avatarUrl=(a?:Acc|null)=>a?`https://mc-heads.net/avatar/${encodeURIComponent(a.username)}/80`:'';
 const themes=['dark','light','minecraft','purple','ocean','emerald','midnight','custom'];
 const langs=[['ru','Русский'],['en','English'],['uk','Українська'],['de','Deutsch'],['fr','Français'],['es','Español'],['pt','Português'],['pl','Polski'],['tr','Türkçe'],['zh','中文'],['ja','日本語']];
@@ -25,7 +26,7 @@ export default function App(){
  const [logs,setLogs]=useState<string[]>([]); const [downloads,setDownloads]=useState<any[]>([]); const [mods,setMods]=useState<any[]>([]); const [modQ,setModQ]=useState('sodium'); const [modSource,setModSource]=useState('modrinth');
  const [packs,setPacks]=useState<any[]>([]); const [packQ,setPackQ]=useState(''); const [installedMods,setInstalledMods]=useState<any[]>([]);
  const [msg,setMsg]=useState(''); const [sys,setSys]=useState<any>({total_ram_mb:16384}); const [onboard,setOnboard]=useState(!settings.onboarded);
- const [device,setDevice]=useState<any>(null); const [filter,setFilter]=useState('release'); const [visibleCount,setVisibleCount]=useState(200); const [vsearch,setVsearch]=useState('');
+ const [device,setDevice]=useState<any>(null); const [filter,setFilter]=useState('release'); const [visibleCount,setVisibleCount]=useState(200); const [selLoader,setSelLoader]=useState<string>('vanilla'); const [loaderVer,setLoaderVer]=useState(''); const [openPicker,setOpenPicker]=useState<string|null>(null); const [pickerQ,setPickerQ]=useState(''); const [vsearch,setVsearch]=useState('');
  const activeAcc=accounts.find(a=>a.id===settings.active_account)||accounts[0];
  const activeProf=profiles.find(p=>p.id===settings.active_profile)||profiles[0]||{id:'default',name:'По умолчанию',version:selVersion,loader:'vanilla',game_dir:'',ram_mb:settings.ram_mb} as Prof;
 
@@ -38,14 +39,14 @@ export default function App(){
    }
    searchMods('sodium'); searchPacks('');
  })()},[]);
- useEffect(()=>{ if(activeProf?.version) setSelVersion(activeProf.version)},[activeProf?.id]);
+ useEffect(()=>{ if(activeProf?.version) setSelVersion(activeProf.version); if(activeProf?.loader) setSelLoader(activeProf.loader)},[activeProf?.id]);
  const refreshInstalled=async()=>{ if(isTauri) setInstalled(await call('list_installed')) };
  const refreshMods=async()=>{ if(isTauri&&activeProf) try{setInstalledMods(await call('list_mods',{profile:activeProf}))}catch{} }; useEffect(()=>{refreshMods()},[page,activeProf?.id]);
 
  async function play(){
    if(!activeAcc){setMsg('Сначала добавьте аккаунт на вкладке Аккаунты'); setPage('accounts'); return}
    if(!isTauri){setMsg('Запуск Minecraft доступен в WinLaucher.exe (десктоп). В браузере — предпросмотр.'); return}
-   try{ setState('ПОДГОТОВКА JAVA'); const prof={...activeProf,version:selVersion,ram_mb:settings.ram_mb}; await call('launch_game',{versionId:selVersion,account:activeAcc,profile:prof}); setState('В ИГРЕ'); const iv=setInterval(async()=>{ const run=await call<boolean>('game_running'); if(!run){setState('ИГРАТЬ'); clearInterval(iv)} },3000);
+   try{ setState('ПОДГОТОВКА JAVA'); const prof={...activeProf,version:selVersion,loader:selLoader,loader_version:loaderVer||activeProf.loader_version||null,ram_mb:settings.ram_mb}; await call('launch_game',{versionId:selVersion,account:activeAcc,profile:prof}); setState('В ИГРЕ'); const iv=setInterval(async()=>{ const run=await call<boolean>('game_running'); if(!run){setState('ИГРАТЬ'); clearInterval(iv)} },3000);
    }catch(e:any){setState('ИГРАТЬ'); setMsg('Ошибка запуска: '+e)} }
  async function installVer(id:string){ if(!isTauri)return setMsg('Установка доступна в .exe'); try{setState('УСТАНОВКА'); await call('install_version',{versionId:id}); await refreshInstalled(); setState('ИГРАТЬ'); setMsg(id+' установлена')}catch(e:any){setState('ИГРАТЬ'); setMsg('Ошибка: '+e)} }
  async function searchMods(q:string){ setModQ(q); try{ if(modSource==='curseforge'){ const d:any=await call('curseforge_search',{query:q}); setMods((d.data||[]).map((x:any)=>({id:String(x.id),title:x.name,description:x.summary,downloads:x.downloadCount,icon_url:x.logo?.url,slug:x.slug}))); } else { const d:any=await call('modrinth_search',{query:q},async()=>{const r=await fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(q)}&limit=36&facets=[["project_type:mod"]]` ,{headers:{}}); return r.json()}); setMods(d.hits||[]);} }catch(e:any){setMsg(String(e))} }
@@ -65,7 +66,7 @@ export default function App(){
 
  return <div className="layout">
   <aside className="sidebar"><div className="flex items-center gap-3 p-2"><img src="/logo.png" className="logo-img" alt="WinLaucher"/><div className="hide-sm min-w-0"><b className="text-xl block truncate">WinLaucher</b><span className="badge">1.12.2 — 26.4</span></div></div>
-   {nav.map(([id,label,Icon]:any)=><button key={id} title={label} className={'navbtn '+(page===id?'active':'')} onClick={()=>setPage(id)}><Icon size={18} className="shrink-0"/><span className="hide-sm truncate">{label}</span></button>)}
+   {nav.map(([id,label,Icon]:any)=><button key={id} title={label} className={'navbtn '+(page===id?'active':'')} onClick={()=>{setPage(id);setOpenPicker(null)}}><Icon size={18} className="shrink-0"/><span className="hide-sm truncate">{label}</span></button>)}
    {activeAcc&&<button className="panel w-full p-3 mt-4 flex items-center gap-3 text-left" onClick={()=>setPage('accounts')}><img src={avatarUrl(activeAcc)} className="avatar" alt=""/><span className="hide-sm min-w-0"><b className="block truncate text-sm">{activeAcc.username}</b><span className="text-xs" style={{color:'var(--muted)'}}>{activeAcc.kind} • {selVersion}</span></span></button>}
    <div className="panel hide-sm p-3 text-xs mt-3" style={{color:'var(--muted)'}}>{isTauri?'🟢 Desktop (Tauri)':'🟡 Browser preview — запуск в .exe'}<br/>Java: авто (Temurin 8/17/21)<br/>RAM: {settings.ram_mb} MB / {sys.total_ram_mb} MB</div></aside>
 
@@ -73,11 +74,41 @@ export default function App(){
    {msg&&<div className="panel p-3 flex justify-between"><span>{msg}</span><button onClick={()=>setMsg('')}><X size={16}/></button></div>}
    {progress&&progress.percent!==undefined&&<div className="panel p-3"><div className="flex justify-between text-sm"><span>{progress.name||progress.stage} — {Math.round(progress.percent||0)}%</span><span>{progress.speed?Math.round(progress.speed/1024)+' KB/s':''}</span></div><div className="h-2 bg-black/40 rounded mt-2"><div className="h-2 rounded bg-[var(--primary)] transition-all" style={{width:(progress.percent||0)+'%'}}/></div></div>}
 
-   {page==='home'&&<><div className="hero p-8 flex flex-col justify-end"><div className="flex items-center gap-3 flex-wrap"><img src="/logo.png" className="logo-img" style={{width:58,height:58}} alt=""/><h1 className="text-4xl font-black drop-shadow">Minecraft Java Edition</h1><span className="badge">Версии 1.12.2 — {newestVersion}</span></div><p className="opacity-80">{t('ready')}: {selVersion} • {activeAcc?activeAcc.username:'нет аккаунта'} • {activeProf.loader}</p>
-    <div className="flex gap-3 mt-5 flex-wrap"><select className="input max-w-xs" value={selVersion} onChange={e=>setSelVersion(e.target.value)}>{releaseVersions.map(v=><option key={v.id} value={v.id}>{v.id} (release)</option>)}</select>
-    <select className="input max-w-xs" value={activeAcc?.id||''} onChange={e=>saveSett({...settings,active_account:e.target.value})}>{accounts.map(a=><option key={a.id} value={a.id}>{a.username} ({a.kind})</option>)}</select>
-    <button className="btn play text-xl px-10" onClick={play} disabled={state!=='ИГРАТЬ'}><Play className="inline"/> {state}</button>
-    {state==='В ИГРЕ'&&<button className="btn" style={{background:'#dc2626'}} onClick={()=>call('kill_game')}>Стоп</button>}</div></div>
+   {page==='home'&&<><div className="hero p-8 flex flex-col justify-end"><div className="flex items-center gap-3 flex-wrap"><img src="/logo.png" className="logo-img" style={{width:58,height:58}} alt=""/><h1 className="text-4xl font-black drop-shadow">Minecraft Java Edition</h1><span className="badge">Версии 1.12.2 — {newestVersion}</span></div><p className="opacity-80">{t('ready')}: {selVersion} • {(LOADERS.find(l=>l.id===selLoader)?.label)||selLoader} • {activeAcc?activeAcc.username:'нет аккаунта'}</p>
+    <div className="launch-bar">
+      <div className="picker">
+        <button type="button" className={'picker-btn '+(openPicker==='version'?'open':'')} onClick={()=>setOpenPicker(openPicker==='version'?null:'version')}>
+          <span className="picker-ico">🎮</span><span className="picker-txt"><small>Версия Minecraft</small><b>{selVersion}</b></span><span className="badge">{installed.includes(selVersion)?'установлена':'release'}</span><span className="chev">{openPicker==='version'?'▴':'▾'}</span>
+        </button>
+        {openPicker==='version'&&<div className="popover">
+          <input autoFocus className="input" placeholder="Поиск версии… (1.12.2 — 26.4)" value={pickerQ} onChange={e=>setPickerQ(e.target.value)}/>
+          <div className="popover-list">{releaseVersions.filter(v=>v.id.includes(pickerQ.trim())).slice(0,80).map(v=><button type="button" key={v.id} className={'opt '+(v.id===selVersion?'sel':'')} onClick={()=>{setSelVersion(v.id);setOpenPicker(null)}}><span className="opt-ico">{installed.includes(v.id)?'✅':'⬜'}</span><b>{v.id}</b><span className="badge">release</span>{v.id===selVersion&&<span className="ml-auto">✓</span>}</button>)}{releaseVersions.filter(v=>v.id.includes(pickerQ.trim())).length===0&&<p className="p-3 text-sm opacity-60">Ничего не найдено</p>}</div>
+          <button type="button" className="opt" onClick={()=>{setOpenPicker(null);setPage('versions')}}>📂 Все версии, снапшоты и фильтры →</button>
+        </div>}
+      </div>
+      <div className="picker">
+        <button type="button" className={'picker-btn '+(openPicker==='loader'?'open':'')} onClick={()=>setOpenPicker(openPicker==='loader'?null:'loader')}>
+          <span className="picker-ico">{LOADERS.find(l=>l.id===selLoader)?.icon}</span><span className="picker-txt"><small>Загрузчик модов</small><b>{LOADERS.find(l=>l.id===selLoader)?.label}</b></span><span className="chev">{openPicker==='loader'?'▴':'▾'}</span>
+        </button>
+        {openPicker==='loader'&&<div className="popover popover-wide">
+          {LOADERS.map(l=><button type="button" key={l.id} className={'loader-card '+(selLoader===l.id?'sel':'')} style={{['--lc' as any]:l.color}} onClick={()=>{setSelLoader(l.id); if(l.id==='vanilla')setOpenPicker(null)}}><span className="loader-ico">{l.icon}</span><span className="min-w-0"><b className="block">{l.label}</b><small className="block opacity-70" style={{whiteSpace:'normal'}}>{l.desc}</small></span>{selLoader===l.id&&<span className="ml-auto badge">выбран</span>}</button>)}
+          {(selLoader==='forge'||selLoader==='neoforge')&&<input className="input mt-1" placeholder={selLoader==='forge'?'Версия Forge, напр. 1.20.1-47.2.0':'Версия NeoForge, напр. 21.1.65'} value={loaderVer} onChange={e=>setLoaderVer(e.target.value)}/>}
+          {(selLoader==='fabric'||selLoader==='quilt')&&<p className="text-xs opacity-60 px-1">Версия загрузчика подберётся автоматически под {selVersion} при запуске.</p>}
+          <button type="button" className="btn w-full" onClick={()=>setOpenPicker(null)}>Готово</button>
+        </div>}
+      </div>
+      <div className="picker">
+        <button type="button" className={'picker-btn '+(openPicker==='account'?'open':'')} onClick={()=>setOpenPicker(openPicker==='account'?null:'account')}>
+          {activeAcc?<img src={avatarUrl(activeAcc)} className="picker-avatar" alt=""/>:<span className="picker-ico">👤</span>}<span className="picker-txt"><small>Аккаунт</small><b>{activeAcc?activeAcc.username:'Не выбран'}</b></span><span className="chev">{openPicker==='account'?'▴':'▾'}</span>
+        </button>
+        {openPicker==='account'&&<div className="popover">
+          {accounts.map(a=><button type="button" key={a.id} className={'opt '+(a.id===activeAcc?.id?'sel':'')} onClick={()=>{saveSett({...settings,active_account:a.id});setOpenPicker(null)}}><img src={avatarUrl(a)} className="picker-avatar" alt=""/><span className="min-w-0"><b className="block truncate">{a.username}</b><small className="opacity-60">{a.kind}</small></span>{a.id===activeAcc?.id&&<span className="ml-auto">✓</span>}</button>)}
+          <button type="button" className="opt" onClick={()=>{setOpenPicker(null);setPage('accounts')}}>➕ Добавить аккаунт (Microsoft / Офлайн)</button>
+        </div>}
+      </div>
+      <button className="btn play" onClick={play} disabled={state!=='ИГРАТЬ'}><Play className="inline"/> {state}</button>
+      {state==='В ИГРЕ'&&<button className="btn" style={{background:'#dc2626'}} onClick={()=>call('kill_game')}>Стоп</button>}
+    </div></div>
     <div className="grid-cards"><div className="panel p-4"><h3>📰 {t('news')}</h3><p className="text-sm opacity-80 mt-2">Актуальные версии подгружаются из официального piston-meta.mojang.com. Последняя release: <b>{versions.find(v=>v.type==='release')?.id||'—'}</b>. Новости: minecraft.net/ru-ru/articles</p></div>
     <div className="panel p-4"><h3>☕ Java</h3><p className="text-sm opacity-80 mt-2">Определяется по javaVersion версии игры и скачивается с Adoptium Temurin при необходимости. Путь: {settings.java_path||'авто'}</p>{isTauri&&<button className="btn mt-2" onClick={async()=>setMsg(await call('ensure_java',{major:21}))}>Проверить Java 21</button>}</div>
     <div className="panel p-4"><h3>📊 Статус</h3><p className="text-sm mt-2">Установлено версий: {installed.length}<br/>Профиль: {activeProf.name}<br/>Состояние: {state}</p></div></div></>}
