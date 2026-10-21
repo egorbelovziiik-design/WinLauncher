@@ -51,22 +51,65 @@ async fn check<T, F: Future<Output = Result<T>>>(
 async fn fabric_bootstrap(state: &AppState, profile: &Profile) -> Result<()> {
     let since = chrono::Utc::now().timestamp_millis();
     let pid = minecraft::launch(state, &profile.id, true).await?;
-    if pid == 0 { bail!("No real Java PID"); }
+    if pid == 0 {
+        bail!("No real Java PID");
+    }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(45);
     loop {
-        if !state.has_running() || std::time::Instant::now() >= deadline { break; }
-        let ready = state.logs.lock().unwrap_or_else(|e| e.into_inner()).iter().any(|l| l.timestamp >= since && l.source == "minecraft" && l.message.to_lowercase().contains("setting user:"));
-        if ready { break; }
+        if !state.has_running() || std::time::Instant::now() >= deadline {
+            break;
+        }
+        let ready = state
+            .logs
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .any(|l| {
+                l.timestamp >= since
+                    && l.source == "minecraft"
+                    && l.message.to_lowercase().contains("setting user:")
+            });
+        if ready {
+            break;
+        }
         tokio::time::sleep(std::time::Duration::from_millis(250)).await;
     }
-    if state.has_running() { state.game_stop.lock().unwrap_or_else(|e| e.into_inner()).cancel(); }
+    if state.has_running() {
+        state
+            .game_stop
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .cancel();
+    }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
-    while state.has_running() && std::time::Instant::now() < deadline { tokio::time::sleep(std::time::Duration::from_millis(100)).await; }
-    if state.has_running() { bail!("Java process tracking did not finish after stop"); }
-    let lines = state.logs.lock().unwrap_or_else(|e| e.into_inner()).iter().filter(|l| l.timestamp >= since && l.source == "minecraft").map(|l| l.message.clone()).collect::<Vec<_>>();
+    while state.has_running() && std::time::Instant::now() < deadline {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    if state.has_running() {
+        bail!("Java process tracking did not finish after stop");
+    }
+    let lines = state
+        .logs
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .filter(|l| l.timestamp >= since && l.source == "minecraft")
+        .map(|l| l.message.clone())
+        .collect::<Vec<_>>();
     let text = lines.join("\n").to_lowercase();
     if !text.contains("fabric loader") || !text.contains("setting user:") {
-        bail!("Fabric {} did not reach client initialization. Actual Java output:\n{}", profile.game_version, lines.iter().rev().take(30).rev().cloned().collect::<Vec<_>>().join("\n"));
+        bail!(
+            "Fabric {} did not reach client initialization. Actual Java output:\n{}",
+            profile.game_version,
+            lines
+                .iter()
+                .rev()
+                .take(30)
+                .rev()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
     }
     println!("REAL FABRIC BOOTSTRAP: {} / PID {} / client initialization reached. Rendering is NOT TESTED.", profile.game_version, pid);
     Ok(())
@@ -409,40 +452,119 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
         // directory to diagnose compatibility of another game version.
         accounts::offline::create(&state, "Native_Boot")?;
         for version in ["1.21.4", "26.2", "1.16.5"] {
-            let mut profile = profiles::new(format!("Fabric bootstrap {version}"), version.into(), Loader::Fabric);
-            profile.min_memory_mb = 512; profile.max_memory_mb = 2048;
+            let mut profile = profiles::new(
+                format!("Fabric bootstrap {version}"),
+                version.into(),
+                Loader::Fabric,
+            );
+            profile.min_memory_mb = 512;
+            profile.max_memory_mb = 2048;
             profiles::save(&state, profile.clone())?;
-            let installed = check(&mut reports, &format!("Real Fabric {version} clean installation"), minecraft::install_only(&state, &profile.id)).await.is_some();
+            let installed = check(
+                &mut reports,
+                &format!("Real Fabric {version} clean installation"),
+                minecraft::install_only(&state, &profile.id),
+            )
+            .await
+            .is_some();
             if installed {
-                check(&mut reports, &format!("Real Fabric {version} JVM reaches Minecraft client initialization"), fabric_bootstrap(&state, &profile)).await;
+                check(
+                    &mut reports,
+                    &format!("Real Fabric {version} JVM reaches Minecraft client initialization"),
+                    fabric_bootstrap(&state, &profile),
+                )
+                .await;
             }
         }
         for version in ["1.12.2", "1.8.9"] {
-            let profile = profiles::new(format!("Legacy Vanilla {version}"), version.into(), Loader::Vanilla);
+            let profile = profiles::new(
+                format!("Legacy Vanilla {version}"),
+                version.into(),
+                Loader::Vanilla,
+            );
             profiles::save(&state, profile.clone())?;
-            check(&mut reports, &format!("Real Vanilla {version} installation from official manifest"), minecraft::install_only(&state, &profile.id)).await;
+            check(
+                &mut reports,
+                &format!("Real Vanilla {version} installation from official manifest"),
+                minecraft::install_only(&state, &profile.id),
+            )
+            .await;
         }
-        check(&mut reports, "Real Java 21 relative argument file and Unicode filesystem", async {
-            let runtime = java::ensure(&state, 21, None, &tokio_util::sync::CancellationToken::new()).await?;
-            let folder = state.root().join("argument file Проверка"); fs::create_dir_all(&folder)?;
-            let args = folder.join("jvm args.txt");
-            minecraft::arguments::write_jvm_argfile(&args, &["-Dwinlauncher.probe=value with spaces".into(), "-cp".into(), ".".into()])?;
-            fs::copy("src-tauri/target/native-probes/ArgfileProbe.class", folder.join("ArgfileProbe.class"))?;
-            fs::write(folder.join("файл.txt"), "Привет".as_bytes())?;
-            let output = java::command(std::path::Path::new(&runtime.path)).current_dir(&folder).arg("@jvm args.txt").arg("ArgfileProbe").output().await?;
-            let text = String::from_utf8_lossy(&output.stdout);
-            if !output.status.success() || !text.contains("ARGFILE_UNICODE_FILES_OK") { bail!("Java argument-file interop failed: {} / {text}", String::from_utf8_lossy(&output.stderr)); }
-            Ok(())
-        }).await;
-        check(&mut reports, "Managed Java and real invalid-argument exit 1 are diagnosed", async {
-            let runtime = java::ensure(&state, 21, None, &tokio_util::sync::CancellationToken::new()).await?;
-            if !runtime.managed { bail!("Automatic Java selected an unmanaged system installation"); }
-            let output = java::command(std::path::Path::new(&runtime.path)).arg("-XX:WinLauncherInvalidTestOption=1").output().await?;
-            if output.status.success() { bail!("Invalid JVM option unexpectedly succeeded"); }
-            let text = String::from_utf8_lossy(&output.stderr);
-            if minecraft::diagnostics::classify(&text, output.status.code(), false).0 != "jvm_arguments" { bail!("Real Java error was not diagnosed: {text}"); }
-            Ok(())
-        }).await;
+        check(
+            &mut reports,
+            "Real Java 21 relative argument file and Unicode filesystem",
+            async {
+                let runtime = java::ensure(
+                    &state,
+                    21,
+                    None,
+                    &tokio_util::sync::CancellationToken::new(),
+                )
+                .await?;
+                let folder = state.root().join("argument file Проверка");
+                fs::create_dir_all(&folder)?;
+                let args = folder.join("jvm args.txt");
+                minecraft::arguments::write_jvm_argfile(
+                    &args,
+                    &[
+                        "-Dwinlauncher.probe=value with spaces".into(),
+                        "-cp".into(),
+                        ".".into(),
+                    ],
+                )?;
+                fs::copy(
+                    "src-tauri/target/native-probes/ArgfileProbe.class",
+                    folder.join("ArgfileProbe.class"),
+                )?;
+                fs::write(folder.join("файл.txt"), "Привет".as_bytes())?;
+                let output = java::command(std::path::Path::new(&runtime.path))
+                    .current_dir(&folder)
+                    .arg("@jvm args.txt")
+                    .arg("ArgfileProbe")
+                    .output()
+                    .await?;
+                let text = String::from_utf8_lossy(&output.stdout);
+                if !output.status.success() || !text.contains("ARGFILE_UNICODE_FILES_OK") {
+                    bail!(
+                        "Java argument-file interop failed: {} / {text}",
+                        String::from_utf8_lossy(&output.stderr)
+                    );
+                }
+                Ok(())
+            },
+        )
+        .await;
+        check(
+            &mut reports,
+            "Managed Java and real invalid-argument exit 1 are diagnosed",
+            async {
+                let runtime = java::ensure(
+                    &state,
+                    21,
+                    None,
+                    &tokio_util::sync::CancellationToken::new(),
+                )
+                .await?;
+                if !runtime.managed {
+                    bail!("Automatic Java selected an unmanaged system installation");
+                }
+                let output = java::command(std::path::Path::new(&runtime.path))
+                    .arg("-XX:WinLauncherInvalidTestOption=1")
+                    .output()
+                    .await?;
+                if output.status.success() {
+                    bail!("Invalid JVM option unexpectedly succeeded");
+                }
+                let text = String::from_utf8_lossy(&output.stderr);
+                if minecraft::diagnostics::classify(&text, output.status.code(), false).0
+                    != "jvm_arguments"
+                {
+                    bail!("Real Java error was not diagnosed: {text}");
+                }
+                Ok(())
+            },
+        )
+        .await;
         check(
             &mut reports,
             "Migrate real game data with SHA256 and retain original",

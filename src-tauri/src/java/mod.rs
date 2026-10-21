@@ -37,16 +37,31 @@ pub fn parse_major(version: &str) -> Result<u32> {
 pub fn command(path: &Path) -> Command {
     let mut cmd = Command::new(path);
     // Keep diagnostic pipes UTF-8 without changing the encoding of game files.
-    cmd.args(["-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8", "-Dsun.stderr.encoding=UTF-8"]);
+    cmd.args([
+        "-Dstdout.encoding=UTF-8",
+        "-Dstderr.encoding=UTF-8",
+        "-Dsun.stdout.encoding=UTF-8",
+        "-Dsun.stderr.encoding=UTF-8",
+    ]);
 
-    for name in ["_JAVA_OPTIONS", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "CLASSPATH"] { cmd.env_remove(name); }
+    for name in [
+        "_JAVA_OPTIONS",
+        "JAVA_TOOL_OPTIONS",
+        "JDK_JAVA_OPTIONS",
+        "CLASSPATH",
+    ] {
+        cmd.env_remove(name);
+    }
     #[cfg(windows)]
     cmd.creation_flags(0x08000000);
     cmd
 }
 
 fn version_key(version: &str) -> Vec<u32> {
-    version.split(|c: char| !c.is_ascii_digit()).filter_map(|p| p.parse().ok()).collect()
+    version
+        .split(|c: char| !c.is_ascii_digit())
+        .filter_map(|p| p.parse().ok())
+        .collect()
 }
 
 async fn managed_runtimes(state: &AppState) -> Vec<JavaRuntime> {
@@ -54,9 +69,14 @@ async fn managed_runtimes(state: &AppState) -> Vec<JavaRuntime> {
     if let Ok(entries) = std::fs::read_dir(state.root().join("runtime")) {
         for entry in entries.flatten() {
             // Never use a partially extracted staging directory as a runtime.
-            if !entry.file_name().to_string_lossy().starts_with("temurin-") { continue; }
+            if !entry.file_name().to_string_lossy().starts_with("temurin-") {
+                continue;
+            }
             if let Some(path) = find_java(&entry.path(), 4) {
-                if let Ok(mut runtime) = inspect(&path).await { runtime.managed = true; result.push(runtime); }
+                if let Ok(mut runtime) = inspect(&path).await {
+                    runtime.managed = true;
+                    result.push(runtime);
+                }
             }
         }
     }
@@ -150,7 +170,9 @@ pub async fn discover(state: &AppState) -> Vec<JavaRuntime> {
     let runtimes = state.root().join("runtime");
     if let Ok(entries) = std::fs::read_dir(&runtimes) {
         for entry in entries.flatten() {
-            if !entry.file_name().to_string_lossy().starts_with("temurin-") { continue; }
+            if !entry.file_name().to_string_lossy().starts_with("temurin-") {
+                continue;
+            }
             if let Some(p) = find_java(&entry.path(), 3) {
                 candidates.push(p);
             }
@@ -270,7 +292,14 @@ pub async fn install_managed(
     if install.exists() {
         // Preserve an unhealthy/partially modified old installation. Never
         // delete user files just to repair the managed runtime.
-        install = security::within(&state.root(), &format!("runtime/temurin-{required}-{}-{}", &checksum[..12], uuid::Uuid::new_v4()))?;
+        install = security::within(
+            &state.root(),
+            &format!(
+                "runtime/temurin-{required}-{}-{}",
+                &checksum[..12],
+                uuid::Uuid::new_v4()
+            ),
+        )?;
     }
     std::fs::rename(&staging, &install)?;
     let mut runtime = inspect(&install.join(relative)).await?;
@@ -307,8 +336,16 @@ mod tests {
         assert!(version_key("21.0.12.1") > version_key("21.0.9"));
         assert!(version_key("1.8.0_504") > version_key("1.8.0_402"));
         let cmd = command(Path::new("java.exe"));
-        for name in ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS", "CLASSPATH"] {
-            assert!(cmd.as_std().get_envs().any(|(key, value)| key == name && value.is_none()));
+        for name in [
+            "JAVA_TOOL_OPTIONS",
+            "JDK_JAVA_OPTIONS",
+            "_JAVA_OPTIONS",
+            "CLASSPATH",
+        ] {
+            assert!(cmd
+                .as_std()
+                .get_envs()
+                .any(|(key, value)| key == name && value.is_none()));
         }
     }
     #[test]

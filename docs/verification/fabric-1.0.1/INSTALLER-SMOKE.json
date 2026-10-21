@@ -1,0 +1,23 @@
+{
+  "harness_commit": "42acfaba5e2d57a4363c479b623b059d7fe33531",
+  "checks": [
+    {
+      "detail": "Installed into a new isolated directory. Full payload SHA256=B125561AAA1176EF67267CB9C4F1E14BCA6776CB19CF5DD2BDC1A60050F67D36 matches the production binary including Tauri's exact UNK-to-NSS bundle marker transform; no other byte differences are allowed.",
+      "check": "Real NSIS silent installation",
+      "status": "PASSED"
+    },
+    {
+      "detail": "The installed executable was removed. The app-data preservation probe survived unchanged. This probe is not a Minecraft world.",
+      "check": "Real NSIS silent uninstallation",
+      "status": "PASSED"
+    },
+    {
+      "detail": "Silent execution on a disposable Windows runner does not verify the full interactive user experience.",
+      "check": "Interactive installer, SmartScreen and standard-user desktop flow",
+      "status": "NOT TESTED"
+    }
+  ],
+  "generated_at": "2026-10-21T21:29:09.5503561Z",
+  "source_commit": "42acfaba5e2d57a4363c479b623b059d7fe33531",
+  "runtime": "Real Tauri NSIS on Windows x64"
+}

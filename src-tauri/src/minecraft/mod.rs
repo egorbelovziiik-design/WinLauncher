@@ -20,9 +20,7 @@ use std::{
     path::PathBuf,
     process::Stdio,
 };
-use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_util::sync::CancellationToken;
 
 struct Installed {
@@ -338,22 +336,31 @@ async fn logging(
         cancel,
     )
     .await?;
-    Ok(client["argument"]
-        .as_str()
-        .map(|a| (a.to_string(), target)))
+    Ok(client["argument"].as_str().map(|a| (a.to_string(), target)))
 }
 
 /// Managed paths all share data/profiles/<id> as the working directory.
 /// Relative ASCII JVM paths avoid both Windows command-length limits and
 /// Java's platform-codepage conversion of Unicode argument-file contents.
-fn launch_path(state: &AppState, instance: &std::path::Path, path: &std::path::Path) -> Result<String> {
+fn launch_path(
+    state: &AppState,
+    instance: &std::path::Path,
+    path: &std::path::Path,
+) -> Result<String> {
     if let Ok(relative) = path.strip_prefix(instance) {
-        if relative.as_os_str().is_empty() { return Ok(".".into()); }
+        if relative.as_os_str().is_empty() {
+            return Ok(".".into());
+        }
         return Ok(relative.to_string_lossy().replace('\\', "/"));
     }
     let root = state.root();
-    let relative = path.strip_prefix(&root).context("Launch library is outside managed data directory")?;
-    Ok(format!("../../{}", relative.to_string_lossy().replace('\\', "/")))
+    let relative = path
+        .strip_prefix(&root)
+        .context("Launch library is outside managed data directory")?;
+    Ok(format!(
+        "../../{}",
+        relative.to_string_lossy().replace('\\', "/")
+    ))
 }
 
 pub async fn launch(
@@ -382,7 +389,21 @@ pub async fn launch(
     state.put("profiles", &profile.id, &profile)?;
     state.stage("launching", "Запуск настоящего Java-процесса");
     let instance = state.instance(&profile.id)?;
-    state.log("info", "launcher", &format!("Java {} / {} / {} — {}", installed.java.version, installed.java.architecture, if installed.java.managed { "управляемая Temurin" } else { "ручной выбор" }, installed.java.path));
+    state.log(
+        "info",
+        "launcher",
+        &format!(
+            "Java {} / {} / {} — {}",
+            installed.java.version,
+            installed.java.architecture,
+            if installed.java.managed {
+                "управляемая Temurin"
+            } else {
+                "ручной выбор"
+            },
+            installed.java.path
+        ),
+    );
 
     let mut cp = installed
         .classpath
@@ -449,7 +470,10 @@ pub async fn launch(
         .any(|a| a == "-cp" || a == "-classpath" || a == "--class-path")
     {
         jvm.extend([
-            format!("-Djava.library.path={}", launch_path(state, &instance, &installed.natives)?),
+            format!(
+                "-Djava.library.path={}",
+                launch_path(state, &instance, &installed.natives)?
+            ),
             "-cp".into(),
             cp.join(metadata::classpath_separator()),
         ]);
@@ -459,9 +483,15 @@ pub async fn launch(
         jvm.push(template.replace("${path}", &launch_path(state, &instance, &path)?));
     }
     jvm.extend(profile.java_args.clone());
-    let crash_dir = security::within(&instance, &format!(".winlauncher-crashes/{}", uuid::Uuid::new_v4()))?;
+    let crash_dir = security::within(
+        &instance,
+        &format!(".winlauncher-crashes/{}", uuid::Uuid::new_v4()),
+    )?;
     fs::create_dir_all(&crash_dir)?;
-    jvm.push(format!("-XX:ErrorFile={}", launch_path(state, &instance, &crash_dir.join("hs_err_pid%p.log"))?));
+    jvm.push(format!(
+        "-XX:ErrorFile={}",
+        launch_path(state, &instance, &crash_dir.join("hs_err_pid%p.log"))?
+    ));
 
     jvm.push(installed.version.main_class.clone());
     let mut game = if let Some(args) = &installed.version.arguments {
@@ -493,18 +523,27 @@ pub async fn launch(
         let main_class = jvm.pop().context("Нет main class")?;
         let mut direct = Vec::new();
         jvm.retain(|arg| {
-            if arg.starts_with("-DFabricMcEmu=") || (!local && arg.contains(&token)) { direct.push(arg.clone()); false } else { true }
+            if arg.starts_with("-DFabricMcEmu=") || (!local && arg.contains(&token)) {
+                direct.push(arg.clone());
+                false
+            } else {
+                true
+            }
         });
         arguments::write_jvm_argfile(&path, &jvm)?;
         // The Windows Java launcher opens @files through a narrow-path API.
         // An ASCII relative path plus UTF-16 current_dir preserves Cyrillic
         // user directories; the file itself is UTF-8 for JVM option values.
-        let relative = path.strip_prefix(&instance).context("JVM argument file escaped the profile")?;
+        let relative = path
+            .strip_prefix(&instance)
+            .context("JVM argument file escaped the profile")?;
         direct.push(format!("@{}", relative.display()));
         direct.push(main_class);
         jvm = direct;
         Some(path)
-    } else { None };
+    } else {
+        None
+    };
     let mut command = java::command(std::path::Path::new(&installed.java.path));
     command
         .args(&jvm)
@@ -547,11 +586,16 @@ pub async fn launch(
         vec![token.clone(), session_id]
     };
     let stdout_reader = child.stdout.take().map(|stdout| {
-        let state = state.clone(); let secrets = secrets.clone();
+        let state = state.clone();
+        let secrets = secrets.clone();
         tokio::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                state.log(diagnostics::log_level(&line), "minecraft", &security::redact(&line, &secrets));
+                state.log(
+                    diagnostics::log_level(&line),
+                    "minecraft",
+                    &security::redact(&line, &secrets),
+                );
             }
         })
     });
@@ -574,14 +618,34 @@ pub async fn launch(
         // Preserve the tail of a fast failure before classifying it. Do not
         // wait forever if a descendant process inherited a pipe handle.
         for mut reader in [stdout_reader, stderr_reader].into_iter().flatten() {
-            if tokio::time::timeout(std::time::Duration::from_secs(2), &mut reader).await.is_err() { reader.abort(); }
-        };
+            if tokio::time::timeout(std::time::Duration::from_secs(2), &mut reader)
+                .await
+                .is_err()
+            {
+                reader.abort();
+            }
+        }
 
         let duration = (chrono::Utc::now().timestamp() - running.started_at).max(0) as u64;
         let code = outcome.as_ref().ok().and_then(|s| s.code());
-        if let Some(path) = args_file { let _ = fs::remove_file(path); }
-        let diagnosis = diagnostics::record(&state, &profile.id, code, stopped, launch_started, &installed.java.path);
-        if let Err(error) = &diagnosis { state.log("warn", "launcher", &format!("Не удалось сохранить диагностику: {error}")); }
+        if let Some(path) = args_file {
+            let _ = fs::remove_file(path);
+        }
+        let diagnosis = diagnostics::record(
+            &state,
+            &profile.id,
+            code,
+            stopped,
+            launch_started,
+            &installed.java.path,
+        );
+        if let Err(error) = &diagnosis {
+            state.log(
+                "warn",
+                "launcher",
+                &format!("Не удалось сохранить диагностику: {error}"),
+            );
+        }
 
         let session = Session {
             id: uuid::Uuid::new_v4().to_string(),
@@ -620,7 +684,9 @@ pub async fn launch(
             let message = diagnosis.as_ref().map(|d| format!("{} (код {:?}). {} Откройте раздел «Логи».", d.title, code, d.detail))
                 .unwrap_or_else(|_| format!("Java завершилась с кодом {code:?}. Откройте консоль и hs_err в папке профиля."));
             state.notify("error", &message);
-        } else if stopped { state.notify("info", "Java остановлена по вашему запросу. Несохранённые изменения игры могли быть потеряны."); }
+        } else if stopped {
+            state.notify("info", "Java остановлена по вашему запросу. Несохранённые изменения игры могли быть потеряны.");
+        }
 
         if let Err(e) = fs::remove_dir_all(&installed.natives) {
             state.log(

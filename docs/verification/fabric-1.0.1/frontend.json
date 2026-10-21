@@ -1,0 +1,15 @@
+{
+  "source_commit": "42acfaba5e2d57a4363c479b623b059d7fe33531",
+  "date": "2026-10-21",
+  "typescript_vite_build": "PASSED",
+  "frontend_units": {
+    "status": "PASSED",
+    "passed": 12
+  },
+  "browser_acceptance": {
+    "status": "PASSED",
+    "passed": 13,
+    "duration_seconds": 20.2
+  },
+  "native_gui": "NOT TESTED"
+}

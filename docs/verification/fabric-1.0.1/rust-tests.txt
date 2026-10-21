@@ -1,0 +1,48 @@
+    Updating crates.io index
+   Compiling winlauncher v1.0.1 (D:\a\WinLauncher\WinLauncher\src-tauri)
+warning: function `path_string` is never used
+   --> src\minecraft\metadata.rs:390:8
+    |
+390 | pub fn path_string(path: &Path) -> String {
+    |        ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `winlauncher` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 39.51s
+     Running unittests src\lib.rs (src-tauri\target\debug\deps\winlauncher_lib-6141169d63cb3c01.exe)
+
+running 30 tests
+test content::tests::disabled_updates_remain_disabled_and_dependencies_are_explicit ... ok
+test discord::transport::tests::bounded_frames ... ok
+test accounts::offline::tests::legacy_saved_accounts_still_require_microsoft ... ok
+test accounts::offline::tests::java_compatible_offline_uuid_and_validation ... ok
+test downloads::tests::metadata_retry_policy_is_bounded_to_transient_failures ... ok
+test discord::transport::tests::rejected_rpc_is_not_success ... ok
+test downloads::tests::validates_hash_format ... ok
+test java::tests::natural_java_order_and_clean_environment ... ok
+test java::tests::parses_java_versions ... ok
+test minecraft::arguments::tests::legacy_quotes ... ok
+test minecraft::arguments::tests::ram_is_real_jvm_args ... ok
+test minecraft::arguments::tests::substitutes_without_shell_evaluation ... ok
+test minecraft::diagnostics::tests::amd_problematic_frame_is_not_generic_exit_one ... ok
+test minecraft::diagnostics::tests::common_launch_failures_are_distinguished ... ok
+test minecraft::metadata::tests::fabric_inline_publisher_hashes_are_preserved ... ok
+test minecraft::metadata::tests::loader_merge_keeps_legacy_game_args_java_and_native_classifiers ... ok
+test minecraft::metadata::tests::manifest_ipc_fields_match_frontend_contract ... ok
+test minecraft::metadata::tests::maven_coordinates ... ok
+test minecraft::metadata::tests::rule_order_and_features ... ok
+test minecraft::metadata::tests::x86_rule_does_not_match_x64 ... ok
+test modrinth::tests::pinned_incompatibility_is_not_a_project_wide_ban ... ok
+test profiles::tests::memory_and_agents_are_validated ... ok
+test profiles::tests::version_paths_are_validated ... ok
+test downloads::tests::verifies_real_bytes ... ok
+test minecraft::arguments::tests::argument_files_preserve_spaces_quotes_and_windows_paths ... ok
+test downloads::tests::replacement_is_atomic_and_preserves_new_contents ... ok
+test security::tests::only_trusted_https ... ok
+test security::tests::redacts_secrets ... ok
+test security::tests::refuses_windows_traversal_and_devices ... ok
+test security::tests::archive_cannot_escape ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

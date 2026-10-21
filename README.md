@@ -1,10 +1,28 @@
-# WINLAUNCHER · 1.0.0
+# WINLAUNCHER · 1.0.1
 
 **Твой мир. Твои правила.** Независимый Minecraft Java Edition Launcher для Windows 10/11 x64: Tauri 2 + Rust + React + TypeScript.
 
 > Это нативное приложение, а не HTML-имитация Minecraft. Веб-предпросмотр интерфейса специально не симулирует вход, каталоги, установки, игровые логи или статистику. Все операции с игрой выполняются Rust-backend.
 >
 > **Статус:** начальная реализация 1.0.0 с настоящими EXE/NSIS. На Windows прошли **23 Rust-теста, 25 реальных сценариев backend и установка/удаление NSIS**; отдельно прошли 10 frontend- и 13 браузерных тестов. Лицензионный вход, отрисованный игровой сеанс, Discord и keyed CurseForge **NOT TESTED**. Это не заявление о полной production-готовности. Точные результаты и ограничения: [docs/TESTING.md](docs/TESTING.md).
+
+## Обновление 1.0.1: Fabric 26.2 / 1.21.4 / 1.16.5
+
+- [**Скачать WinLauncher.exe 1.0.1**](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/winlauncher-native-v1.0.1-preview.1/WinLauncher.exe)
+- [**Скачать установщик WinLauncher-Setup.exe 1.0.1**](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/winlauncher-native-v1.0.1-preview.1/WinLauncher-Setup.exe)
+- [Актуальный отчёт проверки](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/winlauncher-native-v1.0.1-preview.1/TESTING.md)
+
+[Windows run 39677604848](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39677604848), application source `42acfaba5e2d57a4363c479b623b059d7fe33531`: **PASSED — 30 Rust-тестов, 35 backend-сценариев, 2 NSIS-сценария; 12 frontend- и 13 браузерных тестов.** Fabric 1.21.4, 26.2 и 1.16.5 запускались настоящими JVM и достигли инициализации клиента. Vanilla 1.12.2 и 1.8.9 прошли реальную установку. Отрисованный игровой сеанс и устранение `atio6axx.dll` на конкретной машине пользователя **NOT TESTED**.
+
+Существующий профиль: **Логи → Восстановить Fabric / Java**. Будут проверены файлы, выбран управляемый Temurin и актуальный загрузчик; после подтверждения сбросятся ручной Java executable, дополнительные JVM-аргументы и закрепление загрузчика. Миры, моды и скриншоты не удаляются. Несовместимые моды и видеодрайвер этим не заменяются.
+
+В каталоге и редакторе — поиск по всем версиям и быстрый выбор 26.2, 1.21.4, 1.20.1, 1.19.2, 1.18.2, 1.16.5, 1.12.2, 1.8.9 из настоящего Mojang API. Для разных версий создавайте отдельные профили. [Инструкция 1.0.1](docs/QUICKSTART-1.0.1.ru.txt).
+
+В Windows Java аргументные файлы используют системную кодовую страницу, поэтому управляемые JVM-пути сделаны относительными и ASCII. Файл открывается по относительному ASCII-имени; нестандартные не-ASCII JVM-параметры не записываются в него. Реальная проверка включает загрузку Java-класса из каталога с кириллицей и чтение файла с кириллическим именем/UTF-8-содержимым. Основной класс и официальный FabricMcEmu остаются на командной строке. Токены Microsoft туда, в файл JVM-параметров, не записываются.
+
+Для запуска расширенного CLI acceptance harness сначала скомпилируйте только тестовый probe (`javac --release 8 -encoding UTF-8 -d src-tauri/target/native-probes tests/java/ArgfileProbe.java`). Обычной сборке приложения JDK-компилятор не требуется.
+
+Ниже сохранены описание и результаты предыдущей версии 1.0.0 как история.
 
 ## Прямое скачивание — нативная сборка с офлайн-аккаунтом
 

@@ -9,19 +9,36 @@ use std::collections::HashMap;
 /// Java 9+ expands @files before constructing java.class.path. Keep the main
 /// class and FabricMcEmu on the actual Windows command line for GPU drivers.
 /// Game/authentication arguments must never be written into this file.
-pub fn can_use_argfile(args: &[String]) -> bool { args.iter().all(|arg| arg.is_ascii()) }
+pub fn can_use_argfile(args: &[String]) -> bool {
+    args.iter().all(|arg| arg.is_ascii())
+}
 
 pub fn write_jvm_argfile(path: &std::path::Path, args: &[String]) -> Result<()> {
     use std::io::Write;
-    if cfg!(windows) && !can_use_argfile(args) { bail!("Windows Java argument files must use ASCII options; use relative managed paths or direct arguments"); }
-    for parent in path.ancestors() { crate::security::reject_link(parent)?; }
-    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path)?;
+    if cfg!(windows) && !can_use_argfile(args) {
+        bail!("Windows Java argument files must use ASCII options; use relative managed paths or direct arguments");
+    }
+    for parent in path.ancestors() {
+        crate::security::reject_link(parent)?;
+    }
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?;
     for arg in args {
-        if arg.contains('\0') { bail!("NUL в JVM-аргументе"); }
-        let escaped = arg.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n").replace('\r', "\\r").replace('\t', "\\t");
+        if arg.contains('\0') {
+            bail!("NUL в JVM-аргументе");
+        }
+        let escaped = arg
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\r', "\\r")
+            .replace('\t', "\\t");
         writeln!(file, "\"{}\"", escaped)?;
     }
-    file.sync_all()?; Ok(())
+    file.sync_all()?;
+    Ok(())
 }
 
 pub fn expand(input: &str, variables: &HashMap<String, String>) -> Result<String> {
@@ -126,14 +143,25 @@ mod tests {
     use super::*;
     #[test]
     fn argument_files_preserve_spaces_quotes_and_windows_paths() {
-        let dir = tempfile::tempdir().unwrap(); let path = dir.path().join("java args.txt");
-        write_jvm_argfile(&path, &[r"-Dpath=C:\My Games\Minecraft".into(), "-Dquoted=\"value\"".into()]).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("java args.txt");
+        write_jvm_argfile(
+            &path,
+            &[
+                r"-Dpath=C:\My Games\Minecraft".into(),
+                "-Dquoted=\"value\"".into(),
+            ],
+        )
+        .unwrap();
         let text = std::fs::read_to_string(path).unwrap();
         assert!(text.contains(r"C:\\My Games\\Minecraft"));
         assert!(text.contains(r#"\"value\""#));
         assert!(!text.contains("accessToken"));
         assert!(!can_use_argfile(&["-Dcustom=Мир".into()]));
-        assert!(can_use_argfile(&["-cp".into(), "../../minecraft/libraries/a.jar".into()]));
+        assert!(can_use_argfile(&[
+            "-cp".into(),
+            "../../minecraft/libraries/a.jar".into()
+        ]));
     }
     #[test]
     fn substitutes_without_shell_evaluation() {

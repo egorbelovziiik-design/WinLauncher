@@ -1,0 +1,58 @@
+   Compiling winlauncher v1.0.1 (D:\a\WinLauncher\WinLauncher\src-tauri)
+warning: function `path_string` is never used
+   --> src\minecraft\metadata.rs:390:8
+    |
+390 | pub fn path_string(path: &Path) -> String {
+    |        ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `winlauncher` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 20.96s
+     Running `src-tauri\target\debug\native-smoke.exe D:\a\_temp\WinLauncher-native-67bff0b0-e644-4057-bd4e-344e8390f4b5 release-artifacts`
+PASSED: SQLite settings persist across backend reopen
+SYSTEM: Windows 11 (26100) / x86_64 / 16378 MB
+PASSED: Windows CPU / GPU / RAM / disk information
+MOJANG: 920 official versions, latest {"snapshot": "26.4-snapshot-5", "release": "26.3"}
+PASSED: Official Mojang manifest API
+PASSED: Create and isolate a real native profile
+PASSED: Reject launch when no account is selected
+PASSED: Create and persist a real local offline account in SQLite
+PASSED: Offline launch identity resolves without Microsoft tokens or Client ID
+PASSED: Delete an offline account without touching Microsoft credentials
+JAVA: 21.0.12.1 at D:\a\_temp\WinLauncher-native-67bff0b0-e644-4057-bd4e-344e8390f4b5\data\runtime\temurin-21-d35f31e712f0\jdk-21.0.12.1+1-jre\bin\java.exe
+PASSED: Download and install managed Java 21 with SHA256
+JAVA: 1.8.0_504 at D:\a\_temp\WinLauncher-native-67bff0b0-e644-4057-bd4e-344e8390f4b5\data\runtime\temurin-8-82e2cdc66937\jdk8u504-b01-jre\bin\java.exe
+PASSED: Download and install managed Java 8 with SHA256
+JAVA: 17.0.20.1 at D:\a\_temp\WinLauncher-native-67bff0b0-e644-4057-bd4e-344e8390f4b5\data\runtime\temurin-17-bc21a9392310\jdk-17.0.20.1+1-jre\bin\java.exe
+PASSED: Download and install managed Java 17 with SHA256
+JAVA: 25.0.4.1 at D:\a\_temp\WinLauncher-native-67bff0b0-e644-4057-bd4e-344e8390f4b5\data\runtime\temurin-25-4c95451cea98\jdk-25.0.4.1+1-jre\bin\java.exe
+PASSED: Download and install managed Java 25 with SHA256
+PASSED: Real Vanilla 1.21.4 client / libraries / natives / assets installation
+PASSED: Re-verify real cached Minecraft files
+FABRIC: Some("0.19.5")
+PASSED: Real Fabric 1.21.4 installation
+PASSED: Real Modrinth search / compatibility / dependency install
+PASSED: Disable and re-enable actual mod files
+PASSED: Update real disabled Modrinth project without silently enabling it
+PASSED: Export and reimport a real Modrinth .mrpack
+PASSED: Remove mod into safe backup storage
+MODRINTH: 2 real Iris/dependency files downloaded and hash verified
+PASSED: Resolve and download real Iris required dependencies
+PASSED: Real forge 1.21.4 installation
+PASSED: Real neoforge 1.21.4 installation
+PASSED: Real quilt 1.21.4 installation
+PASSED: Real Fabric 1.21.4 clean installation
+REAL FABRIC BOOTSTRAP: 1.21.4 / PID 7592 / client initialization reached. Rendering is NOT TESTED.
+PASSED: Real Fabric 1.21.4 JVM reaches Minecraft client initialization
+PASSED: Real Fabric 26.2 clean installation
+REAL FABRIC BOOTSTRAP: 26.2 / PID 1076 / client initialization reached. Rendering is NOT TESTED.
+PASSED: Real Fabric 26.2 JVM reaches Minecraft client initialization
+PASSED: Real Fabric 1.16.5 clean installation
+REAL FABRIC BOOTSTRAP: 1.16.5 / PID 5232 / client initialization reached. Rendering is NOT TESTED.
+PASSED: Real Fabric 1.16.5 JVM reaches Minecraft client initialization
+PASSED: Real Vanilla 1.12.2 installation from official manifest
+PASSED: Real Vanilla 1.8.9 installation from official manifest
+PASSED: Real Java 21 relative argument file and Unicode filesystem
+PASSED: Managed Java and real invalid-argument exit 1 are diagnosed
+PASSED: Migrate real game data with SHA256 and retain original

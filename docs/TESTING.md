@@ -2,6 +2,21 @@
 
 **Verified on 2026-10-21 UTC.** Implementation, compilation, real backend execution and a rendered licensed game are different claims. A scenario marked **NOT TESTED** is not a success.
 
+## Current Fabric / Java update: 1.0.1
+
+Application source `42acfaba5e2d57a4363c479b623b059d7fe33531`, [Windows run 39677604848](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39677604848). [Exact evidence](verification/fabric-1.0.1/) and the release's TESTING.md supersede the historical sections below.
+
+- **PASSED:** 30 Windows Rust unit tests, 35 real backend scenarios, NSIS installation and uninstallation.
+- **PASSED:** real Fabric 1.21.4 / 26.2 / 1.16.5 JVM bootstrap to Minecraft client initialization. Observed PIDs: 7592 / 1076 / 5232. No renderer success is inferred from these markers.
+- **PASSED:** actual Vanilla 1.12.2 / 1.8.9 installation from Mojang metadata; real managed Java 8/17/21/25.
+- **PASSED:** real Java 21 argument-file/classpath operation in a Unicode working directory, reading Unicode filenames/content; a genuine invalid-option exit is classified correctly.
+- **PASSED:** frontend build, 12 frontend units, 13 browser checks (20.2 seconds).
+- **NOT TESTED:** rendered Minecraft, native WebView2 GUI acceptance, the user's AMD driver after upgrade, Microsoft OAuth with their licensed account, keyed CurseForge, Discord Desktop and real-world restore.
+
+Initial failure investigation was not hidden: run 39672109438 hit a transient Fabric API TCP reset on 1.21.4 and exposed Windows Java's absolute/non-ASCII argument-file limitation. GET metadata retries with bounded timeouts were added; managed launch paths and argument-file names are now relative ASCII, with normal direct argument handling for custom non-ASCII JVM options. Java standard streams are configured for UTF-8 without changing game-file encoding. The final run above passed the actual client-bootstrap checks; the Windows interop probe is a test-only Java class, not a simulated game.
+
+The user's screenshot contains `EXCEPTION_ACCESS_VIOLATION` with `Problematic frame: atio6axx.dll`. Classification of that exact pattern is unit-tested; repairing a physical AMD driver is **not** certified by our CI and is not performed silently. Existing hs_err reports are read locally, and saved evidence is redacted. The full original JVM-generated report can contain private data and must be reviewed before sharing.
+
 ## Update: explicit local offline account
 
 The user subsequently requested a local nickname-based account without Microsoft login. This supersedes the original license-only account requirement **for the new, explicitly labelled offline account type only**. Microsoft ownership validation is unchanged for Microsoft accounts. A local account is not a verified license and does not authenticate to online-mode servers. Full network-disconnected launch and rendered local gameplay are NOT TESTED.

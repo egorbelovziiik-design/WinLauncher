@@ -10,9 +10,7 @@ use anyhow::{bail, Context, Result};
 use serde::Serialize;
 use serde_json::Value;
 use std::{fs, path::Path, process::Stdio};
-use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Serialize, Clone)]
@@ -43,7 +41,9 @@ pub async fn releases(
                 .filter_map(|v| {
                     v["loader"]["version"].as_str().map(|id| LoaderRelease {
                         id: id.into(),
-                        java_major: v["launcherMeta"]["min_java_version"].as_u64().and_then(|n| u32::try_from(n).ok()),
+                        java_major: v["launcherMeta"]["min_java_version"]
+                            .as_u64()
+                            .and_then(|n| u32::try_from(n).ok()),
                         stable: v["loader"]["stable"]
                             .as_bool()
                             .unwrap_or(!id.contains("beta")),
@@ -170,11 +170,22 @@ pub async fn install(
     {
         bail!("Загрузчик предназначен для другой версии Minecraft");
     }
-    let loader_java = choices.iter().find(|r| r.id == requested).and_then(|r| r.java_major);
+    let loader_java = choices
+        .iter()
+        .find(|r| r.id == requested)
+        .and_then(|r| r.java_major);
     profile.loader_version = Some(requested);
     let mut result = metadata::merge(base, child)?;
     if let Some(major) = loader_java {
-        if result.java_version.as_ref().is_none_or(|j| major > j.major_version) { result.java_version = Some(metadata::JavaVersion { major_version: major }); }
+        if result
+            .java_version
+            .as_ref()
+            .is_none_or(|j| major > j.major_version)
+        {
+            result.java_version = Some(metadata::JavaVersion {
+                major_version: major,
+            });
+        }
     }
     let path = state
         .instance(&profile.id)?

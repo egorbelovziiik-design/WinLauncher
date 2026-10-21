@@ -260,15 +260,25 @@ pub async fn library_transfer(
     } else {
         // Fabric publishes checksums inline for most dependencies; only fetch
         // a sidecar when no publisher checksum was included. Never self-hash.
-        let sha = downloads::text(state, &format!("{url}.sha1")).await?
-            .split_whitespace().next().context("Нет SHA1 библиотеки")?.to_owned();
+        let sha = downloads::text(state, &format!("{url}.sha1"))
+            .await?
+            .split_whitespace()
+            .next()
+            .context("Нет SHA1 библиотеки")?
+            .to_owned();
         Hash::new("sha1", &sha)?
     };
     Ok(Transfer {
         url,
         path: target,
         hash,
-        size: download.and_then(|d| d.size).or_else(|| if coordinate == library.name { library.size } else { None }),
+        size: download.and_then(|d| d.size).or_else(|| {
+            if coordinate == library.name {
+                library.size
+            } else {
+                None
+            }
+        }),
     })
 }
 
@@ -290,7 +300,8 @@ pub fn merge(mut base: Version, child: Version) -> Result<Version> {
     // create an empty `game` array and silently discard authentication/assets.
     if child.arguments.is_some() && base.arguments.is_none() {
         let game = match base.minecraft_arguments.as_deref() {
-            Some(raw) => super::arguments::split_legacy(raw)?, None => Vec::new(),
+            Some(raw) => super::arguments::split_legacy(raw)?,
+            None => Vec::new(),
         };
         base.arguments = Some(serde_json::json!({ "game": game, "jvm": [] }));
     }
@@ -307,13 +318,21 @@ pub fn merge(mut base: Version, child: Version) -> Result<Version> {
         }
     }
     if let Some(raw) = child.minecraft_arguments {
-        if let Some(args) = base.arguments.as_mut() { args["game"] = serde_json::to_value(super::arguments::split_legacy(&raw)?)?; }
+        if let Some(args) = base.arguments.as_mut() {
+            args["game"] = serde_json::to_value(super::arguments::split_legacy(&raw)?)?;
+        }
         base.minecraft_arguments = Some(raw);
     }
     base.id = child.id;
     base.main_class = child.main_class;
     if let Some(java) = child.java_version {
-        if base.java_version.as_ref().is_none_or(|base| java.major_version > base.major_version) { base.java_version = Some(java); }
+        if base
+            .java_version
+            .as_ref()
+            .is_none_or(|base| java.major_version > base.major_version)
+        {
+            base.java_version = Some(java);
+        }
     }
     if child.asset_index.is_some() {
         base.asset_index = child.asset_index;
@@ -383,14 +402,26 @@ mod tests {
         let merged = merge(base, child).unwrap();
         assert_eq!(merged.java_version.unwrap().major_version, 25);
         assert_eq!(merged.arguments.as_ref().unwrap()["game"][0], "--username");
-        assert_eq!(merged.arguments.as_ref().unwrap()["jvm"][0], "-DFabricMcEmu= net.minecraft.client.main.Main ");
-        assert!(merged.libraries.iter().any(|l| l.name.ends_with(":natives-windows")));
-        assert!(!merged.libraries.iter().any(|l| l.name == "org.lwjgl:lwjgl:3.3.3"));
+        assert_eq!(
+            merged.arguments.as_ref().unwrap()["jvm"][0],
+            "-DFabricMcEmu= net.minecraft.client.main.Main "
+        );
+        assert!(merged
+            .libraries
+            .iter()
+            .any(|l| l.name.ends_with(":natives-windows")));
+        assert!(!merged
+            .libraries
+            .iter()
+            .any(|l| l.name == "org.lwjgl:lwjgl:3.3.3"));
     }
     #[test]
     fn fabric_inline_publisher_hashes_are_preserved() {
         let lib: Library = serde_json::from_value(json!({"name":"org.ow2.asm:asm:9.10.1", "url":"https://maven.fabricmc.net/", "sha256":"a".repeat(64), "size":126151})).unwrap();
-        assert_eq!(lib.sha256.as_deref(), Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+        assert_eq!(
+            lib.sha256.as_deref(),
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        );
         assert_eq!(lib.size, Some(126151));
     }
     #[test]
