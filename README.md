@@ -11,26 +11,24 @@
 
 ## Скачать
 
-Готовые сборки лежат в разделе **[Releases → v1.0.4](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.4)**:
+Готовые сборки лежат в разделе **[Releases → v1.0.5](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.5)**:
 
 | Файл | Размер | Что это |
 | --- | --- | --- |
-| [`WinLaucher_1.0.4_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.4/WinLaucher_1.0.4_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| [`WinLaucher_1.0.4_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.4/WinLaucher_1.0.4_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
-| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.4/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
+| [`WinLaucher_1.0.5_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.5/WinLaucher_1.0.5_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| [`WinLaucher_1.0.5_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.5/WinLaucher_1.0.5_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
+| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.5/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
 
 SHA-256 (для проверки загрузки):
 
 ```
-A94F81C95EFFA8FA4C8072E06B0133C220EA8CCE2EFD89421B66F38797A7F096  WinLaucher-portable.exe
-8A3CAB9A035BB19E26E6D0660985E93C9BC145EE12A49BC60BD1BA8D010C5D20  WinLaucher_1.0.4_x64-setup.exe
-F1E65DF82F328B625D38D5F698CBC86A6E45533F218F2E9AFA98B63B780F60B1  WinLaucher_1.0.4_x64_en-US.msi
+07E95DCA1C60B72A0CA515C75B4CC0F581D561C1A5BD1A7315B963D30AB83A34  WinLaucher-portable.exe
+F5B62D54A01CC01F8C1B4C526285D1615ACE3221720461AD99A4B4493D62A4FE  WinLaucher_1.0.5_x64-setup.exe
+701607A01CD90311CFBB9883D74298B460AD5DE702F7B2AA04E70365254DDFE3  WinLaucher_1.0.5_x64_en-US.msi
 ```
 
 Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
 нажмите «Подробнее» → «Выполнить в любом случае». Требуется Windows 10/11 x64.
-
----
 
 ## Что умеет
 
@@ -161,6 +159,12 @@ src-tauri/
   но поддерживаются переменные окружения `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`.
 - **Автообновление лаунчера** не реализовано: новая версия ставится поверх вручную.
 - **Подпись кода** отсутствует (см. выше).
+- **Краш JVM** (`# A fatal error has been detected by the Java Runtime Environment`). Это сбой
+  самой Java, чаще всего из-за драйвера видеокарты. Лаунчер теперь читает `hs_err_pid*.log`,
+  показывает модуль, в котором произошёл сбой, и подсказку. Что помогает на практике:
+  обновить драйвер GPU с сайта производителя (а не через Windows Update), запустить игру
+  повторно (лаунчер пересобирает `natives` и стартует с чистыми JVM-аргументами),
+  попробовать Java 17 вместо 21 в «Настройки → Java».
 - **Что не проверено вживую:** разработка шла в Linux-песочнице, поэтому сценарии «вход в Microsoft →
   скачивание версии → игра» вручную на Windows не прогонялись. Проверено: успешная компиляция Windows-сборки,
   старт приложения на `windows-latest` (smoke-тест выше) и статические проверки фронтенда.
