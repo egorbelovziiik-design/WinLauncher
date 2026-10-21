@@ -304,10 +304,17 @@ pub async fn download(app: &AppHandle, major: u32) -> Result<JavaRuntime, String
 /* ------------------------------------------------------------------ */
 
 fn compatible(runtime: &JavaRuntime, required: u32) -> bool {
+    // Minecraft (and especially mod loaders) are picky: a newer major version is
+    // not a drop-in replacement. Only 1.21+ tolerates newer runtimes, and 1.17
+    // accepts Java 17 as well as its declared Java 16.
     if required <= 8 {
         runtime.major == 8
-    } else {
+    } else if required >= 21 {
         runtime.major >= required
+    } else if required == 16 {
+        runtime.major == 16 || runtime.major == 17
+    } else {
+        runtime.major == required
     }
 }
 

@@ -423,12 +423,50 @@ pub fn library_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, String
     out
 }
 
-/// Native classifier jars that have to be extracted (old Minecraft versions).
+/// `osx` is called `macos` inside native classifier names.
+fn native_os_token() -> &'static str {
+    match os_name() {
+        "osx" => "macos",
+        other => other,
+    }
+}
+
+/// Modern versions (1.19+) ship LWJGL natives as ordinary libraries whose maven
+/// coordinate ends with `:natives-windows` (etc.) and have no `natives` block.
+/// These jars still have to be unpacked into the natives directory, otherwise
+/// Minecraft dies with `UnsatisfiedLinkError: Failed to locate library: lwjgl.dll`.
+pub fn modern_native_classifier(name: &str) -> Option<String> {
+    let mut parts = name.split(':');
+    parts.next()?;
+    parts.next()?;
+    parts.next()?;
+    let classifier = parts.next()?;
+    if !classifier.starts_with("natives") {
+        return None;
+    }
+    if !classifier.contains(native_os_token()) {
+        return None;
+    }
+    if classifier.ends_with("-arm64") && os_arch() != "arm64" {
+        return None;
+    }
+    Some(classifier.to_string())
+}
+
+/// Native jars that have to be extracted before the game starts.
 pub fn native_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, Vec<String>)> {
     let features = default_features();
     let mut out = Vec::new();
     for lib in &merged.libraries {
         if !rules_allow(&lib.rules, &features) {
+            continue;
+        }
+        if modern_native_classifier(&lib.name).is_some() {
+            if let Some(artifact) = lib.downloads.artifact.as_ref() {
+                if !artifact.path.is_empty() {
+                    out.push((artifact.clone(), Vec::new()));
+                }
+            }
             continue;
         }
         let Some(natives) = &lib.natives else { continue };
@@ -547,10 +585,10 @@ pub fn asset_specs(app: &AppHandle, index: &AssetIndexFile) -> Vec<FileSpec> {
 pub async fn ensure_libraries(app: &AppHandle, merged: &MergedVersion) -> Result<(), String> {
     let specs = library_specs(app, merged);
     download::download_files(app.clone(), format!("{} · Libraries", merged.id), None, specs).await?;
-    extract_natives(app, merged)
+    prepare_natives(app, merged)
 }
 
-fn extract_natives(app: &AppHandle, merged: &MergedVersion) -> Result<(), String> {
+pub fn prepare_natives(app: &AppHandle, merged: &MergedVersion) -> Result<(), String> {
     let paths = app.state::<AppState>().paths();
     let lib_root = paths.libraries();
     let natives_dir = &merged.natives_dir;
@@ -755,5 +793,129 @@ pub fn java_major_for(mc: &str) -> u32 {
             }
         }
         _ => 8,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_library(name: &str, path: &str) -> Library {
+        Library {
+            name: name.to_string(),
+            url: String::new(),
+            downloads: LibraryDownloads {
+                artifact: Some(LibraryArtifact {
+                    path: path.to_string(),
+                    url: format!("https://example.invalid/{path}"),
+                    sha1: None,
+                    size: 0,
+                }),
+                classifiers: None,
+            },
+            natives: None,
+            rules: Vec::new(),
+            extract: None,
+        }
+    }
+
+    fn test_version(libs: Vec<Library>) -> MergedVersion {
+        MergedVersion {
+            id: "1.21.4".to_string(),
+            root_id: "1.21.4".to_string(),
+            main_class: "net.minecraft.client.main.Main".to_string(),
+            libraries: libs,
+            jvm_args: Vec::new(),
+            game_args: Vec::new(),
+            minecraft_arguments: None,
+            asset_index: None,
+            assets: "17".to_string(),
+            downloads: Downloads::default(),
+            java_version: None,
+            logging: None,
+            version_type: "release".to_string(),
+            natives_dir: PathBuf::from("natives"),
+            client_jar: PathBuf::from("1.21.4.jar"),
+        }
+    }
+
+    #[test]
+    fn detects_modern_native_classifiers() {
+        assert!(modern_native_classifier("org.lwjgl:lwjgl:3.3.3:natives-windows").is_some());
+        assert!(modern_native_classifier("org.lwjgl:lwjgl:3.3.3").is_none());
+        assert!(modern_native_classifier("org.lwjgl:lwjgl:3.3.3:sources").is_none());
+    }
+
+    #[test]
+    fn extracts_only_the_current_platform_natives() {
+        let version = test_version(vec![
+            test_library("org.lwjgl:lwjgl:3.3.3", "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3.jar"),
+            test_library(
+                "org.lwjgl:lwjgl:3.3.3:natives-windows",
+                "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives-windows.jar",
+            ),
+            test_library(
+                "org.lwjgl:lwjgl:3.3.3:natives-linux",
+                "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives-linux.jar",
+            ),
+            test_library(
+                "org.lwjgl:lwjgl:3.3.3:natives-macos",
+                "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives-macos.jar",
+            ),
+        ]);
+        let natives = native_artifacts(&version);
+        assert_eq!(natives.len(), 1, "exactly one platform natives jar must be unpacked");
+        assert!(natives[0].0.path.contains(native_os_token()));
+        assert_eq!(library_artifacts(&version).len(), 4);
+    }
+
+    #[test]
+    fn builds_artifacts_from_maven_coordinates() {
+        let art = coords_to_artifact("net.minecraftforge:forge:1.20.1-47.3.0", "").unwrap();
+        assert_eq!(
+            art.path,
+            "net/minecraftforge/forge/1.20.1-47.3.0/forge-1.20.1-47.3.0.jar"
+        );
+        assert!(art.url.starts_with("https://maven.minecraftforge.net/"));
+        let with_classifier = coords_to_artifact("org.lwjgl:lwjgl:2.9.4:natives-windows", "").unwrap();
+        assert!(with_classifier.path.ends_with("lwjgl-2.9.4-natives-windows.jar"));
+    }
+
+    #[test]
+    fn evaluates_rules() {
+        let features = default_features();
+        let allow_here = vec![Rule {
+            action: "allow".to_string(),
+            os: Some(RuleOs { name: Some(os_name().to_string()), ..Default::default() }),
+            features: None,
+        }];
+        assert!(rules_allow(&allow_here, &features));
+
+        let allow_other = vec![Rule {
+            action: "allow".to_string(),
+            os: Some(RuleOs { name: Some("plan9".to_string()), ..Default::default() }),
+            features: None,
+        }];
+        assert!(!rules_allow(&allow_other, &features));
+
+        let disallow_demo = vec![Rule {
+            action: "allow".to_string(),
+            os: None,
+            features: Some(HashMap::from([("is_demo_user".to_string(), true)])),
+        }];
+        assert!(!rules_allow(&disallow_demo, &features));
+    }
+
+    #[test]
+    fn picks_the_right_java_major() {
+        assert_eq!(java_major_for("1.8.9"), 8);
+        assert_eq!(java_major_for("1.12.2"), 8);
+        assert_eq!(java_major_for("1.16.5"), 8);
+        assert_eq!(java_major_for("1.17.1"), 16);
+        assert_eq!(java_major_for("1.18.2"), 17);
+        assert_eq!(java_major_for("1.20.1"), 17);
+        assert_eq!(java_major_for("1.20.6"), 21);
+        assert_eq!(java_major_for("1.21.4"), 21);
+        assert_eq!(java_major_for("1.21.4-forge-54.0.16"), 21);
     }
 }

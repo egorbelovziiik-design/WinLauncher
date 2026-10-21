@@ -82,6 +82,9 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
         );
         mojang::ensure_version(app, &merged, Some(game_dir.as_path()), Some(profile.id.clone())).await?;
     }
+    // Native libraries must always be unpacked: without them the game dies with
+    // UnsatisfiedLinkError (lwjgl.dll) even when every jar is present.
+    mojang::prepare_natives(app, &merged)?;
 
     // 3. Java.
     let required = merged.required_java();
@@ -98,6 +101,16 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
 
     // 5. Command line.
     let (java_path, args) = build_launch(&merged, &profile, &account, &runtime, &paths, &settings)?;
+    state.log(
+        "info",
+        "launcher",
+        format!(
+            "Main class {} · {} args · natives {}",
+            merged.main_class,
+            args.len(),
+            merged.natives_dir.display()
+        ),
+    );
 
     // 6. Spawn the game.
     state.set_launch_state(Some(profile.id.clone()), "starting", String::new());
@@ -274,6 +287,19 @@ pub fn split_args(raw: &str) -> Vec<String> {
     raw.split_whitespace().map(|s| s.to_string()).collect()
 }
 
+/// Keeps `-Xmx` inside the physical memory of the machine, otherwise the JVM
+/// refuses to start with "Could not reserve enough space for object heap".
+pub fn clamp_ram(requested: u64) -> u64 {
+    let mut system = sysinfo::System::new();
+    system.refresh_memory();
+    let total_mb = system.total_memory() / 1024 / 1024;
+    if total_mb == 0 {
+        return requested.clamp(512, 65_536);
+    }
+    let ceiling = total_mb.saturating_sub(1024).max(1024).min(65_536);
+    requested.clamp(512, ceiling)
+}
+
 pub fn build_launch(
     merged: &MergedVersion,
     profile: &Profile,
@@ -342,7 +368,7 @@ pub fn build_launch(
     vars.insert("resolution_height", profile.height.to_string());
 
     // JVM arguments -----------------------------------------------------
-    let ram = profile.ram_mb.clamp(512, 65_536);
+    let ram = clamp_ram(profile.ram_mb);
     let mut jvm_args: Vec<String> = vec![
         format!("-Xms{}M", (ram / 2).clamp(512, 4096)),
         format!("-Xmx{ram}M"),
@@ -447,4 +473,44 @@ pub fn build_launch(
     args.extend(game_args);
 
     Ok((PathBuf::from(&runtime.path), args))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn substitutes_every_placeholder() {
+        let mut vars: HashMap<&str, String> = HashMap::new();
+        vars.insert("auth_player_name", "Steve".to_string());
+        vars.insert("classpath", "a.jar;b.jar".to_string());
+        assert_eq!(
+            substitute("--username ${auth_player_name} -cp ${classpath}", &vars),
+            "--username Steve -cp a.jar;b.jar"
+        );
+        assert_eq!(substitute("--gameDir ${unknown}", &vars), "--gameDir ${unknown}");
+    }
+
+    #[test]
+    fn honours_argument_rules() {
+        let items = vec![
+            serde_json::json!("--demo"),
+            serde_json::json!({
+                "rules": [{ "action": "allow", "features": { "is_demo_user": true } }],
+                "value": "--demoOnly"
+            }),
+            serde_json::json!({
+                "rules": [{ "action": "allow", "features": { "has_custom_resolution": true } }],
+                "value": ["--width", "1280", "--height", "720"]
+            }),
+        ];
+        let args = collect_args(&items, &mojang::default_features());
+        assert_eq!(args, vec!["--demo", "--width", "1280", "--height", "720"]);
+    }
+
+    #[test]
+    fn keeps_ram_between_sane_bounds() {
+        assert!(clamp_ram(64) >= 512);
+        assert!(clamp_ram(1_000_000) <= 65_536);
+    }
 }

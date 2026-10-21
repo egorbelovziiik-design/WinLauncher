@@ -225,10 +225,9 @@ export function Toggle({
     >
       <span
         className={cn(
-          'toggle-thumb absolute top-0.5 h-4.5 w-4.5 rounded-full bg-white shadow',
-          checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+          'toggle-thumb pointer-events-none absolute left-[3px] top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow',
+          checked ? 'translate-x-[20px]' : 'translate-x-0',
         )}
-        style={{ height: 18, width: 18 }}
       />
     </button>
   );
