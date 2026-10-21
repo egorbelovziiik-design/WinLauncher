@@ -1,0 +1,18 @@
+{
+  "unsigned": true,
+  "build_url": "https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39661734616",
+  "source_commit": "4d3b5421eee487f15c26aebba80f9fe70e2b4836",
+  "tag": "winlauncher-native-v1.0.0-preview.1",
+  "files": [
+    {
+      "name": "WinLauncher.exe",
+      "sha256": "edfb7c1050f9d6d1e08404a43178eda3d8632693703b080db9a98d45fdfb5458",
+      "size": 19125760
+    },
+    {
+      "name": "WinLauncher-Setup.exe",
+      "sha256": "25284568ba3e42a8c9672c9d7578786c73fa5013dac4df21a330a63586aef871",
+      "size": 5984841
+    }
+  ]
+}

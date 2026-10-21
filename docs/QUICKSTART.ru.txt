@@ -74,8 +74,8 @@ SQLite хранит настройки и метаданные; data содер�
 
 ЧТО ПОДТВЕРЖДЕНО
 
-21 Rust-тест, 10 frontend-тестов, 12 браузерных тестов;
-22 настоящих сценария Windows backend; установка/удаление NSIS.
+23 Rust-теста, 10 frontend-тестов, 13 браузерных тестов;
+25 настоящих сценариев Windows backend; установка/удаление NSIS.
 Реально проверены установка Minecraft 1.21.4, Java 8/17/21/25,
 Fabric/Forge/NeoForge/Quilt, Modrinth/Sodium/Iris, зависимости,
 обновление отключённого мода, .mrpack, SQLite и перенос файлов.
@@ -105,9 +105,9 @@ __TAURI_BUNDLE_TYPE_VAR_NSS внутри упакованного EXE. Поэт�
 Репозиторий: https://github.com/egorbelovziiik-design/WinLauncher
 Ветка исходников: arena/4f921e32-winlauncher
 https://github.com/egorbelovziiik-design/WinLauncher/tree/arena/4f921e32-winlauncher
-Application source commit: fd718db7b9714ef3c5fd0b8856aa185355d75f32
-Сборка: https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39654021540
-Проверка установщика: https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39655709172
+Application source commit: 4d3b5421eee487f15c26aebba80f9fe70e2b4836
+Сборка: https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39661734616
+Проверка установщика: https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39661734616
 
 Независимый проект. Не является официальным продуктом Minecraft.
 Не одобрен и не связан с Mojang или Microsoft.

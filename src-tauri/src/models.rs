@@ -115,7 +115,11 @@ pub struct Profile {
 }
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum AccountKind { #[default] Microsoft, Offline }
+pub enum AccountKind {
+    #[default]
+    Microsoft,
+    Offline,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Account {

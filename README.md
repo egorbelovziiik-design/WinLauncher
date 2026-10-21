@@ -6,6 +6,14 @@
 >
 > **Статус:** начальная реализация 1.0.0 с настоящими EXE/NSIS. На Windows прошли **21 Rust-тест, 22 реальных сценария backend и установка/удаление NSIS**; отдельно прошли 10 frontend- и 12 браузерных тестов. Лицензионный вход, отрисованный игровой сеанс, Discord и keyed CurseForge **NOT TESTED**. Это не заявление о полной production-готовности. Точные результаты и ограничения: [docs/TESTING.md](docs/TESTING.md).
 
+## Прямое скачивание — нативная сборка с офлайн-аккаунтом
+
+- [**Скачать WinLauncher.exe**](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/winlauncher-native-v1.0.0-preview.1/WinLauncher.exe)
+- [**Скачать WinLauncher-Setup.exe**](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/winlauncher-native-v1.0.0-preview.1/WinLauncher-Setup.exe)
+- [Текущий отчёт тестов](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/winlauncher-native-v1.0.0-preview.1/TESTING.md)
+
+Прямые ссылки ведут на отдельные EXE, не ZIP. Публичный prerelease `winlauncher-native-v1.0.0-preview.1`, source `4d3b5421eee487f15c26aebba80f9fe70e2b4836`, [Windows run 39661734616](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39661734616). **PASSED: 23 Rust-теста, 25 native backend-сценариев, NSIS install/uninstall; 10 frontend- и 13 браузерных тестов.** Создание/повторное открытие SQLite, локальная launch identity и удаление офлайн-аккаунта проверены на Windows. Отрисованный игровой сеанс по-прежнему NOT TESTED. Сборка неподписанная. Старые релизы другого канала не изменены.
+
 ## Локальный офлайн-аккаунт
 
 По явному запросу добавлен второй тип аккаунта: **Аккаунты → Добавить офлайн-аккаунт → ник → Создать**. Microsoft Application ID для него не нужен. Ник: 3–16 латинских букв, цифр или `_`; регистр влияет на UUID. Сохранение, выбор и удаление выполняются нативным backend/SQLite, не браузерным макетом. Старые записи аккаунтов остаются Microsoft-аккаунтами и требуют прежнюю авторизацию.
@@ -49,7 +57,7 @@ Workflow **Windows build & tests** собирает настоящий Windows x
 ### Аккаунты
 
 - Microsoft OAuth 2.0 Device Code → Xbox Live → XSTS → Minecraft Services.
-- Проверка владения Minecraft Java Edition до запуска; отказ от unlicensed/offline/cracked-входа.
+- Для Microsoft-аккаунтов — проверка владения Minecraft Java Edition перед запуском. Локальные офлайн-аккаунты по нику выделены в отдельный тип, без заявления о подтверждённой лицензии.
 - Несколько аккаунтов, UUID/имя/скин, отмена и истечение кода, обновление токенов.
 - Refresh/Minecraft tokens — **только Windows Credential Manager** через native keyring. Пароли не запрашиваются лаунчером и не сохраняются. Frontend не получает токены.
 

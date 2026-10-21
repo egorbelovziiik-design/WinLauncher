@@ -1,0 +1,167 @@
+{
+  "checks": [
+    {
+      "check": "SQLite settings persist across backend reopen",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Windows CPU / GPU / RAM / disk information",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Official Mojang manifest API",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Create and isolate a real native profile",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Reject launch when no account is selected",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Create and persist a real local offline account in SQLite",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Offline launch identity resolves without Microsoft tokens or Client ID",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Delete an offline account without touching Microsoft credentials",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Download and install managed Java 21 with SHA256",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Download and install managed Java 8 with SHA256",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Download and install managed Java 17 with SHA256",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Download and install managed Java 25 with SHA256",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Real Vanilla 1.21.4 client / libraries / natives / assets installation",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Re-verify real cached Minecraft files",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Real Fabric 1.21.4 installation",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Real Modrinth search / compatibility / dependency install",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Disable and re-enable actual mod files",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Update real disabled Modrinth project without silently enabling it",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Export and reimport a real Modrinth .mrpack",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Remove mod into safe backup storage",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Resolve and download real Iris required dependencies",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Real forge 1.21.4 installation",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Real neoforge 1.21.4 installation",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Real quilt 1.21.4 installation",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Migrate real game data with SHA256 and retain original",
+      "detail": "Executed against the real native backend on Windows; no mock APIs or data.",
+      "status": "PASSED"
+    },
+    {
+      "check": "Licensed Microsoft OAuth / refresh / multi-account",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    },
+    {
+      "check": "Rendered Minecraft game session and actual playtime",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    },
+    {
+      "check": "CurseForge API and ZIP modpack with a real key",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    },
+    {
+      "check": "Discord Desktop Rich Presence",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    },
+    {
+      "check": "RAM in a running licensed Minecraft JVM",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    },
+    {
+      "check": "User-world backup and restoration",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    },
+    {
+      "check": "Windows GUI restart and interactive installer",
+      "detail": "Requires credentials, a real licensed session, Discord Desktop or an interactive Windows acceptance environment. No result is simulated.",
+      "status": "NOT TESTED"
+    }
+  ],
+  "generated_at": "2026-10-21T19:40:19.194555700+00:00",
+  "runtime": "Windows x64 native Rust production engine (headless event sink only)",
+  "source_commit": "4d3b5421eee487f15c26aebba80f9fe70e2b4836"
+}

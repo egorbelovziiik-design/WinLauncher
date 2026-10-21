@@ -336,7 +336,11 @@ pub async fn launch(
     let guard = state.begin_job("authentication")?;
     let (account, token) = accounts::launch_identity(state).await?;
     let local = account.kind == AccountKind::Offline;
-    let session_id = if local { "-".to_string() } else { format!("token:{token}:{}", account.id) };
+    let session_id = if local {
+        "-".to_string()
+    } else {
+        format!("token:{token}:{}", account.id)
+    };
     let mut profile: Profile = state.get("profiles", profile_id)?;
     let mut system = sysinfo::System::new();
     system.refresh_memory();
@@ -360,13 +364,20 @@ pub async fn launch(
         ("auth_player_name".into(), account.name.clone()),
         ("auth_uuid".into(), account.id.clone()),
         ("auth_access_token".into(), token.clone()),
-        (
-            "auth_session".into(),
-            session_id.clone(),
-        ),
+        ("auth_session".into(), session_id.clone()),
         ("auth_xuid".into(), token_xuid(&token)),
-        ("clientid".into(), if local { String::new() } else { state.config().microsoft_client_id }),
-        ("user_type".into(), if local { "legacy" } else { "msa" }.into()),
+        (
+            "clientid".into(),
+            if local {
+                String::new()
+            } else {
+                state.config().microsoft_client_id
+            },
+        ),
+        (
+            "user_type".into(),
+            if local { "legacy" } else { "msa" }.into(),
+        ),
         ("user_properties".into(), "{}".into()),
         ("version_name".into(), installed.version.id.clone()),
         ("version_type".into(), installed.version.kind.clone()),
@@ -427,10 +438,7 @@ pub async fn launch(
             .map(|s| arguments::expand(s, &vars))
             .collect::<Result<Vec<_>>>()?
     } else {
-        vec![
-            account.name.clone(),
-            session_id.clone(),
-        ]
+        vec![account.name.clone(), session_id.clone()]
     };
     if !game.iter().any(|a| a == "--width") && installed.version.minecraft_arguments.is_some() {
         game.extend([
@@ -481,7 +489,11 @@ pub async fn launch(
             profile.loader.as_str()
         ),
     );
-    let secrets = if local { Vec::new() } else { vec![token.clone(), session_id] };
+    let secrets = if local {
+        Vec::new()
+    } else {
+        vec![token.clone(), session_id]
+    };
     if let Some(stdout) = child.stdout.take() {
         let state = state.clone();
         let secrets = secrets.clone();

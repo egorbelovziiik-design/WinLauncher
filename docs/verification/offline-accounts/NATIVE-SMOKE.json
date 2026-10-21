@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-10-21T19:41:08.225Z",
+  "source_commit": "4d3b5421eee487f15c26aebba80f9fe70e2b4836",
+  "runtime": "Windows x64 / real Tauri + WebView2",
+  "checks": [
+    {
+      "check": "Native GUI smoke harness",
+      "status": "NOT TESTED",
+      "detail": "Error: WebView2 CDP was not reachable. The spawned EXE remained running, but GUI smoke tests require a working interactive Windows/WebView2 inspection environment."
+    }
+  ]
+}

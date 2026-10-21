@@ -466,13 +466,32 @@ pub async fn check_launcher_update(state: State<'_, AppState>) -> Response<Value
     .map_err(err)?;
     // This repository also has independent legacy releases. Never offer one
     // of those as an update for the native Tauri application.
-    let release = value.as_array().and_then(|releases| releases.iter().find(|r| {
-        r["draft"] != true && r["tag_name"].as_str().is_some_and(|tag| tag.starts_with("winlauncher-native-v"))
-    }));
+    let release = value.as_array().and_then(|releases| {
+        releases.iter().find(|r| {
+            r["draft"] != true
+                && r["tag_name"]
+                    .as_str()
+                    .is_some_and(|tag| tag.starts_with("winlauncher-native-v"))
+        })
+    });
     let Some(release) = release else {
-        return Ok(json!({ "available": false, "version": env!("CARGO_PKG_VERSION"), "message": "В нативном канале пока нет опубликованных сборок." }));
+        return Ok(
+            json!({ "available": false, "version": env!("CARGO_PKG_VERSION"), "message": "В нативном канале пока нет опубликованных сборок." }),
+        );
     };
-    let tag = release["tag_name"].as_str().unwrap_or_default().trim_start_matches("winlauncher-native-v");
-    let numbers = |s: &str| -> Vec<u32> { s.split('-').next().unwrap_or_default().split('.').map(|n| n.parse().unwrap_or(0)).collect() };
-    Ok(json!({ "available": numbers(tag) > numbers(env!("CARGO_PKG_VERSION")), "version": tag, "url": release["html_url"], "message": "Нативный предварительный канал. Установка вручную; автоматический подписанный канал не настроен." }))
+    let tag = release["tag_name"]
+        .as_str()
+        .unwrap_or_default()
+        .trim_start_matches("winlauncher-native-v");
+    let numbers = |s: &str| -> Vec<u32> {
+        s.split('-')
+            .next()
+            .unwrap_or_default()
+            .split('.')
+            .map(|n| n.parse().unwrap_or(0))
+            .collect()
+    };
+    Ok(
+        json!({ "available": numbers(tag) > numbers(env!("CARGO_PKG_VERSION")), "version": tag, "url": release["html_url"], "message": "Нативный предварительный канал. Установка вручную; автоматический подписанный канал не настроен." }),
+    )
 }

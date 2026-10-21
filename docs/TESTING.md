@@ -6,9 +6,9 @@
 
 The user subsequently requested a local nickname-based account without Microsoft login. This supersedes the original license-only account requirement **for the new, explicitly labelled offline account type only**. Microsoft ownership validation is unchanged for Microsoft accounts. A local account is not a verified license and does not authenticate to online-mode servers. Full network-disconnected launch and rendered local gameplay are NOT TESTED.
 
-New checks cover Java-compatible offline UUID/name validation, backward-compatible Microsoft account deserialization, native SQLite creation/reopen, duplicate prevention, identity resolution without credentials and deletion. These checks are pending the new build when this source report is written; current results are generated into the release's `TESTING.md`/JSON after execution. The exact results and hashes below describe the previous build, not the new one.
+New checks cover Java-compatible offline UUID/name validation, backward-compatible Microsoft account deserialization, native SQLite creation/reopen, duplicate prevention, identity resolution without credentials and deletion. **PASSED** on Windows in [run 39661734616](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39661734616), application commit `4d3b5421eee487f15c26aebba80f9fe70e2b4836`: 23 Rust unit tests, 25 real backend checks, 2 NSIS checks. Browser acceptance: 13/13; frontend unit tests: 10/10; settled offline-dialog axe audit: zero violations. [Current evidence](verification/offline-accounts/) and the release TESTING.md contain these results. **The exact older results and hashes in the following baseline sections describe the previous build, not the new one.**
 
-## Exact build and evidence
+## Previous baseline: exact build and evidence
 
 - Application source / executable build: `fd718db7b9714ef3c5fd0b8856aa185355d75f32`.
 - Windows build: [Actions run 39654021540](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39654021540).

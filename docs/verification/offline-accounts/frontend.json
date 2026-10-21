@@ -1,0 +1,19 @@
+{
+  "source_commit": "4d3b5421eee487f15c26aebba80f9fe70e2b4836",
+  "date": "2026-10-21",
+  "build": "PASSED",
+  "unit_tests": {
+    "status": "PASSED",
+    "passed": 10
+  },
+  "browser_tests": {
+    "status": "PASSED",
+    "passed": 13,
+    "duration_seconds": 20.7
+  },
+  "offline_dialog_axe": {
+    "status": "PASSED",
+    "violations": 0,
+    "scope": "After dialog animation settled, Chromium 1440x1000"
+  }
+}

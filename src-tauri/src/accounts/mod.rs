@@ -1,5 +1,5 @@
-pub mod vault;
 pub mod offline;
+pub mod vault;
 use crate::{
     models::{Account, AccountKind},
     state::{AppState, PendingAuth},
@@ -363,7 +363,9 @@ pub async fn launch_identity(state: &AppState) -> Result<(Account, String)> {
 pub fn remove(state: &AppState, id: &str) -> Result<()> {
     let _operation = state.begin_job("account")?;
     let account: Account = state.get("accounts", id)?;
-    if account.kind == AccountKind::Microsoft { vault::delete(&format!("account-{id}"))?; }
+    if account.kind == AccountKind::Microsoft {
+        vault::delete(&format!("account-{id}"))?;
+    }
     state.remove("accounts", id)?;
     if state.config().selected_account.as_deref() == Some(id) {
         state
