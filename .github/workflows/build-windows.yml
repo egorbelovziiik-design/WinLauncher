@@ -32,3 +32,13 @@ jobs:
           git config user.email "ci@winlaucher.local"; git config user.name "ci"
           Select-String -Path build.log -Pattern "error" | Select-Object -First 200 | ForEach-Object {$_.Line} | Out-File -Encoding utf8 build-errors.txt
           git add build-errors.txt; git commit -m "CI build errors [skip ci]"; git push
+      - name: Publish exe to repo
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item "src-tauri/target/release/bundle/nsis/*.exe" "release/WinLaucher-Setup.exe" -Force
+          Copy-Item "src-tauri/target/release/WinLaucher.exe" "release/WinLaucher.exe" -Force
+          git config user.email "ci@winlaucher.local"; git config user.name "ci"
+          git add release/WinLaucher-Setup.exe release/WinLaucher.exe
+          git commit -m "Release: WinLaucher.exe + Setup [skip ci]"
+          git push
