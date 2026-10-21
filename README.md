@@ -10,11 +10,26 @@
 ---
 
 ## Скачать
+Готовые сборки лежат в разделе **[Releases → v1.0.0](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.0)**:
 
-Готовые сборки публикуются в разделе **[Releases](https://github.com/egorbelovziiik-design/WinLauncher/releases/latest)**:
+| Файл | Размер | Что это |
+| --- | --- | --- |
+| [`WinLaucher_1.0.0_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.0/WinLaucher_1.0.0_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| [`WinLaucher_1.0.0_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.0/WinLaucher_1.0.0_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
+| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.0/WinLaucher-portable.exe) | 9.8 МБ | Portable: один файл, без установки |
 
-| Файл | Что это |
-| --- | --- |
+SHA-256 (для проверки загрузки):
+
+```
+E064AFF4E97A9783A482CDD74EC31043189DCE4474DF0C821100B3F9662C2BD2  WinLaucher-portable.exe
+EB60EAE1E9573C1E516C49E6B24ACCA93ACC0F89749D9ACC27C7AEC6AF841A5E  WinLaucher_1.0.0_x64-setup.exe
+E5AA2A7E46BB9BA56F0DBA50316950ABBA51AAAF40C32E397DAE431E81F03623  WinLaucher_1.0.0_x64_en-US.msi
+```
+
+Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
+нажмите «Подробнее» → «Выполнить в любом случае». Требуется Windows 10/11 x64.
+
+--- | --- |
 | `WinLaucher_1.0.0_x64-setup.exe` | Установщик NSIS (для текущего пользователя, без прав администратора) |
 | `WinLaucher_1.0.0_x64_en-US.msi` | Установщик MSI (Windows Installer) |
 | `WinLaucher-portable.exe` | Portable-сборка: один файл, работает без установки |
@@ -66,20 +81,16 @@
 
 ---
 
-## Где взять готовый `.exe`
+## Что проверено в CI
 
-Сборка выполняется в GitHub Actions на `windows-latest`:
+Каждый push собирается на `windows-latest` (`.github/workflows/build.yml`):
 
-1. **Releases** — если есть тег `v*`, установщики прикрепляются к релизу.
-2. **Actions → Build WinLaucher for Windows → последний запуск → Artifacts → `WinLaucher-windows-x64`**
-   (внутри `WinLaucher_1.0.0_x64-setup.exe`, `WinLaucher_1.0.0_x64_en-US.msi` и портативный `WinLaucher-portable.exe`).
-
-> Артефакты GitHub Actions доступны только авторизованным пользователям GitHub.
-
-Сборка **не подписана** сертификатом Code Signing, поэтому SmartScreen может показать предупреждение
-«Неизвестный издатель» — это ожидаемо для открытого проекта без сертификата.
-
----
+1. `npm run build` — TypeScript-проверка и сборка фронтенда.
+2. `cargo check --all-targets` — проверка всего Rust-кода.
+3. `npm run tauri build` — реальная сборка `.exe` / `.msi`.
+4. Smoke-тест: портативный exe запускается на раннере и должен остаться живым 15 секунд
+   (то есть окно создаётся, WebView2 инициализируется, паники нет).
+   Отчёт с хешами и метаданными PE пишется в [`smoke.txt`](smoke.txt).
 
 ## Сборка из исходников
 
@@ -150,8 +161,10 @@ src-tauri/
   но поддерживаются переменные окружения `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`.
 - **Автообновление лаунчера** не реализовано: новая версия ставится поверх вручную.
 - **Подпись кода** отсутствует (см. выше).
-- Версия 1.0 собрана и проверена статически; первая реальная сборка `.exe` выполняется в CI.
-  Если какой-то сценарий не сработал на вашей машине — приложите лог (`Настройки → Логи → Экспорт`),
+- **Что не проверено вживую:** разработка шла в Linux-песочнице, поэтому сценарии «вход в Microsoft →
+  скачивание версии → игра» вручную на Windows не прогонялись. Проверено: успешная компиляция Windows-сборки,
+  старт приложения на `windows-latest` (smoke-тест выше) и статические проверки фронтенда.
+  Если какой-то сценарий не сработал — приложите лог (`Настройки → Логи → Экспорт`),
   в нём нет токенов: они вырезаются перед записью.
 
 ---
