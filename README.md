@@ -11,15 +11,21 @@
 
 ## Скачать
 
-Готовые сборки лежат в разделе **[Releases](https://github.com/egorbelovziiik-design/WinLauncher/releases/latest)**:
+Готовые сборки лежат в разделе **[Releases → v1.0.4](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.4)**:
 
 | Файл | Размер | Что это |
 | --- | --- | --- |
-| `WinLaucher_1.0.4_x64-setup.exe` | ~5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| `WinLaucher_1.0.4_x64_en-US.msi` | ~6.8 МБ | Установщик MSI (Windows Installer) |
-| `WinLaucher-portable.exe` | ~9.8 МБ | Portable: один файл, без установки |
+| [`WinLaucher_1.0.4_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.4/WinLaucher_1.0.4_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| [`WinLaucher_1.0.4_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.4/WinLaucher_1.0.4_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
+| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.4/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
 
-> Точные ссылки и SHA-256 указываются на странице релиза — они создаются вместе со сборкой.
+SHA-256 (для проверки загрузки):
+
+```
+A94F81C95EFFA8FA4C8072E06B0133C220EA8CCE2EFD89421B66F38797A7F096  WinLaucher-portable.exe
+8A3CAB9A035BB19E26E6D0660985E93C9BC145EE12A49BC60BD1BA8D010C5D20  WinLaucher_1.0.4_x64-setup.exe
+F1E65DF82F328B625D38D5F698CBC86A6E45533F218F2E9AFA98B63B780F60B1  WinLaucher_1.0.4_x64_en-US.msi
+```
 
 Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
 нажмите «Подробнее» → «Выполнить в любом случае». Требуется Windows 10/11 x64.
