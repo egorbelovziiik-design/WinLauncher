@@ -53,7 +53,8 @@ jobs:
           if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'Java probe timeout' }
           $text = $readError.GetAwaiter().GetResult()
           $ok = $process.ExitCode -eq 0 -and $text.Contains('winlauncher.probe = Проверка с пробелами')
-          $report = @{ passed = $ok; exit_code = $process.ExitCode; stderr = $text; source_commit = $env:GITHUB_SHA } | ConvertTo-Json -Compress
+          $relevant = ($text -split "`n" | Where-Object { $_ -match 'winlauncher.probe|encoding|user.dir|java.version|Error:' }) -join "`n"
+          $report = @{ passed = $ok; exit_code = $process.ExitCode; stderr = $relevant; source_commit = $env:GITHUB_SHA } | ConvertTo-Json -Compress
           $safe = $report.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
           Write-Output "::notice title=JAVA_ARGUMENT_PROBE::$safe"
           if (-not $ok) { throw 'Java Unicode argument-file probe failed' }
