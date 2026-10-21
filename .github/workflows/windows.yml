@@ -1,0 +1,66 @@
+name: Windows build & tests
+
+on:
+  push:
+    branches: [main, 'arena/4f921e32-winlauncher']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Format Rust sources
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml
+      - name: Rust unit tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+      - name: Build Windows executable and NSIS installer
+        run: npm run desktop:build -- --target x86_64-pc-windows-msvc
+      - name: Prepare Windows deliverables
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-artifacts | Out-Null
+          Copy-Item src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe release-artifacts/WinLauncher.exe
+          $installer = Get-ChildItem src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          if (-not $installer) { throw 'NSIS installer was not built' }
+          Copy-Item $installer.FullName release-artifacts/WinLauncher-Setup.exe
+          Get-FileHash release-artifacts/*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release-artifacts/SHA256SUMS.txt
+          Copy-Item docs/TESTING.md release-artifacts/TESTING.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinLauncher-1.0.0-windows-x64
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Rust source and dependency diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-build-metadata
+          path: |
+            src-tauri/Cargo.lock
+            src-tauri/src/
+          retention-days: 7
