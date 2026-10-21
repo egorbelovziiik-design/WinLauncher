@@ -704,6 +704,28 @@ pub async fn ensure_version(
     Ok(())
 }
 
+/// Re-hashes the client jar and every library; anything that does not match
+/// its SHA-1 is queued for a fresh download. Returns how many files were repaired.
+pub async fn repair_files(app: &AppHandle, merged: &MergedVersion) -> Result<usize, String> {
+    let mut stale: Vec<FileSpec> = Vec::new();
+    if let Some(spec) = client_spec(app, merged) {
+        if !download::verified_strict(&spec.dest, spec.sha1.as_deref(), spec.size) {
+            stale.push(spec);
+        }
+    }
+    for spec in library_specs(app, merged) {
+        if !download::verified_strict(&spec.dest, spec.sha1.as_deref(), spec.size) {
+            stale.push(spec);
+        }
+    }
+    if stale.is_empty() {
+        return Ok(0);
+    }
+    let count = stale.len();
+    download::download_files(app.clone(), format!("Verifying {}", merged.id), None, stale).await?;
+    Ok(count)
+}
+
 /// Fast existence check used for status badges (no hashing).
 pub fn install_status(app: &AppHandle, merged: &MergedVersion) -> (usize, usize, u64, bool) {
     let paths = app.state::<AppState>().paths();

@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 use tauri::{AppHandle, Manager};
@@ -81,6 +82,18 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
             format!("{} / {} files", missing, total),
         );
         mojang::ensure_version(app, &merged, Some(game_dir.as_path()), Some(profile.id.clone())).await?;
+    } else {
+        // Everything exists, but a file may still be corrupt (same size, wrong
+        // bytes). Re-hash and re-download instead of failing with exit code 1.
+        let repaired = mojang::repair_files(app, &merged).await?;
+        if repaired > 0 {
+            state.log(
+                "warn",
+                "launcher",
+                format!("{repaired} file(s) failed verification and were downloaded again"),
+            );
+            mojang::prepare_natives(app, &merged)?;
+        }
     }
     // Native libraries must always be unpacked: without them the game dies with
     // UnsatisfiedLinkError (lwjgl.dll) even when every jar is present.
@@ -136,24 +149,29 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
         .map_err(|e| format!("Could not start Minecraft: {e}"))?;
     let pid = child.id();
 
+    let tail: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
     if let Some(stdout) = child.stdout.take() {
         let app = app.clone();
+        let tail = Arc::clone(&tail);
         std::thread::spawn(move || {
             for line in BufReader::new(stdout).lines().flatten() {
                 if line.trim().is_empty() {
                     continue;
                 }
+                push_tail(&tail, &line);
                 app.state::<AppState>().log("info", "game", line);
             }
         });
     }
     if let Some(stderr) = child.stderr.take() {
         let app = app.clone();
+        let tail = Arc::clone(&tail);
         std::thread::spawn(move || {
             for line in BufReader::new(stderr).lines().flatten() {
                 if line.trim().is_empty() {
                     continue;
                 }
+                push_tail(&tail, &line);
                 app.state::<AppState>().log("warn", "game", line);
             }
         });
@@ -183,6 +201,7 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
 
     let watcher = app.clone();
     let watched_id = profile.id.clone();
+    let tail_watcher = Arc::clone(&tail);
     std::thread::spawn(move || loop {
         std::thread::sleep(std::time::Duration::from_millis(700));
         let st = watcher.state::<AppState>();
@@ -198,15 +217,38 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
         let Some(code) = finished else { continue };
         *guard = None;
         drop(guard);
+        let lines: Vec<String> = tail_watcher
+            .lock()
+            .map(|t| t.iter().cloned().collect())
+            .unwrap_or_default();
+        let failed = code != Some(0);
+        let reason = if failed { identify_reason(&lines) } else { String::new() };
         st.log(
-            if code == Some(0) { "info" } else { "warn" },
+            if failed { "error" } else { "info" },
             "launcher",
             format!("Minecraft exited with code {code:?}"),
         );
+        if failed {
+            for line in lines.iter().rev().take(60).rev() {
+                st.log("error", "game", line.clone());
+            }
+            st.log(
+                "error",
+                "launcher",
+                format!("Launch failed: {reason}"),
+            );
+        }
         st.set_launch(LaunchStatus {
             profile_id: Some(watched_id.clone()),
-            state: "exited".into(),
-            message: String::new(),
+            state: if failed { "error".into() } else { "exited".into() },
+            message: if failed {
+                match code {
+                    Some(value) => format!("Exit code {value}: {reason}"),
+                    None => reason.clone(),
+                }
+            } else {
+                String::new()
+            },
             code,
             started_at: None,
         });
@@ -219,6 +261,44 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
     });
 
     Ok(())
+}
+
+fn push_tail(tail: &Arc<Mutex<VecDeque<String>>>, line: &str) {
+    if let Ok(mut buffer) = tail.lock() {
+        if buffer.len() >= 200 {
+            buffer.pop_front();
+        }
+        buffer.push_back(line.to_string());
+    }
+}
+
+/// Picks the line from the game output that explains a crash.
+pub fn identify_reason(lines: &[String]) -> String {
+    const MARKERS: [&str; 7] = [
+        "Exception",
+        "Error:",
+        "Caused by",
+        "NoClassDefFound",
+        "UnsatisfiedLink",
+        "A fatal error",
+        "failed to",
+    ];
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let lowered = trimmed.to_lowercase();
+        if MARKERS.iter().any(|marker| lowered.contains(&marker.to_lowercase())) {
+            return trimmed.chars().take(400).collect();
+        }
+    }
+    lines
+        .iter()
+        .rev()
+        .find(|line| !line.trim().is_empty())
+        .map(|line| line.trim().chars().take(400).collect())
+        .unwrap_or_default()
 }
 
 pub fn stop(app: &AppHandle) -> Result<(), String> {
@@ -524,6 +604,17 @@ mod tests {
         ];
         let args = collect_args(&items, &mojang::default_features());
         assert_eq!(args, vec!["--demo", "--width", "1280", "--height", "720"]);
+    }
+
+    #[test]
+    fn finds_the_crash_reason() {
+        let lines = vec![
+            "Picked up _JAVA_OPTIONS".to_string(),
+            "java.lang.UnsatisfiedLinkError: Failed to locate library: lwjgl.dll".to_string(),
+            "at org.lwjgl.system.Library.loadSystem(Library.java:1)".to_string(),
+        ];
+        assert!(identify_reason(&lines).contains("UnsatisfiedLinkError"));
+        assert_eq!(identify_reason(&[]), "");
     }
 
     #[test]

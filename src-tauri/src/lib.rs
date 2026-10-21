@@ -13,6 +13,7 @@ mod news;
 mod paths;
 mod profiles;
 mod secret;
+mod selftest;
 mod state;
 mod util;
 
@@ -116,6 +117,23 @@ pub fn run() {
                     .state::<AppState>()
                     .log("info", "launcher", format!("Detected {count} Java runtime(s)"));
             });
+
+            // Head-less end-to-end check: `WinLaucher.exe --selftest [version]`.
+            if let Some(index) = std::env::args().position(|arg| arg == "--selftest") {
+                let version = std::env::args()
+                    .nth(index + 1)
+                    .filter(|value| !value.starts_with("--"))
+                    .unwrap_or_else(|| "1.21.4".to_string());
+                let selftest_handle = handle.clone();
+                std::thread::spawn(move || {
+                    selftest_handle
+                        .state::<AppState>()
+                        .log("info", "launcher", format!("Self-test for Minecraft {version} started"));
+                    let report = selftest::run(&selftest_handle, &version);
+                    let _ = std::fs::write("selftest-report.txt", &report);
+                    selftest_handle.exit(0);
+                });
+            }
 
             Ok(())
         })

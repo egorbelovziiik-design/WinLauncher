@@ -153,6 +153,24 @@ pub fn verified(path: &Path, sha1: Option<&str>, size: u64) -> bool {
     }
 }
 
+/// Like [`verified`], but always hashes the file when a SHA-1 is known.
+/// Used before launching, where a same-size corrupt file still breaks the game.
+pub fn verified_strict(path: &Path, sha1: Option<&str>, size: u64) -> bool {
+    let Ok(meta) = std::fs::metadata(path) else { return false };
+    if !meta.is_file() {
+        return false;
+    }
+    if size > 0 && meta.len() != size {
+        return false;
+    }
+    match sha1.filter(|s| !s.is_empty()) {
+        Some(expected) => util::sha1_file(path)
+            .map(|actual| actual.eq_ignore_ascii_case(expected))
+            .unwrap_or(false),
+        None => true,
+    }
+}
+
 pub async fn download_files(
     app: AppHandle,
     title: String,

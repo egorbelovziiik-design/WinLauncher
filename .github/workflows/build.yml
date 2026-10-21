@@ -141,6 +141,27 @@ jobs:
           git pull --rebase --autostash origin "$env:GITHUB_REF_NAME"
           git push origin "HEAD:$env:GITHUB_REF_NAME"
 
+      - name: End-to-end launch test (real Minecraft)
+        if: contains(github.event.head_commit.message, '[e2e]') || github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          & out/WinLaucher-portable.exe --selftest 1.21.4
+          for ($i = 0; $i -lt 240; $i++) {
+            if (Test-Path selftest-report.txt) { break }
+            Start-Sleep -Seconds 5
+          }
+          if (-not (Test-Path selftest-report.txt)) {
+            Set-Content -Path selftest-report.txt -Value 'The self-test produced no report.'
+          }
+          Get-Content selftest-report.txt -TotalCount 220 | ForEach-Object { Write-Host $_ }
+          git config user.name "winlaucher-ci"
+          git config user.email "ci@winlaucher.local"
+          git add selftest-report.txt
+          git commit -m "ci: e2e report [skip ci]" || exit 0
+          git pull --rebase --autostash origin "$env:GITHUB_REF_NAME"
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
+
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
@@ -169,17 +190,17 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2
-          name: WinLaucher 1.0.2
+          tag_name: v1.0.3
+          name: WinLaucher 1.0.3
           make_latest: true
           draft: false
           body: |
-            ## WinLaucher 1.0.2 (Windows 10/11, x64)
+            ## WinLaucher 1.0.3 (Windows 10/11, x64)
 
             Установщики собраны автоматически из ветки `arena/aea774bf-winlauncher`.
 
-            * `WinLaucher_1.0.2_x64-setup.exe` — установщик NSIS (для текущего пользователя, без прав администратора)
-            * `WinLaucher_1.0.2_x64_en-US.msi` — установщик MSI (Windows Installer)
+            * `WinLaucher_1.0.3_x64-setup.exe` — установщик NSIS (для текущего пользователя, без прав администратора)
+            * `WinLaucher_1.0.3_x64_en-US.msi` — установщик MSI (Windows Installer)
             * `WinLaucher-portable.exe` — portable-версия, запускается без установки
 
             ### Важно

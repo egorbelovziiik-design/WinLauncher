@@ -146,6 +146,7 @@ export function HomePage() {
     stopGame,
     refreshStatus,
     refreshDownloads,
+    setLogDrawer,
   } = useApp();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
@@ -307,6 +308,24 @@ export function HomePage() {
                       </div>
                     )}
                   </div>
+
+                  {launch.state === 'error' && launch.message && (
+                    <div className="mt-4 max-w-[520px] animate-fade-in rounded-xl border border-red-400/30 bg-red-500/10 px-3.5 py-3">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-red-300">
+                        {t('launch.error')}
+                      </div>
+                      <div className="mt-1.5 max-h-28 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-100/90">
+                        {launch.message}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setLogDrawer(true)}
+                        className="mt-2 text-[11px] font-semibold text-red-200 underline decoration-red-300/40 underline-offset-2 hover:text-white"
+                      >
+                        {t('logs.title')}
+                      </button>
+                    </div>
+                  )}
 
                   {busy && (
                     <div className="mt-4 max-w-[420px] animate-fade-in">
