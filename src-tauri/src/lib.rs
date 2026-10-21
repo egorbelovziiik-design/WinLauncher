@@ -4,8 +4,8 @@ use std::{collections::HashMap, path::{Path, PathBuf}, sync::Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 use futures_util::StreamExt;
 
-pub struct AppState { pub game_process: Mutex<Option<std::process::Child>>, pub logs: Mutex<Vec<String>>, pub downloads: Mutex<Vec<DownloadItem>> }
-impl Default for AppState { fn default()->Self{ Self{game_process:Mutex::new(None),logs:Mutex::new(vec![]),downloads:Mutex::new(vec![])} } }
+pub struct AppState { pub game_process: Mutex<Option<std::process::Child>>, pub logs: Mutex<Vec<String>>, pub downloads: Mutex<Vec<DownloadItem>>, pub stages: Mutex<Vec<serde_json::Value>> }
+impl Default for AppState { fn default()->Self{ Self{game_process:Mutex::new(None),logs:Mutex::new(vec![]),downloads:Mutex::new(vec![]),stages:Mutex::new(vec![])} } }
 
 #[derive(Serialize,Deserialize,Clone,Debug)]
 pub struct DownloadItem { pub id:String, pub name:String, pub url:String, pub total:u64, pub downloaded:u64, pub speed:u64, pub percent:f64, pub status:String, pub error:Option<String> }
@@ -23,7 +23,8 @@ fn read_json<T: for<'de> Deserialize<'de>+Default>(p:&Path)->T{ std::fs::read_to
 fn write_json<T:Serialize>(p:&Path,v:&T){ if let Some(par)=p.parent(){std::fs::create_dir_all(par).ok();} std::fs::write(p,serde_json::to_string_pretty(v).unwrap_or_default()).ok(); }
 fn load_settings(app:&AppHandle)->Settings{ read_json(&base_dir(app).join("settings.json")) }
 fn log(app:&AppHandle,state:&State<AppState>,msg:&str){ let line=format!("[{}] {}",chrono::Local::now().format("%H:%M:%S"),msg); if let Ok(mut l)=state.logs.lock(){ l.push(line.clone()); if l.len()>2000{l.drain(0..500);} } use std::io::Write; if let Ok(mut f)=std::fs::OpenOptions::new().create(true).append(true).open(base_dir(app).join("winlaucher.log")){ let _=writeln!(f,"{}",line); } let _=app.emit("launcher-log",line); }
-fn stage(app:&AppHandle,state:&State<AppState>,id:&str,label:&str,status:&str,detail:&str){ log(app,state,&format!("{}: {}",label,detail)); let _=app.emit("launch-stage",serde_json::json!({"id":id,"label":label,"status":status,"detail":detail})); }
+fn stage(app:&AppHandle,state:&State<AppState>,id:&str,label:&str,status:&str,detail:&str){ stage_inner(app,state,id,label,status,detail,true) }
+fn stage_inner(app:&AppHandle,state:&State<AppState>,id:&str,label:&str,status:&str,detail:&str,write_log:bool){ if write_log{ log(app,state,&format!("{}: {}",label,detail)); } let v=serde_json::json!({"id":id,"label":label,"status":status,"detail":detail}); if let Ok(mut st)=state.stages.lock(){ if let Some(x)=st.iter_mut().find(|x|x["id"]==id){ *x=v.clone(); } else { st.push(v.clone()); } } let _=app.emit("launch-stage",v); }
 fn parse_java_major(text:&str)->Option<u32>{ // "1.8.0_402" -> 8, "21.0.5" -> 21
   let v=text.split('"').nth(1)?; let mut parts=v.split('.'); let first:u32=parts.next()?.parse().ok()?; if first==1{ parts.next()?.parse().ok() } else { Some(first) } }
 async fn java_major_of(exe:&Path)->Option<u32>{ let out=tokio::time::timeout(std::time::Duration::from_secs(10),tokio::process::Command::new(exe).arg("-version").output()).await.ok()?.ok()?; parse_java_major(&format!("{}{}",String::from_utf8_lossy(&out.stderr),String::from_utf8_lossy(&out.stdout))) }
@@ -74,11 +75,12 @@ fn rules_allow(lib:&serde_json::Value)->bool{
 
 fn required_java_major(meta:&serde_json::Value)->u32{ meta.get("javaVersion").and_then(|j|j.get("majorVersion")).and_then(|v|v.as_u64()).unwrap_or(8) as u32 }
 
-#[tauri::command] async fn get_versions()->Result<serde_json::Value,String>{ reqwest::Client::new().get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn get_versions()->Result<serde_json::Value,String>{ http_client().get("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
 #[tauri::command] fn get_settings(app:AppHandle)->Settings{ load_settings(&app) }
 #[tauri::command] fn set_settings(app:AppHandle,settings:Settings)->Settings{ write_json(&base_dir(&app).join("settings.json"),&settings); settings }
 #[tauri::command] fn system_info()->serde_json::Value{ let mut sys=sysinfo::System::new_all(); sys.refresh_memory(); serde_json::json!({"total_ram_mb":sys.total_memory()/1024/1024,"free_ram_mb":sys.available_memory()/1024/1024,"os":std::env::consts::OS,"arch":std::env::consts::ARCH}) }
 #[tauri::command] fn get_logs(state:State<AppState>)->Vec<String>{ state.logs.lock().map(|l|l.clone()).unwrap_or_default() }
+#[tauri::command] fn get_stages(state:State<AppState>)->Vec<serde_json::Value>{ state.stages.lock().map(|l|l.clone()).unwrap_or_default() }
 #[tauri::command] fn clear_logs(state:State<AppState>){ if let Ok(mut l)=state.logs.lock(){l.clear();} }
 #[tauri::command] fn get_downloads(app:AppHandle,state:State<AppState>)->Vec<DownloadItem>{ if let Ok(d)=state.downloads.lock(){ if !d.is_empty(){return d.clone();} } read_json::<Vec<DownloadItem>>(&base_dir(&app).join("downloads.json")) }
 #[tauri::command] fn list_accounts(app:AppHandle)->Vec<Account>{ read_json(&base_dir(&app).join("accounts.json")) }
@@ -124,20 +126,22 @@ async fn find_or_install_java(app:&AppHandle,state:&State<'_,AppState>,major:u32
 #[tauri::command] async fn ensure_java(app:AppHandle,state:State<'_,AppState>,major:u32)->Result<String,String>{ let s=load_settings(&app); Ok(find_or_install_java(&app,&state,major,&s.java_path).await?.to_string_lossy().to_string()) }
 
 async fn install_version_internal(app:&AppHandle,state:&State<'_,AppState>,version_id:&str)->Result<serde_json::Value,String>{
- let manifest:serde_json::Value=get_versions().await?;
+ stage(app,state,"install","Этап: установка игры","active","Получаю список версий с piston-meta.mojang.com (таймаут 20 c)...");
+ let manifest:serde_json::Value=get_versions().await.map_err(|e|format!("Не получил манифест Mojang: {}",e))?;
  let entry=manifest["versions"].as_array().and_then(|a|a.iter().find(|v|v["id"]==version_id)).ok_or("Версия не найдена в манифесте Mojang")?.clone();
  let url=entry["url"].as_str().unwrap().to_string();
  let mc=mc_dir(app); let vdir=mc.join("versions").join(version_id); std::fs::create_dir_all(&vdir).map_err(|e|e.to_string())?;
  let meta_path=vdir.join(format!("{}.json",version_id));
  // fetch meta
- let meta_text=reqwest::Client::new().get(&url).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.text().await.map_err(|e|e.to_string())?;
+ stage(app,state,"install","Этап: установка игры","active","Скачиваю метаданные версии...");
+ let meta_text=http_client().get(&url).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|format!("Метаданные версии не скачались: {}",e))?.text().await.map_err(|e|e.to_string())?;
  std::fs::write(&meta_path,&meta_text).map_err(|e|e.to_string())?;
  let meta:serde_json::Value=serde_json::from_str(&meta_text).map_err(|e|e.to_string())?;
  stage(app,state,"install","Этап: установка игры","active",&format!("Скачиваю Minecraft {} (клиент, библиотеки, ресурсы)...",version_id));
  // client jar
  if let Some(c)=meta["downloads"]["client"].as_object(){ download_file(app,state,c["url"].as_str().unwrap(),&vdir.join(format!("{}.jar",version_id)),c["sha1"].as_str(),&format!("{}.jar",version_id)).await?; }
  // libraries + natives
- if let Some(libs)=meta["libraries"].as_array(){ for lib in libs{ if !rules_allow(lib){continue;}
+ if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
    if let Some(dl)=lib["downloads"]["artifact"].as_object(){ if let Some(p)=dl["path"].as_str(){ download_file(app,state,dl["url"].as_str().unwrap_or(""),&mc.join("libraries").join(p),dl["sha1"].as_str(),p).await.ok(); } }
    if let Some(classifiers)=lib["downloads"]["classifiers"].as_object(){ for (_k,dl) in classifiers{ if let Some(p)=dl["path"].as_str(){ download_file(app,state,dl["url"].as_str().unwrap_or(""),&mc.join("libraries").join(p),dl["sha1"].as_str(),p).await.ok(); } } }
  } }
@@ -147,16 +151,16 @@ async fn install_version_internal(app:&AppHandle,state:&State<'_,AppState>,versi
  let aindex_path=adir.join("indexes").join(format!("{}.json",aid)); download_file(app,state,&aurl,&aindex_path,assets["sha1"].as_str(),"assets index").await?;
  let aindex:serde_json::Value=read_json(&aindex_path);
  if let Some(objs)=aindex["objects"].as_object(){ let total=objs.len(); let mut done=0usize;
-   for (_name,obj) in objs { let hash=obj["hash"].as_str().unwrap_or(""); if hash.len()<2{continue;} let sub=&hash[0..2]; let dest=adir.join("objects").join(sub).join(hash); let u=format!("https://resources.download.minecraft.net/{}/{}",sub,hash); download_file(app,state,&u,&dest,Some(hash),hash).await.ok(); done+=1; if done%50==0{ let _=app.emit("install-progress",serde_json::json!({"stage":"assets","percent":done as f64/total as f64*100.0,"done":done,"total":total})); } } }
+   for (_name,obj) in objs { let hash=obj["hash"].as_str().unwrap_or(""); if hash.len()<2{continue;} if done%200==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Ресурсы (assets): {}/{} файлов",done,total),false); } let sub=&hash[0..2]; let dest=adir.join("objects").join(sub).join(hash); let u=format!("https://resources.download.minecraft.net/{}/{}",sub,hash); download_file(app,state,&u,&dest,Some(hash),hash).await.ok(); done+=1; if done%50==0{ let _=app.emit("install-progress",serde_json::json!({"stage":"assets","percent":done as f64/total as f64*100.0,"done":done,"total":total})); } } }
  stage(app,state,"install","Этап: установка игры","done",&format!("Minecraft {} установлен",version_id)); Ok(meta)
 }
 #[tauri::command] async fn install_version(app:AppHandle,state:State<'_,AppState>,version_id:String)->Result<(),String>{ install_version_internal(&app,&state,&version_id).await?; Ok(()) }
 
 // Microsoft device-code flow (real endpoints; client_id is the public Minecraft-launcher-compatible Azure app placeholder configurable in code - user can replace)
 const MS_CLIENT_ID:&str="00000000402b5328"; // public Xbox app client id used by many launchers for device flow; replace with own Azure app if needed
-#[tauri::command] async fn ms_device_code()->Result<serde_json::Value,String>{ let c=reqwest::Client::new(); let v:serde_json::Value=c.post("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode").form(&[("client_id",MS_CLIENT_ID),("scope","XboxLive.signin offline_access")]).send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?; Ok(v) }
+#[tauri::command] async fn ms_device_code()->Result<serde_json::Value,String>{ let c=http_client(); let v:serde_json::Value=c.post("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode").form(&[("client_id",MS_CLIENT_ID),("scope","XboxLive.signin offline_access")]).send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?; Ok(v) }
 #[tauri::command] async fn ms_poll(app:AppHandle,device_code:String)->Result<Account,String>{
- let c=reqwest::Client::new();
+ let c=http_client();
  let ms:serde_json::Value=c.post("https://login.microsoftonline.com/consumers/oauth2/v2.0/token").form(&[("grant_type","urn:ietf:params:oauth:grant-type:device_code"),("client_id",MS_CLIENT_ID),("device_code",&device_code)]).send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?;
  if ms.get("error").is_some(){ return Ok(Account{id:"pending".into(),kind:"pending".into(),username:ms["error"].as_str().unwrap_or("pending").to_string(),uuid:"".into(),access_token:None,refresh_token:None,expires_at:None}); }
  let access=ms["access_token"].as_str().ok_or("Нет access_token Microsoft")?.to_string(); let refresh=ms["refresh_token"].as_str().map(|s|s.to_string());
@@ -175,14 +179,14 @@ const MS_CLIENT_ID:&str="00000000402b5328"; // public Xbox app client id used by
  let mut all=list_accounts(app.clone()); all.retain(|a|a.uuid!=acc.uuid); all.push(acc.clone()); save_accounts(app,all); Ok(acc)
 }
 
-#[tauri::command] async fn modrinth_search(query:String,facets:Option<String>)->Result<serde_json::Value,String>{ let mut u=format!("https://api.modrinth.com/v2/search?query={}&limit=48&index=relevance",urlencoding(&query)); if let Some(f)=facets{ if !f.is_empty(){u.push_str(&format!("&facets={}",urlencoding(&f)));} } reqwest::Client::new().get(u).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn modrinth_search(query:String,facets:Option<String>)->Result<serde_json::Value,String>{ let mut u=format!("https://api.modrinth.com/v2/search?query={}&limit=48&index=relevance",urlencoding(&query)); if let Some(f)=facets{ if !f.is_empty(){u.push_str(&format!("&facets={}",urlencoding(&f)));} } http_client().get(u).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
 fn urlencoding(s:&str)->String{ s.chars().map(|c|match c{'a'..='z'|'A'..='Z'|'0'..='9'|'-'|'_'|'.'|'~'=>c.to_string(),_=>format!("%{:02X}",c as u32)}).collect() }
-#[tauri::command] async fn modrinth_versions(project_id:String,game_version:String,loader:String)->Result<serde_json::Value,String>{ let u=format!("https://api.modrinth.com/v2/project/{}/version?game_versions=[\"{}\"]&loaders=[\"{}\"]",project_id,game_version,loader.to_lowercase()); reqwest::Client::new().get(u).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
-#[tauri::command] async fn curseforge_search(app:AppHandle,query:String)->Result<serde_json::Value,String>{ let key=load_settings(&app).curseforge_api_key; if key.is_empty(){ return Err("CurseForge: укажите API-ключ в Настройках → Дополнительно (получить: console.curseforge.com). Без ключа API недоступен.".into()); } reqwest::Client::new().get(format!("https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter={}&pageSize=36",urlencoding(&query))).header("x-api-key",key).header("Accept","application/json").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
-#[tauri::command] async fn fabric_loaders(game_version:String)->Result<serde_json::Value,String>{ reqwest::Client::new().get(format!("https://meta.fabricmc.net/v2/versions/loader/{}",game_version)).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
-#[tauri::command] async fn quilt_loaders(game_version:String)->Result<serde_json::Value,String>{ reqwest::Client::new().get(format!("https://meta.quiltmc.org/v3/versions/loader/{}",game_version)).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
-#[tauri::command] async fn forge_versions()->Result<String,String>{ reqwest::Client::new().get("https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml").send().await.map_err(|e|e.to_string())?.text().await.map_err(|e|e.to_string()) }
-#[tauri::command] async fn neoforge_versions()->Result<String,String>{ reqwest::Client::new().get("https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml").send().await.map_err(|e|e.to_string())?.text().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn modrinth_versions(project_id:String,game_version:String,loader:String)->Result<serde_json::Value,String>{ let u=format!("https://api.modrinth.com/v2/project/{}/version?game_versions=[\"{}\"]&loaders=[\"{}\"]",project_id,game_version,loader.to_lowercase()); http_client().get(u).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn curseforge_search(app:AppHandle,query:String)->Result<serde_json::Value,String>{ let key=load_settings(&app).curseforge_api_key; if key.is_empty(){ return Err("CurseForge: укажите API-ключ в Настройках → Дополнительно (получить: console.curseforge.com). Без ключа API недоступен.".into()); } http_client().get(format!("https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter={}&pageSize=36",urlencoding(&query))).header("x-api-key",key).header("Accept","application/json").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn fabric_loaders(game_version:String)->Result<serde_json::Value,String>{ http_client().get(format!("https://meta.fabricmc.net/v2/versions/loader/{}",game_version)).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn quilt_loaders(game_version:String)->Result<serde_json::Value,String>{ http_client().get(format!("https://meta.quiltmc.org/v3/versions/loader/{}",game_version)).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn forge_versions()->Result<String,String>{ http_client().get("https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml").send().await.map_err(|e|e.to_string())?.text().await.map_err(|e|e.to_string()) }
+#[tauri::command] async fn neoforge_versions()->Result<String,String>{ http_client().get("https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml").send().await.map_err(|e|e.to_string())?.text().await.map_err(|e|e.to_string()) }
 
 fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)=profile{ if !p.game_dir.is_empty(){ let d=PathBuf::from(&p.game_dir); std::fs::create_dir_all(&d).ok(); return d; } } mc_dir(app) }
 
@@ -194,11 +198,11 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  let java=find_or_install_java(&app,&state,if meta_major==0{17}else{meta_major},"").await?;
  if loader=="fabric"||loader=="quilt"{
    let (base,id_prefix)=if loader=="fabric"{("https://meta.fabricmc.net/v2/versions/loader","fabric-loader")}else{("https://meta.quiltmc.org/v3/versions/loader","quilt-loader")};
-   let list:serde_json::Value=reqwest::Client::new().get(format!("{}/{}",base,gv)).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?;
+   let list:serde_json::Value=http_client().get(format!("{}/{}",base,gv)).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?;
    let arr=list.as_array().ok_or("Нет версий загрузчика для этой версии Minecraft")?; if arr.is_empty(){return Err("Нет версий загрузчика для этой версии".into());}
    let chosen=profile.loader_version.clone().filter(|v|arr.iter().any(|e|e["loader"]["version"]==v.as_str())).unwrap_or_else(||arr[0]["loader"]["version"].as_str().unwrap_or("").to_string());
    let prof_url=format!("{}/{}/{}/profile/json",base,gv,chosen);
-   let pmeta:serde_json::Value=reqwest::Client::new().get(&prof_url).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?;
+   let pmeta:serde_json::Value=http_client().get(&prof_url).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?;
    let new_id=pmeta["id"].as_str().unwrap_or(&format!("{}-{}-{}",id_prefix,chosen,gv)).to_string();
    // download loader libraries
    if let Some(libs)=pmeta["libraries"].as_array(){ for lib in libs{ if let (Some(name),Some(url))=(lib["name"].as_str(),lib["url"].as_str()){ let parts:Vec<&str>=name.split(':').collect(); if parts.len()>=3{ let path=format!("{}/{}/{}/{}-{}.jar",parts[0].replace('.',"/"),parts[1],parts[2],parts[1],parts[2]); let full=format!("{}{}",if url.ends_with('/'){url.to_string()}else{format!("{}/",url)},path); download_file(&app,&state,&full,&mc_dir(&app).join("libraries").join(&path),None,&path).await?; } } } }
@@ -276,7 +280,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  // classpath
  let mut cp:Vec<String>=vec![];
  let mut native_dir=mc.join("versions").join(&effective_id).join("natives"); std::fs::create_dir_all(&native_dir).ok();
- if let Some(libs)=meta["libraries"].as_array(){ for lib in libs{ if !rules_allow(lib){continue;}
+ if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
    if let Some(art)=lib["downloads"]["artifact"].as_object(){ if let Some(p)=art["path"].as_str(){ let f=mc.join("libraries").join(p); if f.exists(){cp.push(f.to_string_lossy().to_string());} } }
    else if let Some(name)=lib["name"].as_str(){ let parts:Vec<&str>=name.split(':').collect(); if parts.len()>=3{ let p=format!("{}/{}/{}/{}-{}.jar",parts[0].replace('.',"/"),parts[1],parts[2],parts[1],parts[2]); let f=mc.join("libraries").join(&p); if f.exists(){cp.push(f.to_string_lossy().to_string());} } }
    // natives
@@ -317,4 +321,4 @@ fn extract_natives(jar:&Path,dest:&Path){ if let Ok(f)=std::fs::File::open(jar){
 #[tauri::command] fn kill_game(state:State<AppState>){ if let Ok(mut g)=state.game_process.lock(){ if let Some(mut c)=g.take(){ c.kill().ok(); } } }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run(){ tauri::Builder::default().plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_opener::init()).manage(AppState::default()).invoke_handler(tauri::generate_handler![get_versions,get_settings,set_settings,system_info,get_logs,clear_logs,get_downloads,list_accounts,save_accounts,add_offline_account,list_profiles,save_profiles,list_installed,delete_version,open_folder,game_dir_path,check_java,ensure_java,install_version,ms_device_code,ms_poll,modrinth_search,modrinth_versions,curseforge_search,fabric_loaders,quilt_loaders,forge_versions,neoforge_versions,install_loader,list_mods,toggle_mod,delete_mod,install_mod,install_modpack,launch_game,game_running,kill_game]).run(tauri::generate_context!()).expect("error while running WinLaucher"); }
+pub fn run(){ tauri::Builder::default().plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_opener::init()).manage(AppState::default()).invoke_handler(tauri::generate_handler![get_versions,get_stages,get_settings,set_settings,system_info,get_logs,clear_logs,get_downloads,list_accounts,save_accounts,add_offline_account,list_profiles,save_profiles,list_installed,delete_version,open_folder,game_dir_path,check_java,ensure_java,install_version,ms_device_code,ms_poll,modrinth_search,modrinth_versions,curseforge_search,fabric_loaders,quilt_loaders,forge_versions,neoforge_versions,install_loader,list_mods,toggle_mod,delete_mod,install_mod,install_modpack,launch_game,game_running,kill_game]).run(tauri::generate_context!()).expect("error while running WinLaucher"); }
