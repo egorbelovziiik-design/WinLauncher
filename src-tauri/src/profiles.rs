@@ -101,8 +101,7 @@ pub fn update(app: &AppHandle, incoming: Profile) -> Result<Profile, String> {
     if incoming.name.trim().is_empty() {
         return Err("profiles.nameRequired".into());
     }
-    let mut updated: Option<Profile> = None;
-    {
+    let profile = {
         let mut profiles = wlock(&state.profiles);
         let Some(slot) = profiles.iter_mut().find(|p| p.id == incoming.id) else {
             return Err("profiles.notFound".into());
@@ -121,10 +120,9 @@ pub fn update(app: &AppHandle, incoming: Profile) -> Result<Profile, String> {
             next.game_dir = slot.game_dir.clone();
         }
         *slot = next.clone();
-        updated = Some(next);
-    }
+        next
+    };
     state.save_profiles();
-    let profile = updated.ok_or_else(|| "profiles.notFound".to_string())?;
     let _ = app.emit("profile-changed", serde_json::json!({ "profileId": profile.id }));
     Ok(profile)
 }

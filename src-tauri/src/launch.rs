@@ -54,9 +54,17 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
         Some(id) => id,
         None => {
             if loaders::is_modded(&profile.loader.kind) {
-                return Err("versions.notInstalled".into());
+                state.set_launch_state(
+                    Some(profile.id.clone()),
+                    "installing",
+                    format!("{} {}", profile.loader.kind, profile.loader.version.clone().unwrap_or_default()),
+                );
+                loaders::ensure(app, &profile)
+                    .await?
+                    .ok_or_else(|| "versions.notInstalled".to_string())?
+            } else {
+                profile.mc_version.clone()
             }
-            profile.mc_version.clone()
         }
     };
 

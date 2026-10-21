@@ -296,7 +296,7 @@ pub async fn poll(app: &AppHandle, device_code: &str) -> Result<Option<Account>,
         return Err("accounts.authError|no access token returned".into());
     }
     let flow = if azure { "azure" } else { "live" };
-    complete_login(app, &ms_access, &ms_refresh, flow).await
+    complete_login(app, &ms_access, &ms_refresh, flow).await.map(Some)
 }
 
 async fn xbl_authenticate(client: &reqwest::Client, tickets: &[String]) -> Result<(String, String), String> {

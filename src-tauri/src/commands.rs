@@ -148,7 +148,7 @@ pub async fn profile_status(app: AppHandle, profile_id: String) -> Result<Profil
     let mut status = ProfileStatus {
         profile_id: profile.id.clone(),
         version_installed: false,
-        loader_installed: !loaders::is_modded(&profile.loader.kind),
+        loader_installed: !loaders::is_modded(&profile.loader.kind) || loader_id.is_some(),
         loader_name: profile.loader.kind.clone(),
         missing_files: 0,
         total_files: 0,
@@ -542,7 +542,7 @@ pub fn autostart_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
 pub fn launch_start(app: AppHandle, profile_id: String, account_id: String) -> Result<(), String> {
     let state = app.state::<AppState>();
     if lock(&state.child).is_some() {
-        return Err("launch.alreadyRunning".into());
+        return Err("errors.alreadyRunning".into());
     }
     if state.profile_by_id(&profile_id).is_none() {
         return Err("profiles.notFound".into());

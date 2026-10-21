@@ -236,7 +236,6 @@ pub async fn install(
     profile_id: Option<String>,
 ) -> Result<String, String> {
     let kind = normalize(kind);
-    let state = app.state::<AppState>();
     let loader_version = match loader_version.filter(|v| !v.trim().is_empty()) {
         Some(v) => v,
         None => latest(app, &kind, mc).await?,
@@ -383,7 +382,6 @@ fn list_version_dirs(paths: &Paths) -> Vec<String> {
 }
 
 fn run_installer(app: &AppHandle, java: &str, jar: &Path, target: &Path) -> Result<(), String> {
-    let state = app.state::<AppState>();
     let mut cmd = Command::new(java);
     cmd.arg("-jar")
         .arg(jar)

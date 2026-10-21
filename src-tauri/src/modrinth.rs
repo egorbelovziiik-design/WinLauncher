@@ -426,7 +426,7 @@ pub async fn install_mod(
         _ => None,
     };
 
-    let mut meta = read_meta(&profile.game_dir);
+    let mut meta = read_meta(Path::new(&profile.game_dir));
     meta.insert(
         file.filename.clone(),
         ModMeta {

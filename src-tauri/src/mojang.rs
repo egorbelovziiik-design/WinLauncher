@@ -154,13 +154,13 @@ pub async fn load_merged(app: &AppHandle, id: &str) -> Result<MergedVersion, Str
             let p = load_or_fetch_version_json(app, &current).await?;
             if let Some(next) = p.inherits_from.clone() {
                 let pid = p.id.clone();
-                parent = Some(merge_parent(parent, p));
+                parent = merge_parent(parent, p);
                 parent_id = Some(pid);
                 current = next;
                 continue;
             }
             root_id = current.clone();
-            parent = Some(merge_parent(parent, p));
+            parent = merge_parent(parent, p);
             parent_id = Some(current);
             break;
         }
@@ -232,7 +232,7 @@ fn merge_chain(
         main_class = p.main_class.clone();
         asset_index = p.asset_index.clone();
         assets = p.assets.clone();
-        downloads = p.downloads.clone();
+        downloads = p.downloads.clone().unwrap_or_default();
         java_version = p.java_version.clone();
         logging = p.logging.clone();
         if !p.version_type.is_empty() {

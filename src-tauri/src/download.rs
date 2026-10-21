@@ -358,7 +358,6 @@ async fn fetch_file(
     }
     let resumed = status == reqwest::StatusCode::PARTIAL_CONTENT && existing > 0;
     if !resumed {
-        existing = 0;
         let _ = tokio::fs::remove_file(&part).await;
     }
     if progress.bytes.load(Ordering::Relaxed) == 0 {

@@ -135,7 +135,7 @@ fn read_index(path: &Path) -> Result<MrpackIndex, String> {
 }
 
 pub async fn search(app: &AppHandle, query: &str, limit: u64, offset: u64) -> Result<ModrinthSearchResult, String> {
-    modrinth::search(app, query, limit, offset, None, None, Some("downloads"), "modpack").await
+    modrinth::search(app, query, limit, offset, None, None, Some("downloads".to_string()), "modpack").await
 }
 
 pub async fn versions(app: &AppHandle, project_id: &str) -> Result<Vec<ModrinthVersion>, String> {
