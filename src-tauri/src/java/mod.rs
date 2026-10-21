@@ -62,6 +62,11 @@ pub async fn ensure(state: &AppState, required: u32, custom: Option<&str>, cance
         compatible(&runtime, required)?; return Ok(runtime);
     }
     for runtime in discover(state).await { if compatible(&runtime, required).is_ok() { return Ok(runtime); } }
+    install_managed(state, required, cancel).await
+}
+
+pub async fn install_managed(state: &AppState, required: u32, cancel: &CancellationToken) -> Result<JavaRuntime> {
+    for runtime in discover(state).await { if runtime.managed && compatible(&runtime, required).is_ok() { return Ok(runtime); } }
     if !cfg!(windows) { bail!("Автоустановка Java в этой сборке предназначена для Windows x64"); }
     if !(8..=99).contains(&required) { bail!("Неизвестная требуемая версия Java: {required}"); }
     state.stage("java", &format!("Установка Eclipse Temurin Java {required}"));

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-${{ github.ref }}
@@ -35,9 +35,14 @@ jobs:
       - name: Format Rust sources
         run: cargo fmt --manifest-path src-tauri/Cargo.toml
       - name: Rust unit tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+        run: ./scripts/ci-command.ps1 -Command "cargo test --manifest-path src-tauri/Cargo.toml --lib" -LogName rust-test.log
       - name: Build Windows executable and NSIS installer
-        run: npm run desktop:build -- --target x86_64-pc-windows-msvc
+        run: ./scripts/ci-command.ps1 -Command "npm run desktop:build -- --target x86_64-pc-windows-msvc" -LogName windows-build.log
+      - name: Native Windows smoke checks (no licensed account)
+        id: native-smoke
+        continue-on-error: true
+        timeout-minutes: 15
+        run: node scripts/native-smoke.mjs
       - name: Prepare Windows deliverables
         shell: pwsh
         run: |
@@ -48,6 +53,7 @@ jobs:
           Copy-Item $installer.FullName release-artifacts/WinLauncher-Setup.exe
           Get-FileHash release-artifacts/*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release-artifacts/SHA256SUMS.txt
           Copy-Item docs/TESTING.md release-artifacts/TESTING.md
+          Copy-Item src-tauri/Cargo.lock release-artifacts/Cargo.lock
       - uses: actions/upload-artifact@v4
         with:
           name: WinLauncher-1.0.0-windows-x64
@@ -64,3 +70,17 @@ jobs:
             src-tauri/Cargo.lock
             src-tauri/src/
           retention-days: 7
+
+      - name: API-readable build metadata
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $files = @('src-tauri/Cargo.lock')
+          if (Test-Path release-artifacts/WinLauncher.exe) { $files += 'release-artifacts/WinLauncher.exe' }
+          if (Test-Path release-artifacts/WinLauncher-Setup.exe) { $files += 'release-artifacts/WinLauncher-Setup.exe' }
+          if (Test-Path release-artifacts/NATIVE-SMOKE.json) { $files += 'release-artifacts/NATIVE-SMOKE.json' }
+          if (Test-Path release-artifacts/NATIVE-SMOKE.md) { $files += 'release-artifacts/NATIVE-SMOKE.md' }
+          ./scripts/ci-api-delivery.ps1 -Files $files

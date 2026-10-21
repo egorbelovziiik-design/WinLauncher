@@ -19,7 +19,7 @@ fn err(e: impl std::fmt::Display) -> String { security::redact(&e.to_string(), &
 #[tauri::command] pub fn cancel_task(state: State<'_, AppState>) { state.cancel.lock().unwrap_or_else(|e| e.into_inner()).cancel(); }
 #[tauri::command] pub fn stop_game(state: State<'_, AppState>) { state.game_stop.lock().unwrap_or_else(|e| e.into_inner()).cancel(); }
 #[tauri::command] pub async fn discover_java(state: State<'_, AppState>) -> Response<Vec<java::JavaRuntime>> { Ok(java::discover(&state).await) }
-#[tauri::command] pub async fn install_java(state: State<'_, AppState>, major: u32) -> Response<java::JavaRuntime> { let guard = state.begin_job("java").map_err(err)?; java::ensure(&state, major, None, &guard.token).await.map_err(err) }
+#[tauri::command] pub async fn install_java(state: State<'_, AppState>, major: u32, force_managed: Option<bool>) -> Response<java::JavaRuntime> { let guard = state.begin_job("java").map_err(err)?; if force_managed.unwrap_or(false) { java::install_managed(&state, major, &guard.token).await.map_err(err) } else { java::ensure(&state, major, None, &guard.token).await.map_err(err) } }
 #[tauri::command] pub async fn begin_login(state: State<'_, AppState>) -> Response<accounts::Challenge> { accounts::begin(&state).await.map_err(err) }
 #[tauri::command] pub async fn poll_login(state: State<'_, AppState>, id: String) -> Response<accounts::PollResult> { accounts::poll(&state, &id).await.map_err(err) }
 #[tauri::command] pub fn cancel_login(state: State<'_, AppState>, id: String) { state.pending_auth.lock().unwrap_or_else(|e| e.into_inner()).remove(&id); }

@@ -63,7 +63,7 @@ pub fn within(root: &Path, relative: &str) -> Result<PathBuf> {
     let rel = safe_relative(relative)?;
     let mut target = root.to_owned();
     // Refuse user-created symlinks/reparse points rather than following them.
-    reject_link(root)?;
+    for ancestor in root.ancestors() { reject_link(ancestor)?; }
     for component in rel.components() {
         target.push(component);
         reject_link(&target)?;

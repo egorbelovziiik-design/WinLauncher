@@ -48,7 +48,7 @@ fn windows_kernel_version() -> String { sysinfo::System::kernel_version().unwrap
 fn rule_matches(rule: &Value, ctx: &RuleContext) -> bool {
     if let Some(os) = rule.get("os") {
         if os["name"].as_str().is_some_and(|name| name != ctx.os) { return false; }
-        if let Some(arch) = os["arch"].as_str() { if !regex::Regex::new(arch).map(|r| r.is_match(&ctx.arch)).unwrap_or(false) { return false; } }
+        if let Some(arch) = os["arch"].as_str() { if !regex::Regex::new(&format!("^(?:{arch})$")).map(|r| r.is_match(&ctx.arch)).unwrap_or(false) { return false; } }
         if let Some(version) = os["version"].as_str() { if !regex::Regex::new(version).map(|r| r.is_match(&ctx.os_version)).unwrap_or(false) { return false; } }
     }
     if let Some(features) = rule.get("features").and_then(Value::as_object) {

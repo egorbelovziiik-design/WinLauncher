@@ -18,7 +18,8 @@ struct Installed { version: Version, java: java::JavaRuntime, classpath: Vec<Pat
 pub async fn install_only(state: &AppState, profile_id: &str) -> Result<()> {
     let guard = state.begin_job("metadata")?;
     let mut profile: Profile = state.get("profiles", profile_id)?;
-    install(state, &mut profile, &guard.token).await?;
+let installed = install(state, &mut profile, &guard.token).await?;
+    let _ = fs::remove_dir_all(&installed.natives);
     state.put("profiles", &profile.id, &profile)?;
     state.notify("success", "Minecraft установлен. Хеши игровых файлов проверены."); Ok(())
 }

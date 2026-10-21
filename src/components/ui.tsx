@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { useT } from '../locales';
 
 export function Button({ children, variant = 'secondary', busy, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean }) {
-  return <button type="button" className={clsx('button', `button-${variant}`, className)} disabled={props.disabled || busy} {...props}>{busy && <LoaderCircle size={16} className="spin" />}{children}</button>;
+  return <button type="button" className={clsx('button', `button-${variant}`, className)} {...props} disabled={props.disabled || busy}>{busy && <LoaderCircle size={16} className="spin" />}{children}</button>;
 }
 export function IconButton({ label, children, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) { return <button type="button" aria-label={label} title={label} className={clsx('icon-button', className)} {...props}>{children}</button>; }
 export function Tag({ children, color = '', className }: { children: ReactNode; color?: string; className?: string }) { return <span className={clsx('tag', color && `tag-${color}`, className)}>{children}</span>; }
