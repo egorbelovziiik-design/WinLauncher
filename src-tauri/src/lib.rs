@@ -22,7 +22,12 @@ fn mc_dir(app:&AppHandle)->PathBuf{ let s=load_settings(app); if !s.game_dir.is_
 fn read_json<T: for<'de> Deserialize<'de>+Default>(p:&Path)->T{ std::fs::read_to_string(p).ok().and_then(|s|serde_json::from_str(&s).ok()).unwrap_or_default() }
 fn write_json<T:Serialize>(p:&Path,v:&T){ if let Some(par)=p.parent(){std::fs::create_dir_all(par).ok();} std::fs::write(p,serde_json::to_string_pretty(v).unwrap_or_default()).ok(); }
 fn load_settings(app:&AppHandle)->Settings{ read_json(&base_dir(app).join("settings.json")) }
-fn log(app:&AppHandle,state:&State<AppState>,msg:&str){ let line=format!("[{}] {}",chrono::Local::now().format("%H:%M:%S"),msg); if let Ok(mut l)=state.logs.lock(){ l.push(line.clone()); if l.len()>2000{l.drain(0..500);} } let _=app.emit("launcher-log",line); }
+fn log(app:&AppHandle,state:&State<AppState>,msg:&str){ let line=format!("[{}] {}",chrono::Local::now().format("%H:%M:%S"),msg); if let Ok(mut l)=state.logs.lock(){ l.push(line.clone()); if l.len()>2000{l.drain(0..500);} } use std::io::Write; if let Ok(mut f)=std::fs::OpenOptions::new().create(true).append(true).open(base_dir(app).join("winlaucher.log")){ let _=writeln!(f,"{}",line); } let _=app.emit("launcher-log",line); }
+fn stage(app:&AppHandle,state:&State<AppState>,id:&str,label:&str,status:&str,detail:&str){ log(app,state,&format!("{}: {}",label,detail)); let _=app.emit("launch-stage",serde_json::json!({"id":id,"label":label,"status":status,"detail":detail})); }
+fn parse_java_major(text:&str)->Option<u32>{ // "1.8.0_402" -> 8, "21.0.5" -> 21
+  let v=text.split('"').nth(1)?; let mut parts=v.split('.'); let first:u32=parts.next()?.parse().ok()?; if first==1{ parts.next()?.parse().ok() } else { Some(first) } }
+async fn java_major_of(exe:&Path)->Option<u32>{ let out=tokio::time::timeout(std::time::Duration::from_secs(10),tokio::process::Command::new(exe).arg("-version").output()).await.ok()?.ok()?; parse_java_major(&format!("{}{}",String::from_utf8_lossy(&out.stderr),String::from_utf8_lossy(&out.stdout))) }
+fn http_client()->reqwest::Client{ static C:std::sync::OnceLock<reqwest::Client>=std::sync::OnceLock::new(); C.get_or_init(||reqwest::Client::builder().user_agent("WinLaucher/1.0").connect_timeout(std::time::Duration::from_secs(20)).timeout(std::time::Duration::from_secs(600)).pool_max_idle_per_host(8).build().expect("http client")).clone() }
 fn sha1_file(p:&Path)->String{ use sha1::{Sha1,Digest}; let data=std::fs::read(p).unwrap_or_default(); let mut h=Sha1::new(); h.update(&data); hex::encode(h.finalize()) }
 fn sha256_bytes(b:&[u8])->String{ use sha2::{Sha256,Digest}; let mut h=Sha256::new(); h.update(b); hex::encode(h.finalize()) }
 
@@ -31,7 +36,7 @@ async fn download_file(app:&AppHandle,state:&State<'_,AppState>,url:&str,dest:&P
  if let Some(par)=dest.parent(){ std::fs::create_dir_all(par).map_err(|e|e.to_string())?; }
  // path traversal guard: dest must not contain ..
  let id=uuid::Uuid::new_v4().to_string();
- let client=reqwest::Client::builder().user_agent("WinLaucher/1.0").build().map_err(|e|e.to_string())?;
+ let client=http_client();
  for attempt in 0..4u32 {
    let existing = if dest.with_extension("part").exists(){ std::fs::metadata(dest.with_extension("part")).map(|m|m.len()).unwrap_or(0)} else {0};
    let mut req=client.get(url); if existing>0{ req=req.header("Range",format!("bytes={}-",existing)); }
@@ -51,7 +56,7 @@ async fn download_file(app:&AppHandle,state:&State<'_,AppState>,url:&str,dest:&P
        if let Some(s)=expected_sha1{ if sha1_file(dest)!=s{ std::fs::remove_file(dest).ok(); if attempt==3{return Err(format!("SHA1 mismatch {}",name));} continue; } }
        item.status="done".into(); item.percent=100.0; let _=app.emit("download-progress",item.clone());
        { if let Ok(mut d)=state.downloads.lock(){ if let Some(x)=d.iter_mut().find(|x|x.id==id){*x=item.clone();} } }
-       save_history(app,state);
+       if total>1_000_000 { save_history(app,state); }
        return Ok(());
      }, Err(e)=>{ if attempt==3{return Err(e.to_string());} tokio::time::sleep(std::time::Duration::from_secs(1<<attempt)).await; }
    }
@@ -88,25 +93,33 @@ fn required_java_major(meta:&serde_json::Value)->u32{ meta.get("javaVersion").an
 #[tauri::command] async fn check_java(java_path:String)->Result<String,String>{ let out=tokio::process::Command::new(&java_path).arg("-version").output().await.map_err(|e|e.to_string())?; let s=String::from_utf8_lossy(&out.stderr).to_string(); if s.is_empty(){Ok(String::from_utf8_lossy(&out.stdout).to_string())}else{Ok(s)} }
 
 async fn find_or_install_java(app:&AppHandle,state:&State<'_,AppState>,major:u32,custom:&str)->Result<PathBuf,String>{
- if !custom.is_empty(){ return Ok(PathBuf::from(custom)); }
- // check custom runtimes
- let runtimes=base_dir(app).join("runtimes");
- if let Ok(rd)=std::fs::read_dir(&runtimes){ for e in rd.flatten(){ if e.file_name().to_string_lossy().starts_with(&format!("java-{}",major)){ let exe=e.path().join("bin").join(if cfg!(windows){"java.exe"}else{"java"}); if exe.exists(){return Ok(exe);} } } }
- // system java
- if let Ok(out)=tokio::process::Command::new("java").arg("-version").output().await{ let s=String::from_utf8_lossy(&out.stderr).to_string(); if s.contains(&format!("\"{}.",major))||s.contains(&format!("\"{}",major)){ return Ok(PathBuf::from("java")); } }
- log(app,state,&format!("Скачивание Java {} (Adoptium Temurin)...",major));
+ let exe_name=if cfg!(windows){"java.exe"}else{"java"};
+ // 1) Пользовательская Java из настроек/профиля
+ if !custom.is_empty(){ let p=PathBuf::from(custom); stage(app,state,"java","Этап: Java","active",&format!("Проверяю указанную Java: {}",p.display()));
+   match java_major_of(&p).await{ Some(m) if m==major=>{ stage(app,state,"java","Этап: Java","done",&format!("Подходит (Java {})",m)); return Ok(p); } Some(m)=>{ log(app,state,&format!("Указанная Java {} не совпадает с нужной {}, ищу другую",m,major)); } None=>{ return Err(format!("Указанный путь Java не запускается: {}",p.display())); } } }
+ // 2) Уже скачанная лаунчером Java — НЕ качаем заново, только быстрая проверка (до 10 сек)
+ let runtimes=base_dir(app).join("runtimes"); let dest=runtimes.join(format!("java-{}",major)); let exe=dest.join("bin").join(exe_name);
+ stage(app,state,"java","Этап: Java","active",&format!("Ищу готовую Java {} в папке лаунчера...",major));
+ if exe.exists(){ if java_major_of(&exe).await==Some(major){ stage(app,state,"java","Этап: Java","done",&format!("Java {} уже установлена: {} (скачивание не нужно)",major,exe.display())); return Ok(exe); } log(app,state,"Кеш Java повреждён — удаляю и скачаю заново"); std::fs::remove_dir_all(&dest).ok(); }
+ // 3) Системная Java точной версии
+ stage(app,state,"java","Этап: Java","active","Проверяю системную Java...");
+ if let Some(m)=java_major_of(Path::new("java")).await{ if m==major{ stage(app,state,"java","Этап: Java","done",&format!("Найдена системная Java {}",m)); return Ok(PathBuf::from("java")); } log(app,state,&format!("Системная Java {} не подходит (нужна {})",m,major)); }
+ // 4) Скачивание с Adoptium (прямой binary endpoint, JRE -> fallback JDK), все запросы с таймаутами
  let os=if cfg!(windows){"windows"}else if cfg!(target_os="macos"){"mac"}else{"linux"}; let arch=if cfg!(target_arch="aarch64"){"aarch64"}else{"x64"};
- let url=format!("https://api.adoptium.net/v3/assets/feature_releases/{}/ga?architecture={}&image_type=jre&jvm_impl=hotspot&os={}&vendor=eclipse",major,arch,os);
- let assets:serde_json::Value=reqwest::Client::new().get(&url).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.json().await.map_err(|e|e.to_string())?;
- let link=assets[0]["binaries"][0]["package"]["link"].as_str().ok_or("Adoptium: нет дистрибутива")?.to_string();
- let ext=if cfg!(windows){"zip"}else{"tar.gz"}; let archive=base_dir(app).join(format!("java-{}.{}",major,ext));
- download_file(app,state,&link,&archive,None,&format!("Java {}",major)).await?;
- let dest=runtimes.join(format!("java-{}",major)); std::fs::create_dir_all(&dest).map_err(|e|e.to_string())?;
- if ext=="zip"{ let f=std::fs::File::open(&archive).map_err(|e|e.to_string())?; let mut z=zip::ZipArchive::new(f).map_err(|e|e.to_string())?;
-   for i in 0..z.len(){ let mut file=z.by_index(i).map_err(|e|e.to_string())?; let name=file.name().to_string(); // strip top folder
-     let rel=name.splitn(2,'/').nth(1).unwrap_or(""); if rel.is_empty(){continue;} let outp=dest.join(rel); if !outp.starts_with(&dest){continue;} if file.is_dir(){std::fs::create_dir_all(&outp).ok();} else { if let Some(p)=outp.parent(){std::fs::create_dir_all(p).ok();} let mut o=std::fs::File::create(&outp).map_err(|e|e.to_string())?; std::io::copy(&mut file,&mut o).map_err(|e|e.to_string())?; } }
- } else { return Err("На этой ОС распакуйте Java вручную или укажите путь в настройках".into()); }
- let exe=dest.join("bin").join(if cfg!(windows){"java.exe"}else{"java"}); if !exe.exists(){return Err("Java не найдена после распаковки".into());} Ok(exe)
+ stage(app,state,"java","Этап: Java","active",&format!("Скачиваю Java {} (Adoptium Temurin, ~50 МБ)...",major));
+ let archive=base_dir(app).join(format!("java-{}.zip",major)); let mut downloaded=false; let mut last_err=String::new();
+ for kind in ["jre","jdk"]{ let url=format!("https://api.adoptium.net/v3/binary/latest/{}/ga/{}/{}/{}/hotspot/normal/eclipse",major,os,arch,kind);
+   stage(app,state,"java","Этап: Java","active",&format!("Загрузка {} Java {}...",kind,major));
+   match download_file(app,state,&url,&archive,None,&format!("Java {} ({})",major,kind)).await{ Ok(())=>{ if archive.metadata().map(|m|m.len()>5_000_000).unwrap_or(false){ downloaded=true; break; } last_err="архив слишком маленький".into(); std::fs::remove_file(&archive).ok(); } Err(e)=>{ last_err=e; std::fs::remove_file(&archive).ok(); } } }
+ if !downloaded{ stage(app,state,"java","Этап: Java","error",&format!("Не удалось скачать Java {}: {}",major,last_err)); return Err(format!("Не удалось скачать Java {} (Adoptium): {}. Проверьте интернет/антивирус.",major,last_err)); }
+ // 5) Распаковка (старая папка удалена выше/здесь) и обязательная проверка запуска
+ stage(app,state,"java","Этап: Java","active","Распаковываю Java...");
+ std::fs::remove_dir_all(&dest).ok(); std::fs::create_dir_all(&dest).map_err(|e|e.to_string())?;
+ { let f=std::fs::File::open(&archive).map_err(|e|e.to_string())?; let mut z=zip::ZipArchive::new(f).map_err(|e|format!("Архив Java повреждён: {}",e))?;
+   for i in 0..z.len(){ let mut file=z.by_index(i).map_err(|e|e.to_string())?; let name=file.name().to_string(); let rel=name.splitn(2,'/').nth(1).unwrap_or(""); if rel.is_empty(){continue;} let outp=dest.join(rel); if !outp.starts_with(&dest){continue;} if file.is_dir(){std::fs::create_dir_all(&outp).ok();} else { if let Some(par)=outp.parent(){std::fs::create_dir_all(par).ok();} let mut o=std::fs::File::create(&outp).map_err(|e|e.to_string())?; std::io::copy(&mut file,&mut o).map_err(|e|e.to_string())?; } } }
+ std::fs::remove_file(&archive).ok();
+ if !exe.exists(){ stage(app,state,"java","Этап: Java","error","java.exe не найден после распаковки"); return Err("Java не найдена после распаковки".into()); }
+ match java_major_of(&exe).await{ Some(m) if m==major=>{ stage(app,state,"java","Этап: Java","done",&format!("Java {} установлена и проверена: {}",major,exe.display())); Ok(exe) } other=>{ stage(app,state,"java","Этап: Java","error",&format!("Скачанная Java не запускается/не той версии: {:?}",other)); Err("Скачанная Java не запускается".into()) } }
 }
 #[tauri::command] async fn ensure_java(app:AppHandle,state:State<'_,AppState>,major:u32)->Result<String,String>{ let s=load_settings(&app); Ok(find_or_install_java(&app,&state,major,&s.java_path).await?.to_string_lossy().to_string()) }
 
@@ -120,7 +133,7 @@ async fn install_version_internal(app:&AppHandle,state:&State<'_,AppState>,versi
  let meta_text=reqwest::Client::new().get(&url).header("User-Agent","WinLaucher/1.0").send().await.map_err(|e|e.to_string())?.text().await.map_err(|e|e.to_string())?;
  std::fs::write(&meta_path,&meta_text).map_err(|e|e.to_string())?;
  let meta:serde_json::Value=serde_json::from_str(&meta_text).map_err(|e|e.to_string())?;
- log(app,state,&format!("Установка Minecraft {}...",version_id));
+ stage(app,state,"install","Этап: установка игры","active",&format!("Скачиваю Minecraft {} (клиент, библиотеки, ресурсы)...",version_id));
  // client jar
  if let Some(c)=meta["downloads"]["client"].as_object(){ download_file(app,state,c["url"].as_str().unwrap(),&vdir.join(format!("{}.jar",version_id)),c["sha1"].as_str(),&format!("{}.jar",version_id)).await?; }
  // libraries + natives
@@ -135,7 +148,7 @@ async fn install_version_internal(app:&AppHandle,state:&State<'_,AppState>,versi
  let aindex:serde_json::Value=read_json(&aindex_path);
  if let Some(objs)=aindex["objects"].as_object(){ let total=objs.len(); let mut done=0usize;
    for (_name,obj) in objs { let hash=obj["hash"].as_str().unwrap_or(""); if hash.len()<2{continue;} let sub=&hash[0..2]; let dest=adir.join("objects").join(sub).join(hash); let u=format!("https://resources.download.minecraft.net/{}/{}",sub,hash); download_file(app,state,&u,&dest,Some(hash),hash).await.ok(); done+=1; if done%50==0{ let _=app.emit("install-progress",serde_json::json!({"stage":"assets","percent":done as f64/total as f64*100.0,"done":done,"total":total})); } } }
- log(app,state,&format!("Minecraft {} установлен",version_id)); Ok(meta)
+ stage(app,state,"install","Этап: установка игры","done",&format!("Minecraft {} установлен",version_id)); Ok(meta)
 }
 #[tauri::command] async fn install_version(app:AppHandle,state:State<'_,AppState>,version_id:String)->Result<(),String>{ install_version_internal(&app,&state,&version_id).await?; Ok(()) }
 
@@ -239,7 +252,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
 
 #[tauri::command] async fn launch_game(app:AppHandle,state:State<'_,AppState>,version_id:String,account:Account,profile:Profile)->Result<(),String>{
  { let busy=if let Ok(mut g)=state.game_process.lock(){ if let Some(c)=g.as_mut(){ c.try_wait().map(|s|s.is_none()).unwrap_or(false) } else { false } } else { false }; if busy{ return Err("Minecraft уже запущен".into()); } }
- let _=app.emit("game-state","preparing");
+ stage(&app,&state,"prepare","Этап: подготовка","active","Проверяю аккаунт, версию и файлы игры..."); let _=app.emit("game-state","preparing");
  // resolve loader version id
  let mut effective_id=version_id.clone();
  if profile.loader.to_lowercase()!="vanilla"{ let installed=list_installed(app.clone()); if let Some(f)=installed.iter().find(|v|v.to_lowercase().contains(&profile.loader.to_lowercase())&&v.contains(&version_id)){ effective_id=f.clone(); } else { effective_id=install_loader(app.clone(),state.clone(),profile.clone()).await?; } } else {
@@ -257,7 +270,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
    let bad=!jar_path.exists() || expected.as_ref().map(|e|sha1_file(&jar_path)!=*e).unwrap_or(false);
    if bad{ log(&app,&state,"Client JAR отсутствует/повреждён — переустановка версии..."); install_version_internal(&app,&state,&version_id).await?; }
  }
- let major=required_java_major(&meta); let settings=load_settings(&app);
+ stage(&app,&state,"java","Этап: Java","active","Определяю нужную версию Java для этой версии Minecraft..."); let major=required_java_major(&meta); let settings=load_settings(&app);
  let java_custom=profile.java_path.clone().unwrap_or(settings.java_path.clone());
  let java=find_or_install_java(&app,&state,major,&java_custom).await?;
  // classpath
@@ -283,8 +296,9 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  } else if let Some(mcargs)=meta["minecraftArguments"].as_str(){ for s in mcargs.split_whitespace(){ game_args.push(replace(s,&account)); } jvm_args.push(format!("-Djava.library.path={}",native_dir.display())); }
  if settings.fullscreen{ game_args.push("--fullscreen".into()); } else { game_args.push("--width".into()); game_args.push(settings.resolution[0].to_string()); game_args.push("--height".into()); game_args.push(settings.resolution[1].to_string()); }
  if !settings.jvm_args.is_empty(){ for s in settings.jvm_args.split_whitespace(){ jvm_args.insert(2,s.to_string()); } }
+ stage(&app,&state,"classpath","Этап: сборка запуска","active","Собираю classpath, natives и аргументы JVM...");
  let mut cmd=std::process::Command::new(&java); cmd.args(&jvm_args).arg(&main_class).args(&game_args).current_dir(&game_directory).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
- log(&app,&state,&format!("Запуск Minecraft {} ({}) RAM={}MB",effective_id,main_class,profile.ram_mb));
+ stage(&app,&state,"launch","Этап: запуск","active",&format!("Запускаю процесс Java: Minecraft {}, RAM {} МБ",effective_id,profile.ram_mb)); log(&app,&state,&format!("Запуск Minecraft {} ({}) RAM={}MB",effective_id,main_class,profile.ram_mb));
  let mut child=cmd.spawn().map_err(|e|format!("Ошибка запуска Java: {}",e))?;
  // stream stdout
  // Дренируем ОБА потока: если stderr не читать, игра зависает при заполнении буфера логов
