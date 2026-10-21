@@ -1,0 +1,21 @@
+# WinLaucher build verification
+
+Commit: 4a34a5f0d7491a3903e3d167ea031580bfa73e6e
+
+## Files
+- WinLaucher_1.0.0_x64_en-US.msi — 7114752 bytes
+- WinLaucher_1.0.0_x64-setup.exe — 6067197 bytes
+- WinLaucher-portable.exe — 10300416 bytes
+
+## SHA-256
+- WinLaucher_1.0.0_x64_en-US.msi: E5AA2A7E46BB9BA56F0DBA50316950ABBA51AAAF40C32E397DAE431E81F03623
+- WinLaucher_1.0.0_x64-setup.exe: EB60EAE1E9573C1E516C49E6B24ACCA93ACC0F89749D9ACC27C7AEC6AF841A5E
+- WinLaucher-portable.exe: E064AFF4E97A9783A482CDD74EC31043189DCE4474DF0C821100B3F9662C2BD2
+
+## PE metadata
+- WinLaucher_1.0.0_x64-setup.exe: ProductName='WinLaucher' FileVersion='1.0.0' Company='' Description='WinLaucher'
+- WinLaucher-portable.exe: ProductName='WinLaucher' FileVersion='1.0.0' Company='WinLaucher' Description='WinLaucher'
+
+## Runtime smoke test (portable exe)
+- OK: process stayed alive for 15s (pid 1260)
+
