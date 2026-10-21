@@ -1,5 +1,7 @@
 name: Build Windows
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: windows-latest
@@ -23,3 +25,10 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/WinLaucher.exe
+      - name: Push build log on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          git config user.email "ci@winlaucher.local"; git config user.name "ci"
+          Select-String -Path build.log -Pattern "error" | Select-Object -First 200 | ForEach-Object {$_.Line} | Out-File -Encoding utf8 build-errors.txt
+          git add build-errors.txt; git commit -m "CI build errors [skip ci]"; git push
