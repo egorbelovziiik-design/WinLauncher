@@ -42,3 +42,19 @@ jobs:
           git add release/WinLaucher-Setup.exe release/WinLaucher.exe
           git commit -m "Release: WinLaucher.exe + Setup [skip ci]"
           git push
+
+      - name: Create GitHub Release with direct exe links
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: WinLaucher v1.0.${{ github.run_number }}
+          body: |
+            ## ⬇️ Прямые ссылки на скачивание
+            - **WinLaucher.exe** — портативная версия (просто запустить)
+            - **WinLaucher-Setup.exe** — установщик Windows
+
+            Настоящий лаунчер Minecraft Java Edition: версии 1.12.2 — 26.4, авто-Java, Microsoft/офлайн аккаунты, Fabric/Forge/NeoForge/Quilt, моды Modrinth.
+          files: |
+            release/WinLaucher.exe
+            release/WinLaucher-Setup.exe
+          fail_on_unmatched_files: true

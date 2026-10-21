@@ -1,4 +1,12 @@
 # WinLaucher ⛏️
+
+## ⬇️ Скачать (прямые ссылки)
+- **[WinLaucher.exe](https://github.com/egorbelovziiik-design/WinLauncher/releases/latest/download/WinLaucher.exe)** — портативная версия, просто запустить
+- **[WinLaucher-Setup.exe](https://github.com/egorbelovziiik-design/WinLauncher/releases/latest/download/WinLaucher-Setup.exe)** — установщик Windows
+- Все версии: https://github.com/egorbelovziiik-design/WinLauncher/releases
+
+Каждая сборка в GitHub Actions автоматически публикует новый Release с этими прямыми ссылками (`releases/latest/download/...` всегда ведёт на свежую версию).
+
 Настоящий лаунчер Minecraft Java Edition: Tauri 2 + React + TypeScript + Tailwind + Rust.
 
 ## Возможности (реальные, не моки)
