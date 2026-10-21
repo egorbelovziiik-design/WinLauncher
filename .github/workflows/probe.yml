@@ -1,0 +1,7 @@
+name: probe
+on: [push, workflow_dispatch]
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - run: echo "hello from $env:RUNNER_OS"; rustc --version; node --version
