@@ -73,10 +73,33 @@ pub fn verify(path: &Path, hash: &Hash) -> Result<bool> {
     Ok(hash_file(path, &hash.algorithm)? == hash.value)
 }
 
+fn retry_status(status: u16) -> bool { status == 408 || status == 429 || (500..600).contains(&status) }
+fn retry_metadata(error: &anyhow::Error) -> bool {
+    error.downcast_ref::<reqwest::Error>().is_some_and(|error| {
+        error.status().map(|s| retry_status(s.as_u16())).unwrap_or_else(||
+            !error.is_builder() && !error.is_redirect() && (error.is_connect() || error.is_timeout() || error.is_request() || error.is_body()))
+    })
+}
+
 pub async fn bytes(state: &AppState, url: &str, limit: usize) -> Result<Vec<u8>> {
-    security::check_url(url)?;
-    let response = state.client.get(url).send().await?.error_for_status()?;
-    bounded_response(response, limit).await
+    let source = security::check_url(url)?;
+    let cancel = if state.has_job() { state.cancel.lock().unwrap_or_else(|e| e.into_inner()).clone() } else { CancellationToken::new() };
+    for attempt in 0..3 {
+        let request = async {
+            let response = state.client.get(url).timeout(Duration::from_secs(45)).send().await?.error_for_status()?;
+            bounded_response(response, limit).await
+        };
+        let result = tokio::select! { result = request => result, _ = cancel.cancelled() => bail!("Запрос метаданных отменён") };
+        match result {
+            Ok(bytes) => return Ok(bytes),
+            Err(error) if attempt < 2 && retry_metadata(&error) => {
+                state.log("warn", "launcher", &format!("Временная сетевая ошибка {}. Повторный GET-запрос {}/3.", source.host_str().unwrap_or("API"), attempt + 2));
+                tokio::select! { _ = tokio::time::sleep(Duration::from_millis(1000 * (attempt + 1))) => {}, _ = cancel.cancelled() => bail!("Запрос метаданных отменён") }
+            }
+            Err(error) => return Err(error.context(format!("Не удалось получить проверенные метаданные {}", source.host_str().unwrap_or("API")))),
+        }
+    }
+    bail!("Не удалось получить метаданные")
 }
 pub async fn bounded_response(response: reqwest::Response, limit: usize) -> Result<Vec<u8>> {
     if response.content_length().is_some_and(|n| n > limit as u64) {
@@ -271,6 +294,12 @@ pub async fn batch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn metadata_retry_policy_is_bounded_to_transient_failures() {
+        for status in [408,429,500,502,503,504] { assert!(retry_status(status)); }
+        for status in [200,400,401,403,404] { assert!(!retry_status(status)); }
+        assert!(!retry_metadata(&anyhow::anyhow!("API response is too large")));
+    }
+
     #[test]
     fn validates_hash_format() {
         assert!(Hash::new("sha1", "z").is_err());

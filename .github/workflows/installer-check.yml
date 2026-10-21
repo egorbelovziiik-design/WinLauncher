@@ -27,6 +27,36 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Probe Java UTF-8 argument file with Unicode working directory
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $home = $env:JAVA_HOME_21_X64
+          if (-not $home) { $home = $env:JAVA_HOME }
+          $folder = Join-Path $env:RUNNER_TEMP ("java-args-" + [Guid]::NewGuid() + '-Проверка')
+          New-Item -ItemType Directory -Force $folder | Out-Null
+          $content = '"-Dwinlauncher.probe=Проверка с пробелами"' + "`n" + '"-XshowSettings:properties"' + "`n"
+          [IO.File]::WriteAllText((Join-Path $folder 'jvm args.txt'), $content, [Text.UTF8Encoding]::new($false))
+          $info = [Diagnostics.ProcessStartInfo]::new()
+          $info.FileName = Join-Path $home 'bin/java.exe'
+          $info.WorkingDirectory = $folder
+          $info.UseShellExecute = $false
+          $info.RedirectStandardError = $true
+          $info.RedirectStandardOutput = $true
+          $info.StandardErrorEncoding = [Text.Encoding]::UTF8
+          $info.ArgumentList.Add('@jvm args.txt')
+          $info.ArgumentList.Add('-version')
+          foreach ($key in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','CLASSPATH')) { $null = $info.Environment.Remove($key) }
+          $process = [Diagnostics.Process]::Start($info)
+          $readError = $process.StandardError.ReadToEndAsync()
+          $readOutput = $process.StandardOutput.ReadToEndAsync()
+          if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'Java probe timeout' }
+          $text = $readError.GetAwaiter().GetResult()
+          $ok = $process.ExitCode -eq 0 -and $text.Contains('winlauncher.probe = Проверка с пробелами')
+          $report = @{ passed = $ok; exit_code = $process.ExitCode; stderr = $text; source_commit = $env:GITHUB_SHA } | ConvertTo-Json -Compress
+          $safe = $report.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+          Write-Output "::notice title=JAVA_ARGUMENT_PROBE::$safe"
+          if (-not $ok) { throw 'Java Unicode argument-file probe failed' }
       - name: Retrieve and hash-verify a genuine compiled installer
         env:
           GH_TOKEN: ${{ github.token }}
@@ -53,6 +83,7 @@ jobs:
           New-Item -ItemType Directory -Force "$root/bundle/nsis" | Out-Null
           Copy-Item previous-build/WinLauncher.exe "$root/winlauncher.exe"
           Copy-Item previous-build/WinLauncher-Setup.exe "$root/bundle/nsis/verified-build-setup.exe"
+          "WINLAUNCHER_TEST_INSTALLER=$((Resolve-Path "$root/bundle/nsis/verified-build-setup.exe").Path)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           "WINLAUNCHER_BINARY_COMMIT=$($source.head_sha)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - name: Execute genuine NSIS install and uninstall
         continue-on-error: true

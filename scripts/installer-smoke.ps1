@@ -17,7 +17,8 @@ function Add-Result([string]$Name, [string]$Status, [string]$Detail) {
 }
 try {
   if (Test-Path $database) { throw 'An existing native app database is present. Refusing to run installer tests against existing user data.' }
-  $installer = Get-ChildItem 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' | Select-Object -First 1
+  $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+  $installer = if ($env:WINLAUNCHER_TEST_INSTALLER) { Get-Item -LiteralPath $env:WINLAUNCHER_TEST_INSTALLER } else { Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*_${version}_x64-setup.exe" | Select-Object -First 1 }
   if (-not $installer) { throw 'Tauri NSIS output not found' }
   $install = Start-Process -FilePath $installer.FullName -ArgumentList "/S /D=$destination" -PassThru
   $null = $install.Handle

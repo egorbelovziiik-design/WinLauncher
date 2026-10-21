@@ -427,7 +427,7 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
             let folder = state.root().join("argument file Проверка"); fs::create_dir_all(&folder)?;
             let args = folder.join("jvm args.txt");
             minecraft::arguments::write_jvm_argfile(&args, &["-Dwinlauncher.probe=Проверка с пробелами".into(), "-XshowSettings:properties".into()])?;
-            let output = java::command(std::path::Path::new(&runtime.path)).arg(format!("@{}", args.display())).arg("-version").output().await?;
+            let output = java::command(std::path::Path::new(&runtime.path)).current_dir(&folder).arg("@jvm args.txt").arg("-version").output().await?;
             let text = String::from_utf8_lossy(&output.stderr);
             if !output.status.success() || !text.contains("winlauncher.probe = Проверка с пробелами") { bail!("Java argument-file parsing failed: {text}"); }
             Ok(())

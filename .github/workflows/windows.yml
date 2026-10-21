@@ -70,7 +70,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force release-artifacts | Out-Null
           Copy-Item src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe release-artifacts/WinLauncher.exe
-          $installer = Get-ChildItem src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $installer = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*_${version}_x64-setup.exe" | Select-Object -First 1
           if (-not $installer) { throw 'NSIS installer was not built' }
           Copy-Item $installer.FullName release-artifacts/WinLauncher-Setup.exe
           Get-FileHash release-artifacts/*.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content release-artifacts/SHA256SUMS.txt

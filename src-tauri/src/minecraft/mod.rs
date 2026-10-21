@@ -483,7 +483,11 @@ pub async fn launch(
             if arg.starts_with("-DFabricMcEmu=") || (!local && arg.contains(&token)) { direct.push(arg.clone()); false } else { true }
         });
         arguments::write_jvm_argfile(&path, &jvm)?;
-        direct.push(format!("@{}", path.display()));
+        // The Windows Java launcher opens @files through a narrow-path API.
+        // An ASCII relative path plus UTF-16 current_dir preserves Cyrillic
+        // user directories; the file itself is UTF-8 for JVM option values.
+        let relative = path.strip_prefix(&instance).context("JVM argument file escaped the profile")?;
+        direct.push(format!("@{}", relative.display()));
         direct.push(main_class);
         jvm = direct;
         Some(path)
