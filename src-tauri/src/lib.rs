@@ -4,8 +4,8 @@ use std::{collections::HashMap, path::{Path, PathBuf}, sync::Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 use futures_util::StreamExt;
 
-pub struct AppState { pub game_process: Mutex<Option<std::process::Child>>, pub logs: Mutex<Vec<String>>, pub downloads: Mutex<Vec<DownloadItem>>, pub stages: Mutex<Vec<serde_json::Value>> }
-impl Default for AppState { fn default()->Self{ Self{game_process:Mutex::new(None),logs:Mutex::new(vec![]),downloads:Mutex::new(vec![]),stages:Mutex::new(vec![])} } }
+pub struct AppState { pub game_process: Mutex<Option<std::process::Child>>, pub logs: Mutex<Vec<String>>, pub downloads: Mutex<Vec<DownloadItem>>, pub stages: Mutex<Vec<serde_json::Value>>, pub cancelled: std::sync::atomic::AtomicBool }
+impl Default for AppState { fn default()->Self{ Self{game_process:Mutex::new(None),logs:Mutex::new(vec![]),downloads:Mutex::new(vec![]),stages:Mutex::new(vec![]),cancelled:std::sync::atomic::AtomicBool::new(false)} } }
 
 #[derive(Serialize,Deserialize,Clone,Debug)]
 pub struct DownloadItem { pub id:String, pub name:String, pub url:String, pub total:u64, pub downloaded:u64, pub speed:u64, pub percent:f64, pub status:String, pub error:Option<String> }
@@ -38,7 +38,7 @@ async fn download_file(app:&AppHandle,state:&State<'_,AppState>,url:&str,dest:&P
  // path traversal guard: dest must not contain ..
  let id=uuid::Uuid::new_v4().to_string();
  let client=http_client();
- for attempt in 0..4u32 {
+ for attempt in 0..4u32 { if is_cancelled(state){ return Err("Отменено пользователем".into()); }
    let existing = if dest.with_extension("part").exists(){ std::fs::metadata(dest.with_extension("part")).map(|m|m.len()).unwrap_or(0)} else {0};
    let mut req=client.get(url); if existing>0{ req=req.header("Range",format!("bytes={}-",existing)); }
    match req.send().await {
@@ -49,9 +49,10 @@ async fn download_file(app:&AppHandle,state:&State<'_,AppState>,url:&str,dest:&P
        let part=dest.with_extension("part");
        let mut file=tokio::fs::OpenOptions::new().create(true).append(existing>0 && resp.status().as_u16()==206).write(true).open(&part).await.map_err(|e|e.to_string())?;
        if !(existing>0 && resp.status().as_u16()==206){ file=tokio::fs::File::create(&part).await.map_err(|e|e.to_string())?; item.downloaded=0; }
+       if is_cancelled(state){ item.status="cancelled".into(); let _=app.emit("download-progress",item.clone()); return Err("Отменено пользователем".into()); }
        let mut stream=resp.bytes_stream(); let mut done=item.downloaded; let start=std::time::Instant::now();
        let mut err:Option<String>=None;
-       while let Some(chunk)=stream.next().await{ match chunk{ Ok(b)=>{ use tokio::io::AsyncWriteExt; if file.write_all(&b).await.is_err(){err=Some("write error".into());break;} done+=b.len() as u64; item.downloaded=done; item.percent=if total>0{done as f64/total as f64*100.0}else{0.0}; item.speed=if start.elapsed().as_secs()>0{done/start.elapsed().as_secs()}else{0}; let _=app.emit("download-progress",item.clone()); }, Err(e)=>{err=Some(e.to_string());break;} } }
+       while let Some(chunk)=stream.next().await{ if is_cancelled(state){ item.status="cancelled".into(); let _=app.emit("download-progress",item.clone()); return Err("Отменено пользователем".into()); } match chunk{ Ok(b)=>{ use tokio::io::AsyncWriteExt; if file.write_all(&b).await.is_err(){err=Some("write error".into());break;} done+=b.len() as u64; item.downloaded=done; item.percent=if total>0{done as f64/total as f64*100.0}else{0.0}; item.speed=if start.elapsed().as_secs()>0{done/start.elapsed().as_secs()}else{0}; let _=app.emit("download-progress",item.clone()); }, Err(e)=>{err=Some(e.to_string());break;} } }
        if let Some(e)=err{ if attempt==3{return Err(e);} continue; }
        drop(file); std::fs::rename(&part,dest).map_err(|e|e.to_string())?;
        if let Some(s)=expected_sha1{ if sha1_file(dest)!=s{ std::fs::remove_file(dest).ok(); if attempt==3{return Err(format!("SHA1 mismatch {}",name));} continue; } }
@@ -79,6 +80,9 @@ fn required_java_major(meta:&serde_json::Value)->u32{ meta.get("javaVersion").an
 #[tauri::command] fn get_settings(app:AppHandle)->Settings{ load_settings(&app) }
 #[tauri::command] fn set_settings(app:AppHandle,settings:Settings)->Settings{ write_json(&base_dir(&app).join("settings.json"),&settings); settings }
 #[tauri::command] fn system_info()->serde_json::Value{ let mut sys=sysinfo::System::new_all(); sys.refresh_memory(); serde_json::json!({"total_ram_mb":sys.total_memory()/1024/1024,"free_ram_mb":sys.available_memory()/1024/1024,"os":std::env::consts::OS,"arch":std::env::consts::ARCH}) }
+#[tauri::command] fn cancel_operation(app:AppHandle,state:State<AppState>){ state.cancelled.store(true,std::sync::atomic::Ordering::SeqCst); if let Ok(mut l)=state.logs.lock(){ l.push("[ОТМЕНА] Пользователь отменил операцию".into()); } if let Ok(mut d)=state.downloads.lock(){ for x in d.iter_mut(){ if x.status=="downloading"{ x.status="cancelled".into(); } } } let _=app.emit("launch-stage",serde_json::json!({"id":"cancel","label":"Отмена","status":"error","detail":"Операция отменена пользователем"})); let _=app.emit("operation-cancelled",()); }
+fn is_cancelled(state:&State<'_,AppState>)->bool{ state.cancelled.load(std::sync::atomic::Ordering::SeqCst) }
+fn reset_cancel(state:&State<'_,AppState>){ state.cancelled.store(false,std::sync::atomic::Ordering::SeqCst); }
 #[tauri::command] fn get_logs(state:State<AppState>)->Vec<String>{ state.logs.lock().map(|l|l.clone()).unwrap_or_default() }
 #[tauri::command] fn get_stages(state:State<AppState>)->Vec<serde_json::Value>{ state.stages.lock().map(|l|l.clone()).unwrap_or_default() }
 #[tauri::command] fn clear_logs(state:State<AppState>){ if let Ok(mut l)=state.logs.lock(){l.clear();} }
@@ -118,7 +122,7 @@ async fn find_or_install_java(app:&AppHandle,state:&State<'_,AppState>,major:u32
  stage(app,state,"java","Этап: Java","active","Распаковываю Java...");
  std::fs::remove_dir_all(&dest).ok(); std::fs::create_dir_all(&dest).map_err(|e|e.to_string())?;
  { let f=std::fs::File::open(&archive).map_err(|e|e.to_string())?; let mut z=zip::ZipArchive::new(f).map_err(|e|format!("Архив Java повреждён: {}",e))?;
-   for i in 0..z.len(){ let mut file=z.by_index(i).map_err(|e|e.to_string())?; let name=file.name().to_string(); let rel=name.splitn(2,'/').nth(1).unwrap_or(""); if rel.is_empty(){continue;} let outp=dest.join(rel); if !outp.starts_with(&dest){continue;} if file.is_dir(){std::fs::create_dir_all(&outp).ok();} else { if let Some(par)=outp.parent(){std::fs::create_dir_all(par).ok();} let mut o=std::fs::File::create(&outp).map_err(|e|e.to_string())?; std::io::copy(&mut file,&mut o).map_err(|e|e.to_string())?; } } }
+   for i in 0..z.len(){ if is_cancelled(state){ return Err("Отменено пользователем".into()); } let mut file=z.by_index(i).map_err(|e|e.to_string())?; let name=file.name().to_string(); let rel=name.splitn(2,'/').nth(1).unwrap_or(""); if rel.is_empty(){continue;} let outp=dest.join(rel); if !outp.starts_with(&dest){continue;} if file.is_dir(){std::fs::create_dir_all(&outp).ok();} else { if let Some(par)=outp.parent(){std::fs::create_dir_all(par).ok();} let mut o=std::fs::File::create(&outp).map_err(|e|e.to_string())?; std::io::copy(&mut file,&mut o).map_err(|e|e.to_string())?; } } }
  std::fs::remove_file(&archive).ok();
  if !exe.exists(){ stage(app,state,"java","Этап: Java","error","java.exe не найден после распаковки"); return Err("Java не найдена после распаковки".into()); }
  match java_major_of(&exe).await{ Some(m) if m==major=>{ stage(app,state,"java","Этап: Java","done",&format!("Java {} установлена и проверена: {}",major,exe.display())); Ok(exe) } other=>{ stage(app,state,"java","Этап: Java","error",&format!("Скачанная Java не запускается/не той версии: {:?}",other)); Err("Скачанная Java не запускается".into()) } }
@@ -141,7 +145,7 @@ async fn install_version_internal(app:&AppHandle,state:&State<'_,AppState>,versi
  // client jar
  if let Some(c)=meta["downloads"]["client"].as_object(){ download_file(app,state,c["url"].as_str().unwrap(),&vdir.join(format!("{}.jar",version_id)),c["sha1"].as_str(),&format!("{}.jar",version_id)).await?; }
  // libraries + natives
- if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
+ if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if is_cancelled(state){ stage(app,state,"install","Этап: установка игры","error","Отменено пользователем"); return Err("Отменено пользователем".into()); } if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
    if let Some(dl)=lib["downloads"]["artifact"].as_object(){ if let Some(p)=dl["path"].as_str(){ download_file(app,state,dl["url"].as_str().unwrap_or(""),&mc.join("libraries").join(p),dl["sha1"].as_str(),p).await.ok(); } }
    if let Some(classifiers)=lib["downloads"]["classifiers"].as_object(){ for (_k,dl) in classifiers{ if let Some(p)=dl["path"].as_str(){ download_file(app,state,dl["url"].as_str().unwrap_or(""),&mc.join("libraries").join(p),dl["sha1"].as_str(),p).await.ok(); } } }
  } }
@@ -151,10 +155,10 @@ async fn install_version_internal(app:&AppHandle,state:&State<'_,AppState>,versi
  let aindex_path=adir.join("indexes").join(format!("{}.json",aid)); download_file(app,state,&aurl,&aindex_path,assets["sha1"].as_str(),"assets index").await?;
  let aindex:serde_json::Value=read_json(&aindex_path);
  if let Some(objs)=aindex["objects"].as_object(){ let total=objs.len(); let mut done=0usize;
-   for (_name,obj) in objs { let hash=obj["hash"].as_str().unwrap_or(""); if hash.len()<2{continue;} if done%200==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Ресурсы (assets): {}/{} файлов",done,total),false); } let sub=&hash[0..2]; let dest=adir.join("objects").join(sub).join(hash); let u=format!("https://resources.download.minecraft.net/{}/{}",sub,hash); download_file(app,state,&u,&dest,Some(hash),hash).await.ok(); done+=1; if done%50==0{ let _=app.emit("install-progress",serde_json::json!({"stage":"assets","percent":done as f64/total as f64*100.0,"done":done,"total":total})); } } }
+   for (_name,obj) in objs { if is_cancelled(state){ stage(app,state,"install","Этап: установка игры","error","Отменено пользователем"); return Err("Отменено пользователем".into()); } let hash=obj["hash"].as_str().unwrap_or(""); if hash.len()<2{continue;} if done%200==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Ресурсы (assets): {}/{} файлов",done,total),false); } let sub=&hash[0..2]; let dest=adir.join("objects").join(sub).join(hash); let u=format!("https://resources.download.minecraft.net/{}/{}",sub,hash); download_file(app,state,&u,&dest,Some(hash),hash).await.ok(); done+=1; if done%50==0{ let _=app.emit("install-progress",serde_json::json!({"stage":"assets","percent":done as f64/total as f64*100.0,"done":done,"total":total})); } } }
  stage(app,state,"install","Этап: установка игры","done",&format!("Minecraft {} установлен",version_id)); Ok(meta)
 }
-#[tauri::command] async fn install_version(app:AppHandle,state:State<'_,AppState>,version_id:String)->Result<(),String>{ install_version_internal(&app,&state,&version_id).await?; Ok(()) }
+#[tauri::command] async fn install_version(app:AppHandle,state:State<'_,AppState>,version_id:String)->Result<(),String>{ reset_cancel(&state); install_version_internal(&app,&state,&version_id).await?; Ok(()) }
 
 // Microsoft device-code flow (real endpoints; client_id is the public Minecraft-launcher-compatible Azure app placeholder configurable in code - user can replace)
 const MS_CLIENT_ID:&str="00000000402b5328"; // public Xbox app client id used by many launchers for device flow; replace with own Azure app if needed
@@ -255,6 +259,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
 }
 
 #[tauri::command] async fn launch_game(app:AppHandle,state:State<'_,AppState>,version_id:String,account:Account,profile:Profile)->Result<(),String>{
+ reset_cancel(&state); { if let Ok(mut st)=state.stages.lock(){ st.clear(); } }
  { let busy=if let Ok(mut g)=state.game_process.lock(){ if let Some(c)=g.as_mut(){ c.try_wait().map(|s|s.is_none()).unwrap_or(false) } else { false } } else { false }; if busy{ return Err("Minecraft уже запущен".into()); } }
  stage(&app,&state,"prepare","Этап: подготовка","active","Проверяю аккаунт, версию и файлы игры..."); let _=app.emit("game-state","preparing");
  // resolve loader version id
@@ -280,7 +285,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  // classpath
  let mut cp:Vec<String>=vec![];
  let mut native_dir=mc.join("versions").join(&effective_id).join("natives"); std::fs::create_dir_all(&native_dir).ok();
- if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
+ if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if is_cancelled(state){ stage(app,state,"install","Этап: установка игры","error","Отменено пользователем"); return Err("Отменено пользователем".into()); } if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
    if let Some(art)=lib["downloads"]["artifact"].as_object(){ if let Some(p)=art["path"].as_str(){ let f=mc.join("libraries").join(p); if f.exists(){cp.push(f.to_string_lossy().to_string());} } }
    else if let Some(name)=lib["name"].as_str(){ let parts:Vec<&str>=name.split(':').collect(); if parts.len()>=3{ let p=format!("{}/{}/{}/{}-{}.jar",parts[0].replace('.',"/"),parts[1],parts[2],parts[1],parts[2]); let f=mc.join("libraries").join(&p); if f.exists(){cp.push(f.to_string_lossy().to_string());} } }
    // natives
@@ -321,4 +326,4 @@ fn extract_natives(jar:&Path,dest:&Path){ if let Ok(f)=std::fs::File::open(jar){
 #[tauri::command] fn kill_game(state:State<AppState>){ if let Ok(mut g)=state.game_process.lock(){ if let Some(mut c)=g.take(){ c.kill().ok(); } } }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run(){ tauri::Builder::default().plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_opener::init()).manage(AppState::default()).invoke_handler(tauri::generate_handler![get_versions,get_stages,get_settings,set_settings,system_info,get_logs,clear_logs,get_downloads,list_accounts,save_accounts,add_offline_account,list_profiles,save_profiles,list_installed,delete_version,open_folder,game_dir_path,check_java,ensure_java,install_version,ms_device_code,ms_poll,modrinth_search,modrinth_versions,curseforge_search,fabric_loaders,quilt_loaders,forge_versions,neoforge_versions,install_loader,list_mods,toggle_mod,delete_mod,install_mod,install_modpack,launch_game,game_running,kill_game]).run(tauri::generate_context!()).expect("error while running WinLaucher"); }
+pub fn run(){ tauri::Builder::default().plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_opener::init()).manage(AppState::default()).invoke_handler(tauri::generate_handler![get_versions,get_stages,cancel_operation,get_settings,set_settings,system_info,get_logs,clear_logs,get_downloads,list_accounts,save_accounts,add_offline_account,list_profiles,save_profiles,list_installed,delete_version,open_folder,game_dir_path,check_java,ensure_java,install_version,ms_device_code,ms_poll,modrinth_search,modrinth_versions,curseforge_search,fabric_loaders,quilt_loaders,forge_versions,neoforge_versions,install_loader,list_mods,toggle_mod,delete_mod,install_mod,install_modpack,launch_game,game_running,kill_game]).run(tauri::generate_context!()).expect("error while running WinLaucher"); }

@@ -73,6 +73,7 @@ export default function App(){
 
   <main className="main space-y-5">
    {msg&&<div className="panel p-3 flex justify-between"><span>{msg}</span><button onClick={()=>setMsg('')}><X size={16}/></button></div>}
+   {(state!=='ИГРАТЬ'&&state!=='В ИГРЕ')&&<button className="btn w-full" style={{background:'#dc2626'}} onClick={async()=>{ try{await call('cancel_operation')}catch{} setMsg('Отмена... операция прервётся на текущем файле');}}>✕ Отменить операцию ({state})</button>}
    {progress&&progress.percent!==undefined&&<div className="panel p-3"><div className="flex justify-between text-sm"><span>{progress.name||progress.stage} — {Math.round(progress.percent||0)}%</span><span>{progress.speed?Math.round(progress.speed/1024)+' KB/s':''}</span></div><div className="h-2 bg-black/40 rounded mt-2"><div className="h-2 rounded bg-[var(--primary)] transition-all" style={{width:(progress.percent||0)+'%'}}/></div></div>}
 
    {page==='home'&&<><div className="hero p-8 flex flex-col justify-end"><div className="flex items-center gap-3 flex-wrap"><img src="/logo.png" className="logo-img" style={{width:58,height:58}} alt=""/><h1 className="text-4xl font-black drop-shadow">Minecraft Java Edition</h1><span className="badge">Версии 1.12.2 — {newestVersion}</span></div><p className="opacity-80">{t('ready')}: {selVersion} • {(LOADERS.find(l=>l.id===selLoader)?.label)||selLoader} • {activeAcc?activeAcc.username:'нет аккаунта'}</p>
