@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -74,6 +74,21 @@ jobs:
           Copy-Item src-tauri/target/release/bundle/msi/*.msi out/ -ErrorAction SilentlyContinue
           Copy-Item src-tauri/target/release/winlaucher.exe out/WinLaucher-portable.exe -ErrorAction SilentlyContinue
           Get-ChildItem out | Format-Table Name, Length
+
+      - name: Publish diagnostics on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $out = @()
+          if (Test-Path cargo-check.log) { $out += "===== cargo check ====="; $out += (Get-Content cargo-check.log -Tail 500) }
+          if (Test-Path tauri-build.log) { $out += "===== tauri build ====="; $out += (Get-Content tauri-build.log -Tail 500) }
+          if ($out.Count -eq 0) { $out = @("no log captured") }
+          $out | Set-Content -Path build-errors.txt -Encoding utf8
+          git config user.name "winlaucher-ci"
+          git config user.email "ci@winlaucher.local"
+          git add build-errors.txt
+          git commit -m "ci: build diagnostics [skip ci]" || exit 0
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
