@@ -314,7 +314,7 @@ export function HomePage() {
                       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-red-300">
                         {t('launch.error')}
                       </div>
-                      <div className="mt-1.5 max-h-28 overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-100/90">
+                      <div className="mt-1.5 max-h-48 select-text overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-100/90">
                         {launch.message}
                       </div>
                       <button

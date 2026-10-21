@@ -278,7 +278,9 @@ impl Settings {
             minecraft_dir: dir,
             default_ram_mb: ram_mb,
             java_path: None,
-            jvm_args: "-XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:G1HeapRegionSize=4M".into(),
+            // Plain, safe flags only: experimental options were a source of JVM
+            // startup failures on machines with small or fragmented memory.
+            jvm_args: "-XX:+UseG1GC".into(),
             resolution_width: 1280,
             resolution_height: 720,
             fullscreen: false,

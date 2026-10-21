@@ -176,6 +176,7 @@ async fn launch_inner(
     // 6. Spawn the game.
     state.set_launch_state(Some(profile.id.clone()), "starting", String::new());
     state.emit_progress("Starting Minecraft", 1, 1, 0, 0);
+    clear_crash_dumps(&game_dir);
     let mut command = Command::new(&java_path);
     command
         .args(&args)
@@ -227,6 +228,7 @@ async fn launch_inner(
     let watcher = app.clone();
     let watched_id = profile.id.clone();
     let account_id_watcher = account_id.to_string();
+    let watched_dir = game_dir.clone();
     let safe_launch = safe;
     let tail_watcher = Arc::clone(&tail);
     let started = std::time::Instant::now();
@@ -250,7 +252,24 @@ async fn launch_inner(
             .map(|t| t.iter().cloned().collect())
             .unwrap_or_default();
         let failed = code != Some(0);
-        let reason = if failed { identify_reason(&lines) } else { String::new() };
+        let mut reason = if failed { identify_reason(&lines) } else { String::new() };
+        let mut hint = String::new();
+        if failed {
+            if let Some(dump) = newest_crash_dump(&watched_dir) {
+                if let Ok(text) = std::fs::read_to_string(&dump) {
+                    let details = parse_crash_dump(&text);
+                    if !details.is_empty() {
+                        reason = details.join(" | ");
+                        hint = crash_hint(&details.join(" "));
+                        st.log(
+                            "error",
+                            "launcher",
+                            format!("JVM crash dump {}:\n{}", dump.display(), details.join("\n")),
+                        );
+                    }
+                }
+            }
+        }
         let uptime = started.elapsed().as_secs();
         st.log(
             if failed { "error" } else { "info" },
@@ -286,16 +305,25 @@ async fn launch_inner(
             st.log(
                 "error",
                 "launcher",
-                format!("Launch failed: {reason}"),
+                if hint.is_empty() {
+                    format!("Launch failed: {reason}")
+                } else {
+                    format!("Launch failed: {reason} — {hint}")
+                },
             );
         }
         st.set_launch(LaunchStatus {
             profile_id: Some(watched_id.clone()),
             state: if failed { "error".into() } else { "exited".into() },
             message: if failed {
-                match code {
+                let head = match code {
                     Some(value) => format!("Exit code {value}: {reason}"),
                     None => reason.clone(),
+                };
+                if hint.is_empty() {
+                    head
+                } else {
+                    format!("{head}\n\n{hint}")
                 }
             } else {
                 String::new()
@@ -439,6 +467,83 @@ fn pump<R: BufRead>(reader: R, app: AppHandle, tail: Arc<Mutex<VecDeque<String>>
             emit_game_line(&app, &tail, fallback, fallback, &block);
         }
     }
+}
+
+/// Removes crash dumps left by earlier runs so the newest one can be attributed
+/// to the launch we are about to make.
+fn clear_crash_dumps(game_dir: &std::path::Path) {
+    let Ok(entries) = std::fs::read_dir(game_dir) else { return };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with("hs_err_pid") && name.ends_with(".log") {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
+fn newest_crash_dump(game_dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    let entries = std::fs::read_dir(game_dir).ok()?;
+    entries
+        .flatten()
+        .filter(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            name.starts_with("hs_err_pid") && name.ends_with(".log")
+        })
+        .max_by_key(|entry| entry.metadata().and_then(|m| m.modified()).ok())
+        .map(|entry| entry.path())
+}
+
+/// Pulls the useful lines out of a HotSpot crash dump: the exception, the
+/// signal and the native frame that faulted.
+pub fn parse_crash_dump(text: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut want_next_frame = false;
+    for line in text.lines().take(120) {
+        let trimmed = line.trim();
+        if want_next_frame {
+            if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                out.push(format!("Problematic frame: {trimmed}"));
+                want_next_frame = false;
+            }
+            continue;
+        }
+        if trimmed.starts_with("# A fatal error") {
+            out.push(trimmed.trim_start_matches("# ").to_string());
+        } else if trimmed.starts_with("siginfo:") || trimmed.starts_with("#  EXCEPTION") {
+            out.push(trimmed.trim_start_matches("# ").to_string());
+        } else if trimmed.starts_with("Problematic frame:") {
+            out.push(trimmed.to_string());
+        } else if trimmed.starts_with("Problematic frame") {
+            want_next_frame = true;
+        } else if trimmed.starts_with("JRE version:") || trimmed.starts_with("Java VM:") {
+            out.push(trimmed.to_string());
+        }
+        if out.len() >= 8 {
+            break;
+        }
+    }
+    out
+}
+
+/// Turns the faulting module into advice a user can act on.
+pub fn crash_hint(detail: &str) -> String {
+    let lowered = detail.to_lowercase();
+    // Concrete Windows module names only: short fragments like "igd" or "atio"
+    // also occur inside ordinary words and would produce false advice.
+    let graphics = [
+        "nvoglv", "nvwgf", "atio6axx", "atig6txx", "amdpcom", "amdvlk", "igc64", "igd10",
+        "igd12", "igdumd", "opengl32", "glfw", "d3d11", "d3d9", "dxgi",
+    ];
+    if graphics.iter().any(|needle| lowered.contains(needle)) {
+        return "Похоже на сбой драйвера видеокарты. Обновите драйвер GPU с сайта NVIDIA/AMD/Intel, затем запустите игру снова.".to_string();
+    }
+    if lowered.contains("lwjgl") || lowered.contains("openal") || lowered.contains("jinput") {
+        return "Не загрузилась нативная библиотека игры. Нажмите «Играть» ещё раз: лаунчер пересоберёт папку natives и перепроверит файлы.".to_string();
+    }
+    if lowered.contains("jvm.dll") || lowered.contains("java.dll") {
+        return "Сбой самой Java. Попробуйте другую версию Java в «Настройки → Java» (например 17 вместо 21).".to_string();
+    }
+    "Попробуйте нажать «Играть» ещё раз (лаунчер перезапустит игру с чистыми JVM-аргументами и heap 1 ГБ). Если не поможет — приложите лог.".to_string()
 }
 
 pub fn stop(app: &AppHandle) -> Result<(), String> {
@@ -747,6 +852,30 @@ mod tests {
         ];
         let args = collect_args(&items, &mojang::default_features());
         assert_eq!(args, vec!["--demo", "--width", "1280", "--height", "720"]);
+    }
+
+    #[test]
+    fn reads_hotspot_crash_dumps() {
+        let dump = r#"# A fatal error has been detected by the Java Runtime Environment:
+#
+#  EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffb2d1a1234, pid=4242, tid=4243
+#
+# JRE version: OpenJDK Runtime Environment Temurin-21.0.5+11 (21.0.5+11) (build 21.0.5+11-LTS)
+# Java VM: OpenJDK 64-Bit Server VM
+#
+# Problematic frame:
+# C  [nvoglv64.dll+0x9c1234]
+"#;
+        let details = parse_crash_dump(dump);
+        assert!(details.iter().any(|line| line.contains("EXCEPTION_ACCESS_VIOLATION")));
+        assert!(details.iter().any(|line| line.contains("nvoglv64.dll")));
+        assert!(details.iter().any(|line| line.contains("JRE version")));
+        let hint = crash_hint(dump);
+        assert!(hint.contains("драйвер"), "a GPU module must produce a driver hint: {hint}");
+        let lwjgl_hint = crash_hint("C  [lwjgl.dll+0x1234]");
+        assert!(!lwjgl_hint.contains("драйвер"), "lwjgl is not a driver problem: {lwjgl_hint}");
+        assert!(lwjgl_hint.contains("natives"));
+        assert!(crash_hint("random text").contains("Играть"));
     }
 
     #[test]

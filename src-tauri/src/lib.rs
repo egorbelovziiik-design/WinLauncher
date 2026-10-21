@@ -67,6 +67,10 @@ pub fn run() {
                     if value.default_ram_mb < 512 {
                         value.default_ram_mb = default_ram_mb();
                     }
+                    // Migrate the experimental flags shipped by 1.0.x.
+                    if value.jvm_args.contains("G1HeapRegionSize") {
+                        value.jvm_args = "-XX:+UseG1GC".to_string();
+                    }
                     value
                 }
                 None => Settings::with_defaults(default_mc.to_string_lossy().to_string(), default_ram_mb()),

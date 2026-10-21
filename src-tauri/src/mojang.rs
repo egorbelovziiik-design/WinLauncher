@@ -398,10 +398,55 @@ fn coords_to_artifact(name: &str, base_url: &str) -> Option<LibraryArtifact> {
     })
 }
 
+/// Splits `group:artifact:version[:classifier][@ext]`.
+/// `(group, artifact, version, classifier)`
+pub fn maven_parts(name: &str) -> Option<(String, String, String, String)> {
+    let coords = name.split('@').next().unwrap_or(name);
+    let parts: Vec<&str> = coords.split(':').collect();
+    if parts.len() < 3 {
+        return None;
+    }
+    Some((
+        parts[0].to_string(),
+        parts[1].to_string(),
+        parts[2].to_string(),
+        parts.get(3).map(|c| (*c).to_string()).unwrap_or_default(),
+    ))
+}
+
+/// Orders maven versions `3.3.3` > `3.2.3`, `1.20.1-47.3.0` > `1.20.1-47.2.0`.
+pub fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    let split = |value: &str| -> Vec<String> {
+        value
+            .split(['.', '-', '_', '+'])
+            .map(|part| part.to_string())
+            .collect()
+    };
+    let left = split(a);
+    let right = split(b);
+    for index in 0..left.len().max(right.len()) {
+        let l = left.get(index).cloned().unwrap_or_default();
+        let r = right.get(index).cloned().unwrap_or_default();
+        let ordering = match (l.parse::<u64>(), r.parse::<u64>()) {
+            (Ok(ln), Ok(rn)) => ln.cmp(&rn),
+            _ => l.cmp(&r),
+        };
+        if ordering != Ordering::Equal {
+            return ordering;
+        }
+    }
+    Ordering::Equal
+}
+
+/// Libraries in load order. A loader version may list the same maven artifact
+/// twice (its own copy plus the inherited vanilla one); keeping both puts two
+/// LWJGL builds on the classpath, which crashes the JVM with a fatal error.
+/// The highest version of every `group:artifact:classifier` wins.
 pub fn library_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, String)> {
     let features = default_features();
-    let mut seen: HashSet<String> = HashSet::new();
-    let mut out: Vec<(LibraryArtifact, String)> = Vec::new();
+    let mut order: Vec<String> = Vec::new();
+    let mut best: HashMap<String, (String, (LibraryArtifact, String))> = HashMap::new();
     for lib in &merged.libraries {
         if !rules_allow(&lib.rules, &features) {
             continue;
@@ -410,17 +455,34 @@ pub fn library_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, String
             Some(artifact) if !artifact.path.is_empty() => Some(artifact.clone()),
             _ => coords_to_artifact(&lib.name, &lib.url),
         };
-        if let Some(mut art) = resolved {
-            if !seen.insert(art.path.clone()) {
+        let Some(mut art) = resolved else { continue };
+        if art.url.is_empty() {
+            art.url = maven_fallback(&lib.name, &art.path);
+        }
+        let (key, version) = match maven_parts(&lib.name) {
+            Some((group, artifact, version, classifier)) => {
+                (format!("{group}:{artifact}:{classifier}"), version)
+            }
+            None => (art.path.clone(), String::new()),
+        };
+        match best.get(&key) {
+            Some((existing, _)) if compare_versions(&version, existing) != std::cmp::Ordering::Greater => {
                 continue;
             }
-            if art.url.is_empty() {
-                art.url = maven_fallback(&lib.name, &art.path);
+            Some(_) => {
+                best.insert(key, (version, (art, lib.name.clone())));
             }
-            out.push((art, lib.name.clone()));
+            None => {
+                order.push(key.clone());
+                best.insert(key, (version, (art, lib.name.clone())));
+            }
         }
     }
-    out
+    order
+        .into_iter()
+        .filter_map(|key| best.remove(&key))
+        .map(|(_, value)| value)
+        .collect()
 }
 
 /// `osx` is called `macos` inside native classifier names.
@@ -456,6 +518,7 @@ pub fn modern_native_classifier(name: &str) -> Option<String> {
 /// Native jars that have to be extracted before the game starts.
 pub fn native_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, Vec<String>)> {
     let features = default_features();
+    let mut seen: HashSet<String> = HashSet::new();
     let mut out = Vec::new();
     for lib in &merged.libraries {
         if !rules_allow(&lib.rules, &features) {
@@ -463,7 +526,7 @@ pub fn native_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, Vec<Str
         }
         if modern_native_classifier(&lib.name).is_some() {
             if let Some(artifact) = lib.downloads.artifact.as_ref() {
-                if !artifact.path.is_empty() {
+                if !artifact.path.is_empty() && seen.insert(artifact.path.clone()) {
                     out.push((artifact.clone(), Vec::new()));
                 }
             }
@@ -480,6 +543,9 @@ pub fn native_artifacts(merged: &MergedVersion) -> Vec<(LibraryArtifact, Vec<Str
         let mut art = artifact.clone();
         if art.url.is_empty() {
             art.url = maven_fallback(&lib.name, &art.path);
+        }
+        if !seen.insert(art.path.clone()) {
+            continue;
         }
         let exclude = lib.extract.as_ref().map(|e| e.exclude.clone()).unwrap_or_default();
         out.push((art, exclude));
@@ -594,6 +660,11 @@ pub fn prepare_natives(app: &AppHandle, merged: &MergedVersion) -> Result<(), St
     let natives_dir = &merged.natives_dir;
     if native_artifacts(merged).is_empty() {
         return Ok(());
+    }
+    // Start from a clean directory: a stale or half-extracted DLL from an older
+    // run is a classic cause of a JVM fatal error (EXCEPTION_ACCESS_VIOLATION).
+    if natives_dir.exists() {
+        let _ = std::fs::remove_dir_all(natives_dir);
     }
     std::fs::create_dir_all(natives_dir).map_err(|e| e.to_string())?;
     for (artifact, excludes) in native_artifacts(merged) {
@@ -926,6 +997,28 @@ mod tests {
             features: Some(HashMap::from([("is_demo_user".to_string(), true)])),
         }];
         assert!(!rules_allow(&disallow_demo, &features));
+    }
+
+    #[test]
+    fn keeps_only_the_newest_library_version() {
+        let version = test_version(vec![
+            test_library("org.lwjgl:lwjgl:3.3.3", "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3.jar"),
+            test_library("org.lwjgl:lwjgl:3.2.3", "org/lwjgl/lwjgl/3.2.3/lwjgl-3.2.3.jar"),
+            test_library("net.minecraft:client:1.21.4", "net/minecraft/client/1.21.4/client-1.21.4.jar"),
+        ]);
+        let artifacts = library_artifacts(&version);
+        assert_eq!(artifacts.len(), 2, "the older LWJGL must be dropped");
+        assert!(artifacts.iter().any(|(a, _)| a.path.contains("lwjgl-3.3.3.jar")));
+        assert!(!artifacts.iter().any(|(a, _)| a.path.contains("lwjgl-3.2.3.jar")));
+    }
+
+    #[test]
+    fn compares_maven_versions() {
+        use std::cmp::Ordering;
+        assert_eq!(compare_versions("3.3.3", "3.2.3"), Ordering::Greater);
+        assert_eq!(compare_versions("1.20.1-47.3.0", "1.20.1-47.2.0"), Ordering::Greater);
+        assert_eq!(compare_versions("3.3.3", "3.3.3"), Ordering::Equal);
+        assert_eq!(compare_versions("2.0", "10.0"), Ordering::Less);
     }
 
     #[test]
