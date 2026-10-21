@@ -422,14 +422,16 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
             profiles::save(&state, profile.clone())?;
             check(&mut reports, &format!("Real Vanilla {version} installation from official manifest"), minecraft::install_only(&state, &profile.id)).await;
         }
-        check(&mut reports, "Real Java 21 argument file preserves spaces and Unicode", async {
+        check(&mut reports, "Real Java 21 relative argument file and Unicode filesystem", async {
             let runtime = java::ensure(&state, 21, None, &tokio_util::sync::CancellationToken::new()).await?;
             let folder = state.root().join("argument file Проверка"); fs::create_dir_all(&folder)?;
             let args = folder.join("jvm args.txt");
-            minecraft::arguments::write_jvm_argfile(&args, &["-Dwinlauncher.probe=Проверка с пробелами".into(), "-XshowSettings:properties".into()])?;
-            let output = java::command(std::path::Path::new(&runtime.path)).current_dir(&folder).arg("@jvm args.txt").arg("-version").output().await?;
-            let text = String::from_utf8_lossy(&output.stderr);
-            if !output.status.success() || !text.contains("winlauncher.probe = Проверка с пробелами") { bail!("Java argument-file parsing failed: {text}"); }
+            minecraft::arguments::write_jvm_argfile(&args, &["-Dwinlauncher.probe=value with spaces".into(), "-cp".into(), ".".into()])?;
+            fs::copy("src-tauri/target/native-probes/ArgfileProbe.class", folder.join("ArgfileProbe.class"))?;
+            fs::write(folder.join("файл.txt"), "Привет".as_bytes())?;
+            let output = java::command(std::path::Path::new(&runtime.path)).current_dir(&folder).arg("@jvm args.txt").arg("ArgfileProbe").output().await?;
+            let text = String::from_utf8_lossy(&output.stdout);
+            if !output.status.success() || !text.contains("ARGFILE_UNICODE_FILES_OK") { bail!("Java argument-file interop failed: {} / {text}", String::from_utf8_lossy(&output.stderr)); }
             Ok(())
         }).await;
         check(&mut reports, "Managed Java and real invalid-argument exit 1 are diagnosed", async {

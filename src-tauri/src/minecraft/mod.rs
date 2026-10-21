@@ -32,7 +32,7 @@ struct Installed {
     natives: PathBuf,
     assets: PathBuf,
     asset_index: String,
-    logging_arg: Option<String>,
+    logging_arg: Option<(String, PathBuf)>,
     client: PathBuf,
 }
 #[derive(Deserialize)]
@@ -314,7 +314,7 @@ async fn logging(
     state: &AppState,
     version: &Version,
     cancel: &CancellationToken,
-) -> Result<Option<String>> {
+) -> Result<Option<(String, PathBuf)>> {
     let Some(client) = version.logging.as_ref().and_then(|l| l.get("client")) else {
         return Ok(None);
     };
@@ -340,7 +340,20 @@ async fn logging(
     .await?;
     Ok(client["argument"]
         .as_str()
-        .map(|a| a.replace("${path}", &metadata::path_string(&target))))
+        .map(|a| (a.to_string(), target)))
+}
+
+/// Managed paths all share data/profiles/<id> as the working directory.
+/// Relative ASCII JVM paths avoid both Windows command-length limits and
+/// Java's platform-codepage conversion of Unicode argument-file contents.
+fn launch_path(state: &AppState, instance: &std::path::Path, path: &std::path::Path) -> Result<String> {
+    if let Ok(relative) = path.strip_prefix(instance) {
+        if relative.as_os_str().is_empty() { return Ok(".".into()); }
+        return Ok(relative.to_string_lossy().replace('\\', "/"));
+    }
+    let root = state.root();
+    let relative = path.strip_prefix(&root).context("Launch library is outside managed data directory")?;
+    Ok(format!("../../{}", relative.to_string_lossy().replace('\\', "/")))
 }
 
 pub async fn launch(
@@ -374,9 +387,9 @@ pub async fn launch(
     let mut cp = installed
         .classpath
         .iter()
-        .map(|p| metadata::path_string(p))
-        .collect::<Vec<_>>();
-    cp.push(metadata::path_string(&installed.client));
+        .map(|p| launch_path(state, &instance, p))
+        .collect::<Result<Vec<_>>>()?;
+    cp.push(launch_path(state, &instance, &installed.client)?);
     let vars = HashMap::from([
         ("auth_player_name".into(), account.name.clone()),
         ("auth_uuid".into(), account.id.clone()),
@@ -398,23 +411,23 @@ pub async fn launch(
         ("user_properties".into(), "{}".into()),
         ("version_name".into(), installed.version.id.clone()),
         ("version_type".into(), installed.version.kind.clone()),
-        ("game_directory".into(), metadata::path_string(&instance)),
+        ("game_directory".into(), ".".into()),
         (
             "assets_root".into(),
-            metadata::path_string(&state.root().join("minecraft/assets")),
+            launch_path(state, &instance, &state.root().join("minecraft/assets"))?,
         ),
         (
             "game_assets".into(),
-            metadata::path_string(&installed.assets),
+            launch_path(state, &instance, &installed.assets)?,
         ),
         ("assets_index_name".into(), installed.asset_index),
         (
             "natives_directory".into(),
-            metadata::path_string(&installed.natives),
+            launch_path(state, &instance, &installed.natives)?,
         ),
         (
             "library_directory".into(),
-            metadata::path_string(&state.root().join("minecraft/libraries")),
+            launch_path(state, &instance, &state.root().join("minecraft/libraries"))?,
         ),
         ("classpath".into(), cp.join(metadata::classpath_separator())),
         (
@@ -436,19 +449,19 @@ pub async fn launch(
         .any(|a| a == "-cp" || a == "-classpath" || a == "--class-path")
     {
         jvm.extend([
-            format!("-Djava.library.path={}", installed.natives.display()),
+            format!("-Djava.library.path={}", launch_path(state, &instance, &installed.natives)?),
             "-cp".into(),
             cp.join(metadata::classpath_separator()),
         ]);
     }
     jvm.push("-Dlog4j2.formatMsgNoLookups=true".into());
-    if let Some(arg) = installed.logging_arg {
-        jvm.push(arg);
+    if let Some((template, path)) = installed.logging_arg {
+        jvm.push(template.replace("${path}", &launch_path(state, &instance, &path)?));
     }
     jvm.extend(profile.java_args.clone());
     let crash_dir = security::within(&instance, &format!(".winlauncher-crashes/{}", uuid::Uuid::new_v4()))?;
     fs::create_dir_all(&crash_dir)?;
-    jvm.push(format!("-XX:ErrorFile={}", metadata::path_string(&crash_dir.join("hs_err_pid%p.log"))));
+    jvm.push(format!("-XX:ErrorFile={}", launch_path(state, &instance, &crash_dir.join("hs_err_pid%p.log"))?));
 
     jvm.push(installed.version.main_class.clone());
     let mut game = if let Some(args) = &installed.version.arguments {
@@ -475,7 +488,7 @@ pub async fn launch(
     if guard.token.is_cancelled() {
         bail!("Запуск отменён");
     }
-    let args_file = if installed.java.major >= 9 {
+    let args_file = if installed.java.major >= 9 && arguments::can_use_argfile(&jvm) {
         let path = crash_dir.join("jvm-arguments.txt");
         let main_class = jvm.pop().context("Нет main class")?;
         let mut direct = Vec::new();

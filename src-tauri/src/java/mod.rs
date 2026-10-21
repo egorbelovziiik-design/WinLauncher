@@ -36,6 +36,9 @@ pub fn parse_major(version: &str) -> Result<u32> {
 /// options are still honored; this only removes unrelated environment hooks.
 pub fn command(path: &Path) -> Command {
     let mut cmd = Command::new(path);
+    // Keep diagnostic pipes UTF-8 without changing the encoding of game files.
+    cmd.args(["-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8", "-Dsun.stderr.encoding=UTF-8"]);
+
     for name in ["_JAVA_OPTIONS", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "CLASSPATH"] { cmd.env_remove(name); }
     #[cfg(windows)]
     cmd.creation_flags(0x08000000);

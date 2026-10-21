@@ -27,37 +27,45 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Probe Java UTF-8 argument file with Unicode working directory
+      - name: Probe relative Java argument files and Unicode filesystem
         continue-on-error: true
         shell: pwsh
         run: |
           $javaHome = $env:JAVA_HOME_21_X64
           if (-not $javaHome) { $javaHome = $env:JAVA_HOME }
+          $classes = Join-Path $env:RUNNER_TEMP ("java-probe-" + [Guid]::NewGuid())
+          New-Item -ItemType Directory -Force $classes | Out-Null
+          & (Join-Path $javaHome 'bin/javac.exe') --release 8 -encoding UTF-8 -d $classes tests/java/ArgfileProbe.java
+          if ($LASTEXITCODE -ne 0) { throw 'Could not compile Java probe' }
           $folder = Join-Path $env:RUNNER_TEMP ("java-args-" + [Guid]::NewGuid() + '-Проверка')
           New-Item -ItemType Directory -Force $folder | Out-Null
-          $content = '"-Dwinlauncher.probe=Проверка с пробелами"' + "`n" + '"-XshowSettings:properties"' + "`n"
+          Copy-Item (Join-Path $classes 'ArgfileProbe.class') $folder
+          [IO.File]::WriteAllText((Join-Path $folder 'файл.txt'), 'Привет', [Text.UTF8Encoding]::new($false))
+          $content = '"-Dwinlauncher.probe=value with spaces"' + "`n" + '"-cp"' + "`n" + '"."' + "`n"
           [IO.File]::WriteAllText((Join-Path $folder 'jvm args.txt'), $content, [Text.UTF8Encoding]::new($false))
           $info = [Diagnostics.ProcessStartInfo]::new()
           $info.FileName = Join-Path $javaHome 'bin/java.exe'
           $info.WorkingDirectory = $folder
           $info.UseShellExecute = $false
+          $info.CreateNoWindow = $true
           $info.RedirectStandardError = $true
           $info.RedirectStandardOutput = $true
           $info.StandardErrorEncoding = [Text.Encoding]::UTF8
+          $info.StandardOutputEncoding = [Text.Encoding]::UTF8
           $info.ArgumentList.Add('@jvm args.txt')
-          $info.ArgumentList.Add('-version')
+          $info.ArgumentList.Add('ArgfileProbe')
           foreach ($key in @('JAVA_TOOL_OPTIONS','JDK_JAVA_OPTIONS','_JAVA_OPTIONS','CLASSPATH')) { $null = $info.Environment.Remove($key) }
           $process = [Diagnostics.Process]::Start($info)
           $readError = $process.StandardError.ReadToEndAsync()
           $readOutput = $process.StandardOutput.ReadToEndAsync()
           if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'Java probe timeout' }
-          $text = $readError.GetAwaiter().GetResult()
-          $ok = $process.ExitCode -eq 0 -and $text.Contains('winlauncher.probe = Проверка с пробелами')
-          $relevant = ($text -split "`n" | Where-Object { $_ -match 'winlauncher.probe|encoding|user.dir|java.version|Error:' }) -join "`n"
-          $report = @{ passed = $ok; exit_code = $process.ExitCode; stderr = $relevant; source_commit = $env:GITHUB_SHA } | ConvertTo-Json -Compress
+          $text = $readOutput.GetAwaiter().GetResult()
+          $errorText = $readError.GetAwaiter().GetResult()
+          $ok = $process.ExitCode -eq 0 -and $text.Contains('ARGFILE_UNICODE_FILES_OK')
+          $report = @{ passed = $ok; exit_code = $process.ExitCode; stdout = $text; stderr = $errorText; source_commit = $env:GITHUB_SHA } | ConvertTo-Json -Compress
           $safe = $report.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
           Write-Output "::notice title=JAVA_ARGUMENT_PROBE::$safe"
-          if (-not $ok) { throw 'Java Unicode argument-file probe failed' }
+          if (-not $ok) { throw 'Java Unicode filesystem probe failed' }
       - name: Retrieve and hash-verify a genuine compiled installer
         env:
           GH_TOKEN: ${{ github.token }}

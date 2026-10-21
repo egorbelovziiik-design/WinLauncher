@@ -43,6 +43,13 @@ jobs:
         run: ./scripts/ci-command.ps1 -Command "cargo test --manifest-path src-tauri/Cargo.toml --features native-smoke --lib" -LogName rust-test.log
       - name: Build Windows executable and NSIS installer
         run: ./scripts/ci-command.ps1 -Command "npm run desktop:build -- --target x86_64-pc-windows-msvc" -LogName windows-build.log
+      - name: Compile test-only JVM interop probe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/target/native-probes | Out-Null
+          $compiler = Join-Path $env:JAVA_HOME_21_X64 'bin/javac.exe'
+          & $compiler --release 8 -encoding UTF-8 -d src-tauri/target/native-probes tests/java/ArgfileProbe.java
+          if ($LASTEXITCODE -ne 0) { throw 'Could not compile JVM interoperability probe' }
       - name: Real Rust backend acceptance checks
         continue-on-error: true
         timeout-minutes: 30
