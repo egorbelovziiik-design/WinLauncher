@@ -11,20 +11,20 @@
 
 ## Скачать
 
-Готовые сборки лежат в разделе **[Releases → v1.0.6](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.6)**:
+Готовые сборки лежат в разделе **[Releases → v1.0.7](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.7)**:
 
 | Файл | Размер | Что это |
 | --- | --- | --- |
-| [`WinLaucher_1.0.6_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.6/WinLaucher_1.0.6_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| [`WinLaucher_1.0.6_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.6/WinLaucher_1.0.6_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
-| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.6/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
+| [`WinLaucher_1.0.7_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.7/WinLaucher_1.0.7_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| [`WinLaucher_1.0.7_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.7/WinLaucher_1.0.7_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
+| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.7/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
 
 SHA-256 (для проверки загрузки):
 
 ```
-7F11E270CC0A60C46865D2D3CF1059197C742E7D992FDA282133172DF6FCE834  WinLaucher-portable.exe
-56909F5F18DFFB9C78D5360FC59C39FB8246608CBFAFBF849559123429430191  WinLaucher_1.0.6_x64-setup.exe
-9ACFE248493CA5481BBB0E60181A2A2644AE7678A79BCE180D273E51D201C396  WinLaucher_1.0.6_x64_en-US.msi
+E5FD906B3FD9343226275FA0E34DBCBA78FD0D18AE05B548B68921D9B58E027D  WinLaucher-portable.exe
+A6AB6231F2C56362293A30872487F3C46D5F73FE7FEDDB21BE4E8940400DB4D0  WinLaucher_1.0.7_x64-setup.exe
+7D485DB13A380F555D5399D5130983939453B4742E64BE21730DA3A5511C1D0D  WinLaucher_1.0.7_x64_en-US.msi
 ```
 
 Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
