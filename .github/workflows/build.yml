@@ -90,6 +90,51 @@ jobs:
           git commit -m "ci: build diagnostics [skip ci]" || exit 0
           git push origin "HEAD:$env:GITHUB_REF_NAME"
 
+      - name: Verify and smoke-test artifacts
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $report = @()
+          $report += "# WinLaucher build verification"
+          $report += ""
+          $report += "Commit: $env:GITHUB_SHA"
+          $report += ""
+          $report += "## Files"
+          Get-ChildItem out | ForEach-Object { $report += ("- {0} — {1} bytes" -f $_.Name, $_.Length) }
+          $report += ""
+          $report += "## SHA-256"
+          Get-FileHash out/* -Algorithm SHA256 | ForEach-Object { $report += ("- {0}: {1}" -f (Split-Path $_.Path -Leaf), $_.Hash) }
+          $report += ""
+          $report += "## PE metadata"
+          Get-ChildItem out/*.exe | ForEach-Object {
+            $vi = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($_.FullName)
+            $report += ("- {0}: ProductName='{1}' FileVersion='{2}' Company='{3}' Description='{4}'" -f $_.Name, $vi.ProductName, $vi.FileVersion, $vi.CompanyName, $vi.FileDescription)
+          }
+          $report += ""
+          $report += "## Runtime smoke test (portable exe)"
+          try {
+            $p = Start-Process -FilePath "out/WinLaucher-portable.exe" -PassThru
+            Start-Sleep -Seconds 15
+            if ($p.HasExited) {
+              $report += "- FAILED: process exited after $([int]($p.ExitTime - $p.StartTime).TotalSeconds)s with code $($p.ExitCode)"
+            } else {
+              $report += "- OK: process stayed alive for 15s (pid $($p.Id))"
+              Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 2
+            }
+          } catch {
+            $report += "- ERROR: $($_.Exception.Message)"
+          }
+          $report += ""
+          $report | Set-Content -Path smoke.txt -Encoding utf8
+          $report | ForEach-Object { Write-Host $_ }
+          git config user.name "winlaucher-ci"
+          git config user.email "ci@winlaucher.local"
+          git add smoke.txt
+          git commit -m "ci: smoke report [skip ci]" || exit 0
+          git pull --rebase --autostash origin "$env:GITHUB_REF_NAME"
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
+
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
