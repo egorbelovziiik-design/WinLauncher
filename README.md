@@ -10,32 +10,27 @@
 ---
 
 ## Скачать
-Готовые сборки лежат в разделе **[Releases → v1.0.0](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.0)**:
+
+Готовые сборки лежат в разделе **[Releases → v1.0.1](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.1)**:
 
 | Файл | Размер | Что это |
 | --- | --- | --- |
-| [`WinLaucher_1.0.0_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.0/WinLaucher_1.0.0_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| [`WinLaucher_1.0.0_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.0/WinLaucher_1.0.0_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
-| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.0/WinLaucher-portable.exe) | 9.8 МБ | Portable: один файл, без установки |
+| [`WinLaucher_1.0.1_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.1/WinLaucher_1.0.1_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| [`WinLaucher_1.0.1_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.1/WinLaucher_1.0.1_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
+| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.1/WinLaucher-portable.exe) | 9.8 МБ | Portable: один файл, без установки |
 
 SHA-256 (для проверки загрузки):
 
 ```
-E064AFF4E97A9783A482CDD74EC31043189DCE4474DF0C821100B3F9662C2BD2  WinLaucher-portable.exe
-EB60EAE1E9573C1E516C49E6B24ACCA93ACC0F89749D9ACC27C7AEC6AF841A5E  WinLaucher_1.0.0_x64-setup.exe
-E5AA2A7E46BB9BA56F0DBA50316950ABBA51AAAF40C32E397DAE431E81F03623  WinLaucher_1.0.0_x64_en-US.msi
+69218564573A9C0110DEC961F81EE6D2FF25D10F52235DB41614392F170BF9C5  WinLaucher-portable.exe
+44F872E654156AAE63E14CF176708A6FF953F520BFDFAFE7DD9DD84BD02CA272  WinLaucher_1.0.1_x64-setup.exe
+6FBACC7DD8E9B787CF720E2389627EA9024BFE268284575E2D9671E91F401CEE  WinLaucher_1.0.1_x64_en-US.msi
 ```
 
 Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
 нажмите «Подробнее» → «Выполнить в любом случае». Требуется Windows 10/11 x64.
 
---- | --- |
-| `WinLaucher_1.0.0_x64-setup.exe` | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| `WinLaucher_1.0.0_x64_en-US.msi` | Установщик MSI (Windows Installer) |
-| `WinLaucher-portable.exe` | Portable-сборка: один файл, работает без установки |
-
-Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
-нажмите «Подробнее» → «Выполнить в любом случае». Требуется Windows 10/11 x64.
+---
 
 ## Что умеет
 
