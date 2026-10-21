@@ -1,0 +1,74 @@
+name: Windows installer diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Completed Windows build run ID (empty = latest successful build on this branch)'
+        required: false
+        type: string
+  push:
+    branches: ['arena/4f921e32-winlauncher']
+    paths:
+      - '.github/workflows/installer-check.yml'
+      - 'scripts/installer-smoke.ps1'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: installer-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve a genuine previously compiled installer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_RUN: ${{ inputs.run_id }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+        shell: pwsh
+        run: |
+          $run = $env:REQUESTED_RUN
+          if (-not $run) { $run = gh run list --workflow windows.yml --branch $env:SOURCE_BRANCH --limit 15 --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId' }
+          if ($run -notmatch '^\d+$') { throw 'A completed Windows build from this branch is required' }
+          $source = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$run" | ConvertFrom-Json
+          if ($source.head_branch -ne $env:SOURCE_BRANCH) { throw 'Refusing to execute a package from a different branch' }
+          gh run download $run --name WinLauncher-1.0.0-windows-x64 --dir previous-build
+          if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve the original Actions artifact' }
+          foreach ($line in Get-Content previous-build/SHA256SUMS.txt) {
+            if ($line -match '^([a-fA-F0-9]{64})\s+(WinLauncher(?:-Setup)?\.exe)$') {
+              $actual = (Get-FileHash (Join-Path previous-build $Matches[2]) -Algorithm SHA256).Hash
+              if ($actual -ne $Matches[1]) { throw 'Artifact executable checksum mismatch' }
+            }
+          }
+          $root = 'src-tauri/target/x86_64-pc-windows-msvc/release'
+          New-Item -ItemType Directory -Force "$root/bundle/nsis" | Out-Null
+          Copy-Item previous-build/WinLauncher.exe "$root/winlauncher.exe"
+          Copy-Item previous-build/WinLauncher-Setup.exe "$root/bundle/nsis/verified-build-setup.exe"
+          "WINLAUNCHER_BINARY_COMMIT=$($source.head_sha)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+      - name: Execute genuine NSIS install and uninstall
+        continue-on-error: true
+        shell: pwsh
+        run: ./scripts/ci-command.ps1 -Command "pwsh -NoProfile -File scripts/installer-smoke.ps1" -LogName installer-check.log
+      - name: Publish complete installer diagnosis
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path release-artifacts/INSTALLER-SMOKE.json) {
+            $report = (Get-Content release-artifacts/INSTALLER-SMOKE.json -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output "::notice title=INSTALLER_REPORT::$report"
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installer-diagnostics
+          path: |
+            release-artifacts/INSTALLER-SMOKE.*
+            installer-check.log
+          retention-days: 7

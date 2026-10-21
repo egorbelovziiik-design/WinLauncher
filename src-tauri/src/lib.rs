@@ -1,5 +1,3 @@
-#[cfg(feature = "native-smoke")]
-pub mod smoke;
 mod accounts;
 mod commands;
 mod content;
@@ -15,11 +13,17 @@ mod modrinth;
 mod profiles;
 mod security;
 mod settings;
+#[cfg(feature = "native-smoke")]
+pub mod smoke;
 mod state;
 mod worlds;
 use state::AppState;
 use std::sync::{atomic::Ordering, Mutex};
-use tauri::{Manager, menu::{Menu, MenuItem}, tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState}};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Manager,
+};
 struct DiscordWorker(Mutex<Option<std::thread::JoinHandle<()>>>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -73,10 +77,27 @@ pub fn run() {
     application.run(|app, event| {
         if let tauri::RunEvent::ExitRequested { api, .. } = event {
             let state = app.state::<AppState>();
-            if state.has_running() || state.has_job() { api.prevent_exit(); return; }
+            if state.has_running() || state.has_job() {
+                api.prevent_exit();
+                return;
+            }
             state.exit.store(true, Ordering::Relaxed);
-            if let Some(worker) = app.state::<DiscordWorker>().0.lock().unwrap_or_else(|e| e.into_inner()).take() { let _ = worker.join(); }
+            if let Some(worker) = app
+                .state::<DiscordWorker>()
+                .0
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .take()
+            {
+                let _ = worker.join();
+            }
         }
     });
 }
-fn show_main(app: &tauri::AppHandle) { if let Some(window) = app.get_webview_window("main") { let _ = window.show(); let _ = window.unminimize(); let _ = window.set_focus(); } }
+fn show_main(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}

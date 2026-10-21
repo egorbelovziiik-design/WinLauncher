@@ -8,19 +8,19 @@ Development: Linux x64 sandbox, Node.js 22. Rust and Windows SDK are not install
 
 ## Observed results (2026-10-21 UTC)
 
-Evidence: [Windows run 39648271706](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39648271706), source commit `e4e677201fbbf27778ae7f84962e435d2d181baf`.
+Evidence: [Windows run 39651203633](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39651203633), source commit `5638747e949cc896ab82596fe314878a0cb6df38`.
 
 - **PASSED**: TypeScript + production Vite build; 10/10 frontend unit tests.
-- **PASSED**: 12/12 Playwright browser acceptance tests (17.7 seconds).
+- **PASSED**: 12/12 Playwright browser acceptance tests (17.3 seconds).
 - **PASSED**: axe-core audit of all nine main pages, default theme, Chromium 1440×1000: zero reported violations. This does not certify every theme, screen reader or native WebView2.
-- **PASSED**: 19/19 Windows Rust unit tests.
+- **PASSED**: 21/21 Windows Rust unit tests.
 - **PASSED**: genuine MSVC Windows x64 executable and supported Tauri NSIS packaging.
-- **PASSED**: 17 real native backend acceptance scenarios, on Windows 11 (26100) x64.
+- **PASSED**: 22 real native backend acceptance scenarios, on Windows 11 (26100) x64.
 - **NOT TESTED**: rendered GUI acceptance via WebView2 CDP. The real EXE remained running, but the harness could not attach. A green packaging workflow is not a successful GUI acceptance result.
 
 The API bridge delivered `BACKEND-SMOKE.json/.md`, `NATIVE-SMOKE.json/.md`, `rust-test.log` and `backend-smoke.log`; their lengths and SHA256 hashes were checked before reading. The backend harness uses the production engine with real publisher HTTPS APIs, downloaded files, hash verification, real Java processes and SQLite. Only the UI event sink is omitted; no game, catalog, download or credential is simulated.
 
-Additional disabled-mod update / pinned-dependency hardening, Java 8/17/25 checks and real NSIS install/uninstall checks are pending their own final CI run. Results above apply to the exact recorded commit, not automatically to later changes. Final deliverable reports take precedence over historical results in this section.
+Java 8/17/21/25, a real disabled-project version update and Iris required dependencies all passed in this run. The NSIS acceptance step returned a failure, despite the workflow being green because acceptance steps are non-blocking. Its full diagnosis is being retrieved separately; it is not reported as a successful install. The GUI harness is still NOT TESTED. Results apply to the exact recorded commit.
 
 ## Requested end-to-end checks
 
@@ -28,7 +28,7 @@ Additional disabled-mod update / pinned-dependency hardening, Java 8/17/25 check
 |---|---|---|
 | Install Minecraft Vanilla | PASSED | Real 1.21.4 client, libraries, native archives, assets and repeated cached-file hash verification. Not every historical/snapshot version. |
 | Real licensed Minecraft launch | NOT TESTED | Requires a Microsoft Application ID, licensed account and rendered game session. |
-| Automatic Java installation | PASSED | Genuine Adoptium Java 21.0.12.1 x64, SHA256 archive, extraction, actual `java -version`. Other majors pending. |
+| Automatic Java installation | PASSED | Genuine Adoptium Java 8u504, 17.0.20.1, 21.0.12.1 and 25.0.4.1 x64: SHA256 archives, extraction and actual `java -version` for all four. |
 | Microsoft authentication / refresh | NOT TESTED | No registered Application ID or licensed account supplied. |
 | Reject unlicensed launch | PASSED | Backend refused launch without an authenticated account, before spawning a game process. |
 | Fabric installation | PASSED | Real Fabric 0.19.5 for Minecraft 1.21.4, official metadata and Maven files. Game rendering NOT TESTED. |
@@ -37,7 +37,7 @@ Additional disabled-mod update / pinned-dependency hardening, Java 8/17/25 check
 | Quilt installation | PASSED | Real 1.21.4 loader metadata and libraries. Game rendering NOT TESTED. |
 | Modrinth API / installation | PASSED | Genuine API search and compatible Sodium installation, hashes and actual JAR checked. |
 | Mod toggle / removal | PASSED | Real files disabled/re-enabled and moved to safe backup storage. |
-| Mod updates | NOT TESTED | Expanded older-to-newer disabled-mod acceptance check pending. |
+| Mod updates / required dependencies | PASSED | Downloaded an older compatible Sodium release, disabled it, updated to the latest real release without enabling it, then re-enabled. Separately installed Iris and its real required dependency. |
 | Modrinth .mrpack export/import | PASSED | Exported actual installed content as verified references and reimported into a new isolated profile. |
 | CurseForge API / ZIP modpack | NOT TESTED | Requires a valid API key. Distribution restrictions are not bypassed. |
 | Discord Rich Presence | NOT TESTED | Requires Application ID, registered asset and running Discord Desktop. Protocol unit tests are not end-to-end Discord verification. |
@@ -47,7 +47,7 @@ Additional disabled-mod update / pinned-dependency hardening, Java 8/17/25 check
 | Hardware information | PASSED | Actual Windows CPU, RAM and free disk checks; GPU query executed. |
 | User-world backup / restoration | NOT TESTED | No licensed game world created for this session. Filesystem safety checks are separate. |
 | Full application restart | NOT TESTED | Requires rendered GUI acceptance. |
-| NSIS installer execution | NOT TESTED | Real silent installation/uninstallation check pending; building does not prove installation. |
+| NSIS installer execution | FAILED | Acceptance step returned exit code 1. Packaging succeeded. Dedicated diagnostics/retest pending; interactive installation remains NOT TESTED. |
 
 ## Automated tests
 

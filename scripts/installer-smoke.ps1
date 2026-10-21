@@ -46,9 +46,13 @@ try {
   Add-Result 'Interactive installer, SmartScreen and standard-user desktop flow' 'NOT TESTED' 'Silent execution on a disposable Windows runner does not verify the full interactive user experience.'
 } catch {
   $failure = $true
-  Add-Result 'NSIS installer acceptance' 'FAILED' $_.Exception.Message
+  $detail = $_.Exception.Message
+  Add-Result 'NSIS installer acceptance' 'FAILED' $detail
+  $safe = $detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+  Write-Output "::error title=INSTALLER_ACCEPTANCE::$safe"
 } finally {
-  @{ source_commit = $env:GITHUB_SHA; generated_at = [DateTime]::UtcNow.ToString('o'); runtime = 'Real Tauri NSIS on Windows x64'; checks = $reports.ToArray() } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 (Join-Path $output 'INSTALLER-SMOKE.json')
+  $binaryCommit = if ($env:WINLAUNCHER_BINARY_COMMIT) { $env:WINLAUNCHER_BINARY_COMMIT } else { $env:GITHUB_SHA }
+  @{ source_commit = $binaryCommit; harness_commit = $env:GITHUB_SHA; generated_at = [DateTime]::UtcNow.ToString('o'); runtime = 'Real Tauri NSIS on Windows x64'; checks = $reports.ToArray() } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 (Join-Path $output 'INSTALLER-SMOKE.json')
   $text = "# Native NSIS installer verification`n`n" + (($reports | ForEach-Object { "## $($_.check): $($_.status)`n`n$($_.detail)`n" }) -join "`n")
   Set-Content -Encoding utf8 (Join-Path $output 'INSTALLER-SMOKE.md') -Value $text
   if (Test-Path $probe) { Remove-Item -LiteralPath $probe }
