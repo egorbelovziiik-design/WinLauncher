@@ -11,20 +11,20 @@
 
 ## Скачать
 
-Готовые сборки лежат в разделе **[Releases → v1.0.5](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.5)**:
+Готовые сборки лежат в разделе **[Releases → v1.0.6](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/v1.0.6)**:
 
 | Файл | Размер | Что это |
 | --- | --- | --- |
-| [`WinLaucher_1.0.5_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.5/WinLaucher_1.0.5_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
-| [`WinLaucher_1.0.5_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.5/WinLaucher_1.0.5_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
-| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.5/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
+| [`WinLaucher_1.0.6_x64-setup.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.6/WinLaucher_1.0.6_x64-setup.exe) | 5.8 МБ | Установщик NSIS (для текущего пользователя, без прав администратора) |
+| [`WinLaucher_1.0.6_x64_en-US.msi`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.6/WinLaucher_1.0.6_x64_en-US.msi) | 6.8 МБ | Установщик MSI (Windows Installer) |
+| [`WinLaucher-portable.exe`](https://github.com/egorbelovziiik-design/WinLauncher/releases/download/v1.0.6/WinLaucher-portable.exe) | 9.9 МБ | Portable: один файл, без установки |
 
 SHA-256 (для проверки загрузки):
 
 ```
-07E95DCA1C60B72A0CA515C75B4CC0F581D561C1A5BD1A7315B963D30AB83A34  WinLaucher-portable.exe
-F5B62D54A01CC01F8C1B4C526285D1615ACE3221720461AD99A4B4493D62A4FE  WinLaucher_1.0.5_x64-setup.exe
-701607A01CD90311CFBB9883D74298B460AD5DE702F7B2AA04E70365254DDFE3  WinLaucher_1.0.5_x64_en-US.msi
+7F11E270CC0A60C46865D2D3CF1059197C742E7D992FDA282133172DF6FCE834  WinLaucher-portable.exe
+56909F5F18DFFB9C78D5360FC59C39FB8246608CBFAFBF849559123429430191  WinLaucher_1.0.6_x64-setup.exe
+9ACFE248493CA5481BBB0E60181A2A2644AE7678A79BCE180D273E51D201C396  WinLaucher_1.0.6_x64_en-US.msi
 ```
 
 Сборка не подписана сертификатом, поэтому SmartScreen может показать «Неизвестный издатель»:
@@ -159,6 +159,11 @@ src-tauri/
   но поддерживаются переменные окружения `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`.
 - **Автообновление лаунчера** не реализовано: новая версия ставится поверх вручную.
 - **Подпись кода** отсутствует (см. выше).
+- **`Failed to fetch user properties` / `InvalidCredentialsException: Status: 401`.** Так клиент
+  реагирует, когда сессия Microsoft отозвана, либо когда офлайн-профиль запущен с типом `msa`.
+  Лаунчер проверяет токен перед запуском, обновляет его при отказе и принудительно передаёт
+  `--userType legacy` для офлайн-профилей. Для офлайн-аккаунта такие строки в логе безвредны:
+  они больше не считаются причиной падения.
 - **Краш JVM** (`# A fatal error has been detected by the Java Runtime Environment`). Это сбой
   самой Java, чаще всего из-за драйвера видеокарты. Лаунчер теперь читает `hs_err_pid*.log`,
   показывает модуль, в котором произошёл сбой, и подсказку. Что помогает на практике:
