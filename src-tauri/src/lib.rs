@@ -1,7 +1,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::{Path, PathBuf}, sync::Mutex};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use futures_util::StreamExt;
 
 pub struct AppState { pub game_process: Mutex<Option<std::process::Child>>, pub logs: Mutex<Vec<String>>, pub downloads: Mutex<Vec<DownloadItem>> }
@@ -238,6 +238,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
 }
 
 #[tauri::command] async fn launch_game(app:AppHandle,state:State<'_,AppState>,version_id:String,account:Account,profile:Profile)->Result<(),String>{
+ { let busy=if let Ok(mut g)=state.game_process.lock(){ if let Some(c)=g.as_mut(){ c.try_wait().map(|s|s.is_none()).unwrap_or(false) } else { false } } else { false }; if busy{ return Err("Minecraft уже запущен".into()); } }
  let _=app.emit("game-state","preparing");
  // resolve loader version id
  let mut effective_id=version_id.clone();
@@ -248,6 +249,14 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  let mut meta:serde_json::Value=read_json(&mc.join("versions").join(&effective_id).join(format!("{}.json",effective_id)));
  // inheritsFrom (Fabric/Quilt/Forge profiles)
  if let Some(parent)=meta["inheritsFrom"].as_str().map(|s|s.to_string()){ let pmeta:serde_json::Value=read_json(&mc.join("versions").join(&parent).join(format!("{}.json",parent))); meta=merge_meta(pmeta,meta); }
+ // Проверка целостности client JAR по SHA1 из метаданных Mojang; при повреждении — полная переустановка версии
+ {
+   let jar_id=meta["inheritsFrom"].as_str().unwrap_or(&effective_id).to_string();
+   let jar_path=mc.join("versions").join(&jar_id).join(format!("{}.jar",jar_id));
+   let expected=meta["downloads"]["client"]["sha1"].as_str().map(|x|x.to_string());
+   let bad=!jar_path.exists() || expected.as_ref().map(|e|sha1_file(&jar_path)!=*e).unwrap_or(false);
+   if bad{ log(&app,&state,"Client JAR отсутствует/повреждён — переустановка версии..."); install_version_internal(&app,&state,&version_id).await?; }
+ }
  let major=required_java_major(&meta); let settings=load_settings(&app);
  let java_custom=profile.java_path.clone().unwrap_or(settings.java_path.clone());
  let java=find_or_install_java(&app,&state,major,&java_custom).await?;
@@ -274,13 +283,17 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  } else if let Some(mcargs)=meta["minecraftArguments"].as_str(){ for s in mcargs.split_whitespace(){ game_args.push(replace(s,&account)); } jvm_args.push(format!("-Djava.library.path={}",native_dir.display())); }
  if settings.fullscreen{ game_args.push("--fullscreen".into()); } else { game_args.push("--width".into()); game_args.push(settings.resolution[0].to_string()); game_args.push("--height".into()); game_args.push(settings.resolution[1].to_string()); }
  if !settings.jvm_args.is_empty(){ for s in settings.jvm_args.split_whitespace(){ jvm_args.insert(2,s.to_string()); } }
- let mut cmd=std::process::Command::new(&java); cmd.args(&jvm_args).arg(&main_class).args(&game_args).current_dir(&game_directory).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
+ let mut cmd=std::process::Command::new(&java); cmd.args(&jvm_args).arg(&main_class).args(&game_args).current_dir(&game_directory).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
  log(&app,&state,&format!("Запуск Minecraft {} ({}) RAM={}MB",effective_id,main_class,profile.ram_mb));
  let mut child=cmd.spawn().map_err(|e|format!("Ошибка запуска Java: {}",e))?;
  // stream stdout
- if let Some(mut out)=child.stdout.take(){ let app2=app.clone(); std::thread::spawn(move||{ use std::io::Read; let mut buf=[0u8;4096]; loop{ match out.read(&mut buf){ Ok(0)|Err(_)=>break, Ok(n)=>{ let s=String::from_utf8_lossy(&buf[..n]).to_string(); let _=app2.emit("game-log",s); } } } }); }
+ // Дренируем ОБА потока: если stderr не читать, игра зависает при заполнении буфера логов
+ if let Some(mut out)=child.stdout.take(){ let app2=app.clone(); std::thread::spawn(move||{ use std::io::Read; let mut buf=[0u8;8192]; loop{ match out.read(&mut buf){ Ok(0)|Err(_)=>break, Ok(n)=>{ let _=app2.emit("game-log",String::from_utf8_lossy(&buf[..n]).to_string()); } } } }); }
+ if let Some(mut err)=child.stderr.take(){ let app2=app.clone(); std::thread::spawn(move||{ use std::io::Read; let mut buf=[0u8;8192]; loop{ match err.read(&mut buf){ Ok(0)|Err(_)=>break, Ok(n)=>{ let _=app2.emit("game-log",String::from_utf8_lossy(&buf[..n]).to_string()); } } } }); }
  if let Ok(mut g)=state.game_process.lock(){ *g=Some(child); }
  let _=app.emit("game-state","running");
+ // Монитор завершения: сообщает код выхода (0 = норма, иначе краш) и освобождает процесс
+ { let app_mon=app.clone(); std::thread::spawn(move||{ loop{ std::thread::sleep(std::time::Duration::from_secs(2)); let st=app_mon.state::<AppState>(); let mut done:Option<std::process::ExitStatus>=None; if let Ok(mut g)=st.game_process.lock(){ if let Some(c)=g.as_mut(){ if let Ok(Some(status))=c.try_wait(){ done=Some(status); } } } if let Some(status)=done{ if let Ok(mut g)=st.game_process.lock(){ if let Some(mut c)=g.take(){ let _=c.wait(); } } let _=app_mon.emit("game-exit",serde_json::json!({"code":status.code()})); let _=app_mon.emit("game-state","idle"); break; } } }); }
  Ok(())
 }
 fn merge_meta(parent:serde_json::Value,child:serde_json::Value)->serde_json::Value{ let mut m=parent.clone(); if let Some(o)=child.as_object(){ for (k,v) in o{ if k=="libraries"{ let mut libs=parent["libraries"].as_array().cloned().unwrap_or_default(); if let Some(c)=v.as_array(){ libs.extend(c.iter().cloned()); } m["libraries"]=serde_json::Value::Array(libs); } else if k=="arguments"{ // child arguments replace/extend game args: keep parent jvm, child takes precedence overall
