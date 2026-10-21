@@ -17,10 +17,10 @@
  Downloading crates ...
   Downloaded ico v0.6.0
   Downloaded plist v1.10.3
-  Downloaded tauri-build v2.7.4
   Downloaded tauri v2.12.5
-  Downloaded tauri-codegen v2.7.4
   Downloaded tauri-macros v2.7.4
+  Downloaded tauri-codegen v2.7.4
+  Downloaded tauri-build v2.7.4
    Compiling plist v1.10.3
    Compiling ico v0.6.0
     Checking tauri-utils v2.10.2
@@ -57,6 +57,459 @@ src\paths.rs:140:8: warning: function `offset_now` is never used
 src\state.rs:223:12: warning: methods `java_runtimes`, `set_java_runtimes`, and `profile_game_dir` are never used
 src\util.rs:62:8: warning: function `sha512_file` is never used
 src\util.rs:116:8: warning: function `which` is never used
-warning: `winlaucher` (lib test) generated 23 warnings (23 duplicates)
-warning: `winlaucher` (lib) generated 23 warnings
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 45.80s
+warning: `winlaucher` (lib test) generated 23 warnings (1 duplicate)
+warning: `winlaucher` (lib) generated 23 warnings (22 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 14s
+===== cargo test =====
+   Compiling windows-link v0.2.1
+   Compiling cfg-if v1.0.5
+   Compiling serde_core v1.0.229
+   Compiling smallvec v1.16.3
+   Compiling windows-sys v0.61.2
+   Compiling zerofrom v0.1.8
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.3
+   Compiling memchr v2.8.3
+   Compiling zerovec v0.11.8
+   Compiling itoa v1.0.18
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tinystr v0.8.4
+   Compiling scopeguard v1.2.0
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling serde v1.0.229
+   Compiling plist v1.10.3
+   Compiling icu_locale_core v2.3.0
+   Compiling lock_api v0.4.14
+   Compiling parking_lot_core v0.9.12
+   Compiling potential_utf v0.1.6
+   Compiling zerotrie v0.2.5
+   Compiling utf8_iter v1.0.4
+   Compiling tauri-utils v2.10.2
+   Compiling icu_collections v2.3.0
+   Compiling icu_provider v2.3.1
+   Compiling parking_lot v0.12.5
+   Compiling percent-encoding v2.3.2
+   Compiling icu_normalizer_data v2.3.0
+   Compiling icu_properties_data v2.3.0
+   Compiling http v1.5.0
+   Compiling windows-result v0.4.1
+   Compiling windows-strings v0.5.1
+   Compiling once_cell v1.21.4
+   Compiling windows-core v0.62.2
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling idna_adapter v1.2.2
+   Compiling crossbeam-utils v0.8.23
+   Compiling tokio v1.54.0
+   Compiling form_urlencoded v1.2.2
+   Compiling log v0.4.34
+   Compiling zmij v1.0.23
+   Compiling idna v1.1.0
+   Compiling windows-threading v0.2.1
+   Compiling futures-core v0.3.34
+   Compiling windows-future v0.3.2
+   Compiling serde_json v1.0.154
+   Compiling url v2.5.8
+   Compiling windows-numerics v0.3.1
+   Compiling windows-collections v0.3.2
+   Compiling deranged v0.5.9
+   Compiling time-core v0.1.9
+   Compiling raw-window-handle v0.6.2
+   Compiling base64 v0.23.1
+   Compiling powerfmt v0.2.1
+   Compiling num-conv v0.2.2
+   Compiling time v0.3.55
+   Compiling tauri-build v2.7.4
+   Compiling windows v0.62.2
+   Compiling thiserror v2.0.21
+   Compiling getrandom v0.4.3
+   Compiling libc v0.2.191
+   Compiling tracing-core v0.1.36
+   Compiling bitflags v2.13.2
+   Compiling aho-corasick v1.1.5
+   Compiling hashbrown v0.17.1
+   Compiling regex-syntax v0.8.11
+   Compiling equivalent v1.0.3
+   Compiling alloc-no-stdlib v3.0.0
+   Compiling alloc-stdlib v0.3.0
+   Compiling indexmap v2.14.2
+   Compiling regex-automata v0.4.18
+   Compiling typeid v1.0.3
+   Compiling tracing v0.1.44
+   Compiling uuid v1.28.0
+   Compiling winapi-util v0.1.11
+   Compiling dpi v0.1.2
+   Compiling simd-adler32 v0.3.10
+   Compiling fnv v1.0.7
+   Compiling zeroize v1.9.1
+   Compiling web-time v1.1.0
+   Compiling siphasher v1.0.4
+   Compiling winnow v1.0.4
+   Compiling phf_shared v0.13.1
+   Compiling cfb v0.14.0
+   Compiling toml_parser v1.1.5+spec-1.1.0
+   Compiling regex v1.13.1
+   Compiling erased-serde v0.4.10
+   Compiling crc32fast v1.5.3
+   Compiling same-file v1.0.6
+   Compiling brotli-decompressor v6.0.1
+   Compiling tauri v2.12.5
+   Compiling jsonptr v0.7.1
+   Compiling tauri-plugin v2.7.2
+   Compiling serde_spanned v1.1.2
+   Compiling toml_datetime v1.1.2+spec-1.1.0
+   Compiling quick-xml v0.42.0
+   Compiling windows-version v0.1.7
+   Compiling option-ext v0.2.0
+   Compiling dunce v1.0.5
+   Compiling typenum v1.20.1
+   Compiling adler2 v2.0.1
+   Compiling toml_writer v1.1.3+spec-1.1.0
+   Compiling toml v1.1.8+spec-1.1.0
+   Compiling generic-array v0.14.7
+   Compiling miniz_oxide v0.9.1
+   Compiling anyhow v1.0.104
+   Compiling json-patch v4.2.0
+   Compiling brotli v9.0.0
+   Compiling walkdir v2.5.0
+   Compiling serde-untagged v0.1.9
+   Compiling urlpattern v0.6.0
+   Compiling cookie v0.18.2
+   Compiling infer v0.22.0
+   Compiling phf v0.13.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling crossbeam-channel v0.5.17
+   Compiling http-body v1.1.0
+   Compiling serde_with v3.24.0
+   Compiling getrandom v0.2.17
+   Compiling futures-task v0.3.34
+   Compiling semver v1.0.28
+   Compiling ctor v1.0.13
+   Compiling untrusted v0.9.0
+   Compiling slab v0.4.12
+   Compiling glob v0.3.4
+   Compiling futures-util v0.3.34
+   Compiling ring v0.17.14
+   Compiling ico v0.6.0
+   Compiling flate2 v1.1.10
+   Compiling windows_x86_64_msvc v0.52.6
+   Compiling windows_x86_64_msvc v0.53.1
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tower-service v0.3.3
+   Compiling try-lock v0.2.5
+   Compiling unicode-segmentation v1.13.3
+   Compiling want v0.3.2
+   Compiling windows-targets v0.53.5
+   Compiling windows-targets v0.52.6
+   Compiling tauri-codegen v2.7.4
+   Compiling rustls-webpki v0.103.16
+   Compiling httparse v1.10.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling windows_x86_64_msvc v0.48.5
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling dirs-sys v0.5.0
+   Compiling softbuffer v0.4.8
+   Compiling keyboard-types v0.8.3
+   Compiling compression-core v0.4.34
+   Compiling subtle v2.6.1
+   Compiling atomic-waker v1.1.2
+   Compiling hyper v1.12.0
+   Compiling rustls v0.23.46
+   Compiling webview2-com-sys v0.39.1
+   Compiling webview2-com v0.39.1
+   Compiling wry v0.57.0
+   Compiling tauri-runtime v2.12.2
+   Compiling tao v0.37.1
+   Compiling muda v0.20.0
+   Compiling compression-codecs v0.4.46
+   Compiling serialize-to-javascript v0.1.2
+   Compiling dirs v7.0.0
+   Compiling digest v0.10.7
+   Compiling crossbeam-deque v0.8.8
+   Compiling windows-targets v0.48.5
+   Compiling tauri-macros v2.7.4
+   Compiling windows-result v0.1.2
+   Compiling windows-sys v0.60.2
+   Compiling tauri-runtime-wry v2.12.3
+   Compiling getrandom v0.3.4
+   Compiling window-vibrancy v0.8.1
+   Compiling tauri-plugin-dialog v2.8.3
+   Compiling futures-channel v0.3.34
+   Compiling sync_wrapper v1.0.2
+   Compiling heck v0.5.0
+   Compiling ipnet v2.12.2
+   Compiling tower-layer v0.3.3
+   Compiling mime v0.3.17
+   Compiling futures-sink v0.3.34
+   Compiling tower v0.5.3
+   Compiling tokio-util v0.7.20
+   Compiling hyper-util v0.1.21
+   Compiling windows-core v0.57.0
+   Compiling rayon-core v1.13.0
+   Compiling windows-sys v0.48.0
+   Compiling async-compression v0.4.51
+   Compiling tokio-rustls v0.26.6
+   Compiling winapi v0.3.9
+   Compiling http-body-util v0.1.5
+   Compiling webpki-roots v1.0.10
+   Compiling either v1.19.0
+   Compiling cpufeatures v0.2.17
+   Compiling bumpalo v3.20.3
+   Compiling ryu v1.0.23
+   Compiling zopfli v0.8.4
+   Compiling serde_urlencoded v0.7.1
+   Compiling dirs-sys v0.4.1
+   Compiling rayon v1.12.0
+   Compiling ntapi v0.4.3
+   Compiling hyper-rustls v0.27.10
+   Compiling tower-http v0.6.11
+   Compiling windows v0.57.0
+   Compiling num-traits v0.2.19
+   Compiling rfd v0.16.0
+   Compiling winlaucher v1.0.5 (D:\a\WinLauncher\WinLauncher\src-tauri)
+   Compiling byteorder v1.5.0
+   Compiling base64 v0.22.1
+   Compiling reqwest v0.12.28
+   Compiling keyring v3.6.3
+   Compiling chrono v0.4.45
+   Compiling zip v2.6.1
+   Compiling dirs v5.0.1
+   Compiling sha2 v0.10.9
+   Compiling sha1 v0.10.7
+   Compiling md-5 v0.10.6
+   Compiling hex v0.4.3
+   Compiling sysinfo v0.33.1
+warning: function `rename_offline` is never used
+  --> src\accounts.rs:85:8
+   |
+85 | pub fn rename_offline(app: &AppHandle, id: &str, name: &str) -> Result<Account, String> {
+   |        ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `get_json` is never used
+  --> src\download.rs:97:14
+   |
+97 | pub async fn get_json<T: DeserializeOwned>(
+   |              ^^^^^^^^
+
+warning: function `get_bytes` is never used
+   --> src\download.rs:106:14
+    |
+106 | pub async fn get_bytes(client: &reqwest::Client, url: &str, retries: usize) -> Result<Vec<u8>, String> {
+    |              ^^^^^^^^^
+
+warning: function `extract_zip_subdir` is never used
+   --> src\download.rs:500:8
+    |
+500 | pub fn extract_zip_subdir(
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `read_zip_entry` is never used
+   --> src\download.rs:515:8
+    |
+515 | pub fn read_zip_entry(zip_path: &Path, name: &str) -> Result<String, String> {
+    |        ^^^^^^^^^^^^^^
+
+warning: function `zip_entries` is never used
+   --> src\download.rs:526:8
+    |
+526 | pub fn zip_entries(zip_path: &Path) -> Result<Vec<String>, String> {
+    |        ^^^^^^^^^^^
+
+warning: function `write_generated_version` is never used
+   --> src\loaders.rs:453:8
+    |
+453 | pub fn write_generated_version(paths: &Paths, id: &str, json: &Value) -> Result<PathBuf, String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `latest` is never read
+   --> src\models.rs:469:9
+    |
+468 | pub struct VersionManifest {
+    |            --------------- field in this struct
+469 |     pub latest: ManifestLatest,
+    |         ^^^^^^
+    |
+    = note: `VersionManifest` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `release` and `snapshot` are never read
+   --> src\models.rs:475:9
+    |
+474 | pub struct ManifestLatest {
+    |            -------------- fields in this struct
+475 |     pub release: String,
+    |         ^^^^^^^
+476 |     pub snapshot: String,
+    |         ^^^^^^^^
+    |
+    = note: `ManifestLatest` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `release_time` is never read
+   --> src\models.rs:520:9
+    |
+494 | pub struct VersionJson {
+    |            ----------- field in this struct
+...
+520 |     pub release_time: Option<String>,
+    |         ^^^^^^^^^^^^
+    |
+    = note: `VersionJson` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `total_size` and `virtual_` are never read
+   --> src\models.rs:550:9
+    |
+540 | pub struct AssetIndexRef {
+    |            ------------- fields in this struct
+...
+550 |     pub total_size: u64,
+    |         ^^^^^^^^^^
+551 |     #[serde(default, rename = "virtual")]
+552 |     pub virtual_: bool,
+    |         ^^^^^^^^
+    |
+    = note: `AssetIndexRef` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `component` is never read
+   --> src\models.rs:560:9
+    |
+556 | pub struct JavaVersion {
+    |            ----------- field in this struct
+...
+560 |     pub component: String,
+    |         ^^^^^^^^^
+    |
+    = note: `JavaVersion` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `argument` and `log_type` are never read
+   --> src\models.rs:578:9
+    |
+577 | pub struct LoggingClient {
+    |            ------------- fields in this struct
+578 |     pub argument: Option<String>,
+    |         ^^^^^^^^
+...
+581 |     pub log_type: String,
+    |         ^^^^^^^^
+    |
+    = note: `LoggingClient` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: field `version` is never read
+   --> src\models.rs:656:9
+    |
+650 | pub struct RuleOs {
+    |            ------ field in this struct
+...
+656 |     pub version: Option<String>,
+    |         ^^^^^^^
+    |
+    = note: `RuleOs` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: function `resolve_required` is never used
+   --> src\modrinth.rs:505:14
+    |
+505 | pub async fn resolve_required(
+    |              ^^^^^^^^^^^^^^^^
+
+warning: field `assets` is never read
+  --> src\mojang.rs:26:9
+   |
+17 | pub struct MergedVersion {
+   |            ------------- field in this struct
+...
+26 |     pub assets: String,
+   |         ^^^^^^
+
+warning: method `curseforge_file` is never used
+  --> src\paths.rs:36:12
+   |
+12 | impl Paths {
+   | ---------- method in this implementation
+...
+36 |     pub fn curseforge_file(&self) -> PathBuf {
+   |            ^^^^^^^^^^^^^^^
+
+warning: function `sha1_hex` is never used
+   --> src\paths.rs:126:8
+    |
+126 | pub fn sha1_hex(data: &[u8]) -> String {
+    |        ^^^^^^^^
+
+warning: function `sha512_hex` is never used
+   --> src\paths.rs:133:8
+    |
+133 | pub fn sha512_hex(data: &[u8]) -> String {
+    |        ^^^^^^^^^^
+
+warning: function `offset_now` is never used
+   --> src\paths.rs:140:8
+    |
+140 | pub fn offset_now() -> i64 {
+    |        ^^^^^^^^^^
+
+warning: methods `java_runtimes`, `set_java_runtimes`, and `profile_game_dir` are never used
+   --> src\state.rs:223:12
+    |
+ 56 | impl AppState {
+    | ------------- methods in this implementation
+...
+223 |     pub fn java_runtimes(&self) -> Vec<JavaRuntime> {
+    |            ^^^^^^^^^^^^^
+...
+227 |     pub fn set_java_runtimes(&self, list: Vec<JavaRuntime>) {
+    |            ^^^^^^^^^^^^^^^^^
+...
+235 |     pub fn profile_game_dir(&self, p: &Profile) -> PathBuf {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: function `sha512_file` is never used
+  --> src\util.rs:62:8
+   |
+62 | pub fn sha512_file(path: &Path) -> Option<String> {
+   |        ^^^^^^^^^^^
+
+warning: function `which` is never used
+   --> src\util.rs:116:8
+    |
+116 | pub fn which(cmd: &str) -> Option<PathBuf> {
+    |        ^^^^^
+
+warning: `winlaucher` (lib test) generated 23 warnings
+    Finished `release` profile [optimized] target(s) in 2m 19s
+     Running unittests src\lib.rs (src-tauri\target\release\deps\winlaucher_lib-4f677731c78ecc34.exe)
+
+running 13 tests
+test launch::tests::finds_the_crash_reason ... ok
+test launch::tests::honours_argument_rules ... ok
+test launch::tests::keeps_ram_between_sane_bounds ... ok
+test launch::tests::reads_hotspot_crash_dumps ... FAILED
+test launch::tests::substitutes_every_placeholder ... ok
+test launch::tests::unwraps_log4j_xml ... ok
+test mojang::tests::builds_artifacts_from_maven_coordinates ... ok
+test mojang::tests::compares_maven_versions ... ok
+test mojang::tests::detects_modern_native_classifiers ... ok
+test mojang::tests::evaluates_rules ... ok
+test mojang::tests::extracts_only_the_current_platform_natives ... ok
+test mojang::tests::keeps_only_the_newest_library_version ... ok
+test mojang::tests::picks_the_right_java_major ... ok
+
+failures:
+
+---- launch::tests::reads_hotspot_crash_dumps stdout ----
+
+thread 'launch::tests::reads_hotspot_crash_dumps' (212) panicked at src\launch.rs:876:9:
+assertion failed: details.iter().any(|line| line.contains("nvoglv64.dll"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    launch::tests::reads_hotspot_crash_dumps
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`
