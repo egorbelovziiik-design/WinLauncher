@@ -1,80 +1,112 @@
 # WinLauncher 1.0.0 — verification report
 
-This file distinguishes code implementation, automated tests, and real end-to-end verification. A successful compilation does not prove Microsoft login, Minecraft rendering, mod compatibility, Discord presence or installer execution.
+**Verified on 2026-10-21 UTC.** Implementation, compilation, real backend execution and a rendered licensed game are different claims. A scenario marked **NOT TESTED** is not a success.
 
-## Environment
+## Exact build and evidence
 
-Development: Linux x64 sandbox, Node.js 22. Rust and Windows SDK are not installed locally. Network egress is restricted to GitHub, npm and PyPI. Native builds are delegated to the Windows workflow on this branch. No Microsoft Application ID, licensed account, CurseForge key or Discord Application ID is bundled.
+- Application source / executable build: `fd718db7b9714ef3c5fd0b8856aa185355d75f32`.
+- Windows build: [Actions run 39654021540](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39654021540).
+- Final installer retest, using the **same** build artifact: [Actions run 39655709172](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39655709172).
+- Corrected installer harness: `3f9089162804ab0ab6474d1fd7386a24a7d1ff02`. Subsequent CI/documentation changes do not change application code.
+- Machine: real Windows x64 GitHub-hosted `windows-latest` runner. The native hardware query reported `Windows 11 (26100)`, x86_64, 16,378 MB RAM. This is not a manual test on a physical Windows 10/11 desktop.
+- Local UI verification: Node.js 22, Chromium, Linux x64. The live browser preview explicitly does **not** simulate native installation, authentication, catalogs or gameplay.
+- No Microsoft Application ID, licensed account, CurseForge API key or Discord Application ID was supplied or bundled.
 
-## Observed results (2026-10-21 UTC)
+Raw final evidence is committed under [`docs/verification/`](verification/), and the executable delivery also contains `BACKEND-SMOKE`, `INSTALLER-SMOKE`, `NATIVE-SMOKE` reports, `BUILD-METADATA.json` and `SHA256SUMS.txt`.
 
-Evidence: [Windows run 39651203633](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39651203633), source commit `5638747e949cc896ab82596fe314878a0cb6df38`.
+## Results at a glance
 
-- **PASSED**: TypeScript + production Vite build; 10/10 frontend unit tests.
-- **PASSED**: 12/12 Playwright browser acceptance tests (17.3 seconds).
-- **PASSED**: axe-core audit of all nine main pages, default theme, Chromium 1440×1000: zero reported violations. This does not certify every theme, screen reader or native WebView2.
-- **PASSED**: 21/21 Windows Rust unit tests.
-- **PASSED**: genuine MSVC Windows x64 executable and supported Tauri NSIS packaging.
-- **PASSED**: 22 real native backend acceptance scenarios, on Windows 11 (26100) x64.
-- **NOT TESTED**: rendered GUI acceptance via WebView2 CDP. The real EXE remained running, but the harness could not attach. A green packaging workflow is not a successful GUI acceptance result.
+| Check | Result |
+|---|---|
+| TypeScript / production Vite build | **PASSED** |
+| Frontend unit tests | **PASSED — 10/10** |
+| Playwright browser acceptance tests | **PASSED — 12/12**, latest run 17.3 seconds |
+| axe-core, nine main pages, default theme, 1440×1000 | **PASSED — zero reported violations** |
+| Windows Rust unit tests | **PASSED — 21/21** |
+| Genuine MSVC x64 EXE and supported Tauri NSIS packaging | **PASSED** |
+| Real native backend acceptance checks | **PASSED — 22 executed scenarios**; 7 additional scenarios explicitly NOT TESTED |
+| Real silent NSIS installation / uninstallation | **PASSED — 2/2**; interactive installation NOT TESTED |
+| Native GUI automation / rendered Minecraft session | **NOT TESTED** |
+| npm production dependency audit | **PASSED — zero reported vulnerabilities** at verification time |
 
-The API bridge delivered `BACKEND-SMOKE.json/.md`, `NATIVE-SMOKE.json/.md`, `rust-test.log` and `backend-smoke.log`; their lengths and SHA256 hashes were checked before reading. The backend harness uses the production engine with real publisher HTTPS APIs, downloaded files, hash verification, real Java processes and SQLite. Only the UI event sink is omitted; no game, catalog, download or credential is simulated.
+The native harness uses the **production Rust engine**, real HTTPS publisher APIs, actual downloads and hash checks, real Windows Java executables, SQLite and filesystem operations. Only its UI event sink is omitted. It does not mock catalogs, files, credentials, progress or a licensed game.
 
-Java 8/17/21/25, a real disabled-project version update and Iris required dependencies all passed in this run. The NSIS acceptance step returned a failure, despite the workflow being green because acceptance steps are non-blocking. Its full diagnosis is being retrieved separately; it is not reported as a successful install. The GUI harness is still NOT TESTED. Results apply to the exact recorded commit.
+The GUI harness started the real release EXE, which remained running, but could not attach through WebView2 CDP. No GUI inspection or game-rendering result is inferred from process liveness. Acceptance steps are non-blocking in the packaging workflow: **a green workflow badge alone is not acceptance evidence**.
 
-## Requested end-to-end checks
+## Requested scenarios
 
-| Check | Status | Verified scope / remaining limits |
+| Scenario | Status | Verified scope / remaining limits |
 |---|---|---|
-| Install Minecraft Vanilla | PASSED | Real 1.21.4 client, libraries, native archives, assets and repeated cached-file hash verification. Not every historical/snapshot version. |
-| Real licensed Minecraft launch | NOT TESTED | Requires a Microsoft Application ID, licensed account and rendered game session. |
-| Automatic Java installation | PASSED | Genuine Adoptium Java 8u504, 17.0.20.1, 21.0.12.1 and 25.0.4.1 x64: SHA256 archives, extraction and actual `java -version` for all four. |
-| Microsoft authentication / refresh | NOT TESTED | No registered Application ID or licensed account supplied. |
-| Reject unlicensed launch | PASSED | Backend refused launch without an authenticated account, before spawning a game process. |
-| Fabric installation | PASSED | Real Fabric 0.19.5 for Minecraft 1.21.4, official metadata and Maven files. Game rendering NOT TESTED. |
-| Forge installation | PASSED | Real official installer for 1.21.4, verified JAR and resulting libraries. Game rendering NOT TESTED. |
-| NeoForge installation | PASSED | Real official installer for 1.21.4 and verified resulting libraries. Game rendering NOT TESTED. |
-| Quilt installation | PASSED | Real 1.21.4 loader metadata and libraries. Game rendering NOT TESTED. |
-| Modrinth API / installation | PASSED | Genuine API search and compatible Sodium installation, hashes and actual JAR checked. |
-| Mod toggle / removal | PASSED | Real files disabled/re-enabled and moved to safe backup storage. |
-| Mod updates / required dependencies | PASSED | Downloaded an older compatible Sodium release, disabled it, updated to the latest real release without enabling it, then re-enabled. Separately installed Iris and its real required dependency. |
-| Modrinth .mrpack export/import | PASSED | Exported actual installed content as verified references and reimported into a new isolated profile. |
-| CurseForge API / ZIP modpack | NOT TESTED | Requires a valid API key. Distribution restrictions are not bypassed. |
-| Discord Rich Presence | NOT TESTED | Requires Application ID, registered asset and running Discord Desktop. Protocol unit tests are not end-to-end Discord verification. |
-| RAM affects actual game JVM | NOT TESTED | Argument tests do not substitute for inspecting a licensed Minecraft process. |
-| Data-directory migration | PASSED | Real downloaded game/runtime/mod data copied, SHA256 verified, original retained. Cross-volume/user-world/failure-mode cases NOT TESTED. |
-| Native settings persistence | PASSED | Saved settings in SQLite and verified after reopening the backend. Full GUI process restart NOT TESTED. |
-| Hardware information | PASSED | Actual Windows CPU, RAM and free disk checks; GPU query executed. |
-| User-world backup / restoration | NOT TESTED | No licensed game world created for this session. Filesystem safety checks are separate. |
-| Full application restart | NOT TESTED | Requires rendered GUI acceptance. |
-| NSIS installer execution | FAILED | Acceptance step returned exit code 1. Packaging succeeded. Dedicated diagnostics/retest pending; interactive installation remains NOT TESTED. |
+| Official Minecraft versions API | PASSED | Real Mojang manifest parsed; 920 versions returned during this run, including release 26.3 and snapshot 26.4-snapshot-5. No fabricated version list. |
+| Install Vanilla | PASSED | Real Minecraft 1.21.4 client, libraries, native archives and assets downloaded and verified. |
+| Recheck installed game files | PASSED | Repeated verification against the actual cached files. Hash-tamper unit tests also passed. |
+| Release / snapshot / legacy game execution | NOT TESTED | Manifest filtering is implemented, but not every version was installed or launched. |
+| Automatic Java 8 / 17 / 21 / 25 | PASSED | Genuine Adoptium Java 8u504, 17.0.20.1, 21.0.12.1 and 25.0.4.1 x64; SHA256 archives, extraction and real `java -version` for all four. |
+| Microsoft OAuth, refresh, multi-account and skins | NOT TESTED | Requires a registered/approved public Application ID and licensed user accounts. No passwords or secrets should be sent in chat. |
+| Refuse launch without an authenticated licensed account | PASSED | Backend rejected the no-account launch before spawning a game process. There is no cracked/offline fallback. |
+| Rendered licensed Minecraft / PID / exit tracking / playtime | NOT TESTED | No licensed session was started. Implementation and unit tests are not a substitute for this check. |
+| Fabric installation | PASSED | Real Fabric 0.19.5 for Minecraft 1.21.4, official metadata and Maven libraries. Game rendering NOT TESTED. |
+| Forge installation | PASSED | Verified official installer JAR executed for Minecraft 1.21.4, resulting libraries verified. Game rendering NOT TESTED. |
+| NeoForge installation | PASSED | Verified official installer executed for Minecraft 1.21.4 and resulting libraries checked. Game rendering NOT TESTED. |
+| Quilt installation | PASSED | Official 1.21.4 loader metadata and libraries installed. Game rendering NOT TESTED. |
+| Modrinth API and mod installation | PASSED | Real search, compatible Sodium version, SHA-verified JAR and persisted metadata. |
+| Required mod dependencies | PASSED | Installed Iris plus its genuine required dependency: two real files downloaded and verified. Conflicts also have source validation/unit coverage. |
+| Disable / enable / remove mods | PASSED | Actual files renamed and re-enabled; removal moved content to managed backup storage. |
+| Update a disabled mod | PASSED | Installed an older real Sodium release, disabled it, updated to the latest compatible release without enabling it, then re-enabled. |
+| CurseForge search, downloads, dependencies and updates | NOT TESTED | Requires a valid key. Pinned file validation is implemented; distribution restrictions are not bypassed. |
+| Modrinth `.mrpack` export / import | PASSED | Exported actual installed content as verified references, then reimported into a new isolated profile. Worlds and credentials were not exported. |
+| CurseForge ZIP modpack | NOT TESTED | No API key / representative keyed pack provided. |
+| Resource packs / shader packs / selected-world datapacks | NOT TESTED | Content support exists for the first two; datapacks are website-only, not automatically installed into a world. |
+| Real Discord Desktop Rich Presence | NOT TESTED | Needs a configured Application ID, registered image asset and Discord Desktop. READY/nonce/ACK protocol unit tests passed, but are not desktop presence verification. |
+| RAM / resolution / fullscreen in an actual game JVM | NOT TESTED | JVM argument validation passed unit tests; no licensed game process was inspected. |
+| Create isolated profile | PASSED | Genuine filesystem directories and SQLite records created. |
+| Migrate data directory | PASSED | Real downloaded game/runtime/mod data copied, SHA256 checked, original retained. Cross-volume/user-world/insufficient-space cases NOT TESTED. |
+| CPU / GPU / RAM / disk information | PASSED | Real Windows query executed; CPU, RAM and free disk fields validated. |
+| Native preference persistence | PASSED | SQLite settings saved and verified after reopening the backend. Full GUI process restart NOT TESTED. |
+| Themes / effects / language in browser preview | PASSED | Preview/apply separation, persistence, actual particle removal, EN/UK preferences and navigation checked. Every theme's native/high-DPI appearance is not certified. |
+| Full application restart / tray / hotkeys on Windows | NOT TESTED | Browser Ctrl+K/navigation checks are separate from native desktop behavior. |
+| World backup and restoration | NOT TESTED | No licensed user world created for this session. Archive traversal safety unit tests passed. |
+| Native logs / notifications / screenshots during gameplay | NOT TESTED | Browser checks confirm empty state is honest, but no real gameplay capture was exercised. |
+| Download interruption, cancellation, rate limiting and disk-full recovery | NOT TESTED | Implemented, but these full fault-injection scenarios were not executed. |
+| Launcher release check / self-update | NOT TESTED | Real GitHub release-check code; silent self-update intentionally disabled until a signed channel exists. |
+| Silent NSIS installation | PASSED | Installed into a new directory on Windows; full packaged EXE SHA256 verified, including the exact standard Tauri bundle-type transformation. |
+| Silent NSIS uninstallation | PASSED | Installed EXE removed; an app-data preservation probe remained unchanged. The probe is not a Minecraft world. |
+| Interactive installer / first WebView2 bootstrap / SmartScreen | NOT TESTED | CI silent execution does not establish a clean standard-user interactive installation. No signing certificate supplied. |
 
-## Automated tests
+## Resolved installer-test false failure
 
-The executed results above are distinct from integration scenarios below. Source tests cover progress from real counters, path traversal and reserved Windows names, allowed HTTPS hosts, token redaction, file integrity, quoted legacy arguments, Maven coordinates, Mojang rules, Java versions, JVM memory arguments, theme data, and session statistics. UI tests use the explicitly labelled browser preview, not mocked successful native operations.
+The first harness incorrectly expected the installed EXE to be byte-identical to the standalone Cargo output. Tauri intentionally changes `__TAURI_BUNDLE_TYPE_VAR_UNK` to `__TAURI_BUNDLE_TYPE_VAR_NSS` before NSIS packaging, then restores the standalone binary. This is documented in the [Tauri bundler implementation](https://github.com/tauri-apps/tauri/blob/8d3efdeea5b4221301a4fc5e2d4ab969abe8aa7f/crates/tauri-bundler/src/bundle.rs#L40-L96).
 
-## Manual Windows acceptance checklist
+The corrected test reproduces **only that exact first-token transformation**, computes the complete expected SHA256 and compares the installed file with it. Other differences still fail. The NSIS archive was also independently extracted in the development environment and compared byte-for-byte with that expected payload. The retest of the exact delivered package passed installation and uninstallation. The earlier `INSTALLER-SMOKE` file in the original build artifact records the superseded assertion; the final installer report is from run **39655709172**.
 
-1. Install with a standard Windows user. Check WebView2 bootstrap, Start Menu shortcut and launch.
-2. Configure Microsoft Application ID. Test successful device login, cancellation, expiry, refresh, unlicensed account rejection and account switching. Inspect Credential Manager and SQLite to ensure tokens are not in SQLite/logs.
-3. Create isolated Vanilla profiles for 1.8.9, 1.12.2, 1.16.5, 1.18.2, 1.20.1 and current release. Install and launch each. Verify Java major, -Xms/-Xmx, PID, logs, normal close and statistics. Test invalid custom Java.
-4. Interrupt network access, corrupt an asset, cancel a download, run out of disk space. Check that unverified downloads are never promoted to game files.
-5. Test each loader on a supported version. For Forge/NeoForge inspect actual official installer output. Do not label untested historical versions supported without testing.
-6. Install mods with dependencies from both providers. Test incompatible loader, changed local file, name collision, disabled mod, rollback and missing dependencies. Test CurseForge downloadUrl=null rejection.
-7. Import a real .mrpack and CurseForge ZIP into new instances, including a malicious traversal ZIP. Export and reimport a Modrinth-only pack. Original worlds must not change.
-8. Configure Discord Desktop and Application ID. Test launch, downloads, browsing, playing, every privacy toggle, disabling and closing to tray. Presence name is the application name configured in Discord, not dynamically renamed to Minecraft.
-9. Test root migration to another volume. Verify SHA256 and retention of the old directory. Test backup/restore into a new world folder.
-10. Switch every theme/language, turn effects off, restart. Verify settings survive in SQLite. Check high DPI and keyboard navigation.
+## Delivered file identity
 
-## Known limits (not disguised as completed features)
+| File | Bytes | SHA256 |
+|---|---:|---|
+| `WinLauncher.exe` | 19,104,768 | `b32220878ef44678dcef15ca012ec38bb3cef63170e06027811da1c805252406` |
+| `WinLauncher-Setup.exe` | 5,980,056 | `1dfc402f6381d9775db9a2d85ac9b10dc569e6a7984ed0d9527e2593b38e678e` |
 
-- Windows runtime integrations are implemented but require the acceptance checks above.
-- No unlicensed/offline/cracked launch.
-- Legacy Forge installers without headless support can fail with an actionable error.
-- Independent overrides for every storage subdirectory are not supported; root migration and per-profile Java/RAM are supported.
-- Datapack projects can be discovered/opened, but automatic installation into a selected world is not implemented.
-- Existing modpacks are not automatically replaced in-place. Import a newer pack into a new profile; use safe world backups for migration.
-- Exports intentionally exclude user jars, CurseForge files, worlds, configs and credentials. Only verified URL-backed Modrinth/.mrpack content is exported.
-- Launcher release checks are real. Silent self-update is disabled until a signed update channel is published.
-- The full application has Russian copy; navigation and primary controls support English/Ukrainian. Some technical help and backend errors currently remain Russian.
-- No Windows code-signing certificate is bundled. Windows SmartScreen may warn about an unsigned executable.
+The app is a genuine PE32+ x86-64 Windows GUI executable. The NSIS launcher stub is PE x86 and installs that x64 application. Both lack Authenticode signatures. The installed NSIS payload SHA256 is `2049bc5470a86a7f28c042fdc9f778e47bcc688668717b9ffe5c2be340db4bd3`, differing from the standalone EXE only in the standard Tauri bundle marker described above.
+
+## Manual acceptance still required
+
+1. Install as a standard Windows 10/11 user. Check a clean WebView2 bootstrap, language selection, Start Menu shortcut, opening/closing and high DPI.
+2. Configure your approved Microsoft Application ID. Test device login, cancellation, expiry, refresh, unlicensed-account rejection and switching. Confirm secrets are absent from SQLite and logs.
+3. Launch Vanilla and each loader with a licensed account. Verify JVM version, RAM arguments, native rendering, PID, stdout/stderr, normal/abnormal exit and real statistics.
+4. Test historical/snapshot versions, interrupted downloads, corrupted files, cancellation and insufficient disk space.
+5. Configure your own CurseForge key in the native UI. Test compatible/incompatible/pinned dependencies, restricted `downloadUrl=null` files and representative ZIP packs.
+6. Configure Discord Desktop and Application ID. Verify every privacy toggle, transitions, elapsed time, disable/clear and tray behavior.
+7. Use copies of real worlds to test backup/restore and migration across volumes; originals must remain recoverable.
+8. Verify settings and themes through a full native application restart, every biome and language, keyboard navigation and screen readers.
+
+## Known scope limits
+
+- No unlicensed/offline/cracked launch; no bundled third-party launcher Client IDs.
+- Legacy Forge installers without headless support can fail with a clear error; historical compatibility is not universally verified.
+- Independent overrides for every storage subdirectory are not implemented; whole-root migration and per-profile Java/RAM are available.
+- Datapacks are discoverable/openable but are not automatically written into a selected world.
+- Existing modpacks are not replaced in-place. Import an updated pack into a new profile and use backups for world migration.
+- Exports intentionally exclude user JARs, CurseForge files, worlds, private configurations and credentials.
+- Auto-updating is not enabled without a signed update channel; checks/manual release links are separate.
+- Russian is the complete primary copy. Navigation/main actions support English/Ukrainian, but some technical help and native errors remain Russian.
+- No Windows code-signing certificate is bundled; SmartScreen may warn. Do not disable antivirus to run the application.

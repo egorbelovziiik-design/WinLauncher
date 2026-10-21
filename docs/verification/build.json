@@ -1,0 +1,42 @@
+{
+  "product": "WinLauncher",
+  "version": "1.0.0",
+  "target": "Windows 10/11 x64",
+  "application_source_commit": "fd718db7b9714ef3c5fd0b8856aa185355d75f32",
+  "build_run": "https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39654021540",
+  "installer_retest_run": "https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39655709172",
+  "installer_harness_commit": "3f9089162804ab0ab6474d1fd7386a24a7d1ff02",
+  "files": [
+    {
+      "name": "WinLauncher.exe",
+      "bytes": 19104768,
+      "sha256": "b32220878ef44678dcef15ca012ec38bb3cef63170e06027811da1c805252406",
+      "authenticode_signed": false
+    },
+    {
+      "name": "WinLauncher-Setup.exe",
+      "bytes": 5980056,
+      "sha256": "1dfc402f6381d9775db9a2d85ac9b10dc569e6a7984ed0d9527e2593b38e678e",
+      "authenticode_signed": false
+    }
+  ],
+  "installed_nsis_payload_sha256": "2049bc5470a86a7f28c042fdc9f778e47bcc688668717b9ffe5c2be340db4bd3",
+  "bundle_identity_note": "Tauri changes only __TAURI_BUNDLE_TYPE_VAR_UNK to __TAURI_BUNDLE_TYPE_VAR_NSS for NSIS. Full expected SHA256, independent extraction and actual Windows installation verified.",
+  "verified": {
+    "frontend_unit_tests": 10,
+    "browser_tests": 12,
+    "windows_rust_unit_tests": 21,
+    "native_backend_scenarios": 22,
+    "silent_installer_scenarios": 2
+  },
+  "not_tested": [
+    "licensed Microsoft OAuth and refresh",
+    "rendered Minecraft session, actual game JVM RAM, playtime/exit behavior",
+    "real Discord Desktop presence",
+    "keyed CurseForge integrations",
+    "rendered native WebView2 GUI and full desktop restart",
+    "real user-world backup/restore",
+    "interactive standard-user installation and first WebView2 bootstrap"
+  ],
+  "delivery_verified_at": "2026-10-21T18:54:52.294267+00:00"
+}

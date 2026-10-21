@@ -4,9 +4,11 @@
 
 > Это нативное приложение, а не HTML-имитация Minecraft. Веб-предпросмотр интерфейса специально не симулирует вход, каталоги, установки, игровые логи или статистику. Все операции с игрой выполняются Rust-backend.
 >
-> **Статус:** начальная реализация 1.0.0; Windows EXE/NSIS собраны, 22 реальных сценария backend и 21 Rust-тест прошли на Windows (см. отчёт и точный commit). Наличие кода и успешная сборка не означают, что выполнены все end-to-end проверки. Полный отчёт: [docs/TESTING.md](docs/TESTING.md). Не считайте непроверенные интеграции подтверждённо рабочими.
+> **Статус:** начальная реализация 1.0.0 с настоящими EXE/NSIS. На Windows прошли **21 Rust-тест, 22 реальных сценария backend и установка/удаление NSIS**; отдельно прошли 10 frontend- и 12 браузерных тестов. Лицензионный вход, отрисованный игровой сеанс, Discord и keyed CurseForge **NOT TESTED**. Это не заявление о полной production-готовности. Точные результаты и ограничения: [docs/TESTING.md](docs/TESTING.md).
 
 ## Windows EXE
+
+Проверенная сборка приложения: [`fd718db`](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39654021540). [Повторная проверка того же NSIS-пакета](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39655709172) подтвердила установку и удаление. Позднейшие изменения CI/документации не меняют код приложения. [Первый запуск и необходимые настройки](docs/QUICKSTART.ru.txt).
 
 Workflow **Windows build & tests** собирает настоящий Windows x64 PE executable и NSIS-установщик на `windows-latest`:
 
@@ -16,6 +18,8 @@ Workflow **Windows build & tests** собирает настоящий Windows x
 4. Внутри: `WinLauncher.exe`, `WinLauncher-Setup.exe`, `SHA256SUMS.txt`, отчёт проверок.
 
 Для скачивания Actions artifacts может потребоваться вход в GitHub. Если сборка не прошла, готового EXE от этого commit нет. Никакие HTML/ZIP-файлы не переименовываются в EXE.
+
+Важно: acceptance-проверки не блокируют упаковку. Читайте отчёты, а не только зелёный badge. В первоначальном artifact указан устаревший FAILED для сравнения установленного EXE: тест не учитывал штатную метку Tauri `UNK → NSS`. Исправленная полная SHA256-проверка и реальное удаление прошли в отдельном run выше; актуальный результат — `docs/verification/windows-installer.json`. Это не отключение проверки целостности.
 
 - Установщик: для текущего пользователя, WebView2 bootstrapper, меню Пуск, выбор русского/английского/украинского языка.
 - Отдельный EXE требует установленного Microsoft Edge WebView2 Runtime.
@@ -90,6 +94,8 @@ npm ci
 npm test
 npm run build
 cargo test --manifest-path src-tauri/Cargo.toml --lib
+# Optional real integration checks; NEW empty test directory only:
+# cargo run --manifest-path src-tauri/Cargo.toml --features native-smoke --bin native-smoke -- C:\Temp\WinLauncher-native-new release-artifacts
 npm run desktop
 # Production EXE + NSIS:
 npm run desktop:build -- --target x86_64-pc-windows-msvc

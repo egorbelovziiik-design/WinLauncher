@@ -1,0 +1,36 @@
+{
+  "report_date": "2026-10-21",
+  "application_source_commit": "fd718db7b9714ef3c5fd0b8856aa185355d75f32",
+  "environment": "Linux x64, Node.js 22, Chromium; explicitly labelled browser preview, not mocked native success",
+  "checks": [
+    {
+      "check": "npm run build",
+      "status": "PASSED"
+    },
+    {
+      "check": "npm test",
+      "status": "PASSED",
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "check": "npm run test:ui",
+      "status": "PASSED",
+      "passed": 12,
+      "failed": 0,
+      "duration_seconds": 17.3
+    },
+    {
+      "check": "axe-core automated audit",
+      "status": "PASSED",
+      "pages": 9,
+      "violations": 0,
+      "scope": "Default theme, main pages at 1440x1000. Does not certify all themes, dialogs or native WebView2."
+    },
+    {
+      "check": "npm audit --omit=dev --audit-level=moderate",
+      "status": "PASSED",
+      "reported_vulnerabilities": 0
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+   Compiling winlauncher v1.0.0 (D:\a\WinLauncher\WinLauncher\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.81s
+     Running `src-tauri\target\debug\native-smoke.exe D:\a\_temp\WinLauncher-native-d7e74f30-8c4c-451b-8b4c-1ada891821ad release-artifacts`
+PASSED: SQLite settings persist across backend reopen
+SYSTEM: Windows 11 (26100) / x86_64 / 16378 MB
+PASSED: Windows CPU / GPU / RAM / disk information
+MOJANG: 920 official versions, latest {"release": "26.3", "snapshot": "26.4-snapshot-5"}
+PASSED: Official Mojang manifest API
+PASSED: Create and isolate a real native profile
+PASSED: Reject launch without licensed Microsoft account
+JAVA: 21.0.12.1 at D:\a\_temp\WinLauncher-native-d7e74f30-8c4c-451b-8b4c-1ada891821ad\data\runtime\temurin-21-d35f31e712f0\jdk-21.0.12.1+1-jre\bin\java.exe
+PASSED: Download and install managed Java 21 with SHA256
+JAVA: 1.8.0_504 at D:\a\_temp\WinLauncher-native-d7e74f30-8c4c-451b-8b4c-1ada891821ad\data\runtime\temurin-8-82e2cdc66937\jdk8u504-b01-jre\bin\java.exe
+PASSED: Download and install managed Java 8 with SHA256
+JAVA: 17.0.20.1 at D:\a\_temp\WinLauncher-native-d7e74f30-8c4c-451b-8b4c-1ada891821ad\data\runtime\temurin-17-bc21a9392310\jdk-17.0.20.1+1-jre\bin\java.exe
+PASSED: Download and install managed Java 17 with SHA256
+JAVA: 25.0.4.1 at D:\a\_temp\WinLauncher-native-d7e74f30-8c4c-451b-8b4c-1ada891821ad\data\runtime\temurin-25-4c95451cea98\jdk-25.0.4.1+1-jre\bin\java.exe
+PASSED: Download and install managed Java 25 with SHA256
+PASSED: Real Vanilla 1.21.4 client / libraries / natives / assets installation
+PASSED: Re-verify real cached Minecraft files
+FABRIC: Some("0.19.5")
+PASSED: Real Fabric 1.21.4 installation
+PASSED: Real Modrinth search / compatibility / dependency install
+PASSED: Disable and re-enable actual mod files
+PASSED: Update real disabled Modrinth project without silently enabling it
+PASSED: Export and reimport a real Modrinth .mrpack
+PASSED: Remove mod into safe backup storage
+MODRINTH: 2 real Iris/dependency files downloaded and hash verified
+PASSED: Resolve and download real Iris required dependencies
+PASSED: Real forge 1.21.4 installation
+PASSED: Real neoforge 1.21.4 installation
+PASSED: Real quilt 1.21.4 installation
+PASSED: Migrate real game data with SHA256 and retain original
