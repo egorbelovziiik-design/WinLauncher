@@ -32,9 +32,38 @@ pub fn parse_major(version: &str) -> Result<u32> {
     })
 }
 
+/// Launch Java without machine-wide option injection. Explicit profile JVM
+/// options are still honored; this only removes unrelated environment hooks.
+pub fn command(path: &Path) -> Command {
+    let mut cmd = Command::new(path);
+    for name in ["_JAVA_OPTIONS", "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "CLASSPATH"] { cmd.env_remove(name); }
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    cmd
+}
+
+fn version_key(version: &str) -> Vec<u32> {
+    version.split(|c: char| !c.is_ascii_digit()).filter_map(|p| p.parse().ok()).collect()
+}
+
+async fn managed_runtimes(state: &AppState) -> Vec<JavaRuntime> {
+    let mut result = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(state.root().join("runtime")) {
+        for entry in entries.flatten() {
+            // Never use a partially extracted staging directory as a runtime.
+            if !entry.file_name().to_string_lossy().starts_with("temurin-") { continue; }
+            if let Some(path) = find_java(&entry.path(), 4) {
+                if let Ok(mut runtime) = inspect(&path).await { runtime.managed = true; result.push(runtime); }
+            }
+        }
+    }
+    result.sort_by_key(|r| std::cmp::Reverse(version_key(&r.version)));
+    result
+}
+
 pub async fn inspect(path: &Path) -> Result<JavaRuntime> {
     security::reject_link(path)?;
-    let mut command = Command::new(path);
+    let mut command = command(path);
     command
         .args(["-XshowSettings:properties", "-version"])
         .stdout(Stdio::piped())
@@ -118,6 +147,7 @@ pub async fn discover(state: &AppState) -> Vec<JavaRuntime> {
     let runtimes = state.root().join("runtime");
     if let Ok(entries) = std::fs::read_dir(&runtimes) {
         for entry in entries.flatten() {
+            if !entry.file_name().to_string_lossy().starts_with("temurin-") { continue; }
             if let Some(p) = find_java(&entry.path(), 3) {
                 candidates.push(p);
             }
@@ -158,11 +188,8 @@ pub async fn ensure(
         compatible(&runtime, required)?;
         return Ok(runtime);
     }
-    for runtime in discover(state).await {
-        if compatible(&runtime, required).is_ok() {
-            return Ok(runtime);
-        }
-    }
+    // Automatic means our verified Temurin distribution, not the first Oracle
+    // JDK found alphabetically in PATH/Program Files. Custom Java is opt-in.
     install_managed(state, required, cancel).await
 }
 
@@ -171,8 +198,8 @@ pub async fn install_managed(
     required: u32,
     cancel: &CancellationToken,
 ) -> Result<JavaRuntime> {
-    for runtime in discover(state).await {
-        if runtime.managed && compatible(&runtime, required).is_ok() {
+    for runtime in managed_runtimes(state).await {
+        if compatible(&runtime, required).is_ok() {
             return Ok(runtime);
         }
     }
@@ -233,14 +260,14 @@ pub async fn install_managed(
     let checked = inspect(&binary).await?;
     compatible(&checked, required)?;
     let relative = binary.strip_prefix(&staging)?.to_owned();
-    let install = security::within(
+    let mut install = security::within(
         &state.root(),
         &format!("runtime/temurin-{required}-{}", &checksum[..12]),
     )?;
     if install.exists() {
-        bail!(
-            "Папка runtime уже существует, но Java в ней не прошла проверку. Проверьте её вручную."
-        );
+        // Preserve an unhealthy/partially modified old installation. Never
+        // delete user files just to repair the managed runtime.
+        install = security::within(&state.root(), &format!("runtime/temurin-{required}-{}-{}", &checksum[..12], uuid::Uuid::new_v4()))?;
     }
     std::fs::rename(&staging, &install)?;
     let mut runtime = inspect(&install.join(relative)).await?;
@@ -272,6 +299,15 @@ fn compatible(runtime: &JavaRuntime, required: u32) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn natural_java_order_and_clean_environment() {
+        assert!(version_key("21.0.12.1") > version_key("21.0.9"));
+        assert!(version_key("1.8.0_504") > version_key("1.8.0_402"));
+        let cmd = command(Path::new("java.exe"));
+        for name in ["JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS", "CLASSPATH"] {
+            assert!(cmd.as_std().get_envs().any(|(key, value)| key == name && value.is_none()));
+        }
+    }
     #[test]
     fn parses_java_versions() {
         for (v, m) in [

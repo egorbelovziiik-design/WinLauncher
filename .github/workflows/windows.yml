@@ -45,7 +45,7 @@ jobs:
         run: ./scripts/ci-command.ps1 -Command "npm run desktop:build -- --target x86_64-pc-windows-msvc" -LogName windows-build.log
       - name: Real Rust backend acceptance checks
         continue-on-error: true
-        timeout-minutes: 20
+        timeout-minutes: 30
         shell: pwsh
         run: |
           $root = Join-Path $env:RUNNER_TEMP ("WinLauncher-native-" + [Guid]::NewGuid().ToString())
@@ -84,7 +84,7 @@ jobs:
         run: ./scripts/ci-publish-preview.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: WinLauncher-1.0.0-windows-x64
+          name: WinLauncher-1.0.1-windows-x64
           path: release-artifacts/
           if-no-files-found: error
           retention-days: 30

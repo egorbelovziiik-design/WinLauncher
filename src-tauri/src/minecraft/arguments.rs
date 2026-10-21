@@ -6,6 +6,21 @@ use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::collections::HashMap;
 
+/// Java 9+ expands @files before constructing java.class.path. Keep the main
+/// class and FabricMcEmu on the actual Windows command line for GPU drivers.
+/// Game/authentication arguments must never be written into this file.
+pub fn write_jvm_argfile(path: &std::path::Path, args: &[String]) -> Result<()> {
+    use std::io::Write;
+    for parent in path.ancestors() { crate::security::reject_link(parent)?; }
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path)?;
+    for arg in args {
+        if arg.contains('\0') { bail!("NUL в JVM-аргументе"); }
+        let escaped = arg.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n").replace('\r', "\\r").replace('\t', "\\t");
+        writeln!(file, "\"{}\"", escaped)?;
+    }
+    file.sync_all()?; Ok(())
+}
+
 pub fn expand(input: &str, variables: &HashMap<String, String>) -> Result<String> {
     let mut result = input.to_owned();
     for (key, value) in variables {
@@ -106,6 +121,15 @@ pub fn memory_args(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn argument_files_preserve_spaces_quotes_and_windows_paths() {
+        let dir = tempfile::tempdir().unwrap(); let path = dir.path().join("java args.txt");
+        write_jvm_argfile(&path, &[r"-Dpath=C:\My Games\Мир".into(), "-Dquoted=\"value\"".into()]).unwrap();
+        let text = std::fs::read_to_string(path).unwrap();
+        assert!(text.contains(r"C:\\My Games\\Мир"));
+        assert!(text.contains(r#"\"value\""#));
+        assert!(!text.contains("accessToken"));
+    }
     #[test]
     fn substitutes_without_shell_evaluation() {
         let vars = HashMap::from([("game_directory".into(), "C:\\My Games\\Minecraft".into())]);

@@ -13,7 +13,7 @@ const previewKey = 'winlauncher.preview.preferences';
 export function previewSnapshot(): Snapshot {
   let prefs: Partial<Settings> = {};
   try { const parsed = JSON.parse(localStorage.getItem(previewKey) ?? '{}'); prefs = { theme: typeof parsed.theme === 'string' ? parsed.theme : 'overworld', language: ['ru', 'en', 'uk'].includes(parsed.language) ? parsed.language : 'ru', effects: parsed.effects !== false }; } catch { /* A corrupt appearance preference must not prevent startup. */ }
-  return { settings: { ...defaultSettings, ...prefs }, profiles: [], accounts: [], installed: [], sessions: [], job: null, running: null, discord_status: 'not_configured', curseforge_configured: false, version: '1.0.0' };
+  return { settings: { ...defaultSettings, ...prefs }, profiles: [], accounts: [], installed: [], sessions: [], job: null, running: null, discord_status: 'not_configured', curseforge_configured: false, version: '1.0.1' };
 }
 export class NativeRequiredError extends Error {
   constructor() { super('Эта функция работает в Windows-приложении. Браузерный предпросмотр не запускает Java и не имитирует установки.'); this.name = 'NativeRequiredError'; }

@@ -12,7 +12,6 @@ use serde_json::Value;
 use std::{fs, path::Path, process::Stdio};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
-    process::Command,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -20,6 +19,7 @@ use tokio_util::sync::CancellationToken;
 pub struct LoaderRelease {
     pub id: String,
     pub stable: bool,
+    pub java_major: Option<u32>,
 }
 
 pub async fn releases(
@@ -43,6 +43,7 @@ pub async fn releases(
                 .filter_map(|v| {
                     v["loader"]["version"].as_str().map(|id| LoaderRelease {
                         id: id.into(),
+                        java_major: v["launcherMeta"]["min_java_version"].as_u64().and_then(|n| u32::try_from(n).ok()),
                         stable: v["loader"]["stable"]
                             .as_bool()
                             .unwrap_or(!id.contains("beta")),
@@ -100,6 +101,7 @@ pub async fn releases(
                 .into_iter()
                 .map(|id| LoaderRelease {
                     stable: !id.contains("beta") && !id.contains("alpha"),
+                    java_major: None,
                     id,
                 })
                 .collect();
@@ -168,8 +170,12 @@ pub async fn install(
     {
         bail!("Загрузчик предназначен для другой версии Minecraft");
     }
+    let loader_java = choices.iter().find(|r| r.id == requested).and_then(|r| r.java_major);
     profile.loader_version = Some(requested);
-    let result = metadata::merge(base, child);
+    let mut result = metadata::merge(base, child)?;
+    if let Some(major) = loader_java {
+        if result.java_version.as_ref().is_none_or(|j| major > j.major_version) { result.java_version = Some(metadata::JavaVersion { major_version: major }); }
+    }
     let path = state
         .instance(&profile.id)?
         .join(".winlauncher-version.json");
@@ -259,7 +265,7 @@ async fn install_forge(
                 b"{\"profiles\":{},\"selectedProfile\":\"\"}",
             )?;
         }
-        let mut command = Command::new(&runtime.path);
+        let mut command = java::command(Path::new(&runtime.path));
         command
             .arg("-Djava.awt.headless=true")
             .arg("-jar")

@@ -1,4 +1,5 @@
 pub mod arguments;
+pub mod diagnostics;
 pub mod loaders;
 pub mod metadata;
 use crate::{
@@ -21,7 +22,6 @@ use std::{
 };
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
-    process::Command,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -59,6 +59,21 @@ pub async fn install_only(state: &AppState, profile_id: &str) -> Result<()> {
         "success",
         "Minecraft установлен. Хеши игровых файлов проверены.",
     );
+    Ok(())
+}
+
+/// Explicit user-requested repair: verified downloads, current loader and
+/// managed Java. Worlds, mods and screenshots are never deleted.
+pub async fn repair_profile(state: &AppState, profile_id: &str) -> Result<()> {
+    let guard = state.begin_job("repair")?;
+    let mut profile: Profile = state.get("profiles", profile_id)?;
+    profile.java_path = None;
+    profile.java_args.clear();
+    profile.loader_version = None;
+    let installed = install(state, &mut profile, &guard.token).await?;
+    let _ = fs::remove_dir_all(&installed.natives);
+    state.put("profiles", &profile.id, &profile)?;
+    state.notify("success", "Профиль проверен: управляемая Java, текущий загрузчик и хеши файлов. Миры и моды сохранены. Это не ремонт видеодрайвера.");
     Ok(())
 }
 
@@ -354,6 +369,8 @@ pub async fn launch(
     state.put("profiles", &profile.id, &profile)?;
     state.stage("launching", "Запуск настоящего Java-процесса");
     let instance = state.instance(&profile.id)?;
+    state.log("info", "launcher", &format!("Java {} / {} / {} — {}", installed.java.version, installed.java.architecture, if installed.java.managed { "управляемая Temurin" } else { "ручной выбор" }, installed.java.path));
+
     let mut cp = installed
         .classpath
         .iter()
@@ -405,7 +422,7 @@ pub async fn launch(
             metadata::classpath_separator().into(),
         ),
         ("launcher_name".into(), "WinLauncher".into()),
-        ("launcher_version".into(), "1.0.0".into()),
+        ("launcher_version".into(), env!("CARGO_PKG_VERSION").into()),
         ("resolution_width".into(), profile.width.to_string()),
         ("resolution_height".into(), profile.height.to_string()),
     ]);
@@ -429,6 +446,10 @@ pub async fn launch(
         jvm.push(arg);
     }
     jvm.extend(profile.java_args.clone());
+    let crash_dir = security::within(&instance, &format!(".winlauncher-crashes/{}", uuid::Uuid::new_v4()))?;
+    fs::create_dir_all(&crash_dir)?;
+    jvm.push(format!("-XX:ErrorFile={}", metadata::path_string(&crash_dir.join("hs_err_pid%p.log"))));
+
     jvm.push(installed.version.main_class.clone());
     let mut game = if let Some(args) = &installed.version.arguments {
         arguments::collect(args.get("game"), &context, &vars)?
@@ -454,7 +475,20 @@ pub async fn launch(
     if guard.token.is_cancelled() {
         bail!("Запуск отменён");
     }
-    let mut command = Command::new(&installed.java.path);
+    let args_file = if installed.java.major >= 9 {
+        let path = crash_dir.join("jvm-arguments.txt");
+        let main_class = jvm.pop().context("Нет main class")?;
+        let mut direct = Vec::new();
+        jvm.retain(|arg| {
+            if arg.starts_with("-DFabricMcEmu=") || (!local && arg.contains(&token)) { direct.push(arg.clone()); false } else { true }
+        });
+        arguments::write_jvm_argfile(&path, &jvm)?;
+        direct.push(format!("@{}", path.display()));
+        direct.push(main_class);
+        jvm = direct;
+        Some(path)
+    } else { None };
+    let mut command = java::command(std::path::Path::new(&installed.java.path));
     command
         .args(&jvm)
         .args(&game)
@@ -464,9 +498,10 @@ pub async fn launch(
         .kill_on_drop(false);
     #[cfg(windows)]
     command.creation_flags(0x08000000);
+    let launch_started = chrono::Utc::now().timestamp_millis();
     let mut child = command
         .spawn()
-        .context("Java не запустилась. Проверьте путь runtime и антивирус.")?;
+        .context("Java не запустилась. Проверьте путь runtime, доступ к файлам и историю защиты Windows. Для Java 8 с очень длинным путём попробуйте более короткую папку данных.")?;
     let pid = child.id().context("Не удалось получить PID Java")?;
     let running = RunningGame {
         pid,
@@ -484,7 +519,7 @@ pub async fn launch(
         "info",
         "launcher",
         &format!(
-            "Minecraft {} ({}) запущен, PID {pid}. Команда с токенами не записывается.",
+            "Создан Java-процесс для Minecraft {} ({}), PID {pid}. Это ещё не подтверждение появления игрового окна. Команда с токенами не записывается.",
             profile.game_version,
             profile.loader.as_str()
         ),
@@ -494,41 +529,43 @@ pub async fn launch(
     } else {
         vec![token.clone(), session_id]
     };
-    if let Some(stdout) = child.stdout.take() {
-        let state = state.clone();
-        let secrets = secrets.clone();
+    let stdout_reader = child.stdout.take().map(|stdout| {
+        let state = state.clone(); let secrets = secrets.clone();
         tokio::spawn(async move {
             let mut lines = BufReader::new(stdout).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                let text = security::redact(&line, &secrets);
-                let level = if line.contains("ERROR") || line.contains("FATAL") {
-                    "error"
-                } else if line.contains("WARN") {
-                    "warn"
-                } else {
-                    "info"
-                };
-                state.log(level, "minecraft", &text);
+                state.log(diagnostics::log_level(&line), "minecraft", &security::redact(&line, &secrets));
             }
-        });
-    }
-    if let Some(stderr) = child.stderr.take() {
+        })
+    });
+    let stderr_reader = child.stderr.take().map(|stderr| {
         let state = state.clone();
         tokio::spawn(async move {
             let mut lines = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 state.log("error", "minecraft", &security::redact(&line, &secrets));
             }
-        });
-    }
+        })
+    });
     let state = state.clone();
     tokio::spawn(async move {
-        let outcome = tokio::select! {
-            r = child.wait() => r,
-            _ = stop.cancelled() => { let _ = child.kill().await; child.wait().await },
+        let (outcome, stopped) = tokio::select! {
+            biased;
+            r = child.wait() => (r, false),
+            _ = stop.cancelled() => { let _ = child.kill().await; (child.wait().await, true) },
         };
+        // Preserve the tail of a fast failure before classifying it. Do not
+        // wait forever if a descendant process inherited a pipe handle.
+        for mut reader in [stdout_reader, stderr_reader].into_iter().flatten() {
+            if tokio::time::timeout(std::time::Duration::from_secs(2), &mut reader).await.is_err() { reader.abort(); }
+        };
+
         let duration = (chrono::Utc::now().timestamp() - running.started_at).max(0) as u64;
         let code = outcome.as_ref().ok().and_then(|s| s.code());
+        if let Some(path) = args_file { let _ = fs::remove_file(path); }
+        let diagnosis = diagnostics::record(&state, &profile.id, code, stopped, launch_started, &installed.java.path);
+        if let Err(error) = &diagnosis { state.log("warn", "launcher", &format!("Не удалось сохранить диагностику: {error}")); }
+
         let session = Session {
             id: uuid::Uuid::new_v4().to_string(),
             profile_id: profile.id.clone(),
@@ -562,12 +599,12 @@ pub async fn launch(
             "launcher",
             &format!("Minecraft завершён. Код: {code:?}. Время: {duration} с."),
         );
-        if code != Some(0) {
-            state.notify(
-                "error",
-                "Minecraft завершился с ошибкой. Откройте логи для подробностей.",
-            );
-        }
+        if code != Some(0) && !stopped {
+            let message = diagnosis.as_ref().map(|d| format!("{} (код {:?}). {} Откройте раздел «Логи».", d.title, code, d.detail))
+                .unwrap_or_else(|_| format!("Java завершилась с кодом {code:?}. Откройте консоль и hs_err в папке профиля."));
+            state.notify("error", &message);
+        } else if stopped { state.notify("info", "Java остановлена по вашему запросу. Несохранённые изменения игры могли быть потеряны."); }
+
         if let Err(e) = fs::remove_dir_all(&installed.natives) {
             state.log(
                 "warn",

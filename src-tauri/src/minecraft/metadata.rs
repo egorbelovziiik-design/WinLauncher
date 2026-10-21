@@ -48,6 +48,9 @@ pub struct LibraryDownloads {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Library {
     pub name: String,
+    pub sha1: Option<String>,
+    pub sha256: Option<String>,
+    pub size: Option<u64>,
     pub downloads: Option<LibraryDownloads>,
     pub url: Option<String>,
     pub rules: Option<Vec<Value>>,
@@ -248,27 +251,28 @@ pub async fn library_transfer(
                 path
             )
         });
-    let sha = if let Some(hash) = download.map(|d| d.sha1.as_str()).filter(|s| !s.is_empty()) {
-        hash.to_owned()
+    let hash = if let Some(hash) = download.map(|d| d.sha1.as_str()).filter(|s| !s.is_empty()) {
+        Hash::new("sha1", hash)?
+    } else if coordinate == library.name && library.sha256.is_some() {
+        Hash::new("sha256", library.sha256.as_deref().unwrap())?
+    } else if coordinate == library.name && library.sha1.is_some() {
+        Hash::new("sha1", library.sha1.as_deref().unwrap())?
     } else {
-        // Never compare a cached file with its own hash: fetch the publisher's checksum.
-        // Generated Forge artifacts get pinned checksums immediately after the verified installer runs.
-        downloads::text(state, &format!("{url}.sha1"))
-            .await?
-            .split_whitespace()
-            .next()
-            .context("Нет SHA1 библиотеки")?
-            .to_owned()
+        // Fabric publishes checksums inline for most dependencies; only fetch
+        // a sidecar when no publisher checksum was included. Never self-hash.
+        let sha = downloads::text(state, &format!("{url}.sha1")).await?
+            .split_whitespace().next().context("Нет SHA1 библиотеки")?.to_owned();
+        Hash::new("sha1", &sha)?
     };
     Ok(Transfer {
         url,
         path: target,
-        hash: Hash::new("sha1", &sha)?,
-        size: download.and_then(|d| d.size),
+        hash,
+        size: download.and_then(|d| d.size).or_else(|| if coordinate == library.name { library.size } else { None }),
     })
 }
 
-pub fn merge(mut base: Version, child: Version) -> Version {
+pub fn merge(mut base: Version, child: Version) -> Result<Version> {
     // Child coordinates override base coordinates of the same group:artifact:classifier.
     fn key(lib: &Library) -> String {
         let p: Vec<_> = lib.name.split(':').collect();
@@ -282,6 +286,14 @@ pub fn merge(mut base: Version, child: Version) -> Version {
     let keys: Vec<_> = child.libraries.iter().map(key).collect();
     base.libraries.retain(|l| !keys.contains(&key(l)));
     base.libraries.extend(child.libraries);
+    // A modern loader can inherit a legacy Minecraft argument string. Do not
+    // create an empty `game` array and silently discard authentication/assets.
+    if child.arguments.is_some() && base.arguments.is_none() {
+        let game = match base.minecraft_arguments.as_deref() {
+            Some(raw) => super::arguments::split_legacy(raw)?, None => Vec::new(),
+        };
+        base.arguments = Some(serde_json::json!({ "game": game, "jvm": [] }));
+    }
     if let Some(arguments) = child.arguments {
         let existing = base
             .arguments
@@ -294,18 +306,19 @@ pub fn merge(mut base: Version, child: Version) -> Version {
             existing[section] = Value::Array(combined);
         }
     }
-    if child.minecraft_arguments.is_some() {
-        base.minecraft_arguments = child.minecraft_arguments;
+    if let Some(raw) = child.minecraft_arguments {
+        if let Some(args) = base.arguments.as_mut() { args["game"] = serde_json::to_value(super::arguments::split_legacy(&raw)?)?; }
+        base.minecraft_arguments = Some(raw);
     }
     base.id = child.id;
     base.main_class = child.main_class;
-    if child.java_version.is_some() {
-        base.java_version = child.java_version;
+    if let Some(java) = child.java_version {
+        if base.java_version.as_ref().is_none_or(|base| java.major_version > base.major_version) { base.java_version = Some(java); }
     }
     if child.asset_index.is_some() {
         base.asset_index = child.asset_index;
     }
-    base
+    Ok(base)
 }
 
 pub fn extract_natives(archive: &Path, target: &Path, excludes: &[String]) -> Result<()> {
@@ -363,6 +376,23 @@ pub fn path_string(path: &Path) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn loader_merge_keeps_legacy_game_args_java_and_native_classifiers() {
+        let base: Version = serde_json::from_value(json!({"id":"1.16.5", "mainClass":"net.minecraft.client.main.Main", "minecraftArguments":"--username ${auth_player_name} --version ${version_name}", "javaVersion":{"majorVersion":25}, "libraries":[{"name":"org.lwjgl:lwjgl:3.3.3"},{"name":"org.lwjgl:lwjgl:3.3.3:natives-windows"}]})).unwrap();
+        let child: Version = serde_json::from_value(json!({"id":"fabric-test", "mainClass":"net.fabricmc.loader.impl.launch.knot.KnotClient", "inheritsFrom":"1.16.5", "javaVersion":{"majorVersion":8}, "arguments":{"game":[], "jvm":["-DFabricMcEmu= net.minecraft.client.main.Main "]}, "libraries":[{"name":"org.lwjgl:lwjgl:3.3.4"}]})).unwrap();
+        let merged = merge(base, child).unwrap();
+        assert_eq!(merged.java_version.unwrap().major_version, 25);
+        assert_eq!(merged.arguments.as_ref().unwrap()["game"][0], "--username");
+        assert_eq!(merged.arguments.as_ref().unwrap()["jvm"][0], "-DFabricMcEmu= net.minecraft.client.main.Main ");
+        assert!(merged.libraries.iter().any(|l| l.name.ends_with(":natives-windows")));
+        assert!(!merged.libraries.iter().any(|l| l.name == "org.lwjgl:lwjgl:3.3.3"));
+    }
+    #[test]
+    fn fabric_inline_publisher_hashes_are_preserved() {
+        let lib: Library = serde_json::from_value(json!({"name":"org.ow2.asm:asm:9.10.1", "url":"https://maven.fabricmc.net/", "sha256":"a".repeat(64), "size":126151})).unwrap();
+        assert_eq!(lib.sha256.as_deref(), Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+        assert_eq!(lib.size, Some(126151));
+    }
     #[test]
     fn manifest_ipc_fields_match_frontend_contract() {
         let source = json!({ "id":"1.21.4", "type":"release", "url":"https://piston-meta.mojang.com/v.json", "sha1":"a".repeat(40), "releaseTime":"2024-12-03T00:00:00Z" });

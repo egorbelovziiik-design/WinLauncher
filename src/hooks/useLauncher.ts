@@ -58,7 +58,7 @@ export function useNativeEvents() {
     void subscribe<Job | null>('download-progress', job => update({ job }));
     void subscribe<RunningGame | null>('game-state', running => { update({ running }); void client.invalidateQueries({ queryKey: ['snapshot'] }); });
     void subscribe<string>('discord-state', discord_status => update({ discord_status }));
-    void subscribe<unknown>('data-changed', () => { void client.invalidateQueries({ queryKey: ['snapshot'] }); void client.invalidateQueries({ queryKey: ['local-files'] }); });
+    void subscribe<unknown>('data-changed', () => { void client.invalidateQueries({ queryKey: ['snapshot'] }); void client.invalidateQueries({ queryKey: ['local-files'] }); void client.invalidateQueries({ queryKey: ['launch-diagnosis'] }); });
     void subscribe<LogLine>('log-line', line => client.setQueryData<LogLine[]>(['logs'], lines => [...(lines ?? []).slice(-4999), line]));
     void subscribe<Omit<Notification, 'id' | 'timestamp'>>('notification', notification => {
       useUI.getState().addNotification(notification);

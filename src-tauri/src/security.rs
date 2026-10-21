@@ -7,7 +7,7 @@ use std::{
 use url::Url;
 
 pub const USER_AGENT: &str =
-    "WinLauncher/1.0.0 (https://github.com/egorbelovziiik-design/WinLauncher)";
+    "WinLauncher/1.0.1 (https://github.com/egorbelovziiik-design/WinLauncher)";
 const HOSTS: &[&str] = &[
     "piston-meta.mojang.com",
     "piston-data.mojang.com",
@@ -242,6 +242,10 @@ pub fn redact(message: &str, secrets: &[String]) -> String {
         "Authorization:",
         "XBL3.0",
         "identityToken",
+        "token:",
+        "password",
+        "client_secret",
+        "api_key",
     ] {
         if text.to_lowercase().contains(&marker.to_lowercase()) {
             return "[Скрыта строка, содержащая данные авторизации]".into();

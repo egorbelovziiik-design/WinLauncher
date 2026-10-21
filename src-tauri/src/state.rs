@@ -103,7 +103,7 @@ impl AppState {
         state.log(
             "info",
             "launcher",
-            "WinLauncher 1.0.0. Телеметрия отключена. Данные хранятся локально.",
+            "WinLauncher 1.0.1. Телеметрия отключена. Данные хранятся локально.",
         );
         Ok(state)
     }

@@ -244,6 +244,7 @@ pub fn open_url(raw: &str) -> Result<()> {
             "support.curseforge.com",
             "xbox.com",
             "www.xbox.com",
+            "www.amd.com",
         ]
         .contains(&url.host_str().unwrap_or(""))
     {

@@ -46,6 +46,32 @@ async fn check<T, F: Future<Output = Result<T>>>(
         }
     }
 }
+/// Launch the real game through the production pipeline. Passing proves the
+/// Fabric bootstrap reached Minecraft's client initialization, NOT rendering.
+async fn fabric_bootstrap(state: &AppState, profile: &Profile) -> Result<()> {
+    let since = chrono::Utc::now().timestamp_millis();
+    let pid = minecraft::launch(state, &profile.id, true).await?;
+    if pid == 0 { bail!("No real Java PID"); }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(45);
+    loop {
+        if !state.has_running() || std::time::Instant::now() >= deadline { break; }
+        let ready = state.logs.lock().unwrap_or_else(|e| e.into_inner()).iter().any(|l| l.timestamp >= since && l.source == "minecraft" && l.message.to_lowercase().contains("setting user:"));
+        if ready { break; }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+    if state.has_running() { state.game_stop.lock().unwrap_or_else(|e| e.into_inner()).cancel(); }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    while state.has_running() && std::time::Instant::now() < deadline { tokio::time::sleep(std::time::Duration::from_millis(100)).await; }
+    if state.has_running() { bail!("Java process tracking did not finish after stop"); }
+    let lines = state.logs.lock().unwrap_or_else(|e| e.into_inner()).iter().filter(|l| l.timestamp >= since && l.source == "minecraft").map(|l| l.message.clone()).collect::<Vec<_>>();
+    let text = lines.join("\n").to_lowercase();
+    if !text.contains("fabric loader") || !text.contains("setting user:") {
+        bail!("Fabric {} did not reach client initialization. Actual Java output:\n{}", profile.game_version, lines.iter().rev().take(30).rev().cloned().collect::<Vec<_>>().join("\n"));
+    }
+    println!("REAL FABRIC BOOTSTRAP: {} / PID {} / client initialization reached. Rendering is NOT TESTED.", profile.game_version, pid);
+    Ok(())
+}
+
 pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
     if !cfg!(windows) {
         bail!("This harness is intended for Windows x64");
@@ -379,6 +405,42 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
             )
             .await;
         }
+        // Separate clean profiles: never reuse the Sodium/Iris mod test's
+        // directory to diagnose compatibility of another game version.
+        accounts::offline::create(&state, "Native_Boot")?;
+        for version in ["1.21.4", "26.2", "1.16.5"] {
+            let mut profile = profiles::new(format!("Fabric bootstrap {version}"), version.into(), Loader::Fabric);
+            profile.min_memory_mb = 512; profile.max_memory_mb = 2048;
+            profiles::save(&state, profile.clone())?;
+            let installed = check(&mut reports, &format!("Real Fabric {version} clean installation"), minecraft::install_only(&state, &profile.id)).await.is_some();
+            if installed {
+                check(&mut reports, &format!("Real Fabric {version} JVM reaches Minecraft client initialization"), fabric_bootstrap(&state, &profile)).await;
+            }
+        }
+        for version in ["1.12.2", "1.8.9"] {
+            let profile = profiles::new(format!("Legacy Vanilla {version}"), version.into(), Loader::Vanilla);
+            profiles::save(&state, profile.clone())?;
+            check(&mut reports, &format!("Real Vanilla {version} installation from official manifest"), minecraft::install_only(&state, &profile.id)).await;
+        }
+        check(&mut reports, "Real Java 21 argument file preserves spaces and Unicode", async {
+            let runtime = java::ensure(&state, 21, None, &tokio_util::sync::CancellationToken::new()).await?;
+            let folder = state.root().join("argument file Проверка"); fs::create_dir_all(&folder)?;
+            let args = folder.join("jvm args.txt");
+            minecraft::arguments::write_jvm_argfile(&args, &["-Dwinlauncher.probe=Проверка с пробелами".into(), "-XshowSettings:properties".into()])?;
+            let output = java::command(std::path::Path::new(&runtime.path)).arg(format!("@{}", args.display())).arg("-version").output().await?;
+            let text = String::from_utf8_lossy(&output.stderr);
+            if !output.status.success() || !text.contains("winlauncher.probe = Проверка с пробелами") { bail!("Java argument-file parsing failed: {text}"); }
+            Ok(())
+        }).await;
+        check(&mut reports, "Managed Java and real invalid-argument exit 1 are diagnosed", async {
+            let runtime = java::ensure(&state, 21, None, &tokio_util::sync::CancellationToken::new()).await?;
+            if !runtime.managed { bail!("Automatic Java selected an unmanaged system installation"); }
+            let output = java::command(std::path::Path::new(&runtime.path)).arg("-XX:WinLauncherInvalidTestOption=1").output().await?;
+            if output.status.success() { bail!("Invalid JVM option unexpectedly succeeded"); }
+            let text = String::from_utf8_lossy(&output.stderr);
+            if minecraft::diagnostics::classify(&text, output.status.code(), false).0 != "jvm_arguments" { bail!("Real Java error was not diagnosed: {text}"); }
+            Ok(())
+        }).await;
         check(
             &mut reports,
             "Migrate real game data with SHA256 and retain original",
@@ -400,6 +462,7 @@ pub async fn run(root: PathBuf, output: PathBuf) -> Result<bool> {
     for name in [
         "Licensed Microsoft OAuth / refresh / multi-account",
         "Rendered Minecraft game session and actual playtime",
+        "User AMD atio6axx.dll crash fixed on their physical PC",
         "CurseForge API and ZIP modpack with a real key",
         "Discord Desktop Rich Presence",
         "RAM in a running licensed Minecraft JVM",

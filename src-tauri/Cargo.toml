@@ -1,6 +1,6 @@
 [package]
 name = "winlauncher"
-version = "1.0.0"
+version = "1.0.1"
 default-run = "winlauncher"
 description = "WinLauncher — Minecraft Java Edition launcher"
 authors = ["WinLauncher contributors"]

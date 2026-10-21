@@ -1,3 +1,4 @@
+import { popularReleases, profileVersionOptions } from '../src/utils/versions';
 import { describe, expect, it } from 'vitest';
 import { dailyPlaytime, fileKey, formatBytes, progress } from '../src/utils/format';
 import { getTheme, themes } from '../src/themes';
@@ -26,4 +27,17 @@ describe('statistics', () => {
 describe('theme engine and locales', () => {
   it('has ten distinct themes and a safe default', () => { expect(themes).toHaveLength(10); expect(new Set(themes.map(t => t.accent)).size).toBe(10); expect(getTheme('invalid').id).toBe('overworld'); });
   it('supports Russian, English and Ukrainian', () => { expect(translate('Главная', 'ru')).toBe('Главная'); expect(translate('Главная', 'en')).toBe('Home'); expect(translate('Главная', 'uk')).toBe('Головна'); });
+});
+
+
+describe('complete official version catalog', () => {
+  it('never fabricates popular releases', () => expect(popularReleases()).toEqual([]));
+  it('keeps 1.16.5 searchable beyond recent entries and preserves selected snapshots', () => {
+    const versions = Array.from({length:300},(_,i)=>({id:`26.test${i}`,kind:'snapshot',url:'',sha1:'',release_time:'2026-01-01'}));
+    versions.push({id:'1.16.5',kind:'release',url:'',sha1:'',release_time:'2021-01-15'});
+    const manifest = {latest:{release:'1.16.5',snapshot:'26.test0'},versions};
+    expect(profileVersionOptions(manifest,false,'1.16.5','').map(v=>v.id)).toEqual(['1.16.5']);
+    expect(popularReleases(manifest).map(v=>v.id)).toEqual(['1.16.5']);
+    expect(profileVersionOptions(manifest,false,'no-match','26.test0').map(v=>v.id)).toEqual(['26.test0']);
+  });
 });

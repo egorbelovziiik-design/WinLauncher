@@ -72,6 +72,19 @@ pub async fn install_game(state: State<'_, AppState>, profile_id: String) -> Res
         .map_err(err)
 }
 #[tauri::command]
+pub async fn repair_game_profile(state: State<'_, AppState>, profile_id: String) -> Response<()> {
+    minecraft::repair_profile(&state, &profile_id).await.map_err(err)
+}
+#[tauri::command]
+pub async fn get_launch_diagnosis(state: State<'_, AppState>, profile_id: String) -> Response<Option<minecraft::diagnostics::Diagnosis>> {
+    let state = state.inner().clone();
+    tokio::task::spawn_blocking(move || minecraft::diagnostics::latest(&state, &profile_id)).await.map_err(err)?.map_err(err)
+}
+#[tauri::command]
+pub fn open_crash_report_folder(state: State<'_, AppState>, profile_id: String) -> Response<()> {
+    minecraft::diagnostics::open_report_folder(&state, &profile_id).map_err(err)
+}
+#[tauri::command]
 pub async fn launch_game(
     state: State<'_, AppState>,
     profile_id: String,

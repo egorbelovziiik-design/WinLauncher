@@ -39,7 +39,7 @@ jobs:
           if ($run -notmatch '^\d+$') { throw 'A completed Windows build from this branch is required' }
           $source = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$run" | ConvertFrom-Json
           if ($source.head_branch -ne $env:SOURCE_BRANCH) { throw 'Refusing to execute a package from a different branch' }
-          gh run download $run --name WinLauncher-1.0.0-windows-x64 --dir previous-build
+          gh run download $run --name WinLauncher-1.0.1-windows-x64 --dir previous-build
           if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve the original Actions artifact' }
           foreach ($line in Get-Content previous-build/SHA256SUMS.txt) {
             if ($line -match '^([a-fA-F0-9]{64})\s+(WinLauncher(?:-Setup)?\.exe)$') {
