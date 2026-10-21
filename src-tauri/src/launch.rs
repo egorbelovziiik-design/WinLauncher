@@ -619,22 +619,44 @@ fn newest_crash_report(game_dir: &std::path::Path) -> Option<std::path::PathBuf>
 }
 
 pub fn parse_crash_report(text: &str) -> String {
+    // `Description: Initializing game` — either on the same line or on the next
+    // few lines, ending with a blank line.
     let mut description = String::new();
-    let mut lines = text.lines();
-    while let Some(line) = lines.next() {
-        if line.trim() == "Description:" {
-            description = lines.next().unwrap_or("").trim().to_string();
-            break;
+    let mut collecting = false;
+    for line in text.lines().take(80) {
+        let trimmed = line.trim();
+        if collecting {
+            if trimmed.is_empty() {
+                if !description.is_empty() {
+                    break;
+                }
+                continue;
+            }
+            if !description.is_empty() {
+                description.push(' ');
+            }
+            description.push_str(trimmed);
+            if description.len() > 200 {
+                break;
+            }
+            continue;
+        }
+        if let Some(rest) = trimmed.strip_prefix("Description:") {
+            description = rest.trim().to_string();
+            collecting = description.is_empty();
         }
     }
     let mut detail = String::new();
-    for line in text.lines().take(120) {
+    for line in text.lines().take(160) {
         let trimmed = line.trim();
-        if trimmed.starts_with("java.lang.") || trimmed.starts_with("net.") || trimmed.starts_with("com.") {
-            if !is_benign(trimmed) {
-                detail = trimmed.chars().take(300).collect();
-                break;
-            }
+        let looks_like_exception = trimmed.starts_with("java.")
+            || trimmed.starts_with("net.")
+            || trimmed.starts_with("com.")
+            || trimmed.contains("Exception")
+            || trimmed.contains("Error:");
+        if looks_like_exception && !is_benign(trimmed) {
+            detail = trimmed.chars().take(300).collect();
+            break;
         }
     }
     match (description.is_empty(), detail.is_empty()) {
