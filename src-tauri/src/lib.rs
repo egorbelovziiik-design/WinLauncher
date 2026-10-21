@@ -278,7 +278,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  log(&app,&state,&format!("Запуск Minecraft {} ({}) RAM={}MB",effective_id,main_class,profile.ram_mb));
  let mut child=cmd.spawn().map_err(|e|format!("Ошибка запуска Java: {}",e))?;
  // stream stdout
- if let Some(mut out)=child.stdout.take(){ let app2=app.clone(); tokio::spawn(async move{ use tokio::io::AsyncReadExt; let mut buf=[0u8;4096]; loop{ match out.read(&mut buf).await{ Ok(0)|Err(_)=>break, Ok(n)=>{ let s=String::from_utf8_lossy(&buf[..n]).to_string(); let _=app2.emit("game-log",s); } } } }); }
+ if let Some(mut out)=child.stdout.take(){ let app2=app.clone(); std::thread::spawn(move||{ use std::io::Read; let mut buf=[0u8;4096]; loop{ match out.read(&mut buf){ Ok(0)|Err(_)=>break, Ok(n)=>{ let s=String::from_utf8_lossy(&buf[..n]).to_string(); let _=app2.emit("game-log",s); } } } }); }
  if let Ok(mut g)=state.game_process.lock(){ *g=Some(child); }
  let _=app.emit("game-state","running");
  Ok(())
