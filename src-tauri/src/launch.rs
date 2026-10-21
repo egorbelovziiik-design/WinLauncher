@@ -501,8 +501,10 @@ pub fn parse_crash_dump(text: &str) -> Vec<String> {
     for line in text.lines().take(120) {
         let trimmed = line.trim();
         if want_next_frame {
-            if !trimmed.is_empty() && !trimmed.starts_with('#') {
-                out.push(format!("Problematic frame: {trimmed}"));
+            // The frame itself is printed on the following line as `# C  [module]`.
+            let frame = trimmed.trim_start_matches('#').trim();
+            if !frame.is_empty() {
+                out.push(format!("Problematic frame: {frame}"));
                 want_next_frame = false;
             }
             continue;
@@ -510,11 +512,14 @@ pub fn parse_crash_dump(text: &str) -> Vec<String> {
         if trimmed.starts_with("# A fatal error") {
             out.push(trimmed.trim_start_matches("# ").to_string());
         } else if trimmed.starts_with("siginfo:") || trimmed.starts_with("#  EXCEPTION") {
-            out.push(trimmed.trim_start_matches("# ").to_string());
-        } else if trimmed.starts_with("Problematic frame:") {
-            out.push(trimmed.to_string());
-        } else if trimmed.starts_with("Problematic frame") {
-            want_next_frame = true;
+            out.push(trimmed.trim_start_matches("# ").trim().to_string());
+        } else if let Some(rest) = trimmed.strip_prefix("Problematic frame") {
+            let rest = rest.trim_start_matches([':', ' ']).trim();
+            if rest.is_empty() {
+                want_next_frame = true;
+            } else {
+                out.push(format!("Problematic frame: {rest}"));
+            }
         } else if trimmed.starts_with("JRE version:") || trimmed.starts_with("Java VM:") {
             out.push(trimmed.to_string());
         }

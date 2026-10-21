@@ -87,6 +87,7 @@ jobs:
         run: |
           $out = @()
           if (Test-Path cargo-check.log) { $out += "===== cargo check ====="; $out += (Get-Content cargo-check.log -Tail 500) }
+          if (Test-Path cargo-test.log) { $out += "===== cargo test ====="; $out += (Get-Content cargo-test.log -Tail 500) }
           if (Test-Path tauri-build.log) { $out += "===== tauri build ====="; $out += (Get-Content tauri-build.log -Tail 500) }
           if ($out.Count -eq 0) { $out = @("no log captured") }
           $out | Set-Content -Path build-errors.txt -Encoding utf8
