@@ -1,0 +1,44 @@
+===== cargo check =====
+    Updating crates.io index
+     Locking 492 packages to highest compatible versions
+      Adding brotli-decompressor v6.0.1 (available: v6.1.1)
+      Adding dirs v5.0.1 (available: v7.0.0)
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding keyring v3.6.3 (available: v4.2.0)
+      Adding md-5 v0.10.6 (available: v0.11.0)
+      Adding reqwest v0.12.28 (available: v0.13.5)
+      Adding sha1 v0.10.7 (available: v0.11.0)
+      Adding sha2 v0.10.9 (available: v0.11.1)
+      Adding sysinfo v0.33.1 (available: v0.39.6)
+      Adding toml v0.8.2 (available: v0.8.23)
+      Adding toml_datetime v0.6.3 (available: v0.6.11)
+      Adding toml_edit v0.20.2 (available: v0.20.7)
+      Adding zip v2.6.1 (available: v9.0.5)
+ Downloading crates ...
+  Downloaded ico v0.6.0
+  Downloaded plist v1.10.3
+  Downloaded tauri v2.12.5
+  Downloaded tauri-build v2.7.4
+  Downloaded tauri-codegen v2.7.4
+  Downloaded tauri-macros v2.7.4
+   Compiling plist v1.10.3
+   Compiling ico v0.6.0
+    Checking tauri-utils v2.10.2
+    Checking tauri-runtime v2.12.2
+    Checking tauri-runtime-wry v2.12.3
+   Compiling tauri-build v2.7.4
+   Compiling tauri-plugin v2.7.2
+   Compiling tauri-codegen v2.7.4
+   Compiling tauri v2.12.5
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tauri-plugin-dialog v2.8.3
+   Compiling tauri-macros v2.7.4
+   Compiling winlaucher v1.0.4 (D:\a\WinLauncher\WinLauncher\src-tauri)
+src\launch.rs:2:24: warning: unused import: `BufReader`
+src\launch.rs:197:41: error[E0277]: the trait bound `std::process::ChildStdout: BufRead` is not satisfied: the trait `BufRead` is not implemented for `std::process::ChildStdout`
+src\launch.rs:202:41: error[E0277]: the trait bound `std::process::ChildStderr: BufRead` is not satisfied: the trait `BufRead` is not implemented for `std::process::ChildStderr`
+warning: `winlaucher` (lib) generated 1 warning (1 duplicate)
+error: could not compile `winlaucher` (lib) due to 2 previous errors; 1 warning emitted
+warning: build failed, waiting for other jobs to finish...
+warning: `winlaucher` (lib test) generated 1 warning
+error: could not compile `winlaucher` (lib test) due to 2 previous errors; 1 warning emitted
