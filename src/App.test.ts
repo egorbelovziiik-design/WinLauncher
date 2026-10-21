@@ -1,2 +1,4 @@
 import {describe,it,expect} from 'vitest';
 describe('WinLaucher',()=>{ it('themes list includes 8 themes',()=>{expect(['dark','light','minecraft','purple','ocean','emerald','midnight','custom'].length).toBe(8)}); it('ram presets',()=>{expect([2048,4096,6144,8192,12288,16384]).toContain(4096)}); });
+describe('version range 1.12.2-26.4',()=>{ const parse=(id:string)=>{const m=id.match(/^(\d+)\.(\d+)(?:\.(\d+))?/);return m?[+m[1],+m[2],+(m[3]||0)]:null}; const cmp=(a:number[],b:number[])=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2]; const inR=(id:string)=>{const p=parse(id);return !!p&&cmp(p,[1,12,2])>=0&&cmp(p,[26,4,999])<=0};
+ it('includes bounds, excludes outside',()=>{expect(inR('1.12.2')).toBe(true); expect(inR('26.4')).toBe(true); expect(inR('1.21.4')).toBe(true); expect(inR('1.12.1')).toBe(false); expect(inR('26.5')).toBe(false); expect(inR('1.8.9')).toBe(false)})});
