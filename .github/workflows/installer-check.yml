@@ -31,14 +31,14 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          $home = $env:JAVA_HOME_21_X64
-          if (-not $home) { $home = $env:JAVA_HOME }
+          $javaHome = $env:JAVA_HOME_21_X64
+          if (-not $javaHome) { $javaHome = $env:JAVA_HOME }
           $folder = Join-Path $env:RUNNER_TEMP ("java-args-" + [Guid]::NewGuid() + '-Проверка')
           New-Item -ItemType Directory -Force $folder | Out-Null
           $content = '"-Dwinlauncher.probe=Проверка с пробелами"' + "`n" + '"-XshowSettings:properties"' + "`n"
           [IO.File]::WriteAllText((Join-Path $folder 'jvm args.txt'), $content, [Text.UTF8Encoding]::new($false))
           $info = [Diagnostics.ProcessStartInfo]::new()
-          $info.FileName = Join-Path $home 'bin/java.exe'
+          $info.FileName = Join-Path $javaHome 'bin/java.exe'
           $info.WorkingDirectory = $folder
           $info.UseShellExecute = $false
           $info.RedirectStandardError = $true
