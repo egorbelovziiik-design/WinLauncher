@@ -27,16 +27,23 @@ try {
   if (-not (Test-Path $installed)) { throw 'The installer did not create winlauncher.exe in the requested directory' }
   $expected = (Get-FileHash 'src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe' -Algorithm SHA256).Hash
   $actual = (Get-FileHash $installed -Algorithm SHA256).Hash
+  $packagedExpected = $expected
   if ($actual -ne $expected) {
-    $originalBytes = [IO.File]::ReadAllBytes((Resolve-Path 'src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe'))
-    $installedBytes = [IO.File]::ReadAllBytes($installed)
-    $differences = [System.Collections.Generic.List[string]]::new()
-    for ($i = 0; $i -lt [Math]::Min($originalBytes.Length, $installedBytes.Length) -and $differences.Count -lt 16; $i++) {
-      if ($originalBytes[$i] -ne $installedBytes[$i]) { $differences.Add(('0x{0:X}:{1:X2}->{2:X2}' -f $i, $originalBytes[$i], $installedBytes[$i])) }
-    }
-    throw "Installed executable differs: expected SHA256=$expected bytes=$($originalBytes.Length); installed SHA256=$actual bytes=$($installedBytes.Length); first byte differences=$($differences -join ',')"
+    # Tauri's supported bundler deliberately replaces ONE exact bundle-type
+    # marker before NSIS packaging, then restores the standalone executable.
+    # Reproduce precisely that documented transform, and compare FULL SHA256;
+    # never ignore other byte differences or accept an arbitrary installed file.
+    # https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-bundler/src/bundle.rs
+    $bytes = [IO.File]::ReadAllBytes((Resolve-Path 'src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe'))
+    $token = '__TAURI_BUNDLE_TYPE_VAR_UNK'
+    $position = [Text.Encoding]::ASCII.GetString($bytes).IndexOf($token, [StringComparison]::Ordinal)
+    if ($position -lt 0) { throw 'Expected Tauri bundle marker was not found; refusing to relax payload verification' }
+    $replacement = [Text.Encoding]::ASCII.GetBytes('__TAURI_BUNDLE_TYPE_VAR_NSS')
+    [Array]::Copy($replacement, 0, $bytes, $position, $replacement.Length)
+    $packagedExpected = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+    if ($actual -ne $packagedExpected) { throw "Installed payload SHA256 mismatch: expected Tauri NSIS payload=$packagedExpected; actual=$actual" }
   }
-  Add-Result 'Real NSIS silent installation' 'PASSED' 'Installed into a new isolated directory. The installed executable matches the production MSVC output SHA256.'
+  Add-Result 'Real NSIS silent installation' 'PASSED' "Installed into a new isolated directory. Full payload SHA256=$actual matches the production binary including Tauri's exact UNK-to-NSS bundle marker transform; no other byte differences are allowed."
   New-Item -ItemType Directory -Force (Split-Path $probe) | Out-Null
   $probeContents = [Guid]::NewGuid().ToString()
   Set-Content -LiteralPath $probe -Value $probeContents -NoNewline
