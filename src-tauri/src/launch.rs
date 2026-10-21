@@ -194,12 +194,12 @@ async fn launch_inner(
     if let Some(stdout) = child.stdout.take() {
         let app = app.clone();
         let tail = Arc::clone(&tail);
-        std::thread::spawn(move || pump(stdout, app, tail, "info"));
+        std::thread::spawn(move || pump(BufReader::new(stdout), app, tail, "info"));
     }
     if let Some(stderr) = child.stderr.take() {
         let app = app.clone();
         let tail = Arc::clone(&tail);
-        std::thread::spawn(move || pump(stderr, app, tail, "warn"));
+        std::thread::spawn(move || pump(BufReader::new(stderr), app, tail, "warn"));
     }
 
     *lock(&state.child) = Some(child);
