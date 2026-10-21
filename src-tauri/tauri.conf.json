@@ -1,1 +1,44 @@
-{"$schema":"https://schema.tauri.app/config/2","productName":"WinLaucher","version":"1.0.0","identifier":"com.winlaucher.app","build":{"beforeDevCommand":"npm run dev","devUrl":"http://localhost:1420","beforeBuildCommand":"npm run build","frontendDist":"../dist"},"app":{"windows":[{"title":"WinLaucher","width":1240,"height":780,"minWidth":980,"minHeight":640,"decorations":true,"center":true}],"security":{"csp":null}},"bundle":{"active":true,"targets":["nsis","msi"],"icon":["icons/icon.png"],"windows":{"nsis":{"installMode":"currentUser"}}}}
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WinLaucher",
+  "version": "1.0.0",
+  "identifier": "com.winlaucher.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "WinLaucher",
+        "width": 1240,
+        "height": 780,
+        "minWidth": 980,
+        "minHeight": 640,
+        "decorations": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "msi"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}
