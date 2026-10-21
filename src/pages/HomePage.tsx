@@ -317,6 +317,11 @@ export function HomePage() {
                       <div className="mt-1.5 max-h-48 select-text overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-red-100/90">
                         {launch.message}
                       </div>
+                      {activeAccount?.kind === 'offline' && (
+                        <div className="mt-2 text-[11px] leading-relaxed text-red-200/80">
+                          {t('accounts.offlineHint')}
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => setLogDrawer(true)}

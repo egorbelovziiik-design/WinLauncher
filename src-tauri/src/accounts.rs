@@ -550,6 +550,33 @@ pub async fn refresh(app: &AppHandle, id: &str) -> Result<Account, String> {
 /* Launch account                                                      */
 /* ------------------------------------------------------------------ */
 
+/// Checks a Minecraft access token against the official API.
+/// `Some(true)` — token works, `Some(false)` — rejected (401/403),
+/// `None` — the check itself failed (offline network), so the launch is allowed.
+async fn token_state(app: &AppHandle, token: &str) -> Option<bool> {
+    if token.is_empty() {
+        return Some(false);
+    }
+    let state = app.state::<AppState>();
+    let res = state
+        .http()
+        .get("https://api.minecraftservices.com/minecraft/profile")
+        .bearer_auth(token)
+        .timeout(std::time::Duration::from_secs(25))
+        .send()
+        .await
+        .ok()?;
+    if res.status().is_success() {
+        Some(true)
+    } else if res.status() == reqwest::StatusCode::UNAUTHORIZED
+        || res.status() == reqwest::StatusCode::FORBIDDEN
+    {
+        Some(false)
+    } else {
+        None
+    }
+}
+
 pub async fn launch_account(app: &AppHandle, id: &str) -> Result<LaunchAccount, String> {
     let state = app.state::<AppState>();
     let account = state
@@ -574,6 +601,23 @@ pub async fn launch_account(app: &AppHandle, id: &str) -> Result<LaunchAccount, 
         state.log("info", "launcher", "Minecraft session expired — refreshing");
         refresh(app, id).await?;
         tokens = load_tokens(&state, id).ok_or_else(|| "errors.unauthorized".to_string())?;
+    }
+    // The stored expiry can lie: a token is revoked when the password changes or
+    // the session is invalidated. Launching with it makes Minecraft die with
+    // "InvalidCredentialsException: Status: 401", so verify it first.
+    if token_state(app, &tokens.mc_access_token).await == Some(false) {
+        state.log(
+            "warn",
+            "launcher",
+            "Minecraft token was rejected by the API — refreshing the session",
+        );
+        refresh(app, id).await?;
+        tokens = load_tokens(&state, id).ok_or_else(|| "errors.unauthorized".to_string())?;
+        if token_state(app, &tokens.mc_access_token).await == Some(false) {
+            return Err(
+                "errors.unauthorized|Minecraft session expired. Sign in with Microsoft again.".into(),
+            );
+        }
     }
     if !tokens.owned {
         return Err("accounts.authNoGame".into());

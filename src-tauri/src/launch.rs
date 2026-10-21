@@ -230,6 +230,7 @@ async fn launch_inner(
     let account_id_watcher = account_id.to_string();
     let watched_dir = game_dir.clone();
     let safe_launch = safe;
+    let offline_account = account.user_type == "legacy";
     let tail_watcher = Arc::clone(&tail);
     let started = std::time::Instant::now();
     std::thread::spawn(move || loop {
@@ -255,10 +256,24 @@ async fn launch_inner(
         let mut reason = if failed { identify_reason(&lines) } else { String::new() };
         let mut hint = String::new();
         if failed {
+            if let Some(report) = newest_crash_report(&watched_dir) {
+                if let Ok(text) = std::fs::read_to_string(&report) {
+                    let summary = parse_crash_report(&text);
+                    if !summary.is_empty() {
+                        reason = summary;
+                        hint = crash_hint(&reason);
+                        st.log(
+                            "error",
+                            "launcher",
+                            format!("Crash report {}: {reason}", report.display()),
+                        );
+                    }
+                }
+            }
             if let Some(dump) = newest_crash_dump(&watched_dir) {
                 if let Ok(text) = std::fs::read_to_string(&dump) {
                     let details = parse_crash_dump(&text);
-                    if !details.is_empty() {
+                    if !details.is_empty() && reason.is_empty() {
                         reason = details.join(" | ");
                         hint = crash_hint(&details.join(" "));
                         st.log(
@@ -276,6 +291,40 @@ async fn launch_inner(
             "launcher",
             format!("Minecraft exited with code {code:?} after {uptime}s"),
         );
+        // A revoked Minecraft session makes the client die with
+        // "InvalidCredentialsException: Status: 401". Refresh it and start over
+        // once, instead of asking the user to work out what happened.
+        let credentials_failed = lines
+            .iter()
+            .any(|line| line.to_lowercase().contains("invalidcredentials"));
+        if failed && credentials_failed && !offline_account && !safe_launch && take_safe_retry(&watched_id) {
+            st.log(
+                "warn",
+                "launcher",
+                "Minecraft rejected the session — refreshing the token and restarting",
+            );
+            let handle = watcher.clone();
+            let pid = watched_id.clone();
+            let acct = account_id_watcher.clone();
+            let refreshed = tauri::async_runtime::block_on(accounts::refresh(&handle, &acct)).is_ok();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                if refreshed {
+                    spawn_launch(handle, pid, acct, false);
+                } else {
+                    let state = handle.state::<AppState>();
+                    state.set_launch(LaunchStatus {
+                        profile_id: Some(pid),
+                        state: "error".into(),
+                        message: "accounts.unauthorized|Minecraft session expired. Sign in with Microsoft again.".into(),
+                        code: Some(1),
+                        started_at: None,
+                    });
+                }
+            });
+            return;
+        }
+
         // A fast, unexplained exit is usually caused by a bad JVM flag or a heap
         // that the machine cannot reserve. Retry once with pristine arguments
         // before showing an error, so the launcher still starts the game.
@@ -352,6 +401,21 @@ fn push_tail(tail: &Arc<Mutex<VecDeque<String>>>, line: &str) {
 }
 
 /// Picks the line from the game output that explains a crash.
+/// Errors that every offline / modded profile prints and that never stop the
+/// game. Reporting them as "the crash reason" hides the real cause.
+pub fn is_benign(line: &str) -> bool {
+    let lowered = line.to_lowercase();
+    const BENIGN: [&str; 6] = [
+        "failed to fetch user properties",
+        "failed to retrieve profile key pair",
+        "couldn't verify authentication",
+        "failed to request yggdrasil public key",
+        "unable to verify authentication",
+        "invalidcredentials",
+    ];
+    BENIGN.iter().any(|marker| lowered.contains(marker))
+}
+
 pub fn identify_reason(lines: &[String]) -> String {
     const MARKERS: [&str; 7] = [
         "Exception",
@@ -364,7 +428,7 @@ pub fn identify_reason(lines: &[String]) -> String {
     ];
     for line in lines {
         let trimmed = line.trim();
-        if trimmed.is_empty() {
+        if trimmed.is_empty() || is_benign(trimmed) {
             continue;
         }
         let lowered = trimmed.to_lowercase();
@@ -479,6 +543,15 @@ fn clear_crash_dumps(game_dir: &std::path::Path) {
             let _ = std::fs::remove_file(entry.path());
         }
     }
+    let reports = game_dir.join("crash-reports");
+    if let Ok(entries) = std::fs::read_dir(&reports) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with("crash-") && name.ends_with(".txt") {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
 }
 
 fn newest_crash_dump(game_dir: &std::path::Path) -> Option<std::path::PathBuf> {
@@ -528,6 +601,48 @@ pub fn parse_crash_dump(text: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// Minecraft writes its own crash report; its `Description:` line is the most
+/// reliable explanation of why the client stopped.
+fn newest_crash_report(game_dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    let dir = game_dir.join("crash-reports");
+    std::fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .filter(|entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+            name.starts_with("crash-") && name.ends_with(".txt")
+        })
+        .max_by_key(|entry| entry.metadata().and_then(|m| m.modified()).ok())
+        .map(|entry| entry.path())
+}
+
+pub fn parse_crash_report(text: &str) -> String {
+    let mut description = String::new();
+    let mut lines = text.lines();
+    while let Some(line) = lines.next() {
+        if line.trim() == "Description:" {
+            description = lines.next().unwrap_or("").trim().to_string();
+            break;
+        }
+    }
+    let mut detail = String::new();
+    for line in text.lines().take(120) {
+        let trimmed = line.trim();
+        if trimmed.starts_with("java.lang.") || trimmed.starts_with("net.") || trimmed.starts_with("com.") {
+            if !is_benign(trimmed) {
+                detail = trimmed.chars().take(300).collect();
+                break;
+            }
+        }
+    }
+    match (description.is_empty(), detail.is_empty()) {
+        (true, true) => String::new(),
+        (false, true) => description,
+        (true, false) => detail,
+        (false, false) => format!("{description} — {detail}"),
+    }
 }
 
 /// Turns the faulting module into advice a user can act on.
@@ -773,6 +888,19 @@ pub fn build_launch(
         }
     }
 
+    // Offline accounts must reach the client as `legacy`: with `msa` Minecraft
+    // tries to fetch the profile from the Mojang API and dies with a 401.
+    if account.user_type == "legacy" {
+        if let Some(index) = game_args.iter().position(|arg| arg == "--userType") {
+            if let Some(value) = game_args.get_mut(index + 1) {
+                *value = "legacy".to_string();
+            }
+        } else {
+            game_args.push("--userType".to_string());
+            game_args.push("legacy".to_string());
+        }
+    }
+
     // Older metadata sometimes omits these; add whatever is missing.
     let missing: [(&str, String); 5] = [
         ("--username", account.name.clone()),
@@ -857,6 +985,27 @@ mod tests {
         ];
         let args = collect_args(&items, &mojang::default_features());
         assert_eq!(args, vec!["--demo", "--width", "1280", "--height", "720"]);
+    }
+
+    #[test]
+    fn ignores_offline_noise_when_picking_the_reason() {
+        let lines = vec![
+            "net.minecraft.class_310: Failed to fetch user properties".to_string(),
+            "com.mojang.authlib.exceptions.InvalidCredentialsException: Status: 401".to_string(),
+            "Failed to retrieve profile key pair".to_string(),
+            "java.lang.NoSuchMethodError: net.minecraft.class_1234".to_string(),
+        ];
+        let reason = identify_reason(&lines);
+        assert!(reason.contains("NoSuchMethodError"), "got: {reason}");
+        assert!(!is_benign(&reason));
+    }
+
+    #[test]
+    fn reads_the_game_crash_report() {
+        let report = "# Minecraft Crash Report\n// Oh dear\n\nTime: 2026-10-21\n\nDescription: Initializing game\n\njava.lang.NullPointerException: Cannot invoke \"x\" because \"y\" is null\n\tat net.minecraft.client.Main.main(Main.java:1)\n";
+        let summary = parse_crash_report(report);
+        assert!(summary.contains("Initializing game"), "got: {summary}");
+        assert!(summary.contains("NullPointerException"));
     }
 
     #[test]
