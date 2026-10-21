@@ -147,11 +147,12 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
-          & out/WinLaucher-portable.exe --selftest 1.21.4
-          for ($i = 0; $i -lt 240; $i++) {
-            if (Test-Path selftest-report.txt) { break }
-            Start-Sleep -Seconds 5
-          }
+          # The previous report is committed, so it must be removed first,
+          # otherwise the wait below returns the stale file immediately.
+          Remove-Item selftest-report.txt -ErrorAction SilentlyContinue
+          $proc = Start-Process -FilePath "out/WinLaucher-portable.exe" -ArgumentList "--selftest","1.21.4" -PassThru
+          $proc | Wait-Process -Timeout 900 -ErrorAction SilentlyContinue
+          if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
           if (-not (Test-Path selftest-report.txt)) {
             Set-Content -Path selftest-report.txt -Value 'The self-test produced no report.'
           }
