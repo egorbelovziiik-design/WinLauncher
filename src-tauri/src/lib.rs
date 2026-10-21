@@ -285,7 +285,7 @@ fn profile_dir(app:&AppHandle,profile:Option<&Profile>)->PathBuf{ if let Some(p)
  // classpath
  let mut cp:Vec<String>=vec![];
  let mut native_dir=mc.join("versions").join(&effective_id).join("natives"); std::fs::create_dir_all(&native_dir).ok();
- if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if is_cancelled(state){ stage(app,state,"install","Этап: установка игры","error","Отменено пользователем"); return Err("Отменено пользователем".into()); } if li%20==0{ stage_inner(app,state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
+ if let Some(libs)=meta["libraries"].as_array(){ let ltotal=libs.len(); for (li,lib) in libs.iter().enumerate(){ if is_cancelled(&state){ stage(&app,&state,"install","Этап: установка игры","error","Отменено пользователем"); return Err("Отменено пользователем".into()); } if li%20==0{ stage_inner(&app,&state,"install","Этап: установка игры","active",&format!("Библиотеки: {}/{} файлов",li,ltotal),false); } if !rules_allow(lib){continue;}
    if let Some(art)=lib["downloads"]["artifact"].as_object(){ if let Some(p)=art["path"].as_str(){ let f=mc.join("libraries").join(p); if f.exists(){cp.push(f.to_string_lossy().to_string());} } }
    else if let Some(name)=lib["name"].as_str(){ let parts:Vec<&str>=name.split(':').collect(); if parts.len()>=3{ let p=format!("{}/{}/{}/{}-{}.jar",parts[0].replace('.',"/"),parts[1],parts[2],parts[1],parts[2]); let f=mc.join("libraries").join(&p); if f.exists(){cp.push(f.to_string_lossy().to_string());} } }
    // natives
