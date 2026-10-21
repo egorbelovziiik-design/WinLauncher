@@ -3,6 +3,11 @@ name: Windows build & tests
 on:
   push:
     branches: [main, 'arena/4f921e32-winlauncher']
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '.github/workflows/installer-check.yml'
+      - 'scripts/installer-smoke.ps1'
   workflow_dispatch:
 
 permissions:
