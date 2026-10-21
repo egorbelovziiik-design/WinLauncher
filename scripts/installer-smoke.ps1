@@ -27,7 +27,15 @@ try {
   if (-not (Test-Path $installed)) { throw 'The installer did not create winlauncher.exe in the requested directory' }
   $expected = (Get-FileHash 'src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe' -Algorithm SHA256).Hash
   $actual = (Get-FileHash $installed -Algorithm SHA256).Hash
-  if ($actual -ne $expected) { throw 'Installed executable does not match the compiled executable SHA256' }
+  if ($actual -ne $expected) {
+    $originalBytes = [IO.File]::ReadAllBytes((Resolve-Path 'src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe'))
+    $installedBytes = [IO.File]::ReadAllBytes($installed)
+    $differences = [System.Collections.Generic.List[string]]::new()
+    for ($i = 0; $i -lt [Math]::Min($originalBytes.Length, $installedBytes.Length) -and $differences.Count -lt 16; $i++) {
+      if ($originalBytes[$i] -ne $installedBytes[$i]) { $differences.Add(('0x{0:X}:{1:X2}->{2:X2}' -f $i, $originalBytes[$i], $installedBytes[$i])) }
+    }
+    throw "Installed executable differs: expected SHA256=$expected bytes=$($originalBytes.Length); installed SHA256=$actual bytes=$($installedBytes.Length); first byte differences=$($differences -join ',')"
+  }
   Add-Result 'Real NSIS silent installation' 'PASSED' 'Installed into a new isolated directory. The installed executable matches the production MSVC output SHA256.'
   New-Item -ItemType Directory -Force (Split-Path $probe) | Out-Null
   $probeContents = [Guid]::NewGuid().ToString()
