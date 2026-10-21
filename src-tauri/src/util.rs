@@ -152,3 +152,48 @@ pub fn url_encode(input: &str) -> String {
     }
     out
 }
+
+/// Opens a URL, file or folder with the system default handler.
+pub fn open_target(target: &str) -> Result<(), String> {
+    use std::process::Command;
+    let target = target.trim();
+    if target.is_empty() {
+        return Err("Nothing to open".into());
+    }
+    #[cfg(windows)]
+    {
+        let mut cmd = if target.starts_with("http://") || target.starts_with("https://") {
+            let mut c = Command::new("cmd");
+            c.args(["/C", "start", "", target]);
+            c
+        } else {
+            let mut c = Command::new("explorer");
+            c.arg(target);
+            c
+        };
+        cmd.stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        hide_console(&mut cmd);
+        cmd.spawn().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(target)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        Command::new("xdg-open")
+            .arg(target)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+    #[allow(unreachable_code)]
+    Err("Opening files is not supported on this platform".into())
+}
