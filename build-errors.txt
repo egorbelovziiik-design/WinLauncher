@@ -17,8 +17,8 @@
  Downloading crates ...
   Downloaded ico v0.6.0
   Downloaded plist v1.10.3
-  Downloaded tauri v2.12.5
   Downloaded tauri-build v2.7.4
+  Downloaded tauri v2.12.5
   Downloaded tauri-codegen v2.7.4
   Downloaded tauri-macros v2.7.4
    Compiling plist v1.10.3
@@ -33,12 +33,30 @@
    Compiling tauri-plugin-fs v2.7.1
    Compiling tauri-plugin-dialog v2.8.3
    Compiling tauri-macros v2.7.4
-   Compiling winlaucher v1.0.4 (D:\a\WinLauncher\WinLauncher\src-tauri)
-src\launch.rs:2:24: warning: unused import: `BufReader`
-src\launch.rs:197:41: error[E0277]: the trait bound `std::process::ChildStdout: BufRead` is not satisfied: the trait `BufRead` is not implemented for `std::process::ChildStdout`
-src\launch.rs:202:41: error[E0277]: the trait bound `std::process::ChildStderr: BufRead` is not satisfied: the trait `BufRead` is not implemented for `std::process::ChildStderr`
-warning: `winlaucher` (lib) generated 1 warning (1 duplicate)
-error: could not compile `winlaucher` (lib) due to 2 previous errors; 1 warning emitted
-warning: build failed, waiting for other jobs to finish...
-warning: `winlaucher` (lib test) generated 1 warning
-error: could not compile `winlaucher` (lib test) due to 2 previous errors; 1 warning emitted
+   Compiling winlaucher v1.0.5 (D:\a\WinLauncher\WinLauncher\src-tauri)
+src\accounts.rs:85:8: warning: function `rename_offline` is never used
+src\download.rs:97:14: warning: function `get_json` is never used
+src\download.rs:106:14: warning: function `get_bytes` is never used
+src\download.rs:500:8: warning: function `extract_zip_subdir` is never used
+src\download.rs:515:8: warning: function `read_zip_entry` is never used
+src\download.rs:526:8: warning: function `zip_entries` is never used
+src\loaders.rs:453:8: warning: function `write_generated_version` is never used
+src\models.rs:469:9: warning: field `latest` is never read
+src\models.rs:475:9: warning: fields `release` and `snapshot` are never read
+src\models.rs:520:9: warning: field `release_time` is never read
+src\models.rs:550:9: warning: fields `total_size` and `virtual_` are never read
+src\models.rs:560:9: warning: field `component` is never read
+src\models.rs:578:9: warning: fields `argument` and `log_type` are never read
+src\models.rs:656:9: warning: field `version` is never read
+src\modrinth.rs:505:14: warning: function `resolve_required` is never used
+src\mojang.rs:26:9: warning: field `assets` is never read
+src\paths.rs:36:12: warning: method `curseforge_file` is never used
+src\paths.rs:126:8: warning: function `sha1_hex` is never used
+src\paths.rs:133:8: warning: function `sha512_hex` is never used
+src\paths.rs:140:8: warning: function `offset_now` is never used
+src\state.rs:223:12: warning: methods `java_runtimes`, `set_java_runtimes`, and `profile_game_dir` are never used
+src\util.rs:62:8: warning: function `sha512_file` is never used
+src\util.rs:116:8: warning: function `which` is never used
+warning: `winlaucher` (lib test) generated 23 warnings (23 duplicates)
+warning: `winlaucher` (lib) generated 23 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 45.80s
