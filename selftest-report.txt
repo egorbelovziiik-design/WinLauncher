@@ -6,7 +6,7 @@ Main class: net.minecraft.client.main.Main
 Natives: C:\Users\runneradmin\AppData\Roaming\WinLaucher\minecraft\versions\1.21.4\natives
 Missing files: 0/4123
 Java executable: C:\Users\runneradmin\AppData\Roaming\WinLaucher\java\jdk-21\jdk-21.0.12.1+1\bin\java.exe
-Arguments: 46
+Arguments: 44
 
 Killed after 150s (the game kept running).
 
@@ -15,16 +15,16 @@ Uptime: 150s
 Captured lines: 12
 
 --- game output ---
-  <log4j:Event logger="com.mojang.datafixers.DataFixerBuilder" timestamp="1792588047634" level="INFO" thread="Datafixer Bootstrap">
-    <log4j:Message><![CDATA[243 Datafixer optimizations took 1068 milliseconds]]></log4j:Message>
+  <log4j:Event logger="com.mojang.datafixers.DataFixerBuilder" timestamp="1792591474860" level="INFO" thread="Datafixer Bootstrap">
+    <log4j:Message><![CDATA[243 Datafixer optimizations took 355 milliseconds]]></log4j:Message>
   </log4j:Event>
-  <log4j:Event logger="com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService" timestamp="1792588053543" level="INFO" thread="Render thread">
+  <log4j:Event logger="com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService" timestamp="1792591479869" level="INFO" thread="Render thread">
     <log4j:Message><![CDATA[Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]]]></log4j:Message>
   </log4j:Event>
-  <log4j:Event logger="flk" timestamp="1792588053579" level="INFO" thread="Render thread">
+  <log4j:Event logger="flk" timestamp="1792591479906" level="INFO" thread="Render thread">
     <log4j:Message><![CDATA[Setting user: SelfTest]]></log4j:Message>
   </log4j:Event>
-  <log4j:Event logger="flk" timestamp="1792588053760" level="INFO" thread="Render thread">
+  <log4j:Event logger="flk" timestamp="1792591480130" level="INFO" thread="Render thread">
     <log4j:Message><![CDATA[Backend library: LWJGL version 3.3.3+5]]></log4j:Message>
   </log4j:Event>
 
