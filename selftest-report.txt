@@ -15,16 +15,16 @@ Uptime: 150s
 Captured lines: 12
 
 --- game output ---
-  <log4j:Event logger="com.mojang.datafixers.DataFixerBuilder" timestamp="1792591474860" level="INFO" thread="Datafixer Bootstrap">
-    <log4j:Message><![CDATA[243 Datafixer optimizations took 355 milliseconds]]></log4j:Message>
+  <log4j:Event logger="com.mojang.datafixers.DataFixerBuilder" timestamp="1792592764897" level="INFO" thread="Datafixer Bootstrap">
+    <log4j:Message><![CDATA[243 Datafixer optimizations took 524 milliseconds]]></log4j:Message>
   </log4j:Event>
-  <log4j:Event logger="com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService" timestamp="1792591479869" level="INFO" thread="Render thread">
+  <log4j:Event logger="com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService" timestamp="1792592769234" level="INFO" thread="Render thread">
     <log4j:Message><![CDATA[Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]]]></log4j:Message>
   </log4j:Event>
-  <log4j:Event logger="flk" timestamp="1792591479906" level="INFO" thread="Render thread">
+  <log4j:Event logger="flk" timestamp="1792592769288" level="INFO" thread="Render thread">
     <log4j:Message><![CDATA[Setting user: SelfTest]]></log4j:Message>
   </log4j:Event>
-  <log4j:Event logger="flk" timestamp="1792591480130" level="INFO" thread="Render thread">
+  <log4j:Event logger="flk" timestamp="1792592769486" level="INFO" thread="Render thread">
     <log4j:Message><![CDATA[Backend library: LWJGL version 3.3.3+5]]></log4j:Message>
   </log4j:Event>
 
