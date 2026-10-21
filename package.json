@@ -1,7 +1,7 @@
 {
   "name": "winlaucher",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "WinLaucher \u2014 modern Minecraft Java Edition launcher",
   "scripts": {

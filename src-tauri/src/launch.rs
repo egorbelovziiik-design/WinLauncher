@@ -111,6 +111,13 @@ async fn launch_inner(app: &AppHandle, profile_id: &str, account_id: &str) -> Re
             merged.natives_dir.display()
         ),
     );
+    if let Some(unresolved) = args.iter().find(|arg| arg.contains("${")) {
+        state.log(
+            "warn",
+            "launcher",
+            format!("Unresolved placeholder in the command line: {unresolved}"),
+        );
+    }
 
     // 6. Spawn the game.
     state.set_launch_state(Some(profile.id.clone()), "starting", String::new());
@@ -358,6 +365,17 @@ pub fn build_launch(
     vars.insert("auth_xuid", account.xuid.clone());
     vars.insert("user_type", account.user_type.clone());
     vars.insert("version_type", merged.version_type.clone());
+    vars.insert("primary_jar", merged.client_jar.to_string_lossy().to_string());
+    let user_properties = if account.user_properties.is_empty() {
+        "{}".to_string()
+    } else {
+        let mut map = serde_json::Map::new();
+        for (key, value) in &account.user_properties {
+            map.insert(key.clone(), Value::String(value.clone()));
+        }
+        Value::Object(map).to_string()
+    };
+    vars.insert("user_properties", user_properties);
     vars.insert("natives_directory", merged.natives_dir.to_string_lossy().to_string());
     vars.insert("launcher_name", "WinLaucher".to_string());
     vars.insert("launcher_version", env!("CARGO_PKG_VERSION").to_string());
