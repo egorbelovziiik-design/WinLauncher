@@ -263,7 +263,7 @@ async fn launch_inner(
             .map(|t| t.iter().cloned().collect())
             .unwrap_or_default();
         let failed = code != Some(0);
-        let mut reason = if failed { identify_reason(&lines) } else { String::new() };
+        let mut reason = String::new();
         let mut hint = String::new();
         let mut dump_path: Option<std::path::PathBuf> = None;
         let mut gpus: Vec<String> = Vec::new();
@@ -278,6 +278,8 @@ async fn launch_inner(
                     format!("Video adapters: {}", gpus.join(" · ")),
                 );
             }
+            // Priority: the game's own crash report, then the JVM crash dump,
+            // then whatever the process printed.
             if let Some(report) = newest_crash_report(&watched_dir) {
                 if let Ok(text) = std::fs::read_to_string(&report) {
                     let summary = parse_crash_report(&text);
@@ -294,18 +296,34 @@ async fn launch_inner(
             }
             if let Some(dump) = newest_crash_dump(&crash_dump_dirs(&watched_dir, &watched_logs)) {
                 dump_path = Some(dump.clone());
-                if let Ok(text) = std::fs::read_to_string(&dump) {
+                if let Some(text) = read_crash_dump(&dump) {
                     let details = parse_crash_dump(&text);
-                    if !details.is_empty() && reason.is_empty() {
-                        reason = details.join(" | ");
-                        hint = crash_hint(&details.join(" "));
+                    if !details.is_empty() {
                         st.log(
                             "error",
                             "launcher",
                             format!("JVM crash dump {}:\n{}", dump.display(), details.join("\n")),
                         );
+                        if reason.is_empty() {
+                            reason = details.join(" | ");
+                        } else if let Some(frame) = details
+                            .iter()
+                            .find(|line| line.starts_with("Problematic frame"))
+                        {
+                            reason = format!("{reason} | {frame}");
+                        }
+                        let dump_hint = crash_hint(&details.join(" "));
+                        if hint.is_empty() || hint.contains("Попробуйте нажать") {
+                            hint = dump_hint;
+                        }
                     }
                 }
+            }
+            if reason.is_empty() {
+                reason = identify_reason(&lines);
+            }
+            if hint.is_empty() {
+                hint = crash_hint(&lines.join(" "));
             }
         }
         let uptime = started.elapsed().as_secs();
@@ -419,6 +437,15 @@ async fn launch_inner(
                 }
                 if !gpus.is_empty() {
                     text.push_str(&format!("\nВидеокарта: {}", gpus.join(" · ")));
+                }
+                if let Some(days) = driver_age_days(&gpus) {
+                    if days > 400 {
+                        let years = days as f64 / 365.0;
+                        text.push_str(&format!(
+                            "\nДрайвер видеокарты не обновлялся {:.1} года — для Minecraft это самая частая причина такого краша.",
+                            years
+                        ));
+                    }
                 }
                 text
             } else {
@@ -621,6 +648,26 @@ fn newest_crash_dump(dirs: &[std::path::PathBuf]) -> Option<std::path::PathBuf> 
     best.map(|(_, path)| path)
 }
 
+/// The JVM may still be flushing the dump when the process disappears, so the
+/// file is re-read until the interesting part appears (or it stops changing).
+fn read_crash_dump(path: &std::path::Path) -> Option<String> {
+    let mut last = String::new();
+    for _ in 0..12 {
+        if let Ok(text) = std::fs::read_to_string(path) {
+            if text.contains("Problematic frame") || text.contains("EXCEPTION_") {
+                return Some(text);
+            }
+            last = text;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+    if last.is_empty() {
+        std::fs::read_to_string(path).ok()
+    } else {
+        Some(last)
+    }
+}
+
 fn crash_dump_dirs(game_dir: &std::path::Path, logs: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut dirs = vec![logs.to_path_buf(), game_dir.to_path_buf()];
     if let Some(temp) = std::env::var_os("TEMP") {
@@ -735,13 +782,37 @@ pub fn parse_crash_report(text: &str) -> String {
     }
 }
 
+/// Pulls the driver date (`MM/DD/YYYY ...`) out of the WMI line and returns how
+/// old it is in days.
+pub fn driver_age_days(gpu_lines: &[String]) -> Option<i64> {
+    for line in gpu_lines {
+        for token in line.split_whitespace() {
+            let date = token.split('T').next().unwrap_or(token);
+            if let Ok(parsed) = chrono::NaiveDate::parse_from_str(date.trim(), "%m/%d/%Y") {
+                return Some((chrono::Utc::now().date_naive() - parsed).num_days());
+            }
+        }
+    }
+    None
+}
+
 /// Turns the faulting module into advice a user can act on.
 pub fn crash_hint(detail: &str) -> String {
     let lowered = detail.to_lowercase();
     // Concrete Windows module names only: short fragments like "igd" or "atio"
     // also occur inside ordinary words and would produce false advice.
+    // AMD's OpenGL driver (atio6axx.dll) is a known crash source in Minecraft;
+    // it needs its own advice: a clean driver reinstall, not just an update.
+    if lowered.contains("atio6axx") || lowered.contains("atig6txx") || lowered.contains("ammdev") {
+        return "Упал OpenGL-драйвер AMD (atio6axx.dll) — это известная проблема драйверов Radeon \
+с Minecraft. Что помогает: 1) поставьте свежий драйвер AMD Adrenalin с сайта amd.com (не через \
+Центр обновления Windows) и выберите «чистую установку»; 2) если не помогло — откат на 22.5.1; \
+3) отключите оверлеи AMD/RivaTuner/MSI Afterburner; 4) в параметрах графики Windows привяжите \
+java.exe к дискретной видеокарте; 5) как обход — профиль Minecraft 1.20.1 (Java 17)."
+            .to_string();
+    }
     let graphics = [
-        "nvoglv", "nvwgf", "atio6axx", "atig6txx", "amdpcom", "amdvlk", "igc64", "igd10",
+        "nvoglv", "nvwgf", "amdpcom", "amdvlk", "igc64", "igd10",
         "igd12", "igdumd", "opengl32", "glfw", "d3d11", "d3d9", "dxgi",
     ];
     if graphics.iter().any(|needle| lowered.contains(needle)) {
@@ -1107,6 +1178,14 @@ mod tests {
     }
 
     #[test]
+    fn measures_driver_age() {
+        let lines = vec!["Radeon RX 560 Series | driver 31.0.12027.9001 | 03/30/2023 03:00:00".to_string()];
+        let days = driver_age_days(&lines).expect("date must be parsed");
+        assert!(days > 400, "a 2023 driver is old in 2026: {days}");
+        assert!(driver_age_days(&["no date here".to_string()]).is_none());
+    }
+
+    #[test]
     fn reads_hotspot_crash_dumps() {
         let dump = r#"# A fatal error has been detected by the Java Runtime Environment:
 #
@@ -1124,6 +1203,9 @@ mod tests {
         assert!(details.iter().any(|line| line.contains("JRE version")));
         let hint = crash_hint(dump);
         assert!(hint.contains("драйвер"), "a GPU module must produce a driver hint: {hint}");
+        let amd = crash_hint("Problematic frame: C  [atio6axx.dll+0x15b08f]");
+        assert!(amd.contains("atio6axx"), "AMD advice must name the driver: {amd}");
+        assert!(amd.contains("1.20.1"), "AMD advice must offer the version workaround");
         let lwjgl_hint = crash_hint("C  [lwjgl.dll+0x1234]");
         assert!(!lwjgl_hint.contains("драйвер"), "lwjgl is not a driver problem: {lwjgl_hint}");
         assert!(lwjgl_hint.contains("natives"));

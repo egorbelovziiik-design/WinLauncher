@@ -1,6 +1,6 @@
 [package]
 name = "winlaucher"
-version = "1.0.7"
+version = "1.0.8"
 description = "WinLaucher — modern Minecraft Java Edition launcher"
 authors = ["WinLaucher"]
 edition = "2021"

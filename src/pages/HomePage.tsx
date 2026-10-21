@@ -347,6 +347,13 @@ export function HomePage() {
                         >
                           {t('logs.title')}
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => void call('app_open_logs_dir').catch(() => undefined)}
+                          className="text-[11px] font-semibold text-red-200 underline decoration-red-300/40 underline-offset-2 hover:text-white"
+                        >
+                          {t('settings.openLogs')}
+                        </button>
                       </div>
                     </div>
                   )}
