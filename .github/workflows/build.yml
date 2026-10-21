@@ -192,17 +192,17 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.8
-          name: WinLaucher 1.0.8
+          tag_name: v1.0.9
+          name: WinLaucher 1.0.9
           make_latest: true
           draft: false
           body: |
-            ## WinLaucher 1.0.8 (Windows 10/11, x64)
+            ## WinLaucher 1.0.9 (Windows 10/11, x64)
 
             Установщики собраны автоматически из ветки `arena/aea774bf-winlauncher`.
 
-            * `WinLaucher_1.0.8_x64-setup.exe` — установщик NSIS (для текущего пользователя, без прав администратора)
-            * `WinLaucher_1.0.8_x64_en-US.msi` — установщик MSI (Windows Installer)
+            * `WinLaucher_1.0.9_x64-setup.exe` — установщик NSIS (для текущего пользователя, без прав администратора)
+            * `WinLaucher_1.0.9_x64_en-US.msi` — установщик MSI (Windows Installer)
             * `WinLaucher-portable.exe` — portable-версия, запускается без установки
 
             ### Важно

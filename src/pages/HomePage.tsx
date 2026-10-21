@@ -147,6 +147,7 @@ export function HomePage() {
     stopGame,
     refreshStatus,
     refreshDownloads,
+    refreshProfiles,
     setLogDrawer,
   } = useApp();
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -176,6 +177,31 @@ export function HomePage() {
       void refreshDownloads();
     }
   }, [launch.state, refreshDownloads]);
+
+  const [compatBusy, setCompatBusy] = useState(false);
+
+  // Works around a broken OpenGL driver: 1.20.1 ships an older LWJGL build that
+  // does not hit the AMD atio6axx crash.
+  const createCompatProfile = async () => {
+    if (compatBusy) return;
+    setCompatBusy(true);
+    try {
+      const created = await call<{ id: string }>('profile_create', {
+        draft: {
+          name: 'Minecraft 1.20.1 (совместимый)',
+          mcVersion: '1.20.1',
+          loader: { kind: 'vanilla' },
+          ramMb: Math.min(settings.defaultRamMb, 4096),
+        },
+      });
+      await refreshProfiles();
+      await setActiveProfile(created.id);
+    } catch {
+      /* the toast is raised by the store */
+    } finally {
+      setCompatBusy(false);
+    }
+  };
 
   const copyError = async () => {
     try {
@@ -355,6 +381,30 @@ export function HomePage() {
                           {t('settings.openLogs')}
                         </button>
                       </div>
+
+                      {/amd|atio6axx|драйвер|fatal error|видеокарт/i.test(launch.message) && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={compatBusy}
+                            onClick={() => void createCompatProfile()}
+                            className="rounded-lg bg-red-400/20 px-3 py-1.5 text-[11px] font-bold text-red-50 ring-1 ring-red-300/30 transition hover:bg-red-400/30 disabled:opacity-50"
+                          >
+                            Создать профиль 1.20.1 (обход)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void call('app_open_url', {
+                                url: 'https://www.amd.com/en/support/download/drivers.html',
+                              }).catch(() => undefined)
+                            }
+                            className="rounded-lg bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white ring-1 ring-white/15 transition hover:bg-white/15"
+                          >
+                            Драйвер AMD
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
