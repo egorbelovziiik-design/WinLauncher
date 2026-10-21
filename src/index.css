@@ -19,7 +19,7 @@ img{max-width:100%}::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-
 .input{background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:12px;padding:.6rem .8rem;color:var(--text);width:100%;min-width:0;outline:none}.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 25%,transparent)}select.input option{color:#111;background:#fff}
 .navbtn{display:flex;gap:.65rem;align-items:center;padding:.68rem .8rem;border-radius:12px;color:var(--muted);width:100%;text-align:left;background:transparent;border:0;cursor:pointer;font-weight:600;white-space:nowrap;overflow:hidden}
 .navbtn.active{background:linear-gradient(135deg,var(--primary),var(--primary2,var(--primary)));color:#fff}.navbtn:hover:not(.active){background:var(--panel2);color:var(--text)}
-.hero{position:relative;background:linear-gradient(115deg,rgba(0,0,0,.78) 25%,rgba(0,0,0,.28)),url('https://images.unsplash.com/photo-1587095951601-b9a924a3fda0?w=1600&q=60') center/cover;min-height:350px;border-radius:24px;border:1px solid var(--border);overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.hero{position:relative;z-index:30;background:linear-gradient(115deg,rgba(0,0,0,.78) 25%,rgba(0,0,0,.28)),url('https://images.unsplash.com/photo-1587095951601-b9a924a3fda0?w=1600&q=60') center/cover;min-height:350px;border-radius:24px;border:1px solid var(--border);overflow:visible;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 .grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(255px,100%),1fr));gap:14px}
 .grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -32,7 +32,7 @@ img{max-width:100%}::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-
 
 /* --- Modern launch bar & custom pickers (no native white dropdowns) --- */
 *{transition-property:background-color,border-color,color,box-shadow,transform,opacity,filter;transition-duration:.18s;transition-timing-function:cubic-bezier(.4,0,.2,1)}
-.launch-bar{position:relative;display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-top:20px;background:rgba(2,6,23,.55);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:10px;backdrop-filter:blur(18px);box-shadow:0 18px 44px rgba(0,0,0,.42);max-width:100%}
+.launch-bar{position:relative;z-index:50;display:flex;gap:10px;flex-wrap:wrap;align-items:stretch;margin-top:20px;background:rgba(2,6,23,.55);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:10px;backdrop-filter:blur(18px);box-shadow:0 18px 44px rgba(0,0,0,.42);max-width:100%}
 .picker{position:relative;flex:1 1 190px;min-width:min(210px,100%)}
 .picker-btn{width:100%;height:100%;display:flex;align-items:center;gap:10px;text-align:left;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.13);border-radius:15px;padding:9px 12px;color:#f8fafc;cursor:pointer}
 .picker-btn:hover{background:rgba(255,255,255,.11);transform:translateY(-1px)}
@@ -41,7 +41,7 @@ img{max-width:100%}::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-
 .picker-ico{font-size:23px;flex:0 0 auto}.picker-avatar{width:34px;height:34px;border-radius:9px;flex:0 0 auto;object-fit:cover}.chev{color:#cbd5e1;font-size:13px;flex:0 0 auto}
 .popover{position:absolute;left:0;right:auto;top:calc(100% + 9px);width:min(390px,calc(100vw - 48px));max-width:calc(100vw - 48px);z-index:60;background:rgba(8,15,26,.97);border:1px solid rgba(255,255,255,.15);border-radius:17px;padding:9px;box-shadow:0 26px 60px rgba(0,0,0,.6);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:6px;animation:popIn .22s cubic-bezier(.2,.9,.3,1.2);transform-origin:top center;color:#f1f5f9;max-height:min(480px,72vh);overflow:hidden}
 .popover-wide{width:min(430px,calc(100vw - 48px))}
-.popover-list{overflow-y:auto;display:flex;flex-direction:column;gap:3px;min-height:0;padding-right:2px}
+.popover-list{overflow-y:auto;display:flex;flex-direction:column;gap:3px;min-height:0;max-height:292px;padding-right:2px;flex:0 1 auto}
 @keyframes popIn{from{opacity:0;transform:translateY(-7px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
 .main>*{animation:fadeUp .35s ease both}
