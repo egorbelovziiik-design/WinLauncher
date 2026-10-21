@@ -1,31 +1,5 @@
 # WinLaucher self-test
 
 Minecraft version: 1.21.4
-Java: 21.0.12.1 (C:\Users\runneradmin\AppData\Roaming\WinLaucher\java\jdk-21\jdk-21.0.12.1+1\bin\java.exe)
-Main class: net.minecraft.client.main.Main
-Natives: C:\Users\runneradmin\AppData\Roaming\WinLaucher\minecraft\versions\1.21.4\natives
-Missing files: 0/4123
-Java executable: C:\Users\runneradmin\AppData\Roaming\WinLaucher\java\jdk-21\jdk-21.0.12.1+1\bin\java.exe
-Arguments: 45
 
-Killed after 150s (the game kept running).
-
-Exit code: None
-Uptime: 150s
-Captured lines: 12
-
---- game output ---
-  <log4j:Event logger="com.mojang.datafixers.DataFixerBuilder" timestamp="1792597111910" level="INFO" thread="Datafixer Bootstrap">
-    <log4j:Message><![CDATA[243 Datafixer optimizations took 577 milliseconds]]></log4j:Message>
-  </log4j:Event>
-  <log4j:Event logger="com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService" timestamp="1792597116939" level="INFO" thread="Render thread">
-    <log4j:Message><![CDATA[Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]]]></log4j:Message>
-  </log4j:Event>
-  <log4j:Event logger="flk" timestamp="1792597116996" level="INFO" thread="Render thread">
-    <log4j:Message><![CDATA[Setting user: SelfTest]]></log4j:Message>
-  </log4j:Event>
-  <log4j:Event logger="flk" timestamp="1792597117307" level="INFO" thread="Render thread">
-    <log4j:Message><![CDATA[Backend library: LWJGL version 3.3.3+5]]></log4j:Message>
-  </log4j:Event>
-
-Identified reason: </log4j:Event>
+PREPARE FAILED: lwjgl-3.3.3-natives-windows-x86.jar: SHA1 mismatch
