@@ -22,7 +22,7 @@ export function Modal({ title, subtitle, children, onClose, wide, className }: {
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const modal = ref.current; const focusable = () => Array.from(modal?.querySelectorAll<HTMLElement>('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex="0"]') ?? []).filter(el => el.getClientRects().length > 0);
-    const timer = window.setTimeout(() => (focusable()[0] ?? modal)?.focus(), 20);
+    const timer = window.setTimeout(() => (modal?.querySelector<HTMLElement>('[data-autofocus], input:not([disabled]), textarea:not([disabled])') ?? focusable()[0] ?? modal)?.focus(), 20);
     const key = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); close.current(); }
       if (e.key === 'Tab') { const nodes = focusable(); const first = nodes[0]; const last = nodes[nodes.length - 1]; if (!nodes.length) { e.preventDefault(); modal?.focus(); } else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } }

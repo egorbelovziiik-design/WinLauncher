@@ -9,6 +9,7 @@ mod logs;
 mod minecraft;
 mod models;
 mod modpacks;
+mod modrinth;
 mod profiles;
 mod security;
 mod settings;

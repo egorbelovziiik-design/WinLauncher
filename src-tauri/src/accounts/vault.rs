@@ -1,3 +1,4 @@
+#[cfg(not(windows))]
 use anyhow::Result;
 
 // Windows Credential Manager limits a credential blob to 2560 bytes.

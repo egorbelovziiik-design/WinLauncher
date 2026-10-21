@@ -2,11 +2,11 @@ use crate::{downloads::{self, Hash, Transfer}, security, state::AppState};
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, path::{Path, PathBuf}};
+use std::{collections::HashMap, path::Path};
 use tokio_util::sync::CancellationToken;
 
 pub const MANIFEST_URL: &str = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
-#[derive(Clone, Serialize, Deserialize)] pub struct VersionEntry { pub id: String, #[serde(rename = "type")] pub kind: String, pub url: String, pub sha1: String, #[serde(rename = "releaseTime")] pub release_time: String }
+#[derive(Clone, Serialize, Deserialize)] pub struct VersionEntry { pub id: String, #[serde(rename(deserialize = "type", serialize = "kind"))] pub kind: String, pub url: String, pub sha1: String, #[serde(rename(deserialize = "releaseTime", serialize = "release_time"))] pub release_time: String }
 #[derive(Clone, Serialize, Deserialize)] pub struct Manifest { pub latest: HashMap<String, String>, pub versions: Vec<VersionEntry> }
 #[derive(Clone, Serialize, Deserialize)] pub struct Download { pub url: String, pub sha1: String, pub size: Option<u64>, pub path: Option<String> }
 #[derive(Clone, Serialize, Deserialize)] pub struct AssetIndex { pub id: String, pub url: String, pub sha1: String, pub size: Option<u64> }
@@ -110,16 +110,20 @@ pub fn merge(mut base: Version, child: Version) -> Version {
 pub fn extract_natives(archive: &Path, target: &Path, excludes: &[String]) -> Result<()> {
     let mut zip = zip::ZipArchive::new(std::fs::File::open(archive)?)?;
     if zip.len() > 20_000 { bail!("Слишком много native-файлов"); }
+    let mut total_size = 0u64;
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
         let raw = entry.name().trim_end_matches('/').to_string();
         if raw.is_empty() || entry.is_dir() || raw.starts_with("META-INF/") || excludes.iter().any(|e| raw.starts_with(e)) { continue; }
         if entry.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) { bail!("Ссылка в native-архиве"); }
         let path = security::within(target, &raw)?;
-        if entry.size() > 256 * 1024 * 1024 { bail!("Слишком большой native-файл"); }
+        total_size = total_size.checked_add(entry.size()).context("Переполнение размера natives")?;
+        if entry.size() > 256 * 1024 * 1024 || total_size > 512 * 1024 * 1024 { bail!("Превышен безопасный размер native-файлов"); }
         std::fs::create_dir_all(path.parent().context("Нет папки")?)?;
         let mut output = std::fs::File::create(path)?;
-        std::io::copy(&mut entry, &mut output)?;
+        let expected = entry.size();
+        let copied = std::io::copy(&mut std::io::Read::take(entry, 256 * 1024 * 1024 + 1), &mut output)?;
+        if copied != expected { bail!("Неверный размер распакованного native-файла"); }
     }
     Ok(())
 }
@@ -130,6 +134,15 @@ pub fn path_string(path: &Path) -> String { path.to_string_lossy().into_owned() 
 #[cfg(test)] mod tests {
     use super::*;
     use serde_json::json;
+    #[test] fn manifest_ipc_fields_match_frontend_contract() {
+        let source = json!({ "id":"1.21.4", "type":"release", "url":"https://piston-meta.mojang.com/v.json", "sha1":"a".repeat(40), "releaseTime":"2024-12-03T00:00:00Z" });
+        let parsed: VersionEntry = serde_json::from_value(source).unwrap();
+        let output = serde_json::to_value(parsed).unwrap();
+        assert_eq!(output["kind"], "release"); assert_eq!(output["release_time"], "2024-12-03T00:00:00Z");
+    }
+    #[test] fn x86_rule_does_not_match_x64() {
+        assert!(!allowed(Some(&[json!({"action":"allow","os":{"name":"windows","arch":"x86"}})]), &RuleContext::windows()));
+    }
     #[test] fn maven_coordinates() { assert_eq!(maven_path("org.lwjgl:lwjgl:3.3.3:natives-windows").unwrap(), "org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3-natives-windows.jar"); assert!(maven_path("x:../y:1").is_err()); }
     #[test] fn rule_order_and_features() {
         let c = RuleContext::windows();
