@@ -197,3 +197,36 @@ pub fn open_target(target: &str) -> Result<(), String> {
     #[allow(unreachable_code)]
     Err("Opening files is not supported on this platform".into())
 }
+
+/// Video adapter name + driver version + date. Used in crash diagnostics: an
+/// outdated GPU driver is the most common reason for a JVM fatal error in
+/// Minecraft.
+pub fn gpu_summary() -> Vec<String> {
+    #[cfg(windows)]
+    {
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-CimInstance Win32_VideoController | ForEach-Object { \"$($_.Name) | driver $($_.DriverVersion) | $($_.DriverDate)\" }",
+        ]);
+        hide_console(&mut cmd);
+        if let Ok(output) = cmd.output() {
+            let text = String::from_utf8_lossy(&output.stdout).to_string();
+            let lines: Vec<String> = text
+                .lines()
+                .map(|line| line.trim().to_string())
+                .filter(|line| !line.is_empty())
+                .collect();
+            if !lines.is_empty() {
+                return lines;
+            }
+        }
+        Vec::new()
+    }
+    #[cfg(not(windows))]
+    {
+        Vec::new()
+    }
+}

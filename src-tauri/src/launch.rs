@@ -40,10 +40,10 @@ fn clear_safe_retry(profile_id: &str) {
 pub fn start_launch(app: AppHandle, profile_id: String, account_id: String) {
     // A user-initiated start may use the automatic safe-mode retry once again.
     clear_safe_retry(&profile_id);
-    spawn_launch(app, profile_id, account_id, false);
+    spawn_launch(app, profile_id, account_id, false, false);
 }
 
-fn spawn_launch(app: AppHandle, profile_id: String, account_id: String, safe: bool) {
+fn spawn_launch(app: AppHandle, profile_id: String, account_id: String, safe: bool, alternate_java: bool) {
     tauri::async_runtime::spawn(async move {
         {
             let state = app.state::<AppState>();
@@ -55,7 +55,7 @@ fn spawn_launch(app: AppHandle, profile_id: String, account_id: String, safe: bo
                 started_at: Some(chrono::Utc::now().to_rfc3339()),
             });
         }
-        if let Err(error) = launch_inner(&app, &profile_id, &account_id, safe).await {
+        if let Err(error) = launch_inner(&app, &profile_id, &account_id, safe, alternate_java).await {
             let state = app.state::<AppState>();
             state.log("error", "launcher", format!("Launch failed: {error}"));
             state.set_launch(LaunchStatus {
@@ -74,6 +74,7 @@ async fn launch_inner(
     profile_id: &str,
     account_id: &str,
     safe: bool,
+    alternate_java: bool,
 ) -> Result<(), String> {
     let state = app.state::<AppState>();
     let profile = state
@@ -134,7 +135,14 @@ async fn launch_inner(
     // 3. Java.
     let required = merged.required_java();
     state.set_launch_state(Some(profile.id.clone()), "preparingJava", format!("Java {required}"));
-    let runtime = java::resolve_for_launch(app, &profile, &settings, required).await?;
+    let runtime = if alternate_java {
+        match java::alternate_for(app, required).await {
+            Some(runtime) => runtime,
+            None => java::resolve_for_launch(app, &profile, &settings, required).await?,
+        }
+    } else {
+        java::resolve_for_launch(app, &profile, &settings, required).await?
+    };
     state.log(
         "info",
         "launcher",
@@ -229,7 +237,9 @@ async fn launch_inner(
     let watched_id = profile.id.clone();
     let account_id_watcher = account_id.to_string();
     let watched_dir = game_dir.clone();
+    let watched_logs = paths.logs.clone();
     let safe_launch = safe;
+    let alternate_used = alternate_java;
     let offline_account = account.user_type == "legacy";
     let tail_watcher = Arc::clone(&tail);
     let started = std::time::Instant::now();
@@ -255,7 +265,19 @@ async fn launch_inner(
         let failed = code != Some(0);
         let mut reason = if failed { identify_reason(&lines) } else { String::new() };
         let mut hint = String::new();
+        let mut dump_path: Option<std::path::PathBuf> = None;
+        let mut gpus: Vec<String> = Vec::new();
         if failed {
+            // A JVM fatal error almost always comes from the graphics driver, so
+            // the report carries the adapters and their driver dates.
+            gpus = util::gpu_summary();
+            if !gpus.is_empty() {
+                st.log(
+                    "error",
+                    "launcher",
+                    format!("Video adapters: {}", gpus.join(" · ")),
+                );
+            }
             if let Some(report) = newest_crash_report(&watched_dir) {
                 if let Ok(text) = std::fs::read_to_string(&report) {
                     let summary = parse_crash_report(&text);
@@ -270,7 +292,8 @@ async fn launch_inner(
                     }
                 }
             }
-            if let Some(dump) = newest_crash_dump(&watched_dir) {
+            if let Some(dump) = newest_crash_dump(&crash_dump_dirs(&watched_dir, &watched_logs)) {
+                dump_path = Some(dump.clone());
                 if let Ok(text) = std::fs::read_to_string(&dump) {
                     let details = parse_crash_dump(&text);
                     if !details.is_empty() && reason.is_empty() {
@@ -310,7 +333,7 @@ async fn launch_inner(
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(500));
                 if refreshed {
-                    spawn_launch(handle, pid, acct, false);
+                    spawn_launch(handle, pid, acct, false, alternate_used);
                 } else {
                     let state = handle.state::<AppState>();
                     state.set_launch(LaunchStatus {
@@ -321,6 +344,27 @@ async fn launch_inner(
                         started_at: None,
                     });
                 }
+            });
+            return;
+        }
+
+        // A HotSpot fatal error is a fault inside the JVM itself. Retry once on a
+        // different Java build (Microsoft OpenJDK) before giving up.
+        let fatal_error = lines
+            .iter()
+            .any(|line| line.contains("A fatal error has been detected"));
+        if failed && fatal_error && !alternate_used && take_safe_retry(&watched_id) {
+            st.log(
+                "warn",
+                "launcher",
+                "The JVM crashed. Trying a different Java build (Microsoft OpenJDK)",
+            );
+            let handle = watcher.clone();
+            let pid = watched_id.clone();
+            let acct = account_id_watcher.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(400));
+                spawn_launch(handle, pid, acct, false, true);
             });
             return;
         }
@@ -340,7 +384,7 @@ async fn launch_inner(
             let acct = account_id_watcher.clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(400));
-                spawn_launch(handle, pid, acct, true);
+                spawn_launch(handle, pid, acct, true, alternate_used);
             });
             return;
         }
@@ -369,11 +413,14 @@ async fn launch_inner(
                     Some(value) => format!("Exit code {value}: {reason}"),
                     None => reason.clone(),
                 };
-                if hint.is_empty() {
-                    head
-                } else {
-                    format!("{head}\n\n{hint}")
+                let mut text = if hint.is_empty() { head } else { format!("{head}\n\n{hint}") };
+                if let Some(path) = dump_path.as_ref() {
+                    text.push_str(&format!("\n\nДампы: {}", path.display()));
                 }
+                if !gpus.is_empty() {
+                    text.push_str(&format!("\nВидеокарта: {}", gpus.join(" · ")));
+                }
+                text
             } else {
                 String::new()
             },
@@ -554,16 +601,32 @@ fn clear_crash_dumps(game_dir: &std::path::Path) {
     }
 }
 
-fn newest_crash_dump(game_dir: &std::path::Path) -> Option<std::path::PathBuf> {
-    let entries = std::fs::read_dir(game_dir).ok()?;
-    entries
-        .flatten()
-        .filter(|entry| {
+/// Looks for a HotSpot crash dump in every place the JVM may have written it.
+fn newest_crash_dump(dirs: &[std::path::PathBuf]) -> Option<std::path::PathBuf> {
+    let mut best: Option<(std::time::SystemTime, std::path::PathBuf)> = None;
+    for dir in dirs {
+        let Ok(entries) = std::fs::read_dir(dir) else { continue };
+        for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
-            name.starts_with("hs_err_pid") && name.ends_with(".log")
-        })
-        .max_by_key(|entry| entry.metadata().and_then(|m| m.modified()).ok())
-        .map(|entry| entry.path())
+            if !name.starts_with("hs_err_pid") || !name.ends_with(".log") {
+                continue;
+            }
+            let Ok(modified) = entry.metadata().and_then(|m| m.modified()) else { continue };
+            let is_newer = best.as_ref().map(|(current, _)| modified > *current).unwrap_or(true);
+            if is_newer {
+                best = Some((modified, entry.path()));
+            }
+        }
+    }
+    best.map(|(_, path)| path)
+}
+
+fn crash_dump_dirs(game_dir: &std::path::Path, logs: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut dirs = vec![logs.to_path_buf(), game_dir.to_path_buf()];
+    if let Some(temp) = std::env::var_os("TEMP") {
+        dirs.push(std::path::PathBuf::from(temp));
+    }
+    dirs
 }
 
 /// Pulls the useful lines out of a HotSpot crash dump: the exception, the
@@ -593,10 +656,15 @@ pub fn parse_crash_dump(text: &str) -> Vec<String> {
             } else {
                 out.push(format!("Problematic frame: {rest}"));
             }
-        } else if line.starts_with("JRE version") || line.starts_with("Java VM") {
+        } else if line.starts_with("JRE version")
+            || line.starts_with("Java VM")
+            || line.starts_with("OS:")
+            || line.starts_with("CPU:")
+            || line.starts_with("Host:")
+        {
             out.push(line.to_string());
         }
-        if out.len() >= 8 {
+        if out.len() >= 10 {
             break;
         }
     }
@@ -878,6 +946,14 @@ pub fn build_launch(
             merged.natives_dir.to_string_lossy()
         ));
     }
+    // Always write HotSpot crash dumps into our log directory: the JVM's default
+    // (current working directory, sometimes %TEMP%) made them hard to find, so a
+    // fatal crash looked like an empty message.
+    let error_file = paths.logs.join("hs_err_pid%p.log");
+    jvm_args.push(format!(
+        "-XX:ErrorFile={}",
+        error_file.to_string_lossy().replace('\\', "/")
+    ));
     jvm_args.push("-Dminecraft.launcher.brand=WinLaucher".to_string());
     jvm_args.push(format!("-Dminecraft.launcher.version={}", env!("CARGO_PKG_VERSION")));
     // Custom flags are skipped in safe mode: a single invalid -XX option makes

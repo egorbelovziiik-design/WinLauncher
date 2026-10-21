@@ -299,6 +299,61 @@ pub async fn download(app: &AppHandle, major: u32) -> Result<JavaRuntime, String
     Ok(runtime)
 }
 
+/// Second opinion for a crashing JVM: if the Temurin runtime dies with a
+/// HotSpot fatal error, a different build of the same major version sometimes
+/// does not. Microsoft ships a signed OpenJDK zip under a stable link.
+pub async fn download_alternate(app: &AppHandle, major: u32) -> Result<JavaRuntime, String> {
+    let state = app.state::<AppState>();
+    let paths = state.paths();
+    let url = format!("https://aka.ms/download-jdk/microsoft-jdk-{major}-windows-x64.zip");
+    let archive = paths.cache.join(format!("microsoft-jdk-{major}.zip"));
+    state.log("info", "launcher", format!("Downloading Microsoft OpenJDK {major}"));
+    download::download_files(
+        app.clone(),
+        format!("Microsoft JDK {major}"),
+        None,
+        vec![FileSpec::new(&url, archive.clone())],
+    )
+    .await?;
+
+    let target = paths.java.join(format!("jdk-{major}-ms"));
+    if target.exists() {
+        let _ = std::fs::remove_dir_all(&target);
+    }
+    std::fs::create_dir_all(&target).map_err(|e| e.to_string())?;
+    download::extract_zip(&archive, &target)?;
+    let _ = std::fs::remove_file(&archive);
+
+    let mut candidates = Vec::new();
+    scan_dir(&target, 3, &mut candidates);
+    let exe = candidates
+        .into_iter()
+        .next()
+        .ok_or_else(|| "The Microsoft JDK archive does not contain java.exe".to_string())?;
+    let mut runtime = probe(&exe).ok_or_else(|| "The Microsoft JDK could not be started".to_string())?;
+    runtime.source = "managed".into();
+    {
+        let mut list = lock(&state.java);
+        list.retain(|r| r.path != runtime.path);
+        list.push(runtime.clone());
+    }
+    state.log("info", "launcher", format!("Microsoft JDK {} ready ({})", runtime.version, runtime.path));
+    Ok(runtime)
+}
+
+/// A runtime that can run `major` and is not a Temurin build, downloading one
+/// when necessary. Returns `None` when only Temurin builds are available.
+pub async fn alternate_for(app: &AppHandle, major: u32) -> Option<JavaRuntime> {
+    let is_alternate = |runtime: &JavaRuntime| -> bool {
+        let path = runtime.path.to_lowercase();
+        runtime.major == major && (path.contains("-ms") || path.contains("microsoft"))
+    };
+    if let Some(runtime) = lock(&app.state::<AppState>().java).iter().find(|r| is_alternate(r)) {
+        return Some(runtime.clone());
+    }
+    download_alternate(app, major).await.ok()
+}
+
 /* ------------------------------------------------------------------ */
 /* Selection for launching                                             */
 /* ------------------------------------------------------------------ */

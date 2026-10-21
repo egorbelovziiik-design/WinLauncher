@@ -4,6 +4,7 @@ import {
   CircleCheck,
   CircleDashed,
   Coffee,
+  Copy,
   Cpu,
   DownloadCloud,
   Newspaper,
@@ -176,6 +177,14 @@ export function HomePage() {
     }
   }, [launch.state, refreshDownloads]);
 
+  const copyError = async () => {
+    try {
+      await navigator.clipboard.writeText(launch.message);
+    } catch {
+      /* clipboard can be blocked; the log drawer still works */
+    }
+  };
+
   const busy = ['checking', 'downloading', 'installing', 'preparingJava', 'starting'].includes(launch.state);
   const running = launch.state === 'running';
   const pct = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
@@ -322,13 +331,23 @@ export function HomePage() {
                           {t('accounts.offlineHint')}
                         </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setLogDrawer(true)}
-                        className="mt-2 text-[11px] font-semibold text-red-200 underline decoration-red-300/40 underline-offset-2 hover:text-white"
-                      >
-                        {t('logs.title')}
-                      </button>
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={copyError}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-300/30 px-2.5 py-1 text-[11px] font-semibold text-red-100 transition hover:bg-red-400/15"
+                        >
+                          <Copy size={12} />
+                          {t('common.copy')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLogDrawer(true)}
+                          className="text-[11px] font-semibold text-red-200 underline decoration-red-300/40 underline-offset-2 hover:text-white"
+                        >
+                          {t('logs.title')}
+                        </button>
+                      </div>
                     </div>
                   )}
 
