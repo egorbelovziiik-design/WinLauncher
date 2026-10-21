@@ -6,7 +6,12 @@ type Response<T> = Result<T, String>;
 fn err(e: impl std::fmt::Display) -> String { security::redact(&e.to_string(), &[]) }
 
 #[tauri::command] pub fn get_snapshot(state: State<'_, AppState>) -> Response<Value> {
-    Ok(json!({ "settings": state.config(), "profiles": state.list::<Profile>("profiles").map_err(err)?, "accounts": state.list::<Account>("accounts").map_err(err)?, "installed": state.list::<InstalledFile>("installed").map_err(err)?, "sessions": state.list::<Session>("sessions").map_err(err)?, "job": state.job.lock().unwrap_or_else(|e| e.into_inner()).clone(), "running": state.running.lock().unwrap_or_else(|e| e.into_inner()).clone(), "discord_status": state.discord_status.read().unwrap_or_else(|e| e.into_inner()).clone(), "curseforge_configured": accounts::vault::get("curseforge-api-key").is_ok(), "version": env!("CARGO_PKG_VERSION") }))
+    // Clone lock-protected state in separate statements: never serialize while
+    // holding several locks in an order that can conflict with begin_job.
+    let job = state.job.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let running = state.running.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let discord_status = state.discord_status.read().unwrap_or_else(|e| e.into_inner()).clone();
+    Ok(json!({ "settings": state.config(), "profiles": state.list::<Profile>("profiles").map_err(err)?, "accounts": state.list::<Account>("accounts").map_err(err)?, "installed": state.list::<InstalledFile>("installed").map_err(err)?, "sessions": state.list::<Session>("sessions").map_err(err)?, "job": job, "running": running, "discord_status": discord_status, "curseforge_configured": accounts::vault::get("curseforge-api-key").is_ok(), "version": env!("CARGO_PKG_VERSION") }))
 }
 #[tauri::command] pub fn save_settings(state: State<'_, AppState>, settings: Settings) -> Response<()> { settings::save(&state, settings).map_err(err) }
 #[tauri::command] pub async fn get_system_info(state: State<'_, AppState>) -> Response<SystemInfo> { let s = state.inner().clone(); tokio::task::spawn_blocking(move || settings::system_info(&s)).await.map_err(err)?.map_err(err) }

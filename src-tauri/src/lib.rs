@@ -1,3 +1,5 @@
+#[cfg(feature = "native-smoke")]
+pub mod smoke;
 mod accounts;
 mod commands;
 mod content;
@@ -38,7 +40,7 @@ pub fn run() {
                 if event.id.as_ref() == "show" { show_main(app); }
                 if event.id.as_ref() == "quit" {
                     let state = app.state::<AppState>();
-                    if state.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() || state.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
+                    if state.has_running() || state.has_job() {
                         show_main(app); state.notify("info", "Завершите игру или текущую операцию перед выходом. Лаунчер продолжает отслеживать процесс.");
                     } else { app.exit(0); }
                 }
@@ -50,7 +52,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let state = window.state::<AppState>();
-                if state.config().close_to_tray || state.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() || state.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
+                if state.config().close_to_tray || state.has_running() || state.has_job() {
                     api.prevent_close(); let _ = window.hide();
                 }
             }
@@ -71,7 +73,7 @@ pub fn run() {
     application.run(|app, event| {
         if let tauri::RunEvent::ExitRequested { api, .. } = event {
             let state = app.state::<AppState>();
-            if state.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() || state.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() { api.prevent_exit(); return; }
+            if state.has_running() || state.has_job() { api.prevent_exit(); return; }
             state.exit.store(true, Ordering::Relaxed);
             if let Some(worker) = app.state::<DiscordWorker>().0.lock().unwrap_or_else(|e| e.into_inner()).take() { let _ = worker.join(); }
         }

@@ -88,7 +88,21 @@ async fn install_forge(state: &AppState, profile: &Profile, version: &str, runti
     security::safe_id(&expected_version)?;
     let root = state.root().join("minecraft");
     let output = security::within(&root, &format!("versions/{expected_version}/{expected_version}.json"))?;
-    if !output.is_file() {
+    let verified_output = security::within(&root, &format!("versions/{expected_version}/winlauncher-verified-loader.json"))?;
+    if let Ok(bytes) = fs::read(&verified_output) {
+        if let Ok(cached) = serde_json::from_slice::<Version>(&bytes) {
+            let mut valid = cached.id == expected_version;
+            for library in &cached.libraries {
+                if let Some(artifact) = library.downloads.as_ref().and_then(|d| d.artifact.as_ref()).filter(|a| a.url.is_empty()) {
+                    let relative = artifact.path.clone().unwrap_or(metadata::maven_path(&library.name)?);
+                    let path = security::within(&root.join("libraries"), &relative)?;
+                    valid &= downloads::verify(&path, &Hash::new("sha1", &artifact.sha1)?)?;
+                }
+            }
+            if valid { return Ok(cached); }
+        }
+    }
+    {
         let launcher_profiles = root.join("launcher_profiles.json");
         if !launcher_profiles.exists() { fs::write(&launcher_profiles, b"{\"profiles\":{},\"selectedProfile\":\"\"}")?; }
         let mut command = Command::new(&runtime.path);
@@ -104,8 +118,23 @@ async fn install_forge(state: &AppState, profile: &Profile, version: &str, runti
         };
         if !status.success() { bail!("Официальный установщик {} завершился с кодом {:?}. Подробности в логах. Старые GUI-only установщики могут не поддерживать headless-режим.", profile.loader.as_str(), status.code()); }
     }
-    let child: Version = serde_json::from_slice(&fs::read(&output).context("Установщик не создал JSON версии")?)?;
+    let mut child: Version = serde_json::from_slice(&fs::read(&output).context("Установщик не создал JSON версии")?)?;
     if child.id != expected_version { bail!("Версия результата установщика не совпадает"); }
+    // Pin processor output integrity at the trust boundary: only AFTER a verified
+    // official installer successfully produced the artifacts. Future launches
+    // compare bytes with these saved hashes and rerun the installer if changed.
+    for library in &mut child.libraries {
+        if let Some(artifact) = library.downloads.as_mut().and_then(|d| d.artifact.as_mut()).filter(|a| a.url.is_empty()) {
+            let relative = artifact.path.clone().unwrap_or(metadata::maven_path(&library.name)?);
+            let path = security::within(&root.join("libraries"), &relative)?;
+            if artifact.sha1.is_empty() { artifact.sha1 = downloads::hash_file(&path, "sha1")?; }
+            if !downloads::verify(&path, &Hash::new("sha1", &artifact.sha1)?)? { bail!("Результат процессора Forge не прошёл проверку целостности"); }
+            artifact.size = Some(fs::metadata(path)?.len());
+        }
+    }
+    let temp = verified_output.with_extension("json.part");
+    fs::write(&temp, serde_json::to_vec_pretty(&child)?)?;
+    downloads::atomic_replace(&temp, &verified_output)?;
     Ok(child)
 }
 

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,9 +35,16 @@ jobs:
       - name: Format Rust sources
         run: cargo fmt --manifest-path src-tauri/Cargo.toml
       - name: Rust unit tests
-        run: ./scripts/ci-command.ps1 -Command "cargo test --manifest-path src-tauri/Cargo.toml --lib" -LogName rust-test.log
+        run: ./scripts/ci-command.ps1 -Command "cargo test --manifest-path src-tauri/Cargo.toml --features native-smoke --lib" -LogName rust-test.log
       - name: Build Windows executable and NSIS installer
         run: ./scripts/ci-command.ps1 -Command "npm run desktop:build -- --target x86_64-pc-windows-msvc" -LogName windows-build.log
+      - name: Real Rust backend acceptance checks
+        continue-on-error: true
+        timeout-minutes: 20
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP ("WinLauncher-native-" + [Guid]::NewGuid().ToString())
+          ./scripts/ci-command.ps1 -Command "cargo run --manifest-path src-tauri/Cargo.toml --features native-smoke --bin native-smoke -- `"$root`" release-artifacts" -LogName backend-smoke.log
       - name: Native Windows smoke checks (no licensed account)
         id: native-smoke
         continue-on-error: true
@@ -78,9 +85,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $files = @('src-tauri/Cargo.lock')
+          New-Item -ItemType Directory -Force release-artifacts | Out-Null
+          Compress-Archive -Path src-tauri/src/* -DestinationPath release-artifacts/rust-formatted-source.zip -Force
+          $files = @('src-tauri/Cargo.lock', 'release-artifacts/rust-formatted-source.zip')
+          if (Test-Path rust-test.log) { $files += 'rust-test.log' }
+          if (Test-Path backend-smoke.log) { $files += 'backend-smoke.log' }
           if (Test-Path release-artifacts/WinLauncher.exe) { $files += 'release-artifacts/WinLauncher.exe' }
           if (Test-Path release-artifacts/WinLauncher-Setup.exe) { $files += 'release-artifacts/WinLauncher-Setup.exe' }
           if (Test-Path release-artifacts/NATIVE-SMOKE.json) { $files += 'release-artifacts/NATIVE-SMOKE.json' }
           if (Test-Path release-artifacts/NATIVE-SMOKE.md) { $files += 'release-artifacts/NATIVE-SMOKE.md' }
+          if (Test-Path release-artifacts/BACKEND-SMOKE.json) { $files += 'release-artifacts/BACKEND-SMOKE.json' }
+          if (Test-Path release-artifacts/BACKEND-SMOKE.md) { $files += 'release-artifacts/BACKEND-SMOKE.md' }
           ./scripts/ci-api-delivery.ps1 -Files $files

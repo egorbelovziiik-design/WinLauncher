@@ -109,7 +109,7 @@ pub async fn import_inner(state: &AppState, path: &Path, cancel: &CancellationTo
 }
 
 pub fn export(state: &AppState, profile_id: &str, destination: &Path) -> Result<()> {
-    state.ensure_idle()?;
+    let _operation = state.begin_job("export")?;
     if destination.extension().and_then(|s| s.to_str()) != Some("mrpack") || destination.exists() { bail!("Выберите новое имя файла с расширением .mrpack"); }
     for parent in destination.ancestors() { security::reject_link(parent)?; }
     let profile: Profile = state.get("profiles", profile_id)?;

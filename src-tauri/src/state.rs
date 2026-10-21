@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 pub struct PendingAuth { pub device_code: String, pub interval: u64, pub expires: i64, pub client_id: String, pub next_poll: i64 }
 
 pub struct Inner {
-    pub app: AppHandle, pub base: PathBuf, pub db: Mutex<Connection>, pub settings: RwLock<Settings>,
+    pub app: Option<AppHandle>, pub base: PathBuf, pub db: Mutex<Connection>, pub settings: RwLock<Settings>,
     pub client: reqwest::Client, pub job: Mutex<Option<Job>>, pub cancel: Mutex<CancellationToken>,
     pub running: Mutex<Option<RunningGame>>, pub game_stop: Mutex<CancellationToken>, pub logs: Mutex<VecDeque<LogLine>>,
     pub pending_auth: Mutex<HashMap<String, PendingAuth>>, pub discord_status: RwLock<String>,
@@ -19,7 +19,10 @@ pub struct Inner {
 impl Deref for AppState { type Target = Inner; fn deref(&self) -> &Inner { &self.0 } }
 
 impl AppState {
-    pub fn new(app: AppHandle, base: PathBuf) -> Result<Self> {
+    pub fn new(app: AppHandle, base: PathBuf) -> Result<Self> { Self::create(Some(app), base) }
+    #[cfg(feature = "native-smoke")]
+    pub fn headless(base: PathBuf) -> Result<Self> { Self::create(None, base) }
+    fn create(app: Option<AppHandle>, base: PathBuf) -> Result<Self> {
         fs::create_dir_all(&base)?;
         let conn = Connection::open(base.join("winlauncher.sqlite3"))?;
         conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
@@ -37,6 +40,9 @@ impl AppState {
         state.persist_settings()?;
         state.log("info", "launcher", "WinLauncher 1.0.0. Телеметрия отключена. Данные хранятся локально.");
         Ok(state)
+    }
+    pub fn emit<T: Serialize + Clone>(&self, event: &str, payload: T) -> tauri::Result<()> {
+        if let Some(app) = &self.app { app.emit(event, payload) } else { Ok(()) }
     }
     pub fn config(&self) -> Settings { self.settings.read().unwrap_or_else(|e| e.into_inner()).clone() }
     pub fn root(&self) -> PathBuf { PathBuf::from(self.config().data_dir) }
@@ -69,6 +75,8 @@ impl AppState {
         self.db.lock().unwrap_or_else(|e| e.into_inner()).execute(&format!("DELETE FROM {table} WHERE id=?1"), [id])?;
         Ok(())
     }
+    pub fn has_running(&self) -> bool { self.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() }
+    pub fn has_job(&self) -> bool { self.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() }
     pub fn ensure_idle(&self) -> Result<()> {
         if self.job.lock().unwrap_or_else(|e| e.into_inner()).is_some() { bail!("Дождитесь завершения текущей операции"); }
         if self.running.lock().unwrap_or_else(|e| e.into_inner()).is_some() { bail!("Сначала закройте Minecraft"); }
@@ -82,11 +90,11 @@ impl AppState {
         *self.cancel.lock().unwrap_or_else(|e| e.into_inner()) = token.clone();
         let job = Job { stage: stage.into(), detail: String::new(), completed_bytes: 0, total_bytes: 0, completed_files: 0, total_files: 0 };
         *lock = Some(job.clone());
-        let _ = self.app.emit("download-progress", Some(job));
+        let _ = self.emit("download-progress", Some(job));
         Ok(JobGuard { state: self.clone(), token })
     }
     pub fn progress(&self, update: impl FnOnce(&mut Job)) {
-        if let Some(job) = self.job.lock().unwrap_or_else(|e| e.into_inner()).as_mut() { update(job); let _ = self.app.emit("download-progress", Some(job.clone())); }
+        if let Some(job) = self.job.lock().unwrap_or_else(|e| e.into_inner()).as_mut() { update(job); let _ = self.emit("download-progress", Some(job.clone())); }
     }
     pub fn stage(&self, name: &str, detail: &str) { self.progress(|j| { j.stage = name.into(); j.detail = detail.into(); j.completed_bytes = 0; j.total_bytes = 0; j.completed_files = 0; j.total_files = 0; }); }
     pub fn log(&self, level: &str, source: &str, message: &str) {
@@ -98,13 +106,13 @@ impl AppState {
         if fs::metadata(&path).map(|m| m.len()).unwrap_or(0) < 50 * 1024 * 1024 {
             if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(path) { let _ = writeln!(f, "{} [{}] [{}] {}", entry.timestamp, level, source, entry.message); }
         }
-        let _ = self.app.emit("log-line", entry);
+        let _ = self.emit("log-line", entry);
     }
-    pub fn notify(&self, kind: &str, message: &str) { let _ = self.app.emit("notification", serde_json::json!({ "kind": kind, "message": message })); }
-    pub fn changed(&self) { let _ = self.app.emit("data-changed", ()); }
+    pub fn notify(&self, kind: &str, message: &str) { let _ = self.emit("notification", serde_json::json!({ "kind": kind, "message": message })); }
+    pub fn changed(&self) { let _ = self.emit("data-changed", ()); }
 }
 
 pub struct JobGuard { state: AppState, pub token: CancellationToken }
 impl Drop for JobGuard {
-    fn drop(&mut self) { *self.state.job.lock().unwrap_or_else(|e| e.into_inner()) = None; let _ = self.state.app.emit("download-progress", Option::<Job>::None); self.state.changed(); }
+    fn drop(&mut self) { *self.state.job.lock().unwrap_or_else(|e| e.into_inner()) = None; let _ = self.state.emit("download-progress", Option::<Job>::None); self.state.changed(); }
 }

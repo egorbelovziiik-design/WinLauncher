@@ -122,7 +122,7 @@ pub async fn launch_identity(state: &AppState) -> Result<(Account, String)> {
 }
 
 pub fn remove(state: &AppState, id: &str) -> Result<()> {
-    state.ensure_idle()?;
+    let _operation = state.begin_job("account")?;
     let _: Account = state.get("accounts", id)?;
     vault::delete(&format!("account-{id}"))?;
     state.remove("accounts", id)?;

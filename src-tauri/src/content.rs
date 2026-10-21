@@ -57,7 +57,7 @@ pub async fn apply(state: &AppState, profile: &Profile, plans: &[InstalledFile],
 }
 
 pub fn toggle(state: &AppState, id: &str) -> Result<()> {
-    state.ensure_idle()?;
+    let _operation = state.begin_job("mods")?;
     let mut file: InstalledFile = state.get("installed", id)?;
     let old = path(state, &file)?;
     if !downloads::verify(&old, &Hash::new(&file.hash_algorithm, &file.sha)?)? { bail!("Файл изменён или отсутствует. Операция отменена."); }
@@ -68,7 +68,7 @@ pub fn toggle(state: &AppState, id: &str) -> Result<()> {
     state.changed(); Ok(())
 }
 pub fn remove(state: &AppState, id: &str) -> Result<()> {
-    state.ensure_idle()?;
+    let _operation = state.begin_job("mods")?;
     let file: InstalledFile = state.get("installed", id)?; let source = path(state, &file)?;
     if source.exists() {
         if !downloads::verify(&source, &Hash::new(&file.hash_algorithm, &file.sha)?)? { bail!("Файл был изменён. Удалите его вручную, чтобы не потерять данные."); }

@@ -80,8 +80,8 @@ pub async fn library_transfer(state: &AppState, library: &Library, download: Opt
     let url = download.map(|d| d.url.clone()).filter(|s| !s.is_empty()).unwrap_or_else(|| format!("{}/{}", library.url.as_deref().unwrap_or("https://libraries.minecraft.net").trim_end_matches('/'), path));
     let sha = if let Some(hash) = download.map(|d| d.sha1.as_str()).filter(|s| !s.is_empty()) { hash.to_owned() }
         else {
-            // Forge installer can create local, processed artifacts. The installer is verified first.
-            if target.is_file() && download.is_none() { return Ok(Transfer { url, hash: Hash::new("sha1", &downloads::hash_file(&target, "sha1")?)?, size: Some(std::fs::metadata(&target)?.len()), path: target }); }
+            // Never compare a cached file with its own hash: fetch the publisher's checksum.
+            // Generated Forge artifacts get pinned checksums immediately after the verified installer runs.
             downloads::text(state, &format!("{url}.sha1")).await?.split_whitespace().next().context("Нет SHA1 библиотеки")?.to_owned()
         };
     Ok(Transfer { url, path: target, hash: Hash::new("sha1", &sha)?, size: download.and_then(|d| d.size) })

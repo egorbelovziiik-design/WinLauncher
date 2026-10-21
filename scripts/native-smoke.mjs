@@ -23,14 +23,16 @@ async function writeReport() {
 try {
   const executable = path.resolve('src-tauri/target/x86_64-pc-windows-msvc/release/winlauncher.exe');
   processHandle = spawn(executable, [], { env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: '--remote-debugging-port=9222 --remote-allow-origins=http://localhost:9222 --disable-gpu' }, stdio: 'ignore' });
-  let launchError;
+  let launchError; let exitCode = null;
+  processHandle.on('exit', code => { exitCode = code; });
   processHandle.on('error', e => { launchError = e; });
-  const deadline = Date.now() + 90000;
+  const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
     if (launchError) throw launchError;
+    if (exitCode !== null) throw new Error(`WinLauncher.exe exited before WebView2 inspection; exit code=${exitCode}`);
     try { browser = await chromium.connectOverCDP('http://127.0.0.1:9222', { timeout: 3000 }); break; } catch { await delay(1500); }
   }
-  if (!browser) throw new Error('WebView2 CDP was not reachable. GUI smoke tests require a working Windows desktop/WebView2 runtime.');
+  if (!browser) throw new Error('WebView2 CDP was not reachable. The spawned EXE remained running, but GUI smoke tests require a working interactive Windows/WebView2 inspection environment.');
   const context = browser.contexts()[0];
   for (let attempt = 0; attempt < 40; attempt++) {
     page = context.pages().find(p => !p.url().startsWith('devtools:'));

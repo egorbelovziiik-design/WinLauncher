@@ -7,7 +7,6 @@ use metadata::{Version, RuleContext};
 use serde::Deserialize;
 use serde_json::Value;
 use std::{collections::{HashMap, HashSet}, fs, path::PathBuf, process::Stdio};
-use tauri::Emitter;
 use tokio::{io::{AsyncBufReadExt, BufReader}, process::Command};
 use tokio_util::sync::CancellationToken;
 
@@ -168,7 +167,7 @@ pub async fn launch(state: &AppState, profile_id: &str, allow_memory_pressure: b
     let running = RunningGame { pid, profile_id: profile.id.clone(), version: profile.game_version.clone(), loader: profile.loader.as_str().into(), profile_name: profile.name.clone(), started_at: chrono::Utc::now().timestamp() };
     *state.running.lock().unwrap_or_else(|e| e.into_inner()) = Some(running.clone());
     let stop = CancellationToken::new(); *state.game_stop.lock().unwrap_or_else(|e| e.into_inner()) = stop.clone();
-    let _ = state.app.emit("game-state", Some(running.clone()));
+    let _ = state.emit("game-state", Some(running.clone()));
     state.log("info", "launcher", &format!("Minecraft {} ({}) запущен, PID {pid}. Команда с токенами не записывается.", profile.game_version, profile.loader.as_str()));
     let secrets = vec![token.clone(), format!("token:{token}:{}", account.id)];
     if let Some(stdout) = child.stdout.take() { let state = state.clone(); let secrets = secrets.clone(); tokio::spawn(async move { let mut lines = BufReader::new(stdout).lines(); while let Ok(Some(line)) = lines.next_line().await { let text = security::redact(&line, &secrets); let level = if line.contains("ERROR") || line.contains("FATAL") { "error" } else if line.contains("WARN") { "warn" } else { "info" }; state.log(level, "minecraft", &text); } }); }
@@ -186,7 +185,7 @@ pub async fn launch(state: &AppState, profile_id: &str, allow_memory_pressure: b
         profile.last_played = Some(running.started_at); profile.play_seconds += duration;
         if let Err(e) = state.put("profiles", &profile.id, &profile) { state.log("error", "launcher", &format!("Не удалось сохранить статистику: {e}")); }
         *state.running.lock().unwrap_or_else(|e| e.into_inner()) = None;
-        let _ = state.app.emit("game-state", Option::<RunningGame>::None);
+        let _ = state.emit("game-state", Option::<RunningGame>::None);
         state.log(if code == Some(0) { "info" } else { "warn" }, "launcher", &format!("Minecraft завершён. Код: {code:?}. Время: {duration} с."));
         if code != Some(0) { state.notify("error", "Minecraft завершился с ошибкой. Откройте логи для подробностей."); }
         if let Err(e) = fs::remove_dir_all(&installed.natives) { state.log("warn", "launcher", &format!("Не удалось очистить natives: {e}")); }

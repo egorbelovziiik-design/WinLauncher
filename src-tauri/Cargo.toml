@@ -1,11 +1,20 @@
 [package]
 name = "winlauncher"
 version = "1.0.0"
+default-run = "winlauncher"
 description = "WinLauncher — Minecraft Java Edition launcher"
 authors = ["WinLauncher contributors"]
 edition = "2021"
 rust-version = "1.85"
 license = "MIT"
+
+[features]
+native-smoke = []
+
+[[bin]]
+name = "native-smoke"
+path = "src/bin/native-smoke.rs"
+required-features = ["native-smoke"]
 
 [lib]
 name = "winlauncher_lib"
@@ -36,7 +45,6 @@ fs2 = "0.4"
 open = "5"
 url = "2"
 base64 = "0.22"
-discord-rich-presence = "0.2.5"
 quick-xml = "0.37"
 regex = "1"
 

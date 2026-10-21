@@ -10,37 +10,54 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [{
-      "label": "main",
-      "title": "WinLauncher",
-      "width": 1440,
-      "height": 960,
-      "minWidth": 1000,
-      "minHeight": 700,
-      "decorations": false,
-      "center": true,
-      "backgroundColor": "#0D1117"
-    }],
+    "windows": [
+      {
+        "label": "main",
+        "title": "WinLauncher",
+        "width": 1440,
+        "height": 960,
+        "minWidth": 1000,
+        "minHeight": 700,
+        "decorations": false,
+        "center": true,
+        "backgroundColor": "#0D1117"
+      }
+    ],
     "security": {
       "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost 'self'; img-src 'self' data: blob: https://cdn.modrinth.com https://media.forgecdn.net https://mediafilez.forgecdn.net https://textures.minecraft.net https://launchercontent.mojang.com https://www.minecraft.net; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"],
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ],
     "category": "Game",
     "shortDescription": "Your world. Your rules.",
     "longDescription": "WinLauncher is an independent Minecraft Java Edition launcher. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.",
     "copyright": "Copyright © 2026 WinLauncher contributors",
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
       "nsis": {
         "displayLanguageSelector": true,
-        "languages": ["Russian", "English", "Ukrainian"],
+        "languages": [
+          "Russian",
+          "English",
+          "Ukrainian"
+        ],
         "installMode": "currentUser",
         "installerIcon": "icons/icon.ico",
-        "startMenuFolder": "WinLauncher"
+        "startMenuFolder": "WinLauncher",
+        "sidebarImage": "icons/installer-sidebar.bmp",
+        "headerImage": "icons/installer-header.bmp"
       }
     }
   }

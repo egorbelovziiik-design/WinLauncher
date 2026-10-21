@@ -6,6 +6,19 @@ This file distinguishes code implementation, automated tests, and real end-to-en
 
 Development: Linux x64 sandbox, Node.js 22. Rust and Windows SDK are not installed locally. Network egress is restricted to GitHub, npm and PyPI. Native builds are delegated to the Windows workflow on this branch. No Microsoft Application ID, licensed account, CurseForge key or Discord Application ID is bundled.
 
+## Observed results (2026-10-21 UTC)
+
+- **PASSED**: `npm run build` (TypeScript + production Vite build).
+- **PASSED**: 10/10 frontend unit tests.
+- **PASSED**: 12/12 Playwright browser acceptance tests, latest rerun 17.7 seconds.
+- **PASSED**: axe-core automated audit of all nine main pages, default theme, Chromium 1440×1000: zero reported violations. This does not certify every theme, screen reader or native WebView2.
+- **PASSED**: Windows Rust unit-test step for commit `e236a737654754bd8f9dcf4eb58ecf38aeeec72c`.
+- **PASSED**: genuine MSVC Windows x64 executable and supported Tauri NSIS packaging for that commit: [Windows run 39645687272](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39645687272).
+- **NOT TESTED**: GUI acceptance via WebView2 CDP on that runner. The harness could not connect; a green packaging workflow is not a successful GUI/native acceptance result.
+- The latest source adds hardened Discord RPC, loader cache validation, mutation locking and native backend acceptance checks. **Its Windows verification is pending** until its own CI reports are read. Historical build results must not be attributed to untested changes.
+
+The workflow writes `BACKEND-SMOKE.json/.md` from the real Windows Rust engine and `NATIVE-SMOKE.json/.md` from the compiled GUI application. Backend checks use real publisher downloads, hashes, Java processes and SQLite, with only the UI event sink omitted. Neither harness invents a licensed account or a rendered game session. Acceptance steps can fail independently of packaging; read their reports, not only the workflow badge.
+
 ## Requested end-to-end checks
 
 | Check | Status | Reason / required procedure |
@@ -31,7 +44,7 @@ Development: Linux x64 sandbox, Node.js 22. Rust and Windows SDK are not install
 
 ## Automated tests
 
-Results are updated after execution. Source tests cover progress from real counters, path traversal and reserved Windows names, allowed HTTPS hosts, token redaction, file integrity, quoted legacy arguments, Maven coordinates, Mojang rules, Java versions, JVM memory arguments, theme data, and session statistics. UI tests use the explicitly labelled browser preview, not mocked successful native operations.
+The executed results above are distinct from integration scenarios below. Source tests cover progress from real counters, path traversal and reserved Windows names, allowed HTTPS hosts, token redaction, file integrity, quoted legacy arguments, Maven coordinates, Mojang rules, Java versions, JVM memory arguments, theme data, and session statistics. UI tests use the explicitly labelled browser preview, not mocked successful native operations.
 
 ## Manual Windows acceptance checklist
 

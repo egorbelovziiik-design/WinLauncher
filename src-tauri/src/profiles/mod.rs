@@ -26,7 +26,7 @@ pub fn new(name: String, game_version: String, loader: Loader) -> Profile {
 }
 
 pub fn save(state: &AppState, mut profile: Profile) -> Result<Profile> {
-    state.ensure_idle()?; validate(&profile)?;
+    let _operation = state.begin_job("profile")?; validate(&profile)?;
     if let Ok(existing) = state.get::<Profile>("profiles", &profile.id) {
         if existing.game_version != profile.game_version || existing.loader != profile.loader || existing.loader_version != profile.loader_version {
             if state.list::<InstalledFile>("installed")?.iter().any(|f| f.profile_id == profile.id) { bail!("В профиле уже есть моды. Создайте отдельный профиль для другой версии или загрузчика."); }
@@ -44,7 +44,7 @@ pub fn save(state: &AppState, mut profile: Profile) -> Result<Profile> {
 
 /// Never recursively delete worlds: archive the whole instance into managed backups.
 pub fn delete(state: &AppState, id: &str) -> Result<()> {
-    state.ensure_idle()?;
+    let _operation = state.begin_job("profile")?;
     let _: Profile = state.get("profiles", id)?;
     let path = state.instance(id)?;
     let destination = security::within(&state.root(), &format!("backups/removed-profile-{id}-{}", chrono::Utc::now().timestamp_millis()))?;
