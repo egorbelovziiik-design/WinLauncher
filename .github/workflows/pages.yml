@@ -5,23 +5,25 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "src/themes/**"
+      - "src/assets/**"
       - ".github/workflows/pages.yml"
       - "package.json"
       - "package-lock.json"
       - "vercel.json"
+      - "tsconfig.json"
+      - "site/tsconfig.json"
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,16 +35,13 @@ jobs:
       - run: npm run site:build
         env:
           GITHUB_PAGES: "true"
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - run: |
+          touch site/dist/.nojekyll
+          cp site/dist/index.html site/dist/404.html
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          path: site/dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site/dist
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "site: deploy ${{ github.sha }} to Pages"
