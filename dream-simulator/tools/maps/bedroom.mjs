@@ -124,6 +124,22 @@ export function bedroom() {
     Transparency: 1, Anchored: true, CanCollide: false, Color: rgb(255, 200, 150),
   }, [pl(rgb(255, 200, 150), 2, 26)]));
 
+  // Потолочные лампы: лобби должно быть хорошо видно
+  for (const [lx, lz] of [[-9, 8], [9, 8], [-9, -8], [9, -8], [0, 0]]) {
+    parts.push(el('Part', {
+      Name: 'CeilingLamp', Shape: 'Cylinder', Size: v3(4.6, 0.7, 4.6),
+      CFrame: cf([lx, H - 0.9, lz]), Color: rgb(255, 238, 200),
+      Material: MAT.Neon, Transparency: 0.05, Anchored: true, CanCollide: false,
+    }, [
+      pl(rgb(255, 226, 186), 2.4, 46),
+    ]));
+    parts.push(el('Part', {
+      Name: 'LampShade', Shape: 'Cylinder', Size: v3(5.4, 0.5, 5.4),
+      CFrame: cf([lx, H - 0.55, lz]), Color: rgb(70, 62, 90),
+      Material: MAT.Metal, Anchored: true, CanCollide: false,
+    }));
+  }
+
   // Вентилятор на потолке
   parts.push(c([0, H - 0.4, 0], [1, 1.2, 1], rgb(40, 40, 46), MAT.Metal));
   for (let i = 0; i < 3; i++) {
@@ -145,8 +161,8 @@ export function bedroom() {
   parts.push(pl(rgb(150, 120, 255), 2.2, 26));
 
   /* --- маркеры и камера --- */
-  parts.push(marker('BedPoint', [-8, 4.8, -4]));
-  parts.push(marker('SleepCameraPoint', [-2, 12, 8]));
+  parts.push(marker('BedPoint', [-8, 1.9, -6]));
+  parts.push(marker('SleepCameraPoint', [2, 9, 8]));
   parts.push(marker('MenuSpawn', [0, 4, 10]));
   parts.push(marker('DoorPoint', [0, 3, 18]));
   parts.push(marker('CameraTarget', [-4, 7, -8], { Size: v3(1, 1, 1) }));

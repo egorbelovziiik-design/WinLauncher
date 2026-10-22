@@ -21,25 +21,51 @@ local InputController = require(script.Parent.Modules.InputController)
 
 local player = Players.LocalPlayer
 
--- Прячем стандартные элементы интерфейса, которые не нужны в хорроре
-pcall(function()
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, false)
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+-- Прячем стандартные элементы интерфейса, которые не нужны в хорроре.
+-- CoreGui грузится не сразу, поэтому повторяем несколько секунд.
+local function hideCoreGui()
+	for _, guiType in ipairs({
+		Enum.CoreGuiType.Backpack,
+		Enum.CoreGuiType.PlayerList,
+		Enum.CoreGuiType.EmotesMenu,
+		Enum.CoreGuiType.Health,
+		Enum.CoreGuiType.Chat,
+	}) do
+		pcall(function()
+			StarterGui:SetCoreGuiEnabled(guiType, false)
+		end)
+	end
+	pcall(function()
+		StarterGui:SetCore("TopbarEnabled", false)
+	end)
+end
+hideCoreGui()
+task.spawn(function()
+	for _ = 1, 12 do
+		task.wait(0.5)
+		hideCoreGui()
+	end
 end)
 
 -- Ждём, пока сервер создаст Remotes
 Remotes.getFolder()
 task.wait(0.3)
 
-SoundController.start()
-CameraController.start()
-HUDController.start()
-MenuController.start()
-EffectsController.start()
-CutsceneController.start()
-InputController.start()
+local function safeStart(name, startFn)
+	local ok, err = pcall(startFn)
+	if not ok then
+		warn("[DreamSimulator] " .. name .. " не запустился: " .. tostring(err))
+	end
+	return ok
+end
+
+safeStart("SoundController", SoundController.start)
+safeStart("CameraController", CameraController.start)
+safeStart("HUDController", HUDController.start)
+safeStart("MenuController", MenuController.start)
+safeStart("EffectsController", EffectsController.start)
+safeStart("CutsceneController", CutsceneController.start)
+safeStart("InputController", InputController.start)
 
 ClientState.setPhase("loading")
 
@@ -88,7 +114,21 @@ task.delay(0.6, function()
 	ClientState.setPhase("menu")
 	CameraController.setMode("menu")
 	MenuController.show()
-	Remotes.get("PlayerReady"):FireServer()
+	local ready = Remotes.get("PlayerReady")
+	if ready then
+		ready:FireServer()
+	end
+end)
+
+-- Кнопка МЕНЮ всегда доступна, даже если что-то выше упало
+task.delay(1.6, function()
+	local topBar = player:WaitForChild("PlayerGui"):FindFirstChild("TopBar")
+	if topBar then
+		topBar.Enabled = true
+	end
+	if ClientState.phase ~= "dream" then
+		MenuController.show()
+	end
 end)
 
 ------------------------------------------------------------------
@@ -102,5 +142,9 @@ player.CharacterAdded:Connect(function()
 		CameraController.setMode("menu")
 	end
 end)
+
+------------------------------------------------------------------
+-- Резервная кнопка МЕНЮ живёт в отдельном скрипте BootMenu.client.luau
+------------------------------------------------------------------
 
 print("[DreamSimulator] Клиент готов")

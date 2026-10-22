@@ -92,6 +92,13 @@ function MenuController.show()
 	SoundController.setMenu()
 end
 
+-- Лобби без интерфейса: игрок может ходить по спальне
+function MenuController.openLobbyFree()
+	CameraController.setMode("menu")
+	CameraController.releaseToPlayer()
+	SoundController.setMenu()
+end
+
 function MenuController.hide()
 	setVisible("MainMenu", false)
 	for _, panel in ipairs(PANELS) do
@@ -825,6 +832,95 @@ function MenuController.start()
 		end
 	end
 
+	-- Верхняя кнопка МЕНЮ: в лобби открывает/закрывает меню, во сне — паузу
+	local topButton = ClientState.el("TopBar", "MenuButton")
+	if topButton then
+		hover(topButton)
+		topButton.MouseButton1Click:Connect(function()
+			clickSound()
+			local phase = ClientState.phase
+			local pausePanel = ClientState.el("TopBar", "PausePanel")
+			if phase == "menu" then
+				local menuGui = ClientState.getGui("MainMenu")
+				local menuOpen = menuGui and menuGui.Enabled
+				if menuOpen then
+					MenuController.hide()
+					MenuController.openLobbyFree()
+				else
+					MenuController.show()
+				end
+			elseif phase == "dream" or phase == "sleeping" or phase == "waking" then
+				if pausePanel then
+					pausePanel.Visible = not pausePanel.Visible
+				end
+			else
+				MenuController.show()
+			end
+		end)
+	end
+
+	-- Кнопки панели паузы
+	local pauseActions = {
+		PauseContinue = function()
+			local panel = ClientState.el("TopBar", "PausePanel")
+			if panel then
+				panel.Visible = false
+			end
+		end,
+		PauseQuests = function()
+			local panel = ClientState.el("TopBar", "PausePanel")
+			if panel then
+				panel.Visible = false
+			end
+			ClientState.emit("ToggleQuestLog")
+		end,
+		PauseInventory = function()
+			local panel = ClientState.el("TopBar", "PausePanel")
+			if panel then
+				panel.Visible = false
+			end
+			MenuController.openPanelByName("InventoryGUI")
+		end,
+		PauseSettings = function()
+			local panel = ClientState.el("TopBar", "PausePanel")
+			if panel then
+				panel.Visible = false
+			end
+			MenuController.openPanelByName("SettingsGUI")
+		end,
+		PauseLeave = function()
+			local panel = ClientState.el("TopBar", "PausePanel")
+			if panel then
+				panel.Visible = false
+			end
+			local remote = Remotes.get("ReturnToMenu")
+			if remote then
+				remote:FireServer()
+			end
+		end,
+	}
+	for buttonName, handler in pairs(pauseActions) do
+		local pauseButton = ClientState.el("TopBar", buttonName)
+		if pauseButton then
+			hover(pauseButton)
+			pauseButton.MouseButton1Click:Connect(function()
+				clickSound()
+				handler()
+			end)
+		end
+	end
+
+	-- Крестик в меню лобби: закрыть интерфейс и гулять по спальне
+	local closeMenu = ClientState.el("MainMenu", "CloseMenuButton")
+	if closeMenu then
+		hover(closeMenu)
+		closeMenu.MouseButton1Click:Connect(function()
+			clickSound()
+			MenuController.hide()
+			MenuController.openLobbyFree()
+		end)
+	end
+
 	ClientState.on("ClosePanel", function()
 		local tutorial = ClientState.el("MainMenu", "TutorialPanel")
 		if tutorial and tutorial.Visible then
@@ -841,9 +937,18 @@ function MenuController.start()
 	end)
 
 	ClientState.on("Phase", function(phase)
+		-- Верхняя панель нужна в лобби и во сне, но не в катсценах и на экране результата.
+		local topBar = ClientState.getGui("TopBar")
+		if topBar then
+			topBar.Enabled = (phase == "menu" or phase == "dream")
+		end
 		if phase == "menu" then
 			MenuController.show()
-		elseif phase == "sleeping" or phase == "dream" or phase == "waking" then
+		elseif phase == "sleeping" or phase == "dream" or phase == "waking" or phase == "result" then
+			local pausePanel = ClientState.el("TopBar", "PausePanel")
+			if pausePanel then
+				pausePanel.Visible = false
+			end
 			MenuController.hide()
 		end
 	end)
@@ -882,6 +987,36 @@ function MenuController.start()
 	Remotes.get("AchievementUnlocked").OnClientEvent:Connect(function(data)
 		SoundController.play("Win", 0.6)
 		ClientState.toast("Достижение: " .. data.name .. " (+150 🪙)", Color3.fromRGB(255, 230, 160), data.icon or "🏆")
+	end)
+
+	-- Признак, что меню реально работает (используется страховкой в ClientMain)
+	local topGui = ClientState.getGui("TopBar")
+	if topGui then
+		topGui:SetAttribute("MenuReady", true)
+	end
+
+	-- Клавиша M открывает/закрывает меню в лобби
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.M then
+			local phase = ClientState.phase
+			if phase == "menu" then
+				local menuGui = ClientState.getGui("MainMenu")
+				if menuGui and menuGui.Enabled then
+					MenuController.hide()
+					MenuController.openLobbyFree()
+				else
+					MenuController.show()
+				end
+			elseif phase == "dream" then
+				local pausePanel = ClientState.el("TopBar", "PausePanel")
+				if pausePanel then
+					pausePanel.Visible = not pausePanel.Visible
+				end
+			end
+		end
 	end)
 
 	-- Анимация заголовка

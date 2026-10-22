@@ -66,6 +66,7 @@ const CLIENT = [
 ];
 
 const starterPlayerScripts = el('StarterPlayerScripts', { Name: 'StarterPlayerScripts' }, [
+  clientScript('BootMenu', 'StarterPlayer/StarterPlayerScripts/BootMenu.client.luau'),
   clientScript('ClientMain', 'StarterPlayer/StarterPlayerScripts/ClientMain.client.luau'),
   el('Folder', { Name: 'Modules' },
     CLIENT.map((name) => moduleScript(name, `StarterPlayer/StarterPlayerScripts/Modules/${name}.luau`))),
@@ -95,11 +96,18 @@ const GUI_ORDER = [
   ['DreamHUD', 'dreamHud'],
   ['ResultGUI', 'resultGui'],
   ['CutsceneGUI', 'cutsceneGui'],
+  ['TopBar', 'topBarGui'],
 ];
 
-const starterGui = el('StarterGui', {}, GUI_ORDER.map(([, key], index) => {
+const GUI_DISPLAY = { TopBar: 90, CutsceneGUI: 80, MainMenu: 5 };
+
+const starterGui = el('StarterGui', {}, GUI_ORDER.map(([name, key], index) => {
   const gui = GUI[key]();
-  gui.props = { ...gui.props, ResetOnSpawn: false, DisplayOrder: index + 1 };
+  gui.props = {
+    ...gui.props,
+    ResetOnSpawn: false,
+    DisplayOrder: GUI_DISPLAY[name] || index + 1,
+  };
   return gui;
 }));
 
@@ -242,10 +250,10 @@ const workspaceNode = el('Workspace', {
 /* Lighting                                                            */
 /* ------------------------------------------------------------------ */
 const lighting = el('Lighting', {
-  Ambient: rgb(18, 18, 26),
-  OutdoorAmbient: rgb(12, 12, 20),
-  Brightness: 0.4,
-  ClockTime: 0.5,
+  Ambient: rgb(58, 58, 82),
+  OutdoorAmbient: rgb(38, 38, 58),
+  Brightness: 1.15,
+  ClockTime: 0.2,
   GeographicLatitude: 20,
   FogStart: 40,
   FogEnd: 320,

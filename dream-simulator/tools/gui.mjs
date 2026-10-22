@@ -184,6 +184,10 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
   }, [
     ui.corner(24),
     ui.stroke({ Color: C.accent, Transparency: 0.6, Thickness: 1.4 }),
+    button('CloseMenuButton', '✕', {
+      AnchorPoint: v2(1, 0), Position: udim2(1, -14, 0, 14), Size: udim2(0, 40, 0, 40),
+      BackgroundColor3: hex('#2a1e3d'), ZIndex: 5,
+    }),
     el('UIGradient', {
       Color: cs([[0, hex('#171a33')], [1, hex('#080914')]]),
       Transparency: ns([[0, 0.28], [1, 0.66]]),
@@ -200,7 +204,7 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
     ui.frame({ Name: 'Buttons', Size: udim2(1, 0, 0, 0), AutomaticSize: 'Y', BackgroundTransparency: 1, LayoutOrder: 4 }, [
       ui.list({ Padding: udim(0, 8), SortOrder: 'LayoutOrder' }),
 
-      button('StartButton', '▶  НАЧАТЬ СОН', {
+      button('StartButton', '▶  ИГРАТЬ', {
         LayoutOrder: 1, Size: udim2(0, 460, 0, 64),
         BackgroundColor3: hex('#4a2f9e'), TextColor3: hex('#ffffff'),
       }),
@@ -324,6 +328,47 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
   ]),
 
   ui.frame({ Name: 'Fade', Size: udim2(1, 1), BackgroundColor3: hex('#000000'), BackgroundTransparency: 1, ZIndex: 20, Visible: false }),
+]);
+
+/* ------------------------------------------------------------------ */
+/* 1b. Верхняя панель: кнопка МЕНЮ + пауза                             */
+/* ------------------------------------------------------------------ */
+export const topBarGui = () => screenGui('TopBar', { DisplayOrder: 90, IgnoreGuiInset: false, ResetOnSpawn: false }, [
+  ui.button('☰  МЕНЮ', {
+    Name: 'MenuButton', Position: udim2(0, 12, 0, 8), Size: udim2(0, 148, 0, 40),
+    BackgroundColor3: hex('#2a2160'), BackgroundTransparency: 0.05,
+    TextColor3: hex('#f2eeff'), FontFace: font(FONT_B, 'Bold'), TextScaled: true,
+    AutoButtonColor: false, ZIndex: 20,
+  }, [
+    ui.corner(12),
+    ui.stroke({ Color: C.accent, Transparency: 0.25, Thickness: 1.6 }),
+    el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 19 }),
+  ]),
+  ui.label('🌙 DREAM SIMULATOR', {
+    Name: 'BrandLabel', Position: udim2(0, 170, 0, 8), Size: udim2(0, 300, 0, 40),
+    BackgroundTransparency: 1, Text: '🌙 DREAM SIMULATOR', TextColor3: hex('#cfc6ff'),
+    TextXAlignment: 'Left', TextScaled: true, FontFace: font(FONT_B, 'Bold'), ZIndex: 20,
+  }, [
+    el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 18 }),
+  ]),
+
+  // Панель паузы (открывается кнопкой МЕНЮ во сне)
+  ui.frame({ Name: 'PausePanel', Visible: false, Size: udim2(1, 1), BackgroundColor3: hex('#05060d'), BackgroundTransparency: 0.4, ZIndex: 30 }, [
+    ui.frame({ Name: 'PauseCard', AnchorPoint: v2(0.5, 0.5), Position: udim2(0.5, 0, 0.5, 0), Size: udim2(0, 480, 0, 470), BackgroundColor3: hex('#101124'), BackgroundTransparency: 0.02, ZIndex: 31 }, [
+      ui.corner(20),
+      ui.stroke({ Color: C.accent, Transparency: 0.35, Thickness: 2 }),
+      bold('ПАУЗА', { Name: 'PauseTitle', Position: udim2(0, 0, 0, 22), Size: udim2(1, 0, 0, 34), TextColor3: C.moon, maxTextSize: 28, ZIndex: 32 }),
+      text('Сон продолжается, пока ты читаешь это.', { Name: 'PauseSubtitle', Position: udim2(0, 0, 0, 58), Size: udim2(1, 0, 0, 22), TextColor3: C.dim, maxTextSize: 15, ZIndex: 32 }),
+      ui.frame({ Name: 'PauseButtons', Position: udim2(0, 0, 0, 96), Size: udim2(1, 0, 0, 340), BackgroundTransparency: 1, ZIndex: 32 }, [
+        ui.list({ Padding: udim(0, 10), SortOrder: 'LayoutOrder' }),
+        button('PauseContinue', '▶  ПРОДОЛЖИТЬ', { Size: udim2(0, 380, 0, 50), LayoutOrder: 1, BackgroundColor3: hex('#4a2f9e'), ZIndex: 32 }),
+        button('PauseQuests', '📜  ЗАДАНИЯ', { Size: udim2(0, 380, 0, 50), LayoutOrder: 2, ZIndex: 32 }),
+        button('PauseInventory', '🎒  ИНВЕНТАРЬ', { Size: udim2(0, 380, 0, 50), LayoutOrder: 3, ZIndex: 32 }),
+        button('PauseSettings', '⚙  НАСТРОЙКИ', { Size: udim2(0, 380, 0, 50), LayoutOrder: 4, ZIndex: 32 }),
+        button('PauseLeave', '🚪  ПРОСНУТЬСЯ В ЛОББИ', { Size: udim2(0, 380, 0, 50), LayoutOrder: 5, BackgroundColor3: hex('#3a1b2a'), ZIndex: 32 }),
+      ]),
+    ]),
+  ]),
 ]);
 
 /* ------------------------------------------------------------------ */

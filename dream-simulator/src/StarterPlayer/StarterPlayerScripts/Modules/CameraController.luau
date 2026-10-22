@@ -62,7 +62,8 @@ function CameraController.setMode(newMode)
 	mode = newMode
 	camera = Workspace.CurrentCamera
 	if mode == "menu" then
-		camera.CameraType = Enum.CameraType.Scriptable
+		camera.CameraType = Enum.CameraType.Custom
+		CameraController.releaseToPlayer()
 		ClientState.player.CameraMode = Enum.CameraMode.Classic
 	elseif mode == "dream" then
 		camera.CameraType = Enum.CameraType.Custom
@@ -72,6 +73,24 @@ function CameraController.setMode(newMode)
 		camera.CameraType = Enum.CameraType.Scriptable
 		ClientState.player.CameraMode = Enum.CameraMode.Classic
 	end
+end
+
+-- Возвращает управление камерой персонажу (лобби).
+function CameraController.releaseToPlayer()
+	local character = ClientState.player.Character
+	if not character then
+		return
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	camera = Workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	camera.CameraType = Enum.CameraType.Custom
+	if humanoid then
+		camera.CameraSubject = humanoid
+	end
+	ClientState.player.CameraMode = Enum.CameraMode.Classic
 end
 
 function CameraController.getMode()
@@ -136,24 +155,10 @@ function CameraController.start()
 		menuTime += dt
 
 		if mode == "menu" then
-			camera.CameraType = Enum.CameraType.Scriptable
-			local count = #nodes
-			if count > 1 then
-				local total = segmentTime * count
-				local t = (menuTime % total) / segmentTime
-				local index = math.floor(t) + 1
-				local alpha = t - math.floor(t)
-				local eased = alpha * alpha * (3 - 2 * alpha)
-				local from = nodes[index]
-				local to = nodes[(index % count) + 1]
-				local position = from.CFrame.Position:Lerp(to.CFrame.Position, eased)
-				-- Лёгкое дыхание камеры
-				local breathe = math.sin(menuTime * 0.7) * 0.12
-				local desired = CFrame.lookAt(position + Vector3.new(0, breathe, 0), target)
-				camera.CFrame = camera.CFrame:Lerp(desired, math.min(1, dt * 2.2))
-			else
-				local node = nodes[1]
-				camera.CFrame = CFrame.lookAt(node.CFrame.Position, target)
+			-- В лобби камера обычная (от третьего лица), игрок свободно ходит.
+			if camera.CameraType ~= Enum.CameraType.Custom then
+				camera.CameraType = Enum.CameraType.Custom
+				camera.CameraSubject = nil
 			end
 		end
 
