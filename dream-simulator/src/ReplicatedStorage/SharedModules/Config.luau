@@ -4,7 +4,7 @@
 local Config = {}
 
 Config.GAME_NAME = "🌙 DREAM SIMULATOR: NIGHTMARE WORLDS"
-Config.VERSION = "1.0.0"
+Config.VERSION = "2.0.0"
 
 -- Основные тайминги (клиент тоже использует эти имена)
 Config.DreamDuration = 600

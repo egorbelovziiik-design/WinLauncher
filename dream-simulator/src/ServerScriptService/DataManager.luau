@@ -140,7 +140,9 @@ function DataManager.init()
 	end)
 	if ok then
 		store = result
+		workspace:SetAttribute("DataStoreMode", "cloud")
 	else
+		workspace:SetAttribute("DataStoreMode", "memory")
 		warn("[DataManager] DataStore недоступен, прогресс только в памяти: " .. tostring(result))
 	end
 

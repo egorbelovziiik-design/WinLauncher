@@ -18,6 +18,7 @@ local HUDController = require(script.Parent.Modules.HUDController)
 local EffectsController = require(script.Parent.Modules.EffectsController)
 local CutsceneController = require(script.Parent.Modules.CutsceneController)
 local InputController = require(script.Parent.Modules.InputController)
+local DiagnosticsController = require(script.Parent.Modules.DiagnosticsController)
 
 local player = Players.LocalPlayer
 
@@ -66,6 +67,7 @@ safeStart("MenuController", MenuController.start)
 safeStart("EffectsController", EffectsController.start)
 safeStart("CutsceneController", CutsceneController.start)
 safeStart("InputController", InputController.start)
+safeStart("DiagnosticsController", DiagnosticsController.start)
 
 ClientState.setPhase("loading")
 
@@ -135,7 +137,11 @@ end)
 -- Персонаж: первое лицо включаем только во сне
 ------------------------------------------------------------------
 player.CameraMode = Enum.CameraMode.Classic
-Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+-- Не переводим камеру в Scriptable на старте: до первой фазы она должна
+-- показывать лобби, иначе игрок видит чёрный экран до срабатывания меню.
+if Workspace.CurrentCamera and Workspace.CurrentCamera.CameraType ~= Enum.CameraType.Custom then
+	CameraController.setMode("menu")
+end
 
 player.CharacterAdded:Connect(function()
 	if ClientState.phase == "menu" then

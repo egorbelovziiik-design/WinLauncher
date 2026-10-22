@@ -109,10 +109,38 @@ end
 ------------------------------------------------------------------
 -- Интерфейс
 ------------------------------------------------------------------
+-- Кэш экранов: WaitForChild здесь смертельно опасен — при опечатке в имени
+-- поток висит 12 секунд и интерфейс «умирает». Ищем без блокировки.
+ClientState.guiCache = {}
+ClientState.playerGui.ChildAdded:Connect(function(child)
+	if child:IsA("ScreenGui") then
+		ClientState.guiCache[child.Name] = child
+	end
+end)
+ClientState.playerGui.ChildRemoved:Connect(function(child)
+	if ClientState.guiCache[child.Name] == child then
+		ClientState.guiCache[child.Name] = nil
+	end
+end)
+
 function ClientState.getGui(name)
+	local cached = ClientState.guiCache[name]
+	if cached and cached.Parent then
+		return cached
+	end
 	local gui = ClientState.playerGui:FindFirstChild(name)
 	if not gui then
-		gui = ClientState.playerGui:WaitForChild(name, 12)
+		-- Короткое ожидание: GUI могли ещё не склонировать в PlayerGui.
+		for _ = 1, 20 do
+			task.wait(0.05)
+			gui = ClientState.playerGui:FindFirstChild(name)
+			if gui then
+				break
+			end
+		end
+	end
+	if gui then
+		ClientState.guiCache[name] = gui
 	end
 	return gui
 end

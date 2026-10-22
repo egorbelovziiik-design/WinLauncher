@@ -18,6 +18,10 @@ print(("[DREAM SIMULATOR] сервер запущен, версия %s"):format(
 DataManager.init()
 DreamManager.init()
 
+-- Маркеры состояния мира: их читает панель диагностики на клиенте (F8).
+workspace:SetAttribute("BuildVersion", Config.VERSION)
+workspace:SetAttribute("GameReady", true)
+
 local function setupLeaderstats(player)
 	local existing = player:FindFirstChild("leaderstats")
 	if existing then

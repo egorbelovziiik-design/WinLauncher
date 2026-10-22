@@ -5,14 +5,18 @@
   "type": "module",
   "description": "DREAM SIMULATOR: NIGHTMARE WORLDS - Roblox horror game, built into a .rbxl place file",
   "scripts": {
+    "check": "node tools/luaucheck.mjs && node tools/contentcheck.mjs && node tools/wirecheck.mjs && node tools/requirecheck.mjs && node tools/domcheck.mjs",
     "build": "node tools/build.mjs",
-    "verify": "node tools/verify.mjs"
+    "verify": "node tools/verify.mjs build/DreamSimulator",
+    "maps": "node tools/checkmaps.mjs",
+    "all": "npm run check && npm run build && npm run maps && npm run verify"
   },
   "devDependencies": {
     "rbx-dom": "0.3.0"
   },
   "dependencies": {
     "@luau-rs/luau": "^0.739.0",
+    "fengari": "^0.1.4",
     "luau-parser": "^1.0.3"
   }
 }

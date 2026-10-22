@@ -15,6 +15,7 @@ local raw = {
 	{ id = "school_m", dream = "school", kind = "lights", need = 3, title = "Аварийный свет", desc = "Включите три аварийные лампы в школе.", reward = 60, label = "Аварийная лампа" },
 	{ id = "school_o1", dream = "school", kind = "collect", need = 3, title = "Дневники учеников", desc = "Найдите 3 дневника в классах.", reward = 45, label = "Дневник" },
 	{ id = "school_o2", dream = "school", kind = "interact", need = 2, title = "Чужие шкафчики", desc = "Проверьте два шкафчика в коридоре.", reward = 40, label = "Шкафчик" },
+	{ id = "school_o3", dream = "school", kind = "lights", need = 3, title = "Дежурный свет", desc = "Включите три лампы в спортзале и коридоре.", reward = 50, label = "Лампа" },
 
 	-- Город
 	{ id = "city_m", dream = "city", kind = "interact", need = 3, title = "Питание города", desc = "Запустите три городских щитка.", reward = 70, label = "Щиток" },
@@ -32,6 +33,7 @@ local raw = {
 	{ id = "circus_m", dream = "circus", kind = "interact", need = 1, title = "Клетка", desc = "Откройте клетку с зверем.", reward = 65, label = "Клетка" },
 	{ id = "circus_o1", dream = "circus", kind = "collect", need = 3, title = "Билеты", desc = "Соберите 3 билета на представление.", reward = 45, label = "Билет" },
 	{ id = "circus_o2", dream = "circus", kind = "reach", need = 1, title = "Колесо обозрения", desc = "Заберитесь на колесо обозрения.", reward = 50 },
+	{ id = "circus_o3", dream = "circus", kind = "lights", need = 3, title = "Гирлянды", desc = "Зажгите три гирлянды вокруг арены.", reward = 50, label = "Гирлянда" },
 
 	-- Затопленный город
 	{ id = "flood_m", dream = "flood", kind = "interact", need = 1, title = "Маяк", desc = "Зажгите маяк на краю города.", reward = 70, label = "Маяк" },

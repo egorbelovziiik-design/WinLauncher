@@ -816,6 +816,26 @@ function MenuController.start()
 		end
 	end
 
+	-- Кровать в лобби: лечь спать можно без меню
+	local bedroom = workspace:FindFirstChild("MenuBedroom")
+	local bed = bedroom and bedroom:FindFirstChild("BedPoint", true)
+	local prompt = bed and bed:FindFirstChildOfClass("ProximityPrompt")
+	if prompt then
+		prompt.Triggered:Connect(function(player)
+			if player ~= ClientState.player then
+				return
+			end
+			if ClientState.phase ~= "menu" then
+				return
+			end
+			clickSound()
+			MenuController.startDream(selectedDifficulty)
+		end)
+		ClientState.on("Phase", function(phase)
+			prompt.Enabled = phase == "menu"
+		end)
+	end
+
 	-- Панель «как играть»
 	local howToButton = makeButton("HowToButton")
 	if howToButton then
@@ -1076,6 +1096,7 @@ function MenuController.start()
 				local pausePanel = ClientState.el("TopBar", "PausePanel")
 				if pausePanel then
 					pausePanel.Visible = not pausePanel.Visible
+					ClientState.setCursorFree(pausePanel.Visible)
 				end
 			end
 		end

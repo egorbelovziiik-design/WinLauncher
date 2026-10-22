@@ -109,7 +109,11 @@ function DreamManager.preparePlayer(player)
 		humanoid.JumpPower = Config.JumpPower
 		humanoid.UseJumpPower = true
 	end
-	DreamManager.teleportToMenu(player)
+	-- Во время сна персонажа нельзя выбрасывать в лобби: игрок может
+	-- возродиться по кнопке Reset, и сон должен продолжиться на месте.
+	if DreamManager.getState(player) ~= "dream" then
+		DreamManager.teleportToMenu(player)
+	end
 
 	local EconomyManager = script.Parent:FindFirstChild("EconomyManager")
 	if EconomyManager then
@@ -580,6 +584,10 @@ function DreamManager.handleInteract(player, promptId)
 		return
 	end
 	if (root.Position - part.Position).Magnitude > Config.InteractRange * 1.8 then
+		local result = Remotes.get("InteractionResult")
+		if result then
+			result:FireClient(player, { ok = false, reason = "too_far", text = "Слишком далеко" })
+		end
 		return
 	end
 
@@ -646,6 +654,10 @@ function DreamManager.handleInteract(player, promptId)
 			end
 		end)
 		DreamManager.sendVitals(session)
+		local ok = Remotes.get("InteractionResult")
+		if ok then
+			ok:FireClient(player, { ok = true, reason = "battery", text = "Батарейка" })
+		end
 	elseif kind == "npc" then
 		NPCManager.openDialog(session, part)
 	elseif kind == "portal" then
@@ -653,6 +665,10 @@ function DreamManager.handleInteract(player, promptId)
 			local hint = Remotes.get("Hint")
 			if hint then
 				hint:FireClient(player, "Портал ещё не открыт. Выполни основное задание.")
+			end
+			local result = Remotes.get("InteractionResult")
+			if result then
+				result:FireClient(player, { ok = false, reason = "portal_locked", text = "Портал закрыт" })
 			end
 			return
 		end

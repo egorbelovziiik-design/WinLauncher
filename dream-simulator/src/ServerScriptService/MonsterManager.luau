@@ -51,6 +51,7 @@ local function tintModel(model, color, eyeColor, transparency)
 	for _, part in ipairs(model:GetDescendants()) do
 		if part:IsA("BasePart") then
 			if part:GetAttribute("Eye") or string.sub(part.Name, 1, 3) == "Eye" then
+				part:SetAttribute("Eye", true)
 				part.Color = eyeColor
 				part.Material = Enum.Material.Neon
 				part.Transparency = 0
@@ -525,14 +526,14 @@ local function updateMonster(session, monster, dt)
 		end
 		if monster.stuckTime > 1.6 then
 			monster.stuckTime = 0
+			-- Точку берём ДО очистки маршрута, иначе ветка «поправить на полу»
+			-- не выполнялась никогда и монстр всегда телепортировался.
+			local waypoint = monster.waypoints[monster.waypointIndex]
 			monster.waypoints = {}
 			monster.lastRepath = 0
-			if math.random() < 0.5 then
-				local waypoint = monster.waypoints[monster.waypointIndex]
-				if waypoint then
-					local ground = raycastDown(waypoint.Position, monster.model) or waypoint.Position
-					monster.rootOffset = snapModelToGround(monster.model, ground)
-				end
+			if waypoint and math.random() < 0.5 then
+				local ground = raycastDown(waypoint.Position, monster.model) or waypoint.Position
+				monster.rootOffset = snapModelToGround(monster.model, ground)
 			else
 				rescue(session, monster, targetRoot)
 			end

@@ -159,6 +159,18 @@ function InputController.start()
 		end
 	end)
 
+	-- Обратная связь по взаимодействию: сервер объясняет, почему не вышло.
+	Remotes.get("InteractionResult").OnClientEvent:Connect(function(data)
+		if not data or data.ok then
+			return
+		end
+		if data.reason == "too_far" then
+			ClientState.toast("Слишком далеко — подойди ближе", Color3.fromRGB(255, 190, 150), "🚶")
+		elseif data.reason == "portal_locked" then
+			ClientState.toast("Портал закрыт: сначала основное задание", Color3.fromRGB(190, 170, 255), "🌀")
+		end
+	end)
+
 	ClientState.on("MobileAction", function(action)
 		if action == "sprint" then
 			if sprinting then

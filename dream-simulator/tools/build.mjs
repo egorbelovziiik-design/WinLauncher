@@ -3,6 +3,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import {
   el, v3, v2, cf, rgb, hex, nr, ns, cs, content, font,
   moduleScript, serverScript, clientScript, buildPlace, ROOT,
@@ -64,10 +65,12 @@ const serverScriptService = el('ServerScriptService', {}, [
 const CLIENT = [
   'ClientState', 'SoundController', 'CameraController', 'InputController',
   'HUDController', 'MenuController', 'EffectsController', 'CutsceneController',
+  'DiagnosticsController',
 ];
 
 const starterPlayerScripts = el('StarterPlayerScripts', { Name: 'StarterPlayerScripts' }, [
   clientScript('BootMenu', 'StarterPlayer/StarterPlayerScripts/BootMenu.client.luau'),
+  clientScript('Splash', 'StarterPlayer/StarterPlayerScripts/Splash.client.luau'),
   clientScript('ClientMain', 'StarterPlayer/StarterPlayerScripts/ClientMain.client.luau'),
   el('Folder', { Name: 'Modules' },
     CLIENT.map((name) => moduleScript(name, `StarterPlayer/StarterPlayerScripts/Modules/${name}.luau`))),
@@ -314,7 +317,38 @@ const tree = {
   ],
 };
 
+// Гейт качества: не собираем место, если данные или «провода» сломаны.
+const gate = (label, file) => {
+  try {
+    execFileSync(process.execPath, [path.join(ROOT, 'tools', file)], { stdio: 'pipe' });
+    console.log(`✓ ${label}`);
+  } catch (error) {
+    console.error(`✗ ${label} — сборка остановлена`);
+    console.error(String(error.stdout || '') + String(error.stderr || ''));
+    process.exit(1);
+  }
+};
+gate('данные контента', 'contentcheck.mjs');
+
 const result = buildPlace(tree, OUT);
+
+// Проверки по готовому файлу: если что-то не так — файл не выпускаем.
+const postGate = (label, file) => {
+  try {
+    execFileSync(process.execPath, [path.join(ROOT, 'tools', file), `${OUT}.rbxl`], { stdio: 'pipe' });
+    console.log(`✓ ${label}`);
+  } catch (error) {
+    console.error(`✗ ${label} — файл удалён, сборка остановлена`);
+    console.error(String(error.stdout || '') + String(error.stderr || ''));
+    for (const suffix of ['.rbxl', '.rbxlx']) {
+      try { fs.unlinkSync(`${OUT}${suffix}`); } catch (_) {}
+    }
+    process.exit(1);
+  }
+};
+postGate('связи интерфейса и каналов', 'wirecheck.mjs');
+postGate('API-совместимость места', 'domcheck.mjs');
+postGate('require-цепочки', 'requirecheck.mjs');
 console.log(`✓ ${OUT}.rbxl  instances=${result.instances}  binary=${(result.binary.length / 1024 / 1024).toFixed(2)} MB`);
 console.log(`  remotes: events=${EVENTS.length} functions=${FUNCTIONS.length}`);
 console.log(`  scripts: server=${SERVER.length + 1} client=${CLIENT.length + 1}`);

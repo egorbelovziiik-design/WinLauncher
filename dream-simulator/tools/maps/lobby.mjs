@@ -287,7 +287,31 @@ export function lobby() {
   }
 
   /* маркеры */
-  parts.push(marker('BedPoint', [-14, 3.6, -11]));
+  // Точка кровати + интерактивный prompt: можно лечь спать прямо из лобби.
+  parts.push(el('Part', {
+    Name: 'BedPoint',
+    Size: v3(1, 1, 1),
+    CFrame: cf([-14, 3.6, -11]),
+    Transparency: 1,
+    CanCollide: false,
+    CanQuery: false,
+    CanTouch: false,
+    Anchored: true,
+    Color: rgb(255, 0, 255),
+    Material: 'Neon',
+  }, [
+    el('ProximityPrompt', {
+      Name: 'BedPrompt',
+      ActionText: 'Лечь спать',
+      ObjectText: 'Кровать сновидца',
+      HoldDuration: 0.6,
+      MaxActivationDistance: 11,
+      RequiresLineOfSight: false,
+      KeyboardKeyCode: 'E',
+      ClickablePrompt: true,
+      Style: 'Default',
+    }),
+  ]));
   parts.push(marker('SleepCameraPoint', [0, 11, 8]));
   parts.push(marker('CameraTarget', [0, 12, -depth / 2 + 1], { Size: v3(1, 1, 1) }));
 
