@@ -3,7 +3,7 @@
 
 **Настоящий Roblox-проект на Luau: серверная игровая логика, физический мир, NPC, оружие, задания, строительство и сохранения. Это развиваемый вертикальный срез, а не законченная игра из полного ТЗ.**
 
-[**Скачать LAST_CITY_3D.rbxl напрямую**](https://github.com/egorbelovziiik-design/WinLauncher/raw/refs/heads/arena/a850a844-winlauncher/last-city/releases/LAST_CITY_3D.rbxl)
+[**Скачать проверенный LAST_CITY_3D.rbxl 0.5.0 напрямую**](https://github.com/egorbelovziiik-design/WinLauncher/raw/3526dcb672eb6a0a26158d1457abc61452ef8d92/last-city/releases/LAST_CITY_3D.rbxl)
 
 Файл — бинарное место Roblox, не переименованный XML и не интерфейсный макет. Статическая геометрия находится в `Workspace`; сервер создаёт и контролирует игровых NPC, заражённых, постройки, оружие, ресурсы и награды. WinLauncher сохранён отдельно, вся игра изолирована в `last-city/`.
 

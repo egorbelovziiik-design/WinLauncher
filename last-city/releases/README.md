@@ -2,6 +2,8 @@
 
 `LAST_CITY_3D.rbxl` — бинарное место **IRON HORIZON 0.5.0**, развиваемый настоящий PvE vertical slice.
 
+[Неизменяемая прямая загрузка с GitHub](https://github.com/egorbelovziiik-design/WinLauncher/raw/3526dcb672eb6a0a26158d1457abc61452ef8d92/last-city/releases/LAST_CITY_3D.rbxl)
+
 SHA-256:
 
 ```text

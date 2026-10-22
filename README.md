@@ -1,11 +1,18 @@
 # WinLauncher
 
-## Roblox: LAST CITY 3D — Meridian Rebuilt
+## Roblox: LAST CITY 3D — IRON HORIZON 0.5.0
 
-Отдельный проект игры находится в [`last-city/`](last-city/README.md). Код WinLauncher не заменён.
+Проект настоящего Roblox PvE vertical slice изолирован в [`last-city/`](last-city/README.md); исходники WinLauncher не заменены.
 
-[**Скачать LAST_CITY_3D.rbxl**](https://github.com/egorbelovziiik-design/WinLauncher/raw/refs/heads/arena/a850a844-winlauncher/last-city/releases/LAST_CITY_3D.rbxl)
+[**Скачать проверенный LAST_CITY_3D.rbxl 0.5.0**](https://github.com/egorbelovziiik-design/WinLauncher/raw/3526dcb672eb6a0a26158d1457abc61452ef8d92/last-city/releases/LAST_CITY_3D.rbxl)
 
-Версия 0.2.0 — вертикальный срез, не полная игра из расширенного ТЗ. Файл собирается и проходит автоматические проверки; реальный запуск в Roblox Studio пока **NOT TESTED**. [Отчёт](last-city/docs/TEST_REPORT.md) · [Запуск и ограничения](last-city/README.md).
+```text
+SHA-256: f9d6718bad526fb1e599c616c8546f93b844f3bbd03bca47333117b38f2a6b1c
+Размер: 293 152 bytes
+```
 
-0.1.1 исправляет ошибку `unexpected end at offset 2` при импорте предыдущей сборки. Открытие 0.1.1 подтверждено пользователем. Новая 0.2.0 добавляет перестроенные дороги, детальную графику, аптеку/полицию/АЗС, двери, крыши и задания; её Play/графика ещё требуют проверки.
+IRON HORIZON добавляет реального строителя Степана, quest-отряд Рады и Глеба, 17 функциональных построек, 12 вариантов заражённых, отдельный второй город, двусторонний шестисекундный вертолёт, bundled audio, server-side toggle лома на **1** и рюкзак на **K**.
+
+Автоматический gate: **52** Luau sources, **117** domain tests, **89** adapter/mock tests, **110** binary assertions и две побайтно одинаковые сборки — PASSED. Импорт/Play 0.5.0, Humanoid/Pathfinding, звук, Streaming, живой DataStore и multiplayer в Roblox Studio остаются **NOT TESTED** до ручного QA.
+
+[Полное описание](last-city/README.md) · [Отчёт](last-city/docs/TEST_REPORT.md) · [Studio QA](last-city/docs/STUDIO_QA.md) · [Изменения 0.5.0](last-city/docs/UPDATE_0.5.0.md)
