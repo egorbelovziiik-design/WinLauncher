@@ -17,7 +17,7 @@ const output = path.resolve(root, '../release-artifacts/last-city');
 fs.mkdirSync(output, {recursive:true});
 const file = new R.RobloxFile();
 file.Metadata.set('Creator','Last City source-built vertical slice');
-file.Metadata.set('Version','0.5.0');
+file.Metadata.set('Version','0.6.0');
 function service(name) { const o = instance(name); o.Name = name; file.AddRoot(o); return o; }
 const Workspace = service('Workspace'); Workspace.StreamingEnabled = true; Workspace.StreamingMinRadius = 128; Workspace.StreamingTargetRadius = 512; Workspace.Gravity = 196.2; Workspace.FallenPartsDestroyHeight = -100;
 const camera = instance('Camera'); camera.Name='Camera'; camera.CFrame=lookAt([65,45,-20],[-30,15,120]); camera.FieldOfView=70; camera.Parent=Workspace; Workspace.CurrentCamera=camera;
@@ -65,5 +65,5 @@ validateAuthoredInstances(file);
 encodeAuthoredText(file);
 const bytes=file.WriteToBuffer();
 const main=path.join(output,'LAST_CITY_3D.rbxl'); fs.writeFileSync(main,bytes);
-fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({version:'0.5.0',name:'LAST CITY 3D — Iron Horizon',format:'Roblox binary place',scripts,bytes:bytes.length},null,2)+'\n');
+fs.writeFileSync(path.join(output,'manifest.json'),JSON.stringify({version:'0.6.0',name:'LAST CITY 3D — Echoes of Steel',format:'Roblox binary place',scripts,bytes:bytes.length},null,2)+'\n');
 console.log(`Built ${main}\n${scripts} Luau sources; ${bytes.length.toLocaleString()} bytes`);

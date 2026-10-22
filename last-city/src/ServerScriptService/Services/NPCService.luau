@@ -3,7 +3,7 @@ return function(ctx)
     local Pathfinding = game:GetService("PathfindingService")
     local CollectionService = game:GetService("CollectionService")
     local Service = {NPCs = {}, Workers = {}, Builders = {}, PendingPaths = 0}
-    local cityTwoNPC = {makar = true, nora = true, quartermaster = true, pilot = true}
+    local cityTwoNPC = {makar = true, nora = true, quartermaster = true, pilot = true, lada = true}
     local function cityTwoUnlocked(c)
         local quest = c and c.Quests[ctx.Config.SecondCity.unlockQuest]
         return quest and quest.status == "RewardClaimed"
@@ -71,10 +71,13 @@ return function(ctx)
             texts = {"Лагерь опустел быстро. Алекс разыскивает список, передатчик и жетоны спасателей.", "Костры ещё горят. Бери ткань и воду — здесь они никому больше не помогут."},
         },
         boris = {
-            name = "Борис Камень", role = "Страж северных ворот", at = Vector3.new(18, 3, -34), style = "resident_guard", speed = 8, ambient = true,
-            color = Color3.fromRGB(72, 91, 70), skin = Color3.fromRGB(151, 112, 83), pause = 2,
+            name = "Старшина Борис", role = "Военный координатор отряда", at = Vector3.new(18, 3, -34), style = "soldier_boris", speed = 8,
+            color = Color3.fromRGB(58, 78, 60), skin = Color3.fromRGB(151, 112, 83), pause = 2,
             patrol = {Vector3.new(18, 3, -34), Vector3.new(31, 3, -36), Vector3.new(18, 3, -48), Vector3.new(5, 3, -36)},
-            texts = {"Обычный заражённый снимает пять здоровья за удар. Более редкие опаснее — смотри на размер и броню.", "За стенами не стой на месте. Отступай к воротам, если кончается выносливость."},
+            texts = {
+                "Я старшина Борис. Два моих бойца отрезаны в НОВОМ РУБЕЖЕ. Выполни моё задание — Рада и Глеб станут твоими постоянными помощниками.",
+                "После спасения прикажи отряду следовать за тобой, охранять базу или отправиться за металлом, рудой и древесиной. Их боезапас берётся с твоего склада.",
+            },
         },
         vera = {
             name = "Вера Сокол", role = "Агроном убежища", at = Vector3.new(54, 3, -77), style = "resident_farmer", speed = 7.2, ambient = true,
@@ -98,7 +101,7 @@ return function(ctx)
             name = "Майор Макар", role = "Командир гарнизона НОВОГО РУБЕЖА", at = Vector3.new(888, 3, 72), style = "major", speed = 8.2,
             color = Color3.fromRGB(61, 82, 64), skin = Color3.fromRGB(173, 132, 99), pause = 2.2,
             patrol = {Vector3.new(888, 3, 72), Vector3.new(905, 3, 71), Vector3.new(905, 3, 87), Vector3.new(884, 3, 88)},
-            texts = {"НОВЫЙ РУБЕЖ держится, но восточный патруль отрезан. Зачисти заражённых — и два бойца перейдут под твоё командование.", "Рада и Глеб носят военную броню и работают только по серверным приказам: сопровождение, охрана базы или экспедиция."},
+            texts = {"НОВЫЙ РУБЕЖ держится, но восточный патруль отрезан. Старшина Борис в Меридиане координирует спасательную операцию.", "Рада и Глеб носят военную броню и после задания Бориса работают только по серверным приказам: сопровождение, охрана базы или экспедиция."},
         },
         nora = {
             name = "Доктор Нора", role = "Врач второго города", at = Vector3.new(952, 3, 82), style = "resident_medic", speed = 7.3,
@@ -112,6 +115,13 @@ return function(ctx)
             patrol = {Vector3.new(850, 3, 115), Vector3.new(862, 3, 114), Vector3.new(861, 3, 126), Vector3.new(846, 3, 126)},
             texts = {"Стальные пластины, бетон и стекло нужны для нового периметра. Могу открыть тот же защищённый склад снабжения.", "Военный генератор даёт 55 кВт. Чертёж получишь только после спасения патруля."},
         },
+        lada = {
+            name = "Вербовщик Лада", role = "Контрактные специалисты", at = Vector3.new(1018, 3, 132), style = "quartermaster", speed = 7.6,
+            color = Color3.fromRGB(73, 91, 77), skin = Color3.fromRGB(196, 151, 116), pause = 3,
+            patrol = {Vector3.new(1018, 3, 132), Vector3.new(1036, 3, 132), Vector3.new(1038, 3, 145), Vector3.new(1017, 3, 145)},
+            texts = {"Нужны надёжные руки? Я оформляю постоянные контракты за Survival Cash: строитель, медик, военный охранник, разведчик и добытчик.", "Каждый специалист — настоящий житель вашей базы. Приказы и экспедиции сохраняются; никакой покупки за Coins или Robux."},
+            recruiter = true,
+        },
         pilot = {
             name = "Пилот Яна", role = "Воздушный маршрут", at = Vector3.new(833, 3, 53), style = "pilot", speed = 8,
             color = Color3.fromRGB(65, 78, 73), skin = Color3.fromRGB(190, 145, 111), pause = 2.5, ambient = true,
@@ -119,6 +129,28 @@ return function(ctx)
             texts = {"Вертолёт летает только между двумя защищёнными площадками. Подойди к жёлтому маркеру и удерживай E.", "Во время перелёта управление блокируется сервером. После посадки ты снова получишь контроль."},
         },
     }
+    -- Display text remains Russian; Roblox's current engine voice list has no Russian
+    -- model, so every authored line has a matched English TTS performance.
+    local voiceLines = {
+        alex = {"We lost the city, but not each other. Clear the infected near the gate and I will arm you.", "Stay on the lit streets and conserve ammunition. Return to me when the job is complete."},
+        max = {"Ammunition, water, medicine. I trade in Survival Cash, and I need someone to recover the old Meridian crates.", "The pharmacy to the west still has supplies. Talk to me whenever you need work or trade."},
+        victor = {"Without power there is no city. Generators burn stored fuel, and workshops need fed and rested workers.", "Buildings may touch at their edges. The server will reject any real overlap."},
+        ira = {"A pickaxe is striking inside the mine again, but every miner is dead. Stop the Foreman in the deep chamber.", "Follow the rails and emergency lights. Victory awards a loaded Glock and exactly forty eight reserve rounds."},
+        lina = {"The pharmacy ahead is infected, but medicine remains on the shelves.", "Armor reduces every hit but loses durability. Keep spare bandages."},
+        roman = {"The police station still holds ammunition and records. Use the outside door with E.", "Runners are fast but fragile. Do not let them surround you."},
+        oleg = {"The eastern road leads to the quarry and mine. Take water before descending.", "Generators need fuel, while advanced workshop recipes need batteries."},
+        anya = {"The evacuation camp emptied quickly. Alex needs its list, transmitter, and rescue tags.", "The fires are still burning. Take the cloth and water left behind."},
+        boris = {"I am Sergeant Boris. Rescue my two soldiers in New Frontier, and Rada and Gleb will permanently join your base.", "After the rescue, order them to follow you, guard the base, or gather metal, ore, and timber."},
+        vera = {"A farm produces food only with an assigned resident and water in storage.", "Workers walk around your plot and route around everything you build."},
+        timur = {"The city has grown. Pharmacy west, police east, and the mine beyond the fuel station.", "Use a shotgun or upgraded weapon against armored infected."},
+        mila = {"Rations feed you better than cans, and energy drinks restore stamina quickly.", "Never sell your last food and water. Base workers need both."},
+        makar = {"New Frontier is holding, but the eastern patrol is cut off. Sergeant Boris coordinates their rescue.", "Rada and Gleb obey server orders for escort, base defense, and expeditions."},
+        nora = {"For twenty five Survival Cash I can fully treat your wounds. My hospital containers remain in the housing district.", "Corrosive infected attack from range. Keep moving and maintain your armor."},
+        quartermaster = {"Steel plate, concrete, and glass are essential for the perimeter. I operate the protected supply market.", "The military generator provides fifty five kilowatts after the patrol is rescued."},
+        lada = {"Need reliable hands? I offer permanent contracts for a builder, medic, guard, scout, and resource gatherer.", "Every specialist is a real resident with saved orders. Contracts use Survival Cash, never Coins or Robux."},
+        pilot = {"The helicopter only flies between protected pads. Approach the yellow marker and hold E.", "Controls are server locked during flight and restored after landing."},
+    }
+    local voiceIds = {alex = "3", max = "5", victor = "1", ira = "4", lina = "4", roman = "3", oleg = "5", anya = "6", boris = "3", vera = "2", timur = "7", mila = "4", makar = "1", nora = "2", quartermaster = "5", lada = "4", pilot = "6"}
     Service.Definitions = definitions
     local function actorPrompt(model, objectText, callback)
         local parent = model:FindFirstChild("Head") or model.PrimaryPart
@@ -163,8 +195,9 @@ return function(ctx)
             npc.model:PivotTo(CFrame.lookAt(at, Vector3.new(root.Position.X, at.Y, root.Position.Z)))
         end
         ctx.Progression.fact(s.Campaign, "talk")
-        local text = def.texts[(npc.talkCount - 1) % #def.texts + 1]
-        ctx.Remotes.StateRemote:FireClient(player, "dialogue", {id = id, name = def.name, role = def.role, text = text, model = npc.model, ambient = def.ambient == true})
+        local lineIndex = (npc.talkCount - 1) % #def.texts + 1
+        local text = def.texts[lineIndex]
+        ctx.Remotes.StateRemote:FireClient(player, "dialogue", {id = id, name = def.name, role = def.role, text = text, model = npc.model, ambient = def.ambient == true, recruiter = def.recruiter == true, voiceText = voiceLines[id][lineIndex], voiceId = voiceIds[id]})
         ctx:Changed(player)
     end
     local function label(model, title, subtitle)
@@ -188,9 +221,15 @@ return function(ctx)
             Sleeping = "Ночная смена закончена. Утром вернусь к назначенной постройке.",
             Idle = "Назначь меня на ферму или мастерскую через терминал участка — тогда я начну настоящую работу.",
         }
+        local spoken = {
+            Working = "I am on shift. Production continues while we have food, water, and enough power.",
+            Fleeing = "The infected are too close. Clear the plot before we talk.", Eating = "A short break. Workers need food and water.",
+            Sleeping = "The night shift is over. I will return to work in the morning.",
+            Idle = "Assign me to a farm or workshop at the plot terminal, and I will start real production.",
+        }
         ctx.Remotes.StateRemote:FireClient(player, "dialogue", {
             id = "worker", name = worker.name, role = "Житель участка №" .. plotNumber,
-            text = lines[state] or lines.Idle, model = actor.model,
+            text = lines[state] or lines.Idle, model = actor.model, voiceText = spoken[state] or spoken.Idle, voiceId = actor.index == 1 and "4" or "3",
         })
     end
     function Service:TalkBuilder(player)
@@ -198,15 +237,18 @@ return function(ctx)
         if not actor or not s or not self:NearBuilder(player) then return end
         actor.talkUntil = os.clock() + 14; actor.model:SetAttribute("State", "Talking"); actor.humanoid:MoveTo(actor.model.PrimaryPart.Position)
         local order = s.Campaign.Builder and ctx.Building.find(s.Campaign, s.Campaign.Builder.order)
-        local text
+        local text, voiceText
         if order and order.readyAt > os.time() then
-            text = "Я строю «" .. ctx.BuildingDefs[order.id].name .. "». Осталось примерно " .. math.max(0, order.readyAt - os.time()) .. " секунд."
+            local remaining = math.max(0, order.readyAt - os.time())
+            text = "Я строю «" .. ctx.BuildingDefs[order.id].name .. "». Осталось примерно " .. remaining .. " секунд."
+            voiceText = "I am working on your current project. About " .. remaining .. " seconds remain."
         else
             text = "Принеси материалы в рюкзаке или положи их на склад. Выбери проект — я сам найду свободное место, оплачу его из твоих запасов и пойду строить."
+            voiceText = "Bring materials in your backpack or storage. Choose a project and I will find a valid site and build it."
         end
         ctx.Remotes.StateRemote:FireClient(player, "dialogue", {
             id = "builder", name = s.Campaign.Builder.name, role = "Строитель участка №" .. s.Plot,
-            text = text, model = actor.model, builder = true,
+            text = text, model = actor.model, builder = true, voiceText = voiceText, voiceId = "3",
         })
     end
     function Service:AddWorkers(player)
@@ -282,8 +324,8 @@ return function(ctx)
         return self:WanderTarget(s, {})
     end
     function Service:Evacuate(player, building)
-        local s = ctx.Sessions[player]; local workers = self.Workers[player]
-        if not s or not workers then return end
+        local s = ctx.Sessions[player]; local workers = self.Workers[player] or {}
+        if not s then return end
         local plot = ctx.Config.Plots[s.Plot]; local hx, hz = ctx.Building.extents(building.id, building.r)
         local function move(actor)
             if not actor or not actor.model.Parent then return end
@@ -298,6 +340,7 @@ return function(ctx)
         for _, actor in workers do move(actor) end
         move(self.Builders[player])
         if ctx.Services.SquadService and ctx.Services.SquadService.Evacuate then ctx.Services.SquadService:Evacuate(player, building) end
+        if ctx.Services.RecruitService and ctx.Services.RecruitService.Evacuate then ctx.Services.RecruitService:Evacuate(player, building) end
     end
     function Service:Walk(actor, target)
         if not actor.model.Parent then return end
@@ -357,6 +400,10 @@ return function(ctx)
                 if not ok then ctx:Notify(player, result or "Строитель не может начать проект", "error") end
             elseif p.action == "squad" then
                 if ctx.Services.SquadService then ctx.Services.SquadService:Command(player, p.command, p.resource) end
+            elseif p.action == "recruit" then
+                if ctx.Services.RecruitService then ctx.Services.RecruitService:Purchase(player, p.id) end
+            elseif p.action == "recruitCommand" then
+                if ctx.Services.RecruitService then ctx.Services.RecruitService:Command(player, p.id, p.command, p.resource) end
             elseif p.action == "heal" then
                 if not cityTwoUnlocked(s.Campaign) then ctx:Notify(player, "Сначала откройте маршрут в НОВЫЙ РУБЕЖ у Алекса.", "error"); return end
                 if not self:Near(player, "nora") then ctx:Notify(player, "Подойдите к доктору Норе.", "error"); return end

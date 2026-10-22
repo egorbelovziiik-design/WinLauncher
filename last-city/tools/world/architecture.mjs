@@ -66,6 +66,28 @@ export function apartment(world,x,z,w,d,h,tint,index) {
   if(index%2===0)for(let i=0;i<4;i++)part(b,'FallenMasonry',[3+i,0.7+i*0.3,2+i],[x-w/2+4+i*3,0.6,z-d/2-3],'#787a6a','Slate',i*0.51);
   return b;
 }
+// Low-part, genuinely enterable residential home. Local offsets are rotated so rows
+// can face their access lane without duplicating geometry or sealing the doorway.
+export function compactHome(world,name,x,z,yaw=0,theme='#6f796d') {
+  const m=folder(world.Cities,name,true); const c=Math.cos(yaw),s=Math.sin(yaw);
+  const at=(dx,y,dz)=>[x+dx*c+dz*s,y,z-dx*s+dz*c];
+  const p=(n,size,dx,y,dz,col=theme,mat='Brick',extra={})=>part(m,n,size,at(dx,y,dz),col,mat,yaw,extra);
+  const trim={CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false};
+  p('HomeFloor',[30,0.45,25],0,0.23,0,'#676d66','Concrete');
+  p('BackWall',[30,11,0.65],0,5.5,12.2);p('SideWall',[0.65,11,25],-14.7,5.5,0);p('SideWall',[0.65,11,25],14.7,5.5,0);
+  p('FrontWing',[10.8,11,0.65],-9.6,5.5,-12.2);p('FrontWing',[10.8,11,0.65],9.6,5.5,-12.2);
+  p('DoorLintel',[8.4,2.5,0.65],0,9.75,-12.2);p('Roof',[31,0.55,26],0,11.25,0,'#46514e','Metal');
+  p('Porch',[10,0.35,4],0,0.3,-14,'#73786f','Concrete');
+  for(const dx of [-9,9])p('Window',[5.2,4.2,0.12],dx,6,-12.58,'#36515a','Glass',trim);
+  p('BedFrame',[7,0.8,3.2],-8,1.15,7,'#766348','WoodPlanks');p('BedRoll',[6.5,0.55,2.8],-8,1.85,7,'#899181','Fabric');
+  p('Table',[5,0.55,3],7,2.25,6,'#795f42','WoodPlanks');p('TableBase',[0.6,3.4,0.6],7,1.25,6,'#4b5350','Metal');
+  const lamp=p('CeilingLamp',[2.5,0.18,0.7],0,9.9,1,'#d4c892','Neon',trim);
+  const light=instance('PointLight');light.Range=19;light.Brightness=0.65;light.Color=color('#e6d9aa');light.Shadows=false;light.Parent=lamp;
+  const plaque=sign(m,'ЖИЛОЙ ДОМ  /  SAFE ROOM',[8,1.4,0.2],at(0,8.9,-12.6),'#d9c788','#34403e',yaw);
+  plaque.CanCollide=false;plaque.CanTouch=false;plaque.CanQuery=false;plaque.CastShadow=false;
+  return m;
+}
+
 export function enterable(world,name,x,z,w,d,theme,roof=true) {
   const m=folder(world.Cities,name,true);
   part(m,'Floor',[w,0.44,d],[x,0.22,z],'#6b7069','Concrete');

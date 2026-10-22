@@ -1,13 +1,13 @@
 --!strict
 return table.freeze({
-    Version = "0.5.0 — IRON HORIZON", SchemaVersion = 1,
+    Version = "0.6.0 — ECHOES OF STEEL", SchemaVersion = 1,
     Title = "LAST CITY 3D", Subtitle = "DEAD WORLD: ULTIMATE SURVIVAL",
     MaxPlayers = 9, MaxZombies = 34, AIInterval = 0.25, PathInterval = 2.5,
     StudioUseDataStore = false, -- Explicit opt-in for cloud-save testing; downloaded Studio files use SessionOnly.
     AutosaveSeconds = 55, LeaseSeconds = 180, DataStoreName = "LastCity_Profile_v1",
     DayLength = 900, InventorySlots = 24, CarryWeight = 180,
     Grid = 4, PlotHalfSize = 48, MaxBuildings = 36, InteractRange = 13,
-    MapBounds = {minX = -300, maxX = 1220, minZ = -730, maxZ = 450},
+    MapBounds = {minX = -560, maxX = 1220, minZ = -730, maxZ = 450},
     SecondCity = {x = 920, z = 105, unlockQuest = "second_city"},
     PlotReserved = {
         {x = 0, z = 36, hx = 8, hz = 10, reason = "Оставьте свободным вход и терминал"},
@@ -35,9 +35,17 @@ return table.freeze({
     Audio = { -- Roblox-bundled files only: no third-party or unlicensed catalog IDs.
         UI = "rbxasset://sounds/electronicpingshort.wav",
         MusicPulse = "rbxasset://sounds/bass.wav",
+        MusicTexture = "rbxasset://sounds/wind.mp3",
         Shot = "rbxasset://sounds/snap.mp3",
+        HeavyShot = "rbxasset://sounds/paintball.wav",
         Melee = "rbxasset://sounds/swoosh.wav",
+        Blade = "rbxasset://sounds/swordslash.wav",
+        Impact = "rbxasset://sounds/impact_generic.mp3",
+        ArmorImpact = "rbxasset://sounds/electricspark.mp3",
+        ZombieVoice = "rbxasset://sounds/uuhhh.mp3",
+        ZombieAttack = "rbxasset://sounds/swordlunge.wav",
         Hurt = "rbxasset://sounds/uuhhh.mp3",
+        Confirm = "rbxasset://sounds/electronicpingshort.wav",
         Rotor = "rbxasset://sounds/action_footsteps_plastic.mp3",
     },
 })

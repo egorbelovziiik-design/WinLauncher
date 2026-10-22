@@ -8,48 +8,94 @@ return function(app)
         p.Material = Enum.Material.Neon; p.Color = Color3.fromRGB(255, 190, 100); p.Transparency = 1; p.CastShadow = false; p.Parent = folder
         Pool[i] = {part = p, serial = 0}
     end
+    local impactPool = {}; local impactIndex = 1
+    for i = 1, 8 do
+        local spark = Instance.new("Part"); spark.Name = "ImpactSpark"; spark.Shape = Enum.PartType.Ball; spark.Size = Vector3.new(0.3, 0.3, 0.3)
+        spark.Anchored = true; spark.CanCollide = false; spark.CanQuery = false; spark.CanTouch = false; spark.Material = Enum.Material.Neon
+        spark.Transparency = 1; spark.CastShadow = false; spark.Parent = folder; impactPool[i] = {part = spark, serial = 0}
+    end
+    local function impact(position, tint, size)
+        if typeof(position) ~= "Vector3" then return end
+        local item = impactPool[impactIndex]; impactIndex = impactIndex % #impactPool + 1; item.serial += 1
+        local serial = item.serial; item.part.CFrame = CFrame.new(position); item.part.Color = tint
+        item.part.Size = Vector3.new(size or 0.32, size or 0.32, size or 0.32); item.part.Transparency = 0.08
+        TweenService:Create(item.part, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(0.04, 0.04, 0.04), Transparency = 1}):Play()
+        task.delay(0.18, function() if item.serial == serial then item.part.Transparency = 1 end end)
+    end
+    local damagePool = {}; local damageIndex = 1
+    for i = 1, 8 do
+        local anchor = Instance.new("Part"); anchor.Name = "DamagePopup"; anchor.Anchored = true; anchor.Transparency = 1
+        anchor.CanCollide = false; anchor.CanQuery = false; anchor.CanTouch = false; anchor.Parent = folder
+        local gui = Instance.new("BillboardGui"); gui.Size = UDim2.fromOffset(120, 52); gui.StudsOffset = Vector3.new(0, 2.5, 0)
+        gui.AlwaysOnTop = true; gui.Enabled = false; gui.Parent = anchor
+        local label = Instance.new("TextLabel"); label.Size = UDim2.fromScale(1, 1); label.BackgroundTransparency = 1
+        label.Font = Enum.Font.GothamBold; label.TextSize = 18; label.TextStrokeTransparency = 0.25; label.Parent = gui
+        damagePool[i] = {anchor = anchor, gui = gui, label = label, serial = 0}
+    end
+    local hurtFlash = Instance.new("Frame"); hurtFlash.Name = "DamageVignette"; hurtFlash.Size = UDim2.fromScale(1, 1)
+    hurtFlash.BackgroundColor3 = Color3.fromRGB(142, 31, 31); hurtFlash.BackgroundTransparency = 1; hurtFlash.BorderSizePixel = 0
+    hurtFlash.ZIndex = 50; hurtFlash.Parent = app.Root
+    local markerSerial = 0
+    local function popup(data)
+        if typeof(data.position) ~= "Vector3" then return end
+        local item = damagePool[damageIndex]; damageIndex = damageIndex % #damagePool + 1; item.serial += 1
+        local serial = item.serial; item.anchor.CFrame = CFrame.new(data.position); item.gui.Enabled = true
+        item.gui.StudsOffset = Vector3.new(0, 2.5, 0); item.label.TextTransparency = 0
+        item.label.Text = (data.killed and "☠  " or data.critical and "CRIT  " or "") .. tostring(math.max(1, math.floor((data.damage or 0) + 0.5)))
+        item.label.TextColor3 = data.killed and Color3.fromRGB(255, 211, 92) or data.critical and Color3.fromRGB(255, 132, 76)
+            or data.armored and Color3.fromRGB(100, 194, 255) or Color3.fromRGB(238, 238, 220)
+        TweenService:Create(item.gui, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {StudsOffset = Vector3.new(0, 4.2, 0)}):Play()
+        TweenService:Create(item.label, TweenInfo.new(0.55), {TextTransparency = 1}):Play()
+        task.delay(0.58, function() if item.serial == serial then item.gui.Enabled = false end end)
+    end
     app.Remotes.EffectsRemote.OnClientEvent:Connect(function(kind, data)
-        if kind ~= "shot" and kind ~= "acid" then return end
-        if not data.melee then
-            local e = Pool[nextIndex]; nextIndex = nextIndex % #Pool + 1; e.serial += 1
-            local serial = e.serial; local length = (data.to - data.from).Magnitude
-            if length > 0.01 then
-                e.part.Color = kind == "acid" and Color3.fromRGB(151, 212, 70) or Color3.fromRGB(255, 190, 100)
-                e.part.Size = Vector3.new(kind == "acid" and 0.14 or 0.045, kind == "acid" and 0.14 or 0.045, length)
-                e.part.CFrame = CFrame.lookAt((data.from + data.to) / 2, data.to); e.part.Transparency = kind == "acid" and 0.25 or 0.12
-                task.delay(kind == "acid" and 0.16 or 0.07, function() if e.serial == serial then e.part.Transparency = 1 end end)
+        data = data or {}
+        if kind == "shot" or kind == "acid" then
+            if not data.melee then
+                local e = Pool[nextIndex]; nextIndex = nextIndex % #Pool + 1; e.serial += 1
+                local serial = e.serial; local length = (data.to - data.from).Magnitude
+                if length > 0.01 then
+                    e.part.Color = kind == "acid" and Color3.fromRGB(151, 212, 70) or Color3.fromRGB(255, 190, 100)
+                    e.part.Size = Vector3.new(kind == "acid" and 0.14 or 0.045, kind == "acid" and 0.14 or 0.045, length)
+                    e.part.CFrame = CFrame.lookAt((data.from + data.to) / 2, data.to); e.part.Transparency = kind == "acid" and 0.25 or 0.12
+                    task.delay(kind == "acid" and 0.16 or 0.07, function() if e.serial == serial then e.part.Transparency = 1 end end)
+                end
             end
-        end
-        if kind == "shot" and data.user == app.Player.UserId then
-            if data.hit then
-                app.HitMarker.Visible = true
-                task.delay(0.12, function() app.HitMarker.Visible = false end)
-            end
-            if data.melee then
+            if kind == "shot" and data.user == app.Player.UserId and data.melee then
                 local char = app.Player.Character; local tool = char and char:FindFirstChildOfClass("Tool")
                 if tool then
                     local original = tool.Grip; local itemId = tool:GetAttribute("ItemId")
                     if itemId == "crowbar" then
                         local serial = (tool:GetAttribute("SwingSerial") or 0) + 1; tool:SetAttribute("SwingSerial", serial)
-                        TweenService:Create(tool, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-                            {Grip = original * CFrame.Angles(math.rad(24), math.rad(-10), math.rad(-22))}):Play()
-                        task.delay(0.065, function()
-                            if tool.Parent and tool:GetAttribute("SwingSerial") == serial then
-                                TweenService:Create(tool, TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-                                    {Grip = original * CFrame.Angles(math.rad(-88), math.rad(8), math.rad(30))}):Play()
-                            end
-                        end)
-                        task.delay(0.18, function()
-                            if tool.Parent and tool:GetAttribute("SwingSerial") == serial then
-                                TweenService:Create(tool, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Grip = original}):Play()
-                            end
-                        end)
+                        TweenService:Create(tool, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Grip = original * CFrame.Angles(math.rad(24), math.rad(-10), math.rad(-22))}):Play()
+                        task.delay(0.065, function() if tool.Parent and tool:GetAttribute("SwingSerial") == serial then TweenService:Create(tool, TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Grip = original * CFrame.Angles(math.rad(-88), math.rad(8), math.rad(30))}):Play() end end)
+                        task.delay(0.18, function() if tool.Parent and tool:GetAttribute("SwingSerial") == serial then TweenService:Create(tool, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Grip = original}):Play() end end)
                     else
-                        TweenService:Create(tool, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true),
-                            {Grip = original * CFrame.Angles(math.rad(-65), 0, math.rad(20))}):Play()
+                        TweenService:Create(tool, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {Grip = original * CFrame.Angles(math.rad(-65), 0, math.rad(20))}):Play()
                     end
                 end
             end
+        elseif kind == "impact" then
+            impact(data.from, Color3.fromRGB(231, 200, 145), 0.28)
+        elseif kind == "zombie_hurt" then
+            impact(data.from, Color3.fromRGB(164, 204, 104), data.boss and 0.5 or 0.34)
+        elseif kind == "zombie_death" then
+            impact(data.from, data.boss and Color3.fromRGB(231, 96, 235) or Color3.fromRGB(105, 137, 91), data.boss and 0.9 or 0.55)
+        elseif kind == "hit_confirm" then
+            impact(data.position, data.armored and Color3.fromRGB(91, 180, 232) or data.killed and Color3.fromRGB(255, 211, 92) or Color3.fromRGB(225, 232, 205), data.killed and 0.5 or 0.32)
+            markerSerial += 1; local serial = markerSerial
+            app.HitMarker.Text = data.killed and "✦" or data.critical and "×" or "+"
+            app.HitMarker.TextColor3 = data.killed and Color3.fromRGB(255, 211, 92) or data.critical and Color3.fromRGB(255, 128, 72)
+                or data.armored and Color3.fromRGB(94, 184, 255) or app.UI.Theme.accent
+            app.HitMarker.Visible = true; popup(data)
+            task.delay(data.killed and 0.22 or 0.12, function() if markerSerial == serial then app.HitMarker.Visible = false end end)
+        elseif kind == "player_hurt" then
+            hurtFlash.BackgroundTransparency = math.clamp(0.78 + math.min(0.14, 0.14 - (data.damage or 0) * 0.004), 0.72, 0.9)
+            TweenService:Create(hurtFlash, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        elseif kind == "medic_heal" then
+            hurtFlash.BackgroundColor3 = Color3.fromRGB(53, 145, 91); hurtFlash.BackgroundTransparency = 0.9
+            TweenService:Create(hurtFlash, TweenInfo.new(0.35), {BackgroundTransparency = 1}):Play()
+            task.delay(0.4, function() hurtFlash.BackgroundColor3 = Color3.fromRGB(142, 31, 31) end)
         end
     end)
     -- Small pooled rain geometry, with no texture IDs or per-frame Instance allocation.

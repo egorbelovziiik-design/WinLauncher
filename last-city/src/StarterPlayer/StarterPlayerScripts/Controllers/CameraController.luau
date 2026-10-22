@@ -2,14 +2,20 @@
 return function(app)
     local RunService = game:GetService("RunService")
     local Input = game:GetService("UserInputService")
-    local Camera = {Commander = false, Focus = nil, Height = 96, Pan = Vector3.zero, Dialogue = nil, Travel = nil}
+    local Camera = {Commander = false, Focus = nil, Height = 96, Pan = Vector3.zero, Dialogue = nil, Travel = nil, FirstPerson = false}
     local self = Camera
     local controls, disabled
     task.spawn(function()
         local module = app.Player.PlayerScripts:WaitForChild("PlayerModule", 15)
         if module then local ok, playerModule = pcall(require, module); if ok then controls = playerModule:GetControls() end end
     end)
-    app.Player.CameraMinZoomDistance = 7; app.Player.CameraMaxZoomDistance = 22
+    app.Player.CameraMinZoomDistance = 0.5; app.Player.CameraMaxZoomDistance = 22
+    function Camera:SetFirstPerson(value)
+        self.FirstPerson = value == true
+        app.Player.CameraMode = self.FirstPerson and Enum.CameraMode.LockFirstPerson or Enum.CameraMode.Classic
+        app.Player.CameraMinZoomDistance = self.FirstPerson and 0.5 or 7
+        app.Player.CameraMaxZoomDistance = self.FirstPerson and 0.5 or 22
+    end
     function Camera:SetCommander(value)
         if self.Commander and not value and workspace.CurrentCamera then
             self.ExitFrom = workspace.CurrentCamera.CFrame; self.ExitAt = os.clock()

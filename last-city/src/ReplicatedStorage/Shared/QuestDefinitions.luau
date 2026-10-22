@@ -47,24 +47,30 @@ return {
         objectives = {{event = "relief", target = "camp", count = 3, label = "Свидетельства эвакуации"}},
         reward = {coins = 350, xp = 300, items = {cloth = 6, water = 3, bandage = 2}}, reputation = "SURVIVORS",
     },
+    ash_reaver = {
+        order = 8, name = "ПЕПЕЛЬ НА ОКРАИНЕ", type = "Босс", npc = "alex", location = "Три заражённых очага вокруг Меридиана",
+        requires = "first_blood", description = "Пепельный Жнец меняет логово после каждой победы. Проверь отмеченные на карте зоны босса, уничтожь его и вернись к Алексу. Попадания в голову наносят критический урон.",
+        objectives = {{event = "kill", target = "reaver", count = 1, label = "Пепельный Жнец"}},
+        reward = {coins = 500, xp = 475, items = {scout_vest = 1, ammo = 24}, loadedWeapons = {{id = "revolver", count = 1, ammo = 6}}}, reputation = "SURVIVORS",
+    },
     mine_foreman = {
-        order = 8, name = "СЕРДЦЕ ШАХТЫ", type = "Босс", npc = "ira", location = "Шахта «Чёрный пласт» — восточный карьер",
+        order = 9, name = "СЕРДЦЕ ШАХТЫ", type = "Босс", npc = "ira", location = "Шахта «Чёрный пласт» — восточный карьер",
         description = "Ира слышала удары из закрытой выработки. Прими задание, спустись в шахту и уничтожь Бригадира. Его усиленная шахтная охрана не покидает выработку. Награда выдаётся сразу после победы.",
         objectives = {{event = "kill", target = "foreman", count = 1, label = "Шахтёр-бригадир"}},
         reward = {coins = 600, xp = 650, items = {ammo = 48}, loadedWeapons = {{id = "glock", count = 1, ammo = 10}}},
         reputation = "SURVIVORS", autoClaim = true,
     },
     second_city = {
-        order = 9, name = "ВТОРОЙ РУБЕЖ", type = "Сюжетное", npc = "alex", location = "Меридиан / вертолётная площадка",
+        order = 10, name = "ВТОРОЙ РУБЕЖ", type = "Сюжетное", npc = "alex", location = "Меридиан / вертолётная площадка",
         requires = "first_blood",
         description = "Алекс откроет воздушный маршрут к укреплённому району НОВЫЙ РУБЕЖ, если ты докажешь, что способен пережить дорогу. Уничтожь 25 заражённых любого типа. После выполнения вертолётный маршрут разблокируется автоматически.",
         objectives = {{event = "kill", target = "*", count = 25, label = "Любые заражённые"}},
         reward = {coins = 700, xp = 550, items = {}}, reputation = "SURVIVORS", autoClaim = true, unlock = "second_city",
     },
     rescue_fireteam = {
-        order = 10, name = "ВОЗВРАЩЕНИЕ ГАРНИЗОНА", type = "Отряд", npc = "makar", location = "НОВЫЙ РУБЕЖ / восточный периметр",
+        order = 11, name = "БОЙЦЫ БОРИСА", type = "Отряд", npc = "boris", location = "Старшина Борис / НОВЫЙ РУБЕЖ",
         requires = "second_city",
-        description = "Майор Макар потерял связь с патрулём. Уничтожь шесть коррозийных заражённых и одного Тюремщика во втором городе. После получения награды Рада и Глеб прибудут на твою базу с автоматами и военной бронёй.",
+        description = "Старшина Борис просит вытащить двух военных из отрезанного патруля. Уничтожь шесть коррозийных заражённых и Тюремщика во втором городе. После награды Рада и Глеб поселятся на твоей базе: им можно приказать следовать за тобой, охранять базу или добывать ресурсы.",
         objectives = {
             {event = "kill", target = "corrosive", count = 6, label = "Коррозийные заражённые"},
             {event = "kill", target = "warden", count = 1, label = "Заражённый Тюремщик"},
@@ -72,11 +78,42 @@ return {
         reward = {coins = 850, xp = 750, items = {rifle_ammo = 60, military_generator_plan = 1}}, reputation = "SURVIVORS", unlock = "fireteam",
     },
     harbor_aid = {
-        order = 11, name = "ПОЛЕВОЙ ГОСПИТАЛЬ", type = "Исследование", npc = "nora", location = "НОВЫЙ РУБЕЖ / гражданский квартал",
+        order = 12, name = "ПОЛЕВОЙ ГОСПИТАЛЬ", type = "Исследование", npc = "nora", location = "НОВЫЙ РУБЕЖ / гражданский квартал",
         requires = "second_city",
         description = "Доктор Нора оставила три герметичных медицинских контейнера в гражданском квартале. Найди каждый контейнер и возвращайся в госпиталь.",
         objectives = {{event = "harbor_medical", target = "harbor", count = 3, label = "Медицинские контейнеры"}},
         reward = {coins = 420, xp = 360, items = {medkit = 2, bandage = 6, chemicals = 3}}, reputation = "SURVIVORS",
+    },
+    frontier_patrol = {
+        order = 13, name = "ТЁМНЫЙ ПАТРУЛЬ", type = "Зачистка", npc = "makar", location = "НОВЫЙ РУБЕЖ / внешний периметр",
+        requires = "second_city", description = "Гарнизону нужен безопасный коридор к жилым домам. Уничтожь пять сталкеров и трёх коррозийных заражённых во втором городе.",
+        objectives = {
+            {event = "kill", target = "stalker", count = 5, label = "Сталкеры"},
+            {event = "kill", target = "corrosive", count = 3, label = "Коррозийные"},
+        },
+        reward = {coins = 520, xp = 480, items = {rifle_ammo = 45, medkit = 2}}, reputation = "SURVIVORS",
+    },
+    frontier_homes = {
+        order = 14, name = "СВЕТ В ОКНАХ", type = "Исследование", npc = "lada", location = "НОВЫЙ РУБЕЖ / новая жилая улица",
+        requires = "second_city", description = "Лада ищет пригодные помещения для будущих специалистов. Осмотри четыре отмеченных ящика учёта внутри новых домов.",
+        objectives = {{event = "frontier_home", target = "residential", count = 4, label = "Осмотренные дома"}},
+        reward = {coins = 460, xp = 390, items = {food = 5, water = 5, cloth = 8}}, reputation = "SURVIVORS",
+    },
+    frontier_rebuild = {
+        order = 15, name = "КРЕПЧЕ БЕТОНА", type = "Снабжение", npc = "quartermaster", location = "НОВЫЙ РУБЕЖ / элитные ресурсные ящики",
+        requires = "second_city", description = "Собери материалы из усиленных ящиков второго города: стальные пластины, бетон и закалённое стекло. Покупка не засчитывается — нужны найденные ресурсы.",
+        objectives = {
+            {event = "collect", target = "steel_plate", count = 8, label = "Найти стальные пластины"},
+            {event = "collect", target = "concrete", count = 16, label = "Найти бетон"},
+            {event = "collect", target = "glass", count = 10, label = "Найти стекло"},
+        },
+        reward = {coins = 650, xp = 520, items = {electronics = 5, battery = 2}}, reputation = "TRADERS",
+    },
+    prism_cave = {
+        order = 16, name = "СПЕКТР ПОД ЗЕМЛЁЙ", type = "Босс", npc = "nora", location = "НОВЫЙ РУБЕЖ / PRISM CAVE",
+        requires = "frontier_homes", description = "В пещере у южной жилой улицы проснулся Радужный Страж. Победи его. Каждый участник получает обычные ресурсы и 35 Coins; шанс Радужной брони — 22% (гарантия на 4-й бой), Призматического клинка — 30% (гарантия на 3-й).",
+        objectives = {{event = "kill", target = "rainbow", count = 1, label = "Радужный Страж"}},
+        reward = {coins = 900, xp = 800, items = {prism_shard = 8, medkit = 2}}, reputation = "SURVIVORS",
     },
 
 }

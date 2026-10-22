@@ -37,6 +37,7 @@ return function(app)
         end, {Size = UDim2.fromOffset(entry[2] == "settings" and 40 or 90, 29), TextSize = 10})
     end
     app.SaveLabel = UI.label(hud, "", 10, {Position = UDim2.new(0, 20, 1, -28), Size = UDim2.fromOffset(245, 20), TextColor3 = T.muted})
+    app.ScoutLabel = UI.label(hud, "", 10, {AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 71), Size = UDim2.fromOffset(310, 22), TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = T.danger, Font = Enum.Font.GothamBold, Visible = false})
     app.Crosshair = UI.label(hud, "+", 22, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(28, 28), TextXAlignment = Enum.TextXAlignment.Center, TextTransparency = 0.25})
     app.HitMarker = UI.label(hud, "×", 34, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(40, 40), TextColor3 = T.accent, TextXAlignment = Enum.TextXAlignment.Center, Visible = false})
     app.BuildBar = UI.frame(hud, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -172), Size = UDim2.fromOffset(550, 80), BackgroundTransparency = 0.07, Visible = false}); UI.corner(app.BuildBar)

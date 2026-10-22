@@ -6,14 +6,19 @@ export function landscape(world) {
   part(world.TerrainBase,'Ground',[1200,8,1200],[0,-4,-50],P.ground,'Ground');
   roadNetwork(world.Roads,'SettlementRoads',SETTLEMENT_ROADS,0);
   let seed = 12021; const random = () => { seed=(seed*16807)%2147483647; return seed/2147483647; };
+  const reserved=(x,z)=>(x>230&&x<325&&z>45&&z<190)
+    ||(x>-365&&x<-235&&z>45&&z<255)
+    ||(Math.abs(x+455)<38&&(Math.abs(z-40)<38||Math.abs(z-325)<38))
+    ||(Math.abs(x-470)<38&&Math.abs(z-340)<38);
   for (let i=0;i<92;i++) {
     const side = i%2 ? -1 : 1;
     const x = side*(270+random()*190); const z = -485+random()*965;
-    if(x>230&&x<325&&z>45&&z<190)continue;
+    if(reserved(x,z))continue;
     tree(world.Forests,x,z,17+random()*15,i%3===0);
   }
   for(let i=0;i<34;i++) {
     const side=i%2===0?-1:1, x=side*(415+random()*135), z=-485+random()*960;
+    if(reserved(x,z))continue;
     const rock=part(world.Forests,'RockOutcrop',[14+random()*24,9+random()*18,13+random()*20],[x,3.8,z],'#5f6960','Rock',random());
     rock.Shape=R.PartType.Ball;
   }

@@ -1,7 +1,21 @@
 import {R,instance,part,orientedPart,folder,sign,loot,value,lamp,color,palette as P} from './primitives.mjs';
-import {enterable,apartment} from './architecture.mjs';
+import {enterable,apartment,compactHome} from './architecture.mjs';
+import {bossSite} from './encounters.mjs';
 
 const trim={CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false};
+export const FRONTIER_JUNCTION_ROADS = [
+  {name:'FrontierMainRoadWest',w:171,d:28,x:820.5,z:220},
+  {name:'FrontierMainRoadEast',w:231,d:28,x:1049.5,z:220},
+  {name:'FrontierCrossRoadSouth',w:28,d:410,x:920,z:1},
+  {name:'FrontierCrossRoadNorth',w:28,d:131,x:920,z:299.5},
+  {name:'FrontierJunction',w:28,d:28,x:920,z:220},
+];
+export const FRONTIER_RESIDENTIAL_ROAD = {name:'FrontierResidentialRoad',w:430,d:22,x:950,z:-215};
+export const FRONTIER_SIDEWALKS = [
+  ...[202,238].flatMap(z=>[{x:817,z,w:164,d:6},{x:1053,z,w:224,d:6}]),
+  ...[902,938].flatMap(x=>[{x,z:-4.5,w:6,d:399},{x,z:305,w:6,d:120}]),
+  {x:817,z:-200.5,w:164,d:5},{x:1053,z:-200.5,w:224,d:5},
+];
 function helicopter(parent,name,x,z,yaw=0) {
   const m=folder(parent,name,true); const c=Math.cos(yaw),s=Math.sin(yaw);
   const p=(n,size,o,tint=P.steel,mat='Metal',extra={})=>part(m,n,size,[x+o[0]*c+o[2]*s,o[1],z-o[0]*s+o[2]*c],tint,mat,yaw,extra);
@@ -23,10 +37,29 @@ function helipad(parent,name,x,z,label) {
   sign(parent,label,[20,3,0.4],[x,3,z+13],P.amber,P.dark,Math.PI);
   return pad;
 }
-function questCache(world,name,at,label) {
+function prismCave(world) {
+  const cave=folder(world.Cities,'18_PrismCave',true);const x=1140,z=-76;
+  part(cave,'CaveFloor',[70,0.55,86],[x,0.16,z],'#3f4245','Slate');
+  part(cave,'CaveBack',[70,14,3],[x,7,z+41.5],'#4b4d50','Rock');
+  for(const side of [-1,1])part(cave,'CaveWall',[3,14,86],[x+side*34,7,z],'#4b4d50','Rock');
+  for(const side of [-1,1])part(cave,'EntranceRock',[21,14,3],[x+side*24.5,7,z-41.5],'#4b4d50','Rock');
+  part(cave,'CaveRoof',[72,1.2,88],[x,14,z],'#3b3f42','Rock');
+  for(const [i,dx,dz,col] of [[1,-25,-18,'#49d8ff'],[2,24,-8,'#e65cff'],[3,-27,18,'#72f59c'],[4,22,24,'#ffd95c'],[5,-15,34,'#9b7bff'],[6,12,-28,'#ff789d']]) {
+    const crystal=part(cave,`PrismCrystal${i}`,[1.5,6+i%3,1.5],[x+dx,3.2,z+dz],col,'Neon',i*0.22,{CanCollide:false,CanTouch:false});
+    const glow=instance('PointLight');glow.Color=color(col);glow.Range=16;glow.Brightness=0.75;glow.Shadows=false;glow.Parent=crystal;
+  }
+  sign(cave,'PRISM CAVE  /  РАДУЖНЫЙ СТРАЖ',[26,3,0.4],[x,9,z-43.1],'#e879f9',P.dark);
+  for(const px of [x-15,x+15])part(cave,'WarningPost',[0.8,10,0.8],[px,5,z-43],P.steel,'Metal');
+  loot(world.LootSpawns,'prism_shard',3,x-22,z+28,'prism_cave_shards',240);
+  loot(world.LootSpawns,'electronics',6,x+22,z+29,'prism_cave_electronics',240);
+  loot(world.LootSpawns,'rifle_ammo',24,x-24,z-4,'prism_cave_ammo',240);
+  const hidden={Transparency:1,CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false};
+  part(world.ZombieSpawns,'RainbowBossSpawn',[1,1,1],[x,0.5,z+8],P.orange,'Plastic',0,hidden);
+}
+function questCache(world,name,at,label,questId='harbor_aid',event='harbor_medical',target='harbor') {
   const node=part(world.LootSpawns,name,[2.8,1.8,2.5],at,'#d7ddd0','Metal');
-  value(node,'QuestId','harbor_aid');value(node,'QuestEvent','harbor_medical');value(node,'QuestTarget','harbor');value(node,'QuestLabel',label);
-  part(node,'MedicalMark',[1.7,0.18,0.08],[at[0],at[1]+0.4,at[2]-1.29],'#be4844','Neon',0,trim);
+  value(node,'QuestId',questId);value(node,'QuestEvent',event);value(node,'QuestTarget',target);value(node,'QuestLabel',label);
+  part(node,questId==='harbor_aid'?'MedicalMark':'SurveyMark',[1.7,0.18,0.08],[at[0],at[1]+0.4,at[2]-1.29],questId==='harbor_aid'?'#be4844':P.amber,'Neon',0,trim);
 }
 function guardTower(parent,x,z) {
   const m=folder(parent,'GarrisonTower',true);
@@ -42,13 +75,24 @@ export function secondCity(world) {
   part(world.TerrainBase,'SecondCityGround',[490,8,700],[950,-4,80],'#3d4741','Ground');
   for(const x of [705,1195])part(world.TerrainBase,'SecondCityBounds',[8,240,700],[x,100,80],P.dark,'Plastic',0,{Transparency:1});
   for(const z of [-270,430])part(world.TerrainBase,'SecondCityBounds',[490,240,8],[950,100,z],P.dark,'Plastic',0,{Transparency:1});
-  // Grounded roads and sidewalks have explicit foundations, avoiding hovering curb/prop geometry.
-  part(world.Roads,'FrontierMainRoad',[430,0.28,28],[950,0.02,220],'#343938','Asphalt');
-  part(world.Roads,'FrontierCrossRoad',[28,0.28,570],[920,0.02,80],'#343938','Asphalt');
-  for(const z of [202,238])part(world.Roads,'FrontierWalk',[430,0.42,6],[950,0.2,z],'#777b73','Concrete');
-  for(const x of [902,938])part(world.Roads,'FrontierWalk',[6,0.42,570],[x,0.2,80],'#777b73','Concrete');
-  for(let x=755;x<1145;x+=22)part(world.Roads,'LanePaint',[8,0.03,0.24],[x,0.18,220],'#b5af8c','SmoothPlastic',0,trim);
-  for(let z=-180;z<370;z+=22)part(world.Roads,'LanePaint',[0.24,0.03,8],[920,0.18,z],'#b5af8c','SmoothPlastic',0,trim);
+  // Four road arms meet one junction slab. Nothing overlaps at the same elevation:
+  // this fixes the old double asphalt/crossing geometry instead of covering it up.
+  for(const road of FRONTIER_JUNCTION_ROADS)
+    part(world.Roads,road.name,[road.w,0.28,road.d],[road.x,0.02,road.z],'#343938','Asphalt');
+  // Sidewalks stop cleanly at the junction. The old full-length strips crossed both
+  // carriageways, producing raised concrete bars and the broken road silhouette.
+  for(const walk of FRONTIER_SIDEWALKS)
+    part(world.Roads,'FrontierWalk',[walk.w,0.42,walk.d],[walk.x,0.2,walk.z],'#777b73','Concrete');
+  for(let x=755;x<1145;x+=22)if(Math.abs(x-920)>28)part(world.Roads,'LanePaint',[8,0.03,0.24],[x,0.18,220],'#b5af8c','SmoothPlastic',0,trim);
+  for(let z=-180;z<370;z+=22)if(Math.abs(z-220)>28)part(world.Roads,'LanePaint',[0.24,0.03,8],[920,0.18,z],'#b5af8c','SmoothPlastic',0,trim);
+  // A connected southern residential street with six small enterable homes.
+  part(world.Roads,FRONTIER_RESIDENTIAL_ROAD.name,[FRONTIER_RESIDENTIAL_ROAD.w,0.28,FRONTIER_RESIDENTIAL_ROAD.d],[FRONTIER_RESIDENTIAL_ROAD.x,0.02,FRONTIER_RESIDENTIAL_ROAD.z],'#343938','Asphalt');
+  for(const [index,x] of [[1,760],[2,825],[3,875],[4,970],[5,1035],[6,1110]])
+    compactHome(world,`17_FrontierHome_${index}`,x,-180,0,index%2?'#68766e':'#746f62');
+  bossSite(world,'City2',1,750,395,'ОЧАГ БОССА  /  SOUTH WATCH');
+  bossSite(world,'City2',2,1150,395,'ОЧАГ БОССА  /  EAST YARD');
+  bossSite(world,'City2',3,1150,-245,'ОЧАГ БОССА  /  DEAD TERMINAL');
+  prismCave(world);
 
   const base=folder(district,'FrontierGarrison',true);
   part(base,'GarrisonGround',[286,0.34,160],[920,0.1,95],'#555f56','Concrete');
@@ -79,10 +123,20 @@ export function secondCity(world) {
   for(const [id,n,x,z,key] of [
     ['concrete',8,1000,302,'frontier_concrete'],['steel_plate',4,1028,324,'frontier_steel'],['glass',6,1070,287,'frontier_glass'],
     ['rifle_ammo',18,844,126,'frontier_ammo'],['battery',2,902,88,'frontier_battery'],['chemicals',4,969,88,'frontier_chemicals'],
-  ])loot(world.LootSpawns,id,n,x,z,key,180);
+    // High-risk second-city crates carry visibly better stacks than Meridian loot.
+    ['steel_plate',8,760,270,'frontier_elite_steel'],['concrete',16,865,260,'frontier_elite_concrete'],
+    ['glass',12,1010,255,'frontier_elite_glass'],['electronics',8,1125,185,'frontier_elite_electronics'],
+    ['rifle_ammo',42,1090,155,'frontier_elite_rifle'],['shells',24,785,-145,'frontier_elite_shells'],
+    ['medkit',3,975,66,'frontier_elite_medical'],['chemicals',10,1130,25,'frontier_elite_chemicals'],
+    ['prism_shard',1,1118,-126,'frontier_prism_trace'],
+  ])loot(world.LootSpawns,id,n,x,z,key,240);
   questCache(world,'HarborMedical1',[1065,1.2,96],'Контейнер хирургии');
   questCache(world,'HarborMedical2',[1098,1.2,300],'Контейнер антибиотиков');
   questCache(world,'HarborMedical3',[792,1.2,302],'Контейнер перевязки');
+  questCache(world,'FrontierHomeSurvey1',[760,1.2,-178],'Журнал дома 1','frontier_homes','frontier_home','residential');
+  questCache(world,'FrontierHomeSurvey2',[825,1.2,-178],'Журнал дома 2','frontier_homes','frontier_home','residential');
+  questCache(world,'FrontierHomeSurvey3',[970,1.2,-178],'Журнал дома 3','frontier_homes','frontier_home','residential');
+  questCache(world,'FrontierHomeSurvey4',[1110,1.2,-178],'Журнал дома 4','frontier_homes','frontier_home','residential');
 
   const hidden={Transparency:1,CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false};
   let i=0;for(const [x,z] of [[760,220],[820,255],[1045,220],[1120,245],[1105,340],[790,350],[920,-105],[1140,105]])

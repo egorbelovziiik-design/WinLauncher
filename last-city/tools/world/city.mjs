@@ -1,8 +1,29 @@
 import { part, folder, sign, lamp, car, crate, loot, palette as P } from './primitives.mjs';
 import { roadNetwork, CITY_ROADS } from './roads.mjs';
-import { apartment } from './architecture.mjs';
+import { apartment, compactHome } from './architecture.mjs';
+import { bossSite } from './encounters.mjs';
+export const WEST_ANNEX_ROADS = [
+  {name:'WestResidentialLane',x:-300,z:150,w:18,d:240},
+  {name:'WestResidentialConnector',x:-261.5,z:38,w:59,d:18},
+];
+export const WEST_ANNEX_SIDEWALKS = [
+  {x:-311.5,z:150,w:5,d:240},
+  {x:-288.5,z:158.5,w:5,d:223}, // starts at the connector's north edge
+];
 export function city(world) {
   roadNetwork(world.Roads,'MeridianStreets',CITY_ROADS,5);
+  // West Annex adds six low-part, open-door homes on a real connected lane.
+  for(const road of WEST_ANNEX_ROADS)part(world.Roads,road.name,[road.w,0.24,road.d],[road.x,0,road.z],'#343938','Asphalt');
+  for(const walk of WEST_ANNEX_SIDEWALKS)part(world.Roads,'WestResidentialWalk',[walk.w,0.4,walk.d],[walk.x,0.2,walk.z],'#777b73','Concrete');
+  // The connector begins at the lane's eastern asphalt edge and ends at the existing
+  // street edge; it does not run underneath either raised sidewalk.
+  for(const [index,x,z,yaw] of [
+    [1,-338,80,-Math.PI/2],[2,-262,80,Math.PI/2],[3,-338,150,-Math.PI/2],
+    [4,-262,150,Math.PI/2],[5,-338,220,-Math.PI/2],[6,-262,220,Math.PI/2],
+  ])compactHome(world,`16_MeridianHome_${index}`,x,z,yaw,index%2?'#706f62':'#62736b');
+  bossSite(world,'City1',1,-455,40,'ОЧАГ БОССА  /  ASH YARD');
+  bossSite(world,'City1',2,-455,325,'ОЧАГ БОССА  /  WEST RUINS');
+  bossSite(world,'City1',3,470,340,'ОЧАГ БОССА  /  EAST VERGE');
   let id=0;
   for (const [x,z,w,d,h] of [[62,99,56,65,49],[-64,348,60,65,56],[63,348,62,63,92],[-185,92,55,60,40],[-185,220,58,65,71],[185,220,58,70,57],[-180,351,60,65,83],[185,351,59,65,98]]) {
     apartment(world,x,z,w,d,h,['#777a6a','#737d77','#8a8070','#657574'][id++%4],id);

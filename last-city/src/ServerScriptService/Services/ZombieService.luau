@@ -3,12 +3,20 @@ return function(ctx)
     local Pathfinding = game:GetService("PathfindingService")
     local CollectionService = game:GetService("CollectionService")
     local Debris = game:GetService("Debris")
-    local Service = {Zombies = {}, NextId = 0, PendingPaths = 0, BossRespawnAt = 0, BossAlive = false}
+    local Service = {Zombies = {}, NextId = 0, PendingPaths = 0, Bosses = {}}
+    for kind, def in ctx.ZombieDefs do if def.boss then Service.Bosses[kind] = {alive = false, respawnAt = 0, lastPoint = 0} end end
     function Service:IsMine(position)
         return position.X >= 326 and position.X <= 462 and position.Z >= 132 and position.Z <= 188
     end
     function Service:IsCity2(position)
-        return position.X >= 735 and position.X <= 1165 and position.Z >= -210 and position.Z <= 390
+        return position.X >= 720 and position.X <= 1180 and position.Z >= -265 and position.Z <= 420
+    end
+    function Service:IsCity1(position)
+        return position.X >= -540 and position.X <= 540 and position.Z >= -625 and position.Z <= 490 and not self:IsMine(position)
+    end
+    function Service:BossState(kind)
+        local state = self.Bosses[kind]
+        return state and {alive = state.alive, respawnAt = state.respawnAt, lastPoint = state.lastPoint} or nil
     end
     function Service:Count()
         local count = 0; for _ in self.Zombies do count += 1 end; return count
@@ -28,25 +36,67 @@ return function(ctx)
         return model and self.Zombies[model:GetAttribute("ZombieId")]
     end
     function Service:Damage(z, amount, player)
-        if not z or z.dead or z.humanoid.Health <= 0 then return end
+        if not z or z.dead or z.humanoid.Health <= 0 then return 0, false end
         if player then z.credits[player] = os.clock() end
         local def = ctx.ZombieDefs[z.kind]
         local applied = math.max(1, amount * (1 - (def.armor or 0)))
+        local lethal = applied >= z.humanoid.Health
         z.humanoid:TakeDamage(applied); z.model:SetAttribute("Health", z.humanoid.Health)
         if z.bossFill then z.bossFill.Size = UDim2.fromScale(math.clamp(z.humanoid.Health / z.humanoid.MaxHealth, 0, 1), 1) end
+        if not lethal and os.clock() >= (z.nextPainVoice or 0) then
+            z.nextPainVoice = os.clock() + 1.4
+            ctx:FX("zombie_hurt", {from = z.model.PrimaryPart.Position, tone = def.voice or 1})
+        end
+        return applied, lethal
+    end
+    function Service:AwardRainbowLoot(player, s, position)
+        local c = s.Campaign
+        c.BossPity = c.BossPity or {rainbowArmor = 0, rainbowWeapon = 0}
+        local armorDrop = math.random(1, 100) <= 22 or c.BossPity.rainbowArmor >= 3
+        local weaponDrop = math.random(1, 100) <= 30 or c.BossPity.rainbowWeapon >= 2
+        c.BossPity.rainbowArmor = armorDrop and 0 or math.min(3, c.BossPity.rainbowArmor + 1)
+        c.BossPity.rainbowWeapon = weaponDrop and 0 or math.min(2, c.BossPity.rainbowWeapon + 1)
+        local bundles = {
+            {metal = 14, electronics = 5, prism_shard = 5, ammo = 30},
+            {steel_plate = 7, chemicals = 8, prism_shard = 6, rifle_ammo = 24},
+            {concrete = 12, glass = 9, prism_shard = 7, shells = 18},
+        }
+        local resources = bundles[math.random(1, #bundles)]
+        local ok = ctx.Inventory.grant(c, resources)
+        if not ok then
+            for id, count in resources do c.Stockpile[id] = math.min(9999, (c.Stockpile[id] or 0) + count) end
+            ctx:Notify(player, "Рюкзак заполнен: обычная добыча Радужного Стража отправлена на склад базы.", "info")
+        end
+        local drops = {}
+        local function rare(id, label, offset)
+            local granted = ctx.Inventory.grant(c, {[id] = 1})
+            if not granted then ctx.Services.ResourceService:Drop(player, id, 1, position + offset) end
+            table.insert(drops, label)
+        end
+        if armorDrop then rare("prism_armor", "Радужная броня", Vector3.new(-2, 0, 0)) end
+        if weaponDrop then rare("prism_blade", "Призматический клинок", Vector3.new(2, 0, 0)) end
+        s.Data.Coins += 35
+        local rareText = #drops > 0 and table.concat(drops, " + ") or "редкий предмет не выпал"
+        ctx:Notify(player, "РАДУЖНАЯ ДОБЫЧА: +35 Coins, ресурсы и " .. rareText .. ". Шансы: броня 22%, клинок 30%.", #drops > 0 and "success" or "info")
     end
     function Service:Die(z)
         if z.dead then return end
         z.dead = true; self.Zombies[z.id] = nil
-        if ctx.ZombieDefs[z.kind].boss then self.BossAlive = false; self.BossRespawnAt = os.clock() + 150 end
+        local def = ctx.ZombieDefs[z.kind]
+        if def.boss then
+            local state = self.Bosses[z.kind]
+            if state then state.alive = false; state.respawnAt = os.clock() + 180 end
+        end
+        ctx:FX("zombie_death", {from = z.model.PrimaryPart.Position, tone = def.voice or 1, boss = def.boss == true})
         for player, at in z.credits do
             local s = ctx.Sessions[player]; local root = ctx:Root(player)
             if s and s.Active and not s.Closing and not s.Frozen and root and os.clock() - at < 25 and (root.Position - z.model.PrimaryPart.Position).Magnitude < 240 then
-                local def = ctx.ZombieDefs[z.kind]
                 s.Campaign.Cash += def.cash; s.Campaign.XP += def.xp
                 s.Campaign.Stats.kills += 1; s.Data.Stats.kills += 1
                 ctx.Progression.fact(s.Campaign, "kill")
                 ctx.Services.QuestService:Record(player, "kill", z.kind, 1)
+                if z.kind == "rainbow" then self:AwardRainbowLoot(player, s, z.model.PrimaryPart.Position)
+                elseif def.profileCoins then s.Data.Coins += def.profileCoins end
                 ctx:Notify(player, "+" .. def.cash .. " Cash  /  +" .. def.xp .. " XP", "success")
                 ctx:Changed(player)
             end
@@ -56,7 +106,7 @@ return function(ctx)
         Debris:AddItem(z.model, 2)
     end
     local function addArmor(model, def, kind)
-        if not (kind == "armored" or kind == "tank" or kind == "foreman" or kind == "mine_guard" or kind == "warden") then return end
+        if not (kind == "armored" or kind == "tank" or kind == "foreman" or kind == "mine_guard" or kind == "warden" or kind == "reaver") then return end
         local torso = model:FindFirstChild("UpperTorso"); local head = model:FindFirstChild("Head")
         local function plate(name, body, size, offset, color)
             if not body then return end
@@ -69,13 +119,13 @@ return function(ctx)
         plate("ShoulderArmor", torso, Vector3.new(3.15, 0.36, 0.9), Vector3.new(0, 0.7, 0), Color3.fromRGB(78, 84, 85))
         plate("Helmet", head, Vector3.new(1.72, 0.42, 1.55), Vector3.new(0, 0.66, 0), kind == "foreman" and Color3.fromRGB(235, 155, 42) or Color3.fromRGB(72, 79, 82))
     end
-    local function bossLabel(model)
-        local gui = Instance.new("BillboardGui"); gui.Name = "BossHealth"; gui.Size = UDim2.fromOffset(270, 54)
+    local function bossLabel(model, def)
+        local gui = Instance.new("BillboardGui"); gui.Name = "BossHealth"; gui.Size = UDim2.fromOffset(300, 54)
         gui.StudsOffset = Vector3.new(0, 3.2, 0); gui.AlwaysOnTop = true; gui.MaxDistance = 140
         gui.Adornee = model:FindFirstChild("Head"); gui.Parent = model
         local title = Instance.new("TextLabel"); title.Size = UDim2.new(1, 0, 0, 30); title.BackgroundTransparency = 1
-        title.Text = "ШАХТЁР-БРИГАДИР"; title.Font = Enum.Font.GothamBold; title.TextSize = 16
-        title.TextColor3 = Color3.fromRGB(249, 184, 76); title.TextStrokeTransparency = 0.2; title.Parent = gui
+        title.Text = def.name; title.Font = Enum.Font.GothamBold; title.TextSize = 16
+        title.TextColor3 = def.name:find("РАДУЖНЫЙ") and Color3.fromRGB(232, 121, 249) or Color3.fromRGB(249, 184, 76); title.TextStrokeTransparency = 0.2; title.Parent = gui
         local back = Instance.new("Frame"); back.Position = UDim2.fromOffset(10, 34); back.Size = UDim2.new(1, -20, 0, 10)
         back.BackgroundColor3 = Color3.fromRGB(35, 39, 39); back.BorderSizePixel = 0; back.Parent = gui
         local fill = Instance.new("Frame"); fill.Name = "Fill"; fill.Size = UDim2.fromScale(1, 1)
@@ -85,10 +135,13 @@ return function(ctx)
     function Service:Spawn(kind, position, raidOwner)
         if self:Count() >= ctx.Config.MaxZombies then return end
         local def = ctx.ZombieDefs[kind]; if not def then return end
-        -- Mine guards/bosses and second-city mutations cannot be injected into another zone.
+        -- Zone-specific enemies cannot be injected into another district. Every boss
+        -- has its own lifecycle, so a city encounter never suppresses the Foreman.
         if def.mineOnly and not self:IsMine(position) then return end
         if def.city2Only and not self:IsCity2(position) then return end
-        if def.boss and self.BossAlive then return end
+        if def.city1Only and not self:IsCity1(position) then return end
+        local bossState = def.boss and self.Bosses[kind]
+        if bossState and bossState.alive then return end
         self.NextId += 1
         local m, h = ctx.Factory.rig(def.name, CFrame.new(position + Vector3.new(0, 3 * def.size, 0)), Color3.fromRGB(59, 69, 61), Color3.fromRGB(table.unpack(def.color)), def.size, "zombie_" .. kind)
         addArmor(m, def, kind)
@@ -96,9 +149,9 @@ return function(ctx)
         m:SetAttribute("Health", def.health); m:SetAttribute("MaxHealth", def.health); m:SetAttribute("State", "ZombieIdle"); m:SetAttribute("AnimationSeed", self.NextId % 97)
         m.Parent = ctx.World.Zombies; m.PrimaryPart:SetNetworkOwner(nil); CollectionService:AddTag(m, "Zombie"); CollectionService:AddTag(m, "LastCityActor")
         h.MaxHealth = def.health; h.Health = def.health; h.WalkSpeed = def.speed
-        local fill = def.boss and bossLabel(m) or nil
-        local z = {id = self.NextId, model = m, humanoid = h, kind = kind, home = position, raidOwner = raidOwner, credits = {}, nextAttack = 0, attackUntil = 0, nextPath = 0, pathIndex = 1, born = os.clock(), bossFill = fill}
-        self.Zombies[z.id] = z; if def.boss then self.BossAlive = true end
+        local fill = def.boss and bossLabel(m, def) or nil
+        local z = {id = self.NextId, model = m, humanoid = h, kind = kind, home = position, raidOwner = raidOwner, credits = {}, nextAttack = 0, attackUntil = 0, nextPath = 0, pathIndex = 1, born = os.clock(), bossFill = fill, nextVoice = os.clock() + 2 + math.random() * 4}
+        self.Zombies[z.id] = z; if bossState then bossState.alive = true end
         h.Died:Connect(function() self:Die(z) end)
         return z
     end
@@ -130,34 +183,45 @@ return function(ctx)
     function Service:Step(z)
         if z.dead or not z.model.Parent then return end
         local root = z.model.PrimaryPart; local def = ctx.ZombieDefs[z.kind]
-        local targetPlayer, targetSquad, distance = nil, nil, def.aggro or 110
+        local targetPlayer, targetSquad, targetRecruit, distance = nil, nil, nil, def.aggro or 110
         for player, s in ctx.Sessions do
             local pr = ctx:Root(player)
             if s.Active and not s.Closing and not s.Frozen and not s.Traveling and pr and ctx:Alive(player) and not ctx:InShelter(player)
                 and (not def.leash or (pr.Position - z.home).Magnitude <= def.leash) then
                 local d = (pr.Position - root.Position).Magnitude
-                if d < distance and (not s.Crouching or d < 65) then targetPlayer = player; targetSquad = nil; distance = d end
+                if d < distance and (not s.Crouching or d < 65) then targetPlayer = player; targetSquad = nil; targetRecruit = nil; distance = d end
             end
         end
         if ctx.Services.SquadService then
             local member, memberDistance = ctx.Services.SquadService:NearestTarget(root.Position, distance)
             if member and memberDistance and (not def.leash or (member.model.PrimaryPart.Position - z.home).Magnitude <= def.leash) then
-                targetPlayer = nil; targetSquad = member; distance = memberDistance
+                targetPlayer = nil; targetSquad = member; targetRecruit = nil; distance = memberDistance
+            end
+        end
+        if ctx.Services.RecruitService then
+            local recruit, recruitDistance = ctx.Services.RecruitService:NearestTarget(root.Position, distance)
+            if recruit and recruitDistance and (not def.leash or (recruit.model.PrimaryPart.Position - z.home).Magnitude <= def.leash) then
+                targetPlayer = nil; targetSquad = nil; targetRecruit = recruit; distance = recruitDistance
             end
         end
         local motionState = "ZombieIdle"
-        if targetPlayer or targetSquad then
-            local targetRoot = targetPlayer and ctx:Root(targetPlayer) or targetSquad.model.PrimaryPart
+        if targetPlayer or targetSquad or targetRecruit then
+            if os.clock() >= (z.nextVoice or 0) then
+                z.nextVoice = os.clock() + 7 + math.random() * 8
+                ctx:FX("zombie_voice", {from = root.Position, tone = def.voice or 1, boss = def.boss == true})
+            end
+            local targetRoot = targetPlayer and ctx:Root(targetPlayer) or targetSquad and targetSquad.model.PrimaryPart or targetRecruit.model.PrimaryPart
             if not targetRoot then return end
             local targetPosition = targetRoot.Position; motionState = "ZombieChase"
             local attackRange = def.ranged or 5.2
-            local ignore = {z.model, targetPlayer and targetPlayer.Character or targetSquad.model}
+            local allyModel = targetSquad and targetSquad.model or targetRecruit and targetRecruit.model
+            local ignore = {z.model, targetPlayer and targetPlayer.Character or allyModel}
             local visible = ctx:LineOfSight(root.Position + Vector3.new(0, 1.5, 0), targetPosition + Vector3.new(0, 1.5, 0), ignore)
             local attackedBarrier = false
             -- If a player's defense makes the route impossible, infected damage that real
             -- defense instead of jumping it or endlessly pushing through its collision.
             if not visible then
-                local owner = targetPlayer or targetSquad and targetSquad.owner
+                local owner = targetPlayer or targetSquad and targetSquad.owner or targetRecruit and targetRecruit.owner
                 local barrier, barrierDistance
                 if owner then local _point; barrier, _point, barrierDistance = ctx.Services.BuildingService:Nearest(owner, root.Position) end
                 if barrier and barrierDistance and barrierDistance < 5.2 and os.clock() >= z.nextAttack then
@@ -170,8 +234,10 @@ return function(ctx)
                 else self:Move(z, targetPosition) end
                 if distance < attackRange and visible and os.clock() >= z.nextAttack then
                     z.nextAttack = os.clock() + def.interval; z.attackUntil = os.clock() + 0.55
-                    if targetPlayer then ctx.Services.CombatService:Hurt(targetPlayer, def.damage)
-                    else ctx.Services.SquadService:Hurt(targetSquad, def.damage) end
+                    if targetPlayer then ctx.Services.CombatService:Hurt(targetPlayer, def.damage, def.ranged and "acid" or "melee")
+                    elseif targetSquad then ctx.Services.SquadService:Hurt(targetSquad, def.damage)
+                    else ctx.Services.RecruitService:Hurt(targetRecruit, def.damage) end
+                    ctx:FX("zombie_attack", {from = root.Position, tone = def.voice or 1, ranged = def.ranged ~= nil})
                     if def.ranged then ctx:FX("acid", {from = root.Position + Vector3.new(0, 2, 0), to = targetPosition + Vector3.new(0, 1.5, 0), user = 0}) end
                 end
             end
@@ -199,7 +265,7 @@ return function(ctx)
             if not observed and not def.boss and not def.minion and os.clock() - z.born > 240 then z.model:Destroy(); self.Zombies[z.id] = nil; return end
         end
         if root.Position.Y < -60 then
-            if def.boss then self.BossAlive = false; self.BossRespawnAt = os.clock() + 20 end
+            if def.boss and self.Bosses[z.kind] then self.Bosses[z.kind].alive = false; self.Bosses[z.kind].respawnAt = os.clock() + 20 end
             z.model:Destroy(); self.Zombies[z.id] = nil; return
         end
         if os.clock() < z.attackUntil then z.model:SetAttribute("State", "ZombieAttack")
@@ -237,9 +303,13 @@ return function(ctx)
             end
         end)
         task.spawn(function()
-            local points, minionPoints, bossPoint = {}, {}, nil
+            local points, minionPoints = {}, {}
+            local bossPoints = {foreman = {}, reaver = {}, warden = {}, rainbow = {}}
             for _, point in ctx.World.ZombieSpawns:GetChildren() do
-                if point.Name == "MineBossSpawn" then bossPoint = point
+                if point.Name == "MineBossSpawn" then table.insert(bossPoints.foreman, point)
+                elseif point.Name:match("^City1BossSpawn") then table.insert(bossPoints.reaver, point)
+                elseif point.Name:match("^City2BossSpawn") then table.insert(bossPoints.warden, point)
+                elseif point.Name == "RainbowBossSpawn" then table.insert(bossPoints.rainbow, point)
                 elseif point.Name:match("^MineMinionSpawn") then table.insert(minionPoints, point)
                 else table.insert(points, point) end
             end
@@ -254,9 +324,8 @@ return function(ctx)
                     return roll <= 30 and "lurker" or roll <= 52 and "ravager" or roll <= 70 and "runner"
                         or roll <= 88 and "brute" or roll <= 97 and "armored" or "tank"
                 elseif area == "city2" then
-                    return roll <= 25 and "corrosive" or roll <= 45 and "stalker" or roll <= 58 and "walker"
-                        or roll <= 68 and "runner" or roll <= 82 and "brute" or roll <= 92 and "armored"
-                        or roll <= 97 and "tank" or "warden"
+                    return roll <= 27 and "corrosive" or roll <= 48 and "stalker" or roll <= 62 and "walker"
+                        or roll <= 72 and "runner" or roll <= 86 and "brute" or roll <= 95 and "armored" or "tank"
                 end
                 return roll <= 45 and "walker" or roll <= 65 and "lurker" or roll <= 80 and "runner"
                     or roll <= 90 and "ravager" or roll <= 96 and "brute" or roll <= 99 and "armored" or "tank"
@@ -268,17 +337,31 @@ return function(ctx)
                 end
                 return false
             end
+            local function tryBoss(kind)
+                local state, candidates = self.Bosses[kind], bossPoints[kind]
+                if not state or state.alive or os.clock() < state.respawnAt or #candidates == 0 then return end
+                local eligible = {}
+                for index, point in candidates do
+                    if playersNear(point.Position, 190) and not playersNear(point.Position, 20) then table.insert(eligible, {index = index, point = point}) end
+                end
+                if #eligible == 0 then return end
+                local choices = {}
+                for _, entry in eligible do if #eligible == 1 or entry.index ~= state.lastPoint then table.insert(choices, entry) end end
+                local selected = choices[math.random(1, #choices)]
+                local reserve = kind == "foreman" and 4 or 1
+                if self:Count() > ctx.Config.MaxZombies - reserve then return end
+                local boss = self:Spawn(kind, selected.point.Position)
+                if not boss then return end
+                state.lastPoint = selected.index
+                if kind == "foreman" then
+                    local existing = 0; for _, z in self.Zombies do if z.kind == "mine_guard" and not z.dead then existing += 1 end end
+                    for index = 1, math.min(#minionPoints, math.max(0, 3 - existing)) do self:Spawn("mine_guard", minionPoints[index].Position) end
+                end
+            end
             while task.wait(5) do
                 local active = 0; for _, session in ctx.Sessions do if session.Active and not session.Closing then active += 1 end end
-                if active > 0 and bossPoint and playersNear(bossPoint.Position, 175) and not self.BossAlive
-                    and os.clock() >= self.BossRespawnAt and self:Count() <= ctx.Config.MaxZombies - 4 then
-                    if not playersNear(bossPoint.Position, 16) then
-                        local boss = self:Spawn("foreman", bossPoint.Position)
-                        if boss then
-                            local existing = 0; for _, z in self.Zombies do if z.kind == "mine_guard" and not z.dead then existing += 1 end end
-                            for index = 1, math.min(#minionPoints, math.max(0, 3 - existing)) do self:Spawn("mine_guard", minionPoints[index].Position) end
-                        end
-                    end
+                if active > 0 then
+                    tryBoss("foreman"); tryBoss("reaver"); tryBoss("warden"); tryBoss("rainbow")
                 end
                 local desired = math.min(26, 7 + active * 4)
                 if #points == 0 or self:Count() >= desired then continue end

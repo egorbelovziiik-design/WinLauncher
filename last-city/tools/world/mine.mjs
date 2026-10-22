@@ -66,7 +66,10 @@ export function mine(world) {
   part(quarry,'PortalLeft',[4,14,5],[326,7,147],P.concrete,'Slate');
   part(quarry,'PortalRight',[4,14,5],[326,7,173],P.concrete,'Slate');
   part(quarry,'PortalTop',[6,4,31],[326,13,160],P.concrete,'Slate');
-  sign(quarry,'ВЫРАБОТКА 14\nОПАСНО: ЗАРАЖЕНИЕ',[3.8,8,20],[322.9,8,160],P.orange,P.dark,Math.PI/2);
+  // Thin facade plaque fixed to the portal lintel. The former 3.8×8×20 rotated
+  // cuboid projected through the doorway and appeared as a huge black obstruction.
+  const portalSign=sign(quarry,'ВЫРАБОТКА 14  /  ОПАСНО: ЗАРАЖЕНИЕ',[18,3.2,0.3],[322.9,13,160],P.orange,P.dark,Math.PI/2);
+  portalSign.CanCollide=false;portalSign.CanTouch=false;portalSign.CanQuery=false;portalSign.CastShadow=false;
   const tunnel=folder(quarry,'TraversableMine',true);
   part(tunnel,'TunnelFloor',[82,0.5,23],[367,0.12,160],'#454640','Slate');
   part(tunnel,'NorthWall',[82,12,2],[367,6,148.5],'#4b4d48','Rock');

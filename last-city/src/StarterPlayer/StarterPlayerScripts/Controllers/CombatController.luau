@@ -10,6 +10,8 @@ return function(app)
         if not playing() or app.Camera.Commander or app.Build.Active then return end
         local entry = app:Equipped(); if not entry then return end
         local def = app.Weapons[entry.id]; if not def or self.NextShot > os.clock() then return end
+        if not def.melee and (entry.ammo or 0) <= 0 then return end
+        if def.melee and (app.State.stamina or 0) < 8 then return end
         self.NextShot = os.clock() + def.interval
         local camera = workspace.CurrentCamera
         local ray = camera:ViewportPointToRay(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
@@ -19,7 +21,18 @@ return function(app)
         local head = app.Player.Character and app.Player.Character:FindFirstChild("Head")
         if head then
             local delta = target - head.Position
-            if delta.Magnitude > 0.01 then app:Send("CombatRemote", {action = "attack", aim = delta.Unit}) end
+            if delta.Magnitude > 0.01 then
+                app:Send("CombatRemote", {action = "attack", aim = delta.Unit})
+                if app.Audio then app.Audio:Weapon(entry.id) end
+                if not def.melee and camera then
+                    local recoil = math.rad(def.recoil or 0.6)
+                    camera.CFrame = camera.CFrame * CFrame.Angles(-recoil, (math.random() - 0.5) * recoil * 0.45, 0)
+                end
+                if app.Crosshair then
+                    local old = app.Crosshair.TextSize; app.Crosshair.TextSize = old + (def.melee and 2 or 6)
+                    task.delay(0.08, function() if app.Crosshair then app.Crosshair.TextSize = old end end)
+                end
+            end
         end
     end
     CAS:BindAction("LC_Attack", function(_, state)
@@ -42,6 +55,16 @@ return function(app)
         return Enum.ContextActionResult.Pass
     end, true, Enum.KeyCode.V, Enum.KeyCode.DPadUp)
     CAS:SetTitle("LC_Commander", "V"); CAS:SetPosition("LC_Commander", UDim2.fromScale(0.82, 0.42))
+    CAS:BindAction("LC_FirstPerson", function(_, state)
+        if state == Enum.UserInputState.Begin and playing() and not app.Camera.Commander then
+            local enabled = not app.Camera.FirstPerson
+            app.Camera:SetFirstPerson(enabled)
+            app:Send("SessionRemote", {action = "setting", id = "firstPerson", value = enabled})
+            app:Toast(enabled and "КАМЕРА: ПЕРВОЕ ЛИЦО" or "КАМЕРА: ТРЕТЬЕ ЛИЦО")
+        end
+        return Enum.ContextActionResult.Pass
+    end, true, Enum.KeyCode.Z, Enum.KeyCode.DPadRight)
+    CAS:SetTitle("LC_FirstPerson", "1P"); CAS:SetPosition("LC_FirstPerson", UDim2.fromScale(0.73, 0.42))
     CAS:BindAction("LC_Sprint", function(_, state)
         if app.State and app.State.active then
             app:Send("MovementRemote", {action = "sprint", value = state == Enum.UserInputState.Begin and playing()})
@@ -82,7 +105,7 @@ return function(app)
         local e = app:Equipped(); local def = e and app.Weapons[e.id]
         if self.Held and def and def.auto then self:Fire() end
         local show = playing() and Input.TouchEnabled
-        for _, name in {"LC_Attack", "LC_Reload", "LC_Commander", "LC_Sprint"} do
+        for _, name in {"LC_Attack", "LC_Reload", "LC_Commander", "LC_FirstPerson", "LC_Sprint"} do
             local button = CAS:GetButton(name); if button then button.Visible = show end
         end
     end)

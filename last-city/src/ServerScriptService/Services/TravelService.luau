@@ -39,6 +39,7 @@ return function(ctx)
             s.SafePosition = currentRoot.Position; s.PositionAt = os.clock(); s.SpawnGrace = os.clock() + 3; s.Traveling = nil
             s.Region = destinationId
             ctx.Services.SquadService:TravelWith(player, currentRoot.Position)
+            if ctx.Services.RecruitService then ctx.Services.RecruitService:TravelWith(player, currentRoot.Position) end
             ctx.Remotes.StateRemote:FireClient(player, "travel", {phase = "arrive", destination = destinationId == "City2" and "НОВЫЙ РУБЕЖ" or "МЕРИДИАН"})
             ctx:Notify(player, "Посадка: " .. (destinationId == "City2" and "НОВЫЙ РУБЕЖ" or "МЕРИДИАН") .. ".", "success")
         end)

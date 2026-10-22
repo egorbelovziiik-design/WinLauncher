@@ -28,10 +28,10 @@ while gui.Parent and not complete() do
         title.TextSize = 28
         note.TextColor3 = Color3.fromRGB(247, 163, 130)
         note.Text = (err or "Сервер не прислал готовое состояние за 45 секунд.") .. "\n\n" .. diagnostic
-            .. "\n\nНе ждите бесконечно. Остановите тест и откройте View → Output.\nПришлите первую ошибку с префиксом [LastCity]. Версия 0.5.0."
+            .. "\n\nНе ждите бесконечно. Остановите тест и откройте View → Output.\nПришлите первую ошибку с префиксом [LastCity]. Версия 0.6.0."
         warn("[LastCity LOADING] " .. diagnostic .. " / " .. tostring(err or "timeout"))
         break -- Keep a real error screen, never fake readiness or hide a broken boot.
     end
-    note.Text = "IRON HORIZON / 0.5.0\nЗагрузка: " .. elapsed .. " с\n" .. diagnostic .. "\nStudio по умолчанию: локальная сессия без облачного сохранения."
+    note.Text = "ECHOES OF STEEL / 0.6.0\nЗагрузка: " .. elapsed .. " с\n" .. diagnostic .. "\nStudio по умолчанию: локальная сессия без облачного сохранения."
     task.wait(0.25)
 end

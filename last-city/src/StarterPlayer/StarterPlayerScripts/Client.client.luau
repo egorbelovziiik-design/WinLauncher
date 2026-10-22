@@ -17,7 +17,7 @@ local function boot()
         Player = Players.LocalPlayer, Remotes = ReplicatedStorage:WaitForChild("Remotes"),
         UI = require(Views.UI), Config = require(Shared.GameConfig), Items = require(Shared.ItemDefinitions),
         Weapons = require(Shared.WeaponDefinitions), Quests = require(Shared.QuestDefinitions),
-        Buildings = require(Shared.BuildingDefinitions), Economy = require(Shared.EconomyConfig),
+        Buildings = require(Shared.BuildingDefinitions), Economy = require(Shared.EconomyConfig), Recruits = require(Shared.RecruitDefinitions),
         Factory = require(Shared.ModelFactory), Map = require(Views.MapView), Width = 1280, Height = 720,
         Notices = {}, InventoryFilter = "Все",
     }
@@ -105,7 +105,7 @@ local function boot()
     local panels = {
         inventory = {"РЮКЗАК", require(Views.InventoryView)}, quests = {"ЖУРНАЛ ЗАДАНИЙ", QuestView.page}, dialogue = {"РАДИ СЛЕДУЮЩЕГО ДНЯ", QuestView.dialogue},
         tutorial = {"ПЕРВЫЙ ДЕНЬ", QuestView.tutorial}, build = {"СТРОИТЕЛЬСТВО", BaseView.build}, base = {"УПРАВЛЕНИЕ БАЗОЙ", BaseView.base}, craft = {"МАСТЕРСКАЯ", BaseView.craft},
-        builder = {"СТЕПАН / АВТОСТРОИТЕЛЬ", BaseView.builder}, squad = {"ВОЕННЫЙ ОТРЯД", BaseView.squad},
+        builder = {"СТЕПАН / АВТОСТРОИТЕЛЬ", BaseView.builder}, squad = {"ВОЕННЫЙ ОТРЯД", BaseView.squad}, recruits = {"ЛАДА / СПЕЦИАЛИСТЫ", BaseView.recruits},
         cosmetics = {"МАГАЗИН / COINS", ShopView.cosmetics}, trade = {"СНАБЖЕНИЕ / ТОРГОВЛЯ", ShopView.trade}, weapons = {"ОРУЖЕЙНАЯ", ShopView.weapons},
         profile = {"ПРОФИЛЬ", ProfileView.profile}, achievements = {"ДОСТИЖЕНИЯ", ProfileView.achievements}, settings = {"НАСТРОЙКИ", ProfileView.settings},
         updates = {"ЖУРНАЛ ОБНОВЛЕНИЙ", ProfileView.updates}, map = {"КАРТА РАЙОНА", app.Map.page},
@@ -127,6 +127,7 @@ local function boot()
         self:RefreshPanel(true)
     end
     function app:ClosePanel()
+        if self.PanelName == "dialogue" and self.Voice then self.Voice:Stop() end
         self.PanelName = nil; scrim.Visible = false; UI.clear(self.Body); self.MapDot = nil
         self.Dialogue = nil; self.DialogueText = nil; self.LastDialogueText = nil
         if self.Camera then self.Camera:SetDialogue(nil) end
@@ -144,10 +145,11 @@ local function boot()
     end
     function app:ApplySettings()
         local s = self.State.profile.Settings
-        local hash = s.graphics .. ":" .. s.scale .. ":" .. s.sensitivity
+        local hash = s.graphics .. ":" .. s.scale .. ":" .. s.sensitivity .. ":" .. tostring(s.firstPerson)
         if self.AppliedSettings == hash then return end
         self.AppliedSettings = hash
         Input.MouseDeltaSensitivity = s.sensitivity
+        if self.Camera then self.Camera:SetFirstPerson(s.firstPerson == true) end
         Lighting.GlobalShadows = s.graphics == "High" or s.graphics == "Ultra"
         for _, effect in Lighting:GetChildren() do
             if effect:IsA("BloomEffect") or effect:IsA("SunRaysEffect") then effect.Enabled = s.graphics == "High" or s.graphics == "Ultra"
@@ -166,7 +168,7 @@ local function boot()
         self.TopResources.Text = resources
         local hour = Lighting.ClockTime
         self.Clock.Text = string.format("%02d:%02d  /  %s", math.floor(hour), math.floor(hour % 1 * 60), s.weather)
-        self.StaminaBar:set(s.stamina or 100, 100)
+        self.StaminaBar:set(s.stamina or 100, s.staminaMax or 100)
         local h = self.Player.Character and self.Player.Character:FindFirstChildOfClass("Humanoid")
         self.HealthBar:set(h and h.Health or 100, h and h.MaxHealth or 100)
         self.SurvivalLabel.Text = "ЕДА " .. math.floor(c.Hunger) .. "%    ВОДА " .. math.floor(c.Thirst) .. "%"
@@ -176,6 +178,9 @@ local function boot()
         if e then self.AmmoLabel.Text ..= "  ·  " .. math.floor(e.durability) .. "%" end
         self.SaveLabel.Text = self:SaveText(); self.SaveLabel.TextColor3 = (s.save == "SessionOnly" or s.save == "Error") and T.danger or T.muted
         if s.save == "SessionOnly" then self.SaveLabel.TextColor3 = T.accent end
+        local scout = s.scout
+        self.ScoutLabel.Visible = scout ~= nil
+        if scout then self.ScoutLabel.Text = string.format("РАЗВЕДКА  %s  •  %d м", scout.kind or "Угроза", math.floor(scout.distance or 0)) end
         local track = self.TrackedQuest
         if track and c.Quests[track] and c.Quests[track].status == "RewardClaimed" then self.TrackedQuest = nil; track = nil end
         if not track then
@@ -185,7 +190,7 @@ local function boot()
         if track then
             local def, q = self.Quests[track], c.Quests[track]
             self.TrackerTitle.Text = def.name
-            local npcName = ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор", ira = "Ира Волкова", makar = "Майор Макар", nora = "Доктор Нора"})[def.npc] or def.npc
+            local npcName = ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор", ira = "Ира Волкова", boris = "Старшина Борис", makar = "Майор Макар", nora = "Доктор Нора", lada = "Вербовщик Лада", quartermaster = "Квартирмейстер Феликс"})[def.npc] or def.npc
             if not q then self.TrackerText.Text = "Подойдите к NPC и нажмите E.\n" .. npcName
             elseif q.status == "Completed" then self.TrackerText.Text = "ЦЕЛИ ВЫПОЛНЕНЫ\nВернитесь к NPC за наградой.\n" .. npcName
             else
@@ -201,6 +206,7 @@ local function boot()
     end
     player:SetAttribute("LastCityClientPhase", "Controllers")
     app.Audio = require(script.Parent.Controllers.AudioController)(app)
+    app.Voice = require(script.Parent.Controllers.DialogueVoiceController)(app)
     app.Camera = require(script.Parent.Controllers.CameraController)(app)
     app.Build = require(script.Parent.Controllers.BuildController)(app)
     app.Combat = require(script.Parent.Controllers.CombatController)(app)
@@ -234,6 +240,7 @@ local function boot()
         elseif kind == "dialogue" then
             app.Dialogue = data; app.DialogueText = nil; app.LastDialogueText = nil
             app:OpenPanel("dialogue"); app.Camera:SetDialogue(data.model)
+            if app.Voice and data.voiceText then app.Voice:Speak(data.voiceText, data.voiceId) end
         elseif kind == "travel" then
             if data.phase == "start" then
                 app.Crouching = false
@@ -258,7 +265,9 @@ local function boot()
     end)
     local healthConnection
     app.Player.CharacterAdded:Connect(function(character)
-        app.Camera:SetCommander(false); app.Camera:SetTravel(nil); travelBanner.Visible = false; app.Crouching = false
+        app.Camera:SetCommander(false); app.Camera:SetTravel(nil)
+        if app.State then app.Camera:SetFirstPerson(app.State.profile.Settings.firstPerson == true) end
+        travelBanner.Visible = false; app.Crouching = false
         if healthConnection then healthConnection:Disconnect() end
         local h = character:WaitForChild("Humanoid", 10)
         if h then healthConnection = h.HealthChanged:Connect(function() app:UpdateHUD() end) end

@@ -28,10 +28,15 @@ return function(ctx)
                     local h = ctx:Alive(player); local root = ctx:Root(player)
                     if not h or not root then continue end
                     if s.Commander and not ctx:InPlot(player, 4) then s.Commander = false; ctx.Remotes.StateRemote:FireClient(player, "commander", false) end
+                    local armor = ctx.Inventory.find(s.Campaign, s.Campaign.Armor)
+                    local armorDef = armor and (armor.durability or 0) > 0 and ctx.Items[armor.id] or nil
+                    local speed = armorDef and (armorDef.speedMultiplier or 1) or 1
+                    local staminaMax = 100 * (armorDef and (armorDef.staminaMultiplier or 1) or 1)
+                    s.StaminaMax = staminaMax
                     local moving = h.MoveDirection.Magnitude > 0.05 or root.AssemblyLinearVelocity.Magnitude > 2
                     local sprint = s.Sprinting and not s.Crouching and not s.Commander and s.Stamina > 4 and moving
-                    h.WalkSpeed = s.Commander and 0 or s.Crouching and 8 or sprint and 24 or 16
-                    s.Stamina = math.clamp(s.Stamina + (sprint and -3 or 3.5), 0, 100)
+                    h.WalkSpeed = (s.Commander and 0 or s.Crouching and 8 or sprint and 24 or 16) * speed
+                    s.Stamina = math.clamp(s.Stamina + (sprint and -3 or 3.5), 0, staminaMax)
                     -- Correct large character warps. NetworkService independently validates every sensitive request.
                     local now = os.clock()
                     if s.SafePosition and now - (s.PositionAt or now) < 1 and now > (s.SpawnGrace or 0) then

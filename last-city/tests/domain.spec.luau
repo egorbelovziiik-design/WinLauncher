@@ -7,6 +7,7 @@ local ZombieDefs = require("../src/ReplicatedStorage/Shared/ZombieDefinitions")
 local Buildings = require("../src/ReplicatedStorage/Shared/BuildingDefinitions")
 local QuestDefs = require("../src/ReplicatedStorage/Shared/QuestDefinitions")
 local EconomyDefs = require("../src/ReplicatedStorage/Shared/EconomyConfig")
+local RecruitDefs = require("../src/ReplicatedStorage/Shared/RecruitDefinitions")
 local Util = require("../src/ServerScriptService/Domain/Util")
 local Inventory = require("../src/ServerScriptService/Domain/Inventory")(Items, Weapons, Config, Util)
 local Profile = require("../src/ServerScriptService/Domain/Profile")(Config, Items, Weapons, Buildings, QuestDefs, EconomyDefs, Util, Inventory)
@@ -264,11 +265,47 @@ test("military generator and greenhouse consume inputs and produce real output",
     eq(Economy.tick(c,119,12).supply,55); Economy.tick(c,149,12)
     eq(c.Stockpile.food,4); eq(c.Stockpile.herbs,1); eq(c.Stockpile.water,water-1)
 end)
-test("new infected roster keeps strong mine enemies exclusive",function()
-    local count=0; for _ in ZombieDefs do count+=1 end; eq(count,12)
+test("expanded infected roster preserves zone-exclusive bosses and mine enemies",function()
+    local count=0; for _ in ZombieDefs do count+=1 end; eq(count,14)
     assert(ZombieDefs.foreman.mineOnly and ZombieDefs.mine_guard.mineOnly and ZombieDefs.mine_guard.minion)
     assert(ZombieDefs.corrosive.city2Only and ZombieDefs.stalker.city2Only and ZombieDefs.warden.city2Only)
-    eq(ZombieDefs.walker.damage,5)
+    assert(ZombieDefs.rainbow.city2Only and ZombieDefs.rainbow.boss and ZombieDefs.reaver.city1Only and ZombieDefs.reaver.boss)
+    eq(ZombieDefs.walker.damage,5); eq(ZombieDefs.rainbow.profileCoins,35)
+end)
+test("City One equipment ladder and Rainbow gear are functional definitions",function()
+    for _,id in {"bat","hatchet","revolver","double_barrel","hunting_rifle","assault_rifle","prism_blade"} do
+        assert(Items[id] and Items[id].weapon and Weapons[id],id)
+    end
+    for _,id in {"leather_jacket","medic_vest","scout_vest","hazmat_suit","scavenger_armor","riot_armor","prism_armor"} do
+        assert(Items[id] and Items[id].armor and Items[id].armor>0,id)
+    end
+    eq(Weapons.prism_blade.damage,62); eq(Weapons.prism_blade.range,8.4)
+    eq(Items.prism_armor.armor,0.46); eq(Items.prism_armor.acidResistance,0.35); eq(Items.prism_armor.staminaMultiplier,1.1)
+    local sold={}; for _,product in EconomyDefs.Shop do sold[product.id]=true end
+    for _,id in {"bat","hatchet","revolver","double_barrel","hunting_rifle","assault_rifle","leather_jacket","medic_vest","scout_vest","hazmat_suit","scavenger_armor","riot_armor"} do assert(sold[id],id.." must be sold in City One") end
+end)
+test("five specialist contracts have explicit permanent prices and roles",function()
+    local expected={builder=1250,medic=1000,guard=1500,scout=900,gatherer=1100}; local count=0
+    for id,price in expected do count+=1; eq(RecruitDefs[id].price,price); assert(RecruitDefs[id].health>0 and RecruitDefs[id].speed>0) end
+    eq(count,5)
+end)
+test("specialists pity voice and first-person settings survive normalization",function()
+    local p,c=fresh()
+    c.Recruits.builder={owned=true,command="follow",resource="metal",returnAt=99,expedition=2,completed=0}
+    c.Recruits.gatherer={owned=true,command="gather",resource="mine",returnAt=99999,expedition=3,completed=2}
+    c.Recruits.invented={owned=true,command="follow"}; c.BossPity={rainbowArmor=99,rainbowWeapon=-5}
+    p.Settings.voice=0.61; p.Settings.firstPerson=true
+    local copy=assert(Profile.normalize(Util.copy(p))); local campaign=copy.Campaigns.coop
+    eq(campaign.Recruits.builder.command,"follow"); eq(campaign.Recruits.builder.returnAt,0)
+    eq(campaign.Recruits.gatherer.command,"gather"); eq(campaign.Recruits.gatherer.resource,"mine"); eq(campaign.Recruits.gatherer.expedition,3)
+    eq(campaign.Recruits.invented,nil); eq(campaign.BossPity.rainbowArmor,3); eq(campaign.BossPity.rainbowWeapon,0)
+    eq(copy.Settings.voice,0.61); eq(copy.Settings.firstPerson,true)
+end)
+test("four additional City Two quests are chained to real objectives and loot",function()
+    local count=0; for _ in QuestDefs do count+=1 end; eq(count,16)
+    eq(QuestDefs.frontier_patrol.requires,"second_city"); eq(QuestDefs.frontier_homes.objectives[1].count,4)
+    eq(QuestDefs.frontier_rebuild.objectives[1].target,"steel_plate")
+    eq(QuestDefs.prism_cave.requires,"frontier_homes"); eq(QuestDefs.prism_cave.objectives[1].target,"rainbow")
 end)
 test("map bounds include separated second city without expanding private plots",function()
     assert(Config.MapBounds.maxX>=Config.SecondCity.x and Config.MapBounds.minX<0); eq(Config.PlotHalfSize,48); eq(Config.Grid,4)

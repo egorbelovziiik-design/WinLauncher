@@ -22,6 +22,7 @@ function View.base(app, body)
     UI.button(row, "Постройки", function() app:OpenPanel("build") end, {Size = UDim2.new(1 / 3, -5, 1, 0), BackgroundColor3 = T.accent})
     UI.button(row, "Крафт", function() app:OpenPanel("craft") end, {Size = UDim2.new(1 / 3, -5, 1, 0)})
     UI.button(row, "Военный отряд", function() app:OpenPanel("squad") end, {Size = UDim2.new(1 / 3, -5, 1, 0)})
+    UI.button(body, "КОНТРАКТНЫЕ СПЕЦИАЛИСТЫ  /  ЛАДА", function() app:OpenPanel("recruits") end, {Size = UDim2.new(1, -6, 0, 31), TextSize = 11})
     UI.paragraph(body, "Строитель Степан живёт на участке. Поговорите с ним по E: он примет ресурсы из рюкзака/склада, найдёт свободный footprint и построит выбранный объект.", 48)
     UI.heading(body, "СКЛАД  /  ВЗЯТЬ ИЛИ ПОЛОЖИТЬ 5")
     local ids = {}; for id, def in app.Items do if not def.weapon and not def.armor and not def.blueprint then table.insert(ids, id) end end; table.sort(ids)
@@ -89,10 +90,10 @@ function View.builder(app, body)
 end
 function View.squad(app, body)
     local UI = app.UI; local c = app.State.campaign; local q = c.Quests.rescue_fireteam
-    UI.paragraph(body, "Рада и Глеб появляются только после задания майора Макара во втором городе. Их военная броня снижает входящий урон на 42%; карабины расходуют реальные винтовочные патроны со склада. Бойцы не прыгают через стены и обходят постройки.", 72)
+    UI.paragraph(body, "Рада и Глеб появляются только после задания старшины Бориса. Их военная броня снижает входящий урон на 42%; карабины расходуют реальные винтовочные патроны со склада. Бойцы не прыгают через стены и обходят постройки.", 72)
     if not q or q.status ~= "RewardClaimed" then
         UI.heading(body, "ОТРЯД ЕЩЁ НЕ РАЗБЛОКИРОВАН")
-        UI.paragraph(body, "Сначала выполните у Алекса «ВТОРОЙ РУБЕЖ» (25 зомби), долетите до НОВОГО РУБЕЖА и завершите задание «ВОЗВРАЩЕНИЕ ГАРНИЗОНА» у Макара.", 62)
+        UI.paragraph(body, "Сначала выполните у Алекса «ВТОРОЙ РУБЕЖ» (25 зомби), затем возьмите у военного Бориса задание «БОЙЦЫ БОРИСА» и спасите патруль в НОВОМ РУБЕЖЕ.", 62)
         return
     end
     local squad = c.Squad
@@ -107,6 +108,38 @@ function View.squad(app, body)
     for _, option in {{"metal", "Металл / лом / пластины"}, {"mine", "Руда / уголь / металл"}, {"wood", "Дерево / травы / ткань"}} do
         UI.button(body, option[2], function() app:Send("NPCRemote", {action = "squad", command = "gather", resource = option[1]}) end,
             {BackgroundColor3 = squad.command == "gather" and squad.resource == option[1] and UI.Theme.accent or UI.Theme.raised})
+    end
+end
+function View.recruits(app, body)
+    local UI = app.UI; local c = app.State.campaign
+    UI.paragraph(body, "Вербовщик Лада находится во втором городе. Найм оплачивается только Survival Cash и сохраняется в кампании. Купленные специалисты — реальные NPC на вашей базе с рабочими серверными способностями.", 67)
+    for _, id in app:Sorted(app.Recruits) do
+        local def = app.Recruits[id]; local record = c.Recruits[id]
+        local card = UI.card(body, record and (id == "gatherer" and 205 or 164) or 145)
+        UI.label(card, def.name .. "  /  " .. def.role:upper(), 15, {Position = UDim2.fromOffset(13, 9), Size = UDim2.new(1, -26, 0, 24), Font = Enum.Font.GothamBold})
+        UI.label(card, def.description, 11, {Position = UDim2.fromOffset(13, 38), Size = UDim2.new(1, -26, 0, 40), TextWrapped = true, TextColor3 = UI.Theme.muted})
+        if not record then
+            UI.label(card, def.price .. " SURVIVAL CASH  /  один раз", 11, {Position = UDim2.fromOffset(13, 83), Size = UDim2.new(1, -26, 0, 20), TextColor3 = UI.Theme.accent})
+            UI.button(card, "НАНЯТЬ У ЛАДЫ", function() app:Send("NPCRemote", {action = "recruit", id = id}) end,
+                {Position = UDim2.fromOffset(13, 109), Size = UDim2.new(1, -26, 0, 27), BackgroundColor3 = UI.Theme.accent, TextSize = 11})
+        else
+            local title = record.command == "follow" and "СЛЕДУЕТ" or record.command == "gather" and "ЭКСПЕДИЦИЯ" or "НА БАЗЕ"
+            UI.label(card, "НАНЯТ  •  " .. title, 10, {Position = UDim2.fromOffset(13, 82), Size = UDim2.new(1, -26, 0, 18), TextColor3 = UI.Theme.success})
+            local row = UI.row(card, 30); row.Position = UDim2.fromOffset(13, 107); row.Size = UDim2.new(1, -26, 0, 30)
+            UI.button(row, "На базу", function() app:Send("NPCRemote", {action = "recruitCommand", id = id, command = "base"}) end,
+                {Size = UDim2.new(0.5, -5, 1, 0), BackgroundColor3 = record.command == "base" and UI.Theme.accent or UI.Theme.raised, TextSize = 11})
+            UI.button(row, "За мной", function() app:Send("NPCRemote", {action = "recruitCommand", id = id, command = "follow"}) end,
+                {Size = UDim2.new(0.5, -5, 1, 0), BackgroundColor3 = record.command == "follow" and UI.Theme.accent or UI.Theme.raised, TextSize = 11})
+            if id == "gatherer" then
+                UI.label(card, record.command == "gather" and ("Возвращение через " .. math.max(0, record.returnAt - app.State.serverTime) .. " с") or "Отправить на 120 секунд:", 10,
+                    {Position = UDim2.fromOffset(13, 143), Size = UDim2.new(1, -26, 0, 18), TextColor3 = UI.Theme.muted})
+                local gather = UI.row(card, 28); gather.Position = UDim2.fromOffset(13, 169); gather.Size = UDim2.new(1, -26, 0, 28)
+                for index, option in {{"metal", "Металл"}, {"mine", "Шахта"}, {"wood", "Дерево"}} do
+                    UI.button(gather, option[2], function() app:Send("NPCRemote", {action = "recruitCommand", id = id, command = "gather", resource = option[1]}) end,
+                        {Size = UDim2.new(1 / 3, -5, 1, 0), TextSize = 10})
+                end
+            end
+        end
     end
 end
 return View

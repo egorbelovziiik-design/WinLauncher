@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "serialization": {
     "status": "PASSED",
     "count": 10
@@ -10,7 +10,10 @@
     "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
   },
   "studio_import": {
-    "version": "0.5.0",
+    "version": "0.6.0",
+    "status": "NOT TESTED"
+  },
+  "studio_import_0_5_0": {
     "status": "NOT TESTED"
   },
   "studio_import_0_4_0": {
@@ -30,47 +33,47 @@
   },
   "roads": {
     "status": "PASSED",
-    "count": 7
+    "count": 9
   },
   "luau_version": "0.743",
   "source_compilation": {
     "status": "PASSED",
-    "count": 52
+    "count": 55
   },
   "domain": {
     "status": "PASSED",
-    "count": 117
+    "count": 121
   },
   "mock_adapters": {
     "status": "PASSED",
-    "count": 89,
+    "count": 95,
     "scope": "API doubles; NOT Roblox Studio"
   },
   "binary": {
-    "assertions": 110,
-    "instances": 7189,
-    "parts": 6553,
-    "scripts": 52,
-    "bytes": 293152,
-    "sha256": "f9d6718bad526fb1e599c616c8546f93b844f3bbd03bca47333117b38f2a6b1c",
+    "assertions": 170,
+    "instances": 7568,
+    "parts": 6809,
+    "scripts": 55,
+    "bytes": 328493,
+    "sha256": "fe53e7ce00faaf19048dc64be992cfa341e06736d6d8005e24567f9b7e00b458",
     "classes": {
       "Workspace": 1,
       "Camera": 1,
       "Terrain": 1,
       "Clouds": 1,
       "Folder": 20,
-      "Part": 6494,
-      "Model": 190,
-      "SurfaceGui": 41,
-      "TextLabel": 50,
-      "PointLight": 45,
+      "Part": 6750,
+      "Model": 196,
+      "SurfaceGui": 60,
+      "TextLabel": 69,
+      "PointLight": 69,
       "SpawnLocation": 1,
       "TrussPart": 2,
       "Fire": 2,
       "SpotLight": 4,
       "WedgePart": 55,
-      "StringValue": 95,
-      "IntValue": 98,
+      "StringValue": 123,
+      "IntValue": 122,
       "BillboardGui": 9,
       "NumberValue": 2,
       "Lighting": 1,
@@ -81,7 +84,7 @@
       "Sky": 1,
       "ReplicatedStorage": 1,
       "RemoteEvent": 11,
-      "ModuleScript": 49,
+      "ModuleScript": 52,
       "ServerScriptService": 1,
       "Script": 1,
       "StarterPlayer": 1,

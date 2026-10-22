@@ -13,7 +13,7 @@ local function boot()
         World = assert(workspace:WaitForChild("World", 10), "World missing"), Config = require(Shared.GameConfig),
         Items = require(Shared.ItemDefinitions), Weapons = require(Shared.WeaponDefinitions),
         ZombieDefs = require(Shared.ZombieDefinitions), QuestDefs = require(Shared.QuestDefinitions),
-        BuildingDefs = require(Shared.BuildingDefinitions), EconomyDefs = require(Shared.EconomyConfig),
+        BuildingDefs = require(Shared.BuildingDefinitions), EconomyDefs = require(Shared.EconomyConfig), RecruitDefs = require(Shared.RecruitDefinitions),
         Factory = require(Shared.ModelFactory), Util = require(Domain.Util),
         RateLimiter = require(Domain.RateLimiter), Lease = require(Domain.Lease),
     }
@@ -74,7 +74,7 @@ local function boot()
             if s.Active and root and (root.Position - data.from).Magnitude < 280 then self.Remotes.EffectsRemote:FireClient(player, kind, data) end
         end
     end
-    local names = {"NetworkService", "SaveService", "WorldService", "BuildingService", "NPCService", "SquadService", "TravelService", "QuestService", "InventoryService", "ResourceService", "DoorService", "ShopService", "CombatService", "ZombieService", "EconomyService", "SurvivalService", "PlayerDataService"}
+    local names = {"NetworkService", "SaveService", "WorldService", "BuildingService", "NPCService", "SquadService", "RecruitService", "TravelService", "QuestService", "InventoryService", "ResourceService", "DoorService", "ShopService", "CombatService", "ZombieService", "EconomyService", "SurvivalService", "PlayerDataService"}
     for _, name in names do workspace:SetAttribute("LastCityServerPhase", "Create: " .. name); ctx.Services[name] = require(script.Parent.Services[name])(ctx) end
     for _, name in names do workspace:SetAttribute("LastCityServerPhase", "Init: " .. name); if ctx.Services[name].Init then ctx.Services[name]:Init() end end
     workspace:SetAttribute("LastCityServerPhase", "Ready")

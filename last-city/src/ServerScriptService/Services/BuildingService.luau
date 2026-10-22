@@ -69,11 +69,12 @@ return function(ctx)
     end
     function Service:Placed(player, s, building, byBuilder)
         if ctx.Services.NPCService and ctx.Services.NPCService.Evacuate then ctx.Services.NPCService:Evacuate(player, building) end
+        local specialist = ctx.Services.RecruitService and ctx.Services.RecruitService:AdjustBuildTime(player, building)
         self:Render(player, building); s.Data.Stats.buildings += 1; s.Campaign.XP += 15
         ctx.Services.QuestService:Record(player, "build", building.id, 1)
         ctx.Progression.fact(s.Campaign, "build")
         if building.id == "generator" or building.id == "diesel" or building.id == "advanced_generator" then ctx.Progression.fact(s.Campaign, "generator") end
-        ctx:Notify(player, ctx.BuildingDefs[building.id].name .. (byBuilder and ": Степан начал строительство" or ": строительство началось"), "success")
+        ctx:Notify(player, ctx.BuildingDefs[building.id].name .. (byBuilder and ": Степан начал строительство" or ": строительство началось") .. (specialist and " • строитель Аркадий ускорил срок на 35%" or ""), "success")
     end
     function Service:AutoPlace(player, id)
         local s = ctx.Sessions[player]

@@ -7,14 +7,18 @@ return function(ctx)
     function Service:Snapshot(player)
         local s = ctx.Sessions[player]
         if not s or not s.Loaded or not player.Parent then return end
+        local bosses = {}
+        if ctx.Services.ZombieService then
+            for kind in ctx.Services.ZombieService.Bosses do bosses[kind] = ctx.Services.ZombieService:BossState(kind) end
+        end
         ctx.Remotes.StateRemote:FireClient(player, "state", {
             profile = {Coins = s.Data.Coins, Stats = s.Data.Stats, Cosmetics = s.Data.Cosmetics, EquippedSkin = s.Data.EquippedSkin,
                 Achievements = s.Data.Achievements, Settings = s.Data.Settings, TutorialRewarded = s.Data.TutorialRewarded},
             campaign = s.Campaign, mode = s.Mode, active = s.Active, plot = s.Plot, revision = s.Data.Revision,
-            save = s.SaveState, lastSave = s.LastSave, stamina = s.Stamina,
+            save = s.SaveState, lastSave = s.LastSave, stamina = s.Stamina, staminaMax = s.StaminaMax or 100, bosses = bosses,
             power = s.Power or {supply = 0, demand = 0, deficit = 0, spare = 0, powered = {}},
             stage = ctx.Progression.stage(s.Campaign), serverTime = os.time(), studio = RunService:IsStudio(),
-            weather = ctx.Services.WorldService.Weather, raid = s.Raid or "Спокойно", shop = ctx.Services.ShopService:Stock(),
+            weather = ctx.Services.WorldService.Weather, raid = s.Raid or "Спокойно", shop = ctx.Services.ShopService:Stock(), scout = s.ScoutPing,
         })
     end
     function Service:Character(player, character)
@@ -76,6 +80,7 @@ return function(ctx)
         ctx.Services.BuildingService:Restore(player)
         ctx.Services.NPCService:AddWorkers(player)
         ctx.Services.SquadService:SyncPlayer(player)
+        ctx.Services.RecruitService:SyncPlayer(player)
         player:SetAttribute("LastCityLoadPhase", "Ready")
         self:Snapshot(player)
     end
@@ -113,6 +118,7 @@ return function(ctx)
             ctx.Services.BuildingService:RemovePlayer(player)
             ctx.Services.NPCService:RemovePlayer(player)
             ctx.Services.SquadService:RemovePlayer(player)
+            ctx.Services.RecruitService:RemovePlayer(player)
             ctx.Services.CombatService:Remove(player)
             ctx.Services.NetworkService:Remove(player)
             ctx.Sessions[player] = nil
@@ -164,8 +170,9 @@ return function(ctx)
             elseif p.action == "inventoryOpened" and s.Active then ctx.Progression.fact(s.Campaign, "inventory"); ctx:Changed(player)
             elseif p.action == "setting" then
                 local allowed = {graphics = {"Low", "Medium", "High", "Ultra"}, difficulty = {"Relaxed", "Normal", "Hard"}}
-                local bounds = {uiSound = {0, 1}, music = {0, 1}, effects = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}}
+                local bounds = {uiSound = {0, 1}, music = {0, 1}, effects = {0, 1}, voice = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}}
                 if allowed[p.id] and table.find(allowed[p.id], p.value) then s.Data.Settings[p.id] = p.value
+                elseif p.id == "firstPerson" and type(p.value) == "boolean" then s.Data.Settings.firstPerson = p.value
                 elseif bounds[p.id] and ctx.Util.finite(p.value) then s.Data.Settings[p.id] = math.clamp(p.value, bounds[p.id][1], bounds[p.id][2]) end
                 ctx:Changed(player)
             end

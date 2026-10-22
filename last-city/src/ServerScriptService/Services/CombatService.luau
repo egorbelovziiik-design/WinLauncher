@@ -4,10 +4,48 @@ return function(ctx)
     function Service:Remove(player)
         local s = ctx.Sessions[player]; if s then s.Reloading = nil end
     end
+
+    function Service:SyncArmor(player, s, char)
+        for _, node in char:GetChildren() do if node:GetAttribute("LastCityArmor") then node:Destroy() end end
+        local entry = ctx.Inventory.find(s.Campaign, s.Campaign.Armor)
+        local item = entry and ctx.Items[entry.id]
+        if not entry or not item or not item.armor or (entry.durability or 0) <= 0 then return end
+        local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+        if not torso then return end
+        local tint = Color3.fromHex(item.color)
+        local function plate(name, body, size, offset, color, material)
+            if not body then return end
+            local p = Instance.new("Part"); p.Name = name; p.Size = size; p.CFrame = body.CFrame * CFrame.new(offset)
+            p.Color = color or tint; p.Material = material or Enum.Material.Fabric; p.CanCollide = false; p.CanTouch = false
+            p.CanQuery = false; p.Massless = true; p:SetAttribute("LastCityArmor", true); p.Parent = char
+            local weld = Instance.new("WeldConstraint"); weld.Part0 = body; weld.Part1 = p; weld.Parent = p
+            return p
+        end
+        plate("ArmorChest", torso, Vector3.new(2.15, 1.35, 0.27), Vector3.new(0, 0.05, -0.57))
+        plate("ArmorBack", torso, Vector3.new(1.85, 1.15, 0.24), Vector3.new(0, 0.02, 0.57), tint)
+        plate("ArmorBelt", torso, Vector3.new(2.08, 0.25, 1.08), Vector3.new(0, -0.67, 0), Color3.fromRGB(45, 51, 49), Enum.Material.Fabric)
+        if entry.id == "heavy_vest" or entry.id == "riot_armor" or entry.id == "military_vest" or entry.id == "scavenger_armor" or entry.id == "prism_armor" then
+            plate("ArmorShoulders", torso, Vector3.new(3, 0.3, 0.9), Vector3.new(0, 0.7, 0), tint, Enum.Material.Metal)
+        end
+        if entry.id == "hazmat_suit" then
+            local head = char:FindFirstChild("Head")
+            plate("HazmatMask", head, Vector3.new(1.45, 0.72, 0.14), Vector3.new(0, -0.08, -0.77), Color3.fromRGB(57, 76, 69), Enum.Material.Glass)
+            plate("HazmatFilter", head, Vector3.new(0.48, 0.48, 0.3), Vector3.new(0, -0.25, -0.86), Color3.fromRGB(48, 55, 52), Enum.Material.Metal)
+        elseif entry.id == "medic_vest" then
+            plate("MedicalMark", torso, Vector3.new(0.42, 0.42, 0.08), Vector3.new(-0.55, 0.16, -0.75), Color3.fromRGB(188, 61, 55), Enum.Material.Neon)
+        elseif entry.id == "scout_vest" then
+            plate("ScoutPack", torso, Vector3.new(1.45, 1.55, 0.48), Vector3.new(0, 0, 0.72), Color3.fromRGB(62, 75, 52), Enum.Material.Fabric)
+        elseif entry.id == "prism_armor" then
+            plate("PrismBandA", torso, Vector3.new(1.75, 0.18, 0.1), Vector3.new(0, 0.35, -0.76), Color3.fromRGB(76, 229, 255), Enum.Material.Neon)
+            plate("PrismBandB", torso, Vector3.new(1.75, 0.18, 0.1), Vector3.new(0, -0.15, -0.76), Color3.fromRGB(255, 208, 76), Enum.Material.Neon)
+        end
+    end
+
     function Service:SyncTool(player)
         local s = ctx.Sessions[player]; if not s or not s.Active then return end
         local char = player.Character; local backpack = player:FindFirstChildOfClass("Backpack")
         if not char or not backpack then return end
+        self:SyncArmor(player, s, char)
         for _, container in {char, backpack} do
             for _, tool in container:GetChildren() do if tool:IsA("Tool") and tool:GetAttribute("LastCityTool") then tool:Destroy() end end
         end
@@ -21,16 +59,45 @@ return function(ctx)
         tool.ToolTip = "ЛКМ / атака • R / перезарядка"; tool.Parent = backpack
         local h = char:FindFirstChildOfClass("Humanoid"); if h and h.Health > 0 then h:EquipTool(tool) end
     end
-    function Service:Hurt(player, damage)
+
+    function Service:Hurt(player, damage, damageType)
         local s = ctx.Sessions[player]; local h = ctx:Alive(player)
         if not s or not s.Active or not h then return end
+        local raw = damage
         local armor = ctx.Inventory.find(s.Campaign, s.Campaign.Armor)
         if armor and (armor.durability or 0) > 0 then
-            damage *= 1 - ctx.Items[armor.id].armor
-            armor.durability = math.max(0, armor.durability - 0.5)
+            local item = ctx.Items[armor.id]
+            if damageType == "acid" then damage *= 1 - (item.acidResistance or 0) end
+            damage *= 1 - item.armor
+            local before = armor.durability
+            armor.durability = math.max(0, armor.durability - (damageType == "acid" and 0.8 or 0.5))
+            if before > 0 and armor.durability <= 0 then
+                ctx:Notify(player, "Броня сломана. Замените или отремонтируйте её.", "error")
+                self:SyncArmor(player, s, player.Character)
+            end
         end
         h:TakeDamage(damage)
+        ctx.Remotes.EffectsRemote:FireClient(player, "player_hurt", {damage = damage, absorbed = math.max(0, raw - damage), damageType = damageType})
     end
+
+    function Service:AimTarget(origin, direction, range, character, radius)
+        local best, bestAlong, bestPosition
+        for _, zombie in ctx.Services.ZombieService.Zombies do
+            if zombie.dead or zombie.humanoid.Health <= 0 or not zombie.model.Parent then continue end
+            local targetPart = zombie.model:FindFirstChild("UpperTorso") or zombie.model.PrimaryPart
+            local target = targetPart.Position
+            local delta = target - origin; local along = delta:Dot(direction)
+            if along <= 0 or along > range then continue end
+            local miss = (delta - direction * along).Magnitude
+            local allowance = (radius or 1.1) * (ctx.ZombieDefs[zombie.kind].size or 1)
+            if miss <= allowance and (not bestAlong or along < bestAlong)
+                and ctx:LineOfSight(origin, target, {character, zombie.model}) then
+                best, bestAlong, bestPosition = zombie, along, target
+            end
+        end
+        return best, bestPosition
+    end
+
     function Service:Attack(player, s, aim)
         if typeof(aim) ~= "Vector3" or not ctx.Util.finite(aim.Magnitude) or aim.Magnitude < 0.5 or aim.Magnitude > 2 or s.Commander then return end
         if s.Reloading or (s.NextShot or 0) > os.clock() then return end
@@ -50,7 +117,7 @@ return function(ctx)
         ctx.Progression.fact(s.Campaign, "attack")
         aim = aim.Unit
         local damage = def.damage * (1 + (entry.upgrade or 0) * 0.06)
-        local enemy, hitPos, damageHandled
+        local enemy, hitPos, reportedDamage, killed, critical, armored
         if def.melee then
             local best = def.range
             for _, zombie in ctx.Services.ZombieService.Zombies do
@@ -63,6 +130,11 @@ return function(ctx)
                     best = delta.Magnitude; enemy = zombie; hitPos = zombie.model.PrimaryPart.Position
                 end
             end
+            if enemy then
+                local applied, lethal = ctx.Services.ZombieService:Damage(enemy, damage, player)
+                reportedDamage = applied or damage; killed = lethal == true
+                armored = (ctx.ZombieDefs[enemy.kind].armor or 0) > 0
+            end
         else
             local rng = Random.new(); local hits = {}
             local spread = (1 - def.accuracy) * (1 - (entry.upgrade or 0) * 0.03)
@@ -72,15 +144,38 @@ return function(ctx)
                 local result = workspace:Raycast(head.Position, direction * def.range, params)
                 if pellet == 1 then hitPos = result and result.Position or head.Position + direction * def.range end
                 local target = result and ctx.Services.ZombieService:FromPart(result.Instance)
-                if target then enemy = enemy or target; hits[target] = (hits[target] or 0) + damage end
+                local assistedPosition
+                if not target then target, assistedPosition = self:AimTarget(head.Position, direction, def.range, player.Character, def.hitRadius) end
+                if target then
+                    enemy = enemy or target
+                    local headshot = result and result.Instance and result.Instance.Name == "Head"
+                    local amount = damage * (headshot and 1.65 or 1)
+                    local record = hits[target] or {damage = 0, critical = false, position = assistedPosition or result and result.Position}
+                    record.damage += amount; record.critical = record.critical or headshot
+                    record.position = record.position or assistedPosition
+                    hits[target] = record
+                end
             end
-            for target, total in hits do ctx.Services.ZombieService:Damage(target, total, player) end
-            damageHandled = true
+            for target, record in hits do
+                local applied, lethal = ctx.Services.ZombieService:Damage(target, record.damage, player)
+                reportedDamage = (reportedDamage or 0) + (applied or record.damage)
+                killed = killed or lethal == true; critical = critical or record.critical
+                armored = armored or (target.kind and (ctx.ZombieDefs[target.kind].armor or 0) > 0)
+                hitPos = record.position or hitPos
+            end
         end
-        if enemy and not damageHandled then ctx.Services.ZombieService:Damage(enemy, damage, player) end
-        ctx:FX("shot", {from = head.Position, to = hitPos or head.Position + aim * 5, melee = def.melee == true, hit = enemy ~= nil, user = player.UserId})
+        if enemy then
+            ctx.Remotes.EffectsRemote:FireClient(player, "hit_confirm", {
+                damage = reportedDamage or damage, killed = killed == true, critical = critical == true,
+                armored = armored == true, position = hitPos or enemy.model and enemy.model.PrimaryPart.Position,
+            })
+        elseif not def.melee then
+            ctx:FX("impact", {from = hitPos or head.Position + aim * def.range})
+        end
+        ctx:FX("shot", {from = head.Position, to = hitPos or head.Position + aim * 5, melee = def.melee == true, hit = enemy ~= nil, user = player.UserId, weapon = entry.id})
         ctx:Changed(player)
     end
+
     function Service:Reload(player, s)
         local c = s.Campaign; local entry = ctx.Inventory.find(c, c.Equipped); local def = entry and ctx.Weapons[entry.id]
         if not def or def.melee or s.Reloading or entry.ammo >= def.magazine then return end
@@ -97,6 +192,7 @@ return function(ctx)
             ctx:Changed(player)
         end)
     end
+
     function Service:Init()
         ctx.Services.NetworkService:Register("CombatRemote", true, function(player, s, p)
             if p.action == "attack" then self:Attack(player, s, p.aim)

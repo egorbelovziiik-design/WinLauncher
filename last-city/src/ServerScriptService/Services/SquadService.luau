@@ -19,10 +19,11 @@ return function(ctx)
     end
     local function setHidden(actor, hidden)
         actor.hidden = hidden
-        for _, part in actor.model:GetDescendants() do
-            if part:IsA("BasePart") then part.Transparency = hidden and 1 or (part.Name == "HumanoidRootPart" and 1 or 0)
-                part.CanCollide = not hidden and part.Name == "LowerTorso"
-            end
+        for _, node in actor.model:GetDescendants() do
+            if node:IsA("BasePart") then
+                node.Transparency = hidden and 1 or (node.Name == "HumanoidRootPart" and 1 or 0)
+                node.CanCollide = not hidden and node.Name == "LowerTorso"
+            elseif node:IsA("BillboardGui") or node:IsA("ProximityPrompt") then node.Enabled = not hidden end
         end
     end
     local function label(model, title)
@@ -51,17 +52,19 @@ return function(ctx)
         local names = {base = "охраняет базу", follow = "следует за вами", gather = "на экспедиции"}
         local text = "Приказ: отряд " .. (names[squad.command] or "ожидает") .. ". Автоматический огонь расходует карабинные патроны со склада."
         if squad.command == "gather" then text ..= " Возвращение через " .. math.max(0, squad.returnAt - os.time()) .. " секунд." end
+        local spoken = "Current order: " .. (squad.command == "base" and "guard the base" or squad.command == "follow" and "follow the commander" or "resource expedition") .. ". Rifle fire consumes ammunition from base storage."
+        if squad.command == "gather" then spoken ..= " We return in " .. math.max(0, squad.returnAt - os.time()) .. " seconds." end
         ctx.Remotes.StateRemote:FireClient(player, "dialogue", {
             id = "squad", name = actor.name, role = "Военная броня • карабин R4", text = text,
-            model = actor.model, squad = true,
+            model = actor.model, squad = true, voiceText = spoken, voiceId = actor.index == 1 and "4" or "3",
         })
     end
     function Service:Spawn(player)
         if self.Members[player] or not self:IsUnlocked(player) then return end
-        local s = ctx.Sessions[player]; local plot = ctx.Config.Plots[s.Plot]
+        local s = ctx.Sessions[player]
         local list = {}; self.Members[player] = list
         for index, def in roster do
-            local at = Vector3.new(plot.x + 22 + index * 4, 3, plot.z + 23)
+            local at = self:GuardPoint(player, index)
             local model, h = ctx.Factory.rig(def.name, CFrame.new(at), Color3.fromRGB(58, 78, 60), def.skin, 1, def.style)
             model.Name = "Squad_" .. player.UserId .. "_" .. index; model:SetAttribute("Owner", player.UserId)
             model:SetAttribute("AnimationSeed", (player.UserId + index * 29) % 97); model:SetAttribute("State", "Idle")
@@ -90,7 +93,7 @@ return function(ctx)
     end
     function Service:Command(player, command, resource)
         local s = ctx.Sessions[player]
-        if not s or not s.Active or not unlocked(s.Campaign) then ctx:Notify(player, "Сначала выполните задание гарнизона у майора Макара.", "error"); return false end
+        if not s or not s.Active or not unlocked(s.Campaign) then ctx:Notify(player, "Сначала выполните задание «Бойцы Бориса» у старшины Бориса.", "error"); return false end
         if not ctx:InPlot(player, 12) and not self:NearOwn(player) then ctx:Notify(player, "Отдавайте приказ у терминала базы или рядом с бойцом.", "error"); return false end
         if not table.find({"base", "follow", "gather"}, command) then return false end
         local squad = s.Campaign.Squad
@@ -98,12 +101,19 @@ return function(ctx)
             if not table.find({"metal", "mine", "wood"}, resource) then return false end
             if squad.command == "gather" and squad.returnAt > os.time() then ctx:Notify(player, "Экспедиция уже выполняется."); return false end
             squad.command = "gather"; squad.resource = resource; squad.returnAt = os.time() + 90; squad.expedition += 1
+            for _, actor in self.Members[player] or {} do setHidden(actor, true) end
             ctx:Notify(player, "Отряд отправлен на 90-секундную экспедицию. Результат будет сохранён на складе.", "success")
         else
             if squad.command == "gather" and squad.returnAt > os.time() then ctx:Notify(player, "Экспедиция отозвана без добычи.", "info") end
             squad.command = command; squad.returnAt = 0
             ctx:Notify(player, command == "follow" and "Отряд следует за вами." or "Отряд возвращается охранять базу.", "success")
-            for _, actor in self.Members[player] or {} do setHidden(actor, false) end
+            for _, actor in self.Members[player] or {} do
+                if command == "base" then
+                    local point = self:GuardPoint(player, actor.index)
+                    if (actor.model.PrimaryPart.Position - point).Magnitude > 300 then actor.model:PivotTo(CFrame.new(point)); actor.path = nil; actor.pathTarget = nil end
+                end
+                setHidden(actor, false)
+            end
         end
         ctx:Changed(player); return true
     end
@@ -115,7 +125,15 @@ return function(ctx)
                 return at + Vector3.new(index == 1 and -3 or 3, 3, 0)
             end
         end
-        return Vector3.new(plot.x + (index == 1 and 26 or 32), 3, plot.z + 18)
+        local candidates = index == 1
+            and {{26, 18}, {36, 8}, {28, -28}, {-36, 5}, {-28, -30}}
+            or {{32, 18}, {-36, 8}, {-28, -28}, {36, 5}, {28, -34}}
+        for _, point in candidates do
+            if not ctx.Services.NPCService.PointClear or ctx.Services.NPCService:PointClear(s, point[1], point[2], 3) then
+                return Vector3.new(plot.x + point[1], 3, plot.z + point[2])
+            end
+        end
+        return ctx.Services.NPCService:WanderTarget(s, {})
     end
     function Service:CompleteExpedition(player, s)
         local squad = s.Campaign.Squad
@@ -131,7 +149,10 @@ return function(ctx)
             table.insert(summary, ctx.Items[id].name .. " ×" .. amount)
         end
         squad.completed = squad.expedition; squad.command = "base"; squad.returnAt = 0
-        for _, actor in self.Members[player] or {} do setHidden(actor, false) end
+        for _, actor in self.Members[player] or {} do
+            actor.model:PivotTo(CFrame.new(self:GuardPoint(player, actor.index))); actor.path = nil; actor.pathTarget = nil
+            setHidden(actor, false)
+        end
         ctx:Notify(player, "Экспедиция вернулась: " .. table.concat(summary, ", "), "success"); ctx:Changed(player)
     end
     function Service:NearestTarget(position, range)
@@ -167,8 +188,9 @@ return function(ctx)
         for _, actor in self.Members[player] or {} do
             local p = actor.model.PrimaryPart.Position
             if math.abs(p.X - plot.x - building.x) < hx + 2.5 and math.abs(p.Z - plot.z - building.z) < hz + 2.5 then
-                local safe = Vector3.new(plot.x + (actor.index == 1 and 36 or -36), 3, plot.z + 28)
-                actor.model:PivotTo(CFrame.new(safe)); actor.path = nil
+                local safe = self:GuardPoint(player, actor.index)
+                actor.model:PivotTo(CFrame.new(safe)); actor.path = nil; actor.pathTarget = nil
+                actor.pathToken = (actor.pathToken or 0) + 1
             end
         end
     end

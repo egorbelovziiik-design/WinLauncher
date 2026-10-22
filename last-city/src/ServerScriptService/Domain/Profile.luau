@@ -22,6 +22,7 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             Workers = {{name = "Мира", job = ""}, {name = "Лев", job = ""}}, Morale = 80,
             Builder = {name = "Степан", order = ""},
             Squad = {command = "base", resource = "metal", returnAt = 0, expedition = 0, completed = 0},
+            Recruits = {}, BossPity = {rainbowArmor = 0, rainbowWeapon = 0},
             Stats = {kills = 0, quests = 0, buildings = 0, seconds = 0},
         }
         assert(Inventory.grant(c, {crowbar = 1, food = 3, water = 3, medkit = 2}))
@@ -32,7 +33,7 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
         return {
             SchemaVersion = Config.SchemaVersion, Revision = 0, Coins = 0, TutorialRewarded = false,
             Cosmetics = {}, EquippedSkin = "", Achievements = {},
-            Settings = {graphics = "High", uiSound = 0.45, music = 0.32, effects = 0.6, sensitivity = 1, scale = 1, difficulty = "Normal"},
+            Settings = {graphics = "High", uiSound = 0.45, music = 0.32, effects = 0.6, voice = 0.75, sensitivity = 1, scale = 1, difficulty = "Normal", firstPerson = false},
             Stats = {kills = 0, quests = 0, buildings = 0, seconds = 0},
             Campaigns = {coop = Profile.campaign(), solo = Profile.campaign()},
         }
@@ -128,6 +129,27 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             end
             if c.Squad.command ~= "gather" then c.Squad.returnAt = 0 end
         end
+        if type(raw.Recruits) == "table" then
+            for _, id in {"builder", "medic", "guard", "scout", "gatherer"} do
+                local old = raw.Recruits[id]
+                if type(old) == "table" and old.owned == true then
+                    local record = {owned = true, command = "base", resource = "metal", returnAt = 0, expedition = 0, completed = 0}
+                    if table.find({"base", "follow", "gather"}, old.command) then record.command = old.command end
+                    if id ~= "gatherer" and record.command == "gather" then record.command = "base" end
+                    if table.find({"metal", "mine", "wood"}, old.resource) then record.resource = old.resource end
+                    record.returnAt = number(old.returnAt, 0, 0, 1e11)
+                    record.expedition = number(old.expedition, 0, 0, 1e9)
+                    record.completed = math.min(record.expedition, number(old.completed, 0, 0, 1e9))
+                    if record.command == "gather" and (record.returnAt <= 0 or record.expedition <= record.completed) then record.command = "base" end
+                    if record.command ~= "gather" then record.returnAt = 0 end
+                    c.Recruits[id] = record
+                end
+            end
+        end
+        if type(raw.BossPity) == "table" then
+            c.BossPity.rainbowArmor = number(raw.BossPity.rainbowArmor, 0, 0, 3)
+            c.BossPity.rainbowWeapon = number(raw.BossPity.rainbowWeapon, 0, 0, 2)
+        end
         if type(raw.Tutorial) == "table" then
             local allowed = {}; for _, step in Config.TutorialSteps do allowed[step.key] = true end
             c.Tutorial.facts = flags(raw.Tutorial.facts, allowed)
@@ -155,9 +177,10 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             local s = raw.Settings
             if table.find({"Low", "Medium", "High", "Ultra"}, s.graphics) then p.Settings.graphics = s.graphics end
             if table.find({"Relaxed", "Normal", "Hard"}, s.difficulty) then p.Settings.difficulty = s.difficulty end
-            for key, bounds in {uiSound = {0, 1}, music = {0, 1}, effects = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}} do
+            for key, bounds in {uiSound = {0, 1}, music = {0, 1}, effects = {0, 1}, voice = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}} do
                 if Util.finite(s[key]) then p.Settings[key] = math.clamp(s[key], bounds[1], bounds[2]) end
             end
+            if type(s.firstPerson) == "boolean" then p.Settings.firstPerson = s.firstPerson end
         end
         if type(raw.Campaigns) == "table" then
             p.Campaigns.coop = campaign(raw.Campaigns.coop); p.Campaigns.solo = campaign(raw.Campaigns.solo)
