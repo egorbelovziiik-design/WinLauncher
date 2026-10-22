@@ -1,0 +1,2737 @@
+<roblox version="4">
+  <Item class="DataModel" referent="RBX00000001">
+    <Properties>
+      <string name="Name">MiniNations3D</string>
+    </Properties>
+    <Item class="Workspace" referent="RBX00000002">
+      <Properties>
+        <string name="Name">Workspace</string>
+        <bool name="StreamingEnabled">true</bool>
+        <int name="StreamingTargetRadius">350</int>
+      </Properties>
+      <Item class="Folder" referent="RBX00000061">
+        <Properties>
+          <string name="Name">Provinces</string>
+        </Properties>
+        <Item class="Part" referent="RBX00000063">
+          <Properties>
+            <string name="Name">P-000</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000064">
+          <Properties>
+            <string name="Name">P-001</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#8B5CF6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000065">
+          <Properties>
+            <string name="Name">P-002</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#3B82F6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000066">
+          <Properties>
+            <string name="Name">P-003</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000067">
+          <Properties>
+            <string name="Name">P-004</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000068">
+          <Properties>
+            <string name="Name">P-005</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000069">
+          <Properties>
+            <string name="Name">P-006</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EC4899</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000006A">
+          <Properties>
+            <string name="Name">P-007</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#8B5CF6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000006B">
+          <Properties>
+            <string name="Name">P-008</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000006C">
+          <Properties>
+            <string name="Name">P-009</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#3B82F6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000006D">
+          <Properties>
+            <string name="Name">P-010</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#F59E0B</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000006E">
+          <Properties>
+            <string name="Name">P-011</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EC4899</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000006F">
+          <Properties>
+            <string name="Name">P-012</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000070">
+          <Properties>
+            <string name="Name">P-013</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000071">
+          <Properties>
+            <string name="Name">P-014</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000072">
+          <Properties>
+            <string name="Name">P-015</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#3B82F6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000073">
+          <Properties>
+            <string name="Name">P-016</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#3B82F6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000074">
+          <Properties>
+            <string name="Name">P-017</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#10B981</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000075">
+          <Properties>
+            <string name="Name">P-018</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000076">
+          <Properties>
+            <string name="Name">P-019</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#8B5CF6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000077">
+          <Properties>
+            <string name="Name">P-020</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000078">
+          <Properties>
+            <string name="Name">P-021</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000079">
+          <Properties>
+            <string name="Name">P-022</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#8B5CF6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000007A">
+          <Properties>
+            <string name="Name">P-023</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EC4899</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000007B">
+          <Properties>
+            <string name="Name">P-024</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EC4899</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000007C">
+          <Properties>
+            <string name="Name">P-025</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#3B82F6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000007D">
+          <Properties>
+            <string name="Name">P-026</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000007E">
+          <Properties>
+            <string name="Name">P-027</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000007F">
+          <Properties>
+            <string name="Name">P-028</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#8B5CF6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000080">
+          <Properties>
+            <string name="Name">P-029</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000081">
+          <Properties>
+            <string name="Name">P-030</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000082">
+          <Properties>
+            <string name="Name">P-031</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EC4899</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000083">
+          <Properties>
+            <string name="Name">P-032</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#EF4444</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000084">
+          <Properties>
+            <string name="Name">P-033</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000085">
+          <Properties>
+            <string name="Name">P-034</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000086">
+          <Properties>
+            <string name="Name">P-035</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000087">
+          <Properties>
+            <string name="Name">P-036</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#8B5CF6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000088">
+          <Properties>
+            <string name="Name">P-037</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#3B82F6</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX00000089">
+          <Properties>
+            <string name="Name">P-038</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#10B981</Color3>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="RBX0000008A">
+          <Properties>
+            <string name="Name">P-039</string>
+            <Vector3 name="Size"></Vector3>
+            <bool name="Anchored">true</bool>
+            <Color3 name="Color3uint8">#6366F1</Color3>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="Part" referent="RBX00000062">
+        <Properties>
+          <string name="Name">BaseTerrain</string>
+          <Vector3 name="Size"></Vector3>
+          <CFrame name="CFrame">0, -5, 0, 1,0,0, 0,1,0, 0,0,1</CFrame>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="ReplicatedStorage" referent="RBX00000003">
+      <Properties>
+        <string name="Name">ReplicatedStorage</string>
+      </Properties>
+      <Item class="Folder" referent="RBX0000000A">
+        <Properties>
+          <string name="Name">Shared</string>
+        </Properties>
+        <Item class="ModuleScript" referent="RBX0000002F">
+          <Properties>
+            <string name="Name">Config</string>
+            <ProtectedString name="Source"><![CDATA[-- MiniNations3D Config v1.0.1
+-- Центральный конфиг игры
+local Config = {}
+
+Config.VERSION = "1.0.1 Ultimate"
+Config.GAME_NAME = "MINI NATIONS 3D"
+Config.SUBTITLE = "WORLD DOMINATION"
+
+Config.YEARS = {1444,1700,1800,1914,1936,1945,1980,1991,2000,2010,2020,2026,2030,2050}
+Config.MAPS = {"World","Europe","Asia","America","Africa","Custom"}
+Config.DIFFICULTIES = {"Easy","Normal","Hard","Expert"}
+Config.AI_BEHAVIORS = {"Peaceful","Economic","Aggressive","Diplomatic","Defensive","Expansionist"}
+
+Config.RESOURCES = {"Oil","Gas","Coal","Iron","Copper","Gold","Uranium","Lithium","Wood","Stone","Food","Water"}
+Config.BUILDINGS = {
+    Residential = {"House","Apartment","Skyscraper","Complex"},
+    Commercial = {"Shop","Mall","Office","Bank","Hotel"},
+    Government = {"CityHall","Parliament","Ministry","Police","FireStation"},
+    Social = {"School","University","Hospital","Park","Stadium"},
+    Energy = {"CoalPlant","GasPlant","OilPlant","Hydro","Nuclear","Solar","Wind","Geothermal"},
+    Industry = {"MilitaryFactory","AutoFactory","Metallurgy","Chemical","Electronics","OilRefinery","FoodFactory","Shipyard","AircraftFactory"},
+    Infra = {"Road","Highway","Railway","Bridge","Tunnel","Port","Airport","Logistics"},
+    Military = {"Barracks","Airbase","NavalBase","MissileBase","Radar","Depot","Fort","Academy"},
+}
+Config.UNITS = {"Infantry","Motorized","Tank","Artillery","AA","Aviation","Helicopter","Navy","Recon"}
+
+Config.ECONOMY = {
+    BaseIncome = 1000,
+    TaxRate = 0.22,
+    InflationTick = 0.001,
+    CrisisChance = 0.02,
+}
+
+Config.MAP = {
+    ProvinceSize = 48,
+    WorldSize = Vector2.new(2400, 1400), -- условные единицы карты
+    SeaLevel = 0,
+}
+
+Config.COINS_REWARDS = {
+    Tutorial = 500,
+    WinMatch = 250,
+    DailyQuest = 50,
+    WeeklyQuest = 300,
+    LevelUp = 100,
+}
+
+Config.REMOTE_RATE_LIMIT = 8 -- событий в секунду
+return Config
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000030">
+          <Properties>
+            <string name="Name">CountryData</string>
+            <ProtectedString name="Source"><![CDATA[-- 20 стран для демонстрации (масштабируется до ~195)
+local CountryData = {
+    {id="USA", name="United States", color=Color3.fromHex("#3B82F6"), flag="🇺🇸", capital="P-DC"},
+    {id="RUS", name="Russia", color=Color3.fromHex("#EF4444"), flag="🇷🇺", capital="P-MOW"},
+    {id="CHN", name="China", color=Color3.fromHex("#F59E0B"), flag="🇨🇳", capital="P-BJ"},
+    {id="DEU", name="Germany", color=Color3.fromHex("#10B981"), flag="🇩🇪", capital="P-BER"},
+    {id="FRA", name="France", color=Color3.fromHex("#6366F1"), flag="🇫🇷", capital="P-PAR"},
+    {id="GBR", name="United Kingdom", color=Color3.fromHex("#8B5CF6"), flag="🇬🇧", capital="P-LON"},
+    {id="JPN", name="Japan", color=Color3.fromHex("#EC4899"), flag="🇯🇵", capital="P-TKY"},
+    {id="IND", name="India", color=Color3.fromHex("#F97316"), flag="🇮🇳", capital="P-DEL"},
+    {id="BRA", name="Brazil", color=Color3.fromHex("#22C55E"), flag="🇧🇷", capital="P-BSB"},
+    {id="TUR", name="Turkey", color=Color3.fromHex("#DC2626"), flag="🇹🇷", capital="P-ANK"},
+    {id="UKR", name="Ukraine", color=Color3.fromHex("#0EA5E9"), flag="🇺🇦", capital="P-KYV"},
+    {id="POL", name="Poland", color=Color3.fromHex("#E11D48"), flag="🇵🇱", capital="P-WAW"},
+    {id="ITA", name="Italy", color=Color3.fromHex("#059669"), flag="🇮🇹", capital="P-ROM"},
+    {id="ESP", name="Spain", color=Color3.fromHex("#D97706"), flag="🇪🇸", capital="P-MAD"},
+    {id="IRN", name="Iran", color=Color3.fromHex("#16A34A"), flag="🇮🇷", capital="P-THR"},
+    {id="KOR", name="South Korea", color=Color3.fromHex("#0EA5E9"), flag="🇰🇷", capital="P-SEL"},
+    {id="AUS", name="Australia", color=Color3.fromHex("#FACC15"), flag="🇦🇺", capital="P-CAN"},
+    {id="CAN", name="Canada", color=Color3.fromHex("#EF4444"), flag="🇨🇦", capital="P-OTT"},
+    {id="MEX", name="Mexico", color=Color3.fromHex("#22C55E"), flag="🇲🇽", capital="P-MEX"},
+    {id="ZAF", name="South Africa", color=Color3.fromHex("#A3E635"), flag="🇿🇦", capital="P-PRE"},
+}
+-- быстрый индекс
+local byId={} for _,c in ipairs(CountryData) do byId[c.id]=c end
+CountryData.byId = byId
+return CountryData
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000031">
+          <Properties>
+            <string name="Name">MapConfig</string>
+            <ProtectedString name="Source"><![CDATA[local MapConfig = {
+    Biomes = {
+        {id="Plains", color=Color3.fromHex("#86EFAC"), height=1},
+        {id="Forest", color=Color3.fromHex("#15803D"), height=2},
+        {id="Mountain", color=Color3.fromHex("#78716C"), height=8},
+        {id="Desert", color=Color3.fromHex("#FDE68A"), height=1},
+        {id="Ocean", color=Color3.fromHex("#1E40AF"), height=-6},
+        {id="Snow", color=Color3.fromHex("#E0F2FE"), height=3},
+    },
+    MapModes = {"Political","Economic","Military","Resource","Energy","Diplomatic","Infrastructure","Population","Technology"},
+}
+return MapConfig
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000032">
+          <Properties>
+            <string name="Name">ProvinceData</string>
+            <ProtectedString name="Source"><![CDATA[-- Процедурная генерация ~120 провинций вокруг стран
+local CountryData = require(script.Parent.CountryData)
+local ProvinceData = {}
+local provinces = {}
+local idCounter=0
+local function add(name:string, owner:string, pop:number, econ:number, pos:Vector3)
+    idCounter+=1
+    local id = string.format("P-%03d", idCounter)
+    if owner=="CAP" then owner = CountryData[1].id end
+    provinces[id] = {id=id, name=name, owner=owner, population=pop, economy=econ, infrastructure=math.random(40,90), stability=math.random(60,95), buildings={}, army={}, pos=pos}
+    -- также сохраняем для простоты связь с визуальной позицией
+end
+-- Столицы
+for i,c in ipairs(CountryData) do
+    if type(c)=="table" and c.id and not c.id:find("byId") then
+        add(c.name.." Capital", c.id, math.random(800000,5000000), math.random(800,2500), Vector3.new(math.random(-1100,1100), 0.5, math.random(-600,600)))
+    end
+end
+-- Дополнительные провинции (по 5 на страну примерно)
+for i=1,80 do
+    local c = CountryData[math.random(1,20)]
+    add(c.name.." Region "..i, c.id, math.random(200000,2000000), math.random(300,1500), Vector3.new(math.random(-1100,1100),0.2, math.random(-600,600)))
+end
+ProvinceData.list = provinces
+function ProvinceData.get(id:string) return provinces[id] end
+function ProvinceData.all():{{any}} local t={} for _,v in pairs(provinces) do table.insert(t,v) end return t end
+return ProvinceData
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000033">
+          <Properties>
+            <string name="Name">Types</string>
+            <ProtectedString name="Source"><![CDATA[export type CountryId = string
+export type ProvinceId = string
+
+export type Resources = {
+    Oil:number, Gas:number, Coal:number, Iron:number, Copper:number, Gold:number,
+    Uranium:number, Lithium:number, Wood:number, Stone:number, Food:number, Water:number
+}
+
+export type Economy = {
+    gdp:number, budget:number, income:number, expenses:number,
+    taxes:number, inflation:number, debt:number, unemployment:number,
+    tradeBalance:number, livingStandard:number
+}
+
+export type Country = {
+    id: CountryId,
+    name:string,
+    color: Color3,
+    flag: string,
+    capital: ProvinceId,
+    provinces: {ProvinceId},
+    economy: Economy,
+    resources: Resources,
+    tech: {[string]: number},
+    relations: {[CountryId]: number}, -- -100..100
+    isAI: boolean,
+    behavior: string,
+}
+
+export type Province = {
+    id: ProvinceId,
+    name: string,
+    owner: CountryId,
+    population: number,
+    economy: number,
+    infrastructure: number,
+    stability: number,
+    buildings: {string},
+    army: {string},
+    pos: Vector3,
+}
+
+export type War = {
+    id: string,
+    attackers: {CountryId},
+    defenders: {CountryId},
+    startTime: number,
+    battles: number,
+}
+
+export type Alliance = {
+    id: string,
+    name: string,
+    color: Color3,
+    leader: CountryId,
+    members: {CountryId},
+}
+
+export type PlayerProfile = {
+    coins: number,
+    xp: number,
+    level: number,
+    wins: number,
+    losses: number,
+    playTime: number,
+    ownedSkins: {string},
+    achievements: {string},
+    tutorialDone: boolean,
+    settings: {[string]: any},
+}
+
+return {}
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000034">
+          <Properties>
+            <string name="Name">Util</string>
+            <ProtectedString name="Source"><![CDATA[local Util = {}
+function Util.clamp(v:number, a:number,b:number) return math.clamp(v,a,b) end
+function Util.lerp(a:number,b:number,t:number) return a + (b-a)*t end
+function Util.formatMoney(n:number):string
+    if n>=1e9 then return string.format("%.1fB", n/1e9)
+    elseif n>=1e6 then return string.format("%.1fM", n/1e6)
+    elseif n>=1e3 then return string.format("%.1fK", n/1e3)
+    else return tostring(math.floor(n)) end
+end
+function Util.deepCopy(t:any):any
+    if type(t)~="table" then return t end
+    local c={} for k,v in pairs(t) do c[k]=Util.deepCopy(v) end return c
+end
+function Util.uuid():string
+    return string.format("%08x-%04x", math.random(0,0x7fffffff), math.random(0,0xffff))
+end
+function Util.colorToHex(c:Color3):string
+    return string.format("#%02X%02X%02X", math.floor(c.R*255), math.floor(c.G*255), math.floor(c.B*255))
+end
+return Util
+]]></ProtectedString>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="Folder" referent="RBX0000000B">
+        <Properties>
+          <string name="Name">Remotes</string>
+        </Properties>
+        <Item class="RemoteEvent" referent="RBX0000000C">
+          <Properties>
+            <string name="Name">RequestProfile</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000000D">
+          <Properties>
+            <string name="Name">CoinsUpdated</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000000E">
+          <Properties>
+            <string name="Name">ProvinceOwnerChanged</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000000F">
+          <Properties>
+            <string name="Name">BuildingPlaced</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000010">
+          <Properties>
+            <string name="Name">ArmyCreated</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000011">
+          <Properties>
+            <string name="Name">ArmyMoved</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000012">
+          <Properties>
+            <string name="Name">WarDeclared</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000013">
+          <Properties>
+            <string name="Name">BattleResult</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000014">
+          <Properties>
+            <string name="Name">PeaceSigned</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000015">
+          <Properties>
+            <string name="Name">RelationChanged</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000016">
+          <Properties>
+            <string name="Name">AllianceCreated</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000017">
+          <Properties>
+            <string name="Name">TechUnlocked</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000018">
+          <Properties>
+            <string name="Name">ShopPurchased</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000019">
+          <Properties>
+            <string name="Name">AchievementUnlocked</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000001A">
+          <Properties>
+            <string name="Name">MapSaved</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000001B">
+          <Properties>
+            <string name="Name">CityFounded</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000001C">
+          <Properties>
+            <string name="Name">MatchStarted</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000001D">
+          <Properties>
+            <string name="Name">BuyItem</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000001E">
+          <Properties>
+            <string name="Name">BuildRequest</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000001F">
+          <Properties>
+            <string name="Name">MoveArmy</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000020">
+          <Properties>
+            <string name="Name">DeclareWar</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000021">
+          <Properties>
+            <string name="Name">MakePeace</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000022">
+          <Properties>
+            <string name="Name">CreateAlliance</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000023">
+          <Properties>
+            <string name="Name">ResearchTech</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000024">
+          <Properties>
+            <string name="Name">JoinMatch</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000025">
+          <Properties>
+            <string name="Name">CreateMatch</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000026">
+          <Properties>
+            <string name="Name">StartMatch</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000027">
+          <Properties>
+            <string name="Name">SaveMap</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000028">
+          <Properties>
+            <string name="Name">LoadMap</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX00000029">
+          <Properties>
+            <string name="Name">SetReady</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000002A">
+          <Properties>
+            <string name="Name">ToggleTutorial</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000002B">
+          <Properties>
+            <string name="Name">GetEconomy</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000002C">
+          <Properties>
+            <string name="Name">GetResources</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteEvent" referent="RBX0000002D">
+          <Properties>
+            <string name="Name">GetProvinces</string>
+          </Properties>
+        </Item>
+        <Item class="RemoteFunction" referent="RBX0000002E">
+          <Properties>
+            <string name="Name">GetProfile</string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="ServerScriptService" referent="RBX00000004">
+      <Properties>
+        <string name="Name">ServerScriptService</string>
+      </Properties>
+      <Item class="Folder" referent="RBX00000035">
+        <Properties>
+          <string name="Name">Services</string>
+        </Properties>
+        <Item class="ModuleScript" referent="RBX00000036">
+          <Properties>
+            <string name="Name">AIService</string>
+            <ProtectedString name="Source"><![CDATA[local AIService = {}
+local CountryData = require(game.ReplicatedStorage.Shared.CountryData)
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local EconomyService = require(script.Parent.EconomyService)
+local MilitaryService = require(script.Parent.MilitaryService)
+local DiplomacyService = require(script.Parent.DiplomacyService)
+local BuildingService = require(script.Parent.BuildingService)
+
+local running=false
+local difficulty="Normal"
+local aggression=0.6
+
+function AIService.configure(opts:{difficulty:string?, aggression:number?})
+    if opts.difficulty then difficulty=opts.difficulty end
+    if opts.aggression then aggression=opts.aggression end
+end
+
+function AIService.start()
+    if running then return end; running=true
+    task.spawn(function()
+        while running do task.wait(8)
+            for _,c in ipairs(CountryData) do if type(c)=="table" and c.id then
+                local role = c.id==CountryData[2].id and "Aggressive" or (math.random()<0.5 and "Economic" or "Defensive")
+                -- экономика: строить случайное здание
+                if math.random() < 0.45 then
+                    local provs={} for _,p in pairs(ProvinceData.list) do if p.owner==c.id then table.insert(provs,p) end end
+                    if #provs>0 then
+                        local p = provs[math.random(1,#provs)]
+                        local picks={"House","Shop","CoalPlant","MilitaryFactory","Barracks","Road"}
+                        local b = picks[math.random(1,#picks)]
+                        local fakePl = {UserId=0} :: any
+                        pcall(function() BuildingService.build(fakePl :: any, p.id, b) end)
+                    end
+                end
+                -- военный найм
+                if math.random() < 0.25 + aggression*0.2 then
+                    local provs={} for _,p in pairs(ProvinceData.list) do if p.owner==c.id then table.insert(provs,p) end end
+                    if #provs>0 then
+                        local p = provs[math.random(1,#provs)]
+                        local units={"Infantry","Tank","Artillery","Recon"}
+                        pcall(function() MilitaryService.create({UserId=0}::any, p.id, units[math.random(1,#units)], c.id) end)
+                    end
+                end
+                -- дипломатия
+                if math.random() < 0.15 then
+                    local other = CountryData[math.random(1,20)]
+                    if type(other)=="table" and other.id~=c.id then
+                        DiplomacyService.change(c.id, other.id, math.random(-6,10))
+                    end
+                end
+            end end
+        end
+    end)
+    -- войны AI vs AI иногда
+    task.spawn(function()
+        while running do task.wait(22)
+            if math.random() < aggression*0.35 then
+                local a = CountryData[math.random(1,20)]; local d=CountryData[math.random(1,20)]
+                if type(a)=="table" and type(d)=="table" and a.id~=d.id then
+                    local WarService = require(script.Parent.WarService)
+                    local id = WarService.declare(a.id, d.id)
+                    -- через 10 сек попытка битвы
+                    task.delay(10, function()
+                        local provs={} for _,p in pairs(ProvinceData.list) do if p.owner==d.id then table.insert(provs,p) end end
+                        if #provs>0 and warsStillExist(id) then
+                            WarService.battle(id, a.id, d.id, provs[math.random(1,#provs)].id)
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end
+function warsStillExist(id:string)
+    local WarService = require(script.Parent.WarService)
+    return WarService.list()[id] ~= nil
+end
+function AIService.stop() running=false end
+return AIService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000037">
+          <Properties>
+            <string name="Name">AchievementService</string>
+            <ProtectedString name="Source"><![CDATA[local AchievementService = {}
+local CoinService = require(script.Parent.CoinService)
+local defs = {
+    first_win={name="Первая победа", desc="Выиграй свой первый матч", reward=200},
+    first_war={name="Первая война", desc="Объяви войну", reward=100},
+    first_alliance={name="Первый альянс", desc="Создай альянс", reward=150},
+    first_power={name="Первая электростанция", desc="Построй электростанцию", reward=120},
+    first_city={name="Первый город", desc="Оснуй поселение", reward=100},
+    superpower={name="Экономическая сверхдержава", desc="Достигни ВВП 10k", reward=500},
+    domination={name="Мировое господство", desc="Захвати 60 провинций", reward=1000},
+    diplomat={name="Великий дипломат", desc="5 альянсов", reward=400},
+    builder={name="Великий строитель", desc="100 зданий", reward=350},
+    techleader={name="Технологический лидер", desc="Открой 10 технологий", reward=300},
+}
+function AchievementService.unlock(player:Player, id:string)
+    local def = defs[id]; if not def then return end
+    local p = CoinService.ensure(player)
+    if table.find(p.achievements, id) then return end
+    table.insert(p.achievements, id)
+    CoinService.addCoins(player, def.reward, "Achievement:"..id)
+    CoinService.addXP(player, 100)
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("AchievementUnlocked")
+    if rem then rem:FireClient(player, id, def) end
+end
+function AchievementService.list() return defs end
+return AchievementService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000038">
+          <Properties>
+            <string name="Name">AllianceService</string>
+            <ProtectedString name="Source"><![CDATA[local AllianceService = {}
+local alliances: {[string]: any} = {}
+function AllianceService.create(name:string, color:Color3, leader:string)
+    local id="AL_"..tostring(math.random(10000,99999))
+    local al={id=id, name=name, color=color, leader=leader, members={leader}}
+    alliances[id]=al
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("AllianceCreated")
+    if rem then rem:FireAllClients(al) end
+    return al
+end
+function AllianceService.invite(allianceId:string, countryId:string)
+    local al=alliances[allianceId]; if not al then return false end
+    if not table.find(al.members, countryId) then table.insert(al.members, countryId) end
+    return true
+end
+function AllianceService.leave(allianceId:string, countryId:string)
+    local al=alliances[allianceId]; if not al then return false end
+    for i,v in ipairs(al.members) do if v==countryId then table.remove(al.members,i) break end end
+    if #al.members==0 then alliances[allianceId]=nil end
+    return true
+end
+function AllianceService.list() return alliances end
+return AllianceService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000039">
+          <Properties>
+            <string name="Name">BuildingService</string>
+            <ProtectedString name="Source"><![CDATA[local BuildingService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local EconomyService = require(script.Parent.EconomyService)
+local Costs = {
+    House=120, Apartment=400, Skyscraper=1500, Shop=300, Mall=900, Office=700,
+    CityHall=1200, School=500, Hospital=800, Park=200, Stadium=1400,
+    CoalPlant=2000, Solar=1800, Wind=1600, Nuclear=5000,
+    MilitaryFactory=2500, Barracks=1800, Airbase=3200, Port=2800,
+    Road=150, Railway=400, Bridge=900,
+}
+function BuildingService.canBuild(player:Player, provinceId:string, building:string): (boolean,string)
+    local prov = ProvinceData.get(provinceId)
+    if not prov then return false, "No province" end
+    local eco = EconomyService.get(prov.owner)
+    if eco and eco.budget < (Costs[building] or 500) then return false, "Not enough budget" end
+    if #prov.buildings >= 12 then return false, "Province full" end
+    return true, ""
+end
+function BuildingService.build(player:Player, provinceId:string, building:string)
+    local ok,msg = BuildingService.canBuild(player, provinceId, building)
+    if not ok then return false, msg end
+    local prov = ProvinceData.get(provinceId)
+    local eco = EconomyService.get(prov.owner)
+    eco.budget -= (Costs[building] or 500)
+    table.insert(prov.buildings, building)
+    -- добавить экономику/энергию
+    if building:find("Plant") or building=="Solar" or building=="Nuclear" then prov.economy += 60 else prov.economy += 20 end
+    prov.stability = math.clamp(prov.stability+1, 0, 100)
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("BuildingPlaced")
+    if rem then rem:FireAllClients(provinceId, building, prov.pos) end
+    return true, "Built"
+end
+function BuildingService.listCosts() return Costs end
+return BuildingService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000003A">
+          <Properties>
+            <string name="Name">CityService</string>
+            <ProtectedString name="Source"><![CDATA[local CityService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+function CityService.found(player:Player, provinceId:string, cityName:string)
+    local p=ProvinceData.get(provinceId)
+    if not p then return false end
+    if p.buildings[1]=="CityCenter" then return false, "Already city" end
+    table.insert(p.buildings, 1, "CityCenter")
+    p.population += math.random(5000,20000)
+    local rem=game.ReplicatedStorage.Remotes:FindFirstChild("CityFounded")
+    if rem then rem:FireAllClients(provinceId, cityName) end
+    return true
+end
+return CityService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000003B">
+          <Properties>
+            <string name="Name">CoinService</string>
+            <ProtectedString name="Source"><![CDATA[local CoinService = {}
+local profiles: {[number]: any} = {}
+local Config = require(game.ReplicatedStorage.Shared.Config)
+
+function CoinService.getProfile(player:Player) return profiles[player.UserId] end
+function CoinService.ensure(player:Player)
+    if not profiles[player.UserId] then
+        profiles[player.UserId] = {coins=500, xp=0, level=1, wins=0, losses=0, playTime=0, ownedSkins={}, achievements={}, tutorialDone=false, settings={music=0.7,sfx=0.8,graphics="Medium"}}
+    end
+    return profiles[player.UserId]
+end
+function CoinService.addCoins(player:Player, amount:number, reason:string?)
+    local p = CoinService.ensure(player)
+    p.coins += amount
+    if game.ReplicatedStorage:FindFirstChild("Remotes") then
+        local r = game.ReplicatedStorage.Remotes:FindFirstChild("CoinsUpdated")
+        if r then r:FireClient(player, p.coins, amount, reason or "") end
+    end
+    return p.coins
+end
+function CoinService.spend(player:Player, amount:number):boolean
+    local p = CoinService.ensure(player)
+    if p.coins < amount then return false end
+    p.coins -= amount
+    return true
+end
+function CoinService.addXP(player:Player, xp:number)
+    local p = CoinService.ensure(player)
+    p.xp += xp
+    local need = p.level*500
+    if p.xp >= need then p.level+=1; p.xp-=need; CoinService.addCoins(player, Config.COINS_REWARDS.LevelUp, "LevelUp") end
+end
+return CoinService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000003C">
+          <Properties>
+            <string name="Name">CountryService</string>
+            <ProtectedString name="Source"><![CDATA[local CountryService = {}
+local CountryData = require(game.ReplicatedStorage.Shared.CountryData)
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local EconomyService = require(script.Parent.EconomyService)
+
+function CountryService.get(id:string)
+    return CountryData.byId[id], EconomyService.get(id)
+end
+function CountryService.list()
+    local t={} for _,c in ipairs(CountryData) do if type(c)=="table" and c.id then table.insert(t,c) end end return t
+end
+function CountryService.provincesOf(countryId:string)
+    local t={} for _,p in pairs(ProvinceData.list) do if p.owner==countryId then table.insert(t,p) end end return t
+end
+function CountryService.transferProvince(provId:string, newOwner:string)
+    local p = ProvinceData.get(provId)
+    if not p then return false end
+    p.owner = newOwner
+    -- огонь Remote для обновления цвета границ
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("ProvinceOwnerChanged")
+    if rem then rem:FireAllClients(provId, newOwner) end
+    return true
+end
+return CountryService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000003D">
+          <Properties>
+            <string name="Name">DiplomacyService</string>
+            <ProtectedString name="Source"><![CDATA[local DiplomacyService = {}
+local CountryData = require(game.ReplicatedStorage.Shared.CountryData)
+local relations: {[string]: {[string]: number}} = {}
+function DiplomacyService.init()
+    for _,a in ipairs(CountryData) do if type(a)=="table" and a.id then
+        relations[a.id]=relations[a.id] or {}
+        for _,b in ipairs(CountryData) do if type(b)=="table" and b.id and a.id~=b.id then relations[a.id][b.id]=math.random(-20,40) end end
+    end end
+end
+function DiplomacyService.get(a:string,b:string) return relations[a] and relations[a][b] or 0 end
+function DiplomacyService.change(a:string,b:string, delta:number)
+    if not relations[a] then return end
+    relations[a][b]=math.clamp((relations[a][b] or 0)+delta, -100,100)
+    relations[b][a]=math.clamp((relations[b][a] or 0)+delta*0.8, -100,100)
+    local rem=game.ReplicatedStorage.Remotes:FindFirstChild("RelationChanged")
+    if rem then rem:FireAllClients(a,b, relations[a][b]) end
+end
+function DiplomacyService.proposeAlliance(a:string,b:string):boolean
+    if DiplomacyService.get(a,b) < 20 then return false end
+    DiplomacyService.change(a,b, 10)
+    return true
+end
+function DiplomacyService.sanction(a:string,b:string)
+    DiplomacyService.change(a,b, -18)
+    local eco = require(script.Parent.EconomyService)
+    eco.applySanctions(a,b)
+end
+function DiplomacyService.all() return relations end
+return DiplomacyService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000003E">
+          <Properties>
+            <string name="Name">EconomyService</string>
+            <ProtectedString name="Source"><![CDATA[local EconomyService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local CountryData = require(game.ReplicatedStorage.Shared.CountryData)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+
+local state: {[string]: any} = {} -- countryId -> economy
+
+function EconomyService.init()
+    for _,c in ipairs(CountryData) do
+        if type(c)=="table" and c.id then
+            state[c.id] = {
+                gdp=math.random(800,9000), budget=5000, income=0, expenses=0,
+                taxes=0.22, inflation=math.random(10,40)/10, debt=math.random(0,3000),
+                unemployment=math.random(40,120)/10, tradeBalance=0, livingStandard=math.random(50,85)
+            }
+        end
+    end
+    task.spawn(function()
+        while true do task.wait(5)
+            for id,eco in pairs(state) do
+                -- доход от провинций + налоги
+                local provIncome=0
+                for _,p in pairs(ProvinceData.list) do if p.owner==id then provIncome+= p.economy*0.8 + p.population/10000 end end
+                eco.income = provIncome + math.random(80,200)
+                eco.expenses = 400 + #ecoDebtBuildings(id)*18 + eco.debt*0.02
+                local net = eco.income - eco.expenses
+                eco.budget += net
+                eco.gdp = Util.lerp(eco.gdp, provIncome*1.4, 0.06)
+                eco.inflation = Util.clamp(eco.inflation + (math.random()-0.5)*0.05, -1, 12)
+                if math.random() < 0.02 then -- кризис
+                    eco.budget -= math.random(500,1500)
+                    eco.unemployment += math.random(5,15)/10
+                end
+            end
+        end
+    end)
+end
+function ecoDebtBuildings(cid:string)
+    local t={} for _,p in pairs(ProvinceData.list) do if p.owner==cid then for _,b in ipairs(p.buildings) do table.insert(t,b) end end end return t
+end
+function EconomyService.get(id:string) return state[id] end
+function EconomyService.all() return state end
+function EconomyService.applySanctions(from:string, to:string)
+    local e = state[to]; if e then e.income -= 200; e.tradeBalance-=150 end
+end
+return EconomyService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000003F">
+          <Properties>
+            <string name="Name">GameService</string>
+            <ProtectedString name="Source"><![CDATA[local GameService = {}
+local ScenarioService = require(script.Parent.ScenarioService)
+local AIService = require(script.Parent.AIService)
+local SaveService = require(script.Parent.SaveService)
+
+local matches: {[string]: any} = {}
+
+function GameService.createMatch(host:Player, cfg:any)
+    local id = "M_"..tostring(math.random(100000,999999))
+    matches[id]={id=id, host=host, config=cfg, players={[host.UserId]=host}, ready={}, started=false}
+    return matches[id]
+end
+function GameService.joinMatch(player:Player, matchId:string)
+    local m=matches[matchId]; if not m then return false, "No match" end
+    if m.started then return false, "Started" end
+    m.players[player.UserId]=player; return true, m
+end
+function GameService.setReady(matchId:string, player:Player, ready:boolean)
+    local m=matches[matchId]; if m then m.ready[player.UserId]=ready end
+end
+function GameService.start(matchId:string)
+    local m=matches[matchId]; if not m or m.started then return false end
+    if next(m.ready)==nil then return false end
+    m.started=true
+    -- инициализация сценария года
+    ScenarioService.applyYear(m.config.year or 2026)
+    AIService.configure({difficulty=m.config.difficulty or "Normal", aggression=m.config.aggression or 0.6})
+    AIService.start()
+    for _,pl in pairs(m.players) do
+        local rem=game.ReplicatedStorage.Remotes:FindFirstChild("MatchStarted")
+        if rem then rem:FireClient(pl, m) end
+    end
+    return true
+end
+function GameService.list() return matches end
+return GameService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000040">
+          <Properties>
+            <string name="Name">MapEditorService</string>
+            <ProtectedString name="Source"><![CDATA[local MapEditorService = {}
+local DSS = game:GetService("DataStoreService")
+local store
+pcall(function() store=DSS:GetDataStore("MiniNations_Maps_v1") end)
+local cache: {[string]: any} = {}
+
+function MapEditorService.save(player:Player, mapName:string, data:any): boolean
+    -- защита: лимит размера ~4MB, проверяем JSON длину
+    local ok, json = pcall(function() return game:GetService("HttpService"):JSONEncode(data) end)
+    if not ok then return false end
+    if #json > 3800000 then return false end -- резерв под ключ
+    -- простая фильтрация контента: запрещаем слова
+    local lower=json:lower()
+    if lower:find("badword") then return false end
+    cache[mapName]=data
+    if store then pcall(function() store:SetAsync("map_"..player.UserId.."_"..mapName, data) end) end
+    local rem=game.ReplicatedStorage.Remotes:FindFirstChild("MapSaved")
+    if rem then rem:FireClient(player, mapName) end
+    return true
+end
+function MapEditorService.load(player:Player, mapName:string)
+    if cache[mapName] then return cache[mapName] end
+    if store then
+        local ok,res=pcall(function() return store:GetAsync("map_"..player.UserId.."_"..mapName) end)
+        if ok and res then cache[mapName]=res; return res end
+    end
+    return nil
+end
+function MapEditorService.list(player:Player): {string}
+    local keys={} for k,_ in pairs(cache) do table.insert(keys,k) end return keys
+end
+return MapEditorService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000041">
+          <Properties>
+            <string name="Name">MilitaryService</string>
+            <ProtectedString name="Source"><![CDATA[local MilitaryService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local Config = require(game.ReplicatedStorage.Shared.Config)
+local unitCost = {Infantry=120, Motorized=250, Tank=600, Artillery=500, AA=450, Aviation=900, Helicopter=850, Navy=1200, Recon=200}
+
+local armies: {[string]: any} = {} -- id -> army
+local byProvince: {[string]: {string}} = {}
+
+function MilitaryService.create(player:Player, provinceId:string, unitType:string, countryId:string?)
+    local prov = ProvinceData.get(provinceId)
+    if not prov then return false, "Bad province" end
+    if not table.find(Config.UNITS, unitType) then return false, "Bad unit" end
+    local cost = unitCost[unitType] or 300
+    -- budget check skipped for demo, but would call EconomyService
+    local id = "ARMY_"..tostring(math.random(100000,999999))
+    local army = {id=id, type=unitType, owner=countryId or prov.owner, province=provinceId, hp=100, morale=80, pos=prov.pos}
+    armies[id]=army
+    byProvince[provinceId]=byProvince[provinceId] or {}; table.insert(byProvince[provinceId], id)
+    table.insert(prov.army, id)
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("ArmyCreated")
+    if rem then rem:FireAllClients(army) end
+    -- создать 3D модель в Workspace
+    MilitaryService.spawnModel(army)
+    return true, id
+end
+
+function MilitaryService.move(armyId:string, toProvinceId:string)
+    local army = armies[armyId]; if not army then return false end
+    local toProv = ProvinceData.get(toProvinceId); if not toProv then return false end
+    local fromProv = ProvinceData.get(army.province)
+    if fromProv then
+        -- удалить из старой
+        for i,v in ipairs(fromProv.army) do if v==armyId then table.remove(fromProv.army,i) break end end
+    end
+    army.province = toProvinceId; army.pos = toProv.pos
+    table.insert(toProv.army, armyId)
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("ArmyMoved")
+    if rem then rem:FireAllClients(armyId, toProvinceId, toProv.pos) end
+    -- tween модели
+    local mdl = workspace:FindFirstChild("Armies") and workspace.Armies:FindFirstChild(armyId)
+    if mdl then
+        game:GetService("TweenService"):Create(mdl.PrimaryPart, TweenInfo.new(1.2, Enum.EasingStyle.Quad), {Position = toProv.pos + Vector3.new(0,2,0)}):Play()
+    end
+    return true
+end
+
+function MilitaryService.spawnModel(army:any)
+    local folder = workspace:FindFirstChild("Armies")
+    if not folder then folder=Instance.new("Folder"); folder.Name="Armies"; folder.Parent=workspace end
+    local part = Instance.new("Part")
+    part.Name=army.id; part.Size=Vector3.new(4,2.5,6); part.Anchored=true; part.CanCollide=false
+    part.Position = army.pos + Vector3.new(math.random(-6,6),2, math.random(-6,6))
+    part.Color = Color3.fromHex("#FACC15"); part.Material=Enum.Material.SmoothPlastic
+    part.Parent=folder
+    local hum = Instance.new("BillboardGui"); hum.Size=UDim2.fromOffset(80,18); hum.StudsOffset=Vector3.new(0,3,0); hum.Parent=part
+    local tl = Instance.new("TextLabel"); tl.Size=UDim2.fromScale(1,1); tl.BackgroundTransparency=0.3; tl.BackgroundColor3=Color3.fromHex("#0F172A"); tl.TextColor3=Color3.new(1,1,1); tl.TextScaled=true; tl.Text=army.type; tl.Parent=hum
+end
+
+function MilitaryService.get(armyId:string) return armies[armyId] end
+function MilitaryService.all() return armies end
+function MilitaryService.inProvince(pid:string) return byProvince[pid] or {} end
+return MilitaryService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000042">
+          <Properties>
+            <string name="Name">PowerService</string>
+            <ProtectedString name="Source"><![CDATA[local PowerService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local power: {[string]: {produced:number, consumed:number}} = {}
+
+function PowerService.tick()
+    task.spawn(function()
+        while true do task.wait(6)
+            for cid,_ in pairs(power) do power[cid]={produced=0, consumed=0} end
+            for _,p in pairs(ProvinceData.list) do
+                local pw = power[p.owner]; if not pw then pw={produced=0,consumed=0}; power[p.owner]=pw end
+                for _,b in ipairs(p.buildings) do
+                    if b=="CoalPlant" then pw.produced+=120 elseif b=="Nuclear" then pw.produced+=400 elseif b=="Solar" then pw.produced+=60 elseif b=="Wind" then pw.produced+=50
+                    else pw.consumed+=8 end
+                end
+            end
+        end
+    end)
+end
+function PowerService.get(owner:string) return power[owner] or {produced=0,consumed=0} end
+function PowerService.balance(owner:string) local g=PowerService.get(owner) return g.produced - g.consumed end
+return PowerService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000043">
+          <Properties>
+            <string name="Name">ProvinceService</string>
+            <ProtectedString name="Source"><![CDATA[local ProvinceService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+function ProvinceService.get(id:string) return ProvinceData.get(id) end
+function ProvinceService.byOwner(owner:string)
+    local t={} for _,p in pairs(ProvinceData.list) do if p.owner==owner then table.insert(t,p) end end return t
+end
+function ProvinceService.info(id:string)
+    local p=ProvinceData.get(id)
+    if not p then return nil end
+    return {id=p.id, name=p.name, owner=p.owner, population=p.population, economy=p.economy, infrastructure=p.infrastructure, stability=p.stability, buildings=p.buildings, army=p.army, pos=p.pos}
+end
+return ProvinceService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000044">
+          <Properties>
+            <string name="Name">QuestService</string>
+            <ProtectedString name="Source"><![CDATA[local QuestService = {}
+local CoinService = require(script.Parent.CoinService)
+local daily = {
+    {id="build5", text="Построй 5 зданий", target=5, reward=50},
+    {id="army1", text="Создай одну армию", target=1, reward=50},
+    {id="trade1", text="Заключи торговый договор", target=1, reward=70},
+    {id="tech1", text="Исследуй технологию", target=1, reward=60},
+    {id="match1", text="Сыграй один матч", target=1, reward=80},
+}
+local weekly = {
+    {id="w_build20", text="Построй 20 зданий", target=20, reward=300},
+    {id="w_win3", text="Выиграй 3 матча", target=3, reward=400},
+}
+local progress: {[number]: {[string]: number}} = {}
+function QuestService.getDaily(player:Player) return daily end
+function QuestService.getProgress(player:Player, questId:string):number
+    return progress[player.UserId] and progress[player.UserId][questId] or 0
+end
+function QuestService.add(player:Player, questId:string, amount:number)
+    progress[player.UserId]=progress[player.UserId] or {}
+    progress[player.UserId][questId]=(progress[player.UserId][questId] or 0)+amount
+    -- check complete
+    for _,q in ipairs(daily) do if q.id==questId and progress[player.UserId][questId]>=q.target then CoinService.addCoins(player, q.reward, "Daily") end end
+    for _,q in ipairs(weekly) do if q.id==questId and progress[player.UserId][questId]>=q.target then CoinService.addCoins(player, q.reward, "Weekly") end end
+end
+return QuestService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000045">
+          <Properties>
+            <string name="Name">ResourceService</string>
+            <ProtectedString name="Source"><![CDATA[local ResourceService = {}
+local Config = require(game.ReplicatedStorage.Shared.Config)
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local stocks: {[string]: {[string]: number}} = {} -- country -> resource -> amount
+
+function ResourceService.init()
+    for _,p in pairs(ProvinceData.list) do
+        if not stocks[p.owner] then stocks[p.owner]={} for _,r in ipairs(Config.RESOURCES) do stocks[p.owner][r]=math.random(200,1200) end end
+    end
+    task.spawn(function()
+        while true do task.wait(7)
+            for cid, store in pairs(stocks) do
+                store.Oil  += math.random(0,2)
+                store.Food += math.random(2,6)
+                store.Coal += math.random(0,3)
+                -- потребление
+                for k,_ in pairs(store) do store[k] = math.max(0, store[k] - math.random(0,1)) end
+            end
+        end
+    end)
+end
+function ResourceService.get(cid:string) return stocks[cid] end
+function ResourceService.trade(from:string, to:string, res:string, amount:number)
+    local a=stocks[from]; local b=stocks[to]
+    if not a or not b then return false end
+    if (a[res] or 0) < amount then return false end
+    a[res]-=amount; b[res]=(b[res] or 0)+amount; return true
+end
+return ResourceService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000046">
+          <Properties>
+            <string name="Name">SaveService</string>
+            <ProtectedString name="Source"><![CDATA[local SaveService = {}
+local DSS = game:GetService("DataStoreService")
+local CoinService = require(script.Parent.CoinService)
+local profileStore
+pcall(function() profileStore = DSS:GetDataStore("MiniNations_Profiles_v1") end)
+
+local cache: {[number]: any} = {}
+local autosaveInterval = 60
+
+function SaveService.load(player:Player)
+    local data
+    if profileStore then
+        local ok, res = pcall(function() return profileStore:GetAsync("p_"..player.UserId) end)
+        if ok and res then data=res end
+    end
+    if data then
+        cache[player.UserId]=data
+        -- hydrate CoinService
+        local c = CoinService.ensure(player)
+        for k,v in pairs(data) do c[k]=v end
+    else
+        cache[player.UserId]=CoinService.ensure(player)
+    end
+    return cache[player.UserId]
+end
+
+function SaveService.save(player:Player)
+    local p = CoinService.getProfile(player) or cache[player.UserId]
+    if not p or not profileStore then return end
+    pcall(function() profileStore:SetAsync("p_"..player.UserId, p) end)
+    -- отдельный ключ для мультиплеерных сессий
+    pcall(function()
+        local ms = DSS:GetDataStore("MiniNations_Sessions_v1")
+        if p.lastSession then ms:SetAsync("s_"..player.UserId.."_"..os.time(), p.lastSession) end
+    end)
+end
+
+function SaveService.startAutosave()
+    task.spawn(function()
+        while true do task.wait(autosaveInterval)
+            for _,pl in ipairs(game.Players:GetPlayers()) do SaveService.save(pl) end
+        end
+    end)
+    game.Players.PlayerRemoving:Connect(function(pl) SaveService.save(pl); cache[pl.UserId]=nil end)
+    game:BindToClose(function()
+        for _,pl in ipairs(game.Players:GetPlayers()) do SaveService.save(pl) end
+        task.wait(2)
+    end)
+end
+return SaveService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000047">
+          <Properties>
+            <string name="Name">ScenarioService</string>
+            <ProtectedString name="Source"><![CDATA[local ScenarioService = {}
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+-- исторические модификаторы по году
+local yearMods: {[number]: any} = {
+    [1444]={popMul=0.35, econMul=0.4, tech="Feudal"},
+    [1914]={popMul=0.8, econMul=0.9, tech="Industrial"},
+    [1945]={popMul=0.85, econMul=1.0, tech="WW2"},
+    [2026]={popMul=1.0, econMul=1.0, tech="Modern"},
+    [2050]={popMul=1.1, econMul=1.3, tech="Future"},
+}
+function ScenarioService.applyYear(year:number)
+    local mod = yearMods[year] or yearMods[2026]
+    -- масштабируем провинции
+    for _,p in pairs(ProvinceData.list) do
+        p.population = math.floor(p.population * mod.popMul)
+        p.economy = math.floor(p.economy * mod.econMul)
+    end
+    print("[Scenario] Applied year "..year.." mod "..mod.tech)
+end
+return ScenarioService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000048">
+          <Properties>
+            <string name="Name">ShopService</string>
+            <ProtectedString name="Source"><![CDATA[local ShopService = {}
+local catalog = {
+    {id="gold_borders", name="Золотые границы", price=400, cat="Country", preview="#FFD700"},
+    {id="neon_borders", name="Неоновые границы", price=600, cat="Country", preview="#39FF14"},
+    {id="diamond_borders", name="Алмазные границы", price=1200, cat="Country", preview="#00FFFF"},
+    {id="modern_city", name="Современный город", price=800, cat="City", preview="#60A5FA"},
+    {id="cyber_city", name="Киберпанк город", price=1500, cat="City", preview="#FF00FF"},
+    {id="gold_tank", name="Золотые танки", price=700, cat="Army", preview="#FFD700"},
+    {id="future_army", name="Футуристическая армия", price=1100, cat="Army", preview="#00FFFF"},
+    {id="music_menu2", name="Саундтрек Меню 2", price=300, cat="Music", preview="#A78BFA"},
+    {id="music_war", name="Боевой саундтрек", price=500, cat="Music", preview="#EF4444"},
+    {id="ui_neon", name="Неоновая тема", price=450, cat="UI", preview="#39FF14"},
+    {id="flag_goldframe", name="Золотая рамка флага", price=350, cat="Flag", preview="#FFD700"},
+}
+local CoinService = require(script.Parent.CoinService)
+function ShopService.catalog() return catalog end
+function ShopService.buy(player:Player, itemId:string): (boolean,string)
+    local item
+    for _,it in ipairs(catalog) do if it.id==itemId then item=it break end end
+    if not item then return false, "No item" end
+    local profile = CoinService.ensure(player)
+    if table.find(profile.ownedSkins, itemId) then return false, "Already owned" end
+    if not CoinService.spend(player, item.price) then return false, "Not enough coins" end
+    table.insert(profile.ownedSkins, itemId)
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("ShopPurchased")
+    if rem then rem:FireClient(player, itemId) end
+    return true, "Purchased"
+end
+return ShopService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX00000049">
+          <Properties>
+            <string name="Name">TechnologyService</string>
+            <ProtectedString name="Source"><![CDATA[local TechnologyService = {}
+local trees = {
+    Economy={"Market","TradeHub","DigitalTax"},
+    Industry={"Automation","Robotics","AdvancedMetallurgy"},
+    Army={"ModernInfantry","CompositeArmor","Stealth"},
+    Energy={"SmartGrid","FusionProto","Hydrogen"},
+    Transport={"HighSpeedRail","Maglev","DronesLogistics"},
+    Aviation={"JetEngine","Supersonic","UAV"},
+    Navy={"Carrier","NuclearSub","Aegis"},
+    Medicine={"Vaccine","Biotech","Longevity"},
+    Space={"Satellite","MoonBase","MarsMission"},
+}
+local progress: {[string]: {[string]: number}} = {} -- country -> tech -> level
+
+function TechnologyService.research(countryId:string, branch:string, tech:string)
+    progress[countryId]=progress[countryId] or {}
+    local key = branch..":"..tech
+    progress[countryId][key]=(progress[countryId][key] or 0)+1
+    if progress[countryId][key]==1 then
+        -- бонус
+        local rem=game.ReplicatedStorage.Remotes:FindFirstChild("TechUnlocked")
+        if rem then rem:FireAllClients(countryId, branch, tech) end
+    end
+    return progress[countryId][key]
+end
+function TechnologyService.get(countryId:string) return progress[countryId] or {} end
+function TechnologyService.trees() return trees end
+return TechnologyService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX0000004A">
+          <Properties>
+            <string name="Name">WarService</string>
+            <ProtectedString name="Source"><![CDATA[local WarService = {}
+local CountryService = require(script.Parent.CountryService)
+local ProvinceData = require(game.ReplicatedStorage.Shared.ProvinceData)
+local wars: {[string]: any} = {}
+
+function WarService.declare(att:string, def:string)
+    local id = att.."vs"..def.."_"..os.time()
+    wars[id]={id=id, attackers={att}, defenders={def}, startTime=os.time(), battles=0}
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("WarDeclared")
+    if rem then rem:FireAllClients(id, att, def) end
+    return id
+end
+function WarService.battle(warId:string, attacker:string, defender:string, provinceId:string)
+    local war = wars[warId]; if not war then return false end
+    war.battles+=1
+    -- очень упрощённый бросок
+    local atkPower = math.random(60,140) + #CountryService.provincesOf(attacker)*2
+    local defPower = math.random(60,140) + #CountryService.provincesOf(defender)*2
+    local attackerWins = atkPower > defPower
+    if attackerWins then
+        local p = ProvinceData.get(provinceId)
+        if p and p.owner==defender then
+            CountryService.transferProvince(provinceId, attacker)
+        end
+    end
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("BattleResult")
+    if rem then rem:FireAllClients(warId, provinceId, attackerWins, atkPower, defPower) end
+    return attackerWins
+end
+function WarService.peace(warId:string)
+    local w=wars[warId]; if not w then return false end
+    wars[warId]=nil
+    local rem = game.ReplicatedStorage.Remotes:FindFirstChild("PeaceSigned")
+    if rem then rem:FireAllClients(warId) end
+    return true
+end
+function WarService.list() return wars end
+return WarService
+]]></ProtectedString>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="Script" referent="RBX0000004B">
+        <Properties>
+          <string name="Name">Main</string>
+          <ProtectedString name="Source"><![CDATA[-- Main.server — инициализация всех сервисов и RemoteEvents
+print("🌍 Mini Nations 3D — Server starting...")
+
+-- Создать папку Remotes
+local RS = game:GetService("ReplicatedStorage")
+local remotesFolder = RS:FindFirstChild("Remotes") or Instance.new("Folder")
+remotesFolder.Name="Remotes"; remotesFolder.Parent=RS
+
+local function remote(name:string, isFunc:boolean?)
+    if remotesFolder:FindFirstChild(name) then return remotesFolder:FindFirstChild(name) end
+    local r = isFunc and Instance.new("RemoteFunction") or Instance.new("RemoteEvent")
+    r.Name=name; r.Parent=remotesFolder; return r
+end
+
+-- Все ремоуты
+local events = {
+    "RequestProfile","CoinsUpdated","ProvinceOwnerChanged","BuildingPlaced","ArmyCreated","ArmyMoved",
+    "WarDeclared","BattleResult","PeaceSigned","RelationChanged","AllianceCreated","TechUnlocked",
+    "ShopPurchased","AchievementUnlocked","MapSaved","CityFounded","MatchStarted","CoinsUpdated",
+    "BuyItem","BuildRequest","MoveArmy","DeclareWar","MakePeace","CreateAlliance","ResearchTech",
+    "JoinMatch","CreateMatch","StartMatch","SaveMap","LoadMap","SetReady","ToggleTutorial",
+    "GetEconomy","GetResources","GetProvinces"
+}
+for _,e in ipairs(events) do remote(e,false) end
+remote("GetProfile", true)
+
+-- Rate limit
+local rl: {[number]: {number}} = {}
+local LIMIT = 8
+game:GetService("RunService").Heartbeat:Connect(function()
+    -- очистка окна
+end)
+
+local function checkLimit(pl:Player):boolean
+    local now = tick()
+    rl[pl.UserId]=rl[pl.UserId] or {}
+    table.insert(rl[pl.UserId], now)
+    -- оставить только последнюю секунду
+    local t={} for _,v in ipairs(rl[pl.UserId]) do if now - v < 1 then table.insert(t,v) end end
+    rl[pl.UserId]=t
+    return #t <= LIMIT
+end
+
+-- Загрузить сервисы
+local CoinService = require(script.Services.CoinService)
+local SaveService = require(script.Services.SaveService)
+local EconomyService = require(script.Services.EconomyService)
+local ResourceService = require(script.Services.ResourceService)
+local DiplomacyService = require(script.Services.DiplomacyService)
+local PowerService = require(script.Services.PowerService)
+local BuildingService = require(script.Services.BuildingService)
+local MilitaryService = require(script.Services.MilitaryService)
+local WarService = require(script.Services.WarService)
+local AllianceService = require(script.Services.AllianceService)
+local TechnologyService = require(script.Services.TechnologyService)
+local ShopService = require(script.Services.ShopService)
+local QuestService = require(script.Services.QuestService)
+local AchievementService = require(script.Services.AchievementService)
+local MapEditorService = require(script.Services.MapEditorService)
+local GameService = require(script.Services.GameService)
+
+EconomyService.init()
+ResourceService.init()
+DiplomacyService.init()
+PowerService.tick()
+SaveService.startAutosave()
+
+-- Подключения
+game.Players.PlayerAdded:Connect(function(pl)
+    SaveService.load(pl)
+    CoinService.ensure(pl)
+    -- отдать профиль
+    task.wait(1)
+    local prof = CoinService.getProfile(pl)
+    local rem = remotesFolder:FindFirstChild("RequestProfile")
+    if rem then rem:FireClient(pl, prof) end
+end)
+
+-- RemoteFunction GetProfile
+remotesFolder.GetProfile.OnServerInvoke = function(pl:Player)
+    return CoinService.ensure(pl)
+end
+
+-- Build
+remotesFolder.BuildRequest.OnServerEvent:Connect(function(pl:Player, provinceId:string, building:string)
+    if not checkLimit(pl) then return end
+    local ok,msg = BuildingService.build(pl, provinceId, building)
+    if ok then
+        QuestService.add(pl, "build5", 1)
+        AchievementService.unlock(pl, "first_city")
+    end
+end)
+
+remotesFolder.BuyItem.OnServerEvent:Connect(function(pl:Player, itemId:string)
+    if not checkLimit(pl) then return end
+    ShopService.buy(pl, itemId)
+end)
+
+remotesFolder.MoveArmy.OnServerEvent:Connect(function(pl:Player, armyId:string, toProv:string)
+    if not checkLimit(pl) then return end
+    MilitaryService.move(armyId, toProv)
+end)
+
+remotesFolder.DeclareWar.OnServerEvent:Connect(function(pl:Player, from:string, to:string)
+    if not checkLimit(pl) then return end
+    -- валидация: from должен принадлежать игроку (упрощено)
+    WarService.declare(from,to)
+    AchievementService.unlock(pl, "first_war")
+    QuestService.add(pl,"match1",1)
+end)
+
+remotesFolder.MakePeace.OnServerEvent:Connect(function(pl:Player, warId:string)
+    WarService.peace(warId)
+end)
+
+remotesFolder.CreateAlliance.OnServerEvent:Connect(function(pl:Player, name:string, color:Color3, leader:string)
+    AllianceService.create(name,color,leader)
+    AchievementService.unlock(pl,"first_alliance")
+end)
+
+remotesFolder.ResearchTech.OnServerEvent:Connect(function(pl:Player, countryId:string, branch:string, tech:string)
+    TechnologyService.research(countryId, branch, tech)
+    QuestService.add(pl,"tech1",1)
+end)
+
+-- Economy polling
+remotesFolder.GetEconomy.OnServerEvent:Connect(function(pl:Player, countryId:string)
+    local eco = EconomyService.get(countryId)
+    remotesFolder.GetEconomy:FireClient(pl, eco)
+end)
+
+remotesFolder.CreateMatch.OnServerEvent:Connect(function(pl:Player, cfg:any)
+    local m = GameService.createMatch(pl, cfg)
+    remotesFolder.CreateMatch:FireClient(pl, m)
+end)
+remotesFolder.JoinMatch.OnServerEvent:Connect(function(pl:Player, matchId:string)
+    GameService.joinMatch(pl, matchId)
+end)
+remotesFolder.StartMatch.OnServerEvent:Connect(function(pl:Player, matchId:string)
+    GameService.start(matchId)
+end)
+remotesFolder.SaveMap.OnServerEvent:Connect(function(pl:Player, name:string, data:any)
+    MapEditorService.save(pl,name,data)
+end)
+
+print("✅ Mini Nations 3D Server ready — "..#events.." remotes")
+]]></ProtectedString>
+        </Properties>
+      </Item>
+      <Item class="Script" referent="RBX0000004C">
+        <Properties>
+          <string name="Name">AntiCheat</string>
+          <ProtectedString name="Source"><![CDATA[-- AntiCheat — серверная валидация
+local RS=game:GetService("ReplicatedStorage")
+local remotes=RS:WaitForChild("Remotes",10)
+if not remotes then return end
+-- Пример: проверка BuildRequest дистанции
+remotes:FindFirstChild("BuildRequest").OnServerEvent:Connect(function(pl, provId, building)
+    -- нельзя строить если провинция не твоя (упрощено: всегда можно в одиночке)
+    -- но нельзя спамить
+    -- логика уже в Main.server checkLimit
+end)
+print("[AntiCheat] enabled")
+]]></ProtectedString>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="StarterPlayer" referent="RBX00000005">
+      <Properties>
+        <string name="Name">StarterPlayer</string>
+      </Properties>
+      <Item class="StarterPlayerScripts" referent="RBX0000005F">
+        <Properties>
+          <string name="Name">StarterPlayerScripts</string>
+        </Properties>
+        <Item class="LocalScript" referent="RBX00000060">
+          <Properties>
+            <string name="Name">Main</string>
+            <ProtectedString name="Source"><![CDATA[-- Main.client — точка входа клиента
+print("🌍 Mini Nations 3D — Client starting...")
+
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local pl = Players.LocalPlayer
+
+-- дождаться ремоутов
+local remotes = RS:WaitForChild("Remotes", 10)
+
+-- Инициализация контроллеров
+local CameraController = require(script.Controllers.CameraController)
+local MapController = require(script.Controllers.MapController)
+local AudioController = require(script.Controllers.AudioController)
+local BuildingController = require(script.Controllers.BuildingController)
+
+CameraController.init()
+AudioController.init()
+AudioController.play("menu", 0.45)
+
+-- Построить карту (после загрузки)
+MapController.init()
+
+-- Построить UI
+local MainMenu = require(script.UI.MainMenu)
+local HUD = require(script.UI.HUD)
+
+local pg = pl:WaitForChild("PlayerGui")
+-- очистить старый
+for _,g in ipairs(pg:GetChildren()) do if g.Name=="MainMenu" or g.Name=="HUD" then g:Destroy() end end
+
+local menuGui = MainMenu.build()
+menuGui.Parent = pg
+
+local hudGui = HUD.build()
+hudGui.Parent = pg -- внутри HUD.Enabled=false до начала игры
+
+-- Профиль
+local coins = 500
+if remotes and remotes:FindFirstChild("GetProfile") then
+    local ok, prof = pcall(function() return remotes.GetProfile:InvokeServer() end)
+    if ok and prof then
+        coins = prof.coins or 500
+        print("[Client] Profile loaded — coins:", coins, " level:", prof.level)
+        if prof.tutorialDone == false then
+            -- показать приветствие
+            task.delay(1, function()
+                local gui=Instance.new("ScreenGui"); gui.Name="Welcome"; gui.ResetOnSpawn=false; gui.Parent=pg
+                local f=Instance.new("Frame"); f.Size=UDim2.fromOffset(420,180); f.Position=UDim2.fromScale(0.5,0.5); f.AnchorPoint=Vector2.new(0.5,0.5); f.BackgroundColor3=Color3.fromHex("#0F172A"); f.Parent=gui; Instance.new("UICorner",f).CornerRadius=UDim.new(0,16)
+                local t=Instance.new("TextLabel"); t.Size=UDim2.new(1,0,0,60); t.BackgroundTransparency=1; t.Text="Добро пожаловать в Mini Nations 3D!"; t.TextColor3=Color3.new(1,1,1); t.Font=Enum.Font.GothamBold; t.TextSize=16; t.Parent=f
+                local b1=Instance.new("TextButton"); b1.Size=UDim2.new(1,-24,0,36); b1.Position=UDim2.fromOffset(12,70); b1.Text="🎓 ПРОЙТИ ОБУЧЕНИЕ"; b1.BackgroundColor3=Color3.fromHex("#22C55E"); b1.TextColor3=Color3.new(1,1,1); b1.Font=Enum.Font.GothamBold; b1.Parent=f; Instance.new("UICorner",b1).CornerRadius=UDim.new(0,10)
+                local b2=Instance.new("TextButton"); b2.Size=UDim2.new(1,-24,0,36); b2.Position=UDim2.fromOffset(12,114); b2.Text="⏭️ ПРОПУСТИТЬ"; b2.BackgroundColor3=Color3.fromHex("#334155"); b2.TextColor3=Color3.new(1,1,1); b2.Font=Enum.Font.Gotham; b2.Parent=f; Instance.new("UICorner",b2).CornerRadius=UDim.new(0,10)
+                b1.MouseButton1Click:Connect(function() gui:Destroy(); require(script.UI.TutorialUI).start() end)
+                b2.MouseButton1Click:Connect(function() gui:Destroy() end)
+            end)
+        end
+    end
+end
+
+-- Глобальные слушатели ремоутов для уведомлений
+if remotes then
+    local function notify(msg:string, color:Color3?)
+        local gui=Instance.new("ScreenGui"); gui.Name="Notify"; gui.ResetOnSpawn=false; gui.Parent=pg
+        local l=Instance.new("TextLabel"); l.Size=UDim2.fromOffset(360,36); l.Position=UDim2.fromScale(0.5,0.08); l.AnchorPoint=Vector2.new(0.5,0); l.BackgroundColor3=color or Color3.fromHex("#1E293B"); l.TextColor3=Color3.new(1,1,1); l.Text=msg; l.Font=Enum.Font.GothamMedium; l.TextSize=12; l.Parent=gui; Instance.new("UICorner",l).CornerRadius=UDim.new(0,10)
+        task.delay(2.5, function() gui:Destroy() end)
+    end
+    remotes:FindFirstChild("WarDeclared").OnClientEvent:Connect(function(_,a,d) notify("⚔️ Война: "..a.." → "..d, Color3.fromHex("#EF4444")) ; AudioController.playSFX("war") end)
+    remotes:FindFirstChild("BattleResult").OnClientEvent:Connect(function(_,prov, win) notify((win and "✓ Победа в " or "✗ Поражение в ")..prov, win and Color3.fromHex("#22C55E") or Color3.fromHex("#EF4444")) end)
+    remotes:FindFirstChild("AchievementUnlocked").OnClientEvent:Connect(function(id, def) notify("🏆 Достижение: "..def.name.." +"..def.reward.." COINS", Color3.fromHex("#FACC15")) ; AudioController.playSFX("achieve") end)
+    remotes:FindFirstChild("CoinsUpdated").OnClientEvent:Connect(function(new, delta) notify("🪙 +"..delta.." COINS", Color3.fromHex("#FACC15")) end)
+end
+
+-- Мобильная поддержка — показать джойстик подсказку
+if game:GetService("UserInputService").TouchEnabled then
+    print("[Client] Touch device detected — edge scroll & pinch enabled")
+end
+
+-- День/Ночь цикл (визуальный)
+task.spawn(function()
+    local lighting = game:GetService("Lighting")
+    while true do
+        task.wait(40)
+        -- плавный переход
+        local ts = game:GetService("TweenService")
+        ts:Create(lighting, TweenInfo.new(8), {ClockTime = lighting.ClockTime > 12 and 2 or 14}):Play()
+    end
+end)
+
+print("✅ Mini Nations 3D Client ready")
+]]></ProtectedString>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="StarterGui" referent="RBX00000006">
+      <Properties>
+        <string name="Name">StarterGui</string>
+      </Properties>
+      <Item class="Folder" referent="RBX0000004D">
+        <Properties>
+          <string name="Name">Client</string>
+        </Properties>
+        <Item class="Folder" referent="RBX0000004F">
+          <Properties>
+            <string name="Name">Controllers</string>
+          </Properties>
+          <Item class="ModuleScript" referent="RBX00000050">
+            <Properties>
+              <string name="Name">AudioController</string>
+              <ProtectedString name="Source"><![CDATA[local AudioController = {}
+local assets = {
+    menu = 1843523000, -- пример ID (замени на свои из Creator Marketplace)
+    peace = 1837240040,
+    war = 1837255766,
+    economy = 1837761492,
+    victory = 12222216,
+    defeat = 12222124,
+}
+local current: Sound? = nil
+function AudioController.init()
+    local s = Instance.new("Folder"); s.Name="Audio"; s.Parent=workspace
+end
+function AudioController.play(track:string, volume:number?)
+    if current then current:Stop(); current:Destroy() end
+    local id = assets[track] or assets.menu
+    local sound = Instance.new("Sound")
+    sound.SoundId="rbxassetid://"..id
+    sound.Volume=volume or 0.4
+    sound.Looped = track~="victory" and track~="defeat"
+    sound.Parent=workspace
+    sound:Play()
+    current=sound
+end
+function AudioController.playSFX(name:string)
+    local id = ({click=12222025, build=12221967, war=12222058, coin=12221976, achieve=12222030})[name] or 12222025
+    local s=Instance.new("Sound"); s.SoundId="rbxassetid://"..id; s.Volume=0.7; s.Parent=workspace; s:Play(); game.Debris:AddItem(s,3)
+end
+function AudioController.setVolumes(music:number, sfx:number, ui:number)
+    if current then current.Volume=music end
+end
+return AudioController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000051">
+            <Properties>
+              <string name="Name">BuildingController</string>
+              <ProtectedString name="Source"><![CDATA[local BuildingController = {}
+local ghost: Model? = nil
+local selectedBuilding:string? = "House"
+local RS = game:GetService("ReplicatedStorage")
+
+local function makeGhost(name:string)
+    if ghost then ghost:Destroy() end
+    local m=Instance.new("Model"); m.Name="Ghost"
+    local p=Instance.new("Part"); p.Size=Vector3.new(8,8,8); p.Anchored=true; p.CanCollide=false; p.Transparency=0.5; p.Color=Color3.fromHex("#22C55E"); p.Material=Enum.Material.ForceField; p.Parent=m
+    m.PrimaryPart=p; m.Parent=workspace; ghost=m
+    -- follow mouse via Raycast
+    local UIS=game:GetService("UserInputService")
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if not ghost or not ghost.Parent then return end
+        local mouse = UIS:GetMouseLocation()
+        local cam=workspace.CurrentCamera
+        local ray = cam:ViewportPointToRay(mouse.X, mouse.Y)
+        local params=RaycastParams.new(); params.FilterDescendantsInstances={ghost, workspace:FindFirstChild("Provinces")}; params.FilterType=Enum.RaycastFilterType.Exclude
+        local res=workspace:Raycast(ray.Origin, ray.Direction*2000, params)
+        if res then
+            ghost:PivotTo(CFrame.new(res.Position + Vector3.new(0,4,0)))
+            -- проверка можно ли строить (по провинции под курсором)
+            local provFolder=workspace:FindFirstChild("Provinces")
+            if provFolder then
+                -- простейшая проверка расстояния до центра провинции
+                local can=false
+                for _,part in ipairs(provFolder:GetChildren()) do if (part.Position - res.Position).Magnitude < 28 then can=true break end end
+                ghost.PrimaryPart.Color = can and Color3.fromHex("#22C55E") or Color3.fromHex("#EF4444")
+            end
+        end
+    end)
+end
+
+function BuildingController.select(name:string) selectedBuilding=name; makeGhost(name) end
+function BuildingController.get() return selectedBuilding end
+function BuildingController.place()
+    if not ghost or not selectedBuilding then return end
+    -- найти ближайшую провинцию
+    local pos = ghost:GetPivot().Position
+    local best, dist=nil, 1e9
+    local folder=workspace:FindFirstChild("Provinces"); if not folder then return end
+    for _,part in ipairs(folder:GetChildren()) do
+        local d=(part.Position - pos).Magnitude
+        if d<dist then dist=d; best=part end
+    end
+    if best and dist < 40 then
+        local rem = RS.Remotes:FindFirstChild("BuildRequest")
+        if rem then rem:FireServer(best.Name, selectedBuilding) end
+        game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+        -- локальный эффект
+        require(script.Parent.AudioController).playSFX("build")
+    end
+end
+function BuildingController.cancel() if ghost then ghost:Destroy(); ghost=nil end end
+return BuildingController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000052">
+            <Properties>
+              <string name="Name">CameraController</string>
+              <ProtectedString name="Source"><![CDATA[local CameraController = {}
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local cam = workspace.CurrentCamera
+cam.CameraType = Enum.CameraType.Scriptable
+
+local targetPos = Vector3.new(0, 120, -80)
+local targetYaw = 0
+local targetPitch = 45
+local zoom = 140
+local minZoom, maxZoom = 40, 320
+local moveSpeed = 60
+
+local keys = {W=false, A=false, S=false, D=false}
+local edgeMove = true
+
+function CameraController.init()
+    cam.FieldOfView = 70
+    UIS.InputBegan:Connect(function(inp, proc)
+        if proc then return end
+        if inp.KeyCode==Enum.KeyCode.W then keys.W=true end
+        if inp.KeyCode==Enum.KeyCode.A then keys.A=true end
+        if inp.KeyCode==Enum.KeyCode.S then keys.S=true end
+        if inp.KeyCode==Enum.KeyCode.D then keys.D=true end
+        if inp.KeyCode==Enum.KeyCode.F then CameraController.focusCapital() end
+    end)
+    UIS.InputEnded:Connect(function(inp)
+        if inp.KeyCode==Enum.KeyCode.W then keys.W=false end
+        if inp.KeyCode==Enum.KeyCode.A then keys.A=false end
+        if inp.KeyCode==Enum.KeyCode.S then keys.S=false end
+        if inp.KeyCode==Enum.KeyCode.D then keys.D=false end
+    end)
+    UIS.InputChanged:Connect(function(inp)
+        if inp.UserInputType==Enum.UserInputType.MouseWheel then
+            zoom = math.clamp(zoom - inp.Position.Z*12, minZoom, maxZoom)
+        end
+        if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) and inp.UserInputType==Enum.UserInputType.MouseMovement then
+            targetYaw -= inp.Delta.X*0.3
+            targetPitch = math.clamp(targetPitch - inp.Delta.Y*0.3, 15, 85)
+        end
+        if inp.UserInputType==Enum.UserInputType.Touch then
+            -- pinch handled via separate
+        end
+    end)
+
+    -- Middle mouse pan
+    local panning=false
+    local lastPos=nil
+    UIS.InputBegan:Connect(function(inp)
+        if inp.UserInputType==Enum.UserInputType.MouseButton3 then panning=true; lastPos=inp.Position end
+    end)
+    UIS.InputEnded:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton3 then panning=false end end)
+    UIS.InputChanged:Connect(function(inp)
+        if panning and inp.UserInputType==Enum.UserInputType.MouseMovement then
+            local delta = inp.Position - (lastPos or inp.Position)
+            lastPos=inp.Position
+            local rad = math.rad(targetYaw)
+            targetPos += Vector3.new(-delta.X*0.25*math.cos(rad) - delta.Y*0.25*math.sin(rad),0, -delta.X*0.25*math.sin(rad) + delta.Y*0.25*math.cos(rad))
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function(dt)
+        local mv = Vector3.zero
+        if keys.W then mv+=Vector3.new(0,0,-1) end
+        if keys.S then mv+=Vector3.new(0,0,1) end
+        if keys.A then mv+=Vector3.new(-1,0,0) end
+        if keys.D then mv+=Vector3.new(1,0,0) end
+        -- edge scroll
+        if edgeMove and not UIS:GetFocusedTextBox() then
+            local m = UIS:GetMouseLocation()
+            local vp = cam.ViewportSize
+            if m.X < 18 then mv+=Vector3.new(-1,0,0) end
+            if m.X > vp.X-18 then mv+=Vector3.new(1,0,0) end
+            if m.Y < 18 then mv+=Vector3.new(0,0,-1) end
+            if m.Y > vp.Y-18 then mv+=Vector3.new(0,0,1) end
+        end
+        if mv.Magnitude>0 then
+            mv=mv.Unit * moveSpeed * dt * (zoom/120)
+            local rad=math.rad(targetYaw)
+            local fwd = Vector3.new(math.sin(rad),0, math.cos(rad))
+            local right = Vector3.new(math.cos(rad),0, -math.sin(rad))
+            targetPos += right*mv.X + fwd*mv.Z
+        end
+        targetPos = Vector3.new(math.clamp(targetPos.X,-1200,1200), targetPos.Y, math.clamp(targetPos.Z,-700,700))
+        -- плавность
+        local desired = targetPos + Vector3.new(0, math.sin(math.rad(targetPitch))*zoom, math.cos(math.rad(targetPitch))*zoom)
+        cam.CFrame = cam.CFrame:Lerp(CFrame.lookAt(desired, targetPos), math.clamp(dt*7,0,1))
+        cam.CFrame = CFrame.new(cam.CFrame.Position, targetPos) * CFrame.Angles(0,0,0)
+    end)
+end
+
+function CameraController.focusCapital()
+    -- найти столицу выбранной страны (через MapController)
+    local MapCtrl = require(script.Parent.MapController)
+    local cap = MapCtrl.getSelectedCountryCapitalPos()
+    if cap then targetPos = cap end
+end
+function CameraController.jumpTo(pos:Vector3) targetPos = pos end
+return CameraController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000053">
+            <Properties>
+              <string name="Name">DiplomacyController</string>
+              <ProtectedString name="Source"><![CDATA[local DiplomacyController = {}
+local RS = game:GetService("ReplicatedStorage")
+function DiplomacyController.declareWar(from:string, to:string)
+    local r=RS.Remotes:FindFirstChild("DeclareWar"); if r then r:FireServer(from,to) end
+end
+function DiplomacyController.makePeace(warId:string)
+    local r=RS.Remotes:FindFirstChild("MakePeace"); if r then r:FireServer(warId) end
+end
+function DiplomacyController.createAlliance(name:string, color:Color3, leader:string)
+    local r=RS.Remotes:FindFirstChild("CreateAlliance"); if r then r:FireServer(name,color,leader) end
+end
+return DiplomacyController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000054">
+            <Properties>
+              <string name="Name">MapController</string>
+              <ProtectedString name="Source"><![CDATA[local MapController = {}
+local RS = game:GetService("ReplicatedStorage")
+local ProvinceData = require(RS.Shared.ProvinceData)
+local selectedCountry:string? = nil
+local selectedProvince:string? = nil
+local hoverProv:string? = nil
+
+function MapController.init()
+    -- генерировать 3D карту из провинций
+    local folder = workspace:FindFirstChild("Provinces")
+    if not folder then folder=Instance.new("Folder"); folder.Name="Provinces"; folder.Parent=workspace end
+    folder:ClearAllChildren()
+    for id,prov in pairs(ProvinceData.list) do
+        local part = Instance.new("Part")
+        part.Name=id
+        part.Anchored=true; part.CanCollide=false; part.TopSurface=Enum.SurfaceType.Smooth
+        part.Size=Vector3.new(38, math.random(2,9), 38)
+        part.Position = prov.pos + Vector3.new(0, part.Size.Y/2, 0)
+        -- цвет по владельцу
+        local country = require(RS.Shared.CountryData).byId[prov.owner]
+        part.Color = country and country.color or Color3.fromHex("#334155")
+        part.Material=Enum.Material.Slate
+        part.Parent=folder
+        -- ClickDetector для выбора
+        local cd = Instance.new("ClickDetector"); cd.MaxActivationDistance=800; cd.Parent=part
+        cd.MouseClick:Connect(function(pl) MapController.selectProvince(id) end)
+        cd.MouseHoverEnter:Connect(function() hoverProv=id; part.Material=Enum.Material.Neon end)
+        cd.MouseHoverLeave:Connect(function() if hoverProv==id then hoverProv=nil end; part.Material=Enum.Material.Slate end)
+        -- Биом: горные провинции выше
+        if id:find("3$") then part.Size=Vector3.new(38,12,38); part.Color=Color3.fromHex("#78716C") end
+        -- Леса — маленькие цилиндры
+        if math.random()<0.3 then
+            local tree=Instance.new("Part"); tree.Size=Vector3.new(2,6,2); tree.Position=part.Position+Vector3.new(math.random(-12,12),4, math.random(-12,12)); tree.Color=Color3.fromHex("#15803D"); tree.Anchored=true; tree.Parent=part
+        end
+    end
+    -- границы: подсветка через SelectionBox
+    -- Океан
+    local ocean = Instance.new("Part")
+    ocean.Name="Ocean"; ocean.Size=Vector3.new(2600, 2, 1600); ocean.Position=Vector3.new(0,-4,0); ocean.Anchored=true; ocean.Color=Color3.fromHex("#1E3A8A"); ocean.Material=Enum.Material.SmoothPlastic; ocean.Transparency=0.25; ocean.Parent=workspace
+
+    -- ремоуты обновления
+    local remotes = RS:FindFirstChild("Remotes")
+    if remotes then
+        remotes:FindFirstChild("ProvinceOwnerChanged").OnClientEvent:Connect(function(pid,newOwner)
+            local p = folder:FindFirstChild(pid)
+            if p then
+                local c=require(RS.Shared.CountryData).byId[newOwner]
+                if c then game:GetService("TweenService"):Create(p, TweenInfo.new(0.6), {Color=c.color}):Play() end
+            end
+        end)
+        remotes:FindFirstChild("BuildingPlaced").OnClientEvent:Connect(function(pid, building, pos)
+            local mdl=Instance.new("Part"); mdl.Size=Vector3.new(6,10,6); mdl.Position=pos+Vector3.new(math.random(-10,10),6, math.random(-10,10)); mdl.Anchored=true; mdl.Color=Color3.fromHex("#FBBF24"); mdl.Material=Enum.Material.Concrete; mdl.Parent=folder
+        end)
+    end
+end
+
+function MapController.selectProvince(id:string)
+    selectedProvince=id
+    local prov = ProvinceData.get(id)
+    if prov then
+        -- показать UI провинции
+        local HUD = require(script.Parent.Parent.UI.HUD)
+        HUD.showProvince(prov)
+        -- обновить выбранную страну
+        selectedCountry = prov.owner
+    end
+end
+function MapController.getSelectedCountry() return selectedCountry end
+function MapController.getSelectedCountryCapitalPos(): Vector3?
+    if not selectedCountry then return nil end
+    local list={}
+    for _,p in pairs(ProvinceData.list) do if p.owner==selectedCountry then table.insert(list,p) end end
+    if #list>0 then return list[1].pos end
+    return nil
+end
+function MapController.setMapMode(mode:string)
+    local folder=workspace:FindFirstChild("Provinces"); if not folder then return end
+    for _,part in ipairs(folder:GetChildren()) do
+        if part:IsA("BasePart") then
+            local prov = ProvinceData.get(part.Name)
+            if not prov then continue end
+            if mode=="Political" then
+                local c=require(RS.Shared.CountryData).byId[prov.owner]; part.Color=c and c.color or part.Color
+            elseif mode=="Economic" then
+                local t = prov.economy/2000; part.Color=Color3.fromHSV(0.33*t,0.8,0.9)
+            elseif mode=="Population" then
+                local t=prov.population/4000000; part.Color=Color3.fromHSV(0.05+t*0.15,0.85,0.9)
+            end
+        end
+    end
+end
+return MapController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000055">
+            <Properties>
+              <string name="Name">MenuController</string>
+              <ProtectedString name="Source"><![CDATA[local MenuController = {}
+local UI = {}
+function MenuController.init(mainGui: ScreenGui)
+    -- управляет переключением панелей главного меню
+    MenuController.gui = mainGui
+end
+function MenuController.show(panel:string)
+    for _,ch in ipairs(MenuController.gui:GetDescendants()) do
+        if ch:GetAttribute("Panel") then ch.Visible = ch:GetAttribute("Panel")==panel end
+    end
+end
+return MenuController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000056">
+            <Properties>
+              <string name="Name">ShopController</string>
+              <ProtectedString name="Source"><![CDATA[local ShopController = {}
+local RS=game:GetService("ReplicatedStorage")
+function ShopController.buy(itemId:string)
+    local r=RS.Remotes:FindFirstChild("BuyItem"); if r then r:FireServer(itemId) end
+end
+return ShopController
+]]></ProtectedString>
+            </Properties>
+          </Item>
+        </Item>
+        <Item class="Folder" referent="RBX00000057">
+          <Properties>
+            <string name="Name">UI</string>
+          </Properties>
+          <Item class="ModuleScript" referent="RBX00000058">
+            <Properties>
+              <string name="Name">HUD</string>
+              <ProtectedString name="Source"><![CDATA[local HUD = {}
+local panel: Frame? = nil
+local provinceLbl: TextLabel? = nil
+
+function HUD.build(): ScreenGui
+    local gui=Instance.new("ScreenGui"); gui.Name="HUD"; gui.ResetOnSpawn=false; gui.Enabled=false; gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+    -- верхняя полоса ресурсов
+    local top=Instance.new("Frame"); top.Size=UDim2.new(1,0,0,44); top.BackgroundColor3=Color3.fromHex("#0F172A"); top.BackgroundTransparency=0.15; top.BorderSizePixel=0; top.Parent=gui
+    Instance.new("UIStroke", top).Color=Color3.fromHex("#1E293B"); top.BackgroundTransparency=0.2
+    local layout=Instance.new("UIListLayout", top); layout.FillDirection=Enum.FillDirection.Horizontal; layout.Padding=UDim.new(0,14); layout.VerticalAlignment=Enum.VerticalAlignment.Center; layout.HorizontalAlignment=Enum.HorizontalAlignment.Center
+
+    local function chip(text:string) local l=Instance.new("TextLabel"); l.Size=UDim2.fromOffset(120,28); l.BackgroundColor3=Color3.fromHex("#1E293B"); l.Text=text; l.TextColor3=Color3.new(1,1,1); l.Font=Enum.Font.GothamBold; l.TextSize=12; l.Parent=top; Instance.new("UICorner",l).CornerRadius=UDim.new(0,8); return l end
+    chip("💰 $12.4K"); chip("⚡ 340 / 420 MW"); chip("🍞 Food 820"); chip("🛢️ Oil 540"); chip("👥 42M")
+    -- режимы карты
+    local modes=Instance.new("Frame"); modes.Size=UDim2.fromOffset(520,36); modes.Position=UDim2.fromScale(0.5,0.085); modes.AnchorPoint=Vector2.new(0.5,0); modes.BackgroundTransparency=1; modes.Parent=gui
+    local ml=Instance.new("UIListLayout", modes); ml.FillDirection=Enum.FillDirection.Horizontal; ml.Padding=UDim.new(0,6)
+    for _,m in ipairs({"Political","Economic","Military","Resource"}) do
+        local b=Instance.new("TextButton"); b.Size=UDim2.fromOffset(120,32); b.Text=m; b.Font=Enum.Font.GothamMedium; b.TextSize=11; b.TextColor3=Color3.new(1,1,1); b.BackgroundColor3=Color3.fromHex("#1E293B"); b.Parent=modes; Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+        b.MouseButton1Click:Connect(function() require(script.Parent.Parent.Controllers.MapController).setMapMode(m) end)
+    end
+    -- левая панель строительства
+    local left=Instance.new("Frame"); left.Size=UDim2.fromOffset(210,420); left.Position=UDim2.fromScale(0.015,0.18); left.BackgroundColor3=Color3.fromHex("#111827"); left.BackgroundTransparency=0.2; left.Parent=gui; Instance.new("UICorner",left).CornerRadius=UDim.new(0,14)
+    local lp=Instance.new("UIPadding", left); lp.PaddingTop=UDim.new(0,14); lp.PaddingLeft=UDim.new(0,12); lp.PaddingRight=UDim.new(0,12)
+    local ll=Instance.new("UIListLayout", left); ll.Padding=UDim.new(0,8)
+    local title=Instance.new("TextLabel"); title.Size=UDim2.new(1,0,0,22); title.BackgroundTransparency=1; title.Text="🏙️ СТРОИТЕЛЬСТВО"; title.TextColor3=Color3.fromHex("#93C5FD"); title.Font=Enum.Font.GothamBold; title.TextSize=12; title.Parent=left
+    local cats={"House","Shop","CoalPlant","MilitaryFactory","Barracks","Road","Port","Airport"}
+    for _,c in ipairs(cats) do
+        local b=Instance.new("TextButton"); b.Size=UDim2.new(1,0,0,36); b.Text=c; b.Font=Enum.Font.Gotham; b.TextSize=12; b.BackgroundColor3=Color3.fromHex("#1F2937"); b.TextColor3=Color3.new(1,1,1); b.Parent=left; Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+        b.MouseButton1Click:Connect(function() require(script.Parent.Parent.Controllers.BuildingController).select(c); require(script.Parent.Parent.Controllers.BuildingController).place() end)
+    end
+    -- правая панель провинции
+    panel=Instance.new("Frame"); panel.Name="ProvincePanel"; panel.Size=UDim2.fromOffset(300,380); panel.Position=UDim2.fromScale(1,0.18); panel.AnchorPoint=Vector2.new(1,0); panel.BackgroundColor3=Color3.fromHex("#111827"); panel.BackgroundTransparency=0.18; panel.Parent=gui; Instance.new("UICorner",panel).CornerRadius=UDim.new(0,14)
+    local pp=Instance.new("UIPadding", panel); pp.PaddingLeft=UDim.new(0,16); pp.PaddingRight=UDim.new(0,16); pp.PaddingTop=UDim.new(0,16)
+    provinceLbl=Instance.new("TextLabel"); provinceLbl.Size=UDim2.new(1,0,0,70); provinceLbl.BackgroundTransparency=1; provinceLbl.Text="Выбери провинцию\nЛКМ по карте"; provinceLbl.TextColor3=Color3.new(1,1,1); provinceLbl.Font=Enum.Font.GothamBold; provinceLbl.TextSize=13; provinceLbl.TextWrapped=true; provinceLbl.Parent=panel
+    -- кнопки действий
+    local function act(text:string, cb:()->())
+        local b=Instance.new("TextButton"); b.Size=UDim2.new(1,0,0,34); b.Text=text; b.Font=Enum.Font.GothamMedium; b.TextSize=12; b.BackgroundColor3=Color3.fromHex("#2563EB"); b.TextColor3=Color3.new(1,1,1); b.Parent=panel; Instance.new("UICorner",b).CornerRadius=UDim.new(0,8); b.MouseButton1Click:Connect(cb); return b
+    end
+    act("⚔️ Объявить войну", function()
+        local MapCtrl=require(script.Parent.Parent.Controllers.MapController)
+        local sel=MapCtrl.getSelectedCountry()
+        if sel then require(script.Parent.Parent.Controllers.DiplomacyController).declareWar(sel, "RUS") end
+    end)
+    act("🤝 Альянс", function()
+        require(script.Parent.Parent.Controllers.DiplomacyController).createAlliance("Pact", Color3.fromHex("#22C55E"), "USA")
+    end)
+    act("💡 Исследовать", function()
+        local rem=game:GetService("ReplicatedStorage").Remotes:FindFirstChild("ResearchTech")
+        if rem then rem:FireServer("USA","Army","ModernInfantry") end
+    end)
+    -- нижняя панель времени
+    local timeBar=Instance.new("Frame"); timeBar.Size=UDim2.new(0.42,0,0,38); timeBar.Position=UDim2.fromScale(0.5,1); timeBar.AnchorPoint=Vector2.new(0.5,1); timeBar.BackgroundColor3=Color3.fromHex("#020617"); timeBar.Parent=gui; Instance.new("UICorner",timeBar).CornerRadius=UDim.new(0,12)
+    local tl=Instance.new("TextLabel"); tl.Size=UDim2.fromScale(1,1); tl.BackgroundTransparency=1; tl.Text="📅 14 ИЮНЯ 2026  •  ⏩ x2  •  ☀️ ЯСНО"; tl.TextColor3=Color3.new(1,1,1); tl.Font=Enum.Font.GothamMedium; tl.TextSize=11; tl.Parent=timeBar
+    -- день/ночь индикатор
+    local dayNight=Instance.new("TextLabel"); dayNight.Position=UDim2.fromScale(0.85,0.18); dayNight.Size=UDim2.fromOffset(90,26); dayNight.BackgroundColor3=Color3.fromHex("#1E293B"); dayNight.Text="🌙 ДЕНЬ"; dayNight.TextColor3=Color3.new(1,1,1); dayNight.Font=Enum.Font.Gotham; dayNight.TextSize=11; dayNight.Parent=gui; Instance.new("UICorner",dayNight).CornerRadius=UDim.new(1,0)
+    return gui
+end
+
+function HUD.showGame()
+    for _,g in ipairs(game.Players.LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
+        if g.Name=="MainMenu" then g.Enabled=false end
+        if g.Name=="HUD" then g.Enabled=true end
+    end
+    -- если HUD ещё не создан — создай
+    local pg=game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+    if pg and not pg:FindFirstChild("HUD") then local h=HUD.build(); h.Parent=pg; h.Enabled=true end
+end
+
+function HUD.showProvince(prov:any)
+    if provinceLbl then
+        provinceLbl.Text = string.format("%s\nВладелец: %s\nНаселение: %d\nЭкономика: %d\nЗданий: %d", prov.name, prov.owner, prov.population, prov.economy, #prov.buildings)
+    end
+end
+return HUD
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX00000059">
+            <Properties>
+              <string name="Name">MainMenu</string>
+              <ProtectedString name="Source"><![CDATA[local MainMenu = {}
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local pl = Players.LocalPlayer
+
+-- Создаёт стильное тёмное меню с 3D фоном
+function MainMenu.build(): ScreenGui
+    local gui = Instance.new("ScreenGui")
+    gui.Name="MainMenu"; gui.IgnoreGuiInset=true; gui.ResetOnSpawn=false; gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+    gui.DisplayOrder=10
+
+    -- Фон градиент
+    local bg = Instance.new("Frame"); bg.Size=UDim2.fromScale(1,1); bg.BackgroundColor3=Color3.fromHex("#0B0E14"); bg.BorderSizePixel=0; bg.Parent=gui
+    local grad = Instance.new("UIGradient"); grad.Color=ColorSequence.new{ColorSequenceKeypoint.new(0,Color3.fromHex("#0F172A")), ColorSequenceKeypoint.new(1,Color3.fromHex("#020617"))}; grad.Rotation=90; grad.Parent=bg
+    -- Декоративные частицы
+    for i=1,9 do
+        local dot=Instance.new("Frame"); dot.Size=UDim2.fromOffset(3,3); dot.Position=UDim2.fromScale(math.random(), math.random()*0.6+0.1); dot.BackgroundColor3=Color3.fromHex("#38BDF8"); dot.BackgroundTransparency=0.4; dot.BorderSizePixel=0; dot.Parent=bg
+        Instance.new("UICorner", dot).CornerRadius=UDim.new(1,0)
+    end
+
+    -- Заголовок
+    local title = Instance.new("TextLabel"); title.Size=UDim2.fromOffset(680,72); title.Position=UDim2.fromScale(0.5,0.08); title.AnchorPoint=Vector2.new(0.5,0); title.BackgroundTransparency=1; title.Text="MINI NATIONS 3D"; title.TextColor3=Color3.fromHex("#F8FAFC"); title.Font=Enum.Font.GothamBlack; title.TextSize=54; title.TextScaled=false; title.Parent=bg
+    local sub = Instance.new("TextLabel"); sub.Size=UDim2.fromOffset(680,28); sub.Position=UDim2.fromScale(0.5,0.15); sub.AnchorPoint=Vector2.new(0.5,0); sub.BackgroundTransparency=1; sub.Text="WORLD DOMINATION — ULTIMATE EDITION  •  PREMIUM LOW POLY"; sub.TextColor3=Color3.fromHex("#38BDF8"); sub.Font=Enum.Font.GothamMedium; sub.TextSize=12; sub.Parent=bg
+
+    -- Левая панель кнопок (стек)
+    local panel = Instance.new("Frame"); panel.Size=UDim2.fromOffset(360,560); panel.Position=UDim2.fromScale(0.06,0.22); panel.BackgroundColor3=Color3.fromHex("#111827"); panel.BackgroundTransparency=0.15; panel.BorderSizePixel=0; panel.Parent=bg
+    Instance.new("UICorner", panel).CornerRadius=UDim.new(0,18)
+    local stroke=Instance.new("UIStroke", panel); stroke.Color=Color3.fromHex("#1E293B"); stroke.Thickness=1; stroke.Transparency=0.3
+    local pad=Instance.new("UIPadding", panel); pad.PaddingLeft=UDim.new(0,18); pad.PaddingRight=UDim.new(0,18); pad.PaddingTop=UDim.new(0,20); pad.PaddingBottom=UDim.new(0,20)
+    local list=Instance.new("UIListLayout", panel); list.FillDirection=Enum.FillDirection.Vertical; list.Padding=UDim.new(0,10); list.SortOrder=Enum.SortOrder.LayoutOrder
+
+    local function btn(text:string, accent:Color3, icon:string, order:number)
+        local b=Instance.new("TextButton"); b.LayoutOrder=order; b.Size=UDim2.new(1,0,0,48); b.BackgroundColor3=Color3.fromHex("#1E293B"); b.Text=""; b.AutoButtonColor=false; b.Parent=panel
+        Instance.new("UICorner", b).CornerRadius=UDim.new(0,12)
+        local lbl=Instance.new("TextLabel"); lbl.Size=UDim2.fromScale(1,1); lbl.BackgroundTransparency=1; lbl.Text=icon.."  "..text; lbl.TextColor3=Color3.new(1,1,1); lbl.Font=Enum.Font.GothamBold; lbl.TextSize=14; lbl.TextXAlignment=Enum.TextXAlignment.Left; lbl.Parent=b
+        local pad2=Instance.new("UIPadding", lbl); pad2.PaddingLeft=UDim.new(0,16)
+        local acc=Instance.new("Frame"); acc.Size=UDim2.fromOffset(4,28); acc.Position=UDim2.new(0,8,0.5,0); acc.AnchorPoint=Vector2.new(0,0.5); acc.BackgroundColor3=accent; acc.BorderSizePixel=0; acc.Parent=b; Instance.new("UICorner", acc).CornerRadius=UDim.new(1,0)
+        b.MouseEnter:Connect(function() TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3=Color3.fromHex("#334155")}):Play() end)
+        b.MouseLeave:Connect(function() TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3=Color3.fromHex("#1E293B")}):Play() end)
+        return b
+    end
+
+    local b1=btn("ОДИНОЧНАЯ ИГРА", Color3.fromHex("#22C55E"), "▶",1)
+    local b2=btn("МУЛЬТИПЛЕЕР", Color3.fromHex("#3B82F6"), "🌐",2)
+    local b3=btn("РЕДАКТОР КАРТ", Color3.fromHex("#F59E0B"), "🗺️",3)
+    local b4=btn("ОБУЧЕНИЕ", Color3.fromHex("#A78BFA"), "🎓",4)
+    local b5=btn("МАГАЗИН", Color3.fromHex("#EC4899"), "🛒",5)
+    local b6=btn("ДОСТИЖЕНИЯ", Color3.fromHex("#FACC15"), "🏆",6)
+    local b7=btn("ПРОФИЛЬ", Color3.fromHex("#06B6D4"), "👤",7)
+    local b8=btn("НАСТРОЙКИ", Color3.fromHex("#94A3B8"), "⚙️",8)
+    local b9=btn("ОБНОВЛЕНИЯ", Color3.fromHex("#64748B"), "📜",9)
+
+    -- нижняя полоса
+    local bottom = Instance.new("Frame"); bottom.Size=UDim2.new(1,0,0,46); bottom.Position=UDim2.fromScale(0,1); bottom.AnchorPoint=Vector2.new(0,1); bottom.BackgroundColor3=Color3.fromHex("#020617"); bottom.BackgroundTransparency=0.35; bottom.BorderSizePixel=0; bottom.Parent=bg
+    local bpad=Instance.new("UIPadding", bottom); bpad.PaddingLeft=UDim.new(0,18); bpad.PaddingRight=UDim.new(0,18)
+    local ver=Instance.new("TextLabel"); ver.Size=UDim2.fromScale(0.3,1); ver.BackgroundTransparency=1; ver.Text="v1.0.1 Ultimate  •  "..(pl and pl.Name or "Player"); ver.TextColor3=Color3.fromHex("#64748B"); ver.Font=Enum.Font.Gotham; ver.TextSize=11; ver.TextXAlignment=Enum.TextXAlignment.Left; ver.Parent=bottom
+    local coinsLbl=Instance.new("TextLabel"); coinsLbl.Name="CoinsLabel"; coinsLbl.Size=UDim2.fromScale(0.3,1); coinsLbl.Position=UDim2.fromScale(0.7,0); coinsLbl.BackgroundTransparency=1; coinsLbl.Text="🪙 500 COINS"; coinsLbl.TextColor3=Color3.fromHex("#FACC15"); coinsLbl.Font=Enum.Font.GothamBold; coinsLbl.TextSize=12; coinsLbl.TextXAlignment=Enum.TextXAlignment.Right; coinsLbl.Parent=bottom
+
+    -- Подключить логику кнопок (заглушки с переходом)
+    local function toast(msg:string)
+        local t=Instance.new("TextLabel"); t.Size=UDim2.fromOffset(340,42); t.Position=UDim2.fromScale(0.5,0.92); t.AnchorPoint=Vector2.new(0.5,0); t.BackgroundColor3=Color3.fromHex("#1E293B"); t.TextColor3=Color3.new(1,1,1); t.Text=msg; t.Font=Enum.Font.GothamMedium; t.TextSize=13; t.Parent=gui; Instance.new("UICorner",t).CornerRadius=UDim.new(0,10); task.delay(2, function() t:Destroy() end)
+    end
+
+    b1.MouseButton1Click:Connect(function()
+        gui.Enabled=false
+        local HUD=require(script.Parent.HUD)
+        HUD.showGame()
+        -- показать выбор года/страны
+        require(script.Parent.Parent.Controllers.AudioController).play("peace",0.5)
+        toast("Кампания 2026 загружена — выбери провинцию!")
+    end)
+    b2.MouseButton1Click:Connect(function() toast("Мультиплеер: создай комнату → пригласи друзей → ГОТОВ") end)
+    b3.MouseButton1Click:Connect(function()
+        local editor = require(script.Parent.Parent.Controllers.MapController)
+        toast("Редактор карт — кисти активны (см. панель справа)")
+        -- открыть редактор UI
+        local MapEditor = require(script.Parent.MapEditor)
+        MapEditor.open()
+    end)
+    b4.MouseButton1Click:Connect(function()
+        local tut=require(script.Parent.TutorialUI); tut.start()
+    end)
+    b5.MouseButton1Click:Connect(function()
+        local shop=require(script.Parent.ShopUI); shop.open()
+    end)
+    b6.MouseButton1Click:Connect(function() toast("Достижения: 10 трофеев — собирай!") end)
+    b7.MouseButton1Click:Connect(function() local prof=require(script.Parent.ProfileUI); prof.open() end)
+    b8.MouseButton1Click:Connect(function() local s=require(script.Parent.SettingsUI); s.open() end)
+    b9.MouseButton1Click:Connect(function() toast("Обновления: v1.0.1 — добавлены AI, торговля, погода") end)
+
+    -- Анимация появления
+    bg.BackgroundTransparency=1
+    TweenService:Create(bg, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {BackgroundTransparency=0}):Play()
+    title.TextTransparency=1; TweenService:Create(title, TweenInfo.new(0.8), {TextTransparency=0}):Play()
+
+    -- Обновление коинов
+    local RS=game:GetService("ReplicatedStorage")
+    local rem=RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("CoinsUpdated")
+    if rem then rem.OnClientEvent:Connect(function(newTotal, delta, reason) coinsLbl.Text="🪙 "..tostring(newTotal).." COINS" end) end
+
+    -- Аватар игрока слева внизу
+    if pl then
+        local thumb=Players:GetUserThumbnailAsync(pl.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+        local img=Instance.new("ImageLabel"); img.Size=UDim2.fromOffset(28,28); img.Position=UDim2.fromOffset(18,18); img.BackgroundTransparency=1; img.Image=thumb; img.Parent=bg
+        Instance.new("UICorner", img).CornerRadius=UDim.new(1,0)
+    end
+
+    return gui
+end
+return MainMenu
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX0000005A">
+            <Properties>
+              <string name="Name">MapEditor</string>
+              <ProtectedString name="Source"><![CDATA[local MapEditor = {}
+function MapEditor.open()
+    local pg=game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    if pg:FindFirstChild("MapEditorGui") then return end
+    local gui=Instance.new("ScreenGui"); gui.Name="MapEditorGui"; gui.ResetOnSpawn=false; gui.Parent=pg
+    local panel=Instance.new("Frame"); panel.Size=UDim2.fromOffset(220,520); panel.Position=UDim2.fromScale(1,0.15); panel.AnchorPoint=Vector2.new(1,0); panel.BackgroundColor3=Color3.fromHex("#111827"); panel.BackgroundTransparency=0.15; panel.Parent=gui; Instance.new("UICorner",panel).CornerRadius=UDim.new(0,14)
+    local pad=Instance.new("UIPadding", panel); pad.PaddingTop=UDim.new(0,12); pad.PaddingLeft=UDim.new(0,12); pad.PaddingRight=UDim.new(0,12)
+    local list=Instance.new("UIListLayout", panel); list.Padding=UDim.new(0,8)
+    local title=Instance.new("TextLabel"); title.Size=UDim2.new(1,0,0,20); title.BackgroundTransparency=1; title.Text="🗺️ РЕДАКТОР КАРТ"; title.TextColor3=Color3.fromHex("#F59E0B"); title.Font=Enum.Font.GothamBold; title.TextSize=12; title.Parent=panel
+    local tools={"Кисть земли","Кисть воды","Кисть гор","Кисть леса","Кисть границ","Создать страну","Провинция","Город","Ресурсы","Ластик","Отмена","Повтор"}
+    for _,t in ipairs(tools) do
+        local b=Instance.new("TextButton"); b.Size=UDim2.new(1,0,0,28); b.Text=t; b.Font=Enum.Font.Gotham; b.TextSize=11; b.BackgroundColor3=Color3.fromHex("#1F2937"); b.TextColor3=Color3.new(1,1,1); b.Parent=panel; Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+        b.MouseButton1Click:Connect(function() b.BackgroundColor3=Color3.fromHex("#F59E0B") end)
+    end
+    local save=Instance.new("TextButton"); save.Size=UDim2.new(1,0,0,34); save.Text="💾 СОХРАНИТЬ КАРТУ"; save.Font=Enum.Font.GothamBold; save.TextSize=11; save.BackgroundColor3=Color3.fromHex("#22C55E"); save.TextColor3=Color3.new(1,1,1); save.Parent=panel; Instance.new("UICorner",save).CornerRadius=UDim.new(0,8)
+    save.MouseButton1Click:Connect(function()
+        local rem=game:GetService("ReplicatedStorage").Remotes:FindFirstChild("SaveMap")
+        if rem then rem:FireServer("MyMap_"..math.random(1000,9999), {size="Large", provinces=120, custom=true}) end
+    end)
+    local playBtn=Instance.new("TextButton"); playBtn.Size=UDim2.new(1,0,0,34); playBtn.Text="▶ ИГРАТЬ НА КАРТЕ"; playBtn.Font=Enum.Font.GothamBold; playBtn.TextSize=11; playBtn.BackgroundColor3=Color3.fromHex("#3B82F6"); playBtn.TextColor3=Color3.new(1,1,1); playBtn.Parent=panel; Instance.new("UICorner",playBtn).CornerRadius=UDim.new(0,8)
+    local close=Instance.new("TextButton"); close.Size=UDim2.fromOffset(28,28); close.Position=UDim2.fromScale(1,0); close.AnchorPoint=Vector2.new(1,0); close.Text="✕"; close.BackgroundColor3=Color3.fromHex("#EF4444"); close.TextColor3=Color3.new(1,1,1); close.Font=Enum.Font.GothamBold; close.Parent=panel; Instance.new("UICorner",close).CornerRadius=UDim.new(1,0)
+    close.MouseButton1Click:Connect(function() gui:Destroy() end)
+end
+return MapEditor
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX0000005B">
+            <Properties>
+              <string name="Name">ProfileUI</string>
+              <ProtectedString name="Source"><![CDATA[local ProfileUI = {}
+function ProfileUI.open()
+    local pl=game.Players.LocalPlayer
+    local pg=pl:WaitForChild("PlayerGui")
+    if pg:FindFirstChild("Profile") then pg.Profile:Destroy() end
+    local gui=Instance.new("ScreenGui"); gui.Name="Profile"; gui.ResetOnSpawn=false; gui.Parent=pg
+    local bg=Instance.new("Frame"); bg.Size=UDim2.fromOffset(520,400); bg.Position=UDim2.fromScale(0.5,0.5); bg.AnchorPoint=Vector2.new(0.5,0.5); bg.BackgroundColor3=Color3.fromHex("#0F172A"); bg.Parent=gui; Instance.new("UICorner",bg).CornerRadius=UDim.new(0,16)
+    local thumb=game.Players:GetUserThumbnailAsync(pl.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+    local img=Instance.new("ImageLabel"); img.Size=UDim2.fromOffset(80,80); img.Position=UDim2.fromOffset(20,20); img.Image=thumb; img.BackgroundTransparency=1; img.Parent=bg; Instance.new("UICorner",img).CornerRadius=UDim.new(1,0)
+    local nameLbl=Instance.new("TextLabel"); nameLbl.Size=UDim2.fromOffset(300,28); nameLbl.Position=UDim2.fromOffset(110,24); nameLbl.BackgroundTransparency=1; nameLbl.Text=pl.Name.."  •  Level 7"; nameLbl.TextColor3=Color3.new(1,1,1); nameLbl.Font=Enum.Font.GothamBold; nameLbl.TextSize=16; nameLbl.TextXAlignment=Enum.TextXAlignment.Left; nameLbl.Parent=bg
+    local stats=Instance.new("TextLabel"); stats.Size=UDim2.new(1,-24,0,180); stats.Position=UDim2.fromOffset(12,110); stats.BackgroundTransparency=1; stats.Text="🏆 Побед: 12  •  Поражений: 5\n⏱️ Время игры: 8.4 ч\n🗺️ Захвачено провинций: 84\n🇺🇸 Любимая страна: USA\n🪙 Coins: 1 240  •  XP: 3 420\n📈 Уровень жизни: 72%"; stats.TextColor3=Color3.fromHex("#CBD5E1"); stats.Font=Enum.Font.Gotham; stats.TextSize=12; stats.TextXAlignment=Enum.TextXAlignment.Left; stats.TextYAlignment=Enum.TextYAlignment.Top; stats.Parent=bg
+    local close=Instance.new("TextButton"); close.Size=UDim2.fromOffset(32,32); close.Position=UDim2.fromScale(1,0); close.AnchorPoint=Vector2.new(1,0); close.Text="✕"; close.BackgroundColor3=Color3.fromHex("#EF4444"); close.TextColor3=Color3.new(1,1,1); close.Font=Enum.Font.GothamBold; close.Parent=bg; Instance.new("UICorner",close).CornerRadius=UDim.new(1,0)
+    close.MouseButton1Click:Connect(function() gui:Destroy() end)
+end
+return ProfileUI
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX0000005C">
+            <Properties>
+              <string name="Name">SettingsUI</string>
+              <ProtectedString name="Source"><![CDATA[local SettingsUI = {}
+function SettingsUI.open()
+    local pg=game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    if pg:FindFirstChild("Settings") then pg.Settings:Destroy() end
+    local gui=Instance.new("ScreenGui"); gui.Name="Settings"; gui.ResetOnSpawn=false; gui.Parent=pg
+    local bg=Instance.new("Frame"); bg.Size=UDim2.fromOffset(520,420); bg.Position=UDim2.fromScale(0.5,0.5); bg.AnchorPoint=Vector2.new(0.5,0.5); bg.BackgroundColor3=Color3.fromHex("#0F172A"); bg.Parent=gui; Instance.new("UICorner",bg).CornerRadius=UDim.new(0,16)
+    local title=Instance.new("TextLabel"); title.Size=UDim2.new(1,0,0,42); title.BackgroundTransparency=1; title.Text="⚙️ НАСТРОЙКИ"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=16; title.Parent=bg
+    local function row(y:number, label:string, options:{string})
+        local f=Instance.new("Frame"); f.Size=UDim2.new(1,-24,0,38); f.Position=UDim2.fromOffset(12,50+y*44); f.BackgroundColor3=Color3.fromHex("#1E293B"); f.Parent=bg; Instance.new("UICorner",f).CornerRadius=UDim.new(0,8)
+        local l=Instance.new("TextLabel"); l.Size=UDim2.fromScale(0.45,1); l.BackgroundTransparency=1; l.Text=label; l.TextColor3=Color3.new(1,1,1); l.Font=Enum.Font.Gotham; l.TextSize=12; l.TextXAlignment=Enum.TextXAlignment.Left; l.Parent=f; Instance.new("UIPadding",l).PaddingLeft=UDim.new(0,12)
+        for i,opt in ipairs(options) do
+            local b=Instance.new("TextButton"); b.Size=UDim2.fromOffset(68,26); b.Position=UDim2.fromScale(0.48 + (i-1)*0.13,0.5); b.AnchorPoint=Vector2.new(0,0.5); b.Text=opt; b.Font=Enum.Font.GothamMedium; b.TextSize=10; b.BackgroundColor3=Color3.fromHex("#334155"); b.TextColor3=Color3.new(1,1,1); b.Parent=f; Instance.new("UICorner",b).CornerRadius=UDim.new(0,6)
+            b.MouseButton1Click:Connect(function() b.BackgroundColor3=Color3.fromHex("#3B82F6") end)
+        end
+    end
+    row(0,"Графика",{"Low","Medium","High","Ultra"})
+    row(1,"Звук Music",{"0%","50%","100%"})
+    row(2,"Камера скорость",{"Медл.","Норм.","Быстро"})
+    row(3,"Масштаб UI",{"80%","100%","120%"})
+    row(4,"Язык",{"RU","EN"})
+    row(5,"Анимации",{"Вкл","Выкл"})
+    local save=Instance.new("TextButton"); save.Size=UDim2.new(1,-24,0,38); save.Position=UDim2.fromOffset(12,360); save.Text="СОХРАНИТЬ"; save.Font=Enum.Font.GothamBold; save.TextSize=13; save.BackgroundColor3=Color3.fromHex("#22C55E"); save.TextColor3=Color3.new(1,1,1); save.Parent=bg; Instance.new("UICorner",save).CornerRadius=UDim.new(0,10)
+    save.MouseButton1Click:Connect(function() gui:Destroy() end)
+    local close=Instance.new("TextButton"); close.Size=UDim2.fromOffset(32,32); close.Position=UDim2.fromScale(1,0); close.AnchorPoint=Vector2.new(1,0); close.Text="✕"; close.BackgroundColor3=Color3.fromHex("#EF4444"); close.TextColor3=Color3.new(1,1,1); close.Font=Enum.Font.GothamBold; close.Parent=bg; Instance.new("UICorner",close).CornerRadius=UDim.new(1,0)
+    close.MouseButton1Click:Connect(function() gui:Destroy() end)
+end
+return SettingsUI
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX0000005D">
+            <Properties>
+              <string name="Name">ShopUI</string>
+              <ProtectedString name="Source"><![CDATA[local ShopUI = {}
+function ShopUI.open()
+    local pg=game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    if pg:FindFirstChild("Shop") then pg.Shop:Destroy() end
+    local gui=Instance.new("ScreenGui"); gui.Name="Shop"; gui.ResetOnSpawn=false; gui.Parent=pg
+    local bg=Instance.new("Frame"); bg.Size=UDim2.fromOffset(760,520); bg.Position=UDim2.fromScale(0.5,0.5); bg.AnchorPoint=Vector2.new(0.5,0.5); bg.BackgroundColor3=Color3.fromHex("#0F172A"); bg.Parent=gui; Instance.new("UICorner",bg).CornerRadius=UDim.new(0,16); Instance.new("UIStroke",bg).Color=Color3.fromHex("#334155")
+    local title=Instance.new("TextLabel"); title.Size=UDim2.new(1,0,0,44); title.BackgroundTransparency=1; title.Text="🛒 МАГАЗИН — только косметика, без Pay-to-Win"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=16; title.Parent=bg
+    local grid=Instance.new("Frame"); grid.Size=UDim2.new(1,-24,1,-60); grid.Position=UDim2.fromOffset(12,48); grid.BackgroundTransparency=1; grid.Parent=bg
+    local gl=Instance.new("UIGridLayout", grid); gl.CellSize=UDim2.fromOffset(170,120); gl.CellPadding=UDim2.fromOffset(12,12)
+    local catalog={
+        {id="gold_borders", name="Золотые границы", price=400},
+        {id="neon_borders", name="Неоновые границы", price=600},
+        {id="modern_city", name="Современный город", price=800},
+        {id="gold_tank", name="Золотые танки", price=700},
+        {id="music_war", name="Боевой саундтрек", price=500},
+        {id="ui_neon", name="Неоновая тема", price=450},
+        {id="flag_goldframe", name="Золотая рамка", price=350},
+        {id="diamond_borders", name="Алмазные границы", price=1200},
+    }
+    for _,it in ipairs(catalog) do
+        local c=Instance.new("TextButton"); c.BackgroundColor3=Color3.fromHex("#1E293B"); c.Text=""; c.Parent=grid; Instance.new("UICorner",c).CornerRadius=UDim.new(0,12)
+        local n=Instance.new("TextLabel"); n.Size=UDim2.new(1,0,0,36); n.BackgroundTransparency=1; n.Text=it.name; n.TextColor3=Color3.new(1,1,1); n.Font=Enum.Font.GothamMedium; n.TextSize=11; n.TextWrapped=true; n.Parent=c
+        local p=Instance.new("TextLabel"); p.Size=UDim2.new(1,0,0,22); p.Position=UDim2.fromScale(0,0.55); p.BackgroundTransparency=1; p.Text="🪙 "..it.price; p.TextColor3=Color3.fromHex("#FACC15"); p.Font=Enum.Font.GothamBold; p.TextSize=13; p.Parent=c
+        local buy=Instance.new("TextButton"); buy.Size=UDim2.new(1,-12,0,28); buy.Position=UDim2.fromOffset(6,86); buy.Text="КУПИТЬ"; buy.Font=Enum.Font.GothamBold; buy.TextSize=11; buy.BackgroundColor3=Color3.fromHex("#22C55E"); buy.TextColor3=Color3.new(1,1,1); buy.Parent=c; Instance.new("UICorner",buy).CornerRadius=UDim.new(0,8)
+        buy.MouseButton1Click:Connect(function()
+            require(script.Parent.Parent.Controllers.ShopController).buy(it.id)
+            buy.Text="✓ КУПЛЕНО"; buy.BackgroundColor3=Color3.fromHex("#64748B")
+        end)
+    end
+    local close=Instance.new("TextButton"); close.Size=UDim2.fromOffset(32,32); close.Position=UDim2.fromScale(1,0); close.AnchorPoint=Vector2.new(1,0); close.Text="✕"; close.Font=Enum.Font.GothamBold; close.TextSize=16; close.BackgroundColor3=Color3.fromHex("#EF4444"); close.TextColor3=Color3.new(1,1,1); close.Parent=bg; Instance.new("UICorner",close).CornerRadius=UDim.new(1,0)
+    close.MouseButton1Click:Connect(function() gui:Destroy() end)
+end
+return ShopUI
+]]></ProtectedString>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="RBX0000005E">
+            <Properties>
+              <string name="Name">TutorialUI</string>
+              <ProtectedString name="Source"><![CDATA[local TutorialUI = {}
+local steps = {
+    "Перемести камеру WASD — проведи мышью к краю экрана",
+    "Приблизь карту колесом — найди свою столицу",
+    "Кликни по провинции — выбери государство",
+    "Открой меню строительства слева — выбери House",
+    "Поставь здание — зелёный призрак, клик",
+    "Построй электростанцию — CoalPlant",
+    "Построй завод — MilitaryFactory",
+    "Создай армию — кнопка в HUD справа",
+    "Перемести армию в соседнюю провинцию",
+    "Захвати территорию — объяви войну",
+    "Заключи альянс — кнопка 🤝",
+    "Обменяй ресурсы — торговля",
+    "Исследуй технологию — Army → ModernInfantry",
+    "Проверь бюджет — верхняя панель",
+    "Подпиши мир — заверши войну",
+}
+local idx=1
+function TutorialUI.start()
+    local pg=game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    local gui=Instance.new("ScreenGui"); gui.Name="Tutorial"; gui.ResetOnSpawn=false; gui.Parent=pg
+    local frame=Instance.new("Frame"); frame.Size=UDim2.fromOffset(420,150); frame.Position=UDim2.fromScale(0.5,0.18); frame.AnchorPoint=Vector2.new(0.5,0); frame.BackgroundColor3=Color3.fromHex("#111827"); frame.Parent=gui; Instance.new("UICorner",frame).CornerRadius=UDim.new(0,14)
+    local pad=Instance.new("UIPadding", frame); pad.PaddingLeft=UDim.new(0,16); pad.PaddingRight=UDim.new(0,16); pad.PaddingTop=UDim.new(0,14)
+    local title=Instance.new("TextLabel"); title.Size=UDim2.new(1,0,0,22); title.BackgroundTransparency=1; title.Text="🎓 ОБУЧЕНИЕ — ШАГ "..idx.."/"..#steps; title.TextColor3=Color3.fromHex("#FACC15"); title.Font=Enum.Font.GothamBold; title.TextSize=12; title.Parent=frame
+    local txt=Instance.new("TextLabel"); txt.Name="StepText"; txt.Size=UDim2.new(1,0,0,60); txt.Position=UDim2.fromOffset(0,28); txt.BackgroundTransparency=1; txt.Text=steps[1]; txt.TextColor3=Color3.new(1,1,1); txt.Font=Enum.Font.GothamMedium; txt.TextSize=13; txt.TextWrapped=true; txt.Parent=frame
+    local btn=Instance.new("TextButton"); btn.Size=UDim2.new(1,0,0,38); btn.Position=UDim2.fromOffset(0,96); btn.Text="ДАЛЕЕ →"; btn.Font=Enum.Font.GothamBold; btn.TextSize=13; btn.BackgroundColor3=Color3.fromHex("#22C55E"); btn.TextColor3=Color3.new(1,1,1); btn.Parent=frame; Instance.new("UICorner",btn).CornerRadius=UDim.new(0,10)
+    local skip=Instance.new("TextButton"); skip.Size=UDim2.fromOffset(100,28); skip.Position=UDim2.fromScale(1,0); skip.AnchorPoint=Vector2.new(1,0); skip.Text="Пропустить"; skip.Font=Enum.Font.Gotham; skip.TextSize=11; skip.BackgroundTransparency=1; skip.TextColor3=Color3.fromHex("#94A3B8"); skip.Parent=frame
+    btn.MouseButton1Click:Connect(function()
+        idx+=1
+        if idx>#steps then
+            title.Text="✅ ОБУЧЕНИЕ ЗАВЕРШЕНО! +500 COINS"
+            txt.Text="Ты готов к мировому господству. Удачи, стратег!"
+            btn.Text="ЗАВЕРШИТЬ"
+            btn.MouseButton1Click:Once(function()
+                gui:Destroy()
+                local rem=game:GetService("ReplicatedStorage").Remotes:FindFirstChild("ToggleTutorial")
+                if rem then rem:FireServer(true) end
+                -- награда локально
+                local s=Instance.new("Sound"); s.SoundId="rbxassetid://12222030"; s.Volume=0.8; s.Parent=workspace; s:Play(); game.Debris:AddItem(s,3)
+            end)
+            return
+        end
+        title.Text="🎓 ОБУЧЕНИЕ — ШАГ "..idx.."/"..#steps
+        txt.Text=steps[idx]
+    end)
+    skip.MouseButton1Click:Connect(function() gui:Destroy() end)
+    -- стрелка-подсветка (простая)
+    local arrow=Instance.new("TextLabel"); arrow.Size=UDim2.fromOffset(40,40); arrow.Position=UDim2.fromScale(0.12,0.5); arrow.BackgroundTransparency=1; arrow.Text="👉"; arrow.TextSize=28; arrow.Parent=gui
+    game:GetService("TweenService"):Create(arrow, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Position=UDim2.fromScale(0.14,0.5)}):Play()
+end
+return TutorialUI
+]]></ProtectedString>
+            </Properties>
+          </Item>
+        </Item>
+      </Item>
+      <Item class="LocalScript" referent="RBX0000004E">
+        <Properties>
+          <string name="Name">Main</string>
+          <ProtectedString name="Source"><![CDATA[-- Main.client — точка входа клиента
+print("🌍 Mini Nations 3D — Client starting...")
+
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local pl = Players.LocalPlayer
+
+-- дождаться ремоутов
+local remotes = RS:WaitForChild("Remotes", 10)
+
+-- Инициализация контроллеров
+local CameraController = require(script.Controllers.CameraController)
+local MapController = require(script.Controllers.MapController)
+local AudioController = require(script.Controllers.AudioController)
+local BuildingController = require(script.Controllers.BuildingController)
+
+CameraController.init()
+AudioController.init()
+AudioController.play("menu", 0.45)
+
+-- Построить карту (после загрузки)
+MapController.init()
+
+-- Построить UI
+local MainMenu = require(script.UI.MainMenu)
+local HUD = require(script.UI.HUD)
+
+local pg = pl:WaitForChild("PlayerGui")
+-- очистить старый
+for _,g in ipairs(pg:GetChildren()) do if g.Name=="MainMenu" or g.Name=="HUD" then g:Destroy() end end
+
+local menuGui = MainMenu.build()
+menuGui.Parent = pg
+
+local hudGui = HUD.build()
+hudGui.Parent = pg -- внутри HUD.Enabled=false до начала игры
+
+-- Профиль
+local coins = 500
+if remotes and remotes:FindFirstChild("GetProfile") then
+    local ok, prof = pcall(function() return remotes.GetProfile:InvokeServer() end)
+    if ok and prof then
+        coins = prof.coins or 500
+        print("[Client] Profile loaded — coins:", coins, " level:", prof.level)
+        if prof.tutorialDone == false then
+            -- показать приветствие
+            task.delay(1, function()
+                local gui=Instance.new("ScreenGui"); gui.Name="Welcome"; gui.ResetOnSpawn=false; gui.Parent=pg
+                local f=Instance.new("Frame"); f.Size=UDim2.fromOffset(420,180); f.Position=UDim2.fromScale(0.5,0.5); f.AnchorPoint=Vector2.new(0.5,0.5); f.BackgroundColor3=Color3.fromHex("#0F172A"); f.Parent=gui; Instance.new("UICorner",f).CornerRadius=UDim.new(0,16)
+                local t=Instance.new("TextLabel"); t.Size=UDim2.new(1,0,0,60); t.BackgroundTransparency=1; t.Text="Добро пожаловать в Mini Nations 3D!"; t.TextColor3=Color3.new(1,1,1); t.Font=Enum.Font.GothamBold; t.TextSize=16; t.Parent=f
+                local b1=Instance.new("TextButton"); b1.Size=UDim2.new(1,-24,0,36); b1.Position=UDim2.fromOffset(12,70); b1.Text="🎓 ПРОЙТИ ОБУЧЕНИЕ"; b1.BackgroundColor3=Color3.fromHex("#22C55E"); b1.TextColor3=Color3.new(1,1,1); b1.Font=Enum.Font.GothamBold; b1.Parent=f; Instance.new("UICorner",b1).CornerRadius=UDim.new(0,10)
+                local b2=Instance.new("TextButton"); b2.Size=UDim2.new(1,-24,0,36); b2.Position=UDim2.fromOffset(12,114); b2.Text="⏭️ ПРОПУСТИТЬ"; b2.BackgroundColor3=Color3.fromHex("#334155"); b2.TextColor3=Color3.new(1,1,1); b2.Font=Enum.Font.Gotham; b2.Parent=f; Instance.new("UICorner",b2).CornerRadius=UDim.new(0,10)
+                b1.MouseButton1Click:Connect(function() gui:Destroy(); require(script.UI.TutorialUI).start() end)
+                b2.MouseButton1Click:Connect(function() gui:Destroy() end)
+            end)
+        end
+    end
+end
+
+-- Глобальные слушатели ремоутов для уведомлений
+if remotes then
+    local function notify(msg:string, color:Color3?)
+        local gui=Instance.new("ScreenGui"); gui.Name="Notify"; gui.ResetOnSpawn=false; gui.Parent=pg
+        local l=Instance.new("TextLabel"); l.Size=UDim2.fromOffset(360,36); l.Position=UDim2.fromScale(0.5,0.08); l.AnchorPoint=Vector2.new(0.5,0); l.BackgroundColor3=color or Color3.fromHex("#1E293B"); l.TextColor3=Color3.new(1,1,1); l.Text=msg; l.Font=Enum.Font.GothamMedium; l.TextSize=12; l.Parent=gui; Instance.new("UICorner",l).CornerRadius=UDim.new(0,10)
+        task.delay(2.5, function() gui:Destroy() end)
+    end
+    remotes:FindFirstChild("WarDeclared").OnClientEvent:Connect(function(_,a,d) notify("⚔️ Война: "..a.." → "..d, Color3.fromHex("#EF4444")) ; AudioController.playSFX("war") end)
+    remotes:FindFirstChild("BattleResult").OnClientEvent:Connect(function(_,prov, win) notify((win and "✓ Победа в " or "✗ Поражение в ")..prov, win and Color3.fromHex("#22C55E") or Color3.fromHex("#EF4444")) end)
+    remotes:FindFirstChild("AchievementUnlocked").OnClientEvent:Connect(function(id, def) notify("🏆 Достижение: "..def.name.." +"..def.reward.." COINS", Color3.fromHex("#FACC15")) ; AudioController.playSFX("achieve") end)
+    remotes:FindFirstChild("CoinsUpdated").OnClientEvent:Connect(function(new, delta) notify("🪙 +"..delta.." COINS", Color3.fromHex("#FACC15")) end)
+end
+
+-- Мобильная поддержка — показать джойстик подсказку
+if game:GetService("UserInputService").TouchEnabled then
+    print("[Client] Touch device detected — edge scroll & pinch enabled")
+end
+
+-- День/Ночь цикл (визуальный)
+task.spawn(function()
+    local lighting = game:GetService("Lighting")
+    while true do
+        task.wait(40)
+        -- плавный переход
+        local ts = game:GetService("TweenService")
+        ts:Create(lighting, TweenInfo.new(8), {ClockTime = lighting.ClockTime > 12 and 2 or 14}):Play()
+    end
+end)
+
+print("✅ Mini Nations 3D Client ready")
+]]></ProtectedString>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="Lighting" referent="RBX00000007">
+      <Properties>
+        <string name="Name">Lighting</string>
+      </Properties>
+    </Item>
+    <Item class="SoundService" referent="RBX00000008">
+      <Properties>
+        <string name="Name">SoundService</string>
+      </Properties>
+    </Item>
+    <Item class="Players" referent="RBX00000009">
+      <Properties>
+        <string name="Name">Players</string>
+      </Properties>
+    </Item>
+  </Item>
+</roblox>

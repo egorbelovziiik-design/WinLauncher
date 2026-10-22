@@ -1,0 +1,63 @@
+{
+  "name": "MiniNations3D",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Services": {
+        "$path": "src/server/Services"
+      },
+      "Main": {
+        "$path": "src/server/Main.server.luau"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "Client": {
+        "$path": "src/client"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$path": "src/client/Main.client.luau"
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "Map": {
+        "$path": "src/workspace",
+        "$properties": {
+          "StreamingEnabled": true,
+          "StreamingTargetRadius": 350
+        }
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "ShadowMap",
+        "Ambient": [0.6, 0.6, 0.7],
+        "Brightness": 2,
+        "EnvironmentDiffuseScale": 0.5,
+        "ClockTime": 14,
+        "ExposureCompensation": 0.1
+      }
+    },
+    "SoundService": {
+      "$className": "SoundService",
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    }
+  }
+}
