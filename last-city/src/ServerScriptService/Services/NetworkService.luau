@@ -21,7 +21,7 @@ return function(ctx)
     function Service:Permit(player, channel, active)
         local s = ctx.Sessions[player]
         if not s or not s.Loaded or s.Closing or s.Frozen then return nil end
-        if active and (not s.Active or not ctx:Alive(player)) then return nil end
+        if active and (not s.Active or not ctx:Alive(player) or s.Traveling) then return nil end
         if active and ctx.PositionValid and not ctx:PositionValid(player) then return nil end
         if not limiter:allow(player, os.clock()) then return nil end
         local bucket = channels[channel]

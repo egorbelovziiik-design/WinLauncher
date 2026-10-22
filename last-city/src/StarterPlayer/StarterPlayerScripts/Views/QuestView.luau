@@ -76,7 +76,13 @@ function View.dialogue(app, body)
     local row = UI.row(body, 36)
     if d.id == "worker" then
         UI.button(row, "Как идёт работа?", function() app.DialogueText = "Я действительно хожу к назначенной постройке. Производство работает только когда смена активна, хватает припасов и есть нужная энергия."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
-        UI.button(row, "Как назначить смену?", function() app.DialogueText = "Открой терминал своего участка клавишей E, затем управление базой. Назначить жителя можно только на ферму или мастерскую."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+        UI.button(row, "Как назначить смену?", function() app.DialogueText = "Открой терминал своего участка клавишей E, затем управление базой. Назначить жителя можно только на производственное здание с рабочим местом."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+    elseif d.id == "builder" then
+        UI.button(row, "Какие ресурсы нужны?", function() app.DialogueText = "Цена проекта показана в списке. Я использую сначала склад, затем рюкзак. Если свободного места или материалов нет, сервер ничего не спишет."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+        UI.button(row, "Как выбирается место?", function() app.DialogueText = "Я проверяю ту же сетку, границы, проход к терминалу и пересечения, что ручное строительство. Жители освобождают footprint до появления модели."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+    elseif d.id == "squad" then
+        UI.button(row, "Боеприпасы", function() app.DialogueText = "Каждый выстрел списывает один карабинный патрон со склада. Без патронов мы продолжим следовать приказу, но стрелять не будем."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+        UI.button(row, "Экспедиция", function() app.DialogueText = "Экспедиция занимает 90 секунд и сохраняется. Радиомачта с энергией увеличит добычу на 50 процентов."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
     elseif d.ambient then
         UI.button(row, "Ещё совет", function() app.DialogueText = nil; app:Send("NPCRemote", {action = "talk", id = d.id}) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
         UI.button(row, "Спасибо", function() app:ClosePanel() end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
@@ -86,8 +92,11 @@ function View.dialogue(app, body)
             app.DialogueText = "Coins — в постоянный профиль. XP, оружие и припасы — в эту кампанию. Забрать награду можно только один раз после выполнения целей."; app:RefreshPanel(true)
         end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
     end
-    if d.id == "max" then UI.button(body, "Открыть торговлю · Survival Cash", function() app:OpenPanel("trade") end, {BackgroundColor3 = T.accent})
-    elseif d.id == "victor" then UI.button(body, "Ремонт и улучшения оружия", function() app:OpenPanel("weapons") end, {BackgroundColor3 = T.accent}) end
+    if d.id == "max" or d.id == "quartermaster" then UI.button(body, "Открыть торговлю · Survival Cash", function() app:OpenPanel("trade") end, {BackgroundColor3 = T.accent})
+    elseif d.id == "victor" then UI.button(body, "Ремонт и улучшения оружия", function() app:OpenPanel("weapons") end, {BackgroundColor3 = T.accent})
+    elseif d.id == "builder" then UI.button(body, "Выбрать настоящий строительный заказ", function() app:OpenPanel("builder") end, {BackgroundColor3 = T.accent})
+    elseif d.id == "squad" then UI.button(body, "Открыть команды отряду", function() app:OpenPanel("squad") end, {BackgroundColor3 = T.accent})
+    elseif d.id == "nora" then UI.button(body, "Полное лечение · 25 Survival Cash", function() app:Send("NPCRemote", {action = "heal"}) end, {BackgroundColor3 = T.success, TextColor3 = T.background}) end
     for _, id in app:Sorted(app.Quests) do if app.Quests[id].npc == d.id then View.card(app, body, id, true) end end
     UI.button(body, "Это слишком опасно. До встречи.", function() app:ClosePanel() end)
 end

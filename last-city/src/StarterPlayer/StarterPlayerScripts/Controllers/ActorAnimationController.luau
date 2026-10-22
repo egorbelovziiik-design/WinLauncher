@@ -56,12 +56,36 @@ return function(_app)
                 p.LeftShoulder = CFrame.Angles(0.95, 0.1, -0.08); p.LeftElbow = CFrame.Angles(1.05, 0, 0)
                 p.RightShoulder = CFrame.Angles(0.38 - gesture * 0.25, 0, 0.15); p.RightElbow = CFrame.Angles(0.72, 0, 0)
             end
-        elseif state == "Working" then
+        elseif state == "HeadScratch" then
+            local scratch = math.sin(t * 1.8) * 0.1
+            p.Neck = CFrame.Angles(0.05, -0.14 + scratch * 0.3, -0.06)
+            p.RightShoulder = CFrame.Angles(1.58 + scratch, -0.18, 0.28)
+            p.RightElbow = CFrame.Angles(1.28 + scratch * 0.6, 0, 0.12)
+            p.RightWrist = CFrame.Angles(-0.3, 0, scratch)
+            p.LeftShoulder = CFrame.Angles(0.05, 0, -0.05); p.Waist = CFrame.Angles(0, 0.08, 0)
+        elseif state == "Salute" then
+            p.RightShoulder = CFrame.Angles(1.38, -0.18, 0.2); p.RightElbow = CFrame.Angles(1.32, 0, 0.08)
+            p.RightWrist = CFrame.Angles(-0.22, 0, 0); p.Neck = CFrame.Angles(0, -0.08, 0)
+            p.LeftShoulder = CFrame.Angles(0.04, 0, -0.05); p.Waist = CFrame.Angles(0, 0.04, 0)
+        elseif state == "Working" or state == "Building" then
             local strike = (math.sin(t * 1.35) + 1) * 0.5
             p.Waist = CFrame.Angles(-0.22, 0.12, 0); p.Neck = CFrame.Angles(0.2, -0.12, 0)
             p.RightShoulder = CFrame.Angles(0.62 + strike * 1.05, 0.05, 0.16); p.RightElbow = CFrame.Angles(0.42 + strike * 0.65, 0, 0)
             p.LeftShoulder = CFrame.Angles(0.72, 0, -0.16); p.LeftElbow = CFrame.Angles(0.82, 0, 0)
             p.LeftHip = CFrame.Angles(0.16, 0, 0); p.RightKnee = CFrame.Angles(0.2, 0, 0)
+        elseif state == "ArmedIdle" then
+            p.RightShoulder = CFrame.Angles(0.86, -0.12, 0.12); p.RightElbow = CFrame.Angles(0.9, 0, 0)
+            p.LeftShoulder = CFrame.Angles(0.7, 0.18, -0.17); p.LeftElbow = CFrame.Angles(1.05, 0, 0)
+            p.Waist = CFrame.Angles(-0.06, 0.08, 0); p.Neck = CFrame.Angles(0.04, -0.05, 0)
+        elseif state == "Aiming" then
+            local recoil = math.max(0, math.sin(t * 2.2)) * 0.04
+            p.RightShoulder = CFrame.Angles(1.28 - recoil, -0.16, 0.1); p.RightElbow = CFrame.Angles(0.72, 0, 0)
+            p.LeftShoulder = CFrame.Angles(1.13 - recoil, 0.22, -0.12); p.LeftElbow = CFrame.Angles(1.18, 0, 0)
+            p.Waist = CFrame.Angles(-0.12, 0.1, 0); p.Neck = CFrame.Angles(0.08, -0.08, 0)
+        elseif state == "Downed" then
+            p.Waist = CFrame.Angles(-0.42, 0, 0.78); p.Neck = CFrame.Angles(0.28, 0, -0.32)
+            p.LeftHip = CFrame.Angles(0.42, 0, 0); p.RightHip = CFrame.Angles(-0.28, 0, 0)
+            p.LeftKnee = CFrame.Angles(0.78, 0, 0); p.RightKnee = CFrame.Angles(0.4, 0, 0)
         elseif state == "Eating" then
             local bite = math.sin(t * 0.65) * 0.08
             p.LeftShoulder = CFrame.Angles(1.28 - bite, 0.12, -0.18); p.RightShoulder = CFrame.Angles(1.28 + bite, -0.12, 0.18)

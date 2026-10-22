@@ -9,16 +9,18 @@ return function(app)
         Pool[i] = {part = p, serial = 0}
     end
     app.Remotes.EffectsRemote.OnClientEvent:Connect(function(kind, data)
-        if kind ~= "shot" then return end
+        if kind ~= "shot" and kind ~= "acid" then return end
         if not data.melee then
             local e = Pool[nextIndex]; nextIndex = nextIndex % #Pool + 1; e.serial += 1
             local serial = e.serial; local length = (data.to - data.from).Magnitude
             if length > 0.01 then
-                e.part.Size = Vector3.new(0.045, 0.045, length); e.part.CFrame = CFrame.lookAt((data.from + data.to) / 2, data.to); e.part.Transparency = 0.12
-                task.delay(0.07, function() if e.serial == serial then e.part.Transparency = 1 end end)
+                e.part.Color = kind == "acid" and Color3.fromRGB(151, 212, 70) or Color3.fromRGB(255, 190, 100)
+                e.part.Size = Vector3.new(kind == "acid" and 0.14 or 0.045, kind == "acid" and 0.14 or 0.045, length)
+                e.part.CFrame = CFrame.lookAt((data.from + data.to) / 2, data.to); e.part.Transparency = kind == "acid" and 0.25 or 0.12
+                task.delay(kind == "acid" and 0.16 or 0.07, function() if e.serial == serial then e.part.Transparency = 1 end end)
             end
         end
-        if data.user == app.Player.UserId then
+        if kind == "shot" and data.user == app.Player.UserId then
             if data.hit then
                 app.HitMarker.Visible = true
                 task.delay(0.12, function() app.HitMarker.Visible = false end)
@@ -26,9 +28,26 @@ return function(app)
             if data.melee then
                 local char = app.Player.Character; local tool = char and char:FindFirstChildOfClass("Tool")
                 if tool then
-                    local original = tool.Grip
-                    local tween = TweenService:Create(tool, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), {Grip = original * CFrame.Angles(math.rad(-65), 0, math.rad(20))})
-                    tween:Play()
+                    local original = tool.Grip; local itemId = tool:GetAttribute("ItemId")
+                    if itemId == "crowbar" then
+                        local serial = (tool:GetAttribute("SwingSerial") or 0) + 1; tool:SetAttribute("SwingSerial", serial)
+                        TweenService:Create(tool, TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            {Grip = original * CFrame.Angles(math.rad(24), math.rad(-10), math.rad(-22))}):Play()
+                        task.delay(0.065, function()
+                            if tool.Parent and tool:GetAttribute("SwingSerial") == serial then
+                                TweenService:Create(tool, TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                                    {Grip = original * CFrame.Angles(math.rad(-88), math.rad(8), math.rad(30))}):Play()
+                            end
+                        end)
+                        task.delay(0.18, function()
+                            if tool.Parent and tool:GetAttribute("SwingSerial") == serial then
+                                TweenService:Create(tool, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Grip = original}):Play()
+                            end
+                        end)
+                    else
+                        TweenService:Create(tool, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true),
+                            {Grip = original * CFrame.Angles(math.rad(-65), 0, math.rad(20))}):Play()
+                    end
                 end
             end
         end

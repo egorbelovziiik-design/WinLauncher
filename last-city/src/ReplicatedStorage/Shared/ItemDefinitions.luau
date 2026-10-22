@@ -4,6 +4,9 @@ return {
     wood = {name = "Дерево", category = "Ресурсы", stack = 99, weight = 0.5, color = "B68B5A"},
     scrap = {name = "Металлолом", category = "Ресурсы", stack = 99, weight = 0.8, color = "9CA3AF"},
     metal = {name = "Металл", category = "Ресурсы", stack = 99, weight = 0.6, color = "CBD5E1"},
+    steel_plate = {name = "Стальная пластина", category = "Стройматериалы", stack = 60, weight = 1.1, color = "94A3B8"},
+    concrete = {name = "Бетонный блок", category = "Стройматериалы", stack = 60, weight = 1.3, color = "A8A29E"},
+    glass = {name = "Закалённое стекло", category = "Стройматериалы", stack = 50, weight = 0.55, color = "7DD3FC"},
     ore = {name = "Железная руда", category = "Ресурсы", stack = 99, weight = 0.9, color = "9B8C7A"},
     coal = {name = "Уголь", category = "Ресурсы", stack = 99, weight = 0.55, color = "4B5563"},
     wire = {name = "Провода", category = "Ресурсы", stack = 99, weight = 0.2, color = "FB923C"},
@@ -37,5 +40,7 @@ return {
 
     vest = {name = "Бронежилет", category = "Броня", stack = 1, weight = 4, armor = 0.2, color = "60A5FA"},
     heavy_vest = {name = "Тяжёлый бронежилет", category = "Броня", stack = 1, weight = 6.5, armor = 0.35, color = "818CF8"},
+    military_vest = {name = "Военная броня", category = "Броня", stack = 1, weight = 7, armor = 0.42, color = "4D7C5A"},
     generator_plan = {name = "Чертёж: дизельный генератор", category = "Чертежи", stack = 1, weight = 0, blueprint = true, color = "A78BFA"},
+    military_generator_plan = {name = "Чертёж: военный генератор", category = "Чертежи", stack = 1, weight = 0, blueprint = true, color = "F59E0B"},
 }

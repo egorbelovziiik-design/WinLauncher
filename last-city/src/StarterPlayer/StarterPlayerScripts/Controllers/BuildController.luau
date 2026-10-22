@@ -64,7 +64,7 @@ return function(app)
         if t <= 0 or t > 1500 then self.Valid = false; return end
         local position = ray.Origin + ray.Direction * t
         local plot = app.Config.Plots[app.State.plot]
-        self.X = math.round((position.X - plot.x) / 4) * 4; self.Z = math.round((position.Z - plot.z) / 4) * 4
+        self.X = math.round((position.X - plot.x) / app.Config.Grid) * app.Config.Grid; self.Z = math.round((position.Z - plot.z) / app.Config.Grid) * app.Config.Grid
         -- Pivot is the foundation centre, 0.3 studs above the placement plane.
         self.Ghost:PivotTo(CFrame.new(plot.x + self.X, 0.3, plot.z + self.Z) * CFrame.Angles(0, self.Rotation * math.pi / 2, 0))
         self.Valid, self.Reason = self:Check()

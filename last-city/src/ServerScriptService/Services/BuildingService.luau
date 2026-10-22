@@ -67,6 +67,40 @@ return function(ctx)
         end
         return best, point, distance
     end
+    function Service:Placed(player, s, building, byBuilder)
+        if ctx.Services.NPCService and ctx.Services.NPCService.Evacuate then ctx.Services.NPCService:Evacuate(player, building) end
+        self:Render(player, building); s.Data.Stats.buildings += 1; s.Campaign.XP += 15
+        ctx.Services.QuestService:Record(player, "build", building.id, 1)
+        ctx.Progression.fact(s.Campaign, "build")
+        if building.id == "generator" or building.id == "diesel" or building.id == "advanced_generator" then ctx.Progression.fact(s.Campaign, "generator") end
+        ctx:Notify(player, ctx.BuildingDefs[building.id].name .. (byBuilder and ": Степан начал строительство" or ": строительство началось"), "success")
+    end
+    function Service:AutoPlace(player, id)
+        local s = ctx.Sessions[player]
+        if not s or not s.Active or s.Closing or s.Frozen or not ctx.BuildingDefs[id] then return false, "Проект не найден" end
+        local current = s.Campaign.Builder and ctx.Building.find(s.Campaign, s.Campaign.Builder.order)
+        if current and current.readyAt > os.time() then return false, "Степан уже строит: " .. ctx.BuildingDefs[current.id].name end
+        if s.Campaign.Builder then s.Campaign.Builder.order = "" end
+        local candidates = {}
+        for z = -40, 40, ctx.Config.Grid do
+            for x = -40, 40, ctx.Config.Grid do table.insert(candidates, {x = x, z = z, distance = x * x + z * z}) end
+        end
+        table.sort(candidates, function(a, b)
+            if a.distance == b.distance then return a.z == b.z and a.x < b.x or a.z < b.z end
+            return a.distance < b.distance
+        end)
+        local found
+        for _, point in candidates do
+            if ctx.Building.valid(s.Campaign, id, point.x, point.z, 0) then found = point; break end
+        end
+        if not found then return false, "На участке нет свободной подходящей площадки" end
+        local ok, building = ctx.Building.place(s.Campaign, id, found.x, found.z, 0, os.time())
+        if not ok then return false, building end
+        s.Campaign.Builder.order = building.uid
+        self:Placed(player, s, building, true)
+        ctx:Changed(player)
+        return true, building
+    end
     function Service:Init()
         for index in ctx.Config.Plots do
             local terminal = ctx.World.Plots:FindFirstChild("Plot" .. index):FindFirstChild("Terminal")
@@ -89,12 +123,7 @@ return function(ctx)
                 if ok then
                     -- Placement validity is data-only; residents never block it. Move any resident
                     -- out of the accepted footprint before the physical model is parented.
-                    if ctx.Services.NPCService and ctx.Services.NPCService.Evacuate then ctx.Services.NPCService:Evacuate(player, result) end
-                    self:Render(player, result); s.Data.Stats.buildings += 1; s.Campaign.XP += 15
-                    ctx.Services.QuestService:Record(player, "build", p.id, 1)
-                    ctx.Progression.fact(s.Campaign, "build")
-                    if p.id == "generator" then ctx.Progression.fact(s.Campaign, "generator") end
-                    ctx:Notify(player, ctx.BuildingDefs[p.id].name .. ": строительство началось", "success")
+                    self:Placed(player, s, result, false)
                 end
             elseif p.action == "repair" then
                 ok, result = ctx.Building.repair(s.Campaign, p.uid)

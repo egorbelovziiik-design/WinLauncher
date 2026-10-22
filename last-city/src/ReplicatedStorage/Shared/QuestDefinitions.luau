@@ -49,10 +49,34 @@ return {
     },
     mine_foreman = {
         order = 8, name = "СЕРДЦЕ ШАХТЫ", type = "Босс", npc = "ira", location = "Шахта «Чёрный пласт» — восточный карьер",
-        description = "Ира слышала удары из закрытой выработки. Прими задание, спустись в шахту и уничтожь заражённого Шахтёра-бригадира. Награда выдаётся сразу после победы.",
+        description = "Ира слышала удары из закрытой выработки. Прими задание, спустись в шахту и уничтожь Бригадира. Его усиленная шахтная охрана не покидает выработку. Награда выдаётся сразу после победы.",
         objectives = {{event = "kill", target = "foreman", count = 1, label = "Шахтёр-бригадир"}},
         reward = {coins = 600, xp = 650, items = {ammo = 48}, loadedWeapons = {{id = "glock", count = 1, ammo = 10}}},
         reputation = "SURVIVORS", autoClaim = true,
+    },
+    second_city = {
+        order = 9, name = "ВТОРОЙ РУБЕЖ", type = "Сюжетное", npc = "alex", location = "Меридиан / вертолётная площадка",
+        requires = "first_blood",
+        description = "Алекс откроет воздушный маршрут к укреплённому району НОВЫЙ РУБЕЖ, если ты докажешь, что способен пережить дорогу. Уничтожь 25 заражённых любого типа. После выполнения вертолётный маршрут разблокируется автоматически.",
+        objectives = {{event = "kill", target = "*", count = 25, label = "Любые заражённые"}},
+        reward = {coins = 700, xp = 550, items = {}}, reputation = "SURVIVORS", autoClaim = true, unlock = "second_city",
+    },
+    rescue_fireteam = {
+        order = 10, name = "ВОЗВРАЩЕНИЕ ГАРНИЗОНА", type = "Отряд", npc = "makar", location = "НОВЫЙ РУБЕЖ / восточный периметр",
+        requires = "second_city",
+        description = "Майор Макар потерял связь с патрулём. Уничтожь шесть коррозийных заражённых и одного Тюремщика во втором городе. После получения награды Рада и Глеб прибудут на твою базу с автоматами и военной бронёй.",
+        objectives = {
+            {event = "kill", target = "corrosive", count = 6, label = "Коррозийные заражённые"},
+            {event = "kill", target = "warden", count = 1, label = "Заражённый Тюремщик"},
+        },
+        reward = {coins = 850, xp = 750, items = {rifle_ammo = 60, military_generator_plan = 1}}, reputation = "SURVIVORS", unlock = "fireteam",
+    },
+    harbor_aid = {
+        order = 11, name = "ПОЛЕВОЙ ГОСПИТАЛЬ", type = "Исследование", npc = "nora", location = "НОВЫЙ РУБЕЖ / гражданский квартал",
+        requires = "second_city",
+        description = "Доктор Нора оставила три герметичных медицинских контейнера в гражданском квартале. Найди каждый контейнер и возвращайся в госпиталь.",
+        objectives = {{event = "harbor_medical", target = "harbor", count = 3, label = "Медицинские контейнеры"}},
+        reward = {coins = 420, xp = 360, items = {medkit = 2, bandage = 6, chemicals = 3}}, reputation = "SURVIVORS",
     },
 
 }

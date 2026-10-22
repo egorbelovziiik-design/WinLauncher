@@ -1,13 +1,16 @@
 import {R,part,folder,sign,instance,cf,vec,color,loot,palette as P} from './primitives.mjs';
 const trim='#565e5b',frame='#343f40',glass='#253c42';
 function decorative(parent,name,size,at,col,mat='Concrete',yaw=0) {
-  return part(parent,name,size,at,col,mat,yaw,{CanCollide:false,CanTouch:false,CastShadow:false});
+  return part(parent,name,size,at,col,mat,yaw,{CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false});
 }
 export function apartment(world,x,z,w,d,h,tint,index) {
   const b=folder(world.Cities,`RuinedBlock_${index}`,true);
   part(b,'Foundation',[w+2,0.7,d+2],[x,0.35,z],'#666b65','Concrete');
-  part(b,'Structure',[w,h,d],[x,h/2,z],tint,index%3===0?'Brick':'Concrete');
-  part(b,'GroundStorey',[w+0.12,8,d+0.12],[x,4,z],'#505a57','Concrete');
+  // The upper shell begins exactly above the ground storey. Earlier full-height shells
+  // overlapped this facade volume and could shimmer like broken/missing textures.
+  part(b,'Structure',[w,h-8,d],[x,(h+8)/2,z],tint,index%3===0?'Brick':'Concrete');
+  part(b,'GroundStorey',[w,8,d],[x,4,z],'#505a57','Concrete');
+  part(b,'FoundationSkirt',[w+1,1.1,d+1],[x,0.58,z],'#59615c','Slate');
   part(b,'RoofDeck',[w+1,0.7,d+1],[x,h+0.2,z],'#414b48','Concrete');
   for(const side of [-1,1]) {
     part(b,'RoofParapet',[w+1,2.4,0.55],[x,h+1.4,z+side*d/2],trim);

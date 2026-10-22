@@ -5,9 +5,24 @@ return function(ctx)
         ctx.Services.NetworkService:Register("InventoryRemote", true, function(player, s, p)
             local c = s.Campaign
             local ok, err = false, "Недоступное действие"
-            if p.action == "equip" then
+            if p.action == "toggleCrowbar" then
+                local crowbar
+                for _, entry in c.Inventory do if entry.id == "crowbar" then crowbar = entry; break end end
+                if not crowbar then err = "В рюкзаке нет лома"
+                elseif c.Equipped == crowbar.uid then
+                    c.Equipped = ""; s.Reloading = nil; ctx.Services.CombatService:SyncTool(player); ok = true
+                else
+                    ok, err = ctx.Inventory.equip(c, crowbar.uid)
+                    if ok then s.Reloading = nil; ctx.Services.CombatService:SyncTool(player) end
+                end
+            elseif p.action == "equip" then
                 ok, err = ctx.Inventory.equip(c, p.uid)
                 if ok then s.Reloading = nil; ctx.Services.CombatService:SyncTool(player) end
+            elseif p.action == "unequip" then
+                local entry = ctx.Inventory.find(c, p.uid)
+                if entry and c.Equipped == entry.uid and ctx.Weapons[entry.id] then
+                    c.Equipped = ""; s.Reloading = nil; ctx.Services.CombatService:SyncTool(player); ok = true
+                else err = "Оружие уже убрано" end
             elseif p.action == "use" then
                 local entry = ctx.Inventory.find(c, p.uid)
                 local def = entry and ctx.Items[entry.id]

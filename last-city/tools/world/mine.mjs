@@ -103,5 +103,7 @@ export function mine(world) {
   const hidden={Transparency:1,CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false};
   for(const [i,x,z] of [[1,340,160],[2,378,160],[3,414,145],[4,449,176]])
     part(world.ZombieSpawns,`MineSpawn${i}`,[1,1,1],[x,0.5,z],P.orange,'Plastic',0,hidden);
+  for(const [i,x,z] of [[1,420,148],[2,446,148],[3,446,174]])
+    part(world.ZombieSpawns,`MineMinionSpawn${i}`,[1,1,1],[x,0.5,z],P.orange,'Plastic',0,hidden);
   part(world.ZombieSpawns,'MineBossSpawn',[1,1,1],[434,0.5,160],P.orange,'Plastic',0,hidden);
 }

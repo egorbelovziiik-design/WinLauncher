@@ -31,7 +31,7 @@ return function(app)
         UI.button(equipment, name, function() app:QuickSlot(index) end, {Position = UDim2.new((index - 1) / 3, 8, 0, 63), Size = UDim2.new(1 / 3, -12, 0, 24), TextSize = 10})
     end
     local hotbar = UI.frame(hud, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -15), Size = UDim2.fromOffset(526, 29), BackgroundTransparency = 1}); UI.list(hotbar, 6, true)
-    for _, entry in {{"I  Рюкзак", "inventory"}, {"J  Квесты", "quests"}, {"B  Стройка", "build"}, {"G  База", "base"}, {"M  Карта", "map"}, {"⚙", "settings"}} do
+    for _, entry in {{"K  Рюкзак", "inventory"}, {"J  Квесты", "quests"}, {"B  Стройка", "build"}, {"G  База", "base"}, {"M  Карта", "map"}, {"⚙", "settings"}} do
         UI.button(hotbar, entry[1], function()
             app:OpenPanel(entry[2]); if entry[2] == "inventory" then app:Send("SessionRemote", {action = "inventoryOpened"}) end
         end, {Size = UDim2.fromOffset(entry[2] == "settings" and 40 or 90, 29), TextSize = 10})

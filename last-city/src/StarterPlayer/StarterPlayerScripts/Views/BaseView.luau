@@ -11,7 +11,7 @@ function View.build(app, body)
         UI.button(card, "РАЗМЕСТИТЬ  /  " .. def.seconds .. " c", function() app.Build:Start(id) end,
             {Position = UDim2.fromOffset(14, 106), Size = UDim2.new(1, -28, 0, 28), BackgroundColor3 = UI.Theme.raised, TextSize = 11})
     end
-    UI.paragraph(body, "Построено: " .. #c.Buildings .. "/24. Снос возвращает 25% материалов. Чужие участки защищены от действий игроков.", 42)
+    UI.paragraph(body, "Построено: " .. #c.Buildings .. "/" .. app.Config.MaxBuildings .. ". Снос возвращает 25% материалов. Чужие участки защищены от действий игроков.", 42)
 end
 function View.base(app, body)
     local UI = app.UI; local T = UI.Theme; local s = app.State; local c = s.campaign; local p = s.power
@@ -19,8 +19,10 @@ function View.base(app, body)
     UI.paragraph(body, string.format("Энергия: %d кВт произведено / %d требуется / дефицит %d\nРаботники: %d  ·  Мораль: %d%%  ·  %s", p.supply, p.demand, p.deficit, #c.Workers, c.Morale, s.raid), 50)
     UI.paragraph(body, "Генераторы автоматически берут топливо со склада. Работники едят по 1 еде и воде в минуту. Производство каждые 30 с; ночью работники отдыхают. Офлайн-производства нет.", 57)
     local row = UI.row(body, 36)
-    UI.button(row, "Постройки", function() app:OpenPanel("build") end, {Size = UDim2.new(0.5, -5, 1, 0), BackgroundColor3 = T.accent})
-    UI.button(row, "Крафт", function() app:OpenPanel("craft") end, {Size = UDim2.new(0.5, -5, 1, 0)})
+    UI.button(row, "Постройки", function() app:OpenPanel("build") end, {Size = UDim2.new(1 / 3, -5, 1, 0), BackgroundColor3 = T.accent})
+    UI.button(row, "Крафт", function() app:OpenPanel("craft") end, {Size = UDim2.new(1 / 3, -5, 1, 0)})
+    UI.button(row, "Военный отряд", function() app:OpenPanel("squad") end, {Size = UDim2.new(1 / 3, -5, 1, 0)})
+    UI.paragraph(body, "Строитель Степан живёт на участке. Поговорите с ним по E: он примет ресурсы из рюкзака/склада, найдёт свободный footprint и построит выбранный объект.", 48)
     UI.heading(body, "СКЛАД  /  ВЗЯТЬ ИЛИ ПОЛОЖИТЬ 5")
     local ids = {}; for id, def in app.Items do if not def.weapon and not def.armor and not def.blueprint then table.insert(ids, id) end end; table.sort(ids)
     for _, id in ids do
@@ -67,6 +69,44 @@ function View.craft(app, body)
         UI.label(card, recipe.name, 16, {Position = UDim2.fromOffset(14, 10), Size = UDim2.new(1, -28, 0, 25), Font = Enum.Font.GothamBold})
         UI.label(card, UI.price(recipe.input, app.Items) .. " / " .. recipe.seconds .. " с", 11, {Position = UDim2.fromOffset(14, 43), Size = UDim2.new(1, -28, 0, 22), TextColor3 = UI.Theme.muted, TextWrapped = true})
         if not c.Craft then UI.button(card, "СОЗДАТЬ", function() app:Send("CraftingRemote", {action = "start", id = id}) end, {Position = UDim2.fromOffset(14, 75), Size = UDim2.new(1, -28, 0, 28), TextSize = 11}) end
+    end
+end
+function View.builder(app, body)
+    local UI = app.UI; local c = app.State.campaign
+    UI.paragraph(body, "Степан берёт точную стоимость из склада и рюкзака, а затем сервер выбирает ближайшую свободную точку сетки. Заказ настоящий: появляется полупрозрачная стройка, Степан идёт к ней, а производство запускается только после таймера.", 76)
+    local active = c.Builder and app:FindBuilding(c.Builder.order)
+    if active and active.readyAt > app.State.serverTime then
+        UI.heading(body, "СЕЙЧАС СТРОИТСЯ: " .. app.Buildings[active.id].name:upper() .. " / " .. math.max(0, active.readyAt - app.State.serverTime) .. " с")
+    end
+    for _, id in app:Sorted(app.Buildings) do
+        local def = app.Buildings[id]; local card = UI.card(body, 126)
+        UI.label(card, def.name .. "  /  " .. def.category, 15, {Position = UDim2.fromOffset(13, 8), Size = UDim2.new(1, -26, 0, 24), Font = Enum.Font.GothamBold})
+        UI.label(card, def.description, 11, {Position = UDim2.fromOffset(13, 35), Size = UDim2.new(1, -26, 0, 34), TextWrapped = true, TextColor3 = UI.Theme.muted})
+        UI.label(card, UI.price(def.cost, app.Items) .. "  ·  " .. def.cash .. " Cash", 10, {Position = UDim2.fromOffset(13, 72), Size = UDim2.new(1, -26, 0, 18), TextColor3 = UI.Theme.accent, TextWrapped = true})
+        UI.button(card, "ПЕРЕДАТЬ РЕСУРСЫ И СТРОИТЬ", function() app:Send("NPCRemote", {action = "builder", id = id}) end,
+            {Position = UDim2.fromOffset(13, 96), Size = UDim2.new(1, -26, 0, 24), TextSize = 10})
+    end
+end
+function View.squad(app, body)
+    local UI = app.UI; local c = app.State.campaign; local q = c.Quests.rescue_fireteam
+    UI.paragraph(body, "Рада и Глеб появляются только после задания майора Макара во втором городе. Их военная броня снижает входящий урон на 42%; карабины расходуют реальные винтовочные патроны со склада. Бойцы не прыгают через стены и обходят постройки.", 72)
+    if not q or q.status ~= "RewardClaimed" then
+        UI.heading(body, "ОТРЯД ЕЩЁ НЕ РАЗБЛОКИРОВАН")
+        UI.paragraph(body, "Сначала выполните у Алекса «ВТОРОЙ РУБЕЖ» (25 зомби), долетите до НОВОГО РУБЕЖА и завершите задание «ВОЗВРАЩЕНИЕ ГАРНИЗОНА» у Макара.", 62)
+        return
+    end
+    local squad = c.Squad
+    local names = {base = "ОХРАНА БАЗЫ", follow = "СОПРОВОЖДЕНИЕ", gather = "ЭКСПЕДИЦИЯ"}
+    UI.heading(body, "ТЕКУЩИЙ ПРИКАЗ: " .. (names[squad.command] or "ОЖИДАНИЕ"))
+    if squad.command == "gather" then UI.paragraph(body, "Возвращение примерно через " .. math.max(0, squad.returnAt - app.State.serverTime) .. " с. Отзыв отменит добычу.", 36) end
+    UI.paragraph(body, "Боеприпасы на складе: " .. (c.Stockpile.rifle_ammo or 0) .. ". Командная радиомачта с энергией увеличивает результат экспедиции на 50%.", 46)
+    local row = UI.row(body, 38)
+    UI.button(row, "Охранять базу", function() app:Send("NPCRemote", {action = "squad", command = "base"}) end, {Size = UDim2.new(0.5, -5, 1, 0), BackgroundColor3 = squad.command == "base" and UI.Theme.accent or UI.Theme.raised})
+    UI.button(row, "Следовать за мной", function() app:Send("NPCRemote", {action = "squad", command = "follow"}) end, {Size = UDim2.new(0.5, -5, 1, 0), BackgroundColor3 = squad.command == "follow" and UI.Theme.accent or UI.Theme.raised})
+    UI.heading(body, "90-СЕКУНДНАЯ ДОБЫВАЮЩАЯ ЭКСПЕДИЦИЯ")
+    for _, option in {{"metal", "Металл / лом / пластины"}, {"mine", "Руда / уголь / металл"}, {"wood", "Дерево / травы / ткань"}} do
+        UI.button(body, option[2], function() app:Send("NPCRemote", {action = "squad", command = "gather", resource = option[1]}) end,
+            {BackgroundColor3 = squad.command == "gather" and squad.resource == option[1] and UI.Theme.accent or UI.Theme.raised})
     end
 end
 return View

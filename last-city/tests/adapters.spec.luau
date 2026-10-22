@@ -31,6 +31,21 @@ test("client construction and event bindings",function() app=module("StarterPlay
 test("loading snapshot reveals menu and marks client ready",function() data=snapshot(false); app.Remotes.StateRemote.OnClientEvent:Fire("state",data); eq(app.Menu.Visible,true); eq(app.HUD.Visible,false); eq(player:GetAttribute("LastCityClientReady"),true) end)
 test("play button sends real server action",function() app.PlayButton.Activated:Fire(); eq(app.Remotes.SessionRemote.LastPayload.action,"play") end)
 test("active snapshot opens first-time tutorial",function() data=snapshot(true); app.Remotes.StateRemote.OnClientEvent:Fire("state",data); eq(app.HUD.Visible,true); eq(app.Menu.Visible,false); eq(app.PanelName,"tutorial") end)
+test("K opens and closes the backpack while old I binding is removed",function()
+    app:ClosePanel(); local input=game:GetService("UserInputService")
+    input.InputBegan:Fire({KeyCode=Enum.KeyCode.K,UserInputType=Enum.UserInputType.Keyboard},false)
+    eq(app.PanelName,"inventory"); eq(app.Remotes.SessionRemote.LastPayload.action,"inventoryOpened")
+    input.InputBegan:Fire({KeyCode=Enum.KeyCode.K,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,nil)
+    input.InputBegan:Fire({KeyCode=Enum.KeyCode.I,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,nil)
+end)
+test("keyboard 1 sends a server-authoritative crowbar toggle on every press",function()
+    app:ClosePanel(); local crowbar
+    for _,entry in app.State.campaign.Inventory do if entry.id=="crowbar" then crowbar=entry end end; assert(crowbar); eq(app.State.campaign.Equipped,"")
+    local input=game:GetService("UserInputService"); input.InputBegan:Fire({KeyCode=Enum.KeyCode.One,UserInputType=Enum.UserInputType.Keyboard},false)
+    eq(app.Remotes.InventoryRemote.LastPayload.action,"toggleCrowbar"); eq(app.Remotes.InventoryRemote.LastPayload.uid,nil)
+    input.InputBegan:Fire({KeyCode=Enum.KeyCode.One,UserInputType=Enum.UserInputType.Keyboard},false)
+    eq(app.Remotes.InventoryRemote.LastPayload.action,"toggleCrowbar")
+end)
 for _,name in {"inventory","quests","tutorial","build","base","craft","cosmetics","trade","weapons","profile","achievements","settings","updates","map"} do
     test("construct panel "..name,function() app:OpenPanel(name); assert(#app.Body:GetChildren()>1); app:RefreshPanel(); app:ClosePanel(); eq(app.PanelName,nil) end)
 end
@@ -58,6 +73,18 @@ test("camera callbacks execute menu survivor and commander paths",function()
     data=snapshot(false); app.Remotes.StateRemote.OnClientEvent:Fire("state",data); run.Bound.LastCityCamera(0.016)
     data=snapshot(true); data.campaign.Tutorial.status="Skipped"; app.Remotes.StateRemote.OnClientEvent:Fire("state",data); app:ClosePanel(); run.Bound.LastCityCamera(0.016)
     app.Camera:SetCommander(true); run.Bound.LastCityCamera(0.016); app.Camera:SetCommander(false)
+end)
+test("helicopter event runs cinematic camera and restores it on arrival",function()
+    app:ClosePanel(); local run=game:GetService("RunService")
+    app.Remotes.StateRemote.OnClientEvent:Fire("travel",{phase="start",from=Vector3.new(118,7,-120),to=Vector3.new(837,7,54),duration=6,destination="НОВЫЙ РУБЕЖ",helicopter="City1Helicopter"})
+    assert(app.Camera.Travel); run.Bound.LastCityCamera(0.016); eq(workspace.CurrentCamera.CameraType,Enum.CameraType.Scriptable)
+    game:GetService("UserInputService").InputBegan:Fire({KeyCode=Enum.KeyCode.K,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,nil)
+    app.Remotes.EffectsRemote.OnClientEvent:Fire("acid",{from=Vector3.new(),to=Vector3.new(0,0,-10),melee=false,user=0})
+    app.Remotes.StateRemote.OnClientEvent:Fire("travel",{phase="arrive",destination="НОВЫЙ РУБЕЖ"}); eq(app.Camera.Travel,nil)
+    app.Remotes.StateRemote.OnClientEvent:Fire("travel",{phase="start",from=Vector3.new(837,7,54),to=Vector3.new(118,7,-120),duration=6,destination="МЕРИДИАН",helicopter="City2Helicopter"})
+    player:SetAttribute("LastCityClientError",nil)
+    app.Remotes.StateRemote.OnClientEvent:Fire("travel",{phase="arrive",canceled=true})
+    eq(app.Camera.Travel,nil); eq(player:GetAttribute("LastCityClientError"),nil)
 end)
 test("quest-completed and equipped-firearm HUD paths",function()
     data=snapshot(true); data.campaign.Tutorial.status="Skipped"; Quests.accept(data.campaign,"first_blood",os.time()); Quests.record(data.campaign,"kill","walker",5,os.time())
@@ -121,6 +148,20 @@ test("inventory adapter use consumes exactly one real medkit",function() local c
 test("energy drink is a real stamina consumable",function() local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{energy_drink=1})); local uid; for _,e in s.Campaign.Inventory do if e.id=="energy_drink" then uid=e.uid end end; s.Stamina=20; request(ctx,"InventoryRemote",{action="use",uid=uid}); eq(s.Stamina,75); eq(Inventory.count(s.Campaign,"energy_drink"),0) end)
 test("building adapter refuses placement on another plot",function() local ctx,s=context(); ctx.NearPlot=false; ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,0); eq(s.Campaign.Cash,200) end)
 test("building adapter creates a model and charges resources",function() local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,1); eq(s.Campaign.Cash,190); assert(ctx.Services.BuildingService.Models[player].b1); eq(ctx.Services.BuildingService.Models[player].b1:GetAttribute("Owner"),player.UserId) end)
+test("builder atomically pays real inventory and stock then auto-selects a valid footprint",function()
+    local ctx,s=context(); ctx.Services.NPCService.Evacuate=function() ctx.Evacuated=true end
+    ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx)
+    s.Campaign.Stockpile.wood=6; assert(Inventory.grant(s.Campaign,{wood=4})); local before=Inventory.count(s.Campaign,"wood")
+    local ok,b=ctx.Services.BuildingService:AutoPlace(player,"wall"); assert(ok and b)
+    eq(#s.Campaign.Buildings,1); eq(s.Campaign.Cash,190); eq(s.Campaign.Stockpile.wood,0); eq(Inventory.count(s.Campaign,"wood"),before-4)
+    eq(s.Campaign.Builder.order,b.uid); assert(ctx.Services.BuildingService.Models[player][b.uid]); assert(ctx.Evacuated)
+    local valid=ctx.Building.valid(s.Campaign,"wall",b.x,b.z,b.r); eq(valid,false) -- its own occupied footprint is now authoritative
+end)
+test("builder unaffordable order has no partial resource or building mutation",function()
+    local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx)
+    s.Campaign.Cash=0; local wood=s.Campaign.Stockpile.wood; local ok=ctx.Services.BuildingService:AutoPlace(player,"wall")
+    eq(ok,false); eq(#s.Campaign.Buildings,0); eq(s.Campaign.Stockpile.wood,wood); eq(s.Campaign.Builder.order,"")
+end)
 test("accepted footprint evacuates resident before rendering and resident never invalidates placement",function()
     local ctx,s=context(); local npc=module("ServerScriptService/Services/NPCService.luau")(ctx); ctx.Services.NPCService=npc
     local plot=Config.Plots[1]; local model,h=Factory.rig("Resident",CFrame.new(plot.x,3,plot.z),Color3.fromRGB(255,255,255),Color3.fromRGB(255,255,255),1,"worker_mira")
@@ -162,6 +203,60 @@ test("purchasable armor reduces zombie damage and loses durability",function()
     for _,entry in s.Campaign.Inventory do if entry.id=="heavy_vest" then vest=entry end end
     assert(Inventory.equip(s.Campaign,vest.uid)); ctx.Services.CombatService:Hurt(player,10)
     eq(player.Character.Humanoid.Health,88.5); eq(vest.durability,99.5)
+end)
+test("quest-unlocked military fireteam has armor rifles commands and real expedition output",function()
+    local ctx,s=context(); ctx.World.NPCSpawns=Engine.add(workspace,"Folder","SquadNPCs")
+    s.Campaign.Quests.rescue_fireteam={status="RewardClaimed",progress={6,1},seen={}}
+    ctx.Services.NPCService.Walk=function() end; ctx.Services.ZombieService={Nearest=function() return nil end}
+    local squad=module("ServerScriptService/Services/SquadService.luau")(ctx); ctx.Services.SquadService=squad; squad:Spawn(player)
+    eq(#squad.Members[player],2)
+    for _,member in squad.Members[player] do
+        assert(member.model:FindFirstChild("MilitaryArmor",true)); assert(member.model:FindFirstChild("RifleBody",true))
+        eq(member.humanoid.JumpPower,0); eq(member.humanoid.AutoJumpEnabled,false); eq(member.model:GetAttribute("Owner"),player.UserId)
+    end
+    assert(squad:Command(player,"follow")); eq(s.Campaign.Squad.command,"follow")
+    local metal=s.Campaign.Stockpile.metal; assert(squad:Command(player,"gather","metal")); eq(s.Campaign.Squad.expedition,1)
+    s.Campaign.Squad.returnAt=os.time()-1; squad:CompleteExpedition(player,s)
+    eq(s.Campaign.Squad.command,"base"); eq(s.Campaign.Stockpile.metal,metal+8); eq(s.Campaign.Squad.completed,1)
+    squad:RemovePlayer(player); eq(squad.Members[player],nil)
+end)
+test("locked helicopter refuses city two then performs server-timed round trip after quest",function()
+    local ctx,s=context(); local world=Engine.add(workspace,"Folder","TravelWorld"); local transports=Engine.add(world,"Folder","Transports"); ctx.World=world
+    local city1=Engine.add(transports,"Part","City1Pad"); city1.CFrame=CFrame.new(100,0,0)
+    local city2=Engine.add(transports,"Part","City2Pad"); city2.CFrame=CFrame.new(900,0,100)
+    local arrival1=Engine.add(transports,"Part","City1Arrival"); arrival1.CFrame=CFrame.new(105,0,0)
+    local arrival2=Engine.add(transports,"Part","City2Arrival"); arrival2.CFrame=CFrame.new(895,0,100)
+    ctx.Services.SquadService={TravelWith=function(_,_,at) ctx.SquadTravel=at end}
+    local travel=module("ServerScriptService/Services/TravelService.luau")(ctx); ctx.Services.TravelService=travel; travel:Init()
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(100,3,0); travel:Travel(player,"City1"); eq(s.Traveling,nil)
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(900,3,100); travel:Travel(player,"City2"); eq(s.Traveling,nil)
+    s.Campaign.Quests.second_city={status="RewardClaimed",progress={25},seen={}}
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(100,3,0); travel:Travel(player,"City1"); assert(s.Traveling); eq(player.Character.HumanoidRootPart.Anchored,true)
+    eq(ctx.Remotes.StateRemote.LastClient.kind,"travel"); eq(ctx.Remotes.StateRemote.LastClient.payload.phase,"start"); eq(ctx.Remotes.StateRemote.LastClient.payload.duration,6)
+    Engine.task.delayed[#Engine.task.delayed].callback(); eq(s.Traveling,nil); eq(s.Region,"City2"); eq(player.Character.HumanoidRootPart.Anchored,false); assert(ctx.SquadTravel)
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(900,3,100); travel:Travel(player,"City2"); assert(s.Traveling)
+    Engine.task.delayed[#Engine.task.delayed].callback(); eq(s.Region,"City1"); eq(player.Character.HumanoidRootPart.Anchored,false)
+end)
+test("mine and second-city infected cannot spawn outside their authored zones",function()
+    local ctx=context(); ctx.ZombieDefs=module("ReplicatedStorage/Shared/ZombieDefinitions.luau"); ctx.World.Zombies=Engine.add(workspace,"Folder","ZoneZombies")
+    local zombies=module("ServerScriptService/Services/ZombieService.luau")(ctx); ctx.Services.ZombieService=zombies
+    eq(zombies:Spawn("foreman",Vector3.new(0,0,0)),nil); eq(zombies:Spawn("mine_guard",Vector3.new(900,0,100)),nil)
+    eq(zombies:Spawn("corrosive",Vector3.new(0,0,0)),nil); eq(zombies:Spawn("warden",Vector3.new(430,0,160)),nil)
+    local guard=assert(zombies:Spawn("mine_guard",Vector3.new(430,0,160))); local corrosive=assert(zombies:Spawn("corrosive",Vector3.new(900,0,100)))
+    eq(guard.humanoid.JumpPower,0); eq(guard.humanoid.AutoJumpEnabled,false); eq(zombies:Count(),2)
+    guard.model:Destroy(); corrosive.model:Destroy()
+end)
+test("second-city quartermaster trade is server-gated by travel quest and proximity",function()
+    local ctx,s=context(); ctx.Services.NPCService.Near=function(_,_,id) return id=="quartermaster" end
+    local shop=module("ServerScriptService/Services/ShopService.luau")(ctx); ctx.Services.ShopService=shop; shop:Init()
+    local cash=s.Campaign.Cash; request(ctx,"ShopRemote",{action="buy",id="concrete",count=1}); eq(Inventory.count(s.Campaign,"concrete"),0); eq(s.Campaign.Cash,cash)
+    s.Campaign.Quests.second_city={status="RewardClaimed",progress={25},seen={}}
+    request(ctx,"ShopRemote",{action="buy",id="concrete",count=1}); eq(Inventory.count(s.Campaign,"concrete"),1); assert(s.Campaign.Cash<cash)
+end)
+test("active remotes are frozen throughout server-authoritative travel",function()
+    local ctx,s=context(); local calls=0; ctx.Services.NetworkService:Register("InventoryRemote",true,function() calls+=1 end)
+    s.Traveling={}; request(ctx,"InventoryRemote",{action="sort"}); eq(calls,0)
+    s.Traveling=nil; request(ctx,"InventoryRemote",{action="sort"}); eq(calls,1)
 end)
 
 local function saveContext()
@@ -207,17 +302,21 @@ local server
 local serverSession
 test("full server composition root initializes every service",function()
     local world=Engine.add(workspace,"Folder","World")
-    for _,name in {"Plots","Buildings","NPCSpawns","LootSpawns","Zombies","ZombieSpawns"} do Engine.add(world,"Folder",name) end
+    for _,name in {"Plots","Buildings","NPCSpawns","LootSpawns","Zombies","ZombieSpawns","Transports"} do Engine.add(world,"Folder",name) end
     for index in Config.Plots do
         local p=Engine.add(world.Plots,"Model","Plot"..index); local t=Engine.add(p,"Part","Terminal"); local g=Engine.add(t,"BillboardGui","OwnerGui"); Engine.add(g,"TextLabel","Label")
     end
     Engine.add(world.ZombieSpawns,"Part","Spawn1").CFrame=CFrame.new(0,0,30)
+    for _,entry in {{"City1Pad",118,-120},{"City1Arrival",105,-120},{"City2Pad",820,54},{"City2Arrival",837,54}} do
+        local point=Engine.add(world.Transports,"Part",entry[1]); point.CFrame=CFrame.new(entry[2],0.5,entry[3])
+    end
+    for _,name in {"City1Helicopter","City2Helicopter"} do local helicopter=Engine.add(world.Transports,"Model",name); local body=Engine.add(helicopter,"Part","Body"); helicopter.PrimaryPart=body end
     workspace.Raycast=function() return nil end
     game:GetService("RunService").Studio=true
     Engine.Store.fail=false; Engine.Store.records={}; player.Kicked=nil
     server=module("ServerScriptService/Bootstrap.server.luau")
     eq(workspace:GetAttribute("LastCityReady"),true); assert(server.Services.PlayerDataService); assert(server.Services.NPCService.NPCs.alex)
-    local residents=0; for _ in server.Services.NPCService.NPCs do residents+=1 end; eq(residents,12); assert(server.Services.NPCService.NPCs.ira)
+    local residents=0; for _ in server.Services.NPCService.NPCs do residents+=1 end; eq(residents,16); assert(server.Services.NPCService.NPCs.ira); assert(server.Services.NPCService.NPCs.makar); assert(server.Services.SquadService); assert(server.Services.TravelService)
 end)
 test("main NPC uses complete player-shaped R15 articulation",function()
     local model=server.Services.NPCService.NPCs.alex.model; eq(model:GetAttribute("BodyRig"),"LC-R15")
@@ -228,12 +327,24 @@ end)
 test("full server join loads data restores base and creates workers",function()
     server.Services.PlayerDataService:Join(player)
     serverSession=assert(server.Sessions[player]); eq(serverSession.Loaded,true); eq(serverSession.Active,false)
-    eq(#server.Services.NPCService.Workers[player],2)
+    eq(#server.Services.NPCService.Workers[player],2); assert(server.Services.NPCService.Builders[player])
+    local builder=server.Services.NPCService.Builders[player]; assert(builder.model:FindFirstChild("BuilderHelmet",true)); eq(builder.humanoid.JumpPower,0)
     server.Services.PlayerDataService:Character(player,player.Character)
 end)
-test("full server play unfreezes character and equips starter weapon",function()
+test("crowbar starts stowed and two authoritative toggle intents equip then stow it",function()
     request(server,"SessionRemote",{action="play"}); eq(serverSession.Active,true); eq(player.Character.HumanoidRootPart.Anchored,false)
-    assert(player.Character:FindFirstChildOfClass("Tool")); assert(serverSession.Campaign.Started)
+    eq(player.Character:FindFirstChildOfClass("Tool"),nil); assert(serverSession.Campaign.Started)
+    local crowbar; for _,entry in serverSession.Campaign.Inventory do if entry.id=="crowbar" then crowbar=entry end end; assert(crowbar)
+    request(server,"InventoryRemote",{action="toggleCrowbar"}); assert(player.Character:FindFirstChildOfClass("Tool")); eq(serverSession.Campaign.Equipped,crowbar.uid)
+    request(server,"InventoryRemote",{action="toggleCrowbar"}); eq(player.Character:FindFirstChildOfClass("Tool"),nil); eq(serverSession.Campaign.Equipped,"")
+end)
+test("flight locks session mutations and death releases its token and anchored root",function()
+    local root=player.Character.HumanoidRootPart
+    serverSession.Traveling={}; root.Anchored=true
+    eq(serverSession.Campaign.Tutorial.facts.inventory,nil)
+    request(server,"SessionRemote",{action="inventoryOpened"}); eq(serverSession.Campaign.Tutorial.facts.inventory,nil)
+    player.Character.Humanoid.Died:Fire()
+    eq(serverSession.Traveling,nil); eq(root.Anchored,false)
 end)
 test("explicit E prompt opens authoritative nearby NPC dialogue",function()
     local alex=server.Services.NPCService.NPCs.alex; local prompt=assert(alex.model:FindFirstChild("TalkPrompt",true))
@@ -245,6 +356,20 @@ test("NPC prompt cannot open dialogue outside server interaction range",function
     local prompt=assert(server.Services.NPCService.NPCs.max.model:FindFirstChild("TalkPrompt",true))
     server.Remotes.StateRemote.LastClient=nil; player.Character.HumanoidRootPart.CFrame=CFrame.new(500,3,500); prompt.Triggered:Fire(player)
     eq(server.Remotes.StateRemote.LastClient,nil)
+end)
+test("second-city dialogue and healing stay locked until Alex quest reward",function()
+    local root=player.Character.HumanoidRootPart; local humanoid=player.Character.Humanoid
+    local nora=server.Services.NPCService.NPCs.nora; local prompt=assert(nora.model:FindFirstChild("TalkPrompt",true))
+    root.CFrame=CFrame.new(952,3,82); serverSession.SpawnGrace=os.clock()+10; serverSession.SafePosition=nil
+    local cash=serverSession.Campaign.Cash; humanoid.Health=50; server.Remotes.StateRemote.LastClient=nil
+    request(server,"NPCRemote",{action="heal"}); eq(humanoid.Health,50); eq(serverSession.Campaign.Cash,cash)
+    prompt.Triggered:Fire(player)
+    local lockedMessage=server.Remotes.StateRemote.LastClient
+    assert(not lockedMessage or lockedMessage.kind~="dialogue")
+    serverSession.Campaign.Quests.second_city={status="RewardClaimed",progress={25},seen={}}
+    prompt.Triggered:Fire(player); eq(server.Remotes.StateRemote.LastClient.kind,"dialogue"); eq(server.Remotes.StateRemote.LastClient.payload.id,"nora")
+    request(server,"NPCRemote",{action="heal"}); eq(humanoid.Health,humanoid.MaxHealth); eq(serverSession.Campaign.Cash,cash-25)
+    serverSession.Campaign.Cash=cash; serverSession.Campaign.Quests.second_city=nil
 end)
 test("full server five kills complete quest and pay only once",function()
     player.Character.HumanoidRootPart.CFrame=CFrame.new(-18,3,-55)

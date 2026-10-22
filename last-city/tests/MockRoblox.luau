@@ -16,6 +16,7 @@ local function vector(n, x, y, z)
         if key=="Magnitude" then return math.sqrt(a.X*a.X+a.Y*a.Y+a.Z*a.Z) end
         if key=="Unit" then local mag=a.Magnitude; return mag>0 and a/mag or vector(n,0,0,0) end
         if key=="Dot" then return function(self,b) return self.X*b.X+self.Y*b.Y+self.Z*b.Z end end
+        if key=="Lerp" then return function(self,b,t) return self+(b-self)*t end end
     end
     return setmetatable(v,mt)
 end

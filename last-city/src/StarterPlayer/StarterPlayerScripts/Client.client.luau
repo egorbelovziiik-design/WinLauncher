@@ -57,7 +57,12 @@ local function boot()
     function app:QuickSlot(index)
         local id = index == 1 and "crowbar" or index == 2 and "pistol" or "medkit"
         for _, e in self.State and self.State.campaign.Inventory or {} do
-            if e.id == id then self:Send("InventoryRemote", {action = index == 3 and "use" or "equip", uid = e.uid}); return end
+            if e.id == id then
+                if index == 3 then self:Send("InventoryRemote", {action = "use", uid = e.uid})
+                elseif index == 1 then self:Send("InventoryRemote", {action = "toggleCrowbar"})
+                else self:Send("InventoryRemote", {action = "equip", uid = e.uid}) end
+                return
+            end
         end
         self:Toast("В рюкзаке нет: " .. self.Items[id].name)
     end
@@ -85,6 +90,8 @@ local function boot()
     app.Menu = require(Views.MenuView)(app)
     app.HUD = require(Views.HUDView)(app)
     local transition = UI.frame(app.Root, {Name = "Transition", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, ZIndex = 60, Visible = false})
+    local travelBanner = UI.frame(app.Root, {Name = "TravelBanner", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 78), Size = UDim2.fromOffset(430, 58), BackgroundColor3 = T.background, BackgroundTransparency = 0.12, ZIndex = 58, Visible = false}); UI.corner(travelBanner, 7); UI.stroke(travelBanner, T.accent, 0.2)
+    local travelText = UI.label(travelBanner, "", 14, {Position = UDim2.fromOffset(14, 5), Size = UDim2.new(1, -28, 1, -10), TextXAlignment = Enum.TextXAlignment.Center, Font = Enum.Font.GothamBold, ZIndex = 59})
     local scrim = UI.frame(app.Root, {Name = "PanelOverlay", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35, Visible = false, ZIndex = 20})
     app.Shell = UI.frame(scrim, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(900, 650), BackgroundColor3 = T.background, ZIndex = 21}); UI.corner(app.Shell, 10); UI.stroke(app.Shell, T.line, 0.1)
     UI.frame(app.Shell, {Size = UDim2.new(1, 0, 0, 3), BackgroundColor3 = T.accent, ZIndex = 22})
@@ -98,7 +105,8 @@ local function boot()
     local panels = {
         inventory = {"РЮКЗАК", require(Views.InventoryView)}, quests = {"ЖУРНАЛ ЗАДАНИЙ", QuestView.page}, dialogue = {"РАДИ СЛЕДУЮЩЕГО ДНЯ", QuestView.dialogue},
         tutorial = {"ПЕРВЫЙ ДЕНЬ", QuestView.tutorial}, build = {"СТРОИТЕЛЬСТВО", BaseView.build}, base = {"УПРАВЛЕНИЕ БАЗОЙ", BaseView.base}, craft = {"МАСТЕРСКАЯ", BaseView.craft},
-        cosmetics = {"МАГАЗИН / COINS", ShopView.cosmetics}, trade = {"ТОРГОВЕЦ МАКС", ShopView.trade}, weapons = {"ОРУЖЕЙНАЯ", ShopView.weapons},
+        builder = {"СТЕПАН / АВТОСТРОИТЕЛЬ", BaseView.builder}, squad = {"ВОЕННЫЙ ОТРЯД", BaseView.squad},
+        cosmetics = {"МАГАЗИН / COINS", ShopView.cosmetics}, trade = {"СНАБЖЕНИЕ / ТОРГОВЛЯ", ShopView.trade}, weapons = {"ОРУЖЕЙНАЯ", ShopView.weapons},
         profile = {"ПРОФИЛЬ", ProfileView.profile}, achievements = {"ДОСТИЖЕНИЯ", ProfileView.achievements}, settings = {"НАСТРОЙКИ", ProfileView.settings},
         updates = {"ЖУРНАЛ ОБНОВЛЕНИЙ", ProfileView.updates}, map = {"КАРТА РАЙОНА", app.Map.page},
     }
@@ -164,7 +172,7 @@ local function boot()
         self.SurvivalLabel.Text = "ЕДА " .. math.floor(c.Hunger) .. "%    ВОДА " .. math.floor(c.Thirst) .. "%"
         local e = self:Equipped()
         self.EquipmentTitle.Text = e and self.Items[e.id].name:upper() or "БЕЗ ОРУЖИЯ"
-        self.AmmoLabel.Text = e and (self.Weapons[e.id].melee and "Ближний бой" or e.ammo .. " / " .. self.Weapons[e.id].magazine .. "  ·  запас " .. self:Count(self.Weapons[e.id].ammo or "ammo")) or "Экипируйте оружие: I"
+        self.AmmoLabel.Text = e and (self.Weapons[e.id].melee and "Ближний бой" or e.ammo .. " / " .. self.Weapons[e.id].magazine .. "  ·  запас " .. self:Count(self.Weapons[e.id].ammo or "ammo")) or "Экипируйте оружие: K"
         if e then self.AmmoLabel.Text ..= "  ·  " .. math.floor(e.durability) .. "%" end
         self.SaveLabel.Text = self:SaveText(); self.SaveLabel.TextColor3 = (s.save == "SessionOnly" or s.save == "Error") and T.danger or T.muted
         if s.save == "SessionOnly" then self.SaveLabel.TextColor3 = T.accent end
@@ -177,8 +185,9 @@ local function boot()
         if track then
             local def, q = self.Quests[track], c.Quests[track]
             self.TrackerTitle.Text = def.name
-            if not q then self.TrackerText.Text = "Подойдите к NPC и нажмите E.\n" .. ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор"})[def.npc]
-            elseif q.status == "Completed" then self.TrackerText.Text = "ЦЕЛИ ВЫПОЛНЕНЫ\nВернитесь к NPC за наградой.\n" .. ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор"})[def.npc]
+            local npcName = ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор", ira = "Ира Волкова", makar = "Майор Макар", nora = "Доктор Нора"})[def.npc] or def.npc
+            if not q then self.TrackerText.Text = "Подойдите к NPC и нажмите E.\n" .. npcName
+            elseif q.status == "Completed" then self.TrackerText.Text = "ЦЕЛИ ВЫПОЛНЕНЫ\nВернитесь к NPC за наградой.\n" .. npcName
             else
                 local lines = {}
                 for i, objective in def.objectives do table.insert(lines, objective.label .. ": " .. q.progress[i] .. "/" .. objective.count) end
@@ -191,6 +200,7 @@ local function boot()
         self.Crosshair.Visible = s.active and not self.PanelName and not self.Camera.Commander
     end
     player:SetAttribute("LastCityClientPhase", "Controllers")
+    app.Audio = require(script.Parent.Controllers.AudioController)(app)
     app.Camera = require(script.Parent.Controllers.CameraController)(app)
     app.Build = require(script.Parent.Controllers.BuildController)(app)
     app.Combat = require(script.Parent.Controllers.CombatController)(app)
@@ -224,6 +234,20 @@ local function boot()
         elseif kind == "dialogue" then
             app.Dialogue = data; app.DialogueText = nil; app.LastDialogueText = nil
             app:OpenPanel("dialogue"); app.Camera:SetDialogue(data.model)
+        elseif kind == "travel" then
+            if data.phase == "start" then
+                app.Crouching = false
+                if app.Combat then app.Combat.Held = false end
+                if app.Build and app.Build.Active then app.Build:Cancel() end
+                app:ClosePanel(); travelBanner.Visible = true
+                travelText.Text = "ВЕРТОЛЁТ  /  КУРС: " .. data.destination .. "\nСервер выполняет перелёт • " .. data.duration .. " секунд"
+                app.Camera:SetTravel(data)
+            else
+                app.Camera:SetTravel(nil)
+                travelText.Text = data.canceled and "РЕЙС ОТМЕНЁН  /  персонаж восстановлен в убежище"
+                    or "ПОСАДКА  /  " .. (data.destination or "МЕРИДИАН")
+                task.delay(2, function() travelBanner.Visible = false end)
+            end
         elseif kind == "commander" then app.Camera:SetCommander(data)
         elseif kind == "panel" then app:OpenPanel(data)
         elseif kind == "reload" then app:Toast("ПЕРЕЗАРЯДКА  /  " .. data .. " c") end
@@ -234,7 +258,7 @@ local function boot()
     end)
     local healthConnection
     app.Player.CharacterAdded:Connect(function(character)
-        app.Camera:SetCommander(false); app.Crouching = false
+        app.Camera:SetCommander(false); app.Camera:SetTravel(nil); travelBanner.Visible = false; app.Crouching = false
         if healthConnection then healthConnection:Disconnect() end
         local h = character:WaitForChild("Humanoid", 10)
         if h then healthConnection = h.HealthChanged:Connect(function() app:UpdateHUD() end) end
@@ -252,7 +276,8 @@ local function boot()
         if root then
             for _, dot in {app.MiniDot, app.MapDot} do
                 if dot and dot.Parent then
-                    dot.Position = UDim2.fromScale(math.clamp((root.Position.X + 300) / 780, 0.02, 0.98), math.clamp((450 - root.Position.Z) / 1180, 0.02, 0.98))
+                    local projected = app.Map.project(root.Position.X, root.Position.Z)
+                    dot.Position = UDim2.fromScale(projected.X, projected.Y)
                     dot.Rotation = math.deg(math.atan2(root.CFrame.LookVector.X, root.CFrame.LookVector.Z))
                 end
             end

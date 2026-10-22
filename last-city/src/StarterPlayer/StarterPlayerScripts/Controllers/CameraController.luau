@@ -2,7 +2,7 @@
 return function(app)
     local RunService = game:GetService("RunService")
     local Input = game:GetService("UserInputService")
-    local Camera = {Commander = false, Focus = nil, Height = 96, Pan = Vector3.zero, Dialogue = nil}
+    local Camera = {Commander = false, Focus = nil, Height = 96, Pan = Vector3.zero, Dialogue = nil, Travel = nil}
     local self = Camera
     local controls, disabled
     task.spawn(function()
@@ -18,6 +18,52 @@ return function(app)
         if value then app:Toast("COMMANDER • WASD — обзор, колесо — высота, V — вернуться. Персонаж остаётся уязвимым.") end
     end
     function Camera:SetDialogue(model) self.Dialogue = model end
+    function Camera:SetTravel(data)
+        local old = self.Travel
+        if old then
+            if old.model then old.model:Destroy() end
+            for _, saved in old.hidden or {} do if saved.part.Parent then saved.part.LocalTransparencyModifier = saved.value end end
+        end
+        self.Travel = nil
+        if not data or data.phase ~= "start" then if app.Audio then app.Audio:SetTravel(false) end; return end
+        local transports = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Transports")
+        local template = transports and transports:FindFirstChild(data.helicopter)
+        local hidden = {}
+        -- The authored parked aircraft stay server-owned; hide both only for this client
+        -- during the cinematic so the moving clone never overlaps a static helicopter.
+        if transports then
+            for _, helicopterName in {"City1Helicopter", "City2Helicopter"} do
+                local parked = transports:FindFirstChild(helicopterName)
+                for _, node in parked and parked:GetDescendants() or {} do
+                    if node:IsA("BasePart") then
+                        table.insert(hidden, {part = node, value = node.LocalTransparencyModifier})
+                        node.LocalTransparencyModifier = 1
+                    end
+                end
+            end
+        end
+        local model = template and template:Clone() or nil
+        local rotors = {}
+        if model then
+            model.Name = "ClientFlightHelicopter"
+            for _, node in model:GetDescendants() do
+                if node:IsA("BasePart") then
+                    node.CanCollide = false; node.CanQuery = false; node.CanTouch = false; node.LocalTransparencyModifier = 0
+                    if node.Name == "MainRotor" and model.PrimaryPart then table.insert(rotors, {part = node, relative = model.PrimaryPart.CFrame:ToObjectSpace(node.CFrame)}) end
+                end
+                if node:IsA("ProximityPrompt") then node:Destroy() end
+            end
+            model.Parent = workspace; model:PivotTo(CFrame.new(data.from))
+        end
+        self.Travel = {from = data.from, to = data.to, duration = data.duration, started = os.clock(), model = model, rotors = rotors, hidden = hidden}
+        self.Dialogue = nil; self.Commander = false
+        if app.Audio then app.Audio:SetTravel(true) end
+    end
+    app.Player.CharacterAdded:Connect(function()
+        -- A reset is a hard visual cancellation even if the server arrival packet races
+        -- character replacement. It also restores parked aircraft and rotor audio.
+        if self.Travel then self:SetTravel(nil) end
+    end)
     Input.InputChanged:Connect(function(input, processed)
         if not processed and self.Commander and input.UserInputType == Enum.UserInputType.MouseWheel then self.Height = math.clamp(self.Height - input.Position.Z * 9, 55, 155) end
     end)
@@ -25,7 +71,7 @@ return function(app)
         local camera = workspace.CurrentCamera; if not camera then return end
         local char = app.Player.Character; local root = char and char:FindFirstChild("HumanoidRootPart"); local h = char and char:FindFirstChildOfClass("Humanoid")
         local active = app.State and app.State.active
-        local blocked = not active or self.Commander or self.ExitFrom ~= nil or app.PanelName ~= nil
+        local blocked = not active or self.Commander or self.Travel ~= nil or self.ExitFrom ~= nil or app.PanelName ~= nil
         if controls and disabled ~= blocked then disabled = blocked; if blocked then controls:Disable() else controls:Enable() end end
         Input.MouseIconEnabled = not active or app.PanelName ~= nil or self.Commander or app.Build and app.Build.Active or Input.TouchEnabled
         if not active then
@@ -33,6 +79,23 @@ return function(app)
             local t = os.clock() * 0.055
             camera.CFrame = CFrame.lookAt(Vector3.new(55 + math.sin(t) * 18, 32 + math.sin(t * 0.7) * 4, -5 + math.cos(t) * 12), Vector3.new(-30, 17, 120))
             camera.FieldOfView = 65
+        elseif self.Travel then
+            local flight = self.Travel
+            local t = math.clamp((os.clock() - flight.started) / flight.duration, 0, 1)
+            local smooth = t * t * (3 - 2 * t)
+            local base = flight.from:Lerp(flight.to, smooth)
+            local position = base + Vector3.new(0, math.sin(t * math.pi) * 82, 0)
+            local direction = flight.to - flight.from
+            local flat = Vector3.new(direction.X, 0, direction.Z)
+            if flat.Magnitude < 0.1 then flat = Vector3.new(0, 0, -1) else flat = flat.Unit end
+            local helicopterFrame = CFrame.lookAt(position, position + flat)
+            if flight.model and flight.model.Parent then
+                flight.model:PivotTo(helicopterFrame)
+                local spin = (os.clock() - flight.started) * 17
+                for _, rotor in flight.rotors do if rotor.part.Parent then rotor.part.CFrame = helicopterFrame * rotor.relative * CFrame.Angles(0, spin, 0) end end
+            end
+            camera.CameraType = Enum.CameraType.Scriptable; camera.FieldOfView = 72
+            camera.CFrame = CFrame.lookAt(position - flat * 24 + Vector3.new(14, 10, 0), position + flat * 8)
         elseif self.Dialogue and self.Dialogue.Parent and self.Dialogue.PrimaryPart then
             local target = self.Dialogue.PrimaryPart.Position + Vector3.new(0, 1.4, 0)
             local pos = self.Dialogue.PrimaryPart.CFrame:PointToWorldSpace(Vector3.new(3, 2, -6))

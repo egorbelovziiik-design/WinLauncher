@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
   "serialization": {
     "status": "PASSED",
     "count": 10
@@ -10,7 +10,10 @@
     "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
   },
   "studio_import": {
-    "version": "0.4.0",
+    "version": "0.5.0",
+    "status": "NOT TESTED"
+  },
+  "studio_import_0_4_0": {
     "status": "NOT TESTED"
   },
   "studio_import_0_3_0": {
@@ -32,41 +35,42 @@
   "luau_version": "0.743",
   "source_compilation": {
     "status": "PASSED",
-    "count": 49
+    "count": 52
   },
   "domain": {
     "status": "PASSED",
-    "count": 108
+    "count": 117
   },
   "mock_adapters": {
     "status": "PASSED",
-    "count": 77,
+    "count": 89,
     "scope": "API doubles; NOT Roblox Studio"
   },
   "binary": {
-    "assertions": 76,
-    "instances": 5941,
-    "parts": 5398,
-    "scripts": 49,
-    "bytes": 245110,
-    "sha256": "453830e4d0ecefabd0ab7b7a8a7fe7a54be8f92af433e3f901129f8689e7eb60",
+    "assertions": 110,
+    "instances": 7189,
+    "parts": 6553,
+    "scripts": 52,
+    "bytes": 293152,
+    "sha256": "f9d6718bad526fb1e599c616c8546f93b844f3bbd03bca47333117b38f2a6b1c",
     "classes": {
       "Workspace": 1,
       "Camera": 1,
       "Terrain": 1,
       "Clouds": 1,
-      "Folder": 19,
-      "Part": 5339,
-      "Model": 169,
-      "SurfaceGui": 31,
-      "TextLabel": 40,
-      "PointLight": 31,
+      "Folder": 20,
+      "Part": 6494,
+      "Model": 190,
+      "SurfaceGui": 41,
+      "TextLabel": 50,
+      "PointLight": 45,
       "SpawnLocation": 1,
       "TrussPart": 2,
       "Fire": 2,
+      "SpotLight": 4,
       "WedgePart": 55,
-      "StringValue": 77,
-      "IntValue": 86,
+      "StringValue": 95,
+      "IntValue": 98,
       "BillboardGui": 9,
       "NumberValue": 2,
       "Lighting": 1,
@@ -77,7 +81,7 @@
       "Sky": 1,
       "ReplicatedStorage": 1,
       "RemoteEvent": 11,
-      "ModuleScript": 46,
+      "ModuleScript": 49,
       "ServerScriptService": 1,
       "Script": 1,
       "StarterPlayer": 1,

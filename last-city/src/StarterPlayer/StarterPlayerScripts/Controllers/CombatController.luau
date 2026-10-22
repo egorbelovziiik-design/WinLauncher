@@ -58,11 +58,11 @@ return function(app)
         local key = input.KeyCode
         if key == Enum.KeyCode.Escape and app.Build.Active then app.Build:Cancel(); return end
         if key == Enum.KeyCode.Escape and app.PanelName then app:ClosePanel(); return end
-        if not app.State or not app.State.active then return end
-        local panels = {[Enum.KeyCode.I] = "inventory", [Enum.KeyCode.J] = "quests", [Enum.KeyCode.B] = "build", [Enum.KeyCode.M] = "map", [Enum.KeyCode.G] = "base", [Enum.KeyCode.P] = "profile", [Enum.KeyCode.T] = "tutorial"}
+        if not app.State or not app.State.active or app.Camera and app.Camera.Travel then return end
+        local panels = {[Enum.KeyCode.K] = "inventory", [Enum.KeyCode.J] = "quests", [Enum.KeyCode.B] = "build", [Enum.KeyCode.M] = "map", [Enum.KeyCode.G] = "base", [Enum.KeyCode.P] = "profile", [Enum.KeyCode.T] = "tutorial"}
         if panels[key] then
             if app.PanelName == panels[key] then app:ClosePanel() else app:OpenPanel(panels[key]) end
-            if key == Enum.KeyCode.I then app:Send("SessionRemote", {action = "inventoryOpened"}) end
+            if key == Enum.KeyCode.K then app:Send("SessionRemote", {action = "inventoryOpened"}) end
         elseif key == Enum.KeyCode.F then app:Send("MovementRemote", {action = "flashlight"})
         elseif key == Enum.KeyCode.LeftControl then
             app.Crouching = not app.Crouching; app:Send("MovementRemote", {action = "crouch", value = app.Crouching})

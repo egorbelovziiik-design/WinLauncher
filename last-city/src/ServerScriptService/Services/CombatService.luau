@@ -17,7 +17,7 @@ return function(ctx)
         local skin = ctx.EconomyDefs.Cosmetics[s.Data.EquippedSkin]
         if skin then color = Color3.fromRGB(table.unpack(skin.color)) end
         local tool = ctx.Factory.weapon(e.id, color)
-        tool.Name = ctx.Items[e.id].name; tool:SetAttribute("LastCityTool", true); tool:SetAttribute("UID", e.uid)
+        tool.Name = ctx.Items[e.id].name; tool:SetAttribute("LastCityTool", true); tool:SetAttribute("UID", e.uid); tool:SetAttribute("ItemId", e.id)
         tool.ToolTip = "ЛКМ / атака • R / перезарядка"; tool.Parent = backpack
         local h = char:FindFirstChildOfClass("Humanoid"); if h and h.Health > 0 then h:EquipTool(tool) end
     end

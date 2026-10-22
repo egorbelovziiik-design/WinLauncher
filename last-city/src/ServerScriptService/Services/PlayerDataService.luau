@@ -23,6 +23,12 @@ return function(ctx)
         if not h or not root then return end
         local s = ctx.Sessions[player]
         if not s then return end
+        if s.Traveling then
+            -- Reset/respawn cancels the old server token. Without this, the replacement
+            -- character could be teleported by a stale flight and active remotes stay locked.
+            s.Traveling = nil
+            ctx.Remotes.StateRemote:FireClient(player, "travel", {phase = "arrive", canceled = true})
+        end
         h.WalkSpeed = 16; h.MaxHealth = 100
         s.SpawnGrace = os.clock() + 4; s.SafePosition = nil
         character:PivotTo(CFrame.new(0, 5, -106))
@@ -31,6 +37,11 @@ return function(ctx)
         if not s.Active and not shield then shield = Instance.new("ForceField"); shield.Name = "MenuShield"; shield.Visible = false; shield.Parent = character end
         h.Died:Connect(function()
             s.Commander = false; s.Reloading = nil; s.Stamina = 100
+            if s.Traveling then
+                s.Traveling = nil
+                if root.Parent then root.Anchored = false end
+                ctx.Remotes.StateRemote:FireClient(player, "travel", {phase = "arrive", canceled = true})
+            end
             s.Campaign.Hunger = math.max(s.Campaign.Hunger, 35); s.Campaign.Thirst = math.max(s.Campaign.Thirst, 35)
             ctx:Notify(player, "Вас доставили в убежище. Инвентарь сохранён.", "info")
         end)
@@ -42,7 +53,7 @@ return function(ctx)
         for _, other in ctx.Sessions do occupied[other.Plot] = true end
         local plot
         for index in ctx.Config.Plots do if not occupied[index] then plot = index; break end end
-        if not plot then player:Kick("В этом убежище заняты все 6 участков. Выберите другой сервер."); return end
+        if not plot then player:Kick("В этом убежище заняты все " .. #ctx.Config.Plots .. " участков. Выберите другой сервер."); return end
         ctx.Sessions[player] = {Loaded = false, Plot = plot, Active = false}
         player.CharacterAdded:Connect(function(character) self:Character(player, character) end)
         if player.Character then task.spawn(function() self:Character(player, player.Character) end) end
@@ -64,6 +75,7 @@ return function(ctx)
         player:SetAttribute("LastCityLoadPhase", "Base")
         ctx.Services.BuildingService:Restore(player)
         ctx.Services.NPCService:AddWorkers(player)
+        ctx.Services.SquadService:SyncPlayer(player)
         player:SetAttribute("LastCityLoadPhase", "Ready")
         self:Snapshot(player)
     end
@@ -100,12 +112,16 @@ return function(ctx)
             ctx.Services.SaveService:Save(player, true)
             ctx.Services.BuildingService:RemovePlayer(player)
             ctx.Services.NPCService:RemovePlayer(player)
+            ctx.Services.SquadService:RemovePlayer(player)
             ctx.Services.CombatService:Remove(player)
             ctx.Services.NetworkService:Remove(player)
             ctx.Sessions[player] = nil
         end)
         for _, player in Players:GetPlayers() do task.spawn(function() self:Join(player) end) end
         ctx.Services.NetworkService:Register("SessionRemote", false, function(player, s, p)
+            -- SessionRemote also serves the pre-game menu, so its channel cannot require
+            -- Active globally. During a flight only read-only sync/manual save remain valid.
+            if s.Traveling and p.action ~= "sync" and p.action ~= "save" then return end
             if p.action == "sync" then self:Snapshot(player)
             elseif p.action == "play" then self:Start(player, s)
             elseif p.action == "save" then
@@ -148,7 +164,7 @@ return function(ctx)
             elseif p.action == "inventoryOpened" and s.Active then ctx.Progression.fact(s.Campaign, "inventory"); ctx:Changed(player)
             elseif p.action == "setting" then
                 local allowed = {graphics = {"Low", "Medium", "High", "Ultra"}, difficulty = {"Relaxed", "Normal", "Hard"}}
-                local bounds = {uiSound = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}}
+                local bounds = {uiSound = {0, 1}, music = {0, 1}, effects = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}}
                 if allowed[p.id] and table.find(allowed[p.id], p.value) then s.Data.Settings[p.id] = p.value
                 elseif bounds[p.id] and ctx.Util.finite(p.value) then s.Data.Settings[p.id] = math.clamp(p.value, bounds[p.id][1], bounds[p.id][2]) end
                 ctx:Changed(player)

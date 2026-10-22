@@ -1,6 +1,6 @@
 --!nonstrict
 return function(ctx)
-    local Service = {TurretAt = {}}
+    local Service = {TurretAt = {}, TrapAt = {}}
     function Service:Init()
         ctx.Services.NetworkService:Register("CraftingRemote", true, function(player, s, p)
             if not ctx:InPlot(player, 12) then ctx:Notify(player, "Крафт доступен на своём участке.", "error"); return end
@@ -34,6 +34,18 @@ return function(ctx)
                                 s.Campaign.Stockpile.ammo -= 1
                                 ctx.Services.ZombieService:Damage(target, 22, player)
                                 ctx:FX("shot", {from = origin, to = target.model.PrimaryPart.Position, melee = false, hit = true, user = player.UserId})
+                            end
+                        elseif b.id == "spikes" and b.readyAt <= os.time() then
+                            local key = tostring(player.UserId) .. ":" .. b.uid
+                            if (self.TrapAt[key] or 0) <= os.clock() then
+                                local origin = ctx.Services.BuildingService:Position(player, b) + Vector3.new(0, 1, 0)
+                                local target = ctx.Services.ZombieService:Nearest(origin, 6.5)
+                                if target then
+                                    self.TrapAt[key] = os.clock() + 1.5
+                                    ctx.Services.ZombieService:Damage(target, ctx.BuildingDefs.spikes.trapDamage, player)
+                                    ctx.Services.BuildingService:Damage(player, b.uid, 1)
+                                    ctx:FX("shot", {from = origin, to = target.model.PrimaryPart.Position, melee = true, hit = true, user = 0})
+                                end
                             end
                         end
                     end

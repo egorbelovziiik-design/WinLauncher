@@ -9,7 +9,11 @@ return function(ctx)
             if p.action == "cosmetic" then
                 ok, err = ctx.Economy.cosmetic(s.Data, p.id)
                 if ok and s.Active then ctx.Services.CombatService:SyncTool(player) end
-            elseif s.Active and ctx:Alive(player) and ctx.Services.NPCService:Near(player, "max") then
+            elseif s.Active and ctx:Alive(player) then
+                local cityQuest = s.Campaign.Quests.second_city
+                local nearSupplier = ctx.Services.NPCService:Near(player, "max")
+                    or cityQuest and cityQuest.status == "RewardClaimed" and ctx.Services.NPCService:Near(player, "quartermaster")
+                if not nearSupplier then ctx:Notify(player, err, "error"); return end
                 local product = self.Products[p.id]
                 if product and p.action == "buy" then
                     local nextStock

@@ -1,11 +1,17 @@
-# Поставляемый файл Roblox
+# LAST CITY 3D — готовый Roblox place
 
-`LAST_CITY_3D.rbxl` — бинарное место **Black Vein 0.4.0**, развиваемый вертикальный срез, не финальная игра.
+`LAST_CITY_3D.rbxl` — бинарное место **IRON HORIZON 0.5.0**, развиваемый настоящий PvE vertical slice.
 
-Этот snapshot намеренно хранится в Git по запросу прямой GitHub-ссылки на `.rbxl`. Остальные сгенерированные файлы, логи и инструментарий находятся в игнорируемых `release-artifacts/` и `.local/`. Зависимости `node_modules/` и скачанный Blender runtime не коммитятся.
+SHA-256:
 
-Сборка: `python3 last-city/tools/test.py` из корня репозитория. CI проверяет совпадение этого файла с результатом сборки. Контрольная сумма: `SHA256SUMS`.
+```text
+f9d6718bad526fb1e599c616c8546f93b844f3bbd03bca47333117b38f2a6b1c  LAST_CITY_3D.rbxl
+```
 
-Открыть в Roblox Studio: File → Open from File → Play (F5). [Инструкция](../README.md). **Открытие/Play именно 0.4.0 в Roblox Studio ещё не выполнены.**
+Открыть: Roblox Studio → **File → Open from File** → `LAST_CITY_3D.rbxl` → **Play / F5**. Инструкция и управление: [README](../README.md). Рюкзак теперь открывается **K**; клавиша **1** достаёт и повторно убирает лом.
 
-**История:** 0.1.1 исправила некорректный `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и запуск 0.3.0 в Studio. Тест 0.3.0 выявил позы рук назад, неполную крышу и ненадёжное взаимодействие с Виктором — эти места изменены в 0.4.0 и требуют повторного Studio QA.
+Автоматически PASSED: 52 Luau sources, 10 serialization tests, 7 road tests, 117 domain tests, 89 mock-adapter tests, 110 binary assertions и повторная byte-for-byte сборка. Файл содержит 7 189 Instances, 6 553 BasePart и 52 scripts; размер 293 152 bytes.
+
+**Честный gate:** импорт/Play именно 0.5.0, Motor6D, Humanoid physics, Pathfinding, звук, Streaming, живой DataStore и multiplayer в Roblox Studio пока **NOT TESTED**. Пройдите [STUDIO_QA.md](../docs/STUDIO_QA.md), особенно раздел 13.
+
+История: 0.1.1 исправила некорректный `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и частичный Play 0.3.0. 0.3.0 выявила позы рук, крышу и взаимодействие Виктора; автоматические исправления вошли в 0.4.0. Для 0.4.0 отдельного Studio-подтверждения не было.

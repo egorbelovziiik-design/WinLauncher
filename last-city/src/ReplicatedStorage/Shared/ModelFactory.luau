@@ -23,7 +23,18 @@ function Factory.building(id, def, cf)
         for x = -5, 5, 2 do p("Timber", Vector3.new(1.8, 6, 1.6), x, 3.5, 0, Color3.fromRGB(104, 82, 58), Enum.Material.Wood) end
         for y = 2, 5, 3 do p("Brace", Vector3.new(12, 0.6, 0.4), 0, y, 1, dark) end
         p("Warning", Vector3.new(4, 0.5, 0.2), 0, 5.5, 1.3, orange)
-    elseif id == "generator" or id == "diesel" then
+    elseif id == "metal_wall" then
+        for x = -5, 5, 2 do p("SteelPost", Vector3.new(0.55, 7.2, 1), x, 4, 0, Color3.fromRGB(68, 81, 84), Enum.Material.Metal) end
+        for y = 2, 6, 2 do p("SteelPlate", Vector3.new(11.7, 1.55, 0.42), 0, y, 0, Color3.fromRGB(94, 108, 108), Enum.Material.DiamondPlate) end
+        p("ConcreteFoot", Vector3.new(12, 1.1, 3.2), 0, 0.85, 0, Color3.fromRGB(99, 102, 98), Enum.Material.Concrete)
+        p("Reflector", Vector3.new(4, 0.35, 0.18), 0, 6.8, -0.35, orange, Enum.Material.Neon)
+    elseif id == "spikes" then
+        for x = -3, 3, 2 do for z = -3, 3, 2 do
+            local spike = p("Spike", Vector3.new(0.45, 2.2, 0.45), x, 1.4, z, Color3.fromRGB(112, 119, 116), Enum.Material.Metal)
+            spike.CFrame = spike.CFrame * CFrame.Angles(0, 0, math.rad((x + z) % 2 == 0 and 16 or -16))
+        end end
+        p("TrapFrame", Vector3.new(7.4, 0.5, 7.4), 0, 0.75, 0, dark, Enum.Material.DiamondPlate)
+    elseif id == "generator" or id == "diesel" or id == "advanced_generator" then
         p("Engine", Vector3.new(s[1] - 2, 3.2, 5), 0, 2.2, 0, Color3.fromRGB(80, 101, 91))
         p("Tank", Vector3.new(2, 2.6, 6), s[1] / 2 - 1.5, 2, 0, orange)
         p("Exhaust", Vector3.new(0.5, 4, 0.5), -2, 3, 2, dark)
@@ -36,21 +47,61 @@ function Factory.building(id, def, cf)
             p("Row", Vector3.new(11, 0.2, 0.3), 0, 1, z, dark, Enum.Material.Wood)
             for x = -4, 4, 2 do p("Crop", Vector3.new(0.8, 1, 0.8), x, 1.5, z, Color3.fromRGB(91, 126, 57), Enum.Material.Grass) end
         end
+    elseif id == "greenhouse" then
+        for _, x in {-7, 7} do for _, z in {-5, 5} do p("Frame", Vector3.new(0.45, 7, 0.45), x, 4, z, dark) end end
+        for _, z in {-5.5, 5.5} do p("GlassWall", Vector3.new(14.5, 6.5, 0.25), 0, 4, z, Color3.fromRGB(125, 179, 184), Enum.Material.Glass) end
+        for _, x in {-7.5, 7.5} do p("GlassWall", Vector3.new(0.25, 6.5, 11), x, 4, 0, Color3.fromRGB(125, 179, 184), Enum.Material.Glass) end
+        p("GlassRoof", Vector3.new(15, 0.35, 11), 0, 7.6, 0, Color3.fromRGB(145, 197, 195), Enum.Material.Glass)
+        for z = -3, 3, 3 do p("GrowBed", Vector3.new(12, 0.7, 1.6), 0, 1, z, Color3.fromRGB(65, 78, 48), Enum.Material.Ground) end
     elseif id == "well" then
         p("Well", Vector3.new(6, 3, 6), 0, 2, 0, Color3.fromRGB(100, 108, 108), Enum.Material.Cobblestone)
         p("Water", Vector3.new(4.8, 0.2, 4.8), 0, 3.55, 0, Color3.fromRGB(45, 116, 134), Enum.Material.Glass)
         p("Pump", Vector3.new(1.5, 5.5, 1.5), 2, 3.3, 2, orange)
         p("Spout", Vector3.new(3, 0.6, 0.6), 0.8, 5.8, 2, dark)
+    elseif id == "purifier" then
+        for x = -3, 3, 3 do
+            local tank = p("FilterTank", Vector3.new(2.7, 6, 2.7), x, 3.6, 0, Color3.fromRGB(82, 105, 108), Enum.Material.Metal)
+            tank.Shape = Enum.PartType.Cylinder
+            p("Pipe", Vector3.new(0.55, 2.2, 0.55), x, 6.5, 2.2, orange, Enum.Material.Metal)
+        end
+        p("PipeRack", Vector3.new(9, 0.55, 0.55), 0, 7.2, 2.2, orange, Enum.Material.Metal)
+        p("ControlBox", Vector3.new(2.4, 3, 1.4), 4.5, 2.1, -2.8, dark, Enum.Material.Metal)
     elseif id == "workshop" then
         for _, x in {-7, 7} do for _, z in {-5, 5} do p("Post", Vector3.new(0.6, 9, 0.6), x, 4.8, z, dark) end end
         p("Roof", Vector3.new(16, 0.6, 12), 0, 9.7, 0, Color3.fromRGB(87, 99, 96))
         p("Workbench", Vector3.new(10, 0.6, 3), 0, 3, -3, Color3.fromRGB(142, 109, 69), Enum.Material.Wood)
         p("Cabinet", Vector3.new(4, 3, 3), -4, 1.8, -3, dark)
         p("Toolbox", Vector3.new(2, 1, 1.6), 2, 3.8, -3, orange)
+    elseif id == "ammo_press" then
+        p("PressBody", Vector3.new(4, 6.5, 4), -2.5, 3.7, 0, Color3.fromRGB(72, 89, 83), Enum.Material.Metal)
+        p("PressRam", Vector3.new(1.2, 5, 1.2), -2.5, 4.2, -2.2, orange, Enum.Material.Metal)
+        p("FeedHopper", Vector3.new(3.5, 2.2, 3.5), 2.5, 5.5, 0, Color3.fromRGB(103, 111, 106), Enum.Material.DiamondPlate)
+        p("AmmoTray", Vector3.new(5, 0.5, 3), 1.5, 1.4, -3.1, dark, Enum.Material.Metal)
+        p("Guard", Vector3.new(11, 0.4, 0.4), 0, 7.4, 4, orange, Enum.Material.Neon)
+    elseif id == "field_hospital" then
+        for _, x in {-6, 6} do for _, z in {-5, 5} do p("TentPost", Vector3.new(0.4, 8, 0.4), x, 4.3, z, dark) end end
+        p("Canopy", Vector3.new(13.5, 0.45, 11.5), 0, 8.4, 0, Color3.fromRGB(188, 194, 176), Enum.Material.Fabric)
+        for x = -3.5, 3.5, 7 do p("MedicalCot", Vector3.new(5.5, 0.65, 2.4), x, 1.7, 1, Color3.fromRGB(175, 185, 170), Enum.Material.Fabric) end
+        p("MedicalCabinet", Vector3.new(3, 5, 2), 4.8, 3, -3.8, Color3.fromRGB(211, 218, 204), Enum.Material.Metal)
+        p("MedicalMark", Vector3.new(1.2, 1.2, 0.15), 4.8, 4, -4.85, Color3.fromRGB(184, 61, 55), Enum.Material.Neon)
     elseif id == "lamp" then
         p("Pole", Vector3.new(0.6, 11, 0.6), 0, 6, 0, dark)
         local head = p("Lens", Vector3.new(3, 0.8, 2), 0, 12, 0, Color3.fromRGB(253, 222, 160), Enum.Material.Neon)
         local light = Instance.new("PointLight"); light.Color = head.Color; light.Range = 48; light.Brightness = 2; light.Enabled = false; light.Parent = head
+    elseif id == "watchtower" then
+        for _, x in {-4, 4} do for _, z in {-4, 4} do p("TowerLeg", Vector3.new(0.7, 15, 0.7), x, 7.8, z, Color3.fromRGB(77, 67, 52), Enum.Material.Wood) end end
+        p("Platform", Vector3.new(10, 0.8, 10), 0, 14, 0, Color3.fromRGB(92, 78, 58), Enum.Material.WoodPlanks)
+        p("Roof", Vector3.new(11, 0.6, 11), 0, 17.5, 0, Color3.fromRGB(72, 84, 78), Enum.Material.Metal)
+        for _, x in {-4.5, 4.5} do p("Rail", Vector3.new(0.25, 2.5, 9), x, 15.3, 0, dark) end
+        for _, z in {-4.5, 4.5} do p("Rail", Vector3.new(9, 2.5, 0.25), 0, 15.3, z, dark) end
+    elseif id == "radio_tower" then
+        for _, x in {-2.5, 2.5} do for _, z in {-2.5, 2.5} do p("MastLeg", Vector3.new(0.35, 20, 0.35), x, 10.3, z, Color3.fromRGB(76, 88, 89), Enum.Material.Metal) end end
+        for y = 3, 18, 3 do
+            p("CrossBrace", Vector3.new(6, 0.25, 0.25), 0, y, -2.5, orange, Enum.Material.Metal)
+            p("CrossBrace", Vector3.new(0.25, 0.25, 6), 2.5, y, 0, orange, Enum.Material.Metal)
+        end
+        p("Antenna", Vector3.new(0.25, 5, 0.25), 0, 22, 0, orange, Enum.Material.Neon)
+        p("RadioCabinet", Vector3.new(3.5, 3, 3), 0, 1.8, 0, dark, Enum.Material.Metal)
     elseif id == "turret" then
         p("Mount", Vector3.new(3, 5, 3), 0, 3, 0, dark)
         p("TurretHead", Vector3.new(4, 2, 3), 0, 6.5, 0, Color3.fromRGB(74, 90, 80))
@@ -170,6 +221,30 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
     elseif style == "worker_lev" then
         detail("Cap", Vector3.new(1.65, 0.38, 1.52), Vector3.new(0, 3.65, 0), Color3.fromRGB(68, 85, 72), head, Enum.Material.Fabric, true)
         detail("CapBill", Vector3.new(1.05, 0.12, 0.65), Vector3.new(0, 3.5, -0.72), Color3.fromRGB(68, 85, 72), head, Enum.Material.Fabric)
+    elseif style == "builder" then
+        detail("BuilderHelmet", Vector3.new(1.72, 0.48, 1.55), Vector3.new(0, 3.68, 0), Color3.fromRGB(229, 158, 48), head, Enum.Material.Plastic, true)
+        detail("BuilderVest", Vector3.new(1.92, 1.38, 0.28), Vector3.new(0, 1.32, -0.59), Color3.fromRGB(198, 104, 39), upper, Enum.Material.Fabric)
+        detail("ToolBelt", Vector3.new(1.8, 0.3, 1.02), Vector3.new(0, 0.43, 0), Color3.fromRGB(75, 55, 39), lower, Enum.Material.Leather)
+        detail("Hammer", Vector3.new(0.32, 1.7, 0.32), Vector3.new(1.05, 0.2, 0.15), Color3.fromRGB(108, 79, 48), lower, Enum.Material.Wood)
+    elseif style == "major" then
+        detail("MajorBeret", Vector3.new(1.68, 0.3, 1.48), Vector3.new(0, 3.72, 0), Color3.fromRGB(48, 71, 51), head, Enum.Material.Fabric, true)
+        detail("MilitaryVest", Vector3.new(2, 1.5, 0.36), Vector3.new(0, 1.3, -0.59), Color3.fromRGB(55, 75, 56), upper, Enum.Material.Fabric)
+        detail("RankBars", Vector3.new(0.5, 0.22, 0.08), Vector3.new(-0.55, 1.55, -0.8), orange, upper, Enum.Material.Neon)
+    elseif style == "quartermaster" then
+        detail("GarrisonCap", Vector3.new(1.68, 0.36, 1.5), Vector3.new(0, 3.68, 0), Color3.fromRGB(56, 74, 57), head, Enum.Material.Fabric, true)
+        detail("SupplyVest", Vector3.new(1.94, 1.42, 0.32), Vector3.new(0, 1.3, -0.58), Color3.fromRGB(67, 78, 56), upper, Enum.Material.Fabric)
+        detail("LedgerBag", Vector3.new(0.72, 1.3, 0.4), Vector3.new(-1.05, 0.8, 0.25), Color3.fromRGB(90, 68, 45), lower, Enum.Material.Leather)
+    elseif style == "pilot" then
+        detail("PilotHelmet", Vector3.new(1.72, 0.58, 1.57), Vector3.new(0, 3.61, 0), Color3.fromRGB(63, 75, 70), head, Enum.Material.Plastic, true)
+        detail("Visor", Vector3.new(1.28, 0.4, 0.12), Vector3.new(0, 3.08, -0.78), Color3.fromRGB(50, 83, 91), head, Enum.Material.Glass)
+        detail("FlightHarness", Vector3.new(1.92, 1.4, 0.3), Vector3.new(0, 1.31, -0.58), Color3.fromRGB(82, 91, 73), upper, Enum.Material.Fabric)
+    elseif style:match("^soldier_") then
+        detail("CombatHelmet", Vector3.new(1.78, 0.56, 1.62), Vector3.new(0, 3.64, 0), Color3.fromRGB(54, 72, 55), head, Enum.Material.Plastic, true)
+        detail("MilitaryArmor", Vector3.new(2.03, 1.55, 0.4), Vector3.new(0, 1.3, -0.6), Color3.fromRGB(48, 68, 51), upper, Enum.Material.Fabric)
+        detail("ShoulderGuard", Vector3.new(3.02, 0.3, 0.84), Vector3.new(0, 1.82, 0), Color3.fromRGB(61, 78, 61), upper, Enum.Material.Metal)
+        detail("RifleBody", Vector3.new(0.5, 0.65, 2.7), Vector3.new(1.4, -0.42, -1.1), Color3.fromRGB(48, 56, 54), rightHand, Enum.Material.Metal)
+        detail("RifleBarrel", Vector3.new(0.25, 0.25, 2.4), Vector3.new(1.4, -0.38, -3.25), Color3.fromRGB(35, 42, 42), rightHand, Enum.Material.Metal)
+        detail("RifleMagazine", Vector3.new(0.48, 0.9, 0.55), Vector3.new(1.4, -0.96, -1.25), Color3.fromRGB(57, 65, 61), rightHand, Enum.Material.Metal)
     elseif style:match("^zombie") then
         detail("TornShirt", Vector3.new(1.85, 0.38, 1.08), Vector3.new(0, 0.78, 0), Color3.fromRGB(47, 57, 49), lower, Enum.Material.Fabric)
         if style == "zombie_tank" or style == "zombie_brute" then
@@ -182,13 +257,28 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
             detail("RavagerPlate", Vector3.new(1.9, 1.1, 0.3), Vector3.new(0, 1.3, -0.58), Color3.fromRGB(97, 64, 56), upper, Enum.Material.Slate)
         elseif style == "zombie_armored" then
             detail("BrokenVisor", Vector3.new(1.25, 0.3, 0.1), Vector3.new(0, 3.05, -0.77), Color3.fromRGB(50, 75, 79), head, Enum.Material.Glass)
+        elseif style == "zombie_corrosive" then
+            detail("CorrosiveSac", Vector3.new(1.35, 1.5, 0.75), Vector3.new(0, 1.2, 0.78), Color3.fromRGB(123, 163, 64), upper, Enum.Material.Neon, true)
+            detail("Respirator", Vector3.new(0.75, 0.55, 0.25), Vector3.new(0, 2.75, -0.8), Color3.fromRGB(73, 91, 62), head, Enum.Material.Metal)
+        elseif style == "zombie_stalker" then
+            detail("StalkerHood", Vector3.new(1.75, 0.62, 1.6), Vector3.new(0, 3.56, 0.08), Color3.fromRGB(37, 48, 49), head, Enum.Material.Fabric, true)
+            detail("StalkerWrap", Vector3.new(1.9, 1.25, 0.25), Vector3.new(0, 1.3, -0.58), Color3.fromRGB(45, 54, 55), upper, Enum.Material.Fabric)
+        elseif style == "zombie_mine_guard" then
+            detail("CrackedMinerHelmet", Vector3.new(1.78, 0.45, 1.6), Vector3.new(0, 3.7, 0), Color3.fromRGB(190, 119, 36), head, Enum.Material.Plastic, true)
+            detail("MineLamp", Vector3.new(0.38, 0.38, 0.18), Vector3.new(0, 3.66, -0.84), orange, head, Enum.Material.Neon)
+        elseif style == "zombie_warden" then
+            detail("WardenMask", Vector3.new(1.38, 0.72, 0.18), Vector3.new(0, 3.05, -0.79), Color3.fromRGB(54, 66, 66), head, Enum.Material.Metal)
+            detail("WardenArmor", Vector3.new(2.1, 1.55, 0.4), Vector3.new(0, 1.3, -0.6), Color3.fromRGB(58, 69, 67), upper, Enum.Material.Metal)
+        elseif style == "zombie_foreman" then
+            detail("ForemanLamp", Vector3.new(0.5, 0.5, 0.2), Vector3.new(0, 3.72, -0.86), orange, head, Enum.Material.Neon)
         end
     else
         detail("Hair", Vector3.new(1.62, 0.48, 1.45), Vector3.new(0, 3.62, 0.06), Color3.fromRGB(62, 49, 39), head, nil, true)
     end
     local h = Instance.new("Humanoid"); h.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
     h.BreakJointsOnDeath = false; h.RequiresNeck = true; h.RigType = Enum.HumanoidRigType.R15
-    h.AutomaticScalingEnabled = false; h.WalkSpeed = 9; h.HipHeight = 2 * scale; h.Parent = m
+    h.AutomaticScalingEnabled = false; h.WalkSpeed = 9; h.HipHeight = 2 * scale
+    h.UseJumpPower = true; h.JumpPower = 0; h.AutoJumpEnabled = false; h.Parent = m
     local animator = Instance.new("Animator"); animator.Parent = h
     m.PrimaryPart = root
     return m, h
@@ -205,15 +295,19 @@ function Factory.weapon(id, color)
         or id == "machete" and Vector3.new(0.34, 1.35, 0.34)
         or id == "pickaxe" and Vector3.new(0.32, 3.4, 0.32)
         or Vector3.new(0.42, 0.9, 0.62)
-    local h = part(tool, "Handle", handleSize, CFrame.new(), color or dark)
+    local weaponColor = id == "crowbar" and Color3.fromRGB(132, 48, 42) or (color or dark)
+    local h = part(tool, "Handle", handleSize, CFrame.new(), weaponColor)
     h.Anchored = false; h.CanCollide = false; h.Massless = true
     local function add(name, size, offset, tint, material)
         local p = part(tool, name, size, h.CFrame * offset, tint, material); p.Anchored = false; p.CanCollide = false; p.Massless = true
         local w = Instance.new("WeldConstraint"); w.Part0 = h; w.Part1 = p; w.Parent = p
     end
     if id == "crowbar" then
-        add("Hook", Vector3.new(0.65, 0.25, 0.25), CFrame.new(0.2, 1.7, 0), color or dark)
-        tool.Grip = CFrame.new(0, -0.7, 0) * CFrame.Angles(math.rad(15), 0, 0)
+        add("HookNeck", Vector3.new(0.9, 0.28, 0.28), CFrame.new(0.36, 1.62, 0) * CFrame.Angles(0, 0, math.rad(-18)), weaponColor)
+        add("HookTip", Vector3.new(0.28, 0.85, 0.28), CFrame.new(0.73, 1.38, 0) * CFrame.Angles(0, 0, math.rad(-48)), Color3.fromRGB(161, 64, 51))
+        add("PryClaw", Vector3.new(0.72, 0.18, 0.5), CFrame.new(0.22, -1.78, 0) * CFrame.Angles(0, 0, math.rad(13)), Color3.fromRGB(181, 187, 183), Enum.Material.Metal)
+        for y = -1.05, -0.35, 0.23 do add("GripWrap", Vector3.new(0.34, 0.09, 0.34), CFrame.new(0, y, 0), Color3.fromRGB(41, 45, 44), Enum.Material.Rubber) end
+        tool.Grip = CFrame.new(0, -0.72, 0) * CFrame.Angles(math.rad(17), 0, math.rad(-6))
     elseif id == "machete" then
         add("Blade", Vector3.new(0.16, 2.8, 0.72), CFrame.new(0, 1.95, 0), Color3.fromRGB(177, 184, 181))
         add("Guard", Vector3.new(0.9, 0.16, 0.3), CFrame.new(0, 0.72, 0), color or dark)

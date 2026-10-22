@@ -1,9 +1,10 @@
 --!nonstrict
 local Map = {}
-local MIN_X, MAX_X, MIN_Z, MAX_Z = -300, 480, -730, 450
+local MIN_X, MAX_X, MIN_Z, MAX_Z = -300, 1220, -730, 450
 local WIDTH, DEPTH = MAX_X - MIN_X, MAX_Z - MIN_Z
 local function mapX(x) return (x - MIN_X) / WIDTH end
 local function mapZ(z) return (MAX_Z - z) / DEPTH end
+function Map.project(x, z) return Vector2.new(math.clamp(mapX(x), 0.02, 0.98), math.clamp(mapZ(z), 0.02, 0.98)) end
 function Map.draw(app, parent, compact)
     local UI = app.UI; local T = UI.Theme
     local map = UI.frame(parent, {Name = "DistrictMap", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(22, 30, 31), ClipsDescendants = true})
@@ -21,6 +22,10 @@ function Map.draw(app, parent, compact)
     rect(-62, 5, 83, 39, Color3.fromRGB(88, 104, 79)); rect(62, 5, 45, 28, Color3.fromRGB(81, 91, 79))
     rect(0, -100, 158, 150, Color3.fromRGB(55, 94, 79))
     rect(330, 160, 70, 80, Color3.fromRGB(91, 82, 62)); rect(382, 160, 104, 25, Color3.fromRGB(55, 56, 52)); rect(432, 160, 52, 52, Color3.fromRGB(65, 66, 61))
+    -- Streamed second city; there is no walkable road across the quarantine divide.
+    rect(950, 80, 490, 700, Color3.fromRGB(48, 59, 53), 0.15)
+    rect(950, 220, 430, 28, Color3.fromRGB(60, 70, 70)); rect(920, 80, 28, 570, Color3.fromRGB(60, 70, 70))
+    rect(920, 95, 286, 160, Color3.fromRGB(69, 88, 70)); rect(1085, 105, 54, 56, Color3.fromRGB(78, 86, 80)); rect(1085, 315, 58, 62, Color3.fromRGB(78, 86, 80)); rect(805, 315, 56, 60, Color3.fromRGB(78, 86, 80))
     for _, x in {-72, 72} do rect(x, -410, 16, 450, Color3.fromRGB(60, 70, 70)) end
     for _, z in {-185, -324, -466, -608} do rect(0, z, 464, 16, Color3.fromRGB(60, 70, 70)) end
     for index, p in app.Config.Plots do
@@ -40,9 +45,9 @@ function Map.draw(app, parent, compact)
             local def = app.Quests[tracked]; local q = app.State.campaign.Quests[tracked]
             local at
             if not q or q.status == "Completed" then
-                at = ({alex = {-18, -55}, max = {34, -103}, victor = {-48, -121}, ira = {304, 154}})[def.npc]
+                at = ({alex = {-18, -55}, max = {34, -103}, victor = {-48, -121}, ira = {304, 154}, makar = {888, 72}, nora = {952, 82}})[def.npc]
             elseif q.status == "Active" then
-                at = ({first_blood = {-12, 23}, lost_supplies = {-62, 100}, daily_hunt = {0, 160}, medical_run = {-62, 220}, radio_recovery = {62, 220}, relief_recon = {-62, 5}, mine_foreman = {434, 160}})[tracked]
+                at = ({first_blood = {-12, 23}, lost_supplies = {-62, 100}, daily_hunt = {0, 160}, medical_run = {-62, 220}, radio_recovery = {62, 220}, relief_recon = {-62, 5}, mine_foreman = {434, 160}, second_city = {0, 160}, rescue_fireteam = {1080, 240}, harbor_aid = {1085, 250}})[tracked]
                 if tracked == "radio_recovery" and q.seen["intel:PoliceDispatch"] then at = {274, 121} end
                 if tracked == "city_power" then
                     if q.progress[1] < 20 or q.progress[2] < 10 or q.progress[3] < 5 then at = {187, 98}
@@ -54,18 +59,21 @@ function Map.draw(app, parent, compact)
     end
     local player = UI.label(map, "▲", compact and 13 or 19, {Name = "PlayerDot", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(24, 24), TextColor3 = T.text, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4})
     if not compact then
-        for _, pin in {{-25, -100, "УБЕЖИЩЕ", T.success}, {-62, 18, "ЛАГЕРЬ ЭВАКУАЦИИ", T.amber or T.accent}, {-62, 125, "MERIDIAN", T.accent}, {187, 130, "ПРОМЗОНА", T.accent}, {-62, 245, "АПТЕКА", T.success}, {62, 245, "ПОЛИЦИЯ", T.blue}, {268, 137, "АЗС", T.accent}, {368, 125, "ШАХТА", T.danger}, {0, 405, "КАРАНТИН", T.danger}} do
-            UI.label(map, pin[3], 10, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(mapX(pin[1]), mapZ(pin[2])), Size = UDim2.fromOffset(130, 20), TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = pin[4], Font = Enum.Font.GothamBold})
+        for _, pin in {{-25, -100, "УБЕЖИЩЕ", T.success}, {118, -120, "ВЕРТОЛЁТ", T.accent}, {-62, 18, "ЛАГЕРЬ", T.accent}, {-62, 125, "MERIDIAN", T.accent}, {187, 130, "ПРОМЗОНА", T.accent}, {-62, 245, "АПТЕКА", T.success}, {62, 245, "ПОЛИЦИЯ", T.blue}, {268, 137, "АЗС", T.accent}, {368, 125, "ШАХТА", T.danger}, {0, 405, "КАРАНТИН", T.danger}} do
+            UI.label(map, pin[3], 10, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(mapX(pin[1]), mapZ(pin[2])), Size = UDim2.fromOffset(110, 20), TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = pin[4], Font = Enum.Font.GothamBold})
         end
+        local unlock = app.State.campaign.Quests.second_city
+        local open = unlock and unlock.status == "RewardClaimed"
+        UI.label(map, open and "НОВЫЙ РУБЕЖ  /  ОТКРЫТ" or "НОВЫЙ РУБЕЖ  /  ЗАКРЫТ", 11, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(mapX(920), mapZ(185)), Size = UDim2.fromOffset(190, 22), TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = open and T.success or T.danger, Font = Enum.Font.GothamBold})
     end
     UI.label(map, "N", 11, {Position = UDim2.fromOffset(9, 5), Size = UDim2.fromOffset(20, 18), TextColor3 = T.accent, Font = Enum.Font.GothamBold})
     return player
 end
 function Map.page(app, body)
     local UI = app.UI
-    UI.paragraph(body, "Меридиан и восточный карьер • белая стрелка — вы. Оранжевый участок — ваша база. Телепортации по карте нет.", 44)
+    UI.paragraph(body, "Меридиан, шахта и НОВЫЙ РУБЕЖ • белая стрелка — вы. Второй город открывает квест Алекса на 25 убийств; перемещение возможно только настоящим вертолётным рейсом.", 52)
     local holder = UI.frame(body, {Size = UDim2.new(1, -8, 0, math.min(470, app.Height - 230)), BackgroundTransparency = 1})
     app.MapDot = Map.draw(app, holder, false)
-    UI.paragraph(body, "Север: заражённый город. Восток: АЗС, карьер и проходимая шахта с боссом. Юг: убежище и девять жилых участков.", 42)
+    UI.paragraph(body, "Первый район: убежище, девять участков, Меридиан, карьер и шахта. Второй район: укреплённая база, госпиталь, склад, мастерская и заражённый гражданский квартал.", 48)
 end
 return Map

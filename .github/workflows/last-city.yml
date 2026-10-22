@@ -36,5 +36,5 @@ jobs:
         run: node last-city/tools/compare-place.mjs release-artifacts/last-city/LAST_CITY_3D.rbxl last-city/releases/LAST_CITY_3D.rbxl
       - uses: actions/upload-artifact@v4
         with:
-          name: LAST_CITY_3D-0.4.0-black-vein
+          name: LAST_CITY_3D-0.5.0-iron-horizon
           path: release-artifacts/last-city/

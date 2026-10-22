@@ -15,21 +15,24 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
     function Profile.campaign()
         local c = {
             Started = false, XP = 0, Cash = 200, NextItemId = 0, Inventory = {}, Equipped = "", Armor = "",
-            Stockpile = {wood = 60, metal = 30, wire = 12, electronics = 8, fuel = 10, scrap = 8, food = 8, water = 8, ammo = 24},
+            Stockpile = {wood = 60, metal = 30, steel_plate = 0, concrete = 0, glass = 0, wire = 12, electronics = 8,
+                fuel = 10, scrap = 8, food = 8, water = 8, ammo = 24, rifle_ammo = 0, shells = 0},
             Quests = {}, Buildings = {}, NextBuildingId = 0, Hunger = 100, Thirst = 100,
             Tutorial = {status = "New", facts = {}}, Reputation = {SURVIVORS = 0, TRADERS = 0},
             Workers = {{name = "Мира", job = ""}, {name = "Лев", job = ""}}, Morale = 80,
+            Builder = {name = "Степан", order = ""},
+            Squad = {command = "base", resource = "metal", returnAt = 0, expedition = 0, completed = 0},
             Stats = {kills = 0, quests = 0, buildings = 0, seconds = 0},
         }
         assert(Inventory.grant(c, {crowbar = 1, food = 3, water = 3, medkit = 2}))
-        for _, entry in c.Inventory do if entry.id == "crowbar" then c.Equipped = entry.uid end end
+        -- Start with the tool stowed: keyboard 1 is an explicit toggle (equip, then unequip).
         return c
     end
     function Profile.new()
         return {
             SchemaVersion = Config.SchemaVersion, Revision = 0, Coins = 0, TutorialRewarded = false,
             Cosmetics = {}, EquippedSkin = "", Achievements = {},
-            Settings = {graphics = "High", uiSound = 0.45, sensitivity = 1, scale = 1, difficulty = "Normal"},
+            Settings = {graphics = "High", uiSound = 0.45, music = 0.32, effects = 0.6, sensitivity = 1, scale = 1, difficulty = "Normal"},
             Stats = {kills = 0, quests = 0, buildings = 0, seconds = 0},
             Campaigns = {coop = Profile.campaign(), solo = Profile.campaign()},
         }
@@ -92,7 +95,14 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             for _, b in raw.Buildings do
                 if #c.Buildings >= Config.MaxBuildings then break end
                 if type(b) == "table" and Buildings[b.id] and type(b.uid) == "string" and b.uid:match("^b%d+$") and #b.uid < 24 and not seen[b.uid] and Util.integer(b.x, -48, 48) and Util.integer(b.z, -48, 48) then
-                    local record = {uid = b.uid, id = b.id, x = b.x, z = b.z, r = number(b.r, 0, 0, 3), hp = number(b.hp, Buildings[b.id].health, 1, Buildings[b.id].health), readyAt = number(b.readyAt, 0, 0, 1e11)}
+                    local record = {uid = b.uid, id = b.id, x = b.x, z = b.z, r = number(b.r, 0, 0, 3),
+                        hp = number(b.hp, Buildings[b.id].health, 1, Buildings[b.id].health), readyAt = number(b.readyAt, 0, 0, 1e11),
+                        fuelUntil = number(b.fuelUntil, 0, 0, 1e11), carry = {}}
+                    if type(b.carry) == "table" then
+                        for item in Buildings[b.id].output or {} do
+                            if Util.finite(b.carry[item]) then record.carry[item] = math.clamp(b.carry[item], 0, 0.999999) end
+                        end
+                    end
                     table.insert(c.Buildings, record); seen[b.uid] = true
                     c.NextBuildingId = math.max(c.NextBuildingId, tonumber(b.uid:sub(2)) or 0)
                 end
@@ -103,6 +113,20 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
                     if type(old) == "table" and type(old.job) == "string" and seen[old.job] then w.job = old.job end
                 end
             end
+        end
+        if type(raw.Builder) == "table" and type(raw.Builder.order) == "string" then
+            for _, b in c.Buildings do if b.uid == raw.Builder.order then c.Builder.order = b.uid; break end end
+        end
+        if type(raw.Squad) == "table" then
+            if table.find({"base", "follow", "gather"}, raw.Squad.command) then c.Squad.command = raw.Squad.command end
+            if table.find({"metal", "mine", "wood"}, raw.Squad.resource) then c.Squad.resource = raw.Squad.resource end
+            c.Squad.returnAt = number(raw.Squad.returnAt, 0, 0, 1e11)
+            c.Squad.expedition = number(raw.Squad.expedition, 0, 0, 1e9)
+            c.Squad.completed = math.min(c.Squad.expedition, number(raw.Squad.completed, 0, 0, 1e9))
+            if c.Squad.command == "gather" and (c.Squad.returnAt <= 0 or c.Squad.expedition <= c.Squad.completed) then
+                c.Squad.command = "base"
+            end
+            if c.Squad.command ~= "gather" then c.Squad.returnAt = 0 end
         end
         if type(raw.Tutorial) == "table" then
             local allowed = {}; for _, step in Config.TutorialSteps do allowed[step.key] = true end
@@ -131,7 +155,7 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             local s = raw.Settings
             if table.find({"Low", "Medium", "High", "Ultra"}, s.graphics) then p.Settings.graphics = s.graphics end
             if table.find({"Relaxed", "Normal", "Hard"}, s.difficulty) then p.Settings.difficulty = s.difficulty end
-            for key, bounds in {uiSound = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}} do
+            for key, bounds in {uiSound = {0, 1}, music = {0, 1}, effects = {0, 1}, sensitivity = {0.3, 2}, scale = {0.75, 1.15}} do
                 if Util.finite(s[key]) then p.Settings[key] = math.clamp(s[key], bounds[1], bounds[2]) end
             end
         end

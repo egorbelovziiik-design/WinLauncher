@@ -16,7 +16,7 @@ function View.cosmetics(app, body)
 end
 function View.trade(app, body)
     local UI = app.UI; local c = app.State.campaign
-    UI.paragraph(body, "Торговец Макс • подходите к прилавку для сделок. Цены растут при дефиците, репутация TRADERS даёт скидку. Пополнение склада каждые 5 минут.", 54)
+    UI.paragraph(body, "Торговец Макс в Меридиане и квартирмейстер Феликс в НОВОМ РУБЕЖЕ проводят сделки только рядом со своим прилавком. Цены растут при дефиците; склад пополняется каждые 5 минут.", 62)
     UI.heading(body, c.Cash .. " SURVIVAL CASH  /  РЕПУТАЦИЯ " .. c.Reputation.TRADERS)
     for _, product in app.Economy.Shop do
         local count = app.State.shop[product.id] or 0

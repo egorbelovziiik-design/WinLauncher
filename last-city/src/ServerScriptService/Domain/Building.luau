@@ -10,7 +10,7 @@ return function(Definitions, Inventory, Config, Util)
         local def = Definitions[id]
         if not def or not Util.integer(x, -48, 48) or not Util.integer(z, -48, 48) or not Util.integer(r, 0, 3) then return false, "Неверная позиция" end
         if x % Config.Grid ~= 0 or z % Config.Grid ~= 0 then return false, "Нужна привязка к сетке" end
-        if #c.Buildings >= Config.MaxBuildings then return false, "Лимит: 24 постройки" end
+        if #c.Buildings >= Config.MaxBuildings then return false, "Лимит: " .. Config.MaxBuildings .. " построек" end
         local hx, hz = Building.extents(id, r)
         if math.abs(x) + hx > Config.PlotHalfSize or math.abs(z) + hz > Config.PlotHalfSize then return false, "За пределами вашего участка" end
         -- Keep a spawn/terminal clearance in the front centre of every plot.
@@ -32,7 +32,8 @@ return function(Definitions, Inventory, Config, Util)
         local def = Definitions[id]
         if c.Cash < def.cash or not Inventory.afford(c, def.cost) then return false, "Недостаточно ресурсов / Survival Cash" end
         Inventory.pay(c, def.cost); c.Cash -= def.cash; c.NextBuildingId += 1
-        local b = {uid = "b" .. c.NextBuildingId, id = id, x = x, z = z, r = r, hp = def.health, readyAt = now + def.seconds}
+        local b = {uid = "b" .. c.NextBuildingId, id = id, x = x, z = z, r = r, hp = def.health,
+            readyAt = now + def.seconds, carry = {}}
         table.insert(c.Buildings, b); c.Stats.buildings += 1
         return true, b
     end
@@ -45,6 +46,7 @@ return function(Definitions, Inventory, Config, Util)
         if not b then return false, "Постройка не найдена" end
         if refund then for id, count in Definitions[b.id].cost do c.Stockpile[id] = math.min(9999, (c.Stockpile[id] or 0) + math.floor(count * 0.25)) end end
         for _, w in c.Workers do if w.job == uid then w.job = "" end end
+        if c.Builder and c.Builder.order == uid then c.Builder.order = "" end
         table.remove(c.Buildings, index); return true
     end
     function Building.repair(c, uid)
