@@ -7,7 +7,7 @@ import { el, v3, cf, rgb, udim2 } from '../rbxkit.mjs';
 import {
   M as MAT, box as b, deco as d, sphere as sph, cyl as c, windowFrame as win,
   pointLight as pl, bed, wardrobe, pcSetup, bookStack, toy, plant, rug, poster,
-  table, chair, shelf, marker, markerSet, model, flat, mist,
+  table, chair, shelf, marker, markerSet, model, flat, mist, sign,
 } from './kit.mjs';
 
 export function bedroom() {
@@ -132,6 +132,17 @@ export function bedroom() {
 
   // Пыль в лунном свете
   parts.push(mist([8, 7, 0], rgb(150, 170, 220), { rate: 6, spread: 40 }));
+
+  /* --- вывеска лобби на задней стене --- */
+  parts.push(sign([0, 12.6, -D / 2 + 0.55], [24, 4.2], '🌙 DREAM SIMULATOR', rgb(240, 234, 255), { boardColor: rgb(9, 8, 18) }));
+  parts.push(sign([0, 9.3, -D / 2 + 0.55], [19, 1.9], 'Каждый сон — новая история...', rgb(196, 186, 255), { boardColor: rgb(9, 8, 18) }));
+  parts.push(sign([0, 6.6, -D / 2 + 0.55], [10, 1.5], 'ЛОББИ · СПАЛЬНЯ', rgb(140, 128, 220), { boardColor: rgb(9, 8, 18) }));
+  // неоновые полосы вокруг вывески
+  parts.push(d([0, 15.1, -D / 2 + 0.6], [25, 0.28, 0.18], rgb(150, 120, 255), MAT.Neon));
+  parts.push(d([0, 5.6, -D / 2 + 0.6], [25, 0.28, 0.18], rgb(150, 120, 255), MAT.Neon));
+  parts.push(d([-12.5, 10.35, -D / 2 + 0.6], [0.28, 9.6, 0.18], rgb(110, 90, 220), MAT.Neon));
+  parts.push(d([12.5, 10.35, -D / 2 + 0.6], [0.28, 9.6, 0.18], rgb(110, 90, 220), MAT.Neon));
+  parts.push(pl(rgb(150, 120, 255), 2.2, 26));
 
   /* --- маркеры и камера --- */
   parts.push(marker('BedPoint', [-8, 4.8, -4]));

@@ -2,7 +2,7 @@
  * gui.mjs — весь интерфейс DREAM SIMULATOR: NIGHTMARE WORLDS.
  * Имена элементов здесь — контракт для клиентских контроллеров (tools/checkgui.mjs проверяет).
  */
-import { el, hex, udim2, udim, font, ui, screenGui, v2, v3 } from './rbxkit.mjs';
+import { el, hex, udim2, udim, font, ui, screenGui, v2, v3, cs, ns } from './rbxkit.mjs';
 
 const C = {
   bg: hex('#07080f'),
@@ -155,16 +155,42 @@ const header = (title, subtitle, coinsName) =>
 /* 1. Главное меню                                                     */
 /* ------------------------------------------------------------------ */
 export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGuiInset: true }, [
-  backdrop(),
+  // Меню живёт прямо в лобби: 3D-спальня видна за интерфейсом.
+  ui.frame({ Name: 'Backdrop', Size: udim2(1, 1), BackgroundTransparency: 1, ZIndex: 1 }),
+  // Мягкое затемнение только слева, чтобы текст читался, а лобби просвечивало справа.
+  ui.frame({ Name: 'LobbyShade', Size: udim2(1, 1), BackgroundColor3: hex('#05060d'), BackgroundTransparency: 0, ZIndex: 1 }, [
+    el('UIGradient', {
+      Color: cs([[0, hex('#05060d')], [1, hex('#05060d')]]),
+      Transparency: ns([[0, 0.12], [0.55, 0.55], [1, 1]]),
+      Rotation: 0,
+    }),
+  ]),
   // Луна и звёзды
-  text('🌙', { Name: 'Moon', Position: udim2(0.78, 0, 0.12, 0), Size: udim2(0, 190, 0, 190), TextColor3: C.moon, ZIndex: 2, maxTextSize: 160 }),
-  text('✦  ✧  ✦', { Name: 'Stars', Position: udim2(0.72, 0, 0.34, 0), Size: udim2(0, 260, 0, 60), TextColor3: hex('#cbbdff'), TextTransparency: 0.45, ZIndex: 2, maxTextSize: 34 }),
-  text('✧        ✦', { Name: 'Stars2', Position: udim2(0.55, 0, 0.08, 0), Size: udim2(0, 300, 0, 40), TextColor3: hex('#9f92e8'), TextTransparency: 0.55, ZIndex: 2, maxTextSize: 26 }),
-  ui.frame({ Name: 'Vignette', Size: udim2(1, 1), BackgroundColor3: hex('#000000'), BackgroundTransparency: 0.62, ZIndex: 2 }, [
-    ui.gradient([hex('#000000'), hex('#000000')], { Rotation: 90 }),
+  text('🌙', { Name: 'Moon', Position: udim2(0.86, 0, 0.02, 0), Size: udim2(0, 100, 0, 100), TextColor3: C.moon, TextTransparency: 0.55, ZIndex: 2, maxTextSize: 90 }),
+  text('✦   ✧', { Name: 'Stars', Position: udim2(0.9, 0, 0.2, 0), Size: udim2(0, 160, 0, 40), TextColor3: hex('#cbbdff'), TextTransparency: 0.6, ZIndex: 2, maxTextSize: 24 }),
+  text('✧', { Name: 'Stars2', Position: udim2(0.93, 0, 0.34, 0), Size: udim2(0, 80, 0, 30), TextColor3: hex('#9f92e8'), TextTransparency: 0.7, ZIndex: 2, maxTextSize: 20 }),
+  ui.frame({ Name: 'Vignette', Size: udim2(1, 1), BackgroundColor3: hex('#000000'), BackgroundTransparency: 0.86, ZIndex: 2 }, [
+    el('UIGradient', {
+      Color: cs([[0, hex('#000000')], [1, hex('#000000')]]),
+      Transparency: ns([[0, 0.25], [0.6, 0.9], [1, 0.55]]),
+      Rotation: 90,
+    }),
   ]),
 
   /* ---------------- левая колонка: заголовок и кнопки ---------------- */
+  ui.frame({
+    Name: 'ContentPanel', Position: udim2(0, 40, 0.055, 0), Size: udim2(0, 600, 0.89, 0),
+    BackgroundColor3: hex('#0a0b16'), BackgroundTransparency: 0.34, ZIndex: 2,
+  }, [
+    ui.corner(24),
+    ui.stroke({ Color: C.accent, Transparency: 0.6, Thickness: 1.4 }),
+    el('UIGradient', {
+      Color: cs([[0, hex('#171a33')], [1, hex('#080914')]]),
+      Transparency: ns([[0, 0.28], [1, 0.66]]),
+      Rotation: 90,
+    }),
+  ]),
+
   ui.frame({ Name: 'Content', Position: udim2(0, 64, 0.09, 0), Size: udim2(0, 560, 0.86, 0), BackgroundTransparency: 1, ZIndex: 3 }, [
     ui.list({ Padding: udim(0, 12), SortOrder: 'LayoutOrder' }),
     text('🌙 DREAM SIMULATOR', { Name: 'Title', Size: udim2(1, 0, 0, 72), TextXAlignment: 'Left', TextColor3: C.moon, FontFace: font(FONT_B, 'Bold'), LayoutOrder: 1, maxTextSize: 52 }),
@@ -255,6 +281,11 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
     ui.stroke({ Color: C.gold, Transparency: 0.45, Thickness: 1.4 }),
     text('🪙', { Position: udim2(0, 12, 0, 0), Size: udim2(0, 30, 1, 0), TextColor3: C.gold, maxTextSize: 22, ZIndex: 4 }),
     bold('0', { Name: 'CoinValue', Position: udim2(0, 44, 0, 0), Size: udim2(1, -54, 1, 0), TextXAlignment: 'Left', TextColor3: C.gold, maxTextSize: 20, ZIndex: 4 }),
+  ]),
+  ui.frame({ Name: 'LobbyChip', AnchorPoint: v2(1, 1), Position: udim2(1, -28, 1, -60), Size: udim2(0, 300, 0, 34), BackgroundColor3: hex('#101228'), BackgroundTransparency: 0.34, ZIndex: 4 }, [
+    ui.corner(17),
+    ui.stroke({ Color: C.accent, Transparency: 0.55, Thickness: 1.2 }),
+    text('🏠  ЛОББИ · СПАЛЬНЯ СНОВИДЦА', { Name: 'LobbyLabel', Size: udim2(1, -20, 1, 0), TextColor3: hex('#cfc6ff'), maxTextSize: 15, ZIndex: 4 }),
   ]),
   text('WASD — движение   ·   SHIFT — бег   ·   E — взаимодействие   ·   F — фонарик   ·   TAB — задания', {
     Name: 'Hint', AnchorPoint: v2(0, 1), Position: udim2(0, 64, 1, -28), Size: udim2(0, 720, 0, 24), TextXAlignment: 'Left', TextColor3: C.dim, TextTransparency: 0.25, maxTextSize: 15, ZIndex: 4,
