@@ -21,12 +21,19 @@ jobs:
           cache-dependency-path: last-city/tools/package-lock.json
       - name: Install binary place builder and independent verifier
         run: npm ci --prefix last-city/tools --no-audit --no-fund
+      - name: Cache Luau compiler
+        id: luau-cache
+        uses: actions/cache@v4
+        with:
+          path: .local/bin
+          key: ${{ runner.os }}-last-city-luau-0.743-cpp17
       - name: Build pinned Luau toolchain
+        if: steps.luau-cache.outputs.cache-hit != 'true'
         run: bash last-city/tools/install-toolchain.sh
       - name: Compile, test, build and independently decode place
         run: python3 last-city/tools/test.py
       - name: Keep requested downloadable place in sync with sources
-        run: cmp release-artifacts/last-city/LAST_CITY_3D.rbxl last-city/releases/LAST_CITY_3D.rbxl
+        run: node last-city/tools/compare-place.mjs release-artifacts/last-city/LAST_CITY_3D.rbxl last-city/releases/LAST_CITY_3D.rbxl
       - uses: actions/upload-artifact@v4
         with:
           name: LAST_CITY_3D-first-light

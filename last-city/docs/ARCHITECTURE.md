@@ -78,6 +78,6 @@
 
 `tools/world/{primitives,shelter,city,landscape}.mjs` создают настоящие Parts, Models, SpawnLocation, SurfaceGui, BillboardGui, Lighting и spawn markers офлайн. Runtime-сервисы не генерируют огромный мир в одном скрипте.
 
-`build.mjs` собирает сервисы, remotes и точные Source всех Luau-файлов в бинарный Roblox DOM. `rbxm-parser` использует byte strings, поэтому authored Unicode переводится в UTF-8 bytes на границе writer. Binary blobs при этом не перекодируются. Второй парсер, `rbx-reader`, проверяет текст в fatal UTF-8 режиме и сравнивает каждый Source с исходником. Сборка выполняется дважды и должна дать одинаковые байты.
+`build.mjs` собирает сервисы, remotes и точные Source всех Luau-файлов в бинарный Roblox DOM. `rbxm-parser` использует byte strings, поэтому authored Unicode переводится в UTF-8 bytes на границе writer. Binary blobs при этом не перекодируются. Второй парсер, `rbx-reader`, проверяет текст в fatal UTF-8 режиме и сравнивает каждый Source с исходником. Сборка выполняется дважды в одном окружении и должна дать одинаковые байты. Между окружениями CI сравнивает декодированный DOM, включая все свойства, иерархию, геометрию, ссылки и Source (`compare-place.mjs`), а не представление LZ4-чанков.
 
 Это проверяет формат и содержимое, **не запуск Roblox Engine**.

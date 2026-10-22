@@ -109,6 +109,6 @@ cp release-artifacts/last-city/LAST_CITY_3D.rbxl last-city/releases/
 cp release-artifacts/last-city/SHA256SUMS last-city/releases/
 ```
 
-CI повторяет проверки и сравнивает snapshot с исходниками. `tools/verify.mjs` читает файл **вторым независимым парсером**, проверяет все скрипты байт-в-байт, UTF-8, сервисы, remotes и StreamingEnabled. `tools/encoding.mjs` специально адаптирует UTF-8 к byte-string API бинарного writer; эту обработку нельзя удалять.
+CI повторяет проверки и сравнивает все декодированные свойства, геометрию, ссылки и Source поставляемого snapshot с новой сборкой. Бинарная упаковка LZ4 может различаться между окружениями; две сборки в одном окружении обязаны быть побайтно идентичны. `tools/verify.mjs` читает файл **вторым независимым парсером**, проверяет все скрипты байт-в-байт, UTF-8, сервисы, remotes и StreamingEnabled. `tools/encoding.mjs` специально адаптирует UTF-8 к byte-string API бинарного writer; эту обработку нельзя удалять.
 
 [Архитектура и ограничения безопасности](docs/ARCHITECTURE.md) · [Тесты](docs/TEST_REPORT.md) · [Studio QA](docs/STUDIO_QA.md) · [Происхождение ресурсов](docs/ASSETS.md)
