@@ -3,12 +3,12 @@ return function(app, body)
     local UI = app.UI; local T = UI.Theme; local c = app.State.campaign
     local weight = 0; for _, e in c.Inventory do weight += app.Items[e.id].weight * e.count end
     UI.paragraph(body, string.format("ПРОСТОЙ РЮКЗАК   /   %d из %d ячеек   /   %.1f из %d кг\nКлик — действие. Стрелки меняют порядок ячеек. Склад доступен только на вашем участке.", #c.Inventory, app.Config.InventorySlots, weight, app.Config.CarryWeight), 46)
-    local categories = {"Все", "Оружие", "Ресурсы", "Расходники", "Броня", "Чертежи"}
+    local categories = {"Все", "Оружие", "Боеприпасы", "Ресурсы", "Расходники", "Броня", "Чертежи"}
     for row = 0, 1 do
         local line = UI.row(body, 30)
-        for i = 1, 3 do
-            local filter = categories[row * 3 + i]
-            UI.button(line, filter, function() app.InventoryFilter = filter; app:RefreshPanel(true) end, {Size = UDim2.new(1 / 3, -6, 1, 0), TextSize = 11, BackgroundColor3 = (app.InventoryFilter or "Все") == filter and T.accent or T.raised})
+        for i = 1, 4 do
+            local filter = categories[row * 4 + i]
+            if filter then UI.button(line, filter, function() app.InventoryFilter = filter; app:RefreshPanel(true) end, {Size = UDim2.new(0.25, -6, 1, 0), TextSize = 10, BackgroundColor3 = (app.InventoryFilter or "Все") == filter and T.accent or T.raised}) end
         end
     end
     local tools = UI.row(body, 30)
@@ -25,8 +25,9 @@ return function(app, body)
         local detail = def.category .. "   ·   " .. string.format("%.1f кг", def.weight * e.count)
         if def.weapon then
             local w = app.Weapons[e.id]
-            detail = w.rarity .. "  ·  урон " .. math.floor(w.damage * (1 + e.upgrade * 0.06)) .. "  ·  +" .. e.upgrade .. "  ·  прочность " .. math.floor(e.durability) .. "%"
-        elseif def.armor then detail = "Защита 20%  ·  Прочность " .. math.floor(e.durability) .. "%"
+            detail = w.rarity .. "  ·  урон " .. math.floor(w.damage * (1 + e.upgrade * 0.06)) .. (w.pellets and "×" .. w.pellets or "") .. "  ·  +" .. e.upgrade .. "  ·  прочность " .. math.floor(e.durability) .. "%"
+            if not w.melee then detail ..= "  ·  магазин " .. e.ammo .. "/" .. w.magazine end
+        elseif def.armor then detail = "Защита " .. math.floor(def.armor * 100) .. "%  ·  Прочность " .. math.floor(e.durability) .. "%"
         elseif def.blueprint then detail = "Открывает дизельную станцию в меню строительства" end
         UI.label(card, detail, 11, {Position = UDim2.fromOffset(13, 38), Size = UDim2.new(1, -26, 0, 22), TextColor3 = T.muted, TextWrapped = true})
         local row = UI.row(card, 32); row.Position = UDim2.fromOffset(12, 75); row.Size = UDim2.new(1, -24, 0, 32)

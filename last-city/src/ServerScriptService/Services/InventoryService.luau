@@ -13,12 +13,14 @@ return function(ctx)
                 local def = entry and ctx.Items[entry.id]
                 local h = ctx:Alive(player)
                 if def and def.use and h then
-                    local need = def.use == "health" and h.Health < h.MaxHealth or def.use == "hunger" and c.Hunger < 100 or def.use == "thirst" and c.Thirst < 100
+                    local need = def.use == "health" and h.Health < h.MaxHealth or def.use == "hunger" and c.Hunger < 100
+                        or def.use == "thirst" and c.Thirst < 100 or def.use == "stamina" and s.Stamina < 100
                     if not need then err = "Этот показатель уже полон"
                     elseif ctx.Inventory.takeUid(c, p.uid, 1) then
                         if def.use == "health" then h.Health = math.min(h.MaxHealth, h.Health + def.amount)
                         elseif def.use == "hunger" then c.Hunger = math.min(100, c.Hunger + def.amount)
-                        else c.Thirst = math.min(100, c.Thirst + def.amount) end
+                        elseif def.use == "thirst" then c.Thirst = math.min(100, c.Thirst + def.amount)
+                        else s.Stamina = math.min(100, s.Stamina + def.amount) end
                         ok = true
                     end
                 end

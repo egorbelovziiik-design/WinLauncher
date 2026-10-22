@@ -47,5 +47,12 @@ return {
         objectives = {{event = "relief", target = "camp", count = 3, label = "Свидетельства эвакуации"}},
         reward = {coins = 350, xp = 300, items = {cloth = 6, water = 3, bandage = 2}}, reputation = "SURVIVORS",
     },
+    mine_foreman = {
+        order = 8, name = "СЕРДЦЕ ШАХТЫ", type = "Босс", npc = "ira", location = "Шахта «Чёрный пласт» — восточный карьер",
+        description = "Ира слышала удары из закрытой выработки. Прими задание, спустись в шахту и уничтожь заражённого Шахтёра-бригадира. Награда выдаётся сразу после победы.",
+        objectives = {{event = "kill", target = "foreman", count = 1, label = "Шахтёр-бригадир"}},
+        reward = {coins = 600, xp = 650, items = {ammo = 48}, loadedWeapons = {{id = "glock", count = 1, ammo = 10}}},
+        reputation = "SURVIVORS", autoClaim = true,
+    },
 
 }

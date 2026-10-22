@@ -1,8 +1,8 @@
 --!strict
 return table.freeze({
-    Version = "0.3.0 — LIVING MERIDIAN", SchemaVersion = 1,
+    Version = "0.4.0 — BLACK VEIN", SchemaVersion = 1,
     Title = "LAST CITY 3D", Subtitle = "DEAD WORLD: ULTIMATE SURVIVAL",
-    MaxPlayers = 6, MaxZombies = 24, AIInterval = 0.25, PathInterval = 2.5,
+    MaxPlayers = 9, MaxZombies = 28, AIInterval = 0.25, PathInterval = 2.5,
     StudioUseDataStore = false, -- Explicit opt-in for cloud-save testing; downloaded Studio files use SessionOnly.
     AutosaveSeconds = 55, LeaseSeconds = 180, DataStoreName = "LastCity_Profile_v1",
     DayLength = 900, InventorySlots = 24, CarryWeight = 180,
@@ -14,6 +14,7 @@ return table.freeze({
     Plots = {
         {x = -144, z = -252}, {x = 0, z = -252}, {x = 144, z = -252},
         {x = -144, z = -396}, {x = 0, z = -396}, {x = 144, z = -396},
+        {x = -144, z = -540}, {x = 0, z = -540}, {x = 144, z = -540},
     },
     TutorialSteps = {
         {key = "move", text = "Пройдите 12 метров: WASD / левый стик"},

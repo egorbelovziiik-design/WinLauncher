@@ -50,7 +50,7 @@ return function(ctx)
         ctx.Progression.fact(s.Campaign, "attack")
         aim = aim.Unit
         local damage = def.damage * (1 + (entry.upgrade or 0) * 0.06)
-        local enemy, hitPos
+        local enemy, hitPos, damageHandled
         if def.melee then
             local best = def.range
             for _, zombie in ctx.Services.ZombieService.Zombies do
@@ -64,30 +64,36 @@ return function(ctx)
                 end
             end
         else
-            local rng = Random.new()
+            local rng = Random.new(); local hits = {}
             local spread = (1 - def.accuracy) * (1 - (entry.upgrade or 0) * 0.03)
-            local direction = (aim + Vector3.new(rng:NextNumber(-spread, spread), rng:NextNumber(-spread, spread), rng:NextNumber(-spread, spread))).Unit
             local params = RaycastParams.new(); params.FilterType = Enum.RaycastFilterType.Exclude; params.FilterDescendantsInstances = {player.Character}
-            local result = workspace:Raycast(head.Position, direction * def.range, params)
-            hitPos = result and result.Position or head.Position + direction * def.range
-            if result then enemy = ctx.Services.ZombieService:FromPart(result.Instance) end
+            for pellet = 1, (def.pellets or 1) do
+                local direction = (aim + Vector3.new(rng:NextNumber(-spread, spread), rng:NextNumber(-spread, spread), rng:NextNumber(-spread, spread))).Unit
+                local result = workspace:Raycast(head.Position, direction * def.range, params)
+                if pellet == 1 then hitPos = result and result.Position or head.Position + direction * def.range end
+                local target = result and ctx.Services.ZombieService:FromPart(result.Instance)
+                if target then enemy = enemy or target; hits[target] = (hits[target] or 0) + damage end
+            end
+            for target, total in hits do ctx.Services.ZombieService:Damage(target, total, player) end
+            damageHandled = true
         end
-        if enemy then ctx.Services.ZombieService:Damage(enemy, damage, player) end
+        if enemy and not damageHandled then ctx.Services.ZombieService:Damage(enemy, damage, player) end
         ctx:FX("shot", {from = head.Position, to = hitPos or head.Position + aim * 5, melee = def.melee == true, hit = enemy ~= nil, user = player.UserId})
         ctx:Changed(player)
     end
     function Service:Reload(player, s)
         local c = s.Campaign; local entry = ctx.Inventory.find(c, c.Equipped); local def = entry and ctx.Weapons[entry.id]
         if not def or def.melee or s.Reloading or entry.ammo >= def.magazine then return end
-        if ctx.Inventory.count(c, "ammo") < 1 then ctx:Notify(player, "Нужны патроны в рюкзаке."); return end
+        local ammoId = def.ammo or "ammo"
+        if ctx.Inventory.count(c, ammoId) < 1 then ctx:Notify(player, "Нужны боеприпасы в рюкзаке."); return end
         local token = {}; local uid = entry.uid; s.Reloading = token
         ctx.Remotes.StateRemote:FireClient(player, "reload", def.reload)
         task.delay(def.reload, function()
             if ctx.Sessions[player] ~= s or s.Closing or s.Frozen or not s.Active or not ctx:Alive(player) or s.Reloading ~= token or c.Equipped ~= uid then return end
             s.Reloading = nil
             local current = ctx.Inventory.find(c, uid); if not current then return end
-            local count = math.min(def.magazine - current.ammo, ctx.Inventory.count(c, "ammo"))
-            if count > 0 and ctx.Inventory.remove(c, "ammo", count) then current.ammo += count end
+            local count = math.min(def.magazine - current.ammo, ctx.Inventory.count(c, ammoId))
+            if count > 0 and ctx.Inventory.remove(c, ammoId, count) then current.ammo += count end
             ctx:Changed(player)
         end)
     end

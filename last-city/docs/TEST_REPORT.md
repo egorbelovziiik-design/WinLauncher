@@ -1,6 +1,6 @@
-# Отчёт о проверках — Living Meridian 0.3.0
+# Отчёт о проверках — Black Vein 0.4.0
 
-Дата: **2026-10-22 (UTC)**.
+Дата: **2026-10-23**.
 
 ## Честная граница результата
 
@@ -13,7 +13,8 @@
 - **0.1.0 — FAILED: открытие места в Roblox Studio.** Скриншот пользователя: `Error while decoding data: unexpected end at offset 2`.
 - У поставляемого `.rbxl` `Terrain.PhysicsGrid` имел байты `02 03` (2 байта); пустая сетка из настоящего Studio-файла имеет `02 03` + 12 нулевых байт (14 байт). Это дефект генерации, а не подтверждённая проблема установки Studio или ZIP на компьютере пользователя.
 - **0.1.1 — исправлен код сериализации.** `tests/fixtures/empty-terrain.json` содержит байты и immutable-ссылку на Studio fixture. Новый regression test показывает, что общие парсеры принимали старое повреждённое поле, тогда как семантическая проверка его отвергает.
-- Старый импорт остаётся FAILED в истории. **Открытие и статический рендер выпущенной 0.2.0 подтверждены скриншотами пользователя**, но Play/физика не подтверждены. Открытие и Play новой 0.3.0 — NOT TESTED. Ни CI, ни приведённый ниже PASSED не заменяют их.
+- Старый импорт остаётся FAILED в истории. Открытие 0.2.0 и запуск 0.3.0 подтверждены пользовательскими скриншотами; на 0.3.0 виден работающий E-диалог. Этот же тест выявил руки за спиной, неполную крышу и ненадёжное взаимодействие с Виктором.
+- Исправления вошли в 0.4.0, но **открытие и Play именно 0.4.0 — NOT TESTED**. Ни CI, ни приведённый ниже PASSED не заменяют повторный Studio QA.
 
 ## Выполнено автоматически
 
@@ -22,20 +23,21 @@
 | Компиляция всех игровых Luau-файлов | **PASSED** | 49 исходников, Luau 0.743 |
 | Анализ исходников | **PASSED** | Нет TypeError/неожиданных диагностик. Одна известная standalone-диагностика `Unknown type Vector3`: CLI не содержит реестр Roblox userdata |
 | Регрессии сериализации | **PASSED** | 10 тестов: отрицательный контроль старой сетки, fixture, NUL bytes, Color3uint8/FontFace/TimeOfDay, запрет несериализуемых свойств |
-| Доменные регрессии | **PASSED** | 103 теста `tests/domain.spec.luau` исполняют настоящие модули |
-| Обработчики, composition root, UI construction | **PASSED** | 71 тест через `MockRoblox` — API doubles, не движок и не визуальная проверка |
-| Бинарный Roblox header / независимое чтение | **PASSED** | 67 проверок `tools/verify.mjs`, writer и reader разных пакетов |
+| Доменные регрессии | **PASSED** | 108 тестов `tests/domain.spec.luau` исполняют настоящие модули, включая точную награду шахты и save-normalize roundtrip |
+| Обработчики, composition root, UI construction | **PASSED** | 77 тестов через `MockRoblox` — API doubles, не движок и не визуальная проверка |
+| Бинарный Roblox header / независимое чтение | **PASSED** | 76 проверок `tools/verify.mjs`, writer и reader разных пакетов |
 | Исходники внутри `.rbxl` | **PASSED** | Все 49 Source совпадают с файловыми исходниками после строгого UTF-8 decoding |
 | Двойная сборка | **PASSED** | Повторная сборка даёт байт-в-байт тот же `.rbxl` |
-| StreamingEnabled, сервисы, remotes, геометрия | **PASSED** | 5 592 instances; 5 115 BasePart; 11 RemoteEvent; 6 участков; 12 zombie spawns; 3 supply crates; 8 quest targets |
+| StreamingEnabled, сервисы, remotes, геометрия | **PASSED** | 5 941 instances; 5 398 BasePart; 11 RemoteEvent; 9 участков; 17 zombie spawns; физические шахта и boss chamber |
 | Открытие `.rbxl` 0.1.0 в Studio | **FAILED** | Скриншот пользователя; дефект PhysicsGrid найден |
 | Открытие `.rbxl` 0.1.1 в Studio | **PASSED** | Пользователь прислал скриншоты сцены и загрузочного экрана; это не подтверждает Play |
 | Открытие версии 0.2.0 | **PASSED** | Скриншоты пользователя показывают открытое и отрендеренное место; это не подтверждает Play |
-| Открытие / Play версии 0.3.0 | **NOT TESTED** | Новая сборка ещё не проверена пользователем |
+| Открытие / частичный Play версии 0.3.0 | **PASSED с дефектами** | Скриншоты пользователя: сцена и E-диалог работают; руки/крыша/Victor требуют исправлений |
+| Открытие / Play версии 0.4.0 | **NOT TESTED** | Нужна повторная проверка нового `.rbxl` пользователем |
 | Дорожная геометрия | **PASSED** | 7 тестов: пересечения, бордюры, private plots, общие стыки |
 | Roblox Studio Play Test | **NOT TESTED** | Нужен Roblox Studio |
 | Настоящий DataStore / solo Teleport | **NOT TESTED** | Нужна опубликованная тестовая experience |
-| Реальная репликация 2–6 клиентов | **NOT TESTED** | Нужен Studio Server & Clients и опубликованный сервер |
+| Реальная репликация 2–9 клиентов | **NOT TESTED** | Нужен Studio Server & Clients и опубликованный сервер |
 | FPS, MicroProfiler, мобильный UX | **NOT TESTED** | Нужны реальные устройства/эмулятор Studio |
 
 Между окружениями snapshot проверяется по всем декодированным свойствам/ссылкам/геометрии/Source, а не по представлению LZ4-чанков. Локальная повторяемость остаётся побайтной.
@@ -56,6 +58,8 @@
 - Нормализация/roundtrip Coins, inventory, quest state, workers, buildings, settings и craft; неизвестная schema.
 - Lease policy, просроченный token, чужой сервер, token buckets.
 - Последовательность accept → kill events → claim → equip → magazine transfer → build → power → profile roundtrip.
+- Шахтный quest: kill `foreman`, Glock `ammo=10`, ровно 48 reserve, атомарный отказ при полном рюкзаке, одноразовый claim и полный Profile roundtrip.
+- Восемь возрастающих ступеней урона заражённых начиная с 5 HP, два действующих уровня брони и девять уникальных участков.
 
 ## Что проверяют mock-тесты адаптеров
 
@@ -66,6 +70,8 @@
 - Серверные проверки proximity, ownership boundary provider, unloaded/closing/frozen/inactive, client-supplied rewards, запрещённых payload и rate limit.
 - Создание модели постройки, расход материалов, уничтожение, reset задания рабочего.
 - Серверное вычисление урона вместо клиентского `damage`, расход ammo, shot cooldown, проверки направления/Tool, отложенная перезарядка и уход игрока.
+- Семь серверных лучей дробовика, отдельные shells при перезарядке, снижение урона тяжёлой бронёй и настоящий stamina-use энергетика.
+- Автовыдача награды босса, эвакуация жителя из принятого footprint до рендера здания и 12 созданных именных NPC.
 - `SaveService` с имитацией UpdateAsync: acquire, callback replay, запись/освобождение, 4 retry, потерянная lease, cloud failure, fail-closed live behavior и явный Studio SessionOnly.
 - Полный composition root, загрузка игрока, создание работников, Play, 5 kill events → reward один раз, настоящий обработчик loot prompt и snapshot.
 - Личный дроп нельзя получить с чужим UserId или старым session token.
@@ -115,6 +121,11 @@ Mock не вычисляет физику, пути, стриминг, заде�
 | Потенциальная межпрофильная передача дропа без durable ledger | **PASSED** — только тот же владелец и session token, ограниченный TTL |
 | Неверные внешние `self` в клиентских callback | **PASSED** — явное замыкание контроллера, mock исполнения |
 | Повтор tutorial мог упираться в уже полученную одноразовую награду | **PASSED** — ранее доказанные одноразовые факты переносятся в повтор, награда не дублируется |
+| Отрицательные X-повороты поднимали руки NPC назад | **PASSED на уровне Source/compile** — знаки жестов/локтей исправлены; визуальный результат в Studio остаётся NOT TESTED |
+| `PartialRoof` выглядел как пропавшая крыша MERIDIAN | **PASSED** — бинарный инспектор находит полный `Roof` и запрещает старое имя |
+| Victor уходил в тесную инженерную геометрию, root LOS отказывал | **PASSED на уровне адаптера** — открытый маршрут, prompt и head-level LOS; Studio повтор остаётся NOT TESTED |
+| Награда босса могла бы разделиться или потерять ammo state | **PASSED** — атомарный Glock 10/10 + 48, replay/full-bag/save regressions |
+| Житель мог стоять внутри новой постройки | **PASSED на API doubles** — сервер эвакуирует его до `Render`; реальный Pathfinding/physics NOT TESTED |
 
 **FAILED в текущем автоматическом прогоне: 0; исторический импорт 0.1.0 в Studio: FAILED.** Дальнейший release-gate — ручной Studio QA, а не переименование NOT TESTED в PASSED.
 
@@ -124,4 +135,8 @@ Mock не вычисляет физику, пути, стриминг, заде�
 
 ## 0.3.0 — дополнительные проверки
 
-См. [UPDATE_0.3.0.md](UPDATE_0.3.0.md). Добавлены проверки полного 15-Motor6D R15-подобного состава, явного `KeyboardKeyCode.E`, настоящего dialogue payload рядом и отказа вдали, разрешённого касания footprint при запрете пересечения, трёх deduplicated улик нового задания, сериализованных Clouds/WedgePart/лагеря/колонны, отсутствия старых `DistantHills` и лимита 6 500 BasePart. Физика rig, визуальная плавность, FPS и Pathfinding остаются NOT TESTED до Studio QA.
+См. [UPDATE_0.3.0.md](UPDATE_0.3.0.md). Добавлены проверки полного 15-Motor6D R15-подобного состава, явного `KeyboardKeyCode.E`, настоящего dialogue payload рядом и отказа вдали, разрешённого касания footprint при запрете пересечения, трёх deduplicated улик нового задания, сериализованных Clouds/WedgePart/лагеря/колонны, отсутствия старых `DistantHills` и лимита 6 500 BasePart. Пользовательский Studio-тест затем выявил три дефекта, перечисленные выше.
+
+## 0.4.0 — дополнительные проверки
+
+См. [UPDATE_0.4.0.md](UPDATE_0.4.0.md). Добавлены точные проверки Glock 10/10 + 48, атомарности/full backpack, `RewardClaimed`, Profile и mock `UpdateAsync` roundtrip; отдельных типов ammo и семи лучей дробовика; двух уровней брони; stamina-use; 8 ступеней заражённых; 9 участков; 12 runtime NPC; эвакуации работника; полного market roof; 17 spawn-маркеров; физической шахты и boss chamber. Реальные Motor6D, Humanoid, Pathfinding, бой в камере босса, FPS и DataStore остаются NOT TESTED до Studio QA 0.4.0.

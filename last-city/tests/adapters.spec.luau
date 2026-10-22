@@ -101,6 +101,14 @@ end
 local function request(ctx,remote,payload) ctx.Remotes[remote].OnServerEvent:Fire(player,payload) end
 test("quest remote enforces NPC proximity",function() local ctx,s=context(); ctx.NearNPC=false; request(ctx,"QuestRemote",{action="accept",id="first_blood"}); eq(s.Campaign.Quests.first_blood,nil) end)
 test("quest remote accepts at NPC and pays once",function() local ctx,s=context(); request(ctx,"QuestRemote",{action="accept",id="first_blood"}); Quests.record(s.Campaign,"kill","walker",5,os.time()); request(ctx,"QuestRemote",{action="claim",id="first_blood"}); request(ctx,"QuestRemote",{action="claim",id="first_blood"}); eq(s.Data.Coins,200); eq(Inventory.count(s.Campaign,"pistol"),1) end)
+test("mine boss server event auto-awards one loaded Glock and 48 reserve",function()
+    local ctx,s=context(); request(ctx,"QuestRemote",{action="accept",id="mine_foreman"})
+    ctx.Services.QuestService:Record(player,"kill","foreman",1)
+    eq(s.Campaign.Quests.mine_foreman.status,"RewardClaimed"); eq(Inventory.count(s.Campaign,"glock"),1); eq(Inventory.count(s.Campaign,"ammo"),48)
+    local glock; for _,entry in s.Campaign.Inventory do if entry.id=="glock" then glock=entry end end
+    eq(glock.ammo,10); eq(s.Data.Coins,600); assert(ctx.ToolSync)
+    ctx.Services.QuestService:Record(player,"kill","foreman",1); eq(Inventory.count(s.Campaign,"glock"),1)
+end)
 test("client-supplied reward fields do not affect real reward",function() local ctx,s=context(); request(ctx,"QuestRemote",{action="accept",id="first_blood",coins=9999999}); request(ctx,"QuestRemote",{action="claim",id="first_blood",coins=9999999}); eq(s.Data.Coins,0) end)
 test("frozen closing and inactive sessions cannot mutate quests",function() for _,key in {"Frozen","Closing","Active"} do local ctx,s=context(); s[key]=key~="Active"; request(ctx,"QuestRemote",{action="accept",id="first_blood"}); eq(s.Campaign.Quests.first_blood,nil) end end)
 test("remote payload rejects nested data NaN instances and long strings",function()
@@ -110,8 +118,19 @@ end)
 test("remote burst rate limiter bounds callback execution",function() local ctx=context(); local n=0; ctx.Services.NetworkService:Register("InventoryRemote",true,function() n+=1 end); for _=1,100 do request(ctx,"InventoryRemote",{action="sort"}) end; assert(n<=8); assert(n>0) end)
 test("inventory adapter rejects remote stock access outside own base",function() local ctx,s=context(); ctx.NearPlot=false; local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); local before=s.Campaign.Stockpile.metal; request(ctx,"InventoryRemote",{action="withdraw",id="metal",count=5}); eq(s.Campaign.Stockpile.metal,before) end)
 test("inventory adapter use consumes exactly one real medkit",function() local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); player.Character.Humanoid.Health=20; local uid; for _,e in s.Campaign.Inventory do if e.id=="medkit" then uid=e.uid end end; request(ctx,"InventoryRemote",{action="use",uid=uid}); eq(player.Character.Humanoid.Health,80); eq(Inventory.count(s.Campaign,"medkit"),1) end)
+test("energy drink is a real stamina consumable",function() local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{energy_drink=1})); local uid; for _,e in s.Campaign.Inventory do if e.id=="energy_drink" then uid=e.uid end end; s.Stamina=20; request(ctx,"InventoryRemote",{action="use",uid=uid}); eq(s.Stamina,75); eq(Inventory.count(s.Campaign,"energy_drink"),0) end)
 test("building adapter refuses placement on another plot",function() local ctx,s=context(); ctx.NearPlot=false; ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,0); eq(s.Campaign.Cash,200) end)
 test("building adapter creates a model and charges resources",function() local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,1); eq(s.Campaign.Cash,190); assert(ctx.Services.BuildingService.Models[player].b1); eq(ctx.Services.BuildingService.Models[player].b1:GetAttribute("Owner"),player.UserId) end)
+test("accepted footprint evacuates resident before rendering and resident never invalidates placement",function()
+    local ctx,s=context(); local npc=module("ServerScriptService/Services/NPCService.luau")(ctx); ctx.Services.NPCService=npc
+    local plot=Config.Plots[1]; local model,h=Factory.rig("Resident",CFrame.new(plot.x,3,plot.z),Color3.fromRGB(255,255,255),Color3.fromRGB(255,255,255),1,"worker_mira")
+    model.Parent=workspace; npc.Workers[player]={{model=model,humanoid=h}}
+    ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init()
+    request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,1)
+    local b=s.Campaign.Buildings[1]; local hx,hz=ctx.Building.extents(b.id,b.r); local at=model.PrimaryPart.Position
+    assert(math.abs(at.X-plot.x)>=hx+2.5 or math.abs(at.Z-plot.z)>=hz+2.5); assert(ctx.Services.BuildingService.Models[player].b1)
+    model:Destroy()
+end)
 test("building adapter destruction removes model and worker job",function() local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); s.Campaign.Workers[1].job="b1"; ctx.Services.BuildingService:Damage(player,"b1",10000); eq(#s.Campaign.Buildings,0); eq(s.Campaign.Workers[1].job,""); eq(ctx.Services.BuildingService.Models[player].b1,nil) end)
 local function combatContext()
     local ctx,s=context(); player.Character.Humanoid.Health=100
@@ -129,6 +148,21 @@ test("combat adapter blocks shot spam",function() local ctx,s,e=combatContext();
 test("combat adapter validates aim equipped tool and ammunition",function() local ctx,s,e=combatContext(); request(ctx,"CombatRemote",{action="attack",aim=Vector3.new(0,0,0)}); eq(e.ammo,8); e.ammo=0; request(ctx,"CombatRemote",{action="attack",aim=Vector3.new(0,0,-1)}); eq(ctx.Damage,nil); e.ammo=8; player.Character:FindFirstChildOfClass("Tool"):Destroy(); request(ctx,"CombatRemote",{action="attack",aim=Vector3.new(0,0,-1)}); eq(e.ammo,8) end)
 test("reload adapter defers ammo transfer and consumes reserve once",function() local ctx,s,e=combatContext(); e.ammo=0; ctx.Services.CombatService:Reload(player,s); eq(e.ammo,0); local delay=Engine.task.delayed[#Engine.task.delayed]; delay.callback(); eq(e.ammo,8); eq(Inventory.count(s.Campaign,"ammo"),8); delay.callback(); eq(Inventory.count(s.Campaign,"ammo"),8) end)
 test("reload completion after player departure cannot grant ammo",function() local ctx,s,e=combatContext(); e.ammo=0; ctx.Services.CombatService:Reload(player,s); local delay=Engine.task.delayed[#Engine.task.delayed]; ctx.Sessions[player]=nil; delay.callback(); eq(e.ammo,0); eq(Inventory.count(s.Campaign,"ammo"),16) end)
+test("shotgun fires seven server rays and reloads only shells",function()
+    local ctx,s=combatContext(); Inventory.grant(s.Campaign,{shotgun=1,shells=9}); s.Campaign.XP=100; local gun
+    for _,entry in s.Campaign.Inventory do if entry.id=="shotgun" then gun=entry end end
+    assert(Inventory.equip(s.Campaign,gun.uid)); gun.ammo=1; ctx.Services.CombatService:SyncTool(player); ctx.Damage=0
+    request(ctx,"CombatRemote",{action="attack",aim=Vector3.new(0,0,-1)}); eq(ctx.Damage,112); eq(gun.ammo,0)
+    s.NextShot=0; ctx.Services.CombatService:Reload(player,s); local delay=Engine.task.delayed[#Engine.task.delayed]; delay.callback()
+    eq(gun.ammo,5); eq(Inventory.count(s.Campaign,"shells"),4); eq(Inventory.count(s.Campaign,"ammo"),16)
+end)
+test("purchasable armor reduces zombie damage and loses durability",function()
+    local ctx,s=combatContext(); ctx.Services.CombatService:Hurt(player,5); eq(player.Character.Humanoid.Health,95)
+    assert(Inventory.grant(s.Campaign,{heavy_vest=1})); local vest
+    for _,entry in s.Campaign.Inventory do if entry.id=="heavy_vest" then vest=entry end end
+    assert(Inventory.equip(s.Campaign,vest.uid)); ctx.Services.CombatService:Hurt(player,10)
+    eq(player.Character.Humanoid.Health,88.5); eq(vest.durability,99.5)
+end)
 
 local function saveContext()
     Engine.Store.records={}; Engine.Store.calls=0; Engine.Store.fail=false; Engine.Store.replay=1
@@ -140,6 +174,13 @@ local function saveContext()
 end
 test("SaveService acquires new profile with UpdateAsync lease",function() local ctx,s,save=saveContext(); local loaded=assert(save:Load(player)); eq(loaded.Persistent,true); assert(Engine.Store.records.player_123.Lease); eq(Engine.Store.calls,1) end)
 test("SaveService stores coins inventory quests and releases lease",function() local ctx,s,save=saveContext(); local loaded=assert(save:Load(player)); for k,v in loaded do s[k]=v end; s.Campaign=s.Data.Campaigns.coop; s.Data.Coins=321; Quests.accept(s.Campaign,"first_blood",os.time()); assert(save:Save(player,true)); eq(Engine.Store.records.player_123.Data.Coins,321); eq(Engine.Store.records.player_123.Data.Campaigns.coop.Quests.first_blood.status,"Active"); eq(Engine.Store.records.player_123.Lease,nil) end)
+test("SaveService roundtrip retains mine reward Glock magazine and reserve",function()
+    local ctx,s,save=saveContext(); local loaded=assert(save:Load(player)); for k,v in loaded do s[k]=v end; s.Campaign=s.Data.Campaigns.coop
+    assert(Quests.accept(s.Campaign,"mine_foreman",os.time())); Quests.record(s.Campaign,"kill","foreman",1,os.time()); assert(Quests.claim(s.Data,s.Campaign,"mine_foreman",os.time()))
+    assert(save:Save(player,true)); local stored=Engine.Store.records.player_123.Data; local copy=assert(Profile.normalize(stored)).Campaigns.coop
+    local glock; for _,entry in copy.Inventory do if entry.id=="glock" then glock=entry end end
+    eq(glock.ammo,10); eq(Inventory.count(copy,"ammo"),48); eq(copy.Quests.mine_foreman.status,"RewardClaimed")
+end)
 test("UpdateAsync callback replay does not duplicate startup items",function() local ctx,s,save=saveContext(); Engine.Store.replay=3; local loaded=assert(save:Load(player)); eq(Inventory.count(loaded.Data.Campaigns.coop,"crowbar"),1) end)
 test("save outage preserves existing data and retries four times",function() local ctx,s,save=saveContext(); local loaded=assert(save:Load(player)); for k,v in loaded do s[k]=v end; Engine.Store.fail=true; s.Data.Coins=999; local before=Engine.Store.calls; eq(save:Save(player,false),false); eq(Engine.Store.calls-before,4); eq(s.SaveState,"Error"); eq(Engine.Store.records.player_123.Data.Coins,0) end)
 test("live load failure does not silently create default persistent profile",function() local ctx,s,save=saveContext(); Engine.Store.fail=true; game:GetService("RunService").Studio=false; local loaded,err=save:Load(player); eq(loaded,nil); assert(err); eq(Engine.Store.records.player_123,nil) end)
@@ -176,6 +217,7 @@ test("full server composition root initializes every service",function()
     Engine.Store.fail=false; Engine.Store.records={}; player.Kicked=nil
     server=module("ServerScriptService/Bootstrap.server.luau")
     eq(workspace:GetAttribute("LastCityReady"),true); assert(server.Services.PlayerDataService); assert(server.Services.NPCService.NPCs.alex)
+    local residents=0; for _ in server.Services.NPCService.NPCs do residents+=1 end; eq(residents,12); assert(server.Services.NPCService.NPCs.ira)
 end)
 test("main NPC uses complete player-shaped R15 articulation",function()
     local model=server.Services.NPCService.NPCs.alex.model; eq(model:GetAttribute("BodyRig"),"LC-R15")

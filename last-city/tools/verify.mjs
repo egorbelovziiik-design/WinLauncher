@@ -32,13 +32,19 @@ check(terrain.PhysicsGrid===EMPTY_PHYSICS_GRID,'Terrain.PhysicsGrid matches 14-b
 check(terrain.SmoothGrid===EMPTY_SMOOTH_GRID,'Terrain.SmoothGrid matches the 2-byte Studio empty voxel fixture');
 check(at('Lighting').TimeOfDay==='15:30:00','authored initial lighting time is serialized');
 check(ws.StreamingEnabled===true&&ws.StreamingMinRadius===128&&ws.StreamingTargetRadius===512,'streaming enabled with bounded radii');
-check(at('Workspace','World','Plots').Children.length===6,'six physically distinct building plots');
-check(at('Workspace','World','ZombieSpawns').Children.length===12,'twelve enemy spawn markers');
+check(at('Workspace','World','Plots').Children.length===9,'nine physically distinct building plots');
+check(at('Workspace','World','ZombieSpawns').Children.length===17,'city and mine expose seventeen bounded enemy spawn markers');
+check(at('Workspace','World','ZombieSpawns').Children.some(n=>n.Name==='MineBossSpawn'),'dedicated mine boss spawn is physically authored');
 const loot=at('Workspace','World','LootSpawns').Children;
 check(loot.filter(n=>n.Name.startsWith('Supply')).length===3,'three distinct quest supply crates');
 check(loot.filter(n=>n.findFirstChild('ItemId')).length>=20,'real resource spawn definitions');
 check(at('Workspace','World','Cities').Children.some(n=>n.Name==='02_MeridianMarket'),'enterable market included');
+const market=at('Workspace','World','Cities','02_MeridianMarket');
+check(market.Children.some(n=>n.Name==='Roof')&&!market.Children.some(n=>n.Name==='PartialRoof'),'MERIDIAN market has a complete roof rather than the misleading partial slab');
 check(at('Workspace','World','Cities').Children.some(n=>n.Name==='03_SalvageDepot'),'industrial depot included');
+check(at('Workspace','World','Cities').Children.some(n=>n.Name==='10_BlackVeinQuarry'),'expanded east quarry and traversable mine included');
+check(at('Workspace','World','Cities','10_BlackVeinQuarry','TraversableMine').Children.some(n=>n.Name==='TunnelFloor'),'mine has a physical walkable tunnel');
+check(at('Workspace','World','Cities','10_BlackVeinQuarry','ForemanChamber').Children.some(n=>n.Name==='ChamberFloor'),'mine boss chamber is physical playable geometry');
 const ground=at('Workspace','World','TerrainBase','Ground');
 check(ground.Anchored===true&&ground.CanCollide===true,'collidable anchored world floor');
 const ownNodes=[]; function collect(node){ownNodes.push(node);node.Children.forEach(collect);}own.Roots.forEach(collect);
@@ -86,7 +92,14 @@ check(ownNodes.filter(n=>n.ClassName==='Model'&&n.Name==='RoadClosure').length>=
 check(terrain.findFirstChild('StormFront')?.ClassName==='Clouds','native dynamic cloud layer is serialized');
 check(at('ReplicatedStorage','Shared','ModelFactory').Source.includes('HumanoidRigType.R15'),'runtime actors use player-shaped R15 articulation');
 check(at('StarterPlayer','StarterPlayerScripts','Controllers','ActorAnimationController').Source.includes('ZombieAttack'),'distinct procedural actor state poses are embedded');
-check(at('ServerScriptService','Services','NPCService').Source.includes('KeyboardKeyCode = Enum.KeyCode.E'),'NPC talk explicitly binds keyboard E on the server-created prompt');
+const npcSource=at('ServerScriptService','Services','NPCService').Source;
+check(npcSource.includes('KeyboardKeyCode = Enum.KeyCode.E'),'NPC talk explicitly binds keyboard E on the server-created prompt');
+check(npcSource.includes('playerHead')&&npcSource.includes('npcHead'),'Victor and resident dialogue validates head-level line of sight');
+check(npcSource.includes('function Service:Evacuate')&&npcSource.includes('forcePath = true'),'workers path around structures and evacuate accepted footprints');
+const zombieDefsSource=at('ReplicatedStorage','Shared','ZombieDefinitions').Source;
+check(zombieDefsSource.includes('damage = 5')&&zombieDefsSource.includes('foreman'),'graduated zombie roster starts at five damage and includes the mine boss');
+const questDefsSource=at('ReplicatedStorage','Shared','QuestDefinitions').Source;
+check(questDefsSource.includes('id = "glock"')&&questDefsSource.includes('ammo = 10')&&questDefsSource.includes('items = {ammo = 48}'),'mine quest embeds exact Glock 10/10 plus 48-reserve reward');
 check(!at('ServerScriptService','Domain','Building').Source.includes('hx + ox + 0.1'),'authoritative building overlap has no artificial adjacency gap');
 check(ownNodes.filter(n=>n.IsA('BasePart')).length<6500,'static geometry stays within explicit 6500-part build budget');
 

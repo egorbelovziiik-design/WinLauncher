@@ -23,21 +23,80 @@ return function(ctx)
             },
         },
         victor = {
-            name = "Инженер Виктор", role = "Мастерская и энергия", at = Vector3.new(-45, 3, -128), style = "victor", speed = 8.6,
-            color = Color3.fromRGB(68, 100, 117), skin = Color3.fromRGB(174, 139, 106), pause = 1.5,
-            patrol = {Vector3.new(-45, 3, -128), Vector3.new(-58, 3, -125), Vector3.new(-54, 3, -146), Vector3.new(-37, 3, -145)},
+            name = "Инженер Виктор", role = "Мастерская и энергия", at = Vector3.new(-48, 3, -121), style = "victor", speed = 8.2,
+            color = Color3.fromRGB(68, 100, 117), skin = Color3.fromRGB(174, 139, 106), pause = 2.5,
+            -- This route stays on the open apron instead of entering the cramped table/back-wall geometry.
+            patrol = {Vector3.new(-48, 3, -121), Vector3.new(-38, 3, -122), Vector3.new(-39, 3, -130), Vector3.new(-57, 3, -130), Vector3.new(-58, 3, -122)},
             texts = {
                 "Без света не будет города. Генератор берёт топливо со склада. Мастерская перерабатывает лом, а работникам нужны еда и вода.",
                 "Ставь постройки вплотную, если их края только касаются. Настоящее пересечение сервер всё равно отклонит.",
             },
         },
+        ira = {
+            name = "Ира Волкова", role = "Жительница восточного карьера", at = Vector3.new(304, 3, 154), style = "ira", speed = 8,
+            color = Color3.fromRGB(111, 82, 62), skin = Color3.fromRGB(191, 149, 116), pause = 3,
+            patrol = {Vector3.new(304, 3, 154), Vector3.new(294, 3, 145), Vector3.new(286, 3, 158), Vector3.new(299, 3, 170)},
+            texts = {
+                "Из шахты снова доносится кирка. Но все шахтёры погибли. Прими задание и останови Бригадира в дальней выработке.",
+                "Внутри держись рельсов и ищи аварийные фонари. За победу сразу получишь Glock: 10 в магазине и ещё 48 патронов.",
+            },
+        },
+        lina = {
+            name = "Доктор Лина", role = "Полевой медик", at = Vector3.new(-62, 3, 178), style = "resident_medic", speed = 7.4, ambient = true,
+            color = Color3.fromRGB(142, 162, 147), skin = Color3.fromRGB(198, 158, 125), pause = 4,
+            patrol = {Vector3.new(-62, 3, 178), Vector3.new(-78, 3, 181), Vector3.new(-46, 3, 181)},
+            texts = {"Аптека впереди заражена, но на стеллажах ещё есть лекарства.", "Бронежилет снижает каждый удар, но сам изнашивается. Держи запас бинтов."},
+        },
+        roman = {
+            name = "Роман Кедр", role = "Дежурный полиции", at = Vector3.new(62, 3, 177), style = "resident_guard", speed = 8.4, ambient = true,
+            color = Color3.fromRGB(55, 78, 94), skin = Color3.fromRGB(167, 127, 97), pause = 2.5,
+            patrol = {Vector3.new(62, 3, 177), Vector3.new(45, 3, 181), Vector3.new(79, 3, 181)},
+            texts = {"В участке остались патроны и архивы. Дверь открывается снаружи клавишей E.", "Бегуны быстры, но хрупки. Не дай им окружить тебя."},
+        },
+        oleg = {
+            name = "Олег Север", role = "Механик АЗС", at = Vector3.new(274, 3, 143), style = "resident_mechanic", speed = 7.8, ambient = true,
+            color = Color3.fromRGB(91, 111, 102), skin = Color3.fromRGB(178, 136, 102), pause = 3.5,
+            patrol = {Vector3.new(274, 3, 143), Vector3.new(257, 3, 137), Vector3.new(289, 3, 137), Vector3.new(297, 3, 151)},
+            texts = {"Дорога на восток ведёт к карьеру и шахте. Возьми воду до спуска.", "Топливо нужно генераторам, а аккумуляторы — сложным рецептам мастерской."},
+        },
+        anya = {
+            name = "Аня Рэй", role = "Волонтёр эвакуации", at = Vector3.new(-63, 3, -8), style = "resident_volunteer", speed = 8.1, ambient = true,
+            color = Color3.fromRGB(108, 125, 93), skin = Color3.fromRGB(205, 166, 133), pause = 3,
+            patrol = {Vector3.new(-63, 3, -8), Vector3.new(-86, 3, -12), Vector3.new(-39, 3, -12), Vector3.new(-63, 3, 16)},
+            texts = {"Лагерь опустел быстро. Алекс разыскивает список, передатчик и жетоны спасателей.", "Костры ещё горят. Бери ткань и воду — здесь они никому больше не помогут."},
+        },
+        boris = {
+            name = "Борис Камень", role = "Страж северных ворот", at = Vector3.new(18, 3, -34), style = "resident_guard", speed = 8, ambient = true,
+            color = Color3.fromRGB(72, 91, 70), skin = Color3.fromRGB(151, 112, 83), pause = 2,
+            patrol = {Vector3.new(18, 3, -34), Vector3.new(31, 3, -36), Vector3.new(18, 3, -48), Vector3.new(5, 3, -36)},
+            texts = {"Обычный заражённый снимает пять здоровья за удар. Более редкие опаснее — смотри на размер и броню.", "За стенами не стой на месте. Отступай к воротам, если кончается выносливость."},
+        },
+        vera = {
+            name = "Вера Сокол", role = "Агроном убежища", at = Vector3.new(54, 3, -77), style = "resident_farmer", speed = 7.2, ambient = true,
+            color = Color3.fromRGB(102, 119, 75), skin = Color3.fromRGB(186, 143, 110), pause = 4,
+            patrol = {Vector3.new(54, 3, -77), Vector3.new(66, 3, -83), Vector3.new(62, 3, -67), Vector3.new(47, 3, -68)},
+            texts = {"Ферма производит еду только с назначенным жителем и водой на складе.", "Работники теперь гуляют по участку и обходят всё, что ты построишь."},
+        },
+        timur = {
+            name = "Тимур Ветер", role = "Разведчик Меридиана", at = Vector3.new(16, 3, 53), style = "resident_scout", speed = 10, ambient = true,
+            color = Color3.fromRGB(77, 91, 87), skin = Color3.fromRGB(173, 126, 92), pause = 1.8,
+            patrol = {Vector3.new(16, 3, 53), Vector3.new(35, 3, 48), Vector3.new(23, 3, 72), Vector3.new(-8, 3, 67)},
+            texts = {"Город стал больше. Аптека на западе, полиция на востоке, шахта — дальше за АЗС.", "Бронированных заражённых лучше бить дробовиком или улучшенным оружием."},
+        },
+        mila = {
+            name = "Мила Яр", role = "Повар убежища", at = Vector3.new(8, 3, -93), style = "resident_cook", speed = 7.6, ambient = true,
+            color = Color3.fromRGB(126, 91, 75), skin = Color3.fromRGB(213, 171, 136), pause = 4.5,
+            patrol = {Vector3.new(8, 3, -93), Vector3.new(20, 3, -101), Vector3.new(7, 3, -116), Vector3.new(-8, 3, -105)},
+            texts = {"Рацион сытнее консервов, а энергетик быстро возвращает выносливость.", "Не продавай последние воду и еду: без них жители базы перестанут работать."},
+        },
     }
+    Service.Definitions = definitions
     local function actorPrompt(model, objectText, callback)
         local parent = model:FindFirstChild("Head") or model.PrimaryPart
         local prompt = Instance.new("ProximityPrompt")
         prompt.Name = "TalkPrompt"; prompt.ActionText = "Поговорить"; prompt.ObjectText = objectText
         prompt.KeyboardKeyCode = Enum.KeyCode.E; prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
-        prompt.MaxActivationDistance = 11; prompt.HoldDuration = 0; prompt.RequiresLineOfSight = true
+        prompt.MaxActivationDistance = 11; prompt.HoldDuration = 0; prompt.RequiresLineOfSight = false
         prompt.ClickablePrompt = true; prompt.Exclusivity = Enum.ProximityPromptExclusivity.OnePerButton
         prompt:SetAttribute("ServerAuthoritative", true); prompt.Parent = parent
         prompt.Triggered:Connect(callback)
@@ -45,8 +104,13 @@ return function(ctx)
     end
     function Service:Near(player, id)
         local npc = self.NPCs[id]; local root = ctx:Root(player)
-        return npc and root and npc.model.PrimaryPart and (npc.model.PrimaryPart.Position - root.Position).Magnitude <= ctx.Config.InteractRange
-            and ctx:LineOfSight(root.Position, npc.model.PrimaryPart.Position, {player.Character, npc.model})
+        if not npc or not root or not npc.model.PrimaryPart or (npc.model.PrimaryPart.Position - root.Position).Magnitude > ctx.Config.InteractRange then return false end
+        -- Head-to-head validation avoids false failures from floors, tables and the actors' own lower bodies.
+        local playerHead = player.Character and player.Character:FindFirstChild("Head")
+        local npcHead = npc.model:FindFirstChild("Head")
+        local origin = playerHead and playerHead.Position or root.Position + Vector3.new(0, 2, 0)
+        local target = npcHead and npcHead.Position or npc.model.PrimaryPart.Position + Vector3.new(0, 2, 0)
+        return ctx:LineOfSight(origin, target, {player.Character, npc.model})
     end
     function Service:Talk(player, id)
         if not self:Near(player, id) then return end
@@ -60,7 +124,7 @@ return function(ctx)
         end
         ctx.Progression.fact(s.Campaign, "talk")
         local text = def.texts[(npc.talkCount - 1) % #def.texts + 1]
-        ctx.Remotes.StateRemote:FireClient(player, "dialogue", {id = id, name = def.name, role = def.role, text = text, model = npc.model})
+        ctx.Remotes.StateRemote:FireClient(player, "dialogue", {id = id, name = def.name, role = def.role, text = text, model = npc.model, ambient = def.ambient == true})
         ctx:Changed(player)
     end
     local function label(model, title, subtitle)
@@ -73,7 +137,8 @@ return function(ctx)
     function Service:TalkWorker(player, actor, worker, plotNumber)
         local root = ctx:Root(player)
         if not root or not actor.model.Parent or (actor.model.PrimaryPart.Position - root.Position).Magnitude > ctx.Config.InteractRange then return end
-        if not ctx:LineOfSight(root.Position, actor.model.PrimaryPart.Position, {player.Character, actor.model}) then return end
+        local playerHead = player.Character and player.Character:FindFirstChild("Head"); local actorHead = actor.model:FindFirstChild("Head")
+        if not ctx:LineOfSight(playerHead and playerHead.Position or root.Position + Vector3.new(0, 2, 0), actorHead and actorHead.Position or actor.model.PrimaryPart.Position + Vector3.new(0, 2, 0), {player.Character, actor.model}) then return end
         actor.talkUntil = os.clock() + 12; actor.model:SetAttribute("State", "Talking"); actor.humanoid:MoveTo(actor.model.PrimaryPart.Position)
         local state = actor.model:GetAttribute("WorkState") or "Idle"
         local lines = {
@@ -100,7 +165,7 @@ return function(ctx)
             model.Parent = ctx.World.NPCSpawns; model.PrimaryPart:SetNetworkOwner(nil); CollectionService:AddTag(model, "LastCityActor")
             h.MaxHealth = 100; h.Health = 100; h.WalkSpeed = index == 1 and 8.2 or 9.2
             label(model, worker.name, "Житель вашего убежища • E")
-            local actor = {model = model, humanoid = h, nextMove = 0, path = nil, pathIndex = 1, index = index, talkUntil = 0}
+            local actor = {model = model, humanoid = h, nextMove = 0, path = nil, pathIndex = 1, index = index, talkUntil = 0, forcePath = true, nextWander = 0}
             actorPrompt(model, worker.name, function(visitor)
                 if visitor ~= player then ctx:Notify(visitor, "Это житель другого участка."); return end
                 if ctx.Services.NetworkService:Permit(visitor, "dialogue", true) then self:TalkWorker(visitor, actor, worker, s.Plot) end
@@ -112,12 +177,63 @@ return function(ctx)
         for _, worker in self.Workers[player] or {} do worker.model:Destroy() end
         self.Workers[player] = nil
     end
+    function Service:PointClear(s, x, z, padding, excludeUid)
+        padding = padding or 2
+        if math.abs(x) > ctx.Config.PlotHalfSize - padding or math.abs(z) > ctx.Config.PlotHalfSize - padding then return false end
+        for _, zone in ctx.Config.PlotReserved do
+            if math.abs(x - zone.x) < zone.hx + padding and math.abs(z - zone.z) < zone.hz + padding then return false end
+        end
+        for _, b in s.Campaign.Buildings do
+            if b.uid == excludeUid then continue end
+            local hx, hz = ctx.Building.extents(b.id, b.r)
+            if math.abs(x - b.x) < hx + padding and math.abs(z - b.z) < hz + padding then return false end
+        end
+        return true
+    end
+    function Service:WanderTarget(s, actor)
+        local plot = ctx.Config.Plots[s.Plot]
+        for _ = 1, 16 do
+            local x, z = math.random(-10, 10) * 4, math.random(-10, 8) * 4
+            if self:PointClear(s, x, z, 3) then return Vector3.new(plot.x + x, 3, plot.z + z) end
+        end
+        for _, point in {{32, 8}, {-36, 5}, {30, -34}, {-34, -34}, {0, -40}} do
+            if self:PointClear(s, point[1], point[2], 3) then return Vector3.new(plot.x + point[1], 3, plot.z + point[2]) end
+        end
+        -- The reserved entrance is guaranteed to remain construction-free.
+        return Vector3.new(plot.x, 3, plot.z + 24)
+    end
+    function Service:WorkTarget(s, building)
+        local plot = ctx.Config.Plots[s.Plot]; local hx, hz = ctx.Building.extents(building.id, building.r)
+        for _, point in {{building.x, building.z + hz + 4}, {building.x + hx + 4, building.z}, {building.x, building.z - hz - 4}, {building.x - hx - 4, building.z}} do
+            if self:PointClear(s, point[1], point[2], 2, building.uid) then return Vector3.new(plot.x + point[1], 3, plot.z + point[2]) end
+        end
+        return self:WanderTarget(s, {})
+    end
+    function Service:Evacuate(player, building)
+        local s = ctx.Sessions[player]; local actors = self.Workers[player]
+        if not s or not actors then return end
+        local plot = ctx.Config.Plots[s.Plot]; local hx, hz = ctx.Building.extents(building.id, building.r)
+        for _, actor in actors do
+            local position = actor.model.PrimaryPart.Position
+            if math.abs(position.X - (plot.x + building.x)) < hx + 2.5 and math.abs(position.Z - (plot.z + building.z)) < hz + 2.5 then
+                local safe = self:WanderTarget(s, actor)
+                actor.humanoid:MoveTo(safe); actor.model:PivotTo(CFrame.new(safe)); actor.path = nil
+                actor.pathToken = (actor.pathToken or 0) + 1; actor.pathTarget = nil; actor.nextWander = 0
+                actor.model:SetAttribute("State", "Walking")
+            end
+        end
+    end
     function Service:Walk(actor, target)
         if not actor.model.Parent then return end
         local root = actor.model.PrimaryPart
         local horizontalTarget = Vector3.new(target.X, root.Position.Y, target.Z)
-        if (horizontalTarget - root.Position).Magnitude < 1.8 then actor.humanoid:MoveTo(root.Position); actor.path = nil; return end
-        if ctx:LineOfSight(root.Position + Vector3.new(0, 1, 0), horizontalTarget + Vector3.new(0, 1, 0), {actor.model}) then
+        if not actor.pathTarget or (actor.pathTarget - horizontalTarget).Magnitude > 2 then
+            actor.pathTarget = horizontalTarget; actor.path = nil; actor.pathToken = (actor.pathToken or 0) + 1
+        end
+        if (horizontalTarget - root.Position).Magnitude < 1.8 then
+            actor.humanoid:MoveTo(root.Position); actor.path = nil; return
+        end
+        if not actor.forcePath and ctx:LineOfSight(root.Position + Vector3.new(0, 1, 0), horizontalTarget + Vector3.new(0, 1, 0), {actor.model}) then
             actor.path = nil; actor.humanoid:MoveTo(target); return
         end
         if actor.path then
@@ -125,17 +241,19 @@ return function(ctx)
             if waypoint and (root.Position - waypoint.Position).Magnitude < 4 then actor.pathIndex += 1; waypoint = actor.path[actor.pathIndex] end
             if waypoint then
                 if waypoint.Action == Enum.PathWaypointAction.Jump then actor.humanoid.Jump = true end
-                actor.humanoid:MoveTo(waypoint.Position)
+                actor.humanoid:MoveTo(waypoint.Position); return
             else actor.path = nil end
         end
         if actor.pending or os.clock() < actor.nextMove or self.PendingPaths >= 2 then return end
         actor.nextMove = os.clock() + 2.5 + math.random(); actor.pending = true; self.PendingPaths += 1
+        local token = actor.pathToken
         task.spawn(function()
             local path = Pathfinding:CreatePath({AgentRadius = 2, AgentHeight = 6, AgentCanJump = true, WaypointSpacing = 5})
             local ok = pcall(function() path:ComputeAsync(root.Position, target) end)
             self.PendingPaths -= 1; actor.pending = false
-            if not actor.model.Parent then return end
+            if not actor.model.Parent or actor.pathToken ~= token then return end
             if ok and path.Status == Enum.PathStatus.Success then actor.path = path:GetWaypoints(); actor.pathIndex = 2
+            elseif actor.forcePath then actor.path = nil; actor.humanoid:MoveTo(root.Position); actor.nextWander = 0
             else actor.path = nil; actor.humanoid:MoveTo(target) end
         end)
     end
@@ -189,16 +307,20 @@ return function(ctx)
                     for index, actor in actors do
                         local worker = s.Campaign.Workers[index]
                         local building = ctx.Building.find(s.Campaign, worker.job)
-                        local target = Vector3.new(plot.x + index * 5 - 8, 3, plot.z + 34)
                         local state = "Idle"
-                        if hour >= 21 or hour < 6 then state = "Sleeping"
-                        elseif hour >= 12 and hour < 13 then state = "Eating"
+                        if not actor.wanderTarget or now >= actor.nextWander then
+                            actor.wanderTarget = self:WanderTarget(s, actor); actor.nextWander = now + math.random(7, 14)
+                        end
+                        local target = actor.wanderTarget
+                        if hour >= 21 or hour < 6 then
+                            state = "Sleeping"; target = Vector3.new(plot.x - 24 + index * 2, 3, plot.z + 30)
+                        elseif hour >= 12 and hour < 13 then
+                            state = "Eating"; target = Vector3.new(plot.x - 8 + index * 4, 3, plot.z + 22)
                         elseif building and building.readyAt <= os.time() then
-                            local def = ctx.BuildingDefs[building.id]
-                            target = Vector3.new(plot.x + building.x, 3, plot.z + building.z + def.size[3] / 2 + 3); state = "Working"
+                            target = self:WorkTarget(s, building); state = "Working"
                         end
                         if ctx.Services.ZombieService:Nearest(actor.model.PrimaryPart.Position, 24) then
-                            target = Vector3.new(plot.x, 3, plot.z + 36); state = "Fleeing"
+                            target = Vector3.new(plot.x, 3, plot.z + 24); state = "Fleeing"
                         end
                         if now <= actor.talkUntil and state ~= "Fleeing" then
                             actor.humanoid:MoveTo(actor.model.PrimaryPart.Position); actor.model:SetAttribute("State", "Talking")

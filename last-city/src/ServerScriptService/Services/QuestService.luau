@@ -3,7 +3,21 @@ return function(ctx)
     local Service = {}
     function Service:Record(player, event, target, amount, unique)
         local s = ctx.Sessions[player]; if not s or not s.Active or s.Closing or s.Frozen then return end
-        ctx.Quests.record(s.Campaign, event, target, amount, os.time(), unique)
+        local completed = ctx.Quests.record(s.Campaign, event, target, amount, os.time(), unique)
+        for _, id in completed do
+            local def = ctx.QuestDefs[id]
+            if def and def.autoClaim then
+                local ok, err = ctx.Quests.claim(s.Data, s.Campaign, id, os.time())
+                if ok then
+                    ctx.Progression.fact(s.Campaign, "reward")
+                    ctx.Services.CombatService:SyncTool(player)
+                    ctx:Notify(player, "Босс повержен! Glock 10/10 и 48 патронов добавлены в рюкзак.", "success")
+                else
+                    -- Atomic rewards remain claimable at the quest resident if the backpack is full.
+                    ctx:Notify(player, "Освободите место и заберите награду у Иры: " .. tostring(err), "error")
+                end
+            end
+        end
         ctx:Changed(player)
     end
     function Service:Init()

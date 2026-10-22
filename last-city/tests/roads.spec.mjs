@@ -18,7 +18,7 @@ test('curbs never run through intersection asphalt',()=>{
 });
 test('settlement roads do not cut through any private plot',()=>{
   const p=planRoads(SETTLEMENT_ROADS,0);
-  for(const x of [-144,0,144])for(const z of [-252,-396])for(const lane of p.asphalt)assert.equal(intersects({x,z,w:100,d:100},lane),false);
+  for(const x of [-144,0,144])for(const z of [-252,-396,-540])for(const lane of p.asphalt)assert.equal(intersects({x,z,w:100,d:100},lane),false);
 });
 test('all twelve city crossroads have a continuous paved center',()=>{
   const p=planRoads(CITY_ROADS,5);assert.equal(p.junctions.length,12);

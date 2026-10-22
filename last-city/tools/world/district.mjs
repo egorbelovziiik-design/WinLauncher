@@ -59,10 +59,10 @@ export function district(world) {
     part(world.MilitaryBases,'ClosureRubble',[5.5,1.2,4],[x+(x<0?4:-4),0.6,z+7],'#686b62','Slate',0.35,{CanCollide:false});
   }
   for(const x of [-72,72]) {
-    part(world.Roads,'SouthGravelTransition',[14,0.22,58],[x,0.05,-503],'#55584e','Pebble');
-    barricade(world.MilitaryBases,x,-531,0);
+    part(world.Roads,'SouthGravelTransition',[14,0.22,58],[x,0.05,-660],'#55584e','Pebble');
+    barricade(world.MilitaryBases,x,-688,0);
   }
-  sign(world.MilitaryBases,'ЮЖНЫЙ ПЕРИМЕТР\nДАЛЬШЕ НЕТ БЕЗОПАСНОГО МАРШРУТА',[52,6,0.8],[0,12,-536],P.amber,P.dark);
-  for(const x of [-112,-35,35,112])tree(world.Forests,x,-548,19+(Math.abs(x)%7),true);
+  sign(world.MilitaryBases,'ЮЖНЫЙ ПЕРИМЕТР\nДАЛЬШЕ НЕТ БЕЗОПАСНОГО МАРШРУТА',[52,6,0.8],[0,12,-693],P.amber,P.dark);
+  for(const x of [-112,-35,35,112])tree(world.Forests,x,-710,19+(Math.abs(x)%7),true);
   streetFurniture(world.Cities);
 }

@@ -87,6 +87,9 @@ return function(ctx)
             if p.action == "place" then
                 ok, result = ctx.Building.place(s.Campaign, p.id, p.x, p.z, p.r, os.time())
                 if ok then
+                    -- Placement validity is data-only; residents never block it. Move any resident
+                    -- out of the accepted footprint before the physical model is parented.
+                    if ctx.Services.NPCService and ctx.Services.NPCService.Evacuate then ctx.Services.NPCService:Evacuate(player, result) end
                     self:Render(player, result); s.Data.Stats.buildings += 1; s.Campaign.XP += 15
                     ctx.Services.QuestService:Record(player, "build", p.id, 1)
                     ctx.Progression.fact(s.Campaign, "build")

@@ -1,21 +1,41 @@
 --!strict
 return {
     cloth = {name = "Ткань", category = "Ресурсы", stack = 99, weight = 0.2, color = "C7C4B9"},
-    bandage = {name = "Бинт", category = "Расходники", stack = 20, weight = 0.12, use = "health", amount = 25, color = "D9DECD"},
     wood = {name = "Дерево", category = "Ресурсы", stack = 99, weight = 0.5, color = "B68B5A"},
     scrap = {name = "Металлолом", category = "Ресурсы", stack = 99, weight = 0.8, color = "9CA3AF"},
     metal = {name = "Металл", category = "Ресурсы", stack = 99, weight = 0.6, color = "CBD5E1"},
+    ore = {name = "Железная руда", category = "Ресурсы", stack = 99, weight = 0.9, color = "9B8C7A"},
+    coal = {name = "Уголь", category = "Ресурсы", stack = 99, weight = 0.55, color = "4B5563"},
     wire = {name = "Провода", category = "Ресурсы", stack = 99, weight = 0.2, color = "FB923C"},
     electronics = {name = "Электроника", category = "Ресурсы", stack = 99, weight = 0.3, color = "60A5FA"},
     parts = {name = "Детали", category = "Ресурсы", stack = 99, weight = 0.5, color = "A78BFA"},
+    chemicals = {name = "Химикаты", category = "Ресурсы", stack = 50, weight = 0.35, color = "A3E635"},
+    battery = {name = "Аккумулятор", category = "Ресурсы", stack = 20, weight = 1.2, color = "FBBF24"},
+    herbs = {name = "Лечебные травы", category = "Ресурсы", stack = 50, weight = 0.1, color = "86EFAC"},
     fuel = {name = "Топливо", category = "Ресурсы", stack = 50, weight = 0.7, color = "FACC15"},
+
+    bandage = {name = "Бинт", category = "Расходники", stack = 20, weight = 0.12, use = "health", amount = 25, color = "D9DECD"},
     food = {name = "Консервы", category = "Расходники", stack = 20, weight = 0.4, use = "hunger", amount = 35, color = "4ADE80"},
+    ration = {name = "Армейский рацион", category = "Расходники", stack = 15, weight = 0.55, use = "hunger", amount = 60, color = "65A30D"},
     water = {name = "Чистая вода", category = "Расходники", stack = 20, weight = 0.5, use = "thirst", amount = 40, color = "38BDF8"},
     medkit = {name = "Аптечка", category = "Расходники", stack = 10, weight = 0.5, use = "health", amount = 60, color = "F87171"},
-    ammo = {name = "Патроны 9 мм", category = "Расходники", stack = 99, weight = 0.03, color = "FDE68A"},
+    painkillers = {name = "Обезболивающее", category = "Расходники", stack = 15, weight = 0.1, use = "health", amount = 35, color = "F0ABFC"},
+    energy_drink = {name = "Энергетик", category = "Расходники", stack = 12, weight = 0.35, use = "stamina", amount = 55, color = "22D3EE"},
+
+    ammo = {name = "Патроны 9 мм", category = "Боеприпасы", stack = 120, weight = 0.03, color = "FDE68A"},
+    shells = {name = "Дробовые патроны", category = "Боеприпасы", stack = 60, weight = 0.08, color = "FCA5A5"},
+    rifle_ammo = {name = "Карабинные патроны", category = "Боеприпасы", stack = 90, weight = 0.05, color = "FCD34D"},
+
     crowbar = {name = "Лом", category = "Оружие", stack = 1, weight = 3, weapon = true, color = "9CA3AF"},
+    machete = {name = "Мачете", category = "Оружие", stack = 1, weight = 2.2, weapon = true, color = "D1D5DB"},
+    pickaxe = {name = "Шахтёрская кирка", category = "Оружие", stack = 1, weight = 4.2, weapon = true, color = "A8A29E"},
     pistol = {name = "Пистолет P9", category = "Оружие", stack = 1, weight = 2, weapon = true, color = "4ADE80"},
+    glock = {name = "Glock G17", category = "Оружие", stack = 1, weight = 1.8, weapon = true, color = "FBBF24"},
+    smg = {name = "ПП Viper", category = "Оружие", stack = 1, weight = 3.3, weapon = true, color = "C084FC"},
+    shotgun = {name = "Дробовик M12", category = "Оружие", stack = 1, weight = 4.5, weapon = true, color = "FB7185"},
     rifle = {name = "Карабин R4", category = "Оружие", stack = 1, weight = 4, weapon = true, color = "60A5FA"},
+
     vest = {name = "Бронежилет", category = "Броня", stack = 1, weight = 4, armor = 0.2, color = "60A5FA"},
+    heavy_vest = {name = "Тяжёлый бронежилет", category = "Броня", stack = 1, weight = 6.5, armor = 0.35, color = "818CF8"},
     generator_plan = {name = "Чертёж: дизельный генератор", category = "Чертежи", stack = 1, weight = 0, blueprint = true, color = "A78BFA"},
 }

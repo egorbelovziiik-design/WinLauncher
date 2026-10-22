@@ -17,7 +17,8 @@ return function(Definitions, Inventory, Util)
         return true
     end
     function Quests.record(c, event, target, amount, now, unique)
-        if not Util.integer(amount, 1, 999) then return end
+        local completed = {}
+        if not Util.integer(amount, 1, 999) then return completed end
         for id, def in Definitions do
             local q = current(c, id, now)
             if not q or q.status ~= "Active" then continue end
@@ -32,8 +33,9 @@ return function(Definitions, Inventory, Util)
             if key and changed then q.seen[key] = true end
             local complete = true
             for index, objective in def.objectives do if q.progress[index] < objective.count then complete = false end end
-            if complete then q.status = "Completed" end
+            if complete then q.status = "Completed"; table.insert(completed, id) end
         end
+        return completed
     end
     function Quests.claim(p, c, id, now)
         if not Definitions[id] then return false, "Задание не найдено" end
@@ -44,7 +46,7 @@ return function(Definitions, Inventory, Util)
             if q.progress[index] < objective.count then return false, "Цели не выполнены" end
         end
         -- grant is atomic. A full backpack leaves quest, currencies and XP untouched.
-        local ok, err = Inventory.grant(c, def.reward.items)
+        local ok, err = Inventory.grant(c, def.reward.items, def.reward.loadedWeapons)
         if not ok then return false, err end
         q.status = "RewardClaimed"
         p.Coins += def.reward.coins; c.XP += def.reward.xp

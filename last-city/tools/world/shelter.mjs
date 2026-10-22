@@ -38,7 +38,11 @@ export function shelter(world) {
   loot(world.LootSpawns, 'food', 2, 8, -94, 'shelter', 150);
   loot(world.LootSpawns, 'water', 2, 14, -94, 'shelter', 150);
   const spawn = instance('SpawnLocation'); spawn.Name = 'ShelterSpawn'; spawn.Size = vec(6, 0.2, 6); spawn.CFrame = cf(0, 0.2, -106); spawn.Anchored = true; spawn.Transparency = 1; spawn.Neutral = true; spawn.Duration = 3; spawn.Parent = m;
-  const plots = [[-144,-252],[0,-252],[144,-252],[-144,-396],[0,-396],[144,-396]];
+  const plots = [
+    [-144,-252],[0,-252],[144,-252],
+    [-144,-396],[0,-396],[144,-396],
+    [-144,-540],[0,-540],[144,-540],
+  ];
   plots.forEach(([x,z],i)=>{
     const p = folder(world.Plots,`Plot${i+1}`,true);
     part(p,'PlotGround',[100,0.2,100],[x,-0.05,z],i%2===0?'#4b5247':'#485147','Ground');

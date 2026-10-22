@@ -23,7 +23,7 @@ return function(app)
             UI.button(row, entry[1], function() app:OpenPanel(entry[2]) end, {Size = UDim2.new(0.5, -4, 1, 0), TextSize = 12, BackgroundColor3 = Color3.fromRGB(26, 31, 36)})
         end
     end
-    local footer = UI.label(root, "LIVING MERIDIAN  /  0.3.0     •     ВЕРТИКАЛЬНЫЙ СРЕЗ", 10, {Position = UDim2.new(0, 52, 1, -28), Size = UDim2.new(1, -70, 0, 20), TextColor3 = T.muted})
+    local footer = UI.label(root, "BLACK VEIN  /  0.4.0     •     ВЕРТИКАЛЬНЫЙ СРЕЗ", 10, {Position = UDim2.new(0, 52, 1, -28), Size = UDim2.new(1, -70, 0, 20), TextColor3 = T.muted})
     local dispatch = UI.frame(root, {AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -42, 1, -65), Size = UDim2.fromOffset(288, 148), BackgroundTransparency = 0.18})
     UI.corner(dispatch, 8); UI.stroke(dispatch, T.line, 0.25)
     UI.label(dispatch, "●  СИГНАЛ ОБНАРУЖЕН", 10, {Position = UDim2.fromOffset(20, 17), Size = UDim2.new(1, -40, 0, 20), TextColor3 = T.accent, Font = Enum.Font.GothamBold})

@@ -138,6 +138,32 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
         detail("SafetyHelmet", Vector3.new(1.7, 0.52, 1.52), Vector3.new(0, 3.62, 0), Color3.fromRGB(221, 156, 45), head, Enum.Material.Plastic, true)
         detail("Goggles", Vector3.new(1.15, 0.26, 0.08), Vector3.new(0, 3.08, -0.76), Color3.fromRGB(45, 91, 105), head, Enum.Material.Glass)
         detail("ToolBelt", Vector3.new(1.76, 0.28, 1.02), Vector3.new(0, 0.45, 0), Color3.fromRGB(83, 61, 42), lower, Enum.Material.Leather)
+    elseif style == "ira" then
+        detail("Hair", Vector3.new(1.66, 0.55, 1.48), Vector3.new(0, 3.58, 0.08), Color3.fromRGB(73, 44, 31), head, nil, true)
+        detail("MinerHelmet", Vector3.new(1.76, 0.36, 1.58), Vector3.new(0, 3.78, 0), Color3.fromRGB(196, 126, 37), head, Enum.Material.Plastic, true)
+        detail("HeadLamp", Vector3.new(0.42, 0.42, 0.18), Vector3.new(0, 3.7, -0.82), orange, head, Enum.Material.Neon)
+    elseif style == "resident_medic" then
+        detail("MedicalCap", Vector3.new(1.67, 0.3, 1.48), Vector3.new(0, 3.68, 0), Color3.fromRGB(220, 225, 214), head, Enum.Material.Fabric, true)
+        detail("MedicalPanel", Vector3.new(1.8, 1.28, 0.22), Vector3.new(0, 1.34, -0.6), Color3.fromRGB(218, 224, 211), upper, Enum.Material.Fabric)
+        detail("Cross", Vector3.new(0.35, 0.35, 0.08), Vector3.new(-0.5, 1.45, -0.74), Color3.fromRGB(178, 63, 57), upper)
+    elseif style == "resident_guard" then
+        detail("GuardCap", Vector3.new(1.7, 0.38, 1.52), Vector3.new(0, 3.65, 0), Color3.fromRGB(43, 61, 67), head, Enum.Material.Fabric, true)
+        detail("GuardVest", Vector3.new(1.92, 1.4, 0.3), Vector3.new(0, 1.3, -0.58), Color3.fromRGB(50, 61, 59), upper, Enum.Material.Fabric)
+    elseif style == "resident_mechanic" then
+        detail("MechanicCap", Vector3.new(1.68, 0.32, 1.5), Vector3.new(0, 3.67, 0), Color3.fromRGB(79, 91, 79), head, Enum.Material.Fabric, true)
+        detail("ToolBelt", Vector3.new(1.76, 0.28, 1.02), Vector3.new(0, 0.45, 0), Color3.fromRGB(83, 61, 42), lower, Enum.Material.Leather)
+    elseif style == "resident_volunteer" then
+        detail("Hair", Vector3.new(1.63, 0.52, 1.46), Vector3.new(0, 3.6, 0.06), Color3.fromRGB(61, 42, 32), head, nil, true)
+        detail("ReliefArmband", Vector3.new(0.82, 0.34, 0.82), Vector3.new(-1.4, 1.38, 0), Color3.fromRGB(193, 92, 58), leftUpperArm, Enum.Material.Fabric, true)
+    elseif style == "resident_farmer" then
+        detail("FieldHat", Vector3.new(2.1, 0.28, 1.9), Vector3.new(0, 3.7, 0), Color3.fromRGB(155, 125, 72), head, Enum.Material.Fabric, true)
+        detail("Apron", Vector3.new(1.62, 1.45, 0.2), Vector3.new(0, 1.05, -0.58), Color3.fromRGB(76, 94, 66), upper, Enum.Material.Fabric)
+    elseif style == "resident_scout" then
+        detail("Hood", Vector3.new(1.72, 0.52, 1.55), Vector3.new(0, 3.58, 0.1), Color3.fromRGB(56, 69, 64), head, Enum.Material.Fabric, true)
+        detail("Backpack", Vector3.new(1.45, 1.65, 0.55), Vector3.new(0, 1.2, 0.72), Color3.fromRGB(65, 72, 58), upper, Enum.Material.Fabric)
+    elseif style == "resident_cook" then
+        detail("CookCap", Vector3.new(1.72, 0.62, 1.5), Vector3.new(0, 3.76, 0), Color3.fromRGB(221, 218, 200), head, Enum.Material.Fabric, true)
+        detail("Apron", Vector3.new(1.65, 1.5, 0.2), Vector3.new(0, 1.05, -0.58), Color3.fromRGB(211, 201, 179), upper, Enum.Material.Fabric)
     elseif style == "worker_mira" then
         detail("Hair", Vector3.new(1.62, 0.58, 1.45), Vector3.new(0, 3.58, 0.08), Color3.fromRGB(54, 40, 30), head, nil, true)
         detail("Bandanna", Vector3.new(1.62, 0.2, 1.5), Vector3.new(0, 3.45, -0.02), Color3.fromRGB(139, 69, 55), head, Enum.Material.Fabric)
@@ -146,8 +172,16 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
         detail("CapBill", Vector3.new(1.05, 0.12, 0.65), Vector3.new(0, 3.5, -0.72), Color3.fromRGB(68, 85, 72), head, Enum.Material.Fabric)
     elseif style:match("^zombie") then
         detail("TornShirt", Vector3.new(1.85, 0.38, 1.08), Vector3.new(0, 0.78, 0), Color3.fromRGB(47, 57, 49), lower, Enum.Material.Fabric)
-        if style == "zombie_tank" then
+        if style == "zombie_tank" or style == "zombie_brute" then
             detail("ShoulderMass", Vector3.new(3.05, 0.48, 1.25), Vector3.new(0, 1.78, 0), Color3.fromRGB(77, 83, 79), upper, nil, true)
+        elseif style == "zombie_runner" then
+            detail("RunnerWrap", Vector3.new(1.62, 0.28, 1.5), Vector3.new(0, 3.34, 0), Color3.fromRGB(112, 79, 55), head, Enum.Material.Fabric, true)
+        elseif style == "zombie_lurker" then
+            detail("LurkerHood", Vector3.new(1.72, 0.58, 1.58), Vector3.new(0, 3.55, 0.08), Color3.fromRGB(42, 57, 53), head, Enum.Material.Fabric, true)
+        elseif style == "zombie_ravager" then
+            detail("RavagerPlate", Vector3.new(1.9, 1.1, 0.3), Vector3.new(0, 1.3, -0.58), Color3.fromRGB(97, 64, 56), upper, Enum.Material.Slate)
+        elseif style == "zombie_armored" then
+            detail("BrokenVisor", Vector3.new(1.25, 0.3, 0.1), Vector3.new(0, 3.05, -0.77), Color3.fromRGB(50, 75, 79), head, Enum.Material.Glass)
         end
     else
         detail("Hair", Vector3.new(1.62, 0.48, 1.45), Vector3.new(0, 3.62, 0.06), Color3.fromRGB(62, 49, 39), head, nil, true)
@@ -166,20 +200,41 @@ end
 function Factory.weapon(id, color)
     local tool = Instance.new("Tool"); tool.Name = id; tool.CanBeDropped = false
     tool.RequiresHandle = true; tool.ManualActivationOnly = false
-    local h = part(tool, "Handle", id == "crowbar" and Vector3.new(0.25, 3.5, 0.25) or Vector3.new(0.4, 0.9, 0.6), CFrame.new(), color or dark)
+    local melee = id == "crowbar" or id == "machete" or id == "pickaxe"
+    local handleSize = id == "crowbar" and Vector3.new(0.25, 3.5, 0.25)
+        or id == "machete" and Vector3.new(0.34, 1.35, 0.34)
+        or id == "pickaxe" and Vector3.new(0.32, 3.4, 0.32)
+        or Vector3.new(0.42, 0.9, 0.62)
+    local h = part(tool, "Handle", handleSize, CFrame.new(), color or dark)
     h.Anchored = false; h.CanCollide = false; h.Massless = true
-    local function add(name, size, offset, tint)
-        local p = part(tool, name, size, h.CFrame * offset, tint); p.Anchored = false; p.CanCollide = false; p.Massless = true
+    local function add(name, size, offset, tint, material)
+        local p = part(tool, name, size, h.CFrame * offset, tint, material); p.Anchored = false; p.CanCollide = false; p.Massless = true
         local w = Instance.new("WeldConstraint"); w.Part0 = h; w.Part1 = p; w.Parent = p
     end
     if id == "crowbar" then
         add("Hook", Vector3.new(0.65, 0.25, 0.25), CFrame.new(0.2, 1.7, 0), color or dark)
         tool.Grip = CFrame.new(0, -0.7, 0) * CFrame.Angles(math.rad(15), 0, 0)
+    elseif id == "machete" then
+        add("Blade", Vector3.new(0.16, 2.8, 0.72), CFrame.new(0, 1.95, 0), Color3.fromRGB(177, 184, 181))
+        add("Guard", Vector3.new(0.9, 0.16, 0.3), CFrame.new(0, 0.72, 0), color or dark)
+        tool.Grip = CFrame.new(0, -0.35, 0) * CFrame.Angles(math.rad(8), 0, 0)
+    elseif id == "pickaxe" then
+        add("PickHead", Vector3.new(3.2, 0.34, 0.38), CFrame.new(0, 1.65, 0), Color3.fromRGB(132, 139, 140))
+        add("PickTip", Vector3.new(0.42, 0.42, 0.42), CFrame.new(1.75, 1.65, 0) * CFrame.Angles(0, 0, math.rad(45)), Color3.fromRGB(177, 184, 181))
+        tool.Grip = CFrame.new(0, -0.72, 0) * CFrame.Angles(math.rad(12), 0, 0)
     else
-        add("Barrel", Vector3.new(0.45, 0.45, id == "rifle" and 3.4 or 1.5), CFrame.new(0, 0.5, -0.6), color or dark)
-        add("Sight", Vector3.new(0.2, 0.15, 0.2), CFrame.new(0, 0.8, -1), orange)
+        local length = id == "rifle" and 3.5 or id == "shotgun" and 3.9 or id == "smg" and 2.35 or 1.5
+        add("Barrel", Vector3.new(id == "shotgun" and 0.58 or 0.45, id == "shotgun" and 0.58 or 0.45, length), CFrame.new(0, 0.5, -0.55 - length * 0.18), color or dark)
+        add("Sight", Vector3.new(0.2, 0.15, 0.2), CFrame.new(0, 0.82, -math.min(1.4, length * 0.42)), orange, Enum.Material.Neon)
+        if id == "rifle" or id == "shotgun" or id == "smg" then
+            add("Stock", Vector3.new(0.48, 0.72, 1.45), CFrame.new(0, 0.24, 0.9), id == "shotgun" and Color3.fromRGB(112, 78, 48) or (color or dark))
+            add("Magazine", Vector3.new(0.5, id == "smg" and 1.25 or 0.92, 0.65), CFrame.new(0, -0.55, -0.4), color or dark)
+        end
+        if id == "shotgun" then add("Pump", Vector3.new(0.72, 0.72, 1.15), CFrame.new(0, 0.47, -1.3), Color3.fromRGB(112, 78, 48), Enum.Material.Wood) end
+        if id == "glock" then add("Slide", Vector3.new(0.5, 0.36, 1.48), CFrame.new(0, 0.68, -0.52), Color3.fromRGB(67, 72, 71)) end
         tool.Grip = CFrame.new(0, -0.1, 0)
     end
+    tool:SetAttribute("Melee", melee)
     return tool
 end
 return Factory

@@ -39,12 +39,27 @@ return function(Items: any, Weapons: any, Config: any, Util: any)
         end
         return true, nil
     end
-    function Inventory.grant(c: any, rewards: any): (boolean, string?)
+    function Inventory.grant(c: any, rewards: any, loadedWeapons: any?): (boolean, string?)
+        -- Build the complete reward on a draft so ammunition, weapon state and slots
+        -- are committed together (or not at all).
         local draft = {Inventory = Util.copy(c.Inventory), NextItemId = c.NextItemId}
         local ids = {}; for id in rewards do table.insert(ids, id) end; table.sort(ids)
         for _, id in ids do
             local ok, err = addUnsafe(draft, id, rewards[id])
             if not ok then return false, err end
+        end
+        for _, loaded in loadedWeapons or {} do
+            local def = Weapons[loaded.id]
+            if not def or not Util.integer(loaded.count or 1, 1, 10) or not Util.integer(loaded.ammo, 0, def.magazine) then
+                return false, "Неверная награда оружием"
+            end
+            for _ = 1, (loaded.count or 1) do
+                local ok, err = addUnsafe(draft, loaded.id, 1)
+                if not ok then return false, err end
+                local entry = Inventory.find(draft, "i" .. draft.NextItemId)
+                if not entry then return false, "Не удалось подготовить оружие" end
+                entry.ammo = loaded.ammo
+            end
         end
         c.Inventory = draft.Inventory; c.NextItemId = draft.NextItemId
         return true, nil

@@ -164,7 +164,7 @@ local function boot()
         self.SurvivalLabel.Text = "ЕДА " .. math.floor(c.Hunger) .. "%    ВОДА " .. math.floor(c.Thirst) .. "%"
         local e = self:Equipped()
         self.EquipmentTitle.Text = e and self.Items[e.id].name:upper() or "БЕЗ ОРУЖИЯ"
-        self.AmmoLabel.Text = e and (self.Weapons[e.id].melee and "Ближний бой" or e.ammo .. " / " .. self.Weapons[e.id].magazine .. "  ·  запас " .. self:Count("ammo")) or "Экипируйте оружие: I"
+        self.AmmoLabel.Text = e and (self.Weapons[e.id].melee and "Ближний бой" or e.ammo .. " / " .. self.Weapons[e.id].magazine .. "  ·  запас " .. self:Count(self.Weapons[e.id].ammo or "ammo")) or "Экипируйте оружие: I"
         if e then self.AmmoLabel.Text ..= "  ·  " .. math.floor(e.durability) .. "%" end
         self.SaveLabel.Text = self:SaveText(); self.SaveLabel.TextColor3 = (s.save == "SessionOnly" or s.save == "Error") and T.danger or T.muted
         if s.save == "SessionOnly" then self.SaveLabel.TextColor3 = T.accent end
@@ -252,7 +252,7 @@ local function boot()
         if root then
             for _, dot in {app.MiniDot, app.MapDot} do
                 if dot and dot.Parent then
-                    dot.Position = UDim2.fromScale(math.clamp((root.Position.X + 300) / 600, 0.02, 0.98), math.clamp((450 - root.Position.Z) / 1000, 0.02, 0.98))
+                    dot.Position = UDim2.fromScale(math.clamp((root.Position.X + 300) / 780, 0.02, 0.98), math.clamp((450 - root.Position.Z) / 1180, 0.02, 0.98))
                     dot.Rotation = math.deg(math.atan2(root.CFrame.LookVector.X, root.CFrame.LookVector.Z))
                 end
             end

@@ -2,7 +2,11 @@
 local View = {}
 local statuses = {Available = "ДОСТУПНО У NPC", Active = "АКТИВНО", Completed = "ВЕРНИТЕСЬ ЗА НАГРАДОЙ", RewardClaimed = "ЗАВЕРШЕНО", Failed = "ПРОВАЛЕНО"}
 function View.reward(app, def)
-    return def.reward.coins .. " Coins  /  " .. def.reward.xp .. " XP\n" .. app.UI.price(def.reward.items, app.Items)
+    local items = app.UI.price(def.reward.items, app.Items)
+    for _, loaded in def.reward.loadedWeapons or {} do
+        items ..= (items == "" and "" or "  ·  ") .. app.Items[loaded.id].name .. " " .. loaded.ammo .. "/" .. app.Weapons[loaded.id].magazine
+    end
+    return def.reward.coins .. " Coins  /  " .. def.reward.xp .. " XP\n" .. items
 end
 function View.card(app, body, id, dialogue)
     local UI = app.UI; local T = UI.Theme; local def = app.Quests[id]; local state = app.State.campaign.Quests[id]
@@ -73,6 +77,9 @@ function View.dialogue(app, body)
     if d.id == "worker" then
         UI.button(row, "Как идёт работа?", function() app.DialogueText = "Я действительно хожу к назначенной постройке. Производство работает только когда смена активна, хватает припасов и есть нужная энергия."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
         UI.button(row, "Как назначить смену?", function() app.DialogueText = "Открой терминал своего участка клавишей E, затем управление базой. Назначить жителя можно только на ферму или мастерскую."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+    elseif d.ambient then
+        UI.button(row, "Ещё совет", function() app.DialogueText = nil; app:Send("NPCRemote", {action = "talk", id = d.id}) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+        UI.button(row, "Спасибо", function() app:ClosePanel() end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
     else
         UI.button(row, "Я помогу", function() app.DialogueText = "Спасибо. Выбери задание ниже — и возвращайся живым."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
         UI.button(row, "Что я получу?", function()

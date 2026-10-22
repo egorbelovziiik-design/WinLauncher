@@ -14,7 +14,8 @@ export function city(world) {
   for(const x of [-94,-30]) part(market,'Side',[1,15,65],[x,7.5,100],'#8a7b67','Brick');
   for(const x of [-83,-41]) part(market,'Storefront',[23,15,1],[x,7.5,68],'#8a7b67','Brick');
   part(market,'Lintel',[20,4,1],[-62,13,68],P.concrete);
-  part(market,'PartialRoof',[65,0.7,35],[-62,15.3,116],P.dark,'Metal');
+  // Complete weather-tight roof: the earlier rear-only slab looked like missing geometry.
+  part(market,'Roof',[65,0.7,65],[-62,15.3,100],P.dark,'Metal');
   sign(market,'MERIDIAN\nFOOD  /  SUPPLIES',[61,5,0.7],[-62,18.7,67],P.amber,P.dark);
   for(const x of [-82,-42]) for(const z of [91,117]) {
     part(market,'Shelf',[10,0.5,3],[x,4,z],P.steel,'Metal');

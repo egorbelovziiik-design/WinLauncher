@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "serialization": {
     "status": "PASSED",
     "count": 10
@@ -10,12 +10,16 @@
     "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
   },
   "studio_import": {
-    "version": "0.3.0",
+    "version": "0.4.0",
     "status": "NOT TESTED"
+  },
+  "studio_import_0_3_0": {
+    "status": "PASSED",
+    "evidence": "User screenshots show the released scene running in Studio with an E dialogue prompt; the user also reported visual/runtime defects"
   },
   "studio_import_0_2_0": {
     "status": "PASSED",
-    "evidence": "User screenshots show the released scene open and rendered in Studio; Play was not confirmed"
+    "evidence": "User screenshots show the released scene open and rendered in Studio"
   },
   "studio_import_0_1_1": {
     "status": "PASSED",
@@ -32,38 +36,38 @@
   },
   "domain": {
     "status": "PASSED",
-    "count": 103
+    "count": 108
   },
   "mock_adapters": {
     "status": "PASSED",
-    "count": 71,
+    "count": 77,
     "scope": "API doubles; NOT Roblox Studio"
   },
   "binary": {
-    "assertions": 67,
-    "instances": 5592,
-    "parts": 5115,
+    "assertions": 76,
+    "instances": 5941,
+    "parts": 5398,
     "scripts": 49,
-    "bytes": 227717,
-    "sha256": "755348fda7b0be53be97e275c5254035953e91fb505b9a838d59064b82dce910",
+    "bytes": 245110,
+    "sha256": "453830e4d0ecefabd0ab7b7a8a7fe7a54be8f92af433e3f901129f8689e7eb60",
     "classes": {
       "Workspace": 1,
       "Camera": 1,
       "Terrain": 1,
       "Clouds": 1,
       "Folder": 19,
-      "Part": 5056,
-      "Model": 158,
-      "SurfaceGui": 27,
-      "TextLabel": 33,
-      "PointLight": 20,
+      "Part": 5339,
+      "Model": 169,
+      "SurfaceGui": 31,
+      "TextLabel": 40,
+      "PointLight": 31,
       "SpawnLocation": 1,
       "TrussPart": 2,
       "Fire": 2,
       "WedgePart": 55,
-      "StringValue": 67,
-      "IntValue": 66,
-      "BillboardGui": 6,
+      "StringValue": 77,
+      "IntValue": 86,
+      "BillboardGui": 9,
       "NumberValue": 2,
       "Lighting": 1,
       "Atmosphere": 1,

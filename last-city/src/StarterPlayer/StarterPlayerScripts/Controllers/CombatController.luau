@@ -79,8 +79,8 @@ return function(app)
     end)
     RunService.Heartbeat:Connect(function()
         if not playing() then self.Held = false end
-        local e = app:Equipped()
-        if self.Held and e and e.id == "rifle" then self:Fire() end
+        local e = app:Equipped(); local def = e and app.Weapons[e.id]
+        if self.Held and def and def.auto then self:Fire() end
         local show = playing() and Input.TouchEnabled
         for _, name in {"LC_Attack", "LC_Reload", "LC_Commander", "LC_Sprint"} do
             local button = CAS:GetButton(name); if button then button.Visible = show end

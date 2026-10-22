@@ -6,8 +6,8 @@ export const CITY_ROADS = [
   ...[38,160,282,404].map(z => ({axis:'x', center:z, from:-232, to:232, width:26})),
 ];
 export const SETTLEMENT_ROADS = [
-  ...[-72,72].map(x => ({axis:'z',center:x,from:-474,to:-185,width:16})),
-  ...[-185,-324,-466].map(z => ({axis:'x',center:z,from:-232,to:232,width:16})),
+  ...[-72,72].map(x => ({axis:'z',center:x,from:-635,to:-185,width:16})),
+  ...[-185,-324,-466,-608].map(z => ({axis:'x',center:z,from:-232,to:232,width:16})),
   {axis:'z',center:0,from:-193,to:-175,width:18},
 ];
 export const ROAD_SURFACE = 0.12;
