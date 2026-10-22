@@ -7,7 +7,7 @@ import {
   M, box, deco, sphere, cyl, wedge, pointLight, mist, particles, sign, billboardText,
   ground, wall, windowFrame, building, tree, pine, streetLamp, fence, crate, barrel,
   table, chair, shelf, bookStack, pcSetup, rug, poster, plant, bed, toy, wardrobe,
-  marker, model, flat, fogEmitter, rnd,
+  marker, model, flat, fogEmitter, rnd, seedRng,
 } from './kit.mjs';
 
 const DARK = rgb(10, 12, 20);
@@ -297,6 +297,38 @@ function hospital() {
   p.push(box([-30, 4, -50], [16, 1, 10], rgb(140, 150, 156), M.Metal, { canCollide: true }));
   p.push(cyl([-30, 16, -50], [10, 1.5, 10], rgb(220, 230, 240), M.Neon, { transparency: 0.2 }));
   p.push(eq('Лампа', [-30, 10, -50], rgb(240, 250, 255)));
+
+  // Больничный реквизит: кресла-каталки, кровь, шкафы с лекарствами, лампы
+  for (let hi = 0; hi < 7; hi++) {
+    const hx = -48 + hi * 16, hz = 30 + (hi % 2) * 9;
+    p.push(box([hx, 2.4, hz], [3.2, 0.4, 3.2], rgb(40, 44, 52), M.SmoothPlastic, { rot: { yaw: hi * 17 } }));
+    p.push(box([hx, 3.8, hz - 1.5], [3.2, 3, 0.4], rgb(40, 44, 52), M.SmoothPlastic));
+    p.push(cyl([hx - 1.7, 1.4, hz], [2.6, 0.4, 2.6], rgb(24, 24, 28), M.Rubber, { roll: 90 }));
+    p.push(cyl([hx + 1.7, 1.4, hz], [2.6, 0.4, 2.6], rgb(24, 24, 28), M.Rubber, { roll: 90 }));
+    p.push(box([hx, 1.2, hz + 1.6], [3, 0.3, 0.3], rgb(140, 146, 150), M.Metal));
+  }
+  // Пятна на полу
+  for (let hi = 0; hi < 12; hi++) {
+    p.push(deco([-46 + rnd() * 92, 0.35, -60 + rnd() * 120], [2 + rnd() * 5, 0.08, 2 + rnd() * 4], rgb(66, 8, 10), M.SmoothPlastic, { transparency: 0.32 }));
+  }
+  // Шкаф с медикаментами и стойки с капельницами
+  for (const hx of [-44, -44, 44, 44]) {
+    p.push(...shelf([hx, 0.4, -20 + (hx < 0 ? 0 : 26)], [10, 16, 2.4], rgb(150, 152, 148)));
+    for (let bi = 0; bi < 6; bi++) {
+      p.push(cyl([hx - 3.6 + bi * 1.4, 6 + (bi % 2) * 5, -20 + (hx < 0 ? 0 : 26) + 1.6], [0.9, 2, 0.9], bi % 2 ? rgb(220, 220, 255) : rgb(180, 60, 60), M.Glass));
+    }
+  }
+  // Подвесные трубы и вентиляция
+  for (let hi = -3; hi <= 3; hi++) {
+    p.push(cyl([hi * 18, 20, -D / 2 + 8], [2.4, 8, 2.4], rgb(120, 126, 120), M.Metal, { roll: 90 }));
+    p.push(box([hi * 18, 22.4, -D / 2 + 12], [6, 1.2, 8], rgb(90, 96, 92), M.DiamondPlate));
+  }
+  // Красные аварийные лампы
+  for (const hx of [-1, 1]) {
+    p.push(el('Part', { Name: 'EmergencyLamp', Size: v3(1.6, 1.6, 1.6), CFrame: cf([hx * 50, 18, 20]), Color: rgb(240, 40, 40), Material: M.Neon, Anchored: true, CanCollide: false }, [
+      pointLight(rgb(255, 60, 60), 2.4, 26),
+    ]));
+  }
   p.push(mist([0, 14, 0], rgb(140, 160, 170), { rate: 24, spread: 140 }));
   p.push(...markers({ spawn: [0, 2, 74], portal: [0, 3, 88], npcs: [[10, 1, 66], [-40, 1, 20], [30, 1, -60]],
     items: [[-36, 2, 20], [18, 2, -20], [40, 2, 40], [-20, 2, -60], [0, 2, -70], [44, 2, -40]],
@@ -366,6 +398,47 @@ function circus() {
   for (let i = 0; i < 40; i++) {
     const a = (i / 40) * Math.PI * 2;
     p.push(sphere([Math.cos(a) * 52, 30 + Math.sin(i) * 2, Math.sin(a) * 52], 1.6, i % 3 === 0 ? rgb(240, 190, 70) : rgb(220, 90, 110), M.Neon, { transparency: 0.1 }));
+  }
+
+  // Касса и прилавки
+  p.push(box([-20, 4, 56], [10, 8, 6], rgb(96, 46, 52), M.WoodPlanks, { canCollide: true }));
+  p.push(box([-20, 8.6, 56], [11, 1, 7], rgb(210, 180, 120), M.Wood));
+  p.push(box([-20, 11, 55], [8, 3, 0.4], rgb(255, 190, 90), M.Neon, { transparency: 0.2 }));
+  p.push(sign([-20, 13.6, 55.4], [12, 3], 'БИЛЕТЫ', rgb(255, 220, 160), { boardColor: rgb(40, 20, 24) }));
+  for (const [sx, sz] of [[24, 52], [34, 52]]) {
+    p.push(...table([sx, 0.4, sz], [8, 0.6, 4], rgb(120, 70, 50)));
+    p.push(box([sx, 3.4, sz], [6, 2, 3], rgb(220, 200, 150), M.Fabric));
+  }
+  // Зрители-манекены на трибунах
+  for (let pi = 0; pi < 18; pi++) {
+    const a = (pi / 18) * Math.PI * 1.6 + 0.4;
+    const r = 36 + (pi % 3) * 5;
+    const px2 = Math.cos(a) * r, pz2 = Math.sin(a) * r;
+    p.push(box([px2, 5 + (pi % 3) * 2.4, pz2], [2.6, 4, 2], rgb(40 + (pi % 4) * 12, 34, 40), M.Fabric, { rot: { yaw: (a * 180) / Math.PI } }));
+    p.push(sphere([px2, 8 + (pi % 3) * 2.4, pz2], 2.4, rgb(200, 180, 165), M.SmoothPlastic));
+  }
+  // Карусель с деревянными лошадьми
+  p.push(cyl([-90, 1.2, -20], [34, 2.4, 34], rgb(110, 60, 52), M.Wood, { canCollide: true }));
+  p.push(cyl([-90, 14, -20], [36, 1.2, 36], rgb(200, 60, 70), M.Fabric));
+  p.push(cyl([-90, 8, -20], [1.6, 26, 1.6], rgb(190, 170, 120), M.Metal));
+  for (let pi = 0; pi < 8; pi++) {
+    const a = (pi / 8) * Math.PI * 2;
+    const px2 = -90 + Math.cos(a) * 13, pz2 = -20 + Math.sin(a) * 13;
+    p.push(cyl([px2, 10, pz2], [0.5, 18, 0.5], rgb(200, 190, 140), M.Metal));
+    p.push(box([px2, 5, pz2], [2.6, 3, 6], rgb(220, 210, 190), M.SmoothPlastic, { rot: { yaw: (a * 180) / Math.PI } }));
+    p.push(box([px2, 7.4, pz2], [2.4, 2.4, 2.2], rgb(230, 220, 200), M.SmoothPlastic));
+    p.push(cyl([px2, 2.4, pz2], [0.8, 5, 0.8], rgb(180, 170, 150), M.Metal));
+  }
+  // Зеркальный лабиринт
+  for (let pi = 0; pi < 7; pi++) {
+    p.push(box([-40 + pi * 8, 6, -62], [0.4, 12, 16], rgb(150, 165, 175), M.Glass, { transparency: 0.35, rot: { yaw: (pi % 2) * 14 } }));
+  }
+  // Реквизит: кегли, шары, конфетти
+  for (let pi = 0; pi < 8; pi++) {
+    p.push(cyl([-6 + pi * 1.8, 2.6, 8], [0.9, 3, 0.9], pi % 2 ? rgb(220, 90, 110) : rgb(240, 200, 90), M.SmoothPlastic));
+  }
+  for (let pi = 0; pi < 14; pi++) {
+    p.push(deco([-24 + rnd() * 48, 0.5, -24 + rnd() * 48], [0.7, 0.1, 0.5], [rgb(230, 200, 90), rgb(220, 90, 110), rgb(120, 200, 160)][pi % 3], M.SmoothPlastic, { rot: { yaw: rnd() * 360 } }));
   }
   p.push(...streetLamp([0, 0, 60], rgb(255, 120, 150), { height: 22, range: 46 }));
   p.push(...streetLamp([-50, 0, 0], rgb(255, 120, 150), { height: 20, range: 40 }));
@@ -484,6 +557,40 @@ function iceWorld() {
   p.push(el('Part', { Name: 'CampFire', Size: v3(1, 1, 1), CFrame: cf([20, 3, 40]), Transparency: 1, Anchored: true, CanCollide: false, Color: rgb(255, 150, 70) }, [
     pointLight(rgb(255, 160, 80), 4, 30),
   ]));
+
+  // Замёрзший корабль во льду
+  p.push(box([-120, 6, -20], [18, 10, 56], rgb(58, 48, 42), M.WoodPlanks, { rot: { yaw: 18 }, canCollide: true }));
+  p.push(box([-120, 12, -20], [14, 2, 48], rgb(70, 58, 50), M.Wood, { rot: { yaw: 18 } }));
+  p.push(cyl([-126, 32, -14], [1.4, 44, 1.4], rgb(64, 52, 42), M.Wood));
+  p.push(box([-116, 28, -14], [16, 20, 0.5], rgb(190, 205, 215), M.Fabric, { transparency: 0.25, rot: { yaw: 18 } }));
+  p.push(cyl([-120, 4, 30], [10, 12, 10], rgb(160, 200, 225), M.Ice, { transparency: 0.35 }));
+  // Ледяная пещера со кристаллами
+  for (let ic = 0; ic < 9; ic++) {
+    const a = (ic / 9) * Math.PI;
+    p.push(box([60 + Math.cos(a) * 16, 8, -40 + Math.sin(a) * 14], [6, 16, 6], rgb(150, 195, 225), M.Ice, { transparency: 0.2, rot: { yaw: (a * 180) / Math.PI } }));
+  }
+  for (let ic = 0; ic < 10; ic++) {
+    const cx = 60 + (rnd() * 26 - 13), cz = -46 + (rnd() * 22 - 11), ch = 4 + rnd() * 9;
+    p.push(el('Part', { Name: 'IceCrystal', Size: v3(1.6, ch, 1.6), CFrame: cf([cx, ch / 2 + 0.6, cz], { pitch: (rnd() * 30 - 15) }), Color: rgb(120, 230, 255), Material: M.Neon, Transparency: 0.25, Anchored: true, CanCollide: false }, [
+      pointLight(rgb(110, 220, 255), 1.4, 18),
+    ]));
+  }
+  // Снеговики и сани
+  for (const [sx, sz] of [[-60, 120], [-54, 126], [120, -60]]) {
+    p.push(sphere([sx, 3, sz], 5, rgb(240, 246, 252), M.Snow));
+    p.push(sphere([sx, 8, sz], 3.6, rgb(240, 246, 252), M.Snow));
+    p.push(sphere([sx, 11.6, sz], 2.6, rgb(245, 250, 255), M.Snow));
+    p.push(cyl([sx + 1.6, 11.6, sz], [0.5, 2.4, 0.5], rgb(240, 140, 60), M.SmoothPlastic, { roll: 90 }));
+  }
+  p.push(box([100, 1.6, 120], [4, 0.5, 10], rgb(90, 66, 46), M.Wood, { canCollide: true, rot: { yaw: 24 } }));
+  p.push(box([100, 2.2, 124], [4, 2.6, 0.5], rgb(90, 66, 46), M.Wood, { rot: { yaw: 24 } }));
+  // Замёрзшие ящики и бочки
+  for (let ic = 0; ic < 8; ic++) {
+    p.push(...crate([-150 + rnd() * 90, 0.4, 120 + rnd() * 60], 0.7 + rnd() * 0.4, rgb(88, 74, 58)));
+  }
+  for (const [bx2, bz2] of [[-40, -40], [40, 100], [140, 20]]) {
+    p.push(...barrel([bx2, 0.4, bz2], rgb(78, 70, 62)));
+  }
   p.push(particles([0, 40, 0], { name: 'Snow', texture: 'rbxasset://textures/particles/sparkles_main.dds', rate: 200, color: c3(0.95, 0.98, 1), life: 8, speed: 1, accel: [0.5, -3, 0], startSize: 0.5, endSize: 0.4, size: 400, transparency: 0.2, glow: false }));
   p.push(mist([0, 10, 0], rgb(200, 220, 235), { rate: 30, spread: 280 }));
   p.push(...markers({ spawn: [0, 2, 60], portal: [0, 3, 30], npcs: [[20, 1, 40], [-40, 1, 60], [60, 1, 80]],
@@ -561,6 +668,46 @@ function factory() {
   p.push(cyl([0, 26, 0], [0.4, 16, 0.4], rgb(80, 76, 70), M.Metal));
   p.push(box([0, 16, 0], [6, 3, 6], rgb(60, 56, 50), M.CorrodedMetal, { canCollide: false }));
   // Искры и пар
+
+  // Обходные мостки, лестница, шкафчики, погрузчик
+  p.push(box([0, 20, -52], [180, 1.4, 10], rgb(58, 58, 62), M.DiamondPlate, { canCollide: true }));
+  for (let fi = -8; fi <= 8; fi++) {
+    p.push(cyl([fi * 11, 23, -47.4], [0.5, 6, 0.5], rgb(150, 130, 60), M.Metal));
+  }
+  p.push(box([0, 21.2, -47.2], [180, 0.3, 0.4], rgb(170, 150, 70), M.Metal));
+  for (let fi = 0; fi < 10; fi++) {
+    p.push(box([-90 + fi * 4.2, 10, 74], [4, 20, 1.8], rgb(52, 66, 74), M.Metal, { canCollide: true }));
+    p.push(box([-90 + fi * 4.2, 10, 73.2], [3.6, 18, 0.2], rgb(40, 54, 62), M.Metal));
+  }
+  for (let fi = 0; fi < 7; fi++) {
+    const sx = -80 + fi * 6;
+    p.push(box([sx, 2 + fi * 2.6, 40], [6, 1, 12], rgb(64, 62, 58), M.DiamondPlate, { canCollide: true }));
+  }
+  // Погрузчик
+  p.push(box([-50, 4, 20], [10, 6, 16], rgb(190, 140, 30), M.CorrodedMetal, { canCollide: true }));
+  p.push(box([-50, 8, 24], [9, 6, 8], rgb(60, 60, 66), M.Glass, { transparency: 0.45 }));
+  p.push(box([-44, 2.4, 20], [2, 0.5, 10], rgb(120, 120, 126), M.Metal, { canCollide: false }));
+  for (const [wx, wz] of [[-54, 14], [-46, 14], [-54, 26], [-46, 26]]) {
+    p.push(cyl([wx, 2, wz], [5, 1.6, 5], rgb(26, 26, 30), M.Rubber, { roll: 90 }));
+  }
+  // Верстаки, бочки, предупреждающие полосы
+  for (const [tx, tz] of [[-100, 20], [-100, -20], [100, 20]]) {
+    p.push(...table([tx, 0.4, tz], [14, 0.6, 6], rgb(76, 62, 44)));
+    p.push(box([tx, 3.4, tz], [12, 0.3, 4], rgb(64, 64, 68), M.DiamondPlate));
+  }
+  for (let fi = 0; fi < 10; fi++) {
+    p.push(...barrel([-70 + rnd() * 140, 0.4, -60 + rnd() * 30], rgb(78, 64, 48)));
+  }
+  for (let fi = 0; fi < 14; fi++) {
+    p.push(deco([-80 + rnd() * 160, 0.45, -70 + rnd() * 140], [6, 0.1, 1.2], rgb(200, 170, 40), M.SmoothPlastic, { rot: { yaw: (fi % 2) * 90 } }));
+  }
+  // Висячие лампы цеха
+  for (const [lx, lz] of [[-60, -40], [60, -40], [-60, 40], [60, 40], [0, 0]]) {
+    p.push(el('Part', { Name: 'FactoryLamp', Size: v3(6, 1, 6), CFrame: cf([lx, 30, lz]), Color: rgb(255, 225, 160), Material: M.Neon, Anchored: true, CanCollide: false }, [
+      pointLight(rgb(255, 215, 150), 3, 46),
+      cyl([lx, 34, lz], [0.3, 8, 0.3], rgb(90, 90, 96), M.Metal),
+    ]));
+  }
   p.push(particles([0, 16, 0], { name: 'Sparks', texture: 'rbxasset://textures/particles/sparkles_main.dds', rate: 60, color: c3(1, 0.7, 0.2), life: 0.8, speed: 6, accel: [0, -20, 0], startSize: 0.15, endSize: 0.05, glow: true, size: 30 }));
   p.push(mist([0, 20, 0], rgb(120, 110, 100), { rate: 30, spread: 180 }));
   p.push(...streetLamp([-80, 0, 40], rgb(255, 220, 150), { height: 24, range: 50 }));
@@ -629,6 +776,43 @@ function spaceStation() {
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2;
     p.push(box([Math.cos(a) * 33, 4, Math.sin(a) * 33], [1.4, 1.4, 1.4], rgb(230, 70, 60), M.Neon));
+  }
+
+  // Грузовой отсек: ящики, баллоны, кабели, гидропоника
+  for (let si = 0; si < 12; si++) {
+    const sx = -30 + rnd() * 60, sz = -30 + rnd() * 60;
+    p.push(...crate([sx, 0.9, sz], 0.6 + rnd() * 0.5, rgb(96, 104, 112)));
+  }
+  for (const [ox, oz] of [[-20, 20], [-16, 22], [20, -20], [24, -18]]) {
+    p.push(cyl([ox, 5, oz], [2.4, 8, 2.4], rgb(190, 70, 60), M.Metal, { canCollide: true }));
+    p.push(cyl([ox, 9.4, oz], [1, 2, 1], rgb(150, 150, 160), M.Metal));
+  }
+  p.push(box([-60, 1.4, 20], [30, 1, 8], rgb(60, 66, 74), M.DiamondPlate, { canCollide: true }));
+  for (let si = 0; si < 8; si++) {
+    p.push(sphere([-72 + si * 3.6, 3.4, 20], 1.6, rgb(60, 180, 90), M.LeafyGrass));
+    p.push(cyl([-72 + si * 3.6, 2, 20], [1.6, 1.6, 1.6], rgb(50, 60, 70), M.Metal));
+  }
+  // Спальные капсулы вдоль стены
+  for (let si = 0; si < 6; si++) {
+    p.push(box([-44 + si * 18, 3.4, 44], [10, 6, 6], rgb(70, 78, 88), M.DiamondPlate, { canCollide: true }));
+    p.push(box([-44 + si * 18, 3.4, 41], [8, 4, 0.4], rgb(120, 200, 235), M.Glass, { transparency: 0.45 }));
+    p.push(box([-44 + si * 18, 1.2, 44], [9, 1, 5], rgb(160, 170, 180), M.Fabric));
+  }
+  // Иллюминатор с планетой
+  p.push(cyl([0, 14, -63], [26, 1.2, 26], rgb(90, 100, 112), M.Metal, { roll: 90 }));
+  p.push(cyl([0, 14, -62.4], [21, 1, 21], rgb(40, 70, 120), M.Glass, { transparency: 0.35, reflectance: 0.3 }, { roll: 90 }));
+  p.push(sphere([0, 42, -180], 22, rgb(70, 130, 200), M.Neon, { transparency: 0.1 }));
+  // Кабели и предупреждающие таблички
+  for (let si = 0; si < 6; si++) {
+    p.push(cyl([-30 + si * 12, 2.2, -40], [0.5, 16, 0.5], rgb(40, 40, 46), M.Rubber, { roll: 90, yaw: 20 }));
+  }
+  for (const [sx, sz] of [[-16, 40], [16, -40], [44, 12]]) {
+    p.push(sign([sx, 8, sz], [8, 3], 'ОПАСНО', rgb(255, 210, 90), { boardColor: rgb(60, 40, 20) }));
+  }
+  // Обломки, дрейфующие снаружи
+  for (let si = 0; si < 24; si++) {
+    const a = rnd() * Math.PI * 2, r = 170 + rnd() * 160, hy = rnd() * 120 - 40;
+    p.push(box([Math.cos(a) * r, hy, Math.sin(a) * r], [3 + rnd() * 8, 1 + rnd() * 3, 3 + rnd() * 6], rgb(70, 74, 82), M.DiamondPlate, { rot: { yaw: rnd() * 360, pitch: rnd() * 60 }, canCollide: false }));
   }
   p.push(particles([0, 20, 0], { name: 'Dust', texture: 'rbxasset://textures/particles/sparkles_main.dds', rate: 10, color: c3(0.6, 0.8, 1), life: 10, speed: 0.3, accel: [0, 0, 0], startSize: 0.25, endSize: 0.2, transparency: 0.5, glow: true }));
   p.push(...markers({ spawn: [0, 2, 0], portal: [0, 3, 20], npcs: [[0, 2, 0], [120, 2, 0], [-120, 2, 0]],
@@ -720,6 +904,47 @@ function cursedCastle() {
     p.push(cyl([x, 60, z], [0.4, 20, 0.4], rgb(60, 56, 50), M.Metal));
     p.push(box([x + 5, 66, z], [10, 6, 0.3], rgb(110, 30, 40), M.Fabric));
   }
+
+  // Большой зал: столы, скамьи, трон, доспехи, канделябры
+  p.push(rug([0, 0.6, 32], [20, 58], rgb(90, 26, 34)));
+  for (let ci = 0; ci < 4; ci++) {
+    const cz = -6 + ci * 16;
+    p.push(...table([-26, 0.6, cz], [16, 0.6, 5], rgb(74, 54, 36)));
+    p.push(...table([26, 0.6, cz], [16, 0.6, 5], rgb(74, 54, 36)));
+    for (let si = 0; si < 3; si++) {
+      p.push(box([-26, 1.6, cz - 5 + si * 5], [16, 0.4, 1.6], rgb(62, 46, 32), M.Wood));
+      p.push(box([26, 1.6, cz - 5 + si * 5], [16, 0.4, 1.6], rgb(62, 46, 32), M.Wood));
+    }
+    p.push(cyl([-26, 3.6, cz], [0.4, 1.6, 0.4], rgb(220, 200, 140), M.Metal));
+    p.push(cyl([26, 3.6, cz], [0.4, 1.6, 0.4], rgb(220, 200, 140), M.Metal));
+    p.push(el('Part', { Name: 'Candle', Size: v3(0.8, 1.6, 0.8), CFrame: cf([-26, 5.2, cz]), Color: rgb(255, 200, 120), Material: M.Neon, Anchored: true, CanCollide: false }, [ pointLight(rgb(255, 190, 110), 1.6, 20) ]));
+    p.push(el('Part', { Name: 'Candle', Size: v3(0.8, 1.6, 0.8), CFrame: cf([26, 5.2, cz]), Color: rgb(255, 200, 120), Material: M.Neon, Anchored: true, CanCollide: false }, [ pointLight(rgb(255, 190, 110), 1.6, 20) ]));
+  }
+  // Трон на возвышении
+  p.push(box([0, 1.2, 8], [26, 2.4, 18], rgb(58, 50, 48), M.Marble, { canCollide: true }));
+  p.push(box([0, 6, 4], [10, 10, 6], rgb(72, 58, 40), M.Wood, { canCollide: true }));
+  p.push(box([0, 11.6, 1.6], [10, 12, 1.6], rgb(78, 62, 42), M.Wood));
+  p.push(box([0, 4.4, 7.4], [9, 1.6, 5], rgb(120, 40, 48), M.Fabric));
+  p.push(box([0, 13.4, 1.4], [3, 3, 0.6], rgb(220, 180, 90), M.Neon));
+  // Доспехи у колонн
+  for (const [ax, az] of [[-40, 40], [40, 40], [-40, -20], [40, -20]]) {
+    p.push(cyl([ax, 4, az], [4, 7, 4], rgb(120, 124, 132), M.Metal, { canCollide: true }));
+    p.push(cyl([ax, 9, az], [3.4, 3, 3.4], rgb(140, 144, 152), M.Metal));
+    p.push(sphere([ax, 12, az], 3, rgb(130, 134, 142), M.Metal));
+    p.push(box([ax + 3.4, 6, az], [5, 0.6, 0.6], rgb(150, 150, 160), M.Metal));
+    p.push(cyl([ax, 1.6, az + 2], [1, 3, 1], rgb(110, 114, 122), M.Metal));
+  }
+  // Знамена на стенах
+  for (const [bx3, bz3, yaw3] of [[-W / 2 + 4, 40, 90], [-W / 2 + 4, -10, 90], [W / 2 - 4, 40, 90], [W / 2 - 4, -10, 90]]) {
+    p.push(box([bx3, 20, bz3], [0.3, 14, 6], rgb(96, 24, 32), M.Fabric, { rot: { yaw: yaw3 } }));
+    p.push(box([bx3, 27.4, bz3], [0.4, 0.6, 6.6], rgb(200, 170, 90), M.Metal, { rot: { yaw: yaw3 } }));
+  }
+  // Колодец во дворе
+  p.push(cyl([50, 2, 60], [12, 4, 12], rgb(70, 68, 74), M.Cobblestone, { canCollide: true }));
+  p.push(cyl([50, 2.2, 60], [9, 4.2, 9], rgb(20, 24, 26), M.SmoothPlastic));
+  p.push(box([50, 8, 60], [12, 0.6, 1], rgb(60, 46, 32), M.Wood));
+  p.push(cyl([45, 6, 60], [0.6, 10, 0.6], rgb(60, 46, 32), M.Wood));
+  p.push(cyl([55, 6, 60], [0.6, 10, 0.6], rgb(60, 46, 32), M.Wood));
   p.push(mist([0, 14, 0], rgb(80, 70, 110), { rate: 34, spread: 220 }));
   p.push(...markers({ spawn: [0, 2, 66], portal: [0, 3, 78], npcs: [[-30, 2, 20], [30, 2, 20], [0, 2, -10]],
     items: [[-30, 2, 20], [30, 2, 30], [-60, 2, 60], [60, 2, 60], [-W / 2, 2, -D / 2], [W / 2, 2, D / 2], [0, 2, -60]],
@@ -773,7 +998,9 @@ export const MAP_BUILDERS = {
 };
 
 export function allDreamMaps() {
-  return Object.entries(MAP_BUILDERS).map(([id, fn]) => {
+  return Object.entries(MAP_BUILDERS).map(([id, fn], index) => {
+    // Свой сид на карту: декор стабилен между сборками и не зависит от порядка.
+    seedRng(0x5f3a1c + index * 7919);
     const m = fn();
     m.children.push(el('StringValue', { Name: 'DreamId', Value: id }));
     return m;

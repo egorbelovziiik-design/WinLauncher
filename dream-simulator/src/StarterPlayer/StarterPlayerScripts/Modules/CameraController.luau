@@ -157,8 +157,7 @@ function CameraController.start()
 		if mode == "menu" then
 			-- В лобби камера обычная (от третьего лица), игрок свободно ходит.
 			if camera.CameraType ~= Enum.CameraType.Custom then
-				camera.CameraType = Enum.CameraType.Custom
-				camera.CameraSubject = nil
+				CameraController.releaseToPlayer()
 			end
 		end
 

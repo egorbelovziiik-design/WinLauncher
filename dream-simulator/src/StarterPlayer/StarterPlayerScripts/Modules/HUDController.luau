@@ -458,7 +458,12 @@ function HUDController.start()
 		if state ~= Enum.UserInputState.Begin or not dialogOpen then
 			return Enum.ContextActionResult.Pass
 		end
-		local number = tonumber(string.sub(input.KeyCode.Name, 2))
+		local numbers = {
+			[Enum.KeyCode.One] = 1, [Enum.KeyCode.Two] = 2, [Enum.KeyCode.Three] = 3,
+			[Enum.KeyCode.Four] = 4, [Enum.KeyCode.Five] = 5, [Enum.KeyCode.Six] = 6,
+			[Enum.KeyCode.Seven] = 7, [Enum.KeyCode.Eight] = 8, [Enum.KeyCode.Nine] = 9,
+		}
+		local number = numbers[input.KeyCode]
 		if not number then
 			return Enum.ContextActionResult.Pass
 		end
