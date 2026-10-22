@@ -163,8 +163,10 @@ function QuestManager.spawnObjectsForActive(session)
 			if def.kind == "collect" then
 				for i = 1, def.need do
 					local marker = nextMarker(itemMarkers, "item")
-					local position = (marker and marker.Position or Vector3.new(i * 8, 3, 0))
-						+ Vector3.new(rng:NextNumber(-4, 4), 2.6, rng:NextNumber(-4, 4))
+					local basePosition = (marker and marker.Position or Vector3.new(i * 8, 3, 0))
+						+ Vector3.new(rng:NextNumber(-4, 4), 0, rng:NextNumber(-4, 4))
+					local position = MapService.findFreeSpot(basePosition, { radius = 2, height = 4, reach = 16 })
+						or (basePosition + Vector3.new(0, 3, 0))
 					local part = newPart({
 						Name = "Collectible",
 						Size = Vector3.new(1.7, 1.7, 1.7),
@@ -194,8 +196,10 @@ function QuestManager.spawnObjectsForActive(session)
 				local key = def.kind == "lights" and "lamp" or "interact"
 				for i = 1, def.need do
 					local marker = nextMarker(markers, key)
-					local position = marker and marker.Position or Vector3.new(i * 12, 3, 0)
+					local rawPosition = marker and marker.Position or Vector3.new(i * 12, 3, 0)
 					local isLamp = def.kind == "lights"
+					local position = MapService.findFreeSpot(rawPosition, { radius = 2.4, height = isLamp and 6 or 4, reach = 16 })
+						or rawPosition
 					local part = newPart({
 						Name = isLamp and "Lamp" or "QuestObject",
 						Size = isLamp and Vector3.new(1.6, 4.2, 1.6) or Vector3.new(3.2, 3.2, 3.2),
@@ -237,7 +241,8 @@ function QuestManager.spawnObjectsForActive(session)
 				end
 			elseif def.kind == "reach" then
 				local marker = nextMarker(reachMarkers, "reach")
-				local position = marker and marker.Position or Vector3.new(60, 3, 60)
+				local rawPosition = marker and marker.Position or Vector3.new(60, 3, 60)
+				local position = MapService.findFreeSpot(rawPosition, { radius = 4, height = 6, reach = 22 }) or rawPosition
 				local zone = newPart({
 					Name = "ReachZone",
 					Size = Vector3.new(16, 12, 16),
@@ -272,7 +277,8 @@ function QuestManager.spawnPortal(session)
 	end
 	local model = session.mapModel
 	local marker = MapService.findMarker(model, "MK_Portal")
-	local position = marker and marker.Position or Vector3.new(0, 6, 0)
+	local rawPosition = marker and marker.Position or Vector3.new(0, 6, 0)
+	local position = MapService.findFreeSpot(rawPosition, { radius = 5, height = 6, reach = 26 }) or rawPosition
 
 	local portal = Instance.new("Model")
 	portal.Name = "ExitPortal"

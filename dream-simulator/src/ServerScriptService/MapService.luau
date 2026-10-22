@@ -159,12 +159,91 @@ function MapService.collectMarkers(model, prefix)
 	return out
 end
 
+-- ------------------------------------------------------------------
+-- Постановка объектов на реальную поверхность карты.
+-- Это лечит «висящие в воздухе» маркеры и спавн монстров внутри стен.
+-- ------------------------------------------------------------------
+
+-- Возвращает точку на полу под позицией (или nil).
+function MapService.groundAt(position)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = false
+	local origin = position + Vector3.new(0, 90, 0)
+	local result = workspace:Raycast(origin, Vector3.new(0, -260, 0), params)
+	if result then
+		return result.Position, result.Normal, result.Instance
+	end
+	return nil
+end
+
+-- Свободно ли место для существа ростом height и радиусом radius.
+function MapService.isClear(position, radius, height, ignoreList)
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignoreList or {}
+	params.MaxParts = 8
+	local parts = workspace:GetPartBoundsInBox(
+		CFrame.new(position + Vector3.new(0, height * 0.5, 0)),
+		Vector3.new(radius * 2, height, radius * 2),
+		params
+	)
+	for _, part in ipairs(parts) do
+		if part.CanCollide and part.Transparency < 0.95 then
+			return false
+		end
+	end
+	return true
+end
+
+-- Ищет безопасную точку рядом с желаемой: сначала сама точка, затем спираль.
+function MapService.findFreeSpot(position, opts)
+	opts = opts or {}
+	local radius = opts.radius or 2.5
+	local height = opts.height or 6
+	local attempts = opts.attempts or 26
+	local reach = opts.reach or 26
+	local ignore = opts.ignore
+
+	local ground = MapService.groundAt(position)
+	local start = ground or position
+	if MapService.isClear(start, radius, height, ignore) then
+		return start + Vector3.new(0, 0.2, 0)
+	end
+	for step = 1, attempts do
+		local angle = step * 2.399963 -- золотое сечение: равномерно по кругу
+		local distance = reach * math.sqrt(step / attempts)
+		local candidate = start + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+		local point = MapService.groundAt(candidate)
+		if point and MapService.isClear(point, radius, height, ignore) then
+			return point + Vector3.new(0, 0.2, 0)
+		end
+	end
+	return nil
+end
+
 function MapService.spawnPosition(model, fallback)
 	local marker = MapService.findMarker(model, "MK_Spawn")
 	if marker then
+		local spot = MapService.findFreeSpot(marker.Position, { radius = 3, height = 7, reach = 30 })
+		if spot then
+			return spot + Vector3.new(0, 3.6, 0)
+		end
 		return marker.Position + Vector3.new(0, 4, 0)
 	end
 	return fallback or Vector3.new(0, 8, 0)
+end
+
+-- Надёжная точка для NPC/предмета по маркеру.
+function MapService.markerSpot(model, marker, opts)
+	if not marker then
+		return nil
+	end
+	local position = marker.Position
+	if typeof(position) ~= "Vector3" then
+		return nil
+	end
+	return MapService.findFreeSpot(position, opts)
 end
 
 function MapService.cleanup(folder)

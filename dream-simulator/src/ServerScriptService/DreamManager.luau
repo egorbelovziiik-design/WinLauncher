@@ -368,11 +368,6 @@ function DreamManager.startLoop(session)
 				MonsterManager.spawnBoss(session)
 			end
 
-			-- Монстры
-			for _, monster in ipairs(session.monsters) do
-				MonsterManager.update(session, monster, dt)
-			end
-
 			-- Задания и цель компаса
 			QuestManager.tick(session, dt)
 

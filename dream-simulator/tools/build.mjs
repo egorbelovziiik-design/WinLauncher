@@ -8,8 +8,9 @@ import {
   moduleScript, serverScript, clientScript, buildPlace, ROOT,
 } from './rbxkit.mjs';
 import * as GUI from './gui.mjs';
-import { bedroom } from './maps/bedroom.mjs';
+import { lobby } from './maps/lobby.mjs';
 import { allDreamMaps } from './maps/maps.mjs';
+import { sanitizeMap } from './maps/sanitize.mjs';
 
 const OUT = process.argv[2] || 'build/DreamSimulator';
 
@@ -114,7 +115,11 @@ const starterGui = el('StarterGui', {}, GUI_ORDER.map(([name, key], index) => {
 /* ------------------------------------------------------------------ */
 /* ServerStorage: карты, монстры, NPC, предметы                        */
 /* ------------------------------------------------------------------ */
-const dreamMaps = el('Folder', { Name: 'DreamMaps' }, allDreamMaps());
+const dreamMaps = el('Folder', { Name: 'DreamMaps' }, allDreamMaps().map((map) => {
+  const stats = sanitizeMap(map);
+  console.log(`  карта ${String(map.name).padEnd(16)} маркеров=${stats.markers} сдвинуто=${stats.moved} на месте=${stats.kept} без места=${stats.dropped}`);
+  return map;
+}));
 
 function bodyPart(name, size, offset, color, extra = {}) {
   return el('Part', {
@@ -235,7 +240,7 @@ const serverStorage = el('ServerStorage', {}, [dreamMaps, monsterTemplates, npcT
 /* ------------------------------------------------------------------ */
 /* Workspace                                                           */
 /* ------------------------------------------------------------------ */
-const menuBedroom = bedroom();
+const menuBedroom = lobby();
 const workspaceNode = el('Workspace', {
   Name: 'Workspace',
   Gravity: 196.2,

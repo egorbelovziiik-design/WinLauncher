@@ -104,7 +104,7 @@ end
 
 local menuButton = boot:FindFirstChild("MenuButton")
 if not menuButton then
-	menuButton = makeButton(boot, "MenuButton", "☰  МЕНЮ", UDim2.fromOffset(12, 8), UDim2.fromOffset(150, 40), nil)
+	menuButton = makeButton(boot, "MenuButton", "☰  МЕНЮ", UDim2.fromOffset(12, 48), UDim2.fromOffset(150, 40), nil)
 	menuButton.BackgroundColor3 = Color3.fromRGB(44, 34, 104)
 end
 

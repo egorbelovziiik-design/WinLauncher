@@ -66,7 +66,11 @@ function NPCManager.spawnNPCs(session)
 			model:Destroy()
 			continue
 		end
-		model:PivotTo(CFrame.new(marker.Position + Vector3.new(0, 3.2, 0)))
+		local spot = MapService.findFreeSpot(marker.Position, { radius = 2.4, height = 7, reach = 18, ignore = { session.container } })
+		if not spot then
+			spot = marker.Position
+		end
+		model:PivotTo(CFrame.new(spot + Vector3.new(0, 3.2, 0)))
 		model.Parent = session.container
 		labelPart(root, "❗ " .. definition.name)
 
@@ -80,7 +84,7 @@ function NPCManager.spawnNPCs(session)
 			talkPart.CanCollide = false
 			talkPart.CanQuery = false
 			talkPart.CanTouch = false
-			talkPart.CFrame = root.CFrame
+			talkPart.CFrame = CFrame.new(root.Position)
 			talkPart.Parent = model
 		end
 		talkPart:SetAttribute("InteractKind", "npc")

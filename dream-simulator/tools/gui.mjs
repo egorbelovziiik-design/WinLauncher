@@ -335,7 +335,7 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
 /* ------------------------------------------------------------------ */
 export const topBarGui = () => screenGui('TopBar', { DisplayOrder: 90, IgnoreGuiInset: false, ResetOnSpawn: false }, [
   ui.button('☰  МЕНЮ', {
-    Name: 'MenuButton', Position: udim2(0, 12, 0, 8), Size: udim2(0, 148, 0, 40),
+    Name: 'MenuButton', Position: udim2(0, 12, 0, 44), Size: udim2(0, 148, 0, 40),
     BackgroundColor3: hex('#2a2160'), BackgroundTransparency: 0.05,
     TextColor3: hex('#f2eeff'), FontFace: font(FONT_B, 'Bold'), TextScaled: true,
     AutoButtonColor: false, ZIndex: 20,
@@ -345,7 +345,7 @@ export const topBarGui = () => screenGui('TopBar', { DisplayOrder: 90, IgnoreGui
     el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 19 }),
   ]),
   ui.label('🌙 DREAM SIMULATOR', {
-    Name: 'BrandLabel', Position: udim2(0, 170, 0, 8), Size: udim2(0, 300, 0, 40),
+    Name: 'BrandLabel', Position: udim2(0, 170, 0, 44), Size: udim2(0, 300, 0, 40),
     BackgroundTransparency: 1, Text: '🌙 DREAM SIMULATOR', TextColor3: hex('#cfc6ff'),
     TextXAlignment: 'Left', TextScaled: true, FontFace: font(FONT_B, 'Bold'), ZIndex: 20,
   }, [

@@ -1,10 +1,13 @@
 --!nonstrict
--- MonsterManager: спавн и ИИ монстров на PathfindingService.
+-- MonsterManager: спавн и ИИ монстров. Полностью переписан:
+-- монстры всегда ставятся на пол, не спавнятся рядом с игроком,
+-- не застревают в геометрии и не «залипают» друг в друге.
 
+local CollectionService = game:GetService("CollectionService")
 local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
-local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
 
 local SharedModules = ReplicatedStorage:WaitForChild("SharedModules")
 local Config = require(SharedModules:WaitForChild("Config"))
@@ -23,10 +26,25 @@ local TEMPLATE_BY_BEHAVIOR = {
 	hunter = "Hunter",
 }
 
+local ATTACK_COOLDOWN = 2.4
+
 local function getTemplate(behavior)
 	local templates = ServerStorage:FindFirstChild("MonsterTemplates")
 	local name = TEMPLATE_BY_BEHAVIOR[behavior] or "Stalker"
 	return templates and templates:FindFirstChild(name)
+end
+
+local function playerRoot(session)
+	local character = session.player and session.player.Character
+	if not character then
+		return nil
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not root or humanoid.Health <= 0 then
+		return nil
+	end
+	return root, humanoid
 end
 
 local function tintModel(model, color, eyeColor, transparency)
@@ -50,46 +68,89 @@ local function tintModel(model, color, eyeColor, transparency)
 	end
 end
 
-function MonsterManager.spawnMonster(session, monsterId, position)
-	local def = MonsterDefinitions.get(monsterId)
-	local template = getTemplate(def.behavior)
-	if not template then
-		warn("[MonsterManager] нет шаблона: " .. tostring(def.behavior))
+-- Ставит модель на землю: нижняя грань ровно на поверхности.
+local function snapModelToGround(model, groundPosition)
+	local extents = model:GetExtentsSize()
+	local pivot = model:GetPivot()
+	model:PivotTo(CFrame.new(Vector3.new(groundPosition.X, groundPosition.Y + extents.Y * 0.5 + 0.1, groundPosition.Z)))
+	local box = model:GetBoundingBox()
+	local bottom = box.Position.Y - box.Size.Y * 0.5
+	local root = model.PrimaryPart or model:FindFirstChild("Root", true)
+	local rootOffset = root and (root.Position.Y - bottom) or extents.Y * 0.5
+	return rootOffset
+end
+
+-- Монстр ставится на реальный пол карты.
+local function placeMonster(model, position, ignoreList)
+	local spot = MapService.findFreeSpot(position, {
+		radius = 2.6,
+		height = 7,
+		reach = 30,
+		ignore = ignoreList,
+	})
+	if not spot then
 		return nil
 	end
+	return snapModelToGround(model, spot)
+end
+
+function MonsterManager.spawnMonster(session, monsterId, position)
+	if session.ended then
+		return nil
+	end
+	local def = MonsterDefinitions.get(monsterId)
+	if not def then
+		return nil
+	end
+	local template = getTemplate(def.behavior)
+	if not template then
+		warn("[MonsterManager] нет шаблона для поведения " .. tostring(def.behavior))
+		return nil
+	end
+
 	local model = template:Clone()
-	model.Name = "Monster_" .. def.id
-	local scale = def.scale or 1
-	if scale ~= 1 then
+	model.Name = "Monster_" .. tostring(def.id) .. "_" .. tostring(#session.monsters + 1)
+	tintModel(model, def.color or Color3.fromRGB(20, 20, 30), def.eyeColor or Color3.fromRGB(255, 50, 60), def.transparency)
+	if (def.scale or 1) ~= 1 then
 		pcall(function()
-			model:ScaleTo(scale)
+			model:ScaleTo(def.scale)
 		end)
 	end
-	tintModel(model, def.color, def.eyeColor, def.transparency)
 
-	local root = model.PrimaryPart or model:FindFirstChild("Root")
+	local root = model.PrimaryPart or model:FindFirstChild("Root", true)
 	if not root then
 		model:Destroy()
 		return nil
 	end
-	model:PivotTo(CFrame.new(position))
+
+	local ignore = { session.container }
+	local rootOffset = placeMonster(model, position, ignore)
+	if not rootOffset then
+		model:Destroy()
+		return nil
+	end
 	model.Parent = session.container
 
 	local monster = {
 		id = def.id,
+		def = def,
 		model = model,
 		root = root,
-		def = def,
+		home = root.Position,
 		state = "patrol",
 		waypoints = {},
 		waypointIndex = 1,
 		lastRepath = 0,
 		lastSeen = 0,
-		attackCooldown = 1.5,
+		attackCooldown = 1 + math.random(),
 		announced = false,
-		home = position,
+		patrolIndex = math.random(1, 4),
+		lastPosition = root.Position,
+		rootOffset = rootOffset,
+		stuckTime = 0,
+		teleports = 0,
+		chasing = false,
 		visible = false,
-		patrolIndex = 1,
 	}
 
 	table.insert(session.monsters, monster)
@@ -97,25 +158,411 @@ function MonsterManager.spawnMonster(session, monsterId, position)
 	return monster
 end
 
+local function patrolPoints(session)
+	if session.patrolGround and #session.patrolGround > 0 then
+		return session.patrolGround
+	end
+	local out = {}
+	for _, marker in ipairs(MapService.collectMarkers(session.mapModel, "MK_Patrol")) do
+		local spot = MapService.findFreeSpot(marker.Position, { radius = 2.5, height = 6, reach = 14 })
+		if spot then
+			table.insert(out, spot)
+		end
+	end
+	session.patrolGround = out
+	return out
+end
+
+local function spawnPoints(session)
+	local out = {}
+	for _, marker in ipairs(MapService.collectMarkers(session.mapModel, "MK_Monster")) do
+		local spot = MapService.findFreeSpot(marker.Position, { radius = 3, height = 7, reach = 20 })
+		if spot then
+			table.insert(out, spot)
+		end
+	end
+	for _, point in ipairs(patrolPoints(session)) do
+		table.insert(out, point)
+	end
+	if #out == 0 then
+		local origin = session.mapModel:GetAttribute("SpawnPosition") or Vector3.new(0, 6, 0)
+		for _, offset in ipairs({ Vector3.new(40, 0, 40), Vector3.new(-40, 0, 40), Vector3.new(0, 0, 55) }) do
+			local spot = MapService.findFreeSpot(origin + offset, { radius = 3, height = 7, reach = 30 })
+			if spot then
+				table.insert(out, spot)
+			end
+		end
+	end
+	return out
+end
+
+-- Точка спавна не ближе minDistance и не дальше maxDistance от игрока.
+local function pickSpawnPoint(session, points, minDistance, maxDistance)
+	local root = playerRoot(session)
+	local playerPosition = root and root.Position or nil
+	local candidates = {}
+	for _, point in ipairs(points) do
+		local distance = playerPosition and (point - playerPosition).Magnitude or math.huge
+		if distance >= minDistance and distance <= maxDistance then
+			table.insert(candidates, point)
+		end
+	end
+	if #candidates == 0 then
+		for _, point in ipairs(points) do
+			local distance = playerPosition and (point - playerPosition).Magnitude or math.huge
+			if distance >= minDistance then
+				table.insert(candidates, point)
+			end
+		end
+	end
+	if #candidates == 0 then
+		return nil
+	end
+	return candidates[math.random(1, #candidates)]
+end
+
 function MonsterManager.start(session)
-	session.monsters = session.monsters or {}
-	local markers = MapService.collectMarkers(session.mapModel, "MK_Monster")
-	local spawnPoints = {}
-	for _, marker in ipairs(markers) do
-		table.insert(spawnPoints, marker.Position + Vector3.new(0, 4, 0))
-	end
-	if #spawnPoints == 0 then
-		local spawnPos = session.mapModel:GetAttribute("SpawnPosition") or Vector3.new(0, 6, 0)
-		table.insert(spawnPoints, spawnPos + Vector3.new(30, 0, 30))
-	end
+	session.monsters = {}
+	session.started = true
 	local types = session.dream.monsters or { "shadow" }
-	local rng = session.rng or Random.new()
 	local count = session.difficulty.monsterCount or 3
-	for index = 1, count do
-		local monsterId = types[rng:NextInteger(1, #types)]
-		local point = spawnPoints[((index - 1) % #spawnPoints) + 1]
-		MonsterManager.spawnMonster(session, monsterId, point + Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-8, 8)))
+	local points = spawnPoints(session)
+	if #points == 0 then
+		warn("[MonsterManager] на карте нет точек спавна монстров: " .. tostring(session.dream.id))
 	end
+
+	-- Монстры выходят постепенно: первый — через 12 секунд сна.
+	for index = 1, count do
+		task.delay(12 + (index - 1) * 6, function()
+			if session.ended or not session.monsters then
+				return
+			end
+			if #session.monsters >= count then
+				return
+			end
+			local point = pickSpawnPoint(session, points, 55, 160) or pickSpawnPoint(session, points, 35, 400)
+			if not point then
+				return
+			end
+			local monsterId = types[math.random(1, #types)]
+			local monster = MonsterManager.spawnMonster(session, monsterId, point)
+			if monster then
+				local alert = Remotes.get("MonsterAlert")
+				if alert then
+					alert:FireClient(session.player, { name = monster.def.name })
+				end
+				local scare = Remotes.get("Scare")
+				if scare then
+					scare:FireClient(session.player, { kind = "growl", monsterName = monster.def.name, intensity = 0.7 })
+				end
+			end
+		end)
+	end
+
+	MonsterManager.runLoop(session)
+end
+
+-- ---------------------------------------------------------------
+-- Движение
+-- ---------------------------------------------------------------
+
+local function raycastDown(position, ignoreModel)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { ignoreModel }
+	params.IgnoreWater = true
+	local hit = workspace:Raycast(position + Vector3.new(0, 16, 0), Vector3.new(0, -60, 0), params)
+	if hit then
+		return hit.Position
+	end
+	return nil
+end
+
+local function repath(session, monster, goal)
+	local root = monster.root
+	if not root or not root.Parent then
+		return
+	end
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2.4,
+		AgentHeight = 6.5,
+		AgentCanJump = true,
+		AgentJumpHeight = 8,
+		AgentMaxSlope = 45,
+		WaypointSpacing = 7,
+	})
+	local ok = pcall(function()
+		path:ComputeAsync(root.Position, goal)
+	end)
+	if ok and path.Status == Enum.PathStatus.Success then
+		monster.waypoints = path:GetWaypoints()
+		monster.waypointIndex = 2
+	else
+		monster.waypoints = { { Position = goal, Action = Enum.PathWaypointAction.Walk } }
+		monster.waypointIndex = 1
+	end
+	monster.lastRepath = os.clock()
+end
+
+local function moveToward(monster, dt, targetPosition, speed)
+	local root = monster.root
+	local position = root.Position
+	local delta = targetPosition - position
+	local flat = Vector3.new(delta.X, 0, delta.Z)
+	local distance = flat.Magnitude
+	if distance < 0.4 then
+		return true
+	end
+	local step = math.min(speed * dt, distance)
+	local nextPosition = position + flat.Unit * step
+
+	local ground = raycastDown(nextPosition, monster.model)
+	if ground then
+		nextPosition = Vector3.new(nextPosition.X, ground.Y + (monster.rootOffset or 3.2), nextPosition.Z)
+	elseif delta.Y > 2 then
+		nextPosition = Vector3.new(nextPosition.X, position.Y + math.min(step, delta.Y), nextPosition.Z)
+	end
+
+	local lookTarget = nextPosition + flat.Unit * 4
+	pcall(function()
+		monster.model:PivotTo(CFrame.lookAt(nextPosition, lookTarget))
+	end)
+	return distance <= step + 0.5
+end
+
+-- Аварийное спасение застрявшего монстра: ставим рядом с игроком, но вне поля зрения.
+local function rescue(session, monster, root)
+	if monster.teleports >= 4 then
+		return
+	end
+	local target = root and root.Position or monster.home
+	local angle = math.random() * math.pi * 2
+	local distance = 45 + math.random() * 25
+	local candidate = target + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+	local spot = MapService.findFreeSpot(candidate, { radius = 2.6, height = 7, reach = 40, ignore = { session.container } })
+	if spot then
+		monster.teleports += 1
+		monster.rootOffset = snapModelToGround(monster.model, spot)
+		monster.waypoints = {}
+		monster.lastRepath = 0
+		monster.stuckTime = 0
+		monster.lastPosition = spot
+	end
+end
+
+-- ---------------------------------------------------------------
+-- Атака
+-- ---------------------------------------------------------------
+
+function MonsterManager.damagePlayer(session, monster)
+	local root, humanoid = playerRoot(session)
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	local difficulty = session.difficulty
+	local bonuses = session.bonuses or {}
+	local damage = (monster.def.damage or 15) * (difficulty.monsterDamage or 1)
+	humanoid:TakeDamage(damage)
+	session.sanity = math.max(0, (session.sanity or 100) - (monster.def.sanityDrain or 5) * 0.8)
+	session.lastAttacker = monster.def.name
+
+	local scare = Remotes.get("Scare")
+	if scare then
+		scare:FireClient(session.player, {
+			kind = monster.def.boss and "boss" or "jumpscare",
+			monsterName = monster.def.name,
+			intensity = (monster.def.boss and 1.4 or 1) * math.clamp(difficulty.monsterDamage or 1, 0.5, 1.6) * (bonuses.scareMul or 1),
+		})
+	end
+end
+
+-- ---------------------------------------------------------------
+-- Основной цикл
+-- ---------------------------------------------------------------
+
+local function updateMonster(session, monster, dt)
+	local root = monster.root
+	if not monster.model.Parent or not root then
+		return
+	end
+	local now = os.clock()
+	monster.attackCooldown = math.max(0, monster.attackCooldown - dt)
+	local def = monster.def
+
+	local targetRoot = playerRoot(session)
+	if not targetRoot then
+		return
+	end
+	local targetPosition = targetRoot.Position
+	local monsterPosition = root.Position
+
+	-- Упал за пределы карты / слишком далеко — возвращаем
+	if monsterPosition.Y < -60 or (monsterPosition - session.mapModel:GetPivot().Position).Magnitude > 1200 then
+		rescue(session, monster, targetRoot)
+		return
+	end
+
+	local flat = Vector3.new(targetPosition.X - monsterPosition.X, 0, targetPosition.Z - monsterPosition.Z)
+	local distance = flat.Magnitude
+
+	-- Линия видимости
+	local visible = false
+	if distance <= (def.detectRange or 70) then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { monster.model, session.container:FindFirstChild("QuestObjects") }
+		params.IgnoreWater = true
+		local eye = monsterPosition + Vector3.new(0, 4.5, 0)
+		local target = targetPosition + Vector3.new(0, 1.5, 0)
+		local hit = workspace:Raycast(eye, target - eye, params)
+		visible = hit == nil
+	end
+	monster.visible = visible
+	if visible then
+		monster.lastSeen = now
+	end
+
+	local noise = session.sprinting and 1.4 or 1
+	local heard = distance <= 26 * noise
+	local chasing = visible or (now - monster.lastSeen < 4) or (heard and distance < 34)
+
+	-- Наблюдатель: замирает, пока на него смотрят
+	if def.behavior == "watcher" then
+		local look = session.lookVector
+		local watched = false
+		if look and distance > 0.5 then
+			local direction = Vector3.new(flat.X, 0, flat.Z).Unit
+			local lookFlat = Vector3.new(look.X, 0, look.Z)
+			if lookFlat.Magnitude > 0.1 then
+				watched = lookFlat.Unit:Dot(direction) > 0.6
+			end
+		end
+		if visible and watched then
+			chasing = false
+			session.sanity = math.max(0, session.sanity - 1.4 * dt)
+		end
+	end
+
+	monster.chasing = chasing
+
+	if chasing then
+		if now - monster.lastRepath > 1.6 then
+			repath(session, monster, targetPosition)
+		end
+		local waypoint = monster.waypoints[monster.waypointIndex]
+		local goal = waypoint and waypoint.Position or targetPosition
+		if moveToward(monster, dt, goal, (def.speed or 14) * (session.difficulty.monsterSpeed or 1) * 1.08) then
+			monster.waypointIndex += 1
+			if monster.waypointIndex > #monster.waypoints then
+				monster.waypoints = {}
+			end
+		end
+	else
+		local points = patrolPoints(session)
+		local goal = monster.home
+		if #points > 0 then
+			local point = points[((monster.patrolIndex - 1) % #points) + 1]
+			if (monsterPosition - point).Magnitude < 10 then
+				monster.patrolIndex += 1
+				point = points[((monster.patrolIndex - 1) % #points) + 1]
+			end
+			goal = point
+		end
+		if now - monster.lastRepath > 4 then
+			repath(session, monster, goal)
+		end
+		local waypoint = monster.waypoints[monster.waypointIndex]
+		if waypoint then
+			if moveToward(monster, dt, waypoint.Position, (def.speed or 12) * 0.45) then
+				monster.waypointIndex += 1
+			end
+		else
+			moveToward(monster, dt, goal, (def.speed or 12) * 0.45)
+		end
+	end
+
+	-- Атака: только если монстр видит игрока (или вплотную) и прошёл общий кулдаун.
+	local nowClock = os.clock()
+	local canAttack = distance <= (def.attackRange or 6) + 1
+		and monster.attackCooldown <= 0
+		and (visible or distance < 4)
+		and (session.lastHitAt == nil or nowClock - session.lastHitAt > 1.1)
+	if canAttack then
+		monster.attackCooldown = ATTACK_COOLDOWN
+		session.lastHitAt = nowClock
+		MonsterManager.damagePlayer(session, monster)
+	end
+
+	-- Первая встреча: предупреждение
+	if not monster.announced and visible and distance < 45 then
+		monster.announced = true
+		local alert = Remotes.get("MonsterAlert")
+		if alert then
+			alert:FireClient(session.player, { name = def.name })
+		end
+	end
+
+	-- Обнаружение застревания
+	if chasing then
+		local moved = (root.Position - monster.lastPosition).Magnitude
+		if moved < 0.35 then
+			monster.stuckTime += dt
+		else
+			monster.stuckTime = math.max(0, monster.stuckTime - dt)
+			monster.lastPosition = root.Position
+		end
+		if monster.stuckTime > 1.6 then
+			monster.stuckTime = 0
+			monster.waypoints = {}
+			monster.lastRepath = 0
+			if math.random() < 0.5 then
+				local waypoint = monster.waypoints[monster.waypointIndex]
+				if waypoint then
+					local ground = raycastDown(waypoint.Position, monster.model) or waypoint.Position
+					monster.rootOffset = snapModelToGround(monster.model, ground)
+				end
+			else
+				rescue(session, monster, targetRoot)
+			end
+		end
+	end
+end
+
+function MonsterManager.runLoop(session)
+	task.spawn(function()
+		local heartbeat = 0
+		while session.started and not session.ended and session.player.Parent do
+			local dt = task.wait(0.1) or 0.1
+			local monsters = session.monsters or {}
+			for index = #monsters, 1, -1 do
+				local monster = monsters[index]
+				if not monster or not monster.model or not monster.model.Parent then
+					table.remove(monsters, index)
+				else
+					local ok, err = pcall(updateMonster, session, monster, dt)
+					if not ok then
+						warn("[MonsterManager] ошибка ИИ: " .. tostring(err))
+					end
+				end
+			end
+			heartbeat += dt
+			if heartbeat > 8 then
+				heartbeat = 0
+				local root = playerRoot(session)
+				if root and #monsters > 0 then
+					local nearest = math.huge
+					for _, monster in ipairs(monsters) do
+						nearest = math.min(nearest, (monster.root.Position - root.Position).Magnitude)
+					end
+					if nearest > 260 then
+						-- Игрок ушёл далеко: подтягиваем одного монстра поближе.
+						local monster = monsters[math.random(1, #monsters)]
+						rescue(session, monster, root)
+					end
+				end
+			end
+		end
+	end)
 end
 
 function MonsterManager.spawnBoss(session)
@@ -124,10 +571,12 @@ function MonsterManager.spawnBoss(session)
 	end
 	session.bossSpawned = true
 	local bossId = session.dream.boss or "nightmare"
-	local spawnPos = session.mapModel:GetAttribute("SpawnPosition") or Vector3.new(0, 6, 0)
-	local monster = MonsterManager.spawnMonster(session, bossId, spawnPos + Vector3.new(0, 0, -34))
+	local root = playerRoot(session)
+	local basePosition = root and root.Position or (session.mapModel:GetAttribute("SpawnPosition") or Vector3.new(0, 6, 0))
+	local angle = math.random() * math.pi * 2
+	local monster = MonsterManager.spawnMonster(session, bossId, basePosition + Vector3.new(math.cos(angle) * 70, 0, math.sin(angle) * 70))
 	if monster then
-		monster.state = "hunt"
+		monster.home = monster.root.Position
 		local alert = Remotes.get("MonsterAlert")
 		if alert then
 			alert:FireClient(session.player, { name = monster.def.name })
@@ -143,237 +592,9 @@ function MonsterManager.spawnBoss(session)
 	end
 end
 
-local function getTargetRoot(session)
-	local character = session.player and session.player.Character
-	if not character then
-		return nil
-	end
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local root = character:FindFirstChild("HumanoidRootPart")
-	if not humanoid or not root or humanoid.Health <= 0 then
-		return nil
-	end
-	return root
-end
-
-local function isVisible(fromPosition, targetPosition, ignoreModel)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { ignoreModel }
-	params.IgnoreWater = true
-	local result = workspace:Raycast(fromPosition, targetPosition - fromPosition, params)
-	return result == nil
-end
-
-local function moveMonster(monster, dt, targetPosition, speed)
-	local position = monster.root.Position
-	local direction = targetPosition - position
-	local distance = direction.Magnitude
-	if distance < 0.5 then
-		return true
-	end
-	local step = math.min(speed * dt, distance)
-	local newPosition = position + Vector3.new(direction.X, 0, direction.Z).Unit * step
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { monster.model }
-	local hit = workspace:Raycast(newPosition + Vector3.new(0, 14, 0), Vector3.new(0, -34, 0), params)
-	if hit then
-		newPosition = Vector3.new(newPosition.X, hit.Position.Y + 3.2, newPosition.Z)
-	end
-	local lookAt = Vector3.new(newPosition.X + direction.X, newPosition.Y, newPosition.Z + direction.Z)
-	if (lookAt - newPosition).Magnitude > 0.1 then
-		monster.model:PivotTo(CFrame.lookAt(newPosition, lookAt))
-	else
-		monster.model:PivotTo(CFrame.new(newPosition))
-	end
-	return distance <= step + 0.5
-end
-
-function MonsterManager.damagePlayer(session, monster)
-	local player = session.player
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not humanoid or humanoid.Health <= 0 then
-		return
-	end
-	local difficulty = session.difficulty
-	local bonuses = session.bonuses or {}
-	local damage = monster.def.damage * (difficulty.monsterDamage or 1) * (bonuses.scareMul or 1)
-	humanoid:TakeDamage(damage)
-	session.sanity = math.max(0, (session.sanity or 100) - monster.def.sanityDrain * 0.8)
-	session.lastAttacker = monster.def.name
-
-	local scare = Remotes.get("Scare")
-	if scare and math.random() < 0.65 then
-		scare:FireClient(player, {
-			kind = monster.def.boss and "boss" or "jumpscare",
-			monsterName = monster.def.name,
-			intensity = (monster.def.boss and 1.4 or 1) * (difficulty.monsterDamage or 1),
-		})
-	end
-	local growl = Remotes.get("Scare")
-	if growl and math.random() < 0.3 then
-		growl:FireClient(player, { kind = "growl", monsterName = monster.def.name, intensity = 0.7 })
-	end
-end
-
-local function repath(session, monster, goal)
-	local path = PathfindingService:CreatePath({
-		AgentRadius = 2.5,
-		AgentHeight = 6,
-		AgentCanJump = true,
-		AgentJumpHeight = 8,
-		AgentMaxSlope = 45,
-		WaypointSpacing = 6,
-	})
-	local ok = pcall(function()
-		path:ComputeAsync(monster.root.Position, goal)
-	end)
-	if ok and path.Status == Enum.PathStatus.Success then
-		monster.waypoints = path:GetWaypoints()
-	else
-		monster.waypoints = { { Position = goal } }
-	end
-	monster.waypointIndex = 2
-	monster.lastRepath = os.clock()
-end
-
-function MonsterManager.update(session, monster, dt)
-	if session.ended or not monster.model.Parent then
-		return
-	end
-	local now = os.clock()
-	monster.attackCooldown = math.max(0, monster.attackCooldown - dt)
-
-	local targetRoot = getTargetRoot(session)
-	if not targetRoot then
-		return
-	end
-	local def = monster.def
-	local monsterPosition = monster.root.Position
-	local targetPosition = targetRoot.Position
-	local distance = (targetPosition - monsterPosition).Magnitude
-	local noise = session.sprinting and 1.35 or 1
-	local detectRange = def.detectRange * noise
-	local visible = false
-	if distance <= detectRange then
-		visible = isVisible(monsterPosition + Vector3.new(0, 2.5, 0), targetPosition, monster.model)
-	end
-	monster.visible = visible
-	if visible then
-		monster.lastSeen = now
-	end
-
-	local behavior = def.behavior
-	if behavior == "watcher" then
-		-- Наблюдатель замирает, когда на него смотрят, и атакует разум на расстоянии.
-		local lookVector = session.lookVector
-		local watched = false
-		if lookVector then
-			local toMonster = (monsterPosition - targetPosition)
-			if toMonster.Magnitude > 0.1 then
-				local dot = Vector3.new(lookVector.X, 0, lookVector.Z).Unit:Dot(Vector3.new(toMonster.X, 0, toMonster.Z).Unit)
-				watched = dot > 0.55
-			end
-		end
-		if visible and watched and distance < 60 then
-			session.sanity = math.max(0, session.sanity - 1.2 * dt)
-		end
-		if visible and not watched and distance > 8 then
-			if now - monster.lastRepath > 2 then
-				repath(session, monster, targetPosition)
-			end
-			local waypoint = monster.waypoints[monster.waypointIndex]
-			if waypoint then
-				if moveMonster(monster, dt, waypoint.Position, def.speed * 0.55) then
-					monster.waypointIndex = monster.waypointIndex + 1
-				end
-			end
-		end
-		if distance <= def.attackRange and monster.attackCooldown <= 0 and not watched then
-			monster.attackCooldown = 3.2
-			MonsterManager.damagePlayer(session, monster)
-		end
-		return
-	end
-
-	local chasing = false
-	if behavior == "mimic" then
-		if distance < 14 and visible then
-			chasing = true
-			if not monster.revealed then
-				monster.revealed = true
-				local scare = Remotes.get("Scare")
-				if scare then
-					scare:FireClient(session.player, { kind = "reveal", monsterName = def.name, intensity = 1 })
-				end
-				local alert = Remotes.get("MonsterAlert")
-				if alert then
-					alert:FireClient(session.player, { name = def.name })
-				end
-			end
-		elseif now - monster.lastSeen < 5 then
-			chasing = true
-		end
-	else
-		chasing = (visible and distance <= detectRange) or (now - monster.lastSeen < 5)
-	end
-
-	local goal = targetPosition
-	if not chasing then
-		local patrols = session.patrolPoints
-		if patrols and #patrols > 0 then
-			local point = patrols[((monster.patrolIndex - 1) % #patrols) + 1].Position
-			if (monsterPosition - point).Magnitude < 8 then
-				monster.patrolIndex = monster.patrolIndex + 1
-			end
-			goal = point + Vector3.new(0, 3, 0)
-		else
-			goal = monster.home
-		end
-	end
-
-	local speed = def.speed * (session.difficulty.monsterSpeed or 1)
-	if chasing then
-		speed *= 1.1
-	end
-
-	if now - monster.lastRepath > (chasing and 1.4 or 3.5) then
-		repath(session, monster, goal)
-	end
-	local waypoint = monster.waypoints[monster.waypointIndex]
-	if waypoint then
-		if moveMonster(monster, dt, waypoint.Position, speed) then
-			monster.waypointIndex = monster.waypointIndex + 1
-		end
-	else
-		moveMonster(monster, dt, goal, speed)
-	end
-
-	if distance <= def.attackRange and monster.attackCooldown <= 0 then
-		monster.attackCooldown = 2.6
-		MonsterManager.damagePlayer(session, monster)
-	end
-
-	if not monster.announced and distance < 42 and visible then
-		monster.announced = true
-		local alert = Remotes.get("MonsterAlert")
-		if alert then
-			alert:FireClient(session.player, { name = def.name })
-		end
-		local growl = Remotes.get("Scare")
-		if growl then
-			growl:FireClient(session.player, { kind = "growl", monsterName = def.name, intensity = 0.8 })
-		end
-	end
-end
-
 function MonsterManager.stop(session)
-	if not session.monsters then
-		return
-	end
-	for _, monster in ipairs(session.monsters) do
+	session.started = false
+	for _, monster in ipairs(session.monsters or {}) do
 		if monster.model and monster.model.Parent then
 			monster.model:Destroy()
 		end
@@ -385,7 +606,7 @@ function MonsterManager.getNearest(session, position)
 	local nearest = nil
 	local best = math.huge
 	for _, monster in ipairs(session.monsters or {}) do
-		if monster.model and monster.model.Parent then
+		if monster.model and monster.model.Parent and monster.root then
 			local distance = (monster.root.Position - position).Magnitude
 			if distance < best then
 				best = distance
@@ -395,5 +616,7 @@ function MonsterManager.getNearest(session, position)
 	end
 	return nearest, best
 end
+
+function MonsterManager.update() end
 
 return MonsterManager
