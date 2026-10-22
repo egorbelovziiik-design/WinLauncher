@@ -41,8 +41,9 @@ function InputController.toggleFlashlight(force)
 	if not ClientState.isDream() then
 		return
 	end
-	if not ClientState.ownsItem("flashlight") then
-		ClientState.toast("Фонарик можно купить в магазине", Color3.fromRGB(255, 190, 120), "🔦")
+	local battery = (ClientState.vitals and ClientState.vitals.battery) or 100
+	if force == nil and not flashlightOn and battery <= 1 then
+		ClientState.toast("Батарея пуста — используй батарейку (Q или магазин)", Color3.fromRGB(255, 176, 120), "🔋")
 		return
 	end
 	if force ~= nil then
@@ -54,7 +55,11 @@ function InputController.toggleFlashlight(force)
 	if remote then
 		remote:FireServer(flashlightOn)
 	end
+	-- Включаем локальный луч сразу, сервер подтвердит или выключит при пустой батарее.
 	ClientState.emit("Flashlight", flashlightOn)
+	if flashlightOn and ClientState.ownsItem("lantern") then
+		ClientState.toast("Лампа сновидца: широкий тёплый свет", Color3.fromRGB(255, 214, 156), "🏮")
+	end
 end
 
 function InputController.setSprintEnabled(enabled)
@@ -143,14 +148,28 @@ function InputController.start()
 	end, false, Enum.KeyCode.Escape)
 
 	-- Мобильные действия из HUD
+	-- Держим локальное состояние в согласии с сервером (он гасит свет при пустой батарее).
+	ClientState.on("Vitals", function(data)
+		if data and data.flashlight ~= nil then
+			local serverOn = data.flashlight == true
+			if serverOn ~= flashlightOn then
+				flashlightOn = serverOn
+				ClientState.emit("Flashlight", serverOn)
+			end
+		end
+	end)
+
 	ClientState.on("MobileAction", function(action)
 		if action == "sprint" then
-			InputController.setSprintEnabled(true)
-			task.delay(1.2, function()
-				if not UserInputService.TouchEnabled then
-					return
-				end
-			end)
+			if sprinting then
+				InputController.setSprintEnabled(false)
+				ClientState.toast("Бег выключен", Color3.fromRGB(160, 200, 255), "🏃")
+			elseif (ClientState.vitals and ClientState.vitals.stamina or 0) > 8 then
+				InputController.setSprintEnabled(true)
+				ClientState.toast("Бег включён — монстры слышат тебя", Color3.fromRGB(255, 200, 150), "🏃")
+			else
+				ClientState.toast("Не хватает выносливости", Color3.fromRGB(255, 150, 150), "⚡")
+			end
 		elseif action == "interact" then
 			InputController.interact()
 		elseif action == "flashlight" then
@@ -183,8 +202,11 @@ function InputController.start()
 	end)
 
 	ClientState.on("Phase", function(phase)
-		if phase == "menu" then
+		if phase == "menu" or phase == "result" then
 			InputController.resetSprint()
+			flashlightOn = false
+			ClientState.emit("Flashlight", false)
+		elseif phase == "dream" then
 			flashlightOn = false
 			ClientState.emit("Flashlight", false)
 		end

@@ -7,7 +7,7 @@ import {
   M, box, deco, sphere, cyl, wedge, pointLight, mist, particles, sign, billboardText,
   ground, wall, windowFrame, building, tree, pine, streetLamp, fence, crate, barrel,
   table, chair, shelf, bookStack, pcSetup, rug, poster, plant, bed, toy, wardrobe,
-  marker, model, flat, fogEmitter,
+  marker, model, flat, fogEmitter, rnd,
 } from './kit.mjs';
 
 const DARK = rgb(10, 12, 20);
@@ -26,10 +26,10 @@ function darkForest() {
   for (let x = -180; x <= 180; x += 26) {
     for (let z = -180; z <= 180; z += 26) {
       if (Math.abs(x) < 26 && Math.abs(z) < 120) continue;
-      const jx = x + (Math.random() * 10 - 5);
-      const jz = z + (Math.random() * 10 - 5);
-      const s = 0.8 + Math.random() * 0.7;
-      p.push(...tree([jx, 0, jz], s, rgb(48, 34, 24), rgb(18 + Math.random() * 12, 48, 30)));
+      const jx = x + (rnd() * 10 - 5);
+      const jz = z + (rnd() * 10 - 5);
+      const s = 0.8 + rnd() * 0.7;
+      p.push(...tree([jx, 0, jz], s, rgb(48, 34, 24), rgb(18 + rnd() * 12, 48, 30)));
     }
   }
   // Хижина смотрителя
@@ -103,7 +103,7 @@ function school() {
     for (let i = 0; i < 12; i++) {
       const x = bx - bw / 2 + 8 + i * 9.5;
       const y = 8 + f * 12;
-      const lit = Math.random() < 0.22;
+      const lit = rnd() < 0.22;
       p.push(box([x, y, bz + bd / 2 + 0.4], [5, 6, 0.5], lit ? rgb(210, 220, 180) : rgb(12, 14, 18), lit ? M.Neon : M.Glass, { transparency: 0.15 }));
     }
   }
@@ -161,12 +161,12 @@ function school() {
   }
   // Деревья и мусор
   for (let i = 0; i < 18; i++) {
-    const x = -110 + Math.random() * 220, z = 60 + Math.random() * 60;
+    const x = -110 + rnd() * 220, z = 60 + rnd() * 60;
     if (Math.abs(x) < 20 && Math.abs(z - 80) < 20) continue;
-    p.push(...tree([x, 0, z], 0.7 + Math.random() * 0.5, rgb(44, 32, 22), rgb(26, 46, 30)));
+    p.push(...tree([x, 0, z], 0.7 + rnd() * 0.5, rgb(44, 32, 22), rgb(26, 46, 30)));
   }
   for (let i = 0; i < 26; i++) {
-    p.push(deco([-110 + Math.random() * 220, 0.1, -120 + Math.random() * 200], [1.4, 0.2, 1], rgb(120, 116, 100), M.SmoothPlastic, { rot: { yaw: Math.random() * 360 } }));
+    p.push(deco([-110 + rnd() * 220, 0.1, -120 + rnd() * 200], [1.4, 0.2, 1], rgb(120, 116, 100), M.SmoothPlastic, { rot: { yaw: rnd() * 360 } }));
   }
   p.push(...streetLamp([-30, 0, 10], rgb(180, 200, 220), { height: 18, range: 30 }));
   p.push(...streetLamp([40, 0, 20], rgb(180, 200, 220), { height: 18, range: 30 }));
@@ -204,19 +204,19 @@ function emptyCity() {
   for (let bx = -200; bx <= 200; bx += 92) {
     for (let bz = -200; bz <= 200; bz += 92) {
       if (Math.abs(bx) < 40 || Math.abs(bz) < 40) continue;
-      if (Math.random() < 0.08) continue;
-      const w = 40 + Math.random() * 20, d = 40 + Math.random() * 20;
-      const h = 50 + Math.random() * 110;
-      p.push(...building({ pos: [bx, 0.4, bz], w, d, h, floors: Math.max(4, Math.floor(h / 12)), color: rgb(34 + Math.random() * 16, 34, 44), windowColor: rgb(255, 200, 130), litChance: 0.16 }));
+      if (rnd() < 0.08) continue;
+      const w = 40 + rnd() * 20, d = 40 + rnd() * 20;
+      const h = 50 + rnd() * 110;
+      p.push(...building({ pos: [bx, 0.4, bz], w, d, h, floors: Math.max(4, Math.floor(h / 12)), color: rgb(34 + rnd() * 16, 34, 44), windowColor: rgb(255, 200, 130), litChance: 0.16 }));
       spots.push([bx, bz]);
     }
   }
   // Разбитые машины
   for (let i = 0; i < 24; i++) {
-    const x = -200 + Math.random() * 400, z = Math.random() < 0.5 ? (Math.floor(Math.random() * 5) - 2) * 90 + 8 : 0;
-    const zz = Math.random() < 0.5 ? z : -200 + Math.random() * 400;
-    p.push(box([x, 2.2, zz], [7, 2.6, 15], i % 3 === 0 ? rgb(120, 40, 44) : rgb(40, 44, 52), M.CorrodedMetal, { canCollide: true, rot: { yaw: Math.random() * 30 } }));
-    p.push(box([x, 3.6, zz], [6, 1.8, 8], rgb(20, 26, 34), M.Glass, { transparency: 0.45, rot: { yaw: Math.random() * 30 } }));
+    const x = -200 + rnd() * 400, z = rnd() < 0.5 ? (Math.floor(rnd() * 5) - 2) * 90 + 8 : 0;
+    const zz = rnd() < 0.5 ? z : -200 + rnd() * 400;
+    p.push(box([x, 2.2, zz], [7, 2.6, 15], i % 3 === 0 ? rgb(120, 40, 44) : rgb(40, 44, 52), M.CorrodedMetal, { canCollide: true, rot: { yaw: rnd() * 30 } }));
+    p.push(box([x, 3.6, zz], [6, 1.8, 8], rgb(20, 26, 34), M.Glass, { transparency: 0.45, rot: { yaw: rnd() * 30 } }));
   }
   // Светофоры и знаки
   for (let i = -2; i <= 2; i++) {
@@ -393,24 +393,24 @@ function floodedCity() {
   // Дома, торчащие из воды
   const blocks = [];
   for (let i = 0; i < 22; i++) {
-    const x = -180 + Math.random() * 360, z = -180 + Math.random() * 360;
+    const x = -180 + rnd() * 360, z = -180 + rnd() * 360;
     if (blocks.some(([bx, bz]) => Math.hypot(bx - x, bz - z) < 55)) continue;
     blocks.push([x, z]);
-    const w = 22 + Math.random() * 16, d = 22 + Math.random() * 16, h = 20 + Math.random() * 40;
+    const w = 22 + rnd() * 16, d = 22 + rnd() * 16, h = 20 + rnd() * 40;
     p.push(...building({ pos: [x, -1, z], w, d, h, floors: Math.max(2, Math.floor(h / 12)), color: rgb(50, 56, 58), windowColor: rgb(140, 210, 210), litChance: 0.1, roofColor: rgb(30, 34, 36), door: false }));
     // балкон/вывеска
     p.push(box([x, h * 0.4, z + d / 2 + 1], [w * 0.6, 4, 2], rgb(38, 42, 44), M.CorrodedMetal, { canCollide: false }));
   }
   // Мостки/плоты
   for (let i = 0; i < 14; i++) {
-    const x = -160 + Math.random() * 320, z = -160 + Math.random() * 320;
-    p.push(box([x, 0.6, z], [12, 0.8, 8], rgb(60, 48, 34), M.WoodPlanks, { canCollide: true, rot: { yaw: Math.random() * 30 } }));
+    const x = -160 + rnd() * 320, z = -160 + rnd() * 320;
+    p.push(box([x, 0.6, z], [12, 0.8, 8], rgb(60, 48, 34), M.WoodPlanks, { canCollide: true, rot: { yaw: rnd() * 30 } }));
   }
   // Затонувший автобус
   p.push(box([30, 2, 40], [8, 8, 24], rgb(150, 140, 60), M.CorrodedMetal, { canCollide: true, rot: { yaw: 20, roll: 12 } }));
   // Фонарные столбы из воды
   for (let i = 0; i < 16; i++) {
-    const x = -140 + Math.random() * 280, z = -140 + Math.random() * 280;
+    const x = -140 + rnd() * 280, z = -140 + rnd() * 280;
     p.push(cyl([x, 6, z], [0.7, 16, 0.7], rgb(36, 40, 42), M.CorrodedMetal, { roll: 8 }));
     p.push(box([x, 12, z], [1.6, 1.6, 1.6], rgb(200, 230, 230), M.Neon, { transparency: 0.2 }));
   }
@@ -423,8 +423,8 @@ function floodedCity() {
   ]));
   // Волны (декор)
   for (let i = 0; i < 60; i++) {
-    const x = -220 + Math.random() * 440, z = -220 + Math.random() * 440;
-    p.push(deco([x, -0.9, z], [8 + Math.random() * 10, 0.2, 3], rgb(70, 130, 150), M.Glass, { transparency: 0.75 }));
+    const x = -220 + rnd() * 440, z = -220 + rnd() * 440;
+    p.push(deco([x, -0.9, z], [8 + rnd() * 10, 0.2, 3], rgb(70, 130, 150), M.Glass, { transparency: 0.75 }));
   }
   p.push(particles([0, 20, 0], { name: 'Rain', texture: 'rbxasset://textures/particles/water_main.dds', rate: 300, color: c3(0.7, 0.85, 0.95), life: 3, speed: 8, accel: [0, -40, 0], startSize: 0.35, endSize: 0.2, size: 300, transparency: 0.4 }));
   p.push(mist([0, 8, 0], rgb(120, 160, 170), { rate: 34, spread: 300 }));
@@ -445,13 +445,13 @@ function iceWorld() {
   p.push(deco([0, 0.1, 0], [120, 0.2, 460], rgb(180, 215, 235), M.Ice, { transparency: 0.25 }));
   // Ледяные скалы
   for (let i = 0; i < 34; i++) {
-    const x = -200 + Math.random() * 400, z = -200 + Math.random() * 400;
+    const x = -200 + rnd() * 400, z = -200 + rnd() * 400;
     if (Math.hypot(x, z) < 40) continue;
-    const h = 20 + Math.random() * 60;
+    const h = 20 + rnd() * 60;
     p.push(el('Part', {
-      Name: 'IceSpike', Size: v3(8 + Math.random() * 10, h, 8 + Math.random() * 10),
-      CFrame: cf([x, h / 2, z], { roll: (Math.random() * 16 - 8), pitch: (Math.random() * 16 - 8) }),
-      Color: rgb(170 + Math.random() * 40, 205, 230), Material: M.Ice,
+      Name: 'IceSpike', Size: v3(8 + rnd() * 10, h, 8 + rnd() * 10),
+      CFrame: cf([x, h / 2, z], { roll: (rnd() * 16 - 8), pitch: (rnd() * 16 - 8) }),
+      Color: rgb(170 + rnd() * 40, 205, 230), Material: M.Ice,
       Transparency: 0.15, Reflectance: 0.25, Anchored: true, CanCollide: true,
     }));
   }
@@ -466,8 +466,8 @@ function iceWorld() {
   p.push(box([px, 6, pz + 21], [14, 12, 2], rgb(240, 250, 255), M.Glass, { transparency: 0.55 }));
   // Замёрзший лес
   for (let i = 0; i < 40; i++) {
-    const x = -190 + Math.random() * 380, z = 20 + Math.random() * 180;
-    p.push(...pine([x, 0, z], 0.7 + Math.random() * 0.6, rgb(28, 62, 62)));
+    const x = -190 + rnd() * 380, z = 20 + rnd() * 180;
+    p.push(...pine([x, 0, z], 0.7 + rnd() * 0.6, rgb(28, 62, 62)));
   }
   // Замёрзшее озеро
   p.push(cyl([90, 0.3, 60], [100, 0.4, 100], rgb(150, 200, 225), M.Ice, { transparency: 0.2 }));
@@ -581,7 +581,7 @@ function spaceStation() {
   // Звёздный фон
   p.push(el('Part', { Name: 'Void', Size: v3(1200, 1200, 1200), CFrame: cf([0, 0, 0]), Color: rgb(2, 3, 8), Material: M.SmoothPlastic, Transparency: 1, Anchored: true, CanCollide: false }));
   for (let i = 0; i < 260; i++) {
-    p.push(sphere([-500 + Math.random() * 1000, -300 + Math.random() * 600, -500 + Math.random() * 1000], 1 + Math.random() * 2, rgb(230, 235, 255), M.Neon, { transparency: Math.random() * 0.4 }));
+    p.push(sphere([-500 + rnd() * 1000, -300 + rnd() * 600, -500 + rnd() * 1000], 1 + rnd() * 2, rgb(230, 235, 255), M.Neon, { transparency: rnd() * 0.4 }));
   }
   p.push(sphere([420, 200, -360], 150, rgb(120, 60, 200), M.Neon, { transparency: 0.1 }));
   p.push(sphere([-460, -180, 300], 110, rgb(240, 140, 60), M.Neon, { transparency: 0.15 }));
@@ -699,8 +699,8 @@ function cursedCastle() {
   }
   // Кладбище
   for (let i = 0; i < 16; i++) {
-    const x = -60 + Math.random() * 120, z = 50 + Math.random() * 24;
-    p.push(box([x, 2.4, z], [2, 5, 0.6], rgb(80, 82, 80), M.Slate, { rot: { yaw: (Math.random() * 20 - 10) } }));
+    const x = -60 + rnd() * 120, z = 50 + rnd() * 24;
+    p.push(box([x, 2.4, z], [2, 5, 0.6], rgb(80, 82, 80), M.Slate, { rot: { yaw: (rnd() * 20 - 10) } }));
     p.push(box([x, 0.4, z - 1], [3, 0.6, 2.4], rgb(40, 42, 42), M.Mud));
   }
   // Виселица

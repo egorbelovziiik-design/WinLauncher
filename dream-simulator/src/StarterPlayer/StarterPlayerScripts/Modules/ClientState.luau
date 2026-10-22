@@ -33,7 +33,7 @@ ClientState.dream = nil
 ClientState.quests = {}
 ClientState.mandatoryLeft = 0
 ClientState.timer = { remaining = Config.DreamDuration, total = Config.DreamDuration }
-ClientState.vitals = { sanity = 100, stamina = 100, health = 100, maxHealth = 100, maxSanity = 100, maxStamina = 100, sprinting = false, flashlight = false }
+ClientState.vitals = { sanity = 100, stamina = 100, health = 100, maxHealth = 100, maxSanity = 100, maxStamina = 100, sprinting = false, flashlight = false, battery = 100, batteryMax = 100 }
 ClientState.prompt = nil
 ClientState.result = nil
 ClientState.bonuses = {}
@@ -165,6 +165,24 @@ end
 
 function ClientState.isDream()
 	return ClientState.phase == "dream"
+end
+
+-- Курсор: во сне он заблокирован по центру (первое лицо),
+-- но для диалогов, инвентаря и меню его нужно освобождать.
+function ClientState.setCursorFree(free)
+	local ok = pcall(function()
+		if free then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
+		elseif ClientState.phase == "dream" then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			UserInputService.MouseIconEnabled = false
+		else
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
+		end
+	end)
+	return ok
 end
 
 function ClientState.fmtTime(seconds)

@@ -66,7 +66,7 @@ function NPCManager.spawnNPCs(session)
 			model:Destroy()
 			continue
 		end
-		local spot = MapService.findFreeSpot(marker.Position, { radius = 2.4, height = 7, reach = 18, ignore = { session.container } })
+		local spot = MapService.findFreeSpot(marker.Position, { radius = 2.4, height = 7, reach = 18 })
 		if not spot then
 			spot = marker.Position
 		end
@@ -128,6 +128,7 @@ local function vitals(session)
 end
 
 local HEAL_PRICE = 120
+local BATTERY_PRICE = 55
 local CALM_PRICE = 0
 local ITEM_PRICE = 80
 
@@ -191,6 +192,17 @@ function NPCManager.openDialog(session, part)
 	end
 	if stock > 0 then
 		table.insert(options, { text = ("🧪 Купить зелье рассудка (%d 🪙)"):format(ITEM_PRICE), action = "trade" })
+	end
+	local batteryStock = npc and npc.batteryStock
+	if batteryStock == nil then
+		batteryStock = 2
+		if npc then
+			npc.batteryStock = batteryStock
+		end
+	end
+	local battery = (session.battery or 0)
+	if batteryStock > 0 and battery < 99 then
+		table.insert(options, { text = ("🔋 Попросить батарейку (%d 🪙)"):format(BATTERY_PRICE), action = "battery" })
 	end
 
 	table.insert(options, { text = "🕯 Что здесь случилось?", action = "lore" })
@@ -283,6 +295,23 @@ function NPCManager.handleChoice(session, action)
 		profile.consumables.sanity_potion = (profile.consumables.sanity_potion or 0) + 1
 		DataManager.pushProfile(session.player)
 		NpcToast(session, "Получено зелье рассудка (используй в инвентаре или кнопкой)")
+	elseif action == "battery" then
+		local index = session.dialog and session.dialog.npcIndex
+		local npc = index and session.npcs and session.npcs[index]
+		if npc and (npc.batteryStock or 0) <= 0 then
+			NpcToast(session, "У NPC закончились батарейки")
+			return
+		end
+		if not DataManager.spendCoins(session.player, BATTERY_PRICE) then
+			NpcToast(session, "Не хватает монет: нужно " .. BATTERY_PRICE)
+			return
+		end
+		if npc then
+			npc.batteryStock = math.max(0, (npc.batteryStock or 2) - 1)
+		end
+		session.battery = math.min(100, (session.battery or 0) + 80)
+		vitals(session)
+		NpcToast(session, "Батарейка вставлена: заряд фонарика " .. tostring(math.floor(session.battery)) .. "%")
 	elseif string.sub(action, 1, 5) == "thank" then
 		local questId = string.match(action, "thank:(.+)")
 		local questState = questId and session.questStates and session.questStates[questId]

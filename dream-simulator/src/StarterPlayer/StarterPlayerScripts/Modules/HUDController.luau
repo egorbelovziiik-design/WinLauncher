@@ -6,6 +6,7 @@
 ]]
 
 local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
@@ -122,6 +123,51 @@ local function buildObjectiveText(quest)
 		table.insert(parts, prefix .. " " .. objective.text .. progress)
 	end
 	return table.concat(parts, "\n")
+end
+
+-- Плашка «ФОНАРИК: ВКЛ/ВЫКЛ» + цвет по заряду
+function HUDController.renderFlashlight(data)
+	local label = ClientState.el("DreamHUD", "FlashlightLabel")
+	local chip = ClientState.el("DreamHUD", "FlashlightChip")
+	local on = data and data.flashlight == true
+	local battery = math.floor((data and data.battery) or 0)
+	if label then
+		if on then
+			label.Text = "🔦 ФОНАРИК: ВКЛ · " .. tostring(battery) .. "%"
+			label.TextColor3 = Color3.fromRGB(255, 226, 150)
+		else
+			label.Text = "🔦 ФОНАРИК: ВЫКЛ · " .. tostring(battery) .. "%"
+			label.TextColor3 = Color3.fromRGB(158, 161, 198)
+		end
+	end
+	if chip then
+		local stroke = chip:FindFirstChildWhichIsA("UIStroke")
+		if stroke then
+			stroke.Transparency = on and 0.15 or 0.6
+			stroke.Color = on and Color3.fromRGB(255, 209, 102) or Color3.fromRGB(120, 122, 160)
+		end
+		chip.BackgroundTransparency = on and 0.1 or 0.3
+	end
+	-- Процент заряда прямо в подписи шкалы батареи
+	local batteryBar = ClientState.el("DreamHUD", "BatteryBar")
+	if batteryBar then
+		for _, child in ipairs(batteryBar:GetChildren()) do
+			if child:IsA("TextLabel") then
+				child.Text = "🔦 БАТАРЕЯ: " .. tostring(battery) .. "%"
+				child.TextColor3 = battery < 20 and Color3.fromRGB(255, 150, 150) or Color3.fromRGB(158, 161, 198)
+			end
+		end
+	end
+	-- Мобильная кнопка фонарика
+	local mobileButton = ClientState.el("DreamHUD", "FlashlightButton")
+	if mobileButton then
+		mobileButton.BackgroundTransparency = on and 0.05 or 0.25
+	end
+	-- Предупреждение о низком заряде (один раз за сон)
+	if not on and battery > 0 and battery <= 18 and not HUDController.batteryWarned then
+		HUDController.batteryWarned = true
+		ClientState.toast("Батарея фонарика почти пуста", Color3.fromRGB(255, 190, 120), "🔋")
+	end
 end
 
 function HUDController.renderQuests()
@@ -247,6 +293,7 @@ function HUDController.toggleQuestLog(force)
 		logFrame.BackgroundTransparency = 1
 		ClientState.tween(logFrame, 0.25, { BackgroundTransparency = 0.08 })
 	end
+	ClientState.setCursorFree(questLogOpen)
 	ClientState.emit("QuestLogToggled", questLogOpen)
 end
 
@@ -261,6 +308,7 @@ local function closeDialog()
 		local dialog = gui:FindFirstChild("Dialog", true)
 		setVisible(dialog, false)
 	end
+	ClientState.setCursorFree(false)
 end
 
 function HUDController.openDialog(payload)
@@ -268,6 +316,8 @@ function HUDController.openDialog(payload)
 	if not gui then
 		return
 	end
+	-- В первом лице курсор заблокирован: освобождаем, иначе варианты не нажать
+	ClientState.setCursorFree(true)
 	local dialog = gui:FindFirstChild("Dialog", true)
 	if not dialog then
 		return
@@ -309,7 +359,7 @@ function HUDController.openDialog(payload)
 				button.Parent = optionsFrame
 				local label = button:FindFirstChild("Label") or button
 				if label and label ~= button then
-					label.Text = option.text
+					label.Text = tostring(index) .. ". " .. option.text
 				else
 					button.Text = option.text
 				end
@@ -346,6 +396,8 @@ end
 ------------------------------------------------------------------
 -- Инициализация
 ------------------------------------------------------------------
+HUDController.batteryWarned = false
+
 function HUDController.start()
 	local gui = getGui()
 	if not gui then
@@ -393,11 +445,46 @@ function HUDController.start()
 	ClientState.on("Phase", function(phase)
 		local visible = phase == "dream" or phase == "waking"
 		gui.Enabled = visible
-		if phase == "menu" then
+		if phase == "dream" then
+			HUDController.batteryWarned = false
+		elseif phase == "menu" then
 			closeDialog()
 			HUDController.toggleQuestLog(false)
 		end
 	end)
+
+	-- Выбор варианта диалога цифрами 1..9 (удобно и без мыши)
+	ContextActionService:BindAction("DreamDialogChoose", function(_, state, input)
+		if state ~= Enum.UserInputState.Begin or not dialogOpen then
+			return Enum.ContextActionResult.Pass
+		end
+		local number = tonumber(string.sub(input.KeyCode.Name, 2))
+		if not number then
+			return Enum.ContextActionResult.Pass
+		end
+		local gui = getGui()
+		local dialog = gui and gui:FindFirstChild("Dialog", true)
+		local options = dialog and dialog:FindFirstChild("Options", true)
+		if not options then
+			return Enum.ContextActionResult.Pass
+		end
+		local buttons = {}
+		for _, child in ipairs(options:GetChildren()) do
+			if child:IsA("TextButton") and child.Name:match("^Option_") then
+				table.insert(buttons, child)
+			end
+		end
+		table.sort(buttons, function(a, b)
+			return (tonumber(a.Name:match("%d+")) or 0) < (tonumber(b.Name:match("%d+")) or 0)
+		end)
+		local target = buttons[number]
+		if target then
+			target:Activate()
+			return Enum.ContextActionResult.Sink
+		end
+		return Enum.ContextActionResult.Pass
+	end, false, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
+		Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine)
 
 	Remotes.get("TimerUpdate").OnClientEvent:Connect(function(data)
 		ClientState.timer.remaining = data.remaining
@@ -426,6 +513,9 @@ function HUDController.start()
 		setBar("SanityBar", data.sanity, data.maxSanity or 100)
 		setBar("StaminaBar", data.stamina, data.maxStamina or 100)
 		setBar("HealthBar", data.health, data.maxHealth or 100)
+		setBar("BatteryBar", data.battery or 100, data.batteryMax or 100)
+		HUDController.renderFlashlight(data)
+		ClientState.emit("Vitals", data)
 	end)
 
 	Remotes.get("PromptUpdate").OnClientEvent:Connect(function(data)

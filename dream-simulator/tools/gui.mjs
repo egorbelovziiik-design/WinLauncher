@@ -590,10 +590,17 @@ export const dreamHud = () => screenGui('DreamHUD', { DisplayOrder: 10, Enabled:
       ]),
     ]),
   ]),
-  ui.frame({ Name: 'Vitals', Position: udim2(0, 26, 0, 26), Size: udim2(0, 250, 0, 150), BackgroundTransparency: 1, ZIndex: 5 }, [
+  ui.frame({ Name: 'Vitals', Position: udim2(0, 26, 0, 26), Size: udim2(0, 250, 0, 196), BackgroundTransparency: 1, ZIndex: 5 }, [
     vitalBar('HealthBar', '❤ ЗДОРОВЬЕ', C.danger, udim2(0, 0, 0, 0)),
     vitalBar('SanityBar', '🧠 РАССУДОК', C.accent, udim2(0, 0, 0, 44)),
     vitalBar('StaminaBar', '⚡ ВЫНОСЛИВОСТЬ', hex('#6edcff'), udim2(0, 0, 0, 88)),
+    vitalBar('BatteryBar', '🔦 БАТАРЕЯ', hex('#ffd166'), udim2(0, 0, 0, 132)),
+  ]),
+  // Состояние фонарика (F)
+  ui.frame({ Name: 'FlashlightChip', Position: udim2(0, 26, 0, 230), Size: udim2(0, 250, 0, 40), BackgroundColor3: hex('#141628'), BackgroundTransparency: 0.25, ZIndex: 5 }, [
+    ui.corner(10),
+    ui.stroke({ Color: hex('#ffd166'), Transparency: 0.55, Thickness: 1.2 }),
+    bold('🔦 ФОНАРИК: ВЫКЛ', { Name: 'FlashlightLabel', Position: udim2(0, 12, 0, 0), Size: udim2(1, -24, 1, 0), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 15 }),
   ]),
   ui.frame({ Name: 'QuestTracker', Position: udim2(1, -366, 0, 26), Size: udim2(0, 340, 0, 190), BackgroundColor3: hex('#0d0e1c'), BackgroundTransparency: 0.35, ZIndex: 5 }, [
     ui.corner(14),

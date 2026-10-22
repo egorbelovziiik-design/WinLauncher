@@ -20,6 +20,9 @@ local EffectsController = {}
 
 local flashlightPart
 local flashlightLight
+local flashlightGlow
+local flashlightBody
+local flashlightLens
 local weatherEmitter
 local weatherAttachment
 local baseFogEnd = Lighting.FogEnd
@@ -34,6 +37,25 @@ end
 ------------------------------------------------------------------
 -- Фонарик
 ------------------------------------------------------------------
+local flashlightOn = false
+local flashlightTarget = false
+local flashlightFlicker = 0
+local flashlightSway = 0
+
+-- Параметры луча зависят от экипированного предмета.
+local BEAMS = {
+	basic = { range = 44, angle = 52, brightness = 1.9, color = Color3.fromRGB(255, 244, 214) },
+	flashlight = { range = 62, angle = 58, brightness = 2.6, color = Color3.fromRGB(255, 248, 224) },
+	lantern = { range = 76, angle = 84, brightness = 3.0, color = Color3.fromRGB(255, 214, 156) },
+}
+
+local function flashlightSettings()
+	local tier = (ClientState.dream and ClientState.dream.flashlightTier)
+		or (ClientState.vitals and ClientState.vitals.flashlightTier)
+		or "basic"
+	return BEAMS[tier] or BEAMS.basic
+end
+
 local function ensureFlashlight()
 	if flashlightPart and flashlightPart.Parent then
 		return
@@ -46,27 +68,163 @@ local function ensureFlashlight()
 	flashlightPart.CanCollide = false
 	flashlightPart.CanQuery = false
 	flashlightPart.CanTouch = false
+	flashlightPart.CastShadow = false
 	flashlightPart.Parent = Workspace
 
 	flashlightLight = Instance.new("SpotLight")
 	flashlightLight.Name = "Beam"
-	flashlightLight.Angle = 58
-	flashlightLight.Range = 62
-	flashlightLight.Brightness = 2.4
-	flashlightLight.Color = Color3.fromRGB(255, 240, 210)
+	flashlightLight.Face = Enum.NormalId.Front
 	flashlightLight.Shadows = true
 	flashlightLight.Enabled = false
-	flashlightLight.Face = Enum.NormalId.Front
 	flashlightLight.Parent = flashlightPart
+
+	-- Мягкая подсветка вокруг игрока, чтобы фонарик не выглядел «плоским».
+	flashlightGlow = Instance.new("PointLight")
+	flashlightGlow.Name = "Glow"
+	flashlightGlow.Range = 16
+	flashlightGlow.Brightness = 0.55
+	flashlightGlow.Shadows = false
+	flashlightGlow.Enabled = false
+	flashlightGlow.Parent = flashlightPart
+
+	-- Видимая «тушка» фонарика в руке: без неё свет выглядит беспричинным.
+	flashlightBody = Instance.new("Part")
+	flashlightBody.Name = "ClientFlashlightBody"
+	flashlightBody.Size = Vector3.new(0.26, 0.26, 1.5)
+	flashlightBody.Color = Color3.fromRGB(46, 48, 56)
+	flashlightBody.Material = Enum.Material.Metal
+	flashlightBody.Anchored = true
+	flashlightBody.CanCollide = false
+	flashlightBody.CanQuery = false
+	flashlightBody.CanTouch = false
+	flashlightBody.CastShadow = false
+	flashlightBody.Transparency = 1
+	flashlightBody.Parent = Workspace
+
+	flashlightLens = Instance.new("Part")
+	flashlightLens.Name = "ClientFlashlightLens"
+	flashlightLens.Size = Vector3.new(0.3, 0.3, 0.12)
+	flashlightLens.Color = Color3.fromRGB(255, 246, 214)
+	flashlightLens.Material = Enum.Material.Neon
+	flashlightLens.Anchored = true
+	flashlightLens.CanCollide = false
+	flashlightLens.CanQuery = false
+	flashlightLens.CanTouch = false
+	flashlightLens.CastShadow = false
+	flashlightLens.Transparency = 1
+	flashlightLens.Parent = Workspace
+end
+
+local function applyBeam()
+	local beam = flashlightSettings()
+	if flashlightLight then
+		flashlightLight.Range = beam.range
+		flashlightLight.Angle = beam.angle
+		flashlightLight.Brightness = beam.brightness
+		flashlightLight.Color = beam.color
+		flashlightLight.Shadows = ClientState.quality() ~= "Низкое"
+	end
+	if flashlightGlow then
+		flashlightGlow.Color = beam.color
+		flashlightGlow.Range = beam.range * 0.3
+		flashlightGlow.Brightness = beam.brightness * 0.22
+	end
 end
 
 local function setFlashlight(enabled)
 	ensureFlashlight()
-	if flashlightLight then
-		flashlightLight.Enabled = enabled == true
+	applyBeam()
+	flashlightTarget = enabled == true
+	flashlightOn = enabled == true
+	-- Ставим источник света сразу в камеру, иначе первый кадр луч летит из нуля.
+	local camera = Workspace.CurrentCamera
+	if flashlightOn and camera then
+		flashlightPart.CFrame = camera.CFrame * CFrame.new(0.35, -0.25, -0.4)
 	end
-	if enabled then
+	if flashlightLight then
+		flashlightLight.Enabled = flashlightOn
+	end
+	if flashlightGlow then
+		flashlightGlow.Enabled = flashlightOn
+	end
+	if flashlightBody then
+		flashlightBody.Transparency = flashlightOn and 0 or 1
+	end
+	if flashlightLens then
+		flashlightLens.Transparency = flashlightOn and 0 or 1
+	end
+	if flashlightOn then
 		SoundController.play("Click", 0.5)
+	end
+end
+
+-- Плавное мерцание при низкой батарее/рассудке + лёгкое покачивание луча.
+local function updateFlashlight(dt)
+	if not flashlightPart or not flashlightPart.Parent then
+		return
+	end
+	if not ClientState.isDream() then
+		if flashlightLight and flashlightLight.Enabled then
+			flashlightLight.Enabled = false
+			if flashlightGlow then
+				flashlightGlow.Enabled = false
+			end
+			if flashlightBody then
+				flashlightBody.Transparency = 1
+			end
+			if flashlightLens then
+				flashlightLens.Transparency = 1
+			end
+		end
+		return
+	end
+	local battery = (ClientState.vitals and ClientState.vitals.battery) or 100
+	local sanity = (ClientState.vitals and ClientState.vitals.sanity) or 100
+	flashlightSway += dt
+
+	local camera = Workspace.CurrentCamera
+	if camera and flashlightOn then
+		-- Небольшое отставание луча от резких поворотов — «живой» фонарик.
+		local target = camera.CFrame * CFrame.new(0.35, -0.25, -0.4)
+		flashlightPart.CFrame = flashlightPart.CFrame:Lerp(target, math.min(1, dt * 12))
+		-- Тушка и линза идут за камерой чуть иначе — с покачиванием при ходьбе.
+		local bob = math.sin(flashlightSway * 6) * 0.02
+		local handCframe = camera.CFrame * CFrame.new(0.62 + bob, -0.62 + bob * 0.6, -0.95)
+			* CFrame.Angles(math.rad(-2), math.rad(-4), 0)
+		if flashlightBody then
+			flashlightBody.CFrame = handCframe
+		end
+		if flashlightLens then
+			flashlightLens.CFrame = handCframe * CFrame.new(0, 0, -0.78)
+		end
+	end
+
+	if not flashlightOn then
+		return
+	end
+
+	-- Мерцание: слабая батарея или низкий рассудок
+	local flickerChance = 0
+	if battery < 20 then
+		flickerChance += (20 - battery) / 20 * 0.5
+	end
+	if sanity < 40 then
+		flickerChance += (40 - sanity) / 40 * 0.45
+	end
+	flashlightFlicker = math.max(0, flashlightFlicker - dt)
+	if flickerChance > 0 and math.random() < flickerChance * dt * 3 then
+		flashlightFlicker = 0.06 + math.random() * 0.16
+	end
+	local lit = flashlightFlicker <= 0
+	if flashlightLight then
+		flashlightLight.Enabled = lit
+		local beam = flashlightSettings()
+		local fade = 0.55 + 0.45 * math.clamp(battery / 100, 0, 1)
+		flashlightLight.Brightness = beam.brightness * fade
+		flashlightLight.Range = beam.range * (0.75 + 0.25 * math.clamp(battery / 100, 0, 1))
+	end
+	if flashlightGlow then
+		flashlightGlow.Enabled = lit
 	end
 end
 
@@ -352,6 +510,28 @@ function EffectsController.start()
 		setFlashlight(enabled == true)
 	end)
 
+	-- Сервер — источник истины: если батарея села, свет гаснет у всех.
+	-- Слушаем канал напрямую, чтобы фонарик работал даже если HUD не загрузился.
+	local lastServerState = nil
+	local vitalsRemote = Remotes.get("VitalsUpdate")
+	if vitalsRemote then
+		vitalsRemote.OnClientEvent:Connect(function(data)
+			if not data then
+				return
+			end
+			ClientState.vitals = data
+			local serverOn = data.flashlight == true
+			if lastServerState ~= serverOn then
+				lastServerState = serverOn
+				if serverOn ~= flashlightOn then
+					setFlashlight(serverOn)
+				end
+			end
+		end)
+	end
+
+	RunService.RenderStepped:Connect(updateFlashlight)
+
 	ClientState.on("Phase", function(phase)
 		if phase == "dream" then
 			baseFogEnd = Lighting.FogEnd
@@ -422,15 +602,7 @@ function EffectsController.start()
 	end)
 
 	-- Фонарик следует за камерой
-	RunService.RenderStepped:Connect(function()
-		local camera = Workspace.CurrentCamera
-		if flashlightPart and camera then
-			flashlightPart.CFrame = camera.CFrame
-		end
-		if ClientState.phase ~= "dream" and flashlightLight then
-			flashlightLight.Enabled = false
-		end
-	end)
+	-- Поворот и мерцание фонарика выполняет updateFlashlight (см. выше)
 
 	EffectsController.applyQuality()
 end

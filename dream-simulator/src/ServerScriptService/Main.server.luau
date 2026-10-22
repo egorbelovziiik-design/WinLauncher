@@ -230,7 +230,8 @@ task.spawn(function()
 	while true do
 		task.wait(60)
 		for _, player in ipairs(Players:GetPlayers()) do
-			if DreamManager.getState(player) == "menu" then
+			local state = DreamManager.getState(player)
+			if state ~= "dream" and state ~= "sleeping" then
 				DataManager.save(player)
 			end
 		end

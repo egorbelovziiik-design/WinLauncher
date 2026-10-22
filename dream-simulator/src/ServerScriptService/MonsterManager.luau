@@ -123,8 +123,8 @@ function MonsterManager.spawnMonster(session, monsterId, position)
 		return nil
 	end
 
-	local ignore = { session.container }
-	local rootOffset = placeMonster(model, position, ignore)
+	-- Модель ещё не в Workspace: проверяем настоящую геометрию карты.
+	local rootOffset = placeMonster(model, position, nil)
 	if not rootOffset then
 		model:Destroy()
 		return nil
@@ -339,7 +339,12 @@ local function rescue(session, monster, root)
 	local angle = math.random() * math.pi * 2
 	local distance = 45 + math.random() * 25
 	local candidate = target + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
-	local spot = MapService.findFreeSpot(candidate, { radius = 2.6, height = 7, reach = 40, ignore = { session.container } })
+	local spot = MapService.findFreeSpot(candidate, {
+		radius = 2.6,
+		height = 7,
+		reach = 40,
+		ignore = { monster.model },
+	})
 	if spot then
 		monster.teleports += 1
 		monster.rootOffset = snapModelToGround(monster.model, spot)
@@ -405,9 +410,13 @@ local function updateMonster(session, monster, dt)
 	local flat = Vector3.new(targetPosition.X - monsterPosition.X, 0, targetPosition.Z - monsterPosition.Z)
 	local distance = flat.Magnitude
 
+	-- Свет фонарика выдаёт игрока: монстры замечают дальше
+	local lightBonus = session.flashlight and 1.45 or 1
+	local detectRange = (def.detectRange or 70) * lightBonus
+
 	-- Линия видимости
 	local visible = false
-	if distance <= (def.detectRange or 70) then
+	if distance <= detectRange then
 		local params = RaycastParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude
 		params.FilterDescendantsInstances = { monster.model, session.container:FindFirstChild("QuestObjects") }
@@ -420,9 +429,12 @@ local function updateMonster(session, monster, dt)
 	monster.visible = visible
 	if visible then
 		monster.lastSeen = now
+		if session.flashlight and distance < detectRange * 0.75 then
+			monster.lastSeen = now
+		end
 	end
 
-	local noise = session.sprinting and 1.4 or 1
+	local noise = (session.sprinting and 1.4 or 1) * (session.flashlight and 1.2 or 1)
 	local heard = distance <= 26 * noise
 	local chasing = visible or (now - monster.lastSeen < 4) or (heard and distance < 34)
 

@@ -120,6 +120,7 @@ function QuestManager.startSession(session)
 
 	QuestManager.spawnPortal(session)
 	QuestManager.spawnObjectsForActive(session)
+	QuestManager.spawnBatteryPickups(session)
 	QuestManager.sendUpdate(session)
 end
 
@@ -268,6 +269,57 @@ function QuestManager.spawnObjectsForActive(session)
 				end
 			end
 		end
+	end
+end
+
+-- Батарейки, разбросанные по сну: без них фонарик «умирает» за пару минут.
+function QuestManager.spawnBatteryPickups(session)
+	if session.batteriesSpawned then
+		return
+	end
+	session.batteriesSpawned = true
+	local objects = QuestManager.ensureObjectsFolder(session)
+	local markers = MapService.collectMarkers(session.mapModel, "MK_Item")
+	if #markers == 0 then
+		return
+	end
+	local rng = session.rng or Random.new()
+	local count = math.min(5, #markers)
+	local step = math.max(1, math.floor(#markers / count))
+	for index = 1, count do
+		local marker = markers[((index - 1) * step) + 1] or markers[index] or markers[1]
+		local rawPosition = marker.Position + Vector3.new(rng:NextNumber(-3, 3), 0, rng:NextNumber(-3, 3))
+		local position = MapService.findFreeSpot(rawPosition, { radius = 2, height = 4, reach = 14 })
+			or (rawPosition + Vector3.new(0, 2.2, 0))
+		-- Ставим на пол, а не наполовину в нём.
+		position = position + Vector3.new(0, 1.1, 0)
+		local pack = newPart({
+			Name = "BatteryPack",
+			Size = Vector3.new(1.1, 2, 0.7),
+			Position = position,
+			Color = Color3.fromRGB(120, 255, 190),
+			Material = Enum.Material.Neon,
+			Transparency = 0.05,
+		})
+		local cap = newPart({
+			Name = "Cap",
+			Size = Vector3.new(0.5, 0.35, 0.5),
+			Position = position + Vector3.new(0, 1.15, 0),
+			Color = Color3.fromRGB(230, 230, 240),
+			Material = Enum.Material.Metal,
+		})
+		cap.Parent = pack
+		pack:SetAttribute("InteractKind", "battery")
+		pack:SetAttribute("Prompt", "🔋 Подобрать батарейку")
+		pack:SetAttribute("BatteryAmount", math.floor(rng:NextNumber(35, 55)))
+		pack.Parent = objects
+		CollectionService:AddTag(pack, "Interactable")
+		makeBillboard(pack, "🔋 Батарейка", Color3.fromRGB(150, 255, 200))
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(140, 255, 200)
+		light.Brightness = 1.4
+		light.Range = 12
+		light.Parent = pack
 	end
 end
 

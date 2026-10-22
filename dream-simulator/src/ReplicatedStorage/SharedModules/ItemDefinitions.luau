@@ -7,7 +7,7 @@ ItemDefinitions.List = {
 	{
 		id = "flashlight",
 		name = "Фонарик",
-		description = "Освещает путь и отпугивает тени. F — включить/выключить.",
+		description = "Дальний луч: F — включить/выключить. Тратит батарею, но монстры теряют тебя из виду реже.",
 		price = 150,
 		icon = "🔦",
 		color = Color3.fromRGB(230, 235, 180),
@@ -22,7 +22,7 @@ ItemDefinitions.List = {
 	{
 		id = "lantern",
 		name = "Лампа сновидца",
-		description = "Тёплый свет шире и дальше фонарика.",
+		description = "Тёплый широкий свет (84°): видно всё вокруг, но батарея садится быстрее.",
 		price = 300,
 		icon = "🏮",
 		color = Color3.fromRGB(255, 180, 110),
@@ -169,7 +169,7 @@ ItemDefinitions.List = {
 	{
 		id = "battery",
 		name = "Батарейка",
-		description = "Возвращает 60 выносливости и включает фонарик.",
+		description = "Восстанавливает 75% заряда фонарика и 60 выносливости.",
 		price = 60,
 		icon = "🔋",
 		color = Color3.fromRGB(255, 225, 130),

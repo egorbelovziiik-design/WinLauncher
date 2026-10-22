@@ -242,6 +242,19 @@ local function buildFlightSpace()
 	return baseY
 end
 
+local runToken = 0
+
+-- Отложенные шаги катсцены не должны «срабатывать» в следующем сне:
+-- каждая катсцена увеличивает токен, устаревшие колбэки молча выходят.
+local function later(delay, fn)
+	local token = runToken
+	task.delay(delay, function()
+		if token == runToken then
+			fn()
+		end
+	end)
+end
+
 local function playFlight(duration)
 	local baseY = buildFlightSpace()
 	local camera = Workspace.CurrentCamera
@@ -281,6 +294,7 @@ end
 -- Засыпание
 ------------------------------------------------------------------
 function CutsceneController.playSleep(payload)
+	runToken += 1
 	ClientState.setPhase("sleeping")
 	ClientState.dream = payload
 	local guiRef = gui()
@@ -359,7 +373,7 @@ function CutsceneController.playSleep(payload)
 		CameraController.setMode("script")
 	end)
 
-	task.delay(1.2, function()
+	later(1.2, function()
 		setText("DreamText", "ЗАСЫПАНИЕ...")
 		local text = cutsceneEl("DreamText")
 		if text then
@@ -370,19 +384,19 @@ function CutsceneController.playSleep(payload)
 		SoundController.heartbeat(true)
 	end)
 
-	task.delay(3.4, function()
+	later(3.4, function()
 		showFade(0, 1.4)
 		local text = cutsceneEl("DreamText")
 		if text then
 			ClientState.tween(text, 0.8, { TextTransparency = 1 })
-			task.delay(0.9, function()
+			later(0.9, function()
 				text.Visible = false
 			end)
 		end
 	end)
 
 	-- Полёт
-	task.delay(4.6, function()
+	later(4.6, function()
 		playFlight(4.2)
 		SoundController.heartbeat(false)
 		setText("DreamText", "ТЫ ПОГРУЖАЕШЬСЯ В СОН...")
@@ -394,7 +408,7 @@ function CutsceneController.playSleep(payload)
 		end
 	end)
 
-	task.delay(8.4, function()
+	later(8.4, function()
 		showFlash(1.6)
 		local text = cutsceneEl("DreamText")
 		if text then
@@ -407,6 +421,7 @@ end
 -- Пробуждение
 ------------------------------------------------------------------
 function CutsceneController.playWake(won)
+	runToken += 1
 	ClientState.setPhase("waking")
 	local guiRef = gui()
 	if guiRef then
@@ -429,7 +444,7 @@ function CutsceneController.playWake(won)
 
 	-- Размытый потолок
 	showFade(0.82, 2.2)
-	task.delay(0.8, function()
+	later(0.8, function()
 		local dof = Lighting:FindFirstChild("DreamDOF")
 		if dof then
 			dof.FarIntensity = 1
@@ -439,7 +454,7 @@ function CutsceneController.playWake(won)
 	end)
 
 	-- Садится и картинка становится чёткой
-	task.delay(2.6, function()
+	later(2.6, function()
 		local character = playerCharacter()
 		if character and bedPoint then
 			local sit = CFrame.new(bedPoint.Position + Vector3.new(0, 2.4, 0), bedPoint.Position + Vector3.new(0, 2.4, 4))
@@ -454,12 +469,12 @@ function CutsceneController.playWake(won)
 		end
 	end)
 
-	task.delay(4.2, function()
+	later(4.2, function()
 		lockCharacter(false)
 		SoundController.heartbeat(false)
 		letterbox(false)
 		showFade(0, 1.6)
-		task.delay(1.8, function()
+		later(1.8, function()
 			if guiRef then
 				guiRef.Enabled = false
 			end
@@ -467,6 +482,7 @@ function CutsceneController.playWake(won)
 			if fadeElement then
 				fadeElement.Visible = false
 			end
+			ClientState.setCursorFree(true)
 			ClientState.setPhase("result")
 			if ClientState.result then
 				HUDController.showResult(ClientState.result)

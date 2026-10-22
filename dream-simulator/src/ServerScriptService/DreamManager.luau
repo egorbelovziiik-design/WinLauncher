@@ -141,6 +141,9 @@ local function newSession(player, dreamDef, difficulty, bonuses)
 		ended = false,
 		sprinting = false,
 		flashlight = false,
+		battery = 100,
+		flashlightTier = "basic",
+		flashlightNotifiedEmpty = false,
 		promptIds = {},
 		promptParts = {},
 		promptSerial = 0,
@@ -149,6 +152,17 @@ local function newSession(player, dreamDef, difficulty, bonuses)
 		questsDone = 0,
 		bonusXp = 0,
 	}
+
+	-- Освещение зависит от экипированного предмета (фонарик/лампа).
+	local profile = DataManager.get(player)
+	local equipped = profile and profile.equipped or {}
+	if equipped.lantern then
+		session.flashlightTier = "lantern"
+	elseif equipped.flashlight then
+		session.flashlightTier = "flashlight"
+	else
+		session.flashlightTier = "basic"
+	end
 
 	session.mapModel = MapService.buildDream(dreamDef, container)
 	if not session.mapModel then
@@ -215,6 +229,7 @@ function DreamManager.startDream(player, difficultyKey, dreamId)
 	task.wait(Config.SleepDuration)
 
 	if not player.Parent then
+		setState(player, "menu")
 		return false, "Игрок вышел"
 	end
 
@@ -264,8 +279,30 @@ function DreamManager.startDream(player, difficultyKey, dreamId)
 			duration = session.totalTime,
 			bonuses = bonuses,
 			settings = profile.settings,
+			flashlightTier = session.flashlightTier,
+			battery = session.battery,
 		})
 	end
+
+	-- Первые подсказки сна
+	task.delay(4, function()
+		if session.ended then
+			return
+		end
+		local hint = Remotes.get("Hint")
+		if hint then
+			hint:FireClient(player, "🔦 F — фонарик. Он освещает путь, но батарея садится и монстры видят свет.")
+		end
+	end)
+	task.delay(13, function()
+		if session.ended then
+			return
+		end
+		local hint = Remotes.get("Hint")
+		if hint then
+			hint:FireClient(player, "💬 NPC (E) даёт задания, лечение и батарейки. Батарейки также лежат по сну — ищи зелёное свечение.")
+		end
+	end)
 
 	local timerRemote = Remotes.get("TimerUpdate")
 	if timerRemote then
@@ -290,6 +327,9 @@ function DreamManager.sendVitals(session)
 			maxStamina = Config.MaxStamina,
 			sprinting = session.sprinting,
 			flashlight = session.flashlight,
+			battery = session.battery,
+			batteryMax = 100,
+			flashlightTier = session.flashlightTier,
 		})
 	end
 end
@@ -321,7 +361,27 @@ function DreamManager.startLoop(session)
 			local currentSecond = math.floor(session.timeLeft)
 			if currentSecond ~= lastSecond then
 				lastSecond = currentSecond
-				local timerRemote = Remotes.get("TimerUpdate")
+				-- Первые подсказки сна
+	task.delay(4, function()
+		if session.ended then
+			return
+		end
+		local hint = Remotes.get("Hint")
+		if hint then
+			hint:FireClient(player, "🔦 F — фонарик. Он освещает путь, но батарея садится и монстры видят свет.")
+		end
+	end)
+	task.delay(13, function()
+		if session.ended then
+			return
+		end
+		local hint = Remotes.get("Hint")
+		if hint then
+			hint:FireClient(player, "💬 NPC (E) даёт задания, лечение и батарейки. Батарейки также лежат по сну — ищи зелёное свечение.")
+		end
+	end)
+
+	local timerRemote = Remotes.get("TimerUpdate")
 				if timerRemote then
 					timerRemote:FireClient(player, { remaining = session.timeLeft, total = session.totalTime })
 				end
@@ -341,6 +401,23 @@ function DreamManager.startLoop(session)
 				if humanoid then
 					humanoid.WalkSpeed = Config.BaseWalkSpeed + (session.bonuses.speedBonus or 0)
 				end
+			end
+
+			-- Фонарик: батарея садится, когда он включён (яркий фонарь ест больше)
+			if session.flashlight then
+				local drain = session.flashlightTier == "lantern" and 0.78
+					or (session.flashlightTier == "flashlight" and 0.55 or 0.38)
+				session.battery = math.max(0, session.battery - drain * dt)
+				if session.battery <= 0 then
+					session.flashlight = false
+					local toast = Remotes.get("Toast")
+					if toast then
+						toast:FireClient(player, { text = "Батарея фонарика села — нужна новая (магазин / NPC)", color = Config.Colors.warn, icon = "🔋" })
+					end
+				end
+			else
+				-- Медленная самоподзарядка, пока фонарик выключен
+				session.battery = math.min(100, session.battery + 0.12 * dt)
 			end
 
 			-- Рассудок
@@ -541,6 +618,34 @@ function DreamManager.handleInteract(player, promptId)
 			end
 			QuestManager.progress(session, "interact", label, 1)
 		end
+	elseif kind == "battery" then
+		local amount = part:GetAttribute("BatteryAmount") or 40
+		CollectionService:RemoveTag(part, "Interactable")
+		session.promptIds[part] = nil
+		session.promptParts[promptId] = nil
+		session.battery = math.min(100, (session.battery or 0) + amount)
+		if session.battery > 1 and not session.flashlight then
+			session.flashlight = true
+		end
+		local toast = Remotes.get("Toast")
+		if toast then
+			toast:FireClient(player, {
+				text = "Батарейка вставлена: " .. tostring(math.floor(session.battery)) .. "%",
+				color = Color3.fromRGB(150, 255, 200),
+				icon = "🔋",
+			})
+		end
+		local flash = Instance.new("PointLight")
+		flash.Color = Color3.fromRGB(150, 255, 210)
+		flash.Brightness = 6
+		flash.Range = 22
+		flash.Parent = part
+		task.delay(0.25, function()
+			if part and part.Parent then
+				part:Destroy()
+			end
+		end)
+		DreamManager.sendVitals(session)
 	elseif kind == "npc" then
 		NPCManager.openDialog(session, part)
 	elseif kind == "portal" then
@@ -576,7 +681,30 @@ function DreamManager.setFlashlight(player, value)
 	if not session or session.ended then
 		return
 	end
-	session.flashlight = value == true
+	local wanted = value == true
+	if wanted and (session.battery or 0) <= 0.5 then
+		session.flashlight = false
+		local toast = Remotes.get("Toast")
+		if toast then
+			toast:FireClient(player, { text = "Фонарик не работает: батарея пуста", color = Config.Colors.warn, icon = "🔋" })
+		end
+		DreamManager.sendVitals(session)
+		return
+	end
+	session.flashlight = wanted
+	if wanted then
+		session.flashlightNotifiedEmpty = false
+		-- Включённый фонарик видно издалека: ближайший монстр теряет осторожность
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root and math.random() < 0.4 then
+			local nearest = MonsterManager.getNearest(session, root.Position)
+			if nearest then
+				nearest.lastSeen = os.clock()
+			end
+		end
+	end
+	DreamManager.sendVitals(session)
 end
 
 function DreamManager.setLook(player, lookVector)
@@ -607,7 +735,10 @@ function DreamManager.applyConsumable(player, item)
 		session.stamina = math.min(Config.MaxStamina, session.stamina + effect.stamina)
 	end
 	if effect.flashlight then
-		session.flashlight = true
+		session.battery = math.min(100, (session.battery or 0) + 75)
+		if (session.battery or 0) > 1 then
+			session.flashlight = true
+		end
 	end
 	if effect.speed and humanoid then
 		local base = Config.BaseWalkSpeed + (session.bonuses.speedBonus or 0)
@@ -678,7 +809,14 @@ function DreamManager.endDream(player, won, reasonText)
 	end
 
 	-- Экран результата остаётся у игрока; мир сна убираем, персонажа возвращаем в спальню.
+	-- Состояние остаётся "waking": клиент показывает итоги, игрок сам выбирает
+	-- «В меню» или «Ещё сон».
 	task.delay(Config.WakeDuration, function()
+		-- Игрок мог нажать «Ещё сон» с экрана итогов: тогда новый сон уже идёт
+		-- и трогать его (свет, телепорт, контейнер) нельзя.
+		if states[player] ~= "waking" then
+			return
+		end
 		if sessions[player] == session then
 			sessions[player] = nil
 		end
@@ -701,9 +839,7 @@ function DreamManager.returnToMenu(player)
 		DreamManager.endDream(player, false, "Ты сдался и проснулся")
 		return
 	end
-	if states[player] == "waking" then
-		return
-	end
+	-- С экрана результата (state == "waking") тоже возвращаемся в лобби.
 	sessions[player] = nil
 	setState(player, "menu")
 	DreamManager.teleportToMenu(player)

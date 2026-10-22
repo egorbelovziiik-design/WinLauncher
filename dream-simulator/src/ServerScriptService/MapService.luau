@@ -183,8 +183,9 @@ function MapService.isClear(position, radius, height, ignoreList)
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignoreList or {}
 	params.MaxParts = 8
+	-- Коробка начинается чуть выше пола, иначе «пол» считается препятствием.
 	local parts = workspace:GetPartBoundsInBox(
-		CFrame.new(position + Vector3.new(0, height * 0.5, 0)),
+		CFrame.new(position + Vector3.new(0, height * 0.5 + 0.6, 0)),
 		Vector3.new(radius * 2, height, radius * 2),
 		params
 	)

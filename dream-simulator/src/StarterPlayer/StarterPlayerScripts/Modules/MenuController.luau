@@ -105,6 +105,7 @@ function MenuController.hide()
 		setVisible(panel, false)
 	end
 	openPanel = nil
+	ClientState.setCursorFree(false)
 end
 
 function MenuController.closePanels()
@@ -112,11 +113,16 @@ function MenuController.closePanels()
 		setVisible(panel, false)
 	end
 	openPanel = nil
+	local pausePanel = ClientState.el("TopBar", "PausePanel")
+	if not (pausePanel and pausePanel.Visible) then
+		ClientState.setCursorFree(false)
+	end
 	MenuController.refreshProfile()
 end
 
 function MenuController.openPanelByName(name)
 	clickSound()
+	ClientState.setCursorFree(true)
 	for _, panel in ipairs(PANELS) do
 		setVisible(panel, panel == name)
 	end
@@ -295,6 +301,13 @@ function MenuController.startDream(difficultyKey)
 	if remote then
 		remote:FireServer(difficultyKey)
 	end
+	-- Если сервер отказал (сон уже идёт), возвращаем меню, чтобы не остаться без UI
+	task.delay(2.5, function()
+		if ClientState.phase == "menu" and not (ClientState.getGui("MainMenu") and ClientState.getGui("MainMenu").Enabled) then
+			MenuController.show()
+			ClientState.toast("Сон не начался — попробуй ещё раз", Color3.fromRGB(255, 180, 150), "🌙")
+		end
+	end)
 end
 
 ------------------------------------------------------------------
@@ -581,6 +594,24 @@ local function bindSlider(frame, value, onChange)
 	local fill = frame:FindFirstChild("Fill")
 	local knob = frame:FindFirstChild("Knob", true) or fill
 	local valueLabel = frame:FindFirstChild("Value")
+
+	-- Панель настроек перерисовывается при каждом открытии: обновляем только вид,
+	-- а обработчики подключаем один раз.
+	if frame:GetAttribute("SliderBound") then
+		local currentValue = math.clamp(value or 0.5, 0, 1)
+		if fill then
+			fill.Size = UDim2.new(currentValue, 0, 1, 0)
+		end
+		if knob and knob ~= fill then
+			knob.Position = UDim2.new(currentValue, 0, 0.5, 0)
+		end
+		if valueLabel then
+			valueLabel.Text = tostring(math.floor(currentValue * 100)) .. "%"
+		end
+		return
+	end
+	frame:SetAttribute("SliderBound", true)
+
 	local current = math.clamp(value or 0.5, 0, 1)
 	local dragging = false
 
@@ -623,21 +654,37 @@ local function bindSlider(frame, value, onChange)
 	end)
 end
 
+local function settingBaseText(button)
+	local base = button:GetAttribute("BaseText")
+	if not base then
+		base = (button.Text:gsub(":%s*ВКЛ.*$", ""):gsub(":%s*ВЫКЛ.*$", ""))
+		button:SetAttribute("BaseText", base)
+	end
+	return base
+end
+
 local function bindToggle(button, initial, key)
 	if not button then
 		return
 	end
-	local state = initial == true
+	local state = ClientState.settings[key]
+	if state == nil then
+		state = initial == true
+	end
 	local function render()
-		button.Text = (button:GetAttribute("BaseText") or button.Text:gsub(":.*", "")) .. ": " .. (state and "ВКЛ" or "ВЫКЛ")
+		button.Text = settingBaseText(button) .. ": " .. (state and "ВКЛ" or "ВЫКЛ")
 		button.TextColor3 = state and Color3.fromRGB(150, 250, 190) or Color3.fromRGB(200, 160, 170)
 	end
-	button:SetAttribute("BaseText", button.Text)
 	render()
+	if button:GetAttribute("ToggleBound") then
+		return
+	end
+	button:SetAttribute("ToggleBound", true)
 	button.MouseButton1Click:Connect(function()
 		state = not state
 		render()
 		clickSound()
+		ClientState.settings[key] = state
 		Remotes.get("UpdateSettings"):FireServer(key, state)
 	end)
 end
@@ -672,38 +719,51 @@ function MenuController.renderSettings()
 	local scareToggle = gui:FindFirstChild("ScareToggle", true)
 	if scareToggle then
 		local enabled = (settings.scareIntensity or 1) > 0.25
-		local baseText = scareToggle.Text
+		local baseText = scareToggle:GetAttribute("ScareBase") or scareToggle.Text:gsub(":%s*(ВКЛ|ВЫКЛ).*$", "")
+		scareToggle:SetAttribute("ScareBase", baseText)
 		local function renderScare()
 			scareToggle.Text = baseText .. ": " .. (enabled and "ВКЛ" or "ВЫКЛ")
 			scareToggle.TextColor3 = enabled and Color3.fromRGB(255, 170, 190) or Color3.fromRGB(150, 150, 180)
 		end
 		renderScare()
-		scareToggle.MouseButton1Click:Connect(function()
-			enabled = not enabled
-			renderScare()
-			clickSound()
-			ClientState.settings.scareIntensity = enabled and 1 or 0.15
-			Remotes.get("UpdateSettings"):FireServer("scareIntensity", ClientState.settings.scareIntensity)
-		end)
+		if not scareToggle:GetAttribute("ScareBound") then
+			scareToggle:SetAttribute("ScareBound", true)
+			scareToggle.MouseButton1Click:Connect(function()
+				enabled = not enabled
+				renderScare()
+				clickSound()
+				ClientState.settings.scareIntensity = enabled and 1 or 0.15
+				Remotes.get("UpdateSettings"):FireServer("scareIntensity", ClientState.settings.scareIntensity)
+			end)
+		end
 	end
 	for _, pair in ipairs({ { "QualityLow", "Низкое" }, { "QualityMedium", "Средний" }, { "QualityHigh", "Высокое" } }) do
 		local button = gui:FindFirstChild(pair[1], true)
 		if button then
 			button.TextColor3 = settings.quality == pair[2] and Color3.fromRGB(180, 255, 210) or Color3.fromRGB(190, 190, 220)
-			button.MouseButton1Click:Connect(function()
-				clickSound()
-				Remotes.get("UpdateSettings"):FireServer("quality", pair[2])
-				ClientState.settings.quality = pair[2]
-				MenuController.renderSettings()
-				ClientState.emit("QualityChanged", pair[2])
-			end)
+			if not button:GetAttribute("QualityBound") then
+				button:SetAttribute("QualityBound", true)
+				button.MouseButton1Click:Connect(function()
+					clickSound()
+					Remotes.get("UpdateSettings"):FireServer("quality", pair[2])
+					ClientState.settings.quality = pair[2]
+					MenuController.renderSettings()
+					ClientState.emit("QualityChanged", pair[2])
+				end)
+			end
 		end
 	end
 	local reset = gui:FindFirstChild("ResetButton", true)
-	if reset then
+	if reset and not reset:GetAttribute("ResetBound") then
+		reset:SetAttribute("ResetBound", true)
 		reset.MouseButton1Click:Connect(function()
 			clickSound()
 			Remotes.get("ResetSettings"):FireServer()
+			task.delay(0.4, function()
+				MenuController.renderSettings()
+				SoundController.applyVolumes()
+				CameraController.applySensitivity()
+			end)
 		end)
 	end
 end
@@ -852,6 +912,7 @@ function MenuController.start()
 			elseif phase == "dream" or phase == "sleeping" or phase == "waking" then
 				if pausePanel then
 					pausePanel.Visible = not pausePanel.Visible
+					ClientState.setCursorFree(pausePanel.Visible)
 				end
 			else
 				MenuController.show()
@@ -866,6 +927,7 @@ function MenuController.start()
 			if panel then
 				panel.Visible = false
 			end
+			ClientState.setCursorFree(false)
 		end,
 		PauseQuests = function()
 			local panel = ClientState.el("TopBar", "PausePanel")

@@ -20,6 +20,20 @@ export const M = {
 
 const flat = (arr) => arr.flat(4).filter(Boolean);
 
+/**
+ * Детерминированный ГПСЧ (mulberry32): сборка карт должна быть воспроизводимой,
+ * иначе каждая сборка даёт разное число деталей и проверки карт «плывут».
+ */
+let rngState = 0x9e3779b9;
+export const seedRng = (value = 0x9e3779b9) => { rngState = value >>> 0; };
+export const rnd = () => {
+  rngState = (rngState + 0x6d2b79f5) >>> 0;
+  let t = rngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
 /** Блок. */
 export const box = (pos, size, color, material = M.Concrete, extra = {}) =>
   el('Part', {
@@ -309,7 +323,7 @@ export function building(opts) {
     const ww = (w / (cols + 1)) * 0.62;
     for (let c = 0; c < cols; c++) {
       const offset = (c - (cols - 1) / 2) * (w / (cols + 1));
-      const lit = Math.random() < litChance;
+      const lit = rnd() < litChance;
       const winColor = lit ? windowColor : rgb(12, 16, 26);
       const mat = lit ? M.Neon : M.Glass;
       const tr = lit ? 0.1 : 0.5;
@@ -319,7 +333,7 @@ export function building(opts) {
     const sideCols = Math.min(3, cols);
     for (let c = 0; c < sideCols; c++) {
       const offset = (c - (sideCols - 1) / 2) * (d / (sideCols + 1));
-      const lit = Math.random() < litChance;
+      const lit = rnd() < litChance;
       const winColor = lit ? windowColor : rgb(12, 16, 26);
       const mat = lit ? M.Neon : M.Glass;
       const tr = lit ? 0.1 : 0.5;
@@ -346,7 +360,7 @@ export function tree(pos, scale = 1, trunkColor = rgb(58, 42, 30), leafColor = r
     const angle = (i / blobs) * Math.PI * 2;
     parts.push(sphere(
       [x + Math.cos(angle) * 3 * scale, y + h * 0.85 + Math.sin(i * 2) * 2 * scale, z + Math.sin(angle) * 3 * scale],
-      (11 + Math.random() * 5) * scale, leafColor, M.LeafyGrass
+      (11 + rnd() * 5) * scale, leafColor, M.LeafyGrass
     ));
   }
   parts.push(sphere([x, y + h + 3 * scale, z], 13 * scale, leafColor, M.LeafyGrass));
