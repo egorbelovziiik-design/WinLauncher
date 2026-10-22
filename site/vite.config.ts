@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  base: process.env.GITHUB_PAGES ? '/WinLauncher/' : '/',
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react()],
   server: {
