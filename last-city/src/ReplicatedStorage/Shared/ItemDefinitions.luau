@@ -1,0 +1,19 @@
+--!strict
+return {
+    wood = {name = "Дерево", category = "Ресурсы", stack = 99, weight = 0.5, color = "B68B5A"},
+    scrap = {name = "Металлолом", category = "Ресурсы", stack = 99, weight = 0.8, color = "9CA3AF"},
+    metal = {name = "Металл", category = "Ресурсы", stack = 99, weight = 0.6, color = "CBD5E1"},
+    wire = {name = "Провода", category = "Ресурсы", stack = 99, weight = 0.2, color = "FB923C"},
+    electronics = {name = "Электроника", category = "Ресурсы", stack = 99, weight = 0.3, color = "60A5FA"},
+    parts = {name = "Детали", category = "Ресурсы", stack = 99, weight = 0.5, color = "A78BFA"},
+    fuel = {name = "Топливо", category = "Ресурсы", stack = 50, weight = 0.7, color = "FACC15"},
+    food = {name = "Консервы", category = "Расходники", stack = 20, weight = 0.4, use = "hunger", amount = 35, color = "4ADE80"},
+    water = {name = "Чистая вода", category = "Расходники", stack = 20, weight = 0.5, use = "thirst", amount = 40, color = "38BDF8"},
+    medkit = {name = "Аптечка", category = "Расходники", stack = 10, weight = 0.5, use = "health", amount = 60, color = "F87171"},
+    ammo = {name = "Патроны 9 мм", category = "Расходники", stack = 99, weight = 0.03, color = "FDE68A"},
+    crowbar = {name = "Лом", category = "Оружие", stack = 1, weight = 3, weapon = true, color = "9CA3AF"},
+    pistol = {name = "Пистолет P9", category = "Оружие", stack = 1, weight = 2, weapon = true, color = "4ADE80"},
+    rifle = {name = "Карабин R4", category = "Оружие", stack = 1, weight = 4, weapon = true, color = "60A5FA"},
+    vest = {name = "Бронежилет", category = "Броня", stack = 1, weight = 4, armor = 0.2, color = "60A5FA"},
+    generator_plan = {name = "Чертёж: дизельный генератор", category = "Чертежи", stack = 1, weight = 0, blueprint = true, color = "A78BFA"},
+}

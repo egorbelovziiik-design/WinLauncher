@@ -1,0 +1,61 @@
+{
+  "luau_version": "0.743",
+  "source_compilation": {
+    "status": "PASSED",
+    "count": 47
+  },
+  "domain": {
+    "status": "PASSED",
+    "count": 97
+  },
+  "mock_adapters": {
+    "status": "PASSED",
+    "count": 61,
+    "scope": "API doubles; NOT Roblox Studio"
+  },
+  "binary": {
+    "assertions": 39,
+    "instances": 2168,
+    "parts": 1862,
+    "scripts": 47,
+    "bytes": 146365,
+    "sha256": "53fb3440c8065824f0a828fff30f413f210ee9178d9fd06616d0cdd7ec86a704",
+    "classes": {
+      "Workspace": 1,
+      "Camera": 1,
+      "Terrain": 1,
+      "Folder": 19,
+      "Part": 1861,
+      "Model": 107,
+      "SurfaceGui": 9,
+      "TextLabel": 15,
+      "PointLight": 13,
+      "SpawnLocation": 1,
+      "StringValue": 21,
+      "IntValue": 42,
+      "BillboardGui": 6,
+      "Lighting": 1,
+      "Atmosphere": 1,
+      "ColorCorrectionEffect": 1,
+      "BloomEffect": 1,
+      "SunRaysEffect": 1,
+      "Sky": 1,
+      "ReplicatedStorage": 1,
+      "RemoteEvent": 11,
+      "ModuleScript": 44,
+      "ServerScriptService": 1,
+      "Script": 1,
+      "StarterPlayer": 1,
+      "StarterPlayerScripts": 1,
+      "LocalScript": 2,
+      "StarterGui": 1,
+      "ReplicatedFirst": 1,
+      "SoundService": 1
+    }
+  },
+  "deterministic_build": "PASSED",
+  "roblox_studio": "NOT TESTED",
+  "live_datastore": "NOT TESTED",
+  "live_multiplayer": "NOT TESTED",
+  "known_cli_diagnostic": "Vector3 userdata type unavailable to standalone Luau analyzer; Roblox adapter syntax compiles"
+}
