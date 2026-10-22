@@ -159,24 +159,97 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
   // Луна и звёзды
   text('🌙', { Name: 'Moon', Position: udim2(0.78, 0, 0.12, 0), Size: udim2(0, 190, 0, 190), TextColor3: C.moon, ZIndex: 2, maxTextSize: 160 }),
   text('✦  ✧  ✦', { Name: 'Stars', Position: udim2(0.72, 0, 0.34, 0), Size: udim2(0, 260, 0, 60), TextColor3: hex('#cbbdff'), TextTransparency: 0.45, ZIndex: 2, maxTextSize: 34 }),
+  text('✧        ✦', { Name: 'Stars2', Position: udim2(0.55, 0, 0.08, 0), Size: udim2(0, 300, 0, 40), TextColor3: hex('#9f92e8'), TextTransparency: 0.55, ZIndex: 2, maxTextSize: 26 }),
   ui.frame({ Name: 'Vignette', Size: udim2(1, 1), BackgroundColor3: hex('#000000'), BackgroundTransparency: 0.62, ZIndex: 2 }, [
     ui.gradient([hex('#000000'), hex('#000000')], { Rotation: 90 }),
   ]),
-  ui.frame({ Name: 'Content', Position: udim2(0, 64, 0.12, 0), Size: udim2(0, 540, 0.8, 0), BackgroundTransparency: 1, ZIndex: 3 }, [
+
+  /* ---------------- левая колонка: заголовок и кнопки ---------------- */
+  ui.frame({ Name: 'Content', Position: udim2(0, 64, 0.09, 0), Size: udim2(0, 560, 0.86, 0), BackgroundTransparency: 1, ZIndex: 3 }, [
     ui.list({ Padding: udim(0, 12), SortOrder: 'LayoutOrder' }),
-    text('🌙 DREAM SIMULATOR', { Name: 'Title', Size: udim2(1, 0, 0, 78), TextXAlignment: 'Left', TextColor3: C.moon, FontFace: font(FONT_B, 'Bold'), LayoutOrder: 1, maxTextSize: 56 }),
-    text('Каждый сон — новая история...', { Name: 'Subtitle', Size: udim2(1, 0, 0, 34), TextXAlignment: 'Left', TextColor3: C.dim, LayoutOrder: 2, maxTextSize: 22 }),
+    text('🌙 DREAM SIMULATOR', { Name: 'Title', Size: udim2(1, 0, 0, 72), TextXAlignment: 'Left', TextColor3: C.moon, FontFace: font(FONT_B, 'Bold'), LayoutOrder: 1, maxTextSize: 52 }),
+    text('Каждый сон — новая история...', { Name: 'Subtitle', Size: udim2(1, 0, 0, 30), TextXAlignment: 'Left', TextColor3: C.dim, LayoutOrder: 2, maxTextSize: 21 }),
     divider({ Size: udim2(0.7, 0, 0, 1), LayoutOrder: 3 }),
-    ui.frame({ Name: 'Buttons', Size: udim2(1, 0, 0, 420), BackgroundTransparency: 1, LayoutOrder: 4 }, [
-      ui.list({ Padding: udim(0, 10), SortOrder: 'LayoutOrder' }),
-      button('PlayButton', '▶  ИГРАТЬ', { LayoutOrder: 1, BackgroundColor3: hex('#3a2a6d'), Size: udim2(0, 420, 0, 62) }),
-      button('ShopButton', '🛒  МАГАЗИН', { LayoutOrder: 2 }),
-      button('InventoryButton', '🎒  ИНВЕНТАРЬ', { LayoutOrder: 3 }),
-      button('AchievementsButton', '🏆  ДОСТИЖЕНИЯ', { LayoutOrder: 4 }),
-      button('StatsButton', '📊  СТАТИСТИКА', { LayoutOrder: 5 }),
-      button('SettingsButton', '⚙  НАСТРОЙКИ', { LayoutOrder: 6 }),
+
+    ui.frame({ Name: 'Buttons', Size: udim2(1, 0, 0, 0), AutomaticSize: 'Y', BackgroundTransparency: 1, LayoutOrder: 4 }, [
+      ui.list({ Padding: udim(0, 8), SortOrder: 'LayoutOrder' }),
+
+      button('StartButton', '▶  НАЧАТЬ СОН', {
+        LayoutOrder: 1, Size: udim2(0, 460, 0, 64),
+        BackgroundColor3: hex('#4a2f9e'), TextColor3: hex('#ffffff'),
+      }),
+      text('Сложность сна:', { Name: 'DiffCaptions', Size: udim2(1, 0, 0, 20), TextXAlignment: 'Left', TextColor3: C.dim, LayoutOrder: 2, maxTextSize: 16 }),
+
+      // Быстрый выбор сложности прямо в меню
+      ui.frame({ Name: 'DifficultyChips', Size: udim2(0, 460, 0, 44), BackgroundTransparency: 1, LayoutOrder: 3 }, [
+        ui.list({ Padding: udim(0, 8), FillDirection: 'Horizontal', SortOrder: 'LayoutOrder', HorizontalAlignment: 'Left' }),
+        ui.button('🟢 ЛЁГКИЙ', { Name: 'DiffEasy', Size: udim2(0, 108, 1, 0), BackgroundColor3: hex('#16281f'), TextColor3: C.success, FontFace: font(FONT_B, 'Bold'), TextScaled: true, LayoutOrder: 1 }, [
+          ui.corner(10), ui.stroke({ Color: C.success, Transparency: 0.55, Thickness: 1.2 }),
+          el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 15 }),
+        ]),
+        ui.button('🟡 ОБЫЧНЫЙ', { Name: 'DiffNormal', Size: udim2(0, 108, 1, 0), BackgroundColor3: hex('#2a2416'), TextColor3: C.gold, FontFace: font(FONT_B, 'Bold'), TextScaled: true, LayoutOrder: 2 }, [
+          ui.corner(10), ui.stroke({ Color: C.gold, Transparency: 0.55, Thickness: 1.2 }),
+          el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 15 }),
+        ]),
+        ui.button('🔴 СЛОЖНЫЙ', { Name: 'DiffHard', Size: udim2(0, 108, 1, 0), BackgroundColor3: hex('#2b1618'), TextColor3: C.danger, FontFace: font(FONT_B, 'Bold'), TextScaled: true, LayoutOrder: 3 }, [
+          ui.corner(10), ui.stroke({ Color: C.danger, Transparency: 0.55, Thickness: 1.2 }),
+          el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 15 }),
+        ]),
+        ui.button('💀 ЭКСТРИМ', { Name: 'DiffExtreme', Size: udim2(0, 108, 1, 0), BackgroundColor3: hex('#2a1030'), TextColor3: C.accent, FontFace: font(FONT_B, 'Bold'), TextScaled: true, LayoutOrder: 4 }, [
+          ui.corner(10), ui.stroke({ Color: C.accent, Transparency: 0.55, Thickness: 1.2 }),
+          el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 15 }),
+        ]),
+      ]),
+
+      bold('ВЫБРАНО: ОБЫЧНЫЙ · 🏆 250 монет', {
+        Name: 'SelectedDifficulty', Size: udim2(1, 0, 0, 22), TextXAlignment: 'Left',
+        TextColor3: hex('#cbbcff'), LayoutOrder: 4, maxTextSize: 16,
+      }),
+
+      button('PlayButton', '🎲  ВЫБРАТЬ ДРУГОЙ СОН', { LayoutOrder: 5, Size: udim2(0, 460, 0, 50) }),
+      button('ShopButton', '🛒  МАГАЗИН', { LayoutOrder: 6, Size: udim2(0, 460, 0, 50) }),
+      button('InventoryButton', '🎒  ИНВЕНТАРЬ', { LayoutOrder: 7, Size: udim2(0, 460, 0, 50) }),
+      button('AchievementsButton', '🏆  ДОСТИЖЕНИЯ', { LayoutOrder: 8, Size: udim2(0, 460, 0, 50) }),
+      button('StatsButton', '📊  СТАТИСТИКА', { LayoutOrder: 9, Size: udim2(0, 460, 0, 50) }),
+      button('SettingsButton', '⚙  НАСТРОЙКИ', { LayoutOrder: 10, Size: udim2(0, 460, 0, 50) }),
+      button('HowToButton', '❓  КАК ИГРАТЬ', { LayoutOrder: 11, Size: udim2(0, 460, 0, 46), BackgroundColor3: hex('#1a1630') }),
     ]),
   ]),
+
+  /* ---------------- правая карточка профиля ---------------- */
+  ui.frame({
+    Name: 'InfoCard', AnchorPoint: v2(1, 0), Position: udim2(1, -54, 0.16, 0),
+    Size: udim2(0, 348, 0, 470), BackgroundColor3: hex('#0e1022'),
+    BackgroundTransparency: 0.08, ZIndex: 3,
+  }, [
+    ui.corner(20),
+    ui.stroke({ Color: C.accent, Transparency: 0.5, Thickness: 1.4 }),
+    ui.gradient([hex('#1a1d38'), hex('#0a0b16')], { Rotation: 90 }),
+    bold('ТВОЙ ПРОФИЛЬ', { Name: 'CardTitle', Position: udim2(0, 20, 0, 16), Size: udim2(1, -40, 0, 24), TextXAlignment: 'Left', TextColor3: C.accent, maxTextSize: 18 }),
+    bold('Сновидец', { Name: 'ProfileName', Position: udim2(0, 20, 0, 44), Size: udim2(1, -40, 0, 30), TextXAlignment: 'Left', TextColor3: C.moon, maxTextSize: 24 }),
+    text('Уровень сна: 1', { Name: 'ProfileLevel', Position: udim2(0, 20, 0, 76), Size: udim2(1, -40, 0, 20), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 15 }),
+    ui.frame({ Name: 'CardDivider', Position: udim2(0, 20, 0, 104), Size: udim2(1, -40, 0, 1), BackgroundColor3: C.accent, BackgroundTransparency: 0.6 }),
+    text('СНЫ', { Position: udim2(0, 20, 0, 116), Size: udim2(0.5, 0, 0, 18), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 13 }),
+    bold('0', { Name: 'ProfileDreams', Position: udim2(0, 20, 0, 134), Size: udim2(0.5, 0, 0, 26), TextXAlignment: 'Left', TextColor3: C.text, maxTextSize: 22 }),
+    text('ПОБЕДЫ', { Position: udim2(0.5, 0, 0, 116), Size: udim2(0.5, -20, 0, 18), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 13 }),
+    bold('0', { Name: 'ProfileWins', Position: udim2(0.5, 0, 0, 134), Size: udim2(0.5, -20, 0, 26), TextXAlignment: 'Left', TextColor3: C.success, maxTextSize: 22 }),
+    text('КВЕСТЫ', { Position: udim2(0, 20, 0, 168), Size: udim2(0.5, 0, 0, 18), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 13 }),
+    bold('0', { Name: 'ProfileQuests', Position: udim2(0, 20, 0, 186), Size: udim2(0.5, 0, 0, 26), TextXAlignment: 'Left', TextColor3: C.text, maxTextSize: 22 }),
+    text('ДОСТИЖЕНИЯ', { Position: udim2(0.5, 0, 0, 168), Size: udim2(0.5, -20, 0, 18), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 13 }),
+    bold('0 / 16', { Name: 'ProfileAchievements', Position: udim2(0.5, 0, 0, 186), Size: udim2(0.5, -20, 0, 26), TextXAlignment: 'Left', TextColor3: C.gold, maxTextSize: 20 }),
+    ui.frame({ Name: 'CardDivider2', Position: udim2(0, 20, 0, 222), Size: udim2(1, -40, 0, 1), BackgroundColor3: C.accent, BackgroundTransparency: 0.6 }),
+    text('ПОСЛЕДНИЙ СОН', { Position: udim2(0, 20, 0, 234), Size: udim2(1, -40, 0, 18), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 13 }),
+    bold('—', { Name: 'LastDreamLabel', Position: udim2(0, 20, 0, 252), Size: udim2(1, -40, 0, 24), TextXAlignment: 'Left', TextColor3: hex('#cbbcff'), maxTextSize: 18 }),
+    text('Лучшее время: —', { Name: 'BestTimeLabel', Position: udim2(0, 20, 0, 278), Size: udim2(1, -40, 0, 20), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 14 }),
+    ui.frame({ Name: 'CardDivider3', Position: udim2(0, 20, 0, 306), Size: udim2(1, -40, 0, 1), BackgroundColor3: C.accent, BackgroundTransparency: 0.6 }),
+    text('УПРАВЛЕНИЕ', { Position: udim2(0, 20, 0, 318), Size: udim2(1, -40, 0, 18), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 13 }),
+    text('WASD — движение\nSHIFT — бег (шумно!)\nE — взаимодействие\nF — фонарик · TAB — задания', {
+      Name: 'ControlsText', Position: udim2(0, 20, 0, 338), Size: udim2(1, -40, 0, 96),
+      TextXAlignment: 'Left', TextYAlignment: 'Top', TextWrapped: true, TextColor3: hex('#b9bce0'), maxTextSize: 14,
+    }),
+  ]),
+
+  /* ---------------- подсказка, монеты, версия ---------------- */
   ui.frame({ Name: 'CoinChip', AnchorPoint: v2(1, 0), Position: udim2(1, -28, 0, 24), Size: udim2(0, 220, 0, 44), BackgroundColor3: hex('#231b3d'), BackgroundTransparency: 0.12, ZIndex: 4 }, [
     ui.corner(22),
     ui.stroke({ Color: C.gold, Transparency: 0.45, Thickness: 1.4 }),
@@ -190,6 +263,35 @@ export const mainMenu = () => screenGui('MainMenu', { DisplayOrder: 5, IgnoreGui
   ui.label('', { Name: 'MenuToast', AnchorPoint: v2(0.5, 1), Position: udim2(0.5, 0, 1, -80), Size: udim2(0, 620, 0, 30), BackgroundTransparency: 1, TextTransparency: 1, TextColor3: C.gold, TextScaled: true, FontFace: font(FONT_B, 'Bold'), ZIndex: 6 }, [
     el('UITextSizeConstraint', { Name: 'SizeConstraint', MaxTextSize: 20 }),
   ]),
+
+  /* ---------------- панель «как играть» ---------------- */
+  ui.frame({ Name: 'TutorialPanel', Visible: false, Size: udim2(1, 1), BackgroundColor3: hex('#05060d'), BackgroundTransparency: 0.25, ZIndex: 15 }, [
+    ui.frame({ Name: 'TutorialCard', AnchorPoint: v2(0.5, 0.5), Position: udim2(0.5, 0, 0.5, 0), Size: udim2(0, 860, 0, 600), BackgroundColor3: hex('#101124'), BackgroundTransparency: 0.02, ZIndex: 16 }, [
+      ui.corner(22),
+      ui.stroke({ Color: C.accent, Transparency: 0.35, Thickness: 2 }),
+      ui.gradient([hex('#1a1d38'), hex('#0a0b16')], { Rotation: 90 }),
+      bold('КАК ИГРАТЬ', { Name: 'TutorialTitle', Position: udim2(0, 34, 0, 26), Size: udim2(1, -68, 0, 40), TextXAlignment: 'Left', TextColor3: C.moon, maxTextSize: 32 }),
+      text('Один сон длится 10 минут. Найди портал пробуждения и не потеряй рассудок.', {
+        Name: 'TutorialSubtitle', Position: udim2(0, 36, 0, 68), Size: udim2(1, -72, 0, 24), TextXAlignment: 'Left', TextColor3: C.dim, maxTextSize: 16,
+      }),
+      text(
+        '🎯  ЦЕЛЬ\nВыполни обязательное задание сна — откроется портал пробуждения. Войди в него (E), чтобы проснуться и забрать награду.\n\n' +
+        '🗺  КАРТЫ\n10 миров: тёмный лес, школа, пустой город, больница, цирк, затопленный город, ледяной мир, фабрика, станция, замок. Каждый сон выбирается случайно.\n\n' +
+        '💬  NPC\nПодойди к NPC и нажми E: можно взять задание, попросить подсказку, купить лечение или обменять предметы.\n\n' +
+        '👁  МОНСТРЫ\nТень, Бегун, Наблюдатель, Обманщик, Кошмар. Они слышат бег и видят свет фонарика. Прячься и не смотри Наблюдателю в глаза.\n\n' +
+        '🧠  РАССУДОК И ВЫНОСЛИВОСТЬ\nБег тратит выносливость и привлекает монстров. В темноте рассудок падает — включи фонарик или выпей зелье.\n\n' +
+        '⚙  НАСТРОЙКИ\nМожно уменьшить интенсивность скримеров, отключить тряску камеры, настроить громкость и качество графики.',
+        {
+          Name: 'TutorialBody', Position: udim2(0, 36, 0, 104), Size: udim2(1, -72, 0, 420),
+          TextXAlignment: 'Left', TextYAlignment: 'Top', TextWrapped: true, TextColor3: hex('#c6c9ea'), maxTextSize: 16,
+        }),
+      button('TutorialClose', 'ПОНЯТНО', {
+        AnchorPoint: v2(1, 1), Position: udim2(1, -28, 1, -24), Size: udim2(0, 220, 0, 46),
+        BackgroundColor3: hex('#4a2f9e'), ZIndex: 17,
+      }),
+    ]),
+  ]),
+
   ui.frame({ Name: 'Fade', Size: udim2(1, 1), BackgroundColor3: hex('#000000'), BackgroundTransparency: 1, ZIndex: 20, Visible: false }),
 ]);
 
@@ -479,7 +581,7 @@ export const dreamHud = () => screenGui('DreamHUD', { DisplayOrder: 10, Enabled:
   ]),
   // Диалог
   ui.frame({ Name: 'Dialog', Size: udim2(1, 1), BackgroundColor3: hex('#05060c'), BackgroundTransparency: 0.55, Visible: false, ZIndex: 8 }, [
-    panel({ Name: 'Panel', Size: udim2(0, 900, 0, 380), AnchorPoint: v2(0.5, 1), Position: udim2(0.5, 0, 0.94, 0) }, [
+    panel({ Name: 'Panel', Size: udim2(0, 940, 0, 402), AnchorPoint: v2(0.5, 1), Position: udim2(0.5, 0, 0.95, 0) }, [
       ui.frame({ Name: 'Portrait', Position: udim2(0, 26, 0, 24), Size: udim2(0, 110, 0, 110), BackgroundColor3: hex('#221a3d') }, [
         ui.corner(16),
         ui.stroke({ Color: C.accent, Transparency: 0.3, Thickness: 1.6 }),
@@ -487,8 +589,9 @@ export const dreamHud = () => screenGui('DreamHUD', { DisplayOrder: 10, Enabled:
       ]),
       bold('NPC', { Name: 'NpcName', Position: udim2(0, 156, 0, 22), Size: udim2(1, -190, 0, 32), TextXAlignment: 'Left', TextColor3: C.accent, maxTextSize: 26 }),
       text('Диалог', { Name: 'DialogText', Position: udim2(0, 156, 0, 60), Size: udim2(1, -190, 0, 90), TextXAlignment: 'Left', TextYAlignment: 'Top', TextWrapped: true, TextColor3: C.text, maxTextSize: 19 }),
-      ui.frame({ Name: 'Options', Position: udim2(0, 26, 0, 162), Size: udim2(1, -52, 0, 176), BackgroundTransparency: 1 }, [
+      ui.scroll({ Name: 'Options', Position: udim2(0, 26, 0, 162), Size: udim2(1, -52, 0, 190), BackgroundTransparency: 1, CanvasSize: udim2(0, 0, 0, 0), AutomaticCanvasSize: 'Y', ScrollBarThickness: 5, ScrollingDirection: 'Y' }, [
         ui.list({ Padding: udim(0, 8), SortOrder: 'LayoutOrder' }),
+        ui.padding(2),
         ui.button('', { Name: 'OptionTemplate', Visible: false, Size: udim2(1, 0, 0, 42), BackgroundColor3: hex('#1b1d38'), BackgroundTransparency: 0.85, Text: '', TextColor3: C.text, LayoutOrder: 1 }, [
           ui.corner(10),
           ui.stroke({ Color: C.accent, Transparency: 0.5, Thickness: 1.2 }),

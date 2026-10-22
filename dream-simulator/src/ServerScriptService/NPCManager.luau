@@ -9,8 +9,10 @@ local SharedModules = ReplicatedStorage:WaitForChild("SharedModules")
 local Remotes = require(SharedModules:WaitForChild("Remotes"))
 local QuestDefinitions = require(SharedModules:WaitForChild("QuestDefinitions"))
 
+local Config = require(SharedModules:WaitForChild("Config"))
 local MapService = require(script.Parent:WaitForChild("MapService"))
 local QuestManager = require(script.Parent:WaitForChild("QuestManager"))
+local DataManager = require(script.Parent:WaitForChild("DataManager"))
 
 local NPCManager = {}
 
@@ -103,6 +105,28 @@ local function questForNPC(session, npcName)
 	return fallback
 end
 
+local function vitals(session)
+	local character = session.player and session.player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local remote = Remotes.get("VitalsUpdate")
+	if remote then
+		remote:FireClient(session.player, {
+			health = humanoid and humanoid.Health or 0,
+			maxHealth = humanoid and humanoid.MaxHealth or Config.MaxHealth,
+			sanity = session.sanity,
+			maxSanity = Config.MaxSanity,
+			stamina = session.stamina,
+			maxStamina = Config.MaxStamina,
+			sprinting = session.sprinting,
+			flashlight = session.flashlight,
+		})
+	end
+end
+
+local HEAL_PRICE = 120
+local CALM_PRICE = 0
+local ITEM_PRICE = 80
+
 function NPCManager.openDialog(session, part)
 	if session.ended then
 		return
@@ -113,29 +137,68 @@ function NPCManager.openDialog(session, part)
 	if not definition then
 		return
 	end
+	if npc then
+		npc.talks = (npc.talks or 0) + 1
+		npc.lastTalk = os.clock()
+	end
 
 	local questState = questForNPC(session, definition.name)
 	local options = {}
-	local text = definition.line or "..."
+	local lines = { definition.line or "..." }
+
+	-- Приветствие зависит от числа разговоров
+	if npc and npc.talks and npc.talks > 1 then
+		table.insert(lines, "«Ты снова здесь? Сон не любит, когда его замечают.»")
+	end
 
 	if questState and questState.state == "offered" then
-		text = text .. "\n\n«Мне нужна помощь: " .. questState.def.title .. ". " .. questState.def.desc .. "»"
+		table.insert(lines, "«Мне нужна помощь: " .. questState.def.title .. ". " .. questState.def.desc .. "»")
 		table.insert(options, { text = "📜 Взять задание", action = "accept_quest:" .. questState.def.id })
 	elseif questState and questState.state == "active" then
-		text = text .. "\n\n«" .. questState.def.desc .. "»"
+		table.insert(lines, "«" .. questState.def.desc .. "»")
 		table.insert(options, { text = "💡 Подсказка", action = "hint:" .. questState.def.id })
+	elseif questState and questState.state == "done" then
+		table.insert(lines, "«Ты справился. Сон запомнит это.»")
+		if not questState.thanked then
+			table.insert(options, { text = "🎁 Поблагодарить", action = "thank:" .. questState.def.id })
+		end
+	end
+
+	-- Услуги: лечение и успокоение
+	local coins = DataManager.get(session.player).coins
+	local character = session.player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local hurt = humanoid and humanoid.Health < humanoid.MaxHealth - 1
+	if hurt or (session.sanity or 100) < Config.MaxSanity - 1 then
+		table.insert(options, {
+			text = ("🩹 Перевязать раны (%d 🪙)"):format(HEAL_PRICE),
+			action = "heal",
+		})
+		table.insert(options, { text = "🧘 Успокоиться (бесплатно)", action = "calm" })
+	end
+
+	-- Обмен: NPC отдаёт зелье рассудка
+	local stock = npc and npc.stock
+	if stock == nil then
+		stock = 1
+		if npc then
+			npc.stock = stock
+		end
+	end
+	if stock > 0 then
+		table.insert(options, { text = ("🧪 Купить зелье рассудка (%d 🪙)"):format(ITEM_PRICE), action = "trade" })
 	end
 
 	table.insert(options, { text = "🕯 Что здесь случилось?", action = "lore" })
 	table.insert(options, { text = "🚪 Уйти", action = "close" })
 
-	session.dialog = { npcIndex = index, questId = questState and questState.def.id }
+	session.dialog = { npcIndex = index, questId = questState and questState.def.id, coins = coins }
 
 	local remote = Remotes.get("DialogOpen")
 	if remote then
 		remote:FireClient(session.player, {
 			npcName = definition.name,
-			text = text,
+			text = table.concat(lines, "\n\n"),
 			kind = "npc",
 			options = options,
 		})
@@ -172,8 +235,58 @@ function NPCManager.handleChoice(session, action)
 	elseif action == "lore" then
 		local messages = session.dream.messages or {}
 		local hint = Remotes.get("Hint")
-		if hint and #messages > 0 then
-			hint:FireClient(session.player, messages[math.random(1, #messages)])
+		if hint then
+			hint:FireClient(session.player, #messages > 0 and messages[math.random(1, #messages)] or (session.dream.hint or "Слушай тишину — она подскажет."))
+		end
+	elseif action == "heal" then
+		local character = session.player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+		if session.sanity >= Config.MaxSanity - 1 and humanoid.Health >= humanoid.MaxHealth - 1 then
+			NpcToast(session, "Тебе не нужна помощь")
+			return
+		end
+		if not DataManager.spendCoins(session.player, HEAL_PRICE) then
+			NpcToast(session, "Не хватает монет: нужно " .. HEAL_PRICE)
+			return
+		end
+		humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + 45)
+		session.sanity = math.min(Config.MaxSanity, (session.sanity or 100) + 35)
+		vitals(session)
+		NpcToast(session, "NPC перевязал раны: +45 ❤ и +35 🧠")
+	elseif action == "calm" then
+		session.sanity = math.min(Config.MaxSanity, (session.sanity or 100) + 18)
+		session.stamina = math.min(Config.MaxStamina, (session.stamina or 100) + 20)
+		vitals(session)
+		NpcToast(session, "Ты дышишь ровнее: +18 🧠 и +20 ⚡")
+	elseif action == "trade" then
+		local index = session.dialog and session.dialog.npcIndex
+		local npc = index and session.npcs and session.npcs[index]
+		if npc and (npc.stock or 0) <= 0 then
+			NpcToast(session, "У NPC больше нет зелий")
+			return
+		end
+		if not DataManager.spendCoins(session.player, ITEM_PRICE) then
+			NpcToast(session, "Не хватает монет: нужно " .. ITEM_PRICE)
+			return
+		end
+		if npc then
+			npc.stock = math.max(0, (npc.stock or 1) - 1)
+		end
+		local profile = DataManager.get(session.player)
+		profile.consumables.sanity_potion = (profile.consumables.sanity_potion or 0) + 1
+		DataManager.pushProfile(session.player)
+		NpcToast(session, "Получено зелье рассудка (используй в инвентаре или кнопкой)")
+	elseif string.sub(action, 1, 5) == "thank" then
+		local questId = string.match(action, "thank:(.+)")
+		local questState = questId and session.questStates and session.questStates[questId]
+		if questState and not questState.thanked then
+			questState.thanked = true
+			DataManager.addCoins(session.player, 25)
+			session.coinsEarned = (session.coinsEarned or 0) + 25
+			NpcToast(session, "NPC отблагодарил тебя: +25 🪙")
 		end
 	end
 end

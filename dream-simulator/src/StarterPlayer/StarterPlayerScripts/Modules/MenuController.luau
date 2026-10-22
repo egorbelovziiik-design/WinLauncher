@@ -24,6 +24,8 @@ local MenuController = {}
 local PANELS = { "ShopGUI", "InventoryGUI", "AchievementsGUI", "StatsGUI", "SettingsGUI", "DifficultyGUI" }
 local openPanel = nil
 local buttonsReady = false
+local selectedDifficulty = "Normal"
+local difficultyReady = {}
 
 ------------------------------------------------------------------
 -- Утилиты
@@ -82,6 +84,10 @@ function MenuController.show()
 			ClientState.tween(fade, 1.2, { BackgroundTransparency = 1 })
 		end
 	end
+	local profileDifficulty = ClientState.profile and ClientState.profile.difficulty
+	if type(profileDifficulty) == "string" and Config.Difficulties[profileDifficulty] and not ClientState.selectedDifficulty then
+		selectedDifficulty = profileDifficulty
+	end
 	MenuController.refreshProfile()
 	SoundController.setMenu()
 end
@@ -123,6 +129,43 @@ function MenuController.openPanelByName(name)
 	end
 end
 
+local function difficultyName(key)
+	local difficulty = Config.Difficulties[key]
+	return difficulty and (difficulty.icon .. " " .. difficulty.name) or "Обычный"
+end
+
+function MenuController.setDifficulty(key, silent)
+	if not Config.Difficulties[key] then
+		key = "Normal"
+	end
+	selectedDifficulty = key
+	ClientState.selectedDifficulty = key
+	local label = ClientState.el("MainMenu", "SelectedDifficulty")
+	if label then
+		local difficulty = Config.Difficulties[key]
+		label.Text = "ВЫБРАНО: " .. string.upper(difficulty.name) .. " · 🏆 " .. tostring(difficulty.reward) .. " монет"
+		label.TextColor3 = difficulty.color
+	end
+	for chipKey in pairs(Config.Difficulties) do
+		local chip = ClientState.el("MainMenu", "Diff" .. chipKey)
+		if chip then
+			local difficulty = Config.Difficulties[chipKey]
+			local active = chipKey == key
+			chip.BackgroundTransparency = active and 0 or 0.25
+			local stroke = chip:FindFirstChildWhichIsA("UIStroke")
+			if stroke then
+				stroke.Transparency = active and 0 or 0.6
+				stroke.Thickness = active and 2 or 1.2
+			end
+			chip.TextTransparency = active and 0 or 0.3
+			chip.TextColor3 = difficulty.color
+		end
+	end
+	if not silent then
+		SoundController.play("Click", 0.55)
+	end
+end
+
 function MenuController.refreshProfile()
 	local profile = ClientState.profile
 	local coins = profile and profile.coins or 0
@@ -138,6 +181,46 @@ function MenuController.refreshProfile()
 			end
 		end
 	end
+	-- Карточка профиля
+	local stats = profile and profile.stats or {}
+	local playerName = Players.LocalPlayer and Players.LocalPlayer.DisplayName or "Сновидец"
+	local nameLabel = ClientState.el("MainMenu", "ProfileName")
+	if nameLabel then
+		nameLabel.Text = playerName
+	end
+	local levelLabel = ClientState.el("MainMenu", "ProfileLevel")
+	if levelLabel then
+		local level = 1 + math.floor((stats.dreams or 0) / 5)
+		levelLabel.Text = "Уровень сна: " .. tostring(level) .. "   ·   " .. difficultyName(selectedDifficulty)
+	end
+	local function setProfileValue(name, value)
+		local label = ClientState.el("MainMenu", name)
+		if label then
+			label.Text = tostring(value)
+		end
+	end
+	setProfileValue("ProfileDreams", stats.dreams or 0)
+	setProfileValue("ProfileWins", stats.wins or 0)
+	setProfileValue("ProfileQuests", stats.quests or 0)
+	local achievements = 0
+	for _ in pairs(profile and profile.achievements or {}) do
+		achievements += 1
+	end
+	setProfileValue("ProfileAchievements", tostring(achievements) .. " / 16")
+
+	local lastDream = profile and profile.lastDream
+	local lastDreamDef = lastDream and DreamDefinitions.get(lastDream)
+	local lastLabel = ClientState.el("MainMenu", "LastDreamLabel")
+	if lastLabel then
+		lastLabel.Text = lastDreamDef and (lastDreamDef.icon .. " " .. lastDreamDef.name) or "—"
+	end
+	local bestLabel = ClientState.el("MainMenu", "BestTimeLabel")
+	if bestLabel then
+		local best = stats.bestTime or 0
+		bestLabel.Text = best > 0 and ("Лучшее время: " .. ClientState.fmtTime(best)) or "Лучшее время: —"
+	end
+	MenuController.setDifficulty(selectedDifficulty, true)
+
 	if openPanel == "ShopGUI" then
 		MenuController.renderShop()
 	elseif openPanel == "InventoryGUI" then
@@ -185,10 +268,14 @@ function MenuController.renderDifficulty()
 			if time then
 				time.Text = "⏱ 10 минут"
 			end
-			card.MouseButton1Click:Connect(function()
-				MenuController.startDream(key)
-			end)
-			hover(card, 0.35)
+			if not difficultyReady[key] then
+				difficultyReady[key] = true
+				card.MouseButton1Click:Connect(function()
+					MenuController.setDifficulty(key, true)
+					MenuController.startDream(key)
+				end)
+				hover(card, 0.35)
+			end
 		end
 	end
 end
@@ -626,6 +713,64 @@ function MenuController.start()
 	local menu = ClientState.getGui("MainMenu")
 	if menu then
 		menu.Enabled = true
+		-- Масштаб интерфейса под размер экрана (телефоны, ноутбуки, 4K)
+		local uiScale = menu:FindFirstChildOfClass("UIScale")
+		if not uiScale then
+			uiScale = Instance.new("UIScale")
+			uiScale.Parent = menu
+		end
+		local function updateScale()
+			local camera = workspace.CurrentCamera
+			if camera then
+				uiScale.Scale = math.clamp(camera.ViewportSize.Y / 900, 0.58, 1.05)
+			end
+		end
+		updateScale()
+		local camera = workspace.CurrentCamera
+		if camera then
+			camera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+		end
+	end
+
+	-- Быстрый старт с выбранной сложностью
+	local startButton = makeButton("StartButton")
+	if startButton then
+		startButton.MouseButton1Click:Connect(function()
+			MenuController.startDream(selectedDifficulty)
+		end)
+	end
+
+	for _, key in ipairs(Config.DifficultyOrder) do
+		local chip = makeButton("Diff" .. key)
+		if chip then
+			chip.MouseButton1Click:Connect(function()
+				MenuController.setDifficulty(key)
+			end)
+		end
+	end
+
+	-- Панель «как играть»
+	local howToButton = makeButton("HowToButton")
+	if howToButton then
+		howToButton.MouseButton1Click:Connect(function()
+			clickSound()
+			local tutorial = ClientState.el("MainMenu", "TutorialPanel")
+			if tutorial then
+				tutorial.Visible = true
+				tutorial.BackgroundTransparency = 1
+				ClientState.tween(tutorial, 0.3, { BackgroundTransparency = 0.25 })
+			end
+		end)
+	end
+	local tutorialClose = makeButton("TutorialClose")
+	if tutorialClose then
+		tutorialClose.MouseButton1Click:Connect(function()
+			clickSound()
+			local tutorial = ClientState.el("MainMenu", "TutorialPanel")
+			if tutorial then
+				tutorial.Visible = false
+			end
+		end)
 	end
 
 	local playButton = makeButton("PlayButton")
@@ -681,6 +826,11 @@ function MenuController.start()
 	end
 
 	ClientState.on("ClosePanel", function()
+		local tutorial = ClientState.el("MainMenu", "TutorialPanel")
+		if tutorial and tutorial.Visible then
+			tutorial.Visible = false
+			return
+		end
 		if openPanel then
 			MenuController.closePanels()
 		end
