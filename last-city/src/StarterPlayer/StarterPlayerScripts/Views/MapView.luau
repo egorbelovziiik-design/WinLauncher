@@ -10,11 +10,12 @@ function Map.draw(app, parent, compact)
     for x = -300, 300, 60 do rect(x, -50, 1, 1000, Color3.fromRGB(46, 58, 59), 0.65) end
     for z = -550, 450, 100 do rect(0, z, 600, 1, Color3.fromRGB(46, 58, 59), 0.65) end
     for _, x in {-122, 0, 122} do rect(x, 200, 22, 430, Color3.fromRGB(60, 70, 70)) end
-    for _, z in {38, 160, 282} do rect(0, z, 390, 20, Color3.fromRGB(60, 70, 70)) end
+    for _, z in {38, 160, 282, 404} do rect(0, z, 464, 26, Color3.fromRGB(60, 70, 70)) end
     for _, p in {{-62, 221}, {62, 99}, {62, 218}, {-64, 348}, {63, 348}, {-185, 92}, {-185, 220}, {185, 220}, {-180, 351}, {185, 351}} do rect(p[1], p[2], 54, 60, Color3.fromRGB(73, 80, 76)) end
     rect(-62, 100, 65, 65, Color3.fromRGB(126, 102, 65)); rect(187, 98, 72, 70, Color3.fromRGB(116, 86, 62))
     rect(0, -100, 158, 150, Color3.fromRGB(55, 94, 79))
-    rect(0, -310, 12, 290, Color3.fromRGB(60, 70, 70))
+    for _, x in {-72, 72} do rect(x, -329, 16, 290, Color3.fromRGB(60, 70, 70)) end
+    for _, z in {-185, -324, -466} do rect(0, z, 464, 16, Color3.fromRGB(60, 70, 70)) end
     for index, p in app.Config.Plots do
         local own = app.State and app.State.plot == index
         local plot = rect(p.x, p.z, 96, 96, own and T.accent or Color3.fromRGB(70, 78, 66), own and 0.25 or 0.1)
@@ -34,7 +35,8 @@ function Map.draw(app, parent, compact)
             if not q or q.status == "Completed" then
                 at = ({alex = {-18, -55}, max = {34, -103}, victor = {-45, -128}})[def.npc]
             elseif q.status == "Active" then
-                at = ({first_blood = {-12, 23}, lost_supplies = {-62, 100}, daily_hunt = {0, 160}})[tracked]
+                at = ({first_blood = {-12, 23}, lost_supplies = {-62, 100}, daily_hunt = {0, 160}, medical_run = {-62, 220}, radio_recovery = {62, 220}})[tracked]
+                if tracked == "radio_recovery" and q.seen["intel:PoliceDispatch"] then at = {274, 121} end
                 if tracked == "city_power" then
                     if q.progress[1] < 20 or q.progress[2] < 10 or q.progress[3] < 5 then at = {187, 98}
                     else local plot = app.Config.Plots[app.State.plot]; at = {plot.x, plot.z} end
@@ -45,7 +47,7 @@ function Map.draw(app, parent, compact)
     end
     local player = UI.label(map, "▲", compact and 13 or 19, {Name = "PlayerDot", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(24, 24), TextColor3 = T.text, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4})
     if not compact then
-        for _, pin in {{-25, -100, "УБЕЖИЩЕ", T.success}, {-62, 125, "MERIDIAN", T.accent}, {187, 130, "ПРОМЗОНА", T.accent}, {0, 405, "КАРАНТИН", T.danger}} do
+        for _, pin in {{-25, -100, "УБЕЖИЩЕ", T.success}, {-62, 125, "MERIDIAN", T.accent}, {187, 130, "ПРОМЗОНА", T.accent}, {-62, 245, "АПТЕКА", T.success}, {62, 245, "ПОЛИЦИЯ", T.blue}, {268, 137, "АЗС", T.accent}, {0, 405, "КАРАНТИН", T.danger}} do
             UI.label(map, pin[3], 10, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale((pin[1] + 300) / 600, (450 - pin[2]) / 1000), Size = UDim2.fromOffset(130, 20), TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = pin[4], Font = Enum.Font.GothamBold})
         end
     end
@@ -57,6 +59,6 @@ function Map.page(app, body)
     UI.paragraph(body, "Меридиан • один исследуемый район. Белая стрелка — вы. Оранжевый участок — ваша база. Телепортации по карте нет.", 44)
     local holder = UI.frame(body, {Size = UDim2.new(1, -8, 0, math.min(470, app.Height - 230)), BackgroundTransparency = 1})
     app.MapDot = Map.draw(app, holder, false)
-    UI.paragraph(body, "Север: заражённый город, магазин и промзона. Юг: убежище и жилые участки. Дороги соединяют все шесть баз.", 42)
+    UI.paragraph(body, "Север: заражённый город, магазин, аптека, полиция и АЗС. Юг: убежище и жилые участки. Дороги соединяют все шесть баз.", 42)
 end
 return Map

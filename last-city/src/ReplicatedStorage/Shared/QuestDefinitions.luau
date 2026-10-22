@@ -29,4 +29,17 @@ return {
         objectives = {{event = "kill", target = "*", count = 20, label = "Заражённые"}},
         reward = {coins = 100, xp = 200, items = {ammo = 16}}, reputation = "SURVIVORS",
     },
+    medical_run = {
+        order = 5, name = "ПОСЛЕДНИЕ ЛЕКАРСТВА", type = "Побочное", npc = "max", location = "Аптека MERIDIAN MEDICAL",
+        requires = "first_blood", description = "В аптеке на западной стороне города остались три медицинских контейнера. Открой входную дверь, осмотри стеллажи и принеси отметки Максу.",
+        objectives = {{event = "medical", target = "pharmacy", count = 3, label = "Медицинские контейнеры"}},
+        reward = {coins = 300, xp = 250, items = {medkit = 3, bandage = 4}}, reputation = "TRADERS",
+    },
+    radio_recovery = {
+        order = 6, name = "ПОТЕРЯННАЯ ЧАСТОТА", type = "Исследование", npc = "victor", location = "Полиция / офис АЗС",
+        requires = "first_blood", description = "В полицейском участке найдёшь журнал диспетчера. Вторую схему ищи в офисе АЗС к востоку от промзоны. Нужны оба документа — принеси их мне.",
+        objectives = {{event = "intel", target = "radio", count = 2, label = "Документы ретранслятора"}},
+        reward = {coins = 450, xp = 300, items = {vest = 1, ammo = 32}}, reputation = "SURVIVORS",
+    },
+
 }

@@ -106,7 +106,16 @@ function methods:FindFirstChildOfClass(class) for _,c in self:GetChildren() do i
 function methods:FindFirstAncestorOfClass(class) local p=self.Parent; while p do if p:IsA(class) then return p end; p=p.Parent end; return nil end
 function methods:IsDescendantOf(parent) local p=self.Parent; while p do if p==parent then return true end; p=p.Parent end; return false end
 function methods:Destroy() for _,child in self:GetChildren() do child:Destroy() end; self.Parent=nil end
-function methods:SetAttribute(key,value) self._attributes[key]=value end
+function methods:SetAttribute(key,value)
+    local changed=self._attributes[key]~=value; self._attributes[key]=value
+    if changed and self._attributeSignals and self._attributeSignals[key] then self._attributeSignals[key]:Fire() end
+end
+function methods:GetAttributeChangedSignal(key)
+    self._attributeSignals=self._attributeSignals or {}
+    if not self._attributeSignals[key] then self._attributeSignals[key]=M.signal() end
+    return self._attributeSignals[key]
+end
+function methods:RemoveDefaultLoadingScreen() end
 function methods:GetAttribute(key) return self._attributes[key] end
 function methods:Clone()
     local result=M.Instance.new(self.ClassName); local map={[self]=result}
@@ -186,5 +195,6 @@ function M.Store:UpdateAsync(key,callback)
     if proposed~=nil then self.records[key]=copy(proposed) end
     return copy(proposed)
 end
-local ds=M.service("DataStoreService"); function ds:GetDataStore() return M.Store end
+local ds=M.service("DataStoreService"); ds.GetCalls=0
+function ds:GetDataStore() self.GetCalls+=1; if self.FailGet then error("You must publish this place to the web to access DataStore") end; return M.Store end
 return M

@@ -36,7 +36,7 @@ return function(ctx)
         end)
         if s.Active then ctx.Services.CombatService:SyncTool(player) end
     end
-    function Service:Join(player)
+    function Service:JoinInternal(player)
         if ctx.Closing then player:Kick("Сервер закрывается"); return end
         local occupied = {}
         for _, other in ctx.Sessions do occupied[other.Plot] = true end
@@ -46,9 +46,11 @@ return function(ctx)
         ctx.Sessions[player] = {Loaded = false, Plot = plot, Active = false}
         player.CharacterAdded:Connect(function(character) self:Character(player, character) end)
         if player.Character then task.spawn(function() self:Character(player, player.Character) end) end
+        player:SetAttribute("LastCityLoadPhase", "Profile")
         local loaded, err = ctx.Services.SaveService:Load(player)
         if not loaded then
             ctx.Sessions[player] = nil
+            player:SetAttribute("LastCityLoadError", err)
             if player.Parent then player:Kick(err) end
             return
         end
@@ -59,9 +61,23 @@ return function(ctx)
         s.Campaign = s.Data.Campaigns[s.Mode]; s.Loaded = true; s.Active = false; s.Stamina = 100
         s.SessionStart = os.clock(); s.LastPosition = nil
         if not player.Parent then s.Closing = true; ctx.Services.SaveService:Save(player, true); ctx.Sessions[player] = nil; return end
+        player:SetAttribute("LastCityLoadPhase", "Base")
         ctx.Services.BuildingService:Restore(player)
         ctx.Services.NPCService:AddWorkers(player)
+        player:SetAttribute("LastCityLoadPhase", "Ready")
         self:Snapshot(player)
+    end
+    function Service:Join(player)
+        if ctx.Sessions[player] then return end
+        player:SetAttribute("LastCityLoadError", nil)
+        local ok, err = xpcall(function() self:JoinInternal(player) end, debug.traceback)
+        if not ok then
+            player:SetAttribute("LastCityLoadError", "Ошибка подготовки игрока. См. Output: LC_JOIN")
+            local s = ctx.Sessions[player]
+            if s then s.Frozen = true; s.Active = false; s.Closing = true end
+            if s and s.Loaded then task.spawn(function() ctx.Services.SaveService:Save(player, true) end) end
+            warn("[LastCity LC_JOIN] " .. tostring(err))
+        end
     end
     function Service:Start(player, s)
         if s.Active then return end

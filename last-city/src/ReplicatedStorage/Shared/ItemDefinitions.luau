@@ -1,5 +1,7 @@
 --!strict
 return {
+    cloth = {name = "Ткань", category = "Ресурсы", stack = 99, weight = 0.2, color = "C7C4B9"},
+    bandage = {name = "Бинт", category = "Расходники", stack = 20, weight = 0.12, use = "health", amount = 25, color = "D9DECD"},
     wood = {name = "Дерево", category = "Ресурсы", stack = 99, weight = 0.5, color = "B68B5A"},
     scrap = {name = "Металлолом", category = "Ресурсы", stack = 99, weight = 0.8, color = "9CA3AF"},
     metal = {name = "Металл", category = "Ресурсы", stack = 99, weight = 0.6, color = "CBD5E1"},

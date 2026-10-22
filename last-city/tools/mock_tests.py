@@ -31,7 +31,6 @@ for _,name in {"SessionRemote","QuestRemote","InventoryRemote","CombatRemote","B
     parts=[header]
     existing={"ReplicatedStorage","ServerScriptService","ReplicatedFirst","StarterPlayer","StarterPlayer/StarterPlayerScripts"}
     for file in sorted(SRC.rglob('*.luau')):
-        if file.name == 'Loading.client.luau': continue
         rel=file.relative_to(SRC)
         for parent in reversed(rel.parents):
             if str(parent)=='.' or parent.as_posix() in existing: continue
@@ -42,6 +41,8 @@ for _,name in {"SessionRemote","QuestRemote","InventoryRemote","CombatRemote","B
         cls='LocalScript' if '.client.' in file.name else 'ModuleScript'
         parts.append(f'nodes["{key}"]=Engine.add(nodes["{rel.parent.as_posix()}"],"{cls}","{name}")\n')
         code=file.read_text()
+        if file.name=='Loading.client.luau':
+            code='local os={clock=function() return Engine.LoadingClock end}\nlocal task={wait=function(step) Engine.LoadingClock+=step; return step end}\n'+code
         if file.name=='Client.client.luau': code+='\nreturn app\n'
         if file.name=='Bootstrap.server.luau': code+='\nreturn ctx\n'
         parts.append(f'factories[nodes["{key}"]]=function(script)\n{code}\nend\n')

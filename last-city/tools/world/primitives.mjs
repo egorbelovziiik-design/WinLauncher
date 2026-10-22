@@ -23,7 +23,7 @@ export function part(parent, name, size, at, tint = palette.concrete, mat = 'Con
   p.TopSurface = R.SurfaceType.Smooth; p.BottomSurface = R.SurfaceType.Smooth;
   Object.assign(p, extra); p.Parent = parent; return p;
 }
-export function value(parent, name, val) { const o = typeof val === 'number' ? instance('IntValue') : instance('StringValue'); o.Name = name; o.Value = typeof val === 'number' ? BigInt(val) : val; o.Parent = parent; return o; }
+export function value(parent, name, val) { const integer=typeof val==='number'&&Number.isInteger(val); const o=instance(integer?'IntValue':typeof val==='number'?'NumberValue':'StringValue'); o.Name=name; o.Value=integer?BigInt(val):val; o.Parent=parent; return o; }
 export function sign(parent, text, size, at, tint = palette.orange, bg = palette.dark, yaw = 0) {
   const p = part(parent, 'Sign', size, at, bg, 'Metal', yaw);
   const gui = instance('SurfaceGui'); gui.Name = 'Signage'; gui.Face = R.NormalId.Front; gui.SizingMode = R.SurfaceGuiSizingMode.PixelsPerStud; gui.PixelsPerStud = 28; gui.Parent = p;
@@ -46,7 +46,18 @@ export function car(parent, x, z, yaw, tint = palette.rust) {
   p('Roof', [6, 0.4, 5.8], [0, 5.5, -0.5], tint);
   p('Windshield', [5.2, 2, 0.2], [0, 4, -3.35], palette.glass, 'Glass');
   p('Hood', [6.4, 0.3, 3.5], [0, 3.2, -4.2], tint);
-  for (const side of [-1, 1]) for (const end of [-1, 1]) p('Wheel', [1.1, 2.4, 2.4], [side * 3.2, 1.5, end * 3.5], '#161a1c', 'Rubber');
+  for (const side of [-1, 1]) for (const end of [-1, 1]) {
+    const tire=p('Wheel', [1.1, 2.4, 2.4], [side * 3.2, 1.5, end * 3.5], '#161a1c', 'Rubber'); tire.Shape=R.PartType.Cylinder;
+    const hub=p('WheelHub',[0.13,1.1,1.1],[side*3.79,1.5,end*3.5],'#68716b','Metal');hub.Shape=R.PartType.Cylinder;
+  }
+  for(const side of [-1,1]) {
+    p('SideWindow',[0.12,1.7,4.5],[side*2.98,4,-0.5],palette.glass,'Glass');
+    p('DoorHandle',[0.15,0.15,0.8],[side*3.26,2.9,0.4],'#9aa29b');
+    p('Mirror',[0.5,0.5,0.9],[side*3.4,3.7,-2.3],tint);
+  }
+  p('FrontBumper',[6.7,0.5,0.35],[0,1.5,-6.2],'#606963');
+  p('RearBumper',[6.7,0.5,0.35],[0,1.5,6.2],'#606963');
+  p('RearWindow',[5.1,1.8,0.15],[0,4,2.35],palette.glass,'Glass');
   for (const side of [-1, 1]) p('BrokenHeadlight', [1.6, 0.5, 0.2], [side * 2, 2.8, -6.1], '#a6a083', 'Glass');
 }
 export function loot(parent, id, count, x, z, index, cooldown = 90) {
@@ -59,10 +70,15 @@ export function crate(parent, x, y, z) {
   part(parent, 'Strap', [4.1, 0.5, 4.1], [x, y + 2, z], palette.dark, 'Metal');
 }
 export function tree(parent, x, z, h, evergreen = false) {
-  const m = folder(parent, 'Tree', true);
-  part(m, 'Trunk', [2.2, h * 0.7, 2.2], [x, h * 0.35, z], palette.wood, 'Wood');
-  for (let i = 0; i < 3; i++) {
-    const width = h * (evergreen ? 0.7 - i * 0.16 : 0.5);
-    part(m, 'Canopy', [width, h * 0.28, width], [x + (evergreen ? 0 : (i - 1) * 3), h * (0.6 + i * 0.15), z], ['#40513e', '#4d5d43', '#5b684a'][i], 'Grass', i * 0.55);
+  const m=folder(parent,'Tree',true);
+  const trunk=part(m,'Trunk',[h*0.72,1.3,1.3],[x,h*0.36,z],'#5d5444','Wood');
+  trunk.Shape=R.PartType.Cylinder; trunk.CFrame=new R.CFrame(vec(x,h*0.36,z),[0,-1,0,1,0,0,0,0,1]);
+  for(let i=0;i<(evergreen?4:5);i++) {
+    const angle=i*2.399, spread=evergreen?0:h*0.18;
+    const width=evergreen?h*(0.65-i*0.1):h*0.46;
+    const y=evergreen?h*(0.42+i*0.15):h*(0.68+(i%2)*0.12);
+    const leaf=part(m,'Foliage',[width,h*(evergreen?0.32:0.38),width],[x+Math.cos(angle)*spread,y,z+Math.sin(angle)*spread],['#394d38','#465b3d','#556747','#62734d','#465a3c'][i],'LeafyGrass',i*0.7,{CanCollide:false,CanTouch:false});
+    leaf.Shape=R.PartType.Ball;
   }
+  return m;
 }

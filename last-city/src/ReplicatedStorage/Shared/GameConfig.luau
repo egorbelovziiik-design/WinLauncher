@@ -1,8 +1,9 @@
 --!strict
 return table.freeze({
-    Version = "0.1.1 — FIRST LIGHT", SchemaVersion = 1,
+    Version = "0.2.0 — MERIDIAN REBUILT", SchemaVersion = 1,
     Title = "LAST CITY 3D", Subtitle = "DEAD WORLD: ULTIMATE SURVIVAL",
     MaxPlayers = 6, MaxZombies = 24, AIInterval = 0.25, PathInterval = 2.5,
+    StudioUseDataStore = false, -- Explicit opt-in for cloud-save testing; downloaded Studio files use SessionOnly.
     AutosaveSeconds = 55, LeaseSeconds = 180, DataStoreName = "LastCity_Profile_v1",
     DayLength = 900, InventorySlots = 24, CarryWeight = 180,
     Grid = 4, PlotHalfSize = 48, MaxBuildings = 24, InteractRange = 13,

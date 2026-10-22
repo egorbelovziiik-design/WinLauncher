@@ -133,7 +133,9 @@ test("reload completion after player departure cannot grant ammo",function() loc
 local function saveContext()
     Engine.Store.records={}; Engine.Store.calls=0; Engine.Store.fail=false; Engine.Store.replay=1
     game:GetService("RunService").Studio=true; player.Kicked=nil
-    local ctx,s=context(); local save=module("ServerScriptService/Services/SaveService.luau")(ctx); ctx.Services.SaveService=save
+    game.PlaceId=1; game:GetService("DataStoreService").FailGet=false; game:GetService("DataStoreService").GetCalls=0
+    local ctx,s=context(); ctx.Config=table.clone(Config); ctx.Config.StudioUseDataStore=true
+    local save=module("ServerScriptService/Services/SaveService.luau")(ctx); ctx.Services.SaveService=save
     return ctx,s,save
 end
 test("SaveService acquires new profile with UpdateAsync lease",function() local ctx,s,save=saveContext(); local loaded=assert(save:Load(player)); eq(loaded.Persistent,true); assert(Engine.Store.records.player_123.Lease); eq(Engine.Store.calls,1) end)
@@ -145,6 +147,21 @@ test("Studio load failure explicitly falls back to session-only",function() loca
 test("future schema is never overwritten during load",function() local ctx,s,save=saveContext(); Engine.Store.records.player_123={Data={SchemaVersion=99}}; local loaded=save:Load(player); eq(loaded,nil); eq(Engine.Store.records.player_123.Data.SchemaVersion,99) end)
 test("missing data in an existing envelope is rejected",function() local ctx,s,save=saveContext(); Engine.Store.records.player_123={Broken=true}; eq(save:Load(player),nil); assert(Engine.Store.records.player_123.Broken) end)
 test("lost lease freezes the stale server without overwriting new owner",function() local ctx,s,save=saveContext(); Engine.Store.records.player_123={Data={SchemaVersion=1,Coins=700},Lease={Token="another-server",Expires=os.time()+180}}; eq(save:Save(player,false),false); eq(s.Frozen,true); assert(player.Kicked); eq(Engine.Store.records.player_123.Data.Coins,700) end)
+test("Studio default never calls cloud storage even when GetDataStore would throw",function()
+    local ctx,s,save=saveContext(); ctx.Config.StudioUseDataStore=false; game:GetService("DataStoreService").FailGet=true
+    local loaded=assert(save:Load(player)); eq(loaded.Persistent,false); eq(game:GetService("DataStoreService").GetCalls,0); eq(Engine.Store.calls,0)
+    game:GetService("DataStoreService").FailGet=false
+end)
+test("unpublished Studio place opens session-only without DataStore access",function()
+    local ctx,s,save=saveContext(); game.PlaceId=0; game:GetService("DataStoreService").FailGet=true
+    local loaded=assert(save:Load(player)); eq(loaded.SaveState,"SessionOnly"); eq(game:GetService("DataStoreService").GetCalls,0)
+    game.PlaceId=1; game:GetService("DataStoreService").FailGet=false
+end)
+test("GetDataStore constructor failure is protected and live sessions fail closed",function()
+    local ctx,s,save=saveContext(); game:GetService("RunService").Studio=false; game:GetService("DataStoreService").FailGet=true
+    local loaded,err=save:Load(player); eq(loaded,nil); assert(err); eq(Engine.Store.calls,0)
+    game:GetService("RunService").Studio=true; game:GetService("DataStoreService").FailGet=false
+end)
 local server
 local serverSession
 test("full server composition root initializes every service",function()
@@ -193,7 +210,7 @@ test("full server snapshot contains authoritative progress and save status",func
     server.Services.PlayerDataService:Snapshot(player)
     local outgoing=server.Remotes.StateRemote.LastClient
     eq(outgoing.kind,"state"); eq(outgoing.payload.campaign.Stats.kills,5); eq(outgoing.payload.profile.Coins,275)
-    eq(outgoing.payload.revision,serverSession.Data.Revision); eq(outgoing.payload.save,"Saved")
+    eq(outgoing.payload.revision,serverSession.Data.Revision); eq(outgoing.payload.save,"SessionOnly")
 end)
 test("dropped items cannot cross player profiles or session leases",function()
     local c=serverSession.Campaign
@@ -221,6 +238,48 @@ test("full server NPC prompt returns actual dialogue payload",function()
     npc.model.PrimaryPart:FindFirstChildOfClass("ProximityPrompt").Triggered:Fire(player)
     eq(server.Remotes.StateRemote.LastClient.kind,"dialogue"); eq(server.Remotes.StateRemote.LastClient.payload.id,"alex")
     eq(serverSession.Campaign.Tutorial.facts.talk,true)
+end)
+test("quest-cache prompt requires acceptance distance and distinct server ids",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/ResourceService.luau")(ctx)
+    local part=Engine.add(nil,"Part","MedicalCache1"); part.Parent=workspace; part.CFrame=CFrame.new(0,1,0)
+    for key,value in {QuestId="medical_run",QuestEvent="medical",QuestTarget="pharmacy",QuestLabel="Medical"} do Engine.add(part,"StringValue",key).Value=value end
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(0,3,-3)
+    local prompt=service:QuestCache(part); prompt.Triggered:Fire(player); eq(s.Campaign.Quests.medical_run,nil)
+    s.Campaign.Quests.first_blood={status="RewardClaimed",progress={5},seen={}}
+    Quests.accept(s.Campaign,"medical_run",os.time()); prompt.Triggered:Fire(player); prompt.Triggered:Fire(player)
+    eq(s.Campaign.Quests.medical_run.progress[1],1)
+    part.Name="MedicalCache2"; player.Character.HumanoidRootPart.CFrame=CFrame.new(100,3,0)
+    prompt.Triggered:Fire(player); eq(s.Campaign.Quests.medical_run.progress[1],1)
+end)
+test("interactive door validates distance busy state and occupied swing zone",function()
+    local ctx=context(); local service=module("ServerScriptService/Services/DoorService.luau")(ctx)
+    local model=Engine.add(workspace,"Model","Door"); local hinge=Engine.add(model,"Part","Hinge"); hinge.CFrame=CFrame.new(0,5,0)
+    Engine.add(model,"Part","Leaf").CFrame=CFrame.new(4.8,5,0); Engine.add(model,"NumberValue","DoorWidth").Value=9.6
+    Engine.add(model,"StringValue","DoorLabel").Value="Door"
+    local prompt=service:Attach(model)
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(0,3,-100); prompt.Triggered:Fire(player); eq(service.Doors[model].open,false)
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(0,3,-7); prompt.Triggered:Fire(player); eq(service.Doors[model].open,true)
+    prompt.Triggered:Fire(player); eq(service.Doors[model].open,true)
+    Engine.task.delayed[#Engine.task.delayed].callback(); prompt.Triggered:Fire(player); eq(service.Doors[model].open,true)
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(0,3,-13); prompt.Triggered:Fire(player); eq(service.Doors[model].open,false)
+end)
+test("loading overlay stops waiting at 45 seconds without pretending the game is ready",function()
+    player:SetAttribute("LastCityClientReady",false); player:SetAttribute("LastCityClientError",nil)
+    player:SetAttribute("LastCityLoadError",nil); workspace:SetAttribute("LastCityServerError",nil)
+    Engine.LoadingClock=0
+    factories[nodes["ReplicatedFirst/Loading.client.luau"]](nodes["ReplicatedFirst/Loading.client.luau"])
+    assert(Engine.LoadingClock>=45 and Engine.LoadingClock<46)
+    eq(player:GetAttribute("LastCityClientReady"),false)
+    local gui=assert(player.PlayerGui:FindFirstChild("LastCityLoading")); local found=false
+    for _,node in gui:GetDescendants() do if node:IsA("TextLabel") and node.Text:find("45") then found=true end end
+    assert(found)
+    player:SetAttribute("LastCityClientReady",true); eq(player.PlayerGui:FindFirstChild("LastCityLoading"),nil)
+end)
+test("loading overlay exposes server boot failure immediately",function()
+    player:SetAttribute("LastCityClientReady",false); workspace:SetAttribute("LastCityServerError","Test boot failure")
+    Engine.LoadingClock=0; factories[nodes["ReplicatedFirst/Loading.client.luau"]](nodes["ReplicatedFirst/Loading.client.luau"])
+    eq(Engine.LoadingClock,0); assert(player.PlayerGui:FindFirstChild("LastCityLoading"))
+    workspace:SetAttribute("LastCityServerError",nil); player:SetAttribute("LastCityClientReady",true)
 end)
 print(string.format("\nADAPTER MOCK RESULTS: %d PASSED / %d FAILED (NOT Studio tests)",passed,failed))
 assert(failed==0,"Mock adapter regression suite failed")

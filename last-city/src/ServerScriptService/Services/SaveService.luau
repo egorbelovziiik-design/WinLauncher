@@ -3,7 +3,13 @@ return function(ctx)
     local DSS = game:GetService("DataStoreService")
     local RunService = game:GetService("RunService")
     local HttpService = game:GetService("HttpService")
-    local Service = {Store = DSS:GetDataStore(ctx.Config.DataStoreName)}
+    local Service = {}
+    function Service:GetStore()
+        if self.Store then return self.Store end
+        local ok, result = pcall(function() return DSS:GetDataStore(ctx.Config.DataStoreName) end)
+        if ok then self.Store = result; return result end
+        return nil, tostring(result)
+    end
     local function retry(callback)
         local last
         for attempt = 1, 4 do
@@ -17,6 +23,18 @@ return function(ctx)
     function Service:Load(player)
         local token = (game.JobId ~= "" and game.JobId or "studio") .. ":" .. HttpService:GenerateGUID(false)
         local key = "player_" .. player.UserId
+        local function sessionOnly()
+            return {Data = ctx.Profile.new(), Key = key, Token = token, LastSave = 0, Expires = math.huge, SaveState = "SessionOnly", Persistent = false}
+        end
+        if RunService:IsStudio() and (ctx.Config.StudioUseDataStore ~= true or game.PlaceId == 0) then
+            return sessionOnly()
+        end
+        local store, storeError = self:GetStore()
+        if not store then
+            warn("[LastCity] GetDataStore failed: " .. tostring(storeError))
+            if RunService:IsStudio() then return sessionOnly() end
+            return nil, "Хранилище недоступно. Вход отменён без сброса вашего сохранения."
+        end
         local loaded, reason, locked, ok, result
         -- Handoffs (including solo teleports) can overlap PlayerRemoving by a few seconds.
         -- Retry contention, but never steal a live lease or reset an unreadable record.
@@ -43,7 +61,7 @@ return function(ctx)
         if ok then return nil, reason or "Не удалось получить блокировку сохранения" end
         warn("[LastCity] DataStore load failed: " .. tostring(result))
         if RunService:IsStudio() then
-            return {Data = ctx.Profile.new(), Key = key, Token = token, LastSave = 0, Expires = math.huge, SaveState = "SessionOnly", Persistent = false}
+            return sessionOnly()
         end
         return nil, "DataStore недоступен. Вход отменён, чтобы не перезаписать ваш прогресс. Попробуйте позже."
     end
@@ -57,6 +75,8 @@ return function(ctx)
             if s.Saving then return false end
         end
         if not s.Persistent then s.SaveState = "SessionOnly"; return true end
+        local store, storeError = self:GetStore()
+        if not store then s.SaveState = "Error"; warn("[LastCity] GetDataStore save failed: " .. tostring(storeError)); return false end
         s.Saving = true; s.SaveState = "Saving"
         local snapshot = ctx.Util.copy(s.Data)
         local owned, result

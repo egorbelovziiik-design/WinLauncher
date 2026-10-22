@@ -61,11 +61,32 @@ return function(ctx)
             ctx.Progression.fact(s.Campaign, "pickup"); ctx:Notify(player, "Ящик отмечен. Макс будет рад.", "success")
         end)
     end
+    function Service:QuestCache(part)
+        local id = part.QuestId.Value
+        local def = ctx.QuestDefs[id]
+        if not def then return end
+        local event = part.QuestEvent.Value; local target = part.QuestTarget.Value
+        local prompt = Instance.new("ProximityPrompt"); prompt.ActionText = "Осмотреть"
+        prompt.ObjectText = part.QuestLabel.Value; prompt.HoldDuration = 0.6; prompt.MaxActivationDistance = 10
+        prompt.RequiresLineOfSight = true; prompt.Parent = part
+        prompt.Triggered:Connect(function(player)
+            local s = ctx.Services.NetworkService:Permit(player, "loot", true); local root = ctx:Root(player)
+            if not s or not root or not part.Parent or (root.Position - part.Position).Magnitude > ctx.Config.InteractRange then return end
+            if not ctx:LineOfSight(root.Position, part.Position, {player.Character, part}) then return end
+            local q = s.Campaign.Quests[id]
+            if not q or q.status ~= "Active" then ctx:Notify(player, "Нужно активное задание «" .. def.name .. "»."); return end
+            if q.seen[event .. ":" .. part.Name] then ctx:Notify(player, "Вы уже осмотрели этот предмет."); return end
+            ctx.Services.QuestService:Record(player, event, target, 1, part.Name)
+            ctx.Progression.fact(s.Campaign, "pickup"); ctx:Notify(player, "Найдено: " .. part.QuestLabel.Value, "success")
+        end)
+        return prompt
+    end
     function Service:Init()
         for _, node in ctx.World.LootSpawns:GetChildren() do
             if not node:IsA("BasePart") then continue end
             local value = node:FindFirstChild("ItemId")
-            if value then self:Attach(node, value.Value, node.Amount.Value, node.Cooldown.Value, false)
+            if node:FindFirstChild("QuestId") then self:QuestCache(node)
+            elseif value then self:Attach(node, value.Value, node.Amount.Value, node.Cooldown.Value, false)
             elseif node.Name:match("^Supply") then self:Supply(node) end
         end
         task.spawn(function()

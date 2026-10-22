@@ -1,38 +1,12 @@
 import { part, folder, sign, lamp, car, crate, loot, palette as P } from './primitives.mjs';
+import { roadNetwork, CITY_ROADS } from './roads.mjs';
+import { apartment } from './architecture.mjs';
 export function city(world) {
-  const streets = folder(world.Roads,'MeridianStreets',true);
-  for (const x of [-122,0,122]) {
-    part(streets,'Asphalt',[26,0.18,470],[x,0,190],'#30383a','Asphalt');
-    for (const side of [-1,1]) part(streets,'Sidewalk',[8,0.6,470],[x+side*17,0.2,190],'#777c76','Concrete');
-    for (let z = -5; z < 420; z += 22) part(streets,'FadedLine',[0.6,0.03,9],[x,0.11,z],'#c2b792','Concrete');
-  }
-  for (const z of [38,160,282]) {
-    part(streets,'CrossStreet',[390,0.2,26],[0,0.05,z],'#30383a','Asphalt');
-    for (const side of [-1,1]) part(streets,'Sidewalk',[390,0.6,8],[0,0.2,z+side*17],'#777c76','Concrete');
-    for (let x = -185; x < 190; x += 22) part(streets,'Lane',[9,0.03,0.6],[x,0.2,z],'#bdb294','Concrete');
-  }
-  function block(x,z,w,d,h,tint,index) {
-    const b = folder(world.Cities,`RuinedBlock_${index}`,true);
-    part(b,'Foundation',[w+2,1,d+2],[x,0.5,z],P.concrete);
-    // Solid background high-rises; the market and depot below are fully enterable.
-    part(b,'Shell',[w,h,d],[x,h/2,z],tint,'Concrete');
-    part(b,'RoofSlab',[w+1,1,d+1],[x,h,z],P.dark);
-    for (let y=8; y<h-3; y+=10) {
-      part(b,'Belt',[w+0.3,0.7,d+0.3],[x,y+3.5,z],P.dark);
-      for (let dx=-w/2+6; dx<w/2-2; dx+=8) {
-        const col = (index+Math.round(y+dx))%5 === 0 ? '#a88b59' : P.glass;
-        for (const side of [-1,1]) part(b,'Window',[4.5,5,0.2],[x+dx,y,z+side*(d/2+0.12)],col,'Glass');
-      }
-    }
-    for (const side of [-1,1]) part(b,'ConcreteColumn',[2,h,1],[x+side*(w/2-1),h/2,z-d/2-0.3],P.concrete);
-    part(b,'RooftopPlant',[8,5,10],[x+4,h+3,z+4],P.steel,'Metal');
-    if (index%2===0) {
-      part(b,'BrokenRoof',[w*0.4,8,d*0.35],[x-w*0.25,h+3,z+d*0.3],tint,'Concrete',0.16);
-      for(let i=0;i<3;i++) part(b,'Rubble',[5+i*2,2+i,5],[x-w/2-5+i*4,1+i/2,z-d/2-5],P.concrete,'Slate',i*0.6);
-    }
-  }
+  roadNetwork(world.Roads,'MeridianStreets',CITY_ROADS,5);
   let id=0;
-  for (const [x,z,w,d,h] of [[-62,221,60,63,66],[62,99,56,65,49],[62,218,58,67,83],[-64,348,60,65,56],[63,348,62,63,103],[-185,92,55,60,40],[-185,220,58,65,71],[185,220,58,70,57],[-180,351,60,65,92],[185,351,59,65,110]]) block(x,z,w,d,h,['#747b73','#6e7778','#8a8275','#58666a'][id++%4],id);
+  for (const [x,z,w,d,h] of [[62,99,56,65,49],[-64,348,60,65,56],[63,348,62,63,92],[-185,92,55,60,40],[-185,220,58,65,71],[185,220,58,70,57],[-180,351,60,65,83],[185,351,59,65,98]]) {
+    apartment(world,x,z,w,d,h,['#777a6a','#737d77','#8a8070','#657574'][id++%4],id);
+  }
   // MERIDIAN market: open front doorway and broken facade; three unique quest crates.
   const market = folder(world.Cities,'02_MeridianMarket',true);
   part(market,'Floor',[65,0.5,65],[-62,0.3,100],P.concrete);

@@ -1,5 +1,5 @@
 {
-  "version": "0.1.1",
+  "version": "0.2.0",
   "serialization": {
     "status": "PASSED",
     "count": 10
@@ -10,44 +10,54 @@
     "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
   },
   "studio_import": {
-    "version": "0.1.1",
+    "version": "0.2.0",
     "status": "NOT TESTED"
+  },
+  "studio_import_0_1_1": {
+    "status": "PASSED",
+    "evidence": "User screenshots show loading GUI and editable 3D scene; gameplay startup was not confirmed"
+  },
+  "roads": {
+    "status": "PASSED",
+    "count": 7
   },
   "luau_version": "0.743",
   "source_compilation": {
     "status": "PASSED",
-    "count": 47
+    "count": 48
   },
   "domain": {
     "status": "PASSED",
-    "count": 97
+    "count": 100
   },
   "mock_adapters": {
     "status": "PASSED",
-    "count": 61,
+    "count": 68,
     "scope": "API doubles; NOT Roblox Studio"
   },
   "binary": {
-    "assertions": 45,
-    "instances": 2167,
-    "parts": 1862,
-    "scripts": 47,
-    "bytes": 147395,
-    "sha256": "269bb85efe8b44207d247adadedb4ec6ee9127171cc809b8a4b1aa22c2727991",
+    "assertions": 57,
+    "instances": 6540,
+    "parts": 6117,
+    "scripts": 48,
+    "bytes": 217569,
+    "sha256": "a93ad7131b95d041f42fb2888bae6fe9ac4a9b7cf9c6e3eb0406b959177befe3",
     "classes": {
       "Workspace": 1,
       "Camera": 1,
       "Terrain": 1,
-      "Folder": 18,
-      "Part": 1861,
-      "Model": 107,
-      "SurfaceGui": 9,
-      "TextLabel": 15,
-      "PointLight": 13,
+      "Folder": 19,
+      "Part": 6113,
+      "Model": 135,
+      "SurfaceGui": 24,
+      "TextLabel": 30,
+      "PointLight": 20,
       "SpawnLocation": 1,
-      "StringValue": 21,
-      "IntValue": 42,
+      "TrussPart": 2,
+      "StringValue": 52,
+      "IntValue": 60,
       "BillboardGui": 6,
+      "NumberValue": 2,
       "Lighting": 1,
       "Atmosphere": 1,
       "ColorCorrectionEffect": 1,
@@ -56,7 +66,7 @@
       "Sky": 1,
       "ReplicatedStorage": 1,
       "RemoteEvent": 11,
-      "ModuleScript": 44,
+      "ModuleScript": 45,
       "ServerScriptService": 1,
       "Script": 1,
       "StarterPlayer": 1,
@@ -64,7 +74,8 @@
       "LocalScript": 2,
       "StarterGui": 1,
       "ReplicatedFirst": 1,
-      "SoundService": 1
+      "SoundService": 1,
+      "MaterialService": 1
     }
   },
   "deterministic_build": "PASSED",
