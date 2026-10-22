@@ -590,6 +590,12 @@ export const dreamHud = () => screenGui('DreamHUD', { DisplayOrder: 10, Enabled:
       ]),
     ]),
   ]),
+  // Заголовок сна: показывается первые секунды после пробуждения в кошмаре
+  ui.frame({ Name: 'DreamIntro', AnchorPoint: v2(0.5, 0.5), Position: udim2(0.5, 0, 0.3, 0), Size: udim2(0, 760, 0, 120), BackgroundTransparency: 1, Visible: false, ZIndex: 7 }, [
+    bold('', { Name: 'IntroTitle', Position: udim2(0, 0, 0, 0), Size: udim2(1, 0, 0, 54), TextColor3: C.moon, maxTextSize: 42 }),
+    text('', { Name: 'IntroSubtitle', Position: udim2(0, 0, 0, 58), Size: udim2(1, 0, 0, 28), TextColor3: C.dim, maxTextSize: 20 }),
+    text('', { Name: 'IntroHint', Position: udim2(0, 0, 0, 90), Size: udim2(1, 0, 0, 22), TextColor3: C.accent, maxTextSize: 16 }),
+  ]),
   ui.frame({ Name: 'Vitals', Position: udim2(0, 26, 0, 26), Size: udim2(0, 250, 0, 196), BackgroundTransparency: 1, ZIndex: 5 }, [
     vitalBar('HealthBar', '❤ ЗДОРОВЬЕ', C.danger, udim2(0, 0, 0, 0)),
     vitalBar('SanityBar', '🧠 РАССУДОК', C.accent, udim2(0, 0, 0, 44)),

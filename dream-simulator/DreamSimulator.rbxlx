@@ -257924,6 +257924,168 @@ F — фонарик · TAB — задания</string>
       </Item>
       <Item class="Frame" referent="8000">
         <Properties>
+          <string name="Name">DreamIntro</string>
+          <Vector2 name="AnchorPoint">
+            <X>0.5</X>
+            <Y>0.5</Y>
+          </Vector2>
+          <Color3 name="BackgroundColor3">
+            <R>0.039215688</R>
+            <G>0.047058824</G>
+            <B>0.09411765</B>
+          </Color3>
+          <float name="BackgroundTransparency">1</float>
+          <int name="BorderSizePixel">0</int>
+          <UDim2 name="Position">
+            <XS>0.5</XS>
+            <XO>0</XO>
+            <YS>0</YS>
+            <YO>0</YO>
+          </UDim2>
+          <UDim2 name="Size">
+            <XS>0</XS>
+            <XO>0</XO>
+            <YS>760</YS>
+            <YO>0</YO>
+          </UDim2>
+          <bool name="Visible">false</bool>
+          <int name="ZIndex">7</int>
+        </Properties>
+        <Item class="TextLabel" referent="8001">
+          <Properties>
+            <string name="Name">IntroTitle</string>
+            <float name="BackgroundTransparency">1</float>
+            <int name="BorderSizePixel">0</int>
+            <Font name="FontFace">
+              <Family>
+                <url>rbxasset://fonts/families/GothamSSm.json</url>
+              </Family>
+              <Weight>700</Weight>
+              <Style>Normal</Style>
+            </Font>
+            <UDim2 name="Position">
+              <XS>0</XS>
+              <XO>0</XO>
+              <YS>0</YS>
+              <YO>0</YO>
+            </UDim2>
+            <bool name="RichText">true</bool>
+            <UDim2 name="Size">
+              <XS>1</XS>
+              <XO>0</XO>
+              <YS>0</YS>
+              <YO>0</YO>
+            </UDim2>
+            <string name="Text"></string>
+            <Color3 name="TextColor3">
+              <R>0.9411765</R>
+              <G>0.9254902</G>
+              <B>1</B>
+            </Color3>
+            <bool name="TextScaled">true</bool>
+            <float name="TextSize">18</float>
+            <bool name="TextWrapped">false</bool>
+            <token name="TextXAlignment">2</token>
+            <token name="TextYAlignment">1</token>
+          </Properties>
+          <Item class="UITextSizeConstraint" referent="8002">
+            <Properties>
+              <string name="Name">SizeConstraint</string>
+              <int name="MaxTextSize">42</int>
+            </Properties>
+          </Item>
+        </Item>
+        <Item class="TextLabel" referent="8003">
+          <Properties>
+            <string name="Name">IntroSubtitle</string>
+            <float name="BackgroundTransparency">1</float>
+            <int name="BorderSizePixel">0</int>
+            <Font name="FontFace">
+              <Family>
+                <url>rbxasset://fonts/families/GothamSSm.json</url>
+              </Family>
+              <Weight>400</Weight>
+              <Style>Normal</Style>
+            </Font>
+            <UDim2 name="Position">
+              <XS>0</XS>
+              <XO>0</XO>
+              <YS>0</YS>
+              <YO>0</YO>
+            </UDim2>
+            <bool name="RichText">true</bool>
+            <UDim2 name="Size">
+              <XS>1</XS>
+              <XO>0</XO>
+              <YS>0</YS>
+              <YO>0</YO>
+            </UDim2>
+            <string name="Text"></string>
+            <Color3 name="TextColor3">
+              <R>0.61960787</R>
+              <G>0.6313726</G>
+              <B>0.7764706</B>
+            </Color3>
+            <bool name="TextScaled">true</bool>
+            <float name="TextSize">18</float>
+            <bool name="TextWrapped">false</bool>
+            <token name="TextXAlignment">2</token>
+            <token name="TextYAlignment">1</token>
+          </Properties>
+          <Item class="UITextSizeConstraint" referent="8004">
+            <Properties>
+              <string name="Name">SizeConstraint</string>
+              <int name="MaxTextSize">20</int>
+            </Properties>
+          </Item>
+        </Item>
+        <Item class="TextLabel" referent="8005">
+          <Properties>
+            <string name="Name">IntroHint</string>
+            <float name="BackgroundTransparency">1</float>
+            <int name="BorderSizePixel">0</int>
+            <Font name="FontFace">
+              <Family>
+                <url>rbxasset://fonts/families/GothamSSm.json</url>
+              </Family>
+              <Weight>400</Weight>
+              <Style>Normal</Style>
+            </Font>
+            <UDim2 name="Position">
+              <XS>0</XS>
+              <XO>0</XO>
+              <YS>0</YS>
+              <YO>0</YO>
+            </UDim2>
+            <bool name="RichText">true</bool>
+            <UDim2 name="Size">
+              <XS>1</XS>
+              <XO>0</XO>
+              <YS>0</YS>
+              <YO>0</YO>
+            </UDim2>
+            <string name="Text"></string>
+            <Color3 name="TextColor3">
+              <R>0.6509804</R>
+              <G>0.54901963</G>
+              <B>1</B>
+            </Color3>
+            <bool name="TextScaled">true</bool>
+            <float name="TextSize">18</float>
+            <bool name="TextWrapped">false</bool>
+            <token name="TextXAlignment">2</token>
+            <token name="TextYAlignment">1</token>
+          </Properties>
+          <Item class="UITextSizeConstraint" referent="8006">
+            <Properties>
+              <string name="Name">SizeConstraint</string>
+              <int name="MaxTextSize">16</int>
+            </Properties>
+          </Item>
+        </Item>
+      </Item>
+      <Item class="Frame" referent="8007">
+        <Properties>
           <string name="Name">Vitals</string>
           <Color3 name="BackgroundColor3">
             <R>0.039215688</R>
@@ -257946,7 +258108,7 @@ F — фонарик · TAB — задания</string>
           </UDim2>
           <int name="ZIndex">5</int>
         </Properties>
-        <Item class="Frame" referent="8001">
+        <Item class="Frame" referent="8008">
           <Properties>
             <string name="Name">HealthBar</string>
             <Color3 name="BackgroundColor3">
@@ -257969,7 +258131,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="TextLabel" referent="8002">
+          <Item class="TextLabel" referent="8009">
             <Properties>
               <string name="Name">TextLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -258006,14 +258168,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8003">
+            <Item class="UITextSizeConstraint" referent="8010">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">13</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="Frame" referent="8004">
+          <Item class="Frame" referent="8011">
             <Properties>
               <string name="Name">Track</string>
               <Color3 name="BackgroundColor3">
@@ -258036,7 +258198,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8005">
+            <Item class="UICorner" referent="8012">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -258057,7 +258219,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="Frame" referent="8006">
+            <Item class="Frame" referent="8013">
               <Properties>
                 <string name="Name">Fill</string>
                 <Color3 name="BackgroundColor3">
@@ -258074,7 +258236,7 @@ F — фонарик · TAB — задания</string>
                   <YO>0</YO>
                 </UDim2>
               </Properties>
-              <Item class="UICorner" referent="8007">
+              <Item class="UICorner" referent="8014">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -258095,7 +258257,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIGradient" referent="8008">
+              <Item class="UIGradient" referent="8015">
                 <Properties>
                   <string name="Name">UIGradient</string>
                   <ColorSequence name="Color">0 1 0.36078432 0.42352942 0 1 1 0.36078432 0.42352942 0 </ColorSequence>
@@ -258105,7 +258267,7 @@ F — фонарик · TAB — задания</string>
             </Item>
           </Item>
         </Item>
-        <Item class="Frame" referent="8009">
+        <Item class="Frame" referent="8016">
           <Properties>
             <string name="Name">SanityBar</string>
             <Color3 name="BackgroundColor3">
@@ -258128,7 +258290,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="TextLabel" referent="8010">
+          <Item class="TextLabel" referent="8017">
             <Properties>
               <string name="Name">TextLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -258165,14 +258327,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8011">
+            <Item class="UITextSizeConstraint" referent="8018">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">13</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="Frame" referent="8012">
+          <Item class="Frame" referent="8019">
             <Properties>
               <string name="Name">Track</string>
               <Color3 name="BackgroundColor3">
@@ -258195,7 +258357,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8013">
+            <Item class="UICorner" referent="8020">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -258216,7 +258378,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="Frame" referent="8014">
+            <Item class="Frame" referent="8021">
               <Properties>
                 <string name="Name">Fill</string>
                 <Color3 name="BackgroundColor3">
@@ -258233,7 +258395,7 @@ F — фонарик · TAB — задания</string>
                   <YO>0</YO>
                 </UDim2>
               </Properties>
-              <Item class="UICorner" referent="8015">
+              <Item class="UICorner" referent="8022">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -258254,7 +258416,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIGradient" referent="8016">
+              <Item class="UIGradient" referent="8023">
                 <Properties>
                   <string name="Name">UIGradient</string>
                   <ColorSequence name="Color">0 0.6509804 0.54901963 1 0 1 0.6509804 0.54901963 1 0 </ColorSequence>
@@ -258264,7 +258426,7 @@ F — фонарик · TAB — задания</string>
             </Item>
           </Item>
         </Item>
-        <Item class="Frame" referent="8017">
+        <Item class="Frame" referent="8024">
           <Properties>
             <string name="Name">StaminaBar</string>
             <Color3 name="BackgroundColor3">
@@ -258287,7 +258449,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="TextLabel" referent="8018">
+          <Item class="TextLabel" referent="8025">
             <Properties>
               <string name="Name">TextLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -258324,14 +258486,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8019">
+            <Item class="UITextSizeConstraint" referent="8026">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">13</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="Frame" referent="8020">
+          <Item class="Frame" referent="8027">
             <Properties>
               <string name="Name">Track</string>
               <Color3 name="BackgroundColor3">
@@ -258354,7 +258516,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8021">
+            <Item class="UICorner" referent="8028">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -258375,7 +258537,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="Frame" referent="8022">
+            <Item class="Frame" referent="8029">
               <Properties>
                 <string name="Name">Fill</string>
                 <Color3 name="BackgroundColor3">
@@ -258392,7 +258554,7 @@ F — фонарик · TAB — задания</string>
                   <YO>0</YO>
                 </UDim2>
               </Properties>
-              <Item class="UICorner" referent="8023">
+              <Item class="UICorner" referent="8030">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -258413,7 +258575,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIGradient" referent="8024">
+              <Item class="UIGradient" referent="8031">
                 <Properties>
                   <string name="Name">UIGradient</string>
                   <ColorSequence name="Color">0 0.43137255 0.8627451 1 0 1 0.43137255 0.8627451 1 0 </ColorSequence>
@@ -258423,7 +258585,7 @@ F — фонарик · TAB — задания</string>
             </Item>
           </Item>
         </Item>
-        <Item class="Frame" referent="8025">
+        <Item class="Frame" referent="8032">
           <Properties>
             <string name="Name">BatteryBar</string>
             <Color3 name="BackgroundColor3">
@@ -258446,7 +258608,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="TextLabel" referent="8026">
+          <Item class="TextLabel" referent="8033">
             <Properties>
               <string name="Name">TextLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -258483,14 +258645,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8027">
+            <Item class="UITextSizeConstraint" referent="8034">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">13</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="Frame" referent="8028">
+          <Item class="Frame" referent="8035">
             <Properties>
               <string name="Name">Track</string>
               <Color3 name="BackgroundColor3">
@@ -258513,7 +258675,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8029">
+            <Item class="UICorner" referent="8036">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -258534,7 +258696,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="Frame" referent="8030">
+            <Item class="Frame" referent="8037">
               <Properties>
                 <string name="Name">Fill</string>
                 <Color3 name="BackgroundColor3">
@@ -258551,7 +258713,7 @@ F — фонарик · TAB — задания</string>
                   <YO>0</YO>
                 </UDim2>
               </Properties>
-              <Item class="UICorner" referent="8031">
+              <Item class="UICorner" referent="8038">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -258572,7 +258734,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIGradient" referent="8032">
+              <Item class="UIGradient" referent="8039">
                 <Properties>
                   <string name="Name">UIGradient</string>
                   <ColorSequence name="Color">0 1 0.81960785 0.4 0 1 1 0.81960785 0.4 0 </ColorSequence>
@@ -258583,7 +258745,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8033">
+      <Item class="Frame" referent="8040">
         <Properties>
           <string name="Name">FlashlightChip</string>
           <Color3 name="BackgroundColor3">
@@ -258607,7 +258769,7 @@ F — фонарик · TAB — задания</string>
           </UDim2>
           <int name="ZIndex">5</int>
         </Properties>
-        <Item class="UICorner" referent="8034">
+        <Item class="UICorner" referent="8041">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -258628,7 +258790,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8035">
+        <Item class="UIStroke" referent="8042">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -258641,7 +258803,7 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.55</float>
           </Properties>
         </Item>
-        <Item class="TextLabel" referent="8036">
+        <Item class="TextLabel" referent="8043">
           <Properties>
             <string name="Name">FlashlightLabel</string>
             <float name="BackgroundTransparency">1</float>
@@ -258678,7 +258840,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">0</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8037">
+          <Item class="UITextSizeConstraint" referent="8044">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">15</int>
@@ -258686,7 +258848,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8038">
+      <Item class="Frame" referent="8045">
         <Properties>
           <string name="Name">QuestTracker</string>
           <Color3 name="BackgroundColor3">
@@ -258710,7 +258872,7 @@ F — фонарик · TAB — задания</string>
           </UDim2>
           <int name="ZIndex">5</int>
         </Properties>
-        <Item class="UICorner" referent="8039">
+        <Item class="UICorner" referent="8046">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -258731,7 +258893,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8040">
+        <Item class="UIStroke" referent="8047">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -258744,7 +258906,7 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.6</float>
           </Properties>
         </Item>
-        <Item class="TextLabel" referent="8041">
+        <Item class="TextLabel" referent="8048">
           <Properties>
             <string name="Name">QuestTitle</string>
             <float name="BackgroundTransparency">1</float>
@@ -258781,14 +258943,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">0</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8042">
+          <Item class="UITextSizeConstraint" referent="8049">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">16</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="Frame" referent="8043">
+        <Item class="Frame" referent="8050">
           <Properties>
             <string name="Name">ObjectiveList</string>
             <Color3 name="BackgroundColor3">
@@ -258811,7 +258973,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="UIListLayout" referent="8044">
+          <Item class="UIListLayout" referent="8051">
             <Properties>
               <string name="Name">UIListLayout</string>
               <token name="FillDirection">1</token>
@@ -258824,7 +258986,7 @@ F — фонарик · TAB — задания</string>
               <token name="VerticalAlignment">1</token>
             </Properties>
           </Item>
-          <Item class="TextLabel" referent="8045">
+          <Item class="TextLabel" referent="8052">
             <Properties>
               <string name="Name">ObjectiveTemplate</string>
               <float name="BackgroundTransparency">1</float>
@@ -258857,7 +259019,7 @@ F — фонарик · TAB — задания</string>
               <token name="TextYAlignment">1</token>
               <bool name="Visible">false</bool>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8046">
+            <Item class="UITextSizeConstraint" referent="8053">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">14</int>
@@ -258866,7 +259028,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8047">
+      <Item class="Frame" referent="8054">
         <Properties>
           <string name="Name">Compass</string>
           <Vector2 name="AnchorPoint">
@@ -258895,7 +259057,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">5</int>
         </Properties>
-        <Item class="TextLabel" referent="8048">
+        <Item class="TextLabel" referent="8055">
           <Properties>
             <string name="Name">CompassArrow</string>
             <Vector2 name="AnchorPoint">
@@ -258936,14 +259098,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8049">
+          <Item class="UITextSizeConstraint" referent="8056">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">30</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextLabel" referent="8050">
+        <Item class="TextLabel" referent="8057">
           <Properties>
             <string name="Name">DistanceLabel</string>
             <float name="BackgroundTransparency">1</float>
@@ -258980,7 +259142,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8051">
+          <Item class="UITextSizeConstraint" referent="8058">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">13</int>
@@ -258988,7 +259150,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8052">
+      <Item class="Frame" referent="8059">
         <Properties>
           <string name="Name">InteractPrompt</string>
           <Vector2 name="AnchorPoint">
@@ -259017,7 +259179,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="UICorner" referent="8053">
+        <Item class="UICorner" referent="8060">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -259038,7 +259200,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8054">
+        <Item class="UIStroke" referent="8061">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -259051,7 +259213,7 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.25</float>
           </Properties>
         </Item>
-        <Item class="Frame" referent="8055">
+        <Item class="Frame" referent="8062">
           <Properties>
             <string name="Name">KeyCap</string>
             <Color3 name="BackgroundColor3">
@@ -259074,7 +259236,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="UICorner" referent="8056">
+          <Item class="UICorner" referent="8063">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -259095,7 +259257,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="TextLabel" referent="8057">
+          <Item class="TextLabel" referent="8064">
             <Properties>
               <string name="Name">KeyLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -259126,7 +259288,7 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">2</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8058">
+            <Item class="UITextSizeConstraint" referent="8065">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">20</int>
@@ -259134,7 +259296,7 @@ F — фонарик · TAB — задания</string>
             </Item>
           </Item>
         </Item>
-        <Item class="TextLabel" referent="8059">
+        <Item class="TextLabel" referent="8066">
           <Properties>
             <string name="Name">PromptText</string>
             <float name="BackgroundTransparency">1</float>
@@ -259171,7 +259333,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">0</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8060">
+          <Item class="UITextSizeConstraint" referent="8067">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">19</int>
@@ -259179,7 +259341,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8061">
+      <Item class="Frame" referent="8068">
         <Properties>
           <string name="Name">ToastArea</string>
           <Vector2 name="AnchorPoint">
@@ -259207,7 +259369,7 @@ F — фонарик · TAB — задания</string>
           </UDim2>
           <int name="ZIndex">7</int>
         </Properties>
-        <Item class="UIListLayout" referent="8062">
+        <Item class="UIListLayout" referent="8069">
           <Properties>
             <string name="Name">UIListLayout</string>
             <token name="FillDirection">1</token>
@@ -259220,7 +259382,7 @@ F — фонарик · TAB — задания</string>
             <token name="VerticalAlignment">2</token>
           </Properties>
         </Item>
-        <Item class="Frame" referent="8063">
+        <Item class="Frame" referent="8070">
           <Properties>
             <string name="Name">ToastTemplate</string>
             <Color3 name="BackgroundColor3">
@@ -259239,7 +259401,7 @@ F — фонарик · TAB — задания</string>
             </UDim2>
             <bool name="Visible">false</bool>
           </Properties>
-          <Item class="UICorner" referent="8064">
+          <Item class="UICorner" referent="8071">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -259260,7 +259422,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8065">
+          <Item class="UIStroke" referent="8072">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -259273,7 +259435,7 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.35</float>
             </Properties>
           </Item>
-          <Item class="TextLabel" referent="8066">
+          <Item class="TextLabel" referent="8073">
             <Properties>
               <string name="Name">Icon</string>
               <float name="BackgroundTransparency">1</float>
@@ -259310,14 +259472,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">2</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8067">
+            <Item class="UITextSizeConstraint" referent="8074">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">20</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="TextLabel" referent="8068">
+          <Item class="TextLabel" referent="8075">
             <Properties>
               <string name="Name">Text</string>
               <float name="BackgroundTransparency">1</float>
@@ -259354,7 +259516,7 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8069">
+            <Item class="UITextSizeConstraint" referent="8076">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">15</int>
@@ -259363,7 +259525,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8070">
+      <Item class="Frame" referent="8077">
         <Properties>
           <string name="Name">EventBanner</string>
           <Vector2 name="AnchorPoint">
@@ -259392,7 +259554,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="UICorner" referent="8071">
+        <Item class="UICorner" referent="8078">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -259413,7 +259575,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8072">
+        <Item class="UIStroke" referent="8079">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -259426,7 +259588,7 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.35</float>
           </Properties>
         </Item>
-        <Item class="TextLabel" referent="8073">
+        <Item class="TextLabel" referent="8080">
           <Properties>
             <string name="Name">EventIcon</string>
             <float name="BackgroundTransparency">1</float>
@@ -259463,14 +259625,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8074">
+          <Item class="UITextSizeConstraint" referent="8081">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">40</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextLabel" referent="8075">
+        <Item class="TextLabel" referent="8082">
           <Properties>
             <string name="Name">EventTitle</string>
             <float name="BackgroundTransparency">1</float>
@@ -259507,14 +259669,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">0</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8076">
+          <Item class="UITextSizeConstraint" referent="8083">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">22</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextLabel" referent="8077">
+        <Item class="TextLabel" referent="8084">
           <Properties>
             <string name="Name">EventDesc</string>
             <float name="BackgroundTransparency">1</float>
@@ -259551,7 +259713,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">0</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8078">
+          <Item class="UITextSizeConstraint" referent="8085">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">15</int>
@@ -259559,7 +259721,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8079">
+      <Item class="Frame" referent="8086">
         <Properties>
           <string name="Name">MonsterAlert</string>
           <Vector2 name="AnchorPoint">
@@ -259588,7 +259750,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="UICorner" referent="8080">
+        <Item class="UICorner" referent="8087">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -259609,7 +259771,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8081">
+        <Item class="UIStroke" referent="8088">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -259622,7 +259784,7 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.2</float>
           </Properties>
         </Item>
-        <Item class="TextLabel" referent="8082">
+        <Item class="TextLabel" referent="8089">
           <Properties>
             <string name="Name">MonsterName</string>
             <float name="BackgroundTransparency">1</float>
@@ -259653,7 +259815,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8083">
+          <Item class="UITextSizeConstraint" referent="8090">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">22</int>
@@ -259661,7 +259823,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8084">
+      <Item class="Frame" referent="8091">
         <Properties>
           <string name="Name">PortalHint</string>
           <Vector2 name="AnchorPoint">
@@ -259690,7 +259852,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="UICorner" referent="8085">
+        <Item class="UICorner" referent="8092">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -259711,7 +259873,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="TextLabel" referent="8086">
+        <Item class="TextLabel" referent="8093">
           <Properties>
             <string name="Name">Label</string>
             <float name="BackgroundTransparency">1</float>
@@ -259742,7 +259904,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8087">
+          <Item class="UITextSizeConstraint" referent="8094">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">18</int>
@@ -259750,7 +259912,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8088">
+      <Item class="Frame" referent="8095">
         <Properties>
           <string name="Name">HintLabel</string>
           <Vector2 name="AnchorPoint">
@@ -259779,7 +259941,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="TextLabel" referent="8089">
+        <Item class="TextLabel" referent="8096">
           <Properties>
             <string name="Name">Label</string>
             <float name="BackgroundTransparency">1</float>
@@ -259811,7 +259973,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8090">
+          <Item class="UITextSizeConstraint" referent="8097">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">17</int>
@@ -259819,7 +259981,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8091">
+      <Item class="Frame" referent="8098">
         <Properties>
           <string name="Name">Crosshair</string>
           <Vector2 name="AnchorPoint">
@@ -259847,7 +260009,7 @@ F — фонарик · TAB — задания</string>
           </UDim2>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="UICorner" referent="8092">
+        <Item class="UICorner" referent="8099">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -259869,7 +260031,7 @@ F — фонарик · TAB — задания</string>
           </Properties>
         </Item>
       </Item>
-      <Item class="Frame" referent="8093">
+      <Item class="Frame" referent="8100">
         <Properties>
           <string name="Name">WhisperLabel</string>
           <Vector2 name="AnchorPoint">
@@ -259898,7 +260060,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">6</int>
         </Properties>
-        <Item class="TextLabel" referent="8094">
+        <Item class="TextLabel" referent="8101">
           <Properties>
             <string name="Name">Label</string>
             <float name="BackgroundTransparency">1</float>
@@ -259930,7 +260092,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8095">
+          <Item class="UITextSizeConstraint" referent="8102">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">26</int>
@@ -259938,7 +260100,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8096">
+      <Item class="Frame" referent="8103">
         <Properties>
           <string name="Name">Jumpscare</string>
           <Color3 name="BackgroundColor3">
@@ -259957,7 +260119,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">9</int>
         </Properties>
-        <Item class="TextLabel" referent="8097">
+        <Item class="TextLabel" referent="8104">
           <Properties>
             <string name="Name">JumpscareIcon</string>
             <float name="BackgroundTransparency">1</float>
@@ -259988,14 +260150,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8098">
+          <Item class="UITextSizeConstraint" referent="8105">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">220</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextLabel" referent="8099">
+        <Item class="TextLabel" referent="8106">
           <Properties>
             <string name="Name">JumpscareName</string>
             <float name="BackgroundTransparency">1</float>
@@ -260032,7 +260194,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8100">
+          <Item class="UITextSizeConstraint" referent="8107">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">64</int>
@@ -260040,7 +260202,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8101">
+      <Item class="Frame" referent="8108">
         <Properties>
           <string name="Name">Dialog</string>
           <Color3 name="BackgroundColor3">
@@ -260059,7 +260221,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">8</int>
         </Properties>
-        <Item class="Frame" referent="8102">
+        <Item class="Frame" referent="8109">
           <Properties>
             <string name="Name">Panel</string>
             <Vector2 name="AnchorPoint">
@@ -260086,7 +260248,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="Frame" referent="8103">
+          <Item class="Frame" referent="8110">
             <Properties>
               <string name="Name">Portrait</string>
               <Color3 name="BackgroundColor3">
@@ -260108,7 +260270,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8104">
+            <Item class="UICorner" referent="8111">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -260129,7 +260291,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="UIStroke" referent="8105">
+            <Item class="UIStroke" referent="8112">
               <Properties>
                 <string name="Name">UIStroke</string>
                 <token name="ApplyStrokeMode">0</token>
@@ -260142,7 +260304,7 @@ F — фонарик · TAB — задания</string>
                 <float name="Transparency">0.3</float>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8106">
+            <Item class="TextLabel" referent="8113">
               <Properties>
                 <string name="Name">Icon</string>
                 <float name="BackgroundTransparency">1</float>
@@ -260173,7 +260335,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">2</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8107">
+              <Item class="UITextSizeConstraint" referent="8114">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">64</int>
@@ -260181,7 +260343,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="TextLabel" referent="8108">
+          <Item class="TextLabel" referent="8115">
             <Properties>
               <string name="Name">NpcName</string>
               <float name="BackgroundTransparency">1</float>
@@ -260218,14 +260380,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8109">
+            <Item class="UITextSizeConstraint" referent="8116">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">26</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="TextLabel" referent="8110">
+          <Item class="TextLabel" referent="8117">
             <Properties>
               <string name="Name">DialogText</string>
               <float name="BackgroundTransparency">1</float>
@@ -260262,14 +260424,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">0</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8111">
+            <Item class="UITextSizeConstraint" referent="8118">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">19</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="ScrollingFrame" referent="8112">
+          <Item class="ScrollingFrame" referent="8119">
             <Properties>
               <string name="Name">Options</string>
               <token name="AutomaticCanvasSize">2</token>
@@ -260301,7 +260463,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UIListLayout" referent="8113">
+            <Item class="UIListLayout" referent="8120">
               <Properties>
                 <string name="Name">UIListLayout</string>
                 <token name="FillDirection">1</token>
@@ -260314,7 +260476,7 @@ F — фонарик · TAB — задания</string>
                 <token name="VerticalAlignment">1</token>
               </Properties>
             </Item>
-            <Item class="UIPadding" referent="8114">
+            <Item class="UIPadding" referent="8121">
               <Properties>
                 <string name="Name">UIPadding</string>
                 <UDim name="PaddingBottom">
@@ -260335,7 +260497,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextButton" referent="8115">
+            <Item class="TextButton" referent="8122">
               <Properties>
                 <string name="Name">OptionTemplate</string>
                 <bool name="AutoButtonColor">false</bool>
@@ -260372,7 +260534,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextYAlignment">1</token>
                 <bool name="Visible">false</bool>
               </Properties>
-              <Item class="UICorner" referent="8116">
+              <Item class="UICorner" referent="8123">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -260393,7 +260555,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIStroke" referent="8117">
+              <Item class="UIStroke" referent="8124">
                 <Properties>
                   <string name="Name">UIStroke</string>
                   <token name="ApplyStrokeMode">0</token>
@@ -260406,7 +260568,7 @@ F — фонарик · TAB — задания</string>
                   <float name="Transparency">0.5</float>
                 </Properties>
               </Item>
-              <Item class="TextLabel" referent="8118">
+              <Item class="TextLabel" referent="8125">
                 <Properties>
                   <string name="Name">Label</string>
                   <float name="BackgroundTransparency">1</float>
@@ -260443,7 +260605,7 @@ F — фонарик · TAB — задания</string>
                   <token name="TextXAlignment">0</token>
                   <token name="TextYAlignment">1</token>
                 </Properties>
-                <Item class="UITextSizeConstraint" referent="8119">
+                <Item class="UITextSizeConstraint" referent="8126">
                   <Properties>
                     <string name="Name">SizeConstraint</string>
                     <int name="MaxTextSize">17</int>
@@ -260452,7 +260614,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="TextButton" referent="8120">
+          <Item class="TextButton" referent="8127">
             <Properties>
               <string name="Name">CloseButton</string>
               <Vector2 name="AnchorPoint">
@@ -260498,7 +260660,7 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">2</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UICorner" referent="8121">
+            <Item class="UICorner" referent="8128">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -260519,7 +260681,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="UIStroke" referent="8122">
+            <Item class="UIStroke" referent="8129">
               <Properties>
                 <string name="Name">UIStroke</string>
                 <token name="ApplyStrokeMode">0</token>
@@ -260532,14 +260694,14 @@ F — фонарик · TAB — задания</string>
                 <float name="Transparency">0.62</float>
               </Properties>
             </Item>
-            <Item class="UITextSizeConstraint" referent="8123">
+            <Item class="UITextSizeConstraint" referent="8130">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">24</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="UICorner" referent="8124">
+          <Item class="UICorner" referent="8131">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -260560,7 +260722,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8125">
+          <Item class="UIStroke" referent="8132">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -260573,7 +260735,7 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.55</float>
             </Properties>
           </Item>
-          <Item class="UIGradient" referent="8126">
+          <Item class="UIGradient" referent="8133">
             <Properties>
               <string name="Name">UIGradient</string>
               <ColorSequence name="Color">0 0.09019608 0.101960786 0.2 0 1 0.043137256 0.047058824 0.09411765 0 </ColorSequence>
@@ -260582,7 +260744,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8127">
+      <Item class="Frame" referent="8134">
         <Properties>
           <string name="Name">MobileControls</string>
           <Color3 name="BackgroundColor3">
@@ -260601,7 +260763,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">7</int>
         </Properties>
-        <Item class="TextButton" referent="8128">
+        <Item class="TextButton" referent="8135">
           <Properties>
             <string name="Name">SprintButton</string>
             <bool name="AutoButtonColor">false</bool>
@@ -260643,7 +260805,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UICorner" referent="8129">
+          <Item class="UICorner" referent="8136">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -260664,7 +260826,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8130">
+          <Item class="UIStroke" referent="8137">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -260677,14 +260839,14 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.2</float>
             </Properties>
           </Item>
-          <Item class="UITextSizeConstraint" referent="8131">
+          <Item class="UITextSizeConstraint" referent="8138">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">32</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextButton" referent="8132">
+        <Item class="TextButton" referent="8139">
           <Properties>
             <string name="Name">InteractButton</string>
             <bool name="AutoButtonColor">false</bool>
@@ -260726,7 +260888,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UICorner" referent="8133">
+          <Item class="UICorner" referent="8140">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -260747,7 +260909,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8134">
+          <Item class="UIStroke" referent="8141">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -260760,14 +260922,14 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.2</float>
             </Properties>
           </Item>
-          <Item class="UITextSizeConstraint" referent="8135">
+          <Item class="UITextSizeConstraint" referent="8142">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">32</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextButton" referent="8136">
+        <Item class="TextButton" referent="8143">
           <Properties>
             <string name="Name">FlashlightButton</string>
             <bool name="AutoButtonColor">false</bool>
@@ -260809,7 +260971,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UICorner" referent="8137">
+          <Item class="UICorner" referent="8144">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -260830,7 +260992,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8138">
+          <Item class="UIStroke" referent="8145">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -260843,14 +261005,14 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.2</float>
             </Properties>
           </Item>
-          <Item class="UITextSizeConstraint" referent="8139">
+          <Item class="UITextSizeConstraint" referent="8146">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">32</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextButton" referent="8140">
+        <Item class="TextButton" referent="8147">
           <Properties>
             <string name="Name">UseItemButton</string>
             <bool name="AutoButtonColor">false</bool>
@@ -260892,7 +261054,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UICorner" referent="8141">
+          <Item class="UICorner" referent="8148">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -260913,7 +261075,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8142">
+          <Item class="UIStroke" referent="8149">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -260926,7 +261088,7 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.2</float>
             </Properties>
           </Item>
-          <Item class="UITextSizeConstraint" referent="8143">
+          <Item class="UITextSizeConstraint" referent="8150">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">32</int>
@@ -260934,7 +261096,7 @@ F — фонарик · TAB — задания</string>
           </Item>
         </Item>
       </Item>
-      <Item class="Frame" referent="8144">
+      <Item class="Frame" referent="8151">
         <Properties>
           <string name="Name">QuestLog</string>
           <Color3 name="BackgroundColor3">
@@ -260953,7 +261115,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">7</int>
         </Properties>
-        <Item class="Frame" referent="8145">
+        <Item class="Frame" referent="8152">
           <Properties>
             <string name="Name">Panel</string>
             <Vector2 name="AnchorPoint">
@@ -260980,7 +261142,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="TextLabel" referent="8146">
+          <Item class="TextLabel" referent="8153">
             <Properties>
               <string name="Name">TextLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -261017,14 +261179,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8147">
+            <Item class="UITextSizeConstraint" referent="8154">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">26</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="TextLabel" referent="8148">
+          <Item class="TextLabel" referent="8155">
             <Properties>
               <string name="Name">TextLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -261061,14 +261223,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">0</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8149">
+            <Item class="UITextSizeConstraint" referent="8156">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">14</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="ScrollingFrame" referent="8150">
+          <Item class="ScrollingFrame" referent="8157">
             <Properties>
               <string name="Name">QuestLogList</string>
               <token name="AutomaticCanvasSize">2</token>
@@ -261100,7 +261262,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UIListLayout" referent="8151">
+            <Item class="UIListLayout" referent="8158">
               <Properties>
                 <string name="Name">UIListLayout</string>
                 <token name="FillDirection">1</token>
@@ -261113,7 +261275,7 @@ F — фонарик · TAB — задания</string>
                 <token name="VerticalAlignment">1</token>
               </Properties>
             </Item>
-            <Item class="UIPadding" referent="8152">
+            <Item class="UIPadding" referent="8159">
               <Properties>
                 <string name="Name">UIPadding</string>
                 <UDim name="PaddingBottom">
@@ -261134,7 +261296,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="Frame" referent="8153">
+            <Item class="Frame" referent="8160">
               <Properties>
                 <string name="Name">QuestEntryTemplate</string>
                 <Color3 name="BackgroundColor3">
@@ -261153,7 +261315,7 @@ F — фонарик · TAB — задания</string>
                 </UDim2>
                 <bool name="Visible">false</bool>
               </Properties>
-              <Item class="UICorner" referent="8154">
+              <Item class="UICorner" referent="8161">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -261174,7 +261336,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="Frame" referent="8155">
+              <Item class="Frame" referent="8162">
                 <Properties>
                   <string name="Name">Accent</string>
                   <Color3 name="BackgroundColor3">
@@ -261197,7 +261359,7 @@ F — фонарик · TAB — задания</string>
                   </UDim2>
                 </Properties>
               </Item>
-              <Item class="TextLabel" referent="8156">
+              <Item class="TextLabel" referent="8163">
                 <Properties>
                   <string name="Name">Title</string>
                   <float name="BackgroundTransparency">1</float>
@@ -261234,14 +261396,14 @@ F — фонарик · TAB — задания</string>
                   <token name="TextXAlignment">0</token>
                   <token name="TextYAlignment">1</token>
                 </Properties>
-                <Item class="UITextSizeConstraint" referent="8157">
+                <Item class="UITextSizeConstraint" referent="8164">
                   <Properties>
                     <string name="Name">SizeConstraint</string>
                     <int name="MaxTextSize">18</int>
                   </Properties>
                 </Item>
               </Item>
-              <Item class="TextLabel" referent="8158">
+              <Item class="TextLabel" referent="8165">
                 <Properties>
                   <string name="Name">Body</string>
                   <float name="BackgroundTransparency">1</float>
@@ -261278,7 +261440,7 @@ F — фонарик · TAB — задания</string>
                   <token name="TextXAlignment">0</token>
                   <token name="TextYAlignment">0</token>
                 </Properties>
-                <Item class="UITextSizeConstraint" referent="8159">
+                <Item class="UITextSizeConstraint" referent="8166">
                   <Properties>
                     <string name="Name">SizeConstraint</string>
                     <int name="MaxTextSize">14</int>
@@ -261287,7 +261449,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="TextLabel" referent="8160">
+          <Item class="TextLabel" referent="8167">
             <Properties>
               <string name="Name">EmptyLabel</string>
               <float name="BackgroundTransparency">1</float>
@@ -261324,14 +261486,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">2</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8161">
+            <Item class="UITextSizeConstraint" referent="8168">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">18</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="TextButton" referent="8162">
+          <Item class="TextButton" referent="8169">
             <Properties>
               <string name="Name">QuestLogClose</string>
               <Vector2 name="AnchorPoint">
@@ -261377,7 +261539,7 @@ F — фонарик · TAB — задания</string>
               <token name="TextXAlignment">2</token>
               <token name="TextYAlignment">1</token>
             </Properties>
-            <Item class="UICorner" referent="8163">
+            <Item class="UICorner" referent="8170">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -261398,7 +261560,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="UIStroke" referent="8164">
+            <Item class="UIStroke" referent="8171">
               <Properties>
                 <string name="Name">UIStroke</string>
                 <token name="ApplyStrokeMode">0</token>
@@ -261411,14 +261573,14 @@ F — фонарик · TAB — задания</string>
                 <float name="Transparency">0.62</float>
               </Properties>
             </Item>
-            <Item class="UITextSizeConstraint" referent="8165">
+            <Item class="UITextSizeConstraint" referent="8172">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">24</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="UICorner" referent="8166">
+          <Item class="UICorner" referent="8173">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -261439,7 +261601,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8167">
+          <Item class="UIStroke" referent="8174">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -261452,7 +261614,7 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.55</float>
             </Properties>
           </Item>
-          <Item class="UIGradient" referent="8168">
+          <Item class="UIGradient" referent="8175">
             <Properties>
               <string name="Name">UIGradient</string>
               <ColorSequence name="Color">0 0.09019608 0.101960786 0.2 0 1 0.043137256 0.047058824 0.09411765 0 </ColorSequence>
@@ -261462,7 +261624,7 @@ F — фонарик · TAB — задания</string>
         </Item>
       </Item>
     </Item>
-    <Item class="ScreenGui" referent="8169">
+    <Item class="ScreenGui" referent="8176">
       <Properties>
         <string name="Name">ResultGUI</string>
         <int name="DisplayOrder">30</int>
@@ -261471,7 +261633,7 @@ F — фонарик · TAB — задания</string>
         <bool name="ResetOnSpawn">false</bool>
         <token name="ZIndexBehavior">1</token>
       </Properties>
-      <Item class="Frame" referent="8170">
+      <Item class="Frame" referent="8177">
         <Properties>
           <string name="Name">Backdrop</string>
           <Color3 name="BackgroundColor3">
@@ -261489,7 +261651,7 @@ F — фонарик · TAB — задания</string>
           </UDim2>
           <int name="ZIndex">1</int>
         </Properties>
-        <Item class="UIGradient" referent="8171">
+        <Item class="UIGradient" referent="8178">
           <Properties>
             <string name="Name">UIGradient</string>
             <ColorSequence name="Color">0 0.039215688 0.043137256 0.09411765 0 1 0.019607844 0.023529412 0.050980393 0 </ColorSequence>
@@ -261497,7 +261659,7 @@ F — фонарик · TAB — задания</string>
           </Properties>
         </Item>
       </Item>
-      <Item class="Frame" referent="8172">
+      <Item class="Frame" referent="8179">
         <Properties>
           <string name="Name">Card</string>
           <Vector2 name="AnchorPoint">
@@ -261524,7 +261686,7 @@ F — фонарик · TAB — задания</string>
             <YO>0</YO>
           </UDim2>
         </Properties>
-        <Item class="UICorner" referent="8173">
+        <Item class="UICorner" referent="8180">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -261545,7 +261707,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8174">
+        <Item class="UIStroke" referent="8181">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -261558,14 +261720,14 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.35</float>
           </Properties>
         </Item>
-        <Item class="UIGradient" referent="8175">
+        <Item class="UIGradient" referent="8182">
           <Properties>
             <string name="Name">UIGradient</string>
             <ColorSequence name="Color">0 0.101960786 0.11372549 0.22745098 0 1 0.03137255 0.03529412 0.07450981 0 </ColorSequence>
             <float name="Rotation">90</float>
           </Properties>
         </Item>
-        <Item class="TextLabel" referent="8176">
+        <Item class="TextLabel" referent="8183">
           <Properties>
             <string name="Name">OutcomeTitle</string>
             <float name="BackgroundTransparency">1</float>
@@ -261602,14 +261764,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8177">
+          <Item class="UITextSizeConstraint" referent="8184">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">42</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextLabel" referent="8178">
+        <Item class="TextLabel" referent="8185">
           <Properties>
             <string name="Name">OutcomeSubtitle</string>
             <float name="BackgroundTransparency">1</float>
@@ -261646,14 +261808,14 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UITextSizeConstraint" referent="8179">
+          <Item class="UITextSizeConstraint" referent="8186">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">18</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="Frame" referent="8180">
+        <Item class="Frame" referent="8187">
           <Properties>
             <string name="Name">Stats</string>
             <Color3 name="BackgroundColor3">
@@ -261676,7 +261838,7 @@ F — фонарик · TAB — задания</string>
               <YO>0</YO>
             </UDim2>
           </Properties>
-          <Item class="UIListLayout" referent="8181">
+          <Item class="UIListLayout" referent="8188">
             <Properties>
               <string name="Name">UIListLayout</string>
               <token name="FillDirection">1</token>
@@ -261689,7 +261851,7 @@ F — фонарик · TAB — задания</string>
               <token name="VerticalAlignment">1</token>
             </Properties>
           </Item>
-          <Item class="Frame" referent="8182">
+          <Item class="Frame" referent="8189">
             <Properties>
               <string name="Name">Row_DreamValue</string>
               <Color3 name="BackgroundColor3">
@@ -261707,7 +261869,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8183">
+            <Item class="UICorner" referent="8190">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -261728,7 +261890,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8184">
+            <Item class="TextLabel" referent="8191">
               <Properties>
                 <string name="Name">Label</string>
                 <float name="BackgroundTransparency">1</float>
@@ -261765,14 +261927,14 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">0</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8185">
+              <Item class="UITextSizeConstraint" referent="8192">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextLabel" referent="8186">
+            <Item class="TextLabel" referent="8193">
               <Properties>
                 <string name="Name">DreamValue</string>
                 <float name="BackgroundTransparency">1</float>
@@ -261809,7 +261971,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">1</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8187">
+              <Item class="UITextSizeConstraint" referent="8194">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
@@ -261817,7 +261979,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="Frame" referent="8188">
+          <Item class="Frame" referent="8195">
             <Properties>
               <string name="Name">Row_DifficultyValue</string>
               <Color3 name="BackgroundColor3">
@@ -261835,7 +261997,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8189">
+            <Item class="UICorner" referent="8196">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -261856,7 +262018,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8190">
+            <Item class="TextLabel" referent="8197">
               <Properties>
                 <string name="Name">Label</string>
                 <float name="BackgroundTransparency">1</float>
@@ -261893,14 +262055,14 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">0</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8191">
+              <Item class="UITextSizeConstraint" referent="8198">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextLabel" referent="8192">
+            <Item class="TextLabel" referent="8199">
               <Properties>
                 <string name="Name">DifficultyValue</string>
                 <float name="BackgroundTransparency">1</float>
@@ -261937,7 +262099,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">1</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8193">
+              <Item class="UITextSizeConstraint" referent="8200">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
@@ -261945,7 +262107,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="Frame" referent="8194">
+          <Item class="Frame" referent="8201">
             <Properties>
               <string name="Name">Row_TimeValue</string>
               <Color3 name="BackgroundColor3">
@@ -261963,7 +262125,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8195">
+            <Item class="UICorner" referent="8202">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -261984,7 +262146,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8196">
+            <Item class="TextLabel" referent="8203">
               <Properties>
                 <string name="Name">Label</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262021,14 +262183,14 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">0</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8197">
+              <Item class="UITextSizeConstraint" referent="8204">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextLabel" referent="8198">
+            <Item class="TextLabel" referent="8205">
               <Properties>
                 <string name="Name">TimeValue</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262065,7 +262227,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">1</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8199">
+              <Item class="UITextSizeConstraint" referent="8206">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
@@ -262073,7 +262235,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="Frame" referent="8200">
+          <Item class="Frame" referent="8207">
             <Properties>
               <string name="Name">Row_QuestsValue</string>
               <Color3 name="BackgroundColor3">
@@ -262091,7 +262253,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8201">
+            <Item class="UICorner" referent="8208">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -262112,7 +262274,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8202">
+            <Item class="TextLabel" referent="8209">
               <Properties>
                 <string name="Name">Label</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262149,14 +262311,14 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">0</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8203">
+              <Item class="UITextSizeConstraint" referent="8210">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextLabel" referent="8204">
+            <Item class="TextLabel" referent="8211">
               <Properties>
                 <string name="Name">QuestsValue</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262193,7 +262355,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">1</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8205">
+              <Item class="UITextSizeConstraint" referent="8212">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
@@ -262201,7 +262363,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="Frame" referent="8206">
+          <Item class="Frame" referent="8213">
             <Properties>
               <string name="Name">Row_CoinsValue</string>
               <Color3 name="BackgroundColor3">
@@ -262219,7 +262381,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8207">
+            <Item class="UICorner" referent="8214">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -262240,7 +262402,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8208">
+            <Item class="TextLabel" referent="8215">
               <Properties>
                 <string name="Name">Label</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262277,14 +262439,14 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">0</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8209">
+              <Item class="UITextSizeConstraint" referent="8216">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextLabel" referent="8210">
+            <Item class="TextLabel" referent="8217">
               <Properties>
                 <string name="Name">CoinsValue</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262321,7 +262483,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">1</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8211">
+              <Item class="UITextSizeConstraint" referent="8218">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
@@ -262329,7 +262491,7 @@ F — фонарик · TAB — задания</string>
               </Item>
             </Item>
           </Item>
-          <Item class="Frame" referent="8212">
+          <Item class="Frame" referent="8219">
             <Properties>
               <string name="Name">Row_ReasonValue</string>
               <Color3 name="BackgroundColor3">
@@ -262347,7 +262509,7 @@ F — фонарик · TAB — задания</string>
                 <YO>0</YO>
               </UDim2>
             </Properties>
-            <Item class="UICorner" referent="8213">
+            <Item class="UICorner" referent="8220">
               <Properties>
                 <string name="Name">UICorner</string>
                 <UDim name="BottomLeftRadius">
@@ -262368,7 +262530,7 @@ F — фонарик · TAB — задания</string>
                 </UDim>
               </Properties>
             </Item>
-            <Item class="TextLabel" referent="8214">
+            <Item class="TextLabel" referent="8221">
               <Properties>
                 <string name="Name">Label</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262405,14 +262567,14 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">0</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8215">
+              <Item class="UITextSizeConstraint" referent="8222">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextLabel" referent="8216">
+            <Item class="TextLabel" referent="8223">
               <Properties>
                 <string name="Name">ReasonValue</string>
                 <float name="BackgroundTransparency">1</float>
@@ -262449,7 +262611,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextXAlignment">1</token>
                 <token name="TextYAlignment">1</token>
               </Properties>
-              <Item class="UITextSizeConstraint" referent="8217">
+              <Item class="UITextSizeConstraint" referent="8224">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">20</int>
@@ -262458,7 +262620,7 @@ F — фонарик · TAB — задания</string>
             </Item>
           </Item>
         </Item>
-        <Item class="TextButton" referent="8218">
+        <Item class="TextButton" referent="8225">
           <Properties>
             <string name="Name">MenuButton</string>
             <bool name="AutoButtonColor">false</bool>
@@ -262500,7 +262662,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UICorner" referent="8219">
+          <Item class="UICorner" referent="8226">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -262521,7 +262683,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8220">
+          <Item class="UIStroke" referent="8227">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -262534,14 +262696,14 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.62</float>
             </Properties>
           </Item>
-          <Item class="UITextSizeConstraint" referent="8221">
+          <Item class="UITextSizeConstraint" referent="8228">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">24</int>
             </Properties>
           </Item>
         </Item>
-        <Item class="TextButton" referent="8222">
+        <Item class="TextButton" referent="8229">
           <Properties>
             <string name="Name">RetryButton</string>
             <bool name="AutoButtonColor">false</bool>
@@ -262583,7 +262745,7 @@ F — фонарик · TAB — задания</string>
             <token name="TextXAlignment">2</token>
             <token name="TextYAlignment">1</token>
           </Properties>
-          <Item class="UICorner" referent="8223">
+          <Item class="UICorner" referent="8230">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -262604,7 +262766,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8224">
+          <Item class="UIStroke" referent="8231">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -262617,7 +262779,7 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.62</float>
             </Properties>
           </Item>
-          <Item class="UITextSizeConstraint" referent="8225">
+          <Item class="UITextSizeConstraint" referent="8232">
             <Properties>
               <string name="Name">SizeConstraint</string>
               <int name="MaxTextSize">24</int>
@@ -262626,7 +262788,7 @@ F — фонарик · TAB — задания</string>
         </Item>
       </Item>
     </Item>
-    <Item class="ScreenGui" referent="8226">
+    <Item class="ScreenGui" referent="8233">
       <Properties>
         <string name="Name">CutsceneGUI</string>
         <int name="DisplayOrder">20</int>
@@ -262635,7 +262797,7 @@ F — фонарик · TAB — задания</string>
         <bool name="ResetOnSpawn">false</bool>
         <token name="ZIndexBehavior">1</token>
       </Properties>
-      <Item class="Frame" referent="8227">
+      <Item class="Frame" referent="8234">
         <Properties>
           <string name="Name">LetterboxTop</string>
           <Vector2 name="AnchorPoint">
@@ -262663,7 +262825,7 @@ F — фонарик · TAB — задания</string>
           <int name="ZIndex">3</int>
         </Properties>
       </Item>
-      <Item class="Frame" referent="8228">
+      <Item class="Frame" referent="8235">
         <Properties>
           <string name="Name">LetterboxBottom</string>
           <Vector2 name="AnchorPoint">
@@ -262691,7 +262853,7 @@ F — фонарик · TAB — задания</string>
           <int name="ZIndex">3</int>
         </Properties>
       </Item>
-      <Item class="TextLabel" referent="8229">
+      <Item class="TextLabel" referent="8236">
         <Properties>
           <string name="Name">DreamText</string>
           <Vector2 name="AnchorPoint">
@@ -262735,14 +262897,14 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">4</int>
         </Properties>
-        <Item class="UITextSizeConstraint" referent="8230">
+        <Item class="UITextSizeConstraint" referent="8237">
           <Properties>
             <string name="Name">SizeConstraint</string>
             <int name="MaxTextSize">40</int>
           </Properties>
         </Item>
       </Item>
-      <Item class="TextLabel" referent="8231">
+      <Item class="TextLabel" referent="8238">
         <Properties>
           <string name="Name">Subtitle</string>
           <Vector2 name="AnchorPoint">
@@ -262785,14 +262947,14 @@ F — фонарик · TAB — задания</string>
           <token name="TextYAlignment">1</token>
           <int name="ZIndex">4</int>
         </Properties>
-        <Item class="UITextSizeConstraint" referent="8232">
+        <Item class="UITextSizeConstraint" referent="8239">
           <Properties>
             <string name="Name">SizeConstraint</string>
             <int name="MaxTextSize">20</int>
           </Properties>
         </Item>
       </Item>
-      <Item class="Frame" referent="8233">
+      <Item class="Frame" referent="8240">
         <Properties>
           <string name="Name">Fade</string>
           <Color3 name="BackgroundColor3">
@@ -262812,7 +262974,7 @@ F — фонарик · TAB — задания</string>
           <int name="ZIndex">8</int>
         </Properties>
       </Item>
-      <Item class="Frame" referent="8234">
+      <Item class="Frame" referent="8241">
         <Properties>
           <string name="Name">WhiteFlash</string>
           <Color3 name="BackgroundColor3">
@@ -262833,7 +262995,7 @@ F — фонарик · TAB — задания</string>
         </Properties>
       </Item>
     </Item>
-    <Item class="ScreenGui" referent="8235">
+    <Item class="ScreenGui" referent="8242">
       <Properties>
         <string name="Name">TopBar</string>
         <int name="DisplayOrder">90</int>
@@ -262842,7 +263004,7 @@ F — фонарик · TAB — задания</string>
         <bool name="ResetOnSpawn">false</bool>
         <token name="ZIndexBehavior">1</token>
       </Properties>
-      <Item class="TextButton" referent="8236">
+      <Item class="TextButton" referent="8243">
         <Properties>
           <string name="Name">MenuButton</string>
           <bool name="AutoButtonColor">false</bool>
@@ -262885,7 +263047,7 @@ F — фонарик · TAB — задания</string>
           <token name="TextYAlignment">1</token>
           <int name="ZIndex">20</int>
         </Properties>
-        <Item class="UICorner" referent="8237">
+        <Item class="UICorner" referent="8244">
           <Properties>
             <string name="Name">UICorner</string>
             <UDim name="BottomLeftRadius">
@@ -262906,7 +263068,7 @@ F — фонарик · TAB — задания</string>
             </UDim>
           </Properties>
         </Item>
-        <Item class="UIStroke" referent="8238">
+        <Item class="UIStroke" referent="8245">
           <Properties>
             <string name="Name">UIStroke</string>
             <token name="ApplyStrokeMode">0</token>
@@ -262919,14 +263081,14 @@ F — фонарик · TAB — задания</string>
             <float name="Transparency">0.25</float>
           </Properties>
         </Item>
-        <Item class="UITextSizeConstraint" referent="8239">
+        <Item class="UITextSizeConstraint" referent="8246">
           <Properties>
             <string name="Name">SizeConstraint</string>
             <int name="MaxTextSize">19</int>
           </Properties>
         </Item>
       </Item>
-      <Item class="TextLabel" referent="8240">
+      <Item class="TextLabel" referent="8247">
         <Properties>
           <string name="Name">BrandLabel</string>
           <float name="BackgroundTransparency">1</float>
@@ -262963,14 +263125,14 @@ F — фонарик · TAB — задания</string>
           <token name="TextYAlignment">1</token>
           <int name="ZIndex">20</int>
         </Properties>
-        <Item class="UITextSizeConstraint" referent="8241">
+        <Item class="UITextSizeConstraint" referent="8248">
           <Properties>
             <string name="Name">SizeConstraint</string>
             <int name="MaxTextSize">18</int>
           </Properties>
         </Item>
       </Item>
-      <Item class="Frame" referent="8242">
+      <Item class="Frame" referent="8249">
         <Properties>
           <string name="Name">PausePanel</string>
           <Color3 name="BackgroundColor3">
@@ -262989,7 +263151,7 @@ F — фонарик · TAB — задания</string>
           <bool name="Visible">false</bool>
           <int name="ZIndex">30</int>
         </Properties>
-        <Item class="Frame" referent="8243">
+        <Item class="Frame" referent="8250">
           <Properties>
             <string name="Name">PauseCard</string>
             <Vector2 name="AnchorPoint">
@@ -263017,7 +263179,7 @@ F — фонарик · TAB — задания</string>
             </UDim2>
             <int name="ZIndex">31</int>
           </Properties>
-          <Item class="UICorner" referent="8244">
+          <Item class="UICorner" referent="8251">
             <Properties>
               <string name="Name">UICorner</string>
               <UDim name="BottomLeftRadius">
@@ -263038,7 +263200,7 @@ F — фонарик · TAB — задания</string>
               </UDim>
             </Properties>
           </Item>
-          <Item class="UIStroke" referent="8245">
+          <Item class="UIStroke" referent="8252">
             <Properties>
               <string name="Name">UIStroke</string>
               <token name="ApplyStrokeMode">0</token>
@@ -263051,7 +263213,7 @@ F — фонарик · TAB — задания</string>
               <float name="Transparency">0.35</float>
             </Properties>
           </Item>
-          <Item class="TextLabel" referent="8246">
+          <Item class="TextLabel" referent="8253">
             <Properties>
               <string name="Name">PauseTitle</string>
               <float name="BackgroundTransparency">1</float>
@@ -263089,14 +263251,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextYAlignment">1</token>
               <int name="ZIndex">32</int>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8247">
+            <Item class="UITextSizeConstraint" referent="8254">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">28</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="TextLabel" referent="8248">
+          <Item class="TextLabel" referent="8255">
             <Properties>
               <string name="Name">PauseSubtitle</string>
               <float name="BackgroundTransparency">1</float>
@@ -263134,14 +263296,14 @@ F — фонарик · TAB — задания</string>
               <token name="TextYAlignment">1</token>
               <int name="ZIndex">32</int>
             </Properties>
-            <Item class="UITextSizeConstraint" referent="8249">
+            <Item class="UITextSizeConstraint" referent="8256">
               <Properties>
                 <string name="Name">SizeConstraint</string>
                 <int name="MaxTextSize">15</int>
               </Properties>
             </Item>
           </Item>
-          <Item class="Frame" referent="8250">
+          <Item class="Frame" referent="8257">
             <Properties>
               <string name="Name">PauseButtons</string>
               <Color3 name="BackgroundColor3">
@@ -263165,7 +263327,7 @@ F — фонарик · TAB — задания</string>
               </UDim2>
               <int name="ZIndex">32</int>
             </Properties>
-            <Item class="UIListLayout" referent="8251">
+            <Item class="UIListLayout" referent="8258">
               <Properties>
                 <string name="Name">UIListLayout</string>
                 <token name="FillDirection">1</token>
@@ -263178,7 +263340,7 @@ F — фонарик · TAB — задания</string>
                 <token name="VerticalAlignment">1</token>
               </Properties>
             </Item>
-            <Item class="TextButton" referent="8252">
+            <Item class="TextButton" referent="8259">
               <Properties>
                 <string name="Name">PauseContinue</string>
                 <bool name="AutoButtonColor">false</bool>
@@ -263216,7 +263378,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextYAlignment">1</token>
                 <int name="ZIndex">32</int>
               </Properties>
-              <Item class="UICorner" referent="8253">
+              <Item class="UICorner" referent="8260">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -263237,7 +263399,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIStroke" referent="8254">
+              <Item class="UIStroke" referent="8261">
                 <Properties>
                   <string name="Name">UIStroke</string>
                   <token name="ApplyStrokeMode">0</token>
@@ -263250,14 +263412,14 @@ F — фонарик · TAB — задания</string>
                   <float name="Transparency">0.62</float>
                 </Properties>
               </Item>
-              <Item class="UITextSizeConstraint" referent="8255">
+              <Item class="UITextSizeConstraint" referent="8262">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">24</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextButton" referent="8256">
+            <Item class="TextButton" referent="8263">
               <Properties>
                 <string name="Name">PauseQuests</string>
                 <bool name="AutoButtonColor">false</bool>
@@ -263295,7 +263457,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextYAlignment">1</token>
                 <int name="ZIndex">32</int>
               </Properties>
-              <Item class="UICorner" referent="8257">
+              <Item class="UICorner" referent="8264">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -263316,7 +263478,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIStroke" referent="8258">
+              <Item class="UIStroke" referent="8265">
                 <Properties>
                   <string name="Name">UIStroke</string>
                   <token name="ApplyStrokeMode">0</token>
@@ -263329,14 +263491,14 @@ F — фонарик · TAB — задания</string>
                   <float name="Transparency">0.62</float>
                 </Properties>
               </Item>
-              <Item class="UITextSizeConstraint" referent="8259">
+              <Item class="UITextSizeConstraint" referent="8266">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">24</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextButton" referent="8260">
+            <Item class="TextButton" referent="8267">
               <Properties>
                 <string name="Name">PauseInventory</string>
                 <bool name="AutoButtonColor">false</bool>
@@ -263374,7 +263536,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextYAlignment">1</token>
                 <int name="ZIndex">32</int>
               </Properties>
-              <Item class="UICorner" referent="8261">
+              <Item class="UICorner" referent="8268">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -263395,7 +263557,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIStroke" referent="8262">
+              <Item class="UIStroke" referent="8269">
                 <Properties>
                   <string name="Name">UIStroke</string>
                   <token name="ApplyStrokeMode">0</token>
@@ -263408,14 +263570,14 @@ F — фонарик · TAB — задания</string>
                   <float name="Transparency">0.62</float>
                 </Properties>
               </Item>
-              <Item class="UITextSizeConstraint" referent="8263">
+              <Item class="UITextSizeConstraint" referent="8270">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">24</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextButton" referent="8264">
+            <Item class="TextButton" referent="8271">
               <Properties>
                 <string name="Name">PauseSettings</string>
                 <bool name="AutoButtonColor">false</bool>
@@ -263453,7 +263615,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextYAlignment">1</token>
                 <int name="ZIndex">32</int>
               </Properties>
-              <Item class="UICorner" referent="8265">
+              <Item class="UICorner" referent="8272">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -263474,7 +263636,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIStroke" referent="8266">
+              <Item class="UIStroke" referent="8273">
                 <Properties>
                   <string name="Name">UIStroke</string>
                   <token name="ApplyStrokeMode">0</token>
@@ -263487,14 +263649,14 @@ F — фонарик · TAB — задания</string>
                   <float name="Transparency">0.62</float>
                 </Properties>
               </Item>
-              <Item class="UITextSizeConstraint" referent="8267">
+              <Item class="UITextSizeConstraint" referent="8274">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">24</int>
                 </Properties>
               </Item>
             </Item>
-            <Item class="TextButton" referent="8268">
+            <Item class="TextButton" referent="8275">
               <Properties>
                 <string name="Name">PauseLeave</string>
                 <bool name="AutoButtonColor">false</bool>
@@ -263532,7 +263694,7 @@ F — фонарик · TAB — задания</string>
                 <token name="TextYAlignment">1</token>
                 <int name="ZIndex">32</int>
               </Properties>
-              <Item class="UICorner" referent="8269">
+              <Item class="UICorner" referent="8276">
                 <Properties>
                   <string name="Name">UICorner</string>
                   <UDim name="BottomLeftRadius">
@@ -263553,7 +263715,7 @@ F — фонарик · TAB — задания</string>
                   </UDim>
                 </Properties>
               </Item>
-              <Item class="UIStroke" referent="8270">
+              <Item class="UIStroke" referent="8277">
                 <Properties>
                   <string name="Name">UIStroke</string>
                   <token name="ApplyStrokeMode">0</token>
@@ -263566,7 +263728,7 @@ F — фонарик · TAB — задания</string>
                   <float name="Transparency">0.62</float>
                 </Properties>
               </Item>
-              <Item class="UITextSizeConstraint" referent="8271">
+              <Item class="UITextSizeConstraint" referent="8278">
                 <Properties>
                   <string name="Name">SizeConstraint</string>
                   <int name="MaxTextSize">24</int>
@@ -263578,15 +263740,15 @@ F — фонарик · TAB — задания</string>
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="8272">
+  <Item class="StarterPlayer" referent="8279">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="8273">
+    <Item class="StarterPlayerScripts" referent="8280">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="8274">
+      <Item class="LocalScript" referent="8281">
         <Properties>
           <string name="Name">BootMenu</string>
           <string name="Source"><![CDATA[--!nocheck
@@ -263840,7 +264002,7 @@ print("[DreamSimulator] BootMenu готов")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="LocalScript" referent="8275">
+      <Item class="LocalScript" referent="8282">
         <Properties>
           <string name="Name">Splash</string>
           <string name="Source"><![CDATA[--!nocheck
@@ -264047,7 +264209,7 @@ end)
 ]]></string>
         </Properties>
       </Item>
-      <Item class="LocalScript" referent="8276">
+      <Item class="LocalScript" referent="8283">
         <Properties>
           <string name="Name">ClientMain</string>
           <string name="Source"><![CDATA[--!nocheck
@@ -264209,11 +264371,11 @@ print("[DreamSimulator] Клиент готов")
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Folder" referent="8277">
+      <Item class="Folder" referent="8284">
         <Properties>
           <string name="Name">Modules</string>
         </Properties>
-        <Item class="ModuleScript" referent="8278">
+        <Item class="ModuleScript" referent="8285">
           <Properties>
             <string name="Name">ClientState</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -264448,7 +264610,7 @@ return ClientState
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8279">
+        <Item class="ModuleScript" referent="8286">
           <Properties>
             <string name="Name">SoundController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -264643,7 +264805,7 @@ return SoundController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8280">
+        <Item class="ModuleScript" referent="8287">
           <Properties>
             <string name="Name">CameraController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -264846,7 +265008,7 @@ return CameraController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8281">
+        <Item class="ModuleScript" referent="8288">
           <Properties>
             <string name="Name">InputController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -265084,7 +265246,7 @@ return InputController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8282">
+        <Item class="ModuleScript" referent="8289">
           <Properties>
             <string name="Name">HUDController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -265144,6 +265306,11 @@ local function showNextToast()
 
 	local frame = template:Clone()
 	frame.Name = "Toast"
+	-- HUD может быть ещё выключен в момент прихода события — включаем явно.
+	local gui = getGui()
+	if gui then
+		gui.Enabled = true
+	end
 	frame.Visible = true
 	frame.Parent = area
 	if payload.color then
@@ -265215,6 +265382,51 @@ local function buildObjectiveText(quest)
 end
 
 -- Плашка «ФОНАРИК: ВКЛ/ВЫКЛ» + цвет по заряду
+-- Заголовок сна на первые секунды: «Тёмный лес · Обычный»
+function HUDController.showDreamIntro(payload)
+	local frame = ClientState.el("DreamHUD", "DreamIntro")
+	if not frame then
+		return
+	end
+	local title = ClientState.el("DreamHUD", "IntroTitle")
+	local subtitle = ClientState.el("DreamHUD", "IntroSubtitle")
+	local hint = ClientState.el("DreamHUD", "IntroHint")
+	if title then
+		title.Text = (payload.icon or "🌙") .. " " .. tostring(payload.dreamName or "Сон")
+		title.TextTransparency = 1
+	end
+	if subtitle then
+		subtitle.Text = tostring(payload.subtitle or "Каждый сон — новая история...")
+		subtitle.TextTransparency = 1
+	end
+	if hint then
+		hint.Text = "Сложность: " .. tostring(payload.difficultyName or "Обычный") .. "  ·  F — фонарик, E — взаимодействие, TAB — задания"
+		hint.TextTransparency = 1
+	end
+	-- HUD может быть ещё выключен в момент прихода события — включаем явно.
+	local gui = getGui()
+	if gui then
+		gui.Enabled = true
+	end
+	frame.Visible = true
+	for _, label in ipairs({ title, subtitle, hint }) do
+		if label then
+			ClientState.tween(label, 0.7, { TextTransparency = 0 })
+		end
+	end
+	task.delay(3.4, function()
+		for _, label in ipairs({ title, subtitle, hint }) do
+			if label and label.Parent then
+				ClientState.tween(label, 0.8, { TextTransparency = 1 })
+			end
+		end
+		task.wait(0.9)
+		if frame and frame.Parent then
+			frame.Visible = false
+		end
+	end)
+end
+
 function HUDController.renderFlashlight(data)
 	local label = ClientState.el("DreamHUD", "FlashlightLabel")
 	local chip = ClientState.el("DreamHUD", "FlashlightChip")
@@ -265539,6 +265751,10 @@ function HUDController.start()
 		elseif phase == "menu" then
 			closeDialog()
 			HUDController.toggleQuestLog(false)
+			local intro = ClientState.el("DreamHUD", "DreamIntro")
+			if intro then
+				intro.Visible = false
+			end
 		end
 	end)
 
@@ -265579,6 +265795,11 @@ function HUDController.start()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
 		Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine)
+
+	Remotes.get("DreamStarted").OnClientEvent:Connect(function(data)
+		HUDController.batteryWarned = false
+		HUDController.showDreamIntro(data or {})
+	end)
 
 	Remotes.get("TimerUpdate").OnClientEvent:Connect(function(data)
 		ClientState.timer.remaining = data.remaining
@@ -265882,7 +266103,7 @@ return HUDController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8283">
+        <Item class="ModuleScript" referent="8290">
           <Properties>
             <string name="Name">MenuController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -267006,7 +267227,7 @@ return MenuController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8284">
+        <Item class="ModuleScript" referent="8291">
           <Properties>
             <string name="Name">EffectsController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -267624,7 +267845,7 @@ return EffectsController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8285">
+        <Item class="ModuleScript" referent="8292">
           <Properties>
             <string name="Name">CutsceneController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -268199,7 +268420,7 @@ return CutsceneController
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="8286">
+        <Item class="ModuleScript" referent="8293">
           <Properties>
             <string name="Name">DiagnosticsController</string>
             <string name="Source"><![CDATA[--!nocheck
@@ -268439,7 +268660,7 @@ return DiagnosticsController
       </Item>
     </Item>
   </Item>
-  <Item class="Lighting" referent="8287">
+  <Item class="Lighting" referent="8294">
     <Properties>
       <string name="Name">Lighting</string>
       <Color3 name="Ambient">
@@ -268468,7 +268689,7 @@ return DiagnosticsController
       <float name="ShadowSoftness">0.4</float>
       <token name="Technology">3</token>
     </Properties>
-    <Item class="Atmosphere" referent="8288">
+    <Item class="Atmosphere" referent="8295">
       <Properties>
         <string name="Name">MenuAtmosphere</string>
         <Color3 name="Color">
@@ -268487,7 +268708,7 @@ return DiagnosticsController
         <float name="Offset">0.1</float>
       </Properties>
     </Item>
-    <Item class="BloomEffect" referent="8289">
+    <Item class="BloomEffect" referent="8296">
       <Properties>
         <string name="Name">MenuBloom</string>
         <float name="Intensity">0.5</float>
@@ -268495,7 +268716,7 @@ return DiagnosticsController
         <float name="Threshold">1.1</float>
       </Properties>
     </Item>
-    <Item class="ColorCorrectionEffect" referent="8290">
+    <Item class="ColorCorrectionEffect" referent="8297">
       <Properties>
         <string name="Name">MenuColor</string>
         <float name="Brightness">-0.03</float>
@@ -268508,7 +268729,7 @@ return DiagnosticsController
         </Color3>
       </Properties>
     </Item>
-    <Item class="DepthOfFieldEffect" referent="8291">
+    <Item class="DepthOfFieldEffect" referent="8298">
       <Properties>
         <string name="Name">MenuDOF</string>
         <float name="FarIntensity">0.3</float>
@@ -268518,7 +268739,7 @@ return DiagnosticsController
       </Properties>
     </Item>
   </Item>
-  <Item class="SoundService" referent="8292">
+  <Item class="SoundService" referent="8299">
     <Properties>
       <string name="Name">SoundService</string>
       <token name="AmbientReverb">13</token>
@@ -268527,28 +268748,28 @@ return DiagnosticsController
       <float name="RolloffScale">1</float>
     </Properties>
   </Item>
-  <Item class="Players" referent="8293">
+  <Item class="Players" referent="8300">
     <Properties>
       <string name="Name">Players</string>
       <bool name="CharacterAutoLoads">true</bool>
     </Properties>
   </Item>
-  <Item class="StarterPack" referent="8294">
+  <Item class="StarterPack" referent="8301">
     <Properties>
       <string name="Name">StarterPack</string>
     </Properties>
   </Item>
-  <Item class="Teams" referent="8295">
+  <Item class="Teams" referent="8302">
     <Properties>
       <string name="Name">Teams</string>
     </Properties>
   </Item>
-  <Item class="Chat" referent="8296">
+  <Item class="Chat" referent="8303">
     <Properties>
       <string name="Name">Chat</string>
     </Properties>
   </Item>
-  <Item class="TextChatService" referent="8297">
+  <Item class="TextChatService" referent="8304">
     <Properties>
       <string name="Name">TextChatService</string>
       <token name="ChatVersion">1</token>

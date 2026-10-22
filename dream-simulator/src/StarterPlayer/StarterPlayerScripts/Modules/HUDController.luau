@@ -55,6 +55,11 @@ local function showNextToast()
 
 	local frame = template:Clone()
 	frame.Name = "Toast"
+	-- HUD может быть ещё выключен в момент прихода события — включаем явно.
+	local gui = getGui()
+	if gui then
+		gui.Enabled = true
+	end
 	frame.Visible = true
 	frame.Parent = area
 	if payload.color then
@@ -126,6 +131,51 @@ local function buildObjectiveText(quest)
 end
 
 -- Плашка «ФОНАРИК: ВКЛ/ВЫКЛ» + цвет по заряду
+-- Заголовок сна на первые секунды: «Тёмный лес · Обычный»
+function HUDController.showDreamIntro(payload)
+	local frame = ClientState.el("DreamHUD", "DreamIntro")
+	if not frame then
+		return
+	end
+	local title = ClientState.el("DreamHUD", "IntroTitle")
+	local subtitle = ClientState.el("DreamHUD", "IntroSubtitle")
+	local hint = ClientState.el("DreamHUD", "IntroHint")
+	if title then
+		title.Text = (payload.icon or "🌙") .. " " .. tostring(payload.dreamName or "Сон")
+		title.TextTransparency = 1
+	end
+	if subtitle then
+		subtitle.Text = tostring(payload.subtitle or "Каждый сон — новая история...")
+		subtitle.TextTransparency = 1
+	end
+	if hint then
+		hint.Text = "Сложность: " .. tostring(payload.difficultyName or "Обычный") .. "  ·  F — фонарик, E — взаимодействие, TAB — задания"
+		hint.TextTransparency = 1
+	end
+	-- HUD может быть ещё выключен в момент прихода события — включаем явно.
+	local gui = getGui()
+	if gui then
+		gui.Enabled = true
+	end
+	frame.Visible = true
+	for _, label in ipairs({ title, subtitle, hint }) do
+		if label then
+			ClientState.tween(label, 0.7, { TextTransparency = 0 })
+		end
+	end
+	task.delay(3.4, function()
+		for _, label in ipairs({ title, subtitle, hint }) do
+			if label and label.Parent then
+				ClientState.tween(label, 0.8, { TextTransparency = 1 })
+			end
+		end
+		task.wait(0.9)
+		if frame and frame.Parent then
+			frame.Visible = false
+		end
+	end)
+end
+
 function HUDController.renderFlashlight(data)
 	local label = ClientState.el("DreamHUD", "FlashlightLabel")
 	local chip = ClientState.el("DreamHUD", "FlashlightChip")
@@ -450,6 +500,10 @@ function HUDController.start()
 		elseif phase == "menu" then
 			closeDialog()
 			HUDController.toggleQuestLog(false)
+			local intro = ClientState.el("DreamHUD", "DreamIntro")
+			if intro then
+				intro.Visible = false
+			end
 		end
 	end)
 
@@ -490,6 +544,11 @@ function HUDController.start()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
 		Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine)
+
+	Remotes.get("DreamStarted").OnClientEvent:Connect(function(data)
+		HUDController.batteryWarned = false
+		HUDController.showDreamIntro(data or {})
+	end)
 
 	Remotes.get("TimerUpdate").OnClientEvent:Connect(function(data)
 		ClientState.timer.remaining = data.remaining
