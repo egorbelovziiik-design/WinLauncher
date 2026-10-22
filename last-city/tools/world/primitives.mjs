@@ -1,4 +1,6 @@
 import * as R from 'rbxm-parser';
+import { instance, boldFont } from '../instances.mjs';
+export { instance, boldFont };
 export { R };
 export const palette = {
   ground: '#3c4540', concrete: '#666d6c', faded: '#9b9c8e', dark: '#252e32',
@@ -14,19 +16,19 @@ export function lookAt(position, target) {
   const u=[r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0]];
   return new R.CFrame(vec(...position),[r[0],u[0],-f[0],r[1],u[1],-f[1],r[2],u[2],-f[2]]);
 }
-export function folder(parent, name, model = false) { const o = model ? new R.Model() : new R.Folder(); o.Name = name; o.Parent = parent; return o; }
+export function folder(parent, name, model = false) { const o = model ? instance('Model') : instance('Folder'); o.Name = name; o.Parent = parent; return o; }
 export function part(parent, name, size, at, tint = palette.concrete, mat = 'Concrete', yaw = 0, extra = {}) {
-  const p = new R.Part(); p.Name = name; p.Size = vec(...size); p.CFrame = cf(...at, yaw);
-  p.Color = color(tint); p.Material = R.Material[mat]; p.Anchored = true;
+  const p = instance('Part'); p.Name = name; p.Size = vec(...size); p.CFrame = cf(...at, yaw);
+  p.Color3uint8 = color(tint); p.Material = R.Material[mat]; if (!p.Material) throw new Error(`Unknown material: ${mat}`); p.Anchored = true;
   p.TopSurface = R.SurfaceType.Smooth; p.BottomSurface = R.SurfaceType.Smooth;
   Object.assign(p, extra); p.Parent = parent; return p;
 }
-export function value(parent, name, val) { const o = typeof val === 'number' ? new R.IntValue() : new R.StringValue(); o.Name = name; o.Value = typeof val === 'number' ? BigInt(val) : val; o.Parent = parent; return o; }
+export function value(parent, name, val) { const o = typeof val === 'number' ? instance('IntValue') : instance('StringValue'); o.Name = name; o.Value = typeof val === 'number' ? BigInt(val) : val; o.Parent = parent; return o; }
 export function sign(parent, text, size, at, tint = palette.orange, bg = palette.dark, yaw = 0) {
   const p = part(parent, 'Sign', size, at, bg, 'Metal', yaw);
-  const gui = new R.SurfaceGui(); gui.Name = 'Signage'; gui.Face = R.NormalId.Front; gui.SizingMode = R.SurfaceGuiSizingMode.PixelsPerStud; gui.PixelsPerStud = 28; gui.Parent = p;
-  const label = new R.TextLabel(); label.Name = 'Label'; label.Size = new R.UDim2(new R.UDim(1, 0), new R.UDim(1, 0));
-  label.BackgroundTransparency = 1; label.Text = text; label.TextColor3 = color(tint); label.Font = R.Font.GothamBold; label.TextScaled = true; label.TextWrapped = true; label.Parent = gui;
+  const gui = instance('SurfaceGui'); gui.Name = 'Signage'; gui.Face = R.NormalId.Front; gui.SizingMode = R.SurfaceGuiSizingMode.PixelsPerStud; gui.PixelsPerStud = 28; gui.Parent = p;
+  const label = instance('TextLabel'); label.Name = 'Label'; label.Size = new R.UDim2(new R.UDim(1, 0), new R.UDim(1, 0));
+  label.BackgroundTransparency = 1; label.Text = text; label.TextColor3 = color(tint); label.FontFace = boldFont(); label.TextScaled = true; label.TextWrapped = true; label.Parent = gui;
   return p;
 }
 export function lamp(parent, x, z, broken = false) {
@@ -34,7 +36,7 @@ export function lamp(parent, x, z, broken = false) {
   part(m, 'Pole', [0.7, 17, 0.7], [x, 8.5, z], palette.steel, 'Metal');
   part(m, 'Arm', [5, 0.5, 0.6], [x + 2, 17, z], palette.steel, 'Metal');
   const lens = part(m, broken ? 'FlickerLamp' : 'Lens', [3.4, 0.3, 1.5], [x + 3.5, 16.8, z], palette.amber, 'Neon');
-  const light = new R.PointLight(); light.Color = color(palette.amber); light.Brightness = 1.5; light.Range = 38; light.Enabled = true; light.Shadows = false; light.Parent = lens;
+  const light = instance('PointLight'); light.Color = color(palette.amber); light.Brightness = 1.5; light.Range = 38; light.Enabled = true; light.Shadows = false; light.Parent = lens;
 }
 export function car(parent, x, z, yaw, tint = palette.rust) {
   const m = folder(parent, 'AbandonedCar', true);

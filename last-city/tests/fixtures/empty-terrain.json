@@ -1,0 +1,7 @@
+{
+  "description": "Empty Terrain captured from a Roblox Studio 0.727 baseplate fixture in rbx-dom. PhysicsGrid includes twelve trailing NUL bytes; SmoothGrid legitimately has only two bytes.",
+  "source": "https://github.com/rojo-rbx/rbx-dom/blob/dbec31dbe6de9bc7d2b6dd78c35bb67b9236ebda/rbx_binary/src/tests/snapshots/rbx_binary__tests__util__baseplate-727-with-tags__decoded.snap",
+  "PhysicsGrid": "AgMAAAAAAAAAAAAAAAA=",
+  "SmoothGrid": "AQU=",
+  "brokenPhysicsGrid": "AgM="
+}

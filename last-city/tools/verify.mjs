@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { RobloxFile } from 'rbxm-parser';
 import reader from 'rbx-reader';
 import { decodeBinaryText } from './encoding.mjs';
+import { EMPTY_PHYSICS_GRID, EMPTY_SMOOTH_GRID } from './instances.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const artifact=process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(root,'../release-artifacts/last-city/LAST_CITY_3D.rbxl');
 const bytes=fs.readFileSync(artifact);
@@ -26,6 +27,10 @@ for(const name of ['Workspace','Lighting','ReplicatedStorage','ReplicatedFirst',
   check(own.Roots.some(n=>n.Name===name&&n.IsService),`${name} has service marker`);
 }
 const ws=at('Workspace');
+const terrain=at('Workspace','Terrain');
+check(terrain.PhysicsGrid===EMPTY_PHYSICS_GRID,'Terrain.PhysicsGrid matches 14-byte Studio fixture including trailing NULs');
+check(terrain.SmoothGrid===EMPTY_SMOOTH_GRID,'Terrain.SmoothGrid matches the 2-byte Studio empty voxel fixture');
+check(at('Lighting').TimeOfDay==='15:30:00','authored initial lighting time is serialized');
 check(ws.StreamingEnabled===true&&ws.StreamingMinRadius===128&&ws.StreamingTargetRadius===512,'streaming enabled with bounded radii');
 check(at('Workspace','World','Plots').Children.length===6,'six physically distinct building plots');
 check(at('Workspace','World','ZombieSpawns').Children.length===12,'twelve enemy spawn markers');
@@ -36,6 +41,11 @@ check(at('Workspace','World','Cities').Children.some(n=>n.Name==='02_MeridianMar
 check(at('Workspace','World','Cities').Children.some(n=>n.Name==='03_SalvageDepot'),'industrial depot included');
 const ground=at('Workspace','World','TerrainBase','Ground');
 check(ground.Anchored===true&&ground.CanCollide===true,'collidable anchored world floor');
+const ownNodes=[]; function collect(node){ownNodes.push(node);node.Children.forEach(collect);}own.Roots.forEach(collect);
+const floor=ownNodes.find(n=>n.ClassName==='Part'&&n.Name==='Ground');
+check(floor.Color3uint8.R===60/255&&floor.Color3uint8.G===69/255&&floor.Color3uint8.B===64/255,'authored ground color survives serialization');
+check(new Set(ownNodes.filter(n=>n.ClassName==='Part').map(n=>JSON.stringify(n.Color3uint8))).size>12,'static world has authored color palette, not default grey');
+check(ownNodes.filter(n=>n.ClassName==='TextLabel').every(n=>n.FontFace.Family==='rbxasset://fonts/families/SourceSansPro.json'),'signage uses actual serialized FontFace');
 const spawn=at('Workspace','World','Cities','01_MeridianShelter','ShelterSpawn');
 check(spawn.ClassName==='SpawnLocation'&&spawn.Neutral===true,'neutral playable spawn included');
 let sourceCount=0;

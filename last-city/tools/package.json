@@ -1,6 +1,6 @@
 {
   "name": "last-city-build-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,10 @@
     "verify": "node verify.mjs",
     "test": "python3 test.py"
   },
-  "dependencies": { "rbxm-parser": "1.1.4" },
-  "devDependencies": { "rbx-reader": "1.5.10" }
+  "dependencies": {
+    "rbxm-parser": "1.1.4"
+  },
+  "devDependencies": {
+    "rbx-reader": "1.5.10"
+  }
 }

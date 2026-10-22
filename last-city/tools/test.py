@@ -31,6 +31,7 @@ analysis=run([ANALYZER,*sources])
 known="UnknownType: Unknown type 'Vector3'"
 for line in analysis.splitlines():
     if line and known not in line: sys.exit('Unexpected analyzer diagnostic: '+line)
+serialization=run(['node','--test',GAME/'tests/serialization.spec.mjs'])
 domain=run([LUAU,GAME/'tests/domain.spec.luau'])
 adapters=run([LUAU,build_harness()])
 run(['node',GAME/'tools/build.mjs'])
@@ -41,6 +42,9 @@ run(['node',GAME/'tools/build.mjs'])
 assert artifact.read_bytes()==first,'Non-deterministic place build'
 print('PASSED | BUILD deterministic identical binary across two builds')
 summary={
+    'version':'0.1.1','serialization':{'status':'PASSED','count':int(re.search(r'# pass (\d+)',serialization)[1])},
+    'previous_studio_import':{'version':'0.1.0','status':'FAILED','evidence':'User screenshot: Error while decoding data: unexpected end at offset 2'},
+    'studio_import':{'version':'0.1.1','status':'NOT TESTED'},
     'luau_version':'0.743','source_compilation':{'status':'PASSED','count':len(sources)},
     'domain':{'status':'PASSED','count':int(re.search(r'DOMAIN RESULTS: (\d+) PASSED',domain)[1])},
     'mock_adapters':{'status':'PASSED','count':int(re.search(r'ADAPTER MOCK RESULTS: (\d+) PASSED',adapters)[1]),'scope':'API doubles; NOT Roblox Studio'},

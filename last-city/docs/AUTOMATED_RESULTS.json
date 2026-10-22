@@ -1,4 +1,18 @@
 {
+  "version": "0.1.1",
+  "serialization": {
+    "status": "PASSED",
+    "count": 10
+  },
+  "previous_studio_import": {
+    "version": "0.1.0",
+    "status": "FAILED",
+    "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
+  },
+  "studio_import": {
+    "version": "0.1.1",
+    "status": "NOT TESTED"
+  },
   "luau_version": "0.743",
   "source_compilation": {
     "status": "PASSED",
@@ -14,12 +28,12 @@
     "scope": "API doubles; NOT Roblox Studio"
   },
   "binary": {
-    "assertions": 39,
+    "assertions": 45,
     "instances": 2167,
     "parts": 1862,
     "scripts": 47,
-    "bytes": 146362,
-    "sha256": "e505361998292a726a1f1afecd492339b2e3631a4b1c32d7936309112c82c9aa",
+    "bytes": 147395,
+    "sha256": "269bb85efe8b44207d247adadedb4ec6ee9127171cc809b8a4b1aa22c2727991",
     "classes": {
       "Workspace": 1,
       "Camera": 1,

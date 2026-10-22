@@ -81,3 +81,10 @@
 `build.mjs` собирает сервисы, remotes и точные Source всех Luau-файлов в бинарный Roblox DOM. `rbxm-parser` использует byte strings, поэтому authored Unicode переводится в UTF-8 bytes на границе writer. Binary blobs при этом не перекодируются. Второй парсер, `rbx-reader`, проверяет текст в fatal UTF-8 режиме и сравнивает каждый Source с исходником. Сборка выполняется дважды в одном окружении и должна дать одинаковые байты. Между окружениями CI сравнивает декодированный DOM, включая все свойства, иерархию, геометрию, ссылки и Source (`compare-place.mjs`), а не представление LZ4-чанков.
 
 Это проверяет формат и содержимое, **не запуск Roblox Engine**.
+
+
+### Внутренние бинарные payload и сериализуемые имена
+
+Проверка внешних RBXL-чанков не проверяет `Terrain.PhysicsGrid`: это opaque BinaryString для JS-парсеров, но отдельный формат для Studio. `instances.mjs` исправляет неполный default в rbxm-parser 1.1.4 по pinned Studio fixture, сохраняет все trailing NUL bytes и требует точного соответствия пустой сетке. Непустой voxel terrain пока не поддерживается этим builder.
+
+Каждый создаваемый объект защищён `Object.preventExtensions`. Для offline writer применяются сериализуемые имена (`Color3uint8`, `TimeOfDay`, `FontFace`), не scripting aliases (`Color`, `ClockTime`, `Font`). Это не меняет корректное использование Roblox scripting API в игровых Luau-скриптах. Проверки палитры, шрифта и времени выполняются после чтения собранного `.rbxl`.
