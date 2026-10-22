@@ -44,7 +44,8 @@ return function(app)
         if #c.Buildings >= app.Config.MaxBuildings then return false, "Достигнут лимит построек" end
         for _, b in c.Buildings do
             local ox, oz = extents(app.Buildings[b.id], b.r)
-            if math.abs(self.X - b.x) < hx + ox + 0.1 and math.abs(self.Z - b.z) < hz + oz + 0.1 then return false, "Пересечение с постройкой" end
+            -- Match the authoritative server rule: touching edges are valid, overlapping interiors are not.
+            if math.abs(self.X - b.x) < hx + ox and math.abs(self.Z - b.z) < hz + oz then return false, "Пересечение с постройкой" end
         end
         if c.Cash < def.cash then return false, "Недостаточно Survival Cash" end
         for id, count in def.cost do if (c.Stockpile[id] or 0) + app:Count(id) < count then return false, "Не хватает: " .. app.Items[id].name end end

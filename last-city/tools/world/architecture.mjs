@@ -16,8 +16,8 @@ export function apartment(world,x,z,w,d,h,tint,index) {
   // Four-sided windows sit outside the shell with a real sill and lintel.
   for(const face of [0,1,2,3]) {
     const alongX=face<2, side=face%2?1:-1, length=alongX?w:d, depth=alongX?d:w;
-    for(let y=12;y<h-4;y+=9) {
-      for(let a=-length/2+5;a<length/2-3;a+=12) {
+    for(let y=12;y<h-4;y+=11) {
+      for(let a=-length/2+6;a<length/2-4;a+=15) {
         const at=alongX?[x+a,y,z+side*(depth/2+0.13)]:[x+side*(depth/2+0.13),y,z+a];
         const yaw=alongX?0:Math.PI/2; const seed=index*13+face*7+Math.round(y+a);
         decorative(b,'WindowRecess',[5.3,6,0.12],at,frame,'Metal',yaw);

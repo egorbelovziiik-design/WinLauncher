@@ -72,12 +72,22 @@ check(at('ServerScriptService','Services','ZombieService').Source.includes('Path
 check(at('StarterPlayer','StarterPlayerScripts','Client').ClassName==='LocalScript','actual client entry point included');
 for(const name of ['04_MedicalPharmacy','05_PoliceStation','06_FuelStation','07_FuelOffice'])check(at('Workspace','World','Cities',name).ClassName==='Model',`${name} is physically included`);
 check(at('Workspace','World','Interactables').Children.length===2,'two server-interactive door models');
-check(loot.filter(n=>n.findFirstChild('QuestId')).length===5,'five distinct medical/intelligence quest targets');
+check(loot.filter(n=>n.findFirstChild('QuestId')).length===8,'eight distinct persisted quest targets across pharmacy, police, fuel office and relief camp');
 const materialService=own.Roots.find(n=>n.ClassName==='MaterialService');
 check(materialService.Use2022MaterialsXml===true,'native detailed material set enabled');
 check(own.Roots.find(n=>n.ClassName==='Lighting').Technology.Name==='Future','modern lighting pipeline serialized');
 check(ownNodes.filter(n=>n.ClassName==='TrussPart'&&n.Name==='RoofAccessLadder').length===2,'two climbable roof-access ladders');
-check(ownNodes.filter(n=>n.ClassName==='Part'&&n.Name==='WindowPane').length>300,'four-sided detailed building facades');
+check(ownNodes.filter(n=>n.ClassName==='Part'&&n.Name==='WindowPane').length>500,'four-sided detailed building facades');
+check(at('Workspace','World','Cities').Children.some(n=>n.Name==='08_MeridianReliefCamp'),'playable relief camp is physically included');
+check(at('Workspace','World','Cities').Children.some(n=>n.Name==='09_EvacuationConvoy'),'evacuation convoy is physically included');
+check(ownNodes.filter(n=>n.ClassName==='WedgePart'&&n.Name.endsWith('Ridge')).length>=50,'angular layered boundary ridges replace spherical horizon chain');
+check(!ownNodes.some(n=>n.Name==='DistantHills'),'old giant spherical boundary hills are absent');
+check(ownNodes.filter(n=>n.ClassName==='Model'&&n.Name==='RoadClosure').length>=9,'abrupt road ends are authored quarantine closures');
+check(terrain.findFirstChild('StormFront')?.ClassName==='Clouds','native dynamic cloud layer is serialized');
+check(at('ReplicatedStorage','Shared','ModelFactory').Source.includes('HumanoidRigType.R15'),'runtime actors use player-shaped R15 articulation');
+check(at('StarterPlayer','StarterPlayerScripts','Controllers','ActorAnimationController').Source.includes('ZombieAttack'),'distinct procedural actor state poses are embedded');
+check(at('ServerScriptService','Services','NPCService').Source.includes('KeyboardKeyCode = Enum.KeyCode.E'),'NPC talk explicitly binds keyboard E on the server-created prompt');
+check(!at('ServerScriptService','Domain','Building').Source.includes('hx + ox + 0.1'),'authoritative building overlap has no artificial adjacency gap');
 check(ownNodes.filter(n=>n.IsA('BasePart')).length<6500,'static geometry stays within explicit 6500-part build budget');
 
 const roundtrip=own.WriteToBuffer();

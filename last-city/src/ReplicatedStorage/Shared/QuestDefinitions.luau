@@ -41,5 +41,11 @@ return {
         objectives = {{event = "intel", target = "radio", count = 2, label = "Документы ретранслятора"}},
         reward = {coins = 450, xp = 300, items = {vest = 1, ammo = 32}}, reputation = "SURVIVORS",
     },
+    relief_recon = {
+        order = 7, name = "ПОСЛЕДНИЙ СПИСОК", type = "Исследование", npc = "alex", location = "Эвакуационный лагерь у северных ворот",
+        requires = "first_blood", description = "Сразу за воротами остался лагерь эвакуации. Найди список граждан, аварийный передатчик и жетоны спасателей. Каждый предмет засчитывается сервером только один раз.",
+        objectives = {{event = "relief", target = "camp", count = 3, label = "Свидетельства эвакуации"}},
+        reward = {coins = 350, xp = 300, items = {cloth = 6, water = 3, bandage = 2}}, reputation = "SURVIVORS",
+    },
 
 }

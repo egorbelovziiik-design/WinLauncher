@@ -180,7 +180,18 @@ local starter=M.service("StarterGui"); function starter:SetCoreGuiEnabled() end
 local light=M.service("Lighting"); light.ClockTime=15.5; M.add(light,"BloomEffect","Bloom"); M.add(light,"ColorCorrectionEffect","Color")
 local path=M.service("PathfindingService"); function path:CreatePath() return {ComputeAsync=function() end,Status=M.Enum.PathStatus.Success,GetWaypoints=function() return {} end} end
 local debris=M.service("Debris"); function debris:AddItem() end
-local collection=M.service("CollectionService"); function collection:AddTag() end
+local collection=M.service("CollectionService"); collection.Tags={}; collection.TagAdded={}; collection.TagRemoved={}
+function collection:AddTag(instance,tag)
+    self.Tags[tag]=self.Tags[tag] or {}
+    if not table.find(self.Tags[tag],instance) then table.insert(self.Tags[tag],instance); self:GetInstanceAddedSignal(tag):Fire(instance) end
+end
+function collection:RemoveTag(instance,tag)
+    local list=self.Tags[tag] or {}; local index=table.find(list,instance)
+    if index then table.remove(list,index); self:GetInstanceRemovedSignal(tag):Fire(instance) end
+end
+function collection:GetTagged(tag) return table.clone(self.Tags[tag] or {}) end
+function collection:GetInstanceAddedSignal(tag) self.TagAdded[tag]=self.TagAdded[tag] or M.signal(); return self.TagAdded[tag] end
+function collection:GetInstanceRemovedSignal(tag) self.TagRemoved[tag]=self.TagRemoved[tag] or M.signal(); return self.TagRemoved[tag] end
 local tele=M.service("TeleportService"); function tele:TeleportAsync() return {} end
 local http=M.service("HttpService"); function http:GenerateGUID() return "unique-mock-token" end
 M.Store={records={},calls=0,fail=false,replay=1}

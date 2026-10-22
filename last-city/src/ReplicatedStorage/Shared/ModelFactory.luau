@@ -59,51 +59,109 @@ function Factory.building(id, def, cf)
     end
     return m
 end
-function Factory.rig(name, cf, shirt, skin, scale)
+function Factory.rig(name, cf, shirt, skin, scale, style)
     scale = scale or 1
+    style = style or "survivor"
     local m = Instance.new("Model"); m.Name = name; m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-    local function limb(n, size, offset, color)
+    m:SetAttribute("BodyRig", "LC-R15")
+    m:SetAttribute("AnimationStyle", style)
+    m:SetAttribute("State", style:match("^zombie") and "ZombieIdle" or "Idle")
+    local pants = style:match("^zombie") and Color3.fromRGB(49, 53, 49) or dark
+    local function body(n, size, offset, color, rounded)
         local p = part(m, n, size * scale, cf * CFrame.new(offset * scale), color, Enum.Material.SmoothPlastic)
-        p.Anchored = false; p.CanCollide = n == "Torso"; p.Massless = n ~= "HumanoidRootPart"
+        p.Anchored = false; p.CanCollide = n == "LowerTorso"; p.Massless = n ~= "HumanoidRootPart"
+        if rounded then
+            local mesh = Instance.new("SpecialMesh"); mesh.MeshType = Enum.MeshType.Sphere; mesh.Scale = Vector3.new(1, 1, 1); mesh.Parent = p
+        end
         return p
     end
-    local root = limb("HumanoidRootPart", Vector3.new(2, 2, 1), Vector3.zero, shirt); root.Transparency = 1
-    local torso = limb("Torso", Vector3.new(2, 2, 1), Vector3.zero, shirt)
-    local head = limb("Head", Vector3.new(1.6, 1, 1), Vector3.new(0, 1.5, 0), skin)
-    local leftArm = limb("Left Arm", Vector3.new(1, 2, 1), Vector3.new(-1.5, 0, 0), shirt)
-    local rightArm = limb("Right Arm", Vector3.new(1, 2, 1), Vector3.new(1.5, 0, 0), shirt)
-    local leftLeg = limb("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0), dark)
-    local rightLeg = limb("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0), dark)
+    -- Fifteen articulated body segments use Roblox R15 names and player-like proportions.
+    local root = body("HumanoidRootPart", Vector3.new(2, 2, 1), Vector3.zero, shirt, false); root.Transparency = 1; root.CanCollide = false; root.Massless = false
+    local lower = body("LowerTorso", Vector3.new(1.62, 1.18, 0.9), Vector3.new(0, 0.15, 0), shirt, true)
+    local upper = body("UpperTorso", Vector3.new(2.15, 1.62, 1), Vector3.new(0, 1.35, 0), shirt, true)
+    local head = body("Head", Vector3.new(1.55, 1.55, 1.48), Vector3.new(0, 2.95, 0), skin, true)
+    local leftUpperArm = body("LeftUpperArm", Vector3.new(0.75, 1.4, 0.75), Vector3.new(-1.4, 1.35, 0), shirt, true)
+    local rightUpperArm = body("RightUpperArm", Vector3.new(0.75, 1.4, 0.75), Vector3.new(1.4, 1.35, 0), shirt, true)
+    local leftLowerArm = body("LeftLowerArm", Vector3.new(0.65, 1.1, 0.65), Vector3.new(-1.4, 0.17, 0), skin, true)
+    local rightLowerArm = body("RightLowerArm", Vector3.new(0.65, 1.1, 0.65), Vector3.new(1.4, 0.17, 0), skin, true)
+    local leftHand = body("LeftHand", Vector3.new(0.67, 0.57, 0.67), Vector3.new(-1.4, -0.62, 0), skin, true)
+    local rightHand = body("RightHand", Vector3.new(0.67, 0.57, 0.67), Vector3.new(1.4, -0.62, 0), skin, true)
+    local leftUpperLeg = body("LeftUpperLeg", Vector3.new(0.84, 1.6, 0.86), Vector3.new(-0.45, -0.9, 0), pants, true)
+    local rightUpperLeg = body("RightUpperLeg", Vector3.new(0.84, 1.6, 0.86), Vector3.new(0.45, -0.9, 0), pants, true)
+    local leftLowerLeg = body("LeftLowerLeg", Vector3.new(0.72, 1.3, 0.75), Vector3.new(-0.45, -2.05, 0), pants, true)
+    local rightLowerLeg = body("RightLowerLeg", Vector3.new(0.72, 1.3, 0.75), Vector3.new(0.45, -2.05, 0), pants, true)
+    local leftFoot = body("LeftFoot", Vector3.new(0.78, 0.46, 1.25), Vector3.new(-0.45, -2.78, -0.18), pants, true)
+    local rightFoot = body("RightFoot", Vector3.new(0.78, 0.46, 1.25), Vector3.new(0.45, -2.78, -0.18), pants, true)
     local function motor(n, a, b, offset0, offset1)
+        local c0, c1 = CFrame.new(offset0 * scale), CFrame.new(offset1 * scale)
+        local attachmentName = n .. "RigAttachment"
+        local a0 = Instance.new("Attachment"); a0.Name = attachmentName; a0.CFrame = c0; a0.Parent = a
+        local a1 = Instance.new("Attachment"); a1.Name = attachmentName; a1.CFrame = c1; a1.Parent = b
         local j = Instance.new("Motor6D"); j.Name = n; j.Part0 = a; j.Part1 = b
-        j.C0 = CFrame.new(offset0 * scale); j.C1 = CFrame.new(offset1 * scale); j.Parent = a
+        j.C0 = c0; j.C1 = c1; j.Parent = a
         return j
     end
-    motor("RootJoint", root, torso, Vector3.zero, Vector3.zero)
-    motor("Neck", torso, head, Vector3.new(0, 1, 0), Vector3.new(0, -0.5, 0))
-    motor("Left Shoulder", torso, leftArm, Vector3.new(-1, 0.5, 0), Vector3.new(0.5, 0.5, 0))
-    motor("Right Shoulder", torso, rightArm, Vector3.new(1, 0.5, 0), Vector3.new(-0.5, 0.5, 0))
-    motor("Left Hip", torso, leftLeg, Vector3.new(-0.5, -1, 0), Vector3.new(0, 1, 0))
-    motor("Right Hip", torso, rightLeg, Vector3.new(0.5, -1, 0), Vector3.new(0, 1, 0))
-    -- Eyes use geometry, not restricted third-party decals.
-    for _, x in {-0.35, 0.35} do
-        local eye = part(m, "Eye", Vector3.new(0.16, 0.16, 0.05) * scale, head.CFrame * CFrame.new(x * scale, 0.12 * scale, -0.52 * scale), Color3.fromRGB(21, 26, 24))
-        eye.Anchored = false; eye.CanCollide = false; eye.Massless = true
-        local weld = Instance.new("WeldConstraint"); weld.Part0 = head; weld.Part1 = eye; weld.Parent = eye
+    motor("Root", root, lower, Vector3.zero, Vector3.new(0, -0.15, 0))
+    motor("Waist", lower, upper, Vector3.new(0, 0.5, 0), Vector3.new(0, -0.7, 0))
+    motor("Neck", upper, head, Vector3.new(0, 0.81, 0), Vector3.new(0, -0.79, 0))
+    motor("LeftShoulder", upper, leftUpperArm, Vector3.new(-1.08, 0.4, 0), Vector3.new(0.32, 0.4, 0))
+    motor("RightShoulder", upper, rightUpperArm, Vector3.new(1.08, 0.4, 0), Vector3.new(-0.32, 0.4, 0))
+    motor("LeftElbow", leftUpperArm, leftLowerArm, Vector3.new(0, -0.67, 0), Vector3.new(0, 0.51, 0))
+    motor("RightElbow", rightUpperArm, rightLowerArm, Vector3.new(0, -0.67, 0), Vector3.new(0, 0.51, 0))
+    motor("LeftWrist", leftLowerArm, leftHand, Vector3.new(0, -0.53, 0), Vector3.new(0, 0.26, 0))
+    motor("RightWrist", rightLowerArm, rightHand, Vector3.new(0, -0.53, 0), Vector3.new(0, 0.26, 0))
+    motor("LeftHip", lower, leftUpperLeg, Vector3.new(-0.45, -0.45, 0), Vector3.new(0, 0.6, 0))
+    motor("RightHip", lower, rightUpperLeg, Vector3.new(0.45, -0.45, 0), Vector3.new(0, 0.6, 0))
+    motor("LeftKnee", leftUpperLeg, leftLowerLeg, Vector3.new(0, -0.65, 0), Vector3.new(0, 0.5, 0))
+    motor("RightKnee", rightUpperLeg, rightLowerLeg, Vector3.new(0, -0.65, 0), Vector3.new(0, 0.5, 0))
+    motor("LeftAnkle", leftLowerLeg, leftFoot, Vector3.new(0, -0.57, -0.03), Vector3.new(0, 0.16, 0.15))
+    motor("RightAnkle", rightLowerLeg, rightFoot, Vector3.new(0, -0.57, -0.03), Vector3.new(0, 0.16, 0.15))
+    local function detail(n, size, offset, color, attach, material, rounded)
+        local p = part(m, n, size * scale, cf * CFrame.new(offset * scale), color, material or Enum.Material.SmoothPlastic)
+        p.Anchored = false; p.CanCollide = false; p.CanQuery = false; p.CanTouch = false; p.Massless = true
+        if rounded then local mesh = Instance.new("SpecialMesh"); mesh.MeshType = Enum.MeshType.Sphere; mesh.Parent = p end
+        local weld = Instance.new("WeldConstraint"); weld.Part0 = attach; weld.Part1 = p; weld.Parent = p
+        return p
+    end
+    -- Geometry-only face and role details: no external decals, packages or fake mesh IDs.
+    for _, x in {-0.32, 0.32} do detail("Eye", Vector3.new(0.14, 0.18, 0.06), Vector3.new(x, 3.08, -0.73), Color3.fromRGB(20, 26, 25), head) end
+    detail("Mouth", Vector3.new(0.42, 0.07, 0.05), Vector3.new(0, 2.67, -0.74), style:match("^zombie") and Color3.fromRGB(74, 36, 31) or Color3.fromRGB(92, 54, 44), head)
+    if style == "alex" then
+        detail("Beret", Vector3.new(1.65, 0.28, 1.45), Vector3.new(0, 3.72, 0), Color3.fromRGB(45, 66, 55), head, nil, true)
+        detail("CommanderVest", Vector3.new(1.9, 1.35, 0.28), Vector3.new(0, 1.35, -0.58), Color3.fromRGB(43, 57, 49), upper, Enum.Material.Fabric)
+        detail("RankPatch", Vector3.new(0.42, 0.25, 0.08), Vector3.new(-0.55, 1.52, -0.75), orange, upper, Enum.Material.Neon)
+    elseif style == "max" then
+        detail("Hair", Vector3.new(1.62, 0.55, 1.45), Vector3.new(0, 3.57, 0.08), Color3.fromRGB(64, 44, 31), head, nil, true)
+        detail("Scarf", Vector3.new(1.35, 0.3, 1.02), Vector3.new(0, 2.2, 0), Color3.fromRGB(160, 106, 57), upper, Enum.Material.Fabric, true)
+        detail("Satchel", Vector3.new(0.65, 1.25, 0.38), Vector3.new(1.03, 0.72, 0.28), Color3.fromRGB(104, 72, 44), lower, Enum.Material.Leather)
+    elseif style == "victor" then
+        detail("SafetyHelmet", Vector3.new(1.7, 0.52, 1.52), Vector3.new(0, 3.62, 0), Color3.fromRGB(221, 156, 45), head, Enum.Material.Plastic, true)
+        detail("Goggles", Vector3.new(1.15, 0.26, 0.08), Vector3.new(0, 3.08, -0.76), Color3.fromRGB(45, 91, 105), head, Enum.Material.Glass)
+        detail("ToolBelt", Vector3.new(1.76, 0.28, 1.02), Vector3.new(0, 0.45, 0), Color3.fromRGB(83, 61, 42), lower, Enum.Material.Leather)
+    elseif style == "worker_mira" then
+        detail("Hair", Vector3.new(1.62, 0.58, 1.45), Vector3.new(0, 3.58, 0.08), Color3.fromRGB(54, 40, 30), head, nil, true)
+        detail("Bandanna", Vector3.new(1.62, 0.2, 1.5), Vector3.new(0, 3.45, -0.02), Color3.fromRGB(139, 69, 55), head, Enum.Material.Fabric)
+    elseif style == "worker_lev" then
+        detail("Cap", Vector3.new(1.65, 0.38, 1.52), Vector3.new(0, 3.65, 0), Color3.fromRGB(68, 85, 72), head, Enum.Material.Fabric, true)
+        detail("CapBill", Vector3.new(1.05, 0.12, 0.65), Vector3.new(0, 3.5, -0.72), Color3.fromRGB(68, 85, 72), head, Enum.Material.Fabric)
+    elseif style:match("^zombie") then
+        detail("TornShirt", Vector3.new(1.85, 0.38, 1.08), Vector3.new(0, 0.78, 0), Color3.fromRGB(47, 57, 49), lower, Enum.Material.Fabric)
+        if style == "zombie_tank" then
+            detail("ShoulderMass", Vector3.new(3.05, 0.48, 1.25), Vector3.new(0, 1.78, 0), Color3.fromRGB(77, 83, 79), upper, nil, true)
+        end
+    else
+        detail("Hair", Vector3.new(1.62, 0.48, 1.45), Vector3.new(0, 3.62, 0.06), Color3.fromRGB(62, 49, 39), head, nil, true)
     end
     local h = Instance.new("Humanoid"); h.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-    h.BreakJointsOnDeath = false; h.WalkSpeed = 9; h.Parent = m
+    h.BreakJointsOnDeath = false; h.RequiresNeck = true; h.RigType = Enum.HumanoidRigType.R15
+    h.AutomaticScalingEnabled = false; h.WalkSpeed = 9; h.HipHeight = 2 * scale; h.Parent = m
+    local animator = Instance.new("Animator"); animator.Parent = h
     m.PrimaryPart = root
     return m, h
 end
-function Factory.animate(model, walking, phase, zombie)
-    local torso = model:FindFirstChild("Torso"); if not torso then return end
-    local amplitude = walking and math.sin(phase) * 0.55 or 0
-    local scale = torso.Size.Y / 2
-    for _, data in {{"Left Hip", -0.5, -1, amplitude}, {"Right Hip", 0.5, -1, -amplitude}, {"Left Shoulder", -1, 0.5, zombie and -0.9 or -amplitude}, {"Right Shoulder", 1, 0.5, zombie and -0.9 or amplitude}} do
-        local joint = torso:FindFirstChild(data[1])
-        if joint then joint.C0 = CFrame.new(data[2] * scale, data[3] * scale, 0) * CFrame.Angles(data[4], 0, 0) end
-    end
+function Factory.animate(model, walking, _phase, zombie)
+    -- Compatibility shim. Smooth joint poses are evaluated locally by ActorAnimationController.
+    model:SetAttribute("State", walking and (zombie and "ZombieWalk" or "Walking") or (zombie and "ZombieIdle" or "Idle"))
 end
 function Factory.weapon(id, color)
     local tool = Instance.new("Tool"); tool.Name = id; tool.CanBeDropped = false

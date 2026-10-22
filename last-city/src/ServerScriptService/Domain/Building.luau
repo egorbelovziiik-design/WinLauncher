@@ -19,7 +19,8 @@ return function(Definitions, Inventory, Config, Util)
         end
         for _, other in c.Buildings do
             local ox, oz = Building.extents(other.id, other.r)
-            if math.abs(x - other.x) < hx + ox + 0.1 and math.abs(z - other.z) < hz + oz + 0.1 then return false, "Постройки пересекаются" end
+            -- Positive interior intersection is blocked; exact edge contact is intentionally valid.
+            if math.abs(x - other.x) < hx + ox and math.abs(z - other.z) < hz + oz then return false, "Постройки пересекаются" end
         end
         if def.level and Util.level(c.XP) < def.level then return false, "Недостаточный уровень" end
         if def.blueprint and Inventory.count(c, def.blueprint) < 1 then return false, "Нужен чертёж инженера" end

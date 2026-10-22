@@ -41,19 +41,19 @@ return function(ctx)
                 ctx:Changed(player)
             end
         end
-        z.model:SetAttribute("Health", 0)
+        z.model:SetAttribute("Health", 0); z.model:SetAttribute("State", "Dead")
         for _, p in z.model:GetDescendants() do if p:IsA("BasePart") then p.CanCollide = false; p.Anchored = true; p.Transparency = math.max(p.Transparency, 0.6) end end
         Debris:AddItem(z.model, 2)
     end
     function Service:Spawn(kind, position, raidOwner)
         if self:Count() >= ctx.Config.MaxZombies then return end
         local def = ctx.ZombieDefs[kind]; self.NextId += 1
-        local m, h = ctx.Factory.rig(def.name, CFrame.new(position + Vector3.new(0, 3 * def.size, 0)), Color3.fromRGB(59, 69, 61), Color3.fromRGB(table.unpack(def.color)), def.size)
+        local m, h = ctx.Factory.rig(def.name, CFrame.new(position + Vector3.new(0, 3 * def.size, 0)), Color3.fromRGB(59, 69, 61), Color3.fromRGB(table.unpack(def.color)), def.size, "zombie_" .. kind)
         m.Name = "Zombie_" .. self.NextId; m:SetAttribute("ZombieId", self.NextId); m:SetAttribute("Kind", kind)
-        m:SetAttribute("Health", def.health); m:SetAttribute("MaxHealth", def.health)
-        m.Parent = ctx.World.Zombies; m.PrimaryPart:SetNetworkOwner(nil); CollectionService:AddTag(m, "Zombie")
+        m:SetAttribute("Health", def.health); m:SetAttribute("MaxHealth", def.health); m:SetAttribute("State", "ZombieIdle"); m:SetAttribute("AnimationSeed", self.NextId % 97)
+        m.Parent = ctx.World.Zombies; m.PrimaryPart:SetNetworkOwner(nil); CollectionService:AddTag(m, "Zombie"); CollectionService:AddTag(m, "LastCityActor")
         h.MaxHealth = def.health; h.Health = def.health; h.WalkSpeed = def.speed
-        local z = {id = self.NextId, model = m, humanoid = h, kind = kind, home = position, raidOwner = raidOwner, credits = {}, nextAttack = 0, nextPath = 0, pathIndex = 1, born = os.clock()}
+        local z = {id = self.NextId, model = m, humanoid = h, kind = kind, home = position, raidOwner = raidOwner, credits = {}, nextAttack = 0, attackUntil = 0, nextPath = 0, pathIndex = 1, born = os.clock()}
         self.Zombies[z.id] = z; h.Died:Connect(function() self:Die(z) end)
         return z
     end
@@ -92,19 +92,20 @@ return function(ctx)
                 if d < distance and (not s.Crouching or d < 65) then nearest = player; distance = d end
             end
         end
-        local def = ctx.ZombieDefs[z.kind]
+        local def = ctx.ZombieDefs[z.kind]; local motionState = "ZombieIdle"
         if nearest then
-            local pr = ctx:Root(nearest)
+            local pr = ctx:Root(nearest); motionState = "ZombieChase"
             self:Move(z, pr.Position)
             if distance < 5.2 and os.clock() >= z.nextAttack and ctx:LineOfSight(root.Position, pr.Position, {z.model, nearest.Character}) then
-                z.nextAttack = os.clock() + def.interval; ctx.Services.CombatService:Hurt(nearest, def.damage)
+                z.nextAttack = os.clock() + def.interval; z.attackUntil = os.clock() + 0.55
+                ctx.Services.CombatService:Hurt(nearest, def.damage)
             end
         elseif z.raidOwner and ctx.Sessions[z.raidOwner] and ctx.Sessions[z.raidOwner].Active then
             local b, point, d = ctx.Services.BuildingService:Nearest(z.raidOwner, root.Position)
             if b then
-                self:Move(z, point)
+                motionState = "ZombieChase"; self:Move(z, point)
                 if d < 5 and os.clock() >= z.nextAttack then
-                    z.nextAttack = os.clock() + def.interval
+                    z.nextAttack = os.clock() + def.interval; z.attackUntil = os.clock() + 0.55
                     ctx.Services.BuildingService:Damage(z.raidOwner, b.uid, def.structureDamage or def.damage)
                 end
             end
@@ -117,12 +118,15 @@ return function(ctx)
                 if s.Active and pr and (pr.Position - root.Position).Magnitude < 200 then observed = true; break end
             end
             if observed then
+                motionState = "ZombieWalk"
                 self:Move(z, z.home + Vector3.new(math.sin(os.clock() / 10 + z.id) * 12, 0, math.cos(os.clock() / 10 + z.id) * 12))
             end
             if not observed and os.clock() - z.born > 240 then z.model:Destroy(); self.Zombies[z.id] = nil; return end
         end
         if root.Position.Y < -30 then z.model:Destroy(); self.Zombies[z.id] = nil; return end
-        ctx.Factory.animate(z.model, root.AssemblyLinearVelocity.Magnitude > 1, os.clock() * def.speed / 2, true)
+        if os.clock() < z.attackUntil then z.model:SetAttribute("State", "ZombieAttack")
+        elseif root.AssemblyLinearVelocity.Magnitude > 1 then z.model:SetAttribute("State", motionState)
+        else z.model:SetAttribute("State", "ZombieIdle") end
     end
     function Service:NightRaid()
         local candidates = {}

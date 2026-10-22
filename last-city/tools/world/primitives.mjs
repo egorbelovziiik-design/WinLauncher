@@ -10,6 +10,14 @@ export const palette = {
 export const vec = (x, y, z) => new R.Vector3(x, y, z);
 export function color(hex) { const n = parseInt(hex.replace('#', ''), 16); return new R.Color3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); }
 export function cf(x, y, z, yaw = 0) { const c = Math.cos(yaw), s = Math.sin(yaw); return new R.CFrame(vec(x, y, z), [c, 0, s, 0, 1, 0, -s, 0, c]); }
+export function eulerCf(x, y, z, rx = 0, ry = 0, rz = 0) {
+  const cx=Math.cos(rx),sx=Math.sin(rx),cy=Math.cos(ry),sy=Math.sin(ry),cz=Math.cos(rz),sz=Math.sin(rz);
+  return new R.CFrame(vec(x,y,z),[
+    cy*cz+sy*sx*sz,-cy*sz+sy*sx*cz,sy*cx,
+    cx*sz,cx*cz,-sx,
+    -sy*cz+cy*sx*sz,sy*sz+cy*sx*cz,cy*cx,
+  ]);
+}
 export function lookAt(position, target) {
   const d=target.map((v,i)=>v-position[i]); const len=Math.hypot(...d); const f=d.map(v=>v/len);
   const r0=[-f[2],0,f[0]]; const rl=Math.hypot(...r0); const r=r0.map(v=>v/rl);
@@ -17,11 +25,19 @@ export function lookAt(position, target) {
   return new R.CFrame(vec(...position),[r[0],u[0],-f[0],r[1],u[1],-f[1],r[2],u[2],-f[2]]);
 }
 export function folder(parent, name, model = false) { const o = model ? instance('Model') : instance('Folder'); o.Name = name; o.Parent = parent; return o; }
+function physical(className,parent,name,size,frame,tint,mat,extra) {
+  const p=instance(className);p.Name=name;p.Size=vec(...size);p.CFrame=frame;p.Color3uint8=color(tint);
+  p.Material=R.Material[mat];if(!p.Material)throw new Error(`Unknown material: ${mat}`);p.Anchored=true;
+  p.TopSurface=R.SurfaceType.Smooth;p.BottomSurface=R.SurfaceType.Smooth;Object.assign(p,extra);p.Parent=parent;return p;
+}
 export function part(parent, name, size, at, tint = palette.concrete, mat = 'Concrete', yaw = 0, extra = {}) {
-  const p = instance('Part'); p.Name = name; p.Size = vec(...size); p.CFrame = cf(...at, yaw);
-  p.Color3uint8 = color(tint); p.Material = R.Material[mat]; if (!p.Material) throw new Error(`Unknown material: ${mat}`); p.Anchored = true;
-  p.TopSurface = R.SurfaceType.Smooth; p.BottomSurface = R.SurfaceType.Smooth;
-  Object.assign(p, extra); p.Parent = parent; return p;
+  return physical('Part',parent,name,size,cf(...at,yaw),tint,mat,extra);
+}
+export function orientedPart(parent,name,size,at,rotation=[0,0,0],tint=palette.concrete,mat='Concrete',extra={}) {
+  return physical('Part',parent,name,size,eulerCf(...at,...rotation),tint,mat,extra);
+}
+export function wedge(parent,name,size,at,tint=palette.concrete,mat='Rock',yaw=0,extra={}) {
+  return physical('WedgePart',parent,name,size,cf(...at,yaw),tint,mat,extra);
 }
 export function value(parent, name, val) { const integer=typeof val==='number'&&Number.isInteger(val); const o=instance(integer?'IntValue':typeof val==='number'?'NumberValue':'StringValue'); o.Name=name; o.Value=integer?BigInt(val):val; o.Parent=parent; return o; }
 export function sign(parent, text, size, at, tint = palette.orange, bg = palette.dark, yaw = 0) {
@@ -59,6 +75,33 @@ export function car(parent, x, z, yaw, tint = palette.rust) {
   p('RearBumper',[6.7,0.5,0.35],[0,1.5,6.2],'#606963');
   p('RearWindow',[5.1,1.8,0.15],[0,4,2.35],palette.glass,'Glass');
   for (const side of [-1, 1]) p('BrokenHeadlight', [1.6, 0.5, 0.2], [side * 2, 2.8, -6.1], '#a6a083', 'Glass');
+}
+export function bus(parent,x,z,yaw=0,tint='#6c765f') {
+  const m=folder(parent,'EvacuationBus',true);const c=Math.cos(yaw),s=Math.sin(yaw);
+  const p=(n,size,o,col=tint,mat='Metal',extra={})=>part(m,n,size,[x+o[0]*c+o[2]*s,o[1],z-o[0]*s+o[2]*c],col,mat,yaw,extra);
+  p('BusChassis',[9,2.2,27],[0,2,0],'#303a39');p('BusBody',[8.7,5.8,25.5],[0,5.5,0],tint);
+  p('BusRoof',[9,0.5,26],[0,8.6,0],'#535e58');p('FrontWindshield',[7.5,3,0.18],[0,6.4,-12.86],palette.glass,'Glass');
+  p('RearWindow',[7.1,2.2,0.18],[0,6.2,12.86],palette.glass,'Glass');
+  for(const side of [-1,1]) {
+    for(let i=-9;i<=8;i+=4.25)p('BusSideWindow',[0.16,2.35,3.35],[side*4.38,6.5,i],i===-9?'#34484b':palette.glass,'Glass',{CanCollide:false});
+    p('BusLowerRail',[0.24,0.42,24],[side*4.48,3.2,0],'#3c4845');
+    p('BusDoor',[0.2,4.9,3.2],[side*4.5,5,-10.2],'#475754');
+  }
+  for(const side of [-1,1])for(const end of [-1,1]) {
+    const wheel=p('BusWheel',[1.35,3.5,3.5],[side*4.5,2,end*8.5],'#171b1c','Rubber');wheel.Shape=R.PartType.Cylinder;
+    const hub=p('BusWheelHub',[0.18,1.45,1.45],[side*5.18,2,end*8.5],'#717871','Metal');hub.Shape=R.PartType.Cylinder;
+  }
+  p('FrontBumper',[9.2,0.65,0.55],[0,1.6,-13.2],'#737971');p('RearBumper',[9.2,0.65,0.55],[0,1.6,13.2],'#737971');
+  for(const side of [-1,1])p('Headlamp',[1.15,0.65,0.16],[side*2.7,3.3,-13.18],'#b8a66f','Glass');
+  p('RouteDisplay',[4.8,0.95,0.16],[0,8,-13.15],'#d88343','Neon');
+  return m;
+}
+export function barricade(parent,x,z,yaw=0,label='QUARANTINE') {
+  const m=folder(parent,'RoadClosure',true);const c=Math.cos(yaw),s=Math.sin(yaw);
+  const p=(n,size,o,col,mat='Metal')=>part(m,n,size,[x+o[0]*c+o[2]*s,o[1],z-o[0]*s+o[2]*c],col,mat,yaw);
+  for(const dx of [-5,5]) {p('BarrierFoot',[3.5,0.5,2],[dx,0.25,0],palette.dark);p('BarrierPost',[0.7,5.2,0.7],[dx,2.8,0],palette.steel);}
+  p('BarrierBoard',[13,1.1,0.45],[0,3.8,0],palette.orange,'WoodPlanks');p('BarrierStripe',[13.1,0.18,0.48],[0,3.8,0],'#e1d8bb','SmoothPlastic');
+  return m;
 }
 export function loot(parent, id, count, x, z, index, cooldown = 90) {
   const p = part(parent, `${id}_${index}`, [3, 2.6, 3], [x, 1.3, z], id === 'electronics' ? palette.teal : id === 'fuel' ? palette.orange : palette.wood, 'WoodPlanks');

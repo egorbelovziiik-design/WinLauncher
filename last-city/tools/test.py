@@ -43,9 +43,10 @@ run(['node',GAME/'tools/build.mjs'])
 assert artifact.read_bytes()==first,'Non-deterministic place build'
 print('PASSED | BUILD deterministic identical binary across two builds')
 summary={
-    'version':'0.2.0','serialization':{'status':'PASSED','count':int(re.search(r'# pass (\d+)',serialization)[1])},
+    'version':'0.3.0','serialization':{'status':'PASSED','count':int(re.search(r'# pass (\d+)',serialization)[1])},
     'previous_studio_import':{'version':'0.1.0','status':'FAILED','evidence':'User screenshot: Error while decoding data: unexpected end at offset 2'},
-    'studio_import':{'version':'0.2.0','status':'NOT TESTED'},
+    'studio_import':{'version':'0.3.0','status':'NOT TESTED'},
+    'studio_import_0_2_0':{'status':'PASSED','evidence':'User screenshots show the released scene open and rendered in Studio; Play was not confirmed'},
     'studio_import_0_1_1':{'status':'PASSED','evidence':'User screenshots show loading GUI and editable 3D scene; gameplay startup was not confirmed'},
     'roads':{'status':'PASSED','count':int(re.search(r'# pass (\d+)',roads)[1])},
     'luau_version':'0.743','source_compilation':{'status':'PASSED','count':len(sources)},

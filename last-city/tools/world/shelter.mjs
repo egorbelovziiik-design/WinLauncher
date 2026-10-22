@@ -1,4 +1,4 @@
-import { R, instance, boldFont, part, folder, sign, lamp, crate, loot, color, vec, cf, palette as P } from './primitives.mjs';
+import { R, instance, boldFont, part, orientedPart, folder, sign, lamp, crate, loot, color, vec, cf, palette as P } from './primitives.mjs';
 export function shelter(world) {
   const m = folder(world.Cities, '01_MeridianShelter', true);
   part(m, 'ConcreteSquare', [156, 0.3, 140], [0, 0.05, -100], '#515957', 'Concrete');
@@ -41,17 +41,27 @@ export function shelter(world) {
   const plots = [[-144,-252],[0,-252],[144,-252],[-144,-396],[0,-396],[144,-396]];
   plots.forEach(([x,z],i)=>{
     const p = folder(world.Plots,`Plot${i+1}`,true);
-    part(p,'PlotGround',[100,0.2,100],[x,-0.05,z],'#4b5247','Ground');
-    for (const dx of [-50,50]) part(p,'Boundary',[0.5,0.2,100],[x+dx,0.2,z],'#b79858','Concrete');
-    for (const dz of [-50,50]) part(p,'Boundary',[100,0.2,0.5],[x,0.2,z+dz],'#b79858','Concrete');
+    part(p,'PlotGround',[100,0.2,100],[x,-0.05,z],i%2===0?'#4b5247':'#485147','Ground');
+    const flat={CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false};
+    // Irregular worn ground and short survey marks replace the board-game rectangle outline.
+    for(const [dx,dz,w,d,yaw] of [[-27,-22,28,17,0.17],[24,-19,31,14,-0.11],[-25,15,23,19,-0.2],[23,14,27,18,0.13]])
+      part(p,'WornGround',[w,0.05,d],[x+dx,0.07,z+dz],i%3===0?'#5c5b4b':'#404a40',i%3===0?'Ground':'Grass',yaw,flat);
+    for(const sx of [-1,1])for(const sz of [-1,1]) {
+      part(p,'SurveyMark',[0.42,0.12,17],[x+sx*50,0.13,z+sz*41.5],'#8e805d','Concrete',0,flat);
+      part(p,'SurveyMark',[17,0.12,0.42],[x+sx*41.5,0.13,z+sz*50],'#8e805d','Concrete',0,flat);
+    }
     for (const dx of [-50,50]) for (const dz of [-50,50]) part(p,'Marker',[1,2,1],[x+dx,1,z+dz],P.orange,'Metal');
+    part(p,'CampPath',[12,0.08,22],[x,0.1,z+39],'#66685d','Pebble',0,flat);
     const terminal = part(p,'Terminal',[4,4,3],[x+6,2,z+38],P.dark,'Metal');
     part(p,'Screen',[3,2,0.2],[x+6,2.7,z+36.4],P.teal,'Neon');
     const gui = instance('BillboardGui'); gui.Name = 'OwnerGui'; gui.Size = new R.UDim2(new R.UDim(0,220),new R.UDim(0,50)); gui.StudsOffset = vec(0,4,0); gui.MaxDistance = 95; gui.Adornee = terminal; gui.Parent = terminal;
     const text = instance('TextLabel'); text.Name = 'Label'; text.Size = new R.UDim2(new R.UDim(1,0),new R.UDim(1,0)); text.BackgroundTransparency = 1; text.Text = `СВОБОДНЫЙ УЧАСТОК\n${i+1}`; text.TextColor3 = color(P.amber); text.FontFace = boldFont(); text.TextSize = 14; text.TextStrokeTransparency = 0.4; text.Parent = gui;
-    part(p,'TentBack',[12,6,0.5],[x-22,3,z+39], '#65715b','Fabric');
-    part(p,'TentRoof',[13,0.5,10],[x-22,6,z+35], '#65715b','Fabric');
-    part(p,'TentPost',[0.4,6,0.4],[x-28,3,z+30],P.dark,'Metal');
-    part(p,'TentPost',[0.4,6,0.4],[x-16,3,z+30],P.dark,'Metal');
+    part(p,'TentFloor',[13,0.22,11],[x-22,0.12,z+35],'#545b50','Fabric');
+    orientedPart(p,'TentRoofLeft',[7.3,0.35,11.5],[x-24.7,4,z+35],[0,0,0.69],'#65715b','Fabric');
+    orientedPart(p,'TentRoofRight',[7.3,0.35,11.5],[x-19.3,4,z+35],[0,0,-0.69],'#65715b','Fabric');
+    part(p,'TentBack',[12,6,0.4],[x-22,3,z+40.4], '#596651','Fabric');
+    for(const dx of [-6,6])for(const dz of [-5,5])part(p,'TentPost',[0.35,6,0.35],[x-22+dx,3,z+35+dz],P.dark,'Metal');
+    part(p,'Bedroll',[4.5,0.5,2],[x-24,0.5,z+36.5],'#536867','Fabric');
+    const barrel=orientedPart(p,'WaterBarrel',[3.5,3,3],[x-14,1.5,z+39],[0,0,Math.PI/2],P.teal,'Metal');barrel.Shape=R.PartType.Cylinder;
   });
 }

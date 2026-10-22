@@ -1,6 +1,6 @@
 --!strict
 return table.freeze({
-    Version = "0.2.0 — MERIDIAN REBUILT", SchemaVersion = 1,
+    Version = "0.3.0 — LIVING MERIDIAN", SchemaVersion = 1,
     Title = "LAST CITY 3D", Subtitle = "DEAD WORLD: ULTIMATE SURVIVAL",
     MaxPlayers = 6, MaxZombies = 24, AIInterval = 0.25, PathInterval = 2.5,
     StudioUseDataStore = false, -- Explicit opt-in for cloud-save testing; downloaded Studio files use SessionOnly.
@@ -21,7 +21,7 @@ return table.freeze({
         {key = "inventory", text = "Откройте рюкзак: I / кнопка «Рюкзак»"},
         {key = "attack", text = "Используйте лом: ЛКМ / кнопка атаки"},
         {key = "kill", text = "Победите зомби за северными воротами"},
-        {key = "talk", text = "Поговорите с капитаном Алексом: E"},
+        {key = "talk", text = "Подойдите к капитану Алексу и нажмите E: откроется настоящий диалог и задания"},
         {key = "quest", text = "Примите задание «Первая кровь»"},
         {key = "resource", text = "Соберите металл на улице за воротами"},
         {key = "build", text = "На своём участке откройте B и постройте стену"},

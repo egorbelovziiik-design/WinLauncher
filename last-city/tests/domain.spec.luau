@@ -81,6 +81,8 @@ test("expired daily reward cannot be claimed", function() local p,c=fresh(); com
 
 test("building places and charges exact resources and cash", function() local _,c=fresh(); local wood=c.Stockpile.wood; local ok,b=Building.place(c,"wall",0,0,0,100); assert(ok); eq(c.Stockpile.wood,wood-10); eq(c.Cash,190); eq(b.readyAt,103); eq(#c.Buildings,1) end)
 test("overlap rejects without resource debit", function() local _,c=fresh(); Building.place(c,"wall",0,0,0,100); local cash=c.Cash; eq(Building.place(c,"wall",4,0,0,100),false); eq(c.Cash,cash); eq(#c.Buildings,1) end)
+test("buildings may share an edge with zero artificial gap", function() local _,c=fresh(); assert(Building.place(c,"wall",0,0,0,100)); assert(Building.place(c,"wall",12,0,0,100)); eq(#c.Buildings,2) end)
+test("one grid step of interior overlap remains invalid", function() local _,c=fresh(); assert(Building.place(c,"wall",0,0,0,100)); eq(Building.valid(c,"wall",8,0,0),false); eq(#c.Buildings,1) end)
 test("rotated footprints affect boundary validation", function() local _,c=fresh(); eq(Building.valid(c,"wall",44,0,0),false); assert(Building.valid(c,"wall",44,0,1)) end)
 test("plot spawn and terminal clearance is protected", function() local _,c=fresh(); eq(Building.valid(c,"wall",0,36,0),false) end)
 test("static resident tent cannot be overlapped", function() local _,c=fresh(); eq(Building.valid(c,"generator",-24,36,0),false) end)
@@ -166,6 +168,15 @@ test("radio quest needs both documents and survives save normalization",function
     local loaded=Profile.normalize(p); local copy=loaded.Campaigns.coop
     Quests.record(copy,"intel","radio",1,101,"PoliceDispatch"); eq(copy.Quests.radio_recovery.progress[1],1)
     Quests.record(copy,"intel","radio",1,102,"RadioMaintenance"); assert(Quests.claim(loaded,copy,"radio_recovery",102)); eq(Inventory.count(copy,"vest"),1)
+end)
+test("relief camp evidence is distinct persisted and rewarded once",function()
+    local p,c=fresh(); completed(c,"first_blood",100); Quests.claim(p,c,"first_blood",100); assert(Quests.accept(c,"relief_recon",100))
+    for _,uid in {"ReliefRoster","ReliefTransmitter","ReliefTags"} do
+        Quests.record(c,"relief","camp",1,100,uid); Quests.record(c,"relief","camp",1,100,uid)
+    end
+    eq(c.Quests.relief_recon.progress[1],3); eq(c.Quests.relief_recon.status,"Completed")
+    local before=p.Coins; assert(Quests.claim(p,c,"relief_recon",101)); eq(p.Coins,before+350); eq(Quests.claim(p,c,"relief_recon",101),false)
+    local restored=assert(Profile.normalize(p)).Campaigns.coop; eq(restored.Quests.relief_recon.status,"RewardClaimed")
 end)
 test("bandage recipe consumes cloth and water and grants two usable bandages",function()
     local _,c=fresh(); rich(c); Building.place(c,"workshop",0,0,0,100); local cloth=c.Stockpile.cloth

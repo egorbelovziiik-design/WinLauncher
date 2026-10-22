@@ -70,10 +70,15 @@ function View.dialogue(app, body)
         end)
     end
     local row = UI.row(body, 36)
-    UI.button(row, "Я помогу", function() app.DialogueText = "Спасибо. Выбери задание ниже — и возвращайся живым."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
-    UI.button(row, "Что я получу?", function()
-        app.DialogueText = "Coins — в постоянный профиль. XP, оружие и припасы — в эту кампанию. Забрать награду можно только один раз после выполнения целей."; app:RefreshPanel(true)
-    end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+    if d.id == "worker" then
+        UI.button(row, "Как идёт работа?", function() app.DialogueText = "Я действительно хожу к назначенной постройке. Производство работает только когда смена активна, хватает припасов и есть нужная энергия."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+        UI.button(row, "Как назначить смену?", function() app.DialogueText = "Открой терминал своего участка клавишей E, затем управление базой. Назначить жителя можно только на ферму или мастерскую."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+    else
+        UI.button(row, "Я помогу", function() app.DialogueText = "Спасибо. Выбери задание ниже — и возвращайся живым."; app:RefreshPanel(true) end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+        UI.button(row, "Что я получу?", function()
+            app.DialogueText = "Coins — в постоянный профиль. XP, оружие и припасы — в эту кампанию. Забрать награду можно только один раз после выполнения целей."; app:RefreshPanel(true)
+        end, {Size = UDim2.new(0.5, -5, 1, 0), TextSize = 12})
+    end
     if d.id == "max" then UI.button(body, "Открыть торговлю · Survival Cash", function() app:OpenPanel("trade") end, {BackgroundColor3 = T.accent})
     elseif d.id == "victor" then UI.button(body, "Ремонт и улучшения оружия", function() app:OpenPanel("weapons") end, {BackgroundColor3 = T.accent}) end
     for _, id in app:Sorted(app.Quests) do if app.Quests[id].npc == d.id then View.card(app, body, id, true) end end

@@ -177,14 +177,14 @@ local function boot()
         if track then
             local def, q = self.Quests[track], c.Quests[track]
             self.TrackerTitle.Text = def.name
-            if not q then self.TrackerText.Text = "Поговорите с NPC в убежище.\n" .. ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор"})[def.npc]
+            if not q then self.TrackerText.Text = "Подойдите к NPC и нажмите E.\n" .. ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор"})[def.npc]
             elseif q.status == "Completed" then self.TrackerText.Text = "ЦЕЛИ ВЫПОЛНЕНЫ\nВернитесь к NPC за наградой.\n" .. ({alex = "Капитан Алекс", max = "Торговец Макс", victor = "Инженер Виктор"})[def.npc]
             else
                 local lines = {}
                 for i, objective in def.objectives do table.insert(lines, objective.label .. ": " .. q.progress[i] .. "/" .. objective.count) end
                 self.TrackerText.Text = table.concat(lines, "\n")
             end
-        else self.TrackerTitle.Text = "ПЕРВЫЙ ДЕНЬ"; self.TrackerText.Text = "Поговорите с Алексом у северных ворот.\nВаш участок: №" .. s.plot .. ". Карта: M." end
+        else self.TrackerTitle.Text = "ПЕРВЫЙ ДЕНЬ"; self.TrackerText.Text = "Подойдите к Алексу у северных ворот и нажмите E.\nВаш участок: №" .. s.plot .. ". Карта: M." end
         self.TutorialCard.Visible = c.Tutorial.status == "Active"
         local step = self.Config.TutorialSteps[s.stage]
         self.TutorialLabel.Text = step and ("ОБУЧЕНИЕ  /  " .. s.stage .. " из 12\n\n" .. step.text) or "ВСЕ ЭТАПЫ ПРОЙДЕНЫ\nОткройте обучение в настройках и заберите награду в убежище."
@@ -195,6 +195,7 @@ local function boot()
     app.Build = require(script.Parent.Controllers.BuildController)(app)
     app.Combat = require(script.Parent.Controllers.CombatController)(app)
     app.Effects = require(script.Parent.Controllers.EffectsController)(app)
+    app.ActorAnimation = require(script.Parent.Controllers.ActorAnimationController)(app)
     local function onStateMessage(kind, data)
         if kind == "state" then
             local previous = app.State
