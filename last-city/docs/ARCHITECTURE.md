@@ -1,47 +1,93 @@
-# Архитектура Iron Horizon 0.5.0
+# Архитектура Echoes of Steel 0.6.0
 
 ## Граница доверия
 
-Клиент передаёт **намерения**, а не результаты: ID предмета/рецепта/задания, UID своей вещи, направление прицеливания, координаты сетки, четверть оборота. Он не передаёт подтверждённый урон, валюту, цену, награду, количество убийств или список построенных моделей.
+Клиент передаёт **намерения**, а не результаты: ID предмета/рецепта/задания/специалиста, UID своей вещи, направление прицеливания, координаты сетки, четверть оборота и выбранную команду из allowlist. Он не передаёт подтверждённый урон, target Instance, валюту, цену, награду, loot roll, output экспедиции, heal amount, количество убийств или конечную координату перелёта.
 
 `NetworkService`:
 
-- Не более 8 верхнеуровневых полей; не принимает вложенные таблицы, Instances, бесконечности и NaN; строки ограничены по длине.
-- Общий token bucket + отдельные лимиты каналов. Боевой канал: burst 12, refill 9/с; прочие: burst 8, refill 3/с.
-- Проверяет загруженность, отсутствие закрытия/потерянной lease, активную сессию, здоровье и допустимость перемещения для игровых команд. Пока установлен server token `Traveling`, все active-команды отклоняются.
-- Важные операции повторно проверяют владение, дистанцию, цель, стоимость и состояние внутри своего сервиса.
-- Обработчики мутаций не yield. DataStore и Pathfinding вынесены из транзакций.
+- принимает не более восьми верхнеуровневых полей; отклоняет вложенные таблицы, Instances, бесконечности, NaN и длинные строки;
+- использует общий token bucket и отдельные лимиты каналов: combat burst 12/refill 9 с⁻¹, остальные burst 8/refill 3 с⁻¹;
+- проверяет loaded/active/health, closing/frozen/lost lease и допустимость движения;
+- пока установлен server token `Traveling`, все active-команды отклоняются;
+- важные операции повторно проверяют ownership, unlock, proximity/line-of-sight, стоимость, cooldown и state внутри сервиса;
+- mutation handlers не выполняют DataStore/Pathfinding yield внутри транзакции.
 
-`StateRemote` и `EffectsRemote` используются сервером для выдачи состояния/визуальных событий. Их входящие сообщения не обрабатываются.
+`StateRemote` и `EffectsRemote` работают только server → client для snapshots, диалогов, презентации и подтверждений. Сервер не обрабатывает отправленные клиентом сообщения этих каналов.
 
-**Это базовая защита, не обещание неуязвимости к эксплойтам.** Перемещение персонажа использует стандартное network ownership Roblox и ограниченную серверную проверку скачков, а не собственный полностью серверный контроллер движения. Перед публичным запуском нужен adversarial Play Test.
+**Это базовая защита, не обещание полной exploit-proof архитектуры.** Стандартный character network ownership Roblox остаётся частью модели. Перед публичным запуском нужен adversarial Play Test.
 
-## Домен и адаптеры
+## Домен и composition root
 
-| Домен | Обязанность |
+| Модуль | Обязанность |
 |---|---|
-| `Inventory` | Вес, слоты, UID, атомарная выдача пакета, разделение, перемещение, экипировка, склад |
-| `Quests` | Доступ, прогресс только по серверным событиям, уникальные ящики, периоды UTC, single-claim |
-| `Building` | Сетка, поворот, границы, палатка/терминал, коллизии footprint, цены, ремонт, снос |
-| `Economy` | Топливо, budget мощности, работники, производство, цены, крафт, косметика |
-| `Profile` | Schema v1, новое состояние, нормализация, ограничения размеров/счётчиков |
-| `Progression` | Проверяемые факты обучения, одна награда на профиль, достижения |
-| `Lease`, `RateLimiter` | Чистые политики с отдельными тестами |
+| `Inventory` | Слоты, вес, UID, ammo/durability, атомарная выдача, split/move/equip, рюкзак ↔ stockpile |
+| `Quests` | Prerequisite, server events, unique `seen`, UTC periods, single claim, loaded weapons |
+| `Building` | Сетка, rotation, bounds/reserved zones, footprint edge contact, цена, repair/demolish |
+| `Economy` | Power/fuel, production, workers, prices, craft, cosmetics |
+| `Profile` | Schema v1, defaults, allowlists, clamps, duplicate UID cleanup, campaign isolation |
+| `Progression` | Tutorial facts, one-time profile reward, achievements |
+| `Lease`, `RateLimiter` | Чистые политики lease ownership и token buckets |
 
-Сервисы получают зависимости через composition root `Bootstrap.server.luau`, а не циклические `require`. Shared содержит только определения/общую геометрию; авторитетные доменные модули хранятся в ServerScriptService. GUI не может `require` серверную выдачу ресурсов.
+`Bootstrap.server.luau` собирает определения, домены и 18 сервисов через dependency context. Нет циклических server `require`; Shared не выдаёт клиенту функции начисления наград.
 
-## Транзакции
+Новые для 0.6 зависимости:
 
-- Выдача нескольких предметов сначала выполняется на копии инвентаря. Переполнение не оставляет частичную награду.
-- Статус `RewardClaimed`, предметы, Coins, XP и статистика меняются одной синхронной операцией в одном профиле.
-- Перезарядка списывает резерв при завершении; проверяет тот же UID, сессию, жизнь, экипировку и token операции. Повторный callback не выдаёт патроны снова.
-- Уничтоженная постройка не возвращает стоимость. Снос удаляет UID до следующей команды и возвращает только 25% материалов.
-- Личный дроп расходников ограничен 12 объектами и 90 секундами; требует тот же UserId и session token. Он удаляется при выходе. Межпрофильная торговля намеренно отсутствует: для неё понадобится durable transaction ledger, не два независимых сохранения.
-- Quest caches учитываются через `seen`; повтор одного server UID не увеличивает цель ни в одном городе.
-- Автозаказ строителя синхронно проверяет footprint и общую цену склада+рюкзака; запись, модель и списание либо появляются вместе, либо не появляются.
-- Squad expedition имеет монотонные `expedition/completed`: один номер рейса может добавить stockpile только один раз. Resource type выбирается из фиксированного allowlist.
-- Helicopter destination не приходит от клиента: сервис выбирает противоположный authored arrival marker, фиксирует персонажа и завершает transfer по server timer/token.
-- Нет offline production: время выхода не умножает производственные циклы. Очередь ручного крафта и уже оплаченный строительный таймер могут закончиться офлайн; экспедиция использует сохраняемый абсолютный `returnAt`, но не повторяется.
+- `RecruitDefinitions` содержит пять фиксированных контрактов без клиентских цен;
+- `RecruitService` владеет покупкой, runtime actors, AI-ролями и expedition idempotency;
+- `ZombieService.Bosses` содержит отдельное состояние `alive/respawnAt/lastPoint` для Foreman, Reaver, Warden и Rainbow;
+- `DialogueVoiceController` — client-only presentation над server-selected authored speech payload.
+
+## Транзакции и idempotency
+
+- Выдача пакета предметов сначала моделируется на копии inventory. Переполнение не оставляет частичную quest-награду.
+- `RewardClaimed`, предметы, Coins, XP и quest stats меняются синхронно в одном профиле.
+- Reload завершает transfer только для того же session, UID, equipped state и operation token; callback replay не выдаёт ammo снова.
+- Builder auto-order проверяет ту же grid/footprint/price, что ручное строительство. Запись, точное списание и модель либо появляются вместе, либо не появляются.
+- Hired builder меняет только `readyAt` уже валидной новой записи; client не сообщает multiplier/time.
+- Squad и gatherer используют монотонные пары `expedition/completed`; один номер рейса может увеличить stockpile один раз.
+- Rainbow loot roll выполняется один раз на credited participant во время server death. Два pity-счётчика независимы и сохраняются.
+- Обычный Rainbow bundle сначала атомарно пробует backpack, затем целиком поступает в stockpile. Rare grant при переполнении превращается в owner/session-bound pickup.
+- Helicopter destination выбирается по authored противоположному marker; клиент получает только presentation data.
+- Нет offline production. Оплаченный build/craft timer и expedition absolute `returnAt` могут завершиться после reconnect, но не повторяют output.
+- Quest caches используют server part metadata и `seen`; покупка у магазина не генерирует world-collect event.
+
+## Бой
+
+1. Клиент строит центральный camera ray и отправляет только unit aim от головы.
+2. Сервер проверяет active state, cooldown, stamina/ammo, equipped inventory UID и реальный Tool UID.
+3. Основной hit — `workspace:Raycast` с исключением character.
+4. Только при отсутствии zombie hit вызывается `AimTarget`: ближайшая живая server zombie должна лежать в малом weapon-specific радиусе луча, впереди, внутри range и иметь чистую server line-of-sight.
+5. Headshot существует только для фактического RaycastResult по `Head`; assisted target не получает fabricated critical.
+6. `ZombieService:Damage` применяет armor, записывает credit и возвращает applied/lethal.
+7. Только стрелку отправляется `hit_confirm` с server damage и world position; глобальные nearby-клиенты получают tracer/impact/zombie presentation.
+
+Клиентские damage numbers, marker, sparks и recoil не наносят урон. Friendly fire по Player не входит в target resolution.
+
+## Rainbow loot
+
+Для каждого валидного credited player:
+
+```text
+base: 210 Survival Cash + 260 XP
+profile: 35 Coins
+ordinary: один server-selected resource bundle
+armor: 22%; pity counter 0..3, гарантия на четвёртой победе
+blade: 30%; pity counter 0..2, гарантия на третьей победе
+```
+
+Credit требует недавнего damage, активной незакрытой сессии, живого root и расстояния до смерти не более 240 studs. Клиент не отправляет chance/roll/pity/reward.
+
+## Специалисты и coexistence с базой
+
+- Purchase требует `second_city=RewardClaimed`, server proximity к Ладе, отсутствие владения и достаточный Survival Cash.
+- `builder`, `medic`, `guard`, `scout`, `gatherer` имеют fixed health/speed/price и owner-bound runtime model.
+- Follow/base/gather разрешены только на своей базе, рядом со своим actor или рядом с Ладой. Gather доступен только добытчику и трём resource IDs.
+- Guard выбирает server zombie, проверяет line-of-sight и списывает `rifle_ammo` до 22 damage.
+- Medic лечит только владельца; scout snapshot не раскрывает ничего кроме kind/position/distance ближайшей server zombie.
+- Все actors используют `AgentCanJump=false`, shared NPC path budget и server network ownership.
+- `home` выбирается только на свободном footprint. Перед Render нового здания `NPCService:Evacuate` перемещает workers, Степана, squad и recruits; recruit сохраняет новый runtime home, а squad пересчитывает свободный guard point.
+- Во время helicopter transfer следуют только actors с command `follow`; base/gather actors остаются в своём состоянии.
 
 ## DataStore
 
@@ -58,45 +104,56 @@
 }
 ```
 
-- Acquire/renew/release через `UpdateAsync` с повторной проверкой token в callback.
-- Callback не имеет побочных наград и безопасен для повторного вызова Roblox.
-- TTL 180 секунд; автосохранение каждые 55 секунд. За 10 секунд до истечения непродлённой lease сервер останавливает игровую сессию.
-- Четыре попытки I/O с backoff. При занятой lease — до шести ожиданий handoff; живая чужая lease не отбирается.
-- Неизвестная версия и повреждённый envelope не заменяются дефолтами.
-- `PlayerRemoving` и `BindToClose`: прекращение мутаций, ожидание уже идущей записи, финальный snapshot и освобождение lease. Shutdown deadline — 25 секунд.
-- Studio по умолчанию использует `SessionOnly` без обращения к API. Облачный Studio QA требует `StudioUseDataStore = true` и опубликованную experience. `GetDataStore` вызывается лениво через pcall; в опубликованной игре fallback в новый профиль не включается.
-- Откат к последнему успешному snapshot при аварии между автосохранениями остаётся возможным, как и у любого buffered save. Не обещаем нулевую потерю последних секунд при принудительном завершении сервера.
+Campaign 0.6 дополнительно содержит allowlisted `Recruits` и bounded `BossPity`. Settings содержит bounded `voice` и boolean `firstPerson`.
 
-## Производительность
+- Acquire/renew/release — `UpdateAsync` с повторной проверкой token внутри callback.
+- Callback не начисляет игровые награды и безопасен при replay.
+- Lease TTL 180 секунд; autosave 55 секунд; за 10 секунд до непродлённого expiry session замораживается.
+- Четыре I/O retry с backoff; live foreign lease не отбирается.
+- Future schema и повреждённый envelope fail closed, а не заменяются default profile.
+- `PlayerRemoving`/`BindToClose`: прекращение mutations, ожидание текущей записи, final snapshot и release в пределах 25-секундного deadline.
+- Studio по умолчанию — явный `SessionOnly`, без вызова DataStore. Cloud QA требует опубликованную отдельную experience и opt-in.
 
-- Текущая детерминированная сборка содержит 6 553 статических BasePart; binary gate запрещает выход за 7 000. Используется заякоренная native low-poly геометрия без внешних mesh/decal assets.
-- StreamingEnabled, MinRadius 128, TargetRadius 512. NPC, постройки и вертолёты используют atomic модели там, где это нужно для целостного stream-in.
-- Жёсткий максимум 34 заражённых; обычный population target ограничен 26, оставляя бюджет рейдам/боссу. AI — 4 Гц, не каждый кадр. Не более двух одновременно вычисляемых путей заражённых; мирные NPC/строитель/отряд имеют отдельный общий бюджет не более двух путей и минимум 2,5 секунды между пересчётами актёра.
-- Все runtime Humanoid имеют `JumpPower=0`/`AutoJumpEnabled=false`; пути создаются с `AgentCanJump=false`. Городские патрули используют прямой `MoveTo` только при видимости; жители, строитель и бойцы принудительно используют Pathfinding вокруг сохранённых построек.
-- Далёкие заражённые не строят пути и удаляются при длительной ненаблюдаемости; boss/minion используют bounded mine leash. Второй город имеет восемь отдельных spawn markers.
-- Пул из 12 трассеров, шесть переиспользуемых аудиоканалов и 28 локальных дождевых полос. В Low дождевые полосы/тени/постэффекты отключены.
-- `ActorAnimationController` обновляет только Motor6D помеченных актёров до 30 Гц без создания Instances в кадре. HUD/карта обновляются 10 Гц; authoritative snapshots — около 1 Гц с коротким coalescing после действий.
-- Полных LOD-моделей, production-профилирования MicroProfiler, load-test на 9 клиентах и измеренного FPS ещё нет; новый лимит 34 и второй город обязательно проверяются в Studio.
+## Производительность и лимиты
+
+- Проверенная сборка: **6 809 BasePart**, ниже binary budget 7 000; 7 568 Instances и 55 scripts.
+- StreamingEnabled, MinRadius 128, TargetRadius 512. Большой статический мир генерируется offline, а не одним runtime script.
+- Global maximum 34 заражённых; normal desired population ≤26 оставляет резерв боссам/рейдам. AI работает 4 Гц.
+- Не более двух одновременно вычисляемых zombie paths. Мирные workers, Степан, squad и recruits делят отдельный лимит двух path computations и минимум 2,5 с до пересчёта actor.
+- Bosses имеют zone restrictions, leash и один actor каждого kind. Mine minions bounded тремя authored markers.
+- Client pools: 12 tracers, 8 impact sparks, 8 damage popup anchors, 10 positional sound channels и 28 rain streaks. Попадание не создаёт новый Part/GUI/Sound.
+- `ActorAnimationController` обновляет tagged Motor6D до 30 Гц без Instance allocation per frame. HUD/map обновляются 10 Гц; state snapshots — около 1 Гц с coalescing.
+- Максимум friendly runtime actors теперь выше 0.5: 17 global NPC плюс фиксированный per-player набор workers/builder/squad/recruits. Поэтому 9-player path/physics/FPS тест обязателен; статический part count не доказывает runtime performance.
+- Production MicroProfiler, 9-client soak и измеренный mobile FPS остаются NOT TESTED.
+
+## Звук, речь и камера
+
+- Все звуки используют Roblox-bundled `rbxasset://sounds/...`; произвольные numeric catalog ID отсутствуют.
+- `AudioController` имеет ambient loop, пять score voices и 10-channel positional pool. Danger score зависит от реально tagged zombies поблизости.
+- Dialogue server payload содержит русскую display-строку, заранее написанную English speech-строку и allowlisted voice ID.
+- Client строит `AudioTextToSpeech → Wire → AudioDeviceOutput(Player)` в `pcall`; generation token отменяет stale speech. Unsupported engine channel деградирует в text-only, не ломая client boot.
+- `CameraController:SetFirstPerson` меняет `CameraMode` и zoom bounds. Выбор сохраняется; cinematic/dialogue/Commander остаются отдельными режимами.
 
 ## Бинарная сборка
 
-`tools/world/{primitives,shelter,city,landscape,architecture,locations,district,mine,secondCity,roads}.mjs` создают настоящие Parts, Models, SpawnLocation, SurfaceGui, BillboardGui, Lighting, helipads, вертолёты и spawn markers офлайн. Runtime-сервисы не генерируют огромный мир в одном скрипте.
+`tools/world/{primitives,shelter,city,landscape,architecture,locations,district,mine,secondCity,encounters,roads}.mjs` создают Parts, Models, Terrain payload, Signs, Lights, quest metadata, roads, boss sites, cave, transports и spawn markers.
 
-`build.mjs` собирает сервисы, remotes и точные Source всех Luau-файлов в бинарный Roblox DOM. `rbxm-parser` использует byte strings, поэтому authored Unicode переводится в UTF-8 bytes на границе writer. Binary blobs при этом не перекодируются. Второй парсер, `rbx-reader`, проверяет текст в fatal UTF-8 режиме и сравнивает каждый Source с исходником. Сборка выполняется дважды в одном окружении и должна дать одинаковые байты. Между окружениями CI сравнивает декодированный DOM, включая все свойства, иерархию, геометрию, ссылки и Source (`compare-place.mjs`), а не представление LZ4-чанков.
+`build.mjs` встраивает точный Source всех Luau-файлов в бинарный Roblox DOM. `rbxm-parser` пишет место, а независимый `rbx-reader` проверяет header, hierarchy, references, geometry, UTF-8 и каждый Source byte-for-byte. Сборка повторяется дважды в одном окружении и должна дать идентичные bytes; CI дополнительно сравнивает полный декодированный DOM между jobs.
 
-Это проверяет формат и содержимое, **не запуск Roblox Engine**.
+`Terrain.PhysicsGrid` остаётся opaque BinaryString: writer исправляет upstream default по pinned Studio fixture и сохраняет trailing NUL bytes. Каждый offline object защищён от expando fields; генератор использует сериализуемые имена свойств (`Color3uint8`, `TimeOfDay`, `FontFace`).
 
+Это проверяет структуру/содержимое `.rbxl`, но **не запускает Roblox Engine**.
 
-### Внутренние бинарные payload и сериализуемые имена
+## Дороги и мир
 
-Проверка внешних RBXL-чанков не проверяет `Terrain.PhysicsGrid`: это opaque BinaryString для JS-парсеров, но отдельный формат для Studio. `instances.mjs` исправляет неполный default в rbxm-parser 1.1.4 по pinned Studio fixture, сохраняет все trailing NUL bytes и требует точного соответствия пустой сетке. Непустой voxel terrain пока не поддерживается этим builder.
+- Общая сеть Меридиана вычитает перекрёстки, чтобы coplanar asphalt не накладывался.
+- `secondCity.mjs` экспортирует точные constants пяти junction slabs, одной residential road и десяти sidewalk segments; tests и verifier используют те же authored footprints.
+- `encounters.mjs` строит компактные arena с cover, boundary rails, light и скрытым spawn marker — без fake interaction.
+- `architecture.mjs` создаёт enterable compact homes с раздельными стенами/проёмом.
+- Cars остаются декорациями. Вертолёты — authored models для server-timed маршрута, не свободно пилотируемый транспорт.
 
-Каждый создаваемый объект защищён `Object.preventExtensions`. Для offline writer применяются сериализуемые имена (`Color3uint8`, `TimeOfDay`, `FontFace`), не scripting aliases (`Color`, `ClockTime`, `Font`). Это не меняет корректное использование Roblox scripting API в игровых Luau-скриптах. Проверки палитры, шрифта и времени выполняются после чтения собранного `.rbxl`.
+## Runtime rigs
 
-## Дороги и новые взаимодействия
+`ModelFactory.rig` создаёт R15-подобную сборку из 15 видимых частей, Motor6D и RigAttachment. Server services задают path/state/health; клиенты локально анимируют только tagged `LastCityActor` через `Motor6D.Transform`. Состояния включают idle/walk/talk/head scratch/salute/work/build/armed/aim/downed и infected idle/chase/attack/death.
 
-`roads.mjs` строит непрерывную сеть с вычитанием интервалов на пересечениях. Город и посёлок учитывают общую сеть, чтобы стыки тоже не перекрывались. `architecture.mjs` отвечает за фасады без перекрывающихся shell, `locations.mjs` — за аптеку/полицию/АЗС, `district.mjs` — за лагерь/колонну, а `secondCity.mjs` — за отдельный укреплённый район и обе площадки. Все игровые точки содержат серверные metadata. `DoorService` владеет створками, `ResourceService:QuestCache` проверяет доступ и уникальность находок. Дорожные автомобили остаются декорациями; authored-вертолёты используются настоящим server-timed `TravelService`, но свободно не пилотируются.
-
-## Runtime rig и визуальная анимация
-
-`ModelFactory.rig` создаёт R15-подобную сборку из 15 видимых частей, 15 Motor6D и парных RigAttachment; внешний `Humanoid` и `HumanoidRootPart` остаются серверными. `NPCService`, `SquadService` и `ZombieService` выставляют только реплицируемый атрибут `State`. Помеченные `LastCityActor` модели анимируются каждым клиентом локально через `Motor6D.Transform`: ходьба/бегство, разговор, HeadScratch, Salute, Working/Building, ArmedIdle/Aiming, Downed и состояния заражённых. Клиент не выбирает путь, скорость, урон, награду или состояние AI. Это уменьшает поток серверных Transform, но требует отдельной визуальной проверки двух клиентов в Studio.
+Клиент не выбирает AI state, путь, цель, урон или награду. Визуальная корректность Motor6D и репликация двух клиентов требуют Studio QA.

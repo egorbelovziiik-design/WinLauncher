@@ -1,19 +1,40 @@
-# LAST CITY 3D — готовый Roblox place
+# LAST CITY 3D — проверенный Roblox place
 
-`LAST_CITY_3D.rbxl` — бинарное место **IRON HORIZON 0.5.0**, развиваемый настоящий PvE vertical slice.
+`LAST_CITY_3D.rbxl` — бинарное место **ECHOES OF STEEL 0.6.0**, развиваемый настоящий PvE vertical slice.
 
-[Неизменяемая прямая загрузка с GitHub](https://github.com/egorbelovziiik-design/WinLauncher/raw/3526dcb672eb6a0a26158d1457abc61452ef8d92/last-city/releases/LAST_CITY_3D.rbxl)
+[**Неизменяемая прямая загрузка с GitHub**](https://github.com/egorbelovziiik-design/WinLauncher/raw/ecc9a63469b42200373c0059ea15d65cedd36f78/last-city/releases/LAST_CITY_3D.rbxl)
 
 SHA-256:
 
 ```text
-f9d6718bad526fb1e599c616c8546f93b844f3bbd03bca47333117b38f2a6b1c  LAST_CITY_3D.rbxl
+fe53e7ce00faaf19048dc64be992cfa341e06736d6d8005e24567f9b7e00b458  LAST_CITY_3D.rbxl
 ```
 
-Открыть: Roblox Studio → **File → Open from File** → `LAST_CITY_3D.rbxl` → **Play / F5**. Инструкция и управление: [README](../README.md). Рюкзак теперь открывается **K**; клавиша **1** достаёт и повторно убирает лом.
+Открыть: Roblox Studio → **File → Open from File** → `LAST_CITY_3D.rbxl` → **Play / F5**. Инструкция: [README](../README.md). Клавиша **1** достаёт/убирает лом, **K** открывает рюкзак, **Z** переключает первое лицо; **I** не назначена.
 
-Автоматически PASSED: 52 Luau sources, 10 serialization tests, 7 road tests, 117 domain tests, 89 mock-adapter tests, 110 binary assertions и повторная byte-for-byte сборка. Файл содержит 7 189 Instances, 6 553 BasePart и 52 scripts; размер 293 152 bytes.
+## Что включено
 
-**Честный gate:** импорт/Play именно 0.5.0, Motor6D, Humanoid physics, Pathfinding, звук, Streaming, живой DataStore и multiplayer в Roblox Studio пока **NOT TESTED**. Пройдите [STUDIO_QA.md](../docs/STUDIO_QA.md), особенно раздел 13.
+- исправленные дороги/тротуары НОВОГО РУБЕЖА, шесть домов, богатые ящики и четыре новых задания второго города;
+- физическая Prism Cave и Радужный Страж с обычными ресурсами, 35 Coins, независимыми шансами/pity для Радужной брони и Призматического клинка;
+- вербовщик Лада и пять сохраняемых специалистов с настоящими server roles;
+- расширенная лестница оружия/брони Меридиана, вращающиеся боссы, server-assisted hit registration и pooled visual feedback;
+- сохраняемое первое лицо, адаптивный bundled audio mix и guarded English engine TTS для русских диалогов;
+- сохранённые контракты Алекса 25, Бориса/Рады/Глеба, mine Glock 10/10 + 48 reserve, walker 5 HP, K/1 controls и двусторонний вертолёт.
 
-История: 0.1.1 исправила некорректный `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и частичный Play 0.3.0. 0.3.0 выявила позы рук, крышу и взаимодействие Виктора; автоматические исправления вошли в 0.4.0. Для 0.4.0 отдельного Studio-подтверждения не было.
+## Проверка артефакта
+
+Автоматически **PASSED**:
+
+- 55/55 Luau sources;
+- 10/10 serialization tests;
+- 9/9 road tests;
+- 121/121 domain tests;
+- 95/95 mock-adapter tests;
+- 170/170 binary assertions;
+- две byte-for-byte identical сборки.
+
+Файл содержит 7 568 Instances, 6 809 BasePart и 55 scripts; размер 328 493 bytes.
+
+**Честный gate:** импорт/Play именно 0.6.0, Motor6D, Humanoid physics, collision, Pathfinding, первое лицо, TTS/audio playback, Streaming, live DataStore и multiplayer в Roblox Studio пока **NOT TESTED**. Пройдите [STUDIO_QA.md](../docs/STUDIO_QA.md), особенно раздел 14.
+
+История: 0.1.0 не открылась из-за truncated `Terrain.PhysicsGrid`; 0.1.1 исправила бинарный payload. Пользователь подтвердил открытие 0.2.0 и partial Play 0.3.0. Для 0.4.0, 0.5.0 и 0.6.0 отдельного Studio-подтверждения нет; статус старой версии автоматически не переносится.

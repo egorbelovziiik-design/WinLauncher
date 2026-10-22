@@ -1,6 +1,6 @@
 # Roblox Studio QA — обязательный следующий gate
 
-Версия 0.1.0 не открылась у пользователя: **FAILED** (`unexpected end at offset 2`). В 0.1.1 исправлен `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и запуск 0.3.0 скриншотами. Тест 0.3.0 выявил руки назад, неполную крышу и ненадёжный E у Виктора. Открытие/Play 0.4.0 не подтверждались. Начальный статус новой **0.5.0 IRON HORIZON: NOT TESTED**. Записывайте PASSED/FAILED только после реального действия в Studio и сохраняйте Output/видео/параметры теста.
+Версия 0.1.0 не открылась у пользователя: **FAILED** (`unexpected end at offset 2`). В 0.1.1 исправлен `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и запуск 0.3.0 скриншотами. Тест 0.3.0 выявил руки назад, неполную крышу и ненадёжный E у Виктора. Открытие/Play 0.4.0 и 0.5.0 не подтверждались. Начальный статус новой **0.6.0 ECHOES OF STEEL: NOT TESTED**. Записывайте PASSED/FAILED только после реального действия в Studio и сохраняйте Output/видео/параметры теста.
 
 ## 1. Подготовка
 
@@ -229,3 +229,98 @@ r.InventoryRemote:FireServer({action="equip", uid="i999999999"})
 - [ ] Streaming: перелёт в обе стороны не оставляет clone/rotor Sound/camera binding, не удаляет server helicopter и не ломает prompt после повторного stream-in.
 - [ ] Нет неограниченного роста `ClientFlightHelicopter`, effects Parts, paths, prompts, connections, corpses или squad models после 10 перелётов/respawn/reconnect.
 - [ ] Зафиксировать версию Studio, ОС/GPU, число клиентов, Graphics Quality, FPS/память, Output и видео. Любой неизмеренный подпункт остаётся NOT TESTED.
+
+## 14. Новое в 0.6.0 — ECHOES OF STEEL / обязательный gate
+
+Сначала выполнить быстрые регрессии раздела 13: K/1, Степан, Алекс 25, оба рейса, Борис → Рада/Глеб, no-jump, mine reward и базовый звук. Затем пройти все пункты ниже.
+
+### Импорт, Output и дороги
+
+- [ ] Открыть именно release 0.6.0 и сверить SHA-256 `fe53e7ce00faaf19048dc64be992cfa341e06736d6d8005e24567f9b7e00b458`. В меню/Loading/Profile указано `0.6.0 — ECHOES OF STEEL`.
+- [ ] F5 доходит до menu и active HUD без error. Для неопубликованного файла статус сохранения — «ТОЛЬКО СЕССИЯ»; DataStore не вызывается.
+- [ ] Перелететь в НОВЫЙ РУБЕЖ и пройти центральный/жилой T-перекрёсток во всех направлениях. Нет двойного асфальта, z-fighting, raised concrete поперёк полосы, невидимой ступени или щели в центре.
+- [ ] Осмотреть десять сегментов тротуара: каждый заканчивается у проезжей части и не выступает внутрь lane. Колёса/ноги персонажа не цепляются за старую скрытую плиту.
+- [ ] Осмотреть West Annex connector Меридиана: дорога и тротуары соединены краями без мерцания/перекрытия.
+
+### Дома, карта и ресурсы НОВОГО РУБЕЖА
+
+- [ ] Вдоль южной улицы существуют шесть разных домов. В каждый можно войти через реальный проём; пол/стены/крыша не блокируют дверь и не проваливают игрока.
+- [ ] Карта M показывает West Annex, жилую улицу, шесть домов, три boss sites второго города и Prism Cave. Белая позиция не зажата у старой границы.
+- [ ] Принять у Лады «Свет в окнах». Осмотреть четыре разные записи внутри домов: 1/4…4/4. Повтор той же записи не увеличивает progress; reconnect сохраняет `seen`.
+- [ ] Принять у Феликса «Крепче бетона». Поднять elite crates steel/concrete/glass: найденные counts растут. Покупка тех же ресурсов в trade не должна считаться как world collect.
+- [ ] Проверить все типы усиленных ящиков: крупные stacks пластин, бетона, стекла, электроники, rifle ammo, shells, medkits и chemicals; повтор до 240 с отклоняется, после cooldown узел возвращается один раз.
+- [ ] Одновременный pickup двумя клиентами не выдаёт один узел дважды и не делает quest progress отрицательным/повторным.
+
+### Лада и пять специалистов
+
+- [ ] До `second_city` удалённый `recruit` intent ничего не покупает. После unlock Лада ходит у мастерской, имеет E prompt, правильный portrait/name и список пяти контрактов.
+- [ ] Вдали от Лады нажатие «нанять» отклоняется без Cash mutation. Рядом купить каждую роль и сверить точные цены: 1 250 / 1 000 / 1 500 / 900 / 1 100 Survival Cash. Coins не меняются.
+- [ ] Повторная покупка уже owned роли не списывает средства и не создаёт второго NPC. Чужой игрок не управляет актёром.
+- [ ] Все пять появляются на личной базе как отдельные R15-подобные актёры с именем/ролью, двигаются самостоятельно, не прыгают через стену и не проходят сквозь закрытую постройку.
+- [ ] Аркадий: замерить один обычный build timer и следующий после найма. Новый остаток ≈65% исходного; цена ресурсов/Cash и functional building не меняются.
+- [ ] Светлана: при HP<Max и расстоянии ≤22 получить ровно +4 HP, не чаще 6 с. При full HP, Downed или издалека лечения нет.
+- [ ] Тимур: положить 3 `rifle_ammo`; он стреляет только в заражённого с line-of-sight, наносит 22 server damage/shot и останавливается при stock=0. Игроки/NPC/чужие здания не получают урон.
+- [ ] Алина: nearby заражённый до 150 studs вызывает HUD «РАЗВЕДКА» с разумной distance; после удаления угрозы label исчезает.
+- [ ] Егор: отправить за каждым из трёх resources, модели/label/prompt нет на базе во время рейса, через 120 с output выдаётся один раз. С нанятой Алиной целочисленный результат +25%.
+- [ ] Выйти/войти посреди экспедиции: actor остаётся скрыт до срока; `returnAt/expedition/completed` сохраняются; два reconnect не дублируют stock.
+- [ ] Приказать medic/guard/scout `follow`, совершить оба helicopter рейса: только follow actors прибывают рядом без падения с большой высоты. Base actors остаются на базе; `base` возвращает follow actor в валидную точку.
+- [ ] Поставить здание на месте специалиста/отряда. Preview остаётся валидным; до Render актёр перемещается наружу и следующий AI tick не ведёт его внутрь новой стены. Повторить после reconnect с уже занятой исходной home-точкой.
+
+### Prism Cave и Rainbow loot
+
+- [ ] Завершить четыре house surveys и принять у Норы «Спектр под землёй». До prerequisite quest недоступен.
+- [ ] Войти в Prism Cave пешком: видны крыша, стены, вход, вывеска, шесть разноцветных crystal lights, cover и три resource nodes. Нет провала/невидимой стены/низкой крыши.
+- [ ] Радужный Страж появляется только внутри cave при приближении, не дублируется, не уходит дальше leash и имеет синхронный health bar/1 050 HP.
+- [ ] Увести/сбросить босса, умереть и вернуться: actor не переносится в Меридиан и lifecycle не блокирует Бригадира/Жнеца/Тюремщика.
+- [ ] Один игрок наносит урон и остаётся рядом: смерть выдаёт +210 Survival Cash, +260 XP, +35 permanent Coins и один ordinary resource bundle. Quest progress увеличивается один раз.
+- [ ] Два клиента наносят недавний урон и остаются в радиусе: каждый получает собственные Cash/XP/Coins/resources и собственный rare roll. Не участвовавший/далёкий игрок ничего не получает.
+- [ ] С полным backpack ordinary bundle целиком поступает в stockpile с notice; нет частичного исчезновения. Rare item создаёт личный pickup и не доступен другому профилю.
+- [ ] Проверить pity на отдельном тестовом профиле/инструментированном сервере без изменения production data: armor гарантирована не позже четвёртой победы, blade — не позже третьей; их успехи независимы. Не выдавать probabilistic пункт за PASSED по одной удачной попытке.
+- [ ] Экипировать `prism_armor`: видны prism bands/plates; walker hit уменьшается на 46%, acid учитывает дополнительно 35%, max stamina становится 110.
+- [ ] Экипировать `prism_blade` вместо лома: видимый neon Tool, 62 base damage, 0,6 с cooldown, 8,4 studs. Клавиша 1 по-прежнему переключает именно crowbar, не уничтожая blade.
+
+### Другие боссы и задания
+
+- [ ] Принять у Алекса «Пепел на окраине». Карта указывает фактически выбранную server arena. Жнец существует только в Меридиане, имеет health bar/leash и после следующего lifecycle меняет точку, если есть выбор.
+- [ ] Headshot Жнеца показывает критический marker и наносит 1,65× до boss armor; assisted near-ray без реального Head ray не должен ошибочно стать critical.
+- [ ] Получить reward Жнеца: Scout Vest, 24 ammo и ровно один Ranger с 6/6. Повторная смерть не даёт второй quest reward.
+- [ ] Принять «Тёмный патруль»: считаются только 5 Stalker + 3 Corrosive второго города.
+- [ ] Задание Бориса остаётся у **старшины Бориса в Меридиане**, не у Макара. Оно требует 6 Corrosive + одного rotating Warden и после claim создаёт Раду/Глеба.
+- [ ] Одновременное присутствие Foreman/Reaver/Warden/Rainbow не подавляет lifecycle другого boss kind и не превышает global cap 34.
+
+### Оружие, броня и попадания
+
+- [ ] У Макса в первом городе реально купить биту, топор, Ranger, Frontier, Huntsman и Sentinel; stock/Cash уменьшаются один раз, полный backpack не уничтожает покупку.
+- [ ] Скрафтить те же craftable предметы и шесть новых видов брони по реальным recipes. Input списывается один раз; ready order переживает reconnect.
+- [ ] Осмотреть native models: BatTop/grips, AxeHead/edge, revolver cylinder, две трубы двустволки, Huntsman scope/bolt, Sentinel handguard и Prism blade. Детали weld-нуты и не разлетаются.
+- [ ] Проверить revolver 6, double barrel 2, hunting rifle 5, assault rifle 30; R использует правильный ammo type. Shotguns посылают заданное число pellets, автомат стреляет при удержании.
+- [ ] Экипировать leather/medic/scout/hazmat/scavenger/riot armor: chest/back/belt не закрывают камеру и следуют за torso. Speed/stamina/healing/acid effects совпадают с definitions; broken armor снимает visual/bonus.
+- [ ] По неподвижному и движущемуся заражённому на краю crosshair: небольшое расхождение регистрируется только при чистой line-of-sight. Цель за стеной или далеко вне crosshair не получает assist damage.
+- [ ] При попадании видны marker, server damage number и world spark; armor/critical/kill имеют разные цвета. Miss даёт только world impact. Нет двойного damage от presentation.
+- [ ] После 500+ попаданий число `Tracer`, `ImpactSpark`, `DamagePopup` и Sound channels остаётся фиксированным; нет роста Instances/Connections.
+
+### Первое лицо
+
+- [ ] Z переводит в настоящий first person, повторный Z возвращает third person. D-pad Right и touch 1P делают то же; кнопка не перекрывает joystick/jump/attack.
+- [ ] Выйти/войти: выбранный режим восстановлен. Поддельное не-boolean setting отклоняется/игнорируется.
+- [ ] В first person протестировать все 15 weapons: camera не находится внутри armor/Tool критически, crosshair/aim совпадает с server hit, recoil не оставляет камеру перекошенной.
+- [ ] Dialogue, Commander, helicopter, death/respawn и menu корректно временно меняют камеру и возвращают сохранённый режим без Scriptable lock.
+
+### Audio и TTS
+
+- [ ] По отдельности услышать calm score, danger score, лёгкий/тяжёлый выстрел, blunt/blade swing, impact, armor impact, zombie ambient voice, hurt, attack, death, boss death, player hurt, medic heal и rotor.
+- [ ] Danger score меняется только при реальных заражённых поблизости и сам не воспроизводит ложный боевой выстрел.
+- [ ] `music=0` глушит ambient/score, но не combat; `effects=0` глушит combat/rotor, но не score; `voice=0` глушит NPC TTS. Настройки переживают reconnect.
+- [ ] Открыть диалоги всех 17 именных NPC: русский текст совпадает по смыслу с слышимой английской authored-репликой. Быстро переключить NPC/закрыть окно — stale speech не продолжает играть.
+- [ ] Проверить worker, Степана и Rada/Gleb dialogue speech. Ни один voice request не превышает 300 chars и не падает с unsupported property error.
+- [ ] Если `AudioTextToSpeech` недоступен в выбранном channel, игра продолжает работать с text-only и одним понятным warning. Не считать TTS PASSED без реально слышимой реплики.
+- [ ] В Explorer/SoundService нет arbitrary `rbxassetid://`; Output не показывает неожиданные ContentProvider failures для bundled файлов.
+
+### Persistence, multiplayer и performance 0.6
+
+- [ ] В отдельной опубликованной test experience сохранить: пять owned recruits/commands, gatherer expedition, two pity counters, voice/firstPerson, новые weapons/armor/ammo/durability и все новые quests/seen. Reconnect сохраняет точные значения.
+- [ ] Solo/coop не смешивают recruits/pity/inventory/quests; profile Coins и settings остаются общими согласно schema.
+- [ ] Server & Clients 2: чужая Лада-покупка, specialist prompt/commands, rare pickup, damage credit, scout HUD и base evacuation изолированы по owner/session.
+- [ ] Server & Clients 9: до 34 заражённых, 17 global NPC и максимум по 10 личных friendly actors на игрока. Измерить client/server FPS, memory, Physics, Network, Script Activity и path spikes 15 минут.
+- [ ] 10 boss lifecycles, 10 flights, repeated first-person/dialogue/TTS и recruit reconnect не оставляют stale models, labels, prompts, AudioTextToSpeech/Wire, effects, paths или camera bindings.
+- [ ] Зафиксировать Studio version/channel, ОС/GPU, число клиентов, Graphics Quality, FPS/память, Output и видео. Все неизмеренные пункты остаются **NOT TESTED**.

@@ -1,12 +1,12 @@
-# Отчёт о проверках — IRON HORIZON 0.5.0
+# Отчёт о проверках — ECHOES OF STEEL 0.6.0
 
-Дата автоматического прогона: **2026-10-23**.
+Дата полного автоматического прогона: **2026-10-23**.
 
 ## Честная граница результата
 
-**Полный автоматический pipeline PASSED. Roblox Studio / Roblox Engine в этой среде недоступен.** Ни одного настоящего Play Test 0.5.0, сетевого теста Roblox, воспроизведения звука или обращения к живому DataStore здесь не выполнялось.
+**Полный автоматический pipeline PASSED. Roblox Studio / Roblox Engine в этой среде недоступен.** Настоящий Play Test 0.6.0, сетевой тест Roblox, TTS/audio playback и обращение к live DataStore здесь не выполнялись.
 
-`PASSED` ниже относится только к указанному слою. Компиляция, API doubles и чтение бинарного DOM не доказывают правильную Humanoid-физику, Motor6D-картинку, Pathfinding, collision, Streaming, mobile UX, звук, FPS или репликацию двух настоящих клиентов. Эти пункты остаются **NOT TESTED** и перечислены в разделе 13 [STUDIO_QA.md](STUDIO_QA.md).
+`PASSED` ниже относится только к явно названному слою. Compilation, API doubles и разбор binary DOM не доказывают Humanoid grounding/physics, Motor6D-картинку, collision, Pathfinding, first-person presentation, Streaming, mobile UX, звук, FPS или репликацию реальных клиентов. Эти пункты остаются **NOT TESTED** и перечислены в разделе 14 [STUDIO_QA.md](STUDIO_QA.md).
 
 ## Итог автоматического gate
 
@@ -18,164 +18,201 @@ python3 last-city/tools/test.py
 
 | Проверка | Статус | Результат |
 |---|---|---:|
-| Luau compilation, pinned 0.743 | **PASSED** | 52 / 52 sources |
-| Standalone analysis | **PASSED** | Нет неожиданных diagnostics; одна известная Roblox-type diagnostic |
+| Luau compilation, pinned 0.743 | **PASSED** | 55 / 55 sources |
+| Standalone analysis | **PASSED** | Только три разрешённые Roblox-userdata diagnostics |
 | Serialization regressions | **PASSED** | 10 / 10 |
-| Road geometry regressions | **PASSED** | 7 / 7 |
-| Domain transactions | **PASSED** | 117 / 117 |
-| Roblox API adapter doubles | **PASSED** | 89 / 89 |
-| Independent binary assertions | **PASSED** | 110 / 110 |
+| Road geometry regressions | **PASSED** | 9 / 9 |
+| Domain transactions | **PASSED** | 121 / 121 |
+| Roblox API adapter doubles | **PASSED** | 95 / 95 |
+| Independent binary assertions | **PASSED** | 170 / 170 |
 | Две последовательные сборки | **PASSED** | Byte-for-byte identical |
-| Roblox Studio import / Play 0.5.0 | **NOT TESTED** | Нужен Studio |
+| Roblox Studio import / Play 0.6.0 | **NOT TESTED** | Нужен Studio |
+| Engine TTS / bundled audio playback | **NOT TESTED** | Нужен Roblox client |
 | Живой DataStore / server handoff | **NOT TESTED** | Нужна test experience |
 | 2–9 реальных клиентов | **NOT TESTED** | Нужен Studio/опубликованный сервер |
 | FPS / MicroProfiler / mobile | **NOT TESTED** | Нужны реальные измерения |
 
-Известная standalone-диагностика:
+Standalone Luau CLI не содержит Roblox userdata type registry. Разрешены только:
 
 ```text
 CombatService.luau: Unknown type 'Vector3'
+EffectsController.luau: Unknown type 'Vector3' (2 annotations)
 ```
 
-Luau CLI не содержит Roblox userdata type registry; тот же файл компилируется. Любая другая analyzer-диагностика завершает pipeline ошибкой.
+Все файлы при этом компилируются. Любая diagnostic другого типа завершает pipeline ошибкой.
 
 ## Проверенный артефакт
 
 ```text
 Файл:      last-city/releases/LAST_CITY_3D.rbxl
-Версия:    0.5.0 — IRON HORIZON
-SHA-256:   f9d6718bad526fb1e599c616c8546f93b844f3bbd03bca47333117b38f2a6b1c
-Размер:    293 152 bytes
-Instances: 7 189
-BasePart:  6 553
-Scripts:   52
+Версия:    0.6.0 — ECHOES OF STEEL
+SHA-256:   fe53e7ce00faaf19048dc64be992cfa341e06736d6d8005e24567f9b7e00b458
+Размер:    328 493 bytes
+Instances: 7 568
+BasePart:  6 809
+Scripts:   55
 ```
 
-`rbxm-parser` пишет бинарный Roblox place; независимый `rbx-reader` читает готовый файл. Проверяется настоящий `<roblox!` header, Terrain fixtures, services, references, UTF-8, каждый embedded Source байт-в-байт, world tree и повторный binary roundtrip.
+`rbxm-parser` пишет бинарный Roblox place; независимый `rbx-reader` читает готовый файл. Проверяются настоящий `<roblox!` header, pinned Terrain fixture, services, references, exact UTF-8 Source, world tree, property serialization и binary roundtrip.
 
-### Структура мира, проверенная после сериализации
+### Структура мира после сериализации
 
-- 9 физически разных участков.
-- 28 bounded infected markers: 12 городских, 4 общих шахтных, 3 mine-minion, 1 boss и 8 второго города.
-- Физические traversable mine/final chamber, отдельные boss/minion markers.
-- `11_NewFrontier`, command, clinic, garrison supply, workshop и grounded second-city foundation.
-- Две helipad, два arrival marker и две модели вертолёта с сохранённым `PrimaryPart=Body` и перекрёстными роторами.
-- 11 уникальных quest-cache targets, из них 3 медицинских во втором городе.
-- 6 553 BasePart ниже явного бюджета 7 000.
-- 52 embedded Luau Source полностью совпадают с repository.
-- Metadata/manifest объявляют 0.5.0 Iron Horizon.
+Проверены, среди прочего:
 
-## Что проверяют 117 доменных тестов
+- девять разных private plots;
+- физическая проходимая шахта и отдельные boss/minion markers;
+- `11_NewFrontier`, command, clinic, supply, workshop и grounded foundation;
+- шесть enterable домов НОВОГО РУБЕЖА и шесть домов West Annex;
+- Prism Cave с крышей, стенами, входом и шестью crystal lights;
+- три City One и три City Two rotating boss sites плюс Rainbow spawn;
+- две helipad, два arrival marker и две pivotable helicopter models с crossed rotors;
+- 15 distinct persisted quest targets, включая четыре house surveys и три medical caches;
+- пять junction road slabs, одна residential road и десять non-overlapping sidewalk segments;
+- 6 809 BasePart ниже явного бюджета 7 000;
+- все 55 embedded Source byte-for-byte равны repository;
+- manifest/metadata объявляют 0.6.0 Echoes of Steel.
 
-Тесты исполняют настоящие модули `Inventory`, `Quests`, `Building`, `Economy`, `Profile`, `Progression`, `Lease`, `RateLimiter`, а не переписанную копию логики.
+## Что проверяют 9 road tests
 
-### Инвентарь и транзакции
+1. Crossroads paved once, без coplanar duplicate slabs.
+2. Sidewalk не пересекает driving lane.
+3. Curb не проходит через intersection asphalt.
+4. Settlement road не режет private plot.
+5. Все 12 городских перекрёстков имеют непрерывный центр.
+6. Rectangle subtraction не создаёт zero/negative geometry.
+7. City/settlement joins касаются без overlap.
+8. Все roads/sidewalks НОВОГО РУБЕЖА встречаются только footprint-краями.
+9. West Annex connector касается lane/sidewalk только краями.
 
-- Новый профиль получает один лом, но `Equipped=""`: первое нажатие 1 может достать его.
-- Слоты, вес, stack limits, UID, split/move/remove/equip; отрицательные, дробные, NaN и infinite значения.
-- Атомарная выдача нескольких предметов и loaded weapon state.
-- Совместная цена stockpile + backpack, точное списание и отказ без частичной мутации.
-- Склад ↔ рюкзак сохраняет общее количество; переполнение не уничтожает stock.
+## Что проверяют 121 domain tests
 
-### Задания
+Тесты исполняют настоящие `Inventory`, `Quests`, `Building`, `Economy`, `Profile`, `Progression`, `Lease` и `RateLimiter`.
 
-- Accept/prerequisite/status/progress/seen/single claim/daily UTC reset.
-- Убийства до accept не считаются; `first_blood` принимает только `walker`.
-- `second_city`: после первого сюжетного задания 24 убийства оставляют 24/25, двадцать пятое завершает цель.
-- `rescue_fireteam`: недоступно до второго города; требует отдельно 6 `corrosive` и 1 `warden`.
-- `harbor_aid`: три разных cache UID, повтор не дублирует progress.
-- Mine contract: Glock ammo 10/10 + ровно 48 reserve, 600 Coins, 650 XP; full bag оставляет всю награду/валюту/статус нетронутыми.
+### Инвентарь и награды
+
+- 24 slots / 180 weight, stack limits, UID, split/move/remove/equip и stock transfer.
+- Отрицательные, дробные, NaN/infinite значения отклоняются.
+- Multi-item/loaded-weapon reward атомарна; полный backpack не оставляет частичный результат.
+- Mine quest сохраняет Glock magazine 10/10 + ровно 48 reserve через normalize roundtrip.
+- Weapon/armor definitions, level restrictions, upgrade state и независимые equipped slots.
+
+### Задания и боссы
+
+- Accept/prerequisite/progress/seen/single claim/daily UTC reset.
+- Kill до accept не считается; `first_blood` принимает только walker.
+- `second_city`: 24/25 не открывает маршрут, 25-е server credit открывает.
+- `rescue_fireteam`: требует `second_city`, шесть `corrosive` и одного `warden`; owner — Boris.
+- Все 16 definitions существуют; четыре новых City Two quests имеют реальные objectives.
+- Rainbow/Reaver/Warden/Foreman имеют правильные zone/boss contracts; walker damage остаётся 5.
 
 ### Строительство и производство
 
 - Grid/rotation/bounds/reserved zones/edge contact/overlap/cap/level/blueprint/cost/repair/demolish.
-- 17 building definitions имеют bounded цену, здоровье и реальную роль.
-- Стальной забор = 900 HP, шипы = 24 damage, военный генератор = 55 кВт.
-- Генераторы не работают до `readyAt`, потребляют точное топливо, отключаются без него; brownout не создаёт free power.
-- Теплица реально расходует воду и создаёт 4 еды + 1 траву только с работником и питанием.
-- Существующие ферма/вода/workshop/morale/night/offline-production regressions сохранены.
+- 17 building definitions имеют bounded стоимость, HP и настоящую роль.
+- Генераторы, brownout, fuel, workers, morale, shift и inputs не создают бесплатный output.
+- Backpack + stockpile payment точен и откатывается целиком при отказе.
 
-### Persistence
+### 0.6 profile contracts
 
-- Coins, inventory UID/ammo/durability, quests/seen, buildings/carry/fuel, workers, craft, tutorial, settings и обе кампании проходят `Profile.normalize`.
-- `Builder.order`, `Squad.command/resource/returnAt/expedition/completed`, `music` и `effects` сохраняются с allowlist/clamps.
-- Неизвестная schema и повреждённые данные fail closed; duplicate UID удаляются; counters двигаются вперёд.
-- Lease ownership/expiry/corruption и rate buckets имеют отдельные regressions.
+- Ровно пять specialist definitions имеют фиксированные цены 1 250 / 1 000 / 1 500 / 900 / 1 100 Cash.
+- Recruit allowlist удаляет invented IDs, non-gatherer не сохраняет `gather`, counters bounded.
+- Rainbow armor pity зажимается 0..3, weapon pity 0..2.
+- `voice` bounded 0..1; `firstPerson` принимает только boolean.
+- Новые equipment stats: Rainbow Armor 0,46 / acid 0,35 / stamina 1,1; Prism Blade 62 / 0,6 / 8,4.
+- Shop действительно содержит новые оружие/броню первого города.
 
-## Что проверяют 89 mock-adapter тестов
+## Что проверяют 95 mock-adapter tests
 
-Mock исполняет неизменённые игровые services/controllers/views с узким API double. Он не моделирует физику или renderer.
+Mock исполняет неизменённые services/controllers/views через узкий Roblox API double. Он не моделирует renderer/physics/audio.
 
 ### Клиент и UI
 
-- Полная client composition, menu/state/play/tutorial и construction всех панелей.
+- Client composition, loading/menu/state/play/tutorial и все панели.
 - Responsive construction на 390×844 и 844×390.
-- K открывает/закрывает inventory и отправляет tutorial fact; старый I binding отсутствует.
-- Каждое нажатие 1 отправляет server intent `toggleCrowbar`; клиент не выбирает UID и не зависит от запаздывающего snapshot.
-- Camera callbacks menu/survivor/commander и helicopter start/arrive выполняются без Luau error в double.
-- Dialogue viewport/branches, map/build previews, settings RPC и equipped firearm HUD.
-- Acid/shot audio/effects event binding выполняется; фактический звук/картинка остаются NOT TESTED.
+- K открывает backpack; I не связан; каждое 1 отправляет server `toggleCrowbar` intent.
+- Z/touch action меняет реальный CameraMode state и отправляет сохранение настройки.
+- TTS controller создаётся или безопасно деградирует, generation отменяется, close dialogue вызывает Stop.
+- Hit confirm показывает marker и использует pooled damage number в double.
+- Camera menu/survivor/commander/helicopter callbacks выполняются без Luau error.
 
 ### Server authority
 
-- Quest proximity, reward fields from client ignored, loaded/active/frozen/closing checks.
-- Payload rejects nested data, Instances, long strings, NaN; token buckets bound callback count.
-- Inventory stock access only on own base; consumables change real health/stamina once.
-- Build ownership, model creation/destruction и resident evacuation before Render.
-- Степан смешивает реальные backpack/stock ресурсы, создаёт UID/model и не списывает при отказе.
-- Combat server damage/ammo/cooldown/aim/Tool validation, delayed reload token, shotgun seven rays, armor durability.
+- Quest proximity, client reward fields ignored, active/frozen/closing checks.
+- Payload sanity и token buckets.
+- Stock доступен только на своей базе; consumables применяются один раз.
+- Building placement создаёт запись/модель и оплачивает реальные ресурсы; resident evacuation идёт до Render.
+- Reload token, shotgun rays, ammo, armor durability, Tool UID и server damage.
+- Отдельный moving target в пределах bounded near-ray fallback получает 32 server damage и `hit_confirm`; клиент не выбирает цель.
 
-### 0.5 services
+### Специалисты и отряд
 
-- Squad unlock создаёт ровно двух owner-bound бойцов с `MilitaryArmor`, `RifleBody`, no-jump Humanoid.
-- Follow/base/gather commands меняют только persistent campaign state; завершённая expedition один раз добавляет ожидаемый stock.
-- Helicopter отказывает до unlock, фиксирует персонажа, отправляет start duration=6, server callback завершает оба направления и переносит follow squad.
-- Пока `Traveling` установлен, active remotes не выполняются.
-- `mine_guard/foreman` не создаются вне шахты; `corrosive/warden` не создаются вне второго города.
-- Quartermaster trade требует одновременно city unlock и proximity.
-- Full Bootstrap создаёт все 17 services, 16 global NPC, workers, builder и travel prompts.
+- Покупаются все пять ролей; повторная покупка не списывает Cash.
+- Аркадий сокращает timer на 35%; Светлана даёт 4 HP; Тимур списывает ammo и наносит 22 damage.
+- Scout ping возникает от server nearest target; gatherer получает ожидаемый +25% и один раз завершает expedition.
+- Specialist внутри нового footprint получает новый clear home и физически перемещается до Render.
+- Follow specialist travel и base-only actor разделены.
+- Rada/Gleb unlock, armor/rifle/no-jump, commands, ammo и expedition regressions сохранены.
 
-### Persistence adapter
+### Боссы, travel и persistence
 
-- Настоящий код `SaveService` с simulated `UpdateAsync`: acquire/save/release, callback replay, 4 retries, lease loss, Studio SessionOnly, live fail-closed, future schema.
-- Mine loaded Glock/reserve проходит save/normalize roundtrip.
-- Full join/play/quest/loot/snapshot/tutorial/NPC/door composition работает в API doubles.
+- Zone-exclusive spawn запрещает mine/City1/City2 enemy в неправильной области.
+- Rainbow pity path выдаёт ordinary resource, 35 Coins, armor и equippable blade.
+- Helicopter lock/timer/две стороны/command freeze/follow actors.
+- Simulated `UpdateAsync`: acquire/save/release, callback replay, retries, lease loss, Studio SessionOnly, live fail-closed, future schema.
+- Full Bootstrap composition, join/restore, quest/loot/tutorial/NPC/door flows.
 
-## Ключевые acceptance contracts 0.5.0
+## 170 binary assertions
+
+Independent verifier проверяет не только наличие строк, но и decoded place:
+
+- exact Source/UTF-8 and source count;
+- Terrain opaque payload и roundtrip;
+- world/services/remotes/metadata;
+- physical houses, cave, facilities, helicopters, roads, sidewalks, caches и boss markers;
+- runtime definitions/services for 14 infected, 16 quests, 5 recruits, equipment, TTS, first-person, hit feedback and loot chances;
+- authorized bundled-audio policy;
+- part budget and deterministic roundtrip.
+
+Source assertions не делают API рабочим в Roblox Engine; они доказывают, что проверенная реализация встроена в release binary, а не осталась только в repository.
+
+## Acceptance matrix 0.6.0
 
 | Контракт | Автоматический статус | Roblox status |
 |---|---|---|
-| Степан платит реальными ресурсами и строит реальную запись/модель | **PASSED** domain + mock | **NOT TESTED** физический путь/вид |
-| Отряд quest-locked, persistent, follow/base/gather | **PASSED** domain + mock | **NOT TESTED** Pathfinding/replication |
-| NPC позы + HeadScratch после исправлений | **PASSED** compile/source/state | **NOT TESTED** визуально |
-| NPC/заражённые не используют jump links | **PASSED** config/source/mock | **NOT TESTED** engine path result |
-| Заражённые атакуют blocking defense | **PASSED** service/source | **NOT TESTED** физический сценарий |
-| 17 полезных зданий | **PASSED** definitions/domain/model construction | **NOT TESTED** полный live pass |
-| Второй город физически включён | **PASSED** binary geometry | **NOT TESTED** walkthrough/Streaming |
-| Алекс требует 25 убийств | **PASSED** domain | **NOT TESTED** live loop |
-| Вертолёт 6 с в обе стороны | **PASSED** server/mock/binary | **NOT TESTED** cinematic/replication |
-| Authorized bundled audio only | **PASSED** source/binary policy | **NOT TESTED** playback |
-| 12 infected, mine minions exclusive | **PASSED** domain/mock/binary markers | **NOT TESTED** population in Engine |
-| Walker damage exactly 5 | **PASSED** domain/source | **NOT TESTED** Humanoid hit |
-| Armor buy/craft contracts | **PASSED** domain/mock | **NOT TESTED** live shop/craft |
-| Glock 10/10 + exactly 48 reserve atomic | **PASSED** domain/mock/save | **NOT TESTED** live boss |
-| 1 toggles crowbar; K opens backpack | **PASSED** client + server mock | **NOT TESTED** keyboard in Studio |
-| Static facade overlap correction | **PASSED** generator/binary | **NOT TESTED** rendered shimmer |
+| Исправленные City 2 roads без overlap | **PASSED** roads + binary | **NOT TESTED** rendered walkthrough |
+| Шесть City 2 домов + 4 survey caches | **PASSED** binary + quest domain | **NOT TESTED** live traversal |
+| Богатые City 2 resource crates | **PASSED** binary metadata | **NOT TESTED** live prompts/respawn |
+| Prism Cave + Rainbow zone/leash | **PASSED** binary/domain/mock | **NOT TESTED** engine fight |
+| 35 Coins + ordinary loot + 22%/30% pity | **PASSED** domain/source/mock | **NOT TESTED** long live sample |
+| Rainbow Armor/Blade экипируются | **PASSED** domain/mock/model source | **NOT TESTED** Tool/armor visual |
+| Лада продаёт пять ролей за Cash | **PASSED** domain/mock | **NOT TESTED** E/presentation |
+| Все пять ролей меняют server state | **PASSED** mock/profile | **NOT TESTED** path/replication |
+| 16 quests, больше City 2 content | **PASSED** domain/binary | **NOT TESTED** complete playthrough |
+| City 1 equipment ladder | **PASSED** definitions/domain/binary | **NOT TESTED** balance/visual |
+| Reliable near-ray + visible feedback | **PASSED** adapter/source/pool | **NOT TESTED** mouse/network feel |
+| Saved first-person | **PASSED** adapter/profile/source | **NOT TESTED** real camera/clipping |
+| Adaptive sounds/zombie vocals | **PASSED** source policy/event mock | **NOT TESTED** playback/quality |
+| English engine TTS for Russian text | **PASSED** payload/controller/source | **NOT TESTED** LoadAsync/voice |
+| Boris unlocks Rada/Gleb | **PASSED** domain/mock/source | **NOT TESTED** live quest/path |
+| Mine Glock 10/10 + 48 | **PASSED** domain/mock/save | **NOT TESTED** live boss |
+| Walker exactly 5 HP | **PASSED** domain/source | **NOT TESTED** Humanoid hit |
+| 1/K/I controls | **PASSED** adapter/source | **NOT TESTED** keyboard in Studio |
 
 ## История Studio
 
-- **0.1.0 — FAILED import.** Пользовательский screenshot: `unexpected end at offset 2`. Причина: truncated `Terrain.PhysicsGrid`.
-- **0.1.1 — PASSED open.** Пользовательские screenshots показали loading GUI/editable scene; gameplay не подтверждён.
-- **0.2.0 — PASSED open.** Пользовательские screenshots показали отрендеренное место.
+- **0.1.0 — FAILED import.** Пользовательский screenshot: `unexpected end at offset 2`; причина — truncated `Terrain.PhysicsGrid`.
+- **0.1.1 — PASSED open.** Screenshots показали loading GUI/editable scene; gameplay не подтверждён.
+- **0.2.0 — PASSED open.** Screenshots показали отрендеренное место.
 - **0.3.0 — PASSED partial Play с дефектами.** Видимый E dialogue; обнаружены руки назад, неполная крыша и ненадёжный Виктор.
-- **0.4.0 — NOT TESTED.** Автоматические исправления были собраны, но нового пользовательского подтверждения нет.
-- **0.5.0 — NOT TESTED.** Нужен новый импорт и полный раздел 13 Studio QA; статус предыдущих версий не переносится.
+- **0.4.0 — NOT TESTED.** Автоматические исправления собраны без нового пользовательского подтверждения.
+- **0.5.0 — NOT TESTED.** Отдельный импорт/Play не подтверждён.
+- **0.6.0 — NOT TESTED.** Статус старых файлов не переносится на новый binary.
 
 ## Текущий итог
 
-- Ошибок в последнем автоматическом pipeline: **0**.
-- Исторический импорт 0.1.0: **FAILED** и не переписывается задним числом.
-- Roblox Studio 0.5.0: **NOT TESTED**.
-- Следующий обязательный gate: импорт release binary, F5, Output, два рейса, builder/squad/no-jump/audio, затем Server & Clients и persistent test experience.
+- Ошибок последнего автоматического pipeline: **0**.
+- Deterministic build: **PASSED**.
+- Roblox Studio 0.6.0: **NOT TESTED**.
+- Следующий обязательный gate: import release binary, F5/Output, дороги и дома, Prism fight/loot, пять ролей, first-person, TTS/audio и hit feedback; затем 2/9 clients и persistent test experience.
 
-Машиночитаемый результат: [AUTOMATED_RESULTS.json](AUTOMATED_RESULTS.json). Контрольная сумма: `releases/SHA256SUMS`.
+Машиночитаемый результат: [AUTOMATED_RESULTS.json](AUTOMATED_RESULTS.json). Контрольная сумма: `../releases/SHA256SUMS`.
