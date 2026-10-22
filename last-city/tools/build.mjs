@@ -38,11 +38,15 @@ service('StarterGui');
 const ReplicatedFirst=service('ReplicatedFirst');
 service('SoundService');
 let scripts=0;
+function containsSource(directory) {
+  return fs.readdirSync(directory,{withFileTypes:true}).some(entry => entry.isDirectory()
+    ? containsSource(path.join(directory,entry.name)) : entry.name.endsWith('.luau'));
+}
 function load(directory,parent) {
   if(!fs.existsSync(directory))return;
   for(const entry of fs.readdirSync(directory,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))) {
     const source=path.join(directory,entry.name);
-    if(entry.isDirectory()) { load(source,folder(parent,entry.name)); continue; }
+    if(entry.isDirectory()) { if(containsSource(source)) load(source,folder(parent,entry.name)); continue; }
     if(!entry.name.endsWith('.luau'))continue;
     const type=entry.name.endsWith('.server.luau')?'Script':entry.name.endsWith('.client.luau')?'LocalScript':'ModuleScript';
     const script=new R[type](); script.Name=entry.name.replace(/\.(server|client)\.luau$|\.luau$/,''); script.Source=fs.readFileSync(source,'utf8'); script.Parent=parent; scripts++;

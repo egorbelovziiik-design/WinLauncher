@@ -19,7 +19,7 @@
 | Бинарный Roblox header / независимое чтение | **PASSED** | 39 проверок `tools/verify.mjs`, writer и reader разных пакетов |
 | Исходники внутри `.rbxl` | **PASSED** | Все 47 Source совпадают с файловыми исходниками после строгого UTF-8 decoding |
 | Двойная сборка | **PASSED** | Повторная сборка даёт байт-в-байт тот же `.rbxl` |
-| StreamingEnabled, сервисы, remotes, геометрия | **PASSED** | 2 168 объектов; 1 862 статических BasePart; 11 RemoteEvent; 6 участков; 12 zombie spawns; 3 уникальных quest crates |
+| StreamingEnabled, сервисы, remotes, геометрия | **PASSED** | 2 167 объектов; 1 862 статических BasePart; 11 RemoteEvent; 6 участков; 12 zombie spawns; 3 уникальных quest crates |
 | Roblox Studio Play Test | **NOT TESTED** | Нужен Roblox Studio |
 | Настоящий DataStore / solo Teleport | **NOT TESTED** | Нужна опубликованная тестовая experience |
 | Реальная репликация 2–6 клиентов | **NOT TESTED** | Нужен Studio Server & Clients и опубликованный сервер |
@@ -95,6 +95,7 @@ Mock не вычисляет физику, пути, стриминг, заде�
 
 | Найденная проблема | Повторная проверка |
 |---|---|
+| Пустая непопавшая в Git папка меняла DOM при сборке на CI | **PASSED** — builder пропускает каталоги без Luau; сравнивается весь декодированный DOM |
 | Повреждённый existing envelope мог превратиться в новый профиль | **PASSED** — загрузка fail-closed, старые данные не меняются |
 | Byte-string writer обрезал Unicode до младшего байта | **PASSED** — явное UTF-8 encoding, независимое полное сравнение Source/вывесок и roundtrip |
 | Возможность ставить модель поверх статической палатки | **PASSED** — общие reserved footprints на сервере и в призраке |

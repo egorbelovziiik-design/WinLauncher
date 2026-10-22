@@ -10,7 +10,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .local/bin
-          key: ${{ runner.os }}-last-city-luau-0.743-cpp17
+          key: ubuntu-24.04-${{ runner.arch }}-last-city-luau-0.743-cpp17
       - name: Build pinned Luau toolchain
         if: steps.luau-cache.outputs.cache-hit != 'true'
         run: bash last-city/tools/install-toolchain.sh
