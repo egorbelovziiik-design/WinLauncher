@@ -178,35 +178,22 @@ public sealed class WebViewManager : IDisposable
     }
 
     /// <summary>
-    /// The WPF wrapper does not expose AcceleratorKeyPressed in this SDK build, so the underlying
-    /// CoreWebView2Controller is reached by reflection. Without it, shortcuts typed inside a page
-    /// would be swallowed by the engine instead of reaching DrBrowser.
+    /// The WPF wrapper in this SDK build has no public AcceleratorKeyPressed event, so the underlying
+    /// CoreWebView2Controller is located by reflection. Without it, shortcuts typed inside a web page
+    /// are swallowed by the engine instead of reaching DrBrowser.
     /// </summary>
     private void AttachAcceleratorBridge(WebView2 view)
     {
         try
         {
-            var controller = typeof(WebView2)
-                                 .GetProperty("CoreWebView2Controller", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                                 ?.GetValue(view)
-                             ?? typeof(WebView2)
-                                 .GetField("_coreWebView2Controller", BindingFlags.Instance | BindingFlags.NonPublic)
-                                 ?.GetValue(view);
-
-            if (controller is not CoreWebView2Controller typed)
+            var controller = FindController(view);
+            if (controller is null)
             {
-                var fields = string.Join(", ", typeof(WebView2)
-                    .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                    .Select(f => f.Name + ":" + f.FieldType.Name));
-                var props = string.Join(", ", typeof(WebView2)
-                    .GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                    .Where(p => p.Name.Contains("Controller", StringComparison.OrdinalIgnoreCase))
-                    .Select(p => p.Name + ":" + p.PropertyType.Name));
-                _log.Warn($"accelerator bridge: controller not found. fields=[{fields}] controllerProps=[{props}]");
+                _log.Warn("accelerator bridge unavailable: CoreWebView2Controller not found; page-focused shortcuts limited");
                 return;
             }
 
-            typed.AcceleratorKeyPressed += (_, e) =>
+            controller.AcceleratorKeyPressed += (_, e) =>
             {
                 if (e.KeyEventKind is not (CoreWebView2KeyEventKind.KeyDown or CoreWebView2KeyEventKind.SystemKeyDown)) return;
                 try
@@ -219,12 +206,40 @@ public sealed class WebViewManager : IDisposable
                 }
             };
 
-            _log.Info("accelerator bridge attached (page shortcuts forwarded to DrBrowser)");
+            _log.Info("accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)");
         }
         catch (Exception ex)
         {
             _log.Warn("accelerator bridge failed: " + ex.Message);
         }
+    }
+
+    /// <summary>Walks the control's type hierarchy looking for the CoreWebView2Controller instance.</summary>
+    private static CoreWebView2Controller? FindController(object view)
+    {
+        for (var type = view.GetType(); type is not null && type != typeof(object); type = type.BaseType)
+        {
+            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+            {
+                if (!typeof(CoreWebView2Controller).IsAssignableFrom(field.FieldType)) continue;
+                if (field.GetValue(view) is CoreWebView2Controller fromField) return fromField;
+            }
+
+            foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+            {
+                if (!typeof(CoreWebView2Controller).IsAssignableFrom(property.PropertyType)) continue;
+                try
+                {
+                    if (property.GetValue(view) is CoreWebView2Controller fromProperty) return fromProperty;
+                }
+                catch
+                {
+                    // property throws until the view is fully initialised - keep looking
+                }
+            }
+        }
+
+        return null;
     }
 
     private void Configure(BrowserTab tab)
