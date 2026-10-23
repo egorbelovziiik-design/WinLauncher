@@ -214,27 +214,65 @@ public sealed class WebViewManager : IDisposable
         }
     }
 
-    /// <summary>Walks the control's type hierarchy looking for the CoreWebView2Controller instance.</summary>
-    private static CoreWebView2Controller? FindController(object view)
+    /// <summary>
+    /// Recursively walks the control's private object graph (fields only, WebView2 namespaces only)
+    /// looking for the CoreWebView2Controller instance.
+    /// </summary>
+    private static CoreWebView2Controller? FindController(object? root, int depth = 0, HashSet<object>? seen = null)
     {
-        for (var type = view.GetType(); type is not null && type != typeof(object); type = type.BaseType)
+        if (root is null || depth > 5) return null;
+
+        seen ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+        if (!seen.Add(root)) return null;
+
+        for (var type = root.GetType(); type is not null && type != typeof(object); type = type.BaseType)
         {
             foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
-                if (!typeof(CoreWebView2Controller).IsAssignableFrom(field.FieldType)) continue;
-                if (field.GetValue(view) is CoreWebView2Controller fromField) return fromField;
+                if (typeof(CoreWebView2Controller).IsAssignableFrom(field.FieldType))
+                {
+                    try
+                    {
+                        if (field.GetValue(root) is CoreWebView2Controller direct) return direct;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    continue;
+                }
+
+                var fieldType = field.FieldType;
+                if (fieldType.IsValueType || fieldType == typeof(string)) continue;
+                if (fieldType.Namespace?.StartsWith("Microsoft.Web.WebView2", StringComparison.Ordinal) != true) continue;
+
+                object? child;
+                try
+                {
+                    child = field.GetValue(root);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var nested = FindController(child, depth + 1, seen);
+                if (nested is not null) return nested;
             }
 
             foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
+                if (property.GetIndexParameters().Length > 0) continue;
                 if (!typeof(CoreWebView2Controller).IsAssignableFrom(property.PropertyType)) continue;
+
                 try
                 {
-                    if (property.GetValue(view) is CoreWebView2Controller fromProperty) return fromProperty;
+                    if (property.GetValue(root) is CoreWebView2Controller fromProperty) return fromProperty;
                 }
                 catch
                 {
-                    // property throws until the view is fully initialised - keep looking
+                    // property may throw before the view is initialised
                 }
             }
         }
