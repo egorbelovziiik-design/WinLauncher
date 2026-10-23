@@ -1,0 +1,200 @@
+name: Build DrBrowser
+
+on:
+  push:
+    paths:
+      - 'DrBrowser/**'
+      - '.github/workflows/build-drbrowser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: drbrowser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows x64 build, tests and single-file publish
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        working-directory: DrBrowser
+        run: dotnet restore DrBrowser.csproj
+
+      - name: Build (Release)
+        working-directory: DrBrowser
+        shell: pwsh
+        run: |
+          dotnet build DrBrowser.csproj -c Release --no-restore -warnaserror:false `
+            "-flp:logfile=build.log;verbosity=normal" 2>&1 | Tee-Object -FilePath build-console.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            $lines = Select-String -Path build-console.log, build.log -Pattern 'error [A-Z]+[0-9]+' -ErrorAction SilentlyContinue |
+              Select-Object -First 25
+            foreach ($line in $lines) { Write-Host "::error::$($line.Line.Trim())" }
+          }
+          exit $code
+
+      - name: Publish single-file win-x64
+        working-directory: DrBrowser
+        run: >
+          dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None -p:DebugSymbols=false
+          -o ../dist
+
+      - name: Verify DrBrowser.exe
+        shell: pwsh
+        run: |
+          $exe = "dist\DrBrowser.exe"
+          if (-not (Test-Path $exe)) { throw "DrBrowser.exe не создан" }
+          $item = Get-Item $exe
+          "{0:N0} bytes" -f $item.Length
+          (Get-FileHash $exe -Algorithm SHA256).Hash | Tee-Object -FilePath dist\DrBrowser.exe.sha256.txt
+          if ($item.Length -lt 20000000) { throw "Подозрительно маленький EXE: $($item.Length) bytes" }
+
+      - name: Sync README with build size and SHA-256
+        shell: bash
+        run: |
+          sha=$(tr -d '\r\n ' < dist/DrBrowser.exe.sha256.txt)
+          size=$(stat -c %s dist/DrBrowser.exe)
+          sed -i -E "s/\`[A-F0-9]{64}\`/\`$sha\`/g" DrBrowser/README.md
+          sed -i -E "s/^# [A-F0-9]{64}$/# $sha/" DrBrowser/README.md
+          sed -i -E "s/\([0-9 ]+ байт, self-contained/($size байт, self-contained/" DrBrowser/README.md
+          grep -n "SHA-256" DrBrowser/README.md | head -3
+
+      - name: Detect WebView2 Runtime
+        shell: pwsh
+        run: |
+          $paths = @(
+            "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application",
+            "$env:ProgramFiles\Microsoft\EdgeWebView\Application"
+          ) | Where-Object { Test-Path $_ }
+          if ($paths) {
+            $versions = $paths | ForEach-Object { Get-ChildItem $_ -Directory | Select-Object -ExpandProperty Name }
+            "WebView2 Runtime найден: $($versions -join ', ')"
+          } else {
+            "WebView2 Runtime НЕ найден на раннере — smoke-тест движка будет пропущен."
+          }
+
+      - name: Self-test (logic, SQLite, DPAPI, AdBlock, sessions)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:DRBROWSER_SHOTS = "${{ github.workspace }}\DrBrowser\screenshots"
+          New-Item -ItemType Directory -Force -Path $env:DRBROWSER_SHOTS | Out-Null
+          $p = Start-Process -FilePath "dist\DrBrowser.exe" -ArgumentList "--selftest" -PassThru -Wait
+          $code = $p.ExitCode
+          "selftest exit code: $code"
+          "selftest exit code: $code" | Out-File -FilePath "$env:DRBROWSER_SHOTS\exit-codes.txt" -Append -Encoding utf8
+          "SELFTEST_EXIT=$code" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Smoke test (live window + WebView2 + screenshots)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:DRBROWSER_SHOTS = "${{ github.workspace }}\DrBrowser\screenshots"
+          $env:DRBROWSER_BROWSER_ARGS = "--disable-gpu --no-sandbox --disable-dev-shm-usage"
+          $p = Start-Process -FilePath "dist\DrBrowser.exe" -ArgumentList "--smoke" -PassThru -Wait
+          $code = $p.ExitCode
+          "smoke exit code: $code"
+          "smoke exit code: $code" | Out-File -FilePath "$env:DRBROWSER_SHOTS\exit-codes.txt" -Append -Encoding utf8
+          "SMOKE_EXIT=$code" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          exit 0
+
+      - name: Collect exit codes and log tail
+        if: always()
+        shell: pwsh
+        run: |
+          $dir = "DrBrowser\screenshots"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $log = Get-ChildItem "$env:APPDATA\DrBrowser\logs" -Filter *.log -ErrorAction SilentlyContinue |
+                 Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($log) { Copy-Item $log.FullName "$dir\drbrowser-log.txt" -Force }
+          Get-ChildItem $dir | Select-Object Name, Length | Format-Table
+
+      - name: Show test report
+        if: always()
+        shell: pwsh
+        run: |
+          $report = "DrBrowser\screenshots\selftest-report.txt"
+          if (Test-Path $report) { Get-Content $report } else { "Отчёт не создан (приложение не дошло до тестов)." }
+          Get-ChildItem DrBrowser\screenshots -ErrorAction SilentlyContinue | Select-Object Name, Length | Format-Table
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrBrowser-win-x64
+          path: |
+            dist/DrBrowser.exe
+            dist/DrBrowser.exe.sha256.txt
+            DrBrowser/screenshots/**
+          if-no-files-found: warn
+
+      - name: Publish EXE, screenshots and report back to the branch
+        if: ${{ false }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          size=$(stat -c %s dist/DrBrowser.exe 2>/dev/null || echo 0)
+          echo "exe size: $size bytes"
+          if [ "$size" -gt 95000000 ]; then
+            echo "EXE larger than GitHub's 100 MB limit - it is published as a release asset only."
+          else
+            git add -f dist/DrBrowser.exe || true
+          fi
+          git add -f dist/DrBrowser.exe.sha256.txt || true
+          git add -f DrBrowser/README.md || true
+          git add -f DrBrowser/Docs || true
+          if [ -d DrBrowser/screenshots ]; then git add -f DrBrowser/screenshots || true; fi
+          git status --short | head -20
+          if git diff --cached --quiet; then echo "no changes to commit"; exit 0; fi
+          git commit -m "build: DrBrowser.exe + test report [skip ci]"
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Fail the job when a check failed
+        shell: pwsh
+        run: |
+          if ($env:SELFTEST_EXIT -ne '0' -or $env:SMOKE_EXIT -ne '0') {
+            throw "Self-test or smoke did not complete successfully"
+          }
+          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
+            if (-not (Test-Path "DrBrowser\screenshots\$name")) { throw "Missing report: $name" }
+          }
+          $failed = Select-String -Path DrBrowser\screenshots\*-report.txt -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue
+          if ($failed) {
+            $failed | ForEach-Object { $_.Line }
+            throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots."
+          }
+          "Все выполненные проверки прошли."
+
+      - name: Publish release with the EXE
+        if: ${{ false }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f dist/DrBrowser.exe ]; then echo "no exe"; exit 0; fi
+          gh release delete drbrowser-latest --yes --cleanup-tag || true
+          gh release create drbrowser-latest \
+            --title "DrBrowser OMEGA 3.0 (win-x64)" \
+            --notes "DrBrowser.exe (self-contained, win-x64). Требуется Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703" \
+            "dist/DrBrowser.exe" "dist/DrBrowser.exe.sha256.txt"

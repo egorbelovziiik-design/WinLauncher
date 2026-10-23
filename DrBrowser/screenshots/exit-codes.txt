@@ -1,0 +1,56 @@
+selftest exit=
+smoke exit=
+selftest exit code: 
+smoke exit code: 
+selftest exit code: 
+smoke exit code: 
+selftest exit code: 
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0

@@ -1,0 +1,183 @@
+<UserControl x:Class="DrBrowser.NewTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DrBrowser">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+
+        <!-- wallpaper -->
+        <Image Source="{Binding NewTab.Wallpaper}" Stretch="UniformToFill"
+               Visibility="{Binding NewTab.HasWallpaper, Converter={StaticResource BoolToVis}}" />
+        <Border>
+            <Border.Background>
+                <RadialGradientBrush>
+                    <GradientStop Color="#307C5CFF" Offset="0" />
+                    <GradientStop Color="#00000000" Offset="0.75" />
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel MaxWidth="900" Margin="40,46,40,40" HorizontalAlignment="Center">
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Border Width="46" Height="46" CornerRadius="14" Background="{DynamicResource AccentGradientBrush}">
+                        <TextBlock Text="D" FontSize="22" FontWeight="Bold" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="DrBrowser" FontSize="26" FontWeight="Bold" />
+                        <TextBlock Text="{Binding NewTab.Greeting}" Style="{StaticResource Muted}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- search -->
+                <Border Margin="0,26,0,0" Height="52" CornerRadius="14" Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="🔍" FontSize="15" Margin="16,0,6,0" VerticalAlignment="Center" />
+                        <TextBox x:Name="SearchBox" Grid.Column="1" Style="{StaticResource AddressBox}" FontSize="15"
+                                 KeyDown="SearchBox_KeyDown" VerticalAlignment="Center" />
+                        <Button Grid.Column="2" Content="Найти" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"
+                                Click="Search_Click" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+                <TextBlock Text="{Binding NewTab.SearchEngineName, StringFormat=Поиск: {0} · Enter — искать или открыть адрес}"
+                           Style="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,8,0,0" FontSize="11" />
+
+                <WrapPanel HorizontalAlignment="Center" Margin="0,12,0,0">
+                    <Button Content="◎  DrSearch" Style="{StaticResource GhostButton}" FontSize="11.5" Margin="0,0,6,0"
+                            ToolTip="Собственная поисковая система — ищет локально по вашим данным"
+                            Command="{Binding OpenSearchCommand}" />
+                    <Button Content="🎵  Музыка" Style="{StaticResource GhostButton}" FontSize="11.5" Margin="0,0,6,0"
+                            ToolTip="DrMusic — локальный плеер с категориями"
+                            Command="{Binding OpenMusicCommand}" />
+                    <Button Content="✦  DrAI" Style="{StaticResource GhostButton}" FontSize="11.5"
+                            ToolTip="AI-помощник с аватаром"
+                            Command="{Binding ToggleAiCommand}" />
+                </WrapPanel>
+
+                <!-- clock / weather -->
+                <Grid Margin="0,26,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding NewTab.Clock}" FontSize="46" FontWeight="Light" />
+                        <TextBlock Text="{Binding NewTab.DateLine}" Style="{StaticResource Muted}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="1" CornerRadius="12" Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="16,10"
+                            Visibility="{Binding Settings.ShowWeather, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding NewTab.WeatherIcon}" FontSize="24" VerticalAlignment="Center" />
+                            <StackPanel Margin="10,0,0,0">
+                                <TextBlock Text="{Binding NewTab.WeatherText}" FontSize="13.5" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding NewTab.WeatherDetail}" Style="{StaticResource Muted}" FontSize="11" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- quick links -->
+                <TextBlock Text="БЫСТРЫЕ ССЫЛКИ" Style="{StaticResource SectionTitle}" Margin="0,30,0,8" />
+                <ItemsControl ItemsSource="{Binding NewTab.QuickLinks}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="132" Height="92" Margin="0,0,10,10" CornerRadius="12" Cursor="Hand"
+                                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1" MouseLeftButtonUp="QuickLink_Click">
+                                <Border.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Удалить ссылку"
+                                                  Command="{Binding DataContext.RemoveQuickLinkCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}" />
+                                    </ContextMenu>
+                                </Border.ContextMenu>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <Border Width="32" Height="32" CornerRadius="10" Background="{DynamicResource AccentSoftBrush}">
+                                        <TextBlock Text="{Binding Letter}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Title}" FontSize="11.5" Margin="0,7,0,0"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="112" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- add quick link -->
+                <Border Style="{StaticResource Card}" Margin="0,4,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Название" Style="{StaticResource Muted}" FontSize="10.5" Margin="2,0,0,4" />
+                            <TextBox Style="{StaticResource InputBox}"
+                                     Text="{Binding NewTab.NewQuickLinkTitle, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Название сайта — например GitHub" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <TextBlock Text="Адрес" Style="{StaticResource Muted}" FontSize="10.5" Margin="2,0,0,4" />
+                            <TextBox Style="{StaticResource InputBox}"
+                                     Text="{Binding NewTab.NewQuickLinkUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Адрес, например github.com" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="＋ Добавить сайт" Style="{StaticResource GhostButton}"
+                                Command="{Binding AddQuickLinkCommand}" VerticalAlignment="Bottom"
+                                ToolTip="Добавить сайт в быстрые ссылки" />
+                    </Grid>
+                </Border>
+
+                <!-- recent -->
+                <TextBlock Text="НЕДАВНО ПОСЕЩЁННЫЕ" Style="{StaticResource SectionTitle}" Margin="0,22,0,8" />
+                <ItemsControl ItemsSource="{Binding NewTab.Recent}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,10,10" Padding="12,9" CornerRadius="10" Cursor="Hand" MaxWidth="260"
+                                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1" MouseLeftButtonUp="Recent_Click" ToolTip="{Binding Url}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Host}" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding VisitsText}" Style="{StaticResource Muted}" FontSize="10.5" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- wallpaper -->
+                <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Фон новой вкладки" VerticalAlignment="Center" FontSize="13" />
+                        <Button Content="Свои обои" Style="{StaticResource GhostButton}" Margin="14,0,0,0"
+                                Command="{Binding SetWallpaperCommand}" />
+                        <Button Content="Сбросить" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                Command="{Binding ResetWallpaperCommand}" />
+                        <TextBlock Text="Файл копируется в %AppData%\DrBrowser\wallpapers" Style="{StaticResource Muted}"
+                                   FontSize="10.5" Margin="14,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
