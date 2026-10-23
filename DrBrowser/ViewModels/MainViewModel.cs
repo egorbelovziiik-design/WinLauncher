@@ -55,7 +55,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             path => _shell?.OpenExternal(path),
             () => _settingsService.Save(Settings),
             new MusicCatalogService(log),
-            url => NavigateActiveTab(url));
+            new MusicPlaylistService(_db),
+            url => NavigateActiveTab(url),
+            (title, message) => _shell?.ConfirmAsync(title, message) ?? Task.FromResult(false));
         Search = new SearchViewModel(log, History, Bookmarks, Settings, url => NavigateActiveTab(url),
             new WebSearchService(log), SearchIndex, SearchCrawler);
         AdBlock = new AdBlockService(log);

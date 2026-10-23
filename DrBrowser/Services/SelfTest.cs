@@ -313,6 +313,27 @@ public static class SelfTest
                 return $"{tracks.Count} трека · категории {string.Join(" / ", categories)} · .txt отфильтрован";
             });
 
+            await Run("music-playlists", "DrMusic: SQLite плейлисты и Избранное", async () =>
+            {
+                var library = Path.Combine(temp, "music");
+                var track = MusicService.ScanFolder(library).First();
+                var playlistDb = new Db(Path.Combine(temp, "music-playlists.db"));
+                var playlists = new MusicPlaylistService(playlistDb);
+                var playlistId = await playlists.CreateAsync("Ночной код");
+                await playlists.AddTrackAsync(playlistId, track);
+                var loaded = await playlists.LoadAsync();
+                var paths = await playlists.LoadPathsAsync(playlistId);
+                if (loaded.Count != 1 || loaded[0].TrackCount != 1 || !paths.Contains(track.FilePath))
+                    throw new Exception("плейлист не прошёл round-trip");
+                if (!await playlists.ToggleFavoriteAsync(track)) throw new Exception("трек не добавился в Избранное");
+                if (!(await playlists.LoadFavoritePathsAsync()).Contains(track.FilePath)) throw new Exception("Избранное не загрузилось");
+                if (await playlists.ToggleFavoriteAsync(track)) throw new Exception("трек не удалился из Избранного");
+                await playlists.RemoveTrackAsync(playlistId, track);
+                await playlists.DeleteAsync(playlistId);
+                if ((await playlists.LoadAsync()).Count != 0) throw new Exception("плейлист не удалился");
+                return "create · add/remove track · favorites toggle · delete; файлы не изменены";
+            });
+
             await Run("radio-stations", "DrMusic: встроенное радио и LIVE-плейлист", () =>
             {
                 var log = new Logger();

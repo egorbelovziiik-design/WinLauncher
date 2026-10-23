@@ -15,13 +15,19 @@ public sealed class MusicViewModel : ObservableObject
     private readonly DispatcherTimer _debounce;
 
     private readonly MusicCatalogService _catalog;
+    private readonly MusicPlaylistService _playlists;
     private readonly Action<string> _navigate;
+    private readonly Func<string, string, Task<bool>> _confirm;
+    private readonly HashSet<string> _selectedPlaylistPaths = new(StringComparer.OrdinalIgnoreCase);
 
     private string _filter = string.Empty;
     private string _selectedCategory = MusicService.AllTracksCategory;
     private string _catalogQuery = string.Empty;
     private string _catalogStatus = string.Empty;
     private bool _catalogBusy;
+    private string _playlistName = string.Empty;
+    private string _playlistStatus = "Плейлисты хранятся локально в SQLite.";
+    private MusicPlaylistInfo? _selectedPlaylist;
 
     public MusicViewModel(
         MusicService service,
@@ -31,7 +37,9 @@ public sealed class MusicViewModel : ObservableObject
         Action<string> openFolder,
         Action persist,
         MusicCatalogService catalog,
-        Action<string> navigate)
+        MusicPlaylistService playlists,
+        Action<string> navigate,
+        Func<string, string, Task<bool>> confirm)
     {
         Service = service;
         _log = log;
@@ -40,7 +48,9 @@ public sealed class MusicViewModel : ObservableObject
         _openFolder = openFolder;
         _persist = persist;
         _catalog = catalog;
+        _playlists = playlists;
         _navigate = navigate;
+        _confirm = confirm;
 
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
         _debounce.Tick += (_, _) =>
@@ -174,6 +184,108 @@ public sealed class MusicViewModel : ObservableObject
 
     public ObservableCollection<MusicCategory> Categories => Service.Categories;
     public ObservableCollection<MusicTrack> Queue => Service.Queue;
+    public ObservableCollection<MusicPlaylistInfo> Playlists { get; } = new();
+
+    public string PlaylistName { get => _playlistName; set => Set(ref _playlistName, value ?? string.Empty); }
+    public string PlaylistStatus { get => _playlistStatus; private set => Set(ref _playlistStatus, value); }
+    public MusicPlaylistInfo? SelectedPlaylist
+    {
+        get => _selectedPlaylist;
+        private set
+        {
+            if (Set(ref _selectedPlaylist, value))
+                Raise(nameof(HasSelectedPlaylist), nameof(CanDeleteSelectedPlaylist), nameof(SelectedPlaylistTitle), nameof(CurrentCollectionTitle));
+        }
+    }
+    public bool HasSelectedPlaylist => SelectedPlaylist is not null;
+    public bool CanDeleteSelectedPlaylist => SelectedPlaylist is { Id: > 0 };
+    public string SelectedPlaylistTitle => SelectedPlaylist?.Name ?? "Категория";
+    public string CurrentCollectionTitle => SelectedPlaylist?.Name ?? SelectedCategory;
+
+    public ICommand CreatePlaylistCommand => new RelayCommand(async () =>
+    {
+        try
+        {
+            var id = await _playlists.CreateAsync(PlaylistName).ConfigureAwait(true);
+            var name = PlaylistName.Trim();
+            PlaylistName = string.Empty;
+            _selectedPlaylistPaths.Clear();
+            await ReloadPlaylistsAsync(id).ConfigureAwait(true);
+            PlaylistStatus = $"Создан плейлист «{name}».";
+        }
+        catch (Exception ex) { PlaylistStatus = ex.Message; }
+    });
+
+    public ICommand SelectPlaylistCommand => new RelayCommand(async parameter =>
+    {
+        if (parameter is not MusicPlaylistInfo playlist) return;
+        SelectedPlaylist = playlist;
+        _selectedPlaylistPaths.Clear();
+        var paths = playlist.Id == 0
+            ? await _playlists.LoadFavoritePathsAsync().ConfigureAwait(true)
+            : await _playlists.LoadPathsAsync(playlist.Id).ConfigureAwait(true);
+        foreach (var path in paths) _selectedPlaylistPaths.Add(path);
+        RebuildVisible();
+        PlaylistStatus = $"«{playlist.Name}»: {Visible.Count} доступных треков.";
+    });
+
+    public ICommand DeletePlaylistCommand => new RelayCommand(async () =>
+    {
+        var playlist = SelectedPlaylist;
+        if (playlist is null || playlist.Id <= 0) return;
+        if (!await _confirm("Удалить плейлист?", $"Плейлист «{playlist.Name}» будет удалён. Аудиофайлы останутся на диске.").ConfigureAwait(true)) return;
+        await _playlists.DeleteAsync(playlist.Id).ConfigureAwait(true);
+        SelectedPlaylist = null;
+        _selectedPlaylistPaths.Clear();
+        await ReloadPlaylistsAsync().ConfigureAwait(true);
+        RebuildVisible();
+        PlaylistStatus = "Плейлист удалён; файлы не изменялись.";
+    });
+
+    public ICommand AddToPlaylistCommand => new RelayCommand(async parameter =>
+    {
+        if (parameter is not MusicTrack track) return;
+        if (SelectedPlaylist is null) { PlaylistStatus = "Сначала выберите или создайте плейлист."; return; }
+        if (SelectedPlaylist.Id == 0)
+        {
+            if (!track.IsFavorite) track.IsFavorite = await _playlists.ToggleFavoriteAsync(track).ConfigureAwait(true);
+            _selectedPlaylistPaths.Add(track.FilePath);
+            await ReloadPlaylistsAsync(0).ConfigureAwait(true);
+            PlaylistStatus = "Добавлено в Избранное.";
+            return;
+        }
+        await _playlists.AddTrackAsync(SelectedPlaylist.Id, track).ConfigureAwait(true);
+        _selectedPlaylistPaths.Add(track.FilePath);
+        await ReloadPlaylistsAsync(SelectedPlaylist.Id).ConfigureAwait(true);
+        PlaylistStatus = $"«{track.Title}» добавлен в плейлист.";
+    });
+
+    public ICommand ToggleFavoriteCommand => new RelayCommand(async parameter =>
+    {
+        if (parameter is not MusicTrack track) return;
+        track.IsFavorite = await _playlists.ToggleFavoriteAsync(track).ConfigureAwait(true);
+        await ReloadPlaylistsAsync(SelectedPlaylist?.Id).ConfigureAwait(true);
+        if (SelectedPlaylist?.Id == 0)
+        {
+            if (track.IsFavorite) _selectedPlaylistPaths.Add(track.FilePath); else _selectedPlaylistPaths.Remove(track.FilePath);
+            RebuildVisible();
+        }
+        PlaylistStatus = track.IsFavorite ? "Добавлено в Избранное." : "Удалено из Избранного.";
+    });
+
+    public ICommand RemoveFromPlaylistCommand => new RelayCommand(async parameter =>
+    {
+        if (parameter is not MusicTrack track || SelectedPlaylist is null) return;
+        if (SelectedPlaylist.Id == 0)
+        {
+            if (track.IsFavorite) track.IsFavorite = await _playlists.ToggleFavoriteAsync(track).ConfigureAwait(true);
+        }
+        else await _playlists.RemoveTrackAsync(SelectedPlaylist.Id, track).ConfigureAwait(true);
+        _selectedPlaylistPaths.Remove(track.FilePath);
+        await ReloadPlaylistsAsync(SelectedPlaylist.Id).ConfigureAwait(true);
+        RebuildVisible();
+        PlaylistStatus = "Трек убран из текущего списка; файл не удалён.";
+    });
 
     public string Folder
     {
@@ -208,6 +320,7 @@ public sealed class MusicViewModel : ObservableObject
         set
         {
             if (!Set(ref _selectedCategory, string.IsNullOrWhiteSpace(value) ? MusicService.AllTracksCategory : value)) return;
+            Raise(nameof(CurrentCollectionTitle));
             RebuildVisible();
         }
     }
@@ -279,6 +392,8 @@ public sealed class MusicViewModel : ObservableObject
     public ICommand PlayCategoryCommand => new RelayCommand(p =>
     {
         if (p is not string category) return;
+        SelectedPlaylist = null;
+        _selectedPlaylistPaths.Clear();
         SelectedCategory = category;
         Service.PlayCategory(category);
     });
@@ -313,6 +428,8 @@ public sealed class MusicViewModel : ObservableObject
         _settings.MusicFolder = folder;
         _persist();
         await Service.LoadAsync(folder).ConfigureAwait(true);
+        await ApplyFavoriteFlagsAsync().ConfigureAwait(true);
+        await ReloadPlaylistsAsync(SelectedPlaylist?.Id).ConfigureAwait(true);
         RebuildVisible();
         Raise(nameof(Service), nameof(LibrarySummary), nameof(HasFolder), nameof(FolderText));
         _log.Info($"music folder set: {folder}");
@@ -326,6 +443,8 @@ public sealed class MusicViewModel : ObservableObject
     public ICommand RefreshCommand => new RelayCommand(async () =>
     {
         await Service.LoadAsync(Folder).ConfigureAwait(true);
+        await ApplyFavoriteFlagsAsync().ConfigureAwait(true);
+        await ReloadPlaylistsAsync(SelectedPlaylist?.Id).ConfigureAwait(true);
         RebuildVisible();
         Raise(nameof(LibrarySummary));
     });
@@ -334,23 +453,40 @@ public sealed class MusicViewModel : ObservableObject
     public async Task EnsureLoadedAsync()
     {
         Service.Volume = _settings.MusicVolume;
-        if (Service.Tracks.Count > 0)
-        {
-            RebuildVisible();
-            return;
-        }
-
-        await Service.LoadAsync(_settings.MusicFolder).ConfigureAwait(true);
+        if (Service.Tracks.Count == 0 || (!Service.HasLocalTracks && !string.IsNullOrWhiteSpace(_settings.MusicFolder)))
+            await Service.LoadAsync(_settings.MusicFolder).ConfigureAwait(true);
+        await ApplyFavoriteFlagsAsync().ConfigureAwait(true);
+        await ReloadPlaylistsAsync(SelectedPlaylist?.Id).ConfigureAwait(true);
         RebuildVisible();
         Raise(nameof(LibrarySummary), nameof(Folder), nameof(HasFolder), nameof(FolderText));
+    }
+
+    private async Task ApplyFavoriteFlagsAsync()
+    {
+        var favorites = await _playlists.LoadFavoritePathsAsync().ConfigureAwait(true);
+        foreach (var track in Service.Tracks) track.IsFavorite = favorites.Contains(track.FilePath);
+    }
+
+    private async Task ReloadPlaylistsAsync(long? keepSelectedId = null)
+    {
+        var favorites = await _playlists.LoadFavoritePathsAsync().ConfigureAwait(true);
+        var loaded = await _playlists.LoadAsync().ConfigureAwait(true);
+        Playlists.Clear();
+        Playlists.Add(new MusicPlaylistInfo(0, "Избранное", favorites.Count));
+        foreach (var playlist in loaded) Playlists.Add(playlist);
+        if (keepSelectedId is not null)
+            SelectedPlaylist = Playlists.FirstOrDefault(item => item.Id == keepSelectedId.Value);
+        Raise(nameof(Playlists), nameof(HasSelectedPlaylist), nameof(CanDeleteSelectedPlaylist), nameof(SelectedPlaylistTitle));
     }
 
     private void RebuildVisible()
     {
         var query = Filter.Trim();
-        var tracks = SelectedCategory == MusicService.AllTracksCategory
-            ? Service.Tracks.AsEnumerable()
-            : Service.Tracks.Where(t => t.Category == SelectedCategory);
+        var tracks = SelectedPlaylist is not null
+            ? Service.Tracks.Where(track => _selectedPlaylistPaths.Contains(track.FilePath))
+            : SelectedCategory == MusicService.AllTracksCategory
+                ? Service.Tracks.AsEnumerable()
+                : Service.Tracks.Where(t => t.Category == SelectedCategory);
 
         if (query.Length > 0)
         {

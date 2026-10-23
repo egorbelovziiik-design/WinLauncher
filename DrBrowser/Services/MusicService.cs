@@ -8,6 +8,7 @@ namespace DrBrowser;
 /// <summary>One audio file found in the local music library.</summary>
 public sealed class MusicTrack : ObservableObject
 {
+    private bool _isFavorite;
     public string FilePath { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string Artist { get; init; } = string.Empty;
@@ -23,6 +24,12 @@ public sealed class MusicTrack : ObservableObject
         ? $"Прямой эфир · {Category}"
         : string.IsNullOrWhiteSpace(Artist) ? Category : $"{Artist} · {Category}";
     public string Initial => Title.Length > 0 ? Title[..1].ToUpperInvariant() : "♪";
+    public bool IsFavorite
+    {
+        get => _isFavorite;
+        set { if (Set(ref _isFavorite, value)) Raise(nameof(FavoriteGlyph)); }
+    }
+    public string FavoriteGlyph => IsFavorite ? "♥" : "♡";
 }
 
 /// <summary>Category (a sub-folder of the library) with its track count.</summary>
