@@ -418,6 +418,7 @@ public static class SelfTest
         {
             log.Info("=== smoke: start ===");
             Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            ArmWatchdog(150, "smoke-report.txt");
             Trace("smoke: start");
             window = App.Current.OpenWindow(true);
             Trace("smoke: window created");
@@ -441,8 +442,10 @@ public static class SelfTest
             await Run("smoke-webview", "WebView2 инициализируется и исполняет страницу", async () =>
             {
                 if (vm.RuntimeMissing) return "SKIP: Microsoft Edge WebView2 Runtime не установлен на этой машине";
+                Trace("smoke-webview: navigating");
                 vm.NavigateActiveTab("https://example.com");
                 for (var i = 0; i < 60 && vm.ActiveTab?.Core is null; i++) await Delay(250);
+                Trace("smoke-webview: core " + (vm.ActiveTab?.Core is null ? "null" : "ready"));
                 var core = vm.ActiveTab?.Core;
                 if (core is null) throw new Exception("WebView2 не создан за 15 секунд");
 
@@ -458,7 +461,7 @@ public static class SelfTest
                     await Delay(300);
                     try
                     {
-                        var raw = await core.ExecuteScriptAsync("document.title");
+                        var raw = await WithTimeout(core.ExecuteScriptAsync("document.title"), 5000, "ExecuteScriptAsync");
                         title = raw?.Trim('"');
                         if (title == "DrBrowser Smoke Test") break;
                     }
@@ -620,6 +623,41 @@ public static class SelfTest
     private static Task Run(string id, string name, Func<string> body) => Run(id, name, () => Task.FromResult(body()));
 
     private static async Task Delay(int ms) => await Task.Delay(ms);
+
+    /// <summary>Runs <paramref name="task"/> with a hard timeout so a hung WebView2 cannot freeze the whole run.</summary>
+    private static async Task<T> WithTimeout<T>(Task<T> task, int milliseconds, string what)
+    {
+        var finished = await Task.WhenAny(task, Task.Delay(milliseconds)).ConfigureAwait(true);
+        if (!ReferenceEquals(finished, task))
+            throw new TimeoutException($"{what}: нет ответа за {milliseconds} мс");
+        return await task.ConfigureAwait(true);
+    }
+
+    /// <summary>Kills the process if a test run hangs, after writing whatever results exist.</summary>
+    private static void ArmWatchdog(int seconds, string reportFile)
+    {
+        var thread = new Thread(() =>
+        {
+            Thread.Sleep(seconds * 1000);
+            Trace($"watchdog: превышено {seconds} с, аварийное завершение");
+            Results.Add(new Check("watchdog", "Общий таймаут прогона", "FAIL", $"прогон не завершился за {seconds} с"));
+            try
+            {
+                Finish("DrBrowser smoke", reportFile);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            Environment.Exit(3);
+        })
+        {
+            IsBackground = true,
+            Name = "drbrowser-watchdog"
+        };
+        thread.Start();
+    }
 
     /// <summary>Appends a line to smoke-trace.txt so a crash before the report is still diagnosable.</summary>
     private static void Trace(string line)

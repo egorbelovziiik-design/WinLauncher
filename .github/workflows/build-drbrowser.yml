@@ -88,6 +88,7 @@ jobs:
         continue-on-error: true
         run: |
           $env:DRBROWSER_SHOTS = "${{ github.workspace }}\DrBrowser\screenshots"
+          $env:DRBROWSER_BROWSER_ARGS = "--disable-gpu --disable-gpu-compositing --disable-software-rasterizer --no-first-run"
           & "DrBrowser\dist\DrBrowser.exe" --smoke
           $code = $LASTEXITCODE
           "smoke exit code: $code"

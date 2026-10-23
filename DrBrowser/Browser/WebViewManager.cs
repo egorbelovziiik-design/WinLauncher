@@ -73,7 +73,11 @@ public sealed class WebViewManager : IDisposable
         try
         {
             Directory.CreateDirectory(_userDataFolder);
-            var options = new CoreWebView2EnvironmentOptions("--disable-features=msSmartScreenProtection");
+            var extraArgs = Environment.GetEnvironmentVariable("DRBROWSER_BROWSER_ARGS");
+            var options = new CoreWebView2EnvironmentOptions(
+                string.IsNullOrWhiteSpace(extraArgs)
+                    ? "--disable-features=msSmartScreenProtection"
+                    : "--disable-features=msSmartScreenProtection " + extraArgs);
             _environment = await CoreWebView2Environment.CreateAsync(null, _userDataFolder, options);
             _log.Info($"WebView2 runtime {RuntimeVersion}, profile {_userDataFolder}");
             return true;
