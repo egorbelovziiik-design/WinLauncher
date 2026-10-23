@@ -489,11 +489,12 @@ public static class SelfTest
                 if (vm.Tabs.Count != initial + 1) throw new Exception("новая вкладка не появилась");
                 vm.CreateWebTab("https://example.org");
                 await Delay(300);
+                if (vm.Tabs.Count != initial + 2) throw new Exception("веб-вкладка не появилась");
                 vm.SelectTab(tab);
                 if (!ReferenceEquals(vm.ActiveTab, tab)) throw new Exception("переключение вкладки не сработало");
                 vm.CloseTab(tab);
                 await Delay(200);
-                if (vm.Tabs.Count != initial) throw new Exception("закрытие вкладки не сработало");
+                if (vm.Tabs.Count != initial + 1) throw new Exception("закрытие вкладки не сработало");
                 var afterClose = vm.Tabs.Count;
                 vm.ReopenClosedTab();
                 await Delay(300);
