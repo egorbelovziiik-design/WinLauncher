@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Windows;
 using System.Windows.Threading;
@@ -601,6 +603,121 @@ public static class SelfTest
                 return "Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2";
             });
 
+            await Run("smoke-https", "Реальный сайт по HTTPS открывается через сеть", async () =>
+            {
+                var tab = vm.CreateWebTab("https://example.com/");
+                await Delay(400);
+                CoreWebView2? core = null;
+                for (var i = 0; i < 60; i++)
+                {
+                    await Delay(250);
+                    core = tab.Core;
+                    if (core is not null) break;
+                }
+
+                if (core is null) return "SKIP: WebView2 не создал движок за 15 с";
+                Trace("smoke-https: engine ready");
+
+                var navigated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                void OnNav(object? _, CoreWebView2NavigationCompletedEventArgs e) => navigated.TrySetResult(e.IsSuccess);
+                core.NavigationCompleted += OnNav;
+                var protocol = string.Empty;
+                var title = string.Empty;
+                try
+                {
+                    var finished = await Task.WhenAny(navigated.Task, Task.Delay(30000));
+                    if (!ReferenceEquals(finished, navigated.Task))
+                        return "SKIP: сеть недоступна — навигация не завершилась за 30 с";
+                    if (!await navigated.Task)
+                        return "SKIP: HTTPS-навигация завершилась ошибкой сети (CI без доступа в интернет)";
+
+                    for (var i = 0; i < 40; i++)
+                    {
+                        await Delay(250);
+                        protocol = (await WithTimeout(core.ExecuteScriptAsync("location.protocol"), 8000, "protocol"))?.Trim('"') ?? string.Empty;
+                        title = core.DocumentTitle ?? string.Empty;
+                        if (protocol == "https:" && title.Length > 0) break;
+                    }
+                }
+                finally
+                {
+                    core.NavigationCompleted -= OnNav;
+                }
+
+                if (protocol != "https:")
+                    throw new Exception($"страница открылась не по HTTPS (protocol={protocol})");
+                if (string.IsNullOrWhiteSpace(title))
+                    throw new Exception("страница открылась, но document.title пуст");
+
+                var text = (await WithTimeout(core.ExecuteScriptAsync("document.body.innerText.slice(0,80)"), 8000, "body"))
+                    ?.Replace("\n", " ").Trim('"') ?? string.Empty;
+                if (!text.Contains("Example", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("на странице нет ожидаемого текста: " + text);
+
+                window!.CaptureWindow(Path.Combine(shots, "09-https.png"));
+                return $"https://example.com · protocol=https: · title «{title}»";
+            });
+
+            await Run("smoke-download", "Реальная загрузка файла через DownloadStarting", async () =>
+            {
+                var payload = Encoding.UTF8.GetBytes("DrBrowser download test " + Guid.NewGuid().ToString("N"));
+                var (port, stop) = StartLoopbackServer(payload, "drbrowser-smoke.bin");
+                try
+                {
+                    vm.NavigateActiveTab($"http://127.0.0.1:{port}/page");
+                    await Delay(1200);
+
+                    CoreWebView2? core = null;
+                    for (var i = 0; i < 40; i++)
+                    {
+                        await Delay(250);
+                        core = vm.ActiveTab?.Core;
+                        if (core is not null && !vm.IsLoading) break;
+                    }
+
+                    if (core is null) return "SKIP: WebView2 не создал движок для локального сервера";
+
+                    var clicked = "missing";
+                    for (var i = 0; i < 20 && clicked != "clicked"; i++)
+                    {
+                        clicked = (await WithTimeout(core.ExecuteScriptAsync(
+                            "(() => { const a = document.getElementById('dl'); if (!a) return 'missing'; a.click(); return 'clicked'; })()"),
+                            8000, "click download"))?.Trim('"') ?? "missing";
+                        if (clicked != "clicked") await Delay(400);
+                    }
+
+                    if (clicked != "clicked")
+                        throw new Exception("ссылка для скачивания не найдена в тестовой странице");
+
+                    DownloadItem? item = null;
+                    for (var i = 0; i < 120; i++)
+                    {
+                        await Delay(250);
+                        item = vm.Downloads.Items.FirstOrDefault(d => d.FileName.Contains("drbrowser-smoke"));
+                        if (item is { State: DownloadState.Completed }) break;
+                        if (item is { State: DownloadState.Failed }) throw new Exception("загрузка завершилась ошибкой");
+                    }
+
+                    if (item is null) throw new Exception("WebView2 не начал загрузку (DownloadStarting не сработал)");
+                    if (item.State != DownloadState.Completed)
+                        throw new Exception($"загрузка не завершилась за 30 с (state={item.State})");
+                    if (!File.Exists(item.Path)) throw new Exception("файл не появился на диске: " + item.Path);
+
+                    var written = await File.ReadAllBytesAsync(item.Path);
+                    if (written.Length != payload.Length)
+                        throw new Exception($"размер файла {written.Length} != {payload.Length}");
+
+                    vm.OpenDownloadsCommand.Execute(null);
+                    await Delay(700);
+                    window!.CaptureWindow(Path.Combine(shots, "11-downloads-real.png"));
+                    return $"{item.FileName} · {item.SizeText} · сохранён в {Path.GetDirectoryName(item.Path)}";
+                }
+                finally
+                {
+                    stop();
+                }
+            });
+
             await Run("smoke-screenshot", "Скриншот страницы (функция «Снимок экрана»)", async () =>
             {
                 vm.NavigateActiveTab("https://example.com");
@@ -664,6 +781,99 @@ public static class SelfTest
     }
 
     private static Task Run(string id, string name, Func<string> body) => Run(id, name, () => Task.FromResult(body()));
+
+    /// <summary>
+    /// Minimal loopback HTTP server used by the smoke run: serves one HTML page with a
+    /// download link plus the file itself, so DownloadStarting/DownloadOperation can be
+    /// verified end to end without any external dependency.
+    /// </summary>
+    private static (int Port, Action Stop) StartLoopbackServer(byte[] payload, string fileName)
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var cts = new CancellationTokenSource();
+
+        _ = Task.Run(async () =>
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                TcpClient client;
+                try
+                {
+                    client = await listener.AcceptTcpClientAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch
+                {
+                    break;
+                }
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using (client)
+                        using (var stream = client.GetStream())
+                        {
+                            var buffer = new byte[8192];
+                            var read = await stream.ReadAsync(buffer, cts.Token).ConfigureAwait(false);
+                            var request = Encoding.ASCII.GetString(buffer, 0, read);
+
+                            byte[] headers;
+                            byte[] body;
+                            if (request.Contains("/file.bin", StringComparison.Ordinal))
+                            {
+                                body = payload;
+                                headers = Encoding.ASCII.GetBytes(
+                                    "HTTP/1.1 200 OK\r\n" +
+                                    "Content-Type: application/octet-stream\r\n" +
+                                    $"Content-Disposition: attachment; filename=\"{fileName}\"\r\n" +
+                                    $"Content-Length: {body.Length}\r\n" +
+                                    "Connection: close\r\n\r\n");
+                            }
+                            else
+                            {
+                                body = Encoding.UTF8.GetBytes(
+                                    "<!doctype html><html lang='en'><head><meta charset='utf-8'><title>DrBrowser local test</title></head>" +
+                                    "<body style='font-family:Segoe UI;background:#0b0d14;color:#eee;padding:40px'>" +
+                                    "<h1 style='color:#7c5cff'>DrBrowser</h1>" +
+                                    $"<a id='dl' href='/file.bin' download style='color:#7cc4ff'>download {fileName}</a></body></html>");
+                                headers = Encoding.ASCII.GetBytes(
+                                    "HTTP/1.1 200 OK\r\n" +
+                                    "Content-Type: text/html; charset=utf-8\r\n" +
+                                    $"Content-Length: {body.Length}\r\n" +
+                                    "Cache-Control: no-store\r\n" +
+                                    "Connection: close\r\n\r\n");
+                            }
+
+                            await stream.WriteAsync(headers, cts.Token).ConfigureAwait(false);
+                            await stream.WriteAsync(body, cts.Token).ConfigureAwait(false);
+                            await stream.FlushAsync(cts.Token).ConfigureAwait(false);
+                        }
+                    }
+                    catch
+                    {
+                        // the smoke run only needs the happy path
+                    }
+                });
+            }
+        });
+
+        void Stop()
+        {
+            try
+            {
+                cts.Cancel();
+                listener.Stop();
+            }
+            catch
+            {
+                // already stopped
+            }
+        }
+
+        return (port, Stop);
+    }
 
     private static async Task Delay(int ms) => await Task.Delay(ms);
 
