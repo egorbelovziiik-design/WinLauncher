@@ -147,10 +147,6 @@
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
-        <Storyboard x:Key="SpinStoryboard" RepeatBehavior="Forever">
-            <DoubleAnimation Storyboard.TargetName="ConnectSpin" Storyboard.TargetProperty="Angle"
-                             From="0" To="360" Duration="0:0:1.1" />
-        </Storyboard>
     </Window.Resources>
 
     <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
@@ -261,7 +257,7 @@
                                       Stroke="{DynamicResource AccentBrush}" StrokeThickness="2.4"
                                       StrokeStartLineCap="Round" StrokeEndLineCap="Round">
                                     <Path.RenderTransform>
-                                        <RotateTransform x:Name="ConnectSpin" CenterX="15" CenterY="15" />
+                                        <RotateTransform CenterX="15" CenterY="15" />
                                     </Path.RenderTransform>
                                     <Path.Style>
                                         <Style TargetType="Path">
@@ -272,8 +268,7 @@
                                                     <DataTrigger.EnterActions>
                                                         <BeginStoryboard x:Name="SpinStart">
                                                             <Storyboard RepeatBehavior="Forever">
-                                                                <DoubleAnimation Storyboard.TargetName="ConnectSpin"
-                                                                                 Storyboard.TargetProperty="Angle"
+                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                                                                  From="0" To="360" Duration="0:0:1.1" />
                                                             </Storyboard>
                                                         </BeginStoryboard>
