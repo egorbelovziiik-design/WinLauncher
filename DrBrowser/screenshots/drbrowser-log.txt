@@ -1,30 +1,30 @@
-﻿20:00:44.172 INFO  === DrBrowser 1.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-20:00:44.194 INFO  === selftest: start ===
-20:00:44.196 INFO  selftest marker 871eb1efee8d44a5addbbfade02f458d
-20:00:44.462 INFO  DrSearch: "dotnet" → 2 local results
-20:00:44.462 INFO  DrSearch: "drbrowser" → 1 local results
-20:00:44.463 INFO  DrSearch: "example.com" → 1 local results
-20:00:44.475 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
-20:00:44.476 INFO  DrSearch: "dotnet" → 2 local results
-20:00:44.613 INFO  Правил: 107 · доменов: 88 · исключений: 0
-20:00:44.679 ERROR selftest intentional exception :: InvalidOperationException: expected
-20:00:45.705 INFO  exit code 0
-20:00:46.799 INFO  === DrBrowser 1.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-20:00:46.819 INFO  === smoke: start ===
-20:00:46.952 INFO  MainViewModel created (private=True)
-20:00:50.784 INFO  Правил: 107 · доменов: 88 · исключений: 0
-20:00:54.945 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\8c83820073a9450fb0a9bfdc6a248f91
-20:00:54.965 INFO  Initialisation complete
-20:01:01.349 INFO  WebView2 configured for tab 99ca1b
-20:01:01.351 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:01:02.481 WARN  navigation failed: about:blank :: ConnectionAborted
-20:01:03.531 INFO  WebView2 configured for tab db9bc8
-20:01:03.532 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:01:04.829 INFO  WebView2 configured for tab ce97f0
-20:01:04.830 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:01:16.231 INFO  WebView2 configured for tab f5ee2a
-20:01:16.232 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:01:18.663 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
-20:01:20.043 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-200119.png
-20:01:21.516 INFO  shutdown complete
-20:01:22.021 INFO  exit code 0
+﻿20:07:08.903 INFO  === DrBrowser 1.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+20:07:08.931 INFO  === selftest: start ===
+20:07:08.932 INFO  selftest marker c1e746e86614442db3b517d8da6754c0
+20:07:09.442 INFO  DrSearch: "dotnet" → 2 local results
+20:07:09.443 INFO  DrSearch: "drbrowser" → 1 local results
+20:07:09.443 INFO  DrSearch: "example.com" → 1 local results
+20:07:09.453 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
+20:07:09.453 INFO  DrSearch: "dotnet" → 2 local results
+20:07:09.858 INFO  Правил: 107 · доменов: 88 · исключений: 0
+20:07:10.011 ERROR selftest intentional exception :: InvalidOperationException: expected
+20:07:11.032 INFO  exit code 0
+20:07:12.126 INFO  === DrBrowser 1.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+20:07:12.140 INFO  === smoke: start ===
+20:07:12.233 INFO  MainViewModel created (private=True)
+20:07:17.843 INFO  Правил: 107 · доменов: 88 · исключений: 0
+20:07:20.686 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\3ab445317625405da304595aa3515124
+20:07:20.700 INFO  Initialisation complete
+20:07:26.579 INFO  WebView2 configured for tab f58e73
+20:07:26.582 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:07:27.097 WARN  navigation failed: about:blank :: ConnectionAborted
+20:07:28.145 INFO  WebView2 configured for tab e44916
+20:07:28.146 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:07:29.443 INFO  WebView2 configured for tab 9091ba
+20:07:29.443 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:07:41.600 INFO  WebView2 configured for tab 2c00c8
+20:07:41.601 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:07:44.051 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
+20:07:45.338 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-200745.png
+20:07:46.856 INFO  shutdown complete
+20:07:47.302 INFO  exit code 0
