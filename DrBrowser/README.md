@@ -191,6 +191,16 @@ DrBrowser не содержит собственный движок — он и�
 Оба режима пишут `selftest-report.txt` и PNG-скриншоты в `%AppData%\DrBrowser\selftest`
 (или в каталог из переменной `DRBROWSER_SHOTS`) и возвращают код 0 при успехе.
 
+### Результаты последнего прогона (CI, windows-latest, реальный запуск EXE)
+
+| Прогон | Итог | Что именно проверено |
+|---|---|---|
+| `--selftest` | **17 passed, 0 failed, 0 skipped** | JSON-настройки и их ограничения, SQLite (история, закладки, пароли, загрузки, быстрые ссылки, разрешения), DPAPI-шифрование паролей, AdBlock (108 правил, whitelist, свои фильтры), генератор паролей, AI без ключа, сессии, временный профиль инкогнито, определение WebView2 Runtime, запись ошибок в журнал |
+| `--smoke` | **9 passed, 0 failed, 0 skipped** | живое окно, движок WebView2 (Chromium), 6 внутренних страниц со скриншотами, создание/переключение/закрытие/восстановление вкладок, масштаб, Ctrl+F, AI-панель, закладка add/delete, горячие клавиши (в т. ч. через мост `AcceleratorKeyPressed`), **реальный HTTPS-сайт из сети** (`https://example.com` → `protocol=https:`, title «Example Domain»), **реальная загрузка файла** через `DownloadStarting` + `DownloadOperation` (файл на диске, размер совпал), скриншот страницы |
+
+Отчёты лежат в репозитории: [screenshots/selftest-report.txt](screenshots/selftest-report.txt),
+[screenshots/smoke-report.txt](screenshots/smoke-report.txt).
+
 ---
 
 ## 6. Известные ограничения
