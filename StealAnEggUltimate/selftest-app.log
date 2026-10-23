@@ -1,0 +1,30 @@
+﻿12:54:35  INFO   Application start · v1.0.0 · Microsoft Windows NT 10.0.26100.0 · args: --selftest
+12:54:35  INFO   Config loaded from C:\Users\runneradmin\AppData\Roaming\StealAnEggUltimate\config\settings.json
+12:54:35  ERROR  Config load failed, falling back to defaults. :: JsonException: 't' is an invalid start of a property name. Expected a '"'. Path: $ | LineNumber: 0 | BytePositionInLine: 2.
+12:54:35  WARN   Corrupted config backed up to C:\Users\runneradmin\AppData\Roaming\StealAnEggUltimate\config\settings.corrupt-20261023-125435.json
+12:54:35  WARN   Command syntax error: this is not a call
+12:54:35  INFO   Demo egg world rebuilt (startup).
+12:54:35  INFO   Demo collected Speckled Egg (COMMON) worth 25 coins; respawns in 11s.
+12:54:35  INFO   Sold collected eggs for 25 coins (balance 25).
+12:54:35  DEBUG  Tracking egg Amethyst Egg (EPIC, 933 coins, 22 studs).
+12:54:35  INFO   Demo egg world rebuilt (startup).
+12:54:35  INFO   Egg source switched to SNAPSHOT (6 eggs).
+12:54:35  INFO   Bridge stopped.
+12:54:35  INFO   Bridge listening on http://127.0.0.1:18987 (loopback only).
+12:54:35  INFO   Command queued for official place: teleport #1.
+12:54:35  INFO   Snapshot received from 127.0.0.1:50634: 6 eggs, player 'SnapshotTester'.
+12:54:35  INFO   Bridge event: log
+12:54:35  INFO   Bridge stopped.
+12:54:35  INFO   Demo egg world rebuilt (startup).
+12:54:35  INFO   Automation started (demo).
+12:54:35  INFO   Demo collected Speckled Egg (COMMON) worth 25 coins; respawns in 11s.
+12:54:35  INFO   Demo collected Speckled Egg (COMMON) worth 25 coins; respawns in 11s.
+12:54:35  INFO   Automation stopped: self-test.
+12:54:35  INFO   Bridge stopped.
+12:54:35  INFO   Demo egg world rebuilt (startup).
+12:54:35  INFO   Bridge stopped.
+12:54:35  INFO   Global keyboard hook installed (observer only).
+12:54:35  INFO   Global keyboard hook removed.
+12:54:35  INFO   self-test log line
+12:54:35  INFO   Self-test finished: 36 passed, 0 failed, 1 skipped.
+12:54:35  INFO   Self-test exit code: 0
