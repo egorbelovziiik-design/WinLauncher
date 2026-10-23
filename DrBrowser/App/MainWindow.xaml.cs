@@ -451,6 +451,13 @@ public partial class MainWindow : Window, IBrowserShell
                 case Key.D0:
                 case Key.NumPad0: _vm.ResetZoom(); return true;
                 case Key.P: _vm.SavePagePdf(); return true;
+                case Key.M when shift: _vm.OpenInternal("music"); return true;
+                case Key.K: _vm.OpenInternal("search"); return true;
+
+                // DrMusic transport: Ctrl+Alt+Space / Ctrl+Alt+Left / Ctrl+Alt+Right.
+                case Key.Space when alt: _vm.ToggleMusicCommand.Execute(null); return true;
+                case Key.Left when alt: _vm.MusicPreviousCommand.Execute(null); return true;
+                case Key.Right when alt: _vm.MusicNextCommand.Execute(null); return true;
             }
         }
 

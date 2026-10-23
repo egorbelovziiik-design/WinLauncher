@@ -127,7 +127,7 @@ public sealed class MusicService : ObservableObject, IDisposable
     public bool IsStreaming => _current?.IsStream == true;
     public string CurrentTitle => _current?.Title ?? "Ничего не играет";
     public string CurrentSubtitle => _current?.Subtitle ?? "Выберите трек из библиотеки или включите радио";
-    public string NowBadge => _current?.IsStream == true ? "LIVE" : "LOCAL";
+    public string NowBadge => _current is null ? string.Empty : _current.IsStream ? "LIVE" : "LOCAL";
     public bool HasLibrary => Tracks.Count > 0;
 
     /// <summary>True when at least one local audio file is indexed (radio is always there).</summary>

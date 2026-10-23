@@ -441,12 +441,18 @@
                                 </Ellipse>
                             </Grid>
                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBox Style="{StaticResource InputBox}" Height="28" FontSize="13.5" FontWeight="SemiBold"
-                                         Background="Transparent" BorderThickness="0,0,0,1"
-                                         Text="{Binding Settings.ProfileName, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="Имя профиля — сохраняется автоматически" />
+                                <TextBlock Text="ИМЯ ПРОФИЛЯ" FontSize="8" FontWeight="Bold" Opacity="0.7"
+                                           Foreground="White" Margin="1,0,0,3" />
+                                <Border Background="#33000000" CornerRadius="7" BorderThickness="1" BorderBrush="#40FFFFFF">
+                                    <TextBox Height="26" FontSize="13" FontWeight="SemiBold"
+                                             Foreground="White" Background="Transparent" BorderThickness="0"
+                                             Padding="7,3" VerticalContentAlignment="Center"
+                                             CaretBrush="White"
+                                             Text="{Binding Settings.ProfileName, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Имя профиля — сохраняется автоматически" />
+                                </Border>
                                 <TextBlock Text="{Binding ProfileSubtitle}" FontSize="10" Opacity="0.8" Margin="0,4,0,0"
-                                           TextWrapping="Wrap" />
+                                           Foreground="White" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding ProfileStats}" FontSize="9.5" Opacity="0.7" Margin="0,3,0,0" />
                             </StackPanel>
                         </Grid>

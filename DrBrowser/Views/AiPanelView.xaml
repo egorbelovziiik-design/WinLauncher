@@ -41,17 +41,16 @@
                 <ItemsControl ItemsSource="{Binding Personas}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <UniformGrid Columns="4" />
+                            <UniformGrid Columns="2" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Button Style="{StaticResource GhostButton}" FontSize="9.5" Padding="4,6" Margin="0,0,4,0"
                                     ToolTip="{Binding Hint}" Click="Persona_Click" Tag="{Binding Id}">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding Glyph}" FontSize="13" HorizontalAlignment="Center" />
-                                    <TextBlock Text="{Binding Name}" FontSize="8.5" HorizontalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Glyph}" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" FontSize="10" Margin="5,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </DataTemplate>
