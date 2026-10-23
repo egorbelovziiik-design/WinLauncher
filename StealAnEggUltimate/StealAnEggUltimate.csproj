@@ -36,6 +36,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- App.xaml lives in App\, so it must be declared explicitly as the WPF application definition. -->
+    <ApplicationDefinition Include="App\App.xaml" />
+    <Page Remove="App\App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Luau sources and docs ship next to the app (Update = keep the SDK default items). -->
     <None Update="RobloxStudio\TestPlaceModules\**\*.lua"
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
