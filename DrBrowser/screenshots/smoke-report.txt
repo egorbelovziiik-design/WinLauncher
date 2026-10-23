@@ -1,18 +1,18 @@
-﻿DrBrowser smoke · 2026-10-23 18:58:35 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 19:02:14 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (1868 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (1976 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (2948 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3034 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2418 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2427 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов (5710 ms)
+           settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов (5632 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete (687 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete (654 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2229 ms)
-[PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-185833.png (1525 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2203 ms)
+[SKIP] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
+           SKIP: снимок WebView2 недоступен без загруженной веб-страницы (1512 ms)
 ------------------------------------------------------------------------------
-ИТОГО: 7 passed, 0 failed, 0 skipped из 7
+ИТОГО: 6 passed, 0 failed, 1 skipped из 7

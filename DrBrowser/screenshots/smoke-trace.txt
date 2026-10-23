@@ -334,3 +334,37 @@
 18:58:34.619 smoke: view model shutdown
 18:58:35.003 smoke: window closed
 18:58:35.013 smoke: finished, exit 0
+19:01:53.982 data-folders: PASS
+19:01:54.038 settings-json: PASS
+19:01:54.046 url-parser: PASS
+19:01:54.048 search-engines: PASS
+19:01:54.150 sqlite-history: PASS
+19:01:54.174 bookmarks: PASS
+19:01:54.184 passwords-dpapi: PASS
+19:01:54.193 password-generator: PASS
+19:01:54.204 ai-without-key: PASS
+19:01:54.208 adblock: PASS
+19:01:54.212 downloads: PASS
+19:01:54.219 session: PASS
+19:01:54.243 quicklinks-permissions: PASS
+19:01:54.246 incognito-profile: PASS
+19:01:54.270 webview2-runtime: PASS
+19:01:54.270 settings-limits: PASS
+19:01:54.271 error-logging: PASS
+19:01:56.034 smoke: start
+19:01:56.732 smoke: window created
+19:01:56.768 smoke: view model attached
+19:01:58.746 smoke-window: PASS
+19:01:58.747 smoke-webview: navigating
+19:02:00.462 smoke-webview: core ready
+19:02:01.064 smoke-webview: calling NavigateToString
+19:02:01.080 smoke-webview: NavigateToString returned
+19:02:01.781 smoke-webview: PASS
+19:02:04.209 smoke-tabs: PASS
+19:02:09.843 smoke-pages: PASS
+19:02:10.497 smoke-ui: PASS
+19:02:12.701 smoke-hotkeys: PASS
+19:02:14.213 smoke-screenshot: SKIP
+19:02:14.246 smoke: view model shutdown
+19:02:14.625 smoke: window closed
+19:02:14.632 smoke: finished, exit 0
