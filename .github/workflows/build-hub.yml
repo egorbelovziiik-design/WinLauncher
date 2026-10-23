@@ -11,9 +11,14 @@ on:
       - "StealAnEggUltimate/**"
       - ".github/workflows/build-hub.yml"
   workflow_dispatch:
+    inputs:
+      commit_binary:
+        description: "Commit the published EXE into the branch (dist/) after a green build"
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -95,6 +100,62 @@ jobs:
           "Size: {0:N1} MB" -f ($info.Length / 1MB)
           "SHA256: $((Get-FileHash $exe -Algorithm SHA256).Hash)"
           Get-ChildItem "StealAnEggUltimate/dist" | Select-Object Name, Length | Format-Table
+          Write-Host "::notice::EXE size $([math]::Round($info.Length / 1MB, 1)) MB sha256 $((Get-FileHash $exe -Algorithm SHA256).Hash)"
+
+      - name: Self-test (headless functional tests)
+        run: |
+          $exe = (Resolve-Path "StealAnEggUltimate/dist/StealAnEggUltimate.exe").Path
+          $process = Start-Process -FilePath $exe -ArgumentList "--selftest" -PassThru -Wait
+          Write-Host "::notice::self-test exit code $($process.ExitCode)"
+          $report = Join-Path $env:APPDATA "StealAnEggUltimate\selftest-report.txt"
+          if (Test-Path $report) {
+            Get-Content $report | ForEach-Object { Write-Host "::notice::$_" }
+          } else {
+            Write-Host "::error::self-test report missing at $report"
+          }
+          if ($process.ExitCode -ne 0) {
+            Write-Host "::error::Self-test failed with exit code $($process.ExitCode)"
+            exit 1
+          }
+
+      - name: Smoke test (start the UI, auto-close)
+        run: |
+          $exe = (Resolve-Path "StealAnEggUltimate/dist/StealAnEggUltimate.exe").Path
+          $process = Start-Process -FilePath $exe -ArgumentList "--smoke" -PassThru
+          if (-not $process.WaitForExit(90000)) {
+            try { $process.Kill() } catch { }
+            Write-Host "::error::Smoke run timed out"
+            exit 1
+          }
+          Write-Host "::notice::smoke exit code $($process.ExitCode)"
+          $marker = Join-Path $env:APPDATA "StealAnEggUltimate\smoke-result.txt"
+          if (Test-Path $marker) {
+            Get-Content $marker | ForEach-Object { Write-Host "::notice::$_" }
+          } else {
+            Write-Host "::error::smoke marker missing"
+          }
+          $logDir = Join-Path $env:APPDATA "StealAnEggUltimate\logs"
+          if (Test-Path $logDir) {
+            Get-ChildItem $logDir -Filter *.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+              ForEach-Object { Get-Content $_.FullName -Tail 30 | ForEach-Object { Write-Host "::notice::LOG $_" } }
+          }
+          if ($process.ExitCode -ne 0) {
+            Write-Host "::error::Smoke run failed with exit code $($process.ExitCode)"
+            exit 1
+          }
+          if (-not (Test-Path $marker)) {
+            Write-Host "::error::Smoke marker file was not produced"
+            exit 1
+          }
+
+      - name: Commit published EXE to the branch
+        if: github.event_name == 'workflow_dispatch' && inputs.commit_binary
+        run: |
+          git config user.name "hub-build-bot"
+          git config user.email "hub-build-bot@users.noreply.github.com"
+          git add -f StealAnEggUltimate/dist/StealAnEggUltimate.exe
+          git commit -m "build: publish StealAnEggUltimate.exe [skip ci]"
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
 
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
@@ -104,5 +165,6 @@ jobs:
             StealAnEggUltimate/dist/StealAnEggUltimate.exe
             StealAnEggUltimate/dist/RobloxStudio/**
             StealAnEggUltimate/dist/Config/**
+            StealAnEggUltimate/dist/Docs/**
           if-no-files-found: error
           retention-days: 30

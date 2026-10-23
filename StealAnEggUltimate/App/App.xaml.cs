@@ -14,6 +14,8 @@ public partial class App : Application
     private Logger? _log;
     private MainViewModel? _viewModel;
     private MainWindow? _window;
+    private bool _smokeMode;
+    private bool _selfTestMode;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -41,9 +43,19 @@ public partial class App : Application
             return;
         }
 
+        _selfTestMode = e.Args.Any(a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase));
+        _smokeMode = e.Args.Any(a => a.Equals("--smoke", StringComparison.OrdinalIgnoreCase));
+
         AppPaths.EnsureCreated();
         _log = new Logger();
-        _log.Info($"Application start · v{AppInfo.Version} · {Environment.OSVersion}");
+        _log.Info($"Application start · v{AppInfo.Version} · {Environment.OSVersion} · args: {string.Join(' ', e.Args)}");
+
+        if (_selfTestMode)
+        {
+            var exitCode = SelfTest.Run(_log);
+            Shutdown(exitCode);
+            return;
+        }
 
         // --- Global error handling -------------------------------------------------
         DispatcherUnhandledException += OnDispatcherUnhandledException;
@@ -69,10 +81,31 @@ public partial class App : Application
             _viewModel.Start();
 
             _log.Info("Main window shown.");
+
+            if (_smokeMode)
+            {
+                _log.Info("Smoke mode: closing automatically in 6 seconds.");
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    _log.Info("Smoke mode: clean shutdown requested.");
+                    _viewModel.Shutdown();
+                };
+                timer.Start();
+            }
         }
         catch (Exception ex)
         {
             _log.Error("Startup failed.", ex);
+
+            if (_smokeMode || _selfTestMode)
+            {
+                _log.Error("Startup failed in headless mode; exiting with code 2.");
+                Shutdown(2);
+                return;
+            }
+
             MessageBox.Show(
                 $"The hub could not start.\n\n{ex.Message}\n\nA log was written to:\n{AppPaths.LogDir}",
                 AppInfo.ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -116,6 +149,21 @@ public partial class App : Application
         catch
         {
             // never fail while exiting
+        }
+
+        if (_smokeMode)
+        {
+            try
+            {
+                AppPaths.EnsureCreated();
+                File.WriteAllText(
+                    Path.Combine(AppPaths.DataRoot, "smoke-result.txt"),
+                    $"smoke ok · {DateTime.UtcNow:O} · exitCode={e.ApplicationExitCode} · overlay={_viewModel?.IsConnected} · version={AppInfo.Version}");
+            }
+            catch
+            {
+                // diagnostic only
+            }
         }
 
         if (_ownsMutex)
