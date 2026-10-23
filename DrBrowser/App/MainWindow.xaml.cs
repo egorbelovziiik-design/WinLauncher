@@ -542,6 +542,64 @@ public partial class MainWindow : Window, IBrowserShell
     }
 
     /// <summary>Used by the smoke run to render the window to a PNG.</summary>
+    /// <summary>
+    /// Renders the profile flyout itself. A Popup lives in its own top-level window, so
+    /// CaptureWindow cannot see it — this captures the flyout's visual tree directly and
+    /// reports how light it is, which is how the smoke test proves the flyout is themed
+    /// instead of the old white system menu.
+    /// </summary>
+    public bool CaptureProfilePopup(string path, out string stats)
+    {
+        stats = "popup closed";
+        try
+        {
+            if (ProfilePopup?.Child is not FrameworkElement content) return false;
+
+            content.UpdateLayout();
+            var width = (int)Math.Max(1, content.ActualWidth);
+            var height = (int)Math.Max(1, content.ActualHeight);
+            if (width < 40 || height < 40)
+            {
+                stats = $"popup has no layout size ({width}x{height})";
+                return false;
+            }
+
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(content);
+
+            var stride = width * 4;
+            var pixels = new byte[stride * height];
+            bitmap.CopyPixels(pixels, stride, 0);
+
+            double luma = 0;
+            var light = 0;
+            var opaque = 0;
+            for (var i = 0; i < pixels.Length; i += 4)
+            {
+                var alpha = pixels[i + 3];
+                if (alpha > 200) opaque++;
+                var value = pixels[i + 2] * 0.114 + pixels[i + 1] * 0.587 + pixels[i] * 0.299;
+                luma += value * alpha / 255.0;
+                if (alpha > 200 && value > 200) light++;
+            }
+
+            var total = (double)width * height;
+            stats = $"{width}x{height} · luma {luma / total:0.0} · светлых пикселей {(opaque == 0 ? 0 : light * 100.0 / opaque):0.0}%";
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = File.Create(path);
+            encoder.Save(stream);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            stats = ex.Message;
+            return false;
+        }
+    }
+
     public bool CaptureWindow(string path)
     {
         try

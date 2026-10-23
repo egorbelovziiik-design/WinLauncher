@@ -951,7 +951,17 @@ public static class SelfTest
                 vm.ToggleProfileCommand.Execute(null);
                 await Delay(500);
                 if (!vm.IsProfileOpen) throw new Exception("попап профиля не открылся");
-                window!.CaptureWindow(Path.Combine(shots, "12-profile.png"));
+                if (!window!.CaptureProfilePopup(Path.Combine(shots, "12-profile.png"), out var popupStats))
+                    throw new Exception("не удалось отрисовать попап профиля: " + popupStats);
+                if (!popupStats.Contains("luma", StringComparison.Ordinal))
+                    throw new Exception("нет статистики попапа: " + popupStats);
+
+                // The bug the user reported: the flyout rendered white. Require a dark,
+                // opaque, themed surface instead of trusting the flag.
+                var lumaText = popupStats.Split("luma ")[1].Split(' ')[0];
+                var luma = double.Parse(lumaText, System.Globalization.CultureInfo.InvariantCulture);
+                if (luma > 110) throw new Exception($"попап профиля слишком светлый (luma {luma:0.0}) — снова белый?");
+
                 vm.CloseProfileCommand.Execute(null);
                 await Delay(200);
                 if (vm.IsProfileOpen) throw new Exception("попап профиля не закрылся");
