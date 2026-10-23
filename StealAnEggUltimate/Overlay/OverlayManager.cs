@@ -25,37 +25,85 @@ public sealed class OverlayManager : IDisposable
 
     public bool IsMenuOpen => _window?.IsMenuOpen ?? false;
 
+    /// <summary>The live overlay window (diagnostics / smoke captures only).</summary>
+    public OverlayWindow? Window => _window;
+
+    /// <summary>
+    /// True when the overlay is attached to the desktop instead of a Roblox client
+    /// (no client running). Everything is usable, but it is explicitly a preview.
+    /// </summary>
+    public bool IsPreview { get; private set; }
+
     public (double Width, double Height) ViewSize => _window?.ViewSize ?? (1280.0, 720.0);
 
-    public string Summary => _window is null || _target is null
+    public string Summary => _window is null
         ? "Overlay is not attached."
-        : $"Attached · {_target.ResolutionText} · pid {_target.ProcessId} · {(_window.IsMenuOpen ? "menu open" : "menu hidden")}";
+        : IsPreview
+            ? $"Attached to the desktop · PREVIEW · {(_window.IsMenuOpen ? "menu open" : "menu hidden")}"
+            : _target is null
+                ? "Overlay is not attached."
+                : $"Attached · {_target.ResolutionText} · pid {_target.ProcessId} · {(_window.IsMenuOpen ? "menu open" : "menu hidden")}";
 
     public event EventHandler? MenuStateChanged;
 
     public void Attach(RobloxWindowInfo window)
     {
         _target = window;
+        IsPreview = false;
 
-        if (_window is null)
-        {
-            var vm = new OverlayViewModel(_hub);
-            _window = new OverlayWindow(vm, _log) { ShowActivated = false };
-            _window.MenuStateChanged += (_, _) =>
-            {
-                if (!IsMenuOpen) FocusGame();
-                MenuStateChanged?.Invoke(this, EventArgs.Empty);
-            };
+        var created = EnsureWindow();
+        _window!.Width = Math.Max(320, window.ClientRect.Width / Math.Max(1, window.Scale));
+        _window.Height = Math.Max(240, window.ClientRect.Height / Math.Max(1, window.Scale));
 
-            _window.Width = Math.Max(320, window.ClientRect.Width / Math.Max(1, window.Scale));
-            _window.Height = Math.Max(240, window.ClientRect.Height / Math.Max(1, window.Scale));
-        }
+        if (created) _window.Show();
+        else if (!_window.IsVisible) _window.Show();
 
-        _window.Show();
         _window.SetOverlayVisible(true);
         ApplySettings();
         PositionWindow(window, force: true);
         _log.Info($"Overlay attached to hwnd {window.HandleText} ({window.ResolutionText}).");
+    }
+
+    /// <summary>
+    /// Attaches the very same overlay to the primary monitor when no Roblox client is
+    /// running, so the menu, the demo ESP, dragging and every hotkey can be used and
+    /// verified without the game. All data is demo/snapshot data — nothing is sent to
+    /// any game process.
+    /// </summary>
+    public void AttachPreview()
+    {
+        IsPreview = true;
+        _target = null;
+
+        var area = Win32.GetMonitorWorkArea(IntPtr.Zero);
+        if (area.Width < 320 || area.Height < 240)
+            area = new RECT { Left = 0, Top = 0, Right = 1280, Bottom = 720 };
+
+        var created = EnsureWindow();
+        _window!.Width = area.Width;
+        _window.Height = area.Height;
+
+        if (created || !_window.IsVisible) _window.Show();
+        _window.SetOverlayVisible(true);
+        ApplySettings();
+        PositionRect(area, force: true);
+        _log.Info($"Overlay attached to the desktop in PREVIEW mode ({area.Width}x{area.Height}).");
+    }
+
+    /// <summary>Creates the overlay window on first use; returns true when it was created now.</summary>
+    private bool EnsureWindow()
+    {
+        if (_window is not null) return false;
+
+        var vm = new OverlayViewModel(_hub);
+        _window = new OverlayWindow(vm, _log) { ShowActivated = false };
+        _window.MenuStateChanged += (_, _) =>
+        {
+            if (!IsMenuOpen) FocusGame();
+            MenuStateChanged?.Invoke(this, EventArgs.Empty);
+        };
+
+        return true;
     }
 
     public void UpdateTargetWindow(RobloxWindowInfo window)
@@ -76,6 +124,19 @@ public sealed class OverlayManager : IDisposable
     public void Tick(TimeSpan delta)
     {
         if (_window is null || _disposed) return;
+
+        if (IsPreview)
+        {
+            // No client to follow: keep the desktop overlay visible and on top.
+            if ((DateTime.UtcNow - _lastTopmost).TotalSeconds > 1.5)
+            {
+                _lastTopmost = DateTime.UtcNow;
+                EnsureTopmost();
+            }
+
+            _ = delta;
+            return;
+        }
 
         var target = _detector.CurrentWindow;
         if (target is null) return;
@@ -121,13 +182,10 @@ public sealed class OverlayManager : IDisposable
     {
         if (_window is null) return;
 
-        var handle = _window.Handle;
-        if (handle == IntPtr.Zero) return;
-
         var rect = window.ClientRect;
         if (rect.Width < 200 || rect.Height < 150)
         {
-            var work = Win32.GetMonitorWorkArea(handle);
+            var work = Win32.GetMonitorWorkArea(_window.Handle);
             rect = new RECT
             {
                 Left = work.Left + 40,
@@ -136,6 +194,16 @@ public sealed class OverlayManager : IDisposable
                 Bottom = work.Bottom - 40
             };
         }
+
+        PositionRect(rect, force);
+    }
+
+    private void PositionRect(RECT rect, bool force)
+    {
+        if (_window is null) return;
+
+        var handle = _window.Handle;
+        if (handle == IntPtr.Zero) return;
 
         try
         {
@@ -184,6 +252,8 @@ public sealed class OverlayManager : IDisposable
 
         var window = _window;
         _window = null;
+        IsPreview = false;
+        _target = null;
         try
         {
             window.CloseFromManager();

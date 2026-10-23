@@ -500,8 +500,8 @@ public sealed class EggFeatures : ObservableObject
 
         if (IsDemoMode)
         {
-            // Demo camera orbits slowly so the ESP is visibly alive.
-            Heading = (Heading + dt * 6) % 360;
+            // Demo camera orbits so the ESP is visibly alive and drags across the screen.
+            Heading = (Heading + dt * 18) % 360;
             _cameraHeight = 14;
             foreach (var egg in Eggs)
                 egg.Distance = PlayerPosition.DistanceTo(egg.Position);
@@ -621,8 +621,8 @@ public sealed class EggFeatures : ObservableObject
         var screenX = _viewWidth / 2.0 + right / forward * focal;
         var screenY = _viewHeight * 0.56 - (dy / forward) * focal;
 
-        var marginX = _viewWidth * 0.12;
-        var marginY = _viewHeight * 0.12;
+        var marginX = _viewWidth * 0.22;
+        var marginY = _viewHeight * 0.20;
 
         egg.OnScreen = screenX > -marginX && screenX < _viewWidth + marginX
                       && screenY > -marginY && screenY < _viewHeight + marginY;

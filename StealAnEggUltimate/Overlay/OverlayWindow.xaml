@@ -103,7 +103,7 @@
         </Storyboard>
     </Window.Resources>
 
-    <Grid x:Name="Root" Background="Transparent">
+    <Grid x:Name="Root" Background="{x:Null}">
 
         <!-- ======================= ESP LAYER ======================= -->
         <ItemsControl ItemsSource="{Binding Hub.EspEggs}" IsHitTestVisible="False">

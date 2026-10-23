@@ -24,8 +24,26 @@ public sealed record RobloxWindowInfo(
 /// </summary>
 public sealed class RobloxDetector : IDisposable
 {
-    private const string RobloxProcessName = "RobloxPlayerBeta";
-    private const string StudioProcessName = "RobloxStudioBeta";
+    /// <summary>
+    /// Every process name the current Roblox desktop clients run under: the classic
+    /// Microsoft Store / bootstrapper build, the modern "RobloxPlayerBeta" build and the
+    /// UWP/Store package executable.
+    /// </summary>
+    private static readonly string[] PlayerProcessNames =
+    {
+        "RobloxPlayerBeta", "RobloxPlayer", "Windows10Universal"
+    };
+
+    private static readonly string[] StudioProcessNames =
+    {
+        "RobloxStudioBeta", "RobloxStudio"
+    };
+
+    /// <summary>Exposed for diagnostics/tests: names that count as a Roblox player client.</summary>
+    public static IReadOnlyList<string> KnownPlayerProcesses => PlayerProcessNames;
+
+    /// <summary>Exposed for diagnostics/tests: names that count as Roblox Studio.</summary>
+    public static IReadOnlyList<string> KnownStudioProcesses => StudioProcessNames;
 
     private readonly Logger _log;
     private readonly object _sync = new();
@@ -134,8 +152,8 @@ public sealed class RobloxDetector : IDisposable
         var detectedChanged = false;
         var studioChanged = false;
 
-        var playerPids = SafeProcessIds(RobloxProcessName);
-        var studioPids = SafeProcessIds(StudioProcessName);
+        var playerPids = SafeProcessIds(PlayerProcessNames);
+        var studioPids = SafeProcessIds(StudioProcessNames);
         RobloxWindowInfo? best = null;
 
         if (playerPids.Count > 0)
@@ -154,8 +172,12 @@ public sealed class RobloxDetector : IDisposable
 
                     var title = Win32.GetTitle(hWnd);
                     var cls = Win32.GetClass(hWnd);
-                    if (cls is "ConsoleWindowClass") return true;
-                    if (string.IsNullOrWhiteSpace(title)) return true;
+                    if (cls is "ConsoleWindowClass" or "GDI+ Hook Window Class") return true;
+
+                    // The UWP build sometimes has an empty caption, so keep windows whose
+                    // class is the Roblox renderer; plain hidden helper windows are skipped.
+                    if (string.IsNullOrWhiteSpace(title) && !cls.Contains("WINDOWSCLIENT", StringComparison.OrdinalIgnoreCase))
+                        return true;
 
                     var client = Win32.GetClientAreaOnScreen(hWnd);
                     if (client.Width < 200 || client.Height < 150) return true;
@@ -186,8 +208,8 @@ public sealed class RobloxDetector : IDisposable
 
         lock (_sync)
         {
-            if ((_detected) != (best is not null)) detectedChanged = true;
-            if (_studioDetected != studioPids.Count > 0) studioChanged = true;
+            if (_detected != (best is not null)) detectedChanged = true;
+            if (_studioDetected != (studioPids.Count > 0)) studioChanged = true;
 
             _detected = best is not null;
             _studioDetected = studioPids.Count > 0;
@@ -218,6 +240,17 @@ public sealed class RobloxDetector : IDisposable
         {
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private static HashSet<int> SafeProcessIds(params string[] names)
+    {
+        var result = new HashSet<int>();
+        foreach (var name in names)
+        {
+            foreach (var id in SafeProcessIds(name)) result.Add(id);
+        }
+
+        return result;
     }
 
     private static HashSet<int> SafeProcessIds(string name)

@@ -145,10 +145,23 @@ jobs:
           Write-Host "::notice::smoke exit code $($process.ExitCode)"
 
           $marker = Join-Path $env:APPDATA "StealAnEggUltimate\smoke-result.txt"
+          $markerText = ""
           if (Test-Path -LiteralPath $marker) {
+            $markerText = (Get-Content -LiteralPath $marker -Raw)
             Get-Content -LiteralPath $marker | ForEach-Object { Write-Host "::notice::$_" }
           } else {
             Write-Host "::error::smoke marker missing"
+          }
+
+          $uiDir = Join-Path $env:APPDATA "StealAnEggUltimate\ui"
+          foreach ($shot in @("hub-window.png", "overlay-menu.png")) {
+            $path = Join-Path $uiDir $shot
+            if (Test-Path -LiteralPath $path) {
+              $size = (Get-Item -LiteralPath $path).Length
+              Write-Host "::notice::render $shot ($size bytes)"
+            } else {
+              Write-Host "::error::render $shot was not produced"
+            }
           }
 
           $logDir = Join-Path $env:APPDATA "StealAnEggUltimate\logs"
@@ -167,7 +180,32 @@ jobs:
             Write-Host "::error::Smoke marker file was not produced"
             exit 1
           }
+          if ($markerText -notmatch "smoke ok") {
+            Write-Host "::error::Smoke run reported a failed check: $markerText"
+            exit 1
+          }
           exit 0
+
+      - name: Publish UI screenshots to the branch
+        if: success() && github.event_name == 'push'
+        run: |
+          $src = Join-Path $env:APPDATA "StealAnEggUltimate\ui"
+          if (-not (Test-Path -LiteralPath $src)) {
+            Write-Host "::notice::no UI screenshots were produced"
+            exit 0
+          }
+          $dst = "StealAnEggUltimate/Docs/ui"
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+          Copy-Item (Join-Path $src "*.png") $dst -Force
+          git config user.name "hub-build-bot"
+          git config user.email "hub-build-bot@users.noreply.github.com"
+          git add -f $dst
+          if (git diff --cached --quiet) {
+            Write-Host "::notice::UI screenshots unchanged"
+            exit 0
+          }
+          git commit -m "ci: update UI screenshots [skip ci]"
+          git push origin "HEAD:$env:GITHUB_REF_NAME"
 
       - name: Publish diagnostics to the branch
         if: failure()
@@ -209,5 +247,6 @@ jobs:
             StealAnEggUltimate/dist/RobloxStudio/**
             StealAnEggUltimate/dist/Config/**
             StealAnEggUltimate/dist/Docs/**
+            StealAnEggUltimate/Docs/ui/**
           if-no-files-found: error
           retention-days: 30

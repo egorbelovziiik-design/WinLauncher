@@ -33,6 +33,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private DateTime _lastBridgePush = DateTime.MinValue;
     private bool _pendingConnect;
     private bool _isConnecting;
+    private IntPtr _overlayTargetHandle = IntPtr.Zero;
     private bool _isConnected;
     private bool _shutdown;
     private string _selectedTab = "Egg";
@@ -171,17 +172,27 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             if (!Set(ref _isConnected, value)) return;
             Raise(nameof(OverlayStatusText), nameof(OverlayStateLabel), nameof(IsMenuOpen), nameof(OverlaySummary),
-                nameof(OverlayHint), nameof(StatusLine));
+                nameof(OverlayHint), nameof(StatusLine), nameof(IsPreviewOverlay));
         }
     }
 
-    public string OverlayStatusText => IsConnected ? "Overlay Connected" : "Overlay Disconnected";
-    public string OverlayStateLabel => IsConnected ? "OVERLAY CONNECTED" : "OVERLAY DISCONNECTED";
+    /// <summary>True when the overlay is attached to the desktop because no Roblox client exists.</summary>
+    public bool IsPreviewOverlay => IsConnected && (_overlay?.IsPreview ?? false);
+
+    public string OverlayStatusText => IsConnected
+        ? IsPreviewOverlay ? "Overlay Connected · PREVIEW" : "Overlay Connected"
+        : "Overlay Disconnected";
+
+    public string OverlayStateLabel => IsConnected
+        ? IsPreviewOverlay ? "OVERLAY CONNECTED · PREVIEW" : "OVERLAY CONNECTED"
+        : "OVERLAY DISCONNECTED";
 
     public bool IsMenuOpen => _overlay?.IsMenuOpen ?? false;
 
     public string StatusLine => IsConnected
-        ? "OVERLAY CONNECTED · RIGHT SHIFT OPENS THE MENU"
+        ? IsPreviewOverlay
+            ? "PREVIEW OVERLAY · RIGHT SHIFT OPENS THE MENU · ROBLOX NOT RUNNING"
+            : "OVERLAY CONNECTED · RIGHT SHIFT OPENS THE MENU"
         : _pendingConnect
             ? "WAITING FOR ROBLOX CLIENT"
             : "READY · CONNECT TO ATTACH THE OVERLAY";
@@ -201,6 +212,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public string OverlaySummary => _overlay?.Summary ?? "Overlay is not attached.";
+
+    /// <summary>Live overlay window for the smoke run's renders (null when detached).</summary>
+    public OverlayWindow? DiagnosticOverlayWindow => _overlay?.Window;
 
     public string BridgeStatusText => $"{Player.BridgeStatus}  ·  snapshots {_bridge.SnapshotCount}";
     public string BridgeHint => $"Point the bundled Luau bridge at {_bridge.Endpoint} (loopback only).";
@@ -639,7 +653,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private async Task ConnectAsync()
     {
-        if (IsConnected || IsConnecting) return;
+        if (IsConnecting) return;
+
+        // Already attached to a real Roblox client: nothing to do. A preview attachment
+        // is upgraded to the real client window as soon as one appears.
+        if (IsConnected && !IsPreviewOverlay) return;
 
         IsConnecting = true;
         ConnectionState = "CONNECTING";
@@ -660,11 +678,30 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         if (window is null)
         {
+            // No Roblox client: attach the same overlay to the desktop in PREVIEW mode so
+            // RIGHT SHIFT, the menu, dragging, ESP and every tab are actually usable now.
+            // The attach is upgraded automatically the moment a client is detected.
+            try
+            {
+                AttachPreviewOverlay();
+                _pendingConnect = true;
+                IsConnecting = false;
+                ConnectionState = "CONNECTED · PREVIEW";
+                AddConsole("Roblox was not found — the overlay is attached to the desktop in PREVIEW mode.", NoticeKind.Info);
+                AddNotice("PREVIEW overlay attached. RIGHT SHIFT opens the menu; it switches to Roblox automatically when the client starts.", NoticeKind.Automation);
+                Raise(nameof(StatusLine), nameof(RobloxSummary), nameof(OverlaySummary));
+                return;
+            }
+            catch (Exception ex)
+            {
+                _log.Error("Preview overlay attach failed.", ex);
+            }
+
             _pendingConnect = true;
             IsConnecting = false;
             ConnectionState = "WAITING FOR ROBLOX";
-            AddConsole("Roblox was not found. The hub stays ready and attaches the moment Roblox starts.", NoticeKind.Error);
-            AddNotice("Roblox not found — waiting for the client.", NoticeKind.Error);
+            AddConsole("Roblox was not found and the preview overlay could not attach. Press CONNECT again once Roblox is running.", NoticeKind.Error);
+            AddNotice("Roblox not found — press CONNECT again once the client is running.", NoticeKind.Error);
             Raise(nameof(StatusLine), nameof(RobloxSummary));
             return;
         }
@@ -691,6 +728,19 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void AttachPreviewOverlay()
+    {
+        _overlay ??= new OverlayManager(this, _log, _detector);
+        _overlay.MenuStateChanged += (_, _) =>
+        {
+            Raise(nameof(IsMenuOpen), nameof(StatusLine));
+            MenuStateChanged?.Invoke(this, EventArgs.Empty);
+        };
+        _overlay.AttachPreview();
+        IsConnected = true;
+        Raise(nameof(OverlaySummary), nameof(StatusLine), nameof(OverlayStatusText), nameof(OverlayStateLabel), nameof(IsPreviewOverlay));
+    }
+
     private void AttachOverlay(RobloxWindowInfo window)
     {
         _overlay ??= new OverlayManager(this, _log, _detector);
@@ -700,8 +750,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             MenuStateChanged?.Invoke(this, EventArgs.Empty);
         };
         _overlay.Attach(window);
+        _overlayTargetHandle = window.Handle;
         IsConnected = true;
-        Raise(nameof(OverlaySummary), nameof(StatusLine), nameof(OverlayStatusText), nameof(OverlayStateLabel));
+        Raise(nameof(OverlaySummary), nameof(StatusLine), nameof(OverlayStatusText), nameof(OverlayStateLabel), nameof(IsPreviewOverlay));
     }
 
     private void Disconnect()
@@ -715,6 +766,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         _pendingConnect = false;
         IsConnected = false;
+        _overlayTargetHandle = IntPtr.Zero;
         ConnectionState = "DISCONNECTED";
         Raise(nameof(OverlaySummary), nameof(StatusLine), nameof(IsMenuOpen), nameof(ConnectionState));
         AddConsole("Overlay disconnected.", NoticeKind.Info);
@@ -795,16 +847,18 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             RefreshDetectorBindings();
 
-            if (_detector.IsDetected && _pendingConnect && !IsConnected && !IsConnecting)
+            var attachedToClient = IsConnected && !IsPreviewOverlay;
+
+            if (_detector.IsDetected && _pendingConnect && !IsConnecting && !attachedToClient)
             {
-                _log.Info("Roblox appeared; completing pending connection.");
+                _log.Info("Roblox client available; attaching the overlay to it.");
                 _ = ConnectAsync();
             }
-            else if (!_detector.IsDetected && IsConnected)
+            else if (!_detector.IsDetected && attachedToClient)
             {
-                _log.Warn("Roblox closed while the overlay was attached; unloading the overlay.");
+                _log.Warn("Roblox closed while the overlay was attached; switching to preview.");
                 Disconnect();
-                AddNotice("Roblox closed — overlay disconnected automatically.", NoticeKind.Error);
+                AddNotice("Roblox closed — the overlay was disconnected automatically.", NoticeKind.Error);
             }
         });
 
@@ -1367,7 +1421,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var menuKey = ParseKey(_settings.Overlay.MenuKey);
             if (key == menuKey)
             {
-                if (!IsConnected && _detector.IsDetected)
+                if (!IsConnected)
                     _ = ConnectAsync();
                 else
                     ToggleMenu();
@@ -1515,7 +1569,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public string PlayerBridgeStatus => Player.BridgeStatus;
 
     public string OverlayHint => IsConnected
-        ? "RIGHT SHIFT closes the menu · drag the header to move it"
+        ? IsPreviewOverlay
+            ? "PREVIEW over the desktop · RIGHT SHIFT toggles the menu · drag the header to move it"
+            : "RIGHT SHIFT closes the menu · drag the header to move it"
         : "Not connected · press CONNECT in the hub";
 
     private void OnDispatcher(Action action)

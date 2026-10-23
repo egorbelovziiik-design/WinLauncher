@@ -630,7 +630,50 @@ public static class SelfTest
             Fail("Windows compatibility check", ex.Message);
         }
 
-        Skip("Overlay attach + Right Shift menu", "requires Roblox Player, a real desktop session and the bundled test place");
+        try
+        {
+            var players = RobloxDetector.KnownPlayerProcesses;
+            var studios = RobloxDetector.KnownStudioProcesses;
+            Check("Roblox process name coverage",
+                players.Contains("RobloxPlayerBeta") && players.Contains("Windows10Universal")
+                && studios.Contains("RobloxStudioBeta"),
+                $"players={string.Join("/", players)} · studio={string.Join("/", studios)}");
+        }
+        catch (Exception ex)
+        {
+            Fail("Roblox process name coverage", ex.Message);
+        }
+
+        try
+        {
+            // The preview overlay is what makes CONNECT usable without a game client.
+            // Attaching a real WPF window needs a desktop session, so verify the exact
+            // monitor geometry it uses instead of pretending the window was rendered
+            // (the --smoke run renders it and fails on an empty capture).
+            var area = Win32.GetMonitorWorkArea(IntPtr.Zero);
+            Check("Preview overlay geometry available",
+                area.Width >= 320 && area.Height >= 240,
+                $"work area {area.Width}x{area.Height}");
+        }
+        catch (Exception ex)
+        {
+            Fail("Preview overlay geometry available", ex.Message);
+        }
+
+        try
+        {
+            var settings = SettingsManager.CreateDefaults();
+            var menuKeyOk = Enum.TryParse<Key>(settings.Overlay.MenuKey, true, out var menuKey) && menuKey == Key.RightShift;
+            var allowed = HotkeyManager.AllowedKeys.Contains(settings.Overlay.MenuKey);
+            Check("Menu key is a supported global hotkey", menuKeyOk && allowed, settings.Overlay.MenuKey);
+        }
+        catch (Exception ex)
+        {
+            Fail("Menu key is a supported global hotkey", ex.Message);
+        }
+
+        Skip("Overlay attached to a real Roblox window",
+            "needs the Roblox Player client running (the desktop PREVIEW overlay and its menu are rendered by --smoke)");
     }
 
     private static void RunPlatformTests()
