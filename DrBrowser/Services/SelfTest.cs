@@ -449,12 +449,14 @@ public static class SelfTest
                 var core = vm.ActiveTab?.Core;
                 if (core is null) throw new Exception("WebView2 не создан за 15 секунд");
 
+                Trace("smoke-webview: calling NavigateToString");
                 core.NavigateToString(
                     "<html><head><title>DrBrowser Smoke Test</title></head>" +
                     "<body style='background:#0b0d14;color:#f2f3f9;font-family:Segoe UI;padding:48px'>" +
                     "<h1 style='color:#7c5cff'>DrBrowser</h1><p>Движок WebView2 отрисовал эту страницу.</p>" +
                     "</body></html>");
 
+                Trace("smoke-webview: NavigateToString returned");
                 string? title = null;
                 for (var i = 0; i < 20; i++)
                 {
