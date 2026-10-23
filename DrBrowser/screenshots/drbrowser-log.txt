@@ -1,55 +1,55 @@
-﻿22:27:19.425 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-22:27:19.443 INFO  === selftest: start ===
-22:27:19.445 INFO  selftest marker 1462c176f1a147329b7779a5a1345986
-22:27:19.732 INFO  DrSearch: "dotnet" → 2 local results
-22:27:19.733 INFO  DrSearch: "drbrowser" → 1 local results
-22:27:19.750 INFO  DrSearch: "example.com" → 1 local results
-22:27:19.765 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
-22:27:19.765 INFO  DrSearch: "dotnet" → 2 local results
-22:27:19.870 INFO  DrSearch: "drbrowser" → 0 web results
-22:27:19.873 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
-22:27:19.873 INFO  DrSearch: "dotnet" → 0 web results
-22:27:19.873 INFO  DrSearch: "dotnet" → 0 web results
-22:27:19.874 INFO  DrSearch: "example.com" → 0 web results
-22:27:20.326 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
-22:27:20.393 INFO  DrSearch: "первый запрос" → 0 local results
-22:27:20.393 INFO  DrSearch: "второй запрос" → 0 local results
-22:27:20.393 INFO  DrSearch: "первый запрос" → 0 local results
-22:27:20.416 INFO  DrSearch: "второй запрос" → 0 web results
-22:27:20.419 INFO  DrSearch: "первый запрос" → 0 web results
-22:27:20.423 INFO  DrSearch: "первый запрос" → 0 web results
-22:27:20.525 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
-22:27:20.581 INFO  Правил: 107 · доменов: 88 · исключений: 0
-22:27:20.775 ERROR selftest intentional exception :: InvalidOperationException: expected
-22:27:21.791 INFO  exit code 0
-22:27:22.819 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-22:27:22.846 INFO  === smoke: start ===
-22:27:23.008 INFO  MainViewModel created (private=True)
-22:27:24.634 INFO  Правил: 107 · доменов: 88 · исключений: 0
-22:27:25.693 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\7c2f4b77b6934e819598bc348f6d6d04
-22:27:25.720 INFO  Initialisation complete
-22:27:28.988 INFO  WebView2 configured for tab 818347
-22:27:28.990 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:27:29.461 WARN  navigation failed: about:blank :: ConnectionAborted
-22:27:30.524 INFO  WebView2 configured for tab 29ce4b
-22:27:30.525 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:27:31.799 INFO  WebView2 configured for tab 30f4ee
-22:27:31.800 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:27:39.382 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'JsonOutput' of type 'DrBrowser.OmegaViewModel'.
-22:27:39.409 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'GeneratedPassword' of type 'DrBrowser.OmegaViewModel'.
-22:27:39.509 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'TextOutput' of type 'DrBrowser.OmegaViewModel'.
-22:27:40.324 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'JsonOutput' of type 'DrBrowser.OmegaViewModel'.
-22:27:40.361 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'GeneratedPassword' of type 'DrBrowser.OmegaViewModel'.
-22:27:40.366 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'TextOutput' of type 'DrBrowser.OmegaViewModel'.
-22:27:41.284 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'JsonOutput' of type 'DrBrowser.OmegaViewModel'.
-22:27:42.232 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'GeneratedPassword' of type 'DrBrowser.OmegaViewModel'.
-22:27:42.241 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'TextOutput' of type 'DrBrowser.OmegaViewModel'.
-22:27:47.773 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
-22:27:47.774 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
-22:27:51.033 INFO  WebView2 configured for tab b2b9e2
-22:27:51.034 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:27:53.458 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
-22:27:54.415 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
-22:27:54.833 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-222754.png
-22:27:56.320 INFO  shutdown complete
-22:27:56.689 INFO  exit code 0
+﻿22:32:01.569 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+22:32:01.585 INFO  === selftest: start ===
+22:32:01.587 INFO  selftest marker 32620ea0dcf64d12a225f2e9bb7fb504
+22:32:01.860 INFO  DrSearch: "dotnet" → 2 local results
+22:32:01.861 INFO  DrSearch: "drbrowser" → 1 local results
+22:32:01.862 INFO  DrSearch: "example.com" → 1 local results
+22:32:01.891 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
+22:32:01.892 INFO  DrSearch: "dotnet" → 2 local results
+22:32:01.990 INFO  DrSearch: "drbrowser" → 0 web results
+22:32:02.015 INFO  DrSearch: "dotnet" → 0 web results
+22:32:02.015 INFO  DrSearch: "example.com" → 0 web results
+22:32:02.015 INFO  DrSearch: "dotnet" → 0 web results
+22:32:02.015 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
+22:32:02.420 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
+22:32:02.525 INFO  DrSearch: "первый запрос" → 0 local results
+22:32:02.525 INFO  DrSearch: "второй запрос" → 0 local results
+22:32:02.525 INFO  DrSearch: "первый запрос" → 0 local results
+22:32:02.551 INFO  DrSearch: "первый запрос" → 0 web results
+22:32:02.553 INFO  DrSearch: "первый запрос" → 0 web results
+22:32:02.554 INFO  DrSearch: "второй запрос" → 0 web results
+22:32:02.624 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
+22:32:02.670 INFO  Правил: 107 · доменов: 88 · исключений: 0
+22:32:02.870 ERROR selftest intentional exception :: InvalidOperationException: expected
+22:32:03.887 INFO  exit code 0
+22:32:04.877 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+22:32:04.896 INFO  === smoke: start ===
+22:32:05.048 INFO  MainViewModel created (private=True)
+22:32:06.780 INFO  Правил: 107 · доменов: 88 · исключений: 0
+22:32:07.959 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\a497c5ca21b3446b9915b71676cbc541
+22:32:07.983 INFO  Initialisation complete
+22:32:11.378 INFO  WebView2 configured for tab 2b2780
+22:32:11.381 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+22:32:11.804 WARN  navigation failed: about:blank :: ConnectionAborted
+22:32:12.856 INFO  WebView2 configured for tab 4d8327
+22:32:12.857 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+22:32:14.125 INFO  WebView2 configured for tab 444786
+22:32:14.125 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+22:32:21.632 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'JsonOutput' of type 'DrBrowser.OmegaViewModel'.
+22:32:21.653 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'GeneratedPassword' of type 'DrBrowser.OmegaViewModel'.
+22:32:21.738 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'TextOutput' of type 'DrBrowser.OmegaViewModel'.
+22:32:22.571 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'JsonOutput' of type 'DrBrowser.OmegaViewModel'.
+22:32:22.604 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'GeneratedPassword' of type 'DrBrowser.OmegaViewModel'.
+22:32:22.608 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'TextOutput' of type 'DrBrowser.OmegaViewModel'.
+22:32:23.532 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'JsonOutput' of type 'DrBrowser.OmegaViewModel'.
+22:32:24.472 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'GeneratedPassword' of type 'DrBrowser.OmegaViewModel'.
+22:32:24.479 ERROR Unhandled UI exception :: InvalidOperationException: A TwoWay or OneWayToSource binding cannot work on the read-only property 'TextOutput' of type 'DrBrowser.OmegaViewModel'.
+22:32:30.003 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
+22:32:30.004 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
+22:32:33.279 INFO  WebView2 configured for tab 1bc67d
+22:32:33.279 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+22:32:35.712 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
+22:32:36.675 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
+22:32:37.049 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-223236.png
+22:32:38.519 INFO  shutdown complete
+22:32:38.859 INFO  exit code 0
