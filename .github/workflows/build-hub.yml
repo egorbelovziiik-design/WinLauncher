@@ -192,7 +192,7 @@ jobs:
           }
 
       - name: Commit published EXE to the branch
-        if: github.event_name == 'workflow_dispatch' && inputs.commit_binary
+        if: (github.event_name == 'workflow_dispatch' && inputs.commit_binary) || contains(github.event.head_commit.message, '[commit-exe]')
         run: |
           git config user.name "hub-build-bot"
           git config user.email "hub-build-bot@users.noreply.github.com"
