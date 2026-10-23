@@ -60,7 +60,7 @@ public sealed partial class MainViewModel
         }
     });
 
-    public ICommand OpenDataFolderCommand => Cmd("backup.data-folder", () =>
+    public ICommand OpenBackupDataFolderCommand => Cmd("backup.data-folder", () =>
     {
         Directory.CreateDirectory(AppPaths.DataRoot);
         _shell?.OpenExternal(AppPaths.DataRoot);
