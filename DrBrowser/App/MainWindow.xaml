@@ -349,7 +349,6 @@
                                Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
                 </Grid>
             </Border>
-        </Grid>
         <!-- =============================== PROFILE FLYOUT =============================== -->
         <!-- An in-window card instead of the unstyled system context menu: always themed,
              never a white rectangle, and it can be captured in the smoke screenshot. -->
@@ -428,6 +427,7 @@
                     </ScrollViewer>
                 </StackPanel>
             </Border>
+        </Grid>
         </Grid>
     </Border>
 </Window>
