@@ -115,5 +115,32 @@ return {
         objectives = {{event = "kill", target = "rainbow", count = 1, label = "Радужный Страж"}},
         reward = {coins = 900, xp = 800, items = {prism_shard = 8, medkit = 2}}, reputation = "SURVIVORS",
     },
+    frontier_blades = {
+        order = 17, name = "ЭХО СТАЛИ", type = "Оружейный заказ", npc = "yaroslav", location = "Северный район / кузница Стальное эхо",
+        requires = "frontier_patrol", description = "Кузнец Ярослав восстановит клинок старого гарнизона. Найди три клеймёные заготовки в северном районе и уничтожь Воющих, чья стая заняла кузнечный маршрут.",
+        objectives = {
+            {event = "forge_relic", target = "echo_steel", count = 3, label = "Клеймёные заготовки"},
+            {event = "kill", target = "howler", count = 5, label = "Воющие"},
+        },
+        reward = {coins = 720, xp = 640, items = {frontier_sword = 1, steel_plate = 5}}, reputation = "SURVIVORS",
+    },
+    frontier_armor = {
+        order = 18, name = "ГРОЗОВОЙ КОНТУР", type = "Броня", npc = "mikhail", location = "Южный район / бронный цех",
+        requires = "frontier_rebuild", description = "Михаил собирает комплект, который гасит электрические разряды. Верни четыре стабилизированные пластины и уничтожь тяжёлых Дробителей, охраняющих южный релей.",
+        objectives = {
+            {event = "armor_salvage", target = "storm_plate", count = 4, label = "Грозовые пластины"},
+            {event = "kill", target = "crusher", count = 4, label = "Дробители"},
+        },
+        reward = {coins = 820, xp = 720, items = {storm_armor = 1, frag_grenade = 2, battery = 3}}, reputation = "SURVIVORS",
+    },
+    frontier_arsenal = {
+        order = 19, name = "ПОСЛЕДНИЙ АРСЕНАЛ", type = "Босс / огнестрельное", npc = "daria", location = "Восточный район / бронеарсенал",
+        requires = "frontier_blades", description = "Капитан Дарья обнаружила работающий дальнобойный комплект в бронеарсенале. Уничтожь Разрядников и командира Железный бастион. Винтовка выдаётся заряженной; запасные точные патроны лежат отдельно.",
+        objectives = {
+            {event = "kill", target = "shocker", count = 6, label = "Разрядники"},
+            {event = "kill", target = "ironclad", count = 1, label = "Железный бастион"},
+        },
+        reward = {coins = 1050, xp = 900, items = {sniper_ammo = 30, electronics = 6}, loadedWeapons = {{id = "frontier_dmr", count = 1, ammo = 10}}}, reputation = "SURVIVORS",
+    },
 
 }

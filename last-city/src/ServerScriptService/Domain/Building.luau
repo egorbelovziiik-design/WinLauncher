@@ -41,12 +41,19 @@ return function(Definitions, Inventory, Config, Util)
         for index, b in c.Buildings do if b.uid == uid then return b, index end end
         return nil
     end
+    function Building.complete(c, b, now)
+        if not b or b.readyAt > now then return false end
+        local builder = c.Builder
+        return not (builder and builder.order == b.uid and (builder.remaining or 0) > 0)
+    end
     function Building.remove(c, uid, refund)
         local b, index = Building.find(c, uid)
         if not b then return false, "Постройка не найдена" end
         if refund then for id, count in Definitions[b.id].cost do c.Stockpile[id] = math.min(9999, (c.Stockpile[id] or 0) + math.floor(count * 0.25)) end end
         for _, w in c.Workers do if w.job == uid then w.job = "" end end
-        if c.Builder and c.Builder.order == uid then c.Builder.order = "" end
+        if c.Builder and c.Builder.order == uid then
+            c.Builder.order = ""; c.Builder.remaining = 0; c.Builder.working = false
+        end
         table.remove(c.Buildings, index); return true
     end
     function Building.repair(c, uid)

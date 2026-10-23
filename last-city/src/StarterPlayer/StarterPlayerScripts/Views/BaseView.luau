@@ -23,7 +23,7 @@ function View.base(app, body)
     UI.button(row, "Крафт", function() app:OpenPanel("craft") end, {Size = UDim2.new(1 / 3, -5, 1, 0)})
     UI.button(row, "Военный отряд", function() app:OpenPanel("squad") end, {Size = UDim2.new(1 / 3, -5, 1, 0)})
     UI.button(body, "КОНТРАКТНЫЕ СПЕЦИАЛИСТЫ  /  ЛАДА", function() app:OpenPanel("recruits") end, {Size = UDim2.new(1, -6, 0, 31), TextSize = 11})
-    UI.paragraph(body, "Строитель Степан живёт на участке. Поговорите с ним по E: он примет ресурсы из рюкзака/склада, найдёт свободный footprint и построит выбранный объект.", 48)
+    UI.paragraph(body, "Строитель Степан живёт на участке. Поговорите с ним по E: он возьмёт ресурсы, найдёт площадку с проходом и построит объект сам. Работа идёт только пока Степан находится у стройки.", 56)
     UI.heading(body, "СКЛАД  /  ВЗЯТЬ ИЛИ ПОЛОЖИТЬ 5")
     local ids = {}; for id, def in app.Items do if not def.weapon and not def.armor and not def.blueprint then table.insert(ids, id) end end; table.sort(ids)
     for _, id in ids do
@@ -40,10 +40,14 @@ function View.base(app, body)
         if b then UI.button(body, "Освободить: " .. w.name, function() app:Send("NPCRemote", {action = "assign", worker = index, uid = ""}) end, {Size = UDim2.new(1, -6, 0, 28), TextSize = 11}) end
     end
     for _, b in c.Buildings do
-        local def = app.Buildings[b.id]; local ready = b.readyAt <= s.serverTime
+        local def = app.Buildings[b.id]
+        local builderProject = c.Builder and c.Builder.order == b.uid and (c.Builder.remaining or 0) > 0
+        local ready = not builderProject and b.readyAt <= s.serverTime
+        local construction = builderProject and ("Степан: " .. math.ceil(c.Builder.remaining or 0) .. " с работы · " .. (c.Builder.working and "СТРОИТ" or "ПАУЗА / В ПУТИ"))
+            or (not ready and "Строительство: " .. math.max(0, b.readyAt - s.serverTime) .. " c" or nil)
         local card = UI.card(body, def.worker and 140 or 100)
         UI.label(card, def.name .. "  /  " .. math.ceil(b.hp) .. " HP", 14, {Position = UDim2.fromOffset(12, 7), Size = UDim2.new(1, -24, 0, 23), Font = Enum.Font.GothamBold})
-        UI.label(card, not ready and "Строительство: " .. math.max(0, b.readyAt - s.serverTime) .. " c" or p.powered[b.uid] and "ГОТОВО / ЭНЕРГИЯ ЕСТЬ" or "ОЖИДАЕТ ТОПЛИВО / ЭНЕРГИЮ", 10, {Position = UDim2.fromOffset(12, 34), Size = UDim2.new(1, -24, 0, 20), TextColor3 = p.powered[b.uid] and T.success or T.accent})
+        UI.label(card, construction or p.powered[b.uid] and "ГОТОВО / ЭНЕРГИЯ ЕСТЬ" or "ОЖИДАЕТ ТОПЛИВО / ЭНЕРГИЮ", 10, {Position = UDim2.fromOffset(12, 34), Size = UDim2.new(1, -24, 0, 20), TextColor3 = p.powered[b.uid] and T.success or T.accent})
         UI.button(card, "Ремонт", function() app:Send("BuildRemote", {action = "repair", uid = b.uid}) end, {Position = UDim2.fromOffset(12, 62), Size = UDim2.new(0.5, -18, 0, 27), TextSize = 11})
         UI.button(card, app.ConfirmDemolish == b.uid and "ТОЧНО СНЕСТИ?" or "Снести · 25%", function()
             if app.ConfirmDemolish == b.uid then app:Send("BuildRemote", {action = "demolish", uid = b.uid}); app.ConfirmDemolish = nil
@@ -67,17 +71,20 @@ function View.craft(app, body)
     end
     for _, id in app:Sorted(app.Economy.Recipes) do
         local recipe = app.Economy.Recipes[id]; local card = UI.card(body, 113)
-        UI.label(card, recipe.name, 16, {Position = UDim2.fromOffset(14, 10), Size = UDim2.new(1, -28, 0, 25), Font = Enum.Font.GothamBold})
-        UI.label(card, UI.price(recipe.input, app.Items) .. " / " .. recipe.seconds .. " с", 11, {Position = UDim2.fromOffset(14, 43), Size = UDim2.new(1, -28, 0, 22), TextColor3 = UI.Theme.muted, TextWrapped = true})
-        if not c.Craft then UI.button(card, "СОЗДАТЬ", function() app:Send("CraftingRemote", {action = "start", id = id}) end, {Position = UDim2.fromOffset(14, 75), Size = UDim2.new(1, -28, 0, 28), TextSize = 11}) end
+        local required = recipe.requiresQuest and c.Quests[recipe.requiresQuest]
+        local locked = recipe.requiresQuest and (not required or required.status ~= "RewardClaimed")
+        UI.label(card, recipe.name .. (locked and "  /  ЗАКРЫТО" or ""), 16, {Position = UDim2.fromOffset(14, 10), Size = UDim2.new(1, -28, 0, 25), Font = Enum.Font.GothamBold, TextColor3 = locked and UI.Theme.muted or UI.Theme.text})
+        UI.label(card, locked and "Требуется доступ в НОВЫЙ РУБЕЖ" or UI.price(recipe.input, app.Items) .. " / " .. recipe.seconds .. " с", 11, {Position = UDim2.fromOffset(14, 43), Size = UDim2.new(1, -28, 0, 22), TextColor3 = locked and UI.Theme.danger or UI.Theme.muted, TextWrapped = true})
+        if not c.Craft and not locked then UI.button(card, "СОЗДАТЬ", function() app:Send("CraftingRemote", {action = "start", id = id}) end, {Position = UDim2.fromOffset(14, 75), Size = UDim2.new(1, -28, 0, 28), TextSize = 11}) end
     end
 end
 function View.builder(app, body)
     local UI = app.UI; local c = app.State.campaign
-    UI.paragraph(body, "Степан берёт точную стоимость из склада и рюкзака, а затем сервер выбирает ближайшую свободную точку сетки. Заказ настоящий: появляется полупрозрачная стройка, Степан идёт к ней, а производство запускается только после таймера.", 76)
+    UI.paragraph(body, "Степан списывает точную стоимость из склада и рюкзака. Сервер выбирает ближайшую точку сетки с доступной стороной, после чего Степан действительно идёт туда и работает. Путь, разговор или заражённые ставят прогресс на паузу; офлайн-стройки нет.", 86)
     local active = c.Builder and app:FindBuilding(c.Builder.order)
-    if active and active.readyAt > app.State.serverTime then
-        UI.heading(body, "СЕЙЧАС СТРОИТСЯ: " .. app.Buildings[active.id].name:upper() .. " / " .. math.max(0, active.readyAt - app.State.serverTime) .. " с")
+    if active and (c.Builder.remaining or 0) > 0 then
+        UI.heading(body, "ПРОЕКТ: " .. app.Buildings[active.id].name:upper() .. " / " .. math.ceil(c.Builder.remaining or 0) .. " с РАБОТЫ")
+        UI.paragraph(body, c.Builder.working and "Степан на площадке — строительство идёт." or "Прогресс остановлен: Степан в пути, разговаривает, обходит преграду или спасается от заражённых.", 42)
     end
     for _, id in app:Sorted(app.Buildings) do
         local def = app.Buildings[id]; local card = UI.card(body, 126)

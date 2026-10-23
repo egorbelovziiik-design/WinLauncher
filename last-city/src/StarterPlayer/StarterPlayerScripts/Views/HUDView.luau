@@ -36,7 +36,7 @@ return function(app)
         button.TextWrapped = true; app.QuickButtons[index] = button
     end
     local hotbar = UI.frame(hud, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -15), Size = UDim2.fromOffset(526, 29), BackgroundTransparency = 1}); UI.list(hotbar, 6, true)
-    for _, entry in {{"K  Рюкзак", "inventory"}, {"J  Квесты", "quests"}, {"B  Стройка", "build"}, {"G  База", "base"}, {"M  Карта", "map"}, {"⚙", "settings"}} do
+    for _, entry in {{"K  Рюкзак", "inventory"}, {"J  Квесты", "quests"}, {"B  Стройка", "build"}, {"G  База", "base"}, {"M  Карта", "map"}, {"O ⚙", "settings"}} do
         UI.button(hotbar, entry[1], function()
             app:OpenPanel(entry[2]); if entry[2] == "inventory" then app:Send("SessionRemote", {action = "inventoryOpened"}) end
         end, {Size = UDim2.fromOffset(entry[2] == "settings" and 40 or 90, 29), TextSize = 10})

@@ -40,6 +40,11 @@ test("K opens and closes the backpack while old I binding is removed",function()
     input.InputBegan:Fire({KeyCode=Enum.KeyCode.K,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,nil)
     input.InputBegan:Fire({KeyCode=Enum.KeyCode.I,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,nil)
 end)
+test("O opens and closes settings without reusing the reserved I key",function()
+    app:ClosePanel(); local input=game:GetService("UserInputService")
+    input.InputBegan:Fire({KeyCode=Enum.KeyCode.O,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,"settings")
+    input.InputBegan:Fire({KeyCode=Enum.KeyCode.O,UserInputType=Enum.UserInputType.Keyboard},false); eq(app.PanelName,nil)
+end)
 test("keyboard 1 sends a server-authoritative crowbar toggle on every press",function()
     app:ClosePanel(); local crowbar
     for _,entry in app.State.campaign.Inventory do if entry.id=="crowbar" then crowbar=entry end end; assert(crowbar); eq(app.State.campaign.Equipped,"")
@@ -74,7 +79,7 @@ test("every building preview contains real parts and pivots",function()
     for id,def in BuildingDefs do local m=Factory.building(id,def,CFrame.new()); assert(m.PrimaryPart); assert(#m:GetDescendants()>2) end
 end)
 test("expanded swords and firearms create distinct usable tool geometry",function()
-    local details={short_sword="SwordBlade",saber="SwordGuard",longsword="SwordTip",katana="KatanaWrap",machine_pistol="ExtendedMagazine",magnum="Cylinder",carbine="Handguard",sniper_rifle="Scope",lmg="LeftBipod"}
+    local details={short_sword="SwordBlade",saber="SwordGuard",longsword="SwordTip",katana="KatanaWrap",frontier_sword="EchoFuller",foundry_cleaver="CleaverEdge",machine_pistol="ExtendedMagazine",magnum="Cylinder",carbine="Handguard",sniper_rifle="Scope",frontier_dmr="DMRHandguard",marshal_pistol="MarshalBrake",lmg="LeftBipod"}
     for id,detail in details do
         local tool=Factory.weapon(id); assert(tool:FindFirstChild("Handle") and tool:FindFirstChild(detail),id); assert(#tool:GetChildren()>=4)
         eq(tool:GetAttribute("Melee"),Weapons[id].melee==true); tool:Destroy()
@@ -149,6 +154,19 @@ test("client uses a bounded pooled visible blast for grenade effects",function()
     local found=false; for _,node in app.Effects.Folder:GetChildren() do if node.Name=="GrenadeBlast" and node.Size.X==24 then found=true; break end end
     assert(found); app.Remotes.EffectsRemote.OnClientEvent:Fire("grenade_burn",{from=Vector3.new(8,2,-20),radius=14})
 end)
+test("client renders electric bolts and bounded Howler support pulses",function()
+    app.Remotes.EffectsRemote.OnClientEvent:Fire("electric",{from=Vector3.new(0,3,0),to=Vector3.new(0,3,-20),user=0})
+    local bolt=false; for _,node in app.Effects.Folder:GetChildren() do if node.Name=="Tracer" and node.Transparency<1 and node.Color.B>node.Color.R then bolt=true; break end end; assert(bolt)
+    app.Remotes.EffectsRemote.OnClientEvent:Fire("zombie_howl",{from=Vector3.new(4,2,-10),radius=34,buffed=4})
+    local pulse=false; for _,node in app.Effects.Folder:GetChildren() do if node.Name=="GrenadeBlast" and node.Size.X==48 then pulse=true; break end end; assert(pulse)
+end)
+test("physical builder work emits a pooled amber construction spark",function()
+    app.Remotes.EffectsRemote.OnClientEvent:Fire("build_spark",{from=Vector3.new(2,3,-4),user=player.UserId})
+    local spark=false; for _,node in app.Effects.Folder:GetChildren() do
+        if node.Name=="ImpactSpark" and node.Color.R>0.99 and node.Color.G>0.7 and node.Color.B<0.35 and node.CFrame.Position==Vector3.new(2,3,-4) then spark=true; break end
+    end
+    assert(spark)
+end)
 test("client wood pile grows in bounded layers with saved stock",function()
     local world=Engine.add(workspace,"Folder","World"); local cities=Engine.add(world,"Folder","Cities")
     local shelter=Engine.add(cities,"Model","01_MeridianShelter"); local depot=Engine.add(shelter,"Model","WoodDepot")
@@ -214,6 +232,12 @@ test("equip atomically fills the first empty quick slot and explicit clear remov
     request(ctx,"InventoryRemote",{action="equip",uid=pistol.uid}); eq(s.Campaign.Equipped,pistol.uid); eq(s.Campaign.QuickSlots[2],pistol.uid); assert(ctx.ToolSync)
     request(ctx,"InventoryRemote",{action="quickClear",index=2}); eq(s.Campaign.QuickSlots[2],""); eq(s.Campaign.Equipped,pistol.uid)
 end)
+test("backpack unequip action removes armor and its visible welded pieces",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{storm_armor=1})); local armor
+    for _,entry in s.Campaign.Inventory do if entry.id=="storm_armor" then armor=entry end end
+    request(ctx,"InventoryRemote",{action="equip",uid=armor.uid}); eq(s.Campaign.Armor,armor.uid); assert(ctx.ToolSync)
+    ctx.ToolSync=false; request(ctx,"InventoryRemote",{action="unequip",uid=armor.uid}); eq(s.Campaign.Armor,""); assert(ctx.ToolSync)
+end)
 test("server rejects resources and slot one removal through quick-slot actions",function()
     local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{wood=1})); local wood
     for _,entry in s.Campaign.Inventory do if entry.id=="wood" then wood=entry end end
@@ -258,8 +282,50 @@ test("builder atomically pays real inventory and stock then auto-selects a valid
     s.Campaign.Stockpile.wood=6; assert(Inventory.grant(s.Campaign,{wood=4})); local before=Inventory.count(s.Campaign,"wood")
     local ok,b=ctx.Services.BuildingService:AutoPlace(player,"wall"); assert(ok and b)
     eq(#s.Campaign.Buildings,1); eq(s.Campaign.Cash,190); eq(s.Campaign.Stockpile.wood,0); eq(Inventory.count(s.Campaign,"wood"),before-4)
-    eq(s.Campaign.Builder.order,b.uid); assert(ctx.Services.BuildingService.Models[player][b.uid]); assert(ctx.Evacuated)
+    eq(s.Campaign.Builder.order,b.uid); eq(s.Campaign.Builder.remaining,BuildingDefs.wall.seconds); eq(s.Campaign.Builder.working,false)
+    assert(ctx.Services.BuildingService.Models[player][b.uid]); assert(ctx.Evacuated)
     local valid=ctx.Building.valid(s.Campaign,"wall",b.x,b.z,b.r); eq(valid,false) -- its own occupied footprint is now authoritative
+end)
+test("builder countdown advances only during proximity-validated physical work",function()
+    local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); local service=ctx.Services.BuildingService
+    local ok,b=service:AutoPlace(player,"wall"); assert(ok and b); local start=s.Campaign.Builder.remaining
+    local center=service:Position(player,b); local hx=ctx.Building.extents(b.id,b.r)
+    service:BuilderWork(player,center+Vector3.new(40,3,40),true,0.5); eq(s.Campaign.Builder.remaining,start); eq(s.Campaign.Builder.working,false)
+    service:BuilderWork(player,center+Vector3.new(hx+4,3,0),false,0.5); eq(s.Campaign.Builder.remaining,start); eq(s.Campaign.Builder.working,false)
+    s.Traveling=true; service:BuilderWork(player,center+Vector3.new(hx+4,3,0),true,0.5); eq(s.Campaign.Builder.remaining,start); eq(s.Campaign.Builder.working,false); s.Traveling=false
+    for _=1,start*2 do service:BuilderWork(player,center+Vector3.new(hx+4,3,0),true,0.5) end
+    eq(s.Campaign.Builder.remaining,0); eq(s.Campaign.Builder.order,""); eq(s.Campaign.Builder.working,false); eq(b.readyAt,os.time())
+    eq(service.Models[player][b.uid].PrimaryPart.Transparency,0); assert(ctx.Notices[#ctx.Notices]:find("завершил"))
+end)
+test("Stepan NPC wiring pauses for dialogue danger travel and blocked paths",function()
+    local ctx,s=context(); local npc=module("ServerScriptService/Services/NPCService.luau")(ctx); ctx.Services.NPCService=npc
+    local danger=nil; ctx.Services.ZombieService={Nearest=function() return danger end}
+    local service=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService=service
+    local ok,b=service:AutoPlace(player,"wall"); assert(ok and b); local target=assert(npc:WorkTarget(s,b,1))
+    local model,humanoid=Factory.rig("Степан",CFrame.new(target),Color3.fromRGB(90,100,100),Color3.fromRGB(180,140,100),1,"builder"); model.Parent=workspace
+    local actor={model=model,humanoid=humanoid,nextMove=0,pathIndex=1,talkUntil=0,forcePath=true,nextWander=0,nextGesture=9999,gestureUntil=0}
+    npc.Builders[player]=actor; local now=os.clock(); npc:UpdateBuilder(player,s,actor,now,Config.Plots[1],0.5)
+    eq(s.Campaign.Builder.remaining,BuildingDefs.wall.seconds-0.5); eq(s.Campaign.Builder.working,true); eq(model:GetAttribute("WorkState"),"Building")
+    local remaining=s.Campaign.Builder.remaining; actor.talkUntil=now+10; npc:UpdateBuilder(player,s,actor,now+0.1,Config.Plots[1],0.5)
+    eq(s.Campaign.Builder.remaining,remaining); eq(model:GetAttribute("WorkState"),"Talking")
+    actor.talkUntil=0; danger={}; npc:UpdateBuilder(player,s,actor,now+0.2,Config.Plots[1],0.5)
+    eq(s.Campaign.Builder.remaining,remaining); eq(model:GetAttribute("WorkState"),"Fleeing")
+    danger=nil; s.Traveling=true; npc:UpdateBuilder(player,s,actor,now+0.3,Config.Plots[1],0.5)
+    eq(s.Campaign.Builder.remaining,remaining); eq(s.Campaign.Builder.working,false); eq(model:GetAttribute("WorkState"),"Paused"); s.Traveling=false
+    actor.pathFailures=3; actor.pathTarget=Vector3.new(target.X,model.PrimaryPart.Position.Y,target.Z)
+    npc:UpdateBuilder(player,s,actor,now+0.4,Config.Plots[1],0.5); eq(s.Campaign.Builder.remaining,remaining); eq(model:GetAttribute("WorkState"),"Blocked")
+    model:Destroy()
+end)
+test("builder rejects a route-blocked site before charging any resources",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService=service
+    service.BuilderAccess=function() return false end
+    local cash,wood=s.Campaign.Cash,s.Campaign.Stockpile.wood; local ok,message=service:AutoPlace(player,"wall")
+    eq(ok,false); assert(message:find("проход")); eq(s.Campaign.Cash,cash); eq(s.Campaign.Stockpile.wood,wood); eq(#s.Campaign.Buildings,0)
+end)
+test("builder access flood-fill detects a sealed construction region",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/BuildingService.luau")(ctx)
+    for x=-42,42,12 do table.insert(s.Campaign.Buildings,{uid="seal"..x,id="wall",x=x,z=0,r=0,hp=400,readyAt=0,carry={}}) end
+    eq(service:BuilderAccess(s.Campaign,"generator",0,-24,0),false)
 end)
 test("builder unaffordable order has no partial resource or building mutation",function()
     local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx)
@@ -348,10 +414,16 @@ test("demolisher armor applies its real server-side explosive resistance",functi
     player.Character.Humanoid.Health=100; ctx.Services.CombatService:Hurt(player,50,"grenade")
     eq(player.Character.Humanoid.Health,84); eq(armor.durability,98.8)
 end)
-test("six new armor sets render distinct welded parts on an R15 player",function()
+test("storm armor applies real electric resistance before general armor",function()
+    local ctx,s=combatContext(); assert(Inventory.grant(s.Campaign,{storm_armor=1})); local armor
+    for _,entry in s.Campaign.Inventory do if entry.id=="storm_armor" then armor=entry end end; assert(Inventory.equip(s.Campaign,armor.uid))
+    player.Character.Humanoid.Health=100; ctx.Services.CombatService:Hurt(player,40,"electric")
+    eq(player.Character.Humanoid.Health,94); eq(armor.durability,99.3)
+end)
+test("eight advanced armor sets render distinct welded parts on an R15 player",function()
     local ctx,s=context(); local combat=module("ServerScriptService/Services/CombatService.luau")(ctx)
     local model=Factory.rig("ArmoredPlayer",CFrame.new(0,3,-106),Color3.fromRGB(65,72,70),Color3.fromRGB(180,140,120)); model.Parent=workspace
-    local expected={courier_armor="CourierStripe",engineer_armor="EngineerPowerPack",frontier_armor="FrontierHelmet",bastion_armor="BastionVisor",ranger_armor="RangerHood",demolisher_armor="DemolisherHelmet"}
+    local expected={courier_armor="CourierStripe",engineer_armor="EngineerPowerPack",frontier_armor="FrontierHelmet",bastion_armor="BastionVisor",ranger_armor="RangerHood",demolisher_armor="DemolisherHelmet",storm_armor="StormVisor",ranger_elite_armor="EliteRangerVisor"}
     for id,partName in expected do
         assert(Inventory.grant(s.Campaign,{[id]=1})); local entry
         for _,candidate in s.Campaign.Inventory do if candidate.id==id then entry=candidate end end
@@ -435,10 +507,36 @@ test("mine City One and City Two infected cannot escape authored zones",function
     eq(zombies:Spawn("foreman",Vector3.new(0,0,0)),nil); eq(zombies:Spawn("mine_guard",Vector3.new(900,0,100)),nil)
     eq(zombies:Spawn("corrosive",Vector3.new(0,0,0)),nil); eq(zombies:Spawn("warden",Vector3.new(430,0,160)),nil)
     eq(zombies:Spawn("rainbow",Vector3.new(0,0,0)),nil); eq(zombies:Spawn("reaver",Vector3.new(900,0,100)),nil)
+    eq(zombies:Spawn("shocker",Vector3.new(0,0,0)),nil); eq(zombies:Spawn("ironclad",Vector3.new(0,0,0)),nil)
     local guard=assert(zombies:Spawn("mine_guard",Vector3.new(430,0,160))); local corrosive=assert(zombies:Spawn("corrosive",Vector3.new(900,0,100)))
-    local rainbow=assert(zombies:Spawn("rainbow",Vector3.new(1140,0,-68))); local reaver=assert(zombies:Spawn("reaver",Vector3.new(-455,0,40)))
-    eq(guard.humanoid.JumpPower,0); eq(guard.humanoid.AutoJumpEnabled,false); eq(zombies:Count(),4)
-    for _,actor in {guard,corrosive,rainbow,reaver} do actor.model:Destroy() end
+    local crusher=assert(zombies:Spawn("crusher",Vector3.new(1400,0,-400))); local rainbow=assert(zombies:Spawn("rainbow",Vector3.new(1140,0,-68)))
+    local ironclad=assert(zombies:Spawn("ironclad",Vector3.new(1370,0,540))); local reaver=assert(zombies:Spawn("reaver",Vector3.new(-455,0,40)))
+    eq(guard.humanoid.JumpPower,0); eq(guard.humanoid.AutoJumpEnabled,false); eq(zombies:Count(),6)
+    for _,actor in {guard,corrosive,crusher,rainbow,ironclad,reaver} do actor.model:Destroy() end
+end)
+test("Howler pulse buffs nearby infected and Crusher regeneration stops after damage",function()
+    local ctx=context(); ctx.ZombieDefs=module("ReplicatedStorage/Shared/ZombieDefinitions.luau"); ctx.World.Zombies=Engine.add(workspace,"Folder","MechanicZombies")
+    function ctx:InShelter() return false end; ctx.Services.CombatService={Hurt=function() end}
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(900,3,100)
+    local zombies=module("ServerScriptService/Services/ZombieService.luau")(ctx); ctx.Services.ZombieService=zombies
+    local howler=assert(zombies:Spawn("howler",Vector3.new(900,0,120))); local ally=assert(zombies:Spawn("walker",Vector3.new(907,0,120)))
+    howler.nextHowl=0; zombies:Step(howler); assert((ally.enragedUntil or 0)>os.clock()); eq(ctx.LastFXKind,"zombie_howl")
+    zombies:Step(ally); assert(ally.humanoid.WalkSpeed>ctx.ZombieDefs.walker.speed)
+    function ctx:InShelter() return true end
+    local crusher=assert(zombies:Spawn("crusher",Vector3.new(1000,0,400))); crusher.humanoid.Health=200; crusher.lastDamagedAt=os.clock()-10; crusher.nextRegen=0
+    zombies:Step(crusher); eq(crusher.humanoid.Health,211); zombies:Damage(crusher,10,player); local after=crusher.humanoid.Health; crusher.nextRegen=0; zombies:Step(crusher); eq(crusher.humanoid.Health,after)
+    for _,actor in {howler,ally,crusher} do actor.model:Destroy() end
+end)
+test("Shocker drains stamina while storm armor resists both electrical effects",function()
+    local ctx,s=combatContext(); ctx.ZombieDefs=module("ReplicatedStorage/Shared/ZombieDefinitions.luau"); ctx.World.Zombies=Engine.add(workspace,"Folder","ElectricZombies")
+    function ctx:InShelter() return false end; player.Character.HumanoidRootPart.CFrame=CFrame.new(900,3,100)
+    assert(Inventory.grant(s.Campaign,{storm_armor=1})); local armor; for _,entry in s.Campaign.Inventory do if entry.id=="storm_armor" then armor=entry end end; assert(Inventory.equip(s.Campaign,armor.uid))
+    local zombies=module("ServerScriptService/Services/ZombieService.luau")(ctx); ctx.Services.ZombieService=zombies
+    local shocker=assert(zombies:Spawn("shocker",Vector3.new(900,0,125))); shocker.nextAttack=0; player.Character.Humanoid.Health=100; s.Stamina=100
+    zombies:Step(shocker); eq(s.Stamina,95.5); eq(player.Character.Humanoid.Health,98.65); eq(ctx.LastFXKind,"electric")
+    armor.durability=0; shocker.nextAttack=0; player.Character.Humanoid.Health=100; s.Stamina=100
+    zombies:Step(shocker); eq(s.Stamina,82); eq(player.Character.Humanoid.Health,91)
+    shocker.model:Destroy()
 end)
 test("Rainbow boss pity grants ordinary resources Coins armor and crowbar alternative",function()
     local ctx,s=context(); ctx.ZombieDefs=module("ReplicatedStorage/Shared/ZombieDefinitions.luau")
@@ -457,6 +555,13 @@ test("second-city quartermaster trade is server-gated by travel quest and proxim
     local cash=s.Campaign.Cash; request(ctx,"ShopRemote",{action="buy",id="concrete",count=1}); eq(Inventory.count(s.Campaign,"concrete"),0); eq(s.Campaign.Cash,cash)
     s.Campaign.Quests.second_city={status="RewardClaimed",progress={25},seen={}}
     request(ctx,"ShopRemote",{action="buy",id="concrete",count=1}); eq(Inventory.count(s.Campaign,"concrete"),1); assert(s.Campaign.Cash<cash)
+end)
+test("advanced Frontier stock cannot be bought from Max and works only at Felix",function()
+    local ctx,s=context(); local supplier="max"; ctx.Services.NPCService.Near=function(_,_,id) return id==supplier end
+    local shop=module("ServerScriptService/Services/ShopService.luau")(ctx); ctx.Services.ShopService=shop; shop:Init(); s.Campaign.Cash=5000
+    s.Campaign.Quests.second_city={status="RewardClaimed",progress={25},seen={}}
+    request(ctx,"ShopRemote",{action="buy",id="marshal_pistol",count=1}); eq(Inventory.count(s.Campaign,"marshal_pistol"),0); eq(s.Campaign.Cash,5000)
+    supplier="quartermaster"; request(ctx,"ShopRemote",{action="buy",id="marshal_pistol",count=1}); eq(Inventory.count(s.Campaign,"marshal_pistol"),1); assert(s.Campaign.Cash<5000)
 end)
 test("active remotes are frozen throughout server-authoritative travel",function()
     local ctx,s=context(); local calls=0; ctx.Services.NetworkService:Register("InventoryRemote",true,function() calls+=1 end)
@@ -566,8 +671,9 @@ test("full server composition root initializes every service",function()
     Engine.Store.fail=false; Engine.Store.records={}; player.Kicked=nil
     server=module("ServerScriptService/Bootstrap.server.luau")
     eq(workspace:GetAttribute("LastCityReady"),true); assert(server.Services.PlayerDataService); assert(server.Services.NPCService.NPCs.alex)
-    local residents=0; for _ in server.Services.NPCService.NPCs do residents+=1 end; eq(residents,17)
+    local residents=0; for _ in server.Services.NPCService.NPCs do residents+=1 end; eq(residents,20)
     assert(server.Services.NPCService.NPCs.ira); assert(server.Services.NPCService.NPCs.makar); assert(server.Services.NPCService.NPCs.lada)
+    assert(server.Services.NPCService.NPCs.yaroslav); assert(server.Services.NPCService.NPCs.daria); assert(server.Services.NPCService.NPCs.mikhail)
     assert(server.Services.SquadService); assert(server.Services.RecruitService); assert(server.Services.TravelService)
 end)
 test("main NPC uses complete player-shaped R15 articulation",function()

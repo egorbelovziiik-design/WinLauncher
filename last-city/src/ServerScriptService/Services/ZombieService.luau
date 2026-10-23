@@ -9,7 +9,7 @@ return function(ctx)
         return position.X >= 326 and position.X <= 462 and position.Z >= 132 and position.Z <= 188
     end
     function Service:IsCity2(position)
-        return position.X >= 720 and position.X <= 1180 and position.Z >= -265 and position.Z <= 420
+        return position.X >= 695 and position.X <= 1425 and position.Z >= -435 and position.Z <= 635
     end
     function Service:IsCity1(position)
         return position.X >= -540 and position.X <= 540 and position.Z >= -625 and position.Z <= 490 and not self:IsMine(position)
@@ -37,7 +37,9 @@ return function(ctx)
     end
     function Service:Damage(z, amount, player)
         if not z or z.dead or z.humanoid.Health <= 0 then return 0, false end
-        if player then z.credits[player] = os.clock() end
+        local now = os.clock()
+        if player then z.credits[player] = now end
+        z.lastDamagedAt = now
         local def = ctx.ZombieDefs[z.kind]
         local applied = math.max(1, amount * (1 - (def.armor or 0)))
         local lethal = applied >= z.humanoid.Health
@@ -150,7 +152,8 @@ return function(ctx)
         m.Parent = ctx.World.Zombies; m.PrimaryPart:SetNetworkOwner(nil); CollectionService:AddTag(m, "Zombie"); CollectionService:AddTag(m, "LastCityActor")
         h.MaxHealth = def.health; h.Health = def.health; h.WalkSpeed = def.speed
         local fill = def.boss and bossLabel(m, def) or nil
-        local z = {id = self.NextId, model = m, humanoid = h, kind = kind, home = position, raidOwner = raidOwner, credits = {}, nextAttack = 0, attackUntil = 0, nextPath = 0, pathIndex = 1, born = os.clock(), bossFill = fill, nextVoice = os.clock() + 2 + math.random() * 4}
+        local born = os.clock()
+        local z = {id = self.NextId, model = m, humanoid = h, kind = kind, home = position, raidOwner = raidOwner, credits = {}, nextAttack = 0, attackUntil = 0, nextPath = 0, pathIndex = 1, born = born, lastDamagedAt = born, nextRegen = born + 1, nextHowl = born + 3 + math.random() * 3, bossFill = fill, nextVoice = born + 2 + math.random() * 4}
         self.Zombies[z.id] = z; if bossState then bossState.alive = true end
         h.Died:Connect(function() self:Die(z) end)
         return z
@@ -182,8 +185,21 @@ return function(ctx)
     end
     function Service:Step(z)
         if z.dead or not z.model.Parent then return end
+        local now = os.clock()
         local root = z.model.PrimaryPart; local def = ctx.ZombieDefs[z.kind]
-        if os.clock() < (z.stunnedUntil or 0) then
+        local enraged = now < (z.enragedUntil or 0)
+        z.humanoid.WalkSpeed = def.speed * (enraged and 1.28 or 1)
+        z.model:SetAttribute("Enraged", enraged)
+        -- Regenerators only recover after a genuine damage-free window. Continued
+        -- pressure always interrupts the heal, and health/boss UI stay authoritative.
+        if def.regenPerSecond and now - (z.lastDamagedAt or now) >= (def.regenDelay or 4) and now >= (z.nextRegen or 0)
+            and z.humanoid.Health > 0 and z.humanoid.Health < z.humanoid.MaxHealth then
+            z.nextRegen = now + 1
+            z.humanoid.Health = math.min(z.humanoid.MaxHealth, z.humanoid.Health + def.regenPerSecond)
+            z.model:SetAttribute("Health", z.humanoid.Health)
+            if z.bossFill then z.bossFill.Size = UDim2.fromScale(math.clamp(z.humanoid.Health / z.humanoid.MaxHealth, 0, 1), 1) end
+        end
+        if now < (z.stunnedUntil or 0) then
             z.humanoid:MoveTo(root.Position); z.model:SetAttribute("State", "ZombieStunned"); return
         end
         local targetPlayer, targetSquad, targetRecruit, distance = nil, nil, nil, def.aggro or 110
@@ -206,6 +222,19 @@ return function(ctx)
             if recruit and recruitDistance and (not def.leash or (recruit.model.PrimaryPart.Position - z.home).Magnitude <= def.leash) then
                 targetPlayer = nil; targetSquad = nil; targetRecruit = recruit; distance = recruitDistance
             end
+        end
+        -- A Howler does not deal fake menu-only "support": its audible pulse gives
+        -- nearby living infected a timed server-side speed and damage buff.
+        if (targetPlayer or targetSquad or targetRecruit) and def.howlRadius and distance <= def.howlRadius and now >= (z.nextHowl or 0) then
+            z.nextHowl = now + (def.howlCooldown or 12)
+            local buffed = 0
+            for _, other in self.Zombies do
+                if not other.dead and other.model.Parent and other.humanoid.Health > 0
+                    and (other.model.PrimaryPart.Position - root.Position).Magnitude <= def.howlRadius then
+                    other.enragedUntil = math.max(other.enragedUntil or 0, now + (def.enrageDuration or 6)); buffed += 1
+                end
+            end
+            ctx:FX("zombie_howl", {from = root.Position, tone = def.voice or 1, radius = def.howlRadius, buffed = buffed})
         end
         local motionState = "ZombieIdle"
         if targetPlayer or targetSquad or targetRecruit then
@@ -237,11 +266,21 @@ return function(ctx)
                 else self:Move(z, targetPosition) end
                 if distance < attackRange and visible and os.clock() >= z.nextAttack then
                     z.nextAttack = os.clock() + def.interval; z.attackUntil = os.clock() + 0.55
-                    if targetPlayer then ctx.Services.CombatService:Hurt(targetPlayer, def.damage, def.ranged and "acid" or "melee")
-                    elseif targetSquad then ctx.Services.SquadService:Hurt(targetSquad, def.damage)
-                    else ctx.Services.RecruitService:Hurt(targetRecruit, def.damage) end
+                    local attackDamage = def.damage * (enraged and 1.2 or 1)
+                    if targetPlayer then
+                        local damageType = def.damageType or (def.ranged and "acid" or "melee")
+                        ctx.Services.CombatService:Hurt(targetPlayer, attackDamage, damageType)
+                        if def.staminaDrain then
+                            local session = ctx.Sessions[targetPlayer]; local resistance = 0
+                            local armor = session and ctx.Inventory.find(session.Campaign, session.Campaign.Armor)
+                            local armorItem = armor and (armor.durability or 0) > 0 and ctx.Items[armor.id]
+                            if armorItem then resistance = armorItem.electricResistance or 0 end
+                            if session then session.Stamina = math.max(0, session.Stamina - def.staminaDrain * (1 - resistance)) end
+                        end
+                    elseif targetSquad then ctx.Services.SquadService:Hurt(targetSquad, attackDamage)
+                    else ctx.Services.RecruitService:Hurt(targetRecruit, attackDamage) end
                     ctx:FX("zombie_attack", {from = root.Position, tone = def.voice or 1, ranged = def.ranged ~= nil})
-                    if def.ranged then ctx:FX("acid", {from = root.Position + Vector3.new(0, 2, 0), to = targetPosition + Vector3.new(0, 1.5, 0), user = 0}) end
+                    if def.ranged then ctx:FX(def.rangedEffect or "acid", {from = root.Position + Vector3.new(0, 2, 0), to = targetPosition + Vector3.new(0, 1.5, 0), user = 0}) end
                 end
             end
         elseif z.raidOwner and ctx.Sessions[z.raidOwner] and ctx.Sessions[z.raidOwner].Active then
@@ -307,18 +346,19 @@ return function(ctx)
         end)
         task.spawn(function()
             local points, minionPoints = {}, {}
-            local bossPoints = {foreman = {}, reaver = {}, warden = {}, rainbow = {}}
+            local bossPoints = {foreman = {}, reaver = {}, warden = {}, rainbow = {}, ironclad = {}}
             for _, point in ctx.World.ZombieSpawns:GetChildren() do
                 if point.Name == "MineBossSpawn" then table.insert(bossPoints.foreman, point)
                 elseif point.Name:match("^City1BossSpawn") then table.insert(bossPoints.reaver, point)
                 elseif point.Name:match("^City2BossSpawn") then table.insert(bossPoints.warden, point)
                 elseif point.Name == "RainbowBossSpawn" then table.insert(bossPoints.rainbow, point)
+                elseif point.Name:match("^ArsenalBossSpawn") then table.insert(bossPoints.ironclad, point)
                 elseif point.Name:match("^MineMinionSpawn") then table.insert(minionPoints, point)
                 else table.insert(points, point) end
             end
             local function zone(point)
                 if point.Name:match("^Mine") then return "mine" end
-                if point.Name:match("^Harbor") then return "city2" end
+                if point.Name:match("^Harbor") or point.Name:match("^Frontier") then return "city2" end
                 return "city"
             end
             local function pick(area)
@@ -327,8 +367,9 @@ return function(ctx)
                     return roll <= 30 and "lurker" or roll <= 52 and "ravager" or roll <= 70 and "runner"
                         or roll <= 88 and "brute" or roll <= 97 and "armored" or "tank"
                 elseif area == "city2" then
-                    return roll <= 27 and "corrosive" or roll <= 48 and "stalker" or roll <= 62 and "walker"
-                        or roll <= 72 and "runner" or roll <= 86 and "brute" or roll <= 95 and "armored" or "tank"
+                    return roll <= 15 and "corrosive" or roll <= 28 and "stalker" or roll <= 40 and "howler"
+                        or roll <= 51 and "shocker" or roll <= 58 and "crusher" or roll <= 68 and "walker"
+                        or roll <= 77 and "runner" or roll <= 88 and "brute" or roll <= 96 and "armored" or "tank"
                 end
                 return roll <= 45 and "walker" or roll <= 65 and "lurker" or roll <= 80 and "runner"
                     or roll <= 90 and "ravager" or roll <= 96 and "brute" or roll <= 99 and "armored" or "tank"
@@ -364,9 +405,9 @@ return function(ctx)
             while task.wait(5) do
                 local active = 0; for _, session in ctx.Sessions do if session.Active and not session.Closing then active += 1 end end
                 if active > 0 then
-                    tryBoss("foreman"); tryBoss("reaver"); tryBoss("warden"); tryBoss("rainbow")
+                    tryBoss("foreman"); tryBoss("reaver"); tryBoss("warden"); tryBoss("rainbow"); tryBoss("ironclad")
                 end
-                local desired = math.min(26, 7 + active * 4)
+                local desired = math.min(28, 9 + active * 4)
                 if #points == 0 or self:Count() >= desired then continue end
                 local eligible = {}
                 for _, point in points do if playersNear(point.Position, 270) and not playersNear(point.Position, 30) then table.insert(eligible, point) end end

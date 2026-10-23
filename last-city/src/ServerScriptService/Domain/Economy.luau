@@ -1,10 +1,14 @@
 --!nonstrict
 return function(Buildings, Definitions, Inventory, Util)
     local Economy = {}
+    local function complete(c, b, now)
+        local builder = c.Builder
+        return b.readyAt <= now and not (builder and builder.order == b.uid and (builder.remaining or 0) > 0)
+    end
     function Economy.power(c, now)
         local supply, demand, powered = 0, 0, {}
         for _, b in c.Buildings do
-            if b.readyAt <= now and b.hp > 0 then
+            if complete(c, b, now) and b.hp > 0 then
                 local def = Buildings[b.id]
                 if def.power and (b.fuelUntil or 0) > now then supply += def.power; powered[b.uid] = true end
                 demand += def.demand or 0
@@ -13,7 +17,7 @@ return function(Buildings, Definitions, Inventory, Util)
         local remaining = supply
         for _, b in c.Buildings do
             local def = Buildings[b.id]
-            if b.readyAt <= now and b.hp > 0 then
+            if complete(c, b, now) and b.hp > 0 then
                 if def.demand then
                     powered[b.uid] = remaining >= def.demand
                     if powered[b.uid] then remaining -= def.demand end
@@ -27,7 +31,7 @@ return function(Buildings, Definitions, Inventory, Util)
         c.LastProduction = c.LastProduction or now; c.LastMeal = c.LastMeal or now
         for _, b in c.Buildings do
             local def = Buildings[b.id]
-            if def.power and b.readyAt <= now and (b.fuelUntil or 0) <= now and (c.Stockpile.fuel or 0) >= def.fuel then
+            if def.power and complete(c, b, now) and (b.fuelUntil or 0) <= now and (c.Stockpile.fuel or 0) >= def.fuel then
                 c.Stockpile.fuel -= def.fuel; b.fuelUntil = now + Definitions.FuelSeconds
             end
         end
@@ -69,7 +73,7 @@ return function(Buildings, Definitions, Inventory, Util)
         local payouts = {}
         for _, b in c.Buildings do
             local def = Buildings[b.id]
-            if def and def.cashPerSecond and b.readyAt <= now and b.hp > 0 then
+            if def and def.cashPerSecond and complete(c, b, now) and b.hp > 0 then
                 c.Cash += def.cashPerSecond
                 table.insert(payouts, {uid = b.uid, amount = def.cashPerSecond})
             end
@@ -93,8 +97,12 @@ return function(Buildings, Definitions, Inventory, Util)
         if c.Craft then return false, "Сначала заберите предыдущий заказ" end
         local def = Definitions.Recipes[id]
         if not def then return false, "Рецепт не найден" end
+        if def.requiresQuest then
+            local quest = c.Quests[def.requiresQuest]
+            if not quest or quest.status ~= "RewardClaimed" then return false, "Рецепт откроется после доступа в НОВЫЙ РУБЕЖ" end
+        end
         local workshop = false
-        for _, b in c.Buildings do if b.id == "workshop" and b.readyAt <= now then workshop = true end end
+        for _, b in c.Buildings do if b.id == "workshop" and complete(c, b, now) then workshop = true end end
         if not workshop then return false, "Нужна построенная мастерская" end
         if not Inventory.pay(c, def.input) then return false, "Недостаточно материалов" end
         c.Craft = {id = id, readyAt = now + def.seconds}; return true

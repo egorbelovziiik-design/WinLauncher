@@ -26,7 +26,7 @@ return function(ctx)
         plate("ArmorBack", torso, Vector3.new(1.85, 1.15, 0.24), Vector3.new(0, 0.02, 0.57), tint)
         plate("ArmorBelt", torso, Vector3.new(2.08, 0.25, 1.08), Vector3.new(0, -0.67, 0), Color3.fromRGB(45, 51, 49), Enum.Material.Fabric)
         if entry.id == "heavy_vest" or entry.id == "riot_armor" or entry.id == "military_vest" or entry.id == "scavenger_armor" or entry.id == "prism_armor"
-            or item.armorStyle == "frontier" or item.armorStyle == "bastion" or item.armorStyle == "demolisher" then
+            or item.armorStyle == "frontier" or item.armorStyle == "bastion" or item.armorStyle == "demolisher" or item.armorStyle == "storm" or item.armorStyle == "ranger_elite" then
             plate("ArmorShoulders", torso, Vector3.new(3, 0.3, 0.9), Vector3.new(0, 0.7, 0), tint, Enum.Material.Metal)
         end
         if entry.id == "hazmat_suit" then
@@ -57,6 +57,19 @@ return function(ctx)
             plate("RangerHood", head, Vector3.new(1.68, 0.52, 1.55), Vector3.new(0, 0.38, 0.08), Color3.fromRGB(52, 72, 57), Enum.Material.Fabric)
             plate("RangerPack", torso, Vector3.new(1.35, 1.42, 0.48), Vector3.new(0, -0.02, 0.74), Color3.fromRGB(62, 72, 54), Enum.Material.Fabric)
             plate("RangerMark", torso, Vector3.new(0.5, 0.18, 0.09), Vector3.new(-0.5, 0.22, -0.76), Color3.fromRGB(135, 190, 99), Enum.Material.Neon)
+        elseif item.armorStyle == "ranger_elite" then
+            local head = char:FindFirstChild("Head")
+            plate("EliteRangerBeret", head, Vector3.new(1.7, 0.3, 1.52), Vector3.new(0, 0.52, 0), Color3.fromRGB(52, 78, 48), Enum.Material.Fabric)
+            plate("EliteRangerVisor", head, Vector3.new(1.22, 0.18, 0.11), Vector3.new(0, 0.12, -0.8), Color3.fromRGB(146, 221, 115), Enum.Material.Neon)
+            plate("EliteRangerPack", torso, Vector3.new(1.48, 1.48, 0.5), Vector3.new(0, -0.02, 0.75), Color3.fromRGB(51, 68, 50), Enum.Material.Fabric)
+            plate("EliteRangerMark", torso, Vector3.new(0.72, 0.16, 0.09), Vector3.new(-0.4, 0.22, -0.76), Color3.fromRGB(151, 214, 93), Enum.Material.Neon)
+        elseif item.armorStyle == "storm" then
+            local head = char:FindFirstChild("Head")
+            plate("StormHelmet", head, Vector3.new(1.74, 0.55, 1.6), Vector3.new(0, 0.4, 0), tint, Enum.Material.Metal)
+            plate("StormVisor", head, Vector3.new(1.34, 0.24, 0.12), Vector3.new(0, 0.12, -0.82), Color3.fromRGB(91, 219, 247), Enum.Material.Neon)
+            plate("StormCoilLeft", torso, Vector3.new(0.22, 1.1, 0.18), Vector3.new(-0.72, 0, -0.76), Color3.fromRGB(91, 219, 247), Enum.Material.Neon)
+            plate("StormCoilRight", torso, Vector3.new(0.22, 1.1, 0.18), Vector3.new(0.72, 0, -0.76), Color3.fromRGB(91, 219, 247), Enum.Material.Neon)
+            plate("StormPowerPack", torso, Vector3.new(1.4, 1.45, 0.52), Vector3.new(0, 0, 0.76), Color3.fromRGB(44, 67, 75), Enum.Material.DiamondPlate)
         elseif item.armorStyle == "demolisher" then
             local head = char:FindFirstChild("Head")
             plate("DemolisherHelmet", head, Vector3.new(1.72, 0.55, 1.58), Vector3.new(0, 0.4, 0), tint, Enum.Material.Metal)
@@ -105,10 +118,11 @@ return function(ctx)
         if armor and (armor.durability or 0) > 0 then
             local item = ctx.Items[armor.id]
             if damageType == "acid" then damage *= 1 - (item.acidResistance or 0)
-            elseif damageType == "grenade" then damage *= 1 - (item.explosiveResistance or 0) end
+            elseif damageType == "grenade" then damage *= 1 - (item.explosiveResistance or 0)
+            elseif damageType == "electric" then damage *= 1 - (item.electricResistance or 0) end
             damage *= 1 - item.armor
             local before = armor.durability
-            armor.durability = math.max(0, armor.durability - (damageType == "acid" and 0.8 or damageType == "grenade" and 1.2 or 0.5))
+            armor.durability = math.max(0, armor.durability - (damageType == "acid" and 0.8 or damageType == "grenade" and 1.2 or damageType == "electric" and 0.7 or 0.5))
             if before > 0 and armor.durability <= 0 then
                 ctx:Notify(player, "Броня сломана. Замените или отремонтируйте её.", "error")
                 self:SyncArmor(player, s, player.Character)

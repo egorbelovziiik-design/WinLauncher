@@ -238,6 +238,21 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
         detail("PilotHelmet", Vector3.new(1.72, 0.58, 1.57), Vector3.new(0, 3.61, 0), Color3.fromRGB(63, 75, 70), head, Enum.Material.Plastic, true)
         detail("Visor", Vector3.new(1.28, 0.4, 0.12), Vector3.new(0, 3.08, -0.78), Color3.fromRGB(50, 83, 91), head, Enum.Material.Glass)
         detail("FlightHarness", Vector3.new(1.92, 1.4, 0.3), Vector3.new(0, 1.31, -0.58), Color3.fromRGB(82, 91, 73), upper, Enum.Material.Fabric)
+    elseif style == "weaponsmith" then
+        detail("SmithBandanna", Vector3.new(1.68, 0.3, 1.52), Vector3.new(0, 3.66, 0), Color3.fromRGB(91, 55, 39), head, Enum.Material.Fabric, true)
+        detail("SmithGoggles", Vector3.new(1.2, 0.26, 0.1), Vector3.new(0, 3.08, -0.78), Color3.fromRGB(80, 136, 143), head, Enum.Material.Glass)
+        detail("SmithApron", Vector3.new(1.82, 1.5, 0.25), Vector3.new(0, 1.12, -0.59), Color3.fromRGB(83, 59, 42), upper, Enum.Material.Leather)
+        detail("SmithHammer", Vector3.new(0.38, 1.85, 0.38), Vector3.new(1.05, 0.18, 0.15), Color3.fromRGB(115, 79, 46), lower, Enum.Material.Wood)
+    elseif style == "ranger_captain" then
+        detail("RangerBeret", Vector3.new(1.72, 0.3, 1.5), Vector3.new(0, 3.7, 0), Color3.fromRGB(48, 77, 51), head, Enum.Material.Fabric, true)
+        detail("RangerVest", Vector3.new(1.98, 1.45, 0.34), Vector3.new(0, 1.3, -0.59), Color3.fromRGB(55, 76, 56), upper, Enum.Material.Fabric)
+        detail("RangerOptic", Vector3.new(1.2, 0.2, 0.11), Vector3.new(0, 3.08, -0.79), Color3.fromRGB(117, 211, 183), head, Enum.Material.Neon)
+        detail("RangerRadio", Vector3.new(0.55, 1.05, 0.35), Vector3.new(-1.04, 1.2, 0.3), Color3.fromRGB(43, 53, 50), upper, Enum.Material.Metal)
+    elseif style == "armorer" then
+        detail("ArmorerHelmet", Vector3.new(1.72, 0.48, 1.56), Vector3.new(0, 3.67, 0), Color3.fromRGB(71, 80, 78), head, Enum.Material.Metal, true)
+        detail("ArmorerVisor", Vector3.new(1.24, 0.3, 0.1), Vector3.new(0, 3.08, -0.8), Color3.fromRGB(72, 188, 211), head, Enum.Material.Glass)
+        detail("ArmorerApron", Vector3.new(1.9, 1.52, 0.32), Vector3.new(0, 1.18, -0.59), Color3.fromRGB(70, 75, 72), upper, Enum.Material.Leather)
+        detail("ArmorerCoil", Vector3.new(0.24, 0.85, 0.12), Vector3.new(0.58, 1.28, -0.78), Color3.fromRGB(88, 213, 239), upper, Enum.Material.Neon)
     elseif style:match("^soldier_") then
         detail("CombatHelmet", Vector3.new(1.78, 0.56, 1.62), Vector3.new(0, 3.64, 0), Color3.fromRGB(54, 72, 55), head, Enum.Material.Plastic, true)
         detail("MilitaryArmor", Vector3.new(2.03, 1.55, 0.4), Vector3.new(0, 1.3, -0.6), Color3.fromRGB(48, 68, 51), upper, Enum.Material.Fabric)
@@ -263,6 +278,19 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
         elseif style == "zombie_stalker" then
             detail("StalkerHood", Vector3.new(1.75, 0.62, 1.6), Vector3.new(0, 3.56, 0.08), Color3.fromRGB(37, 48, 49), head, Enum.Material.Fabric, true)
             detail("StalkerWrap", Vector3.new(1.9, 1.25, 0.25), Vector3.new(0, 1.3, -0.58), Color3.fromRGB(45, 54, 55), upper, Enum.Material.Fabric)
+        elseif style == "zombie_howler" then
+            detail("HowlerJaw", Vector3.new(1.18, 0.62, 0.22), Vector3.new(0, 2.78, -0.8), Color3.fromRGB(116, 55, 48), head, Enum.Material.Slate)
+            detail("HowlerThroat", Vector3.new(0.58, 0.78, 0.18), Vector3.new(0, 2.26, -0.62), Color3.fromRGB(229, 92, 61), upper, Enum.Material.Neon)
+            detail("HowlerRibs", Vector3.new(2.08, 0.24, 0.4), Vector3.new(0, 1.32, -0.62), Color3.fromRGB(99, 68, 59), upper, Enum.Material.Slate)
+        elseif style == "zombie_shocker" then
+            detail("ShockerMask", Vector3.new(1.3, 0.58, 0.16), Vector3.new(0, 3.05, -0.8), Color3.fromRGB(52, 81, 87), head, Enum.Material.Metal)
+            detail("ShockerCoilLeft", Vector3.new(0.3, 1.25, 0.24), Vector3.new(-0.73, 1.3, -0.66), Color3.fromRGB(80, 210, 235), upper, Enum.Material.Neon)
+            detail("ShockerCoilRight", Vector3.new(0.3, 1.25, 0.24), Vector3.new(0.73, 1.3, -0.66), Color3.fromRGB(80, 210, 235), upper, Enum.Material.Neon)
+            detail("ShockerCell", Vector3.new(1.2, 1.35, 0.58), Vector3.new(0, 1.25, 0.74), Color3.fromRGB(45, 72, 77), upper, Enum.Material.DiamondPlate)
+        elseif style == "zombie_crusher" then
+            detail("CrusherShoulders", Vector3.new(3.25, 0.5, 1.18), Vector3.new(0, 1.8, 0), Color3.fromRGB(69, 81, 78), upper, Enum.Material.Metal)
+            detail("CrusherChest", Vector3.new(2.18, 1.48, 0.42), Vector3.new(0, 1.28, -0.62), Color3.fromRGB(74, 84, 81), upper, Enum.Material.DiamondPlate)
+            detail("CrusherCore", Vector3.new(0.5, 0.5, 0.12), Vector3.new(0, 1.3, -0.86), Color3.fromRGB(104, 220, 153), upper, Enum.Material.Neon)
         elseif style == "zombie_mine_guard" then
             detail("CrackedMinerHelmet", Vector3.new(1.78, 0.45, 1.6), Vector3.new(0, 3.7, 0), Color3.fromRGB(190, 119, 36), head, Enum.Material.Plastic, true)
             detail("MineLamp", Vector3.new(0.38, 0.38, 0.18), Vector3.new(0, 3.66, -0.84), orange, head, Enum.Material.Neon)
@@ -274,6 +302,12 @@ function Factory.rig(name, cf, shirt, skin, scale, style)
             detail("PrismArmor", Vector3.new(2.12, 1.6, 0.42), Vector3.new(0, 1.3, -0.61), Color3.fromRGB(88, 220, 255), upper, Enum.Material.Neon)
             detail("PrismBand", Vector3.new(2.25, 0.22, 0.48), Vector3.new(0, 1.48, -0.83), Color3.fromRGB(255, 220, 75), upper, Enum.Material.Neon)
             detail("PrismShoulders", Vector3.new(3.15, 0.32, 0.95), Vector3.new(0, 1.82, 0), Color3.fromRGB(105, 255, 164), upper, Enum.Material.Neon)
+        elseif style == "zombie_ironclad" then
+            detail("IroncladHelmet", Vector3.new(1.84, 0.72, 1.7), Vector3.new(0, 3.48, 0), Color3.fromRGB(54, 68, 70), head, Enum.Material.DiamondPlate, true)
+            detail("IroncladVisor", Vector3.new(1.42, 0.28, 0.14), Vector3.new(0, 3.05, -0.86), Color3.fromRGB(69, 211, 239), head, Enum.Material.Neon)
+            detail("IroncladChest", Vector3.new(2.34, 1.68, 0.52), Vector3.new(0, 1.28, -0.64), Color3.fromRGB(58, 73, 75), upper, Enum.Material.DiamondPlate)
+            detail("IroncladShoulders", Vector3.new(3.42, 0.52, 1.18), Vector3.new(0, 1.86, 0), Color3.fromRGB(67, 82, 83), upper, Enum.Material.Metal)
+            detail("IroncladCore", Vector3.new(0.64, 0.64, 0.16), Vector3.new(0, 1.28, -0.94), Color3.fromRGB(75, 223, 244), upper, Enum.Material.Neon)
         elseif style == "zombie_foreman" then
             detail("ForemanLamp", Vector3.new(0.5, 0.5, 0.2), Vector3.new(0, 3.72, -0.86), orange, head, Enum.Material.Neon)
         end
@@ -295,14 +329,15 @@ end
 function Factory.weapon(id, color)
     local tool = Instance.new("Tool"); tool.Name = id; tool.CanBeDropped = false
     tool.RequiresHandle = true; tool.ManualActivationOnly = false
-    local sword = table.find({"short_sword", "saber", "longsword", "katana"}, id) ~= nil
-    local melee = table.find({"crowbar", "bat", "hatchet", "machete", "pickaxe", "prism_blade", "short_sword", "saber", "longsword", "katana"}, id) ~= nil
+    local sword = table.find({"short_sword", "saber", "longsword", "katana", "frontier_sword"}, id) ~= nil
+    local melee = table.find({"crowbar", "bat", "hatchet", "machete", "pickaxe", "prism_blade", "short_sword", "saber", "longsword", "katana", "frontier_sword", "foundry_cleaver"}, id) ~= nil
     local handleSize = id == "crowbar" and Vector3.new(0.25, 3.5, 0.25)
         or id == "bat" and Vector3.new(0.52, 3.4, 0.52)
         or id == "hatchet" and Vector3.new(0.32, 2.55, 0.32)
         or id == "machete" and Vector3.new(0.34, 1.35, 0.34)
         or id == "pickaxe" and Vector3.new(0.32, 3.4, 0.32)
         or id == "prism_blade" and Vector3.new(0.34, 1.45, 0.34)
+        or id == "foundry_cleaver" and Vector3.new(0.4, 1.5, 0.4)
         or sword and Vector3.new(0.34, 1.35, 0.34)
         or Vector3.new(0.42, 0.9, 0.62)
     local weaponColor = id == "crowbar" and Color3.fromRGB(132, 48, 42) or (color or dark)
@@ -334,6 +369,13 @@ function Factory.weapon(id, color)
         add("Blade", Vector3.new(0.16, 2.8, 0.72), CFrame.new(0, 1.95, 0), Color3.fromRGB(177, 184, 181))
         add("Guard", Vector3.new(0.9, 0.16, 0.3), CFrame.new(0, 0.72, 0), color or dark)
         tool.Grip = CFrame.new(0, -0.35, 0) * CFrame.Angles(math.rad(8), 0, 0)
+    elseif id == "foundry_cleaver" then
+        h.Color = Color3.fromRGB(67, 48, 37); h.Material = Enum.Material.Leather
+        add("CleaverBlade", Vector3.new(0.18, 3.1, 1.05), CFrame.new(0, 2.2, 0), Color3.fromRGB(126, 137, 137), Enum.Material.DiamondPlate)
+        add("CleaverEdge", Vector3.new(0.12, 2.85, 0.18), CFrame.new(0.02, 2.14, -0.57), Color3.fromRGB(218, 220, 211), Enum.Material.Metal)
+        add("CleaverTip", Vector3.new(0.38, 0.7, 0.82), CFrame.new(0, 3.78, 0) * CFrame.Angles(0, 0, math.rad(45)), Color3.fromRGB(151, 160, 157), Enum.Material.Metal)
+        add("ForgeGuard", Vector3.new(1.35, 0.22, 0.55), CFrame.new(0, 0.82, 0), Color3.fromRGB(202, 117, 43), Enum.Material.Metal)
+        tool.Grip = CFrame.new(0, -0.4, 0) * CFrame.Angles(math.rad(9), 0, 0)
     elseif id == "pickaxe" then
         add("PickHead", Vector3.new(3.2, 0.34, 0.38), CFrame.new(0, 1.65, 0), Color3.fromRGB(132, 139, 140))
         add("PickTip", Vector3.new(0.42, 0.42, 0.42), CFrame.new(1.75, 1.65, 0) * CFrame.Angles(0, 0, math.rad(45)), Color3.fromRGB(177, 184, 181))
@@ -347,18 +389,21 @@ function Factory.weapon(id, color)
         tool.Grip = CFrame.new(0, -0.35, 0) * CFrame.Angles(math.rad(8), 0, 0)
     elseif sword then
         h.Color = id == "katana" and Color3.fromRGB(35, 45, 51) or Color3.fromRGB(82, 58, 43); h.Material = Enum.Material.Leather
-        local bladeLength = id == "short_sword" and 2.55 or id == "saber" and 3.1 or id == "longsword" and 3.75 or 3.45
-        local bladeTint = id == "katana" and Color3.fromRGB(117, 222, 235) or id == "saber" and Color3.fromRGB(222, 228, 226) or Color3.fromRGB(187, 196, 197)
-        add("SwordBlade", Vector3.new(id == "longsword" and 0.18 or 0.13, bladeLength, id == "saber" and 0.5 or 0.68), CFrame.new(0, 0.68 + bladeLength / 2, 0), bladeTint, Enum.Material.Metal)
+        local bladeLength = id == "short_sword" and 2.55 or id == "saber" and 3.1 or id == "longsword" and 3.75 or id == "frontier_sword" and 3.65 or 3.45
+        local bladeTint = id == "katana" and Color3.fromRGB(117, 222, 235) or id == "frontier_sword" and Color3.fromRGB(219, 226, 217) or id == "saber" and Color3.fromRGB(222, 228, 226) or Color3.fromRGB(187, 196, 197)
+        add("SwordBlade", Vector3.new(id == "longsword" and 0.18 or id == "frontier_sword" and 0.2 or 0.13, bladeLength, id == "saber" and 0.5 or 0.68), CFrame.new(0, 0.68 + bladeLength / 2, 0), bladeTint, Enum.Material.Metal)
         add("SwordTip", Vector3.new(0.48, 0.7, id == "saber" and 0.42 or 0.58), CFrame.new(0, 1.02 + bladeLength, 0) * CFrame.Angles(0, 0, math.rad(45)), bladeTint, Enum.Material.Metal)
-        add("SwordGuard", Vector3.new(id == "saber" and 1.3 or id == "longsword" and 1.65 or 1.15, 0.18, 0.42), CFrame.new(0, 0.72, 0), id == "katana" and Color3.fromRGB(49, 62, 68) or Color3.fromRGB(172, 127, 52), Enum.Material.Metal)
-        if id == "katana" then for y = -0.42, 0.28, 0.23 do add("KatanaWrap", Vector3.new(0.42, 0.08, 0.42), CFrame.new(0, y, 0), Color3.fromRGB(72, 156, 163), Enum.Material.Fabric) end end
+        add("SwordGuard", Vector3.new(id == "saber" and 1.3 or id == "longsword" and 1.65 or id == "frontier_sword" and 1.55 or 1.15, 0.18, 0.42), CFrame.new(0, 0.72, 0), id == "katana" and Color3.fromRGB(49, 62, 68) or id == "frontier_sword" and Color3.fromRGB(228, 139, 48) or Color3.fromRGB(172, 127, 52), Enum.Material.Metal)
+        if id == "frontier_sword" then
+            add("EchoFuller", Vector3.new(0.08, 2.8, 0.16), CFrame.new(-0.12, 2.45, -0.36), Color3.fromRGB(240, 170, 64), Enum.Material.Neon)
+            add("EchoPommel", Vector3.new(0.58, 0.42, 0.58), CFrame.new(0, -0.82, 0), Color3.fromRGB(228, 139, 48), Enum.Material.Metal)
+        elseif id == "katana" then for y = -0.42, 0.28, 0.23 do add("KatanaWrap", Vector3.new(0.42, 0.08, 0.42), CFrame.new(0, y, 0), Color3.fromRGB(72, 156, 163), Enum.Material.Fabric) end end
         tool.Grip = CFrame.new(0, -0.38, 0) * CFrame.Angles(math.rad(8), 0, id == "saber" and math.rad(-4) or 0)
     else
-        local long = table.find({"rifle", "assault_rifle", "hunting_rifle", "shotgun", "double_barrel", "smg", "carbine", "sniper_rifle", "lmg"}, id) ~= nil
+        local long = table.find({"rifle", "assault_rifle", "hunting_rifle", "shotgun", "double_barrel", "smg", "carbine", "sniper_rifle", "frontier_dmr", "lmg"}, id) ~= nil
         local length = (id == "rifle" or id == "assault_rifle" or id == "carbine") and 3.5 or (id == "hunting_rifle" or id == "sniper_rifle") and 4.25
-            or id == "shotgun" and 3.9 or id == "double_barrel" and 4.1 or id == "lmg" and 3.85 or id == "smg" and 2.35
-            or id == "machine_pistol" and 1.85 or id == "magnum" and 1.9 or 1.5
+            or id == "frontier_dmr" and 4.05 or id == "shotgun" and 3.9 or id == "double_barrel" and 4.1 or id == "lmg" and 3.85 or id == "smg" and 2.35
+            or id == "machine_pistol" and 1.85 or id == "magnum" and 1.9 or id == "marshal_pistol" and 1.8 or 1.5
         local wide = id == "shotgun" or id == "double_barrel" or id == "lmg"
         if id == "double_barrel" then
             add("LeftBarrel", Vector3.new(0.32, 0.42, length), CFrame.new(-0.2, 0.52, -0.55 - length * 0.18), Color3.fromRGB(76, 82, 81))
@@ -376,16 +421,25 @@ function Factory.weapon(id, color)
             end
         end
         if id == "shotgun" then add("Pump", Vector3.new(0.72, 0.72, 1.15), CFrame.new(0, 0.47, -1.3), Color3.fromRGB(112, 78, 48), Enum.Material.Wood) end
-        if id == "hunting_rifle" or id == "sniper_rifle" then
-            add("Bolt", Vector3.new(0.75, 0.14, 0.14), CFrame.new(0.47, 0.54, -0.38), Color3.fromRGB(175, 182, 180), Enum.Material.Metal)
-            add("Scope", Vector3.new(id == "sniper_rifle" and 0.5 or 0.42, id == "sniper_rifle" and 0.5 or 0.42, id == "sniper_rifle" and 1.7 or 1.35), CFrame.new(0, 1.02, -0.52), Color3.fromRGB(41, 49, 51), Enum.Material.Metal)
+        if id == "hunting_rifle" or id == "sniper_rifle" or id == "frontier_dmr" then
+            if id ~= "frontier_dmr" then add("Bolt", Vector3.new(0.75, 0.14, 0.14), CFrame.new(0.47, 0.54, -0.38), Color3.fromRGB(175, 182, 180), Enum.Material.Metal) end
+            local scopeSize = id == "sniper_rifle" and 0.5 or id == "frontier_dmr" and 0.46 or 0.42
+            add("Scope", Vector3.new(scopeSize, scopeSize, id == "sniper_rifle" and 1.7 or id == "frontier_dmr" and 1.55 or 1.35), CFrame.new(0, 1.02, -0.52), Color3.fromRGB(41, 49, 51), Enum.Material.Metal)
+            if id == "frontier_dmr" then
+                add("DMRHandguard", Vector3.new(0.7, 0.68, 1.55), CFrame.new(0, 0.5, -1.45), Color3.fromRGB(54, 79, 82), Enum.Material.DiamondPlate)
+                add("MuzzleBrake", Vector3.new(0.72, 0.72, 0.62), CFrame.new(0, 0.5, -2.85), Color3.fromRGB(83, 93, 91), Enum.Material.Metal)
+            end
         end
         if id == "revolver" or id == "magnum" then
             local cylinder = add("Cylinder", Vector3.new(0.72, 0.72, 0.72), CFrame.new(0, 0.46, -0.38), Color3.fromRGB(100, 107, 106), Enum.Material.Metal)
             cylinder.Shape = Enum.PartType.Cylinder
-        elseif id == "glock" or id == "machine_pistol" then
-            add("Slide", Vector3.new(0.5, 0.36, id == "machine_pistol" and 1.72 or 1.48), CFrame.new(0, 0.68, -0.52), Color3.fromRGB(67, 72, 71))
-            if id == "machine_pistol" then add("ExtendedMagazine", Vector3.new(0.48, 1.35, 0.55), CFrame.new(0, -0.72, 0.02), color or dark, Enum.Material.Metal) end
+        elseif id == "glock" or id == "machine_pistol" or id == "marshal_pistol" then
+            add("Slide", Vector3.new(id == "marshal_pistol" and 0.58 or 0.5, id == "marshal_pistol" and 0.42 or 0.36, id == "machine_pistol" and 1.72 or id == "marshal_pistol" and 1.78 or 1.48), CFrame.new(0, 0.68, -0.52), id == "marshal_pistol" and Color3.fromRGB(126, 103, 71) or Color3.fromRGB(67, 72, 71))
+            if id == "machine_pistol" then add("ExtendedMagazine", Vector3.new(0.48, 1.35, 0.55), CFrame.new(0, -0.72, 0.02), color or dark, Enum.Material.Metal)
+            elseif id == "marshal_pistol" then
+                add("MarshalBrake", Vector3.new(0.72, 0.55, 0.55), CFrame.new(0, 0.58, -1.5), Color3.fromRGB(91, 96, 92), Enum.Material.Metal)
+                add("MarshalGrip", Vector3.new(0.58, 1.15, 0.68), CFrame.new(0, -0.58, 0.12), Color3.fromRGB(91, 61, 40), Enum.Material.Wood)
+            end
         end
         if id == "assault_rifle" or id == "carbine" or id == "lmg" then
             add("Handguard", Vector3.new(id == "lmg" and 0.82 or 0.72, 0.72, 1.3), CFrame.new(0, 0.49, -1.28), Color3.fromRGB(62, 72, 72), Enum.Material.DiamondPlate)

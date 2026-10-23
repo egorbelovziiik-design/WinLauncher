@@ -33,7 +33,7 @@ return function(app)
         local item = blastPool[blastIndex]; blastIndex = blastIndex % #blastPool + 1; item.serial += 1
         local serial = item.serial; local radius = math.clamp(data.radius or 8, 2, 24)
         item.part.CFrame = CFrame.new(data.from); item.part.Size = Vector3.new(1, 1, 1)
-        item.part.Color = burning and Color3.fromRGB(255, 101, 32) or data.concussion and Color3.fromRGB(224, 235, 255) or Color3.fromRGB(255, 190, 78)
+        item.part.Color = burning and Color3.fromRGB(255, 101, 32) or data.electric and Color3.fromRGB(76, 218, 245) or data.concussion and Color3.fromRGB(224, 235, 255) or Color3.fromRGB(255, 190, 78)
         item.part.Transparency = burning and 0.55 or 0.18
         TweenService:Create(item.part, TweenInfo.new(burning and 0.4 or 0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Size = Vector3.new(radius * 2, radius * 0.65, radius * 2), Transparency = 1,
@@ -72,15 +72,16 @@ return function(app)
     end
     app.Remotes.EffectsRemote.OnClientEvent:Connect(function(kind, data)
         data = data or {}
-        if kind == "shot" or kind == "acid" then
+        if kind == "shot" or kind == "acid" or kind == "electric" then
             if not data.melee then
                 local e = Pool[nextIndex]; nextIndex = nextIndex % #Pool + 1; e.serial += 1
                 local serial = e.serial; local length = (data.to - data.from).Magnitude
                 if length > 0.01 then
-                    e.part.Color = kind == "acid" and Color3.fromRGB(151, 212, 70) or Color3.fromRGB(255, 190, 100)
-                    e.part.Size = Vector3.new(kind == "acid" and 0.14 or 0.045, kind == "acid" and 0.14 or 0.045, length)
-                    e.part.CFrame = CFrame.lookAt((data.from + data.to) / 2, data.to); e.part.Transparency = kind == "acid" and 0.25 or 0.12
-                    task.delay(kind == "acid" and 0.16 or 0.07, function() if e.serial == serial then e.part.Transparency = 1 end end)
+                    e.part.Color = kind == "acid" and Color3.fromRGB(151, 212, 70) or kind == "electric" and Color3.fromRGB(76, 218, 245) or Color3.fromRGB(255, 190, 100)
+                    local thickness = kind == "acid" and 0.14 or kind == "electric" and 0.1 or 0.045
+                    e.part.Size = Vector3.new(thickness, thickness, length)
+                    e.part.CFrame = CFrame.lookAt((data.from + data.to) / 2, data.to); e.part.Transparency = kind == "acid" and 0.25 or kind == "electric" and 0.08 or 0.12
+                    task.delay(kind == "acid" and 0.16 or kind == "electric" and 0.12 or 0.07, function() if e.serial == serial then e.part.Transparency = 1 end end)
                 end
             end
             if kind == "shot" and data.user == app.Player.UserId and data.melee then
@@ -105,6 +106,11 @@ return function(app)
             blast(data, true)
         elseif kind == "impact" then
             impact(data.from, Color3.fromRGB(231, 200, 145), 0.28)
+        elseif kind == "build_spark" then
+            impact(data.from, Color3.fromRGB(255, 187, 72), 0.48)
+        elseif kind == "zombie_howl" then
+            data.electric = true; data.radius = math.min(data.radius or 12, 24); blast(data, false)
+            impact(data.from, Color3.fromRGB(234, 101, 73), 0.72)
         elseif kind == "zombie_hurt" then
             impact(data.from, Color3.fromRGB(164, 204, 104), data.boss and 0.5 or 0.34)
         elseif kind == "zombie_death" then
@@ -120,8 +126,10 @@ return function(app)
             app.HitMarker.Visible = true; popup(data)
             task.delay(data.killed and 0.22 or 0.12, function() if markerSerial == serial then app.HitMarker.Visible = false end end)
         elseif kind == "player_hurt" then
+            hurtFlash.BackgroundColor3 = data.damageType == "electric" and Color3.fromRGB(38, 146, 184) or data.damageType == "acid" and Color3.fromRGB(91, 139, 46) or Color3.fromRGB(142, 31, 31)
             hurtFlash.BackgroundTransparency = math.clamp(0.78 + math.min(0.14, 0.14 - (data.damage or 0) * 0.004), 0.72, 0.9)
             TweenService:Create(hurtFlash, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+            task.delay(0.34, function() if hurtFlash.BackgroundTransparency >= 0.99 then hurtFlash.BackgroundColor3 = Color3.fromRGB(142, 31, 31) end end)
         elseif kind == "medic_heal" then
             hurtFlash.BackgroundColor3 = Color3.fromRGB(53, 145, 91); hurtFlash.BackgroundTransparency = 0.9
             TweenService:Create(hurtFlash, TweenInfo.new(0.35), {BackgroundTransparency = 1}):Play()

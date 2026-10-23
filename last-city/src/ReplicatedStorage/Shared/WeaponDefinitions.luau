@@ -13,6 +13,8 @@ return {
     saber = {damage = 47, interval = 0.47, magazine = 0, reload = 0, range = 8.5, accuracy = 1, durability = 155, rarity = "RARE", level = 1, melee = true, recoil = 0.42},
     longsword = {damage = 60, interval = 0.72, magazine = 0, reload = 0, range = 9, accuracy = 1, durability = 190, rarity = "RARE", level = 2, melee = true, recoil = 0.62},
     katana = {damage = 64, interval = 0.54, magazine = 0, reload = 0, range = 8.8, accuracy = 1, durability = 165, rarity = "EPIC", level = 3, melee = true, recoil = 0.5},
+    frontier_sword = {damage = 70, interval = 0.58, magazine = 0, reload = 0, range = 9.2, accuracy = 1, durability = 215, rarity = "EPIC", level = 3, melee = true, recoil = 0.54},
+    foundry_cleaver = {damage = 57, interval = 0.67, magazine = 0, reload = 0, range = 8.1, accuracy = 1, durability = 235, rarity = "RARE", level = 2, melee = true, recoil = 0.66},
 
     pistol = {damage = 32, interval = 0.32, magazine = 8, reload = 1.7, range = 160, accuracy = 0.99, hitRadius = 1.55, durability = 100, rarity = "UNCOMMON", level = 1, ammo = "ammo", recoil = 0.85},
     glock = {damage = 30, interval = 0.22, magazine = 10, reload = 1.45, range = 175, accuracy = 0.992, hitRadius = 1.5, durability = 110, rarity = "RARE", level = 1, ammo = "ammo", recoil = 0.72},
@@ -27,5 +29,7 @@ return {
     magnum = {damage = 74, interval = 0.58, magazine = 6, reload = 2.3, range = 215, accuracy = 0.995, hitRadius = 1.35, durability = 135, rarity = "EPIC", level = 2, ammo = "magnum_ammo", recoil = 1.7},
     carbine = {damage = 36, interval = 0.2, magazine = 20, reload = 2.05, range = 255, accuracy = 0.989, hitRadius = 1.42, durability = 140, rarity = "RARE", level = 2, ammo = "rifle_ammo", recoil = 0.62},
     sniper_rifle = {damage = 110, interval = 1.15, magazine = 5, reload = 2.85, range = 430, accuracy = 0.999, hitRadius = 1.05, durability = 125, rarity = "EPIC", level = 3, ammo = "sniper_ammo", recoil = 2.1},
+    frontier_dmr = {damage = 86, interval = 0.46, magazine = 10, reload = 2.7, range = 370, accuracy = 0.998, hitRadius = 1.12, durability = 155, rarity = "EPIC", level = 3, ammo = "sniper_ammo", recoil = 1.38},
+    marshal_pistol = {damage = 62, interval = 0.39, magazine = 8, reload = 2.05, range = 220, accuracy = 0.996, hitRadius = 1.3, durability = 150, rarity = "RARE", level = 2, ammo = "magnum_ammo", recoil = 1.35},
     lmg = {damage = 28, interval = 0.11, magazine = 50, reload = 3.4, range = 245, accuracy = 0.95, hitRadius = 1.65, durability = 165, rarity = "EPIC", level = 3, ammo = "heavy_ammo", auto = true, recoil = 0.78},
 }

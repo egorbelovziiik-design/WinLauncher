@@ -40,7 +40,7 @@ return function(app, body)
             UI.button(actionRow, text, callback, {Size = UDim2.fromOffset(width or 90, 32), TextSize = 11, BackgroundColor3 = accent and T.accent or T.raised})
         end
         if def.weapon or def.armor then
-            if c.Equipped == e.uid or c.Armor == e.uid then UI.label(row, "ЭКИПИРОВАНО", 10, {Size = UDim2.fromOffset(110, 32), TextColor3 = T.success})
+            if c.Equipped == e.uid or c.Armor == e.uid then button("Снять", function() app:Send("InventoryRemote", {action = "unequip", uid = e.uid}) end, 110)
             else button("Экипировать", function() app:Send("InventoryRemote", {action = "equip", uid = e.uid}) end, 110, true) end
         elseif def.use then button(def.grenade and "Бросить" or "Использовать", function() app:Send("InventoryRemote", {action = "use", uid = e.uid, aim = workspace.CurrentCamera.CFrame.LookVector}) end, 104, true)
         elseif not def.blueprint then button("На склад", function() app:Send("InventoryRemote", {action = "deposit", id = e.id, count = e.count}) end, 90) end

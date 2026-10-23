@@ -143,6 +143,11 @@ test("owned cosmetic is not charged again", function() local p=fresh(); p.Coins=
 test("craft requires a completed workshop", function() local _,c=fresh(); rich(c); eq(Economy.craft(c,"ammo",100),false); Building.place(c,"workshop",0,0,0,100); eq(Economy.craft(c,"ammo",105),false); assert(Economy.craft(c,"ammo",110)) end)
 test("craft consumes exact inputs and rejects parallel orders", function() local _,c=fresh(); rich(c); Building.place(c,"workshop",0,0,0,100); local metal=c.Stockpile.metal; assert(Economy.craft(c,"ammo",110)); eq(c.Stockpile.metal,metal-2); eq(Economy.craft(c,"ammo",110),false); eq(c.Stockpile.metal,metal-2) end)
 test("craft cannot be claimed early or twice", function() local _,c=fresh(); rich(c); Building.place(c,"workshop",0,0,0,100); Economy.craft(c,"ammo",110); eq(Economy.collectCraft(c,119),false); assert(Economy.collectCraft(c,120)); eq(Inventory.count(c,"ammo"),16); eq(Economy.collectCraft(c,120),false) end)
+test("Frontier equipment recipes remain server-locked until Alex opens City Two", function()
+    local _,c=fresh(); rich(c); Building.place(c,"workshop",0,0,0,100); local steel=c.Stockpile.steel_plate
+    eq(Economy.craft(c,"foundry_cleaver",110),false); eq(c.Stockpile.steel_plate,steel); eq(c.Craft,nil)
+    c.Quests.second_city={status="RewardClaimed",progress={25},seen={}}; assert(Economy.craft(c,"foundry_cleaver",110)); eq(c.Stockpile.steel_plate,steel-8)
+end)
 test("full backpack retains finished craft for later collection", function() local _,c=fresh(); rich(c); Building.place(c,"workshop",0,0,0,100); Economy.craft(c,"ammo",110); Inventory.grant(c,{crowbar=20}); eq(Economy.collectCraft(c,120),false); assert(c.Craft); Inventory.remove(c,"crowbar",1); assert(Economy.collectCraft(c,121)); eq(Inventory.count(c,"ammo"),16) end)
 
 test("tutorial flags do not count when skipped", function() local _,c=fresh(); c.Tutorial.status="Skipped"; Progression.fact(c,"kill"); eq(c.Tutorial.facts.kill,nil) end)
@@ -262,13 +267,27 @@ test("second-city medical caches deduplicate and reward only after unlock",funct
     for _,uid in {"HarborMedical1","HarborMedical2","HarborMedical3"} do Quests.record(c,"harbor_medical","harbor",1,103,uid); Quests.record(c,"harbor_medical","harbor",1,103,uid) end
     eq(c.Quests.harbor_aid.progress[1],3); assert(Quests.claim(p,c,"harbor_aid",104)); eq(Inventory.count(c,"bandage"),6)
 end)
-test("builder squad and split audio settings survive profile normalization",function()
+test("builder remaining work and split audio settings survive normalization without offline progress",function()
     local p,c=fresh(); rich(c); local _,b=Building.place(c,"wall",0,0,0,100)
-    c.Builder.order=b.uid; c.Squad={command="gather",resource="mine",returnAt=999999,expedition=4,completed=3}
+    c.Builder.order=b.uid; c.Builder.remaining=0.25; c.Builder.working=true; b.readyAt=1
+    c.Squad={command="gather",resource="mine",returnAt=999999,expedition=4,completed=3}
     p.Settings.music=0.77; p.Settings.effects=0.22
     local copy=assert(Profile.normalize(Util.copy(p))); local campaign=copy.Campaigns.coop
-    eq(campaign.Builder.order,b.uid); eq(campaign.Squad.command,"gather"); eq(campaign.Squad.resource,"mine")
+    eq(campaign.Builder.order,b.uid); eq(campaign.Builder.remaining,0.25); eq(campaign.Builder.working,false)
+    assert(campaign.Buildings[1].readyAt>os.time()); eq(campaign.Squad.command,"gather"); eq(campaign.Squad.resource,"mine")
     eq(campaign.Squad.expedition,4); eq(campaign.Squad.completed,3); eq(copy.Settings.music,0.77); eq(copy.Settings.effects,0.22)
+end)
+test("demolishing an active builder project clears all persisted order state",function()
+    local _,c=fresh(); rich(c); local _,b=Building.place(c,"wall",0,0,0,100)
+    c.Builder.order=b.uid; c.Builder.remaining=3; c.Builder.working=true
+    assert(Building.remove(c,b.uid,true)); eq(c.Builder.order,""); eq(c.Builder.remaining,0); eq(c.Builder.working,false)
+end)
+test("active builder work cannot become productive through an expired projected deadline",function()
+    local _,c=fresh(); rich(c); local _,b=Building.place(c,"farm",0,0,0,100); b.readyAt=0
+    c.Builder.order=b.uid; c.Builder.remaining=5; local cash=c.Cash
+    eq(Building.complete(c,b,1000),false); eq(#Economy.farmIncome(c,1000),0); eq(c.Cash,cash)
+    c.Builder.order=""; c.Builder.remaining=0
+    eq(Building.complete(c,b,1000),true); eq(#Economy.farmIncome(c,1000),1); eq(c.Cash,cash+10)
 end)
 test("normalization cannot resurrect a completed or timerless squad expedition",function()
     local p,c=fresh(); c.Squad={command="gather",resource="wood",returnAt=0,expedition=2,completed=2}
@@ -288,11 +307,15 @@ test("military generator and greenhouse consume inputs and produce real output",
     eq(Economy.tick(c,119,12).supply,55); Economy.tick(c,149,12)
     eq(c.Stockpile.food,4); eq(c.Stockpile.herbs,1); eq(c.Stockpile.water,water-1)
 end)
-test("expanded infected roster preserves zone-exclusive bosses and mine enemies",function()
-    local count=0; for _ in ZombieDefs do count+=1 end; eq(count,14)
+test("expanded infected roster preserves zones and adds real support ranged and regenerating roles",function()
+    local count=0; for _ in ZombieDefs do count+=1 end; eq(count,18)
     assert(ZombieDefs.foreman.mineOnly and ZombieDefs.mine_guard.mineOnly and ZombieDefs.mine_guard.minion)
     assert(ZombieDefs.corrosive.city2Only and ZombieDefs.stalker.city2Only and ZombieDefs.warden.city2Only)
     assert(ZombieDefs.rainbow.city2Only and ZombieDefs.rainbow.boss and ZombieDefs.reaver.city1Only and ZombieDefs.reaver.boss)
+    assert(ZombieDefs.howler.city2Only and ZombieDefs.howler.howlRadius>0 and ZombieDefs.howler.enrageDuration>0)
+    assert(ZombieDefs.shocker.city2Only and ZombieDefs.shocker.damageType=="electric" and ZombieDefs.shocker.staminaDrain>0 and ZombieDefs.shocker.ranged>0)
+    assert(ZombieDefs.crusher.city2Only and ZombieDefs.crusher.regenPerSecond>0 and ZombieDefs.crusher.regenDelay>0)
+    assert(ZombieDefs.ironclad.boss and ZombieDefs.ironclad.city2Only and ZombieDefs.ironclad.damageType=="electric" and ZombieDefs.ironclad.regenPerSecond>0)
     eq(ZombieDefs.walker.damage,5); eq(ZombieDefs.rainbow.profileCoins,35)
 end)
 test("City One equipment ladder and Rainbow gear are functional definitions",function()
@@ -324,8 +347,12 @@ test("expanded swords firearms ammunition grenades and armor are obtainable func
         assert(sold[definition.item]); eq(EconomyDefs.Recipes[definition.item].output[definition.item],1)
     end
     assert(Grenades.incendiary.burnTicks==5 and Grenades.incendiary.burnDamage>0); eq(Grenades.concussion.stunSeconds,5)
-    for _,id in {"ranger_armor","demolisher_armor"} do assert(Items[id].armor>0 and Items[id].armorStyle); assert(sold[id]); eq(EconomyDefs.Recipes[id].output[id],1) end
-    eq(Items.demolisher_armor.explosiveResistance,0.5)
+    for _,id in {"ranger_armor","demolisher_armor","ranger_elite_armor"} do assert(Items[id].armor>0 and Items[id].armorStyle); assert(sold[id]); eq(EconomyDefs.Recipes[id].output[id],1) end
+    for _,id in {"foundry_cleaver","marshal_pistol"} do assert(Items[id].weapon and Weapons[id] and sold[id]); eq(EconomyDefs.Recipes[id].output[id],1) end
+    assert(Items.frontier_sword.questExclusive and Weapons.frontier_sword.melee and not sold.frontier_sword and EconomyDefs.Recipes.frontier_sword==nil)
+    assert(Items.frontier_dmr.questExclusive and Weapons.frontier_dmr.ammo=="sniper_ammo" and not sold.frontier_dmr and EconomyDefs.Recipes.frontier_dmr==nil)
+    assert(Items.storm_armor.questExclusive and Items.storm_armor.electricResistance==0.75 and not sold.storm_armor and EconomyDefs.Recipes.storm_armor==nil)
+    eq(Items.demolisher_armor.explosiveResistance,0.5); eq(Items.ranger_elite_armor.electricResistance,0.4)
 end)
 test("five specialist contracts have explicit permanent prices and roles",function()
     local expected={builder=1250,medic=1000,guard=1500,scout=900,gatherer=1100}; local count=0
@@ -344,14 +371,28 @@ test("specialists pity voice and first-person settings survive normalization",fu
     eq(campaign.Recruits.invented,nil); eq(campaign.BossPity.rainbowArmor,3); eq(campaign.BossPity.rainbowWeapon,0)
     eq(copy.Settings.voice,0.61); eq(copy.Settings.firstPerson,true)
 end)
-test("four additional City Two quests are chained to real objectives and loot",function()
-    local count=0; for _ in QuestDefs do count+=1 end; eq(count,16)
+test("seven additional City Two quests are chained to real objectives and exclusive rewards",function()
+    local count=0; for _ in QuestDefs do count+=1 end; eq(count,19)
     eq(QuestDefs.frontier_patrol.requires,"second_city"); eq(QuestDefs.frontier_homes.objectives[1].count,4)
     eq(QuestDefs.frontier_rebuild.objectives[1].target,"steel_plate")
     eq(QuestDefs.prism_cave.requires,"frontier_homes"); eq(QuestDefs.prism_cave.objectives[1].target,"rainbow")
+    eq(QuestDefs.frontier_blades.requires,"frontier_patrol"); eq(QuestDefs.frontier_blades.objectives[1].target,"echo_steel"); eq(QuestDefs.frontier_blades.reward.items.frontier_sword,1)
+    eq(QuestDefs.frontier_armor.requires,"frontier_rebuild"); eq(QuestDefs.frontier_armor.objectives[2].target,"crusher"); eq(QuestDefs.frontier_armor.reward.items.storm_armor,1)
+    eq(QuestDefs.frontier_arsenal.requires,"frontier_blades"); eq(QuestDefs.frontier_arsenal.objectives[2].target,"ironclad"); eq(QuestDefs.frontier_arsenal.reward.loadedWeapons[1].id,"frontier_dmr")
 end)
-test("map bounds include separated second city without expanding private plots",function()
-    assert(Config.MapBounds.maxX>=Config.SecondCity.x and Config.MapBounds.minX<0); eq(Config.PlotHalfSize,48); eq(Config.Grid,4)
+test("Echo of Steel quest records both authored objectives and grants its sword exactly once",function()
+    local p,c=fresh(); c.Quests.frontier_patrol={status="RewardClaimed",progress={},seen={}}
+    assert(Quests.accept(c,"frontier_blades",100)); Quests.record(c,"forge_relic","echo_steel",3,101); eq(c.Quests.frontier_blades.status,"Active")
+    Quests.record(c,"kill","howler",5,102); eq(c.Quests.frontier_blades.status,"Completed")
+    assert(Quests.claim(p,c,"frontier_blades",103)); eq(Inventory.count(c,"frontier_sword"),1); eq(Quests.claim(p,c,"frontier_blades",104),false); eq(Inventory.count(c,"frontier_sword"),1)
+end)
+test("Last Arsenal quest grants a loaded DMR and separate precision reserve atomically",function()
+    local p,c=fresh(); c.Quests.frontier_blades={status="RewardClaimed",progress={},seen={}}
+    assert(Quests.accept(c,"frontier_arsenal",100)); Quests.record(c,"kill","shocker",6,101); Quests.record(c,"kill","ironclad",1,102)
+    assert(Quests.claim(p,c,"frontier_arsenal",103)); local rifle=find(c,"frontier_dmr"); eq(rifle.ammo,10); eq(Inventory.count(c,"sniper_ammo"),30)
+end)
+test("map bounds include the enlarged separated second city without expanding private plots",function()
+    assert(Config.MapBounds.maxX>=1430 and Config.MapBounds.maxZ>=640 and Config.MapBounds.minX<0); eq(Config.PlotHalfSize,48); eq(Config.Grid,4)
 end)
 print(string.format("\nDOMAIN RESULTS: %d PASSED / %d FAILED",passed,failed))
 assert(failed==0,"Domain regression suite failed")

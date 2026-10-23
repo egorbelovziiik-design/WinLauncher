@@ -20,7 +20,7 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             Quests = {}, Buildings = {}, NextBuildingId = 0, Hunger = 100, Thirst = 100,
             Tutorial = {status = "New", facts = {}}, Reputation = {SURVIVORS = 0, TRADERS = 0},
             Workers = {{name = "Мира", job = ""}, {name = "Лев", job = ""}}, Morale = 80,
-            Builder = {name = "Степан", order = ""},
+            Builder = {name = "Степан", order = "", remaining = 0, working = false},
             Squad = {command = "base", resource = "metal", returnAt = 0, expedition = 0, completed = 0},
             Recruits = {}, BossPity = {rainbowArmor = 0, rainbowWeapon = 0},
             Stats = {kills = 0, quests = 0, buildings = 0, seconds = 0},
@@ -143,7 +143,19 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             end
         end
         if type(raw.Builder) == "table" and type(raw.Builder.order) == "string" then
-            for _, b in c.Buildings do if b.uid == raw.Builder.order then c.Builder.order = b.uid; break end end
+            for _, b in c.Buildings do
+                if b.uid == raw.Builder.order then
+                    -- Builder projects do not finish while the player is offline. New saves
+                    -- persist exact remaining work; legacy saves derive it from readyAt.
+                    local fallback = math.max(0, b.readyAt - os.time())
+                    local remaining = Util.finite(raw.Builder.remaining) and math.clamp(raw.Builder.remaining, 0, 3600) or fallback
+                    if remaining > 0 then
+                        c.Builder.order = b.uid; c.Builder.remaining = remaining; c.Builder.working = false
+                        b.readyAt = os.time() + remaining
+                    end
+                    break
+                end
+            end
         end
         if type(raw.Squad) == "table" then
             if table.find({"base", "follow", "gather"}, raw.Squad.command) then c.Squad.command = raw.Squad.command end

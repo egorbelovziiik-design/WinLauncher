@@ -1,14 +1,14 @@
-# Отчёт о проверках — ECHOES OF STEEL 0.6.1
+# Отчёт о проверках — FRONTIER REFORGED 0.7.0
 
 Дата полного автоматического прогона: **2026-10-23**.
 
 ## Честная граница результата
 
-**Полный автоматический pipeline PASSED. Roblox Studio / Roblox Engine 0.6.1 в этой среде не запускался.**
+**Полный автоматический pipeline PASSED. Roblox Studio / Roblox Engine 0.7.0 в этой среде не запускался.**
 
 `PASSED` ниже относится только к явно указанному слою. Compilation, API doubles и разбор binary DOM не доказывают реальную физику гранат, Humanoid grounding, Motor6D/weld-картинку, Pathfinding, Streaming, mobile UX, TTS/audio playback, FPS, DataStore или репликацию 2–9 клиентов. Эти пункты остаются **NOT TESTED** до выполнения [STUDIO_QA.md](STUDIO_QA.md).
 
-Известная пользовательская проверка 0.6.0 показала, что меню загружалось, но «ИГРАТЬ» повторно возвращало уведомление о загрузке персонажа. Это не считается успешным Play gate. В 0.6.1 путь переписан и покрыт автоматическими lifecycle-регрессиями, однако реальный Studio retest всё равно обязателен.
+Известная пользовательская проверка 0.6.0 показала, что меню загружалось, но «ИГРАТЬ» повторно возвращало уведомление о загрузке персонажа. Это не считается успешным Play gate. В 0.6.1 путь входа был переписан и покрыт lifecycle-регрессиями; 0.7.0 сохраняет исправление, но ручной Studio retest всё равно обязателен.
 
 ## Финальный автоматический gate
 
@@ -23,85 +23,88 @@ python3 last-city/tools/test.py
 | Luau compilation, pinned 0.743 | **PASSED** | 57 / 57 sources |
 | Standalone analysis | **PASSED** | Только разрешённые Roblox `Vector3` diagnostics |
 | Serialization regressions | **PASSED** | 10 / 10 |
-| Road geometry regressions | **PASSED** | 9 / 9 |
-| Domain transactions | **PASSED** | 128 / 128 |
-| Roblox API adapter doubles | **PASSED** | 114 / 114 |
-| Independent binary assertions | **PASSED** | 218 / 218 |
+| Road/structure geometry regressions | **PASSED** | 10 / 10 |
+| Domain transactions | **PASSED** | 133 / 133 |
+| Roblox API adapter doubles | **PASSED** | 126 / 126 |
+| Independent binary assertions | **PASSED** | 270 / 270 |
 | Две последовательные сборки | **PASSED** | Byte-for-byte identical |
-| Roblox Studio import / Play 0.6.1 | **NOT TESTED** | Нужен Studio |
+| Roblox Studio import / Play 0.7.0 | **NOT TESTED** | Нужен Studio |
+| Humanoid / Pathfinding / Motor6D | **NOT TESTED** | Нужен Roblox Engine |
 | Projectile physics / armor weld presentation | **NOT TESTED** | Нужен Roblox Engine |
 | Engine TTS / bundled audio playback | **NOT TESTED** | Нужен Roblox client |
 | Живой DataStore / server handoff | **NOT TESTED** | Нужна test experience |
 | 2–9 реальных клиентов | **NOT TESTED** | Нужен Studio/опубликованный сервер |
 | FPS / MicroProfiler / mobile | **NOT TESTED** | Нужны реальные измерения |
 
-Standalone Luau CLI не содержит Roblox userdata type registry. Разрешены только пять `Unknown type 'Vector3'` сообщений в `CombatService` и `EffectsController`; все 57 файлов компилируются. Любая diagnostic другого типа завершает pipeline ошибкой.
+Standalone Luau CLI не содержит Roblox userdata type registry. Разрешены только шесть `Unknown type 'Vector3'` сообщений в `BuildingService`, `CombatService` и `EffectsController`; все 57 файлов компилируются. Любая diagnostic другого типа завершает pipeline ошибкой.
 
 ## Проверенный артефакт
 
 ```text
 Файл:      last-city/releases/LAST_CITY_3D.rbxl
-Версия:    0.6.1 — ECHOES OF STEEL
-SHA-256:   476ff32a113cce48bd4d2bdd9aca9afcf85d0d3cf7cfd1a0da2edf0e65b4f4a2
-Размер:    345 797 bytes
-Instances: 7 580
-BasePart:  6 816
+Версия:    0.7.0 — FRONTIER REFORGED
+SHA-256:   9311ea07bae623f8f15a8fa0c19c692e6a52a50aeb9cbba1501ded1e65e50cc7
+Размер:    365 912 bytes
+Instances: 8 143
+BasePart:  7 232
 Scripts:   57
 ```
 
-`rbxm-parser` создаёт бинарный Roblox place; независимый `rbx-reader` разбирает готовый файл. Проверены настоящий `<roblox!` header, pinned Terrain fixture, service markers, references, exact UTF-8 Source, world tree, properties и binary roundtrip. Все 57 embedded source byte-for-byte совпадают с repository. Геометрия остаётся ниже явного бюджета 7 000 BaseParts.
+`rbxm-parser` создаёт бинарный Roblox place; независимый `rbx-reader` разбирает готовый файл. Проверены настоящий `<roblox!` header, pinned Terrain fixture, service markers, references, exact UTF-8 Source, world tree, properties и binary roundtrip. Все 57 embedded source byte-for-byte совпадают с repository. Статическая геометрия остаётся ниже явно проверяемого бюджета 7 400 BaseParts.
 
-## Новые обязательные регрессии 0.6.1
+## Обязательные регрессии 0.7.0
 
-### Вход и lifecycle персонажа
+### Расширение НОВОГО РУБЕЖА
 
-- Повторные Play clicks при отсутствующем Character ставят ровно один recovery.
-- Character без `HumanoidRootPart` заменяется и затем входит в игру.
-- Мёртвый Humanoid восстанавливается до перехода.
-- Исключение `LoadCharacterAsync()` не оставляет вечный lock, сохраняет diagnostic и позволяет повторить действие.
-- Composition root явно включает `CharacterAutoLoads` и запускает все services.
+- Основание района ровно одно, заземлено и имеет размер `740 × 1080` studs.
+- 15 асфальтовых прямоугольников соединяются краями без coplanar overlap.
+- 26 тротуаров не пересекают driving lanes; lane paint не создаёт второй слой дороги.
+- Пять новых учреждений, 14 домов и четыре boss arena footprint не пересекаются друг с другом или асфальтом.
+- Отдельные регрессии фиксируют найденные дефекты кузница/арена и южный релей/дом №12.
+- Три storm-cache вынесены из гидравлических прессов; binary gate проверяет все 22 уникальные quest targets.
+- Binary gate подтверждает 50 bounded enemy markers, 96 loot markers, богатые City 2 crate IDs и отдельные Rainbow/Ironclad spawns.
 
-### Грядки и склад дерева
+### Задания, снаряжение и gating
 
-- Каждая готовая живая грядка отдельно добавляет ровно 10 Survival Cash; разрушенная не платит.
-- Coins не меняются, offline catch-up не создаётся, сервис платит не чаще раза в секунду.
-- Owner-only `farm_cash` содержит UID, сумму 10 и позицию грядки; клиент использует pooled зелёный `+10 CASH`.
-- E-терминал склада атомарно переносит реальное дерево из backpack в сохранённый stockpile.
-- Проверены дистанция, повтор с пустым backpack, stock-driven pile и bounded число визуальных досок.
-- Binary gate подтверждает две заземлённые доски, две опоры знака и отсутствие старой пересекающей `RackBack`.
+- Три цепочки Ярослава, Михаила и Дарьи требуют реальные уникальные события/цели и платят награду только один раз.
+- Frontier Sword, Foundry Cleaver, Frontier DMR и Marshal Pistol имеют item, weapon, model и server-authoritative combat параметры.
+- Storm Armor и Ranger Elite Armor имеют отдельную welded-геометрию и реальную electric resistance.
+- Frontier DMR выдаётся с сохранённым магазином 10/10 и отдельным резервом.
+- Три advanced-рецепта остаются недоступны до `second_city=RewardClaimed`; отказ не расходует ни stockpile, ни backpack.
+- Quartermaster inventory проверяет City 2 и близость Феликса на сервере.
 
-### Быстрые слоты
+### Новые заражённые
 
-- Новый профиль имеет шесть слотов и crowbar UID в слоте 1.
-- `equipToQuick` назначает первый пустой слот и откатывает equip, если заняты все шесть.
-- Ресурс нельзя назначить; consumable/weapon/armor можно.
-- Последний израсходованный предмет очищает сохранённую ссылку.
-- Normalize удаляет forged UID, resource UID и duplicates, восстанавливая лом в слот 1.
-- Adapter проверяет Equip → slot 2, explicit clear, запрет очистки slot 1 и quick consumable.
-- Клиент создаёт шесть кнопок и обрабатывает клавиши `1–6`; `1` остаётся отдельным server crowbar toggle.
+- Howler применяет bounded временное усиление к ближайшей стае.
+- Shocker использует отдельный electric pipeline и истощает выносливость только с защитой целой брони; durability `0` больше не оставляет скрытое сопротивление stamina drain.
+- Crusher регенерирует только после интервала без урона.
+- Ironclad имеет отдельный Arsenal lifecycle и не блокирует другие boss spawns.
+- Mine-only, city1-only и city2-only правила сохраняются; `AgentCanJump=false` остаётся у заражённых и союзных NPC.
 
-### Арсенал, боеприпасы и броня
+### Настоящая стройка Степана
 
-- Четыре новых меча и пять новых firearms имеют предмет, server weapon definition, shop product и workshop recipe.
-- Четыре новых ammo ID несовместимы и привязаны к соответствующим firearms.
-- Factory создаёт отличимые `SwordBlade`, guard/tip/wrap, extended magazine, cylinder, handguard, scope и bipod.
-- Ranger и Demolisher armor продаются/создаются, а все шесть новых комплектов дают отдельные welded visual parts.
-- Demolisher armor реально применяет 50% explosive resistance до 36% базовой защиты и теряет durability.
+- Заказ атомарно списывает смешанные backpack/stockpile материалы и Cash только после поиска валидного footprint с доступной стороной.
+- Детерминированный flood-fill отклоняет изолированный маршрут до оплаты.
+- Adapter напрямую вызывает реальный `NPCService:UpdateBuilder`: Степан у площадки уменьшает `remaining`, а дальняя позиция — нет.
+- Диалог, заражённый рядом, travel/frozen session и три ошибки пути не уменьшают работу; blocked path переключает сторону.
+- Прогресс хранится как `Builder.remaining`, `working` не доверяется сохранению, а normalization перебазирует projected deadline без offline work; регрессия отдельно сохраняет дробный остаток `0.25` с и не допускает преждевременного завершения.
+- Истёкший `readyAt` активного заказа не включает farm Cash, power, production, workshop, turret, spikes, watchtower или command-post bonus.
+- Реальное завершение делает модель непрозрачной, очищает заказ и уведомляет владельца.
+- Снос и уничтожение очищают `order`, `remaining` и `working`.
+- Клиент обрабатывает pooled `build_spark`; UI и E-диалог показывают секунды настоящей работы.
 
-### Гранаты
+### Сохранённые регрессии 0.6.1
 
-- Quick-slot frag grenade расходуется ровно один раз до fuse; повтор блокируется server cooldown.
-- Переданные клиентом `damage` и `radius` игнорируются.
-- Server-owned projectile и server definition определяют fuse, скорость, радиус и урон.
-- Frag damage использует distance falloff и line-of-sight.
-- Incendiary даёт initial damage и bounded repeated burn.
-- Concussion записывает bounded `stunnedUntil`, а zombie AI прекращает движение/атаку на это время.
-- Self-damage проходит общий armor pipeline; friendly players не являются целями.
-- Клиентский взрыв использует заранее выделенный ограниченный pool.
+- Guarded character recovery не оставляет вечный Play-lock.
+- Каждая готовая живая грядка платит ровно +10 Survival Cash раз в online second; Coins и offline catch-up не меняются.
+- E-склад дерева атомарно переносит реальный backpack wood и управляет bounded pile.
+- Шесть quick slots нормализуют forged/duplicate UID; slot 1 остаётся crowbar toggle.
+- Гранаты расходуются до server-owned projectile; клиентские damage/radius игнорируются.
+- Раздельные ammo, видимая броня, explosive/acid/electric resistance и authoritative reload остаются покрыты.
 
 ## Сохранённые критические контракты
 
-- Базовый walker наносит ровно 5 HP до брони.
+- Базовый Walker наносит ровно 5 HP до брони.
 - Шахта выдаёт атомарно Glock 10/10 и ровно 48 reserve rounds.
 - Алекс открывает City 2 после ровно 25 server-credited kills.
 - Boris unlock, Rada/Gleb commands, recruiter roles, Rainbow pity/drop и helicopter round trip сохранены.
@@ -113,7 +116,8 @@ Scripts:   57
 
 | Версия | Статус | Свидетельство |
 |---|---|---|
-| 0.6.1 | **NOT TESTED** | Нужен новый import/Play после hotfix |
+| 0.7.0 | **NOT TESTED** | Нужен новый import/Play и builder/City 2 QA |
+| 0.6.1 | **NOT TESTED** | Не получено подтверждение import/Play после hotfix |
 | 0.6.0 | **FAILED** | Меню загружалось, Play повторно показывал character-loading notice |
 | 0.5.0 | **NOT TESTED** | Нет подтверждения |
 | 0.4.0 | **NOT TESTED** | Нет подтверждения |

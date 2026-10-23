@@ -16,7 +16,7 @@ function View.cosmetics(app, body)
 end
 function View.trade(app, body)
     local UI = app.UI; local c = app.State.campaign
-    UI.paragraph(body, "Торговец Макс в Меридиане и квартирмейстер Феликс в НОВОМ РУБЕЖЕ проводят сделки только рядом со своим прилавком. Цены растут при дефиците; склад пополняется каждые 5 минут.", 62)
+    UI.paragraph(body, "Торговец Макс в Меридиане и квартирмейстер Феликс в НОВОМ РУБЕЖЕ проводят сделки только рядом со своим прилавком. Метка [РУБЕЖ] означает эксклюзивный склад Феликса. Цены растут при дефиците; запас обновляется каждые 5 минут.", 76)
     UI.heading(body, c.Cash .. " SURVIVAL CASH  /  РЕПУТАЦИЯ " .. c.Reputation.TRADERS)
     for _, product in app.Economy.Shop do
         local count = app.State.shop[product.id] or 0
@@ -29,7 +29,7 @@ function View.trade(app, body)
             return sum
         end
         local card = UI.card(body, 101)
-        UI.label(card, app.Items[product.id].name .. "   /   " .. count .. " в наличии", 14, {Position = UDim2.fromOffset(12, 9), Size = UDim2.new(1, -24, 0, 24), Font = Enum.Font.GothamBold})
+        UI.label(card, (product.city2 and "[РУБЕЖ]  " or "") .. app.Items[product.id].name .. "   /   " .. count .. " в наличии", 14, {Position = UDim2.fromOffset(12, 9), Size = UDim2.new(1, -24, 0, 24), Font = Enum.Font.GothamBold})
         UI.label(card, "Продажа: " .. math.floor(product.price * 0.35) .. " Cash/шт.  ·  У вас: " .. app:Count(product.id), 11, {Position = UDim2.fromOffset(12, 35), Size = UDim2.new(1, -24, 0, 20), TextColor3 = UI.Theme.muted})
         local row = UI.row(card, 28); row.Position = UDim2.fromOffset(12, 64); row.Size = UDim2.new(1, -24, 0, 28)
         if count > 0 then UI.button(row, "1 за " .. total(1), function() app:Send("ShopRemote", {action = "buy", id = product.id, count = 1}) end, {Size = UDim2.new(0.32, -5, 1, 0), TextSize = 11, BackgroundColor3 = UI.Theme.accent}) end

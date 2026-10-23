@@ -120,7 +120,7 @@ return function(ctx)
     function Service:GuardPoint(player, index)
         local s = ctx.Sessions[player]; local plot = ctx.Config.Plots[s.Plot]
         for _, b in s.Campaign.Buildings do
-            if ctx.BuildingDefs[b.id].guardPost and b.readyAt <= os.time() and b.hp > 0 then
+            if ctx.BuildingDefs[b.id].guardPost and ctx.Building.complete(s.Campaign, b, os.time()) and b.hp > 0 then
                 local at = ctx.Services.BuildingService:Position(player, b)
                 return at + Vector3.new(index == 1 and -3 or 3, 3, 0)
             end
@@ -140,7 +140,7 @@ return function(ctx)
         if squad.command ~= "gather" or squad.returnAt <= 0 or squad.returnAt > os.time() or squad.completed >= squad.expedition then return end
         local multiplier = 1
         for _, b in s.Campaign.Buildings do
-            if ctx.BuildingDefs[b.id].commandPost and b.readyAt <= os.time() and s.Power and s.Power.powered[b.uid] then multiplier = 1.5; break end
+            if ctx.BuildingDefs[b.id].commandPost and ctx.Building.complete(s.Campaign, b, os.time()) and s.Power and s.Power.powered[b.uid] then multiplier = 1.5; break end
         end
         local summary = {}
         for id, count in expeditionLoot[squad.resource] do

@@ -1,4 +1,4 @@
-# Архитектура Echoes of Steel 0.6.0
+# Архитектура Frontier Reforged 0.7.0
 
 ## Граница доверия
 
@@ -31,11 +31,13 @@
 
 `Bootstrap.server.luau` собирает определения, домены и 18 сервисов через dependency context. Нет циклических server `require`; Shared не выдаёт клиенту функции начисления наград.
 
-Новые для 0.6 зависимости:
+Крупные дополнительные зависимости 0.6–0.7:
 
 - `RecruitDefinitions` содержит пять фиксированных контрактов без клиентских цен;
 - `RecruitService` владеет покупкой, runtime actors, AI-ролями и expedition idempotency;
-- `ZombieService.Bosses` содержит отдельное состояние `alive/respawnAt/lastPoint` для Foreman, Reaver, Warden и Rainbow;
+- `ZombieService.Bosses` содержит отдельное состояние `alive/respawnAt/lastPoint` для Foreman, Reaver, Warden, Rainbow и Ironclad;
+- `BuildingService:BuilderAccess` выполняет bounded grid flood-fill до оплаты, а `BuilderWork` валидирует server position Степана и списывает сохранённый `remaining`;
+- `NPCService:UpdateBuilder` владеет travel/work/pause состояниями и no-jump Pathfinding Степана;
 - `DialogueVoiceController` — client-only presentation над server-selected authored speech payload.
 
 ## Транзакции и idempotency
@@ -43,13 +45,15 @@
 - Выдача пакета предметов сначала моделируется на копии inventory. Переполнение не оставляет частичную quest-награду.
 - `RewardClaimed`, предметы, Coins, XP и quest stats меняются синхронно в одном профиле.
 - Reload завершает transfer только для того же session, UID, equipped state и operation token; callback replay не выдаёт ammo снова.
-- Builder auto-order проверяет ту же grid/footprint/price, что ручное строительство. Запись, точное списание и модель либо появляются вместе, либо не появляются.
-- Hired builder меняет только `readyAt` уже валидной новой записи; client не сообщает multiplier/time.
+- Builder auto-order проверяет ту же grid/footprint/price, что ручное строительство, плюс доступную сторону и bounded flood-fill от защищённого входа. Только после этого запись, точное списание и модель появляются вместе.
+- `Builder.remaining` — единственный источник объёма работы Степана. Внутренний `BuilderWork` принимает фактическую server position его модели, повторно проверяет proximity и уменьшает остаток только в состоянии work.
+- `Building.complete` и Economy дополнительно блокируют функции активного builder-order, поэтому projected `readyAt` не может сам включить здание.
+- Hired builder Аркадий меняет только исходный server volume уже валидной новой записи на ×0,65; client не сообщает multiplier/time.
 - Squad и gatherer используют монотонные пары `expedition/completed`; один номер рейса может увеличить stockpile один раз.
 - Rainbow loot roll выполняется один раз на credited participant во время server death. Два pity-счётчика независимы и сохраняются.
 - Обычный Rainbow bundle сначала атомарно пробует backpack, затем целиком поступает в stockpile. Rare grant при переполнении превращается в owner/session-bound pickup.
 - Helicopter destination выбирается по authored противоположному marker; клиент получает только presentation data.
-- Нет offline production. Оплаченный build/craft timer и expedition absolute `returnAt` могут завершиться после reconnect, но не повторяют output.
+- Нет offline production. Ручной build/craft deadline и expedition absolute `returnAt` могут завершиться после reconnect, но не повторяют output. Заказ Степана хранит `remaining`, перебазирует только projected deadline и **никогда не выполняет работу офлайн**.
 - Quest caches используют server part metadata и `seen`; покупка у магазина не генерирует world-collect event.
 
 ## Бой
@@ -104,7 +108,7 @@ Credit требует недавнего damage, активной незакры
 }
 ```
 
-Campaign 0.6 дополнительно содержит allowlisted `Recruits` и bounded `BossPity`. Settings содержит bounded `voice` и boolean `firstPerson`.
+Campaign содержит allowlisted `Recruits`, bounded `BossPity` и `Builder={name,order,remaining,working}`; при normalization `working` всегда сбрасывается. Settings содержит bounded `voice` и boolean `firstPerson`.
 
 - Acquire/renew/release — `UpdateAsync` с повторной проверкой token внутри callback.
 - Callback не начисляет игровые награды и безопасен при replay.
@@ -116,14 +120,14 @@ Campaign 0.6 дополнительно содержит allowlisted `Recruits` 
 
 ## Производительность и лимиты
 
-- Проверенная сборка: **6 809 BasePart**, ниже binary budget 7 000; 7 568 Instances и 55 scripts.
+- Проверенная сборка: **7 232 BasePart**, ниже явно проверяемого binary budget 7 400; 8 143 Instances и 57 scripts.
 - StreamingEnabled, MinRadius 128, TargetRadius 512. Большой статический мир генерируется offline, а не одним runtime script.
 - Global maximum 34 заражённых; normal desired population ≤26 оставляет резерв боссам/рейдам. AI работает 4 Гц.
 - Не более двух одновременно вычисляемых zombie paths. Мирные workers, Степан, squad и recruits делят отдельный лимит двух path computations и минимум 2,5 с до пересчёта actor.
 - Bosses имеют zone restrictions, leash и один actor каждого kind. Mine minions bounded тремя authored markers.
-- Client pools: 12 tracers, 8 impact sparks, 8 damage popup anchors, 10 positional sound channels и 28 rain streaks. Попадание не создаёт новый Part/GUI/Sound.
+- Client pools: 12 tracers, 8 impact sparks, 5 blast spheres, `MaxBuildings+8` popup anchors, 10 positional sound channels и 28 rain streaks. Попадание/стройка/выплата грядки не создают новый Part/GUI/Sound.
 - `ActorAnimationController` обновляет tagged Motor6D до 30 Гц без Instance allocation per frame. HUD/map обновляются 10 Гц; state snapshots — около 1 Гц с coalescing.
-- Максимум friendly runtime actors теперь выше 0.5: 17 global NPC плюс фиксированный per-player набор workers/builder/squad/recruits. Поэтому 9-player path/physics/FPS тест обязателен; статический part count не доказывает runtime performance.
+- Максимум friendly runtime actors теперь выше 0.5: 20 global NPC плюс фиксированный per-player набор workers/builder/squad/recruits. Поэтому 9-player path/physics/FPS тест обязателен; статический part count не доказывает runtime performance.
 - Production MicroProfiler, 9-client soak и измеренный mobile FPS остаются NOT TESTED.
 
 ## Звук, речь и камера
@@ -147,7 +151,7 @@ Campaign 0.6 дополнительно содержит allowlisted `Recruits` 
 ## Дороги и мир
 
 - Общая сеть Меридиана вычитает перекрёстки, чтобы coplanar asphalt не накладывался.
-- `secondCity.mjs` экспортирует точные constants пяти junction slabs, одной residential road и десяти sidewalk segments; tests и verifier используют те же authored footprints.
+- `secondCity.mjs` экспортирует точные constants 15 road rectangles и 26 sidewalk segments; tests и verifier используют те же authored footprints и попарно проверяют объекты/асфальт.
 - `encounters.mjs` строит компактные arena с cover, boundary rails, light и скрытым spawn marker — без fake interaction.
 - `architecture.mjs` создаёт enterable compact homes с раздельными стенами/проёмом.
 - Cars остаются декорациями. Вертолёты — authored models для server-timed маршрута, не свободно пилотируемый транспорт.

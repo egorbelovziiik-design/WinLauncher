@@ -48,6 +48,8 @@ return {
     saber = {name = "Кавалерийская сабля", category = "Оружие", stack = 1, weight = 2.1, weapon = true, color = "E2E8F0"},
     longsword = {name = "Длинный меч", category = "Оружие", stack = 1, weight = 3.4, weapon = true, color = "94A3B8"},
     katana = {name = "Клинок «Север»", category = "Оружие", stack = 1, weight = 2.6, weapon = true, color = "67E8F9"},
+    frontier_sword = {name = "Меч «Стальное эхо»", category = "Оружие", stack = 1, weight = 3.1, weapon = true, questExclusive = true, color = "F59E0B"},
+    foundry_cleaver = {name = "Кузнечный тесак", category = "Оружие", stack = 1, weight = 3.6, weapon = true, color = "FB923C"},
     pistol = {name = "Пистолет P9", category = "Оружие", stack = 1, weight = 2, weapon = true, color = "4ADE80"},
     glock = {name = "Glock G17", category = "Оружие", stack = 1, weight = 1.8, weapon = true, color = "FBBF24"},
     revolver = {name = "Револьвер Ranger", category = "Оружие", stack = 1, weight = 2.4, weapon = true, color = "F6C453"},
@@ -61,6 +63,8 @@ return {
     magnum = {name = "Магнум Titan", category = "Оружие", stack = 1, weight = 2.8, weapon = true, color = "FB923C"},
     carbine = {name = "Карабин Nomad", category = "Оружие", stack = 1, weight = 3.7, weapon = true, color = "2DD4BF"},
     sniper_rifle = {name = "Винтовка Longwatch", category = "Оружие", stack = 1, weight = 5.2, weapon = true, color = "7DD3FC"},
+    frontier_dmr = {name = "Винтовка «Дальний рубеж»", category = "Оружие", stack = 1, weight = 5.6, weapon = true, questExclusive = true, color = "38BDF8"},
+    marshal_pistol = {name = "Пистолет Marshal", category = "Оружие", stack = 1, weight = 2.7, weapon = true, color = "FDBA74"},
     lmg = {name = "Ручной пулемёт Bulwark", category = "Оружие", stack = 1, weight = 7.8, weapon = true, color = "A8A29E"},
 
     leather_jacket = {name = "Кожаная куртка", category = "Броня", stack = 1, weight = 2.1, armor = 0.1, speedMultiplier = 1.03, color = "A16207"},
@@ -79,6 +83,8 @@ return {
     bastion_armor = {name = "Панцирь «Бастион»", category = "Броня", stack = 1, weight = 9, armor = 0.45, speedMultiplier = 0.82, armorStyle = "bastion", color = "475569"},
     ranger_armor = {name = "Броня следопыта", category = "Броня", stack = 1, weight = 4.4, armor = 0.27, speedMultiplier = 1.05, staminaMultiplier = 1.15, armorStyle = "ranger", color = "4D7C5A"},
     demolisher_armor = {name = "Броня сапёра", category = "Броня", stack = 1, weight = 7.6, armor = 0.36, explosiveResistance = 0.5, speedMultiplier = 0.92, armorStyle = "demolisher", color = "B45309"},
+    storm_armor = {name = "Грозовая броня", category = "Броня", stack = 1, weight = 6.8, armor = 0.4, electricResistance = 0.75, speedMultiplier = 0.95, staminaMultiplier = 1.12, armorStyle = "storm", questExclusive = true, color = "38BDF8"},
+    ranger_elite_armor = {name = "Элитная броня дозора", category = "Броня", stack = 1, weight = 5.2, armor = 0.34, electricResistance = 0.4, speedMultiplier = 1.04, staminaMultiplier = 1.22, armorStyle = "ranger_elite", color = "65A30D"},
     generator_plan = {name = "Чертёж: дизельный генератор", category = "Чертежи", stack = 1, weight = 0, blueprint = true, color = "A78BFA"},
     military_generator_plan = {name = "Чертёж: военный генератор", category = "Чертежи", stack = 1, weight = 0, blueprint = true, color = "F59E0B"},
 }

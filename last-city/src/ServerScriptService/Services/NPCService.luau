@@ -3,7 +3,7 @@ return function(ctx)
     local Pathfinding = game:GetService("PathfindingService")
     local CollectionService = game:GetService("CollectionService")
     local Service = {NPCs = {}, Workers = {}, Builders = {}, PendingPaths = 0}
-    local cityTwoNPC = {makar = true, nora = true, quartermaster = true, pilot = true, lada = true}
+    local cityTwoNPC = {makar = true, nora = true, quartermaster = true, pilot = true, lada = true, yaroslav = true, daria = true, mikhail = true}
     local function cityTwoUnlocked(c)
         local quest = c and c.Quests[ctx.Config.SecondCity.unlockQuest]
         return quest and quest.status == "RewardClaimed"
@@ -122,6 +122,24 @@ return function(ctx)
             texts = {"Нужны надёжные руки? Я оформляю постоянные контракты за Survival Cash: строитель, медик, военный охранник, разведчик и добытчик.", "Каждый специалист — настоящий житель вашей базы. Приказы и экспедиции сохраняются; никакой покупки за Coins или Robux."},
             recruiter = true,
         },
+        yaroslav = {
+            name = "Ярослав Клин", role = "Кузнец северного района", at = Vector3.new(1080, 3, 411), style = "weaponsmith", speed = 7.6,
+            color = Color3.fromRGB(104, 72, 50), skin = Color3.fromRGB(178, 132, 96), pause = 3,
+            patrol = {Vector3.new(1080, 3, 411), Vector3.new(1065, 3, 412), Vector3.new(1082, 3, 419), Vector3.new(1094, 3, 412)},
+            texts = {"Слышишь кузнечные молоты? Сталь помнит гарнизон. Верни клеймёные заготовки и убери Воющих — я соберу для тебя настоящий клинок.", "Меч «Стальное эхо» выдаётся только за мой заказ. Кузнечный тесак можно честно купить у Феликса или изготовить из найденных материалов."},
+        },
+        daria = {
+            name = "Капитан Дарья", role = "Командир дальнего дозора", at = Vector3.new(1360, 3, 119), style = "ranger_captain", speed = 8.8,
+            color = Color3.fromRGB(58, 82, 62), skin = Color3.fromRGB(195, 150, 115), pause = 2.4,
+            patrol = {Vector3.new(1360, 3, 119), Vector3.new(1344, 3, 120), Vector3.new(1344, 3, 137), Vector3.new(1377, 3, 136), Vector3.new(1377, 3, 120)},
+            texts = {"Восточный бронеарсенал проснулся вместе с Железным бастионом. Сначала прореди Разрядников, потом выключи командира навсегда.", "Разряд отнимает выносливость. Грозовая броня Михаила гасит большую часть электрического урона, а моя винтовка бьёт точно и далеко."},
+        },
+        mikhail = {
+            name = "Михаил Бронник", role = "Мастер защитных комплектов", at = Vector3.new(1360, 3, -281), style = "armorer", speed = 7.3,
+            color = Color3.fromRGB(76, 86, 84), skin = Color3.fromRGB(168, 127, 96), pause = 3.4,
+            patrol = {Vector3.new(1360, 3, -281), Vector3.new(1345, 3, -280), Vector3.new(1345, 3, -271), Vector3.new(1374, 3, -280)},
+            texts = {"Южный релей ещё держит заряд. Принеси четыре стабилизированные пластины и разберись с Дробителями — соберу броню с настоящей электрозащитой.", "Грозовой комплект уникален для заказа. Элитную броню дозора можно купить у Феликса или изготовить после сбора редких деталей."},
+        },
         pilot = {
             name = "Пилот Яна", role = "Воздушный маршрут", at = Vector3.new(833, 3, 53), style = "pilot", speed = 8,
             color = Color3.fromRGB(65, 78, 73), skin = Color3.fromRGB(190, 145, 111), pause = 2.5, ambient = true,
@@ -148,9 +166,12 @@ return function(ctx)
         nora = {"For twenty five Survival Cash I can fully treat your wounds. My hospital containers remain in the housing district.", "Corrosive infected attack from range. Keep moving and maintain your armor."},
         quartermaster = {"Steel plate, concrete, and glass are essential for the perimeter. I operate the protected supply market.", "The military generator provides fifty five kilowatts after the patrol is rescued."},
         lada = {"Need reliable hands? I offer permanent contracts for a builder, medic, guard, scout, and resource gatherer.", "Every specialist is a real resident with saved orders. Contracts use Survival Cash, never Coins or Robux."},
+        yaroslav = {"Hear those forge hammers? Recover the stamped steel and clear the Howlers. I will make a real blade for you.", "The Echo of Steel sword only comes from my contract. Felix sells the foundry cleaver, and it also has a legitimate recipe."},
+        daria = {"The eastern armored arsenal woke with the Ironclad. Thin out the Shockers, then shut their commander down.", "Electrical attacks drain stamina. Mikhail's storm armor resists them, while my rifle reaches farther with precision rounds."},
+        mikhail = {"The southern relay still carries a charge. Bring four stabilized plates and defeat the Crushers for real electrical armor.", "Storm armor is unique to this contract. Felix sells elite ranger armor, and it can also be crafted from rare parts."},
         pilot = {"The helicopter only flies between protected pads. Approach the yellow marker and hold E.", "Controls are server locked during flight and restored after landing."},
     }
-    local voiceIds = {alex = "3", max = "5", victor = "1", ira = "4", lina = "4", roman = "3", oleg = "5", anya = "6", boris = "3", vera = "2", timur = "7", mila = "4", makar = "1", nora = "2", quartermaster = "5", lada = "4", pilot = "6"}
+    local voiceIds = {alex = "3", max = "5", victor = "1", ira = "4", lina = "4", roman = "3", oleg = "5", anya = "6", boris = "3", vera = "2", timur = "7", mila = "4", makar = "1", nora = "2", quartermaster = "5", lada = "4", yaroslav = "1", daria = "6", mikhail = "5", pilot = "6"}
     Service.Definitions = definitions
     local function actorPrompt(model, objectText, callback)
         local parent = model:FindFirstChild("Head") or model.PrimaryPart
@@ -236,15 +257,20 @@ return function(ctx)
         local actor = self.Builders[player]; local s = ctx.Sessions[player]
         if not actor or not s or not self:NearBuilder(player) then return end
         actor.talkUntil = os.clock() + 14; actor.model:SetAttribute("State", "Talking"); actor.humanoid:MoveTo(actor.model.PrimaryPart.Position)
-        local order = s.Campaign.Builder and ctx.Building.find(s.Campaign, s.Campaign.Builder.order)
+        local builderState = s.Campaign.Builder
+        local order = builderState and ctx.Building.find(s.Campaign, builderState.order)
         local text, voiceText
-        if order and order.readyAt > os.time() then
-            local remaining = math.max(0, order.readyAt - os.time())
-            text = "Я строю «" .. ctx.BuildingDefs[order.id].name .. "». Осталось примерно " .. remaining .. " секунд."
-            voiceText = "I am working on your current project. About " .. remaining .. " seconds remain."
+        local remaining = builderState and math.ceil(builderState.remaining or 0) or 0
+        if order and remaining > 0 then
+            local workState = actor.model:GetAttribute("WorkState") or "Travelling"
+            local status = ({Building = "Я у площадки и веду работы.", Travelling = "Я иду к строительной площадке.",
+                Fleeing = "Я приостановил работу: рядом заражённые.", Talking = "Пока мы говорим, стройка приостановлена.",
+                Blocked = "Проход к площадке перекрыт — освободи одну из её сторон.", Paused = "Стройка приостановлена до возвращения на базу."})[workState] or "Работа сейчас приостановлена."
+            text = status .. " Проект: «" .. ctx.BuildingDefs[order.id].name .. "». Осталось " .. remaining .. " секунд настоящей работы."
+            voiceText = "The project needs about " .. remaining .. " more seconds of hands-on work. I only make progress while I am safely at the construction site."
         else
-            text = "Принеси материалы в рюкзаке или положи их на склад. Выбери проект — я сам найду свободное место, оплачу его из твоих запасов и пойду строить."
-            voiceText = "Bring materials in your backpack or storage. Choose a project and I will find a valid site and build it."
+            text = "Принеси материалы в рюкзаке или положи их на склад. Выбери проект — я найду площадку с проходом, оплачу её из твоих запасов и построю всё лично."
+            voiceText = "Bring materials in your backpack or storage. Choose a project and I will find an accessible site, walk there, and build it myself."
         end
         ctx.Remotes.StateRemote:FireClient(player, "dialogue", {
             id = "builder", name = s.Campaign.Builder.name, role = "Строитель участка №" .. s.Plot,
@@ -316,12 +342,16 @@ return function(ctx)
         -- The reserved entrance is guaranteed to remain construction-free.
         return Vector3.new(plot.x, 3, plot.z + 24)
     end
-    function Service:WorkTarget(s, building)
-        local plot = ctx.Config.Plots[s.Plot]; local hx, hz = ctx.Building.extents(building.id, building.r)
+    function Service:WorkTarget(s, building, side)
+        local plot = ctx.Config.Plots[s.Plot]; local hx, hz = ctx.Building.extents(building.id, building.r); local targets = {}
         for _, point in {{building.x, building.z + hz + 4}, {building.x + hx + 4, building.z}, {building.x, building.z - hz - 4}, {building.x - hx - 4, building.z}} do
-            if self:PointClear(s, point[1], point[2], 2, building.uid) then return Vector3.new(plot.x + point[1], 3, plot.z + point[2]) end
+            if self:PointClear(s, point[1], point[2], 2, building.uid) then table.insert(targets, Vector3.new(plot.x + point[1], 3, plot.z + point[2])) end
         end
-        return self:WanderTarget(s, {})
+        if #targets == 0 then
+            if side then return nil end
+            return self:WanderTarget(s, {})
+        end
+        return targets[((side or 1) - 1) % #targets + 1]
     end
     function Service:Evacuate(player, building)
         local s = ctx.Sessions[player]; local workers = self.Workers[player] or {}
@@ -347,7 +377,7 @@ return function(ctx)
         local root = actor.model.PrimaryPart
         local horizontalTarget = Vector3.new(target.X, root.Position.Y, target.Z)
         if not actor.pathTarget or (actor.pathTarget - horizontalTarget).Magnitude > 2 then
-            actor.pathTarget = horizontalTarget; actor.path = nil; actor.pathToken = (actor.pathToken or 0) + 1
+            actor.pathTarget = horizontalTarget; actor.path = nil; actor.pathToken = (actor.pathToken or 0) + 1; actor.pathFailures = 0
         end
         if (horizontalTarget - root.Position).Magnitude < 1.8 then
             actor.humanoid:MoveTo(root.Position); actor.path = nil; return
@@ -371,10 +401,68 @@ return function(ctx)
             local ok = pcall(function() path:ComputeAsync(root.Position, target) end)
             self.PendingPaths -= 1; actor.pending = false
             if not actor.model.Parent or actor.pathToken ~= token then return end
-            if ok and path.Status == Enum.PathStatus.Success then actor.path = path:GetWaypoints(); actor.pathIndex = 2
-            elseif actor.forcePath then actor.path = nil; actor.humanoid:MoveTo(root.Position); actor.nextWander = 0
+            if ok and path.Status == Enum.PathStatus.Success then actor.path = path:GetWaypoints(); actor.pathIndex = 2; actor.pathFailures = 0
+            elseif actor.forcePath then actor.path = nil; actor.pathFailures = (actor.pathFailures or 0) + 1; actor.humanoid:MoveTo(root.Position); actor.nextWander = 0
             else actor.path = nil; actor.humanoid:MoveTo(target) end
         end)
+    end
+    function Service:UpdateBuilder(player, s, builder, now, plot, elapsed)
+        if not builder or not builder.model.Parent then return end
+        local builderState = s.Campaign.Builder
+        local order = builderState and ctx.Building.find(s.Campaign, builderState.order)
+        local active = order and (builderState.remaining or math.max(0, order.readyAt - os.time())) > 0
+        local state, target, canWork = "Idle", builder.wanderTarget, false
+        if active then
+            if builder.buildOrder ~= order.uid then builder.buildOrder = order.uid; builder.buildSide = 1; builder.pathTarget = nil; builder.path = nil end
+            builder.buildSide = builder.buildSide or 1
+            target = self:WorkTarget(s, order, builder.buildSide)
+            state = target and "Travelling" or "Blocked"
+        else
+            if builderState then builderState.order = ""; builderState.remaining = 0; builderState.working = false end
+            if not target or now >= builder.nextWander then
+                builder.wanderTarget = self:WanderTarget(s, builder); builder.nextWander = now + math.random(8, 15); target = builder.wanderTarget
+            end
+        end
+        local danger = ctx.Services.ZombieService:Nearest(builder.model.PrimaryPart.Position, 24) ~= nil
+        if danger then
+            state = "Fleeing"; target = Vector3.new(plot.x, 3, plot.z + 24)
+        elseif active and now <= builder.talkUntil then
+            state = "Talking"
+        elseif active and (not s.Active or s.Frozen or s.Traveling) then
+            state = "Paused"; target = nil
+        end
+        if active and not danger and state ~= "Talking" and state ~= "Paused" and target then
+            self:Walk(builder, target)
+            local atTarget = (Vector3.new(target.X, builder.model.PrimaryPart.Position.Y, target.Z) - builder.model.PrimaryPart.Position).Magnitude < 3
+            canWork = atTarget and (builder.pathFailures or 0) < 3 and s.Active and not s.Frozen and not s.Traveling
+            state = canWork and "Building" or (builder.pathFailures or 0) >= 3 and "Blocked" or "Travelling"
+            if canWork then
+                local at = builder.model.PrimaryPart.Position; local center = ctx.Services.BuildingService:Position(player, order)
+                local face = Vector3.new(center.X, at.Y, center.Z)
+                if (face - at).Magnitude > 0.1 then builder.model:PivotTo(CFrame.lookAt(at, face)) end
+            end
+            if (builder.pathFailures or 0) >= 3 then
+                builder.blockedFor = (builder.blockedFor or 0) + (elapsed or 0.25)
+                if builder.blockedFor >= 1 then
+                    builder.buildSide = builder.buildSide % 4 + 1; builder.pathTarget = nil; builder.path = nil; builder.blockedFor = 0
+                end
+            else builder.blockedFor = 0 end
+        elseif state == "Talking" or state == "Blocked" or state == "Paused" then
+            builder.humanoid:MoveTo(builder.model.PrimaryPart.Position)
+        else
+            self:Walk(builder, target or Vector3.new(plot.x + 30, 3, plot.z + 30))
+        end
+        if active then ctx.Services.BuildingService:BuilderWork(player, builder.model.PrimaryPart.Position, canWork, elapsed or 0.25) end
+        local walking = builder.model.PrimaryPart.AssemblyLinearVelocity.Magnitude > 1
+        if not walking and state == "Idle" and now >= builder.nextGesture then
+            builder.gestureUntil = now + 2.3; builder.nextGesture = now + 21
+        end
+        if state == "Talking" then builder.model:SetAttribute("State", "Talking")
+        elseif state == "Building" then builder.model:SetAttribute("State", "Building")
+        elseif walking then builder.model:SetAttribute("State", state == "Fleeing" and "Fleeing" or "Walking")
+        else builder.model:SetAttribute("State", state == "Idle" and now < builder.gestureUntil and "HeadScratch" or state) end
+        builder.model:SetAttribute("WorkState", state)
+        builder.model:SetAttribute("WorkRemaining", builderState and math.ceil(builderState.remaining or 0) or 0)
     end
     function Service:Init()
         local order = 0
@@ -421,7 +509,8 @@ return function(ctx)
             end
         end)
         task.spawn(function()
-            while task.wait(0.25) do
+            while true do
+                local elapsed = task.wait(0.25)
                 local now = os.clock(); local hour = game:GetService("Lighting").ClockTime
                 for id, npc in self.NPCs do
                     local def = definitions[id]
@@ -460,7 +549,7 @@ return function(ctx)
                             state = "Sleeping"; target = Vector3.new(plot.x - 24 + index * 2, 3, plot.z + 30)
                         elseif hour >= 12 and hour < 13 then
                             state = "Eating"; target = Vector3.new(plot.x - 8 + index * 4, 3, plot.z + 22)
-                        elseif building and building.readyAt <= os.time() then
+                        elseif building and ctx.Building.complete(s.Campaign, building, os.time()) then
                             target = self:WorkTarget(s, building); state = "Working"
                         end
                         if ctx.Services.ZombieService:Nearest(actor.model.PrimaryPart.Position, 24) then
@@ -481,34 +570,7 @@ return function(ctx)
                         end
                         actor.model:SetAttribute("WorkState", state)
                     end
-                    local builder = self.Builders[player]
-                    if builder and builder.model.Parent then
-                        local order = s.Campaign.Builder and ctx.Building.find(s.Campaign, s.Campaign.Builder.order)
-                        local state, target = "Idle", builder.wanderTarget
-                        if order and order.readyAt > os.time() then
-                            state = "Building"; target = self:WorkTarget(s, order)
-                        else
-                            if s.Campaign.Builder then s.Campaign.Builder.order = "" end
-                            if not target or now >= builder.nextWander then
-                                builder.wanderTarget = self:WanderTarget(s, builder); builder.nextWander = now + math.random(8, 15); target = builder.wanderTarget
-                            end
-                        end
-                        if ctx.Services.ZombieService:Nearest(builder.model.PrimaryPart.Position, 24) then
-                            state = "Fleeing"; target = Vector3.new(plot.x, 3, plot.z + 24)
-                        end
-                        if now <= builder.talkUntil and state ~= "Fleeing" then
-                            builder.humanoid:MoveTo(builder.model.PrimaryPart.Position); builder.model:SetAttribute("State", "Talking")
-                        else
-                            self:Walk(builder, target or Vector3.new(plot.x + 30, 3, plot.z + 30))
-                            local walking = builder.model.PrimaryPart.AssemblyLinearVelocity.Magnitude > 1
-                            if not walking and state == "Idle" and now >= builder.nextGesture then
-                                builder.gestureUntil = now + 2.3; builder.nextGesture = now + 21
-                            end
-                            builder.model:SetAttribute("State", walking and (state == "Fleeing" and "Fleeing" or "Walking")
-                                or (state == "Idle" and now < builder.gestureUntil and "HeadScratch" or state))
-                        end
-                        builder.model:SetAttribute("WorkState", state)
-                    end
+                    self:UpdateBuilder(player, s, self.Builders[player], now, plot, elapsed)
                 end
             end
         end)

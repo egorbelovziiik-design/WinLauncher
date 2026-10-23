@@ -82,7 +82,7 @@ return function(app)
         if key == Enum.KeyCode.Escape and app.Build.Active then app.Build:Cancel(); return end
         if key == Enum.KeyCode.Escape and app.PanelName then app:ClosePanel(); return end
         if not app.State or not app.State.active or app.Camera and app.Camera.Travel then return end
-        local panels = {[Enum.KeyCode.K] = "inventory", [Enum.KeyCode.J] = "quests", [Enum.KeyCode.B] = "build", [Enum.KeyCode.M] = "map", [Enum.KeyCode.G] = "base", [Enum.KeyCode.P] = "profile", [Enum.KeyCode.T] = "tutorial"}
+        local panels = {[Enum.KeyCode.K] = "inventory", [Enum.KeyCode.J] = "quests", [Enum.KeyCode.B] = "build", [Enum.KeyCode.M] = "map", [Enum.KeyCode.G] = "base", [Enum.KeyCode.P] = "profile", [Enum.KeyCode.T] = "tutorial", [Enum.KeyCode.O] = "settings"}
         if panels[key] then
             if app.PanelName == panels[key] then app:ClosePanel() else app:OpenPanel(panels[key]) end
             if key == Enum.KeyCode.K then app:Send("SessionRemote", {action = "inventoryOpened"}) end

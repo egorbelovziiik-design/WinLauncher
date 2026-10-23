@@ -11,11 +11,14 @@ return function(ctx)
                 if ok and s.Active then ctx.Services.CombatService:SyncTool(player) end
             elseif s.Active and ctx:Alive(player) then
                 local cityQuest = s.Campaign.Quests.second_city
-                local nearSupplier = ctx.Services.NPCService:Near(player, "max")
-                    or cityQuest and cityQuest.status == "RewardClaimed" and ctx.Services.NPCService:Near(player, "quartermaster")
-                if not nearSupplier then ctx:Notify(player, err, "error"); return end
+                local nearMax = ctx.Services.NPCService:Near(player, "max")
+                local nearQuartermaster = cityQuest and cityQuest.status == "RewardClaimed" and ctx.Services.NPCService:Near(player, "quartermaster")
+                if not nearMax and not nearQuartermaster then ctx:Notify(player, err, "error"); return end
                 local product = self.Products[p.id]
                 if product and p.action == "buy" then
+                    if product.city2 and not nearQuartermaster then
+                        ctx:Notify(player, "Этот товар хранится только у квартирмейстера Феликса в НОВОМ РУБЕЖЕ.", "error"); return
+                    end
                     local nextStock
                     ok, nextStock = ctx.Economy.buy(s.Campaign, product, self.Counts[p.id], p.count)
                     if ok then self.Counts[p.id] = nextStock else err = nextStock end

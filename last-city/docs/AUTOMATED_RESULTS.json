@@ -1,5 +1,5 @@
 {
-  "version": "0.6.1",
+  "version": "0.7.0",
   "serialization": {
     "status": "PASSED",
     "count": 10
@@ -10,7 +10,7 @@
     "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
   },
   "studio_import": {
-    "version": "0.6.1",
+    "version": "0.7.0",
     "status": "NOT TESTED"
   },
   "studio_import_0_6_0": {
@@ -37,7 +37,7 @@
   },
   "roads": {
     "status": "PASSED",
-    "count": 9
+    "count": 10
   },
   "luau_version": "0.743",
   "source_compilation": {
@@ -46,38 +46,38 @@
   },
   "domain": {
     "status": "PASSED",
-    "count": 128
+    "count": 133
   },
   "mock_adapters": {
     "status": "PASSED",
-    "count": 114,
+    "count": 126,
     "scope": "API doubles; NOT Roblox Studio"
   },
   "binary": {
-    "assertions": 218,
-    "instances": 7580,
-    "parts": 6816,
+    "assertions": 270,
+    "instances": 8143,
+    "parts": 7232,
     "scripts": 57,
-    "bytes": 345797,
-    "sha256": "476ff32a113cce48bd4d2bdd9aca9afcf85d0d3cf7cfd1a0da2edf0e65b4f4a2",
+    "bytes": 365912,
+    "sha256": "9311ea07bae623f8f15a8fa0c19c692e6a52a50aeb9cbba1501ded1e65e50cc7",
     "classes": {
       "Workspace": 1,
       "Camera": 1,
       "Terrain": 1,
       "Clouds": 1,
       "Folder": 20,
-      "Part": 6757,
-      "Model": 197,
-      "SurfaceGui": 61,
-      "TextLabel": 70,
-      "PointLight": 69,
+      "Part": 7173,
+      "Model": 222,
+      "SurfaceGui": 75,
+      "TextLabel": 84,
+      "PointLight": 105,
       "SpawnLocation": 1,
       "TrussPart": 2,
       "Fire": 2,
       "SpotLight": 4,
       "WedgePart": 55,
-      "StringValue": 123,
-      "IntValue": 122,
+      "StringValue": 161,
+      "IntValue": 142,
       "BillboardGui": 9,
       "NumberValue": 2,
       "Lighting": 1,

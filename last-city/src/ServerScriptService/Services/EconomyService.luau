@@ -49,7 +49,7 @@ return function(ctx)
                     if not s.Loaded or not s.Active or s.Closing or s.Frozen then continue end
                     self:PayFarmIncome(player, s, os.time(), os.clock())
                     for _, b in s.Campaign.Buildings do
-                        if b.id == "turret" and s.Power and s.Power.powered[b.uid] and b.readyAt <= os.time() and (s.Campaign.Stockpile.ammo or 0) > 0 then
+                        if b.id == "turret" and s.Power and s.Power.powered[b.uid] and ctx.Building.complete(s.Campaign, b, os.time()) and (s.Campaign.Stockpile.ammo or 0) > 0 then
                             local origin = ctx.Services.BuildingService:Position(player, b) + Vector3.new(0, 7, 0)
                             local target = ctx.Services.ZombieService:Nearest(origin, 65)
                             local model = ctx.Services.BuildingService.Models[player][b.uid]
@@ -58,7 +58,7 @@ return function(ctx)
                                 ctx.Services.ZombieService:Damage(target, 22, player)
                                 ctx:FX("shot", {from = origin, to = target.model.PrimaryPart.Position, melee = false, hit = true, user = player.UserId})
                             end
-                        elseif b.id == "spikes" and b.readyAt <= os.time() then
+                        elseif b.id == "spikes" and ctx.Building.complete(s.Campaign, b, os.time()) then
                             local key = tostring(player.UserId) .. ":" .. b.uid
                             if (self.TrapAt[key] or 0) <= os.clock() then
                                 local origin = ctx.Services.BuildingService:Position(player, b) + Vector3.new(0, 1, 0)

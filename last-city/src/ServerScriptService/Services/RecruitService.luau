@@ -208,7 +208,7 @@ return function(ctx)
             if id == "builder" and s.Campaign.Builder then
                 local building = ctx.Building.find(s.Campaign, s.Campaign.Builder.order)
                 local site = building and ctx.Services.BuildingService:Position(player, building)
-                if building and building.readyAt > os.time() and site and (site - actor.model.PrimaryPart.Position).Magnitude < 300 then
+                if building and not ctx.Building.complete(s.Campaign, building, os.time()) and site and (site - actor.model.PrimaryPart.Position).Magnitude < 300 then
                     target = site + Vector3.new(0, 3, 5); state = "Working"
                 end
             elseif id == "medic" and playerRoot and (playerRoot.Position - actor.model.PrimaryPart.Position).Magnitude <= 22 and os.clock() >= actor.nextHeal then

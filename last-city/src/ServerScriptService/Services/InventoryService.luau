@@ -73,10 +73,12 @@ return function(ctx)
             elseif p.action == "quick" then ok, err = self:Quick(player, s, p.index, p.aim)
             elseif p.action == "quickClear" then ok, err = ctx.Inventory.clearQuick(c, p.index)
             elseif p.action == "unequip" then
-                local entry = ctx.Inventory.find(c, p.uid)
+                local entry = ctx.Inventory.find(c, p.uid); local item = entry and ctx.Items[entry.id]
                 if entry and c.Equipped == entry.uid and ctx.Weapons[entry.id] then
                     c.Equipped = ""; s.Reloading = nil; ctx.Services.CombatService:SyncTool(player); ok = true
-                else err = "Оружие уже убрано" end
+                elseif entry and c.Armor == entry.uid and item and item.armor then
+                    c.Armor = ""; ctx.Services.CombatService:SyncTool(player); ok = true
+                else err = "Предмет уже снят" end
             elseif p.action == "use" then ok, err = self:Use(player, s, p.uid, p.aim)
             elseif p.action == "split" then ok, err = ctx.Inventory.split(c, p.uid, p.count)
             elseif p.action == "move" then ok = ctx.Inventory.move(c, p.uid, p.index)
