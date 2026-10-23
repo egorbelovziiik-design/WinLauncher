@@ -499,7 +499,7 @@ public sealed partial class MainViewModel
 
     public ICommand ClearCookiesCommand => Cmd("clearcookies", async () =>
     {
-        await ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.AllCookies);
+        await ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.Cookies);
         StatusMessage = "Cookies очищены.";
     });
 

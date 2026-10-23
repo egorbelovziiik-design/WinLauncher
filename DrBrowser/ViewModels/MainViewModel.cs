@@ -77,7 +77,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         WebViews.StatusTextChanged += text => StatusMessage = text;
         WebViews.BlockedRequest += () => { _aiBadge++; Raise(nameof(AdBlockText)); };
 
-        Downloads.Changed += () => { Raise(nameof(DownloadsText)); Raise(nameof(HasDownloads)); };
+        Downloads.Changed += (_, _) => { Raise(nameof(DownloadsText)); Raise(nameof(HasDownloads)); };
 
         Settings.PropertyChanged += (_, _) => OnSettingsChanged();
 
