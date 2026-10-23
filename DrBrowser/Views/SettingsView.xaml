@@ -410,7 +410,7 @@
                                 <TextBlock Text="Endpoint (HTTPS, либо HTTP только для localhost)" Style="{StaticResource Muted}" Margin="0,0,0,4" />
                                 <TextBox Style="{StaticResource InputBox}" Text="{Binding Settings.AiBaseUrl, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Text="Модель" Style="{StaticResource Muted}" Margin="0,10,0,4" />
-                                <ComboBox Style="{StaticResource InputBox}" Height="34" IsEditable="True"
+                                <ComboBox Height="34" IsEditable="True" FontSize="12.5" Padding="8,5"
                                           ItemsSource="{Binding AiModels}"
                                           Text="{Binding Settings.AiModel, UpdateSourceTrigger=PropertyChanged}" />
                                 <WrapPanel Margin="0,10,0,0">
