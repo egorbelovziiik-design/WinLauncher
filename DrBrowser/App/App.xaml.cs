@@ -13,7 +13,7 @@ public partial class App : Application
 
     public Logger Log => _log ??= new Logger();
 
-    public IReadOnlyList<MainWindow> Windows => _windows;
+    public IReadOnlyList<MainWindow> OpenWindows => _windows;
 
     protected override void OnStartup(StartupEventArgs e)
     {

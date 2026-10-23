@@ -73,14 +73,15 @@ public sealed class DownloadService
             Url = url,
             StartedAt = DateTime.Now,
             Operation = operation,
-            TotalBytes = operation.TotalBytesToReceive < 0 ? 0 : operation.TotalBytesToReceive
+            TotalBytes = Math.Max(0, Convert.ToInt64(operation.TotalBytesToReceive))
         };
 
         operation.StateChanged += (_, _) => OnStateChanged(item, operation);
         operation.BytesReceivedChanged += (_, _) =>
         {
-            item.ReceivedBytes = operation.BytesReceived;
-            if (operation.TotalBytesToReceive > 0) item.TotalBytes = operation.TotalBytesToReceive;
+            item.ReceivedBytes = Convert.ToInt64(operation.BytesReceived);
+            var total = Convert.ToInt64(operation.TotalBytesToReceive);
+            if (total > 0) item.TotalBytes = total;
         };
 
         Items.Insert(0, item);
@@ -107,8 +108,9 @@ public sealed class DownloadService
         {
             case CoreWebView2DownloadState.Completed:
                 item.State = DownloadState.Completed;
-                item.ReceivedBytes = operation.BytesReceived;
-                if (operation.TotalBytesToReceive > 0) item.TotalBytes = operation.TotalBytesToReceive;
+                item.ReceivedBytes = Convert.ToInt64(operation.BytesReceived);
+                var total = Convert.ToInt64(operation.TotalBytesToReceive);
+                if (total > 0) item.TotalBytes = total;
                 break;
 
             case CoreWebView2DownloadState.Interrupted:
@@ -141,8 +143,9 @@ public sealed class DownloadService
         {
             if (item.Operation is not CoreWebView2DownloadOperation operation) continue;
 
-            item.ReceivedBytes = operation.BytesReceived;
-            if (operation.TotalBytesToReceive > 0) item.TotalBytes = operation.TotalBytesToReceive;
+            item.ReceivedBytes = Convert.ToInt64(operation.BytesReceived);
+            var total = Convert.ToInt64(operation.TotalBytesToReceive);
+            if (total > 0) item.TotalBytes = total;
 
             var now = DateTime.UtcNow;
             if (_lastSample.TryGetValue(item, out var last) && (now - last).TotalMilliseconds > 300)

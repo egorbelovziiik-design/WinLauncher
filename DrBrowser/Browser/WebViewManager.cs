@@ -227,7 +227,7 @@ public sealed class WebViewManager : IDisposable
 
         core.HistoryChanged += (_, _) => UpdateHistoryState(tab);
 
-        core.StatusBarTextChanged += (_, e) => StatusTextChanged?.Invoke(e.StatusText);
+        core.StatusBarTextChanged += (_, _) => StatusTextChanged?.Invoke(core.StatusBarText ?? string.Empty);
 
         core.NewWindowRequested += (_, e) =>
         {
@@ -321,11 +321,11 @@ public sealed class WebViewManager : IDisposable
                 var requestUri = e.Request.Uri;
                 var pageHost = UrlParser.HostOf(tab.Url);
 
-                if (!_adBlock.ShouldBlock(requestUri, pageHost, out _)) return;
+                if (!_adBlock.ShouldBlock(requestUri, pageHost, out var reason)) return;
 
                 e.Response = _environment!.CreateWebResourceResponse(
                     new MemoryStream(Array.Empty<byte>()), 403, "Blocked by DrBrowser", "Content-Type: text/plain");
-                _adBlock.RegisterBlocked(requestUri);
+                _adBlock.RegisterBlocked(reason);
                 BlockedRequest?.Invoke();
             }
             catch (Exception ex)
@@ -362,7 +362,6 @@ public sealed class WebViewManager : IDisposable
         CoreWebView2PermissionKind.ClipboardRead => "чтение буфера обмена",
         CoreWebView2PermissionKind.OtherSensors => "датчики устройства",
         CoreWebView2PermissionKind.MultipleAutomaticDownloads => "несколько загрузок подряд",
-        CoreWebView2PermissionKind.AutoplayVideo => "автовоспроизведение видео",
         CoreWebView2PermissionKind.WindowManagement => "управление окнами",
         _ => kind.ToString()
     };
