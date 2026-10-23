@@ -9,21 +9,24 @@ DrBrowser contains executable checks inside the same published binary:
 
 Both write human-readable reports and return `1` when any check records `FAIL`. Environment-dependent inability (for example external network outage) is recorded as `SKIP`, not silently reported as a pass.
 
-## Last verified source run
+## Final verified packaging run
 
-GitHub Actions run **40032753453** on `windows-latest` completed successfully for source commit `5129ead`:
+GitHub Actions run **40033545801** on `windows-latest` completed successfully for source commit `c524b5064bff926da97b0f480e01fdf255847e00`:
 
 - .NET 10 Release build: passed.
 - Self-contained compressed single-file `win-x64` publish: passed.
-- EXE existence/minimum-size/SHA-256 generation: passed.
-- `--selftest`: **35 checks, zero failures**.
-- `--smoke`: **12 checks, zero failures**.
-- Live WebView2 initialization, document title and JavaScript execution: passed.
-- Reports/screenshots/artifact upload: passed.
+- Inno Setup per-user installer compilation: passed.
+- Both PE outputs and their SHA-256 sidecars were created and uploaded: passed.
+- `--selftest`: **35 passed, 0 failed, 0 skipped**.
+- `--smoke`: **12 passed, 0 failed, 0 skipped**.
+- Live WebView2 155.0.4283.62 initialization, HTTPS navigation, document title and JavaScript execution: passed.
+- Real loopback WebView2 download (56/56 bytes): passed.
+- Reports/screenshots/artifact upload, branch publication and GitHub release: passed.
 
-Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032753453>
+Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40033545801>
 
-The final packaging run (including Inno Setup and committed `dist/` outputs) supersedes this run when its reports are present in `DrBrowser/screenshots/`. Check `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` rather than relying only on this document.
+Published evidence commit: `272f88e`. Release: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>.
+Check committed `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` for the exact per-check output.
 
 ## Logic/self-test coverage (35 checks)
 

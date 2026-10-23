@@ -4,11 +4,11 @@ DrBrowser OMEGA is a real Windows 10/11 x64 browser application built on **.NET 
 
 ## Download and integrity
 
-| Artifact | Purpose |
-|---|---|
-| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | Portable self-contained `win-x64` application |
-| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | Per-user Windows installer |
-| `../dist/*.sha256.txt` | SHA-256 sidecars generated from the exact CI outputs |
+| Artifact | Size | SHA-256 |
+|---|---:|---|
+| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | 68,195,329 bytes | `36A8DF2494794AE3150B04A2DC936BCE2878DFB9344CC2253FA5840F422EB28A` |
+| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | 62,422,958 bytes | `1E8FC15937605EE9BA8DFD2BCA1BE7F8E944164AF57A6044EAF287520DCFDEC6` |
+| `../dist/*.sha256.txt` | — | Sidecars generated from the exact CI outputs |
 
 Verify a downloaded file:
 
@@ -128,7 +128,7 @@ dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true `
 ..\dist\DrBrowser.exe --smoke
 ```
 
-The latest verified source run before packaging is GitHub Actions run [40032753453](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032753453): Release build and publish succeeded, all **35** logic checks had zero failures, and all **12** live-window/WebView2 smoke checks had zero failures. The final packaging run is recorded in [TESTING.md](Docs/TESTING.md) and the committed reports under `screenshots/`.
+Final GitHub Actions run [40033545801](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40033545801) succeeded: Release build, self-contained publish, Inno Setup compilation, checksums, all **35/35** logic checks and all **12/12** live-window/WebView2 smoke checks passed with **0 failures and 0 skips**. Exact reports are committed under `screenshots/`; verified binaries are committed under top-level `dist/` and attached to the [OMEGA release](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest).
 
 ## Known limitations
 
