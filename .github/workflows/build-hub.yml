@@ -43,6 +43,16 @@ jobs:
           -c Release --no-restore
           "-flp:logfile=build.log;verbosity=normal"
 
+      - name: Show build errors
+        if: failure()
+        run: |
+          if (Test-Path build.log) {
+            $interesting = Get-Content build.log | Where-Object { $_ -match 'error|Error|FAILED|failed' } | Select-Object -Last 25
+            foreach ($line in $interesting) { Write-Host "::error::$line" }
+          } else {
+            Write-Host "::error::build.log was not produced"
+          }
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
