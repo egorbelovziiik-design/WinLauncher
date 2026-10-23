@@ -33,9 +33,46 @@ local function newSound(name, soundId, groupName, looped, volume)
 	sound.Looped = looped == true
 	sound.Volume = volume or 0.6
 	sound.SoundGroup = groups[groupName] or groups.SFX
+	-- Запасной встроенный звук: срабатывает, если основной ассет недоступен
+	-- (чужие аудио в Roblox часто закрыты правами).
+	sound:SetAttribute("FallbackId", Config.SoundFallbacks[name])
+	sound:SetAttribute("FallbackPitch", Config.SoundPitch[name] or 1)
+	sound:SetAttribute("PrimaryId", soundId)
 	sound.Parent = SoundService
 	sounds[name] = sound
 	return sound
+end
+
+local function playWithFallback(sound)
+	pcall(function()
+		sound:Play()
+	end)
+	local fallback = sound:GetAttribute("FallbackId")
+	if not fallback or sound:GetAttribute("UsingFallback") then
+		return
+	end
+	task.delay(0.3, function()
+		if not sound.Parent then
+			return
+		end
+		-- Основной ассет не загрузился — переключаемся на встроенный.
+		local loaded = true
+		pcall(function()
+			loaded = sound.IsLoaded
+		end)
+		if sound.IsPlaying and (loaded or sound.TimeLength > 0) then
+			return
+		end
+		if loaded and sound.TimeLength > 0 then
+			return
+		end
+		sound:SetAttribute("UsingFallback", true)
+		sound.SoundId = fallback
+		sound.PlaybackSpeed = sound:GetAttribute("FallbackPitch") or 1
+		pcall(function()
+			sound:Play()
+		end)
+	end)
 end
 
 function SoundController.play(name, volumeMultiplier)
@@ -47,9 +84,7 @@ function SoundController.play(name, volumeMultiplier)
 		sound:Stop()
 	end
 	sound.Volume = (sound:GetAttribute("BaseVolume") or 0.6) * (volumeMultiplier or 1)
-	pcall(function()
-		sound:Play()
-	end)
+	playWithFallback(sound)
 end
 
 function SoundController.stop(name, fadeOut)
@@ -92,9 +127,7 @@ function SoundController.playMusic(track)
 		return
 	end
 	sound.Volume = 0
-	pcall(function()
-		sound:Play()
-	end)
+	playWithFallback(sound)
 	ClientState.tween(sound, 1.6, { Volume = 0.5 })
 end
 
@@ -107,7 +140,7 @@ function SoundController.setAmbient(dreamId)
 		ambient:Stop()
 	end
 	if dreamId then
-		ambient:Play()
+		playWithFallback(ambient)
 	end
 end
 
@@ -118,7 +151,7 @@ function SoundController.heartbeat(enabled)
 	end
 	if enabled and not sound.IsPlaying then
 		sound.Volume = 0
-		sound:Play()
+		playWithFallback(sound)
 		ClientState.tween(sound, 0.8, { Volume = 0.5 })
 	elseif not enabled and sound.IsPlaying then
 		ClientState.tween(sound, 0.8, { Volume = 0 })
@@ -142,9 +175,9 @@ function SoundController.start()
 	heartbeat:SetAttribute("BaseVolume", 0.5)
 	local whisper = newSound("Whisper", Config.Sounds.Whisper, "Scares", false, 0.55)
 	whisper:SetAttribute("BaseVolume", 0.55)
-	local scare = newSound("Scare", Config.Sounds.Scares or Config.Sounds.Scare, "Scares", false, 0.9)
+	local scare = newSound("Scare", Config.Sounds.Scare, "Scares", false, 0.9)
 	scare:SetAttribute("BaseVolume", 0.9)
-	local growl = newSound("Growl", Config.Sounds.MonsterGrowl, "Scares", false, 0.7)
+	local growl = newSound("MonsterGrowl", Config.Sounds.MonsterGrowl, "Scares", false, 0.7)
 	growl:SetAttribute("BaseVolume", 0.7)
 	local click = newSound("Click", Config.Sounds.Click, "SFX", false, 0.5)
 	click:SetAttribute("BaseVolume", 0.5)
@@ -154,8 +187,16 @@ function SoundController.start()
 	win:SetAttribute("BaseVolume", 0.8)
 	local lose = newSound("Lose", Config.Sounds.Lose, "Scares", false, 0.8)
 	lose:SetAttribute("BaseVolume", 0.8)
-	local door = newSound("Door", Config.Sounds.DoorCreak, "SFX", false, 0.6)
+	local door = newSound("DoorCreak", Config.Sounds.DoorCreak, "SFX", false, 0.6)
 	door:SetAttribute("BaseVolume", 0.6)
+	local pickup = newSound("Pickup", Config.Sounds.Pickup, "SFX", false, 0.55)
+	pickup:SetAttribute("BaseVolume", 0.55)
+	local portal = newSound("Portal", Config.Sounds.Portal, "Scares", false, 0.7)
+	portal:SetAttribute("BaseVolume", 0.7)
+	local growlBig = newSound("BigScare", Config.Sounds.BigScare, "Scares", false, 1)
+	growlBig:SetAttribute("BaseVolume", 1)
+	local whisperLoop = newSound("WhisperLoop", Config.Sounds.Whisper, "Ambient", true, 0)
+	whisperLoop:SetAttribute("BaseVolume", 0.35)
 
 	SoundController.applyVolumes()
 	ClientState.on("Sound", function(name)
@@ -177,6 +218,29 @@ function SoundController.setDream()
 	SoundController.applyVolumes()
 	SoundController.playMusic("DreamMusic")
 	SoundController.setAmbient(true)
+end
+
+-- Шёпот на фоне при низком рассудке (плавно, без щелчков)
+function SoundController.whispers(enabled, intensity)
+	local sound = sounds.WhisperLoop
+	if not sound then
+		return
+	end
+	local level = math.clamp(intensity or 0.5, 0, 1) * 0.45
+	if enabled then
+		if not sound.IsPlaying then
+			sound.Volume = 0
+			playWithFallback(sound)
+		end
+		ClientState.tween(sound, 1.2, { Volume = level })
+	elseif sound.IsPlaying then
+		ClientState.tween(sound, 1.2, { Volume = 0 })
+		task.delay(1.3, function()
+			if sound and sound.IsPlaying and sound.Volume <= 0.02 then
+				sound:Stop()
+			end
+		end)
+	end
 end
 
 function SoundController.setWaking(won)

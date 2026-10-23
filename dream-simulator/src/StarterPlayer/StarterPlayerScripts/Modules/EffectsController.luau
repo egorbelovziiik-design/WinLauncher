@@ -272,6 +272,14 @@ function EffectsController.applySanity(sanity)
 	if factor > 0.4 then
 		CameraController.shake(0.25 * factor, 0.4)
 	end
+	-- Шёпот в наушниках тем громче, чем ниже рассудок.
+	SoundController.whispers(factor > 0.5, factor)
+	if factor > 0.86 and not EffectsController.lowSanityWarned then
+		EffectsController.lowSanityWarned = true
+		ClientState.toast("Рассудок на нуле — монстры совсем рядом", Color3.fromRGB(255, 140, 160), "🌀")
+	elseif factor < 0.6 then
+		EffectsController.lowSanityWarned = false
+	end
 end
 
 ------------------------------------------------------------------
@@ -444,7 +452,7 @@ function EffectsController.handleEvent(data)
 		SoundController.play("Scare", 0.6)
 		CameraController.shake(1.2, 0.8)
 	elseif id == "footsteps" then
-		SoundController.play("Growl", 0.5)
+		SoundController.play("MonsterGrowl", 0.5)
 		CameraController.shake(0.35, 1.2)
 	elseif id == "flicker" then
 		task.spawn(function()
@@ -579,7 +587,7 @@ function EffectsController.start()
 		elseif kind == "hallucination" then
 			EffectsController.hallucination()
 		elseif kind == "growl" then
-			SoundController.play("Growl", 0.7)
+			SoundController.play("MonsterGrowl", 0.7)
 			CameraController.shake(0.45, 0.6)
 		elseif kind == "reveal" then
 			EffectsController.jumpscare(data.monsterName or "ОБМАНЩИК", 1)

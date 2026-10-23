@@ -554,14 +554,28 @@ function CutsceneController.start()
 	ClientState.on("ResultAction", function(action)
 		if action == "retry" then
 			local difficulty = ClientState.result and ClientState.result.difficulty or "Normal"
-			ClientState.setPhase("menu")
+			local previousPhase = ClientState.phase
 			ClientState.result = nil
-			ClientState.emit("RequestDream", difficulty)
-			Remotes.get("RequestDream"):FireServer(difficulty)
+			HUDController.hideResult()
+			local remote = Remotes.get("RequestDream")
+			if remote then
+				remote:FireServer(difficulty)
+			end
+			-- Если сервер не принял (сон ещё убирается), возвращаем меню,
+			-- а не оставляем игрока на пустом экране.
+			later(3, function()
+				if ClientState.phase == previousPhase and previousPhase ~= "sleeping" then
+					ClientState.setPhase("menu")
+					ClientState.toast("Сон не начался — попробуй снова", Color3.fromRGB(255, 190, 150), "🌙")
+				end
+			end)
 		else
 			ClientState.setPhase("menu")
 			ClientState.result = nil
-			Remotes.get("ReturnToMenu"):FireServer()
+			local remote = Remotes.get("ReturnToMenu")
+			if remote then
+				remote:FireServer()
+			end
 		end
 	end)
 end

@@ -545,6 +545,16 @@ function HUDController.start()
 	end, false, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
 		Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine)
 
+	Remotes.get("QuestCompleted").OnClientEvent:Connect(function(data)
+		ClientState.playSound("Pickup")
+		-- Обязательное задание открывает портал — отдельный «магический» звук.
+		if data and data.mandatory then
+			task.delay(0.35, function()
+				ClientState.playSound("Portal")
+			end)
+		end
+	end)
+
 	Remotes.get("DreamStarted").OnClientEvent:Connect(function(data)
 		HUDController.batteryWarned = false
 		HUDController.showDreamIntro(data or {})
@@ -825,16 +835,22 @@ function HUDController.showResult(result)
 		ClientState.tween(card, 0.6, { Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundTransparency = 0.05 }, Enum.EasingStyle.Back)
 	end
 
+	-- Кнопки подключаем ОДИН раз: showResult вызывается после каждого сна,
+	-- иначе одно нажатие отправляло бы несколько запросов сразу.
 	local menuButton = gui:FindFirstChild("MenuButton", true)
-	if menuButton then
+	if menuButton and not menuButton:GetAttribute("Bound") then
+		menuButton:SetAttribute("Bound", true)
 		menuButton.MouseButton1Click:Connect(function()
+			ClientState.playSound("Click")
 			gui.Enabled = false
 			ClientState.emit("ResultAction", "menu")
 		end)
 	end
 	local retryButton = gui:FindFirstChild("RetryButton", true)
-	if retryButton then
+	if retryButton and not retryButton:GetAttribute("Bound") then
+		retryButton:SetAttribute("Bound", true)
 		retryButton.MouseButton1Click:Connect(function()
+			ClientState.playSound("Click")
 			gui.Enabled = false
 			ClientState.emit("ResultAction", "retry")
 		end)

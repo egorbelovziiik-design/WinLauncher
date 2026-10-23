@@ -128,6 +128,44 @@ Config.Sounds = {
 	Portal = "rbxassetid://1837736541",
 }
 
+-- Запасные звуки из встроенной библиотеки Roblox (rbxasset://).
+-- Многие rbxassetid из чужих мест недоступны из-за прав на аудио —
+-- без этого запаса музыка и часть эффектов молчали бы.
+Config.SoundFallbacks = {
+	MenuMusic = "rbxasset://sounds/bass.wav",
+	DreamAmbient = "rbxasset://sounds/uuhhh.mp3",
+	Heartbeat = "rbxasset://sounds/electronicpingshort.wav",
+	Whisper = "rbxasset://sounds/uuhhh.mp3",
+	Scare = "rbxasset://sounds/impact_explosion_03.mp3",
+	BigScare = "rbxasset://sounds/impact_explosion_03.mp3",
+	MonsterGrowl = "rbxasset://sounds/uuhhh.mp3",
+	Click = "rbxasset://sounds/electronicpingshort.wav",
+	Purchase = "rbxasset://sounds/electronicpingshort.wav",
+	Win = "rbxasset://sounds/swoosh.mp3",
+	Lose = "rbxasset://sounds/uuhhh.mp3",
+	DoorCreak = "rbxasset://sounds/snap.mp3",
+	Pickup = "rbxasset://sounds/electronicpingshort.wav",
+	Portal = "rbxasset://sounds/swoosh.mp3",
+}
+
+-- Насколько ниже/выше играет запасной звук, чтобы эффекты отличались.
+Config.SoundPitch = {
+	MenuMusic = 0.55,
+	DreamAmbient = 0.7,
+	Heartbeat = 0.45,
+	Whisper = 1.35,
+	Scare = 1.0,
+	BigScare = 0.8,
+	MonsterGrowl = 0.6,
+	Click = 1.0,
+	Purchase = 1.5,
+	Win = 1.25,
+	Lose = 0.55,
+	DoorCreak = 0.7,
+	Pickup = 1.3,
+	Portal = 0.9,
+}
+
 Config.Colors = {
 	bg = Color3.fromRGB(10, 10, 18),
 	panel = Color3.fromRGB(20, 18, 34),

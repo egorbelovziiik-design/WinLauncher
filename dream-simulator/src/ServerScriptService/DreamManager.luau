@@ -22,6 +22,7 @@ local DreamManager = {}
 
 local sessions = {}
 local states = {}
+local stateSince = {}
 
 local EVENTS = {
 	{ id = "rain", title = "ДОЖДЬ", description = "Вода стекает по стенам сна.", icon = "🌧", duration = 12 },
@@ -44,6 +45,7 @@ local EVENTS = {
 
 local function setState(player, state)
 	states[player] = state
+	stateSince[player] = os.clock()
 	local remote = Remotes.get("DreamStateChanged")
 	if remote then
 		remote:FireClient(player, { state = state })
@@ -875,7 +877,40 @@ function DreamManager.cleanupPlayer(player)
 	end
 	sessions[player] = nil
 	states[player] = nil
+	stateSince[player] = nil
 	MapService.resetLighting()
+end
+
+-- Сторож: не даёт игроку застрять в «спящем» сне или без мира.
+-- Такие состояния — худший вид бага: экран есть, а играть нельзя.
+local function watchdog()
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			local now = os.clock()
+			for player, state in pairs(states) do
+				if player.Parent then
+					local since = stateSince[player] or now
+					if state == "sleeping" and now - since > Config.SleepDuration + 30 then
+						warn("[DreamManager] сторож: игрок застрял в засыпании, возвращаю в меню")
+						sessions[player] = nil
+						setState(player, "menu")
+						DreamManager.teleportToMenu(player)
+					elseif state == "dream" then
+						local session = sessions[player]
+						local alive = session and not session.ended and session.container and session.container.Parent
+						if not alive then
+							warn("[DreamManager] сторож: сессия сна потеряна, возвращаю в меню")
+							sessions[player] = nil
+							MapService.resetLighting()
+							setState(player, "menu")
+							DreamManager.teleportToMenu(player)
+						end
+					end
+				end
+			end
+		end
+	end)
 end
 
 function DreamManager.init()
@@ -883,6 +918,7 @@ function DreamManager.init()
 	Players.PlayerRemoving:Connect(function(player)
 		DreamManager.cleanupPlayer(player)
 	end)
+	watchdog()
 end
 
 return DreamManager

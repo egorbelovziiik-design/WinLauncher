@@ -278,6 +278,25 @@ end
 if difficultyKeys < 4 then problem("сложностей меньше 4 (" .. difficultyKeys .. ")") end
 note("сложностей: " .. difficultyKeys)
 
+-- Звуки: у каждого должен быть встроенный запас (иначе игра может молчать)
+local soundCount = 0
+for cue, id in pairs(Config.Sounds or {}) do
+  soundCount = soundCount + 1
+  if type(id) ~= "string" or id == "" then
+    problem("звук " .. tostring(cue) .. ": пустой SoundId")
+  end
+  local fallback = (Config.SoundFallbacks or {})[cue]
+  if type(fallback) ~= "string" or string.sub(fallback, 1, 11) ~= "rbxasset://" then
+    problem("звук " .. tostring(cue) .. ": нет встроенного запасного звука")
+  end
+end
+for cue in pairs(Config.SoundFallbacks or {}) do
+  if not (Config.Sounds or {})[cue] then
+    problem("запасной звук " .. tostring(cue) .. " без основного")
+  end
+end
+note("звуков: " .. soundCount)
+
 if Config.DreamDuration <= 0 then problem("DreamDuration <= 0") end
 if (Config.SleepDuration or 0) <= 0 then problem("SleepDuration <= 0") end
 if (Config.WakeDuration or 0) <= 0 then problem("WakeDuration <= 0") end

@@ -191,6 +191,30 @@ for (const name of getAttrs) {
 }
 
 /* ------------------------------------------------------------------ */
+/* 6b. Звуковые ключи                                                  */
+/* ------------------------------------------------------------------ */
+
+const configSource = fs.readFileSync(path.join(ROOT, 'src', 'ReplicatedStorage', 'SharedModules', 'Config.luau'), 'utf8');
+const soundBlock = /Config\.Sounds\s*=\s*{([\s\S]*?)\n}/.exec(configSource);
+const soundNames = new Set();
+if (soundBlock) {
+  for (const match of soundBlock[1].matchAll(/^\s*([A-Za-z][A-Za-z0-9_]*)\s*=/gm)) soundNames.add(match[1]);
+}
+
+for (const file of sources) {
+  for (const match of file.src.matchAll(/Config\.Sounds\.([A-Za-z0-9_]+)/g)) {
+    if (!soundNames.has(match[1])) {
+      problems.push(`${file.rel}: Config.Sounds.${match[1]} — такого звука нет в Config.Sounds`);
+    }
+  }
+  for (const match of file.src.matchAll(/(?:playSound|SoundController\.play)\(\s*"([A-Za-z0-9_]+)"/g)) {
+    if (!soundNames.has(match[1])) {
+      warnings.push(`${file.rel}: звук "${match[1]}" не объявлен в Config.Sounds`);
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* 7. Дубли определений в модуле                                       */
 /* ------------------------------------------------------------------ */
 

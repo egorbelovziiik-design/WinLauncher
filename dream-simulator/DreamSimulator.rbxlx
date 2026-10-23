@@ -7802,6 +7802,44 @@ Config.Sounds = {
 	Portal = "rbxassetid://1837736541",
 }
 
+-- Запасные звуки из встроенной библиотеки Roblox (rbxasset://).
+-- Многие rbxassetid из чужих мест недоступны из-за прав на аудио —
+-- без этого запаса музыка и часть эффектов молчали бы.
+Config.SoundFallbacks = {
+	MenuMusic = "rbxasset://sounds/bass.wav",
+	DreamAmbient = "rbxasset://sounds/uuhhh.mp3",
+	Heartbeat = "rbxasset://sounds/electronicpingshort.wav",
+	Whisper = "rbxasset://sounds/uuhhh.mp3",
+	Scare = "rbxasset://sounds/impact_explosion_03.mp3",
+	BigScare = "rbxasset://sounds/impact_explosion_03.mp3",
+	MonsterGrowl = "rbxasset://sounds/uuhhh.mp3",
+	Click = "rbxasset://sounds/electronicpingshort.wav",
+	Purchase = "rbxasset://sounds/electronicpingshort.wav",
+	Win = "rbxasset://sounds/swoosh.mp3",
+	Lose = "rbxasset://sounds/uuhhh.mp3",
+	DoorCreak = "rbxasset://sounds/snap.mp3",
+	Pickup = "rbxasset://sounds/electronicpingshort.wav",
+	Portal = "rbxasset://sounds/swoosh.mp3",
+}
+
+-- Насколько ниже/выше играет запасной звук, чтобы эффекты отличались.
+Config.SoundPitch = {
+	MenuMusic = 0.55,
+	DreamAmbient = 0.7,
+	Heartbeat = 0.45,
+	Whisper = 1.35,
+	Scare = 1.0,
+	BigScare = 0.8,
+	MonsterGrowl = 0.6,
+	Click = 1.0,
+	Purchase = 1.5,
+	Win = 1.25,
+	Lose = 0.55,
+	DoorCreak = 0.7,
+	Pickup = 1.3,
+	Portal = 0.9,
+}
+
 Config.Colors = {
 	bg = Color3.fromRGB(10, 10, 18),
 	panel = Color3.fromRGB(20, 18, 34),
@@ -12082,6 +12120,7 @@ local DreamManager = {}
 
 local sessions = {}
 local states = {}
+local stateSince = {}
 
 local EVENTS = {
 	{ id = "rain", title = "ДОЖДЬ", description = "Вода стекает по стенам сна.", icon = "🌧", duration = 12 },
@@ -12104,6 +12143,7 @@ local EVENTS = {
 
 local function setState(player, state)
 	states[player] = state
+	stateSince[player] = os.clock()
 	local remote = Remotes.get("DreamStateChanged")
 	if remote then
 		remote:FireClient(player, { state = state })
@@ -12935,7 +12975,40 @@ function DreamManager.cleanupPlayer(player)
 	end
 	sessions[player] = nil
 	states[player] = nil
+	stateSince[player] = nil
 	MapService.resetLighting()
+end
+
+-- Сторож: не даёт игроку застрять в «спящем» сне или без мира.
+-- Такие состояния — худший вид бага: экран есть, а играть нельзя.
+local function watchdog()
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			local now = os.clock()
+			for player, state in pairs(states) do
+				if player.Parent then
+					local since = stateSince[player] or now
+					if state == "sleeping" and now - since > Config.SleepDuration + 30 then
+						warn("[DreamManager] сторож: игрок застрял в засыпании, возвращаю в меню")
+						sessions[player] = nil
+						setState(player, "menu")
+						DreamManager.teleportToMenu(player)
+					elseif state == "dream" then
+						local session = sessions[player]
+						local alive = session and not session.ended and session.container and session.container.Parent
+						if not alive then
+							warn("[DreamManager] сторож: сессия сна потеряна, возвращаю в меню")
+							sessions[player] = nil
+							MapService.resetLighting()
+							setState(player, "menu")
+							DreamManager.teleportToMenu(player)
+						end
+					end
+				end
+			end
+		end
+	end)
 end
 
 function DreamManager.init()
@@ -12943,6 +13016,7 @@ function DreamManager.init()
 	Players.PlayerRemoving:Connect(function(player)
 		DreamManager.cleanupPlayer(player)
 	end)
+	watchdog()
 end
 
 return DreamManager
@@ -264648,9 +264722,46 @@ local function newSound(name, soundId, groupName, looped, volume)
 	sound.Looped = looped == true
 	sound.Volume = volume or 0.6
 	sound.SoundGroup = groups[groupName] or groups.SFX
+	-- Запасной встроенный звук: срабатывает, если основной ассет недоступен
+	-- (чужие аудио в Roblox часто закрыты правами).
+	sound:SetAttribute("FallbackId", Config.SoundFallbacks[name])
+	sound:SetAttribute("FallbackPitch", Config.SoundPitch[name] or 1)
+	sound:SetAttribute("PrimaryId", soundId)
 	sound.Parent = SoundService
 	sounds[name] = sound
 	return sound
+end
+
+local function playWithFallback(sound)
+	pcall(function()
+		sound:Play()
+	end)
+	local fallback = sound:GetAttribute("FallbackId")
+	if not fallback or sound:GetAttribute("UsingFallback") then
+		return
+	end
+	task.delay(0.3, function()
+		if not sound.Parent then
+			return
+		end
+		-- Основной ассет не загрузился — переключаемся на встроенный.
+		local loaded = true
+		pcall(function()
+			loaded = sound.IsLoaded
+		end)
+		if sound.IsPlaying and (loaded or sound.TimeLength > 0) then
+			return
+		end
+		if loaded and sound.TimeLength > 0 then
+			return
+		end
+		sound:SetAttribute("UsingFallback", true)
+		sound.SoundId = fallback
+		sound.PlaybackSpeed = sound:GetAttribute("FallbackPitch") or 1
+		pcall(function()
+			sound:Play()
+		end)
+	end)
 end
 
 function SoundController.play(name, volumeMultiplier)
@@ -264662,9 +264773,7 @@ function SoundController.play(name, volumeMultiplier)
 		sound:Stop()
 	end
 	sound.Volume = (sound:GetAttribute("BaseVolume") or 0.6) * (volumeMultiplier or 1)
-	pcall(function()
-		sound:Play()
-	end)
+	playWithFallback(sound)
 end
 
 function SoundController.stop(name, fadeOut)
@@ -264707,9 +264816,7 @@ function SoundController.playMusic(track)
 		return
 	end
 	sound.Volume = 0
-	pcall(function()
-		sound:Play()
-	end)
+	playWithFallback(sound)
 	ClientState.tween(sound, 1.6, { Volume = 0.5 })
 end
 
@@ -264722,7 +264829,7 @@ function SoundController.setAmbient(dreamId)
 		ambient:Stop()
 	end
 	if dreamId then
-		ambient:Play()
+		playWithFallback(ambient)
 	end
 end
 
@@ -264733,7 +264840,7 @@ function SoundController.heartbeat(enabled)
 	end
 	if enabled and not sound.IsPlaying then
 		sound.Volume = 0
-		sound:Play()
+		playWithFallback(sound)
 		ClientState.tween(sound, 0.8, { Volume = 0.5 })
 	elseif not enabled and sound.IsPlaying then
 		ClientState.tween(sound, 0.8, { Volume = 0 })
@@ -264757,9 +264864,9 @@ function SoundController.start()
 	heartbeat:SetAttribute("BaseVolume", 0.5)
 	local whisper = newSound("Whisper", Config.Sounds.Whisper, "Scares", false, 0.55)
 	whisper:SetAttribute("BaseVolume", 0.55)
-	local scare = newSound("Scare", Config.Sounds.Scares or Config.Sounds.Scare, "Scares", false, 0.9)
+	local scare = newSound("Scare", Config.Sounds.Scare, "Scares", false, 0.9)
 	scare:SetAttribute("BaseVolume", 0.9)
-	local growl = newSound("Growl", Config.Sounds.MonsterGrowl, "Scares", false, 0.7)
+	local growl = newSound("MonsterGrowl", Config.Sounds.MonsterGrowl, "Scares", false, 0.7)
 	growl:SetAttribute("BaseVolume", 0.7)
 	local click = newSound("Click", Config.Sounds.Click, "SFX", false, 0.5)
 	click:SetAttribute("BaseVolume", 0.5)
@@ -264769,8 +264876,16 @@ function SoundController.start()
 	win:SetAttribute("BaseVolume", 0.8)
 	local lose = newSound("Lose", Config.Sounds.Lose, "Scares", false, 0.8)
 	lose:SetAttribute("BaseVolume", 0.8)
-	local door = newSound("Door", Config.Sounds.DoorCreak, "SFX", false, 0.6)
+	local door = newSound("DoorCreak", Config.Sounds.DoorCreak, "SFX", false, 0.6)
 	door:SetAttribute("BaseVolume", 0.6)
+	local pickup = newSound("Pickup", Config.Sounds.Pickup, "SFX", false, 0.55)
+	pickup:SetAttribute("BaseVolume", 0.55)
+	local portal = newSound("Portal", Config.Sounds.Portal, "Scares", false, 0.7)
+	portal:SetAttribute("BaseVolume", 0.7)
+	local growlBig = newSound("BigScare", Config.Sounds.BigScare, "Scares", false, 1)
+	growlBig:SetAttribute("BaseVolume", 1)
+	local whisperLoop = newSound("WhisperLoop", Config.Sounds.Whisper, "Ambient", true, 0)
+	whisperLoop:SetAttribute("BaseVolume", 0.35)
 
 	SoundController.applyVolumes()
 	ClientState.on("Sound", function(name)
@@ -264792,6 +264907,29 @@ function SoundController.setDream()
 	SoundController.applyVolumes()
 	SoundController.playMusic("DreamMusic")
 	SoundController.setAmbient(true)
+end
+
+-- Шёпот на фоне при низком рассудке (плавно, без щелчков)
+function SoundController.whispers(enabled, intensity)
+	local sound = sounds.WhisperLoop
+	if not sound then
+		return
+	end
+	local level = math.clamp(intensity or 0.5, 0, 1) * 0.45
+	if enabled then
+		if not sound.IsPlaying then
+			sound.Volume = 0
+			playWithFallback(sound)
+		end
+		ClientState.tween(sound, 1.2, { Volume = level })
+	elseif sound.IsPlaying then
+		ClientState.tween(sound, 1.2, { Volume = 0 })
+		task.delay(1.3, function()
+			if sound and sound.IsPlaying and sound.Volume <= 0.02 then
+				sound:Stop()
+			end
+		end)
+	end
 end
 
 function SoundController.setWaking(won)
@@ -265796,6 +265934,16 @@ function HUDController.start()
 	end, false, Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four,
 		Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine)
 
+	Remotes.get("QuestCompleted").OnClientEvent:Connect(function(data)
+		ClientState.playSound("Pickup")
+		-- Обязательное задание открывает портал — отдельный «магический» звук.
+		if data and data.mandatory then
+			task.delay(0.35, function()
+				ClientState.playSound("Portal")
+			end)
+		end
+	end)
+
 	Remotes.get("DreamStarted").OnClientEvent:Connect(function(data)
 		HUDController.batteryWarned = false
 		HUDController.showDreamIntro(data or {})
@@ -266076,16 +266224,22 @@ function HUDController.showResult(result)
 		ClientState.tween(card, 0.6, { Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundTransparency = 0.05 }, Enum.EasingStyle.Back)
 	end
 
+	-- Кнопки подключаем ОДИН раз: showResult вызывается после каждого сна,
+	-- иначе одно нажатие отправляло бы несколько запросов сразу.
 	local menuButton = gui:FindFirstChild("MenuButton", true)
-	if menuButton then
+	if menuButton and not menuButton:GetAttribute("Bound") then
+		menuButton:SetAttribute("Bound", true)
 		menuButton.MouseButton1Click:Connect(function()
+			ClientState.playSound("Click")
 			gui.Enabled = false
 			ClientState.emit("ResultAction", "menu")
 		end)
 	end
 	local retryButton = gui:FindFirstChild("RetryButton", true)
-	if retryButton then
+	if retryButton and not retryButton:GetAttribute("Bound") then
+		retryButton:SetAttribute("Bound", true)
 		retryButton.MouseButton1Click:Connect(function()
+			ClientState.playSound("Click")
 			gui.Enabled = false
 			ClientState.emit("ResultAction", "retry")
 		end)
@@ -267504,6 +267658,14 @@ function EffectsController.applySanity(sanity)
 	if factor > 0.4 then
 		CameraController.shake(0.25 * factor, 0.4)
 	end
+	-- Шёпот в наушниках тем громче, чем ниже рассудок.
+	SoundController.whispers(factor > 0.5, factor)
+	if factor > 0.86 and not EffectsController.lowSanityWarned then
+		EffectsController.lowSanityWarned = true
+		ClientState.toast("Рассудок на нуле — монстры совсем рядом", Color3.fromRGB(255, 140, 160), "🌀")
+	elseif factor < 0.6 then
+		EffectsController.lowSanityWarned = false
+	end
 end
 
 ------------------------------------------------------------------
@@ -267676,7 +267838,7 @@ function EffectsController.handleEvent(data)
 		SoundController.play("Scare", 0.6)
 		CameraController.shake(1.2, 0.8)
 	elseif id == "footsteps" then
-		SoundController.play("Growl", 0.5)
+		SoundController.play("MonsterGrowl", 0.5)
 		CameraController.shake(0.35, 1.2)
 	elseif id == "flicker" then
 		task.spawn(function()
@@ -267811,7 +267973,7 @@ function EffectsController.start()
 		elseif kind == "hallucination" then
 			EffectsController.hallucination()
 		elseif kind == "growl" then
-			SoundController.play("Growl", 0.7)
+			SoundController.play("MonsterGrowl", 0.7)
 			CameraController.shake(0.45, 0.6)
 		elseif kind == "reveal" then
 			EffectsController.jumpscare(data.monsterName or "ОБМАНЩИК", 1)
@@ -268404,14 +268566,28 @@ function CutsceneController.start()
 	ClientState.on("ResultAction", function(action)
 		if action == "retry" then
 			local difficulty = ClientState.result and ClientState.result.difficulty or "Normal"
-			ClientState.setPhase("menu")
+			local previousPhase = ClientState.phase
 			ClientState.result = nil
-			ClientState.emit("RequestDream", difficulty)
-			Remotes.get("RequestDream"):FireServer(difficulty)
+			HUDController.hideResult()
+			local remote = Remotes.get("RequestDream")
+			if remote then
+				remote:FireServer(difficulty)
+			end
+			-- Если сервер не принял (сон ещё убирается), возвращаем меню,
+			-- а не оставляем игрока на пустом экране.
+			later(3, function()
+				if ClientState.phase == previousPhase and previousPhase ~= "sleeping" then
+					ClientState.setPhase("menu")
+					ClientState.toast("Сон не начался — попробуй снова", Color3.fromRGB(255, 190, 150), "🌙")
+				end
+			end)
 		else
 			ClientState.setPhase("menu")
 			ClientState.result = nil
-			Remotes.get("ReturnToMenu"):FireServer()
+			local remote = Remotes.get("ReturnToMenu")
+			if remote then
+				remote:FireServer()
+			end
 		end
 	end)
 end
