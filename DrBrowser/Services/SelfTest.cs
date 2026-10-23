@@ -790,6 +790,53 @@ public static class SelfTest
                 return "1 вкладка · 3 вкладки · 11 вкладок · 22 вкладки";
             });
 
+            await Run("music-persistence", "DrMusic: избранное и история прослушивания в SQLite", () =>
+            {
+                var dbPath = Path.Combine(Path.GetTempPath(), "drb-music-" + Guid.NewGuid().ToString("N") + ".db");
+                try
+                {
+                    var db = new Db(dbPath);
+                    var first = new MusicFavoriteRow(@"C:\Music\a.mp3", "Первый", "Исполнитель", "Rock", false);
+                    var second = new MusicFavoriteRow("https://radio.example/stream", "Радио", "DrMusic", "Радио", true);
+
+                    db.AddMusicFavorite(first);
+                    db.AddMusicFavorite(second);
+                    db.AddMusicFavorite(first); // повторное добавление не дублирует
+                    var favorites = db.QueryMusicFavorites();
+                    if (favorites.Count != 2) throw new Exception($"ожидалось 2 избранных, получено {favorites.Count}");
+                    if (!db.IsMusicFavorite(first.Path)) throw new Exception("добавленный трек не найден");
+                    if (!favorites.Any(f => f.IsStream && f.Path == second.Path)) throw new Exception("поток не сохранился как поток");
+
+                    db.RemoveMusicFavorite(first.Path);
+                    if (db.IsMusicFavorite(first.Path)) throw new Exception("трек не удалился из избранного");
+                    if (db.QueryMusicFavorites().Count != 1) throw new Exception("после удаления осталось неверное число");
+
+                    // История: повторное прослушивание поднимает трек, а не дублирует его.
+                    db.AddMusicRecent(new MusicRecentRow(@"C:\Music\a.mp3", "Первый", "Исполнитель", false));
+                    db.AddMusicRecent(new MusicRecentRow(@"C:\Music\b.mp3", "Второй", "Исполнитель", false));
+                    db.AddMusicRecent(new MusicRecentRow(@"C:\Music\a.mp3", "Первый", "Исполнитель", false));
+                    var recent = db.QueryMusicRecent(10);
+                    if (recent.Count != 2) throw new Exception($"история продублировала треки: {recent.Count}");
+                    if (!recent[0].Path.EndsWith("a.mp3", StringComparison.OrdinalIgnoreCase))
+                        throw new Exception("повторно прослушанный трек не поднялся наверх");
+
+                    // Хранилище переживает перезапуск: новый Db видит те же строки.
+                    var reopened = new Db(dbPath);
+                    if (reopened.QueryMusicFavorites().Count != 1) throw new Exception("избранное не пережило переоткрытие БД");
+                    if (reopened.QueryMusicRecent(10).Count != 2) throw new Exception("история не пережила переоткрытие БД");
+
+                    reopened.ClearMusicRecent();
+                    if (reopened.QueryMusicRecent(10).Count != 0) throw new Exception("история не очищается");
+
+                    return "избранное 2 → 1, история 3 записи → 2 трека, данные переживают перезапуск";
+                }
+                finally
+                {
+                    Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                    if (File.Exists(dbPath)) File.Delete(dbPath);
+                }
+            });
+
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>
             {
                 var before = File.Exists(log.FilePath) ? new FileInfo(log.FilePath).Length : 0;

@@ -200,6 +200,7 @@
 
             <!-- categories -->
             <Border Grid.Column="0" Style="{StaticResource Card}" Padding="12" Margin="0,0,14,12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <TextBlock Text="КАТЕГОРИИ" Style="{StaticResource SectionTitle}" Margin="2,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Music.Categories}">
@@ -216,7 +217,77 @@
 
                     <TextBlock Style="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap" Margin="2,10,0,0"
                                Text="Категория — это подпапка внутри выбранной папки. Нажмите на неё, чтобы слушать всё подряд." />
+
+                    <Border Height="1" Margin="0,12,0,10" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Margin="2,0,2,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="ИЗБРАННОЕ" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="★" Style="{StaticResource GhostButton}" Padding="7,2" FontSize="11"
+                                ToolTip="Добавить или убрать текущий трек из избранного"
+                                Command="{Binding Music.FavoriteCurrentCommand}" />
+                    </Grid>
+                    <TextBlock Text="{Binding Music.FavoritesSummary}" Style="{StaticResource Muted}" FontSize="10"
+                               TextWrapping="Wrap" Margin="2,0,0,6" />
+                    <ItemsControl ItemsSource="{Binding Music.Favorites}" MaxHeight="150">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
+                                        Margin="0,0,0,5" FontSize="11.5" Padding="9,6"
+                                        ToolTip="{Binding FilePath}"
+                                        Command="{Binding DataContext.Music.PlayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Убрать из избранного"
+                                                      Command="{Binding DataContext.Music.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      CommandParameter="{Binding}" />
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Artist}" FontSize="9.5" Opacity="0.65"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Height="1" Margin="0,10,0,10" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Margin="2,0,2,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="НЕДАВНО СЛУШАЛИ" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="↺" Style="{StaticResource GhostButton}" Padding="7,2" FontSize="11"
+                                ToolTip="Продолжить последний трек" Command="{Binding Music.ResumeLastCommand}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Music.Recent}" MaxHeight="170">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
+                                        Margin="0,0,0,5" FontSize="11.5" Padding="9,6"
+                                        Command="{Binding DataContext.Music.PlayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Artist}" FontSize="9.5" Opacity="0.65"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Очистить историю" Style="{StaticResource GhostButton}" FontSize="10" Padding="8,4"
+                            Margin="2,4,0,0" HorizontalAlignment="Left" Command="{Binding Music.ClearRecentCommand}" />
                 </StackPanel>
+                </ScrollViewer>
             </Border>
 
             <!-- track list -->
@@ -344,6 +415,9 @@
                             Command="{Binding Music.NextCommand}" />
                     <Button Content="⏹" Style="{StaticResource IconButton}" FontSize="12" ToolTip="Стоп"
                             Command="{Binding Music.StopCommand}" />
+                    <Button Content="★" Style="{StaticResource IconButton}" FontSize="13"
+                            ToolTip="Добавить / убрать из избранного"
+                            Command="{Binding Music.FavoriteCurrentCommand}" />
                 </StackPanel>
 
                 <Grid Grid.Column="2" VerticalAlignment="Center">

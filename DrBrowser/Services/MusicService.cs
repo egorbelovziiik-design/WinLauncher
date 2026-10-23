@@ -78,9 +78,13 @@ public sealed class MusicService : ObservableObject, IDisposable
     private bool _repeat;
     private string _status = "Библиотека не выбрана";
 
-    public MusicService(Logger log)
+    private readonly Db? _db;
+
+    /// <param name="db">Optional storage: when present, plays are remembered and favourites persist.</param>
+    public MusicService(Logger log, Db? db = null)
     {
         _log = log;
+        _db = db;
         _player.Volume = _volume;
         _player.MediaOpened += (_, _) =>
         {
@@ -102,6 +106,139 @@ public sealed class MusicService : ObservableObject, IDisposable
 
         SeedStations();
         RebuildCategories();
+        ReloadFavorites();
+        ReloadRecent();
+    }
+
+    // ------------------------------------------------------------------
+    // Favourites and "recently played" (SQLite, optional)
+    // ------------------------------------------------------------------
+
+    public ObservableCollection<MusicTrack> Favorites { get; } = new();
+    public ObservableCollection<MusicTrack> Recent { get; } = new();
+
+    public bool HasFavorites => Favorites.Count > 0;
+    public bool HasRecent => Recent.Count > 0;
+    public string FavoritesSummary => Favorites.Count == 0
+        ? "Избранного пока нет — нажмите ☆ у трека"
+        : $"Избранное: {Favorites.Count}";
+
+    private static MusicTrack TrackFromRow(string path, string title, string artist, string category, bool stream) =>
+        new()
+        {
+            FilePath = path,
+            Title = string.IsNullOrWhiteSpace(title) ? Path.GetFileName(path) : title,
+            Artist = artist,
+            Category = category,
+            IsStream = stream
+        };
+
+    public void ReloadFavorites()
+    {
+        Favorites.Clear();
+        if (_db is not null)
+        {
+            try
+            {
+                foreach (var row in _db.QueryMusicFavorites())
+                    Favorites.Add(TrackFromRow(row.Path, row.Title, row.Artist, row.Category, row.IsStream));
+            }
+            catch (Exception ex)
+            {
+                _log.Error("music favourites read failed", ex);
+            }
+        }
+
+        Raise(nameof(HasFavorites), nameof(FavoritesSummary));
+    }
+
+    public void ReloadRecent()
+    {
+        Recent.Clear();
+        if (_db is not null)
+        {
+            try
+            {
+                foreach (var row in _db.QueryMusicRecent(12))
+                    Recent.Add(TrackFromRow(row.Path, row.Title, row.Artist, "Недавно прослушано", row.IsStream));
+            }
+            catch (Exception ex)
+            {
+                _log.Error("music recent read failed", ex);
+            }
+        }
+
+        Raise(nameof(HasRecent));
+    }
+
+    public bool IsFavorite(MusicTrack? track)
+        => track is not null && Favorites.Any(f => string.Equals(f.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Adds or removes a track from favourites; returns the new state.</summary>
+    public bool ToggleFavorite(MusicTrack track)
+    {
+        if (track is null) return false;
+
+        var existing = Favorites.FirstOrDefault(f =>
+            string.Equals(f.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            Favorites.Remove(existing);
+            try { _db?.RemoveMusicFavorite(track.FilePath); }
+            catch (Exception ex) { _log.Error("music favourite delete failed", ex); }
+            Raise(nameof(HasFavorites), nameof(FavoritesSummary));
+            return false;
+        }
+
+        Favorites.Insert(0, track);
+        try
+        {
+            _db?.AddMusicFavorite(new MusicFavoriteRow(track.FilePath, track.Title, track.Artist, track.Category,
+                track.IsStream));
+        }
+        catch (Exception ex)
+        {
+            _log.Error("music favourite save failed", ex);
+        }
+
+        Raise(nameof(HasFavorites), nameof(FavoritesSummary));
+        return true;
+    }
+
+    public void ClearRecent()
+    {
+        Recent.Clear();
+        try { _db?.ClearMusicRecent(); }
+        catch (Exception ex) { _log.Error("music recent clear failed", ex); }
+        Raise(nameof(HasRecent));
+    }
+
+    /// <summary>The last track that was played (used by "продолжить с места").</summary>
+    public MusicTrack? LastPlayed { get; private set; }
+
+    private void RememberPlay(MusicTrack track)
+    {
+        LastPlayed = track;
+
+        if (_db is not null)
+        {
+            try
+            {
+                _db.AddMusicRecent(new MusicRecentRow(track.FilePath, track.Title, track.Artist, track.IsStream));
+            }
+            catch (Exception ex)
+            {
+                _log.Error("music recent write failed", ex);
+            }
+        }
+
+        var existing = Recent.FirstOrDefault(r =>
+            string.Equals(r.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null) Recent.Remove(existing);
+        Recent.Insert(0, track);
+        while (Recent.Count > 12) Recent.RemoveAt(Recent.Count - 1);
+        Raise(nameof(HasRecent));
     }
 
     public ObservableCollection<MusicTrack> Tracks { get; } = new();
@@ -198,7 +335,7 @@ public sealed class MusicService : ObservableObject, IDisposable
     public string Status
     {
         get => _status;
-        private set => Set(ref _status, value);
+        set => Set(ref _status, value);
     }
 
     // ------------------------------------------------------------------
@@ -340,6 +477,7 @@ public sealed class MusicService : ObservableObject, IDisposable
         try
         {
             Current = track;
+            RememberPlay(track);
             _player.Open(new Uri(track.FilePath));
             _player.Play();
             IsPlaying = true;

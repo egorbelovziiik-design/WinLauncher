@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 namespace DrBrowser;
 
 /// <summary>SQLite storage for history, bookmarks, passwords, downloads and quick links.</summary>
-public sealed class Db
+public sealed partial class Db
 {
     private readonly string _connectionString;
 
@@ -86,6 +86,23 @@ public sealed class Db
 
             CREATE TABLE IF NOT EXISTS site_exceptions (
                 host TEXT PRIMARY KEY
+            );
+
+            CREATE TABLE IF NOT EXISTS music_favorites (
+                path TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                artist TEXT NOT NULL,
+                category TEXT NOT NULL,
+                is_stream INTEGER NOT NULL DEFAULT 0,
+                added_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS music_recent (
+                path TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                artist TEXT NOT NULL,
+                is_stream INTEGER NOT NULL DEFAULT 0,
+                played_at TEXT NOT NULL
             );
             """;
         command.ExecuteNonQuery();

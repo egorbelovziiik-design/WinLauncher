@@ -44,7 +44,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         History = new HistoryService(_db, log);
         Bookmarks = new BookmarkService(_db, log);
         Passwords = new PasswordService(_db, log);
-        _musicService = new MusicService(log);
+        _musicService = new MusicService(log, _db);
         Music = new MusicViewModel(
             _musicService,
             log,

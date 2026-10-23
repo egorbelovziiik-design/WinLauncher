@@ -266,7 +266,14 @@ public sealed class MusicViewModel : ObservableObject
         ? "Библиотека пуста"
         : $"{Service.Tracks.Count} треков · {Math.Max(0, Service.Categories.Count - 1)} категорий";
 
-    public ICommand PlayCommand => new RelayCommand(p => { if (p is MusicTrack track) Service.Play(track); });
+    public ICommand PlayCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack track) return;
+        Service.Play(track);
+        Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(NowPlayingSubtitle),
+            nameof(NowPlayingBadge), nameof(IsStreaming), nameof(MiniPlayerText), nameof(IsCurrentFavorite),
+            nameof(HasRecent));
+    });
 
     /// <summary>Starts a built-in radio station (one click, no key required).</summary>
     public ICommand PlayStationCommand => new RelayCommand(p =>
@@ -281,6 +288,53 @@ public sealed class MusicViewModel : ObservableObject
         if (p is not string category) return;
         SelectedCategory = category;
         Service.PlayCategory(category);
+    });
+
+    // --- favourites + recent (persisted in SQLite) ---
+
+    public ObservableCollection<MusicTrack> Favorites => Service.Favorites;
+    public ObservableCollection<MusicTrack> Recent => Service.Recent;
+    public bool HasFavorites => Service.HasFavorites;
+    public bool HasRecent => Service.HasRecent;
+    public string FavoritesSummary => Service.FavoritesSummary;
+
+    public bool IsCurrentFavorite => Service.IsFavorite(Service.Current);
+
+    public ICommand ToggleFavoriteCommand => new RelayCommand(p =>
+    {
+        var track = p as MusicTrack ?? Service.Current;
+        if (track is null) return;
+        var added = Service.ToggleFavorite(track);
+        Raise(nameof(HasFavorites), nameof(FavoritesSummary), nameof(IsCurrentFavorite));
+        Service.Status = added ? $"☆ {track.Title} — в избранном" : $"Избранное: {track.Title} убран";
+    });
+
+    public ICommand FavoriteCurrentCommand => new RelayCommand(() =>
+    {
+        if (Service.Current is null) return;
+        var added = Service.ToggleFavorite(Service.Current);
+        Raise(nameof(HasFavorites), nameof(FavoritesSummary), nameof(IsCurrentFavorite));
+        Service.Status = added ? "Добавлено в избранное" : "Убрано из избранного";
+    });
+
+    public ICommand ClearRecentCommand => new RelayCommand(() =>
+    {
+        Service.ClearRecent();
+        Raise(nameof(HasRecent));
+        Service.Status = "История прослушивания очищена";
+    });
+
+    public ICommand ResumeLastCommand => new RelayCommand(() =>
+    {
+        if (Service.LastPlayed is null)
+        {
+            Service.Status = "Пока нечего продолжать — включите любой трек.";
+            return;
+        }
+
+        Service.Play(Service.LastPlayed);
+        Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(NowPlayingSubtitle),
+            nameof(NowPlayingBadge), nameof(IsStreaming), nameof(MiniPlayerText), nameof(IsCurrentFavorite));
     });
 
     public ICommand TogglePlayCommand => new RelayCommand(Service.TogglePlay);
