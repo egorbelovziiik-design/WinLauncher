@@ -27,7 +27,7 @@ public sealed class PasswordService
         List<(long Id, string Site, string Username, byte[] Secret, DateTime Created)> rows;
         try
         {
-            rows = await Task.Run(_db.QueryPasswords).ConfigureAwait(false);
+            rows = await Task.Run(_db.QueryPasswords).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -54,7 +54,7 @@ public sealed class PasswordService
     {
         var encrypted = SecretStore.ProtectBytes(password);
         var created = DateTime.Now;
-        var id = await Task.Run(() => _db.AddPassword(site.Trim(), username.Trim(), encrypted, created)).ConfigureAwait(false);
+        var id = await Task.Run(() => _db.AddPassword(site.Trim(), username.Trim(), encrypted, created)).ConfigureAwait(true);
 
         var entry = new PasswordEntry
         {
@@ -71,7 +71,7 @@ public sealed class PasswordService
 
     public async Task DeleteAsync(PasswordEntry entry)
     {
-        await Task.Run(() => _db.DeletePassword(entry.Id)).ConfigureAwait(false);
+        await Task.Run(() => _db.DeletePassword(entry.Id)).ConfigureAwait(true);
         Entries.Remove(entry);
     }
 

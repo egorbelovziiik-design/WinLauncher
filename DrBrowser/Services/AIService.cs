@@ -73,7 +73,7 @@ public sealed class AIService
         HttpResponseMessage response;
         try
         {
-            response = await Client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            response = await Client.SendAsync(request, cancellationToken).ConfigureAwait(true);
         }
         catch (TaskCanceledException)
         {
@@ -85,7 +85,7 @@ public sealed class AIService
             throw new AiException("Сеть недоступна: " + ex.Message);
         }
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(true);
 
         if (!response.IsSuccessStatusCode)
         {

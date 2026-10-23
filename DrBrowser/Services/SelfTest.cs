@@ -18,6 +18,13 @@ public static class SelfTest
 
     private static readonly List<Check> Results = new();
 
+    /// <summary>Called by App when window initialisation throws during a test run.</summary>
+    public static void RecordStartupFailure(Exception ex)
+    {
+        Results.Add(new Check("startup", "Инициализация окна", "FAIL", ex.GetType().Name + ": " + ex.Message));
+        Trace("startup FAIL: " + ex);
+    }
+
     private static string ReportDir =>
         Environment.GetEnvironmentVariable("DRBROWSER_SHOTS") is { Length: > 0 } dir
             ? dir

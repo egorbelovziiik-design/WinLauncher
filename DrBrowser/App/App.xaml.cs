@@ -9,6 +9,9 @@ public partial class App : Application
     private readonly List<MainWindow> _windows = new();
     private Logger? _log;
 
+    /// <summary>True for --selftest / --smoke: no modal dialogs, they would block the headless run.</summary>
+    public static bool IsTestMode { get; private set; }
+
     public static new App Current => (App)Application.Current;
 
     public Logger Log => _log ??= new Logger();
@@ -19,6 +22,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
         AppPaths.EnsureCreated();
+
+        IsTestMode = e.Args.Any(a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase)
+                                     || a.Equals("--smoke", StringComparison.OrdinalIgnoreCase));
 
         _log = new Logger();
         _log.Info($"=== DrBrowser {AppSettings.Version} starting · {Environment.OSVersion} · {string.Join(' ', e.Args)} ===");
@@ -85,6 +91,12 @@ public partial class App : Application
         catch (Exception ex)
         {
             Log.Error("window initialisation failed", ex);
+            if (IsTestMode)
+            {
+                SelfTest.RecordStartupFailure(ex);
+                return;
+            }
+
             window.ShowStartupError(ex.Message);
         }
     }

@@ -100,7 +100,7 @@ public sealed class AdBlockService
             {
                 foreach (var file in Directory.GetFiles(AppPaths.FiltersDir, "*.txt"))
                 {
-                    rules.AddRange(await File.ReadAllLinesAsync(file, cancellationToken).ConfigureAwait(false));
+                    rules.AddRange(await File.ReadAllLinesAsync(file, cancellationToken).ConfigureAwait(true));
                     if (!ActiveLists.Contains(Path.GetFileName(file))) ActiveLists.Add(Path.GetFileName(file));
                 }
             }
@@ -310,14 +310,14 @@ public sealed class AdBlockService
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("DrBrowser/1.0");
-            var text = await client.GetStringAsync(uri, cancellationToken).ConfigureAwait(false);
+            var text = await client.GetStringAsync(uri, cancellationToken).ConfigureAwait(true);
             if (text.Length < 500) return "Список подозрительно короткий — обновление отменено.";
 
             AppPaths.EnsureCreated();
             var target = Path.Combine(AppPaths.FiltersDir, "easylist.txt");
-            await File.WriteAllTextAsync(target, text, cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(target, text, cancellationToken).ConfigureAwait(true);
 
-            await LoadAsync(string.Empty, cancellationToken).ConfigureAwait(false);
+            await LoadAsync(string.Empty, cancellationToken).ConfigureAwait(true);
             return $"Список обновлён: {RuleCount} правил.";
         }
         catch (Exception ex)

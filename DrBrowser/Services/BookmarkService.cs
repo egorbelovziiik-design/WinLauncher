@@ -26,7 +26,7 @@ public sealed partial class BookmarkService
         List<Bookmark> rows;
         try
         {
-            rows = await Task.Run(_db.QueryBookmarks).ConfigureAwait(false);
+            rows = await Task.Run(_db.QueryBookmarks).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -61,7 +61,7 @@ public sealed partial class BookmarkService
             CreatedAt = DateTime.Now
         };
 
-        bookmark.Id = await Task.Run(() => _db.AddBookmark(bookmark)).ConfigureAwait(false);
+        bookmark.Id = await Task.Run(() => _db.AddBookmark(bookmark)).ConfigureAwait(true);
         Items.Add(bookmark);
         RefreshDerived();
         return bookmark;
@@ -69,13 +69,13 @@ public sealed partial class BookmarkService
 
     public async Task UpdateAsync(Bookmark bookmark)
     {
-        await Task.Run(() => _db.UpdateBookmark(bookmark)).ConfigureAwait(false);
+        await Task.Run(() => _db.UpdateBookmark(bookmark)).ConfigureAwait(true);
         RefreshDerived();
     }
 
     public async Task DeleteAsync(Bookmark bookmark)
     {
-        await Task.Run(() => _db.DeleteBookmark(bookmark.Id)).ConfigureAwait(false);
+        await Task.Run(() => _db.DeleteBookmark(bookmark.Id)).ConfigureAwait(true);
         Items.Remove(bookmark);
         RefreshDerived();
     }
@@ -122,7 +122,7 @@ public sealed partial class BookmarkService
         }
 
         sb.AppendLine("</DL><p>");
-        await File.WriteAllTextAsync(path, sb.ToString(), Encoding.UTF8).ConfigureAwait(false);
+        await File.WriteAllTextAsync(path, sb.ToString(), Encoding.UTF8).ConfigureAwait(true);
     }
 
     [GeneratedRegex("<A\\s+[^>]*HREF=\"(?<url>[^\"]+)\"[^>]*>(?<title>.*?)</A>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
@@ -134,7 +134,7 @@ public sealed partial class BookmarkService
     /// <summary>Imports an HTML bookmarks file; folders are preserved.</summary>
     public async Task<int> ImportHtmlAsync(string path)
     {
-        var html = await File.ReadAllTextAsync(path).ConfigureAwait(false);
+        var html = await File.ReadAllTextAsync(path).ConfigureAwait(true);
         var folder = Path.GetFileNameWithoutExtension(path);
         var imported = 0;
 
@@ -153,7 +153,7 @@ public sealed partial class BookmarkService
             var title = System.Net.WebUtility.HtmlDecode(StripTags(match.Groups["title"].Value)).Trim();
             if (Items.Any(b => b.Url == url)) continue;
 
-            await AddAsync(string.IsNullOrWhiteSpace(title) ? uri.Host : title, url, folder).ConfigureAwait(false);
+            await AddAsync(string.IsNullOrWhiteSpace(title) ? uri.Host : title, url, folder).ConfigureAwait(true);
             imported++;
         }
 

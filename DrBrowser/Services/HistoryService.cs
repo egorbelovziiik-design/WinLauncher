@@ -25,7 +25,7 @@ public sealed class HistoryService
         var host = UrlParser.HostOf(url);
         try
         {
-            await Task.Run(() => _db.AddHistory(url, title, host, DateTime.Now)).ConfigureAwait(false);
+            await Task.Run(() => _db.AddHistory(url, title, host, DateTime.Now)).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -44,7 +44,7 @@ public sealed class HistoryService
                 var history = _db.QueryHistory(search, from, to);
                 var visited = _db.QueryMostVisited();
                 return (history, visited);
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
@@ -62,14 +62,14 @@ public sealed class HistoryService
 
     public async Task DeleteAsync(long id)
     {
-        await Task.Run(() => _db.DeleteHistory(id)).ConfigureAwait(false);
+        await Task.Run(() => _db.DeleteHistory(id)).ConfigureAwait(true);
         var entry = Entries.FirstOrDefault(e => e.Id == id);
         if (entry is not null) Entries.Remove(entry);
     }
 
     public async Task ClearAsync()
     {
-        await Task.Run(_db.ClearHistory).ConfigureAwait(false);
+        await Task.Run(_db.ClearHistory).ConfigureAwait(true);
         Entries.Clear();
         MostVisited.Clear();
     }

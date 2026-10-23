@@ -45,7 +45,7 @@ public partial class MainWindow : Window, IBrowserShell
 
         Loaded += (_, _) =>
         {
-            if (_vm.RuntimeMissing) ShowStartupError(_vm.RuntimeStatus);
+            if (_vm.RuntimeMissing && !App.IsTestMode) ShowStartupError(_vm.RuntimeStatus);
         };
 
         Closing += OnClosing;
