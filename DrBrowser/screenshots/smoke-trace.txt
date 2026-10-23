@@ -1372,3 +1372,57 @@
 22:22:40.582 smoke: view model shutdown
 22:22:40.608 smoke: window closed
 22:22:40.615 smoke: finished, exit 0
+22:28:30.955 data-folders: PASS
+22:28:31.033 settings-json: PASS
+22:28:31.044 url-parser: PASS
+22:28:31.046 search-engines: PASS
+22:28:31.222 drsearch-index: PASS
+22:28:31.231 music-library: PASS
+22:28:31.479 radio-stations: PASS
+22:28:31.482 ai-personas: PASS
+22:28:31.492 profile-avatars: PASS
+22:28:31.567 drsearch-recents: PASS
+22:28:31.714 sqlite-history: PASS
+22:28:31.743 bookmarks: PASS
+22:28:31.761 passwords-dpapi: PASS
+22:28:31.763 password-generator: PASS
+22:28:31.767 ai-without-key: PASS
+22:28:31.772 adblock: PASS
+22:28:31.778 downloads: PASS
+22:28:31.790 session: PASS
+22:28:31.875 quicklinks-permissions: PASS
+22:28:31.878 incognito-profile: PASS
+22:28:31.885 webview2-runtime: PASS
+22:28:31.885 settings-limits: PASS
+22:28:31.889 guard-url-rules: PASS
+22:28:31.891 guard-scan-args: PASS
+22:28:31.892 ai-image-attachment: PASS
+22:28:31.962 local-ai: PASS
+22:28:31.977 ai-media-context: PASS
+22:28:31.979 music-catalog-parse: PASS
+22:28:31.986 drsearch-parse: PASS
+22:28:31.989 ai-local-provider: PASS
+22:28:31.990 ru-plurals: PASS
+22:28:31.991 error-logging: PASS
+22:28:34.091 smoke: start
+22:28:35.639 smoke: window created
+22:28:35.705 smoke: view model attached
+22:28:37.668 smoke-window: PASS
+22:28:37.671 smoke-webview: navigating
+22:28:40.056 smoke-webview: core ready
+22:28:40.656 smoke-webview: calling NavigateToString
+22:28:40.676 smoke-webview: NavigateToString returned
+22:28:41.414 smoke-webview: PASS
+22:28:43.853 smoke-tabs: PASS
+22:28:51.418 smoke-pages: PASS
+22:28:53.900 smoke-settings-tabs: PASS
+22:28:55.384 smoke-ui: PASS
+22:28:56.343 smoke-miniplayer: PASS
+22:28:58.576 smoke-hotkeys: PASS
+22:28:59.236 smoke-https: engine ready
+22:28:59.583 smoke-https: PASS
+22:29:02.348 smoke-download: PASS
+22:29:03.860 smoke-screenshot: PASS
+22:29:03.930 smoke: view model shutdown
+22:29:03.953 smoke: window closed
+22:29:03.964 smoke: finished, exit 0
