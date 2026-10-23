@@ -197,9 +197,6 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
 
             <!-- ================= ПРИВАТНОСТЬ ================= -->
             <TabItem Header="Приватность">
