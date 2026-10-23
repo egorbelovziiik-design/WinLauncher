@@ -52,6 +52,8 @@ public sealed class EggFeatures : ObservableObject
     private int _visibleCount;
     private int _rareVisible;
     private double _viewWidth = 1280;
+    private double _demoOrbitSpeed = 18;
+    private double _demoCameraHeight = 14;
     private double _viewHeight = 720;
     private Vec3 _spawnPad = Vec3.Zero;
 
@@ -413,6 +415,39 @@ public sealed class EggFeatures : ObservableObject
         ResetDemo("live source lost");
     }
 
+    /// <summary>
+    /// Demo-only feedback for the PLAYER tab: Speed/Fly/JumpPower change the simulated
+    /// camera and the player card immediately, without a game client. In the official
+    /// test place the Luau bridge does the real work and this method does nothing.
+    /// </summary>
+    public void ApplyDemoPlayerState(AppSettings settings)
+    {
+        if (!IsDemoMode) return;
+
+        bool On(string id) => settings.Features.TryGetValue(id, out var value) && value;
+
+        var speed = On(FeatureIds.Speed);
+        var fly = On(FeatureIds.Fly);
+        var jump = On(FeatureIds.JumpPower);
+
+        _demoOrbitSpeed = fly ? 26 : speed ? 34 : 18;
+        _demoCameraHeight = fly ? 34 : 14;
+
+        var walkSpeed = speed ? Math.Max(16, settings.Player.WalkSpeed) : 16;
+        var jumpPower = jump ? Math.Max(50, settings.Player.JumpPower) : 50;
+
+        if (Math.Abs(Player.WalkSpeed - walkSpeed) < 0.01
+            && Math.Abs(Player.CameraHeight - _demoCameraHeight) < 0.01
+            && Math.Abs(Player.JumpPower - jumpPower) < 0.01)
+            return;
+
+        Player.WalkSpeed = walkSpeed;
+        Player.JumpPower = jumpPower;
+        Player.CameraHeight = _demoCameraHeight;
+        Player.Heading = Heading;
+        OnPropertyChanged(nameof(PlayerInfoText));
+    }
+
     /// <summary>Returns to demo data if a live snapshot has not refreshed recently.</summary>
     public void ExpireLiveSource(TimeSpan staleAfter)
     {
@@ -501,8 +536,10 @@ public sealed class EggFeatures : ObservableObject
         if (IsDemoMode)
         {
             // Demo camera orbits so the ESP is visibly alive and drags across the screen.
-            Heading = (Heading + dt * 18) % 360;
-            _cameraHeight = 14;
+            // The orbit speed and camera height react to the PLAYER toggles, so switching
+            // Speed / Fly on visibly changes the demo view instead of doing nothing.
+            Heading = (Heading + dt * _demoOrbitSpeed) % 360;
+            _cameraHeight = _demoCameraHeight;
             foreach (var egg in Eggs)
                 egg.Distance = PlayerPosition.DistanceTo(egg.Position);
         }

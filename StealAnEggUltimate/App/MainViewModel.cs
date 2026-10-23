@@ -777,26 +777,39 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public void ShowMenu()
     {
-        if (_overlay is null || !IsConnected)
+        if (!IsConnected)
+        {
+            // OPEN MENU from a cold start behaves like CONNECT + open.
+            _ = ConnectAndOpenMenuAsync();
+            return;
+        }
+
+        _overlay?.ShowMenu();
+    }
+
+    private async Task ConnectAndOpenMenuAsync()
+    {
+        await ConnectAsync();
+        if (!IsConnected)
         {
             AddNotice("Connect the overlay first (CONNECT).", NoticeKind.Error);
             return;
         }
 
-        _overlay.ShowMenu();
+        _overlay?.ShowMenu();
     }
 
     public void HideMenu() => _overlay?.HideMenu();
 
     public void ToggleMenu()
     {
-        if (_overlay is null || !IsConnected)
+        if (!IsConnected)
         {
-            AddNotice("Connect the overlay first (CONNECT).", NoticeKind.Error);
+            _ = ConnectAndOpenMenuAsync();
             return;
         }
 
-        _overlay.ToggleMenu();
+        _overlay?.ToggleMenu();
     }
 
     public void Shutdown()
@@ -1009,6 +1022,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             if (_settings.Visual.ShowFps) Raise(nameof(FpsText));
 
             Player.RefreshMode(_settings);
+            Eggs.ApplyDemoPlayerState(_settings);
 
             var (width, height) = _overlay?.ViewSize ?? (1280.0, 720.0);
             Eggs.Update(delta, _settings, width, height);

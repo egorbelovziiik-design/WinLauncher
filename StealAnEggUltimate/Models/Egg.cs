@@ -189,6 +189,8 @@ public sealed class PlayerSnapshot
     public double Health { get; set; } = 100;
     public double MaxHealth { get; set; } = 100;
     public double WalkSpeed { get; set; } = 16;
+
+    public double JumpPower { get; set; } = 50;
     public int Coins { get; set; }
     public string Place { get; set; } = string.Empty;
 
