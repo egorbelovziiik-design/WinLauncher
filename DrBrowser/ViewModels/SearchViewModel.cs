@@ -127,7 +127,11 @@ public sealed class SearchViewModel : ObservableObject
         await Task.CompletedTask;
     });
 
-    public Task RunAsync(string query) => Task.FromResult(Run(query));
+    public Task RunAsync(string query)
+    {
+        Run(query);
+        return Task.CompletedTask;
+    }
 
     public void Run(string query)
     {
