@@ -9,15 +9,15 @@
 ## Скачать
 
 * **Релиз (рекомендуется):** <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>
-  → `DrBrowser.exe` (72130676 байт, self-contained, .NET устанавливать не нужно).
+  → `DrBrowser.exe` (72262772 байт, self-contained, .NET устанавливать не нужно).
 * **Прямая ссылка:**
   <https://github.com/egorbelovziiik-design/WinLauncher/releases/download/drbrowser-latest/DrBrowser.exe>
 * **Файл в репозитории:** [dist/DrBrowser.exe](dist/DrBrowser.exe)
-* **SHA-256:** `0FC5B2D5A72236C005E258F6341D6DF97234BC4BE3F9989230B138475F0B40CB`
+* **SHA-256:** `EB4CFBED31470F689C59810205C460B4C38201DFFD01E1C53DF75DAC747CCB54`
 
 ```powershell
 Get-FileHash .\DrBrowser.exe -Algorithm SHA256
-# 0FC5B2D5A72236C005E258F6341D6DF97234BC4BE3F9989230B138475F0B40CB
+# EB4CFBED31470F689C59810205C460B4C38201DFFD01E1C53DF75DAC747CCB54
 ```
 
 Сборка без цифровой подписи, поэтому SmartScreen покажет предупреждение: «Подробнее» → «Выполнить в любом случае».

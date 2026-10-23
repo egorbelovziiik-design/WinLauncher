@@ -1,7 +1,7 @@
-﻿DrBrowser self-test · 2026-10-23 20:57:30 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser self-test · 2026-10-23 21:16:12 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] data-folders         Каталоги данных и журнал
-           5 каталогов + logs\drbrowser-*.log (61 ms)
+           5 каталогов + logs\drbrowser-*.log (55 ms)
 [PASS] settings-json        Настройки: сохранение и загрузка JSON
            settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (50 ms)
 [PASS] url-parser           Адресная строка: URL против поискового запроса
@@ -9,42 +9,54 @@
 [PASS] search-engines       5 поисковых систем, включая собственный DrSearch
            Google · Яндекс · Bing · DuckDuckGo · DrSearch — DrSearch + 4 веб-движка (1 ms)
 [PASS] drsearch-index       DrSearch: локальный поиск по истории и закладкам
-           история + закладки + адрес + переход — 2 результатов (97 ms)
+           история + закладки + адрес + переход — 2 результатов (176 ms)
 [PASS] music-library        DrMusic: сканирование папки, категории, поиск
            3 трека · категории Chill / Rock · .txt отфильтрован (4 ms)
 [PASS] radio-stations       DrMusic: встроенное радио и LIVE-плейлист
-           8 станций · категория «Радио · прямой эфир» · LIVE-бейдж и запрет перемотки (357 ms)
+           8 станций · категория «Радио · прямой эфир» · LIVE-бейдж и запрет перемотки (390 ms)
 [PASS] ai-personas          DrAI: режимы и промпты отличаются
-           4 режима · промпты различаются · базовый 149 символов (0 ms)
+           4 режима · промпты различаются · базовый 149 символов (1 ms)
 [PASS] profile-avatars      Профиль: пресеты аватара и инициалы
-           6 пресетов · градиенты различаются · инициалы DB (4 ms)
+           6 пресетов · градиенты различаются · инициалы DB (6 ms)
 [PASS] drsearch-recents     DrSearch: недавние запросы сохраняются
-           история запросов: первый запрос / второй запрос (93 ms)
+           история запросов: первый запрос / второй запрос (96 ms)
 [PASS] sqlite-history       История в SQLite: запись, поиск, фильтр по дате, удаление
-           4 записи · поиск · дата · most-visited · delete · clear — OK (97 ms)
+           4 записи · поиск · дата · most-visited · delete · clear — OK (93 ms)
 [PASS] bookmarks            Закладки: папки, поиск, HTML импорт/экспорт
            добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (20 ms)
 [PASS] passwords-dpapi      Пароли: DPAPI-шифрование и отсутствие открытого текста
            DPAPI round-trip · шифртекст в SQLite · поиск · удаление (12 ms)
 [PASS] password-generator   Генератор паролей и оценка стойкости
-           hrB]… · Strength «сильный» (9 ms)
+           yaPL… · Strength «сильный» (1 ms)
 [PASS] ai-without-key       AI без ключа: понятное сообщение об ошибке
-           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (10 ms)
+           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (2 ms)
 [PASS] adblock              AdBlock: домены, пользовательские правила, whitelist
-           правил: 108 · домен/путь/whitelist/свои правила — OK (4 ms)
+           правил: 108 · домен/путь/whitelist/свои правила — OK (3 ms)
 [PASS] downloads            Загрузки: форматирование размеров и история в SQLite
            B/KB/MB/GB · запись и чтение истории загрузок (3 ms)
 [PASS] session              Сессия: сохранение и восстановление вкладок
            session.json: 2 вкладки, pin и активный индекс — OK (7 ms)
 [PASS] quicklinks-permissions Быстрые ссылки и разрешения сайтов в SQLite
-           quick links CRUD · permissions set/get/clear (63 ms)
+           quick links CRUD · permissions set/get/clear (119 ms)
 [PASS] incognito-profile    Инкогнито: временный профиль создаётся и удаляется
            profile\incognito-<guid> создан и удалён вместе с данными (1 ms)
 [PASS] webview2-runtime     Определение Microsoft Edge WebView2 Runtime
-           WebView2 Runtime 155.0.4283.62 (4 ms)
+           WebView2 Runtime 155.0.4283.62 (5 ms)
 [PASS] settings-limits      Ограничения настроек (масштаб, суспензия вкладок)
            zoom 0.25–3.0 · suspend 1–240 · Normalize восстанавливает значения (0 ms)
+[PASS] guard-url-rules      DrGuard: блокировка и предупреждения по URL
+           8 сценариев: safe · inner · credentials · punycode · tld-bait · http · blocklist · exemption (2 ms)
+[PASS] guard-scan-args      DrGuard: аргументы Defender и определение движка
+           MpCmdRun.exe: C:\Program Files\Windows Defender\MpCmdRun.exe (1 ms)
+[PASS] ai-image-attachment  Фото DrAI: сигнатуры, лимит, base64, имя без пути
+           PNG data URL · имя без каталога · пустые/неизвестные/слишком большие файлы отклонены (0 ms)
+[PASS] local-ai             DrAI Local: краткое содержание, ключевые слова, статистика
+           конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети (33 ms)
+[PASS] music-catalog-parse  Каталог музыки: разбор ответов iTunes и Deezer
+           iTunes 1 · Deezer 1 · превью · длительность · ссылка на Яндекс (1 ms)
+[PASS] drsearch-parse       DrSearch: разбор выдачи и bang-команды
+           2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang (3 ms)
 [PASS] error-logging        Обработка ошибок пишется в журнал
            ERROR + stack trace записаны в журнал (0 ms)
 ------------------------------------------------------------------------------
-ИТОГО: 23 passed, 0 failed, 0 skipped из 23
+ИТОГО: 29 passed, 0 failed, 0 skipped из 29
