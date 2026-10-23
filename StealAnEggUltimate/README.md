@@ -14,7 +14,7 @@ own place.
 
 ## Download
 
-**[StealAnEggUltimate.exe (62.9 MB, Win10/11 x64)](https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-1.0.0/StealAnEggUltimate/dist/StealAnEggUltimate.exe)** —
+**[StealAnEggUltimate.exe (62.9 MB, Win10/11 x64)](https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-latest/StealAnEggUltimate/dist/StealAnEggUltimate.exe)** —
 the file also lives in `StealAnEggUltimate/dist/`; no .NET install needed.
 All links, SHA256 and run modes: [DOWNLOAD.md](DOWNLOAD.md).
 
@@ -185,7 +185,7 @@ The published EXE can verify itself without a Roblox session — the same comman
 CI workflow (`.github/workflows/build-hub.yml`) runs on `windows-latest`:
 
 ```powershell
-# 36 functional assertions (settings, commands, demo egg world, ESP, bridge, assets, ...)
+# 39 functional assertions (settings, commands, demo egg world, ESP, bridge, assets, ...)
 .\dist\StealAnEggUltimate.exe --selftest
 Get-Content "$env:APPDATA\StealAnEggUltimate\selftest-report.txt"
 
@@ -198,12 +198,16 @@ Get-Content "$env:APPDATA\StealAnEggUltimate\smoke-result.txt"
 | --- | --- |
 | `self-test exit code 0` | all assertions passed |
 | `RESULT: PASS` / `SUMMARY: n passed, m failed, k skipped` | machine-readable verdict in `selftest-report.txt` |
-| `[SKIP]` line | the skipped item is the overlay hotkey/menu test, which needs a real Roblox client and an interactive desktop session |
-| `smoke ok ... uiExceptions=0` | main window and overlay rendered with zero XAML/binding errors |
+| `[SKIP]` line | the skipped item is "overlay attached to a real Roblox window": it needs the Roblox Player running. The desktop PREVIEW overlay, its menu and its render are covered by `--smoke` |
+| `smoke ok ... uiExceptions=0` | CONNECT attached the overlay, the menu opened, the demo ESP projected eggs, both windows rendered to PNG with real pixels |
+| `Docs/ui/hub-window.png`, `Docs/ui/overlay-menu.png` | screenshots rendered by the app itself during the smoke run |
 | smoke exit code `4` | the UI rendered but raised at least one binding/XAML exception (CI fails) |
 
 Everything that could not be executed automatically is marked here instead of being
-reported as a success: with no Roblox client on the machine, only the demo island,
-the snapshot reader and the loopback bridge are exercised; the in-game path
-(`TEST PLACE` modules in `RobloxStudio\TestPlaceModules\`) has to be run by hand in
-Roblox Studio and is documented in `Docs\RUN.md`.
+reported as a success. Covered automatically: config persistence, command interpreter,
+demo egg world, ESP projection/filters/filters, snapshots, loopback bridge round-trip,
+demo automation, bundled Luau assets, Roblox process/window enumeration, the passive
+keyboard hook, the preview overlay geometry, and a full render of the hub window plus the
+in-game menu. NOT covered: the Luau modules running inside Roblox Studio (`TEST PLACE`
+path) and the overlay following a live game window — both need a real client and are
+documented step by step in `Docs\RUN.md`.

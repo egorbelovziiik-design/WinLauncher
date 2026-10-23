@@ -2,16 +2,16 @@
 
 ## ⬇️ Прямая ссылка
 
-**[Скачать StealAnEggUltimate.exe (62.9 МБ)](https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-1.0.0/StealAnEggUltimate/dist/StealAnEggUltimate.exe)**
+**[Скачать StealAnEggUltimate.exe (62.9 МБ)](https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-latest/StealAnEggUltimate/dist/StealAnEggUltimate.exe)**
 
 Резервные варианты той же сборки:
 
 | Способ | Ссылка |
 | --- | --- |
-| Тег `saeu-1.0.0` (стабильная, не меняется) | https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-1.0.0/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
-| CDN (то же самое) | https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/saeu-1.0.0/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
+| Тег `saeu-latest` (стабильная, не меняется) | https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-latest/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
+| CDN (то же самое) | https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/saeu-latest/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
 | Ветка `arena/95195420-winlauncher` (всегда свежий билд) | https://github.com/egorbelovziiik-design/WinLauncher/raw/arena/95195420-winlauncher/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
-| Страница файла на GitHub | https://github.com/egorbelovziiik-design/WinLauncher/blob/saeu-1.0.0/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
+| Страница файла на GitHub | https://github.com/egorbelovziiik-design/WinLauncher/blob/saeu-latest/StealAnEggUltimate/dist/StealAnEggUltimate.exe |
 | Артефакт CI (нужен вход в GitHub) | https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/39962140897 |
 
 ## Файл
