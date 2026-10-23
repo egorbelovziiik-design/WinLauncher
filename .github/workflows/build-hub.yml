@@ -115,7 +115,13 @@ jobs:
           Write-Host "::notice::self-test exit code $($process.ExitCode)"
           $report = Join-Path $env:APPDATA "StealAnEggUltimate\selftest-report.txt"
           if (Test-Path $report) {
-            Get-Content $report | ForEach-Object { Write-Host "::notice::$_" }
+            Get-Content $report | ForEach-Object { Write-Host $_ }
+            $report | Get-Content | Where-Object { $_ -match '^\[FAIL\]' } | Select-Object -First 8 |
+              ForEach-Object { Write-Host "::error::$_" }
+            $report | Get-Content | Where-Object { $_ -match '^\[SKIP\]' } | Select-Object -First 2 |
+              ForEach-Object { Write-Host "::notice::$_" }
+            $report | Get-Content | Where-Object { $_ -match '^(SUMMARY|RESULT):' } |
+              ForEach-Object { Write-Host "::error::$_" }
           } else {
             Write-Host "::error::self-test report missing at $report"
           }
