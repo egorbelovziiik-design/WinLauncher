@@ -115,14 +115,21 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Style="{StaticResource InputBox}" Margin="0,0,8,0"
-                                 Text="{Binding NewTab.NewQuickLinkTitle, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Название сайта" />
-                        <TextBox Grid.Column="1" Style="{StaticResource InputBox}" Margin="0,0,8,0"
-                                 Text="{Binding NewTab.NewQuickLinkUrl, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Адрес, например github.com" />
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Название" Style="{StaticResource Muted}" FontSize="10.5" Margin="2,0,0,4" />
+                            <TextBox Style="{StaticResource InputBox}"
+                                     Text="{Binding NewTab.NewQuickLinkTitle, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Название сайта — например GitHub" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <TextBlock Text="Адрес" Style="{StaticResource Muted}" FontSize="10.5" Margin="2,0,0,4" />
+                            <TextBox Style="{StaticResource InputBox}"
+                                     Text="{Binding NewTab.NewQuickLinkUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Адрес, например github.com" />
+                        </StackPanel>
                         <Button Grid.Column="2" Content="＋ Добавить сайт" Style="{StaticResource GhostButton}"
-                                Command="{Binding AddQuickLinkCommand}" />
+                                Command="{Binding AddQuickLinkCommand}" VerticalAlignment="Bottom"
+                                ToolTip="Добавить сайт в быстрые ссылки" />
                     </Grid>
                 </Border>
 
