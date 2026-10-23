@@ -161,6 +161,28 @@ jobs:
             exit 1
           }
 
+      - name: Publish diagnostics to the branch
+        if: failure()
+        run: |
+          git config user.name "hub-build-bot"
+          git config user.email "hub-build-bot@users.noreply.github.com"
+          $report = Join-Path $env:APPDATA "StealAnEggUltimate\selftest-report.txt"
+          $target = "StealAnEggUltimate/selftest-report.txt"
+          if (Test-Path $report) { Copy-Item $report $target -Force }
+          $logDir = Join-Path $env:APPDATA "StealAnEggUltimate\logs"
+          if (Test-Path $logDir) {
+            Get-ChildItem $logDir -Filter *.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+              ForEach-Object { Copy-Item $_.FullName "StealAnEggUltimate/selftest-app.log" -Force }
+          }
+          if (Test-Path $target) {
+            git add -f $target
+            if (Test-Path "StealAnEggUltimate/selftest-app.log") { git add -f "StealAnEggUltimate/selftest-app.log" }
+            git commit -m "ci: self-test diagnostics [skip ci]" | Out-Null
+            git push origin "HEAD:$env:GITHUB_REF_NAME"
+          } else {
+            Write-Host "::error::no self-test report to publish"
+          }
+
       - name: Commit published EXE to the branch
         if: github.event_name == 'workflow_dispatch' && inputs.commit_binary
         run: |
