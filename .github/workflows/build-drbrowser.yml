@@ -42,6 +42,7 @@ jobs:
         run: >
           dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
           -p:DebugType=None -p:DebugSymbols=false
           -o dist
 
@@ -118,7 +119,13 @@ jobs:
           set -uo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f DrBrowser/dist/DrBrowser.exe
+          size=$(stat -c %s DrBrowser/dist/DrBrowser.exe 2>/dev/null || echo 0)
+          echo "exe size: $size bytes"
+          if [ "$size" -gt 95000000 ]; then
+            echo "EXE larger than GitHub's 100 MB limit - it is published as a release asset only."
+          else
+            git add -f DrBrowser/dist/DrBrowser.exe || true
+          fi
           git add -f DrBrowser/dist/DrBrowser.exe.sha256.txt || true
           if [ -d DrBrowser/screenshots ]; then git add -f DrBrowser/screenshots || true; fi
           git status --short | head -20
