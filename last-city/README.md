@@ -3,7 +3,7 @@
 
 **Настоящий Roblox-проект на Luau: серверная игровая логика, физический мир, NPC, оружие, задания, строительство и сохранения. Это развиваемый PvE vertical slice, а не интерфейсный макет и не заявление о завершении полного исходного ТЗ.**
 
-[**Скачать проверенный LAST_CITY_3D.rbxl 0.7.0**](releases/LAST_CITY_3D.rbxl)
+[**Скачать проверенный LAST_CITY_3D.rbxl 0.7.0**](https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/7062ce50d1e4551752fdd02a6eeededaf92021b9/last-city/releases/LAST_CITY_3D.rbxl)
 
 ```text
 SHA-256: 9311ea07bae623f8f15a8fa0c19c692e6a52a50aeb9cbba1501ded1e65e50cc7

@@ -2,7 +2,7 @@
 
 `LAST_CITY_3D.rbxl` — бинарное место **FRONTIER REFORGED 0.7.0**, развиваемый настоящий PvE vertical slice.
 
-[**Скачать LAST_CITY_3D.rbxl 0.7.0**](LAST_CITY_3D.rbxl)
+[**Скачать LAST_CITY_3D.rbxl 0.7.0**](https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/7062ce50d1e4551752fdd02a6eeededaf92021b9/last-city/releases/LAST_CITY_3D.rbxl)
 
 SHA-256:
 

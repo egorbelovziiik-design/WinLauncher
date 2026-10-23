@@ -42,6 +42,7 @@ Standalone Luau CLI не содержит Roblox userdata type registry. Раз�
 
 ```text
 Файл:      last-city/releases/LAST_CITY_3D.rbxl
+URL:       https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/7062ce50d1e4551752fdd02a6eeededaf92021b9/last-city/releases/LAST_CITY_3D.rbxl
 Версия:    0.7.0 — FRONTIER REFORGED
 SHA-256:   9311ea07bae623f8f15a8fa0c19c692e6a52a50aeb9cbba1501ded1e65e50cc7
 Размер:    365 912 bytes
