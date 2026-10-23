@@ -130,6 +130,7 @@ public sealed partial class MainViewModel
 
         AiModels.Clear();
         foreach (var model in result.Models) AiModels.Add(model);
+        if (result.Models.Count > 0) Raise(nameof(SelectedAiModel));
 
         if (result.Ok && AiModels.Count > 0 && string.IsNullOrWhiteSpace(Settings.AiModel))
             Settings.AiModel = AiModels[0];
