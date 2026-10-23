@@ -1,0 +1,92 @@
+<UserControl x:Class="DrBrowser.AiPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="{DynamicResource SurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Padding="14,12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Width="30" Height="30" CornerRadius="9" Background="{DynamicResource AccentGradientBrush}">
+                    <TextBlock Text="✦" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="DrAI Assistant" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding AiKeyStatus}" Style="{StaticResource Muted}" FontSize="10"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Content="⌫" Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="11"
+                            ToolTip="Очистить чат" Command="{Binding ClearAiCommand}" />
+                    <Button Content="✕" Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="11"
+                            ToolTip="Закрыть панель" Command="{Binding CloseAiCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer x:Name="ChatScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12">
+            <StackPanel>
+                <TextBlock Text="Быстрые действия" Style="{StaticResource SectionTitle}" Margin="2,4,0,8" />
+                <WrapPanel>
+                    <Button Content="📄 Содержание страницы" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
+                            Command="{Binding AiActionCommand}" CommandParameter="summarize" />
+                    <Button Content="🌐 Перевести выделенное" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
+                            Command="{Binding AiActionCommand}" CommandParameter="translate" />
+                    <Button Content="💡 Объяснить фрагмент" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
+                            Command="{Binding AiActionCommand}" CommandParameter="explain-selection" />
+                    <Button Content="🧩 Объяснить код" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
+                            Command="{Binding AiActionCommand}" CommandParameter="explain-code" />
+                    <Button Content="✍️ Помочь с текстом" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
+                            Command="{Binding AiActionCommand}" CommandParameter="write" />
+                </WrapPanel>
+
+                <ItemsControl ItemsSource="{Binding AiMessages}" Margin="0,10,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,8" Padding="10,8" CornerRadius="10" MaxWidth="330" HorizontalAlignment="Left"
+                                    Background="{DynamicResource SurfaceAltBrush}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUser}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12" />
+                                    <TextBlock Text="{Binding TimeText}" Style="{StaticResource Muted}" FontSize="9" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{Binding AiStatus}" Style="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Padding="12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+            <StackPanel>
+                <TextBox x:Name="InputBox" Style="{StaticResource InputBox}" Height="70" AcceptsReturn="True"
+                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                         Text="{Binding AiInput, UpdateSourceTrigger=PropertyChanged}"
+                         KeyDown="Input_KeyDown" />
+                <Button Content="{Binding AiSendText}" Style="{StaticResource PrimaryButton}" Margin="0,8,0,0"
+                        Command="{Binding SendAiCommand}" IsEnabled="{Binding IsAiBusy, Converter={StaticResource InverseBool}}" />
+                <TextBlock Style="{StaticResource Muted}" FontSize="9.5" Margin="0,6,0,0" TextWrapping="Wrap"
+                           Text="Enter — отправить, Shift+Enter — новая строка. Ключ хранится локально через DPAPI." />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

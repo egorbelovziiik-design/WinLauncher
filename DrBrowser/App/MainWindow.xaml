@@ -1,0 +1,353 @@
+<Window x:Class="DrBrowser.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:local="clr-namespace:DrBrowser"
+        Title="{Binding WindowTitle}"
+        Width="1360" Height="860" MinWidth="880" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" ResizeMode="CanResize"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0"
+                            CornerRadius="0" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44" />
+                <RowDefinition Height="50" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="26" />
+            </Grid.RowDefinitions>
+
+            <!-- =============================== TAB STRIP =============================== -->
+            <Grid Grid.Row="0" Background="{DynamicResource SurfaceBrush}"
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Width="34" Height="30" Margin="12,0,6,0" CornerRadius="9"
+                        Background="{DynamicResource AccentGradientBrush}" VerticalAlignment="Center">
+                    <TextBlock Text="D" Foreground="White" FontWeight="Bold" FontSize="15"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+
+                <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="TabStrip" ItemsSource="{Binding Tabs}" Margin="0,6,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="TabBorder" MinWidth="150" MaxWidth="250" Height="38"
+                                        Margin="0,0,4,0" Padding="10,0" CornerRadius="9,9,0,0"
+                                        Background="Transparent" BorderThickness="0,0,0,2" BorderBrush="Transparent"
+                                        Cursor="Hand" AllowDrop="True"
+                                        MouseLeftButtonDown="Tab_MouseLeftButtonDown"
+                                        MouseMove="Tab_MouseMove"
+                                        MouseLeftButtonUp="Tab_MouseLeftButtonUp"
+                                        Drop="Tab_Drop" DragOver="Tab_DragOver"
+                                        MouseRightButtonUp="Tab_MouseRightButtonUp">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Дублировать" Command="{Binding DataContext.DuplicateTabCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <MenuItem Header="Закрепить / открепить" Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <MenuItem Header="Выключить / включить звук" Command="{Binding DataContext.ToggleMuteCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <Separator />
+                                            <MenuItem Header="Закрыть вкладку" Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <MenuItem Header="Закрыть остальные" Command="{Binding DataContext.CloseOtherTabsCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <MenuItem Header="Восстановить закрытую" Command="{Binding DataContext.ReopenTabCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0" Width="18" Height="18" CornerRadius="5"
+                                                Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding TitleLetter}" FontSize="10" FontWeight="Bold"
+                                                       Foreground="{DynamicResource AccentBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}" Margin="8,0,4,0"
+                                                   FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                                        <TextBlock Grid.Column="2" Text="📌" FontSize="10" Margin="2,0"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}" />
+
+                                        <TextBlock Grid.Column="3" Text="{Binding MuteGlyph}" FontSize="10" Margin="2,0"
+                                                   VerticalAlignment="Center" ToolTip="Звук вкладки"
+                                                   Visibility="{Binding IsMuted, Converter={StaticResource BoolToVis}}" />
+
+                                        <Button Grid.Column="4" Content="✕" Width="20" Height="20" FontSize="10"
+                                                Style="{StaticResource IconButton}" ToolTip="Закрыть вкладку"
+                                                Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                        <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+                                        <Setter TargetName="TabBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Content="＋" Style="{StaticResource IconButton}" Width="30" Height="30"
+                            ToolTip="Новая вкладка (Ctrl+T)" Command="{Binding NewTabCommand}" />
+                    <Button Content="—" Style="{StaticResource WindowButton}" Click="Minimize_Click" />
+                    <Button Content="▢" Style="{StaticResource WindowButton}" Click="Maximize_Click" />
+                    <Button Content="✕" Style="{StaticResource CloseWindowButton}" Click="Close_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- =============================== TOOLBAR =============================== -->
+            <Grid Grid.Row="1" Background="{DynamicResource ToolbarBrush}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="8,0,4,0" VerticalAlignment="Center">
+                    <Button Content="‹" Style="{StaticResource IconButton}" FontSize="20" ToolTip="Назад (Alt+←)"
+                            Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
+                    <Button Content="›" Style="{StaticResource IconButton}" FontSize="20" ToolTip="Вперёд (Alt+→)"
+                            Command="{Binding ForwardCommand}" IsEnabled="{Binding CanGoForward}" />
+                    <Button Content="⟳" Style="{StaticResource IconButton}" FontSize="16" ToolTip="Обновить (Ctrl+R)"
+                            Command="{Binding ReloadCommand}"
+                            Visibility="{Binding IsLoading, Converter={StaticResource InverseBoolToVis}}" />
+                    <Button Content="✕" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Остановить"
+                            Command="{Binding ReloadCommand}"
+                            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+                    <Button Content="⌂" Style="{StaticResource IconButton}" FontSize="16" ToolTip="Домашняя страница"
+                            Command="{Binding HomeCommand}" />
+                </StackPanel>
+
+                <!-- address bar -->
+                <Border x:Name="AddressBorder" Grid.Column="1" Height="36" Margin="4,0,8,0" VerticalAlignment="Center"
+                        Background="{DynamicResource SurfaceAltBrush}" CornerRadius="10"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="{Binding SecurityGlyph}" Margin="10,0,2,0" FontSize="12"
+                                   VerticalAlignment="Center" ToolTip="{Binding SecurityText}" />
+
+                        <TextBox x:Name="AddressBox" Grid.Column="1" Style="{StaticResource AddressBox}"
+                                 Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}"
+                                 GotKeyboardFocus="AddressBox_GotKeyboardFocus"
+                                 KeyDown="AddressBox_KeyDown"
+                                 ToolTip="{Binding SecurityText}" />
+
+                        <Button Grid.Column="2" Content="⧉" Style="{StaticResource IconButton}" Width="28" Height="28"
+                                FontSize="12" ToolTip="Скопировать адрес" Command="{Binding CopyUrlCommand}" />
+
+                        <Button Grid.Column="3" Content="★" Style="{StaticResource IconButton}" Width="30" Height="30"
+                                FontSize="14" ToolTip="В закладки (Ctrl+D)" Command="{Binding ToggleBookmarkCommand}" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center">
+                    <Button Content="✦" Style="{StaticResource IconButton}" FontSize="15" Foreground="{DynamicResource AccentBrush}"
+                            ToolTip="AI Assistant (DrAI)" Command="{Binding ToggleAiCommand}" />
+                    <Button Content="⬇" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Загрузки (Ctrl+J)"
+                            Command="{Binding OpenDownloadsCommand}" />
+                    <Button Content="★" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Закладки"
+                            Command="{Binding OpenBookmarksCommand}" />
+                    <Button Content="🕘" Style="{StaticResource IconButton}" FontSize="13" ToolTip="История (Ctrl+H)"
+                            Command="{Binding OpenHistoryCommand}" />
+                    <Button Content="⚙" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Настройки"
+                            Command="{Binding OpenSettingsCommand}" />
+
+                    <Button x:Name="ProfileButton" Width="34" Height="34" Style="{StaticResource IconButton}" ToolTip="Профиль">
+                        <Button.Content>
+                            <Border Width="24" Height="24" CornerRadius="12" Background="{DynamicResource AccentGradientBrush}">
+                                <TextBlock Text="{Binding ProfileGlyph}" Foreground="White" FontSize="11" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Button.Content>
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{Binding ProfileName}" IsEnabled="False" FontWeight="Bold" />
+                                <Separator />
+                                <MenuItem Header="Приватное окно (Ctrl+Shift+N)" Command="{Binding OpenPrivateWindowCommand}" />
+                                <MenuItem Header="Менеджер паролей" Command="{Binding OpenPasswordsCommand}" />
+                                <MenuItem Header="Папка профиля" Command="{Binding OpenProfileFolderCommand}" />
+                                <MenuItem Header="Папка данных" Command="{Binding OpenDataFolderCommand}" />
+                                <Separator />
+                                <MenuItem Header="Настройки" Command="{Binding OpenSettingsCommand}" />
+                                <MenuItem Header="Выход" Command="{Binding ExitCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </StackPanel>
+
+                <!-- suggestions -->
+                <Popup IsOpen="{Binding ShowSuggestions, Mode=OneWay}" PlacementTarget="{Binding ElementName=AddressBorder}"
+                       Placement="Bottom" StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade"
+                       HorizontalOffset="0" VerticalOffset="4" Grid.Column="1">
+                    <Border Width="{Binding ActualWidth, ElementName=AddressBorder}" MaxHeight="330"
+                            Background="{DynamicResource SurfaceBrush}" CornerRadius="10"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="6">
+                        <ListBox ItemsSource="{Binding Suggestions}" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="8,6" CornerRadius="6" Background="Transparent" Cursor="Hand"
+                                            MouseLeftButtonUp="Suggestion_MouseLeftButtonUp">
+                                        <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Popup>
+            </Grid>
+
+            <!-- =============================== BOOKMARKS BAR =============================== -->
+            <Border Grid.Row="2" Height="32" Background="{DynamicResource ToolbarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                    Visibility="{Binding ShowBookmarksBar, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Margin="10,0">
+                        <TextBlock Text="★" Foreground="{DynamicResource AccentBrush}" FontSize="11"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ItemsControl ItemsSource="{Binding Bookmarks.BarItems}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding Display}" FontSize="11.5" Height="24" Padding="8,0" Margin="1,0"
+                                            Style="{StaticResource GhostButton}" BorderThickness="0"
+                                            Background="Transparent"
+                                            ToolTip="{Binding Url}"
+                                            Command="{Binding DataContext.OpenBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- =============================== CONTENT =============================== -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <!-- WebView2 layer: one child per tab, visibility controlled in code-behind -->
+                    <Grid x:Name="WebHostPanel" Background="{DynamicResource WindowBackgroundBrush}" />
+
+                    <!-- WPF pages: new tab, settings, history, downloads, bookmarks, passwords -->
+                    <ContentControl x:Name="InternalHost" Visibility="Collapsed" />
+
+                    <!-- Runtime / error banners -->
+                    <Border VerticalAlignment="Top" Margin="16" Padding="14,10" CornerRadius="10"
+                            Background="#33FF6B6B" BorderBrush="#66FF6B6B" BorderThickness="1"
+                            Visibility="{Binding RuntimeMissing, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="Microsoft Edge WebView2 Runtime не найден" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding RuntimeStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                            </StackPanel>
+                            <Button Content="Инструкция" Style="{StaticResource GhostButton}" Margin="12,0,0,0"
+                                    VerticalAlignment="Center" Command="{Binding ShowRuntimeHelpCommand}" />
+                            <Button Content="Скачать" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                                    VerticalAlignment="Center" Command="{Binding OpenRuntimeDownloadCommand}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border VerticalAlignment="Top" Margin="16" Padding="14,10" CornerRadius="10"
+                            Background="#33FFB86B" BorderBrush="#66FFB86B" BorderThickness="1"
+                            Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding LastError}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="620" />
+                            <Button Content="Обновить" Style="{StaticResource GhostButton}" Margin="12,0,0,0"
+                                    Command="{Binding ReloadCommand}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- find bar -->
+                    <Border x:Name="FindBar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,16,0"
+                            Padding="10,8" CornerRadius="10" Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            Visibility="{Binding IsFindVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Style="{StaticResource InputBox}" Width="220" Height="28"
+                                     Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Content="Найти" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                    Command="{Binding FindNextCommand}" />
+                            <Button Content="✕" Style="{StaticResource IconButton}" Width="28" Height="28"
+                                    Command="{Binding ToggleFindCommand}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- AI panel -->
+                <Border Grid.Column="1" Width="370" Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0"
+                        Visibility="{Binding IsAiOpen, Converter={StaticResource BoolToVis}}">
+                    <ContentControl x:Name="AiHost" />
+                </Border>
+            </Grid>
+
+            <!-- =============================== STATUS BAR =============================== -->
+            <Border Grid.Row="4" Background="{DynamicResource ToolbarBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,1,0,0">
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" FontSize="11"
+                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding AdBlockText}" FontSize="11" Margin="10,0"
+                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"
+                               ToolTip="Встроенный блокировщик рекламы" />
+                    <TextBlock Grid.Column="2" Text="{Binding ZoomText}" FontSize="11" Margin="10,0"
+                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="{Binding TabsSummary}" FontSize="11" Margin="10,0,0,0"
+                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

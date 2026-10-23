@@ -1,0 +1,114 @@
+<UserControl x:Class="DrBrowser.DownloadsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Margin="32,26,32,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Загрузки" Style="{StaticResource H1}" />
+                <TextBlock Text="{Binding Settings.DownloadsFolder, StringFormat=Папка: {0}}" Style="{StaticResource Muted}" Margin="0,4,0,0" />
+            </StackPanel>
+            <Button Grid.Column="1" Content="Открыть папку" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                    Command="{Binding OpenDownloadsFolderCommand}" />
+            <Button Grid.Column="2" Content="Очистить список" Style="{StaticResource GhostButton}"
+                    Command="{Binding ClearDownloadsCommand}" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="32,0,32,20">
+            <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="ТЕКУЩИЕ ЗАГРУЗКИ" Style="{StaticResource SectionTitle}" />
+                        <TextBlock Text="Пока загрузок нет." Style="{StaticResource Muted}"
+                                   Visibility="{Binding HasDownloads, Converter={StaticResource InverseBoolToVis}}" />
+                        <ItemsControl ItemsSource="{Binding Downloads.Items}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="10" Margin="0,0,0,8" CornerRadius="9"
+                                            Background="{DynamicResource SurfaceAltBrush}">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{Binding FileName}" FontSize="12.5"
+                                                           FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="{Binding StateText}" Style="{StaticResource Muted}" FontSize="11" />
+                                            </Grid>
+                                            <ProgressBar Height="6" Margin="0,7,0,0" Minimum="0" Maximum="1"
+                                                         Value="{Binding ProgressFraction, Mode=OneWay}"
+                                                         Foreground="{DynamicResource AccentBrush}"
+                                                         Background="{DynamicResource SurfaceBrush}" BorderThickness="0" />
+                                            <Grid Margin="0,6,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Style="{StaticResource Muted}" FontSize="10.5">
+                                                    <Run Text="{Binding SizeText, Mode=OneWay}" />
+                                                    <Run Text="·" />
+                                                    <Run Text="{Binding SpeedText, Mode=OneWay}" />
+                                                    <Run Text="{Binding ProgressPercent, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                    <Button Content="Отменить" Style="{StaticResource GhostButton}" Padding="8,3" FontSize="10.5"
+                                                            Margin="0,0,6,0"
+                                                            Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}"
+                                                            Command="{Binding DataContext.CancelDownloadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Content="Открыть" Style="{StaticResource GhostButton}" Padding="8,3" FontSize="10.5"
+                                                            Margin="0,0,6,0"
+                                                            Visibility="{Binding IsCompleted, Converter={StaticResource BoolToVis}}"
+                                                            Command="{Binding DataContext.OpenDownloadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Content="Папка" Style="{StaticResource GhostButton}" Padding="8,3" FontSize="10.5"
+                                                            Command="{Binding DataContext.ShowDownloadFolderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="ИСТОРИЯ ЗАГРУЗОК (SQLite)" Style="{StaticResource SectionTitle}" />
+                        <ItemsControl x:Name="HistoryList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="2,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding FileName}" FontSize="12" />
+                                            <TextBlock Text="{Binding Path}" Style="{StaticResource Muted}" FontSize="10"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{Binding Summary}" Style="{StaticResource Muted}"
+                                                   FontSize="10.5" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

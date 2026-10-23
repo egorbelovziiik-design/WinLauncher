@@ -1,0 +1,489 @@
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
+
+namespace DrBrowser;
+
+public partial class MainWindow : Window, IBrowserShell
+{
+    private readonly MainViewModel _vm;
+    private readonly Dictionary<string, UserControl> _pages = new();
+    private Point _dragStart;
+    private BrowserTab? _draggedTab;
+    private bool _fullScreen;
+    private WindowState _stateBeforeFullScreen = WindowState.Normal;
+
+    public MainWindow(MainViewModel viewModel)
+    {
+        _vm = viewModel;
+        InitializeComponent();
+        DataContext = _vm;
+
+        _vm.Tabs.CollectionChanged += (_, _) => UpdateWebViewVisibility();
+        _vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(MainViewModel.WindowTitle) or nameof(MainViewModel.CurrentUrl)
+                or nameof(MainViewModel.IsInternalPage))
+                UpdateWebViewVisibility();
+
+            if (e.PropertyName is nameof(MainViewModel.IsAiOpen)) EnsureAiPanel();
+        };
+
+        ProfileButton.Click += (_, _) => ProfileButton.ContextMenu?.IsOpen = true;
+
+        ThemeManager.Apply(_vm.Settings);
+        _vm.NewTab.LoadWallpaper();
+
+        EnsureAiPanel();
+        UpdateWebViewVisibility();
+
+        Loaded += (_, _) =>
+        {
+            if (_vm.RuntimeMissing) ShowStartupError(_vm.RuntimeStatus);
+        };
+
+        Closing += OnClosing;
+    }
+
+    // ------------------------------------------------------------------
+    // IBrowserShell
+    // ------------------------------------------------------------------
+
+    public Panel WebHost => WebHostPanel;
+
+    public MainViewModel ViewModel => _vm;
+
+    public void ShowInternalPage(string key)
+    {
+        var view = GetPage(key);
+        InternalHost.Content = view;
+        InternalHost.Visibility = Visibility.Visible;
+        WebHostPanel.Visibility = Visibility.Collapsed;
+        UpdateWebViewVisibility();
+    }
+
+    public void ShowWebContent()
+    {
+        InternalHost.Visibility = Visibility.Collapsed;
+        WebHostPanel.Visibility = Visibility.Visible;
+        UpdateWebViewVisibility();
+    }
+
+    public void FocusAddressBar()
+    {
+        AddressBox.Focus();
+        Keyboard.Focus(AddressBox);
+    }
+
+    public void SelectAddressBarText() => AddressBox.SelectAll();
+
+    public void RequestFullscreen(bool enabled) => SetFullScreen(enabled);
+
+    public void CloseWindow() => Close();
+
+    public void OpenPrivateWindow() => App.Current.OpenWindow(true);
+
+    public void SetAiPanelVisible(bool visible)
+    {
+        if (visible) EnsureAiPanel();
+    }
+
+    public Task<bool> AskPermissionAsync(string host, string permission)
+    {
+        return Dispatcher.InvokeAsync(() =>
+        {
+            var result = MessageBox.Show(
+                $"Сайт {host} запрашивает доступ: {permission}.\n\nРазрешить?",
+                "Разрешение сайта", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            return result == MessageBoxResult.Yes;
+        }).Task;
+    }
+
+    public Task<bool> ConfirmAsync(string title, string message)
+    {
+        return Dispatcher.InvokeAsync(() =>
+        {
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
+            return result == MessageBoxResult.Yes;
+        }).Task;
+    }
+
+    public string? PickSaveFile(string filter, string defaultName, string initialDirectory)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = filter,
+            FileName = defaultName,
+            InitialDirectory = Directory.Exists(initialDirectory) ? initialDirectory : null,
+            OverwritePrompt = true
+        };
+
+        return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+    }
+
+    public string? PickOpenFile(string filter)
+    {
+        var dialog = new OpenFileDialog { Filter = filter, CheckFileExists = true };
+        return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+    }
+
+    public string? PickFolder(string? initialDirectory)
+    {
+        try
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Выберите папку",
+                InitialDirectory = initialDirectory ?? AppPaths.DefaultDownloadsFolder
+            };
+
+            return dialog.ShowDialog(this) == true ? dialog.FolderName : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public void ShowMessage(string title, string message)
+        => MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+
+    public void OpenExternal(string pathOrUrl)
+    {
+        try
+        {
+            if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+            {
+                Process.Start(new ProcessStartInfo(uri.ToString()) { UseShellExecute = true });
+                return;
+            }
+
+            if (Directory.Exists(pathOrUrl) || File.Exists(pathOrUrl))
+                Process.Start(new ProcessStartInfo(pathOrUrl) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "DrBrowser", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    public void ShowStartupError(string message)
+    {
+        if (_vm.RuntimeMissing) return;
+        ShowMessage("DrBrowser", message);
+    }
+
+    // ------------------------------------------------------------------
+    // Internal pages
+    // ------------------------------------------------------------------
+
+    private UserControl GetPage(string key)
+    {
+        if (_pages.TryGetValue(key, out var existing)) return existing;
+
+        UserControl page = key switch
+        {
+            "settings" => new SettingsView(),
+            "history" => new HistoryView(),
+            "downloads" => new DownloadsView(),
+            "bookmarks" => new BookmarksView(),
+            "passwords" => new PasswordsView(),
+            _ => new NewTabView()
+        };
+
+        page.DataContext = _vm;
+        _pages[key] = page;
+        return page;
+    }
+
+    private void EnsureAiPanel()
+    {
+        if (AiHost.Content is null)
+        {
+            var panel = new AiPanelView { DataContext = _vm };
+            AiHost.Content = panel;
+        }
+    }
+
+    private void UpdateWebViewVisibility()
+    {
+        var active = _vm.ActiveTab;
+        foreach (var tab in _vm.Tabs)
+        {
+            if (tab.View is null) continue;
+            var visible = ReferenceEquals(tab, active) && !tab.IsInternal && InternalHost.Visibility != Visibility.Visible;
+            tab.View.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Window chrome
+    // ------------------------------------------------------------------
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left) return;
+        if (e.OriginalSource is DependencyObject source && FindAncestor<ButtonBase>(source) is not null) return;
+
+        try
+        {
+            if (e.ClickCount == 2) ToggleMaximize();
+            else DragMove();
+        }
+        catch
+        {
+            // dragging can fail when the mouse was released early
+        }
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject
+    {
+        while (current is not null)
+        {
+            if (current is T match) return match;
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+    private void Maximize_Click(object sender, RoutedEventArgs e) => ToggleMaximize();
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void ToggleMaximize()
+        => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+    private void SetFullScreen(bool enabled)
+    {
+        if (_fullScreen == enabled) return;
+        _fullScreen = enabled;
+
+        if (enabled)
+        {
+            _stateBeforeFullScreen = WindowState;
+            WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            WindowState = _stateBeforeFullScreen;
+        }
+
+        if (Content is Grid root && root.RowDefinitions.Count >= 5)
+        {
+            root.RowDefinitions[0].Height = enabled ? new GridLength(0) : new GridLength(44);
+            root.RowDefinitions[1].Height = enabled ? new GridLength(0) : new GridLength(50);
+            root.RowDefinitions[2].Height = enabled ? new GridLength(0) : GridLength.Auto;
+            root.RowDefinitions[4].Height = enabled ? new GridLength(0) : new GridLength(26);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Tabs: click / drag & drop
+    // ------------------------------------------------------------------
+
+    private void Tab_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not BrowserTab tab) return;
+        _draggedTab = tab;
+        _dragStart = e.GetPosition(this);
+        _vm.SelectTab(tab);
+    }
+
+    private void Tab_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _draggedTab is null) return;
+
+        var position = e.GetPosition(this);
+        if (Math.Abs(position.X - _dragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(position.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
+            return;
+
+        var tab = _draggedTab;
+        _draggedTab = null;
+
+        try
+        {
+            DragDrop.DoDragDrop(this, tab, DragDropEffects.Move);
+        }
+        catch
+        {
+            // dragging cancelled
+        }
+    }
+
+    private void Tab_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) => _draggedTab = null;
+
+    private void Tab_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(BrowserTab)) ? DragDropEffects.Move : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Tab_Drop(object sender, DragEventArgs e)
+    {
+        if (sender is not FrameworkElement element || element.DataContext is not BrowserTab target) return;
+        if (e.Data.GetData(typeof(BrowserTab)) is not BrowserTab dragged) return;
+
+        var from = _vm.Tabs.IndexOf(dragged);
+        var to = _vm.Tabs.IndexOf(target);
+        if (from < 0 || to < 0 || from == to) return;
+
+        _vm.MoveTab(from, to);
+        e.Handled = true;
+    }
+
+    private void Tab_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is BrowserTab tab)
+        {
+            _vm.SelectTab(tab);
+            element.ContextMenu!.IsOpen = true;
+            e.Handled = true;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Address bar
+    // ------------------------------------------------------------------
+
+    private void AddressBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+        => _vm.IsAddressEditing = true;
+
+    private void AddressBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Enter:
+                _vm.IsAddressEditing = false;
+                _vm.NavigateActiveTab(AddressBox.Text);
+                Keyboard.ClearFocus();
+                e.Handled = true;
+                break;
+            case Key.Escape:
+                _vm.IsAddressEditing = false;
+                AddressBox.Text = _vm.CurrentUrl;
+                _vm.AddressText = _vm.CurrentUrl;
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void Suggestion_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement element && element.DataContext is SuggestionItem item)
+        {
+            _vm.UseSuggestion(item);
+            _vm.IsAddressEditing = false;
+            e.Handled = true;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Hotkeys
+    // ------------------------------------------------------------------
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        var alt = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+
+        if (ctrl)
+        {
+            switch (e.Key)
+            {
+                case Key.T when shift: _vm.ReopenClosedTab(); e.Handled = true; return;
+                case Key.T: _vm.CreateNewTabPage(); e.Handled = true; return;
+                case Key.W: _vm.CloseTab(_vm.ActiveTab); e.Handled = true; return;
+                case Key.L: _vm.FocusAddressBar(); e.Handled = true; return;
+                case Key.R: _vm.Reload(); e.Handled = true; return;
+                case Key.F: _vm.IsFindVisible = true; e.Handled = true; return;
+                case Key.H: _vm.OpenInternal("history"); e.Handled = true; return;
+                case Key.J: _vm.OpenInternal("downloads"); e.Handled = true; return;
+                case Key.D: _vm.ToggleBookmarkCommand.Execute(null); e.Handled = true; return;
+                case Key.N when shift: App.Current.OpenWindow(true); e.Handled = true; return;
+                case Key.Tab: _vm.NextTab(shift ? -1 : 1); e.Handled = true; return;
+                case Key.OemPlus:
+                case Key.Add: _vm.ZoomBy(0.1); e.Handled = true; return;
+                case Key.OemMinus:
+                case Key.Subtract: _vm.ZoomBy(-0.1); e.Handled = true; return;
+                case Key.D0:
+                case Key.NumPad0: _vm.ResetZoom(); e.Handled = true; return;
+                case Key.P: _vm.SavePagePdf(); e.Handled = true; return;
+            }
+        }
+
+        if (alt)
+        {
+            if (e.Key == Key.Left) { _vm.GoBack(); e.Handled = true; return; }
+            if (e.Key == Key.Right) { _vm.GoForward(); e.Handled = true; return; }
+        }
+
+        if (e.Key == Key.F11)
+        {
+            SetFullScreen(!_fullScreen);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && _vm.IsFindVisible)
+        {
+            _vm.IsFindVisible = false;
+            e.Handled = true;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Lifecycle
+    // ------------------------------------------------------------------
+
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        try
+        {
+            _vm.Shutdown();
+            if (_vm.IsPrivate && !string.IsNullOrWhiteSpace(_vm.WebProfileFolder))
+            {
+                // Incognito WebView2 profile (cookies, cache, history) is destroyed here.
+                AppPaths.TryDeleteDirectory(_vm.WebProfileFolder);
+            }
+        }
+        catch
+        {
+            // never block closing
+        }
+    }
+
+    /// <summary>Used by the smoke run to render the window to a PNG.</summary>
+    public bool CaptureWindow(string path)
+    {
+        try
+        {
+            UpdateLayout();
+            var width = (int)Math.Max(1, ActualWidth);
+            var height = (int)Math.Max(1, ActualHeight);
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(this);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = File.Create(path);
+            encoder.Save(stream);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}

@@ -1,0 +1,404 @@
+<UserControl x:Class="DrBrowser.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="32,28,32,10">
+            <TextBlock Text="Настройки" Style="{StaticResource H1}" />
+            <TextBlock Text="Все параметры сохраняются автоматически в %AppData%\DrBrowser\settings.json"
+                       Style="{StaticResource Muted}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <TabControl Grid.Row="1" TabStripPlacement="Left" Margin="24,0,24,20" Background="Transparent">
+            <TabControl.Resources>
+                <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                    <Setter Property="Width" Value="180" />
+                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                </Style>
+            </TabControl.Resources>
+
+            <!-- ================= ОСНОВНЫЕ ================= -->
+            <TabItem Header="Основные">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ЗАПУСК" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Домашняя страница" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource InputBox}" Text="{Binding Settings.HomePage, UpdateSourceTrigger=PropertyChanged}" />
+                                <CheckBox Style="{StaticResource Switch}" Margin="0,14,0,0" Content="Восстанавливать вкладки прошлой сессии"
+                                          IsChecked="{Binding Settings.RestoreSession}" />
+                                <CheckBox Style="{StaticResource Switch}" Margin="0,12,0,0" Content="Сохранять историю посещений"
+                                          IsChecked="{Binding Settings.SaveHistory}" />
+                                <CheckBox Style="{StaticResource Switch}" Margin="0,12,0,0" Content="Показывать панель закладок"
+                                          IsChecked="{Binding Settings.ShowBookmarksBar}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ПРОФИЛЬ" Style="{StaticResource SectionTitle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Style="{StaticResource InputBox}"
+                                             Text="{Binding Settings.ProfileName, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button Grid.Column="1" Content="Открыть папку профиля" Style="{StaticResource GhostButton}"
+                                            Margin="8,0,0,0" Command="{Binding OpenProfileFolderCommand}" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="Отдельные профили — это отдельные папки WebView2 (cookies, входы, кэш). Укажите другой путь в поле ниже; каталог создаётся при следующем запуске и применяется после перезапуска." />
+                                <TextBox Style="{StaticResource InputBox}" Margin="0,8,0,0"
+                                         Text="{Binding Settings.UserDataFolder, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Пусто = %AppData%\DrBrowser\profile\default" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= ВНЕШНИЙ ВИД ================= -->
+            <TabItem Header="Внешний вид">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ТЕМА" Style="{StaticResource SectionTitle}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="🌙 Тёмная" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                            Command="{Binding ApplyThemeCommand}" CommandParameter="Dark" />
+                                    <Button Content="☀️ Светлая" Style="{StaticResource GhostButton}"
+                                            Command="{Binding ApplyThemeCommand}" CommandParameter="Light" />
+                                </StackPanel>
+                                <TextBlock Text="Акцент" Style="{StaticResource Muted}" Margin="0,14,0,6" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource IconButton}" Command="{Binding SetAccentCommand}" CommandParameter="#7C5CFF">
+                                        <Border Width="26" Height="26" CornerRadius="13" Background="#7C5CFF" />
+                                    </Button>
+                                    <Button Style="{StaticResource IconButton}" Command="{Binding SetAccentCommand}" CommandParameter="#3B82F6">
+                                        <Border Width="26" Height="26" CornerRadius="13" Background="#3B82F6" />
+                                    </Button>
+                                    <Button Style="{StaticResource IconButton}" Command="{Binding SetAccentCommand}" CommandParameter="#22C1A2">
+                                        <Border Width="26" Height="26" CornerRadius="13" Background="#22C1A2" />
+                                    </Button>
+                                    <Button Style="{StaticResource IconButton}" Command="{Binding SetAccentCommand}" CommandParameter="#F0619B">
+                                        <Border Width="26" Height="26" CornerRadius="13" Background="#F0619B" />
+                                    </Button>
+                                    <Button Style="{StaticResource IconButton}" Command="{Binding SetAccentCommand}" CommandParameter="#FF8A3D">
+                                        <Border Width="26" Height="26" CornerRadius="13" Background="#FF8A3D" />
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="НОВАЯ ВКЛАДКА" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Приветствие" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource InputBox}"
+                                         Text="{Binding Settings.NewTabGreeting, UpdateSourceTrigger=PropertyChanged}" />
+                                <CheckBox Style="{StaticResource Switch}" Margin="0,14,0,0" Content="Показывать погоду"
+                                          IsChecked="{Binding Settings.ShowWeather}" />
+                                <TextBlock Text="Город и координаты (источник: open-meteo.com)" Style="{StaticResource Muted}" Margin="0,12,0,4" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Style="{StaticResource InputBox}" Margin="0,0,6,0"
+                                             Text="{Binding Settings.WeatherCity, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Grid.Column="1" Style="{StaticResource InputBox}" Margin="0,0,6,0"
+                                             Text="{Binding Settings.WeatherLatitude, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBox Grid.Column="2" Style="{StaticResource InputBox}"
+                                             Text="{Binding Settings.WeatherLongitude, UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <Button Content="Свои обои" Style="{StaticResource GhostButton}" Command="{Binding SetWallpaperCommand}" />
+                                    <Button Content="Сбросить обои" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                            Command="{Binding ResetWallpaperCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= ПОИСК ================= -->
+            <TabItem Header="Поиск">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ПОИСКОВАЯ СИСТЕМА ПО УМОЛЧАНИЮ" Style="{StaticResource SectionTitle}" />
+                                <ComboBox ItemsSource="{Binding SearchEngineNames}" SelectedItem="{Binding SelectedSearchEngine}" />
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,0" TextWrapping="Wrap"
+                                           Text="В адресной строке текст без похожего на адрес формата уходит в выбранную систему; адрес вида example.com открывается напрямую по HTTPS." />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ДОСТУПНЫЕ СИСТЕМЫ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Google — https://www.google.com/search?q=…" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Яндекс — https://yandex.ru/search/?text=…" Style="{StaticResource Muted}" Margin="0,3" />
+                                <TextBlock Text="Bing — https://www.bing.com/search?q=…" Style="{StaticResource Muted}" />
+                                <TextBlock Text="DuckDuckGo — https://duckduckgo.com/?q=…" Style="{StaticResource Muted}" Margin="0,3" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= ПРИВАТНОСТЬ ================= -->
+            <TabItem Header="Приватность">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ADBLOCK" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Style="{StaticResource Switch}" Content="Включить блокировку рекламы и трекеров"
+                                          IsChecked="{Binding Settings.AdBlockEnabled}" />
+                                <TextBlock Text="{Binding AdBlockText}" Style="{StaticResource Muted}" Margin="0,8,0,0" />
+                                <TextBlock Text="{Binding AdBlockRuleText}" Style="{StaticResource Muted}" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Обновить список (EasyList)" Style="{StaticResource GhostButton}"
+                                            Command="{Binding UpdateFiltersCommand}" />
+                                    <Button Content="Сбросить счётчик" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                            Command="{Binding ResetAdBlockCounterCommand}" />
+                                </StackPanel>
+                                <TextBlock Text="Свои правила (по одному в строке, формат AdBlock Plus)" Style="{StaticResource Muted}" Margin="0,12,0,4" />
+                                <TextBox Style="{StaticResource InputBox}" Height="90" AcceptsReturn="True" TextWrapping="NoWrap"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Text="{Binding Settings.AdBlockCustomFilters, UpdateSourceTrigger=LostFocus}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ИСКЛЮЧЕНИЯ ДЛЯ САЙТОВ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding WhitelistText}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" Style="{StaticResource InputBox}"
+                                             Text="{Binding WhitelistInput, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Например: example.com" />
+                                    <Button Grid.Column="1" Content="Добавить" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                            Command="{Binding AddWhitelistCommand}" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding Settings.AdBlockWhitelist}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Margin="0,0,6,6" Padding="8,4" Content="{Binding}" Style="{StaticResource GhostButton}"
+                                                    ToolTip="Удалить исключение"
+                                                    Command="{Binding DataContext.RemoveWhitelistCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ДАННЫЕ САЙТОВ" Style="{StaticResource SectionTitle}" />
+                                <WrapPanel>
+                                    <Button Content="Очистить cookies" Style="{StaticResource GhostButton}" Margin="0,0,8,8"
+                                            Command="{Binding ClearCookiesCommand}" />
+                                    <Button Content="Очистить кэш" Style="{StaticResource GhostButton}" Margin="0,0,8,8"
+                                            Command="{Binding ClearCacheCommand}" />
+                                    <Button Content="Сбросить разрешения" Style="{StaticResource GhostButton}" Margin="0,0,8,8"
+                                            Command="{Binding ClearPermissionsCommand}" />
+                                    <Button Content="Приватное окно" Style="{StaticResource GhostButton}" Margin="0,0,8,8"
+                                            Command="{Binding OpenPrivateWindowCommand}" />
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap"
+                                           Text="Приватный режим использует отдельный временный профиль WebView2, не сохраняет историю и удаляет данные после закрытия окна. Он не скрывает ваш IP и активность от сайтов и провайдера." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= БЕЗОПАСНОСТЬ ================= -->
+            <TabItem Header="Безопасность">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ДВИЖОК" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding EngineVersionText}" />
+                                <TextBlock Text="{Binding RuntimeStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                <Button Content="Как установить WebView2 Runtime" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
+                                        HorizontalAlignment="Left" Command="{Binding ShowRuntimeHelpCommand}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ЧТО DrBrowser ДЕЛАЕТ И НЕ ДЕЛАЕТ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock TextWrapping="Wrap" Style="{StaticResource Muted}"
+                                           Text="• HTTPS не отключается, ошибки сертификатов не игнорируются.&#10;• Сайты не получают доступ к локальным файлам и к запуску программ.&#10;• Внешние протоколы (mailto, http, https) проверяются перед передачей в Windows.&#10;• Камера, микрофон, геолокация и уведомления запрашиваются через диалог и запоминаются по сайту.&#10;• API-ключ AI и пароли хранятся в Windows DPAPI, а не открытым текстом." />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ЖУРНАЛЫ И ДАННЫЕ" Style="{StaticResource SectionTitle}" />
+                                <WrapPanel>
+                                    <Button Content="Папка данных" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                            Command="{Binding OpenDataFolderCommand}" />
+                                    <Button Content="Журналы" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                            Command="{Binding OpenLogsFolderCommand}" />
+                                    <Button Content="Скриншоты" Style="{StaticResource GhostButton}"
+                                            Command="{Binding OpenScreenshotsFolderCommand}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= ЗАГРУЗКИ ================= -->
+            <TabItem Header="Загрузки">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ПАПКА ЗАГРУЗОК" Style="{StaticResource SectionTitle}" />
+                                <TextBox Style="{StaticResource InputBox}" IsReadOnly="True" Text="{Binding Settings.DownloadsFolder}" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <Button Content="Изменить папку" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                            Command="{Binding ChangeDownloadsFolderCommand}" />
+                                    <Button Content="Открыть папку" Style="{StaticResource GhostButton}"
+                                            Command="{Binding OpenDownloadsFolderCommand}" />
+                                </WrapPanel>
+                                <CheckBox Style="{StaticResource Switch}" Margin="0,14,0,0"
+                                          Content="Спрашивать путь для каждой загрузки"
+                                          IsChecked="{Binding Settings.AskForDownloadLocation}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= AI ================= -->
+            <TabItem Header="AI Assistant">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ПОДКЛЮЧЕНИЕ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Совместимый с OpenAI endpoint (например https://api.openai.com/v1)" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+                                <TextBox Style="{StaticResource InputBox}" Text="{Binding Settings.AiBaseUrl, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="Модель" Style="{StaticResource Muted}" Margin="0,10,0,4" />
+                                <TextBox Style="{StaticResource InputBox}" Text="{Binding Settings.AiModel, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="API-ключ" Style="{StaticResource Muted}" Margin="0,10,0,4" />
+                                <PasswordBox x:Name="AiKeyBox" Height="32" Padding="8,6" FontSize="12.5" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <Button Content="Сохранить ключ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"
+                                            Click="SaveKey_Click" />
+                                    <Button Content="Удалить ключ" Style="{StaticResource GhostButton}"
+                                            Command="{Binding ClearAiKeyCommand}" />
+                                </WrapPanel>
+                                <TextBlock Text="{Binding AiKeyStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                           Text="Ключ хранится в %AppData%\DrBrowser\secrets\ai.key, зашифрованный Windows DPAPI для текущей учётной записи. В исходном коде и в settings.json ключа нет." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= ПРОИЗВОДИТЕЛЬНОСТЬ ================= -->
+            <TabItem Header="Производительность">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ВКЛАДКИ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding Settings.TabSuspendMinutes, StringFormat=Приостанавливать неактивные вкладки через {0} мин}" />
+                                <Slider Minimum="1" Maximum="60" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding Settings.TabSuspendMinutes}" Margin="0,6,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                           Text="WebView2 создаётся только при первом открытии вкладки (ленивая загрузка), а неактивные вкладки приостанавливаются через CoreWebView2.TrySuspendAsync. Вкладки не закрываются автоматически." />
+                                <TextBlock Text="{Binding ZoomText, StringFormat=Текущий масштаб: {0}}" Style="{StaticResource Muted}" Margin="0,12,0,0" />
+                                <Button Content="Сбросить масштаб (100%)" Style="{StaticResource GhostButton}" Margin="0,8,0,0"
+                                        HorizontalAlignment="Left" Command="{Binding ZoomResetCommand}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= ГОРЯЧИЕ КЛАВИШИ ================= -->
+            <TabItem Header="Горячие клавиши">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="УПРАВЛЕНИЕ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Ctrl+T — новая вкладка" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+W — закрыть вкладку" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="Ctrl+Shift+T — восстановить закрытую вкладку" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+Tab / Ctrl+Shift+Tab — следующая / предыдущая вкладка" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="Ctrl+L — адресная строка" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+R — обновить" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="Ctrl+F — поиск на странице" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+H — история, Ctrl+J — загрузки" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="Ctrl+D — добавить закладку" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+Shift+N — приватное окно" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="Ctrl+«+» / Ctrl+«-» / Ctrl+0 — масштаб" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+P — сохранить страницу в PDF" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="F11 — полноэкранный режим" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Alt+← / Alt+→ — назад / вперёд" Style="{StaticResource Muted}" Margin="0,4" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= О БРАУЗЕРЕ ================= -->
+            <TabItem Header="О браузере">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="44" Height="44" CornerRadius="13" Background="{DynamicResource AccentGradientBrush}">
+                                        <TextBlock Text="D" FontSize="21" FontWeight="Bold" Foreground="White"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="DrBrowser" FontSize="19" FontWeight="Bold" />
+                                        <TextBlock Text="{Binding AppVersionText}" Style="{StaticResource Muted}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Text="{Binding EngineVersionText}" Style="{StaticResource Muted}" Margin="0,14,0,0" />
+                                <TextBlock Text="{Binding RuntimeStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0"
+                                           Text="Построен на WPF (.NET 8) и Microsoft Edge WebView2. Никакой телеметрии: браузер не отправляет данные наружу, кроме запросов к сайтам, выбранному AI-провайдеру (если задан ключ) и сервису погоды на новой вкладке." />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="СБРОС" Style="{StaticResource SectionTitle}" />
+                                <Button Content="Сбросить настройки" Style="{StaticResource DangerButton}" HorizontalAlignment="Left"
+                                        Command="{Binding ResetSettingsCommand}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
