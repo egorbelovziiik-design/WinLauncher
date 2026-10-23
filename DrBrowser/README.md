@@ -9,11 +9,11 @@
 ## Скачать
 
 * **Релиз (рекомендуется):** <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>
-  → `DrBrowser.exe` (67 367 581 байт, self-contained, .NET устанавливать не нужно).
+  → `DrBrowser.exe` (67367579 байт, self-contained, .NET устанавливать не нужно).
 * **Прямая ссылка:**
   <https://github.com/egorbelovziiik-design/WinLauncher/releases/download/drbrowser-latest/DrBrowser.exe>
 * **Файл в репозитории:** [dist/DrBrowser.exe](dist/DrBrowser.exe)
-* **SHA-256:** `EF27CEFEE609E9ACFAA065AF59EEB6357FEA5CCCE8C30DD6C33D1B86BD474BD7`
+* **SHA-256:** `A9885ABD42F49D89709341EF665EA197FD4DFC74D2030DF30A916595FE6C3A5B`
 
 ```powershell
 Get-FileHash .\DrBrowser.exe -Algorithm SHA256
