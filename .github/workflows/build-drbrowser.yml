@@ -113,12 +113,29 @@ jobs:
 
       - name: Publish EXE, screenshots and report back to the branch
         if: always() && github.actor != 'github-actions[bot]'
-        shell: pwsh
+        shell: bash
         run: |
+          set -uo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f DrBrowser/dist/DrBrowser.exe DrBrowser/dist/DrBrowser.exe.sha256.txt
-          if (Test-Path DrBrowser\screenshots) { git add DrBrowser/screenshots }
-          if (git diff --cached --quiet) { "Нет изменений для коммита"; exit 0 }
+          git add -f DrBrowser/dist/DrBrowser.exe
+          git add -f DrBrowser/dist/DrBrowser.exe.sha256.txt || true
+          if [ -d DrBrowser/screenshots ]; then git add -f DrBrowser/screenshots || true; fi
+          git status --short | head -20
+          if git diff --cached --quiet; then echo "no changes to commit"; exit 0; fi
           git commit -m "build: DrBrowser.exe + test report [skip ci]"
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Publish release with the EXE
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f DrBrowser/dist/DrBrowser.exe ]; then echo "no exe"; exit 0; fi
+          gh release delete drbrowser-latest --yes --cleanup-tag || true
+          gh release create drbrowser-latest \
+            --title "DrBrowser 1.0 (win-x64)" \
+            --notes "DrBrowser.exe (self-contained, win-x64). Требуется Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703" \
+            "DrBrowser/dist/DrBrowser.exe" "DrBrowser/dist/DrBrowser.exe.sha256.txt"
