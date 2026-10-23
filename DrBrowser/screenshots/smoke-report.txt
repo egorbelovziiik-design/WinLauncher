@@ -1,18 +1,22 @@
-﻿DrBrowser smoke · 2026-10-23 19:13:11 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 19:18:44 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2157 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (1967 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3403 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3254 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2471 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2427 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов (5726 ms)
+           settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов (5644 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete (689 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete (652 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2215 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2195 ms)
+[SKIP] smoke-https          Реальный сайт по HTTPS открывается через сеть
+           SKIP: сеть недоступна — навигация не завершилась за 30 с (30657 ms)
+[PASS] smoke-download       Реальная загрузка файла через DownloadStarting
+           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2740 ms)
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-191309.png (1529 ms)
+           сохранён screenshot-20261023-191842.png (1508 ms)
 ------------------------------------------------------------------------------
-ИТОГО: 7 passed, 0 failed, 0 skipped из 7
+ИТОГО: 8 passed, 0 failed, 1 skipped из 9
