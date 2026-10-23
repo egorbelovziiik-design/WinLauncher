@@ -1592,3 +1592,59 @@
 22:56:20.589 smoke: view model shutdown
 22:56:20.614 smoke: window closed
 22:56:20.625 smoke: finished, exit 0
+23:03:10.694 data-folders: PASS
+23:03:10.780 settings-json: PASS
+23:03:10.795 url-parser: PASS
+23:03:10.797 search-engines: PASS
+23:03:11.050 drsearch-index: PASS
+23:03:11.063 music-library: PASS
+23:03:11.322 radio-stations: PASS
+23:03:11.324 ai-personas: PASS
+23:03:11.351 profile-avatars: PASS
+23:03:11.459 drsearch-recents: PASS
+23:03:11.537 sqlite-history: PASS
+23:03:11.565 bookmarks: PASS
+23:03:11.582 passwords-dpapi: PASS
+23:03:11.584 password-generator: PASS
+23:03:11.589 ai-without-key: PASS
+23:03:11.595 adblock: PASS
+23:03:11.601 downloads: PASS
+23:03:11.618 session: PASS
+23:03:11.681 quicklinks-permissions: PASS
+23:03:11.688 incognito-profile: PASS
+23:03:11.695 webview2-runtime: PASS
+23:03:11.696 settings-limits: PASS
+23:03:11.699 guard-url-rules: PASS
+23:03:11.701 guard-scan-args: PASS
+23:03:11.702 ai-image-attachment: PASS
+23:03:11.762 local-ai: PASS
+23:03:11.777 ai-media-context: PASS
+23:03:11.779 music-catalog-parse: PASS
+23:03:11.784 drsearch-parse: PASS
+23:03:11.787 ai-local-provider: PASS
+23:03:11.787 ru-plurals: PASS
+23:03:12.046 music-persistence: PASS
+23:03:12.135 music-playlists: PASS
+23:03:12.136 error-logging: PASS
+23:03:13.220 smoke: start
+23:03:14.723 smoke: window created
+23:03:14.842 smoke: view model attached
+23:03:16.883 smoke-window: PASS
+23:03:16.885 smoke-webview: navigating
+23:03:19.068 smoke-webview: core ready
+23:03:19.589 smoke-webview: calling NavigateToString
+23:03:19.603 smoke-webview: NavigateToString returned
+23:03:20.330 smoke-webview: PASS
+23:03:22.753 smoke-tabs: PASS
+23:03:30.342 smoke-pages: PASS
+23:03:32.822 smoke-settings-tabs: PASS
+23:03:34.305 smoke-ui: PASS
+23:03:35.253 smoke-miniplayer: PASS
+23:03:37.454 smoke-hotkeys: PASS
+23:03:38.112 smoke-https: engine ready
+23:03:38.462 smoke-https: PASS
+23:03:41.411 smoke-download: PASS
+23:03:42.924 smoke-screenshot: PASS
+23:03:43.000 smoke: view model shutdown
+23:03:43.024 smoke: window closed
+23:03:43.033 smoke: finished, exit 0
