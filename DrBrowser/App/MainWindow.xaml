@@ -486,6 +486,7 @@
                         </Grid>
                     </Border>
 
+                    <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="14,12,14,14">
                         <!-- avatar presets -->
                         <TextBlock Text="АВАТАР" Style="{StaticResource SectionTitle}" FontSize="9" Margin="0,0,0,6" />

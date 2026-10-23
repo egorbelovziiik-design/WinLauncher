@@ -147,7 +147,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Publish EXE, screenshots and report back to the branch
-        if: always() && github.actor != 'github-actions[bot]'
+        if: success() && github.actor != 'github-actions[bot]' && env.SELFTEST_EXIT == '0' && env.SMOKE_EXIT == '0'
         shell: bash
         run: |
           set -uo pipefail
@@ -173,6 +173,12 @@ jobs:
       - name: Fail the job when a check failed
         shell: pwsh
         run: |
+          if ($env:SELFTEST_EXIT -ne '0' -or $env:SMOKE_EXIT -ne '0') {
+            throw "Self-test or smoke did not complete successfully"
+          }
+          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
+            if (-not (Test-Path "DrBrowser\screenshots\$name")) { throw "Missing report: $name" }
+          }
           $failed = Select-String -Path DrBrowser\screenshots\*-report.txt -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue
           if ($failed) {
             $failed | ForEach-Object { $_.Line }
@@ -181,7 +187,7 @@ jobs:
           "Все выполненные проверки прошли."
 
       - name: Publish release with the EXE
-        if: always()
+        if: success() && env.SELFTEST_EXIT == '0' && env.SMOKE_EXIT == '0'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -189,6 +195,6 @@ jobs:
           if [ ! -f DrBrowser/dist/DrBrowser.exe ]; then echo "no exe"; exit 0; fi
           gh release delete drbrowser-latest --yes --cleanup-tag || true
           gh release create drbrowser-latest \
-            --title "DrBrowser 1.1 (win-x64)" \
+            --title "DrBrowser 2.1 (win-x64)" \
             --notes "DrBrowser.exe (self-contained, win-x64). Требуется Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703" \
             "DrBrowser/dist/DrBrowser.exe" "DrBrowser/dist/DrBrowser.exe.sha256.txt"
