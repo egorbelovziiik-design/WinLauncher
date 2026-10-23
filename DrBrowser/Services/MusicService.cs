@@ -260,9 +260,7 @@ public sealed class MusicService : ObservableObject, IDisposable
     public ObservableCollection<MusicPlaylist> Playlists { get; } = new();
 
     public bool HasPlaylists => Playlists.Count > 0;
-    public string PlaylistsSummary => Playlists.Count == 0
-        ? "Плейлистов пока нет"
-        : $"Плейлистов: {Playlists.Count}";
+    public string PlaylistsSummary => Playlists.Count == 0 ? "пусто" : $"{Playlists.Count} шт.";
 
     public void ReloadPlaylists()
     {
