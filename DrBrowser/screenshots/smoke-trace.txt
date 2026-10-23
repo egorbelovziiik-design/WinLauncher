@@ -1290,3 +1290,61 @@
 22:52:22.451 smoke: view model shutdown
 22:52:23.324 smoke: window closed
 22:52:23.328 smoke: finished, exit 0
+22:56:48.758 data-folders: PASS
+22:56:48.863 settings-json: PASS
+22:56:48.876 url-parser: PASS
+22:56:48.880 search-engines: PASS
+22:56:49.111 drsearch-index: PASS
+22:56:49.188 drsearch-fts5: PASS
+22:56:49.244 omega-productivity: PASS
+22:56:49.320 drmind-memory: PASS
+22:56:49.454 backup: PASS
+22:56:49.463 drtools: PASS
+22:56:49.471 music-library: PASS
+22:56:49.522 music-playlists: PASS
+22:56:49.537 radio-stations: PASS
+22:56:49.539 ai-personas: PASS
+22:56:49.544 profile-avatars: PASS
+22:56:49.644 drsearch-recents: PASS
+22:56:49.764 sqlite-history: PASS
+22:56:49.798 bookmarks: PASS
+22:56:49.930 passwords-dpapi: PASS
+22:56:49.931 password-generator: PASS
+22:56:49.936 ai-without-key: PASS
+22:56:49.943 adblock: PASS
+22:56:49.951 downloads: PASS
+22:56:49.960 session: PASS
+22:56:50.060 quicklinks-permissions: PASS
+22:56:50.065 incognito-profile: PASS
+22:56:50.073 webview2-runtime: PASS
+22:56:50.073 settings-limits: PASS
+22:56:50.079 guard-url-rules: PASS
+22:56:50.081 guard-scan-args: PASS
+22:56:50.083 ai-image-attachment: PASS
+22:56:50.144 local-ai: PASS
+22:56:50.147 music-catalog-parse: PASS
+22:56:50.154 drsearch-parse: PASS
+22:56:50.155 error-logging: PASS
+22:56:52.471 smoke: start
+22:56:54.203 smoke: window created
+22:56:54.281 smoke: view model attached
+22:56:56.457 smoke-window: PASS
+22:56:56.459 smoke-webview: navigating
+22:56:58.878 smoke-webview: core ready
+22:56:59.538 smoke-webview: calling NavigateToString
+22:56:59.575 smoke-webview: NavigateToString returned
+22:57:00.596 smoke-webview: PASS
+22:57:03.036 smoke-tabs: PASS
+22:57:13.752 smoke-pages: PASS
+22:57:14.426 smoke-command-palette: PASS
+22:57:16.929 smoke-settings-tabs: PASS
+22:57:18.424 smoke-ui: PASS
+22:57:21.308 smoke-miniplayer: SKIP
+22:57:23.542 smoke-hotkeys: PASS
+22:57:24.202 smoke-https: engine ready
+22:57:24.559 smoke-https: PASS
+22:57:27.537 smoke-download: PASS
+22:57:29.051 smoke-screenshot: PASS
+22:57:29.118 smoke: view model shutdown
+22:57:29.456 smoke: window closed
+22:57:29.465 smoke: finished, exit 0

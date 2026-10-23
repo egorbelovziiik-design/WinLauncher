@@ -1,28 +1,28 @@
-﻿DrBrowser smoke · 2026-10-23 22:52:23 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 22:57:29 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2070 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2173 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3617 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (4138 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2428 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2439 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           11 страниц и PNG · показатели Performance видимы · UI-исключений нет (10555 ms)
+           11 страниц и PNG · показатели Performance видимы · UI-исключений нет (10715 ms)
 [PASS] smoke-command-palette DrCommand фильтрует и выполняет зарегистрированные действия
-           23 команды · фильтрация DrMusic · выполнение маршрута (644 ms)
+           23 команды · фильтрация DrMusic · выполнение маршрута (672 ms)
 [PASS] smoke-settings-tabs  Разделы настроек «Музыка» и «AI Assistant» не пустые
-           12 разделов · Музыка и AI Assistant отрисованы (14/15 PNG) (2462 ms)
+           12 разделов · Музыка и AI Assistant отрисованы (14/15 PNG) (2503 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1468 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1494 ms)
 [SKIP] smoke-miniplayer     DrMusic реально открывает локальный WAV и показывает мини-плеер
-           SKIP: Windows CI runner не имеет аудиоустройства (0xC00D11BA); валидный WAV передан реальному MediaPlayer (2842 ms)
+           SKIP: Windows CI runner не имеет аудиоустройства (0xC00D11BA); валидный WAV передан реальному MediaPlayer (2883 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2213 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2234 ms)
 [PASS] smoke-https          Реальный сайт по HTTPS открывается через сеть
-           https://example.com · protocol=https: · title «Example Domain» (1007 ms)
+           https://example.com · protocol=https: · title «Example Domain» (1016 ms)
 [PASS] smoke-download       Реальная загрузка файла через DownloadStarting
-           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2703 ms)
+           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2976 ms)
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-225220.png (1509 ms)
+           сохранён screenshot-20261023-225727.png (1513 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 11 passed, 0 failed, 1 skipped из 12
