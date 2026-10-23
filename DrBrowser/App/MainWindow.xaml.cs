@@ -393,52 +393,77 @@ public partial class MainWindow : Window, IBrowserShell
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
-        var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
-        var alt = Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
+        if (HandleHotkey(e.Key, Keyboard.Modifiers)) e.Handled = true;
+    }
+
+    /// <summary>Browser shortcuts, shared by window keys and by keys pressed inside a web page.</summary>
+    private bool HandleHotkey(Key key, ModifierKeys modifiers)
+    {
+        var ctrl = modifiers.HasFlag(ModifierKeys.Control);
+        var shift = modifiers.HasFlag(ModifierKeys.Shift);
+        var alt = modifiers.HasFlag(ModifierKeys.Alt);
 
         if (ctrl)
         {
-            switch (e.Key)
+            switch (key)
             {
-                case Key.T when shift: _vm.ReopenClosedTab(); e.Handled = true; return;
-                case Key.T: _vm.CreateNewTabPage(); e.Handled = true; return;
-                case Key.W: _vm.CloseTab(_vm.ActiveTab); e.Handled = true; return;
-                case Key.L: _vm.FocusAddressBar(); e.Handled = true; return;
-                case Key.R: _vm.Reload(); e.Handled = true; return;
-                case Key.F: _vm.IsFindVisible = true; e.Handled = true; return;
-                case Key.H: _vm.OpenInternal("history"); e.Handled = true; return;
-                case Key.J: _vm.OpenInternal("downloads"); e.Handled = true; return;
-                case Key.D: _vm.ToggleBookmarkCommand.Execute(null); e.Handled = true; return;
-                case Key.N when shift: App.Current.OpenWindow(true); e.Handled = true; return;
-                case Key.Tab: _vm.NextTab(shift ? -1 : 1); e.Handled = true; return;
+                case Key.T when shift: _vm.ReopenClosedTab(); return true;
+                case Key.T: _vm.CreateNewTabPage(); return true;
+                case Key.W: _vm.CloseTab(_vm.ActiveTab); return true;
+                case Key.L: _vm.FocusAddressBar(); return true;
+                case Key.R: _vm.Reload(); return true;
+                case Key.F: _vm.IsFindVisible = true; return true;
+                case Key.H: _vm.OpenInternal("history"); return true;
+                case Key.J: _vm.OpenInternal("downloads"); return true;
+                case Key.D: _vm.ToggleBookmarkCommand.Execute(null); return true;
+                case Key.N when shift: App.Current.OpenWindow(true); return true;
+                case Key.Tab: _vm.NextTab(shift ? -1 : 1); return true;
                 case Key.OemPlus:
-                case Key.Add: _vm.ZoomBy(0.1); e.Handled = true; return;
+                case Key.Add: _vm.ZoomBy(0.1); return true;
                 case Key.OemMinus:
-                case Key.Subtract: _vm.ZoomBy(-0.1); e.Handled = true; return;
+                case Key.Subtract: _vm.ZoomBy(-0.1); return true;
                 case Key.D0:
-                case Key.NumPad0: _vm.ResetZoom(); e.Handled = true; return;
-                case Key.P: _vm.SavePagePdf(); e.Handled = true; return;
+                case Key.NumPad0: _vm.ResetZoom(); return true;
+                case Key.P: _vm.SavePagePdf(); return true;
             }
         }
 
         if (alt)
         {
-            if (e.Key == Key.Left) { _vm.GoBack(); e.Handled = true; return; }
-            if (e.Key == Key.Right) { _vm.GoForward(); e.Handled = true; return; }
+            if (key == Key.Left) { _vm.GoBack(); return true; }
+            if (key == Key.Right) { _vm.GoForward(); return true; }
         }
 
-        if (e.Key == Key.F11)
+        if (key == Key.F11)
         {
             SetFullScreen(!_fullScreen);
-            e.Handled = true;
-            return;
+            return true;
         }
 
-        if (e.Key == Key.Escape && _vm.IsFindVisible)
+        if (key == Key.F5)
         {
-            _vm.IsFindVisible = false;
-            e.Handled = true;
+            _vm.Reload();
+            return true;
+        }
+
+        if (key == Key.Escape)
+        {
+            if (_vm.IsFindVisible) { _vm.IsFindVisible = false; return true; }
+            if (_vm.IsAiOpen) { _vm.IsAiOpen = false; return true; }
+        }
+
+        return false;
+    }
+
+    public bool TryHandleHotkey(int virtualKey)
+    {
+        try
+        {
+            return HandleHotkey(KeyInterop.KeyFromVirtualKey(virtualKey), Keyboard.Modifiers);
+        }
+        catch
+        {
+            return false;
         }
     }
 

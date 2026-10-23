@@ -61,6 +61,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _db,
             (host, kind) => _shell?.AskPermissionAsync(host, kind) ?? Task.FromResult(false),
             (filter, name, dir) => _shell?.PickSaveFile(filter, name, dir),
+            virtualKey => _shell?.TryHandleHotkey(virtualKey) ?? false,
             profile);
         WebProfileFolder = profile;
 

@@ -30,5 +30,8 @@ public interface IBrowserShell
     string? PickFolder(string? initialDirectory);
 
     void ShowMessage(string title, string message);
+
+    /// <summary>Called for Ctrl/Alt shortcuts that happen while a web page has keyboard focus.</summary>
+    bool TryHandleHotkey(int virtualKey);
     void OpenExternal(string pathOrUrl);
 }

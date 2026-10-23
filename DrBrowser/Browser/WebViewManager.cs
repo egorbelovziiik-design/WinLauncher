@@ -19,6 +19,7 @@ public sealed class WebViewManager : IDisposable
     private readonly Db _db;
     private readonly Func<string, string, Task<bool>> _askPermission;
     private readonly Func<string, string, string, string?> _pickSaveFile;
+    private readonly Func<int, bool> _hotkey;
     private readonly string _userDataFolder;
 
     private CoreWebView2Environment? _environment;
@@ -31,6 +32,7 @@ public sealed class WebViewManager : IDisposable
         Db db,
         Func<string, string, Task<bool>> askPermission,
         Func<string, string, string, string?> pickSaveFile,
+        Func<int, bool> hotkey,
         string userDataFolder)
     {
         _log = log;
@@ -40,6 +42,7 @@ public sealed class WebViewManager : IDisposable
         _db = db;
         _askPermission = askPermission;
         _pickSaveFile = pickSaveFile;
+        _hotkey = hotkey;
         _userDataFolder = userDataFolder;
     }
 
@@ -126,6 +129,21 @@ public sealed class WebViewManager : IDisposable
             ZoomFactor = Math.Clamp(_settings().ZoomLevel, 0.25, 3.0)
         };
 
+        view.AcceleratorKeyPressed += (_, e) =>
+        {
+            // Keys pressed inside the page never reach the WPF window, so browser shortcuts are
+            // forwarded manually. Handled=true also stops WebView2's own default action.
+            if (e.KeyEventKind is not (CoreWebView2KeyEventKind.KeyDown or CoreWebView2KeyEventKind.SystemKeyDown)) return;
+            try
+            {
+                if (_hotkey((int)e.VirtualKey)) e.Handled = true;
+            }
+            catch (Exception ex)
+            {
+                _log.Error("hotkey forwarding failed", ex);
+            }
+        };
+
         host.Children.Add(view);
         tab.View = view;
 
@@ -186,6 +204,7 @@ public sealed class WebViewManager : IDisposable
         settings.IsPasswordAutosaveEnabled = false;   // no silent credential capture
         settings.IsGeneralAutofillEnabled = false;
         settings.IsReputationCheckingRequired = false;
+        settings.AreBrowserAcceleratorKeysEnabled = false;  // shortcuts are handled by DrBrowser itself
 
         core.NavigationStarting += (_, e) =>
         {
