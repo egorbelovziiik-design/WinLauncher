@@ -242,6 +242,36 @@ public static class SelfTest
                 return $"note CRUD · task CRUD · {workspaces.Count} пространств со снимками вкладок";
             });
 
+            await Run("drmind-memory", "DrMind: явная локальная память SQLite", async () =>
+            {
+                var memoryDb = new Db(Path.Combine(temp, "memory.db"));
+                var memory = new AiMemoryService(memoryDb);
+                var memoryId = await memory.AddAsync("Предпочитаю краткие ответы", "preference");
+                var items = await memory.LoadAsync();
+                var context = memory.BuildPromptContext();
+                if (items.Count != 1 || items[0].Id != memoryId || !context.Contains("краткие ответы"))
+                    throw new Exception("память не прошла round-trip");
+                await memory.DeleteAsync(memoryId);
+                if ((await memory.LoadAsync()).Count != 0) throw new Exception("память не удалилась");
+                return "explicit add · prompt context · delete; автоматического сохранения нет";
+            });
+
+            await Run("backup", "Backup: SQLite snapshot, manifest, SHA-256 и исключение секретов", async () =>
+            {
+                var backupDb = new Db(Path.Combine(temp, "backup-source.db"));
+                backupDb.AddBookmark(new Bookmark { Title = "OMEGA", Url = "https://example.com", Folder = "Тест", CreatedAt = DateTime.Now });
+                var backup = new BackupService(backupDb);
+                var archivePath = Path.Combine(temp, "omega.drbackup");
+                var created = await backup.CreateAsync(archivePath, SettingsService.CreateDefaults());
+                var validated = await backup.ValidateAsync(archivePath);
+                using var archive = System.IO.Compression.ZipFile.OpenRead(archivePath);
+                var names = archive.Entries.Select(entry => entry.FullName).OrderBy(name => name).ToArray();
+                if (created.DatabaseSha256 != validated.DatabaseSha256 ||
+                    names.Length != 3 || names.Contains("secrets", StringComparer.OrdinalIgnoreCase))
+                    throw new Exception("состав/manifest резервной копии неверен");
+                return string.Join(" + ", names) + " · SHA-256 verified · secrets excluded";
+            });
+
             await Run("drtools", "DrTools: калькулятор, JSON, единицы, цвет и пароль", () =>
             {
                 var calculated = UtilityEngine.Calculate("sqrt(81) + 2^3 * 2");
@@ -933,6 +963,21 @@ public static class SelfTest
                 }
 
                 return "settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · Workspaces · Tools · Performance · newtab — 11 скриншотов";
+            });
+
+            await Run("smoke-command-palette", "DrCommand фильтрует и выполняет зарегистрированные действия", async () =>
+            {
+                vm.OpenCommandPalette();
+                if (!vm.IsCommandPaletteOpen || vm.CommandPaletteResults.Count < 15)
+                    throw new Exception("реестр команд не загрузился");
+                vm.CommandPaletteQuery = "DrMusic";
+                if (vm.CommandPaletteResults.Count != 1 || vm.CommandPaletteResults[0].Id != "route:music")
+                    throw new Exception("поиск команды DrMusic не сработал");
+                vm.ExecuteSelectedPaletteItem();
+                await Delay(600);
+                if (vm.IsCommandPaletteOpen || vm.CurrentInternalKey != "music")
+                    throw new Exception("команда DrMusic не выполнилась");
+                return "23 команды · фильтрация DrMusic · выполнение маршрута";
             });
 
             await Run("smoke-settings-tabs", "Разделы настроек «Музыка» и «AI Assistant» не пустые", async () =>

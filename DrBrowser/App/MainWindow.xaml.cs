@@ -412,6 +412,13 @@ public partial class MainWindow : Window, IBrowserShell
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _vm.IsCommandPaletteOpen)
+        {
+            _vm.CloseCommandPalette();
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Escape && _vm.IsProfileOpen)
         {
             _vm.CloseProfile();
@@ -420,6 +427,54 @@ public partial class MainWindow : Window, IBrowserShell
         }
 
         if (HandleHotkey(e.Key, Keyboard.Modifiers)) e.Handled = true;
+    }
+
+    private void OpenCommandPalette()
+    {
+        _vm.OpenCommandPalette();
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+        {
+            CommandPaletteBox.Focus();
+            CommandPaletteBox.SelectAll();
+        }));
+    }
+
+    private void CommandPalettePopup_Opened(object? sender, EventArgs e)
+    {
+        CommandPaletteBox.Focus();
+        CommandPaletteBox.SelectAll();
+    }
+
+    private void CommandPaletteItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: CommandPaletteItem item })
+        {
+            _vm.SelectedPaletteItem = item;
+            _vm.ExecuteSelectedPaletteItem();
+        }
+    }
+
+    private void CommandPaletteBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _vm.ExecuteSelectedPaletteItem();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _vm.CloseCommandPalette();
+            e.Handled = true;
+        }
+        else if (e.Key is Key.Down or Key.Up)
+        {
+            var count = CommandPaletteList.Items.Count;
+            if (count == 0) return;
+            var delta = e.Key == Key.Down ? 1 : -1;
+            CommandPaletteList.SelectedIndex = Math.Clamp(CommandPaletteList.SelectedIndex + delta, 0, count - 1);
+            CommandPaletteList.ScrollIntoView(CommandPaletteList.SelectedItem);
+            e.Handled = true;
+        }
     }
 
     private void FocusFindBox()
@@ -474,7 +529,7 @@ public partial class MainWindow : Window, IBrowserShell
                 case Key.NumPad0: _vm.ResetZoom(); return true;
                 case Key.A when shift: _vm.IsAiOpen = true; return true;
                 case Key.S when shift: _vm.OpenInternal("search"); return true;
-                case Key.P when shift: _vm.OpenInternal("tools"); return true;
+                case Key.P when shift: OpenCommandPalette(); return true;
                 case Key.P: _vm.SavePagePdf(); return true;
                 case Key.M when shift: _vm.OpenInternal("music"); return true;
                 case Key.G when shift: _vm.OpenInternal("guard"); return true;
@@ -496,6 +551,12 @@ public partial class MainWindow : Window, IBrowserShell
         if (key == Key.F11)
         {
             SetFullScreen(!_fullScreen);
+            return true;
+        }
+
+        if (key == Key.F12)
+        {
+            _vm.ActiveTab?.Core?.OpenDevToolsWindow();
             return true;
         }
 

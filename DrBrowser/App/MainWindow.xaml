@@ -17,7 +17,7 @@
     </shell:WindowChrome.WindowChrome>
 
     <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
-        <Grid>
+        <Grid x:Name="RootLayout">
             <Grid.RowDefinitions>
                 <RowDefinition Height="44" />
                 <RowDefinition Height="50" />
@@ -198,6 +198,8 @@
                             Command="{Binding OpenHistoryCommand}" />
                     <Button Content="⚙" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Настройки"
                             Command="{Binding OpenSettingsCommand}" />
+                    <Button Content="⌘" Style="{StaticResource IconButton}" FontSize="14"
+                            ToolTip="DrCommand (Ctrl+Shift+P)" Command="{Binding OpenCommandPaletteCommand}" />
 
                     <Button x:Name="ProfileButton" Width="34" Height="34" Style="{StaticResource IconButton}"
                             ToolTip="Профиль и быстрые действия" Click="ProfileButton_Click">
@@ -592,6 +594,59 @@
                         </StackPanel>
                     </ScrollViewer>
                 </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- Separate HWND popup stays visible above WebView2's native surface. -->
+        <Popup x:Name="CommandPalettePopup" IsOpen="{Binding IsCommandPaletteOpen, Mode=TwoWay}"
+               PlacementTarget="{Binding ElementName=RootLayout}" Placement="Center" Opened="CommandPalettePopup_Opened"
+               StaysOpen="True" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Width="620" MaxHeight="580" CornerRadius="14" Padding="12"
+                    Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.45" Color="#000000" />
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="⌘" FontSize="20" Foreground="{DynamicResource AccentBrush}" Margin="8,0,10,0" VerticalAlignment="Center" />
+                        <TextBox x:Name="CommandPaletteBox" Grid.Column="1" Style="{StaticResource InputBox}" Height="42" FontSize="15"
+                                 Text="{Binding CommandPaletteQuery, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="CommandPaletteBox_KeyDown" />
+                        <Button Grid.Column="2" Content="✕" Style="{StaticResource IconButton}" Margin="8,0,0,0"
+                                Command="{Binding CloseCommandPaletteCommand}" />
+                    </Grid>
+                    <ListBox x:Name="CommandPaletteList" Grid.Row="1" Margin="0,10,0,0" MaxHeight="450"
+                             ItemsSource="{Binding CommandPaletteResults}" SelectedItem="{Binding SelectedPaletteItem}"
+                             Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButton}" Padding="12,9" Margin="0,1" HorizontalContentAlignment="Stretch"
+                                        Click="CommandPaletteItem_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Group}" Style="{StaticResource Muted}" FontSize="9.5"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{Binding Shortcut}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Grid Grid.Row="2" Margin="8,8,8,0">
+                        <TextBlock Text="↑↓ выбрать · Enter выполнить · Esc закрыть" Style="{StaticResource Muted}" FontSize="9.5"/>
+                        <TextBlock Text="DRCOMMAND" HorizontalAlignment="Right" Foreground="{DynamicResource AccentBrush}" FontSize="9" FontWeight="Bold"/>
+                    </Grid>
+                </Grid>
             </Border>
         </Popup>
         </Grid>

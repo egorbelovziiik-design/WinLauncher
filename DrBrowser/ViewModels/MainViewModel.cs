@@ -61,10 +61,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AdBlock = new AdBlockService(log);
         AI = new AIService(log);
         Ollama = new OllamaService(log);
+        AiMemory = new AiMemoryService(_db);
         Downloads = new DownloadService(log, _db, () => Settings);
         TabManager = new TabManager();
         NewTab = new NewTabViewModel(log, _db, () => Settings);
         Productivity = new ProductivityService(_db, log);
+        Backup = new BackupService(_db);
         Omega = new OmegaViewModel(
             Productivity,
             log,
@@ -129,6 +131,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public AdBlockService AdBlock { get; }
     public AIService AI { get; }
     public OllamaService Ollama { get; }
+    public AiMemoryService AiMemory { get; }
     public MusicViewModel Music { get; }
     public SearchViewModel Search { get; }
     public SearchIndexService SearchIndex { get; }
@@ -137,6 +140,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public WebViewManager WebViews { get; }
     public NewTabViewModel NewTab { get; }
     public ProductivityService Productivity { get; }
+    public BackupService Backup { get; }
     public OmegaViewModel Omega { get; }
     public bool IsPrivate { get; }
 
@@ -203,6 +207,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             if (!Set(ref _isAiOpen, value)) return;
             _shell?.SetAiPanelVisible(value);
+            if (value) _ = LoadAiMemoryAsync();
             Raise(nameof(AiToggleGlyph));
         }
     }
@@ -488,7 +493,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void NextTab(int direction)
     {
-        var next = TabManager.NextOf(ActiveTab ?? Tabs.FirstOrDefault(), direction);
+        var current = ActiveTab ?? Tabs.FirstOrDefault();
+        if (current is null) return;
+        var next = TabManager.NextOf(current, direction);
         if (next is not null) TabManager.ActiveTab = next;
     }
 

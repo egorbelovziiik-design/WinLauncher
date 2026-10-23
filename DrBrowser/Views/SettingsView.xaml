@@ -477,6 +477,36 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- ================= BACKUP ================= -->
+            <TabItem Header="Backup">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="22" MaxWidth="760" HorizontalAlignment="Left">
+                        <TextBlock Text="Резервное копирование" Style="{StaticResource H1}" />
+                        <TextBlock Text="Согласованный снимок SQLite и настроек в проверяемом .drbackup архиве"
+                                   Style="{StaticResource Muted}" Margin="0,4,0,18" />
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ЧТО ВХОДИТ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="История, закладки, загрузки, Notes, Tasks, Workspaces, индекс DrSearch, явная память DrMind и настройки. База создаётся через SQLite Online Backup API."
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="API-ключи и профиль WebView2 (cookies/cache) исключены. Пароли Vault остаются DPAPI-шифротекстом и переносятся только в рамках той же учётной записи Windows."
+                                           Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <WrapPanel Margin="0,14,0,0">
+                                    <Button Content="Создать .drbackup" Style="{StaticResource PrimaryButton}" Command="{Binding CreateBackupCommand}" />
+                                    <Button Content="Проверить и восстановить" Style="{StaticResource DangerButton}" Margin="8,0,0,0" Command="{Binding RestoreBackupCommand}" />
+                                    <Button Content="Папка данных" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Command="{Binding OpenDataFolderCommand}" />
+                                </WrapPanel>
+                                <TextBlock Text="{Binding BackupStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#22FFB86B" BorderBrush="#55FFB86B" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,10,0,0">
+                            <TextBlock Text="Восстановление требует явного подтверждения, отклоняет лишние пути и файлы, проверяет SHA-256 и SQLite integrity_check, затем закрывает приложение для безопасного перезапуска."
+                                       TextWrapping="Wrap" FontSize="10.5" />
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- ================= ПРОИЗВОДИТЕЛЬНОСТЬ ================= -->
             <TabItem Header="Производительность">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -520,7 +550,9 @@
                                 <TextBlock Text="Ctrl+Shift+N — приватное окно" Style="{StaticResource Muted}" Margin="0,4" />
                                 <TextBlock Text="Ctrl+«+» / Ctrl+«-» / Ctrl+0 — масштаб" Style="{StaticResource Muted}" />
                                 <TextBlock Text="Ctrl+P — сохранить страницу в PDF" Style="{StaticResource Muted}" Margin="0,4" />
-                                <TextBlock Text="F11 — полноэкранный режим" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+Shift+P — DrCommand" Style="{StaticResource Muted}" />
+                                <TextBlock Text="Ctrl+Shift+A / S / M — DrMind / DrSearch / DrMusic" Style="{StaticResource Muted}" Margin="0,4" />
+                                <TextBlock Text="F11 — полноэкранный режим · F12 — DevTools" Style="{StaticResource Muted}" />
                                 <TextBlock Text="Alt+← / Alt+→ — назад / вперёд" Style="{StaticResource Muted}" Margin="0,4" />
                             </StackPanel>
                         </Border>

@@ -64,6 +64,7 @@ public sealed class AppSettings : ObservableObject
     private double _aiTemperature = 0.4;
     private int _aiContextSize = 8192;
     private bool _aiUseSearch;
+    private bool _aiUseMemory;
     private string _tabSleepMode = "Balanced";
     private int _searchCrawlerMaxPages = 25;
     private int _searchCrawlerMaxDepth = 2;
@@ -143,6 +144,8 @@ public sealed class AppSettings : ObservableObject
     public double AiTemperature { get => _aiTemperature; set => Set(ref _aiTemperature, Math.Clamp(value, 0, 2)); }
     public int AiContextSize { get => _aiContextSize; set => Set(ref _aiContextSize, Math.Clamp(value, 1024, 131072)); }
     public bool AiUseSearch { get => _aiUseSearch; set => Set(ref _aiUseSearch, value); }
+    /// <summary>Only explicit user-authored memory is included; disabled by default.</summary>
+    public bool AiUseMemory { get => _aiUseMemory; set => Set(ref _aiUseMemory, value); }
 
     /// <summary>Tab Sleep preset: Off, Balanced or Aggressive.</summary>
     public string TabSleepMode { get => _tabSleepMode; set => Set(ref _tabSleepMode, string.IsNullOrWhiteSpace(value) ? "Balanced" : value); }

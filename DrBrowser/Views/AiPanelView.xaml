@@ -75,6 +75,37 @@
 
                 <Border Style="{StaticResource Card}" Padding="10,8" Margin="2,0,2,10">
                     <StackPanel>
+                        <CheckBox Content="Использовать явную память" Style="{StaticResource Switch}" FontSize="10.5"
+                                  IsChecked="{Binding Settings.AiUseMemory, Mode=TwoWay}" />
+                        <TextBlock Text="Только факты, которые вы добавили вручную. При облачном провайдере включённые факты передаются этому endpoint."
+                                   Style="{StaticResource Muted}" FontSize="9" TextWrapping="Wrap" Margin="0,4,0,6" />
+                        <TextBox Style="{StaticResource InputBox}" Height="34" MaxLength="1000"
+                                 Text="{Binding AiMemoryInput, UpdateSourceTrigger=PropertyChanged}" />
+                        <WrapPanel Margin="0,6,0,0">
+                            <Button Content="Запомнить" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,3"
+                                    Command="{Binding SaveAiMemoryCommand}" />
+                            <Button Content="Очистить всё" Style="{StaticResource DangerButton}" FontSize="9.5" Padding="7,3" Margin="5,0,0,0"
+                                    Command="{Binding ClearAiMemoryCommand}" />
+                        </WrapPanel>
+                        <ItemsControl ItemsSource="{Binding AiMemories}" Margin="0,6,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Content}" FontSize="9.5" TextWrapping="Wrap" MaxHeight="42"/>
+                                        <Button Grid.Column="1" Content="✕" Style="{StaticResource IconButton}" Width="22" Height="22"
+                                                Command="{Binding DataContext.DeleteAiMemoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding AiMemoryStatus}" Style="{StaticResource Muted}" FontSize="8.5" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Padding="10,8" Margin="2,0,2,10">
+                    <StackPanel>
                         <TextBlock Text="{Binding AiEngineText}" FontSize="10.5" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding AiLocalHint}" Style="{StaticResource Muted}" FontSize="9.5"
                                    TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -108,6 +139,18 @@
                     <Button Content="✍️ Помочь с текстом" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
                             Command="{Binding AiActionCommand}" CommandParameter="write" />
                 </WrapPanel>
+
+                <TextBlock Text="Контролируемые действия" Style="{StaticResource SectionTitle}" Margin="2,7,0,6" />
+                <WrapPanel>
+                    <Button Content="▤ Ответ → Notes" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="10"
+                            ToolTip="Создание заметки всегда требует подтверждения"
+                            Command="{Binding DrMindControlledActionCommand}" CommandParameter="save-note" />
+                    <Button Content="↗ Открыть HTTPS из ответа" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="10"
+                            ToolTip="Переход всегда требует подтверждения"
+                            Command="{Binding DrMindControlledActionCommand}" CommandParameter="open-link" />
+                </WrapPanel>
+                <TextBlock Text="DrMind не получает произвольный доступ к ОС. Разрешены только перечисленные действия и только после подтверждения."
+                           Style="{StaticResource Muted}" FontSize="8.5" TextWrapping="Wrap" Margin="2,0,0,5" />
 
                 <ItemsControl ItemsSource="{Binding AiMessages}" Margin="0,10,0,0">
                     <ItemsControl.ItemTemplate>
