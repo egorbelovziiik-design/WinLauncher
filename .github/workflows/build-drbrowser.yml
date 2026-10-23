@@ -148,6 +148,16 @@ jobs:
           git pull --rebase origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
+      - name: Fail the job when a check failed
+        shell: pwsh
+        run: |
+          $failed = Select-String -Path DrBrowser\screenshots\*-report.txt -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue
+          if ($failed) {
+            $failed | ForEach-Object { $_.Line }
+            throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots."
+          }
+          "Все выполненные проверки прошли."
+
       - name: Publish release with the EXE
         if: always()
         shell: bash

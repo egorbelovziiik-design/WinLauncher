@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Web.WebView2.Core;
 
 namespace DrBrowser;
 
@@ -449,6 +450,21 @@ public static class SelfTest
                 var core = vm.ActiveTab?.Core;
                 if (core is null) throw new Exception("WebView2 не создан за 15 секунд");
 
+                // Stop the first navigation and load a known page through the engine itself.
+                var navTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                void OnNav(object? sender, CoreWebView2NavigationCompletedEventArgs e) => navTcs.TrySetResult(true);
+                core.NavigationCompleted += OnNav;
+
+                try
+                {
+                    core.Navigate("about:blank");
+                    await WithTimeout(navTcs.Task, 20000, "переход на about:blank");
+                }
+                finally
+                {
+                    core.NavigationCompleted -= OnNav;
+                }
+
                 Trace("smoke-webview: calling NavigateToString");
                 core.NavigateToString(
                     "<html><head><title>DrBrowser Smoke Test</title></head>" +
@@ -457,49 +473,55 @@ public static class SelfTest
                     "</body></html>");
 
                 Trace("smoke-webview: NavigateToString returned");
-                string? title = null;
-                for (var i = 0; i < 20; i++)
+                var title = string.Empty;
+                for (var i = 0; i < 40; i++)
                 {
-                    await Delay(300);
-                    try
-                    {
-                        var raw = await WithTimeout(core.ExecuteScriptAsync("document.title"), 5000, "ExecuteScriptAsync");
-                        title = raw?.Trim('"');
-                        if (title == "DrBrowser Smoke Test") break;
-                    }
-                    catch
-                    {
-                        // page still loading
-                    }
+                    await Delay(250);
+                    title = core.DocumentTitle ?? string.Empty;
+                    if (title == "DrBrowser Smoke Test") break;
                 }
 
                 if (title != "DrBrowser Smoke Test")
-                    throw new Exception("ExecuteScript не подтвердил страницу (title=" + (title ?? "null") + ")");
+                    throw new Exception("document.title не подтверждён (title=" + (title.Length == 0 ? "пусто" : title) + ")");
+
+                var raw = await WithTimeout(core.ExecuteScriptAsync("document.title"), 8000, "ExecuteScriptAsync");
+                var scriptTitle = raw?.Trim('"');
+                if (scriptTitle != "DrBrowser Smoke Test")
+                    throw new Exception("ExecuteScriptAsync вернул " + (scriptTitle ?? "null"));
 
                 await Delay(400);
                 window!.CaptureWindow(Path.Combine(shots, "02-webview.png"));
-                return $"Chromium {WebViewManager.RuntimeVersionOrEmpty()} · document.title подтверждён через ExecuteScriptAsync";
+                return $"Chromium {WebViewManager.RuntimeVersionOrEmpty()} · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync";
             });
 
             await Run("smoke-tabs", "Вкладки: создание, переключение, закрытие, восстановление", async () =>
             {
                 var initial = vm.Tabs.Count;
-                var tab = vm.CreateNewTabPage();
+                var page = vm.CreateNewTabPage();
                 await Delay(250);
                 if (vm.Tabs.Count != initial + 1) throw new Exception("новая вкладка не появилась");
-                vm.CreateWebTab("https://example.org");
-                await Delay(300);
+
+                var web = vm.CreateWebTab("https://example.org");
+                await Delay(700);
                 if (vm.Tabs.Count != initial + 2) throw new Exception("веб-вкладка не появилась");
-                vm.SelectTab(tab);
-                if (!ReferenceEquals(vm.ActiveTab, tab)) throw new Exception("переключение вкладки не сработало");
-                vm.CloseTab(tab);
+
+                vm.SelectTab(page);
+                if (!ReferenceEquals(vm.ActiveTab, page)) throw new Exception("переключение вкладки не сработало");
+
+                vm.CloseTab(page);
                 await Delay(200);
                 if (vm.Tabs.Count != initial + 1) throw new Exception("закрытие вкладки не сработало");
-                var afterClose = vm.Tabs.Count;
-                vm.ReopenClosedTab();
+
+                vm.SelectTab(web);
+                vm.CloseTab(web);
                 await Delay(300);
+                var afterClose = vm.Tabs.Count;
+                if (afterClose != initial) throw new Exception("закрытие веб-вкладки не сработало");
+
+                vm.ReopenClosedTab();
+                await Delay(900);
                 if (vm.Tabs.Count != afterClose + 1) throw new Exception("восстановление вкладки не сработало");
-                return $"было {initial} → +2 → закрыто → восстановлено ({vm.Tabs.Count})";
+                return $"было {initial} → +2 → закрыто 2 → восстановлено 1 ({vm.Tabs.Count})";
             });
 
             await Run("smoke-pages", "Все внутренние страницы открываются и рисуются", async () =>
