@@ -636,6 +636,48 @@ public static class SelfTest
                 return "конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети";
             });
 
+            await Run("ai-media-context", "DrAI: разбор ссылок, фото и видео (oEmbed и метаданные страницы)", () =>
+            {
+                if (!MediaContextService.TryExtractUrl("Посмотри https://youtu.be/dQw4w9WgXcQ, что это?",
+                        out var videoUrl) || videoUrl.Host != "youtu.be")
+                    throw new Exception("ссылка не найдена в тексте");
+
+                var oembed = "{\"title\":\"Big Buck Bunny\",\"author_name\":\"Blender Foundation\",\"type\":\"video\"}";
+                var video = MediaContextService.ParseOEmbed(oembed, videoUrl);
+                if (!video.Ok || video.Kind != MediaKind.Video || video.Title != "Big Buck Bunny")
+                    throw new Exception("oEmbed не разобран: " + video.Message);
+                if (video.Provider != "YouTube") throw new Exception("провайдер определён неверно: " + video.Provider);
+
+                var engine = new LocalAiEngine();
+                var about = engine.DescribeMedia("о чём это видео?", video);
+                if (!about.Contains("Big Buck Bunny", StringComparison.Ordinal) ||
+                    !about.Contains("Blender Foundation", StringComparison.Ordinal))
+                    throw new Exception("ответ о видео не содержит метаданных: " + about);
+
+                var author = engine.DescribeMedia("кто автор?", video);
+                if (!author.Contains("Blender Foundation", StringComparison.Ordinal))
+                    throw new Exception("ответ об авторе неверен: " + author);
+
+                var html = "<html><head><title>Пример</title>" +
+                           "<meta property=\"og:title\" content=\"Статья про WebView2\" />" +
+                           "<meta property=\"og:description\" content=\"Как работает движок\" />" +
+                           "<meta property=\"og:site_name\" content=\"Example Blog\" /></head>" +
+                           "<body><video controls></video></body></html>";
+                var page = MediaContextService.ParseHtml(html, new Uri("https://example.com/post"));
+                if (page.Title != "Статья про WebView2" || page.Description != "Как работает движок")
+                    throw new Exception("метаданные страницы не разобраны");
+                if (page.Kind != MediaKind.Video) throw new Exception("тег <video> не распознан");
+                if (page.Provider != "Example Blog") throw new Exception("og:site_name не использован");
+
+                if (MediaContextService.ProviderFor(new Uri("https://music.yandex.ru/album/1")) != "Яндекс Музыка")
+                    throw new Exception("Яндекс Музыка не распознана");
+
+                var broken = MediaContextService.ParseOEmbed("не json", videoUrl);
+                if (broken.Ok) throw new Exception("битый oEmbed признан успешным");
+
+                return "YouTube oEmbed · ответ о видео и авторе · og-теги страницы · <video> · Яндекс Музыка · битый ответ";
+            });
+
             await Run("music-catalog-parse", "Каталог музыки: разбор ответов iTunes и Deezer", () =>
             {
                 const string itunes = """

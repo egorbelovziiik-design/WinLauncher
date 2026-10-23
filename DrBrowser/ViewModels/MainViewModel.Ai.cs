@@ -11,6 +11,65 @@ public sealed partial class MainViewModel
     private string _aiStatus = string.Empty;
     private bool _aiBusy;
     private AiImageAttachment? _aiAttachment;
+    private string _aiLinkContext = "Ссылка в вопросе — DrAI прочитает её метаданные";
+
+    /// <summary>Status of the last link DrAI looked up (shown above the input).</summary>
+    public string AiLinkContext
+    {
+        get => _aiLinkContext;
+        private set => Set(ref _aiLinkContext, value);
+    }
+
+    /// <summary>"🎬 Видео по ссылке": reads a link from the input (or the clipboard) and explains it.</summary>
+    public ICommand ExplainVideoLinkCommand => Cmd("ai.video", async () =>
+    {
+        if (IsAiBusy) return;
+
+        var candidate = AiInput;
+        if (!MediaContextService.TryExtractUrl(candidate, out var url))
+        {
+            try
+            {
+                var clip = System.Windows.Clipboard.GetText();
+                if (MediaContextService.TryExtractUrl(clip, out url)) candidate = clip;
+                else
+                {
+                    AiStatus = "Вставьте ссылку на видео в поле ввода (или скопируйте её в буфер обмена).";
+                    return;
+                }
+            }
+            catch
+            {
+                AiStatus = "Вставьте ссылку на видео в поле ввода.";
+                return;
+            }
+        }
+
+        AiInput = string.Empty;
+        AiMessages.Add(new ChatMessage { Role = "user", Text = "🎬 " + url });
+        IsAiOpen = true;
+        IsAiBusy = true;
+        AiStatus = "DrAI: читаю метаданные видео…";
+
+        try
+        {
+            var media = await MediaContextService.DescribeAsync(url).ConfigureAwait(true);
+            AiLinkContext = LocalAiEngine.MediaStatus(media);
+            AiMessages.Add(new ChatMessage { Role = "assistant", Text = LocalAi.DescribeMedia(candidate, media) });
+            AiStatus = LocalAiEngine.MediaStatus(media);
+        }
+        catch (Exception ex)
+        {
+            _log.Error("video link lookup failed", ex);
+            AiMessages.Add(new ChatMessage { Role = "assistant", Text = "⚠ Не удалось прочитать ссылку: " + ex.Message });
+            AiStatus = ex.Message;
+        }
+        finally
+        {
+            IsAiBusy = false;
+        }
+    });
+
     public string AiAttachmentText => _aiAttachment is null ? "Фото не прикреплено" : "📷 " + _aiAttachment.Name;
 
     public ICommand AttachAiImageCommand => Cmd("ai.attach", async () =>
@@ -106,12 +165,37 @@ public sealed partial class MainViewModel
         _aiAttachment = null;
         Raise(nameof(AiAttachmentText));
 
+        // A link inside the question upgrades the answer: DrAI fetches the real title,
+        // author and description (oEmbed / page tags) instead of guessing.
+        MediaContext? media = null;
+        if (MediaContextService.TryExtractUrl(message, out var mediaUrl))
+        {
+            AiStatus = "DrAI: читаю метаданные ссылки…";
+            try
+            {
+                media = await MediaContextService.DescribeAsync(mediaUrl).ConfigureAwait(true);
+                AiLinkContext = LocalAiEngine.MediaStatus(media);
+            }
+            catch (Exception ex)
+            {
+                _log.Warn("media context failed: " + ex.Message);
+            }
+        }
+
         if (!AI.HasKey)
         {
             IsAiOpen = true;
             IsAiBusy = true;
             try
             {
+                if (media is not null)
+                {
+                    var mediaAnswer = LocalAi.DescribeMedia(message, media);
+                    AiMessages.Add(new ChatMessage { Role = "assistant", Text = mediaAnswer });
+                    AiStatus = LocalAiEngine.MediaStatus(media);
+                    return;
+                }
+
                 var pageText = await GetPageTextAsync().ConfigureAwait(true);
                 var answer = LocalAi.Answer(message, pageText);
                 AiMessages.Add(new ChatMessage { Role = "assistant", Text = answer });
@@ -136,6 +220,13 @@ public sealed partial class MainViewModel
                 .ToList();
 
             var systemPrompt = AIService.PromptFor(Settings.AiPersona);
+            if (media is not null)
+            {
+                systemPrompt += "\n\nПользователь спрашивает про ссылку. Достоверные метаданные, полученные браузером:\n"
+                                + media.AsPromptBlock()
+                                + "\nОтвечай по этим данным; если чего-то нет — скажи об этом прямо.";
+            }
+
             if (Settings.AiIncludePage)
             {
                 var pageText = await GetPageTextAsync().ConfigureAwait(true);

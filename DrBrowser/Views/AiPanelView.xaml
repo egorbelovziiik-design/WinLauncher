@@ -147,9 +147,14 @@
             <StackPanel>
                 <WrapPanel Margin="0,0,0,6">
                     <Button Content="📷 Фото" Style="{StaticResource GhostButton}" Command="{Binding AttachAiImageCommand}" />
+                    <Button Content="🎬 Видео по ссылке" Style="{StaticResource GhostButton}"
+                            Command="{Binding ExplainVideoLinkCommand}"
+                            ToolTip="Вставьте ссылку YouTube / RUTUBE / Vimeo / Dailymotion — DrAI прочитает название, канал и описание" />
                     <Button Content="Убрать" Style="{StaticResource GhostButton}" Command="{Binding RemoveAiImageCommand}" />
                 </WrapPanel>
-                <TextBlock Text="{Binding AiAttachmentText}" Style="{StaticResource Muted}" FontSize="10" Margin="0,0,0,5" />
+                <TextBlock Text="{Binding AiAttachmentText}" Style="{StaticResource Muted}" FontSize="10" Margin="0,0,0,3" />
+                <TextBlock Text="{Binding AiLinkContext}" Style="{StaticResource Muted}" FontSize="10"
+                           TextWrapping="Wrap" Margin="0,0,0,5" />
                 <TextBox x:Name="InputBox" Style="{StaticResource InputBox}" Height="70" AcceptsReturn="True"
                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                          Text="{Binding AiInput, UpdateSourceTrigger=PropertyChanged}"
