@@ -263,7 +263,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public string ProfileStats =>
         $"{Plural(Tabs.Count, "вкладка", "вкладки", "вкладок")} · " +
         $"{Plural(Bookmarks.Items.Count, "закладка", "закладки", "закладок")} · " +
-        $"{Plural(AdBlock.BlockedCount, "блокировка", "блокировки", "блокировок")}";
+        $"{Plural((int)Math.Min(AdBlock.BlockedCount, int.MaxValue), "блокировка", "блокировки", "блокировок")}";
 
     /// <summary>Russian plural form for a counter ("1 вкладка", "2 вкладки", "5 вкладок").</summary>
     internal static string Plural(int count, string one, string few, string many)
