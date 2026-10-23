@@ -10,7 +10,6 @@ namespace DrBrowser;
 /// </summary>
 public sealed class PasswordService
 {
-    private const string Alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*()-_=+[]{}";
     private readonly Db _db;
     private readonly Logger _log;
 
@@ -87,19 +86,36 @@ public sealed class PasswordService
     public static string Generate(int length = 20, bool symbols = true, bool digits = true, bool upper = true)
     {
         length = Math.Clamp(length, 8, 64);
-        var pool = new List<char>("abcdefghijkmnopqrstuvwxyz");
-        if (upper) pool.AddRange("ABCDEFGHJKLMNPQRSTUVWXYZ");
-        if (digits) pool.AddRange("23456789");
-        if (symbols) pool.AddRange("!@#$%^&*()-_=+[]{}");
-        if (pool.Count == 0) pool.AddRange(Alphabet);
+        const string lowerPool = "abcdefghijkmnopqrstuvwxyz";
+        const string upperPool = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string digitPool = "23456789";
+        const string symbolPool = "!@#$%^&*()-_=+[]{}";
 
-        var chars = new char[length];
-        for (var i = 0; i < length; i++)
+        var pool = new List<char>(lowerPool);
+        if (upper) pool.AddRange(upperPool);
+        if (digits) pool.AddRange(digitPool);
+        if (symbols) pool.AddRange(symbolPool);
+
+        // A random draw from the combined pool can occasionally omit a requested
+        // class. Seed one CSPRNG-selected character from every enabled class, fill
+        // the remainder, then CSPRNG-shuffle so required characters have no fixed
+        // positions.
+        var chars = new List<char>(length)
         {
-            chars[i] = pool[RandomNumberGenerator.GetInt32(pool.Count)];
+            lowerPool[RandomNumberGenerator.GetInt32(lowerPool.Length)]
+        };
+        if (upper) chars.Add(upperPool[RandomNumberGenerator.GetInt32(upperPool.Length)]);
+        if (digits) chars.Add(digitPool[RandomNumberGenerator.GetInt32(digitPool.Length)]);
+        if (symbols) chars.Add(symbolPool[RandomNumberGenerator.GetInt32(symbolPool.Length)]);
+        while (chars.Count < length) chars.Add(pool[RandomNumberGenerator.GetInt32(pool.Count)]);
+
+        for (var i = chars.Count - 1; i > 0; i--)
+        {
+            var j = RandomNumberGenerator.GetInt32(i + 1);
+            (chars[i], chars[j]) = (chars[j], chars[i]);
         }
 
-        return new string(chars);
+        return new string(chars.ToArray());
     }
 
     /// <summary>Rough strength estimate used by the UI (0..4).</summary>
