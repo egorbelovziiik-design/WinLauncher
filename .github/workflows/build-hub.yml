@@ -1,0 +1,75 @@
+name: Build hub EXE
+
+on:
+  push:
+    branches: [arena/95195420-winlauncher, main]
+    paths:
+      - "StealAnEggUltimate/**"
+      - ".github/workflows/build-hub.yml"
+  pull_request:
+    paths:
+      - "StealAnEggUltimate/**"
+      - ".github/workflows/build-hub.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & publish (win-x64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Show SDK
+        run: dotnet --version
+
+      - name: Restore
+        run: dotnet restore StealAnEggUltimate/StealAnEggUltimate.csproj
+
+      - name: Build (Release)
+        run: dotnet build StealAnEggUltimate/StealAnEggUltimate.csproj -c Release --no-restore -warnaserror:false
+
+      - name: Publish single-file EXE
+        run: >
+          dotnet publish StealAnEggUltimate/StealAnEggUltimate.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=None
+          -p:DebugSymbols=false
+          -o StealAnEggUltimate/dist
+
+      - name: Verify EXE exists
+        run: |
+          $exe = "StealAnEggUltimate/dist/StealAnEggUltimate.exe"
+          if (-not (Test-Path $exe)) { throw "EXE was not produced at $exe" }
+          $info = Get-Item $exe
+          "EXE: $($info.FullName)"
+          "Size: {0:N1} MB" -f ($info.Length / 1MB)
+          "SHA256: $((Get-FileHash $exe -Algorithm SHA256).Hash)"
+          Get-ChildItem "StealAnEggUltimate/dist" | Select-Object Name, Length | Format-Table
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StealAnEggUltimate-win-x64
+          path: |
+            StealAnEggUltimate/dist/StealAnEggUltimate.exe
+            StealAnEggUltimate/dist/RobloxStudio/**
+            StealAnEggUltimate/dist/Config/**
+          if-no-files-found: error
+          retention-days: 30

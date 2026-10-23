@@ -1,0 +1,27 @@
+{
+  "player": "SnapshotTester",
+  "place": "External demo place (read-only sample)",
+  "time": 1792800000000,
+  "source": "external-sample",
+  "playerState": {
+    "name": "SnapshotTester",
+    "x": 0,
+    "y": 6,
+    "z": 0,
+    "health": 100,
+    "maxHealth": 100,
+    "walkSpeed": 16,
+    "coins": 480,
+    "place": "External demo place",
+    "heading": 25,
+    "cameraHeight": 12
+  },
+  "eggs": [
+    { "name": "Speckled Egg", "rarity": "Common", "value": 14, "x": 34, "y": 4, "z": -18, "taken": false },
+    { "name": "Tide Egg", "rarity": "Uncommon", "value": 62, "x": -42, "y": 4, "z": 26, "taken": false },
+    { "name": "Frost Egg", "rarity": "Rare", "value": 210, "x": 18, "y": 5, "z": 48, "taken": false },
+    { "name": "Storm Egg", "rarity": "Epic", "value": 640, "x": -66, "y": 6, "z": -48, "taken": false },
+    { "name": "Prism Egg", "rarity": "Legendary", "value": 2400, "x": 72, "y": 7, "z": 64, "taken": false },
+    { "name": "Nebula Egg", "rarity": "Mythic", "value": 8800, "x": -12, "y": 6, "z": 92, "taken": false }
+  ]
+}
