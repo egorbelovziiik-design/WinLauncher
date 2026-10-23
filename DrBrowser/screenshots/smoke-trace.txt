@@ -39,3 +39,26 @@
 18:20:04.899 smoke: window created
 18:20:04.949 smoke: view model attached
 18:20:06.979 smoke-window: PASS
+18:23:39.071 data-folders: PASS
+18:23:39.185 settings-json: PASS
+18:23:39.195 url-parser: PASS
+18:23:39.197 search-engines: PASS
+18:23:39.281 sqlite-history: PASS
+18:23:39.327 bookmarks: PASS
+18:23:39.346 passwords-dpapi: PASS
+18:23:39.357 password-generator: PASS
+18:23:39.371 ai-without-key: PASS
+18:23:39.377 adblock: PASS
+18:23:39.382 downloads: PASS
+18:23:39.394 session: PASS
+18:23:39.422 quicklinks-permissions: PASS
+18:23:39.425 incognito-profile: PASS
+18:23:39.431 webview2-runtime: PASS
+18:23:39.431 settings-limits: PASS
+18:23:39.432 error-logging: PASS
+18:23:41.345 smoke: start
+18:23:42.247 smoke: window created
+18:23:42.291 smoke: view model attached
+18:23:44.336 smoke-window: PASS
+18:23:44.338 smoke-webview: navigating
+18:23:45.924 smoke-webview: core ready
