@@ -337,6 +337,182 @@ public sealed class MusicViewModel : ObservableObject
             nameof(NowPlayingBadge), nameof(IsStreaming), nameof(MiniPlayerText), nameof(IsCurrentFavorite));
     });
 
+    // --- playlists (persisted in SQLite) ---
+
+    private string _newPlaylistName = string.Empty;
+    private MusicPlaylist? _selectedPlaylist;
+
+    public ObservableCollection<MusicPlaylist> Playlists => Service.Playlists;
+    public bool HasPlaylists => Service.HasPlaylists;
+    public string PlaylistsSummary => Service.PlaylistsSummary;
+
+    public string NewPlaylistName
+    {
+        get => _newPlaylistName;
+        set => Set(ref _newPlaylistName, value ?? string.Empty);
+    }
+
+    public MusicPlaylist? SelectedPlaylist
+    {
+        get => _selectedPlaylist;
+        set
+        {
+            if (!Set(ref _selectedPlaylist, value)) return;
+            foreach (var playlist in Playlists) playlist.IsActive = ReferenceEquals(playlist, value);
+            Raise(nameof(HasSelectedPlaylist), nameof(SelectedPlaylistTitle), nameof(SelectedPlaylistHint),
+                nameof(CanPlaySelectedPlaylist));
+        }
+    }
+
+    public bool HasSelectedPlaylist => SelectedPlaylist is not null;
+    public bool CanPlaySelectedPlaylist => SelectedPlaylist is { Tracks.Count: > 0 };
+    public string SelectedPlaylistTitle => SelectedPlaylist?.Name ?? "Плейлист не выбран";
+    public string SelectedPlaylistHint => SelectedPlaylist is null
+        ? "Выберите плейлист слева, чтобы увидеть его треки."
+        : SelectedPlaylist.Tracks.Count == 0
+            ? "Плейлист пуст — добавьте трек кнопкой ★ или правым кликом по строке."
+            : $"{SelectedPlaylist.Tracks.Count} треков · порядок сохраняется";
+
+    public ICommand SelectPlaylistCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicPlaylist playlist) return;
+        SelectedPlaylist = playlist;
+        Service.Status = $"Плейлист «{playlist.Name}» · {playlist.Tracks.Count} треков";
+    });
+
+    public ICommand CreatePlaylistCommand => new RelayCommand(() =>
+    {
+        var name = NewPlaylistName.Trim();
+        if (name.Length == 0)
+        {
+            Service.Status = "Введите имя плейлиста";
+            return;
+        }
+
+        var existing = Playlists.FirstOrDefault(p =>
+            string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            SelectedPlaylist = existing;
+            Service.Status = $"Плейлист «{existing.Name}» уже есть — открыт";
+            return;
+        }
+
+        var created = Service.CreatePlaylist(name);
+        if (created is null)
+        {
+            Service.Status = "Не удалось создать плейлист";
+            return;
+        }
+
+        NewPlaylistName = string.Empty;
+        SelectedPlaylist = created;
+        Raise(nameof(HasPlaylists), nameof(PlaylistsSummary));
+        Service.Status = $"Плейлист «{created.Name}» создан";
+    });
+
+    public ICommand RenamePlaylistCommand => new RelayCommand(() =>
+    {
+        if (SelectedPlaylist is null || NewPlaylistName.Trim().Length == 0)
+        {
+            Service.Status = "Выберите плейлист и введите новое имя";
+            return;
+        }
+
+        var ok = Service.RenamePlaylist(SelectedPlaylist, NewPlaylistName);
+        Service.Status = ok ? $"Плейлист переименован в «{SelectedPlaylist.Name}»" : "Имя не изменилось";
+        NewPlaylistName = string.Empty;
+        Raise(nameof(SelectedPlaylistTitle), nameof(SelectedPlaylistHint));
+    });
+
+    public ICommand DeletePlaylistCommand => new RelayCommand(() =>
+    {
+        if (SelectedPlaylist is null) return;
+        var name = SelectedPlaylist.Name;
+        Service.DeletePlaylist(SelectedPlaylist);
+        SelectedPlaylist = Playlists.FirstOrDefault();
+        Raise(nameof(HasPlaylists), nameof(PlaylistsSummary), nameof(SelectedPlaylistTitle),
+            nameof(SelectedPlaylistHint), nameof(CanPlaySelectedPlaylist));
+        Service.Status = $"Плейлист «{name}» удалён";
+    });
+
+    /// <summary>Adds the currently playing track to the selected playlist.</summary>
+    public ICommand AddCurrentToPlaylistCommand => new RelayCommand(() =>
+    {
+        if (SelectedPlaylist is null)
+        {
+            Service.Status = "Сначала выберите плейлист слева";
+            return;
+        }
+
+        if (Service.Current is null)
+        {
+            Service.Status = "Ничего не играет — включите трек";
+            return;
+        }
+
+        var added = Service.AddToPlaylist(SelectedPlaylist, Service.Current);
+        RaisePlaylistState();
+        Service.Status = added
+            ? $"«{Service.Current.Title}» добавлен в «{SelectedPlaylist.Name}»"
+            : "Этот трек уже есть в плейлисте";
+    });
+
+    /// <summary>Adds an arbitrary track (from favourites, history or the library) to the selected playlist.</summary>
+    public ICommand AddToPlaylistCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack track) return;
+        if (SelectedPlaylist is null)
+        {
+            Service.Status = $"Сначала выберите плейлист — «{track.Title}» не добавлен";
+            return;
+        }
+
+        var added = Service.AddToPlaylist(SelectedPlaylist, track);
+        RaisePlaylistState();
+        Service.Status = added
+            ? $"«{track.Title}» добавлен в «{SelectedPlaylist.Name}»"
+            : "Этот трек уже есть в плейлисте";
+    });
+
+    public ICommand RemoveFromPlaylistCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack track || SelectedPlaylist is null) return;
+        Service.RemoveFromPlaylist(SelectedPlaylist, track);
+        RaisePlaylistState();
+        Service.Status = $"«{track.Title}» убран из плейлиста";
+    });
+
+    public ICommand MovePlaylistTrackUpCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack track || SelectedPlaylist is null) return;
+        var moved = Service.MoveInPlaylist(SelectedPlaylist, track, -1);
+        RaisePlaylistState();
+        Service.Status = moved ? "Трек поднят выше" : "Трек уже первый";
+    });
+
+    public ICommand MovePlaylistTrackDownCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack track || SelectedPlaylist is null) return;
+        var moved = Service.MoveInPlaylist(SelectedPlaylist, track, 1);
+        RaisePlaylistState();
+        Service.Status = moved ? "Трек опущен ниже" : "Трек уже последний";
+    });
+
+    public ICommand PlayPlaylistCommand => new RelayCommand(() =>
+    {
+        if (SelectedPlaylist is null) return;
+        Service.PlayPlaylist(SelectedPlaylist);
+        Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(NowPlayingSubtitle),
+            nameof(NowPlayingBadge), nameof(IsStreaming), nameof(MiniPlayerText), nameof(IsCurrentFavorite));
+    });
+
+    private void RaisePlaylistState()
+    {
+        Raise(nameof(HasPlaylists), nameof(PlaylistsSummary), nameof(SelectedPlaylistHint),
+            nameof(CanPlaySelectedPlaylist), nameof(HasSelectedPlaylist));
+    }
+
     public ICommand TogglePlayCommand => new RelayCommand(Service.TogglePlay);
     public ICommand NextCommand => new RelayCommand(Service.Next);
     public ICommand PreviousCommand => new RelayCommand(Service.Previous);

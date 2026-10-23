@@ -837,6 +837,80 @@ public static class SelfTest
                 }
             });
 
+            await Run("music-playlists", "DrMusic: плейлисты — состав, порядок и хранение в SQLite", () =>
+            {
+                var dbPath = Path.Combine(Path.GetTempPath(), "drb-playlist-" + Guid.NewGuid().ToString("N") + ".db");
+                try
+                {
+                    var db = new Db(dbPath);
+                    var id = db.CreatePlaylist("Road");
+                    if (id <= 0) throw new Exception("плейлист не создан");
+                    // Имена сравниваются без учёта регистра (SQLite COLLATE NOCASE, латиница).
+                    if (db.CreatePlaylist("road") != id) throw new Exception("имя плейлиста не уникально (регистр)");
+                    try
+                    {
+                        db.CreatePlaylist("   ");
+                        throw new Exception("пустое имя плейлиста принято");
+                    }
+                    catch (ArgumentException)
+                    {
+                        // ожидаемо
+                    }
+
+                    MusicPlaylistTrackRow Track(string name, int position) =>
+                        new(0, id, position, $@"C:\Music\{name}.mp3", name, "Исполнитель", "Rock", false);
+
+                    if (!db.AddPlaylistTrack(id, Track("a", 0))) throw new Exception("трек a не добавлен");
+                    if (!db.AddPlaylistTrack(id, Track("b", 1))) throw new Exception("трек b не добавлен");
+                    if (!db.AddPlaylistTrack(id, Track("c", 2))) throw new Exception("трек c не добавлен");
+                    if (db.AddPlaylistTrack(id, Track("a", 3))) throw new Exception("дубликат трека добавлен повторно");
+
+                    var items = db.QueryPlaylistTracks(id);
+                    if (items.Count != 3) throw new Exception($"ожидалось 3 трека, получено {items.Count}");
+                    if (string.Join(",", items.Select(t => t.Title)) != "a,b,c") throw new Exception("порядок добавления нарушен");
+
+                    if (!db.MovePlaylistTrack(id, items[2].Path, -1)) throw new Exception("перемещение вверх не сработало");
+                    items = db.QueryPlaylistTracks(id);
+                    if (string.Join(",", items.Select(t => t.Title)) != "a,c,b") throw new Exception("порядок после ↑ неверный");
+                    if (db.MovePlaylistTrack(id, items[0].Path, -1)) throw new Exception("первый трек сдвинулся выше нуля");
+
+                    db.MovePlaylistTrack(id, items[1].Path, 1);
+                    items = db.QueryPlaylistTracks(id);
+                    if (string.Join(",", items.Select(t => t.Title)) != "a,b,c") throw new Exception("порядок после ↓ неверный");
+
+                    db.RenamePlaylist(id, "В дорогу");
+                    var playlists = db.QueryPlaylists();
+                    if (playlists.Count != 1 || playlists[0].Name != "В дорогу" || playlists[0].TrackCount != 3)
+                        throw new Exception("список плейлистов или счётчик треков неверны");
+
+                    db.RemovePlaylistTrack(id, items[0].Path);
+                    items = db.QueryPlaylistTracks(id);
+                    if (items.Count != 2) throw new Exception("трек не удалился");
+                    if (items[0].Position != 0 || items[1].Position != 1) throw new Exception("позиции не перенумерованы");
+
+                    var reopened = new Db(dbPath);
+                    if (reopened.QueryPlaylists().Count != 1) throw new Exception("плейлист не пережил переоткрытие БД");
+                    if (reopened.QueryPlaylistTracks(id).Count != 2) throw new Exception("состав плейлиста потерян");
+
+                    // Чистая логика перемещения (та же, что двигает треки в UI).
+                    var list = new List<int> { 1, 2, 3 };
+                    if (Db.MoveItem(list, 0, -1) != 0 || string.Join(",", list) != "1,2,3") throw new Exception("MoveItem сдвинул границу");
+                    if (Db.MoveItem(list, 2, 1) != 2) throw new Exception("MoveItem сдвинул за конец");
+                    if (Db.MoveItem(list, 0, 1) != 1 || string.Join(",", list) != "2,1,3") throw new Exception("MoveItem неверен");
+
+                    db.DeletePlaylist(id);
+                    if (db.QueryPlaylists().Count != 0) throw new Exception("плейлист не удалился");
+                    if (db.QueryPlaylistTracks(id).Count != 0) throw new Exception("треки удалённого плейлиста остались в БД");
+
+                    return "создание/переименование/удаление, дедупликация, ↑↓ и перенумерация, данные переживают перезапуск";
+                }
+                finally
+                {
+                    Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+                    if (File.Exists(dbPath)) File.Delete(dbPath);
+                }
+            });
+
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>
             {
                 var before = File.Exists(log.FilePath) ? new FileInfo(log.FilePath).Length : 0;

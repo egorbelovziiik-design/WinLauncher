@@ -202,6 +202,57 @@
             <Border Grid.Column="0" Style="{StaticResource Card}" Padding="12" Margin="0,0,14,12">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
+                    <Grid Margin="2,0,2,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="ПЛЕЙЛИСТЫ" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Music.PlaylistsSummary}" FontSize="9.5"
+                                   Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBox Style="{StaticResource InputBox}" Height="28" FontSize="11.5" Margin="0,0,0,6"
+                             Text="{Binding Music.NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Имя нового плейлиста" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="+ Создать" Style="{StaticResource PrimaryButton}" FontSize="10.5" Padding="9,4"
+                                Command="{Binding Music.CreatePlaylistCommand}" />
+                        <Button Content="✎" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4" Margin="6,0,0,0"
+                                ToolTip="Переименовать выбранный плейлист в имя из поля выше"
+                                Command="{Binding Music.RenamePlaylistCommand}" />
+                        <Button Content="🗑" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4" Margin="6,0,0,0"
+                                ToolTip="Удалить выбранный плейлист"
+                                Command="{Binding Music.DeletePlaylistCommand}" IsEnabled="{Binding Music.HasSelectedPlaylist}" />
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{Binding Music.Playlists}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
+                                        Margin="0,0,0,5" FontSize="11.5" Padding="9,6" ToolTip="{Binding Name}"
+                                        Command="{Binding DataContext.Music.SelectPlaylistCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="●" FontSize="9" Foreground="{DynamicResource AccentBrush}"
+                                                       Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}"
+                                                       Margin="0,0,4,0" />
+                                            <TextBlock Text="{Binding CountText}" FontSize="9.5" Opacity="0.65" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource Muted}" FontSize="9.5" TextWrapping="Wrap" Margin="2,2,0,0"
+                               Text="Плейлисты хранятся в SQLite: имя, состав и порядок треков сохраняются после перезапуска." />
+
+                    <Border Height="1" Margin="0,12,0,10" Background="{DynamicResource BorderBrush}" />
+
                     <TextBlock Text="КАТЕГОРИИ" Style="{StaticResource SectionTitle}" Margin="2,0,0,8" />
                     <ItemsControl ItemsSource="{Binding Music.Categories}">
                         <ItemsControl.ItemTemplate>
@@ -238,12 +289,16 @@
                                 <Button Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
                                         Margin="0,0,0,5" FontSize="11.5" Padding="9,6"
                                         ToolTip="{Binding FilePath}"
+                                        Tag="{Binding DataContext.Music, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Command="{Binding DataContext.Music.PlayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}">
                                     <Button.ContextMenu>
-                                        <ContextMenu>
+                                        <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                                             <MenuItem Header="Убрать из избранного"
-                                                      Command="{Binding DataContext.Music.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      Command="{Binding PlacementTarget.Tag.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                      CommandParameter="{Binding}" />
+                                            <MenuItem Header="Добавить в выбранный плейлист"
+                                                      Command="{Binding PlacementTarget.Tag.AddToPlaylistCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                       CommandParameter="{Binding}" />
                                         </ContextMenu>
                                     </Button.ContextMenu>
@@ -297,6 +352,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0" Margin="2,0,2,8">
@@ -334,7 +390,18 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="Transparent" CornerRadius="9" Padding="9,7" Margin="0,0,0,2"
-                                            Cursor="Hand" MouseLeftButtonUp="Track_Click">
+                                            Cursor="Hand" MouseLeftButtonUp="Track_Click"
+                                            Tag="{Binding DataContext.Music, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <Border.ContextMenu>
+                                            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem Header="Добавить в выбранный плейлист"
+                                                          Command="{Binding PlacementTarget.Tag.AddToPlaylistCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding}" />
+                                                <MenuItem Header="Добавить в / убрать из избранного"
+                                                          Command="{Binding PlacementTarget.Tag.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                          CommandParameter="{Binding}" />
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Style.Triggers>
@@ -376,7 +443,71 @@
                         </ItemsControl>
                     </ScrollViewer>
 
+                    <!-- selected playlist -->
+                    <Border Grid.Row="3" Margin="0,10,0,0" Background="{DynamicResource SurfaceAltBrush}"
+                            CornerRadius="8" Padding="10" Visibility="{Binding Music.HasSelectedPlaylist, Converter={StaticResource BoolToVis}}">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding Music.SelectedPlaylistTitle}" FontSize="12.5" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Music.SelectedPlaylistHint}" Style="{StaticResource Muted}"
+                                               FontSize="10" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="＋ Текущий" Style="{StaticResource GhostButton}" FontSize="10" Padding="8,4"
+                                            ToolTip="Добавить играющий сейчас трек в этот плейлист"
+                                            Command="{Binding Music.AddCurrentToPlaylistCommand}" />
+                                    <Button Content="▶ Играть" Style="{StaticResource PrimaryButton}" FontSize="10" Padding="9,4"
+                                            Margin="6,0,0,0" IsEnabled="{Binding Music.CanPlaySelectedPlaylist}"
+                                            Command="{Binding Music.PlayPlaylistCommand}" />
+                                </StackPanel>
+                            </Grid>
 
+                            <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Music.SelectedPlaylist.Tracks}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Button Grid.Column="0" Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
+                                                        FontSize="11.5" Padding="8,5" ToolTip="{Binding FilePath}"
+                                                        Command="{Binding DataContext.Music.PlayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Subtitle}" FontSize="9.5" Opacity="0.65"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button Content="↑" Style="{StaticResource GhostButton}" FontSize="10" Padding="7,4"
+                                                            ToolTip="Выше"
+                                                            Command="{Binding DataContext.Music.MovePlaylistTrackUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Content="↓" Style="{StaticResource GhostButton}" FontSize="10" Padding="7,4" Margin="4,0,0,0"
+                                                            ToolTip="Ниже"
+                                                            Command="{Binding DataContext.Music.MovePlaylistTrackDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                    <Button Content="✕" Style="{StaticResource GhostButton}" FontSize="10" Padding="7,4" Margin="4,0,0,0"
+                                                            ToolTip="Убрать из плейлиста"
+                                                            Command="{Binding DataContext.Music.RemoveFromPlaylistCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

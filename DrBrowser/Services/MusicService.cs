@@ -25,6 +25,44 @@ public sealed class MusicTrack : ObservableObject
     public string Initial => Title.Length > 0 ? Title[..1].ToUpperInvariant() : "♪";
 }
 
+/// <summary>A user playlist; the tracks are kept in playlist order.</summary>
+public sealed class MusicPlaylist : ObservableObject
+{
+    private string _name = string.Empty;
+
+    public MusicPlaylist(long id, string name)
+    {
+        Id = id;
+        _name = name;
+    }
+
+    public long Id { get; }
+
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (Set(ref _name, value)) Raise(nameof(Label));
+        }
+    }
+
+    public ObservableCollection<MusicTrack> Tracks { get; } = new();
+
+    private bool _isActive;
+
+    /// <summary>True for the playlist currently opened in the DrMusic panel.</summary>
+    public bool IsActive
+    {
+        get => _isActive;
+        set => Set(ref _isActive, value);
+    }
+
+    public string CountText => Tracks.Count.ToString();
+    public string Label => $"{Name}  ·  {Tracks.Count}";
+    public bool IsEmpty => Tracks.Count == 0;
+}
+
 /// <summary>Category (a sub-folder of the library) with its track count.</summary>
 public sealed record MusicCategory(string Name, int Count)
 {
@@ -108,6 +146,7 @@ public sealed class MusicService : ObservableObject, IDisposable
         RebuildCategories();
         ReloadFavorites();
         ReloadRecent();
+        ReloadPlaylists();
     }
 
     // ------------------------------------------------------------------
@@ -212,6 +251,146 @@ public sealed class MusicService : ObservableObject, IDisposable
         try { _db?.ClearMusicRecent(); }
         catch (Exception ex) { _log.Error("music recent clear failed", ex); }
         Raise(nameof(HasRecent));
+    }
+
+    // ------------------------------------------------------------------
+    // Playlists (persisted in SQLite)
+    // ------------------------------------------------------------------
+
+    public ObservableCollection<MusicPlaylist> Playlists { get; } = new();
+
+    public bool HasPlaylists => Playlists.Count > 0;
+    public string PlaylistsSummary => Playlists.Count == 0
+        ? "Плейлистов пока нет"
+        : $"Плейлистов: {Playlists.Count}";
+
+    public void ReloadPlaylists()
+    {
+        Playlists.Clear();
+        if (_db is not null)
+        {
+            try
+            {
+                foreach (var row in _db.QueryPlaylists())
+                {
+                    var playlist = new MusicPlaylist(row.Id, row.Name);
+                    foreach (var track in _db.QueryPlaylistTracks(row.Id))
+                        playlist.Tracks.Add(TrackFromRow(track.Path, track.Title, track.Artist, track.Category, track.IsStream));
+                    Playlists.Add(playlist);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error("playlists read failed", ex);
+            }
+        }
+
+        Raise(nameof(HasPlaylists), nameof(PlaylistsSummary));
+    }
+
+    public MusicPlaylist? CreatePlaylist(string name)
+    {
+        if (_db is null || string.IsNullOrWhiteSpace(name)) return null;
+        try
+        {
+            var id = _db.CreatePlaylist(name);
+            ReloadPlaylists();
+            return Playlists.FirstOrDefault(p => p.Id == id);
+        }
+        catch (Exception ex)
+        {
+            _log.Error("playlist create failed", ex);
+            return null;
+        }
+    }
+
+    public bool RenamePlaylist(MusicPlaylist playlist, string name)
+    {
+        if (_db is null || playlist is null || string.IsNullOrWhiteSpace(name)) return false;
+        var clean = name.Trim();
+        if (string.Equals(playlist.Name, clean, StringComparison.Ordinal)) return false;
+        try
+        {
+            _db.RenamePlaylist(playlist.Id, clean);
+            playlist.Name = clean;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log.Error("playlist rename failed", ex);
+            return false;
+        }
+    }
+
+    public void DeletePlaylist(MusicPlaylist playlist)
+    {
+        if (playlist is null) return;
+        try { _db?.DeletePlaylist(playlist.Id); }
+        catch (Exception ex) { _log.Error("playlist delete failed", ex); }
+        Playlists.Remove(playlist);
+        Raise(nameof(HasPlaylists), nameof(PlaylistsSummary));
+    }
+
+    /// <summary>Adds a track to a playlist; returns false when it was already there.</summary>
+    public bool AddToPlaylist(MusicPlaylist playlist, MusicTrack track)
+    {
+        if (playlist is null || track is null) return false;
+        if (playlist.Tracks.Any(t => string.Equals(t.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        try
+        {
+            _db?.AddPlaylistTrack(playlist.Id, new MusicPlaylistTrackRow(0, playlist.Id, playlist.Tracks.Count,
+                track.FilePath, track.Title, track.Artist, track.Category, track.IsStream));
+        }
+        catch (Exception ex)
+        {
+            _log.Error("playlist track add failed", ex);
+            return false;
+        }
+
+        playlist.Tracks.Add(track);
+        Raise(nameof(PlaylistsSummary));
+        return true;
+    }
+
+    public bool RemoveFromPlaylist(MusicPlaylist playlist, MusicTrack track)
+    {
+        if (playlist is null || track is null) return false;
+        var index = playlist.Tracks.ToList().FindIndex(t =>
+            string.Equals(t.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase));
+        if (index < 0) return false;
+
+        try { _db?.RemovePlaylistTrack(playlist.Id, track.FilePath); }
+        catch (Exception ex) { _log.Error("playlist track remove failed", ex); }
+
+        playlist.Tracks.RemoveAt(index);
+        Raise(nameof(PlaylistsSummary));
+        return true;
+    }
+
+    /// <summary>Moves a track up (-1) or down (+1) inside its playlist.</summary>
+    public bool MoveInPlaylist(MusicPlaylist playlist, MusicTrack track, int delta)
+    {
+        if (playlist is null || track is null) return false;
+        var index = playlist.Tracks.ToList().FindIndex(t =>
+            string.Equals(t.FilePath, track.FilePath, StringComparison.OrdinalIgnoreCase));
+        if (index < 0) return false;
+
+        try { _db?.MovePlaylistTrack(playlist.Id, track.FilePath, delta); }
+        catch (Exception ex) { _log.Error("playlist track move failed", ex); }
+
+        var moved = Db.MoveItem(playlist.Tracks, index, delta);
+        return moved != index;
+    }
+
+    /// <summary>Queues a whole playlist and starts it from the first track.</summary>
+    public void PlayPlaylist(MusicPlaylist playlist)
+    {
+        if (playlist is null || playlist.Tracks.Count == 0) return;
+        SetQueue(playlist.Tracks);
+        Play(playlist.Tracks[0]);
+        Status = $"Плейлист «{playlist.Name}» · {playlist.Tracks.Count} треков";
     }
 
     /// <summary>The last track that was played (used by "продолжить с места").</summary>

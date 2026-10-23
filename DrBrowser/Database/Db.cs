@@ -104,6 +104,25 @@ public sealed partial class Db
                 is_stream INTEGER NOT NULL DEFAULT 0,
                 played_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS playlists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS playlist_tracks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                playlist_id INTEGER NOT NULL,
+                position INTEGER NOT NULL,
+                path TEXT NOT NULL,
+                title TEXT NOT NULL,
+                artist TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT '',
+                is_stream INTEGER NOT NULL DEFAULT 0,
+                UNIQUE (playlist_id, path)
+            );
+            CREATE INDEX IF NOT EXISTS ix_playlist_tracks ON playlist_tracks(playlist_id, position);
             """;
         command.ExecuteNonQuery();
     }
