@@ -391,7 +391,7 @@ public static class SelfTest
             AppPaths.TryDeleteDirectory(temp);
         }
 
-        return Finish("DrBrowser self-test");
+        return Finish("DrBrowser self-test", "selftest-report.txt");
     }
 
     // ------------------------------------------------------------------
@@ -410,10 +410,14 @@ public static class SelfTest
         try
         {
             log.Info("=== smoke: start ===");
+            Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            Trace("smoke: start");
             window = App.Current.OpenWindow(true);
+            Trace("smoke: window created");
             window.Width = 1440;
             window.Height = 900;
             vm = window.ViewModel;
+            Trace("smoke: view model attached");
 
             await Run("smoke-window", "Окно запускается и инициализируется", async () =>
             {
@@ -560,6 +564,7 @@ public static class SelfTest
         catch (Exception ex)
         {
             Results.Add(new Check("harness", "Сбой smoke-окружения", "FAIL", ex.Message));
+            Trace("harness FAIL: " + ex);
             log.Error("smoke harness failure", ex);
         }
         finally
@@ -567,17 +572,21 @@ public static class SelfTest
             try
             {
                 vm?.Shutdown();
+                Trace("smoke: view model shutdown");
                 window?.Close();
+                Trace("smoke: window closed");
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore
+                Trace("smoke close error: " + ex.Message);
             }
 
             Restore(AppPaths.SettingsFile, settingsBackup);
         }
 
-        return Finish("DrBrowser smoke");
+        var code = Finish("DrBrowser smoke", "smoke-report.txt");
+        Trace($"smoke: finished, exit {code}");
+        return code;
     }
 
     // ------------------------------------------------------------------
@@ -592,16 +601,33 @@ public static class SelfTest
             var detail = await body();
             var status = detail.StartsWith("SKIP", StringComparison.Ordinal) ? "SKIP" : "PASS";
             Results.Add(new Check(id, name, status, $"{detail} ({sw.ElapsedMilliseconds} ms)"));
+            Trace($"{id}: {status}");
         }
         catch (Exception ex)
         {
             Results.Add(new Check(id, name, "FAIL", ex.Message + $" ({sw.ElapsedMilliseconds} ms)"));
+            Trace($"{id}: FAIL {ex.GetType().Name}: {ex.Message}");
         }
     }
 
     private static Task Run(string id, string name, Func<string> body) => Run(id, name, () => Task.FromResult(body()));
 
     private static async Task Delay(int ms) => await Task.Delay(ms);
+
+    /// <summary>Appends a line to smoke-trace.txt so a crash before the report is still diagnosable.</summary>
+    private static void Trace(string line)
+    {
+        try
+        {
+            Directory.CreateDirectory(ReportDir);
+            File.AppendAllText(Path.Combine(ReportDir, "smoke-trace.txt"),
+                $"{DateTime.Now:HH:mm:ss.fff} {line}{Environment.NewLine}");
+        }
+        catch
+        {
+            // ignore
+        }
+    }
 
     private static string? Backup(string path)
     {
@@ -644,7 +670,7 @@ public static class SelfTest
         return Encoding.UTF8.GetString(buffer);
     }
 
-    private static int Finish(string title)
+    private static int Finish(string title, string fileName)
     {
         Directory.CreateDirectory(ReportDir);
         var report = new StringBuilder();
@@ -663,7 +689,7 @@ public static class SelfTest
         var text = report.ToString();
         try
         {
-            File.WriteAllText(Path.Combine(ReportDir, "selftest-report.txt"), text, Encoding.UTF8);
+            File.WriteAllText(Path.Combine(ReportDir, fileName), text, Encoding.UTF8);
         }
         catch
         {

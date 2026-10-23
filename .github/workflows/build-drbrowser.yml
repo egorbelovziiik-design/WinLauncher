@@ -93,6 +93,18 @@ jobs:
           "SMOKE_EXIT=$code" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           exit 0
 
+      - name: Collect exit codes and log tail
+        if: always()
+        shell: pwsh
+        run: |
+          $dir = "DrBrowser\screenshots"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          "selftest exit=$env:SELFTEST_EXIT`nsmoke exit=$env:SMOKE_EXIT" | Out-File -FilePath "$dir\exit-codes.txt" -Encoding utf8
+          $log = Get-ChildItem "$env:APPDATA\DrBrowser\logs" -Filter *.log -ErrorAction SilentlyContinue |
+                 Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($log) { Copy-Item $log.FullName "$dir\drbrowser-log.txt" -Force }
+          Get-ChildItem $dir | Select-Object Name, Length | Format-Table
+
       - name: Show test report
         if: always()
         shell: pwsh
