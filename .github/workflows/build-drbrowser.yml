@@ -183,23 +183,6 @@ jobs:
       - name: Fail the job when a check failed
         shell: pwsh
         run: |
-          # One compact annotation: GitHub keeps only a handful per step, so a wall of
-          # 25-line tails would hide the actual cause.
-          $digest = New-Object System.Collections.Generic.List[string]
-          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
-            $path = "DrBrowser\screenshots\$name"
-            if (-not (Test-Path $path)) { $digest.Add("$name: MISSING"); continue }
-            $lines = Get-Content $path
-            $digest.Add("$name: $((($lines | Select-String -Pattern 'ИТОГО').Line) -join ' ')")
-            $lines | Select-String -Pattern '^\[FAIL\]' | ForEach-Object {
-              $idx = [array]::IndexOf($lines, $_.Line)
-              $detail = if ($idx -ge 0 -and $idx + 1 -lt $lines.Count) { $lines[$idx + 1].Trim() } else { '' }
-              $digest.Add("FAIL " + $_.Line.Trim() + " / " + $detail)
-            }
-            $lines | Select-String -Pattern 'harness' | ForEach-Object { $digest.Add("HARNESS " + $_.Line.Trim()) }
-            $digest.Add("$name tail: " + (($lines | Select-Object -Last 3) -join ' | '))
-          }
-          Write-Host ("::error::TEST DIGEST => " + ($digest -join " ;; "))
           if ($env:SELFTEST_EXIT -ne '0' -or $env:SMOKE_EXIT -ne '0') {
             Write-Host "SELFTEST_EXIT=$env:SELFTEST_EXIT SMOKE_EXIT=$env:SMOKE_EXIT"
             throw "Self-test or smoke did not complete successfully"
