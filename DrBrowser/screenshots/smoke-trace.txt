@@ -1,0 +1,20 @@
+18:16:25.063 data-folders: PASS
+18:16:25.138 settings-json: PASS
+18:16:25.149 url-parser: PASS
+18:16:25.151 search-engines: PASS
+18:16:25.232 sqlite-history: PASS
+18:16:25.271 bookmarks: PASS
+18:16:25.287 passwords-dpapi: PASS
+18:16:25.299 password-generator: PASS
+18:16:25.314 ai-without-key: PASS
+18:16:25.320 adblock: PASS
+18:16:25.325 downloads: PASS
+18:16:25.336 session: PASS
+18:16:25.361 quicklinks-permissions: PASS
+18:16:25.363 incognito-profile: PASS
+18:16:25.370 webview2-runtime: PASS
+18:16:25.370 settings-limits: PASS
+18:16:25.371 error-logging: PASS
+18:16:27.267 smoke: start
+18:16:28.176 smoke: window created
+18:16:28.220 smoke: view model attached

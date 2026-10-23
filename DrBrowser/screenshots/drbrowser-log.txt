@@ -1,0 +1,10 @@
+﻿18:16:24.986 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+18:16:25.004 INFO  === selftest: start ===
+18:16:25.006 INFO  selftest marker 9527f8055c444fff8f068364713086d7
+18:16:25.317 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:16:25.370 ERROR selftest intentional exception :: InvalidOperationException: expected
+18:16:26.400 INFO  exit code 0
+18:16:27.249 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+18:16:27.266 INFO  === smoke: start ===
+18:16:27.379 INFO  MainViewModel created (private=True)
+18:16:28.256 ERROR window initialisation failed :: NotSupportedException: This type of CollectionView does not support changes to its SourceCollection from a thread different from the Dispatcher thread.

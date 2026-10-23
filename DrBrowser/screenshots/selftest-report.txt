@@ -1,35 +1,35 @@
-﻿DrBrowser self-test · 2026-10-23 18:13:03 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser self-test · 2026-10-23 18:16:26 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] data-folders         Каталоги данных и журнал
-           5 каталогов + logs\drbrowser-*.log (54 ms)
+           5 каталогов + logs\drbrowser-*.log (56 ms)
 [PASS] settings-json        Настройки: сохранение и загрузка JSON
-           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (85 ms)
+           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (74 ms)
 [PASS] url-parser           Адресная строка: URL против поискового запроса
            URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (10 ms)
 [PASS] search-engines       4 поисковые системы
-           Google · Яндекс · Bing · DuckDuckGo — 4 разных шаблона (2 ms)
+           Google · Яндекс · Bing · DuckDuckGo — 4 разных шаблона (1 ms)
 [PASS] sqlite-history       История в SQLite: запись, поиск, фильтр по дате, удаление
-           4 записи · поиск · дата · most-visited · delete · clear — OK (101 ms)
+           4 записи · поиск · дата · most-visited · delete · clear — OK (80 ms)
 [PASS] bookmarks            Закладки: папки, поиск, HTML импорт/экспорт
            добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (39 ms)
 [PASS] passwords-dpapi      Пароли: DPAPI-шифрование и отсутствие открытого текста
-           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (16 ms)
+           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (15 ms)
 [PASS] password-generator   Генератор паролей и оценка стойкости
-           jAQJ… · Strength «сильный» (10 ms)
+           ysMr… · Strength «сильный» (11 ms)
 [PASS] ai-without-key       AI без ключа: понятное сообщение об ошибке
-           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (13 ms)
+           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (14 ms)
 [PASS] adblock              AdBlock: домены, пользовательские правила, whitelist
            правил: 108 · домен/путь/whitelist/свои правила — OK (5 ms)
 [PASS] downloads            Загрузки: форматирование размеров и история в SQLite
            B/KB/MB/GB · запись и чтение истории загрузок (5 ms)
 [PASS] session              Сессия: сохранение и восстановление вкладок
-           session.json: 2 вкладки, pin и активный индекс — OK (11 ms)
+           session.json: 2 вкладки, pin и активный индекс — OK (10 ms)
 [PASS] quicklinks-permissions Быстрые ссылки и разрешения сайтов в SQLite
-           quick links CRUD · permissions set/get/clear (40 ms)
+           quick links CRUD · permissions set/get/clear (25 ms)
 [PASS] incognito-profile    Инкогнито: временный профиль создаётся и удаляется
-           profile\incognito-<guid> создан и удалён вместе с данными (6 ms)
+           profile\incognito-<guid> создан и удалён вместе с данными (2 ms)
 [PASS] webview2-runtime     Определение Microsoft Edge WebView2 Runtime
-           WebView2 Runtime 155.0.4283.62 (5 ms)
+           WebView2 Runtime 155.0.4283.62 (6 ms)
 [PASS] settings-limits      Ограничения настроек (масштаб, суспензия вкладок)
            zoom 0.25–3.0 · suspend 1–240 · Normalize восстанавливает значения (0 ms)
 [PASS] error-logging        Обработка ошибок пишется в журнал
