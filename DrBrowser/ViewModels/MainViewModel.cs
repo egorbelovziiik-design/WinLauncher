@@ -78,6 +78,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         WebViews.BlockedRequest += () => { _aiBadge++; Raise(nameof(AdBlockText)); };
 
         Downloads.Changed += (_, _) => { Raise(nameof(DownloadsText)); Raise(nameof(HasDownloads)); };
+        Bookmarks.BarItems.CollectionChanged += (_, _) => Raise(nameof(ShowBookmarksBarRow));
 
         Settings.PropertyChanged += (_, _) => OnSettingsChanged();
 
@@ -217,6 +218,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public string TabsSummary => Tabs.Count == 1 ? "1 вкладка" : $"{Tabs.Count} вкладок";
     public bool ShowBookmarksBar => Settings.ShowBookmarksBar;
+
+    /// <summary>The bar row is hidden while there is not a single bookmark — no empty star row.</summary>
+    public bool ShowBookmarksBarRow => Settings.ShowBookmarksBar && Bookmarks.BarItems.Count > 0;
     public string ProfileGlyph => Settings.ProfileName.Length > 0 ? Settings.ProfileName[..1].ToUpperInvariant() : "D";
     public string ProfileName => Settings.ProfileName;
     public string ZoomText => $"{Settings.ZoomLevel * 100:0}%";
@@ -674,7 +678,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AdBlock.Configure(Settings.AdBlockEnabled, Settings.AdBlockWhitelist);
         ApplyZoom();
         ApplyTheme();
-        Raise(nameof(AdBlockText), nameof(ShowBookmarksBar), nameof(ZoomText), nameof(ProfileGlyph), nameof(ProfileName));
+        Raise(nameof(AdBlockText), nameof(ShowBookmarksBar), nameof(ShowBookmarksBarRow), nameof(ZoomText),
+            nameof(ProfileGlyph), nameof(ProfileName));
         ScheduleSettingsSave();
     }
 

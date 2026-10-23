@@ -235,7 +235,7 @@
             <!-- =============================== BOOKMARKS BAR =============================== -->
             <Border Grid.Row="2" Height="32" Background="{DynamicResource ToolbarBrush}"
                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                    Visibility="{Binding ShowBookmarksBar, Converter={StaticResource BoolToVis}}">
+                    Visibility="{Binding ShowBookmarksBarRow, Converter={StaticResource BoolToVis}}">
                 <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
                     <StackPanel Orientation="Horizontal" Margin="10,0">
                         <TextBlock Text="★" Foreground="{DynamicResource AccentBrush}" FontSize="11"
