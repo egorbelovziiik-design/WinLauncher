@@ -96,8 +96,17 @@ jobs:
         run: |
           $env:DRBROWSER_SHOTS = "${{ github.workspace }}\DrBrowser\screenshots"
           New-Item -ItemType Directory -Force -Path $env:DRBROWSER_SHOTS | Out-Null
+          # Remove the committed report first: otherwise a crashed run "reuses" the last
+          # green report and the failure looks unexplainable.
+          Remove-Item "$env:DRBROWSER_SHOTS\selftest-report.txt" -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath "DrBrowser\dist\DrBrowser.exe" -ArgumentList "--selftest" -PassThru -Wait
           $code = $p.ExitCode
+          if (-not (Test-Path "$env:DRBROWSER_SHOTS\selftest-report.txt")) {
+            Write-Host "::error::self-test wrote no report — the app crashed before finishing (exit $code)"
+            $log = Get-ChildItem "$env:APPDATA\DrBrowser\logs" -Filter *.log -ErrorAction SilentlyContinue |
+                   Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($log) { Get-Content $log.FullName -Tail 30 | ForEach-Object { Write-Host "::error::LOG $_" } }
+          }
           "selftest exit code: $code"
           "selftest exit code: $code" | Out-File -FilePath "$env:DRBROWSER_SHOTS\exit-codes.txt" -Append -Encoding utf8
           "SELFTEST_EXIT=$code" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -109,6 +118,7 @@ jobs:
         run: |
           $env:DRBROWSER_SHOTS = "${{ github.workspace }}\DrBrowser\screenshots"
           $env:DRBROWSER_BROWSER_ARGS = "--disable-gpu --no-sandbox --disable-dev-shm-usage"
+          Remove-Item "$env:DRBROWSER_SHOTS\smoke-report.txt" -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath "DrBrowser\dist\DrBrowser.exe" -ArgumentList "--smoke" -PassThru -Wait
           $code = $p.ExitCode
           "smoke exit code: $code"
