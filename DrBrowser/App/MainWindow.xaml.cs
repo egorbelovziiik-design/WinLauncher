@@ -194,6 +194,7 @@ public partial class MainWindow : Window, IBrowserShell
             "passwords" => new PasswordsView(),
             "search" => new SearchView(),
             "music" => new MusicView(),
+            "guard" => new GuardView(),
             _ => new NewTabView()
         };
 
@@ -238,11 +239,7 @@ public partial class MainWindow : Window, IBrowserShell
         if (sender is FrameworkElement { Tag: string hex }) _vm.SetAccentCommand.Execute(hex);
     }
 
-    private void ProfileDismiss_Click(object sender, MouseButtonEventArgs e)
-    {
-        _vm.CloseProfile();
-        e.Handled = true;
-    }
+    private void ProfilePopup_Closed(object? sender, EventArgs e) => _vm.CloseProfile();
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -422,6 +419,27 @@ public partial class MainWindow : Window, IBrowserShell
         if (HandleHotkey(e.Key, Keyboard.Modifiers)) e.Handled = true;
     }
 
+    private void FocusFindBox()
+    {
+        _vm.IsFindVisible = true;
+        FindBox.Focus();
+        FindBox.SelectAll();
+    }
+
+    private void FindBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            _ = _vm.FindInPageAsync(_vm.FindText, Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            _vm.IsFindVisible = false;
+            e.Handled = true;
+        }
+    }
+
     /// <summary>Browser shortcuts, shared by window keys and by keys pressed inside a web page.</summary>
     private bool HandleHotkey(Key key, ModifierKeys modifiers)
     {
@@ -438,7 +456,8 @@ public partial class MainWindow : Window, IBrowserShell
                 case Key.W: _vm.CloseTab(_vm.ActiveTab); return true;
                 case Key.L: _vm.FocusAddressBar(); return true;
                 case Key.R: _vm.Reload(); return true;
-                case Key.F: _vm.IsFindVisible = true; return true;
+                case Key.F: FocusFindBox(); return true;
+                case Key.F3: _ = _vm.FindInPageAsync(_vm.FindText, shift); return true;
                 case Key.H: _vm.OpenInternal("history"); return true;
                 case Key.J: _vm.OpenInternal("downloads"); return true;
                 case Key.D: _vm.ToggleBookmarkCommand.Execute(null); return true;
@@ -452,6 +471,7 @@ public partial class MainWindow : Window, IBrowserShell
                 case Key.NumPad0: _vm.ResetZoom(); return true;
                 case Key.P: _vm.SavePagePdf(); return true;
                 case Key.M when shift: _vm.OpenInternal("music"); return true;
+                case Key.G when shift: _vm.OpenInternal("guard"); return true;
                 case Key.K: _vm.OpenInternal("search"); return true;
 
                 // DrMusic transport: Ctrl+Alt+Space / Ctrl+Alt+Left / Ctrl+Alt+Right.

@@ -51,8 +51,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Settings,
             () => _shell?.PickFolder(Settings.MusicFolder),
             path => _shell?.OpenExternal(path),
-            () => _settingsService.Save(Settings));
-        Search = new SearchViewModel(log, History, Bookmarks, Settings, url => NavigateActiveTab(url));
+            () => _settingsService.Save(Settings),
+            new MusicCatalogService(log),
+            url => NavigateActiveTab(url));
+        Search = new SearchViewModel(log, History, Bookmarks, Settings, url => NavigateActiveTab(url),
+            new WebSearchService(log));
         AdBlock = new AdBlockService(log);
         AI = new AIService(log);
         Downloads = new DownloadService(log, _db, () => Settings);
@@ -94,6 +97,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         Settings.PropertyChanged += (_, _) => OnSettingsChanged();
 
+        InitializeGuard();
         InitializeShell2();
 
         _log.Info($"MainViewModel created (private={IsPrivate})");

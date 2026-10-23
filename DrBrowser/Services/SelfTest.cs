@@ -539,6 +539,149 @@ public static class SelfTest
                 return "zoom 0.25–3.0 · suspend 1–240 · Normalize восстанавливает значения";
             });
 
+            await Run("guard-url-rules", "DrGuard: блокировка и предупреждения по URL", () =>
+            {
+                var settings = SettingsService.CreateDefaults();
+                settings.DrGuardEnabled = true;
+                settings.DrGuardWarnOnHttp = true;
+                var sec = new SecurityService(log, settings);
+
+                void Expect(string url, ThreatLevel level, string why)
+                {
+                    var verdict = sec.CheckUrl(url);
+                    if (verdict.Level != level)
+                        throw new Exception($"{url}: ожидалось {level}, получено {verdict.Level} ({verdict.Reason})");
+                    _ = why;
+                }
+
+                Expect("https://example.com/page", ThreatLevel.Safe, "обычный HTTPS");
+                Expect("drbrowser://guard", ThreatLevel.Safe, "внутренняя страница");
+                Expect("https://user:pass@evil.example/", ThreatLevel.Block, "логин/пароль в адресе");
+                Expect("https://xn--pple-43d.com/", ThreatLevel.Block, "punycode");
+                Expect("https://login-verify.top/", ThreatLevel.Block, "TLD + приманка");
+                Expect("http://example.com/", ThreatLevel.Warn, "HTTP без шифрования");
+
+                settings.DrGuardBlockedHosts.Add("ads.example");
+                Expect("https://cdn.ads.example/x.js", ThreatLevel.Block, "пользовательский blocklist");
+                sec.AddExemption("ads.example");
+                Expect("https://cdn.ads.example/x.js", ThreatLevel.Safe, "исключение снимает блокировку");
+
+                settings.DrGuardEnabled = false;
+                Expect("https://login-verify.top/", ThreatLevel.Safe, "защита выключена — не мешает");
+
+                if (!SecurityService.MatchesHost("sub.example.com", "example.com"))
+                    throw new Exception("MatchesHost не считает поддомен совпадением");
+                if (SecurityService.MatchesHost("notexample.com", "example.com"))
+                    throw new Exception("MatchesHost склеил чужие домены");
+                return "8 сценариев: safe · inner · credentials · punycode · tld-bait · http · blocklist · exemption";
+            });
+
+            await Run("guard-scan-args", "DrGuard: аргументы Defender и определение движка", () =>
+            {
+                var args = SecurityService.BuildScanArguments(@"C:\Temp\file name.exe");
+                if (!args.Contains("-ScanType 3", StringComparison.Ordinal))
+                    throw new Exception("нет ScanType 3 (custom scan): " + args);
+                if (!args.Contains("-DisableRemediation", StringComparison.Ordinal))
+                    throw new Exception("нет -DisableRemediation: " + args);
+                if (!args.Contains("\"C:\\Temp\\file name.exe\"", StringComparison.Ordinal))
+                    throw new Exception("путь с пробелом не закавычен: " + args);
+                var cli = SecurityService.FindDefenderCli();
+                return cli is null
+                    ? "MpCmdRun.exe не найден (сканирование честно покажет «движок недоступен»)"
+                    : "MpCmdRun.exe: " + cli;
+            });
+
+            await Run("local-ai", "DrAI Local: краткое содержание, ключевые слова, статистика", () =>
+            {
+                var engine = new LocalAiEngine();
+                var text = "DrBrowser — это браузер на WPF с WebView2. Браузер хранит историю в SQLite. " +
+                           "DrGuard проверяет ссылки перед открытием. DrAI Local работает без ключа и без сети. " +
+                           "Музыкальный раздел ищет треки в публичных каталогах.";
+                var summary = engine.Summarize(text, 2);
+                if (string.IsNullOrWhiteSpace(summary)) throw new Exception("конспект пуст");
+                if (summary.Split('.', StringSplitOptions.RemoveEmptyEntries).Length > 3)
+                    throw new Exception("конспект длиннее запрошенного: " + summary);
+
+                var keywords = engine.Keywords(text, 6);
+                if (string.IsNullOrWhiteSpace(keywords)) throw new Exception("ключевые слова пусты");
+                if (keywords.Contains("<", StringComparison.Ordinal)) throw new Exception("в ключевых словах осталась разметка");
+
+                var stats = engine.ReadingStats(text);
+                if (!stats.Contains("слов", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("статистика не содержит счётчик слов: " + stats);
+
+                if (LocalAiEngine.DetectLanguage(engine.ExplainCode("public class A { void M() { } }")).Length == 0)
+                    throw new Exception("язык кода не определён");
+
+                var answer = engine.Answer("Что такое DrGuard?", text);
+                if (string.IsNullOrWhiteSpace(answer)) throw new Exception("локальный ответ пуст");
+
+                return "конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети";
+            });
+
+            await Run("music-catalog-parse", "Каталог музыки: разбор ответов iTunes и Deezer", () =>
+            {
+                const string itunes = """
+                {"resultCount":2,"results":[
+                  {"trackName":"Test Song","artistName":"Test Artist","collectionName":"Test Album",
+                   "previewUrl":"https://audio.example/preview.m4a","trackViewUrl":"https://music.example/song",
+                   "artworkUrl100":"https://img.example/a.jpg","trackTimeMillis":201000},
+                  {"trackName":"","artistName":"X"}
+                ]}
+                """;
+                var fromItunes = MusicCatalogService.ParseItunes(itunes);
+                if (fromItunes.Count != 1) throw new Exception("iTunes: ожидался 1 трек, получено " + fromItunes.Count);
+                var track = fromItunes[0];
+                if (track.Title != "Test Song" || track.Artist != "Test Artist") throw new Exception("поля iTunes разобраны неверно");
+                if (track.DurationSeconds != 201) throw new Exception("длительность iTunes = " + track.DurationSeconds);
+                if (!track.HasPreview) throw new Exception("превью iTunes потеряно");
+                if (!track.DurationText.Contains("3:21", StringComparison.Ordinal)) throw new Exception("DurationText = " + track.DurationText);
+
+                const string deezer = """
+                {"data":[
+                  {"title":"Another Song","duration":185,"preview":"https://cdns.example/p.mp3",
+                   "link":"https://deezer.example/track/1","artist":{"name":"Band"},"album":{"title":"LP"}}
+                ]}
+                """;
+                var fromDeezer = MusicCatalogService.ParseDeezer(deezer);
+                if (fromDeezer.Count != 1) throw new Exception("Deezer: ожидался 1 трек");
+                if (fromDeezer[0].Subtitle != "Band · LP") throw new Exception("Subtitle Deezer = " + fromDeezer[0].Subtitle);
+                if (fromDeezer[0].DurationText != "3:05") throw new Exception("Deezer: неверная длительность " + fromDeezer[0].DurationText);
+
+                var link = MusicCatalogService.YandexMusicUrl("тест трек");
+                if (!link.StartsWith("https://music.yandex.ru/", StringComparison.Ordinal))
+                    throw new Exception("ссылка на Яндекс Музыку неверна: " + link);
+                return $"iTunes {fromItunes.Count} · Deezer {fromDeezer.Count} · превью · длительность · ссылка на Яндекс";
+            });
+
+            await Run("drsearch-parse", "DrSearch: разбор выдачи и bang-команды", () =>
+            {
+                const string html = """
+                <div class="result results_links">
+                  <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fdocs&amp;rut=abc">Example &amp; Docs</a>
+                  <a class="result__snippet" href="//x">Документация примера</a>
+                  <a rel="nofollow" class="result__a" href="https://second.example/page">Second &lt;b&gt;Result&lt;/b&gt;</a>
+                  <a class="result__a" href="javascript:alert(1)">Bad scheme</a>
+                  <a class="result__a" href="https://second.example/page">Duplicate</a>
+                </div>
+                """;
+                var hits = WebSearchService.Parse(html, 10);
+                if (hits.Count != 2) throw new Exception("ожидалось 2 результата, получено " + hits.Count + ": " +
+                                                        string.Join(" | ", hits.Select(h => h.Url)));
+                if (hits[0].Url != "https://example.com/docs") throw new Exception("uddg-редирект не расжат: " + hits[0].Url);
+                if (hits[0].Title != "Example & Docs") throw new Exception("HTML-сущности в заголовке не раскрыты: " + hits[0].Title);
+                if (!hits[0].Snippet.Contains("Документация", StringComparison.Ordinal)) throw new Exception("сниппет не попал в результат");
+                if (hits.Any(h => h.Url.StartsWith("javascript", StringComparison.OrdinalIgnoreCase)))
+                    throw new Exception("опасная схема попала в выдачу");
+
+                var (query, engine) = WebSearchService.ParseBang("!ddg wpf webview2");
+                if (query != "wpf webview2" || engine != "DuckDuckGo")
+                    throw new Exception($"bang разобран неверно: «{query}» / «{engine}»");
+                var (plain, noEngine) = WebSearchService.ParseBang("просто запрос");
+                if (plain != "просто запрос" || noEngine is not null) throw new Exception("обычный запрос изменён");
+                return "2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang";
+            });
+
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>
             {
                 var before = File.Exists(log.FilePath) ? new FileInfo(log.FilePath).Length : 0;

@@ -26,19 +26,24 @@ public sealed class SearchViewModel : ObservableObject
     private readonly BookmarkService _bookmarks;
     private readonly AppSettings _settings;
     private readonly Action<string> _navigate;
+    private readonly WebSearchService _web;
 
     private string _query = string.Empty;
     private string _lastQuery = string.Empty;
     private bool _localOnly;
     private bool _isSearching;
+    private bool _webBusy;
+    private string _webNote = string.Empty;
 
     public SearchViewModel(
         Logger log,
         HistoryService history,
         BookmarkService bookmarks,
         AppSettings settings,
-        Action<string> navigate)
+        Action<string> navigate,
+        WebSearchService web)
     {
+        _web = web;
         _log = log;
         _history = history;
         _bookmarks = bookmarks;
@@ -50,6 +55,86 @@ public sealed class SearchViewModel : ObservableObject
     }
 
     public ObservableCollection<SearchResult> Results { get; } = new();
+
+    /// <summary>Real web results fetched by DrSearch (rendered inside our own page).</summary>
+    public ObservableCollection<WebSearchHit> WebResults { get; } = new();
+
+    public bool WebBusy
+    {
+        get => _webBusy;
+        private set
+        {
+            if (!Set(ref _webBusy, value)) return;
+            Raise(nameof(WebButtonText));
+        }
+    }
+
+    public string WebButtonText => WebBusy ? "Ищу в интернете…" : "Искать в интернете";
+
+    public string WebNote
+    {
+        get => _webNote;
+        private set => Set(ref _webNote, value);
+    }
+
+    public bool HasWebResults => WebResults.Count > 0;
+    public bool WebSearchEnabled
+    {
+        get => _settings.DrSearchWebEnabled;
+        set
+        {
+            if (_settings.DrSearchWebEnabled == value) return;
+            _settings.DrSearchWebEnabled = value;
+            Raise(nameof(WebSearchEnabled), nameof(PrivacyText));
+        }
+    }
+
+    public ICommand SearchWebNowCommand => new RelayCommand(async () =>
+    {
+        var query = string.IsNullOrWhiteSpace(Query) ? LastQuery : Query;
+        if (string.IsNullOrWhiteSpace(query)) return;
+        await RunWebAsync(query);
+    });
+
+    public ICommand OpenWebResultCommand => new RelayCommand(p =>
+    {
+        if (p is WebSearchHit hit && !string.IsNullOrWhiteSpace(hit.Url)) _navigate(hit.Url);
+    });
+
+    /// <summary>Fetches web results for the current query (no-op in local-only mode).</summary>
+    public async Task RunWebAsync(string query)
+    {
+        if (LocalOnly || !_settings.DrSearchWebEnabled) return;
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        WebBusy = true;
+        WebNote = "DrSearch запрашивает открытый веб-индекс…";
+        try
+        {
+            var outcome = await _web.SearchAsync(query).ConfigureAwait(true);
+            WebResults.Clear();
+            foreach (var hit in outcome.Hits) WebResults.Add(hit);
+            WebNote = outcome.Note;
+
+            // A "!g query" bang is handed to the chosen engine instead of showing results.
+            if (!outcome.FromWeb && outcome.UsedQuery.Length > 0 && outcome.Note.Contains("оператором", StringComparison.Ordinal))
+            {
+                var engine = outcome.Note.Replace("Запрос с оператором ", string.Empty).Split(':')[0].Trim();
+                var template = AppSettings.SearchEngines.FirstOrDefault(e => e.Name == engine).Template;
+                if (!string.IsNullOrWhiteSpace(template) && !template.StartsWith(UrlParser.InternalScheme, StringComparison.OrdinalIgnoreCase))
+                    _navigate(string.Format(template, Uri.EscapeDataString(outcome.UsedQuery)));
+            }
+        }
+        catch (Exception ex)
+        {
+            WebNote = "Ошибка веб-поиска: " + ex.Message;
+        }
+        finally
+        {
+            WebBusy = false;
+            Raise(nameof(HasWebResults), nameof(Summary));
+        }
+    }
 
     /// <summary>Last queries kept locally (max 8) — shown as chips on the DrSearch page.</summary>
     public ObservableCollection<string> Recents { get; } = new();
@@ -103,7 +188,9 @@ public sealed class SearchViewModel : ObservableObject
 
     public string PrivacyText => LocalOnly
         ? "Приватный режим: запросы не отправляются в сеть, ищем только по вашим данным"
-        : "DrSearch ищет по истории, закладкам и быстрым ссылкам — сеть используется только по кнопке движка";
+        : _settings.DrSearchWebEnabled
+            ? "DrSearch ищет локально и в открытом веб-индексе; история запросов остаётся на этом компьютере"
+            : "DrSearch ищет только по вашим данным — веб-поиск выключен";
 
     public bool IsSearching
     {
@@ -164,9 +251,13 @@ public sealed class SearchViewModel : ObservableObject
     {
         LastQuery = query?.Trim() ?? string.Empty;
         Results.Clear();
-        Raise(nameof(Summary));
+        WebResults.Clear();
+        WebNote = string.Empty;
+        Raise(nameof(Summary), nameof(HasWebResults));
 
         if (LastQuery.Length == 0) return;
+
+        _ = RunWebAsync(LastQuery);
 
         IsSearching = true;
         try

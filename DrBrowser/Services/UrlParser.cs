@@ -16,7 +16,8 @@ public static partial class UrlParser
         ("bookmarks", "Закладки"),
         ("passwords", "Пароли"),
         ("search", "DrSearch"),
-        ("music", "Музыка")
+        ("music", "Музыка"),
+        ("guard", "DrGuard — защита")
     };
 
     [GeneratedRegex(@"^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\/")]
@@ -89,6 +90,7 @@ public static partial class UrlParser
         var shortcut = text.ToLowerInvariant();
         if (shortcut is "music" or "музыка") return InternalScheme + "music";
         if (shortcut is "newtab" or "новая") return InternalScheme + "newtab";
+        if (shortcut is "guard" or "защита" or "security") return InternalScheme + "guard";
         if (text.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return text;
 
         if (!LooksLikeUrl(text)) return settings.SearchUrl(text);

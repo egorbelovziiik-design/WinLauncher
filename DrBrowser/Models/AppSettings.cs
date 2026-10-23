@@ -4,8 +4,8 @@ namespace DrBrowser;
 public sealed class AppSettings : ObservableObject
 {
     public const string AppName = "DrBrowser";
-    public const string Version = "2.0.0";
-    public const string AppVersionText = "DrBrowser 2.0.0";
+    public const string Version = "2.1.0";
+    public const string AppVersionText = "DrBrowser 2.1.0";
 
     public static readonly (string Name, string Template)[] SearchEngines =
     {
@@ -19,7 +19,7 @@ public sealed class AppSettings : ObservableObject
     private string _theme = "Dark";
     private string _accentHex = "#7C5CFF";
     private string _searchEngine = "DrSearch";
-    private string _homePage = "https://www.google.com";
+    private string _homePage = "drbrowser://search";
     private bool _restoreSession = true;
     private bool _saveHistory = true;
     private bool _adBlockEnabled = true;
@@ -51,6 +51,13 @@ public sealed class AppSettings : ObservableObject
     private string _aiPersona = "assistant";
     private bool _aiIncludePage = true;
     private List<string> _drSearchRecent = new();
+    private bool _drSearchWeb = true;
+    private bool _drGuardEnabled = true;
+    private bool _drGuardScanDownloads = true;
+    private bool _drGuardWarnOnHttp = true;
+    private List<string> _drGuardBlockedHosts = new();
+    private List<string> _drGuardExemptions = new();
+    private string _musicSource = "iTunes";
 
     public string Theme { get => _theme; set { if (Set(ref _theme, value)) OnPropertyChanged(nameof(IsDarkTheme)); } }
     public bool IsDarkTheme => !string.Equals(Theme, "Light", StringComparison.OrdinalIgnoreCase);
@@ -103,12 +110,25 @@ public sealed class AppSettings : ObservableObject
     /// <summary>Last DrSearch queries (kept locally, never uploaded).</summary>
     public List<string> DrSearchRecent { get => _drSearchRecent; set => Set(ref _drSearchRecent, value ?? new List<string>()); }
 
+    /// <summary>DrSearch also asks the public web endpoint for results (own results page).</summary>
+    public bool DrSearchWebEnabled { get => _drSearchWeb; set => Set(ref _drSearchWeb, value); }
+
+    /// <summary>DrGuard: URL reputation checks + download scanning.</summary>
+    public bool DrGuardEnabled { get => _drGuardEnabled; set => Set(ref _drGuardEnabled, value); }
+    public bool DrGuardScanDownloads { get => _drGuardScanDownloads; set => Set(ref _drGuardScanDownloads, value); }
+    public bool DrGuardWarnOnHttp { get => _drGuardWarnOnHttp; set => Set(ref _drGuardWarnOnHttp, value); }
+    public List<string> DrGuardBlockedHosts { get => _drGuardBlockedHosts; set => Set(ref _drGuardBlockedHosts, value ?? new List<string>()); }
+    public List<string> DrGuardExemptions { get => _drGuardExemptions; set => Set(ref _drGuardExemptions, value ?? new List<string>()); }
+
+    /// <summary>Source used by the online music search: iTunes or Deezer.</summary>
+    public string MusicSource { get => _musicSource; set => Set(ref _musicSource, string.IsNullOrWhiteSpace(value) ? "iTunes" : value); }
+
     /// <summary>Normalises values that may come from an old or hand-edited config file.</summary>
     public void Normalize()
     {
         if (string.IsNullOrWhiteSpace(Theme)) Theme = "Dark";
         if (string.IsNullOrWhiteSpace(SearchEngine) || !SearchEngines.Any(s => s.Name == SearchEngine)) SearchEngine = "DrSearch";
-        if (string.IsNullOrWhiteSpace(HomePage)) HomePage = "https://www.google.com";
+        if (string.IsNullOrWhiteSpace(HomePage)) HomePage = "drbrowser://search";
         if (string.IsNullOrWhiteSpace(AiBaseUrl)) AiBaseUrl = "https://api.openai.com/v1";
         if (string.IsNullOrWhiteSpace(AiModel)) AiModel = "gpt-4o-mini";
         if (string.IsNullOrWhiteSpace(DownloadsFolder)) DownloadsFolder = AppPaths.DefaultDownloadsFolder;
@@ -116,6 +136,9 @@ public sealed class AppSettings : ObservableObject
         _adBlockWhitelist ??= new List<string>();
         _drSearchRecent ??= new List<string>();
         if (DrSearchRecent.Count > 12) DrSearchRecent = DrSearchRecent.Take(12).ToList();
+        DrGuardBlockedHosts ??= new List<string>();
+        DrGuardExemptions ??= new List<string>();
+        if (string.IsNullOrWhiteSpace(MusicSource)) MusicSource = "iTunes";
         if (string.IsNullOrWhiteSpace(AvatarStyle)) AvatarStyle = "Aurora";
         if (string.IsNullOrWhiteSpace(AiPersona)) AiPersona = "assistant";
         ZoomLevel = Math.Clamp(ZoomLevel, 0.25, 3.0);

@@ -55,6 +55,18 @@ public sealed class WebViewManager : IDisposable
     public event Action<string>? StatusTextChanged;
     public event Action? BlockedRequest;
 
+    /// <summary>
+    /// URL reputation callback installed by DrGuard. Returns null when the guard is off;
+    /// a Block verdict cancels the navigation before any request leaves the machine.
+    /// </summary>
+    public Func<string, SecurityVerdict?>? UrlGuard { get; set; }
+
+    /// <summary>Raised when DrGuard cancelled a navigation: (url, reason).</summary>
+    public event Action<string, string>? NavigationBlocked;
+
+    /// <summary>Raised for non-blocking warnings: (url, reason).</summary>
+    public event Action<string, string>? NavigationWarning;
+
     public bool IsReady => _environment is not null;
 
     public string RuntimeVersion { get; private set; } = "не определена";
@@ -300,6 +312,26 @@ public sealed class WebViewManager : IDisposable
         {
             tab.IsLoading = true;
             tab.LastError = string.Empty;
+
+            try
+            {
+                var verdict = UrlGuard?.Invoke(e.Uri);
+                if (verdict is { IsWarning: true }) NavigationWarning?.Invoke(e.Uri, verdict.Reason);
+                if (verdict is { IsBlocked: true })
+                {
+                    e.Cancel = true;
+                    tab.IsLoading = false;
+                    _log.Warn($"DrGuard cancelled navigation to {e.Uri}: {verdict.Reason}");
+                    NavigationBlocked?.Invoke(e.Uri, verdict.Reason);
+                    TabStateChanged?.Invoke(tab);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error("url guard failed", ex);
+            }
+
             StatusTextChanged?.Invoke("Загрузка " + SafeHost(e.Uri) + "…");
             TabStateChanged?.Invoke(tab);
         };

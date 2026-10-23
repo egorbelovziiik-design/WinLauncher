@@ -128,23 +128,62 @@ public sealed partial class MainViewModel
     public ICommand ToggleFindCommand => Cmd("togglefind", () =>
     {
         IsFindVisible = !IsFindVisible;
-        if (!IsFindVisible) ClearFindHighlight();
+        if (!IsFindVisible)
+        {
+            FindStatus = string.Empty;
+            ClearFindHighlight();
+        }
     });
 
-    public ICommand FindNextCommand => Cmd("findnext", () => FindInPage(FindText));
+    public ICommand FindNextCommand => Cmd("findnext", () => _ = FindInPageAsync(FindText, false));
+    public ICommand FindPreviousCommand => Cmd("findprevious", () => _ = FindInPageAsync(FindText, true));
 
-    public void FindInPage(string text)
+    private string _findStatus = string.Empty;
+    public string FindStatus
     {
-        if (string.IsNullOrWhiteSpace(text) || ActiveTab?.Core is null)
+        get => _findStatus;
+        private set => Set(ref _findStatus, value);
+    }
+
+    public void FindInPage(string text) => _ = FindInPageAsync(text, false);
+
+    /// <summary>Runs the browser's built-in page search and reports the real result.</summary>
+    public async Task<bool> FindInPageAsync(string text, bool backwards)
+    {
+        if (string.IsNullOrWhiteSpace(text))
         {
-            if (ActiveTab?.Core is null) StatusMessage = "Поиск на странице доступен только для веб-страниц.";
-            return;
+            FindStatus = string.Empty;
+            return false;
         }
 
-        var script = $"(function(){{ const ok = window.find({JsonSerializer.Serialize(text)}, false, false, true); " +
-                     $"document.body.style.outline=''; return ok; }})()";
-        _ = ActiveTab.Core.ExecuteScriptAsync(script);
-        StatusMessage = $"Поиск: {text}";
+        var tab = ActiveTab;
+        if (tab?.Core is null)
+        {
+            StatusMessage = "Поиск на странице доступен только для веб-страниц.";
+            FindStatus = "только для веб-страниц";
+            return false;
+        }
+
+        try
+        {
+            var script = $"(function(){{ const ok = window.find({JsonSerializer.Serialize(text)}, false, " +
+                         $"{(backwards ? "true" : "false")}, true); return ok ? '1' : '0'; }})()";
+            var raw = await tab.Core.ExecuteScriptAsync(script);
+            var found = raw.Trim('"') == "1";
+            FindStatus = found ? "найдено" : "не найдено";
+            StatusMessage = found
+                ? $"Поиск: «{text}» — найдено"
+                : $"Поиск: «{text}» — совпадений нет";
+            if (!found) FindStatus = "не найдено";
+            return found;
+        }
+        catch (Exception ex)
+        {
+            _log.Error("find in page failed", ex);
+            FindStatus = "ошибка поиска";
+            StatusMessage = "Поиск на странице не сработал: " + ex.Message;
+            return false;
+        }
     }
 
     private void ClearFindHighlight()

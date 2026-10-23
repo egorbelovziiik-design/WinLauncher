@@ -28,6 +28,7 @@ public sealed class NewTabViewModel : ObservableObject
 
     private static readonly (string Title, string Url)[] Defaults =
     {
+        ("DrSearch", "drbrowser://search"),
         ("Google", "https://www.google.com"),
         ("YouTube", "https://www.youtube.com"),
         ("GitHub", "https://github.com"),

@@ -14,8 +14,14 @@ public sealed class MusicViewModel : ObservableObject
     private readonly Action _persist;
     private readonly DispatcherTimer _debounce;
 
+    private readonly MusicCatalogService _catalog;
+    private readonly Action<string> _navigate;
+
     private string _filter = string.Empty;
     private string _selectedCategory = MusicService.AllTracksCategory;
+    private string _catalogQuery = string.Empty;
+    private string _catalogStatus = string.Empty;
+    private bool _catalogBusy;
 
     public MusicViewModel(
         MusicService service,
@@ -23,7 +29,9 @@ public sealed class MusicViewModel : ObservableObject
         AppSettings settings,
         Func<string?> pickFolder,
         Action<string> openFolder,
-        Action persist)
+        Action persist,
+        MusicCatalogService catalog,
+        Action<string> navigate)
     {
         Service = service;
         _log = log;
@@ -31,6 +39,8 @@ public sealed class MusicViewModel : ObservableObject
         _pickFolder = pickFolder;
         _openFolder = openFolder;
         _persist = persist;
+        _catalog = catalog;
+        _navigate = navigate;
 
         _debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
         _debounce.Tick += (_, _) =>
@@ -51,6 +61,113 @@ public sealed class MusicViewModel : ObservableObject
     }
 
     public MusicService Service { get; }
+
+    // ------------------------------------------------------------------
+    // Online catalog search (iTunes / Deezer previews)
+    // ------------------------------------------------------------------
+
+    public ObservableCollection<CatalogTrack> CatalogResults { get; } = new();
+
+    public IReadOnlyList<string> CatalogSources => MusicCatalogService.Sources;
+
+    public string CatalogQuery
+    {
+        get => _catalogQuery;
+        set => Set(ref _catalogQuery, value ?? string.Empty);
+    }
+
+    public string CatalogSource
+    {
+        get => _settings.MusicSource;
+        set
+        {
+            if (string.Equals(_settings.MusicSource, value, StringComparison.Ordinal)) return;
+            _settings.MusicSource = value;
+            _persist();
+            Raise(nameof(CatalogSource), nameof(CatalogSourceText));
+        }
+    }
+
+    public string CatalogSourceText => $"Источник: {CatalogSource} · превью 30 секунд";
+
+    public string CatalogStatus
+    {
+        get => _catalogStatus;
+        private set => Set(ref _catalogStatus, value);
+    }
+
+    public bool CatalogBusy
+    {
+        get => _catalogBusy;
+        private set
+        {
+            if (Set(ref _catalogBusy, value)) Raise(nameof(CatalogSearchText));
+        }
+    }
+
+    public string CatalogSearchText => CatalogBusy ? "Ищу…" : "Найти в каталоге";
+
+    public bool HasCatalogResults => CatalogResults.Count > 0;
+
+    public string CatalogHint =>
+        "Публичный каталог отдаёт только 30-секундный фрагмент — полный трек открывается на сайте каталога. " +
+        "Яндекс Музыка не имеет открытого API, поэтому для неё есть кнопка перехода на её поиск (без обхода защиты).";
+
+    public ICommand SearchCatalogCommand => new RelayCommand(async () =>
+    {
+        var term = CatalogQuery.Trim();
+        if (term.Length == 0)
+        {
+            CatalogStatus = "Введите название трека или исполнителя.";
+            return;
+        }
+
+        CatalogBusy = true;
+        CatalogStatus = "Запрашиваю каталог…";
+        try
+        {
+            var outcome = await _catalog.SearchAsync(term, CatalogSource).ConfigureAwait(true);
+            CatalogResults.Clear();
+            foreach (var track in outcome.Tracks) CatalogResults.Add(track);
+            CatalogStatus = outcome.Note;
+        }
+        catch (Exception ex)
+        {
+            _log.Error("catalog search failed", ex);
+            CatalogStatus = "Ошибка поиска: " + ex.Message;
+        }
+        finally
+        {
+            CatalogBusy = false;
+            Raise(nameof(HasCatalogResults));
+        }
+    });
+
+    public ICommand PlayCatalogCommand => new RelayCommand(p =>
+    {
+        if (p is not CatalogTrack track) return;
+
+        if (!track.HasPreview)
+        {
+            if (!string.IsNullOrWhiteSpace(track.PageUrl)) _navigate(track.PageUrl);
+            return;
+        }
+
+        Service.Play(track.ToMusicTrack());
+        CatalogStatus = $"Играет превью: {track.Title} — {track.Artist}";
+        Raise(nameof(IsPlaying), nameof(NowPlayingTitle), nameof(PlayPauseGlyph));
+    });
+
+    public ICommand OpenCatalogPageCommand => new RelayCommand(p =>
+    {
+        if (p is CatalogTrack track && !string.IsNullOrWhiteSpace(track.PageUrl)) _navigate(track.PageUrl);
+    });
+
+    public ICommand OpenYandexMusicCommand => new RelayCommand(() =>
+    {
+        var term = CatalogQuery.Trim();
+        _navigate(MusicCatalogService.YandexMusicUrl(term));
+    });
 
     /// <summary>Tracks of the selected category after the text filter.</summary>
     public ObservableCollection<MusicTrack> Visible { get; } = new();

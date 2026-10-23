@@ -39,6 +39,21 @@ public sealed partial class MainViewModel
 
     public string AiSendText => IsAiBusy ? "…" : "Отправить";
 
+    /// <summary>Which engine answers right now — shown as a badge in the panel.</summary>
+    public string AiEngineText => AI.HasKey ? "DrAI Cloud · ваш API-ключ" : "DrAI Local · офлайн, без ключа";
+
+    public bool AiLocalMode => !AI.HasKey;
+
+    public string AiLocalHint => AI.HasKey
+        ? "Ключ сохранён (DPAPI). DrAI Local по-прежнему работает без сети."
+        : "Ключа нет — отвечает встроенный офлайн-движок: краткое содержание, вопросы по странице, ключевые слова, разбор кода.";
+
+    public ICommand RunLocalActionCommand => Cmd("ai.local", async p =>
+    {
+        if (p is not string action) return;
+        await RunLocalActionAsync(action);
+    });
+
     public ICommand SendAiCommand => Cmd("sendai", async () => await SendAiAsync(AiInput));
 
     public ICommand AiActionCommand => Cmd("aiaction", async p =>
@@ -63,14 +78,20 @@ public sealed partial class MainViewModel
 
         if (!AI.HasKey)
         {
-            AiMessages.Add(new ChatMessage
-            {
-                Role = "assistant",
-                Text = "AI-ключ не настроен. Откройте «Настройки → AI Assistant», вставьте свой API-ключ " +
-                       "(он хранится зашифрованным через Windows DPAPI) и повторите вопрос."
-            });
-            AiStatus = "Нужен API-ключ.";
             IsAiOpen = true;
+            IsAiBusy = true;
+            try
+            {
+                var pageText = await GetPageTextAsync().ConfigureAwait(true);
+                var answer = LocalAi.Answer(message, pageText);
+                AiMessages.Add(new ChatMessage { Role = "assistant", Text = answer });
+                AiStatus = "DrAI Local: ответ построен по тексту открытой страницы.";
+            }
+            finally
+            {
+                IsAiBusy = false;
+            }
+
             return;
         }
 
@@ -114,17 +135,53 @@ public sealed partial class MainViewModel
         }
     }
 
+    /// <summary>Offline actions of DrAI Local — always available, no key, no network.</summary>
+    private async Task RunLocalActionAsync(string action)
+    {
+        IsAiOpen = true;
+        var pageText = await GetPageTextAsync().ConfigureAwait(true);
+        var selection = await GetSelectionAsync().ConfigureAwait(true);
+
+        try
+        {
+            var (label, answer) = action switch
+            {
+                "summarize" => ("Кратко по странице",
+                    string.IsNullOrWhiteSpace(pageText)
+                        ? "На активной странице нет текста."
+                        : LocalAi.Summarize(pageText, 6)),
+                "keywords" => ("Ключевые слова",
+                    LocalAi.Keywords(string.IsNullOrWhiteSpace(pageText) ? selection : pageText)),
+                "stats" => ("Статистика чтения",
+                    LocalAi.ReadingStats(pageText)),
+                "explain-code" => ("Разбор кода",
+                    LocalAi.ExplainCode(string.IsNullOrWhiteSpace(selection) ? pageText : selection)),
+                "polish" => ("Чистка текста",
+                    LocalAi.Polish(string.IsNullOrWhiteSpace(selection) ? pageText : selection)),
+                "ask" => ("Вопрос по странице",
+                    LocalAi.Answer(AiInput, pageText)),
+                "translate" => ("Перевод", LocalAiEngine.TranslateNotice()),
+                _ => ("DrAI Local", "Неизвестное действие.")
+            };
+
+            AiMessages.Add(new ChatMessage { Role = "user", Text = "⚡ " + label });
+            AiMessages.Add(new ChatMessage { Role = "assistant", Text = answer });
+            AiStatus = "DrAI Local · офлайн";
+        }
+        catch (Exception ex)
+        {
+            _log.Error("local ai action failed", ex);
+            AiStatus = ex.Message;
+            AiMessages.Add(new ChatMessage { Role = "assistant", Text = "⚠ " + ex.Message });
+        }
+    }
+
     private async Task RunAiActionAsync(string action)
     {
         if (!AI.HasKey)
         {
-            AiMessages.Add(new ChatMessage
-            {
-                Role = "assistant",
-                Text = "Для этой функции нужен AI-ключ: «Настройки → AI Assistant»."
-            });
-            AiStatus = "Нужен API-ключ.";
-            IsAiOpen = true;
+            // Without a key every action still works — through the built-in local engine.
+            await RunLocalActionAsync(action).ConfigureAwait(true);
             return;
         }
 

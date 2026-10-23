@@ -157,10 +157,28 @@
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="DRSEARCH" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Style="{StaticResource Switch}" Content="Искать ещё и в открытом веб-индексе"
+                                          IsChecked="{Binding Settings.DrSearchWebEnabled, Mode=TwoWay}" />
                                 <CheckBox Style="{StaticResource Switch}" Content="Только локальный поиск (не отправлять запросы в сеть)"
-                                          IsChecked="{Binding Settings.DrSearchLocalOnly}" />
+                                          IsChecked="{Binding Settings.DrSearchLocalOnly, Mode=TwoWay}" Margin="0,10,0,0" />
                                 <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                           Text="DrSearch ищет по вашей истории, закладкам и адресам прямо в браузере. Веб-движки открываются только по явному нажатию кнопки." />
+                                           Text="Локальная часть ищет по истории, закладкам и адресам. Веб-часть запрашивает публичный индекс, отбрасывает рекламные блоки и рисует результаты на странице DrSearch. Своего робота-краулера у браузера нет — это честно указано на странице поиска." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="DRGUARD — ЗАЩИТА" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Style="{StaticResource Switch}" Content="Проверять ссылки перед открытием"
+                                          IsChecked="{Binding Settings.DrGuardEnabled, Mode=TwoWay}" />
+                                <CheckBox Style="{StaticResource Switch}" Content="Сканировать скачанные файлы через Microsoft Defender"
+                                          IsChecked="{Binding Settings.DrGuardScanDownloads, Mode=TwoWay}" Margin="0,10,0,0" />
+                                <CheckBox Style="{StaticResource Switch}" Content="Предупреждать о страницах без HTTPS"
+                                          IsChecked="{Binding Settings.DrGuardWarnOnHttp, Mode=TwoWay}" Margin="0,10,0,0" />
+                                <TextBlock Text="{Binding GuardDefenderStatus}" Style="{StaticResource Muted}" Margin="0,10,0,0"
+                                           TextWrapping="Wrap" />
+                                <Button Content="🛡 Открыть DrGuard" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
+                                        HorizontalAlignment="Left" Command="{Binding OpenGuardCommand}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

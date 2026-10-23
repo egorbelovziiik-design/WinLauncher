@@ -22,6 +22,7 @@
                 <RowDefinition Height="44" />
                 <RowDefinition Height="50" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="26" />
@@ -186,6 +187,9 @@
                             ToolTip="Музыка DrMusic" Command="{Binding OpenMusicCommand}" />
                     <Button Content="✦" Style="{StaticResource IconButton}" FontSize="15" Foreground="{DynamicResource AccentBrush}"
                             ToolTip="AI Assistant (DrAI)" Command="{Binding ToggleAiCommand}" />
+                    <Button Content="🛡" Style="{StaticResource IconButton}" FontSize="13"
+                            ToolTip="DrGuard — защита и проверка загрузок (Ctrl+Shift+G)"
+                            Command="{Binding OpenGuardCommand}" />
                     <Button Content="⬇" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Загрузки (Ctrl+J)"
                             Command="{Binding OpenDownloadsCommand}" />
                     <Button Content="★" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Закладки"
@@ -234,47 +238,15 @@
                 </Popup>
             </Grid>
 
-            <!-- =============================== BOOKMARKS BAR =============================== -->
-            <Border Grid.Row="2" Height="32" Background="{DynamicResource ToolbarBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
-                    Visibility="{Binding ShowBookmarksBarRow, Converter={StaticResource BoolToVis}}">
-                <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-                    <StackPanel Orientation="Horizontal" Margin="10,0">
-                        <TextBlock Text="★" Foreground="{DynamicResource AccentBrush}" FontSize="11"
-                                   VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <ItemsControl ItemsSource="{Binding Bookmarks.BarItems}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Content="{Binding Display}" FontSize="11.5" Height="24" Padding="8,0" Margin="1,0"
-                                            Style="{StaticResource GhostButton}" BorderThickness="0"
-                                            Background="Transparent"
-                                            ToolTip="{Binding Url}"
-                                            Command="{Binding DataContext.OpenBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <!-- =============================== CONTENT =============================== -->
-            <Grid Grid.Row="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <Grid Grid.Column="0">
-                    <!-- WebView2 layer: one child per tab, visibility controlled in code-behind -->
-                    <Grid x:Name="WebHostPanel" Background="{DynamicResource WindowBackgroundBrush}" />
-
-                    <!-- WPF pages: new tab, settings, history, downloads, bookmarks, passwords -->
-                    <ContentControl x:Name="InternalHost" Visibility="Collapsed" />
-
+            <!-- =============================== BANNERS + FIND BAR =============================== -->
+            <!-- These live in their own layout row, not floating over the page: a WPF overlay
+                 would be painted under the WebView2 native window and never seen. -->
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0">
                     <!-- Runtime / error banners -->
                     <Border VerticalAlignment="Top" Margin="16" Padding="14,10" CornerRadius="10"
                             Background="#33FF6B6B" BorderBrush="#66FF6B6B" BorderThickness="1"
@@ -302,21 +274,70 @@
                                     Command="{Binding ReloadCommand}" />
                         </StackPanel>
                     </Border>
+                </StackPanel>
 
-                    <!-- find bar -->
-                    <Border x:Name="FindBar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,16,0"
-                            Padding="10,8" CornerRadius="10" Background="{DynamicResource SurfaceBrush}"
-                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                            Visibility="{Binding IsFindVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBox Style="{StaticResource InputBox}" Width="220" Height="28"
-                                     Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}" />
-                            <Button Content="Найти" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
-                                    Command="{Binding FindNextCommand}" />
-                            <Button Content="✕" Style="{StaticResource IconButton}" Width="28" Height="28"
-                                    Command="{Binding ToggleFindCommand}" />
-                        </StackPanel>
-                    </Border>
+                <Border Grid.Row="1" Padding="12,7" Background="{DynamicResource SurfaceAltBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                        Visibility="{Binding IsFindVisible, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{DynamicResource AccentBrush}" />
+                        <TextBox x:Name="FindBox" Style="{StaticResource InputBox}" Width="240" Height="28"
+                                 Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="FindBox_KeyDown" />
+                        <Button Content="Далее" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                Command="{Binding FindNextCommand}" />
+                        <Button Content="Пред. ↑" Style="{StaticResource GhostButton}" Margin="6,0,0,0"
+                                Command="{Binding FindPreviousCommand}" />
+                        <TextBlock Text="{Binding FindStatus}" Style="{StaticResource Muted}" FontSize="10.5"
+                                   VerticalAlignment="Center" Margin="10,0,0,0" />
+                        <Button Content="✕" Style="{StaticResource IconButton}" Width="28" Height="28" Margin="6,0,0,0"
+                                ToolTip="Закрыть (Esc)" Command="{Binding ToggleFindCommand}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- =============================== BOOKMARKS BAR =============================== -->
+            <Border Grid.Row="3" Height="32" Background="{DynamicResource ToolbarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
+                    Visibility="{Binding ShowBookmarksBarRow, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Margin="10,0">
+                        <TextBlock Text="★" Foreground="{DynamicResource AccentBrush}" FontSize="11"
+                                   VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ItemsControl ItemsSource="{Binding Bookmarks.BarItems}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding Display}" FontSize="11.5" Height="24" Padding="8,0" Margin="1,0"
+                                            Style="{StaticResource GhostButton}" BorderThickness="0"
+                                            Background="Transparent"
+                                            ToolTip="{Binding Url}"
+                                            Command="{Binding DataContext.OpenBookmarkCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- =============================== CONTENT =============================== -->
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <!-- WebView2 layer: one child per tab, visibility controlled in code-behind -->
+                    <Grid x:Name="WebHostPanel" Background="{DynamicResource WindowBackgroundBrush}" />
+
+                    <!-- WPF pages: new tab, settings, history, downloads, bookmarks, passwords -->
+                    <ContentControl x:Name="InternalHost" Visibility="Collapsed" />
+
                 </Grid>
 
                 <!-- AI panel -->
@@ -328,7 +349,7 @@
             </Grid>
 
             <!-- =============================== DRMUSIC MINI PLAYER =============================== -->
-            <Border Grid.Row="4" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+            <Border Grid.Row="5" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,1,0,0" Padding="12,7"
                     Visibility="{Binding MusicBarVisible, Converter={StaticResource BoolToVis}}">
                 <Grid>
@@ -381,7 +402,7 @@
             </Border>
 
             <!-- =============================== STATUS BAR =============================== -->
-            <Border Grid.Row="5" Background="{DynamicResource ToolbarBrush}" BorderBrush="{DynamicResource BorderBrush}"
+            <Border Grid.Row="6" Background="{DynamicResource ToolbarBrush}" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,1,0,0">
                 <Grid Margin="12,0">
                     <Grid.ColumnDefinitions>
@@ -406,12 +427,18 @@
         <!-- =============================== PROFILE FLYOUT =============================== -->
         <!-- Themed in-window card (never the white system menu), with avatar presets,
              live stats and theme switches. Sized to fit: no inner scrolling. -->
-        <Grid Grid.RowSpan="6" Panel.ZIndex="200"
-              Visibility="{Binding IsProfileOpen, Converter={StaticResource BoolToVis}}">
-            <Border Background="#66000000" MouseLeftButtonDown="ProfileDismiss_Click" />
-            <Border Width="356" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,96,12,0"
-                    CornerRadius="18" Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+        <!-- A Popup lives in its own window, so it is drawn ABOVE the WebView2 surface
+             (a plain WPF overlay would be hidden by the browser's native window and the
+             user would see only the white page underneath). -->
+        <Popup x:Name="ProfilePopup"
+               PlacementTarget="{Binding ElementName=ProfileButton}" Placement="Bottom"
+               HorizontalOffset="-322" VerticalOffset="8"
+               AllowsTransparency="True" StaysOpen="False" PopupAnimation="Fade"
+               IsOpen="{Binding IsProfileOpen, Mode=OneWay}" Closed="ProfilePopup_Closed">
+            <Border Width="356" CornerRadius="18" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                    TextElement.Foreground="{DynamicResource TextBrush}"
+                    TextElement.FontFamily="Segoe UI">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="32" ShadowDepth="8" Opacity="0.55" Color="Black" />
                 </Border.Effect>
@@ -453,7 +480,8 @@
                                 </Border>
                                 <TextBlock Text="{Binding ProfileSubtitle}" FontSize="10" Opacity="0.8" Margin="0,4,0,0"
                                            Foreground="White" TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding ProfileStats}" FontSize="9.5" Opacity="0.7" Margin="0,3,0,0" />
+                                <TextBlock Text="{Binding ProfileStats}" FontSize="9.5" Opacity="0.8" Margin="0,3,0,0"
+                                           Foreground="White" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -538,10 +566,11 @@
                         <Button Content="⏻  Выход" Style="{StaticResource DangerButton}" FontSize="11.5"
                                 HorizontalContentAlignment="Left" Margin="0,4,0,0" Padding="10,6"
                                 Command="{Binding ExitCommand}" />
-                    </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
                 </StackPanel>
             </Border>
-        </Grid>
+        </Popup>
         </Grid>
     </Border>
 </Window>

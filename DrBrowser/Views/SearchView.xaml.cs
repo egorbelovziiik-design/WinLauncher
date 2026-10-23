@@ -19,6 +19,13 @@ public partial class SearchView : UserControl
 
     private void Search_Click(object sender, RoutedEventArgs e) => Vm?.Search.Run(QueryBox.Text);
 
+    private void WebResult_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: WebSearchHit hit }) return;
+        if (string.IsNullOrWhiteSpace(hit.Url)) return;
+        Vm?.NavigateActiveTab(hit.Url);
+    }
+
     private void Result_Click(object sender, MouseButtonEventArgs e)
     {
         if (sender is not FrameworkElement { DataContext: SearchResult result }) return;
