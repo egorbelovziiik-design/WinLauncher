@@ -195,7 +195,14 @@ public sealed class WebViewManager : IDisposable
 
             if (controller is not CoreWebView2Controller typed)
             {
-                _log.Warn("accelerator bridge unavailable: controller not found, page-focused shortcuts limited");
+                var fields = string.Join(", ", typeof(WebView2)
+                    .GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                    .Select(f => f.Name + ":" + f.FieldType.Name));
+                var props = string.Join(", ", typeof(WebView2)
+                    .GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                    .Where(p => p.Name.Contains("Controller", StringComparison.OrdinalIgnoreCase))
+                    .Select(p => p.Name + ":" + p.PropertyType.Name));
+                _log.Warn($"accelerator bridge: controller not found. fields=[{fields}] controllerProps=[{props}]");
                 return;
             }
 
