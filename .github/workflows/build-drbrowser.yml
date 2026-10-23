@@ -150,6 +150,8 @@ jobs:
             git add -f DrBrowser/dist/DrBrowser.exe || true
           fi
           git add -f DrBrowser/dist/DrBrowser.exe.sha256.txt || true
+          git add -f DrBrowser/README.md || true
+          git add -f DrBrowser/Docs || true
           if [ -d DrBrowser/screenshots ]; then git add -f DrBrowser/screenshots || true; fi
           git status --short | head -20
           if git diff --cached --quiet; then echo "no changes to commit"; exit 0; fi
