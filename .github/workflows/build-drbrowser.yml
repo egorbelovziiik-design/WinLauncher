@@ -62,6 +62,7 @@ jobs:
           sha=$(tr -d '\r\n ' < DrBrowser/dist/DrBrowser.exe.sha256.txt)
           size=$(stat -c %s DrBrowser/dist/DrBrowser.exe)
           sed -i -E "s/\`[A-F0-9]{64}\`/\`$sha\`/g" DrBrowser/README.md
+          sed -i -E "s/^# [A-F0-9]{64}$/# $sha/" DrBrowser/README.md
           sed -i -E "s/\([0-9 ]+ байт, self-contained/($size байт, self-contained/" DrBrowser/README.md
           grep -n "SHA-256" DrBrowser/README.md | head -3
 

@@ -17,7 +17,7 @@
 
 ```powershell
 Get-FileHash .\DrBrowser.exe -Algorithm SHA256
-# EF27CEFEE609E9ACFAA065AF59EEB6357FEA5CCCE8C30DD6C33D1B86BD474BD7
+# A9885ABD42F49D89709341EF665EA197FD4DFC74D2030DF30A916595FE6C3A5B
 ```
 
 Сборка без цифровой подписи, поэтому SmartScreen покажет предупреждение: «Подробнее» → «Выполнить в любом случае».
