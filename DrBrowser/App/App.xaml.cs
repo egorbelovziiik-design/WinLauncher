@@ -8,6 +8,7 @@ public partial class App : Application
 {
     private readonly List<MainWindow> _windows = new();
     private Logger? _log;
+    private bool _verificationRun;
 
     /// <summary>True for --selftest / --smoke: no modal dialogs, they would block the headless run.</summary>
     public static bool IsTestMode { get; private set; }
@@ -40,6 +41,7 @@ public partial class App : Application
 
         if (e.Args.Any(a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase)))
         {
+            _verificationRun = true;
             Dispatcher.InvokeAsync(async () =>
             {
                 var code = await SelfTest.RunAsync(Log);
@@ -50,6 +52,7 @@ public partial class App : Application
 
         if (e.Args.Any(a => a.Equals("--smoke", StringComparison.OrdinalIgnoreCase)))
         {
+            _verificationRun = true;
             Dispatcher.InvokeAsync(async () =>
             {
                 var code = await SelfTest.RunSmokeAsync(Log);
@@ -71,7 +74,9 @@ public partial class App : Application
         window.Closed += (_, _) =>
         {
             _windows.Remove(window);
-            if (_windows.Count == 0) Shutdown();
+            // Verification closes its window before computing the report's final exit
+            // code. Let the harness call Shutdown(code), otherwise WPF locks in code 0.
+            if (_windows.Count == 0 && !_verificationRun) Shutdown();
         };
 
         if (privateMode) window.ShowInTaskbar = true;

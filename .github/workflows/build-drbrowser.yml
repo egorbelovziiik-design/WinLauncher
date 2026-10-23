@@ -166,6 +166,29 @@ jobs:
             DrBrowser/screenshots/**
           if-no-files-found: warn
 
+      - name: Fail the job when a check failed
+        shell: pwsh
+        run: |
+          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
+            $path = "DrBrowser\screenshots\$name"
+            if (-not (Test-Path $path)) {
+              Write-Host "::error title=Missing test report::$name"
+              throw "Missing report: $name"
+            }
+            Select-String -Path $path -Pattern '^\[FAIL\]' -Context 0,2 -ErrorAction SilentlyContinue | ForEach-Object {
+              $raw = $_.Line + ' — ' + ($_.Context.PostContext -join ' ')
+              $detail = $raw.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Host "::error file=$path,title=DrBrowser verification failed::$detail"
+            }
+          }
+          if ($env:SELFTEST_EXIT -ne '0' -or $env:SMOKE_EXIT -ne '0') {
+            Write-Host "::error title=Test process exit codes::selftest=$env:SELFTEST_EXIT smoke=$env:SMOKE_EXIT"
+            throw "Self-test or smoke did not complete successfully"
+          }
+          $failed = Select-String -Path DrBrowser\screenshots\*-report.txt -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue
+          if ($failed) { throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots." }
+          "Все выполненные проверки прошли."
+
       - name: Publish EXE, installer, screenshots and reports back to the branch
         if: ${{ github.ref_name == 'arena/0862e2a2-winlauncher' && env.SELFTEST_EXIT == '0' && env.SMOKE_EXIT == '0' }}
         shell: bash
@@ -193,29 +216,6 @@ jobs:
           git commit -m "build: DrBrowser.exe + test report [skip ci]"
           git pull --rebase origin "${GITHUB_REF_NAME}" || true
           git push origin "HEAD:${GITHUB_REF_NAME}"
-
-      - name: Fail the job when a check failed
-        shell: pwsh
-        run: |
-          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
-            $path = "DrBrowser\screenshots\$name"
-            if (-not (Test-Path $path)) {
-              Write-Host "::error title=Missing test report::$name"
-              throw "Missing report: $name"
-            }
-            Select-String -Path $path -Pattern '^\[FAIL\]' -Context 0,2 -ErrorAction SilentlyContinue | ForEach-Object {
-              $raw = $_.Line + ' — ' + ($_.Context.PostContext -join ' ')
-              $detail = $raw.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
-              Write-Host "::error file=$path,title=DrBrowser verification failed::$detail"
-            }
-          }
-          if ($env:SELFTEST_EXIT -ne '0' -or $env:SMOKE_EXIT -ne '0') {
-            Write-Host "::error title=Test process exit codes::selftest=$env:SELFTEST_EXIT smoke=$env:SMOKE_EXIT"
-            throw "Self-test or smoke did not complete successfully"
-          }
-          $failed = Select-String -Path DrBrowser\screenshots\*-report.txt -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue
-          if ($failed) { throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots." }
-          "Все выполненные проверки прошли."
 
       - name: Publish release with portable EXE and installer
         if: ${{ success() && github.ref_name == 'arena/0862e2a2-winlauncher' }}

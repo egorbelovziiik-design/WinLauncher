@@ -11,6 +11,7 @@ DrBrowser is a desktop browser, not a security sandbox beyond Windows/WebView2. 
 | Permissions | Camera, microphone, geolocation and similar WebView2 permissions require a user decision and can be persisted per host. |
 | Popups | New windows are routed into controlled tabs; arbitrary system access is not granted. |
 | Downloads | Files are never automatically executed. Open/open-folder are explicit user actions. DrGuard can invoke Defender only after completion when enabled/available. |
+| Remote media | Radio/preview URLs open in WebView2. DrBrowser does not enable WPF's global `DoNotApplyZoneCheckForDefaultCredentials` compatibility switch; local MediaPlayer files never require that network-credential bypass. |
 | Vault | Password values are encrypted with Windows DPAPI CurrentUser before SQLite insertion. No automatic capture/autofill. |
 | AI key | The OpenAI-compatible key is a DPAPI-protected secret file and is not written to settings/logs/backups. |
 | Ollama | Endpoint validation accepts loopback only, preventing configuration as a general internal-network proxy. |
