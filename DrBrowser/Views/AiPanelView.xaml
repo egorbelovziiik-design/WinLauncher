@@ -123,6 +123,7 @@
                                     </Style>
                                 </Border.Style>
                                 <StackPanel>
+                                    <TextBlock Text="{Binding AttachmentLabel}" Style="{StaticResource Muted}" FontSize="10" />
                                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12" />
                                     <Grid Margin="0,4,0,0">
                                         <TextBlock Text="{Binding TimeText}" Style="{StaticResource Muted}" FontSize="9"
@@ -144,6 +145,11 @@
 
         <Border Grid.Row="2" Padding="12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
             <StackPanel>
+                <WrapPanel Margin="0,0,0,6">
+                    <Button Content="📷 Фото" Style="{StaticResource GhostButton}" Command="{Binding AttachAiImageCommand}" />
+                    <Button Content="Убрать" Style="{StaticResource GhostButton}" Command="{Binding RemoveAiImageCommand}" />
+                </WrapPanel>
+                <TextBlock Text="{Binding AiAttachmentText}" Style="{StaticResource Muted}" FontSize="10" Margin="0,0,0,5" />
                 <TextBox x:Name="InputBox" Style="{StaticResource InputBox}" Height="70" AcceptsReturn="True"
                          TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
                          Text="{Binding AiInput, UpdateSourceTrigger=PropertyChanged}"

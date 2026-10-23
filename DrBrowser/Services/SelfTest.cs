@@ -591,6 +591,22 @@ public static class SelfTest
                     : "MpCmdRun.exe: " + cli;
             });
 
+            await Run("ai-image-attachment", "Фото DrAI: сигнатуры, лимит, base64, имя без пути", () =>
+            {
+                var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=");
+                var attachment = AiImageAttachment.FromBytes(System.IO.Path.Combine("private", "photo.png"), png);
+                if (attachment.Name != "photo.png" || !attachment.DataUrl.StartsWith("data:image/png;base64,"))
+                    throw new Exception("Неверная упаковка фото");
+                foreach (var bytes in new[] { Array.Empty<byte>(), new byte[] { 1, 2, 3 }, new byte[AiImageAttachment.MaxBytes + 1] })
+                {
+                    var rejected = false;
+                    try { AiImageAttachment.FromBytes("bad.png", bytes); }
+                    catch (ArgumentException) { rejected = true; }
+                    if (!rejected) throw new Exception("Недопустимое вложение принято");
+                }
+                return "PNG data URL · имя без каталога · пустые/неизвестные/слишком большие файлы отклонены";
+            });
+
             await Run("local-ai", "DrAI Local: краткое содержание, ключевые слова, статистика", () =>
             {
                 var engine = new LocalAiEngine();

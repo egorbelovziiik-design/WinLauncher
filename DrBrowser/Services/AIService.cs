@@ -43,6 +43,11 @@ public sealed class AIService
             ? baseUrl
             : baseUrl + "/chat/completions";
 
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri)
+            || !string.IsNullOrEmpty(endpointUri.UserInfo)
+            || (endpointUri.Scheme != "https" && !(endpointUri.Scheme == "http" && endpointUri.IsLoopback)))
+            throw new AiException("AI endpoint должен использовать HTTPS (HTTP разрешён только для localhost).");
+
         var payload = new JsonObject
         {
             ["model"] = string.IsNullOrWhiteSpace(settings.AiModel) ? "gpt-4o-mini" : settings.AiModel,
@@ -55,10 +60,20 @@ public sealed class AIService
 
         foreach (var message in messages)
         {
+            JsonNode content = JsonValue.Create(message.Text)!;
+            if (message.Image is not null && message.Role != "assistant")
+            {
+                content = new JsonArray
+                {
+                    new JsonObject { ["type"] = "text", ["text"] = message.Text },
+                    new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject
+                        { ["url"] = message.Image.DataUrl, ["detail"] = "auto" } }
+                };
+            }
             array.Add(new JsonObject
             {
                 ["role"] = message.Role == "assistant" ? "assistant" : "user",
-                ["content"] = message.Text
+                ["content"] = content
             });
         }
 
@@ -85,6 +100,7 @@ public sealed class AIService
             throw new AiException("Сеть недоступна: " + ex.Message);
         }
 
+        using var responseScope = response;
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(true);
 
         if (!response.IsSuccessStatusCode)

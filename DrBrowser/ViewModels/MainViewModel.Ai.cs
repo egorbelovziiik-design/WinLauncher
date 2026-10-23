@@ -10,6 +10,31 @@ public sealed partial class MainViewModel
     private string _aiKeyInput = string.Empty;
     private string _aiStatus = string.Empty;
     private bool _aiBusy;
+    private AiImageAttachment? _aiAttachment;
+    public string AiAttachmentText => _aiAttachment is null ? "Фото не прикреплено" : "📷 " + _aiAttachment.Name;
+
+    public ICommand AttachAiImageCommand => Cmd("ai.attach", async () =>
+    {
+        if (IsAiBusy) return;
+        if (!AI.HasKey) { AiStatus = "Анализ фото требует API-ключ и vision-модель в настройках AI. DrAI Local работает только с текстом."; return; }
+        var path = _shell?.PickOpenFile("Изображения PNG/JPEG|*.png;*.jpg;*.jpeg");
+        if (path is null) return;
+        try
+        {
+            if (new System.IO.FileInfo(path).Length > AiImageAttachment.MaxBytes)
+                throw new ArgumentException("Максимальный размер фото — 5 МБ.");
+            _aiAttachment = AiImageAttachment.FromBytes(path, await System.IO.File.ReadAllBytesAsync(path));
+            Raise(nameof(AiAttachmentText));
+            AiStatus = "Фото будет передано вашему AI endpoint только после нажатия «Отправить». Нужна vision-модель. Видео: прикрепите отдельный кадр PNG/JPEG.";
+        }
+        catch (Exception ex) { AiStatus = ex.Message; }
+    });
+
+    public ICommand RemoveAiImageCommand => Cmd("ai.detach", () =>
+    {
+        _aiAttachment = null;
+        Raise(nameof(AiAttachmentText));
+    });
 
     public ObservableCollection<ChatMessage> AiMessages { get; } = new();
 
@@ -65,16 +90,21 @@ public sealed partial class MainViewModel
     public ICommand ClearAiCommand => Cmd("clearai", () =>
     {
         AiMessages.Clear();
+        _aiAttachment = null;
+        Raise(nameof(AiAttachmentText));
         AiStatus = string.Empty;
     });
 
     private async Task SendAiAsync(string text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return;
+        if (IsAiBusy || (string.IsNullOrWhiteSpace(text) && _aiAttachment is null)) return;
+        if (_aiAttachment is not null && !AI.HasKey) { AiStatus = "Для анализа фото нужен API-ключ и vision-модель."; return; }
 
-        var message = text.Trim();
+        var message = string.IsNullOrWhiteSpace(text) ? "Что изображено на фото?" : text.Trim();
         AiInput = string.Empty;
-        AiMessages.Add(new ChatMessage { Role = "user", Text = message });
+        AiMessages.Add(new ChatMessage { Role = "user", Text = message, Image = _aiAttachment });
+        _aiAttachment = null;
+        Raise(nameof(AiAttachmentText));
 
         if (!AI.HasKey)
         {
@@ -102,7 +132,7 @@ public sealed partial class MainViewModel
             var history = AiMessages
                 .Where(m => !string.IsNullOrWhiteSpace(m.Text))
                 .TakeLast(12)
-                .Select(m => new ChatMessage { Role = m.Role, Text = m.Text })
+                .Select(m => new ChatMessage { Role = m.Role, Text = m.Text, Image = m.Image })
                 .ToList();
 
             var systemPrompt = AIService.PromptFor(Settings.AiPersona);

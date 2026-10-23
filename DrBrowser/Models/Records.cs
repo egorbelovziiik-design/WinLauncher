@@ -129,6 +129,8 @@ public sealed class QuickLink : ObservableObject
 
 public sealed class ChatMessage
 {
+    public AiImageAttachment? Image { get; set; }
+    public string AttachmentLabel => Image is null ? string.Empty : "📷 " + Image.Name;
     public string Role { get; set; } = "user";
     public string Text { get; set; } = string.Empty;
     public DateTime At { get; set; } = DateTime.Now;
