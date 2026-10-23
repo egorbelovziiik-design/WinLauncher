@@ -35,7 +35,17 @@ jobs:
 
       - name: Build (Release)
         working-directory: DrBrowser
-        run: dotnet build DrBrowser.csproj -c Release --no-restore -warnaserror:false
+        shell: pwsh
+        run: |
+          dotnet build DrBrowser.csproj -c Release --no-restore -warnaserror:false `
+            "-flp:logfile=build.log;verbosity=normal" 2>&1 | Tee-Object -FilePath build-console.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            $lines = Select-String -Path build-console.log, build.log -Pattern 'error [A-Z]+[0-9]+' -ErrorAction SilentlyContinue |
+              Select-Object -First 25
+            foreach ($line in $lines) { Write-Host "::error::$($line.Line.Trim())" }
+          }
+          exit $code
 
       - name: Publish single-file win-x64
         working-directory: DrBrowser
