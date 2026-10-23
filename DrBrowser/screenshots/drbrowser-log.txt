@@ -1,35 +1,37 @@
-﻿20:46:37.006 INFO  === DrBrowser 2.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-20:46:37.027 INFO  === selftest: start ===
-20:46:37.030 INFO  selftest marker cfbf7053423e444ab6e484b78b3405f6
-20:46:37.291 INFO  DrSearch: "dotnet" → 2 local results
-20:46:37.292 INFO  DrSearch: "drbrowser" → 1 local results
-20:46:37.292 INFO  DrSearch: "example.com" → 1 local results
-20:46:37.302 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
-20:46:37.303 INFO  DrSearch: "dotnet" → 2 local results
-20:46:37.687 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
-20:46:37.774 INFO  DrSearch: "первый запрос" → 0 local results
-20:46:37.775 INFO  DrSearch: "второй запрос" → 0 local results
-20:46:37.775 INFO  DrSearch: "первый запрос" → 0 local results
-20:46:37.875 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
-20:46:37.992 INFO  Правил: 107 · доменов: 88 · исключений: 0
-20:46:38.152 ERROR selftest intentional exception :: InvalidOperationException: expected
-20:46:39.183 INFO  exit code 0
-20:46:40.257 INFO  === DrBrowser 2.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-20:46:40.275 INFO  === smoke: start ===
-20:46:40.400 INFO  MainViewModel created (private=True)
-20:46:41.401 INFO  Правил: 107 · доменов: 88 · исключений: 0
-20:46:42.736 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\a2a0699d3aef437d8b66323057df0b4e
-20:46:42.758 INFO  Initialisation complete
-20:46:45.732 INFO  WebView2 configured for tab 05c0b0
-20:46:45.733 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:46:46.152 WARN  navigation failed: about:blank :: ConnectionAborted
-20:46:47.207 INFO  WebView2 configured for tab 09df40
-20:46:47.208 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:46:48.476 INFO  WebView2 configured for tab a91a0f
-20:46:48.477 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:47:00.705 INFO  WebView2 configured for tab aa0c58
-20:47:00.706 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-20:47:03.130 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
-20:47:04.640 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-204704.png
-20:47:06.165 INFO  shutdown complete
-20:47:06.580 INFO  exit code 0
+﻿20:50:52.301 INFO  === DrBrowser 2.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+20:50:52.326 INFO  === selftest: start ===
+20:50:52.329 INFO  selftest marker dee0815345494268937f28d5d7b3ef39
+20:50:52.620 INFO  DrSearch: "dotnet" → 2 local results
+20:50:52.621 INFO  DrSearch: "drbrowser" → 1 local results
+20:50:52.622 INFO  DrSearch: "example.com" → 1 local results
+20:50:52.634 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
+20:50:52.635 INFO  DrSearch: "dotnet" → 2 local results
+20:50:53.088 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
+20:50:53.229 INFO  DrSearch: "первый запрос" → 0 local results
+20:50:53.230 INFO  DrSearch: "второй запрос" → 0 local results
+20:50:53.230 INFO  DrSearch: "первый запрос" → 0 local results
+20:50:53.307 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
+20:50:53.404 INFO  Правил: 107 · доменов: 88 · исключений: 0
+20:50:53.553 ERROR selftest intentional exception :: InvalidOperationException: expected
+20:50:54.571 INFO  exit code 0
+20:50:55.702 INFO  === DrBrowser 2.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+20:50:55.731 INFO  === smoke: start ===
+20:50:55.854 INFO  MainViewModel created (private=True)
+20:50:56.966 INFO  Правил: 107 · доменов: 88 · исключений: 0
+20:50:58.164 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\69ee5db21ee342a19269f9660609e188
+20:50:58.188 INFO  Initialisation complete
+20:51:01.279 INFO  WebView2 configured for tab dae745
+20:51:01.281 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:51:01.699 WARN  navigation failed: about:blank :: ConnectionAborted
+20:51:02.742 INFO  WebView2 configured for tab 939523
+20:51:02.743 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:51:04.022 INFO  WebView2 configured for tab 395afd
+20:51:04.022 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:51:13.944 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
+20:51:13.946 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
+20:51:17.209 INFO  WebView2 configured for tab 899537
+20:51:17.210 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+20:51:19.611 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
+20:51:20.938 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-205120.png
+20:51:22.457 INFO  shutdown complete
+20:51:22.932 INFO  exit code 0

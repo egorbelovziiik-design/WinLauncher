@@ -1,45 +1,45 @@
-﻿DrBrowser self-test · 2026-10-23 20:46:39 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser self-test · 2026-10-23 20:50:54 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] data-folders         Каталоги данных и журнал
-           5 каталогов + logs\drbrowser-*.log (57 ms)
+           5 каталогов + logs\drbrowser-*.log (55 ms)
 [PASS] settings-json        Настройки: сохранение и загрузка JSON
-           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (90 ms)
+           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (83 ms)
 [PASS] url-parser           Адресная строка: URL против поискового запроса
-           URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (10 ms)
+           URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (11 ms)
 [PASS] search-engines       5 поисковых систем, включая собственный DrSearch
-           Google · Яндекс · Bing · DuckDuckGo · DrSearch — DrSearch + 4 веб-движка (1 ms)
+           Google · Яндекс · Bing · DuckDuckGo · DrSearch — DrSearch + 4 веб-движка (2 ms)
 [PASS] drsearch-index       DrSearch: локальный поиск по истории и закладкам
-           история + закладки + адрес + переход — 2 результатов (111 ms)
+           история + закладки + адрес + переход — 2 результатов (151 ms)
 [PASS] music-library        DrMusic: сканирование папки, категории, поиск
-           3 трека · категории Chill / Rock · .txt отфильтрован (9 ms)
+           3 трека · категории Chill / Rock · .txt отфильтрован (13 ms)
 [PASS] radio-stations       DrMusic: встроенное радио и LIVE-плейлист
-           8 станций · категория «Радио · прямой эфир» · LIVE-бейдж и запрет перемотки (378 ms)
+           8 станций · категория «Радио · прямой эфир» · LIVE-бейдж и запрет перемотки (445 ms)
 [PASS] ai-personas          DrAI: режимы и промпты отличаются
            4 режима · промпты различаются · базовый 149 символов (1 ms)
 [PASS] profile-avatars      Профиль: пресеты аватара и инициалы
-           6 пресетов · градиенты различаются · инициалы DB (6 ms)
+           6 пресетов · градиенты различаются · инициалы DB (9 ms)
 [PASS] drsearch-recents     DrSearch: недавние запросы сохраняются
-           история запросов: первый запрос / второй запрос (76 ms)
+           история запросов: первый запрос / второй запрос (125 ms)
 [PASS] sqlite-history       История в SQLite: запись, поиск, фильтр по дате, удаление
-           4 записи · поиск · дата · most-visited · delete · clear — OK (96 ms)
+           4 записи · поиск · дата · most-visited · delete · clear — OK (71 ms)
 [PASS] bookmarks            Закладки: папки, поиск, HTML импорт/экспорт
-           добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (33 ms)
+           добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (43 ms)
 [PASS] passwords-dpapi      Пароли: DPAPI-шифрование и отсутствие открытого текста
-           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (49 ms)
+           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (22 ms)
 [PASS] password-generator   Генератор паролей и оценка стойкости
-           9#(=… · Strength «сильный» (14 ms)
+           -S!6… · Strength «сильный» (14 ms)
 [PASS] ai-without-key       AI без ключа: понятное сообщение об ошибке
-           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (17 ms)
+           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (16 ms)
 [PASS] adblock              AdBlock: домены, пользовательские правила, whitelist
            правил: 108 · домен/путь/whitelist/свои правила — OK (7 ms)
 [PASS] downloads            Загрузки: форматирование размеров и история в SQLite
-           B/KB/MB/GB · запись и чтение истории загрузок (7 ms)
+           B/KB/MB/GB · запись и чтение истории загрузок (6 ms)
 [PASS] session              Сессия: сохранение и восстановление вкладок
-           session.json: 2 вкладки, pin и активный индекс — OK (11 ms)
+           session.json: 2 вкладки, pin и активный индекс — OK (15 ms)
 [PASS] quicklinks-permissions Быстрые ссылки и разрешения сайтов в SQLite
-           quick links CRUD · permissions set/get/clear (122 ms)
+           quick links CRUD · permissions set/get/clear (111 ms)
 [PASS] incognito-profile    Инкогнито: временный профиль создаётся и удаляется
-           profile\incognito-<guid> создан и удалён вместе с данными (7 ms)
+           profile\incognito-<guid> создан и удалён вместе с данными (2 ms)
 [PASS] webview2-runtime     Определение Microsoft Edge WebView2 Runtime
            WebView2 Runtime 155.0.4283.62 (6 ms)
 [PASS] settings-limits      Ограничения настроек (масштаб, суспензия вкладок)
