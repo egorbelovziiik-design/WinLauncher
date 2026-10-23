@@ -36,13 +36,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Luau sources ship next to the app so users can copy them into Roblox Studio -->
-    <None Include="RobloxStudio\TestPlaceModules\**\*.lua" CopyToOutputDirectory="PreserveNewest" LinkBase="RobloxStudio\TestPlaceModules" />
-    <None Include="RobloxStudio\TestPlaceModules\**\*.lua" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="Docs\**\*.md" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="Config\**\*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" LinkBase="Config" />
-    <None Include="README.md" CopyToPublishDirectory="PreserveNewest" />
-    <None Include="build.ps1" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Luau sources and docs ship next to the app (Update = keep the SDK default items). -->
+    <None Update="RobloxStudio\TestPlaceModules\**\*.lua"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="RobloxStudio\TestPlaceModules\**\*.md"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Config\**\*.json"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="Docs\**\*.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="README.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Update="build.ps1" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

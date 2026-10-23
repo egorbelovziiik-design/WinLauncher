@@ -38,7 +38,19 @@ jobs:
         run: dotnet restore StealAnEggUltimate/StealAnEggUltimate.csproj
 
       - name: Build (Release)
-        run: dotnet build StealAnEggUltimate/StealAnEggUltimate.csproj -c Release --no-restore -warnaserror:false
+        run: >
+          dotnet build StealAnEggUltimate/StealAnEggUltimate.csproj
+          -c Release --no-restore
+          -flp:logfile=build.log;verbosity=normal
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Publish single-file EXE
         run: >
