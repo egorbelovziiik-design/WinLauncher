@@ -1,46 +1,46 @@
-﻿23:50:25.648 INFO  === DrBrowser 2.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-23:50:25.667 INFO  === selftest: start ===
-23:50:25.668 INFO  selftest marker 9388627135b44590ac232408c52aa937
-23:50:25.956 INFO  DrSearch: "dotnet" → 2 local results
-23:50:25.957 INFO  DrSearch: "drbrowser" → 1 local results
-23:50:25.958 INFO  DrSearch: "example.com" → 1 local results
-23:50:25.970 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
-23:50:25.970 INFO  DrSearch: "dotnet" → 2 local results
-23:50:26.201 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
-23:50:26.263 INFO  DrSearch: "первый запрос" → 0 local results
-23:50:26.263 INFO  DrSearch: "второй запрос" → 0 local results
-23:50:26.264 INFO  DrSearch: "первый запрос" → 0 local results
-23:50:26.384 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
-23:50:26.418 INFO  DrSearch: "drbrowser" → 0 web results
-23:50:26.418 INFO  DrSearch: "dotnet" → 0 web results
-23:50:26.418 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
-23:50:26.419 INFO  DrSearch: "dotnet" → 0 web results
-23:50:26.419 INFO  DrSearch: "example.com" → 0 web results
-23:50:26.423 INFO  DrSearch: "первый запрос" → 0 web results
-23:50:26.423 INFO  DrSearch: "первый запрос" → 0 web results
-23:50:26.436 INFO  Правил: 107 · доменов: 88 · исключений: 0
-23:50:26.459 INFO  DrSearch: "второй запрос" → 0 web results
-23:50:27.335 ERROR selftest intentional exception :: InvalidOperationException: expected
-23:50:27.345 INFO  exit code 0
-23:50:28.295 INFO  === DrBrowser 2.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-23:50:28.312 INFO  === smoke: start ===
-23:50:28.452 INFO  MainViewModel created (private=False)
-23:50:30.890 INFO  Правил: 107 · доменов: 88 · исключений: 0
-23:50:32.464 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\default
-23:50:32.478 INFO  Initialisation complete
-23:50:36.226 INFO  WebView2 configured for tab b0c19a
-23:50:36.228 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:50:36.771 WARN  navigation failed: about:blank :: ConnectionAborted
-23:50:37.802 INFO  WebView2 configured for tab 2d829d
-23:50:37.802 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:50:39.036 INFO  WebView2 configured for tab 7fe3e8
-23:50:39.036 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:50:51.310 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
-23:50:51.311 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
-23:50:54.520 INFO  WebView2 configured for tab 968ef4
-23:50:54.521 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:50:56.918 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
-23:50:58.552 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-235058.png
-23:50:59.333 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
-23:51:00.010 INFO  shutdown complete
-23:51:00.039 INFO  exit code 0
+﻿23:55:45.892 INFO  === DrBrowser 2.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+23:55:45.910 INFO  === selftest: start ===
+23:55:45.912 INFO  selftest marker 51bdf162caa0436eb60920f638664e8b
+23:55:46.190 INFO  DrSearch: "dotnet" → 2 local results
+23:55:46.192 INFO  DrSearch: "drbrowser" → 1 local results
+23:55:46.193 INFO  DrSearch: "example.com" → 1 local results
+23:55:46.207 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
+23:55:46.208 INFO  DrSearch: "dotnet" → 2 local results
+23:55:46.384 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
+23:55:46.442 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
+23:55:46.442 INFO  DrSearch: "dotnet" → 0 web results
+23:55:46.443 INFO  DrSearch: "dotnet" → 0 web results
+23:55:46.443 INFO  DrSearch: "example.com" → 0 web results
+23:55:46.443 INFO  DrSearch: "drbrowser" → 0 web results
+23:55:46.486 INFO  DrSearch: "первый запрос" → 0 local results
+23:55:46.487 INFO  DrSearch: "второй запрос" → 0 local results
+23:55:46.487 INFO  DrSearch: "первый запрос" → 0 local results
+23:55:46.561 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
+23:55:46.606 INFO  DrSearch: "второй запрос" → 0 web results
+23:55:46.606 INFO  DrSearch: "первый запрос" → 0 web results
+23:55:46.609 INFO  DrSearch: "первый запрос" → 0 web results
+23:55:46.620 INFO  Правил: 107 · доменов: 88 · исключений: 0
+23:55:47.287 ERROR selftest intentional exception :: InvalidOperationException: expected
+23:55:47.297 INFO  exit code 0
+23:55:48.206 INFO  === DrBrowser 2.1.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+23:55:48.230 INFO  === smoke: start ===
+23:55:48.351 INFO  MainViewModel created (private=False)
+23:55:49.913 INFO  Правил: 107 · доменов: 88 · исключений: 0
+23:55:51.306 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\default
+23:55:51.331 INFO  Initialisation complete
+23:55:54.473 INFO  WebView2 configured for tab 92bf51
+23:55:54.475 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:55:54.949 WARN  navigation failed: about:blank :: ConnectionAborted
+23:55:56.050 INFO  WebView2 configured for tab 0c88a1
+23:55:56.051 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:55:57.266 INFO  WebView2 configured for tab 00eb24
+23:55:57.267 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:56:09.621 INFO  music play: https://ice1.somafm.com/groovesalad-128-mp3 (stream=True)
+23:56:09.623 ERROR music playback failed (https://ice1.somafm.com/groovesalad-128-mp3): Only site-of-origin pack URIs are supported for media.
+23:56:12.883 INFO  WebView2 configured for tab f5b145
+23:56:12.884 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:56:15.268 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
+23:56:16.219 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
+23:56:16.574 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-235616.png
+23:56:18.109 INFO  shutdown complete
+23:56:18.138 INFO  exit code 0
