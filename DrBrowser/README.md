@@ -71,12 +71,15 @@ DrBrowser не содержит собственный движок — он и�
 |---|---|
 | Новая вкладка | [01-newtab.png](screenshots/01-newtab.png) |
 | WebView2 с загруженной страницей | [02-webview.png](screenshots/02-webview.png) |
-| Настройки (10 категорий) | [03-settings.png](screenshots/03-settings.png) |
+| Настройки (11 категорий) | [03-settings.png](screenshots/03-settings.png) |
 | История | [04-history.png](screenshots/04-history.png) |
 | Загрузки | [05-downloads.png](screenshots/05-downloads.png) |
 | Закладки | [06-bookmarks.png](screenshots/06-bookmarks.png) |
 | Пароли | [07-passwords.png](screenshots/07-passwords.png) |
 | Панель DrAI | [10-ai-panel.png](screenshots/10-ai-panel.png) |
+| **DrSearch** (своя поисковая система) | [08-search.png](screenshots/08-search.png) |
+| **DrMusic** (плеер и библиотека) | [09-music.png](screenshots/09-music.png) |
+| **Профиль** (тёмная карточка вместо белого меню) | [12-profile.png](screenshots/12-profile.png) |
 
 Отчёты прогонов: [selftest-report.txt](screenshots/selftest-report.txt), [smoke-report.txt](screenshots/smoke-report.txt).
 
