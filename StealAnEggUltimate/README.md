@@ -155,3 +155,32 @@ StealAnEggUltimate/
 | `%AppData%\StealAnEggUltimate\logs\hub-YYYYMMDD.log` | rotating log (10 files, 4 MB max) |
 | `%AppData%\StealAnEggUltimate\snapshots\` | read-only JSON snapshots (watched live) |
 | `%AppData%\StealAnEggUltimate\bridge\` | mirrored bridge state / last snapshot for debugging |
+
+## 8. Headless self-test and smoke run
+
+The published EXE can verify itself without a Roblox session — the same commands the
+CI workflow (`\.github/workflows/build-hub.yml`) runs on `windows-latest`:
+
+```powershell
+# 36 functional assertions (settings, commands, demo egg world, ESP, bridge, assets, ...)
+.\dist\StealAnEggUltimate.exe --selftest
+Get-Content "$env:APPDATA\StealAnEggUltimate\selftest-report.txt"
+
+# starts the real WPF window + renders the overlay, then auto-closes (~5 s)
+.\dist\StealAnEggUltimate.exe --smoke
+Get-Content "$env:APPDATA\StealAnEggUltimate\smoke-result.txt"
+```
+
+| Marker | Meaning |
+| --- | --- |
+| `self-test exit code 0` | all assertions passed |
+| `RESULT: PASS` / `SUMMARY: n passed, m failed, k skipped` | machine-readable verdict in `selftest-report.txt` |
+| `[SKIP]` line | the skipped item is the overlay hotkey/menu test, which needs a real Roblox client and an interactive desktop session |
+| `smoke ok ... uiExceptions=0` | main window and overlay rendered with zero XAML/binding errors |
+| smoke exit code `4` | the UI rendered but raised at least one binding/XAML exception (CI fails) |
+
+Everything that could not be executed automatically is marked here instead of being
+reported as a success: with no Roblox client on the machine, only the demo island,
+the snapshot reader and the loopback bridge are exercised; the in-game path
+(`TEST PLACE` modules in `RobloxStudio\TestPlaceModules\`) has to be run by hand in
+Roblox Studio and is documented in `Docs\RUN.md`.

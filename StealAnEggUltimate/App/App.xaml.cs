@@ -147,7 +147,7 @@ public partial class App : Application
     {
         try
         {
-            if (_viewModel is null) return;
+            if (_viewModel is null || _log is null) return;
             _probeOverlay = new OverlayWindow(new OverlayViewModel(_viewModel), _log)
             {
                 WindowStartupLocation = WindowStartupLocation.Manual,
@@ -156,7 +156,7 @@ public partial class App : Application
             };
             _probeOverlay.Show();
             _probeOverlay.UpdateLayout();
-            _log.Info("Smoke mode: overlay window rendered without XAML errors.");
+            _log?.Info("Smoke mode: overlay window rendered without XAML errors.");
         }
         catch (Exception ex)
         {
