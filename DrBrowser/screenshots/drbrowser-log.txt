@@ -1,19 +1,19 @@
-﻿18:27:55.463 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-18:27:55.491 INFO  === selftest: start ===
-18:27:55.493 INFO  selftest marker d277f8bec9794b09bd2a0ab89b9f45c0
-18:27:55.827 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:27:55.887 ERROR selftest intentional exception :: InvalidOperationException: expected
-18:27:56.920 INFO  exit code 0
-18:27:57.853 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-18:27:57.882 INFO  === smoke: start ===
-18:27:57.985 INFO  MainViewModel created (private=True)
-18:27:58.876 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:27:59.962 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\08ba18cce6ee4a289ff6a73f64731c1b
-18:27:59.986 INFO  Initialisation complete
-18:28:02.805 INFO  WebView2 configured for tab 776ae1
-18:28:02.870 WARN  navigation failed: https://example.com/ :: ConnectionAborted
-18:28:09.812 INFO  WebView2 configured for tab 4736a8
-18:28:17.756 WARN  navigation failed: https://example.com/ :: ConnectionAborted
-18:28:18.043 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-182818.png
-18:28:19.571 INFO  shutdown complete
-18:28:19.931 INFO  exit code 0
+﻿18:31:45.290 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+18:31:45.310 INFO  === selftest: start ===
+18:31:45.312 INFO  selftest marker 68081b69fefe4cb986e8e5611a60263c
+18:31:45.666 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:31:45.744 ERROR selftest intentional exception :: InvalidOperationException: expected
+18:31:46.760 INFO  exit code 0
+18:31:47.891 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+18:31:47.918 INFO  === smoke: start ===
+18:31:48.034 INFO  MainViewModel created (private=True)
+18:31:50.540 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:31:54.181 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\4039ebc97e77401eaf976d3cada22d09
+18:31:54.201 INFO  Initialisation complete
+18:32:03.783 INFO  WebView2 configured for tab 84d553
+18:32:03.887 WARN  navigation failed: https://example.com/ :: ConnectionAborted
+18:32:12.279 INFO  WebView2 configured for tab ec07d5
+18:32:20.300 WARN  navigation failed: https://example.com/ :: ConnectionAborted
+18:32:20.679 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-183220.png
+18:32:22.113 INFO  shutdown complete
+18:32:22.508 INFO  exit code 0

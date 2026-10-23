@@ -96,3 +96,37 @@
 18:28:19.572 smoke: view model shutdown
 18:28:19.921 smoke: window closed
 18:28:19.930 smoke: finished, exit 1
+18:31:45.378 data-folders: PASS
+18:31:45.454 settings-json: PASS
+18:31:45.465 url-parser: PASS
+18:31:45.468 search-engines: PASS
+18:31:45.571 sqlite-history: PASS
+18:31:45.613 bookmarks: PASS
+18:31:45.631 passwords-dpapi: PASS
+18:31:45.642 password-generator: PASS
+18:31:45.662 ai-without-key: PASS
+18:31:45.668 adblock: PASS
+18:31:45.674 downloads: PASS
+18:31:45.689 session: PASS
+18:31:45.734 quicklinks-permissions: PASS
+18:31:45.737 incognito-profile: PASS
+18:31:45.744 webview2-runtime: PASS
+18:31:45.744 settings-limits: PASS
+18:31:45.745 error-logging: PASS
+18:31:47.919 smoke: start
+18:31:50.347 smoke: window created
+18:31:50.482 smoke: view model attached
+18:31:55.095 smoke-window: PASS
+18:31:55.098 smoke-webview: navigating
+18:32:03.262 smoke-webview: core ready
+18:32:03.262 smoke-webview: calling NavigateToString
+18:32:03.369 smoke-webview: NavigateToString returned
+18:32:11.716 smoke-webview: FAIL Exception: ExecuteScript не подтвердил страницу (title=Example Domain)
+18:32:12.799 smoke-tabs: FAIL Exception: восстановление вкладки не сработало
+18:32:18.568 smoke-pages: PASS
+18:32:19.286 smoke-ui: PASS
+18:32:20.297 smoke-hotkeys: PASS
+18:32:22.065 smoke-screenshot: PASS
+18:32:22.113 smoke: view model shutdown
+18:32:22.497 smoke: window closed
+18:32:22.507 smoke: finished, exit 1
