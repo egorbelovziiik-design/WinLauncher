@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Windows.Controls;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
@@ -129,21 +130,6 @@ public sealed class WebViewManager : IDisposable
             ZoomFactor = Math.Clamp(_settings().ZoomLevel, 0.25, 3.0)
         };
 
-        view.AcceleratorKeyPressed += (_, e) =>
-        {
-            // Keys pressed inside the page never reach the WPF window, so browser shortcuts are
-            // forwarded manually. Handled=true also stops WebView2's own default action.
-            if (e.KeyEventKind is not (CoreWebView2KeyEventKind.KeyDown or CoreWebView2KeyEventKind.SystemKeyDown)) return;
-            try
-            {
-                if (_hotkey((int)e.VirtualKey)) e.Handled = true;
-            }
-            catch (Exception ex)
-            {
-                _log.Error("hotkey forwarding failed", ex);
-            }
-        };
-
         host.Children.Add(view);
         tab.View = view;
 
@@ -170,6 +156,7 @@ public sealed class WebViewManager : IDisposable
         }
 
         Configure(tab);
+        AttachAcceleratorBridge(view);
         tab.MarkReady();
         TabStateChanged?.Invoke(tab);
 
@@ -188,6 +175,49 @@ public sealed class WebViewManager : IDisposable
         }
 
         return view;
+    }
+
+    /// <summary>
+    /// The WPF wrapper does not expose AcceleratorKeyPressed in this SDK build, so the underlying
+    /// CoreWebView2Controller is reached by reflection. Without it, shortcuts typed inside a page
+    /// would be swallowed by the engine instead of reaching DrBrowser.
+    /// </summary>
+    private void AttachAcceleratorBridge(WebView2 view)
+    {
+        try
+        {
+            var controller = typeof(WebView2)
+                                 .GetProperty("CoreWebView2Controller", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                                 ?.GetValue(view)
+                             ?? typeof(WebView2)
+                                 .GetField("_coreWebView2Controller", BindingFlags.Instance | BindingFlags.NonPublic)
+                                 ?.GetValue(view);
+
+            if (controller is not CoreWebView2Controller typed)
+            {
+                _log.Warn("accelerator bridge unavailable: controller not found, page-focused shortcuts limited");
+                return;
+            }
+
+            typed.AcceleratorKeyPressed += (_, e) =>
+            {
+                if (e.KeyEventKind is not (CoreWebView2KeyEventKind.KeyDown or CoreWebView2KeyEventKind.SystemKeyDown)) return;
+                try
+                {
+                    if (_hotkey((int)e.VirtualKey)) e.Handled = true;
+                }
+                catch (Exception ex)
+                {
+                    _log.Error("hotkey forwarding failed", ex);
+                }
+            };
+
+            _log.Info("accelerator bridge attached (page shortcuts forwarded to DrBrowser)");
+        }
+        catch (Exception ex)
+        {
+            _log.Warn("accelerator bridge failed: " + ex.Message);
+        }
     }
 
     private void Configure(BrowserTab tab)
