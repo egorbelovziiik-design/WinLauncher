@@ -1174,3 +1174,61 @@
 22:32:38.519 smoke: view model shutdown
 22:32:38.849 smoke: window closed
 22:32:38.857 smoke: finished, exit 0
+22:40:57.583 data-folders: PASS
+22:40:57.671 settings-json: PASS
+22:40:57.682 url-parser: PASS
+22:40:57.685 search-engines: PASS
+22:40:57.876 drsearch-index: PASS
+22:40:57.946 drsearch-fts5: PASS
+22:40:58.008 omega-productivity: PASS
+22:40:58.049 drmind-memory: PASS
+22:40:58.148 backup: PASS
+22:40:58.157 drtools: PASS
+22:40:58.170 music-library: PASS
+22:40:58.210 music-playlists: PASS
+22:40:58.227 radio-stations: PASS
+22:40:58.229 ai-personas: PASS
+22:40:58.234 profile-avatars: PASS
+22:40:58.333 drsearch-recents: PASS
+22:40:58.420 sqlite-history: PASS
+22:40:58.450 bookmarks: PASS
+22:40:58.591 passwords-dpapi: PASS
+22:40:58.591 password-generator: PASS
+22:40:58.595 ai-without-key: PASS
+22:40:58.602 adblock: PASS
+22:40:58.608 downloads: PASS
+22:40:58.616 session: PASS
+22:40:58.678 quicklinks-permissions: PASS
+22:40:58.684 incognito-profile: PASS
+22:40:58.690 webview2-runtime: PASS
+22:40:58.691 settings-limits: PASS
+22:40:58.696 guard-url-rules: PASS
+22:40:58.698 guard-scan-args: PASS
+22:40:58.699 ai-image-attachment: PASS
+22:40:58.757 local-ai: PASS
+22:40:58.760 music-catalog-parse: PASS
+22:40:58.766 drsearch-parse: PASS
+22:40:58.768 error-logging: PASS
+22:41:00.821 smoke: start
+22:41:03.104 smoke: window created
+22:41:03.237 smoke: view model attached
+22:41:05.252 smoke-window: PASS
+22:41:05.255 smoke-webview: navigating
+22:41:07.487 smoke-webview: core ready
+22:41:08.003 smoke-webview: calling NavigateToString
+22:41:08.032 smoke-webview: NavigateToString returned
+22:41:08.860 smoke-webview: PASS
+22:41:11.317 smoke-tabs: PASS
+22:41:21.966 smoke-pages: PASS
+22:41:22.633 smoke-command-palette: PASS
+22:41:25.135 smoke-settings-tabs: PASS
+22:41:26.647 smoke-ui: PASS
+22:41:32.930 smoke-miniplayer: FAIL Exception: MediaPlayer не открыл локальный WAV: Не удалось воспроизвести файл: 0xC00D11BA
+22:41:35.162 smoke-hotkeys: PASS
+22:41:35.827 smoke-https: engine ready
+22:41:36.187 smoke-https: PASS
+22:41:39.148 smoke-download: PASS
+22:41:40.667 smoke-screenshot: PASS
+22:41:40.730 smoke: view model shutdown
+22:41:41.093 smoke: window closed
+22:41:41.101 smoke: finished, exit 1
