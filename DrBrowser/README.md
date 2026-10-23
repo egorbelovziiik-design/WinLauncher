@@ -79,6 +79,7 @@ DrBrowser не содержит собственный движок — он и�
 | Панель DrAI | [10-ai-panel.png](screenshots/10-ai-panel.png) |
 | **DrSearch** (своя поисковая система) | [08-search.png](screenshots/08-search.png) |
 | **DrMusic** (плеер и библиотека) | [09-music.png](screenshots/09-music.png) |
+| **Мини-плеер DrMusic** в окне браузера | [13-mini-player.png](screenshots/13-mini-player.png) |
 | **Профиль** (тёмная карточка вместо белого меню) | [12-profile.png](screenshots/12-profile.png) |
 
 Отчёты прогонов: [selftest-report.txt](screenshots/selftest-report.txt), [smoke-report.txt](screenshots/smoke-report.txt).
@@ -228,7 +229,7 @@ DPAPI-хранилище ключей и паролей, AdBlock на `WebResour
 | Прогон | Итог | Что именно проверено |
 |---|---|---|
 | `--selftest` | **23 passed, 0 failed, 0 skipped** | JSON-настройки и их ограничения, SQLite (история, закладки, пароли, загрузки, быстрые ссылки, разрешения), DPAPI-шифрование паролей, AdBlock (108 правил, whitelist, свои фильтры), генератор паролей, AI без ключа, сессии, временный профиль инкогнито, определение WebView2 Runtime, запись ошибок в журнал, **радио DrMusic (LIVE-бейдж, запрет перемотки)**, **режимы DrAI**, **пресеты аватара**, **недавние запросы DrSearch** |
-| `--smoke` | **9 passed, 0 failed, 0 skipped** | живое окно, движок WebView2 (Chromium), 6 внутренних страниц со скриншотами, создание/переключение/закрытие/восстановление вкладок, масштаб, Ctrl+F, AI-панель, закладка add/delete, горячие клавиши (в т. ч. через мост `AcceleratorKeyPressed`), **реальный HTTPS-сайт из сети** (`https://example.com` → `protocol=https:`, title «Example Domain»), **реальная загрузка файла** через `DownloadStarting` + `DownloadOperation` (файл на диске, размер совпал), скриншот страницы |
+| `--smoke` | **10 passed, 0 failed, 0 skipped** | живое окно, движок WebView2 (Chromium), 6 внутренних страниц со скриншотами, создание/переключение/закрытие/восстановление вкладок, масштаб, Ctrl+F, AI-панель, закладка add/delete, горячие клавиши (в т. ч. через мост `AcceleratorKeyPressed`), **реальный HTTPS-сайт из сети** (`https://example.com` → `protocol=https:`, title «Example Domain»), **реальная загрузка файла** через `DownloadStarting` + `DownloadOperation` (файл на диске, размер совпал), скриншот страницы, **мини-плеер DrMusic с LIVE-станцией** |
 
 Отчёты лежат в репозитории: [screenshots/selftest-report.txt](screenshots/selftest-report.txt),
 [screenshots/smoke-report.txt](screenshots/smoke-report.txt).
