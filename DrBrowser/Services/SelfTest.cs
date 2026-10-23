@@ -1094,16 +1094,19 @@ public static class SelfTest
                 try
                 {
                     vm.Music.Service.Play(track);
-                    for (var i = 0; i < 30 && !vm.Music.Service.IsPlaying; i++) await Delay(200);
+                    for (var i = 0; i < 30 && vm.Music.Service.DurationSeconds < 0.5 &&
+                         !vm.Music.Service.Status.Contains("0xC00D11BA", StringComparison.OrdinalIgnoreCase); i++)
+                        await Delay(200);
 
-                    if (!vm.Music.Service.IsPlaying)
+                    // A one-second fixture can finish between two CI scheduler ticks;
+                    // NaturalDuration is retained after MediaEnded and is the stable
+                    // proof that MediaOpened decoded the actual WAV.
+                    if (vm.Music.Service.DurationSeconds < 0.5)
                     {
                         if (vm.Music.Service.Status.Contains("0xC00D11BA", StringComparison.OrdinalIgnoreCase))
                             return "SKIP: Windows CI runner не имеет аудиоустройства (0xC00D11BA); валидный WAV передан реальному MediaPlayer";
-                        throw new Exception("MediaPlayer не открыл локальный WAV: " + vm.Music.Service.Status);
+                        throw new Exception("MediaPlayer не открыл/не измерил локальный WAV: " + vm.Music.Service.Status);
                     }
-                    if (vm.Music.Service.DurationSeconds < 0.5)
-                        throw new Exception("MediaPlayer не сообщил реальную длительность WAV");
                     if (!vm.MusicBarVisible) throw new Exception("строка мини-плеера не появилась");
                     if (vm.MusicNowBadge != "LOCAL") throw new Exception("бейдж мини-плеера: " + vm.MusicNowBadge);
                     if (!vm.MusicNowTitle.Contains(track.Title)) throw new Exception("в мини-плеере не тот локальный трек: " + vm.MusicNowTitle);
