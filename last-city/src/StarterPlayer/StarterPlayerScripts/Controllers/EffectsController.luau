@@ -22,9 +22,29 @@ return function(app)
         TweenService:Create(item.part, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = Vector3.new(0.04, 0.04, 0.04), Transparency = 1}):Play()
         task.delay(0.18, function() if item.serial == serial then item.part.Transparency = 1 end end)
     end
+    local blastPool = {}; local blastIndex = 1
+    for i = 1, 5 do
+        local sphere = Instance.new("Part"); sphere.Name = "GrenadeBlast"; sphere.Shape = Enum.PartType.Ball; sphere.Size = Vector3.new(1, 1, 1)
+        sphere.Anchored = true; sphere.CanCollide = false; sphere.CanQuery = false; sphere.CanTouch = false; sphere.Material = Enum.Material.Neon
+        sphere.Transparency = 1; sphere.CastShadow = false; sphere.Parent = folder; blastPool[i] = {part = sphere, serial = 0}
+    end
+    local function blast(data, burning)
+        if typeof(data.from) ~= "Vector3" then return end
+        local item = blastPool[blastIndex]; blastIndex = blastIndex % #blastPool + 1; item.serial += 1
+        local serial = item.serial; local radius = math.clamp(data.radius or 8, 2, 24)
+        item.part.CFrame = CFrame.new(data.from); item.part.Size = Vector3.new(1, 1, 1)
+        item.part.Color = burning and Color3.fromRGB(255, 101, 32) or data.concussion and Color3.fromRGB(224, 235, 255) or Color3.fromRGB(255, 190, 78)
+        item.part.Transparency = burning and 0.55 or 0.18
+        TweenService:Create(item.part, TweenInfo.new(burning and 0.4 or 0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = Vector3.new(radius * 2, radius * 0.65, radius * 2), Transparency = 1,
+        }):Play()
+        task.delay(0.45, function() if item.serial == serial then item.part.Transparency = 1 end end)
+    end
     local damagePool = {}; local damageIndex = 1
-    for i = 1, 8 do
-        local anchor = Instance.new("Part"); anchor.Name = "DamagePopup"; anchor.Anchored = true; anchor.Transparency = 1
+    -- Enough pooled world labels for every allowed farm plus simultaneous combat hits.
+    -- They are allocated once on the client; the one-second income loop creates no Instances.
+    for i = 1, (app.Config.MaxBuildings or 36) + 8 do
+        local anchor = Instance.new("Part"); anchor.Name = "FloatingPopup"; anchor.Anchored = true; anchor.Transparency = 1
         anchor.CanCollide = false; anchor.CanQuery = false; anchor.CanTouch = false; anchor.Parent = folder
         local gui = Instance.new("BillboardGui"); gui.Size = UDim2.fromOffset(120, 52); gui.StudsOffset = Vector3.new(0, 2.5, 0)
         gui.AlwaysOnTop = true; gui.Enabled = false; gui.Parent = anchor
@@ -39,14 +59,16 @@ return function(app)
     local function popup(data)
         if typeof(data.position) ~= "Vector3" then return end
         local item = damagePool[damageIndex]; damageIndex = damageIndex % #damagePool + 1; item.serial += 1
-        local serial = item.serial; item.anchor.CFrame = CFrame.new(data.position); item.gui.Enabled = true
-        item.gui.StudsOffset = Vector3.new(0, 2.5, 0); item.label.TextTransparency = 0
-        item.label.Text = (data.killed and "☠  " or data.critical and "CRIT  " or "") .. tostring(math.max(1, math.floor((data.damage or 0) + 0.5)))
-        item.label.TextColor3 = data.killed and Color3.fromRGB(255, 211, 92) or data.critical and Color3.fromRGB(255, 132, 76)
-            or data.armored and Color3.fromRGB(100, 194, 255) or Color3.fromRGB(238, 238, 220)
-        TweenService:Create(item.gui, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {StudsOffset = Vector3.new(0, 4.2, 0)}):Play()
-        TweenService:Create(item.label, TweenInfo.new(0.55), {TextTransparency = 1}):Play()
-        task.delay(0.58, function() if item.serial == serial then item.gui.Enabled = false end end)
+        local serial = item.serial; local cash = data.cash == true; local duration = cash and 0.82 or 0.55
+        item.anchor.CFrame = CFrame.new(data.position); item.gui.Enabled = true
+        item.gui.StudsOffset = Vector3.new(0, cash and 1.8 or 2.5, 0); item.label.TextTransparency = 0; item.label.TextStrokeTransparency = 0.25
+        item.label.Text = cash and ("+" .. tostring(math.max(0, math.floor(data.amount or 0))) .. " CASH")
+            or ((data.killed and "☠  " or data.critical and "CRIT  " or "") .. tostring(math.max(1, math.floor((data.damage or 0) + 0.5))))
+        item.label.TextColor3 = cash and Color3.fromRGB(112, 238, 145) or data.killed and Color3.fromRGB(255, 211, 92)
+            or data.critical and Color3.fromRGB(255, 132, 76) or data.armored and Color3.fromRGB(100, 194, 255) or Color3.fromRGB(238, 238, 220)
+        TweenService:Create(item.gui, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {StudsOffset = Vector3.new(0, cash and 4.8 or 4.2, 0)}):Play()
+        TweenService:Create(item.label, TweenInfo.new(duration), {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
+        task.delay(duration + 0.03, function() if item.serial == serial then item.gui.Enabled = false end end)
     end
     app.Remotes.EffectsRemote.OnClientEvent:Connect(function(kind, data)
         data = data or {}
@@ -75,12 +97,20 @@ return function(app)
                     end
                 end
             end
+        elseif kind == "grenade_throw" then
+            impact(data.from, data.grenade == "incendiary" and Color3.fromRGB(255, 111, 35) or Color3.fromRGB(180, 188, 154), 0.38)
+        elseif kind == "grenade_explosion" then
+            blast(data, data.incendiary == true); impact(data.from, data.concussion and Color3.fromRGB(225, 238, 255) or Color3.fromRGB(255, 165, 62), 1.1)
+        elseif kind == "grenade_burn" then
+            blast(data, true)
         elseif kind == "impact" then
             impact(data.from, Color3.fromRGB(231, 200, 145), 0.28)
         elseif kind == "zombie_hurt" then
             impact(data.from, Color3.fromRGB(164, 204, 104), data.boss and 0.5 or 0.34)
         elseif kind == "zombie_death" then
             impact(data.from, data.boss and Color3.fromRGB(231, 96, 235) or Color3.fromRGB(105, 137, 91), data.boss and 0.9 or 0.55)
+        elseif kind == "farm_cash" and type(data.amount) == "number" then
+            popup({position = data.position, amount = math.clamp(data.amount, 0, 1000), cash = true})
         elseif kind == "hit_confirm" then
             impact(data.position, data.armored and Color3.fromRGB(91, 180, 232) or data.killed and Color3.fromRGB(255, 211, 92) or Color3.fromRGB(225, 232, 205), data.killed and 0.5 or 0.32)
             markerSerial += 1; local serial = markerSerial

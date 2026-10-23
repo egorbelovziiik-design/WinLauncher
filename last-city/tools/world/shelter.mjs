@@ -34,7 +34,17 @@ export function shelter(world) {
   }
   sign(m, 'ЖИЛЫЕ УЧАСТКИ  ↓\nВАШ НОМЕР — НА КАРТЕ [M]', [25, 3, 0.6], [0, 10, -168], P.amber, P.dark);
   for (const [x, z] of [[-22,-105],[22,-52],[65,-147],[-65,-147]]) lamp(m,x,z);
-  for (const x of [-10,10]) part(m,'Bench',[10,1,2.5],[x,1.3,-124],P.wood,'WoodPlanks');
+  // The two loose centre-yard boards are now grounded pallet skids at a real wood depot.
+  // Client-local stack boards reflect each survivor's private saved stockpile, while the
+  // server terminal below performs the authoritative backpack → stock transfer.
+  const woodDepot = folder(m, 'WoodDepot', true);
+  part(woodDepot,'DepotPad',[22,0.18,14],[45,0.29,-149],'#454c47','Concrete');
+  for (const z of [-152,-146]) part(woodDepot,'WoodStorageSkid',[14,0.44,0.9],[45,0.6,z],P.wood,'WoodPlanks');
+  for (const x of [36,54]) part(woodDepot,'RackPost',[0.5,4,0.5],[x,2.38,-155.5],P.steel,'Metal');
+  part(woodDepot,'PileOrigin',[0.4,0.2,0.4],[45,0.7,-149],P.wood,'WoodPlanks',0,{Transparency:1,CanCollide:false,CanTouch:false,CanQuery:false,CastShadow:false});
+  part(woodDepot,'WoodDepotTerminal',[2.2,3.2,2.2],[56.5,1.98,-149],P.dark,'Metal');
+  part(woodDepot,'TerminalScreen',[1.7,1.2,0.16],[56.5,2.38,-147.82],P.amber,'Neon',0,{CanCollide:false,CanTouch:false});
+  sign(woodDepot,'ХРАНИЛИЩЕ ДЕРЕВА\nПРИНЕСИТЕ ДЕРЕВО  •  [E]',[19,3,0.45],[45,5,-155.7],P.amber,P.dark,Math.PI);
   loot(world.LootSpawns, 'food', 2, 8, -94, 'shelter', 150);
   loot(world.LootSpawns, 'water', 2, 14, -94, 'shelter', 150);
   const spawn = instance('SpawnLocation'); spawn.Name = 'ShelterSpawn'; spawn.Size = vec(6, 0.2, 6); spawn.CFrame = cf(0, 0.2, -106); spawn.Anchored = true; spawn.Transparency = 1; spawn.Neutral = true; spawn.Duration = 3; spawn.Parent = m;

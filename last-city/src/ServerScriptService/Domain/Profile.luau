@@ -14,7 +14,7 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
     end
     function Profile.campaign()
         local c = {
-            Started = false, XP = 0, Cash = 200, NextItemId = 0, Inventory = {}, Equipped = "", Armor = "",
+            Started = false, XP = 0, Cash = 200, NextItemId = 0, Inventory = {}, Equipped = "", Armor = "", QuickSlots = table.create(Config.QuickSlots, ""),
             Stockpile = {wood = 60, metal = 30, steel_plate = 0, concrete = 0, glass = 0, wire = 12, electronics = 8,
                 fuel = 10, scrap = 8, food = 8, water = 8, ammo = 24, rifle_ammo = 0, shells = 0},
             Quests = {}, Buildings = {}, NextBuildingId = 0, Hunger = 100, Thirst = 100,
@@ -26,7 +26,10 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
             Stats = {kills = 0, quests = 0, buildings = 0, seconds = 0},
         }
         assert(Inventory.grant(c, {crowbar = 1, food = 3, water = 3, medkit = 2}))
-        -- Start with the tool stowed: keyboard 1 is an explicit toggle (equip, then unequip).
+        local crowbar
+        for _, entry in c.Inventory do if entry.id == "crowbar" then crowbar = entry; break end end
+        assert(crowbar); c.QuickSlots[1] = crowbar.uid
+        -- Start with the tool stowed: keyboard 1 remains an explicit toggle.
         return c
     end
     function Profile.new()
@@ -68,6 +71,30 @@ return function(Config, Items, Weapons, Buildings, Quests, Economy, Util, Invent
         if type(raw.Armor) == "string" then
             local e = Inventory.find(c, raw.Armor); if e and Items[e.id].armor then c.Armor = e.uid end
         end
+        c.QuickSlots = table.create(Config.QuickSlots, "")
+        local slotted = {}
+        if type(raw.QuickSlots) == "table" then
+            for index = 1, Config.QuickSlots do
+                local uid = raw.QuickSlots[index]
+                local entry = type(uid) == "string" and Inventory.find(c, uid) or nil
+                local def = entry and Items[entry.id]
+                if entry and not slotted[uid] and (Weapons[entry.id] or def.armor or def.use) then
+                    c.QuickSlots[index] = uid; slotted[uid] = true
+                end
+            end
+        end
+        local crowbar
+        for _, entry in c.Inventory do if entry.id == "crowbar" then crowbar = entry; break end end
+        if crowbar then
+            local displaced = c.QuickSlots[1]
+            for index = 1, Config.QuickSlots do if c.QuickSlots[index] == crowbar.uid then c.QuickSlots[index] = "" end end
+            c.QuickSlots[1] = crowbar.uid
+            if displaced ~= "" and displaced ~= crowbar.uid and not table.find(c.QuickSlots, displaced) then
+                for index = 2, Config.QuickSlots do if c.QuickSlots[index] == "" then c.QuickSlots[index] = displaced; break end end
+            end
+        end
+        if c.Equipped ~= "" then Inventory.assignQuick(c, c.Equipped) end
+        if c.Armor ~= "" then Inventory.assignQuick(c, c.Armor) end
         if type(raw.Stockpile) == "table" then
             c.Stockpile = {}
             for id, def in Items do

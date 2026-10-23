@@ -16,6 +16,45 @@ return function(Items: any, Weapons: any, Config: any, Util: any)
         for _, entry in c.Inventory do if entry.id == id then count += entry.count end end
         return count
     end
+    local function quickSlots(c: any): any
+        if type(c.QuickSlots) ~= "table" then c.QuickSlots = {} end
+        for index = 1, Config.QuickSlots do if type(c.QuickSlots[index]) ~= "string" then c.QuickSlots[index] = "" end end
+        return c.QuickSlots
+    end
+    function Inventory.quickIndex(c: any, uid: any): number?
+        for index, value in quickSlots(c) do if value == uid then return index end end
+        return nil
+    end
+    function Inventory.assignQuick(c: any, uid: any): (boolean, any)
+        local entry = Inventory.find(c, uid)
+        local def = entry and Items[entry.id]
+        if not entry or not def or not (Weapons[entry.id] or def.armor or def.use) then return false, "Предмет нельзя поместить в быстрый слот" end
+        local current = Inventory.quickIndex(c, uid); if current then return true, current end
+        local slots = quickSlots(c)
+        local first = Inventory.count(c, "crowbar") > 0 and 2 or 1
+        if entry.id == "crowbar" and slots[1] == "" then slots[1] = uid; return true, 1 end
+        for index = first, Config.QuickSlots do
+            if slots[index] == "" then slots[index] = uid; return true, index end
+        end
+        return false, "Все быстрые слоты заняты. Уберите предмет из слота."
+    end
+    function Inventory.clearQuick(c: any, index: any): (boolean, string?)
+        if not Util.integer(index, 1, Config.QuickSlots) then return false, "Неверный быстрый слот" end
+        local slots = quickSlots(c); local entry = Inventory.find(c, slots[index])
+        if index == 1 and entry and entry.id == "crowbar" then return false, "Слот 1 закреплён за ломом" end
+        slots[index] = ""; return true, nil
+    end
+    function Inventory.equipToQuick(c: any, uid: any): (boolean, any)
+        local oldWeapon, oldArmor = c.Equipped, c.Armor
+        local ok, err = Inventory.equip(c, uid)
+        if not ok then return false, err end
+        local assigned, slot = Inventory.assignQuick(c, uid)
+        if not assigned then c.Equipped = oldWeapon; c.Armor = oldArmor; return false, slot end
+        return true, slot
+    end
+    local function clearQuickUid(c: any, uid: any)
+        for index, value in quickSlots(c) do if value == uid then c.QuickSlots[index] = "" end end
+    end
     local function addUnsafe(c: any, id: any, count: any): (boolean, string?)
         local def = Items[id]
         if not def or not Util.integer(count, 1, 9999) then return false, "Неверный предмет" end
@@ -73,6 +112,7 @@ return function(Items: any, Weapons: any, Config: any, Util: any)
                 if entry.count == 0 then
                     if c.Equipped == entry.uid then c.Equipped = "" end
                     if c.Armor == entry.uid then c.Armor = "" end
+                    clearQuickUid(c, entry.uid)
                     table.remove(c.Inventory, index)
                 end
                 if count == 0 then return true end
@@ -87,6 +127,7 @@ return function(Items: any, Weapons: any, Config: any, Util: any)
         if entry.count == 0 then
             if c.Equipped == uid then c.Equipped = "" end
             if c.Armor == uid then c.Armor = "" end
+            clearQuickUid(c, uid)
             table.remove(c.Inventory, index)
         end
         return true

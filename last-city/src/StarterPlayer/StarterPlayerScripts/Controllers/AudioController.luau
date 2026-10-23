@@ -39,11 +39,11 @@ return function(app)
     function Audio:Weapon(id)
         local def = app.Weapons[id]; if not def then return end
         if def.melee then
-            local blade = id == "machete" or id == "hatchet" or id == "prism_blade"
-            play(blade and app.Config.Audio.Blade or app.Config.Audio.Melee, id == "prism_blade" and 1.3 or blade and 0.92 or 0.8, 0.34)
+            local blade = table.find({"machete", "hatchet", "prism_blade", "short_sword", "saber", "longsword", "katana"}, id) ~= nil
+            play(blade and app.Config.Audio.Blade or app.Config.Audio.Melee, id == "prism_blade" and 1.3 or id == "katana" and 1.16 or blade and 0.92 or 0.8, 0.34)
         else
-            local heavy = id == "shotgun" or id == "double_barrel" or id == "revolver" or id == "hunting_rifle"
-            play(heavy and app.Config.Audio.HeavyShot or app.Config.Audio.Shot, heavy and 0.78 or id == "smg" and 1.3 or 1.06, heavy and 0.5 or 0.3)
+            local heavy = table.find({"shotgun", "double_barrel", "revolver", "hunting_rifle", "magnum", "sniper_rifle", "lmg"}, id) ~= nil
+            play(heavy and app.Config.Audio.HeavyShot or app.Config.Audio.Shot, heavy and 0.78 or (id == "smg" or id == "machine_pistol") and 1.3 or 1.06, heavy and 0.5 or 0.3)
         end
     end
     app.Remotes.EffectsRemote.OnClientEvent:Connect(function(kind, data)
@@ -51,11 +51,14 @@ return function(app)
         if kind == "acid" then play(app.Config.Audio.Melee, 0.55, 0.22, data.from)
         elseif kind == "shot" then
             if data.user ~= app.Player.UserId then
-                local heavy = data.weapon == "shotgun" or data.weapon == "double_barrel" or data.weapon == "revolver" or data.weapon == "hunting_rifle"
+                local heavy = table.find({"shotgun", "double_barrel", "revolver", "hunting_rifle", "magnum", "sniper_rifle", "lmg"}, data.weapon) ~= nil
                 local id = data.melee and app.Config.Audio.Melee or heavy and app.Config.Audio.HeavyShot or app.Config.Audio.Shot
                 play(id, data.melee and 0.82 or heavy and 0.78 or 1.08, data.melee and 0.3 or heavy and 0.46 or 0.25, data.from)
             end
         elseif kind == "impact" then play(app.Config.Audio.Impact, 0.78 + math.random() * 0.3, 0.25, data.from)
+        elseif kind == "grenade_throw" then play(app.Config.Audio.Melee, 1.25, 0.18, data.from)
+        elseif kind == "grenade_explosion" then play(app.Config.Audio.HeavyShot, data.concussion and 1.35 or 0.52, data.concussion and 0.45 or 0.75, data.from)
+        elseif kind == "grenade_burn" then play(app.Config.Audio.Impact, 0.58, 0.12, data.from)
         elseif kind == "zombie_voice" then play(app.Config.Audio.ZombieVoice, (data.tone or 1) * 0.82, data.boss and 0.48 or 0.3, data.from)
         elseif kind == "zombie_hurt" then play(app.Config.Audio.ZombieVoice, (data.tone or 1) * 1.08, 0.2, data.from)
         elseif kind == "zombie_death" then play(app.Config.Audio.ZombieVoice, (data.tone or 1) * 0.62, data.boss and 0.58 or 0.34, data.from)

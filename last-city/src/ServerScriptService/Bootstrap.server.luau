@@ -11,7 +11,7 @@ local function boot()
     ctx = {
         Sessions = {}, Services = {}, Remotes = assert(ReplicatedStorage:WaitForChild("Remotes", 10), "Remotes missing"),
         World = assert(workspace:WaitForChild("World", 10), "World missing"), Config = require(Shared.GameConfig),
-        Items = require(Shared.ItemDefinitions), Weapons = require(Shared.WeaponDefinitions),
+        Items = require(Shared.ItemDefinitions), Weapons = require(Shared.WeaponDefinitions), Grenades = require(Shared.GrenadeDefinitions),
         ZombieDefs = require(Shared.ZombieDefinitions), QuestDefs = require(Shared.QuestDefinitions),
         BuildingDefs = require(Shared.BuildingDefinitions), EconomyDefs = require(Shared.EconomyConfig), RecruitDefs = require(Shared.RecruitDefinitions),
         Factory = require(Shared.ModelFactory), Util = require(Domain.Util),

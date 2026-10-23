@@ -11,6 +11,7 @@ local Domain=nodes["ServerScriptService/Domain"]
 local Config=module("ReplicatedStorage/Shared/GameConfig.luau")
 local Items=module("ReplicatedStorage/Shared/ItemDefinitions.luau")
 local Weapons=module("ReplicatedStorage/Shared/WeaponDefinitions.luau")
+local Grenades=module("ReplicatedStorage/Shared/GrenadeDefinitions.luau")
 local BuildingDefs=module("ReplicatedStorage/Shared/BuildingDefinitions.luau")
 local QuestDefs=module("ReplicatedStorage/Shared/QuestDefinitions.luau")
 local EconomyDefs=module("ReplicatedStorage/Shared/EconomyConfig.luau")
@@ -47,6 +48,18 @@ test("keyboard 1 sends a server-authoritative crowbar toggle on every press",fun
     input.InputBegan:Fire({KeyCode=Enum.KeyCode.One,UserInputType=Enum.UserInputType.Keyboard},false)
     eq(app.Remotes.InventoryRemote.LastPayload.action,"toggleCrowbar")
 end)
+test("HUD renders six saved quick slots and keyboard 2 through 6 activates their server index",function()
+    eq(#app.QuickButtons,Config.QuickSlots); local medkit
+    for _,entry in app.State.campaign.Inventory do if entry.id=="medkit" then medkit=entry end end; assert(medkit)
+    for index=2,6 do app.State.campaign.QuickSlots[index]=medkit.uid end
+    app:UpdateHUD(); assert(app.QuickButtons[6].Text:find("6") and app.QuickButtons[6].Text:find(Items.medkit.name))
+    local input=game:GetService("UserInputService"); local keys={Enum.KeyCode.Two,Enum.KeyCode.Three,Enum.KeyCode.Four,Enum.KeyCode.Five,Enum.KeyCode.Six}
+    for index,key in keys do
+        input.InputBegan:Fire({KeyCode=key,UserInputType=Enum.UserInputType.Keyboard},false)
+        eq(app.Remotes.InventoryRemote.LastPayload.action,"quick"); eq(app.Remotes.InventoryRemote.LastPayload.index,index+1); assert(typeof(app.Remotes.InventoryRemote.LastPayload.aim)=="Vector3")
+    end
+    for index=2,6 do app.State.campaign.QuickSlots[index]="" end; app:UpdateHUD()
+end)
 for _,name in {"inventory","quests","tutorial","build","base","craft","cosmetics","trade","weapons","profile","achievements","settings","updates","map"} do
     test("construct panel "..name,function() app:OpenPanel(name); assert(#app.Body:GetChildren()>1); app:RefreshPanel(); app:ClosePanel(); eq(app.PanelName,nil) end)
 end
@@ -59,6 +72,13 @@ test("NPC dialogue builds viewport and all reply branches",function()
 end)
 test("every building preview contains real parts and pivots",function()
     for id,def in BuildingDefs do local m=Factory.building(id,def,CFrame.new()); assert(m.PrimaryPart); assert(#m:GetDescendants()>2) end
+end)
+test("expanded swords and firearms create distinct usable tool geometry",function()
+    local details={short_sword="SwordBlade",saber="SwordGuard",longsword="SwordTip",katana="KatanaWrap",machine_pistol="ExtendedMagazine",magnum="Cylinder",carbine="Handguard",sniper_rifle="Scope",lmg="LeftBipod"}
+    for id,detail in details do
+        local tool=Factory.weapon(id); assert(tool:FindFirstChild("Handle") and tool:FindFirstChild(detail),id); assert(#tool:GetChildren()>=4)
+        eq(tool:GetAttribute("Melee"),Weapons[id].melee==true); tool:Destroy()
+    end
 end)
 test("placing ghost checks ownership and emits snapped coordinates",function()
     app:ClosePanel(); player.Character.HumanoidRootPart.CFrame=CFrame.new(-144,3,-252)
@@ -118,10 +138,32 @@ test("authoritative hit confirmation shows marker and pooled damage number",func
     eq(app.HitMarker.Visible,true); eq(app.HitMarker.Text,"✦")
     app.Remotes.EffectsRemote.OnClientEvent:Fire("player_hurt",{damage=5,absorbed=0,damageType="melee"})
 end)
+test("farm payout rises smoothly above the bed as exact plus ten CASH",function()
+    app.Remotes.EffectsRemote.OnClientEvent:Fire("farm_cash",{amount=10,position=Vector3.new(20,2,30),uid="b1"})
+    local found=false
+    for _,node in app.Effects.Folder:GetDescendants() do if node:IsA("TextLabel") and node.Text=="+10 CASH" then found=true; eq(math.floor(node.TextColor3.R*255+0.5),112); break end end
+    assert(found)
+end)
+test("client uses a bounded pooled visible blast for grenade effects",function()
+    app.Remotes.EffectsRemote.OnClientEvent:Fire("grenade_explosion",{from=Vector3.new(8,2,-20),radius=12,incendiary=false})
+    local found=false; for _,node in app.Effects.Folder:GetChildren() do if node.Name=="GrenadeBlast" and node.Size.X==24 then found=true; break end end
+    assert(found); app.Remotes.EffectsRemote.OnClientEvent:Fire("grenade_burn",{from=Vector3.new(8,2,-20),radius=14})
+end)
+test("client wood pile grows in bounded layers with saved stock",function()
+    local world=Engine.add(workspace,"Folder","World"); local cities=Engine.add(world,"Folder","Cities")
+    local shelter=Engine.add(cities,"Model","01_MeridianShelter"); local depot=Engine.add(shelter,"Model","WoodDepot")
+    local origin=Engine.add(depot,"Part","PileOrigin"); origin.CFrame=CFrame.new(45,0.7,-149)
+    local fake={State={campaign={Stockpile={wood=20}}},Config=Config}
+    local storage=module("StarterPlayer/StarterPlayerScripts/Controllers/WoodStorageController.luau")(fake)
+    storage:Refresh(); eq(storage.Count,2); assert(storage.Label.Text:find("20"))
+    fake.State.campaign.Stockpile.wood=71; storage:Refresh(); eq(storage.Count,8); eq(#storage.Model.Boards:GetChildren(),8); assert(storage.Label.Text:find("71"))
+    fake.State.campaign.Stockpile.wood=9999; storage:Refresh(); assert(storage.Count<=Config.MaxBuildings)
+    storage.Model:Destroy(); world:Destroy()
+end)
 
 local function context()
     local p=Profile.new()
-    local ctx={Sessions={},Services={},Config=Config,Items=Items,Weapons=Weapons,BuildingDefs=BuildingDefs,QuestDefs=QuestDefs,EconomyDefs=EconomyDefs,RecruitDefs=RecruitDefs,Util=Util,Inventory=Inventory,Profile=Profile,Quests=Quests,Progression=Progression,Factory=Factory,Notices={},NearNPC=true,NearPlot=true}
+    local ctx={Sessions={},Services={},Config=Config,Items=Items,Weapons=Weapons,Grenades=Grenades,BuildingDefs=BuildingDefs,QuestDefs=QuestDefs,EconomyDefs=EconomyDefs,RecruitDefs=RecruitDefs,Util=Util,Inventory=Inventory,Profile=Profile,Quests=Quests,Progression=Progression,Factory=Factory,Notices={},NearNPC=true,NearPlot=true}
     ctx.Lease=module("ServerScriptService/Domain/Lease.luau"); ctx.RateLimiter=module("ServerScriptService/Domain/RateLimiter.luau")
     ctx.Building=module("ServerScriptService/Domain/Building.luau")(BuildingDefs,Inventory,Config,Util)
     ctx.Economy=module("ServerScriptService/Domain/Economy.luau")(BuildingDefs,EconomyDefs,Inventory,Util)
@@ -136,7 +178,7 @@ local function context()
     function ctx:LineOfSight() return true end
     function ctx:Changed() s.Data.Revision+=1 end
     function ctx:Notify(_,text,kind) table.insert(self.Notices,text) end
-    function ctx:FX(kind,payload) self.LastFX=payload end
+    function ctx:FX(kind,payload) self.LastFXKind=kind; self.LastFX=payload end
     ctx.Services.NPCService={Near=function() return ctx.NearNPC end}
     ctx.Services.NetworkService=module("ServerScriptService/Services/NetworkService.luau")(ctx)
     ctx.Services.CombatService={SyncTool=function() ctx.ToolSync=true end}
@@ -166,9 +208,50 @@ end)
 test("remote burst rate limiter bounds callback execution",function() local ctx=context(); local n=0; ctx.Services.NetworkService:Register("InventoryRemote",true,function() n+=1 end); for _=1,100 do request(ctx,"InventoryRemote",{action="sort"}) end; assert(n<=8); assert(n>0) end)
 test("inventory adapter rejects remote stock access outside own base",function() local ctx,s=context(); ctx.NearPlot=false; local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); local before=s.Campaign.Stockpile.metal; request(ctx,"InventoryRemote",{action="withdraw",id="metal",count=5}); eq(s.Campaign.Stockpile.metal,before) end)
 test("inventory adapter use consumes exactly one real medkit",function() local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); player.Character.Humanoid.Health=20; local uid; for _,e in s.Campaign.Inventory do if e.id=="medkit" then uid=e.uid end end; request(ctx,"InventoryRemote",{action="use",uid=uid}); eq(player.Character.Humanoid.Health,80); eq(Inventory.count(s.Campaign,"medkit"),1) end)
+test("equip atomically fills the first empty quick slot and explicit clear removes it",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{pistol=1})); local pistol
+    for _,entry in s.Campaign.Inventory do if entry.id=="pistol" then pistol=entry end end
+    request(ctx,"InventoryRemote",{action="equip",uid=pistol.uid}); eq(s.Campaign.Equipped,pistol.uid); eq(s.Campaign.QuickSlots[2],pistol.uid); assert(ctx.ToolSync)
+    request(ctx,"InventoryRemote",{action="quickClear",index=2}); eq(s.Campaign.QuickSlots[2],""); eq(s.Campaign.Equipped,pistol.uid)
+end)
+test("server rejects resources and slot one removal through quick-slot actions",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{wood=1})); local wood
+    for _,entry in s.Campaign.Inventory do if entry.id=="wood" then wood=entry end end
+    request(ctx,"InventoryRemote",{action="slot",uid=wood.uid}); eq(Inventory.quickIndex(s.Campaign,wood.uid),nil)
+    local crowbar=s.Campaign.QuickSlots[1]; request(ctx,"InventoryRemote",{action="quickClear",index=1}); eq(s.Campaign.QuickSlots[1],crowbar)
+end)
+test("quick consumable activation removes its saved slot reference when the stack ends",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); local medkit
+    for _,entry in s.Campaign.Inventory do if entry.id=="medkit" then medkit=entry end end; medkit.count=1; player.Character.Humanoid.Health=20
+    request(ctx,"InventoryRemote",{action="slot",uid=medkit.uid}); eq(s.Campaign.QuickSlots[2],medkit.uid)
+    request(ctx,"InventoryRemote",{action="quick",index=2}); eq(player.Character.Humanoid.Health,80); eq(Inventory.count(s.Campaign,"medkit"),0); eq(s.Campaign.QuickSlots[2],"")
+end)
 test("energy drink is a real stamina consumable",function() local ctx,s=context(); local service=module("ServerScriptService/Services/InventoryService.luau")(ctx); service:Init(); assert(Inventory.grant(s.Campaign,{energy_drink=1})); local uid; for _,e in s.Campaign.Inventory do if e.id=="energy_drink" then uid=e.uid end end; s.Stamina=20; request(ctx,"InventoryRemote",{action="use",uid=uid}); eq(s.Stamina,75); eq(Inventory.count(s.Campaign,"energy_drink"),0) end)
+test("first-city wood depot atomically moves carried wood into saved stock",function()
+    local ctx,s=context(); local service=module("ServerScriptService/Services/ResourceService.luau")(ctx)
+    local terminal=Engine.add(workspace,"Part","WoodDepotTerminal"); terminal.CFrame=player.Character.HumanoidRootPart.CFrame
+    assert(Inventory.grant(s.Campaign,{wood=12})); local before=s.Campaign.Stockpile.wood
+    local prompt=service:WoodDepot(terminal); prompt.Triggered:Fire(player)
+    eq(Inventory.count(s.Campaign,"wood"),0); eq(s.Campaign.Stockpile.wood,before+12); assert(ctx.Notices[#ctx.Notices]:find("Куча стала больше"))
+    prompt.Triggered:Fire(player); eq(s.Campaign.Stockpile.wood,before+12)
+    assert(Inventory.grant(s.Campaign,{wood=4})); player.Character.HumanoidRootPart.CFrame=CFrame.new(100,3,100)
+    prompt.Triggered:Fire(player); eq(Inventory.count(s.Campaign,"wood"),4); eq(s.Campaign.Stockpile.wood,before+12)
+    player.Character.HumanoidRootPart.CFrame=CFrame.new(0,3,-106); terminal:Destroy()
+end)
 test("building adapter refuses placement on another plot",function() local ctx,s=context(); ctx.NearPlot=false; ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,0); eq(s.Campaign.Cash,200) end)
 test("building adapter creates a model and charges resources",function() local ctx,s=context(); ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx); ctx.Services.BuildingService:Init(); request(ctx,"BuildRemote",{action="place",id="wall",x=0,z=0,r=0}); eq(#s.Campaign.Buildings,1); eq(s.Campaign.Cash,190); assert(ctx.Services.BuildingService.Models[player].b1); eq(ctx.Services.BuildingService.Models[player].b1:GetAttribute("Owner"),player.UserId) end)
+test("farm service pays exact online Survival Cash once per second and emits owner-only world text",function()
+    local ctx,s=context(); table.insert(s.Campaign.Buildings,{uid="b_cash",id="farm",x=8,z=-8,r=0,hp=140,readyAt=50,carry={}})
+    ctx.Services.BuildingService={Position=function() return Vector3.new(24,0,-44) end}
+    local service=module("ServerScriptService/Services/EconomyService.luau")(ctx)
+    local cash,coins=s.Campaign.Cash,s.Data.Coins
+    eq(service:PayFarmIncome(player,s,100,10),10); eq(s.Campaign.Cash,cash+10); eq(s.Data.Coins,coins)
+    eq(ctx.Remotes.EffectsRemote.LastClient.player,player); eq(ctx.Remotes.EffectsRemote.LastClient.kind,"farm_cash")
+    eq(ctx.Remotes.EffectsRemote.LastClient.payload.amount,10); eq(ctx.Remotes.EffectsRemote.LastClient.payload.uid,"b_cash")
+    eq(service:PayFarmIncome(player,s,100,10.5),0); eq(s.Campaign.Cash,cash+10)
+    eq(service:PayFarmIncome(player,s,101,11),10); eq(s.Campaign.Cash,cash+20)
+    s.Active=false; eq(service:PayFarmIncome(player,s,102,12),0); eq(s.Campaign.Cash,cash+20)
+end)
 test("builder atomically pays real inventory and stock then auto-selects a valid footprint",function()
     local ctx,s=context(); ctx.Services.NPCService.Evacuate=function() ctx.Evacuated=true end
     ctx.Services.BuildingService=module("ServerScriptService/Services/BuildingService.luau")(ctx)
@@ -231,12 +314,60 @@ test("shotgun fires seven server rays and reloads only shells",function()
     s.NextShot=0; ctx.Services.CombatService:Reload(player,s); local delay=Engine.task.delayed[#Engine.task.delayed]; delay.callback()
     eq(gun.ammo,5); eq(Inventory.count(s.Campaign,"shells"),4); eq(Inventory.count(s.Campaign,"ammo"),16)
 end)
+test("quick-slot frag grenade is consumed once, cooldown-blocked and applies server falloff damage",function()
+    local ctx,s=combatContext(); assert(Inventory.grant(s.Campaign,{frag_grenade=2})); local grenade
+    for _,entry in s.Campaign.Inventory do if entry.id=="frag_grenade" then grenade=entry end end
+    local model,humanoid=Factory.rig("GrenadeTarget",CFrame.new(0,3,-112),Color3.fromRGB(70,90,70),Color3.fromRGB(80,90,80),1,"zombie_walker"); model.Parent=workspace
+    local zombie={id=9,kind="walker",model=model,humanoid=humanoid,dead=false,credits={}}; ctx.Services.ZombieService.Zombies={[9]=zombie}
+    ctx.Services.ZombieService.Damage=function(_,_,amount) ctx.Damage=(ctx.Damage or 0)+amount; return amount,false end
+    local inventory=module("ServerScriptService/Services/InventoryService.luau")(ctx); inventory:Init()
+    request(ctx,"InventoryRemote",{action="slot",uid=grenade.uid}); eq(s.Campaign.QuickSlots[2],grenade.uid)
+    request(ctx,"InventoryRemote",{action="quick",index=2,aim=Vector3.new(0,0,-1),damage=999999,radius=999999}); eq(Inventory.count(s.Campaign,"frag_grenade"),1)
+    request(ctx,"InventoryRemote",{action="quick",index=2,aim=Vector3.new(0,0,-1)}); eq(Inventory.count(s.Campaign,"frag_grenade"),1)
+    local fuse=Engine.task.delayed[#Engine.task.delayed]; eq(fuse.seconds,Grenades.frag.fuse); fuse.callback()
+    assert(ctx.Damage>0 and ctx.Damage<=Grenades.frag.damage); eq(ctx.LastFXKind,"grenade_explosion"); assert(player.Character.Humanoid.Health<100); model:Destroy()
+end)
+test("incendiary grenade burns repeatedly while concussion grenade gives a bounded real stun",function()
+    local ctx,s=combatContext(); local model,humanoid=Factory.rig("EffectTarget",CFrame.new(0,3,-108),Color3.fromRGB(70,90,70),Color3.fromRGB(80,90,80),1,"zombie_walker"); model.Parent=workspace
+    local zombie={id=10,kind="walker",model=model,humanoid=humanoid,dead=false,credits={}}; ctx.Services.ZombieService.Zombies={[10]=zombie}
+    ctx.Services.ZombieService.Damage=function(_,_,amount) ctx.Damage=(ctx.Damage or 0)+amount; return amount,false end
+    ctx.Services.CombatService:DetonateGrenade(player,Grenades.incendiary,model.PrimaryPart.Position); local initial=ctx.Damage; assert(initial>0)
+    local burn=Engine.task.delayed[#Engine.task.delayed]; eq(burn.seconds,Grenades.incendiary.burnInterval); burn.callback(); assert(ctx.Damage>initial); eq(ctx.LastFXKind,"grenade_burn")
+    ctx.Services.CombatService:DetonateGrenade(player,Grenades.concussion,model.PrimaryPart.Position); assert(zombie.stunnedUntil>os.clock()); eq(ctx.LastFXKind,"grenade_explosion"); model:Destroy()
+end)
 test("purchasable armor reduces zombie damage and loses durability",function()
     local ctx,s=combatContext(); ctx.Services.CombatService:Hurt(player,5); eq(player.Character.Humanoid.Health,95)
     assert(Inventory.grant(s.Campaign,{heavy_vest=1})); local vest
     for _,entry in s.Campaign.Inventory do if entry.id=="heavy_vest" then vest=entry end end
     assert(Inventory.equip(s.Campaign,vest.uid)); ctx.Services.CombatService:Hurt(player,10)
     eq(player.Character.Humanoid.Health,88.5); eq(vest.durability,99.5)
+end)
+test("demolisher armor applies its real server-side explosive resistance",function()
+    local ctx,s=combatContext(); assert(Inventory.grant(s.Campaign,{demolisher_armor=1})); local armor
+    for _,entry in s.Campaign.Inventory do if entry.id=="demolisher_armor" then armor=entry end end; assert(Inventory.equip(s.Campaign,armor.uid))
+    player.Character.Humanoid.Health=100; ctx.Services.CombatService:Hurt(player,50,"grenade")
+    eq(player.Character.Humanoid.Health,84); eq(armor.durability,98.8)
+end)
+test("six new armor sets render distinct welded parts on an R15 player",function()
+    local ctx,s=context(); local combat=module("ServerScriptService/Services/CombatService.luau")(ctx)
+    local model=Factory.rig("ArmoredPlayer",CFrame.new(0,3,-106),Color3.fromRGB(65,72,70),Color3.fromRGB(180,140,120)); model.Parent=workspace
+    local expected={courier_armor="CourierStripe",engineer_armor="EngineerPowerPack",frontier_armor="FrontierHelmet",bastion_armor="BastionVisor",ranger_armor="RangerHood",demolisher_armor="DemolisherHelmet"}
+    for id,partName in expected do
+        assert(Inventory.grant(s.Campaign,{[id]=1})); local entry
+        for _,candidate in s.Campaign.Inventory do if candidate.id==id then entry=candidate end end
+        assert(entry and Inventory.equip(s.Campaign,entry.uid)); combat:SyncArmor(player,s,model)
+        assert(model:FindFirstChild("ArmorChest")); assert(model:FindFirstChild(partName),id); assert(model:FindFirstChild(partName):GetAttribute("LastCityArmor"))
+        assert(Inventory.takeUid(s.Campaign,entry.uid,1))
+    end
+    combat:SyncArmor(player,s,model); eq(model:FindFirstChild("ArmorChest"),nil); model:Destroy()
+end)
+test("Victor repairs armor with authoritative Cash and metal costs",function()
+    local ctx,s=combatContext(); assert(Inventory.grant(s.Campaign,{engineer_armor=1})); local armor
+    for _,entry in s.Campaign.Inventory do if entry.id=="engineer_armor" then armor=entry end end
+    assert(Inventory.equip(s.Campaign,armor.uid)); armor.durability=50
+    local cash,metal=s.Campaign.Cash,s.Campaign.Stockpile.metal
+    request(ctx,"CombatRemote",{action="repair",uid=armor.uid})
+    eq(armor.durability,100); eq(s.Campaign.Cash,cash-25); eq(s.Campaign.Stockpile.metal,metal-3)
 end)
 test("quest-unlocked military fireteam has armor rifles commands and real expedition output",function()
     local ctx,s=context(); ctx.World.NPCSpawns=Engine.add(workspace,"Folder","SquadNPCs")
@@ -371,6 +502,51 @@ test("GetDataStore constructor failure is protected and live sessions fail close
     local ctx,s,save=saveContext(); game:GetService("RunService").Studio=false; game:GetService("DataStoreService").FailGet=true
     local loaded,err=save:Load(player); eq(loaded,nil); assert(err); eq(Engine.Store.calls,0)
     game:GetService("RunService").Studio=true; game:GetService("DataStoreService").FailGet=false
+end)
+local function characterRecoveryCase(kind, failLoad)
+    local original=player.Character; local broken
+    if kind=="missing" then player.Character=nil
+    else
+        original.Parent=nil
+        broken=Engine.newCharacter("BrokenCharacter",{missingRoot=kind=="root",dead=kind=="dead"})
+        player.Character=broken
+    end
+    player.LoadCharacterCalls=0; player.LoadCharacterFailure=failLoad and "simulated avatar load failure" or nil
+    local ctx,s=context(); s.Active=false; local syncs,changes=0,0
+    ctx.Services.CombatService={SyncTool=function() syncs+=1 end}
+    function ctx:Changed() changes+=1; s.Data.Revision+=1 end
+    local service=module("ServerScriptService/Services/PlayerDataService.luau")(ctx)
+    local queuedBefore=#Engine.task.queued
+    return ctx,s,service,function()
+        local work=assert(Engine.task.queued[queuedBefore+1]); table.remove(Engine.task.queued,queuedBefore+1)
+        work.callback(table.unpack(work.args)); return syncs,changes
+    end,function()
+        local current=player.Character
+        if current and current~=original then current:Destroy() end
+        original.Parent=workspace; original.Humanoid.Health=100; player.Character=original
+        player.LoadCharacterFailure=nil; player.LoadCharacterCalls=0; player.CharacterAdded:Fire(original)
+    end,queuedBefore
+end
+test("missing character queues one recovery for repeated Play clicks then enters once",function()
+    local ctx,s,service,run,cleanup,before=characterRecoveryCase("missing",false)
+    service:Start(player,s); service:Start(player,s); service:Start(player,s)
+    eq(#Engine.task.queued,before+1); eq(#ctx.Notices,1); eq(s.StartPending,true)
+    local syncs,changes=run(); eq(player.LoadCharacterCalls,1); eq(s.Active,true); eq(s.StartPending,nil)
+    eq(syncs,1); eq(changes,1); eq(player.Character.HumanoidRootPart.Anchored,false); eq(player:GetAttribute("LastCityCharacterPhase"),"Active")
+    cleanup()
+end)
+test("character missing HumanoidRootPart is replaced and Play completes",function()
+    local _,s,service,run,cleanup=characterRecoveryCase("root",false)
+    service:Start(player,s); run(); eq(player.LoadCharacterCalls,1); eq(s.Active,true); assert(player.Character.HumanoidRootPart); cleanup()
+end)
+test("dead Humanoid is authoritatively respawned before Play completes",function()
+    local _,s,service,run,cleanup=characterRecoveryCase("dead",false)
+    service:Start(player,s); run(); eq(player.LoadCharacterCalls,1); eq(s.Active,true); eq(player.Character.Humanoid.Health,100); cleanup()
+end)
+test("failed character recovery keeps menu retryable and exposes diagnostic state",function()
+    local ctx,s,service,run,cleanup=characterRecoveryCase("missing",true)
+    service:Start(player,s); run(); eq(player.LoadCharacterCalls,1); eq(s.Active,false); eq(s.StartPending,nil)
+    eq(player:GetAttribute("LastCityCharacterPhase"),"Failed"); eq(#ctx.Notices,2); assert(ctx.Notices[2]:find("LC_CHARACTER_RECOVERY")); cleanup()
 end)
 local server
 local serverSession

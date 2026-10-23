@@ -155,14 +155,32 @@ M.service("ReplicatedStorage"); M.service("ReplicatedFirst"); M.service("ServerS
 local players=M.service("Players"); M.Player=M.add(players,"Player","Tester"); players.LocalPlayer=M.Player
 M.Player.UserId=123; M.Player.DisplayName="Тестовый выживший"; M.Player.CameraMinZoomDistance=7
 M.add(M.Player,"PlayerGui","PlayerGui"); M.add(M.Player,"PlayerScripts","PlayerScripts")
-local character=M.add(M.workspace,"Model","Character"); M.Player.Character=character
-M.add(character,"Part","HumanoidRootPart").CFrame=M.CFrame.new(0,3,-106)
-M.add(character,"Part","Head").CFrame=M.CFrame.new(0,4.5,-106)
-M.add(character,"Humanoid","Humanoid")
-character.PrimaryPart=character.HumanoidRootPart
+function M.newCharacter(name, options)
+    options=options or {}
+    local character=M.add(M.workspace,"Model",name or "Character")
+    if not options.missingRoot then M.add(character,"Part","HumanoidRootPart").CFrame=M.CFrame.new(0,3,-106) end
+    M.add(character,"Part","Head").CFrame=M.CFrame.new(0,4.5,-106)
+    if not options.missingHumanoid then
+        local humanoid=M.add(character,"Humanoid","Humanoid"); humanoid.Health=options.dead and 0 or 100
+    end
+    character.PrimaryPart=character:FindFirstChild("HumanoidRootPart")
+    return character
+end
+local character=M.newCharacter("Character"); M.Player.Character=character
 M.add(M.Player,"Backpack","Backpack")
 function players:GetPlayers() return {M.Player} end
 function M.Player:Kick(message) self.Kicked=message end
+function M.Player:LoadCharacterAsync()
+    self.LoadCharacterCalls=(self.LoadCharacterCalls or 0)+1
+    if self.LoadCharacterFailure then error(self.LoadCharacterFailure) end
+    local old=self.Character
+    local replacement=M.newCharacter("Character")
+    self.Character=replacement
+    if old then old.Parent=nil end
+    self.CharacterAdded:Fire(replacement)
+    return replacement
+end
+function M.Player:LoadCharacter() return self:LoadCharacterAsync() end
 local input=M.service("UserInputService"); input.TouchEnabled=false
 function input:GetFocusedTextBox() return nil end
 function input:GetMouseLocation() return M.Vector2.new(640,396) end

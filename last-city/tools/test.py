@@ -43,9 +43,10 @@ run(['node',GAME/'tools/build.mjs'])
 assert artifact.read_bytes()==first,'Non-deterministic place build'
 print('PASSED | BUILD deterministic identical binary across two builds')
 summary={
-    'version':'0.6.0','serialization':{'status':'PASSED','count':int(re.search(r'# pass (\d+)',serialization)[1])},
+    'version':'0.6.1','serialization':{'status':'PASSED','count':int(re.search(r'# pass (\d+)',serialization)[1])},
     'previous_studio_import':{'version':'0.1.0','status':'FAILED','evidence':'User screenshot: Error while decoding data: unexpected end at offset 2'},
-    'studio_import':{'version':'0.6.0','status':'NOT TESTED'},
+    'studio_import':{'version':'0.6.1','status':'NOT TESTED'},
+    'studio_import_0_6_0':{'status':'FAILED','evidence':'User screenshot: menu loaded, but Play repeatedly returned the server character-loading notice'},
     'studio_import_0_5_0':{'status':'NOT TESTED'},
     'studio_import_0_4_0':{'status':'NOT TESTED'},
     'studio_import_0_3_0':{'status':'PASSED','evidence':'User screenshots show the released scene running in Studio with an E dialogue prompt; the user also reported visual/runtime defects'},

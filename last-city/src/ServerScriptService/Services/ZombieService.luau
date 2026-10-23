@@ -183,6 +183,9 @@ return function(ctx)
     function Service:Step(z)
         if z.dead or not z.model.Parent then return end
         local root = z.model.PrimaryPart; local def = ctx.ZombieDefs[z.kind]
+        if os.clock() < (z.stunnedUntil or 0) then
+            z.humanoid:MoveTo(root.Position); z.model:SetAttribute("State", "ZombieStunned"); return
+        end
         local targetPlayer, targetSquad, targetRecruit, distance = nil, nil, nil, def.aggro or 110
         for player, s in ctx.Sessions do
             local pr = ctx:Root(player)

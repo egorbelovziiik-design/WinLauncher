@@ -24,11 +24,16 @@ return function(app)
     app.HealthBar = UI.bar(bars, "ЗДОРОВЬЕ", T.success, 0, 235)
     app.StaminaBar = UI.bar(bars, "ВЫНОСЛИВОСТЬ", T.accent, 34, 235)
     app.SurvivalLabel = UI.label(bars, "", 11, {Position = UDim2.fromOffset(0, 76), Size = UDim2.fromOffset(260, 24), TextColor3 = T.muted})
-    local equipment = UI.frame(hud, {AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -18, 1, -51), Size = UDim2.fromOffset(250, 94), BackgroundTransparency = 0.1}); UI.corner(equipment)
-    app.EquipmentTitle = UI.label(equipment, "ЛОМ", 16, {Position = UDim2.fromOffset(14, 10), Size = UDim2.fromOffset(224, 23), Font = Enum.Font.GothamBold})
-    app.AmmoLabel = UI.label(equipment, "", 12, {Position = UDim2.fromOffset(14, 37), Size = UDim2.fromOffset(224, 20), TextColor3 = T.muted})
-    for index, name in {"1  Лом", "2  Пист.", "3  Лечить"} do
-        UI.button(equipment, name, function() app:QuickSlot(index) end, {Position = UDim2.new((index - 1) / 3, 8, 0, 63), Size = UDim2.new(1 / 3, -12, 0, 24), TextSize = 10})
+    local equipment = UI.frame(hud, {AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -18, 1, -51), Size = UDim2.fromOffset(300, 126), BackgroundTransparency = 0.1}); UI.corner(equipment)
+    app.EquipmentTitle = UI.label(equipment, "БЕЗ ОРУЖИЯ", 16, {Position = UDim2.fromOffset(14, 10), Size = UDim2.new(1, -28, 0, 23), Font = Enum.Font.GothamBold})
+    app.AmmoLabel = UI.label(equipment, "", 12, {Position = UDim2.fromOffset(14, 37), Size = UDim2.new(1, -28, 0, 20), TextColor3 = T.muted})
+    app.QuickButtons = {}
+    for index = 1, app.Config.QuickSlots do
+        local row = math.floor((index - 1) / 3); local column = (index - 1) % 3
+        local button = UI.button(equipment, index .. "  ПУСТО", function() app:QuickSlot(index) end, {
+            Position = UDim2.new(column / 3, 8, 0, 63 + row * 29), Size = UDim2.new(1 / 3, -12, 0, 24), TextSize = 9,
+        })
+        button.TextWrapped = true; app.QuickButtons[index] = button
     end
     local hotbar = UI.frame(hud, {AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -15), Size = UDim2.fromOffset(526, 29), BackgroundTransparency = 1}); UI.list(hotbar, 6, true)
     for _, entry in {{"K  Рюкзак", "inventory"}, {"J  Квесты", "quests"}, {"B  Стройка", "build"}, {"G  База", "base"}, {"M  Карта", "map"}, {"⚙", "settings"}} do
@@ -62,7 +67,7 @@ return function(app)
             bars.Position = UDim2.new(0, 20, 1, -190)
             equipment.Position = UDim2.new(1, -18, 1, -190)
         end
-        equipment.Size = UDim2.fromOffset(compact and 210 or 250, 94)
+        equipment.Size = UDim2.fromOffset(compact and 255 or 300, 126)
         if compact then
             bars.Size = UDim2.fromOffset(190, 108)
             self.HealthBar.fill.Parent.Size = UDim2.fromOffset(175, 4); self.StaminaBar.fill.Parent.Size = UDim2.fromOffset(175, 4)

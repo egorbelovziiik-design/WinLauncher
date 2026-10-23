@@ -4,6 +4,14 @@ return function(ctx)
     local TeleportService = game:GetService("TeleportService")
     local RunService = game:GetService("RunService")
     local Service = {}
+    local function characterParts(player)
+        local character = player.Character
+        if not character or not character.Parent then return nil, nil, nil end
+        return character, character:FindFirstChildOfClass("Humanoid"), character:FindFirstChild("HumanoidRootPart")
+    end
+    local function currentSession(player, s)
+        return ctx.Sessions[player] == s and player.Parent and s.Loaded and not s.Closing and not s.Frozen
+    end
     function Service:Snapshot(player)
         local s = ctx.Sessions[player]
         if not s or not s.Loaded or not player.Parent then return end
@@ -21,12 +29,33 @@ return function(ctx)
             weather = ctx.Services.WorldService.Weather, raid = s.Raid or "Спокойно", shop = ctx.Services.ShopService:Stock(), scout = s.ScoutPing,
         })
     end
+    function Service:FinishStart(player, s, character, h, root)
+        if not currentSession(player, s) then return false end
+        local current, currentHumanoid, currentRoot = characterParts(player)
+        character = character or current; h = h or currentHumanoid; root = root or currentRoot
+        if current ~= character or currentHumanoid ~= h or currentRoot ~= root or not h or h.Health <= 0 or not root then return false end
+        s.StartPending = nil
+        if s.Active then return true end
+        s.Active = true; s.Campaign.Started = true
+        root.Anchored = false; h.Health = h.MaxHealth
+        local shield = character:FindFirstChild("MenuShield"); if shield then shield:Destroy() end
+        player:SetAttribute("LastCityCharacterPhase", "Active")
+        ctx.Services.CombatService:SyncTool(player)
+        ctx:Changed(player)
+        return true
+    end
     function Service:Character(player, character)
         local h = character:WaitForChild("Humanoid", 10)
         local root = character:WaitForChild("HumanoidRootPart", 10)
         if not h or not root then return end
         local s = ctx.Sessions[player]
-        if not s then return end
+        if not s or ctx.Sessions[player] ~= s then return end
+        if s.CharacterModel == character then
+            if s.StartPending then self:FinishStart(player, s, character, h, root) end
+            return
+        end
+        if s.CharacterDiedConnection then s.CharacterDiedConnection:Disconnect() end
+        s.CharacterModel = character
         if s.Traveling then
             -- Reset/respawn cancels the old server token. Without this, the replacement
             -- character could be teleported by a stale flight and active remotes stay locked.
@@ -39,17 +68,23 @@ return function(ctx)
         root.Anchored = not s.Active
         local shield = character:FindFirstChild("MenuShield")
         if not s.Active and not shield then shield = Instance.new("ForceField"); shield.Name = "MenuShield"; shield.Visible = false; shield.Parent = character end
-        h.Died:Connect(function()
+        player:SetAttribute("LastCityCharacterPhase", s.Active and "Active" or "MenuReady")
+        s.CharacterDiedConnection = h.Died:Connect(function()
+            -- Ignore a delayed event from a character which has already been replaced.
+            if ctx.Sessions[player] ~= s or player.Character ~= character then return end
             s.Commander = false; s.Reloading = nil; s.Stamina = 100
             if s.Traveling then
                 s.Traveling = nil
                 if root.Parent then root.Anchored = false end
                 ctx.Remotes.StateRemote:FireClient(player, "travel", {phase = "arrive", canceled = true})
             end
-            s.Campaign.Hunger = math.max(s.Campaign.Hunger, 35); s.Campaign.Thirst = math.max(s.Campaign.Thirst, 35)
+            if s.Campaign then
+                s.Campaign.Hunger = math.max(s.Campaign.Hunger, 35); s.Campaign.Thirst = math.max(s.Campaign.Thirst, 35)
+            end
             ctx:Notify(player, "Вас доставили в убежище. Инвентарь сохранён.", "info")
         end)
-        if s.Active then ctx.Services.CombatService:SyncTool(player) end
+        if s.StartPending then self:FinishStart(player, s, character, h, root)
+        elseif s.Active then ctx.Services.CombatService:SyncTool(player) end
     end
     function Service:JoinInternal(player)
         if ctx.Closing then player:Kick("Сервер закрывается"); return end
@@ -96,17 +131,60 @@ return function(ctx)
             warn("[LastCity LC_JOIN] " .. tostring(err))
         end
     end
+    function Service:RecoverStart(player, s)
+        -- Give an in-flight automatic spawn a short window before requesting a replacement.
+        -- The loop runs only in this spawned recovery task; remote callbacks never yield.
+        for _ = 1, 20 do
+            if not currentSession(player, s) or s.Active then return end
+            local character, h, root = characterParts(player)
+            if character and h and root and h.Health > 0 then
+                self:Character(player, character)
+                if self:FinishStart(player, s, character, h, root) then return end
+            end
+            task.wait(0.1)
+        end
+        if not currentSession(player, s) or s.Active then return end
+        player:SetAttribute("LastCityCharacterPhase", "Respawning")
+        local loaded, loadError = pcall(function()
+            if type(player.LoadCharacterAsync) == "function" then player:LoadCharacterAsync()
+            else player:LoadCharacter() end
+        end)
+        -- LoadCharacterAsync normally returns with a complete model, but polling also covers
+        -- automatic respawn winning the race or a CharacterAdded callback finishing first.
+        for _ = 1, 100 do
+            if not currentSession(player, s) or s.Active then return end
+            local character, h, root = characterParts(player)
+            if character and h and root and h.Health > 0 then
+                self:Character(player, character)
+                if self:FinishStart(player, s, character, h, root) then return end
+            end
+            task.wait(0.1)
+        end
+        if not currentSession(player, s) or s.Active then return end
+        s.StartPending = nil
+        player:SetAttribute("LastCityCharacterPhase", "Failed")
+        local character, h, root = characterParts(player)
+        warn(string.format("[LastCity LC_CHARACTER_RECOVERY] user=%d load=%s error=%s character=%s humanoid=%s health=%s root=%s",
+            player.UserId, tostring(loaded), tostring(loadError), tostring(character ~= nil), tostring(h ~= nil), tostring(h and h.Health), tostring(root ~= nil)))
+        ctx:Notify(player, "Не удалось восстановить персонажа. Нажмите ИГРАТЬ ещё раз; при повторе пришлите LC_CHARACTER_RECOVERY из Output.", "error")
+    end
     function Service:Start(player, s)
-        if s.Active then return end
-        local root = ctx:Root(player); local h = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if not root or not h or h.Health <= 0 then ctx:Notify(player, "Персонаж загружается. Попробуйте ещё раз."); return end
-        s.Active = true; s.Campaign.Started = true
-        root.Anchored = false; h.Health = h.MaxHealth
-        local shield = player.Character:FindFirstChild("MenuShield"); if shield then shield:Destroy() end
-        ctx.Services.CombatService:SyncTool(player)
-        ctx:Changed(player)
+        if s.Active or s.StartPending or not currentSession(player, s) then return end
+        local character, h, root = characterParts(player)
+        if character and h and root and h.Health > 0 then
+            if s.CharacterModel ~= character then self:Character(player, character) end
+            character, h, root = characterParts(player)
+            if self:FinishStart(player, s, character, h, root) then return end
+        end
+        s.StartPending = true
+        player:SetAttribute("LastCityCharacterPhase", "Recovering")
+        ctx:Notify(player, "Подготавливаем персонажа…", "info")
+        task.spawn(function() self:RecoverStart(player, s) end)
     end
     function Service:Init()
+        -- This place uses Roblox characters; force the engine lifecycle on even when a
+        -- downloaded place inherits a Studio setting with automatic loading disabled.
+        Players.CharacterAutoLoads = true
         Players.PlayerAdded:Connect(function(player) task.spawn(function() self:Join(player) end) end)
         Players.PlayerRemoving:Connect(function(player)
             local s = ctx.Sessions[player]

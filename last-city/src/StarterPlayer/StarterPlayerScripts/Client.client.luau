@@ -16,7 +16,7 @@ local function boot()
     app = {
         Player = Players.LocalPlayer, Remotes = ReplicatedStorage:WaitForChild("Remotes"),
         UI = require(Views.UI), Config = require(Shared.GameConfig), Items = require(Shared.ItemDefinitions),
-        Weapons = require(Shared.WeaponDefinitions), Quests = require(Shared.QuestDefinitions),
+        Weapons = require(Shared.WeaponDefinitions), Grenades = require(Shared.GrenadeDefinitions), Quests = require(Shared.QuestDefinitions),
         Buildings = require(Shared.BuildingDefinitions), Economy = require(Shared.EconomyConfig), Recruits = require(Shared.RecruitDefinitions),
         Factory = require(Shared.ModelFactory), Map = require(Views.MapView), Width = 1280, Height = 720,
         Notices = {}, InventoryFilter = "Все",
@@ -54,17 +54,16 @@ local function boot()
         for _, b in self.State.campaign.Buildings do if b.uid == uid then return b end end
         return nil
     end
+    function app:FindEntry(uid)
+        for _, entry in self.State and self.State.campaign.Inventory or {} do if entry.uid == uid then return entry end end
+        return nil
+    end
     function app:QuickSlot(index)
-        local id = index == 1 and "crowbar" or index == 2 and "pistol" or "medkit"
-        for _, e in self.State and self.State.campaign.Inventory or {} do
-            if e.id == id then
-                if index == 3 then self:Send("InventoryRemote", {action = "use", uid = e.uid})
-                elseif index == 1 then self:Send("InventoryRemote", {action = "toggleCrowbar"})
-                else self:Send("InventoryRemote", {action = "equip", uid = e.uid}) end
-                return
-            end
-        end
-        self:Toast("В рюкзаке нет: " .. self.Items[id].name)
+        if index == 1 then self:Send("InventoryRemote", {action = "toggleCrowbar"}); return end
+        local slots = self.State and self.State.campaign.QuickSlots or {}
+        local entry = self:FindEntry(slots[index])
+        if not entry then self:Toast("БЫСТРЫЙ СЛОТ " .. index .. " ПУСТ"); return end
+        self:Send("InventoryRemote", {action = "quick", index = index, aim = workspace.CurrentCamera.CFrame.LookVector})
     end
     function app:SaveText()
         if not self.State then return "ЗАГРУЗКА" end
@@ -176,6 +175,12 @@ local function boot()
         self.EquipmentTitle.Text = e and self.Items[e.id].name:upper() or "БЕЗ ОРУЖИЯ"
         self.AmmoLabel.Text = e and (self.Weapons[e.id].melee and "Ближний бой" or e.ammo .. " / " .. self.Weapons[e.id].magazine .. "  ·  запас " .. self:Count(self.Weapons[e.id].ammo or "ammo")) or "Экипируйте оружие: K"
         if e then self.AmmoLabel.Text ..= "  ·  " .. math.floor(e.durability) .. "%" end
+        for index, button in self.QuickButtons do
+            local uid = c.QuickSlots and c.QuickSlots[index]
+            local quick = self:FindEntry(uid); local active = quick and (c.Equipped == uid or c.Armor == uid)
+            button.Text = index .. "  " .. (quick and self.Items[quick.id].name or "ПУСТО")
+            button.BackgroundColor3 = active and T.accent or T.raised
+        end
         self.SaveLabel.Text = self:SaveText(); self.SaveLabel.TextColor3 = (s.save == "SessionOnly" or s.save == "Error") and T.danger or T.muted
         if s.save == "SessionOnly" then self.SaveLabel.TextColor3 = T.accent end
         local scout = s.scout
@@ -211,6 +216,7 @@ local function boot()
     app.Build = require(script.Parent.Controllers.BuildController)(app)
     app.Combat = require(script.Parent.Controllers.CombatController)(app)
     app.Effects = require(script.Parent.Controllers.EffectsController)(app)
+    app.WoodStorage = require(script.Parent.Controllers.WoodStorageController)(app)
     app.ActorAnimation = require(script.Parent.Controllers.ActorAnimationController)(app)
     local function onStateMessage(kind, data)
         if kind == "state" then
@@ -220,6 +226,7 @@ local function boot()
                 app:RefreshMiniMap()
             end
             app.Menu.Visible = not data.active; app.HUD.Visible = data.active
+            if app.WoodStorage then app.WoodStorage:Refresh() end
             app.PlayButton.Text = data.campaign.Started and "ПРОДОЛЖИТЬ                              →" or "ИГРАТЬ                                      →"
             if app.SoloNote then app.SoloButton.Visible = not data.studio; app.SoloNote.Visible = data.studio end
             app:ApplySettings(); app:UpdateHUD()

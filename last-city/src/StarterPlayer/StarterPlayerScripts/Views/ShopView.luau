@@ -43,18 +43,27 @@ function View.trade(app, body)
 end
 function View.weapons(app, body)
     local UI = app.UI
-    UI.paragraph(body, "Обслуживание у Виктора. Улучшение +1…+10 даёт +6% урона за уровень. В этой версии прицелы, увеличенные магазины и модули ещё не реализованы.", 55)
+    UI.paragraph(body, "Виктор ремонтирует оружие и всю броню. Экипированная броня физически отображается на персонаже. Улучшение оружия +1…+10 даёт +6% урона за уровень.", 55)
     for _, e in app.State.campaign.Inventory do
-        if not app.Items[e.id].weapon then continue end
-        local cost = {metal = 2 + e.upgrade, parts = 1 + math.floor(e.upgrade / 3)}
-        if e.upgrade >= 3 then cost.electronics = math.floor(e.upgrade / 3) end
-        local cash = 25 * (e.upgrade + 1)
+        local item = app.Items[e.id]
+        if not item.weapon and not item.armor then continue end
         local card = UI.card(body, 140)
-        UI.label(card, app.Items[e.id].name .. "  +" .. e.upgrade, 16, {Position = UDim2.fromOffset(14, 9), Size = UDim2.new(1, -28, 0, 24), Font = Enum.Font.GothamBold})
-        UI.label(card, "Прочность " .. math.floor(e.durability) .. "%   /   Ремонт: 20 Cash + " .. math.max(1, math.ceil((100 - e.durability) / 25)) .. " металла", 11, {Position = UDim2.fromOffset(14, 38), Size = UDim2.new(1, -28, 0, 24), TextColor3 = UI.Theme.muted, TextWrapped = true})
-        UI.label(card, e.upgrade < 10 and ("+1: " .. cash .. " Cash  ·  " .. UI.price(cost, app.Items)) or "МАКСИМАЛЬНОЕ УЛУЧШЕНИЕ", 10, {Position = UDim2.fromOffset(14, 65), Size = UDim2.new(1, -28, 0, 24), TextWrapped = true, TextColor3 = UI.Theme.accent})
-        if e.durability < 100 then UI.button(card, "Ремонт", function() app:Send("CombatRemote", {action = "repair", uid = e.uid}) end, {Position = UDim2.fromOffset(14, 100), Size = UDim2.new(0.5, -20, 0, 28), TextSize = 11}) end
-        if e.upgrade < 10 then UI.button(card, "Улучшить", function() app:Send("CombatRemote", {action = "upgrade", uid = e.uid}) end, {Position = UDim2.new(0.5, 0, 0, 100), Size = UDim2.new(0.5, -14, 0, 28), TextSize = 11}) end
+        if item.armor then
+            local metal = math.max(1, math.ceil((100 - e.durability) / 20))
+            UI.label(card, item.name .. "  /  " .. math.floor(item.armor * 100) .. "% защиты", 16, {Position = UDim2.fromOffset(14, 9), Size = UDim2.new(1, -28, 0, 24), Font = Enum.Font.GothamBold})
+            UI.label(card, "Прочность " .. math.floor(e.durability) .. "%   /   Ремонт: 25 Cash + " .. metal .. " металла", 11, {Position = UDim2.fromOffset(14, 38), Size = UDim2.new(1, -28, 0, 24), TextColor3 = UI.Theme.muted, TextWrapped = true})
+            UI.label(card, "Серверная защита • видимые нагрудник, спина и уникальные детали комплекта", 10, {Position = UDim2.fromOffset(14, 65), Size = UDim2.new(1, -28, 0, 24), TextWrapped = true, TextColor3 = UI.Theme.accent})
+            if e.durability < 100 then UI.button(card, "Восстановить броню", function() app:Send("CombatRemote", {action = "repair", uid = e.uid}) end, {Position = UDim2.fromOffset(14, 100), Size = UDim2.new(1, -28, 0, 28), TextSize = 11}) end
+        else
+            local cost = {metal = 2 + e.upgrade, parts = 1 + math.floor(e.upgrade / 3)}
+            if e.upgrade >= 3 then cost.electronics = math.floor(e.upgrade / 3) end
+            local cash = 25 * (e.upgrade + 1)
+            UI.label(card, item.name .. "  +" .. e.upgrade, 16, {Position = UDim2.fromOffset(14, 9), Size = UDim2.new(1, -28, 0, 24), Font = Enum.Font.GothamBold})
+            UI.label(card, "Прочность " .. math.floor(e.durability) .. "%   /   Ремонт: 20 Cash + " .. math.max(1, math.ceil((100 - e.durability) / 25)) .. " металла", 11, {Position = UDim2.fromOffset(14, 38), Size = UDim2.new(1, -28, 0, 24), TextColor3 = UI.Theme.muted, TextWrapped = true})
+            UI.label(card, e.upgrade < 10 and ("+1: " .. cash .. " Cash  ·  " .. UI.price(cost, app.Items)) or "МАКСИМАЛЬНОЕ УЛУЧШЕНИЕ", 10, {Position = UDim2.fromOffset(14, 65), Size = UDim2.new(1, -28, 0, 24), TextWrapped = true, TextColor3 = UI.Theme.accent})
+            if e.durability < 100 then UI.button(card, "Ремонт", function() app:Send("CombatRemote", {action = "repair", uid = e.uid}) end, {Position = UDim2.fromOffset(14, 100), Size = UDim2.new(0.5, -20, 0, 28), TextSize = 11}) end
+            if e.upgrade < 10 then UI.button(card, "Улучшить", function() app:Send("CombatRemote", {action = "upgrade", uid = e.uid}) end, {Position = UDim2.new(0.5, 0, 0, 100), Size = UDim2.new(0.5, -14, 0, 28), TextSize = 11}) end
+        end
     end
 end
 return View

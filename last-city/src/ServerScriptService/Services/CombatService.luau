@@ -1,5 +1,6 @@
 --!nonstrict
 return function(ctx)
+    local Debris = game:GetService("Debris")
     local Service = {}
     function Service:Remove(player)
         local s = ctx.Sessions[player]; if s then s.Reloading = nil end
@@ -24,7 +25,8 @@ return function(ctx)
         plate("ArmorChest", torso, Vector3.new(2.15, 1.35, 0.27), Vector3.new(0, 0.05, -0.57))
         plate("ArmorBack", torso, Vector3.new(1.85, 1.15, 0.24), Vector3.new(0, 0.02, 0.57), tint)
         plate("ArmorBelt", torso, Vector3.new(2.08, 0.25, 1.08), Vector3.new(0, -0.67, 0), Color3.fromRGB(45, 51, 49), Enum.Material.Fabric)
-        if entry.id == "heavy_vest" or entry.id == "riot_armor" or entry.id == "military_vest" or entry.id == "scavenger_armor" or entry.id == "prism_armor" then
+        if entry.id == "heavy_vest" or entry.id == "riot_armor" or entry.id == "military_vest" or entry.id == "scavenger_armor" or entry.id == "prism_armor"
+            or item.armorStyle == "frontier" or item.armorStyle == "bastion" or item.armorStyle == "demolisher" then
             plate("ArmorShoulders", torso, Vector3.new(3, 0.3, 0.9), Vector3.new(0, 0.7, 0), tint, Enum.Material.Metal)
         end
         if entry.id == "hazmat_suit" then
@@ -38,6 +40,41 @@ return function(ctx)
         elseif entry.id == "prism_armor" then
             plate("PrismBandA", torso, Vector3.new(1.75, 0.18, 0.1), Vector3.new(0, 0.35, -0.76), Color3.fromRGB(76, 229, 255), Enum.Material.Neon)
             plate("PrismBandB", torso, Vector3.new(1.75, 0.18, 0.1), Vector3.new(0, -0.15, -0.76), Color3.fromRGB(255, 208, 76), Enum.Material.Neon)
+        elseif item.armorStyle == "courier" then
+            plate("CourierStripe", torso, Vector3.new(1.75, 0.16, 0.09), Vector3.new(0, 0.18, -0.76), Color3.fromRGB(255, 188, 73), Enum.Material.Neon)
+            plate("CourierPack", torso, Vector3.new(1.35, 1.2, 0.4), Vector3.new(0, -0.02, 0.72), Color3.fromRGB(54, 61, 59), Enum.Material.Fabric)
+        elseif item.armorStyle == "engineer" then
+            plate("EngineerCollar", torso, Vector3.new(2.35, 0.28, 0.72), Vector3.new(0, 0.67, 0), Color3.fromRGB(76, 92, 92), Enum.Material.Metal)
+            plate("EngineerPowerPack", torso, Vector3.new(1.45, 1.55, 0.5), Vector3.new(0, 0, 0.76), Color3.fromRGB(50, 66, 68), Enum.Material.DiamondPlate)
+            plate("EngineerCell", torso, Vector3.new(0.32, 0.9, 0.12), Vector3.new(0.48, 0, -0.77), Color3.fromRGB(95, 226, 213), Enum.Material.Neon)
+        elseif item.armorStyle == "frontier" then
+            local head = char:FindFirstChild("Head")
+            plate("FrontierHelmet", head, Vector3.new(1.65, 0.38, 1.55), Vector3.new(0, 0.52, 0), tint, Enum.Material.Metal)
+            plate("FrontierVisor", head, Vector3.new(1.35, 0.28, 0.12), Vector3.new(0, 0.18, -0.78), Color3.fromRGB(255, 156, 78), Enum.Material.Glass)
+            plate("FrontierMark", torso, Vector3.new(0.25, 0.75, 0.09), Vector3.new(-0.62, 0.1, -0.76), Color3.fromRGB(244, 180, 79), Enum.Material.Neon)
+        elseif item.armorStyle == "ranger" then
+            local head = char:FindFirstChild("Head")
+            plate("RangerHood", head, Vector3.new(1.68, 0.52, 1.55), Vector3.new(0, 0.38, 0.08), Color3.fromRGB(52, 72, 57), Enum.Material.Fabric)
+            plate("RangerPack", torso, Vector3.new(1.35, 1.42, 0.48), Vector3.new(0, -0.02, 0.74), Color3.fromRGB(62, 72, 54), Enum.Material.Fabric)
+            plate("RangerMark", torso, Vector3.new(0.5, 0.18, 0.09), Vector3.new(-0.5, 0.22, -0.76), Color3.fromRGB(135, 190, 99), Enum.Material.Neon)
+        elseif item.armorStyle == "demolisher" then
+            local head = char:FindFirstChild("Head")
+            plate("DemolisherHelmet", head, Vector3.new(1.72, 0.55, 1.58), Vector3.new(0, 0.4, 0), tint, Enum.Material.Metal)
+            plate("DemolisherVisor", head, Vector3.new(1.3, 0.27, 0.12), Vector3.new(0, 0.12, -0.8), Color3.fromRGB(242, 181, 80), Enum.Material.Glass)
+            plate("DemolisherCollar", torso, Vector3.new(2.45, 0.32, 0.8), Vector3.new(0, 0.65, 0), Color3.fromRGB(83, 67, 49), Enum.Material.Metal)
+            plate("DemolisherMark", torso, Vector3.new(0.62, 0.18, 0.09), Vector3.new(0.45, 0.2, -0.76), Color3.fromRGB(255, 170, 55), Enum.Material.Neon)
+        elseif item.armorStyle == "bastion" then
+            local head = char:FindFirstChild("Head")
+            local leftArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm")
+            local rightArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm")
+            local leftLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg")
+            local rightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
+            plate("BastionHelmet", head, Vector3.new(1.78, 0.65, 1.65), Vector3.new(0, 0.35, 0), tint, Enum.Material.DiamondPlate)
+            plate("BastionVisor", head, Vector3.new(1.4, 0.25, 0.13), Vector3.new(0, 0.13, -0.84), Color3.fromRGB(103, 212, 222), Enum.Material.Neon)
+            plate("BastionLeftArm", leftArm, Vector3.new(0.82, 0.9, 0.38), Vector3.new(0, 0.08, -0.48), tint, Enum.Material.Metal)
+            plate("BastionRightArm", rightArm, Vector3.new(0.82, 0.9, 0.38), Vector3.new(0, 0.08, -0.48), tint, Enum.Material.Metal)
+            plate("BastionLeftLeg", leftLeg, Vector3.new(0.78, 1.05, 0.34), Vector3.new(0, -0.1, -0.48), tint, Enum.Material.Metal)
+            plate("BastionRightLeg", rightLeg, Vector3.new(0.78, 1.05, 0.34), Vector3.new(0, -0.1, -0.48), tint, Enum.Material.Metal)
         end
     end
 
@@ -67,10 +104,11 @@ return function(ctx)
         local armor = ctx.Inventory.find(s.Campaign, s.Campaign.Armor)
         if armor and (armor.durability or 0) > 0 then
             local item = ctx.Items[armor.id]
-            if damageType == "acid" then damage *= 1 - (item.acidResistance or 0) end
+            if damageType == "acid" then damage *= 1 - (item.acidResistance or 0)
+            elseif damageType == "grenade" then damage *= 1 - (item.explosiveResistance or 0) end
             damage *= 1 - item.armor
             local before = armor.durability
-            armor.durability = math.max(0, armor.durability - (damageType == "acid" and 0.8 or 0.5))
+            armor.durability = math.max(0, armor.durability - (damageType == "acid" and 0.8 or damageType == "grenade" and 1.2 or 0.5))
             if before > 0 and armor.durability <= 0 then
                 ctx:Notify(player, "Броня сломана. Замените или отремонтируйте её.", "error")
                 self:SyncArmor(player, s, player.Character)
@@ -78,6 +116,78 @@ return function(ctx)
         end
         h:TakeDamage(damage)
         ctx.Remotes.EffectsRemote:FireClient(player, "player_hurt", {damage = damage, absorbed = math.max(0, raw - damage), damageType = damageType})
+    end
+
+    function Service:GrenadePulse(owner, definition, position, damage, stunSeconds)
+        local zombies = ctx.Services.ZombieService and ctx.Services.ZombieService.Zombies or {}
+        for _, zombie in zombies do
+            local root = zombie.model and zombie.model.PrimaryPart
+            if zombie.dead or not root or not zombie.model.Parent or zombie.humanoid.Health <= 0 then continue end
+            local distance = (root.Position - position).Magnitude
+            if distance > definition.radius or not ctx:LineOfSight(position + Vector3.new(0, 0.4, 0), root.Position, {zombie.model}) then continue end
+            local falloff = 0.35 + 0.65 * (1 - distance / definition.radius)
+            local applied, killed = ctx.Services.ZombieService:Damage(zombie, damage * falloff, owner)
+            if stunSeconds and stunSeconds > 0 then zombie.stunnedUntil = math.max(zombie.stunnedUntil or 0, os.clock() + stunSeconds) end
+            local session = ctx.Sessions[owner]
+            if session and session.Active and type(applied) == "number" then
+                ctx.Remotes.EffectsRemote:FireClient(owner, "hit_confirm", {
+                    damage = applied, killed = killed == true, critical = false, armored = false, position = root.Position,
+                })
+            end
+        end
+    end
+
+    function Service:DetonateGrenade(owner, definition, position)
+        self:GrenadePulse(owner, definition, position, definition.damage, definition.stunSeconds)
+        local root = ctx:Root(owner)
+        if definition.selfDamage > 0 and root then
+            local distance = (root.Position - position).Magnitude
+            if distance <= definition.radius and ctx:LineOfSight(position + Vector3.new(0, 0.4, 0), root.Position, {owner.Character}) then
+                local falloff = 0.35 + 0.65 * (1 - distance / definition.radius)
+                self:Hurt(owner, definition.damage * falloff * definition.selfDamage, "grenade")
+            end
+        end
+        ctx:FX("grenade_explosion", {from = position, radius = definition.radius, incendiary = definition.burnDamage ~= nil, concussion = definition.stunSeconds ~= nil})
+        if definition.burnDamage and definition.burnTicks then
+            local function burn(tick)
+                if tick > definition.burnTicks then return end
+                task.delay(definition.burnInterval, function()
+                    self:GrenadePulse(owner, definition, position, definition.burnDamage, nil)
+                    ctx:FX("grenade_burn", {from = position, radius = definition.radius})
+                    burn(tick + 1)
+                end)
+            end
+            burn(1)
+        end
+    end
+
+    function Service:ThrowGrenade(player, s, uid, reportedAim)
+        if ctx.Sessions[player] ~= s or not s.Active or s.Closing or s.Frozen or s.Traveling then return false, "Сейчас гранату бросить нельзя" end
+        local root = ctx:Root(player); if not root or not ctx:Alive(player) then return false, "Персонаж не готов" end
+        local entry = ctx.Inventory.find(s.Campaign, uid); local item = entry and ctx.Items[entry.id]
+        local definition = item and item.grenade and ctx.Grenades[item.grenade]
+        if not entry or not definition or definition.item ~= entry.id then return false, "Граната не найдена" end
+        local now = os.clock(); if now < (s.NextGrenade or 0) then return false, "Граната ещё не готова" end
+        local aim = root.CFrame.LookVector
+        if typeof(reportedAim) == "Vector3" and ctx.Util.finite(reportedAim.X) and math.abs(reportedAim.X) <= 2
+            and ctx.Util.finite(reportedAim.Y) and math.abs(reportedAim.Y) <= 2 and ctx.Util.finite(reportedAim.Z)
+            and math.abs(reportedAim.Z) <= 2 and reportedAim.Magnitude > 0.5 then aim = reportedAim.Unit end
+        if not ctx.Inventory.takeUid(s.Campaign, uid, 1) then return false, "Граната уже израсходована" end
+        s.NextGrenade = now + definition.cooldown
+        local projectile = Instance.new("Part"); projectile.Name = "ServerGrenade_" .. item.grenade
+        projectile.Shape = Enum.PartType.Ball; projectile.Size = Vector3.new(0.68, 0.68, 0.68); projectile.Color = Color3.fromHex(definition.color)
+        projectile.Material = item.grenade == "incendiary" and Enum.Material.Neon or Enum.Material.Metal
+        projectile.CanCollide = true; projectile.CanTouch = false; projectile.CFrame = CFrame.new(root.Position + root.CFrame.LookVector * 2.8 + Vector3.new(0, 1.35, 0))
+        projectile.Parent = workspace; projectile:SetNetworkOwner(nil)
+        projectile.AssemblyLinearVelocity = aim * definition.throwSpeed + Vector3.new(0, definition.lift, 0)
+        Debris:AddItem(projectile, definition.fuse + 3)
+        ctx:FX("grenade_throw", {from = projectile.Position, to = projectile.Position + aim * 5, grenade = item.grenade})
+        task.delay(definition.fuse, function()
+            if not projectile.Parent then return end
+            local position = projectile.Position; projectile:Destroy()
+            self:DetonateGrenade(player, definition, position)
+        end)
+        return true, nil
     end
 
     function Service:AimTarget(origin, direction, range, character, radius)
@@ -199,11 +309,14 @@ return function(ctx)
             elseif p.action == "reload" then self:Reload(player, s)
             elseif (p.action == "repair" or p.action == "upgrade") and ctx.Services.NPCService:Near(player, "victor") then
                 local entry = ctx.Inventory.find(s.Campaign, p.uid)
-                if not entry or not ctx.Weapons[entry.id] then return end
+                local weapon = entry and ctx.Weapons[entry.id]
+                local armor = entry and ctx.Items[entry.id] and ctx.Items[entry.id].armor
+                if not entry or (not weapon and not armor) or (p.action == "upgrade" and not weapon) then return end
                 local cash, cost
                 if p.action == "repair" then
                     if entry.durability >= 100 then return end
-                    cash = 20; cost = {metal = math.max(1, math.ceil((100 - entry.durability) / 25))}
+                    cash = armor and 25 or 20
+                    cost = {metal = math.max(1, math.ceil((100 - entry.durability) / (armor and 20 or 25)))}
                 else
                     if entry.upgrade >= 10 then ctx:Notify(player, "Достигнут уровень улучшения 10."); return end
                     cash = 25 * (entry.upgrade + 1); cost = {metal = 2 + entry.upgrade, parts = 1 + math.floor(entry.upgrade / 3)}
@@ -211,8 +324,11 @@ return function(ctx)
                 end
                 if s.Campaign.Cash < cash or not ctx.Inventory.pay(s.Campaign, cost) then ctx:Notify(player, "Недостаточно материалов или Survival Cash.", "error"); return end
                 s.Campaign.Cash -= cash
-                if p.action == "repair" then entry.durability = 100 else entry.upgrade += 1 end
-                ctx:Notify(player, "Оружие обслужено.", "success"); ctx:Changed(player)
+                if p.action == "repair" then
+                    entry.durability = 100
+                    if armor then self:SyncArmor(player, s, player.Character) end
+                else entry.upgrade += 1 end
+                ctx:Notify(player, armor and "Броня восстановлена и снова отображается на персонаже." or "Оружие обслужено.", "success"); ctx:Changed(player)
             end
         end)
     end

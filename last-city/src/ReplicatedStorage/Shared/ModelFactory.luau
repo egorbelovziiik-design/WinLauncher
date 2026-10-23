@@ -295,13 +295,15 @@ end
 function Factory.weapon(id, color)
     local tool = Instance.new("Tool"); tool.Name = id; tool.CanBeDropped = false
     tool.RequiresHandle = true; tool.ManualActivationOnly = false
-    local melee = table.find({"crowbar", "bat", "hatchet", "machete", "pickaxe", "prism_blade"}, id) ~= nil
+    local sword = table.find({"short_sword", "saber", "longsword", "katana"}, id) ~= nil
+    local melee = table.find({"crowbar", "bat", "hatchet", "machete", "pickaxe", "prism_blade", "short_sword", "saber", "longsword", "katana"}, id) ~= nil
     local handleSize = id == "crowbar" and Vector3.new(0.25, 3.5, 0.25)
         or id == "bat" and Vector3.new(0.52, 3.4, 0.52)
         or id == "hatchet" and Vector3.new(0.32, 2.55, 0.32)
         or id == "machete" and Vector3.new(0.34, 1.35, 0.34)
         or id == "pickaxe" and Vector3.new(0.32, 3.4, 0.32)
         or id == "prism_blade" and Vector3.new(0.34, 1.45, 0.34)
+        or sword and Vector3.new(0.34, 1.35, 0.34)
         or Vector3.new(0.42, 0.9, 0.62)
     local weaponColor = id == "crowbar" and Color3.fromRGB(132, 48, 42) or (color or dark)
     local h = part(tool, "Handle", handleSize, CFrame.new(), weaponColor)
@@ -343,11 +345,21 @@ function Factory.weapon(id, color)
         add("PrismTip", Vector3.new(0.5, 0.85, 0.5), CFrame.new(0, 3.78, 0) * CFrame.Angles(0, 0, math.rad(45)), Color3.fromRGB(255, 220, 89), Enum.Material.Neon)
         add("PrismGuard", Vector3.new(1.25, 0.18, 0.42), CFrame.new(0, 0.82, 0), Color3.fromRGB(104, 255, 158), Enum.Material.Neon)
         tool.Grip = CFrame.new(0, -0.35, 0) * CFrame.Angles(math.rad(8), 0, 0)
+    elseif sword then
+        h.Color = id == "katana" and Color3.fromRGB(35, 45, 51) or Color3.fromRGB(82, 58, 43); h.Material = Enum.Material.Leather
+        local bladeLength = id == "short_sword" and 2.55 or id == "saber" and 3.1 or id == "longsword" and 3.75 or 3.45
+        local bladeTint = id == "katana" and Color3.fromRGB(117, 222, 235) or id == "saber" and Color3.fromRGB(222, 228, 226) or Color3.fromRGB(187, 196, 197)
+        add("SwordBlade", Vector3.new(id == "longsword" and 0.18 or 0.13, bladeLength, id == "saber" and 0.5 or 0.68), CFrame.new(0, 0.68 + bladeLength / 2, 0), bladeTint, Enum.Material.Metal)
+        add("SwordTip", Vector3.new(0.48, 0.7, id == "saber" and 0.42 or 0.58), CFrame.new(0, 1.02 + bladeLength, 0) * CFrame.Angles(0, 0, math.rad(45)), bladeTint, Enum.Material.Metal)
+        add("SwordGuard", Vector3.new(id == "saber" and 1.3 or id == "longsword" and 1.65 or 1.15, 0.18, 0.42), CFrame.new(0, 0.72, 0), id == "katana" and Color3.fromRGB(49, 62, 68) or Color3.fromRGB(172, 127, 52), Enum.Material.Metal)
+        if id == "katana" then for y = -0.42, 0.28, 0.23 do add("KatanaWrap", Vector3.new(0.42, 0.08, 0.42), CFrame.new(0, y, 0), Color3.fromRGB(72, 156, 163), Enum.Material.Fabric) end end
+        tool.Grip = CFrame.new(0, -0.38, 0) * CFrame.Angles(math.rad(8), 0, id == "saber" and math.rad(-4) or 0)
     else
-        local long = id == "rifle" or id == "assault_rifle" or id == "hunting_rifle" or id == "shotgun" or id == "double_barrel" or id == "smg"
-        local length = (id == "rifle" or id == "assault_rifle") and 3.5 or id == "hunting_rifle" and 4.25
-            or id == "shotgun" and 3.9 or id == "double_barrel" and 4.1 or id == "smg" and 2.35 or 1.5
-        local wide = id == "shotgun" or id == "double_barrel"
+        local long = table.find({"rifle", "assault_rifle", "hunting_rifle", "shotgun", "double_barrel", "smg", "carbine", "sniper_rifle", "lmg"}, id) ~= nil
+        local length = (id == "rifle" or id == "assault_rifle" or id == "carbine") and 3.5 or (id == "hunting_rifle" or id == "sniper_rifle") and 4.25
+            or id == "shotgun" and 3.9 or id == "double_barrel" and 4.1 or id == "lmg" and 3.85 or id == "smg" and 2.35
+            or id == "machine_pistol" and 1.85 or id == "magnum" and 1.9 or 1.5
+        local wide = id == "shotgun" or id == "double_barrel" or id == "lmg"
         if id == "double_barrel" then
             add("LeftBarrel", Vector3.new(0.32, 0.42, length), CFrame.new(-0.2, 0.52, -0.55 - length * 0.18), Color3.fromRGB(76, 82, 81))
             add("RightBarrel", Vector3.new(0.32, 0.42, length), CFrame.new(0.2, 0.52, -0.55 - length * 0.18), Color3.fromRGB(76, 82, 81))
@@ -358,21 +370,29 @@ function Factory.weapon(id, color)
         if long then
             local wooden = id == "shotgun" or id == "double_barrel" or id == "hunting_rifle"
             add("Stock", Vector3.new(0.55, 0.76, 1.55), CFrame.new(0, 0.24, 0.95), wooden and Color3.fromRGB(112, 78, 48) or (color or dark), wooden and Enum.Material.Wood or Enum.Material.Metal)
-            if id ~= "double_barrel" and id ~= "hunting_rifle" then
-                add("Magazine", Vector3.new(0.5, id == "smg" and 1.25 or id == "assault_rifle" and 1.18 or 0.92, 0.65), CFrame.new(0, -0.55, -0.4), color or dark)
+            if id ~= "double_barrel" and id ~= "hunting_rifle" and id ~= "sniper_rifle" then
+                local magazineHeight = id == "lmg" and 1.45 or (id == "smg" or id == "assault_rifle") and 1.2 or 0.92
+                add("Magazine", Vector3.new(id == "lmg" and 0.9 or 0.5, magazineHeight, id == "lmg" and 1.05 or 0.65), CFrame.new(0, -0.55, -0.4), color or dark)
             end
         end
         if id == "shotgun" then add("Pump", Vector3.new(0.72, 0.72, 1.15), CFrame.new(0, 0.47, -1.3), Color3.fromRGB(112, 78, 48), Enum.Material.Wood) end
-        if id == "hunting_rifle" then
+        if id == "hunting_rifle" or id == "sniper_rifle" then
             add("Bolt", Vector3.new(0.75, 0.14, 0.14), CFrame.new(0.47, 0.54, -0.38), Color3.fromRGB(175, 182, 180), Enum.Material.Metal)
-            add("Scope", Vector3.new(0.42, 0.42, 1.35), CFrame.new(0, 1.02, -0.52), Color3.fromRGB(41, 49, 51), Enum.Material.Metal)
+            add("Scope", Vector3.new(id == "sniper_rifle" and 0.5 or 0.42, id == "sniper_rifle" and 0.5 or 0.42, id == "sniper_rifle" and 1.7 or 1.35), CFrame.new(0, 1.02, -0.52), Color3.fromRGB(41, 49, 51), Enum.Material.Metal)
         end
-        if id == "revolver" then
+        if id == "revolver" or id == "magnum" then
             local cylinder = add("Cylinder", Vector3.new(0.72, 0.72, 0.72), CFrame.new(0, 0.46, -0.38), Color3.fromRGB(100, 107, 106), Enum.Material.Metal)
             cylinder.Shape = Enum.PartType.Cylinder
-        elseif id == "glock" then add("Slide", Vector3.new(0.5, 0.36, 1.48), CFrame.new(0, 0.68, -0.52), Color3.fromRGB(67, 72, 71)) end
-        if id == "assault_rifle" then
-            add("Handguard", Vector3.new(0.72, 0.72, 1.3), CFrame.new(0, 0.49, -1.28), Color3.fromRGB(62, 72, 72), Enum.Material.DiamondPlate)
+        elseif id == "glock" or id == "machine_pistol" then
+            add("Slide", Vector3.new(0.5, 0.36, id == "machine_pistol" and 1.72 or 1.48), CFrame.new(0, 0.68, -0.52), Color3.fromRGB(67, 72, 71))
+            if id == "machine_pistol" then add("ExtendedMagazine", Vector3.new(0.48, 1.35, 0.55), CFrame.new(0, -0.72, 0.02), color or dark, Enum.Material.Metal) end
+        end
+        if id == "assault_rifle" or id == "carbine" or id == "lmg" then
+            add("Handguard", Vector3.new(id == "lmg" and 0.82 or 0.72, 0.72, 1.3), CFrame.new(0, 0.49, -1.28), Color3.fromRGB(62, 72, 72), Enum.Material.DiamondPlate)
+        end
+        if id == "lmg" then
+            add("LeftBipod", Vector3.new(0.12, 1.25, 0.12), CFrame.new(-0.45, -0.28, -1.55) * CFrame.Angles(0, 0, math.rad(-18)), Color3.fromRGB(66, 72, 71), Enum.Material.Metal)
+            add("RightBipod", Vector3.new(0.12, 1.25, 0.12), CFrame.new(0.45, -0.28, -1.55) * CFrame.Angles(0, 0, math.rad(18)), Color3.fromRGB(66, 72, 71), Enum.Material.Metal)
         end
         tool.Grip = CFrame.new(0, -0.1, 0)
     end

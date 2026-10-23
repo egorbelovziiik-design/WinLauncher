@@ -63,6 +63,19 @@ return function(Buildings, Definitions, Inventory, Util)
         end
         return power
     end
+    function Economy.farmIncome(c, now)
+        -- Online-only payout: the service calls this at most once per monotonic second.
+        -- No timestamps are converted into catch-up income when a save is loaded.
+        local payouts = {}
+        for _, b in c.Buildings do
+            local def = Buildings[b.id]
+            if def and def.cashPerSecond and b.readyAt <= now and b.hp > 0 then
+                c.Cash += def.cashPerSecond
+                table.insert(payouts, {uid = b.uid, amount = def.cashPerSecond})
+            end
+        end
+        return payouts
+    end
     function Economy.price(product, stock, reputation)
         local scarcity = 1 + 0.35 * (1 - math.clamp(stock / product.stock, 0, 1))
         return math.max(1, math.ceil(product.price * scarcity * (1 - math.min(0.15, reputation * 0.0015))))

@@ -1,6 +1,28 @@
 --!nonstrict
 return function(ctx)
     local Service = {TurretAt = {}, TrapAt = {}}
+    function Service:PayFarmIncome(player, s, now, clock)
+        if not s.Loaded or not s.Active or s.Closing or s.Frozen then return 0 end
+        clock = clock or os.clock()
+        if (s.NextFarmCash or 0) > clock then return 0 end
+        s.NextFarmCash = clock + 1
+        local payouts = ctx.Economy.farmIncome(s.Campaign, now or os.time())
+        local total = 0
+        for _, payout in payouts do
+            local building = ctx.Building.find(s.Campaign, payout.uid)
+            if building then
+                total += payout.amount
+                ctx.Remotes.EffectsRemote:FireClient(player, "farm_cash", {
+                    position = ctx.Services.BuildingService:Position(player, building) + Vector3.new(0, 1.2, 0),
+                    amount = payout.amount, uid = payout.uid,
+                })
+            end
+        end
+        -- PlayerDataService already publishes one bounded state snapshot per second. Mark the
+        -- save dirty without scheduling a duplicate full campaign snapshot for this fast loop.
+        if total > 0 then s.Data.Revision += 1 end
+        return total
+    end
     function Service:Init()
         ctx.Services.NetworkService:Register("CraftingRemote", true, function(player, s, p)
             if not ctx:InPlot(player, 12) then ctx:Notify(player, "Крафт доступен на своём участке.", "error"); return end
@@ -24,9 +46,10 @@ return function(ctx)
         task.spawn(function()
             while task.wait(1) do
                 for player, s in ctx.Sessions do
-                    if not s.Active or not s.Power or s.Closing or s.Frozen then continue end
+                    if not s.Loaded or not s.Active or s.Closing or s.Frozen then continue end
+                    self:PayFarmIncome(player, s, os.time(), os.clock())
                     for _, b in s.Campaign.Buildings do
-                        if b.id == "turret" and s.Power.powered[b.uid] and b.readyAt <= os.time() and (s.Campaign.Stockpile.ammo or 0) > 0 then
+                        if b.id == "turret" and s.Power and s.Power.powered[b.uid] and b.readyAt <= os.time() and (s.Campaign.Stockpile.ammo or 0) > 0 then
                             local origin = ctx.Services.BuildingService:Position(player, b) + Vector3.new(0, 7, 0)
                             local target = ctx.Services.ZombieService:Nearest(origin, 65)
                             local model = ctx.Services.BuildingService.Models[player][b.uid]

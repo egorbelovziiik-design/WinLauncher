@@ -1,6 +1,6 @@
 # Roblox Studio QA — обязательный следующий gate
 
-Версия 0.1.0 не открылась у пользователя: **FAILED** (`unexpected end at offset 2`). В 0.1.1 исправлен `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и запуск 0.3.0 скриншотами. Тест 0.3.0 выявил руки назад, неполную крышу и ненадёжный E у Виктора. Открытие/Play 0.4.0 и 0.5.0 не подтверждались. Начальный статус новой **0.6.0 ECHOES OF STEEL: NOT TESTED**. Записывайте PASSED/FAILED только после реального действия в Studio и сохраняйте Output/видео/параметры теста.
+Версия 0.1.0 не открылась у пользователя: **FAILED** (`unexpected end at offset 2`). В 0.1.1 исправлен `Terrain.PhysicsGrid`; пользователь подтвердил открытие 0.2.0 и запуск 0.3.0 скриншотами. Тест 0.3.0 выявил руки назад, неполную крышу и ненадёжный E у Виктора. Открытие/Play 0.4.0 и 0.5.0 не подтверждались. В 0.6.0 меню открылось, но «ИГРАТЬ» повторно показывало character-loading notice: **FAILED**. Начальный статус новой **0.6.1 ECHOES OF STEEL: NOT TESTED**. Записывайте PASSED/FAILED только после реального действия в Studio и сохраняйте Output/видео/параметры теста.
 
 ## 1. Подготовка
 
@@ -324,3 +324,64 @@ r.InventoryRemote:FireServer({action="equip", uid="i999999999"})
 - [ ] Server & Clients 9: до 34 заражённых, 17 global NPC и максимум по 10 личных friendly actors на игрока. Измерить client/server FPS, memory, Physics, Network, Script Activity и path spikes 15 минут.
 - [ ] 10 boss lifecycles, 10 flights, repeated first-person/dialogue/TTS и recruit reconnect не оставляют stale models, labels, prompts, AudioTextToSpeech/Wire, effects, paths или camera bindings.
 - [ ] Зафиксировать Studio version/channel, ОС/GPU, число клиентов, Graphics Quality, FPS/память, Output и видео. Все неизмеренные пункты остаются **NOT TESTED**.
+
+## 15. Новое в 0.6.1 — hotfix, quickbar и arsenal / обязательный gate
+
+Раздел 14 остаётся регрессией систем 0.6.0. Для 0.6.1 сначала выполнить пункты ниже; статус версии нельзя менять с **NOT TESTED** без реального открытия и Play/F5.
+
+### Артефакт и исправление «ИГРАТЬ»
+
+- [ ] Открыть именно `LAST_CITY_3D.rbxl` размером 345 797 bytes и сверить SHA-256 `476ff32a113cce48bd4d2bdd9aca9afcf85d0d3cf7cfd1a0da2edf0e65b4f4a2`. Menu, Loading и Profile показывают `0.6.1 — ECHOES OF STEEL`.
+- [ ] В новом SessionOnly-сеансе нажать «ИГРАТЬ» один раз. Не появляется старое `Персонаж загружается. Попробуйте ещё раз.`; HUD и управление открываются после реального Character/Humanoid/RootPart.
+- [ ] Во время появления персонажа быстро нажать Play 10 раз: создаётся один персонаж, один active transition и одна база; нет duplicate workers/tools/connections.
+- [ ] Умереть в меню/удалить Character в тестовой копии и снова нажать Play: сервер восстанавливает Character и входит. После намеренно вызванной ошибки recovery кнопка остаётся повторяемой, а Output/attributes показывают diagnostic, не вечный spinner.
+- [ ] Respawn после обычной смерти не ломает последующий вход, armor visual, quick slots или helicopter lock.
+
+### Грядки и склад дерева City 1
+
+- [ ] Построить одну грядку: до завершения и при `hp=0` Cash не растёт. После завершения Cash растёт ровно на 10 каждую онлайн-секунду; Coins не меняются.
+- [ ] Построить три готовые целые грядки: прирост ровно +30 Cash/сек. У каждой независимо и плавно появляется зелёный `+10 CASH` над её физической позицией, а не в центре экрана/участка.
+- [ ] Оставить доход на 10 минут и измерить Instances: число `FloatingPopup` фиксировано, нет нового BillboardGui каждую секунду. Выйти из сервера на минуту: offline catch-up не начисляется.
+- [ ] В центре базы нет двух парящих досок. У склада обе `WoodStorageSkid` лежат на площадке; знак держат две стойки, нет пересекающей задней доски/z-fighting.
+- [ ] Принести 25 wood в рюкзаке, удержать E у терминала: backpack уменьшается на 25, сохранённый stockpile растёт на 25, личная куча получает соответствующие доски. Второй игрок видит свою сохранённую величину, не чужую.
+- [ ] E издалека/через стену, с пустым backpack, переполненным stockpile или поддельным payload ничего не переносит. Reconnect восстанавливает stock и размер кучи; 9 999 wood не создаёт больше `MaxBuildings` visual boards.
+
+### Быстрые слоты 1–6
+
+- [ ] HUD показывает шесть кнопок и реальные сохранённые названия. Клавиша 1 при каждом нажатии достаёт/убирает именно лом.
+- [ ] Получить оружие, броню, аптечку и гранату. По очереди нажать «Экипировать»: предмет занимает первый пустой слот 2, затем 3 и т. д.; UID и порядок сохраняются после reconnect.
+- [ ] В рюкзаке назначить consumable через «В быстрый», активировать клавишей, затем «Убрать #N». Последний предмет в stack очищает кнопку; частично использованный stack остаётся назначенным.
+- [ ] Заполнить все шесть и экипировать ещё одно оружие: запрос отклоняется понятным сообщением, старое equipped состояние и все слоты не меняются частично.
+- [ ] Слот 1 нельзя очистить; ресурс wood нельзя назначить. Подменённые/duplicate/orphan UID после тестового save-normalize исчезают.
+- [ ] На 390×844 и 844×390 все шесть кнопок читаемы, не перекрывают joystick/attack/reload, а две строки действий рюкзака не обрезают основную кнопку.
+
+### Мечи, firearms и ammo
+
+- [ ] Купить и/или создать `short_sword`, `saber`, `longsword`, `katana`. У каждого видимы отдельные blade/guard/tip/wrap, Tool не разваливается; server cooldown/damage/range соответствуют Inventory text.
+- [ ] Купить/создать Wasp, Titan, Nomad, Longwatch и Bulwark. Проверить модели: extended magazine, cylinder, handguard, scope и bipod; first-person camera критически не входит в детали.
+- [ ] Проверить магазины: Wasp 24, Titan 6, Nomad 20, Longwatch 5, Bulwark 50. Пустой магазин не стреляет; R ждёт server reload timer и переносит только нужный ammo ID.
+- [ ] Удалить нужный reserve, оставив другие патроны: Wasp не использует 9 мм, Titan не использует rifle ammo, Longwatch не использует heavy ammo, Bulwark не использует sniper ammo.
+- [ ] Client-supplied damage/fire rate/ammo/level не меняет server result. Автоматическое оружие не превышает interval при spam/holding; durability и upgrades сохраняются.
+- [ ] Полный backpack/недостаточный Cash/inputs: shop и craft не списывают цену частично. Готовый craft остаётся доступным до освобождения места.
+
+### Гранаты
+
+- [ ] Назначить frag grenade в quick slot и бросить: из stack исчезает ровно одна, виден server projectile/дуга, через server fuse есть blast. Повтор во время cooldown не расходует вторую.
+- [ ] Frag рядом/на краю радиуса наносит заражённому разный falloff damage; стена блокирует blast line-of-sight. Другой игрок и дружественные NPC не получают friendly fire; бросивший рядом получает ограниченный self-damage.
+- [ ] Incendiary наносит initial hit и ровно пять периодических burn ticks в фиксированной зоне; после окончания нет скрытого damage/вечного effect.
+- [ ] Concussion останавливает перемещение и атаки заражённого примерно на 5 секунд, затем тот возвращается к AI. Он не телепортируется, не уходит из leash и не остаётся навсегда frozen.
+- [ ] Экипировать Demolisher armor и сравнить один и тот же frag self-hit без брони: применяются 50% explosive resistance и 36% базовой защиты, durability уменьшается. Другая броня не получает выдуманный бонус.
+- [ ] Бросить гранату, немедленно умереть/выйти/улететь: уже списанный projectile не возвращает предмет и не создаёт server error/награду покинувшему профиль. Client не получает ownership projectile.
+- [ ] 100 последовательных взрывов не увеличивают число `GrenadeBlast` сверх pool, не оставляют projectile/effect Parts и не создают слышимый звук вне bounded distance.
+
+### Новая броня и визуальная регрессия
+
+- [ ] По очереди экипировать Courier, Engineer, Frontier, Bastion, Ranger и Demolisher на R15 и стандартном R6 test avatar. У каждого есть distinct welded detail; части следуют за телом и не сталкиваются с миром.
+- [ ] Ranger даёт заявленные speed/stamina bonuses. Demolisher даёт explosive resistance и speed cost. Сломанная броня перестаёт защищать/показываться; ремонт Виктора списывает рассчитанные Cash+metal один раз.
+- [ ] Reconnect, respawn, first person, dialogue, Commander и оба helicopter рейса не дублируют `LastCityArmor` parts и восстанавливают один правильный комплект.
+
+### Итог 0.6.1
+
+- [ ] Выполнить Server & Clients с 2 и 9 игроками: quick slots/inventory/grenade hit credit/wood pile/farm popup изолированы по owner; обычного PvP и чужих мутаций нет.
+- [ ] 15 минут MicroProfiler при 34 заражённых, готовых грядках, specialist actors и grenade burn: записать client/server FPS, memory, Physics, Network, Script Activity и path spikes.
+- [ ] Сохранить Output, Studio version/channel, ОС/GPU, число клиентов, Graphics Quality, видео входа и ключевых систем. Любой ненаблюдавшийся подпункт остаётся NOT TESTED.

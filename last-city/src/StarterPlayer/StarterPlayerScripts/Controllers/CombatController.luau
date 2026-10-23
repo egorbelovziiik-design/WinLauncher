@@ -89,8 +89,10 @@ return function(app)
         elseif key == Enum.KeyCode.F then app:Send("MovementRemote", {action = "flashlight"})
         elseif key == Enum.KeyCode.LeftControl then
             app.Crouching = not app.Crouching; app:Send("MovementRemote", {action = "crouch", value = app.Crouching})
-        elseif key == Enum.KeyCode.One or key == Enum.KeyCode.Two or key == Enum.KeyCode.Three then
-            app:QuickSlot(key == Enum.KeyCode.One and 1 or key == Enum.KeyCode.Two and 2 or 3)
+        else
+            local quick = {[Enum.KeyCode.One] = 1, [Enum.KeyCode.Two] = 2, [Enum.KeyCode.Three] = 3,
+                [Enum.KeyCode.Four] = 4, [Enum.KeyCode.Five] = 5, [Enum.KeyCode.Six] = 6}
+            if quick[key] then app:QuickSlot(quick[key]) end
         end
     end)
     Input.InputEnded:Connect(function(input)

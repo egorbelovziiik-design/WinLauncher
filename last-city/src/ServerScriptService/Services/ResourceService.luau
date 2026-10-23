@@ -61,6 +61,32 @@ return function(ctx)
             ctx.Progression.fact(s.Campaign, "pickup"); ctx:Notify(player, "Ящик отмечен. Макс будет рад.", "success")
         end)
     end
+    function Service:DepositWood(player, part)
+        local s = ctx.Services.NetworkService:Permit(player, "wood_depot", true)
+        local root = ctx:Root(player)
+        if not s or not root or not part.Parent or (root.Position - part.Position).Magnitude > ctx.Config.InteractRange then return false end
+        if not ctx:LineOfSight(root.Position, part.Position, {player.Character, part}) then return false end
+        local carried = ctx.Inventory.count(s.Campaign, "wood")
+        local capacity = 9999 - (s.Campaign.Stockpile.wood or 0)
+        local amount = math.min(carried, capacity, 999)
+        if amount < 1 then
+            ctx:Notify(player, carried > 0 and "Хранилище дерева заполнено." or "Принесите дерево в рюкзаке.", "error")
+            return false
+        end
+        local ok, err = ctx.Inventory.transfer(s.Campaign, "wood", amount, true)
+        if not ok then ctx:Notify(player, err, "error"); return false end
+        ctx.Progression.fact(s.Campaign, "resource")
+        ctx:Notify(player, "+" .. amount .. " дерева на складе. Куча стала больше.", "success")
+        ctx:Changed(player)
+        return true
+    end
+    function Service:WoodDepot(part)
+        local prompt = Instance.new("ProximityPrompt"); prompt.ActionText = "Сложить всё дерево"
+        prompt.ObjectText = "Хранилище дерева"; prompt.HoldDuration = 0.35
+        prompt.MaxActivationDistance = 10; prompt.RequiresLineOfSight = true; prompt.KeyboardKeyCode = Enum.KeyCode.E; prompt.Parent = part
+        prompt.Triggered:Connect(function(player) self:DepositWood(player, part) end)
+        return prompt
+    end
     function Service:QuestCache(part)
         local id = part.QuestId.Value
         local def = ctx.QuestDefs[id]
@@ -82,6 +108,11 @@ return function(ctx)
         return prompt
     end
     function Service:Init()
+        local cities = ctx.World:FindFirstChild("Cities")
+        local shelter = cities and cities:FindFirstChild("01_MeridianShelter")
+        local depot = shelter and shelter:FindFirstChild("WoodDepot")
+        local terminal = depot and depot:FindFirstChild("WoodDepotTerminal")
+        if terminal then self:WoodDepot(terminal) end
         for _, node in ctx.World.LootSpawns:GetChildren() do
             if not node:IsA("BasePart") then continue end
             local value = node:FindFirstChild("ItemId")

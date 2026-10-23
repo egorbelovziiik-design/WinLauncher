@@ -3,6 +3,7 @@
 local Config = require("../src/ReplicatedStorage/Shared/GameConfig")
 local Items = require("../src/ReplicatedStorage/Shared/ItemDefinitions")
 local Weapons = require("../src/ReplicatedStorage/Shared/WeaponDefinitions")
+local Grenades = require("../src/ReplicatedStorage/Shared/GrenadeDefinitions")
 local ZombieDefs = require("../src/ReplicatedStorage/Shared/ZombieDefinitions")
 local Buildings = require("../src/ReplicatedStorage/Shared/BuildingDefinitions")
 local QuestDefs = require("../src/ReplicatedStorage/Shared/QuestDefinitions")
@@ -38,8 +39,28 @@ local function completed(c, id, now)
 end
 local function find(c, id) for _, e in c.Inventory do if e.id == id then return e end end; error("Missing " .. id) end
 
-test("new profile contains a stowed crowbar for first-press equip", function()
-    local p,c = fresh(); eq(p.SchemaVersion,1); eq(Inventory.count(c,"crowbar"),1); eq(Inventory.count(c,"food"),3); eq(c.Equipped,""); eq(c.Cash,200)
+test("new profile contains a stowed crowbar reserved in quick slot one", function()
+    local p,c = fresh(); local crowbar = find(c,"crowbar")
+    eq(p.SchemaVersion,1); eq(Inventory.count(c,"crowbar"),1); eq(Inventory.count(c,"food"),3); eq(c.Equipped,""); eq(c.Cash,200)
+    eq(#c.QuickSlots,Config.QuickSlots); eq(Config.QuickSlots,6); eq(c.QuickSlots[1],crowbar.uid)
+end)
+test("equip assigns the first empty quick slot and preserves the crowbar slot", function()
+    local _,c=fresh(); assert(Inventory.grant(c,{pistol=1})); local pistol=find(c,"pistol")
+    local ok,slot=Inventory.equipToQuick(c,pistol.uid); assert(ok); eq(slot,2); eq(c.Equipped,pistol.uid); eq(c.QuickSlots[2],pistol.uid); eq(find(c,"crowbar").uid,c.QuickSlots[1])
+end)
+test("quick slots reject resources and clear consumed item references", function()
+    local _,c=fresh(); assert(Inventory.grant(c,{wood=1})); local food=find(c,"food"); local ok,slot=Inventory.assignQuick(c,food.uid); assert(ok); eq(slot,2)
+    eq(Inventory.assignQuick(c,find(c,"wood").uid),false); assert(Inventory.takeUid(c,food.uid,food.count)); eq(c.QuickSlots[2],"")
+end)
+test("equip-to-quick is atomic when all six slots are occupied", function()
+    local _,c=fresh(); assert(Inventory.grant(c,{pistol=1,bat=1,hatchet=1,machete=1,medkit=1,short_sword=1}))
+    for _,id in {"pistol","bat","hatchet","machete","medkit"} do assert(Inventory.assignQuick(c,find(c,id).uid)) end
+    local before=c.Equipped; local sword=find(c,"short_sword"); local ok=Inventory.equipToQuick(c,sword.uid); eq(ok,false); eq(c.Equipped,before); eq(Inventory.quickIndex(c,sword.uid),nil)
+end)
+test("profile normalization drops forged duplicate quick slots and restores slot one", function()
+    local p,c=fresh(); assert(Inventory.grant(c,{pistol=1,metal=1})); local pistol=find(c,"pistol"); local crowbar=find(c,"crowbar")
+    c.QuickSlots={pistol.uid,pistol.uid,"i999999",find(c,"metal").uid,crowbar.uid}; local copy=Profile.normalize(p).Campaigns.coop
+    eq(copy.QuickSlots[1],crowbar.uid); eq(copy.QuickSlots[2],pistol.uid); eq(copy.QuickSlots[3],""); eq(copy.QuickSlots[4],""); eq(copy.QuickSlots[5],""); eq(copy.QuickSlots[6],"")
 end)
 test("solo and coop inventories are not aliased", function() local p,c=fresh(); Inventory.remove(c,"food",3); eq(Inventory.count(p.Campaigns.solo,"food"),3) end)
 test("inventory grant merges stacks within capacity", function() local _,c=fresh(); assert(Inventory.grant(c,{food=17})); eq(find(c,"food").count,20); eq(#c.Inventory,4) end)
@@ -102,7 +123,9 @@ test("ready generator consumes one fuel and supplies twelve", function() local _
 test("generator turns off without fuel", function() local _,c=fresh(); Building.place(c,"generator",0,0,0,100); c.Stockpile.fuel=0; eq(Economy.tick(c,108,12).supply,0) end)
 test("fuel refills only after its minute is consumed", function() local _,c=fresh(); Building.place(c,"generator",0,0,0,100); local n=c.Stockpile.fuel; Economy.tick(c,108,12); Economy.tick(c,167,12); eq(c.Stockpile.fuel,n-1); Economy.tick(c,168,12); eq(c.Stockpile.fuel,n-2) end)
 test("brownout disables consumers instead of creating free power", function() local _,c=fresh(); rich(c); c.XP=400; Building.place(c,"generator",-28,-20,0,100); Building.place(c,"turret",0,-20,0,100); Building.place(c,"turret",16,-20,0,100); local _,third=Building.place(c,"turret",32,-20,0,100); local p=Economy.tick(c,120,12); eq(p.supply,12); eq(p.demand,15); eq(p.deficit,3); eq(p.powered[third.uid],false) end)
-test("farm does not produce without a worker", function() local _,c=fresh(); rich(c); Building.place(c,"farm",0,0,0,100); c.Stockpile.food=0; Economy.tick(c,110,12); Economy.tick(c,140,12); eq(c.Stockpile.food,0) end)
+test("farm does not produce food without a worker", function() local _,c=fresh(); rich(c); Building.place(c,"farm",0,0,0,100); c.Stockpile.food=0; Economy.tick(c,110,12); Economy.tick(c,140,12); eq(c.Stockpile.food,0) end)
+test("completed farm grants exact ten Survival Cash without minting profile Coins", function() local p,c=fresh(); rich(c); p.Coins=77; local _,b=Building.place(c,"farm",0,0,0,100); local cash=c.Cash; eq(#Economy.farmIncome(c,b.readyAt-1),0); eq(c.Cash,cash); local payouts=Economy.farmIncome(c,b.readyAt); eq(#payouts,1); eq(payouts[1].uid,b.uid); eq(payouts[1].amount,10); eq(c.Cash,cash+10); eq(p.Coins,77) end)
+test("each ready living farm pays independently while destroyed farms pay nothing", function() local _,c=fresh(); rich(c); local _,a=Building.place(c,"farm",-8,0,0,100); local _,b=Building.place(c,"farm",8,0,0,100); b.hp=0; local cash=c.Cash; local payouts=Economy.farmIncome(c,105); eq(#payouts,1); eq(payouts[1].uid,a.uid); eq(c.Cash,cash+10) end)
 test("assigned farm produces food during the day", function() local _,c=fresh(); rich(c); local _,b=Building.place(c,"farm",0,0,0,100); c.Workers[1].job=b.uid; c.Workers[1].atWork=true; c.Stockpile.food=0; Economy.tick(c,110,12); Economy.tick(c,140,12); eq(c.Stockpile.food,2) end)
 test("worker rests and production stops at night", function() local _,c=fresh(); rich(c); local _,b=Building.place(c,"farm",0,0,0,100); c.Workers[1].job=b.uid; c.Workers[1].atWork=true; c.Stockpile.food=0; Economy.tick(c,110,23); Economy.tick(c,140,23); eq(c.Stockpile.food,0) end)
 test("unpowered well does not produce water", function() local _,c=fresh(); rich(c); Building.place(c,"well",0,0,0,100); c.Stockpile.water=0; Economy.tick(c,110,12); Economy.tick(c,140,12); eq(c.Stockpile.water,0) end)
@@ -276,13 +299,33 @@ test("City One equipment ladder and Rainbow gear are functional definitions",fun
     for _,id in {"bat","hatchet","revolver","double_barrel","hunting_rifle","assault_rifle","prism_blade"} do
         assert(Items[id] and Items[id].weapon and Weapons[id],id)
     end
-    for _,id in {"leather_jacket","medic_vest","scout_vest","hazmat_suit","scavenger_armor","riot_armor","prism_armor"} do
+    for _,id in {"leather_jacket","medic_vest","scout_vest","hazmat_suit","scavenger_armor","riot_armor","prism_armor","courier_armor","engineer_armor","frontier_armor","bastion_armor"} do
         assert(Items[id] and Items[id].armor and Items[id].armor>0,id)
     end
     eq(Weapons.prism_blade.damage,62); eq(Weapons.prism_blade.range,8.4)
     eq(Items.prism_armor.armor,0.46); eq(Items.prism_armor.acidResistance,0.35); eq(Items.prism_armor.staminaMultiplier,1.1)
+    eq(Items.courier_armor.speedMultiplier,1.08); eq(Items.engineer_armor.acidResistance,0.25); eq(Items.bastion_armor.armor,0.45)
     local sold={}; for _,product in EconomyDefs.Shop do sold[product.id]=true end
-    for _,id in {"bat","hatchet","revolver","double_barrel","hunting_rifle","assault_rifle","leather_jacket","medic_vest","scout_vest","hazmat_suit","scavenger_armor","riot_armor"} do assert(sold[id],id.." must be sold in City One") end
+    for _,id in {"bat","hatchet","revolver","double_barrel","hunting_rifle","assault_rifle","leather_jacket","medic_vest","scout_vest","hazmat_suit","scavenger_armor","riot_armor","courier_armor","engineer_armor","frontier_armor","bastion_armor"} do assert(sold[id],id.." must be sold in City One") end
+    for _,id in {"courier_armor","engineer_armor","frontier_armor","bastion_armor"} do eq(EconomyDefs.Recipes[id].output[id],1); assert(Items[id].armorStyle) end
+end)
+test("expanded swords firearms ammunition grenades and armor are obtainable functional definitions",function()
+    local sold={}; for _,product in EconomyDefs.Shop do sold[product.id]=true end
+    for _,id in {"short_sword","saber","longsword","katana","machine_pistol","magnum","carbine","sniper_rifle","lmg"} do
+        assert(Items[id] and Items[id].weapon and Weapons[id],id); assert(sold[id],id.." must be sold"); eq(EconomyDefs.Recipes[id].output[id],1)
+    end
+    for _,id in {"smg_ammo","magnum_ammo","sniper_ammo","heavy_ammo"} do
+        assert(Items[id] and Items[id].category=="Боеприпасы"); assert(sold[id]); assert(EconomyDefs.Recipes[id].output[id]>0)
+    end
+    eq(Weapons.machine_pistol.ammo,"smg_ammo"); eq(Weapons.magnum.ammo,"magnum_ammo")
+    eq(Weapons.sniper_rifle.ammo,"sniper_ammo"); eq(Weapons.lmg.ammo,"heavy_ammo"); eq(Weapons.sniper_rifle.damage,110)
+    for kind,definition in Grenades do
+        local item=Items[definition.item]; assert(item and item.grenade==kind and item.use=="throw"); assert(definition.radius>0 and definition.damage>0 and definition.fuse>0)
+        assert(sold[definition.item]); eq(EconomyDefs.Recipes[definition.item].output[definition.item],1)
+    end
+    assert(Grenades.incendiary.burnTicks==5 and Grenades.incendiary.burnDamage>0); eq(Grenades.concussion.stunSeconds,5)
+    for _,id in {"ranger_armor","demolisher_armor"} do assert(Items[id].armor>0 and Items[id].armorStyle); assert(sold[id]); eq(EconomyDefs.Recipes[id].output[id],1) end
+    eq(Items.demolisher_armor.explosiveResistance,0.5)
 end)
 test("five specialist contracts have explicit permanent prices and roles",function()
     local expected={builder=1250,medic=1000,guard=1500,scout=900,gatherer=1100}; local count=0
