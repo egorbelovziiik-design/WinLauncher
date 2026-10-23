@@ -1760,3 +1760,60 @@
 23:19:32.510 smoke: view model shutdown
 23:19:32.536 smoke: window closed
 23:19:32.546 smoke: finished, exit 0
+23:45:07.671 data-folders: PASS
+23:45:07.750 settings-json: PASS
+23:45:07.761 url-parser: PASS
+23:45:07.763 search-engines: PASS
+23:45:07.950 drsearch-index: PASS
+23:45:07.957 music-library: PASS
+23:45:08.231 radio-stations: PASS
+23:45:08.232 ai-personas: PASS
+23:45:08.240 profile-avatars: PASS
+23:45:08.325 drsearch-recents: PASS
+23:45:08.457 sqlite-history: PASS
+23:45:08.490 bookmarks: PASS
+23:45:08.510 passwords-dpapi: PASS
+23:45:08.512 password-generator: PASS
+23:45:08.516 ai-without-key: PASS
+23:45:08.522 adblock: PASS
+23:45:08.528 downloads: PASS
+23:45:08.540 session: PASS
+23:45:08.662 quicklinks-permissions: PASS
+23:45:08.666 incognito-profile: PASS
+23:45:08.673 webview2-runtime: PASS
+23:45:08.673 settings-limits: PASS
+23:45:08.678 guard-url-rules: PASS
+23:45:08.680 guard-scan-args: PASS
+23:45:08.681 ai-image-attachment: PASS
+23:45:08.737 local-ai: PASS
+23:45:08.753 ai-media-context: PASS
+23:45:08.755 music-catalog-parse: PASS
+23:45:08.761 drsearch-parse: PASS
+23:45:08.763 ai-local-provider: PASS
+23:45:08.764 ru-plurals: PASS
+23:45:09.029 music-persistence: PASS
+23:45:09.152 music-playlists: PASS
+23:45:09.155 music-m3u: PASS
+23:45:09.156 error-logging: PASS
+23:45:10.218 smoke: start
+23:45:11.795 smoke: window created
+23:45:11.864 smoke: view model attached
+23:45:14.085 smoke-window: PASS
+23:45:14.087 smoke-webview: navigating
+23:45:16.539 smoke-webview: core ready
+23:45:17.116 smoke-webview: calling NavigateToString
+23:45:17.138 smoke-webview: NavigateToString returned
+23:45:17.861 smoke-webview: PASS
+23:45:20.303 smoke-tabs: PASS
+23:45:27.922 smoke-pages: PASS
+23:45:30.401 smoke-settings-tabs: PASS
+23:45:31.880 smoke-ui: PASS
+23:45:32.841 smoke-miniplayer: PASS
+23:45:35.064 smoke-hotkeys: PASS
+23:45:35.735 smoke-https: engine ready
+23:45:36.080 smoke-https: PASS
+23:45:38.837 smoke-download: PASS
+23:45:40.347 smoke-screenshot: PASS
+23:45:40.414 smoke: view model shutdown
+23:45:40.436 smoke: window closed
+23:45:40.446 smoke: finished, exit 0
