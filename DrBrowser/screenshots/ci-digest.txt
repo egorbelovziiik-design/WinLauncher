@@ -1,0 +1,17 @@
+selftest exit: 1 / smoke exit: 0
+--- selftest-report.txt
+[FAIL] music-m3u            DrMusic: экспорт и импорт плейлистов в M3U/M3U8
+ИТОГО: 34 passed, 1 failed, 0 skipped из 35
+... tail:
+[PASS] error-logging        Обработка ошибок пишется в журнал
+           ERROR + stack trace записаны в журнал (0 ms)
+------------------------------------------------------------------------------
+ИТОГО: 34 passed, 1 failed, 0 skipped из 35
+--- smoke-report.txt
+[SKIP] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
+ИТОГО: 10 passed, 0 failed, 1 skipped из 11
+... tail:
+[SKIP] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
+           SKIP: снимок WebView2 недоступен без загруженной веб-страницы (1631 ms)
+------------------------------------------------------------------------------
+ИТОГО: 10 passed, 0 failed, 1 skipped из 11
