@@ -1,23 +1,23 @@
-﻿18:43:39.341 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-18:43:39.362 INFO  === selftest: start ===
-18:43:39.364 INFO  selftest marker 965d1552764848ca92d6206ba22333e7
-18:43:39.687 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:43:39.761 ERROR selftest intentional exception :: InvalidOperationException: expected
-18:43:40.788 INFO  exit code 0
-18:43:41.845 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-18:43:41.882 INFO  === smoke: start ===
-18:43:41.988 INFO  MainViewModel created (private=True)
-18:43:42.917 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:43:44.031 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\7ebbc55c4c944f538e589253b80d4af9
-18:43:44.053 INFO  Initialisation complete
-18:43:46.861 INFO  WebView2 configured for tab 71a9b4
-18:43:46.864 WARN  accelerator bridge unavailable: controller not found, page-focused shortcuts limited
-18:43:47.391 WARN  navigation failed: about:blank :: ConnectionAborted
-18:43:48.460 INFO  WebView2 configured for tab da0943
-18:43:48.461 WARN  accelerator bridge unavailable: controller not found, page-focused shortcuts limited
-18:43:49.745 INFO  WebView2 configured for tab 2ead14
-18:43:49.746 WARN  accelerator bridge unavailable: controller not found, page-focused shortcuts limited
-18:43:57.997 WARN  navigation failed: https://example.com/ :: ConnectionAborted
-18:43:58.289 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-184358.png
-18:43:59.793 INFO  shutdown complete
-18:44:00.176 INFO  exit code 0
+﻿18:47:17.852 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+18:47:17.884 INFO  === selftest: start ===
+18:47:17.887 INFO  selftest marker daffcb85d1744e409fe9a24db6a53cbf
+18:47:18.213 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:47:18.266 ERROR selftest intentional exception :: InvalidOperationException: expected
+18:47:19.293 INFO  exit code 0
+18:47:20.406 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+18:47:20.423 INFO  === smoke: start ===
+18:47:20.525 INFO  MainViewModel created (private=True)
+18:47:21.426 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:47:22.685 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\98de50c66f2341e1b232cd4b26cd6d01
+18:47:22.708 INFO  Initialisation complete
+18:47:25.401 INFO  WebView2 configured for tab 191877
+18:47:25.407 WARN  accelerator bridge: controller not found. fields=[m_webview2Base:WebView2Base, _templatedParent:DependencyObject, MeasureRequest:Request, ArrangeRequest:Request, sizeChangedInfo:SizeChangedInfo, _parentIndex:Int32, _parent:DependencyObject, _proxy:VisualProxy, _contextStorage:Object] controllerProps=[PositionAndSizeOfSetController:UIElement]
+18:47:25.820 WARN  navigation failed: about:blank :: ConnectionAborted
+18:47:26.854 INFO  WebView2 configured for tab 6580ee
+18:47:26.856 WARN  accelerator bridge: controller not found. fields=[m_webview2Base:WebView2Base, _templatedParent:DependencyObject, MeasureRequest:Request, ArrangeRequest:Request, sizeChangedInfo:SizeChangedInfo, _parentIndex:Int32, _parent:DependencyObject, _proxy:VisualProxy, _contextStorage:Object] controllerProps=[PositionAndSizeOfSetController:UIElement]
+18:47:28.135 INFO  WebView2 configured for tab c29f03
+18:47:28.135 WARN  accelerator bridge: controller not found. fields=[m_webview2Base:WebView2Base, _templatedParent:DependencyObject, MeasureRequest:Request, ArrangeRequest:Request, sizeChangedInfo:SizeChangedInfo, _parentIndex:Int32, _parent:DependencyObject, _proxy:VisualProxy, _contextStorage:Object] controllerProps=[PositionAndSizeOfSetController:UIElement]
+18:47:36.422 WARN  navigation failed: https://example.com/ :: ConnectionAborted
+18:47:36.714 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-184736.png
+18:47:38.224 INFO  shutdown complete
+18:47:38.597 INFO  exit code 0
