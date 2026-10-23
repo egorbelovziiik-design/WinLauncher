@@ -1,2 +1,4 @@
 selftest exit=
 smoke exit=
+selftest exit code: 
+smoke exit code: 

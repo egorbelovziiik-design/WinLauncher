@@ -1,10 +1,12 @@
-﻿18:16:24.986 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-18:16:25.004 INFO  === selftest: start ===
-18:16:25.006 INFO  selftest marker 9527f8055c444fff8f068364713086d7
-18:16:25.317 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:16:25.370 ERROR selftest intentional exception :: InvalidOperationException: expected
-18:16:26.400 INFO  exit code 0
-18:16:27.249 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-18:16:27.266 INFO  === smoke: start ===
-18:16:27.379 INFO  MainViewModel created (private=True)
-18:16:28.256 ERROR window initialisation failed :: NotSupportedException: This type of CollectionView does not support changes to its SourceCollection from a thread different from the Dispatcher thread.
+﻿18:20:01.431 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+18:20:01.458 INFO  === selftest: start ===
+18:20:01.461 INFO  selftest marker 0b1d9306a2584e949443f2a72ea8bd39
+18:20:01.798 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:20:01.862 ERROR selftest intentional exception :: InvalidOperationException: expected
+18:20:02.882 INFO  exit code 0
+18:20:03.886 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+18:20:03.913 INFO  === smoke: start ===
+18:20:04.025 INFO  MainViewModel created (private=True)
+18:20:05.000 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:20:06.196 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\a6ea5ee7956444b48a3f445ea82fa27b
+18:20:06.219 INFO  Initialisation complete
