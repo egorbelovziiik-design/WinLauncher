@@ -54,8 +54,14 @@ public sealed class SearchViewModel : ObservableObject
     public string Query
     {
         get => _query;
-        set => Set(ref _query, value ?? string.Empty);
+        set
+        {
+            if (!Set(ref _query, value ?? string.Empty)) return;
+            Raise(nameof(HasQuery));
+        }
     }
+
+    public bool HasQuery => !string.IsNullOrEmpty(_query);
 
     public string LastQuery
     {

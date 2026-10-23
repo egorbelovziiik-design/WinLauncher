@@ -68,6 +68,8 @@ public sealed class MusicViewModel : ObservableObject
     }
 
     public bool HasFolder => !string.IsNullOrWhiteSpace(Folder);
+
+    public bool HasFilter => !string.IsNullOrEmpty(_filter);
     public string FolderText => HasFolder ? Folder : "Папка не выбрана — выберите её, чтобы браузер прочитал ваши файлы";
 
     public string Filter
@@ -76,6 +78,7 @@ public sealed class MusicViewModel : ObservableObject
         set
         {
             if (!Set(ref _filter, value ?? string.Empty)) return;
+            Raise(nameof(HasFilter));
             _debounce.Stop();
             _debounce.Start();
         }

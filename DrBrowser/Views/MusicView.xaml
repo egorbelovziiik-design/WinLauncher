@@ -91,9 +91,15 @@
                             <TextBlock Text="{Binding Music.SelectedCategory, StringFormat=· {0}}" Style="{StaticResource Muted}"
                                        FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
-                        <TextBox Grid.Column="1" Style="{StaticResource Input}" FontSize="12"
-                                 Text="{Binding Music.Filter, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Поиск по названию, исполнителю или категории" />
+                        <Grid Grid.Column="1">
+                            <TextBox Style="{StaticResource Input}" FontSize="12"
+                                     Text="{Binding Music.Filter, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Поиск по названию, исполнителю или категории" />
+                            <TextBlock Text="Поиск по названию или исполнителю" FontSize="10.5"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="10,0,0,0" IsHitTestVisible="False"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding Music.HasFilter, Converter={StaticResource InverseBoolToVis}}" />
+                        </Grid>
                     </Grid>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

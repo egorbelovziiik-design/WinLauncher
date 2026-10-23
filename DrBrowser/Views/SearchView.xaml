@@ -39,9 +39,15 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="⌕" FontSize="20" Margin="16,0,4,0"
                                    Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
-                        <TextBox x:Name="QueryBox" Grid.Column="1" Style="{StaticResource AddressBox}" FontSize="14.5"
-                                 Text="{Binding Search.Query, UpdateSourceTrigger=PropertyChanged}"
-                                 KeyDown="QueryBox_KeyDown" VerticalAlignment="Center" />
+                        <Grid Grid.Column="1" VerticalAlignment="Center">
+                            <TextBox x:Name="QueryBox" Style="{StaticResource AddressBox}" FontSize="14.5"
+                                     Text="{Binding Search.Query, UpdateSourceTrigger=PropertyChanged}"
+                                     KeyDown="QueryBox_KeyDown" VerticalAlignment="Center" />
+                            <TextBlock Text="Введите запрос — DrSearch ищет локально, без трекеров" FontSize="13.5"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="8,0,0,0" IsHitTestVisible="False"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding Search.HasQuery, Converter={StaticResource InverseBoolToVis}}" />
+                        </Grid>
                         <Button Grid.Column="2" Content="Искать" Style="{StaticResource PrimaryButton}"
                                 Margin="0,0,7,0" VerticalAlignment="Center" Click="Search_Click" />
                     </Grid>

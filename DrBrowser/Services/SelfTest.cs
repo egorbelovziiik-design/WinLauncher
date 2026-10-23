@@ -641,10 +641,19 @@ public static class SelfTest
                 window!.CaptureWindow(Path.Combine(shots, "10-ai-panel.png"));
                 vm.CloseAiCommand.Execute(null);
 
+                // Profile popup: the old implementation was an unstyled white context menu.
+                vm.ToggleProfileCommand.Execute(null);
+                await Delay(500);
+                if (!vm.IsProfileOpen) throw new Exception("попап профиля не открылся");
+                window!.CaptureWindow(Path.Combine(shots, "12-profile.png"));
+                vm.CloseProfileCommand.Execute(null);
+                await Delay(200);
+                if (vm.IsProfileOpen) throw new Exception("попап профиля не закрылся");
+
                 var bookmark = await vm.Bookmarks.AddAsync("Smoke", "https://example.org", "Проверка");
                 if (!vm.Bookmarks.Items.Any(b => b.Id == bookmark.Id)) throw new Exception("закладка не добавлена");
                 await vm.Bookmarks.DeleteAsync(bookmark);
-                return "zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete";
+                return "zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete";
             });
 
             await Run("smoke-hotkeys", "Горячие клавиши вызывают реальные команды", async () =>
