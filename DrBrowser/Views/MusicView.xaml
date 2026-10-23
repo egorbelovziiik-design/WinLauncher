@@ -217,16 +217,22 @@
                     <TextBox Style="{StaticResource InputBox}" Height="28" FontSize="11.5" Margin="0,0,0,6"
                              Text="{Binding Music.NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Имя нового плейлиста" />
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <WrapPanel Margin="0,0,0,6">
                         <Button Content="+ Создать" Style="{StaticResource PrimaryButton}" FontSize="10.5" Padding="9,4"
-                                Command="{Binding Music.CreatePlaylistCommand}" />
-                        <Button Content="✎" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4" Margin="6,0,0,0"
-                                ToolTip="Переименовать выбранный плейлист в имя из поля выше"
+                                Margin="0,0,5,5" Command="{Binding Music.CreatePlaylistCommand}" />
+                        <Button Content="✎" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4"
+                                Margin="0,0,5,5" ToolTip="Переименовать выбранный плейлист в имя из поля выше"
                                 Command="{Binding Music.RenamePlaylistCommand}" />
-                        <Button Content="🗑" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4" Margin="6,0,0,0"
-                                ToolTip="Удалить выбранный плейлист"
+                        <Button Content="🗑" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4"
+                                Margin="0,0,5,5" ToolTip="Удалить выбранный плейлист"
                                 Command="{Binding Music.DeletePlaylistCommand}" IsEnabled="{Binding Music.HasSelectedPlaylist}" />
-                    </StackPanel>
+                        <Button Content="⇪ m3u" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,4"
+                                Margin="0,0,5,5" ToolTip="Экспортировать выбранный плейлист в файл .m3u8"
+                                Command="{Binding Music.ExportPlaylistCommand}" />
+                        <Button Content="⇩ m3u" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,4"
+                                Margin="0,0,0,5" ToolTip="Импортировать .m3u / .m3u8 в выбранный плейлист"
+                                Command="{Binding Music.ImportPlaylistCommand}" />
+                    </WrapPanel>
                     <ItemsControl ItemsSource="{Binding Music.Playlists}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -477,10 +483,21 @@
                                         <DataTemplate>
                                             <Grid Margin="0,0,0,4">
                                                 <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Button Grid.Column="0" Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
+                                                <Border Grid.Column="0" Width="16" Cursor="SizeNS" Background="Transparent"
+                                                        ToolTip="Перетащите, чтобы изменить порядок"
+                                                        AllowDrop="True"
+                                                        PreviewMouseLeftButtonDown="PlaylistDrag_MouseDown"
+                                                        PreviewMouseMove="PlaylistDrag_MouseMove"
+                                                        DragOver="PlaylistDrag_DragOver"
+                                                        Drop="PlaylistDrag_Drop">
+                                                    <TextBlock Text="≡" FontSize="13" Opacity="0.55"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+                                                <Button Grid.Column="1" Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
                                                         FontSize="11.5" Padding="8,5" ToolTip="{Binding FilePath}"
                                                         Command="{Binding DataContext.Music.PlayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}">
@@ -490,7 +507,7 @@
                                                                    TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
                                                 </Button>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Button Content="↑" Style="{StaticResource GhostButton}" FontSize="10" Padding="7,4"
                                                             ToolTip="Выше"
                                                             Command="{Binding DataContext.Music.MovePlaylistTrackUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"

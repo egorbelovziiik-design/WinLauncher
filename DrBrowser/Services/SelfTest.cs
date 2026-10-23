@@ -898,6 +898,13 @@ public static class SelfTest
                     if (Db.MoveItem(list, 2, 1) != 2) throw new Exception("MoveItem сдвинул за конец");
                     if (Db.MoveItem(list, 0, 1) != 1 || string.Join(",", list) != "2,1,3") throw new Exception("MoveItem неверен");
 
+                    // Перетаскивание: перенос на произвольную позицию + запись порядка в БД.
+                    if (Db.MoveItemTo(list, 0, 2) != 2 || string.Join(",", list) != "1,3,2") throw new Exception("MoveItemTo неверен");
+                    if (Db.MoveItemTo(list, 5, 0) != 5) throw new Exception("MoveItemTo принял неверный источник");
+                    db.ReorderPlaylist(id, new[] { items[1].Path, items[0].Path });
+                    var reordered = db.QueryPlaylistTracks(id);
+                    if (string.Join(",", reordered.Select(t => t.Title)) != "c,b") throw new Exception("порядок после drag&drop не сохранился");
+
                     db.DeletePlaylist(id);
                     if (db.QueryPlaylists().Count != 0) throw new Exception("плейлист не удалился");
                     if (db.QueryPlaylistTracks(id).Count != 0) throw new Exception("треки удалённого плейлиста остались в БД");
@@ -909,6 +916,51 @@ public static class SelfTest
                     Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
                     if (File.Exists(dbPath)) File.Delete(dbPath);
                 }
+            });
+
+            await Run("music-m3u", "DrMusic: экспорт и импорт плейлистов в M3U/M3U8", () =>
+            {
+                var tracks = new List<MusicTrack>
+                {
+                    new() { FilePath = @"C:\Music\Rock\a.mp3", Title = "Первый", Artist = "Группа", Category = "Rock" },
+                    new() { FilePath = "https://ice1.somafm.com/groovesalad-128-mp3", Title = "Groove Salad", Artist = "DrMusic", IsStream = true }
+                };
+
+                var text = MusicPlaylistFile.Build(tracks);
+                if (!text.StartsWith("#EXTM3U", StringComparison.Ordinal)) throw new Exception("нет заголовка #EXTM3U");
+                if (!text.Contains("#EXTINF:-1,Группа - Первый")) throw new Exception("нет строки #EXTINF с исполнителем и названием");
+                if (!text.Contains(@"C:\Music\Rock\a.mp3")) throw new Exception("путь локального файла не записан");
+
+                var parsed = MusicPlaylistFile.Parse(text, @"C:\Music");
+                if (parsed.Count != 2) throw new Exception($"разобрано {parsed.Count} записей вместо 2");
+                if (parsed[0].Artist != "Группа" || parsed[0].Title != "Первый") throw new Exception("исполнитель/название потеряны");
+                if (!parsed[0].Location.EndsWith("a.mp3", StringComparison.OrdinalIgnoreCase)) throw new Exception("путь трека потерян");
+                if (!parsed[1].IsStream) throw new Exception("поток не распознан как поток");
+
+                // Комментарии, пустые строки, относительный путь и файл без #EXTINF.
+                var messy = "#EXTM3U\r\n#PLAYLIST:Мой список\r\n\r\n" +
+                            "#EXTINF:213,Artist - Song\r\nsub\\b.mp3\r\n" +
+                            "C:\\Music\\c.ogg\r\n" +
+                            "https://radio.example/stream\r\n";
+                var messyParsed = MusicPlaylistFile.Parse(messy, @"C:\Music\Lists");
+                if (messyParsed.Count != 3) throw new Exception($"в грязном файле найдено {messyParsed.Count} записей вместо 3");
+                if (!messyParsed[0].Location.EndsWith("b.mp3", StringComparison.OrdinalIgnoreCase) ||
+                    !messyParsed[0].Location.StartsWith(@"C:\Music\Lists", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("относительный путь не привязан к папке плейлиста");
+                if (messyParsed[1].Title != "c") throw new Exception("название из имени файла не подставлено");
+                if (!messyParsed[2].IsStream) throw new Exception("URL в грязном файле не распознан");
+
+                if (MusicPlaylistFile.Parse("").Count != 0) throw new Exception("пустой текст дал записи");
+                if (MusicPlaylistFile.Parse(null).Count != 0) throw new Exception("null дал записи");
+                if (MusicPlaylistFile.Parse("#EXTM3U\n# comment only\n").Count != 0) throw new Exception("только комментарии дали записи");
+
+                var streamTrack = MusicPlaylistFile.ToTrack(messyParsed[2]);
+                if (!streamTrack.IsStream || streamTrack.Title.Length == 0) throw new Exception("запись потока не стала треком");
+                if (MusicPlaylistFile.SuggestFileName("Мой: список?").IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                    throw new Exception("недопустимые символы в имени файла не заменены");
+                if (MusicPlaylistFile.SuggestFileName("  ") != "playlist.m3u8") throw new Exception("пустое имя не заменено на playlist.m3u8");
+
+                return "записано 2 трека, прочитано 3 записи из «грязного» файла, относительный путь и поток распознаны";
             });
 
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>

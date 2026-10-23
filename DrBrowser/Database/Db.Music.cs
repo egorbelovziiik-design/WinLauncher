@@ -263,6 +263,55 @@ public partial class Db
         return true;
     }
 
+    /// <summary>Persists a fully re-ordered playlist (drag &amp; drop); unknown paths are ignored.</summary>
+    public void ReorderPlaylist(long playlistId, IReadOnlyList<string> orderedPaths)
+    {
+        if (orderedPaths is null) return;
+
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+
+        // Park every row on a negative position first: positions are unique per playlist in practice,
+        // so rewriting them in place could collide halfway through.
+        using (var park = connection.CreateCommand())
+        {
+            park.Transaction = transaction;
+            park.CommandText = "UPDATE playlist_tracks SET position = -1 - position WHERE playlist_id = $id";
+            park.Parameters.AddWithValue("$id", playlistId);
+            park.ExecuteNonQuery();
+        }
+
+        for (var i = 0; i < orderedPaths.Count; i++)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText =
+                "UPDATE playlist_tracks SET position = $position WHERE playlist_id = $id AND path = $path";
+            command.Parameters.AddWithValue("$position", i);
+            command.Parameters.AddWithValue("$id", playlistId);
+            command.Parameters.AddWithValue("$path", orderedPaths[i]);
+            command.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+        NormalizePlaylistPositions(connection, playlistId);
+    }
+
+    /// <summary>Moves an item to an exact index (drag &amp; drop); returns the new index.</summary>
+    public static int MoveItemTo<T>(IList<T> list, int from, int to)
+    {
+        if (list is null || list.Count == 0) return 0;
+        if (from < 0 || from >= list.Count) return from;
+
+        var target = Math.Clamp(to, 0, list.Count - 1);
+        if (target == from) return from;
+
+        var item = list[from];
+        list.RemoveAt(from);
+        list.Insert(target, item);
+        return target;
+    }
+
     /// <summary>Pure list re-ordering used by the playlists and by the self-test.</summary>
     public static int MoveItem<T>(IList<T> list, int index, int delta)
     {

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows.Input;
 using System.Windows.Threading;
 
@@ -16,6 +17,8 @@ public sealed class MusicViewModel : ObservableObject
 
     private readonly MusicCatalogService _catalog;
     private readonly Action<string> _navigate;
+    private readonly Func<string, string, string, string?>? _pickSaveFile;
+    private readonly Func<string, string?>? _pickOpenFile;
 
     private string _filter = string.Empty;
     private string _selectedCategory = MusicService.AllTracksCategory;
@@ -31,8 +34,12 @@ public sealed class MusicViewModel : ObservableObject
         Action<string> openFolder,
         Action persist,
         MusicCatalogService catalog,
-        Action<string> navigate)
+        Action<string> navigate,
+        Func<string, string, string, string?>? pickSaveFile = null,
+        Func<string, string?>? pickOpenFile = null)
     {
+        _pickSaveFile = pickSaveFile;
+        _pickOpenFile = pickOpenFile;
         Service = service;
         _log = log;
         _settings = settings;
@@ -497,6 +504,93 @@ public sealed class MusicViewModel : ObservableObject
         var moved = Service.MoveInPlaylist(SelectedPlaylist, track, 1);
         RaisePlaylistState();
         Service.Status = moved ? "Трек опущен ниже" : "Трек уже последний";
+    });
+
+    /// <summary>Drag &amp; drop inside the playlist panel.</summary>
+    public void MovePlaylistTrackTo(int from, int to)
+    {
+        if (SelectedPlaylist is null) return;
+        var moved = Service.MoveTrackTo(SelectedPlaylist, from, to);
+        RaisePlaylistState();
+        Service.Status = moved
+            ? $"Трек перемещён на позицию {to + 1}"
+            : "Порядок не изменился";
+    }
+
+    public ICommand ExportPlaylistCommand => new RelayCommand(() =>
+    {
+        if (SelectedPlaylist is null)
+        {
+            Service.Status = "Выберите плейлист для экспорта";
+            return;
+        }
+
+        if (SelectedPlaylist.Tracks.Count == 0)
+        {
+            Service.Status = "Плейлист пуст — экспортировать нечего";
+            return;
+        }
+
+        var directory = string.IsNullOrWhiteSpace(_settings.MusicFolder) ? string.Empty : _settings.MusicFolder;
+        var path = _pickSaveFile?.Invoke(MusicPlaylistFile.Filter,
+            MusicPlaylistFile.SuggestFileName(SelectedPlaylist.Name), directory);
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        try
+        {
+            var count = Service.ExportPlaylist(SelectedPlaylist, path);
+            Service.Status = $"Экспортировано {count} треков в {Path.GetFileName(path)}";
+        }
+        catch (Exception ex)
+        {
+            _log.Error("playlist export failed", ex);
+            Service.Status = "Не удалось записать файл: " + ex.Message;
+        }
+    });
+
+    public ICommand ImportPlaylistCommand => new RelayCommand(() =>
+    {
+        var path = _pickOpenFile?.Invoke(MusicPlaylistFile.Filter);
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        List<MusicPlaylistEntry> entries;
+        try
+        {
+            entries = MusicPlaylistFile.ReadFile(path);
+        }
+        catch (Exception ex)
+        {
+            _log.Error("playlist import failed", ex);
+            Service.Status = "Не удалось прочитать файл: " + ex.Message;
+            return;
+        }
+
+        if (entries.Count == 0)
+        {
+            Service.Status = "В файле нет треков";
+            return;
+        }
+
+        var target = SelectedPlaylist;
+        if (target is null)
+        {
+            var baseName = Path.GetFileNameWithoutExtension(path);
+            target = Service.CreatePlaylist(string.IsNullOrWhiteSpace(baseName) ? "Импорт M3U" : baseName);
+            if (target is null)
+            {
+                Service.Status = "Не удалось создать плейлист для импорта";
+                return;
+            }
+
+            SelectedPlaylist = target;
+        }
+
+        var added = Service.ImportPlaylist(target, path);
+        Raise(nameof(HasPlaylists), nameof(PlaylistsSummary), nameof(SelectedPlaylistTitle),
+            nameof(SelectedPlaylistHint), nameof(CanPlaySelectedPlaylist));
+        Service.Status = added == 0
+            ? $"Все {target.Tracks.Count} треков уже были в «{target.Name}»"
+            : $"Импортировано {added} треков в «{target.Name}»" + (added < entries.Count ? $" (пропущено дублей: {entries.Count - added})" : string.Empty);
     });
 
     public ICommand PlayPlaylistCommand => new RelayCommand(() =>

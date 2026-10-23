@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -380,6 +381,53 @@ public sealed class MusicService : ObservableObject, IDisposable
 
         var moved = Db.MoveItem(playlist.Tracks, index, delta);
         return moved != index;
+    }
+
+    /// <summary>Drag &amp; drop: moves the track at <paramref name="from"/> to <paramref name="to"/>.</summary>
+    public bool MoveTrackTo(MusicPlaylist playlist, int from, int to)
+    {
+        if (playlist is null) return false;
+        if (from < 0 || from >= playlist.Tracks.Count) return false;
+
+        var moved = Db.MoveItemTo(playlist.Tracks, from, to);
+        if (moved == from) return false;
+
+        try
+        {
+            _db?.ReorderPlaylist(playlist.Id, playlist.Tracks.Select(t => t.FilePath).ToList());
+        }
+        catch (Exception ex)
+        {
+            _log.Error("playlist reorder failed", ex);
+        }
+
+        return true;
+    }
+
+    /// <summary>Writes the playlist to an .m3u8 file the user picked; returns the number of tracks.</summary>
+    public int ExportPlaylist(MusicPlaylist playlist, string path)
+    {
+        if (playlist is null || string.IsNullOrWhiteSpace(path)) return 0;
+        var body = MusicPlaylistFile.Build(playlist.Tracks);
+        File.WriteAllText(path, body, new UTF8Encoding(false));
+        _log.Info($"playlist exported: {playlist.Tracks.Count} tracks → {path}");
+        return playlist.Tracks.Count;
+    }
+
+    /// <summary>Imports an .m3u/.m3u8 file into <paramref name="playlist"/>; returns the number of added tracks.</summary>
+    public int ImportPlaylist(MusicPlaylist playlist, string path)
+    {
+        if (playlist is null || string.IsNullOrWhiteSpace(path)) return 0;
+
+        var entries = MusicPlaylistFile.ReadFile(path);
+        var added = 0;
+        foreach (var entry in entries)
+        {
+            if (AddToPlaylist(playlist, MusicPlaylistFile.ToTrack(entry))) added++;
+        }
+
+        _log.Info($"playlist imported: {added} of {entries.Count} entries from {path}");
+        return added;
     }
 
     /// <summary>Queues a whole playlist and starts it from the first track.</summary>
