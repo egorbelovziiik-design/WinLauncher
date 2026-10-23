@@ -44,7 +44,7 @@ public sealed class BackupService
         {
             var dbSnapshot = Path.Combine(staging, "drbrowser.db");
             using (var source = _db.Connect())
-            using (var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbSnapshot }.ToString()))
+            using (var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbSnapshot, Pooling = false }.ToString()))
             {
                 target.Open();
                 source.BackupDatabase(target);
@@ -96,7 +96,7 @@ public sealed class BackupService
 
             var incomingDb = Path.Combine(staging, "drbrowser.db");
             var incomingSettings = Path.Combine(staging, "settings.json");
-            using (var checkConnection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = incomingDb, Mode = SqliteOpenMode.ReadOnly }.ToString()))
+            using (var checkConnection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = incomingDb, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString()))
             {
                 checkConnection.Open();
                 using var integrity = checkConnection.CreateCommand();
