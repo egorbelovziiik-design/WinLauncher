@@ -12,6 +12,12 @@ own place.
 
 ---
 
+## Download
+
+**[StealAnEggUltimate.exe (62.9 MB, Win10/11 x64)](https://github.com/egorbelovziiik-design/WinLauncher/raw/saeu-1.0.0/StealAnEggUltimate/dist/StealAnEggUltimate.exe)** —
+the file also lives in `StealAnEggUltimate/dist/`; no .NET install needed.
+All links, SHA256 and run modes: [DOWNLOAD.md](DOWNLOAD.md).
+
 ## 1. Requirements
 
 | Item | Version |
