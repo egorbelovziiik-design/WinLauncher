@@ -580,7 +580,25 @@ public static class SelfTest
                 await Delay(500);
                 if (vm.CurrentInternalKey != "settings") throw new Exception("Ctrl+, / настройки не открылись");
                 vm.HomeCommand.Execute(null);
-                return "Ctrl+T · Ctrl+W · настройки · Home — команды выполняются";
+
+                // The same handler is used by the WebView2 accelerator bridge for keys typed inside a page.
+                vm.IsFindVisible = true;
+                await Delay(200);
+                if (!window!.TryHandleHotkey(0x1B))
+                    throw new Exception("мост клавиш не обработал Escape");
+                if (vm.IsFindVisible) throw new Exception("Escape не закрыл панель поиска");
+
+                window.TryHandleHotkey(0x7A);   // F11
+                await Delay(200);
+                window.TryHandleHotkey(0x7A);   // F11 back
+                await Delay(200);
+                if (!window.IsVisible) throw new Exception("окно пропало после F11");
+
+                vm.OpenSettingsCommand.Execute(null);
+                await Delay(300);
+                window.TryHandleHotkey(0x74);   // F5
+                await Delay(300);
+                return "Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2";
             });
 
             await Run("smoke-screenshot", "Скриншот страницы (функция «Снимок экрана»)", async () =>
