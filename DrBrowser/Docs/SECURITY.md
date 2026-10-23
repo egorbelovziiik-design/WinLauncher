@@ -1,32 +1,75 @@
-# Безопасность и приватность DrBrowser
+# Security and privacy model
 
-## Что сделано
+DrBrowser is a desktop browser, not a security sandbox beyond Windows/WebView2. This document states implemented controls and boundaries; it is not a claim of anonymity or formal certification.
 
-| Область | Реализация |
+## Implemented controls
+
+| Area | Control |
 |---|---|
-| HTTPS | TLS-проверки включены всегда; в приложении нет и не будет опции «игнорировать ошибки сертификата» |
-| Опасные схемы | `javascript:`, `data:`, `vbscript:` и неизвестные внешние протоколы не передаются в движок; `mailto:`/`tel:` открываются только через оболочку Windows |
-| Разрешения | `PermissionRequested` показывает диалог «Разрешить камеру/микрофон/геолокацию для site?», выбор запоминается в `site_permissions`; без ответа — запрет |
-| Пароли | Шифруются DPAPI (CurrentUser + случайная энтропия приложения); в SQLite только шифртекст; автозаполнение отсутствует |
-| Ключ AI | Вводится пользователем, хранится в `secrets/ai.key` в зашифрованном виде; в исходниках и репозитории ключей нет |
-| Инкогнито | Отдельный временный профиль WebView2 + отдельная временная БД; удаляются при закрытии окна; запись истории отключена |
-| Локальные файлы | Прямой доступ страниц к `file:` не предоставляется; открытие локальных файлов — только по действию пользователя |
-| Внешние команды | Из содержимого страниц не выполняются команды ОС; запуск процессов возможен только для открытия скачанного файла/папки по кнопке |
-| Журналирование | URL не логируются целиком в открытом виде при инкогнито; пароли и ключи не попадают в журнал |
+| TLS | WebView2 certificate/HTTPS validation stays enabled. No ignore-certificate switch is exposed. |
+| URL schemes | Navigation accepts internal routes and normal HTTP/HTTPS. Dangerous script/data schemes are rejected by address parsing; external schemes are tightly limited. |
+| Permissions | Camera, microphone, geolocation and similar WebView2 permissions require a user decision and can be persisted per host. |
+| Popups | New windows are routed into controlled tabs; arbitrary system access is not granted. |
+| Downloads | Files are never automatically executed. Open/open-folder are explicit user actions. DrGuard can invoke Defender only after completion when enabled/available. |
+| Vault | Password values are encrypted with Windows DPAPI CurrentUser before SQLite insertion. No automatic capture/autofill. |
+| AI key | The OpenAI-compatible key is a DPAPI-protected secret file and is not written to settings/logs/backups. |
+| Ollama | Endpoint validation accepts loopback only, preventing configuration as a general internal-network proxy. |
+| DrMind actions | Hard-coded allowlist (save response as Note, open HTTPS URL) with confirmation. No shell tool, arbitrary file tool or unrestricted OS access. |
+| AI context | Page, search and memory content is bounded/labeled untrusted. Explicit memory is off by default and never inferred automatically. |
+| DrSearch crawler | Robots/delay/domain/page/depth/size/redirect bounds; DNS resolution rejects private, loopback, link-local and similar addresses; `noindex` honored. |
+| AdBlock | Request cancellation only; no TLS interception or certificate installation. |
+| Private window | Separate temporary WebView2 profile and temporary SQLite DB, best-effort deletion on close. |
+| Backup | Strict ZIP allowlist/path rejection, manifest/version, SHA-256, JSON parse and SQLite integrity check. Secret directory/profile excluded. |
+| Logging | Feature errors and operational status only; password/key plaintext is not logged. Private navigation is not persisted to normal history. |
+| Telemetry | No hidden analytics/telemetry endpoint. |
 
-## Чего приложение НЕ делает (сознательно)
+## Trust boundaries
 
-* Не подменяет User-Agent для обхода антибот-защит.
-* Не отключает проверку сертификатов, не проксирует трафик, не расшифровывает HTTPS для «своего» AdBlock.
-* Не перехватывает ввод паролей, не отправляет формы без действия пользователя.
-* Не является средством анонимности: инкогнито не скрывает IP, не защищает от отпечатка браузера.
+### Web content
 
-## Где лежат данные
+Web pages execute in WebView2/Chromium. They do not receive a host object that exposes arbitrary .NET methods. DrBrowser does not inject an unrestricted bridge. Browser permissions and downloads pass through explicit WebView2 events.
 
-`%AppData%\DrBrowser` — настройки, SQLite, зашифрованные секреты, профиль WebView2, журналы.
-Удаление каталога полностью сбрасывает браузер. Для инкогнито используется `%TEMP%`.
+### AI providers
 
-## Ограничения движка
+Local deterministic mode sends nothing. Ollama sends prompts to the configured loopback service. OpenAI-compatible mode sends the user message and whichever optional contexts the user enables to the configured endpoint. Provider operators can see those requests; DrBrowser cannot enforce their retention policy.
 
-WebView2 — тот же Chromium, что в Edge. Уровень безопасности сайтов определяется движком и обновлениями
-Edge WebView2 Runtime, а не кодом DrBrowser.
+Model output is untrusted. Controlled actions parse only an HTTPS URL or save text into Notes after confirmation. Output is not executed as code.
+
+### Local storage
+
+SQLite is not globally encrypted. History, bookmarks, Notes, Tasks, Workspaces, search documents and AI memory are readable by software/user accounts that can read the Windows profile. Only Vault password values and API keys receive DPAPI protection.
+
+DPAPI protects against offline/plaintext disclosure and other Windows users under normal ACLs; it does not protect against malware running as the same user or a compromised live process. Decrypted Vault values exist in memory when loaded.
+
+### Backup
+
+A `.drbackup` is not a generally encrypted archive. It can contain plaintext local content such as history and Notes. It excludes API-key files and WebView2 profile data. Vault values remain DPAPI ciphertext. Store backups accordingly; portability of Vault values is limited to the same Windows user/machine context supported by DPAPI.
+
+## Private mode limitations
+
+Private mode prevents DrBrowser’s normal persistent history/session/database/profile from recording that window. It does **not**:
+
+- hide IP or DNS traffic from providers/networks;
+- defeat site/browser fingerprinting;
+- erase files the user downloads;
+- control remote website/AI/search/provider logs;
+- protect against OS-level monitoring or malware;
+- guarantee deletion if Windows terminates the process or files remain locked (cleanup is retried/best effort).
+
+## DrGuard/Defender limitations
+
+DrGuard has URL warning/block rules and can request a Microsoft Defender CLI scan. This is defense in depth, not an antivirus guarantee. Defender may be absent/disabled, signatures may miss threats, and a clean result does not prove safety. DrBrowser does not run downloaded executables automatically.
+
+## Deliberate non-features
+
+- No CAPTCHA/auth/DRM bypass.
+- No disabling TLS verification or installing a root CA.
+- No hidden process injection, game injection or anti-cheat interaction.
+- No automatic model download or bundled multi-gigabyte model.
+- No password interception/autofill.
+- No claim that network AdBlock provides cosmetic filtering or complete tracking prevention.
+- No cloud synchronization/telemetry.
+
+## Reporting a security issue
+
+Do not include real credentials, Vault databases or API keys in a public issue. Reproduce with synthetic data and identify the source revision, Windows version, WebView2 version and relevant log excerpt after redaction.

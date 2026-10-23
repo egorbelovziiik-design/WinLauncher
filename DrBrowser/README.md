@@ -1,277 +1,151 @@
-# DrBrowser 2.0
+# DrBrowser OMEGA 3.0
 
-Настоящий браузер для Windows 10/11 x64 на C# / .NET 8 / WPF / MVVM поверх **Microsoft Edge WebView2** (Chromium).
-Никаких имитаций интерфейса: каждая кнопка вызывает реальный код, вкладки — это отдельные WebView2, история,
-закладки, пароли и загрузки лежат в SQLite, настройки — в JSON, ключ AI шифруется Windows DPAPI.
+DrBrowser OMEGA is a real Windows 10/11 x64 browser application built on **.NET 10, WPF, MVVM, Microsoft Edge WebView2 and SQLite**. Web pages are rendered by separate WebView2 controls; browser state is persisted by actual services, not demo data or notification-only buttons.
 
----
+## Download and integrity
 
-## Скачать
+| Artifact | Purpose |
+|---|---|
+| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | Portable self-contained `win-x64` application |
+| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | Per-user Windows installer |
+| `../dist/*.sha256.txt` | SHA-256 sidecars generated from the exact CI outputs |
 
-* **Релиз (рекомендуется):** <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>
-  → `DrBrowser.exe` (72262772 байт, self-contained, .NET устанавливать не нужно).
-* **Прямая ссылка:**
-  <https://github.com/egorbelovziiik-design/WinLauncher/releases/download/drbrowser-latest/DrBrowser.exe>
-* **Файл в репозитории:** [dist/DrBrowser.exe](dist/DrBrowser.exe)
-* **SHA-256:** `EB4CFBED31470F689C59810205C460B4C38201DFFD01E1C53DF75DAC747CCB54`
+Verify a downloaded file:
 
 ```powershell
 Get-FileHash .\DrBrowser.exe -Algorithm SHA256
-# EB4CFBED31470F689C59810205C460B4C38201DFFD01E1C53DF75DAC747CCB54
+Get-Content .\DrBrowser.exe.sha256.txt
 ```
 
-Сборка без цифровой подписи, поэтому SmartScreen покажет предупреждение: «Подробнее» → «Выполнить в любом случае».
+The project is not Authenticode-signed, so SmartScreen may warn. The self-contained EXE does not need a separate .NET installation. **Microsoft Edge WebView2 Runtime is required** for web content: <https://go.microsoft.com/fwlink/p/?LinkId=2124703>.
 
----
+See [INSTALL.md](Docs/INSTALL.md) for install, update, uninstall and source-build instructions.
 
-## 1. Установка и запуск
+## OMEGA modules
 
-### Вариант A. Готовый EXE
-1. Скачайте `dist/DrBrowser.exe` из репозитория (или из артефактов GitHub Actions «DrBrowser-win-x64»).
-2. При первом запуске Windows SmartScreen может показать предупреждение — файл собран без подписи:
-   «Подробнее» → «Выполнить в любом случае».
-3. Проверьте контрольную сумму (рядом лежит `DrBrowser.exe.sha256.txt`):
-   ```powershell
-   Get-FileHash .\DrBrowser.exe -Algorithm SHA256
-   ```
-4. Запустите `DrBrowser.exe`. Установка не требуется — сборка self-contained, .NET скачивать не нужно.
+### Browser core
 
-### Вариант B. Сборка из исходников
+- One real WebView2 per web tab, created lazily; back/forward/reload/stop/home and URL-or-search parsing.
+- Create, close, restore, duplicate, reorder, pin and mute tabs; session restore and configurable tab sleeping through `TrySuspendAsync`.
+- Downloads use `CoreWebView2DownloadOperation`: actual bytes, progress, speed, cancel, open file/folder and SQLite history.
+- SQLite history/bookmarks; bookmark bar; Netscape HTML import/export; suggestions from local data.
+- Page find, zoom, screenshot, Print-to-PDF, reader mode, Picture-in-Picture request, F11 and F12 DevTools.
+- Private **window** with a temporary WebView2 user-data folder and temporary SQLite database, deleted on close.
+- Site permission prompts, crash reporting/recovery, new-window handling and fullscreen events.
+
+### DrSearch
+
+DrSearch is not a renamed third-party results page. It owns a SQLite **FTS5** index and uses **BM25** ranking with canonical URL normalization, deduplication, snippets, quality/language metadata and index statistics.
+
+The optional crawler is deliberately bounded. It honors robots rules, crawl delay, configured page/depth/domain limits, `noindex`, redirects and content-size limits; it rejects loopback/private/link-local destinations to mitigate SSRF. It does not bypass authentication, CAPTCHA or robots policy and does not claim to index the whole internet. Optional public-web results are visibly separated from local DrSearch results.
+
+### DrMind
+
+- Providers: deterministic offline Local engine, loopback-only **Ollama**, and user-configured OpenAI-compatible HTTPS endpoint.
+- Nine modes: Chat, Search, Research, Coding, Study, Writing, Translation, Browser and Music.
+- Streaming Ollama output, stop/regenerate, bounded conversation history and configurable model/context/temperature.
+- Optional active-page context; page text is labeled untrusted in the system prompt.
+- Optional DrSearch RAG with numbered source URLs; the UI does not invent sources when none exist.
+- Explicit SQLite memory: nothing is inferred or stored automatically. The user must add each fact and separately enable prompt inclusion. Cloud inclusion is disclosed beside the switch.
+- Controlled action allowlist: save the last response to Notes or open its first HTTPS URL. Both require an explicit confirmation; DrMind has no arbitrary shell or filesystem tool.
+- OpenAI-compatible API keys are stored with Windows DPAPI; Ollama URLs must resolve to loopback. No model is bundled or downloaded automatically.
+
+### DrMusic
+
+- Reads audio only from a folder chosen by the user; supports common formats exposed by WPF Media Foundation (`mp3`, `wav`, `m4a`, `aac`, `flac`, `ogg`, `wma`, `aiff`, subject to installed codecs).
+- Real local playback, queue, previous/next, pause, stop, seek, volume, shuffle/repeat and persistent mini-player.
+- Folder-based categories, title/artist parsing, filter, **SQLite playlists and favorites**; removing a playlist never deletes audio files.
+- Eight public radio stream entries with LIVE state and disabled seeking.
+- iTunes/Deezer public catalog search plays only provider-supplied previews; full tracks open on the provider page. Yandex Music opens its normal web search. There is no DRM bypass or protected-media downloader.
+
+### Productivity and OMEGA shell
+
+- Resizable left sidebar with DrMind, DrSearch, DrMusic, Workspaces, Notes, Tasks, DrTools, Gaming, Performance, Downloads and Settings.
+- Workspaces persist name/color and a real snapshot of open tab URL/title/pin state. Six initial presets are seeded; replacing tabs requires confirmation.
+- Notes and Tasks provide SQLite create/update/delete/completion operations; destructive operations require confirmation where appropriate.
+- DrTools: safe expression parser (no script `eval`), JSON format/minify, unit and temperature converter, CSPRNG password generator, text cleanup and HEX/RGB conversion.
+- Performance page reports the actual DrBrowser process working set, managed heap, sampled CPU use, tab count, WebView2 process count and runtime version.
+- Gaming Mode applies the Gaming theme and aggressive browser tab sleep; Gaming offers ordinary HTTPS links and does not manipulate game processes.
+- DrCommand (`Ctrl+Shift+P`) searches 23 registered actions and executes the selected command.
+
+### Privacy, security, Vault and backup
+
+- DrGuard URL rules and optional Microsoft Defender command-line scan for completed downloads where Defender is available.
+- Request-level AdBlock with built-in rules, custom network rules, EasyList import URL, per-site allowlist and counters. Cosmetic element hiding is not claimed.
+- Vault passwords are DPAPI-encrypted before SQLite. No website password capture or autofill is performed.
+- Backups use SQLite Online Backup API, a manifest and SHA-256; restore rejects unexpected paths/files and runs `PRAGMA integrity_check`. API keys, WebView2 cookies/cache and secret files are excluded. Vault rows stay DPAPI ciphertext and are portable only to the same Windows account.
+- No hidden telemetry. Network access occurs only for pages/features the user invokes (sites, selected search/catalog/weather source, filter update, configured AI provider).
+
+### Themes and accessibility
+
+Ten centralized palettes are included: Omega Dark, Omega Light, Neon Cyber, AMOLED Black, Purple Aurora, Blue Ocean, Pink Sakura, Green Matrix, Orange Sunset and Gaming. Accent presets, custom accent, reduced animations and three Tab Sleep presets are persisted.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+T`, `Ctrl+W`, `Ctrl+Shift+T` | New, close, restore tab |
+| `Ctrl+L`, `Ctrl+R`, `Ctrl+F` | Address, reload, page find |
+| `Ctrl+H`, `Ctrl+J`, `Ctrl+D` | History, downloads, bookmark |
+| `Ctrl+Shift+N` | New private window |
+| `Ctrl+P` | Save current web page as PDF |
+| `Ctrl+Shift+P` | DrCommand palette |
+| `Ctrl+Shift+A`, `Ctrl+Shift+S`, `Ctrl+Shift+M` | DrMind, DrSearch, DrMusic |
+| `Ctrl+Shift+G` | DrGuard |
+| `Ctrl+Alt+Space/Left/Right` | Music play/pause, previous, next |
+| `Ctrl+Tab`, `Ctrl+Shift+Tab` | Next/previous tab |
+| `Ctrl++`, `Ctrl+-`, `Ctrl+0` | Zoom |
+| `F11`, `F12` | Fullscreen, DevTools |
+| `Alt+Left`, `Alt+Right` | Back/forward |
+
+Shortcuts are bridged from WebView2 `AcceleratorKeyPressed`, so they also work while a page has focus.
+
+## Data locations
+
+Normal mode uses `%AppData%\DrBrowser`:
+
+| Data | Location |
+|---|---|
+| Settings | `settings.json` |
+| History, bookmarks, Vault ciphertext, downloads, Workspaces, Notes, Tasks, playlists, AI memory, DrSearch | `drbrowser.db` (SQLite/WAL) |
+| OpenAI-compatible key | `secrets\ai.key` (DPAPI) |
+| WebView2 profile | `profile\default` or configured folder |
+| Session | `session.json` |
+| Filters, logs, screenshots | `filters\`, `logs\`, `screenshots\` |
+
+Private windows use GUID-named temporary profile/database paths and attempt recursive deletion at close.
+
+## Build and test
+
 ```powershell
-git clone https://github.com/egorbelovziiik-design/WinLauncher.git
-cd WinLauncher\DrBrowser
-
-dotnet restore DrBrowser.csproj
-dotnet build DrBrowser.csproj -c Release
+dotnet restore ..\DrBrowserOmega.sln
+dotnet build ..\DrBrowserOmega.sln -c Release
 dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o dist
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+  -p:EnableCompressionInSingleFile=true -o ..\dist
 
-.\dist\DrBrowser.exe
+..\dist\DrBrowser.exe --selftest
+..\dist\DrBrowser.exe --smoke
 ```
 
-### Требование: Microsoft Edge WebView2 Runtime
-DrBrowser не содержит собственный движок — он использует WebView2 (Chromium), как Edge и другие браузеры.
+The latest verified source run before packaging is GitHub Actions run [40032001578](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032001578): Release build and publish succeeded, all **35** logic checks had zero failures, and all **12** live-window/WebView2 smoke checks had zero failures. The final packaging run is recorded in [TESTING.md](Docs/TESTING.md) and the committed reports under `screenshots/`.
 
-* Windows 11 и актуальная Windows 10 обычно уже содержат Runtime (обновляется вместе с Edge).
-* Проверка в приложении: страница **Настройки → О браузере** показывает `WebView2 Runtime <версия>`.
-  Если Runtime нет, при старте откроется понятное сообщение с кнопкой «Скачать Runtime».
-* Ручная установка: <https://go.microsoft.com/fwlink/p/?LinkId=2124703>
-  (Evergreen Bootstrapper, ~2 МБ, ставится без прав администратора).
-* Командная проверка версии:
-  ```powershell
-  Get-ChildItem "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Directory
-  ```
+## Known limitations
 
-Без Runtime браузер запускается, показывает интерфейс, историю, закладки, настройки, менеджер загрузок и пароли,
-но сайты не открываются — вместо этого выводится инструкция по установке (это честное поведение, а не «пустой экран»).
+- WebView2 Runtime is an external dependency; without it, local pages still open but websites cannot render.
+- Binaries are unsigned. This is not equivalent to malware, but users should verify hashes and provenance.
+- There is one persistent normal-mode data profile in this release. Profile name/avatar and WebView2 data-folder customization exist, plus isolated private windows; a full multi-profile switcher with separate bookmarks/settings is **not** implemented.
+- Chrome Web Store extensions and arbitrary Chromium extensions are not supported by WebView2.
+- DRM/Widevine behavior is not guaranteed. DrBrowser does not bypass DRM.
+- AdBlock implements network filtering, not a full cosmetic-filter engine; service-worker behavior is constrained by WebView2 events.
+- Vault intentionally has no autofill/import from websites. Clipboard contents are governed by Windows after a user copies a value.
+- DrMind Local is deterministic text tooling, not an LLM. Ollama models and cloud access must be supplied/configured by the user.
+- DrSearch is a personal bounded index, not an internet-scale search engine. Public results depend on external providers.
+- Radio/catalog/weather/public-web features depend on network availability and their providers. No availability guarantee is made.
+- WPF `MediaPlayer` codec support depends partly on Windows Media Foundation.
+- Gaming Mode changes DrBrowser behavior/theme only; there is no FPS overlay, game injection or OS power-plan manipulation.
+- Performance CPU is a sampled process estimate; the first sample is a baseline, not an instantaneous value.
+- Backup does not contain API keys, WebView2 cookies/cache or a portable plaintext Vault. DPAPI ciphertext normally restores only for the same Windows account.
+- CI window screenshots cannot reliably capture WebView2’s child HWND pixels; engine execution is instead asserted through navigation, document title and JavaScript.
 
-## Скриншоты
-
-| Окно | Файл |
-|---|---|
-| Новая вкладка | [01-newtab.png](screenshots/01-newtab.png) |
-| WebView2 с загруженной страницей | [02-webview.png](screenshots/02-webview.png) |
-| Настройки (11 категорий) | [03-settings.png](screenshots/03-settings.png) |
-| Настройки → Музыка | [14-settings-music.png](screenshots/14-settings-music.png) |
-| Настройки → AI Assistant | [15-settings-ai.png](screenshots/15-settings-ai.png) |
-| История | [04-history.png](screenshots/04-history.png) |
-| Загрузки | [05-downloads.png](screenshots/05-downloads.png) |
-| Закладки | [06-bookmarks.png](screenshots/06-bookmarks.png) |
-| Пароли | [07-passwords.png](screenshots/07-passwords.png) |
-| Панель DrAI | [10-ai-panel.png](screenshots/10-ai-panel.png) |
-| **DrSearch** (своя поисковая система) | [08-search.png](screenshots/08-search.png) |
-| **DrMusic** (плеер и библиотека) | [09-music.png](screenshots/09-music.png) |
-| **Мини-плеер DrMusic** в окне браузера | [13-mini-player.png](screenshots/13-mini-player.png) |
-| **Профиль** (тёмная карточка вместо белого меню) | [12-profile.png](screenshots/12-profile.png) |
-
-Отчёты прогонов: [selftest-report.txt](screenshots/selftest-report.txt), [smoke-report.txt](screenshots/smoke-report.txt).
-
----
-
-## 2. Горячие клавиши
-
-| Клавиши | Действие |
-|---|---|
-| `Ctrl+T` | новая вкладка |
-| `Ctrl+W` | закрыть вкладку |
-| `Ctrl+Shift+T` | восстановить закрытую вкладку |
-| `Ctrl+L` | фокус в адресной строке |
-| `Ctrl+R` / `F5` | перезагрузить |
-| `Ctrl+F` | поиск на странице |
-| `Ctrl+H` | история |
-| `Ctrl+J` | загрузки |
-| `Ctrl+D` | добавить/убрать закладку |
-| `Ctrl+Shift+N` | окно инкогнито |
-| `Ctrl+P` | сохранить страницу в PDF |
-| `Ctrl+Shift+M` | DrMusic (плеер) |
-| `Ctrl+K` | DrSearch (своя поисковая система) |
-| `Ctrl+Alt+Space` | плей / пауза DrMusic |
-| `Ctrl+Alt+Left` / `Ctrl+Alt+Right` | предыдущий / следующий трек |
-| `Ctrl+Tab` / `Ctrl+Shift+Tab` | следующая / предыдущая вкладка |
-| `F11` | полноэкранный режим |
-| `Alt+Left` / `Alt+Right` | назад / вперёд |
-| `Ctrl+ =` / `Ctrl+ -` / `Ctrl+0` | масштаб |
-| `Alt+Left` на пустой истории | ничего не делает (без ошибок) |
-
-Горячие клавиши работают и когда фокус находится внутри веб-страницы: WebView2 отдаёт их через
-`AcceleratorKeyPressed`, DrBrowser обрабатывает и помечает `Handled`, поэтому встроенные действия движка
-(Ctrl+P «печать», Ctrl+F «поиск Edge» и т. п.) не перехватывают их.
-
----
-
-## 3. Новое в 2.0
-
-| Что | Детали |
-| --- | --- |
-| **Встроенное радио DrMusic** | 8 станций прямо в браузере (Groove Salad, Drone Zone, Lush, Secret Agent, DEF CON Radio, Nightride FM, SomaFM Underground 80s, Radio Paradise). Станции — обычные элементы библиотеки с бейджем **LIVE**, поэтому play/pause/next/перемешивание работают как с локальными треками; перемотка для потока отключена. Плюс кнопка «↻ Обновить». |
-| **Мини-плеер в окне браузера** | Отдельная строка под панелью вкладок: текущий трек, бейдж LIVE/LOCAL, play/pause, next/prev, громкость и переход в DrMusic — работает при любой открытой странице. |
-| **Профиль с градиентными аватарами** | 6 пресетов-градиентов, свои инициалы из имени профиля, сброс к своему изображению. Карточка профиля — тёмная, с читаемым полем имени, статистикой, переключателем темы, акцентными цветами и быстрыми действиями. |
-| **Режимы DrAI** | Помощник / Кратко / Переводчик / Кодер — у каждого свой системный промпт. Переключатель «Учитывать текст страницы» подмешивает текст активной вкладки в запрос, у каждого сообщения есть кнопка «копировать». |
-| **DrSearch: недавние запросы** | Последние 8 запросов сохраняются между запусками и показываются чипами над строкой поиска; один клик — повторный поиск. |
-| **Горячие клавиши музыки** | `Ctrl+Shift+M`, `Ctrl+K`, `Ctrl+Alt+Space`, `Ctrl+Alt+Left/Right`. |
-| **Аватар DrAI** | Художественный аватар в неоновом стиле (`Assets/dr-ai-avatar.png`), используется в панели DrAI и в профиле. |
-| **Профиль без «белого экрана»** | Вместо стандартного белого контекстного меню — тёмная карточка-попап. |
-
-Из 1.1 в основе: DrSearch (свой локальный поисковый индекс), DrMusic, инкогнито с временным профилем,
-DPAPI-хранилище ключей и паролей, AdBlock на `WebResourceRequested`.
-
-## 4. Что реализовано
-
-### Ядро браузера
-* Собственное окно с кастомным заголовком (`WindowChrome`), перетаскивание, кнопки свернуть/развернуть/закрыть.
-* Вкладки: создание, переключение, закрытие, **перетаскивание** для смены порядка, закрепление (pin),
-  дублирование, отключение звука, контекстное меню, восстановление закрытой вкладки, сохранение и восстановление сессии.
-* У каждой веб-вкладки **свой WebView2**; неактивные вкладки приостанавливаются по таймеру (`Настройки → Производительность`).
-* Адресная строка: отличает URL от поискового запроса, автодополнение из истории и закладок,
-  индикатор HTTPS/предупреждение для HTTP, копирование адреса, 4 поисковые системы (Google, Яндекс, Bing, DuckDuckGo).
-* Новая вкладка: логотип, большая строка поиска, часы, дата, погода (Open-Meteo), быстрые ссылки
-  (добавление/удаление), недавние сайты, собственные обои.
-* Строка закладок, панель поиска по странице, статус-бар (состояние, счётчик блокировок, масштаб, число вкладок).
-
-### Загрузки
-* Перехват `DownloadStarting`, прогресс, скорость, размер, отмена, открытие файла и папки,
-  история загрузок в SQLite, выбор папки сохранения, опция «спрашивать место сохранения».
-* Все операции — реальные (`CoreWebView2DownloadOperation`), без фиктивных прогресс-баров.
-
-### Закладки, история, пароли
-* Закладки: папки, поиск, строка закладок, редактирование, импорт/экспорт Netscape HTML, SQLite.
-* История: поиск, фильтр по дате (сегодня / 7 / 30 дней / всё время), удаление записи, полная очистка,
-  список часто посещаемых.
-* Пароли: SQLite + **DPAPI** (шифрование под текущего пользователя Windows), поиск, удаление, копирование,
-  генератор с оценкой стойкости. Автозаполнение **намеренно отсутствует** — пароль попадает в буфер только по нажатию.
-
-### AdBlock
-* Фильтрация через `WebResourceRequested` до загрузки ресурса.
-* Встроенный список рекламных/трекерных доменов, пользовательские правила в синтаксисе AdBlock Plus
-  (`||domain^`, `@@`-исключения, `*`, подстроки), загрузка списков EasyList, счётчик заблокированного,
-  whitelist по сайтам, отключение одной кнопкой.
-* Косметические правила (`##`) игнорируются — это указано в интерфейсе, чтобы не выдавать несуществующее за факт.
-
-### DrAI (боковая панель)
-* Чат с 4 режимами (Помощник, Кратко, Переводчик, Кодер), «содержание страницы», перевод и объяснение
-  выделенного текста, объяснение кода, копирование любого ответа одним кликом, опция «учитывать текст страницы».
-* Работает с OpenAI-совместимым API (`/v1/chat/completions`), базовый URL и модель настраиваются.
-* Ключ вводится пользователем и хранится в `%AppData%\DrBrowser\secrets\ai.key` **в зашифрованном виде
-  через Windows DPAPI**; в исходниках ключей нет. Без ключа панель показывает понятное сообщение и не обращается к сети.
-
-### Инкогнито
-* `Ctrl+Shift+N` или меню профиля → новое окно с отдельным временным профилем WebView2 и отдельной временной базой.
-* История, формы, поисковые запросы не сохраняются; профиль и база удаляются при закрытии окна.
-* Честное предупреждение в интерфейсе: это **не полная анонимность** — провайдер, сайты и сеть по-прежнему видят трафик.
-
-### Музыка и поиск
-* DrSearch: локальный индекс по истории/закладкам/адресам, приватный режим, передача запроса в веб-движок по кнопке,
-  недавние запросы.
-* DrMusic: локальные mp3/wav/m4a/flac/ogg/aac/wma, категории-подпапки, громкость, повтор, перемешивание,
-  **8 интернет-станций (LIVE)** и мини-плеер, который остаётся на экране при переходе по сайтам.
-* Потоки играют через тот же `MediaPlayer`; для них скрыта перемотка, показан бейдж `LIVE`, а название станции
-  выводится в мини-плеере и в статус-баре DrMusic.
-
-### Дополнительно
-* Скриншот страницы (`CapturePreviewAsync`), сохранение в PDF (`PrintToPdfAsync`), режим чтения, масштаб,
-  F11, поиск `Ctrl+F`, перевод выделенного, очистка cookie/кэша/разрешений, менеджер профилей,
-  восстановление сессии, горячие клавиши.
-* `drbrowser://settings` — 10 категорий настроек, всё сохраняется в `%AppData%\DrBrowser\settings.json`:
-  внешний вид, поиск, новая вкладка, конфиденциальность, загрузки, производительность, AI, AdBlock,
-  горячие клавиши, о браузере.
-* Безопасность: HTTPS-проверки включены, отключить проверку сертификатов нельзя, опасные схемы (`javascript:`,
-  `file:` из страницы, произвольные протоколы) блокируются, камера/микрофон/геолокация — только по подтверждению.
-
----
-
-## 5. Где хранятся данные
-
-| Что | Где |
-|---|---|
-| Настройки | `%AppData%\DrBrowser\settings.json` |
-| История, закладки, пароли, загрузки, разрешения | `%AppData%\DrBrowser\drbrowser.db` (SQLite, WAL) |
-| Ключ AI | `%AppData%\DrBrowser\secrets\ai.key` (DPAPI) |
-| Профиль WebView2 | `%AppData%\DrBrowser\profile\default` |
-| Фильтры AdBlock | `%AppData%\DrBrowser\filters\*.txt` |
-| Журнал | `%AppData%\DrBrowser\logs\drbrowser-YYYYMMDD.log` |
-| Скриншоты страниц | `%AppData%\DrBrowser\screenshots` |
-| Сессия | `%AppData%\DrBrowser\session.json` |
-
----
-
-## 6. Тестовые режимы
-
-Приложение содержит собственный тестовый прогон (тот же бинарник, без отдельного стенда):
-
-```powershell
-.\DrBrowser.exe --selftest   # логика: SQLite, DPAPI, AdBlock, JSON, URL, сессии
-.\DrBrowser.exe --smoke      # живое окно, WebView2, вкладки, все страницы, скриншоты
-```
-
-Оба режима пишут `selftest-report.txt` и PNG-скриншоты в `%AppData%\DrBrowser\selftest`
-(или в каталог из переменной `DRBROWSER_SHOTS`) и возвращают код 0 при успехе.
-
-### Результаты последнего прогона (CI, windows-latest, реальный запуск EXE)
-
-| Прогон | Итог | Что именно проверено |
-|---|---|---|
-| `--selftest` | **23 passed, 0 failed, 0 skipped** | JSON-настройки и их ограничения, SQLite (история, закладки, пароли, загрузки, быстрые ссылки, разрешения), DPAPI-шифрование паролей, AdBlock (108 правил, whitelist, свои фильтры), генератор паролей, AI без ключа, сессии, временный профиль инкогнито, определение WebView2 Runtime, запись ошибок в журнал, **радио DrMusic (LIVE-бейдж, запрет перемотки)**, **режимы DrAI**, **пресеты аватара**, **недавние запросы DrSearch** |
-| `--smoke` | **11 passed, 0 failed, 0 skipped** | живое окно, движок WebView2 (Chromium), 6 внутренних страниц со скриншотами, создание/переключение/закрытие/восстановление вкладок, масштаб, Ctrl+F, AI-панель, закладка add/delete, горячие клавиши (в т. ч. через мост `AcceleratorKeyPressed`), **реальный HTTPS-сайт из сети** (`https://example.com` → `protocol=https:`, title «Example Domain»), **реальная загрузка файла** через `DownloadStarting` + `DownloadOperation` (файл на диске, размер совпал), скриншот страницы, **мини-плеер DrMusic с LIVE-станцией** |
-
-Отчёты лежат в репозитории: [screenshots/selftest-report.txt](screenshots/selftest-report.txt),
-[screenshots/smoke-report.txt](screenshots/smoke-report.txt).
-
----
-
-## 7. Известные ограничения
-
-* **Нет расширений Chrome**: WebView2 не поддерживает магазин расширений Chrome и Manifest V3 — это ограничение движка.
-* **Нет DRM/Netflix и части Widevine-контента**: зависит от установленного Edge, не гарантируется.
-* **Скачивание нескольких файлов**: прогресс и отмена работают для каждого файла; ограничение одновременных
-  загрузок задаётся движком.
-* **Косметическая блокировка рекламы** (скрытие элементов на странице) не реализована — только сетевые запросы.
-* **Пароли не автозаполняются** и не перехватываются со страниц — по требованиям безопасности.
-* **AdBlock не фильтрует зашифрованный трафик** и запросы, инициированные внутри service worker без события
-  `WebResourceRequested` на некоторых сайтах — поведение движка.
-* **Скриншот окна на CI**: WebView2 рисуется отдельным процессом, поэтому на PNG, снятом через
-  `RenderTargetBitmap`, содержимое сайта может отсутствовать (интерфейс и вкладки видны).
-* **Полноэкранный режим** скрывает панель вкладок; выйти можно по `F11`.
-* **Встроенный PDF-просмотрщик** не используется: PDF открывается через WebView2, часть функций печати
-  зависит от движка.
-* Сборка без цифровой подписи → предупреждение SmartScreen при первом запуске.
-* Инкогнито не скрывает трафик от провайдера/сайтов и не защищает от отпечатков браузера.
-
----
-
-## 8. Структура проекта
-
-```
-DrBrowser/
-├── App/            App.xaml (темы, стили), App.xaml.cs, MainWindow
-├── Browser/        BrowserTab, TabManager, WebViewManager (WebView2, AdBlock, загрузки)
-├── Database/       Db.cs — SQLite-схема и CRUD
-├── Models/         настройки, записи, ObservableObject, конвертеры
-├── Services/       история, закладки, пароли, загрузки, AdBlock, AI, сессия, self-test
-├── ViewModels/     MainViewModel (4 части), NewTabViewModel, IBrowserShell
-├── Views/          NewTab, Settings, History, Downloads, Bookmarks, Passwords, AiPanel
-├── Assets/         иконка и ресурсы
-└── Docs/           архитектура, безопасность, тестирование
-```
-
-Подробности: [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md), [Docs/SECURITY.md](Docs/SECURITY.md),
-[Docs/TESTING.md](Docs/TESTING.md).
+See [FEATURES-OMEGA.md](Docs/FEATURES-OMEGA.md) for a status matrix and [SECURITY.md](Docs/SECURITY.md) for the threat boundaries.

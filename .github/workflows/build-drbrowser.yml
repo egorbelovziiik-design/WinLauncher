@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'DrBrowser/**'
+      - 'Installer/**'
       - '.github/workflows/build-drbrowser.yml'
   workflow_dispatch:
 
@@ -65,6 +66,22 @@ jobs:
           "{0:N0} bytes" -f $item.Length
           (Get-FileHash $exe -Algorithm SHA256).Hash | Tee-Object -FilePath dist\DrBrowser.exe.sha256.txt
           if ($item.Length -lt 20000000) { throw "Подозрительно маленький EXE: $($item.Length) bytes" }
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed" }
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          & $iscc "Installer\DrBrowser.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compiler failed" }
+          if (-not (Test-Path "dist\DrBrowserSetup.exe")) { throw "DrBrowserSetup.exe was not created" }
+          (Get-FileHash "dist\DrBrowserSetup.exe" -Algorithm SHA256).Hash | Tee-Object -FilePath "dist\DrBrowserSetup.exe.sha256.txt"
+          Get-Item "dist\DrBrowserSetup.exe" | Select-Object Name, Length
 
       - name: Sync README with build size and SHA-256
         shell: bash
@@ -143,6 +160,8 @@ jobs:
           path: |
             dist/DrBrowser.exe
             dist/DrBrowser.exe.sha256.txt
+            dist/DrBrowserSetup.exe
+            dist/DrBrowserSetup.exe.sha256.txt
             DrBrowser/screenshots/**
           if-no-files-found: warn
 
@@ -160,7 +179,11 @@ jobs:
           else
             git add -f dist/DrBrowser.exe || true
           fi
-          git add -f dist/DrBrowser.exe.sha256.txt || true
+          setup_size=$(stat -c %s dist/DrBrowserSetup.exe 2>/dev/null || echo 0)
+          if [ "$setup_size" -gt 0 ] && [ "$setup_size" -le 95000000 ]; then
+            git add -f dist/DrBrowserSetup.exe || true
+          fi
+          git add -f dist/DrBrowser.exe.sha256.txt dist/DrBrowserSetup.exe.sha256.txt || true
           git add -f DrBrowser/README.md || true
           git add -f DrBrowser/Docs || true
           if [ -d DrBrowser/screenshots ]; then git add -f DrBrowser/screenshots || true; fi
@@ -204,4 +227,5 @@ jobs:
           gh release create drbrowser-latest \
             --title "DrBrowser OMEGA 3.0 (win-x64)" \
             --notes "DrBrowser.exe (self-contained, win-x64). Требуется Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703" \
-            "dist/DrBrowser.exe" "dist/DrBrowser.exe.sha256.txt"
+            "dist/DrBrowser.exe" "dist/DrBrowser.exe.sha256.txt" \
+            "dist/DrBrowserSetup.exe" "dist/DrBrowserSetup.exe.sha256.txt"

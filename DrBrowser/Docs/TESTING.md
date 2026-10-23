@@ -1,91 +1,124 @@
-# Тестирование DrBrowser
+# Testing and verification
 
-DrBrowser проверяется собственным прогоном внутри того же EXE: отдельного стенда и «ручных обещаний» нет.
+DrBrowser contains executable checks inside the same published binary:
 
 ```powershell
 .\dist\DrBrowser.exe --selftest
 .\dist\DrBrowser.exe --smoke
 ```
 
-* `--selftest` — 23 проверки логики: каталоги и журнал, JSON-настройки, разбор адресов, 4 поисковика,
-  SQLite-история (поиск/даты/most-visited/удаление/очистка), закладки с папками и Netscape-импортом,
-  DPAPI-пароли, генератор паролей, поведение AI без ключа, AdBlock (домены/пути/whitelist/свои правила/счётчики),
-  форматирование и история загрузок, сессия, быстрые ссылки и разрешения, инкогнито-профиль,
-  определение WebView2 Runtime, ограничения настроек, запись ошибок в журнал, встроенное радио DrMusic
-  (8 станций, LIVE-бейдж, запрет перемотки потока), режимы DrAI (промпты различаются), пресеты аватара профиля,
-  недавние запросы DrSearch.
-* `--smoke` — живое окно: инициализация, реальный WebView2 и `ExecuteScriptAsync`, вкладки
-  (создание/переключение/закрытие/восстановление), открытие всех восьми внутренних страниц,
-  масштаб, панель поиска, AI-панель, закладки, горячие клавиши, скриншот страницы.
+Both write human-readable reports and return `1` when any check records `FAIL`. Environment-dependent inability (for example external network outage) is recorded as `SKIP`, not silently reported as a pass.
 
-Результаты: `%AppData%\DrBrowser\selftest\selftest-report.txt` и PNG-скриншоты рядом.
-В CI (`windows-latest`) отчёт и скриншоты складываются в `DrBrowser/screenshots` и публикуются артефактом.
+## Last verified source run
 
-## Результаты последнего прогона (GitHub Actions, windows-latest)
+GitHub Actions run **40032001578** on `windows-latest` completed successfully for source commit `a1ebc2f`:
 
-Логический прогон `--selftest`: **23 passed, 0 failed, 0 skipped из 23**.
+- .NET 10 Release build: passed.
+- Self-contained compressed single-file `win-x64` publish: passed.
+- EXE existence/minimum-size/SHA-256 generation: passed.
+- `--selftest`: **35 checks, zero failures**.
+- `--smoke`: **12 checks, zero failures**.
+- Live WebView2 initialization, document title and JavaScript execution: passed.
+- Reports/screenshots/artifact upload: passed.
 
-| Проверка | Итог |
-|---|---|
-| Каталоги данных и журнал | PASS |
-| Настройки JSON (тема, акцент, поисковик, zoom, whitelist) | PASS |
-| Адресная строка: URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы | PASS |
-| 4 поисковые системы | PASS |
-| SQLite-история: запись, поиск, фильтр по дате, most-visited, удаление, очистка | PASS |
-| Закладки: папки, правка, поиск, Netscape-экспорт, импорт без дублей | PASS |
-| Пароли: DPAPI round-trip, шифртекст в SQLite, поиск, удаление | PASS |
-| Генератор паролей и оценка стойкости | PASS |
-| AI без ключа: понятное исключение, сеть не вызывается | PASS |
-| AdBlock: домен, путь `/ads/`, whitelist, свои правила, счётчики | PASS |
-| Загрузки: форматирование размеров, история в SQLite | PASS |
-| Сессия: 2 вкладки, pin, активный индекс | PASS |
-| Быстрые ссылки и разрешения сайтов | PASS |
-| Инкогнито: временный профиль создаётся и удаляется | PASS |
-| Определение WebView2 Runtime | PASS (155.0.4283.62) |
-| Ограничения настроек (zoom, suspend, Normalize) | PASS |
-| Запись ошибок в журнал | PASS |
-| Радио DrMusic: 8 станций, категория «Радио», LIVE-бейдж, перемотка потока игнорируется | PASS |
-| Режимы DrAI: 3+ режима, промпты отличаются от базового | PASS |
-| Профиль: 6 пресетов-градиентов аватара, инициалы | PASS |
-| DrSearch: недавние запросы без дублей, сохраняются в настройки | PASS |
+Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032001578>
 
-Живой прогон окна `--smoke`: **11 passed, 0 failed, 0 skipped из 11**.
+The final packaging run (including Inno Setup and committed `dist/` outputs) supersedes this run when its reports are present in `DrBrowser/screenshots/`. Check `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` rather than relying only on this document.
 
-| Проверка | Итог |
-|---|---|
-| Окно запускается, вкладка создаётся, скриншот | PASS |
-| WebView2: страница отрисована, `DocumentTitle` + `ExecuteScriptAsync` | PASS |
-| Вкладки: +2, переключение, закрытие, восстановление | PASS |
-| Все 8 внутренних страниц открываются и рисуются (settings, history, downloads, bookmarks, passwords, DrSearch, DrMusic, newtab) | PASS |
-| Масштаб ±10%, панель поиска, AI-панель, закладка add/delete | PASS |
-| Горячие клавиши: Ctrl+T/W, настройки, Home, Esc / F11 / F5 через мост WebView2 | PASS |
-| Реальный HTTPS-сайт из сети (`https://example.com`, `protocol=https:`, title «Example Domain») | PASS |
-| Реальная загрузка файла через `DownloadStarting` (файл на диске, размер совпал) | PASS |
-| Мини-плеер DrMusic: станция играет, строка плеера видна, бейдж LIVE | PASS |
-| Настройки: 11 разделов, вкладки «Музыка» и «AI Assistant» отрисованы | PASS |
-| Скриншот страницы | PASS |
+## Logic/self-test coverage (35 checks)
 
-Артефакты: `DrBrowser/screenshots/` (PNG, `selftest-report.txt`, `smoke-report.txt`, журнал).
+1. Application data directories and logger.
+2. JSON settings round-trip.
+3. URL/search/internal parsing and dangerous-scheme handling.
+4. Search engine definitions including DrSearch.
+5. DrSearch integration over local browser data.
+6. SQLite FTS5/BM25, phrase query and deduplication.
+7. Notes/Tasks/Workspaces SQLite CRUD and six seeded snapshots.
+8. Explicit DrMind memory add/context/delete.
+9. Backup creation/manifest/hash/composition and secret exclusion.
+10. DrTools calculator/JSON/units/color/password/themes.
+11. Music folder scan/category/file filtering.
+12. SQLite music playlists/favorites create/add/remove/delete.
+13. Radio catalog/LIVE state/non-seek behavior.
+14. AI mode/prompt distinction.
+15. Profile avatar presets.
+16. DrSearch recent queries.
+17. SQLite history/filter/most-visited/delete/clear.
+18. Bookmark CRUD/search/Netscape import/export/dedupe.
+19. Vault DPAPI round-trip and ciphertext-at-rest assertion.
+20. CSPRNG password generation/strength.
+21. AI missing-key behavior without network call.
+22. AdBlock domain/path/allowlist/custom rule/counter behavior.
+23. Download size/state/history.
+24. Session tab/pin/active-index persistence.
+25. Quick links and permission CRUD.
+26. Private profile creation/deletion.
+27. WebView2 Runtime detection.
+28. Settings normalization/bounds.
+29. DrGuard URL rules.
+30. Defender argument construction/safety.
+31. AI image attachment limits/encoding.
+32. Deterministic Local AI transformations.
+33. Public music catalog parser.
+34. DrSearch external-result parser/labeling.
+35. Error log write.
 
-### Что НЕ проверено автоматически
+## Live smoke coverage (12 checks)
 
-* Загрузка **большого** файла (десятки МБ) до конца и отмена на середине: в CI проверяется короткая
-  загрузка с локального сервера (56 байт, состояние `Completed`, файл на диске); длинная и отмена
-  проверяются вручную.
-* Звук вкладки (mute) — требует медиа на странице.
-* Диалоги разрешений камеры/микрофона/геолокации — требуют реального устройства и подтверждения пользователя.
-* Работа AI-чата с настоящим ключом (ключ пользователя в CI отсутствует; проверено только поведение без ключа).
-* Звук интернет-радио: станции проверяются логически (плейлист, LIVE-режим, запрет перемотки); факт слышимого
-  звука зависит от доступности потока и аудиоустройства на машине пользователя.
-* Мини-плеер и смена пресета аватара/темы проверяются визуально на скриншотах CI.
-* Печать в PDF и режим чтения на «тяжёлых» сайтах.
-* DRM/Netflix, сайты с антибот-защитой.
-* Полный визуальный вид WebView2 на скриншоте окна: RenderTargetBitmap не захватывает дочернее HWND-окно,
-  поэтому на PNG виден интерфейс браузера и пустая область контента (сам факт загрузки подтверждён
-  через `DocumentTitle`/`ExecuteScriptAsync`).
+1. Window starts, initializes tabs and can be captured.
+2. WebView2 starts, renders a controlled page and confirms title with `ExecuteScriptAsync`.
+3. Tabs create/switch/close/reopen.
+4. Internal Settings, History, Downloads, Bookmarks, Vault, DrSearch, DrMusic, Workspaces, Tools, Performance and New Tab pages activate and render.
+5. DrCommand loads, filters to DrMusic and executes the route.
+6. Settings tab count and Music/AI sections render.
+7. Zoom, find bar, AI panel, profile popup and bookmark add/delete.
+8. DrMusic mini-player and LIVE state.
+9. Command/hotkey bridge including F11/Escape/F5.
+10. Real external HTTPS navigation when CI network is available, with protocol/title/body assertions.
+11. Real WebView2 `DownloadStarting` against a bounded loopback HTTP server; output bytes/state verified.
+12. WebView2 page screenshot when rendering is available.
 
-Код возврата: `0` — все выполненные проверки прошли, `1` — есть провал. Проверки, которые физически
-нельзя выполнить на машине (например, отсутствует WebView2 Runtime), помечаются `SKIP` и не считаются успехом.
+## CI pipeline
 
-Что нельзя проверить автоматически и проверяется вручную: звук вкладки, реальные загрузки больших файлов,
-поведение конкретных сайтов, работа камеры/микрофона, DRM-контент.
+`.github/workflows/build-drbrowser.yml` performs:
+
+1. checkout and .NET 10 setup;
+2. restore/build/publish;
+3. portable EXE and SHA verification;
+4. Inno Setup installer build and SHA verification;
+5. Runtime detection;
+6. self-test and smoke process runs;
+7. report/log/screenshot collection;
+8. artifact upload;
+9. explicit final failure if process exit/report content indicates a failure;
+10. final branch/release publication only when enabled for the packaging run.
+
+Individual report failures are emitted as GitHub error annotations with details.
+
+## What CI does not prove
+
+- Audible audio on every physical device or continued availability of third-party streams.
+- Every Windows Media Foundation codec combination.
+- DRM/Widevine compatibility.
+- Camera/microphone/geolocation hardware behavior after a human grants permission.
+- Long-running/large download reliability and cancellation at every timing point.
+- Valid responses from a user’s private AI endpoint/key or installed Ollama model.
+- Model-answer factual correctness.
+- SmartScreen/antivirus reputation or Authenticode trust (artifacts are unsigned).
+- Full WebView2 pixel capture: WebView2 uses a child HWND that WPF `RenderTargetBitmap` may not capture; engine execution is asserted separately.
+- Complete security. Tests cover known invariants, not all attacks.
+
+## Run locally
+
+```powershell
+$env:DRBROWSER_SHOTS = "$PWD\test-output"
+.\dist\DrBrowser.exe --selftest
+$self = $LASTEXITCODE
+.\dist\DrBrowser.exe --smoke
+$smoke = $LASTEXITCODE
+"selftest=$self smoke=$smoke"
+Get-Content .\test-output\selftest-report.txt
+Get-Content .\test-output\smoke-report.txt
+```
+
+Do not publish reports containing private URLs or local paths without reviewing them.

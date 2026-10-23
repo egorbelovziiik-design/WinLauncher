@@ -1,4 +1,6 @@
-# DrBrowser 2.1: возможности и границы
+# DrBrowser 2.1: historical feature notes
+
+> Historical document for the 2.1 baseline. For the current OMEGA 3.0 implementation and limitations, use [FEATURES-OMEGA.md](FEATURES-OMEGA.md).
 
 ## Что добавлено
 
