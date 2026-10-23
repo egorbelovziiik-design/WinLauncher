@@ -46,12 +46,23 @@ jobs:
       - name: Show build errors
         if: failure()
         run: |
-          if (Test-Path build.log) {
-            $interesting = Get-Content build.log | Where-Object { $_ -match 'error|Error|FAILED|failed' } | Select-Object -Last 25
-            foreach ($line in $interesting) { Write-Host "::error::$line" }
-          } else {
+          if (-not (Test-Path build.log)) {
             Write-Host "::error::build.log was not produced"
+            exit 0
           }
+          $lines = Get-Content build.log
+          $errors = $lines | Where-Object {
+            $_ -match '(error [A-Z]+[0-9]+|error MSB[0-9]+|: error )' -and $_ -notmatch 'csc\.exe|bincore'
+          } | Select-Object -Last 20
+          if ($errors.Count -eq 0) {
+            $errors = $lines | Where-Object { $_ -match 'error' -and $_ -notmatch 'csc\.exe|bincore' } | Select-Object -Last 10
+          }
+          foreach ($line in $errors) {
+            $text = ($line -replace '\s+', ' ')
+            if ($text.Length -gt 900) { $text = $text.Substring(0, 900) }
+            Write-Host "::error::$text"
+          }
+          Write-Host "::error::TAIL: $(($lines | Select-Object -Last 3) -join ' | ')"
 
       - name: Upload build log
         if: always()
