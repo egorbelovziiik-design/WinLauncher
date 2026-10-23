@@ -72,6 +72,8 @@ DrBrowser не содержит собственный движок — он и�
 | Новая вкладка | [01-newtab.png](screenshots/01-newtab.png) |
 | WebView2 с загруженной страницей | [02-webview.png](screenshots/02-webview.png) |
 | Настройки (11 категорий) | [03-settings.png](screenshots/03-settings.png) |
+| Настройки → Музыка | [14-settings-music.png](screenshots/14-settings-music.png) |
+| Настройки → AI Assistant | [15-settings-ai.png](screenshots/15-settings-ai.png) |
 | История | [04-history.png](screenshots/04-history.png) |
 | Загрузки | [05-downloads.png](screenshots/05-downloads.png) |
 | Закладки | [06-bookmarks.png](screenshots/06-bookmarks.png) |
@@ -229,7 +231,7 @@ DPAPI-хранилище ключей и паролей, AdBlock на `WebResour
 | Прогон | Итог | Что именно проверено |
 |---|---|---|
 | `--selftest` | **23 passed, 0 failed, 0 skipped** | JSON-настройки и их ограничения, SQLite (история, закладки, пароли, загрузки, быстрые ссылки, разрешения), DPAPI-шифрование паролей, AdBlock (108 правил, whitelist, свои фильтры), генератор паролей, AI без ключа, сессии, временный профиль инкогнито, определение WebView2 Runtime, запись ошибок в журнал, **радио DrMusic (LIVE-бейдж, запрет перемотки)**, **режимы DrAI**, **пресеты аватара**, **недавние запросы DrSearch** |
-| `--smoke` | **10 passed, 0 failed, 0 skipped** | живое окно, движок WebView2 (Chromium), 6 внутренних страниц со скриншотами, создание/переключение/закрытие/восстановление вкладок, масштаб, Ctrl+F, AI-панель, закладка add/delete, горячие клавиши (в т. ч. через мост `AcceleratorKeyPressed`), **реальный HTTPS-сайт из сети** (`https://example.com` → `protocol=https:`, title «Example Domain»), **реальная загрузка файла** через `DownloadStarting` + `DownloadOperation` (файл на диске, размер совпал), скриншот страницы, **мини-плеер DrMusic с LIVE-станцией** |
+| `--smoke` | **11 passed, 0 failed, 0 skipped** | живое окно, движок WebView2 (Chromium), 6 внутренних страниц со скриншотами, создание/переключение/закрытие/восстановление вкладок, масштаб, Ctrl+F, AI-панель, закладка add/delete, горячие клавиши (в т. ч. через мост `AcceleratorKeyPressed`), **реальный HTTPS-сайт из сети** (`https://example.com` → `protocol=https:`, title «Example Domain»), **реальная загрузка файла** через `DownloadStarting` + `DownloadOperation` (файл на диске, размер совпал), скриншот страницы, **мини-плеер DrMusic с LIVE-станцией** |
 
 Отчёты лежат в репозитории: [screenshots/selftest-report.txt](screenshots/selftest-report.txt),
 [screenshots/smoke-report.txt](screenshots/smoke-report.txt).

@@ -49,7 +49,7 @@ DrBrowser проверяется собственным прогоном вну�
 | Профиль: 6 пресетов-градиентов аватара, инициалы | PASS |
 | DrSearch: недавние запросы без дублей, сохраняются в настройки | PASS |
 
-Живой прогон окна `--smoke`: **10 passed, 0 failed, 0 skipped из 10**.
+Живой прогон окна `--smoke`: **11 passed, 0 failed, 0 skipped из 11**.
 
 | Проверка | Итог |
 |---|---|
@@ -62,6 +62,7 @@ DrBrowser проверяется собственным прогоном вну�
 | Реальный HTTPS-сайт из сети (`https://example.com`, `protocol=https:`, title «Example Domain») | PASS |
 | Реальная загрузка файла через `DownloadStarting` (файл на диске, размер совпал) | PASS |
 | Мини-плеер DrMusic: станция играет, строка плеера видна, бейдж LIVE | PASS |
+| Настройки: 11 разделов, вкладки «Музыка» и «AI Assistant» отрисованы | PASS |
 | Скриншот страницы | PASS |
 
 Артефакты: `DrBrowser/screenshots/` (PNG, `selftest-report.txt`, `smoke-report.txt`, журнал).

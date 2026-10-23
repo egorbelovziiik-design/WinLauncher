@@ -4,6 +4,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Web.WebView2.Core;
 
@@ -701,6 +703,28 @@ public static class SelfTest
                 return "settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов";
             });
 
+            await Run("smoke-settings-tabs", "Разделы настроек «Музыка» и «AI Assistant» не пустые", async () =>
+            {
+                vm.OpenInternalCommand.Execute("settings");
+                await Delay(900);
+
+                var tabs = FindVisual<TabControl>(window!);
+                if (tabs is null) throw new Exception("TabControl настроек не найден в окне");
+                if (tabs.Items.Count < 11) throw new Exception("разделов настроек меньше 11: " + tabs.Items.Count);
+
+                tabs.SelectedIndex = 3;
+                await Delay(600);
+                window!.CaptureWindow(Path.Combine(shots, "14-settings-music.png"));
+
+                tabs.SelectedIndex = 7;
+                await Delay(600);
+                window!.CaptureWindow(Path.Combine(shots, "15-settings-ai.png"));
+
+                tabs.SelectedIndex = 0;
+                await Delay(300);
+                return $"{tabs.Items.Count} разделов · Музыка и AI Assistant отрисованы (14/15 PNG)";
+            });
+
             await Run("smoke-ui", "Масштаб, поиск на странице, AI-панель, закладки", async () =>
             {
                 vm.ResetZoom();
@@ -1101,6 +1125,22 @@ public static class SelfTest
     }
 
     /// <summary>Appends a line to smoke-trace.txt so a crash before the report is still diagnosable.</summary>
+    /// <summary>Finds the first descendant of the given type (drives real WPF controls in tests).</summary>
+    private static T? FindVisual<T>(DependencyObject? root) where T : DependencyObject
+    {
+        if (root is null) return null;
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match) return match;
+            var nested = FindVisual<T>(child);
+            if (nested is not null) return nested;
+        }
+
+        return null;
+    }
+
     private static void Trace(string line)
     {
         try
