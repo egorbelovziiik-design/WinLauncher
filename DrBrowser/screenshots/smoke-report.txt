@@ -1,26 +1,26 @@
-﻿DrBrowser smoke · 2026-10-23 21:22:57 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 21:29:17 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2240 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2493 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3781 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (4806 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2433 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2426 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов (7609 ms)
+           settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов (7616 ms)
 [PASS] smoke-settings-tabs  Разделы настроек «Музыка» и «AI Assistant» не пустые
-           11 разделов · Музыка и AI Assistant отрисованы (14/15 PNG) (2475 ms)
+           11 разделов · Музыка и AI Assistant отрисованы (14/15 PNG) (2477 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1516 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1466 ms)
 [PASS] smoke-miniplayer     Мини-плеер DrMusic виден в окне и показывает LIVE-трек
-           Groove Salad · бейдж LIVE · мини-плеер в окне (13-mini-player.png) (948 ms)
+           Groove Salad · бейдж LIVE · мини-плеер в окне (13-mini-player.png) (947 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2210 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2236 ms)
 [PASS] smoke-https          Реальный сайт по HTTPS открывается через сеть
-           https://example.com · protocol=https: · title «Example Domain» (1008 ms)
+           https://example.com · protocol=https: · title «Example Domain» (1026 ms)
 [PASS] smoke-download       Реальная загрузка файла через DownloadStarting
-           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2808 ms)
+           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2777 ms)
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-212255.png (1512 ms)
+           сохранён screenshot-20261023-212915.png (1511 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 11 passed, 0 failed, 0 skipped из 11
