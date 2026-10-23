@@ -16,6 +16,8 @@ public partial class App : Application
     private MainWindow? _window;
     private bool _smokeMode;
     private bool _selfTestMode;
+    private int _uiExceptionCount;
+    private OverlayWindow? _probeOverlay;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -101,11 +103,18 @@ public partial class App : Application
 
             if (_smokeMode)
             {
+                RunOverlayProbe();
                 _log.Info("Smoke mode: closing automatically in 6 seconds.");
-                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
                 timer.Tick += (_, _) =>
                 {
                     timer.Stop();
+                    if (_uiExceptionCount > 0)
+                    {
+                        _log.Error($"Smoke mode: {_uiExceptionCount} UI exception(s) were raised while rendering the hub and overlay.");
+                    }
+
+                    CloseOverlayProbe();
                     _log.Info("Smoke mode: clean shutdown requested.");
                     _viewModel.Shutdown();
                 };
@@ -130,6 +139,50 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Renders the overlay window once during a smoke run so that XAML / binding
+    /// problems in OverlayWindow surface in CI instead of on a user's machine.
+    /// </summary>
+    private void RunOverlayProbe()
+    {
+        try
+        {
+            if (_viewModel is null) return;
+            _probeOverlay = new OverlayWindow(new OverlayViewModel(_viewModel), _log)
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Left = 0,
+                Top = 0
+            };
+            _probeOverlay.Show();
+            _probeOverlay.UpdateLayout();
+            _log.Info("Smoke mode: overlay window rendered without XAML errors.");
+        }
+        catch (Exception ex)
+        {
+            _probeOverlay = null;
+            _uiExceptionCount++;
+            _log.Error("Smoke mode: overlay window failed to render.", ex);
+        }
+    }
+
+    private void CloseOverlayProbe()
+    {
+        if (_probeOverlay is null) return;
+        try
+        {
+            _probeOverlay.CloseFromManager();
+        }
+        catch (Exception ex)
+        {
+            _log?.Error("Smoke mode: overlay probe cleanup failed.", ex);
+        }
+        finally
+        {
+            _probeOverlay = null;
+        }
+    }
+
     private void RestoreHub()
     {
         if (_window is null) return;
@@ -151,6 +204,7 @@ public partial class App : Application
 
         if (_smokeMode || _selfTestMode)
         {
+            _uiExceptionCount++;
             e.Handled = true;
             return;
         }
@@ -176,12 +230,18 @@ public partial class App : Application
 
         if (_smokeMode)
         {
+            if (_uiExceptionCount > 0)
+            {
+                e.ApplicationExitCode = 4;
+                Environment.ExitCode = 4;
+            }
+
             try
             {
                 AppPaths.EnsureCreated();
                 File.WriteAllText(
                     Path.Combine(AppPaths.DataRoot, "smoke-result.txt"),
-                    $"smoke ok · {DateTime.UtcNow:O} · exitCode={e.ApplicationExitCode} · overlay={_viewModel?.IsConnected} · version={AppInfo.Version}");
+                    $"smoke {(e.ApplicationExitCode == 0 && _uiExceptionCount == 0 ? "ok" : "FAILED")} · {DateTime.UtcNow:O} · exitCode={e.ApplicationExitCode} · uiExceptions={_uiExceptionCount} · overlay={_viewModel?.IsConnected} · version={AppInfo.Version}");
             }
             catch
             {

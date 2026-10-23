@@ -25,20 +25,20 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Title}" FontSize="12.5" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="12.5" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
                             <Border CornerRadius="999" Background="#14FFFFFF" Padding="7,2" Margin="8,0,0,0"
                                     VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Badge}" FontSize="8" FontWeight="Bold"
+                                <TextBlock Text="{Binding Badge, Mode=OneWay}" FontSize="8" FontWeight="Bold"
                                            Foreground="{DynamicResource TextMutedBrush}" />
                             </Border>
                         </StackPanel>
-                        <TextBlock Text="{Binding Description}" Style="{DynamicResource MutedText}" Margin="0,4,12,0"
+                        <TextBlock Text="{Binding Description, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,4,12,0"
                                    MaxWidth="560" HorizontalAlignment="Left" />
                     </StackPanel>
                     <ToggleButton Grid.Column="1" Style="{DynamicResource NeonToggle}" VerticalAlignment="Center"
                                   Margin="10,0,0,0" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
-                                  ToolTip="{Binding Tooltip}" />
+                                  ToolTip="{Binding Tooltip, Mode=OneWay}" />
                 </Grid>
             </Border>
         </DataTemplate>
@@ -59,20 +59,20 @@
                         <TextBlock Text="{Binding Name}" FontSize="11.5" Foreground="{DynamicResource TextPrimaryBrush}"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock FontSize="9" Foreground="{DynamicResource TextMutedBrush}">
-                            <Run Text="{Binding RarityText}" />
+                            <Run Text="{Binding RarityText, Mode=OneWay}" />
                             <Run Text=" · " />
-                            <Run Text="{Binding OriginText}" />
+                            <Run Text="{Binding OriginText, Mode=OneWay}" />
                         </TextBlock>
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="{Binding ValueText}" FontSize="11" FontWeight="SemiBold"
+                    <TextBlock Grid.Column="2" Text="{Binding ValueText, Mode=OneWay}" FontSize="11" FontWeight="SemiBold"
                                Foreground="{Binding Rarity, Converter={StaticResource RarityBrush}}"
                                VerticalAlignment="Center" Margin="10,0" />
-                    <TextBlock Grid.Column="3" Text="{Binding DistanceText}" FontSize="10"
+                    <TextBlock Grid.Column="3" Text="{Binding DistanceText, Mode=OneWay}" FontSize="10"
                                Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
                                Margin="0,0,10,0" />
                     <Button Grid.Column="4" Content="TRACK" Style="{DynamicResource GhostButton}" FontSize="9"
                             Padding="8,4" VerticalAlignment="Center"
-                            Command="{Binding DataContext.TrackEggCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Command="{Binding DataContext.TrackEggCommand, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}}"
                             CommandParameter="{Binding}" />
                 </Grid>
             </Border>
@@ -81,7 +81,7 @@
         <DataTemplate x:Key="ConsoleLineTemplate">
             <TextBlock FontFamily="Cascadia Mono, Consolas" FontSize="11" TextWrapping="Wrap" Margin="0,1"
                        Foreground="{Binding Kind, Converter={StaticResource NoticeBrush}}"
-                       Text="{Binding Display}" />
+                       Text="{Binding Display, Mode=OneWay}" />
         </DataTemplate>
 
         <Style x:Key="SwatchButton" TargetType="Button">
@@ -202,14 +202,14 @@
                                     <Ellipse.Style>
                                         <Style TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding RobloxDetected}" Value="True">
+                                                <DataTrigger Binding="{Binding RobloxDetected, Mode=OneWay}" Value="True">
                                                     <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock Text="{Binding RobloxStatusText}" Style="{StaticResource PillLabel}" />
+                                <TextBlock Text="{Binding RobloxStatusText, Mode=OneWay}" Style="{StaticResource PillLabel}" />
                             </StackPanel>
                         </Border>
 
@@ -226,12 +226,12 @@
                                         </Style>
                                     </Ellipse.Style>
                                 </Ellipse>
-                                <TextBlock Text="{Binding OverlayStatusText}" Style="{StaticResource PillLabel}" />
+                                <TextBlock Text="{Binding OverlayStatusText, Mode=OneWay}" Style="{StaticResource PillLabel}" />
                             </StackPanel>
                         </Border>
 
                         <Border Style="{DynamicResource Pill}">
-                            <TextBlock Text="{Binding VersionText}" Style="{StaticResource PillLabel}" />
+                            <TextBlock Text="{Binding VersionText, Mode=OneWay}" Style="{StaticResource PillLabel}" />
                         </Border>
                     </StackPanel>
 
@@ -284,23 +284,23 @@
                                 <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}" />
                             </Grid>
 
-                            <TextBlock Text="{Binding StatusLine}" FontSize="10.5" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding StatusLine, Mode=OneWay}" FontSize="10.5" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="{Binding ConnectButtonText}" Style="{DynamicResource PrimaryButton}"
-                                    Command="{Binding ConnectCommand}" IsEnabled="{Binding IsConnecting, Converter={StaticResource InverseBool}}"
+                            <Button Content="{Binding ConnectButtonText, Mode=OneWay}" Style="{DynamicResource PrimaryButton}"
+                                    Command="{Binding ConnectCommand, Mode=OneWay}" IsEnabled="{Binding IsConnecting, Converter={StaticResource InverseBool}}"
                                     Margin="0,0,6,0" />
-                            <Button Content="DISCONNECT" Style="{DynamicResource GhostButton}" Command="{Binding DisconnectCommand}"
+                            <Button Content="DISCONNECT" Style="{DynamicResource GhostButton}" Command="{Binding DisconnectCommand, Mode=OneWay}"
                                     Margin="0,0,6,0" />
-                            <Button Content="EXECUTE" Style="{DynamicResource GhostButton}" Command="{Binding ExecuteCommand}"
+                            <Button Content="EXECUTE" Style="{DynamicResource GhostButton}" Command="{Binding ExecuteCommand, Mode=OneWay}"
                                     Margin="0,0,6,0" />
-                            <Button Content="CLEAR" Style="{DynamicResource GhostButton}" Command="{Binding ClearCommand}"
+                            <Button Content="CLEAR" Style="{DynamicResource GhostButton}" Command="{Binding ClearCommand, Mode=OneWay}"
                                     Margin="0,0,6,0" />
                             <Button Content="SETTINGS" Style="{DynamicResource GhostButton}"
-                                    Command="{Binding SelectTabCommand}" CommandParameter="Settings" Margin="0,0,6,0" />
-                            <Button Content="EXIT" Style="{DynamicResource DangerButton}" Command="{Binding ExitCommand}" />
+                                    Command="{Binding SelectTabCommand, Mode=OneWay}" CommandParameter="Settings" Margin="0,0,6,0" />
+                            <Button Content="EXIT" Style="{DynamicResource DangerButton}" Command="{Binding ExitCommand, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -371,8 +371,8 @@
                                     </StackPanel>
                                 </Border>
                                 <Button Content="OPEN MENU" Style="{DynamicResource GhostButton}" FontSize="10"
-                                        Command="{Binding ToggleMenuCommand}" />
-                                <TextBlock Text="{Binding ShortVersion}" FontSize="9" Foreground="{DynamicResource TextMutedBrush}"
+                                        Command="{Binding ToggleMenuCommand, Mode=OneWay}" />
+                                <TextBlock Text="{Binding ShortVersion, Mode=OneWay}" FontSize="9" Foreground="{DynamicResource TextMutedBrush}"
                                            Margin="2,8,0,0" />
                             </StackPanel>
                         </Grid>
@@ -386,8 +386,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="22,16,22,4">
-                            <TextBlock Text="{Binding PageTitle}" Style="{DynamicResource PageTitle}" />
-                            <TextBlock Text="{Binding PageSubtitle}" Style="{DynamicResource MutedText}" Margin="0,3,0,0" />
+                            <TextBlock Text="{Binding PageTitle, Mode=OneWay}" Style="{DynamicResource PageTitle}" />
+                            <TextBlock Text="{Binding PageSubtitle, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,3,0,0" />
                         </StackPanel>
 
                         <Grid Grid.Row="1" Margin="22,8,22,14">
@@ -415,16 +415,16 @@
                                                 <TextBlock Text="SCANNER ACTIONS" Style="{DynamicResource SectionTitle}" />
                                                 <WrapPanel>
                                                     <Button Content="SCAN NOW" Style="{DynamicResource PrimaryButton}" Margin="0,0,6,6"
-                                                            Command="{Binding ScanCommand}" />
+                                                            Command="{Binding ScanCommand, Mode=OneWay}" />
                                                     <Button Content="TRACK BEST" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding TrackBestCommand}" />
+                                                            Command="{Binding TrackBestCommand, Mode=OneWay}" />
                                                     <Button Content="COLLECT NEAREST" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding CollectCommand}" />
+                                                            Command="{Binding CollectCommand, Mode=OneWay}" />
                                                     <Button Content="SELL ALL" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding SellAllCommand}" />
+                                                            Command="{Binding SellAllCommand, Mode=OneWay}" />
                                                 </WrapPanel>
-                                                <TextBlock Text="{Binding EggStatsText}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
-                                                <TextBlock Text="{Binding EspSummary}" Style="{DynamicResource MutedText}" Margin="0,2,0,0" />
+                                                <TextBlock Text="{Binding EggStatsText, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
+                                                <TextBlock Text="{Binding EspSummary, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,2,0,0" />
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -446,20 +446,20 @@
                                                     <StackPanel>
                                                         <TextBlock Text="BEST EGG FOUND" FontSize="8" FontWeight="Bold"
                                                                    Foreground="{DynamicResource AccentBrush}" />
-                                                        <TextBlock Text="{Binding Eggs.BestEggText}" FontSize="11"
+                                                        <TextBlock Text="{Binding Eggs.BestEggText, Mode=OneWay}" FontSize="11"
                                                                    Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,3,0,0"
                                                                    TextWrapping="Wrap" />
                                                     </StackPanel>
                                                 </Border>
                                                 <TextBlock Style="{DynamicResource MutedText}" Margin="0,10,0,4"
-                                                           Text="{Binding BridgeHint}" />
+                                                           Text="{Binding BridgeHint, Mode=OneWay}" />
                                                 <WrapPanel>
                                                     <Button Content="RELOAD SNAPSHOT" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                            Margin="0,0,6,6" Command="{Binding ReloadSnapshotCommand}" />
+                                                            Margin="0,0,6,6" Command="{Binding ReloadSnapshotCommand, Mode=OneWay}" />
                                                     <Button Content="SNAPSHOT FOLDER" Style="{DynamicResource GhostButton}" FontSize="10"
                                                             Margin="0,0,6,6" Click="OpenSnapshotFolder_Click" />
                                                     <Button Content="COPY BRIDGE URL" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                            Margin="0,0,6,6" Command="{Binding CopyBridgeEndpointCommand}" />
+                                                            Margin="0,0,6,6" Command="{Binding CopyBridgeEndpointCommand, Mode=OneWay}" />
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
@@ -520,7 +520,7 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Button Style="{StaticResource SwatchButton}"
-                                                                        Command="{Binding DataContext.SelectEspColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        Command="{Binding DataContext.SelectEspColorCommand, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                         CommandParameter="{Binding}" />
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
@@ -541,7 +541,7 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Button Style="{StaticResource SwatchButton}"
-                                                                        Command="{Binding DataContext.SelectRareColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        Command="{Binding DataContext.SelectRareColorCommand, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                         CommandParameter="{Binding}" />
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>
@@ -634,7 +634,7 @@
                                                 </UniformGrid>
                                                 <Button Content="TELEPORT PLAYER" Style="{DynamicResource PrimaryButton}"
                                                         HorizontalAlignment="Left" Margin="0,10,0,0"
-                                                        Command="{Binding TeleportCommand}" />
+                                                        Command="{Binding TeleportCommand, Mode=OneWay}" />
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -644,12 +644,12 @@
                                             <StackPanel>
                                                 <TextBlock Text="CONTROL MODE" Style="{DynamicResource SectionTitle}" />
                                                 <Border Style="{DynamicResource Pill}" HorizontalAlignment="Left">
-                                                    <TextBlock Text="{Binding PlayerModeText}" FontSize="9" FontWeight="Bold"
+                                                    <TextBlock Text="{Binding PlayerModeText, Mode=OneWay}" FontSize="9" FontWeight="Bold"
                                                                Foreground="{DynamicResource AccentBrush}" />
                                                 </Border>
-                                                <TextBlock Text="{Binding PlayerModeDetail}" Style="{DynamicResource MutedText}"
+                                                <TextBlock Text="{Binding PlayerModeDetail, Mode=OneWay}" Style="{DynamicResource MutedText}"
                                                            Margin="0,8,0,0" />
-                                                <TextBlock Text="{Binding PlayerBridgeStatus}" Style="{DynamicResource MutedText}"
+                                                <TextBlock Text="{Binding PlayerBridgeStatus, Mode=OneWay}" Style="{DynamicResource MutedText}"
                                                            Margin="0,6,0,0" />
                                             </StackPanel>
                                         </Border>
@@ -742,9 +742,9 @@
 
                                                 <UniformGrid Columns="2" Margin="0,10,0,0">
                                                     <Button Content="START" Style="{DynamicResource PrimaryButton}" Margin="0,0,4,0"
-                                                            Command="{Binding StartAutomationCommand}" />
+                                                            Command="{Binding StartAutomationCommand, Mode=OneWay}" />
                                                     <Button Content="STOP" Style="{DynamicResource GhostButton}" Margin="4,0,0,0"
-                                                            Command="{Binding StopAutomationCommand}" />
+                                                            Command="{Binding StopAutomationCommand, Mode=OneWay}" />
                                                 </UniformGrid>
 
                                                 <TextBlock Text="{Binding Automation.LastAction}" Style="{DynamicResource MutedText}"
@@ -796,9 +796,9 @@
                                         <Border Style="{DynamicResource Card}" Margin="0,12,0,0">
                                             <StackPanel>
                                                 <TextBlock Text="SCOPE" Style="{DynamicResource SectionTitle}" />
-                                                <TextBlock Style="{DynamicResource MutedText}" Text="{Binding BridgeNote}" />
+                                                <TextBlock Style="{DynamicResource MutedText}" Text="{Binding BridgeNote, Mode=OneWay}" />
                                                 <TextBlock Style="{DynamicResource MutedText}" Margin="0,6,0,0"
-                                                           Text="{Binding BridgeHint}" />
+                                                           Text="{Binding BridgeHint, Mode=OneWay}" />
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -819,7 +819,7 @@
                                             <StackPanel>
                                                 <TextBlock Text="THEME" Style="{DynamicResource SectionTitle}" />
                                                 <StackPanel Orientation="Horizontal">
-                                                    <ItemsControl ItemsSource="{Binding Themes}">
+                                                    <ItemsControl ItemsSource="{Binding Themes, Mode=OneWay}">
                                                         <ItemsControl.ItemsPanel>
                                                             <ItemsPanelTemplate>
                                                                 <StackPanel Orientation="Horizontal" />
@@ -828,7 +828,7 @@
                                                         <ItemsControl.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Button Style="{StaticResource ThemeChip}" Content="{Binding Name}"
-                                                                        Command="{Binding DataContext.ApplyThemeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                        Command="{Binding DataContext.ApplyThemeCommand, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                         CommandParameter="{Binding Name}">
                                                                     <Button.ToolTip>
                                                                         <StackPanel>
@@ -846,7 +846,7 @@
                                                           Margin="0,12,0,0" IsChecked="{Binding Settings.Visual.RainbowMode, Mode=TwoWay}" />
                                                 <TextBlock Text="Current accent" Style="{DynamicResource MutedText}" Margin="0,10,0,4" />
                                                 <Border Width="90" Height="10" CornerRadius="5"
-                                                        Background="{Binding AccentColor, Converter={StaticResource ColorBrush}}"
+                                                        Background="{Binding AccentColor, Mode=OneWay, Converter={StaticResource ColorBrush}}"
                                                         HorizontalAlignment="Left" />
                                             </StackPanel>
                                         </Border>
@@ -885,7 +885,7 @@
                                                 </Grid>
                                                 <Grid Margin="0,10,0,0">
                                                     <TextBlock Text="Crosshair size" Style="{DynamicResource BodyText}" />
-                                                    <TextBlock Text="{Binding Settings.Visual.CrosshairSize, StringFormat={}{0:0} px}"
+                                                    <TextBlock Text="{Binding Settings.Visual.CrosshairSize, Mode=OneWay, StringFormat={}{0:0} px}"
                                                                HorizontalAlignment="Right" FontSize="10" FontWeight="SemiBold" />
                                                 </Grid>
                                                 <Slider Style="{DynamicResource NeonSlider}" Minimum="6" Maximum="48"
@@ -908,7 +908,7 @@
 
                                                 <Grid>
                                                     <TextBlock Text="UI scale" Style="{DynamicResource BodyText}" />
-                                                    <TextBlock Text="{Binding Settings.Overlay.UiScale, StringFormat={}{0:0.00}}"
+                                                    <TextBlock Text="{Binding Settings.Overlay.UiScale, Mode=OneWay, StringFormat={}{0:0.00}}"
                                                                HorizontalAlignment="Right" FontSize="10" FontWeight="SemiBold" />
                                                 </Grid>
                                                 <Slider Style="{DynamicResource NeonSlider}" Minimum="0.7" Maximum="1.4"
@@ -916,7 +916,7 @@
 
                                                 <Grid>
                                                     <TextBlock Text="Menu width" Style="{DynamicResource BodyText}" />
-                                                    <TextBlock Text="{Binding Settings.Overlay.MenuWidth, StringFormat={}{0} px}"
+                                                    <TextBlock Text="{Binding Settings.Overlay.MenuWidth, Mode=OneWay, StringFormat={}{0} px}"
                                                                HorizontalAlignment="Right" FontSize="10" FontWeight="SemiBold" />
                                                 </Grid>
                                                 <Slider Style="{DynamicResource NeonSlider}" Minimum="320" Maximum="620"
@@ -931,16 +931,16 @@
                                                           IsChecked="{Binding Settings.Overlay.AutoStartOverlay, Mode=TwoWay}" />
                                                 <Button Content="RESET MENU POSITION" Style="{DynamicResource GhostButton}" FontSize="10"
                                                         HorizontalAlignment="Left" Margin="0,10,0,0"
-                                                        Command="{Binding ResetMenuPositionCommand}" />
+                                                        Command="{Binding ResetMenuPositionCommand, Mode=OneWay}" />
                                             </StackPanel>
                                         </Border>
 
                                         <Border Style="{DynamicResource Card}" Margin="0,12,0,0">
                                             <StackPanel>
                                                 <TextBlock Text="OVERLAY STATUS" Style="{DynamicResource SectionTitle}" />
-                                                <TextBlock Text="{Binding OverlayStatusText}" Style="{DynamicResource BodyText}" FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding OverlaySummary}" Style="{DynamicResource MutedText}" Margin="0,3,0,0" />
-                                                <TextBlock Text="{Binding FpsText}" Style="{DynamicResource MonoText}" Margin="0,6,0,0" />
+                                                <TextBlock Text="{Binding OverlayStatusText, Mode=OneWay}" Style="{DynamicResource BodyText}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding OverlaySummary, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,3,0,0" />
+                                                <TextBlock Text="{Binding FpsText, Mode=OneWay}" Style="{DynamicResource MonoText}" Margin="0,6,0,0" />
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -960,16 +960,16 @@
                                         <Border Style="{DynamicResource Card}">
                                             <StackPanel>
                                                 <TextBlock Text="CONFIGURATION" Style="{DynamicResource SectionTitle}" />
-                                                <TextBlock Text="{Binding ConfigPathText}" Style="{DynamicResource MonoText}" />
+                                                <TextBlock Text="{Binding ConfigPathText, Mode=OneWay}" Style="{DynamicResource MonoText}" />
                                                 <WrapPanel Margin="0,10,0,0">
                                                     <Button Content="SAVE CONFIG" Style="{DynamicResource PrimaryButton}" Margin="0,0,6,6"
-                                                            Command="{Binding SaveConfigCommand}" />
+                                                            Command="{Binding SaveConfigCommand, Mode=OneWay}" />
                                                     <Button Content="LOAD CONFIG" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding LoadConfigCommand}" />
+                                                            Command="{Binding LoadConfigCommand, Mode=OneWay}" />
                                                     <Button Content="EXPORT COPY" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding ExportConfigCommand}" />
+                                                            Command="{Binding ExportConfigCommand, Mode=OneWay}" />
                                                     <Button Content="RESET CONFIG" Style="{DynamicResource DangerButton}" Margin="0,0,6,6"
-                                                            Command="{Binding ResetConfigCommand}" />
+                                                            Command="{Binding ResetConfigCommand, Mode=OneWay}" />
                                                 </WrapPanel>
                                                 <TextBlock Text="Settings save automatically on every change and on exit." Style="{DynamicResource MutedText}"
                                                            Margin="0,4,0,0" />
@@ -982,7 +982,7 @@
                                                 <Grid Margin="0,0,0,8">
                                                     <TextBlock Text="In-game menu key" Style="{DynamicResource BodyText}" VerticalAlignment="Center" />
                                                     <ComboBox Style="{DynamicResource NeonComboBox}" Width="150" HorizontalAlignment="Right"
-                                                              ItemsSource="{Binding MenuKeyOptions}"
+                                                              ItemsSource="{Binding MenuKeyOptions, Mode=OneWay}"
                                                               SelectedItem="{Binding Settings.Overlay.MenuKey, Mode=TwoWay}" />
                                                 </Grid>
                                                 <TextBlock Style="{DynamicResource MutedText}"
@@ -995,13 +995,13 @@
                                                 <TextBlock Text="OVERLAY LIFECYCLE" Style="{DynamicResource SectionTitle}" />
                                                 <WrapPanel>
                                                     <Button Content="OPEN MENU" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding ToggleMenuCommand}" />
+                                                            Command="{Binding ToggleMenuCommand, Mode=OneWay}" />
                                                     <Button Content="UNLOAD OVERLAY" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding UnloadOverlayCommand}" />
+                                                            Command="{Binding UnloadOverlayCommand, Mode=OneWay}" />
                                                     <Button Content="RESET MENU POSITION" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding ResetMenuPositionCommand}" />
+                                                            Command="{Binding ResetMenuPositionCommand, Mode=OneWay}" />
                                                 </WrapPanel>
-                                                <TextBlock Text="{Binding OverlayHint}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
+                                                <TextBlock Text="{Binding OverlayHint, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
                                             </StackPanel>
                                         </Border>
 
@@ -1011,18 +1011,18 @@
                                                 <TextBlock Text="{Binding WindowsStatus}" Style="{DynamicResource BodyText}" />
                                                 <TextBlock Text="{Binding AssetsStatus}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
                                                 <TextBlock Text="{Binding RobloxSummary}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
-                                                <TextBlock Text="{Binding BridgeStatusText}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
+                                                <TextBlock Text="{Binding BridgeStatusText, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,4,0,0" />
                                                 <WrapPanel Margin="0,10,0,0">
                                                     <Button Content="REFRESH ROBLOX" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding RefreshRobloxCommand}" />
+                                                            Command="{Binding RefreshRobloxCommand, Mode=OneWay}" />
                                                     <Button Content="OPEN LOGS" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding OpenLogsCommand}" />
+                                                            Command="{Binding OpenLogsCommand, Mode=OneWay}" />
                                                     <Button Content="OPEN DATA FOLDER" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding OpenDataFolderCommand}" />
+                                                            Command="{Binding OpenDataFolderCommand, Mode=OneWay}" />
                                                     <Button Content="OPEN LUAU FOLDER" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding OpenLuauFolderCommand}" />
+                                                            Command="{Binding OpenLuauFolderCommand, Mode=OneWay}" />
                                                     <Button Content="CHECK UPDATES" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                            Command="{Binding CheckUpdatesCommand}" />
+                                                            Command="{Binding CheckUpdatesCommand, Mode=OneWay}" />
                                                 </WrapPanel>
                                                 <TextBlock Text="{Binding UpdateStatus}" Style="{DynamicResource MutedText}" />
                                             </StackPanel>
@@ -1033,30 +1033,30 @@
                                         <Border Style="{DynamicResource Card}">
                                             <StackPanel>
                                                 <TextBlock Text="APPLICATION INFORMATION" Style="{DynamicResource SectionTitle}" />
-                                                <TextBlock Text="{Binding ProductName}" FontSize="15" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding VersionText}" Style="{DynamicResource MutedText}" Margin="0,3,0,8" />
-                                                <TextBlock Text="{Binding AppDescription}" Style="{DynamicResource BodyText}" />
-                                                <TextBlock Text="{Binding BridgeNote}" Style="{DynamicResource MutedText}" Margin="0,8,0,0" />
+                                                <TextBlock Text="{Binding ProductName, Mode=OneWay}" FontSize="15" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding VersionText, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,3,0,8" />
+                                                <TextBlock Text="{Binding AppDescription, Mode=OneWay}" Style="{DynamicResource BodyText}" />
+                                                <TextBlock Text="{Binding BridgeNote, Mode=OneWay}" Style="{DynamicResource MutedText}" Margin="0,8,0,0" />
                                                 <TextBlock Text="Repository" Style="{DynamicResource MutedText}" Margin="0,10,0,2" />
                                                 <TextBlock Text="github.com/egorbelovziiik-design/WinLauncher" Style="{DynamicResource MonoText}" />
                                                 <TextBlock Text="Data folder" Style="{DynamicResource MutedText}" Margin="0,8,0,2" />
-                                                <TextBlock Text="{Binding DataFolderPath}" Style="{DynamicResource MonoText}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding DataFolderPath, Mode=OneWay}" Style="{DynamicResource MonoText}" TextWrapping="Wrap" />
                                                 <TextBlock Text="Logs" Style="{DynamicResource MutedText}" Margin="0,8,0,2" />
-                                                <TextBlock Text="{Binding LogFolderPath}" Style="{DynamicResource MonoText}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding LogFolderPath, Mode=OneWay}" Style="{DynamicResource MonoText}" TextWrapping="Wrap" />
                                             </StackPanel>
                                         </Border>
 
                                         <Border Style="{DynamicResource Card}" Margin="0,12,0,0">
                                             <StackPanel>
                                                 <TextBlock Text="ROBLOX BRIDGE (READ-ONLY)" Style="{DynamicResource SectionTitle}" />
-                                                <TextBlock Text="{Binding BridgeEndpoint}" Style="{DynamicResource MonoText}" />
+                                                <TextBlock Text="{Binding BridgeEndpoint, Mode=OneWay}" Style="{DynamicResource MonoText}" />
                                                 <TextBlock Style="{DynamicResource MutedText}" Margin="0,6,0,0"
                                                            Text="The bundled Luau module in the test place pulls the hub state and posts snapshots to this loopback address. Nothing is written into the Roblox process." />
                                                 <WrapPanel Margin="0,8,0,0">
                                                     <Button Content="COPY ENDPOINT" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                            Margin="0,0,6,0" Command="{Binding CopyBridgeEndpointCommand}" />
+                                                            Margin="0,0,6,0" Command="{Binding CopyBridgeEndpointCommand, Mode=OneWay}" />
                                                     <Button Content="OPEN SNAPSHOTS" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                            Command="{Binding OpenDataFolderCommand}" />
+                                                            Command="{Binding OpenDataFolderCommand, Mode=OneWay}" />
                                                 </WrapPanel>
                                             </StackPanel>
                                         </Border>
@@ -1090,35 +1090,35 @@
                                                  Text="{Binding CommandInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         <WrapPanel>
                                             <Button Content="EXECUTE" Style="{DynamicResource PrimaryButton}" Margin="0,0,6,6"
-                                                    Command="{Binding ExecuteCommand}" />
+                                                    Command="{Binding ExecuteCommand, Mode=OneWay}" />
                                             <Button Content="CLEAR" Style="{DynamicResource GhostButton}" Margin="0,0,6,6"
-                                                    Command="{Binding ClearCommand}" />
+                                                    Command="{Binding ClearCommand, Mode=OneWay}" />
                                             <Button Content="overlay.show()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="overlay.show()" />
                                             <Button Content="overlay.hide()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="overlay.hide()" />
                                             <Button Content="egg.scan()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="egg.scan()" />
                                             <Button Content="egg.notify(true)" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="egg.notify(true)" />
                                             <Button Content="settings.save()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="settings.save()" />
                                             <Button Content="settings.load()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="settings.load()" />
                                             <Button Content="automation.start()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="automation.start()" />
                                             <Button Content="automation.stop()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="automation.stop()" />
                                             <Button Content="help()" Style="{DynamicResource GhostButton}" FontSize="10"
-                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand}"
+                                                    Margin="0,0,6,6" Command="{Binding InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="help()" />
                                         </WrapPanel>
                                     </StackPanel>
@@ -1132,7 +1132,7 @@
                                         </Grid.RowDefinitions>
                                         <Grid>
                                             <TextBlock Text="OUTPUT" Style="{DynamicResource SectionTitle}" />
-                                            <TextBlock Text="{Binding ConsoleSummary}" HorizontalAlignment="Right"
+                                            <TextBlock Text="{Binding ConsoleSummary, Mode=OneWay}" HorizontalAlignment="Right"
                                                        Style="{DynamicResource MutedText}" />
                                         </Grid>
                                         <Border Grid.Row="1" Background="{DynamicResource ConsoleBackgroundBrush}" CornerRadius="10"
@@ -1171,17 +1171,17 @@
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
-                            <TextBlock Text="{Binding RobloxStatusText}" FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" />
+                            <TextBlock Text="{Binding RobloxStatusText, Mode=OneWay}" FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" />
                         </StackPanel>
 
                         <TextBlock Grid.Column="1" Text="{Binding NoticeBanner}" FontSize="9.5" HorizontalAlignment="Center"
                                    Foreground="{DynamicResource AccentBrush}" TextTrimming="CharacterEllipsis"
-                                   Visibility="{Binding HasNoticeBanner, Converter={StaticResource BoolToVis}}" />
+                                   Visibility="{Binding HasNoticeBanner, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" Text="{Binding OverlayStatusText}" />
+                            <TextBlock FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" Text="{Binding OverlayStatusText, Mode=OneWay}" />
                             <TextBlock FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" Text="  ·  " />
-                            <TextBlock FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" Text="{Binding ShortVersion}" />
+                            <TextBlock FontSize="9.5" Foreground="{DynamicResource TextMutedBrush}" Text="{Binding ShortVersion, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
                 </Border>

@@ -137,22 +137,22 @@
                                 <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="SemiBold"
                                            Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" />
                                 <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                    <TextBlock Text="{Binding RarityText}" FontSize="9" FontWeight="Bold"
+                                    <TextBlock Text="{Binding RarityText, Mode=OneWay}" FontSize="9" FontWeight="Bold"
                                                Foreground="{Binding Rarity, Converter={StaticResource RarityBrush}}" />
                                     <TextBlock Text=" · " FontSize="9" Foreground="#7E6E99" />
-                                    <TextBlock Text="{Binding ValueText}" FontSize="9" Foreground="#E9DFFF"
-                                               Visibility="{Binding DataContext.Hub.ShowEggValue, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
+                                    <TextBlock Text="{Binding ValueText, Mode=OneWay}" FontSize="9" Foreground="#E9DFFF"
+                                               Visibility="{Binding DataContext.Hub.ShowEggValue, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
                                     <TextBlock Text=" · " FontSize="9" Foreground="#7E6E99"
-                                               Visibility="{Binding DataContext.Hub.ShowEggValue, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
-                                    <TextBlock Text="{Binding DistanceText}" FontSize="9" Foreground="#B9A9D8"
-                                               Visibility="{Binding DataContext.Hub.ShowEggDistance, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
+                                               Visibility="{Binding DataContext.Hub.ShowEggValue, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
+                                    <TextBlock Text="{Binding DistanceText, Mode=OneWay}" FontSize="9" Foreground="#B9A9D8"
+                                               Visibility="{Binding DataContext.Hub.ShowEggDistance, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
                                 </StackPanel>
-                                <TextBlock Text="{Binding OriginText}" FontSize="8" Foreground="#6F6288" Margin="0,1,0,0" />
+                                <TextBlock Text="{Binding OriginText, Mode=OneWay}" FontSize="8" Foreground="#6F6288" Margin="0,1,0,0" />
                             </StackPanel>
                         </Border>
                     </Grid>
                     <DataTemplate.Triggers>
-                        <DataTrigger Binding="{Binding IsRare}" Value="True">
+                        <DataTrigger Binding="{Binding IsRare, Mode=OneWay}" Value="True">
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard x:Name="RarePulse">
                                     <Storyboard RepeatBehavior="Forever" AutoReverse="True">
@@ -183,12 +183,12 @@
                     <Ellipse Width="7" Height="7" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
                     <TextBlock Text="STEAL AN EGG · ULTIMATE" Margin="8,0,0,0" FontSize="10.5" FontWeight="Bold"
                                Foreground="#F4EEFF" />
-                    <TextBlock Text="{Binding Hub.PlayerModeText}" Margin="10,0,0,0" FontSize="9" FontWeight="SemiBold"
-                               Foreground="{Binding Hub.AccentColor, Converter={StaticResource ColorBrush}}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Hub.PlayerModeText, Mode=OneWay}" Margin="10,0,0,0" FontSize="9" FontWeight="SemiBold"
+                               Foreground="{Binding Hub.AccentColor, Mode=OneWay, Converter={StaticResource ColorBrush}}" VerticalAlignment="Center" />
                 </StackPanel>
-                <TextBlock Text="{Binding Hub.StatusLine}" Margin="15,3,0,0" FontSize="9" Foreground="#9C8FB8" />
-                <TextBlock Text="{Binding Hub.FpsText}" Margin="15,1,0,0" FontSize="9" Foreground="#9C8FB8"
-                           Visibility="{Binding Hub.ShowFps, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Text="{Binding Hub.StatusLine, Mode=OneWay}" Margin="15,3,0,0" FontSize="9" Foreground="#9C8FB8" />
+                <TextBlock Text="{Binding Hub.FpsText, Mode=OneWay}" Margin="15,1,0,0" FontSize="9" Foreground="#9C8FB8"
+                           Visibility="{Binding Hub.ShowFps, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
             </StackPanel>
         </Border>
 
@@ -196,10 +196,10 @@
         <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="18,84,0,0"
                 Background="#990A0614" CornerRadius="10" Padding="11,7" BorderThickness="1"
                 BorderBrush="{DynamicResource AccentBrush}" IsHitTestVisible="False"
-                Visibility="{Binding Hub.BestFinderEnabled, Converter={StaticResource BoolToVis}}">
+                Visibility="{Binding Hub.BestFinderEnabled, Mode=OneWay, Converter={StaticResource BoolToVis}}">
             <StackPanel>
                 <TextBlock Text="BEST EGG" FontSize="8.5" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
-                <TextBlock Text="{Binding Hub.Eggs.BestEggText}" FontSize="10" Foreground="#F4EEFF" Margin="0,2,0,0" />
+                <TextBlock Text="{Binding Hub.Eggs.BestEggText, Mode=OneWay}" FontSize="10" Foreground="#F4EEFF" Margin="0,2,0,0" />
             </StackPanel>
         </Border>
 
@@ -207,7 +207,7 @@
         <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,26"
                 Background="#B30A0614" CornerRadius="12" Padding="14,9" BorderThickness="1"
                 BorderBrush="{DynamicResource AccentBrush}" IsHitTestVisible="False"
-                Visibility="{Binding Hub.TrackerEnabled, Converter={StaticResource BoolToVis}}">
+                Visibility="{Binding Hub.TrackerEnabled, Mode=OneWay, Converter={StaticResource BoolToVis}}">
             <StackPanel>
                 <TextBlock Text="EGG TRACKER" FontSize="8.5" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
                 <TextBlock Text="{Binding Hub.Eggs.TrackedSummary}" FontSize="10.5" Foreground="#F4EEFF" Margin="0,3,0,0" />
@@ -217,7 +217,7 @@
         <!-- ======================= NOTIFICATIONS ======================= -->
         <ItemsControl ItemsSource="{Binding Hub.Notifications}" HorizontalAlignment="Right" VerticalAlignment="Top"
                       Margin="0,18,18,0" Width="300" IsHitTestVisible="False"
-                      Visibility="{Binding Hub.ShowNotifications, Converter={StaticResource BoolToVis}}">
+                      Visibility="{Binding Hub.ShowNotifications, Mode=OneWay, Converter={StaticResource BoolToVis}}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Background="#D90A0614" CornerRadius="10" Padding="10,8" Margin="0,0,0,6"
@@ -232,7 +232,7 @@
                                     Background="{Binding Kind, Converter={StaticResource NoticeBrush}}" />
                             <TextBlock Grid.Column="1" Text="{Binding Text}" FontSize="10.5" Foreground="#F4EEFF"
                                        TextWrapping="Wrap" />
-                            <TextBlock Grid.Column="2" Text="{Binding TimeText}" FontSize="8.5" Foreground="#7E6E99"
+                            <TextBlock Grid.Column="2" Text="{Binding TimeText, Mode=OneWay}" FontSize="8.5" Foreground="#7E6E99"
                                        Margin="8,0,0,0" VerticalAlignment="Top" />
                         </Grid>
                     </Border>
@@ -244,27 +244,27 @@
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="22" Height="22"
               IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
             <Grid.RenderTransform>
-                <ScaleTransform ScaleX="{Binding Hub.CrosshairSize, Converter={StaticResource Scale22}, ConverterParameter=0.0455}"
-                                ScaleY="{Binding Hub.CrosshairSize, Converter={StaticResource Scale22}, ConverterParameter=0.0455}" />
+                <ScaleTransform ScaleX="{Binding Hub.CrosshairSize, Mode=OneWay, Converter={StaticResource Scale22}, ConverterParameter=0.0455}"
+                                ScaleY="{Binding Hub.CrosshairSize, Mode=OneWay, Converter={StaticResource Scale22}, ConverterParameter=0.0455}" />
             </Grid.RenderTransform>
             <Path Data="M 11 3 V 8 M 11 14 V 19 M 3 11 H 8 M 14 11 H 19"
-                  Stroke="{Binding Hub.AccentColor, Converter={StaticResource ColorBrush}}" StrokeThickness="1.6"
+                  Stroke="{Binding Hub.AccentColor, Mode=OneWay, Converter={StaticResource ColorBrush}}" StrokeThickness="1.6"
                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                  Visibility="{Binding Hub.CrosshairCrossVisible, Converter={StaticResource BoolToVis}}" />
+                  Visibility="{Binding Hub.CrosshairCrossVisible, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
             <Ellipse Width="14" Height="14" StrokeThickness="1.5"
-                     Stroke="{Binding Hub.AccentColor, Converter={StaticResource ColorBrush}}"
-                     Visibility="{Binding Hub.CrosshairCircleVisible, Converter={StaticResource BoolToVis}}" />
-            <Ellipse Width="4" Height="4" Fill="{Binding Hub.AccentColor, Converter={StaticResource ColorBrush}}"
-                     Visibility="{Binding Hub.CrosshairDotVisible, Converter={StaticResource BoolToVis}}" />
+                     Stroke="{Binding Hub.AccentColor, Mode=OneWay, Converter={StaticResource ColorBrush}}"
+                     Visibility="{Binding Hub.CrosshairCircleVisible, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+            <Ellipse Width="4" Height="4" Fill="{Binding Hub.AccentColor, Mode=OneWay, Converter={StaticResource ColorBrush}}"
+                     Visibility="{Binding Hub.CrosshairDotVisible, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
         </Grid>
 
         <!-- ======================= MENU ======================= -->
         <Canvas x:Name="MenuCanvas">
-            <Grid x:Name="MenuRoot" Canvas.Left="{Binding Hub.MenuOffsetX}" Canvas.Top="{Binding Hub.MenuOffsetY}"
-                  Width="{Binding Hub.MenuWidth}" Opacity="0" Visibility="Collapsed" IsHitTestVisible="False">
+            <Grid x:Name="MenuRoot" Canvas.Left="{Binding Hub.MenuOffsetX, Mode=OneWay}" Canvas.Top="{Binding Hub.MenuOffsetY, Mode=OneWay}"
+                  Width="{Binding Hub.MenuWidth, Mode=OneWay}" Opacity="0" Visibility="Collapsed" IsHitTestVisible="False">
                 <Grid.RenderTransform>
                     <TransformGroup>
-                        <ScaleTransform x:Name="MenuScale" ScaleX="{Binding Hub.UiScale}" ScaleY="{Binding Hub.UiScale}" />
+                        <ScaleTransform x:Name="MenuScale" ScaleX="{Binding Hub.UiScale, Mode=OneWay}" ScaleY="{Binding Hub.UiScale, Mode=OneWay}" />
                         <TranslateTransform x:Name="MenuTranslate" Y="0" />
                     </TransformGroup>
                 </Grid.RenderTransform>
@@ -304,7 +304,7 @@
                                 <TextBlock Text="STEAL AN EGG" FontSize="13.5" FontWeight="Bold" Foreground="#FFFFFF" />
                                 <TextBlock FontSize="9" Foreground="#9C8FB8">
                                     <Run Text="ULTIMATE HUB" />
-                                    <Run Text="{Binding Hub.PlayerModeText}" />
+                                    <Run Text="{Binding Hub.PlayerModeText, Mode=OneWay}" />
                                 </TextBlock>
                             </StackPanel>
 
@@ -354,13 +354,13 @@
                                                                 <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
                                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding Title}" FontSize="10.5" Foreground="#E9DFFF" />
-                                                                <TextBlock Text="{Binding Badge}" FontSize="7.5" Foreground="#6F6288"
+                                                                <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="10.5" Foreground="#E9DFFF" />
+                                                                <TextBlock Text="{Binding Badge, Mode=OneWay}" FontSize="7.5" Foreground="#6F6288"
                                                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                                                             </StackPanel>
                                                             <ToggleButton Grid.Column="1" Style="{DynamicResource NeonToggle}"
                                                                           IsChecked="{Binding IsEnabled, Mode=TwoWay}"
-                                                                          ToolTip="{Binding Tooltip}" />
+                                                                          ToolTip="{Binding Tooltip, Mode=OneWay}" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
@@ -369,11 +369,11 @@
 
                                         <UniformGrid Columns="3" Margin="0,8,0,0">
                                             <Button Content="SCAN" Style="{StaticResource MenuButton}" Margin="0,0,3,0"
-                                                    Command="{Binding Hub.ScanCommand}" />
+                                                    Command="{Binding Hub.ScanCommand, Mode=OneWay}" />
                                             <Button Content="BEST" Style="{StaticResource MenuButton}" Margin="3,0"
-                                                    Command="{Binding Hub.TrackBestCommand}" />
+                                                    Command="{Binding Hub.TrackBestCommand, Mode=OneWay}" />
                                             <Button Content="SELL ALL" Style="{StaticResource MenuButton}" Margin="3,0,0,0"
-                                                    Command="{Binding Hub.SellAllCommand}" />
+                                                    Command="{Binding Hub.SellAllCommand, Mode=OneWay}" />
                                         </UniformGrid>
 
                                         <Border Background="#14FFFFFF" CornerRadius="9" Padding="10" Margin="0,8,0,0">
@@ -396,9 +396,9 @@
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="10" Foreground="#D9CCF2"
                                                                    TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Grid.Column="1" Text="{Binding RarityText}" FontSize="8.5" FontWeight="Bold"
+                                                        <TextBlock Grid.Column="1" Text="{Binding RarityText, Mode=OneWay}" FontSize="8.5" FontWeight="Bold"
                                                                    Foreground="{Binding Rarity, Converter={StaticResource RarityBrush}}" Margin="6,0" />
-                                                        <TextBlock Grid.Column="2" Text="{Binding DistanceText}" FontSize="9" Foreground="#8E7FA8" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding DistanceText, Mode=OneWay}" FontSize="9" Foreground="#8E7FA8" />
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
@@ -417,13 +417,13 @@
                                                                 <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
                                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding Title}" FontSize="10.5" Foreground="#E9DFFF" />
-                                                                <TextBlock Text="{Binding Badge}" FontSize="7.5" Foreground="#6F6288"
+                                                                <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="10.5" Foreground="#E9DFFF" />
+                                                                <TextBlock Text="{Binding Badge, Mode=OneWay}" FontSize="7.5" Foreground="#6F6288"
                                                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                                                             </StackPanel>
                                                             <ToggleButton Grid.Column="1" Style="{DynamicResource NeonToggle}"
                                                                           IsChecked="{Binding IsEnabled, Mode=TwoWay}"
-                                                                          ToolTip="{Binding Tooltip}" />
+                                                                          ToolTip="{Binding Tooltip, Mode=OneWay}" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
@@ -479,11 +479,11 @@
                                                     </StackPanel>
                                                 </UniformGrid>
                                                 <Button Content="TELEPORT" Style="{StaticResource MenuButton}"
-                                                        Command="{Binding Hub.TeleportCommand}" />
+                                                        Command="{Binding Hub.TeleportCommand, Mode=OneWay}" />
                                             </StackPanel>
                                         </Border>
 
-                                        <TextBlock Text="{Binding Hub.PlayerModeDetail}" FontSize="8.5" Foreground="#8E7FA8"
+                                        <TextBlock Text="{Binding Hub.PlayerModeDetail, Mode=OneWay}" FontSize="8.5" Foreground="#8E7FA8"
                                                    TextWrapping="Wrap" Margin="2,8,2,0" />
                                     </StackPanel>
 
@@ -499,13 +499,13 @@
                                                                 <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
                                                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding Title}" FontSize="10.5" Foreground="#E9DFFF" />
-                                                                <TextBlock Text="{Binding Badge}" FontSize="7.5" Foreground="#6F6288"
+                                                                <TextBlock Text="{Binding Title, Mode=OneWay}" FontSize="10.5" Foreground="#E9DFFF" />
+                                                                <TextBlock Text="{Binding Badge, Mode=OneWay}" FontSize="7.5" Foreground="#6F6288"
                                                                            Margin="6,0,0,0" VerticalAlignment="Center" />
                                                             </StackPanel>
                                                             <ToggleButton Grid.Column="1" Style="{DynamicResource NeonToggle}"
                                                                           IsChecked="{Binding IsEnabled, Mode=TwoWay}"
-                                                                          ToolTip="{Binding Tooltip}" />
+                                                                          ToolTip="{Binding Tooltip, Mode=OneWay}" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
@@ -523,9 +523,9 @@
 
                                         <UniformGrid Columns="2">
                                             <Button Content="START" Style="{StaticResource MenuButton}" Margin="0,0,3,0"
-                                                    Command="{Binding Hub.StartAutomationCommand}" />
+                                                    Command="{Binding Hub.StartAutomationCommand, Mode=OneWay}" />
                                             <Button Content="STOP" Style="{StaticResource MenuButton}" Margin="3,0,0,0"
-                                                    Command="{Binding Hub.StopAutomationCommand}" />
+                                                    Command="{Binding Hub.StopAutomationCommand, Mode=OneWay}" />
                                         </UniformGrid>
 
                                         <Border Background="#14FFFFFF" CornerRadius="10" Padding="10" Margin="0,8,0,0">
@@ -543,13 +543,13 @@
                                         <TextBlock Text="THEME" FontSize="8" FontWeight="Bold" Foreground="#6F6288" Margin="0,0,0,5" />
                                         <UniformGrid Columns="4">
                                             <Button Content="VIOLET" Style="{StaticResource MenuButton}" Margin="0,0,3,0"
-                                                    Command="{Binding Hub.ApplyThemeCommand}" CommandParameter="Violet" />
+                                                    Command="{Binding Hub.ApplyThemeCommand, Mode=OneWay}" CommandParameter="Violet" />
                                             <Button Content="CYBER" Style="{StaticResource MenuButton}" Margin="3,0"
-                                                    Command="{Binding Hub.ApplyThemeCommand}" CommandParameter="Cyber" />
+                                                    Command="{Binding Hub.ApplyThemeCommand, Mode=OneWay}" CommandParameter="Cyber" />
                                             <Button Content="EMBER" Style="{StaticResource MenuButton}" Margin="3,0"
-                                                    Command="{Binding Hub.ApplyThemeCommand}" CommandParameter="Ember" />
+                                                    Command="{Binding Hub.ApplyThemeCommand, Mode=OneWay}" CommandParameter="Ember" />
                                             <Button Content="MONO" Style="{StaticResource MenuButton}" Margin="3,0,0,0"
-                                                    Command="{Binding Hub.ApplyThemeCommand}" CommandParameter="Mono" />
+                                                    Command="{Binding Hub.ApplyThemeCommand, Mode=OneWay}" CommandParameter="Mono" />
                                         </UniformGrid>
 
                                         <UniformGrid Columns="1" Margin="0,8,0,0">
@@ -593,7 +593,7 @@
 
                                         <Grid>
                                             <TextBlock Text="UI scale" FontSize="9.5" Foreground="#B9A9D8" />
-                                            <TextBlock Text="{Binding Hub.Settings.Overlay.UiScale, StringFormat={}{0:0.00}}"
+                                            <TextBlock Text="{Binding Hub.Settings.Overlay.UiScale, Mode=OneWay, StringFormat={}{0:0.00}}"
                                                        HorizontalAlignment="Right" FontSize="9.5" FontWeight="Bold" Foreground="#FFFFFF" />
                                         </Grid>
                                         <Slider Style="{DynamicResource NeonSlider}" Minimum="0.7" Maximum="1.4"
@@ -610,7 +610,7 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <Button Width="22" Height="22" Margin="0,0,5,0" Cursor="Hand"
-                                                                Command="{Binding DataContext.Hub.SelectEspColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                Command="{Binding DataContext.Hub.SelectEspColorCommand, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}" ToolTip="Set normal ESP colour">
                                                             <Button.Template>
                                                                 <ControlTemplate TargetType="Button">
@@ -633,7 +633,7 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <Button Width="22" Height="22" Margin="0,0,5,0" Cursor="Hand"
-                                                                Command="{Binding DataContext.Hub.SelectRareColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                Command="{Binding DataContext.Hub.SelectRareColorCommand, Mode=OneWay, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}" ToolTip="Set rare ESP colour">
                                                             <Button.Template>
                                                                 <ControlTemplate TargetType="Button">
@@ -656,22 +656,22 @@
                                                  Text="{Binding Hub.CommandInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         <UniformGrid Columns="2">
                                             <Button Content="EXECUTE" Style="{StaticResource MenuButton}" Margin="0,0,3,0"
-                                                    Command="{Binding Hub.ExecuteCommand}" />
+                                                    Command="{Binding Hub.ExecuteCommand, Mode=OneWay}" />
                                             <Button Content="CLEAR" Style="{StaticResource MenuButton}" Margin="3,0,0,0"
-                                                    Command="{Binding Hub.ClearCommand}" />
+                                                    Command="{Binding Hub.ClearCommand, Mode=OneWay}" />
                                         </UniformGrid>
                                         <WrapPanel Margin="0,8,0,0">
                                             <Button Content="egg.scan()" Style="{StaticResource MenuButton}" Margin="0,0,4,4"
-                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand}"
+                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="egg.scan()" />
                                             <Button Content="automation.start()" Style="{StaticResource MenuButton}" Margin="0,0,4,4"
-                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand}"
+                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="automation.start()" />
                                             <Button Content="settings.save()" Style="{StaticResource MenuButton}" Margin="0,0,4,4"
-                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand}"
+                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="settings.save()" />
                                             <Button Content="overlay.hide()" Style="{StaticResource MenuButton}" Margin="0,0,4,4"
-                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand}"
+                                                    FontSize="9" Command="{Binding Hub.InsertCommandSnippetCommand, Mode=OneWay}"
                                                     CommandParameter="overlay.hide()" />
                                         </WrapPanel>
 
@@ -679,7 +679,7 @@
                                             <ItemsControl ItemsSource="{Binding Hub.ConsoleLines}" MaxHeight="180">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <TextBlock Text="{Binding Display}" FontFamily="Cascadia Mono, Consolas"
+                                                        <TextBlock Text="{Binding Display, Mode=OneWay}" FontFamily="Cascadia Mono, Consolas"
                                                                    FontSize="9" Foreground="{Binding Kind, Converter={StaticResource NoticeBrush}}"
                                                                    TextWrapping="Wrap" Margin="0,1" />
                                                     </DataTemplate>
@@ -704,11 +704,11 @@
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button Content="HUB" Style="{StaticResource MenuButton}" Margin="0,0,4,0" FontSize="9"
-                                            Command="{Binding ActivateHubCommand}" />
+                                            Command="{Binding ActivateHubCommand, Mode=OneWay}" />
                                     <Button Content="SAVE" Style="{StaticResource MenuButton}" Margin="0,0,4,0" FontSize="9"
-                                            Command="{Binding Hub.SaveConfigCommand}" />
+                                            Command="{Binding Hub.SaveConfigCommand, Mode=OneWay}" />
                                     <Button Content="DISCONNECT" Style="{StaticResource MenuButton}" FontSize="9"
-                                            Command="{Binding Hub.DisconnectCommand}" />
+                                            Command="{Binding Hub.DisconnectCommand, Mode=OneWay}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
