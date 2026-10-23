@@ -1157,3 +1157,56 @@
 21:50:09.655 smoke: view model shutdown
 21:50:09.669 smoke: window closed
 21:50:09.679 smoke: finished, exit 0
+21:56:25.310 data-folders: PASS
+21:56:25.383 settings-json: PASS
+21:56:25.394 url-parser: PASS
+21:56:25.395 search-engines: PASS
+21:56:25.576 drsearch-index: PASS
+21:56:25.589 music-library: PASS
+21:56:25.851 radio-stations: PASS
+21:56:25.853 ai-personas: PASS
+21:56:25.859 profile-avatars: PASS
+21:56:25.938 drsearch-recents: PASS
+21:56:26.036 sqlite-history: PASS
+21:56:26.066 bookmarks: PASS
+21:56:26.084 passwords-dpapi: PASS
+21:56:26.086 password-generator: PASS
+21:56:26.090 ai-without-key: PASS
+21:56:26.096 adblock: PASS
+21:56:26.101 downloads: PASS
+21:56:26.112 session: PASS
+21:56:26.239 quicklinks-permissions: PASS
+21:56:26.242 incognito-profile: PASS
+21:56:26.254 webview2-runtime: PASS
+21:56:26.255 settings-limits: PASS
+21:56:26.258 guard-url-rules: PASS
+21:56:26.260 guard-scan-args: PASS
+21:56:26.261 ai-image-attachment: PASS
+21:56:26.318 local-ai: PASS
+21:56:26.339 ai-media-context: PASS
+21:56:26.343 music-catalog-parse: PASS
+21:56:26.348 drsearch-parse: PASS
+21:56:26.348 ru-plurals: PASS
+21:56:26.349 error-logging: PASS
+21:56:28.457 smoke: start
+21:56:29.989 smoke: window created
+21:56:30.076 smoke: view model attached
+21:56:32.487 smoke-window: PASS
+21:56:32.489 smoke-webview: navigating
+21:56:34.737 smoke-webview: core ready
+21:56:35.349 smoke-webview: calling NavigateToString
+21:56:35.367 smoke-webview: NavigateToString returned
+21:56:36.098 smoke-webview: PASS
+21:56:38.532 smoke-tabs: PASS
+21:56:46.128 smoke-pages: PASS
+21:56:48.619 smoke-settings-tabs: PASS
+21:56:50.097 smoke-ui: PASS
+21:56:51.044 smoke-miniplayer: PASS
+21:56:53.248 smoke-hotkeys: PASS
+21:56:53.917 smoke-https: engine ready
+21:56:54.278 smoke-https: PASS
+21:56:57.012 smoke-download: PASS
+21:56:58.523 smoke-screenshot: PASS
+21:56:58.593 smoke: view model shutdown
+21:56:58.618 smoke: window closed
+21:56:58.627 smoke: finished, exit 0
