@@ -236,6 +236,8 @@ public static class SelfTest
 
             var result = manager.Execute(script);
 
+            var errors = result.Lines.Where(l => l.StartsWith("error", StringComparison.OrdinalIgnoreCase)).ToList();
+
             Check("Command interpreter: supported commands",
                 result.Ok
                 && calls.GetValueOrDefault("show") == 1
@@ -247,7 +249,7 @@ public static class SelfTest
                 && calls.GetValueOrDefault("notify.value") == 1
                 && calls.GetValueOrDefault("auto.start") == 1
                 && calls.GetValueOrDefault("auto.stop") == 1,
-                $"ok={result.Ok}, calls={calls.Count}");
+                $"ok={result.Ok}, calls={calls.Count}, errors={(errors.Count == 0 ? "none" : string.Join(" | ", errors))}");
         }
         catch (Exception ex)
         {
@@ -352,10 +354,15 @@ public static class SelfTest
 
         try
         {
+            settings.Features[FeatureIds.BestEggFinder] = true;
+            eggs.Update(TimeSpan.FromMilliseconds(33), settings, 1280, 720);
+
             var tracked = eggs.TrackBest();
             var best = eggs.BestEgg;
-            Check("Egg tracker + best egg finder", tracked && eggs.TrackedTarget is not null && best is not null,
-                $"tracked={(eggs.TrackedTarget is null ? "none" : eggs.TrackedTarget.Name)}");
+            Check("Egg tracker + best egg finder",
+                tracked && eggs.TrackedTarget is not null && best is not null
+                && eggs.TrackedTarget.Value >= (eggs.Eggs.Count == 0 ? 0 : 0),
+                $"tracked={(eggs.TrackedTarget is null ? "none" : eggs.TrackedTarget.Name)}, best={(best is null ? "none" : best.Name)}");
         }
         catch (Exception ex)
         {
