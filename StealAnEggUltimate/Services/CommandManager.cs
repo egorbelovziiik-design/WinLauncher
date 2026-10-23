@@ -44,7 +44,7 @@ public sealed class CommandContext
 public sealed class CommandManager
 {
     private static readonly Regex CallPattern = new(
-        @"^(?<name>[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+)\s*\((?<args>.*)\)\s*;?\s*$",
+        @"^(?<name>[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)*)\s*\((?<args>.*)\)\s*;?\s*$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private readonly Logger _log;
