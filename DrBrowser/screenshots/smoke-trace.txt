@@ -1210,3 +1210,57 @@
 21:56:58.593 smoke: view model shutdown
 21:56:58.618 smoke: window closed
 21:56:58.627 smoke: finished, exit 0
+22:04:58.485 data-folders: PASS
+22:04:58.565 settings-json: PASS
+22:04:58.576 url-parser: PASS
+22:04:58.578 search-engines: PASS
+22:04:58.803 drsearch-index: PASS
+22:04:58.814 music-library: PASS
+22:04:59.458 radio-stations: PASS
+22:04:59.459 ai-personas: PASS
+22:04:59.473 profile-avatars: PASS
+22:04:59.568 drsearch-recents: PASS
+22:04:59.716 sqlite-history: PASS
+22:04:59.748 bookmarks: PASS
+22:04:59.767 passwords-dpapi: PASS
+22:04:59.769 password-generator: PASS
+22:04:59.774 ai-without-key: PASS
+22:04:59.780 adblock: PASS
+22:04:59.785 downloads: PASS
+22:04:59.799 session: PASS
+22:04:59.873 quicklinks-permissions: PASS
+22:04:59.888 incognito-profile: PASS
+22:04:59.909 webview2-runtime: PASS
+22:04:59.909 settings-limits: PASS
+22:04:59.914 guard-url-rules: PASS
+22:04:59.916 guard-scan-args: PASS
+22:04:59.916 ai-image-attachment: PASS
+22:04:59.972 local-ai: PASS
+22:04:59.990 ai-media-context: PASS
+22:04:59.992 music-catalog-parse: PASS
+22:04:59.998 drsearch-parse: PASS
+22:05:00.001 ai-local-provider: PASS
+22:05:00.002 ru-plurals: PASS
+22:05:00.003 error-logging: PASS
+22:05:02.169 smoke: start
+22:05:03.932 smoke: window created
+22:05:04.008 smoke: view model attached
+22:05:07.243 smoke-window: PASS
+22:05:07.246 smoke-webview: navigating
+22:05:09.851 smoke-webview: core ready
+22:05:10.511 smoke-webview: calling NavigateToString
+22:05:10.541 smoke-webview: NavigateToString returned
+22:05:11.255 smoke-webview: PASS
+22:05:13.707 smoke-tabs: PASS
+22:05:13.724 smoke-pages: FAIL XamlParseException: Set property 'System.Windows.FrameworkElement.Style' threw an exception.
+22:05:13.732 smoke-settings-tabs: FAIL XamlParseException: Set property 'System.Windows.FrameworkElement.Style' threw an exception.
+22:05:15.228 smoke-ui: PASS
+22:05:16.176 smoke-miniplayer: PASS
+22:05:16.465 smoke-hotkeys: FAIL XamlParseException: Set property 'System.Windows.FrameworkElement.Style' threw an exception.
+22:05:17.129 smoke-https: engine ready
+22:05:17.498 smoke-https: PASS
+22:05:20.291 smoke-download: PASS
+22:05:21.803 smoke-screenshot: PASS
+22:05:21.877 smoke: view model shutdown
+22:05:21.899 smoke: window closed
+22:05:21.910 smoke: finished, exit 1
