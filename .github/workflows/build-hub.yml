@@ -41,7 +41,7 @@ jobs:
         run: >
           dotnet build StealAnEggUltimate/StealAnEggUltimate.csproj
           -c Release --no-restore
-          -flp:logfile=build.log;verbosity=normal
+          "-flp:logfile=build.log;verbosity=normal"
 
       - name: Upload build log
         if: always()
