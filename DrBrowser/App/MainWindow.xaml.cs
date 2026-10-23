@@ -228,7 +228,11 @@ public partial class MainWindow : Window, IBrowserShell
 
     private void ProfileButton_Click(object sender, RoutedEventArgs e) => _vm.ToggleProfile();
 
-    private void ProfilePopup_Closed(object? sender, EventArgs e) => _vm.CloseProfile();
+    private void ProfileDismiss_Click(object sender, MouseButtonEventArgs e)
+    {
+        _vm.CloseProfile();
+        e.Handled = true;
+    }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -397,6 +401,13 @@ public partial class MainWindow : Window, IBrowserShell
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && _vm.IsProfileOpen)
+        {
+            _vm.CloseProfile();
+            e.Handled = true;
+            return;
+        }
+
         if (HandleHotkey(e.Key, Keyboard.Modifiers)) e.Handled = true;
     }
 
