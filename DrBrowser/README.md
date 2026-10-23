@@ -128,7 +128,7 @@ dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true `
 ..\dist\DrBrowser.exe --smoke
 ```
 
-The latest verified source run before packaging is GitHub Actions run [40032001578](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032001578): Release build and publish succeeded, all **35** logic checks had zero failures, and all **12** live-window/WebView2 smoke checks had zero failures. The final packaging run is recorded in [TESTING.md](Docs/TESTING.md) and the committed reports under `screenshots/`.
+The latest verified source run before packaging is GitHub Actions run [40032753453](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032753453): Release build and publish succeeded, all **35** logic checks had zero failures, and all **12** live-window/WebView2 smoke checks had zero failures. The final packaging run is recorded in [TESTING.md](Docs/TESTING.md) and the committed reports under `screenshots/`.
 
 ## Known limitations
 

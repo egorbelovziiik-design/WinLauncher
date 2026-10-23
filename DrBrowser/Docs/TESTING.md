@@ -11,7 +11,7 @@ Both write human-readable reports and return `1` when any check records `FAIL`. 
 
 ## Last verified source run
 
-GitHub Actions run **40032001578** on `windows-latest` completed successfully for source commit `a1ebc2f`:
+GitHub Actions run **40032753453** on `windows-latest` completed successfully for source commit `5129ead`:
 
 - .NET 10 Release build: passed.
 - Self-contained compressed single-file `win-x64` publish: passed.
@@ -21,7 +21,7 @@ GitHub Actions run **40032001578** on `windows-latest` completed successfully fo
 - Live WebView2 initialization, document title and JavaScript execution: passed.
 - Reports/screenshots/artifact upload: passed.
 
-Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032001578>
+Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40032753453>
 
 The final packaging run (including Inno Setup and committed `dist/` outputs) supersedes this run when its reports are present in `DrBrowser/screenshots/`. Check `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` rather than relying only on this document.
 

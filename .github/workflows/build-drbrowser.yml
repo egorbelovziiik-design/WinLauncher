@@ -165,8 +165,8 @@ jobs:
             DrBrowser/screenshots/**
           if-no-files-found: warn
 
-      - name: Publish EXE, screenshots and report back to the branch
-        if: ${{ false }}
+      - name: Publish EXE, installer, screenshots and reports back to the branch
+        if: ${{ github.ref_name == 'arena/0862e2a2-winlauncher' && env.SELFTEST_EXIT == '0' && env.SMOKE_EXIT == '0' }}
         shell: bash
         run: |
           set -uo pipefail
@@ -216,8 +216,8 @@ jobs:
           if ($failed) { throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots." }
           "Все выполненные проверки прошли."
 
-      - name: Publish release with the EXE
-        if: ${{ false }}
+      - name: Publish release with portable EXE and installer
+        if: ${{ success() && github.ref_name == 'arena/0862e2a2-winlauncher' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -225,7 +225,8 @@ jobs:
           if [ ! -f dist/DrBrowser.exe ]; then echo "no exe"; exit 0; fi
           gh release delete drbrowser-latest --yes --cleanup-tag || true
           gh release create drbrowser-latest \
+            --target "${GITHUB_REF_NAME}" \
             --title "DrBrowser OMEGA 3.0 (win-x64)" \
-            --notes "DrBrowser.exe (self-contained, win-x64). Требуется Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703" \
+            --notes "Verified self-contained portable EXE and per-user installer for Windows 10/11 x64. Requires Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703. Unsigned binaries: verify the included SHA-256 files." \
             "dist/DrBrowser.exe" "dist/DrBrowser.exe.sha256.txt" \
             "dist/DrBrowserSetup.exe" "dist/DrBrowserSetup.exe.sha256.txt"
