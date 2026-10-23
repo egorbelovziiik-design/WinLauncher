@@ -39,7 +39,7 @@
                             Command="{Binding Music.ChooseFolderCommand}" />
                     <Button Content="↻" Style="{StaticResource IconButton}" FontSize="15" ToolTip="Обновить библиотеку"
                             Command="{Binding Music.RefreshCommand}" />
-                    <Button Content="🗀" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Открыть папку"
+                    <Button Content="📂" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Открыть папку"
                             Command="{Binding Music.OpenFolderCommand}" IsEnabled="{Binding Music.HasFolder}" />
                 </StackPanel>
             </Grid>
@@ -207,9 +207,11 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="ПЛЕЙЛИСТЫ" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="{Binding Music.PlaylistsSummary}" FontSize="9.5"
-                                   Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="ПЛЕЙЛИСТЫ" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1" Text="{Binding Music.PlaylistsSummary}" FontSize="9.5" MaxWidth="86"
+                                   Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" HorizontalAlignment="Right" />
                     </Grid>
                     <TextBox Style="{StaticResource InputBox}" Height="28" FontSize="11.5" Margin="0,0,0,6"
                              Text="{Binding Music.NewPlaylistName, UpdateSourceTrigger=PropertyChanged}"
