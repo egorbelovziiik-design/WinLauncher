@@ -236,7 +236,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ? $"Загрузки: {Downloads.Items.Count(d => d.IsActive)} активных"
         : "Загрузки";
 
-    public string TabsSummary => Tabs.Count == 1 ? "1 вкладка" : $"{Tabs.Count} вкладок";
+    public string TabsSummary => Plural(Tabs.Count, "вкладка", "вкладки", "вкладок");
     public bool ShowBookmarksBar => Settings.ShowBookmarksBar;
 
     /// <summary>The bar row is hidden while there is not a single bookmark — no empty star row.</summary>
@@ -260,7 +260,23 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ? "Приватный профиль · данные не сохраняются"
         : $"Локальный профиль · {Settings.ProfileName}";
 
-    public string ProfileStats => $"{Tabs.Count} вкладок · {Bookmarks.Items.Count} закладок · {AdBlock.BlockedCount} блокировок";
+    public string ProfileStats =>
+        $"{Plural(Tabs.Count, "вкладка", "вкладки", "вкладок")} · " +
+        $"{Plural(Bookmarks.Items.Count, "закладка", "закладки", "закладок")} · " +
+        $"{Plural(AdBlock.BlockedCount, "блокировка", "блокировки", "блокировок")}";
+
+    /// <summary>Russian plural form for a counter ("1 вкладка", "2 вкладки", "5 вкладок").</summary>
+    internal static string Plural(int count, string one, string few, string many)
+    {
+        var n = Math.Abs(count) % 100;
+        if (n is >= 11 and <= 14) return $"{count} {many}";
+        return (n % 10) switch
+        {
+            1 => $"{count} {one}",
+            2 or 3 or 4 => $"{count} {few}",
+            _ => $"{count} {many}"
+        };
+    }
 
     public void ToggleProfile()
     {

@@ -741,6 +741,19 @@ public static class SelfTest
                 return "2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang";
             });
 
+            await Run("ru-plurals", "Русские склонения счётчиков и инициалы профиля", () =>
+            {
+                if (MainViewModel.Plural(1, "вкладка", "вкладки", "вкладок") != "1 вкладка")
+                    throw new Exception("1 вкладка");
+                if (MainViewModel.Plural(3, "вкладка", "вкладки", "вкладок") != "3 вкладки")
+                    throw new Exception("3 вкладки");
+                if (MainViewModel.Plural(11, "вкладка", "вкладки", "вкладок") != "11 вкладок")
+                    throw new Exception("11 вкладок");
+                if (MainViewModel.Plural(22, "вкладка", "вкладки", "вкладок") != "22 вкладки")
+                    throw new Exception("22 вкладки");
+                return "1 вкладка · 3 вкладки · 11 вкладок · 22 вкладки";
+            });
+
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>
             {
                 var before = File.Exists(log.FilePath) ? new FileInfo(log.FilePath).Length : 0;
@@ -785,7 +798,8 @@ public static class SelfTest
             Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             ArmWatchdog(150, "smoke-report.txt");
             Trace("smoke: start");
-            window = App.Current.OpenWindow(true);
+            // Normal (non-private) window: the smoke run must cover the real profile path.
+            window = App.Current.OpenWindow(false);
             Trace("smoke: window created");
             window.Width = 1440;
             window.Height = 900;

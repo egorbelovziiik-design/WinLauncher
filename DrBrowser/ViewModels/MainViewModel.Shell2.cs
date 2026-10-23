@@ -81,9 +81,10 @@ public sealed partial class MainViewModel
             var name = Settings.ProfileName?.Trim() ?? string.Empty;
             if (name.Length == 0) return "D";
             var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            // One letter per word: "Default" -> "D", "Doctor Browser" -> "DB".
             return parts.Length >= 2
                 ? string.Concat(parts[0][..1], parts[1][..1]).ToUpperInvariant()
-                : name[..Math.Min(2, name.Length)].ToUpperInvariant();
+                : name[..1].ToUpperInvariant();
         }
     }
 
