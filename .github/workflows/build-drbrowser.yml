@@ -173,17 +173,23 @@ jobs:
       - name: Fail the job when a check failed
         shell: pwsh
         run: |
+          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
+            $path = "DrBrowser\screenshots\$name"
+            if (-not (Test-Path $path)) {
+              Write-Host "::error title=Missing test report::$name"
+              throw "Missing report: $name"
+            }
+            Select-String -Path $path -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue | ForEach-Object {
+              $detail = $_.Line.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+              Write-Host "::error file=$path,title=DrBrowser verification failed::$detail"
+            }
+          }
           if ($env:SELFTEST_EXIT -ne '0' -or $env:SMOKE_EXIT -ne '0') {
+            Write-Host "::error title=Test process exit codes::selftest=$env:SELFTEST_EXIT smoke=$env:SMOKE_EXIT"
             throw "Self-test or smoke did not complete successfully"
           }
-          foreach ($name in @('selftest-report.txt', 'smoke-report.txt')) {
-            if (-not (Test-Path "DrBrowser\screenshots\$name")) { throw "Missing report: $name" }
-          }
           $failed = Select-String -Path DrBrowser\screenshots\*-report.txt -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue
-          if ($failed) {
-            $failed | ForEach-Object { $_.Line }
-            throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots."
-          }
+          if ($failed) { throw "Есть провалившиеся проверки — см. отчёт в DrBrowser/screenshots." }
           "Все выполненные проверки прошли."
 
       - name: Publish release with the EXE
