@@ -14,7 +14,7 @@ public sealed partial class MainViewModel
     private static readonly CommandPaletteItem[] PaletteEntries =
     {
         new("new-tab", "Новая вкладка", "Браузер", "Ctrl+T"),
-        new("private-tab", "Новая приватная вкладка", "Браузер", "Ctrl+Shift+N"),
+        new("private-tab", "Новое приватное окно", "Браузер", "Ctrl+Shift+N"),
         new("reopen-tab", "Восстановить закрытую вкладку", "Браузер", "Ctrl+Shift+T"),
         new("bookmark", "Добавить или убрать закладку", "Браузер", "Ctrl+D"),
         new("route:search", "Открыть DrSearch", "OMEGA", "Ctrl+Shift+S"),
@@ -113,14 +113,14 @@ public sealed partial class MainViewModel
         switch (item.Id)
         {
             case "new-tab": NewTabCommand.Execute(null); break;
-            case "private-tab": NewPrivateTabCommand.Execute(null); break;
+            case "private-tab": OpenPrivateWindowCommand.Execute(null); break;
             case "reopen-tab": ReopenClosedTab(); break;
             case "bookmark": ToggleBookmarkCommand.Execute(null); break;
             case "mind": IsAiOpen = true; break;
             case "gaming-mode": EnableGamingMode(); break;
             case "find": ToggleFindCommand.Execute(null); break;
             case "devtools": ActiveTab?.Core?.OpenDevToolsWindow(); break;
-            case "fullscreen": _shell?.ToggleFullScreen(); break;
+            case "fullscreen": _shell?.RequestFullscreen(true); break;
         }
     }
 }
