@@ -167,14 +167,14 @@
                                 <TextBox Style="{StaticResource InputBox}" Height="78" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding Omega.JsonInput, UpdateSourceTrigger=PropertyChanged}"/>
                                 <WrapPanel Margin="0,7,0,0"><Button Content="Форматировать" Style="{StaticResource GhostButton}" Command="{Binding Omega.FormatJsonCommand}"/>
                                     <Button Content="Минифицировать" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Command="{Binding Omega.FormatJsonCommand}" CommandParameter="minify"/></WrapPanel>
-                                <TextBox Style="{StaticResource InputBox}" Height="72" Margin="0,7,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding Omega.JsonOutput}"/>
+                                <TextBox Style="{StaticResource InputBox}" Height="72" Margin="0,7,0,0" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Text="{Binding Omega.JsonOutput, Mode=OneWay}"/>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}" Width="350" MinHeight="220" Margin="0,0,10,10">
                             <StackPanel><TextBlock Text="ГЕНЕРАТОР ПАРОЛЕЙ" Style="{StaticResource SectionTitle}"/>
                                 <TextBlock Text="{Binding Omega.PasswordLength, StringFormat=Длина: {0}}" Style="{StaticResource Muted}"/>
                                 <Slider Minimum="8" Maximum="64" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding Omega.PasswordLength}"/>
-                                <TextBox Style="{StaticResource InputBox}" Margin="0,7,0,0" IsReadOnly="True" Text="{Binding Omega.GeneratedPassword}"/>
+                                <TextBox Style="{StaticResource InputBox}" Margin="0,7,0,0" IsReadOnly="True" Text="{Binding Omega.GeneratedPassword, Mode=OneWay}"/>
                                 <WrapPanel Margin="0,7,0,0"><Button Content="Создать" Style="{StaticResource PrimaryButton}" Command="{Binding Omega.GeneratePasswordCommand}"/>
                                     <Button Content="Копировать" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Command="{Binding Omega.CopyGeneratedPasswordCommand}"/></WrapPanel>
                                 <TextBlock Text="RandomNumberGenerator; неоднозначные 0/O/1/l исключены." Style="{StaticResource Muted}" FontSize="9.5" Margin="0,7,0,0" TextWrapping="Wrap"/>
@@ -186,7 +186,7 @@
                                 <WrapPanel Margin="0,7,0,0"><Button Content="ABC" Style="{StaticResource GhostButton}" Command="{Binding Omega.ConvertTextCommand}" CommandParameter="upper"/>
                                     <Button Content="abc" Style="{StaticResource GhostButton}" Margin="5,0" Command="{Binding Omega.ConvertTextCommand}" CommandParameter="lower"/>
                                     <Button Content="Пробелы" Style="{StaticResource GhostButton}" Command="{Binding Omega.ConvertTextCommand}" CommandParameter="trim"/></WrapPanel>
-                                <TextBox Style="{StaticResource InputBox}" IsReadOnly="True" Margin="0,7,0,0" Text="{Binding Omega.TextOutput}"/>
+                                <TextBox Style="{StaticResource InputBox}" IsReadOnly="True" Margin="0,7,0,0" Text="{Binding Omega.TextOutput, Mode=OneWay}"/>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}" Width="350" MinHeight="200" Margin="0,0,10,10">

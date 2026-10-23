@@ -163,9 +163,11 @@ public sealed class MusicViewModel : ObservableObject
             return;
         }
 
-        Service.Play(track.ToMusicTrack());
-        CatalogStatus = $"Играет превью: {track.Title} — {track.Artist}";
-        Raise(nameof(IsPlaying), nameof(NowPlayingTitle), nameof(PlayPauseGlyph));
+        // Hardened .NET 10 WPF deliberately blocks Internet-zone MediaPlayer sources.
+        // Keep remote audio inside WebView2 instead of enabling the unsafe global
+        // default-credentials compatibility switch. Local files still use MediaPlayer.
+        _navigate(track.PreviewUrl);
+        CatalogStatus = $"Превью открыто в защищённом веб-движке: {track.Title} — {track.Artist}";
     });
 
     public ICommand OpenCatalogPageCommand => new RelayCommand(p =>
@@ -370,7 +372,7 @@ public sealed class MusicViewModel : ObservableObject
     /// <summary>Radio stations shown as a "прямой эфир" strip at the top of DrMusic.</summary>
     public IReadOnlyList<MusicTrack> Stations => Service.Stations;
     public bool HasStations => Service.Stations.Count > 0;
-    public string RadioSummary => $"{Service.Stations.Count} станций · интернет-радио без регистрации";
+    public string RadioSummary => $"{Service.Stations.Count} станций · безопасное открытие в WebView2";
     public string MiniPlayerText => Service.HasTrack
         ? $"{Service.CurrentTitle}{(Service.IsPlaying ? " · играет" : " · пауза")}"
         : "Музыка не играет";
@@ -379,15 +381,21 @@ public sealed class MusicViewModel : ObservableObject
         ? "Библиотека пуста"
         : $"{Service.Tracks.Count} треков · {Math.Max(0, Service.Categories.Count - 1)} категорий";
 
-    public ICommand PlayCommand => new RelayCommand(p => { if (p is MusicTrack track) Service.Play(track); });
+    public ICommand PlayCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack track) return;
+        if (track.IsStream)
+        {
+            _navigate(track.FilePath);
+            return;
+        }
+        Service.Play(track);
+    });
 
-    /// <summary>Starts a built-in radio station (one click, no key required).</summary>
+    /// <summary>Opens a public station in WebView2 without weakening WPF's network credential policy.</summary>
     public ICommand PlayStationCommand => new RelayCommand(p =>
     {
-        if (p is not MusicTrack station) return;
-        Service.Play(station);
-        Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(NowPlayingSubtitle),
-            nameof(NowPlayingBadge), nameof(IsStreaming), nameof(MiniPlayerText));
+        if (p is MusicTrack station && station.IsStream) _navigate(station.FilePath);
     });
     public ICommand PlayCategoryCommand => new RelayCommand(p =>
     {

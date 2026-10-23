@@ -75,7 +75,7 @@ RAG retrieves from `SearchIndexService`; source lists are assembled from records
 
 ### DrMusic
 
-`MusicService` scans a selected folder, builds a queue and controls `MediaPlayer`. `MusicViewModel` combines local library state, public preview catalog, playlists/favorites and UI commands. `MusicPlaylistService` persists mappings without altering source files. Streams and local files share playback state, but streams disable seek.
+`MusicService` scans a selected folder, builds a local-file queue and controls WPF `MediaPlayer`. `MusicViewModel` combines local library state, public preview catalog, playlists/favorites and UI commands. `MusicPlaylistService` persists mappings without altering source files. Internet-zone radio/preview links are delegated to WebView2 rather than weakening hardened .NET 10's default-credential zone policy; integrated transport controls therefore apply to local files only.
 
 ### OMEGA productivity
 

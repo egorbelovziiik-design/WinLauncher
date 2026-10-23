@@ -20,7 +20,7 @@ Microsoft Edge **WebView2 Runtime** is required. Current Windows 11 and maintain
 - Real multi-tab WebView2 browsing, navigation, session restore, pinned/muted/reordered tabs, tab sleep, downloads, history, bookmarks, private windows, page find, PDF, screenshots, reader mode and DevTools.
 - **DrSearch**: clearly labeled local SQLite FTS5/BM25 index plus a bounded crawler that respects robots rules, delays, domain limits, `noindex`, redirect limits and SSRF protections.
 - **DrMind**: deterministic offline tools, loopback-only Ollama, or an OpenAI-compatible endpoint; streaming/cancel/regenerate, nine modes, optional DrSearch RAG with citations, explicit local memory, and confirmation-gated actions.
-- **DrMusic**: local library playback, categories, queue, shuffle/repeat/seek/volume, SQLite playlists/favorites, mini-player, public radio streams and legal 30-second catalog previews.
+- **DrMusic**: real local-file playback, categories, queue, shuffle/repeat/seek/volume, SQLite playlists/favorites and mini-player; public radio and legal 30-second preview links open in WebView2 without weakening .NET's network-credential policy.
 - OMEGA sidebar, six Workspaces presets and tab snapshots, Notes, Tasks, DrTools, Gaming links/mode, real process performance readings, ten themes, command palette, DPAPI Vault, AdBlock/DrGuard and validated backups.
 
 No button is intentionally represented as working when it is only a mock. See the documented [limitations](DrBrowser/README.md#known-limitations).

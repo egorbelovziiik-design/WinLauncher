@@ -40,8 +40,8 @@ public sealed record CatalogOutcome(IReadOnlyList<CatalogTrack> Tracks, string N
 /// Online music search for DrMusic.
 ///
 /// Sources: the public iTunes Search API and the public Deezer API. Both return a
-/// 30-second preview URL that the browser can play directly, plus a link to the full
-/// track. Nothing is downloaded, ripped or re-hosted.
+/// 30-second preview URL opened in WebView2, plus a link to the full track. Nothing is
+/// downloaded, ripped or re-hosted.
 ///
 /// About «взять источники из Яндекс Музыки»: Yandex Music has no public search or
 /// streaming API, and its terms forbid third-party playback of its catalog. DrMusic

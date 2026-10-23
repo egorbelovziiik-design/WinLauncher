@@ -334,7 +334,7 @@ public static class SelfTest
                 return "create · add/remove track · favorites toggle · delete; файлы не изменены";
             });
 
-            await Run("radio-stations", "DrMusic: встроенное радио и LIVE-плейлист", () =>
+            await Run("radio-stations", "DrMusic: HTTPS-радио и безопасная граница WebView2", () =>
             {
                 var log = new Logger();
                 using var service = new MusicService(log);
@@ -342,21 +342,18 @@ public static class SelfTest
                 if (service.Stations.Count < 5)
                     throw new Exception("встроенных станций меньше пяти: " + service.Stations.Count);
 
-                if (!service.Stations.All(st => st.IsStream && st.FilePath.StartsWith("https://")))
-                    throw new Exception("станция без https-потока");
+                if (!service.Stations.All(st => st.IsStream && st.Badge == "LIVE" &&
+                        Uri.TryCreate(st.FilePath, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps))
+                    throw new Exception("станция без валидной HTTPS-ссылки/LIVE-бейджа");
 
                 var radioCategory = service.Categories.FirstOrDefault(c => c.Name == MusicService.RadioCategory);
                 if (radioCategory is null) throw new Exception("категория радио не появилась в DrMusic");
                 if (service.Tracks.Count != service.Stations.Count)
                     throw new Exception("в списке треков не только радио: " + service.Tracks.Count);
+                if (service.Queue.Any(track => track.IsStream))
+                    throw new Exception("сетевой URL попал в локальную очередь MediaPlayer");
 
-                service.Play(service.Stations[0]);
-                if (!service.IsStreaming) throw new Exception("плеер не перешёл в режим прямого эфира");
-                if (service.NowBadge != "LIVE") throw new Exception("бейдж LIVE не выставлен: " + service.NowBadge);
-                service.Seek(0.5); // live radio must ignore seeking
-                service.Stop();
-
-                return $"{service.Stations.Count} станций · категория «{radioCategory.Name}» · LIVE-бейдж и запрет перемотки";
+                return $"{service.Stations.Count} HTTPS-станций · LIVE · сетевые URL исключены из очереди MediaPlayer";
             });
 
             await Run("ai-personas", "DrAI: режимы и промпты отличаются", () =>
@@ -979,11 +976,33 @@ public static class SelfTest
                     await Delay(900);
                     if (vm.CurrentInternalKey != key)
                         throw new Exception($"страница {key} не активировалась (текущая: {vm.CurrentInternalKey})");
+
+                    if (key == "performance")
+                    {
+                        vm.Omega.RefreshPerformance();
+                        await Delay(150);
+                        var metrics = new[]
+                        {
+                            vm.Omega.CpuText, vm.Omega.RamText, vm.Omega.ManagedMemoryText,
+                            vm.Omega.BrowserTabsText, vm.Omega.WebViewProcessText, vm.Omega.RuntimeText
+                        };
+                        if (metrics.Any(value => string.IsNullOrWhiteSpace(value) || value == "—"))
+                            throw new Exception("реальные показатели производительности не заполнены");
+                        if (metrics.Any(value => !HasVisualText(window!, value)))
+                            throw new Exception("значение производительности существует, но не отображается в интерфейсе");
+                    }
+
                     window!.CaptureWindow(Path.Combine(shots, $"{index:00}-{key}.png"));
                     index++;
                 }
 
-                return "settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · Workspaces · Tools · Performance · newtab — 11 скриншотов";
+                var currentLog = File.Exists(log.FilePath) ? File.ReadAllText(log.FilePath) : string.Empty;
+                var marker = currentLog.LastIndexOf("=== smoke: start ===", StringComparison.Ordinal);
+                if (marker >= 0) currentLog = currentLog[marker..];
+                if (currentLog.Contains("Unhandled UI exception", StringComparison.Ordinal))
+                    throw new Exception("в журнале обнаружено необработанное исключение привязки/интерфейса");
+
+                return "11 страниц и PNG · показатели Performance видимы · UI-исключений нет";
             });
 
             await Run("smoke-command-palette", "DrCommand фильтрует и выполняет зарегистрированные действия", async () =>
@@ -1058,22 +1077,42 @@ public static class SelfTest
                 return "zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete";
             });
 
-            await Run("smoke-miniplayer", "Мини-плеер DrMusic виден в окне и показывает LIVE-трек", async () =>
+            await Run("smoke-miniplayer", "DrMusic реально открывает локальный WAV и показывает мини-плеер", async () =>
             {
-                if (vm.Music.Stations.Count == 0) throw new Exception("станции не загружены");
-                var station = vm.Music.Stations[0];
+                var mediaDir = Path.Combine(Path.GetTempPath(), "drbrowser-smoke-audio-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(mediaDir);
+                var mediaPath = Path.Combine(mediaDir, "DrBrowser Smoke Tone.wav");
+                WriteTestWave(mediaPath);
+                var track = new MusicTrack
+                {
+                    FilePath = mediaPath,
+                    Title = "DrBrowser Smoke Tone",
+                    Artist = "Local self-test",
+                    Category = "Smoke"
+                };
 
-                vm.Music.PlayCommand.Execute(station);
-                await Delay(700);
+                try
+                {
+                    vm.Music.Service.Play(track);
+                    for (var i = 0; i < 30 && !vm.Music.Service.IsPlaying; i++) await Delay(200);
 
-                if (!vm.MusicBarVisible) throw new Exception("строка мини-плеера не появилась");
-                if (vm.MusicNowBadge != "LIVE") throw new Exception("бейдж мини-плеера: " + vm.MusicNowBadge);
-                if (!vm.MusicNowTitle.Contains(station.Title)) throw new Exception("в мини-плеере не та станция: " + vm.MusicNowTitle);
+                    if (!vm.Music.Service.IsPlaying)
+                        throw new Exception("MediaPlayer не открыл локальный WAV: " + vm.Music.Service.Status);
+                    if (vm.Music.Service.DurationSeconds < 0.5)
+                        throw new Exception("MediaPlayer не сообщил реальную длительность WAV");
+                    if (!vm.MusicBarVisible) throw new Exception("строка мини-плеера не появилась");
+                    if (vm.MusicNowBadge != "LOCAL") throw new Exception("бейдж мини-плеера: " + vm.MusicNowBadge);
+                    if (!vm.MusicNowTitle.Contains(track.Title)) throw new Exception("в мини-плеере не тот локальный трек: " + vm.MusicNowTitle);
 
-                window!.CaptureWindow(Path.Combine(shots, "13-mini-player.png"));
-                vm.Music.Service.Stop();
-                await Delay(200);
-                return $"{vm.MusicNowTitle} · бейдж LIVE · мини-плеер в окне (13-mini-player.png)";
+                    window!.CaptureWindow(Path.Combine(shots, "13-mini-player.png"));
+                    return $"WAV {vm.Music.Service.DurationSeconds:0.0} с · MediaOpened · LOCAL · мини-плеер (13-mini-player.png)";
+                }
+                finally
+                {
+                    vm.Music.Service.Stop();
+                    await Delay(200);
+                    AppPaths.TryDeleteDirectory(mediaDir);
+                }
             });
 
             await Run("smoke-hotkeys", "Горячие клавиши вызывают реальные команды", async () =>
@@ -1437,6 +1476,47 @@ public static class SelfTest
         }
 
         return null;
+    }
+
+    private static bool HasVisualText(DependencyObject? root, string expected)
+    {
+        if (root is null) return false;
+        if (root is TextBlock text && string.Equals(text.Text, expected, StringComparison.Ordinal)) return true;
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var i = 0; i < count; i++)
+            if (HasVisualText(VisualTreeHelper.GetChild(root, i), expected)) return true;
+        return false;
+    }
+
+    /// <summary>Writes a valid one-second, 8 kHz, mono PCM WAV used to prove MediaPlayer opened real audio.</summary>
+    private static void WriteTestWave(string path)
+    {
+        const int sampleRate = 8000;
+        const short channels = 1;
+        const short bitsPerSample = 16;
+        const int sampleCount = sampleRate;
+        const int dataSize = sampleCount * channels * bitsPerSample / 8;
+
+        using var stream = File.Create(path);
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: false);
+        writer.Write(Encoding.ASCII.GetBytes("RIFF"));
+        writer.Write(36 + dataSize);
+        writer.Write(Encoding.ASCII.GetBytes("WAVE"));
+        writer.Write(Encoding.ASCII.GetBytes("fmt "));
+        writer.Write(16);
+        writer.Write((short)1);
+        writer.Write(channels);
+        writer.Write(sampleRate);
+        writer.Write(sampleRate * channels * bitsPerSample / 8);
+        writer.Write((short)(channels * bitsPerSample / 8));
+        writer.Write(bitsPerSample);
+        writer.Write(Encoding.ASCII.GetBytes("data"));
+        writer.Write(dataSize);
+        for (var i = 0; i < sampleCount; i++)
+        {
+            var sample = (short)(Math.Sin(2 * Math.PI * 440 * i / sampleRate) * short.MaxValue * 0.08);
+            writer.Write(sample);
+        }
     }
 
     private static void Trace(string line)

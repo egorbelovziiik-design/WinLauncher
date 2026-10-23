@@ -100,10 +100,10 @@ DrMind can only offer two application actions: save the last answer to Notes or 
 2. Select a track to play; use queue controls, seek, volume, shuffle and repeat.
 3. Create a playlist in the left pane, select it, then use `+` beside a track.
 4. Use the heart to toggle Favorites; `−` removes from the open playlist without deleting the file.
-5. Radio entries are normal public streams marked LIVE; seeking is disabled.
-6. Catalog results are provider previews. The external-page button opens a lawful provider page; DrBrowser does not download protected tracks.
+5. Radio entries are normal public links marked LIVE. Clicking one opens it in WebView2; it does not enter the local mini-player queue.
+6. Catalog preview and provider-page buttons open lawful provider URLs in WebView2; DrBrowser does not download protected tracks.
 
-Codec/stream availability depends on Windows and the provider.
+Local codec availability depends on Windows. Remote availability depends on the provider. DrBrowser deliberately leaves .NET 10's hardened network-credential policy enabled, so integrated `MediaPlayer` controls are local-file-only.
 
 ## Gaming and Performance
 

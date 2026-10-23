@@ -27,9 +27,9 @@ Status definitions:
 | RAG/citations | Implemented/verified core | Sources come from local SearchIndex records |
 | AI memory | Implemented/verified | Explicit SQLite add/context/delete; opt-in prompt inclusion |
 | AI actions | Implemented/verified core | Two allowlisted, confirmation-gated actions; no arbitrary OS access |
-| DrMusic local library | Implemented/verified core | Folder scan/categories/filter; audible output is device-dependent |
+| DrMusic local library | Implemented/verified core | Folder scan/categories/filter; live smoke opens a generated WAV through MediaPlayer; audible hardware output remains device-dependent |
 | Playlists/favorites | Implemented/verified | SQLite create/add/remove/toggle/delete round-trip |
-| Radio/catalog previews | Implemented/manual boundary | LIVE state checked; provider/network/audio availability varies |
+| Radio/catalog previews | Implemented/web boundary | Public URLs open in WebView2; not integrated with local transport controls; provider/network availability varies |
 | Protected music downloads | **Not implemented** | No DRM bypass/downloader |
 | Workspaces | Implemented/verified | SQLite CRUD, six presets and tab snapshot data |
 | Notes/Tasks | Implemented/verified | SQLite CRUD/completion checks |

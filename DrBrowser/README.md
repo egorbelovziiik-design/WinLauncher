@@ -55,8 +55,8 @@ The optional crawler is deliberately bounded. It honors robots rules, crawl dela
 - Reads audio only from a folder chosen by the user; supports common formats exposed by WPF Media Foundation (`mp3`, `wav`, `m4a`, `aac`, `flac`, `ogg`, `wma`, `aiff`, subject to installed codecs).
 - Real local playback, queue, previous/next, pause, stop, seek, volume, shuffle/repeat and persistent mini-player.
 - Folder-based categories, title/artist parsing, filter, **SQLite playlists and favorites**; removing a playlist never deletes audio files.
-- Eight public radio stream entries with LIVE state and disabled seeking.
-- iTunes/Deezer public catalog search plays only provider-supplied previews; full tracks open on the provider page. Yandex Music opens its normal web search. There is no DRM bypass or protected-media downloader.
+- Eight public radio links and iTunes/Deezer provider-supplied preview links open in WebView2. They are not passed to WPF `MediaPlayer`: hardened .NET 10 blocks Internet-zone media there to avoid forwarding default Windows credentials, and DrBrowser does not enable the unsafe compatibility switch.
+- Full tracks open on the provider page; Yandex Music opens its normal web search. There is no DRM bypass or protected-media downloader.
 
 ### Productivity and OMEGA shell
 

@@ -40,7 +40,9 @@ public sealed record MusicCategory(string Name, int Count)
 
 /// <summary>
 /// Local music library + playback. Files are only ever read from the folders the user
-/// picked; playback uses the WPF MediaPlayer, so nothing is uploaded anywhere.
+/// picked; local playback uses WPF MediaPlayer, so nothing is uploaded anywhere.
+/// Remote radio links are intentionally handed to WebView2 by MusicViewModel because
+/// hardened .NET 10 WPF blocks anonymous Internet-zone media in MediaPlayer.
 /// </summary>
 public sealed class MusicService : ObservableObject, IDisposable
 {
@@ -48,9 +50,9 @@ public sealed class MusicService : ObservableObject, IDisposable
     public const string RadioCategory = "Радио · прямой эфир";
 
     /// <summary>
-    /// Built-in radio stations the user can start with one click — no account, no key.
-    /// They are ordinary public MP3/AAC streams, played by the same MediaPlayer as local
-    /// files. Availability depends on the network and, for some of them, on the region.
+    /// Built-in radio stations the user can open with one click — no account, no key.
+    /// They are ordinary public MP3/AAC links opened through the browser's WebView2
+    /// engine. Availability depends on the network and, for some of them, on the region.
     /// </summary>
     public static readonly (string Title, string Url, string Genre)[] StationCatalog =
     {
@@ -92,6 +94,7 @@ public sealed class MusicService : ObservableObject, IDisposable
         _player.MediaOpened += (_, _) =>
         {
             DurationSeconds = NaturalDurationSeconds();
+            IsPlaying = true;
             Status = $"Играет: {_current?.Title}";
             Raise(nameof(DurationText), nameof(Progress));
         };
@@ -230,7 +233,6 @@ public sealed class MusicService : ObservableObject, IDisposable
 
             _stations.Add(station);
             Tracks.Add(station);
-            Queue.Add(station);
         }
     }
 
@@ -283,7 +285,7 @@ public sealed class MusicService : ObservableObject, IDisposable
         foreach (var station in stations) Tracks.Add(station);
 
         Queue.Clear();
-        foreach (var track in Tracks) Queue.Add(track);
+        foreach (var track in Tracks.Where(track => !track.IsStream)) Queue.Add(track);
 
         RebuildCategories();
 
@@ -343,13 +345,19 @@ public sealed class MusicService : ObservableObject, IDisposable
     public void Play(MusicTrack track)
     {
         if (track is null) return;
+        if (track.IsStream)
+        {
+            Status = "Сетевое аудио открывается через WebView2; MediaPlayer предназначен для локальных файлов.";
+            _log.Warn("remote media was not passed to WPF MediaPlayer (hardened .NET zone policy)");
+            return;
+        }
 
         try
         {
+            IsPlaying = false;
             Current = track;
-            _player.Open(new Uri(track.FilePath));
+            _player.Open(new Uri(track.FilePath, UriKind.Absolute));
             _player.Play();
-            IsPlaying = true;
             DurationSeconds = 0;
             PositionSeconds = 0;
             Status = track.IsStream ? $"Прямой эфир: {track.Title} · {track.Artist}" : $"Играет: {track.Title}";
@@ -357,6 +365,7 @@ public sealed class MusicService : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
+            IsPlaying = false;
             Status = "Ошибка воспроизведения: " + ex.Message;
             _log.Error("music play failed", ex);
         }
@@ -436,14 +445,14 @@ public sealed class MusicService : ObservableObject, IDisposable
     public void SetQueue(IEnumerable<MusicTrack> tracks)
     {
         Queue.Clear();
-        foreach (var track in tracks) Queue.Add(track);
+        foreach (var track in tracks.Where(track => !track.IsStream)) Queue.Add(track);
     }
 
     public void PlayCategory(string category)
     {
-        var tracks = category == AllTracksCategory
-            ? Tracks.ToList()
-            : Tracks.Where(t => t.Category == category).ToList();
+        var tracks = Tracks
+            .Where(track => !track.IsStream && (category == AllTracksCategory || track.Category == category))
+            .ToList();
 
         if (tracks.Count == 0) return;
         SetQueue(tracks);
