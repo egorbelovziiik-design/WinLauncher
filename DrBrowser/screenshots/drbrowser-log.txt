@@ -1,22 +1,22 @@
-﻿19:09:05.739 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-19:09:05.782 INFO  === selftest: start ===
-19:09:05.783 INFO  selftest marker e47097e8a31a4fc6a08d58e65dfafe3b
-19:09:06.190 INFO  Правил: 107 · доменов: 88 · исключений: 0
-19:09:06.304 ERROR selftest intentional exception :: InvalidOperationException: expected
-19:09:07.323 INFO  exit code 0
-19:09:08.222 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-19:09:08.241 INFO  === smoke: start ===
-19:09:08.425 INFO  MainViewModel created (private=True)
-19:09:09.378 INFO  Правил: 107 · доменов: 88 · исключений: 0
-19:09:10.687 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\ab6b81612bed4480892667c114fd8612
-19:09:10.705 INFO  Initialisation complete
-19:09:13.519 INFO  WebView2 configured for tab 5ac038
-19:09:13.521 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-19:09:13.963 WARN  navigation failed: about:blank :: ConnectionAborted
-19:09:14.977 INFO  WebView2 configured for tab 60ecc7
-19:09:14.978 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-19:09:16.239 INFO  WebView2 configured for tab eab725
-19:09:16.241 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-19:09:25.770 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-190925.png
-19:09:27.230 INFO  shutdown complete
-19:09:27.681 INFO  exit code 0
+﻿19:12:48.945 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+19:12:48.994 INFO  === selftest: start ===
+19:12:48.997 INFO  selftest marker a30d4e77041a47b98012a88a63411340
+19:12:49.405 INFO  Правил: 107 · доменов: 88 · исключений: 0
+19:12:49.495 ERROR selftest intentional exception :: InvalidOperationException: expected
+19:12:50.522 INFO  exit code 0
+19:12:51.676 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+19:12:51.694 INFO  === smoke: start ===
+19:12:51.830 INFO  MainViewModel created (private=True)
+19:12:52.722 INFO  Правил: 107 · доменов: 88 · исключений: 0
+19:12:54.048 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\5c4e202e364b41c880daeb40e5bb02ea
+19:12:54.074 INFO  Initialisation complete
+19:12:57.013 INFO  WebView2 configured for tab 4a95fd
+19:12:57.015 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+19:12:57.513 WARN  navigation failed: about:blank :: ConnectionAborted
+19:12:58.552 INFO  WebView2 configured for tab b22470
+19:12:58.553 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+19:12:59.876 INFO  WebView2 configured for tab fc9c8c
+19:12:59.878 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+19:13:09.473 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-191309.png
+19:13:10.912 INFO  shutdown complete
+19:13:11.326 INFO  exit code 0

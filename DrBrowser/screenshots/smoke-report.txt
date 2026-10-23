@@ -1,18 +1,18 @@
-﻿DrBrowser smoke · 2026-10-23 19:09:27 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 19:13:11 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2108 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2157 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3217 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3403 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2423 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2471 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов (5697 ms)
+           settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов (5726 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete (696 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · закладка add/delete (689 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2200 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2215 ms)
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-190925.png (1514 ms)
+           сохранён screenshot-20261023-191309.png (1529 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 7 passed, 0 failed, 0 skipped из 7
