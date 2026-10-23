@@ -102,6 +102,7 @@ public sealed class OverlayManager : IDisposable
             if (!IsMenuOpen) FocusGame();
             MenuStateChanged?.Invoke(this, EventArgs.Empty);
         };
+        _window.FocusGameRequested += (_, _) => FocusGame();
 
         return true;
     }

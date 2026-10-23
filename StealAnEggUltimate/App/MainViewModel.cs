@@ -730,26 +730,28 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void AttachPreviewOverlay()
     {
-        _overlay ??= new OverlayManager(this, _log, _detector);
-        _overlay.MenuStateChanged += (_, _) =>
-        {
-            Raise(nameof(IsMenuOpen), nameof(StatusLine));
-            MenuStateChanged?.Invoke(this, EventArgs.Empty);
-        };
-        _overlay.AttachPreview();
+        EnsureOverlayManager();
+        _overlay!.AttachPreview();
         IsConnected = true;
         Raise(nameof(OverlaySummary), nameof(StatusLine), nameof(OverlayStatusText), nameof(OverlayStateLabel), nameof(IsPreviewOverlay));
     }
 
-    private void AttachOverlay(RobloxWindowInfo window)
+    private void EnsureOverlayManager()
     {
-        _overlay ??= new OverlayManager(this, _log, _detector);
+        if (_overlay is not null) return;
+
+        _overlay = new OverlayManager(this, _log, _detector);
         _overlay.MenuStateChanged += (_, _) =>
         {
             Raise(nameof(IsMenuOpen), nameof(StatusLine));
             MenuStateChanged?.Invoke(this, EventArgs.Empty);
         };
-        _overlay.Attach(window);
+    }
+
+    private void AttachOverlay(RobloxWindowInfo window)
+    {
+        EnsureOverlayManager();
+        _overlay!.Attach(window);
         _overlayTargetHandle = window.Handle;
         IsConnected = true;
         Raise(nameof(OverlaySummary), nameof(StatusLine), nameof(OverlayStatusText), nameof(OverlayStateLabel), nameof(IsPreviewOverlay));

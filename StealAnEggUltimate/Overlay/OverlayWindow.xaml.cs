@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace StealAnEggUltimate;
 
@@ -18,9 +19,11 @@ public partial class OverlayWindow : Window
 
     private bool _allowClose;
     private bool _menuOpen;
+    private bool _interactive;
     private bool _dragging;
     private Point _grabOffset;
     private IntPtr _handle = IntPtr.Zero;
+    private readonly DispatcherTimer _hoverTimer;
 
     public OverlayWindow(OverlayViewModel vm, Logger log)
     {
@@ -33,7 +36,19 @@ public partial class OverlayWindow : Window
         SourceInitialized += OnSourceInitialized;
         Closing += OnClosing;
         SizeChanged += (_, _) => { };
+
+        // Only the menu area becomes mouse-interactive: everywhere else the overlay keeps
+        // WS_EX_TRANSPARENT so the game receives every click. Without this the full-screen
+        // transparent window would swallow the mouse while the menu is open.
+        _hoverTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = TimeSpan.FromMilliseconds(40)
+        };
+        _hoverTimer.Tick += (_, _) => UpdateInteractiveRegion();
     }
+
+    /// <summary>Raised when the overlay gives the keyboard back to the game window.</summary>
+    public event EventHandler? FocusGameRequested;
 
     public bool IsMenuOpen => _menuOpen;
 
@@ -100,15 +115,14 @@ public partial class OverlayWindow : Window
         MenuRoot.Visibility = Visibility.Visible;
         MenuRoot.IsHitTestVisible = true;
 
-        // Interactive while the menu is open: allow mouse activation so clicking
-        // inside the menu focuses it (needed for the command box and mouse wheel).
-        var style = (long)Win32.GetWindowLongPtr(_handle, Win32.GWL_EXSTYLE);
-        Win32.SetWindowLongPtr(_handle, Win32.GWL_EXSTYLE,
-            new IntPtr(style & ~(Win32.WS_EX_TRANSPARENT | Win32.WS_EX_NOACTIVATE)));
-
         var storyboard = (Storyboard)Resources["MenuOpenStory"];
         storyboard.Begin(this);
-        TryActivate();
+
+        // Stay click-through until the cursor actually enters the menu: the game keeps
+        // its mouse and keyboard while the menu is on screen but not used.
+        SetClickThrough(true);
+        _hoverTimer.Start();
+        UpdateInteractiveRegion();
 
         MenuStateChanged?.Invoke(this, EventArgs.Empty);
         _log.Debug("Overlay menu opened.");
@@ -136,11 +150,89 @@ public partial class OverlayWindow : Window
     {
         if (_menuOpen) return;
         MenuRoot.Visibility = Visibility.Collapsed;
+        _hoverTimer.Stop();
+        _interactive = false;
         SetClickThrough(true);
 
         // Restore the non-activating, click-through overlay state.
         var style = (long)Win32.GetWindowLongPtr(_handle, Win32.GWL_EXSTYLE);
         Win32.SetWindowLongPtr(_handle, Win32.GWL_EXSTYLE, new IntPtr(style | Win32.WS_EX_NOACTIVATE));
+    }
+
+    /// <summary>
+    /// Toggles mouse interactivity depending on whether the cursor is over the open menu.
+    /// </summary>
+    private void UpdateInteractiveRegion()
+    {
+        if (!_menuOpen || _handle == IntPtr.Zero)
+        {
+            if (_interactive)
+            {
+                _interactive = false;
+                SetClickThrough(true);
+            }
+
+            return;
+        }
+
+        var over = IsCursorOverMenu();
+        if (over == _interactive) return;
+
+        _interactive = over;
+        SetClickThrough(!over);
+
+        if (over)
+        {
+            // Only now may the window take focus, so the command box can be typed into.
+            try
+            {
+                var style = (long)Win32.GetWindowLongPtr(_handle, Win32.GWL_EXSTYLE);
+                Win32.SetWindowLongPtr(_handle, Win32.GWL_EXSTYLE,
+                    new IntPtr(style & ~Win32.WS_EX_NOACTIVATE));
+            }
+            catch
+            {
+                // best effort
+            }
+
+            TryActivate();
+        }
+        else
+        {
+            try
+            {
+                var style = (long)Win32.GetWindowLongPtr(_handle, Win32.GWL_EXSTYLE);
+                Win32.SetWindowLongPtr(_handle, Win32.GWL_EXSTYLE,
+                    new IntPtr(style | Win32.WS_EX_NOACTIVATE));
+            }
+            catch
+            {
+                // best effort
+            }
+
+            FocusGameRequested?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private bool IsCursorOverMenu()
+    {
+        try
+        {
+            if (!Win32.GetCursorPos(out var cursor)) return false;
+
+            var local = PointFromScreen(new Point(cursor.X, cursor.Y));
+            var bounds = MenuRoot.TransformToAncestor(this)
+                .TransformBounds(new Rect(0, 0, MenuRoot.ActualWidth, MenuRoot.ActualHeight));
+
+            // 6 DIP of slack so the border and the shadow edge stay clickable.
+            return bounds.Width > 1 && bounds.Height > 1
+                && local.X >= bounds.X - 6 && local.X <= bounds.Right + 6
+                && local.Y >= bounds.Y - 6 && local.Y <= bounds.Bottom + 6;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void TryActivate()

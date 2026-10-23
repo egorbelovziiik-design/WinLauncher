@@ -17,8 +17,7 @@ public partial class App : Application
     private bool _smokeMode;
     private bool _selfTestMode;
     private int _uiExceptionCount;
-    private OverlayWindow? _probeOverlay;
-    private string SmokeDetail = string.Empty;
+    private string _smokeDetail = string.Empty;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -171,8 +170,8 @@ public partial class App : Application
 
                 timer.Stop();
                 CaptureSmokeArtifacts(stats);
-                SmokeDetail = string.Join(" · ", stats);
-                _log.Info($"Smoke detail: {SmokeDetail}");
+                _smokeDetail = string.Join(" · ", stats);
+                _log.Info($"Smoke detail: {_smokeDetail}");
                 _log.Info("Smoke mode: clean shutdown requested.");
                 _viewModel.Shutdown();
             }
@@ -180,7 +179,7 @@ public partial class App : Application
             {
                 timer.Stop();
                 Fault($"smoke sequence failed: {ex.GetType().Name}: {ex.Message}");
-                SmokeDetail = string.Join(" · ", stats);
+                _smokeDetail = string.Join(" · ", stats);
                 _viewModel?.Shutdown();
             }
         };
@@ -224,30 +223,12 @@ public partial class App : Application
 
         if (!_viewModel.IsMenuOpen) Fault("the in-game menu did not open");
         if (_viewModel.EspEggs.Count == 0) Fault("the demo ESP projected no eggs onto the overlay");
-
     }
 
     private void Fault(string message)
     {
         _uiExceptionCount++;
         _log?.Error($"Smoke check failed: {message}");
-    }
-
-    private void CloseOverlayProbe()
-    {
-        if (_probeOverlay is null) return;
-        try
-        {
-            _probeOverlay.CloseFromManager();
-        }
-        catch (Exception ex)
-        {
-            _log?.Error("Smoke mode: overlay probe cleanup failed.", ex);
-        }
-        finally
-        {
-            _probeOverlay = null;
-        }
     }
 
     private void RestoreHub()
@@ -309,7 +290,7 @@ public partial class App : Application
                 File.WriteAllText(
                     Path.Combine(AppPaths.DataRoot, "smoke-result.txt"),
                     $"smoke {(e.ApplicationExitCode == 0 && _uiExceptionCount == 0 ? "ok" : "FAILED")} · {DateTime.UtcNow:O} · exitCode={e.ApplicationExitCode} · uiExceptions={_uiExceptionCount} · overlay={_viewModel?.IsConnected} · version={AppInfo.Version}" +
-                    (string.IsNullOrEmpty(SmokeDetail) ? string.Empty : $" · {SmokeDetail}"));
+                    (string.IsNullOrEmpty(_smokeDetail) ? string.Empty : $" · {_smokeDetail}"));
             }
             catch
             {

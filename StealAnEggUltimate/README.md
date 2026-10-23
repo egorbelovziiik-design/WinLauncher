@@ -40,8 +40,12 @@ dist\StealAnEggUltimate.exe
 4. Press **RIGHT SHIFT** in game — the menu fades/slides in. Drag its header to move it,
    close it again with RIGHT SHIFT or ✕. Position and scale are saved.
 
-If Roblox is not running yet, **CONNECT** switches to *WAITING FOR ROBLOX* and attaches
-automatically as soon as the client appears. Closing Roblox auto-disconnects the overlay.
+If Roblox is not running, **CONNECT** attaches the same overlay to your desktop in
+**PREVIEW** mode: RIGHT SHIFT opens the menu, dragging/moving/scaling work, the demo ESP
+draws eggs, every tab and the automation loops are usable right away. The moment a Roblox
+client appears the overlay moves itself onto the game window and the status pill switches
+from `Overlay Connected · PREVIEW` to `Overlay Connected`. Closing Roblox returns the
+overlay to the desktop preview instead of leaving a dead window behind.
 
 No Roblox? Everything still works in **demo mode**: a generated 26-egg island lets you
 test ESP, filters, tracker, collections, the demo economy and all automation loops.
@@ -163,6 +167,19 @@ StealAnEggUltimate/
 | `%AppData%\StealAnEggUltimate\bridge\` | mirrored bridge state / last snapshot for debugging |
 
 ## 8. Headless self-test and smoke run
+
+### Mouse behaviour of the overlay
+
+The overlay is click-through everywhere except the open menu: the mouse position is
+polled 25×/s and only while the cursor is over the menu does the window accept input
+(so the command box can be typed into). Everything else — aiming, shooting, clicking in
+the game — goes straight to Roblox; RIGHT SHIFT hands the keyboard back to the game.
+
+### Screenshots of the running app
+
+`Docs/ui/hub-window.png` and `Docs/ui/overlay-menu.png` are rendered by the app itself
+during the `--smoke` run (CI regenerates them on every push), so the repository always
+shows the current build instead of a mock-up.
 
 The published EXE can verify itself without a Roblox session — the same commands the
 CI workflow (`.github/workflows/build-hub.yml`) runs on `windows-latest`:

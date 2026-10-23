@@ -9,6 +9,14 @@
 4. Open **COMMANDS**, type `hub.eggs()` and press **EXECUTE** (or Enter tab → EXECUTE).
 5. Change a theme in **VISUALS**, close the app, reopen it — settings were auto-saved.
 
+## Preview overlay (no Roblox needed)
+
+1. Start the hub and press **CONNECT** — it says `PREVIEW` and the overlay appears over your desktop.
+2. Press **RIGHT SHIFT** → the menu opens/closes; drag the header to move it; the position is saved.
+3. The demo island keeps drawing ESP labels, the tracker chip and notifications.
+4. Start Roblox at any time: the overlay jumps onto the game window automatically and the
+   status pill drops the `PREVIEW` suffix.
+
 ## With Roblox
 
 ### A. Overlay only (no test place)
