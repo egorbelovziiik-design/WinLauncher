@@ -179,8 +179,9 @@ jobs:
               Write-Host "::error title=Missing test report::$name"
               throw "Missing report: $name"
             }
-            Select-String -Path $path -Pattern '^\[FAIL\]' -ErrorAction SilentlyContinue | ForEach-Object {
-              $detail = $_.Line.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Select-String -Path $path -Pattern '^\[FAIL\]' -Context 0,2 -ErrorAction SilentlyContinue | ForEach-Object {
+              $raw = $_.Line + ' — ' + ($_.Context.PostContext -join ' ')
+              $detail = $raw.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
               Write-Host "::error file=$path,title=DrBrowser verification failed::$detail"
             }
           }
