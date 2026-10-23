@@ -10,6 +10,6 @@ selftest exit: 0 / smoke exit: 0
 ИТОГО: 11 passed, 0 failed, 0 skipped из 11
 ... tail:
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-234538.png (1510 ms)
+           сохранён screenshot-20261023-235058.png (1508 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 11 passed, 0 failed, 0 skipped из 11
