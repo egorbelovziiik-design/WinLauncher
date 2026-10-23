@@ -1,0 +1,40 @@
+name: Last City Roblox checks
+on:
+  push:
+    branches: [arena/a850a844-winlauncher]
+    paths: ['last-city/**', '.github/workflows/last-city.yml']
+  pull_request:
+    paths: ['last-city/**', '.github/workflows/last-city.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: last-city/tools/package-lock.json
+      - name: Install binary place builder and independent verifier
+        run: npm ci --prefix last-city/tools --no-audit --no-fund
+      - name: Cache Luau compiler
+        id: luau-cache
+        uses: actions/cache@v4
+        with:
+          path: .local/bin
+          key: ubuntu-24.04-${{ runner.arch }}-last-city-luau-0.743-cpp17
+      - name: Build pinned Luau toolchain
+        if: steps.luau-cache.outputs.cache-hit != 'true'
+        run: bash last-city/tools/install-toolchain.sh
+      - name: Compile, test, build and independently decode place
+        run: python3 last-city/tools/test.py
+      - name: Keep requested downloadable place in sync with sources
+        run: node last-city/tools/compare-place.mjs release-artifacts/last-city/LAST_CITY_3D.rbxl last-city/releases/LAST_CITY_3D.rbxl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LAST_CITY_3D-0.6.1-echoes-of-steel
+          path: release-artifacts/last-city/

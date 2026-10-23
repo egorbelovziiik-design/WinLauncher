@@ -1,0 +1,108 @@
+{
+  "version": "0.7.0",
+  "serialization": {
+    "status": "PASSED",
+    "count": 10
+  },
+  "previous_studio_import": {
+    "version": "0.1.0",
+    "status": "FAILED",
+    "evidence": "User screenshot: Error while decoding data: unexpected end at offset 2"
+  },
+  "studio_import": {
+    "version": "0.7.0",
+    "status": "NOT TESTED"
+  },
+  "studio_import_0_6_0": {
+    "status": "FAILED",
+    "evidence": "User screenshot: menu loaded, but Play repeatedly returned the server character-loading notice"
+  },
+  "studio_import_0_5_0": {
+    "status": "NOT TESTED"
+  },
+  "studio_import_0_4_0": {
+    "status": "NOT TESTED"
+  },
+  "studio_import_0_3_0": {
+    "status": "PASSED",
+    "evidence": "User screenshots show the released scene running in Studio with an E dialogue prompt; the user also reported visual/runtime defects"
+  },
+  "studio_import_0_2_0": {
+    "status": "PASSED",
+    "evidence": "User screenshots show the released scene open and rendered in Studio"
+  },
+  "studio_import_0_1_1": {
+    "status": "PASSED",
+    "evidence": "User screenshots show loading GUI and editable 3D scene; gameplay startup was not confirmed"
+  },
+  "roads": {
+    "status": "PASSED",
+    "count": 10
+  },
+  "luau_version": "0.743",
+  "source_compilation": {
+    "status": "PASSED",
+    "count": 57
+  },
+  "domain": {
+    "status": "PASSED",
+    "count": 133
+  },
+  "mock_adapters": {
+    "status": "PASSED",
+    "count": 126,
+    "scope": "API doubles; NOT Roblox Studio"
+  },
+  "binary": {
+    "assertions": 270,
+    "instances": 8143,
+    "parts": 7232,
+    "scripts": 57,
+    "bytes": 365912,
+    "sha256": "9311ea07bae623f8f15a8fa0c19c692e6a52a50aeb9cbba1501ded1e65e50cc7",
+    "classes": {
+      "Workspace": 1,
+      "Camera": 1,
+      "Terrain": 1,
+      "Clouds": 1,
+      "Folder": 20,
+      "Part": 7173,
+      "Model": 222,
+      "SurfaceGui": 75,
+      "TextLabel": 84,
+      "PointLight": 105,
+      "SpawnLocation": 1,
+      "TrussPart": 2,
+      "Fire": 2,
+      "SpotLight": 4,
+      "WedgePart": 55,
+      "StringValue": 161,
+      "IntValue": 142,
+      "BillboardGui": 9,
+      "NumberValue": 2,
+      "Lighting": 1,
+      "Atmosphere": 1,
+      "ColorCorrectionEffect": 1,
+      "BloomEffect": 1,
+      "SunRaysEffect": 1,
+      "Sky": 1,
+      "ReplicatedStorage": 1,
+      "RemoteEvent": 11,
+      "ModuleScript": 54,
+      "ServerScriptService": 1,
+      "Script": 1,
+      "StarterPlayer": 1,
+      "StarterPlayerScripts": 1,
+      "LocalScript": 2,
+      "StarterGui": 1,
+      "ReplicatedFirst": 1,
+      "SoundService": 1,
+      "MaterialService": 1
+    }
+  },
+  "deterministic_build": "PASSED",
+  "roblox_studio": "NOT TESTED",
+  "live_datastore": "NOT TESTED",
+  "live_multiplayer": "NOT TESTED",
+  "known_cli_diagnostic": "Vector3 userdata type unavailable to standalone Luau analyzer; Roblox adapter syntax compiles"
+}
