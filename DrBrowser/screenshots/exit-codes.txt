@@ -78,3 +78,5 @@ selftest exit code: 0
 smoke exit code: 0
 selftest exit code: 0
 smoke exit code: 0
+selftest exit code: 0
+smoke exit code: 0
