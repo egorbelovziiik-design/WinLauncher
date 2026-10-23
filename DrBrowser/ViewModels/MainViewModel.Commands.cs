@@ -649,5 +649,7 @@ public sealed partial class MainViewModel
 
     public string AiKeyStatus => AI.HasKey
         ? "Ключ настроен и хранится в DPAPI-хранилище."
-        : "Ключ не задан — AI Assistant будет показывать подсказку, пока вы его не добавите.";
+        : AIService.IsLocalEndpoint(AIService.BaseUrlOf(Settings))
+            ? "Ключ не нужен: выбрана локальная модель на этом компьютере."
+            : "Ключ не задан — подключите Ollama / LM Studio или вставьте ключ облачного API.";
 }

@@ -389,11 +389,37 @@
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
                                 <TextBlock Text="ПОДКЛЮЧЕНИЕ" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="Совместимый с OpenAI endpoint (например https://api.openai.com/v1)" Style="{StaticResource Muted}" Margin="0,0,0,4" />
+                                <TextBlock Text="Локальная модель отвечает без ключа и без облака. Выберите её одной кнопкой или укажите свой OpenAI-совместимый endpoint."
+                                           Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <ItemsControl ItemsSource="{Binding AiProviders}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,8" FontSize="11"
+                                                    Content="{Binding Name}" ToolTip="{Binding BaseUrl}"
+                                                    Command="{Binding DataContext.ApplyAiProviderCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding Id}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{Binding AiProviderHint}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                                <TextBlock Text="Endpoint (HTTPS, либо HTTP только для localhost)" Style="{StaticResource Muted}" Margin="0,0,0,4" />
                                 <TextBox Style="{StaticResource InputBox}" Text="{Binding Settings.AiBaseUrl, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Text="Модель" Style="{StaticResource Muted}" Margin="0,10,0,4" />
-                                <TextBox Style="{StaticResource InputBox}" Text="{Binding Settings.AiModel, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock Text="API-ключ" Style="{StaticResource Muted}" Margin="0,10,0,4" />
+                                <ComboBox Style="{StaticResource InputBox}" Height="34" IsEditable="True"
+                                          ItemsSource="{Binding AiModels}"
+                                          Text="{Binding Settings.AiModel, UpdateSourceTrigger=PropertyChanged}" />
+                                <WrapPanel Margin="0,10,0,0">
+                                    <Button Content="Проверить подключение" Style="{StaticResource GhostButton}" Margin="0,0,8,0"
+                                            Command="{Binding ProbeAiCommand}" />
+                                    <TextBlock Text="{Binding AiProbeText}" Style="{StaticResource Muted}" VerticalAlignment="Center"
+                                               TextWrapping="Wrap" MaxWidth="420" />
+                                </WrapPanel>
+                                <TextBlock Text="API-ключ (не нужен для локальных моделей)" Style="{StaticResource Muted}" Margin="0,10,0,4" />
                                 <PasswordBox x:Name="AiKeyBox" Height="32" Padding="8,6" FontSize="12.5" />
                                 <WrapPanel Margin="0,10,0,0">
                                     <Button Content="Сохранить ключ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"

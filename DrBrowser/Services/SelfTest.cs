@@ -741,6 +741,42 @@ public static class SelfTest
                 return "2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang";
             });
 
+            await Run("ai-local-provider", "DrAI: локальные модели (Ollama/LM Studio) без ключа и без облака", () =>
+            {
+                // Endpoint policy: HTTPS anywhere, HTTP only on loopback, credentials rejected.
+                if (!AIService.ValidateEndpoint("https://api.openai.com/v1").Ok) throw new Exception("HTTPS отклонён");
+                if (!AIService.ValidateEndpoint("http://127.0.0.1:11434/v1").Ok) throw new Exception("localhost HTTP отклонён");
+                if (!AIService.ValidateEndpoint("http://localhost:1234/v1").Ok) throw new Exception("localhost отклонён");
+                if (AIService.ValidateEndpoint("http://example.com/v1").Ok) throw new Exception("внешний HTTP разрешён — небезопасно");
+                if (AIService.ValidateEndpoint("https://user:pass@example.com/v1").Ok) throw new Exception("логин/пароль в URL разрешены");
+                if (AIService.ValidateEndpoint("ftp://example.com").Ok) throw new Exception("не-HTTP схема разрешена");
+
+                if (!AIService.IsLocalEndpoint("http://127.0.0.1:11434/v1")) throw new Exception("loopback не распознан");
+                if (AIService.IsLocalEndpoint("https://api.openai.com/v1")) throw new Exception("облако принято за локальное");
+
+                // Provider presets point at the documented local ports.
+                var ollama = AIService.ProviderFor("ollama");
+                var lmstudio = AIService.ProviderFor("lmstudio");
+                if (ollama.NeedsKey || lmstudio.NeedsKey) throw new Exception("локальный пресет требует ключ");
+                if (!ollama.BaseUrl.Contains("11434")) throw new Exception("порт Ollama неверный: " + ollama.BaseUrl);
+                if (!lmstudio.BaseUrl.Contains("1234")) throw new Exception("порт LM Studio неверный: " + lmstudio.BaseUrl);
+                if (!AIService.ProviderFor("").NeedsKey) throw new Exception("неизвестный провайдер должен требовать ключ");
+
+                // Model discovery understands both OpenAI {"data":[…]} and Ollama {"models":[…]}.
+                var openAi = AIService.ParseModelList("{\"data\":[{\"id\":\"gpt-4o-mini\"},{\"id\":\"llama3.1\"}]}");
+                if (openAi.Count != 2 || openAi[1] != "llama3.1") throw new Exception("OpenAI-список моделей не разобран");
+                var ollamaList = AIService.ParseModelList("{\"models\":[{\"name\":\"llama3.1:8b\"},{\"name\":\"llava:latest\"}]}");
+                if (ollamaList.Count != 2 || ollamaList[0] != "llama3.1:8b") throw new Exception("Ollama-список моделей не разобран");
+                if (AIService.ParseModelList("не json").Count != 0) throw new Exception("битый JSON дал модели");
+                if (AIService.ParseModelList(null).Count != 0) throw new Exception("null дал модели");
+
+                // BaseUrlOf keeps a local URL intact and falls back to the cloud default.
+                var local = new AppSettings { AiBaseUrl = "http://127.0.0.1:11434/v1/" };
+                if (AIService.BaseUrlOf(local) != "http://127.0.0.1:11434/v1") throw new Exception("BaseUrlOf испортил адрес: " + AIService.BaseUrlOf(local));
+
+                return "политика endpoint · localhost без ключа · внешний HTTP отклонён · пресеты Ollama/LM Studio · разбор списка моделей";
+            });
+
             await Run("ru-plurals", "Русские склонения счётчиков и инициалы профиля", () =>
             {
                 if (MainViewModel.Plural(1, "вкладка", "вкладки", "вкладок") != "1 вкладка")

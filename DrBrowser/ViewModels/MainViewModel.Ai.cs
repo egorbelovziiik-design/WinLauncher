@@ -70,12 +70,70 @@ public sealed partial class MainViewModel
         }
     });
 
+    // ------------------------------------------------------------------
+    // Local models: Ollama / LM Studio need no key and no cloud
+    // ------------------------------------------------------------------
+
+    public IReadOnlyList<AiProviderPreset> AiProviders => AIService.Providers;
+
+    private string _aiProbeText = "Проверка ещё не выполнялась.";
+    public string AiProbeText
+    {
+        get => _aiProbeText;
+        private set => Set(ref _aiProbeText, value);
+    }
+
+    public ObservableCollection<string> AiModels { get; } = new();
+
+    public string AiProviderHint
+    {
+        get
+        {
+            var check = AIService.ValidateEndpoint(AIService.BaseUrlOf(Settings));
+            if (!check.Ok) return "⚠ " + check.Message;
+
+            return AIService.IsLocalEndpoint(AIService.BaseUrlOf(Settings))
+                ? "Локальная модель: ключ не требуется, запросы не покидают компьютер. Запустите Ollama (ollama serve) или LM Studio с включённым сервером."
+                : "Облачный endpoint: нужен ваш API-ключ. Он хранится через DPAPI и в исходниках отсутствует.";
+        }
+    }
+
+    public ICommand ApplyAiProviderCommand => Cmd("ai.provider", p =>
+    {
+        if (p is not string id) return;
+        var preset = AIService.ProviderFor(id);
+        Settings.AiBaseUrl = preset.BaseUrl;
+        if (!string.IsNullOrWhiteSpace(preset.Model)) Settings.AiModel = preset.Model;
+        AiProbeText = preset.NeedsKey
+            ? "Укажите API-ключ в поле ниже — и нажмите «Проверить подключение»."
+            : $"Выбрано: {preset.Name}. Запустите сервер моделей и нажмите «Проверить подключение».";
+        Raise(nameof(AiProviderHint), nameof(AiEngineText), nameof(AiKeyStatus));
+    });
+
+    public ICommand ProbeAiCommand => Cmd("ai.probe", async () =>
+    {
+        AiProbeText = "Проверяю…";
+        var result = await AI.ProbeAsync(Settings).ConfigureAwait(true);
+
+        AiModels.Clear();
+        foreach (var model in result.Models) AiModels.Add(model);
+
+        if (result.Ok && AiModels.Count > 0 && string.IsNullOrWhiteSpace(Settings.AiModel))
+            Settings.AiModel = AiModels[0];
+
+        AiProbeText = result.Ok
+            ? $"✅ {result.Message} · {result.ProbedUrl}"
+            : $"⚠ {result.Message} · {result.ProbedUrl}";
+
+        Raise(nameof(AiProviderHint), nameof(AiEngineText), nameof(AiLocalMode), nameof(AiLocalHint));
+    });
+
     public string AiAttachmentText => _aiAttachment is null ? "Фото не прикреплено" : "📷 " + _aiAttachment.Name;
 
     public ICommand AttachAiImageCommand => Cmd("ai.attach", async () =>
     {
         if (IsAiBusy) return;
-        if (!AI.HasKey) { AiStatus = "Анализ фото требует API-ключ и vision-модель в настройках AI. DrAI Local работает только с текстом."; return; }
+        if (!AI.CanRun(Settings)) { AiStatus = "Анализ фото требует модель: локальную (например llava в Ollama) или облачную с vision. DrAI Local работает только с текстом."; return; }
         var path = _shell?.PickOpenFile("Изображения PNG/JPEG|*.png;*.jpg;*.jpeg");
         if (path is null) return;
         try
@@ -124,13 +182,20 @@ public sealed partial class MainViewModel
     public string AiSendText => IsAiBusy ? "…" : "Отправить";
 
     /// <summary>Which engine answers right now — shown as a badge in the panel.</summary>
-    public string AiEngineText => AI.HasKey ? "DrAI Cloud · ваш API-ключ" : "DrAI Local · офлайн, без ключа";
+    public string AiEngineText =>
+        AIService.IsLocalEndpoint(AIService.BaseUrlOf(Settings)) && AI.CanRun(Settings)
+            ? "DrAI Local LLM · " + Settings.AiModel
+            : AI.HasKey
+                ? "DrAI Cloud · ваш API-ключ"
+                : "DrAI Local · офлайн, без ключа";
 
-    public bool AiLocalMode => !AI.HasKey;
+    public bool AiLocalMode => !AI.CanRun(Settings);
 
-    public string AiLocalHint => AI.HasKey
-        ? "Ключ сохранён (DPAPI). DrAI Local по-прежнему работает без сети."
-        : "Ключа нет — отвечает встроенный офлайн-движок: краткое содержание, вопросы по странице, ключевые слова, разбор кода.";
+    public string AiLocalHint => AIService.IsLocalEndpoint(AIService.BaseUrlOf(Settings)) && AI.CanRun(Settings)
+        ? "Локальная модель на этом компьютере: диалог и перевод работают без ключа и без облака."
+        : AI.HasKey
+            ? "Ключ сохранён (DPAPI). DrAI Local по-прежнему работает без сети."
+            : "Ключа нет — отвечает встроенный офлайн-движок: краткое содержание, вопросы по странице, ключевые слова, разбор кода. Подключите Ollama/LM Studio в настройках, чтобы включить свободный диалог.";
 
     public ICommand RunLocalActionCommand => Cmd("ai.local", async p =>
     {
@@ -157,7 +222,7 @@ public sealed partial class MainViewModel
     private async Task SendAiAsync(string text)
     {
         if (IsAiBusy || (string.IsNullOrWhiteSpace(text) && _aiAttachment is null)) return;
-        if (_aiAttachment is not null && !AI.HasKey) { AiStatus = "Для анализа фото нужен API-ключ и vision-модель."; return; }
+        if (_aiAttachment is not null && !AI.CanRun(Settings)) { AiStatus = "Для анализа фото подключите модель с поддержкой изображений."; return; }
 
         var message = string.IsNullOrWhiteSpace(text) ? "Что изображено на фото?" : text.Trim();
         AiInput = string.Empty;
@@ -182,7 +247,7 @@ public sealed partial class MainViewModel
             }
         }
 
-        if (!AI.HasKey)
+        if (!AI.CanRun(Settings))
         {
             IsAiOpen = true;
             IsAiBusy = true;
@@ -299,9 +364,9 @@ public sealed partial class MainViewModel
 
     private async Task RunAiActionAsync(string action)
     {
-        if (!AI.HasKey)
+        if (!AI.CanRun(Settings))
         {
-            // Without a key every action still works — through the built-in local engine.
+            // Without any model every action still works — through the built-in local engine.
             await RunLocalActionAsync(action).ConfigureAwait(true);
             return;
         }
