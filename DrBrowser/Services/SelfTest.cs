@@ -222,6 +222,41 @@ public static class SelfTest
                 return $"{stats.DocumentCount} документа · RU/EN · BM25 · snippet highlight · canonical URL";
             });
 
+            await Run("omega-productivity", "DrNotes, DrTasks и DrWorkspaces: реальный SQLite CRUD", async () =>
+            {
+                var productivityDb = new Db(Path.Combine(temp, "productivity.db"));
+                var productivity = new ProductivityService(productivityDb, log);
+                var noteId = await productivity.SaveNoteAsync(0, "План OMEGA", "Первый пункт");
+                var notes = await productivity.LoadNotesAsync();
+                if (notes.Count != 1 || notes[0].Id != noteId || notes[0].Body != "Первый пункт")
+                    throw new Exception("заметка не сохранилась");
+                var taskId = await productivity.AddTaskAsync("Проверить браузер");
+                await productivity.SetTaskCompletedAsync(taskId, true);
+                var tasks = await productivity.LoadTasksAsync();
+                if (tasks.Count != 1 || !tasks[0].IsCompleted) throw new Exception("состояние задачи не сохранилось");
+                var workspaces = await productivity.LoadWorkspacesAsync();
+                if (workspaces.Count != 6 || workspaces.All(workspace => workspace.Tabs.Count == 0))
+                    throw new Exception("пресеты пространств не созданы");
+                await productivity.DeleteTaskAsync(taskId);
+                await productivity.DeleteNoteAsync(noteId);
+                return $"note CRUD · task CRUD · {workspaces.Count} пространств со снимками вкладок";
+            });
+
+            await Run("drtools", "DrTools: калькулятор, JSON, единицы, цвет и пароль", () =>
+            {
+                var calculated = UtilityEngine.Calculate("sqrt(81) + 2^3 * 2");
+                if (Math.Abs(calculated - 25) > 0.0001) throw new Exception("калькулятор: " + calculated);
+                var formatted = UtilityEngine.FormatJson("{\"b\":2,\"a\":1}");
+                if (!formatted.Contains('\n')) throw new Exception("JSON не отформатирован");
+                var miles = UtilityEngine.ConvertUnit(1, "km", "mi");
+                if (Math.Abs(miles - 0.621371) > 0.0001) throw new Exception("конвертер длины: " + miles);
+                if (UtilityEngine.HexToRgb("#8B5CF6") != "rgb(139, 92, 246)") throw new Exception("HEX → RGB");
+                var password = PasswordService.Generate(24);
+                if (password.Length != 24 || PasswordService.Strength(password) < 3) throw new Exception("пароль слабый");
+                if (ThemeManager.ThemeNames.Count != 10) throw new Exception("ожидалось 10 тем");
+                return "safe parser · JSON · km→mi · HEX→RGB · CSPRNG · 10 тем";
+            });
+
             await Run("music-library", "DrMusic: сканирование папки, категории, поиск", () =>
             {
                 var library = Path.Combine(temp, "music");
@@ -885,7 +920,7 @@ public static class SelfTest
 
             await Run("smoke-pages", "Все внутренние страницы открываются и рисуются", async () =>
             {
-                var keys = new[] { "settings", "history", "downloads", "bookmarks", "passwords", "search", "music", "newtab" };
+                var keys = new[] { "settings", "history", "downloads", "bookmarks", "passwords", "search", "music", "workspaces", "tools", "performance", "newtab" };
                 var index = 3;
                 foreach (var key in keys)
                 {
@@ -897,7 +932,7 @@ public static class SelfTest
                     index++;
                 }
 
-                return "settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов";
+                return "settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · Workspaces · Tools · Performance · newtab — 11 скриншотов";
             });
 
             await Run("smoke-settings-tabs", "Разделы настроек «Музыка» и «AI Assistant» не пустые", async () =>

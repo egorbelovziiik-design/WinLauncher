@@ -16,8 +16,20 @@ public static partial class UrlParser
         ("bookmarks", "Закладки"),
         ("passwords", "Пароли"),
         ("search", "DrSearch"),
-        ("music", "Музыка"),
-        ("guard", "DrGuard — защита")
+        ("music", "DrMusic"),
+        ("music/search", "DrMusic · Поиск"),
+        ("music/library", "DrMusic · Библиотека"),
+        ("music/playlists", "DrMusic · Плейлисты"),
+        ("mind", "DrMind"),
+        ("guard", "DrGuard — защита"),
+        ("gaming", "DrGaming"),
+        ("workspaces", "DrWorkspaces"),
+        ("tools", "DrTools"),
+        ("notes", "DrNotes"),
+        ("tasks", "DrTasks"),
+        ("privacy", "DrPrivacy"),
+        ("performance", "DrPerformance"),
+        ("about", "О DrBrowser OMEGA")
     };
 
     [GeneratedRegex(@"^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\/")]
@@ -91,6 +103,11 @@ public static partial class UrlParser
         if (shortcut is "music" or "музыка") return InternalScheme + "music";
         if (shortcut is "newtab" or "новая") return InternalScheme + "newtab";
         if (shortcut is "guard" or "защита" or "security") return InternalScheme + "guard";
+        if (shortcut is "notes" or "заметки") return InternalScheme + "notes";
+        if (shortcut is "tasks" or "задачи") return InternalScheme + "tasks";
+        if (shortcut is "tools" or "инструменты") return InternalScheme + "tools";
+        if (shortcut is "gaming" or "игры") return InternalScheme + "gaming";
+        if (shortcut is "mind" or "drmind") return InternalScheme + "mind";
         if (text.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return text;
 
         if (!LooksLikeUrl(text)) return settings.SearchUrl(text);

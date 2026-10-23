@@ -25,14 +25,28 @@ public sealed partial class MainViewModel
                     await NewTab.LoadAsync();
                     break;
                 case "music":
+                case "music/search":
+                case "music/library":
+                case "music/playlists":
                     await Music.EnsureLoadedAsync();
                     break;
                 case "search":
+                    Search.RefreshIndexStats();
                     if (string.IsNullOrWhiteSpace(Search.LastQuery)) Search.Run(Search.Query);
                     break;
-                case "settings":
-                    Raise(nameof(AiKeyStatus), nameof(AdBlockRuleText), nameof(WhitelistText), nameof(RuntimeStatus));
+                case "workspaces":
+                case "notes":
+                case "tasks":
+                case "tools":
+                case "performance":
+                case "gaming":
+                    Omega.SelectSection(key);
+                    await Omega.LoadAsync();
                     break;
+                case "settings":
+                case "privacy":
+                case "about":
+                    Raise(nameof(AiKeyStatus), nameof(AdBlockRuleText), nameof(WhitelistText), nameof(RuntimeStatus));
                     break;
             }
         }

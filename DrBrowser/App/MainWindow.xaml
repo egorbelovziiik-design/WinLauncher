@@ -327,11 +327,33 @@
             <!-- =============================== CONTENT =============================== -->
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="56" MinWidth="48" MaxWidth="180" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0">
+                <!-- OMEGA sidebar: every entry opens a real local module or HTTPS page. -->
+                <Border Grid.Column="0" Background="{DynamicResource ToolbarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                    <Grid>
+                        <StackPanel Margin="0,8">
+                            <Button Content="✦" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="DrMind" Command="{Binding ToggleAiCommand}" />
+                            <Button Content="◎" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="DrSearch" Command="{Binding OpenInternalCommand}" CommandParameter="search" />
+                            <Button Content="♫" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="DrMusic" Command="{Binding OpenInternalCommand}" CommandParameter="music" />
+                            <Button Content="▦" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="Workspaces" Command="{Binding OpenInternalCommand}" CommandParameter="workspaces" />
+                            <Button Content="▤" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="Notes" Command="{Binding OpenInternalCommand}" CommandParameter="notes" />
+                            <Button Content="✓" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="Tasks" Command="{Binding OpenInternalCommand}" CommandParameter="tasks" />
+                            <Button Content="⌘" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="DrTools" Command="{Binding OpenInternalCommand}" CommandParameter="tools" />
+                            <Button Content="◇" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="Gaming" Command="{Binding OpenInternalCommand}" CommandParameter="gaming" />
+                            <Button Content="◴" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="Performance" Command="{Binding OpenInternalCommand}" CommandParameter="performance" />
+                            <Button Content="⬇" Style="{StaticResource IconButton}" Margin="0,1" ToolTip="Downloads" Command="{Binding OpenInternalCommand}" CommandParameter="downloads" />
+                        </StackPanel>
+                        <Button Content="⚙" Style="{StaticResource IconButton}" VerticalAlignment="Bottom" Margin="0,0,0,8" ToolTip="Settings" Command="{Binding OpenInternalCommand}" CommandParameter="settings" />
+                    </Grid>
+                </Border>
+                <GridSplitter Grid.Column="0" Width="5" HorizontalAlignment="Right" Background="Transparent"
+                              ResizeDirection="Columns" ResizeBehavior="CurrentAndNext" Panel.ZIndex="3" ToolTip="Изменить ширину боковой панели" />
+
+                <Grid Grid.Column="1">
                     <!-- WebView2 layer: one child per tab, visibility controlled in code-behind -->
                     <Grid x:Name="WebHostPanel" Background="{DynamicResource WindowBackgroundBrush}" />
 
@@ -341,7 +363,7 @@
                 </Grid>
 
                 <!-- AI panel -->
-                <Border Grid.Column="1" Width="370" Background="{DynamicResource SurfaceBrush}"
+                <Border Grid.Column="2" Width="370" Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0"
                         Visibility="{Binding IsAiOpen, Converter={StaticResource BoolToVis}}">
                     <ContentControl x:Name="AiHost" />

@@ -14,7 +14,8 @@ public enum TabKind
     Bookmarks,
     Passwords,
     Search,
-    Music
+    Music,
+    Omega
 }
 
 /// <summary>One browser tab: model state plus (lazily) its own WebView2 instance.</summary>

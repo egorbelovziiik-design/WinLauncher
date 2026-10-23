@@ -64,6 +64,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Downloads = new DownloadService(log, _db, () => Settings);
         TabManager = new TabManager();
         NewTab = new NewTabViewModel(log, _db, () => Settings);
+        Productivity = new ProductivityService(_db, log);
+        Omega = new OmegaViewModel(
+            Productivity,
+            log,
+            (title, message) => _shell?.ConfirmAsync(title, message) ?? Task.FromResult(false),
+            CaptureWorkspaceTabs,
+            RestoreWorkspaceAsync,
+            url => NavigateActiveTab(url),
+            EnableGamingMode,
+            () => Tabs.Count,
+            () => RuntimeStatus);
 
         WebProfileFolder = string.Empty;
         var profile = IsPrivate
@@ -125,6 +136,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public TabManager TabManager { get; }
     public WebViewManager WebViews { get; }
     public NewTabViewModel NewTab { get; }
+    public ProductivityService Productivity { get; }
+    public OmegaViewModel Omega { get; }
     public bool IsPrivate { get; }
 
     /// <summary>WebView2 user-data folder for this window (deleted after an incognito session).</summary>
@@ -345,7 +358,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         "bookmarks" => TabKind.Bookmarks,
         "passwords" => TabKind.Passwords,
         "search" => TabKind.Search,
-        "music" => TabKind.Music,
+        "music" or "music/search" or "music/library" or "music/playlists" => TabKind.Music,
+        "workspaces" or "notes" or "tasks" or "tools" or "performance" or "gaming" => TabKind.Omega,
+        "privacy" or "about" => TabKind.Settings,
+        "mind" => TabKind.NewTab,
         _ => TabKind.NewTab
     };
 
@@ -620,6 +636,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         CurrentInternalKey = key;
         AddressText = url;
+        if (key is "workspaces" or "notes" or "tasks" or "tools" or "performance" or "gaming")
+            Omega.SelectSection(key);
+        if (key == "mind") IsAiOpen = true;
         _shell?.ShowInternalPage(key);
 
         if (key == "search")
@@ -814,6 +833,42 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private void ApplyTheme() => ThemeManager.Apply(Settings);
+
+    private IReadOnlyList<SessionTab> CaptureWorkspaceTabs()
+        => Tabs.Select(tab => new SessionTab
+        {
+            Url = tab.Url,
+            Title = tab.DisplayTitle,
+            IsPinned = tab.IsPinned
+        }).ToList();
+
+    private async Task RestoreWorkspaceAsync(WorkspaceItem workspace)
+    {
+        TabManager.DisposeAll();
+        _lastRecorded.Clear();
+        foreach (var saved in workspace.Tabs)
+        {
+            if (string.IsNullOrWhiteSpace(saved.Url)) continue;
+            var kind = UrlParser.IsInternal(saved.Url) ? KindFromUrl(saved.Url) : TabKind.Web;
+            var tab = TabManager.Create(saved.Url, kind, activate: false, title: saved.Title);
+            tab.IsPinned = saved.IsPinned;
+        }
+        if (Tabs.Count == 0) TabManager.CreateNewTabPage(activate: false);
+        TabManager.ActiveTab = Tabs[0];
+        OnActiveTabChanged();
+        Raise(nameof(TabsSummary), nameof(ProfileStats));
+        await Task.CompletedTask;
+    }
+
+    private void EnableGamingMode()
+    {
+        Settings.Theme = "Gaming";
+        Settings.AccentHex = ThemeManager.DefaultAccent("Gaming");
+        Settings.TabSleepMode = "Aggressive";
+        ThemeManager.Apply(Settings);
+        _settingsService.Save(Settings);
+        Raise(nameof(AvatarBrush));
+    }
 
     // ------------------------------------------------------------------
     // Shutdown

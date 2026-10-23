@@ -193,8 +193,11 @@ public partial class MainWindow : Window, IBrowserShell
             "bookmarks" => new BookmarksView(),
             "passwords" => new PasswordsView(),
             "search" => new SearchView(),
-            "music" => new MusicView(),
+            "music" or "music/search" or "music/library" or "music/playlists" => new MusicView(),
             "guard" => new GuardView(),
+            "workspaces" or "notes" or "tasks" or "tools" or "performance" or "gaming" => new OmegaView(),
+            "privacy" or "about" => new SettingsView(),
+            "mind" => new NewTabView(),
             _ => new NewTabView()
         };
 
@@ -469,6 +472,9 @@ public partial class MainWindow : Window, IBrowserShell
                 case Key.Subtract: _vm.ZoomBy(-0.1); return true;
                 case Key.D0:
                 case Key.NumPad0: _vm.ResetZoom(); return true;
+                case Key.A when shift: _vm.IsAiOpen = true; return true;
+                case Key.S when shift: _vm.OpenInternal("search"); return true;
+                case Key.P when shift: _vm.OpenInternal("tools"); return true;
                 case Key.P: _vm.SavePagePdf(); return true;
                 case Key.M when shift: _vm.OpenInternal("music"); return true;
                 case Key.G when shift: _vm.OpenInternal("guard"); return true;
