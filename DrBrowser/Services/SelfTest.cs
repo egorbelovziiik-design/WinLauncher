@@ -736,6 +736,24 @@ public static class SelfTest
                 return "zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete";
             });
 
+            await Run("smoke-miniplayer", "Мини-плеер DrMusic виден в окне и показывает LIVE-трек", async () =>
+            {
+                if (vm.Music.Stations.Count == 0) throw new Exception("станции не загружены");
+                var station = vm.Music.Stations[0];
+
+                vm.Music.PlayCommand.Execute(station);
+                await Delay(700);
+
+                if (!vm.MusicBarVisible) throw new Exception("строка мини-плеера не появилась");
+                if (vm.MusicNowBadge != "LIVE") throw new Exception("бейдж мини-плеера: " + vm.MusicNowBadge);
+                if (!vm.MusicNowTitle.Contains(station.Title)) throw new Exception("в мини-плеере не та станция: " + vm.MusicNowTitle);
+
+                window!.CaptureWindow(Path.Combine(shots, "13-mini-player.png"));
+                vm.Music.Service.Stop();
+                await Delay(200);
+                return $"{vm.MusicNowTitle} · бейдж LIVE · мини-плеер в окне (13-mini-player.png)";
+            });
+
             await Run("smoke-hotkeys", "Горячие клавиши вызывают реальные команды", async () =>
             {
                 var before = vm.Tabs.Count;

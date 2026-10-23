@@ -258,7 +258,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public string ProfileStats => $"{Tabs.Count} вкладок · {Bookmarks.Items.Count} закладок · {AdBlock.BlockedCount} блокировок";
 
-    public void ToggleProfile() => IsProfileOpen = !IsProfileOpen;
+    public void ToggleProfile()
+    {
+        IsProfileOpen = !IsProfileOpen;
+        if (IsProfileOpen) OnPropertyChanged(nameof(ProfileStats));
+    }
 
     public void CloseProfile() => IsProfileOpen = false;
     public string ZoomText => $"{Settings.ZoomLevel * 100:0}%";

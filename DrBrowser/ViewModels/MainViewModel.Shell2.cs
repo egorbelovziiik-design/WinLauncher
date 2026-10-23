@@ -202,5 +202,10 @@ public sealed partial class MainViewModel
                 or nameof(MusicService.IsStreaming))
                 RaiseMusicBar();
         };
+
+        // Profile card statistics must never show stale numbers (they used to be computed once at startup).
+        Tabs.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ProfileStats));
+        Bookmarks.Items.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ProfileStats));
+        AdBlock.CountersChanged += (_, _) => OnPropertyChanged(nameof(ProfileStats));
     }
 }
