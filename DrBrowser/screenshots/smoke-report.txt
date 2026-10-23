@@ -1,22 +1,22 @@
-﻿DrBrowser smoke · 2026-10-23 20:27:34 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 20:39:53 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2246 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (1874 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3841 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3254 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2490 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2416 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов (7580 ms)
+           settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов (7496 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1452 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1410 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2228 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2204 ms)
 [PASS] smoke-https          Реальный сайт по HTTPS открывается через сеть
-           https://example.com · protocol=https: · title «Example Domain» (1015 ms)
+           https://example.com · protocol=https: · title «Example Domain» (989 ms)
 [PASS] smoke-download       Реальная загрузка файла через DownloadStarting
-           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2782 ms)
+           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2706 ms)
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-202732.png (1521 ms)
+           сохранён screenshot-20261023-203950.png (1518 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 9 passed, 0 failed, 0 skipped из 9
