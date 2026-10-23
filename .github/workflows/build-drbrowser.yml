@@ -83,15 +83,35 @@ jobs:
           (Get-FileHash "dist\DrBrowserSetup.exe" -Algorithm SHA256).Hash | Tee-Object -FilePath "dist\DrBrowserSetup.exe.sha256.txt"
           Get-Item "dist\DrBrowserSetup.exe" | Select-Object Name, Length
 
-      - name: Sync README with build size and SHA-256
-        shell: bash
+      - name: Sync READMEs with exact artifact sizes and SHA-256
+        shell: pwsh
         run: |
-          sha=$(tr -d '\r\n ' < dist/DrBrowser.exe.sha256.txt)
-          size=$(stat -c %s dist/DrBrowser.exe)
-          sed -i -E "s/\`[A-F0-9]{64}\`/\`$sha\`/g" DrBrowser/README.md
-          sed -i -E "s/^# [A-F0-9]{64}$/# $sha/" DrBrowser/README.md
-          sed -i -E "s/\([0-9 ]+ байт, self-contained/($size байт, self-contained/" DrBrowser/README.md
-          grep -n "SHA-256" DrBrowser/README.md | head -3
+          $appSha = (Get-Content "dist\DrBrowser.exe.sha256.txt" -Raw).Trim()
+          $setupSha = (Get-Content "dist\DrBrowserSetup.exe.sha256.txt" -Raw).Trim()
+          $culture = [System.Globalization.CultureInfo]::InvariantCulture
+          $appSize = (Get-Item "dist\DrBrowser.exe").Length.ToString('N0', $culture)
+          $setupSize = (Get-Item "dist\DrBrowserSetup.exe").Length.ToString('N0', $culture)
+
+          $product = Get-Content "DrBrowser\README.md"
+          $product = $product | ForEach-Object {
+            if ($_ -match '^\| \[`\.\./dist/DrBrowser\.exe`\]') {
+              "| [``../dist/DrBrowser.exe``](../dist/DrBrowser.exe) | $appSize bytes | ``$appSha`` |"
+            } elseif ($_ -match '^\| \[`\.\./dist/DrBrowserSetup\.exe`\]') {
+              "| [``../dist/DrBrowserSetup.exe``](../dist/DrBrowserSetup.exe) | $setupSize bytes | ``$setupSha`` |"
+            } else { $_ }
+          }
+          $product | Set-Content "DrBrowser\README.md" -Encoding utf8NoBOM
+
+          $root = Get-Content "README.md"
+          $root = $root | ForEach-Object {
+            if ($_ -match '^- \[`dist/DrBrowser\.exe`\]') {
+              "- [``dist/DrBrowser.exe``](dist/DrBrowser.exe) — portable self-contained ``win-x64``, $appSize bytes, SHA-256 ``$appSha``."
+            } elseif ($_ -match '^- \[`dist/DrBrowserSetup\.exe`\]') {
+              "- [``dist/DrBrowserSetup.exe``](dist/DrBrowserSetup.exe) — per-user Inno Setup installer, $setupSize bytes, SHA-256 ``$setupSha``."
+            } else { $_ }
+          }
+          $root | Set-Content "README.md" -Encoding utf8NoBOM
+          Select-String -Path "DrBrowser\README.md", "README.md" -Pattern 'SHA-256' | Select-Object -First 6
 
       - name: Detect WebView2 Runtime
         shell: pwsh
@@ -208,7 +228,7 @@ jobs:
             git add -f dist/DrBrowserSetup.exe || true
           fi
           git add -f dist/DrBrowser.exe.sha256.txt dist/DrBrowserSetup.exe.sha256.txt || true
-          git add -f DrBrowser/README.md || true
+          git add -f README.md DrBrowser/README.md || true
           git add -f DrBrowser/Docs || true
           if [ -d DrBrowser/screenshots ]; then git add -f DrBrowser/screenshots || true; fi
           git status --short | head -20

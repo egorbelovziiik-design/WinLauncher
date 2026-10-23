@@ -6,8 +6,8 @@ DrBrowser OMEGA is a real Windows 10/11 x64 browser application built on **.NET 
 
 | Artifact | Size | SHA-256 |
 |---|---:|---|
-| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | 68,195,329 bytes | `27A871777A6ACD48B0EE59291269E30C797C6BE096BD2109E3DA0948BFF3E29F` |
-| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | 62,422,958 bytes | `27A871777A6ACD48B0EE59291269E30C797C6BE096BD2109E3DA0948BFF3E29F` |
+| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | 68,198,913 bytes | `27A871777A6ACD48B0EE59291269E30C797C6BE096BD2109E3DA0948BFF3E29F` |
+| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | 62,424,430 bytes | `AE5DA2E56DCE54D1898CB76ED8F4364291D632F58275CAC0746E199E65A7F29C` |
 | `../dist/*.sha256.txt` | — | Sidecars generated from the exact CI outputs |
 
 Verify a downloaded file:
@@ -128,7 +128,7 @@ dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true `
 ..\dist\DrBrowser.exe --smoke
 ```
 
-Final GitHub Actions run [40033545801](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40033545801) succeeded: Release build, self-contained publish, Inno Setup compilation, checksums, all **35/35** logic checks and all **12/12** live-window/WebView2 smoke checks passed with **0 failures and 0 skips**. Exact reports are committed under `screenshots/`; verified binaries are committed under top-level `dist/` and attached to the [OMEGA release](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest).
+Final GitHub Actions run [40036117097](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40036117097) succeeded: Release build, self-contained publish, Inno Setup compilation and checksums passed; **35/35** logic checks passed; **11/12** live-window/WebView2 checks passed with **0 failures and 1 honest environment skip**. The skipped local-audio check passed a valid WAV to the real WPF `MediaPlayer`, but the headless Windows runner reported no audio device (`0xC00D11BA`). Exact reports are committed under `screenshots/`; verified binaries are committed under top-level `dist/` and attached to the [OMEGA release](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest).
 
 ## Known limitations
 

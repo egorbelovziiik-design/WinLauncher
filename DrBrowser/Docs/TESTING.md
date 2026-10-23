@@ -11,21 +11,23 @@ Both write human-readable reports and return `1` when any check records `FAIL`. 
 
 ## Final verified packaging run
 
-GitHub Actions run **40033545801** on `windows-latest` completed successfully for source commit `c524b5064bff926da97b0f480e01fdf255847e00`:
+GitHub Actions run **40036117097** on `windows-latest` completed successfully for source commit `187e92d2d0d41d823b2ca1b634940cf02b22af0c`:
 
 - .NET 10 Release build: passed.
 - Self-contained compressed single-file `win-x64` publish: passed.
 - Inno Setup per-user installer compilation: passed.
 - Both PE outputs and their SHA-256 sidecars were created and uploaded: passed.
 - `--selftest`: **35 passed, 0 failed, 0 skipped**.
-- `--smoke`: **12 passed, 0 failed, 0 skipped**.
+- `--smoke`: **11 passed, 0 failed, 1 skipped** out of 12.
+- The one skip is explicit: a valid generated WAV was passed to real WPF `MediaPlayer`, but the headless Windows runner returned no-audio-device code `0xC00D11BA`. The application did not claim audible playback in that environment.
 - Live WebView2 155.0.4283.62 initialization, HTTPS navigation, document title and JavaScript execution: passed.
+- All 11 internal pages rendered; live Performance values were found in the WPF visual tree; no unhandled UI-binding exception was logged: passed.
 - Real loopback WebView2 download (56/56 bytes): passed.
 - Reports/screenshots/artifact upload, branch publication and GitHub release: passed.
 
-Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40033545801>
+Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40036117097>
 
-Published evidence commit: `272f88e`. Release: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>.
+Published evidence commit: `c1e6bdf`. Release: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>.
 Check committed `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` for the exact per-check output.
 
 ## Logic/self-test coverage (35 checks)
