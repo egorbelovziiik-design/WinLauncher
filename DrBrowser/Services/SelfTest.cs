@@ -625,9 +625,12 @@ public static class SelfTest
                 var title = string.Empty;
                 try
                 {
+                    // Subscribe first, then navigate: the tab is created with its URL, so an
+                    // early navigation could otherwise finish before the handler exists.
+                    core.Navigate("https://example.com/");
                     var finished = await Task.WhenAny(navigated.Task, Task.Delay(30000));
                     if (!ReferenceEquals(finished, navigated.Task))
-                        return "SKIP: сеть недоступна — навигация не завершилась за 30 с";
+                        return "SKIP: сеть недоступна в этой среде — навигация не завершилась за 30 с";
                     if (!await navigated.Task)
                         return "SKIP: HTTPS-навигация завершилась ошибкой сети (CI без доступа в интернет)";
 
