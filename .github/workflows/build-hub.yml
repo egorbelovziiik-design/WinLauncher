@@ -113,22 +113,24 @@ jobs:
           $exe = (Resolve-Path "StealAnEggUltimate/dist/StealAnEggUltimate.exe").Path
           $process = Start-Process -FilePath $exe -ArgumentList "--selftest" -PassThru -Wait
           Write-Host "::notice::self-test exit code $($process.ExitCode)"
-          $report = Join-Path $env:APPDATA "StealAnEggUltimate\selftest-report.txt"
-          if (Test-Path $report) {
-            Get-Content $report | ForEach-Object { Write-Host $_ }
-            $report | Get-Content | Where-Object { $_ -match '^\[FAIL\]' } | Select-Object -First 8 |
+
+          $reportPath = Join-Path $env:APPDATA "StealAnEggUltimate\selftest-report.txt"
+          if (Test-Path -LiteralPath $reportPath) {
+            $lines = Get-Content -LiteralPath $reportPath
+            $lines | ForEach-Object { Write-Host $_ }
+            $lines | Where-Object { $_ -match '^\[FAIL\]' } | Select-Object -First 8 |
               ForEach-Object { Write-Host "::error::$_" }
-            $report | Get-Content | Where-Object { $_ -match '^\[SKIP\]' } | Select-Object -First 2 |
+            $lines | Where-Object { $_ -match '^(SUMMARY|RESULT):' } |
               ForEach-Object { Write-Host "::notice::$_" }
-            $report | Get-Content | Where-Object { $_ -match '^(SUMMARY|RESULT):' } |
-              ForEach-Object { Write-Host "::error::$_" }
           } else {
-            Write-Host "::error::self-test report missing at $report"
+            Write-Host "::error::self-test report missing at $reportPath"
           }
+
           if ($process.ExitCode -ne 0) {
             Write-Host "::error::Self-test failed with exit code $($process.ExitCode)"
             exit 1
           }
+          exit 0
 
       - name: Smoke test (start the UI, auto-close)
         timeout-minutes: 5
@@ -141,25 +143,31 @@ jobs:
             exit 1
           }
           Write-Host "::notice::smoke exit code $($process.ExitCode)"
+
           $marker = Join-Path $env:APPDATA "StealAnEggUltimate\smoke-result.txt"
-          if (Test-Path $marker) {
-            Get-Content $marker | ForEach-Object { Write-Host "::notice::$_" }
+          if (Test-Path -LiteralPath $marker) {
+            Get-Content -LiteralPath $marker | ForEach-Object { Write-Host "::notice::$_" }
           } else {
             Write-Host "::error::smoke marker missing"
           }
+
           $logDir = Join-Path $env:APPDATA "StealAnEggUltimate\logs"
-          if (Test-Path $logDir) {
-            Get-ChildItem $logDir -Filter *.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
-              ForEach-Object { Get-Content $_.FullName -Tail 30 | ForEach-Object { Write-Host "::notice::LOG $_" } }
+          if (Test-Path -LiteralPath $logDir) {
+            $latest = Get-ChildItem -LiteralPath $logDir -Filter *.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($latest) {
+              Get-Content -LiteralPath $latest.FullName -Tail 40 | ForEach-Object { Write-Host "::notice::LOG $_" }
+            }
           }
+
           if ($process.ExitCode -ne 0) {
             Write-Host "::error::Smoke run failed with exit code $($process.ExitCode)"
             exit 1
           }
-          if (-not (Test-Path $marker)) {
+          if (-not (Test-Path -LiteralPath $marker)) {
             Write-Host "::error::Smoke marker file was not produced"
             exit 1
           }
+          exit 0
 
       - name: Publish diagnostics to the branch
         if: failure()
