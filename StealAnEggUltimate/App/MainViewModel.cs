@@ -786,8 +786,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     // Wiring
     // ------------------------------------------------------------------
 
-    private List<FeatureRowViewModel> CreateRows(IReadOnlyList<FeatureDefinition> definitions)
-        => definitions.Select(def => new FeatureRowViewModel(def, _settings, OnFeatureToggled)).ToList();
+    private ObservableCollection<FeatureRowViewModel> CreateRows(IReadOnlyList<FeatureDefinition> definitions)
+        => new(definitions.Select(def => new FeatureRowViewModel(def, _settings, OnFeatureToggled)));
 
     private void WireEvents()
     {

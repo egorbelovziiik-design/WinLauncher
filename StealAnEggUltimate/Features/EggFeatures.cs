@@ -53,7 +53,6 @@ public sealed class EggFeatures : ObservableObject
     private int _rareVisible;
     private double _viewWidth = 1280;
     private double _viewHeight = 720;
-    private bool _autoPilot;
     private Vec3 _spawnPad = Vec3.Zero;
 
     public EggFeatures(Logger log)
