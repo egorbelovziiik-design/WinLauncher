@@ -1,0 +1,13 @@
+name: probe-toolchain
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show SDK
+        shell: pwsh
+        run: |
+          dotnet --info
+          "---- desktop packs ----"
+          Get-ChildItem "C:\Program Files\dotnet\packs" | Select-Object -ExpandProperty Name
