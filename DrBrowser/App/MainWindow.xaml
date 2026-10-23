@@ -177,6 +177,12 @@
                 </Border>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center">
+                    <Button Content="◎" Style="{StaticResource IconButton}" FontSize="15"
+                            ToolTip="DrSearch — своя поисковая система" Command="{Binding OpenSearchCommand}" />
+                    <Button Content="🎵" Style="{StaticResource IconButton}" FontSize="13"
+                            ToolTip="{Binding Music.MiniPlayerText}" Command="{Binding PlayPauseMusicCommand}" />
+                    <Button Content="♫" Style="{StaticResource IconButton}" FontSize="14"
+                            ToolTip="Музыка DrMusic" Command="{Binding OpenMusicCommand}" />
                     <Button Content="✦" Style="{StaticResource IconButton}" FontSize="15" Foreground="{DynamicResource AccentBrush}"
                             ToolTip="AI Assistant (DrAI)" Command="{Binding ToggleAiCommand}" />
                     <Button Content="⬇" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Загрузки (Ctrl+J)"
@@ -188,27 +194,99 @@
                     <Button Content="⚙" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Настройки"
                             Command="{Binding OpenSettingsCommand}" />
 
-                    <Button x:Name="ProfileButton" Width="34" Height="34" Style="{StaticResource IconButton}" ToolTip="Профиль">
+                    <Button x:Name="ProfileButton" Width="34" Height="34" Style="{StaticResource IconButton}"
+                            ToolTip="Профиль и быстрые действия" Click="ProfileButton_Click">
                         <Button.Content>
-                            <Border Width="24" Height="24" CornerRadius="12" Background="{DynamicResource AccentGradientBrush}">
-                                <TextBlock Text="{Binding ProfileGlyph}" Foreground="White" FontSize="11" FontWeight="Bold"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
+                            <Grid Width="24" Height="24">
+                                <Border CornerRadius="12" ClipToBounds="True" Background="{DynamicResource AccentGradientBrush}">
+                                    <Grid>
+                                        <TextBlock Text="{Binding ProfileGlyph}" Foreground="White" FontSize="11" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Image Source="{Binding AvatarImagePath}" Stretch="UniformToFill"
+                                               Visibility="{Binding HasCustomAvatar, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </Button.Content>
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="{Binding ProfileName}" IsEnabled="False" FontWeight="Bold" />
-                                <Separator />
-                                <MenuItem Header="Приватное окно (Ctrl+Shift+N)" Command="{Binding OpenPrivateWindowCommand}" />
-                                <MenuItem Header="Менеджер паролей" Command="{Binding OpenPasswordsCommand}" />
-                                <MenuItem Header="Папка профиля" Command="{Binding OpenProfileFolderCommand}" />
-                                <MenuItem Header="Папка данных" Command="{Binding OpenDataFolderCommand}" />
-                                <Separator />
-                                <MenuItem Header="Настройки" Command="{Binding OpenSettingsCommand}" />
-                                <MenuItem Header="Выход" Command="{Binding ExitCommand}" />
-                            </ContextMenu>
-                        </Button.ContextMenu>
                     </Button>
+
+                    <Popup x:Name="ProfilePopup" PlacementTarget="{Binding ElementName=ProfileButton}" Placement="Bottom"
+                           StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" HorizontalOffset="-250"
+                           VerticalOffset="8" IsOpen="{Binding IsProfileOpen, Mode=OneWay}" Closed="ProfilePopup_Closed">
+                        <Border Width="300" CornerRadius="16" Padding="0" Margin="12"
+                                Background="{DynamicResource SurfaceBrush}" BorderThickness="1"
+                                BorderBrush="{DynamicResource BorderBrush}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.45" Color="Black" />
+                            </Border.Effect>
+                            <StackPanel>
+                                <!-- avatar header -->
+                                <Border Padding="16,16,16,12" CornerRadius="16,16,0,0">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#557C5CFF" Offset="0" />
+                                            <GradientStop Color="#1538BDF8" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Grid.Column="0" Width="52" Height="52">
+                                            <Ellipse Fill="{DynamicResource AccentGradientBrush}" />
+                                            <Ellipse Stroke="#66FFFFFF" StrokeThickness="1.5" />
+                                            <TextBlock Text="{Binding ProfileGlyph}" FontSize="20" FontWeight="Bold"
+                                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <Ellipse ClipToBounds="True">
+                                                <Ellipse.Fill>
+                                                    <ImageBrush ImageSource="{Binding AvatarImagePath}" Stretch="UniformToFill" />
+                                                </Ellipse.Fill>
+                                            </Ellipse>
+                                        </Grid>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ProfileName}" FontSize="15" FontWeight="Bold" />
+                                            <TextBlock Text="{Binding ProfileSubtitle}" FontSize="10.5" Opacity="0.85"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding ProfileStats}" FontSize="10" Opacity="0.75" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- quick actions -->
+                                <StackPanel Margin="10,8,10,10">
+                                    <Button Content="🧠  Открыть DrAI" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenAiCommand}" />
+                                    <Button Content="🎵  Музыка (DrMusic)" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenMusicCommand}" />
+                                    <Button Content="◎  DrSearch" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenSearchCommand}" />
+                                    <Button Content="🖼  Сменить аватар" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding ChooseAvatarCommand}" />
+                                    <Separator Margin="2,4" Background="{DynamicResource BorderBrush}" />
+                                    <Button Content="🕶  Приватное окно (Ctrl+Shift+N)" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenPrivateWindowCommand}" />
+                                    <Button Content="🔑  Менеджер паролей" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenPasswordsCommand}" />
+                                    <Button Content="🗂  Папка профиля" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenProfileFolderCommand}" />
+                                    <Button Content="⚙  Настройки" Style="{StaticResource GhostButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,0,0,4" FontSize="12"
+                                            Command="{Binding OpenSettingsCommand}" />
+                                    <Button Content="⏻  Выход" Style="{StaticResource DangerButton}"
+                                            HorizontalContentAlignment="Left" Margin="0,4,0,0" FontSize="12"
+                                            Command="{Binding ExitCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                 </StackPanel>
 
                 <!-- suggestions -->

@@ -15,9 +15,12 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Width="30" Height="30" CornerRadius="9" Background="{DynamicResource AccentGradientBrush}">
-                    <TextBlock Text="✦" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
+                <Grid Grid.Column="0" Width="34" Height="34">
+                    <Border CornerRadius="11" ClipToBounds="True">
+                        <Image Source="/Assets/dr-ai-avatar.png" Stretch="UniformToFill" />
+                    </Border>
+                    <Border CornerRadius="11" BorderThickness="1" BorderBrush="#55FFFFFF" />
+                </Grid>
                 <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="DrAI Assistant" FontSize="13" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding AiKeyStatus}" Style="{StaticResource Muted}" FontSize="10"

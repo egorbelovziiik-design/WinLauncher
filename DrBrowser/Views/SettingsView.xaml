@@ -149,8 +149,54 @@
                                 <TextBlock Text="Яндекс — https://yandex.ru/search/?text=…" Style="{StaticResource Muted}" Margin="0,3" />
                                 <TextBlock Text="Bing — https://www.bing.com/search?q=…" Style="{StaticResource Muted}" />
                                 <TextBlock Text="DuckDuckGo — https://duckduckgo.com/?q=…" Style="{StaticResource Muted}" Margin="0,3" />
+                                <TextBlock Text="DrSearch — drbrowser://search?q=… (собственный поиск внутри браузера)" Style="{StaticResource Muted}" Margin="0,3,0,0" />
+                                <Button Content="Открыть DrSearch" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
+                                        Command="{Binding OpenSearchCommand}" />
                             </StackPanel>
                         </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="DRSEARCH" Style="{StaticResource SectionTitle}" />
+                                <CheckBox Style="{StaticResource Switch}" Content="Только локальный поиск (не отправлять запросы в сеть)"
+                                          IsChecked="{Binding Settings.DrSearchLocalOnly}" />
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="DrSearch ищет по вашей истории, закладкам и адресам прямо в браузере. Веб-движки открываются только по явному нажатию кнопки." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================= МУЗЫКА ================= -->
+            <TabItem Header="Музыка">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="24,0,0,0" MaxWidth="760" HorizontalAlignment="Left">
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="ЛОКАЛЬНАЯ БИБЛИОТЕКА DRMUSIC" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding Music.FolderText}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <Button Content="Выбрать папку" Style="{StaticResource GhostButton}"
+                                            Command="{Binding Music.ChooseFolderCommand}" />
+                                    <Button Content="Обновить" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                            Command="{Binding Music.RefreshCommand}" />
+                                    <Button Content="Открыть плеер" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                            Command="{Binding OpenMusicCommand}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Music.LibrarySummary}" Style="{StaticResource Muted}" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="АВАТАР ПРОФИЛЯ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding AvatarImagePath}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                                <Button Content="Выбрать изображение" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
+                                        Command="{Binding ChooseAvatarCommand}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

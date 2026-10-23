@@ -79,6 +79,25 @@ public sealed partial class MainViewModel
     public ICommand OpenDownloadsCommand => Cmd("downloads", () => OpenInternal("downloads"));
     public ICommand OpenBookmarksCommand => Cmd("bookmarks", () => OpenInternal("bookmarks"));
     public ICommand OpenPasswordsCommand => Cmd("passwords", () => OpenInternal("passwords"));
+    public ICommand OpenSearchCommand => Cmd("drsearch", () => OpenInternal("search"));
+    public ICommand OpenMusicCommand => Cmd("music", () => OpenInternal("music"));
+
+    public ICommand ToggleProfileCommand => Cmd("profile", () => ToggleProfile());
+    public ICommand CloseProfileCommand => Cmd("closeprofile", () => CloseProfile());
+
+    public ICommand PlayPauseMusicCommand => Cmd("playpause", () => Music.Service.TogglePlay());
+
+    public ICommand ChooseAvatarCommand => Cmd("chooseavatar", () =>
+    {
+        var path = _shell?.PickOpenFile("Изображение|*.png;*.jpg;*.jpeg;*.bmp;*.webp");
+        if (string.IsNullOrWhiteSpace(path)) return;
+        Settings.AvatarPath = path;
+        _settingsService.Save(Settings);
+        Raise(nameof(AvatarImagePath), nameof(HasCustomAvatar));
+        StatusMessage = "Аватар профиля обновлён.";
+    });
+
+    public ICommand OpenAiCommand => Cmd("openai", () => IsAiOpen = true);
 
     public ICommand OpenUrlCommand => Cmd("openurl", p =>
     {

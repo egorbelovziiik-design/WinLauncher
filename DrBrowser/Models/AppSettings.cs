@@ -4,20 +4,21 @@ namespace DrBrowser;
 public sealed class AppSettings : ObservableObject
 {
     public const string AppName = "DrBrowser";
-    public const string Version = "1.0.0";
-    public const string AppVersionText = "DrBrowser 1.0.0";
+    public const string Version = "1.1.0";
+    public const string AppVersionText = "DrBrowser 1.1.0";
 
     public static readonly (string Name, string Template)[] SearchEngines =
     {
         ("Google", "https://www.google.com/search?q={0}"),
         ("Яндекс", "https://yandex.ru/search/?text={0}"),
         ("Bing", "https://www.bing.com/search?q={0}"),
-        ("DuckDuckGo", "https://duckduckgo.com/?q={0}")
+        ("DuckDuckGo", "https://duckduckgo.com/?q={0}"),
+        ("DrSearch", "drbrowser://search?q={0}")
     };
 
     private string _theme = "Dark";
     private string _accentHex = "#7C5CFF";
-    private string _searchEngine = "Google";
+    private string _searchEngine = "DrSearch";
     private string _homePage = "https://www.google.com";
     private bool _restoreSession = true;
     private bool _saveHistory = true;
@@ -42,6 +43,10 @@ public sealed class AppSettings : ObservableObject
     private string _weatherCity = "Киев";
     private bool _showWeather = true;
     private string _newTabGreeting = "Добро пожаловать в DrBrowser";
+    private string _musicFolder = string.Empty;
+    private double _musicVolume = 0.8;
+    private bool _drSearchLocalOnly;
+    private string _avatarPath = string.Empty;
 
     public string Theme { get => _theme; set { if (Set(ref _theme, value)) OnPropertyChanged(nameof(IsDarkTheme)); } }
     public bool IsDarkTheme => !string.Equals(Theme, "Light", StringComparison.OrdinalIgnoreCase);
@@ -72,11 +77,21 @@ public sealed class AppSettings : ObservableObject
     public bool ShowWeather { get => _showWeather; set => Set(ref _showWeather, value); }
     public string NewTabGreeting { get => _newTabGreeting; set => Set(ref _newTabGreeting, value); }
 
+    /// <summary>Local folder the Music section reads (never uploaded anywhere).</summary>
+    public string MusicFolder { get => _musicFolder; set => Set(ref _musicFolder, value ?? string.Empty); }
+    public double MusicVolume { get => _musicVolume; set => Set(ref _musicVolume, Math.Clamp(value, 0, 1)); }
+
+    /// <summary>DrSearch: when true the query is only matched locally and never sent to the web.</summary>
+    public bool DrSearchLocalOnly { get => _drSearchLocalOnly; set => Set(ref _drSearchLocalOnly, value); }
+
+    /// <summary>Optional custom profile picture (absolute path to an image).</summary>
+    public string AvatarPath { get => _avatarPath; set => Set(ref _avatarPath, value ?? string.Empty); }
+
     /// <summary>Normalises values that may come from an old or hand-edited config file.</summary>
     public void Normalize()
     {
         if (string.IsNullOrWhiteSpace(Theme)) Theme = "Dark";
-        if (string.IsNullOrWhiteSpace(SearchEngine) || !SearchEngines.Any(s => s.Name == SearchEngine)) SearchEngine = "Google";
+        if (string.IsNullOrWhiteSpace(SearchEngine) || !SearchEngines.Any(s => s.Name == SearchEngine)) SearchEngine = "DrSearch";
         if (string.IsNullOrWhiteSpace(HomePage)) HomePage = "https://www.google.com";
         if (string.IsNullOrWhiteSpace(AiBaseUrl)) AiBaseUrl = "https://api.openai.com/v1";
         if (string.IsNullOrWhiteSpace(AiModel)) AiModel = "gpt-4o-mini";
@@ -87,6 +102,7 @@ public sealed class AppSettings : ObservableObject
         TabSuspendMinutes = Math.Clamp(TabSuspendMinutes, 1, 240);
     }
 
+    /// <summary>Search engine used for the toolbar/address bar (DrSearch renders its own page).</summary>
     public string SearchUrl(string query)
     {
         var template = SearchEngines.FirstOrDefault(s => s.Name == SearchEngine).Template

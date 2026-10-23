@@ -14,7 +14,9 @@ public static partial class UrlParser
         ("history", "История"),
         ("downloads", "Загрузки"),
         ("bookmarks", "Закладки"),
-        ("passwords", "Пароли")
+        ("passwords", "Пароли"),
+        ("search", "DrSearch"),
+        ("music", "Музыка")
     };
 
     [GeneratedRegex(@"^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\/")]
@@ -34,6 +36,26 @@ public static partial class UrlParser
         var cut = key.IndexOfAny(new[] { '?', '#' });
         if (cut >= 0) key = key[..cut];
         return key.ToLowerInvariant();
+    }
+
+    /// <summary>Reads a ?q= / ?query= value from an internal page URL.</summary>
+    public static string QueryOf(string url)
+    {
+        if (!url.StartsWith(InternalScheme, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+        var index = url.IndexOf('?');
+        if (index < 0 || index == url.Length - 1) return string.Empty;
+
+        foreach (var pair in url[(index + 1)..].Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            if (parts.Length != 2) continue;
+            if (!parts[0].Equals("q", StringComparison.OrdinalIgnoreCase)
+                && !parts[0].Equals("query", StringComparison.OrdinalIgnoreCase)) continue;
+
+            return Uri.UnescapeDataString(parts[1].Replace('+', ' '));
+        }
+
+        return string.Empty;
     }
 
     public static string InternalPageTitle(string url)
@@ -62,6 +84,11 @@ public static partial class UrlParser
         if (text.Length == 0) return "drbrowser://newtab";
 
         if (text.StartsWith(InternalScheme, StringComparison.OrdinalIgnoreCase)) return text;
+
+        // Shortcuts: "music", "settings", "drsearch <query>" open internal pages directly.
+        var shortcut = text.ToLowerInvariant();
+        if (shortcut is "music" or "музыка") return InternalScheme + "music";
+        if (shortcut is "newtab" or "новая") return InternalScheme + "newtab";
         if (text.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return text;
 
         if (!LooksLikeUrl(text)) return settings.SearchUrl(text);

@@ -24,8 +24,15 @@ public sealed partial class MainViewModel
                 case "newtab":
                     await NewTab.LoadAsync();
                     break;
+                case "music":
+                    await Music.EnsureLoadedAsync();
+                    break;
+                case "search":
+                    if (string.IsNullOrWhiteSpace(Search.LastQuery)) Search.Run(Search.Query);
+                    break;
                 case "settings":
                     Raise(nameof(AiKeyStatus), nameof(AdBlockRuleText), nameof(WhitelistText), nameof(RuntimeStatus));
+                    break;
                     break;
             }
         }

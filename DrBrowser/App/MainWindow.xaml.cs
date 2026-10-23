@@ -35,8 +35,6 @@ public partial class MainWindow : Window, IBrowserShell
             if (e.PropertyName is nameof(MainViewModel.IsAiOpen)) EnsureAiPanel();
         };
 
-        ProfileButton.Click += (_, _) => ProfileButton.ContextMenu?.IsOpen = true;
-
         ThemeManager.Apply(_vm.Settings);
         _vm.NewTab.LoadWallpaper();
 
@@ -194,6 +192,8 @@ public partial class MainWindow : Window, IBrowserShell
             "downloads" => new DownloadsView(),
             "bookmarks" => new BookmarksView(),
             "passwords" => new PasswordsView(),
+            "search" => new SearchView(),
+            "music" => new MusicView(),
             _ => new NewTabView()
         };
 
@@ -225,6 +225,10 @@ public partial class MainWindow : Window, IBrowserShell
     // ------------------------------------------------------------------
     // Window chrome
     // ------------------------------------------------------------------
+
+    private void ProfileButton_Click(object sender, RoutedEventArgs e) => _vm.ToggleProfile();
+
+    private void ProfilePopup_Closed(object? sender, EventArgs e) => _vm.CloseProfile();
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {

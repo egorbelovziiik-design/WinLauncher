@@ -179,6 +179,6 @@ jobs:
           if [ ! -f DrBrowser/dist/DrBrowser.exe ]; then echo "no exe"; exit 0; fi
           gh release delete drbrowser-latest --yes --cleanup-tag || true
           gh release create drbrowser-latest \
-            --title "DrBrowser 1.0 (win-x64)" \
+            --title "DrBrowser 1.1 (win-x64)" \
             --notes "DrBrowser.exe (self-contained, win-x64). Требуется Microsoft Edge WebView2 Runtime: https://go.microsoft.com/fwlink/p/?LinkId=2124703" \
             "DrBrowser/dist/DrBrowser.exe" "DrBrowser/dist/DrBrowser.exe.sha256.txt"

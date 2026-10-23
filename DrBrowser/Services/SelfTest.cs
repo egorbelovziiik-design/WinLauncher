@@ -98,7 +98,13 @@ public static class SelfTest
                 if (https != "https://github.com/dotnet") throw new Exception("https URL искажён: " + https);
 
                 var query = UrlParser.Resolve("как работает webview2", settings);
-                if (!query.Contains("google.com/search")) throw new Exception("запрос не стал поиском: " + query);
+                if (!query.StartsWith("drbrowser://search?q=")) throw new Exception("запрос не ушёл в DrSearch: " + query);
+                if (UrlParser.QueryOf(query) != "как работает webview2") throw new Exception("DrSearch потерял запрос: " + query);
+
+                settings.SearchEngine = "Google";
+                var google = UrlParser.Resolve("как работает webview2", settings);
+                if (!google.Contains("google.com/search")) throw new Exception("Google-движок не сработал: " + google);
+                settings.SearchEngine = "DrSearch";
 
                 var local = UrlParser.Resolve("localhost:5000/app", settings);
                 if (!local.StartsWith("https://localhost:5000") && !local.StartsWith("http://localhost:5000"))
@@ -112,21 +118,93 @@ public static class SelfTest
                 return "URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK";
             });
 
-            await Run("search-engines", "4 поисковые системы", () =>
+            await Run("search-engines", "5 поисковых систем, включая собственный DrSearch", () =>
             {
                 var settings = SettingsService.CreateDefaults();
-                var hosts = new List<string>();
+                if (settings.SearchEngine != "DrSearch")
+                    throw new Exception("DrSearch не выбран по умолчанию: " + settings.SearchEngine);
+
+                var hosts = new HashSet<string>();
                 foreach (var engine in AppSettings.SearchEngines)
                 {
                     settings.SearchEngine = engine.Name;
                     var url = settings.SearchUrl("test query");
                     if (!url.Contains("q=") && !url.Contains("text=")) throw new Exception(engine.Name + ": нет параметра запроса");
-                    hosts.Add(UrlParser.HostOf(url));
+                    if (!engine.Name.Equals("DrSearch", StringComparison.OrdinalIgnoreCase))
+                        hosts.Add(UrlParser.HostOf(url));
                 }
 
-                if (hosts.Distinct().Count() != 4)
+                if (hosts.Count != 4)
                     throw new Exception("движки не различаются: " + string.Join(", ", hosts));
-                return string.Join(" · ", AppSettings.SearchEngines.Select(e => e.Name)) + " — 4 разных шаблона";
+
+                var dr = UrlParser.Resolve("test query", settings);
+                if (!dr.StartsWith("drbrowser://search")) throw new Exception("DrSearch не внутренняя страница: " + dr);
+                return string.Join(" · ", AppSettings.SearchEngines.Select(e => e.Name)) + " — DrSearch + 4 веб-движка";
+            });
+
+            await Run("drsearch-index", "DrSearch: локальный поиск по истории и закладкам", async () =>
+            {
+                var dbFile = Path.Combine(temp, "search.db");
+                var db = new Db(dbFile);
+                db.Initialize();
+                db.AddHistory("https://learn.microsoft.com/dotnet/", "Документация .NET", "learn.microsoft.com", DateTime.Now);
+                db.AddHistory("https://github.com/dotnet/runtime", "dotnet runtime", "github.com", DateTime.Now);
+
+                var log2 = new Logger();
+                var history = new HistoryService(db, log2);
+                var bookmarks = new BookmarkService(db, log2);
+                await bookmarks.LoadAsync().ConfigureAwait(true);
+                await bookmarks.AddAsync("DrBrowser docs", "https://example.org/drbrowser", "Проверка").ConfigureAwait(true);
+
+                var settings = SettingsService.CreateDefaults();
+                string? navigated = null;
+                var search = new SearchViewModel(log2, history, bookmarks, settings, url => navigated = url);
+
+                search.Run("dotnet");
+                if (search.Results.Count < 2) throw new Exception("локальный индекс не нашёл .NET в истории: " + search.Results.Count);
+                if (!search.Results.Any(r => r.Badge == "ИСТОРИЯ")) throw new Exception("нет результатов из истории");
+
+                search.Run("drbrowser");
+                if (!search.Results.Any(r => r.Badge == "ЗАКЛАДКА")) throw new Exception("закладка не попала в DrSearch");
+
+                search.Run("example.com");
+                if (!search.Results.Any(r => r.Badge == "АДРЕС")) throw new Exception("прямой адрес не распознан");
+
+                var first = search.Results.First();
+                search.OpenResultCommand.Execute(first);
+                if (string.IsNullOrWhiteSpace(navigated)) throw new Exception("переход по результату не сработал");
+
+                search.Run("нет-такого-слова-в-индексе-42");
+                if (search.Results.Count != 0) throw new Exception("ложные результаты на пустом запросе");
+
+                search.Run("dotnet");
+                return $"история + закладки + адрес + переход — {search.Results.Count} результатов";
+            });
+
+            await Run("music-library", "DrMusic: сканирование папки, категории, поиск", () =>
+            {
+                var library = Path.Combine(temp, "music");
+                Directory.CreateDirectory(Path.Combine(library, "Chill"));
+                Directory.CreateDirectory(Path.Combine(library, "Rock"));
+
+                File.WriteAllBytes(Path.Combine(library, "Chill", "Nova - Night Drive.mp3"), new byte[] { 1, 2, 3 });
+                File.WriteAllBytes(Path.Combine(library, "Chill", "Aurora Waves.flac"), new byte[] { 4 });
+                File.WriteAllBytes(Path.Combine(library, "Rock", "The Guitars - Riff.wav"), new byte[] { 5 });
+                File.WriteAllText(Path.Combine(library, "notes.txt"), "не музыка");
+
+                var tracks = MusicService.ScanFolder(library);
+                if (tracks.Count != 3) throw new Exception("ожидалось 3 трека, найдено " + tracks.Count);
+                if (tracks.Any(t => t.Extension.Equals("TXT", StringComparison.OrdinalIgnoreCase)))
+                    throw new Exception("текстовый файл попал в библиотеку");
+
+                var night = tracks.First(t => t.Title.Contains("Night Drive"));
+                if (night.Artist != "Nova") throw new Exception("исполнитель из имени файла не разобран: " + night.Artist);
+
+                var categories = tracks.Select(t => t.Category).Distinct().OrderBy(c => c).ToList();
+                if (categories.Count != 2 || !categories.Contains("Chill") || !categories.Contains("Rock"))
+                    throw new Exception("категории (подпапки) не собраны: " + string.Join(", ", categories));
+
+                return $"{tracks.Count} трека · категории {string.Join(" / ", categories)} · .txt отфильтрован";
             });
 
             await Run("sqlite-history", "История в SQLite: запись, поиск, фильтр по дате, удаление", () =>
@@ -528,7 +606,7 @@ public static class SelfTest
 
             await Run("smoke-pages", "Все внутренние страницы открываются и рисуются", async () =>
             {
-                var keys = new[] { "settings", "history", "downloads", "bookmarks", "passwords", "newtab" };
+                var keys = new[] { "settings", "history", "downloads", "bookmarks", "passwords", "search", "music", "newtab" };
                 var index = 3;
                 foreach (var key in keys)
                 {
@@ -540,7 +618,7 @@ public static class SelfTest
                     index++;
                 }
 
-                return "settings · history · downloads · bookmarks · passwords · newtab — 6 скриншотов";
+                return "settings · history · downloads · bookmarks · passwords · DrSearch · DrMusic · newtab — 8 скриншотов";
             });
 
             await Run("smoke-ui", "Масштаб, поиск на странице, AI-панель, закладки", async () =>

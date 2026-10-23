@@ -11,6 +11,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsService _settingsService;
     private readonly Db _db;
     private readonly SessionService _session;
+    private readonly MusicService _musicService;
 
     private IBrowserShell? _shell;
     private DispatcherTimer? _suspendTimer;
@@ -27,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private string _runtimeStatus = string.Empty;
     private int _aiBadge;
     private bool _disposed;
+    private bool _profileOpen;
 
     public MainViewModel(Logger log, bool privateMode = false)
     {
@@ -42,6 +44,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         History = new HistoryService(_db, log);
         Bookmarks = new BookmarkService(_db, log);
         Passwords = new PasswordService(_db, log);
+        _musicService = new MusicService(log);
+        Music = new MusicViewModel(
+            _musicService,
+            log,
+            Settings,
+            () => _shell?.PickFolder(Settings.MusicFolder),
+            path => _shell?.OpenExternal(path),
+            () => _settingsService.Save(Settings));
+        Search = new SearchViewModel(log, History, Bookmarks, Settings, url => NavigateActiveTab(url));
         AdBlock = new AdBlockService(log);
         AI = new AIService(log);
         Downloads = new DownloadService(log, _db, () => Settings);
@@ -97,6 +108,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public DownloadService Downloads { get; }
     public AdBlockService AdBlock { get; }
     public AIService AI { get; }
+    public MusicViewModel Music { get; }
+    public SearchViewModel Search { get; }
     public TabManager TabManager { get; }
     public WebViewManager WebViews { get; }
     public NewTabViewModel NewTab { get; }
@@ -224,6 +237,28 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool ShowBookmarksBarRow => Settings.ShowBookmarksBar && Bookmarks.BarItems.Count > 0;
     public string ProfileGlyph => Settings.ProfileName.Length > 0 ? Settings.ProfileName[..1].ToUpperInvariant() : "D";
     public string ProfileName => Settings.ProfileName;
+
+    /// <summary>Accent avatar shown in the profile popup; "D" when the user has no picture.</summary>
+    public string AvatarImagePath => Settings.AvatarPath;
+
+    public bool HasCustomAvatar => !string.IsNullOrWhiteSpace(Settings.AvatarPath) && File.Exists(Settings.AvatarPath);
+
+    /// <summary>Profile popup state (replaces the old unstyled white context menu).</summary>
+    public bool IsProfileOpen
+    {
+        get => _profileOpen;
+        private set => Set(ref _profileOpen, value);
+    }
+
+    public string ProfileSubtitle => IsPrivate
+        ? "Приватный профиль · данные не сохраняются"
+        : $"Локальный профиль · {Settings.ProfileName}";
+
+    public string ProfileStats => $"{Tabs.Count} вкладок · {Bookmarks.Items.Count} закладок · {AdBlock.BlockedCount} блокировок";
+
+    public void ToggleProfile() => IsProfileOpen = !IsProfileOpen;
+
+    public void CloseProfile() => IsProfileOpen = false;
     public string ZoomText => $"{Settings.ZoomLevel * 100:0}%";
 
     // ------------------------------------------------------------------
@@ -293,6 +328,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         "downloads" => TabKind.Downloads,
         "bookmarks" => TabKind.Bookmarks,
         "passwords" => TabKind.Passwords,
+        "search" => TabKind.Search,
+        "music" => TabKind.Music,
         _ => TabKind.NewTab
     };
 
@@ -552,7 +589,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         var key = UrlParser.InternalPageKey(url);
         if (string.IsNullOrEmpty(key)) key = "newtab";
-        url = "drbrowser://" + key;
+
+        var query = UrlParser.QueryOf(url);
+        url = "drbrowser://" + key + (query.Length > 0 ? "?q=" + Uri.EscapeDataString(query) : string.Empty);
 
         tab.Kind = KindFromUrl(url);
         tab.Url = url;
@@ -563,6 +602,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         CurrentInternalKey = key;
         AddressText = url;
         _shell?.ShowInternalPage(key);
+
+        if (key == "search")
+        {
+            if (query.Length > 0)
+            {
+                Search.Query = query;
+                Search.Run(query);
+            }
+            else
+            {
+                Search.Query = string.Empty;
+            }
+        }
+
+        _ = LoadPageDataAsync(key);
         Raise(nameof(CurrentUrl), nameof(WindowTitle), nameof(IsInternalPage), nameof(SecurityGlyph), nameof(SecurityText));
     }
 
@@ -775,6 +829,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _saveTimer?.Stop();
             if (!IsPrivate) SaveSession();
             FlushSettings();
+            try { Music.Service.Dispose(); } catch { /* player already closed */ }
             Downloads.Shutdown();
             TabManager.DisposeAll();
             WebViews.Dispose();

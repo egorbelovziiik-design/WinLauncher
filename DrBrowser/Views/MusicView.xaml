@@ -1,0 +1,210 @@
+<UserControl x:Class="DrBrowser.MusicView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- header -->
+        <Border Grid.Row="0" Padding="24,20,24,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Width="86" Height="86" CornerRadius="18" ClipToBounds="True">
+                    <Border.Background>
+                        <ImageBrush ImageSource="/Assets/music-cover.png" Stretch="UniformToFill" />
+                    </Border.Background>
+                </Border>
+
+                <StackPanel Grid.Column="1" Margin="16,0,16,0" VerticalAlignment="Center">
+                    <TextBlock Text="DrMusic" FontSize="26" FontWeight="Bold" />
+                    <TextBlock Text="{Binding Music.LibrarySummary}" Style="{StaticResource Muted}" FontSize="12" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding Music.FolderText}" Style="{StaticResource Muted}" FontSize="10.5"
+                               TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding Music.Service.Status}" FontSize="10.5"
+                               Foreground="{DynamicResource AccentBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="📁 Выбрать папку" Style="{StaticResource PrimaryButton}" FontSize="12"
+                            Command="{Binding Music.ChooseFolderCommand}" />
+                    <Button Content="↻" Style="{StaticResource IconButton}" FontSize="15" ToolTip="Обновить библиотеку"
+                            Command="{Binding Music.RefreshCommand}" />
+                    <Button Content="🗀" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Открыть папку"
+                            Command="{Binding Music.OpenFolderCommand}" IsEnabled="{Binding Music.HasFolder}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- body -->
+        <Grid Grid.Row="1" Margin="24,0,24,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- categories -->
+            <Border Grid.Column="0" Style="{StaticResource Card}" Padding="12" Margin="0,0,14,12">
+                <StackPanel>
+                    <TextBlock Text="КАТЕГОРИИ" Style="{StaticResource SectionTitle}" Margin="2,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding Music.Categories}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButton}" HorizontalContentAlignment="Left"
+                                        Margin="0,0,0,6" FontSize="12" Padding="10,7"
+                                        Content="{Binding Label}"
+                                        Command="{Binding DataContext.Music.PlayCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Style="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap" Margin="2,10,0,0"
+                               Text="Категория — это подпапка внутри выбранной папки. Нажмите на неё, чтобы слушать всё подряд." />
+                </StackPanel>
+            </Border>
+
+            <!-- track list -->
+            <Border Grid.Column="1" Style="{StaticResource Card}" Padding="12" Margin="0,0,0,12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="2,0,2,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="260" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="ТРЕКИ" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Music.VisibleCount, StringFormat=({0})}" Style="{StaticResource Muted}"
+                                       FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Music.SelectedCategory, StringFormat=· {0}}" Style="{StaticResource Muted}"
+                                       FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBox Grid.Column="1" Style="{StaticResource Input}" FontSize="12"
+                                 Text="{Binding Music.Filter, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Поиск по названию, исполнителю или категории" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Music.Visible}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="Transparent" CornerRadius="9" Padding="9,7" Margin="0,0,0,2"
+                                            Cursor="Hand" MouseLeftButtonUp="Track_Click">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="8"
+                                                    Background="{DynamicResource AccentSoftBrush}" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding Initial}" FontSize="12" FontWeight="Bold"
+                                                           Foreground="{DynamicResource AccentBrush}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" FontSize="10.5"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding Category}" Style="{StaticResource Muted}"
+                                                       FontSize="10.5" Margin="10,0" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{Binding Extension}" FontSize="9.5" FontWeight="Bold"
+                                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <TextBlock Grid.Row="1" Style="{StaticResource Muted}" FontSize="12" TextAlignment="Center"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               Visibility="{Binding Music.Service.HasLibrary, Converter={StaticResource InverseBoolToVis}}"
+                               Text="Библиотека пуста. Нажмите «Выбрать папку» — DrBrowser прочитает только аудиофайлы из этой папки и ничего никуда не отправит." />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- now playing -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource BorderBrush}" Padding="24,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Music.Service.CurrentTitle}" FontSize="12.5" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Music.Service.CurrentSubtitle}" Style="{StaticResource Muted}" FontSize="10.5"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,14,0" VerticalAlignment="Center">
+                    <Button Content="⏮" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Предыдущий"
+                            Command="{Binding Music.PreviousCommand}" />
+                    <Button Content="{Binding Music.PlayPauseGlyph}" Style="{StaticResource IconButton}" FontSize="16"
+                            ToolTip="{Binding Music.PlayPauseText}" Command="{Binding Music.TogglePlayCommand}" />
+                    <Button Content="⏭" Style="{StaticResource IconButton}" FontSize="14" ToolTip="Следующий"
+                            Command="{Binding Music.NextCommand}" />
+                    <Button Content="⏹" Style="{StaticResource IconButton}" FontSize="12" ToolTip="Стоп"
+                            Command="{Binding Music.StopCommand}" />
+                </StackPanel>
+
+                <Grid Grid.Column="2" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="44" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Music.Service.PositionText}" Style="{StaticResource Muted}"
+                               FontSize="10.5" VerticalAlignment="Center" />
+                    <Slider x:Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="1"
+                            Value="{Binding Music.Service.Progress, Mode=OneWay}"
+                            ValueChanged="Seek_ValueChanged"
+                            VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Music.Service.DurationText}" Style="{StaticResource Muted}"
+                               FontSize="10.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <CheckBox Content="⇄" Style="{StaticResource Switch}" IsChecked="{Binding Music.Shuffle, Mode=TwoWay}"
+                              ToolTip="Перемешать" Margin="0,0,8,0" />
+                    <CheckBox Content="↻" Style="{StaticResource Switch}" IsChecked="{Binding Music.Repeat, Mode=TwoWay}"
+                              ToolTip="Повтор трека" Margin="0,0,12,0" />
+                    <TextBlock Text="🔊" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <Slider Width="110" Minimum="0" Maximum="1" Value="{Binding Music.Volume, Mode=TwoWay}"
+                            VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Music.Service.VolumeText}" Style="{StaticResource Muted}" FontSize="10.5"
+                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
