@@ -161,7 +161,8 @@ public static class SelfTest
 
                 var settings = SettingsService.CreateDefaults();
                 string? navigated = null;
-                var search = new SearchViewModel(log2, history, bookmarks, settings, url => navigated = url);
+                var search = new SearchViewModel(log2, history, bookmarks, settings, url => navigated = url,
+                    new WebSearchService(log2));
 
                 search.Run("dotnet");
                 if (search.Results.Count < 2) throw new Exception("локальный индекс не нашёл .NET в истории: " + search.Results.Count);
@@ -277,7 +278,7 @@ public static class SelfTest
                 var history = new HistoryService(db, log);
                 var bookmarks = new BookmarkService(db, log);
 
-                var search = new SearchViewModel(log, history, bookmarks, settings, _ => { });
+                var search = new SearchViewModel(log, history, bookmarks, settings, _ => { }, new WebSearchService(log));
                 search.Run("первый запрос");
                 search.Run("второй запрос");
                 search.Run("первый запрос");

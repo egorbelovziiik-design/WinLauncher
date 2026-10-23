@@ -8,6 +8,9 @@ public static class AppPaths
     public static string DataRoot { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DrBrowser");
 
+    /// <summary>Alias used by services that only need "the data directory".</summary>
+    public static string DataFolder => DataRoot;
+
     public static string SettingsFile => Path.Combine(DataRoot, "settings.json");
     public static string SessionFile => Path.Combine(DataRoot, "session.json");
     public static string DatabaseFile => Path.Combine(DataRoot, "drbrowser.db");
