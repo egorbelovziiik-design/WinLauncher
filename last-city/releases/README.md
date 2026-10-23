@@ -2,7 +2,7 @@
 
 `LAST_CITY_3D.rbxl` — бинарное место **ECHOES OF STEEL 0.6.1**, развиваемый настоящий PvE vertical slice.
 
-[**Скачать текущий проверенный файл**](LAST_CITY_3D.rbxl)
+[**Неизменяемая прямая загрузка с GitHub**](https://github.com/egorbelovziiik-design/WinLauncher/raw/009bb55ed60ea03112a2e982ba6da55278e59d5f/last-city/releases/LAST_CITY_3D.rbxl)
 
 SHA-256:
 
