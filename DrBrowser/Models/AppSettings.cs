@@ -4,8 +4,8 @@ namespace DrBrowser;
 public sealed class AppSettings : ObservableObject
 {
     public const string AppName = "DrBrowser";
-    public const string Version = "1.1.0";
-    public const string AppVersionText = "DrBrowser 1.1.0";
+    public const string Version = "2.0.0";
+    public const string AppVersionText = "DrBrowser 2.0.0";
 
     public static readonly (string Name, string Template)[] SearchEngines =
     {
@@ -47,6 +47,10 @@ public sealed class AppSettings : ObservableObject
     private double _musicVolume = 0.8;
     private bool _drSearchLocalOnly;
     private string _avatarPath = string.Empty;
+    private string _avatarStyle = "Aurora";
+    private string _aiPersona = "assistant";
+    private bool _aiIncludePage = true;
+    private List<string> _drSearchRecent = new();
 
     public string Theme { get => _theme; set { if (Set(ref _theme, value)) OnPropertyChanged(nameof(IsDarkTheme)); } }
     public bool IsDarkTheme => !string.Equals(Theme, "Light", StringComparison.OrdinalIgnoreCase);
@@ -87,6 +91,18 @@ public sealed class AppSettings : ObservableObject
     /// <summary>Optional custom profile picture (absolute path to an image).</summary>
     public string AvatarPath { get => _avatarPath; set => Set(ref _avatarPath, value ?? string.Empty); }
 
+    /// <summary>Gradient preset for the built-in avatar: Aurora / Nebula / Sunset / Ember / Matrix / Mono.</summary>
+    public string AvatarStyle { get => _avatarStyle; set => Set(ref _avatarStyle, string.IsNullOrWhiteSpace(value) ? "Aurora" : value); }
+
+    /// <summary>DrAI persona: assistant / coder / translator / brief.</summary>
+    public string AiPersona { get => _aiPersona; set => Set(ref _aiPersona, string.IsNullOrWhiteSpace(value) ? "assistant" : value); }
+
+    /// <summary>When true DrAI may read the active page text as extra context.</summary>
+    public bool AiIncludePage { get => _aiIncludePage; set => Set(ref _aiIncludePage, value); }
+
+    /// <summary>Last DrSearch queries (kept locally, never uploaded).</summary>
+    public List<string> DrSearchRecent { get => _drSearchRecent; set => Set(ref _drSearchRecent, value ?? new List<string>()); }
+
     /// <summary>Normalises values that may come from an old or hand-edited config file.</summary>
     public void Normalize()
     {
@@ -98,6 +114,10 @@ public sealed class AppSettings : ObservableObject
         if (string.IsNullOrWhiteSpace(DownloadsFolder)) DownloadsFolder = AppPaths.DefaultDownloadsFolder;
         if (string.IsNullOrWhiteSpace(ProfileName)) ProfileName = "Default";
         _adBlockWhitelist ??= new List<string>();
+        _drSearchRecent ??= new List<string>();
+        if (DrSearchRecent.Count > 12) DrSearchRecent = DrSearchRecent.Take(12).ToList();
+        if (string.IsNullOrWhiteSpace(AvatarStyle)) AvatarStyle = "Aurora";
+        if (string.IsNullOrWhiteSpace(AiPersona)) AiPersona = "assistant";
         ZoomLevel = Math.Clamp(ZoomLevel, 0.25, 3.0);
         TabSuspendMinutes = Math.Clamp(TabSuspendMinutes, 1, 240);
     }

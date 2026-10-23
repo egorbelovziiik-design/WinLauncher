@@ -13,9 +13,15 @@ public sealed class MusicTrack : ObservableObject
     public string Artist { get; init; } = string.Empty;
     public string Category { get; init; } = MusicService.AllTracksCategory;
 
-    public string FileName => Path.GetFileName(FilePath);
-    public string Extension => Path.GetExtension(FilePath).TrimStart('.').ToUpperInvariant();
-    public string Subtitle => string.IsNullOrWhiteSpace(Artist) ? Category : $"{Artist} · {Category}";
+    /// <summary>True for the built-in internet radio stations (played from a URL).</summary>
+    public bool IsStream { get; init; }
+
+    public string FileName => IsStream ? FilePath : Path.GetFileName(FilePath);
+    public string Extension => IsStream ? "LIVE" : Path.GetExtension(FilePath).TrimStart('.').ToUpperInvariant();
+    public string Badge => IsStream ? "LIVE" : Extension;
+    public string Subtitle => IsStream
+        ? $"Прямой эфир · {Category}"
+        : string.IsNullOrWhiteSpace(Artist) ? Category : $"{Artist} · {Category}";
     public string Initial => Title.Length > 0 ? Title[..1].ToUpperInvariant() : "♪";
 }
 
@@ -32,6 +38,24 @@ public sealed record MusicCategory(string Name, int Count)
 public sealed class MusicService : ObservableObject, IDisposable
 {
     public const string AllTracksCategory = "Все треки";
+    public const string RadioCategory = "Радио · прямой эфир";
+
+    /// <summary>
+    /// Built-in radio stations the user can start with one click — no account, no key.
+    /// They are ordinary public MP3/AAC streams, played by the same MediaPlayer as local
+    /// files. Availability depends on the network and, for some of them, on the region.
+    /// </summary>
+    public static readonly (string Title, string Url, string Genre)[] StationCatalog =
+    {
+        ("Groove Salad", "https://ice1.somafm.com/groovesalad-128-mp3", "Chillout"),
+        ("Drone Zone", "https://ice1.somafm.com/dronezone-128-mp3", "Ambient"),
+        ("Lush", "https://ice1.somafm.com/lush-128-mp3", "Vocal chill"),
+        ("Secret Agent", "https://ice1.somafm.com/secretagent-128-mp3", "Lounge"),
+        ("DEF CON Radio", "https://ice1.somafm.com/defcon-128-mp3", "Electronic"),
+        ("Nightride FM", "https://stream.nightride.fm/nightride.m4a", "Synthwave"),
+        ("Radio Paradise", "https://stream.radioparadise.com/aac-128", "Eclectic"),
+        ("Record Deep", "https://radiorecord.hostingradio.ru/deep96.aacp", "Deep house")
+    };
 
     private static readonly string[] AudioExtensions =
     {
@@ -44,6 +68,7 @@ public sealed class MusicService : ObservableObject, IDisposable
     private bool _disposed;
     private bool _seeking;
 
+    private readonly List<MusicTrack> _stations = new();
     private MusicTrack? _current;
     private bool _isPlaying;
     private double _positionSeconds;
@@ -74,9 +99,15 @@ public sealed class MusicService : ObservableObject, IDisposable
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(250) };
         _timer.Tick += (_, _) => PollPosition();
         _timer.Start();
+
+        SeedStations();
+        RebuildCategories();
     }
 
     public ObservableCollection<MusicTrack> Tracks { get; } = new();
+
+    /// <summary>Built-in radio stations, exposed for the "Прямой эфир" strip in DrMusic.</summary>
+    public IReadOnlyList<MusicTrack> Stations => _stations;
     public ObservableCollection<MusicCategory> Categories { get; } = new();
     public ObservableCollection<MusicTrack> Queue { get; } = new();
 
@@ -85,14 +116,22 @@ public sealed class MusicService : ObservableObject, IDisposable
         get => _current;
         private set
         {
-            if (Set(ref _current, value)) Raise(nameof(CurrentTitle), nameof(CurrentSubtitle), nameof(HasTrack));
+            if (Set(ref _current, value))
+            Raise(nameof(CurrentTitle), nameof(CurrentSubtitle), nameof(HasTrack), nameof(IsStreaming), nameof(NowBadge));
         }
     }
 
     public bool HasTrack => _current is not null;
+
+    /// <summary>True while a radio stream (not a local file) is loaded.</summary>
+    public bool IsStreaming => _current?.IsStream == true;
     public string CurrentTitle => _current?.Title ?? "Ничего не играет";
-    public string CurrentSubtitle => _current?.Subtitle ?? "Выберите трек из библиотеки";
+    public string CurrentSubtitle => _current?.Subtitle ?? "Выберите трек из библиотеки или включите радио";
+    public string NowBadge => _current?.IsStream == true ? "LIVE" : "LOCAL";
     public bool HasLibrary => Tracks.Count > 0;
+
+    /// <summary>True when at least one local audio file is indexed (radio is always there).</summary>
+    public bool HasLocalTracks => Tracks.Any(t => !t.IsStream);
 
     public bool IsPlaying
     {
@@ -166,17 +205,54 @@ public sealed class MusicService : ObservableObject, IDisposable
     // Library
     // ------------------------------------------------------------------
 
-    /// <summary>Scans a folder (and its sub-folders) for audio files.</summary>
+    /// <summary>Adds the built-in radio stations to the index (no network access here).</summary>
+    private void SeedStations()
+    {
+        if (_stations.Count > 0) return;
+
+        foreach (var (title, url, genre) in StationCatalog)
+        {
+            var station = new MusicTrack
+            {
+                FilePath = url,
+                Title = title,
+                Artist = genre,
+                Category = RadioCategory,
+                IsStream = true
+            };
+
+            _stations.Add(station);
+            Tracks.Add(station);
+            Queue.Add(station);
+        }
+    }
+
+    private void RebuildCategories()
+    {
+        Categories.Clear();
+        Categories.Add(new MusicCategory(AllTracksCategory, Tracks.Count));
+
+        foreach (var group in Tracks.Where(t => !t.IsStream).GroupBy(t => t.Category).OrderBy(g => g.Key))
+            Categories.Add(new MusicCategory(group.Key, group.Count()));
+
+        var radio = _stations.Count;
+        if (radio > 0) Categories.Add(new MusicCategory(RadioCategory, radio));
+    }
+
+    /// <summary>Scans a folder (and its sub-folders) for audio files; radio stays available.</summary>
     public async Task LoadAsync(string? folder)
     {
         Tracks.Clear();
         Queue.Clear();
         Categories.Clear();
+        _stations.Clear();
+        SeedStations();
 
         if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder))
         {
-            Status = "Выберите папку с музыкой — браузер прочитает её локально";
-            Raise(nameof(HasLibrary));
+            RebuildCategories();
+            Status = "Папка не выбрана — доступно встроенное радио DrMusic";
+            Raise(nameof(HasLibrary), nameof(HasLocalTracks));
             return;
         }
 
@@ -189,24 +265,27 @@ public sealed class MusicService : ObservableObject, IDisposable
         {
             Status = "Не удалось прочитать папку: " + ex.Message;
             _log.Error("music scan failed", ex);
-            Raise(nameof(HasLibrary));
+            RebuildCategories();
+            Raise(nameof(HasLibrary), nameof(HasLocalTracks));
             return;
         }
 
+        var stations = _stations.ToList();
+        Tracks.Clear();
         foreach (var track in files) Tracks.Add(track);
+        foreach (var station in stations) Tracks.Add(station);
 
-        Categories.Add(new MusicCategory(AllTracksCategory, Tracks.Count));
-        foreach (var group in Tracks.GroupBy(t => t.Category).OrderBy(g => g.Key))
-            Categories.Add(new MusicCategory(group.Key, group.Count()));
-
+        Queue.Clear();
         foreach (var track in Tracks) Queue.Add(track);
 
-        Status = Tracks.Count == 0
-            ? $"В папке {folder} не найдено аудиофайлов"
-            : $"В библиотеке {Tracks.Count} треков · {Categories.Count - 1} категорий";
+        RebuildCategories();
 
-        Raise(nameof(HasLibrary));
-        _log.Info($"music library loaded: {Tracks.Count} tracks from {folder}");
+        Status = files.Count == 0
+            ? $"В папке {folder} не найдено аудиофайлов — играет радио DrMusic"
+            : $"В библиотеке {files.Count} треков · {_stations.Count} радиостанций · {Math.Max(0, Categories.Count - 1)} категорий";
+
+        Raise(nameof(HasLibrary), nameof(HasLocalTracks));
+        _log.Info($"music library loaded: {files.Count} tracks from {folder}, {_stations.Count} radio stations");
     }
 
     /// <summary>Pure file-system scan (also used by the self-test).</summary>
@@ -266,8 +345,8 @@ public sealed class MusicService : ObservableObject, IDisposable
             IsPlaying = true;
             DurationSeconds = 0;
             PositionSeconds = 0;
-            Status = $"Играет: {track.Title}";
-            _log.Info($"music play: {track.FileName}");
+            Status = track.IsStream ? $"Прямой эфир: {track.Title} · {track.Artist}" : $"Играет: {track.Title}";
+            _log.Info($"music play: {track.FileName} (stream={track.IsStream})");
         }
         catch (Exception ex)
         {
@@ -326,6 +405,7 @@ public sealed class MusicService : ObservableObject, IDisposable
     /// <summary>Seeks to a fraction (0..1) of the track.</summary>
     public void Seek(double fraction)
     {
+        if (IsStreaming) return; // live radio has no seekable position
         var duration = NaturalDurationSeconds();
         if (duration <= 0.1) return;
 

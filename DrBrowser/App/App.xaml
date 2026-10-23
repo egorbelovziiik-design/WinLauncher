@@ -27,6 +27,8 @@
         <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
         <local:EmptyStringToVisibilityConverter x:Key="EmptyToVis" />
         <local:InverseBoolConverter x:Key="InverseBool" />
+        <local:AvatarStyleBrushConverter x:Key="AvatarStyleBrush" />
+        <local:HexToBrushConverter x:Key="HexToBrush" />
 
         <!-- ============ text ============ -->
         <Style TargetType="TextBlock">

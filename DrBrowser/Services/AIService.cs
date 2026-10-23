@@ -122,6 +122,15 @@ public sealed class AIService
     private static string Trim(string text)
         => text.Length <= 300 ? text : text[..300] + "…";
 
+    /// <summary>Persona-specific system prompt used by the DrAI panel.</summary>
+    public static string PromptFor(string? persona) => (persona ?? "assistant").ToLowerInvariant() switch
+    {
+        "brief" => SystemPrompt + " Пиши максимально сжато: не больше 8 пунктов, без вступлений.",
+        "translator" => SystemPrompt + " Ты переводчик: выдавай только перевод, сохраняя форматирование и термины.",
+        "coder" => SystemPrompt + " Ты senior-разработчик: объясняй код по шагам, указывай риски и предлагай исправления.",
+        _ => SystemPrompt
+    };
+
     public const string SystemPrompt =
         "Ты — DrAI, встроенный помощник браузера DrBrowser. Отвечай кратко и по делу, " +
         "на языке пользователя. Не выдумывай факты; если не знаешь — так и скажи.";

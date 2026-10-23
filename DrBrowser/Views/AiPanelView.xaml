@@ -37,6 +37,34 @@
 
         <ScrollViewer x:Name="ChatScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12">
             <StackPanel>
+                <TextBlock Text="Режим DrAI" Style="{StaticResource SectionTitle}" Margin="2,4,0,8" />
+                <ItemsControl ItemsSource="{Binding Personas}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="4" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource GhostButton}" FontSize="9.5" Padding="4,6" Margin="0,0,4,0"
+                                    ToolTip="{Binding Hint}" Click="Persona_Click" Tag="{Binding Id}">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Glyph}" FontSize="13" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" FontSize="8.5" HorizontalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding AiPersonaHint}" Style="{StaticResource Muted}" FontSize="9.5"
+                           TextWrapping="Wrap" Margin="2,6,0,8" />
+
+                <CheckBox Content="Учитывать текст страницы" Style="{StaticResource Switch}" FontSize="11"
+                          IsChecked="{Binding AiIncludePage, Mode=TwoWay}" Margin="2,0,0,4" />
+                <TextBlock Text="{Binding AiContextLabel}" Style="{StaticResource Muted}" FontSize="9" Margin="2,0,0,8"
+                           TextWrapping="Wrap" />
+
                 <TextBlock Text="Быстрые действия" Style="{StaticResource SectionTitle}" Margin="2,4,0,8" />
                 <WrapPanel>
                     <Button Content="📄 Содержание страницы" Style="{StaticResource GhostButton}" Margin="0,0,6,6" FontSize="11"
@@ -68,7 +96,14 @@
                                 </Border.Style>
                                 <StackPanel>
                                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12" />
-                                    <TextBlock Text="{Binding TimeText}" Style="{StaticResource Muted}" FontSize="9" Margin="0,4,0,0" />
+                                    <Grid Margin="0,4,0,0">
+                                        <TextBlock Text="{Binding TimeText}" Style="{StaticResource Muted}" FontSize="9"
+                                                   VerticalAlignment="Center" />
+                                        <Button Content="⧉ копировать" Style="{StaticResource GhostButton}" FontSize="8.5"
+                                                Padding="5,1" HorizontalAlignment="Right"
+                                                Command="{Binding DataContext.CopyAiMessageCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>

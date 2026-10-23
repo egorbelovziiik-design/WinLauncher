@@ -38,3 +38,37 @@ public sealed class BoolToBrushConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+/// <summary>Maps an avatar preset name to its gradient (profile flyout swatches).</summary>
+public sealed class AvatarStyleBrushConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => MainViewModel.BuildAvatarBrush(value as string);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>Maps a "#RRGGBB" string to a brush (accent swatches).</summary>
+public sealed class HexToBrushConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        try
+        {
+            if (value is string hex && !string.IsNullOrWhiteSpace(hex))
+                return new System.Windows.Media.SolidColorBrush(
+                    (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
+        }
+        catch
+        {
+            // fall through to the default brush
+        }
+
+        return Application.Current?.Resources["AccentBrush"] as System.Windows.Media.Brush
+               ?? System.Windows.Media.Brushes.Violet;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

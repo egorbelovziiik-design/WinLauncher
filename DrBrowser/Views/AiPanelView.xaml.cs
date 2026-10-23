@@ -1,5 +1,6 @@
-using System.Collections.Specialized;
+using System.Windows;
 using System.Windows.Controls;
+using System.Collections.Specialized;
 using System.Windows.Input;
 
 namespace DrBrowser;
@@ -32,5 +33,11 @@ public partial class AiPanelView : UserControl
             (DataContext as MainViewModel)?.SendAiCommand.Execute(null);
             e.Handled = true;
         }
+    }
+
+    private void Persona_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && sender is FrameworkElement { Tag: string id })
+            vm.SelectPersonaCommand.Execute(id);
     }
 }

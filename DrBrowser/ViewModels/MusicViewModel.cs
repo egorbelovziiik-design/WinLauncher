@@ -42,7 +42,8 @@ public sealed class MusicViewModel : ObservableObject
         Service.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(MusicService.Current) or nameof(MusicService.IsPlaying))
-                Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(MiniPlayerText));
+                Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(MiniPlayerText),
+                    nameof(IsStreaming), nameof(NowPlayingBadge), nameof(NowPlayingSubtitle));
         };
 
         Folder = settings.MusicFolder;
@@ -132,6 +133,14 @@ public sealed class MusicViewModel : ObservableObject
     public bool IsPlaying => Service.IsPlaying;
     public string PlayPauseGlyph => Service.PlayPauseGlyph;
     public string NowPlayingTitle => Service.CurrentTitle;
+    public bool IsStreaming => Service.IsStreaming;
+    public string NowPlayingBadge => Service.NowBadge;
+    public string NowPlayingSubtitle => Service.CurrentSubtitle;
+
+    /// <summary>Radio stations shown as a "прямой эфир" strip at the top of DrMusic.</summary>
+    public IReadOnlyList<MusicTrack> Stations => Service.Stations;
+    public bool HasStations => Service.Stations.Count > 0;
+    public string RadioSummary => $"{Service.Stations.Count} станций · интернет-радио без регистрации";
     public string MiniPlayerText => Service.HasTrack
         ? $"{Service.CurrentTitle}{(Service.IsPlaying ? " · играет" : " · пауза")}"
         : "Музыка не играет";
@@ -141,6 +150,15 @@ public sealed class MusicViewModel : ObservableObject
         : $"{Service.Tracks.Count} треков · {Math.Max(0, Service.Categories.Count - 1)} категорий";
 
     public ICommand PlayCommand => new RelayCommand(p => { if (p is MusicTrack track) Service.Play(track); });
+
+    /// <summary>Starts a built-in radio station (one click, no key required).</summary>
+    public ICommand PlayStationCommand => new RelayCommand(p =>
+    {
+        if (p is not MusicTrack station) return;
+        Service.Play(station);
+        Raise(nameof(IsPlaying), nameof(PlayPauseGlyph), nameof(NowPlayingTitle), nameof(NowPlayingSubtitle),
+            nameof(NowPlayingBadge), nameof(IsStreaming), nameof(MiniPlayerText));
+    });
     public ICommand PlayCategoryCommand => new RelayCommand(p =>
     {
         if (p is not string category) return;

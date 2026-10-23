@@ -4,6 +4,7 @@
     <Grid Background="{DynamicResource WindowBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -43,8 +44,56 @@
             </Grid>
         </Border>
 
+        <!-- live radio -->
+        <Border Grid.Row="1" Margin="24,0,24,12" Style="{StaticResource Card}" Padding="14,12">
+            <StackPanel>
+                <Grid Margin="2,0,2,8">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#33EF4444" CornerRadius="5" Padding="6,2" VerticalAlignment="Center">
+                            <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="#FCA5A5" />
+                        </Border>
+                        <TextBlock Text="Прямой эфир DrMusic" Style="{StaticResource SectionTitle}" Margin="8,0,0,0"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Music.RadioSummary}" Style="{StaticResource Muted}" FontSize="10.5"
+                                   Margin="10,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Content="Открыть DrMusic" HorizontalAlignment="Right" Style="{StaticResource GhostButton}"
+                            FontSize="10" Padding="9,4" Command="{Binding Music.RefreshCommand}" ToolTip="Обновить библиотеку" />
+                </Grid>
+
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Music.Stations}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButton}" Width="168" Margin="0,0,8,0" Padding="10,8"
+                                        HorizontalContentAlignment="Left"
+                                        Command="{Binding DataContext.Music.PlayStationCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <TextBlock Text="{Binding Title}" FontSize="11.5" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Background="#33EF4444" CornerRadius="4" Padding="4,1" HorizontalAlignment="Right">
+                                                <TextBlock Text="LIVE" FontSize="8" FontWeight="Bold" Foreground="#FCA5A5" />
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Artist}" FontSize="9.5" Opacity="0.7" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </StackPanel>
+        </Border>
+
         <!-- body -->
-        <Grid Grid.Row="1" Margin="24,0,24,0">
+        <Grid Grid.Row="2" Margin="24,0,24,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220" />
                 <ColumnDefinition Width="*" />
@@ -137,8 +186,11 @@
                                             </StackPanel>
                                             <TextBlock Grid.Column="2" Text="{Binding Category}" Style="{StaticResource Muted}"
                                                        FontSize="10.5" Margin="10,0" VerticalAlignment="Center" />
-                                            <TextBlock Grid.Column="3" Text="{Binding Extension}" FontSize="9.5" FontWeight="Bold"
-                                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                                            <Border Grid.Column="3" Background="{DynamicResource AccentSoftBrush}" CornerRadius="5"
+                                                    Padding="5,2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Badge}" FontSize="9" FontWeight="Bold"
+                                                           Foreground="{DynamicResource AccentBrush}" />
+                                            </Border>
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -146,16 +198,18 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <TextBlock Grid.Row="1" Style="{StaticResource Muted}" FontSize="12" TextAlignment="Center"
-                               VerticalAlignment="Center" TextWrapping="Wrap"
-                               Visibility="{Binding Music.Service.HasLibrary, Converter={StaticResource InverseBoolToVis}}"
-                               Text="Библиотека пуста. Нажмите «Выбрать папку» — DrBrowser прочитает только аудиофайлы из этой папки и ничего никуда не отправит." />
+                    <Border Grid.Row="1" VerticalAlignment="Bottom" Background="{DynamicResource SurfaceAltBrush}"
+                            CornerRadius="8" Padding="10,6" Margin="0,0,0,2"
+                            Visibility="{Binding Music.Service.HasLocalTracks, Converter={StaticResource InverseBoolToVis}}">
+                        <TextBlock Style="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap"
+                                   Text="Локальных файлов нет — в списке пока только радио. Нажмите «Выбрать папку», чтобы добавить свои треки: браузер читает только аудиофайлы и ничего не отправляет в сеть." />
+                    </Border>
                 </Grid>
             </Border>
         </Grid>
 
         <!-- now playing -->
-        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderThickness="0,1,0,0"
+        <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}" BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource BorderBrush}" Padding="24,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -166,8 +220,15 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Music.Service.CurrentTitle}" FontSize="12.5" FontWeight="SemiBold"
-                               TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Music.Service.CurrentTitle}" FontSize="12.5" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="180" />
+                        <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="4" Padding="5,1" Margin="6,0,0,0"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Music.NowPlayingBadge}" FontSize="8" FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}" />
+                        </Border>
+                    </StackPanel>
                     <TextBlock Text="{Binding Music.Service.CurrentSubtitle}" Style="{StaticResource Muted}" FontSize="10.5"
                                TextTrimming="CharacterEllipsis" />
                 </StackPanel>
@@ -194,7 +255,8 @@
                     <Slider x:Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="1"
                             Value="{Binding Music.Service.Progress, Mode=OneWay}"
                             ValueChanged="Seek_ValueChanged"
-                            VerticalAlignment="Center" />
+                            IsEnabled="{Binding Music.IsStreaming, Converter={StaticResource InverseBool}}"
+                            ToolTip="Прямой эфир нельзя перемотать" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Text="{Binding Music.Service.DurationText}" Style="{StaticResource Muted}"
                                FontSize="10.5" HorizontalAlignment="Right" VerticalAlignment="Center" />
                 </Grid>

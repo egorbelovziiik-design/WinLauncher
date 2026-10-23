@@ -228,6 +228,16 @@ public partial class MainWindow : Window, IBrowserShell
 
     private void ProfileButton_Click(object sender, RoutedEventArgs e) => _vm.ToggleProfile();
 
+    private void AvatarStyle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string style }) _vm.SetAvatarStyleCommand.Execute(style);
+    }
+
+    private void AccentSwatch_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string hex }) _vm.SetAccentCommand.Execute(hex);
+    }
+
     private void ProfileDismiss_Click(object sender, MouseButtonEventArgs e)
     {
         _vm.CloseProfile();
@@ -285,12 +295,13 @@ public partial class MainWindow : Window, IBrowserShell
             WindowState = _stateBeforeFullScreen;
         }
 
-        if (Content is Grid root && root.RowDefinitions.Count >= 5)
+        if (Content is Grid root && root.RowDefinitions.Count >= 6)
         {
             root.RowDefinitions[0].Height = enabled ? new GridLength(0) : new GridLength(44);
             root.RowDefinitions[1].Height = enabled ? new GridLength(0) : new GridLength(50);
             root.RowDefinitions[2].Height = enabled ? new GridLength(0) : GridLength.Auto;
-            root.RowDefinitions[4].Height = enabled ? new GridLength(0) : new GridLength(26);
+            root.RowDefinitions[4].Height = enabled ? new GridLength(0) : GridLength.Auto;
+            root.RowDefinitions[5].Height = enabled ? new GridLength(0) : new GridLength(26);
         }
     }
 

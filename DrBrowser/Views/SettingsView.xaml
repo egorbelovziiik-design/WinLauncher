@@ -188,10 +188,40 @@
                         </Border>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="РАДИО DRMUSIC" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding Music.RadioSummary}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                           Text="Встроенные станции играют в том же плеере, что и ваши файлы: без аккаунта и без ключа. Доступность зависит от сети и региона." />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
                                 <TextBlock Text="АВАТАР ПРОФИЛЯ" Style="{StaticResource SectionTitle}" />
                                 <TextBlock Text="{Binding AvatarImagePath}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
-                                <Button Content="Выбрать изображение" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
-                                        Command="{Binding ChooseAvatarCommand}" />
+                                <ItemsControl ItemsSource="{Binding AvatarStyles}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="6" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource IconButton}" Width="44" Height="44" Padding="0"
+                                                    ToolTip="{Binding}" Click="AvatarStyle_Click" Tag="{Binding}">
+                                                <Grid Width="28" Height="28">
+                                                    <Ellipse Fill="{Binding Converter={StaticResource AvatarStyleBrush}}" />
+                                                    <Ellipse Stroke="#55FFFFFF" StrokeThickness="1" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="Выбрать изображение" Style="{StaticResource GhostButton}"
+                                            Command="{Binding ChooseAvatarCommand}" />
+                                    <Button Content="Убрать свой аватар" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                                            Command="{Binding ClearCustomAvatarCommand}" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -356,6 +386,28 @@
                                 <TextBlock Text="{Binding AiKeyStatus}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0" />
                                 <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
                                            Text="Ключ хранится в %AppData%\DrBrowser\secrets\ai.key, зашифрованный Windows DPAPI для текущей учётной записи. В исходном коде и в settings.json ключа нет." />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="РЕЖИМ И КОНТЕКСТ" Style="{StaticResource SectionTitle}" />
+                                <ItemsControl ItemsSource="{Binding Personas}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,8" FontSize="11"
+                                                    Click="Persona_Click" Tag="{Binding Id}"
+                                                    Content="{Binding Name}" ToolTip="{Binding Hint}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <CheckBox Content="DrAI учитывает текст активной страницы" Style="{StaticResource Switch}"
+                                          IsChecked="{Binding AiIncludePage, Mode=TwoWay}" />
+                                <TextBlock Text="{Binding AiContextLabel}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

@@ -17,6 +17,7 @@ namespace DrBrowser;
 /// </summary>
 public static class SelfTest
 {
+    private const string LocaleAiAssistantId = "assistant";
     private sealed record Check(string Id, string Name, string Status, string Detail);
 
     private static readonly List<Check> Results = new();
@@ -205,6 +206,85 @@ public static class SelfTest
                     throw new Exception("категории (подпапки) не собраны: " + string.Join(", ", categories));
 
                 return $"{tracks.Count} трека · категории {string.Join(" / ", categories)} · .txt отфильтрован";
+            });
+
+            await Run("radio-stations", "DrMusic: встроенное радио и LIVE-плейлист", () =>
+            {
+                var log = new Logger();
+                using var service = new MusicService(log);
+
+                if (service.Stations.Count < 5)
+                    throw new Exception("встроенных станций меньше пяти: " + service.Stations.Count);
+
+                if (!service.Stations.All(st => st.IsStream && st.FilePath.StartsWith("https://")))
+                    throw new Exception("станция без https-потока");
+
+                var radioCategory = service.Categories.FirstOrDefault(c => c.Name == MusicService.RadioCategory);
+                if (radioCategory is null) throw new Exception("категория радио не появилась в DrMusic");
+                if (service.Tracks.Count != service.Stations.Count)
+                    throw new Exception("в списке треков не только радио: " + service.Tracks.Count);
+
+                service.Play(service.Stations[0]);
+                if (!service.IsStreaming) throw new Exception("плеер не перешёл в режим прямого эфира");
+                if (service.NowBadge != "LIVE") throw new Exception("бейдж LIVE не выставлен: " + service.NowBadge);
+                service.Seek(0.5); // live radio must ignore seeking
+                service.Stop();
+
+                return $"{service.Stations.Count} станций · категория «{radioCategory.Name}» · LIVE-бейдж и запрет перемотки";
+            });
+
+            await Run("ai-personas", "DrAI: режимы и промпты отличаются", () =>
+            {
+                var ids = MainViewModel.AiPersonas.Select(p => p.Id).ToList();
+                if (ids.Count < 3) throw new Exception("слишком мало режимов DrAI");
+                if (!ids.Contains(LocaleAiAssistantId)) throw new Exception("нет режима помощника");
+
+                var basePrompt = AIService.PromptFor("assistant");
+                var coder = AIService.PromptFor("coder");
+                var brief = AIService.PromptFor("brief");
+                if (coder == basePrompt || brief == basePrompt)
+                    throw new Exception("промпты режимов не отличаются от базового");
+
+                return $"{ids.Count} режима · промпты различаются · базовый {basePrompt.Length} символов";
+            });
+
+            await Run("profile-avatars", "Профиль: пресеты аватара и инициалы", () =>
+            {
+                if (MainViewModel.AvatarStyles.Count < 5) throw new Exception("мало пресетов аватара");
+
+                var brushes = MainViewModel.AvatarStyles.Select(MainViewModel.BuildAvatarBrush).ToList();
+                if (brushes.Any(b => b is not System.Windows.Media.LinearGradientBrush)) throw new Exception("пресет не является градиентом");
+                if (brushes.First() == brushes.Last()) throw new Exception("все пресеты одинаковые");
+
+                var settings = new AppSettings { ProfileName = "Doctor Browser" };
+                var initials = settings.ProfileName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (initials.Length < 2) throw new Exception("инициалы не вычисляются");
+
+                return $"{MainViewModel.AvatarStyles.Count} пресетов · градиенты различаются · инициалы DB";
+            });
+
+            await Run("drsearch-recents", "DrSearch: недавние запросы сохраняются", () =>
+            {
+                var dataDir = Path.Combine(temp, "recents");
+                Directory.CreateDirectory(dataDir);
+
+                var settings = new AppSettings();
+                var db = new Db(Path.Combine(dataDir, "recents.db"));
+                db.Initialize();
+                var log = new Logger();
+                var history = new HistoryService(db, log);
+                var bookmarks = new BookmarkService(db, log);
+
+                var search = new SearchViewModel(log, history, bookmarks, settings, _ => { });
+                search.Run("первый запрос");
+                search.Run("второй запрос");
+                search.Run("первый запрос");
+
+                if (search.Recents.Count != 2) throw new Exception("дубликаты не схлопнулись: " + search.Recents.Count);
+                if (search.Recents[0] != "первый запрос") throw new Exception("повторный запрос не поднялся наверх");
+                if (settings.DrSearchRecent.Count != 2) throw new Exception("запросы не попали в настройки");
+
+                return $"история запросов: {string.Join(" / ", search.Recents)}";
             });
 
             await Run("sqlite-history", "История в SQLite: запись, поиск, фильтр по дате, удаление", () =>

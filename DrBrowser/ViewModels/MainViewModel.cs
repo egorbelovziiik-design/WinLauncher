@@ -94,6 +94,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         Settings.PropertyChanged += (_, _) => OnSettingsChanged();
 
+        InitializeShell2();
+
         _log.Info($"MainViewModel created (private={IsPrivate})");
     }
 
@@ -734,7 +736,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ApplyZoom();
         ApplyTheme();
         Raise(nameof(AdBlockText), nameof(ShowBookmarksBar), nameof(ShowBookmarksBarRow), nameof(ZoomText),
-            nameof(ProfileGlyph), nameof(ProfileName));
+            nameof(ProfileGlyph), nameof(ProfileName), nameof(AvatarStyle), nameof(AvatarBrush), nameof(ProfileInitials),
+            nameof(SelectedPersonaId), nameof(SelectedPersona), nameof(AiPersonaHint), nameof(AiIncludePage), nameof(AiContextLabel));
         ScheduleSettingsSave();
     }
 

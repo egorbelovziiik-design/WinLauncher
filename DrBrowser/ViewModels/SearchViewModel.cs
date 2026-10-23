@@ -45,9 +45,30 @@ public sealed class SearchViewModel : ObservableObject
         _settings = settings;
         _navigate = navigate;
         _localOnly = settings.DrSearchLocalOnly;
+
+        foreach (var recent in settings.DrSearchRecent) Recents.Add(recent);
     }
 
     public ObservableCollection<SearchResult> Results { get; } = new();
+
+    /// <summary>Last queries kept locally (max 8) — shown as chips on the DrSearch page.</summary>
+    public ObservableCollection<string> Recents { get; } = new();
+
+    public bool HasRecents => Recents.Count > 0;
+
+    public ICommand UseRecentCommand => new RelayCommand(p =>
+    {
+        if (p is not string query) return;
+        Query = query;
+        Run(query);
+    });
+
+    public ICommand ClearRecentsCommand => new RelayCommand(() =>
+    {
+        Recents.Clear();
+        _settings.DrSearchRecent = new List<string>();
+        Raise(nameof(HasRecents));
+    });
 
     public static IReadOnlyList<string> WebEngines { get; } = new[] { "Google", "Яндекс", "Bing", "DuckDuckGo" };
 
@@ -217,9 +238,24 @@ public sealed class SearchViewModel : ObservableObject
         finally
         {
             IsSearching = false;
+            AddRecent(LastQuery);
             Raise(nameof(Summary));
             _log.Info($"DrSearch: \"{LastQuery}\" → {Results.Count} local results");
         }
+    }
+
+    private void AddRecent(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        var existing = Recents.FirstOrDefault(r => string.Equals(r, query, StringComparison.CurrentCultureIgnoreCase));
+        if (existing is not null) Recents.Remove(existing);
+
+        Recents.Insert(0, query);
+        while (Recents.Count > 8) Recents.RemoveAt(Recents.Count - 1);
+
+        _settings.DrSearchRecent = Recents.ToList();
+        Raise(nameof(HasRecents));
     }
 
     private static bool Matches(string? value, string needle)

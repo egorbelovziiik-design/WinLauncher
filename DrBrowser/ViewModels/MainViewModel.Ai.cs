@@ -84,7 +84,16 @@ public sealed partial class MainViewModel
                 .Select(m => new ChatMessage { Role = m.Role, Text = m.Text })
                 .ToList();
 
-            var answer = await AI.CompleteAsync(Settings, history, AIService.SystemPrompt).ConfigureAwait(true);
+            var systemPrompt = AIService.PromptFor(Settings.AiPersona);
+            if (Settings.AiIncludePage)
+            {
+                var pageText = await GetPageTextAsync().ConfigureAwait(true);
+                if (!string.IsNullOrWhiteSpace(pageText))
+                    systemPrompt += "\n\nКонтекст активной страницы «" + ActiveTab?.DisplayTitle +
+                                    "» (может быть неполным):\n" + Trim(pageText, 8000);
+            }
+
+            var answer = await AI.CompleteAsync(Settings, history, systemPrompt).ConfigureAwait(true);
             AiMessages.Add(new ChatMessage { Role = "assistant", Text = answer });
             AiStatus = string.Empty;
         }
@@ -189,7 +198,7 @@ public sealed partial class MainViewModel
         {
             var answer = await AI.CompleteAsync(Settings,
                 new[] { new ChatMessage { Role = "user", Text = prompt } },
-                AIService.SystemPrompt).ConfigureAwait(true);
+                AIService.PromptFor(Settings.AiPersona)).ConfigureAwait(true);
             AiMessages.Add(new ChatMessage { Role = "assistant", Text = answer });
             AiStatus = string.Empty;
         }

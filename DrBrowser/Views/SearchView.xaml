@@ -56,7 +56,24 @@
                 <TextBlock Text="{Binding Search.PrivacyText}" Style="{StaticResource Muted}" FontSize="11"
                            HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
 
-                <WrapPanel HorizontalAlignment="Center" Margin="0,12,0,0">
+                <ItemsControl ItemsSource="{Binding Search.Recents}" HorizontalAlignment="Center" Margin="0,12,0,0"
+                              Visibility="{Binding Search.HasRecents, Converter={StaticResource BoolToVis}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel HorizontalAlignment="Center" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource GhostButton}" FontSize="10.5" Padding="9,4" Margin="0,0,6,6"
+                                    Content="{Binding}" ToolTip="Повторить запрос"
+                                    Command="{Binding DataContext.Search.UseRecentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <WrapPanel HorizontalAlignment="Center" Margin="0,8,0,0">
                     <TextBlock Text="Найти в интернете:" Style="{StaticResource Muted}" FontSize="11"
                                VerticalAlignment="Center" Margin="0,0,8,0" />
                     <Button Content="Google" Style="{StaticResource GhostButton}" FontSize="11" Margin="0,0,6,0"
