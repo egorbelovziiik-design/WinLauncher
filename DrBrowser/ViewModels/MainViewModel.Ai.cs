@@ -85,6 +85,19 @@ public sealed partial class MainViewModel
 
     public ObservableCollection<string> AiModels { get; } = new();
 
+    /// <summary>Selected entry of the discovered-model list (writes into Settings.AiModel).</summary>
+    public string? SelectedAiModel
+    {
+        get => string.IsNullOrWhiteSpace(Settings.AiModel) ? null : Settings.AiModel;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            Settings.AiModel = value;
+            OnPropertyChanged();
+            Raise(nameof(AiEngineText));
+        }
+    }
+
     public string AiProviderHint
     {
         get
