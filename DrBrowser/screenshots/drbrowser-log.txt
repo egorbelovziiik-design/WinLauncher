@@ -1,44 +1,44 @@
-﻿22:56:48.669 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-22:56:48.698 INFO  === selftest: start ===
-22:56:48.701 INFO  selftest marker c7d93a98da1a4e27b1bb7c6f0fc172ff
-22:56:49.067 INFO  DrSearch: "dotnet" → 2 local results
-22:56:49.068 INFO  DrSearch: "drbrowser" → 1 local results
-22:56:49.091 INFO  DrSearch: "example.com" → 1 local results
-22:56:49.110 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
-22:56:49.111 INFO  DrSearch: "dotnet" → 2 local results
-22:56:49.452 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
-22:56:49.455 INFO  DrSearch: "dotnet" → 0 web results
-22:56:49.455 INFO  DrSearch: "example.com" → 0 web results
-22:56:49.455 INFO  DrSearch: "dotnet" → 0 web results
-22:56:49.456 INFO  DrSearch: "drbrowser" → 0 web results
-22:56:49.643 INFO  DrSearch: "первый запрос" → 0 local results
-22:56:49.643 INFO  DrSearch: "второй запрос" → 0 local results
-22:56:49.644 INFO  DrSearch: "первый запрос" → 0 local results
-22:56:49.717 INFO  DrSearch: "первый запрос" → 0 web results
-22:56:49.721 INFO  DrSearch: "первый запрос" → 0 web results
-22:56:49.721 INFO  DrSearch: "второй запрос" → 0 web results
-22:56:49.940 INFO  Правил: 107 · доменов: 88 · исключений: 0
-22:56:50.154 ERROR selftest intentional exception :: InvalidOperationException: expected
-22:56:51.204 INFO  exit code 0
-22:56:52.452 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-22:56:52.470 INFO  === smoke: start ===
-22:56:52.663 INFO  MainViewModel created (private=True)
-22:56:54.337 INFO  Правил: 107 · доменов: 88 · исключений: 0
-22:56:55.676 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\e740655499f44e9e8582f7ba5705782e
-22:56:55.703 INFO  Initialisation complete
-22:56:59.110 INFO  WebView2 configured for tab 7ea7b7
-22:56:59.112 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:56:59.578 WARN  navigation failed: about:blank :: ConnectionAborted
-22:57:00.921 INFO  WebView2 configured for tab 167282
-22:57:00.922 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:57:02.195 INFO  WebView2 configured for tab f2b987
-22:57:02.195 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:57:18.462 INFO  music play: DrBrowser Smoke Tone.wav (stream=False)
-22:57:21.002 ERROR music playback failed (DrBrowser Smoke Tone.wav): 0xC00D11BA
-22:57:23.617 INFO  WebView2 configured for tab 87a4c9
-22:57:23.617 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-22:57:26.034 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
-22:57:27.079 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
-22:57:27.643 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-225727.png
-22:57:29.118 INFO  shutdown complete
-22:57:29.492 INFO  exit code 0
+﻿23:00:29.255 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+23:00:29.276 INFO  === selftest: start ===
+23:00:29.278 INFO  selftest marker 4c87a425d3344ad6a006cefa141e6ff7
+23:00:29.496 INFO  DrSearch: "dotnet" → 2 local results
+23:00:29.497 INFO  DrSearch: "drbrowser" → 1 local results
+23:00:29.497 INFO  DrSearch: "example.com" → 1 local results
+23:00:29.509 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
+23:00:29.513 INFO  DrSearch: "dotnet" → 2 local results
+23:00:29.638 INFO  DrSearch: "drbrowser" → 0 web results
+23:00:29.652 INFO  DrSearch: "dotnet" → 0 web results
+23:00:29.652 INFO  DrSearch: "dotnet" → 0 web results
+23:00:29.652 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
+23:00:29.652 INFO  DrSearch: "example.com" → 0 web results
+23:00:29.858 INFO  DrSearch: "первый запрос" → 0 local results
+23:00:29.859 INFO  DrSearch: "второй запрос" → 0 local results
+23:00:29.859 INFO  DrSearch: "первый запрос" → 0 local results
+23:00:29.889 INFO  DrSearch: "первый запрос" → 0 web results
+23:00:29.891 INFO  DrSearch: "первый запрос" → 0 web results
+23:00:29.894 INFO  DrSearch: "второй запрос" → 0 web results
+23:00:30.036 INFO  Правил: 107 · доменов: 88 · исключений: 0
+23:00:30.161 ERROR selftest intentional exception :: InvalidOperationException: expected
+23:00:31.175 INFO  exit code 0
+23:00:31.937 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+23:00:31.951 INFO  === smoke: start ===
+23:00:32.070 INFO  MainViewModel created (private=True)
+23:00:33.454 INFO  Правил: 107 · доменов: 88 · исключений: 0
+23:00:34.842 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\bc217245af564e35860b1a67a1924b0d
+23:00:34.859 INFO  Initialisation complete
+23:00:38.034 INFO  WebView2 configured for tab 01c01f
+23:00:38.036 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:00:38.424 WARN  navigation failed: about:blank :: ConnectionAborted
+23:00:39.422 INFO  WebView2 configured for tab 081b26
+23:00:39.423 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:00:40.687 INFO  WebView2 configured for tab 3d4b64
+23:00:40.687 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:00:56.576 INFO  music play: DrBrowser Smoke Tone.wav (stream=False)
+23:00:59.096 ERROR music playback failed (DrBrowser Smoke Tone.wav): 0xC00D11BA
+23:01:01.675 INFO  WebView2 configured for tab 2407e7
+23:01:01.675 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+23:01:04.099 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
+23:01:04.874 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
+23:01:05.413 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-230105.png
+23:01:06.922 INFO  shutdown complete
+23:01:07.315 INFO  exit code 0
