@@ -159,7 +159,7 @@ StealAnEggUltimate/
 ## 8. Headless self-test and smoke run
 
 The published EXE can verify itself without a Roblox session — the same commands the
-CI workflow (`\.github/workflows/build-hub.yml`) runs on `windows-latest`:
+CI workflow (`.github/workflows/build-hub.yml`) runs on `windows-latest`:
 
 ```powershell
 # 36 functional assertions (settings, commands, demo egg world, ESP, bridge, assets, ...)
