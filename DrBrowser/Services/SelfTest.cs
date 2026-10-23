@@ -947,7 +947,8 @@ public static class SelfTest
                 if (!messyParsed[0].Location.EndsWith("b.mp3", StringComparison.OrdinalIgnoreCase) ||
                     !messyParsed[0].Location.StartsWith(@"C:\Music\Lists", StringComparison.OrdinalIgnoreCase))
                     throw new Exception("относительный путь не привязан к папке плейлиста");
-                if (messyParsed[1].Title != "c") throw new Exception("название из имени файла не подставлено");
+                if (messyParsed[1].Title.Length != 0) throw new Exception("запись без #EXTINF получила название");
+                if (messyParsed[1].DisplayTitle != "c.ogg") throw new Exception("название из имени файла не подставлено");
                 if (!messyParsed[2].IsStream) throw new Exception("URL в грязном файле не распознан");
 
                 if (MusicPlaylistFile.Parse("").Count != 0) throw new Exception("пустой текст дал записи");
