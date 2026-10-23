@@ -127,53 +127,99 @@ public partial class App : Application
     /// <summary>
     /// End-to-end smoke run. It drives the real feature path — CONNECT (which attaches
     /// the preview overlay when no Roblox client exists), the demo ESP, opening the
-    /// in-game menu with the configured key — then renders both windows to PNG. A
-    /// missing overlay, an empty ESP layer, a menu that refuses to open or a black
-    /// capture all fail the run instead of silently "passing".
+    /// in-game menu — then walks every overlay tab and renders each one to PNG. A
+    /// missing overlay, an empty ESP layer, a menu that refuses to open, a tab that
+    /// draws nothing or a black capture all fail the run instead of silently "passing".
     /// </summary>
     private void RunSmokeSequence()
     {
         if (_viewModel is null || _log is null) return;
 
         var stats = new List<string>();
-        var step = 0;
+        var dir = Path.Combine(AppPaths.DataRoot, "ui");
+        Directory.CreateDirectory(dir);
 
-        _log.Info("Smoke mode: driving the real CONNECT path.");
-        try
+        var tabs = new (string Id, string File)[]
         {
+            ("Egg", "overlay-egg.png"),
+            ("Player", "overlay-player.png"),
+            ("Auto", "overlay-automation.png"),
+            ("Visual", "overlay-visuals.png"),
+            ("Cmd", "overlay-commands.png")
+        };
+
+        var steps = new Queue<Action>();
+
+        steps.Enqueue(() =>
+        {
+            _log?.Info("Smoke mode: driving the real CONNECT path.");
             _viewModel.ConnectCommand.Execute(null);
-        }
-        catch (Exception ex)
+        });
+
+        steps.Enqueue(() =>
         {
-            Fault($"CONNECT threw {ex.GetType().Name}: {ex.Message}");
+            stats.Add($"connected={_viewModel.IsConnected}");
+            stats.Add($"preview={_viewModel.IsPreviewOverlay}");
+            stats.Add($"demoEggs={_viewModel.Eggs.Eggs.Count}");
+            stats.Add($"espEggs={_viewModel.EspEggs.Count}");
+
+            if (!_viewModel.IsConnected) Fault("CONNECT did not attach an overlay (preview or Roblox)");
+
+            _viewModel.ShowMenu();
+            stats.Add($"menuOpen={_viewModel.IsMenuOpen}");
+            if (!_viewModel.IsMenuOpen) Fault("the in-game menu did not open");
+
+            if (_window is not null)
+            {
+                var hub = UiSnapshot.Capture(_window, Path.Combine(dir, "hub-window.png"));
+                stats.Add($"hubShot={(hub.Saved ? $"{hub.Width}x{hub.Height}" : "FAILED")}");
+                stats.Add($"hubLuma={hub.MeanLuma:0.0}");
+                if (!hub.Saved) Fault($"the hub window could not be rendered ({hub.Error})");
+                else if (hub.MeanLuma < 2.0) Fault("the hub window rendered as a black/empty surface");
+            }
+        });
+
+        foreach (var (id, file) in tabs)
+        {
+            steps.Enqueue(() =>
+            {
+                _viewModel.OverlayTab = id;
+
+                var overlay = _viewModel.DiagnosticOverlayWindow;
+                if (overlay is null)
+                {
+                    Fault("no overlay window exists after CONNECT");
+                    return;
+                }
+
+                var shot = UiSnapshot.Capture(overlay, Path.Combine(dir, file));
+                stats.Add($"{Path.GetFileNameWithoutExtension(file)}={(shot.Saved ? $"{shot.Width}x{shot.Height}" : "FAILED")}/{shot.MeanLuma:0.0}");
+                if (!shot.Saved) Fault($"{file} could not be rendered ({shot.Error})");
+                else if (shot.MeanLuma < 2.0) Fault($"{file} rendered empty (overlay tab {id} did not draw)");
+            });
         }
 
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+        steps.Enqueue(() =>
+        {
+            if (_viewModel.EspEggs.Count == 0) Fault("the demo ESP projected no eggs onto the overlay");
+            _smokeDetail = string.Join(" · ", stats);
+            _log?.Info($"Smoke detail: {_smokeDetail}");
+            _log?.Info("Smoke mode: clean shutdown requested.");
+            _viewModel.Shutdown();
+        });
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
         timer.Tick += (_, _) =>
         {
             try
             {
-                if (step++ == 0)
+                if (steps.Count == 0)
                 {
-                    stats.Add($"connected={_viewModel.IsConnected}");
-                    stats.Add($"preview={_viewModel.IsPreviewOverlay}");
-                    stats.Add($"demoEggs={_viewModel.Eggs.Eggs.Count}");
-                    stats.Add($"espEggs={_viewModel.EspEggs.Count}");
-
-                    if (!_viewModel.IsConnected) Fault("CONNECT did not attach an overlay (preview or Roblox)");
-                    if (_viewModel.IsConnected && !_viewModel.IsPreviewOverlay)
-                        _log.Info("Smoke mode: a real Roblox client is attached, using it for the capture.");
-
-                    _viewModel.ShowMenu();
+                    timer.Stop();
                     return;
                 }
 
-                timer.Stop();
-                CaptureSmokeArtifacts(stats);
-                _smokeDetail = string.Join(" · ", stats);
-                _log.Info($"Smoke detail: {_smokeDetail}");
-                _log.Info("Smoke mode: clean shutdown requested.");
-                _viewModel.Shutdown();
+                steps.Dequeue()();
             }
             catch (Exception ex)
             {
@@ -184,45 +230,6 @@ public partial class App : Application
             }
         };
         timer.Start();
-    }
-
-    private void CaptureSmokeArtifacts(List<string> stats)
-    {
-        if (_viewModel is null) return;
-
-        stats.Add($"menuOpen={_viewModel.IsMenuOpen}");
-        stats.Add($"overlay={_viewModel.DiagnosticOverlayWindow is not null}");
-
-        var dir = Path.Combine(AppPaths.DataRoot, "ui");
-        Directory.CreateDirectory(dir);
-
-        if (_window is not null)
-        {
-            var hub = UiSnapshot.Capture(_window, Path.Combine(dir, "hub-window.png"));
-            stats.Add($"hubShot={(hub.Saved ? $"{hub.Width}x{hub.Height}" : "FAILED")}");
-            stats.Add($"hubLuma={hub.MeanLuma:0.0}");
-            stats.Add($"hubOpaque={hub.OpaqueRatio:P0}");
-            if (!hub.Saved) Fault($"the hub window could not be rendered ({hub.Error})");
-            else if (hub.MeanLuma < 2.0) Fault("the hub window rendered as a black/empty surface");
-        }
-
-        var overlay = _viewModel.DiagnosticOverlayWindow;
-        if (overlay is null)
-        {
-            Fault("no overlay window exists after CONNECT");
-        }
-        else
-        {
-            var shot = UiSnapshot.Capture(overlay, Path.Combine(dir, "overlay-menu.png"));
-            stats.Add($"overlayShot={(shot.Saved ? $"{shot.Width}x{shot.Height}" : "FAILED")}");
-            stats.Add($"overlayLuma={shot.MeanLuma:0.0}");
-            stats.Add($"overlayOpaque={shot.OpaqueRatio:P1}");
-            if (!shot.Saved) Fault($"the overlay could not be rendered ({shot.Error})");
-            else if (shot.MeanLuma < 2.0) Fault("the overlay rendered as an empty surface (menu did not draw)");
-        }
-
-        if (!_viewModel.IsMenuOpen) Fault("the in-game menu did not open");
-        if (_viewModel.EspEggs.Count == 0) Fault("the demo ESP projected no eggs onto the overlay");
     }
 
     private void Fault(string message)

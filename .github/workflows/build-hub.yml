@@ -154,7 +154,7 @@ jobs:
           }
 
           $uiDir = Join-Path $env:APPDATA "StealAnEggUltimate\ui"
-          foreach ($shot in @("hub-window.png", "overlay-menu.png")) {
+          foreach ($shot in @("hub-window.png", "overlay-egg.png", "overlay-player.png", "overlay-automation.png", "overlay-visuals.png", "overlay-commands.png")) {
             $path = Join-Path $uiDir $shot
             if (Test-Path -LiteralPath $path) {
               $size = (Get-Item -LiteralPath $path).Length

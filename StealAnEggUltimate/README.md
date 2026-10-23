@@ -177,8 +177,8 @@ the game — goes straight to Roblox; RIGHT SHIFT hands the keyboard back to the
 
 ### Screenshots of the running app
 
-`Docs/ui/hub-window.png` and `Docs/ui/overlay-menu.png` are rendered by the app itself
-during the `--smoke` run (CI regenerates them on every push), so the repository always
+`Docs/ui/hub-window.png` plus one `Docs/ui/overlay-*.png` per in-game tab (egg, player,
+automation, visuals, commands) are rendered by the app itself during the `--smoke` run (CI regenerates them on every push), so the repository always
 shows the current build instead of a mock-up.
 
 The published EXE can verify itself without a Roblox session — the same commands the
@@ -200,7 +200,7 @@ Get-Content "$env:APPDATA\StealAnEggUltimate\smoke-result.txt"
 | `RESULT: PASS` / `SUMMARY: n passed, m failed, k skipped` | machine-readable verdict in `selftest-report.txt` |
 | `[SKIP]` line | the skipped item is "overlay attached to a real Roblox window": it needs the Roblox Player running. The desktop PREVIEW overlay, its menu and its render are covered by `--smoke` |
 | `smoke ok ... uiExceptions=0` | CONNECT attached the overlay, the menu opened, the demo ESP projected eggs, both windows rendered to PNG with real pixels |
-| `Docs/ui/hub-window.png`, `Docs/ui/overlay-menu.png` | screenshots rendered by the app itself during the smoke run |
+| `Docs/ui/hub-window.png` + `Docs/ui/overlay-*.png` | screenshots rendered by the app itself during the smoke run (one per overlay tab) |
 | smoke exit code `4` | the UI rendered but raised at least one binding/XAML exception (CI fails) |
 
 Everything that could not be executed automatically is marked here instead of being
