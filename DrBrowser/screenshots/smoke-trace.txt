@@ -1481,3 +1481,58 @@
 22:36:01.345 smoke: view model shutdown
 22:36:01.373 smoke: window closed
 22:36:01.379 smoke: finished, exit 0
+22:45:32.414 data-folders: PASS
+22:45:32.482 settings-json: PASS
+22:45:32.492 url-parser: PASS
+22:45:32.494 search-engines: PASS
+22:45:32.674 drsearch-index: PASS
+22:45:32.683 music-library: PASS
+22:45:32.939 radio-stations: PASS
+22:45:32.941 ai-personas: PASS
+22:45:32.949 profile-avatars: PASS
+22:45:33.267 drsearch-recents: PASS
+22:45:33.762 sqlite-history: PASS
+22:45:33.786 bookmarks: PASS
+22:45:33.800 passwords-dpapi: PASS
+22:45:33.802 password-generator: PASS
+22:45:33.805 ai-without-key: PASS
+22:45:33.810 adblock: PASS
+22:45:33.815 downloads: PASS
+22:45:33.826 session: PASS
+22:45:34.081 quicklinks-permissions: PASS
+22:45:34.090 incognito-profile: PASS
+22:45:34.095 webview2-runtime: PASS
+22:45:34.096 settings-limits: PASS
+22:45:34.099 guard-url-rules: PASS
+22:45:34.101 guard-scan-args: PASS
+22:45:34.102 ai-image-attachment: PASS
+22:45:34.139 local-ai: PASS
+22:45:34.152 ai-media-context: PASS
+22:45:34.154 music-catalog-parse: PASS
+22:45:34.158 drsearch-parse: PASS
+22:45:34.161 ai-local-provider: PASS
+22:45:34.161 ru-plurals: PASS
+22:45:34.714 music-persistence: PASS
+22:45:34.715 error-logging: PASS
+22:45:35.646 smoke: start
+22:45:38.101 smoke: window created
+22:45:38.295 smoke: view model attached
+22:45:41.687 smoke-window: PASS
+22:45:41.689 smoke-webview: navigating
+22:45:46.410 smoke-webview: core ready
+22:45:47.554 smoke-webview: calling NavigateToString
+22:45:47.566 smoke-webview: NavigateToString returned
+22:45:48.296 smoke-webview: PASS
+22:45:50.738 smoke-tabs: PASS
+22:45:58.295 smoke-pages: PASS
+22:46:00.752 smoke-settings-tabs: PASS
+22:46:02.208 smoke-ui: PASS
+22:46:03.149 smoke-miniplayer: PASS
+22:46:05.355 smoke-hotkeys: PASS
+22:46:06.014 smoke-https: engine ready
+22:46:06.346 smoke-https: PASS
+22:46:09.152 smoke-download: PASS
+22:46:10.660 smoke-screenshot: PASS
+22:46:10.725 smoke: view model shutdown
+22:46:10.745 smoke: window closed
+22:46:10.750 smoke: finished, exit 0
