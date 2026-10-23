@@ -1,74 +1,74 @@
-﻿DrBrowser self-test · 2026-10-23 22:40:59 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser self-test · 2026-10-23 22:51:46 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] data-folders         Каталоги данных и журнал
-           5 каталогов + logs\drbrowser-*.log (55 ms)
+           5 каталогов + logs\drbrowser-*.log (59 ms)
 [PASS] settings-json        Настройки: сохранение и загрузка JSON
-           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (86 ms)
+           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (68 ms)
 [PASS] url-parser           Адресная строка: URL против поискового запроса
-           URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (10 ms)
+           URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (8 ms)
 [PASS] search-engines       5 поисковых систем, включая собственный DrSearch
-           Google · Яндекс · Bing · DuckDuckGo · DrSearch — DrSearch + 4 веб-движка (2 ms)
+           Google · Яндекс · Bing · DuckDuckGo · DrSearch — DrSearch + 4 веб-движка (1 ms)
 [PASS] drsearch-index       DrSearch: локальный поиск по истории и закладкам
-           история + закладки + адрес + переход — 2 результатов (191 ms)
+           история + закладки + адрес + переход — 2 результатов (164 ms)
 [PASS] drsearch-fts5        DrSearch: собственный FTS5, BM25, фразы и дедупликация
-           2 документа · RU/EN · BM25 · snippet highlight · canonical URL (69 ms)
+           2 документа · RU/EN · BM25 · snippet highlight · canonical URL (59 ms)
 [PASS] omega-productivity   DrNotes, DrTasks и DrWorkspaces: реальный SQLite CRUD
-           note CRUD · task CRUD · 6 пространств со снимками вкладок (62 ms)
+           note CRUD · task CRUD · 6 пространств со снимками вкладок (47 ms)
 [PASS] drmind-memory        DrMind: явная локальная память SQLite
-           explicit add · prompt context · delete; автоматического сохранения нет (40 ms)
+           explicit add · prompt context · delete; автоматического сохранения нет (25 ms)
 [PASS] backup               Backup: SQLite snapshot, manifest, SHA-256 и исключение секретов
-           drbrowser.db + manifest.json + settings.json · SHA-256 verified · secrets excluded (98 ms)
+           drbrowser.db + manifest.json + settings.json · SHA-256 verified · secrets excluded (75 ms)
 [PASS] drtools              DrTools: калькулятор, JSON, единицы, цвет и пароль
-           safe parser · JSON · km→mi · HEX→RGB · CSPRNG · 10 тем (8 ms)
+           safe parser · JSON · km→mi · HEX→RGB · CSPRNG · 10 тем (4 ms)
 [PASS] music-library        DrMusic: сканирование папки, категории, поиск
-           3 трека · категории Chill / Rock · .txt отфильтрован (13 ms)
+           3 трека · категории Chill / Rock · .txt отфильтрован (4 ms)
 [PASS] music-playlists      DrMusic: SQLite плейлисты и Избранное
-           create · add/remove track · favorites toggle · delete; файлы не изменены (39 ms)
+           create · add/remove track · favorites toggle · delete; файлы не изменены (33 ms)
 [PASS] radio-stations       DrMusic: HTTPS-радио и безопасная граница WebView2
-           8 HTTPS-станций · LIVE · сетевые URL исключены из очереди MediaPlayer (16 ms)
+           8 HTTPS-станций · LIVE · сетевые URL исключены из очереди MediaPlayer (202 ms)
 [PASS] ai-personas          DrAI: режимы и промпты отличаются
-           9 режима · промпты различаются · базовый 151 символов (2 ms)
+           9 режима · промпты различаются · базовый 151 символов (1 ms)
 [PASS] profile-avatars      Профиль: пресеты аватара и инициалы
-           6 пресетов · градиенты различаются · инициалы DB (5 ms)
+           6 пресетов · градиенты различаются · инициалы DB (3 ms)
 [PASS] drsearch-recents     DrSearch: недавние запросы сохраняются
-           история запросов: первый запрос / второй запрос (98 ms)
+           история запросов: первый запрос / второй запрос (78 ms)
 [PASS] sqlite-history       История в SQLite: запись, поиск, фильтр по дате, удаление
-           4 записи · поиск · дата · most-visited · delete · clear — OK (86 ms)
+           4 записи · поиск · дата · most-visited · delete · clear — OK (103 ms)
 [PASS] bookmarks            Закладки: папки, поиск, HTML импорт/экспорт
-           добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (30 ms)
+           добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (20 ms)
 [PASS] passwords-dpapi      Пароли: DPAPI-шифрование и отсутствие открытого текста
-           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (139 ms)
+           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (77 ms)
 [PASS] password-generator   Генератор паролей и оценка стойкости
-           Wjgq… · Strength «сильный» (0 ms)
+           r^9R… · Strength «сильный» (0 ms)
 [PASS] ai-without-key       AI без ключа: понятное сообщение об ошибке
-           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (4 ms)
+           без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (3 ms)
 [PASS] adblock              AdBlock: домены, пользовательские правила, whitelist
-           правил: 108 · домен/путь/whitelist/свои правила — OK (6 ms)
+           правил: 108 · домен/путь/whitelist/свои правила — OK (4 ms)
 [PASS] downloads            Загрузки: форматирование размеров и история в SQLite
-           B/KB/MB/GB · запись и чтение истории загрузок (6 ms)
+           B/KB/MB/GB · запись и чтение истории загрузок (4 ms)
 [PASS] session              Сессия: сохранение и восстановление вкладок
-           session.json: 2 вкладки, pin и активный индекс — OK (8 ms)
+           session.json: 2 вкладки, pin и активный индекс — OK (6 ms)
 [PASS] quicklinks-permissions Быстрые ссылки и разрешения сайтов в SQLite
-           quick links CRUD · permissions set/get/clear (61 ms)
+           quick links CRUD · permissions set/get/clear (76 ms)
 [PASS] incognito-profile    Инкогнито: временный профиль создаётся и удаляется
-           profile\incognito-<guid> создан и удалён вместе с данными (6 ms)
+           profile\incognito-<guid> создан и удалён вместе с данными (1 ms)
 [PASS] webview2-runtime     Определение Microsoft Edge WebView2 Runtime
            WebView2 Runtime 155.0.4283.62 (5 ms)
 [PASS] settings-limits      Ограничения настроек (масштаб, суспензия вкладок)
            zoom 0.25–3.0 · suspend 1–240 · Normalize восстанавливает значения (0 ms)
 [PASS] guard-url-rules      DrGuard: блокировка и предупреждения по URL
-           8 сценариев: safe · inner · credentials · punycode · tld-bait · http · blocklist · exemption (5 ms)
+           8 сценариев: safe · inner · credentials · punycode · tld-bait · http · blocklist · exemption (3 ms)
 [PASS] guard-scan-args      DrGuard: аргументы Defender и определение движка
            MpCmdRun.exe: C:\Program Files\Windows Defender\MpCmdRun.exe (1 ms)
 [PASS] ai-image-attachment  Фото DrAI: сигнатуры, лимит, base64, имя без пути
-           PNG data URL · имя без каталога · пустые/неизвестные/слишком большие файлы отклонены (1 ms)
+           PNG data URL · имя без каталога · пустые/неизвестные/слишком большие файлы отклонены (0 ms)
 [PASS] local-ai             DrAI Local: краткое содержание, ключевые слова, статистика
-           конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети (58 ms)
+           конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети (34 ms)
 [PASS] music-catalog-parse  Каталог музыки: разбор ответов iTunes и Deezer
-           iTunes 1 · Deezer 1 · превью · длительность · ссылка на Яндекс (3 ms)
+           iTunes 1 · Deezer 1 · превью · длительность · ссылка на Яндекс (1 ms)
 [PASS] drsearch-parse       DrSearch: разбор выдачи и bang-команды
-           2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang (5 ms)
+           2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang (3 ms)
 [PASS] error-logging        Обработка ошибок пишется в журнал
-           ERROR + stack trace записаны в журнал (1 ms)
+           ERROR + stack trace записаны в журнал (0 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 35 passed, 0 failed, 0 skipped из 35

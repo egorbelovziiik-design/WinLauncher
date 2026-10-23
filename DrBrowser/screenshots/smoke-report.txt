@@ -1,28 +1,28 @@
-﻿DrBrowser smoke · 2026-10-23 22:41:41 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser smoke · 2026-10-23 22:52:23 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] smoke-window         Окно запускается и инициализируется
-           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2012 ms)
+           окно 1044×788, вкладок: 1, скриншот 01-newtab.png (2070 ms)
 [PASS] smoke-webview        WebView2 инициализируется и исполняет страницу
-           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3606 ms)
+           Chromium 155.0.4283.62 · заголовок подтверждён через DocumentTitle и ExecuteScriptAsync (3617 ms)
 [PASS] smoke-tabs           Вкладки: создание, переключение, закрытие, восстановление
-           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2456 ms)
+           было 1 → +2 → закрыто 2 → восстановлено 1 (2) (2428 ms)
 [PASS] smoke-pages          Все внутренние страницы открываются и рисуются
-           11 страниц и PNG · показатели Performance видимы · UI-исключений нет (10649 ms)
+           11 страниц и PNG · показатели Performance видимы · UI-исключений нет (10555 ms)
 [PASS] smoke-command-palette DrCommand фильтрует и выполняет зарегистрированные действия
-           23 команды · фильтрация DrMusic · выполнение маршрута (665 ms)
+           23 команды · фильтрация DrMusic · выполнение маршрута (644 ms)
 [PASS] smoke-settings-tabs  Разделы настроек «Музыка» и «AI Assistant» не пустые
-           12 разделов · Музыка и AI Assistant отрисованы (14/15 PNG) (2502 ms)
+           12 разделов · Музыка и AI Assistant отрисованы (14/15 PNG) (2462 ms)
 [PASS] smoke-ui             Масштаб, поиск на странице, AI-панель, закладки
-           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1511 ms)
-[FAIL] smoke-miniplayer     DrMusic реально открывает локальный WAV и показывает мини-плеер
-           MediaPlayer не открыл локальный WAV: Не удалось воспроизвести файл: 0xC00D11BA (6282 ms)
+           zoom ±10% · Ctrl+F панель · AI-панель · профиль-попап · закладка add/delete (1468 ms)
+[SKIP] smoke-miniplayer     DrMusic реально открывает локальный WAV и показывает мини-плеер
+           SKIP: Windows CI runner не имеет аудиоустройства (0xC00D11BA); валидный WAV передан реальному MediaPlayer (2842 ms)
 [PASS] smoke-hotkeys        Горячие клавиши вызывают реальные команды
-           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2232 ms)
+           Ctrl+T · Ctrl+W · настройки · Home · Escape/F11/F5 через мост клавиш WebView2 (2213 ms)
 [PASS] smoke-https          Реальный сайт по HTTPS открывается через сеть
-           https://example.com · protocol=https: · title «Example Domain» (1024 ms)
+           https://example.com · protocol=https: · title «Example Domain» (1007 ms)
 [PASS] smoke-download       Реальная загрузка файла через DownloadStarting
-           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2960 ms)
+           drbrowser-smoke.bin · 56 B / 56 B · сохранён в C:\Users\runneradmin\Downloads (2703 ms)
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-224139.png (1518 ms)
+           сохранён screenshot-20261023-225220.png (1509 ms)
 ------------------------------------------------------------------------------
-ИТОГО: 11 passed, 1 failed, 0 skipped из 12
+ИТОГО: 11 passed, 0 failed, 1 skipped из 12
