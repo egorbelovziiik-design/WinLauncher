@@ -113,6 +113,7 @@ jobs:
         run: |
           $env:DRBROWSER_SHOTS = "${{ github.workspace }}\DrBrowser\screenshots"
           New-Item -ItemType Directory -Force -Path $env:DRBROWSER_SHOTS | Out-Null
+          Remove-Item "$env:DRBROWSER_SHOTS\exit-codes.txt" -Force -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath "dist\DrBrowser.exe" -ArgumentList "--selftest" -PassThru -Wait
           $code = $p.ExitCode
           "selftest exit code: $code"
