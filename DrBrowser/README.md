@@ -128,7 +128,7 @@ dotnet publish DrBrowser.csproj -c Release -r win-x64 --self-contained true `
 ..\dist\DrBrowser.exe --smoke
 ```
 
-Final GitHub Actions run [40036576617](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40036576617) succeeded: Release build, self-contained publish, Inno Setup compilation and checksums passed; **35/35** logic checks passed; **11/12** live-window/WebView2 checks passed with **0 failures and 1 honest environment skip**. The skipped local-audio check passed a valid WAV to the real WPF `MediaPlayer`, but the headless Windows runner reported no audio device (`0xC00D11BA`). Exact reports are committed under `screenshots/`; verified binaries are committed under top-level `dist/` and attached to the [OMEGA release](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest).
+Final GitHub Actions run [40037004618](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40037004618) succeeded: Release build, self-contained publish, Inno Setup compilation and checksums passed; **35/35** logic checks passed; **11/12** live-window/WebView2 checks passed with **0 failures and 1 honest environment skip**. The skipped local-audio check passed a valid WAV to the real WPF `MediaPlayer`, but the headless Windows runner reported no audio device (`0xC00D11BA`). Exact reports are committed under `screenshots/`; verified binaries are committed under top-level `dist/` and attached to the [OMEGA release](https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest).
 
 ## Known limitations
 

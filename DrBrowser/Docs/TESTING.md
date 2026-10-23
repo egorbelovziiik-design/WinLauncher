@@ -11,7 +11,7 @@ Both write human-readable reports and return `1` when any check records `FAIL`. 
 
 ## Final verified packaging run
 
-GitHub Actions run **40036576617** on `windows-latest` completed successfully for source commit `a085a507c64b32e47977950ec856c2e31ae215bd`:
+GitHub Actions run **40037004618** on `windows-latest` completed successfully for source commit `f273fb6617f911bd1b9184a159897b2687c6b897`:
 
 - .NET 10 Release build: passed.
 - Self-contained compressed single-file `win-x64` publish: passed.
@@ -25,9 +25,9 @@ GitHub Actions run **40036576617** on `windows-latest` completed successfully fo
 - Real loopback WebView2 download (56/56 bytes): passed.
 - Reports/screenshots/artifact upload, branch publication and GitHub release: passed.
 
-Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40036576617>
+Run: <https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40037004618>
 
-Published evidence commit: `fcefe04`. Release: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>.
+Published evidence commit: `ba4ce76`. Release: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>.
 Check committed `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` for the exact per-check output.
 
 ## Logic/self-test coverage (35 checks)
