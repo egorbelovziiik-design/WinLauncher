@@ -1,23 +1,23 @@
-﻿18:47:17.852 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-18:47:17.884 INFO  === selftest: start ===
-18:47:17.887 INFO  selftest marker daffcb85d1744e409fe9a24db6a53cbf
-18:47:18.213 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:47:18.266 ERROR selftest intentional exception :: InvalidOperationException: expected
-18:47:19.293 INFO  exit code 0
-18:47:20.406 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-18:47:20.423 INFO  === smoke: start ===
-18:47:20.525 INFO  MainViewModel created (private=True)
-18:47:21.426 INFO  Правил: 107 · доменов: 88 · исключений: 0
-18:47:22.685 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\98de50c66f2341e1b232cd4b26cd6d01
-18:47:22.708 INFO  Initialisation complete
-18:47:25.401 INFO  WebView2 configured for tab 191877
-18:47:25.407 WARN  accelerator bridge: controller not found. fields=[m_webview2Base:WebView2Base, _templatedParent:DependencyObject, MeasureRequest:Request, ArrangeRequest:Request, sizeChangedInfo:SizeChangedInfo, _parentIndex:Int32, _parent:DependencyObject, _proxy:VisualProxy, _contextStorage:Object] controllerProps=[PositionAndSizeOfSetController:UIElement]
-18:47:25.820 WARN  navigation failed: about:blank :: ConnectionAborted
-18:47:26.854 INFO  WebView2 configured for tab 6580ee
-18:47:26.856 WARN  accelerator bridge: controller not found. fields=[m_webview2Base:WebView2Base, _templatedParent:DependencyObject, MeasureRequest:Request, ArrangeRequest:Request, sizeChangedInfo:SizeChangedInfo, _parentIndex:Int32, _parent:DependencyObject, _proxy:VisualProxy, _contextStorage:Object] controllerProps=[PositionAndSizeOfSetController:UIElement]
-18:47:28.135 INFO  WebView2 configured for tab c29f03
-18:47:28.135 WARN  accelerator bridge: controller not found. fields=[m_webview2Base:WebView2Base, _templatedParent:DependencyObject, MeasureRequest:Request, ArrangeRequest:Request, sizeChangedInfo:SizeChangedInfo, _parentIndex:Int32, _parent:DependencyObject, _proxy:VisualProxy, _contextStorage:Object] controllerProps=[PositionAndSizeOfSetController:UIElement]
-18:47:36.422 WARN  navigation failed: https://example.com/ :: ConnectionAborted
-18:47:36.714 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-184736.png
-18:47:38.224 INFO  shutdown complete
-18:47:38.597 INFO  exit code 0
+﻿18:50:52.463 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+18:50:52.507 INFO  === selftest: start ===
+18:50:52.509 INFO  selftest marker d8ff7554885443e7b61b55e7cf72c78a
+18:50:52.857 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:50:52.936 ERROR selftest intentional exception :: InvalidOperationException: expected
+18:50:53.956 INFO  exit code 0
+18:50:55.100 INFO  === DrBrowser 1.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+18:50:55.125 INFO  === smoke: start ===
+18:50:55.238 INFO  MainViewModel created (private=True)
+18:50:56.197 INFO  Правил: 107 · доменов: 88 · исключений: 0
+18:50:57.363 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\371e758a29a543c4965a9618f2b53989
+18:50:57.385 INFO  Initialisation complete
+18:51:00.448 INFO  WebView2 configured for tab 919c3a
+18:51:00.457 WARN  accelerator bridge unavailable: CoreWebView2Controller not found; page-focused shortcuts limited
+18:51:00.864 WARN  navigation failed: about:blank :: ConnectionAborted
+18:51:02.155 INFO  WebView2 configured for tab 68faaf
+18:51:02.158 WARN  accelerator bridge unavailable: CoreWebView2Controller not found; page-focused shortcuts limited
+18:51:03.472 INFO  WebView2 configured for tab c6640f
+18:51:03.473 WARN  accelerator bridge unavailable: CoreWebView2Controller not found; page-focused shortcuts limited
+18:51:11.812 WARN  navigation failed: https://example.com/ :: ConnectionAborted
+18:51:12.103 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-185112.png
+18:51:13.609 INFO  shutdown complete
+18:51:14.021 INFO  exit code 0
