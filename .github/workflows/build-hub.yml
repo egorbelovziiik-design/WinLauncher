@@ -20,10 +20,15 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: build-hub-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build & publish (win-x64)
     runs-on: windows-latest
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
@@ -103,6 +108,7 @@ jobs:
           Write-Host "::notice::EXE size $([math]::Round($info.Length / 1MB, 1)) MB sha256 $((Get-FileHash $exe -Algorithm SHA256).Hash)"
 
       - name: Self-test (headless functional tests)
+        timeout-minutes: 10
         run: |
           $exe = (Resolve-Path "StealAnEggUltimate/dist/StealAnEggUltimate.exe").Path
           $process = Start-Process -FilePath $exe -ArgumentList "--selftest" -PassThru -Wait
@@ -119,6 +125,7 @@ jobs:
           }
 
       - name: Smoke test (start the UI, auto-close)
+        timeout-minutes: 5
         run: |
           $exe = (Resolve-Path "StealAnEggUltimate/dist/StealAnEggUltimate.exe").Path
           $process = Start-Process -FilePath $exe -ArgumentList "--smoke" -PassThru

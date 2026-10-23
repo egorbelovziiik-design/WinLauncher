@@ -428,16 +428,16 @@ public static class SelfTest
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             var baseUrl = $"http://127.0.0.1:{port}";
 
-            var ping = await http.GetAsync($"{baseUrl}/ping");
+            var ping = await http.GetAsync($"{baseUrl}/ping").ConfigureAwait(false);
             Check("Bridge GET /ping", ping.IsSuccessStatusCode, $"status={(int)ping.StatusCode}");
 
-            var stateResponse = await http.GetAsync($"{baseUrl}/state");
-            var stateBody = await stateResponse.Content.ReadAsStringAsync();
+            var stateResponse = await http.GetAsync($"{baseUrl}/state").ConfigureAwait(false);
+            var stateBody = await stateResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
             Check("Bridge GET /state", stateResponse.IsSuccessStatusCode && stateBody.Contains("\"ok\"", StringComparison.OrdinalIgnoreCase),
                 $"status={(int)stateResponse.StatusCode}, {stateBody.Length} bytes");
 
             bridge.PublishState(new BridgeStateDoc { Speed = true, WalkSpeed = 42, Player = "SelfTest" });
-            var published = await http.GetStringAsync($"{baseUrl}/state");
+            var published = await http.GetStringAsync($"{baseUrl}/state").ConfigureAwait(false);
             Check("Bridge state publishing", published.Contains("\"walkSpeed\": 42") || published.Contains("\"walkSpeed\":42"),
                 published.Length > 200 ? published[..200] : published);
 
@@ -446,21 +446,21 @@ public static class SelfTest
                 $"{bridge.State.Commands.Count} pending command(s)");
 
             var sample = File.Exists(Path.Combine(AppContext.BaseDirectory, "Config", "sample-snapshot.json"))
-                ? await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Config", "sample-snapshot.json"))
+                ? await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Config", "sample-snapshot.json")).ConfigureAwait(false)
                 : "{\"player\":\"x\",\"eggs\":[]}";
 
             using var content = new StringContent(sample, Encoding.UTF8, "application/json");
-            var post = await http.PostAsync($"{baseUrl}/snapshot", content);
+            var post = await http.PostAsync($"{baseUrl}/snapshot", content).ConfigureAwait(false);
             var got = received.Wait(TimeSpan.FromSeconds(5));
 
             Check("Bridge POST /snapshot", post.IsSuccessStatusCode && got && last is not null && last.Snapshot.Eggs.Count == 6,
                 $"status={(int)post.StatusCode}, eggs={last?.Snapshot.Eggs.Count ?? 0}");
 
             var eventContent = new StringContent("{\"name\":\"log\",\"message\":\"self-test\"}", Encoding.UTF8, "application/json");
-            var eventResponse = await http.PostAsync($"{baseUrl}/event", eventContent);
+            var eventResponse = await http.PostAsync($"{baseUrl}/event", eventContent).ConfigureAwait(false);
             Check("Bridge POST /event", eventResponse.IsSuccessStatusCode, $"status={(int)eventResponse.StatusCode}");
 
-            var notFound = await http.GetAsync($"{baseUrl}/nope");
+            var notFound = await http.GetAsync($"{baseUrl}/nope").ConfigureAwait(false);
             Check("Bridge unknown route returns 404", (int)notFound.StatusCode == 404, $"status={(int)notFound.StatusCode}");
         }
         catch (Exception ex)

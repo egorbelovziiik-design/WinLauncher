@@ -52,7 +52,24 @@ public partial class App : Application
 
         if (_selfTestMode)
         {
-            var exitCode = SelfTest.Run(_log);
+            // Run the suite on a dedicated STA thread: the WPF dispatcher loop is not
+            // pumping yet, so awaiting I/O on the UI thread would deadlock.
+            var exitCode = 1;
+            var thread = new Thread(() => exitCode = SelfTest.Run(_log))
+            {
+                IsBackground = true,
+                Name = "SelfTest"
+            };
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+
+            if (!thread.Join(TimeSpan.FromMinutes(6)))
+            {
+                _log.Error("Self-test thread timed out after 6 minutes.");
+                exitCode = 3;
+            }
+
+            _log.Info($"Self-test exit code: {exitCode}");
             Shutdown(exitCode);
             return;
         }
@@ -131,6 +148,12 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         _log?.Error("Unhandled UI exception.", e.Exception);
+
+        if (_smokeMode || _selfTestMode)
+        {
+            e.Handled = true;
+            return;
+        }
 
         // Recover instead of crashing: report once and keep the hub usable.
         MessageBox.Show(
