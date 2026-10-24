@@ -1,4 +1,4 @@
-### Gradle log: nexus1165  (Sat Oct 24 15:48:57 UTC 2026)
+### Gradle log: nexus1165  (Sat Oct 24 15:51:00 UTC 2026)
 ```
 /home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Screens.java:35: error: cannot find symbol
             Screen current = handle().screen;
@@ -20,12 +20,7 @@
                        ^
   symbol:   variable screen
   location: class MinecraftClient
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/NexusScreenBridge.java:27: error: call to super must be first statement in constructor
-        super(new LiteralText(screen.title()));
-             ^
-5 errors
-
-> Task :compileJava FAILED
+4 errors
 ```
 
 ### tail
@@ -62,12 +57,9 @@ Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix
                        ^
   symbol:   variable screen
   location: class MinecraftClient
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/NexusScreenBridge.java:27: error: call to super must be first statement in constructor
-        super(new LiteralText(screen.title()));
-             ^
-5 errors
+4 errors
 > Task :compileJava FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792856900225.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792857024614.json
 FAILURE: Build failed with an exception.
 * What went wrong:
 Execution failed for task ':compileJava'.
@@ -78,6 +70,6 @@ Execution failed for task ':compileJava'.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 44s
+BUILD FAILED in 41s
 1 actionable task: 1 executed
 ```
