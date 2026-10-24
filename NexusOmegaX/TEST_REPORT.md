@@ -9,7 +9,7 @@ Result summary
 |---|---|
 | Core compile (Java 21) | **0 errors**, 526 classes |
 | Core compile (Java 8, 1.16.5 target) | **0 errors** |
-| Headless test suite | **81 checks, 0 failures** (exit 0) |
+| Headless test suite | **115 checks, 0 failures** (exit 0) |
 | Adapter ↔ `nexus.api` conformance (static) | **0 missing methods** in all 3 adapters |
 | `NexusInjector.exe` | built, **PE32+ Windows GUI**, 249 344 bytes |
 | Mod jars (1.16.5 / 1.21.4 / 1.21.11) | **not produced here** — see §5 |
@@ -29,11 +29,11 @@ java -jar ecj.jar -8  -nowarn -d build/classes8 $(find api/src core/src modules/
 Sources: 468 Java files (`api` 23, `core` 90, `modules` 276, `test` 3,
 adapters 76). Runtime dependencies of the core: **none**.
 
-## 2. Headless test suite — 81 checks, 0 failures
+## 2. Headless test suite — 115 checks, 0 failures
 
 ```
 java -cp build/classes nexus.test.TestSuite build/test-runtime
-checks: 81   failures: 0   exit code: 0
+checks: 115   failures: 0   exit code: 0
 ```
 
 The suite boots the real client on top of `nexus.test.HeadlessPlatform`
@@ -257,3 +257,19 @@ violated):
 | mixin configs point at real classes | a class renamed/moved but still listed in `*.mixins.json` |
 | no mixin package references from outside | `IllegalClassLoadError` before launch |
 | no mixin package strings inside the built jars | the same bug after shading/remapping |
+
+## 10. GUI sharpness, HUD defaults, TargetHUD, drag-with-chat
+
+| issue (reported) | cause | fix |
+|---|---|---|
+| «меню размытое» | every 1.21 screen renders `renderBackground` -> vanilla blur shader; the GUI added its own blur pass on top | `NexusScreenBridge.renderBackground` is a no-op and `GuiTheme.backdrop` no longer calls `blurRegion`; GUI text stopped using sub-pixel scales (0.8/0.85/0.9 -> 1.0) |
+| all toggles looked enabled | `GuiTheme.toggle` blended the "off" track from full accent | off = dark track + knob left, on = accent track + knob right |
+| «слева сверху каша» | all 21 HUD elements were enabled at (4,4) | every element has its own default position; only Watermark + TargetHUD are enabled on a fresh install |
+| no TargetHUD | element existed but was disabled, drawn "No target" forever, fake armour bar | rewritten: hidden while no target, name / distance / ping / health bar / health text / held item, real settings |
+| HUD not movable | no drag path outside the ClickGUI editor | while the chat is open a `Screen` mixin forwards clicks to `HudManager`, which drags the element under the cursor (snap, guides, autosave) |
+| «функции не работают» | every module starts disabled by design, but the toggle rendering made them look on | modules stay off on first launch (`enabled=0` verified), and the switch now shows the real state |
+
+New checks in the headless suite: fresh install has exactly two HUD elements, all
+other elements are off, positions are unique, TargetHUD has a real panel size,
+press/drag/release moves an element while the chat is open, a click on empty space
+is handed back to the chat, and the drag state is cleared when the chat closes.

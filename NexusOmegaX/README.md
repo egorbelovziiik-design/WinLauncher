@@ -118,6 +118,22 @@ Press **RIGHT SHIFT** to open the ClickGUI, **RIGHT SHIFT** again (or **ESC**) t
 close it, press **F6** (or type `.menu`) to open the Nexus menu in game and type
 **`.help`** in the chat.
 
+The GUI is drawn without the vanilla blur pass, so panels and text stay sharp.
+
+### HUD
+
+A fresh install shows only the **Watermark** and the **TargetHUD** - every other
+element starts disabled and has its own default spot, so nothing overlaps.
+
+* **Drag with the chat open**: press `T`, then grab any HUD element with the left
+  mouse button and move it. Snap-to-grid, alignment guides and a hint line are
+  active while dragging; the layout is saved when you release the button.
+* **TargetHUD** appears automatically while you have a target (crosshair first,
+  then the closest entity within 24 blocks): name, distance, ping, health bar,
+  health value and the held item.
+* The full editor (`HUD editor` in the ClickGUI) still offers per element
+  settings, grid size, undo / redo, reset and save.
+
 ## 4. Using the client
 
 | Action | Default |
