@@ -1,4 +1,4 @@
-### Gradle log: nexus1214  (Sat Oct 24 14:52:48 UTC 2026)
+### Gradle log: nexus1214  (Sat Oct 24 14:54:51 UTC 2026)
 ```
 /home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/src/nexus/adapter/v1214/Nexus1214Inventory.java:288: error: incompatible types: nexus.api.IInventory.ClickType cannot be converted to net.minecraft.world.inventory.ClickType
         client.minecraft().gameMode.handleInventoryMouseClick(menu.containerId, slot, button, vanillaType,
@@ -264,6 +264,6 @@ Note: /home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/s
 * Try:
 > Check your code and dependencies to fix the compilation error(s)
 > Run with --scan to get full insights from a Build Scan (powered by Develocity).
-BUILD FAILED in 38s
+BUILD FAILED in 34s
 1 actionable task: 1 executed
 ```
