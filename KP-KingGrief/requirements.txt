@@ -1,0 +1,12 @@
+# КП-KingGrief — зависимости
+# Python 3.11+ (рекомендуется 3.12+)
+
+discord.py>=2.4,<3.0
+python-dotenv>=1.0.1
+APScheduler>=3.10.5,<4.0
+tzdata>=2024.1        # тайм-зона Europe/Moscow в сборке PyInstaller (Windows)
+
+# --- сборка и тесты (не обязательны для запуска) ---
+pyinstaller>=6.6.0;   extra == "build"
+pytest>=8.0;          extra == "test"
+pytest-asyncio>=0.23; extra == "test"

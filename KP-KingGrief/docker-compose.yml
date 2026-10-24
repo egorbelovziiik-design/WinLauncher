@@ -1,0 +1,40 @@
+# ============================================================
+#  КП-KingGrief — запуск 24/7
+#
+#    1. cp .env.example .env   и вписать DISCORD_TOKEN
+#    2. docker compose up -d --build
+#    3. docker compose logs -f
+#
+#  restart: unless-stopped — бот поднимется после перезагрузки VPS
+#  и после сбоя, но останется выключенным, если вы остановили его сами.
+# ============================================================
+
+services:
+  kp-kinggrief:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kp-kinggrief:latest
+    container_name: kp-kinggrief
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - KP_DATA_DIR=/app/data
+      - KP_LOG_DIR=/app/logs
+      - KP_BACKUP_DIR=/app/data/backups
+      - KP_LOCK_FILE=/app/data/bot.lock
+      - TZ=Europe/Moscow
+    volumes:
+      - kp-data:/app/data
+      - kp-logs:/app/logs
+    # Боту нужен только исходящий доступ к Discord — порты не публикуем
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  kp-data:
+  kp-logs:
