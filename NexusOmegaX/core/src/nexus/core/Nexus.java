@@ -195,6 +195,12 @@ public final class Nexus {
      * "open" forever and would keep swallowing every key press - which looks
      * exactly like "the buttons in Minecraft stopped working".
      */
+    /** True while the vanilla chat screen is open (any supported version). */
+    private static boolean isChatScreen(IClient adapter) {
+        String name = adapter.screens().currentVanillaScreen();
+        return name != null && name.startsWith("chatscreen");
+    }
+
     private void tickScreens() {
         IClient adapter = client();
         if (adapter == null || adapter.screens() == null) {
@@ -207,6 +213,8 @@ public final class Nexus {
             Log.warn("Nexus interface stack desynced from the vanilla screen - resyncing");
             gui.closeAll(true);
         }
+        // HUD elements can be dragged with the mouse while the chat is open
+        hud.setChatDragActive(isChatScreen(adapter));
         if (!adapter.screens().isTitleScreen()) {
             mainMenuOffered = false;
             return;

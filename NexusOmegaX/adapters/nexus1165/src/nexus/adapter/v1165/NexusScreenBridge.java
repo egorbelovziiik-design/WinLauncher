@@ -153,4 +153,13 @@ public final class NexusScreenBridge extends Screen {
             nexus.util.Log.error("Nexus screen '" + screen.title() + "' failed in " + what, throwable);
         }
     }
+
+    /**
+     * No vanilla background: 1.21 screens apply a full screen blur shader which
+     * made the whole interface look soft and milky. Nexus draws its own flat
+     * backdrop, so the GUI stays perfectly sharp.
+     */
+    @Override
+    public void renderBackground(net.minecraft.client.util.math.MatrixStack matrices, int tint) {
+    }
 }

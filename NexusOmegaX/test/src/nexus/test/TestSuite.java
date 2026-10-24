@@ -37,6 +37,8 @@ public final class TestSuite {
 
     public static void main(String[] args) {
         File directory = new File(args.length > 0 ? args[0] : "build/test-runtime");
+        // every run starts from a clean install (no leftover config)
+        deleteTree(directory);
         FileUtil.ensure(directory);
         HeadlessPlatform platform = new HeadlessPlatform(directory);
         HeadlessClient client = platform.headless();
@@ -52,6 +54,19 @@ public final class TestSuite {
             check("category " + category.name() + " not empty",
                     !nexus.modules().byCategory(category).isEmpty());
         }
+
+        int hudDefaults = nexus.hud().enabledCount();
+        check("a fresh install shows only the watermark and the TargetHUD (actual "
+                + hudDefaults + ")", hudDefaults == 2);
+        check("watermark sits in the top-left corner", nexus.hud().byId("watermark").x() <= 6.0
+                && nexus.hud().byId("watermark").y() <= 6.0);
+        for (HudElement element : nexus.hud().all()) {
+            if (element.id().equals("watermark") || element.id().equals("targethud")) {
+                continue;
+            }
+            check("HUD element " + element.id() + " is off by default", !element.isEnabled());
+        }
+        check("TargetHUD has a real panel size", nexus.hud().byId("targethud").width() >= 70.0);
 
         section("2. Every module: enable / tick / render / disable");
         int exercised = 0;
@@ -197,6 +212,24 @@ public final class TestSuite {
         check("the singleplayer row handed over to the vanilla world list",
                 "selectworld".equals(screens.vanillaMenu()));
         screens.setTitleScreen(false);
+
+        section("6c. HUD defaults and drag-with-chat");
+        HudElement watermark = nexus.hud().byId("watermark");
+        double startX = watermark.x();
+        double startY = watermark.y();
+        nexus.hud().setChatDragActive(true);
+        check("HUD drag needs the chat to be open", nexus.hud().isChatDragActive());
+        check("press on the watermark grabs it",
+                nexus.hud().chatMousePressed(startX + 2.0, startY + 2.0, 0));
+        check("a grabbed element follows the mouse",
+                nexus.hud().chatMouseMoved(startX + 40.0, startY + 30.0));
+        check("the element really moved", watermark.x() > startX || watermark.y() > startY);
+        check("release finishes the drag", nexus.hud().chatMouseReleased());
+        check("nothing is dragged any more", !nexus.hud().isDragging());
+        check("a click on empty space is left to the chat",
+                !nexus.hud().chatMousePressed(10000.0, 10000.0, 0));
+        nexus.hud().setChatDragActive(false);
+        watermark.setPosition(startX, startY);
 
         section("7. HUD");
         for (HudElement element : nexus.hud().all()) {
@@ -366,6 +399,19 @@ public final class TestSuite {
         for (int i = 0; i < frames; i++) {
             nexus.gui().render(client.renderer(), 100, 100, 16.6f);
         }
+    }
+
+    private static void deleteTree(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteTree(child);
+            }
+        }
+        file.delete();
     }
 
     private static boolean isJson(File file) {

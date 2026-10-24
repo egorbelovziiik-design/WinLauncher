@@ -155,7 +155,7 @@ public final class SettingsScreen extends NexusScreen {
     @Override
     public void render(IRenderer renderer, int mouseX, int mouseY, float deltaMs) {
         long now = System.currentTimeMillis();
-        GuiTheme.backdrop(renderer, width(), height(), 0.9);
+        GuiTheme.backdrop(renderer, width(), height(), 1.0);
 
         double width = Math.min(460.0, width() - 40.0);
         double height = Math.min(380.0, height() - 40.0);
@@ -207,7 +207,7 @@ public final class SettingsScreen extends NexusScreen {
             renderer.fillRoundRect(x, rowY, width, 20.0, 4.0,
                     active ? ColorUtil.withAlpha(theme.primary(now), 170)
                             : (hovered ? ColorUtil.withAlpha(0xFFFFFFFF, 22) : ColorUtil.withAlpha(0xFFFFFFFF, 10)));
-            renderer.drawText(theme.name(), x + 8.0, rowY + 6.0, nexus.themes().text(), false, 0.85);
+            renderer.drawText(theme.name(), x + 8.0, rowY + 6.0, nexus.themes().text(), false, 1.0);
             // palette preview
             int[] colors = new int[]{theme.primary(now), theme.secondary(), theme.accent(now), theme.highlight()};
             for (int c = 0; c < colors.length; c++) {
@@ -215,7 +215,7 @@ public final class SettingsScreen extends NexusScreen {
             }
         }
         double fontY = y + themes.size() * 26.0 + 10.0;
-        renderer.drawText("Font", x, fontY, nexus.themes().text(), false, 0.85);
+        renderer.drawText("Font", x, fontY, nexus.themes().text(), false, 1.0);
         String[] fonts = nexus.themes().availableFonts();
         for (int i = 0; i < fonts.length; i++) {
             double fx = x + i * 88.0;
@@ -234,7 +234,7 @@ public final class SettingsScreen extends NexusScreen {
             if (hovered) {
                 renderer.fillRoundRect(x, rowY, width, 22.0, 4.0, ColorUtil.withAlpha(0xFFFFFFFF, 16));
             }
-            renderer.drawText(setting.name(), x + 6.0, rowY + 6.0, nexus.themes().text(), false, 0.85);
+            renderer.drawText(setting.name(), x + 6.0, rowY + 6.0, nexus.themes().text(), false, 1.0);
             if (setting instanceof nexus.core.setting.BooleanSetting) {
                 GuiTheme.toggle(renderer, x + width - 30.0, rowY + 6.0, 24.0, 10.0,
                         ((nexus.core.setting.BooleanSetting) setting).isEnabled(),
@@ -245,13 +245,13 @@ public final class SettingsScreen extends NexusScreen {
                 nexus.core.setting.NumberSetting number = (nexus.core.setting.NumberSetting) setting;
                 GuiTheme.slider(renderer, x + width - 120.0, rowY + 8.0, 100.0, 6.0, number.progress(), hovered, null);
                 renderer.drawText(number.displayValue(), x + width - 16.0, rowY + 6.0,
-                        nexus.themes().textDim(), false, 0.8);
+                        nexus.themes().textDim(), false, 1.0);
             } else if (setting instanceof nexus.core.setting.ColorSetting) {
                 nexus.core.setting.ColorSetting color = (nexus.core.setting.ColorSetting) setting;
                 renderer.fillRoundRect(x + width - 40.0, rowY + 3.0, 36.0, 16.0, 3.0, color.effectiveColor(System.currentTimeMillis()));
             } else {
                 renderer.drawText(setting.displayValue(), x + width - 120.0, rowY + 6.0,
-                        nexus.themes().textDim(), false, 0.8);
+                        nexus.themes().textDim(), false, 1.0);
             }
         }
     }
@@ -268,14 +268,14 @@ public final class SettingsScreen extends NexusScreen {
             if (hovered) {
                 renderer.fillRoundRect(x, rowY, width, 20.0, 4.0, ColorUtil.withAlpha(0xFFFFFFFF, 16));
             }
-            renderer.drawText(bind.displayName(), x + 6.0, rowY + 6.0, nexus.themes().text(), false, 0.85);
+            renderer.drawText(bind.displayName(), x + 6.0, rowY + 6.0, nexus.themes().text(), false, 1.0);
             boolean listening = bind == listeningBind;
             GuiTheme.button(renderer, x + width - 70.0, rowY + 2.0, 66.0, 16.0,
                     listening ? "PRESS KEY" : bind.keyName(), hovered || listening, listening);
             GuiTheme.button(renderer, x + width - 140.0, rowY + 2.0, 66.0, 16.0, bind.mode().display(), hovered, false);
             List<KeybindManager.Bind> conflicts = nexus.keybinds().conflicts(bind.key(), bind);
             if (!conflicts.isEmpty()) {
-                renderer.drawText("!", x + width - 148.0, rowY + 6.0, nexus.themes().error(), false, 0.9);
+                renderer.drawText("!", x + width - 148.0, rowY + 6.0, nexus.themes().error(), false, 1.0);
             }
         }
     }

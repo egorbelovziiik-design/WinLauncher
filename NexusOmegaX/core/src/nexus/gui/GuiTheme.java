@@ -80,20 +80,22 @@ public final class GuiTheme {
                     ColorUtil.withAlpha(accent, hovered ? 140 : 70));
         }
         renderer.drawCenteredText(label, x + width / 2.0, y + height / 2.0 - renderer.fontHeight(1.0) / 2.0,
-                active ? 0xFFFFFFFF : (hovered ? nexus().themes().text() : nexus().themes().textDim()), false, 0.9);
+                active ? 0xFFFFFFFF : (hovered ? nexus().themes().text() : nexus().themes().textDim()), false, 1.0);
     }
 
     public static void toggle(IRenderer renderer, double x, double y, double width, double height,
                               boolean enabled, double animation) {
         double radius = height / 2.0;
         int accent = nexus().themes().accent(now());
-        int track = enabled
-                ? ColorUtil.blend(ColorUtil.withAlpha(nexus().themes().panelAlt(), 255), accent, MathUtil.clamp(animation, 0.0, 1.0))
-                : ColorUtil.blend(accent, ColorUtil.withAlpha(nexus().themes().panelAlt(), 255), MathUtil.clamp(animation, 0.0, 1.0));
+        int dark = ColorUtil.withAlpha(nexus().themes().panelAlt(), 255);
+        // The track must clearly show the state: off = dark, on = accent.
+        // (The old blend started at full accent for the "off" state, so every
+        // row looked enabled even with all modules disabled.)
+        int track = enabled ? ColorUtil.withAlpha(accent, 255) : dark;
         renderer.fillRoundRect(x, y, width, height, radius, track);
         double knobSize = height - 4.0;
         double travel = width - height;
-        double knobX = x + 2.0 + travel * MathUtil.clamp(enabled ? animation : 1.0 - animation, 0.0, 1.0);
+        double knobX = x + 2.0 + (enabled ? travel : 0.0);
         renderer.circle(knobX + knobSize / 2.0, y + height / 2.0, knobSize / 2.0,
                 enabled ? 0xFFFFFFFF : ColorUtil.withAlpha(nexus().themes().textDim(), 220));
     }
@@ -110,7 +112,7 @@ public final class GuiTheme {
         renderer.circle(knobX, y + height / 2.0, (hovered ? height * 0.75 : height * 0.6), 0xFFFFFFFF);
         if (label != null && !label.isEmpty()) {
             renderer.drawText(label, x + width + 6.0, y + height / 2.0 - renderer.fontHeight(0.85) / 2.0,
-                    nexus().themes().textDim(), false, 0.85);
+                    nexus().themes().textDim(), false, 1.0);
         }
     }
 
@@ -139,7 +141,7 @@ public final class GuiTheme {
         String display = text.isEmpty() && !focused ? "Search modules..." : text + (focused ? "_" : "");
         renderer.drawText(display, x + 6.0, y + height / 2.0 - renderer.fontHeight(0.9) / 2.0,
                 text.isEmpty() && !focused ? ColorUtil.withAlpha(nexus().themes().textDim(), 170)
-                        : nexus().themes().text(), false, 0.9);
+                        : nexus().themes().text(), false, 1.0);
     }
 
     public static void chip(IRenderer renderer, double x, double y, double width, double height,
@@ -150,7 +152,7 @@ public final class GuiTheme {
         renderer.outlineRoundRect(x, y, width, height, height / 2.0, 0.75,
                 ColorUtil.withAlpha(accent, selected ? 255 : 70));
         renderer.drawCenteredText(label, x + width / 2.0, y + height / 2.0 - renderer.fontHeight(0.85) / 2.0,
-                selected ? 0xFFFFFFFF : nexus().themes().textDim(), false, 0.85);
+                selected ? 0xFFFFFFFF : nexus().themes().textDim(), false, 1.0);
     }
 
     public static void tooltip(IRenderer renderer, double x, double y, String[] lines) {
@@ -159,20 +161,25 @@ public final class GuiTheme {
         }
         double width = 0.0;
         for (String line : lines) {
-            width = Math.max(width, renderer.textWidth(line, 0.85));
+            width = Math.max(width, renderer.textWidth(line, 1.0));
         }
         double height = lines.length * (renderer.fontHeight(0.85) + 2.0) + 6.0;
         panel(renderer, x, y, width + 12.0, height, 4.0);
         for (int i = 0; i < lines.length; i++) {
             renderer.drawText(lines[i], x + 6.0, y + 4.0 + i * (renderer.fontHeight(0.85) + 2.0),
-                    nexus().themes().text(), false, 0.85);
+                    nexus().themes().text(), false, 1.0);
         }
     }
 
-    /** Fades the world behind the interface (blur + dim + particle field). */
+    /**
+     * Flat, sharp backdrop behind the interface.
+     * <p>
+     * The blur pass is intentionally gone: a blurred/dimmed backdrop made the
+     * whole GUI (including the text) look soft, and it cost a full screen fill
+     * every frame.
+     */
     public static void backdrop(IRenderer renderer, double width, double height, double progress) {
         int background = nexus().themes().background();
-        renderer.blurRegion(0.0, 0.0, width, height, nexus().themes().blurStrength() * progress);
         renderer.fillRect(0.0, 0.0, width, height,
                 ColorUtil.withAlpha(background, (int) (ColorUtil.alpha(background) * progress)));
         nexus().render().particles().renderThemed(renderer, nexus().client().window());

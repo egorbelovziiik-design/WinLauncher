@@ -125,7 +125,7 @@ public final class ConfigScreen extends NexusScreen {
     @Override
     public void render(IRenderer renderer, int mouseX, int mouseY, float deltaMs) {
         long now = System.currentTimeMillis();
-        GuiTheme.backdrop(renderer, width(), height(), 0.9);
+        GuiTheme.backdrop(renderer, width(), height(), 1.0);
 
         double width = Math.min(420.0, width() - 40.0);
         double height = Math.min(360.0, height() - 40.0);
@@ -135,7 +135,7 @@ public final class ConfigScreen extends NexusScreen {
         GuiTheme.panel(renderer, x, y, width, height);
         GuiTheme.titleBar(renderer, x, y, width, "Config Manager", 26.0);
         renderer.drawText("Active: " + configs().activeProfile() + "   |   " + configs().info(),
-                x + 16.0, y + 34.0, nexus.themes().textDim(), false, 0.8);
+                x + 16.0, y + 34.0, nexus.themes().textDim(), false, 1.0);
         GuiTheme.searchBox(renderer, x + 16.0, y + 48.0, width - 32.0, 18.0, newName, true);
 
         double listY = y + 74.0;
@@ -150,7 +150,7 @@ public final class ConfigScreen extends NexusScreen {
                         ColorUtil.withAlpha(nexus.themes().accent(now), 120));
             }
             renderer.drawText((active ? "> " : "  ") + profiles.get(i), x + 24.0, rowY + 6.0,
-                    nexus.themes().text(), false, 0.9);
+                    nexus.themes().text(), false, 1.0);
         }
         renderer.popScissor();
 
@@ -162,7 +162,7 @@ public final class ConfigScreen extends NexusScreen {
             GuiTheme.button(renderer, bx, by, (width - 32.0) / 4.0 - 6.0, 22.0, actions[i], hovered, false);
         }
         renderer.drawText(status, x + 16.0, y + height - 14.0,
-                ColorUtil.withAlpha(nexus.themes().textDim(), 220), false, 0.8);
+                ColorUtil.withAlpha(nexus.themes().textDim(), 220), false, 1.0);
     }
 
     @Override

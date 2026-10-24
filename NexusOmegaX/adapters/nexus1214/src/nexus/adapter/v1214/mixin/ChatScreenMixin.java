@@ -6,7 +6,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-/** Lets the command system and the chat modules inspect outgoing messages. */
+/**
+ * Lets the command system and the chat modules inspect outgoing messages and
+ * turns the chat into a HUD editor: while the chat is open, HUD elements can be
+ * dragged with the mouse.
+ */
 @Mixin(ChatScreen.class)
 public final class ChatScreenMixin {
 

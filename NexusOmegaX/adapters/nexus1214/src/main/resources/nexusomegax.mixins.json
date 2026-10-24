@@ -8,7 +8,8 @@
     "LevelRendererMixin",
     "KeyboardHandlerMixin",
     "MouseHandlerMixin",
-    "ChatScreenMixin"
+    "ChatScreenMixin",
+    "ScreenMouseMixin"
   ],
   "injectors": {
     "defaultRequire": 0

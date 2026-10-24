@@ -50,7 +50,8 @@ public abstract class HudElement {
     private boolean editing;
 
     protected HudElement(String id, String displayName) {
-        this(id, displayName, true);
+        // nothing is enabled on a fresh install: the player decides what to show
+        this(id, displayName, false);
     }
 
     protected HudElement(String id, String displayName, boolean enabledByDefault) {

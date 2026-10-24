@@ -185,7 +185,7 @@ public final class HudEditorScreen extends NexusScreen {
     @Override
     public void render(IRenderer renderer, int mouseX, int mouseY, float deltaMs) {
         long now = System.currentTimeMillis();
-        GuiTheme.backdrop(renderer, width(), height(), 0.85);
+        GuiTheme.backdrop(renderer, width(), height(), 1.0);
         drawGrid(renderer);
 
         // live preview of every enabled element
@@ -255,7 +255,7 @@ public final class HudEditorScreen extends NexusScreen {
             }
             renderer.drawText(element.displayName(), panelX + 10.0, rowY + 5.0,
                     element.isEnabled() ? nexus.themes().text() : ColorUtil.withAlpha(nexus.themes().textDim(), 150),
-                    false, 0.85);
+                    false, 1.0);
             renderer.fillRoundRect(panelX + PANEL_WIDTH - 26.0, rowY + 3.0, 20.0, 12.0, 6.0,
                     element.isEnabled() ? ColorUtil.withAlpha(nexus.themes().accent(now), 220)
                             : ColorUtil.withAlpha(0xFFFFFFFF, 40));
@@ -267,7 +267,7 @@ public final class HudEditorScreen extends NexusScreen {
         // selected element settings
         double settingsY = height() - 130.0;
         renderer.drawText(selected == null ? "No element selected" : selected.displayName(),
-                panelX + 10.0, settingsY, nexus.themes().text(), false, 0.85);
+                panelX + 10.0, settingsY, nexus.themes().text(), false, 1.0);
         if (selected != null) {
             Setting<?> scale = selected.setting("Scale");
             Setting<?> shadow = selected.setting("Shadow");

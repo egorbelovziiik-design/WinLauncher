@@ -102,9 +102,9 @@ public final class ClickGuiScreen extends NexusScreen {
 
         String hint = "RIGHT SHIFT close   |   ESC close window   |   LMB toggle   |   RMB settings   |   MMB favorite";
         renderer.drawCenteredText(hint, width() / 2.0, height() - 14.0,
-                ColorUtil.withAlpha(nexus.themes().textDim(), 170), false, 0.85);
+                ColorUtil.withAlpha(nexus.themes().textDim(), 170), false, 1.0);
         renderer.drawText(Nexus.instance().themes().activeName(), 8.0, height() - 14.0,
-                ColorUtil.withAlpha(nexus.themes().accent(System.currentTimeMillis()), 190), false, 0.85);
+                ColorUtil.withAlpha(nexus.themes().accent(System.currentTimeMillis()), 190), false, 1.0);
     }
 
     // ------------------------------------------------------------------- input
@@ -299,7 +299,7 @@ public final class ClickGuiScreen extends NexusScreen {
                 renderer.drawText(rows.get(i), contentX + PADDING + 6.0,
                         rowY + (ROW_HEIGHT - 2.0) / 2.0 - renderer.fontHeight(0.9) / 2.0,
                         active ? 0xFFFFFFFF : (hovered ? nexus.themes().text() : nexus.themes().textDim()),
-                        false, 0.9);
+                        false, 1.0);
             }
         }
 
@@ -387,18 +387,18 @@ public final class ClickGuiScreen extends NexusScreen {
                 renderer.drawText(star + module.displayName(), contentX + PADDING + 6.0,
                         rowY + (ROW_HEIGHT - 2.0) / 2.0 - renderer.fontHeight(0.9) / 2.0,
                         module.isEnabled() ? 0xFFFFFFFF : (hovered ? nexus.themes().text() : nexus.themes().textDim()),
-                        false, 0.9);
+                        false, 1.0);
 
                 String bind = module.keybindSetting().keyName();
                 if (!bind.equals("NONE")) {
-                    renderer.drawText(bind, contentX + viewWidth - PADDING - 6.0 - renderer.textWidth(bind, 0.8),
+                    renderer.drawText(bind, contentX + viewWidth - PADDING - 6.0 - renderer.textWidth(bind, 1.0),
                             rowY + (ROW_HEIGHT - 2.0) / 2.0 - renderer.fontHeight(0.8) / 2.0,
-                            ColorUtil.withAlpha(nexus.themes().textDim(), 190), false, 0.8);
+                            ColorUtil.withAlpha(nexus.themes().textDim(), 190), false, 1.0);
                 }
                 // animated toggle switch
                 double toggleWidth = 22.0;
                 double toggleHeight = 10.0;
-                double toggleX = contentX + viewWidth - PADDING - 8.0 - toggleWidth - renderer.textWidth(bind, 0.8) - 6.0;
+                double toggleX = contentX + viewWidth - PADDING - 8.0 - toggleWidth - renderer.textWidth(bind, 1.0) - 6.0;
                 double toggleY = rowY + (ROW_HEIGHT - 2.0) / 2.0 - toggleHeight / 2.0;
                 if (bind.equals("NONE")) {
                     toggleX = contentX + viewWidth - PADDING - 8.0 - toggleWidth;
@@ -414,7 +414,7 @@ public final class ClickGuiScreen extends NexusScreen {
             }
             if (list.isEmpty()) {
                 renderer.drawCenteredText("No modules found", contentX + viewWidth / 2.0,
-                        contentY + 60.0, ColorUtil.withAlpha(nexus.themes().textDim(), 160), false, 0.9);
+                        contentY + 60.0, ColorUtil.withAlpha(nexus.themes().textDim(), 160), false, 1.0);
             }
             if (tooltipModule != null) {
                 GuiTheme.tooltip(renderer, tooltipX, tooltipY, new String[]{
@@ -496,7 +496,7 @@ public final class ClickGuiScreen extends NexusScreen {
             double cursorY = contentY + 4.0;
             long now = System.currentTimeMillis();
             renderer.drawText(module.description(), contentX + PADDING, cursorY,
-                    ColorUtil.withAlpha(nexus.themes().textDim(), 200), false, 0.8);
+                    ColorUtil.withAlpha(nexus.themes().textDim(), 200), false, 1.0);
             cursorY += 12.0;
 
             for (Setting<?> setting : rows()) {
@@ -510,7 +510,7 @@ public final class ClickGuiScreen extends NexusScreen {
 
         private void drawRow(IRenderer renderer, Setting<?> setting, double x, double y,
                              double width, double height, boolean hovered, long now) {
-            renderer.drawText(setting.name(), x + 2.0, y + 2.0, nexus.themes().text(), false, 0.85);
+            renderer.drawText(setting.name(), x + 2.0, y + 2.0, nexus.themes().text(), false, 1.0);
             if (hovered && !setting.description().isEmpty()) {
                 renderer.drawText(setting.description(), x + 2.0, y + 12.0,
                         ColorUtil.withAlpha(nexus.themes().textDim(), 170), false, 0.7);
@@ -523,7 +523,7 @@ public final class ClickGuiScreen extends NexusScreen {
                 NumberSetting number = (NumberSetting) setting;
                 GuiTheme.slider(renderer, x + 2.0, y + 12.0, width - 44.0, 6.0, number.progress(), hovered, null);
                 renderer.drawText(number.displayValue(), x + width - 38.0, y + 9.0,
-                        nexus.themes().textDim(), false, 0.8);
+                        nexus.themes().textDim(), false, 1.0);
             } else if (setting instanceof ModeSetting) {
                 ModeSetting mode = (ModeSetting) setting;
                 GuiTheme.button(renderer, x + width - 90.0, y + 1.0, 86.0, 14.0, mode.get(), hovered, true);
@@ -541,7 +541,7 @@ public final class ClickGuiScreen extends NexusScreen {
                 renderer.fillRoundRect(x + width - 110.0, y + 1.0, 106.0, 14.0, 3.0,
                         ColorUtil.withAlpha(0xFF000000, focused ? 160 : 90));
                 String value = focused ? text.rawValue() + "_" : text.displayValue();
-                renderer.drawText(value, x + width - 106.0, y + 4.0, nexus.themes().text(), false, 0.8);
+                renderer.drawText(value, x + width - 106.0, y + 4.0, nexus.themes().text(), false, 1.0);
             } else if (setting instanceof KeybindSetting) {
                 KeybindSetting keybind = (KeybindSetting) setting;
                 boolean listening = setting == listeningKey;
@@ -553,7 +553,7 @@ public final class ClickGuiScreen extends NexusScreen {
                 double chipX = x + 2.0;
                 double chipY = y + ROW_HEIGHT - 4.0;
                 for (int i = 0; i < options.length; i++) {
-                    double chipWidth = renderer.textWidth(options[i], 0.8) + 12.0;
+                    double chipWidth = renderer.textWidth(options[i], 1.0) + 12.0;
                     if (chipX + chipWidth > x + width) {
                         chipX = x + 2.0;
                         chipY += 18.0;
@@ -573,7 +573,7 @@ public final class ClickGuiScreen extends NexusScreen {
             GuiTheme.slider(renderer, x + 6.0, y + 40.0, width - 12.0, 6.0, hsb[2], false, "Bri");
             GuiTheme.slider(renderer, x + 6.0, y + 56.0, width - 12.0, 6.0, ColorUtil.alpha(color.color()) / 255.0,
                     false, "Alpha");
-            GuiTheme.chip(renderer, x + 6.0, y + 68.0, renderer.textWidth("Rainbow", 0.8) + 12.0, 12.0,
+            GuiTheme.chip(renderer, x + 6.0, y + 68.0, renderer.textWidth("Rainbow", 1.0) + 12.0, 12.0,
                     "Rainbow", color.isRainbow());
         }
 
@@ -668,7 +668,7 @@ public final class ClickGuiScreen extends NexusScreen {
                 while (index < options.length) {
                     double chipWidth = Nexus.instance().render().renderer() == null
                             ? options[index].length() * 5.0 + 12.0
-                            : Nexus.instance().render().renderer().textWidth(options[index], 0.8) + 12.0;
+                            : Nexus.instance().render().renderer().textWidth(options[index], 1.0) + 12.0;
                     if (chipX + chipWidth > contentX + contentWidth) {
                         break;
                     }
