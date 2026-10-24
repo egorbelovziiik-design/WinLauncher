@@ -1,12 +1,12 @@
 package nexus.adapter.v1165.mixin;
 
+import nexus.adapter.v1165.Nexus1165Hooks;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Matrix4f;
-import nexus.adapter.v1165.mixin.MinecraftClientMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,7 +29,7 @@ public final class WorldRendererMixin {
                                 LightmapTextureManager lightmapTextureManager, Matrix4f projection,
                                 CallbackInfo info) {
         try {
-            MinecraftClientMixin.Hooks.HOOKS.onRender3D(matrices, tickDelta);
+            Nexus1165Hooks.Hooks.HOOKS.onRender3D(matrices, tickDelta);
         } catch (Throwable throwable) {
             nexus.util.Log.error("Nexus render hook failed", throwable);
         }

@@ -1,7 +1,7 @@
 package nexus.adapter.v1214.mixin;
 
+import nexus.adapter.v1214.Nexus1214Hooks;
 import net.minecraft.client.KeyboardHandler;
-import nexus.adapter.v1214.mixin.MinecraftMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -21,8 +21,8 @@ public final class KeyboardHandlerMixin {
     private void nexus$key(long window, int key, int scanCode, int action, int modifiers,
                            CallbackInfo info) {
         try {
-            if (MinecraftMixin.Hooks.HOOKS.onKey(key, scanCode, modifiers, action)) {
-            info.cancel();
+            if (Nexus1214Hooks.Hooks.HOOKS.onKey(key, scanCode, modifiers, action)) {
+                info.cancel();
             }
         } catch (Throwable throwable) {
             nexus.util.Log.error("Nexus input hook failed", throwable);

@@ -1,7 +1,7 @@
 package nexus.adapter.v1214.mixin;
 
+import nexus.adapter.v1214.Nexus1214Hooks;
 import net.minecraft.client.gui.screens.ChatScreen;
-import nexus.adapter.v1214.mixin.MinecraftMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -14,7 +14,7 @@ public final class ChatScreenMixin {
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private String nexus$send(String message) {
         try {
-            return MinecraftMixin.Hooks.HOOKS.onChatSend(message);
+            return Nexus1214Hooks.Hooks.HOOKS.onChatSend(message);
         } catch (Throwable throwable) {
             nexus.util.Log.error("Nexus chat hook failed", throwable);
             return message;

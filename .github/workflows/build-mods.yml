@@ -163,6 +163,60 @@ jobs:
           cp artifacts/SHA256SUMS.txt SHA256SUMS.txt
           cat SHA256SUMS.txt
 
+      - name: Guard - mixin configs point at real classes
+        run: |
+          python3 - <<'EOF'
+          import json, glob, os, sys
+          bad = []
+          for cfg in glob.glob('NexusOmegaX/adapters/*/src/main/resources/*.mixins.json'):
+              data = json.load(open(cfg))
+              srcroot = os.path.dirname(os.path.dirname(os.path.dirname(cfg)))
+              for key in ('client', 'mixins', 'server'):
+                  for cls in data.get(key, []):
+                      path = os.path.join(srcroot, data['package'].replace('.', '/'), cls + '.java')
+                      if not os.path.isfile(path):
+                          bad.append((cfg, cls, path))
+          if bad:
+              for cfg, cls, path in bad:
+                  print('MISSING: %s -> %s (%s)' % (cfg, cls, path))
+              sys.exit(1)
+          print('ok - every mixin listed in a config exists')
+          EOF
+
+      - name: Guard - no mixin package references from outside
+        run: |
+          set -e
+          FAIL=0
+          # Mixin throws IllegalClassLoadError at startup when a normal class
+          # references anything inside a configured mixin package.
+          for SRC in NexusOmegaX/adapters/*/src/nexus/adapter/*; do
+            PKG=$(basename "$SRC")
+            if grep -rn "nexus\.adapter\.$PKG\.mixin\." --include=*.java "$SRC" \
+                 | grep -v "/mixin/" | grep -q .; then
+              echo "ILLEGAL: a class outside the mixin package references nexus.adapter.$PKG.mixin.*"
+              grep -rn "nexus\.adapter\.$PKG\.mixin\." --include=*.java "$SRC" | grep -v "/mixin/" || true
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -ne 0 ]; then exit 1; fi
+          echo "ok - no illegal mixin references"
+
+      - name: Guard - no mixin package strings inside the built jars
+        run: |
+          set -e
+          for J in artifacts/*.jar; do
+            rm -rf /tmp/jarcheck && mkdir -p /tmp/jarcheck
+            unzip -q "$J" -d /tmp/jarcheck
+            HITS=$(grep -rlaE "adapter/v[0-9]+/mixin/" /tmp/jarcheck/nexus/adapter --include=*.class 2>/dev/null \
+                    | grep -v "/mixin/" || true)
+            if [ -n "$HITS" ]; then
+              echo "ILLEGAL mixin package reference inside $J:"
+              echo "$HITS"
+              exit 1
+            fi
+            echo "ok - $J"
+          done
+
       - name: Publish jars
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

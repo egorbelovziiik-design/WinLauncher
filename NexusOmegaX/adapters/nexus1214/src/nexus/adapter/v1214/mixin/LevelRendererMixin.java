@@ -1,12 +1,12 @@
 package nexus.adapter.v1214.mixin;
 
+import nexus.adapter.v1214.Nexus1214Hooks;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import nexus.adapter.v1214.mixin.MinecraftMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,7 +32,7 @@ public final class LevelRendererMixin {
         PoseStack poseStack = new PoseStack();
         poseStack.last().pose().set(frustum);
         try {
-            MinecraftMixin.Hooks.HOOKS.onRender3D(poseStack,
+            Nexus1214Hooks.Hooks.HOOKS.onRender3D(poseStack,
                 deltaTracker.getGameTimeDeltaPartialTick(true));
         } catch (Throwable throwable) {
             nexus.util.Log.error("Nexus render hook failed", throwable);

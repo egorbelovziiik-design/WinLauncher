@@ -1,9 +1,9 @@
 package nexus.adapter.v12111.mixin;
 
+import nexus.adapter.v12111.Nexus12111Hooks;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
-import nexus.adapter.v12111.mixin.MinecraftMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,7 +17,7 @@ public final class GuiMixin {
             at = @At("TAIL"))
     private void nexus$render2D(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo info) {
         try {
-            MinecraftMixin.Hooks.HOOKS.onRender2D(graphics,
+            Nexus12111Hooks.Hooks.HOOKS.onRender2D(graphics,
                 deltaTracker.getGameTimeDeltaPartialTick(true) * 50.0f,
                 graphics.guiWidth(), graphics.guiHeight());
         } catch (Throwable throwable) {

@@ -206,4 +206,22 @@ public final class Nexus1214Hooks {
     public boolean safeMode() {
         return safeMode;
     }
+
+    /**
+     * Single shared instance used by the mixins and by the platform.
+     * <p>
+     * It must live in the adapter package: Mixin forbids referencing any class
+     * from a package declared in the mixin config, and a static holder inside
+     * the mixin package throws {@code IllegalClassLoadError} at startup.
+     */
+    public static final class Hooks {
+        public static final Nexus1214Hooks HOOKS = new Nexus1214Hooks();
+
+        static {
+            HOOKS.install();
+        }
+
+        private Hooks() {
+        }
+    }
 }

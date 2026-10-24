@@ -1,7 +1,7 @@
 package nexus.adapter.v1165.mixin;
 
+import nexus.adapter.v1165.Nexus1165Hooks;
 import net.minecraft.client.network.ClientPlayerEntity;
-import nexus.adapter.v1165.mixin.MinecraftClientMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -19,7 +19,7 @@ public final class ChatMixin {
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private String nexus$send(String message) {
         try {
-            return MinecraftClientMixin.Hooks.HOOKS.onChatSend(message);
+            return Nexus1165Hooks.Hooks.HOOKS.onChatSend(message);
         } catch (Throwable throwable) {
             nexus.util.Log.error("Nexus chat hook failed", throwable);
             return message;
