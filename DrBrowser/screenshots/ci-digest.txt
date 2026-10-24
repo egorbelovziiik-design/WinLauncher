@@ -3,13 +3,13 @@ selftest exit: 0 / smoke exit: 0
 ИТОГО: 35 passed, 0 failed, 0 skipped из 35
 ... tail:
 [PASS] error-logging        Обработка ошибок пишется в журнал
-           ERROR + stack trace записаны в журнал (1 ms)
+           ERROR + stack trace записаны в журнал (0 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 35 passed, 0 failed, 0 skipped из 35
 --- smoke-report.txt
 ИТОГО: 11 passed, 0 failed, 0 skipped из 11
 ... tail:
 [PASS] smoke-screenshot     Скриншот страницы (функция «Снимок экрана»)
-           сохранён screenshot-20261023-235616.png (1510 ms)
+           сохранён screenshot-20261024-000416.png (1512 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 11 passed, 0 failed, 0 skipped из 11
