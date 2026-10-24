@@ -8,6 +8,7 @@ from pathlib import Path
 
 from bot.config import DEFAULT_OWNER_ID, DEFAULT_OWNER_USERNAME, BotConfig, build_invite_url
 from bot.database import BotDatabase
+from bot.profiles import ProfileStore, extract_client_id_from_token
 from main import COGS, ReallyWorldBot
 
 
@@ -119,6 +120,23 @@ class ReallyWorldBotTestSuite(unittest.IsolatedAsyncioTestCase):
         # Cancel background loop before exit
         bot.get_cog("CommunityCog").cog_unload()
         await bot.close()
+
+    async def test_multi_bot_profile_store_and_token_client_id_decoder(self) -> None:
+        import base64
+
+        store = ProfileStore(Path(self.tmp.name) / "multi_bots.json")
+        initial = store.load()
+        self.assertEqual(len(initial), 1)
+        self.assertEqual(initial[0].client_id, "1563651952506576918")
+
+        bot2 = store.create_new("Бот Кланов")
+        bot3 = store.create_new("Бот Модерации")
+        self.assertEqual(len(store.profiles), 3)
+        self.assertNotEqual(bot2.to_bot_config(Path(self.tmp.name)).db_path, bot3.to_bot_config(Path(self.tmp.name)).db_path)
+
+        sample_id = "1234567890123456789"
+        encoded_tok = base64.urlsafe_b64encode(sample_id.encode()).decode().rstrip("=") + ".Xyz123.SignaturePart"
+        self.assertEqual(extract_client_id_from_token(encoded_tok), sample_id)
 
 
 if __name__ == "__main__":

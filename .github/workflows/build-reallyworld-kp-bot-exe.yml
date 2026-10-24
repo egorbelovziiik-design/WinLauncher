@@ -44,11 +44,11 @@ jobs:
           $env:PYTHONPATH = "."
           python -m unittest discover -s tests -p "test_*.py" -v
 
-      - name: Build single-file ReallyWorldKPBot.exe via PyInstaller
+      - name: Build single-file Multi-Bot DiscordBotHub.exe via PyInstaller
         shell: pwsh
         run: |
           pyinstaller --noconfirm --clean --onefile --windowed `
-            --name ReallyWorldKPBot `
+            --name DiscordBotHub `
             --icon assets/avatar_kp.ico `
             --paths . `
             --add-data "config.json;." `
@@ -56,45 +56,50 @@ jobs:
             --hidden-import aiosqlite `
             --hidden-import sqlite3 `
             --hidden-import dotenv `
+            --hidden-import bot.profiles `
             --hidden-import bot.cogs.owner `
             --hidden-import bot.cogs.kp_staff `
             --hidden-import bot.cogs.tickets `
             --hidden-import bot.cogs.moderation `
             --hidden-import bot.cogs.community `
             gui_app.py
+          Copy-Item .\dist\DiscordBotHub.exe .\dist\ReallyWorldKPBot.exe -Force
 
-      - name: Smoke-test compiled ReallyWorldKPBot.exe on Windows
+      - name: Smoke-test compiled DiscordBotHub.exe on Windows
         shell: pwsh
         run: |
-          $proc = Start-Process -FilePath ".\dist\ReallyWorldKPBot.exe" -ArgumentList "--selftest" -PassThru -Wait
+          $proc = Start-Process -FilePath ".\dist\DiscordBotHub.exe" -ArgumentList "--selftest" -PassThru -Wait
           if ($proc.ExitCode -ne 0) {
-            throw "ReallyWorldKPBot.exe --selftest exited with code $($proc.ExitCode)"
+            throw "DiscordBotHub.exe --selftest exited with code $($proc.ExitCode)"
           }
           if (-not (Test-Path ".\selftest-result.txt")) {
-            throw "selftest-result.txt was not written by ReallyWorldKPBot.exe!"
+            throw "selftest-result.txt was not written by DiscordBotHub.exe!"
           }
           Get-Content .\selftest-result.txt
-          if (-not (Select-String -Path .\selftest-result.txt -Pattern "SELFTEST_PASS" -Quiet)) {
-            throw "SELFTEST_PASS marker missing!"
+          if (-not (Select-String -Path .\selftest-result.txt -Pattern "MULTI_BOT=TRUE" -Quiet)) {
+            throw "MULTI_BOT=TRUE marker missing!"
           }
 
-      - name: Publish ReallyWorldKPBot.exe to GitHub Releases (rw-kp-bot-latest)
+      - name: Publish DiscordBotHub.exe to GitHub Releases (rw-kp-bot-latest)
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          sha256sum dist/ReallyWorldKPBot.exe > dist/ReallyWorldKPBot.exe.sha256.txt
-          SUM=$(cat dist/ReallyWorldKPBot.exe.sha256.txt)
+          sha256sum dist/DiscordBotHub.exe dist/ReallyWorldKPBot.exe > dist/SHA256SUMS.txt
+          SUM=$(cat dist/SHA256SUMS.txt)
           gh release delete rw-kp-bot-latest --yes --cleanup-tag 2>/dev/null || true
           gh release create rw-kp-bot-latest \
+            dist/DiscordBotHub.exe \
             dist/ReallyWorldKPBot.exe \
-            dist/ReallyWorldKPBot.exe.sha256.txt \
-            --title "ReallyWorld КП Discord Bot — Windows EXE (robik0277)" \
-            --notes "Готовое одиночное приложение Windows x64 (ReallyWorldKPBot.exe) — запускается двойным кликом, Python не требуется!
+            dist/SHA256SUMS.txt \
+            --title "Discord Bot Hub (Мульти-Бот Лаунчер + Приглашение ботов — Windows EXE)" \
+            --notes "Универсальное Windows x64 приложение (DiscordBotHub.exe) для приглашения и одновременного запуска ЛЮБОГО количества Discord-ботов без установки Python!
 
-          - Главный владелец: robik0277 (Discord ID: 1381255368650526861)
-          - Application ID: 1563651952506576918
-          - Ссылка приглашения бота: https://discord.com/oauth2/authorize?client_id=1563651952506576918&permissions=8&scope=bot%20applications.commands
+          Возможности:
+          - Добавляйте сколько угодно профилей ботов (кнопка + Новый бот) и запускайте их одновременно (Запустить ВСЕХ)
+          - Автоматическое определение Application ID прямо из вставленного Bot Token + мгновенная генерация ссылок приглашения с выбором прав
+          - Индивидуальные модули (Owner, КП + Проверки, Тикеты, Модерация, Верификация/Розыгрыши), свои аватарки, статусы и отдельные базы SQLite для каждого бота
+          - По умолчанию первым профилем уже добавлен ваш бот ReallyWorld КП (1563651952506576918, владелец robik0277 / 1381255368650526861)
 
           SHA-256:
           ${SUM}"
