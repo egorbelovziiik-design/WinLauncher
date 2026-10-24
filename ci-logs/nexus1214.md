@@ -1,18 +1,5 @@
-### Gradle log: nexus1214  (Sat Oct 24 16:53:11 UTC 2026)
+### Gradle log: nexus1214  (Sat Oct 24 16:55:58 UTC 2026)
 ```
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/src/nexus/adapter/v1214/mixin/ScreenMouseMixin.java:3: error: package net.minecraft.net.minecraft.client.gui.screens does not exist
-import net.minecraft.net.minecraft.client.gui.screens.Screen;
-                                                     ^
-Note: Some input files use or override a deprecated API.
-Note: Recompile with -Xlint:deprecation for details.
-1 error
---
-  /home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/src/nexus/adapter/v1214/mixin/ScreenMouseMixin.java:3: error: package net.minecraft.net.minecraft.client.gui.screens does not exist
-  import net.minecraft.net.minecraft.client.gui.screens.Screen;
-                                                       ^
-  1 error
-
-* Try:
 ```
 
 ### tail
@@ -34,28 +21,41 @@ Please make sure to read and understand the following license:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Not publishing sources jar as it was not created by the java plugin. Use java.withSourcesJar() to fix.
 > Task :compileJava
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/src/nexus/adapter/v1214/mixin/ScreenMouseMixin.java:3: error: package net.minecraft.net.minecraft.client.gui.screens does not exist
-import net.minecraft.net.minecraft.client.gui.screens.Screen;
-                                                     ^
 Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
-1 error
-> Task :compileJava FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792860739173.json
+> Task :processResources
+> Task :classes
+> Task :jar
+> Task :processIncludeJars
+> Task :sourcesJar
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :validateAccessWidener NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :remapJar
+> Task :verifyMixins
+verifyMixins: 1 problem(s)
+  MIXIN PROBLEM: ScreenMouseMixin.java: cannot resolve the import of net.minecraft.client.gui.screens.Screen
+> Task :verifyMixins FAILED
+> Task :remapSourcesJar
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792860871632.json
 [Incubating] Problems report is available at: file:///home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/build/reports/problems/problems-report.html
 FAILURE: Build failed with an exception.
+* Where:
+Build file '/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/build.gradle' line: 205
 * What went wrong:
-Execution failed for task ':compileJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
-> Compilation failed; see the compiler output below.
-  Note: Recompile with -Xlint:deprecation for details.
-  Note: Some input files use or override a deprecated API.
-  /home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/src/nexus/adapter/v1214/mixin/ScreenMouseMixin.java:3: error: package net.minecraft.net.minecraft.client.gui.screens does not exist
-  import net.minecraft.net.minecraft.client.gui.screens.Screen;
-                                                       ^
-  1 error
+Execution failed for task ':verifyMixins' (registered in build file 'build.gradle').
+> Mixin targets do not match Minecraft: ScreenMouseMixin.java: cannot resolve the import of net.minecraft.client.gui.screens.Screen
 * Try:
-> Check your code and dependencies to fix the compilation error(s)
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
 > Run with --scan to get full insights from a Build Scan (powered by Develocity).
-BUILD FAILED in 1m 2s
-1 actionable task: 1 executed
+> Get more help at https://help.gradle.org.
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/9.5.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+BUILD FAILED in 1m 33s
+8 actionable tasks: 8 executed
 ```
