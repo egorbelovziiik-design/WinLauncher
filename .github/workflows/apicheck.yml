@@ -18,11 +18,11 @@ jobs:
       matrix:
         include:
           - { dir: nexus1165,  java: 17, gradle: '8.10.2', loom: '1.6-SNAPSHOT',
-              classes: 'net.minecraft.client.MinecraftClient net.minecraft.client.util.Window net.minecraft.client.option.GameOptions' }
+              classes: 'net.minecraft.client.Keyboard net.minecraft.client.Mouse net.minecraft.client.gui.hud.InGameHud net.minecraft.client.render.WorldRenderer net.minecraft.client.gui.screen.ChatScreen net.minecraft.client.MinecraftClient net.minecraft.client.util.math.MatrixStack net.minecraft.client.render.LightmapTextureManager net.minecraft.client.render.GameRenderer net.minecraft.client.render.Camera' }
           - { dir: nexus1214,  java: 21, gradle: '9.5.0', loom: '1.17.21',
-              classes: 'net.minecraft.client.Window net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.components.events.ContainerEventHandler net.minecraft.client.renderer.LevelRenderer net.minecraft.client.renderer.ShapeRenderer net.minecraft.client.renderer.MultiBufferSource com.mojang.blaze3d.vertex.VertexConsumer net.minecraft.world.item.ItemStack net.minecraft.world.item.Item net.minecraft.core.component.DataComponents net.minecraft.world.food.FoodProperties net.minecraft.world.entity.LivingEntity net.minecraft.world.entity.MobType net.minecraft.world.entity.animal.Wolf net.minecraft.client.Camera net.minecraft.world.entity.player.Inventory net.minecraft.network.Connection com.mojang.authlib.GameProfile net.minecraft.world.level.Level net.minecraft.client.multiplayer.ClientLevel net.minecraft.resources.Identifier net.minecraft.resources.ResourceLocation net.minecraft.client.gui.GuiGraphics net.minecraft.client.Minecraft' }
+              classes: 'net.minecraft.client.input.MouseButtonInfo net.minecraft.client.input.KeyEvent' }
           - { dir: nexus12111, java: 21, gradle: '9.5.0', loom: '1.17.21',
-              classes: 'net.minecraft.client.input.MouseButtonEvent net.minecraft.client.input.KeyEvent net.minecraft.client.input.CharacterEvent net.minecraft.tags.ItemTags net.minecraft.client.gui.GuiGraphics net.minecraft.world.entity.Entity net.minecraft.world.level.storage.LevelData$RespawnData net.minecraft.client.Minecraft' }
+              classes: 'net.minecraft.client.input.MouseButtonInfo net.minecraft.client.input.KeyEvent' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
