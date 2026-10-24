@@ -1,0 +1,17 @@
+name: KingGriefBridge
+version: 1.0.0
+main: net.kinggrief.bridge.KingGriefBridge
+api-version: '1.20'
+description: Secure order delivery bridge for the KINGGRIEF store
+author: KINGGRIEF
+website: https://kinggrief.net
+softdepend: [LuckPerms]
+commands:
+  kgbridge:
+    description: KingGriefBridge status and manual delivery retry
+    usage: /kgbridge status | /kgbridge poll | /kgbridge reload
+    permission: kinggrief.bridge.admin
+permissions:
+  kinggrief.bridge.admin:
+    description: Manage the delivery bridge
+    default: op

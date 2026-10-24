@@ -1,0 +1,31 @@
+# ── KINGGRIEF BRIDGE ─────────────────────────────────────────────────────────
+# Адрес магазина без завершающего слэша. В продакшене используйте только HTTPS.
+base-url: "https://kinggrief.net"
+
+# Должен совпадать с MINECRAFT_BRIDGE_SECRET в .env сайта.
+# Сгенерируйте: openssl rand -hex 32
+secret: "change-me-bridge-secret"
+
+# Идентификатор сервера (для логов/мультисерверных схем).
+server-id: "main"
+
+# Как часто плагин опрашивает очередь (секунды).
+poll-interval-seconds: 5
+
+# Таймаут HTTP, миллисекунды.
+http-timeout-ms: 8000
+
+# Белый список префиксов команд. Всё, что не совпадает, НЕ выполняется.
+# Это защита на случай утечки секрета.
+allowed-command-prefixes:
+  - "lp "
+  - "crates "
+  - "relics "
+  - "unban "
+  - "unbanip "
+  - "unmute "
+  - "unmuteip "
+  - "eco "
+
+# Сколько последних результатов держать в логе.
+log-deliveries: true

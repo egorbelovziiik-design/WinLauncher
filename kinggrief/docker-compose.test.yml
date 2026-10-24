@@ -1,0 +1,58 @@
+name: kinggrief-test
+
+services:
+  # Юнит-тесты бизнес-логики (vitest) внутри собранного образа.
+  unit:
+    build:
+      context: .
+      target: test
+    command: ["npm", "test"]
+    environment:
+      NODE_ENV: test
+    tmpfs:
+      - /app/data
+
+  # Приложение в тестовом режиме платежей, к которому ходит e2e-скрипт.
+  app:
+    build:
+      context: .
+      target: runner
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /app/data/e2e.db
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: KingGrief-2026
+      ADMIN_SESSION_SECRET: e2e-session-secret
+      PAYMENT_PROVIDER: mock
+      PAYMENTS_TEST_MODE: "true"
+      MINECRAFT_BRIDGE_SECRET: e2e-bridge-secret
+      COOKIE_SECURE: "false"
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+    tmpfs:
+      - /app/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/status').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # Реальный HTTP-прогон сценариев покупки, оплаты, выдачи и админки.
+  e2e:
+    image: node:22-bookworm-slim
+    working_dir: /work
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./:/work:ro
+    environment:
+      BASE_URL: http://app:3000
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: KingGrief-2026
+      MINECRAFT_BRIDGE_SECRET: e2e-bridge-secret
+    command: ["node", "scripts/e2e.mjs"]

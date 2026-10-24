@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+.git
+.gitignore
+data
+*.log
+test-results
+coverage
+tsconfig.tsbuildinfo
+.env
+.env.local
+.env.*.local
+minecraft-plugin/target
+README.md
