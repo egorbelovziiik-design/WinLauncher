@@ -127,7 +127,9 @@ element starts disabled and has its own default spot, so nothing overlaps.
 
 * **Drag with the chat open**: press `T`, then grab any HUD element with the left
   mouse button and move it. Snap-to-grid, alignment guides and a hint line are
-  active while dragging; the layout is saved when you release the button.
+  active while dragging; the layout is saved when you release the button. The
+  click is read from the physical mouse button each frame, so vanilla screens
+  (chat, inventory, menus) keep working exactly as before.
 * **TargetHUD** appears automatically while you have a target (crosshair first,
   then the closest entity within 24 blocks): name, distance, ping, health bar,
   health value and the held item.
