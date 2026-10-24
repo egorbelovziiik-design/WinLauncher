@@ -31,7 +31,7 @@ public final class Nexus1214Resources implements IResources {
         if (id == null) {
             return;
         }
-        SoundEvent event = BuiltInRegistries.SOUND_EVENT.get(id);
+        SoundEvent event = BuiltInRegistries.SOUND_EVENT.getValue(id);
         if (event != null) {
             handle().getSoundManager().play(SimpleSoundInstance.forUI(event, pitch, volume));
         }
@@ -113,8 +113,13 @@ public final class Nexus1214Resources implements IResources {
         }
         net.minecraft.world.item.ItemStack vanilla =
                 ((Nexus1214ItemStack) stack).handle();
-        net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantments(vanilla)
-                .forEach((enchantment, level) -> result.add(enchantment.value().getFullname(level).getString()));
+        net.minecraft.world.item.enchantment.ItemEnchantments enchantments =
+                net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantmentsForCrafting(vanilla);
+        for (java.util.Map.Entry<net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment>,
+                Integer> entry : enchantments.entrySet()) {
+            result.add(net.minecraft.world.item.enchantment.Enchantment
+                    .getFullname(entry.getKey(), entry.getValue().intValue()).getString());
+        }
         return result;
     }
 }

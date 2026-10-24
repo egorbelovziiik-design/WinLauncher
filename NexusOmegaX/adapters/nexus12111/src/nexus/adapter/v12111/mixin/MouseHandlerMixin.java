@@ -20,6 +20,7 @@ public final class MouseHandlerMixin {
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
     private void nexus$scroll(long window, double horizontal, double vertical, CallbackInfo info) {
+        Nexus12111Input.noteScroll(vertical);
         if (MinecraftMixin.Hooks.HOOKS.onMouse(-1, 2, vertical, 0.0, 0.0)) {
             info.cancel();
         }

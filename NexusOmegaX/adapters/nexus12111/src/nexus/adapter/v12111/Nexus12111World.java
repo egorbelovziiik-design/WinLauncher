@@ -211,7 +211,7 @@ public final class Nexus12111World implements IWorld {
         if (!ready()) {
             return null;
         }
-        Registry<Biome> registry = level().registryAccess().registryOrThrow(Registries.BIOME);
+        Registry<Biome> registry = level().registryAccess().lookupOrThrow(Registries.BIOME);
         Biome biome = level().getBiome(new BlockPos(x, level().getSeaLevel(), z)).value();
         ResourceLocation id = registry.getKey(biome);
         return id == null ? null : id.toString();
