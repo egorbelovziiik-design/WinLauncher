@@ -1,58 +1,58 @@
-23:00:29.332 data-folders: PASS
-23:00:29.387 settings-json: PASS
-23:00:29.394 url-parser: PASS
-23:00:29.396 search-engines: PASS
-23:00:29.514 drsearch-index: PASS
-23:00:29.558 drsearch-fts5: PASS
-23:00:29.623 omega-productivity: PASS
-23:00:29.666 drmind-memory: PASS
-23:00:29.741 backup: PASS
-23:00:29.745 drtools: PASS
-23:00:29.749 music-library: PASS
-23:00:29.779 music-playlists: PASS
-23:00:29.788 radio-stations: PASS
-23:00:29.789 ai-personas: PASS
-23:00:29.792 profile-avatars: PASS
-23:00:29.859 drsearch-recents: PASS
-23:00:29.940 sqlite-history: PASS
-23:00:29.957 bookmarks: PASS
-23:00:30.031 passwords-dpapi: PASS
-23:00:30.031 password-generator: PASS
-23:00:30.034 ai-without-key: PASS
-23:00:30.038 adblock: PASS
-23:00:30.042 downloads: PASS
-23:00:30.050 session: PASS
-23:00:30.115 quicklinks-permissions: PASS
-23:00:30.118 incognito-profile: PASS
-23:00:30.122 webview2-runtime: PASS
-23:00:30.123 settings-limits: PASS
-23:00:30.125 guard-url-rules: PASS
-23:00:30.127 guard-scan-args: PASS
-23:00:30.128 ai-image-attachment: PASS
-23:00:30.156 local-ai: PASS
-23:00:30.158 music-catalog-parse: PASS
-23:00:30.161 drsearch-parse: PASS
-23:00:30.162 error-logging: PASS
-23:00:31.952 smoke: start
-23:00:33.321 smoke: window created
-23:00:33.409 smoke: view model attached
-23:00:35.576 smoke-window: PASS
-23:00:35.578 smoke-webview: navigating
-23:00:37.830 smoke-webview: core ready
-23:00:38.394 smoke-webview: calling NavigateToString
-23:00:38.421 smoke-webview: NavigateToString returned
-23:00:39.118 smoke-webview: PASS
-23:00:41.542 smoke-tabs: PASS
-23:00:52.033 smoke-pages: PASS
-23:00:52.672 smoke-command-palette: PASS
-23:00:55.134 smoke-settings-tabs: PASS
-23:00:56.552 smoke-ui: PASS
-23:00:59.416 smoke-miniplayer: SKIP
-23:01:01.623 smoke-hotkeys: PASS
-23:01:02.278 smoke-https: engine ready
-23:01:02.625 smoke-https: PASS
-23:01:05.343 smoke-download: PASS
-23:01:06.861 smoke-screenshot: PASS
-23:01:06.923 smoke: view model shutdown
-23:01:07.290 smoke: window closed
-23:01:07.296 smoke: finished, exit 0
+10:31:23.715 data-folders: PASS
+10:31:23.782 settings-json: PASS
+10:31:23.790 url-parser: PASS
+10:31:23.791 search-engines: PASS
+10:31:23.944 drsearch-index: PASS
+10:31:24.025 drsearch-fts5: PASS
+10:31:24.077 omega-productivity: PASS
+10:31:24.195 drmind-memory: PASS
+10:31:24.293 backup: PASS
+10:31:24.298 drtools: PASS
+10:31:24.303 music-library: PASS
+10:31:24.340 music-playlists: PASS
+10:31:24.351 radio-stations: PASS
+10:31:24.352 ai-personas: PASS
+10:31:24.355 profile-avatars: PASS
+10:31:24.427 drsearch-recents: PASS
+10:31:24.498 sqlite-history: PASS
+10:31:24.522 bookmarks: PASS
+10:31:24.590 passwords-dpapi: PASS
+10:31:24.591 password-generator: PASS
+10:31:24.601 ai-without-key: PASS
+10:31:24.606 adblock: PASS
+10:31:24.611 downloads: PASS
+10:31:24.621 session: PASS
+10:31:24.769 quicklinks-permissions: PASS
+10:31:24.771 incognito-profile: PASS
+10:31:24.776 webview2-runtime: PASS
+10:31:24.776 settings-limits: PASS
+10:31:24.780 guard-url-rules: PASS
+10:31:24.781 guard-scan-args: PASS
+10:31:24.782 ai-image-attachment: PASS
+10:31:24.820 local-ai: PASS
+10:31:24.822 music-catalog-parse: PASS
+10:31:24.829 drsearch-parse: PASS
+10:31:24.830 error-logging: PASS
+10:31:26.920 smoke: start
+10:31:29.502 smoke: window created
+10:31:29.576 smoke: view model attached
+10:31:31.683 smoke-window: PASS
+10:31:31.685 smoke-webview: navigating
+10:31:34.130 smoke-webview: core ready
+10:31:34.810 smoke-webview: calling NavigateToString
+10:31:34.848 smoke-webview: NavigateToString returned
+10:31:35.580 smoke-webview: PASS
+10:31:38.000 smoke-tabs: PASS
+10:31:48.566 smoke-pages: PASS
+10:31:49.209 smoke-command-palette: PASS
+10:31:51.681 smoke-settings-tabs: PASS
+10:31:53.111 smoke-ui: PASS
+10:31:55.951 smoke-miniplayer: SKIP
+10:31:58.224 smoke-hotkeys: PASS
+10:31:58.892 smoke-https: engine ready
+10:31:59.282 smoke-https: PASS
+10:32:02.010 smoke-download: PASS
+10:32:03.520 smoke-screenshot: SKIP
+10:32:03.570 smoke: view model shutdown
+10:32:04.434 smoke: window closed
+10:32:04.442 smoke: finished, exit 0

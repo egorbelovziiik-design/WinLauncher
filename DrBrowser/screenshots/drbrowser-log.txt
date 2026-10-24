@@ -1,44 +1,35 @@
-﻿23:00:29.255 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
-23:00:29.276 INFO  === selftest: start ===
-23:00:29.278 INFO  selftest marker 4c87a425d3344ad6a006cefa141e6ff7
-23:00:29.496 INFO  DrSearch: "dotnet" → 2 local results
-23:00:29.497 INFO  DrSearch: "drbrowser" → 1 local results
-23:00:29.497 INFO  DrSearch: "example.com" → 1 local results
-23:00:29.509 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
-23:00:29.513 INFO  DrSearch: "dotnet" → 2 local results
-23:00:29.638 INFO  DrSearch: "drbrowser" → 0 web results
-23:00:29.652 INFO  DrSearch: "dotnet" → 0 web results
-23:00:29.652 INFO  DrSearch: "dotnet" → 0 web results
-23:00:29.652 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 web results
-23:00:29.652 INFO  DrSearch: "example.com" → 0 web results
-23:00:29.858 INFO  DrSearch: "первый запрос" → 0 local results
-23:00:29.859 INFO  DrSearch: "второй запрос" → 0 local results
-23:00:29.859 INFO  DrSearch: "первый запрос" → 0 local results
-23:00:29.889 INFO  DrSearch: "первый запрос" → 0 web results
-23:00:29.891 INFO  DrSearch: "первый запрос" → 0 web results
-23:00:29.894 INFO  DrSearch: "второй запрос" → 0 web results
-23:00:30.036 INFO  Правил: 107 · доменов: 88 · исключений: 0
-23:00:30.161 ERROR selftest intentional exception :: InvalidOperationException: expected
-23:00:31.175 INFO  exit code 0
-23:00:31.937 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
-23:00:31.951 INFO  === smoke: start ===
-23:00:32.070 INFO  MainViewModel created (private=True)
-23:00:33.454 INFO  Правил: 107 · доменов: 88 · исключений: 0
-23:00:34.842 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\bc217245af564e35860b1a67a1924b0d
-23:00:34.859 INFO  Initialisation complete
-23:00:38.034 INFO  WebView2 configured for tab 01c01f
-23:00:38.036 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:00:38.424 WARN  navigation failed: about:blank :: ConnectionAborted
-23:00:39.422 INFO  WebView2 configured for tab 081b26
-23:00:39.423 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:00:40.687 INFO  WebView2 configured for tab 3d4b64
-23:00:40.687 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:00:56.576 INFO  music play: DrBrowser Smoke Tone.wav (stream=False)
-23:00:59.096 ERROR music playback failed (DrBrowser Smoke Tone.wav): 0xC00D11BA
-23:01:01.675 INFO  WebView2 configured for tab 2407e7
-23:01:01.675 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
-23:01:04.099 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
-23:01:04.874 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
-23:01:05.413 INFO  screenshot saved: C:\Users\runneradmin\AppData\Roaming\DrBrowser\screenshots\screenshot-20261023-230105.png
-23:01:06.922 INFO  shutdown complete
-23:01:07.315 INFO  exit code 0
+﻿10:31:23.628 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --selftest ===
+10:31:23.653 INFO  === selftest: start ===
+10:31:23.655 INFO  selftest marker 46960a3edf63426791bc3f2c01257b6f
+10:31:23.933 INFO  DrSearch: "dotnet" → 2 local results
+10:31:23.934 INFO  DrSearch: "drbrowser" → 1 local results
+10:31:23.934 INFO  DrSearch: "example.com" → 1 local results
+10:31:23.943 INFO  DrSearch: "нет-такого-слова-в-индексе-42" → 0 local results
+10:31:23.944 INFO  DrSearch: "dotnet" → 2 local results
+10:31:24.422 INFO  DrSearch: "первый запрос" → 0 local results
+10:31:24.426 INFO  DrSearch: "второй запрос" → 0 local results
+10:31:24.426 INFO  DrSearch: "первый запрос" → 0 local results
+10:31:24.604 INFO  Правил: 107 · доменов: 88 · исключений: 0
+10:31:24.829 ERROR selftest intentional exception :: InvalidOperationException: expected
+10:31:25.854 INFO  exit code 0
+10:31:26.894 INFO  === DrBrowser 3.0.0 starting · Microsoft Windows NT 10.0.26100.0 · --smoke ===
+10:31:26.919 INFO  === smoke: start ===
+10:31:27.345 INFO  MainViewModel created (private=True)
+10:31:29.614 INFO  Правил: 107 · доменов: 88 · исключений: 0
+10:31:30.933 INFO  WebView2 runtime 155.0.4283.62, profile C:\Users\runneradmin\AppData\Roaming\DrBrowser\profile\incognito\ce46165211834afea28fadc5a2e60c6b
+10:31:30.952 INFO  Initialisation complete
+10:31:34.319 INFO  WebView2 configured for tab 3cb966
+10:31:34.321 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+10:31:34.851 WARN  navigation failed: about:blank :: ConnectionAborted
+10:31:35.898 INFO  WebView2 configured for tab b49fc6
+10:31:35.899 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+10:31:37.162 INFO  WebView2 configured for tab 0d8608
+10:31:37.163 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+10:31:53.121 INFO  music play: DrBrowser Smoke Tone.wav (stream=False)
+10:31:55.684 ERROR music playback failed (DrBrowser Smoke Tone.wav): 0xC00D11BA
+10:31:58.284 INFO  WebView2 configured for tab d6eeda
+10:31:58.284 INFO  accelerator bridge attached (page-focused shortcuts forwarded to DrBrowser)
+10:32:00.792 INFO  download started: drbrowser-smoke.bin -> C:\Users\runneradmin\Downloads\drbrowser-smoke.bin
+10:32:01.756 INFO  DrGuard scan drbrowser-smoke.bin → clean (exit 0)
+10:32:03.570 INFO  shutdown complete
+10:32:04.476 INFO  exit code 0
