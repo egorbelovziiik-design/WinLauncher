@@ -1,6 +1,6 @@
 package nexus.adapter.v1165.mixin;
 
-import net.minecraft.net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.Screen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
