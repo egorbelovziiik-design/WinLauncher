@@ -38,26 +38,21 @@ jobs:
         working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
       - name: javap
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           exec > /tmp/dump.md 2>&1
-          set -x
           echo "# ${{ matrix.dir }} API ($(date -u))"
-          echo '```'
-          echo "gradle home: $GRADLE_USER_HOME"
-          ls -d "$HOME/.gradle"/* 2>&1 | head -20
-          echo "--- loom dirs"
-          find "$HOME" -maxdepth 6 -type d -name "fabric-loom" 2>/dev/null | head -5
-          echo "--- jars"
-          find "$HOME" -name "*.jar" -path "*minecraft*" 2>/dev/null | head -20
-          echo '```'
-          JAR=""
-          for J in $(find "$HOME" -name "*.jar" -path "*minecraft*" 2>/dev/null | grep -v sources | head -30); do
-            echo "== trying $J"
-            if jar tf "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
-          done
-          echo "jar=$JAR"
+          cd NexusOmegaX/adapters/${{ matrix.dir }}
+          echo "GRADLE_USER_HOME=$GRADLE_USER_HOME  HOME=$HOME"
+          JAR=$(gradle -q printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>/dev/null | grep '^MCJAR=' | head -1 | cut -d= -f2-)
+          echo "jar from gradle = $JAR"
+          if [ -z "$JAR" ]; then
+            echo "--- loom jars on disk"
+            find "$HOME" -name "*.jar" -path "*minecraft-merged*" 2>/dev/null | head -20
+            for J in $(find "$HOME" -name "*.jar" 2>/dev/null | grep -iv -e sources | grep -i minecraft | head -40); do
+              if jar tf "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
+            done
+            echo "jar from disk = $JAR"
+          fi
           echo '```'
           for C in ${{ matrix.classes }}; do
             echo "=========== $C"
@@ -71,19 +66,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          ls -la /tmp/dump.md
-          if grep -q "^jar=$" /tmp/dump.md 2>/dev/null; then echo "no jar, keeping the old dump"; exit 0; fi
-          base64 -w0 /tmp/dump.md > /tmp/dump.b64
-          wc -c /tmp/dump.b64
-          put() {
-            gh api --method PUT "repos/${{ github.repository }}/contents/$1" \
-              -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
-              -f branch="$GITHUB_REF_NAME" ${2:+-f sha="$2"}
-          }
+          base64 -w0 /tmp/dump.md > /tmp/dump.b64 || exit 0
           FILE="ci-logs/api-${{ matrix.dir }}.md"
           SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null)
-          echo "sha=$SHA"
-          if put "$FILE" "$SHA"; then echo published; else
-            echo "retrying as a unique file"
-            put "ci-logs/api-${{ matrix.dir }}-${{ github.run_id }}.md"
-          fi
+          gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
+            -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
+            -f branch="$GITHUB_REF_NAME" ${SHA:+-f sha="$SHA"} && echo published
