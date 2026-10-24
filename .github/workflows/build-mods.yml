@@ -140,6 +140,23 @@ jobs:
           cd mods && zip -r ../NexusOmegaX-mods.zip . && cd ..
           ls -la NexusOmegaX-mods.zip
 
+      - name: Verify the jars
+        run: |
+          set -e
+          COUNT=$(ls artifacts/*.jar 2>/dev/null | wc -l)
+          echo "built jars: $COUNT"
+          for J in artifacts/*.jar; do
+            echo "== $J"
+            unzip -l "$J" | tail -3
+            unzip -p "$J" fabric.mod.json > /tmp/mod.json || { echo "no fabric.mod.json in $J"; exit 1; }
+            grep -E '"id"|"version"|"entrypoints"' /tmp/mod.json | head -5
+            unzip -l "$J" | grep -qE "nexus/(adapter|core)/.*\.class" || { echo "no nexus classes in $J"; exit 1; }
+            unzip -l "$J" | grep -q "mixins.json\|nexusomegax" || echo "warning: no mixin config in $J"
+          done
+          unzip -l NexusOmegaX-mods.zip
+          test "$(unzip -l NexusOmegaX-mods.zip | grep -c '\.jar')" -ge 1
+          echo "jar verification passed"
+
       - name: Publish jars
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
