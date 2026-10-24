@@ -154,6 +154,11 @@ public final class Nexus {
         modules.disableAll();
         configs.saveAll(true);
         platform.uninstallHooks();
+        try {
+            profile.save();
+        } catch (Throwable throwable) {
+            Log.warn("Could not save the profile: " + throwable.getMessage());
+        }
         eventBus.clear();
         Log.info("Nexus stopped cleanly");
     }
@@ -260,9 +265,15 @@ public final class Nexus {
         boolean visible = inGui || guiReallyVisible();
         if (gui.isOpen() && !visible) {
             // self heal: our stack thinks something is open but the game shows a
-            // vanilla screen - close it and let the game have the key
+            // vanilla screen - close it (from the next tick, never from inside
+            // vanilla key handling) and let the game have this key
             Log.warn("Nexus interface stack desynced from the vanilla screen - resyncing");
-            gui.closeAll(true);
+            gui.runNextTick(new Runnable() {
+                @Override
+                public void run() {
+                    gui.closeAll(true);
+                }
+            });
         }
         // 1) the GUI manager owns RIGHT SHIFT and ESC while OUR screen is open
         if (visible && gui.onKey(event)) {

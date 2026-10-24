@@ -227,3 +227,33 @@ a world visit · the singleplayer row leaves the Nexus stack and hands over to
   `JoinMultiplayerScreen`, `OptionsScreen`)
 * Nexus настройки (SettingsScreen), ClickGUI, «Вернуться в меню Minecraft»
 * `.menu` / F6 open it in game, `.nick <name|reset>` sets the nickname
+
+## 9. Startup crash of the 1.21.4 / 1.21.11 jars (fixed)
+
+Reported crash (Minecraft 1.21.4, Fabric Loader 0.19.3, Mixin 0.8.7):
+
+```
+java.lang.RuntimeException: Mixin transformation of nexus.adapter.v1214.mixin.MinecraftMixin$Hooks failed
+Caused by: org.spongepowered.asm.mixin.transformer.throwables.IllegalClassLoadError:
+  nexus.adapter.v1214.mixin.MinecraftMixin$Hooks is in a defined mixin package
+  nexus.adapter.v1214.mixin.* owned by nexusomegax.mixins.json and cannot be referenced directly
+```
+
+Cause: the shared hook object was stored in a nested class **inside the mixin
+package**, and `Nexus1214Platform` (a normal class) referenced it. Mixin forbids
+any direct reference from outside a configured mixin package, so the entrypoint
+died while Minecraft was still constructing itself.
+
+Fix: the holder now lives in the adapter package -
+`nexus.adapter.v1214.Nexus1214Hooks.Hooks.HOOKS` - and the mixins and the
+platform share exactly that one instance. The nested holder inside the
+`Minecraft` mixin was deleted.
+
+Regression guards added to `build-mods.yml` (the build fails if any of them is
+violated):
+
+| guard | what it catches |
+|---|---|
+| mixin configs point at real classes | a class renamed/moved but still listed in `*.mixins.json` |
+| no mixin package references from outside | `IllegalClassLoadError` before launch |
+| no mixin package strings inside the built jars | the same bug after shading/remapping |
