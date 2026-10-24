@@ -1,19 +1,5 @@
-### Gradle log: nexus1165  (Sat Oct 24 15:27:07 UTC 2026)
+### Gradle log: nexus1165  (Sat Oct 24 15:29:21 UTC 2026)
 ```
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Options.java:3: error: package net.minecraft.client.options does not exist
-import net.minecraft.client.options.GameOptions;
-                                   ^
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Options.java:15: error: cannot find symbol
-    private GameOptions options() {
-            ^
-  symbol:   class GameOptions
-  location: class Nexus1165Options
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Inventory.java:25: error: package net.minecraft.container does not exist
-    private net.minecraft.container.PlayerContainer inventory() {
-                                   ^
-3 errors
-
-> Task :compileJava FAILED
 ```
 
 ### tail
@@ -30,30 +16,36 @@ Daemon will be stopped at the end of the build
 Fabric Loom: 1.6.12
 Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
 > Task :compileJava
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Options.java:3: error: package net.minecraft.client.options does not exist
-import net.minecraft.client.options.GameOptions;
-                                   ^
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Options.java:15: error: cannot find symbol
-    private GameOptions options() {
-            ^
-  symbol:   class GameOptions
-  location: class Nexus1165Options
-/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Inventory.java:25: error: package net.minecraft.container does not exist
-    private net.minecraft.container.PlayerContainer inventory() {
-                                   ^
-3 errors
-> Task :compileJava FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792855587682.json
+> Task :processResources
+> Task :classes
+> Task :jar
+> Task :sourcesJar
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :validateAccessWidener NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :remapJar
+> Task :verifyMixins FAILED
+verifyMixins: 1 problem(s)
+  MIXIN PROBLEM: ChatScreenMixin.java: ChatScreen.sendMessage does not exist
+> Task :remapSourcesJar
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792855704943.json
 FAILURE: Build failed with an exception.
+* Where:
+Build file '/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/build.gradle' line: 204
 * What went wrong:
-Execution failed for task ':compileJava'.
-> Compilation failed; see the compiler error output for details.
+Execution failed for task ':verifyMixins'.
+> Mixin targets do not match Minecraft: ChatScreenMixin.java: ChatScreen.sendMessage does not exist
 * Try:
-> Run with --info option to get more log output.
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
 > Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 51s
-1 actionable task: 1 executed
+BUILD FAILED in 1m 2s
+7 actionable tasks: 7 executed
 ```
