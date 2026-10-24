@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - { dir: nexus1165,  java: 17, gradle: '8.10.2', loom: '1.6-SNAPSHOT',
-              classes: 'net.minecraft.client.Keyboard net.minecraft.client.Mouse net.minecraft.client.gui.hud.InGameHud net.minecraft.client.render.WorldRenderer net.minecraft.client.gui.screen.ChatScreen net.minecraft.client.MinecraftClient net.minecraft.client.util.math.MatrixStack net.minecraft.client.render.LightmapTextureManager net.minecraft.client.render.GameRenderer net.minecraft.client.render.Camera' }
+              classes: 'net.minecraft.client.Keyboard net.minecraft.client.Mouse net.minecraft.client.gui.hud.InGameHud net.minecraft.client.render.WorldRenderer net.minecraft.client.gui.screen.ChatScreen net.minecraft.client.MinecraftClient' }
           - { dir: nexus1214,  java: 21, gradle: '9.5.0', loom: '1.17.21',
               classes: 'net.minecraft.client.input.MouseButtonInfo net.minecraft.client.input.KeyEvent' }
           - { dir: nexus12111, java: 21, gradle: '9.5.0', loom: '1.17.21',
@@ -56,7 +56,7 @@ jobs:
           echo '```'
           for C in ${{ matrix.classes }}; do
             echo "=========== $C"
-            javap -classpath "$JAR" -public "$C" 2>&1 | head -500
+            javap -classpath "$JAR" -p -s "$C" 2>&1 | head -400
           done
           echo '```'
 
