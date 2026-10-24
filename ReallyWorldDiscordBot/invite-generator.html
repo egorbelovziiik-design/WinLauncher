@@ -131,12 +131,12 @@
     <div class="card">
       <h2>Шаг 2 — Мгновенная ссылка приглашения бота в ваш Discord</h2>
       <label for="clientIdInput">Вставьте ваш Application ID (со вкладки General Information):</label>
-      <input id="clientIdInput" type="text" inputmode="numeric" placeholder="Например: 1381255368650526861..." oninput="updateInvite()" />
+      <input id="clientIdInput" type="text" inputmode="numeric" value="1563651952506576918" placeholder="Например: 1563651952506576918" oninput="updateInvite()" />
 
-      <div id="inviteBox" class="invite-box">Введите Application ID выше — здесь мгновенно появится ваша ссылка приглашения!</div>
+      <div id="inviteBox" class="invite-box">https://discord.com/oauth2/authorize?client_id=1563651952506576918&amp;permissions=8&amp;scope=bot%20applications.commands</div>
 
       <div class="btn-row">
-        <a id="openInviteBtn" class="btn btn-discord" href="https://discord.com/developers/applications" target="_blank" rel="noopener">🚀 Пригласить бота в мой Discord</a>
+        <a id="openInviteBtn" class="btn btn-discord" href="https://discord.com/oauth2/authorize?client_id=1563651952506576918&permissions=8&scope=bot%20applications.commands" target="_blank" rel="noopener">🚀 Пригласить бота (ID 1563651952506576918) в мой Discord</a>
         <button class="btn btn-dark" type="button" onclick="copyInvite()">📋 Скопировать ссылку</button>
       </div>
     </div>

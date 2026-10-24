@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+DEFAULT_CLIENT_ID = "1563651952506576918"
 DEFAULT_OWNER_ID = 1381255368650526861
 DEFAULT_OWNER_USERNAME = "robik0277"
 
@@ -62,7 +63,7 @@ class BotConfig:
 
         return cls(
             token=os.getenv("DISCORD_TOKEN", "").strip(),
-            client_id=os.getenv("CLIENT_ID", "").strip(),
+            client_id=os.getenv("CLIENT_ID", str(raw.get("client_id", DEFAULT_CLIENT_ID))).strip() or DEFAULT_CLIENT_ID,
             owner_id=owner_id,
             owner_username=owner_username or DEFAULT_OWNER_USERNAME,
             dev_guild_id=dev_guild_id,
