@@ -1,33 +1,7 @@
-# nexus1165 API (Sat Oct 24 14:42:36 UTC 2026)
+# nexus1165 API (Sat Oct 24 14:48:14 UTC 2026)
+GRADLE_USER_HOME=/home/runner/.gradle  HOME=/home/runner
+jar from gradle = /home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
 ```
-jar=/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
---- candidates
-104
-/home/runner/.gradle/caches/fabric-loom/1.16.5/minecraft-client.jar
-/home/runner/.gradle/caches/fabric-loom/1.16.5/minecraft-server.jar
-/home/runner/.gradle/caches/fabric-loom/1.16.5/minecraft-merged.jar
-/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
-/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged-intermediary/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-intermediary-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
---- printMappedJar output
-To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
-Daemon will be stopped at the end of the build 
-
-> Configure project :
-Fabric Loom: 1.6.12
-Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
-
-> Task :printMappedJar
-MCJAR=/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1792852943135.json
-
-Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
-
-You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
-
-For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-
-BUILD SUCCESSFUL in 7s
-1 actionable task: 1 executed
 =========== net.minecraft.util.math.Box
 Compiled from "Box.java"
 public class net.minecraft.util.math.Box {
