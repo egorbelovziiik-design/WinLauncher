@@ -152,6 +152,17 @@ jobs:
             grep -E '"id"|"version"|"entrypoints"' /tmp/mod.json | head -5
             unzip -l "$J" | grep -qE "nexus/(adapter|core)/.*\.class" || { echo "no nexus classes in $J"; exit 1; }
             unzip -l "$J" | grep -q "mixins.json\|nexusomegax" || echo "warning: no mixin config in $J"
+            if unzip -p "$J" nexusomegax.mixins.json | grep -q ScreenMouseMixin; then
+              echo "stale ScreenMouseMixin in $J"; exit 1
+            fi
+            unzip -l "$J" | grep -q "nexus/core/hud/elements/TargetHudElement.class" \
+              || { echo "no TargetHUD in $J"; exit 1; }
+            unzip -p "$J" nexus/core/hud/HudManager.class | strings | grep -q pollChatDrag \
+              || { echo "no HUD drag poller in $J"; exit 1; }
+            unzip -p "$J" nexus/api/IWindow.class | strings | grep -q isMouseDown \
+              || { echo "no mouse polling API in $J"; exit 1; }
+            unzip -p "$J" nexus/core/hud/HudManager.class | strings | grep -q renderChatDragOverlay \
+              || { echo "no HUD drag overlay in $J"; exit 1; }
           done
           unzip -l NexusOmegaX-mods.zip
           test "$(unzip -l NexusOmegaX-mods.zip | grep -c '\.jar')" -ge 1
