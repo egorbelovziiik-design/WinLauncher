@@ -13,6 +13,12 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'KingGrief-2026';
 const BRIDGE_SECRET = process.env.MINECRAFT_BRIDGE_SECRET || 'dev-bridge-secret';
 
+/**
+ * У каждого прогона свой «IP» в x-forwarded-for: лимиты частоты не мешают повторным
+ * запускам и не конфликтуют с ручными проверками на том же сервере.
+ */
+const E2E_IP = process.env.E2E_IP || `10.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}`;
+
 const jar = new Map();
 let passed = 0;
 const failures = [];
@@ -42,7 +48,7 @@ function cookieHeader() {
 }
 
 async function call(method, path, { body, headers = {}, auth = true, raw = false } = {}) {
-  const requestHeaders = { ...headers };
+  const requestHeaders = { 'x-forwarded-for': E2E_IP, ...headers };
   if (body !== undefined) requestHeaders['content-type'] = 'application/json';
   if (auth && jar.size > 0) requestHeaders.cookie = cookieHeader();
   const response = await fetch(`${BASE}${path}`, {
