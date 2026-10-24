@@ -32,7 +32,7 @@ public final class Nexus1165Screens implements IScreenHost {
     @Override
     public void open(NexusScreen screen) {
         if (stack.isEmpty()) {
-            Screen current = handle().screen;
+            Screen current = handle().currentScreen;
             previous = current instanceof NexusScreenBridge ? null : current;
         }
         NexusScreenBridge bridge = new NexusScreenBridge(this, screen);
@@ -174,7 +174,7 @@ public final class Nexus1165Screens implements IScreenHost {
 
     /** Parent screen for the vanilla menus: the vanilla screen underneath. */
     private Screen parent() {
-        Screen current = handle().screen;
+        Screen current = handle().currentScreen;
         if (current instanceof NexusScreenBridge) {
             return previous;
         }
@@ -183,11 +183,11 @@ public final class Nexus1165Screens implements IScreenHost {
 
     @Override
     public boolean isTitleScreen() {
-        return handle().screen instanceof net.minecraft.client.gui.screen.TitleScreen;
+        return handle().currentScreen instanceof net.minecraft.client.gui.screen.TitleScreen;
     }
 
     @Override
     public boolean isGuiVisible() {
-        return handle().screen instanceof NexusScreenBridge;
+        return handle().currentScreen instanceof NexusScreenBridge;
     }
 }
