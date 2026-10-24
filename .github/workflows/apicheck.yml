@@ -42,7 +42,7 @@ jobs:
         run: |
           JAR=""
           for J in $(find ~/.gradle/caches/fabric-loom -name "*.jar" 2>/dev/null | grep -v sources); do
-            if unzip -l "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft.class"; then JAR="$J"; break; fi
+            if unzip -l "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
           done
           echo "jar=$JAR"
           {
