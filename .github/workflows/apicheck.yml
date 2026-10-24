@@ -18,11 +18,11 @@ jobs:
       matrix:
         include:
           - { dir: nexus1165,  java: 17, gradle: '8.10.2', loom: '1.6-SNAPSHOT',
-              classes: 'net.minecraft.client.gui.screen.TitleScreen net.minecraft.client.gui.screen.world.SelectWorldScreen net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen net.minecraft.client.gui.screen.option.OptionsScreen net.minecraft.client.MinecraftClient' }
+              classes: 'net.minecraft.client.gui.screen.Screen net.minecraft.client.gui.screen.ChatScreen' }
           - { dir: nexus1214,  java: 21, gradle: '9.5.0', loom: '1.17.21',
-              classes: 'net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.screens.worldselection.SelectWorldScreen net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen net.minecraft.client.gui.screens.options.OptionsScreen net.minecraft.client.Minecraft' }
+              classes: 'net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.ChatScreen' }
           - { dir: nexus12111, java: 21, gradle: '9.5.0', loom: '1.17.21',
-              classes: 'net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.screens.worldselection.SelectWorldScreen net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen net.minecraft.client.gui.screens.options.OptionsScreen net.minecraft.client.Minecraft' }
+              classes: 'net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.ChatScreen' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
