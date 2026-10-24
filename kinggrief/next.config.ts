@@ -2,8 +2,9 @@ import type { NextConfig } from 'next';
 
 import path from 'node:path';
 
+// standalone-сборка нужна для Docker/собственного сервера; на Vercel её не используют.
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  ...(process.env.VERCEL ? {} : { output: 'standalone' as const }),
   outputFileTracingRoot: path.join(__dirname),
   poweredByHeader: false,
   serverExternalPackages: ['node:sqlite'],

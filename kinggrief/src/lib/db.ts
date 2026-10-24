@@ -174,7 +174,9 @@ CREATE TABLE IF NOT EXISTS event_log (
 `;
 
 export function dbPath() {
-  const p = process.env.DATABASE_PATH || './data/kinggrief.db';
+  // На serverless-хостингах (Vercel) файловая система только для чтения, кроме /tmp.
+  const fallback = process.env.VERCEL ? '/tmp/kinggrief.db' : './data/kinggrief.db';
+  const p = process.env.DATABASE_PATH || fallback;
   return path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 }
 
