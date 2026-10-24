@@ -37,34 +37,45 @@ jobs:
         run: gradle compileJava --no-daemon --console=plain -PloomVersion=${{ matrix.loom }}
         working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
       - name: javap
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          exec > /tmp/dump.md 2>&1
+          set -x
+          echo "# ${{ matrix.dir }} API ($(date -u))"
+          echo '```'
+          echo "gradle home: $GRADLE_USER_HOME"
+          ls -d "$HOME/.gradle"/* 2>&1 | head -20
+          echo "--- loom dirs"
+          find "$HOME" -maxdepth 6 -type d -name "fabric-loom" 2>/dev/null | head -5
+          echo "--- jars"
+          find "$HOME" -name "*.jar" -path "*minecraft*" 2>/dev/null | head -20
+          echo '```'
+          JAR=""
+          for J in $(find "$HOME" -name "*.jar" -path "*minecraft*" 2>/dev/null | grep -v sources | head -30); do
+            echo "== trying $J"
+            if jar tf "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
+          done
+          echo "jar=$JAR"
+          echo '```'
+          for C in ${{ matrix.classes }}; do
+            echo "=========== $C"
+            javap -classpath "$JAR" -public "$C" 2>&1 | head -500
+          done
+          echo '```'
+
+      - name: publish the dump
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          DIAG=$(cd NexusOmegaX/adapters/${{ matrix.dir }} && gradle printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>&1 | tail -25)
-          JAR=$(find "$HOME/.gradle" -name "*.jar" 2>/dev/null | grep -v -e sources | while read J; do
-                  if jar tf "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then echo "$J"; break; fi
-                done)
-          echo "jar=$JAR"
-          {
-            echo "# ${{ matrix.dir }} API ($(date -u))"
-            echo '```'
-            echo "jar=$JAR"
-            echo "--- candidates"
-            find "$HOME/.gradle" -name "*.jar" 2>/dev/null | grep -iv sources | wc -l
-            find "$HOME/.gradle" -name "*minecraft*.jar" 2>/dev/null | head -10
-            echo "--- printMappedJar output"
-            echo "$DIAG"
-            for C in ${{ matrix.classes }}; do
-              echo "=========== $C"
-              javap -classpath "$JAR" -public "$C" 2>&1 | head -500
-            done
-            echo '```'
-          } > /tmp/dump.md
-          if [ -z "$JAR" ]; then echo "no jar found, keeping the previous dump"; exit 0; fi
+          ls -la /tmp/dump.md
+          if grep -q "^jar=$" /tmp/dump.md 2>/dev/null; then echo "no jar, keeping the old dump"; exit 0; fi
           base64 -w0 /tmp/dump.md > /tmp/dump.b64
           FILE="ci-logs/api-${{ matrix.dir }}.md"
-          SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null || true)
+          SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null)
           if [ -n "$SHA" ]; then
             gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
               -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
