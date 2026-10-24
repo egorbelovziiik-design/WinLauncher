@@ -9,7 +9,7 @@ Result summary
 |---|---|
 | Core compile (Java 21) | **0 errors**, 526 classes |
 | Core compile (Java 8, 1.16.5 target) | **0 errors** |
-| Headless test suite | **71 checks, 0 failures** (exit 0) |
+| Headless test suite | **81 checks, 0 failures** (exit 0) |
 | Adapter ↔ `nexus.api` conformance (static) | **0 missing methods** in all 3 adapters |
 | `NexusInjector.exe` | built, **PE32+ Windows GUI**, 249 344 bytes |
 | Mod jars (1.16.5 / 1.21.4 / 1.21.11) | **not produced here** — see §5 |
@@ -29,11 +29,11 @@ java -jar ecj.jar -8  -nowarn -d build/classes8 $(find api/src core/src modules/
 Sources: 468 Java files (`api` 23, `core` 90, `modules` 276, `test` 3,
 adapters 76). Runtime dependencies of the core: **none**.
 
-## 2. Headless test suite — 71 checks, 0 failures
+## 2. Headless test suite — 81 checks, 0 failures
 
 ```
 java -cp build/classes nexus.test.TestSuite build/test-runtime
-checks: 71   failures: 0   exit code: 0
+checks: 81   failures: 0   exit code: 0
 ```
 
 The suite boots the real client on top of `nexus.test.HeadlessPlatform`
@@ -192,3 +192,38 @@ Every `@Inject`/`@ModifyVariable` in this project spells out the full JVM descri
 the Gradle task **`verifyMixins`** (wired into `build`) resolves the mapped Minecraft jar,
 runs `javap -p -s` on each target class and fails the build when a target or its
 descriptor does not match.
+
+## 7. Screen stack / input regression ("кнопки не нажимаются")
+
+The interface stack could desync from the vanilla screen: Minecraft closed a
+`NexusScreenBridge` on its own (vanilla `onClose` -> `setScreen(null)`), while the
+Nexus stack still believed an interface was open. From that moment every key press
+was swallowed by `GuiManager.onKey`, so ESC / E / T / the pause menu looked dead.
+
+Fixes (all three versions):
+
+| what | before | now |
+|---|---|---|
+| vanilla ESC on a Nexus screen | `bridge.onClose()` called `super.onClose()` | `bridge.onClose()` calls `IScreenHost.close(screen)`; the NEXUS stack pops and restores the vanilla screen underneath |
+| screen underneath | `setScreen(null)` | the vanilla screen that was visible before is remembered and restored (`TitleScreen`, inventory, ...) |
+| self-healing | none | `Nexus.tick()` compares `gui.isOpen()` with `screens.isGuiVisible()` and closes a desynced stack (`"desynced - resyncing"` in the log) |
+| 1.16.5 | `removed()` closed the screen (fires on every screen swap) | `removed()` is empty, closing happens once |
+
+Checks that lock this down (section «6b» of the suite):
+custom menu opens on the title screen · ESC closes it and the vanilla title
+screen stays clickable · the menu is not forced back · it is offered again after
+a world visit · the singleplayer row leaves the Nexus stack and hands over to
+`SelectWorldScreen` · nickname sanitising / 16 char cap / fallback name.
+
+## 8. Custom main menu
+
+`nexus.gui.MainMenuScreen` (core, no per-version code):
+
+* nickname editor (click the field, `ENTER` saves, `ESC` cancels, `[A-Za-z0-9_]{0,16}`)
+  stored in `config/profile.properties` via `nexus.core.profile.ClientProfile`
+* «Своё меню при запуске» toggle — turns the automatic title-screen menu off
+* Одиночная игра / Сетевая игра / Настройки Minecraft — leave the Nexus stack first
+  and open the real vanilla screen (`SelectWorldScreen`, `MultiplayerScreen` /
+  `JoinMultiplayerScreen`, `OptionsScreen`)
+* Nexus настройки (SettingsScreen), ClickGUI, «Вернуться в меню Minecraft»
+* `.menu` / F6 open it in game, `.nick <name|reset>` sets the nickname
