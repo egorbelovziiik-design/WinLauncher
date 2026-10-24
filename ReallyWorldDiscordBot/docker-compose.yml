@@ -1,0 +1,9 @@
+services:
+  reallyworld-kp-bot:
+    build: .
+    container_name: reallyworld-kp-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data

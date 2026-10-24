@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ReallyWorld КП Bot — Приглашение в Discord & Скачивание (robik0277)</title>
+  <style>
+    :root {
+      --bg: #0c0e14;
+      --card: #151924;
+      --border: #283046;
+      --gold: #ffaa00;
+      --orange: #ff5e00;
+      --discord: #5865f2;
+      --green: #2ecc71;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1f1a12 0%, var(--bg) 55%);
+      color: var(--text);
+      padding: 28px 18px 48px;
+    }
+    .wrap { max-width: 780px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 26px;
+      margin-bottom: 18px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.45);
+    }
+    .badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: rgba(255, 170, 0, 0.14);
+      border: 1px solid rgba(255, 170, 0, 0.45);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 12px 0 8px;
+      font-size: 26px;
+      background: linear-gradient(90deg, #ffd166, #ffaa00, #ff5e00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h2 { margin: 0 0 12px; font-size: 18px; color: #fff; }
+    p, li { color: var(--muted); line-height: 1.55; font-size: 14.5px; }
+    ol { margin: 10px 0 0; padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    code {
+      color: #fcd34d;
+      background: rgba(0,0,0,0.4);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 13px;
+    }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; color: #e5e7eb; }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0e111a;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+    input:focus { border-color: var(--gold); }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 18px;
+      border-radius: 11px;
+      font-weight: 700;
+      font-size: 14.5px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: filter 0.12s ease, transform 0.12s ease;
+    }
+    .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn-discord { background: var(--discord); color: #fff; }
+    .btn-gold { background: linear-gradient(90deg, var(--gold), var(--orange)); color: #111; }
+    .btn-green { background: var(--green); color: #0b1911; }
+    .btn-dark { background: #22283a; border: 1px solid var(--border); color: var(--text); }
+    .invite-box {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #0d1018;
+      border: 1px dashed rgba(88, 101, 242, 0.65);
+      word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      color: #a5b4fc;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <span class="badge">Владелец закреплён: robik0277 • ID: 1381255368650526861</span>
+      <h1>Готовый Discord-Бот ReallyWorld КП</h1>
+      <p>Бот полностью написан, протестирован и настроен так, что главным владельцем является <strong>robik0277</strong> (<code>1381255368650526861</code>). Внутри уже вшита ваша пляжная аватарка <strong>КП</strong>, система набора в КП, вызовы на проверку читов (<code>/check start</code>), тикеты с отчётами, модерация, верификация и розыгрыши.</p>
+      <div class="btn-row">
+        <a class="btn btn-gold" href="/ReallyWorld-KP-DiscordBot.zip" download="ReallyWorld-KP-DiscordBot.zip">⬇ Скачать готового бота (.ZIP)</a>
+        <a class="btn btn-dark" href="https://discord.com/developers/applications" target="_blank" rel="noopener">🌐 Открыть Discord Developer Portal</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Шаг 1 (20 секунд) — Создайте карточку бота на своём аккаунте robik0277</h2>
+      <p>Discord защищает создание приложений капчей и личным входом в аккаунт, поэтому когда вы нажмёте кнопку сами под аккаунтом <strong>robik0277</strong>, вы автоматически станете единственным юридическим владельцем приложения в самом Discord:</p>
+      <ol>
+        <li>Откройте <a href="https://discord.com/developers/applications" target="_blank" rel="noopener" style="color:#ffd166;">discord.com/developers/applications</a> и нажмите синюю кнопку <strong>New Application</strong> (назовите, например, <code>ReallyWorld КП</code>).</li>
+        <li>На первой вкладке <strong>General Information</strong> скопируйте число <strong>Application ID</strong> и вставьте его в поле ниже — сразу появится прямая ссылка приглашения в ваш Discord!</li>
+        <li>Перейдите слева во вкладку <strong>Bot</strong>, прокрутите вниз до <strong>Privileged Gateway Intents</strong>, включите все <strong>3 тумблера</strong> (<code>Presence Intent</code>, <code>Server Members Intent</code>, <code>Message Content Intent</code>) и нажмите <strong>Save Changes</strong>.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Шаг 2 — Мгновенная ссылка приглашения бота в ваш Discord</h2>
+      <label for="clientIdInput">Вставьте ваш Application ID (со вкладки General Information):</label>
+      <input id="clientIdInput" type="text" inputmode="numeric" placeholder="Например: 1381255368650526861..." oninput="updateInvite()" />
+
+      <div id="inviteBox" class="invite-box">Введите Application ID выше — здесь мгновенно появится ваша ссылка приглашения!</div>
+
+      <div class="btn-row">
+        <a id="openInviteBtn" class="btn btn-discord" href="https://discord.com/developers/applications" target="_blank" rel="noopener">🚀 Пригласить бота в мой Discord</a>
+        <button class="btn btn-dark" type="button" onclick="copyInvite()">📋 Скопировать ссылку</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Шаг 3 (опционально, 100% локально в браузере) — Скачать готовый файл <code>.env</code></h2>
+      <p>Токен обрабатывается исключительно внутри вашего браузера и никуда не передаётся по сети. Положите скачанный файл <code>.env</code> в папку бота и запустите <code>start.bat</code> (Windows) или <code>./start.sh</code> (Linux/Хостинг)!</p>
+      <label for="tokenInput">Bot Token (со вкладки Bot → Reset Token):</label>
+      <input id="tokenInput" type="password" placeholder="Вставьте токен для сохранения локального файла .env..." />
+      <label for="guildInput">ID вашего Discord-сервера (необязательно — для мгновенной синхронизации /команд):</label>
+      <input id="guildInput" type="text" placeholder="Например: 123456789012345678" />
+      <div class="btn-row">
+        <button class="btn btn-green" type="button" onclick="downloadEnv()">💾 Скачать готовый .env (владелец: robik0277)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function cleanDigits(v) { return (v || "").replace(/\D+/g, ""); }
+
+    function updateInvite() {
+      const cid = cleanDigits(document.getElementById("clientIdInput").value);
+      const box = document.getElementById("inviteBox");
+      const btn = document.getElementById("openInviteBtn");
+      if (cid.length >= 15) {
+        const url = "https://discord.com/oauth2/authorize?client_id=" + cid + "&permissions=8&scope=bot%20applications.commands";
+        box.textContent = url;
+        btn.href = url;
+        btn.textContent = "🚀 Пригласить бота (ID " + cid + ") в мой Discord";
+      } else {
+        box.textContent = "Введите корректный числовой Application ID (17–20 цифр) — здесь появится ссылка приглашения!";
+        btn.href = "https://discord.com/developers/applications";
+        btn.textContent = "🚀 Пригласить бота в мой Discord";
+      }
+    }
+
+    function copyInvite() {
+      const text = document.getElementById("inviteBox").textContent;
+      if (text.startsWith("https://")) {
+        navigator.clipboard.writeText(text);
+        alert("Ссылка приглашения скопирована!");
+      }
+    }
+
+    function downloadEnv() {
+      const token = (document.getElementById("tokenInput").value || "PASTE_YOUR_BOT_TOKEN_HERE").trim();
+      const cid = cleanDigits(document.getElementById("clientIdInput").value);
+      const gid = cleanDigits(document.getElementById("guildInput").value);
+      const content = [
+        "DISCORD_TOKEN=" + token,
+        "CLIENT_ID=" + cid,
+        "OWNER_ID=1381255368650526861",
+        "OWNER_USERNAME=robik0277",
+        "DEV_GUILD_ID=" + gid,
+        "SERVER_NAME=ReallyWorld КП",
+        "MINECRAFT_SERVER_IP=mc.reallyworld.me",
+        "AUTO_SET_KP_AVATAR=true",
+        ""
+      ].join("\n");
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = ".env";
+      a.click();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+"""Application configuration and Discord OAuth2 Invite URL builder."""
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from urllib.parse import urlencode
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+DEFAULT_OWNER_ID = 1381255368650526861
+DEFAULT_OWNER_USERNAME = "robik0277"
+
+
+def build_invite_url(client_id: int | str, permissions: int = 8) -> str:
+    """Build a direct Discord OAuth2 bot + slash-commands invite link."""
+    cid = str(client_id).strip()
+    if not cid.isdigit():
+        raise ValueError("Application ID (CLIENT_ID) должен состоять только из цифр.")
+    query = urlencode(
+        {
+            "client_id": cid,
+            "permissions": str(permissions),
+            "scope": "bot applications.commands",
+        }
+    )
+    return f"https://discord.com/oauth2/authorize?{query}"
+
+
+@dataclass(slots=True)
+class BotConfig:
+    token: str
+    client_id: str
+    owner_id: int = DEFAULT_OWNER_ID
+    owner_username: str = DEFAULT_OWNER_USERNAME
+    dev_guild_id: int | None = None
+    project_name: str = "ReallyWorld | Команда Проекта"
+    minecraft_ip: str = "mc.reallyworld.me"
+    minecraft_versions: str = "1.21.4 — 1.21.11"
+    auto_set_kp_avatar: bool = True
+    db_path: Path = field(default_factory=lambda: BASE_DIR / "data" / "reallyworld_bot.db")
+    avatar_path: Path = field(default_factory=lambda: BASE_DIR / "assets" / "avatar_kp_beach.png")
+    raw_json: dict = field(default_factory=dict)
+
+    @classmethod
+    def load(cls) -> "BotConfig":
+        cfg_file = BASE_DIR / "config.json"
+        raw = json.loads(cfg_file.read_text(encoding="utf-8")) if cfg_file.exists() else {}
+
+        owner_raw = os.getenv("OWNER_ID", str(raw.get("owner_id", DEFAULT_OWNER_ID))).strip()
+        owner_id = int(owner_raw) if owner_raw.isdigit() else DEFAULT_OWNER_ID
+        owner_username = os.getenv("OWNER_USERNAME", raw.get("owner_username", DEFAULT_OWNER_USERNAME)).strip()
+
+        dev_guild_raw = os.getenv("DEV_GUILD_ID", "").strip()
+        dev_guild_id = int(dev_guild_raw) if dev_guild_raw.isdigit() else None
+
+        auto_avatar = os.getenv("AUTO_SET_KP_AVATAR", "true").strip().lower() in {"1", "true", "yes", "on"}
+
+        return cls(
+            token=os.getenv("DISCORD_TOKEN", "").strip(),
+            client_id=os.getenv("CLIENT_ID", "").strip(),
+            owner_id=owner_id,
+            owner_username=owner_username or DEFAULT_OWNER_USERNAME,
+            dev_guild_id=dev_guild_id,
+            project_name=os.getenv("SERVER_NAME", raw.get("project_name", "ReallyWorld | Команда Проекта")),
+            minecraft_ip=os.getenv("MINECRAFT_SERVER_IP", raw.get("minecraft_ip", "mc.reallyworld.me")),
+            minecraft_versions=raw.get("minecraft_versions", "1.21.4 — 1.21.11"),
+            auto_set_kp_avatar=auto_avatar,
+            raw_json=raw,
+        )

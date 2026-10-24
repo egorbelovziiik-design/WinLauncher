@@ -1,0 +1,26 @@
+{
+  "owner_id": 1381255368650526861,
+  "owner_username": "robik0277",
+  "project_name": "ReallyWorld | Команда Проекта",
+  "minecraft_ip": "mc.reallyworld.me",
+  "minecraft_versions": "1.21.4 — 1.21.11",
+  "colors": {
+    "gold": "0xFFAA00",
+    "orange": "0xFF6B00",
+    "success": "0x2ECC71",
+    "error": "0xE74C3C",
+    "info": "0x3498DB"
+  },
+  "kp_settings": {
+    "max_strikes": 3,
+    "points_per_ticket": 2,
+    "points_per_check": 5,
+    "check_timeout_minutes": 5
+  },
+  "economy": {
+    "chat_reward_min": 5,
+    "chat_reward_max": 15,
+    "chat_cooldown_seconds": 45,
+    "daily_reward": 250
+  }
+}
