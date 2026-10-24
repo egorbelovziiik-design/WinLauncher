@@ -21,6 +21,7 @@ public final class KeyCodes {
     public static final int END = 269;
     public static final int CAPS_LOCK = 280;
     public static final int F1 = 290;
+    public static final int F6 = 295;
     public static final int F11 = 300;
     public static final int F12 = 301;
     public static final int LEFT_SHIFT = 340;

@@ -1792,6 +1792,9 @@ public final class HeadlessClient implements IClient {
 
     public final class HeadlessScreens implements IScreenHost {
 
+        private String vanillaMenu;
+        private boolean titleScreen;
+
         @Override
         public void open(NexusScreen screen) {
             screen.init(window.guiWidth(), window.guiHeight());
@@ -1861,6 +1864,41 @@ public final class HeadlessClient implements IClient {
         @Override
         public void clickEnchantment(int index) {
             lastEnchantmentClicked = index;
+        }
+
+        @Override
+        public void openSingleplayerMenu() {
+            vanillaMenu = "selectworld";
+        }
+
+        @Override
+        public void openMultiplayerMenu() {
+            vanillaMenu = "multiplayer";
+        }
+
+        @Override
+        public void openVanillaOptions() {
+            vanillaMenu = "options";
+        }
+
+        @Override
+        public boolean isTitleScreen() {
+            return titleScreen;
+        }
+
+        @Override
+        public boolean isGuiVisible() {
+            return !screenStack.isEmpty();
+        }
+
+        /** Makes the harness pretend the vanilla title screen is (in)visible. */
+        public void setTitleScreen(boolean visible) {
+            this.titleScreen = visible;
+        }
+
+        /** Last vanilla menu the Nexus menu opened (headless recorder). */
+        public String vanillaMenu() {
+            return vanillaMenu;
         }
     }
 

@@ -7,6 +7,8 @@ import nexus.core.event.*;
 import nexus.core.hud.HudElement;
 import nexus.core.module.Module;
 import nexus.core.module.ModuleCategory;
+import nexus.core.profile.ClientProfile;
+import nexus.gui.MainMenuScreen;
 import nexus.core.setting.Setting;
 import nexus.util.FileUtil;
 import nexus.util.json.Json;
@@ -157,6 +159,44 @@ public final class TestSuite {
         pressShift(nexus, client);
         check("RIGHT SHIFT closed the ClickGUI again", !nexus.gui().isClickGuiOpen());
         check("mouse control restored after RIGHT SHIFT", client.input().isMouseGrabbed());
+
+        section("6b. Custom main menu, nickname profile and vanilla menu hand-off");
+        HeadlessClient.HeadlessScreens screens = (HeadlessClient.HeadlessScreens) client.screens();
+        screens.setTitleScreen(true);
+        tick(nexus, 2);
+        check("the custom main menu opened on the title screen",
+                nexus.gui().current() instanceof MainMenuScreen);
+        renderGui(nexus, client, 2);
+
+        nexus.profile().setNickname("Tester_1");
+        check("nickname saved to the profile", "Tester_1".equals(nexus.profile().nickname()));
+        check("invalid characters are stripped", "".equals(ClientProfile.sanitize("!!@#")));
+        check("nickname is capped at 16 characters",
+                ClientProfile.sanitize("abcdefghijklmnopqrstuvwxyz").length() == 16);
+        check("display name falls back when empty", "Steve".equals(new ClientProfile(
+                new File(System.getProperty("java.io.tmpdir"), "nexus-profile-test"))
+                .displayName("Steve")));
+
+        nexus.onKey(KeyCodes.ESCAPE, 0, 0, KeyEvent.Action.PRESS, false);
+        check("ESC closed the custom menu", nexus.gui().stackSize() == 0);
+        tick(nexus, 3);
+        check("the menu is not forced back while the title screen stays open",
+                nexus.gui().stackSize() == 0);
+
+        screens.setTitleScreen(false);
+        tick(nexus, 1);
+        screens.setTitleScreen(true);
+        tick(nexus, 2);
+        check("the menu is offered again after visiting a world",
+                nexus.gui().current() instanceof MainMenuScreen);
+
+        // the singleplayer row must leave the Nexus stack and hand over to vanilla
+        nexus.gui().current().mouseClicked(480, 220, 0);
+        tick(nexus, 1);
+        check("a vanilla menu action closes the Nexus menu", nexus.gui().stackSize() == 0);
+        check("the singleplayer row handed over to the vanilla world list",
+                "selectworld".equals(screens.vanillaMenu()));
+        screens.setTitleScreen(false);
 
         section("7. HUD");
         for (HudElement element : nexus.hud().all()) {

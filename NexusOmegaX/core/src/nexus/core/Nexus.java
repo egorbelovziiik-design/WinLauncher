@@ -5,6 +5,7 @@ import nexus.api.KeyCodes;
 import nexus.api.NexusPlatform;
 import nexus.core.automation.MacroManager;
 import nexus.core.config.ConfigManager;
+import nexus.core.profile.ClientProfile;
 import nexus.core.diagnostics.Diagnostics;
 import nexus.core.event.*;
 import nexus.core.event.EventBus;
@@ -58,6 +59,9 @@ public final class Nexus {
     private final Diagnostics diagnostics;
     private final SessionTracker session;
     private final GuiManager gui;
+    private final ClientProfile profile;
+    /** Guards the custom main menu so ESC really reveals the vanilla title screen. */
+    private boolean mainMenuOffered;
 
     private int tickCount;
     private boolean initialized;
@@ -79,6 +83,7 @@ public final class Nexus {
         this.macros = new MacroManager(this);
         this.diagnostics = new Diagnostics(this);
         this.session = new SessionTracker(this);
+        this.profile = new ClientProfile(directory);
         this.gui = new GuiManager(this);
     }
 
@@ -168,11 +173,44 @@ public final class Nexus {
         notifications.onTick();
         macros.onTick();
         gui.onTick();
+        tickScreens();
         eventBus.post(new TickEvent(TickEvent.Phase.POST, tickCount));
 
         if (configs.autoSaveEnabled() && autosaveTimer.hasPassed(configs.autoSaveIntervalMs(), true)) {
             configs.saveAll(false);
         }
+    }
+
+    /**
+     * Keeps the Nexus interface stack and the vanilla screen in sync and offers
+     * the custom main menu on the title screen.
+     * <p>
+     * The desync case matters: if Minecraft closes our bridge behind our back
+     * (for example a vanilla {@code setScreen} call), the stack would stay
+     * "open" forever and would keep swallowing every key press - which looks
+     * exactly like "the buttons in Minecraft stopped working".
+     */
+    private void tickScreens() {
+        IClient adapter = client();
+        if (adapter == null || adapter.screens() == null) {
+            return;
+        }
+        if (gui.isOpen()) {
+            if (adapter.screens().isGuiVisible()) {
+                return; // our interface is up - nothing to offer
+            }
+            Log.warn("Nexus interface stack desynced from the vanilla screen - resyncing");
+            gui.closeAll(true);
+        }
+        if (!adapter.screens().isTitleScreen()) {
+            mainMenuOffered = false;
+            return;
+        }
+        if (mainMenuOffered || !profile.customMainMenu()) {
+            return;
+        }
+        mainMenuOffered = true;
+        gui.openMainMenu();
     }
 
     public void render2D(Render2DEvent event) {
@@ -351,6 +389,10 @@ public final class Nexus {
 
     public KeybindManager keybinds() {
         return keybinds;
+    }
+
+    public ClientProfile profile() {
+        return profile;
     }
 
     public GuiManager gui() {

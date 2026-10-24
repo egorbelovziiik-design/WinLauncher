@@ -18,6 +18,8 @@ public final class Nexus1165Screens implements IScreenHost {
 
     private final Nexus1165Client client;
     private final List<NexusScreenBridge> stack = new ArrayList<NexusScreenBridge>();
+    /** Vanilla screen that was visible before the first Nexus screen opened. */
+    private Screen previous;
 
     Nexus1165Screens(Nexus1165Client client) {
         this.client = client;
@@ -29,7 +31,11 @@ public final class Nexus1165Screens implements IScreenHost {
 
     @Override
     public void open(NexusScreen screen) {
-        NexusScreenBridge bridge = new NexusScreenBridge(screen);
+        if (stack.isEmpty()) {
+            Screen current = handle().screen;
+            previous = current instanceof NexusScreenBridge ? null : current;
+        }
+        NexusScreenBridge bridge = new NexusScreenBridge(this, screen);
         stack.add(bridge);
         handle().openScreen(bridge);
     }
@@ -43,8 +49,12 @@ public final class Nexus1165Screens implements IScreenHost {
             }
         }
         if (stack.isEmpty()) {
-            handle().openScreen(null);
-            restoreMouseToGame();
+            Screen restore = previous;
+            previous = null;
+            handle().openScreen(restore);
+            if (restore == null) {
+                restoreMouseToGame();
+            }
         } else {
             handle().openScreen(stack.get(stack.size() - 1));
         }
@@ -61,11 +71,16 @@ public final class Nexus1165Screens implements IScreenHost {
 
     @Override
     public void closeAll() {
-        while (!stack.isEmpty()) {
-            stack.remove(stack.size() - 1).onClose();
+        // Defensive path only: the client core already closed every screen via
+        // close(NexusScreen). Never call bridge.onClose() from here, that would
+        // re-enter the Nexus stack.
+        stack.clear();
+        Screen restore = previous;
+        previous = null;
+        handle().openScreen(restore);
+        if (restore == null) {
+            restoreMouseToGame();
         }
-        handle().openScreen(null);
-        restoreMouseToGame();
     }
 
     @Override
@@ -138,5 +153,41 @@ public final class Nexus1165Screens implements IScreenHost {
             ((net.minecraft.client.gui.screen.ingame.EnchantmentScreen) handle().currentScreen)
                     .mouseClicked(120.0, 40.0 + index * 19.0, 0);
         }
+    }
+
+    // ------------------------------------------------------- vanilla menus
+
+    @Override
+    public void openSingleplayerMenu() {
+        handle().openScreen(new net.minecraft.client.gui.screen.world.SelectWorldScreen(parent()));
+    }
+
+    @Override
+    public void openMultiplayerMenu() {
+        handle().openScreen(new net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen(parent()));
+    }
+
+    @Override
+    public void openVanillaOptions() {
+        handle().openScreen(new net.minecraft.client.gui.screen.option.OptionsScreen(parent(), handle().options));
+    }
+
+    /** Parent screen for the vanilla menus: the vanilla screen underneath. */
+    private Screen parent() {
+        Screen current = handle().screen;
+        if (current instanceof NexusScreenBridge) {
+            return previous;
+        }
+        return current;
+    }
+
+    @Override
+    public boolean isTitleScreen() {
+        return handle().screen instanceof net.minecraft.client.gui.screen.TitleScreen;
+    }
+
+    @Override
+    public boolean isGuiVisible() {
+        return handle().screen instanceof NexusScreenBridge;
     }
 }

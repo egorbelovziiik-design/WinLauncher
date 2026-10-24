@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import nexus.api.IScreenHost;
 import nexus.api.screen.NexusScreen;
 
 import java.util.ArrayList;
@@ -17,10 +18,14 @@ import java.util.List;
 public final class NexusScreenBridge extends Screen {
 
     private final NexusScreen screen;
+    private boolean closed;
     private final List<net.minecraft.client.gui.components.Renderable> renderables =
             new ArrayList<net.minecraft.client.gui.components.Renderable>();
 
-    public NexusScreenBridge(NexusScreen screen) {
+    private final IScreenHost host;
+
+    public NexusScreenBridge(IScreenHost host, NexusScreen screen) {
+        this.host = host;
         super(Component.literal(screen.title()));
         this.screen = screen;
     }
@@ -89,8 +94,19 @@ public final class NexusScreenBridge extends Screen {
 
     @Override
     public void onClose() {
-        screen.onClosed();
-        super.onClose();
+        // Route the vanilla ESC through the Nexus stack: the host pops the
+        // screen, restores the vanilla screen underneath and only then drops
+        // this bridge. Calling super.onClose() here would desync the stack.
+        if (closed) {
+            return;
+        }
+        closed = true;
+        host.close(screen);
+    }
+
+    /** Vanilla asks whether ESC may close this screen. */
+    public boolean shouldCloseOnEsc() {
+        return screen.closesOnEscape();
     }
 
     @Override
@@ -98,8 +114,4 @@ public final class NexusScreenBridge extends Screen {
         return screen.pausesGame();
     }
 
-    /** Opens a Nexus screen through the vanilla screen system. */
-    public static void open(NexusScreen screen) {
-        Minecraft.getInstance().setScreen(new NexusScreenBridge(screen));
-    }
 }

@@ -33,6 +33,7 @@ public final class GuiManager {
     private HudEditorScreen hudEditor;
     private ConfigScreen configScreen;
     private SettingsScreen settingsScreen;
+    private MainMenuScreen mainMenu;
     private long lastToggleMs;
 
     public GuiManager(Nexus nexus) {
@@ -68,6 +69,13 @@ public final class GuiManager {
                     @Override
                     public void run() {
                         toggle(SettingsScreen.class);
+                    }
+                });
+        keybinds.register("client.menu", "Nexus Menu", "Client", KeyCodes.F6,
+                KeybindManager.Mode.TOGGLE, new Runnable() {
+                    @Override
+                    public void run() {
+                        openMainMenu();
                     }
                 });
         keybinds.register("client.panic", "Panic", "Client", KeyCodes.NONE,
@@ -141,6 +149,16 @@ public final class GuiManager {
 
     public void openSettings() {
         open(settingsScreen(), false);
+    }
+
+    /** Opens the Nexus main menu (shown on top of the vanilla title screen). */
+    public void openMainMenu() {
+        if (mainMenu == null) {
+            mainMenu = new MainMenuScreen(nexus);
+        }
+        if (!stack.contains(mainMenu)) {
+            open(mainMenu, true);
+        }
     }
 
     /** Opens a screen, guaranteeing that it is never added to the stack twice. */

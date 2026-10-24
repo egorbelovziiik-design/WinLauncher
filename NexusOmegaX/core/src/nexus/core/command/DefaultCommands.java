@@ -5,6 +5,7 @@ import nexus.core.Nexus;
 import nexus.core.NexusInfo;
 import nexus.core.module.Module;
 import nexus.core.module.ModuleCategory;
+import nexus.core.profile.ClientProfile;
 import nexus.core.setting.Setting;
 import nexus.util.ColorUtil;
 import nexus.util.FileUtil;
@@ -60,6 +61,32 @@ public final class DefaultCommands {
 
     public static void register(CommandManager manager) {
         final Nexus nexus = manager.nexus();
+
+        manager.register(new SimpleCommand("menu", "Opens the Nexus main menu", ".menu",
+                new Executor() {
+                    @Override
+                    public void run(Command.Context context) {
+                        nexus.gui().openMainMenu();
+                    }
+                }));
+
+        manager.register(new SimpleCommand("nick", "Sets the nickname shown in the Nexus menu",
+                ".nick <name|reset>",
+                new Executor() {
+                    @Override
+                    public void run(Command.Context context) {
+                        if (context.argCount() == 0) {
+                            String current = nexus.profile().nickname();
+                            context.reply("§7Nickname: §f" + (current.isEmpty() ? "not set" : current));
+                            return;
+                        }
+                        String value = "reset".equalsIgnoreCase(context.arg(0))
+                                ? "" : ClientProfile.sanitize(context.arg(0));
+                        nexus.profile().setNickname(value);
+                        context.reply(value.isEmpty()
+                                ? "§7Nickname cleared" : "§dNickname set to §f" + value);
+                    }
+                }));
 
         manager.register(new SimpleCommand("help", "Lists commands or shows details",
                 ".help [command|page]",

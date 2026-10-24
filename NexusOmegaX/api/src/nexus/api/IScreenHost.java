@@ -40,4 +40,19 @@ public interface IScreenHost {
 
     /** Clicks one of the three enchantment buttons (0 = top). */
     void clickEnchantment(int index);
+
+    /** Opens the vanilla "singleplayer" world list (used by the Nexus menu). */
+    void openSingleplayerMenu();
+
+    /** Opens the vanilla multiplayer server list. */
+    void openMultiplayerMenu();
+
+    /** Opens the vanilla options screen. */
+    void openVanillaOptions();
+
+    /** True when the vanilla title screen is the active screen. */
+    boolean isTitleScreen();
+
+    /** True when a Nexus screen is actually visible (used to detect desync). */
+    boolean isGuiVisible();
 }
