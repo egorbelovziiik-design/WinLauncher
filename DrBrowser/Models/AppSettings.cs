@@ -34,6 +34,7 @@ public sealed class AppSettings : ObservableObject
     private int _tabSuspendMinutes = 10;
     private string _wallpaperPath = string.Empty;
     private bool _showBookmarksBar = true;
+    private bool _verticalTabs;
     private string _profileName = "Default";
     private string _userDataFolder = string.Empty;
     private bool _readerModeDark = true;
@@ -78,6 +79,9 @@ public sealed class AppSettings : ObservableObject
     public int TabSuspendMinutes { get => _tabSuspendMinutes; set => Set(ref _tabSuspendMinutes, Math.Clamp(value, 1, 240)); }
     public string WallpaperPath { get => _wallpaperPath; set => Set(ref _wallpaperPath, value ?? string.Empty); }
     public bool ShowBookmarksBar { get => _showBookmarksBar; set => Set(ref _showBookmarksBar, value); }
+
+    /// <summary>Vertical (side) tab strip instead of the horizontal one.</summary>
+    public bool VerticalTabs { get => _verticalTabs; set => Set(ref _verticalTabs, value); }
     public string ProfileName { get => _profileName; set => Set(ref _profileName, value); }
     public string UserDataFolder { get => _userDataFolder; set => Set(ref _userDataFolder, value ?? string.Empty); }
     public bool ReaderModeDark { get => _readerModeDark; set => Set(ref _readerModeDark, value); }

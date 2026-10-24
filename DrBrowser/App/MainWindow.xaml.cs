@@ -472,6 +472,7 @@ public partial class MainWindow : Window, IBrowserShell
                 case Key.P: _vm.SavePagePdf(); return true;
                 case Key.M when shift: _vm.OpenInternal("music"); return true;
                 case Key.G when shift: _vm.OpenInternal("guard"); return true;
+                case Key.E when shift: _vm.ToggleVerticalTabs(); return true;
                 case Key.K: _vm.OpenInternal("search"); return true;
 
                 // DrMusic transport: Ctrl+Alt+Space / Ctrl+Alt+Left / Ctrl+Alt+Right.

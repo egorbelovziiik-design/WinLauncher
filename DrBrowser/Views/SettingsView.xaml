@@ -36,6 +36,11 @@
                                           IsChecked="{Binding Settings.SaveHistory}" />
                                 <CheckBox Style="{StaticResource Switch}" Margin="0,12,0,0" Content="Показывать панель закладок"
                                           IsChecked="{Binding Settings.ShowBookmarksBar}" />
+                                <CheckBox Style="{StaticResource Switch}" Margin="0,12,0,0"
+                                          Content="Вертикальные вкладки (Ctrl+Shift+E)"
+                                          IsChecked="{Binding Settings.VerticalTabs}" />
+                                <TextBlock Style="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,6,0,0"
+                                           Text="Вертикальный режим: список вкладок слева, заголовок, закрепление, звук и перетаскивание работают так же, как в верхней панели." />
                             </StackPanel>
                         </Border>
 

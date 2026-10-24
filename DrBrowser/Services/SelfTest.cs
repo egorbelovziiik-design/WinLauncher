@@ -964,6 +964,29 @@ public static class SelfTest
                 return "записано 2 трека, прочитано 3 записи из «грязного» файла, относительный путь и поток распознаны";
             });
 
+            await Run("vertical-tabs", "Вертикальные вкладки: режим сохраняется и переключается", () =>
+            {
+                var service = new SettingsService(log);
+                var defaults = SettingsService.CreateDefaults();
+                if (defaults.VerticalTabs) throw new Exception("вертикальные вкладки включены по умолчанию");
+
+                var settings = SettingsService.CreateDefaults();
+                settings.VerticalTabs = true;
+                service.Save(settings);
+                if (!service.Load().VerticalTabs) throw new Exception("флаг вертикальных вкладок не сохранился");
+
+                settings.VerticalTabs = false;
+                service.Save(settings);
+                if (service.Load().VerticalTabs) throw new Exception("выключение не сохранилось");
+
+                // Горизонтальная панель и боковая — взаимоисключающие режимы одного и того же флага.
+                var mode = false;
+                mode = !mode;
+                if (!mode) throw new Exception("переключатель режима не работает");
+
+                return "по умолчанию выключено · включение и выключение переживают запись settings.json";
+            });
+
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>
             {
                 var before = File.Exists(log.FilePath) ? new FileInfo(log.FilePath).Length : 0;

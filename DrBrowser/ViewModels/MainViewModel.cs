@@ -241,6 +241,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public string TabsSummary => Plural(Tabs.Count, "вкладка", "вкладки", "вкладок");
     public bool ShowBookmarksBar => Settings.ShowBookmarksBar;
 
+    /// <summary>Vertical (side) tab strip; the horizontal one hides while this is on.</summary>
+    public bool VerticalTabs => Settings.VerticalTabs;
+    public string VerticalTabsHint => VerticalTabs
+        ? "Вертикальные вкладки · Ctrl+Shift+E"
+        : "Вкладки сверху · Ctrl+Shift+E";
+
     /// <summary>The bar row is hidden while there is not a single bookmark — no empty star row.</summary>
     public bool ShowBookmarksBarRow => Settings.ShowBookmarksBar && Bookmarks.BarItems.Count > 0;
     public string ProfileGlyph => Settings.ProfileName.Length > 0 ? Settings.ProfileName[..1].ToUpperInvariant() : "D";

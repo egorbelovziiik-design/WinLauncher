@@ -43,7 +43,8 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
 
-                <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+                              Visibility="{Binding VerticalTabs, Converter={StaticResource InverseBoolToVis}}">
                     <ItemsControl x:Name="TabStrip" ItemsSource="{Binding Tabs}" Margin="0,6,0,0">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -327,11 +328,125 @@
             <!-- =============================== CONTENT =============================== -->
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0">
+                <!-- ================= VERTICAL TAB SIDEBAR ================= -->
+                <Border Grid.Column="0" Width="248" Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0"
+                        Visibility="{Binding VerticalTabs, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="10,10,8,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="ВКЛАДКИ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="{Binding VerticalTabsHint}" Style="{StaticResource Muted}"
+                                           FontSize="9.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="＋" Style="{StaticResource IconButton}" FontSize="13" ToolTip="Новая вкладка (Ctrl+T)"
+                                        Command="{Binding NewTabCommand}" />
+                                <Button Content="⇱" Style="{StaticResource IconButton}" FontSize="12"
+                                        ToolTip="Вернуть вкладки наверх (Ctrl+Shift+E)"
+                                        Command="{Binding ToggleVerticalTabsCommand}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Margin="6,0,6,6">
+                            <ItemsControl ItemsSource="{Binding Tabs}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Vertical" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="SideTabBorder" Height="38" Margin="0,0,0,3" Padding="8,0"
+                                                CornerRadius="8" Background="Transparent"
+                                                BorderThickness="1,1,1,1" BorderBrush="Transparent"
+                                                Cursor="Hand" AllowDrop="True"
+                                                ToolTip="{Binding DisplayUrl}"
+                                                MouseLeftButtonDown="Tab_MouseLeftButtonDown"
+                                                MouseMove="Tab_MouseMove"
+                                                MouseLeftButtonUp="Tab_MouseLeftButtonUp"
+                                                Drop="Tab_Drop" DragOver="Tab_DragOver"
+                                                MouseRightButtonUp="Tab_MouseRightButtonUp">
+                                            <Border.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Дублировать" Command="{Binding DataContext.DuplicateTabCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                    <MenuItem Header="Закрепить / открепить" Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                    <MenuItem Header="Выключить / включить звук" Command="{Binding DataContext.ToggleMuteCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                    <Separator />
+                                                    <MenuItem Header="Закрыть вкладку" Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                    <MenuItem Header="Закрыть остальные" Command="{Binding DataContext.CloseOtherTabsCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                    <MenuItem Header="Восстановить закрытую" Command="{Binding DataContext.ReopenTabCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                </ContextMenu>
+                                            </Border.ContextMenu>
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Border Grid.Column="0" Width="20" Height="20" CornerRadius="6"
+                                                        Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding TitleLetter}" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Border>
+
+                                                <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}" Margin="8,0,4,0"
+                                                           FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                                                <TextBlock Grid.Column="2" Text="📌" FontSize="10" Margin="2,0"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding IsPinned, Converter={StaticResource BoolToVis}}" />
+
+                                                <TextBlock Grid.Column="3" Text="{Binding MuteGlyph}" FontSize="10" Margin="2,0"
+                                                           VerticalAlignment="Center" ToolTip="Звук вкладки"
+                                                           Visibility="{Binding IsMuted, Converter={StaticResource BoolToVis}}" />
+
+                                                <Button Grid.Column="4" Content="✕" Width="20" Height="20" FontSize="10"
+                                                        Style="{StaticResource IconButton}" ToolTip="Закрыть вкладку"
+                                                        Command="{Binding DataContext.CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}" />
+                                            </Grid>
+                                        </Border>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                <Setter TargetName="SideTabBorder" Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+                                                <Setter TargetName="SideTabBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <Border Grid.Row="2" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="8" Padding="8,6" Margin="8,0,8,8">
+                            <TextBlock Style="{StaticResource Muted}" FontSize="9.5" TextWrapping="Wrap" Margin="0"
+                                       Text="Перетаскивайте вкладки мышью, чтобы менять порядок. Закреплённые всегда слева наверху — как в горизонтальной панели." />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="1">
                     <!-- WebView2 layer: one child per tab, visibility controlled in code-behind -->
                     <Grid x:Name="WebHostPanel" Background="{DynamicResource WindowBackgroundBrush}" />
 
@@ -341,7 +456,7 @@
                 </Grid>
 
                 <!-- AI panel -->
-                <Border Grid.Column="1" Width="370" Background="{DynamicResource SurfaceBrush}"
+                <Border Grid.Column="2" Width="370" Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0,0,0"
                         Visibility="{Binding IsAiOpen, Converter={StaticResource BoolToVis}}">
                     <ContentControl x:Name="AiHost" />

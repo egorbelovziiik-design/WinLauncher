@@ -377,6 +377,19 @@ public sealed partial class MainViewModel
         Raise(nameof(ShowBookmarksBar));
     });
 
+    /// <summary>Switches between the horizontal tab strip and the vertical sidebar (Ctrl+Shift+E).</summary>
+    public ICommand ToggleVerticalTabsCommand => Cmd("verticaltabs", () => ToggleVerticalTabs());
+
+    public void ToggleVerticalTabs()
+    {
+        Settings.VerticalTabs = !Settings.VerticalTabs;
+        _settingsService.Save(Settings);
+        Raise(nameof(VerticalTabs), nameof(VerticalTabsHint));
+        StatusMessage = Settings.VerticalTabs
+            ? "Вертикальные вкладки: переключатель Ctrl+Shift+E"
+            : "Вкладки снова сверху: переключатель Ctrl+Shift+E";
+    }
+
     // ------------------------------------------------------------------
     // History
     // ------------------------------------------------------------------
