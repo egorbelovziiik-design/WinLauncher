@@ -1,0 +1,33 @@
+# =======================================================================
+# battlepass.yml — Сезонный Боевой Пропуск (/bp)
+# Полностью отключается через enabled: false без перезапуска кода.
+# =======================================================================
+
+enabled: true
+season-number: 1
+season-name: "Сезон I: Эпоха Раскола"
+xp-per-level: 250
+max-level: 30
+premium-price-rilliks: 349
+
+xp-sources:
+  pvp-kill: 35
+  boss-kill: 120
+  event-win: 90
+  blocks-mined-per-64: 15
+  case-open: 25
+
+# Награды ключевых уровней (остальные уровни автоматически масштабируют монеты/риллики/ключи)
+levels:
+  1:  { free: "COINS:5000",                 premium: "CUSTOM:consumable:plast_wall:4" }
+  2:  { free: "COINS:7500",                 premium: "RILLIKS:15" }
+  3:  { free: "CASE_KEY:common:1",          premium: "CUSTOM:consumable:trap_box:2" }
+  5:  { free: "CUSTOM:consumable:potion_medic:3", premium: "CASE_KEY:rare:1" }
+  7:  { free: "COINS:15000",                premium: "CUSTOM:sphere:speed:1" }
+  10: { free: "CASE_KEY:rare:1",            premium: "CUSTOM:talisman:hunter:1" }
+  12: { free: "RILLIKS:15",                 premium: "CUSTOM:consumable:divine_aura:2" }
+  15: { free: "CASE_KEY:epic:1",            premium: "CUSTOM:weapon:phoenix_bow:1" }
+  18: { free: "COINS:35000",                premium: "CUSTOM:sphere:strength:1" }
+  20: { free: "RILLIKS:30",                 premium: "CUSTOM:artifact:hunter:1" }
+  25: { free: "CASE_KEY:legendary:1",       premium: "CUSTOM:talisman:berserk:1" }
+  30: { free: "CUSTOM:sphere:titan:1",      premium: "CUSTOM:weapon:titan_mace:1" }

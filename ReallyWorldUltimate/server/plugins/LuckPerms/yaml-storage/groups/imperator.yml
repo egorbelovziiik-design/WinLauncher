@@ -1,0 +1,14 @@
+name: imperator
+permissions:
+- weight.70
+- reallycore.kit.imperator
+- reallycore.kit.plus
+- reallycore.donate.broadcast
+- reallycore.donate.lightning
+- reallycore.donate.rtp.player
+- reallycore.donate.fulljoin
+parents:
+- magister
+prefixes:
+- '<#FF5555><b>[IMPERATOR]</b></#FF5555> ':
+    priority: 70

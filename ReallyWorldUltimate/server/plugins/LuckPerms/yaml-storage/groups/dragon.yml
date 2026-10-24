@@ -1,0 +1,14 @@
+name: dragon
+permissions:
+- weight.80
+- reallycore.kit.dragon
+- reallycore.kit.pluspro
+- reallycore.donate.fly
+- reallycore.donate.grant
+- reallycore.donate.weather
+- reallycore.donate.time
+parents:
+- imperator
+prefixes:
+- '<gradient:#FBBC00:#FF4500><b>[DRAGON]</b></gradient> ':
+    priority: 80

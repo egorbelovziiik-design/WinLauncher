@@ -1,0 +1,212 @@
+# =======================================================================
+# kits.yml — Система игровых и привилегированных наборов (/kit, /kits)
+# Персистентные кулдауны хранятся в БД (не сбрасываются рестартом!).
+# =======================================================================
+
+kits:
+  start:
+    name: "Стартовый набор"
+    icon: "IRON_SWORD"
+    slot: 10
+    cooldown-seconds: 86400 # 24 часа
+    permission: "reallycore.kits.use"
+    items:
+      - "VANILLA:IRON_SWORD:1:SHARPNESS=2,UNBREAKING=2"
+      - "VANILLA:IRON_PICKAXE:1:EFFICIENCY=2,UNBREAKING=2"
+      - "VANILLA:IRON_AXE:1:EFFICIENCY=2"
+      - "VANILLA:IRON_HELMET:1:PROTECTION=2"
+      - "VANILLA:IRON_CHESTPLATE:1:PROTECTION=2"
+      - "VANILLA:IRON_LEGGINGS:1:PROTECTION=2"
+      - "VANILLA:IRON_BOOTS:1:PROTECTION=2"
+      - "VANILLA:SHIELD:1"
+      - "VANILLA:COOKED_BEEF:32"
+      - "VANILLA:GOLDEN_APPLE:2"
+      - "VANILLA:OAK_LOG:32"
+
+  daily:
+    name: "Ежедневный набор"
+    icon: "GOLDEN_APPLE"
+    slot: 11
+    cooldown-seconds: 86400
+    permission: "reallycore.kits.use"
+    items:
+      - "VANILLA:GOLDEN_APPLE:4"
+      - "VANILLA:ENDER_PEARL:4"
+      - "VANILLA:EXPERIENCE_BOTTLE:16"
+      - "VANILLA:COOKED_PORKCHOP:24"
+      - "CUSTOM:consumable:plast_wall:2"
+
+  combat:
+    name: "Боевой набор"
+    icon: "DIAMOND_SWORD"
+    slot: 12
+    cooldown-seconds: 43200 # 12 часов
+    permission: "reallycore.kits.use"
+    items:
+      - "VANILLA:DIAMOND_SWORD:1:SHARPNESS=3,UNBREAKING=3"
+      - "VANILLA:DIAMOND_HELMET:1:PROTECTION=3"
+      - "VANILLA:DIAMOND_CHESTPLATE:1:PROTECTION=3"
+      - "VANILLA:DIAMOND_LEGGINGS:1:PROTECTION=3"
+      - "VANILLA:DIAMOND_BOOTS:1:PROTECTION=3"
+      - "VANILLA:GOLDEN_APPLE:6"
+      - "VANILLA:ENDER_PEARL:8"
+      - "CUSTOM:consumable:potion_medic:2"
+
+  hero:
+    alias: "vip"
+    name: "Набор HERO [VIP]"
+    icon: "DIAMOND_CHESTPLATE"
+    slot: 13
+    cooldown-seconds: 86400
+    permission: "reallycore.kit.hero"
+    items:
+      - "ARMOR_SET:warrior"
+      - "VANILLA:DIAMOND_SWORD:1:SHARPNESS=4,UNBREAKING=3"
+      - "VANILLA:DIAMOND_PICKAXE:1:EFFICIENCY=4,UNBREAKING=3"
+      - "VANILLA:GOLDEN_APPLE:10"
+      - "CUSTOM:consumable:plast_wall:4"
+      - "CUSTOM:consumable:potion_medic:2"
+
+  titan:
+    alias: "premium"
+    name: "Набор TITAN [PREMIUM]"
+    icon: "GOLD_BLOCK"
+    slot: 14
+    cooldown-seconds: 86400
+    permission: "reallycore.kit.titan"
+    items:
+      - "ARMOR_SET:warrior"
+      - "VANILLA:NETHERITE_SWORD:1:SHARPNESS=4,UNBREAKING=3"
+      - "VANILLA:GOLDEN_APPLE:16"
+      - "VANILLA:TOTEM_OF_UNDYING:1"
+      - "CUSTOM:consumable:trap_box:2"
+      - "CUSTOM:sphere:speed:1"
+
+  avenger:
+    name: "Набор AVENGER"
+    icon: "EMERALD_BLOCK"
+    slot: 15
+    cooldown-seconds: 129600
+    permission: "reallycore.kit.avenger"
+    items:
+      - "ARMOR_SET:hunter"
+      - "VANILLA:NETHERITE_SWORD:1:SHARPNESS=5,UNBREAKING=4"
+      - "VANILLA:GOLDEN_APPLE:20"
+      - "VANILLA:TOTEM_OF_UNDYING:2"
+      - "CUSTOM:consumable:trap_box:3"
+      - "CUSTOM:consumable:reveal_dust:3"
+
+  overlord:
+    alias: "legend"
+    name: "Набор OVERLORD [LEGEND]"
+    icon: "DIAMOND_BLOCK"
+    slot: 16
+    cooldown-seconds: 172800
+    permission: "reallycore.kit.overlord"
+    items:
+      - "ARMOR_SET:guardian"
+      - "CUSTOM:weapon:phoenix_bow:1"
+      - "VANILLA:NETHERITE_SWORD:1:SHARPNESS=5,FIRE_ASPECT=2,UNBREAKING=4"
+      - "VANILLA:GOLDEN_APPLE:24"
+      - "CUSTOM:consumable:elixir_killer:2"
+      - "CUSTOM:sphere:strength:1"
+
+  magister:
+    name: "Набор MAGISTER"
+    icon: "AMETHYST_CLUSTER"
+    slot: 19
+    cooldown-seconds: 172800
+    permission: "reallycore.kit.magister"
+    items:
+      - "ARMOR_SET:berserk"
+      - "CUSTOM:weapon:storm_crossbow:1"
+      - "VANILLA:GOLDEN_APPLE:32"
+      - "VANILLA:ENCHANTED_GOLDEN_APPLE:1"
+      - "CUSTOM:consumable:divine_aura:2"
+      - "CUSTOM:consumable:trap_box:4"
+      - "CUSTOM:talisman:warrior:1"
+
+  imperator:
+    name: "Набор IMPERATOR"
+    icon: "REDSTONE_BLOCK"
+    slot: 20
+    cooldown-seconds: 259200
+    permission: "reallycore.kit.imperator"
+    items:
+      - "ARMOR_SET:titan"
+      - "CUSTOM:weapon:chaos_axe:1"
+      - "VANILLA:GOLDEN_APPLE:40"
+      - "VANILLA:ENCHANTED_GOLDEN_APPLE:2"
+      - "CUSTOM:consumable:divine_aura:3"
+      - "CUSTOM:consumable:elixir_killer:3"
+      - "CUSTOM:sphere:titan:1"
+
+  plus:
+    name: "Доп. набор PLUS"
+    icon: "EXPERIENCE_BOTTLE"
+    slot: 21
+    cooldown-seconds: 86400
+    permission: "reallycore.kit.plus"
+    items:
+      - "CUSTOM:consumable:trap_box:3"
+      - "CUSTOM:consumable:plast_wall:6"
+      - "CUSTOM:consumable:disorientation:2"
+      - "CUSTOM:consumable:scroll_experience:1"
+
+  dragon:
+    name: "Набор DRAGON"
+    icon: "DRAGON_HEAD"
+    slot: 22
+    cooldown-seconds: 259200
+    permission: "reallycore.kit.dragon"
+    items:
+      - "ARMOR_SET:dragon"
+      - "CUSTOM:weapon:vampire_blade:1"
+      - "VANILLA:GOLDEN_APPLE:48"
+      - "VANILLA:ENCHANTED_GOLDEN_APPLE:3"
+      - "CUSTOM:consumable:divine_aura:4"
+      - "CUSTOM:consumable:elixir_winner:3"
+      - "CUSTOM:sphere:vampirism:1"
+      - "CUSTOM:artifact:dragon:1"
+
+  pluspro:
+    name: "Мега-набор PLUSPRO"
+    icon: "NETHER_STAR"
+    slot: 23
+    cooldown-seconds: 86400
+    permission: "reallycore.kit.pluspro"
+    items:
+      - "CUSTOM:consumable:divine_aura:2"
+      - "CUSTOM:consumable:trap_box:5"
+      - "CUSTOM:consumable:plast_wall:10"
+      - "CUSTOM:consumable:fire_tornado_orb:4"
+      - "CUSTOM:consumable:elixir_killer:3"
+
+  god:
+    name: "Набор GOD"
+    icon: "ENCHANTED_GOLDEN_APPLE"
+    slot: 24
+    cooldown-seconds: 259200
+    permission: "reallycore.kit.god"
+    items:
+      - "ARMOR_SET:void"
+      - "CUSTOM:weapon:titan_mace:1"
+      - "VANILLA:GOLDEN_APPLE:64"
+      - "VANILLA:ENCHANTED_GOLDEN_APPLE:4"
+      - "CUSTOM:consumable:divine_aura:6"
+      - "CUSTOM:consumable:elixir_winner:4"
+      - "CUSTOM:sphere:void:1"
+      - "CUSTOM:talisman:resistance:1"
+
+  event:
+    name: "Ивентовый набор"
+    icon: "RESPAWN_ANCHOR"
+    slot: 25
+    cooldown-seconds: 172800
+    permission: "reallycore.kits.use"
+    cost-tokens: 35
+    items:
+      - "CUSTOM:consumable:elixir_winner:2"
+      - "CUSTOM:consumable:trap_box:3"
+      - "CUSTOM:consumable:fire_tornado_orb:3"
+      - "CUSTOM:consumable:reveal_dust:4"

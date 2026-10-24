@@ -1,0 +1,36 @@
+# =======================================================================
+# scoreboard_tab.yml — Настройки Scoreboard и TAB в фирменном стиле RW
+# =======================================================================
+
+scoreboard:
+  enabled: true
+  update-interval-ticks: 30 # 1.5 сек — плавное обновление без нагрузки на TPS/пакеты
+  title: "<gradient:#FBBC00:#FF4500><b>⚡ АНАРХИЯ #1</b></gradient>"
+  lines:
+    - "<dark_gray>╔═</dark_gray> <#FBBC00><b>Профиль:</b></#FBBC00>"
+    - "<dark_gray>╠</dark_gray> <white>Ник:</white> <#FC7000><player></#FC7000>"
+    - "<dark_gray>╠</dark_gray> <white>Ранг:</white> <rank>"
+    - "<dark_gray>╠</dark_gray> <white>Клан:</white> <#FBBC00><clan></#FBBC00>"
+    - "<dark_gray>╠</dark_gray> <white>У/С:</white> <#FC7000><kills></#FC7000><gray>/</gray><#FF4500><deaths></#FF4500>"
+    - "<dark_gray>╠═</dark_gray> <#FBBC00><b>Экономика:</b></#FBBC00>"
+    - "<dark_gray>╠</dark_gray> <white>Монеты:</white> <#FBBC00><coins> ⛃</#FBBC00>"
+    - "<dark_gray>╠</dark_gray> <white>Риллики:</white> <#FF4500><rilliks> ❖</#FF4500>"
+    - "<dark_gray>╠═</dark_gray> <#FBBC00><b>Сервер:</b></#FBBC00>"
+    - "<dark_gray>╠</dark_gray> <white>Онлайн:</white> <#55FF55><online></#55FF55> <dark_gray>|</dark_gray> <white>Пинг:</white> <#FBBC00><ping>мс</#FBBC00>"
+    - "<dark_gray>╚</dark_gray> <white>Ивент:</white> <#FC7000><event></#FC7000>"
+
+tab:
+  enabled: true
+  # Если установлен внешний плагин TAB, ReallyCore передаёт ему плейсхолдеры и не перезаписывает пакеты
+  defer-to-external-tab-plugin: true
+  update-interval-ticks: 40
+  header:
+    - ""
+    - "<gradient:#FBBC00:#FF4500><b>⚡ REALLYWORLD ULTIMATE ⚡</b></gradient>"
+    - "<gray>Режим:</gray> <#FC7000>Анархия 1.21.4–1.21.11</#FC7000> <dark_gray>•</dark_gray> <gray>Онлайн:</gray> <#FBBC00><online></#FBBC00>"
+    - ""
+  footer:
+    - ""
+    - "<white>Баланс:</white> <#FBBC00><coins> ⛃</#FBBC00> <dark_gray>|</dark_gray> <white>Риллики:</white> <#FF4500><rilliks> ❖</#FF4500> <dark_gray>|</dark_gray> <white>Пинг:</white> <#55FF55><ping> мс</#55FF55>"
+    - "<gray>Меню сервера:</gray> <#FC7000>/menu</#FC7000> <dark_gray>•</dark_gray> <gray>Донат и привилегии:</gray> <#FBBC00>/donate</#FBBC00>"
+    - ""

@@ -1,0 +1,100 @@
+# =======================================================================
+# ReallyCore — Главная конфигурация сервера ReallyWorld Ultimate
+# Целевые версии клиентов: 1.21.4 – 1.21.11
+# Все параметры проверяются при загрузке и безопасны для /reallycore reload
+# =======================================================================
+
+server-info:
+  name: "REALLYWORLD ULTIMATE"
+  mode-title: "АНАРХИЯ #1"
+  domain: "mc.reallyworld-ultimate.local"
+  season: 1
+  timezone: "Europe/Kyiv"
+
+# Индивидуальное включение/отключение модулей ядра
+modules:
+  storage: true
+  localization: true
+  cooldowns: true
+  security: true
+  player: true
+  economy: true
+  auction: true
+  clans: true
+  combat: true
+  custom-items: true
+  cases: true
+  kits: true
+  menus: true
+  scoreboard-tab: true
+  events: true
+  quests: true
+  battlepass: true
+  rewards: true
+  statistics: true
+  spawn-world: true
+  integrations: true
+
+# Настройки базы данных (SQLITE для локальной сборки, MARIADB / POSTGRESQL для продакшна)
+database:
+  type: "SQLITE" # SQLITE | MARIADB | POSTGRESQL
+  sqlite:
+    file: "data/reallycore.db"
+    wal-mode: true
+    busy-timeout-ms: 5000
+  remote:
+    host: "127.0.0.1"
+    port: 3306
+    database: "reallyworld"
+    username: "rw_user"
+    password: "${RW_DB_PASSWORD}"
+    max-pool-size: 10
+    connection-timeout-ms: 5000
+
+# Настройки центрального спавна и телепортаций
+teleportation:
+  warmup-seconds: 3
+  cancel-on-move: true
+  cancel-on-damage: true
+  tpa-expire-seconds: 60
+  spawn:
+    world: "world"
+    x: 0.5
+    y: 100.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+    safe-radius: 42
+    pvp-line-radius: 48
+    auto-build-plaza-on-first-boot: true
+  rtp:
+    world: "world"
+    normal-min-radius: 450
+    normal-max-radius: 3000
+    normal-cooldown-seconds: 45
+    far-min-radius: 3500
+    far-max-radius: 8000
+    far-cooldown-seconds: 90
+    player-near-min-distance: 65
+    player-near-max-distance: 140
+    player-near-cooldown-seconds: 600
+    max-safe-attempts: 25
+
+# Кулдауны на привилегированные утилиты (в секундах)
+utility-cooldowns:
+  feed: 60
+  heal: 180
+  repair-hand: 120
+  repair-all: 300
+  ext: 45
+  near: 30
+  broadcast: 600
+  lightning: 300
+
+# Производительность и бюджеты визуальных эффектов
+performance:
+  async-leaderboard-refresh-seconds: 30
+  autosave-interval-seconds: 180
+  passive-item-tick-ticks: 20
+  max-particles-per-burst: 28
+  debug-mode: false

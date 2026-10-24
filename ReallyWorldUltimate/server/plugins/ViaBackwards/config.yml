@@ -1,0 +1,7 @@
+# ViaBackwards Configuration — Мост совместимости клиентов 1.21.4–1.21.10 на ядре 1.21.11
+add-custom-enchants-into-lore: true
+add-teamcolor-to-prefix: true
+fix-1_13-face-player: true
+always-show-original-mob-name: true
+handle-pings-as-inv-acknowledgements: true
+suppress-emulation-warnings: true

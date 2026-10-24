@@ -1,0 +1,11 @@
+name: hero
+permissions:
+- weight.20
+- reallycore.kit.hero
+- reallycore.donate.craft
+- reallycore.donate.getpos
+parents:
+- default
+prefixes:
+- '<#55FFFF><b>[HERO]</b></#55FFFF> ':
+    priority: 20

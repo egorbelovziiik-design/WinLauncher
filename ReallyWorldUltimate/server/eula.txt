@@ -1,0 +1,2 @@
+# Запуская сервер, вы подтверждаете согласие с Лицензионным соглашением Minecraft EULA (https://aka.ms/MinecraftEULA).
+eula=true

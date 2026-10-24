@@ -1,0 +1,13 @@
+name: magister
+permissions:
+- weight.60
+- reallycore.kit.magister
+- reallycore.donate.nick
+- reallycore.donate.repair.all
+- reallycore.donate.heal
+- reallycore.donate.tptoggle
+parents:
+- overlord
+prefixes:
+- '<#AA00AA><b>[MAGISTER]</b></#AA00AA> ':
+    priority: 60

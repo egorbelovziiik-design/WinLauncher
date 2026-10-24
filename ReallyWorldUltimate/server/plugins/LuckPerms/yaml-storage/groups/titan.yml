@@ -1,0 +1,13 @@
+name: titan
+permissions:
+- weight.30
+- reallycore.kit.titan
+- reallycore.donate.hat
+- reallycore.donate.feed
+- reallycore.donate.rtpfar
+- reallycore.donate.itemdb
+parents:
+- hero
+prefixes:
+- '<#FFAA00><b>[TITAN]</b></#FFAA00> ':
+    priority: 30

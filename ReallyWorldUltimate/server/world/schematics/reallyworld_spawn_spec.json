@@ -1,0 +1,15 @@
+{
+  "name": "ReallyWorld Ultimate Grand Spawn",
+  "minecraft_versions": "1.21.4-1.21.11",
+  "world": "world",
+  "origin": {"x": 0, "y": 100, "z": 0},
+  "protection_radius": 72,
+  "zones": [
+    {"id": "spawn_plaza", "bounds": "[-36..36, 98..114, -34..34]", "pvp": false, "description": "Октагональная площадь из полированного чернокамня, глубинного сланца, золотого центра и фонарей"},
+    {"id": "crate_wing", "coords": [24, 100, 0], "pvp": false, "description": "Зал 8 кейсов (/warp cases)"},
+    {"id": "trade_wing", "coords": [-24, 100, 0], "pvp": false, "description": "Торговый квартал и Скупщик (/warp shop)"},
+    {"id": "automine_pit", "bounds": "[-8..8, 93..99, -46..-34]", "pvp": false, "breakable_ores": true, "description": "Автошахта с автообновлением каждые 10 минут (/warp mine)"},
+    {"id": "coliseum_pvp", "bounds": "[-14..14, 95..98, 34..56]", "pvp": true, "description": "Арена Колизея PvP (/warp pvp)"}
+  ],
+  "auto_generation": "Постройка создаётся автоматически модулем SpawnWorldModule при первом запуске сервера или вручную командой /reallycore buildspawn"
+}

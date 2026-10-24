@@ -1,0 +1,39 @@
+services:
+  reallyworld:
+    build: .
+    container_name: reallyworld-ultimate
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+    environment:
+      MIN_RAM: ${MIN_RAM:-4G}
+      MAX_RAM: ${MAX_RAM:-8G}
+      RW_ITEM_SALT: ${RW_ITEM_SALT:-change-me-in-production-env}
+      RW_DB_PASSWORD: ${RW_DB_PASSWORD:-}
+      TZ: Europe/Moscow
+    volumes:
+      - ./server/world:/opt/reallyworld/server/world
+      - ./server/world_nether:/opt/reallyworld/server/world_nether
+      - ./server/world_the_end:/opt/reallyworld/server/world_the_end
+      - ./server/plugins/ReallyCore/data:/opt/reallyworld/server/plugins/ReallyCore/data
+      - ./backups:/opt/reallyworld/backups
+    stdin_open: true
+    tty: true
+
+  # Опциональный профиль MariaDB (запуск: docker compose --profile mariadb up -d)
+  mariadb:
+    image: mariadb:11.4
+    container_name: reallyworld-mariadb
+    profiles: ["mariadb"]
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: reallyworld
+      MARIADB_USER: reallyworld
+      MARIADB_PASSWORD: ${RW_DB_PASSWORD:-change_me_db_pass}
+      MARIADB_ROOT_PASSWORD: ${RW_DB_ROOT_PASSWORD:-change_me_root_pass}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/migrations/V1__initial_schema_mariadb.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+
+volumes:
+  mariadb_data:

@@ -1,0 +1,104 @@
+# =======================================================================
+# armor.yml — 7 Комплектов особой брони с бонусами полного сета (4/4)
+# Не ломает ванильные характеристики Незеритовой брони: бонусы комплекта
+# активируются динамически при ношении всех 4 элементов одного сета!
+# =======================================================================
+
+armor-sets:
+  warrior:
+    name: "Доспех Воина"
+    rarity: "RARE"
+    base-type: "DIAMOND" # DIAMOND или NETHERITE
+    protection-level: 4
+    unbreaking-level: 3
+    set-bonus:
+      bonus-damage: 1.5
+      bonus-armor: 1.5
+      bonus-hearts: 1.0
+      speed-percent: 4.0
+      potion-effects: []
+    description: "Полный комплект (4/4): +1.5 к урону, +1 сердце и +4% к скорости."
+
+  guardian:
+    name: "Доспех Стража"
+    rarity: "EPIC"
+    base-type: "NETHERITE"
+    protection-level: 4
+    unbreaking-level: 4
+    set-bonus:
+      bonus-damage: 0.5
+      bonus-armor: 3.0
+      bonus-hearts: 2.0
+      speed-percent: 0.0
+      potion-effects: ["FIRE_RESISTANCE:0"]
+    description: "Полный комплект (4/4): Огнестойкость, +3 к броне и +2 сердца."
+
+  titan:
+    name: "Доспех Титана"
+    rarity: "LEGENDARY"
+    base-type: "NETHERITE"
+    protection-level: 5
+    unbreaking-level: 4
+    set-bonus:
+      bonus-damage: 1.0
+      bonus-armor: 4.0
+      bonus-hearts: 3.0
+      speed-percent: -3.0
+      potion-effects: ["RESISTANCE:0"]
+    description: "Полный комплект (4/4): Сопротивление I, +4 к броне и +3 сердца."
+
+  berserk:
+    name: "Доспех Берсерка"
+    rarity: "LEGENDARY"
+    base-type: "NETHERITE"
+    protection-level: 4
+    unbreaking-level: 4
+    set-bonus:
+      bonus-damage: 3.0
+      bonus-armor: 0.0
+      bonus-hearts: 1.0
+      speed-percent: 8.0
+      potion-effects: ["HASTE:0"]
+    description: "Полный комплект (4/4): +3 к урону, +8% к скорости и Спешка I."
+
+  hunter:
+    name: "Доспех Охотника"
+    rarity: "EPIC"
+    base-type: "NETHERITE"
+    protection-level: 4
+    unbreaking-level: 4
+    set-bonus:
+      bonus-damage: 1.5
+      bonus-armor: 1.0
+      bonus-hearts: 1.5
+      speed-percent: 12.0
+      potion-effects: ["NIGHT_VISION:0"]
+    description: "Полный комплект (4/4): +12% к скорости, Ночное зрение и +1.5 к урону."
+
+  dragon:
+    name: "Доспех Дракона"
+    rarity: "MYTHIC"
+    base-type: "NETHERITE"
+    protection-level: 5
+    unbreaking-level: 5
+    set-bonus:
+      bonus-damage: 2.5
+      bonus-armor: 3.0
+      bonus-hearts: 3.0
+      speed-percent: 6.0
+      potion-effects: ["FIRE_RESISTANCE:0"]
+    description: "Полный комплект (4/4): +2.5 к урону, +3 сердца, +3 к броне и Огнестойкость."
+
+  void:
+    name: "Доспех Пустоты"
+    rarity: "MYTHIC"
+    base-type: "NETHERITE"
+    protection-level: 5
+    unbreaking-level: 5
+    set-bonus:
+      bonus-damage: 3.0
+      bonus-armor: 2.5
+      bonus-hearts: 2.5
+      speed-percent: 10.0
+      potion-effects: ["REGENERATION:0"]
+    description: "Полный комплект (4/4): Регенерация I, +3 к урону, +2.5 сердца и +10% к скорости."

@@ -1,0 +1,80 @@
+# =======================================================================
+# bosses.yml — 5 Уникальных мировых боссов с фазами, умениями и наградами
+# Награды распределяются по таблице нанесённого урона (Топ-1, Топ-2, Топ-3
+# и все участники, нанёсшие >= min-participation-damage).
+# =======================================================================
+
+settings:
+  min-participation-damage: 25.0
+  spawn-cooldown-seconds: 1800
+
+bosses:
+  ancient_guardian:
+    name: "Древний Страж"
+    entity-type: "WARDEN"
+    max-health: 900.0
+    attack-damage: 14.0
+    bossbar-color: "BLUE"
+    skills: ["SONIC_PULSE", "GUARDIAN_THORNS", "SUMMON_MINIONS"]
+    phases: [0.75, 0.50, 0.25]
+    top-rewards:
+      coins: 65000
+      rilliks: 25
+      items: ["CUSTOM:sphere:guardian:1", "CUSTOM:weapon:pull_trident:1", "CASE_KEY:legendary:1"]
+    participation-coins: 15000
+
+  fire_titan:
+    name: "Огненный Титан"
+    entity-type: "IRON_GOLEM"
+    max-health: 1100.0
+    attack-damage: 16.0
+    bossbar-color: "YELLOW"
+    skills: ["METEOR_RING", "MOLTEN_SLAM", "INFERNO_AURA"]
+    phases: [0.75, 0.50, 0.25]
+    top-rewards:
+      coins: 80000
+      rilliks: 30
+      items: ["CUSTOM:sphere:titan:1", "CUSTOM:weapon:chaos_axe:1", "CASE_KEY:legendary:1"]
+    participation-coins: 18000
+
+  void_lord:
+    name: "Повелитель Пустоты"
+    entity-type: "WITHER_SKELETON"
+    max-health: 1250.0
+    attack-damage: 17.0
+    bossbar-color: "PURPLE"
+    skills: ["VOID_VORTEX", "WITHER_NOVA", "SHADOW_STEP"]
+    phases: [0.75, 0.50, 0.25]
+    top-rewards:
+      coins: 100000
+      rilliks: 40
+      items: ["CUSTOM:sphere:void:1", "CUSTOM:weapon:void_scythe:1", "CASE_KEY:mythic:1"]
+    participation-coins: 22000
+
+  dark_knight:
+    name: "Тёмный Рыцарь"
+    entity-type: "PIGLIN_BRUTE"
+    max-health: 850.0
+    attack-damage: 15.0
+    bossbar-color: "RED"
+    skills: ["BLOOD_SLASH", "DARK_SHIELD", "SUMMON_GUARDS"]
+    phases: [0.70, 0.35]
+    top-rewards:
+      coins: 70000
+      rilliks: 25
+      items: ["CUSTOM:sphere:vampirism:1", "CUSTOM:weapon:vampire_blade:1", "CASE_KEY:epic:2"]
+    participation-coins: 15000
+
+  dragon_warrior:
+    name: "Драконий Воин"
+    entity-type: "VINDICATOR"
+    max-health: 1400.0
+    attack-damage: 18.0
+    bossbar-color: "PINK"
+    skills: ["DRAGON_ROAR", "LIGHTNING_STORM", "BERSERK_FURY"]
+    phases: [0.75, 0.50, 0.25]
+    top-rewards:
+      coins: 120000
+      rilliks: 50
+      items: ["CUSTOM:artifact:dragon:1", "CUSTOM:weapon:titan_mace:1", "CASE_KEY:mythic:1"]
+    participation-coins: 25000

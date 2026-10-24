@@ -1,0 +1,27 @@
+# LuckPerms Configuration — YAML Storage (Human-readable & Git-friendly)
+server: reallyworld
+storage-method: yaml
+data:
+  address: 127.0.0.1:3306
+  database: minecraft
+  username: root
+  password: ""
+sync-minutes: 3
+watch-files: true
+messaging-service: none
+auto-push-updates: true
+push-log-entries: true
+broadcast-received-log-entries: false
+temporary-add-behaviour: deny
+primary-group-calculation: parents-by-weight
+argument-based-command-permissions: false
+log-notify: true
+enable-ops: true
+auto-op: false
+vault-server: global
+vault-include-global: true
+world-rewrite: {}
+group-weight: {}
+apply-wildcards: true
+apply-regex: true
+apply-shorthand: true

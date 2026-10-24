@@ -1,0 +1,13 @@
+name: avenger
+permissions:
+- weight.40
+- reallycore.kit.avenger
+- reallycore.donate.enderchest
+- reallycore.donate.ext
+- reallycore.donate.ignore
+- reallycore.donate.clear
+parents:
+- titan
+prefixes:
+- '<#55FF55><b>[AVENGER]</b></#55FF55> ':
+    priority: 40

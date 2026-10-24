@@ -1,0 +1,46 @@
+# GrimAC Configuration — Баланс честного PvP 1.21.4–1.21.11 (Булава, Вихри, Кристаллы, Сферы)
+alerts:
+  format: "&#FF4500&lАНТИЧИТ &8» &f%player% &7подозревается в &#FBBC00%check% &8(&cVL: %vl%&8) &7[%verbose%]"
+  print-to-console: true
+verbose:
+  print-to-console: false
+client-brand:
+  ignored-clients:
+    - "vanilla"
+    - "fabric"
+    - "lunarclient"
+    - "feather"
+Reach:
+  enable: true
+  threshold: 0.0005
+  max-reach: 3.003
+TimerA:
+  enable: true
+  drift: 120
+Simulation:
+  enable: true
+  setback-decay-multiplier: 0.999
+  threshold: 0.001
+  immediate-setback-threshold: 0.1
+NoFall:
+  enable: true
+  setbackvl: 10
+Knockback:
+  enable: true
+  multiplier: 0.999
+Punishments:
+  Reach:
+    remove-violations-after: 300
+    commands:
+      - "15:alert"
+      - "30:kick %player% §6§lRW §8» §cОбнаружена подозрительная дистанция удара (GrimAC)!"
+  Simulation:
+    remove-violations-after: 300
+    commands:
+      - "25:alert"
+      - "60:kick %player% §6§lRW §8» §cНекорректное перемещение персонажа (GrimAC)!"
+  TimerA:
+    remove-violations-after: 300
+    commands:
+      - "20:alert"
+      - "45:kick %player% §6§lRW §8» §cУскорение игрового таймера запрещено!"

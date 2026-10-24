@@ -1,0 +1,53 @@
+# WorldGuard Regions — Мир "world" (Спавн, Колизей PvP, Автошахта)
+regions:
+    spawn_plaza:
+        min: {x: -72, y: -64, z: -72}
+        max: {x: 72, y: 319, z: 72}
+        members: {}
+        flags:
+            passthrough: deny
+            pvp: deny
+            tnt: deny
+            creeper-explosion: deny
+            other-explosion: deny
+            fire-spread: deny
+            mob-spawning: deny
+            fall-damage: deny
+            invincible: deny
+            use: allow
+            interact: allow
+            chest-access: allow
+        owners: {}
+        type: cuboid
+        priority: 1
+    coliseum_pvp:
+        min: {x: -14, y: 90, z: 34}
+        max: {x: 14, y: 98, z: 56}
+        members: {}
+        flags:
+            passthrough: deny
+            pvp: allow
+            fall-damage: allow
+            mob-spawning: deny
+        owners: {}
+        type: cuboid
+        priority: 10
+    automine_pit:
+        min: {x: -8, y: 93, z: -46}
+        max: {x: 8, y: 99, z: -34}
+        members: {}
+        flags:
+            block-break: allow
+            block-place: deny
+            pvp: deny
+        owners: {}
+        type: cuboid
+        priority: 10
+    __global__:
+        members: {}
+        flags:
+            pvp: allow
+            tnt: allow
+        owners: {}
+        type: global
+        priority: 0

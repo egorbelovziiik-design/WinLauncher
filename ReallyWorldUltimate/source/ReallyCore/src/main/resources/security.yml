@@ -1,0 +1,51 @@
+# =======================================================================
+# security.yml — Безопасность, Антидюп, Антиспам и пакетные проверки
+# =======================================================================
+
+anti-dupe:
+  # Секретная соль подписи кастомных предметов в PersistentDataContainer (меняется на продакшне через переменную окружения RW_ITEM_SALT)
+  item-signature-salt: "${RW_ITEM_SALT:rw-ultimate-pdc-hmac-v1}"
+  # Строгая проверка: сфера/талисман/артефакт/оружие без валидной подписи PDC аннулируется и логируется
+  reject-unsigned-custom-items: true
+  # Блокировка установки кастомных предметов (шаров/голов/тотемов) на землю как обычных блоков
+  prevent-custom-item-block-place: true
+  # Очистка временных курсоров и блокировка кликов с подменой слотов (NUMBER_KEY/SWAP_OFFHAND) в GUI
+  strict-gui-click-guard: true
+  # Запрет взаимодействия с аукционом и кейсами мёртвым/спящим/отключающимся игрокам
+  block-dead-or-quitting-transactions: true
+  # Верхний предел допустимых чар на кастомных и ванильных предметах (защита от /give 32k предметов)
+  max-allowed-enchantment-level: 7
+  max-custom-bonus-damage-cap: 10.0
+
+command-protection:
+  # Скрытие списка плагинов и технических команд ядра от обычных игроков
+  blocked-commands:
+    - "/pl"
+    - "/plugins"
+    - "/bukkit:pl"
+    - "/bukkit:plugins"
+    - "/bukkit:help"
+    - "/bukkit:?"
+    - "/ver"
+    - "/version"
+    - "/bukkit:ver"
+    - "/icanhasbukkit"
+    - "/paper:heap"
+  # Лимит частоты команд (в соответствии с правилами RW п. 6.2 о запрете флуда /pay)
+  max-commands-per-10-seconds: 12
+  min-command-interval-ms: 250
+
+chat-security:
+  cooldown-ms: 1200
+  max-message-length: 220
+  block-duplicate-last-message: true
+  block-advertisements-regex: "(?i)(mc\\.[a-z0-9-]+\\.(ru|su|me|org|net|pw)|funtime\\.su|holyworld\\.ru)"
+
+# Легковесный встроенный поведенческий контроль (дополняет GrimAC)
+builtin-checks:
+  enabled: true
+  max-horizontal-speed-blocks-per-sec: 16.5 # С запасом под Скорость III, лёд и Заряд ветра 1.21
+  max-reach-distance-blocks: 4.35
+  max-cps-clicks-per-sec: 22
+  alert-threshold-violations: 4
+  log-to-database: true

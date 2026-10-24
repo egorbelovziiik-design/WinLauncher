@@ -1,0 +1,119 @@
+# =======================================================================
+# weapons.yml — Уникальное оружие всех 7 категорий (Мечи, Топоры, Луки,
+# Арбалеты, Трезубцы, Булавы 1.21, Особое ивентовое оружие)
+# Все характеристики ограничены безопасными балансными рамками.
+# =======================================================================
+
+weapons:
+  vampire_blade:
+    category: "SWORD"
+    name: "Клинок Кровавой Луны"
+    rarity: "LEGENDARY"
+    material: "NETHERITE_SWORD"
+    item-model: "reallyworld:weapon_vampire_blade"
+    bonus-damage: 2.0
+    ability: "VAMPIRIC_STRIKE"
+    cooldown-seconds: 12
+    enchantments:
+      SHARPNESS: 6
+      UNBREAKING: 4
+      FIRE_ASPECT: 2
+    obtain: "Легендарный кейс, Тёмный Рыцарь"
+    description: "При критическом ударе исцеляет владельца на 25% от нанесённого урона."
+
+  chaos_axe:
+    category: "AXE"
+    name: "Секира Хаоса"
+    rarity: "LEGENDARY"
+    material: "NETHERITE_AXE"
+    item-model: "reallyworld:weapon_chaos_axe"
+    bonus-damage: 2.5
+    ability: "CRIPPLING_CLEAVE"
+    cooldown-seconds: 15
+    enchantments:
+      SHARPNESS: 6
+      EFFICIENCY: 5
+      UNBREAKING: 4
+    obtain: "Аирдроп, Огненный Титан"
+    description: "Удар накладывает Замедление II на 3 сек. и повышенно пробивает щиты."
+
+  phoenix_bow:
+    category: "BOW"
+    name: "Лук Феникса"
+    rarity: "EPIC"
+    material: "BOW"
+    item-model: "reallyworld:weapon_phoenix_bow"
+    bonus-damage: 1.5
+    ability: "IGNITE_VOLLEY"
+    cooldown-seconds: 10
+    enchantments:
+      POWER: 6
+      FLAME: 1
+      INFINITY: 1
+      UNBREAKING: 4
+    obtain: "Эпический кейс, Событие Незера"
+    description: "Выпускает пылающие стрелы, вызывающие огненную вспышку в точке попадания."
+
+  storm_crossbow:
+    category: "CROSSBOW"
+    name: "Громовой Арбалет"
+    rarity: "EPIC"
+    material: "CROSSBOW"
+    item-model: "reallyworld:weapon_storm_crossbow"
+    bonus-damage: 2.0
+    ability: "LIGHTNING_BOLT"
+    cooldown-seconds: 18
+    enchantments:
+      QUICK_CHARGE: 3
+      PIERCING: 4
+      UNBREAKING: 4
+    obtain: "Кейс предметов, Охота за наградами"
+    description: "Попадание призывает разряд молнии по цели (+3 ед. шокового урона)."
+
+  pull_trident:
+    category: "TRIDENT"
+    name: "Трезубец Притяжения"
+    rarity: "LEGENDARY"
+    material: "TRIDENT"
+    item-model: "reallyworld:weapon_pull_trident"
+    bonus-damage: 1.5
+    ability: "GRAPPLING_PULL"
+    cooldown-seconds: 14
+    enchantments:
+      IMPALING: 5
+      LOYALTY: 3
+      UNBREAKING: 4
+    obtain: "Древний Страж, Аирдроп"
+    description: "Попадание броском притягивает поражённого противника ближе к владельцу!"
+
+  titan_mace:
+    category: "MACE"
+    name: "Булава Крушителя"
+    rarity: "MYTHIC"
+    material: "MACE"
+    item-model: "reallyworld:weapon_titan_mace"
+    bonus-damage: 2.0
+    ability: "GRAVITY_SLAM"
+    cooldown-seconds: 20
+    enchantments:
+      DENSITY: 4
+      WIND_BURST: 2
+      UNBREAKING: 4
+    obtain: "Мифический кейс, Захват Талисмана"
+    description: "Фирменное оружие 1.21: сокрушительный удар в падении с контролем максимального урона."
+
+  void_scythe:
+    category: "EVENT"
+    name: "Коса Повелителя Пустоты"
+    rarity: "MYTHIC"
+    material: "NETHERITE_SWORD"
+    item-model: "reallyworld:weapon_void_scythe"
+    bonus-damage: 3.0
+    ability: "VOID_REAP"
+    cooldown-seconds: 16
+    enchantments:
+      SHARPNESS: 6
+      SWEEPING_EDGE: 3
+      UNBREAKING: 5
+    obtain: "Босс Повелитель Пустоты, Ивентовый кейс"
+    description: "Ивентовое оружие: рассекающий удар накладывает Иссушение II и похищает 2 сердца."

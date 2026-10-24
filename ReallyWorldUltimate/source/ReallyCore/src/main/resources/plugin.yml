@@ -1,0 +1,411 @@
+name: ReallyCore
+version: '1.0.0'
+main: ru.reallyworld.ultimate.core.ReallyCorePlugin
+api-version: '1.21.4'
+authors:
+  - ReallyWorldUltimateTeam
+description: Центральное модульное ядро анархического сервера ReallyWorld Ultimate (1.21.4–1.21.11)
+website: https://github.com/ReallyWorldUltimate
+load: POSTWORLD
+softdepend:
+  - LuckPerms
+  - Vault
+  - PlaceholderAPI
+  - WorldGuard
+  - WorldEdit
+  - TAB
+  - GrimAC
+
+commands:
+  reallycore:
+    description: Управление ядром ReallyCore и диагностика модулей
+    usage: /<command> <help|status|reload|debug|version|modules|diagnostics|buildspawn|giveitem|givekey|startevent|setrank>
+    aliases: [rc, rwcore]
+    permission: reallycore.command.core
+  spawn:
+    description: Телепортация на центральный спавн
+    usage: /<command>
+    permission: reallycore.player.spawn
+  setspawn:
+    description: Установить точку спавна сервера
+    usage: /<command>
+    permission: reallycore.admin.setspawn
+  rtp:
+    description: Случайная телепортация по миру анархии
+    usage: /<command> [safe|far|player]
+    aliases: [wild]
+    permission: reallycore.player.rtp
+  rtpfar:
+    description: Дальняя случайная телепортация (TITAN+)
+    usage: /<command>
+    permission: reallycore.donate.rtpfar
+  sethome:
+    description: Установить точку дома
+    usage: /<command> [название]
+    permission: reallycore.player.sethome
+  home:
+    description: Телепортироваться домой
+    usage: /<command> [название]
+    permission: reallycore.player.home
+  delhome:
+    description: Удалить точку дома
+    usage: /<command> <название>
+    permission: reallycore.player.delhome
+  homes:
+    description: Список ваших домов
+    usage: /<command>
+    permission: reallycore.player.homes
+  tpa:
+    description: Отправить запрос на телепортацию к игроку
+    usage: /<command> <ник>
+    aliases: [call]
+    permission: reallycore.player.tpa
+  tpahere:
+    description: Пригласить игрока телепортироваться к вам
+    usage: /<command> <ник>
+    permission: reallycore.player.tpahere
+  tpaccept:
+    description: Принять запрос на телепортацию
+    usage: /<command>
+    aliases: [tpyes]
+    permission: reallycore.player.tpaccept
+  tpdeny:
+    description: Отклонить запрос на телепортацию
+    usage: /<command>
+    aliases: [tpno]
+    permission: reallycore.player.tpdeny
+  tptoggle:
+    description: Включить или отключить входящие запросы телепортации
+    usage: /<command>
+    permission: reallycore.donate.tptoggle
+  warp:
+    description: Телепортация на серверный варп
+    usage: /<command> <название>
+    permission: reallycore.player.warp
+  warps:
+    description: Открыть меню варпов сервера
+    usage: /<command>
+    permission: reallycore.player.warps
+  setwarp:
+    description: Создать серверный варп
+    usage: /<command> <название> [отображаемое_имя]
+    permission: reallycore.admin.setwarp
+  delwarp:
+    description: Удалить серверный варп
+    usage: /<command> <название>
+    permission: reallycore.admin.delwarp
+  bal:
+    description: Проверить баланс монет, рилликов и жетонов
+    usage: /<command> [ник]
+    aliases: [balance, money]
+    permission: reallycore.economy.bal
+  pay:
+    description: Перевести игровые монеты другому игроку
+    usage: /<command> <ник> <сумма>
+    permission: reallycore.economy.pay
+  baltop:
+    description: Рейтинг богатейших игроков сервера
+    usage: /<command> [страница]
+    permission: reallycore.economy.baltop
+  eco:
+    description: Административное управление монетами
+    usage: /<command> <give|take|set> <ник> <сумма>
+    permission: reallycore.admin.eco
+  rilliks:
+    description: Просмотр и управление балансом рилликов
+    usage: /<command> [give|take|set] [ник] [сумма]
+    aliases: [p, points]
+    permission: reallycore.economy.bal
+  shop:
+    description: Открыть серверный магазин товаров
+    usage: /<command> [категория]
+    permission: reallycore.economy.shop
+  sell:
+    description: Продать предметы Скупщику или из руки
+    usage: /<command> [hand|all]
+    permission: reallycore.economy.sell
+  buyer:
+    description: Открыть меню Скупщика с горячими предложениями x2/x3
+    usage: /<command>
+    aliases: [seller]
+    permission: reallycore.economy.buyer
+  ah:
+    description: Торговый аукцион игроков
+    usage: /<command> [sell|search|history|expired|cancel] [аргументы]
+    aliases: [auc, auction]
+    permission: reallycore.auction.use
+  clan:
+    description: Управление кланами анархии
+    usage: /<command> [create|invite|accept|deny|leave|kick|promote|demote|disband|info|top|chat|ally|enemy|home|sethome|bank|pvp]
+    aliases: [f, clans]
+    permission: reallycore.clan.use
+  kit:
+    description: Получить игровой или донатный набор
+    usage: /<command> [название]
+    permission: reallycore.kits.use
+  kits:
+    description: Открыть меню всех наборов сервера
+    usage: /<command>
+    permission: reallycore.kits.use
+  cases:
+    description: Открыть меню кейсов и ключей
+    usage: /<command>
+    aliases: [case, crates]
+    permission: reallycore.cases.use
+  menu:
+    description: Открыть главное меню ReallyWorld Ultimate
+    usage: /<command>
+    aliases: [rw, helpmenu]
+    permission: reallycore.menu.open
+  donate:
+    description: Открыть описание и меню привилегий сервера
+    usage: /<command>
+    aliases: [ranks, buy]
+    permission: reallycore.menu.donate
+  profile:
+    description: Открыть личный профиль и слот талисмана
+    usage: /<command> [ник]
+    permission: reallycore.stats.profile
+  stats:
+    description: Просмотр боевой и игровой статистики
+    usage: /<command> [ник]
+    permission: reallycore.stats.view
+  daily:
+    description: Получить ежедневную награду за вход
+    usage: /<command>
+    permission: reallycore.rewards.daily
+  rewards:
+    description: Открыть меню наград и достижений
+    usage: /<command>
+    permission: reallycore.rewards.menu
+  events:
+    description: Расписание и координаты активных мировых ивентов
+    usage: /<command>
+    aliases: [event]
+    permission: reallycore.events.view
+  quests:
+    description: Открыть журнал квестов и заданий
+    usage: /<command>
+    aliases: [missions]
+    permission: reallycore.quests.use
+  bp:
+    description: Открыть сезонный Боевой Пропуск
+    usage: /<command>
+    aliases: [battlepass, pass]
+    permission: reallycore.battlepass.use
+  top:
+    description: Открыть таблицы лидеров сервера
+    usage: /<command> [kills|coins|clans|playtime|bosses]
+    aliases: [leaderboards]
+    permission: reallycore.stats.top
+  sb:
+    description: Переключить отображение боковой панели (Scoreboard)
+    usage: /<command>
+    aliases: [scoreboard]
+    permission: reallycore.player.sb
+  craft:
+    description: Открыть портативный верстак (HERO+)
+    usage: /<command>
+    aliases: [wb, workbench]
+    permission: reallycore.donate.craft
+  enderchest:
+    description: Открыть личный эндер-сундук (AVENGER+)
+    usage: /<command>
+    aliases: [ec]
+    permission: reallycore.donate.enderchest
+  feed:
+    description: Восполнить шкалу сытости (TITAN+)
+    usage: /<command>
+    permission: reallycore.donate.feed
+  heal:
+    description: Исцелить здоровье вне боя (MAGISTER+)
+    usage: /<command>
+    permission: reallycore.donate.heal
+  repair:
+    description: Починить предмет в руке или все вещи (OVERLORD+ / MAGISTER+)
+    usage: /<command> [all]
+    aliases: [fix]
+    permission: reallycore.donate.repair
+  ext:
+    description: Потушить себя от огня (AVENGER+)
+    usage: /<command>
+    permission: reallycore.donate.ext
+  hat:
+    description: Надеть блок из руки на голову (TITAN+)
+    usage: /<command>
+    permission: reallycore.donate.hat
+  near:
+    description: Радар игроков поблизости (OVERLORD+)
+    usage: /<command>
+    permission: reallycore.donate.near
+  ptime:
+    description: Установить личное время суток (OVERLORD+)
+    usage: /<command> <day|night|reset>
+    permission: reallycore.donate.ptime
+  nick:
+    description: Установить отображаемый псевдоним (MAGISTER+)
+    usage: /<command> <ник|off>
+    permission: reallycore.donate.nick
+  prefix:
+    description: Установить кастомный префикс (OVERLORD+)
+    usage: /<command> <префикс|off>
+    permission: reallycore.donate.prefix
+  grant:
+    description: Подарить младшую привилегию игроку в рамках лимита (DRAGON+)
+    usage: /<command> <ник> <HERO|TITAN|AVENGER>
+    permission: reallycore.donate.grant
+  fly:
+    description: Переключить полёт вне боя и зон захвата (DRAGON+)
+    usage: /<command>
+    permission: reallycore.donate.fly
+  clear:
+    description: Очистить собственный инвентарь с подтверждением (AVENGER+)
+    usage: /<command> [confirm]
+    aliases: [ci]
+    permission: reallycore.donate.clear
+  ignore:
+    description: Заблокировать личные сообщения от игрока (AVENGER+)
+    usage: /<command> <ник>
+    permission: reallycore.donate.ignore
+  getpos:
+    description: Узнать текущие координаты и биом (HERO+)
+    usage: /<command>
+    permission: reallycore.donate.getpos
+  itemdb:
+    description: Информация о предмете в руке (TITAN+)
+    usage: /<command>
+    permission: reallycore.donate.itemdb
+  broadcast:
+    description: Отправить объявление в чат с кулдауном (IMPERATOR+)
+    usage: /<command> <текст>
+    aliases: [bc]
+    permission: reallycore.donate.broadcast
+  lightning:
+    description: Вызвать декоративный удар молнии вне спавна и боя (IMPERATOR+)
+    usage: /<command>
+    permission: reallycore.donate.lightning
+  sun:
+    description: Установить ясную погоду (DRAGON+)
+    usage: /<command>
+    permission: reallycore.donate.weather
+  rain:
+    description: Установить дождливую погоду (DRAGON+)
+    usage: /<command>
+    permission: reallycore.donate.weather
+  day:
+    description: Установить день в мире (DRAGON+)
+    usage: /<command>
+    permission: reallycore.donate.time
+  night:
+    description: Установить ночь в мире (DRAGON+)
+    usage: /<command>
+    permission: reallycore.donate.time
+
+permissions:
+  reallycore.admin.*:
+    description: Полный административный доступ к ReallyCore
+    default: op
+    children:
+      reallycore.command.core: true
+      reallycore.admin.reload: true
+      reallycore.admin.debug: true
+      reallycore.admin.setspawn: true
+      reallycore.admin.setwarp: true
+      reallycore.admin.delwarp: true
+      reallycore.admin.eco: true
+      reallycore.admin.rilliks: true
+      reallycore.admin.giveitem: true
+      reallycore.admin.givekey: true
+      reallycore.admin.events: true
+      reallycore.admin.setrank: true
+      reallycore.security.alerts: true
+  reallycore.player.*:
+    description: Стандартные права обычного игрока анархии
+    default: true
+    children:
+      reallycore.command.core: true
+      reallycore.player.spawn: true
+      reallycore.player.rtp: true
+      reallycore.player.sethome: true
+      reallycore.player.home: true
+      reallycore.player.delhome: true
+      reallycore.player.homes: true
+      reallycore.player.tpa: true
+      reallycore.player.tpahere: true
+      reallycore.player.tpaccept: true
+      reallycore.player.tpdeny: true
+      reallycore.player.warp: true
+      reallycore.player.warps: true
+      reallycore.player.sb: true
+      reallycore.economy.bal: true
+      reallycore.economy.pay: true
+      reallycore.economy.baltop: true
+      reallycore.economy.shop: true
+      reallycore.economy.sell: true
+      reallycore.economy.buyer: true
+      reallycore.auction.use: true
+      reallycore.clan.use: true
+      reallycore.kits.use: true
+      reallycore.cases.use: true
+      reallycore.menu.open: true
+      reallycore.menu.donate: true
+      reallycore.stats.profile: true
+      reallycore.stats.view: true
+      reallycore.stats.top: true
+      reallycore.rewards.daily: true
+      reallycore.rewards.menu: true
+      reallycore.events.view: true
+      reallycore.quests.use: true
+      reallycore.battlepass.use: true
+  reallycore.donate.craft:
+    default: false
+  reallycore.donate.getpos:
+    default: false
+  reallycore.donate.hat:
+    default: false
+  reallycore.donate.feed:
+    default: false
+  reallycore.donate.rtpfar:
+    default: false
+  reallycore.donate.itemdb:
+    default: false
+  reallycore.donate.enderchest:
+    default: false
+  reallycore.donate.ext:
+    default: false
+  reallycore.donate.ignore:
+    default: false
+  reallycore.donate.clear:
+    default: false
+  reallycore.donate.prefix:
+    default: false
+  reallycore.donate.repair:
+    default: false
+  reallycore.donate.repair.all:
+    default: false
+  reallycore.donate.near:
+    default: false
+  reallycore.donate.ptime:
+    default: false
+  reallycore.donate.nick:
+    default: false
+  reallycore.donate.heal:
+    default: false
+  reallycore.donate.tptoggle:
+    default: false
+  reallycore.donate.broadcast:
+    default: false
+  reallycore.donate.lightning:
+    default: false
+  reallycore.donate.rtp.player:
+    default: false
+  reallycore.donate.fly:
+    default: false
+  reallycore.donate.grant:
+    default: false
+  reallycore.donate.weather:
+    default: false
+  reallycore.donate.time:
+    default: false
+  reallycore.donate.fulljoin:
+    default: false

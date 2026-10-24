@@ -1,0 +1,13 @@
+name: overlord
+permissions:
+- weight.50
+- reallycore.kit.overlord
+- reallycore.donate.prefix
+- reallycore.donate.repair
+- reallycore.donate.near
+- reallycore.donate.ptime
+parents:
+- avenger
+prefixes:
+- '<#00AAAA><b>[OVERLORD]</b></#00AAAA> ':
+    priority: 50

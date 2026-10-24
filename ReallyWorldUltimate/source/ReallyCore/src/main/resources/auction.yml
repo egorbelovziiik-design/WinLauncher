@@ -1,0 +1,27 @@
+# =======================================================================
+# auction.yml — Настройки торгового аукциона (/ah)
+# Атомарная защита от двойной покупки через SQL CAS (status='ACTIVE').
+# =======================================================================
+
+settings:
+  tax-percent: 5
+  listing-duration-hours: 48
+  min-price-coins: 100
+  max-price-coins: 500000000
+  sell-cooldown-seconds: 3
+  buy-cooldown-ms: 500
+  items-per-page: 45
+
+categories:
+  ALL: "Все товары"
+  WEAPONS: "Оружие и инструменты"
+  ARMOR: "Броня и защита"
+  SPHERES_TALISMANS: "Сферы, Талисманы и Артефакты"
+  CONSUMABLES: "Зелья и расходники"
+  BLOCKS_RESOURCES: "Блоки и ресурсы"
+
+sort-modes:
+  NEWEST: "Сначала новые"
+  OLDEST: "Скоро истекают"
+  CHEAPEST: "Сначала дешёвые"
+  EXPENSIVE: "Сначала дорогие"

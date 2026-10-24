@@ -1,0 +1,44 @@
+# WorldGuard Configuration — ReallyWorld Ultimate
+regions:
+  enable: true
+  invincibility-removes-mobs: false
+  cancel-chat-without-permission: false
+  wand: minecraft:leather
+  max-claim-volume: 30000
+  claim-only-inside-existing-regions: false
+  max-region-count-per-player:
+    default: 2
+    hero: 3
+    titan: 4
+    avenger: 5
+    overlord: 6
+    magister: 8
+    imperator: 10
+    dragon: 12
+    god: 16
+  high-frequency-flags: false
+  protect-against-liquid-flow: true
+protection:
+  item-durability: true
+  remove-infinite-stacks: true
+  disable-xp-orb-drops: false
+  use-max-priority-association: false
+ignition:
+  block-tnt: false
+  block-tnt-block-damage: false
+  block-lighter: false
+fire:
+  disable-lava-fire-spread: false
+  disable-all-fire-spread: false
+mobs:
+  block-creeper-explosions: false
+  block-creeper-block-damage: false
+  block-wither-explosions: false
+  block-wither-block-damage: false
+  block-other-explosions: false
+crops:
+  disable-creature-trampling: false
+  disable-player-trampling: false
+turtle-egg:
+  disable-creature-trampling: false
+  disable-player-trampling: false

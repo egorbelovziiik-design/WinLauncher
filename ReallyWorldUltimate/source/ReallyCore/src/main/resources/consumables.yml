@@ -1,0 +1,216 @@
+# =======================================================================
+# consumables.yml — Боевые эликсиры, Особые зелья, Свитки и фирменные
+# расходники ReallyWorld (Божья аура, Трапка, Пласт, Дезориентация,
+# Явная пыль, Огненный шар) с полной проверкой регионов и Combat Tag!
+# =======================================================================
+
+consumables:
+  # --- ФИРМЕННЫЕ PVP-РАСХОДНИКИ REALLYWORLD ---
+  divine_aura:
+    name: "Божья Аура"
+    category: "TACTICAL"
+    rarity: "LEGENDARY"
+    material: "YELLOW_DYE"
+    item-model: "reallyworld:divine_aura"
+    cooldown-seconds: 90
+    allow-in-combat: true
+    block-in-spawn: false
+    action: "DIVINE_AURA"
+    particle: "END_ROD"
+    sound: "BLOCK_BEACON_POWER_SELECT"
+    effects: ["SPEED:1:15", "RESISTANCE:0:6"]
+    description: "Снимает все негативные эффекты и дарует Скорость II (15с) + Защиту (6с)."
+
+  trap_box:
+    name: "Трапка Незеритовая"
+    category: "TACTICAL"
+    rarity: "EPIC"
+    material: "NETHERITE_SCRAP"
+    item-model: "reallyworld:trap_box"
+    cooldown-seconds: 45
+    duration-seconds: 15
+    allow-in-combat: true
+    block-in-spawn: true
+    action: "TRAP_BOX"
+    particle: "SOUL_FIRE_FLAME"
+    sound: "BLOCK_ANVIL_PLACE"
+    description: "Запирает врагов рядом во временную обсидиановую клетку 5x5x5 на 15 сек."
+
+  plast_wall:
+    name: "Пласт Обороны"
+    category: "TACTICAL"
+    rarity: "RARE"
+    material: "DRIED_KELP"
+    item-model: "reallyworld:plast_wall"
+    cooldown-seconds: 30
+    duration-seconds: 15
+    allow-in-combat: true
+    block-in-spawn: true
+    action: "PLAST_PLATFORM"
+    particle: "CLOUD"
+    sound: "BLOCK_STONE_PLACE"
+    description: "Мгновенно создаёт под ногами временную защитную платформу 5x5 на 15 сек."
+
+  disorientation:
+    name: "Дезориентация"
+    category: "TACTICAL"
+    rarity: "EPIC"
+    material: "ENDER_EYE"
+    item-model: "reallyworld:disorientation"
+    cooldown-seconds: 50
+    radius: 8.0
+    allow-in-combat: true
+    block-in-spawn: true
+    action: "DISORIENT"
+    particle: "WITCH"
+    sound: "ENTITY_ILLUSIONER_CAST_SPELL"
+    description: "Ослепляет и замедляет противников в радиусе 8 блоков на 6 секунд."
+
+  reveal_dust:
+    name: "Явная Пыль"
+    category: "TACTICAL"
+    rarity: "RARE"
+    material: "SUGAR"
+    item-model: "reallyworld:reveal_dust"
+    cooldown-seconds: 35
+    radius: 14.0
+    allow-in-combat: true
+    block-in-spawn: false
+    action: "REVEAL_DUST"
+    particle: "GLOW"
+    sound: "BLOCK_AMETHYST_BLOCK_CHIME"
+    description: "Раскрывает невидимок и накладывает Свечение на врагов в радиусе 14 блоков."
+
+  fire_tornado_orb:
+    name: "Огненный Шар Смерча"
+    category: "TACTICAL"
+    rarity: "EPIC"
+    material: "FIRE_CHARGE"
+    item-model: "reallyworld:fire_orb"
+    cooldown-seconds: 25
+    allow-in-combat: true
+    block-in-spawn: true
+    action: "FIRE_ORB"
+    particle: "FLAME"
+    sound: "ITEM_FIRECHARGE_USE"
+    description: "Выпускает стремительный огненный снаряд, поджигающий и отбрасывающий врагов."
+
+  # --- БОЕВЫЕ ЭЛИКСИРЫ И КАСТОМНЫЕ ЗЕЛЬЯ ---
+  elixir_killer:
+    name: "Эликсир Киллера"
+    category: "ELIXIR"
+    rarity: "EPIC"
+    material: "HONEY_BOTTLE"
+    item-model: "reallyworld:elixir_killer"
+    cooldown-seconds: 60
+    allow-in-combat: true
+    block-in-spawn: false
+    action: "DRINK_ELIXIR"
+    particle: "CRIMSON_SPORE"
+    sound: "ENTITY_GENERIC_DRINK"
+    effects: ["STRENGTH:2:90", "SPEED:2:90", "FIRE_RESISTANCE:0:180"]
+    description: "Боевой эликсир: Сила III (90с), Скорость III (90с), Огнестойкость (180с)."
+
+  elixir_winner:
+    name: "Зелье Победителя"
+    category: "POTION"
+    rarity: "LEGENDARY"
+    material: "HONEY_BOTTLE"
+    item-model: "reallyworld:elixir_winner"
+    cooldown-seconds: 90
+    allow-in-combat: true
+    block-in-spawn: false
+    action: "DRINK_ELIXIR"
+    particle: "TOTEM_OF_UNDYING"
+    sound: "ENTITY_GENERIC_DRINK"
+    effects: ["STRENGTH:1:120", "SPEED:1:120", "REGENERATION:1:30", "ABSORPTION:2:60"]
+    description: "Универсальный бафф: Сила II, Скорость II, Регенерация II и Поглощение III."
+
+  potion_medic:
+    name: "Зелье Медика"
+    category: "POTION"
+    rarity: "RARE"
+    material: "HONEY_BOTTLE"
+    item-model: "reallyworld:potion_medic"
+    cooldown-seconds: 40
+    allow-in-combat: true
+    block-in-spawn: false
+    action: "INSTANT_MEDIC"
+    heal-amount: 12.0
+    particle: "HEART"
+    sound: "ENTITY_PLAYER_LEVELUP"
+    effects: ["REGENERATION:1:12"]
+    description: "Мгновенно восстанавливает 6 сердец и даёт Регенерацию II на 12 сек."
+
+  flask_discord:
+    name: "Флакон Раздора"
+    category: "POTION"
+    rarity: "EPIC"
+    material: "DRAGON_BREATH"
+    item-model: "reallyworld:flask_discord"
+    cooldown-seconds: 55
+    radius: 6.0
+    allow-in-combat: true
+    block-in-spawn: true
+    action: "DISCORD_SPLASH"
+    particle: "SPELL_WITCH"
+    sound: "ENTITY_SPLASH_POTION_BREAK"
+    description: "Поражает врагов рядом Слабостью I, Отравлением II и Медлительностью I на 8 сек."
+
+  # --- СВИТКИ И ИВЕНТОВЫЕ ПРЕДМЕТЫ ---
+  scroll_escape:
+    name: "Свиток Возвращения"
+    category: "SCROLL"
+    rarity: "RARE"
+    material: "PAPER"
+    item-model: "reallyworld:scroll_escape"
+    cooldown-seconds: 120
+    allow-in-combat: false # Нельзя уйти из активного PvP!
+    block-in-spawn: false
+    action: "SPAWN_SCROLL"
+    particle: "PORTAL"
+    sound: "ITEM_CHORUS_FRUIT_TELEPORT"
+    description: "Мгновенно переносит на Спавн (работает только ВНЕ режима боя!)."
+
+  scroll_experience:
+    name: "Свиток Мудрости (30 Ур.)"
+    category: "SCROLL"
+    rarity: "RARE"
+    material: "ENCHANTED_BOOK"
+    item-model: "reallyworld:scroll_xp"
+    cooldown-seconds: 5
+    allow-in-combat: false
+    block-in-spawn: false
+    action: "XP_SCROLL"
+    xp-points: 1395
+    particle: "ENCHANT"
+    sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+    description: "Начисляет 1395 очков опыта (эквивалент 30 уровней для слияния сфер и чар)."
+
+  summon_airdrop_flare:
+    name: "Сигнальная Ракета Аирдропа"
+    category: "EVENT"
+    rarity: "LEGENDARY"
+    material: "REDSTONE_TORCH"
+    item-model: "reallyworld:airdrop_flare"
+    cooldown-seconds: 300
+    allow-in-combat: false
+    block-in-spawn: true
+    action: "SUMMON_AIRDROP"
+    particle: "FIREWORK"
+    sound: "ENTITY_FIREWORK_ROCKET_LAUNCH"
+    description: "Призывает внеочередной Аирдроп неподалёку от вашей позиции!"
+
+  summon_altar_core:
+    name: "Ядро Древнего Алтаря"
+    category: "EVENT"
+    rarity: "EPIC"
+    material: "RESPAWN_ANCHOR"
+    item-model: "reallyworld:altar_core"
+    cooldown-seconds: 300
+    allow-in-combat: false
+    block-in-spawn: true
+    action: "SUMMON_ALTAR"
+    particle: "SOUL"
+    sound: "BLOCK_RESPAWN_ANCHOR_CHARGE"
+    description: "Запускает мини-ивент «Алтарь» с волнами стражей и ценной наградой!"

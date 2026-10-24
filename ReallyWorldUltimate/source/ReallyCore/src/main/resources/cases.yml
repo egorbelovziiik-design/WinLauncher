@@ -1,0 +1,109 @@
+# =======================================================================
+# cases.yml — 8 Кейсов ReallyWorld Ultimate
+# Сумма шансов (weight) каждого кейса нормируется и проверяется при старте.
+# Ключ списывается АТОМАРНО в БД ДО выдачи награды — защита от двойного дропа.
+# =======================================================================
+
+animation:
+  enabled: true
+  spin-ticks: 48
+  step-interval-ticks: 4
+
+cases:
+  common:
+    name: "Обычный кейс"
+    slot: 10
+    icon: "CHEST"
+    description: "Базовые ресурсы, монеты и полезные расходники старта."
+    rewards:
+      coins_5k: { display: "<#FBBC00>5 000 ⛃ Монет", type: "COINS", value: "5000", weight: 35.0, broadcast: false }
+      coins_12k: { display: "<#FBBC00>12 000 ⛃ Монет", type: "COINS", value: "12000", weight: 25.0, broadcast: false }
+      gapples_8: { display: "<#FBBC00>Золотое яблоко x8", type: "VANILLA", value: "GOLDEN_APPLE:8", weight: 20.0, broadcast: false }
+      plast_4: { display: "<#55FFFF>Пласт Обороны x4", type: "CUSTOM", value: "consumable:plast_wall:4", weight: 12.0, broadcast: false }
+      sphere_spd: { display: "<#AA00AA>Сфера Скорости [I]", type: "CUSTOM", value: "sphere:speed:1", weight: 8.0, broadcast: true }
+
+  rare:
+    name: "Редкий кейс"
+    slot: 11
+    icon: "ENDER_CHEST"
+    description: "Повышенный шанс на тактические предметы, сферы и монеты."
+    rewards:
+      coins_20k: { display: "<#FBBC00>20 000 ⛃ Монет", type: "COINS", value: "20000", weight: 30.0, broadcast: false }
+      trap_3: { display: "<#AA00AA>Трапка Незеритовая x3", type: "CUSTOM", value: "consumable:trap_box:3", weight: 25.0, broadcast: false }
+      medic_4: { display: "<#FF5555>Зелье Медика x4", type: "CUSTOM", value: "consumable:potion_medic:4", weight: 20.0, broadcast: false }
+      sphere_def: { display: "<#55FFFF>Сфера Защиты [I]", type: "CUSTOM", value: "sphere:defense:1", weight: 15.0, broadcast: false }
+      talisman_spd: { display: "<#FBBC00>Талисман Скорости", type: "CUSTOM", value: "talisman:speed:1", weight: 10.0, broadcast: true }
+
+  epic:
+    name: "Эпический кейс"
+    slot: 12
+    icon: "AMETHYST_BLOCK"
+    description: "Боевые сферы, талисманы, риллики и уникальное снаряжение."
+    rewards:
+      coins_50k: { display: "<#FBBC00>50 000 ⛃ Монет", type: "COINS", value: "50000", weight: 28.0, broadcast: false }
+      rilliks_25: { display: "<#FF4500>25 ❖ Рилликов", type: "RILLIKS", value: "25", weight: 22.0, broadcast: false }
+      sphere_str: { display: "<#AA00AA>Сфера Силы [I]", type: "CUSTOM", value: "sphere:strength:1", weight: 20.0, broadcast: false }
+      talisman_war: { display: "<#AA00AA>Талисман Воина", type: "CUSTOM", value: "talisman:warrior:1", weight: 18.0, broadcast: true }
+      bow_phoenix: { display: "<#FC7000>Лук Феникса", type: "CUSTOM", value: "weapon:phoenix_bow:1", weight: 12.0, broadcast: true }
+
+  legendary:
+    name: "Легендарный кейс"
+    slot: 13
+    icon: "BEACON"
+    description: "Редкие сферы, артефакты, оружие и крупные пакеты рилликов."
+    rewards:
+      rilliks_75: { display: "<#FF4500>75 ❖ Рилликов", type: "RILLIKS", value: "75", weight: 28.0, broadcast: false }
+      sphere_vamp: { display: "<#FBBC00>Сфера Вампиризма [I]", type: "CUSTOM", value: "sphere:vampirism:1", weight: 24.0, broadcast: true }
+      talisman_tit: { display: "<#FBBC00>Талисман Титана", type: "CUSTOM", value: "talisman:titan:1", weight: 20.0, broadcast: true }
+      artifact_drg: { display: "<#FC7000>Артефакт Дракона", type: "CUSTOM", value: "artifact:dragon:1", weight: 16.0, broadcast: true }
+      axe_chaos: { display: "<#FF4500>Секира Хаоса", type: "CUSTOM", value: "weapon:chaos_axe:1", weight: 12.0, broadcast: true }
+
+  mythic:
+    name: "Мифический кейс"
+    slot: 14
+    icon: "DRAGON_EGG"
+    description: "Элитный кейс с мифическими сферами, булавой 1.21 и бронёй Дракона."
+    rewards:
+      rilliks_200: { display: "<#FF4500>200 ❖ Рилликов", type: "RILLIKS", value: "200", weight: 30.0, broadcast: true }
+      sphere_dest: { display: "<#FF4500>Сфера Разрушения [I]", type: "CUSTOM", value: "sphere:destruction:1", weight: 25.0, broadcast: true }
+      sphere_void: { display: "<#FF4500>Сфера Пустоты [I]", type: "CUSTOM", value: "sphere:void:1", weight: 20.0, broadcast: true }
+      mace_titan: { display: "<#FF4500>Булава Крушителя", type: "CUSTOM", value: "weapon:titan_mace:1", weight: 15.0, broadcast: true }
+      art_immortal: { display: "<#FF4500>Артефакт Бессмертия", type: "CUSTOM", value: "artifact:immortality:1", weight: 10.0, broadcast: true }
+
+  donate:
+    name: "Донат-кейс"
+    slot: 15
+    icon: "NETHER_STAR"
+    description: "Выпадают настоящие привилегии от HERO до DRAGON (без понижения ранга!)."
+    rewards:
+      rank_hero: { display: "<#55FFFF><b>Привилегия [HERO]</b>", type: "RANK", value: "HERO", weight: 34.0, broadcast: false }
+      rank_titan: { display: "<#FFAA00><b>Привилегия [TITAN]</b>", type: "RANK", value: "TITAN", weight: 25.0, broadcast: false }
+      rank_avenger: { display: "<#55FF55><b>Привилегия [AVENGER]</b>", type: "RANK", value: "AVENGER", weight: 18.0, broadcast: false }
+      rank_overlord: { display: "<#00AAAA><b>Привилегия [OVERLORD]</b>", type: "RANK", value: "OVERLORD", weight: 11.0, broadcast: true }
+      rank_magister: { display: "<#AA00AA><b>Привилегия [MAGISTER]</b>", type: "RANK", value: "MAGISTER", weight: 7.0, broadcast: true }
+      rank_imperator: { display: "<#FF5555><b>Привилегия [IMPERATOR]</b>", type: "RANK", value: "IMPERATOR", weight: 3.5, broadcast: true }
+      rank_dragon: { display: "<gradient:#FBBC00:#FF4500><b>Привилегия [DRAGON]</b></gradient>", type: "RANK", value: "DRAGON", weight: 1.5, broadcast: true }
+
+  items:
+    name: "Кейс предметов"
+    slot: 16
+    icon: "SHULKER_BOX"
+    description: "Полный боевой арсенал: расходники, эликсиры, трапки и оружие."
+    rewards:
+      aura_3: { display: "<#FBBC00>Божья Аура x3", type: "CUSTOM", value: "consumable:divine_aura:3", weight: 28.0, broadcast: false }
+      killer_4: { display: "<#FF4500>Эликсир Киллера x4", type: "CUSTOM", value: "consumable:elixir_killer:4", weight: 24.0, broadcast: false }
+      traps_6: { display: "<#AA00AA>Трапка Незеритовая x6", type: "CUSTOM", value: "consumable:trap_box:6", weight: 20.0, broadcast: false }
+      trident_pull: { display: "<#FBBC00>Трезубец Притяжения", type: "CUSTOM", value: "weapon:pull_trident:1", weight: 16.0, broadcast: true }
+      blade_vamp: { display: "<#FF4500>Клинок Кровавой Луны", type: "CUSTOM", value: "weapon:vampire_blade:1", weight: 12.0, broadcast: true }
+
+  event:
+    name: "Ивентовый кейс"
+    slot: 22
+    icon: "RESPAWN_ANCHOR"
+    description: "Эксклюзивные награды за победы в мировых ивентах и боях с боссами."
+    rewards:
+      tokens_50: { display: "<#FC7000>50 ✿ Ивентовых Ромашек", type: "TOKENS", value: "50", weight: 28.0, broadcast: false }
+      flare_2: { display: "<#FF4500>Ракета Аирдропа x2", type: "CUSTOM", value: "consumable:summon_airdrop_flare:2", weight: 22.0, broadcast: false }
+      altar_2: { display: "<#AA00AA>Ядро Древнего Алтаря x2", type: "CUSTOM", value: "consumable:summon_altar_core:2", weight: 20.0, broadcast: false }
+      talisman_res: { display: "<#FF4500>Талисман Сопротивления", type: "CUSTOM", value: "talisman:resistance:1", weight: 18.0, broadcast: true }
+      scythe_void: { display: "<#FF4500>Коса Повелителя Пустоты", type: "CUSTOM", value: "weapon:void_scythe:1", weight: 12.0, broadcast: true }

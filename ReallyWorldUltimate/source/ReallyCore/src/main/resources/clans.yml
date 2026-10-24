@@ -1,0 +1,62 @@
+# =======================================================================
+# clans.yml — Система кланов анархии (/clan)
+# =======================================================================
+
+settings:
+  creation-cost-coins: 50000
+  min-name-length: 3
+  max-name-length: 16
+  min-tag-length: 2
+  max-tag-length: 5
+  allowed-tag-regex: "^[A-Za-zА-Яа-я0-9]{2,5}$"
+  base-max-members: 15
+  invite-expire-seconds: 60
+  home-teleport-warmup-seconds: 4
+  points-per-kill: 5
+  points-per-death: -2
+  points-per-capture: 10
+  max-allies: 3
+  max-enemies: 5
+
+roles:
+  LEADER: "Глава"
+  COLEADER: "Со-лидер"
+  ELDER: "Старейшина"
+  MEMBER: "Участник"
+
+clan-quests:
+  clan_slayer:
+    name: "Боевое братство"
+    description: "Совершите всем кланом 25 PvP-убийств"
+    type: "CLAN_KILLS"
+    target: 25
+    reward-bank-coins: 75000
+    reward-rating: 30
+  clan_treasury:
+    name: "Золотой фонд"
+    description: "Внесите суммарно 250 000 монет в казну клана"
+    type: "CLAN_DEPOSIT"
+    target: 250000
+    reward-bank-coins: 50000
+    reward-rating: 25
+  clan_conqueror:
+    name: "Захватчики Талисмана"
+    description: "Захватите 3 контрольные точки кланом"
+    type: "CLAN_CAPTURES"
+    target: 3
+    reward-bank-coins: 120000
+    reward-rating: 50
+
+clan-achievements:
+  first_blood_clan:
+    name: "Первая кровь клана"
+    target-kills: 10
+    reward-rating: 15
+  millionaire_clan:
+    name: "Казна Империи"
+    target-bank: 1000000
+    reward-rating: 40
+  warlords:
+    name: "Повелители Анархии"
+    target-rating: 500
+    reward-rating: 75

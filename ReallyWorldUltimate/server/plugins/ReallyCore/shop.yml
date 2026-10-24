@@ -1,0 +1,123 @@
+# =======================================================================
+# shop.yml — Серверный Магазин (/shop) и Скупщик (/buyer, /sell)
+# 7 основных категорий за Монеты + Донат-лавка за Риллики.
+# ВСЕ ЦЕНЫ СБАЛАНСИРОВАНЫ ПРОТИВ АРБИТРАЖА:
+# даже при бонусе Скупщика x3 (sell * 3) цена продажи СТРОГО НИЖЕ цены
+# покупки этого предмета или его крафтовых компонентов в /shop!
+# =======================================================================
+
+categories:
+  BLOCKS:
+    title: "Блоки и строительство"
+    icon: "COBBLESTONE"
+    slot: 10
+    items:
+      cobblestone: { material: "COBBLESTONE", amount: 64, buy-coins: 450, sell-coins: 60 }
+      stone: { material: "STONE", amount: 64, buy-coins: 650, sell-coins: 80 }
+      deepslate: { material: "COBBLED_DEEPSLATE", amount: 64, buy-coins: 700, sell-coins: 90 }
+      oak_log: { material: "OAK_LOG", amount: 32, buy-coins: 900, sell-coins: 120 }
+      spruce_log: { material: "SPRUCE_LOG", amount: 32, buy-coins: 900, sell-coins: 120 }
+      glass: { material: "GLASS", amount: 64, buy-coins: 800, sell-coins: 80 }
+      obsidian: { material: "OBSIDIAN", amount: 16, buy-coins: 4800, sell-coins: 650 }
+      crying_obsidian: { material: "CRYING_OBSIDIAN", amount: 8, buy-coins: 5200, sell-coins: 750 }
+      end_stone: { material: "END_STONE", amount: 64, buy-coins: 1400, sell-coins: 180 }
+
+  RESOURCES:
+    title: "Руды и ресурсы"
+    icon: "DIAMOND"
+    slot: 11
+    items:
+      coal: { material: "COAL", amount: 16, buy-coins: 800, sell-coins: 110 }
+      iron_ingot: { material: "IRON_INGOT", amount: 16, buy-coins: 2400, sell-coins: 360 }
+      copper_ingot: { material: "COPPER_INGOT", amount: 16, buy-coins: 1200, sell-coins: 160 }
+      gold_ingot: { material: "GOLD_INGOT", amount: 16, buy-coins: 3200, sell-coins: 480 }
+      lapis_lazuli: { material: "LAPIS_LAZULI", amount: 16, buy-coins: 1800, sell-coins: 250 }
+      redstone: { material: "REDSTONE", amount: 32, buy-coins: 2000, sell-coins: 260 }
+      diamond: { material: "DIAMOND", amount: 4, buy-coins: 6000, sell-coins: 950 }
+      emerald: { material: "EMERALD", amount: 4, buy-coins: 5200, sell-coins: 800 }
+      amethyst_shard: { material: "AMETHYST_SHARD", amount: 8, buy-coins: 2600, sell-coins: 380 }
+      netherite_scrap: { material: "NETHERITE_SCRAP", amount: 1, buy-coins: 22000, sell-coins: 3800 }
+
+  FOOD:
+    title: "Еда и провизия"
+    icon: "GOLDEN_CARROT"
+    slot: 12
+    items:
+      cooked_beef: { material: "COOKED_BEEF", amount: 16, buy-coins: 750, sell-coins: 110 }
+      cooked_porkchop: { material: "COOKED_PORKCHOP", amount: 16, buy-coins: 750, sell-coins: 110 }
+      bread: { material: "BREAD", amount: 16, buy-coins: 450, sell-coins: 60 }
+      golden_carrot: { material: "GOLDEN_CARROT", amount: 16, buy-coins: 3800, sell-coins: 520 }
+      golden_apple: { material: "GOLDEN_APPLE", amount: 4, buy-coins: 9600, sell-coins: 1400 }
+      chorus_fruit: { material: "CHORUS_FRUIT", amount: 16, buy-coins: 2200, sell-coins: 300 }
+
+  TOOLS:
+    title: "Инструменты и бой"
+    icon: "DIAMOND_PICKAXE"
+    slot: 13
+    items:
+      diamond_pickaxe: { material: "DIAMOND_PICKAXE", amount: 1, buy-coins: 5500, sell-coins: 700 }
+      diamond_axe: { material: "DIAMOND_AXE", amount: 1, buy-coins: 5500, sell-coins: 700 }
+      diamond_sword: { material: "DIAMOND_SWORD", amount: 1, buy-coins: 4200, sell-coins: 550 }
+      shield: { material: "SHIELD", amount: 1, buy-coins: 1200, sell-coins: 150 }
+      bow: { material: "BOW", amount: 1, buy-coins: 1400, sell-coins: 180 }
+      arrow: { material: "ARROW", amount: 32, buy-coins: 900, sell-coins: 120 }
+      experience_bottle: { material: "EXPERIENCE_BOTTLE", amount: 16, buy-coins: 6400, sell-coins: 800 }
+      anvil: { material: "ANVIL", amount: 1, buy-coins: 8500, sell-coins: 900 }
+
+  FARMING:
+    title: "Фермерство и мобы"
+    icon: "WHEAT"
+    slot: 14
+    items:
+      wheat_seeds: { material: "WHEAT_SEEDS", amount: 16, buy-coins: 300, sell-coins: 30 }
+      wheat: { material: "WHEAT", amount: 32, buy-coins: 950, sell-coins: 140 }
+      sugar_cane: { material: "SUGAR_CANE", amount: 32, buy-coins: 1100, sell-coins: 160 }
+      nether_wart: { material: "NETHER_WART", amount: 16, buy-coins: 1900, sell-coins: 280 }
+      cactus: { material: "CACTUS", amount: 32, buy-coins: 1000, sell-coins: 150 }
+      bone: { material: "BONE", amount: 16, buy-coins: 1200, sell-coins: 180 }
+      string: { material: "STRING", amount: 16, buy-coins: 1250, sell-coins: 190 }
+      gunpowder: { material: "GUNPOWDER", amount: 16, buy-coins: 3400, sell-coins: 520 }
+      magma_cream: { material: "MAGMA_CREAM", amount: 8, buy-coins: 2800, sell-coins: 440 }
+      blaze_rod: { material: "BLAZE_ROD", amount: 8, buy-coins: 3600, sell-coins: 560 }
+
+  RARE:
+    title: "Редкие материалы"
+    icon: "TOTEM_OF_UNDYING"
+    slot: 15
+    items:
+      ender_pearl: { material: "ENDER_PEARL", amount: 8, buy-coins: 4400, sell-coins: 650 }
+      wind_charge: { material: "WIND_CHARGE", amount: 16, buy-coins: 5600, sell-coins: 800 }
+      cobweb: { material: "COBWEB", amount: 16, buy-coins: 4800, sell-coins: 600 }
+      tnt: { material: "TNT", amount: 8, buy-coins: 12000, sell-coins: 1600 }
+      totem_of_undying: { material: "TOTEM_OF_UNDYING", amount: 1, buy-coins: 35000, sell-coins: 6500 }
+      shulker_shell: { material: "SHULKER_SHELL", amount: 2, buy-coins: 28000, sell-coins: 4500 }
+      netherite_upgrade: { material: "NETHERITE_UPGRADE_SMITHING_TEMPLATE", amount: 1, buy-coins: 45000, sell-coins: 7000 }
+      enchanted_golden_apple: { material: "ENCHANTED_GOLDEN_APPLE", amount: 1, buy-coins: 85000, sell-coins: 12000 }
+
+  DECOR:
+    title: "Декорации и базы"
+    icon: "SEA_LANTERN"
+    slot: 16
+    items:
+      sea_lantern: { material: "SEA_LANTERN", amount: 16, buy-coins: 2400, sell-coins: 300 }
+      glowstone: { material: "GLOWSTONE", amount: 16, buy-coins: 2200, sell-coins: 280 }
+      quartz_block: { material: "QUARTZ_BLOCK", amount: 32, buy-coins: 3200, sell-coins: 420 }
+      lantern: { material: "LANTERN", amount: 16, buy-coins: 1600, sell-coins: 200 }
+      bookshelf: { material: "BOOKSHELF", amount: 16, buy-coins: 4200, sell-coins: 500 }
+      hopper: { material: "HOPPER", amount: 4, buy-coins: 6500, sell-coins: 800 }
+
+# Премиальная лавка за Риллики (доступна из /shop)
+rillik-shop:
+  title: "Лавка Рилликов ❖"
+  slot: 22
+  items:
+    trap_pack: { custom-item: "consumable:trap_box", amount: 4, buy-rilliks: 45 }
+    plast_pack: { custom-item: "consumable:plast_wall", amount: 8, buy-rilliks: 35 }
+    divine_aura: { custom-item: "consumable:divine_aura", amount: 2, buy-rilliks: 60 }
+    disorientation_pack: { custom-item: "consumable:disorientation", amount: 4, buy-rilliks: 40 }
+    fire_orb_pack: { custom-item: "consumable:fire_tornado_orb", amount: 4, buy-rilliks: 50 }
+    sphere_strength: { custom-item: "sphere:strength", amount: 1, buy-rilliks: 190 }
+    sphere_speed: { custom-item: "sphere:speed", amount: 1, buy-rilliks: 180 }
+    talisman_warrior: { custom-item: "talisman:warrior", amount: 1, buy-rilliks: 260 }
+    key_legendary: { case-key: "legendary", amount: 1, buy-rilliks: 120 }
+    key_donate: { case-key: "donate", amount: 1, buy-rilliks: 199 }

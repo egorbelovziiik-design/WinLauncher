@@ -1,0 +1,7 @@
+name: default
+permissions:
+- weight.10
+- reallycore.player.*
+prefixes:
+- '<gray>[ИГРОК]</gray> ':
+    priority: 10

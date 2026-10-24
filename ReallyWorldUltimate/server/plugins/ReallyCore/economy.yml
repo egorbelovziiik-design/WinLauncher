@@ -1,0 +1,33 @@
+# =======================================================================
+# economy.yml — Настройки мультивалютной экономики ReallyWorld Ultimate
+# Валюты хранятся строго в целочисленном формате long (без double!).
+# =======================================================================
+
+currencies:
+  COINS:
+    display-name: "Монеты"
+    symbol: "⛃"
+    starting-balance: 1500
+    max-balance: 1000000000000 # 1 триллион (безопасно от переполнения long)
+  RILLIKS:
+    display-name: "Риллики"
+    symbol: "❖"
+    starting-balance: 0
+    max-balance: 100000000
+  TOKENS:
+    display-name: "Ромашки"
+    symbol: "✿"
+    starting-balance: 0
+    max-balance: 100000000
+
+transfers:
+  min-pay-amount: 50
+  max-pay-amount: 100000000
+  pay-fee-percent: 3 # 3% налог экономики для вывода лишней денежной массы
+  cooldown-seconds: 3
+
+buyer:
+  # Интервал смены 4 эксклюзивных предложений Скупщика (/buyer) с бонусом x2 / x3
+  rotation-minutes: 60
+  hot-deals-count: 4
+  hot-deal-multipliers: [2, 2, 2, 3]

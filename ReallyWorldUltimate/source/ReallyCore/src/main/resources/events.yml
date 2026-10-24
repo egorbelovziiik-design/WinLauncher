@@ -1,0 +1,193 @@
+# =======================================================================
+# events.yml — Движок мировых ивентов (Event Engine — 10 типов событий)
+# Планировщик исключает одновременный запуск конфликтующих событий!
+# В радиусе no-fly-radius от активного ивента отключаются /fly и /tpa.
+# =======================================================================
+
+scheduler:
+  enabled: true
+  interval-minutes: 45
+  announce-before-seconds: [180, 60, 15]
+  no-fly-radius: 150.0
+  min-online-players: 1
+  max-concurrent-world-events: 1
+
+events:
+  airdrop:
+    name: "Военный Аирдроп"
+    world: "world"
+    min-radius: 400
+    max-radius: 2200
+    unlock-seconds: 180
+    despawn-seconds: 600
+    sound: "EVENT_RAID_HORN"
+    particle: "FLAME"
+    rewards:
+      coins-min: 25000
+      coins-max: 65000
+      rilliks: 15
+      items:
+        - "CUSTOM:sphere:strength:1:45"
+        - "CUSTOM:sphere:vampirism:1:25"
+        - "CUSTOM:talisman:warrior:1:35"
+        - "CUSTOM:consumable:divine_aura:2:60"
+        - "CUSTOM:consumable:trap_box:4:75"
+        - "VANILLA:ENCHANTED_GOLDEN_APPLE:1:40"
+        - "CASE_KEY:legendary:1:30"
+
+  meteorite:
+    name: "Огненный Метеорит"
+    world: "world"
+    min-radius: 500
+    max-radius: 2500
+    duration-seconds: 420
+    crater-radius: 4
+    sound: "ENTITY_GENERIC_EXPLODE"
+    particle: "LAVA"
+    rewards:
+      coins-min: 30000
+      coins-max: 70000
+      rilliks: 20
+      items:
+        - "CUSTOM:sphere:rage:1:40"
+        - "CUSTOM:artifact:destruction:1:25"
+        - "VANILLA:NETHERITE_SCRAP:3:80"
+        - "CASE_KEY:epic:1:50"
+
+  talisman_capture:
+    name: "Захват Талисмана"
+    world: "world"
+    min-radius: 350
+    max-radius: 1800
+    duration-seconds: 300
+    capture-radius: 10.0
+    max-clan-points-per-event: 10
+    sound: "BLOCK_BEACON_ACTIVATE"
+    particle: "TOTEM_OF_UNDYING"
+    rewards:
+      coins-min: 40000
+      coins-max: 90000
+      rilliks: 25
+      items:
+        - "CUSTOM:talisman:resistance:1:40"
+        - "CUSTOM:talisman:berserk:1:50"
+        - "CASE_KEY:event:1:60"
+
+  pvp_arena:
+    name: "Кровавый Колизей"
+    world: "world"
+    fixed-x: 0.5
+    fixed-y: 100.0
+    fixed-z: 85.5
+    duration-seconds: 360
+    sound: "ENTITY_ENDER_DRAGON_GROWL"
+    particle: "SWEEP_ATTACK"
+    rewards:
+      coins-min: 35000
+      coins-max: 75000
+      rilliks: 20
+      items:
+        - "CUSTOM:sphere:berserk:1:45"
+        - "CUSTOM:consumable:elixir_winner:3:80"
+        - "CASE_KEY:items:1:55"
+
+  boss_invasion:
+    name: "Вторжение Мирового Босса"
+    world: "world"
+    min-radius: 450
+    max-radius: 2000
+    duration-seconds: 600
+    sound: "ENTITY_WITHER_SPAWN"
+    particle: "SOUL_FIRE_FLAME"
+    rewards:
+      coins-min: 50000
+      coins-max: 120000
+      rilliks: 35
+      items:
+        - "CASE_KEY:mythic:1:30"
+        - "CASE_KEY:legendary:1:65"
+
+  treasure_chest:
+    name: "Мистический Сундук Сокровищ"
+    world: "world"
+    min-radius: 300
+    max-radius: 2000
+    unlock-seconds: 120
+    despawn-seconds: 480
+    sound: "BLOCK_ENDER_CHEST_OPEN"
+    particle: "ENCHANT"
+    rewards:
+      coins-min: 20000
+      coins-max: 50000
+      rilliks: 10
+      items:
+        - "CUSTOM:sphere:speed:1:55"
+        - "CUSTOM:consumable:divine_aura:2:60"
+        - "CASE_KEY:rare:2:75"
+
+  bounty_hunt:
+    name: "Охота за Головой"
+    world: "world"
+    duration-seconds: 360
+    sound: "ENTITY_ILLUSIONER_PREPARE_MIRROR"
+    particle: "CRIT"
+    rewards:
+      coins-min: 30000
+      coins-max: 80000
+      rilliks: 15
+      items:
+        - "CUSTOM:sphere:hunter:1:45"
+        - "CUSTOM:artifact:hunter:1:30"
+
+  rare_resources:
+    name: "Богатая Жила Автошахты"
+    world: "world"
+    fixed-x: -55.5
+    fixed-y: 100.0
+    fixed-z: 0.5
+    duration-seconds: 300
+    vein-radius: 3
+    sound: "BLOCK_AMETHYST_BLOCK_CHIME"
+    particle: "WAX_ON"
+    rewards:
+      coins-min: 15000
+      coins-max: 35000
+      rilliks: 8
+      items:
+        - "CUSTOM:sphere:agility:1:35"
+
+  end_rift:
+    name: "Разлом Энда"
+    world: "world_the_end"
+    min-radius: 120
+    max-radius: 600
+    unlock-seconds: 150
+    despawn-seconds: 540
+    sound: "BLOCK_END_PORTAL_SPAWN"
+    particle: "DRAGON_BREATH"
+    rewards:
+      coins-min: 55000
+      coins-max: 110000
+      rilliks: 30
+      items:
+        - "CUSTOM:sphere:void:1:35"
+        - "CUSTOM:artifact:void:1:30"
+        - "CUSTOM:weapon:void_scythe:1:20"
+
+  nether_inferno:
+    name: "Адское Пекло Незера"
+    world: "world_nether"
+    min-radius: 150
+    max-radius: 750
+    unlock-seconds: 150
+    despawn-seconds: 540
+    sound: "ENTITY_BLAZE_AMBIENT"
+    particle: "FLAME"
+    rewards:
+      coins-min: 45000
+      coins-max: 95000
+      rilliks: 25
+      items:
+        - "CUSTOM:weapon:phoenix_bow:1:40"
+        - "CUSTOM:artifact:rage:1:45"
+        - "VANILLA:NETHERITE_INGOT:2:60"

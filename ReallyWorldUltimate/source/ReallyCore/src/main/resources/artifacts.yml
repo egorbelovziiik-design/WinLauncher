@@ -1,0 +1,114 @@
+# =======================================================================
+# artifacts.yml — 9 Активных Артефактов с уникальными способностями (ПКМ)
+# Оптимизированный бюджет частиц (не более 24 частиц за активацию).
+# Не работают в мирной зоне спавна (кроме защитных селф-баффов).
+# =======================================================================
+
+artifacts:
+  rage:
+    name: "Артефакт Ярости"
+    rarity: "EPIC"
+    material: "BLAZE_ROD"
+    item-model: "reallyworld:artifact_rage"
+    cooldown-seconds: 75
+    skill: "RAGE_BURST"
+    particle: "FLAME"
+    sound: "ENTITY_BLAZE_SHOOT"
+    description: "ПКМ: Дарует Силу II и Скорость II на 12 сек., испуская огненную волну."
+
+  destruction:
+    name: "Артефакт Разрушения"
+    rarity: "LEGENDARY"
+    material: "NETHERITE_INGOT"
+    item-model: "reallyworld:artifact_destruction"
+    cooldown-seconds: 90
+    skill: "SHOCKWAVE"
+    radius: 6.0
+    damage: 7.0
+    particle: "EXPLOSION"
+    sound: "ENTITY_GENERIC_EXPLODE"
+    description: "ПКМ: Создаёт ударную волну в радиусе 6 блоков, нанося урон и подбрасывая врагов."
+
+  immortality:
+    name: "Артефакт Бессмертия"
+    rarity: "MYTHIC"
+    material: "ENCHANTED_GOLDEN_APPLE"
+    item-model: "reallyworld:artifact_immortality"
+    cooldown-seconds: 180
+    skill: "AEGIS_SHIELD"
+    particle: "TOTEM_OF_UNDYING"
+    sound: "ITEM_TOTEM_USE"
+    description: "ПКМ: Дарует Поглощение IV и Сопротивление II на 8 сек. в критический момент."
+
+  hunter:
+    name: "Артефакт Охотника"
+    rarity: "EPIC"
+    material: "COMPASS"
+    item-model: "reallyworld:artifact_hunter"
+    cooldown-seconds: 60
+    skill: "HUNTER_MARK"
+    radius: 24.0
+    particle: "CRIT"
+    sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+    description: "ПКМ: Подсвечивает всех врагов в радиусе 24 блоков на 15 сек. и даёт Скорость II."
+
+  void:
+    name: "Артефакт Пустоты"
+    rarity: "MYTHIC"
+    material: "ECHO_SHARD"
+    item-model: "reallyworld:artifact_void"
+    cooldown-seconds: 65
+    skill: "VOID_BLINK"
+    distance: 10.0
+    particle: "PORTAL"
+    sound: "ENTITY_ENDERMAN_TELEPORT"
+    description: "ПКМ: Мгновенный рывок сквозь тень на 10 блоков вперёд с наложением Слепоты врагам рядом."
+
+  dragon:
+    name: "Артефакт Дракона"
+    rarity: "LEGENDARY"
+    material: "DRAGON_EGG"
+    item-model: "reallyworld:artifact_dragon"
+    cooldown-seconds: 110
+    skill: "DRAGON_ROAR"
+    radius: 8.0
+    damage: 6.0
+    particle: "DRAGON_BREATH"
+    sound: "ENTITY_ENDER_DRAGON_GROWL"
+    description: "ПКМ: Рёв Дракона отбрасывает противников, поджигает их и даёт Огнестойкость."
+
+  ancients:
+    name: "Артефакт Древних"
+    rarity: "LEGENDARY"
+    material: "AMETHYST_SHARD"
+    item-model: "reallyworld:artifact_ancients"
+    cooldown-seconds: 95
+    skill: "ANCIENT_SILENCE"
+    radius: 7.0
+    particle: "SCULK_SOUL"
+    sound: "ENTITY_WARDEN_SONIC_BOOM"
+    description: "ПКМ: Накладывает Слабость II и Замедление II врагам в радиусе 7 блоков на 8 сек."
+
+  defense:
+    name: "Артефакт Защиты"
+    rarity: "EPIC"
+    material: "SHIELD"
+    item-model: "reallyworld:artifact_defense"
+    cooldown-seconds: 80
+    skill: "FORTRESS_AURA"
+    radius: 6.0
+    particle: "WAX_ON"
+    sound: "BLOCK_ANVIL_LAND"
+    description: "ПКМ: Укрепляет владельца и соклановцев в радиусе 6 блоков Сопротивлением I на 12 сек."
+
+  regeneration:
+    name: "Артефакт Регенерации"
+    rarity: "EPIC"
+    material: "GOLDEN_APPLE"
+    item-model: "reallyworld:artifact_regeneration"
+    cooldown-seconds: 85
+    skill: "LIFE_PULSE"
+    heal-amount: 8.0
+    particle: "HEART"
+    sound: "BLOCK_BEACON_ACTIVATE"
+    description: "ПКМ: Мгновенно исцеляет 4 сердца и накладывает Регенерацию II на 10 сек."

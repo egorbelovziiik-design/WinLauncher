@@ -1,0 +1,20 @@
+# ViaVersion Configuration — ReallyWorld Ultimate (1.21.4 — 1.21.11)
+check-for-updates: false
+send-supported-versions: true
+# Протоколы ниже 769 (1.21.4) блокируются, чтобы сервер принимал строго целевой диапазон 1.21.4–1.21.11
+block-protocols: []
+block-versions:
+  - "<1.21.4"
+block-disconnect-msg: "§6§lREALLYWORLD §8» §cЗайдите с версии Minecraft §e1.21.4 — 1.21.11§c!"
+max-pps: 450
+max-pps-kick-msg: "§cПревышен лимит пакетов в секунду!"
+tracking-period: 6
+tracking-warning-pps: 180
+tracking-max-warnings: 4
+tracking-max-kick-msg: "§cСлишком много сетевых пакетов!"
+shield-blocking: true
+no-delay-shield-blocking: false
+show-shield-when-sword-in-hand: false
+team-colour-fix: true
+truncate-1_14-books: true
+suppress-conversion-warnings: true

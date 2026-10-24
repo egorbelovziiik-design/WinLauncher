@@ -1,0 +1,228 @@
+# =======================================================================
+# spheres.yml — Система Сфер ReallyWorld Ultimate (15 уникальных сфер)
+# Сферы работают в ЛЕВОЙ РУКЕ (OFF_HAND), идентифицируются по подписанному
+# PersistentDataContainer (reallycore:item_id + reallycore:signature),
+# а НЕ по названию предмета.
+# Объединение двух одинаковых сфер в наковальне повышает уровень:
+# NORMAL (I) -> EPIC (II, x1.35) -> LEGEND (III, x1.7) -> MYTHIC (IV, x2.0)
+# =======================================================================
+
+anvil-upgrade:
+  enabled: true
+  experience-cost-levels: 15
+  tiers:
+    NORMAL: { display: "Обычная [I]", multiplier: 1.0, color: "<#55FF55>" }
+    EPIC: { display: "Эпическая [II]", multiplier: 1.35, color: "<#AA00AA>" }
+    LEGEND: { display: "Легендарная [III]", multiplier: 1.7, color: "<#FBBC00>" }
+    MYTHIC: { display: "Мифическая [IV]", multiplier: 2.0, color: "<#FF4500>" }
+
+spheres:
+  strength:
+    name: "Сфера Силы"
+    rarity: "EPIC"
+    material: "FIRE_CHARGE"
+    item-model: "reallyworld:sphere_strength"
+    description: "Увеличивает пробивную мощь ближнего боя во второй руке."
+    obtain: "Аирдроп, Кейсы, Лавка Рилликов"
+    bonus-damage: 2.5
+    speed-percent: 0.0
+    bonus-armor: 0.0
+    bonus-hearts: 0.0
+    lifesteal-percent: 0.0
+    potion-effects: []
+
+  speed:
+    name: "Сфера Скорости"
+    rarity: "RARE"
+    material: "HEART_OF_THE_SEA"
+    item-model: "reallyworld:sphere_speed"
+    description: "Дарует стремительность ветра при погоне и отступлении."
+    obtain: "Сундук сокровищ, Кейсы"
+    bonus-damage: 0.5
+    speed-percent: 14.0
+    bonus-armor: 0.0
+    bonus-hearts: 0.0
+    lifesteal-percent: 0.0
+    potion-effects: []
+
+  defense:
+    name: "Сфера Защиты"
+    rarity: "RARE"
+    material: "NAUTILUS_SHELL"
+    item-model: "reallyworld:sphere_defense"
+    description: "Укрепляет доспехи владельца нерушимым барьером."
+    obtain: "Кейсы, Захват точки"
+    bonus-damage: 0.0
+    speed-percent: -3.0
+    bonus-armor: 3.0
+    bonus-hearts: 1.0
+    lifesteal-percent: 0.0
+    potion-effects: []
+
+  health:
+    name: "Сфера Здоровья"
+    rarity: "EPIC"
+    material: "GLISTERING_MELON_SLICE"
+    item-model: "reallyworld:sphere_health"
+    description: "Наполняет тело жизненной силой (+3 дополнительных сердца)."
+    obtain: "Аирдроп, Боссы, Кейсы"
+    bonus-damage: 0.0
+    speed-percent: 0.0
+    bonus-armor: 1.0
+    bonus-hearts: 3.0
+    lifesteal-percent: 0.0
+    potion-effects: []
+
+  regeneration:
+    name: "Сфера Регенерации"
+    rarity: "EPIC"
+    material: "GHAST_TEAR"
+    item-model: "reallyworld:sphere_regeneration"
+    description: "Постепенно затягивает боевые раны владельца."
+    obtain: "Алтарь, Легендарный кейс"
+    bonus-damage: 0.0
+    speed-percent: 0.0
+    bonus-armor: 0.5
+    bonus-hearts: 1.0
+    lifesteal-percent: 0.0
+    potion-effects: ["REGENERATION:0"]
+
+  resistance:
+    name: "Сфера Сопротивления"
+    rarity: "LEGENDARY"
+    material: "POPPED_CHORUS_FRUIT"
+    item-model: "reallyworld:sphere_resistance"
+    description: "Поглощает часть входящего физического и взрывного урона."
+    obtain: "Боссы, Мифический кейс"
+    bonus-damage: 0.0
+    speed-percent: -4.0
+    bonus-armor: 2.5
+    bonus-hearts: 1.0
+    lifesteal-percent: 0.0
+    potion-effects: ["RESISTANCE:0"]
+
+  vampirism:
+    name: "Сфера Вампиризма"
+    rarity: "LEGENDARY"
+    material: "REDSTONE"
+    item-model: "reallyworld:sphere_vampirism"
+    description: "Похищает часть здоровья противника при каждом ударе."
+    obtain: "Аирдроп, Босс Тёмный Рыцарь"
+    bonus-damage: 1.5
+    speed-percent: 4.0
+    bonus-armor: 0.0
+    bonus-hearts: 0.0
+    lifesteal-percent: 12.0
+    potion-effects: []
+
+  rage:
+    name: "Сфера Ярости"
+    rarity: "LEGENDARY"
+    material: "BLAZE_POWDER"
+    item-model: "reallyworld:sphere_rage"
+    description: "Жертвует частью брони ради сокрушительного натиска."
+    obtain: "Метеорит, Эпический кейс"
+    bonus-damage: 3.5
+    speed-percent: 8.0
+    bonus-armor: -2.0
+    bonus-hearts: 0.0
+    lifesteal-percent: 0.0
+    potion-effects: []
+
+  hunter:
+    name: "Сфера Охотника"
+    rarity: "EPIC"
+    material: "ENDER_EYE"
+    item-model: "reallyworld:sphere_hunter"
+    description: "Идеальный баланс скорости преследования и точности удара."
+    obtain: "Охота за наградами, Кейсы"
+    bonus-damage: 1.5
+    speed-percent: 10.0
+    bonus-armor: 0.5
+    bonus-hearts: 1.0
+    lifesteal-percent: 0.0
+    potion-effects: ["NIGHT_VISION:0"]
+
+  titan:
+    name: "Сфера Титана"
+    rarity: "LEGENDARY"
+    material: "NETHER_STAR"
+    item-model: "reallyworld:sphere_titan"
+    description: "Мощь древнего исполина: высокое здоровье и тяжёлая броня."
+    obtain: "Огненный Титан, Легендарный кейс"
+    bonus-damage: 1.5
+    speed-percent: -5.0
+    bonus-armor: 3.5
+    bonus-hearts: 3.0
+    lifesteal-percent: 0.0
+    potion-effects: []
+
+  berserk:
+    name: "Сфера Берсерка"
+    rarity: "LEGENDARY"
+    material: "MAGMA_CREAM"
+    item-model: "reallyworld:sphere_berserk"
+    description: "Усиливает урон и скорость атаки в ближней схватке."
+    obtain: "Колизей PvP, Кейсы"
+    bonus-damage: 3.0
+    speed-percent: 6.0
+    bonus-armor: -1.0
+    bonus-hearts: 1.0
+    lifesteal-percent: 5.0
+    potion-effects: ["HASTE:0"]
+
+  guardian:
+    name: "Сфера Стража"
+    rarity: "EPIC"
+    material: "PRISMARINE_CRYSTALS"
+    item-model: "reallyworld:sphere_guardian"
+    description: "Защищает от огня и укрепляет стойкость на осадах."
+    obtain: "Древний Страж, Захват точки"
+    bonus-damage: 0.5
+    speed-percent: 0.0
+    bonus-armor: 2.5
+    bonus-hearts: 2.0
+    lifesteal-percent: 0.0
+    potion-effects: ["FIRE_RESISTANCE:0"]
+
+  agility:
+    name: "Сфера Ловкости"
+    rarity: "RARE"
+    material: "PHANTOM_MEMBRANE"
+    item-model: "reallyworld:sphere_agility"
+    description: "Повышает манёвренность, скорость добычи и прыгучесть."
+    obtain: "Автошахта, Редкий кейс"
+    bonus-damage: 0.5
+    speed-percent: 12.0
+    bonus-armor: 0.0
+    bonus-hearts: 0.5
+    lifesteal-percent: 0.0
+    potion-effects: ["JUMP_BOOST:0", "HASTE:1"]
+
+  destruction:
+    name: "Сфера Разрушения"
+    rarity: "MYTHIC"
+    material: "ECHO_SHARD"
+    item-model: "reallyworld:sphere_destruction"
+    description: "Редчайшая сфера максимального пробивания вражеских доспехов."
+    obtain: "Мифический кейс, Аирдроп"
+    bonus-damage: 4.0
+    speed-percent: 5.0
+    bonus-armor: 0.0
+    bonus-hearts: 1.0
+    lifesteal-percent: 4.0
+    potion-effects: []
+
+  void:
+    name: "Сфера Пустоты"
+    rarity: "MYTHIC"
+    material: "DRAGON_BREATH"
+    item-model: "reallyworld:sphere_void"
+    description: "Вершина артефактов Энда: сочетает урон, здоровье и вампиризм."
+    obtain: "Повелитель Пустоты, Событие Энда"
+    bonus-damage: 3.0
+    speed-percent: 8.0
+    bonus-armor: 2.0
+    bonus-hearts: 2.0
+    lifesteal-percent: 8.0
+    potion-effects: []

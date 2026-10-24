@@ -1,0 +1,9 @@
+name: rabbit
+permissions:
+- weight.90
+- reallycore.kit.rabbit
+parents:
+- cobra
+prefixes:
+- '<gradient:#FF9FF3:#FECA57><b>[RABBIT]</b></gradient> ':
+    priority: 90

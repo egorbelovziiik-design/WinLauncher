@@ -1,0 +1,34 @@
+# TAB Configuration — ReallyWorld Ultimate (Оранжево-золотая палитра + ReallyCore PAPI)
+header-footer:
+  enabled: true
+  header:
+    - ""
+    - "&#FBBC00&lREALLYWORLD ULTIMATE &8• &#FF8C00ГРИФ #1"
+    - "&7Поддержка клиентов: &f1.21.4 — 1.21.11"
+    - ""
+  footer:
+    - ""
+    - " &7Онлайн: &#FBBC00%online% &8| &7Пинг: &#55FF55%ping% мс &8| &7TPS: &#55FF55%tps% "
+    - " &7Монеты: &#FBBC00%reallycore_coins% ⛃ &8| &7Риллики: &#FF6A00%reallycore_rilliks% ❖ "
+    - " &#FF8C00Меню: /menu • Магазин: /shop • Кейсы: /cases "
+    - ""
+tablist-name-formatting:
+  enabled: true
+  anti-override: true
+scoreboard-teams:
+  enabled: true
+  enable-collision: true
+  invisible-nametags: false
+  sorting-types:
+    - "GROUPS:admin,helper,god,dragon,cobra,imperator,magister,overlord,rabbit,avenger,titan,hero,default"
+    - "PLACEHOLDER_A_TO_Z:%player%"
+scoreboard:
+  # Встроенный скорборд уже обслуживается ScoreboardTabModule из ReallyCore (/sb);
+  # при желании администратор может переключить enabled: true здесь и отключить в scoreboard_tab.yml.
+  enabled: false
+ping-spoof:
+  enabled: false
+placeholders:
+  date-format: "dd.MM.yyyy"
+  time-format: "[HH:mm:ss]"
+  time-offset: 3

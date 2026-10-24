@@ -1,0 +1,137 @@
+# =======================================================================
+# quests.yml — Система заданий (/quests): Ежедневные, Еженедельные,
+# Боевые, Экономические, Ивентовые и Основные сюжетные
+# =======================================================================
+
+quests:
+  # --- ЕЖЕДНЕВНЫЕ (сброс каждые сутки) ---
+  daily_miner:
+    category: "DAILY"
+    name: "Рудокоп Дня"
+    description: "Добудьте 128 блоков камня или глубинного сланца"
+    type: "MINE_BLOCKS"
+    target: 128
+    reward-coins: 6500
+    reward-rilliks: 2
+    reward-bp-xp: 120
+
+  daily_hunter:
+    category: "DAILY"
+    name: "Ежедневная Охота"
+    description: "Устраните 3 противников в открытом PvP"
+    type: "PVP_KILLS"
+    target: 3
+    reward-coins: 12000
+    reward-rilliks: 5
+    reward-bp-xp: 180
+
+  daily_trader:
+    category: "DAILY"
+    name: "Поставщик Скупщика"
+    description: "Заработайте 10 000 монет на сдаче ресурсов Скупщику"
+    type: "BUYER_EARN"
+    target: 10000
+    reward-coins: 5000
+    reward-rilliks: 3
+    reward-bp-xp: 140
+
+  # --- ЕЖЕНЕДЕЛЬНЫЕ ---
+  weekly_gladiator:
+    category: "WEEKLY"
+    name: "Гладиатор Недели"
+    description: "Совершите 25 убийств игроков за неделю"
+    type: "PVP_KILLS"
+    target: 25
+    reward-coins: 55000
+    reward-rilliks: 20
+    reward-bp-xp: 600
+    reward-case-key: "epic:1"
+
+  weekly_excavator:
+    category: "WEEKLY"
+    name: "Покоритель Глубин"
+    description: "Вскопайте 2 000 блоков в мире анархии"
+    type: "MINE_BLOCKS"
+    target: 2000
+    reward-coins: 40000
+    reward-rilliks: 15
+    reward-bp-xp: 500
+    reward-case-key: "rare:2"
+
+  # --- БОЕВЫЕ ---
+  combat_streak5:
+    category: "COMBAT"
+    name: "Неудержимый Воин"
+    description: "Достигните серии из 5 убийств подряд без смертей"
+    type: "KILL_STREAK"
+    target: 5
+    reward-coins: 30000
+    reward-rilliks: 12
+    reward-bp-xp: 350
+
+  combat_boss_slayer:
+    category: "COMBAT"
+    name: "Истребитель Титанов"
+    description: "Примите участие в победе над 3 мировыми боссами"
+    type: "BOSS_KILLS"
+    target: 3
+    reward-coins: 75000
+    reward-rilliks: 30
+    reward-bp-xp: 700
+    reward-case-key: "legendary:1"
+
+  # --- ЭКОНОМИЧЕСКИЕ ---
+  eco_merchant:
+    category: "ECONOMY"
+    name: "Купец Аукциона"
+    description: "Выставьте 5 лотов на торговый аукцион /ah"
+    type: "AUCTION_LIST"
+    target: 5
+    reward-coins: 15000
+    reward-rilliks: 5
+    reward-bp-xp: 220
+
+  eco_magnate:
+    category: "ECONOMY"
+    name: "Золотой Магнат"
+    description: "Заработайте суммарно 150 000 монет у Скупщика"
+    type: "BUYER_EARN"
+    target: 150000
+    reward-coins: 45000
+    reward-rilliks: 18
+    reward-bp-xp: 450
+
+  # --- ИВЕНТОВЫЕ ---
+  event_raider:
+    category: "EVENT"
+    name: "Охотник за Аирдропами"
+    description: "Выиграйте или залутайте 3 мировых ивента"
+    type: "EVENTS_WON"
+    target: 3
+    reward-coins: 60000
+    reward-rilliks: 25
+    reward-bp-xp: 550
+    reward-case-key: "event:1"
+
+  # --- ОСНОВНЫЕ СЮЖЕТНЫЕ (Линейка Мастеров Спавна) ---
+  main_first_steps:
+    category: "MAIN"
+    name: "Глава I: Путь Анархиста"
+    description: "Проведите 30 минут на сервере и вскопайте 64 блока"
+    type: "MINE_BLOCKS"
+    target: 64
+    reward-coins: 10000
+    reward-rilliks: 5
+    reward-bp-xp: 200
+    reward-case-key: "common:1"
+
+  main_case_opener:
+    category: "MAIN"
+    name: "Глава II: Испытание Удачи"
+    description: "Откройте любые 3 кейса на спавне"
+    type: "OPEN_CASES"
+    target: 3
+    reward-coins: 25000
+    reward-rilliks: 10
+    reward-bp-xp: 300
+    reward-case-key: "rare:1"

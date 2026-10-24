@@ -1,0 +1,110 @@
+_version: 31
+anticheat:
+  anti-xray:
+    enabled: true
+    engine-mode: 1
+    hidden-blocks:
+      - chest
+      - coal_ore
+      - deepslate_coal_ore
+      - copper_ore
+      - deepslate_copper_ore
+      - diamond_ore
+      - deepslate_diamond_ore
+      - emerald_ore
+      - deepslate_emerald_ore
+      - gold_ore
+      - deepslate_gold_ore
+      - iron_ore
+      - deepslate_iron_ore
+      - lapis_ore
+      - deepslate_lapis_ore
+      - redstone_ore
+      - deepslate_redstone_ore
+      - ancient_debris
+    lava-obscures: false
+    max-block-height: 64
+    replacement-blocks:
+      - stone
+      - oak_planks
+      - deepslate
+    update-radius: 2
+    use-permission: false
+chunks:
+  auto-save-interval: 6000
+  delay-chunk-unloads-by: 10s
+  entity-per-chunk-save-limit:
+    arrow: 16
+    ender_pearl: 8
+    experience_orb: 16
+    fireball: 8
+    small_fireball: 8
+    snowball: 8
+  max-auto-save-chunks-per-tick: 12
+  prevent-moving-into-unloaded-chunks: true
+collisions:
+  allow-vehicle-collisions: true
+  fix-climbing-bypassing-cramming-rule: true
+  max-entity-collisions: 4
+  only-players-collide: false
+entities:
+  armor-stands:
+    do-collision-entity-lookups: false
+    tick: false
+  behavior:
+    disable-chest-cat-detection: true
+    disable-player-crits: false
+    nerf-pigmen-from-nether-portals: true
+    pillager-patrols:
+      Disable: false
+  spawning:
+    all-chunks-are-slime-chunks: false
+    alt-item-despawn-rate:
+      enabled: true
+      items:
+        cobblestone: 300
+        netherrack: 300
+        dirt: 300
+    despawn-ranges:
+      ambient:
+        hard: 72
+        soft: 28
+      axolotls:
+        hard: 72
+        soft: 28
+      creature:
+        hard: 72
+        soft: 28
+      misc:
+        hard: 72
+        soft: 28
+      monster:
+        hard: 72
+        soft: 28
+      underground_water_creature:
+        hard: 72
+        soft: 28
+      water_ambient:
+        hard: 56
+        soft: 24
+      water_creature:
+        hard: 72
+        soft: 28
+    per-player-mob-spawns: true
+environment:
+  disable-explosion-knockback: false
+  disable-ice-and-snow: false
+  disable-thunder: false
+  optimize-explosions: true
+  treasure-maps:
+    enabled: true
+    find-already-discovered:
+      loot-tables: true
+      villager-trade: true
+hopper:
+  cooldown-when-full: true
+  disable-move-event: false
+  ignore-occluding-blocks: true
+misc:
+  redstone-implementation: ALTERNATE_CURRENT
+  update-pathfinding-on-block-update: false

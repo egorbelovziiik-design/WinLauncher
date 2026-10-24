@@ -1,0 +1,17 @@
+verbose: false
+config-version: 35
+settings:
+  server-mod-name: Purpur
+  lagging-threshold: 19.0
+  use-alternate-keepalive: true
+world-settings:
+  default:
+    gameplay-mechanics:
+      use-better-mending: true
+      boat:
+        eject-players-on-land: false
+    mobs:
+      villager:
+        brain-ticks: 4
+        spawn-iron-golem:
+          radius: 0

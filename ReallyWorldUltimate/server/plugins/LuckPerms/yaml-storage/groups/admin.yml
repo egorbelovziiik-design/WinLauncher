@@ -1,0 +1,9 @@
+name: admin
+permissions:
+- weight.200
+- reallycore.admin.*
+parents:
+- god
+prefixes:
+- '<#FF0000><b>[ADMIN]</b></#FF0000> ':
+    priority: 200

@@ -1,0 +1,101 @@
+# =======================================================================
+# messages_ru.yml — Полная русская локализация ReallyWorld Ultimate
+# Поддерживается формат Adventure MiniMessage (<gold>, <#FC7000>, градиенты)
+# Палитра: Золотой (#FBBC00), Оранжевый (#FC7000), Красный (#FF4500),
+# Тёмно-серый (#3A3A3A), Белый (#FFFFFF)
+# =======================================================================
+
+prefix: "<gradient:#FBBC00:#FF4500><b>⚡ RW</b></gradient> <dark_gray>»</dark_gray> "
+
+general:
+  no-permission: "<red>У вас недостаточно прав! Требуется привилегия или право: <#FC7000><permission></#FC7000>.</red>"
+  players-only: "<red>Эту команду может выполнить только игрок в игре.</red>"
+  player-not-found: "<red>Игрок <#FC7000><player></#FC7000> не найден или никогда не заходил на сервер.</red>"
+  invalid-number: "<red>Укажите корректное положительное целое число!</red>"
+  module-disabled: "<red>Данный модуль временно отключён администрацией сервера.</red>"
+  cooldown-active: "<white>Подождите ещё <#FBBC00><seconds> сек.</#FBBC00> перед повторным использованием!</white>"
+  reload-success: "<white>Безопасная перезагрузка конфигураций выполнена за <#FBBC00><ms> мс</#FBBC00>.</white>"
+  in-combat-blocked: "<#FF4500><b>⚔ БОЙ!</b> <white>Вы не можете использовать это действие ещё <#FBBC00><seconds> сек.</#FBBC00></white>"
+  near-event-blocked: "<#FF4500>В радиусе <#FBBC00>150 блоков</#FBBC00> от активного ивента полёт и телепортации запрещены!</#FF4500>"
+  inventory-full: "<red>В вашем инвентаре недостаточно свободного места!</red>"
+
+teleport:
+  warmup-start: "<white>Телепортация через <#FBBC00><seconds> сек.</#FBBC00> Не двигайтесь и не получайте урон!</white>"
+  warmup-cancelled: "<#FF4500>Телепортация отменена из-за движения или получения урона!</#FF4500>"
+  spawn-teleported: "<white>Вы переместились на <#FBBC00>Центральный Спавн</#FBBC00>.</white>"
+  spawn-updated: "<white>Точка центрального спавна успешно сохранена!</white>"
+  rtp-searching: "<gray>Поиск безопасной локации в мире анархии...</gray>"
+  rtp-success: "<white>Вы телепортированы на координаты <#FBBC00>X: <x>, Y: <y>, Z: <z></#FBBC00>!</white>"
+  rtp-failed: "<red>Не удалось найти безопасную точку. Повторите попытку через пару секунд.</red>"
+  home-set: "<white>Точка дома <#FBBC00><home></#FBBC00> успешно установлена (<#FC7000><current>/<max></#FC7000>).</white>"
+  home-limit: "<red>Вы достигли лимита домов для вашего ранга (<#FBBC00><max></#FBBC00>). Улучшите привилегию в <#FC7000>/donate</#FC7000>!</red>"
+  home-deleted: "<white>Точка дома <#FBBC00><home></#FBBC00> удалена.</white>"
+  home-not-found: "<red>Точка дома <#FC7000><home></#FC7000> не найдена.</red>"
+  home-teleported: "<white>Вы переместились домой (<#FBBC00><home></#FBBC00>).</white>"
+  tpa-sent: "<white>Запрос на телепортацию отправлен игроку <#FBBC00><target></#FBBC00>.</white>"
+  tpa-received: "<white>Игрок <#FBBC00><sender></#FBBC00> просит телепортироваться к вам. Принять: <click:run_command:'/tpaccept'><#FC7000><b>[/tpaccept]</b></#FC7000></click> | Отклонить: <click:run_command:'/tpdeny'><dark_gray>[/tpdeny]</dark_gray></click></white>"
+  tpahere-received: "<white>Игрок <#FBBC00><sender></#FBBC00> приглашает вас к себе! Принять: <click:run_command:'/tpaccept'><#FC7000><b>[/tpaccept]</b></#FC7000></click> | Отклонить: <click:run_command:'/tpdeny'><dark_gray>[/tpdeny]</dark_gray></click></white>"
+  tpa-accepted: "<white>Запрос на телепортацию принят!</white>"
+  tpa-denied: "<gray>Запрос на телепортацию отклонён.</gray>"
+  tpa-none: "<red>У вас нет активных запросов на телепортацию.</red>"
+  tpa-disabled-target: "<red>У игрока <#FC7000><target></#FC7000> отключён приём запросов телепортации.</red>"
+  warp-teleported: "<white>Вы переместились на варп <#FBBC00><warp></#FBBC00>.</white>"
+  warp-not-found: "<red>Варп <#FC7000><warp></#FC7000> не существует.</red>"
+
+economy:
+  balance-self: "<white>Ваш баланс: <#FBBC00><coins> ⛃ монет</#FBBC00> <dark_gray>|</dark_gray> <#FF4500><rilliks> ❖ рилликов</#FF4500> <dark_gray>|</dark_gray> <#FC7000><tokens> ✿ ромашек</#FC7000></white>"
+  balance-other: "<white>Баланс <#FBBC00><player></#FBBC00>: <#FBBC00><coins> ⛃</#FBBC00> <dark_gray>|</dark_gray> <#FF4500><rilliks> ❖</#FF4500></white>"
+  not-enough-coins: "<red>Недостаточно монет! Требуется: <#FBBC00><amount> ⛃</#FBBC00>.</red>"
+  not-enough-rilliks: "<red>Недостаточно рилликов! Требуется: <#FF4500><amount> ❖</#FF4500>.</red>"
+  pay-sent: "<white>Вы перевели <#FBBC00><amount> ⛃</#FBBC00> игроку <#FC7000><target></#FC7000> (комиссия: <gray><fee> ⛃</gray>).</white>"
+  pay-received: "<white>Вы получили <#FBBC00><amount> ⛃</#FBBC00> от игрока <#FC7000><sender></#FC7000>!</white>"
+  pay-self: "<red>Нельзя переводить монеты самому себе!</red>"
+  shop-bought: "<white>Вы купили <#FBBC00><item> x<amount></#FBBC00> за <#FC7000><price></#FC7000>.</white>"
+  buyer-sold: "<white>Скупщик принял <#FBBC00><count> шт.</#FBBC00> товаров на сумму <#FC7000><earned> ⛃</#FC7000>!</white>"
+  buyer-nothing: "<gray>У вас нет подходящих предметов для сдачи Скупщику.</gray>"
+
+auction:
+  listed: "<white>Предмет <#FBBC00><item> x<amount></#FBBC00> выставлен на аукцион за <#FC7000><price> ⛃</#FC7000>!</white>"
+  bought: "<white>Вы приобрели <#FBBC00><item></#FBBC00> у <#FC7000><seller></#FC7000> за <#FBBC00><price> ⛃</#FBBC00>!</white>"
+  sold-notify: "<white>Ваш лот <#FBBC00><item></#FBBC00> куплен игроком <#FC7000><buyer></#FC7000>! Зачислено: <#FBBC00><net> ⛃</#FBBC00>.</white>"
+  already-sold: "<red>Этот лот уже был выкуплен или снят с продажи другим игроком!</red>"
+  slot-limit: "<red>Достигнут лимит активных лотов (<#FBBC00><max></#FBBC00>) для вашего ранга!</red>"
+  hold-item: "<red>Возьмите предмет в основную руку перед выставлением на аукцион!</red>"
+  returned: "<white>Предмет <#FBBC00><item></#FBBC00> возвращён в ваш инвентарь.</white>"
+
+clans:
+  created: "<white>Клан <#FBBC00>[<tag>] <name></#FBBC00> успешно основан! Используйте <#FC7000>/clan</#FC7000> для управления.</white>"
+  already-in-clan: "<red>Вы уже состоите в клане!</red>"
+  not-in-clan: "<red>Вы не состоите ни в одном клане.</red>"
+  invited: "<white>Игрок <#FBBC00><target></#FBBC00> приглашён в клан <#FC7000>[<tag>]</#FC7000>.</white>"
+  invite-received: "<white>Вас пригласили в клан <#FBBC00>[<tag>] <name></#FBBC00>! Вступить: <click:run_command:'/clan accept'><#FC7000><b>[/clan accept]</b></#FC7000></click></white>"
+  joined: "<white>Игрок <#FBBC00><player></#FBBC00> вступил в клан!</white>"
+  left: "<gray>Вы покинули клан <#FBBC00>[<tag>]</#FBBC00>.</gray>"
+  disbanded: "<#FF4500>Клан <#FBBC00>[<tag>] <name></#FBBC00> был распущен лидером.</#FF4500>"
+  chat-format: "<#FBBC00><b>[КЛАН]</b></#FBBC00> <gray><role></gray> <white><player></white> <dark_gray>»</dark_gray> <#FFD580><message></#FFD580>"
+
+combat:
+  tagged: "<#FF4500>⚔ Вы вошли в режим боя с <#FBBC00><opponent></#FBBC00> на <seconds> сек.! Не выходите с сервера!</#FF4500>"
+  untagged: "<#55FF55>✔ Вы вышли из режима боя. Теперь можно безопасно выходить и телепортироваться.</#55FF55>"
+  combat-logged-broadcast: "<#FF4500>☠ Игрок <#FBBC00><player></#FBBC00> испугался боя и вышел с сервера — его вещи выпали!</#FF4500>"
+  kill-reward: "<white>Награда за устранение <#FC7000><victim></#FC7000>: <#FBBC00>+<coins> ⛃</#FBBC00> <gray>(множитель x<mult>)</gray>!</white>"
+  kill-farm-blocked: "<gray>Награда за повторное убийство одного и того же игрока временно не начисляется.</gray>"
+  streak-broadcast: "<gradient:#FBBC00:#FF4500><b>🔥 СЕРИЯ УБИЙСТВ!</b></gradient> <white>Боец <#FBBC00><killer></#FBBC00> совершил уже <#FF4500><streak></#FF4500> убийств подряд!</white>"
+
+cases:
+  no-keys: "<red>У вас нет ключей от кейса <#FBBC00><case></#FBBC00>! Получите их на ивентах, в квестах или <#FC7000>/shop</#FC7000>.</red>"
+  won: "<white>Вы открыли <#FBBC00><case></#FBBC00> и получили: <reward>!</white>"
+  rare-broadcast: "<gradient:#FBBC00:#FF4500><b>★ УДАЧА!</b></gradient> <white>Игрок <#FBBC00><player></#FBBC00> выбил <reward> из кейса <#FC7000><case></#FC7000>!</white>"
+
+events:
+  started-broadcast: "<gradient:#FBBC00:#FF4500><b>☄ МИРОВОЙ ИВЕНТ!</b></gradient> <white>Началось событие <#FBBC00><name></#FBBC00> на координатах <#FC7000>X: <x>, Y: <y>, Z: <z></#FC7000> (<world>)!</white>"
+  ended-broadcast: "<gradient:#FBBC00:#FF4500><b>☄ ИВЕНТ ЗАВЕРШЁН!</b></gradient> <white>Событие <#FBBC00><name></#FBBC00> окончено. <summary></white>"
+  boss-defeated: "<gradient:#FBBC00:#FF4500><b>🐉 БОСС ПОВЕРЖЕН!</b></gradient> <white><#FBBC00><boss></#FBBC00> пал! Лучший урон нанёс <#FC7000><top_damager></#FC7000> (<damage> HP)!</white>"
+
+quests:
+  completed: "<#FBBC00><b>✦ ЗАДАНИЕ ВЫПОЛНЕНО!</b></#FBBC00> <white>Вы завершили квест «<#FC7000><quest></#FC7000>»! Заберите награду в <#FBBC00>/quests</#FBBC00>.</white>"
+  claimed: "<white>Награда за квест «<#FBBC00><quest></#FBBC00>» успешно получена!</white>"
+
+rewards:
+  daily-claimed: "<white>Вы получили ежедневную награду (День <#FBBC00>#<streak></#FBBC00>): <#FC7000>+<coins> ⛃</#FC7000> и <#FF4500>+<rilliks> ❖</#FF4500>!</white>"
+  daily-already: "<gray>Вы уже забирали ежедневный бонус сегодня! Возвращайтесь завтра.</gray>"

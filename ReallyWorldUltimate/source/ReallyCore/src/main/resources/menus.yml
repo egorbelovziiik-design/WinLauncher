@@ -1,0 +1,26 @@
+# =======================================================================
+# menus.yml + scoreboard_tab.yml + spawn_npcs_holograms.yml объединённые
+# и раздельные файлы оформления GUI, Scoreboard, TAB, NPC и Голограмм
+# =======================================================================
+
+titles:
+  main-menu: "<gradient:#FBBC00:#FF4500><b>⚡ ГЛАВНОЕ МЕНЮ RW</b></gradient>"
+  profile: "<gradient:#FBBC00:#FC7000><b>✦ ПРОФИЛЬ И ТАЛИСМАН</b></gradient>"
+  auction: "<gradient:#FBBC00:#FF4500><b>⚖ ТОРГОВЫЙ АУКЦИОН</b></gradient> <dark_gray>(Стр. <page>)</dark_gray>"
+  shop: "<gradient:#FBBC00:#FC7000><b>⛃ МАГАЗИН СЕРВЕРА</b></gradient>"
+  buyer: "<gradient:#FBBC00:#FF4500><b>💰 СКУПЩИК РЕСУРСОВ</b></gradient>"
+  clans: "<gradient:#FBBC00:#FC7000><b>🛡 КЛАНОВАЯ СИСТЕМА</b></gradient>"
+  cases: "<gradient:#FBBC00:#FF4500><b>★ КЕЙСЫ УДАЧИ</b></gradient>"
+  donate: "<gradient:#FBBC00:#FF4500><b>👑 ПРИВИЛЕГИИ СЕРВЕРА</b></gradient>"
+  kits: "<gradient:#FBBC00:#FC7000><b>📦 ИГРОВЫЕ НАБОРЫ</b></gradient>"
+  rewards: "<gradient:#FBBC00:#FC7000><b>🎁 НАГРАДЫ И ДОСТИЖЕНИЯ</b></gradient>"
+  quests: "<gradient:#FBBC00:#FF4500><b>📜 ЗАДАНИЯ СЕРВЕРА</b></gradient>"
+  events: "<gradient:#FBBC00:#FF4500><b>☄ МИРОВЫЕ ИВЕНТЫ</b></gradient>"
+  stats: "<gradient:#FBBC00:#FC7000><b>📊 ВАША СТАТИСТИКА</b></gradient>"
+  settings: "<gradient:#FBBC00:#FC7000><b>⚙ НАСТРОЙКИ ИГРОКА</b></gradient>"
+  top: "<gradient:#FBBC00:#FF4500><b>🏆 ТАБЛИЦЫ ЛИДЕРОВ</b></gradient>"
+  battlepass: "<gradient:#FBBC00:#FF4500><b>🔥 БОЕВОЙ ПРОПУСК</b></gradient>"
+  warps: "<gradient:#FBBC00:#FC7000><b>🧭 ВАРПЫ И ЛОКАЦИИ</b></gradient>"
+
+filler-material: "GRAY_STAINED_GLASS_PANE"
+border-material: "ORANGE_STAINED_GLASS_PANE"

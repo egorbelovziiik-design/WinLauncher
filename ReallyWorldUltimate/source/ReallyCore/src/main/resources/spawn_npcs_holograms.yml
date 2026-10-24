@@ -1,0 +1,147 @@
+# =======================================================================
+# spawn_npcs_holograms.yml — Спавн, 8 Интерактивных NPC и 7 Голограмм
+# Координаты задаются относительно центра площади спавна (0.5, 100.0, 0.5).
+# Все NPC выполняют реальные игровые команды/открытие GUI!
+# =======================================================================
+
+npcs:
+  auctioneer:
+    name: "<gradient:#FBBC00:#FF4500><b>⚖ АУКЦИОНИСТ</b></gradient>"
+    subtitle: "<gray>ПКМ — Торговля игроков (/ah)</gray>"
+    profession: "LIBRARIAN"
+    offset-x: -10.0
+    offset-y: 0.0
+    offset-z: -8.0
+    yaw: -45.0
+    command: "ah"
+
+  shopkeeper:
+    name: "<gradient:#FBBC00:#FC7000><b>⛃ ТОРГОВЕЦ И СКУПЩИК</b></gradient>"
+    subtitle: "<gray>ЛКМ — Магазин | ПКМ — Скупщик x2/x3</gray>"
+    profession: "WEAPONSMITH"
+    offset-x: 10.0
+    offset-y: 0.0
+    offset-z: -8.0
+    yaw: 45.0
+    command: "buyer"
+    left-click-command: "shop"
+
+  donate_master:
+    name: "<gradient:#FBBC00:#FF4500><b>👑 ХРАНИТЕЛЬ ПРИВИЛЕГИЙ</b></gradient>"
+    subtitle: "<gray>ПКМ — Привилегии от HERO до GOD</gray>"
+    profession: "CLERIC"
+    offset-x: -12.0
+    offset-y: 0.0
+    offset-z: 0.0
+    yaw: -90.0
+    command: "donate"
+
+  clan_commander:
+    name: "<gradient:#FBBC00:#FC7000><b>🛡 ВОЕВОДА КЛАНОВ</b></gradient>"
+    subtitle: "<gray>ПКМ — Кланы и Захваты (/clan)</gray>"
+    profession: "ARMORER"
+    offset-x: 12.0
+    offset-y: 0.0
+    offset-z: 0.0
+    yaw: 90.0
+    command: "clan"
+
+  cases_keeper:
+    name: "<gradient:#FBBC00:#FF4500><b>★ МАСТЕР КЕЙСОВ</b></gradient>"
+    subtitle: "<gray>ПКМ — Открыть Кейсы Удачи</gray>"
+    profession: "CARTOGRAPHER"
+    offset-x: 0.0
+    offset-y: 0.0
+    offset-z: -14.0
+    yaw: 0.0
+    command: "cases"
+
+  events_herald:
+    name: "<gradient:#FBBC00:#FF4500><b>☄ ВЕСТНИК ИВЕНТОВ</b></gradient>"
+    subtitle: "<gray>ПКМ — Аирдропы, Боссы и Расписание</gray>"
+    profession: "MASON"
+    offset-x: -8.0
+    offset-y: 0.0
+    offset-z: 10.0
+    yaw: -135.0
+    command: "events"
+
+  rewards_man:
+    name: "<gradient:#FBBC00:#FC7000><b>🎁 ХАЛЯВЩИК И КВЕСТЫ</b></gradient>"
+    subtitle: "<gray>ПКМ — Ежедневные Награды и Задания</gray>"
+    profession: "FARMER"
+    offset-x: 8.0
+    offset-y: 0.0
+    offset-z: 10.0
+    yaw: 135.0
+    command: "rewards"
+    left-click-command: "quests"
+
+  leaderboards_sage:
+    name: "<gradient:#FBBC00:#FF4500><b>🏆 ЛЕТОПИСЕЦ РЕЙТИНГОВ</b></gradient>"
+    subtitle: "<gray>ПКМ — Топы Богачей, Бойцов и Кланов</gray>"
+    profession: "FLETCHER"
+    offset-x: 0.0
+    offset-y: 0.0
+    offset-z: 14.0
+    yaw: 180.0
+    command: "top"
+
+holograms:
+  welcome_info:
+    offset-x: 0.0
+    offset-y: 3.2
+    offset-z: -5.0
+    type: "STATIC"
+    lines:
+      - "<gradient:#FBBC00:#FF4500><b>⚡ REALLYWORLD ULTIMATE ⚡</b></gradient>"
+      - "<white>Добро пожаловать на Анархию <gold>1.21.4–1.21.11</gold>!</white>"
+      - "<gray>Главное меню:</gray> <#FC7000>/menu</#FC7000> <dark_gray>•</dark_gray> <gray>Случайный телепорт:</gray> <#FBBC00>/rtp</#FBBC00>"
+      - "<gray>Заберите стартовый набор:</gray> <#55FF55>/kit start</#55FF55> <gray>и бонус</gray> <#FBBC00>/daily</#FBBC00>"
+
+  top_coins:
+    offset-x: -16.0
+    offset-y: 3.0
+    offset-z: -12.0
+    type: "TOP_COINS"
+    title: "<gradient:#FBBC00:#FC7000><b>⛃ ТОП-5 БОГАЧЕЙ СЕРВЕРА</b></gradient>"
+
+  top_kills:
+    offset-x: 16.0
+    offset-y: 3.0
+    offset-z: -12.0
+    type: "TOP_KILLS"
+    title: "<gradient:#FF4500:#FBBC00><b>⚔ ТОП-5 УБИЙЦ АНАРХИИ</b></gradient>"
+
+  top_clans:
+    offset-x: 16.0
+    offset-y: 3.0
+    offset-z: 12.0
+    type: "TOP_CLANS"
+    title: "<gradient:#FBBC00:#FF4500><b>🛡 ТОП-5 СИЛЬНЕЙШИХ КЛАНОВ</b></gradient>"
+
+  cases_holo:
+    offset-x: 0.0
+    offset-y: 3.2
+    offset-z: -16.0
+    type: "STATIC"
+    lines:
+      - "<gradient:#FBBC00:#FF4500><b>★ ЗОНА КЕЙСОВ УДАЧИ ★</b></gradient>"
+      - "<white>Донат • Мифический • Легендарный • Ивентовый</white>"
+      - "<gray>Нажмите по сундуку или введите</gray> <#FC7000>/cases</#FC7000>"
+
+  events_holo:
+    offset-x: -16.0
+    offset-y: 3.0
+    offset-z: 12.0
+    type: "ACTIVE_EVENT"
+    title: "<gradient:#FF4500:#FBBC00><b>☄ РАСПИСАНИЕ ИВЕНТОВ</b></gradient>"
+
+  pvp_warning_holo:
+    offset-x: 0.0
+    offset-y: 2.8
+    offset-z: 40.0
+    type: "STATIC"
+    lines:
+      - "<#FF4500><b>⚠ ВНИМАНИЕ: ВЫХОД НА PVP-ЛИНИЮ ⚠</b></#FF4500>"
+      - "<white>За красной чертой включены PvP, Трапки и потеря вещей!</white>"

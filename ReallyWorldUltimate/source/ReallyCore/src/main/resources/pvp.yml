@@ -1,0 +1,49 @@
+# =======================================================================
+# pvp.yml — Настройки PvP, Combat Tag, анти-фарма и баланса 1.21
+# =======================================================================
+
+combat-tag:
+  enabled: true
+  duration-seconds: 25
+  disable-fly-on-tag: true
+  disable-god-on-tag: true
+  kill-on-combat-quit: true
+  show-bossbar: true
+  bossbar-color: "RED"
+  bossbar-title: "<#FF4500><b>⚔ РЕЖИМ БОЯ:</b> <white><seconds> сек. до выхода</white>"
+  allowed-commands-in-combat:
+    - "/msg"
+    - "/r"
+    - "/tell"
+    - "/clan chat"
+    - "/cc"
+    - "/stats"
+
+balance-121:
+  ender-pearl-cooldown-ticks: 240       # 12 секунд
+  golden-apple-cooldown-ticks: 80       # 4 секунды в бою
+  enchanted-apple-cooldown-ticks: 600   # 30 секунд в бою
+  chorus-fruit-cooldown-ticks: 200      # 10 секунд
+  wind-charge-cooldown-ticks: 30        # 1.5 секунды
+  max-mace-smash-damage: 28.0           # Защита от бесконечных ваншотов булавой 1.21
+  max-total-bonus-damage-cap: 9.0       # Потолок суммарного доп. урона от Сфер + Талисманов + Брони
+  max-total-bonus-armor-cap: 8.0        # Потолок доп. брони
+  max-total-speed-percent-cap: 35.0     # Потолок скорости передвижения (+35%)
+
+kill-rewards:
+  base-coins: 350
+  victim-balance-steal-percent: 2       # 2% от монет жертвы (макс. 25 000)
+  max-steal-coins: 25000
+  anti-farm:
+    same-victim-cooldown-seconds: 300   # 5 минут без награды за убийство одного и того же игрока
+    block-same-ip-address: true
+    block-same-clan-rewards: true
+  streaks:
+    3: { coins: 1000, rilliks: 0, broadcast: true }
+    5: { coins: 2500, rilliks: 2, broadcast: true }
+    10: { coins: 7500, rilliks: 5, broadcast: true }
+    15: { coins: 15000, rilliks: 12, broadcast: true }
+
+death-messages:
+  - "<#FF4500>⚔ <white>Игрок <#FBBC00><victim></#FBBC00> был сокрушён бойцом <#FC7000><killer></#FC7000> (<gray><weapon></gray> | <#FF5555><hp>❤</#FF5555>)</white>"
+  - "<#FF4500>☠ <white><#FC7000><killer></#FC7000> отправил <#FBBC00><victim></#FBBC00> на спавн ударом <gray><weapon></gray>!</white>"

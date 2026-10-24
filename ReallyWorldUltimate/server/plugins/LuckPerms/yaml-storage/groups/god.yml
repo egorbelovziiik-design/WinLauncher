@@ -1,0 +1,9 @@
+name: god
+permissions:
+- weight.95
+- reallycore.kit.god
+parents:
+- rabbit
+prefixes:
+- '<gradient:#FFF200:#FF0000><b>[GOD]</b></gradient> ':
+    priority: 95

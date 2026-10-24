@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "reallyworld:item/weapon_phoenix_bow"
+  }
+}

@@ -1,0 +1,9 @@
+name: helper
+permissions:
+- weight.110
+- reallycore.security.alerts
+parents:
+- magister
+prefixes:
+- '<#3498DB><b>[HELPER]</b></#3498DB> ':
+    priority: 110

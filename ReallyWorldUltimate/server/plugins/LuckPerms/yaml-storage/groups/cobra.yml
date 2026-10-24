@@ -1,0 +1,9 @@
+name: cobra
+permissions:
+- weight.85
+- reallycore.kit.cobra
+parents:
+- dragon
+prefixes:
+- '<gradient:#2ECC71:#F1C40F><b>[COBRA]</b></gradient> ':
+    priority: 85

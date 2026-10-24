@@ -1,0 +1,238 @@
+# =======================================================================
+# ranks.yml — Система привилегий ReallyWorld Ultimate
+# Каждая следующая привилегия наследует права предыдущей по полю inherits,
+# за исключением персональных китов (/kit <rank>).
+# Донатеры НЕ имеют административных прав бана/кика/OP/WorldEdit!
+# =======================================================================
+
+default-rank: "PLAYER"
+
+ranks:
+  PLAYER:
+    weight: 10
+    display-name: "Игрок"
+    prefix: "<gray>[ИГРОК]</gray> "
+    tab-prefix: "<gray>ИГРОК</gray> "
+    color: "<gray>"
+    price-rilliks: 0
+    max-homes: 2
+    auction-slots: 3
+    kill-coin-multiplier: 1.0
+    monthly-grant-quota: 0
+    inherits: []
+    permissions:
+      - "reallycore.player.*"
+
+  HERO:
+    alias: "VIP"
+    weight: 20
+    display-name: "HERO"
+    prefix: "<#55FFFF><b>[HERO]</b></#55FFFF> "
+    tab-prefix: "<#55FFFF><b>HERO</b></#55FFFF> "
+    color: "<#55FFFF>"
+    price-rilliks: 39
+    max-homes: 3
+    auction-slots: 5
+    kill-coin-multiplier: 1.2
+    monthly-grant-quota: 0
+    inherits: ["PLAYER"]
+    permissions:
+      - "reallycore.kit.hero"
+      - "reallycore.donate.craft"
+      - "reallycore.donate.getpos"
+
+  TITAN:
+    alias: "PREMIUM"
+    weight: 30
+    display-name: "TITAN"
+    prefix: "<#FFAA00><b>[TITAN]</b></#FFAA00> "
+    tab-prefix: "<#FFAA00><b>TITAN</b></#FFAA00> "
+    color: "<#FFAA00>"
+    price-rilliks: 89
+    max-homes: 4
+    auction-slots: 7
+    kill-coin-multiplier: 1.5
+    monthly-grant-quota: 0
+    inherits: ["HERO"]
+    permissions:
+      - "reallycore.kit.titan"
+      - "reallycore.donate.hat"
+      - "reallycore.donate.feed"
+      - "reallycore.donate.rtpfar"
+      - "reallycore.donate.itemdb"
+
+  AVENGER:
+    alias: "ELITE"
+    weight: 40
+    display-name: "AVENGER"
+    prefix: "<#55FF55><b>[AVENGER]</b></#55FF55> "
+    tab-prefix: "<#55FF55><b>AVENGER</b></#55FF55> "
+    color: "<#55FF55>"
+    price-rilliks: 129
+    max-homes: 6
+    auction-slots: 9
+    kill-coin-multiplier: 1.75
+    monthly-grant-quota: 0
+    inherits: ["TITAN"]
+    permissions:
+      - "reallycore.kit.avenger"
+      - "reallycore.donate.enderchest"
+      - "reallycore.donate.ext"
+      - "reallycore.donate.ignore"
+      - "reallycore.donate.clear"
+
+  OVERLORD:
+    alias: "LEGEND"
+    weight: 50
+    display-name: "OVERLORD"
+    prefix: "<#00AAAA><b>[OVERLORD]</b></#00AAAA> "
+    tab-prefix: "<#00AAAA><b>OVERLORD</b></#00AAAA> "
+    color: "<#00AAAA>"
+    price-rilliks: 289
+    max-homes: 12
+    auction-slots: 14
+    kill-coin-multiplier: 2.0
+    monthly-grant-quota: 0
+    inherits: ["AVENGER"]
+    permissions:
+      - "reallycore.kit.overlord"
+      - "reallycore.donate.prefix"
+      - "reallycore.donate.repair"
+      - "reallycore.donate.near"
+      - "reallycore.donate.ptime"
+
+  MAGISTER:
+    weight: 60
+    display-name: "MAGISTER"
+    prefix: "<#AA00AA><b>[MAGISTER]</b></#AA00AA> "
+    tab-prefix: "<#AA00AA><b>MAGISTER</b></#AA00AA> "
+    color: "<#AA00AA>"
+    price-rilliks: 589
+    max-homes: 32
+    auction-slots: 22
+    kill-coin-multiplier: 2.5
+    monthly-grant-quota: 0
+    inherits: ["OVERLORD"]
+    permissions:
+      - "reallycore.kit.magister"
+      - "reallycore.donate.nick"
+      - "reallycore.donate.repair.all"
+      - "reallycore.donate.heal"
+      - "reallycore.donate.tptoggle"
+
+  IMPERATOR:
+    weight: 70
+    display-name: "IMPERATOR"
+    prefix: "<#FF5555><b>[IMPERATOR]</b></#FF5555> "
+    tab-prefix: "<#FF5555><b>IMPERATOR</b></#FF5555> "
+    color: "<#FF5555>"
+    price-rilliks: 999
+    max-homes: 48
+    auction-slots: 36
+    kill-coin-multiplier: 4.0
+    monthly-grant-quota: 0
+    inherits: ["MAGISTER"]
+    permissions:
+      - "reallycore.kit.imperator"
+      - "reallycore.kit.plus"
+      - "reallycore.donate.broadcast"
+      - "reallycore.donate.lightning"
+      - "reallycore.donate.rtp.player"
+      - "reallycore.donate.fulljoin"
+
+  DRAGON:
+    weight: 80
+    display-name: "DRAGON"
+    prefix: "<gradient:#FBBC00:#FF4500><b>[DRAGON]</b></gradient> "
+    tab-prefix: "<gradient:#FBBC00:#FF4500><b>DRAGON</b></gradient> "
+    color: "<#FC7000>"
+    price-rilliks: 1899
+    max-homes: 64
+    auction-slots: 64
+    kill-coin-multiplier: 6.0
+    monthly-grant-quota: 2
+    inherits: ["IMPERATOR"]
+    permissions:
+      - "reallycore.kit.dragon"
+      - "reallycore.kit.pluspro"
+      - "reallycore.donate.fly"
+      - "reallycore.donate.grant"
+      - "reallycore.donate.weather"
+      - "reallycore.donate.time"
+
+  COBRA:
+    weight: 85
+    display-name: "COBRA"
+    prefix: "<gradient:#2ECC71:#F1C40F><b>[COBRA]</b></gradient> "
+    tab-prefix: "<gradient:#2ECC71:#F1C40F><b>COBRA</b></gradient> "
+    color: "<#2ECC71>"
+    price-rilliks: 2799
+    max-homes: 80
+    auction-slots: 80
+    kill-coin-multiplier: 6.0
+    monthly-grant-quota: 3
+    inherits: ["DRAGON"]
+    permissions:
+      - "reallycore.kit.cobra"
+
+  RABBIT:
+    weight: 90
+    display-name: "RABBIT"
+    prefix: "<gradient:#FF9FF3:#FECA57><b>[RABBIT]</b></gradient> "
+    tab-prefix: "<gradient:#FF9FF3:#FECA57><b>RABBIT</b></gradient> "
+    color: "<#FF9FF3>"
+    price-rilliks: 3499
+    max-homes: 96
+    auction-slots: 96
+    kill-coin-multiplier: 6.0
+    monthly-grant-quota: 4
+    inherits: ["COBRA"]
+    permissions:
+      - "reallycore.kit.rabbit"
+
+  GOD:
+    weight: 95
+    display-name: "GOD"
+    prefix: "<gradient:#FFF200:#FF0000><b>[GOD]</b></gradient> "
+    tab-prefix: "<gradient:#FFF200:#FF0000><b>GOD</b></gradient> "
+    color: "<#FBBC00>"
+    price-rilliks: 4444
+    max-homes: 128
+    auction-slots: 128
+    kill-coin-multiplier: 6.0
+    monthly-grant-quota: 5
+    inherits: ["RABBIT"]
+    permissions:
+      - "reallycore.kit.god"
+
+  HELPER:
+    weight: 110
+    display-name: "HELPER"
+    prefix: "<#3498DB><b>[HELPER]</b></#3498DB> "
+    tab-prefix: "<#3498DB><b>HELPER</b></#3498DB> "
+    color: "<#3498DB>"
+    price-rilliks: 0 # Выдаётся только персоналу!
+    purchasable: false
+    max-homes: 64
+    auction-slots: 64
+    kill-coin-multiplier: 2.0
+    monthly-grant-quota: 0
+    inherits: ["MAGISTER"]
+    permissions:
+      - "reallycore.security.alerts"
+
+  ADMIN:
+    weight: 200
+    display-name: "ADMIN"
+    prefix: "<#FF0000><b>[ADMIN]</b></#FF0000> "
+    tab-prefix: "<#FF0000><b>ADMIN</b></#FF0000> "
+    color: "<#FF0000>"
+    price-rilliks: 0
+    purchasable: false
+    max-homes: 999
+    auction-slots: 999
+    kill-coin-multiplier: 6.0
+    monthly-grant-quota: 99
+    inherits: ["GOD"]
+    permissions:
+      - "reallycore.admin.*"

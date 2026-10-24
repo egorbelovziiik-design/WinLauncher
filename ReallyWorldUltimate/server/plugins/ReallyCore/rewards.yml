@@ -1,0 +1,61 @@
+# =======================================================================
+# rewards.yml — Ежедневные, еженедельные награды, бонусы активности
+# и система достижений с защитой от повторного получения в БД
+# =======================================================================
+
+daily-streak:
+  1: { coins: 3000,  rilliks: 0, item: "" }
+  2: { coins: 5000,  rilliks: 2, item: "" }
+  3: { coins: 7500,  rilliks: 3, item: "CASE_KEY:common:1" }
+  4: { coins: 10000, rilliks: 4, item: "" }
+  5: { coins: 15000, rilliks: 6, item: "CUSTOM:consumable:trap_box:2" }
+  6: { coins: 20000, rilliks: 8, item: "" }
+  7: { coins: 35000, rilliks: 15, item: "CASE_KEY:rare:1" }
+
+weekly-bonus:
+  min-playtime-minutes: 60
+  coins: 40000
+  rilliks: 15
+  case-key: "epic:1"
+
+playtime-milestones:
+  play_1h:  { seconds: 3600,  name: "1 час в игре",   coins: 8000,  rilliks: 3 }
+  play_5h:  { seconds: 18000, name: "5 часов в игре", coins: 25000, rilliks: 10 }
+  play_24h: { seconds: 86400, name: "24 часа в игре", coins: 90000, rilliks: 35 }
+
+achievements:
+  first_kill:
+    name: "Первая кровь"
+    description: "Совершите своё первое PvP-убийство"
+    stat: "KILLS"
+    target: 1
+    coins: 5000
+    rilliks: 2
+  slayer_50:
+    name: "Гроза Анархии"
+    description: "Устраните 50 игроков в PvP"
+    stat: "KILLS"
+    target: 50
+    coins: 65000
+    rilliks: 25
+  rich_1m:
+    name: "Первый Миллион"
+    description: "Накопите 1 000 000 монет на балансе"
+    stat: "COINS"
+    target: 1000000
+    coins: 50000
+    rilliks: 20
+  boss_hunter:
+    name: "Убийца Чудовищ"
+    description: "Победите первого мирового босса"
+    stat: "BOSS_KILLS"
+    target: 1
+    coins: 25000
+    rilliks: 10
+  event_champion:
+    name: "Чемпион Ивентов"
+    description: "Одержите победу в 5 мировых событиях"
+    stat: "EVENTS_WON"
+    target: 5
+    coins: 70000
+    rilliks: 30

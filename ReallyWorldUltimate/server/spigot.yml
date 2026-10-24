@@ -1,0 +1,52 @@
+settings:
+  debug: false
+  bungeecord: false
+  sample-count: 12
+  player-shuffle: 0
+  user-cache-size: 2000
+  save-user-cache-on-stop-only: false
+  moved-wrongly-threshold: 0.0625
+  moved-too-quickly-multiplier: 10.0
+  timeout-time: 60
+  restart-on-crash: false
+  restart-script: ./start.sh
+  netty-threads: 4
+  log-villager-deaths: false
+  log-named-deaths: false
+messages:
+  whitelist: "§6§lRW §8» §cНа сервере ведутся технические работы. Попробуйте позже!"
+  unknown-command: "§6§lRW §8» §cНеизвестная команда! Откройте меню сервера: §e/menu"
+  server-full: "§6§lRW §8» §cСервер переполнен! Привилегии получают приоритетный вход."
+  outdated-client: "§6§lRW §8» §cПоддерживаются версии Minecraft §e1.21.4 — 1.21.11§c!"
+  outdated-server: "§6§lRW §8» §cПоддерживаются версии Minecraft §e1.21.4 — 1.21.11§c!"
+  restart: "§6§lRW §8» §eПлановая перезагрузка сервера..."
+world-settings:
+  default:
+    below-zero-generation-in-existing-chunks: true
+    merge-radius:
+      item: 3.5
+      exp: 4.0
+    view-distance: default
+    simulation-distance: default
+    mob-spawn-range: 6
+    entity-activation-range:
+      animals: 16
+      monsters: 24
+      raiders: 36
+      misc: 8
+      water: 12
+      villagers: 16
+      flying-monsters: 32
+    entity-tracking-range:
+      players: 48
+      animals: 40
+      monsters: 40
+      misc: 32
+      display: 64
+      other: 48
+    ticks-per:
+      hopper-transfer: 8
+      hopper-check: 8
+    hopper-amount: 1
+    nerf-spawner-mobs: true
+config-version: 12

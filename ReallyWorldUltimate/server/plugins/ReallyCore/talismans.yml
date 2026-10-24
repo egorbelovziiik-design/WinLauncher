@@ -1,0 +1,171 @@
+# =======================================================================
+# talismans.yml — Система Талисманов ReallyWorld Ultimate (12 талисманов)
+# Талисман работает в ЛЕВОЙ РУКЕ ИЛИ в специальном слоте Талисмана (/profile).
+# ЖЁСТКОЕ ОГРАНИЧЕНИЕ АНТИ-СТАКИНГА: одновременно активен СТРОГО 1 талисман!
+# Если и в левой руке, и в слоте профиля есть талисман — учитывается только
+# предмет в левой руке, без неконтролируемого суммирования эффектов.
+# =======================================================================
+
+settings:
+  max-active-talismans: 1
+  allow-profile-talisman-slot: true
+  # Если талисман в левой руке спасает от смертельного удара как Тотем Бессмертия:
+  act-as-totem-in-offhand: true
+  keep-talisman-on-totem-pop: false
+
+talismans:
+  strength:
+    name: "Талисман Силы"
+    rarity: "RARE"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_strength"
+    description: "Усиливает физический урон владельца в схватке."
+    bonus-damage: 2.0
+    speed-percent: 0.0
+    bonus-armor: 0.5
+    bonus-hearts: 0.0
+    bonus-luck: 0.0
+    potion-effects: []
+
+  speed:
+    name: "Талисман Скорости"
+    rarity: "RARE"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_speed"
+    description: "Ускоряет перемещение бойца на 12%."
+    bonus-damage: 0.5
+    speed-percent: 12.0
+    bonus-armor: 0.0
+    bonus-hearts: 0.0
+    bonus-luck: 0.0
+    potion-effects: []
+
+  health:
+    name: "Талисман Здоровья"
+    rarity: "EPIC"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_health"
+    description: "Добавляет +2.5 сердца максимального запаса здоровья."
+    bonus-damage: 0.0
+    speed-percent: 0.0
+    bonus-armor: 1.0
+    bonus-hearts: 2.5
+    bonus-luck: 0.0
+    potion-effects: []
+
+  defense:
+    name: "Талисман Защиты"
+    rarity: "RARE"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_defense"
+    description: "Повышает показатель брони на +2.5 ед."
+    bonus-damage: 0.0
+    speed-percent: 0.0
+    bonus-armor: 2.5
+    bonus-hearts: 0.5
+    bonus-luck: 0.0
+    potion-effects: []
+
+  luck:
+    name: "Талисман Удачи"
+    rarity: "EPIC"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_luck"
+    description: "Повышает удачу и скорость добычи ценных руд."
+    bonus-damage: 0.5
+    speed-percent: 6.0
+    bonus-armor: 0.5
+    bonus-hearts: 0.5
+    bonus-luck: 2.0
+    potion-effects: ["HASTE:0", "LUCK:1"]
+
+  hunter:
+    name: "Талисман Охотника"
+    rarity: "EPIC"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_hunter"
+    description: "Сочетает прибавку к урону и скорости преследования."
+    bonus-damage: 1.5
+    speed-percent: 9.0
+    bonus-armor: 0.5
+    bonus-hearts: 0.5
+    bonus-luck: 0.0
+    potion-effects: []
+
+  warrior:
+    name: "Талисман Воина"
+    rarity: "EPIC"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_warrior"
+    description: "Сбалансированный боевой талисман для передовой."
+    bonus-damage: 2.0
+    speed-percent: 5.0
+    bonus-armor: 1.5
+    bonus-hearts: 1.0
+    bonus-luck: 0.0
+    potion-effects: []
+
+  berserk:
+    name: "Талисман Берсерка"
+    rarity: "LEGENDARY"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_berserk"
+    description: "Агрессивный талисман высокого урона ценой небольшой потери брони."
+    bonus-damage: 3.5
+    speed-percent: 8.0
+    bonus-armor: -1.5
+    bonus-hearts: 1.0
+    bonus-luck: 0.0
+    potion-effects: []
+
+  titan:
+    name: "Талисман Титана"
+    rarity: "LEGENDARY"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_titan"
+    description: "Несокрушимая стойкость: броня и дополнительные сердца."
+    bonus-damage: 1.0
+    speed-percent: -3.0
+    bonus-armor: 3.0
+    bonus-hearts: 2.5
+    bonus-luck: 0.0
+    potion-effects: []
+
+  guardian:
+    name: "Талисман Стража"
+    rarity: "EPIC"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_guardian"
+    description: "Защита от пламени и повышенная живучесть в рейдах."
+    bonus-damage: 0.5
+    speed-percent: 0.0
+    bonus-armor: 2.0
+    bonus-hearts: 2.0
+    bonus-luck: 0.0
+    potion-effects: ["FIRE_RESISTANCE:0"]
+
+  regeneration:
+    name: "Талисман Регенерации"
+    rarity: "LEGENDARY"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_regeneration"
+    description: "Поддерживает постоянное восстановление здоровья."
+    bonus-damage: 0.5
+    speed-percent: 3.0
+    bonus-armor: 1.0
+    bonus-hearts: 1.5
+    bonus-luck: 0.0
+    potion-effects: ["REGENERATION:0"]
+
+  resistance:
+    name: "Талисман Сопротивления"
+    rarity: "MYTHIC"
+    material: "TOTEM_OF_UNDYING"
+    item-model: "reallyworld:talisman_resistance"
+    description: "Топовый талисман Захвата: снижает входящий урон в PvP."
+    bonus-damage: 1.5
+    speed-percent: 4.0
+    bonus-armor: 2.0
+    bonus-hearts: 2.0
+    bonus-luck: 0.0
+    potion-effects: ["RESISTANCE:0"]
