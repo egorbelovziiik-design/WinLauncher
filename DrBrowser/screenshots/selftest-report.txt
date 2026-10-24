@@ -1,76 +1,76 @@
-﻿DrBrowser self-test · 2026-10-24 00:12:59 · Microsoft Windows NT 10.0.26100.0
+﻿DrBrowser self-test · 2026-10-24 00:21:00 · Microsoft Windows NT 10.0.26100.0
 ------------------------------------------------------------------------------
 [PASS] data-folders         Каталоги данных и журнал
-           5 каталогов + logs\drbrowser-*.log (56 ms)
+           5 каталогов + logs\drbrowser-*.log (54 ms)
 [PASS] settings-json        Настройки: сохранение и загрузка JSON
-           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (83 ms)
+           settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK (70 ms)
 [PASS] url-parser           Адресная строка: URL против поискового запроса
-           URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (10 ms)
+           URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK (9 ms)
 [PASS] search-engines       5 поисковых систем, включая собственный DrSearch
            Google · Яндекс · Bing · DuckDuckGo · DrSearch — DrSearch + 4 веб-движка (1 ms)
 [PASS] drsearch-index       DrSearch: локальный поиск по истории и закладкам
-           история + закладки + адрес + переход — 2 результатов (210 ms)
+           история + закладки + адрес + переход — 2 результатов (206 ms)
 [PASS] music-library        DrMusic: сканирование папки, категории, поиск
-           3 трека · категории Chill / Rock · .txt отфильтрован (11 ms)
+           3 трека · категории Chill / Rock · .txt отфильтрован (30 ms)
 [PASS] radio-stations       DrMusic: встроенное радио и LIVE-плейлист
-           8 станций · категория «Радио · прямой эфир» · LIVE-бейдж и запрет перемотки (243 ms)
+           8 станций · категория «Радио · прямой эфир» · LIVE-бейдж и запрет перемотки (240 ms)
 [PASS] ai-personas          DrAI: режимы и промпты отличаются
            4 режима · промпты различаются · базовый 149 символов (1 ms)
 [PASS] profile-avatars      Профиль: пресеты аватара и инициалы
-           6 пресетов · градиенты различаются · инициалы DB (8 ms)
+           6 пресетов · градиенты различаются · инициалы DB (7 ms)
 [PASS] drsearch-recents     DrSearch: недавние запросы сохраняются
-           история запросов: первый запрос / второй запрос (79 ms)
+           история запросов: первый запрос / второй запрос (110 ms)
 [PASS] sqlite-history       История в SQLite: запись, поиск, фильтр по дате, удаление
-           4 записи · поиск · дата · most-visited · delete · clear — OK (74 ms)
+           4 записи · поиск · дата · most-visited · delete · clear — OK (113 ms)
 [PASS] bookmarks            Закладки: папки, поиск, HTML импорт/экспорт
-           добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (30 ms)
+           добавление · папки · правка · поиск · Netscape-экспорт · импорт без дублей (22 ms)
 [PASS] passwords-dpapi      Пароли: DPAPI-шифрование и отсутствие открытого текста
-           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (20 ms)
+           DPAPI round-trip · шифртекст в SQLite · поиск · удаление (13 ms)
 [PASS] password-generator   Генератор паролей и оценка стойкости
-           Lock… · Strength «сильный» (1 ms)
+           75Ks… · Strength «сильный» (1 ms)
 [PASS] ai-without-key       AI без ключа: понятное сообщение об ошибке
            без ключа: AiException «AI-ключ не настроен…»; сеть не вызывается (4 ms)
 [PASS] adblock              AdBlock: домены, пользовательские правила, whitelist
-           правил: 108 · домен/путь/whitelist/свои правила — OK (5 ms)
+           правил: 108 · домен/путь/whitelist/свои правила — OK (6 ms)
 [PASS] downloads            Загрузки: форматирование размеров и история в SQLite
            B/KB/MB/GB · запись и чтение истории загрузок (5 ms)
 [PASS] session              Сессия: сохранение и восстановление вкладок
-           session.json: 2 вкладки, pin и активный индекс — OK (12 ms)
+           session.json: 2 вкладки, pin и активный индекс — OK (30 ms)
 [PASS] quicklinks-permissions Быстрые ссылки и разрешения сайтов в SQLite
-           quick links CRUD · permissions set/get/clear (117 ms)
+           quick links CRUD · permissions set/get/clear (70 ms)
 [PASS] incognito-profile    Инкогнито: временный профиль создаётся и удаляется
-           profile\incognito-<guid> создан и удалён вместе с данными (2 ms)
+           profile\incognito-<guid> создан и удалён вместе с данными (5 ms)
 [PASS] webview2-runtime     Определение Microsoft Edge WebView2 Runtime
-           WebView2 Runtime 155.0.4283.62 (6 ms)
+           WebView2 Runtime 155.0.4283.62 (5 ms)
 [PASS] settings-limits      Ограничения настроек (масштаб, суспензия вкладок)
            zoom 0.25–3.0 · suspend 1–240 · Normalize восстанавливает значения (0 ms)
 [PASS] guard-url-rules      DrGuard: блокировка и предупреждения по URL
-           8 сценариев: safe · inner · credentials · punycode · tld-bait · http · blocklist · exemption (4 ms)
+           8 сценариев: safe · inner · credentials · punycode · tld-bait · http · blocklist · exemption (2 ms)
 [PASS] guard-scan-args      DrGuard: аргументы Defender и определение движка
            MpCmdRun.exe: C:\Program Files\Windows Defender\MpCmdRun.exe (1 ms)
 [PASS] ai-image-attachment  Фото DrAI: сигнатуры, лимит, base64, имя без пути
            PNG data URL · имя без каталога · пустые/неизвестные/слишком большие файлы отклонены (0 ms)
 [PASS] local-ai             DrAI Local: краткое содержание, ключевые слова, статистика
-           конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети (67 ms)
+           конспект · ключевые слова · статистика · язык кода · ответ по странице — без сети (36 ms)
 [PASS] ai-media-context     DrAI: разбор ссылок, фото и видео (oEmbed и метаданные страницы)
-           YouTube oEmbed · ответ о видео и авторе · og-теги страницы · <video> · Яндекс Музыка · битый ответ (22 ms)
+           YouTube oEmbed · ответ о видео и авторе · og-теги страницы · <video> · Яндекс Музыка · битый ответ (11 ms)
 [PASS] music-catalog-parse  Каталог музыки: разбор ответов iTunes и Deezer
-           iTunes 1 · Deezer 1 · превью · длительность · ссылка на Яндекс (2 ms)
+           iTunes 1 · Deezer 1 · превью · длительность · ссылка на Яндекс (1 ms)
 [PASS] drsearch-parse       DrSearch: разбор выдачи и bang-команды
-           2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang (8 ms)
+           2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang (3 ms)
 [PASS] ai-local-provider    DrAI: локальные модели (Ollama/LM Studio) без ключа и без облака
-           политика endpoint · localhost без ключа · внешний HTTP отклонён · пресеты Ollama/LM Studio · разбор списка моделей (2 ms)
+           политика endpoint · localhost без ключа · внешний HTTP отклонён · пресеты Ollama/LM Studio · разбор списка моделей (1 ms)
 [PASS] ru-plurals           Русские склонения счётчиков и инициалы профиля
            1 вкладка · 3 вкладки · 11 вкладок · 22 вкладки (0 ms)
 [PASS] music-persistence    DrMusic: избранное и история прослушивания в SQLite
-           избранное 2 → 1, история 3 записи → 2 трека, данные переживают перезапуск (262 ms)
+           избранное 2 → 1, история 3 записи → 2 трека, данные переживают перезапуск (426 ms)
 [PASS] music-playlists      DrMusic: плейлисты — состав, порядок и хранение в SQLite
-           создание/переименование/удаление, дедупликация, ↑↓ и перенумерация, данные переживают перезапуск (70 ms)
+           создание/переименование/удаление, дедупликация, ↑↓ и перенумерация, данные переживают перезапуск (274 ms)
 [PASS] music-m3u            DrMusic: экспорт и импорт плейлистов в M3U/M3U8
-           записано 2 трека, прочитано 3 записи из «грязного» файла, относительный путь и поток распознаны (2 ms)
+           записано 2 трека, прочитано 3 записи из «грязного» файла, относительный путь и поток распознаны (3 ms)
 [PASS] vertical-tabs        Вертикальные вкладки: режим сохраняется и переключается
-           по умолчанию выключено · включение и выключение переживают запись settings.json (2 ms)
+           по умолчанию выключено · включение и выключение переживают запись settings.json (3 ms)
 [PASS] error-logging        Обработка ошибок пишется в журнал
-           ERROR + stack trace записаны в журнал (0 ms)
+           ERROR + stack trace записаны в журнал (1 ms)
 ------------------------------------------------------------------------------
 ИТОГО: 36 passed, 0 failed, 0 skipped из 36
