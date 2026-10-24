@@ -93,13 +93,13 @@ public final class Nexus12111Inventory implements IInventory {
 
     @Override
     public int selectedSlot() {
-        return client.localPlayer() == null ? 0 : vanilla().selected;
+        return client.localPlayer() == null ? 0 : vanilla().getSelectedSlot();
     }
 
     @Override
     public void setSelectedSlot(int slot) {
         if (client.localPlayer() != null && slot >= 0 && slot < 9) {
-            vanilla().selected = slot;
+            vanilla().setSelectedSlot(slot);
         }
     }
 
@@ -271,19 +271,19 @@ public final class Nexus12111Inventory implements IInventory {
         if (menu == null) {
             return;
         }
-        ClickType vanillaType = ClickType.PICKUP;
+        net.minecraft.world.inventory.ClickType vanillaType = net.minecraft.world.inventory.ClickType.PICKUP;
         if (clickType == nexus.api.IInventory.ClickType.QUICK_MOVE) {
-            vanillaType = ClickType.QUICK_MOVE;
+            vanillaType = net.minecraft.world.inventory.ClickType.QUICK_MOVE;
         } else if (clickType == nexus.api.IInventory.ClickType.SWAP) {
-            vanillaType = ClickType.SWAP;
+            vanillaType = net.minecraft.world.inventory.ClickType.SWAP;
         } else if (clickType == nexus.api.IInventory.ClickType.THROW) {
-            vanillaType = ClickType.THROW;
+            vanillaType = net.minecraft.world.inventory.ClickType.THROW;
         } else if (clickType == nexus.api.IInventory.ClickType.CLONE) {
-            vanillaType = ClickType.CLONE;
+            vanillaType = net.minecraft.world.inventory.ClickType.CLONE;
         } else if (clickType == nexus.api.IInventory.ClickType.PICKUP_ALL) {
-            vanillaType = ClickType.PICKUP_ALL;
+            vanillaType = net.minecraft.world.inventory.ClickType.PICKUP_ALL;
         } else if (clickType == nexus.api.IInventory.ClickType.QUICK_CRAFT) {
-            vanillaType = ClickType.QUICK_CRAFT;
+            vanillaType = net.minecraft.world.inventory.ClickType.QUICK_CRAFT;
         }
         client.minecraft().gameMode.handleInventoryMouseClick(menu.containerId, slot, button, vanillaType,
                 client.localPlayer());

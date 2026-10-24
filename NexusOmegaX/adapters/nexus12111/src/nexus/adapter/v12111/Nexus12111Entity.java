@@ -63,12 +63,12 @@ public final class Nexus12111Entity implements IEntity {
 
     @Override
     public float yaw() {
-        return entity.getYRot();
+        return entity.yRot();
     }
 
     @Override
     public float pitch() {
-        return entity.getXRot();
+        return entity.xRot();
     }
 
     @Override
@@ -121,7 +121,7 @@ public final class Nexus12111Entity implements IEntity {
     public boolean isNeutral() {
         return entity instanceof net.minecraft.world.entity.monster.piglin.Piglin
                 || entity instanceof net.minecraft.world.entity.monster.EnderMan
-                || entity instanceof net.minecraft.world.entity.animal.Wolf;
+                || entity instanceof net.minecraft.world.entity.animal.wolf.Wolf;
     }
 
     @Override
@@ -186,7 +186,7 @@ public final class Nexus12111Entity implements IEntity {
     public float[] limbAngles() {
         if (entity instanceof LivingEntity) {
             LivingEntity living = (LivingEntity) entity;
-            return new float[]{living.animationPosition, living.animationSpeed, living.attackAnim,
+            return new float[]{living.walkAnimation.position(), living.walkAnimation.speed(), living.attackAnim,
                     living.yBodyRot, living.yHeadRot, living.walkAnimation.position()};
         }
         return new float[6];
@@ -194,7 +194,7 @@ public final class Nexus12111Entity implements IEntity {
 
     @Override
     public float bodyYaw() {
-        return entity instanceof LivingEntity ? ((LivingEntity) entity).yBodyRot : entity.getYRot();
+        return entity instanceof LivingEntity ? ((LivingEntity) entity).yBodyRot : entity.yRot();
     }
 
     @Override

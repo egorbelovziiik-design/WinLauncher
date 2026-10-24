@@ -130,12 +130,12 @@ public final class Nexus12111Client implements IClient {
 
     @Override
     public float cameraYaw() {
-        return minecraft.gameRenderer.getMainCamera().getYRot();
+        return minecraft.gameRenderer.getMainCamera().yRot();
     }
 
     @Override
     public float cameraPitch() {
-        return minecraft.gameRenderer.getMainCamera().getXRot();
+        return minecraft.gameRenderer.getMainCamera().xRot();
     }
 
     @Override

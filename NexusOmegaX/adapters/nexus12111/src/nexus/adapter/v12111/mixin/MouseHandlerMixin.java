@@ -1,6 +1,7 @@
 package nexus.adapter.v12111.mixin;
 
 import net.minecraft.client.MouseHandler;
+import nexus.adapter.v12111.Nexus12111Input;
 import nexus.adapter.v12111.mixin.MinecraftMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

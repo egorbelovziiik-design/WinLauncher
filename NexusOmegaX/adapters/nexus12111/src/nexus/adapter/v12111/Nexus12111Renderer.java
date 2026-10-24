@@ -25,6 +25,7 @@ public final class Nexus12111Renderer implements IRenderer {
     private final Minecraft minecraft = Minecraft.getInstance();
     private GuiGraphics gui;
     private PoseStack pose;
+    private com.mojang.blaze3d.vertex.Matrix3x2fStack pose2d;
     private float partialTicks;
     private net.minecraft.world.phys.Vec3 camera = net.minecraft.world.phys.Vec3.ZERO;
     private VertexConsumer consumer;
@@ -35,14 +36,18 @@ public final class Nexus12111Renderer implements IRenderer {
 
     public Nexus12111Renderer(GuiGraphics gui) {
         this.gui = gui;
-        this.pose = gui == null ? new PoseStack() : gui.pose();
+        if (gui == null) {
+            this.pose = new PoseStack();
+        } else {
+            this.pose2d = gui.pose();
+        }
     }
 
     public Nexus12111Renderer(PoseStack pose, float partialTicks) {
         this.pose = pose;
         this.partialTicks = partialTicks;
         if (minecraft.gameRenderer != null) {
-            this.camera = minecraft.gameRenderer.getMainCamera().getPosition();
+            this.camera = minecraft.gameRenderer.getMainCamera().position();
         }
     }
 
@@ -164,11 +169,11 @@ public final class Nexus12111Renderer implements IRenderer {
             gui.drawString(minecraft.font, text, (int) x, (int) y, argbToAbgr(color), shadow);
             return;
         }
-        PoseStack stack = gui.pose();
-        stack.pushPose();
-        stack.scale((float) scale, (float) scale, 1.0f);
+        com.mojang.blaze3d.vertex.Matrix3x2fStack stack = gui.pose();
+        stack.pushMatrix();
+        stack.scale((float) scale, (float) scale);
         gui.drawString(minecraft.font, text, (int) (x / scale), (int) (y / scale), argbToAbgr(color), shadow);
-        stack.popPose();
+        stack.popMatrix();
     }
 
     @Override
@@ -250,7 +255,7 @@ public final class Nexus12111Renderer implements IRenderer {
         AABB vanilla = new AABB(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)
                 .move(-camera.x, -camera.y, -camera.z);
         if (consumer != null) {
-            net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, consumer, vanilla,
+            net.minecraft.client.renderer.ShapeRenderer.renderLineBox(pose, consumer, vanilla,
                     ColorUtil.red(lineColor) / 255.0f, ColorUtil.green(lineColor) / 255.0f,
                     ColorUtil.blue(lineColor) / 255.0f, ColorUtil.alpha(lineColor) / 255.0f);
         }
@@ -266,13 +271,16 @@ public final class Nexus12111Renderer implements IRenderer {
         if (pose == null || consumer == null) {
             return;
         }
-        PoseStack.Pose entry = pose.last();
-        com.mojang.math.Axis axis = com.mojang.math.Axis.XP;
+        org.joml.Matrix4f matrix = pose.last().pose();
         VertexConsumer buffer = consumer;
-        buffer.vertex(entry.pose(), (float) (from.x - camera.x), (float) (from.y - camera.y), (float) (from.z - camera.z))
+        org.joml.Vector3f start = matrix.transformPosition(new org.joml.Vector3f(
+                (float) (from.x - camera.x), (float) (from.y - camera.y), (float) (from.z - camera.z)));
+        buffer.addVertex(start.x, start.y, start.z)
                 .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color))
                 .setNormal((float) 0, (float) 1, (float) 0);
-        buffer.vertex(entry.pose(), (float) (to.x - camera.x), (float) (to.y - camera.y), (float) (to.z - camera.z))
+        org.joml.Vector3f end = matrix.transformPosition(new org.joml.Vector3f(
+                (float) (to.x - camera.x), (float) (to.y - camera.y), (float) (to.z - camera.z)));
+        buffer.addVertex(end.x, end.y, end.z)
                 .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color))
                 .setNormal((float) 0, (float) 1, (float) 0);
     }

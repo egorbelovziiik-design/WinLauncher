@@ -24,7 +24,7 @@ public final class Nexus12111Connection implements IConnection {
 
     @Override
     public boolean isConnected() {
-        return listener() != null && !listener().getConnection().isDisconnected();
+        return listener() != null && listener().getConnection().isConnected();
     }
 
     @Override
@@ -50,7 +50,7 @@ public final class Nexus12111Connection implements IConnection {
             return 0;
         }
         for (net.minecraft.client.multiplayer.PlayerInfo info : listener().getOnlinePlayers()) {
-            if (info.getProfile().getId().equals(handle().player.getUUID())) {
+            if (info.getProfile().id().equals(handle().player.getUUID())) {
                 return info.getLatency();
             }
         }
@@ -90,8 +90,6 @@ public final class Nexus12111Connection implements IConnection {
         if (listener() != null) {
             listener().getConnection().disconnect(
                     net.minecraft.network.chat.Component.literal(reason));
-        } else {
-            handle().disconnect();
         }
     }
 }

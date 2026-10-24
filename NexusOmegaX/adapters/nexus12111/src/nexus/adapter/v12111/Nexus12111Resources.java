@@ -26,8 +26,8 @@ public final class Nexus12111Resources implements IResources {
 
     @Override
     public void playSound(String soundId, float volume, float pitch) {
-        net.minecraft.resources.ResourceLocation id =
-                net.minecraft.resources.ResourceLocation.tryParse(soundId);
+        net.minecraft.resources.Identifier id =
+                net.minecraft.resources.Identifier.tryParse(soundId);
         if (id == null) {
             return;
         }
@@ -61,9 +61,9 @@ public final class Nexus12111Resources implements IResources {
 
     @Override
     public boolean hasSound(String soundId) {
-        net.minecraft.resources.ResourceLocation id =
-                net.minecraft.resources.ResourceLocation.tryParse(soundId);
-        return id != null && BuiltInRegistries.SOUND_EVENT.get(id) != null;
+        net.minecraft.resources.Identifier id =
+                net.minecraft.resources.Identifier.tryParse(soundId);
+        return id != null && BuiltInRegistries.SOUND_EVENT.getValue(id) != null;
     }
 
     @Override
@@ -82,10 +82,10 @@ public final class Nexus12111Resources implements IResources {
 
     @Override
     public File takeScreenshot(File directory) {
-        net.minecraft.client.Screenshot.grab(handle().gameDirectory, "nexus",
-                handle().getMainRenderTarget(), message -> {
-                });
-        return new File(handle().gameDirectory, "screenshots");
+        File target = new File(directory, "nexus-" + System.currentTimeMillis() + ".png");
+        net.minecraft.client.Screenshot.grab(target, handle().getMainRenderTarget(), message -> {
+        });
+        return target;
     }
 
     @Override
