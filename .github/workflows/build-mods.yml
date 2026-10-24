@@ -26,12 +26,12 @@ jobs:
           - dir: nexus1214
             java: 21
             gradle: 9.2.0
-            loom: 1.19.3
+            loom: 1.17.21
             jar: NexusOmegaX-1.21.4.jar
           - dir: nexus12111
             java: 21
             gradle: 9.2.0
-            loom: 1.19.3
+            loom: 1.17.21
             jar: NexusOmegaX-1.21.11.jar
     steps:
       - uses: actions/checkout@v4

@@ -1,6 +1,6 @@
 package nexus.adapter.v1165;
 
-import net.minecraft.client.options.GameOptions;
+import net.minecraft.client.option.GameOptions;
 import nexus.api.IOptions;
 
 /** {@link IOptions} implementation for Minecraft 1.16.5. */

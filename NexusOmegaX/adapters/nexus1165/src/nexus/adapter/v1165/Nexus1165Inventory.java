@@ -22,10 +22,6 @@ public final class Nexus1165Inventory implements IInventory {
         return client.localPlayer();
     }
 
-    private net.minecraft.container.PlayerContainer inventory() {
-        return self().playerScreenHandler;
-    }
-
     private IItemStack wrap(ItemStack stack) {
         return new Nexus1165ItemStack(stack);
     }
