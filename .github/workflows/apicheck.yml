@@ -1,0 +1,56 @@
+name: API check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'arena/993b5c08-winlauncher' ]
+    paths: [ '.github/workflows/apicheck.yml' ]
+
+jobs:
+  dump:
+    name: dump ${{ matrix.dir }}
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { dir: nexus1165,  java: 17, gradle: '8.10.2', loom: '1.6-SNAPSHOT',
+              classes: 'net.minecraft.util.math.Box net.minecraft.entity.Entity net.minecraft.client.network.ClientPlayerEntity net.minecraft.entity.effect.StatusEffectInstance net.minecraft.block.entity.SignBlockEntity net.minecraft.client.MinecraftClient net.minecraft.client.util.Window net.minecraft.client.option.GameOptions net.minecraft.client.option.KeyBinding net.minecraft.item.Item net.minecraft.entity.player.PlayerInventory net.minecraft.client.network.ClientPlayNetworkHandler net.minecraft.tag.TagManager net.minecraft.client.gui.DrawableHelper' }
+          - { dir: nexus1214,  java: 21, gradle: '9.5.0', loom: '1.17.21',
+              classes: 'net.minecraft.client.Options net.minecraft.client.MouseHandler net.minecraft.client.KeyboardHandler net.minecraft.client.gui.components.ChatComponent net.minecraft.world.level.block.entity.SignBlockEntity net.minecraft.core.RegistryAccess net.minecraft.core.Registry net.minecraft.core.registries.BuiltInRegistries net.minecraft.world.item.enchantment.EnchantmentHelper net.minecraft.client.Minecraft net.minecraft.world.inventory.AbstractContainerMenu com.mojang.blaze3d.platform.InputConstants' }
+          - { dir: nexus12111, java: 21, gradle: '9.5.0', loom: '1.17.21',
+              classes: 'net.minecraft.client.Options net.minecraft.client.MouseHandler net.minecraft.client.KeyboardHandler net.minecraft.client.gui.components.ChatComponent net.minecraft.world.level.block.entity.SignBlockEntity net.minecraft.core.RegistryAccess net.minecraft.core.Registry net.minecraft.core.registries.BuiltInRegistries net.minecraft.world.item.enchantment.EnchantmentHelper net.minecraft.client.Minecraft net.minecraft.world.inventory.AbstractContainerMenu com.mojang.blaze3d.platform.InputConstants' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: ${{ matrix.java }} }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '${{ matrix.gradle }}' }
+      - name: resolve the mapped jar
+        continue-on-error: true
+        run: gradle compileJava --no-daemon --console=plain -PloomVersion=${{ matrix.loom }}
+        working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
+      - name: javap
+        run: |
+          JAR=""
+          for J in $(find ~/.gradle/caches/fabric-loom -name "*.jar" 2>/dev/null | grep -v sources); do
+            if unzip -l "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft.class"; then JAR="$J"; break; fi
+          done
+          echo "jar=$JAR"
+          {
+            echo "# ${{ matrix.dir }} API ($(date -u))"
+            echo '```'
+            echo "jar=$JAR"
+            for C in ${{ matrix.classes }}; do
+              echo "=========== $C"
+              javap -classpath "$JAR" -public "$C" 2>&1 | head -120
+            done
+            echo '```'
+          } > /tmp/dump.md
+          base64 -w0 /tmp/dump.md > /tmp/dump.b64
+          gh api --method PUT "repos/${{ github.repository }}/contents/ci-logs/api-${{ matrix.dir }}.md" \
+            -f message="ci: API dump ${{ matrix.dir }}" \
+            -f content="$(cat /tmp/dump.b64)" \
+            -f branch="$GITHUB_REF_NAME" || true
