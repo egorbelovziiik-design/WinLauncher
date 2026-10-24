@@ -40,7 +40,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DIAG=$(gradle printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>&1 | tail -25)
+          set +e
+          DIAG=$(cd NexusOmegaX/adapters/${{ matrix.dir }} && gradle printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>&1 | tail -25)
           JAR=$(find "$HOME/.gradle" -name "*.jar" 2>/dev/null | grep -v -e sources | while read J; do
                   if jar tf "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then echo "$J"; break; fi
                 done)
@@ -60,6 +61,7 @@ jobs:
             done
             echo '```'
           } > /tmp/dump.md
+          if [ -z "$JAR" ]; then echo "no jar found, keeping the previous dump"; exit 0; fi
           base64 -w0 /tmp/dump.md > /tmp/dump.b64
           FILE="ci-logs/api-${{ matrix.dir }}.md"
           SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null || true)

@@ -62,7 +62,7 @@ public final class Nexus1165Player implements IPlayer {
             return new Box3(0, 0, 0, 0, 0, 0);
         }
         Box box = self().getBoundingBox();
-        return new Box3(box.x1, box.y1, box.z1, box.x2, box.y2, box.z2);
+        return new Box3(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
     }
 
     @Override
@@ -184,7 +184,7 @@ public final class Nexus1165Player implements IPlayer {
 
     @Override
     public boolean isInWater() {
-        return ready() && self().isInWater();
+        return ready() && self().isTouchingWater();
     }
 
     @Override
@@ -262,7 +262,7 @@ public final class Nexus1165Player implements IPlayer {
             result.add(new IPotionEffect() {
                 @Override
                 public String name() {
-                    return instance.getEffectName().getString();
+                    return net.minecraft.text.TranslatableText(instance.getTranslationKey()).asString();
                 }
 
                 @Override
@@ -369,7 +369,7 @@ public final class Nexus1165Player implements IPlayer {
     public void sendChat(String message) {
         if (ready()) {
             if (message.startsWith("/")) {
-                self().sendCommand(message.substring(1), "");
+                self().sendChatMessage(message);
             } else {
                 self().sendChatMessage(message);
             }
@@ -379,7 +379,7 @@ public final class Nexus1165Player implements IPlayer {
     @Override
     public void sendCommand(String command) {
         if (ready()) {
-            self().sendCommand(command.startsWith("/") ? command.substring(1) : command, "");
+            self().sendChatMessage(command.startsWith("/") ? command : "/" + command);
         }
     }
 

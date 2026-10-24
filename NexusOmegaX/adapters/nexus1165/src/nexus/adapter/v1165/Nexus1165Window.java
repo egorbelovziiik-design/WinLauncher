@@ -63,6 +63,6 @@ public final class Nexus1165Window implements IWindow {
 
     @Override
     public boolean isFullscreen() {
-        return handle().isFullScreen();
+        return handle().getWindow().isFullscreen();
     }
 }

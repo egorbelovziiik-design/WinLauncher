@@ -247,11 +247,14 @@ public final class Nexus1165World implements IWorld {
         if (entity instanceof net.minecraft.block.entity.SignBlockEntity) {
             StringBuilder sb = new StringBuilder();
             net.minecraft.block.entity.SignBlockEntity sign = (net.minecraft.block.entity.SignBlockEntity) entity;
-            for (net.minecraft.text.Text line : sign.text) {
-                if (sb.length() > 0) {
-                    sb.append(' ');
+            for (int row = 0; row < 4; row++) {
+                net.minecraft.text.Text line = sign.getTextOnRow(row);
+                if (line != null && !line.getString().isEmpty()) {
+                    if (sb.length() > 0) {
+                        sb.append(' ');
+                    }
+                    sb.append(line.getString());
                 }
-                sb.append(line.getString());
             }
             return sb.toString();
         }
