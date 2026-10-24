@@ -7,8 +7,8 @@ This repository contains the application source, deterministic Windows build wor
 
 Verified release: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/drbrowser-latest>
 
-- [`dist/DrBrowser.exe`](dist/DrBrowser.exe) — portable self-contained `win-x64`, 68,197,889 bytes, SHA-256 `EFDC12BDAA3D2C5E7F1FEA1A426694D2B80D0DFF6BE50312952028620B4771EB`.
-- [`dist/DrBrowserSetup.exe`](dist/DrBrowserSetup.exe) — per-user Inno Setup installer, 62,424,376 bytes, SHA-256 `282DD9BF4A0FE649A54257383C724CAD983DE40F5386D1DEA084FEC046E22A2B`.
+- [`dist/DrBrowser.exe`](dist/DrBrowser.exe) — portable self-contained `win-x64`, 68,197,889 bytes, SHA-256 `815FE9279509798057B3BC732DBBC7B44A089A6D40A17799E1648EF26A5C3F1C`.
+- [`dist/DrBrowserSetup.exe`](dist/DrBrowserSetup.exe) — per-user Inno Setup installer, 62,424,995 bytes, SHA-256 `8FBA067C8C28AE7EDFC3484EF5716C95CF7C1DD8FB9FF09382AACBD8260A7205`.
 - `dist/*.sha256.txt` — checksum sidecars from final GitHub Actions run [40037004618](https://github.com/egorbelovziiik-design/WinLauncher/actions/runs/40037004618).
 
 Microsoft Edge **WebView2 Runtime** is required. Current Windows 11 and maintained Windows 10 installations usually already include it. The app and installer show an official Microsoft download link when it is absent.

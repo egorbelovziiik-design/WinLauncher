@@ -6,8 +6,8 @@ DrBrowser OMEGA is a real Windows 10/11 x64 browser application built on **.NET 
 
 | Artifact | Size | SHA-256 |
 |---|---:|---|
-| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | 68,197,889 bytes | `EFDC12BDAA3D2C5E7F1FEA1A426694D2B80D0DFF6BE50312952028620B4771EB` |
-| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | 62,424,376 bytes | `282DD9BF4A0FE649A54257383C724CAD983DE40F5386D1DEA084FEC046E22A2B` |
+| [`../dist/DrBrowser.exe`](../dist/DrBrowser.exe) | 68,197,889 bytes | `815FE9279509798057B3BC732DBBC7B44A089A6D40A17799E1648EF26A5C3F1C` |
+| [`../dist/DrBrowserSetup.exe`](../dist/DrBrowserSetup.exe) | 62,424,995 bytes | `8FBA067C8C28AE7EDFC3484EF5716C95CF7C1DD8FB9FF09382AACBD8260A7205` |
 | `../dist/*.sha256.txt` | — | Sidecars generated from the exact CI outputs |
 
 Verify a downloaded file:
