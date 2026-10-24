@@ -25,8 +25,8 @@ public final class NexusScreenBridge extends Screen {
     private final IScreenHost host;
 
     public NexusScreenBridge(IScreenHost host, NexusScreen screen) {
-        this.host = host;
         super(Component.literal(screen.title()));
+        this.host = host;
         this.screen = screen;
     }
 
