@@ -24,7 +24,7 @@ public final class Nexus1214Connection implements IConnection {
 
     @Override
     public boolean isConnected() {
-        return listener() != null && !listener().getConnection().isDisconnected();
+        return listener() != null && listener().getConnection().isConnected();
     }
 
     @Override

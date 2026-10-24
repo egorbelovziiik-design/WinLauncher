@@ -186,7 +186,7 @@ public final class Nexus1214Entity implements IEntity {
     public float[] limbAngles() {
         if (entity instanceof LivingEntity) {
             LivingEntity living = (LivingEntity) entity;
-            return new float[]{living.animationPosition, living.animationSpeed, living.attackAnim,
+            return new float[]{living.walkAnimation.position(), living.animationSpeed, living.attackAnim,
                     living.yBodyRot, living.yHeadRot, living.walkAnimation.position()};
         }
         return new float[6];

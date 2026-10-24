@@ -73,7 +73,7 @@ jobs:
           i=0
           for PART in /tmp/parts/chunk-*; do
             base64 -w0 "$PART" > /tmp/part.b64
-            FILE="ci-logs/api-${{ matrix.dir }}-$i.md"
+            FILE="ci-logs/api-${{ matrix.dir }}-${{ github.run_id }}-$i.md"
             SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null)
             gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
               -f message="ci: API dump ${{ matrix.dir }} part $i" \
