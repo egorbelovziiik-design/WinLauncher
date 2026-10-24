@@ -157,11 +157,18 @@ jobs:
           test "$(unzip -l NexusOmegaX-mods.zip | grep -c '\.jar')" -ge 1
           echo "jar verification passed"
 
+      - name: Checksums
+        run: |
+          cd artifacts && sha256sum *.jar > SHA256SUMS.txt && cd ..
+          cp artifacts/SHA256SUMS.txt SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Publish jars
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ls -la artifacts
+          SUMS=$(cat SHA256SUMS.txt)
           gh release delete nexus-latest --yes --cleanup-tag 2>/dev/null || true
           gh release create nexus-latest \
             --title "NEXUS CLIENT OMEGA X (Fabric mods)" \
@@ -171,12 +178,18 @@ jobs:
           - NexusOmegaX-1.21.4.jar  - Minecraft 1.21.4 (protocol 769, Java 21)
           - NexusOmegaX-1.21.11.jar - Minecraft 1.21.11 (protocol 774, Java 21)
           - NexusInjector.exe       - лаунчер/установщик под Windows
+          - NexusOmegaX-mods.zip    - все три jar одним архивом (проще всего)
           - NexusOmegaX-Source.zip  - исходники
+          - SHA256SUMS.txt          - контрольные суммы
+
+          sha256:
+          ${SUMS}
 
           Установка: установите Fabric официальным установщиком (fabricmc.net/use/installer)
           для нужной версии, положите jar в %APPDATA%\\.minecraft\\mods, выберите профиль
           \"Nexus Client Omega X\" в лаунчере, Play. В игре: RIGHT SHIFT - ClickGUI, .help - команды." \
             artifacts/*.jar \
+            SHA256SUMS.txt \
             NexusOmegaX-mods.zip \
             NexusOmegaX/dist/NexusInjector.exe \
             NexusOmegaX/NexusOmegaX-Source.zip
