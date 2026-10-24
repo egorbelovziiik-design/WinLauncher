@@ -1,0 +1,112 @@
+name: Build ReallyWorld KP Discord Bot EXE
+
+on:
+  push:
+    branches:
+      - arena/9647150d-winlauncher
+    paths:
+      - "ReallyWorldDiscordBot/**"
+      - ".github/workflows/build-reallyworld-kp-bot-exe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ReallyWorldDiscordBot
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: ReallyWorldDiscordBot/requirements.txt
+
+      - name: Install build & runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pillow
+
+      - name: Generate Windows .ico from КП beach avatar
+        run: |
+          python -c "from PIL import Image; img = Image.open('assets/avatar_kp_beach.png').convert('RGBA'); img.save('assets/avatar_kp.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
+
+      - name: Run Python unit test suite before packaging
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "."
+          python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Build single-file ReallyWorldKPBot.exe via PyInstaller
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --windowed `
+            --name ReallyWorldKPBot `
+            --icon assets/avatar_kp.ico `
+            --paths . `
+            --add-data "config.json;." `
+            --add-data "assets;assets" `
+            --hidden-import aiosqlite `
+            --hidden-import sqlite3 `
+            --hidden-import dotenv `
+            --hidden-import bot.cogs.owner `
+            --hidden-import bot.cogs.kp_staff `
+            --hidden-import bot.cogs.tickets `
+            --hidden-import bot.cogs.moderation `
+            --hidden-import bot.cogs.community `
+            gui_app.py
+
+      - name: Smoke-test compiled ReallyWorldKPBot.exe on Windows
+        shell: pwsh
+        run: |
+          $proc = Start-Process -FilePath ".\dist\ReallyWorldKPBot.exe" -ArgumentList "--selftest" -PassThru -Wait
+          if ($proc.ExitCode -ne 0) {
+            throw "ReallyWorldKPBot.exe --selftest exited with code $($proc.ExitCode)"
+          }
+          if (-not (Test-Path ".\selftest-result.txt")) {
+            throw "selftest-result.txt was not written by ReallyWorldKPBot.exe!"
+          }
+          Get-Content .\selftest-result.txt
+          if (-not (Select-String -Path .\selftest-result.txt -Pattern "SELFTEST_PASS" -Quiet)) {
+            throw "SELFTEST_PASS marker missing!"
+          }
+
+      - name: Publish ReallyWorldKPBot.exe to GitHub Releases (rw-kp-bot-latest)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $exe = ".\dist\ReallyWorldKPBot.exe"
+          $sizeMb = [math]::Round((Get-Item $exe).Length / 1MB, 2)
+          $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$sha  ReallyWorldKPBot.exe" | Set-Content -Encoding utf8 ".\dist\ReallyWorldKPBot.exe.sha256.txt"
+
+          gh release view rw-kp-bot-latest *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release delete rw-kp-bot-latest --yes --cleanup-tag
+          }
+
+          $notes = @(
+            "## ReallyWorld КП — Готовый Discord-Бот (Windows x64 Single-File `.exe`)",
+            "",
+            "- **Владелец бота:** `robik0277` (Discord ID: `1381255368650526861`)",
+            "- **Application ID:** `1563651952506576918`",
+            "- **Размер:** $sizeMb МБ (Python не требуется — запускается двойным кликом!)",
+            "- **SHA-256:** ``$sha``",
+            "",
+            "### Прямая ссылка приглашения бота в ваш Discord:",
+            "https://discord.com/oauth2/authorize?client_id=1563651952506576918&permissions=8&scope=bot%20applications.commands"
+          ) -join "`n"
+
+          gh release create rw-kp-bot-latest `
+            ".\dist\ReallyWorldKPBot.exe" `
+            ".\dist\ReallyWorldKPBot.exe.sha256.txt" `
+            --title "ReallyWorld КП Discord Bot — Windows EXE (robik0277)" `
+            --notes $notes
