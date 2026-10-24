@@ -12,13 +12,21 @@ import { EmptyState } from './ui';
 const NICK_RE = /^[A-Za-z0-9_]{3,16}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-export function CheckoutForm({ provider, testMode }: { provider: string; testMode: boolean }) {
+export function CheckoutForm({
+  provider,
+  testMode,
+  user = null,
+}: {
+  provider: string;
+  testMode: boolean;
+  user?: { username: string; email: string } | null;
+}) {
   const router = useRouter();
   const { items, subtotal, discount, total, promo, applyPromo, clearPromo, clear, nickname, setNickname, rememberOrder, ready, count } = useCart();
   const { push } = useToast();
 
-  const [nick, setNick] = useState(nickname);
-  const [email, setEmail] = useState('');
+  const [nick, setNick] = useState(nickname || user?.username || '');
+  const [email, setEmail] = useState(user?.email ?? '');
   const [code, setCode] = useState(promo?.code ?? '');
   const [agree, setAgree] = useState(false);
   const [note, setNote] = useState('');
@@ -89,9 +97,18 @@ export function CheckoutForm({ provider, testMode }: { provider: string; testMod
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]" noValidate>
       <div className="space-y-5">
         <section className="rounded-2xl border border-white/8 bg-panel/40 p-5">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="grid h-7 w-7 place-items-center rounded-full bg-neon/15 font-mono text-[0.62rem] font-bold text-neon">1</span>
             <h2 className="font-display text-sm font-bold uppercase tracking-widest text-white/80">Получатель</h2>
+            {user ? (
+              <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald/12 px-2 py-0.5 font-mono text-[0.55rem] font-bold uppercase tracking-widest text-emerald">
+                <ShieldCheck size={10} /> заказ на аккаунт {user.username}
+              </span>
+            ) : (
+              <Link href="/login?next=/checkout" className="ml-auto text-[0.68rem] font-semibold text-neon hover:underline">
+                Войти в аккаунт
+              </Link>
+            )}
           </div>
 
           <label className="block">

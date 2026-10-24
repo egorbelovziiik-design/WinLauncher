@@ -11,7 +11,9 @@ import type {
   OrderStatus,
   Product,
   Promo,
+  PublicUser,
   Review,
+  UserRecord,
   SettingsMap,
 } from './types';
 
@@ -186,6 +188,8 @@ function mapCaseItem(r: Row): CaseItem {
     id: num(r.id),
     caseId: str(r.case_id),
     name: str(r.name),
+    description: str(r.description),
+    link: r.link == null ? null : str(r.link),
     rarity: str(r.rarity) as CaseItem['rarity'],
     chance: num(r.chance),
     icon: str(r.icon),
@@ -206,13 +210,35 @@ export function saveCaseItem(item: Omit<CaseItem, 'id'> & { id?: number }) {
   const db = getDb();
   if (item.id) {
     db.prepare(
-      'UPDATE case_items SET name=?, rarity=?, chance=?, icon=?, color=?, sort=? WHERE id=?',
-    ).run(item.name, item.rarity, item.chance, item.icon, item.color, item.sort, item.id);
+      'UPDATE case_items SET name=?, description=?, link=?, rarity=?, chance=?, icon=?, color=?, sort=? WHERE id=?',
+    ).run(
+      item.name,
+      item.description ?? '',
+      item.link ?? null,
+      item.rarity,
+      item.chance,
+      item.icon,
+      item.color,
+      item.sort,
+      item.id,
+    );
     return item.id;
   }
   const res = db
-    .prepare('INSERT INTO case_items (case_id, name, rarity, chance, icon, color, sort) VALUES (?, ?, ?, ?, ?, ?, ?)')
-    .run(item.caseId, item.name, item.rarity, item.chance, item.icon, item.color, item.sort);
+    .prepare(
+      'INSERT INTO case_items (case_id, name, description, link, rarity, chance, icon, color, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    )
+    .run(
+      item.caseId,
+      item.name,
+      item.description ?? '',
+      item.link ?? null,
+      item.rarity,
+      item.chance,
+      item.icon,
+      item.color,
+      item.sort,
+    );
   return Number(res.lastInsertRowid);
 }
 
@@ -354,6 +380,7 @@ function mapOrder(r: Row): Order {
     paymentUrl: r.payment_url == null ? null : str(r.payment_url),
     items: JSON.parse(str(r.items) || '[]'),
     note: r.note == null ? null : str(r.note),
+    userId: r.user_id == null ? null : num(r.user_id),
     isDemo: bool(r.is_demo),
     createdAt: str(r.created_at),
     paidAt: r.paid_at == null ? null : str(r.paid_at),
@@ -379,14 +406,15 @@ export function createOrder(input: {
   isDemo: boolean;
   note?: string | null;
   ip?: string | null;
+  userId?: number | null;
 }): Order {
   const db = getDb();
   const id = randomUUID();
   const createdAt = now();
   db.prepare(
     `INSERT INTO orders (id, public_id, nickname, email, status, subtotal, discount, total, promo_code, provider,
-      payment_id, payment_url, items, note, is_demo, ip, created_at)
-     VALUES (?, ?, ?, ?, 'pending_payment', ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?)`,
+      payment_id, payment_url, items, note, is_demo, user_id, ip, created_at)
+     VALUES (?, ?, ?, ?, 'pending_payment', ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     publicOrderId(),
@@ -400,6 +428,7 @@ export function createOrder(input: {
     JSON.stringify(input.items),
     input.note ?? null,
     input.isDemo ? 1 : 0,
+    input.userId ?? null,
     input.ip ?? null,
     createdAt,
   );
@@ -608,6 +637,115 @@ export function deleteReview(id: number) {
 }
 
 /* ─────────────────────────── admin & audit ─────────────────────────── */
+
+/* ─────────────────────────── игроки (аккаунты) ─────────────────────────── */
+
+function mapUser(r: Row): PublicUser {
+  return {
+    id: num(r.id),
+    username: str(r.username),
+    email: str(r.email),
+    createdAt: str(r.created_at),
+    lastLoginAt: r.last_login_at == null ? null : str(r.last_login_at),
+  };
+}
+
+function mapUserRecord(r: Row): UserRecord {
+  return { ...mapUser(r), passwordHash: str(r.password_hash) };
+}
+
+export type CreateUserResult =
+  | { ok: true; user: PublicUser }
+  | { ok: false; error: string };
+
+export function createUser(input: { username: string; email: string; password: string }): CreateUserResult {
+  const db = getDb();
+  const username = input.username.trim();
+  const email = input.email.trim().toLowerCase();
+  const taken = db
+    .prepare('SELECT username, email FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE')
+    .get(username, email) as Row | undefined;
+  if (taken) {
+    const nameMatches = str(taken.username).toLowerCase() === username.toLowerCase();
+    return { ok: false, error: nameMatches ? 'Этот никнейм уже зарегистрирован' : 'Этот email уже зарегистрирован' };
+  }
+  try {
+    const res = db
+      .prepare('INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
+      .run(username, email, hashPassword(input.password), now());
+    const user = getUserById(Number(res.lastInsertRowid));
+    if (!user) return { ok: false, error: 'Не удалось создать аккаунт' };
+    return { ok: true, user };
+  } catch {
+    return { ok: false, error: 'Этот никнейм или email уже зарегистрирован' };
+  }
+}
+
+export function getUserById(id: number): PublicUser | null {
+  const row = getDb().prepare('SELECT * FROM users WHERE id = ?').get(id) as Row | undefined;
+  return row ? mapUser(row) : null;
+}
+
+export function getUserRecordByLogin(login: string): UserRecord | null {
+  const value = login.trim();
+  const row = getDb()
+    .prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE')
+    .get(value, value.toLowerCase()) as Row | undefined;
+  return row ? mapUserRecord(row) : null;
+}
+
+export function checkUserCredentials(login: string, password: string): PublicUser | null {
+  const record = getUserRecordByLogin(login);
+  if (!record) return null;
+  if (!verifyPassword(password, record.passwordHash)) return null;
+  getDb().prepare('UPDATE users SET last_login_at = ? WHERE id = ?').run(now(), record.id);
+  const { passwordHash: _hash, ...user } = record;
+  return { ...user, lastLoginAt: now() };
+}
+
+export function updateUserEmail(userId: number, email: string): { ok: boolean; error?: string } {
+  const value = email.trim().toLowerCase();
+  const taken = getDb()
+    .prepare('SELECT id FROM users WHERE email = ? COLLATE NOCASE AND id <> ?')
+    .get(value, userId) as Row | undefined;
+  if (taken) return { ok: false, error: 'Этот email уже используется' };
+  getDb().prepare('UPDATE users SET email = ? WHERE id = ?').run(value, userId);
+  return { ok: true };
+}
+
+export function updateUserPassword(userId: number, password: string): boolean {
+  getDb().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(password), userId);
+  return true;
+}
+
+export function verifyUserPassword(userId: number, password: string): boolean {
+  const record = getDb().prepare('SELECT password_hash FROM users WHERE id = ?').get(userId) as Row | undefined;
+  return record ? verifyPassword(password, str(record.password_hash)) : false;
+}
+
+export function listUserOrders(userId: number, limit = 50): Order[] {
+  return (
+    getDb()
+      .prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT ?')
+      .all(userId, limit) as Row[]
+  ).map(mapOrder);
+}
+
+export function countUsers(): number {
+  const row = getDb().prepare('SELECT COUNT(*) AS c FROM users').get() as Row;
+  return num(row.c);
+}
+
+export function listUsers(limit = 100): PublicUser[] {
+  return (getDb().prepare('SELECT * FROM users ORDER BY id DESC LIMIT ?').all(limit) as Row[]).map(mapUser);
+}
+
+export function userHasOrder(userId: number, orderId: string): boolean {
+  const row = getDb()
+    .prepare('SELECT id FROM orders WHERE user_id = ? AND (id = ? OR public_id = ?)')
+    .get(userId, orderId, orderId) as Row | undefined;
+  return Boolean(row);
+}
 
 export type AdminRow = AdminUser & { passwordHash: string; totpSecret: string | null };
 

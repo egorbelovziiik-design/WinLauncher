@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS case_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   case_id TEXT NOT NULL,
   name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  link TEXT,
   rarity TEXT NOT NULL DEFAULT 'common',
   chance REAL NOT NULL DEFAULT 0,
   icon TEXT NOT NULL DEFAULT 'coins',
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS orders (
   items TEXT NOT NULL,
   note TEXT,
   is_demo INTEGER NOT NULL DEFAULT 1,
+  user_id INTEGER,
   ip TEXT,
   created_at TEXT NOT NULL,
   paid_at TEXT,
@@ -135,6 +138,15 @@ CREATE TABLE IF NOT EXISTS reviews (
   text TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  last_login_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS admin_users (
@@ -202,11 +214,31 @@ function now() {
   return new Date().toISOString();
 }
 
+function hasColumn(db: DatabaseSync, table: string, column: string) {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name?: unknown }>;
+  return rows.some((row) => String(row.name) === column);
+}
+
+/** Догоняющие миграции для баз, созданных более ранними версиями. */
+function migrate(db: DatabaseSync) {
+  if (!hasColumn(db, 'case_items', 'description')) {
+    db.exec("ALTER TABLE case_items ADD COLUMN description TEXT NOT NULL DEFAULT ''");
+  }
+  if (!hasColumn(db, 'case_items', 'link')) {
+    db.exec('ALTER TABLE case_items ADD COLUMN link TEXT');
+  }
+  if (!hasColumn(db, 'orders', 'user_id')) {
+    db.exec('ALTER TABLE orders ADD COLUMN user_id INTEGER');
+  }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)');
+}
+
 export function openDb(): DatabaseSync {
   const file = dbPath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec(SCHEMA);
+  migrate(db);
   seed(db);
   return db;
 }
@@ -248,9 +280,16 @@ function seed(db: DatabaseSync) {
     const insert = db.prepare('INSERT INTO cases (id, name, description, color, icon, sort, active) VALUES (?, ?, ?, ?, ?, ?, ?)');
     for (const c of CASE_GROUPS) insert.run(c.id, c.name, c.description, c.color, c.icon, c.sort, c.active ? 1 : 0);
     const insertItem = db.prepare(
-      'INSERT INTO case_items (case_id, name, rarity, chance, icon, color, sort) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO case_items (case_id, name, description, link, rarity, chance, icon, color, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     );
-    for (const i of CASE_ITEMS) insertItem.run(i.caseId, i.name, i.rarity, i.chance, i.icon, i.color, i.sort);
+    for (const i of CASE_ITEMS)
+      insertItem.run(i.caseId, i.name, i.description, i.link ?? null, i.rarity, i.chance, i.icon, i.color, i.sort);
+  } else {
+    // Базы старых версий: дописываем описания наград, сохраняя отредактированные вручную шансы.
+    const update = db.prepare(
+      "UPDATE case_items SET description = ?, link = COALESCE(link, ?) WHERE case_id = ? AND name = ? AND (description IS NULL OR description = '')",
+    );
+    for (const i of CASE_ITEMS) update.run(i.description, i.link ?? null, i.caseId, i.name);
   }
 
   const adminCount = db.prepare('SELECT COUNT(*) AS c FROM admin_users').get() as { c: number };

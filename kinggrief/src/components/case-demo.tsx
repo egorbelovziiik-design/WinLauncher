@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Info, Play, RotateCcw, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, Info, Play, RotateCcw, Sparkles } from 'lucide-react';
 import type { CaseItem } from '@/lib/types';
 import { RARITY_META } from '@/lib/types';
 import { Icon } from './icons';
@@ -95,6 +96,17 @@ export function CaseOpeningDemo({ items, caseName }: { items: CaseItem[]; caseNa
               в демо выпало · {RARITY_META[result.rarity].label}
             </p>
             <p className="mt-0.5 text-sm font-bold text-white">{result.name}</p>
+            {result.description && (
+              <p className="mt-1 text-[0.7rem] leading-snug text-white/55">{result.description}</p>
+            )}
+            {result.link && (
+              <Link
+                href={result.link}
+                className="mt-1.5 inline-flex items-center gap-1 text-[0.66rem] font-bold text-neon hover:underline"
+              >
+                Посмотреть подробнее <ArrowRight size={11} />
+              </Link>
+            )}
           </motion.div>
         ) : (
           <p className="flex items-start gap-1.5 text-[0.66rem] leading-relaxed text-white/30">

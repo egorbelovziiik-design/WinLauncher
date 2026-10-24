@@ -46,6 +46,17 @@ describe('каталог и цены', () => {
     expect(repo.listProducts({ kind: 'other' })).toHaveLength(4);
   });
 
+  it('у каждой награды кейса есть описание, привилегии ведут на свою страницу', () => {
+    const items = repo.listCaseItems();
+    expect(items.length).toBeGreaterThan(20);
+    for (const item of items) {
+      expect(item.description.length).toBeGreaterThan(10);
+    }
+    const rankReward = items.find((item) => item.name === 'Привилегия KING')!;
+    expect(rankReward.link).toBe('/privileges/king');
+    expect(rankReward.description).toContain('KING');
+  });
+
   it('сумма шансов каждого кейса равна 100%', () => {
     for (const group of repo.listCaseGroups()) {
       expect(repo.caseChanceTotal(group.id)).toBeCloseTo(100, 5);
@@ -252,6 +263,57 @@ describe('заказы и платежи', () => {
     expect(delivery.bridgeSecretMatches('test-bridge-secret')).toBe(true);
     expect(delivery.bridgeSecretMatches('wrong')).toBe(false);
     expect(delivery.bridgeSecretMatches(null)).toBe(false);
+  });
+});
+
+describe('аккаунты игроков', () => {
+  it('регистрирует игрока и отклоняет дубликаты', () => {
+    const created = repo.createUser({ username: 'Acc_Player', email: 'acc@example.com', password: 'Password123' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.user.username).toBe('Acc_Player');
+    expect(created.user.email).toBe('acc@example.com');
+
+    const duplicateName = repo.createUser({ username: 'acc_player', email: 'other@example.com', password: 'Password123' });
+    expect(duplicateName.ok).toBe(false);
+
+    const duplicateEmail = repo.createUser({ username: 'Another_Player', email: 'ACC@example.com', password: 'Password123' });
+    expect(duplicateEmail.ok).toBe(false);
+  });
+
+  it('проверяет пароль и пускает по нику или email', () => {
+    const byName = repo.checkUserCredentials('Acc_Player', 'Password123');
+    expect(byName?.username).toBe('Acc_Player');
+    const byEmail = repo.checkUserCredentials('acc@example.com', 'Password123');
+    expect(byEmail?.id).toBe(byName?.id);
+    expect(repo.checkUserCredentials('Acc_Player', 'wrong')).toBeNull();
+    expect(repo.checkUserCredentials('nobody', 'Password123')).toBeNull();
+  });
+
+  it('меняет email и пароль, проверяя занятость адреса', () => {
+    const user = repo.checkUserCredentials('Acc_Player', 'Password123')!;
+    repo.createUser({ username: 'Other_Acc', email: 'other-acc@example.com', password: 'Password123' });
+    expect(repo.updateUserEmail(user.id, 'other-acc@example.com').ok).toBe(false);
+    expect(repo.updateUserEmail(user.id, 'new-acc@example.com').ok).toBe(true);
+    repo.updateUserPassword(user.id, 'NewPassword456');
+    expect(repo.verifyUserPassword(user.id, 'NewPassword456')).toBe(true);
+    expect(repo.checkUserCredentials('Acc_Player', 'Password123')).toBeNull();
+    expect(repo.checkUserCredentials('Acc_Player', 'NewPassword456')?.id).toBe(user.id);
+  });
+
+  it('связывает заказ с аккаунтом и отдаёт историю', async () => {
+    const user = repo.checkUserCredentials('Acc_Player', 'NewPassword456')!;
+    const created = await service.createCheckout({
+      nickname: 'Acc_Player',
+      items: [{ productId: 'relic-1000', quantity: 1 }],
+      userId: user.id,
+    });
+    expect(created.order.userId).toBe(user.id);
+    const history = repo.listUserOrders(user.id);
+    expect(history.some((order) => order.publicId === created.order.publicId)).toBe(true);
+    expect(repo.userHasOrder(user.id, created.order.publicId)).toBe(true);
+    expect(repo.countUsers()).toBeGreaterThanOrEqual(2);
+    expect(repo.listUsers().some((u) => u.username === 'Acc_Player')).toBe(true);
   });
 });
 

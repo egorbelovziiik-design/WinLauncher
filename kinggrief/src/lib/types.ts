@@ -51,10 +51,14 @@ export type CaseItem = {
   id?: number;
   caseId: string;
   name: string;
+  /** Что именно выпадает и что это даёт игроку. */
+  description: string;
   rarity: Rarity;
   chance: number;
   icon: string;
   color: string;
+  /** Ссылка на страницу товара, если награда — привилегия или пакет риликов. */
+  link?: string | null;
   sort: number;
 };
 
@@ -111,6 +115,8 @@ export type Order = {
   items: OrderItem[];
   note: string | null;
   isDemo: boolean;
+  /** Аккаунт игрока, если заказ оформлен из авторизованной сессии. */
+  userId: number | null;
   createdAt: string;
   paidAt: string | null;
   deliveredAt: string | null;
@@ -146,6 +152,17 @@ export type AuditEntry = {
   ip: string | null;
   createdAt: string;
 };
+
+/** Зарегистрированный игрок (обычный пользователь сайта). */
+export type PublicUser = {
+  id: number;
+  username: string;
+  email: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+};
+
+export type UserRecord = PublicUser & { passwordHash: string };
 
 export type Review = {
   id: number;

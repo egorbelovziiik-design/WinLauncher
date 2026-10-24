@@ -86,6 +86,7 @@ export type CheckoutPayload = {
   promoCode?: string | null;
   note?: string | null;
   ip?: string | null;
+  userId?: number | null;
 };
 
 export async function createCheckout(payload: CheckoutPayload): Promise<{
@@ -110,6 +111,7 @@ export async function createCheckout(payload: CheckoutPayload): Promise<{
     isDemo: provider === 'mock' || isTestMode(),
     note: payload.note || null,
     ip: payload.ip || null,
+    userId: payload.userId ?? null,
   });
 
   // Резервируем запись платежа — для Robokassa её id используется как InvId.

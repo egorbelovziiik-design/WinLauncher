@@ -26,6 +26,42 @@ export const promoCheckSchema = z.object({
   items: z.array(cartItemSchema).min(1),
 });
 
+export const passwordSchema = z
+  .string()
+  .min(8, 'Минимум 8 символов')
+  .max(200, 'Слишком длинный пароль')
+  .regex(/[A-Za-zА-Яа-я]/, 'Добавьте хотя бы одну букву')
+  .regex(/\d/, 'Добавьте хотя бы одну цифру');
+
+export const registerSchema = z
+  .object({
+    username: nicknameSchema,
+    email: z.string().trim().email('Некорректный email').max(120),
+    password: passwordSchema,
+    confirm: z.string().min(1, 'Повторите пароль'),
+    agree: z.literal(true, { errorMap: () => ({ message: 'Подтвердите согласие с правилами' }) }),
+  })
+  .refine((data) => data.password === data.confirm, {
+    message: 'Пароли не совпадают',
+    path: ['confirm'],
+  });
+
+export const userLoginSchema = z.object({
+  login: z.string().trim().min(3, 'Укажите никнейм или email').max(120),
+  password: z.string().min(1, 'Введите пароль').max(200),
+});
+
+export const profileSchema = z
+  .object({
+    email: z.string().trim().email('Некорректный email').max(120).optional(),
+    currentPassword: z.string().max(200).optional(),
+    newPassword: z.string().max(200).optional(),
+  })
+  .refine((data) => !data.newPassword || (data.newPassword.length >= 8 && /\d/.test(data.newPassword)), {
+    message: 'Новый пароль: минимум 8 символов и хотя бы одна цифра',
+    path: ['newPassword'],
+  });
+
 export const reviewSchema = z.object({
   nickname: nicknameSchema,
   rating: z.number().int().min(1).max(5),
@@ -71,6 +107,8 @@ export const caseItemSchema = z.object({
   id: z.number().int().optional(),
   caseId: z.string().min(1),
   name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(300).optional().default(''),
+  link: z.string().trim().max(200).nullable().optional(),
   rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic']),
   chance: z.number().min(0).max(100),
   icon: z.string().trim().max(40).default('coins'),

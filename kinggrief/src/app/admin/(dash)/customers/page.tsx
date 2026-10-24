@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Users } from 'lucide-react';
-import { listOrders, topCustomers } from '@/lib/repo';
+import { countUsers, listOrders, listUsers, topCustomers } from '@/lib/repo';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { AdminCard, Pill } from '@/components/admin/kit';
 
@@ -11,6 +11,8 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
   const includeDemo = demo === '1';
   const customers = topCustomers(60, includeDemo);
   const orders = listOrders({ limit: 500 });
+  const users = listUsers(100);
+  const accounts = countUsers();
   const totalSpent = customers.reduce((sum, c) => sum + c.spent, 0);
   const avg = customers.length ? Math.round(totalSpent / customers.length) : 0;
 
@@ -31,7 +33,8 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
         {[
           { label: 'Покупателей', value: `${customers.length}` },
           { label: 'Средний чек', value: formatPrice(avg) },
-          { label: 'Всего заказов в базе', value: `${orders.length}` },
+          { label: 'Заказов в базе', value: `${orders.length}` },
+          { label: 'Аккаунтов на сайте', value: `${accounts}` },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-white/7 bg-panel/40 p-3">
             <p className="font-mono text-[0.55rem] uppercase tracking-widest text-white/30">{stat.label}</p>
@@ -67,6 +70,40 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
                     <td className="font-mono text-[0.62rem] text-white/35">{formatDate(customer.lastAt)}</td>
                     <td>
                       <Link href={`/admin/orders?q=${encodeURIComponent(customer.nickname)}`} className="text-[0.66rem] font-semibold text-neon hover:underline">заказы →</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </AdminCard>
+
+      <AdminCard
+        title="Зарегистрированные аккаунты"
+        description="Игроки, создавшие аккаунт на сайте (не путать с покупателями по никнейму)"
+      >
+        {users.length === 0 ? (
+          <div className="py-10 text-center">
+            <Users size={22} className="mx-auto text-white/20" />
+            <p className="mt-2 text-[0.8rem] font-bold text-white/60">Аккаунтов пока нет</p>
+            <p className="mt-1 text-[0.72rem] text-white/30">Игроки могут зарегистрироваться на странице /register.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="admin-table min-w-[560px]">
+              <thead><tr><th>Никнейм</th><th>Email</th><th>Регистрация</th><th>Последний вход</th><th /></tr></thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td className="font-semibold text-white/85">{user.username}</td>
+                    <td className="text-[0.72rem] text-white/50">{user.email}</td>
+                    <td className="font-mono text-[0.62rem] text-white/35">{formatDate(user.createdAt)}</td>
+                    <td className="font-mono text-[0.62rem] text-white/35">{user.lastLoginAt ? formatDate(user.lastLoginAt) : '—'}</td>
+                    <td>
+                      <Link href={`/admin/orders?q=${encodeURIComponent(user.username)}`} className="text-[0.66rem] font-semibold text-neon hover:underline">
+                        заказы →
+                      </Link>
                     </td>
                   </tr>
                 ))}

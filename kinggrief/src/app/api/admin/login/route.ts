@@ -7,7 +7,7 @@ import { verifyTotp } from '@/lib/totp';
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
-  const limit = rateLimit(`login:${ip}`, 6, 10 * 60_000);
+  const limit = rateLimit(`login:${ip}`, 12, 10 * 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: 'Слишком много попыток входа. Повторите позже.' },

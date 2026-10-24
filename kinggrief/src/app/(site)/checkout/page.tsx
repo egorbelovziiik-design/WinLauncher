@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getSettings } from '@/lib/repo';
 import { activeProvider, isTestMode } from '@/lib/payments';
 import { CheckoutForm } from '@/components/checkout-form';
+import { currentUser } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'Оформление заказа',
@@ -10,10 +11,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function CheckoutPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function CheckoutPage() {
   const provider = activeProvider();
   const testMode = isTestMode();
   const settings = getSettings();
+  const user = await currentUser();
 
   return (
     <section className="container-x py-8 md:py-12">
@@ -29,7 +33,11 @@ export default function CheckoutPage() {
           подтверждения оплаты.
         </p>
       </div>
-      <CheckoutForm provider={provider} testMode={testMode} />
+      <CheckoutForm
+        provider={provider}
+        testMode={testMode}
+        user={user ? { username: user.username, email: user.email } : null}
+      />
     </section>
   );
 }

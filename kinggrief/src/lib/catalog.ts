@@ -451,7 +451,7 @@ export const CASE_GROUPS: CaseGroup[] = [
   },
 ];
 
-export const CASE_ITEMS: CaseItem[] = [
+const RAW_CASE_ITEMS: Array<Omit<CaseItem, 'description' | 'link'>> = [
   // Super — 100%
   { caseId: 'super', name: '100 риликов', rarity: 'common', chance: 30, icon: 'coins', color: '#94A3B8', sort: 1 },
   { caseId: 'super', name: '250 риликов', rarity: 'common', chance: 22, icon: 'coins', color: '#94A3B8', sort: 2 },
@@ -484,6 +484,33 @@ export const CASE_ITEMS: CaseItem[] = [
   { caseId: 'mega', name: '50 000 риликов', rarity: 'mythic', chance: 3, icon: 'coins', color: '#EF4444', sort: 8 },
   { caseId: 'mega', name: 'Привилегия D.OWNER', rarity: 'mythic', chance: 1, icon: 'crown-gold', color: '#FACC15', sort: 9 },
 ];
+
+/**
+ * Награды кейсов с человеческим описанием: что именно выпало и что это даёт.
+ * Привилегии получают ссылку на свою страницу, рилики — на пакеты валюты.
+ */
+export const CASE_ITEMS: CaseItem[] = RAW_CASE_ITEMS.map((item) => {
+  const rank = RANKS.find((r) => item.name === `Привилегия ${r.name}`);
+  if (rank) {
+    return {
+      ...item,
+      description: `${rank.subtitle}. ${rank.features.slice(0, 3).join(' · ')}.`,
+      link: `/privileges/${rank.id}`,
+    };
+  }
+  if (/рилик/.test(item.name)) {
+    return {
+      ...item,
+      description: `${item.name} игровой валюты «рилики» — зачисляются на баланс ника сразу после открытия.`,
+      link: '/relics',
+    };
+  }
+  return {
+    ...item,
+    description: 'Ключ от кейса — ещё одна попытка испытать удачу, выдаётся в игре.',
+    link: '/cases',
+  };
+});
 
 function buildProducts(): Product[] {
   const ranks: Product[] = RANKS.map((r, i) => ({

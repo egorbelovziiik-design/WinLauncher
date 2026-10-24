@@ -4,18 +4,20 @@ import { CartDrawer } from '@/components/cart-drawer';
 import { BannerStrip } from '@/components/banner-strip';
 import { getSettings } from '@/lib/repo';
 import { bridgeStatus } from '@/lib/delivery';
+import { currentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const settings = getSettings();
+  const user = await currentUser();
   const bridge = bridgeStatus();
   const online = bridge.connected ? Number(settings.bridge_online || 0) : Number(settings.online_base || 0);
   const max = Number(settings.bridge_max || settings.online_peak || 0);
 
   return (
     <div className="relative flex min-h-dvh flex-col">
-      <Header online={online} max={max} />
+      <Header online={online} max={max} user={user ? { username: user.username } : null} />
       <main className="flex-1 pt-[68px]">
         <BannerStrip
           enabled={settings.banner_active === 'true'}

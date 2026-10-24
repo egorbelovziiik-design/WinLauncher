@@ -132,7 +132,10 @@ export function CasesManager({ groups, packages }: { groups: GroupWithMeta[]; pa
                 <tbody>
                   {group.items.map((item) => (
                     <tr key={item.id}>
-                      <td className="font-semibold text-white/80">{item.name}</td>
+                      <td>
+                        <p className="font-semibold text-white/80">{item.name}</p>
+                        {item.description && <p className="mt-0.5 line-clamp-1 max-w-[260px] text-[0.66rem] text-white/30">{item.description}</p>}
+                      </td>
                       <td><Pill color={RARITY_META[item.rarity]?.color ?? '#94A3B8'}>{RARITY_META[item.rarity]?.label ?? item.rarity}</Pill></td>
                       <td className="stat-num text-white/85">{item.chance}%</td>
                       <td className="font-mono text-[0.62rem] text-white/30">{item.sort}</td>
@@ -159,6 +162,7 @@ export function CasesManager({ groups, packages }: { groups: GroupWithMeta[]; pa
                 setItemDraft({
                   caseId: group.id,
                   name: 'Новая награда',
+                  description: '',
                   rarity: 'rare',
                   chance: 1,
                   icon: 'sparkles',
@@ -227,6 +231,23 @@ export function CasesManager({ groups, packages }: { groups: GroupWithMeta[]; pa
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Название" className="sm:col-span-2">
               <input value={itemDraft.name} onChange={(e) => setItemDraft({ ...itemDraft, name: e.target.value })} className="field" />
+            </Field>
+            <Field label="Описание награды" hint="Показывается игроку в списке дропа и при открытии кейса." className="sm:col-span-2">
+              <textarea
+                value={itemDraft.description ?? ''}
+                onChange={(e) => setItemDraft({ ...itemDraft, description: e.target.value })}
+                rows={2}
+                className="field h-auto resize-none py-2"
+                maxLength={300}
+              />
+            </Field>
+            <Field label="Ссылка (необязательно)" hint="Например /privileges/king" className="sm:col-span-2">
+              <input
+                value={itemDraft.link ?? ''}
+                onChange={(e) => setItemDraft({ ...itemDraft, link: e.target.value || null })}
+                className="field font-mono text-xs"
+                placeholder="/privileges/king"
+              />
             </Field>
             <Field label="Редкость">
               <select

@@ -29,6 +29,7 @@ export default async function CasePage({ params }: Params) {
   const data = caseById(id);
   if (!data) notFound();
   const { group, items, packages, minPrice, chanceTotal } = data;
+  const rankRewards = items.filter((item) => item.link?.startsWith('/privileges/'));
 
   const allCases = (await import('@/lib/cases')).mergePackagesForCases().filter((c) => c.group.id !== group.id);
 
@@ -92,6 +93,48 @@ export default async function CasePage({ params }: Params) {
           ))}
         </div>
       </section>
+
+      {rankRewards.length > 0 && (
+        <section className="container-x pb-8">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <h2 className="display text-xl text-white sm:text-2xl">
+              Привилегии <span style={{ color: group.color }}>из этого кейса</span>
+            </h2>
+            <p className="text-[0.72rem] text-white/35">Выпадают целиком — со всеми возможностями уровня</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {rankRewards.map((reward) => (
+              <Link
+                key={reward.name}
+                href={reward.link ?? '/privileges'}
+                className="group relative overflow-hidden rounded-xl border p-4 transition hover:-translate-y-0.5"
+                style={{ borderColor: `${reward.color}35`, background: `linear-gradient(160deg, ${reward.color}12, transparent)` }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-mono text-[0.52rem] uppercase tracking-widest" style={{ color: reward.color }}>
+                      {RARITY_META[reward.rarity].label} · шанс {reward.chance}%
+                    </p>
+                    <p className="mt-1 font-display text-base font-extrabold uppercase tracking-tight text-white">
+                      {reward.name.replace('Привилегия ', '')}
+                    </p>
+                  </div>
+                  <span
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+                    style={{ background: `${reward.color}18`, color: reward.color }}
+                  >
+                    <Sparkles size={14} />
+                  </span>
+                </div>
+                <p className="mt-2 line-clamp-3 text-[0.72rem] leading-relaxed text-white/45">{reward.description}</p>
+                <span className="mt-2 inline-flex items-center gap-1 text-[0.66rem] font-bold" style={{ color: reward.color }}>
+                  Открыть привилегию <ArrowLeft size={11} className="rotate-180" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="container-x grid gap-6 pb-12 lg:grid-cols-[1.05fr_0.95fr]">
         <Reveal>

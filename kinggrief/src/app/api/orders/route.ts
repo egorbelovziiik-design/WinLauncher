@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { createOrderSchema, firstError } from '@/lib/validation';
 import { createCheckout, OrderError } from '@/lib/order-service';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { currentUser } from '@/lib/auth';
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
@@ -26,6 +27,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: firstError(parsed.error as ZodError) }, { status: 400 });
   }
 
+  const user = await currentUser();
+
   try {
     const result = await createCheckout({
       nickname: parsed.data.nickname,
@@ -34,6 +37,7 @@ export async function POST(req: Request) {
       promoCode: parsed.data.promoCode ?? null,
       note: parsed.data.note ?? null,
       ip,
+      userId: user?.id ?? null,
     });
     return NextResponse.json(
       {

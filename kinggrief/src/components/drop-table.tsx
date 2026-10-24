@@ -1,4 +1,5 @@
-import { Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ExternalLink, Sparkles } from 'lucide-react';
 import { RARITY_META } from '@/lib/types';
 import type { CaseItem } from '@/lib/types';
 
@@ -19,11 +20,25 @@ export function DropTable({ items, compact = false }: { items: CaseItem[]; compa
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-[0.76rem] font-semibold text-white/80">{item.name}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[0.76rem] font-semibold text-white/80">{item.name}</span>
+                    {item.link && !compact && (
+                      <Link
+                        href={item.link}
+                        aria-label={`Подробнее: ${item.name}`}
+                        className="shrink-0 text-white/25 transition hover:text-neon"
+                      >
+                        <ExternalLink size={11} />
+                      </Link>
+                    )}
+                  </span>
                   <span className="stat-num shrink-0 text-[0.7rem] font-bold" style={{ color: rarity.color }}>
                     {item.chance}%
                   </span>
                 </div>
+                {item.description && !compact && (
+                  <p className="mt-0.5 line-clamp-2 text-[0.64rem] leading-snug text-white/35">{item.description}</p>
+                )}
                 <div className="mt-1 flex items-center gap-2">
                   <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/6">
                     <div

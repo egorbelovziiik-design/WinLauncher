@@ -64,7 +64,15 @@ export function OnlinePill({ initialOnline, initialMax }: { initialOnline: numbe
   );
 }
 
-export function Header({ online, max }: { online: number; max: number }) {
+export function Header({
+  online,
+  max,
+  user,
+}: {
+  online: number;
+  max: number;
+  user?: { username: string } | null;
+}) {
   const pathname = usePathname();
   const { count, setDrawerOpen } = useCart();
   const [scrolled, setScrolled] = useState(false);
@@ -124,14 +132,29 @@ export function Header({ online, max }: { online: number; max: number }) {
             <div className="hidden sm:block">
               <OnlinePill initialOnline={online} initialMax={max} />
             </div>
-            <Link
-              href="/profile"
-              className="btn btn-ghost btn-icon hidden sm:inline-flex"
-              aria-label="Профиль и мои заказы"
-              title="Мои заказы"
-            >
-              <User size={17} />
-            </Link>
+            {user ? (
+              <Link
+                href="/account"
+                className="btn btn-ghost hidden items-center gap-2 sm:inline-flex"
+                aria-label={`Личный кабинет ${user.username}`}
+                title="Личный кабинет"
+              >
+                <span className="grid h-5 w-5 place-items-center rounded bg-gradient-to-br from-violet to-neon font-display text-[0.55rem] font-extrabold text-white">
+                  {user.username.slice(0, 2).toUpperCase()}
+                </span>
+                <span className="max-w-[7rem] truncate text-[0.72rem] font-bold text-white/80">{user.username}</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="btn btn-ghost hidden items-center gap-1.5 sm:inline-flex"
+                aria-label="Войти в аккаунт"
+                title="Войти в аккаунт"
+              >
+                <User size={15} />
+                <span className="text-[0.72rem] font-bold">Войти</span>
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
@@ -168,7 +191,12 @@ export function Header({ online, max }: { online: number; max: number }) {
                 <OnlinePill initialOnline={online} initialMax={max} />
               </div>
               <nav className="flex flex-col divide-y divide-white/5 overflow-y-auto" aria-label="Мобильная навигация">
-                {[{ href: '/', label: 'Главная' }, ...NAV, { href: '/profile', label: 'Мои заказы' }].map((item, i) => (
+                {[
+                  { href: '/', label: 'Главная' },
+                  ...NAV,
+                  { href: '/profile', label: 'Поиск заказов' },
+                  user ? { href: '/account', label: 'Личный кабинет' } : { href: '/login', label: 'Войти / Регистрация' },
+                ].map((item, i) => (
                   <motion.div
                     key={item.href}
                     initial={{ opacity: 0, x: -12 }}

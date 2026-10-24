@@ -241,6 +241,73 @@ async function main() {
   const afterLogout = await call('GET', '/api/admin/orders', { auth: false });
   assert('после выхода API закрыт', afterLogout.status === 401, `получено ${afterLogout.status}`);
 
+  log('\n9. Аккаунты игроков');
+  const loginPage = await call('GET', '/login', { auth: false, raw: true });
+  assert('страница входа доступна', loginPage.status === 200, `получено ${loginPage.status}`);
+  const registerPage = await call('GET', '/register', { auth: false, raw: true });
+  assert('страница регистрации доступна', registerPage.status === 200, `получено ${registerPage.status}`);
+  const accountAnon = await call('GET', '/account', { auth: false, raw: true });
+  assert('/account без входа → редирект', [307, 302, 308].includes(accountAnon.status), `получено ${accountAnon.status}`);
+
+  const nick = `E2E_${Date.now().toString(36).slice(-6)}`;
+  const email = `${nick.toLowerCase()}@example.com`;
+  const weak = await call('POST', '/api/auth/register', {
+    auth: false,
+    body: { username: nick, email, password: 'short', confirm: 'short', agree: true },
+  });
+  assert('слабый пароль отклонён', weak.status === 400, `получено ${weak.status}`);
+
+  const register = await call('POST', '/api/auth/register', {
+    body: { username: nick, email, password: 'Password123', confirm: 'Password123', agree: true },
+  });
+  assert('регистрация аккаунта', register.status === 201 && register.json?.user?.username === nick, `получено ${register.status}`);
+
+  const me = await call('GET', '/api/auth/me');
+  assert('сессия игрока активна', me.status === 200 && me.json?.user?.username === nick, `получено ${me.status}`);
+  const account = await call('GET', '/account', { raw: true });
+  assert('/account открывается после регистрации', account.status === 200, `получено ${account.status}`);
+
+  const duplicate = await call('POST', '/api/auth/register', {
+    body: { username: nick, email: `other-${email}`, password: 'Password123', confirm: 'Password123', agree: true },
+  });
+  assert('повторная регистрация ника отклонена', duplicate.status === 409, `получено ${duplicate.status}`);
+
+  const userOrder = await call('POST', '/api/orders', {
+    body: { nickname: nick, items: [{ productId: 'rank-god', quantity: 1 }], agree: true },
+  });
+  assert('заказ из аккаунта создан', userOrder.status === 201, `получено ${userOrder.status}`);
+  await call('POST', '/api/payments/mock/confirm', { body: { publicId: userOrder.json.publicId } });
+  const accountHtml = await (await call('GET', '/account', { raw: true })).text();
+  assert('заказ виден в личном кабинете', accountHtml.includes(userOrder.json.publicId));
+
+  const logoutUser = await call('POST', '/api/auth/logout', { body: {} });
+  assert('выход из аккаунта', logoutUser.status === 200);
+  const meAfter = await call('GET', '/api/auth/me');
+  assert('после выхода сессия игрока закрыта', meAfter.json?.user === null);
+
+  const badLogin = await call('POST', '/api/auth/login', { body: { login: nick, password: 'WrongPass1' } });
+  assert('неверный пароль игрока отклонён', badLogin.status === 401, `получено ${badLogin.status}`);
+  const goodLogin = await call('POST', '/api/auth/login', { body: { login: email, password: 'Password123' } });
+  assert('вход по email работает', goodLogin.status === 200 && goodLogin.json?.user?.username === nick, `получено ${goodLogin.status}`);
+  const profile = await call('PATCH', '/api/auth/profile', { body: { email: `updated-${email}` } });
+  assert('смена email в профиле', profile.status === 200, `получено ${profile.status}`);
+
+  log('\n10. Cookie админской сессии');
+  const rawLogin = await fetch(`${BASE}/api/admin/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
+  });
+  const sessionCookie = (rawLogin.headers.getSetCookie?.() ?? []).find((c) => c.startsWith('kg_admin=')) ?? '';
+  assert('админская cookie выдана', sessionCookie.length > 0);
+  const insecureHttp = BASE.startsWith('http://');
+  assert(
+    insecureHttp ? 'на http флаг Secure не ставится' : 'на https cookie защищена Secure',
+    insecureHttp ? !/;\s*secure/i.test(sessionCookie) : /;\s*secure/i.test(sessionCookie),
+    sessionCookie.slice(0, 120),
+  );
+  assert('cookie сессии недоступна из JS (HttpOnly)', /httponly/i.test(sessionCookie), sessionCookie.slice(0, 80));
+
   log(`\nИтог: ${passed} проверок пройдено, ${failures.length} с ошибками.`);
   if (failures.length > 0) {
     log('\nОшибки:');
