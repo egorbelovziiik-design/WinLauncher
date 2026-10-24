@@ -21,3 +21,4 @@ release-artifacts/
 site/dist/
 site/.vite/
 .vite/
+ci-logs/
