@@ -46,8 +46,8 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p "$GITHUB_WORKSPACE/ci-logs"
-          gradle build --no-daemon --console=plain --stacktrace 2>&1 \
-            | tail -c 200000 | tee "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}.log"
+          gradle build --no-daemon --console=plain 2>&1 \
+            | tee "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log"
 
       - name: Publish the build log on failure
         if: failure()
@@ -55,9 +55,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           {
-            echo "### Gradle log tail (${{ matrix.dir }})"
+            echo "### Gradle errors (${{ matrix.dir }})"
             echo '```'
-            tail -c 25000 "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}.log"
+            grep -vE "^\\s+at |^\\s*\\.\\.\\. |^$" "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log" | tail -70
+            echo '```'
+            echo
+            echo "### first 40 lines"
+            echo '```'
+            head -40 "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log"
             echo '```'
             echo
             echo "### available fabric-loom versions"
