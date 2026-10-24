@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>КП-KingGrief — пошаговая установка бота</title>
+<style>
+  :root{
+    --bg:#1e1f22; --bg2:#2b2d31; --bg3:#313338; --bg4:#383a40;
+    --line:#3f4147; --text:#dbdee1; --muted:#949ba4; --white:#f2f3f5;
+    --blurple:#5865f2; --green:#23a55a; --red:#f23f43; --yellow:#f0b232;
+    --orange:#f47b67; --cyan:#3ba55d;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"gg sans","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6; font-size:15px;
+  }
+  a{color:#00a8fc; text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- разметка ---------- */
+  .wrap{display:flex; max-width:1400px; margin:0 auto}
+  nav{
+    width:270px; flex:none; position:sticky; top:0; height:100vh; overflow-y:auto;
+    background:var(--bg2); border-right:1px solid var(--line); padding:22px 16px;
+  }
+  main{flex:1; padding:34px 40px 120px; min-width:0}
+  @media(max-width:900px){ .wrap{display:block} nav{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--line)} main{padding:22px} }
+
+  /* ---------- навигация ---------- */
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .shield{
+    width:38px;height:38px;border-radius:11px;background:var(--blurple);
+    display:grid;place-items:center;font-size:20px;flex:none
+  }
+  .brand b{color:var(--white);font-size:16px;display:block;line-height:1.2}
+  .brand span{color:var(--muted);font-size:12px}
+  nav ol{list-style:none;padding:0;margin:20px 0 0;counter-reset:s}
+  nav li{counter-increment:s;margin:2px 0}
+  nav a{
+    display:flex;gap:10px;align-items:baseline;padding:8px 11px;border-radius:8px;
+    color:var(--muted);font-size:13.5px;text-decoration:none;transition:.15s
+  }
+  nav a:hover{background:var(--bg4);color:var(--text);text-decoration:none}
+  nav a::before{content:counter(s);color:var(--blurple);font-weight:700;font-size:12px;min-width:16px}
+  .navnote{margin-top:22px;padding:12px;background:var(--bg3);border-radius:9px;font-size:12px;color:var(--muted);border-left:3px solid var(--yellow)}
+
+  /* ---------- заголовки ---------- */
+  h1{color:var(--white);font-size:30px;margin:0 0 8px;letter-spacing:-.4px}
+  .lead{color:var(--muted);font-size:16px;margin:0 0 28px;max-width:70ch}
+  h2{
+    color:var(--white);font-size:21px;margin:52px 0 6px;padding-top:22px;
+    border-top:1px solid var(--line);display:flex;align-items:center;gap:12px
+  }
+  h2:first-of-type{margin-top:26px;border-top:0;padding-top:0}
+  .num{
+    background:var(--blurple);color:#fff;width:30px;height:30px;border-radius:9px;
+    display:inline-grid;place-items:center;font-size:15px;font-weight:700;flex:none
+  }
+  h3{color:var(--white);font-size:16px;margin:26px 0 8px}
+  p{margin:10px 0}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:14px}
+
+  /* ---------- мок-окна ---------- */
+  .shot{
+    background:var(--bg3);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin:18px 0;box-shadow:0 8px 26px rgba(0,0,0,.35)
+  }
+  .bar{
+    background:var(--bg2);padding:9px 14px;display:flex;align-items:center;gap:8px;
+    border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)
+  }
+  .dot{width:11px;height:11px;border-radius:50%;background:#4e5058}
+  .bar b{color:var(--text);font-weight:600;margin-left:6px}
+  .tag{
+    margin-left:auto;background:#4e3a12;color:var(--yellow);padding:2px 9px;
+    border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:.3px
+  }
+  .body{padding:20px}
+
+  /* портал */
+  .row{display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg4);border-radius:9px;margin:8px 0}
+  .row .ic{width:34px;height:34px;border-radius:9px;background:var(--blurple);display:grid;place-items:center;font-size:17px;flex:none}
+  .row .t{flex:1;min-width:0}
+  .row .t b{color:var(--white);font-size:14px;display:block}
+  .row .t small{color:var(--muted);font-size:11.5px}
+  .btn{
+    background:var(--blurple);color:#fff;border:0;border-radius:7px;padding:9px 16px;
+    font-size:13.5px;font-weight:600;cursor:default;white-space:nowrap
+  }
+  .btn.g{background:var(--green)} .btn.r{background:var(--red)} .btn.o{background:#4e5058}
+  .btn.lg{padding:11px 22px;font-size:14.5px}
+
+  /* указатель клика */
+  .hit{position:relative;outline:2.5px solid var(--green);outline-offset:3px;border-radius:9px}
+  .hit::after{
+    content:attr(data-click);position:absolute;top:-13px;right:-8px;background:var(--green);
+    color:#fff;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.4px
+  }
+  .hit.r{outline-color:var(--red)} .hit.r::after{background:var(--red)}
+
+  /* тумблеры */
+  .tog{display:flex;align-items:center;gap:14px;padding:13px;background:var(--bg4);border-radius:9px;margin:8px 0}
+  .tog .t{flex:1}
+  .tog .t b{color:var(--white);font-size:13.5px;display:block}
+  .tog .t small{color:var(--muted);font-size:11.5px}
+  .sw{width:42px;height:24px;border-radius:20px;background:var(--green);position:relative;flex:none}
+  .sw::after{content:"";position:absolute;right:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+  .sw.off{background:#4e5058} .sw.off::after{right:auto;left:3px}
+
+  /* чекбоксы */
+  .cb{display:flex;align-items:center;gap:11px;padding:9px 12px;background:var(--bg4);border-radius:8px;margin:6px 0;font-size:13.5px}
+  .box{width:19px;height:19px;border-radius:5px;border:2px solid #6d6f78;flex:none}
+  .box.on{background:var(--blurple);border-color:var(--blurple);position:relative}
+  .box.on::after{content:"✓";position:absolute;inset:0;color:#fff;font-size:13px;display:grid;place-items:center;font-weight:800}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}}
+  .pane h4{color:var(--white);font-size:13px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.5px}
+
+  /* поле ввода / код */
+  .field{background:#1e1f22;border:1px solid var(--line);border-radius:8px;padding:11px 13px;font-family:"Consolas","Courier New",monospace;font-size:13px;color:var(--white);word-break:break-all}
+  .field .k{color:var(--green)} .field .v{color:var(--yellow)}
+  pre{
+    background:#1a1b1e;border:1px solid var(--line);border-radius:9px;padding:15px 17px;
+    overflow-x:auto;font-family:"Consolas","Courier New",monospace;font-size:12.8px;
+    line-height:1.65;margin:14px 0;color:#e3e5e8
+  }
+  pre .c{color:#6f737a} pre .g{color:#4ade80} pre .y{color:#facc15} pre .b{color:#60a5fa} pre .r{color:#f87171}
+  code{background:var(--bg4);padding:2px 6px;border-radius:5px;font-family:"Consolas",monospace;font-size:12.8px;color:#f0b232}
+
+  /* иерархия ролей */
+  .roles{display:flex;flex-direction:column;gap:5px}
+  .role{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg4);border-radius:8px;font-size:13.5px}
+  .role .grip{color:#6d6f78;cursor:default}
+  .role .pill{width:9px;height:9px;border-radius:50%;flex:none}
+  .role.me{outline:2.5px solid var(--green);outline-offset:2px}
+  .role.me::after{content:"робот здесь";margin-left:auto;color:var(--green);font-size:11px;font-weight:700}
+  .role.ctl::after{content:"контролируемая";margin-left:auto;color:var(--muted);font-size:11px}
+
+  /* дискорд-чат */
+  .chat{background:var(--bg3);border-radius:10px;padding:16px}
+  .msg{display:flex;gap:12px;margin:14px 0}
+  .av{width:38px;height:38px;border-radius:50%;background:var(--blurple);display:grid;place-items:center;font-size:18px;flex:none}
+  .msg .who{color:var(--white);font-weight:600;font-size:14px}
+  .msg .who span{color:var(--muted);font-weight:400;font-size:11.5px;margin-left:7px}
+  .embed{border-left:4px solid var(--blurple);background:var(--bg2);border-radius:5px;padding:13px 15px;margin-top:7px;max-width:560px}
+  .embed.gr{border-color:var(--green)} .embed.rd{border-color:var(--red)} .embed.yl{border-color:var(--yellow)} .embed.pu{border-color:#9b59b6}
+  .embed b{color:var(--white);font-size:14.5px;display:block;margin-bottom:7px}
+  .embed .l{font-size:13px;color:var(--text);margin:3px 0}
+  .dbtn{display:inline-block;background:var(--bg4);border-radius:6px;padding:7px 13px;font-size:12.5px;color:var(--white);margin:4px 5px 0 0}
+  .dbtn.gr{background:var(--green)} .dbtn.rd{background:var(--red)} .dbtn.bl{background:var(--blurple)}
+
+  /* блоки внимания */
+  .note{border-radius:10px;padding:14px 17px;margin:18px 0;font-size:14px;border-left:4px solid}
+  .note b{color:var(--white)}
+  .note.warn{background:#3a2f14;border-color:var(--yellow)}
+  .note.dang{background:#3d1f21;border-color:var(--red)}
+  .note.ok{background:#1c3326;border-color:var(--green)}
+  .note.info{background:#1e2a3d;border-color:#00a8fc}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  td code{font-size:12.5px}
+  tr:last-child td{border-bottom:0}
+
+  .steps{counter-reset:st;list-style:none;padding:0;margin:14px 0}
+  .steps li{counter-increment:st;position:relative;padding:0 0 14px 40px}
+  .steps li::before{
+    content:counter(st);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:8px;
+    background:var(--bg4);color:var(--white);display:grid;place-items:center;font-size:12.5px;font-weight:700
+  }
+  .kbd{background:var(--bg4);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 7px;font-size:12px;color:var(--white);font-family:monospace}
+  .fin{background:linear-gradient(135deg,#2d1b4e,#1e2a3d);border:1px solid var(--line);border-radius:13px;padding:24px;margin-top:34px}
+  .fin h2{border:0;margin:0 0 12px;padding:0}
+  .chk{display:flex;gap:10px;align-items:center;padding:6px 0;font-size:14px}
+  .chk::before{content:"✅";font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav>
+  <div class="brand">
+    <div class="shield">🛡️</div>
+    <div><b>КП-KingGrief</b><span>установка за 15 минут</span></div>
+  </div>
+  <ol>
+    <li><a href="#s1">Создать приложение</a></li>
+    <li><a href="#s2">Включить Intents</a></li>
+    <li><a href="#s3">Скопировать токен</a></li>
+    <li><a href="#s4">Ссылка приглашения</a></li>
+    <li><a href="#s5">Пригласить на сервер</a></li>
+    <li><a href="#s6">Иерархия ролей</a></li>
+    <li><a href="#s7">Файл .env</a></li>
+    <li><a href="#s8">Запуск бота</a></li>
+    <li><a href="#s9">/setup — каналы и роли</a></li>
+    <li><a href="#s10">Проверка работы</a></li>
+    <li><a href="#s11">Еженедельная проверка</a></li>
+    <li><a href="#s12">Если не работает</a></li>
+  </ol>
+  <div class="navnote">
+    ⚠️ Изображения ниже — <b>воссозданные схемы</b> интерфейса, а не скриншоты.
+    Названия кнопок и разделов совпадают с реальными.
+  </div>
+</nav>
+
+<main>
+  <h1>🛡️ КП-KingGrief — установка с нуля</h1>
+  <p class="lead">
+    12 шагов от пустого Discord-аккаунта разработчика до работающего бота контроля
+    персонала. Время: ~15 минут. Ничего в коде править не нужно — всё настраивается
+    командами внутри Discord.
+  </p>
+
+  <div class="note info">
+    <b>Что понадобится:</b> права <i>Администратора</i> на сервере KingGrief,
+    установленный Python 3.11+ <i>или</i> собранный <code>КП-KingGrief.exe</code>,
+    и 15 минут времени.
+  </div>
+
+  <!-- ================= 1 ================= -->
+  <h2 id="s1"><span class="num">1</span> Создать приложение</h2>
+  <p class="sub">Регистрируем «личность» бота в Discord. Это бесплатно.</p>
+
+  <ol class="steps">
+    <li>Откройте <a href="https://discord.com/developers/applications" target="_blank">discord.com/developers/applications</a> и войдите в свой аккаунт.</li>
+    <li>Нажмите синюю кнопку <b>New Application</b> в правом верхнем углу.</li>
+    <li>Введите имя <code>КП-KingGrief</code> → поставьте галочку согласия → <b>Create</b>.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Discord Developer Portal — Applications</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <b style="color:var(--white);font-size:16px">Applications</b>
+        <div class="hit" data-click="КЛИК №1"><button class="btn">New Application</button></div>
+      </div>
+      <div style="background:#1e1f22;border:1px solid var(--line);border-radius:11px;padding:24px;max-width:430px;margin:0 auto">
+        <div style="color:var(--white);font-weight:600;margin-bottom:14px">New Application</div>
+        <div class="hit" data-click="КЛИК №2" style="margin-bottom:14px">
+          <div class="field">КП-KingGrief<span style="color:#6d6f78">|</span></div>
+        </div>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--muted);margin-bottom:16px">
+          <span class="box on" style="margin-top:1px"></span>
+          <span>I agree to the Discord Developer Terms of Service…</span>
+        </label>
+        <div class="hit" data-click="КЛИК №3" style="text-align:right"><button class="btn">Create</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2 ================= -->
+  <h2 id="s2"><span class="num">2</span> Включить Privileged Intents</h2>
+  <p class="sub">Без этих двух переключателей бот <b>не запустится вообще</b>.</p>
+
+  <ol class="steps">
+    <li>В меню слева выберите раздел <b>Bot</b>.</li>
+    <li>Прокрутите до блока <b>Privileged Gateway Intents</b>.</li>
+    <li>Включите <b>оба</b> переключателя и нажмите <b>Save Changes</b> внизу.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Developer Portal → Bot</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <div style="display:flex;gap:20px">
+        <div style="width:170px;flex:none">
+          <div style="color:var(--muted);font-size:11px;text-transform:uppercase;margin-bottom:8px">Settings</div>
+          <div style="padding:8px 11px;border-radius:7px;font-size:13.5px;color:var(--muted)">General Information</div>
+          <div class="hit" data-click="КЛИК" style="padding:8px 11px;border-radius:7px;font-size:13.5px;background:var(--bg4);color:var(--white)">Bot</div>
+          <div style="padding:8px 11px;border-radius:7px;font-size:13.5px;color:var(--muted)">OAuth2</div>
+        </div>
+        <div style="flex:1">
+          <b style="color:var(--white);font-size:15px;display:block;margin-bottom:4px">Privileged Gateway Intents</b>
+          <small style="color:var(--muted);font-size:12px">Без них бот выведет ошибку <code>PrivilegedIntentsRequired</code></small>
+
+          <div class="tog hit" data-click="ВКЛЮЧИТЬ" style="margin-top:14px">
+            <div class="t"><b>SERVER MEMBERS INTENT</b><small>Бот видит роли участников — ищет сотрудников по должностям</small></div>
+            <div class="sw"></div>
+          </div>
+          <div class="tog hit" data-click="ВКЛЮЧИТЬ">
+            <div class="t"><b>MESSAGE CONTENT INTENT</b><small>Бот читает текст сообщений — распознаёт отчёты</small></div>
+            <div class="sw"></div>
+          </div>
+          <div class="tog">
+            <div class="t"><b>PRESENCE INTENT</b><small>Не требуется — можно не включать</small></div>
+            <div class="sw off"></div>
+          </div>
+
+          <div style="text-align:right;margin-top:16px"><button class="btn g">Save Changes</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note dang">
+    <b>Самая частая ошибка установки.</b> Забытые Intents выглядят как «бот не работает»,
+    хотя токен верный. В логе будет строка <code>PrivilegedIntentsRequired</code>.
+  </div>
+
+  <!-- ================= 3 ================= -->
+  <h2 id="s3"><span class="num">3</span> Скопировать токен</h2>
+  <p class="sub">Токен — это пароль бота. Показывается один раз.</p>
+
+  <ol class="steps">
+    <li>Там же, в разделе <b>Bot</b>, блок <b>Token</b> → нажмите <b>Reset Token</b>.</li>
+    <li>Подтвердите (может попросить пароль или 2FA).</li>
+    <li>Нажмите <b>Copy</b> и сразу сохраните токен в блокнот.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Developer Portal → Bot → Token</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <b style="color:var(--white);font-size:15px">Token</b>
+      <p style="color:var(--muted);font-size:12.5px;margin:4px 0 14px">
+        Your bot's token is the unique identifier and authentication credential…
+      </p>
+      <div class="hit" data-click="СКОПИРОВАТЬ" style="display:flex;align-items:center;gap:12px">
+        <div class="field" style="flex:1">
+          <span style="color:var(--white)">MTIzNDU2Nzg5MDEyMzQ1Njc4.xYzAbC.dQw4w9WgXcQ_md_ваш_токен</span>
+        </div>
+        <button class="btn">Copy</button>
+      </div>
+      <div style="margin-top:12px;text-align:right"><button class="btn o">Reset Token</button></div>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <b>Токен не встраивается в EXE</b> — специально. Он будет лежать в файле
+    <code>.env</code> рядом с программой. Если токен утечёт — кто угодно сможет
+    управлять ботом. Не публикуйте его и не отправляйте в чаты.
+  </div>
+
+  <!-- ================= 4 ================= -->
+  <h2 id="s4"><span class="num">4</span> Собрать ссылку приглашения</h2>
+  <p class="sub">Отмечаем scopes и права — портал сам соберёт URL.</p>
+
+  <ol class="steps">
+    <li>В меню слева → <b>OAuth2</b> → <b>OAuth2 URL Generator</b>.</li>
+    <li>В <b>Scopes</b> отметьте <code>bot</code> и <code>applications.commands</code>.</li>
+    <li>В <b>Bot Permissions</b> отметьте 7 прав из списка ниже.</li>
+    <li>Скопируйте URL из поля <b>Generated URL</b> внизу.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Developer Portal → OAuth2 → URL Generator</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <div class="cols">
+        <div class="pane">
+          <h4>Scopes</h4>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span><b>bot</b></div>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span><b>applications.commands</b></div>
+          <div class="cb"><span class="box"></span>applications.commands.permissions.update</div>
+          <div class="cb"><span class="box"></span>webhook.incoming</div>
+        </div>
+        <div class="pane">
+          <h4>Bot Permissions</h4>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span>View Channels</div>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span>Send Messages</div>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span>Embed Links</div>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span>Attach Files</div>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span>Read Message History</div>
+          <div class="cb hit r" data-click="ОБЯЗАТЕЛЬНО"><span class="box on"></span><b>Manage Roles</b></div>
+          <div class="cb hit" data-click="ОТМЕТИТЬ"><span class="box on"></span>Use Application Commands</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <h4 style="color:var(--white);font-size:13px;margin:0 0 9px">Generated URL</h4>
+        <div class="hit" data-click="КОПИРОВАТЬ">
+          <div class="field" style="font-size:11.5px">
+            https://discord.com/api/oauth2/authorize?client_id=123456789&permissions=268446720&scope=bot%20applications.commands
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Право</th><th>Зачем нужно боту</th></tr>
+    <tr><td><code>View Channels</code></td><td>видеть каналы сервера</td></tr>
+    <tr><td><code>Send Messages</code></td><td>отвечать на команды</td></tr>
+    <tr><td><code>Embed Links</code></td><td>красивые цветные Embed'ы</td></tr>
+    <tr><td><code>Attach Files</code></td><td>кнопка «📥 Скачать TXT» в <code>/ot</code></td></tr>
+    <tr><td><code>Read Message History</code></td><td>сканировать старые отчёты в <code>/sync</code></td></tr>
+    <tr><td><code>Manage Roles</code></td><td><b>снятие должности после 3-го варна</b></td></tr>
+    <tr><td><code>Use Application Commands</code></td><td>slash-команды</td></tr>
+  </table>
+
+  <div class="note warn">
+    <b>Administrator не нужен.</b> Бот работает и без него. Не выдавайте лишнее.
+  </div>
+
+  <!-- ================= 5 ================= -->
+  <h2 id="s5"><span class="num">5</span> Пригласить на сервер</h2>
+  <p class="sub">Вставляем ссылку в браузер и выбираем сервер KingGrief.</p>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>discord.com/api/oauth2/authorize — авторизация</b><span class="tag">СХЕМА</span></div>
+    <div class="body" style="background:#2b2d31">
+      <div style="max-width:430px;margin:0 auto;background:var(--bg3);border-radius:11px;padding:24px">
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px">
+          <div class="av" style="width:52px;height:52px;font-size:26px">🛡️</div>
+          <div><b style="color:var(--white);font-size:17px;display:block">КП-KingGrief</b>
+          <small style="color:var(--muted);font-size:12px">хочет присоединиться к серверу</small></div>
+        </div>
+
+        <div style="color:var(--muted);font-size:11px;text-transform:uppercase;margin-bottom:8px">Add to server</div>
+        <div class="hit" data-click="ВЫБРАТЬ" style="display:flex;align-items:center;gap:11px;padding:11px 13px;background:var(--bg4);border-radius:9px;margin-bottom:16px">
+          <div style="width:26px;height:26px;border-radius:7px;background:#5865f2;display:grid;place-items:center;font-size:13px">K</div>
+          <b style="color:var(--white);font-size:14px;flex:1">KingGrief</b>
+          <span style="color:var(--muted)">▾</span>
+        </div>
+
+        <div style="background:#1e1f22;border-radius:9px;padding:13px;margin-bottom:16px">
+          <div style="color:var(--white);font-size:13px;font-weight:600;margin-bottom:8px">Бот получит доступ:</div>
+          <div style="color:var(--green);font-size:12.5px">✓ Создавать команды</div>
+          <div style="color:var(--green);font-size:12.5px">✓ Просматривать каналы</div>
+          <div style="color:var(--green);font-size:12.5px">✓ Отправлять сообщения</div>
+          <div style="color:var(--red);font-size:12.5px">✓ Управлять ролями</div>
+        </div>
+
+        <div class="hit" data-click="КЛИК" style="text-align:center"><button class="btn lg" style="width:100%">Продолжить</button></div>
+        <div style="text-align:center;margin-top:10px"><button class="btn o" style="width:100%">Авторизоваться</button></div>
+      </div>
+    </div>
+  </div>
+
+  <p>После капчи бот появится в списке участников сервера со статусом «Не в сети».
+  Это нормально — он ещё не запущен.</p>
+
+  <!-- ================= 6 ================= -->
+  <h2 id="s6"><span class="num">6</span> Выстроить иерархию ролей</h2>
+  <p class="sub">
+    Критичный шаг. Если роль бота окажется <b>ниже</b> контролируемых — Discord
+    физически не даст снять должность, и бот честно напишет «не могу снять роль».
+  </p>
+
+  <ol class="steps">
+    <li>Настройки сервера → <b>Роли</b>.</li>
+    <li>Перетащите роль <b>КП-KingGrief</b> <b>выше</b> всех должностей персонала.</li>
+    <li>Проверьте, что роли называются ровно как в списке справа.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Настройки сервера → Роли (порядок сверху вниз)</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <div style="display:flex;gap:22px;flex-wrap:wrap">
+        <div style="flex:1;min-width:290px">
+          <h4 style="color:var(--white);font-size:13px;margin:0 0 10px">Как должно быть</h4>
+          <div class="roles">
+            <div class="role"><span class="grip">⠿</span><span class="pill" style="background:#99aab5"></span>@everyone</div>
+            <div class="role me"><span class="grip">⠿</span><span class="pill" style="background:#5865f2"></span>КП-KingGrief</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#e74c3c"></span>Админ</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#e67e22"></span>Мл.Админ</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#f1c40f"></span>Гл.Модер</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#2ecc71"></span>Ст.Модер</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#3498db"></span>Модер</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#9b59b6"></span>Мл.Модер</div>
+            <div class="role ctl"><span class="grip">⠿</span><span class="pill" style="background:#95a5a6"></span>Стажер</div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:250px">
+          <h4 style="color:var(--white);font-size:13px;margin:0 0 10px">Точные названия ролей</h4>
+          <div style="font-size:13px;line-height:2">
+            <code>Стажер</code><br><code>Мл.Модер</code><br><code>Модер</code><br>
+            <code>Ст.Модер</code><br><code>Гл.Модер</code><br><code>Мл.Админ</code><br><code>Админ</code>
+          </div>
+          <div class="note info" style="margin-top:14px;font-size:12.5px">
+            Дополнительно (по умолчанию выключены, включаются кнопкой в <code>/setup</code>):<br>
+            <code>Д.Модер</code> <code>Д.Ст.Модер</code> <code>Д.Гл.Модер</code> <code>Д.Админ</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note dang">
+    <b>Названия должны совпадать посимвольно</b>, включая точки. «Мл. модер» с пробелом
+    не найдётся. Бот ищет роли именно по названию — и не выдумывает ID.
+    Расхождения покажет команда <code>/sync</code> в блоке «🔴 Не найдены роли».
+  </div>
+
+  <!-- ================= 7 ================= -->
+  <h2 id="s7"><span class="num">7</span> Создать файл .env</h2>
+  <p class="sub">Три строки — и бот знает, кто он и где работает.</p>
+
+  <ol class="steps">
+    <li>Создайте папку, например <code>C:\KingGriefBot\</code>.</li>
+    <li>Положите туда <code>КП-KingGrief.exe</code> (или весь проект, если запускаете из исходников).</li>
+    <li>Создайте в этой же папке текстовый файл с именем <code>.env</code> — именно с точкой в начале.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Блокнот — .env</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <div class="field" style="line-height:2">
+        <span class="c" style="color:#6f737a"># обязательно</span><br>
+        <span class="k">DISCORD_TOKEN</span>=<span class="v">MTIzNDU2Nzg5.xYzAbC.dQw4w9WgXcQ_ваш_токен</span><br><br>
+        <span style="color:#6f737a"># ваш Discord ID — полные права над ботом</span><br>
+        <span class="k">OWNER_ID</span>=<span class="v">123456789012345678</span><br><br>
+        <span style="color:#6f737a"># ID сервера — команды появятся мгновенно</span><br>
+        <span class="k">TEST_GUILD_ID</span>=<span class="v">987654321098765432</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Где взять ID</h3>
+  <p>Discord → Настройки → <b>Расширенные</b> → включите <b>Режим разработчика</b>.
+  После этого правой кнопкой по себе → <b>Копировать ID</b>, по серверу → <b>Копировать ID сервера</b>.</p>
+
+  <div class="note warn">
+    <b>Про <code>TEST_GUILD_ID</code>.</b> Без него команды синхронизируются глобально —
+    Discord может показывать их с задержкой <b>до часа</b>. С ним появляются за секунды.
+    Для одного сервера оставляйте всегда.
+  </div>
+
+  <div class="note info">
+    <b>Windows прячет расширения.</b> Включите вид расширений: Проводник → <b>Вид</b> →
+    <b>Показать</b> → ✅ <b>Расширения имён файлов</b>. Иначе файл сохранится как
+    <code>.env.txt</code> и бот его не увидит.
+  </div>
+
+  <!-- ================= 8 ================= -->
+  <h2 id="s8"><span class="num">8</span> Запустить бота</h2>
+
+  <h3>Вариант А — EXE</h3>
+  <p>Двойной клик по <code>КП-KingGrief.exe</code>. Откроется консоль:</p>
+  <pre><span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  🛡️  <span class="b">КП-KingGrief v1.0.0</span>
+  Контроль персонала Discord-сервера KingGrief
+  📁 Каталог: C:\KingGriefBot
+  💾 База:    C:\KingGriefBot\data\kinggrief.db
+  📜 Логи:    C:\KingGriefBot\logs
+<span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+<span class="g">INFO</span>  База данных подключена: data\kinggrief.db
+<span class="g">INFO</span>  Миграция v1 применена.
+<span class="g">INFO</span>  Cog загружен: Отчёты
+<span class="g">INFO</span>  Cog загружен: Предупреждения
+<span class="g">INFO</span>  Синхронизировано slash-команд: 19
+<span class="g">INFO</span>  Канал «Отчёты КП» → отчеты-кп
+<span class="g">INFO</span>  Канал «Варны КП» → варны-кп
+<span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+  🛡️  КП-KingGrief v1.0.0 запущен
+  🌐 Серверов: 1
+  🟢 🛡️ Контролирует персонал KingGrief
+<span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span></pre>
+
+  <h3>Вариант Б — из исходников</h3>
+  <pre><span class="c">cd KP-KingGrief</span>
+python -m venv .venv
+<span class="c"># Windows:</span> .venv\Scripts\activate
+<span class="c"># Linux/mac:</span> source .venv/bin/activate
+
+pip install "discord.py>=2.4,<3" python-dotenv "APScheduler>=3.10,<4" tzdata
+python main.py</pre>
+
+  <div class="note ok">
+    <b>Признак успеха:</b> в Discord бот сменил статус на <b>🟢 Онлайн</b>,
+    а под ником появилась активность <i>«🛡️ Контролирует персонал KingGrief»</i>.
+  </div>
+
+  <!-- ================= 9 ================= -->
+  <h2 id="s9"><span class="num">9</span> Настроить каналы и роли — /setup</h2>
+  <p class="sub">
+    Бот уже сам нашёл категорию «Кп Сервера» и каналы внутри неё.
+    Команда <code>/setup</code> показывает результат и позволяет поправить вручную.
+  </p>
+
+  <p>В любом канале напишите <code>/setup</code> и нажмите Enter:</p>
+
+  <div class="shot">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><b>Discord — #стафф-чат</b><span class="tag">СХЕМА</span></div>
+    <div class="body">
+      <div class="chat">
+        <div class="msg">
+          <div class="av" style="background:#23a55a">👤</div>
+          <div style="flex:1">
+            <div class="who">ГлавныйАдмин <span>сегодня в 20:14</span></div>
+            <div style="background:var(--bg4);display:inline-block;padding:4px 10px;border-radius:6px;font-size:13px;margin-top:4px">/setup</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="av">🛡️</div>
+          <div style="flex:1">
+            <div class="who">КП-KingGrief <span style="background:var(--blurple);color:#fff;padding:1px 6px;border-radius:4px;font-size:10px">БОТ</span><span>сегодня в 20:14</span></div>
+            <div class="embed">
+              <b>🔵 КП-KingGrief | ПЕРВОНАЧАЛЬНАЯ НАСТРОЙКА</b>
+              <div class="l">Сервер: <b style="display:inline;color:var(--white)">KingGrief</b></div>
+              <div class="l" style="margin-top:9px;color:var(--white);font-weight:600">📺 Каналы</div>
+              <div class="l">✅ 📋 Отчёты КП: <span style="color:#00a8fc">#отчеты-кп</span></div>
+              <div class="l">✅ ⚠️ Варны КП: <span style="color:#00a8fc">#варны-кп</span></div>
+              <div class="l">✅ 💬 Стафф-чат: <span style="color:#00a8fc">#стафф-чат</span></div>
+              <div class="l">✅ 📢 Объявления: <span style="color:#00a8fc">#объявления-администрации</span></div>
+              <div class="l">✅ ℹ️ Информация КП: <span style="color:#00a8fc">#информация-кп</span></div>
+              <div class="l">✅ 🕵️ Анти-чит: <span style="color:#00a8fc">#анти-чит-сервера</span></div>
+              <div class="l" style="margin-top:9px;color:var(--white);font-weight:600">🎭 Роли</div>
+              <div class="l">Найдено на сервере: <b style="display:inline;color:var(--white)">7/11</b></div>
+              <div class="l">Отслеживается: <b style="display:inline;color:var(--white)">7</b> · Сотрудников в базе: <b style="display:inline;color:var(--white)">15</b></div>
+            </div>
+            <div style="margin-top:9px">
+              <span class="dbtn gr">🛰️ Найти автоматически</span>
+              <span class="dbtn bl">📋 Канал отчётов</span>
+              <span class="dbtn bl">⚠️ Канал варнов</span>
+              <span class="dbtn bl">💬 Стафф-чат</span>
+              <span class="dbtn">🎭 Роли прав</span>
+              <span class="dbtn">➕ Должности Д.*</span>
+              <span class="dbtn">🔄 Обновить меню</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Что проверить</h3>
+  <table>
+    <tr><th>Строка</th><th>Что должно быть</th></tr>
+    <tr><td>📺 Каналы</td><td>Все 6 строк с ✅ и ссылками на каналы. ⚠️ = канал не найден → кнопка нужного канала → селектор</td></tr>
+    <tr><td>🎭 Роли «Найдено»</td><td><code>7/11</code> — 7 основных. Если меньше, названия ролей не совпадают</td></tr>
+    <tr><td>Сотрудников в базе</td><td>Число людей с должностями. <code>0</code> = нажмите «🛰️ Найти автоматически»</td></tr>
+    <tr><td>🔴 Не найдены роли</td><td>Блока нет = всё хорошо. Есть = сверьте названия со списком из шага 6</td></tr>
+  </table>
+
+  <h3>Права доступа</h3>
+  <p>Кнопка <b>🎭 Роли прав</b> → четыре селектора. Заполните по своей структуре:</p>
+  <table>
+    <tr><th>Селектор</th><th>Кого выбрать</th><th>Что получат</th></tr>
+    <tr><td>👑 Главные администраторы</td><td>Админ, Гл.Модер</td><td>варны, снятие ролей, настройки</td></tr>
+    <tr><td>🛡️ Старший состав</td><td>Ст.Модер</td><td>просмотр отчётов, персонала, варнов</td></tr>
+    <tr><td>👮 Модераторы</td><td>Модер, Мл.Модер</td><td>свой профиль, свои отчёты и варны</td></tr>
+    <tr><td>🎓 Стажеры</td><td>Стажер</td><td>свой профиль и свои отчёты</td></tr>
+  </table>
+
+  <div class="note ok">
+    Эти корзины <b>заполняются автоматически</b> при первом запуске. Всё, что вы
+    настроите руками, бот никогда не перезапишет.
+  </div>
+
+  <!-- ================= 10 ================= -->
+  <h2 id="s10"><span class="num">10</span> Проверить работу</h2>
+  <p class="sub">Четыре команды — и вы уверены, что всё живое.</p>
+
+  <h3>10.1 &nbsp;<code>/sync</code> — полная сверка</h3>
+  <div class="embed gr" style="max-width:600px">
+    <b>✅ Синхронизация завершена</b>
+    <div class="l">📺 Каналов найдено: <b style="display:inline;color:var(--white)">6</b></div>
+    <div class="l">🎭 Ролей найдено: <b style="display:inline;color:var(--white)">7/11</b></div>
+    <div class="l">👥 Сотрудников: <b style="display:inline;color:var(--white)">15</b> (новых 15, обновлено 0, снято 0)</div>
+    <div class="l">📋 Отчётов добавлено из истории: <b style="display:inline;color:var(--white)">0</b></div>
+  </div>
+
+  <h3>10.2 &nbsp;<code>/ot</code> — кто сдал отчёты</h3>
+  <div class="embed pu" style="max-width:600px">
+    <b>📊 КП-KingGrief | ОТЧЁТЫ ПЕРСОНАЛА</b>
+    <div class="l">📅 Период: текущая неделя</div>
+    <div class="l" style="margin-top:10px;color:var(--white);font-weight:600">✅ СДАЛИ ОТЧЁТЫ (10)</div>
+    <div class="l">🟢 @Username1</div>
+    <div class="l">🎖️ Должность: Стажер &nbsp;·&nbsp; 📋 Отчётов: 2 &nbsp;·&nbsp; ✅ Сдал</div>
+    <div class="l" style="margin-top:10px;color:var(--white);font-weight:600">❌ НЕ СДАЛИ ОТЧЁТЫ (5)</div>
+    <div class="l">🔴 @Username4</div>
+    <div class="l">🎖️ Должность: Модер &nbsp;·&nbsp; 📋 Отчётов: 0 &nbsp;·&nbsp; ❌ Не сдал</div>
+    <div class="l" style="margin-top:10px;color:var(--white);font-weight:600">📈 СТАТИСТИКА</div>
+    <div class="l">👥 Всего: <b style="display:inline;color:var(--white)">15</b> · ✅ Сдали: <b style="display:inline;color:var(--white)">10</b> · ❌ Не сдали: <b style="display:inline;color:var(--white)">5</b> · 📊 Выполнение: <b style="display:inline;color:var(--white)">67%</b></div>
+    <div style="margin-top:9px">
+      <span class="dbtn">🔄 Обновить</span><span class="dbtn">✅ Сдали</span>
+      <span class="dbtn">❌ Не сдали</span><span class="dbtn bl">📊 Статистика</span>
+      <span class="dbtn gr">📥 Скачать TXT</span>
+    </div>
+  </div>
+
+  <h3>10.3 &nbsp;<code>/warn @сотрудник количество:1</code> — тест варна</h3>
+  <div class="embed yl" style="max-width:600px">
+    <b>⚠️ КП-KINGGRIEF | ПРЕДУПРЕЖДЕНИЕ</b>
+    <div class="l">👤 Сотрудник: @Username4</div>
+    <div class="l">🎖️ Должность: Модер</div>
+    <div class="l">⚠️ Варны: <b style="display:inline;color:var(--white)">1/3</b></div>
+    <div class="l">📝 Причина: Опоздание на смену</div>
+    <div class="l">👮 Выдал: @ГлавныйАдмин</div>
+    <div class="l">📅 Дата: 24.10.2026 20:31</div>
+    <div class="l" style="margin-top:8px">🟡 Статус: Первое предупреждение</div>
+  </div>
+  <p style="color:var(--muted);font-size:13.5px">Это сообщение продублируется в канал <code>#варны-кп</code>.</p>
+
+  <h3>10.4 &nbsp;<code>/warn @сотрудник количество:3</code> — тест снятия роли</h3>
+  <div class="embed" style="border-color:var(--orange);max-width:600px">
+    <b>🛡️ КП-KINGGRIEF | ТРЕБУЕТСЯ ПОДТВЕРЖДЕНИЕ</b>
+    <div class="l">Сотрудник набрал максимальное количество предупреждений.</div>
+    <div class="l">👤 Сотрудник: @Username4 &nbsp;·&nbsp; 🎖️ Модер &nbsp;·&nbsp; ⚠️ <b style="display:inline;color:var(--white)">3/3</b></div>
+    <div class="l">🎭 Контролируемые роли: <code>Модер</code></div>
+    <div style="margin-top:9px">
+      <span class="dbtn rd">✅ Подтвердить снятие</span>
+      <span class="dbtn">❌ Отменить</span>
+    </div>
+  </div>
+
+  <div class="note dang">
+    <b>Роль снимется только после нажатия «✅ Подтвердить снятие»</b> — и только
+    уполномоченным администратором. Снимется ровно <code>Модер</code>, посторонние
+    роли бот не тронет. Если у человека несколько должностей — появится выпадающий
+    список для выбора конкретной.
+  </div>
+
+  <div class="note warn">
+    <b>После теста откатите:</b> <code>/clearwarns @сотрудник</code> и верните роль вручную.
+  </div>
+
+  <!-- ================= 11 ================= -->
+  <h2 id="s11"><span class="num">11</span> Еженедельная проверка</h2>
+  <p class="sub">По умолчанию — каждое воскресенье в 20:00 по Москве. Варны за отсутствие отчёта не выдаются.</p>
+
+  <pre><span class="c"># посмотреть текущее расписание</span>
+/settings
+
+<span class="c"># перенести на пятницу 18:30</span>
+/settings параметр:<span class="y">weekly_check_day</span>   значение:<span class="g">fri</span>
+/settings параметр:<span class="y">weekly_check_hour</span>  значение:<span class="g">18</span>
+/settings параметр:<span class="y">weekly_check_minute</span> значение:<span class="g">30</span>
+
+<span class="c"># куда публиковать итоги (по умолчанию — в канал отчётов)</span>
+/panel  →  кнопка канала в /setup → «📊 Канал еженед. отчёта»</pre>
+
+  <div class="embed pu" style="max-width:560px">
+    <b>📊 ЕЖЕНЕДЕЛЬНЫЙ ОТЧЁТ КП</b>
+    <div class="l">👥 Всего сотрудников: <b style="display:inline;color:var(--white)">15</b></div>
+    <div class="l">✅ Сдали: <b style="display:inline;color:var(--white)">12</b> &nbsp;·&nbsp; ❌ Не сдали: <b style="display:inline;color:var(--white)">3</b></div>
+    <div class="l">📈 Выполнение: <b style="display:inline;color:var(--white)">80%</b></div>
+    <div class="l" style="margin-top:9px;color:var(--white);font-weight:600">❌ НЕ СДАЛИ</div>
+    <div class="l">@Username1 — Стажер</div>
+    <div class="l">@Username2 — Мл.Модер</div>
+    <div class="l">@Username3 — Админ</div>
+    <div class="l" style="margin-top:9px;color:var(--muted);font-size:12px">
+      ℹ️ Предупреждения за отсутствие отчёта не выдаются автоматически.
+    </div>
+  </div>
+
+  <!-- ================= 12 ================= -->
+  <h2 id="s12"><span class="num">12</span> Если не работает</h2>
+
+  <table>
+    <tr><th>Что видите</th><th>Причина</th><th>Решение</th></tr>
+    <tr><td><code>❌ Не найден токен бота</code></td><td>нет <code>.env</code> или пустой токен</td><td>шаг 7</td></tr>
+    <tr><td><code>PrivilegedIntentsRequired</code></td><td>не включены Intents</td><td>шаг 2</td></tr>
+    <tr><td><code>Неверный токен бота</code></td><td>токен сброшен или скопирован с пробелом</td><td>перескопируйте, шаг 3</td></tr>
+    <tr><td>Бот онлайн, но команд нет</td><td>не задан <code>TEST_GUILD_ID</code></td><td>шаг 7, либо подождите до часа</td></tr>
+    <tr><td><code>❌ Недостаточно прав</code></td><td>ваша роль не в корзине админов</td><td><code>/setup</code> → 🎭 Роли прав</td></tr>
+    <tr><td><code>Бот не может снять роль</code></td><td>роль бота ниже снимаемой</td><td>шаг 6</td></tr>
+    <tr><td><code>Роль не является контролируемой</code></td><td>название роли отличается</td><td><code>/sync</code> покажет расхождения</td></tr>
+    <tr><td>Отчёты не регистрируются</td><td>критерии слишком строгие</td><td><code>/settings параметр:report_detection_mode значение:keyword</code></td></tr>
+    <tr><td><code>Бот уже запущен</code></td><td>вторая копия процесса</td><td>закройте старое окно или удалите <code>data\bot.lock</code></td></tr>
+  </table>
+
+  <p>Логи: <code>logs\bot.log</code> — всё подряд, <code>logs\error.log</code> — только ошибки.</p>
+
+  <div class="fin">
+    <h2 style="font-size:19px">✅ Готово — бот работает</h2>
+    <div class="chk">Создано приложение и включены оба Intents</div>
+    <div class="chk">Токен в <code>.env</code>, файл рядом с программой</div>
+    <div class="chk">Бот приглашён с правом Manage Roles</div>
+    <div class="chk">Роль бота выше всех должностей персонала</div>
+    <div class="chk"><code>/sync</code> нашёл 6 каналов и все контролируемые роли</div>
+    <div class="chk"><code>/ot</code> показывает сдавших и не сдавших</div>
+    <div class="chk"><code>/warn</code> и снятие роли проверены на тестовом сотруднике</div>
+    <p style="margin:16px 0 0;color:var(--muted);font-size:13.5px">
+      Дальше — <code>/panel</code> для управления без ввода команд и
+      <code>/help</code> со списком всех 19 команд.
+    </p>
+  </div>
+
+</main>
+</div>
+</body>
+</html>
