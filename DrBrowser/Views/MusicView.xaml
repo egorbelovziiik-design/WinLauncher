@@ -226,12 +226,6 @@
                         <Button Content="🗑" Style="{StaticResource GhostButton}" FontSize="10.5" Padding="8,4"
                                 Margin="0,0,5,5" ToolTip="Удалить выбранный плейлист"
                                 Command="{Binding Music.DeletePlaylistCommand}" IsEnabled="{Binding Music.HasSelectedPlaylist}" />
-                        <Button Content="⇪ m3u" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,4"
-                                Margin="0,0,5,5" ToolTip="Экспортировать выбранный плейлист в файл .m3u8"
-                                Command="{Binding Music.ExportPlaylistCommand}" />
-                        <Button Content="⇩ m3u" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,4"
-                                Margin="0,0,0,5" ToolTip="Импортировать .m3u / .m3u8 в выбранный плейлист"
-                                Command="{Binding Music.ImportPlaylistCommand}" />
                     </WrapPanel>
                     <ItemsControl ItemsSource="{Binding Music.Playlists}">
                         <ItemsControl.ItemTemplate>
@@ -474,6 +468,12 @@
                                     <Button Content="▶ Играть" Style="{StaticResource PrimaryButton}" FontSize="10" Padding="9,4"
                                             Margin="6,0,0,0" IsEnabled="{Binding Music.CanPlaySelectedPlaylist}"
                                             Command="{Binding Music.PlayPlaylistCommand}" />
+                                    <Button Content="⇪ m3u" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,4"
+                                            Margin="6,0,0,0" ToolTip="Сохранить плейлист в файл .m3u8 (VLC, foobar2000, AIMP)"
+                                            Command="{Binding Music.ExportPlaylistCommand}" />
+                                    <Button Content="⇩ m3u" Style="{StaticResource GhostButton}" FontSize="9.5" Padding="7,4"
+                                            Margin="6,0,0,0" ToolTip="Импортировать .m3u / .m3u8 в этот плейлист"
+                                            Command="{Binding Music.ImportPlaylistCommand}" />
                                 </StackPanel>
                             </Grid>
 
