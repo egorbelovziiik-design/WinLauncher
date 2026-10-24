@@ -296,11 +296,19 @@ public final class MainMenuScreen extends NexusScreen {
             if (inside(mouseX, mouseY, fieldX, rowY, fieldW, ROW_HEIGHT)) {
                 editingNickname = false;
                 commitNickname();
-                try {
-                    row.action.run();
-                } catch (Throwable throwable) {
-                    Log.error("Main menu action failed: " + row.label, throwable);
-                }
+                // never swap screens from inside a click: the click is still
+                // being processed by vanilla input at this point
+                final Row target = row;
+                nexus.gui().runNextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            target.action.run();
+                        } catch (Throwable throwable) {
+                            Log.error("Main menu action failed: " + target.label, throwable);
+                        }
+                    }
+                });
                 return true;
             }
             rowY += ROW_HEIGHT + ROW_GAP;
