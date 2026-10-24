@@ -6,6 +6,7 @@ import { verifyPassword } from '@/lib/db';
 import { generateTotpSecret, otpauthUrl, verifyTotp } from '@/lib/totp';
 import { clientIp } from '@/lib/rate-limit';
 import { readJson } from '@/lib/api';
+import { firstError } from '@/lib/validation';
 
 const passwordSchema = z.object({
   action: z.literal('password'),
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
   if (body.action === 'password') {
     const parsed = passwordSchema.safeParse(body);
     if (!parsed.success)
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Проверьте поля' }, { status: 400 });
+      return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
     if (!verifyPassword(parsed.data.current, admin.passwordHash))
       return NextResponse.json({ error: 'Текущий пароль неверен' }, { status: 401 });
     updateAdminPassword(admin.id, parsed.data.next);

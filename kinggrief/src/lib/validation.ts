@@ -116,6 +116,83 @@ export const caseItemSchema = z.object({
   sort: z.number().int().min(0).max(999).default(0),
 });
 
+const FIELD_LABELS: Record<string, string> = {
+  id: 'Идентификатор',
+  kind: 'Тип',
+  name: 'Название',
+  subtitle: 'Подзаголовок',
+  description: 'Описание',
+  price: 'Цена',
+  oldPrice: 'Старая цена',
+  color: 'Цвет',
+  icon: 'Иконка',
+  badge: 'Бейдж',
+  features: 'Возможности',
+  meta: 'Метаданные',
+  sort: 'Порядок',
+  active: 'Активность',
+  caseId: 'Кейс',
+  chance: 'Шанс',
+  rarity: 'Редкость',
+  link: 'Ссылка',
+  code: 'Код',
+  type: 'Тип',
+  value: 'Значение',
+  minTotal: 'Минимальная сумма',
+  maxDiscount: 'Максимальная скидка',
+  usageLimit: 'Лимит использований',
+  expiresAt: 'Срок действия',
+  username: 'Никнейм',
+  email: 'Email',
+  password: 'Пароль',
+  confirm: 'Подтверждение пароля',
+  login: 'Никнейм или email',
+  currentPassword: 'Текущий пароль',
+  newPassword: 'Новый пароль',
+  agree: 'Согласие с правилами',
+  nickname: 'Никнейм',
+  items: 'Товары',
+  rating: 'Оценка',
+  text: 'Текст',
+  note: 'Комментарий',
+  settings: 'Настройки',
+  product: 'Товар',
+  item: 'Награда',
+  group: 'Кейс',
+  promoCode: 'Промокод',
+};
+
+const ZOD_ENGLISH = /^(required|invalid input|expected .*|invalid|string must contain|number must be|too small|too big|invalid email|invalid url)/i;
+
+function humanField(path: Array<string | number>): string {
+  const key = path.filter((part) => typeof part === 'string').pop();
+  if (!key) return 'Значение';
+  return FIELD_LABELS[key] ?? key;
+}
+
+/**
+ * Сообщение об ошибке для интерфейса на русском: собственные сообщения схемы
+ * показываем как есть, а служебные английские тексты Zod переводим в понятную подсказку.
+ */
 export function firstError(error: z.ZodError): string {
-  return error.issues[0]?.message ?? 'Некорректные данные';
+  const issue = error.issues[0];
+  if (!issue) return 'Некорректные данные';
+  if (issue.message && !ZOD_ENGLISH.test(issue.message.trim())) return issue.message;
+
+  const field = humanField(issue.path);
+  switch (issue.code) {
+    case 'too_small':
+      return `${field}: значение слишком маленькое`;
+    case 'too_big':
+      return `${field}: значение слишком большое`;
+    case 'invalid_type':
+      return `Заполните поле «${field}»`;
+    case 'invalid_string':
+      return `${field}: неверный формат`;
+    case 'invalid_enum_value':
+    case 'invalid_literal':
+      return `${field}: недопустимое значение`;
+    default:
+      return `${field}: проверьте значение`;
+  }
 }

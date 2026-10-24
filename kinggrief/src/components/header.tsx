@@ -54,8 +54,14 @@ export function OnlinePill({ initialOnline, initialMax }: { initialOnline: numbe
         <span className={cn('relative inline-flex h-2 w-2 rounded-full', live ? 'bg-emerald' : 'bg-amber')} />
       </span>
       <span className="font-mono text-[0.68rem] font-bold tracking-wide text-white/85">
-        {state.online.toLocaleString('ru-RU')}
-        <span className="text-white/35"> / {state.max.toLocaleString('ru-RU')}</span>
+        {state.max > 0 ? (
+          <>
+            {state.online.toLocaleString('ru-RU')}
+            <span className="text-white/35"> / {state.max.toLocaleString('ru-RU')}</span>
+          </>
+        ) : (
+          <span className="text-white/45">— / —</span>
+        )}
       </span>
       <span className="hidden text-[0.6rem] font-bold uppercase tracking-widest text-emerald/80 lg:inline">
         {live ? 'online' : 'скоро'}

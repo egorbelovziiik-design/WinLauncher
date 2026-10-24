@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardAdmin } from '@/lib/auth';
 import { deleteProduct, listProducts, logAudit, saveProduct } from '@/lib/repo';
-import { productSchema } from '@/lib/validation';
+import { firstError, productSchema } from '@/lib/validation';
 import { clientIp } from '@/lib/rate-limit';
 import { readJson } from '@/lib/api';
 
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   if (body.action === 'save') {
     const parsed = productSchema.safeParse(body.product);
     if (!parsed.success)
-      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Проверьте поля' }, { status: 400 });
+      return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
     const saved = saveProduct({
       ...parsed.data,
       features: parsed.data.features ?? [],

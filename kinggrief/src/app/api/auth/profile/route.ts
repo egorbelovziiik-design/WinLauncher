@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { profileSchema } from '@/lib/validation';
+import { firstError, profileSchema } from '@/lib/validation';
 import { currentUser } from '@/lib/auth';
 import {
   getUserById,
@@ -21,16 +21,16 @@ export async function PATCH(req: Request) {
 
   const parsed = profileSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? 'Некорректные данные' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
   }
 
   const { email, currentPassword, newPassword } = parsed.data;
 
   if (newPassword) {
-    if (!currentPassword || !verifyUserPassword(user.id, currentPassword)) {
+    if (!currentPassword) {
+      return NextResponse.json({ error: 'Введите текущий пароль' }, { status: 400 });
+    }
+    if (!verifyUserPassword(user.id, currentPassword)) {
       return NextResponse.json({ error: 'Текущий пароль указан неверно' }, { status: 400 });
     }
     updateUserPassword(user.id, newPassword);

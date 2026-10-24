@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
   attempts INTEGER NOT NULL DEFAULT 0,
   last_error TEXT,
   created_at TEXT NOT NULL,
+  sent_at TEXT,
   delivered_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
@@ -229,6 +230,10 @@ function migrate(db: DatabaseSync) {
   }
   if (!hasColumn(db, 'orders', 'user_id')) {
     db.exec('ALTER TABLE orders ADD COLUMN user_id INTEGER');
+  }
+  if (!hasColumn(db, 'deliveries', 'sent_at')) {
+    // Нужна, чтобы повторять выдачу, если плагин не подтвердил выполнение команды.
+    db.exec('ALTER TABLE deliveries ADD COLUMN sent_at TEXT');
   }
   db.exec('CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)');
 }

@@ -1,15 +1,28 @@
+# Зависимости и артефакты сборки
 node_modules
 .next
 out
+coverage
+test-results
+*.tsbuildinfo
+
+# Локальная база и бэкапы не должны попадать в образ
+data
+backups
+
+# Секреты и локальные настройки
+.env
+.env.*
+!.env.example
+
+# Git и служебные файлы
 .git
 .gitignore
-data
+.github
+.vscode
+.idea
 *.log
-test-results
-coverage
-tsconfig.tsbuildinfo
-.env
-.env.local
-.env.*.local
-minecraft-plugin/target
+Dockerfile
+docker-compose.yml
+docker-compose.test.yml
 README.md

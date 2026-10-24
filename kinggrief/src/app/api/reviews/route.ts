@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { reviewSchema } from '@/lib/validation';
+import { firstError, reviewSchema } from '@/lib/validation';
 import { createReview, getSetting, listReviews } from '@/lib/repo';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   }
   const parsed = reviewSchema.safeParse(body);
   if (!parsed.success)
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Проверьте поля' }, { status: 400 });
+    return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
   createReview(parsed.data);
   return NextResponse.json({ ok: true, message: 'Спасибо! Отзыв появится после проверки модератором.' }, { status: 201 });
 }

@@ -10,7 +10,7 @@ import {
   saveCaseGroup,
   saveCaseItem,
 } from '@/lib/repo';
-import { caseItemSchema } from '@/lib/validation';
+import { caseItemSchema, firstError } from '@/lib/validation';
 import { clientIp } from '@/lib/rate-limit';
 import { readJson } from '@/lib/api';
 
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     case 'save-item': {
       const parsed = caseItemSchema.safeParse(body.item);
       if (!parsed.success)
-        return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Проверьте поля' }, { status: 400 });
+        return NextResponse.json({ error: firstError(parsed.error) }, { status: 400 });
       const id = saveCaseItem(parsed.data);
       logAudit(guard.admin.username, 'case_item_save', `${parsed.data.name} · ${parsed.data.chance}%`, clientIp(req));
       return NextResponse.json({ ok: true, id, total: caseChanceTotal(parsed.data.caseId) });

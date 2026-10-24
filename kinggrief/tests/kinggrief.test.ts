@@ -14,6 +14,7 @@ const db = await import('@/lib/db');
 const repo = await import('@/lib/repo');
 const service = await import('@/lib/order-service');
 const delivery = await import('@/lib/delivery');
+const validation = await import('@/lib/validation');
 
 beforeAll(() => {
   repo.getSettings();
@@ -373,6 +374,68 @@ describe('контент и аналитика', () => {
     expect(series[series.length - 1].day).toBe(new Date().toISOString().slice(0, 10));
     expect(series[series.length - 1].revenue).toBeGreaterThan(0);
     expect(repo.revenueSeries(7, false).every((point) => point.revenue === 0)).toBe(true);
+  });
+
+  it('ошибки валидации приходят на русском, без служебных текстов Zod', () => {
+    const missing = validation.productSchema.safeParse({ id: 'x1', kind: 'other', name: 'Тест', price: 10 });
+    expect(missing.success).toBe(false);
+    if (!missing.success) {
+      const message = validation.firstError(missing.error);
+      expect(message).not.toMatch(/required|expected|invalid/i);
+      expect(message).toMatch(/[А-Яа-яЁё]/);
+    }
+
+    const shortName = validation.caseItemSchema.safeParse({ caseId: 'mega', name: '', rarity: 'common', chance: 5 });
+    expect(shortName.success).toBe(false);
+    if (!shortName.success) {
+      const message = validation.firstError(shortName.error);
+      expect(message).toMatch(/Название/);
+    }
+
+    const custom = validation.registerSchema.safeParse({ username: 'ab', email: 'x@y.z', password: 'short', confirm: 'short', agree: true });
+    expect(custom.success).toBe(false);
+    if (!custom.success) expect(validation.firstError(custom.error)).toMatch(/Никнейм|символ/);
+  });
+
+  it('выдача повторяется, если плагин не подтвердил команду', () => {
+    const order = repo.createOrder({
+      publicId: `KG-RETRY${Date.now().toString().slice(-4)}`,
+      nickname: 'RetryUser',
+      email: null,
+      status: 'delivering',
+      subtotal: 19,
+      discount: 0,
+      total: 19,
+      promoCode: null,
+      provider: 'mock',
+      isDemo: true,
+      note: null,
+      ip: '127.0.0.1',
+      userId: null,
+      items: [],
+    });
+    const delivery = repo.createDelivery({
+      orderId: order.id,
+      productId: 'rank-pegas',
+      nickname: 'RetryUser',
+      command: 'lp user RetryUser parent add PEGAS',
+    });
+    expect(delivery).not.toBeNull();
+    repo.markDeliverySent(delivery!.id);
+    expect(repo.listDeliveries({ orderId: order.id })[0].status).toBe('sent');
+
+    // «Зависшая» отправка: плагин забрал команду, но не ответил.
+    const stale = new Date(Date.now() - 10 * 60_000).toISOString();
+    db.getDb().prepare('UPDATE deliveries SET sent_at = ? WHERE id = ?').run(stale, delivery!.id);
+
+    const result = repo.requeueStaleDeliveries(120, 5);
+    expect(result.requeued).toBeGreaterThan(0);
+    expect(repo.listDeliveries({ orderId: order.id })[0].status).toBe('pending');
+
+    // Свежая отправка не должна возвращаться в очередь.
+    repo.markDeliverySent(delivery!.id);
+    repo.requeueStaleDeliveries(120, 5);
+    expect(repo.listDeliveries({ orderId: order.id })[0].status).toBe('sent');
   });
 
   it('публичные последние покупки не содержат email и ip', () => {

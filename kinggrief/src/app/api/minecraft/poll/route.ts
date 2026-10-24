@@ -3,7 +3,7 @@ import {
   bridgeSecretMatches,
   syncOrderDeliveryStatus,
 } from '@/lib/delivery';
-import { listDeliveries, logEvent, setSettings, updateDelivery } from '@/lib/repo';
+import { listDeliveries, logEvent, markDeliverySent, requeueStaleDeliveries, setSettings } from '@/lib/repo';
 
 /**
  * Endpoint для плагина KingGriefBridge (Paper/Purpur/Spigot).
@@ -28,9 +28,15 @@ export async function POST(req: Request) {
   if (typeof body.serverId === 'string') patch.bridge_server_id = body.serverId.slice(0, 64);
   setSettings(patch);
 
+  // Команды, которые плагин забрал, но не подтвердил, возвращаем в очередь.
+  const retry = requeueStaleDeliveries();
+  if (retry.requeued > 0 || retry.manual > 0) {
+    logEvent('delivery_retry', `Повтор выдачи: ${retry.requeued}, вручную: ${retry.manual}`);
+  }
+
   const pending = listDeliveries({ status: 'pending', limit: 25 });
   const commands = pending.map((d) => {
-    updateDelivery(d.id, { status: 'sent', attempts: d.attempts + 1 });
+    markDeliverySent(d.id);
     return { id: d.id, command: d.command, nickname: d.nickname, orderId: d.orderId };
   });
   return NextResponse.json({ ok: true, commands, interval: 5 });

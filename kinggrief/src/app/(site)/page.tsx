@@ -190,7 +190,7 @@ export default async function HomePage() {
                 {[
                   { label: 'Привилегий', value: `${ranks.length}`, accent: '#A855F7' },
                   { label: 'Кейсов', value: `${cases.length}`, accent: '#FACC15' },
-                  { label: 'Онлайн', value: `${online}/${max}`, accent: '#22C55E' },
+                  { label: 'Онлайн', value: max > 0 ? `${online}/${max}` : '—', accent: '#22C55E' },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2.5">
                     <dt className="font-mono text-[0.55rem] uppercase tracking-[0.16em] text-white/30">{stat.label}</dt>

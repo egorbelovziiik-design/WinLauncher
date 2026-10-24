@@ -604,6 +604,34 @@ export function updateDelivery(
     db.prepare('UPDATE deliveries SET last_error = ? WHERE id = ?').run(patch.lastError, id);
 }
 
+/** Отмечает выдачу отправленной плагину и запоминает время отправки. */
+export function markDeliverySent(id: string) {
+  getDb()
+    .prepare("UPDATE deliveries SET status = 'sent', attempts = attempts + 1, sent_at = ? WHERE id = ?")
+    .run(now(), id);
+}
+
+/**
+ * Возвращает в очередь выдачи, которые плагин получил, но не подтвердил.
+ * Без этого команда терялась бы при рестарте сервера между опросом и выполнением.
+ * После `maxAttempts` попыток заказ уходит в ручную выдачу, чтобы покупка не пропала молча.
+ */
+export function requeueStaleDeliveries(timeoutSeconds = 120, maxAttempts = 5): { requeued: number; manual: number } {
+  const db = getDb();
+  const deadline = new Date(Date.now() - timeoutSeconds * 1000).toISOString();
+  const requeued = db
+    .prepare(
+      "UPDATE deliveries SET status = 'pending', sent_at = NULL, last_error = 'Плагин не подтвердил выдачу — повтор' WHERE status = 'sent' AND sent_at IS NOT NULL AND sent_at < ? AND attempts < ?",
+    )
+    .run(deadline, maxAttempts);
+  const manual = db
+    .prepare(
+      "UPDATE deliveries SET status = 'manual', last_error = 'Плагин не подтвердил выдачу' WHERE status = 'sent' AND sent_at IS NOT NULL AND sent_at < ? AND attempts >= ?",
+    )
+    .run(deadline, maxAttempts);
+  return { requeued: Number(requeued.changes ?? 0), manual: Number(manual.changes ?? 0) };
+}
+
 /* ─────────────────────────── reviews ─────────────────────────── */
 
 export function listReviews(status?: Review['status']): Review[] {
