@@ -109,14 +109,22 @@ anything else.
 
 ### In game
 
+On the title screen the **Nexus main menu** opens by itself: nickname editor,
+«Своё меню при запуске» toggle, Одиночная игра, Сетевая игра, Настройки
+Minecraft, Nexus настройки, ClickGUI and «Вернуться в меню Minecraft». ESC
+reveals the vanilla title screen again, so nothing is blocked.
+
 Press **RIGHT SHIFT** to open the ClickGUI, **RIGHT SHIFT** again (or **ESC**) to
-close it, and type **`.help`** in the chat.
+close it, press **F6** (or type `.menu`) to open the Nexus menu in game and type
+**`.help`** in the chat.
 
 ## 4. Using the client
 
 | Action | Default |
 |---|---|
 | Open / close ClickGUI | **RIGHT SHIFT** |
+| Open the Nexus menu (nickname, quick actions) | **F6** or `.menu` |
+| Set the nickname shown by the client | `.nick <name>` / `.nick reset` |
 | Close current window, then the ClickGUI | **ESC** |
 | Bind a module | `.bind <module> <key>` or click *BIND* in the GUI |
 | Toggle a module | `.toggle <module>` |
@@ -129,7 +137,7 @@ scrollable, resizable and remembers its position.
 ### Commands
 
 ```
-.help .bind .toggle .modules .search .cfg .config .friend .enemy .theme .hud
+.help .menu .nick .bind .toggle .modules .search .cfg .config .friend .enemy .theme .hud
 .panic .client .reset .settings .profile .export .import .gui .font .color
 .watermark .waypoint .debug .version .stats .reload .backup
 ```

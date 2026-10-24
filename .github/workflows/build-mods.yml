@@ -131,7 +131,7 @@ jobs:
           2. Put the matching jar into %APPDATA%\.minecraft\mods\
              (Linux/macOS: ~/.minecraft/mods/)
           3. Start the "fabric-loader" profile in the official launcher.
-          4. In game: RIGHT SHIFT opens the ClickGUI, ESC closes it,
+          4. The Nexus menu opens on the title screen; in game F6 opens it,
              type .help in the chat for the command list.
 
           Only one jar per Minecraft version is needed - do not put all
@@ -187,7 +187,7 @@ jobs:
 
           Установка: установите Fabric официальным установщиком (fabricmc.net/use/installer)
           для нужной версии, положите jar в %APPDATA%\\.minecraft\\mods, выберите профиль
-          \"Nexus Client Omega X\" в лаунчере, Play. В игре: RIGHT SHIFT - ClickGUI, .help - команды." \
+          \"Nexus Client Omega X\" в лаунчере, Play. В игре: F6 - меню Nexus (ник, быстрые действия), RIGHT SHIFT - ClickGUI, .help - команды." \
             artifacts/*.jar \
             SHA256SUMS.txt \
             NexusOmegaX-mods.zip \
