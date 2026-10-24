@@ -231,6 +231,12 @@ public final class Nexus {
             return;
         }
         performance.onFrame();
+        // HUD elements are dragged with the mouse while the chat is open - the chat screen owns
+        // the mouse events, so the physical button state is polled once per frame instead.
+        IClient adapter = client();
+        if (adapter != null && adapter.window() != null) {
+            hud.pollChatDrag(event.mouseX, event.mouseY, adapter.window().isMouseDown(0));
+        }
         render.beginFrame(event.renderer, event.deltaMs);
         hud.render(event);
         // the notification stack is drawn by its HUD element when that element is enabled

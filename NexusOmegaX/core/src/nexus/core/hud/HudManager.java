@@ -340,6 +340,7 @@ public final class HudManager {
      * with the mouse - no need to open the ClickGUI first.
      */
     private boolean chatDragActive;
+    private boolean chatDragHeld;
     private HudElement dragging;
     private double dragOffsetX;
     private double dragOffsetY;
@@ -358,7 +359,34 @@ public final class HudManager {
         }
         this.chatDragActive = active;
         if (!active) {
+            chatDragHeld = false;
             endDrag();
+        }
+    }
+
+    /**
+     * Per-frame drag handling used while the chat is open.
+     * <p>
+     * The vanilla chat screen owns the mouse, so Nexus cannot receive click
+     * callbacks; instead the physical button state is polled once per frame.
+     * Edge detection keeps a single grab per press and saves the layout on
+     * release.
+     */
+    public void pollChatDrag(int mouseX, int mouseY, boolean buttonDown) {
+        if (!chatDragActive) {
+            chatDragHeld = false;
+            return;
+        }
+        if (buttonDown) {
+            if (!chatDragHeld) {
+                chatDragHeld = true;
+                chatMousePressed(mouseX, mouseY, 0);
+            } else {
+                chatMouseMoved(mouseX, mouseY);
+            }
+        } else if (chatDragHeld) {
+            chatDragHeld = false;
+            chatMouseReleased();
         }
     }
 

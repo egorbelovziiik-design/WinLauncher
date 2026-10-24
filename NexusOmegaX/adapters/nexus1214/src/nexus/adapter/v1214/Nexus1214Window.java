@@ -57,6 +57,16 @@ public final class Nexus1214Window implements IWindow {
     }
 
     @Override
+    public boolean isMouseDown(int button) {
+        try {
+            return org.lwjgl.glfw.GLFW.glfwGetMouseButton(handle().getWindow().getWindow(), button)
+                    == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        } catch (Throwable throwable) {
+            return false;
+        }
+    }
+
+    @Override
     public boolean isFullscreen() {
         return handle().getWindow().isFullscreen();
     }

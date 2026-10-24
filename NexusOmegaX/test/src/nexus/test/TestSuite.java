@@ -228,7 +228,19 @@ public final class TestSuite {
         check("nothing is dragged any more", !nexus.hud().isDragging());
         check("a click on empty space is left to the chat",
                 !nexus.hud().chatMousePressed(10000.0, 10000.0, 0));
+        // the frame poller is what the real game uses (chat screen owns mouse events)
+        double pollX = watermark.x();
+        double pollY = watermark.y();
+        nexus.hud().pollChatDrag((int) (pollX + 2.0), (int) (pollY + 2.0), true);
+        check("holding the button grabs an element", nexus.hud().isDragging());
+        nexus.hud().pollChatDrag((int) (pollX + 60.0), (int) (pollY + 45.0), true);
+        check("held button keeps moving the element",
+                watermark.x() > pollX || watermark.y() > pollY);
+        nexus.hud().pollChatDrag((int) (pollX + 60.0), (int) (pollY + 45.0), false);
+        check("releasing the button ends the drag", !nexus.hud().isDragging());
         nexus.hud().setChatDragActive(false);
+        nexus.hud().pollChatDrag((int) watermark.x() + 2, (int) watermark.y() + 2, true);
+        check("polling is inert while the chat is closed", !nexus.hud().isDragging());
         watermark.setPosition(startX, startY);
 
         section("7. HUD");
