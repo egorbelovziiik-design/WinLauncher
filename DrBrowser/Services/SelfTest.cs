@@ -1283,14 +1283,21 @@ public static class SelfTest
 
             await Run("smoke-screenshot", "Скриншот страницы (функция «Снимок экрана»)", async () =>
             {
-                vm.NavigateActiveTab("https://example.com");
-                for (var i = 0; i < 40 && (vm.ActiveTab?.Core is null || vm.IsLoading); i++) await Delay(250);
+                var tab = vm.ActiveTab ?? vm.CreateNewTabPage();
+                await vm.NavigateTabAsync(tab, "https://example.com");
+                for (var i = 0; i < 60 && (tab.Core is null || vm.IsLoading); i++) await Delay(250);
+                if (tab.Core is null) return "SKIP: WebView2 не создал движок для снимка";
+
+                // NavigateTabAsync attaches the view, while NavigationCompleted may
+                // still be pending. Wait for a real document before invoking the
+                // async-void UI command, then wait for its completion marker.
+                for (var i = 0; i < 40 && string.IsNullOrWhiteSpace(tab.Core.DocumentTitle); i++) await Delay(250);
                 ScreenshotHelper.Clear();
                 vm.ScreenshotCommand.Execute(null);
-                await Delay(1500);
+                for (var i = 0; i < 30 && string.IsNullOrWhiteSpace(ScreenshotHelper.LastSaved); i++) await Delay(250);
                 var file = ScreenshotHelper.LastSaved;
                 if (string.IsNullOrEmpty(file) || !File.Exists(file))
-                    return "SKIP: снимок WebView2 недоступен без загруженной веб-страницы";
+                    throw new Exception("CapturePreviewAsync не создал PNG: " + vm.StatusMessage);
                 return "сохранён " + Path.GetFileName(file);
             });
         }
