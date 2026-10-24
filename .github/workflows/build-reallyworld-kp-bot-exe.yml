@@ -79,34 +79,22 @@ jobs:
           }
 
       - name: Publish ReallyWorldKPBot.exe to GitHub Releases (rw-kp-bot-latest)
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $exe = ".\dist\ReallyWorldKPBot.exe"
-          $sizeMb = [math]::Round((Get-Item $exe).Length / 1MB, 2)
-          $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
-          "$sha  ReallyWorldKPBot.exe" | Set-Content -Encoding utf8 ".\dist\ReallyWorldKPBot.exe.sha256.txt"
+          sha256sum dist/ReallyWorldKPBot.exe > dist/ReallyWorldKPBot.exe.sha256.txt
+          SUM=$(cat dist/ReallyWorldKPBot.exe.sha256.txt)
+          gh release delete rw-kp-bot-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create rw-kp-bot-latest \
+            dist/ReallyWorldKPBot.exe \
+            dist/ReallyWorldKPBot.exe.sha256.txt \
+            --title "ReallyWorld КП Discord Bot — Windows EXE (robik0277)" \
+            --notes "Готовое одиночное приложение Windows x64 (ReallyWorldKPBot.exe) — запускается двойным кликом, Python не требуется!
 
-          gh release view rw-kp-bot-latest *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release delete rw-kp-bot-latest --yes --cleanup-tag
-          }
+          - Главный владелец: robik0277 (Discord ID: 1381255368650526861)
+          - Application ID: 1563651952506576918
+          - Ссылка приглашения бота: https://discord.com/oauth2/authorize?client_id=1563651952506576918&permissions=8&scope=bot%20applications.commands
 
-          $notes = @(
-            "## ReallyWorld КП — Готовый Discord-Бот (Windows x64 Single-File `.exe`)",
-            "",
-            "- **Владелец бота:** `robik0277` (Discord ID: `1381255368650526861`)",
-            "- **Application ID:** `1563651952506576918`",
-            "- **Размер:** $sizeMb МБ (Python не требуется — запускается двойным кликом!)",
-            "- **SHA-256:** ``$sha``",
-            "",
-            "### Прямая ссылка приглашения бота в ваш Discord:",
-            "https://discord.com/oauth2/authorize?client_id=1563651952506576918&permissions=8&scope=bot%20applications.commands"
-          ) -join "`n"
-
-          gh release create rw-kp-bot-latest `
-            ".\dist\ReallyWorldKPBot.exe" `
-            ".\dist\ReallyWorldKPBot.exe.sha256.txt" `
-            --title "ReallyWorld КП Discord Bot — Windows EXE (robik0277)" `
-            --notes $notes
+          SHA-256:
+          ${SUM}"
