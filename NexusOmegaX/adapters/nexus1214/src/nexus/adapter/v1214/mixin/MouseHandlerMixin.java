@@ -12,14 +12,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(MouseHandler.class)
 public final class MouseHandlerMixin {
 
-    @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onPress(JIII)V", at = @At("HEAD"), cancellable = true)
     private void nexus$press(long window, int button, int action, int modifiers, CallbackInfo info) {
         if (MinecraftMixin.Hooks.HOOKS.onMouse(button, action, 0.0, 0.0, 0.0)) {
             info.cancel();
         }
     }
 
-    @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true)
     private void nexus$scroll(long window, double horizontal, double vertical, CallbackInfo info) {
         Nexus1214Input.noteScroll(vertical);
         if (MinecraftMixin.Hooks.HOOKS.onMouse(-1, 2, vertical, 0.0, 0.0)) {
