@@ -54,7 +54,7 @@ Private windows construct a GUID-named temporary `Db` and WebView2 profile. They
 
 ### DrSearch
 
-`SearchIndexService` owns FTS5 setup, normalized document metadata and transactional dedupe/upsert. Queries are converted to bounded FTS syntax, ranked with BM25 and returned with SQLite snippets.
+`UrlParser` routes every non-URL address-bar input to `drbrowser://search`; there is no third-party search-template fallback. `SearchIndexService` owns FTS5 setup, normalized document metadata and transactional dedupe/upsert. Queries are converted to bounded FTS syntax, ranked with BM25 and returned with SQLite snippets. `WebSearchService` is only an opt-in, explicitly labelled external-index adapter; it is disabled by default and never feeds rows into the DrSearch corpus.
 
 `SearchCrawlerService` is deliberately separate. Its HTTP pipeline enforces:
 

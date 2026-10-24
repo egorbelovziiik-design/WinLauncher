@@ -7,13 +7,16 @@ public sealed class AppSettings : ObservableObject
     public const string Version = "3.0.0";
     public const string AppVersionText = "DrBrowser OMEGA 3.0.0";
 
+    public const string DrSearchName = "DrSearch";
+    public const string DrSearchTemplate = "drbrowser://search?q={0}";
+
+    /// <summary>
+    /// Address-bar search is intentionally fixed to DrSearch. External indexes may be
+    /// consulted only from the clearly labelled opt-in section on the DrSearch page.
+    /// </summary>
     public static readonly (string Name, string Template)[] SearchEngines =
     {
-        ("Google", "https://www.google.com/search?q={0}"),
-        ("Яндекс", "https://yandex.ru/search/?text={0}"),
-        ("Bing", "https://www.bing.com/search?q={0}"),
-        ("DuckDuckGo", "https://duckduckgo.com/?q={0}"),
-        ("DrSearch", "drbrowser://search?q={0}")
+        (DrSearchName, DrSearchTemplate)
     };
 
     private string _theme = "Omega Dark";
@@ -51,7 +54,8 @@ public sealed class AppSettings : ObservableObject
     private string _aiPersona = "chat";
     private bool _aiIncludePage = true;
     private List<string> _drSearchRecent = new();
-    private bool _drSearchWeb = true;
+    private bool _drSearchWeb;
+    private int _drSearchConfigVersion;
     private bool _drGuardEnabled = true;
     private bool _drGuardScanDownloads = true;
     private bool _drGuardWarnOnHttp = true;
@@ -76,7 +80,11 @@ public sealed class AppSettings : ObservableObject
     public string Theme { get => _theme; set { if (Set(ref _theme, value)) OnPropertyChanged(nameof(IsDarkTheme)); } }
     public bool IsDarkTheme => !string.Equals(Theme, "Omega Light", StringComparison.OrdinalIgnoreCase);
     public string AccentHex { get => _accentHex; set => Set(ref _accentHex, value); }
-    public string SearchEngine { get => _searchEngine; set => Set(ref _searchEngine, value); }
+    public string SearchEngine
+    {
+        get => _searchEngine;
+        set => Set(ref _searchEngine, DrSearchName);
+    }
     public string HomePage { get => _homePage; set => Set(ref _homePage, value); }
     public bool RestoreSession { get => _restoreSession; set => Set(ref _restoreSession, value); }
     public bool SaveHistory { get => _saveHistory; set => Set(ref _saveHistory, value); }
@@ -124,8 +132,14 @@ public sealed class AppSettings : ObservableObject
     /// <summary>Last DrSearch queries (kept locally, never uploaded).</summary>
     public List<string> DrSearchRecent { get => _drSearchRecent; set => Set(ref _drSearchRecent, value ?? new List<string>()); }
 
-    /// <summary>DrSearch also asks the public web endpoint for results (own results page).</summary>
+    /// <summary>
+    /// Optional external-index lookup shown separately from DrSearch results. Disabled
+    /// by default; address-bar searches never turn this on or bypass DrSearch.
+    /// </summary>
     public bool DrSearchWebEnabled { get => _drSearchWeb; set => Set(ref _drSearchWeb, value); }
+
+    /// <summary>One-time migration marker for the DrSearch-only address-bar architecture.</summary>
+    public int DrSearchConfigVersion { get => _drSearchConfigVersion; set => Set(ref _drSearchConfigVersion, Math.Max(0, value)); }
 
     /// <summary>DrGuard: URL reputation checks + download scanning.</summary>
     public bool DrGuardEnabled { get => _drGuardEnabled; set => Set(ref _drGuardEnabled, value); }
@@ -164,7 +178,18 @@ public sealed class AppSettings : ObservableObject
         if (string.Equals(Theme, "Light", StringComparison.OrdinalIgnoreCase)) Theme = "Omega Light";
         if (string.IsNullOrWhiteSpace(Theme)) Theme = "Omega Dark";
         if (!ThemeManager.ThemeNames.Contains(Theme, StringComparer.OrdinalIgnoreCase)) Theme = "Omega Dark";
-        if (string.IsNullOrWhiteSpace(SearchEngine) || !SearchEngines.Any(s => s.Name == SearchEngine)) SearchEngine = "DrSearch";
+
+        // OMEGA previously allowed redirecting address-bar queries to third-party
+        // engines. Migrate every old configuration once: DrSearch is now the only
+        // address-bar engine and optional external-index lookup starts disabled.
+        SearchEngine = DrSearchName;
+        if (DrSearchConfigVersion < 1)
+        {
+            DrSearchWebEnabled = false;
+            DrSearchLocalOnly = false;
+            DrSearchConfigVersion = 1;
+        }
+
         if (string.IsNullOrWhiteSpace(HomePage)) HomePage = "drbrowser://search";
         if (string.IsNullOrWhiteSpace(AiBaseUrl)) AiBaseUrl = "https://api.openai.com/v1";
         if (string.IsNullOrWhiteSpace(AiModel)) AiModel = "gpt-4o-mini";
@@ -193,11 +218,7 @@ public sealed class AppSettings : ObservableObject
         TabSuspendMinutes = Math.Clamp(TabSuspendMinutes, 1, 240);
     }
 
-    /// <summary>Search engine used for the toolbar/address bar (DrSearch renders its own page).</summary>
+    /// <summary>Every toolbar/address-bar query opens DrSearch's own results page.</summary>
     public string SearchUrl(string query)
-    {
-        var template = SearchEngines.FirstOrDefault(s => s.Name == SearchEngine).Template
-                       ?? SearchEngines[0].Template;
-        return string.Format(template, Uri.EscapeDataString(query));
-    }
+        => string.Format(DrSearchTemplate, Uri.EscapeDataString(query ?? string.Empty));
 }

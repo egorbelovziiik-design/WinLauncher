@@ -18,7 +18,8 @@ Status definitions:
 | Private window | Implemented/verified | Temporary profile/DB creation and deletion check |
 | Multiple persistent profiles | **Not implemented** | One normal data profile; name/avatar/custom WebView folder only |
 | Vault | Implemented/verified | DPAPI round-trip and SQLite ciphertext assertion; no autofill |
-| DrSearch FTS5/BM25 | Implemented/verified | Phrase/ranking/dedupe/integration checks |
+| DrSearch FTS5/BM25 | Implemented/verified | Only address-bar engine; phrase/ranking/dedupe/integration checks; no Google redirect |
+| Optional external-index adapter | Implemented/explicit boundary | Default-off; separate click; DuckDuckGo source visibly labelled; never inserted into DrSearch corpus |
 | Ethical crawler | Implemented/verified core | Bounds/robots/SSRF code; public-site behavior depends on network |
 | Internet-scale independent index | **Not claimed/not implemented** | Personal bounded index only |
 | DrMind Local | Implemented/verified | Deterministic transformations; explicitly not an LLM |

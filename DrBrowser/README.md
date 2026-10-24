@@ -35,9 +35,9 @@ See [INSTALL.md](Docs/INSTALL.md) for install, update, uninstall and source-buil
 
 ### DrSearch
 
-DrSearch is not a renamed third-party results page. It owns a SQLite **FTS5** index and uses **BM25** ranking with canonical URL normalization, deduplication, snippets, quality/language metadata and index statistics.
+DrSearch is not a renamed third-party results page or a Google redirect. It is the only address-bar search engine. It owns a SQLite **FTS5** index and uses **BM25** ranking with canonical URL normalization, deduplication, snippets, quality/language metadata and index statistics. Legacy settings that selected Google, Yandex, Bing or DuckDuckGo are migrated to DrSearch.
 
-The optional crawler is deliberately bounded. It honors robots rules, crawl delay, configured page/depth/domain limits, `noindex`, redirects and content-size limits; it rejects loopback/private/link-local destinations to mitigate SSRF. It does not bypass authentication, CAPTCHA or robots policy and does not claim to index the whole internet. Optional public-web results are visibly separated from local DrSearch results.
+The optional crawler is deliberately bounded. It honors robots rules, crawl delay, configured page/depth/domain limits, `noindex`, redirects and content-size limits; it rejects loopback/private/link-local destinations to mitigate SSRF. It does not bypass authentication, CAPTCHA or robots policy and does not claim to index the whole internet. Optional external-index lookup is disabled by default, requires a separate click, and its rows are visibly marked as not belonging to the DrSearch corpus.
 
 ### DrMind
 

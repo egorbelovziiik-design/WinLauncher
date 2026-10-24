@@ -35,7 +35,7 @@ Check committed `exit-codes.txt`, `selftest-report.txt` and `smoke-report.txt` f
 1. Application data directories and logger.
 2. JSON settings round-trip.
 3. URL/search/internal parsing and dangerous-scheme handling.
-4. Search engine definitions including DrSearch.
+4. DrSearch-only address-bar routing, external-index default-off policy and rejection of legacy third-party engine settings.
 5. DrSearch integration over local browser data.
 6. SQLite FTS5/BM25, phrase query and deduplication.
 7. Notes/Tasks/Workspaces SQLite CRUD and six seeded snapshots.

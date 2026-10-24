@@ -136,31 +136,29 @@
                     <StackPanel Margin="24,0,0,0" MaxWidth="720" HorizontalAlignment="Left">
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
-                                <TextBlock Text="ПОИСКОВАЯ СИСТЕМА ПО УМОЛЧАНИЮ" Style="{StaticResource SectionTitle}" />
-                                <ComboBox ItemsSource="{Binding SearchEngineNames}" SelectedItem="{Binding SelectedSearchEngine}" />
-                                <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,0" TextWrapping="Wrap"
-                                           Text="В адресной строке текст без похожего на адрес формата уходит в выбранную систему; адрес вида example.com открывается напрямую по HTTPS." />
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource Card}">
-                            <StackPanel>
-                                <TextBlock Text="ДОСТУПНЫЕ СИСТЕМЫ" Style="{StaticResource SectionTitle}" />
-                                <TextBlock Text="Google — https://www.google.com/search?q=…" Style="{StaticResource Muted}" />
-                                <TextBlock Text="Яндекс — https://yandex.ru/search/?text=…" Style="{StaticResource Muted}" Margin="0,3" />
-                                <TextBlock Text="Bing — https://www.bing.com/search?q=…" Style="{StaticResource Muted}" />
-                                <TextBlock Text="DuckDuckGo — https://duckduckgo.com/?q=…" Style="{StaticResource Muted}" Margin="0,3" />
-                                <TextBlock Text="DrSearch — drbrowser://search?q=… (собственный поиск внутри браузера)" Style="{StaticResource Muted}" Margin="0,3,0,0" />
+                                <TextBlock Text="ПОИСКОВАЯ СИСТЕМА АДРЕСНОЙ СТРОКИ" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="DrSearch" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="Текстовые запросы всегда открываются на drbrowser://search. Google, Яндекс, Bing и другие сторонние страницы больше нельзя назначить движком адресной строки. Адрес вида example.com по-прежнему открывается напрямую по HTTPS." />
                                 <Button Content="Открыть DrSearch" Style="{StaticResource GhostButton}" Margin="0,10,0,0"
                                         Command="{Binding OpenSearchCommand}" />
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock Text="СОБСТВЕННАЯ АРХИТЕКТУРА" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="SQLite FTS5 · BM25 · локальный краулер" FontWeight="SemiBold" />
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                           Text="Документы DrSearch хранятся в вашей SQLite-базе. Ранжирование выполняется локально; заголовок, URL, ключевые слова и текст имеют разные веса. Краулер запускается только вами и соблюдает robots.txt, noindex и ограничения частоты." />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
                                 <TextBlock Text="DRSEARCH" Style="{StaticResource SectionTitle}" />
-                                <CheckBox Style="{StaticResource Switch}" Content="Искать ещё и в открытом веб-индексе"
+                                <CheckBox Style="{StaticResource Switch}" Content="Разрешить отдельный поиск во внешнем открытом индексе (выключено по умолчанию)"
                                           IsChecked="{Binding Settings.DrSearchWebEnabled, Mode=TwoWay}" />
-                                <CheckBox Style="{StaticResource Switch}" Content="Только локальный поиск (не отправлять запросы в сеть)"
-                                          IsChecked="{Binding Settings.DrSearchLocalOnly, Mode=TwoWay}" Margin="0,10,0,0" />
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                           Text="Этот переключатель не меняет основной движок. Внешний запрос выполняется только после нажатия отдельной кнопки, а результаты получают явную метку источника." />
                                 <TextBlock Text="{Binding Search.IndexStatsText}" FontWeight="SemiBold" Margin="0,10,0,0" />
                                 <TextBlock Text="{Binding Search.IndexUpdatedText}" Style="{StaticResource Muted}" Margin="0,3,0,0" />
                                 <TextBlock Style="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"

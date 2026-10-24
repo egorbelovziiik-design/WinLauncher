@@ -29,12 +29,12 @@ public sealed class NewTabViewModel : ObservableObject
     private static readonly (string Title, string Url)[] Defaults =
     {
         ("DrSearch", "drbrowser://search"),
-        ("Google", "https://www.google.com"),
+        ("DrBrowser", "https://github.com/egorbelovziiik-design/WinLauncher"),
         ("YouTube", "https://www.youtube.com"),
         ("GitHub", "https://github.com"),
         ("Википедия", "https://ru.wikipedia.org"),
-        ("Roblox", "https://www.roblox.com"),
-        ("Яндекс", "https://yandex.ru")
+        ("MDN Web Docs", "https://developer.mozilla.org"),
+        ("Microsoft Learn", "https://learn.microsoft.com")
     };
 
     public NewTabViewModel(Logger log, Db db, Func<AppSettings> settings)

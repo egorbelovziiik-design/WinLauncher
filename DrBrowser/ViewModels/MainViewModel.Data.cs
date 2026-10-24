@@ -176,6 +176,9 @@ public sealed partial class MainViewModel
         Settings.Theme = fresh.Theme;
         Settings.AccentHex = fresh.AccentHex;
         Settings.SearchEngine = fresh.SearchEngine;
+        Settings.DrSearchWebEnabled = fresh.DrSearchWebEnabled;
+        Settings.DrSearchLocalOnly = fresh.DrSearchLocalOnly;
+        Settings.DrSearchConfigVersion = fresh.DrSearchConfigVersion;
         Settings.HomePage = fresh.HomePage;
         Settings.ShowBookmarksBar = fresh.ShowBookmarksBar;
         Settings.ShowWeather = fresh.ShowWeather;
@@ -189,17 +192,4 @@ public sealed partial class MainViewModel
         StatusMessage = "Настройки сброшены к значениям по умолчанию.";
     });
 
-    public string SelectedSearchEngine
-    {
-        get => Settings.SearchEngine;
-        set
-        {
-            if (string.IsNullOrWhiteSpace(value) || Settings.SearchEngine == value) return;
-            Settings.SearchEngine = value;
-            Raise(nameof(SelectedSearchEngine), nameof(NewTab));
-            FlushSettings();
-        }
-    }
-
-    public IReadOnlyList<string> SearchEngineNames => AppSettings.SearchEngines.Select(s => s.Name).ToList();
 }

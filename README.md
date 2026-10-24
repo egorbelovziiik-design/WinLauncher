@@ -18,7 +18,7 @@ Microsoft Edge **WebView2 Runtime** is required. Current Windows 11 and maintain
 ## What is implemented
 
 - Real multi-tab WebView2 browsing, navigation, session restore, pinned/muted/reordered tabs, tab sleep, downloads, history, bookmarks, private windows, page find, PDF, screenshots, reader mode and DevTools.
-- **DrSearch**: clearly labeled local SQLite FTS5/BM25 index plus a bounded crawler that respects robots rules, delays, domain limits, `noindex`, redirect limits and SSRF protections.
+- **DrSearch**: the only address-bar search engine—not a Google redirect—with its own SQLite FTS5/BM25 index and bounded crawler respecting robots rules, delays, domain limits, `noindex`, redirect limits and SSRF protections. Optional external-index lookup is disabled by default and labelled separately.
 - **DrMind**: deterministic offline tools, loopback-only Ollama, or an OpenAI-compatible endpoint; streaming/cancel/regenerate, nine modes, optional DrSearch RAG with citations, explicit local memory, and confirmation-gated actions.
 - **DrMusic**: real local-file playback, categories, queue, shuffle/repeat/seek/volume, SQLite playlists/favorites and mini-player; public radio and legal 30-second preview links open in WebView2 without weakening .NET's network-credential policy.
 - OMEGA sidebar, six Workspaces presets and tab snapshots, Notes, Tasks, DrTools, Gaming links/mode, real process performance readings, ten themes, command palette, DPAPI Vault, AdBlock/DrGuard and validated backups.

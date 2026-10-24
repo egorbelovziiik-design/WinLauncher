@@ -17,6 +17,7 @@ DrBrowser is a desktop browser, not a security sandbox beyond Windows/WebView2. 
 | Ollama | Endpoint validation accepts loopback only, preventing configuration as a general internal-network proxy. |
 | DrMind actions | Hard-coded allowlist (save response as Note, open HTTPS URL) with confirmation. No shell tool, arbitrary file tool or unrestricted OS access. |
 | AI context | Page, search and memory content is bounded/labeled untrusted. Explicit memory is off by default and never inferred automatically. |
+| DrSearch routing | All address-bar queries stay on the internal DrSearch page. Optional external-index access is default-off, explicit and visibly labelled; it cannot become the address-bar engine. |
 | DrSearch crawler | Robots/delay/domain/page/depth/size/redirect bounds; DNS resolution rejects private, loopback, link-local and similar addresses; `noindex` honored. |
 | AdBlock | Request cancellation only; no TLS interception or certificate installation. |
 | Private window | Separate temporary WebView2 profile and temporary SQLite DB, best-effort deletion on close. |

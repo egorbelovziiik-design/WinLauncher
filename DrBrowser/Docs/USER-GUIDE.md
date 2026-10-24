@@ -3,7 +3,7 @@
 ## First launch
 
 1. Confirm **Settings → About** reports a WebView2 Runtime version.
-2. Choose a search engine under **Settings → Search**. DrSearch is the default and keeps local matching distinct from optional web results.
+2. Address-bar queries always open **DrSearch**. There is no Google or other third-party default-engine selector. Under **Settings → Search**, the optional external-index lookup is off by default and remains separate from DrSearch results.
 3. Review **Settings → Privacy/Security** before enabling remote filter updates or cloud AI.
 4. Optionally select a local music folder. DrMusic never scans folders you did not choose.
 5. Create a backup after configuring important local data.
@@ -54,7 +54,7 @@ These tools do not send input to a server.
 
 ### Search an existing local index
 
-Open DrSearch, enter a query, and inspect the Local section. BM25 ranking comes from SQLite FTS5. Results include canonical URL, title and snippet.
+Open DrSearch or type a non-URL query in the address bar. DrSearch—not Google—runs BM25 ranking over its SQLite FTS5 corpus, then adds matching local bookmarks/history. Indexed results include canonical URL, title and snippet.
 
 ### Add content with the crawler
 
@@ -64,7 +64,7 @@ Open DrSearch, enter a query, and inspect the Local section. BM25 ranking comes 
 
 The crawler can refuse a URL due to robots policy, private address resolution, unsupported content/path, redirects, `noindex`, size or configured bounds. This is expected security/ethics behavior; there is no bypass switch.
 
-Optional public web results are labeled separately and are not represented as DrSearch-indexed documents.
+Optional external-index lookup is disabled by default. If you deliberately enable it in Settings, DrSearch still does not send a normal query automatically: press the separate external-index button. Those rows name their external source and are never represented as DrSearch-indexed documents.
 
 ## DrMind
 

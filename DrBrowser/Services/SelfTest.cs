@@ -76,7 +76,8 @@ public static class SelfTest
                 var settings = SettingsService.CreateDefaults();
                 settings.Theme = "Omega Light";
                 settings.AccentHex = "#00A2FF";
-                settings.SearchEngine = "DuckDuckGo";
+                settings.SearchEngine = "Google"; // must be rejected: address-bar search is DrSearch-only
+                settings.DrSearchWebEnabled = true; // explicit external-index opt-in is persisted separately
                 settings.ZoomLevel = 1.25;
                 settings.AdBlockWhitelist = new List<string> { "example.com" };
                 service.Save(settings);
@@ -84,10 +85,18 @@ public static class SelfTest
                 var loaded = service.Load();
                 if (loaded.Theme != "Omega Light") throw new Exception("тема не сохранилась");
                 if (loaded.AccentHex != "#00A2FF") throw new Exception("акцент не сохранился");
-                if (loaded.SearchEngine != "DuckDuckGo") throw new Exception("поисковик не сохранился");
+                if (loaded.SearchEngine != "DrSearch") throw new Exception("сторонний поисковик не заменён на DrSearch");
+                if (!loaded.DrSearchWebEnabled) throw new Exception("явная настройка внешнего индекса не сохранилась");
                 if (Math.Abs(loaded.ZoomLevel - 1.25) > 0.001) throw new Exception("масштаб не сохранился");
                 if (loaded.AdBlockWhitelist.Count != 1) throw new Exception("whitelist не сохранился");
-                return "settings.json: тема, акцент, поисковик, zoom, whitelist — round-trip OK";
+
+                loaded.DrSearchConfigVersion = 0; // emulate a pre-DrSearch-only settings file
+                loaded.DrSearchWebEnabled = true;
+                service.Save(loaded);
+                var migrated = service.Load();
+                if (migrated.DrSearchConfigVersion != 1 || migrated.DrSearchWebEnabled)
+                    throw new Exception("старый внешний поиск не был безопасно выключен при миграции");
+                return "settings.json: DrSearch-only migration · explicit opt-in persistence · zoom/theme round-trip";
             });
 
             await Run("url-parser", "Адресная строка: URL против поискового запроса", () =>
@@ -105,9 +114,11 @@ public static class SelfTest
                 if (UrlParser.QueryOf(query) != "как работает webview2") throw new Exception("DrSearch потерял запрос: " + query);
 
                 settings.SearchEngine = "Google";
-                var google = UrlParser.Resolve("как работает webview2", settings);
-                if (!google.Contains("google.com/search")) throw new Exception("Google-движок не сработал: " + google);
-                settings.SearchEngine = "DrSearch";
+                var stillDrSearch = UrlParser.Resolve("как работает webview2", settings);
+                if (!stillDrSearch.StartsWith("drbrowser://search?q="))
+                    throw new Exception("сторонняя настройка обошла DrSearch: " + stillDrSearch);
+                if (stillDrSearch.Contains("google", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("адресная строка содержит Google-редирект: " + stillDrSearch);
 
                 var local = UrlParser.Resolve("localhost:5000/app", settings);
                 if (!local.StartsWith("https://localhost:5000") && !local.StartsWith("http://localhost:5000"))
@@ -121,28 +132,28 @@ public static class SelfTest
                 return "URL / поиск / localhost / internal / HTTPS-флаг / опасные схемы — OK";
             });
 
-            await Run("search-engines", "5 поисковых систем, включая собственный DrSearch", () =>
+            await Run("search-engines", "DrSearch — единственная система адресной строки", () =>
             {
                 var settings = SettingsService.CreateDefaults();
-                if (settings.SearchEngine != "DrSearch")
-                    throw new Exception("DrSearch не выбран по умолчанию: " + settings.SearchEngine);
+                if (settings.SearchEngine != AppSettings.DrSearchName)
+                    throw new Exception("DrSearch не выбран: " + settings.SearchEngine);
+                if (settings.DrSearchWebEnabled)
+                    throw new Exception("внешний индекс включён по умолчанию");
+                if (AppSettings.SearchEngines.Length != 1 || AppSettings.SearchEngines[0].Name != AppSettings.DrSearchName)
+                    throw new Exception("в реестре остались сторонние поисковые системы");
 
-                var hosts = new HashSet<string>();
-                foreach (var engine in AppSettings.SearchEngines)
+                foreach (var forbidden in new[] { "Google", "Яндекс", "Bing", "DuckDuckGo" })
                 {
-                    settings.SearchEngine = engine.Name;
+                    settings.SearchEngine = forbidden;
                     var url = settings.SearchUrl("test query");
-                    if (!url.Contains("q=") && !url.Contains("text=")) throw new Exception(engine.Name + ": нет параметра запроса");
-                    if (!engine.Name.Equals("DrSearch", StringComparison.OrdinalIgnoreCase))
-                        hosts.Add(UrlParser.HostOf(url));
+                    if (!url.StartsWith("drbrowser://search?q=", StringComparison.OrdinalIgnoreCase))
+                        throw new Exception(forbidden + " смог заменить DrSearch: " + url);
                 }
 
-                if (hosts.Count != 4)
-                    throw new Exception("движки не различаются: " + string.Join(", ", hosts));
-
                 var dr = UrlParser.Resolve("test query", settings);
-                if (!dr.StartsWith("drbrowser://search")) throw new Exception("DrSearch не внутренняя страница: " + dr);
-                return string.Join(" · ", AppSettings.SearchEngines.Select(e => e.Name)) + " — DrSearch + 4 веб-движка";
+                if (!dr.StartsWith("drbrowser://search?q=")) throw new Exception("DrSearch не внутренняя страница: " + dr);
+                if (UrlParser.QueryOf(dr) != "test query") throw new Exception("потерян поисковый запрос");
+                return "DrSearch-only · внешний индекс off · сторонняя настройка не создаёт редирект";
             });
 
             await Run("drsearch-index", "DrSearch: локальный поиск по истории и закладкам", async () =>
@@ -791,7 +802,7 @@ public static class SelfTest
                 return $"iTunes {fromItunes.Count} · Deezer {fromDeezer.Count} · превью · длительность · ссылка на Яндекс";
             });
 
-            await Run("drsearch-parse", "DrSearch: разбор выдачи и bang-команды", () =>
+            await Run("drsearch-parse", "DrSearch: безопасный разбор внешней выдачи", () =>
             {
                 const string html = """
                 <div class="result results_links">
@@ -810,13 +821,9 @@ public static class SelfTest
                 if (!hits[0].Snippet.Contains("Документация", StringComparison.Ordinal)) throw new Exception("сниппет не попал в результат");
                 if (hits.Any(h => h.Url.StartsWith("javascript", StringComparison.OrdinalIgnoreCase)))
                     throw new Exception("опасная схема попала в выдачу");
-
-                var (query, engine) = WebSearchService.ParseBang("!ddg wpf webview2");
-                if (query != "wpf webview2" || engine != "DuckDuckGo")
-                    throw new Exception($"bang разобран неверно: «{query}» / «{engine}»");
-                var (plain, noEngine) = WebSearchService.ParseBang("просто запрос");
-                if (plain != "просто запрос" || noEngine is not null) throw new Exception("обычный запрос изменён");
-                return "2 из 4 результатов · uddg-редирект · сущности · сниппет · отсев javascript: · !bang";
+                if (hits.Any(h => !h.Source.Contains("ВНЕШНИЙ", StringComparison.Ordinal)))
+                    throw new Exception("внешний результат не имеет явной метки источника");
+                return "2 из 4 · внешняя метка · redirect decode · HTML entities · snippet · javascript отсеян";
             });
 
             await Run("error-logging", "Обработка ошибок пишется в журнал", () =>

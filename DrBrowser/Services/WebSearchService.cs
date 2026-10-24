@@ -10,7 +10,7 @@ public sealed class WebSearchHit
     public string Title { get; init; } = string.Empty;
     public string Url { get; init; } = string.Empty;
     public string Snippet { get; init; } = string.Empty;
-    public string Source { get; init; } = "DrSearch";
+    public string Source { get; init; } = "ВНЕШНИЙ ИНДЕКС";
     public string Host => UrlParser.DisplayHost(Url);
 }
 
@@ -21,14 +21,11 @@ public sealed record WebSearchOutcome(
     bool FromWeb);
 
 /// <summary>
-/// DrSearch web layer. It performs the search itself (no search page is embedded in an
-/// iframe), parses the returned HTML and hands the ranked links back to the browser.
-///
-/// Honest scope: DrBrowser has no own crawler and no own index — that infrastructure
-/// costs millions of pages of storage. DrSearch therefore queries the public
-/// DuckDuckGo HTML endpoint, strips its ads/tracking wrappers and renders the results
-/// inside DrBrowser's own search page. If the endpoint is unreachable the caller falls
-/// back to local results plus one-click engine chips.
+/// Optional external-index adapter for DrSearch. It is not the primary search engine:
+/// normal queries are ranked by DrSearch's own SQLite FTS5/BM25 index and bounded
+/// crawler. Only an explicit opt-in button calls the public DuckDuckGo HTML endpoint.
+/// Returned rows remain visibly labelled as external and are never inserted into or
+/// represented as DrSearch-owned index documents.
 /// </summary>
 public sealed partial class WebSearchService
 {
@@ -46,7 +43,7 @@ public sealed partial class WebSearchService
 
         var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36 DrBrowser/2.1");
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36 DrBrowser/3.0");
         client.DefaultRequestHeaders.TryAddWithoutValidation("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.8");
         return client;
     }
@@ -55,37 +52,13 @@ public sealed partial class WebSearchService
 
     public WebSearchService(Logger log) => _log = log;
 
-    /// <summary>Search engine bangs: "!g query" forces Google, "!y" Yandex, "!b" Bing, "!d" DuckDuckGo.</summary>
-    public static (string Query, string? Engine) ParseBang(string raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (!text.StartsWith('!')) return (text, null);
-
-        var space = text.IndexOf(' ');
-        if (space < 0) return (text, null);
-
-        var bang = text[..space].ToLowerInvariant();
-        var rest = text[(space + 1)..].Trim();
-        if (rest.Length == 0) return (text, null);
-
-        return bang switch
-        {
-            "!g" => (rest, "Google"),
-            "!y" or "!ya" => (rest, "Яндекс"),
-            "!b" => (rest, "Bing"),
-            "!d" or "!ddg" => (rest, "DuckDuckGo"),
-            _ => (text, null)
-        };
-    }
-
-    /// <summary>Runs a search. Never throws: network problems come back as a note.</summary>
+    /// <summary>
+    /// Runs the optional external lookup. Never redirects to another search page and
+    /// never interprets provider-specific bang commands.
+    /// </summary>
     public async Task<WebSearchOutcome> SearchAsync(string query, CancellationToken token = default)
     {
-        var (clean, engine) = ParseBang(query);
-        if (engine is not null)
-            return new WebSearchOutcome(Array.Empty<WebSearchHit>(), clean,
-                $"Запрос с оператором {engine}: открываю движок напрямую.", false);
-
+        var clean = (query ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(clean))
             return new WebSearchOutcome(Array.Empty<WebSearchHit>(), string.Empty, "Пустой запрос.", false);
 
@@ -102,7 +75,7 @@ public sealed partial class WebSearchService
             {
                 _log.Warn($"DrSearch: HTTP {(int)response.StatusCode} from the web endpoint");
                 return new WebSearchOutcome(Array.Empty<WebSearchHit>(), clean,
-                    $"Веб-поиск вернул HTTP {(int)response.StatusCode}. Показаны локальные результаты.", false);
+                    $"Внешний индекс вернул HTTP {(int)response.StatusCode}. Результаты DrSearch не изменены.", false);
             }
 
             var html = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
@@ -110,18 +83,19 @@ public sealed partial class WebSearchService
 
             _log.Info($"DrSearch: \"{clean}\" → {hits.Count} web results");
             return hits.Count == 0
-                ? new WebSearchOutcome(hits, clean, "Веб-поиск не вернул результатов — попробуйте другой движок ниже.", false)
-                : new WebSearchOutcome(hits, clean, $"DrSearch · {hits.Count} результатов из открытого веб-индекса", true);
+                ? new WebSearchOutcome(hits, clean, "Внешний индекс не вернул результатов. Собственная выдача DrSearch показана выше.", false)
+                : new WebSearchOutcome(hits, clean,
+                    $"ВНЕШНИЙ ИНДЕКС · DuckDuckGo · {hits.Count} результатов · не входят в индекс DrSearch", true);
         }
         catch (OperationCanceledException)
         {
-            return new WebSearchOutcome(Array.Empty<WebSearchHit>(), clean, "Веб-поиск отменён.", false);
+            return new WebSearchOutcome(Array.Empty<WebSearchHit>(), clean, "Запрос к внешнему индексу отменён.", false);
         }
         catch (Exception ex)
         {
             _log.Warn("DrSearch web request failed: " + ex.Message);
             return new WebSearchOutcome(Array.Empty<WebSearchHit>(), clean,
-                "Сеть недоступна — показаны локальные результаты и кнопки движков.", false);
+                "Внешний индекс недоступен — собственные результаты DrSearch остаются выше.", false);
         }
     }
 
@@ -145,7 +119,7 @@ public sealed partial class WebSearchService
                 Title = WebUtility.HtmlDecode(title),
                 Url = uri.ToString(),
                 Snippet = string.Empty,
-                Source = "DrSearch web"
+                Source = "ВНЕШНИЙ ИНДЕКС · DUCKDUCKGO"
             });
 
             if (hits.Count >= max) break;

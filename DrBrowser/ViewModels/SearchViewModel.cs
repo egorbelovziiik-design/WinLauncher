@@ -15,9 +15,10 @@ public sealed class SearchResult
 }
 
 /// <summary>
-/// DrSearch — the browser's own search page. It ranks the user's own data (history,
-/// bookmarks, quick links) locally and offers one-click hand-off to a web engine.
-/// Nothing leaves the machine unless the user clicks a web engine chip.
+/// DrSearch — the browser's own search system. It ranks its SQLite FTS5 corpus plus
+/// local history/bookmarks with BM25 and never redirects address-bar queries to Google
+/// or another third-party search page. An optional external-index lookup is separate,
+/// labelled and requires both opt-in and an explicit click.
 /// </summary>
 public sealed class SearchViewModel : ObservableObject
 {
@@ -62,6 +63,17 @@ public sealed class SearchViewModel : ObservableObject
         _settings = settings;
         _navigate = navigate;
         _localOnly = settings.DrSearchLocalOnly;
+        _settings.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(AppSettings.DrSearchWebEnabled)) return;
+            if (!_settings.DrSearchWebEnabled)
+            {
+                WebResults.Clear();
+                WebNote = "Внешний индекс выключен. DrSearch использует только собственный индекс и локальные данные.";
+                Raise(nameof(HasWebResults), nameof(Summary));
+            }
+            Raise(nameof(WebSearchEnabled), nameof(PrivacyText));
+        };
 
         foreach (var recent in settings.DrSearchRecent) Recents.Add(recent);
         RefreshIndexStats();
@@ -108,7 +120,7 @@ public sealed class SearchViewModel : ObservableObject
         }
     }
 
-    public string WebButtonText => WebBusy ? "Ищу в интернете…" : "Искать в интернете";
+    public string WebButtonText => WebBusy ? "Ищу во внешнем индексе…" : "Искать во внешнем индексе";
 
     public string WebNote
     {
@@ -122,9 +134,7 @@ public sealed class SearchViewModel : ObservableObject
         get => _settings.DrSearchWebEnabled;
         set
         {
-            if (_settings.DrSearchWebEnabled == value) return;
-            _settings.DrSearchWebEnabled = value;
-            Raise(nameof(WebSearchEnabled), nameof(PrivacyText));
+            if (_settings.DrSearchWebEnabled != value) _settings.DrSearchWebEnabled = value;
         }
     }
 
@@ -147,22 +157,13 @@ public sealed class SearchViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(query)) return;
 
         WebBusy = true;
-        WebNote = "DrSearch запрашивает открытый веб-индекс…";
+        WebNote = "По явному запросу обращаюсь к внешнему открытому индексу. Эти результаты не являются документами DrSearch.";
         try
         {
             var outcome = await _web.SearchAsync(query).ConfigureAwait(true);
             WebResults.Clear();
             foreach (var hit in outcome.Hits) WebResults.Add(hit);
             WebNote = outcome.Note;
-
-            // A "!g query" bang is handed to the chosen engine instead of showing results.
-            if (!outcome.FromWeb && outcome.UsedQuery.Length > 0 && outcome.Note.Contains("оператором", StringComparison.Ordinal))
-            {
-                var engine = outcome.Note.Replace("Запрос с оператором ", string.Empty).Split(':')[0].Trim();
-                var template = AppSettings.SearchEngines.FirstOrDefault(e => e.Name == engine).Template;
-                if (!string.IsNullOrWhiteSpace(template) && !template.StartsWith(UrlParser.InternalScheme, StringComparison.OrdinalIgnoreCase))
-                    _navigate(string.Format(template, Uri.EscapeDataString(outcome.UsedQuery)));
-            }
         }
         catch (Exception ex)
         {
@@ -194,8 +195,6 @@ public sealed class SearchViewModel : ObservableObject
         Raise(nameof(HasRecents));
     });
 
-    public static IReadOnlyList<string> WebEngines { get; } = new[] { "Google", "Яндекс", "Bing", "DuckDuckGo" };
-
     public string Query
     {
         get => _query;
@@ -225,11 +224,9 @@ public sealed class SearchViewModel : ObservableObject
         }
     }
 
-    public string PrivacyText => LocalOnly
-        ? "Приватный режим: запросы не отправляются в сеть, ищем только по вашим данным"
-        : _settings.DrSearchWebEnabled
-            ? "DrSearch ищет локально и в открытом веб-индексе; история запросов остаётся на этом компьютере"
-            : "DrSearch ищет только по вашим данным — веб-поиск выключен";
+    public string PrivacyText => _settings.DrSearchWebEnabled && !LocalOnly
+        ? "Основной поиск выполняет DrSearch. Внешний индекс доступен только по отдельной кнопке и помечается отдельно"
+        : "DrSearch: собственный SQLite FTS5/BM25 индекс · запросы не отправляются Google или другим поисковикам";
 
     public bool IsSearching
     {
@@ -241,14 +238,14 @@ public sealed class SearchViewModel : ObservableObject
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(LastQuery)) return "Введите запрос — DrSearch ищет локально, без трекеров";
+            if (string.IsNullOrWhiteSpace(LastQuery)) return "Введите запрос — DrSearch ищет в собственном индексе";
             return Results.Count == 0
-                ? $"По запросу «{LastQuery}» ничего не найдено в ваших данных"
-                : $"{Results.Count} результатов по запросу «{LastQuery}» · {Results.Count(r => r.IsLocal)} из ваших данных";
+                ? $"По запросу «{LastQuery}» ничего не найдено в индексе DrSearch"
+                : $"{Results.Count} результатов DrSearch по запросу «{LastQuery}» · собственный индекс и локальные данные";
         }
     }
 
-    public string EngineHint => $"Текущий движок: {_settings.SearchEngine}";
+    public string EngineHint => "Поисковая система: DrSearch · SQLite FTS5 / BM25";
 
     public ICommand SearchCommand => new RelayCommand(() => Run(Query));
     public ICommand ClearCommand => new RelayCommand(() =>
@@ -262,22 +259,6 @@ public sealed class SearchViewModel : ObservableObject
     public ICommand OpenResultCommand => new RelayCommand(p =>
     {
         if (p is SearchResult result && !string.IsNullOrWhiteSpace(result.Url)) _navigate(result.Url);
-    });
-
-    /// <summary>Hands the current query to a real web engine (explicit user action).</summary>
-    public ICommand SearchWebCommand => new RelayCommand(async p =>
-    {
-        var query = string.IsNullOrWhiteSpace(Query) ? LastQuery : Query;
-        if (string.IsNullOrWhiteSpace(query)) return;
-
-        var engine = p as string ?? "Google";
-        var template = AppSettings.SearchEngines.FirstOrDefault(e => e.Name == engine).Template
-                       ?? AppSettings.SearchEngines[0].Template;
-
-        if (template.StartsWith(UrlParser.InternalScheme, StringComparison.OrdinalIgnoreCase)) return;
-
-        _navigate(string.Format(template, Uri.EscapeDataString(query)));
-        await Task.CompletedTask;
     });
 
     public Task RunAsync(string query)
@@ -296,8 +277,8 @@ public sealed class SearchViewModel : ObservableObject
 
         if (LastQuery.Length == 0) return;
 
-        _ = RunWebAsync(LastQuery);
-
+        // Normal search is entirely DrSearch-owned. The optional external index is
+        // queried only by SearchWebNowCommand after a separate user click.
         IsSearching = true;
         try
         {
