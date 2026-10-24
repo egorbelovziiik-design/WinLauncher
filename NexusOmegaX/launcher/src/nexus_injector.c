@@ -81,6 +81,13 @@ static HFONT  g_font        = NULL;
 static HFONT  g_fontBold    = NULL;
 static HFONT  g_fontTitle   = NULL;
 
+/* pages are plain control groups: every control is a direct child of the main
+ * window, so WM_COMMAND / WM_CTLCOLOR* arrive in windowProc (a container
+ * window would swallow them) */
+#define MAX_PAGE_CONTROLS 32
+static HWND g_pageControls[5][MAX_PAGE_CONTROLS];
+static int  g_pageControlCount[5];
+
 /* per page control handles */
 static HWND g_editGameDir, g_comboVersion, g_lblVersionInfo, g_chkDefault;
 static HWND g_editJava, g_lblJavaInfo;
@@ -785,6 +792,14 @@ static int browseFile(HWND owner, const char *filter, char *out, size_t size)
 }
 
 /* ----------------------------------------------------------------- controls */
+static HWND registerControl(int page, HWND control)
+{
+    if (page >= 0 && page < 5 && g_pageControlCount[page] < MAX_PAGE_CONTROLS) {
+        g_pageControls[page][g_pageControlCount[page]++] = control;
+    }
+    return control;
+}
+
 static void styleControl(HWND control)
 {
     if (!control) {
@@ -906,89 +921,79 @@ static void createPages(HWND parent)
 {
     int i;
 
+    for (i = 0; i < 5; i++) {
+        g_pageControlCount[i] = 0;
+    }
+
     /* ------------------------------------------------------------- NEWS page */
-    g_pages[0] = CreateWindowExA(0, "STATIC", NEWS_TEXT,
-                                 WS_CHILD | SS_LEFT, 0, 0, 10, 10, parent,
-                                 (HMENU)(INT_PTR)900, GetModuleHandleA(NULL), NULL);
-    styleControl(g_pages[0]);
+    g_pages[0] = registerControl(0, makeStatic(parent, NEWS_TEXT, 900, 0, 0, 10, 10));
 
     /* ---------------------------------------------------------- INSTALL page */
-    g_pages[1] = CreateWindowExA(0, "STATIC", "", WS_CHILD, 0, 0, 10, 10, parent,
-                                 (HMENU)(INT_PTR)901, GetModuleHandleA(NULL), NULL);
-    {
-        HWND page = g_pages[1];
-        g_lblGameDirTitle = makeStatic(page, "MINECRAFT FOLDER", 0, 0, 0, 10, 10);
-        g_editGameDir = makeEdit(page, "", ID_EDIT_GAMEDIR, 0, 0, 10, 10);
-        makeButton(page, "BROWSE", ID_BTN_BROWSE_GAME, 0, 0, 10, 10);
-        g_lblVersionTitle = makeStatic(page, "MINECRAFT VERSION", 0, 0, 0, 10, 10);
-        g_comboVersion = CreateWindowExA(0, "COMBOBOX", "",
-                                         WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
-                                         0, 0, 10, 120, page,
-                                         (HMENU)(INT_PTR)ID_COMBO_VERSION,
-                                         GetModuleHandleA(NULL), NULL);
-        styleControl(g_comboVersion);
-        for (i = 0; i < VERSION_COUNT; i++) {
-            SendMessageA(g_comboVersion, CB_ADDSTRING, 0, (LPARAM)VERSIONS[i].mc);
-        }
-        SendMessageA(g_comboVersion, CB_SETCURSEL, 1, 0);
-        g_lblVersionInfo = makeStatic(page, "", ID_LBL_VERSION, 0, 0, 10, 10);
-
-        makeButton(page, "INSTALL CLIENT", ID_BTN_INSTALL, 0, 0, 10, 10);
-        makeButton(page, "INSTALL FABRIC", ID_BTN_FABRIC, 0, 0, 10, 10);
-        makeButton(page, "CREATE PROFILE", ID_BTN_PROFILE, 0, 0, 10, 10);
-        makeButton(page, "LAUNCH MINECRAFT", ID_BTN_LAUNCH, 0, 0, 10, 10);
-        makeButton(page, "OPEN MODS FOLDER", ID_BTN_MODS, 0, 0, 10, 10);
-        makeButton(page, "VERIFY INSTALL", ID_BTN_VERIFY, 0, 0, 10, 10);
-
-        g_chkDefault = CreateWindowExA(0, "BUTTON", "Set as the default launcher profile",
-                                       WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-                                       0, 0, 10, 10, page,
-                                       (HMENU)(INT_PTR)ID_CHK_DEFAULT,
-                                       GetModuleHandleA(NULL), NULL);
-        styleControl(g_chkDefault);
-        SendMessageA(g_chkDefault, BM_SETCHECK, BST_CHECKED, 0);
-
-        g_progress = CreateWindowExA(0, PROGRESS_CLASS, "",
-                                     WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
-                                     0, 0, 10, 10, page, (HMENU)(INT_PTR)950,
-                                     GetModuleHandleA(NULL), NULL);
-        SetWindowTheme(g_progress, L"", L"");
-        SendMessageA(g_progress, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
-        SendMessageA(g_progress, PBM_SETBARCOLOR, 0, (LPARAM)C_ACCENT3);
-        SendMessageA(g_progress, PBM_SETBKCOLOR, 0, (LPARAM)C_SURFACE);
-
-        g_log = CreateWindowExA(WS_EX_CLIENTEDGE, "LISTBOX", "",
-                                WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOSEL | LBS_HASSTRINGS,
-                                0, 0, 10, 10, page, (HMENU)(INT_PTR)951,
-                                GetModuleHandleA(NULL), NULL);
-        styleControl(g_log);
+    g_pages[1] = NULL;
+    g_lblGameDirTitle = registerControl(1, makeStatic(parent, "MINECRAFT FOLDER", 0, 0, 0, 10, 10));
+    g_editGameDir = registerControl(1, makeEdit(parent, "", ID_EDIT_GAMEDIR, 0, 0, 10, 10));
+    registerControl(1, makeButton(parent, "BROWSE", ID_BTN_BROWSE_GAME, 0, 0, 10, 10));
+    g_lblVersionTitle = registerControl(1, makeStatic(parent, "MINECRAFT VERSION", 0, 0, 0, 10, 10));
+    g_comboVersion = registerControl(1, CreateWindowExA(0, "COMBOBOX", "",
+                                     WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
+                                     0, 0, 10, 120, parent,
+                                     (HMENU)(INT_PTR)ID_COMBO_VERSION,
+                                     GetModuleHandleA(NULL), NULL));
+    styleControl(g_comboVersion);
+    for (i = 0; i < VERSION_COUNT; i++) {
+        SendMessageA(g_comboVersion, CB_ADDSTRING, 0, (LPARAM)VERSIONS[i].mc);
     }
+    SendMessageA(g_comboVersion, CB_SETCURSEL, 1, 0);
+    g_lblVersionInfo = registerControl(1, makeStatic(parent, "", ID_LBL_VERSION, 0, 0, 10, 10));
+
+    registerControl(1, makeButton(parent, "INSTALL CLIENT", ID_BTN_INSTALL, 0, 0, 10, 10));
+    registerControl(1, makeButton(parent, "INSTALL FABRIC", ID_BTN_FABRIC, 0, 0, 10, 10));
+    registerControl(1, makeButton(parent, "CREATE PROFILE", ID_BTN_PROFILE, 0, 0, 10, 10));
+    registerControl(1, makeButton(parent, "LAUNCH MINECRAFT", ID_BTN_LAUNCH, 0, 0, 10, 10));
+    registerControl(1, makeButton(parent, "OPEN MODS FOLDER", ID_BTN_MODS, 0, 0, 10, 10));
+    registerControl(1, makeButton(parent, "VERIFY INSTALL", ID_BTN_VERIFY, 0, 0, 10, 10));
+
+    g_chkDefault = registerControl(1, CreateWindowExA(0, "BUTTON",
+                                   "Set as the default launcher profile",
+                                   WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+                                   0, 0, 10, 10, parent,
+                                   (HMENU)(INT_PTR)ID_CHK_DEFAULT,
+                                   GetModuleHandleA(NULL), NULL));
+    styleControl(g_chkDefault);
+    SendMessageA(g_chkDefault, BM_SETCHECK, BST_CHECKED, 0);
+
+    g_progress = registerControl(1, CreateWindowExA(0, PROGRESS_CLASS, "",
+                                WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
+                                0, 0, 10, 10, parent, (HMENU)(INT_PTR)950,
+                                GetModuleHandleA(NULL), NULL));
+    SetWindowTheme(g_progress, L"", L"");
+    SendMessageA(g_progress, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
+    SendMessageA(g_progress, PBM_SETBARCOLOR, 0, (LPARAM)C_ACCENT3);
+    SendMessageA(g_progress, PBM_SETBKCOLOR, 0, (LPARAM)C_SURFACE);
+
+    g_log = registerControl(1, CreateWindowExA(WS_EX_CLIENTEDGE, "LISTBOX", "",
+                            WS_CHILD | WS_VISIBLE | WS_VSCROLL | LBS_NOSEL | LBS_HASSTRINGS,
+                            0, 0, 10, 10, parent, (HMENU)(INT_PTR)951,
+                            GetModuleHandleA(NULL), NULL));
+    styleControl(g_log);
 
     /* -------------------------------------------------------- VERSIONS page */
-    g_pages[2] = CreateWindowExA(0, "STATIC", VERSIONS_TEXT, WS_CHILD, 0, 0, 10, 10,
-                                 parent, (HMENU)(INT_PTR)902, GetModuleHandleA(NULL), NULL);
-    styleControl(g_pages[2]);
+    g_pages[2] = registerControl(2, makeStatic(parent, VERSIONS_TEXT, 902, 0, 0, 10, 10));
 
     /* -------------------------------------------------------- SETTINGS page */
-    g_pages[3] = CreateWindowExA(0, "STATIC", "", WS_CHILD, 0, 0, 10, 10, parent,
-                                 (HMENU)(INT_PTR)903, GetModuleHandleA(NULL), NULL);
-    {
-        HWND page = g_pages[3];
-        makeStatic(page, "JAVA (javaw.exe)", 0, 0, 0, 10, 10);
-        g_editJava = makeEdit(page, "", ID_EDIT_JAVA, 0, 0, 10, 10);
-        makeButton(page, "BROWSE", ID_BTN_BROWSE_JAVA, 0, 0, 10, 10);
-        g_lblJavaInfo = makeStatic(page, "", ID_LBL_JAVA, 0, 0, 10, 10);
-        makeButton(page, "OPEN CLIENT CONFIG FOLDER", ID_BTN_OPEN_CONFIG, 0, 0, 10, 10);
-        makeButton(page, "CHECK FOR UPDATES", ID_BTN_UPDATES, 0, 0, 10, 10);
-        makeButton(page, "OPEN MINECRAFT FOLDER", ID_BTN_OPEN_MINECRAFT, 0, 0, 10, 10);
-        g_lblSettingsHint = makeStatic(page, "Settings are stored in:", 0, 0, 0, 10, 10);
-        g_lblSettingsPath = makeStatic(page, g_settingsPath, 0, 0, 0, 10, 10);
-    }
+    g_pages[3] = NULL;
+    g_lblJavaTitle = registerControl(3, makeStatic(parent, "JAVA (javaw.exe)", 0, 0, 0, 10, 10));
+    g_editJava = registerControl(3, makeEdit(parent, "", ID_EDIT_JAVA, 0, 0, 10, 10));
+    registerControl(3, makeButton(parent, "BROWSE", ID_BTN_BROWSE_JAVA, 0, 0, 10, 10));
+    g_lblJavaInfo = registerControl(3, makeStatic(parent, "", ID_LBL_JAVA, 0, 0, 10, 10));
+    registerControl(3, makeButton(parent, "OPEN CLIENT CONFIG FOLDER", ID_BTN_OPEN_CONFIG, 0, 0, 10, 10));
+    registerControl(3, makeButton(parent, "CHECK FOR UPDATES", ID_BTN_UPDATES, 0, 0, 10, 10));
+    registerControl(3, makeButton(parent, "OPEN MINECRAFT FOLDER", ID_BTN_OPEN_MINECRAFT, 0, 0, 10, 10));
+    g_lblSettingsHint = registerControl(3, makeStatic(parent, "Settings are stored in:", 0, 0, 0, 10, 10));
+    g_lblSettingsPath = registerControl(3, makeStatic(parent, g_settingsPath, 0, 0, 0, 10, 10));
 
     /* ----------------------------------------------------------- ABOUT page */
-    g_pages[4] = CreateWindowExA(0, "STATIC", ABOUT_TEXT, WS_CHILD, 0, 0, 10, 10,
-                                 parent, (HMENU)(INT_PTR)904, GetModuleHandleA(NULL), NULL);
-    styleControl(g_pages[4]);
+    g_pages[4] = registerControl(4, makeStatic(parent, ABOUT_TEXT, 904, 0, 0, 10, 10));
 }
 
 static void layout(HWND hwnd)
@@ -1001,72 +1006,77 @@ static void layout(HWND hwnd)
     contentX = 232;
     contentW = client.right - contentX - 24;
     contentH = client.bottom - 32;
+    if (contentW < 200) {
+        contentW = 200;
+    }
 
     for (i = 0; i < 5; i++) {
         MoveWindow(g_tabs[i], 16, 96 + i * 52, 200, 42, TRUE);
     }
 
-    for (i = 0; i < 5; i++) {
-        ShowWindow(g_pages[i], i == g_page ? SW_SHOW : SW_HIDE);
-    }
-
     if (g_page == 0 || g_page == 2 || g_page == 4) {
         MoveWindow(g_pages[g_page], contentX, 24, contentW, contentH, TRUE);
+        InvalidateRect(hwnd, NULL, FALSE);
         return;
     }
     if (g_page == 1) {
-        HWND page = g_pages[1];
         int y;
-        MoveWindow(page, contentX, 24, contentW, contentH, TRUE);
-        MoveWindow(g_lblGameDirTitle, 0, 0, contentW, 20, TRUE);
-        MoveWindow(g_editGameDir, 0, 24, contentW - 116, 26, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_BROWSE_GAME), contentW - 108, 24, 108, 26, TRUE);
-        y = 64;
-        MoveWindow(g_lblVersionTitle, 0, y, contentW, 20, TRUE);
+        MoveWindow(g_lblGameDirTitle, contentX, 24, contentW, 20, TRUE);
+        MoveWindow(g_editGameDir, contentX, 48, contentW - 116, 26, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_BROWSE_GAME), contentX + contentW - 108, 48, 108, 26, TRUE);
+        y = 88;
+        MoveWindow(g_lblVersionTitle, contentX, y, contentW, 20, TRUE);
         y += 24;
-        MoveWindow(g_comboVersion, 0, y, 260, 26, TRUE);
-        MoveWindow(g_lblVersionInfo, 276, y + 4, contentW - 276, 40, TRUE);
+        MoveWindow(g_comboVersion, contentX, y, 260, 26, TRUE);
+        MoveWindow(g_lblVersionInfo, contentX + 276, y + 4, contentW - 276, 40, TRUE);
         y += 56;
-        MoveWindow(GetDlgItem(page, ID_BTN_INSTALL), 0, y, 200, 38, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_FABRIC), 212, y, 200, 38, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_PROFILE), 424, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_INSTALL), contentX, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_FABRIC), contentX + 212, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_PROFILE), contentX + 424, y, 200, 38, TRUE);
         y += 48;
-        MoveWindow(GetDlgItem(page, ID_BTN_LAUNCH), 0, y, 200, 38, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_MODS), 212, y, 200, 38, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_VERIFY), 424, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_LAUNCH), contentX, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_MODS), contentX + 212, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_VERIFY), contentX + 424, y, 200, 38, TRUE);
         y += 52;
-        MoveWindow(g_chkDefault, 0, y, 320, 24, TRUE);
+        MoveWindow(g_chkDefault, contentX, y, 320, 24, TRUE);
         y += 32;
-        MoveWindow(g_progress, 0, y, contentW, 16, TRUE);
+        MoveWindow(g_progress, contentX, y, contentW, 16, TRUE);
         y += 26;
-        MoveWindow(g_log, 0, y, contentW, contentH - y - 24, TRUE);
+        MoveWindow(g_log, contentX, y, contentW, contentH - y + 8, TRUE);
+        InvalidateRect(hwnd, NULL, FALSE);
         return;
     }
     if (g_page == 3) {
-        HWND page = g_pages[3];
-        int y;
-        MoveWindow(page, contentX, 24, contentW, contentH, TRUE);
-        MoveWindow(g_lblJavaTitle, 0, 0, contentW, 20, TRUE);
-        MoveWindow(g_editJava, 0, 24, contentW - 116, 26, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_BROWSE_JAVA), contentW - 108, 24, 108, 26, TRUE);
-        y = 60;
-        MoveWindow(g_lblJavaInfo, 0, y, contentW, 20, TRUE);
+        int y = 24;
+        MoveWindow(g_lblJavaTitle, contentX, y, contentW, 20, TRUE);
+        y += 24;
+        MoveWindow(g_editJava, contentX, y, contentW - 116, 26, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_BROWSE_JAVA), contentX + contentW - 108, y, 108, 26, TRUE);
+        y += 34;
+        MoveWindow(g_lblJavaInfo, contentX, y, contentW, 20, TRUE);
         y += 40;
-        MoveWindow(GetDlgItem(page, ID_BTN_OPEN_CONFIG), 0, y, 260, 38, TRUE);
-        MoveWindow(GetDlgItem(page, ID_BTN_UPDATES), 272, y, 200, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_OPEN_CONFIG), contentX, y, 260, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_UPDATES), contentX + 272, y, 200, 38, TRUE);
         y += 48;
-        MoveWindow(GetDlgItem(page, ID_BTN_OPEN_MINECRAFT), 0, y, 260, 38, TRUE);
+        MoveWindow(GetDlgItem(hwnd, ID_BTN_OPEN_MINECRAFT), contentX, y, 260, 38, TRUE);
         y += 60;
-        MoveWindow(g_lblSettingsHint, 0, y, contentW, 20, TRUE);
+        MoveWindow(g_lblSettingsHint, contentX, y, contentW, 20, TRUE);
         y += 22;
-        MoveWindow(g_lblSettingsPath, 0, y, contentW, 20, TRUE);
+        MoveWindow(g_lblSettingsPath, contentX, y, contentW, 20, TRUE);
+        InvalidateRect(hwnd, NULL, FALSE);
         return;
     }
 }
 
 static void switchPage(int page)
 {
+    int p, c;
     g_page = page;
+    for (p = 0; p < 5; p++) {
+        for (c = 0; c < g_pageControlCount[p]; c++) {
+            ShowWindow(g_pageControls[p][c], p == g_page ? SW_SHOW : SW_HIDE);
+        }
+    }
     layout(g_hwnd);
     InvalidateRect(g_hwnd, NULL, TRUE);
 }
@@ -1098,6 +1108,14 @@ static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
         return 0;
 
     case WM_COMMAND:
+        if (HIWORD(wParam) == BN_CLICKED && lParam) {
+            /* every click is written to the log - useful if a button looks dead */
+            char label[128];
+            GetWindowTextA((HWND)lParam, label, sizeof(label));
+            if (label[0]) {
+                appendLog("> clicked: %s", label);
+            }
+        }
         switch (LOWORD(wParam)) {
         case ID_TAB_NEWS:     switchPage(0); return 0;
         case ID_TAB_INSTALL:  switchPage(1); return 0;
@@ -1169,8 +1187,7 @@ static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if ((HWND)lParam == g_lblVersionInfo || (HWND)lParam == g_lblJavaInfo) {
             SetTextColor(dc, C_ACCENT4);
         }
-        if ((HWND)lParam == g_pages[0] || (HWND)lParam == g_pages[1]
-            || (HWND)lParam == g_pages[2] || (HWND)lParam == g_pages[3]
+        if ((HWND)lParam == g_pages[0] || (HWND)lParam == g_pages[2]
             || (HWND)lParam == g_pages[4]) {
             SetBkColor(dc, C_BG);
             return (LRESULT)g_bgBrush;
@@ -1308,7 +1325,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR commandLine, in
     refreshVersionInfo();
     switchPage(1);
 
-    appendLog("NexusInjector %s ready.", CLIENT_VER);
+    appendLog("NexusInjector %s ready (log file: %s).", CLIENT_VER, g_logPath);
     appendLog("Game directory: %s", gameDir);
     appendLog("Press INSTALL FABRIC, then INSTALL CLIENT, then CREATE PROFILE.");
 
