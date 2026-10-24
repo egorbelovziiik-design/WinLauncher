@@ -37,6 +37,8 @@ jobs:
         run: gradle compileJava --no-daemon --console=plain -PloomVersion=${{ matrix.loom }}
         working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
       - name: javap
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           JAR=""
           for J in $(find ~/.gradle/caches/fabric-loom -name "*.jar" 2>/dev/null | grep -v sources); do
