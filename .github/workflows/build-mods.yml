@@ -20,12 +20,18 @@ jobs:
         include:
           - dir: nexus1165
             java: 17
+            gradle: 8.10.2
+            loom: 1.6-SNAPSHOT
             jar: NexusOmegaX-1.16.5.jar
           - dir: nexus1214
             java: 21
+            gradle: 9.2.0
+            loom: 1.19.3
             jar: NexusOmegaX-1.21.4.jar
           - dir: nexus12111
             java: 21
+            gradle: 9.2.0
+            loom: 1.19.3
             jar: NexusOmegaX-1.21.11.jar
     steps:
       - uses: actions/checkout@v4
@@ -39,14 +45,14 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.10.2
+          gradle-version: ${{ matrix.gradle }}
 
       - name: Build ${{ matrix.dir }}
         working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
         run: |
           set -o pipefail
           mkdir -p "$GITHUB_WORKSPACE/ci-logs"
-          gradle build --no-daemon --console=plain 2>&1 \
+          gradle build --no-daemon --console=plain -PloomVersion=${{ matrix.loom }} 2>&1 \
             | tee "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log"
 
       - name: Publish the build log on failure
