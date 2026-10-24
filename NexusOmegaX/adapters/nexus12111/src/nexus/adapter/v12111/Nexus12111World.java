@@ -44,7 +44,7 @@ public final class Nexus12111World implements IWorld {
         if (!ready()) {
             return "";
         }
-        ResourceLocation id = level().dimensionTypeRegistration().unwrapKey()
+        Identifier id = level().dimensionTypeRegistration().unwrapKey()
                 .map(key -> key.identifier()).orElse(null);
         return id == null ? level().dimension().toString() : id.toString();
     }
@@ -129,7 +129,7 @@ public final class Nexus12111World implements IWorld {
         }
         cursor.set(x, y, z);
         BlockState state = level().getBlockState(cursor);
-        ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        Identifier id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
         return new Nexus12111Block(id == null ? "minecraft:air" : id.toString(), state);
     }
 
@@ -174,7 +174,7 @@ public final class Nexus12111World implements IWorld {
                 for (int z = (int) region.minZ; z <= (int) region.maxZ; z++) {
                     cursor.set(x, y, z);
                     BlockState state = level().getBlockState(cursor);
-                    ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
+                    Identifier id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
                     visitor.visit(x, y, z, id == null ? "minecraft:air" : id.toString());
                 }
             }
@@ -213,7 +213,7 @@ public final class Nexus12111World implements IWorld {
         }
         Registry<Biome> registry = level().registryAccess().lookupOrThrow(Registries.BIOME);
         Biome biome = level().getBiome(new BlockPos(x, level().getSeaLevel(), z)).value();
-        ResourceLocation id = registry.getKey(biome);
+        Identifier id = registry.getKey(biome);
         return id == null ? null : id.toString();
     }
 

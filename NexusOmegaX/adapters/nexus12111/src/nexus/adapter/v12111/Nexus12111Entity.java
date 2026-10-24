@@ -63,12 +63,12 @@ public final class Nexus12111Entity implements IEntity {
 
     @Override
     public float yaw() {
-        return entity.yRot();
+        return entity.getYRot();
     }
 
     @Override
     public float pitch() {
-        return entity.xRot();
+        return entity.getXRot();
     }
 
     @Override
@@ -194,7 +194,7 @@ public final class Nexus12111Entity implements IEntity {
 
     @Override
     public float bodyYaw() {
-        return entity instanceof LivingEntity ? ((LivingEntity) entity).yBodyRot : entity.yRot();
+        return entity instanceof LivingEntity ? ((LivingEntity) entity).yBodyRot : entity.getYRot();
     }
 
     @Override

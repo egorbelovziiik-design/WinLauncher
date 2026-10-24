@@ -76,12 +76,12 @@ public final class Nexus12111Player implements IPlayer {
 
     @Override
     public float yaw() {
-        return ready() ? self().yRot() : 0.0f;
+        return ready() ? self().getYRot() : 0.0f;
     }
 
     @Override
     public float pitch() {
-        return ready() ? self().xRot() : 0.0f;
+        return ready() ? self().getXRot() : 0.0f;
     }
 
     @Override

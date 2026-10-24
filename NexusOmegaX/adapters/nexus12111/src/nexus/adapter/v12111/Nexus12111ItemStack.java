@@ -93,7 +93,10 @@ public final class Nexus12111ItemStack implements IItemStack {
 
     @Override
     public boolean isArmor() {
-        return stack.is(net.minecraft.tags.ItemTags.ARMOR);
+        return stack.is(net.minecraft.tags.ItemTags.HEAD_ARMOR)
+                || stack.is(net.minecraft.tags.ItemTags.CHEST_ARMOR)
+                || stack.is(net.minecraft.tags.ItemTags.LEG_ARMOR)
+                || stack.is(net.minecraft.tags.ItemTags.FOOT_ARMOR);
     }
 
     @Override
@@ -122,7 +125,7 @@ public final class Nexus12111ItemStack implements IItemStack {
 
     @Override
     public boolean isInTag(String tag) {
-        return stack.getTags().anyMatch(key -> key.identifier().toString().contains(tag));
+        return stack.getTags().anyMatch(key -> key.location().toString().contains(tag));
     }
 
     @Override

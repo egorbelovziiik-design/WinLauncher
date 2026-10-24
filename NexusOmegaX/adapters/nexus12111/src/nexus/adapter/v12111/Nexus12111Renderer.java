@@ -25,7 +25,7 @@ public final class Nexus12111Renderer implements IRenderer {
     private final Minecraft minecraft = Minecraft.getInstance();
     private GuiGraphics gui;
     private PoseStack pose;
-    private com.mojang.blaze3d.vertex.Matrix3x2fStack pose2d;
+    private org.joml.Matrix3x2fStack pose2d;
     private float partialTicks;
     private net.minecraft.world.phys.Vec3 camera = net.minecraft.world.phys.Vec3.ZERO;
     private VertexConsumer consumer;
@@ -169,7 +169,7 @@ public final class Nexus12111Renderer implements IRenderer {
             gui.drawString(minecraft.font, text, (int) x, (int) y, argbToAbgr(color), shadow);
             return;
         }
-        com.mojang.blaze3d.vertex.Matrix3x2fStack stack = gui.pose();
+        org.joml.Matrix3x2fStack stack = gui.pose();
         stack.pushMatrix();
         stack.scale((float) scale, (float) scale);
         gui.drawString(minecraft.font, text, (int) (x / scale), (int) (y / scale), argbToAbgr(color), shadow);
@@ -255,10 +255,35 @@ public final class Nexus12111Renderer implements IRenderer {
         AABB vanilla = new AABB(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)
                 .move(-camera.x, -camera.y, -camera.z);
         if (consumer != null) {
-            net.minecraft.client.renderer.ShapeRenderer.renderLineBox(pose, consumer, vanilla,
-                    ColorUtil.red(lineColor) / 255.0f, ColorUtil.green(lineColor) / 255.0f,
-                    ColorUtil.blue(lineColor) / 255.0f, ColorUtil.alpha(lineColor) / 255.0f);
+            drawEdges(vanilla, lineColor);
         }
+    }
+
+    /** Draws the twelve edges of a box with the plain vertex API. */
+    private void drawEdges(AABB box, int color) {
+        double[] xs = {box.minX, box.maxX};
+        double[] ys = {box.minY, box.maxY};
+        double[] zs = {box.minZ, box.maxZ};
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                edge(xs[i], ys[j], zs[0], xs[i], ys[j], zs[1], color);
+                edge(xs[i], ys[0], zs[j], xs[i], ys[1], zs[j], color);
+                edge(xs[0], ys[i], zs[j], xs[1], ys[i], zs[j], color);
+            }
+        }
+    }
+
+    private void edge(double x1, double y1, double z1, double x2, double y2, double z2, int color) {
+        if (pose == null || consumer == null) {
+            return;
+        }
+        org.joml.Matrix4f matrix = pose.last().pose();
+        org.joml.Vector3f a = matrix.transformPosition(new org.joml.Vector3f((float) x1, (float) y1, (float) z1));
+        org.joml.Vector3f b = matrix.transformPosition(new org.joml.Vector3f((float) x2, (float) y2, (float) z2));
+        consumer.addVertex(a.x, a.y, a.z)
+                .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color));
+        consumer.addVertex(b.x, b.y, b.z)
+                .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color));
     }
 
     @Override

@@ -52,7 +52,7 @@ public final class Nexus12111Input implements IInput {
         if (override != null) {
             return override.booleanValue();
         }
-        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(handle().getWindow().handle(), keyCode);
+        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(handle().getWindow(), keyCode);
     }
 
     @Override
