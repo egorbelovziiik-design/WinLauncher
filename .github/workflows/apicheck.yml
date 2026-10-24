@@ -66,9 +66,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          base64 -w0 /tmp/dump.md > /tmp/dump.b64 || exit 0
-          FILE="ci-logs/api-${{ matrix.dir }}.md"
-          SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null)
-          gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
-            -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
-            -f branch="$GITHUB_REF_NAME" ${SHA:+-f sha="$SHA"} && echo published
+          wc -c /tmp/dump.md
+          rm -rf /tmp/parts && mkdir -p /tmp/parts
+          split -b 45000 -a 2 -d /tmp/dump.md /tmp/parts/chunk-
+          ls -la /tmp/parts
+          i=0
+          for PART in /tmp/parts/chunk-*; do
+            base64 -w0 "$PART" > /tmp/part.b64
+            FILE="ci-logs/api-${{ matrix.dir }}-$i.md"
+            SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null)
+            gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
+              -f message="ci: API dump ${{ matrix.dir }} part $i" \
+              -f content="$(cat /tmp/part.b64)" \
+              -f branch="$GITHUB_REF_NAME" ${SHA:+-f sha="$SHA"} && echo "published $FILE"
+            i=$((i+1))
+          done
