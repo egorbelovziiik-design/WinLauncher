@@ -1,4 +1,4 @@
-### Gradle log: nexus1165  (Sat Oct 24 16:55:23 UTC 2026)
+### Gradle log: nexus1165  (Sat Oct 24 17:00:48 UTC 2026)
 ```
 ```
 
@@ -26,13 +26,12 @@ Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix
 > Task :test NO-SOURCE
 > Task :validateAccessWidener NO-SOURCE
 > Task :check UP-TO-DATE
-> Task :verifyMixins
+> Task :remapJar
+> Task :verifyMixins FAILED
 verifyMixins: 1 problem(s)
   MIXIN PROBLEM: ScreenMouseMixin.java: cannot resolve the import of net.minecraft.client.gui.screen.Screen
-> Task :verifyMixins FAILED
-> Task :remapJar
 > Task :remapSourcesJar
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792860872322.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792861192474.json
 FAILURE: Build failed with an exception.
 * Where:
 Build file '/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/build.gradle' line: 204
@@ -47,6 +46,6 @@ Execution failed for task ':verifyMixins'.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 57s
+BUILD FAILED in 1m 3s
 7 actionable tasks: 7 executed
 ```
