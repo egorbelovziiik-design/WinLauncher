@@ -69,9 +69,11 @@ KP-KingGrief/
 │   ├── build.bat            # сборка Windows EXE одним кликом
 │   └── KP-KingGrief.spec
 │
-├── .github/workflows/build-windows.yml
 └── tests/                   # 111 тестов (pytest + pytest-asyncio)
 ```
+
+> CI-workflow сборки EXE лежит в **корне репозитория**:
+> `.github/workflows/build-windows.yml` — GitHub читает workflow только оттуда.
 
 ---
 
