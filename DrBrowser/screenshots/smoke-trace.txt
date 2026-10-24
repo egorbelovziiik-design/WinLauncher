@@ -1988,3 +1988,61 @@
 00:04:18.362 smoke: view model shutdown
 00:04:18.379 smoke: window closed
 00:04:18.393 smoke: finished, exit 0
+00:12:58.280 data-folders: PASS
+00:12:58.366 settings-json: PASS
+00:12:58.377 url-parser: PASS
+00:12:58.379 search-engines: PASS
+00:12:58.590 drsearch-index: PASS
+00:12:58.602 music-library: PASS
+00:12:58.845 radio-stations: PASS
+00:12:58.847 ai-personas: PASS
+00:12:58.856 profile-avatars: PASS
+00:12:58.936 drsearch-recents: PASS
+00:12:59.012 sqlite-history: PASS
+00:12:59.043 bookmarks: PASS
+00:12:59.063 passwords-dpapi: PASS
+00:12:59.065 password-generator: PASS
+00:12:59.070 ai-without-key: PASS
+00:12:59.076 adblock: PASS
+00:12:59.081 downloads: PASS
+00:12:59.093 session: PASS
+00:12:59.211 quicklinks-permissions: PASS
+00:12:59.214 incognito-profile: PASS
+00:12:59.220 webview2-runtime: PASS
+00:12:59.221 settings-limits: PASS
+00:12:59.226 guard-url-rules: PASS
+00:12:59.228 guard-scan-args: PASS
+00:12:59.229 ai-image-attachment: PASS
+00:12:59.296 local-ai: PASS
+00:12:59.319 ai-media-context: PASS
+00:12:59.322 music-catalog-parse: PASS
+00:12:59.331 drsearch-parse: PASS
+00:12:59.334 ai-local-provider: PASS
+00:12:59.336 ru-plurals: PASS
+00:12:59.598 music-persistence: PASS
+00:12:59.669 music-playlists: PASS
+00:12:59.672 music-m3u: PASS
+00:12:59.675 vertical-tabs: PASS
+00:12:59.676 error-logging: PASS
+00:13:00.765 smoke: start
+00:13:02.338 smoke: window created
+00:13:02.393 smoke: view model attached
+00:13:04.661 smoke-window: PASS
+00:13:04.663 smoke-webview: navigating
+00:13:07.000 smoke-webview: core ready
+00:13:07.604 smoke-webview: calling NavigateToString
+00:13:07.629 smoke-webview: NavigateToString returned
+00:13:08.354 smoke-webview: PASS
+00:13:10.800 smoke-tabs: PASS
+00:13:18.434 smoke-pages: PASS
+00:13:20.923 smoke-settings-tabs: PASS
+00:13:22.441 smoke-ui: PASS
+00:13:23.406 smoke-miniplayer: PASS
+00:13:25.608 smoke-hotkeys: PASS
+00:13:26.272 smoke-https: engine ready
+00:13:26.616 smoke-https: PASS
+00:13:29.373 smoke-download: PASS
+00:13:30.886 smoke-screenshot: PASS
+00:13:30.958 smoke: view model shutdown
+00:13:30.977 smoke: window closed
+00:13:30.990 smoke: finished, exit 0
