@@ -86,3 +86,15 @@ tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
     archiveFileName = "NexusOmegaX-${minecraftVersion}-sources.jar"
 }
+
+// Diagnostic helper: prints the absolute path of the mapped Minecraft jar that
+// this adapter compiles against (used by the CI API dump, harmless otherwise).
+tasks.register('printMappedJar') {
+    doLast {
+        configurations.compileClasspath.resolve().each { f ->
+            if (f.name.contains('minecraft')) {
+                println 'MCJAR=' + f.absolutePath
+            }
+        }
+    }
+}

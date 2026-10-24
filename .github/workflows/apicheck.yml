@@ -40,12 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          JAR=$(find / -name "*minecraft*merged*.jar" 2>/dev/null | grep -v sources | head -1)
-          if [ -z "$JAR" ]; then
-            for J in $(find / -name "*.jar" -path "*loom*" 2>/dev/null | grep -v sources | head -40); do
-              if unzip -l "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
-            done
-          fi
+          JAR=$(gradle -q printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>/dev/null | grep '^MCJAR=' | head -1 | cut -d= -f2-)
           echo "jar=$JAR"
           {
             echo "# ${{ matrix.dir }} API ($(date -u))"
@@ -58,7 +53,14 @@ jobs:
             echo '```'
           } > /tmp/dump.md
           base64 -w0 /tmp/dump.md > /tmp/dump.b64
-          gh api --method PUT "repos/${{ github.repository }}/contents/ci-logs/api-${{ matrix.dir }}.md" \
-            -f message="ci: API dump ${{ matrix.dir }}" \
-            -f content="$(cat /tmp/dump.b64)" \
-            -f branch="$GITHUB_REF_NAME" || true
+          FILE="ci-logs/api-${{ matrix.dir }}.md"
+          SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null || true)
+          if [ -n "$SHA" ]; then
+            gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
+              -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
+              -f branch="$GITHUB_REF_NAME" -f sha="$SHA"
+          else
+            gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
+              -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
+              -f branch="$GITHUB_REF_NAME"
+          fi
