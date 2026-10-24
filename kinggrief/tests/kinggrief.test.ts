@@ -399,10 +399,8 @@ describe('контент и аналитика', () => {
 
   it('выдача повторяется, если плагин не подтвердил команду', () => {
     const order = repo.createOrder({
-      publicId: `KG-RETRY${Date.now().toString().slice(-4)}`,
       nickname: 'RetryUser',
       email: null,
-      status: 'delivering',
       subtotal: 19,
       discount: 0,
       total: 19,

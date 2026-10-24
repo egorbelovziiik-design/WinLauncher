@@ -67,7 +67,9 @@ export function safeEqual(a: string, b: string) {
  * «срабатывает», но сессия не приходит со следующим запросом. Поэтому при HTTPS
  * ставим SameSite=None; Secure, а на локальном HTTP — обычный Lax.
  */
-async function cookieMode(): Promise<{ secure: boolean; sameSite: 'none' | 'lax' }> {
+type CookieMode = { secure: boolean; sameSite: 'none' | 'lax'; partitioned?: boolean };
+
+async function cookieMode(): Promise<CookieMode> {
   if (process.env.COOKIE_SECURE === 'false') return { secure: false, sameSite: 'lax' };
   if (process.env.COOKIE_SECURE === 'true') return { secure: true, sameSite: 'none' };
   try {
@@ -76,13 +78,15 @@ async function cookieMode(): Promise<{ secure: boolean; sameSite: 'none' | 'lax'
     const forwarded = (h.get('forwarded') || '').toLowerCase();
     const origin = (h.get('origin') || '').toLowerCase();
     const viaHttps = proto === 'https' || forwarded.includes('proto=https') || origin.startsWith('https://');
-    if (viaHttps) return { secure: true, sameSite: 'none' };
+    // partitioned (CHIPS) нужен, когда сайт открыт в iframe на чужом домене:
+    // Chrome блокирует обычные сторонние cookie, но разделённые принимает.
+    if (viaHttps) return { secure: true, sameSite: 'none', partitioned: true };
     if (proto === 'http') return { secure: false, sameSite: 'lax' };
   } catch {
     /* вне запроса */
   }
   return process.env.NODE_ENV === 'production'
-    ? { secure: true, sameSite: 'none' }
+    ? { secure: true, sameSite: 'none', partitioned: true }
     : { secure: false, sameSite: 'lax' };
 }
 
