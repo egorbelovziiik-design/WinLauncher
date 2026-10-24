@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Every vanilla screen is hooked, but the handler only reacts while the chat is
  * open and an enabled HUD element is under the cursor, so nothing else changes.
  */
-@Mixin(net.minecraft.client.gui.screens.Screen.class)
+@Mixin(Screen.class)
 public final class ScreenMouseMixin {
 
     @Inject(method = "mouseClicked(DDI)Z", at = @At("HEAD"), cancellable = true)
