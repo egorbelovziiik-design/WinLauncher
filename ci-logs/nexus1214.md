@@ -1,4 +1,4 @@
-### Gradle log: nexus1214  (Sat Oct 24 17:00:46 UTC 2026)
+### Gradle log: nexus1214  (Sat Oct 24 17:03:19 UTC 2026)
 ```
 ```
 
@@ -35,18 +35,21 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :validateAccessWidener NO-SOURCE
 > Task :check UP-TO-DATE
 > Task :remapJar
+> Task :verifyMixins
+verifyMixins: 3 problem(s)
+  MIXIN PROBLEM: ScreenMouseMixin.java: Screen.mouseClicked does not exist
+  MIXIN PROBLEM: ScreenMouseMixin.java: Screen.mouseReleased does not exist
+  MIXIN PROBLEM: ScreenMouseMixin.java: Screen.mouseDragged does not exist
 > Task :verifyMixins FAILED
-verifyMixins: 1 problem(s)
-  MIXIN PROBLEM: ScreenMouseMixin.java: cannot resolve the import of net.minecraft.client.gui.screens.Screen
 > Task :remapSourcesJar
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792861188060.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792861346085.json
 [Incubating] Problems report is available at: file:///home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/build/reports/problems/problems-report.html
 FAILURE: Build failed with an exception.
 * Where:
 Build file '/home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1214/build.gradle' line: 205
 * What went wrong:
 Execution failed for task ':verifyMixins' (registered in build file 'build.gradle').
-> Mixin targets do not match Minecraft: ScreenMouseMixin.java: cannot resolve the import of net.minecraft.client.gui.screens.Screen
+> Mixin targets do not match Minecraft: ScreenMouseMixin.java: Screen.mouseClicked does not exist; ScreenMouseMixin.java: Screen.mouseReleased does not exist; ScreenMouseMixin.java: Screen.mouseDragged does not exist
 * Try:
 > Run with --stacktrace option to get the stack trace.
 > Run with --info or --debug option to get more log output.
@@ -55,6 +58,6 @@ Execution failed for task ':verifyMixins' (registered in build file 'build.gradl
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/9.5.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 1m 3s
+BUILD FAILED in 1m 1s
 8 actionable tasks: 8 executed
 ```
