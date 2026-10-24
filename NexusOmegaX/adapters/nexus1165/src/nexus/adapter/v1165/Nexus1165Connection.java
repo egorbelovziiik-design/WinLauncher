@@ -30,7 +30,7 @@ public final class Nexus1165Connection implements IConnection {
     public boolean isConnected() {
         ClientPlayNetworkHandler listener = listener();
         return listener != null && listener.getConnection() != null
-                && !listener.getConnection().isDisconnected();
+                && listener.getConnection().isOpen();
     }
 
     @Override

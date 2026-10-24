@@ -160,7 +160,7 @@ public final class Nexus1165Entity implements IEntity {
 
     @Override
     public boolean isInWater() {
-        return entity.isInWater();
+        return entity.isTouchingWater();
     }
 
     @Override

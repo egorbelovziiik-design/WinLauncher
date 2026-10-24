@@ -103,8 +103,7 @@ public final class Nexus1165Screens implements IScreenHost {
     @Override
     public void openInventoryScreen() {
         if (handle().player != null) {
-            handle().openScreen(handle().player.playerScreenHandler.createScreen(
-                    handle().player.inventory, handle().player));
+            handle().openScreen(new net.minecraft.client.gui.screen.ingame.InventoryScreen(handle().player));
         }
     }
 
@@ -135,8 +134,8 @@ public final class Nexus1165Screens implements IScreenHost {
 
     @Override
     public void clickEnchantment(int index) {
-        if (handle().currentScreen instanceof net.minecraft.client.gui.screen.ingame.EnchantingScreen) {
-            ((net.minecraft.client.gui.screen.ingame.EnchantingScreen) handle().currentScreen)
+        if (handle().currentScreen instanceof net.minecraft.client.gui.screen.ingame.EnchantmentScreen) {
+            ((net.minecraft.client.gui.screen.ingame.EnchantmentScreen) handle().currentScreen)
                     .mouseClicked(120.0, 40.0 + index * 19.0, 0);
         }
     }

@@ -262,7 +262,7 @@ public final class Nexus1165Player implements IPlayer {
             result.add(new IPotionEffect() {
                 @Override
                 public String name() {
-                    return net.minecraft.text.TranslatableText(instance.getTranslationKey()).asString();
+                    return new net.minecraft.text.TranslatableText(instance.getTranslationKey()).getString();
                 }
 
                 @Override
