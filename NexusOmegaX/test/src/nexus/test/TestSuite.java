@@ -192,7 +192,7 @@ public final class TestSuite {
 
         // the singleplayer row must leave the Nexus stack and hand over to vanilla
         nexus.gui().current().mouseClicked(480, 220, 0);
-        tick(nexus, 1);
+        tick(nexus, 2);
         check("a vanilla menu action closes the Nexus menu", nexus.gui().stackSize() == 0);
         check("the singleplayer row handed over to the vanilla world list",
                 "selectworld".equals(screens.vanillaMenu()));

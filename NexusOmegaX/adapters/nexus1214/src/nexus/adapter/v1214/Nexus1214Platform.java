@@ -25,7 +25,8 @@ public final class Nexus1214Platform implements NexusPlatform, ClientModInitiali
     private final Minecraft minecraft = Minecraft.getInstance();
     private final Nexus1214Client client = new Nexus1214Client(minecraft);
     private final File directory;
-    private final Nexus1214Hooks hooks = new Nexus1214Hooks();
+    /** The very same hook object the mixins use (see MinecraftMixin.Hooks). */
+    private final Nexus1214Hooks hooks = nexus.adapter.v1214.mixin.MinecraftMixin.Hooks.HOOKS;
 
     public Nexus1214Platform() {
         this.directory = new File(minecraft.gameDirectory, NexusInfo.CONFIG_FOLDER);

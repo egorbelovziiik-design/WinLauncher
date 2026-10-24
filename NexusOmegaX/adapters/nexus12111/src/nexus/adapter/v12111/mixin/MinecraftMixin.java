@@ -15,7 +15,11 @@ public final class MinecraftMixin {
     /** runTick(boolean) in 1.21.11 - the parameter list has to match exactly. */
     @Inject(method = "runTick(Z)V", at = @At("HEAD"))
     private void nexus$tick(boolean tick, CallbackInfo info) {
-        Hooks.HOOKS.onStartTick();
+        try {
+            Hooks.HOOKS.onStartTick();
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus tick hook failed", throwable);
+        }
     }
 
     @Inject(method = "close()V", at = @At("HEAD"))
@@ -30,7 +34,10 @@ public final class MinecraftMixin {
         public static final Nexus12111Hooks HOOKS = new Nexus12111Hooks();
 
         static {
-            new Nexus12111Platform().installHooks();
+            // Just enable the shared hook object. Building a platform here used to
+            // run adapter constructors from inside the game loop, and any exception
+            // became an ExceptionInInitializerError on the first click.
+            HOOKS.install();
         }
 
         private Hooks() {

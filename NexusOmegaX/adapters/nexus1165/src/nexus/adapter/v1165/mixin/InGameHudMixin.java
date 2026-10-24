@@ -14,8 +14,12 @@ public final class InGameHudMixin {
 
     @Inject(method = "render(Lnet/minecraft/client/util/math/MatrixStack;F)V", at = @At("TAIL"))
     private void nexus$render2D(MatrixStack matrices, float tickDelta, CallbackInfo info) {
-        MinecraftClientMixin.Hooks.HOOKS.onRender2D(matrices, tickDelta * 50.0f,
+        try {
+            MinecraftClientMixin.Hooks.HOOKS.onRender2D(matrices, tickDelta * 50.0f,
                 net.minecraft.client.MinecraftClient.getInstance().getWindow().getScaledWidth(),
                 net.minecraft.client.MinecraftClient.getInstance().getWindow().getScaledHeight());
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus render hook failed", throwable);
+        }
     }
 }

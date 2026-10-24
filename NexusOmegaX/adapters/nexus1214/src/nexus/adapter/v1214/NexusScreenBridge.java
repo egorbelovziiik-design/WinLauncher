@@ -37,7 +37,12 @@ public final class NexusScreenBridge extends Screen {
     @Override
     protected void init() {
         super.init();
-        screen.init(width, height);
+        runSafely("init", new Runnable() {
+            @Override
+            public void run() {
+                screen.init(width, height);
+            }
+        });
         renderables.clear();
         renderables.add(new net.minecraft.client.gui.components.Renderable() {
             @Override
@@ -49,44 +54,62 @@ public final class NexusScreenBridge extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         Nexus1214Renderer renderer = new Nexus1214Renderer(graphics);
-        screen.render(renderer, mouseX, mouseY, delta);
+        final double frameX = mouseX;
+        final double frameY = mouseY;
+        final float frameDelta = delta;
+        runSafely("render", new Runnable() {
+            @Override
+            public void run() {
+                screen.render(renderer, (int) frameX, (int) frameY, frameDelta);
+            }
+        });
         super.render(graphics, mouseX, mouseY, delta);
     }
 
     @Override
     public void tick() {
-        screen.tick();
+        runSafely("tick", new Runnable() {
+            @Override
+            public void run() {
+                screen.tick();
+            }
+        });
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return screen.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+        return handle("input", () -> screen.mouseClicked(mouseX, mouseY, button))
+                || super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return screen.mouseReleased(mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
+        return handle("input", () -> screen.mouseReleased(mouseX, mouseY, button))
+                || super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        return screen.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
+        return handle("mouseDragged", () -> screen.mouseDragged(mouseX, mouseY, button, deltaX, deltaY))
                 || super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
-        return screen.mouseScrolled(mouseX, mouseY, vertical) || super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+        return handle("input", () -> screen.mouseScrolled(mouseX, mouseY, vertical))
+                || super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return screen.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+        return handle("input", () -> screen.keyPressed(keyCode, scanCode, modifiers))
+                || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(char character, int modifiers) {
-        return screen.charTyped(character) || super.charTyped(character, modifiers);
+        return handle("input", () -> screen.charTyped(character))
+                || super.charTyped(character, modifiers);
     }
 
     @Override
@@ -98,17 +121,43 @@ public final class NexusScreenBridge extends Screen {
             return;
         }
         closed = true;
-        host.close(screen);
+        try {
+            host.close(screen);
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus failed to close '" + screen.title() + "'", throwable);
+        }
     }
 
     /** Vanilla asks whether ESC may close this screen. */
     public boolean shouldCloseOnEsc() {
-        return screen.closesOnEscape();
+        return handle("shouldCloseOnEsc", () -> screen.closesOnEscape());
     }
 
     @Override
     public boolean isPauseScreen() {
-        return screen.pausesGame();
+        return handle("isPauseScreen", () -> screen.pausesGame());
     }
 
+    /** Runs Nexus screen code; a bug there must never crash Minecraft. */
+    /** Functional helper so every call into the Nexus screen is guarded. */
+    private interface Action {
+        boolean run();
+    }
+
+    private boolean handle(String what, Action action) {
+        try {
+            return action.run();
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus screen '" + screen.title() + "' failed in " + what, throwable);
+            return false;
+        }
+    }
+
+    private void runSafely(String what, Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus screen '" + screen.title() + "' failed in " + what, throwable);
+        }
+    }
 }

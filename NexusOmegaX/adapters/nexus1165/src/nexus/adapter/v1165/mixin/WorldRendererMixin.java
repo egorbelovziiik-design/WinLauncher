@@ -28,6 +28,10 @@ public final class WorldRendererMixin {
                                 boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer,
                                 LightmapTextureManager lightmapTextureManager, Matrix4f projection,
                                 CallbackInfo info) {
-        MinecraftClientMixin.Hooks.HOOKS.onRender3D(matrices, tickDelta);
+        try {
+            MinecraftClientMixin.Hooks.HOOKS.onRender3D(matrices, tickDelta);
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus render hook failed", throwable);
+        }
     }
 }

@@ -13,6 +13,11 @@ public final class ChatScreenMixin {
     @ModifyVariable(method = "handleChatInput(Ljava/lang/String;Z)V",
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private String nexus$send(String message) {
-        return MinecraftMixin.Hooks.HOOKS.onChatSend(message);
+        try {
+            return MinecraftMixin.Hooks.HOOKS.onChatSend(message);
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus chat hook failed", throwable);
+            return message;
+        }
     }
 }

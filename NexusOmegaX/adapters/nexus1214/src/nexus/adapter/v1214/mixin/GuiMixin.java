@@ -16,8 +16,12 @@ public final class GuiMixin {
     @Inject(method = "render(Lnet/minecraft/client/gui/GuiGraphics;Lnet/minecraft/client/DeltaTracker;)V",
             at = @At("TAIL"))
     private void nexus$render2D(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo info) {
-        MinecraftMixin.Hooks.HOOKS.onRender2D(graphics,
+        try {
+            MinecraftMixin.Hooks.HOOKS.onRender2D(graphics,
                 deltaTracker.getGameTimeDeltaPartialTick(true) * 50.0f,
                 graphics.guiWidth(), graphics.guiHeight());
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus render hook failed", throwable);
+        }
     }
 }

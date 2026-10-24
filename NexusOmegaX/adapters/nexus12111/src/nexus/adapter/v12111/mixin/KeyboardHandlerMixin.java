@@ -19,8 +19,12 @@ public final class KeyboardHandlerMixin {
 
     @Inject(method = "keyPress(JILnet/minecraft/client/input/KeyEvent;)V", at = @At("HEAD"), cancellable = true)
     private void nexus$key(long window, int action, KeyEvent event, CallbackInfo info) {
-        if (MinecraftMixin.Hooks.HOOKS.onKey(event.key(), event.scancode(), event.modifiers(), action)) {
+        try {
+            if (MinecraftMixin.Hooks.HOOKS.onKey(event.key(), event.scancode(), event.modifiers(), action)) {
             info.cancel();
+            }
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus input hook failed", throwable);
         }
     }
 }

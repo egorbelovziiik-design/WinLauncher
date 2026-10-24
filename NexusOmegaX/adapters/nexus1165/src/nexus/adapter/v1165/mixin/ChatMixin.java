@@ -18,6 +18,11 @@ public final class ChatMixin {
     @ModifyVariable(method = "sendChatMessage(Ljava/lang/String;)V",
             at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private String nexus$send(String message) {
-        return MinecraftClientMixin.Hooks.HOOKS.onChatSend(message);
+        try {
+            return MinecraftClientMixin.Hooks.HOOKS.onChatSend(message);
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus chat hook failed", throwable);
+            return message;
+        }
     }
 }

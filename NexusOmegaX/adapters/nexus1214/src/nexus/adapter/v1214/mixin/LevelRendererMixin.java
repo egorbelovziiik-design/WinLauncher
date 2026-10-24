@@ -31,7 +31,11 @@ public final class LevelRendererMixin {
                                 CallbackInfo info) {
         PoseStack poseStack = new PoseStack();
         poseStack.last().pose().set(frustum);
-        MinecraftMixin.Hooks.HOOKS.onRender3D(poseStack,
+        try {
+            MinecraftMixin.Hooks.HOOKS.onRender3D(poseStack,
                 deltaTracker.getGameTimeDeltaPartialTick(true));
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus render hook failed", throwable);
+        }
     }
 }

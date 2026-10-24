@@ -14,16 +14,24 @@ public final class MouseHandlerMixin {
 
     @Inject(method = "onPress(JIII)V", at = @At("HEAD"), cancellable = true)
     private void nexus$press(long window, int button, int action, int modifiers, CallbackInfo info) {
-        if (MinecraftMixin.Hooks.HOOKS.onMouse(button, action, 0.0, 0.0, 0.0)) {
+        try {
+            if (MinecraftMixin.Hooks.HOOKS.onMouse(button, action, 0.0, 0.0, 0.0)) {
             info.cancel();
+            }
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus input hook failed", throwable);
         }
     }
 
     @Inject(method = "onScroll(JDD)V", at = @At("HEAD"), cancellable = true)
     private void nexus$scroll(long window, double horizontal, double vertical, CallbackInfo info) {
         Nexus1214Input.noteScroll(vertical);
-        if (MinecraftMixin.Hooks.HOOKS.onMouse(-1, 2, vertical, 0.0, 0.0)) {
+        try {
+            if (MinecraftMixin.Hooks.HOOKS.onMouse(-1, 2, vertical, 0.0, 0.0)) {
             info.cancel();
+            }
+        } catch (Throwable throwable) {
+            nexus.util.Log.error("Nexus input hook failed", throwable);
         }
     }
 }

@@ -238,14 +238,37 @@ public final class Nexus {
         render.endWorld();
     }
 
+    /**
+     * True when one of our own screens is really on top of the vanilla screen.
+     * <p>
+     * The whole "the buttons in Minecraft stopped working" class of bugs comes
+     * from using the internal stack state for this decision: if the stack and
+     * the vanilla screen ever disagree, Nexus would keep swallowing every key
+     * press. The visible vanilla screen is the source of truth.
+     */
+    private boolean guiReallyVisible() {
+        IClient adapter = client();
+        return adapter != null && adapter.screens() != null && adapter.screens().isGuiVisible();
+    }
+
     /** Returns true when the key was consumed by Nexus. */
     public boolean onKey(int key, int scanCode, int modifiers, KeyEvent.Action action, boolean inGui) {
         if (!initialized) {
             return false;
         }
         KeyEvent event = new KeyEvent(key, scanCode, modifiers, action, inGui);
-        // 1) the GUI manager owns RIGHT SHIFT and ESC while interfaces are open
-        if (gui.onKey(event)) {
+        boolean visible = inGui || guiReallyVisible();
+        if (gui.isOpen() && !visible) {
+            // self heal: our stack thinks something is open but the game shows a
+            // vanilla screen - close it and let the game have the key
+            Log.warn("Nexus interface stack desynced from the vanilla screen - resyncing");
+            gui.closeAll(true);
+        }
+        // 1) the GUI manager owns RIGHT SHIFT and ESC while OUR screen is open
+        if (visible && gui.onKey(event)) {
+            return true;
+        }
+        if (!visible && gui.onKeyHandleBindOnly(event)) {
             return true;
         }
         // 2) module / client keybinds
@@ -254,13 +277,23 @@ public final class Nexus {
         return consumed || event.isCancelled();
     }
 
+    /**
+     * Mouse input. Vanilla always gets the click unless one of our own screens
+     * is visible - a swallowed click is exactly what makes the vanilla menus
+     * look "dead".
+     */
     public boolean onMouse(int button, MouseEvent.Action action, double scroll, double mouseX, double mouseY) {
         if (!initialized) {
             return false;
         }
         MouseEvent event = new MouseEvent(button, action, scroll, mouseX, mouseY);
-        eventBus.post(event);
-        return event.isCancelled();
+        try {
+            eventBus.post(event);
+        } catch (Throwable throwable) {
+            Log.error("Mouse event dispatch failed", throwable);
+            return false;
+        }
+        return event.isCancelled() && guiReallyVisible();
     }
 
     public void onChatSend(String message) {

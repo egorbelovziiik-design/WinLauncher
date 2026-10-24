@@ -34,6 +34,8 @@ public final class GuiManager {
     private ConfigScreen configScreen;
     private SettingsScreen settingsScreen;
     private MainMenuScreen mainMenu;
+    /** Tasks that must run outside of vanilla input handling (next tick). */
+    private final java.util.List<Runnable> pending = new java.util.ArrayList<Runnable>();
     private long lastToggleMs;
 
     public GuiManager(Nexus nexus) {
@@ -303,17 +305,7 @@ public final class GuiManager {
         boolean open = isOpen();
 
         if (event.key == KeyCodes.RIGHT_SHIFT) {
-            long now = System.currentTimeMillis();
-            if (now - lastToggleMs < 120L) {
-                return true; // debounce double events from some adapters
-            }
-            lastToggleMs = now;
-            if (open) {
-                closeAll(true);
-            } else {
-                openClickGui();
-            }
-            return true;
+            return toggleFromKey();
         }
 
         if (!open) {
@@ -338,7 +330,58 @@ public final class GuiManager {
         return true;
     }
 
+    /**
+     * RIGHT SHIFT handling only. Used when no Nexus screen is visible, so the
+     * GUI manager can never swallow keys that belong to the vanilla game.
+     */
+    public boolean onKeyHandleBindOnly(KeyEvent event) {
+        if (event.action != KeyEvent.Action.PRESS || event.key != KeyCodes.RIGHT_SHIFT) {
+            return false;
+        }
+        return toggleFromKey();
+    }
+
+    private boolean toggleFromKey() {
+        long now = System.currentTimeMillis();
+        if (now - lastToggleMs < 120L) {
+            return true; // debounce double events from some adapters
+        }
+        lastToggleMs = now;
+        if (isOpen()) {
+            closeAll(true);
+        } else {
+            openClickGui();
+        }
+        return true;
+    }
+
+    /**
+     * Queues a task for the next client tick.
+     * <p>
+     * Opening a vanilla {@code Screen} from inside {@code mouseClicked} is a
+     * classic crash on 1.21.x: the click is still being processed while the
+     * screen (and its widgets) are swapped underneath. Everything that changes
+     * screens therefore runs from the tick.
+     */
+    public void runNextTick(Runnable task) {
+        if (task != null) {
+            pending.add(task);
+        }
+    }
+
     public void onTick() {
+        if (!pending.isEmpty()) {
+            java.util.List<Runnable> tasks =
+                    new java.util.ArrayList<Runnable>(pending);
+            pending.clear();
+            for (Runnable task : tasks) {
+                try {
+                    task.run();
+                } catch (Throwable throwable) {
+                    Log.error("Deferred GUI task failed", throwable);
+                }
+            }
+        }
         for (NexusScreen screen : new ArrayList<NexusScreen>(stack)) {
             try {
                 screen.tick();

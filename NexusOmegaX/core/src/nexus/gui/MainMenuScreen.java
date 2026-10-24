@@ -75,42 +75,60 @@ public final class MainMenuScreen extends NexusScreen {
             @Override
             public void run() {
                 leaveForVanilla();
-                nexus.client().screens().openSingleplayerMenu();
+                final nexus.api.IScreenHost host = nexus.client().screens();
+                nexus.gui().runNextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        host.openSingleplayerMenu();
+                    }
+                });
             }
         }));
         rows.add(new Row("Сетевая игра", "Multiplayer", new Runnable() {
             @Override
             public void run() {
                 leaveForVanilla();
-                nexus.client().screens().openMultiplayerMenu();
+                final nexus.api.IScreenHost host = nexus.client().screens();
+                nexus.gui().runNextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        host.openMultiplayerMenu();
+                    }
+                });
             }
         }));
         rows.add(new Row("Настройки Minecraft", "Vanilla options", new Runnable() {
             @Override
             public void run() {
                 leaveForVanilla();
-                nexus.client().screens().openVanillaOptions();
+                final nexus.api.IScreenHost host = nexus.client().screens();
+                nexus.gui().runNextTick(new Runnable() {
+                    @Override
+                    public void run() {
+                        host.openVanillaOptions();
+                    }
+                });
             }
         }));
         rows.add(new Row("Nexus настройки", "Themes, HUD, keybinds", new Runnable() {
             @Override
             public void run() {
                 commitNickname();
-                nexus.gui().openSettings();
+                nexus.gui().runNextTick(() -> nexus.gui().openSettings());
             }
         }));
         rows.add(new Row("ClickGUI", "RIGHT SHIFT in game", new Runnable() {
             @Override
             public void run() {
                 commitNickname();
-                nexus.gui().openClickGui();
+                nexus.gui().runNextTick(() -> nexus.gui().openClickGui());
             }
         }));
         rows.add(new Row("Вернуться в меню Minecraft", "Back", new Runnable() {
             @Override
             public void run() {
                 commitNickname();
-                nexus.gui().closeAll(true);
+                nexus.gui().runNextTick(() -> nexus.gui().closeAll(true));
             }
         }));
     }
