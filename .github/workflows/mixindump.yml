@@ -53,7 +53,7 @@ jobs:
           echo "jar=$JAR"
           for C in ${{ matrix.classes }}; do
             echo "=========== $C"
-            javap -classpath "$JAR" -p "$C" 2>&1 | grep -E "^  (public|protected|private|static|final|abstract)|^public |^=====" | grep -vE "^  (public|private|protected|static|final) [a-z]" | head -200
+            javap -classpath "$JAR" -p -s "$C" 2>&1 | grep -E "^  [a-zA-Z].*\(|^  descriptor:|^public|^  public|^  static|^  private" | head -400
           done
 
       - name: publish
