@@ -25,12 +25,12 @@ jobs:
             jar: NexusOmegaX-1.16.5.jar
           - dir: nexus1214
             java: 21
-            gradle: 9.2.0
+            gradle: 9.5.0
             loom: 1.17.21
             jar: NexusOmegaX-1.21.4.jar
           - dir: nexus12111
             java: 21
-            gradle: 9.2.0
+            gradle: 9.5.0
             loom: 1.17.21
             jar: NexusOmegaX-1.21.11.jar
     steps:
@@ -61,27 +61,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           {
-            echo "### Gradle errors (${{ matrix.dir }})"
+            echo "### Gradle log: ${{ matrix.dir }}  ($(date -u))"
             echo '```'
-            grep -A4 "error:" "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log" | head -400
-            echo '```'
-            echo
-            echo "### first 40 lines"
-            echo '```'
-            head -40 "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log"
+            grep -A5 "error:" "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log" | head -600
             echo '```'
             echo
-            echo "### available fabric-loom versions"
+            echo "### tail"
             echo '```'
-            curl -s --max-time 25 https://maven.fabricmc.net/net/fabricmc/fabric-loom/maven-metadata.xml | grep -o "<version>[^<]*</version>" | tail -25
-            echo '```'
-            echo
-            echo "### available yarn mappings (tail)"
-            echo '```'
-            curl -s --max-time 25 https://maven.fabricmc.net/net/fabricmc/yarn/maven-metadata.xml | grep -o "<version>[^<]*</version>" | tail -15
+            grep -vE "^\\s+at |^$" "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log" | tail -60
             echo '```'
           } > /tmp/report.md
-          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -f body="$(cat /tmp/report.md)"
+          base64 -w0 /tmp/report.md > /tmp/report.b64
+          gh api --method PUT "repos/${{ github.repository }}/contents/ci-logs/${{ matrix.dir }}.md" \
+            -f message="ci: build log for ${{ matrix.dir }}" \
+            -f content="$(cat /tmp/report.b64)" \
+            -f branch="$GITHUB_REF_NAME" \
+            -f sha="$(gh api "repos/${{ github.repository }}/contents/ci-logs/${{ matrix.dir }}.md?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null || echo '')" \
+          || gh api --method PUT "repos/${{ github.repository }}/contents/ci-logs/${{ matrix.dir }}.md" \
+            -f message="ci: build log for ${{ matrix.dir }}" \
+            -f content="$(cat /tmp/report.b64)" \
+            -f branch="$GITHUB_REF_NAME" || true
 
       - name: Collect the jar
         run: |
