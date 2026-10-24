@@ -56,8 +56,9 @@ public final class Nexus1165Resources implements IResources {
 
     @Override
     public void showBlockBreaking(int x, int y, int z, int stage) {
-        if (handle().world != null && handle().player != null) {
-            handle().world.setBlockBreakingInfo(handle().player.getEntityId(),
+        if (handle().worldRenderer != null) {
+            handle().worldRenderer.setBlockBreakingProgress(
+                    new java.util.Random().nextInt(1000),
                     new net.minecraft.util.math.BlockPos(x, y, z), stage);
         }
     }
@@ -90,7 +91,7 @@ public final class Nexus1165Resources implements IResources {
     @Override
     public File takeScreenshot(File directory) {
         try {
-            net.minecraft.client.util.ScreenshotUtils.saveScreenshot(directory,
+            net.minecraft.client.texture.ScreenshotUtils.saveScreenshot(directory,
                     "nexus-" + System.currentTimeMillis(),
                     handle().getFramebuffer().textureWidth,
                     handle().getFramebuffer().textureHeight, handle().getFramebuffer(), null);

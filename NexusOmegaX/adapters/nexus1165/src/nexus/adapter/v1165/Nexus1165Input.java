@@ -43,7 +43,7 @@ public final class Nexus1165Input implements IInput {
     public boolean isKeyDown(int keyCode) {
         long window = handle().getWindow().getHandle();
         return keyCode >= 0 && keyCode < 32
-                ? InputUtil.isKeyPressed(window, keyCode)
+                ? net.minecraft.client.options.KeyBinding.isKeyPressed(window, keyCode)
                 : InputUtil.isKeyPressed(window, keyCode);
     }
 
@@ -54,18 +54,19 @@ public final class Nexus1165Input implements IInput {
 
     @Override
     public boolean isMouseDown(int button) {
-        return InputUtil.isKeyPressed(handle().getWindow().getHandle(), button - 100);
+        return net.minecraft.client.options.KeyBinding.isKeyPressed(
+                handle().getWindow().getHandle(), button - 100);
     }
 
     @Override
     public void setKeyState(int keyCode, boolean pressed) {
-        net.minecraft.client.option.KeyBinding.setKeyPressed(
+        net.minecraft.client.options.KeyBinding.setKeyState(
                 InputUtil.Type.KEYSYM.createFromCode(keyCode), pressed);
     }
 
     @Override
     public void releaseAllKeys() {
-        net.minecraft.client.option.KeyBinding.unpressAll();
+        net.minecraft.client.options.KeyBinding.unpressAll();
     }
 
     @Override

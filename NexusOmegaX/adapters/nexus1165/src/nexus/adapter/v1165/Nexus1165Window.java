@@ -43,7 +43,7 @@ public final class Nexus1165Window implements IWindow {
 
     @Override
     public int guiScale() {
-        return window().calculateScaleFactor(0, handle().getWindow().isFullscreen());
+        return window().calculateScaleFactor(0, handle().isFullScreen());
     }
 
     @Override
@@ -58,11 +58,11 @@ public final class Nexus1165Window implements IWindow {
 
     @Override
     public boolean isFocused() {
-        return handle().isWindowFocused();
+        return window().isFocused();
     }
 
     @Override
     public boolean isFullscreen() {
-        return handle().getWindow().isFullscreen();
+        return handle().isFullScreen();
     }
 }

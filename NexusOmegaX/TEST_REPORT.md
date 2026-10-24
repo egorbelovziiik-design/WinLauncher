@@ -174,3 +174,22 @@ that version simply has no jar — nothing is faked.
 * The 1.16.5 adapter's `fillSignText` uses reflection on intermediary field
   names; if a future loader renames them, sign filling silently does nothing
   (everything else keeps working).
+
+## 6. Mixin targets (runtime safety)
+
+A mixin that names a method with the wrong parameter list is not a compile error — the
+game crashes while the class is being transformed
+(`InvalidInjectionException: Invalid descriptor ... Expected (JIIIIL...CallbackInfo;)V`).
+That exact crash was reported on 1.21.4 and fixed for all three versions:
+
+| version | fix |
+|---|---|
+| 1.16.5 | `MinecraftClient.tick()V` instead of `runTick`; `WorldRenderer.render(MatrixStack,F,J,Z,Camera,GameRenderer,LightmapTextureManager,Matrix4f)V`; outgoing chat on `ClientPlayerEntity.sendChatMessage(Ljava/lang/String;)V` |
+| 1.21.4 | `KeyboardHandler.keyPress(JIIII)V` returns **void** (plain `CallbackInfo`); `Minecraft.runTick(Z)V`; `LevelRenderer.renderLevel` with 7 parameters |
+| 1.21.11 | input moved to records: `KeyboardHandler.keyPress(JIL.../input/KeyEvent;)V`, `MouseHandler.onButton(JL.../input/MouseButtonInfo;I)V`; `LevelRenderer.renderLevel` with 10 parameters |
+
+Every `@Inject`/`@ModifyVariable` in this project now spells out the full JVM
+descriptor, and the Gradle task **`verifyMixins`** (wired into `build`) resolves the
+mapped Minecraft jar, runs `javap -p -s` on each target class and fails the build when
+a target or its descriptor does not match. `gradle build` therefore cannot produce a
+jar whose injections would abort the game.

@@ -60,7 +60,7 @@ public final class Nexus1165Interaction implements IInteraction {
                 ? Direction.values()[faceIndex] : Direction.UP;
         BlockHitResult hit = new BlockHitResult(new Vec3d(x + 0.5, y + 0.5, z + 0.5),
                 direction, new BlockPos(x, y, z), false);
-        return handle().interactionManager.interactBlock(player, handle().world,
+        return handle().interactionManager.interactBlock(player, player.world,
                 net.minecraft.util.Hand.MAIN_HAND, hit).isAccepted();
     }
 
@@ -102,7 +102,7 @@ public final class Nexus1165Interaction implements IInteraction {
 
     @Override
     public int openSyncId() {
-        return handle().player == null ? -1 : handle().player.currentScreenHandler.syncId;
+        return handle().player == null ? -1 : handle().player.container.syncId;
     }
 
     @Override

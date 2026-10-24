@@ -110,15 +110,8 @@ public final class Nexus1165ItemStack implements IItemStack {
 
     @Override
     public boolean isInTag(String tag) {
-        net.minecraft.client.network.ClientPlayNetworkHandler handler =
-                net.minecraft.client.MinecraftClient.getInstance().getNetworkHandler();
-        if (handler == null || handler.getTagManager() == null) {
-            return false;
-        }
-        net.minecraft.tag.Tag<net.minecraft.item.Item> entry = handler
-                .getTagManager().getItems()
-                .getTag(new net.minecraft.util.Identifier(tag.indexOf(':') >= 0 ? tag : "minecraft:" + tag));
-        return entry != null && stack.getItem().isIn(entry);
+        return stack.getItem().isIn(net.minecraft.tag.TagRegistry.item(
+                new net.minecraft.util.Identifier("minecraft", tag)));
     }
 
     @Override

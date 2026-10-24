@@ -31,19 +31,9 @@ public final class Nexus1214Input implements IInput {
         return (int) handle().mouseHandler.ypos();
     }
 
-    /** Vertical scroll accumulated since the last call, fed by MouseHandlerMixin. */
-    private static double pendingScroll;
-
-    /** Called by the mixin so the client can read the wheel without vanilla APIs. */
-    public static void noteScroll(double amount) {
-        pendingScroll += amount;
-    }
-
     @Override
     public double scrollDelta() {
-        double value = pendingScroll;
-        pendingScroll = 0.0;
-        return value;
+        return handle().mouseHandler.getScrollXAmount() + handle().mouseHandler.getScrollYAmount();
     }
 
     @Override
@@ -52,7 +42,7 @@ public final class Nexus1214Input implements IInput {
         if (override != null) {
             return override.booleanValue();
         }
-        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(handle().getWindow().getWindow(), keyCode);
+        return net.minecraft.client.InputConstants.isKeyDown(handle().getWindow().getWindow(), keyCode);
     }
 
     @Override
@@ -62,16 +52,7 @@ public final class Nexus1214Input implements IInput {
 
     @Override
     public boolean isMouseDown(int button) {
-        if (button == 0) {
-            return handle().mouseHandler.isLeftPressed();
-        }
-        if (button == 1) {
-            return handle().mouseHandler.isRightPressed();
-        }
-        if (button == 2) {
-            return handle().mouseHandler.isMiddlePressed();
-        }
-        return false;
+        return handle().mouseHandler.isMouseDown();
     }
 
     @Override
@@ -113,6 +94,7 @@ public final class Nexus1214Input implements IInput {
     public void releaseAllKeys() {
         overrides.clear();
         KeyMapping.releaseAll();
+        handle().keyboardHandler.releaseAll();
     }
 
     @Override

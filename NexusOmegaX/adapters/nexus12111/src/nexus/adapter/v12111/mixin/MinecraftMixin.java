@@ -12,13 +12,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public final class MinecraftMixin {
 
-    /** runTick(boolean) in 1.21.11 - the parameter list has to match exactly. */
-    @Inject(method = "runTick(Z)V", at = @At("HEAD"))
-    private void nexus$tick(boolean tick, CallbackInfo info) {
+    @Inject(method = "runTick", at = @At("HEAD"))
+    private void nexus$tick(CallbackInfo info) {
         Hooks.HOOKS.onStartTick();
     }
 
-    @Inject(method = "close()V", at = @At("HEAD"))
+    @Inject(method = "close", at = @At("HEAD"))
     private void nexus$shutdown(CallbackInfo info) {
         if (nexus.core.Nexus.isInitialized()) {
             nexus.core.Nexus.instance().shutdown();

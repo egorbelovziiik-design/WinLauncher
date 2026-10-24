@@ -65,38 +65,31 @@ public final class Nexus12111ItemStack implements IItemStack {
 
     @Override
     public boolean isFood() {
-        return stack.get(net.minecraft.core.component.DataComponents.FOOD) != null;
+        return stack.getItem().isEdible();
     }
 
     @Override
     public int foodValue() {
-        net.minecraft.world.food.FoodProperties food =
-                stack.get(net.minecraft.core.component.DataComponents.FOOD);
-        return food == null ? 0 : food.nutrition();
+        return stack.getItem().getFoodProperties(stack, null) == null ? 0
+                : stack.getItem().getFoodProperties(stack, null).nutrition();
     }
 
     @Override
     public boolean isTool() {
-        return stack.is(net.minecraft.tags.ItemTags.PICKAXES)
-                || stack.is(net.minecraft.tags.ItemTags.AXES)
-                || stack.is(net.minecraft.tags.ItemTags.SHOVELS)
-                || stack.is(net.minecraft.tags.ItemTags.HOES)
+        return stack.getItem() instanceof net.minecraft.world.item.DiggerItem
                 || stack.getItem() instanceof net.minecraft.world.item.ShearsItem;
     }
 
     @Override
     public boolean isWeapon() {
-        return stack.is(net.minecraft.tags.ItemTags.SWORDS)
-                || stack.is(net.minecraft.tags.ItemTags.AXES)
+        return stack.getItem() instanceof net.minecraft.world.item.SwordItem
+                || stack.getItem() instanceof net.minecraft.world.item.AxeItem
                 || stack.getItem() instanceof net.minecraft.world.item.TridentItem;
     }
 
     @Override
     public boolean isArmor() {
-        return stack.is(net.minecraft.tags.ItemTags.HEAD_ARMOR)
-                || stack.is(net.minecraft.tags.ItemTags.CHEST_ARMOR)
-                || stack.is(net.minecraft.tags.ItemTags.LEG_ARMOR)
-                || stack.is(net.minecraft.tags.ItemTags.FOOT_ARMOR);
+        return stack.getItem() instanceof net.minecraft.world.item.ArmorItem;
     }
 
     @Override
@@ -111,16 +104,8 @@ public final class Nexus12111ItemStack implements IItemStack {
 
     @Override
     public float attackDamage() {
-        double damage = 1.0;
-        net.minecraft.world.item.component.ItemAttributeModifiers modifiers =
-                stack.getOrDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS,
-                        net.minecraft.world.item.component.ItemAttributeModifiers.EMPTY);
-        for (net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry : modifiers.modifiers()) {
-            if (entry.attribute().is(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)) {
-                damage += entry.modifier().amount();
-            }
-        }
-        return (float) damage;
+        return 1.0f + net.minecraft.world.item.enchantment.EnchantmentHelper.getDamageBonus(
+                stack, net.minecraft.world.entity.MobType.UNDEFINED);
     }
 
     @Override
@@ -130,7 +115,7 @@ public final class Nexus12111ItemStack implements IItemStack {
 
     @Override
     public boolean isTotem() {
-        return stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING);
+        return stack.getItem() instanceof net.minecraft.world.item.TotemItem;
     }
 
     @Override

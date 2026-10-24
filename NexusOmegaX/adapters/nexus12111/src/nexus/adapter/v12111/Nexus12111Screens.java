@@ -120,14 +120,10 @@ public final class Nexus12111Screens implements IScreenHost {
             if (sign instanceof net.minecraft.world.level.block.entity.SignBlockEntity) {
                 net.minecraft.world.level.block.entity.SignBlockEntity entity =
                         (net.minecraft.world.level.block.entity.SignBlockEntity) sign;
-                net.minecraft.world.level.block.entity.SignText front = entity.getFrontText();
-                net.minecraft.world.level.block.entity.SignText back = entity.getBackText();
                 for (int i = 0; i < lines.length && i < 4; i++) {
-                    front = front.setMessage(i, Component.literal(lines[i]));
-                    back = back.setMessage(i, Component.literal(lines[i]));
+                    entity.setMessage(i, Component.literal(lines[i]));
+                    entity.setMessage(i + 4, Component.literal(lines[i]));
                 }
-                entity.setText(front, true);
-                entity.setText(back, false);
             }
         } catch (Throwable ignored) {
             // the sign screen layout changed, nothing we can do generically

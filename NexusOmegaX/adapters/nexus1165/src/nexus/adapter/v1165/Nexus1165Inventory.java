@@ -22,6 +22,10 @@ public final class Nexus1165Inventory implements IInventory {
         return client.localPlayer();
     }
 
+    private net.minecraft.container.PlayerContainer inventory() {
+        return self().playerScreenHandler;
+    }
+
     private IItemStack wrap(ItemStack stack) {
         return new Nexus1165ItemStack(stack);
     }
@@ -233,20 +237,20 @@ public final class Nexus1165Inventory implements IInventory {
 
     @Override
     public int syncId() {
-        return self() == null ? 0 : self().currentScreenHandler.syncId;
+        return self() == null ? 0 : self().container.syncId;
     }
 
     @Override
     public int containerSlots() {
-        return self() == null ? 0 : self().currentScreenHandler.slots.size() - MAIN_SIZE;
+        return self() == null ? 0 : self().container.slots.size() - MAIN_SIZE;
     }
 
     @Override
     public IItemStack containerStack(int slot) {
-        if (self() == null || slot < 0 || slot >= self().currentScreenHandler.slots.size()) {
+        if (self() == null || slot < 0 || slot >= self().container.slots.size()) {
             return wrap(ItemStack.EMPTY);
         }
-        return wrap(self().currentScreenHandler.getSlot(slot).getStack());
+        return wrap(self().container.getSlot(slot).getStack());
     }
 
     @Override
@@ -268,6 +272,6 @@ public final class Nexus1165Inventory implements IInventory {
         } else if (clickType == nexus.api.IInventory.ClickType.QUICK_CRAFT) {
             type = SlotActionType.QUICK_CRAFT;
         }
-        client.handle().interactionManager.clickSlot(self().currentScreenHandler.syncId, slot, button, type, self());
+        client.handle().interactionManager.clickSlot(self().container.syncId, slot, button, type, self());
     }
 }

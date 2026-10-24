@@ -38,7 +38,7 @@ public final class Nexus1214Window implements IWindow {
 
     @Override
     public int guiScale() {
-        return (int) handle().getWindow().getGuiScale();
+        return handle().getWindow().getGuiScale();
     }
 
     @Override
@@ -53,7 +53,7 @@ public final class Nexus1214Window implements IWindow {
 
     @Override
     public boolean isFocused() {
-        return handle().isWindowActive();
+        return handle().getWindow().isFocused();
     }
 
     @Override

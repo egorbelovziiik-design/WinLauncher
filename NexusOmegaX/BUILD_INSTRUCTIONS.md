@@ -48,6 +48,13 @@ install-mods.bat        only copy already built jars into .minecraft\mods
 On Linux / macOS the same thing is `./build-all.sh` (add `--install` to copy the
 jars into `~/.minecraft/mods`).
 
+### Mixin safety check
+
+`gradle build` runs `verifyMixins` first: it compares every `@Inject` /
+`@ModifyVariable` target with the real mapped Minecraft jar and fails if a method was
+renamed or its parameters changed. This is what catches the
+`InvalidInjectionException: Invalid descriptor` crashes before a jar is shipped.
+
 ### If a build fails
 
 Every version knob lives in one file per adapter — no code editing:

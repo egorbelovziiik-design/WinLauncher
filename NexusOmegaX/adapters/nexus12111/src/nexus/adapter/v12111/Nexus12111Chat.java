@@ -1,5 +1,6 @@
 package nexus.adapter.v12111;
 
+import net.minecraft.client.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import nexus.api.IChat;
@@ -48,8 +49,8 @@ public final class Nexus12111Chat implements IChat {
     @Override
     public List<String> history() {
         List<String> result = new ArrayList<String>();
-        for (String message : handle().gui.getChat().getRecentChat()) {
-            result.add(message);
+        for (GuiMessage message : handle().gui.getChat().getAllMessages()) {
+            result.add(message.content().getString());
         }
         return result;
     }

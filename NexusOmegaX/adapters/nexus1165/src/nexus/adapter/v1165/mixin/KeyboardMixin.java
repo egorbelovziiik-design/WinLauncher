@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Keyboard.class)
 public final class KeyboardMixin {
 
-    @Inject(method = "onKey(JIIII)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onKey", at = @At("HEAD"), cancellable = true)
     private void nexus$key(long window, int key, int scanCode, int action, int modifiers,
                            CallbackInfo info) {
         if (MinecraftClientMixin.Hooks.HOOKS.onKey(key, scanCode, modifiers, action)) {

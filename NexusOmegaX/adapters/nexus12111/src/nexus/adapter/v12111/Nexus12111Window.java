@@ -53,8 +53,7 @@ public final class Nexus12111Window implements IWindow {
 
     @Override
     public boolean isFocused() {
-        return org.lwjgl.glfw.GLFW.glfwGetWindowAttrib(handle().getWindow().handle(),
-                org.lwjgl.glfw.GLFW.GLFW_FOCUSED) != 0;
+        return handle().getWindow().isFocused();
     }
 
     @Override

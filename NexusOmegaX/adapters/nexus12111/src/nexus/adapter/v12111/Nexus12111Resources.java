@@ -26,12 +26,12 @@ public final class Nexus12111Resources implements IResources {
 
     @Override
     public void playSound(String soundId, float volume, float pitch) {
-        net.minecraft.resources.Identifier id =
-                net.minecraft.resources.Identifier.tryParse(soundId);
+        net.minecraft.resources.ResourceLocation id =
+                net.minecraft.resources.ResourceLocation.tryParse(soundId);
         if (id == null) {
             return;
         }
-        SoundEvent event = BuiltInRegistries.SOUND_EVENT.getValue(id);
+        SoundEvent event = BuiltInRegistries.SOUND_EVENT.get(id);
         if (event != null) {
             handle().getSoundManager().play(SimpleSoundInstance.forUI(event, pitch, volume));
         }
@@ -61,9 +61,9 @@ public final class Nexus12111Resources implements IResources {
 
     @Override
     public boolean hasSound(String soundId) {
-        net.minecraft.resources.Identifier id =
-                net.minecraft.resources.Identifier.tryParse(soundId);
-        return id != null && BuiltInRegistries.SOUND_EVENT.getValue(id) != null;
+        net.minecraft.resources.ResourceLocation id =
+                net.minecraft.resources.ResourceLocation.tryParse(soundId);
+        return id != null && BuiltInRegistries.SOUND_EVENT.get(id) != null;
     }
 
     @Override
@@ -82,10 +82,10 @@ public final class Nexus12111Resources implements IResources {
 
     @Override
     public File takeScreenshot(File directory) {
-        File target = new File(directory, "nexus-" + System.currentTimeMillis() + ".png");
-        net.minecraft.client.Screenshot.grab(target, handle().getMainRenderTarget(), message -> {
-        });
-        return target;
+        net.minecraft.client.Screenshot.grab(handle().gameDirectory, "nexus",
+                handle().getMainRenderTarget(), message -> {
+                });
+        return new File(handle().gameDirectory, "screenshots");
     }
 
     @Override
@@ -113,13 +113,8 @@ public final class Nexus12111Resources implements IResources {
         }
         net.minecraft.world.item.ItemStack vanilla =
                 ((Nexus12111ItemStack) stack).handle();
-        net.minecraft.world.item.enchantment.ItemEnchantments enchantments =
-                net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantmentsForCrafting(vanilla);
-        for (java.util.Map.Entry<net.minecraft.core.Holder<net.minecraft.world.item.enchantment.Enchantment>,
-                Integer> entry : enchantments.entrySet()) {
-            result.add(net.minecraft.world.item.enchantment.Enchantment
-                    .getFullname(entry.getKey(), entry.getValue().intValue()).getString());
-        }
+        net.minecraft.world.item.enchantment.EnchantmentHelper.getEnchantments(vanilla)
+                .forEach((enchantment, level) -> result.add(enchantment.value().getFullname(level).getString()));
         return result;
     }
 }

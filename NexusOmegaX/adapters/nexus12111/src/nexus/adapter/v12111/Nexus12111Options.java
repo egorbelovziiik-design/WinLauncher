@@ -33,7 +33,7 @@ public final class Nexus12111Options implements IOptions {
 
     @Override
     public void setFov(double value) {
-        handle().options.fov().set(Integer.valueOf((int) Math.max(30.0, Math.min(110.0, value))));
+        handle().options.fov().set(value);
     }
 
     @Override
@@ -78,7 +78,7 @@ public final class Nexus12111Options implements IOptions {
 
     @Override
     public boolean cloudRenderMode() {
-        return handle().options.cloudStatus().get() != net.minecraft.client.CloudStatus.OFF;
+        return handle().options.renderClouds().get() != net.minecraft.client.CloudStatus.OFF;
     }
 
     @Override
@@ -103,7 +103,6 @@ public final class Nexus12111Options implements IOptions {
 
     @Override
     public void setSoundVolumeMaster(float value) {
-        handle().options.getSoundSourceOptionInstance(net.minecraft.sounds.SoundSource.MASTER)
-                .set(Double.valueOf(value));
+        handle().options.setSoundCategoryVolume(net.minecraft.sounds.SoundSource.MASTER, value);
     }
 }
