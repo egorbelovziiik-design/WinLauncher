@@ -96,6 +96,7 @@ jobs:
 
   publish:
     name: Publish rolling release
+    if: always()
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -107,6 +108,37 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+
+      - name: Package the mods zip
+        run: |
+          ls -la artifacts || true
+          mkdir -p mods
+          cp artifacts/*.jar mods/ 2>/dev/null || true
+          ls -la mods
+          if [ -z "$(ls -A mods)" ]; then echo "no jars were built"; exit 1; fi
+          cat > mods/READ-ME.txt <<'TXT'
+          NEXUS CLIENT OMEGA X - Fabric mods
+          =================================
+
+          NexusOmegaX-1.16.5.jar   - Minecraft 1.16.5  (needs Fabric Loader 0.14+)
+          NexusOmegaX-1.21.4.jar   - Minecraft 1.21.4  (needs Fabric Loader 0.16+)
+          NexusOmegaX-1.21.11.jar  - Minecraft 1.21.11 (needs Fabric Loader 0.17+)
+
+          Install
+          -------
+          1. Install Fabric for the version you play:
+             https://fabricmc.net/use/installer/
+          2. Put the matching jar into %APPDATA%\.minecraft\mods\
+             (Linux/macOS: ~/.minecraft/mods/)
+          3. Start the "fabric-loader" profile in the official launcher.
+          4. In game: RIGHT SHIFT opens the ClickGUI, ESC closes it,
+             type .help in the chat for the command list.
+
+          Only one jar per Minecraft version is needed - do not put all
+          three into the same mods folder.
+          TXT
+          cd mods && zip -r ../NexusOmegaX-mods.zip . && cd ..
+          ls -la NexusOmegaX-mods.zip
 
       - name: Publish jars
         env:
@@ -128,5 +160,6 @@ jobs:
           для нужной версии, положите jar в %APPDATA%\\.minecraft\\mods, выберите профиль
           \"Nexus Client Omega X\" в лаунчере, Play. В игре: RIGHT SHIFT - ClickGUI, .help - команды." \
             artifacts/*.jar \
+            NexusOmegaX-mods.zip \
             NexusOmegaX/dist/NexusInjector.exe \
             NexusOmegaX/NexusOmegaX-Source.zip

@@ -105,7 +105,16 @@ public final class Nexus1214ItemStack implements IItemStack {
 
     @Override
     public float attackDamage() {
-        return 1.0f + net.minecraft.world.item.enchantment.EnchantmentHelper.getDamageBonus(stack, null);
+        double damage = 1.0;
+        net.minecraft.world.item.component.ItemAttributeModifiers modifiers =
+                stack.getOrDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS,
+                        net.minecraft.world.item.component.ItemAttributeModifiers.EMPTY);
+        for (net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry : modifiers.modifiers()) {
+            if (entry.attribute().is(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)) {
+                damage += entry.modifier().amount();
+            }
+        }
+        return (float) damage;
     }
 
     @Override
