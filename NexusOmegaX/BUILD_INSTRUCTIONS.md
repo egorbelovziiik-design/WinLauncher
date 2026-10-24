@@ -21,7 +21,58 @@ needs `nexus.api` + a JDK.
 
 ---
 
-## 1. Build the three mod jars
+## 1. Build the three mod jars — Windows, one click
+
+```
+build.bat /install
+```
+
+That is all. The script
+
+1. checks Java (JDK 21 needed for 1.21.x),
+2. uses your `gradle` — or downloads the official Gradle 8.10.2 into
+   `%USERPROFILE%\.gradle-dist` if it is missing,
+3. builds all three adapters (`gradle build` with Fabric Loom),
+4. copies `NexusOmegaX-1.16.5.jar`, `-1.21.4.jar`, `-1.21.11.jar` into `dist\`,
+5. with `/install` — also straight into `%APPDATA%\.minecraft\mods`.
+
+Useful variants:
+
+```
+build.bat               build all three versions, keep the jars in dist\
+build.bat 1.21.4        build a single version
+build.bat /install      build and install into .minecraft\mods
+install-mods.bat        only copy already built jars into .minecraft\mods
+```
+
+On Linux / macOS the same thing is `./build-all.sh` (add `--install` to copy the
+jars into `~/.minecraft/mods`).
+
+### If a build fails
+
+Every version knob lives in one file per adapter — no code editing:
+
+```
+adapters/nexus1214/gradle.properties     loomVersion, minecraftVersion, loaderVersion
+adapters/nexus12111/gradle.properties    loomVersion, minecraftVersion, loaderVersion
+adapters/nexus1165/gradle.properties     loomVersion, minecraftVersion, loaderVersion, yarnMappings
+```
+
+Override anything from the command line, e.g.
+`gradle build -p adapters/nexus1214 -PloomVersion=1.10-SNAPSHOT`.
+Typical fixes:
+
+| Gradle says | Fix |
+|---|---|
+| `Could not find net.fabricmc:fabric-loom:1.11-SNAPSHOT` | raise/lower `loomVersion` (try 1.10 or 1.12) |
+| `Could not resolve com.mojang:minecraft` | no internet / proxy; allow `piston-data.mojang.com` and `libraries.minecraft.net` |
+| `Could not resolve net.fabricmc:yarn:1.16.5+build.10` | change `yarnMappings` (see <https://maven.fabricmc.net/net/fabricmc/yarn/>) |
+| `Unsupported class file major version` on 1.21.x | run Gradle with JDK 21 (`set JAVA_HOME=...`) |
+| Gradle 7 + Loom 1.6 | set `loomVersion=0.12-SNAPSHOT` for the 1.16.5 adapter |
+
+Send me the last 30 lines of the Gradle output and I will fix it in the sources.
+
+## 2. Build the three mod jars (manual)
 
 Fabric Loom resolves Minecraft and the mappings, so this step **needs internet
 access to `maven.fabricmc.net`, `maven.minecraftforge.net` and `repo1.maven.org`**.
@@ -77,7 +128,7 @@ other version keeps working.
 
 ---
 
-## 2. Build the Windows launcher
+## 3. Build the Windows launcher
 
 ```bash
 pip install ziglang          # or https://ziglang.org/download/
@@ -103,7 +154,7 @@ runtime, no external files. It links the Universal CRT that ships with Windows
 
 ---
 
-## 3. Compile and run the headless test suite
+## 4. Compile and run the headless test suite
 
 The suite boots the whole client against a fake platform
 (`nexus.test.HeadlessPlatform`), so it needs neither Minecraft nor a display.
@@ -118,7 +169,7 @@ See `TEST_REPORT.md` for what each of the 71 checks asserts.
 
 ---
 
-## 4. Source archive
+## 5. Source archive
 
 ```bash
 ./build-all.sh --zip-only      # or:  zip -r NexusOmegaX-Source.zip . -x 'dist/*' 'build/*'
@@ -129,7 +180,7 @@ The archive contains `api/`, `core/`, `modules/`, `adapters/`, `launcher/`,
 
 ---
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|

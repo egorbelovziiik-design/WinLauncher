@@ -1,32 +1,41 @@
 /*
  * NEXUS CLIENT OMEGA X - Minecraft 1.21.4 adapter
  *
- * Build:  gradle build           (from this directory)
- * Output: build/libs/nexusomegax-1.21.4.jar
+ * Build:   gradle build -p adapters/nexus1214      (or run build.bat in the project root)
+ * Output:  build/libs/NexusOmegaX-1.21.4.jar
  *
- * The adapter compiles together with the shared NexusCore sources
- * (../../api/src, ../../core/src, ../../modules/src), so no published
- * dependency is required besides Fabric Loom itself.
+ * The adapter is compiled together with the shared NexusCore sources
+ * (../../api/src, ../../core/src, ../../modules/src). The only dependencies are
+ * Minecraft, the official Mojang mappings and fabric-loader - no Fabric API, so
+ * a wrong API version can never break the build.
  */
-plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT'
-    id 'java'
+buildscript {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.fabricmc:fabric-loom:${loomVersion}"
+    }
 }
 
+apply plugin: 'fabric-loom'
+apply plugin: 'java'
+
 group = 'nexus'
-version = '1.0.0'
+version = modVersion
 
 repositories {
     mavenCentral()
     maven { url = 'https://maven.fabricmc.net/' }
-    maven { url = 'https://maven.minecraftforge.net/' }
+    maven { url = 'https://libraries.minecraft.net/' }
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:1.21.4"
-    mappings "net.fabricmc:yarn:1.21.4+build.8:v2"
-    modImplementation "net.fabricmc:fabric-loader:0.16.10"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:0.119.5+1.21.4"
+    minecraft "com.mojang:minecraft:${minecraftVersion}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loaderVersion}"
 }
 
 sourceSets {
@@ -58,23 +67,22 @@ processResources {
 }
 
 jar {
-    from('../../LICENSE') { into 'META-INF/' }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    archiveFileName = "NexusOmegaX-1.21.4.jar"
+    archiveFileName = "NexusOmegaX-${minecraftVersion}.jar"
     manifest {
         attributes(
             'Implementation-Title': 'Nexus Client Omega X',
             'Implementation-Version': project.version,
-            'Minecraft-Version': '1.21.4'
+            'Minecraft-Version': "${minecraftVersion}"
         )
     }
 }
 
 remapJar {
-    archiveFileName = "NexusOmegaX-1.21.4.jar"
+    archiveFileName = "NexusOmegaX-${minecraftVersion}.jar"
 }
 
 tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
-    archiveFileName = "NexusOmegaX-1.21.4-sources.jar"
+    archiveFileName = "NexusOmegaX-${minecraftVersion}-sources.jar"
 }

@@ -79,20 +79,34 @@ Nothing outside the adapter touches Minecraft code. A module only ever talks to
 
 ## 3. Install and run (3 minutes)
 
-1. **Install Fabric** – run `NexusInjector.exe` → *INSTALL* → pick your
-   `.minecraft` folder and the version → **INSTALL FABRIC**. The *official*
-   Fabric installer opens; press Install, close it.
-2. **Install the client** – **INSTALL CLIENT** copies
-   `NexusOmegaX-<version>.jar` into `.minecraft/mods/`.
-   (The jars are built by `./build-all.sh`; see `BUILD_INSTRUCTIONS.md`.)
-3. **Register the profile** – **CREATE PROFILE** writes a normal
-   `Nexus Client Omega X` entry into `launcher_profiles.json`.
-4. **Play** – **LAUNCH MINECRAFT** opens the official launcher, choose the
-   profile, press Play.
-5. **In game** – press **RIGHT SHIFT** to open the ClickGUI, **RIGHT SHIFT**
-   again (or **ESC**) to close it, and type **`.help`** in the chat.
+### Windows (one click)
+
+```
+build.bat /install      :: builds the 3 jars and puts them into .minecraft\mods
+```
+
+### Windows (with the launcher)
+
+`NexusInjector.exe` → *INSTALL* → pick the `.minecraft` folder and the version:
+
+1. **INSTALL FABRIC** – opens the *official* Fabric installer; press Install, close it.
+2. **INSTALL CLIENT** – copies `NexusOmegaX-<version>.jar` into `.minecraft\mods\`.
+3. **CREATE PROFILE** – writes a normal `Nexus Client Omega X` entry into
+   `launcher_profiles.json`.
+4. **LAUNCH MINECRAFT** – pick the profile in the official launcher, press Play.
 
 `VERIFY INSTALL` checks every step and tells you what is still missing.
+`install-mods.bat` copies already built jars into `mods\` without touching
+anything else.
+
+### Linux / macOS
+
+`./build-all.sh --install` (needs Gradle 8 + JDK 21).
+
+### In game
+
+Press **RIGHT SHIFT** to open the ClickGUI, **RIGHT SHIFT** again (or **ESC**) to
+close it, and type **`.help`** in the chat.
 
 ## 4. Using the client
 

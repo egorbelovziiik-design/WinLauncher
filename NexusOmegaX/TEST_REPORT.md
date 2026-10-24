@@ -134,7 +134,7 @@ it. The Windows acceptance checklist in §6 covers what to confirm locally.
 
 | Item | Blocker | How you verify it |
 |---|---|---|
-| `NexusOmegaX-1.16.5/1.21.4/1.21.11.jar` | Fabric Loom needs to download Minecraft + mappings from `maven.minecraftforge.net` / `maven.fabricmc.net` / `repo1.maven.org`; all blocked in the sandbox | `./build-all.sh` (or `gradle build` inside each adapter) — one command, ~3 min |
+| `NexusOmegaX-1.16.5/1.21.4/1.21.11.jar` | Fabric Loom needs to download Minecraft + mappings from `maven.minecraftforge.net` / `maven.fabricmc.net` / `repo1.maven.org`; all blocked in the sandbox | **Windows: `build.bat /install`** (downloads Gradle itself if needed, builds all three jars and copies them into `%APPDATA%\.minecraft\mods`). Linux/macOS: `./build-all.sh --install`. Manual: `gradle build -p adapters/<version>`, ~3 min |
 | Adapter compile against the real Minecraft classes | no Minecraft jars on disk | the same `gradle build` compiles the adapters together with the core |
 | Running `NexusInjector.exe` | Linux host, no Wine | open it on Windows 10/11 |
 | In-game behaviour (real rendering, real packets) | no Minecraft runtime | §6 checklist |
