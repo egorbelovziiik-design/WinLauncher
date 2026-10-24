@@ -74,14 +74,16 @@ jobs:
           ls -la /tmp/dump.md
           if grep -q "^jar=$" /tmp/dump.md 2>/dev/null; then echo "no jar, keeping the old dump"; exit 0; fi
           base64 -w0 /tmp/dump.md > /tmp/dump.b64
+          wc -c /tmp/dump.b64
+          put() {
+            gh api --method PUT "repos/${{ github.repository }}/contents/$1" \
+              -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
+              -f branch="$GITHUB_REF_NAME" ${2:+-f sha="$2"}
+          }
           FILE="ci-logs/api-${{ matrix.dir }}.md"
           SHA=$(gh api "repos/${{ github.repository }}/contents/$FILE?ref=$GITHUB_REF_NAME" --jq .sha 2>/dev/null)
-          if [ -n "$SHA" ]; then
-            gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
-              -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
-              -f branch="$GITHUB_REF_NAME" -f sha="$SHA"
-          else
-            gh api --method PUT "repos/${{ github.repository }}/contents/$FILE" \
-              -f message="ci: API dump ${{ matrix.dir }}" -f content="$(cat /tmp/dump.b64)" \
-              -f branch="$GITHUB_REF_NAME"
+          echo "sha=$SHA"
+          if put "$FILE" "$SHA"; then echo published; else
+            echo "retrying as a unique file"
+            put "ci-logs/api-${{ matrix.dir }}-${{ github.run_id }}.md"
           fi
