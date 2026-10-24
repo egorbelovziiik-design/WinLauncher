@@ -1,4 +1,4 @@
-# nexus1165 API (Sat Oct 24 14:39:36 UTC 2026)
+# nexus1165 API (Sat Oct 24 14:42:36 UTC 2026)
 ```
 jar=/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
 --- candidates
@@ -12,26 +12,22 @@ jar=/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecra
 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
 
-FAILURE: Build failed with an exception.
+> Configure project :
+Fabric Loom: 1.6.12
+Not publishing sources jar as it was not found. Use java.withSourcesJar() to fix.
 
-* What went wrong:
-Directory '/home/runner/work/WinLauncher/WinLauncher' does not contain a Gradle build.
+> Task :printMappedJar
+MCJAR=/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-merged/1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2/minecraft-merged-1.16.5-net.fabricmc.yarn.1_16_5.1.16.5+build.10-v2.jar
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_2-1792852943135.json
 
-A Gradle build's root directory should contain one of the possible settings files: settings.gradle, settings.gradle.kts, settings.gradle.dcl.It may also contain one of the possible build files: build.gradle, build.gradle.kts, build.gradle.dcl.
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 
-To create a new Gradle build in this directory run 'gradle init'
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 
-For more information about the 'init' task, please refer to https://docs.gradle.org/8.10.2/userguide/build_init_plugin.html in the Gradle documentation.
+For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-For more details on creating a Gradle build, please refer to https://docs.gradle.org/8.10.2/userguide/tutorial_using_tasks.html in the Gradle documentation.
-
-* Try:
-> Run gradle init to create a new Gradle build in this directory.
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 2s
+BUILD SUCCESSFUL in 7s
+1 actionable task: 1 executed
 =========== net.minecraft.util.math.Box
 Compiled from "Box.java"
 public class net.minecraft.util.math.Box {
