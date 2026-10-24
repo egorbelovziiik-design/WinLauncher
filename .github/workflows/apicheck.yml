@@ -40,10 +40,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          JAR=""
-          for J in $(find ~/.gradle/caches/fabric-loom -name "*.jar" 2>/dev/null | grep -v sources); do
-            if unzip -l "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
-          done
+          JAR=$(find / -name "*minecraft*merged*.jar" 2>/dev/null | grep -v sources | head -1)
+          if [ -z "$JAR" ]; then
+            for J in $(find / -name "*.jar" -path "*loom*" 2>/dev/null | grep -v sources | head -40); do
+              if unzip -l "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then JAR="$J"; break; fi
+            done
+          fi
           echo "jar=$JAR"
           {
             echo "# ${{ matrix.dir }} API ($(date -u))"
