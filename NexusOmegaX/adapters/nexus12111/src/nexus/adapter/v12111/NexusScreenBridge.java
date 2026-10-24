@@ -54,45 +54,43 @@ public final class NexusScreenBridge extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return screen.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        return screen.mouseClicked(event.x(), event.y(), event.button())
+                || super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return screen.mouseReleased(mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        return screen.mouseReleased(event.x(), event.y(), event.button()) || super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        return screen.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)
-                || super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double deltaX, double deltaY) {
+        return screen.mouseDragged(event.x(), event.y(), event.button(), deltaX, deltaY)
+                || super.mouseDragged(event, deltaX, deltaY);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
-        return screen.mouseScrolled(mouseX, mouseY, vertical) || super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
+        return screen.mouseScrolled(mouseX, mouseY, vertical)
+                || super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return screen.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        return screen.keyPressed(event.key(), event.scancode(), event.modifiers())
+                || super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(char character, int modifiers) {
-        return screen.charTyped(character) || super.charTyped(character, modifiers);
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
+        return screen.charTyped((char) event.codepoint()) || super.charTyped(event);
     }
 
     @Override
     public void onClose() {
         screen.onClosed();
         super.onClose();
-    }
-
-    @Override
-    public boolean shouldPause() {
-        return screen.pausesGame();
     }
 
     @Override

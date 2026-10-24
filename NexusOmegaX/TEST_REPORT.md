@@ -177,7 +177,7 @@ that version simply has no jar — nothing is faked.
 
 ## 6. Mixin targets (runtime safety)
 
-A mixin that names a method with the wrong parameter list is not a compile error — the
+A mixin that names a method with the wrong parameter list is not a compile error - the
 game crashes while the class is being transformed
 (`InvalidInjectionException: Invalid descriptor ... Expected (JIIIIL...CallbackInfo;)V`).
 That exact crash was reported on 1.21.4 and fixed for all three versions:
@@ -188,8 +188,7 @@ That exact crash was reported on 1.21.4 and fixed for all three versions:
 | 1.21.4 | `KeyboardHandler.keyPress(JIIII)V` returns **void** (plain `CallbackInfo`); `Minecraft.runTick(Z)V`; `LevelRenderer.renderLevel` with 7 parameters |
 | 1.21.11 | input moved to records: `KeyboardHandler.keyPress(JIL.../input/KeyEvent;)V`, `MouseHandler.onButton(JL.../input/MouseButtonInfo;I)V`; `LevelRenderer.renderLevel` with 10 parameters |
 
-Every `@Inject`/`@ModifyVariable` in this project now spells out the full JVM
-descriptor, and the Gradle task **`verifyMixins`** (wired into `build`) resolves the
-mapped Minecraft jar, runs `javap -p -s` on each target class and fails the build when
-a target or its descriptor does not match. `gradle build` therefore cannot produce a
-jar whose injections would abort the game.
+Every `@Inject`/`@ModifyVariable` in this project spells out the full JVM descriptor, and
+the Gradle task **`verifyMixins`** (wired into `build`) resolves the mapped Minecraft jar,
+runs `javap -p -s` on each target class and fails the build when a target or its
+descriptor does not match.

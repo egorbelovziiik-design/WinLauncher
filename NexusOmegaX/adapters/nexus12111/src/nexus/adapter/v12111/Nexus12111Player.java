@@ -243,7 +243,7 @@ public final class Nexus12111Player implements IPlayer {
 
     @Override
     public float fallDistance() {
-        return ready() ? self().fallDistance : 0.0f;
+        return ready() ? (float) self().fallDistance : 0.0f;
     }
 
     @Override

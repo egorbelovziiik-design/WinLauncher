@@ -250,7 +250,7 @@ public final class Nexus1214Renderer implements IRenderer {
         AABB vanilla = new AABB(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)
                 .move(-camera.x, -camera.y, -camera.z);
         if (consumer != null) {
-            net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, consumer, vanilla,
+            net.minecraft.client.renderer.ShapeRenderer.renderLineBox(pose, consumer, vanilla,
                     ColorUtil.red(lineColor) / 255.0f, ColorUtil.green(lineColor) / 255.0f,
                     ColorUtil.blue(lineColor) / 255.0f, ColorUtil.alpha(lineColor) / 255.0f);
         }
@@ -266,13 +266,16 @@ public final class Nexus1214Renderer implements IRenderer {
         if (pose == null || consumer == null) {
             return;
         }
-        PoseStack.Pose entry = pose.last();
-        com.mojang.math.Axis axis = com.mojang.math.Axis.XP;
-        VertexConsumer buffer = consumer;
-        buffer.vertex(entry.pose(), (float) (from.x - camera.x), (float) (from.y - camera.y), (float) (from.z - camera.z))
+        org.joml.Matrix4f matrix = pose.last().pose();
+        org.joml.Vector3f start = matrix.transformPosition(new org.joml.Vector3f(
+                (float) (from.x - camera.x), (float) (from.y - camera.y), (float) (from.z - camera.z)));
+        org.joml.Vector3f end = matrix.transformPosition(new org.joml.Vector3f(
+                (float) (to.x - camera.x), (float) (to.y - camera.y), (float) (to.z - camera.z)));
+        com.mojang.blaze3d.vertex.VertexConsumer buffer = consumer;
+        buffer.addVertex(start.x, start.y, start.z)
                 .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color))
                 .setNormal((float) 0, (float) 1, (float) 0);
-        buffer.vertex(entry.pose(), (float) (to.x - camera.x), (float) (to.y - camera.y), (float) (to.z - camera.z))
+        buffer.addVertex(end.x, end.y, end.z)
                 .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color))
                 .setNormal((float) 0, (float) 1, (float) 0);
     }

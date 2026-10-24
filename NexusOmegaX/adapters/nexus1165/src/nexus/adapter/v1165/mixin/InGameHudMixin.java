@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(InGameHud.class)
 public final class InGameHudMixin {
 
-    @Inject(method = "render", at = @At("TAIL"))
+    @Inject(method = "render(Lnet/minecraft/client/util/math/MatrixStack;F)V", at = @At("TAIL"))
     private void nexus$render2D(MatrixStack matrices, float tickDelta, CallbackInfo info) {
         MinecraftClientMixin.Hooks.HOOKS.onRender2D(matrices, tickDelta * 50.0f,
                 net.minecraft.client.MinecraftClient.getInstance().getWindow().getScaledWidth(),

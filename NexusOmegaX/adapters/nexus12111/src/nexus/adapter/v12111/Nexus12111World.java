@@ -4,7 +4,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -44,14 +44,14 @@ public final class Nexus12111World implements IWorld {
         if (!ready()) {
             return "";
         }
-        ResourceLocation id = level().dimensionTypeRegistration().unwrapKey()
-                .map(key -> key.location()).orElse(null);
+        Identifier id = level().dimensionTypeRegistration().unwrapKey()
+                .map(key -> key.identifier()).orElse(null);
         return id == null ? level().dimension().toString() : id.toString();
     }
 
     @Override
     public String dimensionName() {
-        return ready() ? level().dimension().location().getPath() : "";
+        return ready() ? level().dimension().identifier().getPath() : "";
     }
 
     @Override
@@ -129,7 +129,7 @@ public final class Nexus12111World implements IWorld {
         }
         cursor.set(x, y, z);
         BlockState state = level().getBlockState(cursor);
-        ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        Identifier id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
         return new Nexus12111Block(id == null ? "minecraft:air" : id.toString(), state);
     }
 
@@ -174,7 +174,7 @@ public final class Nexus12111World implements IWorld {
                 for (int z = (int) region.minZ; z <= (int) region.maxZ; z++) {
                     cursor.set(x, y, z);
                     BlockState state = level().getBlockState(cursor);
-                    ResourceLocation id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
+                    Identifier id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock());
                     visitor.visit(x, y, z, id == null ? "minecraft:air" : id.toString());
                 }
             }
@@ -211,9 +211,9 @@ public final class Nexus12111World implements IWorld {
         if (!ready()) {
             return null;
         }
-        Registry<Biome> registry = level().registryAccess().registryOrThrow(Registries.BIOME);
+        Registry<Biome> registry = level().registryAccess().lookupOrThrow(Registries.BIOME);
         Biome biome = level().getBiome(new BlockPos(x, level().getSeaLevel(), z)).value();
-        ResourceLocation id = registry.getKey(biome);
+        Identifier id = registry.getKey(biome);
         return id == null ? null : id.toString();
     }
 
@@ -289,16 +289,16 @@ public final class Nexus12111World implements IWorld {
 
     @Override
     public int spawnX() {
-        return ready() ? level().getSharedSpawnPos().getX() : 0;
+        return ready() ? level().getRespawnData().pos().getX() : 0;
     }
 
     @Override
     public int spawnY() {
-        return ready() ? level().getSharedSpawnPos().getY() : 0;
+        return ready() ? level().getRespawnData().pos().getY() : 0;
     }
 
     @Override
     public int spawnZ() {
-        return ready() ? level().getSharedSpawnPos().getZ() : 0;
+        return ready() ? level().getRespawnData().pos().getZ() : 0;
     }
 }

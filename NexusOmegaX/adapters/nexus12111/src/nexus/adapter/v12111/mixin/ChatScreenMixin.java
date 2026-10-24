@@ -10,7 +10,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(ChatScreen.class)
 public final class ChatScreenMixin {
 
-    @ModifyVariable(method = "handleChatInput", at = @At("HEAD"), ordinal = 0, argsOnly = true)
+    @ModifyVariable(method = "handleChatInput(Ljava/lang/String;Z)V",
+            at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private String nexus$send(String message) {
         return MinecraftMixin.Hooks.HOOKS.onChatSend(message);
     }

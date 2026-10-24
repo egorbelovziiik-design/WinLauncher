@@ -11,7 +11,7 @@ public final class Nexus1165ScreenHelper {
 
     public static void onKeyConsumed(int key, int scanCode, int modifiers, int action) {
         if (action == 0) {
-            net.minecraft.client.options.KeyBinding.setKeyState(
+            net.minecraft.client.option.KeyBinding.setKeyPressed(
                     net.minecraft.client.util.InputUtil.Type.KEYSYM.createFromCode(key), false);
         }
     }

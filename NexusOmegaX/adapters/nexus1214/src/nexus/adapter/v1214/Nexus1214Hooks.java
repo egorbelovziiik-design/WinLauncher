@@ -1,5 +1,6 @@
 package nexus.adapter.v1214;
 
+import net.minecraft.client.Minecraft;
 import nexus.core.Nexus;
 import nexus.core.event.*;
 

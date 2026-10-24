@@ -65,13 +65,14 @@ public final class Nexus1214ItemStack implements IItemStack {
 
     @Override
     public boolean isFood() {
-        return stack.getItem().isEdible();
+        return stack.get(net.minecraft.core.component.DataComponents.FOOD) != null;
     }
 
     @Override
     public int foodValue() {
-        return stack.getItem().getFoodProperties(stack, null) == null ? 0
-                : stack.getItem().getFoodProperties(stack, null).nutrition();
+        net.minecraft.world.food.FoodProperties food =
+                stack.get(net.minecraft.core.component.DataComponents.FOOD);
+        return food == null ? 0 : food.nutrition();
     }
 
     @Override
@@ -104,8 +105,16 @@ public final class Nexus1214ItemStack implements IItemStack {
 
     @Override
     public float attackDamage() {
-        return 1.0f + net.minecraft.world.item.enchantment.EnchantmentHelper.getDamageBonus(
-                stack, net.minecraft.world.entity.MobType.UNDEFINED);
+        double damage = 1.0;
+        net.minecraft.world.item.component.ItemAttributeModifiers modifiers =
+                stack.getOrDefault(net.minecraft.core.component.DataComponents.ATTRIBUTE_MODIFIERS,
+                        net.minecraft.world.item.component.ItemAttributeModifiers.EMPTY);
+        for (net.minecraft.world.item.component.ItemAttributeModifiers.Entry entry : modifiers.modifiers()) {
+            if (entry.attribute().is(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE)) {
+                damage += entry.modifier().amount();
+            }
+        }
+        return (float) damage;
     }
 
     @Override
@@ -115,7 +124,7 @@ public final class Nexus1214ItemStack implements IItemStack {
 
     @Override
     public boolean isTotem() {
-        return stack.getItem() instanceof net.minecraft.world.item.TotemItem;
+        return stack.is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING);
     }
 
     @Override

@@ -124,18 +124,18 @@ public final class Nexus12111Client implements IClient {
 
     @Override
     public Vec3d cameraPosition() {
-        net.minecraft.world.phys.Vec3 position = minecraft.gameRenderer.getMainCamera().getPosition();
+        net.minecraft.world.phys.Vec3 position = minecraft.gameRenderer.getMainCamera().position();
         return new Vec3d(position.x, position.y, position.z);
     }
 
     @Override
     public float cameraYaw() {
-        return minecraft.gameRenderer.getMainCamera().getYRot();
+        return minecraft.gameRenderer.getMainCamera().yRot();
     }
 
     @Override
     public float cameraPitch() {
-        return minecraft.gameRenderer.getMainCamera().getXRot();
+        return minecraft.gameRenderer.getMainCamera().xRot();
     }
 
     @Override

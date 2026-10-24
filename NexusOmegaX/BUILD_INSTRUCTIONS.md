@@ -52,8 +52,7 @@ jars into `~/.minecraft/mods`).
 
 `gradle build` runs `verifyMixins` first: it compares every `@Inject` /
 `@ModifyVariable` target with the real mapped Minecraft jar and fails if a method was
-renamed or its parameters changed. This is what catches the
-`InvalidInjectionException: Invalid descriptor` crashes before a jar is shipped.
+renamed or its parameters changed.
 
 ### If a build fails
 

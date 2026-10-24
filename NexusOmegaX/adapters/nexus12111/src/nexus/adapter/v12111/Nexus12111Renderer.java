@@ -25,6 +25,7 @@ public final class Nexus12111Renderer implements IRenderer {
     private final Minecraft minecraft = Minecraft.getInstance();
     private GuiGraphics gui;
     private PoseStack pose;
+    private org.joml.Matrix3x2fStack pose2d;
     private float partialTicks;
     private net.minecraft.world.phys.Vec3 camera = net.minecraft.world.phys.Vec3.ZERO;
     private VertexConsumer consumer;
@@ -35,14 +36,18 @@ public final class Nexus12111Renderer implements IRenderer {
 
     public Nexus12111Renderer(GuiGraphics gui) {
         this.gui = gui;
-        this.pose = gui == null ? new PoseStack() : gui.pose();
+        if (gui == null) {
+            this.pose = new PoseStack();
+        } else {
+            this.pose2d = gui.pose();
+        }
     }
 
     public Nexus12111Renderer(PoseStack pose, float partialTicks) {
         this.pose = pose;
         this.partialTicks = partialTicks;
         if (minecraft.gameRenderer != null) {
-            this.camera = minecraft.gameRenderer.getMainCamera().getPosition();
+            this.camera = minecraft.gameRenderer.getMainCamera().position();
         }
     }
 
@@ -164,11 +169,11 @@ public final class Nexus12111Renderer implements IRenderer {
             gui.drawString(minecraft.font, text, (int) x, (int) y, argbToAbgr(color), shadow);
             return;
         }
-        PoseStack stack = gui.pose();
-        stack.pushPose();
-        stack.scale((float) scale, (float) scale, 1.0f);
+        org.joml.Matrix3x2fStack stack = gui.pose();
+        stack.pushMatrix();
+        stack.scale((float) scale, (float) scale);
         gui.drawString(minecraft.font, text, (int) (x / scale), (int) (y / scale), argbToAbgr(color), shadow);
-        stack.popPose();
+        stack.popMatrix();
     }
 
     @Override
@@ -250,10 +255,35 @@ public final class Nexus12111Renderer implements IRenderer {
         AABB vanilla = new AABB(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)
                 .move(-camera.x, -camera.y, -camera.z);
         if (consumer != null) {
-            net.minecraft.client.renderer.LevelRenderer.renderLineBox(pose, consumer, vanilla,
-                    ColorUtil.red(lineColor) / 255.0f, ColorUtil.green(lineColor) / 255.0f,
-                    ColorUtil.blue(lineColor) / 255.0f, ColorUtil.alpha(lineColor) / 255.0f);
+            drawEdges(vanilla, lineColor);
         }
+    }
+
+    /** Draws the twelve edges of a box with the plain vertex API. */
+    private void drawEdges(AABB box, int color) {
+        double[] xs = {box.minX, box.maxX};
+        double[] ys = {box.minY, box.maxY};
+        double[] zs = {box.minZ, box.maxZ};
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                edge(xs[i], ys[j], zs[0], xs[i], ys[j], zs[1], color);
+                edge(xs[i], ys[0], zs[j], xs[i], ys[1], zs[j], color);
+                edge(xs[0], ys[i], zs[j], xs[1], ys[i], zs[j], color);
+            }
+        }
+    }
+
+    private void edge(double x1, double y1, double z1, double x2, double y2, double z2, int color) {
+        if (pose == null || consumer == null) {
+            return;
+        }
+        org.joml.Matrix4f matrix = pose.last().pose();
+        org.joml.Vector3f a = matrix.transformPosition(new org.joml.Vector3f((float) x1, (float) y1, (float) z1));
+        org.joml.Vector3f b = matrix.transformPosition(new org.joml.Vector3f((float) x2, (float) y2, (float) z2));
+        consumer.addVertex(a.x, a.y, a.z)
+                .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color));
+        consumer.addVertex(b.x, b.y, b.z)
+                .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color));
     }
 
     @Override
@@ -266,13 +296,16 @@ public final class Nexus12111Renderer implements IRenderer {
         if (pose == null || consumer == null) {
             return;
         }
-        PoseStack.Pose entry = pose.last();
-        com.mojang.math.Axis axis = com.mojang.math.Axis.XP;
+        org.joml.Matrix4f matrix = pose.last().pose();
         VertexConsumer buffer = consumer;
-        buffer.vertex(entry.pose(), (float) (from.x - camera.x), (float) (from.y - camera.y), (float) (from.z - camera.z))
+        org.joml.Vector3f start = matrix.transformPosition(new org.joml.Vector3f(
+                (float) (from.x - camera.x), (float) (from.y - camera.y), (float) (from.z - camera.z)));
+        buffer.addVertex(start.x, start.y, start.z)
                 .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color))
                 .setNormal((float) 0, (float) 1, (float) 0);
-        buffer.vertex(entry.pose(), (float) (to.x - camera.x), (float) (to.y - camera.y), (float) (to.z - camera.z))
+        org.joml.Vector3f end = matrix.transformPosition(new org.joml.Vector3f(
+                (float) (to.x - camera.x), (float) (to.y - camera.y), (float) (to.z - camera.z)));
+        buffer.addVertex(end.x, end.y, end.z)
                 .setColor(ColorUtil.red(color), ColorUtil.green(color), ColorUtil.blue(color), ColorUtil.alpha(color))
                 .setNormal((float) 0, (float) 1, (float) 0);
     }

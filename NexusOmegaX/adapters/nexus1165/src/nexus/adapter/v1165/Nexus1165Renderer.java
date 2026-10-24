@@ -66,8 +66,26 @@ public final class Nexus1165Renderer implements IRenderer {
 
     @Override
     public void fillGradientRect(double x, double y, double width, double height, int startColor, int endColor, boolean vertical) {
-        net.minecraft.client.gui.DrawableHelper.fillGradient(pose(), (int) x, (int) y,
-                (int) (x + width), (int) (y + height), startColor, endColor);
+        int x0 = (int) x;
+        int y0 = (int) y;
+        int x1 = (int) (x + width);
+        int y1 = (int) (y + height);
+        if (y1 <= y0) {
+            return;
+        }
+        for (int row = y0; row < y1; row++) {
+            float t = (float) (row - y0) / (float) (y1 - y0);
+            int color = blend(startColor, endColor, vertical ? t : 0.0f);
+            net.minecraft.client.gui.DrawableHelper.fill(pose(), x0, row, x1, row + 1, color);
+        }
+    }
+
+    private static int blend(int from, int to, float t) {
+        int a = (int) ((from >>> 24 & 0xFF) + ((to >>> 24 & 0xFF) - (from >>> 24 & 0xFF)) * t);
+        int r = (int) ((from >>> 16 & 0xFF) + ((to >>> 16 & 0xFF) - (from >>> 16 & 0xFF)) * t);
+        int g = (int) ((from >>> 8 & 0xFF) + ((to >>> 8 & 0xFF) - (from >>> 8 & 0xFF)) * t);
+        int b = (int) ((from & 0xFF) + ((to & 0xFF) - (from & 0xFF)) * t);
+        return (a & 0xFF) << 24 | (r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF);
     }
 
     @Override

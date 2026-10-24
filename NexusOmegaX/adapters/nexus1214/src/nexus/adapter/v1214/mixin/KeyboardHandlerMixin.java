@@ -5,17 +5,23 @@ import nexus.adapter.v1214.mixin.MinecraftMixin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Forwards every key event to the client (modules, GUI and keybinds). */
+/**
+ * Forwards every key event to the client (modules, GUI and keybinds).
+ * <p>
+ * {@code keyPress(long, int, int, int, int)} returns {@code void} in 1.21.4, so
+ * the callback is a plain {@link CallbackInfo} - declaring a
+ * {@code CallbackInfoReturnable} here makes Mixin reject the whole class.
+ */
 @Mixin(KeyboardHandler.class)
 public final class KeyboardHandlerMixin {
 
-    @Inject(method = "keyPress", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "keyPress(JIIII)V", at = @At("HEAD"), cancellable = true)
     private void nexus$key(long window, int key, int scanCode, int action, int modifiers,
-                           CallbackInfoReturnable<Boolean> info) {
+                           CallbackInfo info) {
         if (MinecraftMixin.Hooks.HOOKS.onKey(key, scanCode, modifiers, action)) {
-            info.setReturnValue(Boolean.TRUE);
+            info.cancel();
         }
     }
 }

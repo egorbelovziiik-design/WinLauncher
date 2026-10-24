@@ -85,3 +85,124 @@ tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
     archiveFileName = "NexusOmegaX-${minecraftVersion}-sources.jar"
 }
+
+// Diagnostic helper: prints the absolute path of the mapped Minecraft jar that
+// this adapter compiles against (used by the CI API dump, harmless otherwise).
+tasks.register('printMappedJar') {
+    doLast {
+        configurations.compileClasspath.resolve().each { f ->
+            if (f.name.contains('minecraft')) {
+                println 'MCJAR=' + f.absolutePath
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// verifyMixins - checks every @Inject/@ModifyVariable target against the real
+// mapped Minecraft jar. A renamed method or a changed parameter list makes
+// Mixin abort the whole game at start up; here it fails the build instead.
+// ---------------------------------------------------------------------------
+tasks.register('verifyMixins') {
+    dependsOn 'compileJava'
+    doLast {
+        def mixinDir = file('src/nexus/adapter/v1165/mixin')
+        if (!mixinDir.exists()) {
+            return
+        }
+        def jar = configurations.compileClasspath.resolve().find { it.name.contains('minecraft-merged') }
+        def classpath = jar != null ? jar.absolutePath : configurations.compileClasspath.asPath
+        def dumps = [:]
+        def problems = []
+        mixinDir.listFiles().findAll { it.name.endsWith('.java') }.sort().each { f ->
+            def src = f.text
+            def at = src.indexOf('@Mixin(')
+            if (at < 0) {
+                return
+            }
+            def end = src.indexOf('.class)', at)
+            if (end < 0) {
+                return
+            }
+            def simple = src.substring(at + 7, end).trim()
+            def importLine = src.readLines().find {
+                def t = it.trim()
+                t.startsWith('import ') && t.endsWith('.' + simple + ';')
+            }
+            if (importLine == null) {
+                problems << (f.name + ': cannot resolve the import of ' + simple)
+                return
+            }
+            def fqcn = importLine.trim().substring(7).trim()
+            fqcn = fqcn.substring(0, fqcn.length() - 1)
+            if (!dumps.containsKey(fqcn)) {
+                def proc = new ProcessBuilder('javap', '-p', '-s', '-classpath', classpath, fqcn)
+                        .redirectErrorStream(true).start()
+                dumps[fqcn] = proc.inputStream.getText('UTF-8')
+                proc.waitFor()
+            }
+            def dump = dumps[fqcn]
+            if (dump.contains('Error: class not found')) {
+                problems << (f.name + ': class ' + fqcn + ' is not on the compile classpath')
+                return
+            }
+            def lines = dump.readLines()
+            def found = [:]
+            for (int i = 0; i + 1 < lines.size(); i++) {
+                def sig = lines[i].trim()
+                def next = lines[i + 1].trim()
+                if (!next.startsWith('descriptor:') || !sig.endsWith(');')) {
+                    continue
+                }
+                def paren = sig.indexOf('(')
+                if (paren <= 0) {
+                    continue
+                }
+                def head = sig.substring(0, paren).trim()
+                def space = head.lastIndexOf(' ')
+                found[space >= 0 ? head.substring(space + 1) : head] = next.substring(11).trim()
+            }
+            def specs = []
+            int idx = 0
+            while (true) {
+                int m = src.indexOf('method', idx)
+                if (m < 0) {
+                    break
+                }
+                int q1 = src.indexOf('"', m)
+                int q2 = q1 < 0 ? -1 : src.indexOf('"', q1 + 1)
+                if (q2 < 0) {
+                    break
+                }
+                if (src.substring(m + 6, q1).trim() == '=') {
+                    specs << src.substring(q1 + 1, q2)
+                }
+                idx = q2 + 1
+            }
+            def shortName = fqcn.substring(fqcn.lastIndexOf('.') + 1)
+            specs.each { spec ->
+                if (spec.startsWith('<')) {
+                    return
+                }
+                if (spec.contains('(')) {
+                    def name = spec.substring(0, spec.indexOf('('))
+                    def desc = spec.substring(spec.indexOf('('))
+                    def actual = found[name]
+                    if (actual == null) {
+                        problems << (f.name + ': ' + shortName + '.' + name + ' does not exist')
+                    } else if (actual != desc) {
+                        problems << (f.name + ': ' + name + desc + ' does not exist, the game has ' + name + actual)
+                    }
+                } else if (found[spec] == null) {
+                    problems << (f.name + ': ' + shortName + '.' + spec + ' does not exist')
+                }
+            }
+        }
+        println 'verifyMixins: ' + (problems.isEmpty() ? 'all mixin targets match Minecraft' : problems.size() + ' problem(s)')
+        problems.each { println '  MIXIN PROBLEM: ' + it }
+        if (!problems.isEmpty()) {
+            throw new GradleException('Mixin targets do not match Minecraft: ' + problems.join('; '))
+        }
+    }
+}
+tasks.named('build') { dependsOn 'verifyMixins' }

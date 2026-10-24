@@ -59,7 +59,7 @@ public final class Nexus1165Entity implements IEntity {
     @Override
     public Box3 boundingBox() {
         Box box = entity.getBoundingBox();
-        return new Box3(box.x1, box.y1, box.z1, box.x2, box.y2, box.z2);
+        return new Box3(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
     }
 
     @Override
@@ -160,7 +160,7 @@ public final class Nexus1165Entity implements IEntity {
 
     @Override
     public boolean isInWater() {
-        return entity.isInWater();
+        return entity.isTouchingWater();
     }
 
     @Override

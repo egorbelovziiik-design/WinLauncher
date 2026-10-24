@@ -79,6 +79,10 @@ Nothing outside the adapter touches Minecraft code. A module only ever talks to
 
 ## 3. Install and run (3 minutes)
 
+> **Готовые jar-файлы (собраны в CI, ничего устанавливать не нужно):**
+> `https://github.com/egorbelovziiik-design/WinLauncher/releases/download/nexus-latest/NexusOmegaX-mods.zip`
+> — архив с `NexusOmegaX-1.16.5.jar`, `NexusOmegaX-1.21.4.jar`, `NexusOmegaX-1.21.11.jar`.
+
 ### Windows (one click)
 
 ```

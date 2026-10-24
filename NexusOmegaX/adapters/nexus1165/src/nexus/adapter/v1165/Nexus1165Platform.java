@@ -65,17 +65,17 @@ public final class Nexus1165Platform implements NexusPlatform, ClientModInitiali
 
     @Override
     public void installHooks() {
-        Hooks.HOOKS.install();
+        Nexus1165Hooks.Hooks.HOOKS.install();
     }
 
     @Override
     public void uninstallHooks() {
-        Hooks.HOOKS.uninstall();
+        Nexus1165Hooks.Hooks.HOOKS.uninstall();
     }
 
     @Override
     public boolean isHealthy() {
-        return Hooks.HOOKS.installed() && Nexus.isInitialized();
+        return Nexus1165Hooks.Hooks.HOOKS.installed() && Nexus.isInitialized();
     }
 
     public Nexus1165Client adapterClient() {

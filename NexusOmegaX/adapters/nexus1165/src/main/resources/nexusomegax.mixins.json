@@ -8,7 +8,7 @@
     "WorldRendererMixin",
     "KeyboardMixin",
     "MouseMixin",
-    "ChatScreenMixin"
+    "ChatMixin"
   ],
   "injectors": {
     "defaultRequire": 0

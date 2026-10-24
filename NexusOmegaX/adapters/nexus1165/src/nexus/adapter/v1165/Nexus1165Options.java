@@ -1,6 +1,6 @@
 package nexus.adapter.v1165;
 
-import net.minecraft.client.options.GameOptions;
+import net.minecraft.client.option.GameOptions;
 import nexus.api.IOptions;
 
 /** {@link IOptions} implementation for Minecraft 1.16.5. */
@@ -53,7 +53,7 @@ public final class Nexus1165Options implements IOptions {
 
     @Override
     public boolean smoothLighting() {
-        return options().ao != 0;
+        return options().ao != net.minecraft.client.option.AoMode.OFF;
     }
 
     @Override
@@ -78,12 +78,12 @@ public final class Nexus1165Options implements IOptions {
 
     @Override
     public boolean cloudRenderMode() {
-        return options().clouds;
+        return options().getCloudRenderMode() != net.minecraft.client.option.CloudRenderMode.OFF;
     }
 
     @Override
     public int currentFps() {
-        return (int) client.handle().fpsCounter.getFps();
+        return Integer.parseInt(client.handle().fpsDebugString.split(" ")[0]);
     }
 
     @Override

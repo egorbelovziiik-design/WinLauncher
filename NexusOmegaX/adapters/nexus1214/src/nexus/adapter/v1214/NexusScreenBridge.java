@@ -91,11 +91,6 @@ public final class NexusScreenBridge extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
-        return screen.pausesGame();
-    }
-
-    @Override
     public boolean isPauseScreen() {
         return screen.pausesGame();
     }
