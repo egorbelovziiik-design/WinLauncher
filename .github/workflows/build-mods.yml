@@ -12,6 +12,8 @@ jobs:
   build:
     name: Build ${{ matrix.jar }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +43,29 @@ jobs:
 
       - name: Build ${{ matrix.dir }}
         working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
-        run: gradle build --no-daemon --console=plain --stacktrace
+        run: |
+          set -o pipefail
+          mkdir -p "$GITHUB_WORKSPACE/ci-logs"
+          gradle build --no-daemon --console=plain --stacktrace 2>&1 \
+            | tail -c 200000 | tee "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}.log"
+
+      - name: Publish the build log on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$GITHUB_REF_NAME"
+          git checkout -B "$GITHUB_REF_NAME" "origin/$GITHUB_REF_NAME" -- 2>/dev/null || true
+          mkdir -p ci-logs
+          cp "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}.log" ci-logs/ 2>/dev/null || true
+          git add ci-logs
+          git commit -m "ci: build log for ${{ matrix.dir }}" || exit 0
+          for i in 1 2 3 4 5 6; do
+            git pull --rebase -X ours origin "$GITHUB_REF_NAME" && \
+            git push origin "HEAD:$GITHUB_REF_NAME" && break || sleep 8
+          done
 
       - name: Collect the jar
         run: |
