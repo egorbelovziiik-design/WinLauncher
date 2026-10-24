@@ -1,4 +1,4 @@
-### Gradle log: nexus1165  (Sat Oct 24 14:42:19 UTC 2026)
+### Gradle log: nexus1165  (Sat Oct 24 14:52:59 UTC 2026)
 ```
 /home/runner/work/WinLauncher/WinLauncher/NexusOmegaX/adapters/nexus1165/src/nexus/adapter/v1165/Nexus1165Player.java:265: error: cannot find symbol
                     return net.minecraft.text.TranslatableText(instance.getTranslationKey()).asString();
@@ -138,7 +138,7 @@ Note: Some messages have been simplified; recompile with -Xdiags:verbose to get 
 Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
 20 errors
 > Task :compileJava FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792852909215.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1792853535488.json
 FAILURE: Build failed with an exception.
 * What went wrong:
 Execution failed for task ':compileJava'.
@@ -149,6 +149,6 @@ Execution failed for task ':compileJava'.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 35s
+BUILD FAILED in 52s
 1 actionable task: 1 executed
 ```
