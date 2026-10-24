@@ -40,12 +40,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          JAR=$(gradle -q printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>/dev/null | grep '^MCJAR=' | head -1 | cut -d= -f2-)
+          DIAG=$(gradle printMappedJar --no-daemon -PloomVersion=${{ matrix.loom }} 2>&1 | tail -25)
+          JAR=$(find "$HOME/.gradle" -name "*.jar" 2>/dev/null | grep -v -e sources | while read J; do
+                  if jar tf "$J" 2>/dev/null | grep -q "net/minecraft/client/Minecraft"; then echo "$J"; break; fi
+                done)
           echo "jar=$JAR"
           {
             echo "# ${{ matrix.dir }} API ($(date -u))"
             echo '```'
             echo "jar=$JAR"
+            echo "--- candidates"
+            find "$HOME/.gradle" -name "*.jar" 2>/dev/null | grep -iv sources | wc -l
+            find "$HOME/.gradle" -name "*minecraft*.jar" 2>/dev/null | head -10
+            echo "--- printMappedJar output"
+            echo "$DIAG"
             for C in ${{ matrix.classes }}; do
               echo "=========== $C"
               javap -classpath "$JAR" -public "$C" 2>&1 | head -500
