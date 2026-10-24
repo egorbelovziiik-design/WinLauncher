@@ -314,6 +314,22 @@ async function main() {
   );
   assert('cookie сессии недоступна из JS (HttpOnly)', /httponly/i.test(sessionCookie), sessionCookie.slice(0, 80));
 
+  // Тот же вход, но как будто запрос пришёл через HTTPS-прокси (превью в iframe, Vercel).
+  const proxied = await fetch(`${BASE}/api/admin/login`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-forwarded-proto': 'https',
+      'x-forwarded-host': 'preview.example.com',
+      'x-forwarded-for': E2E_IP,
+    },
+    body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
+  });
+  const proxiedCookie = (proxied.headers.getSetCookie?.() ?? []).find((c) => c.startsWith('kg_admin=')) ?? '';
+  assert('за HTTPS-прокси cookie уходит с Secure', /;\s*secure/i.test(proxiedCookie), proxiedCookie.slice(0, 120));
+  assert('за HTTPS-прокси SameSite=None (работает в iframe)', /samesite=none/i.test(proxiedCookie), proxiedCookie.slice(0, 120));
+  assert('cookie помечена Partitioned (CHIPS)', /partitioned/i.test(proxiedCookie), proxiedCookie.slice(0, 120));
+
   log(`\nИтог: ${passed} проверок пройдено, ${failures.length} с ошибками.`);
   if (failures.length > 0) {
     log('\nОшибки:');
