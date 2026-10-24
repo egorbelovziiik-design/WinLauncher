@@ -33,7 +33,10 @@ jobs:
   api1165:
     name: inspect the 1.16.5 yarn API
     runs-on: ubuntu-latest
-    permissions: { contents: write }
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -46,10 +49,10 @@ jobs:
         working-directory: NexusOmegaX/adapters/nexus1165
       - name: javap dump
         run: |
-          set -x
-          JAR=$(find ~/.gradle/caches/fabric-loom -name "*minecraft*named*.jar" | head -1)
-          [ -z "$JAR" ] && JAR=$(find ~/.gradle/caches/fabric-loom -name "*.jar" | grep -v sources | head -1)
+          JAR=$(find ~/.gradle/caches/fabric-loom -name "*.jar" 2>/dev/null | grep -v -e sources -e sourcesJar | head -1)
           echo "jar=$JAR"
+          [ -z "$JAR" ] && { echo no jar found > /tmp/dump.md; } || true
+          ls -R ~/.gradle/caches/fabric-loom | head -40 >> /tmp/dump.md
           {
           echo "### 1.16.5 API dump"
           echo '```'
@@ -65,4 +68,6 @@ jobs:
           javap -classpath "$JAR" -p net.minecraft.util.math.Box 2>&1 | head -25
           echo '```'
           } > /tmp/dump.md
-          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -f body="$(cat /tmp/dump.md)"
+          head -c 60000 /tmp/dump.md > /tmp/dump2.md
+          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -f body="$(cat /tmp/dump2.md)" \
+            || gh issue comment 1 --repo "${{ github.repository }}" -F /tmp/dump2.md || true
