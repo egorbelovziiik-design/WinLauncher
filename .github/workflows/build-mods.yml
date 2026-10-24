@@ -63,7 +63,7 @@ jobs:
           {
             echo "### Gradle errors (${{ matrix.dir }})"
             echo '```'
-            grep -vE "^\\s+at |^\\s*\\.\\.\\. |^$" "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log" | tail -70
+            grep -A4 "error:" "$GITHUB_WORKSPACE/ci-logs/${{ matrix.dir }}-full.log" | head -400
             echo '```'
             echo
             echo "### first 40 lines"

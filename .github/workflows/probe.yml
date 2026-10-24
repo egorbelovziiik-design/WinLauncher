@@ -7,14 +7,18 @@ on:
     paths: [ '.github/workflows/probe.yml' ]
 
 jobs:
-  gradle:
-    name: gradle ${{ matrix.gradle }}
+  loom:
+    name: gradle ${{ matrix.gradle }} + loom ${{ matrix.loom }}
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
-        gradle: [ '8.10.2', '8.14.3', '9.0.0', '9.1.0', '9.2.0', '9.3.0' ]
+        include:
+          - { gradle: '9.8.0', loom: '1.19.3' }
+          - { gradle: '9.9.0', loom: '1.19.3' }
+          - { gradle: '9.5.0', loom: '1.17.21' }
+          - { gradle: '9.6.0', loom: '1.18.4' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -22,40 +26,43 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: ${{ matrix.gradle }}
-      - run: gradle --version | head -4
+      - name: configure the 1.21.11 project
+        run: gradle tasks --no-daemon --console=plain -PloomVersion=${{ matrix.loom }}
+        working-directory: NexusOmegaX/adapters/nexus12111
 
-  loom:
-    name: loom ${{ matrix.loom }} (project ${{ matrix.project }})
+  api1165:
+    name: inspect the 1.16.5 yarn API
     runs-on: ubuntu-latest
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - loom: '1.19.3'
-            project: nexus12111
-          - loom: '1.17.21'
-            project: nexus12111
-          - loom: '1.14-SNAPSHOT'
-            project: nexus12111
-          - loom: '1.19.3'
-            project: nexus1214
-          - loom: '1.10.7'
-            project: nexus1214
-          - loom: '1.9-SNAPSHOT'
-            project: nexus1214
-          - loom: '1.6-SNAPSHOT'
-            project: nexus1165
-          - loom: '1.7-SNAPSHOT'
-            project: nexus1165
+    permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
+        with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 9.2.0
-      - run: gradle tasks -DloomVersion=${{ matrix.loom }} --no-daemon --console=plain
-        working-directory: NexusOmegaX/adapters/${{ matrix.project }}
+        with: { gradle-version: '8.10.2' }
+      - name: resolve the mapped jar
+        continue-on-error: true
+        run: gradle compileJava --no-daemon --console=plain
+        working-directory: NexusOmegaX/adapters/nexus1165
+      - name: javap dump
+        run: |
+          set -x
+          JAR=$(find ~/.gradle/caches/fabric-loom -name "*minecraft*named*.jar" | head -1)
+          [ -z "$JAR" ] && JAR=$(find ~/.gradle/caches/fabric-loom -name "*.jar" | grep -v sources | head -1)
+          echo "jar=$JAR"
+          {
+          echo "### 1.16.5 API dump"
+          echo '```'
+          for C in net.minecraft.tag.TagManager net.minecraft.tag.ItemTags net.minecraft.client.network.ClientPlayNetworkHandler \
+                   net.minecraft.client.util.Window net.minecraft.client.MinecraftClient net.minecraft.util.math.Box \
+                   net.minecraft.entity.Entity net.minecraft.client.option.KeyBinding net.minecraft.client.gui.DrawableHelper; do
+            echo "=========== $C"
+            javap -classpath "$JAR" -public "$C" 2>&1 | head -60
+          done
+          echo "=========== tag package contents"
+          unzip -l "$JAR" | grep -E "net/minecraft/tag/[A-Za-z]*\.class" | head -30
+          echo "=========== Box fields"
+          javap -classpath "$JAR" -p net.minecraft.util.math.Box 2>&1 | head -25
+          echo '```'
+          } > /tmp/dump.md
+          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -f body="$(cat /tmp/dump.md)"
