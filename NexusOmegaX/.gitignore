@@ -1,0 +1,13 @@
+# build output
+build/
+out/
+*.class
+*.pdb
+
+# gradle
+.gradle/
+adapters/*/build/
+adapters/*/.gradle/
+
+# jars are produced by gradle, never committed
+dist/*.jar

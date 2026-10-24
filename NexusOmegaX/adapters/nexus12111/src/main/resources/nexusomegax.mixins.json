@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "nexus.adapter.v12111.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftMixin",
+    "GuiMixin",
+    "LevelRendererMixin",
+    "KeyboardHandlerMixin",
+    "MouseHandlerMixin",
+    "ChatScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

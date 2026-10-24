@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "nexus.adapter.v1165.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "MinecraftClientMixin",
+    "InGameHudMixin",
+    "WorldRendererMixin",
+    "KeyboardMixin",
+    "MouseMixin",
+    "ChatScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

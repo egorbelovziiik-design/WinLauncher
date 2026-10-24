@@ -1,0 +1,22 @@
+package nexus.adapter.v12111.mixin;
+
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiGraphics;
+import nexus.adapter.v12111.mixin.MinecraftMixin;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+/** Draws the Nexus HUD, the ClickGUI and every 2D module on top of the vanilla HUD. */
+@Mixin(Gui.class)
+public final class GuiMixin {
+
+    @Inject(method = "render", at = @At("TAIL"))
+    private void nexus$render2D(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo info) {
+        MinecraftMixin.Hooks.HOOKS.onRender2D(graphics,
+                deltaTracker.getGameTimeDeltaPartialTick(true) * 50.0f,
+                graphics.guiWidth(), graphics.guiHeight());
+    }
+}

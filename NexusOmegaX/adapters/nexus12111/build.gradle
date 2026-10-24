@@ -1,0 +1,80 @@
+/*
+ * NEXUS CLIENT OMEGA X - Minecraft 1.21.11 adapter
+ *
+ * Build:  gradle build           (from this directory)
+ * Output: build/libs/nexusomegax-1.21.11.jar
+ *
+ * The adapter compiles together with the shared NexusCore sources
+ * (../../api/src, ../../core/src, ../../modules/src), so no published
+ * dependency is required besides Fabric Loom itself.
+ */
+plugins {
+    id 'fabric-loom' version '1.11-SNAPSHOT'
+    id 'java'
+}
+
+group = 'nexus'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.minecraftforge.net/' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:1.21.11"
+    mappings "net.fabricmc:yarn:1.21.11+build.1:v2"
+    modImplementation "net.fabricmc:fabric-loader:0.17.2"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.140.0+1.21.11"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src', '../../api/src', '../../core/src', '../../modules/src']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-nowarn'
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}
+
+jar {
+    from('../../LICENSE') { into 'META-INF/' }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = "NexusOmegaX-1.21.11.jar"
+    manifest {
+        attributes(
+            'Implementation-Title': 'Nexus Client Omega X',
+            'Implementation-Version': project.version,
+            'Minecraft-Version': '1.21.11'
+        )
+    }
+}
+
+remapJar {
+    archiveFileName = "NexusOmegaX-1.21.11.jar"
+}
+
+tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allSource
+    archiveFileName = "NexusOmegaX-1.21.11-sources.jar"
+}

@@ -1,0 +1,80 @@
+/*
+ * NEXUS CLIENT OMEGA X - Minecraft 1.16.5 adapter
+ *
+ * Build:  gradle build           (from this directory)
+ * Output: build/libs/nexusomegax-1.16.5.jar
+ *
+ * The adapter compiles together with the shared NexusCore sources
+ * (../../api/src, ../../core/src, ../../modules/src), so no published
+ * dependency is required besides Fabric Loom itself.
+ */
+plugins {
+    id 'fabric-loom' version '0.12-SNAPSHOT'
+    id 'java'
+}
+
+group = 'nexus'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.minecraftforge.net/' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:1.16.5"
+    mappings "net.fabricmc:yarn:1.16.5+build.10:v2"
+    modImplementation "net.fabricmc:fabric-loader:0.14.21"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.42.0+1.16"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src', '../../api/src', '../../core/src', '../../modules/src']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-nowarn'
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}
+
+jar {
+    from('../../LICENSE') { into 'META-INF/' }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = "NexusOmegaX-1.16.5.jar"
+    manifest {
+        attributes(
+            'Implementation-Title': 'Nexus Client Omega X',
+            'Implementation-Version': project.version,
+            'Minecraft-Version': '1.16.5'
+        )
+    }
+}
+
+remapJar {
+    archiveFileName = "NexusOmegaX-1.16.5.jar"
+}
+
+tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allSource
+    archiveFileName = "NexusOmegaX-1.16.5-sources.jar"
+}

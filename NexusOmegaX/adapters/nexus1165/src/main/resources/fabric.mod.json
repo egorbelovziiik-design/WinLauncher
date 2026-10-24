@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "nexusomegax",
+  "version": "1.0.0",
+  "name": "Nexus Client Omega X",
+  "description": "THE ULTIMATE MINECRAFT EXPERIENCE - 274 modules, ClickGUI, HUD, macros, themes, configs.",
+  "authors": ["NexusOmegaX Team"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "nexus.adapter.v1165.Nexus1165Platform"
+    ]
+  },
+  "mixins": [
+    "nexusomegax.mixins.json"
+  ],
+  "depends": {
+    "minecraft": "1.16.5",
+    "fabricloader": ">=0.11"
+  }
+}
