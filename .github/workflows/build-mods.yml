@@ -1,0 +1,93 @@
+name: Build Nexus Client Omega X mods
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'arena/993b5c08-winlauncher' ]
+    paths:
+      - 'NexusOmegaX/**'
+      - '.github/workflows/build-mods.yml'
+
+jobs:
+  build:
+    name: Build ${{ matrix.jar }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dir: nexus1165
+            java: 17
+            jar: NexusOmegaX-1.16.5.jar
+          - dir: nexus1214
+            java: 21
+            jar: NexusOmegaX-1.21.4.jar
+          - dir: nexus12111
+            java: 21
+            jar: NexusOmegaX-1.21.11.jar
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Build ${{ matrix.dir }}
+        working-directory: NexusOmegaX/adapters/${{ matrix.dir }}
+        run: gradle build --no-daemon --console=plain --stacktrace
+
+      - name: Collect the jar
+        run: |
+          mkdir -p artifacts
+          find "NexusOmegaX/adapters/${{ matrix.dir }}/build/libs" -name "${{ matrix.jar }}" -exec cp -v {} artifacts/ \;
+          ls -la artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.jar }}
+          path: artifacts/*.jar
+          if-no-files-found: error
+
+  publish:
+    name: Publish rolling release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish jars
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls -la artifacts
+          gh release delete nexus-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create nexus-latest \
+            --title "NEXUS CLIENT OMEGA X (Fabric mods)" \
+            --notes "Автосборка Fabric-модов NEXUS CLIENT OMEGA X из ветки ${GITHUB_REF_NAME}.
+
+          - NexusOmegaX-1.16.5.jar  - Minecraft 1.16.5 (protocol 754, Java 8)
+          - NexusOmegaX-1.21.4.jar  - Minecraft 1.21.4 (protocol 769, Java 21)
+          - NexusOmegaX-1.21.11.jar - Minecraft 1.21.11 (protocol 774, Java 21)
+          - NexusInjector.exe       - лаунчер/установщик под Windows
+          - NexusOmegaX-Source.zip  - исходники
+
+          Установка: установите Fabric официальным установщиком (fabricmc.net/use/installer)
+          для нужной версии, положите jar в %APPDATA%\\.minecraft\\mods, выберите профиль
+          \"Nexus Client Omega X\" в лаунчере, Play. В игре: RIGHT SHIFT - ClickGUI, .help - команды." \
+            artifacts/*.jar \
+            NexusOmegaX/dist/NexusInjector.exe \
+            NexusOmegaX/NexusOmegaX-Source.zip
