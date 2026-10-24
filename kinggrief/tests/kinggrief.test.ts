@@ -61,7 +61,7 @@ describe('каталог и цены', () => {
 });
 
 describe('калькулятор риликов', () => {
-  const config = pricing.parseRelicPricing(JSON.stringify(catalog.DEFAULT_SETTINGS.relic_pricing));
+  const config = pricing.parseRelicPricing(catalog.DEFAULT_SETTINGS.relic_pricing);
 
   it('возвращает точные значения в опорных точках', () => {
     expect(pricing.estimateRelicPrice(1000, config)).toBe(19);
@@ -223,6 +223,29 @@ describe('заказы и платежи', () => {
     repo.updateDelivery(task.id, { status: 'delivered' });
     delivery.syncOrderDeliveryStatus(created.order.id);
     expect(repo.getOrder(created.order.id)!.status).toBe('delivered');
+  });
+
+  it('выдаёт несколько привилегий через parent set, оставляя старшую', async () => {
+    const created = await service.createCheckout({
+      nickname: 'RankStack',
+      items: [
+        { productId: 'rank-king', quantity: 1 },
+        { productId: 'rank-god', quantity: 1 },
+      ],
+    });
+    service.confirmPaidOrder({
+      orderId: created.order.id,
+      provider: 'mock',
+      providerPaymentId: 'stack',
+      amount: created.order.total,
+    });
+    const deliveries = repo.listDeliveries({ orderId: created.order.id });
+    expect(deliveries).toHaveLength(2);
+    expect(deliveries.every((d) => d.command.startsWith('lp user RankStack parent set '))).toBe(true);
+    const god = deliveries.find((d) => d.command.includes('GOD'))!;
+    const king = deliveries.find((d) => d.command.includes('KING'))!;
+    expect(god.id).toBeTruthy();
+    expect(king.id).toBeTruthy();
   });
 
   it('проверяет секрет моста', () => {

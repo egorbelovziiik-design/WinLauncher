@@ -31,7 +31,12 @@ export function templates(): TemplateMap {
   }
 }
 
-export function renderCommand(item: OrderItem, nickname: string, order: Order): string {
+export function renderCommand(
+  item: OrderItem,
+  nickname: string,
+  order: Order,
+  opts: { replaceRank?: boolean } = {},
+): string {
   const map = templates();
   const product = getProduct(item.productId);
   const meta = (product?.meta ?? item.meta ?? {}) as Record<string, unknown>;
@@ -39,7 +44,9 @@ export function renderCommand(item: OrderItem, nickname: string, order: Order): 
   let rankName = '';
   switch (item.kind) {
     case 'rank':
-      template = map.rank;
+      // Если в заказе несколько привилегий — выдаём их через parent set,
+      // чтобы не копились группы, а осталась только самая старшая.
+      template = opts.replaceRank ? map.rank_replace : map.rank;
       rankName = product?.name ?? item.name;
       break;
     case 'relic':
@@ -105,12 +112,20 @@ export function markPaidAndQueue(orderId: string) {
   if (!order) return;
   if (order.status === 'delivered') return;
   if (order.status === 'pending_payment') updateOrderStatus(orderId, 'paid');
-  for (const item of order.items) {
+
+  const priceOf = (item: OrderItem) => getProduct(item.productId)?.price ?? item.unitPrice;
+  const items = [...order.items].sort((a, b) => {
+    if (a.kind !== 'rank' || b.kind !== 'rank') return 0;
+    return priceOf(a) - priceOf(b);
+  });
+  const replaceRank = items.filter((item) => item.kind === 'rank').length > 1;
+
+  for (const item of items) {
     createDelivery({
       orderId: order.id,
       productId: item.productId,
       nickname: order.nickname,
-      command: renderCommand(item, order.nickname, order),
+      command: renderCommand(item, order.nickname, order, { replaceRank }),
     });
   }
   const deliveries = listDeliveries({ orderId: order.id, limit: 200 });
