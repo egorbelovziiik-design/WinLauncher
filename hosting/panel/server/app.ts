@@ -40,13 +40,56 @@ engine.init();
 
 export const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '4mb' }));
+const jsonBodyParser = express.json({ limit: '4mb' });
 
-// Совместимость путей для Vercel Serverless Rewrites и прямого запуска
+// Совместимость путей и pre-parsed req.body для Vercel Serverless Rewrites и прямого запуска
 app.use((req, res, next) => {
+  engine.init();
+  engine.refreshIfServerless();
+
+  if (req.url) {
+    const parsed = new URL(req.url, 'http://winhost.local');
+    const rewrittenSubpath = parsed.searchParams.get('__pathname');
+    if (rewrittenSubpath !== null) {
+      parsed.searchParams.delete('__pathname');
+      const cleanSub = rewrittenSubpath.replace(/^\/+/, '');
+      const qs = parsed.searchParams.toString();
+      if (parsed.pathname === '/api' || parsed.pathname === '/api/') {
+        req.url = `/api/${cleanSub}${qs ? `?${qs}` : ''}`;
+      } else {
+        req.url = `${parsed.pathname}${qs ? `?${qs}` : ''}`;
+      }
+    }
+  }
+
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  next();
+
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+    next();
+    return;
+  }
+
+  const existingBody = (req as unknown as { body?: unknown }).body;
+  if (existingBody !== undefined && existingBody !== null) {
+    if (typeof existingBody === 'string' && existingBody.length > 0) {
+      try {
+        req.body = JSON.parse(existingBody);
+      } catch {
+        // leave as string
+      }
+    } else if (Buffer.isBuffer(existingBody)) {
+      try {
+        req.body = JSON.parse(existingBody.toString('utf8'));
+      } catch {
+        // leave as buffer
+      }
+    }
+    next();
+    return;
+  }
+
+  jsonBodyParser(req, res, next);
 });
 
 const getClientIp = (req: express.Request): string => {
