@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS: SettingsMap = {
     rank: 'lp user {player} parent add {rank}',
     rank_replace: 'lp user {player} parent set {rank}',
     relic: 'relics add {player} {amount}',
-    case: 'cases give {player} {case} {amount}',
+    case: 'dc givekey {player} {case} {amount}',
     unban: 'unban {player}',
     unmute: 'unmute {player}',
     unban_ip: 'unbanip {player}',

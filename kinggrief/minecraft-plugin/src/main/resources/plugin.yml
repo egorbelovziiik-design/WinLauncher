@@ -1,14 +1,14 @@
 name: KingGriefBridge
 main: net.kinggrief.bridge.KingGriefBridge
-version: 1.2.0
+version: 1.3.0
 api-version: '1.16'
 author: KingGrief
 website: https://kinggrief.vercel.app
-description: Автоматическая выдача кейсов, привилегий и риликов с сайта KINGGRIEF на сервер kinggrief.pickme.cloud.
+description: Автоматическая облачная выдача кейсов, привилегий и риликов с сайта KINGGRIEF на сервер kinggrief.pickme.cloud.
 commands:
   kinggriefbridge:
-    description: Управление мостом магазина KingGrief (status | poll | reload)
-    usage: /<command> [status|poll|reload]
+    description: Управление мостом магазина KingGrief (status | poll | reload | testcase)
+    usage: /<command> [status|poll|reload|testcase <ник> <кейс> [кол-во]]
     aliases: [kgbridge, kgb]
     permission: kinggrief.bridge.admin
 permissions:

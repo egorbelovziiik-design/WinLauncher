@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { confirmPaidOrder } from '@/lib/order-service';
+import { confirmPaidOrderCloud } from '@/lib/delivery';
+import { cloudGetOrder, isCloudEnabled } from '@/lib/cloud-store';
 import { activeProvider, isTestMode } from '@/lib/payments';
 import { getOrder, logEvent } from '@/lib/repo';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
@@ -21,6 +23,22 @@ export async function POST(req: Request) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
+
+  if (isCloudEnabled()) {
+    const order = (await cloudGetOrder(parsed.data.publicId)) ?? getOrder(parsed.data.publicId);
+    if (!order) return NextResponse.json({ error: 'Заказ не найден' }, { status: 404 });
+    if (order.isDemo === false) return NextResponse.json({ error: 'Заказ не является тестовым' }, { status: 403 });
+
+    const result = await confirmPaidOrderCloud({
+      idOrPublicId: order.id,
+      provider: 'mock',
+      providerPaymentId: order.paymentId ?? `mock_${order.id}`,
+      amount: order.total,
+    });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    logEvent('payment_mock', `Тестовая оплата заказа ${order.publicId}`);
+    return NextResponse.json({ ok: true, already: result.already ?? false });
+  }
 
   const order = getOrder(parsed.data.publicId);
   if (!order) return NextResponse.json({ error: 'Заказ не найден' }, { status: 404 });

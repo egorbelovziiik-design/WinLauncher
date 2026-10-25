@@ -10,7 +10,12 @@ import {
   saveCaseGroup,
   saveCaseItem,
 } from '@/lib/repo';
-import { bridgeStatus, grantAdminCase, listRecentAdminGrants, templates } from '@/lib/delivery';
+import {
+  bridgeStatusCloud,
+  grantAdminCaseCloud,
+  listRecentAdminGrantsCloud,
+  templatesCloud,
+} from '@/lib/delivery';
 import { caseItemSchema, firstError, nicknameSchema } from '@/lib/validation';
 import { clientIp } from '@/lib/rate-limit';
 import { readJson } from '@/lib/api';
@@ -33,12 +38,17 @@ type Body = {
 export async function GET(req: Request) {
   const guard = await guardAdmin(req);
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
+  const [bridge, tplMap, recentGrants] = await Promise.all([
+    bridgeStatusCloud(),
+    templatesCloud(),
+    listRecentAdminGrantsCloud(15),
+  ]);
   return NextResponse.json({
     groups: listCaseGroups().map((g) => ({ ...g, items: listCaseItems(g.id), total: caseChanceTotal(g.id) })),
-    bridge: bridgeStatus(),
+    bridge,
     bridgeConfigured: Boolean(process.env.MINECRAFT_BRIDGE_SECRET),
-    caseCommandTemplate: templates().case,
-    recentGrants: listRecentAdminGrants(12),
+    caseCommandTemplate: tplMap.case,
+    recentGrants,
   });
 }
 
@@ -62,7 +72,7 @@ export async function POST(req: Request) {
       if (!Number.isFinite(amount) || amount < 1 || amount > 1000) {
         return NextResponse.json({ error: 'Количество ключей: от 1 до 1000' }, { status: 400 });
       }
-      const result = grantAdminCase({
+      const result = await grantAdminCaseCloud({
         nickname: nickParsed.data,
         caseId: rawCaseId,
         amount,
@@ -71,11 +81,15 @@ export async function POST(req: Request) {
         actor: guard.admin.username,
         ip: clientIp(req),
       });
+      const [bridge, recentGrants] = await Promise.all([
+        bridgeStatusCloud(),
+        listRecentAdminGrantsCloud(15),
+      ]);
       return NextResponse.json({
         ok: true,
         ...result,
-        bridge: bridgeStatus(),
-        recentGrants: listRecentAdminGrants(12),
+        bridge,
+        recentGrants,
       });
     }
     case 'save-group': {

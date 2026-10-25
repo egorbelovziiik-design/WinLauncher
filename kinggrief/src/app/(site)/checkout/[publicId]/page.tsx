@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getOrder } from '@/lib/repo';
+import { cloudGetOrder, isCloudEnabled } from '@/lib/cloud-store';
 import { OrderStatusView } from '@/components/order-status';
+
+export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ publicId: string }> };
 
@@ -13,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function OrderPage({ params }: Params) {
   const { publicId } = await params;
-  const order = getOrder(publicId);
+  const order = (isCloudEnabled() ? await cloudGetOrder(publicId).catch(() => null) : null) ?? getOrder(publicId);
   if (!order) notFound();
 
   return (

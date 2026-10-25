@@ -27,17 +27,28 @@ import { useToast } from '../providers';
 
 type GroupWithMeta = CaseGroup & { items: CaseItem[]; total: number };
 type ProductLite = { id: string; name: string; price: number; active: boolean };
-type BridgeState = { connected: boolean; lastSeen: string | null; mode: string };
+type BridgeState = {
+  connected: boolean;
+  lastSeen: string | null;
+  mode: string;
+  online?: number;
+  max?: number;
+  mcVersion?: string | null;
+  detectedCaseCmd?: string | null;
+  plugins?: string | null;
+};
+type GrantDelivery = Delivery & { executedCommand?: string | null };
 
 const RARITIES = Object.keys(RARITY_META) as Rarity[];
 const MY_NICK_STORAGE_KEY = 'kg_admin_my_nick_v1';
 
 const COMMAND_PRESETS: Array<{ label: string; tpl: string; hint: string }> = [
+  { label: 'DonateCase (основной)', tpl: 'dc givekey {player} {case} {amount}', hint: 'DonateCase (dc givekey)' },
+  { label: 'DC keys give', tpl: 'dc keys give {case} {player} {amount}', hint: 'DonateCase v3 (dc keys give)' },
   { label: 'Cases / RW', tpl: 'cases give {player} {case} {amount}', hint: 'MoonCases / ReallyWorld Cases' },
   { label: 'Cases add', tpl: 'cases add {player} {case} {amount}', hint: 'Альтернативный синтаксис Cases' },
-  { label: 'DonateCase', tpl: 'dc givekey {player} {case} {amount}', hint: 'DonateCase (dc givekey)' },
-  { label: 'DC v3 keys', tpl: 'dc keys give {case} {player} {amount}', hint: 'DonateCase v3 (dc keys give)' },
-  { label: 'Crates key', tpl: 'crates key {player} {case} {amount}', hint: 'ExcellentCrates / CratesPlus' },
+  { label: 'ExcellentCrates', tpl: 'crates key give {player} {case} {amount}', hint: 'ExcellentCrates v5' },
+  { label: 'CrazyCrates', tpl: 'cc give v {case} {amount} {player}', hint: 'CrazyCrates виртуальный ключ' },
 ];
 
 const DELIVERY_STATUS_UI: Record<Delivery['status'], { label: string; color: string }> = {
@@ -61,7 +72,7 @@ export function CasesManager({
   bridge: BridgeState;
   bridgeConfigured: boolean;
   initialCaseTemplate: string;
-  initialGrants: Delivery[];
+  initialGrants: GrantDelivery[];
 }) {
   const router = useRouter();
   const { push } = useToast();
@@ -76,11 +87,11 @@ export function CasesManager({
   const [grantNick, setGrantNick] = useState('');
   const [grantCaseId, setGrantCaseId] = useState<string>(groups[0]?.id ?? 'donate');
   const [grantAmount, setGrantAmount] = useState<number>(5);
-  const [commandTpl, setCommandTpl] = useState<string>(initialCaseTemplate || 'cases give {player} {case} {amount}');
+  const [commandTpl, setCommandTpl] = useState<string>(initialCaseTemplate || 'dc givekey {player} {case} {amount}');
   const [saveTplDefault, setSaveTplDefault] = useState<boolean>(true);
   const [showAdvancedCmd, setShowAdvancedCmd] = useState<boolean>(false);
   const [granting, setGranting] = useState<boolean>(false);
-  const [grants, setGrants] = useState<Delivery[]>(initialGrants);
+  const [grants, setGrants] = useState<GrantDelivery[]>(initialGrants);
   const [bridge, setBridge] = useState<BridgeState>(initialBridge);
 
   useEffect(() => {
@@ -110,7 +121,7 @@ export function CasesManager({
     }
   };
 
-  const previewCommand = (commandTpl || 'cases give {player} {case} {amount}')
+  const previewCommand = (commandTpl || 'dc givekey {player} {case} {amount}')
     .replace(/^\/+/, '')
     .replaceAll('{player}', grantNick.trim() || 'ВашНик')
     .replaceAll('{case}', grantCaseId.trim().toLowerCase() || 'donate')
@@ -158,13 +169,23 @@ export function CasesManager({
     try {
       const res = await fetch('/api/admin/cases', { cache: 'no-store' });
       if (!res.ok) return;
-      const data = (await res.json()) as { bridge?: BridgeState; recentGrants?: Delivery[] };
+      const data = (await res.json()) as { bridge?: BridgeState; recentGrants?: GrantDelivery[] };
       if (data.bridge) setBridge(data.bridge);
       if (data.recentGrants) setGrants(data.recentGrants);
     } catch {
       // ignore
     }
   };
+
+  // Авто-обновление каждые 5 сек., чтобы статус «В очереди моста → Выдано на сервере» обновлялся вживую
+  useEffect(() => {
+    const hasOpen = grants.some((g) => g.status === 'pending' || g.status === 'sent');
+    if (!hasOpen && bridge.connected) return;
+    const timer = window.setInterval(() => {
+      void refreshGrants();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [grants, bridge.connected]);
 
   const retryDelivery = async (id: string, action: 'retry' | 'deliver') => {
     const res = await adminPost('/api/admin/deliveries', { id, action });
@@ -452,7 +473,7 @@ export function CasesManager({
                     value={commandTpl}
                     onChange={(e) => setCommandTpl(e.target.value)}
                     className="field h-9 font-mono text-xs"
-                    placeholder="cases give {player} {case} {amount}"
+                    placeholder="dc givekey {player} {case} {amount}"
                   />
                   <label className="flex cursor-pointer items-center gap-2 text-[0.7rem] text-white/65">
                     <input
@@ -469,9 +490,17 @@ export function CasesManager({
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[0.68rem] text-white/40">
-              Плагин <code className="font-mono text-white/75">KingGriefBridge.jar</code> в папке <code className="font-mono text-white/75">/plugins</code> проверяет очередь каждые 5 сек. и выполняет команду в консоли сервера.
-            </p>
+            <div className="space-y-0.5 text-[0.68rem] text-white/45">
+              <p>
+                Плагин <code className="font-mono text-white/75">KingGriefBridge.jar</code> в папке <code className="font-mono text-white/75">/plugins</code> опрашивает облачную очередь каждые 5 сек. и автоматически подстраивает команду под ваш плагин кейсов (<code className="font-mono text-neon/90">DonateCase</code>, <code className="font-mono text-white/70">Cases</code>, <code className="font-mono text-white/70">ExcellentCrates</code>).
+              </p>
+              {bridge.detectedCaseCmd && (
+                <p className="text-emerald-400/90">
+                  На сервере обнаружен синтаксис: <code className="font-mono">/{bridge.detectedCaseCmd}</code>
+                  {bridge.plugins ? ` (${bridge.plugins})` : ''}
+                </p>
+              )}
+            </div>
             <button type="submit" disabled={granting} className="btn btn-primary">
               <Send size={14} />
               {granting ? 'Отправляем…' : `Выдать ×${Math.max(1, Math.floor(Number(grantAmount) || 1))} (${grantCaseId})`}
@@ -502,7 +531,9 @@ export function CasesManager({
                       <tr key={d.id}>
                         <td className="font-mono text-xs font-bold text-white">{d.nickname}</td>
                         <td>
-                          <code className="font-mono text-[0.68rem] text-neon/90">/{d.command}</code>
+                          <code className="font-mono text-[0.68rem] text-neon/90">
+                            /{d.executedCommand || d.command}
+                          </code>
                           {d.lastError && <p className="mt-0.5 text-[0.6rem] text-white/35">{d.lastError}</p>}
                         </td>
                         <td>

@@ -259,6 +259,9 @@ function seed(db: DatabaseSync) {
     db.prepare(
       "UPDATE settings SET value = REPLACE(value, 'play.kinggrief.net', 'kinggrief.pickme.cloud') WHERE key = 'announcement' AND value LIKE '%play.kinggrief.net%'",
     ).run();
+    db.prepare(
+      "UPDATE settings SET value = REPLACE(value, 'cases give {player} {case} {amount}', 'dc givekey {player} {case} {amount}') WHERE key = 'delivery_commands' AND value LIKE '%cases give {player} {case} {amount}%'",
+    ).run();
   }
 
   const productCount = db.prepare('SELECT COUNT(*) AS c FROM products').get() as { c: number };

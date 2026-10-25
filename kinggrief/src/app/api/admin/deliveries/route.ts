@@ -2,13 +2,26 @@ import { NextResponse } from 'next/server';
 import { guardAdmin } from '@/lib/auth';
 import { listDeliveries, logAudit, updateDelivery } from '@/lib/repo';
 import { syncOrderDeliveryStatus } from '@/lib/delivery';
+import {
+  cloudGetDelivery,
+  cloudListDeliveries,
+  cloudSyncOrderDeliveryStatus,
+  cloudUpdateDelivery,
+  isCloudEnabled,
+} from '@/lib/cloud-store';
 import { clientIp } from '@/lib/rate-limit';
 import { readJson } from '@/lib/api';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const guard = await guardAdmin(req);
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
   const status = new URL(req.url).searchParams.get('status') ?? 'all';
+  if (isCloudEnabled()) {
+    const deliveries = await cloudListDeliveries({ status, limit: 300 });
+    return NextResponse.json({ deliveries });
+  }
   return NextResponse.json({ deliveries: listDeliveries({ status, limit: 300 }) });
 }
 
@@ -17,6 +30,21 @@ export async function POST(req: Request) {
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
   const body = await readJson<{ id?: string; action?: string }>(req);
   if (!body?.id || !body.action) return NextResponse.json({ error: 'Нет данных' }, { status: 400 });
+
+  if (isCloudEnabled()) {
+    const delivery = await cloudGetDelivery(body.id);
+    if (!delivery) return NextResponse.json({ error: 'Задача не найдена' }, { status: 404 });
+
+    if (body.action === 'deliver') await cloudUpdateDelivery(delivery.id, { status: 'delivered' });
+    else if (body.action === 'retry') await cloudUpdateDelivery(delivery.id, { status: 'pending', lastError: null });
+    else if (body.action === 'fail') await cloudUpdateDelivery(delivery.id, { status: 'failed', lastError: 'Отмечено вручную' });
+    else return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
+
+    await cloudSyncOrderDeliveryStatus(delivery.orderId);
+    logAudit(guard.admin.username, `delivery_${body.action}`, `${delivery.command}`, clientIp(req));
+    return NextResponse.json({ ok: true });
+  }
+
   const delivery = listDeliveries({ limit: 1000 }).find((d) => d.id === body.id);
   if (!delivery) return NextResponse.json({ error: 'Задача не найдена' }, { status: 404 });
 

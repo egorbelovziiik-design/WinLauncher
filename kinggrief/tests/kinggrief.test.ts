@@ -373,11 +373,11 @@ describe('безопасность', () => {
       actor: 'admin',
       ip: '127.0.0.1',
     });
-    expect(res.command).toBe('cases give KingAdmin sdonate 7');
+    expect(res.command).toBe('dc givekey KingAdmin sdonate 7');
     expect(res.order.total).toBe(0);
     expect(res.order.isDemo).toBe(true);
     expect(res.delivery.nickname).toBe('KingAdmin');
-    expect(res.delivery.command).toBe('cases give KingAdmin sdonate 7');
+    expect(res.delivery.command).toBe('dc givekey KingAdmin sdonate 7');
     expect(repo.revenueTotals(false).totalRevenue).toBe(0);
 
     // И проверим корректное умножение набора ×5 при обычной покупке кейса:
@@ -401,7 +401,9 @@ describe('безопасность', () => {
       isDemo: true,
     });
     const rendered = delivery.renderCommand(packOrder.items[0], 'PackBuyer', packOrder);
-    expect(rendered).toBe('cases give PackBuyer donate 10');
+    expect(rendered).toBe('dc givekey PackBuyer donate 10');
+    const meta = delivery.extractDeliveryItemMeta(packOrder.items[0]);
+    expect(meta).toEqual({ kind: 'case', caseId: 'donate', amount: 10 });
   });
 });
 

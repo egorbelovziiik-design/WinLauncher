@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardAdmin } from '@/lib/auth';
 import { logAudit, setSettings } from '@/lib/repo';
+import { cloudSetSettings, isCloudEnabled } from '@/lib/cloud-store';
 import { clientIp } from '@/lib/rate-limit';
 import { readJson } from '@/lib/api';
 
@@ -37,6 +38,9 @@ export async function POST(req: Request) {
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'Нет валидных полей' }, { status: 400 });
 
   setSettings(patch);
+  if (isCloudEnabled()) {
+    await cloudSetSettings(patch);
+  }
   logAudit(guard.admin.username, 'settings_save', `Обновлены: ${Object.keys(patch).join(', ')}`, clientIp(req));
   return NextResponse.json({ ok: true, saved: Object.keys(patch) });
 }

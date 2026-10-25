@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { confirmPaidOrder } from '@/lib/order-service';
+import { confirmPaidOrderCloud } from '@/lib/delivery';
+import { cloudGetOrder, isCloudEnabled } from '@/lib/cloud-store';
 import { PaymentConfigError, verifyYookassa } from '@/lib/payments';
 import { findPaymentByProviderId, getOrder, logEvent, updatePaymentRecord } from '@/lib/repo';
 
@@ -30,6 +32,23 @@ export async function POST(req: Request) {
     if (!verified.ok) return NextResponse.json({ ok: true, pending: true });
 
     if (!orderId) return NextResponse.json({ error: 'order not found' }, { status: 404 });
+
+    if (isCloudEnabled()) {
+      const order = (await cloudGetOrder(orderId)) ?? getOrder(orderId);
+      if (!order) return NextResponse.json({ error: 'order not found' }, { status: 404 });
+      const result = await confirmPaidOrderCloud({
+        idOrPublicId: order.id,
+        provider: 'yookassa',
+        providerPaymentId: paymentId,
+        amount: verified.amount,
+      });
+      if (!result.ok) {
+        logEvent('payment_error', `ЮKassa ${paymentId}: ${result.error}`);
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     const order = getOrder(orderId);
     if (!order) return NextResponse.json({ error: 'order not found' }, { status: 404 });
 

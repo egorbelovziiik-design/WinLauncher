@@ -2,14 +2,18 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { getOrder, listDeliveries, listPayments } from '@/lib/repo';
+import { cloudGetOrder, cloudListDeliveries, isCloudEnabled } from '@/lib/cloud-store';
 import { OrderDetail } from '@/components/admin/order-detail';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = getOrder(id);
+  const order = (isCloudEnabled() ? await cloudGetOrder(id).catch(() => null) : null) ?? getOrder(id);
   if (!order) notFound();
+  const deliveries = isCloudEnabled()
+    ? await cloudListDeliveries({ orderId: order.id, limit: 100 }).catch(() => listDeliveries({ orderId: order.id, limit: 100 }))
+    : listDeliveries({ orderId: order.id, limit: 100 });
 
   return (
     <div className="space-y-4">
@@ -21,7 +25,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           <h1 className="mt-1 font-display text-2xl font-extrabold uppercase tracking-tight text-white">Заказ {order.publicId}</h1>
         </div>
       </div>
-      <OrderDetail order={order} deliveries={listDeliveries({ orderId: order.id, limit: 100 })} payments={listPayments(order.id)} />
+      <OrderDetail order={order} deliveries={deliveries} payments={listPayments(order.id)} />
     </div>
   );
 }

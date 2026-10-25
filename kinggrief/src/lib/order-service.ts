@@ -1,5 +1,6 @@
 import { applyPromo, createOrder, getOrder, getProduct, logEvent, recordPayment, registerPromoUse, setOrderPayment, updateOrderStatus, updatePaymentRecord } from './repo';
 import { markPaidAndQueue } from './delivery';
+import { cloudUpsertOrder, isCloudEnabled } from './cloud-store';
 import { activeProvider, initPayment, isTestMode, PaymentConfigError } from './payments';
 import type { Order, OrderItem, Product } from './types';
 
@@ -131,8 +132,12 @@ export async function createCheckout(payload: CheckoutPayload): Promise<{
       paymentUrl: payment.url,
       provider: payment.provider,
     });
+    const finalOrder = getOrder(order.id)!;
+    if (isCloudEnabled()) {
+      await cloudUpsertOrder(finalOrder);
+    }
     logEvent('payment_init', `Создан заказ ${order.publicId} · ${provider} · ${order.total} ₽`);
-    return { order: getOrder(order.id)!, paymentUrl: payment.url, demo: payment.demo, provider };
+    return { order: finalOrder, paymentUrl: payment.url, demo: payment.demo, provider };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Не удалось создать платёж';
     updatePaymentRecord(paymentRowId, { status: 'failed', raw: message });
