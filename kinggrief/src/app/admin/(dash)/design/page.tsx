@@ -1,4 +1,5 @@
 import { getSettings } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { SettingsForm, type SettingField } from '@/components/admin/settings-form';
 import { AdminCard } from '@/components/admin/kit';
 
@@ -45,7 +46,8 @@ const PALETTE = [
   { name: 'Danger', hex: '#EF4444' },
 ];
 
-export default function AdminDesignPage() {
+export default async function AdminDesignPage() {
+  await cloudSyncLocalDb();
   const settings = getSettings();
   return (
     <div className="space-y-4">

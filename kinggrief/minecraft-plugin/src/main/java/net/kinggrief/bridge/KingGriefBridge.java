@@ -58,6 +58,8 @@ public final class KingGriefBridge extends JavaPlugin {
     private volatile String cachedMcVersion = "";
     private volatile String detectedCaseTemplate = "";
     private volatile String detectedPluginsSummary = "";
+    private volatile String cachedOnlinePlayersCsv = "";
+    private volatile String cachedLpGroupsCsv = "";
 
     private volatile long lastSuccessMillis = 0L;
     private volatile String lastErrorMessage = "";
@@ -163,7 +165,41 @@ public final class KingGriefBridge extends JavaPlugin {
             this.cachedMax = Bukkit.getMaxPlayers();
             this.cachedMcVersion = readMcVersion();
             this.cachedTps = readServerTps();
+            if (players != null && !players.isEmpty()) {
+                List<String> names = new ArrayList<String>();
+                for (Player p : players) {
+                    String n = readPlayerName(p);
+                    if (n != null && !n.isEmpty()) names.add(n);
+                    if (names.size() >= 60) break;
+                }
+                this.cachedOnlinePlayersCsv = joinStrings(names, ",");
+            } else {
+                this.cachedOnlinePlayersCsv = "";
+            }
+            this.cachedLpGroupsCsv = readLuckPermsGroupsCsv();
         } catch (Throwable ignored) {
+        }
+    }
+
+    private String readLuckPermsGroupsCsv() {
+        try {
+            Class<?> providerCls = Class.forName("net.luckperms.api.LuckPermsProvider");
+            Object api = providerCls.getMethod("get").invoke(null);
+            if (api == null) return "";
+            Object gm = api.getClass().getMethod("getGroupManager").invoke(api);
+            if (gm == null) return "";
+            Object groupsObj = gm.getClass().getMethod("getLoadedGroups").invoke(gm);
+            if (!(groupsObj instanceof Collection)) return "";
+            List<String> names = new ArrayList<String>();
+            for (Object g : (Collection<?>) groupsObj) {
+                if (g == null) continue;
+                Object name = g.getClass().getMethod("getName").invoke(g);
+                if (name != null) names.add(String.valueOf(name));
+            }
+            Collections.sort(names);
+            return joinStrings(names, ",");
+        } catch (Throwable ignored) {
+            return "";
         }
     }
 
@@ -452,6 +488,28 @@ public final class KingGriefBridge extends JavaPlugin {
         String root = parts.length > 0 ? parts[0].toLowerCase(Locale.ROOT) : "";
         boolean looksLikeDefaultCaseCmd = false;
 
+        // Распознаём LuckPerms команды (lp user <player> parent set/add/addtemp <rank> ...)
+        // и нормализуем названия с точками (например D.ST.MODER -> dstmoder).
+        if (parts.length >= 6 && ("lp".equals(root) || "luckperms".equals(root))
+                && "user".equalsIgnoreCase(parts[1]) && "parent".equalsIgnoreCase(parts[3])) {
+            String rawGroup = parts[5];
+            String normalizedGroup = normalizeLuckPermsGroup(rawGroup);
+            if (!rawGroup.equals(normalizedGroup)) {
+                parts[5] = normalizedGroup;
+                String rebuilt = joinStrings(Arrays.asList(parts), " ");
+                getLogger().info("Нормализация группы LuckPerms: /" + trimmed + " -> /" + rebuilt);
+                return rebuilt;
+            }
+            return trimmed;
+        }
+
+        // Адаптация валюты риликов под PlayerPoints, если на сайте пришёл старый шаблон relics add
+        if (parts.length == 4 && "relics".equals(root) && "add".equalsIgnoreCase(parts[1])) {
+            if (safeGetPluginCommand("relics") == null && safeGetPluginCommand("p") != null) {
+                return "p give " + parts[2] + " " + parts[3];
+            }
+        }
+
         // Распознаём стандартные шаблоны:
         // cases give <player> <case> <amount> | dc givekey <player> <case> <amount> | crates key <player> <case> <amount>
         if (parts.length == 5 && ("cases".equals(root) || "case".equals(root) || "dc".equals(root)
@@ -507,6 +565,22 @@ public final class KingGriefBridge extends JavaPlugin {
         return trimmed;
     }
 
+    private String normalizeLuckPermsGroup(String rawGroup) {
+        if (rawGroup == null || rawGroup.isEmpty()) return "default";
+        String stripped = rawGroup.trim().toLowerCase(Locale.ROOT).replace(".", "");
+        String csv = this.cachedLpGroupsCsv;
+        if (csv != null && !csv.isEmpty()) {
+            String[] loaded = csv.split(",");
+            for (String g : loaded) {
+                if (g.equalsIgnoreCase(rawGroup.trim())) return g;
+            }
+            for (String g : loaded) {
+                if (g.replace(".", "").equalsIgnoreCase(stripped)) return g;
+            }
+        }
+        return stripped;
+    }
+
     private void notifyOnlinePlayer(String nickname, String kind, String caseId, int amount) {
         try {
             Collection<? extends Player> players = Bukkit.getOnlinePlayers();
@@ -517,8 +591,12 @@ public final class KingGriefBridge extends JavaPlugin {
                     if ("case".equalsIgnoreCase(kind) && caseId != null && !caseId.isEmpty()) {
                         int qty = amount > 0 ? amount : 1;
                         p.sendMessage("§6§l[KINGGRIEF] §aВам выданы ключи с сайта: §e" + caseId + " §f×" + qty + "§a! Откройте кейс на спавне.");
+                    } else if ("rank".equalsIgnoreCase(kind) && caseId != null && !caseId.isEmpty()) {
+                        p.sendMessage("§6§l[KINGGRIEF] §aВам выдана привилегия: §e§l" + caseId.toUpperCase(Locale.ROOT) + "§a! Приятной игры!");
+                    } else if ("relic".equalsIgnoreCase(kind) && amount > 0) {
+                        p.sendMessage("§6§l[KINGGRIEF] §aНа ваш баланс зачислено §e" + amount + " риликов§a!");
                     } else {
-                        p.sendMessage("§6§l[KINGGRIEF] §aВаша покупка с сайта успешно выдана! Приятной игры!");
+                        p.sendMessage("§6§l[KINGGRIEF] §aВаша выдача с сайта успешно выполнена! Приятной игры!");
                     }
                     break;
                 }
@@ -543,6 +621,12 @@ public final class KingGriefBridge extends JavaPlugin {
         }
         if (detectedPluginsSummary != null && !detectedPluginsSummary.isEmpty()) {
             sb.append(",\"plugins\":").append(MiniJson.quote(detectedPluginsSummary));
+        }
+        if (cachedOnlinePlayersCsv != null && !cachedOnlinePlayersCsv.isEmpty()) {
+            sb.append(",\"onlinePlayers\":").append(MiniJson.quote(cachedOnlinePlayersCsv));
+        }
+        if (cachedLpGroupsCsv != null && !cachedLpGroupsCsv.isEmpty()) {
+            sb.append(",\"lpGroups\":").append(MiniJson.quote(cachedLpGroupsCsv));
         }
         sb.append('}');
         return sb.toString();

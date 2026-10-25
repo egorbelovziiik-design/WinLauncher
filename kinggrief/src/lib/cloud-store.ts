@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { getDb } from './db';
 import type { Delivery, Order, OrderItem, OrderStatus } from './types';
 
 export type CloudBridgeState = {
@@ -11,6 +12,8 @@ export type CloudBridgeState = {
   serverId: string | null;
   detectedCaseCmd: string | null;
   plugins: string | null;
+  onlinePlayers: string[];
+  lpGroups: string[];
 };
 
 export type CloudDeliveryRow = Delivery & {
@@ -65,10 +68,13 @@ async function sbFetch<T = unknown>(
 
 /* ---------------- Settings ---------------- */
 
-export async function cloudGetSettings(): Promise<Record<string, string>> {
+export async function cloudGetSettings(includeInternal = false): Promise<Record<string, string>> {
   const rows = await sbFetch<Array<{ key: string; value: string }>>('kg_settings?select=key,value');
   const map: Record<string, string> = {};
-  for (const r of rows ?? []) map[r.key] = r.value;
+  for (const r of rows ?? []) {
+    if (!includeInternal && r.key.startsWith('__sync_')) continue;
+    map[r.key] = r.value;
+  }
   return map;
 }
 
@@ -91,6 +97,7 @@ export async function cloudSetSettings(entries: Record<string, string>): Promise
     prefer: 'resolution=merge-duplicates,return=minimal',
     body: JSON.stringify(payload),
   });
+  lastSyncAt = 0;
 }
 
 /* ---------------- Bridge Heartbeat ---------------- */
@@ -104,7 +111,17 @@ type RawBridgeRow = {
   mc_version: string | null;
   detected_case_cmd: string | null;
   plugins: string | null;
+  online_players?: string | null;
+  lp_groups?: string | null;
 };
+
+function splitCsv(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export async function cloudUpsertBridgeHeartbeat(input: {
   serverId?: string;
@@ -114,6 +131,8 @@ export async function cloudUpsertBridgeHeartbeat(input: {
   version?: string;
   detectedCaseCmd?: string;
   plugins?: string;
+  onlinePlayers?: string[] | string;
+  lpGroups?: string[] | string;
 }): Promise<void> {
   const row: Record<string, unknown> = {
     server_id: (input.serverId || 'grief-1').slice(0, 64),
@@ -136,6 +155,14 @@ export async function cloudUpsertBridgeHeartbeat(input: {
   }
   if (typeof input.plugins === 'string' && input.plugins.trim()) {
     row.plugins = input.plugins.trim().slice(0, 500);
+  }
+  if (input.onlinePlayers !== undefined) {
+    const val = Array.isArray(input.onlinePlayers) ? input.onlinePlayers.join(',') : String(input.onlinePlayers);
+    row.online_players = val.slice(0, 1500);
+  }
+  if (input.lpGroups !== undefined) {
+    const val = Array.isArray(input.lpGroups) ? input.lpGroups.join(',') : String(input.lpGroups);
+    row.lp_groups = val.slice(0, 1500);
   }
 
   await sbFetch('kg_bridge_state?on_conflict=server_id', {
@@ -161,6 +188,8 @@ export async function cloudGetBridgeState(): Promise<CloudBridgeState> {
       serverId: null,
       detectedCaseCmd: null,
       plugins: null,
+      onlinePlayers: [],
+      lpGroups: [],
     };
   }
   const connected = Date.now() - new Date(latest.last_seen).getTime() < 90_000;
@@ -174,6 +203,8 @@ export async function cloudGetBridgeState(): Promise<CloudBridgeState> {
     serverId: latest.server_id ?? null,
     detectedCaseCmd: latest.detected_case_cmd ?? null,
     plugins: latest.plugins ?? null,
+    onlinePlayers: splitCsv(latest.online_players),
+    lpGroups: splitCsv(latest.lp_groups),
   };
 }
 
@@ -265,6 +296,51 @@ export async function cloudUpsertOrder(order: Order, ip?: string | null): Promis
   });
 }
 
+export async function cloudUpsertOrdersBatch(orders: Order[]): Promise<void> {
+  if (orders.length === 0) return;
+  const payload = orders.map((order) => ({
+    id: order.id,
+    public_id: order.publicId,
+    nickname: order.nickname,
+    email: order.email ?? null,
+    status: order.status,
+    subtotal: order.subtotal,
+    discount: order.discount,
+    total: order.total,
+    promo_code: order.promoCode ?? null,
+    provider: order.provider,
+    payment_id: order.paymentId ?? null,
+    payment_url: order.paymentUrl ?? null,
+    items: order.items,
+    note: order.note ?? null,
+    is_demo: Boolean(order.isDemo),
+    user_id: order.userId ?? null,
+    ip: null,
+    created_at: order.createdAt || new Date().toISOString(),
+    paid_at: order.paidAt ?? null,
+    delivered_at: order.deliveredAt ?? null,
+  }));
+  await sbFetch('kg_orders?on_conflict=id', {
+    method: 'POST',
+    prefer: 'resolution=merge-duplicates,return=minimal',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function cloudDeleteDemoOrders(): Promise<void> {
+  const demoOrders = await sbFetch<Array<{ id: string }>>('kg_orders?is_demo=eq.true&note=like.*Демонстрационный*&select=id&limit=500');
+  for (const row of demoOrders ?? []) {
+    await sbFetch(`kg_deliveries?order_id=eq.${encodeURIComponent(row.id)}`, {
+      method: 'DELETE',
+      prefer: 'return=minimal',
+    });
+  }
+  await sbFetch('kg_orders?is_demo=eq.true&note=like.*Демонстрационный*', {
+    method: 'DELETE',
+    prefer: 'return=minimal',
+  });
+}
+
 export async function cloudGetOrder(idOrPublicId: string): Promise<Order | null> {
   const encoded = encodeURIComponent(idOrPublicId);
   const byPublic = await sbFetch<RawOrderRow[]>(
@@ -352,13 +428,15 @@ export async function cloudCreateDelivery(input: {
   amount?: number | null;
   status?: Delivery['status'];
   lastError?: string | null;
+  skipDedupe?: boolean;
 }): Promise<CloudDeliveryRow> {
-  // Идемпотентность по (order_id, product_id, command)
-  const existing = await sbFetch<RawDeliveryRow[]>(
-    `kg_deliveries?order_id=eq.${encodeURIComponent(input.orderId)}&product_id=eq.${encodeURIComponent(input.productId)}&select=*&limit=5`,
-  );
-  const same = existing?.find((r) => r.command === input.command);
-  if (same) return mapCloudDelivery(same);
+  if (!input.skipDedupe) {
+    const existing = await sbFetch<RawDeliveryRow[]>(
+      `kg_deliveries?order_id=eq.${encodeURIComponent(input.orderId)}&product_id=eq.${encodeURIComponent(input.productId)}&select=*&limit=5`,
+    );
+    const same = existing?.find((r) => r.command === input.command);
+    if (same) return mapCloudDelivery(same);
+  }
 
   const id = input.id ?? crypto.randomUUID();
   const payload = {
@@ -439,10 +517,6 @@ export async function cloudUpdateDelivery(
   });
 }
 
-/**
- * Возвращает зависшие задачи ('sent' старше 45 секунд) обратно в 'pending',
- * чтобы при рестарте сервера или сетевом сбое ни один кейс не пропал.
- */
 export async function cloudRequeueStaleDeliveries(): Promise<{ requeued: number; manual: number }> {
   const cutoffIso = new Date(Date.now() - 45_000).toISOString();
   const stale = await sbFetch<RawDeliveryRow[]>(
@@ -473,9 +547,6 @@ export async function cloudRequeueStaleDeliveries(): Promise<{ requeued: number;
   return { requeued, manual };
 }
 
-/**
- * Забирает пачку pending-задач для плагина KingGriefBridge и помечает их как 'sent'.
- */
 export async function cloudClaimPendingDeliveries(limit = 25): Promise<CloudDeliveryRow[]> {
   const rows = await sbFetch<RawDeliveryRow[]>(
     `kg_deliveries?status=eq.pending&select=*&order=created_at.asc&limit=${Math.max(1, Math.min(50, limit))}`,
@@ -518,5 +589,258 @@ export async function cloudSyncOrderDeliveryStatus(orderId: string): Promise<voi
     }
   } else if (order.status === 'paid' && !open.every((d) => d.status === 'manual')) {
     await cloudUpdateOrderStatus(orderId, 'delivering');
+  }
+}
+
+/* ---------------- Cross-Lambda SQLite Hydration ---------------- */
+
+export type SyncableTable = 'products' | 'cases' | 'case_items' | 'promos' | 'reviews' | 'users' | 'admin_users';
+
+let lastSyncAt = 0;
+let lastOrdersSyncAt = 0;
+
+/**
+ * Сохраняет таблицу локальной SQLite в Supabase kg_settings (__sync_<table>),
+ * чтобы изменения в админке / профиле мгновенно работали во всех Vercel Lambda контейнерах.
+ */
+export async function cloudSaveTable(table: SyncableTable): Promise<void> {
+  if (!isCloudEnabled()) return;
+  try {
+    const db = getDb();
+    const rows = db.prepare(`SELECT * FROM ${table}`).all();
+    await cloudSetSettings({ [`__sync_${table}`]: JSON.stringify(rows) });
+    lastSyncAt = 0;
+  } catch {
+    /* ignore transient sync failure */
+  }
+}
+
+function replaceLocalTable(table: SyncableTable, rawJson: string) {
+  let rows: Array<Record<string, unknown>>;
+  try {
+    rows = JSON.parse(rawJson) as Array<Record<string, unknown>>;
+    if (!Array.isArray(rows)) return;
+  } catch {
+    return;
+  }
+  const db = getDb();
+  if (table === 'products') {
+    db.prepare('DELETE FROM products').run();
+    const ins = db.prepare(
+      `INSERT INTO products (id, kind, name, subtitle, description, price, old_price, color, icon, badge, features, meta, sort, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        String(r.id ?? ''),
+        String(r.kind ?? 'rank'),
+        String(r.name ?? ''),
+        String(r.subtitle ?? ''),
+        String(r.description ?? ''),
+        Number(r.price ?? 0),
+        r.old_price == null ? null : Number(r.old_price),
+        String(r.color ?? '#A855F7'),
+        String(r.icon ?? 'crown'),
+        r.badge == null ? null : String(r.badge),
+        String(r.features ?? '[]'),
+        String(r.meta ?? '{}'),
+        Number(r.sort ?? 0),
+        Number(r.active ?? 1),
+      );
+    }
+  } else if (table === 'cases') {
+    db.prepare('DELETE FROM cases').run();
+    const ins = db.prepare(
+      `INSERT INTO cases (id, name, description, color, icon, sort, active) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        String(r.id ?? ''),
+        String(r.name ?? ''),
+        String(r.description ?? ''),
+        String(r.color ?? '#A855F7'),
+        String(r.icon ?? 'box'),
+        Number(r.sort ?? 0),
+        Number(r.active ?? 1),
+      );
+    }
+  } else if (table === 'case_items') {
+    db.prepare('DELETE FROM case_items').run();
+    const ins = db.prepare(
+      `INSERT INTO case_items (id, case_id, name, description, link, rarity, chance, icon, color, sort)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        Number(r.id ?? 0) || null,
+        String(r.case_id ?? ''),
+        String(r.name ?? ''),
+        String(r.description ?? ''),
+        r.link == null ? null : String(r.link),
+        String(r.rarity ?? 'common'),
+        Number(r.chance ?? 0),
+        String(r.icon ?? 'coins'),
+        String(r.color ?? '#94A3B8'),
+        Number(r.sort ?? 0),
+      );
+    }
+  } else if (table === 'promos') {
+    db.prepare('DELETE FROM promos').run();
+    const ins = db.prepare(
+      `INSERT INTO promos (code, type, value, min_total, max_discount, usage_limit, used_count, categories, expires_at, active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        String(r.code ?? ''),
+        String(r.type ?? 'percent'),
+        Number(r.value ?? 0),
+        Number(r.min_total ?? 0),
+        r.max_discount == null ? null : Number(r.max_discount),
+        r.usage_limit == null ? null : Number(r.usage_limit),
+        Number(r.used_count ?? 0),
+        r.categories == null ? null : String(r.categories),
+        r.expires_at == null ? null : String(r.expires_at),
+        Number(r.active ?? 1),
+      );
+    }
+  } else if (table === 'reviews') {
+    db.prepare('DELETE FROM reviews').run();
+    const ins = db.prepare(
+      `INSERT INTO reviews (id, nickname, rating, text, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        Number(r.id ?? 0) || null,
+        String(r.nickname ?? ''),
+        Number(r.rating ?? 5),
+        String(r.text ?? ''),
+        String(r.status ?? 'pending'),
+        String(r.created_at ?? new Date().toISOString()),
+      );
+    }
+  } else if (table === 'users') {
+    db.prepare('DELETE FROM users').run();
+    const ins = db.prepare(
+      `INSERT INTO users (id, username, email, password_hash, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        Number(r.id ?? 0) || null,
+        String(r.username ?? ''),
+        String(r.email ?? ''),
+        String(r.password_hash ?? ''),
+        String(r.created_at ?? new Date().toISOString()),
+        r.last_login_at == null ? null : String(r.last_login_at),
+      );
+    }
+  } else if (table === 'admin_users') {
+    if (rows.length === 0) return;
+    db.prepare('DELETE FROM admin_users').run();
+    const ins = db.prepare(
+      `INSERT INTO admin_users (id, username, password_hash, role, totp_secret, totp_enabled, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    );
+    for (const r of rows) {
+      ins.run(
+        Number(r.id ?? 0) || null,
+        String(r.username ?? 'admin'),
+        String(r.password_hash ?? ''),
+        String(r.role ?? 'owner'),
+        r.totp_secret == null ? null : String(r.totp_secret),
+        Number(r.totp_enabled ?? 0),
+        String(r.created_at ?? new Date().toISOString()),
+      );
+    }
+  }
+}
+
+/**
+ * Синхронизирует локальную SQLite текущего serverless-воркера с Supabase.
+ * Кэшируется на 1.5 сек внутри одного воркера, чтобы SSR страницы делали ровно 1 быстрый запрос.
+ */
+export async function cloudSyncLocalDb(opts: { includeOrders?: boolean; force?: boolean } = {}): Promise<void> {
+  if (!isCloudEnabled()) return;
+  const nowMs = Date.now();
+  try {
+    if (opts.force || nowMs - lastSyncAt > 1500) {
+      const all = await cloudGetSettings(true);
+      const db = getDb();
+      const setStmt = db.prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      );
+      for (const [k, v] of Object.entries(all)) {
+        if (k.startsWith('__sync_')) continue;
+        setStmt.run(k, String(v));
+      }
+      const tables: SyncableTable[] = ['products', 'cases', 'case_items', 'promos', 'reviews', 'users', 'admin_users'];
+      for (const t of tables) {
+        const raw = all[`__sync_${t}`];
+        if (raw) replaceLocalTable(t, raw);
+      }
+      lastSyncAt = nowMs;
+    }
+
+    if (opts.includeOrders && (opts.force || nowMs - lastOrdersSyncAt > 1500)) {
+      const [orders, deliveries] = await Promise.all([
+        cloudListOrders(400),
+        cloudListDeliveries({ limit: 300 }),
+      ]);
+      const db = getDb();
+      db.prepare('DELETE FROM orders').run();
+      const insOrder = db.prepare(
+        `INSERT INTO orders (id, public_id, nickname, email, status, subtotal, discount, total, promo_code,
+           provider, payment_id, payment_url, items, note, is_demo, user_id, ip, created_at, paid_at, delivered_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const o of orders) {
+        insOrder.run(
+          o.id,
+          o.publicId,
+          o.nickname,
+          o.email,
+          o.status,
+          o.subtotal,
+          o.discount,
+          o.total,
+          o.promoCode,
+          o.provider,
+          o.paymentId,
+          o.paymentUrl,
+          JSON.stringify(o.items),
+          o.note,
+          o.isDemo ? 1 : 0,
+          o.userId,
+          null,
+          o.createdAt,
+          o.paidAt,
+          o.deliveredAt,
+        );
+      }
+
+      db.prepare('DELETE FROM deliveries').run();
+      const insDel = db.prepare(
+        `INSERT INTO deliveries (id, order_id, product_id, nickname, command, status, attempts, last_error, created_at, sent_at, delivered_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const d of deliveries) {
+        insDel.run(
+          d.id,
+          d.orderId,
+          d.productId,
+          d.nickname,
+          d.command,
+          d.status,
+          d.attempts,
+          d.lastError,
+          d.createdAt,
+          d.sentAt ?? null,
+          d.deliveredAt,
+        );
+      }
+      lastOrdersSyncAt = nowMs;
+    }
+  } catch {
+    /* non-fatal: local SQLite defaults stay intact */
   }
 }

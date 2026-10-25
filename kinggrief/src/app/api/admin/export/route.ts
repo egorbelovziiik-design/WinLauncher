@@ -1,16 +1,18 @@
 import { guardAdmin } from '@/lib/auth';
 import { listOrders } from '@/lib/repo';
+import { cloudListOrders, isCloudEnabled } from '@/lib/cloud-store';
+
+export const dynamic = 'force-dynamic';
 
 function csvCell(value: unknown) {
   const text = String(value ?? '').replace(/"/g, '""');
-  // защита от CSV-инъекций в Excel
   return /^[=+\-@]/.test(text) ? `"'${text}"` : `"${text}"`;
 }
 
 export async function GET(req: Request) {
   const guard = await guardAdmin(req);
   if (!guard.ok) return new Response(JSON.stringify({ error: guard.error }), { status: guard.status });
-  const orders = listOrders({ limit: 5000 });
+  const orders = isCloudEnabled() ? await cloudListOrders(500) : listOrders({ limit: 5000 });
   const header = ['Номер', 'Дата', 'Никнейм', 'Статус', 'Сумма', 'Скидка', 'Промокод', 'Провайдер', 'Позиции', 'Демо'];
   const rows = orders.map((o) =>
     [

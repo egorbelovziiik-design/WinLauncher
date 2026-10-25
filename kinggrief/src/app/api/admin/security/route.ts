@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { guardAdmin } from '@/lib/auth';
 import { getAdminById, logAudit, setAdminTotpSecret, updateAdminPassword } from '@/lib/repo';
+import { cloudSaveTable, cloudSyncLocalDb } from '@/lib/cloud-store';
 import { verifyPassword } from '@/lib/db';
 import { generateTotpSecret, otpauthUrl, verifyTotp } from '@/lib/totp';
 import { clientIp } from '@/lib/rate-limit';
@@ -21,13 +22,14 @@ const totpEnableSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  await cloudSyncLocalDb({ force: true });
   const guard = await guardAdmin(req, { csrf: true });
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
   const admin = getAdminById(guard.admin.id);
   if (!admin) return NextResponse.json({ error: 'Администратор не найден' }, { status: 404 });
 
   const body = await readJson<Record<string, unknown>>(req);
-  if (!body?.action) return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
+  if (!body?.action) return NextResponse.json({ error: guard.error ?? 'Неизвестное действие' }, { status: 400 });
 
   if (body.action === 'password') {
     const parsed = passwordSchema.safeParse(body);
@@ -36,6 +38,7 @@ export async function POST(req: Request) {
     if (!verifyPassword(parsed.data.current, admin.passwordHash))
       return NextResponse.json({ error: 'Текущий пароль неверен' }, { status: 401 });
     updateAdminPassword(admin.id, parsed.data.next);
+    await cloudSaveTable('admin_users');
     logAudit(admin.username, 'password_change', 'Пароль изменён', clientIp(req));
     return NextResponse.json({ ok: true, message: 'Пароль обновлён' });
   }
@@ -51,6 +54,7 @@ export async function POST(req: Request) {
     if (!verifyTotp(parsed.data.secret, parsed.data.token))
       return NextResponse.json({ error: 'Код не подошёл. Проверьте время на устройстве.' }, { status: 400 });
     setAdminTotpSecret(admin.id, parsed.data.secret, true);
+    await cloudSaveTable('admin_users');
     logAudit(admin.username, 'totp_enable', '2FA включена', clientIp(req));
     return NextResponse.json({ ok: true, message: '2FA включена' });
   }
@@ -60,6 +64,7 @@ export async function POST(req: Request) {
     if (!verifyPassword(password, admin.passwordHash))
       return NextResponse.json({ error: 'Пароль неверен' }, { status: 401 });
     setAdminTotpSecret(admin.id, null, false);
+    await cloudSaveTable('admin_users');
     logAudit(admin.username, 'totp_disable', '2FA отключена', clientIp(req));
     return NextResponse.json({ ok: true, message: '2FA отключена' });
   }

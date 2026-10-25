@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { ArrowRight, CalendarDays, Package, ShoppingBag, Sparkles } from 'lucide-react';
 import { currentUser } from '@/lib/auth';
 import { listUserOrders } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { formatDate, formatPrice, statusColors, statusLabels } from '@/lib/utils';
 import { AccountForms, LogoutButton } from '@/components/account-panel';
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AccountPage() {
+  await cloudSyncLocalDb({ includeOrders: true });
   const user = await currentUser();
   if (!user) redirect('/login?next=/account');
 

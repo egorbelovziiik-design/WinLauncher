@@ -1,6 +1,6 @@
 name: KingGriefBridge
 main: net.kinggrief.bridge.KingGriefBridge
-version: 1.3.0
+version: 1.4.0
 api-version: '1.16'
 author: KingGrief
 website: https://kinggrief.vercel.app

@@ -1,10 +1,18 @@
 import { listCaseItems, listCaseGroups, listProducts } from '@/lib/repo';
-import { bridgeStatusCloud, listRecentAdminGrantsCloud, templatesCloud } from '@/lib/delivery';
+import {
+  bridgeStatusCloud,
+  listRecentAdminGrantsCloud,
+  listRecentRecipientNicksCloud,
+  templatesCloud,
+} from '@/lib/delivery';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { CasesManager } from '@/components/admin/cases-manager';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCasesPage() {
+  await cloudSyncLocalDb();
+
   const groups = listCaseGroups().map((group) => {
     const items = listCaseItems(group.id);
     return {
@@ -22,20 +30,24 @@ export default async function AdminCasesPage() {
     ];
   }
 
-  const [bridge, tplMap, initialGrants] = await Promise.all([
+  const rankProducts = listProducts({ kind: 'rank' });
+  const [bridge, tplMap, initialGrants, recentNicks] = await Promise.all([
     bridgeStatusCloud(),
     templatesCloud(),
-    listRecentAdminGrantsCloud(12),
+    listRecentAdminGrantsCloud(20),
+    listRecentRecipientNicksCloud(14),
   ]);
 
   return (
     <CasesManager
       groups={groups}
       packages={packages}
+      rankProducts={rankProducts}
       bridge={bridge}
       bridgeConfigured={Boolean(process.env.MINECRAFT_BRIDGE_SECRET)}
-      initialCaseTemplate={tplMap.case}
+      initialTemplates={tplMap}
       initialGrants={initialGrants}
+      initialRecentNicks={recentNicks}
     />
   );
 }

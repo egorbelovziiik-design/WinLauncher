@@ -28,14 +28,21 @@ export function OrderDetail({ order, deliveries, payments }: { order: Order; del
     } else push({ tone: 'error', title: 'Ошибка', description: res.data.error });
   };
 
-  const deliveryAction = async (delivery: Delivery, action: 'deliver' | 'retry' | 'fail') => {
+  const deliveryAction = async (delivery: Delivery, action: 'deliver' | 'retry' | 'fail' | 'repeat') => {
     setBusy(delivery.id);
     const res = await adminPost('/api/admin/deliveries', { id: delivery.id, action });
     setBusy(null);
     if (res.ok) {
       push({
         tone: 'success',
-        title: action === 'retry' ? 'Задача возвращена в очередь' : action === 'deliver' ? 'Помечено выданным' : 'Помечено ошибкой',
+        title:
+          action === 'repeat'
+            ? `Отправлено повторно игроку ${delivery.nickname}`
+            : action === 'retry'
+              ? 'Задача возвращена в очередь'
+              : action === 'deliver'
+                ? 'Помечено выданным'
+                : 'Помечено ошибкой',
       });
       router.refresh();
     } else push({ tone: 'error', title: 'Ошибка', description: res.data.error });
@@ -80,11 +87,21 @@ export function OrderDetail({ order, deliveries, payments }: { order: Order; del
                     <code className="min-w-0 flex-1 truncate font-mono text-[0.7rem] text-neon/90">{delivery.command}</code>
                     <div className="flex items-center gap-1.5">
                       <Pill color={statusColors[delivery.status] ?? '#94A3B8'}>{statusLabels[delivery.status] ?? delivery.status}</Pill>
-                      {delivery.status !== 'delivered' && (
-                        <button onClick={() => deliveryAction(delivery, 'deliver')} disabled={busy === delivery.id} className="btn btn-ghost btn-icon !h-6 !w-6" aria-label="Пометить выданным"><Check size={11} /></button>
+                      <button
+                        onClick={() => deliveryAction(delivery, 'repeat')}
+                        disabled={busy === delivery.id}
+                        className="rounded border border-neon/40 bg-neon/10 px-2 py-0.5 text-[0.62rem] font-semibold text-neon hover:bg-neon/25"
+                        title="Создать новую задачу и выдать ещё раз"
+                      >
+                        ↻ Ещё раз
+                      </button>
+                      {delivery.status !== 'delivered' && delivery.status !== 'pending' && delivery.status !== 'sent' && (
+                        <button onClick={() => deliveryAction(delivery, 'retry')} disabled={busy === delivery.id} className="btn btn-ghost btn-icon !h-6 !w-6" title="Вернуть в очередь" aria-label="Повторить"><RotateCcw size={11} /></button>
                       )}
-                      <button onClick={() => deliveryAction(delivery, 'retry')} disabled={busy === delivery.id} className="btn btn-ghost btn-icon !h-6 !w-6" aria-label="Повторить"><RotateCcw size={11} /></button>
-                      <button onClick={() => deliveryAction(delivery, 'fail')} disabled={busy === delivery.id} className="btn btn-ghost btn-icon !h-6 !w-6 hover:!text-danger" aria-label="Ошибка"><X size={11} /></button>
+                      {delivery.status === 'manual' && (
+                        <button onClick={() => deliveryAction(delivery, 'deliver')} disabled={busy === delivery.id} className="btn btn-ghost btn-icon !h-6 !w-6" title="Подтвердить ручную выдачу" aria-label="Пометить выданным"><Check size={11} /></button>
+                      )}
+                      <button onClick={() => deliveryAction(delivery, 'fail')} disabled={busy === delivery.id} className="btn btn-ghost btn-icon !h-6 !w-6 hover:!text-danger" title="Отметить ошибкой" aria-label="Ошибка"><X size={11} /></button>
                     </div>
                   </div>
                   <p className="mt-1 font-mono text-[0.58rem] text-white/25">

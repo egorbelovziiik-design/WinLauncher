@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import {
-  ArrowUpRight, Banknote, CalendarDays, CreditCard, Link2, Package, Plus, Server, ShoppingBag,
+  ArrowUpRight, Banknote, CalendarDays, CreditCard, Crown, Gift, Link2, Package, Plus, Server, ShoppingBag,
   TrendingUp, Ticket, Users,
 } from 'lucide-react';
 import {
   listOrders, popularProducts, revenueSeries, revenueTotals, topCustomers, getSettings,
 } from '@/lib/repo';
-import { bridgeStatus } from '@/lib/delivery';
+import { bridgeStatusCloud } from '@/lib/delivery';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { formatDate, formatPrice, statusColors, statusLabels } from '@/lib/utils';
 import { RevenueChart, TopProductsChart, OrdersChart } from '@/components/admin/charts';
 
@@ -45,6 +46,7 @@ export default async function AdminDashboard({
 }: {
   searchParams: Promise<{ demo?: string }>;
 }) {
+  await cloudSyncLocalDb({ includeOrders: true });
   const { demo } = await searchParams;
   const includeDemo = demo === '1';
   const totals = revenueTotals(includeDemo);
@@ -52,7 +54,7 @@ export default async function AdminDashboard({
   const orders = listOrders({ limit: 8 });
   const products = popularProducts(5, includeDemo);
   const customers = topCustomers(5, includeDemo);
-  const bridge = bridgeStatus();
+  const bridge = await bridgeStatusCloud();
   const settings = getSettings();
   const hasRealData = totals.paidOrders > 0;
 
@@ -65,6 +67,8 @@ export default async function AdminDashboard({
           <p className="mt-1 text-[0.76rem] text-white/35">Реальные показатели магазина. Демо-заказы учитываются только по переключателю.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/admin/cases" className="btn btn-primary btn-sm"><Gift size={13} /> Выдать кейсы</Link>
+          <Link href="/admin/products?kind=rank" className="btn btn-gold btn-sm"><Crown size={13} /> Выдать привилегию</Link>
           <Link
             href={includeDemo ? '/admin' : '/admin?demo=1'}
             className={`btn btn-sm ${includeDemo ? 'btn-gold' : 'btn-ghost'}`}
@@ -72,7 +76,7 @@ export default async function AdminDashboard({
             {includeDemo ? 'Скрыть демо-данные' : 'Показать демо-данные'}
           </Link>
           <Link href="/admin/orders" className="btn btn-ghost btn-sm"><ShoppingBag size={13} /> Все заказы</Link>
-          <Link href="/admin/products?kind=rank&new=1" className="btn btn-primary btn-sm"><Plus size={13} /> Новый товар</Link>
+          <Link href="/admin/products?kind=rank&new=1" className="btn btn-ghost btn-sm"><Plus size={13} /> Новый товар</Link>
         </div>
       </div>
 

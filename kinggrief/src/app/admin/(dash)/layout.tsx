@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { currentAdmin } from '@/lib/auth';
 import { getSettings } from '@/lib/repo';
-import { bridgeStatus } from '@/lib/delivery';
+import { bridgeStatusCloud } from '@/lib/delivery';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { AdminShell } from '@/components/admin/shell';
 
 export const dynamic = 'force-dynamic';
@@ -12,10 +13,11 @@ export const metadata = {
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await cloudSyncLocalDb({ includeOrders: true });
   const admin = await currentAdmin();
   if (!admin) redirect('/admin/login');
   const settings = getSettings();
-  const bridge = bridgeStatus();
+  const bridge = await bridgeStatusCloud();
 
   return (
     <AdminShell

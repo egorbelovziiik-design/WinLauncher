@@ -1,12 +1,12 @@
 import { applyPromo, createOrder, getOrder, getProduct, logEvent, recordPayment, registerPromoUse, setOrderPayment, updateOrderStatus, updatePaymentRecord } from './repo';
 import { markPaidAndQueue } from './delivery';
-import { cloudUpsertOrder, isCloudEnabled } from './cloud-store';
+import { cloudSaveTable, cloudSyncLocalDb, cloudUpsertOrder, isCloudEnabled } from './cloud-store';
 import { activeProvider, initPayment, isTestMode, PaymentConfigError } from './payments';
 import type { Order, OrderItem, Product } from './types';
 
 export type CartLine = { productId: string; quantity: number };
 
-const MAX_PER_KIND: Record<Product['kind'], number> = { rank: 1, case: 20, relic: 20, other: 5 };
+const MAX_PER_KIND: Record<Product['kind'], number> = { rank: 1, case: 500, relic: 500, other: 50 };
 
 export type PriceResult =
   | { ok: true; items: OrderItem[]; subtotal: number; discount: number; total: number; promoCode: string | null; promoError: string | null; kinds: string[] }
@@ -51,7 +51,7 @@ export function priceCart(lines: CartLine[], promoCode?: string | null): PriceRe
 
   const subtotal = items.reduce((sum, i) => sum + i.total, 0);
   if (subtotal < 1) return { ok: false, error: 'Минимальная сумма заказа — 1 ₽' };
-  if (subtotal > 200_000) return { ok: false, error: 'Слишком большая сумма заказа — свяжитесь с поддержкой' };
+  if (subtotal > 2_000_000) return { ok: false, error: 'Слишком большая сумма заказа — свяжитесь с поддержкой' };
 
   const kinds = [...new Set(items.map((i) => i.kind))];
   let discount = 0;
@@ -96,6 +96,9 @@ export async function createCheckout(payload: CheckoutPayload): Promise<{
   demo: boolean;
   provider: string;
 }> {
+  if (isCloudEnabled()) {
+    await cloudSyncLocalDb();
+  }
   const priced = priceCart(payload.items, payload.promoCode);
   if (!priced.ok) throw new OrderError(priced.error);
 

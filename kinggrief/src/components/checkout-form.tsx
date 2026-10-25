@@ -112,21 +112,30 @@ export function CheckoutForm({
           </div>
 
           <label className="block">
-            <span className="field-label">Minecraft-никнейм *</span>
+            <span className="field-label">Minecraft-никнейм получателя (можно свой или друга) *</span>
             <div className="relative">
               <User size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
               <input
                 value={nick}
                 onChange={(e) => setNick(e.target.value)}
-                placeholder="Steve_2026"
-                className="field pl-9"
+                placeholder="Любой ник на сервере: Steve_2026"
+                className="field pl-9 pr-20"
                 autoComplete="username"
                 maxLength={16}
                 aria-invalid={Boolean(errors.nickname)}
                 aria-describedby={errors.nickname ? 'nick-error' : undefined}
               />
+              {nick && (
+                <button
+                  type="button"
+                  onClick={() => setNick('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[0.6rem] text-white/55 hover:text-white"
+                >
+                  Другой ник
+                </button>
+              )}
             </div>
-            <span className="mt-1 block text-[0.66rem] text-white/30">Именно на этот никнейм придёт покупка. Проверьте раскладку и регистр.</span>
+            <span className="mt-1 block text-[0.66rem] text-white/30">Именно на этот никнейм придёт покупка (себе или в подарок любому игроку).</span>
             {errors.nickname && <span id="nick-error" className="mt-1 block text-[0.7rem] font-semibold text-danger">{errors.nickname}</span>}
           </label>
 

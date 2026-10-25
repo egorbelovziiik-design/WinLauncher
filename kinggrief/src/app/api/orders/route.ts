@@ -4,13 +4,14 @@ import { createOrderSchema, firstError } from '@/lib/validation';
 import { createCheckout, OrderError } from '@/lib/order-service';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { currentUser } from '@/lib/auth';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
-  const limit = rateLimit(`order:${ip}`, 10, 10 * 60_000);
+  const limit = rateLimit(`order:${ip}`, 120, 60_000);
   if (!limit.ok) {
     return NextResponse.json(
-      { error: 'Слишком много попыток оформления. Попробуйте через несколько минут.' },
+      { error: 'Слишком много попыток оформления. Попробуйте через минуту.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfter) } },
     );
   }
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: firstError(parsed.error as ZodError) }, { status: 400 });
   }
 
+  await cloudSyncLocalDb();
   const user = await currentUser();
 
   try {

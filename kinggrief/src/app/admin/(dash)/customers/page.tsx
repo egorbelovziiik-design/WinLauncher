@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { Users } from 'lucide-react';
 import { countUsers, listOrders, listUsers, topCustomers } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { AdminCard, Pill } from '@/components/admin/kit';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCustomersPage({ searchParams }: { searchParams: Promise<{ demo?: string }> }) {
+  await cloudSyncLocalDb({ includeOrders: true });
   const { demo } = await searchParams;
   const includeDemo = demo === '1';
   const customers = topCustomers(60, includeDemo);

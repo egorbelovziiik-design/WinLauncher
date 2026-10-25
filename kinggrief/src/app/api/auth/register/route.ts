@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { registerSchema, firstError } from '@/lib/validation';
 import { createUser, logEvent } from '@/lib/repo';
+import { cloudSaveTable, cloudSyncLocalDb } from '@/lib/cloud-store';
 import { startUserSession } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
-  const limit = rateLimit(`register:${ip}`, 5, 30 * 60_000);
+  const limit = rateLimit(`register:${ip}`, 15, 30 * 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: 'Слишком много попыток регистрации. Попробуйте позже.' },
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: firstError(parsed.error as ZodError) }, { status: 400 });
   }
 
+  await cloudSyncLocalDb({ force: true });
   const result = createUser({
     username: parsed.data.username,
     email: parsed.data.email,
@@ -34,6 +36,7 @@ export async function POST(req: Request) {
   });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 });
 
+  await cloudSaveTable('users');
   await startUserSession(result.user.id);
   logEvent('user_register', `Новый аккаунт: ${result.user.username}`);
   return NextResponse.json({ ok: true, user: result.user }, { status: 201 });

@@ -3,10 +3,12 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import type { Product, ProductKind } from '@/lib/types';
+import type { CaseGroup, Product, ProductKind } from '@/lib/types';
+import type { CloudBridgeState, CloudDeliveryRow } from '@/lib/delivery';
 import { KIND_LABELS } from '@/lib/types';
 import { formatPrice } from '@/lib/utils';
 import { adminPost } from './api-client';
+import { AdminGrantPanel, type GrantTab } from './admin-grant-panel';
 import { AdminCard, ColorInput, Field, Modal, Pill, SectionTabs } from './kit';
 import { Icon } from '../icons';
 import { useToast } from '../providers';
@@ -55,12 +57,22 @@ function blank(kind: ProductKind): Draft {
 
 export function ProductsManager({
   products,
+  caseGroups = [],
   activeKind,
   openNew,
+  bridge,
+  initialGrants = [],
+  initialRecentNicks = [],
+  initialTemplates,
 }: {
   products: Product[];
+  caseGroups?: CaseGroup[];
   activeKind?: string;
   openNew?: boolean;
+  bridge?: (CloudBridgeState & { secretConfigured?: boolean }) | null;
+  initialGrants?: CloudDeliveryRow[];
+  initialRecentNicks?: string[];
+  initialTemplates?: Record<string, string>;
 }) {
   const router = useRouter();
   const { push } = useToast();
@@ -180,6 +192,18 @@ export function ProductsManager({
           { href: '/admin/products', label: 'Все', count: counts.all },
           ...KINDS.map((k) => ({ href: `/admin/products?kind=${k}`, label: KIND_LABELS[k], count: counts[k] })),
         ]}
+      />
+
+      <AdminGrantPanel
+        defaultTab={
+          (kind === 'case' ? 'case' : kind === 'relic' ? 'relic' : kind === 'other' ? 'service' : 'rank') as GrantTab
+        }
+        caseGroups={caseGroups}
+        rankProducts={products.filter((p) => p.kind === 'rank')}
+        initialBridge={bridge}
+        initialGrants={initialGrants}
+        initialRecentNicks={initialRecentNicks}
+        initialTemplates={initialTemplates}
       />
 
       <AdminCard>

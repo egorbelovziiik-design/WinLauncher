@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, Check, Download, Server, ShieldCheck } from 'lucide-react';
 import { getSettings, listDemoOrders } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { SettingsForm, type SettingField } from '@/components/admin/settings-form';
 import { AdminCard } from '@/components/admin/kit';
 import { DemoCard } from '@/components/admin/demo-card';
@@ -45,14 +46,15 @@ const SHOP: SettingField[] = [
   { key: 'relic_pricing', label: 'Формула риликов (JSON)', type: 'json', span: 2, rows: 9, hint: 'points: [[количество, цена]]. Линейная интерполяция между точками.' },
 ];
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
+  await cloudSyncLocalDb({ includeOrders: true });
   const settings = getSettings();
   const demoCount = listDemoOrders(500).length;
   const yookassaConfigured = Boolean(process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY);
   const robokassaConfigured = Boolean(process.env.ROBOKASSA_LOGIN && process.env.ROBOKASSA_PASSWORD1);
   const bridgeConfigured = Boolean(process.env.MINECRAFT_BRIDGE_SECRET);
   const endpoints = ['/api/minecraft/poll', '/api/minecraft/ack'];
-  const site = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://kinggrief.vercel.app';
 
   return (
     <div className="space-y-4">

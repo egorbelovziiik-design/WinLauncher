@@ -38,9 +38,10 @@ export function OrderStatusView({ initialOrder }: { initialOrder: Order }) {
 
   const active = stepIndex(order.status);
   const pending = order.status === 'pending_payment';
+  const waitingDelivery = order.status === 'paid' || order.status === 'delivering';
 
   useEffect(() => {
-    if (!pending) return;
+    if (!pending && !waitingDelivery) return;
     const timer = setInterval(async () => {
       try {
         const res = await fetch(`/api/orders/${order.publicId}`, { cache: 'no-store' });
@@ -48,17 +49,19 @@ export function OrderStatusView({ initialOrder }: { initialOrder: Order }) {
         const data = (await res.json()) as Partial<Order>;
         if (data.status && data.status !== order.status) {
           setOrder((prev) => ({ ...prev, ...data } as Order));
-          if (data.status !== 'pending_payment') {
-            push({ tone: 'success', title: 'Оплата подтверждена!', description: 'Заказ передан на выдачу.' });
-            startTransition(() => router.refresh());
+          if (order.status === 'pending_payment' && data.status !== 'pending_payment') {
+            push({ tone: 'success', title: 'Оплата подтверждена!', description: 'Заказ передан на выдачу в игру.' });
+          } else if (data.status === 'delivered') {
+            push({ tone: 'success', title: 'Выдано на сервере!', description: `Донат доставлен игроку ${order.nickname}.` });
           }
+          startTransition(() => router.refresh());
         }
       } catch {
         /* ignore */
       }
-    }, 8000);
+    }, 3500);
     return () => clearInterval(timer);
-  }, [order.publicId, order.status, pending, push, router]);
+  }, [order.nickname, order.publicId, order.status, pending, waitingDelivery, push, router]);
 
   const check = async () => {
     setChecking(true);
@@ -160,6 +163,21 @@ export function OrderStatusView({ initialOrder }: { initialOrder: Order }) {
               <button onClick={check} disabled={checking || isPending} className="btn btn-ghost flex-1">
                 {checking || isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                 Я оплатил
+              </button>
+            </div>
+          )}
+
+          {!pending && (
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-white/6 pt-4">
+              <Link href="/cases" className="btn btn-primary btn-sm flex-1">
+                Купить ещё кейсы
+              </Link>
+              <Link href="/privileges" className="btn btn-ghost btn-sm flex-1">
+                Купить привилегию
+              </Link>
+              <button onClick={check} disabled={checking || isPending} className="btn btn-ghost btn-sm">
+                {checking || isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                Обновить
               </button>
             </div>
           )}

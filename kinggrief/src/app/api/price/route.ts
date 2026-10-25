@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { priceCart } from '@/lib/order-service';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 
 const schema = z.object({
-  items: z.array(z.object({ productId: z.string().min(1), quantity: z.number().int().min(1).max(99) })).max(30),
+  items: z.array(z.object({ productId: z.string().min(1), quantity: z.number().int().min(1).max(500) })).max(30),
   promoCode: z.string().trim().max(32).optional().nullable(),
 });
 
 export async function POST(req: Request) {
-  const limit = rateLimit(`price:${clientIp(req)}`, 90, 60_000);
+  const limit = rateLimit(`price:${clientIp(req)}`, 180, 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Слишком много запросов' }, { status: 429 });
   let body: unknown;
   try {
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
   }
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
+  await cloudSyncLocalDb();
   const result = priceCart(parsed.data.items, parsed.data.promoCode);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   return NextResponse.json({

@@ -1,6 +1,7 @@
 import { ShieldCheck } from 'lucide-react';
 import { currentAdmin } from '@/lib/auth';
 import { getAdminById, listAudit } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { formatDate } from '@/lib/utils';
 import { SecurityForm } from '@/components/admin/security-form';
 import { AdminCard, Pill } from '@/components/admin/kit';
@@ -8,6 +9,7 @@ import { AdminCard, Pill } from '@/components/admin/kit';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminSecurityPage() {
+  await cloudSyncLocalDb();
   const admin = await currentAdmin();
   const record = admin ? getAdminById(admin.id) : null;
   const audit = listAudit(80);

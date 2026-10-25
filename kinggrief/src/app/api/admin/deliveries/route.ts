@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardAdmin } from '@/lib/auth';
 import { listDeliveries, logAudit, updateDelivery } from '@/lib/repo';
-import { syncOrderDeliveryStatus } from '@/lib/delivery';
+import { repeatDeliveryCloud, syncOrderDeliveryStatus } from '@/lib/delivery';
 import {
   cloudGetDelivery,
   cloudListDeliveries,
@@ -30,6 +30,16 @@ export async function POST(req: Request) {
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
   const body = await readJson<{ id?: string; action?: string }>(req);
   if (!body?.id || !body.action) return NextResponse.json({ error: 'Нет данных' }, { status: 400 });
+
+  if (body.action === 'repeat') {
+    const repeated = await repeatDeliveryCloud({
+      deliveryId: body.id,
+      actor: guard.admin.username,
+      ip: clientIp(req),
+    });
+    if (!repeated) return NextResponse.json({ error: 'Задача не найдена' }, { status: 404 });
+    return NextResponse.json({ ok: true, ...repeated });
+  }
 
   if (isCloudEnabled()) {
     const delivery = await cloudGetDelivery(body.id);

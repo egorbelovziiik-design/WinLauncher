@@ -9,7 +9,7 @@ export const nicknameSchema = z
 
 export const cartItemSchema = z.object({
   productId: z.string().min(1),
-  quantity: z.number().int().min(1).max(99),
+  quantity: z.number().int().min(1).max(500),
 });
 
 export const createOrderSchema = z.object({

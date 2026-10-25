@@ -16,9 +16,11 @@ import {
 import {
   cloudCreateDelivery,
   cloudGetBridgeState,
+  cloudGetDelivery,
   cloudGetOrder,
   cloudGetSetting,
   cloudListDeliveries,
+  cloudListOrders,
   cloudSetSettings,
   cloudSyncOrderDeliveryStatus,
   cloudUpdateOrderStatus,
@@ -29,9 +31,7 @@ import {
 } from './cloud-store';
 import type { Delivery, Order, OrderItem } from './types';
 
-export type TemplateMap = Record<string, string>;
-
-export const DEFAULT_TEMPLATES: TemplateMap = {
+export const DEFAULT_TEMPLATES: Record<string, string> = {
   rank: 'lp user {player} parent add {rank}',
   rank_replace: 'lp user {player} parent set {rank}',
   relic: 'relics add {player} {amount}',
@@ -42,140 +42,158 @@ export const DEFAULT_TEMPLATES: TemplateMap = {
   unmute_ip: 'unmuteip {player}',
 };
 
-export function templates(): TemplateMap {
+export const CLOUD_SERVER_DEFAULTS: Record<string, string> = {
+  rank: 'lp user {player} parent set {rank}',
+  rank_replace: 'lp user {player} parent set {rank}',
+  relic: 'p give {player} {amount}',
+  case: 'cases give {player} {case} {amount}',
+  unban: 'pardon {player}',
+  unmute: 'unmute {player}',
+  unban_ip: 'pardon-ip {player}',
+  unmute_ip: 'unmuteip {player}',
+};
+
+export function templates(): Record<string, string> {
+  const raw = getSetting('delivery_commands', '');
   try {
-    return { ...DEFAULT_TEMPLATES, ...(JSON.parse(getSetting('delivery_commands', '{}')) as TemplateMap) };
+    return { ...DEFAULT_TEMPLATES, ...(raw ? JSON.parse(raw) : {}) };
   } catch {
     return { ...DEFAULT_TEMPLATES };
   }
 }
 
-export async function templatesCloud(): Promise<TemplateMap> {
+export async function templatesCloud(): Promise<Record<string, string>> {
   if (!isCloudEnabled()) return templates();
   try {
     const raw = await cloudGetSetting('delivery_commands', '');
-    if (!raw) return templates();
-    const parsed = JSON.parse(raw) as TemplateMap;
-    // Автомиграция старого дефолта cases give → dc givekey
-    if (parsed.case === 'cases give {player} {case} {amount}') {
-      parsed.case = DEFAULT_TEMPLATES.case;
+    if (raw) {
+      return { ...CLOUD_SERVER_DEFAULTS, ...JSON.parse(raw) };
     }
-    return { ...DEFAULT_TEMPLATES, ...parsed };
   } catch {
-    return templates();
+    /* fallback */
   }
+  return { ...CLOUD_SERVER_DEFAULTS };
+}
+
+/**
+ * Вычисляет точный LuckPerms ID группы привилегии (например, D.ST.MODER -> dstmoder).
+ */
+export function resolveRankGroupId(item: Pick<OrderItem, 'productId' | 'name' | 'meta'>, productRankId?: unknown): string {
+  const meta = item.meta ?? {};
+  if (typeof meta.rankId === 'string' && meta.rankId.trim()) {
+    return meta.rankId.trim().toLowerCase();
+  }
+  if (typeof productRankId === 'string' && productRankId.trim()) {
+    return productRankId.trim().toLowerCase();
+  }
+  if (item.productId.startsWith('rank-')) {
+    return item.productId.slice(5).trim().toLowerCase();
+  }
+  if (item.productId.startsWith('admin-rank-')) {
+    return item.productId.slice(11).trim().toLowerCase();
+  }
+  return item.name.toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'default';
 }
 
 export function extractDeliveryItemMeta(item: OrderItem): {
-  kind: OrderItem['kind'];
+  kind: string;
   caseId: string | null;
   amount: number;
 } {
   const product = getProduct(item.productId);
-  const meta = (product?.meta ?? item.meta ?? {}) as Record<string, unknown>;
+  const meta = { ...(product?.meta ?? {}), ...(item.meta ?? {}) };
+  const perPack = Number(meta.amount ?? meta.quantity ?? 1) || 1;
+  const amount = Math.max(1, perPack * item.quantity);
   if (item.kind === 'case') {
-    const perPack = Math.max(1, Number(meta.quantity ?? 1));
-    return {
-      kind: 'case',
-      caseId: String(meta.group ?? 'donate').toLowerCase(),
-      amount: perPack * item.quantity,
-    };
+    const caseId = String(meta.group ?? item.productId.replace(/^(admin-)?case-/, '').split('-')[0] ?? 'donate')
+      .trim()
+      .toLowerCase();
+    return { kind: 'case', caseId, amount };
   }
-  if (item.kind === 'relic') {
-    return {
-      kind: 'relic',
-      caseId: null,
-      amount: Number(meta.amount ?? 0) * item.quantity,
-    };
+  if (item.kind === 'rank') {
+    const prodRankId = (product?.meta as Record<string, unknown> | undefined)?.rankId;
+    return { kind: 'rank', caseId: resolveRankGroupId(item, prodRankId), amount: 1 };
   }
-  return {
-    kind: item.kind,
-    caseId: null,
-    amount: item.quantity,
-  };
+  return { kind: item.kind, caseId: null, amount };
 }
 
+/** Подставляет переменные в шаблон команды выдачи. */
 export function renderCommand(
   item: OrderItem,
   nickname: string,
-  order: Order,
-  opts: { replaceRank?: boolean; map?: TemplateMap } = {},
+  order: Pick<Order, 'publicId'>,
+  opts: { replaceRank?: boolean; map?: Record<string, string>; useRankSlug?: boolean } = {},
 ): string {
   const map = opts.map ?? templates();
   const product = getProduct(item.productId);
-  const meta = (product?.meta ?? item.meta ?? {}) as Record<string, unknown>;
-  let template: string;
+  const meta = { ...(product?.meta ?? {}), ...(item.meta ?? {}) };
+  let template = '';
+  let amount = item.quantity;
+  let caseId = '';
   let rankName = '';
+
   switch (item.kind) {
-    case 'rank':
+    case 'rank': {
       template = opts.replaceRank ? map.rank_replace : map.rank;
-      rankName = product?.name ?? item.name;
+      const prodRankId = (product?.meta as Record<string, unknown> | undefined)?.rankId;
+      rankName = opts.useRankSlug ? resolveRankGroupId(item, prodRankId) : (product?.name ?? item.name);
       break;
+    }
     case 'relic':
       template = map.relic;
+      amount = Number(meta.amount ?? 0) * item.quantity;
       break;
     case 'case':
       template = map.case;
+      caseId = String(meta.group ?? item.productId);
+      amount = Number(meta.quantity ?? 1) * item.quantity;
       break;
-    default: {
-      const service = String(meta.service ?? 'unban');
-      template = map[service] ?? map.unban;
+    case 'other': {
+      const action = String(meta.action ?? 'unban');
+      template = map[action] ?? map.unban;
+      break;
     }
   }
-  const amount =
-    item.kind === 'relic'
-      ? Number(meta.amount ?? 0) * item.quantity
-      : item.kind === 'case'
-        ? Math.max(1, Number(meta.quantity ?? 1)) * item.quantity
-        : item.quantity;
+
   return template
+    .replace(/^\/+/, '')
     .replaceAll('{player}', nickname)
     .replaceAll('{rank}', rankName)
     .replaceAll('{amount}', String(amount))
-    .replaceAll('{relics}', String(Number(meta.amount ?? 0) * item.quantity))
-    .replaceAll('{case}', String(meta.group ?? 'donate'))
+    .replaceAll('{case}', caseId)
     .replaceAll('{order}', order.publicId)
     .replaceAll('{product}', item.productId);
 }
 
-export type BridgeStatusInfo = {
-  connected: boolean;
-  lastSeen: string | null;
-  mode: string;
-  online?: number;
-  max?: number;
-  tps?: number | null;
-  mcVersion?: string | null;
-  serverId?: string | null;
-  detectedCaseCmd?: string | null;
-  plugins?: string | null;
-};
-
-export function bridgeStatus(): BridgeStatusInfo {
-  const last = getSetting('bridge_last_seen', '');
-  const connected = Boolean(last) && Date.now() - new Date(last).getTime() < 90_000;
-  return { connected, lastSeen: last || null, mode: getSetting('online_mode', 'bridge') };
+/** Состояние моста Minecraft — для плашки в админке и проверки доставки. */
+export function bridgeStatus(): CloudBridgeState & { secretConfigured: boolean } {
+  const lastSeen = getSetting('bridge_last_seen', '');
+  const ageMs = lastSeen ? Date.now() - new Date(lastSeen).getTime() : Infinity;
+  const connected = ageMs < 90_000;
+  return {
+    connected,
+    lastSeen: lastSeen || null,
+    online: Number(getSetting('bridge_online', '0')) || 0,
+    max: Number(getSetting('bridge_max', '0')) || 0,
+    tps: getSetting('bridge_tps', '') ? Number(getSetting('bridge_tps', '20')) : null,
+    mcVersion: getSetting('bridge_mc_version', '') || null,
+    serverId: getSetting('bridge_server_id', '') || null,
+    detectedCaseCmd: getSetting('bridge_detected_case_cmd', '') || null,
+    plugins: getSetting('bridge_plugins', '') || null,
+    onlinePlayers: [],
+    lpGroups: [],
+    secretConfigured: Boolean(process.env.MINECRAFT_BRIDGE_SECRET),
+  };
 }
 
-export async function bridgeStatusCloud(): Promise<BridgeStatusInfo> {
-  if (!isCloudEnabled()) return bridgeStatus();
+export async function bridgeStatusCloud(): Promise<CloudBridgeState & { secretConfigured: boolean }> {
+  const secretConfigured = Boolean(process.env.MINECRAFT_BRIDGE_SECRET);
+  if (!isCloudEnabled()) {
+    return bridgeStatus();
+  }
   try {
-    const [state, mode] = await Promise.all([
-      cloudGetBridgeState(),
-      cloudGetSetting('online_mode', getSetting('online_mode', 'bridge')),
-    ]);
-    return {
-      connected: state.connected,
-      lastSeen: state.lastSeen,
-      mode: mode || 'bridge',
-      online: state.online,
-      max: state.max,
-      tps: state.tps,
-      mcVersion: state.mcVersion,
-      serverId: state.serverId,
-      detectedCaseCmd: state.detectedCaseCmd,
-      plugins: state.plugins,
-    };
+    const state = await cloudGetBridgeState();
+    return { ...state, secretConfigured };
   } catch {
     return bridgeStatus();
   }
@@ -306,7 +324,7 @@ export async function confirmPaidOrderCloud(input: {
   await cloudUpdateOrderStatus(order.id, queueOn ? 'delivering' : 'paid', { paidAt: paidNow });
 
   for (const item of items) {
-    const command = renderCommand(item, order.nickname, order, { replaceRank, map });
+    const command = renderCommand(item, order.nickname, order, { replaceRank, map, useRankSlug: true });
     const meta = extractDeliveryItemMeta(item);
     await cloudCreateDelivery({
       orderId: order.id,
@@ -321,7 +339,6 @@ export async function confirmPaidOrderCloud(input: {
     });
   }
 
-  // Зеркалим локально, если запись есть в этом инстансе
   if (getOrder(order.id)) {
     markPaidAndQueue(order.id);
   }
@@ -344,7 +361,7 @@ export function grantAdminCase(input: {
 }): { order: Order; delivery: Delivery; command: string; queuedForBridge: boolean } {
   const cleanNick = input.nickname.trim();
   const cleanCase = input.caseId.trim().toLowerCase();
-  const qty = Math.max(1, Math.min(1000, Math.floor(Number(input.amount) || 1)));
+  const qty = Math.max(1, Math.min(10000, Math.floor(Number(input.amount) || 1)));
 
   const currentMap = templates();
   const rawTpl = (input.commandTemplate?.trim() || currentMap.case || DEFAULT_TEMPLATES.case).replace(/^\/+/, '');
@@ -423,8 +440,116 @@ export function grantAdminCase(input: {
 }
 
 /**
- * Облачная мгновенная выдача кейсов из админ-панели (гарантированно попадает в единую
- * очередь Supabase, которую опрашивает KingGriefBridge со всех воркеров Vercel).
+ * Вспомогательное создание безлимитной админ-выдачи (для кейсов, привилегий, риликов и услуг).
+ */
+async function createUnlimitedAdminGrant(params: {
+  nickname: string;
+  item: OrderItem;
+  productId: string;
+  kind: 'case' | 'rank' | 'relic' | 'other';
+  caseOrGroupId: string | null;
+  amount: number;
+  command: string;
+  auditAction: string;
+  auditDetail: string;
+  eventLabel: string;
+  actor: string;
+  ip?: string | null;
+}): Promise<{ order: Order; delivery: CloudDeliveryRow; command: string; queuedForBridge: boolean }> {
+  const cleanNick = params.nickname.trim();
+
+  if (!isCloudEnabled()) {
+    const order = createOrder({
+      nickname: cleanNick,
+      items: [params.item],
+      subtotal: 0,
+      discount: 0,
+      total: 0,
+      provider: 'admin',
+      isDemo: true,
+      note: `Выдано администратором ${params.actor}`,
+      ip: params.ip ?? null,
+    });
+    updateOrderStatus(order.id, 'paid');
+    const finalCmd = params.command.replaceAll('{order}', order.publicId);
+    const created = createDelivery({
+      orderId: order.id,
+      productId: params.productId,
+      nickname: cleanNick,
+      command: finalCmd,
+    })!;
+    const queuedForBridge = bridgeQueueEnabled();
+    if (!queuedForBridge) {
+      updateDelivery(created.id, {
+        status: 'manual',
+        lastError: process.env.MINECRAFT_BRIDGE_SECRET
+          ? 'Включён ручной режим выдачи'
+          : 'Не задан MINECRAFT_BRIDGE_SECRET',
+      });
+    } else {
+      updateOrderStatus(order.id, 'delivering');
+    }
+    const refreshed = listDeliveries({ orderId: order.id, limit: 1 })[0] ?? created;
+    logAudit(params.actor, params.auditAction, params.auditDetail, params.ip ?? undefined);
+    logEvent('admin_grant', params.eventLabel);
+    return { order: getOrder(order.id)!, delivery: refreshed, command: finalCmd, queuedForBridge };
+  }
+
+  const orderId = crypto.randomUUID();
+  const publicId = `KG-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  const nowIso = new Date().toISOString();
+  const queuedForBridge = await bridgeQueueEnabledCloud();
+  const finalCmd = params.command.replaceAll('{order}', publicId);
+
+  const order: Order = {
+    id: orderId,
+    publicId,
+    nickname: cleanNick,
+    email: null,
+    status: queuedForBridge ? 'delivering' : 'paid',
+    subtotal: 0,
+    discount: 0,
+    total: 0,
+    promoCode: null,
+    provider: 'admin',
+    paymentId: null,
+    paymentUrl: null,
+    items: [params.item],
+    note: `Выдано администратором ${params.actor}`,
+    isDemo: true,
+    userId: null,
+    createdAt: nowIso,
+    paidAt: nowIso,
+    deliveredAt: null,
+  };
+
+  await cloudUpsertOrder(order, params.ip ?? null);
+
+  const delivery = await cloudCreateDelivery({
+    orderId: order.id,
+    productId: params.productId,
+    nickname: cleanNick,
+    command: finalCmd,
+    kind: params.kind,
+    caseId: params.caseOrGroupId,
+    amount: params.amount,
+    status: queuedForBridge ? 'pending' : 'manual',
+    skipDedupe: true,
+    lastError: queuedForBridge
+      ? null
+      : process.env.MINECRAFT_BRIDGE_SECRET
+        ? 'Включён ручной режим выдачи (переключите на bridge в Настройках)'
+        : 'Не задан MINECRAFT_BRIDGE_SECRET — выполните команду вручную или подключите мост',
+  });
+
+  logAudit(params.actor, params.auditAction, params.auditDetail, params.ip ?? undefined);
+  logEvent('admin_grant', params.eventLabel);
+
+  return { order, delivery, command: finalCmd, queuedForBridge };
+}
+
+/**
+ * Безлимитная облачная выдача кейсов любому нику.
  */
 export async function grantAdminCaseCloud(input: {
   nickname: string;
@@ -441,10 +566,10 @@ export async function grantAdminCaseCloud(input: {
 
   const cleanNick = input.nickname.trim();
   const cleanCase = input.caseId.trim().toLowerCase();
-  const qty = Math.max(1, Math.min(1000, Math.floor(Number(input.amount) || 1)));
+  const qty = Math.max(1, Math.min(10000, Math.floor(Number(input.amount) || 1)));
 
   const currentMap = await templatesCloud();
-  const rawTpl = (input.commandTemplate?.trim() || currentMap.case || DEFAULT_TEMPLATES.case).replace(/^\/+/, '');
+  const rawTpl = (input.commandTemplate?.trim() || currentMap.case || CLOUD_SERVER_DEFAULTS.case).replace(/^\/+/, '');
   if (input.saveTemplate && rawTpl) {
     const nextJson = JSON.stringify({ ...currentMap, case: rawTpl });
     setSettings({ delivery_commands: nextJson });
@@ -454,95 +579,371 @@ export async function grantAdminCaseCloud(input: {
   const group = getCaseGroup(cleanCase);
   const caseTitle = group?.name ?? `Кейс ${cleanCase}`;
   const productId = `admin-case-${cleanCase}`;
-  const orderId = crypto.randomUUID();
-  const publicId = `KG-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-  const nowIso = new Date().toISOString();
-
-  const item: OrderItem = {
-    productId,
-    name: `${caseTitle} ×${qty}`,
-    kind: 'case',
-    quantity: 1,
-    unitPrice: 0,
-    total: 0,
-    meta: { group: cleanCase, groupName: caseTitle, quantity: qty, adminGrant: true },
-  };
-
-  const queuedForBridge = await bridgeQueueEnabledCloud();
-  const order: Order = {
-    id: orderId,
-    publicId,
-    nickname: cleanNick,
-    email: null,
-    status: queuedForBridge ? 'delivering' : 'paid',
-    subtotal: 0,
-    discount: 0,
-    total: 0,
-    promoCode: null,
-    provider: 'admin',
-    paymentId: null,
-    paymentUrl: null,
-    items: [item],
-    note: `Выдано администратором ${input.actor}`,
-    isDemo: true,
-    userId: null,
-    createdAt: nowIso,
-    paidAt: nowIso,
-    deliveredAt: null,
-  };
-
-  await cloudUpsertOrder(order, input.ip ?? null);
 
   const command = rawTpl
     .replaceAll('{player}', cleanNick)
     .replaceAll('{case}', cleanCase)
     .replaceAll('{amount}', String(qty))
-    .replaceAll('{order}', order.publicId)
     .replaceAll('{product}', productId);
 
-  const delivery = await cloudCreateDelivery({
-    orderId: order.id,
-    productId,
+  return createUnlimitedAdminGrant({
     nickname: cleanNick,
-    command,
+    productId,
     kind: 'case',
-    caseId: cleanCase,
+    caseOrGroupId: cleanCase,
     amount: qty,
+    command,
+    item: {
+      productId,
+      name: `${caseTitle} ×${qty}`,
+      kind: 'case',
+      quantity: 1,
+      unitPrice: 0,
+      total: 0,
+      meta: { group: cleanCase, groupName: caseTitle, quantity: qty, adminGrant: true },
+    },
+    auditAction: 'case_grant',
+    auditDetail: `${cleanNick} ← ${caseTitle} (${cleanCase}) ×${qty} · /${command}`,
+    eventLabel: `Админ ${input.actor} выдал ${cleanNick}: ${caseTitle} ×${qty}`,
+    actor: input.actor,
+    ip: input.ip,
+  });
+}
+
+export type PrivilegeGrantMode = 'set' | 'add' | 'temp30d' | 'temp90d' | 'remove' | 'reset';
+
+const LP_MODE_TEMPLATES: Record<PrivilegeGrantMode, string> = {
+  set: 'lp user {player} parent set {rank}',
+  add: 'lp user {player} parent add {rank}',
+  temp30d: 'lp user {player} parent addtemp {rank} 30d accumulate',
+  temp90d: 'lp user {player} parent addtemp {rank} 90d accumulate',
+  remove: 'lp user {player} parent remove {rank}',
+  reset: 'lp user {player} parent set default',
+};
+
+/**
+ * Безлимитная выдача / смена привилегий (LuckPerms) любому игроку без ограничений.
+ */
+export async function grantAdminPrivilegeCloud(input: {
+  nickname: string;
+  rankId: string;
+  mode?: PrivilegeGrantMode;
+  commandTemplate?: string;
+  saveTemplate?: boolean;
+  actor: string;
+  ip?: string | null;
+}): Promise<{ order: Order; delivery: CloudDeliveryRow; command: string; queuedForBridge: boolean }> {
+  const cleanNick = input.nickname.trim();
+  const rawRank = input.rankId.trim().replace(/^rank-/, '');
+  const cleanRank = rawRank.toLowerCase().replace(/[^a-z0-9_.-]/g, '') || 'default';
+  const mode: PrivilegeGrantMode = input.mode ?? 'set';
+
+  const currentMap = await templatesCloud();
+  const baseTpl = input.commandTemplate?.trim() || LP_MODE_TEMPLATES[mode] || LP_MODE_TEMPLATES.set;
+  const rawTpl = baseTpl.replace(/^\/+/, '');
+
+  if (input.saveTemplate && rawTpl) {
+    const nextJson = JSON.stringify({ ...currentMap, rank: rawTpl, rank_replace: rawTpl });
+    setSettings({ delivery_commands: nextJson });
+    if (isCloudEnabled()) {
+      await cloudSetSettings({ delivery_commands: nextJson });
+    }
+  }
+
+  const product = getProduct(`rank-${cleanRank}`);
+  const rankTitle =
+    mode === 'reset'
+      ? 'Сброс привилегии (default)'
+      : mode === 'remove'
+        ? `Снятие привилегии ${product?.name ?? cleanRank.toUpperCase()}`
+        : `Привилегия ${product?.name ?? cleanRank.toUpperCase()}`;
+  const productId = `admin-rank-${mode === 'reset' ? 'default' : cleanRank}`;
+  const effectiveRank = mode === 'reset' ? 'default' : cleanRank;
+
+  const command = rawTpl
+    .replaceAll('{player}', cleanNick)
+    .replaceAll('{rank}', effectiveRank)
+    .replaceAll('{amount}', '1')
+    .replaceAll('{product}', productId);
+
+  return createUnlimitedAdminGrant({
+    nickname: cleanNick,
+    productId,
+    kind: 'rank',
+    caseOrGroupId: effectiveRank,
+    amount: 1,
+    command,
+    item: {
+      productId,
+      name: rankTitle,
+      kind: 'rank',
+      quantity: 1,
+      unitPrice: 0,
+      total: 0,
+      meta: { rankId: effectiveRank, mode, adminGrant: true },
+    },
+    auditAction: 'rank_grant',
+    auditDetail: `${cleanNick} ← ${rankTitle} (${effectiveRank}, ${mode}) · /${command}`,
+    eventLabel: `Админ ${input.actor} выдал ${cleanNick}: ${rankTitle}`,
+    actor: input.actor,
+    ip: input.ip,
+  });
+}
+
+/**
+ * Безлимитная выдача риликов / донат-валюты (PlayerPoints / Vault) любому нику.
+ */
+export async function grantAdminRelicCloud(input: {
+  nickname: string;
+  amount: number;
+  commandTemplate?: string;
+  saveTemplate?: boolean;
+  actor: string;
+  ip?: string | null;
+}): Promise<{ order: Order; delivery: CloudDeliveryRow; command: string; queuedForBridge: boolean }> {
+  const cleanNick = input.nickname.trim();
+  const qty = Math.max(1, Math.min(10_000_000, Math.floor(Number(input.amount) || 1000)));
+  const currentMap = await templatesCloud();
+  const rawTpl = (input.commandTemplate?.trim() || currentMap.relic || CLOUD_SERVER_DEFAULTS.relic).replace(/^\/+/, '');
+
+  if (input.saveTemplate && rawTpl) {
+    const nextJson = JSON.stringify({ ...currentMap, relic: rawTpl });
+    setSettings({ delivery_commands: nextJson });
+    if (isCloudEnabled()) {
+      await cloudSetSettings({ delivery_commands: nextJson });
+    }
+  }
+
+  const productId = `admin-relic-${qty}`;
+  const command = rawTpl
+    .replaceAll('{player}', cleanNick)
+    .replaceAll('{amount}', String(qty))
+    .replaceAll('{product}', productId);
+
+  return createUnlimitedAdminGrant({
+    nickname: cleanNick,
+    productId,
+    kind: 'relic',
+    caseOrGroupId: null,
+    amount: qty,
+    command,
+    item: {
+      productId,
+      name: `${qty.toLocaleString('ru-RU')} риликов`,
+      kind: 'relic',
+      quantity: 1,
+      unitPrice: 0,
+      total: 0,
+      meta: { amount: qty, adminGrant: true },
+    },
+    auditAction: 'relic_grant',
+    auditDetail: `${cleanNick} ← ${qty} риликов · /${command}`,
+    eventLabel: `Админ ${input.actor} выдал ${cleanNick}: ${qty} риликов`,
+    actor: input.actor,
+    ip: input.ip,
+  });
+}
+
+/**
+ * Выдача сервисных действий (разбан, размут, кит) любому нику.
+ */
+export async function grantAdminServiceCloud(input: {
+  nickname: string;
+  serviceAction: 'pardon' | 'unban' | 'unmute' | 'pardon_ip' | 'kit';
+  kitName?: string;
+  actor: string;
+  ip?: string | null;
+}): Promise<{ order: Order; delivery: CloudDeliveryRow; command: string; queuedForBridge: boolean }> {
+  const cleanNick = input.nickname.trim();
+  const kit = (input.kitName || 'start').trim().replace(/[^a-zA-Z0-9_-]/g, '') || 'start';
+  const mapByAction: Record<typeof input.serviceAction, { label: string; cmd: string }> = {
+    pardon: { label: 'Разбан (pardon)', cmd: `pardon ${cleanNick}` },
+    unban: { label: 'Разбан (unban)', cmd: `unban ${cleanNick}` },
+    unmute: { label: 'Размут (unmute)', cmd: `unmute ${cleanNick}` },
+    pardon_ip: { label: 'Разбан IP', cmd: `pardon-ip ${cleanNick}` },
+    kit: { label: `Кит ${kit}`, cmd: `kit ${kit} ${cleanNick}` },
+  };
+  const chosen = mapByAction[input.serviceAction] ?? mapByAction.pardon;
+  const productId = `admin-other-${input.serviceAction}`;
+
+  return createUnlimitedAdminGrant({
+    nickname: cleanNick,
+    productId,
+    kind: 'other',
+    caseOrGroupId: input.serviceAction === 'kit' ? kit : null,
+    amount: 1,
+    command: chosen.cmd,
+    item: {
+      productId,
+      name: chosen.label,
+      kind: 'other',
+      quantity: 1,
+      unitPrice: 0,
+      total: 0,
+      meta: { action: input.serviceAction, adminGrant: true },
+    },
+    auditAction: 'service_grant',
+    auditDetail: `${cleanNick} ← ${chosen.label} · /${chosen.cmd}`,
+    eventLabel: `Админ ${input.actor}: ${chosen.label} для ${cleanNick}`,
+    actor: input.actor,
+    ip: input.ip,
+  });
+}
+
+/**
+ * Повторно создаёт НОВУЮ задачу выдачи на основе любой предыдущей задачи (даже уже выданной!),
+ * чтобы можно было в 1 клик «Выдать ещё раз» тот же кейс или привилегию без ограничений.
+ */
+export async function repeatDeliveryCloud(input: {
+  deliveryId: string;
+  actor: string;
+  ip?: string | null;
+}): Promise<{ delivery: CloudDeliveryRow; command: string; queuedForBridge: boolean } | null> {
+  if (!isCloudEnabled()) {
+    const existing = listDeliveries({ limit: 300 }).find((d) => d.id === input.deliveryId);
+    if (!existing) return null;
+    const order = createOrder({
+      nickname: existing.nickname,
+      items: [
+        {
+          productId: existing.productId,
+          name: `Повторная выдача (${existing.productId})`,
+          kind: 'other',
+          quantity: 1,
+          unitPrice: 0,
+          total: 0,
+        },
+      ],
+      subtotal: 0,
+      discount: 0,
+      total: 0,
+      provider: 'admin',
+      isDemo: true,
+      note: `Повторная выдача админом ${input.actor}`,
+      ip: input.ip ?? null,
+    });
+    const queuedForBridge = bridgeQueueEnabled();
+    const created = createDelivery({
+      orderId: order.id,
+      productId: existing.productId,
+      nickname: existing.nickname,
+      command: existing.command,
+    })!;
+    if (!queuedForBridge) {
+      updateDelivery(created.id, { status: 'manual', lastError: 'Мост Minecraft не подключён' });
+    }
+    return {
+      delivery: listDeliveries({ orderId: order.id, limit: 1 })[0] ?? created,
+      command: existing.command,
+      queuedForBridge,
+    };
+  }
+
+  const existing = await cloudGetDelivery(input.deliveryId);
+  if (!existing) return null;
+
+  const orderId = crypto.randomUUID();
+  const publicId = `KG-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  const nowIso = new Date().toISOString();
+  const queuedForBridge = await bridgeQueueEnabledCloud();
+
+  await cloudUpsertOrder(
+    {
+      id: orderId,
+      publicId,
+      nickname: existing.nickname,
+      email: null,
+      status: queuedForBridge ? 'delivering' : 'paid',
+      subtotal: 0,
+      discount: 0,
+      total: 0,
+      promoCode: null,
+      provider: 'admin',
+      paymentId: null,
+      paymentUrl: null,
+      items: [
+        {
+          productId: existing.productId,
+          name: `Повтор: ${existing.command}`,
+          kind: (existing.kind as OrderItem['kind']) || 'case',
+          quantity: 1,
+          unitPrice: 0,
+          total: 0,
+        },
+      ],
+      note: `Повторная выдача администратором ${input.actor}`,
+      isDemo: true,
+      userId: null,
+      createdAt: nowIso,
+      paidAt: nowIso,
+      deliveredAt: null,
+    },
+    input.ip ?? null,
+  );
+
+  const delivery = await cloudCreateDelivery({
+    orderId,
+    productId: existing.productId,
+    nickname: existing.nickname,
+    command: existing.command,
+    kind: existing.kind ?? 'case',
+    caseId: existing.caseId ?? null,
+    amount: existing.amount ?? 1,
     status: queuedForBridge ? 'pending' : 'manual',
-    lastError: queuedForBridge
-      ? null
-      : process.env.MINECRAFT_BRIDGE_SECRET
-        ? 'Включён ручной режим выдачи (переключите на bridge в Настройках)'
-        : 'Не задан MINECRAFT_BRIDGE_SECRET — выполните команду вручную или подключите мост',
+    skipDedupe: true,
   });
 
-  logAudit(
-    input.actor,
-    'case_grant',
-    `${cleanNick} ← ${caseTitle} (${cleanCase}) ×${qty} · /${command}`,
-    input.ip ?? undefined,
-  );
-  logEvent('admin_grant', `Админ ${input.actor} выдал ${cleanNick}: ${caseTitle} ×${qty}`);
-
-  return { order, delivery, command, queuedForBridge };
+  logAudit(input.actor, 'delivery_repeat', `${existing.nickname} ← /${existing.command}`, input.ip ?? undefined);
+  return { delivery, command: existing.command, queuedForBridge };
 }
 
-export function listRecentAdminGrants(limit = 12): Delivery[] {
-  return listDeliveries({ limit: 150 })
-    .filter((d) => d.productId.startsWith('admin-case-') || d.productId.startsWith('case-'))
-    .slice(0, limit);
+export function listRecentAdminGrants(limit = 16): Delivery[] {
+  return listDeliveries({ limit: 150 }).slice(0, limit);
 }
 
-export async function listRecentAdminGrantsCloud(limit = 12): Promise<CloudDeliveryRow[]> {
-  if (!isCloudEnabled()) return listRecentAdminGrants(limit);
+export async function listRecentAdminGrantsCloud(limit = 20, kindFilter?: string): Promise<CloudDeliveryRow[]> {
+  if (!isCloudEnabled()) {
+    const local = listRecentAdminGrants(limit);
+    return kindFilter ? local.filter((d) => d.productId.includes(kindFilter)) : local;
+  }
   try {
-    const rows = await cloudListDeliveries({ limit: 120 });
-    return rows
-      .filter((d) => d.kind === 'case' || d.productId.startsWith('admin-case-') || d.productId.startsWith('case-'))
-      .slice(0, limit);
+    const rows = await cloudListDeliveries({ limit: 150 });
+    const filtered = kindFilter ? rows.filter((d) => d.kind === kindFilter || d.productId.includes(kindFilter)) : rows;
+    return filtered.slice(0, limit);
   } catch {
     return listRecentAdminGrants(limit);
   }
+}
+
+export async function listRecentRecipientNicksCloud(limit = 12): Promise<string[]> {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  const add = (nick: string | null | undefined) => {
+    const clean = (nick || '').trim();
+    if (!clean || clean.length < 3) return;
+    const key = clean.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(clean);
+  };
+
+  if (isCloudEnabled()) {
+    try {
+      const [bridge, deliveries, orders] = await Promise.all([
+        cloudGetBridgeState(),
+        cloudListDeliveries({ limit: 80 }),
+        cloudListOrders(80),
+      ]);
+      for (const p of bridge.onlinePlayers) add(p);
+      for (const d of deliveries) add(d.nickname);
+      for (const o of orders) add(o.nickname);
+    } catch {
+      /* fallback */
+    }
+  } else {
+    for (const d of listDeliveries({ limit: 80 })) add(d.nickname);
+  }
+  return result.slice(0, limit);
 }
 
 export type { CloudBridgeState, CloudDeliveryRow };

@@ -3,6 +3,7 @@ import { ArrowUpRight, Download, Ticket, TrendingUp } from 'lucide-react';
 import {
   ordersByDayCount, popularProducts, revenueSeries, revenueTotals, topCustomers, topPromos,
 } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { OrdersChart, RevenueChart, TopProductsChart } from '@/components/admin/charts';
 import { AdminCard, Pill } from '@/components/admin/kit';
@@ -10,6 +11,7 @@ import { AdminCard, Pill } from '@/components/admin/kit';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminAnalyticsPage({ searchParams }: { searchParams: Promise<{ demo?: string }> }) {
+  await cloudSyncLocalDb({ includeOrders: true });
   const { demo } = await searchParams;
   const includeDemo = demo === '1';
   const totals = revenueTotals(includeDemo);

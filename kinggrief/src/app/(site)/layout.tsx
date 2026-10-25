@@ -3,17 +3,19 @@ import { Footer } from '@/components/footer';
 import { CartDrawer } from '@/components/cart-drawer';
 import { BannerStrip } from '@/components/banner-strip';
 import { getSettings } from '@/lib/repo';
-import { bridgeStatus } from '@/lib/delivery';
+import { bridgeStatusCloud } from '@/lib/delivery';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { currentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  await cloudSyncLocalDb();
   const settings = getSettings();
   const user = await currentUser();
-  const bridge = bridgeStatus();
-  const online = bridge.connected ? Number(settings.bridge_online || 0) : Number(settings.online_base || 0);
-  const max = Number(settings.bridge_max || settings.online_peak || 0);
+  const bridge = await bridgeStatusCloud();
+  const online = bridge.connected ? bridge.online : Number(settings.online_base || 0);
+  const max = bridge.connected && bridge.max > 0 ? bridge.max : Number(settings.bridge_max || settings.online_peak || 0);
 
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -30,8 +32,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         {children}
       </main>
       <Footer
-        ip={settings.server_ip ?? 'kinggrief.pickme.cloud'}
-        version={settings.server_version ?? '1.16.5 — 1.21.4'}
+        ip={settings.server_ip || 'kinggrief.pickme.cloud'}
+        version={bridge.mcVersion || settings.server_version || '1.16.5 — 1.21.11'}
         discord={settings.discord_url || 'https://discord.gg/kinggrief'}
         telegram={settings.telegram_url || 'https://t.me/kinggrief'}
         supportEmail={settings.support_email || 'support@kinggrief.net'}

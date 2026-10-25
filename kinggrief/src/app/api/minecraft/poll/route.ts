@@ -26,6 +26,8 @@ export async function POST(req: Request) {
     serverId?: string;
     detectedCaseCmd?: string;
     plugins?: string;
+    onlinePlayers?: string[] | string;
+    lpGroups?: string[] | string;
   };
 
   if (isCloudEnabled()) {
@@ -37,6 +39,8 @@ export async function POST(req: Request) {
       version: body.version,
       detectedCaseCmd: body.detectedCaseCmd,
       plugins: body.plugins,
+      onlinePlayers: body.onlinePlayers,
+      lpGroups: body.lpGroups,
     });
     await cloudRequeueStaleDeliveries();
     const pending = await cloudClaimPendingDeliveries(25);

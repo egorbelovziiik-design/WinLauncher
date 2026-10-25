@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { loginSchema } from '@/lib/validation';
 import { checkAdminCredentials, getAdminByUsername, logAudit } from '@/lib/repo';
+import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { startAdminSession } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { verifyTotp } from '@/lib/totp';
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
-  const limit = rateLimit(`login:${ip}`, 12, 10 * 60_000);
+  const limit = rateLimit(`login:${ip}`, 25, 10 * 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: 'Слишком много попыток входа. Повторите позже.' },
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
     );
   }
 
+  await cloudSyncLocalDb();
   const parsed = loginSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Заполните логин и пароль' }, { status: 400 });
 

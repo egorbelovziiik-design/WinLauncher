@@ -8,15 +8,17 @@ import {
   updateUserPassword,
   verifyUserPassword,
 } from '@/lib/repo';
-import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { cloudSaveTable, cloudSyncLocalDb } from '@/lib/cloud-store';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(req: Request) {
+  await cloudSyncLocalDb({ force: true });
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: 'Требуется вход в аккаунт' }, { status: 401 });
 
-  const limit = rateLimit(`profile:${user.id}`, 10, 10 * 60_000);
+  const limit = rateLimit(`profile:${user.id}`, 20, 10 * 60_000);
   if (!limit.ok) return NextResponse.json({ error: 'Слишком много попыток' }, { status: 429 });
 
   const parsed = profileSchema.safeParse(await req.json().catch(() => null));
@@ -43,10 +45,12 @@ export async function PATCH(req: Request) {
     logEvent('user_email', `Смена email: ${user.username}`);
   }
 
+  await cloudSaveTable('users');
   return NextResponse.json({ ok: true, user: getUserById(user.id) });
 }
 
 export async function GET() {
+  await cloudSyncLocalDb();
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: 'Требуется вход в аккаунт' }, { status: 401 });
   return NextResponse.json({ user }, { headers: { 'Cache-Control': 'no-store' } });

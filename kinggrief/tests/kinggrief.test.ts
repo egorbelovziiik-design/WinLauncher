@@ -500,4 +500,86 @@ describe('контент и аналитика', () => {
       expect(Object.keys(order)).not.toContain('ip');
     }
   });
+
+  it('безлимитно выдаёт кейсы, привилегии и рилики на любые разные ники и повторяет выдачу', async () => {
+    const nicks = ['domep444543', '_qwerty_70', 'GriefTester', 'Friend_2026'];
+    const caseIds: string[] = [];
+
+    // 1. Многократная выдача кейсов разным никам подряд без лимитов
+    for (const nick of nicks) {
+      const r1 = await delivery.grantAdminCaseCloud({
+        nickname: nick,
+        caseId: 'donate',
+        amount: 50,
+        commandTemplate: 'cases give {player} {case} {amount}',
+        actor: 'admin',
+      });
+      const r2 = await delivery.grantAdminCaseCloud({
+        nickname: nick,
+        caseId: 'sdonate',
+        amount: 25,
+        commandTemplate: 'cases give {player} {case} {amount}',
+        actor: 'admin',
+      });
+      expect(r1.delivery.id).not.toBe(r2.delivery.id);
+      expect(r1.command).toBe(`cases give ${nick} donate 50`);
+      expect(r2.command).toBe(`cases give ${nick} sdonate 25`);
+      caseIds.push(r1.delivery.id, r2.delivery.id);
+    }
+    expect(new Set(caseIds).size).toBe(nicks.length * 2);
+
+    // 2. Безлимитная выдача и смена привилегий LuckPerms (включая D.ST.MODER -> dstmoder и временные)
+    expect(
+      delivery.resolveRankGroupId({
+        productId: 'rank-dstmoder',
+        name: 'D.ST.MODER',
+        meta: { rankId: 'dstmoder' },
+      }),
+    ).toBe('dstmoder');
+
+    const p1 = await delivery.grantAdminPrivilegeCloud({
+      nickname: 'domep444543',
+      rankId: 'rank-dstmoder',
+      mode: 'set',
+      actor: 'admin',
+    });
+    expect(p1.command).toBe('lp user domep444543 parent set dstmoder');
+
+    const p2 = await delivery.grantAdminPrivilegeCloud({
+      nickname: '_qwerty_70',
+      rankId: 'downer',
+      mode: 'temp30d',
+      actor: 'admin',
+    });
+    expect(p2.command).toBe('lp user _qwerty_70 parent addtemp downer 30d accumulate');
+
+    // Повторная выдача другой привилегии тому же игроку без ограничений
+    const p3 = await delivery.grantAdminPrivilegeCloud({
+      nickname: 'domep444543',
+      rankId: 'king',
+      mode: 'set',
+      actor: 'admin',
+    });
+    expect(p3.delivery.id).not.toBe(p1.delivery.id);
+    expect(p3.command).toBe('lp user domep444543 parent set king');
+
+    // 3. Повтор уже выданной задачи («↻ Ещё раз») создаёт новую независимую задачу
+    repo.updateDelivery(p3.delivery.id, { status: 'delivered' });
+    const repeated = await delivery.repeatDeliveryCloud({
+      deliveryId: p3.delivery.id,
+      actor: 'admin',
+    });
+    expect(repeated).not.toBeNull();
+    expect(repeated!.delivery.id).not.toBe(p3.delivery.id);
+    expect(repeated!.command).toBe('lp user domep444543 parent set king');
+
+    // 4. Выдача риликов (PlayerPoints) на другой ник
+    const rel = await delivery.grantAdminRelicCloud({
+      nickname: '_qwerty_70',
+      amount: 15000,
+      commandTemplate: 'p give {player} {amount}',
+      actor: 'admin',
+    });
+    expect(rel.command).toBe('p give _qwerty_70 15000');
+  });
 });
