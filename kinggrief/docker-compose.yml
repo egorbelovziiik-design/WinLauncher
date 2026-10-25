@@ -1,0 +1,37 @@
+name: kinggrief
+
+services:
+  app:
+    build:
+      context: .
+      target: runner
+    image: kinggrief:latest
+    container_name: kinggrief
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      DATABASE_PATH: /app/data/kinggrief.db
+      # Обязательно задайте свой секрет в .env (openssl rand -hex 32)
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?Задайте ADMIN_SESSION_SECRET в .env (см. .env.example)}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-KingGrief-2026}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      PAYMENTS_TEST_MODE: ${PAYMENTS_TEST_MODE:-true}
+      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID:-}
+      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY:-}
+      ROBOKASSA_LOGIN: ${ROBOKASSA_LOGIN:-}
+      ROBOKASSA_PASSWORD1: ${ROBOKASSA_PASSWORD1:-}
+      ROBOKASSA_PASSWORD2: ${ROBOKASSA_PASSWORD2:-}
+      ROBOKASSA_IS_TEST: ${ROBOKASSA_IS_TEST:-true}
+      MINECRAFT_BRIDGE_SECRET: ${MINECRAFT_BRIDGE_SECRET:-change-me-bridge-secret}
+      MINECRAFT_SERVER_ID: ${MINECRAFT_SERVER_ID:-main}
+      # Для локального запуска по http. За TLS-прокси уберите или поставьте true.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - kinggrief-data:/app/data
+
+volumes:
+  kinggrief-data:

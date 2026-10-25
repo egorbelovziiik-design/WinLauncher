@@ -1,0 +1,53 @@
+# Конфигурация плагина KingGriefBridge (предварительно настроена для https://kinggrief.vercel.app)
+# Просто положите KingGriefBridge.jar в папку /plugins на сервере kinggrief.pickme.cloud и перезапустите сервер.
+
+base-url: "https://kinggrief.vercel.app"
+
+# Секрет моста (совпадает с MINECRAFT_BRIDGE_SECRET на Vercel):
+secret: "53b473e51739892e63fc8c1e5243a00266a20d2f34c3d7b4"
+
+# Идентификатор сервера в админ-панели:
+server-id: "kinggrief-main"
+
+# Интервал опроса очереди выдачи в секундах (минимум 3):
+poll-seconds: 5
+
+# Разрешить любые команды из админ-панели/магазина без проверки префикса (по умолчанию false):
+allow-all-commands: false
+
+# Белый список разрешённых консольных команд (без ведущего слэша /):
+allowed-prefixes:
+  - "cases "
+  - "case "
+  - "dc "
+  - "donatecase "
+  - "crates "
+  - "crate "
+  - "ucase "
+  - "mooncases "
+  - "rwcases "
+  - "treexcases "
+  - "excellentcrates "
+  - "crazycrates "
+  - "acubelets "
+  - "lp "
+  - "luckperms "
+  - "pex "
+  - "relics "
+  - "riliks "
+  - "p "
+  - "points "
+  - "playerpoints "
+  - "eco "
+  - "money "
+  - "kit "
+  - "kits "
+  - "give "
+  - "unban "
+  - "pardon "
+  - "unmute "
+  - "unbanip "
+  - "pardon-ip "
+  - "unmuteip "
+  - "litebans "
+  - "advancedban "
