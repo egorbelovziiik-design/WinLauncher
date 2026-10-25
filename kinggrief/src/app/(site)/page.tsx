@@ -249,8 +249,8 @@ export default async function HomePage() {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3 text-[0.72rem] text-white/40">
           <ShieldCheck size={14} className="text-neon" />
-          Состав возможностей привилегий настраивается администрацией в панели. Перед публикацией проверьте таблицу прав —
-          <Link href="/admin/products" className="text-neon hover:underline">открыть настройки</Link>.
+          Полный состав возможностей каждой привилегии открыт на её странице — без скрытых пунктов и «сюрпризов» после оплаты.
+          <Link href="/privileges" className="text-neon hover:underline">сравнить привилегии</Link>.
         </div>
       </section>
 
