@@ -1,0 +1,43 @@
+# ==============================================================================
+# Боевой Docker Compose стек собственной платформы WinHost Minecraft Panel
+# Включает: Автоматический HTTPS (Caddy TLS 1.3) + Control Plane / Node Engine
+# ==============================================================================
+services:
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: winhost-https-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - PANEL_DOMAIN=${PANEL_DOMAIN:-panel.winhost.gg}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - winhost-panel
+
+  winhost-panel:
+    build:
+      context: ../panel
+      dockerfile: Dockerfile
+    container_name: winhost-panel
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - ENGINE_MODE=docker
+      - DATA_DIR=/var/lib/mc-servers/panel-data
+      - SERVERS_ROOT=/var/lib/mc-servers/volumes
+      - BACKUPS_ROOT=/var/lib/mc-servers/backups
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-64-char-random-hex-in-production}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/mc-servers:/var/lib/mc-servers
+
+volumes:
+  caddy_data:
+  caddy_config:
