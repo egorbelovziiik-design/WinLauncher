@@ -10,6 +10,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [totp, setTotp] = useState('');
   const [error, setError] = useState('');
+  const [blocked, setCookieBlocked] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -25,6 +26,13 @@ export function LoginForm() {
       const data = (await res.json()) as { error?: string; ok?: boolean };
       if (!res.ok) {
         setError(data.error ?? 'Не удалось войти');
+        return;
+      }
+      // Пароль верный, но браузер мог не сохранить cookie (например, сайт открыт
+      // в iframe на другом домене). Проверяем, что сессия реально дошла до сервера.
+      const check = await fetch('/api/admin/session', { cache: 'no-store' });
+      if (!check.ok) {
+        setCookieBlocked(true);
         return;
       }
       router.push('/admin');
@@ -74,6 +82,20 @@ export function LoginForm() {
           />
         </div>
       </label>
+
+      {blocked && (
+        <div className="rounded-lg border border-amber/30 bg-amber/10 px-3 py-2 text-[0.76rem] leading-relaxed text-amber">
+          Логин и пароль верные, но браузер не сохранил сессию в этом окне (так бывает внутри встроенного превью).
+          Откройте панель в отдельной вкладке — вход уже выполнен.
+          <button
+            type="button"
+            onClick={() => window.open(`${window.location.origin}/admin`, '_blank', 'noopener')}
+            className="btn btn-sm btn-gold mt-2 w-full"
+          >
+            Открыть админку в новой вкладке
+          </button>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-[0.76rem] font-semibold text-[#fca5a5]">

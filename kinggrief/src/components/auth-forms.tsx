@@ -38,10 +38,12 @@ export function UserLoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [blocked, setBlocked] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setBlocked('');
     setBusy(true);
     try {
       const res = await fetch('/api/auth/login', {
@@ -52,6 +54,13 @@ export function UserLoginForm() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error ?? 'Не удалось войти');
+        return;
+      }
+      // Проверяем, что браузер сохранил cookie: во встроенном превью он может их блокировать.
+      const check = await fetch('/api/auth/me', { cache: 'no-store' });
+      const me = (await check.json().catch(() => null)) as { user?: unknown } | null;
+      if (!me?.user) {
+        setBlocked(next);
         return;
       }
       router.push(next);
@@ -96,6 +105,20 @@ export function UserLoginForm() {
 
       {error && <Alert tone="error">{error}</Alert>}
 
+      {blocked && (
+        <div className="rounded-lg border border-amber/30 bg-amber/10 px-3 py-2 text-[0.76rem] leading-relaxed text-amber">
+          Логин и пароль верные, но браузер не сохранил сессию в этом окне (бывает во встроенном превью).
+          Откройте кабинет в отдельной вкладке — вход уже выполнен.
+          <button
+            type="button"
+            onClick={() => window.open(`${window.location.origin}${blocked}`, '_blank', 'noopener')}
+            className="btn btn-sm btn-gold mt-2 w-full"
+          >
+            Открыть кабинет в новой вкладке
+          </button>
+        </div>
+      )}
+
       <button type="submit" disabled={busy} className="btn btn-primary w-full">
         {busy ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
         {busy ? 'Проверяем…' : 'Войти в аккаунт'}
@@ -119,6 +142,8 @@ export function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [blocked, setBlocked] = useState('');
+  const [info, setInfo] = useState('');
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -163,6 +188,13 @@ export function RegisterForm() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error ?? 'Не удалось создать аккаунт');
+        return;
+      }
+      const check = await fetch('/api/auth/me', { cache: 'no-store' });
+      const me = (await check.json().catch(() => null)) as { user?: unknown } | null;
+      if (!me?.user) {
+        setBlocked(next);
+        setInfo(`Аккаунт ${username.trim()} создан, но браузер не сохранил сессию в этом окне.`);
         return;
       }
       router.push(next);
@@ -256,6 +288,20 @@ export function RegisterForm() {
       </label>
 
       {error && <Alert tone="error">{error}</Alert>}
+      {info && <Alert tone="success">{info}</Alert>}
+
+      {blocked && (
+        <div className="rounded-lg border border-amber/30 bg-amber/10 px-3 py-2 text-[0.76rem] leading-relaxed text-amber">
+          Браузер не сохранил сессию в этом окне — откройте кабинет в отдельной вкладке и войдите там.
+          <button
+            type="button"
+            onClick={() => window.open(`${window.location.origin}/login`, '_blank', 'noopener')}
+            className="btn btn-sm btn-gold mt-2 w-full"
+          >
+            Открыть вход в новой вкладке
+          </button>
+        </div>
+      )}
 
       <button type="submit" disabled={busy} className="btn btn-primary w-full">
         {busy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
