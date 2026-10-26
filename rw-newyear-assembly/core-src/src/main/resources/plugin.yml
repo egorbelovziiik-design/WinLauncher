@@ -1,0 +1,178 @@
+name: KingGriefCore
+main: net.kinggrief.core.KingGriefCore
+version: 3.0.0
+api-version: '1.16'
+author: KingGrief
+website: https://kinggrief.vercel.app
+softdepend: [LuckPerms, PlayerPoints, Vault, AuthMe, TAB, DecentHolograms, FancyNpcs, KingGriefBridge]
+description: Полное ядро Новогодней Сборки KINGGRIEF (Копия ReallyWorld v3.0 — 3D Спавн, 16 NPC, 11 Кейсов, Регистрация, ТАБ, Скорборд, Кланы, Аукцион, Сферы, Трапки, 40 Привилегий).
+commands:
+  menu:
+    description: Главное меню новогоднего сервера KINGGRIEF
+    aliases: [help, m, servermenu]
+  reg:
+    description: Регистрация аккаунта на сервере
+    aliases: [register]
+  login:
+    description: Авторизация на сервере
+    aliases: [l]
+  changepassword:
+    description: Сменить пароль аккаунта
+    aliases: [changepass, cp]
+  logout:
+    description: Выйти из сессии аккаунта
+  spawn:
+    description: Телепортация на Новогодний Спавн
+  setspawn:
+    description: Установить точку спавна
+  spawnbuild:
+    description: Построить или обновить 3D Новогодний Спавн, NPC и Голограммы
+    aliases: [setupserver, kgsetup]
+  rtp:
+    description: Рандомная телепортация в мир выживания
+    aliases: [wild]
+  donate:
+    description: Каталог привилегий, кейсов и цен с сайта
+    aliases: [privs, prices]
+  kp:
+    description: Команда Проекта (КП) и ДКП
+    aliases: [dkp, staff]
+  media:
+    description: Медиа-партнёрка (YouTube, TikTok, Twitch, MEDIA+)
+    aliases: [yt, tiktok, twitch]
+  shop:
+    description: Донат-магазин за рилики (Сферы, Талисманы, Трапки, Пласты)
+    aliases: [donateshop]
+  nyshop:
+    description: Новогодняя лавка Деда Мороза
+    aliases: [santa]
+  gifts:
+    description: Подарки Снегурочки и ежедневные награды
+    aliases: [free, daily]
+  promo:
+    description: Активировать промокод (NEWYEAR, KINGGRIEF, FREE)
+    aliases: [promocode]
+  cases:
+    description: Меню всех 11 кейсов и выдача ключей
+    aliases: [kgcase]
+  kits:
+    description: Меню всех 29 наборов привилегий
+  kit:
+    description: Получить набор привилегии
+  buyer:
+    description: Скупщик ресурсов ReallyWorld
+    aliases: [sellgui]
+  jobs:
+    description: Работы сервера (Шахтёр, Лесоруб, Охотник, Фермер)
+    aliases: [job]
+  ah:
+    description: Аукцион игроков
+    aliases: [auc, auction]
+  clan:
+    description: Система кланов сервера
+    aliases: [clans, c]
+  cc:
+    description: Клановый чат
+  bp:
+    description: Зимний Боевой Пропуск с наградами
+    aliases: [pass, battlepass]
+  mine:
+    description: Телепорт к Зимней Авто-Шахте на спавне
+    aliases: [automine]
+  airdrop:
+    description: Информация и запуск Мистического Новогоднего Аирдропа
+    aliases: [event, mystic]
+  rg:
+    description: Управление приватами (блоками руды)
+    aliases: [ps, region]
+  sb:
+    description: Включить или выключить правую панель (Скорборд)
+    aliases: [scoreboard]
+  sethome:
+    description: Установить точку дома
+  home:
+    description: Телепортироваться домой
+  delhome:
+    description: Удалить точку дома
+  homes:
+    description: Список ваших домов
+  tpa:
+    description: Запрос на телепортацию к игроку
+    aliases: [call]
+  tpahere:
+    description: Запрос телепортировать игрока к себе
+  tpaccept:
+    description: Принять запрос на телепортацию
+    aliases: [tpyes]
+  tpdeny:
+    description: Отклонить запрос на телепортацию
+    aliases: [tpno]
+  back:
+    description: Вернуться на предыдущее место / место смерти
+  bal:
+    description: Проверить баланс монет и риликов
+    aliases: [balance, money]
+  pay:
+    description: Перевести монеты игроку
+  baltop:
+    description: Топ богачей сервера
+  riliks:
+    description: Управление риликами и баланс
+    aliases: [relics]
+  wb:
+    description: Открыть переносной верстак
+    aliases: [craft, workbench]
+  ec:
+    description: Открыть эндер-сундук
+    aliases: [enderchest]
+  anvil:
+    description: Открыть переносную наковальню
+  fly:
+    description: Режим полёта
+  heal:
+    description: Исцелить здоровье
+  feed:
+    description: Восстановить голод
+    aliases: [eat]
+  fix:
+    description: Починить предмет в руке или всю броню (/fix all)
+    aliases: [repair]
+  ext:
+    description: Потушить себя от огня
+  ci:
+    description: Очистить свой инвентарь
+    aliases: [clearinventory]
+  hat:
+    description: Надеть блок в руке на голову
+  near:
+    description: Найти игроков поблизости
+  gm:
+    description: Сменить игровой режим (0, 1, 2, 3)
+    aliases: [gamemode]
+  v:
+    description: Режим невидимости для КП и ДКП
+    aliases: [vanish]
+  tp:
+    description: Телепортация к игроку (КП/ДКП)
+  tphere:
+    description: Телепортировать игрока к себе (ДКП/КП)
+  invsee:
+    description: Посмотреть инвентарь игрока
+  mute:
+    description: Выдать мут игроку
+  unmute:
+    description: Снять мут с игрока
+  kick:
+    description: Кикнуть игрока с сервера
+  tempban:
+    description: Временно забанить игрока
+  ban:
+    description: Забанить игрока
+  unban:
+    description: Разбанить игрока
+    aliases: [pardon]
+  bc:
+    description: Объявление на весь сервер
+    aliases: [broadcast]
+  setrank:
+    description: Выдать привилегию игроку (OP / Консоль)

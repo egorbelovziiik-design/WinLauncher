@@ -1,0 +1,16 @@
+location: world:-17.500:103.850:6.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#00E676&l🧭 РАНДОМНЫЙ ТЕЛЕПОРТ'
+    height: 0.32
+  - content: '&fВыход в выживание &7(/rtp)'
+    height: 0.28
+  - content: '&#FFE082▸ Нажми ПКМ / ЛКМ'
+    height: 0.26
+  actions: {}

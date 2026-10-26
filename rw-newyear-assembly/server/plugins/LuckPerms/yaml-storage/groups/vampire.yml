@@ -1,0 +1,12 @@
+name: vampire
+permissions:
+- weight.50
+- essentials.kits.vampire
+- essentials.sethome.multiple.vampire
+- essentials.joinfullserver
+- essentials.near
+parents:
+- rabbit
+prefixes:
+- '&#EF4444&lVAMPIRE &f':
+    priority: 50

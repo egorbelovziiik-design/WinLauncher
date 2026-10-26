@@ -1,0 +1,20 @@
+location: world:0.500:104.500:11.500
+enabled: true
+display-range: 52
+update-range: 52
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#80D8FF❄ &#FFFFFF&lЗИМНИЙ СЕЗОН · &#FF1744&lKING&#FF9100&lGRIEF &#80D8FF❄'
+    height: 0.35
+  - content: '&fКопия ReallyWorld · Новогодний Гриф Выживание'
+    height: 0.3
+  - content: '&7Онлайн: &#00E676%server_online% &8/ &f200 &8| &7IP: &#FFD740kinggrief.pickme.cloud'
+    height: 0.3
+  - content: '&7Автодонат и Кейсы: &#FF4081kinggrief.vercel.app'
+    height: 0.3
+  - content: '&#69F0AE🎅 Квесты: /nyshop &8| &#80D8FF🤶 Подарки: /gifts &8| &#FFD740👑 Донат: /donate'
+    height: 0.3
+  actions: {}

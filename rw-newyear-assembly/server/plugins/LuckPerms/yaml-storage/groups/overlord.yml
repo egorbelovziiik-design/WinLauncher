@@ -1,0 +1,13 @@
+name: overlord
+permissions:
+- weight.70
+- essentials.kits.overlord
+- essentials.sethome.multiple.overlord
+- essentials.chat.rgb
+- essentials.repair.enchanted
+- protectionstones.limit.9
+parents:
+- god
+prefixes:
+- '&#2DD4BF&lOVERLORD &f':
+    priority: 70

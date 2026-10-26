@@ -1,0 +1,330 @@
+kits:
+  start:
+    delay: 3600
+    items:
+      - iron_sword 1 sharpness:1
+      - iron_pickaxe 1 efficiency:2
+      - iron_axe 1 efficiency:2
+      - iron_shovel 1
+      - iron_helmet 1 protection:1
+      - iron_chestplate 1 protection:1
+      - iron_leggings 1 protection:1
+      - iron_boots 1 protection:1
+      - cooked_beef 32
+      - oak_log 16
+      - coal_ore 1 name:&aПриват_10x10_блоков
+  newyear:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:3 name:&b❄_Новогодний_Клинок_❄
+      - diamond_pickaxe 1 efficiency:4 unbreaking:3 name:&b❄_Ледяная_Кирка_❄
+      - golden_apple 8
+      - firework_rocket 32
+      - cookie 4 name:&d🍭_Новогодний_Леденец
+      - snow_block 32
+  pegas:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:2
+      - diamond_pickaxe 1 efficiency:3
+      - iron_helmet 1 protection:3
+      - iron_chestplate 1 protection:3
+      - iron_leggings 1 protection:3
+      - iron_boots 1 protection:3
+      - golden_apple 4
+      - cooked_beef 32
+  cobra:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:3
+      - diamond_pickaxe 1 efficiency:3 unbreaking:2
+      - diamond_helmet 1 protection:2
+      - diamond_chestplate 1 protection:2
+      - diamond_leggings 1 protection:2
+      - diamond_boots 1 protection:2
+      - golden_apple 6
+  hero:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:3 unbreaking:2
+      - diamond_helmet 1 protection:3
+      - diamond_chestplate 1 protection:3
+      - diamond_leggings 1 protection:3
+      - diamond_boots 1 protection:3
+      - golden_apple 8
+  bunny:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:3 fire_aspect:1
+      - diamond_pickaxe 1 efficiency:4 unbreaking:2
+      - diamond_helmet 1 protection:3 unbreaking:2
+      - diamond_chestplate 1 protection:3 unbreaking:2
+      - diamond_leggings 1 protection:3 unbreaking:2
+      - diamond_boots 1 protection:3 unbreaking:2
+      - golden_apple 10
+      - ender_pearl 8
+  titan:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:4
+      - diamond_helmet 1 protection:3 unbreaking:3
+      - diamond_chestplate 1 protection:3 unbreaking:3
+      - diamond_leggings 1 protection:3 unbreaking:3
+      - diamond_boots 1 protection:3 unbreaking:3
+      - golden_apple 12
+  rabbit:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:4 fire_aspect:1
+      - diamond_pickaxe 1 efficiency:4 fortune:2 unbreaking:3
+      - diamond_helmet 1 protection:4 unbreaking:2
+      - diamond_chestplate 1 protection:4 unbreaking:2
+      - diamond_leggings 1 protection:4 unbreaking:2
+      - diamond_boots 1 protection:4 unbreaking:2
+      - golden_apple 12
+      - ender_pearl 12
+  vampire:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:4 fire_aspect:2 unbreaking:3 name:&c🩸_Клинок_VAMPIRE
+      - diamond_helmet 1 protection:4 unbreaking:3
+      - diamond_chestplate 1 protection:4 unbreaking:3
+      - diamond_leggings 1 protection:4 unbreaking:3
+      - diamond_boots 1 protection:4 unbreaking:3
+      - golden_apple 16
+      - totem_of_undying 1
+  tiger:
+    delay: 43200
+    items:
+      - diamond_sword 1 sharpness:5 unbreaking:3 name:&6🐅_Коготь_TIGER
+      - diamond_helmet 1 protection:4 unbreaking:3
+      - diamond_chestplate 1 protection:4 unbreaking:3
+      - diamond_leggings 1 protection:4 unbreaking:3
+      - diamond_boots 1 protection:4 unbreaking:3
+      - golden_apple 16
+      - totem_of_undying 1
+  dracula:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:4 fire_aspect:2 unbreaking:3 name:&4🦇_Меч_DRACULA
+      - diamond_helmet 1 protection:4 unbreaking:3
+      - netherite_chestplate 1 protection:4 unbreaking:3
+      - diamond_leggings 1 protection:4 unbreaking:3
+      - diamond_boots 1 protection:4 unbreaking:3
+      - golden_apple 20
+      - totem_of_undying 1
+  god:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:4 fire_aspect:2 unbreaking:3 name:&e⚡_Клинок_GOD
+      - netherite_pickaxe 1 efficiency:4 fortune:2 unbreaking:3
+      - netherite_helmet 1 protection:4 unbreaking:3
+      - netherite_chestplate 1 protection:4 unbreaking:3
+      - diamond_leggings 1 protection:4 unbreaking:3
+      - diamond_boots 1 protection:4 unbreaking:3
+      - golden_apple 24
+      - totem_of_undying 1
+      - blaze_powder 2 name:&e✨_Божья_Аура
+  overlord:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 unbreaking:3 name:&b🔱_Меч_OVERLORD
+      - netherite_helmet 1 protection:4 unbreaking:3
+      - netherite_chestplate 1 protection:4 unbreaking:3
+      - netherite_leggings 1 protection:4 unbreaking:3
+      - diamond_boots 1 protection:4 unbreaking:3
+      - golden_apple 24
+      - totem_of_undying 2
+  imperator:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&c👑_Меч_IMPERATOR
+      - netherite_helmet 1 protection:4 unbreaking:3
+      - netherite_chestplate 1 protection:4 unbreaking:3
+      - netherite_leggings 1 protection:4 unbreaking:3
+      - netherite_boots 1 protection:4 unbreaking:3
+      - golden_apple 28
+      - totem_of_undying 2
+  dragon:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&d🐉_Клык_DRAGON
+      - netherite_helmet 1 protection:4 unbreaking:3
+      - netherite_chestplate 1 protection:4 unbreaking:3
+      - netherite_leggings 1 protection:4 unbreaking:3
+      - netherite_boots 1 protection:4 unbreaking:3
+      - enchanted_golden_apple 2
+      - golden_apple 32
+      - totem_of_undying 2
+  king:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 name:&5👑_Королевский_Меч_KING
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3 name:&5👑_Кирка_KING
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 feather_falling:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 3
+      - golden_apple 32
+      - totem_of_undying 2
+      - blaze_powder 3 name:&e✨_Божья_Аура
+      - sugar 3 name:&f💨_Явная_Пыль
+  bull:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&6🐂_Секира_BULL
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 4
+      - totem_of_undying 2
+  sponsor:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&e★_Клинок_SPONSOR
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 5
+      - totem_of_undying 3
+  media:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&c🎬_Меч_MEDIA
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - golden_apple 32
+      - firework_rocket 64
+      - totem_of_undying 2
+  kp:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:5 unbreaking:3 name:&a🛡_Клинок_КП
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - golden_apple 32
+      - totem_of_undying 2
+  dmoder:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&3🛡_Меч_D.MODER
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 4
+      - totem_of_undying 2
+  dstmoder:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&9🛡_Меч_D.ST.MODER
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 5
+      - totem_of_undying 3
+  dglmoder:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&5🛡_Меч_D.GLMODER
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 6
+      - totem_of_undying 3
+  dmladmin:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 unbreaking:3 name:&6🔧_Меч_D.ML.ADMIN
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 7
+      - totem_of_undying 3
+  dadmin:
+    delay: 64800
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 name:&c🔨_Меч_D.ADMIN
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 8
+      - totem_of_undying 3
+      - blaze_powder 4 name:&e✨_Божья_Аура
+  dkp:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 name:&6⚡_Клинок_ДКП
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 10
+      - totem_of_undying 4
+      - blaze_powder 6 name:&e✨_Божья_Аура
+      - ender_eye 4 name:&d👁_Дезориентация
+  opka:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 mending:1 name:&d🔥_Клинок_OPKA
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3 mending:1 name:&d🔥_Крушитель_OPKA
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 feather_falling:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 12
+      - totem_of_undying 4
+      - blaze_powder 8 name:&e✨_Божья_Аура
+      - ender_eye 6 name:&d👁_Дезориентация
+      - sugar 6 name:&f💨_Явная_Пыль
+  curator:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 mending:1 name:&a☘_Клинок_CURATOR
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 12
+      - totem_of_undying 4
+  downer:
+    delay: 43200
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 mending:1 name:&e👑_Скипетр_D.OWNER
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3 mending:1 name:&e👑_Бур_D.OWNER
+      - netherite_axe 1 sharpness:5 efficiency:5 unbreaking:3 mending:1 name:&e👑_Секира_D.OWNER
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 feather_falling:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 16
+      - totem_of_undying 5
+      - blaze_powder 12 name:&e✨_Божья_Аура
+      - ender_eye 8 name:&d👁_Дезориентация
+      - sugar 8 name:&f💨_Явная_Пыль
+      - netherite_block 1 name:&e👑_Приват_60x60_блоков
+  owner:
+    delay: 21600
+    items:
+      - netherite_sword 1 sharpness:5 fire_aspect:2 looting:3 unbreaking:3 mending:1 name:&c👑_Меч_OWNER
+      - netherite_pickaxe 1 efficiency:5 fortune:3 unbreaking:3 mending:1 name:&c👑_Крушитель_OWNER
+      - netherite_helmet 1 protection:4 unbreaking:3 mending:1
+      - netherite_chestplate 1 protection:4 unbreaking:3 mending:1
+      - netherite_leggings 1 protection:4 unbreaking:3 mending:1
+      - netherite_boots 1 protection:4 feather_falling:4 unbreaking:3 mending:1
+      - enchanted_golden_apple 16
+      - totem_of_undying 5

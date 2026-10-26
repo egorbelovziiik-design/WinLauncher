@@ -1,0 +1,13 @@
+name: bull
+permissions:
+- weight.94
+- essentials.kits.bull
+- essentials.sethome.multiple.bull
+- essentials.jump
+- essentials.condense
+- protectionstones.limit.14
+parents:
+- king
+prefixes:
+- '&#EA580C&lBULL &f':
+    priority: 94

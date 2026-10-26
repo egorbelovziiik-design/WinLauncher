@@ -1,0 +1,53 @@
+regions:
+  spawn:
+    min: {x: -60, y: 80, z: -60}
+    max: {x: 60, y: 160, z: 60}
+    members: {}
+    flags:
+      passthrough: deny
+      pvp: deny
+      invincible: allow
+      mob-spawning: deny
+      creeper-explosion: deny
+      tnt: deny
+      fire-spread: deny
+      snow-melt: deny
+      ice-melt: deny
+      leaf-decay: deny
+      use: allow
+      interact: allow
+      chest-access: allow
+    owners: {}
+    type: cuboid
+    priority: 10
+  pvp_arena:
+    min: {x: -14, y: 84, z: 28}
+    max: {x: 14, y: 98, z: 48}
+    members: {}
+    flags:
+      pvp: allow
+      invincible: deny
+      fall-damage: deny
+      build: deny
+      mob-spawning: deny
+    owners: {}
+    type: cuboid
+    priority: 50
+  kabinka1:
+    min: {x: 29, y: 100, z: 18}
+    max: {x: 35, y: 104, z: 22}
+    flags: {pvp: allow, invincible: deny, build: deny}
+    type: cuboid
+    priority: 50
+  kabinka2:
+    min: {x: 29, y: 100, z: 25}
+    max: {x: 35, y: 104, z: 29}
+    flags: {pvp: allow, invincible: deny, build: deny}
+    type: cuboid
+    priority: 50
+  kabinka3:
+    min: {x: 29, y: 100, z: 32}
+    max: {x: 35, y: 104, z: 36}
+    flags: {pvp: allow, invincible: deny, build: deny}
+    type: cuboid
+    priority: 50

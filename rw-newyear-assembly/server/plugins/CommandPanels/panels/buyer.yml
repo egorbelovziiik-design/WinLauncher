@@ -1,0 +1,129 @@
+title: '&#FFAB40&l💰 СКУПЩИК РЕСУРСОВ REALLYWORLD'
+type: inventory
+command: buyer
+aliases: [sellgui]
+rows: 4
+layout:
+  fill: [bg]
+  10: [s_dia]
+  11: [s_eme]
+  12: [s_gold]
+  13: [s_iron]
+  14: [s_coal]
+  15: [s_scrap]
+  19: [s_wheat]
+  20: [s_carrot]
+  21: [s_cane]
+  22: [s_bone]
+  23: [s_gun]
+  24: [s_pearl]
+items:
+  bg: {material: GRAY_STAINED_GLASS_PANE, name: '&7•'}
+  s_dia:
+    material: DIAMOND
+    stack: '16'
+    name: '&#00E5FF&lПродать 16 Алмазов'
+    lore: ['&7Награда: &#FFEA008 000$']
+    left-click:
+      requirements: ['[item] material=DIAMOND amount=16 remove=true']
+      commands: ['[console] eco give %player_name% 8000', '[msg] &#00E676✔ +8 000$ за 16 алмазов!']
+      fail: ['[msg] &cУ вас нет 16 обычных алмазов!']
+  s_eme:
+    material: EMERALD
+    stack: '16'
+    name: '&#22C55E&lПродать 16 Изумрудов'
+    lore: ['&7Награда: &#FFEA006 400$']
+    left-click:
+      requirements: ['[item] material=EMERALD amount=16 remove=true']
+      commands: ['[console] eco give %player_name% 6400', '[msg] &#00E676✔ +6 400$ за 16 изумрудов!']
+      fail: ['[msg] &cУ вас нет 16 изумрудов!']
+  s_gold:
+    material: GOLD_INGOT
+    stack: '32'
+    name: '&#FFD740&lПродать 32 Золота'
+    lore: ['&7Награда: &#FFEA006 400$']
+    left-click:
+      requirements: ['[item] material=GOLD_INGOT amount=32 remove=true']
+      commands: ['[console] eco give %player_name% 6400', '[msg] &#00E676✔ +6 400$ за 32 золота!']
+      fail: ['[msg] &cУ вас нет 32 золотых слитков!']
+  s_iron:
+    material: IRON_INGOT
+    stack: '32'
+    name: '&f&lПродать 32 Железа'
+    lore: ['&7Награда: &#FFEA004 800$']
+    left-click:
+      requirements: ['[item] material=IRON_INGOT amount=32 remove=true']
+      commands: ['[console] eco give %player_name% 4800', '[msg] &#00E676✔ +4 800$ за 32 железа!']
+      fail: ['[msg] &cУ вас нет 32 железных слитков!']
+  s_coal:
+    material: COAL
+    stack: '64'
+    name: '&7&lПродать 64 Угля'
+    lore: ['&7Награда: &#FFEA002 400$']
+    left-click:
+      requirements: ['[item] material=COAL amount=64 remove=true']
+      commands: ['[console] eco give %player_name% 2400', '[msg] &#00E676✔ +2 400$ за 64 угля!']
+      fail: ['[msg] &cУ вас нет 64 угля!']
+  s_scrap:
+    material: NETHERITE_SCRAP
+    stack: '4'
+    name: '&#FF7043&lПродать 4 Незеритовых лома'
+    lore: ['&7Награда: &#FFEA0016 000$']
+    left-click:
+      requirements: ['[item] material=NETHERITE_SCRAP amount=4 remove=true']
+      commands: ['[console] eco give %player_name% 16000', '[msg] &#00E676✔ +16 000$ за 4 незеритовых лома!']
+      fail: ['[msg] &cУ вас нет 4 незеритовых ломов!']
+  s_wheat:
+    material: WHEAT
+    stack: '64'
+    name: '&#FFEE58&lПродать 64 Пшеницы'
+    lore: ['&7Награда: &#FFEA002 500$']
+    left-click:
+      requirements: ['[item] material=WHEAT amount=64 remove=true']
+      commands: ['[console] eco give %player_name% 2500', '[msg] &#00E676✔ +2 500$ за 64 пшеницы!']
+      fail: ['[msg] &cУ вас нет 64 пшеницы!']
+  s_carrot:
+    material: CARROT
+    stack: '64'
+    name: '&#FB923C&lПродать 64 Моркови'
+    lore: ['&7Награда: &#FFEA002 400$']
+    left-click:
+      requirements: ['[item] material=CARROT amount=64 remove=true']
+      commands: ['[console] eco give %player_name% 2400', '[msg] &#00E676✔ +2 400$ за 64 моркови!']
+      fail: ['[msg] &cУ вас нет 64 моркови!']
+  s_cane:
+    material: SUGAR_CANE
+    stack: '64'
+    name: '&#84CC16&lПродать 64 Тростника'
+    lore: ['&7Награда: &#FFEA002 200$']
+    left-click:
+      requirements: ['[item] material=SUGAR_CANE amount=64 remove=true']
+      commands: ['[console] eco give %player_name% 2200', '[msg] &#00E676✔ +2 200$ за 64 тростника!']
+      fail: ['[msg] &cУ вас нет 64 тростника!']
+  s_bone:
+    material: BONE
+    stack: '64'
+    name: '&f&lПродать 64 Кости'
+    lore: ['&7Награда: &#FFEA003 200$']
+    left-click:
+      requirements: ['[item] material=BONE amount=64 remove=true']
+      commands: ['[console] eco give %player_name% 3200', '[msg] &#00E676✔ +3 200$ за 64 кости!']
+      fail: ['[msg] &cУ вас нет 64 костей!']
+  s_gun:
+    material: GUNPOWDER
+    stack: '32'
+    name: '&7&lПродать 32 Пороха'
+    lore: ['&7Награда: &#FFEA004 500$']
+    left-click:
+      requirements: ['[item] material=GUNPOWDER amount=32 remove=true']
+      commands: ['[console] eco give %player_name% 4500', '[msg] &#00E676✔ +4 500$ за 32 пороха!']
+      fail: ['[msg] &cУ вас нет 32 пороха!']
+  s_pearl:
+    material: ENDER_PEARL
+    stack: '16'
+    name: '&#14B8A6&lПродать 16 Жемчуга Эндера'
+    lore: ['&7Награда: &#FFEA005 000$']
+    left-click:
+      requirements: ['[item] material=ENDER_PEARL amount=16 remove=true']
+      commands: ['[console] eco give %player_name% 5000', '[msg] &#00E676✔ +5 000$ за 16 жемчуга!']
+      fail: ['[msg] &cУ вас нет 16 жемчуга эндера!']

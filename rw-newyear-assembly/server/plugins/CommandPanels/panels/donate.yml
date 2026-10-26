@@ -1,0 +1,136 @@
+title: '&#FFD740&l👑 ДОНАТ И ЦЕНЫ С САЙТА'
+type: inventory
+command: donate
+aliases:
+  - privs
+  - prices
+rows: 6
+layout:
+  fill: [bg]
+  10: [r_pegas]
+  11: [r_cobra]
+  12: [r_bunny]
+  13: [r_rabbit]
+  14: [r_vampire]
+  15: [r_god]
+  16: [r_king]
+  19: [r_dmoder]
+  20: [r_dstmoder]
+  21: [r_dglmoder]
+  22: [r_dmladmin]
+  23: [r_dadmin]
+  24: [r_opka]
+  25: [r_downer]
+  29: [c_cases]
+  31: [c_relics]
+  33: [c_services]
+  39: [b_kp]
+  40: [b_site]
+  41: [b_media]
+items:
+  bg:
+    material: BLACK_STAINED_GLASS_PANE
+    name: '&8•'
+  r_pegas:
+    material: LIME_DYE
+    name: '&#22C55E&lPEGAS &8— &#00E67619₽ &8(&m39₽&8)'
+    lore: ['&7• Префикс PEGAS и /kit pegas', '&7• 3 дома /sethome и 3 привата', '&7• Доступ к /wb и /hat', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить PEGAS (19₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_cobra:
+    material: SLIME_BALL
+    name: '&#84CC16&lCOBRA &8— &#00E67639₽ &8(&m59₽&8)'
+    lore: ['&7• Всё из PEGAS + /kit cobra', '&7• 4 дома и 4 привата', '&7• Команды /ext и /ci', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить COBRA (39₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_bunny:
+    material: RABBIT_FOOT
+    name: '&#EC4899&lBUNNY &8— &#00E67659₽ &8(&m89₽&8)'
+    lore: ['&7• Всё из COBRA + /kit bunny', '&7• 6 домов и 5 приватов', '&7• Доступ к /back после смерти', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить BUNNY (59₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_rabbit:
+    material: FEATHER
+    name: '&#38BDF8&lRABBIT &8— &#00E67689₽ &8(&m129₽&8)'
+    lore: ['&7• Всё из BUNNY + /kit rabbit', '&7• 8 домов и 6 приватов', '&7• Цветной чат и /pweather', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить RABBIT (89₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_vampire:
+    material: REDSTONE
+    name: '&#EF4444&lVAMPIRE &8— &#00E67699₽ &8(&m159₽&8)'
+    lore: ['&7• Всё из RABBIT + /kit vampire', '&7• 10 домов + Тотем в ките', '&7• Вход на полный сервер и /near', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить VAMPIRE (99₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_god:
+    material: GOLDEN_APPLE
+    name: '&#FACC15&lGOD &8— &#00E676149₽ &8(&m229₽&8)'
+    lore: ['&7• Всё из VAMPIRE + /kit god', '&7• 13 домов и 8 приватов', '&7• Полёты /fly, /feed, /fix all, /nick', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить GOD (149₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_king:
+    material: GOLDEN_HELMET
+    glint-override: 'true'
+    name: '&#A855F7&l👑 KING &8— &#FFD740&l199₽ &8(&m299₽&8)'
+    lore: ['&e★ ФЛАГМАНСКАЯ ПРИВИЛЕГИЯ ★', '&7• Королевский кит /kit king + Божья Аура', '&7• 18 домов и 12 приватов', '&7• Анимированный префикс KING в ТАБе', '&7• /ec, /wb, /anvil, /fly, /heal, /itemname', '', '&#FFD740▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#FFD740👑 Купить KING (199₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_dmoder:
+    material: SHIELD
+    name: '&#14B8A6&lD.MODER [ДКП] &8— &#00E676249₽ &8(&m399₽&8)'
+    lore: ['&7• Донат-модератор (ДКП) + /kit dmoder', '&7• 24 дома + /mute, /kick, /invsee, /tp', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить D.MODER (249₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_dstmoder:
+    material: DIAMOND_CHESTPLATE
+    name: '&#3B82F6&lD.ST.MODER [ДКП] &8— &#00E676349₽ &8(&m499₽&8)'
+    lore: ['&7• Старший ДКП + /kit dstmoder', '&7• 28 домов + /tempban, /vanish, /socialspy', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить D.ST.MODER (349₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_dglmoder:
+    material: AMETHYST_SHARD
+    name: '&#8B5CF6&lD.GLMODER [ДКП] &8— &#00E676449₽ &8(&m599₽&8)'
+    lore: ['&7• Глобальный ДКП + /kit dglmoder', '&7• 32 дома + /unban и режим наблюдения', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить D.GLMODER (449₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_dmladmin:
+    material: BLAZE_ROD
+    name: '&#F97316&lD.ML.ADMIN [ДКП] &8— &#00E676599₽ &8(&m799₽&8)'
+    lore: ['&7• Мл. Донат-Админ + /kit dmladmin', '&7• 36 домов + /god и запуск объявлений /bc', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить D.ML.ADMIN (599₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_dadmin:
+    material: NETHERITE_AXE
+    name: '&#DC2626&lD.ADMIN [ДКП] &8— &#00E676799₽ &8(&m1099₽&8)'
+    lore: ['&7• Донат-Администратор + /kit dadmin', '&7• 40 домов + управление временем и погодой', '', '&#00E5FF▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#00E676Купить D.ADMIN (799₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_opka:
+    material: DRAGON_BREATH
+    glint-override: 'true'
+    name: '&#C026D3&l🔥 OPKA &8— &#FFD740&l999₽ &8(&m1399₽&8)'
+    lore: ['&d★ НЕОНОВЫЙ УЛЬТИМАТУМ ★', '&7• Элитный /kit opka со сферами и пылью', '&7• 60 домов и 50 приватов', '&7• Доступ к /gm 1, /give, /enchant, /speed, /tphere', '&7• Неоновый переливающийся префикс OPKA', '', '&#FFD740▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#C026D3🔥 Купить OPKA (999₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  r_downer:
+    material: NETHER_STAR
+    glint-override: 'true'
+    name: '&#FACC15&l👑 D.OWNER &8— &#FFEA00&l1 499₽ &8(&m1999₽&8)'
+    lore: ['&6★ МАКСИМАЛЬНАЯ ПРИВИЛЕГИЯ ИМПЕРИИ ★', '&7• Стильный анимированный бейдж + золотой ник', '&7• БЕЗЛИМИТНЫЕ /sethome и приваты (60x60)', '&7• Максимальный /kit downer (16 чарок, 5 тотемов)', '&7• Все возможности OPKA + телепорт без задержки', '', '&#FFEA00▸ Купить: kinggrief.vercel.app']
+    left-click: {commands: ['[msg] &#FACC15👑 Купить D.OWNER (1 499₽): &ehttps://kinggrief.vercel.app/privileges', '[close]']}
+  c_cases:
+    material: ENDER_CHEST
+    name: '&#A855F7&l🎁 Все 11 Кейсов (от 19₽)'
+    lore: ['&7• Денежный — 19₽ | Джамшута — 25₽ | Донат — 29₽', '&7• Киты — 35₽ | Рилики — 39₽ | Сезонный — 39₽', '&7• Всё или ничего — 45₽ | Донат-вещи — 49₽', '&7• Легендарный — 59₽ | Супер Донат — 99₽ | ReallyDev — 129₽']
+    left-click: {commands: ['[msg] &#A855F7🎁 Все кейсы на сайте: &ehttps://kinggrief.vercel.app/cases', '[close]']}
+  c_relics:
+    material: SUNFLOWER
+    name: '&#F59E0B&l❖ Рилики (от 19₽ за 1 000 ❖)'
+    lore: ['&7• 1 000 ❖ — 19₽ | 2 500 ❖ — 39₽ | 5 000 ❖ — 69₽', '&7• 10 000 ❖ — 119₽ | 25 000 ❖ — 249₽', '&7• 50 000 ❖ — 449₽ | 100 000 ❖ — 799₽']
+    left-click: {commands: ['[msg] &#F59E0B❖ Пополнить рилики: &ehttps://kinggrief.vercel.app/relics', '[close]']}
+  c_services:
+    material: TOTEM_OF_UNDYING
+    name: '&#22C55E&l🔓 Разбан и Размут'
+    lore: ['&7• Размут — 49₽ | Разбан — 99₽', '&7• Размут по IP — 99₽ | Разбан по IP — 199₽']
+    left-click: {commands: ['[msg] &#22C55E🔓 Услуги разбана: &ehttps://kinggrief.vercel.app/other', '[close]']}
+  b_kp:
+    material: DIAMOND_SWORD
+    name: '&#10B981&l🛡 Команда Проекта (КП и ДКП)'
+    lore: ['&7Нажми, чтобы открыть меню КП (/kp)']
+    left-click: {commands: ['[chat] /kp']}
+  b_site:
+    material: EMERALD_BLOCK
+    name: '&#00E676&l🌐 ПЕРЕЙТИ НА САЙТ АВТОДОНАТА'
+    lore: ['&fhttps://kinggrief.vercel.app', '&7Автоматическая выдача за 5 секунд!']
+    left-click: {commands: ['[msg] &6&l[KINGGRIEF] &fМагазин сервера: &#00E676&nhttps://kinggrief.vercel.app', '[close]']}
+  b_media:
+    material: SPYGLASS
+    name: '&#FF0050&l🎬 Медиа-Партнёрка (/media)'
+    lore: ['&7YouTube · TikTok · Twitch · MEDIA+']
+    left-click: {commands: ['[chat] /media']}

@@ -1,0 +1,18 @@
+location: world:4.500:103.450:-39.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#EF4444&l⚔ ДОНАТ-ВЕЩИ'
+    height: 0.33
+  - content: '&7Сфера Химеры, Талисман Крушителя, Трапки'
+    height: 0.27
+  - content: '&f×1: &#00E67649₽ &8(&m69₽&8) &7| &f×3: &#00E676129₽ &7| &f×5: &#FFD740199₽'
+    height: 0.28
+  - content: '&#00E676ПКМ — Открыть &8| &7Купить: &fkinggrief.vercel.app'
+    height: 0.26
+  actions: {}

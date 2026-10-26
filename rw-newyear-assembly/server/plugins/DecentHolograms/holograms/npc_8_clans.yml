@@ -1,0 +1,16 @@
+location: world:-19.500:103.850:0.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#B388FF&l🏰 КЛАНЫ И ТОПЫ'
+    height: 0.32
+  - content: '&fСоздай клан &7(/clan)'
+    height: 0.28
+  - content: '&#FFE082▸ Нажми ПКМ / ЛКМ'
+    height: 0.26
+  actions: {}

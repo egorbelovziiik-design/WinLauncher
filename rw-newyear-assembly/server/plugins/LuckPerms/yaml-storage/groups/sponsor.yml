@@ -1,0 +1,13 @@
+name: sponsor
+permissions:
+- weight.98
+- essentials.kits.sponsor
+- essentials.sethome.multiple.sponsor
+- essentials.afk.kickexempt
+- essentials.me
+- protectionstones.limit.15
+parents:
+- bull
+prefixes:
+- '&#FBBF24&l★ SPONSOR &f':
+    priority: 98

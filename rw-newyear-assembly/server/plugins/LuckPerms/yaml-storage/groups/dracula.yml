@@ -1,0 +1,12 @@
+name: dracula
+permissions:
+- weight.60
+- essentials.kits.dracula
+- essentials.sethome.multiple.dracula
+- essentials.heal
+- essentials.repair.armor
+parents:
+- tiger
+prefixes:
+- '&#DC2626&lDRACULA &f':
+    priority: 60

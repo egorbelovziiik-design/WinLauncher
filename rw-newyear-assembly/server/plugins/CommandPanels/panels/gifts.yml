@@ -1,0 +1,27 @@
+title: '&#80D8FF&l🤶 ПОДАРКИ СНЕГУРОЧКИ (/free)'
+type: inventory
+command: gifts
+aliases: [free]
+rows: 3
+layout:
+  fill: [bg]
+  11: [g1]
+  13: [g2]
+  15: [g3]
+items:
+  bg: {material: WHITE_STAINED_GLASS_PANE, name: '&f❄'}
+  g1:
+    material: IRON_CHESTPLATE
+    name: '&#76FF03&l🎁 Стартовый набор + Приват 10×10'
+    lore: ['&7Инструменты, броня, еда и Угольный блок привата!']
+    left-click: {commands: ['[chat] /kit start', '[close]']}
+  g2:
+    material: NETHER_STAR
+    name: '&#80D8FF&l❄ Новогодний Подарок Снегурочки'
+    lore: ['&7Алмазный новогодний клинок, геплы и салюты!']
+    left-click: {commands: ['[chat] /kit newyear', '[close]']}
+  g3:
+    material: EMERALD
+    name: '&#FFD740&l💎 Акции от 19₽ на сайте'
+    lore: ['&7PEGAS — 19₽ | Денежный кейс — 19₽ | 1000 риликов — 19₽']
+    left-click: {commands: ['[msg] &#80D8FF❄ Магазин сервера: &ehttps://kinggrief.vercel.app', '[close]']}

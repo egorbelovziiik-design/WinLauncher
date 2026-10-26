@@ -1,0 +1,11 @@
+name: kp
+groups:
+- helper
+- sthelper
+- moder
+- stmoder
+- glmoder
+- kp
+- curator
+- techadmin
+- owner

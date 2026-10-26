@@ -1,0 +1,16 @@
+location: world:-9.500:103.850:-14.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#10B981&l🛡 КОМАНДА ПРОЕКТА (КП/ДКП)'
+    height: 0.32
+  - content: '&fНабор в КП и инфо ДКП &7(/kp)'
+    height: 0.28
+  - content: '&#FFE082▸ Нажми ПКМ / ЛКМ'
+    height: 0.26
+  actions: {}

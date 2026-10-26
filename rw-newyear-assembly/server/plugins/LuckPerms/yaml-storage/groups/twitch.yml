@@ -1,0 +1,9 @@
+name: twitch
+permissions:
+- weight.104
+- essentials.kits.media
+parents:
+- tiktok
+prefixes:
+- '&#9146FF&lTWITCH &f':
+    priority: 104

@@ -1,0 +1,48 @@
+type = "GOLD_ORE"
+alias = "gold20"
+description = "Приват 20x20 блоков"
+restrict_obtaining = false
+world_list_type = "blacklist"
+worlds = [""]
+prevent_block_place_in_restricted_world = true
+
+[region]
+    distance_between_claims = -1
+    x_radius = 20
+    y_radius = -1
+    z_radius = 20
+    flags = [
+        "pvp allow",
+        "tnt deny",
+        "creeper-explosion deny",
+        "greeting &aВы вошли в регион игрока &f%player%",
+        "farewell &eВы покинули регион игрока &f%player%",
+    ]
+    allowed_flags = ["pvp", "use", "chest-access"]
+    priority = 0
+
+[block_data]
+    display_name = "&b🛡 Приват 20×20 блоков"
+    lore = ["&7Поставь на землю для создания региона!"]
+
+[economy]
+    tax_amount = 0.0
+    tax_period = -1
+
+[behaviour]
+    auto_hide = false
+    auto_merge = false
+    no_drop = false
+    prevent_piston_push = true
+    prevent_explode = true
+    destroy_region_when_explode = false
+
+[player]
+    allow_shift_right_break = false
+    prevent_teleport_in = false
+    permission = ""
+
+[event]
+    enable = false
+    on_region_create = []
+    on_region_destroy = []

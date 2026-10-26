@@ -1,0 +1,16 @@
+location: world:18.500:103.850:-5.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#FFAB40&l💰 СКУПЩИК РЕСУРСОВ'
+    height: 0.32
+  - content: '&fПродавай ресурсы за монеты &7(/buyer)'
+    height: 0.28
+  - content: '&#FFE082▸ Нажми ПКМ / ЛКМ'
+    height: 0.26
+  actions: {}

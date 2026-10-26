@@ -1,0 +1,52 @@
+ops-name-color: 'none'
+nickname-prefix: '~'
+max-nick-length: 20
+change-displayname: true
+teleport-safety: true
+teleport-cooldown: 3
+teleport-delay: 3
+heal-cooldown: 60
+starting-balance: 1000
+currency-symbol: '$'
+min-money: 0
+max-money: 10000000000
+sethome-multiple:
+  default: 2
+  pegas: 3
+  cobra: 4
+  hero: 5
+  bunny: 6
+  titan: 7
+  rabbit: 8
+  vampire: 10
+  tiger: 11
+  dracula: 12
+  god: 13
+  overlord: 14
+  imperator: 15
+  dragon: 16
+  king: 18
+  bull: 20
+  sponsor: 22
+  media: 20
+  kp: 30
+  dmoder: 24
+  dstmoder: 28
+  dglmoder: 32
+  dmladmin: 36
+  dadmin: 40
+  dkp: 45
+  opka: 60
+  downer: 100
+  unlimited: 500
+chat:
+  radius: 0
+  format: '{DISPLAYNAME} &8» &f{MESSAGE}'
+  group-formats:
+    default: '{DISPLAYNAME} &8» &7{MESSAGE}'
+    king: '{DISPLAYNAME} &8» &f{MESSAGE}'
+    opka: '{DISPLAYNAME} &8» &#FCE7F3{MESSAGE}'
+    downer: '{DISPLAYNAME} &8» &#FEF9C3{MESSAGE}'
+    curator: '{DISPLAYNAME} &8» &#DCFCE7{MESSAGE}'
+    owner: '{DISPLAYNAME} &8» &#FFE4E6{MESSAGE}'
+spawn-on-join: false

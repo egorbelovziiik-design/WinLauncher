@@ -1,0 +1,38 @@
+title: '&#FF9100&l🎄 НАБОРЫ ВСЕХ ПРИВИЛЕГИЙ (/kits)'
+type: inventory
+command: kits
+rows: 5
+layout:
+  fill: [bg]
+  10: [k_start]
+  11: [k_ny]
+  12: [k_pegas]
+  13: [k_bunny]
+  14: [k_vampire]
+  15: [k_god]
+  16: [k_king]
+  19: [k_media]
+  20: [k_kp]
+  21: [k_dmoder]
+  22: [k_dadmin]
+  23: [k_dkp]
+  24: [k_opka]
+  25: [k_downer]
+  31: [k_curator]
+items:
+  bg: {material: BLACK_STAINED_GLASS_PANE, name: '&8•'}
+  k_start:   {material: IRON_SWORD, name: '&f&lНабор Игрока (Бесплатно)', lore: ['&7+ Угольный приват 10×10!'], left-click: {commands: ['[chat] /kit start', '[close]']}}
+  k_ny:      {material: SNOWBALL, name: '&#80D8FF&l❄ Новогодний Набор (Бесплатно)', lore: ['&7Новогодний меч, кирка и леденцы!'], left-click: {commands: ['[chat] /kit newyear', '[close]']}}
+  k_pegas:   {material: LIME_DYE, name: '&#22C55E&lКит PEGAS (19₽)', left-click: {commands: ['[chat] /kit pegas', '[close]']}}
+  k_bunny:   {material: RABBIT_FOOT, name: '&#EC4899&lКит BUNNY (59₽)', left-click: {commands: ['[chat] /kit bunny', '[close]']}}
+  k_vampire: {material: REDSTONE, name: '&#EF4444&lКит VAMPIRE (99₽)', left-click: {commands: ['[chat] /kit vampire', '[close]']}}
+  k_god:     {material: GOLDEN_APPLE, name: '&#FACC15&lКит GOD (149₽)', left-click: {commands: ['[chat] /kit god', '[close]']}}
+  k_king:    {material: GOLDEN_HELMET, glint-override: 'true', name: '&#A855F7&l👑 Кит KING (199₽)', left-click: {commands: ['[chat] /kit king', '[close]']}}
+  k_media:   {material: SPYGLASS, name: '&#FF0050&l🎬 Кит MEDIA / Блогера', left-click: {commands: ['[chat] /kit media', '[close]']}}
+  k_kp:      {material: SHIELD, name: '&#10B981&l🛡 Кит Персонала КП', left-click: {commands: ['[chat] /kit kp', '[close]']}}
+  k_dmoder:  {material: DIAMOND_CHESTPLATE, name: '&#14B8A6&lКит D.MODER (249₽)', left-click: {commands: ['[chat] /kit dmoder', '[close]']}}
+  k_dadmin:  {material: NETHERITE_AXE, name: '&#DC2626&lКит D.ADMIN (799₽)', left-click: {commands: ['[chat] /kit dadmin', '[close]']}}
+  k_dkp:     {material: BLAZE_ROD, name: '&#FF6D00&l⚡ Кит ДКП', left-click: {commands: ['[chat] /kit dkp', '[close]']}}
+  k_opka:    {material: DRAGON_BREATH, glint-override: 'true', name: '&#C026D3&l🔥 Кит OPKA (999₽)', left-click: {commands: ['[chat] /kit opka', '[close]']}}
+  k_downer:  {material: NETHER_STAR, glint-override: 'true', name: '&#FACC15&l👑 Кит D.OWNER (1 499₽)', left-click: {commands: ['[chat] /kit downer', '[close]']}}
+  k_curator: {material: EMERALD, glint-override: 'true', name: '&#22C55E&l☘ Кит CURATOR', left-click: {commands: ['[chat] /kit curator', '[close]']}}

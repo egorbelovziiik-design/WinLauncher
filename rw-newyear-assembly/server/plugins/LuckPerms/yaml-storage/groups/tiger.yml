@@ -1,0 +1,13 @@
+name: tiger
+permissions:
+- weight.55
+- essentials.kits.tiger
+- essentials.sethome.multiple.tiger
+- essentials.repair
+- essentials.anvil
+- protectionstones.limit.7
+parents:
+- vampire
+prefixes:
+- '&#FB923C&lTIGER &f':
+    priority: 55

@@ -1,0 +1,27 @@
+winter_title:
+  change-interval: 120
+  texts:
+    - "&#80D8FF❄ &#FF1744&lK&#FF3D57&lI&#FF636A&lN&#FF897D&lG&#FFAF90&lG&#FF897D&lR&#FF636A&lI&#FF3D57&lE&#FF1744&lF &#80D8FF❄"
+    - "&#FFFFFF❅ &#FF3D57&lK&#FF636A&lI&#FF897D&lN&#FFAF90&lG&#FFFFFF&lG&#FFAF90&lR&#FF897D&lI&#FF636A&lE&#FF3D57&lF &#FFFFFF❅"
+    - "&#80D8FF❆ &#FF636A&lK&#FF897D&lI&#FFAF90&lN&#FFFFFF&lG&#FFD740&lG&#FFFFFF&lR&#FFAF90&lI&#FF897D&lE&#FF636A&lF &#80D8FF❆"
+curator_rw:
+  change-interval: 70
+  texts: ["&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f"]
+owner_rw:
+  change-interval: 70
+  texts: ["&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f"]
+downer_anim:
+  change-interval: 100
+  texts: ["&f &#FACC15&lD.OWNER","&f &#FEF08A&lD.OWNER","&f &#F59E0B&lD.OWNER","&f &#FACC15&lD.OWNER"]
+opka_anim:
+  change-interval: 100
+  texts: ["&#C026D3&l🔥 OPKA","&#EC4899&l🔥 OPKA","&#A855F7&l🔥 OPKA"]
+king_anim:
+  change-interval: 120
+  texts: ["&#A855F7&l👑 KING","&#C084FC&l👑 KING","&#FACC15&l👑 KING"]
+kp_anim:
+  change-interval: 120
+  texts: ["&#10B981&l🛡 КП","&#34D399&l🛡 КП"]
+dkp_anim:
+  change-interval: 120
+  texts: ["&#FF6D00&l⚡ ДКП","&#FFAB40&l⚡ ДКП"]

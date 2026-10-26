@@ -1,0 +1,16 @@
+location: world:20.500:103.850:0.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#FFD740&l⚖ АУКЦИОН ИГРОКОВ'
+    height: 0.32
+  - content: '&fТоргуй с игроками &7(/ah)'
+    height: 0.28
+  - content: '&#FFE082▸ Нажми ПКМ / ЛКМ'
+    height: 0.26
+  actions: {}

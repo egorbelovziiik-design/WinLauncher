@@ -1,0 +1,5 @@
+custom-commands: true
+cooldown-ticks: 5
+panel-snooper: false
+permission-observer: true
+condition-observer: false

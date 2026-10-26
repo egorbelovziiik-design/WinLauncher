@@ -1,0 +1,38 @@
+header-footer:
+  enabled: true
+  header:
+    - ""
+    - "%animation:winter_title%"
+    - "&#B3E5FCЗимний Новогодний Вайп · Копия ReallyWorld"
+    - ""
+  footer:
+    - ""
+    - "&#80D8FFОнлайн: &#00E676%online% &8| &#80D8FFПинг: &#FFD740%ping% мс"
+    - "&#FFD740Привилегии от 19₽ и Кейсы от 19₽: &#FF4081kinggrief.vercel.app"
+    - "&#80D8FFIP сервера: &fkinggrief.pickme.cloud"
+    - ""
+tablist-name-formatting:
+  enabled: true
+scoreboard-teams:
+  enabled: true
+  sorting-types:
+    - "GROUPS:owner,techadmin,curator,kp,glmoder,stmoder,moder,sthelper,helper,downer,opka,dkp,dadmin,dmladmin,dglmoder,dstmoder,dmoder,dhelper,mediaplus,media,yt,twitch,tiktok,sponsor,bull,king,dragon,imperator,overlord,god,dracula,tiger,vampire,rabbit,titan,bunny,hero,cobra,pegas,default"
+    - "PLACEHOLDER_A_TO_Z:%player%"
+scoreboard:
+  enabled: true
+  toggle-command: /sb
+  remember-toggle-choice: true
+  scoreboards:
+    winter:
+      title: "%animation:winter_title%"
+      lines:
+        - "&8&m                     "
+        - " &#80D8FF👤 Ник: &f%player%"
+        - " &#FFD740👑 Ранг: &f%luckperms-prefix%"
+        - ""
+        - " &#FFEA00💰 Монеты: &f%vault_eco_balance_formatted%$"
+        - " &#00E5FF❖ Рилики: &f%playerpoints_points%"
+        - " &#FF5252⚔ Убийств: &f%statistic_player_kills%"
+        - ""
+        - " &#69F0AE🎄 Донат: &fkinggrief.vercel.app"
+        - "&8&m                     "

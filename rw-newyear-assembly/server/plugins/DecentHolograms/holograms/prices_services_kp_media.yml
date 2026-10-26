@@ -1,0 +1,22 @@
+location: world:-14.000:104.500:2.000
+enabled: true
+display-range: 44
+update-range: 44
+update-interval: 40
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#38BDF8&l🛡 УСЛУГИ · КП · МЕДИА 🛡'
+    height: 0.35
+  - content: '&fРазмут — &#00E67649₽ &8(&m79₽&8) &7| &fРазбан — &#00E67699₽ &8(&m149₽&8)'
+    height: 0.3
+  - content: '&fРазмут по IP — &#00E67699₽ &8(&m149₽&8) &7| &fРазбан по IP — &#00E676199₽ &8(&m279₽&8)'
+    height: 0.3
+  - content: '&#10B981&l🛡 Набор в КП (Хелпер → Модер → Куратор): &f/kp'
+    height: 0.3
+  - content: '&#FF0050&l🎬 Статус YouTube / TikTok / Twitch / MEDIA+: &f/media'
+    height: 0.3
+  - content: '&7Сайт услуг: &#FFD740kinggrief.vercel.app/other'
+    height: 0.28
+  actions: {}

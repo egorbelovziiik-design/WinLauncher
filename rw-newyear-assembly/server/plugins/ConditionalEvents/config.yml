@@ -1,0 +1,143 @@
+Config:
+  update_notification: false
+  data_save_time: 5
+  debug_actions: false
+  use_minimessage: false
+Messages:
+  prefix: '&6&l[KINGGRIEF] '
+  commandReload: '&aКонфиг перезагружен!'
+  commandNoPermissions: '&cНет прав!'
+Events:
+  rw_god_aura:
+    type: item_interact
+    conditions:
+      - '%item% == BLAZE_POWDER'
+      - '%item_name% contains Божья'
+      - '%action_type% contains RIGHT_CLICK'
+    cooldown: 30
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'remove_item_slot: HAND;1'
+        - 'console_command: minecraft:effect clear %player% minecraft:poison'
+        - 'console_command: minecraft:effect clear %player% minecraft:wither'
+        - 'console_command: minecraft:effect clear %player% minecraft:blindness'
+        - 'console_command: minecraft:effect clear %player% minecraft:slowness'
+        - 'console_command: minecraft:effect give %player% minecraft:strength 20 1'
+        - 'console_command: minecraft:effect give %player% minecraft:regeneration 15 2'
+        - 'console_command: minecraft:effect give %player% minecraft:fire_resistance 30 0'
+        - 'console_command: execute at %player% run playsound minecraft:item.totem.use master @a[distance=..12] ~ ~ ~ 0.8 1.2'
+        - 'message: &#FFEE58✨ Вы активировали &lБожью Ауру&r&#FFEE58! Дебаффы сняты + Сила II и Регенерация III!'
+      cooldown:
+        - 'cancel_event: true'
+        - 'message: &cПодождите ещё &e%time% &cперед следующей Божьей Аурой!'
+  rw_dezor:
+    type: item_interact
+    conditions:
+      - '%item% == ENDER_EYE'
+      - '%item_name% contains Дезориентация'
+      - '%action_type% contains RIGHT_CLICK'
+    cooldown: 25
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'remove_item_slot: HAND;1'
+        - 'console_command: execute at %player% run effect give @a[distance=0.5..10] minecraft:blindness 8 0'
+        - 'console_command: execute at %player% run effect give @a[distance=0.5..10] minecraft:slowness 8 1'
+        - 'console_command: execute at %player% run playsound minecraft:entity.warden.sonic_boom master @a[distance=..14] ~ ~ ~ 0.8 1.5'
+        - 'message: &#D946EF👁 Вы активировали &lДезориентацию&r&#D946EF! Враги в радиусе 10 блоков ослеплены!'
+      cooldown:
+        - 'cancel_event: true'
+        - 'message: &cПерезарядка Дезориентации: &e%time%'
+  rw_yavnaya_pyl:
+    type: item_interact
+    conditions:
+      - '%item% == SUGAR'
+      - '%item_name% contains Явная'
+      - '%action_type% contains RIGHT_CLICK'
+    cooldown: 20
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'remove_item_slot: HAND;1'
+        - 'console_command: execute at %player% run effect give @a[distance=0.5..20] minecraft:glowing 15 0'
+        - 'console_command: minecraft:effect give %player% minecraft:speed 15 1'
+        - 'console_command: execute at %player% run playsound minecraft:entity.illusioner.cast_spell master @a[distance=..15] ~ ~ ~ 1 1.4'
+        - 'message: &f💨 &lЯвная Пыль &7подсветила всех игроков в радиусе 20 блоков!'
+      cooldown:
+        - 'cancel_event: true'
+        - 'message: &cПерезарядка Явной Пыли: &e%time%'
+  rw_trapka:
+    type: item_interact
+    conditions:
+      - '%item% == NETHERITE_SCRAP'
+      - '%item_name% contains Трапка'
+      - '%action_type% contains RIGHT_CLICK'
+      - '%player_x% > 80 or %player_x% < -80 or %player_z% > 80 or %player_z% < -80 execute build_trap'
+    cooldown: 35
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'message: &cНа спавне нельзя использовать Трапку! Отойдите в мир выживания (/rtp).'
+      build_trap:
+        - 'cancel_event: true'
+        - 'remove_item_slot: HAND;1'
+        - 'console_command: execute at %player% run fill ~-2 ~-1 ~-2 ~2 ~-1 ~2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run fill ~-2 ~3 ~-2 ~2 ~3 ~2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run fill ~-2 ~ ~-2 ~-2 ~2 ~2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run fill ~2 ~ ~-2 ~2 ~2 ~2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run fill ~-2 ~ ~-2 ~2 ~2 ~-2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run fill ~-2 ~ ~2 ~2 ~2 ~2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run playsound minecraft:block.anvil.place master @a[distance=..12] ~ ~ ~ 1 0.8'
+        - 'message: &#A855F7⛓ Вы активировали &lТрапку 5×5&r&#A855F7!'
+      cooldown:
+        - 'cancel_event: true'
+        - 'message: &cПерезарядка Трапки: &e%time%'
+  rw_plast:
+    type: item_interact
+    conditions:
+      - '%item% == DRIED_KELP'
+      - '%item_name% contains Пласт'
+      - '%action_type% contains RIGHT_CLICK'
+      - '%player_x% > 80 or %player_x% < -80 or %player_z% > 80 or %player_z% < -80 execute build_plast'
+    cooldown: 18
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'message: &cНа спавне нельзя использовать Пласт! Отойдите в мир выживания (/rtp).'
+      build_plast:
+        - 'cancel_event: true'
+        - 'remove_item_slot: HAND;1'
+        - 'console_command: execute at %player% run fill ~-2 ~-1 ~-2 ~2 ~-1 ~2 minecraft:obsidian replace minecraft:air'
+        - 'console_command: execute at %player% run playsound minecraft:block.stone.place master @a[distance=..12] ~ ~ ~ 1 0.9'
+        - 'message: &#94A3B8🧱 Вы поставили &lПласт 5×5&r&#94A3B8 под ногами!'
+      cooldown:
+        - 'cancel_event: true'
+        - 'message: &cПерезарядка Пласта: &e%time%'
+  ny_candy:
+    type: item_interact
+    conditions:
+      - '%item% == COOKIE'
+      - '%item_name% contains Леденец'
+      - '%action_type% contains RIGHT_CLICK'
+    cooldown: 15
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'remove_item_slot: HAND;1'
+        - 'console_command: minecraft:effect give %player% minecraft:speed 20 2'
+        - 'console_command: minecraft:effect give %player% minecraft:regeneration 10 1'
+        - 'console_command: execute at %player% run playsound minecraft:entity.experience_orb.pickup master @s ~ ~ ~ 1 1.5'
+        - 'message: &#FF4081🍭 Новогодний Леденец дал Скорость III и исцеление!'
+      cooldown:
+        - 'cancel_event: true'
+        - 'message: &cПерезарядка Леденца: &e%time%'
+  anti_exploit_cmds:
+    type: player_command
+    ignore_with_permission: kinggrief.admin
+    conditions:
+      - '%main_command% equalsIgnoreCase //calc or %main_command% equalsIgnoreCase //eval or %main_command% equalsIgnoreCase //solve or %main_command% equalsIgnoreCase /pl or %main_command% equalsIgnoreCase /plugins or %main_command% equalsIgnoreCase /bukkit:pl or %main_command% equalsIgnoreCase /bukkit:plugins'
+    actions:
+      default:
+        - 'cancel_event: true'
+        - 'message: &#FF1744&lKINGGRIEF &8» &fСервер работает на собственном новогоднем ядре!'

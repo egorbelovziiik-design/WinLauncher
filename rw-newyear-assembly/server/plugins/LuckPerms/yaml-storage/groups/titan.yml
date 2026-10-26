@@ -1,0 +1,12 @@
+name: titan
+permissions:
+- weight.40
+- essentials.kits.titan
+- essentials.sethome.multiple.titan
+- essentials.enderchest
+- essentials.ptime
+parents:
+- bunny
+prefixes:
+- '&#60A5FA&lTITAN &f':
+    priority: 40

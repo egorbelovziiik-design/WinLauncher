@@ -1,0 +1,16 @@
+location: world:0.500:103.850:-8.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#69F0AE&l👹 ГРИНЧ'
+    height: 0.32
+  - content: '&fЗимний Ивент и Обмен &7(/nyshop)'
+    height: 0.28
+  - content: '&#FFE082▸ Нажми ПКМ / ЛКМ'
+    height: 0.26
+  actions: {}

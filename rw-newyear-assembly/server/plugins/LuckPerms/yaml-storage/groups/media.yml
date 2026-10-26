@@ -1,0 +1,11 @@
+name: media
+permissions:
+- weight.108
+- essentials.kits.media
+- essentials.broadcast
+- protectionstones.limit.15
+parents:
+- yt
+prefixes:
+- '&#EC4899&l🎬 MEDIA &f':
+    priority: 108

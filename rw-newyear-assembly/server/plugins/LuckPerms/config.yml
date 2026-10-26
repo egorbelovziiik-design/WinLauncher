@@ -1,0 +1,12 @@
+server: global
+storage-method: yaml
+messaging-service: none
+sync-minutes: 3
+watch-files: true
+auto-op: false
+vault-server: global
+include-global: true
+include-global-world: true
+apply-wildcards: true
+apply-regex: true
+apply-shorthand: true

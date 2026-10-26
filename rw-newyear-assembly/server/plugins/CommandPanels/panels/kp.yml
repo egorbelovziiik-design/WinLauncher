@@ -1,0 +1,60 @@
+title: '&#10B981&l🛡 КОМАНДА ПРОЕКТА (КП И ДКП)'
+type: inventory
+command: kp
+aliases: [staff, dkp]
+rows: 4
+layout:
+  fill: [bg]
+  11: [kp_info]
+  13: [curator_info]
+  15: [dkp_info]
+  22: [kit_kp]
+items:
+  bg:
+    material: GRAY_STAINED_GLASS_PANE
+    name: '&8•'
+  kp_info:
+    material: DIAMOND_HELMET
+    name: '&#38BDF8&l🛡 Иерархия КП (Персонал сервера)'
+    lore:
+      - '&7Настоящая команда модерации KINGGRIEF:'
+      - '&b1. [Хелпер] &8→ &32. [Ст.Хелпер]'
+      - '&93. [Модер] &8→ &14. [Ст.Модер] &8→ &55. [Гл.Модер]'
+      - '&a6. [КП] &8→ &27. CURATOR &8→ &c8. [Тех.Админ] &8→ &49. OWNER'
+      - ''
+      - '&fНабор открыт с 14 лет! Подать заявку — в Discord/TG.'
+    left-click:
+      commands:
+        - '[msg] &#10B981🛡 Подать заявку в КП: &fhttps://kinggrief.vercel.app/support'
+        - '[close]'
+  curator_info:
+    material: EMERALD
+    glint-override: 'true'
+    name: '&#22C55E&l☘ CURATOR & OWNER'
+    lore:
+      - '&7Руководство персонала и медиа-состава:'
+      - '&f• Эксклюзивные анимированные префиксы в ТАБе и над головой'
+      - '&f• Полный контроль набора Хелперов, Модеров и Блогеров'
+  dkp_info:
+    material: GOLDEN_SWORD
+    glint-override: 'true'
+    name: '&#FF6D00&l⚡ ДКП (Донатная Команда Проекта)'
+    lore:
+      - '&7Хочешь модерировать чат и помогать серверу сразу?'
+      - '&3• D.MODER — 249₽ &8| &9D.ST.MODER — 349₽'
+      - '&5• D.GLMODER — 449₽ &8| &6D.ML.ADMIN — 599₽'
+      - '&c• D.ADMIN — 799₽ &8| &6⚡ ДКП &8| &dOPKA — 999₽'
+      - ''
+      - '&#FFD740▸ Нажми, чтобы открыть каталог привилегий!'
+    left-click:
+      commands:
+        - '[chat] /donate'
+  kit_kp:
+    material: NETHERITE_CHESTPLATE
+    name: '&#10B981&l🎁 Забрать набор сотрудника (/kit kp)'
+    lore:
+      - '&7Доступно Хелперам, Модераторам, КП и ДКП!'
+    left-click:
+      commands:
+        - '[chat] /kit kp'
+        - '[close]'

@@ -1,0 +1,16 @@
+location: world:28.500:103.300:27.000
+enabled: true
+display-range: 48
+update-range: 48
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#FF5252&l⚔ КАБИНКИ 1 НА 1 ⚔'
+    height: 0.35
+  - content: '&fKabinka 1 · Kabinka 2 · Kabinka 3'
+    height: 0.3
+  - content: '&7Честные дуэли в стиле ReallyWorld!'
+    height: 0.3
+  actions: {}

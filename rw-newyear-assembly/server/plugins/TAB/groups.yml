@@ -1,0 +1,24 @@
+owner:
+  tabprefix: "%animation:owner_rw% &f"
+  tagprefix: "%animation:owner_rw% &f"
+curator:
+  tabprefix: "%animation:curator_rw% &f"
+  tagprefix: "%animation:curator_rw% &f"
+kp:
+  tabprefix: "%animation:kp_anim% &f"
+  tagprefix: "%animation:kp_anim% &f"
+downer:
+  tabprefix: "%animation:downer_anim% &f"
+  tagprefix: "%animation:downer_anim% &f"
+opka:
+  tabprefix: "%animation:opka_anim% &f"
+  tagprefix: "%animation:opka_anim% &f"
+dkp:
+  tabprefix: "%animation:dkp_anim% &f"
+  tagprefix: "%animation:dkp_anim% &f"
+king:
+  tabprefix: "%animation:king_anim% &f"
+  tagprefix: "%animation:king_anim% &f"
+_DEFAULT_:
+  tabprefix: "%luckperms-prefix%"
+  tagprefix: "%luckperms-prefix%"

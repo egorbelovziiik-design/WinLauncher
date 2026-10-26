@@ -1,0 +1,18 @@
+location: world:-11.500:103.450:-36.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#FACC15&l🏆 ЛЕГЕНДАРНЫЙ КЕЙС'
+    height: 0.33
+  - content: '&7Шанс на &eGOD&7, &3D.MODER &7и &615 000 ❖'
+    height: 0.27
+  - content: '&f×1: &#00E67659₽ &8(&m79₽&8) &7| &f×3: &#00E676149₽ &7| &f×5: &#FFD740229₽'
+    height: 0.28
+  - content: '&#00E676ПКМ — Открыть &8| &7Купить: &fkinggrief.vercel.app'
+    height: 0.26
+  actions: {}

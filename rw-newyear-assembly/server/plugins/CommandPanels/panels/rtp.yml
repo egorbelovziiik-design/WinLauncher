@@ -1,0 +1,44 @@
+title: '&#00E676&l🧭 РАНДОМНАЯ ТЕЛЕПОРТАЦИЯ (РТП)'
+type: inventory
+command: rtp
+aliases: [wild]
+rows: 3
+layout:
+  fill: [bg]
+  11: [near_rtp]
+  13: [far_rtp]
+  15: [vip_rtp]
+items:
+  bg: {material: BLACK_STAINED_GLASS_PANE, name: '&8•'}
+  near_rtp:
+    material: GRASS_BLOCK
+    name: '&#00E676&l🌲 Ближняя телепортация'
+    lore: ['&7Дистанция: &f350 — 2 000 блоков от спавна', '&7Защита от урона при падении включена!', '', '&#00E676▸ Нажми для телепортации!']
+    left-click:
+      commands:
+        - '[close]'
+        - '[console] effect give %player_name% resistance 12 4 true'
+        - '[console] spreadplayers 0 0 350 2000 false %player_name%'
+        - '[msg] &#00E676🧭 Вы телепортированы в мир выживания!'
+  far_rtp:
+    material: ENDER_EYE
+    name: '&#FFD740&l🏔 Далёкая телепортация (Для Базы)'
+    lore: ['&7Дистанция: &f1 500 — 6 000 блоков от спавна', '&7Идеально для постройки секретной базы!', '', '&#00E676▸ Нажми для телепортации!']
+    left-click:
+      commands:
+        - '[close]'
+        - '[console] effect give %player_name% resistance 12 4 true'
+        - '[console] spreadplayers 0 0 1500 6000 false %player_name%'
+        - '[msg] &#FFD740🧭 Вы телепортированы на дальние координаты!'
+  vip_rtp:
+    material: CRYING_OBSIDIAN
+    name: '&#FF5252&l🔥 Экстремальная телепортация (10 000 бл.)'
+    lore: ['&7Дистанция: &f3 000 — 10 000 блоков (от GOD / KING и выше)']
+    left-click:
+      requirements: ['[conditions] %player_name% $HASPERM essentials.fly']
+      commands:
+        - '[close]'
+        - '[console] effect give %player_name% resistance 15 4 true'
+        - '[console] spreadplayers 0 0 3000 10000 false %player_name%'
+        - '[msg] &#FF5252🧭 Вы телепортированы на край мира (до 10 000 блоков)!'
+      fail: ['[msg] &cДоступно от привилегии GOD (149₽) / KING (199₽)!']

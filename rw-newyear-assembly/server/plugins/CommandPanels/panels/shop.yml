@@ -1,0 +1,155 @@
+title: '&#FF1744&l💎 ДОНАТ-МАГАЗИН (Рилики: %playerpoints_points%)'
+type: inventory
+command: shop
+aliases: [donateshop]
+rows: 5
+layout:
+  fill: [bg]
+  4: [bal]
+  10: [andromeda]
+  11: [krush]
+  12: [aura]
+  13: [dezor]
+  14: [dust]
+  15: [trapka]
+  16: [plast]
+  20: [privat_dia]
+  21: [privat_eme]
+  23: [case_ny]
+  24: [set_krush]
+items:
+  bg:
+    material: LIGHT_BLUE_STAINED_GLASS_PANE
+    name: '&b❄'
+  bal:
+    material: SUNFLOWER
+    name: '&#00E5FF&lТвои рилики: &f%playerpoints_points% ❖'
+    lore: ['&7Пополнить от 19₽: &#FFD740kinggrief.vercel.app/relics']
+  andromeda:
+    material: TOTEM_OF_UNDYING
+    glint-override: 'true'
+    name: '&#E040FB&l🔮 Сфера Андромеды [MAX]'
+    lore: ['&7Легендарный артефакт ReallyWorld', '&fЦена: &#00E5FF499 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 499']
+      commands:
+        - '[console] p take %player_name% 499'
+        - '[console] egive %player_name% totem_of_undying 2 name:&d🔮_Сфера_Андромеды'
+        - '[msg] &#00E676✔ Вы купили Сферу Андромеды!'
+      fail: ['[msg] &cНедостаточно риликов! Купи от 19₽ на kinggrief.vercel.app']
+  krush:
+    material: NETHERITE_SWORD
+    glint-override: 'true'
+    name: '&#FF1744&l⚔ Арсенал Крушителя'
+    lore: ['&7Топовый сет и меч для Зимнего Колизея', '&fЦена: &#00E5FF599 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 599']
+      commands:
+        - '[console] p take %player_name% 599'
+        - '[console] kit king %player_name%'
+        - '[msg] &#00E676✔ Арсенал Крушителя выдан!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  aura:
+    material: BLAZE_POWDER
+    glint-override: 'true'
+    name: '&#FFEE58&l✨ Божья Аура (×4)'
+    lore: ['&7ПКМ в бою — Сила II + Регенерация III + Огнестойкость!', '&fЦена: &#00E5FF199 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 199']
+      commands:
+        - '[console] p take %player_name% 199'
+        - '[console] egive %player_name% blaze_powder 4 name:&e✨_Божья_Аура'
+        - '[msg] &#00E676✔ Божья Аура ×4 выдана! Нажми ПКМ в бою!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  dezor:
+    material: ENDER_EYE
+    glint-override: 'true'
+    name: '&#D946EF&l👁 Дезориентация (×4)'
+    lore: ['&7ПКМ — ослепляет и замедляет врагов в радиусе 10 блоков!', '&fЦена: &#00E5FF199 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 199']
+      commands:
+        - '[console] p take %player_name% 199'
+        - '[console] egive %player_name% ender_eye 4 name:&d👁_Дезориентация'
+        - '[msg] &#00E676✔ Дезориентация ×4 выдана!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  dust:
+    material: SUGAR
+    glint-override: 'true'
+    name: '&f&l💨 Явная Пыль (×6)'
+    lore: ['&7ПКМ — подсвечивает невидимок в радиусе 20 блоков!', '&fЦена: &#00E5FF149 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 149']
+      commands:
+        - '[console] p take %player_name% 149'
+        - '[console] egive %player_name% sugar 6 name:&f💨_Явная_Пыль'
+        - '[msg] &#00E676✔ Явная Пыль ×6 выдана!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  trapka:
+    material: NETHERITE_SCRAP
+    glint-override: 'true'
+    name: '&#A855F7&l⛓ Трапка 5×5 (×3)'
+    lore: ['&7ПКМ в мире — мгновенно создаёт обсидиановую коробку!', '&fЦена: &#00E5FF229 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 229']
+      commands:
+        - '[console] p take %player_name% 229'
+        - '[console] egive %player_name% netherite_scrap 3 name:&5⛓_Трапка'
+        - '[msg] &#00E676✔ Трапка ×3 выдана! Нажми ПКМ в выживании!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  plast:
+    material: DRIED_KELP
+    glint-override: 'true'
+    name: '&#94A3B8&l🧱 Пласт 5×5 (×6)'
+    lore: ['&7ПКМ — создаёт обсидиановую платформу под ногами!', '&fЦена: &#00E5FF149 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 149']
+      commands:
+        - '[console] p take %player_name% 149'
+        - '[console] egive %player_name% dried_kelp 6 name:&8🧱_Пласт'
+        - '[msg] &#00E676✔ Пласт ×6 выдан!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  privat_dia:
+    material: DIAMOND_ORE
+    name: '&#38BDF8&l💎 Алмазный Приват 25×25'
+    lore: ['&7Поставь блок на землю — база сразу заприватится!', '&fЦена: &#00E5FF99 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 99']
+      commands:
+        - '[console] p take %player_name% 99'
+        - '[console] egive %player_name% diamond_ore 1 name:&b💎_Приват_25x25'
+        - '[msg] &#00E676✔ Алмазный блок привата выдан!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  privat_eme:
+    material: EMERALD_ORE
+    name: '&#22C55E&l💚 Изумрудный Приват 40×40'
+    lore: ['&7Огромный приват для клановой базы!', '&fЦена: &#00E5FF199 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 199']
+      commands:
+        - '[console] p take %player_name% 199'
+        - '[console] egive %player_name% emerald_ore 1 name:&a💚_Приват_40x40'
+        - '[msg] &#00E676✔ Изумрудный блок привата выдан!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  case_ny:
+    material: ENDER_CHEST
+    name: '&#80D8FF&l❄ Ключ Сезонного Кейса'
+    lore: ['&7Открой на Арене Кейсов на севере спавна!', '&fЦена: &#00E5FF299 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 299']
+      commands:
+        - '[console] p take %player_name% 299'
+        - '[console] cases give %player_name% summer 1'
+        - '[msg] &#00E676✔ Ключ Сезонного Кейса выдан!'
+      fail: ['[msg] &cНедостаточно риликов!']
+  set_krush:
+    material: ENCHANTED_GOLDEN_APPLE
+    name: '&#FFD740&l🍎 Набор Чар-Яблок (×8)'
+    lore: ['&fЦена: &#00E5FF249 риликов']
+    left-click:
+      requirements: ['[conditions] %playerpoints_points% $ATLEAST 249']
+      commands:
+        - '[console] p take %player_name% 249'
+        - '[console] egive %player_name% enchanted_golden_apple 8'
+        - '[msg] &#00E676✔ 8 зачарованных золотых яблок выданы!'
+      fail: ['[msg] &cНедостаточно риликов!']

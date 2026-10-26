@@ -1,0 +1,14 @@
+name: rabbit
+permissions:
+- weight.45
+- essentials.kits.rabbit
+- essentials.sethome.multiple.rabbit
+- essentials.chat.color
+- essentials.pweather
+- essentials.smithingtable
+- protectionstones.limit.6
+parents:
+- titan
+prefixes:
+- '&#38BDF8&lRABBIT &f':
+    priority: 45

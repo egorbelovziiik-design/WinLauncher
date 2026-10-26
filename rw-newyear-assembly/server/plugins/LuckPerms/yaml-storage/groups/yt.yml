@@ -1,0 +1,9 @@
+name: yt
+permissions:
+- weight.106
+- essentials.kits.media
+parents:
+- twitch
+prefixes:
+- '&#FF0000&lYOU&#FFFFFF&lTUBE &f':
+    priority: 106

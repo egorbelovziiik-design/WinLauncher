@@ -1,0 +1,15 @@
+name: bunny
+permissions:
+- weight.35
+- essentials.kits.bunny
+- essentials.sethome.multiple.bunny
+- essentials.back
+- essentials.back.ondeath
+- essentials.grindstone
+- essentials.cartographytable
+- protectionstones.limit.5
+parents:
+- hero
+prefixes:
+- '&#EC4899&lBUNNY &f':
+    priority: 35

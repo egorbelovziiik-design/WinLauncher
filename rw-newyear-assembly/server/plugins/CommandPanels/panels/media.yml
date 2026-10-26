@@ -1,0 +1,50 @@
+title: '&#FF0050&l🎬 МЕДИА-СОСТАВ ПРОЕКТА'
+type: inventory
+command: media
+aliases: [yt, tiktok, twitch]
+rows: 3
+layout:
+  fill: [bg]
+  11: [tt_item]
+  13: [yt_item]
+  15: [mp_item]
+  22: [media_kit]
+items:
+  bg:
+    material: BLACK_STAINED_GLASS_PANE
+    name: '&8•'
+  tt_item:
+    material: AMETHYST_CLUSTER
+    name: '&#FF0050&lTik&#00F2EA&lTok &7/ &#9146FF&lTWITCH'
+    lore:
+      - '&7Требования:'
+      - '&f• TikTok: от 500 просмотров на роликах с IP сервера'
+      - '&f• Twitch: от 10 зрителей на стриме'
+      - '&aДаёт: Префикс, /fly, /kit media, /ec, /wb, /nick!'
+  yt_item:
+    material: REDSTONE_BLOCK
+    name: '&#FF0000&lYOU&#FFFFFF&lTUBE &7/ &#EC4899&lMEDIA'
+    lore:
+      - '&7Требования:'
+      - '&f• YouTube / Shorts: от 300–500 просмотров с IP'
+      - '&aДаёт: Префикс MEDIA, пиар ролика /bc, реферальный промокод!'
+  mp_item:
+    material: NETHER_STAR
+    glint-override: 'true'
+    name: '&#F43F5E&l🎬 MEDIA&#FACC15&l+ (Партнёр)'
+    lore:
+      - '&7Для крупных ютуберов и стримеров:'
+      - '&f• Доступ к /vanish и /gm 3 для пролёток'
+      - '&f• Оплата за ролики + бесплатные кейсы на розыгрыши!'
+    left-click:
+      commands:
+        - '[msg] &#FF0050🎬 Заявка на Медиа: &fhttps://kinggrief.vercel.app/support'
+        - '[close]'
+  media_kit:
+    material: FIREWORK_ROCKET
+    name: '&#00E676&l🎁 Забрать набор блогера (/kit media)'
+    lore: ['&7Нажми, если у тебя уже есть статус TikTok / YT / Media!']
+    left-click:
+      commands:
+        - '[chat] /kit media'
+        - '[close]'

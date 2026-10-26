@@ -1,0 +1,16 @@
+location: world:0.500:102.700:27.500
+enabled: true
+display-range: 48
+update-range: 48
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#FF1744&l⚔ ЗИМНИЙ КОЛИЗЕЙ PVP ⚔'
+    height: 0.35
+  - content: '&fПрыгай за &#FF1744красную линию &fдля честного боя!'
+    height: 0.3
+  - content: '&7Урон от падения выключен · Лестницы выхода по бокам'
+    height: 0.3
+  actions: {}

@@ -1,0 +1,6 @@
+base-url: "https://kinggrief.vercel.app"
+secret: "53b473e51739892e63fc8c1e5243a00266a20d2f34c3d7b4"
+server-id: "kinggrief-main"
+poll-seconds: 5
+notify-player: true
+allow-all-commands: true

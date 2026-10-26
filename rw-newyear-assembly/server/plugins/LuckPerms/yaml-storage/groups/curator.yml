@@ -1,0 +1,15 @@
+name: curator
+permissions:
+- weight.275
+- essentials.kits.curator
+- essentials.sethome.multiple.unlimited
+- luckperms.user.info
+- luckperms.user.parent.info
+- luckperms.user.promote
+- luckperms.user.demote
+- luckperms.group.listmembers
+parents:
+- kp
+prefixes:
+- '&f &f':
+    priority: 275

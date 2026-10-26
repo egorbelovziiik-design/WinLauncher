@@ -1,0 +1,16 @@
+name: god
+permissions:
+- weight.65
+- essentials.kits.god
+- essentials.sethome.multiple.god
+- essentials.fly
+- essentials.feed
+- essentials.repair.all
+- essentials.nick
+- essentials.nick.color
+- protectionstones.limit.8
+parents:
+- dracula
+prefixes:
+- '&#FACC15&lGOD &f':
+    priority: 65

@@ -520,8 +520,14 @@ export function AdminGrantPanel({
           <button type="button" onClick={pollStatus} className="btn btn-ghost btn-sm" title="Обновить статус очереди">
             <RefreshCw size={12} /> Статус
           </button>
-          <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин KingGriefBridge.jar">
-            <Download size={12} /> Плагин .jar
+          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v3.0 (Спавн, NPC, Кейсы, ТАБ, Скорборд, Регистрация)">
+            <Download size={12} /> Ядро v3.0 (.jar)
+          </a>
+          <a href="/kinggrief-mega-rp.zip" download className="btn btn-gold btn-sm" title="Скачать Новогодний Мега-Ресурспак v3.0">
+            <Download size={12} /> Мега-РП (.zip)
+          </a>
+          <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
+            <Download size={12} /> Мост (.jar)
           </a>
         </div>
       }

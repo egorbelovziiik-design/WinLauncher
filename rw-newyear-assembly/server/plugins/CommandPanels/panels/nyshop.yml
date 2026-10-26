@@ -1,0 +1,40 @@
+title: '&#FF5252&l🎅 ЛАВКА ДЕДА МОРОЗА ❄'
+type: inventory
+command: nyshop
+aliases: [santa, event]
+rows: 3
+layout:
+  fill: [bg]
+  11: [ny_kit]
+  13: [candy]
+  15: [santa_case]
+items:
+  bg:
+    material: RED_STAINED_GLASS_PANE
+    name: '&c🎄'
+  ny_kit:
+    material: CHEST
+    name: '&#80D8FF&l🎁 Бесплатный Новогодний Набор'
+    lore: ['&7Забирай праздничный меч, кирку, геплы и леденцы!', '&#00E676▸ Нажми, чтобы получить!']
+    left-click: {commands: ['[chat] /kit newyear', '[close]']}
+  candy:
+    material: COOKIE
+    glint-override: 'true'
+    name: '&#FF4081&l🍭 Новогодний Леденец (×4)'
+    lore: ['&7ПКМ — даёт Скорость III и исцеление!', '&fЦена: &#FFEA005 000$ монет']
+    left-click:
+      requirements: ['[vault] 5000']
+      commands:
+        - '[console] egive %player_name% cookie 4 name:&d🍭_Новогодний_Леденец'
+        - '[msg] &#80D8FF❄ Дед Мороз выдал тебе 4 Новогодних Леденца!'
+      fail: ['[msg] &cНужно 5 000$ монет! Продай ресурсы Скупщику (/buyer)']
+  santa_case:
+    material: ENDER_CHEST
+    name: '&#FFD740&l🎄 Донат-Кейс за Игровые Монеты'
+    lore: ['&7Играй бесплатно и выбивай привилегии!', '&fЦена: &#FFEA00250 000$ монет']
+    left-click:
+      requirements: ['[vault] 250000']
+      commands:
+        - '[console] cases give %player_name% donate 1'
+        - '[msg] &#00E676🎅 Дед Мороз вручил тебе Донат-Кейс!'
+      fail: ['[msg] &cНужно 250 000$ монет! Зарабатывай на /jobs и /buyer!']

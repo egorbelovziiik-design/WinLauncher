@@ -1,0 +1,797 @@
+# Полная авто-настройка всех 40 привилегий, КП, ДКП и Медиа (LuckPerms):
+lp group default setweight 10
+lp group default meta setprefix 10 "&#B0BEC5Игрок &f"
+lp group default permission set essentials.spawn true
+lp group default permission set essentials.kit true
+lp group default permission set essentials.kits.start true
+lp group default permission set essentials.kits.newyear true
+lp group default permission set essentials.sethome true
+lp group default permission set essentials.sethome.multiple.default true
+lp group default permission set essentials.home true
+lp group default permission set essentials.delhome true
+lp group default permission set essentials.tpa true
+lp group default permission set essentials.tpaccept true
+lp group default permission set essentials.tpdeny true
+lp group default permission set essentials.pay true
+lp group default permission set essentials.balance true
+lp group default permission set essentials.balancetop true
+lp group default permission set essentials.msg true
+lp group default permission set essentials.reply true
+lp group default permission set essentials.ignore true
+lp group default permission set essentials.mail true
+lp group default permission set essentials.mail.send true
+lp group default permission set essentials.suicide true
+lp group default permission set essentials.list true
+lp group default permission set essentials.rules true
+lp group default permission set essentials.motd true
+lp group default permission set betterrtp.use true
+lp group default permission set protectionstones.create true
+lp group default permission set protectionstones.destroy true
+lp group default permission set protectionstones.view true
+lp group default permission set protectionstones.info true
+lp group default permission set protectionstones.members true
+lp group default permission set protectionstones.owners true
+lp group default permission set protectionstones.flags true
+lp group default permission set protectionstones.limit.2 true
+lp group default permission set crazyauctions.access true
+lp group default permission set crazyauctions.sell true
+lp group default permission set crazyauctions.bid true
+lp group default permission set clanslite.player true
+lp group default permission set jobs.use true
+lp group default permission set playerpoints.points true
+lp group default permission set playerpoints.pay true
+lp creategroup pegas
+lp group pegas setweight 20
+lp group pegas meta setprefix 20 "&#22C55E&lPEGAS &f"
+lp group pegas parent set default
+lp group pegas permission set essentials.kits.pegas true
+lp group pegas permission set essentials.sethome.multiple.pegas true
+lp group pegas permission set essentials.workbench true
+lp group pegas permission set essentials.hat true
+lp group pegas permission set protectionstones.limit.3 true
+lp creategroup cobra
+lp group cobra setweight 25
+lp group cobra meta setprefix 25 "&#84CC16&lCOBRA &f"
+lp group cobra parent set pegas
+lp group cobra permission set essentials.kits.cobra true
+lp group cobra permission set essentials.sethome.multiple.cobra true
+lp group cobra permission set essentials.ext true
+lp group cobra permission set essentials.clearinventory true
+lp group cobra permission set protectionstones.limit.4 true
+lp creategroup hero
+lp group hero setweight 30
+lp group hero meta setprefix 30 "&#38BDF8&lHERO &f"
+lp group hero parent set cobra
+lp group hero permission set essentials.kits.hero true
+lp group hero permission set essentials.sethome.multiple.hero true
+lp group hero permission set essentials.disposal true
+lp group hero permission set essentials.stonecutter true
+lp group hero permission set essentials.loom true
+lp creategroup bunny
+lp group bunny setweight 35
+lp group bunny meta setprefix 35 "&#EC4899&lBUNNY &f"
+lp group bunny parent set hero
+lp group bunny permission set essentials.kits.bunny true
+lp group bunny permission set essentials.sethome.multiple.bunny true
+lp group bunny permission set essentials.back true
+lp group bunny permission set essentials.back.ondeath true
+lp group bunny permission set essentials.grindstone true
+lp group bunny permission set essentials.cartographytable true
+lp group bunny permission set protectionstones.limit.5 true
+lp creategroup titan
+lp group titan setweight 40
+lp group titan meta setprefix 40 "&#60A5FA&lTITAN &f"
+lp group titan parent set bunny
+lp group titan permission set essentials.kits.titan true
+lp group titan permission set essentials.sethome.multiple.titan true
+lp group titan permission set essentials.enderchest true
+lp group titan permission set essentials.ptime true
+lp creategroup rabbit
+lp group rabbit setweight 45
+lp group rabbit meta setprefix 45 "&#38BDF8&lRABBIT &f"
+lp group rabbit parent set titan
+lp group rabbit permission set essentials.kits.rabbit true
+lp group rabbit permission set essentials.sethome.multiple.rabbit true
+lp group rabbit permission set essentials.chat.color true
+lp group rabbit permission set essentials.pweather true
+lp group rabbit permission set essentials.smithingtable true
+lp group rabbit permission set protectionstones.limit.6 true
+lp creategroup vampire
+lp group vampire setweight 50
+lp group vampire meta setprefix 50 "&#EF4444&lVAMPIRE &f"
+lp group vampire parent set rabbit
+lp group vampire permission set essentials.kits.vampire true
+lp group vampire permission set essentials.sethome.multiple.vampire true
+lp group vampire permission set essentials.joinfullserver true
+lp group vampire permission set essentials.near true
+lp creategroup tiger
+lp group tiger setweight 55
+lp group tiger meta setprefix 55 "&#FB923C&lTIGER &f"
+lp group tiger parent set vampire
+lp group tiger permission set essentials.kits.tiger true
+lp group tiger permission set essentials.sethome.multiple.tiger true
+lp group tiger permission set essentials.repair true
+lp group tiger permission set essentials.anvil true
+lp group tiger permission set protectionstones.limit.7 true
+lp creategroup dracula
+lp group dracula setweight 60
+lp group dracula meta setprefix 60 "&#DC2626&lDRACULA &f"
+lp group dracula parent set tiger
+lp group dracula permission set essentials.kits.dracula true
+lp group dracula permission set essentials.sethome.multiple.dracula true
+lp group dracula permission set essentials.heal true
+lp group dracula permission set essentials.repair.armor true
+lp creategroup god
+lp group god setweight 65
+lp group god meta setprefix 65 "&#FACC15&lGOD &f"
+lp group god parent set dracula
+lp group god permission set essentials.kits.god true
+lp group god permission set essentials.sethome.multiple.god true
+lp group god permission set essentials.fly true
+lp group god permission set essentials.feed true
+lp group god permission set essentials.repair.all true
+lp group god permission set essentials.nick true
+lp group god permission set essentials.nick.color true
+lp group god permission set protectionstones.limit.8 true
+lp creategroup overlord
+lp group overlord setweight 70
+lp group overlord meta setprefix 70 "&#2DD4BF&lOVERLORD &f"
+lp group overlord parent set god
+lp group overlord permission set essentials.kits.overlord true
+lp group overlord permission set essentials.sethome.multiple.overlord true
+lp group overlord permission set essentials.chat.rgb true
+lp group overlord permission set essentials.repair.enchanted true
+lp group overlord permission set protectionstones.limit.9 true
+lp creategroup imperator
+lp group imperator setweight 75
+lp group imperator meta setprefix 75 "&#F43F5E&lIMPERATOR &f"
+lp group imperator parent set overlord
+lp group imperator permission set essentials.kits.imperator true
+lp group imperator permission set essentials.sethome.multiple.imperator true
+lp group imperator permission set essentials.tpahere true
+lp group imperator permission set essentials.invsee true
+lp group imperator permission set protectionstones.limit.10 true
+lp creategroup dragon
+lp group dragon setweight 80
+lp group dragon meta setprefix 80 "&#D946EF&lDRAGON &f"
+lp group dragon parent set imperator
+lp group dragon permission set essentials.kits.dragon true
+lp group dragon permission set essentials.sethome.multiple.dragon true
+lp group dragon permission set essentials.keepxp true
+lp group dragon permission set essentials.seen true
+lp group dragon permission set protectionstones.limit.11 true
+lp creategroup king
+lp group king setweight 90
+lp group king meta setprefix 90 "&#A855F7&l👑 KING &f"
+lp group king parent set dragon
+lp group king permission set essentials.kits.king true
+lp group king permission set essentials.sethome.multiple.king true
+lp group king permission set essentials.chat.format true
+lp group king permission set essentials.itemname true
+lp group king permission set essentials.nick.rgb true
+lp group king permission set protectionstones.limit.12 true
+lp creategroup bull
+lp group bull setweight 94
+lp group bull meta setprefix 94 "&#EA580C&lBULL &f"
+lp group bull parent set king
+lp group bull permission set essentials.kits.bull true
+lp group bull permission set essentials.sethome.multiple.bull true
+lp group bull permission set essentials.jump true
+lp group bull permission set essentials.condense true
+lp group bull permission set protectionstones.limit.14 true
+lp creategroup sponsor
+lp group sponsor setweight 98
+lp group sponsor meta setprefix 98 "&#FBBF24&l★ SPONSOR &f"
+lp group sponsor parent set bull
+lp group sponsor permission set essentials.kits.sponsor true
+lp group sponsor permission set essentials.sethome.multiple.sponsor true
+lp group sponsor permission set essentials.afk.kickexempt true
+lp group sponsor permission set essentials.me true
+lp group sponsor permission set protectionstones.limit.15 true
+lp creategroup tiktok
+lp group tiktok setweight 102
+lp group tiktok meta setprefix 102 "&#FF0050&lTik&#00F2EA&lTok &f"
+lp group tiktok parent set king
+lp group tiktok permission set essentials.kits.media true
+lp group tiktok permission set essentials.sethome.multiple.media true
+lp group tiktok permission set essentials.afk.kickexempt true
+lp creategroup twitch
+lp group twitch setweight 104
+lp group twitch meta setprefix 104 "&#9146FF&lTWITCH &f"
+lp group twitch parent set tiktok
+lp group twitch permission set essentials.kits.media true
+lp creategroup yt
+lp group yt setweight 106
+lp group yt meta setprefix 106 "&#FF0000&lYOU&#FFFFFF&lTUBE &f"
+lp group yt parent set twitch
+lp group yt permission set essentials.kits.media true
+lp creategroup media
+lp group media setweight 108
+lp group media meta setprefix 108 "&#EC4899&l🎬 MEDIA &f"
+lp group media parent set yt
+lp group media permission set essentials.kits.media true
+lp group media permission set essentials.broadcast true
+lp group media permission set protectionstones.limit.15 true
+lp creategroup mediaplus
+lp group mediaplus setweight 110
+lp group mediaplus meta setprefix 110 "&#F43F5E&l🎬 MEDIA&#FACC15&l+ &f"
+lp group mediaplus parent set media
+lp group mediaplus permission set essentials.vanish true
+lp group mediaplus permission set essentials.gamemode.spectator true
+lp group mediaplus permission set essentials.gamemode.survival true
+lp group mediaplus permission set protectionstones.limit.20 true
+lp group mediaplus permission set bukkit.command.stop false
+lp group mediaplus permission set minecraft.command.stop false
+lp group mediaplus permission set bukkit.command.restart false
+lp group mediaplus permission set spigot.restart false
+lp group mediaplus permission set bukkit.command.op false
+lp group mediaplus permission set minecraft.command.op false
+lp group mediaplus permission set bukkit.command.deop false
+lp group mediaplus permission set minecraft.command.deop false
+lp group mediaplus permission set bukkit.command.plugins false
+lp group mediaplus permission set bukkit.command.version false
+lp group mediaplus permission set bukkit.command.reload false
+lp group mediaplus permission set luckperms.* false
+lp group mediaplus permission set worldedit.* false
+lp group mediaplus permission set fawe.* false
+lp group mediaplus permission set worldguard.* false
+lp group mediaplus permission set fancynpcs.* false
+lp group mediaplus permission set citizens.* false
+lp group mediaplus permission set decentholograms.* false
+lp group mediaplus permission set commandpanels.* false
+lp group mediaplus permission set deluxemenus.admin false
+lp group mediaplus permission set conditionalevents.admin false
+lp creategroup dhelper
+lp group dhelper setweight 115
+lp group dhelper meta setprefix 115 "&#2DD4BF&lD.HELPER &f"
+lp group dhelper parent set sponsor
+lp group dhelper permission set essentials.kits.dmoder true
+lp group dhelper permission set essentials.mute true
+lp group dhelper permission set essentials.kick true
+lp group dhelper permission set essentials.whois true
+lp group dhelper permission set essentials.realname true
+lp group dhelper permission set bukkit.command.stop false
+lp group dhelper permission set minecraft.command.stop false
+lp group dhelper permission set bukkit.command.restart false
+lp group dhelper permission set spigot.restart false
+lp group dhelper permission set bukkit.command.op false
+lp group dhelper permission set minecraft.command.op false
+lp group dhelper permission set bukkit.command.deop false
+lp group dhelper permission set minecraft.command.deop false
+lp group dhelper permission set bukkit.command.plugins false
+lp group dhelper permission set bukkit.command.version false
+lp group dhelper permission set bukkit.command.reload false
+lp group dhelper permission set luckperms.* false
+lp group dhelper permission set worldedit.* false
+lp group dhelper permission set fawe.* false
+lp group dhelper permission set worldguard.* false
+lp group dhelper permission set fancynpcs.* false
+lp group dhelper permission set citizens.* false
+lp group dhelper permission set decentholograms.* false
+lp group dhelper permission set commandpanels.* false
+lp group dhelper permission set deluxemenus.admin false
+lp group dhelper permission set conditionalevents.admin false
+lp creategroup dmoder
+lp group dmoder setweight 120
+lp group dmoder meta setprefix 120 "&#14B8A6&lD.MODER &f"
+lp group dmoder parent set dhelper
+lp group dmoder permission set essentials.kits.dmoder true
+lp group dmoder permission set essentials.sethome.multiple.dmoder true
+lp group dmoder permission set essentials.endersee true
+lp group dmoder permission set essentials.tp true
+lp group dmoder permission set protectionstones.limit.18 true
+lp group dmoder permission set bukkit.command.stop false
+lp group dmoder permission set minecraft.command.stop false
+lp group dmoder permission set bukkit.command.restart false
+lp group dmoder permission set spigot.restart false
+lp group dmoder permission set bukkit.command.op false
+lp group dmoder permission set minecraft.command.op false
+lp group dmoder permission set bukkit.command.deop false
+lp group dmoder permission set minecraft.command.deop false
+lp group dmoder permission set bukkit.command.plugins false
+lp group dmoder permission set bukkit.command.version false
+lp group dmoder permission set bukkit.command.reload false
+lp group dmoder permission set luckperms.* false
+lp group dmoder permission set worldedit.* false
+lp group dmoder permission set fawe.* false
+lp group dmoder permission set worldguard.* false
+lp group dmoder permission set fancynpcs.* false
+lp group dmoder permission set citizens.* false
+lp group dmoder permission set decentholograms.* false
+lp group dmoder permission set commandpanels.* false
+lp group dmoder permission set deluxemenus.admin false
+lp group dmoder permission set conditionalevents.admin false
+lp creategroup dstmoder
+lp group dstmoder setweight 130
+lp group dstmoder meta setprefix 130 "&#3B82F6&lD.ST.MODER &f"
+lp group dstmoder parent set dmoder
+lp group dstmoder permission set essentials.kits.dstmoder true
+lp group dstmoder permission set essentials.sethome.multiple.dstmoder true
+lp group dstmoder permission set essentials.tempban true
+lp group dstmoder permission set essentials.vanish true
+lp group dstmoder permission set essentials.socialspy true
+lp group dstmoder permission set protectionstones.limit.20 true
+lp group dstmoder permission set bukkit.command.stop false
+lp group dstmoder permission set minecraft.command.stop false
+lp group dstmoder permission set bukkit.command.restart false
+lp group dstmoder permission set spigot.restart false
+lp group dstmoder permission set bukkit.command.op false
+lp group dstmoder permission set minecraft.command.op false
+lp group dstmoder permission set bukkit.command.deop false
+lp group dstmoder permission set minecraft.command.deop false
+lp group dstmoder permission set bukkit.command.plugins false
+lp group dstmoder permission set bukkit.command.version false
+lp group dstmoder permission set bukkit.command.reload false
+lp group dstmoder permission set luckperms.* false
+lp group dstmoder permission set worldedit.* false
+lp group dstmoder permission set fawe.* false
+lp group dstmoder permission set worldguard.* false
+lp group dstmoder permission set fancynpcs.* false
+lp group dstmoder permission set citizens.* false
+lp group dstmoder permission set decentholograms.* false
+lp group dstmoder permission set commandpanels.* false
+lp group dstmoder permission set deluxemenus.admin false
+lp group dstmoder permission set conditionalevents.admin false
+lp creategroup dglmoder
+lp group dglmoder setweight 140
+lp group dglmoder meta setprefix 140 "&#8B5CF6&lD.GLMODER &f"
+lp group dglmoder parent set dstmoder
+lp group dglmoder permission set essentials.kits.dglmoder true
+lp group dglmoder permission set essentials.sethome.multiple.dglmoder true
+lp group dglmoder permission set essentials.unban true
+lp group dglmoder permission set essentials.gamemode.spectator true
+lp group dglmoder permission set essentials.gamemode.survival true
+lp group dglmoder permission set protectionstones.limit.22 true
+lp group dglmoder permission set bukkit.command.stop false
+lp group dglmoder permission set minecraft.command.stop false
+lp group dglmoder permission set bukkit.command.restart false
+lp group dglmoder permission set spigot.restart false
+lp group dglmoder permission set bukkit.command.op false
+lp group dglmoder permission set minecraft.command.op false
+lp group dglmoder permission set bukkit.command.deop false
+lp group dglmoder permission set minecraft.command.deop false
+lp group dglmoder permission set bukkit.command.plugins false
+lp group dglmoder permission set bukkit.command.version false
+lp group dglmoder permission set bukkit.command.reload false
+lp group dglmoder permission set luckperms.* false
+lp group dglmoder permission set worldedit.* false
+lp group dglmoder permission set fawe.* false
+lp group dglmoder permission set worldguard.* false
+lp group dglmoder permission set fancynpcs.* false
+lp group dglmoder permission set citizens.* false
+lp group dglmoder permission set decentholograms.* false
+lp group dglmoder permission set commandpanels.* false
+lp group dglmoder permission set deluxemenus.admin false
+lp group dglmoder permission set conditionalevents.admin false
+lp creategroup dmladmin
+lp group dmladmin setweight 150
+lp group dmladmin meta setprefix 150 "&#F97316&lD.ML.ADMIN &f"
+lp group dmladmin parent set dglmoder
+lp group dmladmin permission set essentials.kits.dmladmin true
+lp group dmladmin permission set essentials.sethome.multiple.dmladmin true
+lp group dmladmin permission set essentials.god true
+lp group dmladmin permission set essentials.broadcast true
+lp group dmladmin permission set protectionstones.limit.25 true
+lp group dmladmin permission set bukkit.command.stop false
+lp group dmladmin permission set minecraft.command.stop false
+lp group dmladmin permission set bukkit.command.restart false
+lp group dmladmin permission set spigot.restart false
+lp group dmladmin permission set bukkit.command.op false
+lp group dmladmin permission set minecraft.command.op false
+lp group dmladmin permission set bukkit.command.deop false
+lp group dmladmin permission set minecraft.command.deop false
+lp group dmladmin permission set bukkit.command.plugins false
+lp group dmladmin permission set bukkit.command.version false
+lp group dmladmin permission set bukkit.command.reload false
+lp group dmladmin permission set luckperms.* false
+lp group dmladmin permission set worldedit.* false
+lp group dmladmin permission set fawe.* false
+lp group dmladmin permission set worldguard.* false
+lp group dmladmin permission set fancynpcs.* false
+lp group dmladmin permission set citizens.* false
+lp group dmladmin permission set decentholograms.* false
+lp group dmladmin permission set commandpanels.* false
+lp group dmladmin permission set deluxemenus.admin false
+lp group dmladmin permission set conditionalevents.admin false
+lp creategroup dadmin
+lp group dadmin setweight 160
+lp group dadmin meta setprefix 160 "&#DC2626&lD.ADMIN &f"
+lp group dadmin parent set dmladmin
+lp group dadmin permission set essentials.kits.dadmin true
+lp group dadmin permission set essentials.sethome.multiple.dadmin true
+lp group dadmin permission set essentials.time true
+lp group dadmin permission set essentials.time.set true
+lp group dadmin permission set essentials.weather true
+lp group dadmin permission set essentials.heal.others true
+lp group dadmin permission set essentials.feed.others true
+lp group dadmin permission set protectionstones.limit.30 true
+lp group dadmin permission set bukkit.command.stop false
+lp group dadmin permission set minecraft.command.stop false
+lp group dadmin permission set bukkit.command.restart false
+lp group dadmin permission set spigot.restart false
+lp group dadmin permission set bukkit.command.op false
+lp group dadmin permission set minecraft.command.op false
+lp group dadmin permission set bukkit.command.deop false
+lp group dadmin permission set minecraft.command.deop false
+lp group dadmin permission set bukkit.command.plugins false
+lp group dadmin permission set bukkit.command.version false
+lp group dadmin permission set bukkit.command.reload false
+lp group dadmin permission set luckperms.* false
+lp group dadmin permission set worldedit.* false
+lp group dadmin permission set fawe.* false
+lp group dadmin permission set worldguard.* false
+lp group dadmin permission set fancynpcs.* false
+lp group dadmin permission set citizens.* false
+lp group dadmin permission set decentholograms.* false
+lp group dadmin permission set commandpanels.* false
+lp group dadmin permission set deluxemenus.admin false
+lp group dadmin permission set conditionalevents.admin false
+lp creategroup dkp
+lp group dkp setweight 168
+lp group dkp meta setprefix 168 "&#FF6D00&l⚡ ДКП &f"
+lp group dkp parent set dadmin
+lp group dkp permission set essentials.kits.dkp true
+lp group dkp permission set essentials.sethome.multiple.dkp true
+lp group dkp permission set essentials.tphere true
+lp group dkp permission set essentials.speed true
+lp group dkp permission set essentials.speed.fly true
+lp group dkp permission set essentials.speed.walk true
+lp group dkp permission set protectionstones.limit.35 true
+lp group dkp permission set bukkit.command.stop false
+lp group dkp permission set minecraft.command.stop false
+lp group dkp permission set bukkit.command.restart false
+lp group dkp permission set spigot.restart false
+lp group dkp permission set bukkit.command.op false
+lp group dkp permission set minecraft.command.op false
+lp group dkp permission set bukkit.command.deop false
+lp group dkp permission set minecraft.command.deop false
+lp group dkp permission set bukkit.command.plugins false
+lp group dkp permission set bukkit.command.version false
+lp group dkp permission set bukkit.command.reload false
+lp group dkp permission set luckperms.* false
+lp group dkp permission set worldedit.* false
+lp group dkp permission set fawe.* false
+lp group dkp permission set worldguard.* false
+lp group dkp permission set fancynpcs.* false
+lp group dkp permission set citizens.* false
+lp group dkp permission set decentholograms.* false
+lp group dkp permission set commandpanels.* false
+lp group dkp permission set deluxemenus.admin false
+lp group dkp permission set conditionalevents.admin false
+lp creategroup opka
+lp group opka setweight 178
+lp group opka meta setprefix 178 "&#C026D3&l🔥 OPKA &f"
+lp group opka parent set dkp
+lp group opka permission set essentials.kits.opka true
+lp group opka permission set essentials.sethome.multiple.opka true
+lp group opka permission set essentials.gamemode true
+lp group opka permission set essentials.gamemode.creative true
+lp group opka permission set essentials.gamemode.survival true
+lp group opka permission set essentials.gamemode.spectator true
+lp group opka permission set essentials.give true
+lp group opka permission set essentials.item true
+lp group opka permission set essentials.enchant true
+lp group opka permission set essentials.exp true
+lp group opka permission set essentials.teleport.timer.bypass true
+lp group opka permission set protectionstones.limit.50 true
+lp group opka permission set bukkit.command.stop false
+lp group opka permission set minecraft.command.stop false
+lp group opka permission set bukkit.command.restart false
+lp group opka permission set spigot.restart false
+lp group opka permission set bukkit.command.op false
+lp group opka permission set minecraft.command.op false
+lp group opka permission set bukkit.command.deop false
+lp group opka permission set minecraft.command.deop false
+lp group opka permission set bukkit.command.plugins false
+lp group opka permission set bukkit.command.version false
+lp group opka permission set bukkit.command.reload false
+lp group opka permission set luckperms.* false
+lp group opka permission set worldedit.* false
+lp group opka permission set fawe.* false
+lp group opka permission set worldguard.* false
+lp group opka permission set fancynpcs.* false
+lp group opka permission set citizens.* false
+lp group opka permission set decentholograms.* false
+lp group opka permission set commandpanels.* false
+lp group opka permission set deluxemenus.admin false
+lp group opka permission set conditionalevents.admin false
+lp creategroup downer
+lp group downer setweight 190
+lp group downer meta setprefix 190 "&f &#FACC15&lD.OWNER &f"
+lp group downer parent set opka
+lp group downer permission set essentials.kits.downer true
+lp group downer permission set essentials.kits.owner true
+lp group downer permission set essentials.sethome.multiple.unlimited true
+lp group downer permission set protectionstones.admin true
+lp group downer permission set crazyauctions.bypass true
+lp group downer permission set essentials.invsee.modify true
+lp group downer permission set bukkit.command.stop false
+lp group downer permission set minecraft.command.stop false
+lp group downer permission set bukkit.command.restart false
+lp group downer permission set spigot.restart false
+lp group downer permission set bukkit.command.op false
+lp group downer permission set minecraft.command.op false
+lp group downer permission set bukkit.command.deop false
+lp group downer permission set minecraft.command.deop false
+lp group downer permission set bukkit.command.plugins false
+lp group downer permission set bukkit.command.version false
+lp group downer permission set bukkit.command.reload false
+lp group downer permission set luckperms.* false
+lp group downer permission set worldedit.* false
+lp group downer permission set fawe.* false
+lp group downer permission set worldguard.* false
+lp group downer permission set fancynpcs.* false
+lp group downer permission set citizens.* false
+lp group downer permission set decentholograms.* false
+lp group downer permission set commandpanels.* false
+lp group downer permission set deluxemenus.admin false
+lp group downer permission set conditionalevents.admin false
+lp creategroup helper
+lp group helper setweight 205
+lp group helper meta setprefix 205 "&#38BDF8&l[Хелпер] &f"
+lp group helper parent set default
+lp group helper permission set essentials.kits.kp true
+lp group helper permission set essentials.sethome.multiple.kp true
+lp group helper permission set essentials.fly true
+lp group helper permission set essentials.vanish true
+lp group helper permission set essentials.mute true
+lp group helper permission set essentials.mute.notify true
+lp group helper permission set essentials.kick true
+lp group helper permission set essentials.whois true
+lp group helper permission set essentials.realname true
+lp group helper permission set essentials.socialspy true
+lp group helper permission set essentials.helpop.receive true
+lp group helper permission set essentials.kick.exempt true
+lp group helper permission set essentials.ban.exempt true
+lp group helper permission set essentials.mute.exempt true
+lp group helper permission set bukkit.command.stop false
+lp group helper permission set minecraft.command.stop false
+lp group helper permission set bukkit.command.restart false
+lp group helper permission set spigot.restart false
+lp group helper permission set bukkit.command.op false
+lp group helper permission set minecraft.command.op false
+lp group helper permission set bukkit.command.deop false
+lp group helper permission set minecraft.command.deop false
+lp group helper permission set bukkit.command.plugins false
+lp group helper permission set bukkit.command.version false
+lp group helper permission set bukkit.command.reload false
+lp group helper permission set luckperms.* false
+lp group helper permission set worldedit.* false
+lp group helper permission set fawe.* false
+lp group helper permission set worldguard.* false
+lp group helper permission set fancynpcs.* false
+lp group helper permission set citizens.* false
+lp group helper permission set decentholograms.* false
+lp group helper permission set commandpanels.* false
+lp group helper permission set deluxemenus.admin false
+lp group helper permission set conditionalevents.admin false
+lp creategroup sthelper
+lp group sthelper setweight 215
+lp group sthelper meta setprefix 215 "&#0EA5E9&l[Ст.Хелпер] &f"
+lp group sthelper parent set helper
+lp group sthelper permission set essentials.invsee true
+lp group sthelper permission set essentials.endersee true
+lp group sthelper permission set essentials.tp true
+lp group sthelper permission set essentials.seen true
+lp group sthelper permission set bukkit.command.stop false
+lp group sthelper permission set minecraft.command.stop false
+lp group sthelper permission set bukkit.command.restart false
+lp group sthelper permission set spigot.restart false
+lp group sthelper permission set bukkit.command.op false
+lp group sthelper permission set minecraft.command.op false
+lp group sthelper permission set bukkit.command.deop false
+lp group sthelper permission set minecraft.command.deop false
+lp group sthelper permission set bukkit.command.plugins false
+lp group sthelper permission set bukkit.command.version false
+lp group sthelper permission set bukkit.command.reload false
+lp group sthelper permission set luckperms.* false
+lp group sthelper permission set worldedit.* false
+lp group sthelper permission set fawe.* false
+lp group sthelper permission set worldguard.* false
+lp group sthelper permission set fancynpcs.* false
+lp group sthelper permission set citizens.* false
+lp group sthelper permission set decentholograms.* false
+lp group sthelper permission set commandpanels.* false
+lp group sthelper permission set deluxemenus.admin false
+lp group sthelper permission set conditionalevents.admin false
+lp creategroup moder
+lp group moder setweight 225
+lp group moder meta setprefix 225 "&#2563EB&l[Модер] &f"
+lp group moder parent set sthelper
+lp group moder permission set essentials.tempban true
+lp group moder permission set essentials.unban true
+lp group moder permission set essentials.gamemode.spectator true
+lp group moder permission set essentials.gamemode.survival true
+lp group moder permission set essentials.tphere true
+lp group moder permission set coreprotect.inspect true
+lp group moder permission set coreprotect.lookup true
+lp group moder permission set bukkit.command.stop false
+lp group moder permission set minecraft.command.stop false
+lp group moder permission set bukkit.command.restart false
+lp group moder permission set spigot.restart false
+lp group moder permission set bukkit.command.op false
+lp group moder permission set minecraft.command.op false
+lp group moder permission set bukkit.command.deop false
+lp group moder permission set minecraft.command.deop false
+lp group moder permission set bukkit.command.plugins false
+lp group moder permission set bukkit.command.version false
+lp group moder permission set bukkit.command.reload false
+lp group moder permission set luckperms.* false
+lp group moder permission set worldedit.* false
+lp group moder permission set fawe.* false
+lp group moder permission set worldguard.* false
+lp group moder permission set fancynpcs.* false
+lp group moder permission set citizens.* false
+lp group moder permission set decentholograms.* false
+lp group moder permission set commandpanels.* false
+lp group moder permission set deluxemenus.admin false
+lp group moder permission set conditionalevents.admin false
+lp creategroup stmoder
+lp group stmoder setweight 235
+lp group stmoder meta setprefix 235 "&#4F46E5&l[Ст.Модер] &f"
+lp group stmoder parent set moder
+lp group stmoder permission set essentials.ban true
+lp group stmoder permission set essentials.banip true
+lp group stmoder permission set essentials.unbanip true
+lp group stmoder permission set essentials.vanish.see true
+lp group stmoder permission set coreprotect.rollback true
+lp group stmoder permission set coreprotect.restore true
+lp group stmoder permission set bukkit.command.stop false
+lp group stmoder permission set minecraft.command.stop false
+lp group stmoder permission set bukkit.command.restart false
+lp group stmoder permission set spigot.restart false
+lp group stmoder permission set bukkit.command.op false
+lp group stmoder permission set minecraft.command.op false
+lp group stmoder permission set bukkit.command.deop false
+lp group stmoder permission set minecraft.command.deop false
+lp group stmoder permission set bukkit.command.plugins false
+lp group stmoder permission set bukkit.command.version false
+lp group stmoder permission set bukkit.command.reload false
+lp group stmoder permission set luckperms.* false
+lp group stmoder permission set worldedit.* false
+lp group stmoder permission set fawe.* false
+lp group stmoder permission set worldguard.* false
+lp group stmoder permission set fancynpcs.* false
+lp group stmoder permission set citizens.* false
+lp group stmoder permission set decentholograms.* false
+lp group stmoder permission set commandpanels.* false
+lp group stmoder permission set deluxemenus.admin false
+lp group stmoder permission set conditionalevents.admin false
+lp creategroup glmoder
+lp group glmoder setweight 245
+lp group glmoder meta setprefix 245 "&#7C3AED&l[Гл.Модер] &f"
+lp group glmoder parent set stmoder
+lp group glmoder permission set worldguard.region.bypass.world true
+lp group glmoder permission set protectionstones.admin true
+lp group glmoder permission set essentials.god true
+lp group glmoder permission set essentials.broadcast true
+lp group glmoder permission set bukkit.command.stop false
+lp group glmoder permission set minecraft.command.stop false
+lp group glmoder permission set bukkit.command.restart false
+lp group glmoder permission set spigot.restart false
+lp group glmoder permission set bukkit.command.op false
+lp group glmoder permission set minecraft.command.op false
+lp group glmoder permission set bukkit.command.deop false
+lp group glmoder permission set minecraft.command.deop false
+lp group glmoder permission set bukkit.command.plugins false
+lp group glmoder permission set bukkit.command.version false
+lp group glmoder permission set bukkit.command.reload false
+lp group glmoder permission set luckperms.* false
+lp group glmoder permission set worldedit.* false
+lp group glmoder permission set fawe.* false
+lp group glmoder permission set worldguard.* false
+lp group glmoder permission set fancynpcs.* false
+lp group glmoder permission set citizens.* false
+lp group glmoder permission set decentholograms.* false
+lp group glmoder permission set commandpanels.* false
+lp group glmoder permission set deluxemenus.admin false
+lp group glmoder permission set conditionalevents.admin false
+lp creategroup kp
+lp group kp setweight 255
+lp group kp meta setprefix 255 "&#10B981&l[КП] &f"
+lp group kp parent set glmoder
+lp group kp permission set essentials.kits.kp true
+lp group kp permission set essentials.gamemode.creative true
+lp group kp permission set essentials.time.set true
+lp group kp permission set essentials.weather true
+lp group kp permission set bukkit.command.stop false
+lp group kp permission set minecraft.command.stop false
+lp group kp permission set bukkit.command.restart false
+lp group kp permission set spigot.restart false
+lp group kp permission set bukkit.command.op false
+lp group kp permission set minecraft.command.op false
+lp group kp permission set bukkit.command.deop false
+lp group kp permission set minecraft.command.deop false
+lp group kp permission set bukkit.command.plugins false
+lp group kp permission set bukkit.command.version false
+lp group kp permission set bukkit.command.reload false
+lp group kp permission set luckperms.* false
+lp group kp permission set worldedit.* false
+lp group kp permission set fawe.* false
+lp group kp permission set worldguard.* false
+lp group kp permission set fancynpcs.* false
+lp group kp permission set citizens.* false
+lp group kp permission set decentholograms.* false
+lp group kp permission set commandpanels.* false
+lp group kp permission set deluxemenus.admin false
+lp group kp permission set conditionalevents.admin false
+lp creategroup curator
+lp group curator setweight 275
+lp group curator meta setprefix 275 "&f &f"
+lp group curator parent set kp
+lp group curator permission set essentials.kits.curator true
+lp group curator permission set essentials.sethome.multiple.unlimited true
+lp group curator permission set luckperms.user.info true
+lp group curator permission set luckperms.user.parent.info true
+lp group curator permission set luckperms.user.promote true
+lp group curator permission set luckperms.user.demote true
+lp group curator permission set luckperms.group.listmembers true
+lp creategroup techadmin
+lp group techadmin setweight 290
+lp group techadmin meta setprefix 290 "&#F43F5E&l[Тех.Админ] &f"
+lp group techadmin parent set curator
+lp group techadmin permission set * true
+lp group techadmin permission set luckperms.* true
+lp group techadmin permission set fawe.admin true
+lp group techadmin permission set worldedit.* true
+lp group techadmin permission set worldguard.* true
+lp group techadmin permission set fancynpcs.admin true
+lp group techadmin permission set decentholograms.admin true
+lp group techadmin permission set commandpanels.admin true
+lp group techadmin permission set conditionalevents.admin true
+lp group techadmin permission set kinggrief.admin true
+lp creategroup owner
+lp group owner setweight 300
+lp group owner meta setprefix 300 "&f &f"
+lp group owner parent set techadmin
+lp group owner permission set * true
+lp group owner permission set luckperms.* true
+lp group owner permission set luckperms.autoop true
+lp group owner permission set fawe.admin true
+lp group owner permission set worldedit.* true
+lp group owner permission set worldguard.* true
+lp group owner permission set kinggrief.admin true
+lp createtrack donate
+lp track donate append default
+lp track donate append pegas
+lp track donate append cobra
+lp track donate append hero
+lp track donate append bunny
+lp track donate append titan
+lp track donate append rabbit
+lp track donate append vampire
+lp track donate append tiger
+lp track donate append dracula
+lp track donate append god
+lp track donate append overlord
+lp track donate append imperator
+lp track donate append dragon
+lp track donate append king
+lp track donate append bull
+lp track donate append sponsor
+lp createtrack dkp
+lp track dkp append dhelper
+lp track dkp append dmoder
+lp track dkp append dstmoder
+lp track dkp append dglmoder
+lp track dkp append dmladmin
+lp track dkp append dadmin
+lp track dkp append dkp
+lp track dkp append opka
+lp track dkp append downer
+lp createtrack media
+lp track media append tiktok
+lp track media append twitch
+lp track media append yt
+lp track media append media
+lp track media append mediaplus
+lp createtrack kp
+lp track kp append helper
+lp track kp append sthelper
+lp track kp append moder
+lp track kp append stmoder
+lp track kp append glmoder
+lp track kp append kp
+lp track kp append curator
+lp track kp append techadmin
+lp track kp append owner

@@ -1,0 +1,690 @@
+package net.kinggrief.core;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+public final class DataStore {
+
+    public static final class Clan {
+        public String id;
+        public String tag;
+        public String leader;
+        public final Set<String> members = new HashSet<String>();
+        public double bank = 0.0;
+        public int kills = 0;
+        public boolean friendlyFire = false;
+        public Location home = null;
+    }
+
+    public static final class Claim {
+        public String id;
+        public String owner;
+        public String world;
+        public int cx, cy, cz, radius;
+        public final Set<String> members = new HashSet<String>();
+
+        public boolean contains(Location loc) {
+            if (loc == null || loc.getWorld() == null) return false;
+            if (!loc.getWorld().getName().equalsIgnoreCase(world)) return false;
+            int bx = loc.getBlockX(), bz = loc.getBlockZ();
+            return Math.abs(bx - cx) <= radius && Math.abs(bz - cz) <= radius;
+        }
+
+        public boolean isCenter(Location loc) {
+            if (loc == null || loc.getWorld() == null) return false;
+            return loc.getWorld().getName().equalsIgnoreCase(world)
+                    && loc.getBlockX() == cx && loc.getBlockY() == cy && loc.getBlockZ() == cz;
+        }
+
+        public boolean canAccess(String playerName) {
+            if (playerName == null) return false;
+            return owner.equalsIgnoreCase(playerName) || members.contains(playerName.toLowerCase(Locale.ROOT));
+        }
+    }
+
+    public static final class AuctionLot {
+        public int id;
+        public String seller;
+        public double price;
+        public ItemStack item;
+        public long createdAt;
+    }
+
+    private final KingGriefCore plugin;
+    private final File file;
+    private YamlConfiguration yml;
+
+    private final Set<UUID> loggedIn = new HashSet<UUID>();
+    private final Map<String, Clan> clans = new LinkedHashMap<String, Clan>();
+    private final Map<String, String> playerClan = new HashMap<String, String>();
+    private final Map<String, Set<String>> clanInvites = new HashMap<String, Set<String>>();
+    private final List<Claim> claims = new ArrayList<Claim>();
+    private final List<AuctionLot> auction = new ArrayList<AuctionLot>();
+    private int nextLotId = 1;
+
+    private final Map<UUID, Location> backLocs = new HashMap<UUID, Location>();
+    private final Map<UUID, UUID> tpaFrom = new HashMap<UUID, UUID>();
+    private final Map<UUID, Boolean> tpaHere = new HashMap<UUID, Boolean>();
+    private final Map<UUID, Long> tpaTime = new HashMap<UUID, Long>();
+    private final Set<UUID> sbDisabled = new HashSet<UUID>();
+    private final Set<UUID> vanished = new HashSet<UUID>();
+
+    public DataStore(KingGriefCore plugin) {
+        this.plugin = plugin;
+        this.file = new File(plugin.getDataFolder(), "data.yml");
+        load();
+    }
+
+    public synchronized void load() {
+        if (!plugin.getDataFolder().exists()) {
+            plugin.getDataFolder().mkdirs();
+        }
+        this.yml = file.exists() ? YamlConfiguration.loadConfiguration(file) : new YamlConfiguration();
+        clans.clear();
+        playerClan.clear();
+        ConfigurationSection cs = yml.getConfigurationSection("clans");
+        if (cs != null) {
+            for (String cid : cs.getKeys(false)) {
+                Clan c = new Clan();
+                c.id = cid.toLowerCase(Locale.ROOT);
+                c.tag = cs.getString(cid + ".tag", cid.toUpperCase(Locale.ROOT));
+                c.leader = cs.getString(cid + ".leader", "");
+                c.bank = cs.getDouble(cid + ".bank", 0.0);
+                c.kills = cs.getInt(cid + ".kills", 0);
+                c.friendlyFire = cs.getBoolean(cid + ".ff", false);
+                c.home = readLoc(cs.getString(cid + ".home", null));
+                for (String m : cs.getStringList(cid + ".members")) {
+                    String low = m.toLowerCase(Locale.ROOT);
+                    c.members.add(low);
+                    playerClan.put(low, c.id);
+                }
+                clans.put(c.id, c);
+            }
+        }
+        claims.clear();
+        ConfigurationSection rs = yml.getConfigurationSection("claims");
+        if (rs != null) {
+            for (String rid : rs.getKeys(false)) {
+                Claim cl = new Claim();
+                cl.id = rid;
+                cl.owner = rs.getString(rid + ".owner", "");
+                cl.world = rs.getString(rid + ".world", "world");
+                cl.cx = rs.getInt(rid + ".x");
+                cl.cy = rs.getInt(rid + ".y");
+                cl.cz = rs.getInt(rid + ".z");
+                cl.radius = rs.getInt(rid + ".r", 10);
+                for (String m : rs.getStringList(rid + ".members")) cl.members.add(m.toLowerCase(Locale.ROOT));
+                claims.add(cl);
+            }
+        }
+        auction.clear();
+        nextLotId = yml.getInt("auctionNextId", 1);
+        ConfigurationSection as = yml.getConfigurationSection("auction");
+        if (as != null) {
+            for (String k : as.getKeys(false)) {
+                ItemStack it = as.getItemStack(k + ".item");
+                if (it == null) continue;
+                AuctionLot lot = new AuctionLot();
+                lot.id = Integer.parseInt(k);
+                lot.seller = as.getString(k + ".seller", "Server");
+                lot.price = as.getDouble(k + ".price", 1000.0);
+                lot.createdAt = as.getLong(k + ".time", System.currentTimeMillis());
+                lot.item = it;
+                auction.add(lot);
+            }
+        }
+    }
+
+    public synchronized void save() {
+        yml.set("clans", null);
+        for (Clan c : clans.values()) {
+            String p = "clans." + c.id;
+            yml.set(p + ".tag", c.tag);
+            yml.set(p + ".leader", c.leader);
+            yml.set(p + ".bank", c.bank);
+            yml.set(p + ".kills", c.kills);
+            yml.set(p + ".ff", c.friendlyFire);
+            yml.set(p + ".home", writeLoc(c.home));
+            yml.set(p + ".members", new ArrayList<String>(c.members));
+        }
+        yml.set("claims", null);
+        for (Claim cl : claims) {
+            String p = "claims." + cl.id;
+            yml.set(p + ".owner", cl.owner);
+            yml.set(p + ".world", cl.world);
+            yml.set(p + ".x", cl.cx);
+            yml.set(p + ".y", cl.cy);
+            yml.set(p + ".z", cl.cz);
+            yml.set(p + ".r", cl.radius);
+            yml.set(p + ".members", new ArrayList<String>(cl.members));
+        }
+        yml.set("auctionNextId", nextLotId);
+        yml.set("auction", null);
+        for (AuctionLot lot : auction) {
+            String p = "auction." + lot.id;
+            yml.set(p + ".seller", lot.seller);
+            yml.set(p + ".price", lot.price);
+            yml.set(p + ".time", lot.createdAt);
+            yml.set(p + ".item", lot.item);
+        }
+        try {
+            yml.save(file);
+        } catch (IOException ignored) {
+        }
+    }
+
+    private String key(String name) {
+        return name == null ? "unknown" : name.toLowerCase(Locale.ROOT);
+    }
+
+    // ================= AUTH =================
+    public boolean isExternalAuthActive() {
+        return Bukkit.getPluginManager().isPluginEnabled("AuthMe")
+                || !plugin.getConfig().getBoolean("enable-builtin-auth", true);
+    }
+
+    public boolean isRegistered(String name) {
+        String h = yml.getString("players." + key(name) + ".pass", "");
+        return h != null && !h.isEmpty();
+    }
+
+    public boolean isAuthenticated(Player p) {
+        if (isExternalAuthActive()) return true;
+        return loggedIn.contains(p.getUniqueId());
+    }
+
+    public void setAuthenticated(Player p, boolean auth) {
+        if (auth) {
+            loggedIn.add(p.getUniqueId());
+            String ip = getIp(p);
+            yml.set("players." + key(p.getName()) + ".lastIp", ip);
+            yml.set("players." + key(p.getName()) + ".sessionUntil", System.currentTimeMillis() + 6L * 3600_000L);
+        } else {
+            loggedIn.remove(p.getUniqueId());
+            yml.set("players." + key(p.getName()) + ".sessionUntil", 0L);
+        }
+    }
+
+    public boolean trySessionAutoLogin(Player p) {
+        if (!isRegistered(p.getName())) return false;
+        String savedIp = yml.getString("players." + key(p.getName()) + ".lastIp", "");
+        long until = yml.getLong("players." + key(p.getName()) + ".sessionUntil", 0L);
+        if (!savedIp.isEmpty() && savedIp.equals(getIp(p)) && System.currentTimeMillis() < until) {
+            loggedIn.add(p.getUniqueId());
+            return true;
+        }
+        return false;
+    }
+
+    public void registerPassword(Player p, String rawPass) {
+        String salt = UUID.randomUUID().toString().substring(0, 8);
+        String hash = salt + "$" + ColorUtil.sha256(salt + ":" + rawPass);
+        String k = "players." + key(p.getName());
+        yml.set(k + ".pass", hash);
+        if (!yml.contains(k + ".initialized")) {
+            yml.set(k + ".initialized", true);
+            yml.set(k + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
+            yml.set(k + ".relics", plugin.getConfig().getInt("starting-relics", 50));
+            addCaseKeys(p.getName(), "summer", 1);
+        }
+        setAuthenticated(p, true);
+        save();
+    }
+
+    public boolean checkPassword(String name, String rawPass) {
+        String stored = yml.getString("players." + key(name) + ".pass", "");
+        if (stored == null || !stored.contains("$")) return false;
+        String[] parts = stored.split("\\$", 2);
+        return parts[1].equals(ColorUtil.sha256(parts[0] + ":" + rawPass));
+    }
+
+    private String getIp(Player p) {
+        try {
+            if (p.getAddress() != null && p.getAddress().getAddress() != null) {
+                return p.getAddress().getAddress().getHostAddress();
+            }
+        } catch (Throwable ignored) {
+        }
+        return "";
+    }
+
+    public void ensureProfileInitialized(Player p) {
+        String k = "players." + key(p.getName());
+        if (!yml.contains(k + ".initialized")) {
+            yml.set(k + ".initialized", true);
+            yml.set(k + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
+            yml.set(k + ".relics", plugin.getConfig().getInt("starting-relics", 50));
+            addCaseKeys(p.getName(), "summer", 1);
+        }
+    }
+
+    // ================= RANK, ECONOMY & RELICS =================
+    public String getSavedRank(String name) {
+        return yml.getString("players." + key(name) + ".rank", "default");
+    }
+
+    public void setSavedRank(String name, String rank) {
+        yml.set("players." + key(name) + ".rank", rank.toLowerCase(Locale.ROOT));
+    }
+
+    public double getCoins(String name) {
+        return yml.getDouble("players." + key(name) + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
+    }
+
+    public void setCoins(String name, double val) {
+        yml.set("players." + key(name) + ".coins", Math.max(0.0, val));
+    }
+
+    public void addCoins(String name, double delta) {
+        setCoins(name, getCoins(name) + delta);
+    }
+
+    public boolean takeCoins(String name, double amount) {
+        double cur = getCoins(name);
+        if (cur < amount) return false;
+        setCoins(name, cur - amount);
+        return true;
+    }
+
+    public List<Map.Entry<String, Double>> getBalTop(int limit) {
+        List<Map.Entry<String, Double>> list = new ArrayList<Map.Entry<String, Double>>();
+        ConfigurationSection ps = yml.getConfigurationSection("players");
+        if (ps != null) {
+            for (String u : ps.getKeys(false)) {
+                double c = ps.getDouble(u + ".coins", 0.0);
+                list.add(new HashMap.SimpleEntry<String, Double>(u, Double.valueOf(c)));
+            }
+        }
+        Collections.sort(list, new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> a, Map.Entry<String, Double> b) {
+                return Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue());
+            }
+        });
+        return list.size() > limit ? list.subList(0, limit) : list;
+    }
+
+    public int getRelics(Player p) {
+        int pp = readPlayerPoints(p.getUniqueId());
+        int local = yml.getInt("players." + key(p.getName()) + ".relics", 50);
+        if (pp >= 0) {
+            return Math.max(pp, local);
+        }
+        return local;
+    }
+
+    public int getRelicsByName(String name) {
+        Player on = Bukkit.getPlayerExact(name);
+        if (on != null) return getRelics(on);
+        return yml.getInt("players." + key(name) + ".relics", 50);
+    }
+
+    public void addRelics(String name, int amount) {
+        int cur = getRelicsByName(name);
+        int next = Math.max(0, cur + amount);
+        yml.set("players." + key(name) + ".relics", next);
+        Player on = Bukkit.getPlayerExact(name);
+        if (on != null) writePlayerPoints(on.getUniqueId(), next);
+    }
+
+    public void setRelics(String name, int amount) {
+        int next = Math.max(0, amount);
+        yml.set("players." + key(name) + ".relics", next);
+        Player on = Bukkit.getPlayerExact(name);
+        if (on != null) writePlayerPoints(on.getUniqueId(), next);
+    }
+
+    public void changePassword(String name, String rawPass) {
+        yml.set("auth." + key(name) + ".hash", ColorUtil.sha256(rawPass));
+    }
+
+    public boolean takeRelics(Player p, int amount) {
+        int cur = getRelics(p);
+        if (cur < amount) return false;
+        int next = cur - amount;
+        yml.set("players." + key(p.getName()) + ".relics", next);
+        writePlayerPoints(p.getUniqueId(), next);
+        return true;
+    }
+
+    private int readPlayerPoints(UUID uuid) {
+        try {
+            Object pl = Bukkit.getPluginManager().getPlugin("PlayerPoints");
+            if (pl == null) return -1;
+            Object api = pl.getClass().getMethod("getAPI").invoke(pl);
+            Object res = api.getClass().getMethod("look", UUID.class).invoke(api, uuid);
+            return res instanceof Number ? ((Number) res).intValue() : -1;
+        } catch (Throwable ignored) {
+            return -1;
+        }
+    }
+
+    private void writePlayerPoints(UUID uuid, int amount) {
+        try {
+            Object pl = Bukkit.getPluginManager().getPlugin("PlayerPoints");
+            if (pl == null) return;
+            Object api = pl.getClass().getMethod("getAPI").invoke(pl);
+            Method setM = api.getClass().getMethod("set", UUID.class, int.class);
+            setM.invoke(api, uuid, Integer.valueOf(amount));
+        } catch (Throwable ignored) {
+        }
+    }
+
+    // ================= STATS, JOBS, PROMOS, BP & KITS =================
+    public int getKills(String name) { return yml.getInt("players." + key(name) + ".kills", 0); }
+    public int getDeaths(String name) { return yml.getInt("players." + key(name) + ".deaths", 0); }
+    public int getMinedBlocks(String name) { return yml.getInt("players." + key(name) + ".mined", 0); }
+    public void addKill(String name) {
+        yml.set("players." + key(name) + ".kills", getKills(name) + 1);
+        Clan c = getClanOf(name);
+        if (c != null) c.kills++;
+    }
+    public void addDeath(String name) { yml.set("players." + key(name) + ".deaths", getDeaths(name) + 1); }
+    public void addMined(String name) { yml.set("players." + key(name) + ".mined", getMinedBlocks(name) + 1); }
+
+    public String getJob(String name) { return yml.getString("players." + key(name) + ".job", "none"); }
+    public void setJob(String name, String job) { yml.set("players." + key(name) + ".job", job); }
+
+    public boolean hasClaimedBp(String name, int level) {
+        return yml.getBoolean("players." + key(name) + ".bp." + level, false);
+    }
+    public void setClaimedBp(String name, int level) {
+        yml.set("players." + key(name) + ".bp." + level, true);
+    }
+
+    public boolean hasUsedPromo(String name, String code) {
+        return yml.getBoolean("players." + key(name) + ".promos." + code.toLowerCase(Locale.ROOT), false);
+    }
+    public void markUsedPromo(String name, String code) {
+        yml.set("players." + key(name) + ".promos." + code.toLowerCase(Locale.ROOT), true);
+    }
+
+    public long getKitReadyAt(String name, String kit) {
+        return yml.getLong("players." + key(name) + ".kits." + kit.toLowerCase(Locale.ROOT), 0L);
+    }
+    public void setKitReadyAt(String name, String kit, long ts) {
+        yml.set("players." + key(name) + ".kits." + kit.toLowerCase(Locale.ROOT), ts);
+    }
+
+    public long getDailyReadyAt(String name) {
+        return yml.getLong("players." + key(name) + ".dailyReady", 0L);
+    }
+    public void setDailyReadyAt(String name, long ts) {
+        yml.set("players." + key(name) + ".dailyReady", ts);
+    }
+
+    // ================= CASE KEYS =================
+    public int getCaseKeys(String name, String caseId) {
+        return yml.getInt("players." + key(name) + ".cases." + caseId.toLowerCase(Locale.ROOT), 0);
+    }
+
+    public void addCaseKeys(String name, String caseId, int delta) {
+        String c = caseId.toLowerCase(Locale.ROOT);
+        int next = Math.max(0, getCaseKeys(name, c) + delta);
+        yml.set("players." + key(name) + ".cases." + c, next);
+    }
+
+    // ================= CLANS =================
+    public Clan getClanOf(String playerName) {
+        String cid = playerClan.get(key(playerName));
+        return cid != null ? clans.get(cid) : null;
+    }
+
+    public Clan getClanById(String id) {
+        return id == null ? null : clans.get(id.toLowerCase(Locale.ROOT));
+    }
+
+    public Collection<Clan> getAllClans() {
+        return clans.values();
+    }
+
+    public Clan createClan(String leaderName, String rawTag) {
+        String cid = ChatColorStrip(rawTag).toLowerCase(Locale.ROOT);
+        if (cid.isEmpty() || clans.containsKey(cid)) return null;
+        Clan c = new Clan();
+        c.id = cid;
+        c.tag = rawTag;
+        c.leader = leaderName;
+        c.members.add(key(leaderName));
+        clans.put(cid, c);
+        playerClan.put(key(leaderName), cid);
+        save();
+        return c;
+    }
+
+    public void disbandClan(Clan c) {
+        if (c == null) return;
+        for (String m : c.members) playerClan.remove(m);
+        clans.remove(c.id);
+        save();
+    }
+
+    public void inviteToClan(String cid, String targetName) {
+        Set<String> set = clanInvites.get(key(targetName));
+        if (set == null) {
+            set = new HashSet<String>();
+            clanInvites.put(key(targetName), set);
+        }
+        set.add(cid.toLowerCase(Locale.ROOT));
+    }
+
+    public boolean hasClanInvite(String targetName, String cid) {
+        Set<String> set = clanInvites.get(key(targetName));
+        return set != null && set.contains(cid.toLowerCase(Locale.ROOT));
+    }
+
+    public void joinClan(String playerName, Clan c) {
+        c.members.add(key(playerName));
+        playerClan.put(key(playerName), c.id);
+        Set<String> set = clanInvites.get(key(playerName));
+        if (set != null) set.remove(c.id);
+        save();
+    }
+
+    public void leaveClan(String playerName, Clan c) {
+        c.members.remove(key(playerName));
+        playerClan.remove(key(playerName));
+        save();
+    }
+
+    private String ChatColorStrip(String s) {
+        return s == null ? "" : s.replaceAll("(?i)&[0-9A-FK-ORX]", "").replaceAll("[^A-Za-zА-Яа-я0-9_]", "");
+    }
+
+    // ================= HOMES & TPA & BACK =================
+    public Map<String, Location> getHomes(String name) {
+        Map<String, Location> out = new LinkedHashMap<String, Location>();
+        ConfigurationSection hs = yml.getConfigurationSection("players." + key(name) + ".homes");
+        if (hs != null) {
+            for (String h : hs.getKeys(false)) {
+                Location l = readLoc(hs.getString(h));
+                if (l != null) out.put(h, l);
+            }
+        }
+        return out;
+    }
+
+    public void setHome(String name, String homeName, Location loc) {
+        yml.set("players." + key(name) + ".homes." + homeName.toLowerCase(Locale.ROOT), writeLoc(loc));
+        save();
+    }
+
+    public boolean delHome(String name, String homeName) {
+        String p = "players." + key(name) + ".homes." + homeName.toLowerCase(Locale.ROOT);
+        if (!yml.contains(p)) return false;
+        yml.set(p, null);
+        save();
+        return true;
+    }
+
+    public void setBack(Player p, Location loc) { if (p != null && loc != null) backLocs.put(p.getUniqueId(), loc.clone()); }
+    public Location getBack(Player p) { return backLocs.get(p.getUniqueId()); }
+
+    public void sendTpa(Player sender, Player target, boolean here) {
+        tpaFrom.put(target.getUniqueId(), sender.getUniqueId());
+        tpaHere.put(target.getUniqueId(), Boolean.valueOf(here));
+        tpaTime.put(target.getUniqueId(), Long.valueOf(System.currentTimeMillis() + 60_000L));
+    }
+
+    public UUID popTpaSender(Player target, boolean[] isHereOut) {
+        Long exp = tpaTime.get(target.getUniqueId());
+        if (exp == null || System.currentTimeMillis() > exp.longValue()) return null;
+        UUID s = tpaFrom.remove(target.getUniqueId());
+        Boolean h = tpaHere.remove(target.getUniqueId());
+        tpaTime.remove(target.getUniqueId());
+        if (isHereOut != null && isHereOut.length > 0) isHereOut[0] = h != null && h.booleanValue();
+        return s;
+    }
+
+    // ================= ORE PROTECTION CLAIMS =================
+    public Claim getClaimAt(Location loc) {
+        for (Claim c : claims) {
+            if (c.contains(loc)) return c;
+        }
+        return null;
+    }
+
+    public List<Claim> getClaimsOf(String owner) {
+        List<Claim> out = new ArrayList<Claim>();
+        for (Claim c : claims) {
+            if (c.owner.equalsIgnoreCase(owner)) out.add(c);
+        }
+        return out;
+    }
+
+    public boolean overlapsAnyClaim(String world, int cx, int cz, int radius) {
+        for (Claim c : claims) {
+            if (!c.world.equalsIgnoreCase(world)) continue;
+            if (Math.abs(c.cx - cx) <= (c.radius + radius) && Math.abs(c.cz - cz) <= (c.radius + radius)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Claim createClaim(String owner, Location loc, int radius) {
+        Claim cl = new Claim();
+        cl.id = "rg_" + System.currentTimeMillis() + "_" + (claims.size() + 1);
+        cl.owner = owner;
+        cl.world = loc.getWorld().getName();
+        cl.cx = loc.getBlockX();
+        cl.cy = loc.getBlockY();
+        cl.cz = loc.getBlockZ();
+        cl.radius = radius;
+        claims.add(cl);
+        save();
+        return cl;
+    }
+
+    public void removeClaim(Claim cl) {
+        claims.remove(cl);
+        save();
+    }
+
+    // ================= AUCTION HOUSE =================
+    public synchronized List<AuctionLot> getAuctionLots() {
+        return new ArrayList<AuctionLot>(auction);
+    }
+
+    public synchronized AuctionLot addAuctionLot(String seller, ItemStack item, double price) {
+        AuctionLot lot = new AuctionLot();
+        lot.id = nextLotId++;
+        lot.seller = seller;
+        lot.price = price;
+        lot.item = item.clone();
+        lot.createdAt = System.currentTimeMillis();
+        auction.add(0, lot);
+        save();
+        return lot;
+    }
+
+    public synchronized AuctionLot removeAuctionLot(int id) {
+        for (int i = 0; i < auction.size(); i++) {
+            if (auction.get(i).id == id) {
+                AuctionLot r = auction.remove(i);
+                save();
+                return r;
+            }
+        }
+        return null;
+    }
+
+    // ================= MODERATION & FLAGS =================
+    public void mute(String name, long durationMs, String reason) {
+        yml.set("mutes." + key(name) + ".until", System.currentTimeMillis() + durationMs);
+        yml.set("mutes." + key(name) + ".reason", reason);
+    }
+    public void unmute(String name) { yml.set("mutes." + key(name), null); }
+    public long getMuteRemainingSec(String name) {
+        long u = yml.getLong("mutes." + key(name) + ".until", 0L);
+        return u > System.currentTimeMillis() ? (u - System.currentTimeMillis()) / 1000L : 0L;
+    }
+
+    public void ban(String name, long durationMs, String reason) {
+        yml.set("bans." + key(name) + ".until", durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs);
+        yml.set("bans." + key(name) + ".reason", reason);
+        save();
+    }
+    public void unban(String name) {
+        yml.set("bans." + key(name), null);
+        save();
+    }
+    public String getActiveBanReason(String name) {
+        long u = yml.getLong("bans." + key(name) + ".until", 0L);
+        if (u > System.currentTimeMillis()) {
+            return yml.getString("bans." + key(name) + ".reason", "Нарушение правил сервера");
+        }
+        return null;
+    }
+
+    public boolean isSbEnabled(Player p) { return !sbDisabled.contains(p.getUniqueId()); }
+    public boolean toggleSb(Player p) {
+        if (sbDisabled.contains(p.getUniqueId())) { sbDisabled.remove(p.getUniqueId()); return true; }
+        sbDisabled.add(p.getUniqueId()); return false;
+    }
+
+    public boolean isVanished(Player p) { return vanished.contains(p.getUniqueId()); }
+    public boolean toggleVanish(Player p) {
+        if (vanished.contains(p.getUniqueId())) { vanished.remove(p.getUniqueId()); return false; }
+        vanished.add(p.getUniqueId()); return true;
+    }
+
+    public static String writeLoc(Location l) {
+        if (l == null || l.getWorld() == null) return null;
+        return l.getWorld().getName() + ";" + l.getX() + ";" + l.getY() + ";" + l.getZ() + ";" + l.getYaw() + ";" + l.getPitch();
+    }
+
+    public static Location readLoc(String s) {
+        if (s == null || s.isEmpty()) return null;
+        try {
+            String[] p = s.split(";");
+            World w = Bukkit.getWorld(p[0]);
+            if (w == null) return null;
+            return new Location(w, Double.parseDouble(p[1]), Double.parseDouble(p[2]), Double.parseDouble(p[3]),
+                    Float.parseFloat(p[4]), Float.parseFloat(p[5]));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+}

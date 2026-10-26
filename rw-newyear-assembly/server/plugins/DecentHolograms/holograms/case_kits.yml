@@ -1,0 +1,18 @@
+location: world:8.500:103.450:-38.500
+enabled: true
+display-range: 38
+update-range: 38
+update-interval: 20
+facing: 0.0
+down-origin: false
+pages:
+- lines:
+  - content: '&#3B82F6&l🛡 КЕЙС С КИТАМИ'
+    height: 0.33
+  - content: '&7Готовые сеты от &cVAMPIRE &7до &6D.OWNER'
+    height: 0.27
+  - content: '&f×1: &#00E67635₽ &8(&m49₽&8) &7| &f×3: &#00E67689₽ &7| &f×5: &#FFD740139₽'
+    height: 0.28
+  - content: '&#00E676ПКМ — Открыть &8| &7Купить: &fkinggrief.vercel.app'
+    height: 0.26
+  actions: {}
