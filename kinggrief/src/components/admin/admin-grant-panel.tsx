@@ -82,20 +82,49 @@ const LP_MODES: Array<{ key: PrivilegeGrantMode; label: string; desc: string; tp
 ];
 
 const DEFAULT_RANK_OPTIONS: Array<{ id: string; name: string; color: string; price?: number }> = [
-  { id: 'pegas', name: 'PEGAS', color: '#94A3B8', price: 19 },
-  { id: 'cobra', name: 'COBRA', color: '#22C55E', price: 39 },
+  // Игровые и Донат-привилегии (с сайта + расширенные RW)
+  { id: 'pegas', name: 'PEGAS', color: '#22C55E', price: 19 },
+  { id: 'cobra', name: 'COBRA', color: '#84CC16', price: 39 },
+  { id: 'hero', name: 'HERO', color: '#38BDF8', price: 49 },
   { id: 'bunny', name: 'BUNNY', color: '#EC4899', price: 59 },
-  { id: 'rabbit', name: 'RABBIT', color: '#F97316', price: 89 },
+  { id: 'titan', name: 'TITAN', color: '#60A5FA', price: 75 },
+  { id: 'rabbit', name: 'RABBIT', color: '#38BDF8', price: 89 },
   { id: 'vampire', name: 'VAMPIRE', color: '#EF4444', price: 99 },
-  { id: 'god', name: 'GOD', color: '#F59E0B', price: 149 },
-  { id: 'king', name: 'KING', color: '#EAB308', price: 199 },
-  { id: 'dmoder', name: 'D.MODER', color: '#38BDF8', price: 249 },
-  { id: 'dstmoder', name: 'D.ST.MODER', color: '#3B82F6', price: 349 },
-  { id: 'dglmoder', name: 'D.GLMODER', color: '#6366F1', price: 449 },
-  { id: 'dmladmin', name: 'D.ML.ADMIN', color: '#8B5CF6', price: 599 },
-  { id: 'dadmin', name: 'D.ADMIN', color: '#A855F7', price: 799 },
-  { id: 'opka', name: 'OPKA', color: '#F43F5E', price: 999 },
-  { id: 'downer', name: 'D.OWNER', color: '#FBBF24', price: 1499 },
+  { id: 'tiger', name: 'TIGER', color: '#FB923C', price: 119 },
+  { id: 'dracula', name: 'DRACULA', color: '#DC2626', price: 135 },
+  { id: 'god', name: 'GOD', color: '#FACC15', price: 149 },
+  { id: 'overlord', name: 'OVERLORD', color: '#2DD4BF', price: 169 },
+  { id: 'imperator', name: 'IMPERATOR', color: '#F43F5E', price: 179 },
+  { id: 'dragon', name: 'DRAGON', color: '#D946EF', price: 189 },
+  { id: 'king', name: 'KING', color: '#A855F7', price: 199 },
+  { id: 'bull', name: 'BULL', color: '#EA580C', price: 219 },
+  { id: 'sponsor', name: 'SPONSOR', color: '#FBBF24', price: 239 },
+  // ДКП (Донатная Команда Проекта) и Топ-Донат
+  { id: 'dhelper', name: 'D.HELPER (ДКП)', color: '#2DD4BF', price: 229 },
+  { id: 'dmoder', name: 'D.MODER (ДКП)', color: '#14B8A6', price: 249 },
+  { id: 'dstmoder', name: 'D.ST.MODER (ДКП)', color: '#3B82F6', price: 349 },
+  { id: 'dglmoder', name: 'D.GLMODER (ДКП)', color: '#8B5CF6', price: 449 },
+  { id: 'dmladmin', name: 'D.ML.ADMIN (ДКП)', color: '#F97316', price: 599 },
+  { id: 'dadmin', name: 'D.ADMIN (ДКП)', color: '#DC2626', price: 799 },
+  { id: 'dkp', name: 'ДКП (D.KP)', color: '#FF6D00', price: 899 },
+  { id: 'opka', name: 'OPKA', color: '#C026D3', price: 999 },
+  { id: 'downer', name: 'D.OWNER', color: '#FACC15', price: 1499 },
+  // МЕДИА (Media)
+  { id: 'tiktok', name: 'TIKTOK (Медиа)', color: '#00F2EA' },
+  { id: 'twitch', name: 'TWITCH (Медиа)', color: '#9146FF' },
+  { id: 'yt', name: 'YOUTUBE (Медиа)', color: '#FF0000' },
+  { id: 'media', name: 'MEDIA', color: '#EC4899' },
+  { id: 'mediaplus', name: 'MEDIA+', color: '#F43F5E' },
+  // КП (Команда Проекта / Персонал)
+  { id: 'helper', name: 'Хелпер (КП)', color: '#38BDF8' },
+  { id: 'sthelper', name: 'Ст.Хелпер (КП)', color: '#0EA5E9' },
+  { id: 'moder', name: 'Модератор (КП)', color: '#2563EB' },
+  { id: 'stmoder', name: 'Ст.Модератор (КП)', color: '#4F46E5' },
+  { id: 'glmoder', name: 'Гл.Модератор (КП)', color: '#7C3AED' },
+  { id: 'kp', name: 'КП (Команда Проекта)', color: '#10B981' },
+  { id: 'curator', name: 'CURATOR (Куратор КП)', color: '#22C55E' },
+  { id: 'techadmin', name: 'Тех.Админ (КП)', color: '#F43F5E' },
+  { id: 'owner', name: 'OWNER (Владелец)', color: '#EF4444' },
 ];
 
 const DEFAULT_CASE_OPTIONS: Array<{ id: string; name: string }> = [
@@ -157,15 +186,18 @@ export function AdminGrantPanel({
     initialTemplates?.case || 'cases give {player} {case} {amount}',
   );
 
-  // Привилегии
+  // Привилегии (товары с сайта + полный состав КП / ДКП / Медиа / доп. привилегий сборки)
   const ranksList = useMemo(() => {
     if (rankProducts && rankProducts.length > 0) {
-      return rankProducts.map((p) => ({
+      const fromDb = rankProducts.map((p) => ({
         id: String((p.meta as Record<string, unknown>)?.rankId || p.id.replace(/^rank-/, '')).toLowerCase(),
         name: p.name,
         color: p.color,
         price: p.price,
       }));
+      const seen = new Set(fromDb.map((r) => r.id));
+      const extras = DEFAULT_RANK_OPTIONS.filter((r) => !seen.has(r.id));
+      return [...fromDb, ...extras];
     }
     return DEFAULT_RANK_OPTIONS;
   }, [rankProducts]);
