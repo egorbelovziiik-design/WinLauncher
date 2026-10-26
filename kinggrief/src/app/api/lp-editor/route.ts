@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       {
         productId: 'lp-web-editor',
         name: `LP Web Editor (${commands.length} изм.)`,
-        kind: 'service',
+        kind: 'other',
         quantity: 1,
         unitPrice: 0,
         total: 0,
