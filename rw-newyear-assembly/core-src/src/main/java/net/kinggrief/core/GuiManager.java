@@ -182,17 +182,43 @@ public final class GuiManager {
         p.openInventory(inv);
     }
 
-    // ================= 2. ОТДЕЛЬНЫЙ МИР РТП (/rtp gui) =================
+    // ================= 2. МЕНЮ ВЫБОРА РТП (/rtp + /rtp near) =================
     public void openRtpMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("rtp", "", 0), 27,
-                ColorUtil.c("&#00E676&l⚡ РТП В МИР ВЫЖИВАНИЯ"));
+                ColorUtil.c("&#00E676&l⚡ ВЫБОР ТЕЛЕПОРТАЦИИ РТП"));
         decorateFrame(inv);
-        inv.setItem(11, ItemFactory.glowIcon(Material.GRASS_BLOCK, "&#00E676&l🌲 Обычный РТП (Выживание)",
-                "&7Отдельный мир выживания (&fworld&7)", "&7Дистанция: &eдо 1 500 блоков", "", "&#00E676▸ Нажми для телепорта!"));
-        inv.setItem(13, ItemFactory.glowIcon(Material.DIAMOND_BOOTS, "&#38BDF8&l🏔 Дальний РТП (Для баз)",
-                "&7Отдельный мир выживания (&fworld&7)", "&7Дистанция: &eдо 3 500 блоков", "", "&#38BDF8▸ Нажми для телепорта!"));
-        inv.setItem(15, ItemFactory.glowIcon(Material.NETHERRACK, "&#FF5252&l🔥 Адский РТП (Нижний мир)",
-                "&7Безопасная точка в Аду (&fworld_nether&7)", "&7Дистанция: &eдо 800 блоков", "", "&#FF5252▸ Нажми для телепорта!"));
+        RankManager.RankDef r = plugin.getRanks().getRank(p);
+        boolean hasGod = r.weight >= 65;
+        boolean hasKing = r.weight >= 90;
+
+        inv.setItem(10, ItemFactory.glowIcon(Material.GRASS_BLOCK, "&#00E676&l🌲 Близкая Телепортация",
+                "&7Мир выживания (&fworld&7, строго на сушу)",
+                "&7Дистанция: &e300 – 1 200 блоков",
+                "&7Доступ: &#00E676✔ Всем игрокам (PLAYER)",
+                "", "&#00E676▸ Нажми для телепорта!"));
+
+        inv.setItem(12, ItemFactory.glowIcon(Material.GOLDEN_BOOTS, "&#38BDF8&l⚡ Средняя Телепортация",
+                "&7Мир выживания (&fworld&7, чистые земли)",
+                "&7Дистанция: &e1 500 – 3 500 блоков",
+                hasGod ? "&7Доступ: &#00E676✔ Открыто (GOD+)" : "&7Доступ: &#FF5252✖ Требуется привилегия &#FEF9C3&lGOD",
+                "", hasGod ? "&#38BDF8▸ Нажми для телепорта!" : "&#FFD740Магазин: &fkinggrief.vercel.app"));
+
+        inv.setItem(14, ItemFactory.glowIcon(Material.DIAMOND_BOOTS, "&#FDE047&l👑 Высокая (Дальняя) РТП",
+                "&7Далёкие земли для неприступных баз!",
+                "&7Дистанция: &e4 000 – 8 000 блоков",
+                hasKing ? "&7Доступ: &#00E676✔ Открыто (KING+)" : "&7Доступ: &#FF5252✖ Требуется привилегия &#FDE047&lKING",
+                "", hasKing ? "&#FDE047▸ Нажми для телепорта!" : "&#FFD740Магазин: &fkinggrief.vercel.app"));
+
+        inv.setItem(16, ItemFactory.glowIcon(Material.RECOVERY_COMPASS, "&#FF5252&l🎯 РТП рядом с Игроками (/rtp near)",
+                "&7Телепортация в &e55–110 блоках &7от",
+                "&7случайного игрока в мире выживания!",
+                hasKing ? "&7Доступ: &#00E676✔ Открыто (KING+)" : "&7Доступ: &#FF5252✖ Требуется привилегия &#FDE047&lKING",
+                "", hasKing ? "&#FF5252▸ Нажми для охоты (/rtp near)!" : "&#FFD740Магазин: &fkinggrief.vercel.app"));
+
+        inv.setItem(22, ItemFactory.glowIcon(Material.NETHERRACK, "&#FF9100&l🔥 Адский РТП (Нижний мир)",
+                "&7Безопасная точка в Аду (&fworld_nether&7)",
+                "&7Дистанция: &e180 – 850 блоков",
+                "", "&#FF9100▸ Нажми для телепорта в Ад!"));
         p.openInventory(inv);
     }
 
@@ -291,30 +317,71 @@ public final class GuiManager {
         p.openInventory(inv);
     }
 
-    public void tryClaimKit(Player p, String kitId) {
+    public boolean isKnownKit(String kitId) {
+        if (kitId == null) return false;
         String k = kitId.toLowerCase(Locale.ROOT);
-        if (!plugin.getRanks().canClaimKit(p, k)) {
-            RankManager.RankDef req = plugin.getRanks().byId(k);
-            ColorUtil.sound(p, "entity.villager.no", 1.0f, 1.0f);
-            p.sendMessage(ColorUtil.c("&#FF1744✖ Этот кит доступен ТОЛЬКО с привилегией " + req.shortLabel + "&#FF1744!"));
-            p.sendMessage(ColorUtil.c("&7Приобрести привилегию: &#FF4081https://kinggrief.vercel.app"));
-            return;
-        }
-        long cdSec = 21600L;
         for (String[] row : ALL_KITS) {
-            if (row[0].equals(k)) { cdSec = Long.parseLong(row[3]); break; }
+            if (row[0].equalsIgnoreCase(k)) return true;
         }
-        long now = System.currentTimeMillis();
-        long ready = plugin.getStore().getKitReadyAt(p.getName(), k);
-        if (now < ready && !"owner".equals(plugin.getRanks().getRank(p).id)) {
-            p.sendMessage(ColorUtil.c("&#FFD740⏳ Подождите ещё &f" + ColorUtil.fmtTime((ready - now) / 1000L) + " &#FFD740до следующего получения кита!"));
+        return false;
+    }
+
+    public void tryClaimKit(Player p, String kitId) {
+        tryClaimKitToTarget(p, kitId, p);
+    }
+
+    public void tryClaimKitToTarget(org.bukkit.command.CommandSender sender, String kitId, Player target) {
+        if (target == null || !target.isOnline()) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Игрок не найден в сети! Использование: &f/kit <кит> [ник]"));
             return;
         }
-        plugin.getStore().setKitReadyAt(p.getName(), k, now + cdSec * 1000L);
-        plugin.getStore().save();
-        ItemFactory.giveKitItems(p, k);
-        ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.2f);
-        p.sendMessage(ColorUtil.c("&#00E676✔ Вы получили богатый набор &f/kit " + k + " &#00E676(включая шалкеры ресурсов)!"));
+        String k = kitId.toLowerCase(Locale.ROOT);
+        if (!isKnownKit(k)) {
+            StringBuilder valid = new StringBuilder();
+            for (String[] row : ALL_KITS) {
+                if (valid.length() > 0) valid.append("&8, &f");
+                valid.append(row[0]);
+            }
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Неизвестный кит &f" + k + "&#FF1744! Доступные киты: &f" + valid.toString()));
+            return;
+        }
+
+        boolean fromConsole = !(sender instanceof Player);
+        Player sp = fromConsole ? null : (Player) sender;
+        RankManager.RankDef senderRank = fromConsole ? plugin.getRanks().byId("owner") : plugin.getRanks().getRank(sp);
+        boolean isHighAdmin = fromConsole || (senderRank != null && senderRank.weight >= 160);
+
+        if (!isHighAdmin && sp != null) {
+            if (!plugin.getRanks().canClaimKit(sp, k)) {
+                RankManager.RankDef req = plugin.getRanks().byId(k);
+                ColorUtil.sound(sp, "entity.villager.no", 1.0f, 1.0f);
+                sp.sendMessage(ColorUtil.c("&#FF1744✖ Этот кит доступен ТОЛЬКО с привилегией " + req.shortLabel + "&#FF1744!"));
+                sp.sendMessage(ColorUtil.c("&7Приобрести привилегию: &#FF4081https://kinggrief.vercel.app"));
+                return;
+            }
+            long cdSec = 21600L;
+            for (String[] row : ALL_KITS) {
+                if (row[0].equals(k)) { cdSec = Long.parseLong(row[3]); break; }
+            }
+            long now = System.currentTimeMillis();
+            long ready = plugin.getStore().getKitReadyAt(sp.getName(), k);
+            if (now < ready) {
+                sp.sendMessage(ColorUtil.c("&#FFD740⏳ Подождите ещё &f" + ColorUtil.fmtTime((ready - now) / 1000L) + " &#FFD740до следующего получения кита!"));
+                return;
+            }
+            plugin.getStore().setKitReadyAt(sp.getName(), k, now + cdSec * 1000L);
+            plugin.getStore().save();
+        }
+
+        ItemFactory.giveKitItems(target, k);
+        ColorUtil.sound(target, "entity.player.levelup", 1.0f, 1.2f);
+        if (sp != null && sp.getUniqueId().equals(target.getUniqueId())) {
+            target.sendMessage(ColorUtil.c("&#00E676✔ Вы получили богатый набор &f/kit " + k + " &#00E676(включая шалкеры ресурсов)!"));
+        } else {
+            String giver = fromConsole ? "Сервер" : sp.getName();
+            sender.sendMessage(ColorUtil.c("&#00E676✔ Вы успешно выдали набор &f/kit " + k + " &#00E676игроку &e" + target.getName() + "&#00E676!"));
+            target.sendMessage(ColorUtil.c("&#00E676🎁 Вам выдан набор &f/kit " + k + " &#00E676от &e" + giver + "&#00E676!"));
+        }
     }
 
     // ================= 5. ЧИСТЫЙ МАГАЗИН РИЛИКОВ REALLYWORLD (/shop) =================
@@ -1123,6 +1190,11 @@ public final class GuiManager {
     }
 
     public void openLpGroupsGui(Player p, int page) {
+        if (!plugin.getLp().hasLpAccess(p)) {
+            p.closeInventory();
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Доступ к LP Editor разрешён СТРОГО только владельцу (OWNER)!"));
+            return;
+        }
         List<RankManager.RankDef> all = new ArrayList<RankManager.RankDef>(plugin.getRanks().allRanks());
         int pg = Math.max(0, page);
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("lp_groups", "", pg), 54,
@@ -1241,9 +1313,11 @@ public final class GuiManager {
             }
         } else if ("rtp".equals(type)) {
             p.closeInventory();
-            if (slot == 11) plugin.getSpawnEngine().performRtp(p, "normal");
-            else if (slot == 13) plugin.getSpawnEngine().performRtp(p, "far");
-            else if (slot == 15) plugin.getSpawnEngine().performRtp(p, "nether");
+            if (slot == 10) plugin.getSpawnEngine().performRtp(p, "close");
+            else if (slot == 12) plugin.getSpawnEngine().performRtp(p, "medium");
+            else if (slot == 14) plugin.getSpawnEngine().performRtp(p, "high");
+            else if (slot == 16) plugin.getSpawnEngine().performRtp(p, "near");
+            else if (slot == 22) plugin.getSpawnEngine().performRtp(p, "nether");
         } else if ("warps".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
             String w = slot == 10 ? "mine" : slot == 11 ? "farm" : slot == 12 ? "casino"
@@ -1390,6 +1464,7 @@ public final class GuiManager {
         } else if ("clans".equals(type)) {
             if (slot == 31) openMainMenu(p);
         } else if ("lp_groups".equals(type)) {
+            if (!plugin.getLp().hasLpAccess(p)) { p.closeInventory(); return; }
             if (slot == 45 && h.page > 0) { openLpGroupsGui(p, h.page - 1); return; }
             if (slot == 53) { openLpGroupsGui(p, h.page + 1); return; }
             if (slot == 49) { p.closeInventory(); plugin.getLp().openEditorSession(p); return; }
@@ -1398,6 +1473,7 @@ public final class GuiManager {
                 openLpGroupEditGui(p, cid.substring(4));
             }
         } else if ("lp_edit".equals(type)) {
+            if (!plugin.getLp().hasLpAccess(p)) { p.closeInventory(); return; }
             if (slot == 31) { openLpGroupsGui(p, 0); return; }
             String perm = ItemFactory.getCustomId(clicked);
             if (perm != null) {

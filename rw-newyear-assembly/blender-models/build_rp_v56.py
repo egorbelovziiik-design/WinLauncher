@@ -1,0 +1,1087 @@
+import hashlib
+import json
+import math
+import os
+import shutil
+import zipfile
+import numpy as np
+from PIL import Image, ImageDraw
+
+OUT_RP_DIR = "/home/user/WinLauncher/rw-newyear-assembly/mega-rp-build"
+OUT_ZIP = "/home/user/WinLauncher/rw-newyear-assembly/kinggrief-mega-rp.zip"
+OUT_RANKS_ONLY_ZIP = "/home/user/WinLauncher/kinggrief-ranks-pack/kinggrief-ranks-pack.zip"
+
+if os.path.exists(OUT_RP_DIR):
+    shutil.rmtree(OUT_RP_DIR)
+os.makedirs(OUT_RP_DIR, exist_ok=True)
+
+# ==============================================================================
+# 1. ALL 40 RANKS IN EXACT 16PX-TALL LUXURY REALLYWORLD "OWNER" SPLIT-PLAQUE STYLE!
+#    Matches owner-badge/owner_preview_10x.png:
+#    - 16px tall rounded dark bezel
+#    - Left square medallion with 4 gold corner rivets + rich multi-tone 10x9 icon
+#    - Golden hinge clasps between icon medallion and nameplate
+#    - Right beveled plaque with 2x2 gold L-brackets, jewel checkerboard,
+#      bold 8px-tall 2px-stroke outlined cream-gold letters & smooth 8-frame shimmer!
+# ==============================================================================
+RANKS_40 = [
+    (0,  "owner",     "OWNER",     (68, 8, 22),   (232, 30, 68),   (255, 195, 38),  "crown"),
+    (1,  "techadmin", "TECH.ADM",  (62, 10, 28),  (244, 63, 94),   (56, 210, 255),  "gear"),
+    (2,  "curator",   "CURATOR",   (8, 56, 24),   (34, 205, 94),   (190, 242, 100), "clover"),
+    (3,  "kp",        "KP",        (8, 54, 42),   (16, 195, 138),  (255, 215, 64),  "shield"),
+    (4,  "glmoder",   "GL.MODER",  (42, 14, 76),  (155, 92, 252),  (255, 210, 75),  "sword"),
+    (5,  "stmoder",   "ST.MODER",  (24, 20, 78),  (99, 112, 250),  (199, 210, 254), "sword"),
+    (6,  "moder",     "MODER",     (12, 34, 82),  (59, 138, 252),  (147, 215, 255), "shield"),
+    (7,  "sthelper",  "ST.HELPER", (10, 44, 72),  (14, 175, 240),  (186, 235, 255), "star"),
+    (8,  "helper",    "HELPER",    (10, 50, 68),  (56, 198, 252),  (224, 245, 255), "star"),
+    (9,  "downer",    "D.OWNER",   (68, 42, 6),   (250, 198, 22),  (255, 75, 85),   "crown"),
+    (10, "opka",      "OPKA",      (58, 10, 68),  (217, 70, 245),  (255, 215, 50),  "bolt"),
+    (11, "dkp",       "D.KP",      (68, 24, 6),   (255, 115, 16),  (255, 220, 68),  "shield"),
+    (12, "dadmin",    "D.ADMIN",   (66, 10, 14),  (239, 68, 68),   (255, 205, 85),  "crown"),
+    (13, "dmladmin",  "D.ML.ADM",  (64, 22, 8),   (249, 118, 26),  (254, 230, 85),  "sword"),
+    (14, "dglmoder",  "D.GL.MOD",  (44, 16, 72),  (172, 88, 250),  (245, 190, 255), "sword"),
+    (15, "dstmoder",  "D.ST.MOD",  (16, 36, 78),  (64, 140, 250),  (165, 225, 255), "shield"),
+    (16, "dmoder",    "D.MODER",   (8, 54, 50),   (20, 194, 174),  (167, 248, 232), "shield"),
+    (17, "dhelper",   "D.HELPER",  (10, 56, 52),  (45, 216, 196),  (215, 252, 245), "star"),
+    (18, "mediaplus", "MEDIA+",    (68, 10, 32),  (248, 68, 104),  (255, 225, 72),  "play"),
+    (19, "media",     "MEDIA",     (64, 12, 42),  (238, 76, 158),  (252, 195, 228), "play"),
+    (20, "yt",        "YOUTUBE",   (72, 8, 10),   (255, 32, 64),   (255, 245, 245), "play"),
+    (21, "twitch",    "TWITCH",    (42, 14, 74),  (152, 78, 255),  (238, 220, 255), "play"),
+    (22, "tiktok",    "TIKTOK",    (18, 18, 30),  (255, 20, 92),   (0, 242, 234),   "play"),
+    (23, "sponsor",   "SPONSOR",   (66, 46, 8),   (252, 196, 36),  (255, 245, 150), "gem"),
+    (24, "bull",      "BULL",      (66, 26, 8),   (238, 96, 18),   (255, 220, 150), "horns"),
+    (25, "king",      "KING",      (50, 14, 72),  (176, 92, 252),  (255, 212, 42),  "crown"),
+    (26, "dragon",    "DRAGON",    (60, 10, 62),  (222, 74, 242),  (255, 150, 195), "fang"),
+    (27, "imperator", "IMPERATOR", (66, 10, 26),  (246, 68, 98),   (255, 224, 72),  "crown"),
+    (28, "overlord",  "OVERLORD",  (8, 54, 54),   (45, 216, 196),  (185, 248, 220), "bolt"),
+    (29, "god",       "GOD",       (66, 50, 8),   (252, 208, 26),  (255, 252, 210), "star"),
+    (30, "dracula",   "DRACULA",   (62, 6, 12),   (228, 38, 44),   (255, 155, 145), "fang"),
+    (31, "tiger",     "TIGER",     (66, 32, 8),   (252, 150, 56),  (255, 240, 140), "fang"),
+    (32, "vampire",   "VAMPIRE",   (64, 8, 18),   (242, 68, 74),   (252, 145, 145), "fang"),
+    (33, "rabbit",    "RABBIT",    (12, 42, 68),  (56, 194, 250),  (228, 244, 255), "ears"),
+    (34, "titan",     "TITAN",     (18, 34, 72),  (96, 168, 252),  (205, 228, 255), "shield"),
+    (35, "bunny",     "BUNNY",     (62, 14, 42),  (238, 76, 158),  (252, 215, 236), "ears"),
+    (36, "hero",      "HERO",      (12, 44, 68),  (56, 194, 250),  (255, 226, 76),  "sword"),
+    (37, "cobra",     "COBRA",     (26, 56, 10),  (136, 212, 26),  (222, 252, 162), "fang"),
+    (38, "pegas",     "PEGAS",     (10, 56, 26),  (36, 204, 98),   (195, 250, 215), "wing"),
+    (39, "default",   "PLAYER",    (28, 36, 48),  (148, 166, 190), (228, 236, 246), "helm"),
+]
+
+# Bold 2px-stroke 8px-tall Arcade/ReallyWorld Font (matches OWNER in owner_preview_10x.png!)
+FONT_BOLD_8 = {
+    'A': ["011110","110011","110011","111111","111111","110011","110011","110011"],
+    'B': ["111110","110011","110011","111110","111110","110011","110011","111110"],
+    'C': ["011111","110000","110000","110000","110000","110000","110000","011111"],
+    'D': ["111110","110011","110011","110011","110011","110011","110011","111110"],
+    'E': ["111111","110000","110000","111110","111110","110000","110000","111111"],
+    'F': ["111111","110000","110000","111110","111110","110000","110000","110000"],
+    'G': ["011111","110000","110000","110111","110011","110011","110011","011111"],
+    'H': ["110011","110011","110011","111111","111111","110011","110011","110011"],
+    'I': ["111111","001100","001100","001100","001100","001100","001100","111111"],
+    'J': ["001111","000011","000011","000011","110011","110011","110011","011110"],
+    'K': ["110011","110110","111100","111000","111100","110110","110011","110011"],
+    'L': ["110000","110000","110000","110000","110000","110000","110000","111111"],
+    'M': ["1100011","1110111","1111111","1101011","1100011","1100011","1100011","1100011"],
+    'N': ["110011","111011","111111","110111","110011","110011","110011","110011"],
+    'O': ["011110","110011","110011","110011","110011","110011","110011","011110"],
+    'P': ["111110","110011","110011","111110","110000","110000","110000","110000"],
+    'Q': ["011110","110011","110011","110011","110111","110011","011110","000011"],
+    'R': ["111110","110011","110011","111110","111100","110110","110011","110011"],
+    'S': ["011111","110000","110000","011110","000011","000011","110011","011110"],
+    'T': ["111111","111111","001100","001100","001100","001100","001100","001100"],
+    'U': ["110011","110011","110011","110011","110011","110011","110011","011110"],
+    'V': ["110011","110011","110011","110011","110011","011110","011110","001100"],
+    'W': ["1100011","1100011","1100011","1101011","1111111","1110111","1100011","0100010"],
+    'X': ["110011","110011","011110","001100","011110","110011","110011","110011"],
+    'Y': ["110011","110011","110011","011110","001100","001100","001100","001100"],
+    'Z': ["111111","000011","000110","001100","011000","110000","110000","111111"],
+    '+': ["00000","00100","00100","11111","11111","00100","00100","00000"],
+    '.': ["00","00","00","00","00","00","11","11"],
+    ' ': ["000","000","000","000","000","000","000","000"],
+}
+
+# Rich multi-shaded 10x8 icons ('.' empty, '1' dark shade, '2' main gold/accent, '3' bright highlight, '4' ruby/gem)
+ICONS_10X8 = {
+    "crown": [
+        "....33....",
+        "3..3223..3",
+        "32.2222.23",
+        "2222442222",
+        "2322442212",
+        "2221111212",
+        "2222222212",
+        ".11111111.",
+    ],
+    "clover": [
+        "..33..33..",
+        ".32233223.",
+        ".22322322.",
+        "..224422..",
+        ".32222221.",
+        "..122221..",
+        "....21....",
+        "...221....",
+    ],
+    "gear": [
+        "...3223...",
+        ".32222221.",
+        "3221441221",
+        "2214334121",
+        "2214334121",
+        "1221441221",
+        ".12222221.",
+        "...1221...",
+    ],
+    "shield": [
+        ".33222211.",
+        "3223333211",
+        "3234444211",
+        "2234334211",
+        ".22444421.",
+        ".12222211.",
+        "..122211..",
+        "...1211...",
+    ],
+    "sword": [
+        ".......332",
+        "......3321",
+        ".....3321.",
+        "..3.3321..",
+        "..23321...",
+        ".42221....",
+        "24212.....",
+        "21........",
+    ],
+    "star": [
+        "....33....",
+        "...3221...",
+        "3332332111",
+        ".32344221.",
+        "..224421..",
+        ".32211221.",
+        "321....121",
+        "..........",
+    ],
+    "bolt": [
+        "....33322.",
+        "...33221..",
+        "..33221...",
+        ".33322221.",
+        "....3221..",
+        "...3221...",
+        "..321.....",
+        ".31.......",
+    ],
+    "play": [
+        "..33......",
+        "..3322....",
+        "..332221..",
+        "..33442211",
+        "..2244221.",
+        "..22221...",
+        "..221.....",
+        "..........",
+    ],
+    "gem": [
+        "..333322..",
+        ".33444421.",
+        "3343334221",
+        "2244444211",
+        ".22244211.",
+        "..122211..",
+        "...1211...",
+        "....11....",
+    ],
+    "horns": [
+        "33......22",
+        "321....121",
+        ".32233221.",
+        "..234421..",
+        "..224421..",
+        "..122221..",
+        "...1221...",
+        "..........",
+    ],
+    "fang": [
+        ".33....22.",
+        "3223333221",
+        "2243224311",
+        ".22222221.",
+        ".23.11.21.",
+        ".21....11.",
+        "..1....1..",
+        "..........",
+    ],
+    "ears": [
+        ".33....32.",
+        ".321..321.",
+        ".321..321.",
+        "..332221..",
+        ".32422421.",
+        ".22233221.",
+        "..122221..",
+        "..........",
+    ],
+    "wing": [
+        "......3332",
+        "....333221",
+        "..3332221.",
+        ".3322221..",
+        "3322211...",
+        "22211.....",
+        ".11.......",
+        "..........",
+    ],
+    "helm": [
+        "..333221..",
+        ".33222221.",
+        "3221111221",
+        "2214334121",
+        "2211111121",
+        "221....121",
+        ".11....11.",
+        "..........",
+    ],
+}
+
+def clamp_rgb(r, g, b):
+    return (max(0, min(255, int(r))), max(0, min(255, int(g))), max(0, min(255, int(b))))
+
+def render_luxury_owner_style_badge(label, bg, border, accent, icon_type, frame_idx):
+    # Exact 16px-tall structure matching owner_preview_10x.png!
+    h = 16
+    char_widths = [len(FONT_BOLD_8.get(ch, FONT_BOLD_8[' '])[0]) for ch in label]
+    text_w = sum(char_widths) + max(0, len(label) - 1)
+    left_x0, left_x1 = 2, 15     # 14px wide left medallion
+    clasp_x0, clasp_x1 = 16, 17  # 2px hinge groove + golden clasps
+    right_x0 = 18
+    pad_side = 5
+    right_inner_w = text_w + pad_side * 2
+    right_x1 = right_x0 + right_inner_w + 3
+    w = right_x1 + 3
+
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    px = img.load()
+
+    dark_bezel = (*clamp_rgb(bg[0] * 0.28 + 8, bg[1] * 0.22 + 3, bg[2] * 0.28 + 8), 255)
+    phase = (frame_idx / 8.0) * 2.0 * math.pi
+    pulse = 0.90 + 0.12 * math.sin(phase)
+    sweep_x = int(((frame_idx / 8.0) * (w + 14)) - 7)
+
+    # 1. Rounded 2px Outer Dark Bezel (exact silhouette of owner.png!)
+    for y in range(h):
+        x_start = 2 if y in (0, 15) else (1 if y in (1, 14) else 0)
+        x_end = (w - 3) if y in (0, 15) else ((w - 2) if y in (1, 14) else (w - 1))
+        for x in range(x_start, x_end + 1):
+            px[x, y] = dark_bezel
+
+    # Helper for shimmer intensity
+    def shim(x, y):
+        d = abs((x + (y // 2)) - sweep_x)
+        return max(0.0, 1.0 - d / 5.5)
+
+    # 2. Left Square Icon Medallion (x=2..15, y=2..13)
+    for y in range(2, 14):
+        for x in range(left_x0, left_x1 + 1):
+            s = shim(x, y)
+            if x in (left_x0, left_x1) or y in (2, 13):
+                lit = 1.12 if y == 2 else (0.78 if y == 13 else 0.95)
+                c = clamp_rgb(border[0]*lit*pulse + accent[0]*0.38*s,
+                              border[1]*lit*pulse + accent[1]*0.38*s,
+                              border[2]*lit*pulse + accent[2]*0.38*s)
+                px[x, y] = (*c, 255)
+            else:
+                checker = 0.85 if ((x + y) % 2 == 0) else 1.05
+                c = clamp_rgb(bg[0]*checker + border[0]*0.18*s,
+                              bg[1]*checker + border[1]*0.18*s,
+                              bg[2]*checker + border[2]*0.18*s)
+                px[x, y] = (*c, 255)
+
+    # 4 Golden Corner Rivets on Left Medallion
+    gold_hi = clamp_rgb(accent[0]*1.1 + 25, accent[1]*1.05 + 20, accent[2]*0.9 + 10)
+    gold_mid = clamp_rgb(accent[0]*0.88, accent[1]*0.78, accent[2]*0.55)
+    for rx, ry in [(left_x0, 2), (left_x1, 2), (left_x0, 13), (left_x1, 13)]:
+        px[rx, ry] = (*(gold_hi if ry == 2 else gold_mid), 255)
+
+    # Golden Hinge Clasps at x=16 (y=5 and y=10)
+    for hy in range(3, 13):
+        px[16, hy] = (*clamp_rgb(border[0]*0.45, border[1]*0.45, border[2]*0.45), 255)
+    px[16, 5] = (*gold_hi, 255)
+    px[16, 10] = (*gold_mid, 255)
+
+    # Draw Shaded 10x8 Icon inside Left Medallion (x=4..13, y=4..11) with 1px dark outline
+    icon_grid = ICONS_10X8.get(icon_type, ICONS_10X8["star"])
+    bob = -1 if frame_idx in (2, 3) else 0
+    icon_pts = {}
+    for iy, row in enumerate(icon_grid):
+        for ix, ch in enumerate(row):
+            if ch != '.':
+                icon_pts[(4 + ix, 4 + iy + bob)] = ch
+    for (ix, iy) in list(icon_pts.keys()):
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nx, ny = ix + dx, iy + dy
+            if (nx, ny) not in icon_pts and 3 <= nx <= 14 and 3 <= ny <= 12:
+                px[nx, ny] = dark_bezel
+    for (ix, iy), ch in icon_pts.items():
+        if not (3 <= ix <= 14 and 3 <= iy <= 12):
+            continue
+        s = shim(ix, iy)
+        if ch == '3':
+            col = clamp_rgb(255, 252, 225)
+        elif ch == '2':
+            col = clamp_rgb(accent[0] + 35*s, accent[1] + 30*s, accent[2] + 25*s)
+        elif ch == '4':
+            col = clamp_rgb(border[0]*1.2 + 40, border[1]*0.9 + 25, border[2]*1.2 + 40)
+        else:
+            col = clamp_rgb(accent[0]*0.68, accent[1]*0.58, accent[2]*0.42)
+        px[ix, iy] = (*col, 255)
+
+    # 3. Right Luxury Beveled Nameplate (x=right_x0..right_x1, y=2..13)
+    for y in range(2, 14):
+        for x in range(right_x0, right_x1 + 1):
+            s = shim(x, y)
+            if x in (right_x0, right_x1) or y in (2, 13):
+                lit = 1.15 if y == 2 else (0.76 if y == 13 else 0.96)
+                c = clamp_rgb(border[0]*lit*pulse + accent[0]*0.42*s,
+                              border[1]*lit*pulse + accent[1]*0.42*s,
+                              border[2]*lit*pulse + accent[2]*0.42*s)
+                px[x, y] = (*c, 255)
+            elif x in (right_x0 + 1, right_x1 - 1) or y in (3, 12):
+                c = clamp_rgb(border[0]*0.58 + bg[0]*0.45 + accent[0]*0.25*s,
+                              border[1]*0.58 + bg[1]*0.45 + accent[1]*0.25*s,
+                              border[2]*0.58 + bg[2]*0.45 + accent[2]*0.25*s)
+                px[x, y] = (*c, 255)
+            else:
+                # Subtle luxury jewel checkerboard interior
+                chk = 1.14 if ((x + y) % 2 == 0) else 0.92
+                grad = 1.15 - 0.25 * ((y - 4) / 7.0)
+                c = clamp_rgb(bg[0]*chk*grad + border[0]*0.28*s,
+                              bg[1]*chk*grad + border[1]*0.28*s,
+                              bg[2]*chk*grad + border[2]*0.28*s)
+                px[x, y] = (*c, 255)
+
+    # 4 L-Shaped 2x2 Golden Corner Brackets on Right Nameplate (exact match to OWNER!)
+    for bx, by, dx, dy in [
+        (right_x0, 2, 1, 1),
+        (right_x1, 2, -1, 1),
+        (right_x0, 13, 1, -1),
+        (right_x1, 13, -1, -1),
+    ]:
+        px[bx, by] = (*gold_hi, 255)
+        px[bx + dx, by] = (*gold_mid, 255)
+        px[bx, by + dy] = (*gold_mid, 255)
+
+    # Animated Twinkling Sparkle Dots inside Left & Right Margins of Plaque
+    sp1_y = 5 + (frame_idx % 5)
+    sp2_y = 10 - (frame_idx % 5)
+    if right_x0 + 3 < right_x1 - 3:
+        px[right_x0 + 3, sp1_y] = (*(gold_hi if frame_idx % 2 == 0 else border), 255)
+        px[right_x1 - 3, sp2_y] = (*(border if frame_idx % 2 == 0 else gold_hi), 255)
+
+    # 4. Bold 8px-Tall Outlined Cream-Gold Block Letters (y=4..11)
+    text_x0 = right_x0 + 2 + pad_side
+    letter_pts = set()
+    cx = text_x0
+    for ch in label:
+        glyph = FONT_BOLD_8.get(ch, FONT_BOLD_8[' '])
+        gw = len(glyph[0])
+        for gy, grow in enumerate(glyph):
+            for gx, bit in enumerate(grow):
+                if bit == '1':
+                    letter_pts.add((cx + gx, 4 + gy))
+        cx += gw + 1
+
+    # Full 1px dark outline around all letters so text is 1000% crisp & readable!
+    for (lx, ly) in letter_pts:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                nx, ny = lx + dx, ly + dy
+                if (nx, ny) not in letter_pts and right_x0 + 1 < nx < right_x1 - 1 and 3 <= ny <= 12:
+                    px[nx, ny] = dark_bezel
+
+    # Cream-white -> warm ivory-gold vertical letter fill + diagonal shimmer!
+    for (lx, ly) in letter_pts:
+        s = shim(lx, ly)
+        t = (ly - 4) / 7.0
+        base_r = 255
+        base_g = int(255 - 16 * t)
+        base_b = int(252 - 58 * t)
+        if s > 0.45:
+            px[lx, ly] = (255, 255, 245, 255)
+        else:
+            px[lx, ly] = (base_r, base_g, base_b, 255)
+
+    return img
+
+font_dir = os.path.join(OUT_RP_DIR, "assets/minecraft/textures/font")
+os.makedirs(os.path.join(font_dir, "ranks"), exist_ok=True)
+providers = []
+
+# Generate preview sheet of all 40 luxury badges to verify visually!
+badge_preview = Image.new("RGBA", (680, 20 * 38 + 24), (18, 22, 32, 255))
+
+for idx, rid, label, bg, border, accent, icon_type in RANKS_40:
+    for f in range(8):
+        im = render_luxury_owner_style_badge(label, bg, border, accent, icon_type, f)
+        fn = f"ranks/{rid}_{f}.png"
+        im.save(os.path.join(font_dir, fn))
+        cp = 0xEA00 + idx * 8 + f
+        providers.append({
+            "type": "bitmap",
+            "file": f"minecraft:font/{fn}",
+            "ascent": 8,
+            "height": 9,
+            "chars": [chr(cp)]
+        })
+        if f == 0:
+            col = idx % 2
+            row = idx // 2
+            scaled = im.resize((im.width * 2, im.height * 2), Image.NEAREST)
+            badge_preview.paste(scaled, (16 + col * 335, 12 + row * 38), scaled)
+
+badge_preview.save("/tmp/preview_all_40_badges.png")
+
+# Legacy compatibility aliases so NO \uE900..\uE96F character EVER renders as a missing box '▯'!
+spacer_path = os.path.join(font_dir, "legacy_spacer.png")
+sp_im = Image.new("RGBA", (1, 8), (0, 0, 0, 0))
+sp_im.putpixel((0, 0), (255, 255, 255, 1))
+sp_im.save(spacer_path)
+
+for f in range(13):
+    providers.append({
+        "type": "bitmap",
+        "file": f"minecraft:font/ranks/curator_{f % 8}.png",
+        "ascent": 8, "height": 9, "chars": [chr(0xE940 + f)]
+    })
+    providers.append({
+        "type": "bitmap",
+        "file": f"minecraft:font/ranks/owner_{f % 8}.png",
+        "ascent": 8, "height": 9, "chars": [chr(0xE950 + f)]
+    })
+
+used_e9 = set(range(0xE940, 0xE94D)) | set(range(0xE950, 0xE95D)) | set(range(0xE970, 0xE980))
+legacy_chars = "".join(chr(cp) for cp in range(0xE900, 0xE9FF) if cp not in used_e9)
+providers.append({
+    "type": "bitmap",
+    "file": "minecraft:font/legacy_spacer.png",
+    "ascent": 7, "height": 8, "chars": [legacy_chars]
+})
+
+# 16 Crisp HUD Icons (\uE970..\uE97F)
+HUD_SPECS = [
+    (0xE970, "hud_crown",  (255, 215, 64), "crown"),
+    (0xE971, "hud_clan",   (168, 85, 247), "shield"),
+    (0xE972, "hud_coin",   (250, 204, 21), "gem"),
+    (0xE973, "hud_relic",  (56, 189, 248), "star"),
+    (0xE974, "hud_swords", (244, 63, 94),  "sword"),
+    (0xE975, "hud_ping",   (34, 197, 94),  "bolt"),
+    (0xE976, "hud_snow",   (125, 211, 252),"star"),
+    (0xE977, "hud_gift",   (251, 113, 133),"gem"),
+    (0xE978, "hud_casino", (250, 204, 21), "star"),
+    (0xE979, "hud_pick",   (56, 189, 248), "sword"),
+    (0xE97A, "hud_potion", (217, 70, 239), "clover"),
+    (0xE97B, "hud_star",   (253, 224, 71), "star"),
+    (0xE97C, "hud_fire",   (249, 115, 22), "bolt"),
+    (0xE97D, "hud_heart",  (239, 68, 68),  "clover"),
+    (0xE97E, "hud_bolt",   (250, 204, 21), "bolt"),
+    (0xE97F, "hud_lp",     (16, 185, 129), "gear"),
+]
+for cp, hname, col, ic in HUD_SPECS:
+    him = Image.new("RGBA", (12, 10), (0, 0, 0, 0))
+    hpx = him.load()
+    grid = ICONS_10X8[ic]
+    for y, r in enumerate(grid):
+        for x, b in enumerate(r):
+            if b != '.':
+                mult = 1.2 if b == '3' else (0.75 if b == '1' else 1.0)
+                c = clamp_rgb(col[0]*mult, col[1]*mult, col[2]*mult)
+                hpx[x + 1, y + 1] = (*c, 255)
+    him.save(os.path.join(font_dir, f"{hname}.png"))
+    providers.append({
+        "type": "bitmap",
+        "file": f"minecraft:font/{hname}.png",
+        "ascent": 7, "height": 8, "chars": [chr(cp)]
+    })
+
+os.makedirs(os.path.join(OUT_RP_DIR, "assets/minecraft/font"), exist_ok=True)
+with open(os.path.join(OUT_RP_DIR, "assets/minecraft/font/default.json"), "w", encoding="utf-8") as fp:
+    json.dump({"providers": providers}, fp, ensure_ascii=False, indent=2)
+
+# Also rebuild standalone kinggrief-ranks-pack.zip so if user has both packs loaded, ALL 40 work!
+if os.path.exists(os.path.dirname(OUT_RANKS_ONLY_ZIP)):
+    with zipfile.ZipFile(OUT_RANKS_ONLY_ZIP, "w", zipfile.ZIP_DEFLATED) as rzf:
+        rzf.writestr("pack.mcmeta", json.dumps({
+            "pack": {"pack_format": 75, "supported_formats": [7, 99], "min_format": 7, "max_format": 99,
+                     "description": "§b§lKINGGRIEF v5.6 §8· §f40 Luxury Animated Rank Badges"}
+        }, ensure_ascii=False, indent=2))
+        rzf.write(os.path.join(OUT_RP_DIR, "assets/minecraft/font/default.json"), "assets/minecraft/font/default.json")
+        for root_f, _, fls in os.walk(font_dir):
+            for fn in sorted(fls):
+                full = os.path.join(root_f, fn)
+                rzf.write(full, os.path.relpath(full, OUT_RP_DIR))
+
+print("1. Built ALL 40 Luxury OWNER-style Animated Rank Badges!")
+
+# ==============================================================================
+# 2. CRYSTAL-CLEAR, HIGH-CONTRAST 32x32 12-FRAME 3D ANIMATED ITEMS!
+#    - Covers EVERY SINGLE exact modelId in ItemFactory.java + aliases!
+#    - Binary crisp alpha (0 or 255) + 1px dark outline + bright specular rim light
+#    - Iconic front-readable silhouette at all times (ZERO blurry 360 ghosting!)
+#    - Uses native 3D voxel extrusion (item/generated & item/handheld) with
+#      firstperson rotated toward the player's eyes so every detail is clear!
+# ==============================================================================
+ITEMS_SPECS = [
+    # (primary_id, aliases, category, subtype, main_rgb, glow_rgb, trim_rgb)
+    ("shar_titana",       ["titan_sphere"],     "sphere",   "titan",     (35, 125, 255),  (125, 225, 255), (255, 200, 45)),
+    ("shar_andromedy",    ["andromeda_sphere"], "sphere",   "andromeda", (155, 55, 255),  (245, 130, 255), (255, 215, 70)),
+    ("shar_chimery",      ["chimera_sphere"],   "sphere",   "chimera",   (25, 205, 95),   (145, 255, 175), (255, 195, 45)),
+    ("shar_apollona",     ["apollo_sphere"],    "sphere",   "apollo",    (255, 175, 25),  (255, 245, 140), (255, 95, 35)),
+    ("shar_aida",         [],                   "sphere",   "aida",      (220, 25, 45),   (255, 120, 50),  (65, 45, 75)),
+    ("shar_osirisa",      [],                   "sphere",   "osiris",    (15, 195, 215),  (160, 255, 235), (255, 205, 50)),
+    ("shar_aresa",        ["ares_sphere"],      "sphere",   "ares",      (195, 30, 30),   (255, 155, 55),  (255, 210, 65)),
+    ("shar_santy",        [],                   "sphere",   "santa",     (235, 35, 65),   (135, 235, 255), (255, 220, 65)),
+
+    ("tal_krushitelya",   ["krush_talisman"],   "talisman", "krush",     (235, 55, 30),   (255, 185, 50),  (255, 215, 65)),
+    ("tal_grani",         [],                   "talisman", "grani",     (250, 195, 35),  (140, 240, 255), (255, 240, 150)),
+    ("tal_dedala",        [],                   "talisman", "dedal",     (56, 189, 248),  (225, 248, 255), (255, 215, 65)),
+    ("tal_tritona",       [],                   "talisman", "triton",    (15, 155, 235),  (110, 255, 235), (255, 215, 75)),
+    ("tal_feniksa",       ["phoenix_talisman"], "talisman", "phoenix",   (255, 105, 20),  (255, 235, 85),  (235, 40, 50)),
+    ("tal_echidny",       [],                   "talisman", "echidna",   (34, 197, 94),   (185, 255, 110), (155, 65, 235)),
+    ("tal_stuzhi",        ["frost_talisman"],   "talisman", "frost",     (95, 210, 255),  (235, 252, 255), (255, 220, 80)),
+    ("immortal_totem",    [],                   "talisman", "immortal",  (250, 204, 21),  (80, 255, 155),  (255, 245, 175)),
+
+    ("elytra_wind",       [],                   "wings",    "wind",      (125, 218, 255), (240, 252, 255), (255, 220, 85)),
+    ("elytra_phoenix",    [],                   "wings",    "phoenix",   (255, 95, 20),   (255, 225, 70),  (195, 25, 35)),
+    ("elytra_vampire",    [],                   "wings",    "vampire",   (205, 20, 50),   (255, 95, 125),  (55, 35, 68)),
+    ("elytra_thunder",    [],                   "wings",    "thunder",   (250, 205, 35),  (115, 225, 255), (65, 95, 195)),
+    ("elytra_titan",      [],                   "wings",    "titan",     (95, 115, 145),  (95, 215, 255),  (255, 195, 45)),
+    ("elytra_santa",      [],                   "wings",    "santa",     (235, 30, 55),   (145, 242, 255), (255, 248, 245)),
+
+    ("plast",             ["plast_item"],       "plast",    "plast",     (75, 55, 125),   (195, 115, 255), (65, 225, 255)),
+    ("trapka",            ["trapka_item"],      "cage",     "trapka",    (72, 68, 86),    (255, 55, 95),   (255, 195, 55)),
+    ("dezorient",         ["dezorient_item"],   "eye",      "dezorient", (175, 45, 235),  (255, 135, 245), (255, 215, 65)),
+    ("yavnaya_pyl",       [],                   "flask",    "dust",      (56, 215, 255),  (255, 245, 135), (255, 205, 55)),
+    ("bozhya_aura",       [],                   "halo",     "aura",      (255, 205, 45),  (255, 252, 210), (245, 248, 255)),
+    ("ognenny_smerch",    [],                   "tornado",  "fire",      (255, 95, 20),   (255, 230, 75),  (215, 30, 35)),
+    ("snezok_zamorozki",  ["snow_freeze"],      "snowflake","icebomb",   (95, 210, 255),  (240, 253, 255), (55, 135, 235)),
+    ("pautinnaya_granata",["spider_net"],       "web",      "web",       (225, 242, 248), (105, 245, 175), (65, 175, 125)),
+
+    ("pick_djamshut",     ["drill_pickaxe"],    "pickaxe",  "djamshut",  (255, 130, 20),  (255, 235, 85),  (82, 72, 92)),
+    ("pick_spawner",      [],                   "pickaxe",  "spawner",   (250, 204, 21),  (95, 245, 255),  (165, 75, 245)),
+    ("sword_dracula",     [],                   "sword",    "dracula",   (215, 22, 48),   (255, 110, 135), (58, 42, 68)),
+    ("sword_krush",       ["krush_sword"],      "sword",    "krush",     (255, 105, 20),  (255, 235, 85),  (75, 62, 82)),
+    ("bow_ice_rw",        [],                   "bow",      "icebow",    (85, 205, 255),  (235, 252, 255), (255, 215, 70)),
+    ("ny_mandarin",       [],                   "mandarin", "mandarin",  (255, 132, 18),  (255, 215, 95),  (42, 195, 75)),
+    ("snowflake_coin",    [],                   "snowflake","coin",      (80, 205, 255),  (240, 252, 255), (255, 215, 65)),
+    ("bounty_scroll",     [],                   "scroll",   "bounty",    (235, 215, 165), (235, 45, 55),   (255, 195, 45)),
+]
+
+def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12):
+    # Render on 64x64 supersampled canvas -> crisp 32x32 pixel-art with binary alpha & 1px dark outline!
+    S = 32
+    yy, xx = np.mgrid[0:S, 0:S].astype(np.float32)
+    # Normalized [-1, 1], y_up positive upward!
+    nx = (xx - 15.5) / 14.0
+    ny = (15.5 - yy) / 14.0
+    r = np.sqrt(nx * nx + ny * ny)
+    ang = np.arctan2(ny, nx)
+
+    ph = (frame_idx / float(n_frames)) * 2.0 * math.pi
+    bob = 0.045 * math.sin(ph)
+    ny_b = ny - bob
+    r_b = np.sqrt(nx * nx + ny_b * ny_b)
+
+    rgb = np.zeros((S, S, 3), dtype=np.float32)
+    mask = np.zeros((S, S), dtype=bool)
+
+    m_v = np.array(mcol, dtype=np.float32)
+    g_v = np.array(gcol, dtype=np.float32)
+    t_v = np.array(tcol, dtype=np.float32)
+    white = np.array([255.0, 255.0, 255.0], dtype=np.float32)
+
+    # Moving specular light vector for rich 3D surface perception
+    lx = -0.42 + 0.24 * math.cos(ph)
+    ly = 0.52 + 0.16 * math.sin(ph)
+    lz = 0.72
+    ln = math.sqrt(lx*lx + ly*ly + lz*lz)
+    lx, ly, lz = lx/ln, ly/ln, lz/ln
+
+    if cat == "sphere":
+        rad = 0.68
+        in_orb = r_b <= rad
+        z = np.sqrt(np.clip(rad*rad - nx*nx - ny_b*ny_b, 0.0, 1.0)) / rad
+        snx, sny, snz = nx / rad, ny_b / rad, z
+        diff = np.clip(snx * lx + sny * ly + snz * lz, 0.0, 1.0)
+        spec = np.power(np.clip(diff, 0.0, 1.0), 9.0)
+        fresnel = np.power(1.0 - z, 2.2)
+
+        col = m_v * (0.35 + 0.78 * diff)[..., None] + g_v * (0.32 * fresnel + 0.25 * (1.0 - r_b / rad))[..., None] + white * (0.75 * spec)[..., None]
+        rgb[in_orb] = col[in_orb]
+        mask |= in_orb
+
+        # Subtype unmistakable front 3D relief on the sphere!
+        if sub == "santa":
+            # Festive white fur brim + red Santa cap on top + golden 4-point star emblem in center!
+            fur = (np.abs(ny_b - 0.48) <= 0.11) & (np.abs(nx) <= 0.56)
+            hat = (ny_b > 0.54) & (ny_b <= 0.90) & (np.abs(nx - 0.12*(ny_b-0.54)*2) <= 0.48 * (1.0 - (ny_b-0.54)/0.44))
+            pom = (nx - 0.34)**2 + (ny_b - 0.80)**2 <= 0.025
+            star = ((np.abs(nx) <= 0.08) & (np.abs(ny_b + 0.05) <= 0.30)) | ((np.abs(ny_b + 0.05) <= 0.08) & (np.abs(nx) <= 0.30))
+            rgb[hat] = [235, 30, 50]
+            rgb[fur | pom] = [248, 250, 255]
+            rgb[star & in_orb] = t_v * 1.08
+            mask |= fur | hat | pom
+        elif sub == "titan":
+            band = in_orb & ((np.abs(nx) <= 0.10) | (np.abs(ny_b) <= 0.10) | ((r_b >= 0.56) & (r_b <= 0.68)))
+            rgb[band] = t_v * (0.65 + 0.45 * diff)[band, None]
+        elif sub == "apollo":
+            for k in range(8):
+                a = k * (math.pi / 4.0) + 0.18 * math.sin(ph)
+                rx_d = nx * math.cos(a) + ny_b * math.sin(a)
+                ry_d = -nx * math.sin(a) + ny_b * math.cos(a)
+                ray = (rx_d >= 0.62) & (rx_d <= 0.92) & (np.abs(ry_d) <= 0.11 * (1.0 - (rx_d - 0.62)/0.34))
+                rgb[ray] = t_v if k % 2 == 0 else g_v
+                mask |= ray
+        elif sub == "aida":
+            for sx in (-1.0, 1.0):
+                horn = ((nx - sx*0.48)**2 + (ny_b - 0.52)**2 <= 0.06) & ((nx - sx*0.36)**2 + (ny_b - 0.42)**2 >= 0.015)
+                rgb[horn] = [75, 55, 88]
+                mask |= horn
+        elif sub == "ares":
+            blades = in_orb & ((np.abs(nx - ny_b) <= 0.09) | (np.abs(nx + ny_b) <= 0.09)) & (r_b <= 0.52)
+            rgb[blades] = t_v
+        elif sub == "osiris":
+            ankh = in_orb & (((np.abs(nx) <= 0.08) & (ny_b >= -0.38) & (ny_b <= 0.12)) | ((np.abs(ny_b + 0.04) <= 0.07) & (np.abs(nx) <= 0.28)) | (np.abs(np.sqrt(nx*nx + (ny_b-0.22)**2) - 0.15) <= 0.06))
+            rgb[ankh] = t_v
+
+        # Animated tilted 3D energy orbit ring (front arc overlaps sphere, back arc behind sphere!)
+        tilt = 0.36
+        rx_r = nx * math.cos(0.38) - ny_b * math.sin(0.38)
+        ry_r = (nx * math.sin(0.38) + ny_b * math.cos(0.38)) / tilt
+        rr = np.sqrt(rx_r * rx_r + ry_r * ry_r)
+        on_ring = (rr >= 0.80) & (rr <= 0.96)
+        front_half = ry_r < 0.0
+        orb_ang = np.arctan2(ry_r, rx_r)
+        pulse_ring = 0.65 + 0.35 * np.cos(orb_ang * 2.0 - ph * 2.0)
+        ring_col = g_v * pulse_ring[..., None] + t_v * (1.0 - pulse_ring)[..., None]
+        back_ring = on_ring & (~front_half) & (~mask)
+        front_ring = on_ring & front_half
+        rgb[back_ring] = ring_col[back_ring] * 0.78
+        rgb[front_ring] = np.clip(ring_col[front_ring] * 1.12, 0, 255)
+        mask |= on_ring
+
+        # 2 crisp orbiting star gems!
+        for k in range(2):
+            oa = ph + k * math.pi
+            ox = 0.88 * math.cos(oa) * math.cos(0.38) + 0.88 * tilt * math.sin(oa) * math.sin(0.38)
+            oy = -0.88 * math.cos(oa) * math.sin(0.38) + 0.88 * tilt * math.sin(oa) * math.cos(0.38)
+            sat = (np.abs(nx - ox) + np.abs(ny_b - oy)) <= 0.15
+            if math.sin(oa) < 0 or True:
+                rgb[sat] = white * 0.6 + g_v * 0.4
+                mask |= sat
+
+    elif cat == "talisman":
+        flap = 0.08 * math.sin(ph)
+        # Sculpted Winged Totem Idol!
+        head = (np.abs(nx) <= 0.28) & (ny_b >= 0.24) & (ny_b <= 0.68)
+        crown = (np.abs(nx) <= 0.34) & (ny_b >= 0.64) & (ny_b <= 0.82) & ((np.abs(nx) <= 0.09) | (np.abs(nx) >= 0.20) | (ny_b <= 0.72))
+        torso = (np.abs(nx) <= 0.32 * (1.0 - 0.32 * np.clip(-ny_b, 0, 1))) & (ny_b >= -0.68) & (ny_b <= 0.28)
+        wings = (np.abs(nx) >= 0.26) & (np.abs(nx) <= 0.92) & (
+            np.abs(ny_b - (0.10 + (np.abs(nx) - 0.26) * (0.45 + flap))) <= (0.28 - 0.14 * (np.abs(nx) - 0.26))
+        )
+        body = head | torso
+        shade = np.clip(0.75 + 0.35 * (-nx * 0.6 + ny_b * 0.5), 0.45, 1.25)
+        rgb[wings] = (m_v * shade[..., None])[wings]
+        # Feather ridges on wings
+        ridge = wings & (((((np.abs(nx) * 14).astype(int)) % 2) == 0))
+        rgb[ridge] = np.clip(rgb[ridge] * 1.22 + g_v * 0.18, 0, 255)
+        rgb[body] = (t_v * shade[..., None])[body]
+        rgb[crown] = g_v
+        # Glowing eyes & pulsing chest gem!
+        eyes = (np.abs(np.abs(nx) - 0.13) <= 0.06) & (np.abs(ny_b - 0.44) <= 0.06)
+        gem = (np.abs(nx) + np.abs(ny_b + 0.06)) <= (0.23 + 0.03 * math.sin(ph * 2))
+        rgb[eyes] = white * 0.7 + g_v * 0.3
+        rgb[gem] = g_v * (0.85 + 0.15 * math.sin(ph * 2)) + white * 0.25
+        mask |= wings | body | crown | eyes | gem
+
+    elif cat == "wings":
+        # Wide, majestic, unmistakable Pair of Sculpted Multi-Feather Elytra Wings!
+        flap = 0.10 * math.sin(ph)
+        ax = np.abs(nx)
+        top_curve = 0.66 * np.sin(np.clip((ax - 0.06) / 0.88, 0.0, 1.0) * math.pi * 0.82) + 0.12 + flap * ax
+        bot_curve = -0.62 * np.power(np.clip(1.0 - np.abs(ax - 0.46) / 0.52, 0.0, 1.0), 0.75) + 0.10 * np.sin(ax * 18.0) + flap * ax * 0.6
+        wing = (ax >= 0.08) & (ax <= 0.94) & (ny_b <= top_curve) & (ny_b >= bot_curve)
+        shade = np.clip(0.65 + 0.48 * ((ny_b - bot_curve) / np.maximum(0.15, top_curve - bot_curve)), 0.4, 1.25)
+        rgb[wing] = (m_v * shade[..., None])[wing]
+        # Crisp white/gold top wing arch + glowing feather tips!
+        top_trim = wing & ((top_curve - ny_b) <= 0.14)
+        tips = wing & ((ny_b - bot_curve) <= 0.15)
+        rgb[top_trim] = t_v
+        rgb[tips] = g_v * (0.78 + 0.22 * math.sin(ph * 2))
+        # Center armored clasp gem
+        core = (ax + np.abs(ny_b - 0.08)) <= 0.22
+        rgb[core] = g_v * 0.7 + white * 0.3
+        mask |= wing | core
+
+    elif cat == "plast":
+        # 3D Isometric Heavy Armored Barrier Slab (5x5x2 Plast) with pulsing neon grid!
+        u = (nx + ny_b * 1.45)
+        v = (ny_b * 1.45 - nx)
+        top_face = (np.abs(u) <= 0.88) & (np.abs(v) <= 0.88)
+        left_side = (nx >= -0.88) & (nx <= 0.0) & (ny_b <= -0.60 - nx * 0.68) & (ny_b >= -0.92 - nx * 0.68)
+        # Simpler rock-solid isometric diamond slab + extruded 3D side bevels:
+        dx_iso = np.abs(nx) / 0.88 + np.abs(ny_b - 0.10) / 0.50
+        top_d = dx_iso <= 1.0
+        side_d = (np.abs(nx) <= 0.88) & (ny_b < 0.10 - (1.0 - np.abs(nx)/0.88)*0.50 + 0.02) & (ny_b >= -0.26 - (1.0 - np.abs(nx)/0.88)*0.50)
+        rgb[side_d] = np.where((nx < 0)[..., None], m_v * 0.72, m_v * 0.50)[side_d]
+        side_glow = side_d & (np.abs(ny_b - (-0.08 - (1.0 - np.abs(nx)/0.88)*0.50)) <= 0.06)
+        rgb[side_glow] = t_v
+        rgb[top_d] = m_v * 1.05
+        # Glowing neon forcefield grid + expanding pulse on top slab!
+        grid_lines = top_d & ((np.abs((nx + ny_b*1.7) * 5.0 - np.round((nx + ny_b*1.7) * 5.0)) <= 0.14) |
+                              (np.abs((nx - ny_b*1.7) * 5.0 - np.round((nx - ny_b*1.7) * 5.0)) <= 0.14) |
+                              (dx_iso >= 0.82))
+        pulse_r = (frame_idx / float(n_frames))
+        wave = top_d & (np.abs(dx_iso - pulse_r) <= 0.13)
+        rgb[grid_lines] = g_v
+        rgb[wave] = white * 0.55 + t_v * 0.45
+        mask |= top_d | side_d
+
+    elif cat == "cage":
+        # 3D Isometric Iron-Obsidian Trapka 5x5x5 Prison Cage with glowing red-gold core!
+        box = (np.abs(nx) <= 0.72) & (np.abs(ny_b) <= 0.72)
+        bars_x = (np.abs(nx) >= 0.58) | (np.abs(nx) <= 0.08) | (np.abs(np.abs(nx) - 0.34) <= 0.07)
+        bars_y = (np.abs(ny_b) >= 0.58) | (np.abs(ny_b) <= 0.08) | (np.abs(np.abs(ny_b) - 0.34) <= 0.07)
+        frame = box & (bars_x | bars_y)
+        inner_core = r_b <= (0.34 + 0.05 * math.sin(ph * 2))
+        spikes = (np.abs(np.abs(nx) - 0.65) <= 0.08) & (ny_b >= 0.72) & (ny_b <= 0.88)
+        rgb[inner_core] = g_v * (0.8 + 0.2 * math.sin(ph * 2)) + white * 0.22
+        rgb[frame] = (m_v * np.clip(0.85 + 0.35 * (-nx + ny_b), 0.55, 1.35)[..., None])[frame]
+        corners = box & (np.abs(nx) >= 0.56) & (np.abs(ny_b) >= 0.56)
+        rgb[corners] = t_v
+        rgb[spikes] = t_v
+        mask |= frame | inner_core | spikes
+
+    elif cat in ("sword", "pickaxe"):
+        # Standard Minecraft 45° handheld diagonal: bottom-left (-,-) hilt -> top-right (+,+) tip!
+        # u along diagonal [-1.2 .. +1.2], v perpendicular!
+        u = (nx + ny) * 0.7071
+        v = (ny - nx) * 0.7071
+        wave_pos = -0.3 + 1.45 * (frame_idx / float(n_frames))
+
+        if cat == "sword":
+            hilt = (u >= -1.02) & (u <= -0.46) & (np.abs(v) <= 0.10)
+            pommel = ((u + 1.02)**2 + v*v) <= 0.032
+            guard = (np.abs(u + 0.42) <= (0.11 + 0.08 * np.abs(v))) & (np.abs(v) <= 0.48)
+            taper = np.clip(1.0 - np.maximum(0.0, u - 0.52) / 0.58, 0.0, 1.0)
+            blade = (u >= -0.38) & (u <= 1.06) & (np.abs(v) <= 0.22 * taper + 0.03)
+            fuller = blade & (np.abs(v) <= 0.065) & (u <= 0.78)
+
+            rgb[hilt] = t_v * 0.85
+            rgb[pommel] = g_v
+            rgb[guard] = t_v if sub == "dracula" else np.array([255, 200, 45], dtype=np.float32)
+            # Crisp 2-bevel metallic blade + glowing fuller + traveling energy wave!
+            rgb[blade] = np.where((v >= 0)[..., None], m_v * 1.18 + 30, m_v * 0.78)[blade]
+            rgb[fuller] = g_v
+            ewave = blade & (np.abs(u - wave_pos) <= 0.14)
+            rgb[ewave] = white * 0.65 + g_v * 0.35
+            mask |= hilt | pommel | guard | blade
+        else:
+            # 45° Pickaxe: sturdy shaft + curved heavy twin pickaxe head at u=+0.52!
+            shaft = (u >= -1.04) & (u <= 0.66) & (np.abs(v) <= 0.095)
+            pommel = ((u + 1.02)**2 + v*v) <= 0.026
+            curve_u = 0.52 - 0.42 * (v * v)
+            head = (np.abs(v) <= 0.86) & (np.abs(u - curve_u) <= (0.20 * (1.0 - 0.55 * np.abs(v)) + 0.04))
+            tips = head & (np.abs(v) >= 0.52)
+            ewave = head & (np.abs(np.abs(v) - (frame_idx / float(n_frames)) * 0.86) <= 0.14)
+
+            rgb[shaft] = [135, 92, 48] if sub == "djamshut" else t_v * 0.75
+            rgb[pommel] = g_v
+            rgb[head] = (m_v * np.clip(0.85 + 0.35 * (u - curve_u) * 4.0, 0.6, 1.3)[..., None])[head]
+            rgb[tips] = g_v
+            rgb[ewave] = white * 0.6 + g_v * 0.4
+            mask |= shaft | pommel | head
+
+    elif cat == "bow":
+        # Crisp curved Ice Sniper Bow + glowing frost arrow!
+        u = (nx + ny) * 0.7071
+        v = (ny - nx) * 0.7071
+        arc_u = 0.36 - 0.75 * (v * v)
+        limb = (np.abs(v) <= 0.88) & (np.abs(u - arc_u) <= 0.11)
+        string = (np.abs(v) <= 0.84) & (np.abs(u + 0.22) <= 0.045)
+        arrow = (u >= -0.35) & (u <= 0.85) & (np.abs(v) <= 0.055)
+        tip = (u >= 0.72) & (u <= 0.98) & (np.abs(v) <= 0.18 * (1.0 - (u - 0.72)/0.28))
+        rgb[string] = [215, 238, 255]
+        rgb[limb] = m_v
+        rgb[limb & (np.abs(v) <= 0.22)] = t_v
+        rgb[arrow | tip] = g_v * (0.8 + 0.2 * math.sin(ph * 2))
+        mask |= limb | string | arrow | tip
+
+    elif cat == "eye":
+        # Hypnotic Arcane Eye (Dezorient)
+        eye_shape = (np.abs(ny_b) <= 0.56 * (1.0 - (nx / 0.88)**2)) & (np.abs(nx) <= 0.88)
+        iris = r_b <= 0.40
+        pupil = (np.abs(nx) <= 0.10) & (np.abs(ny_b) <= 0.30)
+        ring = (np.abs(r_b - (0.76 + 0.05 * math.sin(ph))) <= 0.08) & (np.cos(ang * 3 - ph * 2) > -0.2)
+        rgb[eye_shape] = g_v
+        rgb[iris] = m_v
+        rgb[pupil] = t_v
+        rgb[ring] = t_v
+        mask |= eye_shape | ring
+
+    elif cat == "halo":
+        # Radiant Bozhya Aura Crown-Halo + Seraph Wings!
+        ring = (r_b >= 0.44) & (r_b <= 0.72)
+        cross = ((np.abs(nx) <= 0.09) & (r_b <= 0.88)) | ((np.abs(ny_b) <= 0.09) & (r_b <= 0.88))
+        rays = (r_b >= 0.68) & (r_b <= 0.94) & (np.cos(ang * 8.0 - ph) > 0.45)
+        rgb[ring] = m_v
+        rgb[cross | rays] = g_v
+        mask |= ring | cross | rays
+
+    elif cat == "tornado":
+        # Swirling 4-tier Fire Tornado!
+        swirl_x = 0.14 * np.sin(ny_b * 5.5 - ph * 2.0)
+        width = 0.18 + 0.46 * ((ny_b + 0.82) / 1.64)
+        body = (ny_b >= -0.82) & (ny_b <= 0.82) & (np.abs(nx - swirl_x) <= width)
+        bands = body & (np.sin(ny_b * 9.0 - ph * 2.0 + nx * 3.0) > 0.15)
+        rgb[body] = m_v
+        rgb[bands] = g_v
+        mask |= body
+
+    elif cat == "flask":
+        # Sparkling Starlight Dust Pouch/Flask (Yavnaya Pyl)
+        bulb = (nx*nx + (ny_b + 0.15)**2) <= 0.34
+        neck = (np.abs(nx) <= 0.18) & (ny_b >= 0.25) & (ny_b <= 0.62)
+        rim = (np.abs(nx) <= 0.26) & (ny_b >= 0.56) & (ny_b <= 0.70)
+        rgb[bulb] = m_v
+        rgb[bulb & ((nx*nx + (ny_b + 0.18)**2) <= 0.16)] = g_v
+        rgb[neck] = [215, 240, 255]
+        rgb[rim] = t_v
+        mask |= bulb | neck | rim
+        for k in range(4):
+            sa = ph + k * (math.pi / 2.0)
+            sx, sy = 0.76 * math.cos(sa), 0.76 * math.sin(sa)
+            sp = (np.abs(nx - sx) + np.abs(ny_b - sy)) <= 0.14
+            rgb[sp] = g_v
+            mask |= sp
+
+    elif cat == "snowflake":
+        # Crisp 6-pointed Crystalline Snowflake / Ice-Bomb!
+        rot_a = ang + 0.08 * math.sin(ph)
+        arms = np.zeros((S, S), dtype=bool)
+        for k in range(3):
+            a = k * (math.pi / 3.0)
+            rx_s = nx * math.cos(a) + ny_b * math.sin(a)
+            ry_s = -nx * math.sin(a) + ny_b * math.cos(a)
+            arm = (np.abs(ry_s) <= 0.10) & (np.abs(rx_s) <= 0.88)
+            barb = (np.abs(rx_s) >= 0.36) & (np.abs(rx_s) <= 0.68) & (np.abs(np.abs(ry_s) - (np.abs(rx_s) - 0.34)*0.85) <= 0.08)
+            arms |= arm | barb
+        core = r_b <= (0.44 if sub == "icebomb" else 0.32)
+        rgb[arms] = g_v
+        rgb[core] = m_v
+        rgb[r_b <= 0.18] = t_v if sub == "coin" else white
+        mask |= arms | core
+
+    elif cat == "web":
+        # Crisp Octagonal Spiderweb Grenade!
+        spokes = np.zeros((S, S), dtype=bool)
+        for k in range(4):
+            a = k * (math.pi / 4.0)
+            ry_s = -nx * math.sin(a) + ny_b * math.cos(a)
+            spokes |= (np.abs(ry_s) <= 0.075) & (r_b <= 0.88)
+        rings = ((np.abs(r_b - 0.38) <= 0.075) | (np.abs(r_b - 0.72) <= 0.075)) & (r_b <= 0.88)
+        core = r_b <= (0.22 + 0.03 * math.sin(ph * 2))
+        rgb[spokes | rings] = m_v
+        rgb[core] = g_v
+        mask |= spokes | rings | core
+
+    elif cat == "mandarin":
+        orb = (nx*nx / 0.56 + (ny_b + 0.06)**2 / 0.44) <= 1.0
+        leaf = ((nx - 0.22)**2 / 0.10 + (ny_b - 0.62)**2 / 0.03) <= 1.0
+        stem = (np.abs(nx) <= 0.08) & (ny_b >= 0.52) & (ny_b <= 0.72)
+        diff = np.clip(-nx * 0.45 + ny_b * 0.55 + 0.65, 0.4, 1.25)
+        rgb[orb] = m_v * diff[orb, None]
+        rgb[orb & (((nx + 0.24)**2 + (ny_b - 0.18)**2) <= 0.05)] = g_v
+        rgb[leaf | stem] = t_v
+        mask |= orb | leaf | stem
+
+    else:  # scroll
+        page = (np.abs(nx) <= 0.58) & (np.abs(ny_b) <= 0.68)
+        rolls = (np.abs(nx) <= 0.70) & ((np.abs(ny_b - 0.68) <= 0.12) | (np.abs(ny_b + 0.68) <= 0.12))
+        seal = (nx*nx + (ny_b + 0.05)**2) <= 0.09
+        rgb[page] = m_v
+        rgb[rolls] = t_v
+        rgb[seal] = g_v
+        mask |= page | rolls | seal
+
+    # Diagonal traveling metallic sheen across ALL items so animation is smooth & crisp!
+    sheen_pos = -1.6 + 3.2 * (frame_idx / float(n_frames))
+    sheen = mask & (np.abs((nx * 0.75 + ny_b * 0.65) - sheen_pos) <= 0.14)
+    rgb[sheen] = np.clip(rgb[sheen] * 1.22 + 42.0, 0, 255)
+
+    # Crisp 1px dark pixel-art outline around solid silhouette (100% binary alpha -> ZERO flat quad artifacts!)
+    dil = np.zeros_like(mask)
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        shifted = np.zeros_like(mask)
+        x_src = slice(max(0, -dx), S - max(0, dx))
+        x_dst = slice(max(0, dx), S - max(0, -dx))
+        y_src = slice(max(0, -dy), S - max(0, dy))
+        y_dst = slice(max(0, dy), S - max(0, -dy))
+        shifted[y_dst, x_dst] = mask[y_src, x_src]
+        dil |= shifted
+    outline = dil & (~mask)
+    dark_out = np.clip(m_v * 0.22 + 12.0, 8, 55)
+    rgb[outline] = dark_out
+
+    final_mask = mask | outline
+    rgba = np.zeros((S, S, 4), dtype=np.uint8)
+    rgba[..., :3] = np.clip(rgb, 0, 255).astype(np.uint8)
+    rgba[..., 3] = np.where(final_mask, 255, 0).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA")
+
+def make_clean_item_model_json(item_id, cat):
+    tex_ref = f"kinggrief:item/{item_id}"
+    if cat in ("sword", "pickaxe"):
+        return {
+            "parent": "minecraft:item/handheld",
+            "textures": {"layer0": tex_ref},
+            "display": {
+                "firstperson_righthand": {"rotation": [0, -82, 25], "translation": [1.13, 3.4, 1.13], "scale": [0.72, 0.72, 0.72]},
+                "firstperson_lefthand":  {"rotation": [0,  82, -25], "translation": [1.13, 3.4, 1.13], "scale": [0.72, 0.72, 0.72]},
+                "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
+                "thirdperson_lefthand":  {"rotation": [0,  90, -55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
+            }
+        }
+    return {
+        "parent": "minecraft:item/generated",
+        "textures": {"layer0": tex_ref},
+        "display": {
+            # Turned 28° toward the player's eyes (-62° instead of -90°) so Spheres, Talismans, Elytras,
+            # Trapka & Plast show their FULL 3D extruded face clearly in both hands!
+            "firstperson_righthand": {"rotation": [0, -58, 16], "translation": [1.35, 3.5, 1.15], "scale": [0.60, 0.60, 0.60]},
+            "firstperson_lefthand":  {"rotation": [0,  58, -16], "translation": [1.35, 3.5, 1.15], "scale": [0.60, 0.60, 0.60]},
+            "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.58, 0.58, 0.58]},
+            "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.58, 0.58, 0.58]},
+            "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1.0, 1.0, 1.0]},
+            "ground": {"rotation": [0, 0, 0], "translation": [0, 2.5, 0], "scale": [0.55, 0.55, 0.55]},
+            "fixed": {"rotation": [0, 180, 0], "scale": [1.0, 1.0, 1.0]}
+        }
+    }
+
+tex_item_dir = os.path.join(OUT_RP_DIR, "assets/kinggrief/textures/item")
+mod_item_dir = os.path.join(OUT_RP_DIR, "assets/kinggrief/models/item")
+def_item_dir = os.path.join(OUT_RP_DIR, "assets/kinggrief/items")
+os.makedirs(tex_item_dir, exist_ok=True)
+os.makedirs(mod_item_dir, exist_ok=True)
+os.makedirs(def_item_dir, exist_ok=True)
+
+N_FRAMES = 12
+items_preview = Image.new("RGBA", (8 * 76 + 16, 5 * 76 + 16), (20, 24, 36, 255))
+
+for idx, (primary_id, aliases, cat, sub, mcol, gcol, tcol) in enumerate(ITEMS_SPECS):
+    strip = Image.new("RGBA", (32, 32 * N_FRAMES), (0, 0, 0, 0))
+    for f in range(N_FRAMES):
+        fim = render_item_frame_32(cat, sub, mcol, gcol, tcol, f, N_FRAMES)
+        strip.paste(fim, (0, f * 32))
+        if f == 0:
+            col = idx % 8
+            row = idx // 8
+            up = fim.resize((64, 64), Image.NEAREST)
+            items_preview.paste(up, (14 + col * 76, 14 + row * 76), up)
+
+    all_ids = [primary_id] + aliases
+    for iid in all_ids:
+        png_p = os.path.join(tex_item_dir, f"{iid}.png")
+        strip.save(png_p)
+        # interpolate: false -> ZERO blurry ghosting! Crisp frame-by-frame animation!
+        with open(png_p + ".mcmeta", "w", encoding="utf-8") as fp:
+            json.dump({"animation": {"frametime": 3, "interpolate": False}}, fp, indent=2)
+        with open(os.path.join(mod_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
+            json.dump(make_clean_item_model_json(iid, cat), fp, indent=2)
+        with open(os.path.join(def_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
+            json.dump({"model": {"type": "minecraft:model", "model": f"kinggrief:item/{iid}"}}, fp, indent=2)
+
+items_preview.save("/tmp/preview_all_38_items.png")
+print("2. Rendered ALL", len(ITEMS_SPECS), "crisp 3D items + aliases!")
+
+# ==============================================================================
+# 3. SUBTLE CLEAN PVP ENCHANTMENT GLINT (NO MORE PURPLE FOG HIDING ITEM DETAILS!)
+#    + HIGHLIGHTED ORES + LOW PVP FIRE + PACK.MCMETA
+# ==============================================================================
+misc_dir = os.path.join(OUT_RP_DIR, "assets/minecraft/textures/misc")
+os.makedirs(misc_dir, exist_ok=True)
+glint = Image.new("RGBA", (64, 64), (0, 0, 0, 255))
+gpx = glint.load()
+for y in range(64):
+    for x in range(64):
+        d1 = (x + y) % 32
+        d2 = (x * 2 - y) % 48
+        v = 0
+        if d1 in (0, 1):
+            v = 42 if d1 == 0 else 24
+        elif d2 == 0:
+            v = 28
+        gpx[x, y] = (min(255, int(v * 0.85)), min(255, int(v * 0.90)), min(255, int(v * 1.15)), 255)
+glint.save(os.path.join(misc_dir, "enchanted_glint_item.png"))
+glint.save(os.path.join(misc_dir, "enchanted_glint_entity.png"))
+
+blk_dir = os.path.join(OUT_RP_DIR, "assets/minecraft/textures/block")
+os.makedirs(blk_dir, exist_ok=True)
+ORE_SPECS = [
+    ("diamond_ore",           (115, 115, 122), (34, 211, 238)),
+    ("deepslate_diamond_ore", (62, 62, 70),    (34, 211, 238)),
+    ("emerald_ore",           (115, 115, 122), (34, 197, 94)),
+    ("deepslate_emerald_ore", (62, 62, 70),    (34, 197, 94)),
+    ("gold_ore",              (115, 115, 122), (250, 204, 21)),
+    ("deepslate_gold_ore",    (62, 62, 70),    (250, 204, 21)),
+    ("iron_ore",              (115, 115, 122), (251, 146, 60)),
+]
+for oname, stone, border_c in ORE_SPECS:
+    oim = Image.new("RGBA", (16, 16), (*stone, 255))
+    opx = oim.load()
+    for i in range(16):
+        opx[i, 0] = (*border_c, 255)
+        opx[i, 15] = (*border_c, 255)
+        opx[0, i] = (*border_c, 255)
+        opx[15, i] = (*border_c, 255)
+    for gx, gy in [(4,4),(5,4),(4,5),(10,6),(11,6),(10,7),(6,11),(7,11),(7,12),(11,11)]:
+        opx[gx, gy] = (*border_c, 255)
+    oim.save(os.path.join(blk_dir, f"{oname}.png"))
+
+for fn in ("fire_0", "fire_1"):
+    fstrip = Image.new("RGBA", (16, 16 * 8), (0, 0, 0, 0))
+    fpx = fstrip.load()
+    for fr in range(8):
+        for y in range(11, 16):
+            for x in range(16):
+                wave = int(2 * math.sin((x + fr * 2) * 0.7))
+                if y + wave >= 11:
+                    fpx[x, fr * 16 + y] = (255, 140 + (15 - y) * 20, 20, 215)
+    fstrip.save(os.path.join(blk_dir, f"{fn}.png"))
+    with open(os.path.join(blk_dir, f"{fn}.png.mcmeta"), "w") as fp:
+        json.dump({"animation": {"frametime": 2}}, fp)
+
+with open(os.path.join(OUT_RP_DIR, "pack.mcmeta"), "w", encoding="utf-8") as fp:
+    json.dump({
+        "pack": {
+            "pack_format": 75,
+            "supported_formats": [7, 99],
+            "min_format": 7,
+            "max_format": 99,
+            "description": "§b§l❄ §c§lKINGGRIEF v5.6 §8· §fЧёткие 3D Предметы, 40 Люкс-Рангов & Новогодний Сезон"
+        }
+    }, fp, ensure_ascii=False, indent=2)
+
+pack_icon = Image.open(os.path.join(tex_item_dir, "shar_santy.png")).crop((0, 0, 32, 32)).resize((64, 64), Image.NEAREST)
+pack_icon.save(os.path.join(OUT_RP_DIR, "pack.png"))
+
+if os.path.exists(OUT_ZIP):
+    os.remove(OUT_ZIP)
+with zipfile.ZipFile(OUT_ZIP, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+    for root_d, _, files in os.walk(OUT_RP_DIR):
+        for f in sorted(files):
+            full = os.path.join(root_d, f)
+            rel = os.path.relpath(full, OUT_RP_DIR)
+            zf.write(full, rel)
+
+sha1 = hashlib.sha1(open(OUT_ZIP, "rb").read()).hexdigest()
+print(f"PACKAGED kinggrief-mega-rp.zip v5.6: {os.path.getsize(OUT_ZIP):,} bytes | SHA1={sha1}")

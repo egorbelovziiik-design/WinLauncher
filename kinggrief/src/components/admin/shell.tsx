@@ -74,6 +74,15 @@ export function AdminShell({
           </Link>
         );
       })}
+      {role === 'owner' && (
+        <Link
+          href="/lp-editor"
+          className="mt-1 flex items-center gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2 text-[0.78rem] font-bold text-emerald-300 transition hover:bg-emerald-500/20"
+        >
+          <Zap size={15} className="text-emerald-400" />
+          ⚡ LP Editor (OWNER)
+        </Link>
+      )}
     </nav>
   );
 

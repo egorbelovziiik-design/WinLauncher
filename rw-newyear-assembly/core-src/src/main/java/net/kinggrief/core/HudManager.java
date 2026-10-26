@@ -156,12 +156,12 @@ public final class HudManager {
         String titleAnim = HEADER_FRAMES[(animTick / 4) % HEADER_FRAMES.length];
         int activeBosses = plugin.getBossEvents() != null ? plugin.getBossEvents().getActiveEvents().size() : 0;
 
-        String header = ColorUtil.c("\n" + titleAnim + "\n&#B3E5FCНовогодний Сезон v5.0 · FT & ReallyWorld Edition\n");
+        String header = ColorUtil.c("\n" + titleAnim + "\n&#B3E5FC❄ Новогодний Сезон v5.6 · FT & ReallyWorld Edition ❄\n");
         String footer = ColorUtil.c("\n&#80D8FFОнлайн: &#00E676" + online + "&8/&f" + max
                 + " &8| &#80D8FFПинг: &#FFD740" + ping + " мс"
                 + " &8| &#FF5252Ивентов: &#FFE082" + activeBosses + " &7(/events)"
-                + "\n&#FFD740Бафовар: &e/bafs &8• &#E040FBСкины Трапок: &d/skins &8• &#00E5FFШоп: &b/shop"
-                + "\n&#FF4081Магазин & LP-Редактор: &fkinggrief.vercel.app &8(&7IP: &f" + ip + "&8)\n");
+                + "\n&#00E676РТП: &a/rtp &7(&e/rtp near&7) &8• &#FFD740Бафовар: &e/bafs &8• &#00E5FFШоп: &b/shop"
+                + "\n&#FF4081Новогодний Магазин: &fkinggrief.vercel.app &8(&7IP: &f" + ip + "&8)\n");
 
         RankManager.RankDef myRank = ranks.getRank(p);
         // Animated badge ONLY — NO duplicate rank text on the right!

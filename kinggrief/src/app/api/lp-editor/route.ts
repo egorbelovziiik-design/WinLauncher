@@ -7,10 +7,10 @@ import type { Order } from '@/lib/types';
 
 export async function POST(req: Request) {
   const guard = await guardAdmin(req, { csrf: false });
-  if (!guard.ok) {
+  if (!guard.ok || guard.admin.role !== 'owner') {
     return NextResponse.json(
-      { ok: false, error: 'Для прямой облачной отправки войдите в /admin (или используйте скопированную команду /lp applyedits в игре!)' },
-      { status: 401 },
+      { ok: false, error: 'Доступ к LP Editor разрешён СТРОГО только владельцу (OWNER)!' },
+      { status: 403 },
     );
   }
 

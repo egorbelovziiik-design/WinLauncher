@@ -230,16 +230,26 @@ public final class GameplayListener implements Listener {
             p.teleport(plugin.getSpawnEngine().getSpawnArrival());
         }
 
-        // Auto-push Mega Resourcepack v5.0 if server.properties doesn't push it
-        final String rpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip");
+        // Auto-push Mega Resourcepack v5.6 with exact SHA-1 & cache-busting query so clients never keep old cached RP
+        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=56");
+        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "6f7cb15f3f5bc22441b799c779b71c3b9776d857");
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (!p.isOnline()) return;
                 plugin.getHud().updatePlayerHud(p);
                 try {
-                    if (plugin.getConfig().getBoolean("push-resourcepack-on-join", true) && rpUrl != null && !rpUrl.isEmpty()) {
-                        p.setResourcePack(rpUrl);
+                    if (plugin.getConfig().getBoolean("push-resourcepack-on-join", true) && rawRpUrl != null && !rawRpUrl.isEmpty()) {
+                        String effectiveUrl = rawRpUrl;
+                        if (effectiveUrl.endsWith("kinggrief-mega-rp.zip")) {
+                            effectiveUrl = effectiveUrl + "?v=56";
+                        }
+                        byte[] hashBytes = ColorUtil.hexToBytes(rpSha1);
+                        if (hashBytes != null) {
+                            p.setResourcePack(effectiveUrl, hashBytes);
+                        } else {
+                            p.setResourcePack(effectiveUrl);
+                        }
                     }
                 } catch (Throwable ignored) {}
             }
@@ -1434,6 +1444,19 @@ public final class GameplayListener implements Listener {
                 return;
             }
         }
+
+        // STRICT OWNER-ONLY GUARD FOR ALL LP / LUCKPERMS / LPEDITOR COMMANDS!
+        String firstTok = msg.contains(" ") ? msg.substring(0, msg.indexOf(' ')) : msg;
+        if (firstTok.equals("/lp") || firstTok.equals("/lpeditor") || firstTok.equals("/luckperms")
+                || firstTok.equals("/perms") || firstTok.equals("/perm")
+                || firstTok.startsWith("/luckperms:") || firstTok.startsWith("/kinggriefcore:lp")) {
+            RankManager.RankDef rk = plugin.getRanks().getRank(p);
+            if (rk == null || !"owner".equalsIgnoreCase(rk.id)) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Доступ к LP Editor разрешён СТРОГО только владельцу (привилегия OWNER)!"));
+                return;
+            }
+        }
         if (plugin.getModeration().isFrozenOrAscending(p)) {
             e.setCancelled(true);
             p.sendMessage(ColorUtil.c("&#FF1744⚠ Во время проверки на читы команды отключены! Пишите в обычный чат."));
@@ -1492,13 +1515,14 @@ public final class GameplayListener implements Listener {
         boolean global = raw.startsWith("!");
         if (global && raw.length() > 1) raw = raw.substring(1).trim();
 
-        String pref = plugin.getRanks().getEffectivePrefix(p);
+        String pref = plugin.getRanks().getAnimatedPrefix(p, plugin.getHud().getAnimTick());
         DataStore.Clan clan = plugin.getStore().getClanOf(p.getName());
         String clanPart = clan != null ? "&#B388FF[" + clan.tag + "] " : "";
         String chTag = global ? "&#FFD740&l[G] " : "&#80D8FF&l[L] ";
         RankManager.RankDef r = plugin.getRanks().getRank(p);
-        String msgText = r.weight >= 65 ? ColorUtil.c(raw) : raw;
-        String formatted = ColorUtil.c(chTag + clanPart + pref + p.getName() + " &8» &f") + msgText;
+        String rankChatCol = (r != null && r.chatTextColor != null && !r.chatTextColor.isEmpty()) ? r.chatTextColor : "&7";
+        String msgText = (r != null && r.weight >= 65) ? ColorUtil.c(rankChatCol + raw) : (ColorUtil.c(rankChatCol) + raw);
+        String formatted = ColorUtil.c(chTag + clanPart + pref + p.getName() + " &8» ") + msgText;
 
         e.setCancelled(true);
         Bukkit.getConsoleSender().sendMessage(formatted);

@@ -169,7 +169,8 @@ public final class ColorUtil {
         if (p == null) return;
         PotionEffectType t = potType(modernKey, legacyName);
         if (t != null) {
-            p.addPotionEffect(new PotionEffect(t, durationTicks, amplifier, false, true, true));
+            // particles = false -> ZERO screen-blocking swirls in front of 3D custom items!
+            p.addPotionEffect(new PotionEffect(t, durationTicks, amplifier, true, false, true));
         }
     }
 

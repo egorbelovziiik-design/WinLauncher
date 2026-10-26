@@ -214,20 +214,23 @@ public final class SpawnEngine {
     public void initializeSpawnWorldAndBuild(boolean forceRebuild) {
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         if (sw == null) return;
-        File marker = new File(sw.getWorldFolder(), ".spawn_v5_colorful_ok");
+        File marker = new File(sw.getWorldFolder(), ".spawn_v56_ny_ok");
         boolean stoneBugDetected = sw.getBlockAt(0, 108, 0).getType() == Material.STONE
                 || sw.getBlockAt(0, 99, 15).getType() == Material.STONE
                 || sw.getBlockAt(0, 99, 0).getType() == Material.STONE;
         if (forceRebuild || !marker.exists() || stoneBugDetected || sw.getBlockAt(0, 99, 0).getType() == Material.AIR) {
-            plugin.getLogger().info("[SpawnEngine v5.0] Building 241x124x241 Colorful Winter Sky Kingdom in Void World 'spawn_world'...");
-            boolean needClear = forceRebuild || stoneBugDetected
+            plugin.getLogger().info("[SpawnEngine v5.6] Building 241x124x241 Festive New Year Sky Kingdom (Santa Sleigh, Garlands, 2026 Palace) in 'spawn_world'...");
+            boolean needClear = forceRebuild || stoneBugDetected || !marker.exists()
                     || new File(sw.getWorldFolder(), ".spawn_v4_built").exists()
-                    || new File(sw.getWorldFolder(), ".spawn_v5_built").exists();
+                    || new File(sw.getWorldFolder(), ".spawn_v5_built").exists()
+                    || new File(sw.getWorldFolder(), ".spawn_v5_colorful_ok").exists();
             clearOldBlocksIfUpgrade(sw, needClear);
             buildFromRleResource(sw, "/spawn_v5.dat");
             try { marker.createNewFile(); } catch (Exception ignored) {}
         }
         sw.setTime(6000L);
+        sw.setStorm(false);
+        sw.setThundering(false);
         placeShulkerCases(sw);
         refillAutoMine(sw, false);
         rebuildAllHologramsAndNpcs(sw);
@@ -622,8 +625,12 @@ public final class SpawnEngine {
                 }
                 p.setFallDistance(0f);
             }
-            p.spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 5.5, 0), 8, 6.0, 2.5, 6.0, 0.01);
+            p.spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 5.5, 0), 14, 7.5, 3.0, 7.5, 0.01);
+            if (tickCounter % 2 == 0) {
+                p.spawnParticle(Particle.END_ROD, p.getLocation().add(0, 4.5, 0), 4, 6.0, 2.2, 6.0, 0.01);
+            }
         }
+        sw.setTime(6000L);
     }
 
     private void tickKabinki(World sw) {
@@ -828,50 +835,149 @@ public final class SpawnEngine {
         return plugin.getBossEvents() != null ? plugin.getBossEvents().getNextAutoSeconds() : 300;
     }
 
-    // ================= SEPARATE WORLD RTP (/rtp — ONLY ENTRY TO NORMAL WORLD!) =================
+    // ================= SEPARATE WORLD TIERED RTP (/rtp + /rtp near) =================
     public void performRtp(Player p, String mode) {
+        String mKey = mode == null ? "close" : mode.toLowerCase(Locale.ROOT);
+        RankManager.RankDef rank = plugin.getRanks().getRank(p);
+
+        if ("near".equals(mKey)) {
+            if (rank.weight < 90) {
+                ColorUtil.sound(p, "entity.villager.no", 1.0f, 1.0f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команда &f/rtp near &#FF1744доступна с привилегии &#FDE047&lKING &#FF1744и выше!"));
+                p.sendMessage(ColorUtil.c("&7Приобрести привилегию: &#FF4081https://kinggrief.vercel.app"));
+                return;
+            }
+            World surv = VoidSpawnWorldGenerator.getSurvivalWorld();
+            if (surv == null) {
+                p.sendMessage(ColorUtil.c("&cМир выживания недоступен!"));
+                return;
+            }
+            List<Player> targets = new ArrayList<Player>();
+            for (Player other : surv.getPlayers()) {
+                if (other.getUniqueId().equals(p.getUniqueId())) continue;
+                if (other.isDead() || other.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
+                if (plugin.getStore().isVanished(other)) continue;
+                targets.add(other);
+            }
+            if (targets.isEmpty()) {
+                p.sendMessage(ColorUtil.c("&#FFD740[РТП NEAR] &fВ мире выживания сейчас нет других игроков — выполняем &#FDE047Дальнюю РТП&f!"));
+                mKey = "high";
+            } else {
+                Player victim = targets.get(rng.nextInt(targets.size()));
+                Location vLoc = victim.getLocation();
+                for (int att = 0; att < 30; att++) {
+                    double ang = rng.nextDouble() * Math.PI * 2.0;
+                    double dist = 55.0 + rng.nextDouble() * 55.0; // 55..110 blocks away
+                    int tx = vLoc.getBlockX() + (int) Math.round(Math.cos(ang) * dist);
+                    int tz = vLoc.getBlockZ() + (int) Math.round(Math.sin(ang) * dist);
+                    Location safeNear = findDrySurfaceLocation(surv, tx, tz);
+                    if (safeNear != null) {
+                        plugin.getStore().setBack(p, p.getLocation());
+                        plugin.getStore().setParkourCp(p, null);
+                        p.teleport(safeNear);
+                        ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 100, 4);
+                        ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 1.2f);
+                        int realDist = (int) Math.round(safeNear.distance(vLoc));
+                        p.sendTitle(ColorUtil.c("&#FF5252&l🎯 РТП РЯДОМ С ИГРОКОМ!"),
+                                ColorUtil.c("&fДо цели &#FFD740~" + realDist + " м &8│ &e" + safeNear.getBlockX() + ", " + safeNear.getBlockZ()), 5, 45, 10);
+                        p.sendMessage(ColorUtil.c("&#FF5252[РТП NEAR] &fВы телепортированы в &#FFD740" + realDist
+                                + " блоках &fот игрока в мире выживания! XYZ: &#80D8FF"
+                                + safeNear.getBlockX() + ", " + safeNear.getBlockY() + ", " + safeNear.getBlockZ()));
+                        return;
+                    }
+                }
+                p.sendMessage(ColorUtil.c("&#FFD740[РТП NEAR] &fИгрок находится над водой — выполняем безопасную РТП на сушу!"));
+                mKey = "high";
+            }
+        }
+
+        if ("medium".equals(mKey) || "mid".equals(mKey)) {
+            if (rank.weight < 65) {
+                ColorUtil.sound(p, "entity.villager.no", 1.0f, 1.0f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Средняя телепортация (1 500–3 500 бл.) доступна с привилегии &#FEF9C3&lGOD &#FF1744и выше!"));
+                return;
+            }
+        } else if ("high".equals(mKey) || "far".equals(mKey)) {
+            if (rank.weight < 90) {
+                ColorUtil.sound(p, "entity.villager.no", 1.0f, 1.0f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Высокая (Дальняя) телепортация (4 000–8 000 бл.) доступна с привилегии &#FDE047&lKING &#FF1744и выше!"));
+                return;
+            }
+        }
+
         World targetWorld;
-        int bound;
-        if ("nether".equalsIgnoreCase(mode)) {
+        int minDist;
+        int maxDist;
+        String tierLabel;
+        if ("nether".equals(mKey)) {
             targetWorld = VoidSpawnWorldGenerator.getNetherWorld();
-            bound = 800;
             if (targetWorld == null) targetWorld = VoidSpawnWorldGenerator.getSurvivalWorld();
+            minDist = 180;
+            maxDist = 850;
+            tierLabel = "&#FF5252АДСКИЙ РТП";
+        } else if ("high".equals(mKey) || "far".equals(mKey)) {
+            targetWorld = VoidSpawnWorldGenerator.getSurvivalWorld();
+            minDist = 4000;
+            maxDist = 8000;
+            tierLabel = "&#FDE047ДАЛЬНЯЯ РТП [KING]";
+        } else if ("medium".equals(mKey) || "mid".equals(mKey)) {
+            targetWorld = VoidSpawnWorldGenerator.getSurvivalWorld();
+            minDist = 1500;
+            maxDist = 3500;
+            tierLabel = "&#38BDF8СРЕДНЯЯ РТП [GOD]";
         } else {
             targetWorld = VoidSpawnWorldGenerator.getSurvivalWorld();
-            bound = "far".equalsIgnoreCase(mode) ? 3500 : 1500;
+            minDist = 300;
+            maxDist = 1200;
+            tierLabel = "&#00E676БЛИЗКАЯ РТП";
         }
+
         if (targetWorld == null) {
             p.sendMessage(ColorUtil.c("&cМир выживания недоступен!"));
             return;
         }
-        for (int attempt = 0; attempt < 25; attempt++) {
-            int x = rng.nextInt(bound * 2) - bound;
-            int z = rng.nextInt(bound * 2) - bound;
-            if (Math.abs(x) < 180 && Math.abs(z) < 180) continue;
-            targetWorld.getChunkAt(x >> 4, z >> 4).load();
-            Location safe;
-            if (targetWorld.getEnvironment() == World.Environment.NETHER) {
-                safe = findNetherSafe(targetWorld, x, z);
-            } else {
-                Block b = targetWorld.getHighestBlockAt(x, z);
-                Material m = b.getType();
-                if (m == Material.WATER || m == Material.LAVA || m == Material.KELP) continue;
-                safe = b.getLocation().add(0.5, 1.0, 0.5);
-            }
+
+        for (int attempt = 0; attempt < 40; attempt++) {
+            double ang = rng.nextDouble() * Math.PI * 2.0;
+            double rDist = minDist + rng.nextDouble() * (maxDist - minDist);
+            int x = (int) Math.round(Math.cos(ang) * rDist);
+            int z = (int) Math.round(Math.sin(ang) * rDist);
+            Location safe = (targetWorld.getEnvironment() == World.Environment.NETHER)
+                    ? findNetherSafe(targetWorld, x, z)
+                    : findDrySurfaceLocation(targetWorld, x, z);
             if (safe == null) continue;
             plugin.getStore().setBack(p, p.getLocation());
             plugin.getStore().setParkourCp(p, null);
             p.teleport(safe);
             ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 100, 4);
             ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 1.15f);
-            p.sendTitle(ColorUtil.c("&#00E676&l⚡ МИР ВЫЖИВАНИЯ"),
+            p.sendTitle(ColorUtil.c(tierLabel),
                     ColorUtil.c("&fXYZ: &e" + safe.getBlockX() + ", " + safe.getBlockY() + ", " + safe.getBlockZ()), 5, 45, 10);
-            p.sendMessage(ColorUtil.c("&#00E676[РТП] &fВы телепортированы из мира спавна в обычный мир выживания (&e" + targetWorld.getName()
-                    + "&f): &#80D8FF" + safe.getBlockX() + ", " + safe.getBlockY() + ", " + safe.getBlockZ()));
+            p.sendMessage(ColorUtil.c("&#00E676[РТП] &fТелепортация (" + tierLabel + "&f) выполнена на сушу: &#80D8FF"
+                    + safe.getBlockX() + ", " + safe.getBlockY() + ", " + safe.getBlockZ()));
             return;
         }
-        Location fb = targetWorld.getHighestBlockAt(350, 350).getLocation().add(0.5, 1.0, 0.5);
+        Location fb = targetWorld.getHighestBlockAt(420, 420).getLocation().add(0.5, 1.0, 0.5);
         p.teleport(fb);
+    }
+
+    private Location findDrySurfaceLocation(World w, int x, int z) {
+        w.getChunkAt(x >> 4, z >> 4).load();
+        String bio = String.valueOf(w.getBiome(x, 68, z)).toUpperCase(Locale.ROOT);
+        if (bio.contains("OCEAN") || bio.contains("RIVER")) return null;
+        Block b = w.getHighestBlockAt(x, z);
+        Material m = b.getType();
+        if (!m.isSolid() || m == Material.WATER || m == Material.LAVA || m == Material.KELP
+                || m == Material.SEAGRASS || m == Material.MAGMA_BLOCK || m == Material.CACTUS) {
+            return null;
+        }
+        if (b.getY() < 61) return null;
+        Material above1 = w.getBlockAt(x, b.getY() + 1, z).getType();
+        Material above2 = w.getBlockAt(x, b.getY() + 2, z).getType();
+        if (above1 == Material.WATER || above1 == Material.LAVA || above2 == Material.WATER || above2 == Material.LAVA) {
+            return null;
+        }
+        return b.getLocation().add(0.5, 1.0, 0.5);
     }
 
     private Location findNetherSafe(World w, int x, int z) {

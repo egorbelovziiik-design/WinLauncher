@@ -1,13 +1,20 @@
 name: techadmin
 permissions:
-- weight.295
-- '*'
-- luckperms.*
+- weight.290
 - kinggrief.admin
-- kinggrief.lp
-- kinggrief.spawn.edit
+- kinggrief.staff
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
+- luckperms.*:
+    value: false
+- kinggrief.lp:
+    value: false
 parents:
 - curator
 prefixes:
 - '&f &f':
-    priority: 295
+    priority: 290

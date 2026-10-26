@@ -1,3 +1,4 @@
+import gzip
 import math
 import os
 import struct
@@ -254,6 +255,10 @@ GIFT_POS = [
     (11, 8, P["LIME_CONCRETE"], P["RED_CONCRETE"]),
     (-13, 2, P["ORANGE_CONCRETE"], P["SMOOTH_QUARTZ"]),
     (13, -1, P["PINK_CONCRETE"], P["GOLD_BLOCK"]),
+    (-6, -12, P["CYAN_CONCRETE"], P["GOLD_BLOCK"]),
+    (6, 12, P["RED_CONCRETE"], P["SMOOTH_QUARTZ"]),
+    (-14, -9, P["YELLOW_CONCRETE"], P["RED_CONCRETE"]),
+    (14, -9, P["MAGENTA_CONCRETE"], P["SMOOTH_QUARTZ"]),
 ]
 for gx, gz, gbody, grib in GIFT_POS:
     fill_box(gx - 2, 100, gz - 2, gx + 2, 104, gz + 2, gbody)
@@ -262,6 +267,121 @@ for gx, gz, gbody, grib in GIFT_POS:
     sblock(gx - 1, 105, gz, grib)
     sblock(gx + 1, 105, gz, grib)
     sblock(gx, 105, gz, P["SEA_LANTERN"])
+
+# 3B. OVERHEAD GLOWING NEW YEAR GARLANDS (Tree -> 8 Fairy-Tale Towers, Y=118..126, well clear of Parkour!)
+GARLAND_BULBS = [P["SEA_LANTERN"], P["RED_CONCRETE"], P["GOLD_BLOCK"], P["GLOWSTONE"], P["LIME_CONCRETE"], P["LIGHT_BLUE_CONCRETE"]]
+for k in range(8):
+    ang = k * (math.pi / 4.0) + (math.pi / 8.0)
+    tx, tz = 48.0 * math.cos(ang), 48.0 * math.sin(ang)
+    sx, sz = 13.0 * math.cos(ang), 13.0 * math.sin(ang)
+    for st in range(36):
+        f = st / 35.0
+        gx = int(round(sx + (tx - sx) * f))
+        gz = int(round(sz + (tz - sz) * f))
+        sag = int(round(4.5 * math.sin(f * math.pi)))
+        gy = int(round(126 - 5 * f - sag))
+        sblock(gx, gy, gz, P["SPRUCE_LEAVES"])
+        if st % 3 == 0:
+            sblock(gx, gy - 1, gz, GARLAND_BULBS[(st + k) % len(GARLAND_BULBS)])
+
+# 3C. GIANT HAPPY NEW YEAR SNOWMAN (X=-20, Z=22) + 2 ROYAL NUTCRACKER GUARDS (X=±9, Z=54) + GINGERBREAD MARKET STALLS!
+# Snowman at (-20, 100..115, 22)
+for dy in range(-4, 5):
+    for dx in range(-4, 5):
+        for dz in range(-4, 5):
+            if dx*dx + dy*dy + dz*dz <= 16:
+                sblock(-20 + dx, 103 + dy, 22 + dz, P["SNOW_BLOCK"])
+for dy in range(-3, 4):
+    for dx in range(-3, 4):
+        for dz in range(-3, 4):
+            if dx*dx + dy*dy + dz*dz <= 9:
+                sblock(-20 + dx, 109 + dy, 22 + dz, P["SNOW_BLOCK"])
+# Red & Gold Scarf + Carrot Nose + Coal Buttons + Top Hat!
+for dx in range(-3, 4):
+    for dz in range(-3, 4):
+        if 5 <= dx*dx + dz*dz <= 11:
+            sblock(-20 + dx, 107, 22 + dz, P["RED_CONCRETE"] if (dx + dz) % 2 == 0 else P["GOLD_BLOCK"])
+sblock(-20, 109, 25, P["ORANGE_CONCRETE"])
+sblock(-20, 109, 26, P["ORANGE_CONCRETE"])
+sblock(-21, 110, 25, P["OBSIDIAN"])
+sblock(-19, 110, 25, P["OBSIDIAN"])
+for by_b in (102, 104, 106):
+    sblock(-20, by_b, 26, P["OBSIDIAN"])
+fill_box(-23, 112, 19, -17, 112, 25, P["OBSIDIAN"])
+fill_box(-22, 113, 20, -18, 116, 24, P["RED_CONCRETE"])
+fill_box(-22, 113, 20, -18, 113, 24, P["GOLD_BLOCK"])
+
+# 2 Giant Nutcracker Soldiers flanking the Royal Arrival Carpet at (X=-9, Z=55) & (X=+9, Z=55)
+for nx_s in (-9, 9):
+    fill_box(nx_s - 1, 100, 54, nx_s + 1, 103, 56, P["OBSIDIAN"])       # Boots
+    fill_box(nx_s - 1, 104, 54, nx_s + 1, 106, 56, P["SMOOTH_QUARTZ"])  # Trousers
+    fill_box(nx_s - 2, 107, 54, nx_s + 2, 111, 56, P["RED_CONCRETE"])   # Royal Coat
+    fill_box(nx_s - 1, 108, 53, nx_s + 1, 110, 53, P["GOLD_BLOCK"])     # Gold Buttons
+    fill_box(nx_s - 1, 112, 54, nx_s + 1, 114, 56, P["SANDSTONE"])      # Head
+    fill_box(nx_s - 2, 115, 53, nx_s + 2, 118, 57, P["OBSIDIAN"])       # Tall Shako Hat
+    sblock(nx_s, 116, 53, P["GOLD_BLOCK"])
+    sblock(nx_s, 119, 55, P["SEA_LANTERN"])
+
+# 4 Cozy Illuminated New Year Gingerbread Market Stalls (X=±24, Z=28 & Z=38)
+STALL_SPOTS = [(-25, 29, P["RED_CONCRETE"]), (-25, 39, P["LIME_CONCRETE"]), (25, 29, P["LIGHT_BLUE_CONCRETE"]), (25, 39, P["MAGENTA_CONCRETE"])]
+for sx, sz, scol in STALL_SPOTS:
+    fill_box(sx - 3, 100, sz - 2, sx + 3, 100, sz + 2, P["SPRUCE_LOG"])
+    for cx_p, cz_p in [(-3,-2),(3,-2),(-3,2),(3,2)]:
+        fill_box(sx + cx_p, 101, sz + cz_p, sx + cx_p, 104, sz + cz_p, P["SPRUCE_LOG"])
+    for dx in range(-4, 5):
+        for dz in range(-3, 4):
+            sblock(sx + dx, 105, sz + dz, scol if dx % 2 == 0 else P["SMOOTH_QUARTZ"])
+    sblock(sx, 104, sz, P["SEA_LANTERN"])
+
+# 3D. FLYING SANTA'S SLEIGH + GIFT SACK + REINDEER TEAM IN THE SKY (Y=144..151, Z=26, X=-24..+22)!
+# Crimson & Gold Sleigh (-24..-10)
+fill_box(-24, 144, 24, -11, 144, 28, P["GOLD_BLOCK"])  # Golden runners
+fill_box(-23, 145, 23, -12, 148, 29, P["RED_CONCRETE"])
+fill_box(-22, 146, 24, -13, 148, 28, P["AIR"])
+fill_box(-23, 148, 23, -12, 148, 23, P["GOLD_BLOCK"])
+fill_box(-23, 148, 29, -12, 148, 29, P["GOLD_BLOCK"])
+# Giant Gift Bag in back of sleigh
+fill_box(-22, 146, 24, -18, 150, 28, P["MAGENTA_CONCRETE"])
+sblock(-20, 151, 26, P["GOLD_BLOCK"])
+# 3 Pairs of Flying Reindeer + Glowing Red-Nosed Rudolph at X=+18!
+for rx_d in (-4, 6, 16):
+    for rz_d in (24, 28):
+        fill_box(rx_d, 146, rz_d, rx_d + 3, 147, rz_d, P["SPRUCE_LOG"])
+        sblock(rx_d, 145, rz_d, P["SPRUCE_LOG"])
+        sblock(rx_d + 3, 145, rz_d, P["SPRUCE_LOG"])
+        fill_box(rx_d + 3, 148, rz_d, rx_d + 4, 149, rz_d, P["SPRUCE_LOG"])
+        sblock(rx_d + 3, 150, rz_d, P["GOLD_BLOCK"])  # Antlers
+        if rx_d == 16:
+            sblock(rx_d + 5, 149, rz_d, P["RED_CONCRETE"])
+            sblock(rx_d + 5, 148, rz_d, P["SEA_LANTERN"])
+# Golden Magic Reins connecting Sleigh to Reindeer
+for rx_r in range(-11, 17):
+    if rx_r % 2 == 0:
+        sblock(rx_r, 147, 26, P["GLOWSTONE"])
+
+# 3E. GIANT GLOWING "2026" ROOFTOP SIGN ABOVE WINTER PALACE (Z=64, Y=136..142)
+DIGITS_2026 = {
+    '2': ["1111","0001","0001","1111","1000","1000","1111"],
+    '0': ["1111","1001","1001","1001","1001","1001","1111"],
+    '6': ["1111","1000","1000","1111","1001","1001","1111"],
+}
+bx_sign = -11
+for ch_s in "2026":
+    pat = DIGITS_2026[ch_s]
+    for ry_s, row_s in enumerate(pat):
+        for rx_s, bit_s in enumerate(row_s):
+            if bit_s == '1':
+                sblock(bx_sign + rx_s, 142 - ry_s, 64, P["GOLD_BLOCK"])
+                sblock(bx_sign + rx_s, 142 - ry_s, 65, P["SEA_LANTERN"])
+    bx_sign += 6
+
+# Additional Plaza Sea-Lantern Streetlamps & Illuminated Ice Windows so Spawn is 100% Bright Day & Night!
+for lx_p in range(-44, 45, 8):
+    for lz_p in range(-44, 45, 8):
+        dp = math.hypot(lx_p, lz_p)
+        if 17 < dp < 47 and grid[lx_p + OX, 99 - 64, lz_p + OZ] == P["SNOW_BLOCK"]:
+            sblock(lx_p, 98, lz_p, P["SEA_LANTERN"])
+            sblock(lx_p, 99, lz_p, P["CYAN_STAINED_GLASS"] if (lx_p + lz_p) % 16 == 0 else P["WHITE_STAINED_GLASS"])
 
 # 4. NORTHERN SHULKER CASE ROYAL TERRACE (Z=-46..-84, Y=101)
 build_floating_island(0, -64, 42, 24, top_y=101, rim_a=P["GOLD_BLOCK"], rim_b=P["LIGHT_BLUE_CONCRETE"], under_accent=P["CYAN_CONCRETE"])
@@ -518,6 +638,6 @@ for v, ln in zip(vals.tolist(), lengths.tolist()):
         rem -= chunk
 buf += struct.pack(">BH", 0, 0)
 
-with open(out_dat, "wb") as fp:
+with gzip.open(out_dat, "wb", compresslevel=6) as fp:
     fp.write(buf)
-print(f"SAVED COLORFUL spawn_v5.dat: {len(buf)} bytes ({int(np.count_nonzero(flat))} blocks)")
+print(f"SAVED GZIPPED FESTIVE NEW YEAR spawn_v5.dat: {os.path.getsize(out_dat):,} bytes compressed / {len(buf):,} raw ({int(np.count_nonzero(flat))} blocks)")

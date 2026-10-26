@@ -1,0 +1,12 @@
+{
+  "pack": {
+    "pack_format": 75,
+    "min_format": 7,
+    "max_format": 99,
+    "supported_formats": [
+      7,
+      99
+    ],
+    "description": "KINGGRIEF Ranks Pack: OWNER + CURATOR Animated (1.16.5 - 1.21.11)"
+  }
+}

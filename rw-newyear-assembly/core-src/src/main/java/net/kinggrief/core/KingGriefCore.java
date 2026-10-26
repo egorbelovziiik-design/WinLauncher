@@ -81,7 +81,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -96,6 +96,13 @@ public final class KingGriefCore extends JavaPlugin {
         this.moderation.start();
         startWebsitePromoSyncLoop();
 
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                ranks.syncAllGroupsToLuckPermsIfPresent();
+            }
+        }.runTaskLater(this, 40L);
+
         for (Player on : Bukkit.getOnlinePlayers()) {
             this.store.refreshPermissions(on, this.ranks);
             this.bossEvents.syncBarsForJoin(on);
@@ -103,10 +110,9 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v5.0.0 — SUPREME FT x REALLYWORLD EDITION   ");
-        getLogger().info(" 40 Animated Rank Badges + Colorful 241x124x241 Void Spawn  ");
-        getLogger().info(" /check (AnyDesk/Discord) | /sw | /spek | Sky-Ascension Ban ");
-        getLogger().info(" /cases give | /p give | /money give | Website Promo Sync   ");
+        getLogger().info(" KINGGRIEF CORE v5.6.0 — NEW YEAR LUXURY FT x RW EDITION    ");
+        getLogger().info(" 40 Luxury OWNER-Style Badges + Festive New Year Spawn 2026 ");
+        getLogger().info(" Tiered /rtp + /rtp near | /kit <kit> [nick] | OWNER-Only LP");
         getLogger().info("============================================================");
     }
 
@@ -211,6 +217,17 @@ public final class KingGriefCore extends JavaPlugin {
             return filterPrefix(Arrays.asList("add"), args[0]);
         } else if ("bounty".equals(c) && args.length == 2) {
             return onlineNames(args[1]);
+        } else if ("rtp".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("close", "medium", "high", "near", "nether"), args[0]);
+        } else if ("kit".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList(
+                    "start", "newyear", "pegas", "cobra", "hero", "bunny", "titan", "rabbit",
+                    "vampire", "tiger", "dracula", "god", "overlord", "imperator", "dragon",
+                    "king", "bull", "sponsor", "media", "kp", "dhelper", "dmoder", "dstmoder",
+                    "dglmoder", "dmladmin", "dadmin", "dkp", "opka", "downer", "curator", "owner"
+            ), args[0]);
+        } else if ("kit".equals(c) && args.length == 2) {
+            return onlineNames(args[1]);
         }
         return out;
     }
@@ -258,6 +275,16 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("money".equals(c) && (args.length >= 1 || !(sender instanceof Player))) {
             return handleMoneyCommand(sender, args);
+        }
+        if ("kit".equals(c) && !(sender instanceof Player)) {
+            if (args.length < 2) {
+                sender.sendMessage("Usage from console: /kit <kit> <nickname>");
+                return true;
+            }
+            Player target = Bukkit.getPlayerExact(args[1]);
+            if (target == null) target = Bukkit.getPlayer(args[1]);
+            guis.tryClaimKitToTarget(sender, args[0], target);
+            return true;
         }
 
         if (!(sender instanceof Player)) {
@@ -326,12 +353,15 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("rtp".equals(c)) {
-            if (args.length > 0 && "gui".equalsIgnoreCase(args[0])) {
+            if (args.length == 0 || "gui".equalsIgnoreCase(args[0]) || "menu".equalsIgnoreCase(args[0])) {
                 guis.openRtpMenu(p);
             } else {
-                String mode = args.length > 0 ? args[0] : "normal";
-                spawnEngine.performRtp(p, mode);
+                spawnEngine.performRtp(p, args[0]);
             }
+            return true;
+        }
+        if ("rtpnear".equals(c)) {
+            spawnEngine.performRtp(p, "near");
             return true;
         }
         if ("warps".equals(c)) {
@@ -424,8 +454,15 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("kits".equals(c)) { guis.openKitsMenu(p, 0); return true; }
         if ("kit".equals(c)) {
-            if (args.length < 1) guis.openKitsMenu(p, 0);
-            else guis.tryClaimKit(p, args[0]);
+            if (args.length < 1) {
+                guis.openKitsMenu(p, 0);
+            } else if (args.length == 1) {
+                guis.tryClaimKitToTarget(p, args[0], p);
+            } else {
+                Player target = Bukkit.getPlayerExact(args[1]);
+                if (target == null) target = Bukkit.getPlayer(args[1]);
+                guis.tryClaimKitToTarget(p, args[0], target);
+            }
             return true;
         }
         if ("jobs".equals(c)) { guis.openJobsMenu(p); return true; }

@@ -1,18 +1,18 @@
 name: KingGriefCore
-version: 5.0.0
+version: 5.6.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
 author: KINGGRIEF
-description: KINGGRIEF v5.0 Supreme FT x RW Edition (40 Animated Rank Badges, Colorful 241x124x241 Void Spawn, 24 Custom-Skinned Animated NPCs, Bafovar 8-Potion Brewer, 36 Blender 3D Items, /skins, /cases give, /p give, /money give, Cloud Promo Sync)
+description: KINGGRIEF v5.6 Luxury New Year FT x RW Edition (40 Luxury Animated Rank Badges, Festive 2026 New Year Spawn, 38 Crisp 3D Items, Tiered /rtp & /rtp near, /kit <kit> [nick], OWNER-only LP Editor)
 
 commands:
   lp:
-    description: LuckPerms Built-in System & Web LP Editor
+    description: OWNER-Only LuckPerms System & Web LP Editor
   luckperms:
-    description: LuckPerms Alias
+    description: LuckPerms Alias (OWNER Only)
   lpeditor:
-    description: Open Web LP Editor
+    description: Open Web LP Editor (OWNER Only)
   register:
     aliases: [reg]
   login:
@@ -20,9 +20,11 @@ commands:
   changepassword:
     aliases: [cpw]
   spawn:
-    description: Teleport to Colorful Winter Kingdom Spawn World
+    description: Teleport to Festive New Year Spawn World
   rtp:
-    description: Only Entrance to Normal Survival World
+    description: Tiered RTP Menu (Close, Medium, High, Near, Nether)
+  rtpnear:
+    description: Teleport Near Players in Survival World (KING+)
   warp:
     description: Teleport to Server Warp
   warps:
