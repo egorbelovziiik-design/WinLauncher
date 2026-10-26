@@ -1,12 +1,12 @@
 name: vampire
 permissions:
-- weight.50
-- essentials.kits.vampire
-- essentials.sethome.multiple.vampire
-- essentials.joinfullserver
-- essentials.near
+- weight.65
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - rabbit
 prefixes:
-- '&#EF4444&lVAMPIRE &f':
-    priority: 50
+- '&f &f':
+    priority: 65

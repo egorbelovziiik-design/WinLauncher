@@ -36,8 +36,11 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityResurrectEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -73,13 +76,20 @@ import java.util.UUID;
 public final class GameplayListener implements Listener {
 
     private static final NamespacedKey SPAWNER_TYPE_KEY = new NamespacedKey("kinggrief", "spawner_mob");
+    private static final NamespacedKey PROJ_TAG_KEY = new NamespacedKey("kinggrief", "proj_type");
     private final KingGriefCore plugin;
     private final Random rng = new Random();
     private final Map<UUID, Long> combatUntil = new HashMap<UUID, Long>();
     private final Set<UUID> drillGuard = new HashSet<UUID>();
     private final Map<UUID, Long> parkourPlateCd = new HashMap<UUID, Long>();
     private final Map<UUID, Long> npcClickCd = new HashMap<UUID, Long>();
+    private final Map<String, Long> itemCooldowns = new HashMap<String, Long>();
+    private final Set<String> activeTempBlocks = new HashSet<String>();
     private String activeChatAnswer = null;
+
+    private static String blockKey(Block b) {
+        return b.getWorld().getName() + ":" + b.getX() + ":" + b.getY() + ":" + b.getZ();
+    }
 
     public GameplayListener(KingGriefCore plugin) {
         this.plugin = plugin;
@@ -137,6 +147,10 @@ public final class GameplayListener implements Listener {
                         ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
                         ColorUtil.addPot(p, "water_breathing", "WATER_BREATHING", dur, 0);
                         ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
+                    } else if ("shar_aresa".equals(cid)) {
+                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
+                        ColorUtil.addPot(p, "speed", "SPEED", dur, 1);
+                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
                     } else if ("shar_santy".equals(cid)) {
                         ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", dur, 2);
                         ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
@@ -194,7 +208,10 @@ public final class GameplayListener implements Listener {
         final Player p = e.getPlayer();
         String ban = plugin.getStore().getActiveBanReason(p.getName());
         if (ban != null) {
-            p.kickPlayer(ColorUtil.c("&#FF1744&lKINGGRIEF BAN\n\n&fВы заблокированы!\n&7Причина: &e" + ban));
+            long remSec = plugin.getStore().getBanRemainingSec(p.getName());
+            String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
+            String staff = plugin.getStore().getBanStaff(p.getName());
+            p.kickPlayer(plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
             return;
         }
         e.setJoinMessage(null);
@@ -213,7 +230,7 @@ public final class GameplayListener implements Listener {
             p.teleport(plugin.getSpawnEngine().getSpawnArrival());
         }
 
-        // Auto-push Mega Resourcepack v4.0 if server.properties doesn't push it
+        // Auto-push Mega Resourcepack v5.0 if server.properties doesn't push it
         final String rpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip");
         new BukkitRunnable() {
             @Override
@@ -234,7 +251,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF RW ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v5.0 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"
@@ -247,8 +264,10 @@ public final class GameplayListener implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
         e.setQuitMessage(null);
+        boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
+        plugin.getModeration().handleQuitDuringCheck(p);
         Long cu = combatUntil.remove(p.getUniqueId());
-        if (cu != null && System.currentTimeMillis() < cu.longValue() && !p.isDead()) {
+        if (!wasFrozen && cu != null && System.currentTimeMillis() < cu.longValue() && !p.isDead()) {
             p.setHealth(0.0);
             Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вышел из игры во время боя и был наказан!"));
         }
@@ -262,12 +281,14 @@ public final class GameplayListener implements Listener {
         e.setRespawnLocation(plugin.getSpawnEngine().getSpawnArrival());
     }
 
-    // ================= ЗАЩИТА ДО АВТОРИЗАЦИИ И АНТИ-МОВ НА СПАВНЕ =================
+    // ================= ЗАЩИТА ДО АВТОРИЗАЦИИ И ЗАМОРОЗКА НА ПРОВЕРКЕ /check =================
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
         Player p = e.getPlayer();
-        if (!plugin.getStore().isAuthenticated(p)) {
-            if (e.getTo() != null && (e.getFrom().getX() != e.getTo().getX() || e.getFrom().getZ() != e.getTo().getZ())) {
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isUnderCheck(p)) {
+            if (e.getTo() != null && (e.getFrom().getX() != e.getTo().getX()
+                    || e.getFrom().getZ() != e.getTo().getZ()
+                    || e.getTo().getY() > e.getFrom().getY())) {
                 Location lock = e.getFrom().clone();
                 lock.setYaw(e.getTo().getYaw());
                 lock.setPitch(e.getTo().getPitch());
@@ -298,8 +319,16 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent e) {
         Player p = e.getPlayer();
-        if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isFrozenOrAscending(p)) {
+            e.setCancelled(true);
+            return;
+        }
         Block b = e.getBlock();
+        if (activeTempBlocks.contains(blockKey(b))) {
+            e.setCancelled(true);
+            ColorUtil.actionBar(p, "&#A855F7⛓ Временный блок Пласта / Трапки нерушим!");
+            return;
+        }
         Location loc = b.getLocation();
 
         // 1. В мире спавна (spawn_world)
@@ -581,7 +610,7 @@ public final class GameplayListener implements Listener {
         Player p = e.getPlayer();
         if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
 
-        // 1. Нажимные плиты Небесного Паркура
+        // 1. Нажимные плиты Радужного Паркура v5.0 (40 островов: #10/#20/#30 Золотая плита = Чекпоинт, #39 Железная плита Y=131 = Финиш!)
         if (e.getAction() == Action.PHYSICAL && e.getClickedBlock() != null
                 && plugin.getSpawnEngine().isInSpawnWorld(e.getClickedBlock().getLocation())) {
             Block pb = e.getClickedBlock();
@@ -590,11 +619,11 @@ public final class GameplayListener implements Listener {
                 Long last = parkourPlateCd.get(p.getUniqueId());
                 if (last != null && now - last.longValue() < 2000L) return;
                 parkourPlateCd.put(p.getUniqueId(), Long.valueOf(now));
-                if (pb.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE) {
+                if (pb.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE) {
                     plugin.getStore().setParkourCp(p, pb.getLocation().add(0.5, 0.2, 0.5));
                     ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.3f);
                     p.sendMessage(ColorUtil.c("&#40C4FF🏃 Чекпоинт паркура сохранён! Вернуться при падении: &f/parkour cp"));
-                } else if (pb.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE && pb.getY() >= 129) {
+                } else if (pb.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE && pb.getY() >= 129) {
                     plugin.getStore().setParkourCp(p, null);
                     long ready = plugin.getStore().getParkourRewardReadyAt(p.getName());
                     if (now >= ready) {
@@ -606,7 +635,7 @@ public final class GameplayListener implements Listener {
                         plugin.getStore().save();
                         ColorUtil.spawnFirework(p.getLocation());
                         Bukkit.broadcastMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fИгрок &#00E676" + p.getName()
-                                + " &fпрошёл Небесный Паркур и получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
+                                + " &fпрошёл Радужный Паркур (40 островов) и получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы снова прошли паркур! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
                     }
@@ -639,14 +668,14 @@ public final class GameplayListener implements Listener {
             }
             if (plugin.getSpawnEngine().isInSpawnWorld(cb.getLocation())
                     && (cb.getType() == Material.LEVER || cb.getType().name().endsWith("_BUTTON"))
-                    && cb.getX() <= -25 && cb.getZ() >= 28) {
+                    && cb.getX() <= -45 && cb.getZ() >= 30) {
                 e.setCancelled(true);
                 plugin.getGuis().openCasinoMenu(p);
                 return;
             }
         }
 
-        // 3. Звезда Меню и Предметы ReallyWorld (Загадочное Яйцо, Пузырёк Опыта, Новогодний Мандарин)
+        // 3. Звезда Меню, 8 Боевых Расходников FT×RW (Пласт, Трапка, Дезориентация, Явная Пыль, Божья Аура, Смерч, Граната) и Предметы РВ
         ItemStack hand = e.getItem();
         String cid = ItemFactory.getCustomId(hand);
         if (cid == null) return;
@@ -686,7 +715,311 @@ public final class GameplayListener implements Listener {
                 ColorUtil.sound(p, "entity.ender_dragon.flap", 1f, 1.2f);
                 p.sendMessage(ColorUtil.c("&#E040FB🥚 Загадочное Яйцо изменило спавнер на: &f" + pick.name() + "&7!"));
             }
+        } else if ("plast".equals(cid) || "trapka".equals(cid) || "dezorient".equals(cid)
+                || "yavnaya_pyl".equals(cid) || "bozhya_aura".equals(cid)
+                || "ognenny_smerch".equals(cid) || "pautinnaya_granata".equals(cid)) {
+            e.setCancelled(true);
+            handleFtConsumable(p, hand, cid);
         }
+    }
+
+    private boolean checkAndSetCd(Player p, String key, int sec) {
+        String k = p.getUniqueId() + ":" + key;
+        long now = System.currentTimeMillis();
+        Long until = itemCooldowns.get(k);
+        if (until != null && now < until.longValue()) {
+            long left = (until.longValue() - now) / 1000L + 1L;
+            ColorUtil.actionBar(p, "&#FF5252⏳ Перезарядка предмета: &f" + left + " сек.");
+            return false;
+        }
+        itemCooldowns.put(k, Long.valueOf(now + sec * 1000L));
+        return true;
+    }
+
+    private boolean isEnemyTarget(Player caster, Player other) {
+        if (other == null || other.equals(caster) || other.getGameMode() == GameMode.SPECTATOR) return false;
+        if (plugin.getSpawnEngine().isInSpawnWorld(other.getLocation())
+                && !plugin.getSpawnEngine().isInsidePvpZone(other.getLocation())) return false;
+        DataStore.Clan c1 = plugin.getStore().getClanOf(caster.getName());
+        DataStore.Clan c2 = plugin.getStore().getClanOf(other.getName());
+        return !(c1 != null && c1.equals(c2) && !c1.friendlyFire);
+    }
+
+    private void handleFtConsumable(final Player p, ItemStack hand, String cid) {
+        // Disallow building consumables on peaceful spawn plaza (allowed in world AND in /warp pvp pit / Kabinki!)
+        if (plugin.getSpawnEngine().isInSpawnWorld(p.getLocation())
+                && !plugin.getSpawnEngine().isInsidePvpZone(p.getLocation())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Расходники FT можно использовать в мире выживания (&a/rtp&#FF1744) или на &e/warp pvp&#FF1744!"));
+            return;
+        }
+        if ("plast".equals(cid)) {
+            if (!checkAndSetCd(p, "plast", 10)) return;
+            consumeOne(p, hand);
+            spawnTemporaryPlast(p);
+        } else if ("trapka".equals(cid)) {
+            if (!checkAndSetCd(p, "trapka", 20)) return;
+            consumeOne(p, hand);
+            spawnTemporaryTrapka(p);
+        } else if ("dezorient".equals(cid)) {
+            if (!checkAndSetCd(p, "dezorient", 20)) return;
+            consumeOne(p, hand);
+            p.getWorld().spawnParticle(Particle.WITCH, p.getLocation().add(0, 1, 0), 80, 4.0, 1.5, 4.0, 0.05);
+            ColorUtil.sound(p, "entity.elder_guardian.curse", 1f, 1.1f);
+            int hit = 0;
+            for (Entity en : p.getNearbyEntities(10, 6, 10)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    ColorUtil.addPot(v, "blindness", "BLINDNESS", 140, 0);
+                    ColorUtil.addPot(v, "nausea", "CONFUSION", 140, 1);
+                    ColorUtil.addPot(v, "slowness", "SLOW", 140, 1);
+                    v.sendMessage(ColorUtil.c("&#E040FB👁 Вы поражены Дезориентацией игрока &f" + p.getName() + "&#E040FB!"));
+                    hit++;
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#E040FB👁 Дезориентация активирована! Поражено врагов: &f" + hit));
+        } else if ("yavnaya_pyl".equals(cid)) {
+            if (!checkAndSetCd(p, "yavnaya_pyl", 15)) return;
+            consumeOne(p, hand);
+            p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1, 0), 90, 6.0, 2.0, 6.0, 0.05);
+            ColorUtil.sound(p, "block.amethyst_block.chime", 1f, 1.3f);
+            int rev = 0;
+            for (Entity en : p.getNearbyEntities(25, 12, 25)) {
+                if (en instanceof Player && !en.equals(p)) {
+                    Player v = (Player) en;
+                    org.bukkit.potion.PotionEffectType invT = ColorUtil.potType("invisibility", "INVISIBILITY");
+                    if (invT != null) v.removePotionEffect(invT);
+                    ColorUtil.addPot(v, "glowing", "GLOWING", 300, 0);
+                    rev++;
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#00E5FF✨ Явная Пыль подсветила игроков вокруг (&f" + rev + " шт.&#00E5FF)!"));
+        } else if ("bozhya_aura".equals(cid)) {
+            if (!checkAndSetCd(p, "bozhya_aura", 30)) return;
+            consumeOne(p, hand);
+            String[][] bads = new String[][]{
+                    {"poison","POISON"}, {"wither","WITHER"}, {"blindness","BLINDNESS"},
+                    {"weakness","WEAKNESS"}, {"slowness","SLOW"}, {"mining_fatigue","SLOW_DIGGING"}, {"nausea","CONFUSION"}
+            };
+            for (String[] b : bads) {
+                org.bukkit.potion.PotionEffectType t = ColorUtil.potType(b[0], b[1]);
+                if (t != null) p.removePotionEffect(t);
+            }
+            p.setFireTicks(0);
+            p.setFreezeTicks(0);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 120, 2);
+            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 120, 1);
+            p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 50, 0.8, 1.0, 0.8, 0.15);
+            ColorUtil.sound(p, "item.totem.use", 0.9f, 1.35f);
+            p.sendMessage(ColorUtil.c("&#FFD740☀ Божья Аура сняла все дебаффы и дала Регенерацию III + Сопротивление II!"));
+        } else if ("ognenny_smerch".equals(cid)) {
+            if (!checkAndSetCd(p, "ognenny_smerch", 18)) return;
+            consumeOne(p, hand);
+            p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 110, 3.5, 1.5, 3.5, 0.08);
+            ColorUtil.sound(p, "entity.blaze.shoot", 1f, 0.9f);
+            for (Entity en : p.getNearbyEntities(8, 5, 8)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    v.setFireTicks(140);
+                    v.damage(10.0, p);
+                    Vector kb = v.getLocation().toVector().subtract(p.getLocation().toVector());
+                    if (kb.lengthSquared() < 0.01) kb = new Vector(0.5, 0.4, 0.5);
+                    v.setVelocity(kb.normalize().multiply(1.25).setY(0.48));
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#FF6D00🌪 Огненный Смерч обрушился на врагов вокруг!"));
+        } else if ("pautinnaya_granata".equals(cid)) {
+            if (!checkAndSetCd(p, "pautinnaya_granata", 15)) return;
+            consumeOne(p, hand);
+            org.bukkit.entity.Snowball proj = p.launchProjectile(org.bukkit.entity.Snowball.class);
+            proj.setItem(new ItemStack(Material.SLIME_BALL));
+            proj.getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "web_grenade");
+            ColorUtil.sound(p, "entity.snowball.throw", 1f, 0.8f);
+        }
+    }
+
+    @EventHandler
+    public void onProjectileLaunch(ProjectileLaunchEvent e) {
+        if (!(e.getEntity().getShooter() instanceof Player)) return;
+        Player p = (Player) e.getEntity().getShooter();
+        ItemStack main = p.getInventory().getItemInMainHand();
+        if ("snezok_zamorozki".equals(ItemFactory.getCustomId(main))) {
+            e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "frost_ball");
+        }
+    }
+
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent e) {
+        String ptype = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
+        if (ptype == null) return;
+        if ("frost_ball".equals(ptype) && e.getHitEntity() instanceof Player && e.getEntity().getShooter() instanceof Player) {
+            Player shooter = (Player) e.getEntity().getShooter();
+            Player hit = (Player) e.getHitEntity();
+            if (isEnemyTarget(shooter, hit)) {
+                hit.setFreezeTicks(200);
+                ColorUtil.addPot(hit, "slowness", "SLOW", 120, 3);
+                ColorUtil.addPot(hit, "weakness", "WEAKNESS", 120, 1);
+                hit.getWorld().spawnParticle(Particle.SNOWFLAKE, hit.getLocation().add(0, 1, 0), 40, 0.6, 0.8, 0.6, 0.03);
+                hit.sendMessage(ColorUtil.c("&#80D8FF❄ Вы заморожены Снежком Заморозки от &f" + shooter.getName() + "&#80D8FF!"));
+            }
+        } else if ("web_grenade".equals(ptype)) {
+            Location center = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0, 1, 0)
+                    : (e.getHitEntity() != null ? e.getHitEntity().getLocation() : e.getEntity().getLocation());
+            if (plugin.getSpawnEngine().isInSpawnWorld(center) && !plugin.getSpawnEngine().isInsidePvpZone(center)) return;
+            final java.util.List<Block> placed = new java.util.ArrayList<Block>();
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    Block b = center.getWorld().getBlockAt(center.getBlockX() + dx, center.getBlockY(), center.getBlockZ() + dz);
+                    if (b.getType() == Material.AIR) {
+                        b.setType(Material.COBWEB, false);
+                        placed.add(b);
+                    }
+                }
+            }
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    for (Block b : placed) {
+                        if (b.getType() == Material.COBWEB) b.setType(Material.AIR, false);
+                    }
+                }
+            }.runTaskLater(plugin, 160L);
+        }
+    }
+
+    private boolean isReplaceableForTemp(Block b) {
+        Material m = b.getType();
+        if (activeTempBlocks.contains(blockKey(b))) return false;
+        if (m == Material.BEDROCK || m == Material.SPAWNER || m == Material.END_PORTAL_FRAME
+                || m == Material.CHEST || m == Material.ENDER_CHEST || m.name().endsWith("SHULKER_BOX")) return false;
+        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.WATER || m == Material.LAVA
+                || m == Material.SHORT_GRASS || m == Material.TALL_GRASS || m == Material.SNOW || !m.isSolid();
+    }
+
+    private void spawnTemporaryPlast(Player p) {
+        Location pl = p.getLocation();
+        World w = pl.getWorld();
+        final Map<Block, org.bukkit.block.data.BlockData> saved = new HashMap<Block, org.bukkit.block.data.BlockData>();
+        float pitch = pl.getPitch();
+
+        if (Math.abs(pitch) > 42f) {
+            // Horizontal 5x5x2 floor/ceiling!
+            int baseY = pitch > 0 ? pl.getBlockY() - 1 : pl.getBlockY() + 3;
+            int cx = pl.getBlockX(), cz = pl.getBlockZ();
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    for (int dy = 0; dy > -2; dy--) {
+                        Block b = w.getBlockAt(cx + dx, baseY + dy, cz + dz);
+                        if (isReplaceableForTemp(b)) {
+                            saved.put(b, b.getBlockData().clone());
+                            activeTempBlocks.add(blockKey(b));
+                            b.setType(((dx + dz) % 2 == 0) ? Material.OBSIDIAN : Material.CRYING_OBSIDIAN, false);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Vertical 5x4x2 shield wall 2 blocks ahead of player!
+            Vector dir = pl.getDirection().setY(0).normalize();
+            boolean alongX = Math.abs(dir.getX()) > Math.abs(dir.getZ());
+            int stepX = alongX ? (dir.getX() >= 0 ? 2 : -2) : 0;
+            int stepZ = alongX ? 0 : (dir.getZ() >= 0 ? 2 : -2);
+            int cx = pl.getBlockX() + stepX;
+            int cz = pl.getBlockZ() + stepZ;
+            int cy = pl.getBlockY();
+            for (int spread = -2; spread <= 2; spread++) {
+                for (int dy = 0; dy <= 3; dy++) {
+                    for (int thick = 0; thick <= 1; thick++) {
+                        int bx = alongX ? cx + (stepX > 0 ? thick : -thick) : cx + spread;
+                        int bz = alongX ? cz + spread : cz + (stepZ > 0 ? thick : -thick);
+                        Block b = w.getBlockAt(bx, cy + dy, bz);
+                        if (isReplaceableForTemp(b)) {
+                            saved.put(b, b.getBlockData().clone());
+                            activeTempBlocks.add(blockKey(b));
+                            b.setType(((spread + dy) % 2 == 0) ? Material.OBSIDIAN : Material.CRYING_OBSIDIAN, false);
+                        }
+                    }
+                }
+            }
+        }
+        ColorUtil.sound(p, "block.anvil.land", 0.85f, 1.2f);
+        p.sendMessage(ColorUtil.c("&#A855F7🧱 Пласт 5×5×2 установлен на &e12 секунд&#A855F7!"));
+        scheduleRestore(saved, 240L);
+    }
+
+    private void spawnTemporaryTrapka(Player p) {
+        String skin = plugin.getStore().getSelectedTrapSkin(p.getName());
+        Material mainMat = Material.NETHERITE_BLOCK;
+        Material accentMat = Material.OBSIDIAN;
+        if ("ice".equalsIgnoreCase(skin)) { mainMat = Material.BLUE_ICE; accentMat = Material.PACKED_ICE; }
+        else if ("inferno".equalsIgnoreCase(skin)) { mainMat = Material.RED_NETHER_BRICKS; accentMat = Material.MAGMA_BLOCK; }
+        else if ("toxic".equalsIgnoreCase(skin)) { mainMat = Material.EMERALD_BLOCK; accentMat = Material.LIME_STAINED_GLASS; }
+        else if ("void".equalsIgnoreCase(skin)) { mainMat = Material.CRYING_OBSIDIAN; accentMat = Material.PURPUR_BLOCK; }
+        else if ("royal".equalsIgnoreCase(skin)) { mainMat = Material.GOLD_BLOCK; accentMat = Material.AMETHYST_BLOCK; }
+
+        Location pl = p.getLocation();
+        World w = pl.getWorld();
+        int cx = pl.getBlockX(), cy = pl.getBlockY(), cz = pl.getBlockZ();
+        final Map<Block, org.bukkit.block.data.BlockData> saved = new HashMap<Block, org.bukkit.block.data.BlockData>();
+
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dy = -1; dy <= 3; dy++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    boolean shell = Math.abs(dx) == 2 || Math.abs(dz) == 2 || dy == -1 || dy == 3;
+                    Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                    if (shell && isReplaceableForTemp(b)) {
+                        saved.put(b, b.getBlockData().clone());
+                        activeTempBlocks.add(blockKey(b));
+                        b.setType(((dx + dy + dz) % 2 == 0) ? mainMat : accentMat, false);
+                    }
+                }
+            }
+        }
+
+        // Apply /skins Trapka Debuff to all enemies caught inside the 5x5x5 cage!
+        int trappedEnemies = 0;
+        for (Entity en : p.getNearbyEntities(3.2, 3.2, 3.2)) {
+            if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                Player v = (Player) en;
+                trappedEnemies++;
+                if ("ice".equalsIgnoreCase(skin)) {
+                    v.setFreezeTicks(220);
+                    ColorUtil.addPot(v, "slowness", "SLOW", 160, 2);
+                } else if ("inferno".equalsIgnoreCase(skin)) {
+                    v.setFireTicks(120);
+                    ColorUtil.addPot(v, "weakness", "WEAKNESS", 140, 0);
+                } else if ("toxic".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "poison", "POISON", 140, 1);
+                    ColorUtil.addPot(v, "hunger", "HUNGER", 180, 2);
+                } else if ("void".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "blindness", "BLINDNESS", 120, 0);
+                    ColorUtil.addPot(v, "mining_fatigue", "SLOW_DIGGING", 160, 1);
+                } else if ("royal".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "wither", "WITHER", 120, 1);
+                    ColorUtil.addPot(v, "glowing", "GLOWING", 200, 0);
+                    ColorUtil.addPot(v, "weakness", "WEAKNESS", 120, 1);
+                } else {
+                    ColorUtil.addPot(v, "slowness", "SLOW", 120, 0);
+                }
+                v.sendMessage(ColorUtil.c("&#FF1744⛓ Вы закрыты в Трапке игрока &f" + p.getName() + " &#FF1744(Скин: &e" + skin.toUpperCase() + "&#FF1744)!"));
+            }
+        }
+
+        ColorUtil.sound(p, "block.iron_door.close", 1f, 0.7f);
+        p.sendMessage(ColorUtil.c("&#FF1744⛓ Трапка 5×5×5 активирована на &e15 сек. &8(Скин: &d" + skin.toUpperCase() + "&8, врагов: &f" + trappedEnemies + "&8)"));
+        scheduleRestore(saved, 300L);
+    }
+
+    private void scheduleRestore(final Map<Block, org.bukkit.block.data.BlockData> saved, long delayTicks) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : saved.entrySet()) {
+                    Block b = en.getKey();
+                    activeTempBlocks.remove(blockKey(b));
+                    b.setBlockData(en.getValue(), false);
+                }
+            }
+        }.runTaskLater(plugin, delayTicks);
     }
 
     private void consumeOne(Player p, ItemStack hand) {
@@ -694,13 +1027,12 @@ public final class GameplayListener implements Listener {
         else p.getInventory().setItemInMainHand(null);
     }
 
-    // ================= КЛИКИ ПО 22 ЖИВЫМ NPC REALLYWORLD (100% БЕЗ ОКНА ЖИТЕЛЯ!) =================
+    // ================= КЛИКИ ПО 24 АНИМИРОВАННЫМ NPC В СВОИХ СКИНАХ (0 ВАНИЛЬНЫХ ЖИТЕЛЕЙ!) =================
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNpcRightClick(PlayerInteractEntityEvent e) {
         Entity target = e.getRightClicked();
         final SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(target);
         if (nd != null) {
-            // CRITICAL: Always cancel BOTH MAIN_HAND and OFF_HAND so Villager trade window NEVER opens!
             e.setCancelled(true);
             final Player p = e.getPlayer();
             long now = System.currentTimeMillis();
@@ -723,8 +1055,23 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNpcInteractAt(PlayerInteractAtEntityEvent e) {
         Entity target = e.getRightClicked();
-        if (plugin.getSpawnEngine().getNpcByEntity(target) != null
-                || (target instanceof AbstractVillager && plugin.getSpawnEngine().isInSpawnWorld(target.getLocation()))) {
+        final SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(target);
+        if (nd != null) {
+            e.setCancelled(true);
+            final Player p = e.getPlayer();
+            long now = System.currentTimeMillis();
+            Long last = npcClickCd.get(p.getUniqueId());
+            if (last != null && now - last.longValue() < 250L) return;
+            npcClickCd.put(p.getUniqueId(), Long.valueOf(now));
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (p.isOnline()) triggerNpcAction(p, nd);
+                }
+            }.runTask(plugin);
+            return;
+        }
+        if (target instanceof AbstractVillager && plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())) {
             e.setCancelled(true);
         }
     }
@@ -735,7 +1082,11 @@ public final class GameplayListener implements Listener {
         String act = nd.commandOrAction;
         if ("gui:rtp".equals(act)) plugin.getGuis().openRtpMenu(p);
         else if ("gui:donate".equals(act)) plugin.getGuis().openDonateMenu(p);
-        else if ("gui:shop".equals(act)) plugin.getGuis().openRelicShop(p);
+        else if ("gui:shop".equals(act)) plugin.getGuis().openCoinShopHub(p);
+        else if ("gui:rshop".equals(act)) plugin.getGuis().openRelicShop(p);
+        else if ("gui:skins".equals(act)) plugin.getGuis().openTrapSkinsMenu(p);
+        else if ("gui:bounty".equals(act)) plugin.getGuis().openBountyMenu(p);
+        else if ("gui:cases".equals(act)) plugin.getGuis().openCasesMenu(p);
         else if ("gui:buyer".equals(act)) plugin.getGuis().openBuyerMenu(p);
         else if ("gui:ah".equals(act)) plugin.getGuis().openAuctionMenu(p, 0);
         else if ("gui:kits".equals(act)) plugin.getGuis().openKitsMenu(p, 0);
@@ -750,6 +1101,7 @@ public final class GameplayListener implements Listener {
         else if ("gui:djamshut".equals(act)) plugin.getGuis().openDjamshutMenu(p);
         else if ("gui:warps".equals(act)) plugin.getGuis().openWarpsMenu(p);
         else if ("gui:titles".equals(act)) plugin.getGuis().openTitlesMenu(p);
+        else if (act.startsWith("shop:")) plugin.getGuis().openCoinShopCat(p, act.substring(5));
         else if (act.startsWith("warp:")) {
             Location wl = plugin.getSpawnEngine().getWarpLocation(act.substring(5));
             if (wl != null) p.teleport(wl);
@@ -871,7 +1223,15 @@ public final class GameplayListener implements Listener {
             attacker = (Player) ((Projectile) e.getDamager()).getShooter();
         }
         if (attacker == null) return;
-        if (!plugin.getStore().isAuthenticated(attacker)) { e.setCancelled(true); return; }
+        if (!plugin.getStore().isAuthenticated(attacker) || plugin.getModeration().isFrozenOrAscending(attacker)) {
+            e.setCancelled(true);
+            return;
+        }
+        if (e.getEntity() instanceof Player && plugin.getModeration().isFrozenOrAscending((Player) e.getEntity())) {
+            e.setCancelled(true);
+            ColorUtil.actionBar(attacker, "&#FFD740🔍 Этот игрок находится на проверке модерации!");
+            return;
+        }
 
         // Event Boss damage tracking
         if (e.getEntity() instanceof LivingEntity && e.getEntity().getScoreboardTags().contains("kg_event_boss")) {
@@ -905,12 +1265,22 @@ public final class GameplayListener implements Listener {
             if (attacker.isFlying() && attacker.getGameMode() == GameMode.SURVIVAL) attacker.setFlying(false);
             if (victim.isFlying() && victim.getGameMode() == GameMode.SURVIVAL) victim.setFlying(false);
 
-            // Кастомные чары ReallyWorld: Вампиризм (Меч Дракулы / Талисман Ехидны), Окисление (Меч Крушителя), Стужа (Лук Снайпера)
+            // Кастомные чары и Элитры FT×RW: Вампиризм, Окисление, Элитры Феникса/Вампира/Грома, Стужа
             String weaponId = ItemFactory.getCustomId(attacker.getInventory().getItemInMainHand());
             String offId = ItemFactory.getCustomId(attacker.getInventory().getItemInOffHand());
-            if ("sword_dracula".equals(weaponId) || "tal_echidny".equals(offId)) {
-                double heal = Math.min(3.5, e.getFinalDamage() * 0.25);
+            String atkChest = ItemFactory.getCustomId(attacker.getInventory().getChestplate());
+            String vicChest = ItemFactory.getCustomId(victim.getInventory().getChestplate());
+
+            if ("sword_dracula".equals(weaponId) || "tal_echidny".equals(offId) || "elytra_vampire".equals(atkChest)) {
+                double heal = Math.min(3.5, e.getFinalDamage() * 0.22);
                 attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + heal));
+            }
+            if ("elytra_phoenix".equals(vicChest)) {
+                attacker.setFireTicks(80);
+            }
+            if ("elytra_thunder".equals(atkChest) && rng.nextInt(100) < 18) {
+                victim.getWorld().strikeLightningEffect(victim.getLocation());
+                e.setDamage(e.getDamage() + 3.0);
             }
             if ("sword_krush".equals(weaponId)) {
                 for (ItemStack arm : victim.getInventory().getArmorContents()) {
@@ -987,6 +1357,12 @@ public final class GameplayListener implements Listener {
         if (killer != null && !killer.equals(dead)) {
             plugin.getStore().addKill(killer.getName());
             plugin.getStore().addCoins(killer.getName(), 250.0);
+            double bounty = plugin.getStore().claimBounty(dead.getName());
+            if (bounty > 0.0) {
+                plugin.getStore().addCoins(killer.getName(), bounty);
+                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🎯 [ОХОТА ЗА ГОЛОВАМИ] &fИгрок &#00E676" + killer.getName()
+                        + " &fликвидировал цель &c" + dead.getName() + " &fи забрал контракт &a+" + ColorUtil.fmtMoney(bounty) + "$&f!"));
+            }
             // Drop PvP Trophy Skull
             ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
             ItemMeta hm = head.getItemMeta();
@@ -1007,12 +1383,25 @@ public final class GameplayListener implements Listener {
     // ================= ИНВЕНТАРЬ И ЧАТ REALLYWORLD =================
     @EventHandler
     public void onInvClick(InventoryClickEvent e) {
+        if (plugin.getModeration().handleGuiClick(e, e.getView().getTitle())) {
+            return;
+        }
+        if (e.getWhoClicked() instanceof Player && plugin.getModeration().isFrozenOrAscending((Player) e.getWhoClicked())) {
+            e.setCancelled(true);
+            return;
+        }
         plugin.getGuis().handleInventoryClick(e);
+    }
+
+    @EventHandler
+    public void onInvClose(InventoryCloseEvent e) {
+        plugin.getGuis().handleInventoryClose(e);
     }
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent e) {
         if (!plugin.getStore().isAuthenticated(e.getPlayer())
+                || plugin.getModeration().isFrozenOrAscending(e.getPlayer())
                 || e.getItemDrop().getScoreboardTags().contains("kg_case_float")) {
             e.setCancelled(true);
         }
@@ -1028,13 +1417,27 @@ public final class GameplayListener implements Listener {
     @EventHandler
     public void onCmdPreprocess(PlayerCommandPreprocessEvent e) {
         Player p = e.getPlayer();
-        String msg = e.getMessage().toLowerCase();
+        String rawMsg = e.getMessage();
+        String msg = rawMsg.toLowerCase(java.util.Locale.ROOT);
+
+        // Поддержка русской команды /спек -> /spek!
+        if (msg.equals("/спек") || msg.startsWith("/спек ")) {
+            String rest = rawMsg.length() > 5 ? rawMsg.substring(5) : "";
+            e.setMessage("/spek" + rest);
+            msg = e.getMessage().toLowerCase(java.util.Locale.ROOT);
+        }
+
         if (!plugin.getStore().isAuthenticated(p)) {
             if (!msg.startsWith("/login") && !msg.startsWith("/l ") && !msg.startsWith("/reg")) {
                 e.setCancelled(true);
                 p.sendMessage(ColorUtil.c("&#FF1744🔐 Сначала войдите на сервер: &f/login &7или &f/register"));
                 return;
             }
+        }
+        if (plugin.getModeration().isFrozenOrAscending(p)) {
+            e.setCancelled(true);
+            p.sendMessage(ColorUtil.c("&#FF1744⚠ Во время проверки на читы команды отключены! Пишите в обычный чат."));
+            return;
         }
         Long cu = combatUntil.get(p.getUniqueId());
         if (cu != null && System.currentTimeMillis() < cu.longValue() && !"owner".equals(plugin.getRanks().getRank(p).id)) {
@@ -1054,14 +1457,24 @@ public final class GameplayListener implements Listener {
             p.sendMessage(ColorUtil.c("&#FF1744🔐 Сначала авторизуйтесь: /login или /register"));
             return;
         }
-        long muteSec = plugin.getStore().getMuteRemainingSec(p.getName());
-        if (muteSec > 0) {
+        String raw = e.getMessage().trim();
+
+        // Прямой приватный канал чата на проверке /check (работает даже при муте!)
+        if (plugin.getModeration().handleCheckChat(p, raw)) {
             e.setCancelled(true);
-            p.sendMessage(ColorUtil.c("&#FF1744🔇 У вас мут! Осталось: &f" + ColorUtil.fmtTime(muteSec)));
             return;
         }
 
-        String raw = e.getMessage().trim();
+        long muteSec = plugin.getStore().getMuteRemainingSec(p.getName());
+        if (muteSec > 0) {
+            e.setCancelled(true);
+            String mReason = plugin.getStore().getMuteReason(p.getName());
+            String mStaff = plugin.getStore().getMuteStaff(p.getName());
+            String remLabel = muteSec > 36500L * 86400L ? "Навсегда" : ColorUtil.fmtTime(muteSec);
+            p.sendMessage(ColorUtil.c("&#FF5252🔇 Вы замучены модератором &#FFD740" + mStaff
+                    + "&#FF5252! Осталось: &f" + remLabel + " &8│ &7Причина: &e" + mReason));
+            return;
+        }
         if (activeChatAnswer != null && raw.equalsIgnoreCase(activeChatAnswer)) {
             activeChatAnswer = null;
             new BukkitRunnable() {

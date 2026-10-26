@@ -1,6 +1,7 @@
 package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -13,23 +14,27 @@ import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.MerchantRecipe;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -68,14 +73,16 @@ public final class SpawnEngine {
         public final String line2;
         public final double x, y, z;
         public final float yaw;
-        public final EntityType type;
-        public final Material handItem;
-        public final Material helmet;
-        public final Material chest;
+        public final String skinHash;
+        public final Color armorColor;
+        public final ItemStack mainHand;
+        public final ItemStack offHand;
+        public final ItemStack chestOverride;
         public final String commandOrAction;
 
         public NpcDef(String id, String line1, String line2, double x, double y, double z, float yaw,
-                      EntityType type, Material handItem, Material helmet, Material chest, String commandOrAction) {
+                      String skinHash, Color armorColor, ItemStack mainHand, ItemStack offHand,
+                      ItemStack chestOverride, String commandOrAction) {
             this.id = id;
             this.line1 = line1;
             this.line2 = line2;
@@ -83,10 +90,11 @@ public final class SpawnEngine {
             this.y = y;
             this.z = z;
             this.yaw = yaw;
-            this.type = type;
-            this.handItem = handItem;
-            this.helmet = helmet;
-            this.chest = chest;
+            this.skinHash = skinHash;
+            this.armorColor = armorColor;
+            this.mainHand = mainHand;
+            this.offHand = offHand;
+            this.chestOverride = chestOverride;
             this.commandOrAction = commandOrAction;
         }
     }
@@ -124,10 +132,12 @@ public final class SpawnEngine {
     private final List<CasePedestal> casePedestals = new ArrayList<CasePedestal>();
     private final List<NpcDef> npcDefs = new ArrayList<NpcDef>();
     private final List<KabinkaState> kabinki = new ArrayList<KabinkaState>();
-    private final Map<String, UUID> npcEntities = new HashMap<String, UUID>();
+    private final Map<String, UUID> npcBodyMap = new HashMap<String, UUID>();
+    private final Map<String, UUID> npcHitboxMap = new HashMap<String, UUID>();
     private final Set<String> spinningCases = new HashSet<String>();
     private int mineRefillCountdown = 90;
     private int tickCounter = 0;
+    private int animPhase = 0;
 
     public SpawnEngine(KingGriefCore plugin) {
         this.plugin = plugin;
@@ -135,65 +145,133 @@ public final class SpawnEngine {
     }
 
     private void initDefinitions() {
-        // 11 Colored Shulker Case Pedestals on Northern Amphitheater (Y=103)
-        casePedestals.add(new CasePedestal("donate",    "&#FF1744&l🎁 ДОНАТ КЕЙС",        "&7Привилегии PEGAS → D.OWNER!",  29, -25, 103, -46, Material.RED_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("sdonate",   "&#E040FB&l👑 СУПЕР-ДОНАТ КЕЙС",  "&7Шанс на KING, OPKA, D.OWNER!", 99, -20, 103, -50, Material.MAGENTA_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("legendary", "&#FFD740&l⭐ ЛЕГЕНДАРНЫЙ КЕЙС",  "&7Шары РВ, Талисманы и Донат!",  59, -15, 103, -53, Material.YELLOW_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("reallydev", "&#A855F7&l⚡ КЕЙС REALLYDEV",    "&7Топ ДКП, OPKA и Шар Санты!",  129, -10, 103, -55, Material.PURPLE_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("riliks",    "&#00E5FF&l❖ КЕЙС РИЛИКОВ",       "&7От 50 до 2 500 Риликов ❖!",    39,  -5, 103, -56, Material.LIGHT_BLUE_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("allorno",   "&#FF5252&l🎲 ВСЁ ИЛИ НИЧЕГО",    "&750/50 — Мега-Джекпот или Уголь!", 45, 0, 103, -57, Material.BLACK_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("ditems",    "&#FF9100&l🔮 ДОНАТ-ВЕЩИ РВ",     "&7Шары, Тотемы, Кирка Джамшута!", 49,  5, 103, -56, Material.ORANGE_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("kits",      "&#26C6DA&l📦 КЕЙС КИТОВ РВ",     "&7Полные шалкеры ресурсов!",      35, 10, 103, -55, Material.CYAN_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("money",     "&#69F0AE&l💰 ДЕНЕЖНЫЙ КЕЙС",     "&7До 1 000 000$ игровых монет!",  19, 15, 103, -53, Material.LIME_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("djamshut",  "&#FFAB40&l⛏ КЕЙС ДЖАМШУТА",     "&7Бульдозер 3×3 и Божье Прикосн.", 25, 20, 103, -50, Material.BROWN_SHULKER_BOX));
-        casePedestals.add(new CasePedestal("summer",    "&#80D8FF&l❄ НОВОГОДНИЙ КЕЙС",    "&7Зимние артефакты и подарки!",   39, 25, 103, -46, Material.WHITE_SHULKER_BOX));
+        // 11 Colored Shulker Case Pedestals on Northern Royal Terrace (Y=103 in spawn_v5.dat!)
+        casePedestals.add(new CasePedestal("donate",    "&#FF1744&l🎁 ДОНАТ КЕЙС",        "&7Привилегии PEGAS → D.OWNER!",   29, -30, 103, -58, Material.RED_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("sdonate",   "&#E040FB&l👑 СУПЕР-ДОНАТ КЕЙС",  "&7Шанс на KING, OPKA, D.OWNER!",  99, -24, 103, -63, Material.MAGENTA_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("legendary", "&#FFD740&l⭐ ЛЕГЕНДАРНЫЙ КЕЙС",  "&73D Шары, Элитры и Донат!",      59, -18, 103, -67, Material.YELLOW_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("reallydev", "&#A855F7&l⚡ КЕЙС REALLYDEV",    "&7Топ ДКП, OPKA и Шар Санты!",   129, -12, 103, -70, Material.PURPLE_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("riliks",    "&#00E5FF&l❖ КЕЙС РИЛИКОВ",       "&7От 60 до 2 500 Риликов ❖!",     39,  -6, 103, -72, Material.LIGHT_BLUE_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("allorno",   "&#FF5252&l🎲 ВСЁ ИЛИ НИЧЕГО",    "&750/50 — Мега-Джекпот или Уголь!",45,   0, 103, -73, Material.BLACK_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("ditems",    "&#FF9100&l🔮 3D ДОНАТ-ВЕЩИ",     "&7Шары, Элитры, Меч Крушителя!",  49,   6, 103, -72, Material.ORANGE_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("kits",      "&#26C6DA&l📦 КЕЙС КИТОВ",        "&7Полные шалкеры ресурсов!",      35,  12, 103, -70, Material.CYAN_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("money",     "&#69F0AE&l💰 ДЕНЕЖНЫЙ КЕЙС",     "&7До 1 000 000$ игровых монет!",  19,  18, 103, -67, Material.LIME_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("djamshut",  "&#FFAB40&l⛏ КЕЙС ДЖАМШУТА",     "&7Бульдозер 3×3 и Божье Прикосн.",25,  24, 103, -63, Material.BROWN_SHULKER_BOX));
+        casePedestals.add(new CasePedestal("summer",    "&#80D8FF&l❄ НОВОГОДНИЙ КЕЙС",    "&7Зимние 3D артефакты и подарки!",39,  30, 103, -58, Material.WHITE_SHULKER_BOX));
 
-        // 20 ReallyWorld Working NPCs on Pedestals (Y=101)
-        npcDefs.add(new NpcDef("rtp",        "&#00E676&l⚡ РАНДОМНЫЙ ТЕЛЕПОРТ",  "&7Отдельный мир выживания (/rtp)", -9.5,  101,  32.5, -45f, EntityType.VILLAGER,  Material.COMPASS,             Material.DIAMOND_HELMET,   Material.DIAMOND_CHESTPLATE,   "gui:rtp"));
-        npcDefs.add(new NpcDef("donate",     "&#FFD740&l👑 ДОНАТ И ПРИВИЛЕГИИ", "&740 рангов от 19₽ (/donate)",     10.5,  101,  32.5,  45f, EntityType.VILLAGER,  Material.NETHER_STAR,         Material.GOLDEN_HELMET,    Material.NETHERITE_CHESTPLATE, "gui:donate"));
-        npcDefs.add(new NpcDef("shop",       "&#00E5FF&l🔮 МАГАЗИН РИЛИКОВ РВ", "&7Шары, Тотемы, Баффы (/shop)",   -15.5,  101,  24.5, -60f, EntityType.WANDERING_TRADER, Material.TOTEM_OF_UNDYING, Material.TURTLE_HELMET, Material.DIAMOND_CHESTPLATE, "gui:shop"));
-        npcDefs.add(new NpcDef("buyer",      "&#69F0AE&l💰 СКУПЩИК РЕСУРСОВ",   "&7Продажа руды, фарм и мобов",     16.5,  101,  24.5,  60f, EntityType.VILLAGER,  Material.EMERALD,             Material.GOLDEN_HELMET,    Material.IRON_CHESTPLATE,      "gui:buyer"));
-        npcDefs.add(new NpcDef("ah",         "&#FFAB40&l⚖ АУКЦИОН ИГРОКОВ",     "&7Торговля вещами (/ah)",         -17.5,  101,  14.5, -75f, EntityType.VILLAGER,  Material.GOLD_INGOT,          null,                      null,                          "gui:ah"));
-        npcDefs.add(new NpcDef("kits",       "&#38BDF8&l📦 КИТЫ ПРИВИЛЕГИЙ",    "&7Наборы строго по рангу (/kits)", 18.5,  101,  14.5,  75f, EntityType.VILLAGER,  Material.ENDER_CHEST,         Material.NETHERITE_HELMET, Material.NETHERITE_CHESTPLATE, "gui:kits"));
-        npcDefs.add(new NpcDef("santa",      "&#FF1744&l🎅 ДЕДУШКА МОРОЗ",      "&7Новогодний подарок (/daily)",    -9.5,  101,  16.5, -25f, EntityType.SNOW_GOLEM,Material.SNOWBALL,            null,                      null,                          "action:santa"));
-        npcDefs.add(new NpcDef("snowmaiden", "&#80D8FF&l❄ СНЕГУРОЧКА 2026",     "&7Боевой Пропуск Сезона (/bp)",    10.5,  101,  16.5,  25f, EntityType.ALLAY,     Material.AMETHYST_SHARD,      null,                      null,                          "gui:bp"));
-        npcDefs.add(new NpcDef("w_mine",     "&#FF9100&l⛏ АВТО-ШАХТА РВ",       "&7Бесплатная добыча руд (/mine)", -21.5,  101,   2.5, -90f, EntityType.IRON_GOLEM,Material.NETHERITE_PICKAXE,   null,                      null,                          "warp:mine"));
-        npcDefs.add(new NpcDef("w_pvp",      "&#FF1744&l⚔ PVP АРЕНА И КАБИНКИ", "&7Колизей + 6 Кабинок (/pvp)",     22.5,  101,   2.5,  90f, EntityType.PIGLIN_BRUTE, Material.NETHERITE_SWORD,  Material.NETHERITE_HELMET, Material.NETHERITE_CHESTPLATE, "warp:pvp"));
-        npcDefs.add(new NpcDef("w_farm",     "&#AEEA00&l🧟 ФАРМИЛКА МОБОВ",     "&7Опыт, Монеты и Снежинки (/farm)",-21.5, 101,  -9.5, -90f, EntityType.VILLAGER,  Material.DIAMOND_SWORD,       Material.IRON_HELMET,      Material.IRON_CHESTPLATE,      "warp:farm"));
-        npcDefs.add(new NpcDef("w_parkour",  "&#40C4FF&l🏃 НЕБЕСНЫЙ ПАРКУР",    "&730 островов + Главный Приз!",    22.5,  101,  -9.5,  90f, EntityType.VILLAGER,  Material.FEATHER,             Material.GOLDEN_HELMET,    Material.GOLDEN_BOOTS,         "warp:parkour"));
-        npcDefs.add(new NpcDef("w_casino",   "&#FFD740&l🎰 ГРАНД-КАЗИНО 777",   "&7Слоты, Рулетка ×14, Монетка!",  -17.5,  101, -21.5, -60f, EntityType.VILLAGER,  Material.DIAMOND,             Material.GOLDEN_HELMET,    Material.GOLDEN_CHESTPLATE,    "gui:casino"));
-        npcDefs.add(new NpcDef("enchants",   "&#E040FB&l🧪 АЛХИМИК И КУЗНЕЦ",   "&7Баффы РВ и Чар-Вещи (/enchants)",18.5,  101, -21.5,  60f, EntityType.WITCH,     Material.SPLASH_POTION,       null,                      null,                          "gui:enchants"));
-        npcDefs.add(new NpcDef("clans",      "&#B388FF&l🛡 КЛАНЫ И ТОПЫ",       "&7Создай свой клан (/clan)",      -11.5,  101, -31.5, -25f, EntityType.VILLAGER,  Material.SHIELD,              Material.DIAMOND_HELMET,   Material.DIAMOND_CHESTPLATE,   "gui:clans"));
-        npcDefs.add(new NpcDef("jobs",       "&#69F0AE&l💼 БИРЖА РАБОТ РВ",     "&7Заработок за действия (/jobs)",  12.5,  101, -31.5,  25f, EntityType.VILLAGER,  Material.IRON_PICKAXE,        null,                      null,                          "gui:jobs"));
-        npcDefs.add(new NpcDef("bosses",     "&#FF5252&l🔥 БОССЫ И ИВЕНТЫ",     "&7Активные Боссы и Чёрный Рынок",  -5.5,  101,  26.5, -20f, EntityType.BLAZE,     Material.BLAZE_ROD,           null,                      null,                          "gui:events"));
-        npcDefs.add(new NpcDef("djamshut",   "&#FFAB40&l👳 ДЖАМШУТ (ОБМЕННИК)", "&7Обмен Снежинок ❄ на Шары и Рилики",6.5, 101,  26.5,  20f, EntityType.VILLAGER,  Material.PRISMARINE_CRYSTALS, Material.GOLDEN_HELMET,    null,                          "gui:djamshut"));
-        npcDefs.add(new NpcDef("staff",      "&#22C55E&l🍀 ВСЕ ВАРПЫ И КП",     "&7Навигатор по аренам (/warps)",  -14.5,  101,  36.5, -30f, EntityType.VILLAGER,  Material.WRITABLE_BOOK,       null,                      null,                          "gui:warps"));
-        npcDefs.add(new NpcDef("titles_lp",  "&#00E676&l✨ ТИТУЛЫ И НАГРАДЫ",    "&7Титулы (/titles) и Время (/pt)", 15.5,  101,  36.5,  30f, EntityType.VILLAGER,  Material.NAME_TAG,            null,                      null,                          "gui:titles"));
-        npcDefs.add(new NpcDef("bafovar",    "&#FF1744&l🧪 БАФОВАР REALLYWORLD","&7Зелья Киллера, Отрыжки и Стакер!",-5.5, 101,  35.5, -15f, EntityType.WITCH,     Material.POTION,              null,                      null,                          "gui:bafovar"));
-        npcDefs.add(new NpcDef("freebie",    "&#FFD740&l🎁 ХАЛЯВА И ПРОМОКОДЫ", "&7Бесплатные награды и Промо (/free)",6.5,101,  35.5,  15f, EntityType.VILLAGER,  Material.CHEST_MINECART,      Material.GOLDEN_HELMET,    Material.DIAMOND_CHESTPLATE,   "gui:freebie"));
+        // 24 Custom-Skinned Animated Humanoid NPCs — ZERO vanilla Villagers, EACH with its OWN dedicated Shop/GUI!
+        String skSanta    = "14e424b1676feec3a3f8ebade9e7d6a6f7ffd2b46eb1769f36f7d22a50d445f8";
+        String skKing     = "d5c6dc2bbf51c36cfc7714585a6a5683ef2b14d47d8ff714654a893f5da622";
+        String skMage     = "e97e2068816972c524429d2c5ed1f9b7ba9a39589a1fd7a1149fa32d8b41c1";
+        String skWarrior  = "a116e69a845e227f7eab1ed2b8bc57be67b1f0fb8c219a063bc25be7a8e0b2";
+        String skMerchant = "797955462e4e576664499ac4a1c572f6143f19b4d6794772716f18647582a2";
+        String skSnowGirl = "90ad8b525c79e0f2014c0065edbc5b03bd254e6b40b24f6bc676bf796b21a5";
+        String skPirate   = "8e69a68452a2cf1e8999e2d8db0f0d1aa8b4e3c5c0e8efaa714492d9299f18";
+        String skMiner    = "b0419eb5cb3e39ef7b2f88c8c5b6a0882610c5ec4650fb76ca39d0f221a1e0";
 
-        // 5x 1v1 Kabinki + 1x 2v2 Kabinka
-        int[] zCenters = new int[]{-26, -19, -12, -5, 2};
-        for (int i = 0; i < zCenters.length; i++) {
-            int zc = zCenters[i];
-            kabinki.add(new KabinkaState(i + 1, false, 49, 53, zc - 1, zc + 1, 48, zc));
+        // Central Royal Plaza Ring (aroundArrival Z=48 -> Giant Pine Z=0)
+        npcDefs.add(new NpcDef("rtp",        "&#00E676&l⚡ ПРОВОДНИК В МИР (/rtp)",  "&7Единственный вход в выживание!",  -7.5, 100, 42.5, -145f, skWarrior,  Color.fromRGB(0, 220, 110),   new ItemStack(Material.RECOVERY_COMPASS), new ItemStack(Material.ENDER_PEARL), null, "gui:rtp"));
+        npcDefs.add(new NpcDef("donate",     "&#FFD740&l👑 ИМПЕРАТОР ДОНАТА",        "&740 анимированных рангов (/donate)", 8.5, 100, 42.5,  145f, skKing,     Color.fromRGB(255, 200, 0),   new ItemStack(Material.NETHER_STAR),      ItemFactory.sharSanty(),             null, "gui:donate"));
+        npcDefs.add(new NpcDef("shop_main",  "&#00E5FF&l🛒 ВЕРХОВНЫЙ КУПЕЦ (/shop)", "&78 категорий товаров за Монеты $", -13.5, 100, 34.5, -125f, skMerchant, Color.fromRGB(0, 190, 255),   new ItemStack(Material.EMERALD_BLOCK),    new ItemStack(Material.GOLDEN_CARROT),null, "gui:shop"));
+        npcDefs.add(new NpcDef("rshop",      "&#E040FB&l🔮 МАГИСТР РИЛИКОВ (/rshop)","&73D Шары, Элитры и Расходники FT",  14.5, 100, 34.5,  125f, skMage,     Color.fromRGB(190, 40, 240),  ItemFactory.sharTitana(),                 ItemFactory.talFeniksa(3),           ItemFactory.elytraSanta(), "gui:rshop"));
+        npcDefs.add(new NpcDef("bafovar",    "&#FF9100&l⚗ АЛХИМИК БАФОВАР (/bafs)", "&7Микс до 8 зелий за 5 000$ + Лавка!",-16.5,100, 24.5, -105f, skMage,     Color.fromRGB(255, 110, 0),   ItemFactory.potionKiller(1),              new ItemStack(Material.BLAZE_ROD),   null, "gui:bafovar"));
+        npcDefs.add(new NpcDef("skins",      "&#FF4081&l⛓ МАСТЕР СКИНОВ ТРАПОК",    "&7Скины трапок с дебаффами (/skins)", 17.5, 100, 24.5,  105f, skPirate,   Color.fromRGB(220, 20, 90),   ItemFactory.trapka(1),                    ItemFactory.plast(1),                null, "gui:skins"));
+        npcDefs.add(new NpcDef("kits",       "&#38BDF8&l📦 ОРУЖЕЙНИК КИТОВ (/kits)", "&7Киты с 2 стаками перок и морковью!",-16.5,100, 14.5,  -85f, skWarrior,  Color.fromRGB(40, 150, 250),  ItemFactory.swordKrush(),                 new ItemStack(Material.ENDER_PEARL), new ItemStack(Material.NETHERITE_CHESTPLATE), "gui:kits"));
+        npcDefs.add(new NpcDef("buyer",      "&#69F0AE&l💰 СКУПЩИК ДЖАМШУТ [x2.0]",  "&7Прокачка множителя до x2.0 (/buyer)",17.5,100, 14.5,   85f, skMerchant, Color.fromRGB(50, 220, 100),  new ItemStack(Material.GOLD_BLOCK),       ItemFactory.snowflakeCoin(1),        null, "gui:buyer"));
+        npcDefs.add(new NpcDef("ah",         "&#FFAB40&l⚖ АУКЦИОНИСТ (/ah)",         "&7Торговля предметами игроков",      -14.5, 100, -14.5, -45f, skMerchant, Color.fromRGB(255, 170, 30),  new ItemStack(Material.DIAMOND),          new ItemStack(Material.GOLD_INGOT),  null, "gui:ah"));
+        npcDefs.add(new NpcDef("bounty",     "&#FF1744&l🎯 ОХОТНИК ЗА ГОЛОВАМИ",     "&7Контракты на убийство (/bounty)",   15.5, 100, -14.5,  45f, skPirate,   Color.fromRGB(180, 15, 30),   ItemFactory.swordDracula(),               new ItemStack(Material.SKELETON_SKULL),null, "gui:bounty"));
+        npcDefs.add(new NpcDef("santa",      "&#FF1744&l🎅 ДЕДУШКА МОРОЗ 2026",      "&7Новогодний подарок (/daily)",       -8.5, 100,  18.5, -160f, skSanta,   Color.fromRGB(235, 30, 40),   ItemFactory.nyMandarin(1),                ItemFactory.potionChampagne(1),      null, "action:santa"));
+        npcDefs.add(new NpcDef("snowmaiden", "&#80D8FF&l❄ СНЕГУРОЧКА (ПРОПУСК)",    "&7Зимний Боевой Пропуск (/bp)",        9.5, 100,  18.5,  160f, skSnowGirl,Color.fromRGB(110, 210, 255), ItemFactory.snowflakeCoin(1),             ItemFactory.talStuzhi(),             null, "gui:bp"));
+
+        // Dedicated Category Merchants around the Plaza & Islands (each has its OWN shop!)
+        npcDefs.add(new NpcDef("sh_pvp",     "&#A855F7&l🧱 ЛАВКА ПЛАСТОВ И ТРАПОК",  "&7Боевые расходники FT×RW",          24.5, 100,  16.5,   90f, skWarrior,  Color.fromRGB(160, 50, 240),  ItemFactory.plast(1),                     ItemFactory.dezorient(1),            null, "shop:pvp"));
+        npcDefs.add(new NpcDef("sh_gear",    "&#FACC15&l⚔ КУЗНЕЦ БРОНИ И ОРУЖИЯ",    "&7Алмазное и Незеритовое снаряжение",24.5, 100,   6.5,   90f, skWarrior,  Color.fromRGB(240, 190, 20),  new ItemStack(Material.NETHERITE_SWORD),  new ItemStack(Material.TOTEM_OF_UNDYING), new ItemStack(Material.DIAMOND_CHESTPLATE), "shop:gear"));
+        npcDefs.add(new NpcDef("sh_raid",    "&#EF4444&l💣 ПОДРЫВНИК РЕЙДА (TNT)",   "&7Динамит, Обсидиан, Кристаллы",    -24.5, 100,   6.5,  -90f, skPirate,   Color.fromRGB(220, 50, 30),   new ItemStack(Material.TNT),              new ItemStack(Material.END_CRYSTAL), null, "shop:raid"));
+        npcDefs.add(new NpcDef("sh_blocks",  "&#38BDF8&l🧱 СТРОИТЕЛЬНАЯ ЯРМАРКА",   "&7Цветной бетон, кварц, стекло, лёд",-24.5,100,  16.5,  -90f, skMiner,    Color.fromRGB(60, 180, 245),  new ItemStack(Material.QUARTZ_BLOCK),     new ItemStack(Material.LANTERN),     null, "shop:blocks"));
+        npcDefs.add(new NpcDef("sh_food",    "&#FB923C&l🥕 ПЕКАРНЯ И ФЕРМА",         "&7Золотая морковь, Перки, Чар-яблоки",-20.5,100, 28.5, -110f, skSnowGirl, Color.fromRGB(250, 140, 40),  new ItemStack(Material.GOLDEN_CARROT),    new ItemStack(Material.ENDER_PEARL), null, "shop:food"));
+        npcDefs.add(new NpcDef("sh_elytra",  "&#00E5FF&l🪽 МАСТЕР 3D ЭЛИТР",         "&76 Элитр с уникальными баффами!",    20.5, 100, 28.5,  110f, skKing,     Color.fromRGB(0, 220, 255),   new ItemStack(Material.FIREWORK_ROCKET),  ItemFactory.sharAndromedy(),         ItemFactory.elytraPhoenix(), "shop:elytra"));
+
+        // Wing & Island Specialists
+        npcDefs.add(new NpcDef("cases_npc",  "&#FFD740&l🎁 ХРАНИТЕЛЬ 11 КЕЙСОВ",     "&7Шалкер-Кейсы и Промокоды (/cases)",  0.5, 102, -52.5,    0f, skKing,    Color.fromRGB(255, 215, 0),   new ItemStack(Material.TRIPWIRE_HOOK),    new ItemStack(Material.ENDER_CHEST), null, "gui:cases"));
+        npcDefs.add(new NpcDef("miner_npc",  "&#FF9100&l⛏ БРИГАДИР АВТО-ШАХТЫ",     "&7Работы и Скупка руды (/jobs)",     -66.5, 100,   4.5,  -90f, skMiner,   Color.fromRGB(255, 140, 0),   ItemFactory.pickDjamshut(),               new ItemStack(Material.DIAMOND),     null, "gui:jobs"));
+        npcDefs.add(new NpcDef("farm_npc",   "&#AEEA00&l🥚 ЕГЕРЬ СПАВНЕРОВ И МОБОВ", "&7Рассадники и Яйца призыва",        -78.5, 100, -33.5,    0f, skMiner,   Color.fromRGB(140, 220, 20),  ItemFactory.pickSpawner(),                ItemFactory.mysteryEgg(1),           null, "shop:spawners"));
+        npcDefs.add(new NpcDef("casino_npc", "&#FFD740&l🎰 КРУПЬЕ КАЗИНО 777",       "&7Рулетка ×14, Слоты и Монетка (/cf)",-68.5,100,  50.5,   90f, skKing,    Color.fromRGB(230, 30, 60),   new ItemStack(Material.GOLD_BLOCK),       new ItemStack(Material.EMERALD),     null, "gui:casino"));
+        npcDefs.add(new NpcDef("baf_island", "&#E040FB&l🧪 ГРАНД-АЛХИМИК БАФОВАР",   "&7Смешай до 8 зелий за 5 000$!",      68.5, 100,  48.5,  -90f, skMage,    Color.fromRGB(180, 30, 220),  ItemFactory.potionAcid(1),                ItemFactory.potionMedic(1),          null, "gui:bafovar"));
+        npcDefs.add(new NpcDef("parkour_npc","&#40C4FF&l🏃 ТРЕНЕР ПАРКУРА (40 ОСТР.)","&7100% проходимый паркур + Награда!", 35.5, 100, -24.5, -145f, skSnowGirl,Color.fromRGB(50, 200, 255),  new ItemStack(Material.FEATHER),          ItemFactory.snowflakeCoin(1),        null, "warp:parkour"));
+
+        // 6x 1v1 Kabinki + 2x 2v2 Kabinki on East Colosseum Wing (matching spawn_v5.dat!)
+        int[] z1v1 = new int[]{-42, -35, -28, -21, -14, -7};
+        for (int i = 0; i < z1v1.length; i++) {
+            int zc = z1v1[i];
+            kabinki.add(new KabinkaState(i + 1, false, 69, 73, zc - 1, zc + 1, 68, zc));
         }
-        kabinki.add(new KabinkaState(6, true, 59, 65, -15, -11, 58, -13));
+        int[] z2v2 = new int[]{-32, -16};
+        for (int i = 0; i < z2v2.length; i++) {
+            int zc = z2v2[i];
+            kabinki.add(new KabinkaState(7 + i, true, 83, 89, zc - 2, zc + 2, 82, zc));
+        }
     }
 
     public void initializeSpawnWorldAndBuild(boolean forceRebuild) {
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         if (sw == null) return;
-        File marker = new File(sw.getWorldFolder(), ".spawn_v4_built");
-        if (forceRebuild || !marker.exists() || sw.getBlockAt(0, 99, 0).getType() == Material.AIR) {
-            plugin.getLogger().info("[SpawnEngine v4.0] Building 181x96x181 Colossal New Year Castle-Kingdom in Void World 'spawn_world'...");
-            buildFromRleResource(sw, "/spawn_v4.dat");
+        File marker = new File(sw.getWorldFolder(), ".spawn_v5_colorful_ok");
+        boolean stoneBugDetected = sw.getBlockAt(0, 108, 0).getType() == Material.STONE
+                || sw.getBlockAt(0, 99, 15).getType() == Material.STONE
+                || sw.getBlockAt(0, 99, 0).getType() == Material.STONE;
+        if (forceRebuild || !marker.exists() || stoneBugDetected || sw.getBlockAt(0, 99, 0).getType() == Material.AIR) {
+            plugin.getLogger().info("[SpawnEngine v5.0] Building 241x124x241 Colorful Winter Sky Kingdom in Void World 'spawn_world'...");
+            boolean needClear = forceRebuild || stoneBugDetected
+                    || new File(sw.getWorldFolder(), ".spawn_v4_built").exists()
+                    || new File(sw.getWorldFolder(), ".spawn_v5_built").exists();
+            clearOldBlocksIfUpgrade(sw, needClear);
+            buildFromRleResource(sw, "/spawn_v5.dat");
             try { marker.createNewFile(); } catch (Exception ignored) {}
         }
+        sw.setTime(6000L);
         placeShulkerCases(sw);
         refillAutoMine(sw, false);
         rebuildAllHologramsAndNpcs(sw);
         startEngineLoop();
+    }
+
+    private void clearOldBlocksIfUpgrade(World sw, boolean shouldClear) {
+        if (!shouldClear) return;
+        for (int x = -121; x <= 121; x++) {
+            for (int z = -121; z <= 121; z++) {
+                for (int y = 62; y <= 188; y++) {
+                    Block b = sw.getBlockAt(x, y, z);
+                    if (b.getType() != Material.AIR) b.setType(Material.AIR, false);
+                }
+            }
+        }
+    }
+
+    private BlockData parsePaletteBlockData(String rawSpec) {
+        if (rawSpec == null || rawSpec.isEmpty()) return Material.AIR.createBlockData();
+        String clean = rawSpec.trim();
+        if (clean.regionMatches(true, 0, "minecraft:", 0, 10)) {
+            clean = clean.substring(10);
+        }
+        String lower = clean.toLowerCase(Locale.ROOT);
+        if ("air".equals(lower)) return Material.AIR.createBlockData();
+        try {
+            BlockData bd = Bukkit.createBlockData("minecraft:" + lower);
+            if (bd instanceof org.bukkit.block.data.type.Leaves) {
+                ((org.bukkit.block.data.type.Leaves) bd).setPersistent(true);
+            }
+            return bd;
+        } catch (Throwable ignored) {
+        }
+        String baseName = lower.contains("[") ? lower.substring(0, lower.indexOf('[')) : lower;
+        Material m = Material.getMaterial(baseName.toUpperCase(Locale.ROOT));
+        if (m == null || !m.isBlock()) {
+            m = ColorUtil.mat(baseName, "SNOW_BLOCK");
+        }
+        BlockData bd = m.createBlockData();
+        if (bd instanceof org.bukkit.block.data.type.Leaves) {
+            ((org.bukkit.block.data.type.Leaves) bd).setPersistent(true);
+        }
+        return bd;
     }
 
     private void buildFromRleResource(World sw, String resPath) {
@@ -211,55 +289,43 @@ public final class SpawnEngine {
             int OY = dis.readShort();
             int OZ = dis.readShort();
             int palCount = dis.readUnsignedShort();
-            Material[] palMat = new Material[palCount];
             BlockData[] palData = new BlockData[palCount];
             for (int i = 0; i < palCount; i++) {
                 String spec = dis.readUTF();
-                try {
-                    BlockData bd = Bukkit.createBlockData("minecraft:" + spec);
-                    palData[i] = bd;
-                    palMat[i] = bd.getMaterial();
-                } catch (Throwable t) {
-                    String baseName = spec.contains("[") ? spec.substring(0, spec.indexOf('[')) : spec;
-                    Material m = ColorUtil.mat(baseName.toUpperCase(Locale.ROOT), "STONE");
-                    palMat[i] = m;
-                    palData[i] = m.createBlockData();
-                }
+                palData[i] = parsePaletteBlockData(spec);
             }
-            int baseY = 100 - OY; // 74
-            int baseX = -OX;      // -90
-            int baseZ = -OZ;      // -90
-            int WL = W * L;
+            int baseY = 100 - OY;
+            int baseX = -OX;
+            int baseZ = -OZ;
+            int HL = H * L;
             long cursor = 0L;
             long total = (long) W * H * L;
 
+            // Note: build_spawn_v5.py uses grid[lx, ly, lz].reshape(-1), so stride is (lx * H * L) + (ly * L) + lz!
             while (cursor < total) {
                 int pIdx = dis.readUnsignedByte();
                 int runLen = dis.readUnsignedShort();
                 if (pIdx == 0 && runLen == 0) break;
                 if (pIdx == 0) {
-                    // AIR run: in Void World, chunks are already AIR! Only clear if rebuilding over existing blocks
                     cursor += runLen;
                     continue;
                 }
                 BlockData bd = palData[pIdx];
                 for (int r = 0; r < runLen && cursor < total; r++, cursor++) {
-                    int rem = (int) (cursor % WL);
-                    int ly = (int) (cursor / WL);
-                    int lz = rem / W;
-                    int lx = rem % W;
-                    Block b = sw.getBlockAt(baseX + lx, baseY + ly, baseZ + lz);
-                    b.setBlockData(bd, false);
+                    int lx = (int) (cursor / HL);
+                    int rem = (int) (cursor % HL);
+                    int ly = rem / L;
+                    int lz = rem % L;
+                    sw.getBlockAt(baseX + lx, baseY + ly, baseZ + lz).setBlockData(bd, false);
                 }
             }
             dis.close();
-            // Open initial Kabinki doorways cleanly
             for (KabinkaState kb : kabinki) {
                 setKabinkaDoorBlocks(sw, kb, false);
             }
-            plugin.getLogger().info("[SpawnEngine v4.0] Colossal 3D Spawn built cleanly in 'spawn_world'!");
+            plugin.getLogger().info("[SpawnEngine v5.0] Colorful 241x124x241 Spawn built cleanly in 'spawn_world'!");
         } catch (Exception e) {
-            plugin.getLogger().warning("[SpawnEngine v4.0] Error decoding spawn_v4.dat: " + e.getMessage());
+            plugin.getLogger().warning("[SpawnEngine v5.0] Error decoding spawn_v5.dat: " + e.getMessage());
         }
     }
 
@@ -279,31 +345,32 @@ public final class SpawnEngine {
 
     public void rebuildAllHologramsAndNpcs(World sw) {
         if (sw == null) return;
-        // Force-load spawn chunks (-6..6) so entities never fail to spawn
-        for (int cx = -6; cx <= 6; cx++) {
-            for (int cz = -6; cz <= 6; cz++) {
+        for (int cx = -8; cx <= 8; cx++) {
+            for (int cz = -8; cz <= 8; cz++) {
                 sw.getChunkAt(cx, cz).load();
             }
         }
-        // Clear old spawn holograms, NPCs, and any leftover Villagers from previous builds cleanly!
+        // Purge ALL previous holograms, NPCs, hitboxes, and ANY vanilla Villagers/Witches!
         for (Entity e : sw.getEntities()) {
             if (e.getScoreboardTags().contains("kg_holo")
                     || e.getScoreboardTags().contains("kg_npc")
+                    || e.getScoreboardTags().contains("kg_npc_body")
                     || e.getScoreboardTags().contains("kg_case_float")
                     || e instanceof AbstractVillager) {
                 e.remove();
             }
         }
-        npcEntities.clear();
+        npcBodyMap.clear();
+        npcHitboxMap.clear();
 
         // 1. Central Welcome Hologram
-        spawnHoloStack(sw, 0.5, 104.2, 37.5,
-                "\uE976 &#FF1744&lKINGGRIEF &8· &#80D8FF&lНОВОГОДНИЙ REALLYWORLD &f\uE976",
-                "&#FFD740★ Огромный Зимний Спавн v4.0 (Отдельный Мир) ★",
-                "&fРТП в мир выживания: &#00E676/rtp &8│ &fВарпы: &#80D8FF/warps &8│ &fМеню: &#FFAB40/menu",
-                "&fДонат, Кейсы и LP-Редактор: &#FF4081kinggrief.vercel.app");
+        spawnHoloStack(sw, 0.5, 104.2, 47.5,
+                "\uE976 &#FF1744&lKINGGRIEF v5.0 &8· &#80D8FF&lFT × REALLYWORLD &f\uE976",
+                "&#FFD740★ Яркое Зимнее Королевство (Отдельный Мир) ★",
+                "&fВход в мир выживания: &#00E676&l/rtp &8│ &fШоп: &#00E5FF/shop &8│ &fБафовар: &#FF9100/bafs",
+                "&fСкины Трапок: &#E040FB/skins &8│ &fСайт и Промокоды: &#FF4081kinggrief.vercel.app");
 
-        // 2. Holograms above EVERY ONE of the 11 Shulker Cases!
+        // 2. Holograms above all 11 Shulker Cases
         for (CasePedestal cp : casePedestals) {
             spawnHoloStack(sw, cp.x + 0.5, cp.y + 2.05, cp.z + 0.5,
                     cp.title + " &8[&#FFD740" + cp.priceRub + "₽&8]",
@@ -311,98 +378,128 @@ public final class SpawnEngine {
                     "&#00E676▸ ПКМ — Открыть &8│ &#80D8FFЛКМ — Призы",
                     "&7Сайт: &#FF4081kinggrief.vercel.app");
         }
-        spawnHoloStack(sw, 0.5, 106.5, -45.5,
-                "&#FFD740&l✨ АМФИТЕАТР ШАЛКЕР-КЕЙСОВ REALLYWORLD ✨",
-                "&7Нажми по любому цветному Шалкеру для прокрутки рулетки!");
+        spawnHoloStack(sw, 0.5, 107.0, -56.5,
+                "&#FFD740&l✨ КОРОЛЕВСКАЯ ТЕРРАСА 11 ШАЛКЕР-КЕЙСОВ ✨",
+                "&7Нажми по любому цветному Шалкеру для 3D-прокрутки рулетки!");
 
-        // 3. Zone & Warp Holograms
-        spawnHoloStack(sw, -53.0, 102.8, 12.5,
-                "&#FF9100&l⛏ АВТО-ШАХТА REALLYWORLD",
-                "&7Ломай руду → получай &aМонеты&7, &bОпыт &7и &bСнежинки ❄&7!",
+        // 3. Island & Zone Holograms
+        spawnHoloStack(sw, -71.5, 103.0, 4.5,
+                "&#FF9100&l⛏ КРИСТАЛЬНАЯ АВТО-ШАХТА",
+                "&7Ломай руду → получай &aМонеты&7, &bОпыт &7и &b3D Снежинки ❄&7!",
                 "&eАвто-обновление каждые 90 секунд!");
-        spawnHoloStack(sw, -50.0, 103.2, -26.5,
-                "&#AEEA00&l🧟 БЕЗОПАСНАЯ ФАРМИЛКА МОБОВ",
-                "&7Бей зимних мобов в камерах — фарми &aМонеты &7и &bСнежинки ❄&7!");
-        spawnHoloStack(sw, -34.0, 103.5, 38.5,
-                "&#FFD740&l🎰 ГРАНД-КАЗИНО REALLYWORLD 777",
-                "&7Слоты 777 · Рулетка ×14 · Монетка PvP (/cf) · Колесо Риликов",
-                "&#00E676Нажми рычаг у автомата или введи /casino!");
-        spawnHoloStack(sw, 34.5, 103.5, 38.5,
-                "&#E040FB&l🧪 АЛТАРЬ АЛХИМИКА И ЧАРОДЕЯ РВ",
-                "&7Зелья Киллера, Отрыжки, Кислоты, Шары и Тотемы (/enchants)");
-        spawnHoloStack(sw, 52.0, 103.5, 17.5,
-                "&#FF1744&l⚔ ГЛАДИАТОРСКАЯ PVP-АРЕНА",
-                "&7Прыгай вниз для открытого PvP! Наверху PvP выключено.");
-        spawnHoloStack(sw, 28.5, 102.8, -22.5,
-                "&#40C4FF&l🏃 НЕБЕСНЫЙ ПАРКУР НА 30 ОСТРОВОВ",
+        spawnHoloStack(sw, -80.0, 103.5, -36.5,
+                "&#AEEA00&l🧟 БЕЗОПАСНАЯ ФАРМИЛКА МОБОВ (4 КАМЕРЫ)",
+                "&7Бей зимних мобов — фарми &aМонеты &7и &b3D Снежинки ❄&7!");
+        spawnHoloStack(sw, -64.5, 103.5, 50.5,
+                "&#FFD740&l🎰 ГРАНД-КАЗИНО 777",
+                "&7Слоты 777 · Рулетка ×14 · Монетка PvP (/cf) · Колесо Риликов");
+        spawnHoloStack(sw, 65.5, 103.5, 50.5,
+                "&#FF9100&l⚗ ПАВИЛЬОН АЛХИМИКА БАФОВАРА (/bafs)",
+                "&7Смешай от 1 до 8 любых зелий в один флакон за &a5 000$&7!",
+                "&7Или купи готовые зелья Киллера, Медика, Отрыжки и Кислоты!");
+        spawnHoloStack(sw, 64.5, 103.5, 17.5,
+                "&#FF1744&l⚔ ЗОЛОТОЙ КОЛИЗЕЙ FT × RW",
+                "&7Прыгай вниз для открытого PvP с Пластами и Трапками!");
+        spawnHoloStack(sw, 38.5, 103.2, -26.5,
+                "&#40C4FF&l🏃 РАДУЖНЫЙ ПАРКУР (40 ОСТРОВОВ — 100% ПРОХОДИМЫЙ!)",
                 "&7Дойди до вершины (Y=131) → &#00E676+25 000$ + 15❖ + 15❄ + Титул!",
-                "&7Упал? Вернись на чекпоинт: &f/parkour cp");
+                "&7Упал? Возврат на чекпоинт: &f/parkour cp");
 
-        // 4. Live Status Holograms above all 6 Duel Kabinki
+        // 4. Live Status Holograms above all 8 Duel Kabinki
         for (KabinkaState kb : kabinki) {
             Location hl = new Location(sw, kb.doorX - 0.3, 102.65, kb.doorZ + 0.5);
             ArmorStand st = spawnSingleStand(hl, formatKabinkaTitle(kb, 0));
             kb.statusStandId = st.getUniqueId();
         }
 
-        // 5. Spawn all 20 Working ReallyWorld NPCs + 3-line Holograms above each!
+        // 5. Spawn all 24 Custom-Skinned Animated Humanoid NPCs + Holograms!
         for (NpcDef nd : npcDefs) {
             ensureNpcAlive(sw, nd, true);
         }
     }
 
+    private ItemStack makeSkinnedHead(String textureHash) {
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
+        SkullMeta sm = (SkullMeta) head.getItemMeta();
+        if (sm != null && textureHash != null && !textureHash.isEmpty()) {
+            try {
+                PlayerProfile prof = Bukkit.createPlayerProfile(UUID.nameUUIDFromBytes(("kg_skin_" + textureHash).getBytes()), "KG_NPC");
+                PlayerTextures tex = prof.getTextures();
+                tex.setSkin(new URL("http://textures.minecraft.net/texture/" + textureHash));
+                prof.setTextures(tex);
+                sm.setOwnerProfile(prof);
+            } catch (Throwable ignored) {
+            }
+            head.setItemMeta(sm);
+        }
+        return head;
+    }
+
+    private ItemStack dyedLeather(Material mat, Color color) {
+        ItemStack it = new ItemStack(mat, 1);
+        LeatherArmorMeta lam = (LeatherArmorMeta) it.getItemMeta();
+        if (lam != null) {
+            lam.setColor(color);
+            it.setItemMeta(lam);
+        }
+        return it;
+    }
+
     private void ensureNpcAlive(World sw, NpcDef nd, boolean buildHolo) {
-        UUID curId = npcEntities.get(nd.id);
-        Entity existing = curId != null ? Bukkit.getEntity(curId) : null;
         Location loc = new Location(sw, nd.x, nd.y, nd.z, nd.yaw, 0f);
         if (buildHolo) {
             int bx = (int) Math.floor(nd.x);
             int bz = (int) Math.floor(nd.z);
-            if (sw.getBlockAt(bx, 100, bz).getType() == Material.AIR) {
-                sw.getBlockAt(bx, 100, bz).setType(Material.GOLD_BLOCK, false);
-            }
+            int floorY = (int) Math.floor(nd.y) - 1;
+            sw.getBlockAt(bx, floorY, bz).setType(Material.GOLD_BLOCK, false);
         }
-        if (existing == null || existing.isDead() || !existing.isValid()) {
-            LivingEntity npc = (LivingEntity) sw.spawnEntity(loc, nd.type);
-            npc.setAI(false);
-            npc.setGravity(false);
-            npc.setInvulnerable(true);
-            npc.setSilent(true);
-            npc.setCollidable(false);
-            npc.setRemoveWhenFarAway(false);
-            npc.setPersistent(true);
-            npc.setCustomName(ColorUtil.c(nd.line1));
-            npc.setCustomNameVisible(true);
-            npc.addScoreboardTag("kg_npc");
-            npc.addScoreboardTag("kg_npc_" + nd.id);
-            if (npc instanceof Villager) {
-                Villager v = (Villager) npc;
-                v.setAdult();
-                v.setProfession(Villager.Profession.NONE);
-                v.setVillagerLevel(5);
-            }
-            if (npc instanceof AbstractVillager) {
-                ((AbstractVillager) npc).setRecipes(Collections.<MerchantRecipe>emptyList());
-            }
-            EntityEquipment eq = npc.getEquipment();
+
+        UUID bodyUuid = npcBodyMap.get(nd.id);
+        Entity existingBody = bodyUuid != null ? Bukkit.getEntity(bodyUuid) : null;
+        if (!(existingBody instanceof ArmorStand) || existingBody.isDead() || !existingBody.isValid()) {
+            if (existingBody != null) existingBody.remove();
+            ArmorStand body = (ArmorStand) sw.spawnEntity(loc, EntityType.ARMOR_STAND);
+            body.setBasePlate(false);
+            body.setArms(true);
+            body.setGravity(false);
+            body.setVisible(true);
+            body.setInvulnerable(true);
+            body.setPersistent(true);
+            body.setCustomNameVisible(false);
+            body.addScoreboardTag("kg_npc_body");
+            body.addScoreboardTag("kg_npc_" + nd.id);
+
+            EntityEquipment eq = body.getEquipment();
             if (eq != null) {
-                if (nd.handItem != null) eq.setItemInMainHand(new ItemStack(nd.handItem));
-                if (nd.helmet != null) eq.setHelmet(new ItemStack(nd.helmet));
-                if (nd.chest != null) eq.setChestplate(new ItemStack(nd.chest));
+                eq.setHelmet(makeSkinnedHead(nd.skinHash));
+                eq.setChestplate(nd.chestOverride != null ? nd.chestOverride.clone() : dyedLeather(Material.LEATHER_CHESTPLATE, nd.armorColor));
+                eq.setLeggings(dyedLeather(Material.LEATHER_LEGGINGS, nd.armorColor));
+                eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(35, 35, 45)));
+                if (nd.mainHand != null) eq.setItemInMainHand(nd.mainHand.clone());
+                if (nd.offHand != null) eq.setItemInOffHand(nd.offHand.clone());
             }
-            npcEntities.put(nd.id, npc.getUniqueId());
-        } else {
-            existing.teleport(loc);
-            if (existing instanceof AbstractVillager) {
-                ((AbstractVillager) existing).setRecipes(Collections.<MerchantRecipe>emptyList());
-            }
+            npcBodyMap.put(nd.id, body.getUniqueId());
         }
+
+        UUID hitUuid = npcHitboxMap.get(nd.id);
+        Entity existingHit = hitUuid != null ? Bukkit.getEntity(hitUuid) : null;
+        if (!(existingHit instanceof Interaction) || existingHit.isDead() || !existingHit.isValid()) {
+            if (existingHit != null) existingHit.remove();
+            Interaction hit = (Interaction) sw.spawnEntity(loc, EntityType.INTERACTION);
+            hit.setInteractionWidth(1.15f);
+            hit.setInteractionHeight(2.15f);
+            hit.setResponsive(true);
+            hit.setPersistent(true);
+            hit.addScoreboardTag("kg_npc");
+            hit.addScoreboardTag("kg_npc_" + nd.id);
+            npcHitboxMap.put(nd.id, hit.getUniqueId());
+        }
+
         if (buildHolo) {
-            double hY = nd.type == EntityType.IRON_GOLEM ? nd.y + 3.25 : nd.y + 2.55;
-            spawnHoloStack(sw, nd.x, hY, nd.z,
+            spawnHoloStack(sw, nd.x, nd.y + 2.48, nd.z,
                     nd.line1,
                     nd.line2,
-                    "&#00E676[ Нажми ПКМ / ЛКМ ]");
+                    "&#00E676▸ Нажми ПКМ / ЛКМ — Открыть лавку");
         }
     }
 
@@ -427,12 +524,66 @@ public final class SpawnEngine {
     }
 
     private void startEngineLoop() {
+        // 1-second world systems loop
         new BukkitRunnable() {
             @Override
             public void run() {
                 tickSecond();
             }
         }.runTaskTimer(plugin, 20L, 20L);
+
+        // 5-FPS (every 4 ticks) smooth Custom-Skinned NPC humanoid animation!
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                animateCustomNpcs();
+            }
+        }.runTaskTimer(plugin, 10L, 4L);
+    }
+
+    private void animateCustomNpcs() {
+        animPhase++;
+        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        if (sw == null || sw.getPlayers().isEmpty()) return;
+
+        for (int i = 0; i < npcDefs.size(); i++) {
+            NpcDef nd = npcDefs.get(i);
+            UUID bid = npcBodyMap.get(nd.id);
+            if (bid == null) continue;
+            Entity ent = Bukkit.getEntity(bid);
+            if (!(ent instanceof ArmorStand) || !ent.isValid()) continue;
+            ArmorStand as = (ArmorStand) ent;
+
+            Player nearest = null;
+            double bestD2 = 64.0;
+            for (Player p : sw.getPlayers()) {
+                double d2 = p.getLocation().distanceSquared(as.getLocation());
+                if (d2 < bestD2) {
+                    bestD2 = d2;
+                    nearest = p;
+                }
+            }
+
+            double t = (animPhase + i * 3) * 0.28;
+            if (nearest != null) {
+                Location nl = as.getLocation();
+                Vector dir = nearest.getLocation().toVector().subtract(nl.toVector());
+                nl.setDirection(dir);
+                nl.setPitch(0f);
+                as.teleport(nl);
+                // Enthusiastic greeting wave with right arm when player is within 5.5 blocks!
+                if (bestD2 < 30.0) {
+                    as.setRightArmPose(new EulerAngle(-1.85 + Math.sin(t * 2.2) * 0.35, 0.15, 0.25 + Math.cos(t * 2.2) * 0.22));
+                } else {
+                    as.setRightArmPose(new EulerAngle(-0.45 + Math.sin(t) * 0.12, 0.0, 0.10));
+                }
+                as.setHeadPose(new EulerAngle(Math.sin(t * 0.7) * 0.06, 0.0, Math.cos(t * 0.5) * 0.05));
+            } else {
+                as.setRightArmPose(new EulerAngle(-0.35 + Math.sin(t) * 0.10, 0.0, 0.08));
+                as.setHeadPose(new EulerAngle(Math.sin(t * 0.5) * 0.05, Math.sin(t * 0.35) * 0.18, 0.0));
+            }
+            as.setLeftArmPose(new EulerAngle(-0.28 - Math.sin(t) * 0.10, 0.0, -0.08));
+        }
     }
 
     private void tickSecond() {
@@ -440,63 +591,38 @@ public final class SpawnEngine {
         World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
         if (sw == null) return;
 
-        // 1. Auto-Mine countdown & regeneration
         mineRefillCountdown--;
         if (mineRefillCountdown <= 0) {
             mineRefillCountdown = 90;
             refillAutoMine(sw, true);
         }
 
-        // 2. Smart Duel Kabinki (1v1 & 2v2) auto-doors & 8s anti-steal loot lock!
         tickKabinki(sw);
 
-        // 3. Mob Grinder Farm (/warp farm) — replenish safe mobs every 4 seconds
         if (tickCounter % 4 == 0) {
             tickMobFarm(sw);
         }
 
-        // 4. Watchdog: keep all 20 NPCs alive & facing nearest player + snow particles around Giant Tree
         if (tickCounter % 5 == 0) {
             for (NpcDef nd : npcDefs) {
                 ensureNpcAlive(sw, nd, false);
             }
         }
+
+        // Void rescue in spawn_world -> ALWAYS keeps player inside spawn_world (ONLY /rtp enters survival world!)
         for (Player p : sw.getPlayers()) {
-            // Void rescue in spawn_world!
-            if (p.getLocation().getY() < 68.0) {
+            if (p.getLocation().getY() < 62.0) {
                 Location cp = plugin.getStore().getParkourCp(p);
-                if (cp != null) {
+                if (cp != null && isInSpawnWorld(cp)) {
                     p.teleport(cp);
                     ColorUtil.actionBar(p, "&#40C4FF🏃 Возврат на чекпоинт паркура!");
                 } else {
                     p.teleport(getSpawnArrival());
-                    ColorUtil.actionBar(p, "&#80D8FF❄ Вы спасены из бездны и возвращены на спавн!");
+                    ColorUtil.actionBar(p, "&#80D8FF❄ Вы возвращены на спавн! Вход в обычный мир — только через /rtp!");
                 }
                 p.setFallDistance(0f);
             }
-            // Gentle holiday snowfall around player in spawn_world
             p.spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 5.5, 0), 8, 6.0, 2.5, 6.0, 0.01);
-        }
-
-        // Rotate NPCs smoothly toward nearby players
-        for (Map.Entry<String, UUID> en : npcEntities.entrySet()) {
-            Entity ent = Bukkit.getEntity(en.getValue());
-            if (ent == null || !ent.isValid()) continue;
-            Player nearest = null;
-            double bestD2 = 64.0;
-            for (Player p : sw.getPlayers()) {
-                double d2 = p.getLocation().distanceSquared(ent.getLocation());
-                if (d2 < bestD2) {
-                    bestD2 = d2;
-                    nearest = p;
-                }
-            }
-            if (nearest != null) {
-                Location nl = ent.getLocation();
-                Vector dir = nearest.getLocation().toVector().subtract(nl.toVector());
-                nl.setDirection(dir);
-                ent.teleport(nl);
-            }
         }
     }
 
@@ -509,7 +635,6 @@ public final class SpawnEngine {
                 }
             }
             int cap = kb.is2v2 ? 4 : 2;
-            // Push out extra 3rd-party entrants if over capacity
             while (inside.size() > cap) {
                 Player extra = inside.remove(inside.size() - 1);
                 extra.teleport(new Location(sw, kb.doorX - 1.5, 100.0, kb.doorZ + 0.5, -90f, 0f));
@@ -571,15 +696,18 @@ public final class SpawnEngine {
     public void notifyKabinkaDeath(Location loc) {
         for (KabinkaState kb : kabinki) {
             if (kb.contains(loc)) {
-                kb.lootLockSec = 8; // 8 seconds protected looting!
+                kb.lootLockSec = 8;
             }
         }
     }
 
     private void tickMobFarm(World sw) {
-        int[][] cells = new int[][]{{-56, -31}, {-50, -31}, {-44, -31}};
-        EntityType[] types = new EntityType[]{EntityType.ZOMBIE, EntityType.SKELETON, EntityType.SPIDER};
-        String[] names = new String[]{"&#80D8FF❄ Зимний Зомби РВ", "&#E0F7FA🦴 Ледяной Скелет РВ", "&#B388FF🕷 Морозный Паук РВ"};
+        int[][] cells = new int[][]{{-92, -42}, {-84, -42}, {-76, -42}, {-68, -42}};
+        EntityType[] types = new EntityType[]{EntityType.ZOMBIE, EntityType.SKELETON, EntityType.SPIDER, EntityType.BLAZE};
+        String[] names = new String[]{
+                "&#80D8FF❄ Зимний Зомби", "&#E0F7FA🦴 Ледяной Скелет",
+                "&#B388FF🕷 Морозный Паук", "&#FF9100🔥 Новогодний Ифрит"
+        };
 
         for (int i = 0; i < cells.length; i++) {
             Location center = new Location(sw, cells[i][0] + 0.5, 100.0, cells[i][1] + 0.5);
@@ -603,7 +731,6 @@ public final class SpawnEngine {
 
     public void refillAutoMine(World sw, boolean announce) {
         if (sw == null) return;
-        // Rescue any player inside the ore pit before refilling!
         for (Player p : sw.getPlayers()) {
             if (isInsideAutoMine(p.getLocation())) {
                 p.teleport(getWarpLocation("mine"));
@@ -611,14 +738,15 @@ public final class SpawnEngine {
             }
         }
         Material[] ores = new Material[]{
-                Material.STONE, Material.STONE, Material.COAL_ORE, Material.IRON_ORE,
+                Material.QUARTZ_BLOCK, Material.COAL_ORE, Material.IRON_ORE,
                 Material.GOLD_ORE, Material.LAPIS_ORE, Material.REDSTONE_ORE,
                 Material.DIAMOND_ORE, Material.EMERALD_ORE
         };
-        for (int x = -58; x <= -48; x++) {
-            for (int y = 93; y <= 98; y++) {
-                for (int z = 6; z <= 18; z++) {
-                    Material pick = rng.nextInt(90) == 0 ? Material.ANCIENT_DEBRIS : ores[rng.nextInt(ores.length)];
+        for (int x = -96; x <= -75; x++) {
+            for (int y = 91; y <= 98; y++) {
+                for (int z = -6; z <= 14; z++) {
+                    // Preserve exit stairs at x=-74..-66, z=2..6
+                    Material pick = rng.nextInt(85) == 0 ? Material.ANCIENT_DEBRIS : ores[rng.nextInt(ores.length)];
                     sw.getBlockAt(x, y, z).setType(pick, false);
                 }
             }
@@ -630,23 +758,23 @@ public final class SpawnEngine {
         }
     }
 
-    // ================= ZONE HELPERS =================
+    // ================= ZONE HELPERS (v5.0 EXACT COORDINATES) =================
     public Location getSpawnArrival() {
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-        return new Location(sw, 0.5, 100.0, 42.5, 180.0f, 0.0f);
+        return new Location(sw, 0.5, 100.0, 52.5, 180.0f, 0.0f);
     }
 
     public Location getWarpLocation(String warpName) {
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         String w = warpName == null ? "" : warpName.toLowerCase(Locale.ROOT);
-        if ("mine".equals(w) || "шахта".equals(w)) return new Location(sw, -43.5, 100.0, 12.5, 90.0f, 10.0f);
-        if ("farm".equals(w) || "фарм".equals(w)) return new Location(sw, -50.0, 100.0, -24.5, 180.0f, 0.0f);
-        if ("casino".equals(w) || "казино".equals(w)) return new Location(sw, -26.5, 100.0, 38.5, 90.0f, 0.0f);
-        if ("enchant".equals(w) || "enchants".equals(w) || "чары".equals(w)) return new Location(sw, 29.5, 100.0, 38.5, -90.0f, 0.0f);
-        if ("pvp".equals(w) || "пвп".equals(w) || "arena".equals(w)) return new Location(sw, 38.5, 100.0, 17.5, -90.0f, 10.0f);
-        if ("kabinki".equals(w) || "duels".equals(w)) return new Location(sw, 45.5, 100.0, -12.0, -90.0f, 0.0f);
-        if ("parkour".equals(w) || "паркур".equals(w)) return new Location(sw, 28.5, 100.0, -19.5, 180.0f, 0.0f);
-        if ("cases".equals(w) || "кейсы".equals(w)) return new Location(sw, 0.5, 102.0, -43.5, 180.0f, 0.0f);
+        if ("mine".equals(w) || "шахта".equals(w)) return new Location(sw, -68.5, 100.0, 4.5, 90.0f, 10.0f);
+        if ("farm".equals(w) || "фарм".equals(w)) return new Location(sw, -80.0, 100.0, -35.5, 180.0f, 0.0f);
+        if ("casino".equals(w) || "казино".equals(w)) return new Location(sw, -62.5, 100.0, 50.5, 90.0f, 0.0f);
+        if ("enchant".equals(w) || "enchants".equals(w) || "bafs".equals(w) || "чары".equals(w)) return new Location(sw, 64.5, 100.0, 50.5, -90.0f, 0.0f);
+        if ("pvp".equals(w) || "пвп".equals(w) || "arena".equals(w)) return new Location(sw, 63.5, 100.0, 17.5, -90.0f, 10.0f);
+        if ("kabinki".equals(w) || "duels".equals(w)) return new Location(sw, 64.5, 100.0, -24.5, -90.0f, 0.0f);
+        if ("parkour".equals(w) || "паркур".equals(w)) return new Location(sw, 38.5, 100.0, -24.5, 180.0f, 0.0f);
+        if ("cases".equals(w) || "кейсы".equals(w)) return new Location(sw, 0.5, 102.0, -54.5, 180.0f, 0.0f);
         return null;
     }
 
@@ -658,17 +786,17 @@ public final class SpawnEngine {
     public boolean isInsideAutoMine(Location loc) {
         if (!isInSpawnWorld(loc)) return false;
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
-        return x >= -58 && x <= -48 && y >= 93 && y <= 98 && z >= 6 && z <= 18;
+        return x >= -96 && x <= -75 && y >= 91 && y <= 98 && z >= -6 && z <= 14;
     }
 
     public boolean isInsidePvpZone(Location loc) {
         if (!isInSpawnWorld(loc)) return true; // PvP enabled in survival worlds!
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
-        // Sunken Colosseum pit (Y <= 98 inside pit X=41..63, Z=7..27)
-        if (x >= 41 && x <= 63 && y >= 91 && y <= 98 && z >= 7 && z <= 27) {
+        // Sunken Gladiator Colosseum pit (X=66..102, Y=91..98, Z=4..38)
+        if (x >= 66 && x <= 102 && y >= 91 && y <= 98 && z >= 4 && z <= 38) {
             return true;
         }
-        // Any of the 6 Duel Kabinki interiors
+        // Any of the 8 Duel Kabinki interiors
         for (KabinkaState kb : kabinki) {
             if (kb.contains(loc)) return true;
         }
@@ -688,19 +816,10 @@ public final class SpawnEngine {
     }
 
     public NpcDef getNpcByEntity(Entity e) {
-        if (e == null || e instanceof Player || e instanceof ArmorStand) return null;
+        if (e == null || e instanceof Player) return null;
+        if (e.getScoreboardTags().contains("kg_holo")) return null;
         for (NpcDef nd : npcDefs) {
             if (e.getScoreboardTags().contains("kg_npc_" + nd.id)) return nd;
-        }
-        if (isInSpawnWorld(e.getLocation())) {
-            Location el = e.getLocation();
-            for (NpcDef nd : npcDefs) {
-                double dx = el.getX() - nd.x;
-                double dz = el.getZ() - nd.z;
-                if (dx * dx + dz * dz <= 3.0 && Math.abs(el.getY() - nd.y) <= 2.5) {
-                    return nd;
-                }
-            }
         }
         return null;
     }
@@ -709,7 +828,7 @@ public final class SpawnEngine {
         return plugin.getBossEvents() != null ? plugin.getBossEvents().getNextAutoSeconds() : 300;
     }
 
-    // ================= SEPARATE WORLD RTP (/rtp) =================
+    // ================= SEPARATE WORLD RTP (/rtp — ONLY ENTRY TO NORMAL WORLD!) =================
     public void performRtp(Player p, String mode) {
         World targetWorld;
         int bound;
@@ -747,7 +866,7 @@ public final class SpawnEngine {
             ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 1.15f);
             p.sendTitle(ColorUtil.c("&#00E676&l⚡ МИР ВЫЖИВАНИЯ"),
                     ColorUtil.c("&fXYZ: &e" + safe.getBlockX() + ", " + safe.getBlockY() + ", " + safe.getBlockZ()), 5, 45, 10);
-            p.sendMessage(ColorUtil.c("&#00E676[РТП] &fВы телепортированы в отдельный мир выживания (&e" + targetWorld.getName()
+            p.sendMessage(ColorUtil.c("&#00E676[РТП] &fВы телепортированы из мира спавна в обычный мир выживания (&e" + targetWorld.getName()
                     + "&f): &#80D8FF" + safe.getBlockX() + ", " + safe.getBlockY() + ", " + safe.getBlockZ()));
             return;
         }
@@ -787,11 +906,11 @@ public final class SpawnEngine {
 
         final World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         final Location center = new Location(sw, cp.x + 0.5, cp.y + 1.35, cp.z + 0.5);
-        final Material[] spinIcons = new Material[]{
-                Material.TOTEM_OF_UNDYING, Material.NETHER_STAR, Material.NETHERITE_SWORD,
-                Material.ENCHANTED_GOLDEN_APPLE, Material.DIAMOND_BLOCK, Material.EMERALD, Material.PLAYER_HEAD
+        final ItemStack[] spinItems = new ItemStack[]{
+                ItemFactory.sharSanty(), ItemFactory.elytraSanta(), ItemFactory.swordKrush(),
+                ItemFactory.talFeniksa(3), ItemFactory.plast(4), ItemFactory.trapka(4), ItemFactory.pickDjamshut()
         };
-        final Item floating = sw.dropItem(center, new ItemStack(Material.NETHER_STAR));
+        final Item floating = sw.dropItem(center, spinItems[0]);
         floating.setPickupDelay(Integer.MAX_VALUE);
         floating.setGravity(false);
         floating.setVelocity(new Vector(0, 0, 0));
@@ -805,8 +924,7 @@ public final class SpawnEngine {
             public void run() {
                 step++;
                 if (step <= 14) {
-                    Material m = spinIcons[step % spinIcons.length];
-                    floating.setItemStack(new ItemStack(m));
+                    floating.setItemStack(spinItems[step % spinItems.length]);
                     floating.setCustomName(ColorUtil.c("&#FFD740✦ Крутится " + cp.title + " &#FFD740✦"));
                     floating.teleport(center);
                     sw.spawnParticle(Particle.END_ROD, center, 6, 0.25, 0.25, 0.25, 0.02);
@@ -857,7 +975,7 @@ public final class SpawnEngine {
                 plugin.getStore().addRelics(p.getName(), 450);
                 plugin.getStore().addCoins(p.getName(), 150000);
                 p.getInventory().addItem(ItemFactory.sharTitana());
-                prizeText = "&#00E676ДЖЕКПОТ! Шар Титана + 450❖ + 150 000$!";
+                prizeText = "&#00E676ДЖЕКПОТ! 3D Шар Титана + 450❖ + 150 000$!";
             } else {
                 p.getInventory().addItem(new ItemStack(Material.COAL, 1));
                 prizeText = "&7Уголёк Неудачи (попробуй ещё!)";
@@ -865,8 +983,9 @@ public final class SpawnEngine {
         } else if ("ditems".equals(cid) || "legendary".equals(cid)) {
             ItemStack[] pool = new ItemStack[]{
                     ItemFactory.sharTitana(), ItemFactory.sharAndromedy(), ItemFactory.sharApollona(),
-                    ItemFactory.sharSanty(), ItemFactory.talKrushitelya(), ItemFactory.talFeniksa(3),
-                    ItemFactory.talGrani(), ItemFactory.swordDracula(), ItemFactory.swordKrush()
+                    ItemFactory.sharAresa(), ItemFactory.sharSanty(), ItemFactory.talKrushitelya(),
+                    ItemFactory.talFeniksa(3), ItemFactory.elytraPhoenix(), ItemFactory.elytraSanta(),
+                    ItemFactory.swordDracula(), ItemFactory.swordKrush()
             };
             ItemStack won = pool[rng.nextInt(pool.length)];
             p.getInventory().addItem(won);
@@ -886,8 +1005,8 @@ public final class SpawnEngine {
             prizeText = "&#38BDF8Полный Набор Кита " + wk.toUpperCase();
         } else {
             ItemStack[] pool = new ItemStack[]{
-                    ItemFactory.sharSanty(), ItemFactory.talStuzhi(), ItemFactory.potionChampagne(3),
-                    ItemFactory.nyMandarin(16), ItemFactory.snowflakeCoin(20)
+                    ItemFactory.sharSanty(), ItemFactory.elytraSanta(), ItemFactory.talStuzhi(),
+                    ItemFactory.plast(8), ItemFactory.trapka(6), ItemFactory.nyMandarin(16), ItemFactory.snowflakeCoin(20)
             };
             ItemStack won = pool[rng.nextInt(pool.length)];
             p.getInventory().addItem(won);

@@ -1,18 +1,13 @@
 name: techadmin
 permissions:
-- weight.290
+- weight.295
 - '*'
 - luckperms.*
-- fawe.admin
-- worldedit.*
-- worldguard.*
-- fancynpcs.admin
-- decentholograms.admin
-- commandpanels.admin
-- conditionalevents.admin
 - kinggrief.admin
+- kinggrief.lp
+- kinggrief.spawn.edit
 parents:
 - curator
 prefixes:
-- '&#F43F5E&l[Тех.Админ] &f':
-    priority: 290
+- '&f &f':
+    priority: 295

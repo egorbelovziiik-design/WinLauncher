@@ -32,10 +32,11 @@ import {
 import type { Delivery, Order, OrderItem } from './types';
 
 export const DEFAULT_TEMPLATES: Record<string, string> = {
-  rank: 'lp user {player} parent add {rank}',
+  rank: 'lp user {player} parent set {rank}',
   rank_replace: 'lp user {player} parent set {rank}',
-  relic: 'relics add {player} {amount}',
-  case: 'dc givekey {player} {case} {amount}',
+  relic: 'p give {player} {amount}',
+  case: 'cases give {player} {case} {amount}',
+  money: 'money give {player} {amount}',
   unban: 'unban {player}',
   unmute: 'unmute {player}',
   unban_ip: 'unbanip {player}',
@@ -47,6 +48,7 @@ export const CLOUD_SERVER_DEFAULTS: Record<string, string> = {
   rank_replace: 'lp user {player} parent set {rank}',
   relic: 'p give {player} {amount}',
   case: 'cases give {player} {case} {amount}',
+  money: 'money give {player} {amount}',
   unban: 'pardon {player}',
   unmute: 'unmute {player}',
   unban_ip: 'pardon-ip {player}',

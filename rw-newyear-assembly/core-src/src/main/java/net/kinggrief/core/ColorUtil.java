@@ -114,11 +114,21 @@ public final class ColorUtil {
 
     public static Material mat(String... candidates) {
         for (String name : candidates) {
-            if (name == null) continue;
-            Material m = Material.matchMaterial(name);
-            if (m != null) return m;
+            if (name == null || name.isEmpty()) continue;
+            String clean = name.trim();
+            if (clean.regionMatches(true, 0, "minecraft:", 0, 10)) {
+                clean = clean.substring(10);
+            }
+            try {
+                Material direct = Material.getMaterial(clean.toUpperCase(Locale.ROOT));
+                if (direct != null) return direct;
+            } catch (Throwable ignored) {}
+            try {
+                Material matched = Material.matchMaterial(clean.toLowerCase(Locale.ROOT));
+                if (matched != null) return matched;
+            } catch (Throwable ignored) {}
         }
-        return Material.STONE;
+        return Material.QUARTZ_BLOCK;
     }
 
     public static Enchantment ench(String modernKey, String legacyName) {

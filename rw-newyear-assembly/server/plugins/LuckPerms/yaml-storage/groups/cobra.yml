@@ -1,13 +1,8 @@
 name: cobra
 permissions:
-- weight.25
-- essentials.kits.cobra
-- essentials.sethome.multiple.cobra
-- essentials.ext
-- essentials.clearinventory
-- protectionstones.limit.4
+- weight.20
 parents:
 - pegas
 prefixes:
-- '&#84CC16&lCOBRA &f':
-    priority: 25
+- '&f &f':
+    priority: 20

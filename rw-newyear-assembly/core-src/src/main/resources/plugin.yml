@@ -1,10 +1,10 @@
 name: KingGriefCore
-version: 4.0.0
+version: 5.0.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
 author: KINGGRIEF
-description: Turnkey New Year ReallyWorld v4.0 Core Engine (Void Spawn, 22 RW NPCs, 11 Shulker Cases, 5 Stacked Bosses, LP & Web LP Editor)
+description: KINGGRIEF v5.0 Supreme FT x RW Edition (40 Animated Rank Badges, Colorful 241x124x241 Void Spawn, 24 Custom-Skinned Animated NPCs, Bafovar 8-Potion Brewer, 36 Blender 3D Items, /skins, /cases give, /p give, /money give, Cloud Promo Sync)
 
 commands:
   lp:
@@ -20,9 +20,9 @@ commands:
   changepassword:
     aliases: [cpw]
   spawn:
-    description: Teleport to New Year Castle Spawn World
+    description: Teleport to Colorful Winter Kingdom Spawn World
   rtp:
-    description: Random Teleport to Survival World
+    description: Only Entrance to Normal Survival World
   warp:
     description: Teleport to Server Warp
   warps:
@@ -36,12 +36,18 @@ commands:
   pvp:
     description: PvP Arena & Kabinki
   parkour:
-    description: Sky Parkour Course
+    description: 40-Step Possible Sky Parkour
   enchants:
     aliases: [smith]
   bafovar:
     aliases: [bafs, buffs]
-    description: ReallyWorld Bafovar Potion Brewer & Stacker
+    description: Bafovar 8-Potion Custom Brewer (5000$) & Potion Shop
+  skins:
+    aliases: [trapskins]
+    description: Trapka Skins with Enemy Debuffs
+  bounty:
+    aliases: [bounties]
+    description: Player Head Bounties
   free:
     aliases: [freecase, gifts]
     description: Freebies & Promo Codes Menu
@@ -52,11 +58,21 @@ commands:
   donate:
     aliases: [donat]
   shop:
-    aliases: [riliks, dshop]
+    description: 8-Category Coin Shop
+  rshop:
+    aliases: [dshop]
+    description: Blender 3D Relic Shop
   buyer:
     aliases: [sellgui]
   cases:
-    aliases: [crate, crates]
+    aliases: [case, crate, crates]
+    description: Cases Menu & /cases give <nick> <case> [qty]
+  p:
+    aliases: [points, riliks, playerpoints]
+    description: Relics Balance & /p give <nick> <amount>
+  money:
+    aliases: [eco, economy, coins]
+    description: Coins Balance & /money give <nick> <amount>
   kits:
     description: Privilege Kits Menu
   kit:
@@ -82,12 +98,13 @@ commands:
   duel:
     aliases: [duels]
   bal:
-    aliases: [balance, money]
+    aliases: [balance]
   pay: {}
   baltop: {}
   daily: {}
   promo:
     aliases: [promocode]
+  promoadmin: {}
   clan:
     aliases: [c]
   rg:
@@ -120,6 +137,15 @@ commands:
     aliases: [gamemode]
   vanish:
     aliases: [v]
+  check:
+    aliases: [ss, cheatcheck]
+    description: Cheat check system (start/stop + AnyDesk/Discord)
+  sw:
+    aliases: [staffwork]
+    description: Staff work shift & statistics (/sw начать работу, /sw закончить работу, /sw status)
+  spek:
+    aliases: [spec]
+    description: Request moderator spectate (/спек или /spek)
   mute: {}
   unmute: {}
   kick: {}
@@ -127,4 +153,6 @@ commands:
   unban: {}
   bc:
     aliases: [broadcast]
+  rebuildspawn:
+    description: Rebuild colorful spawn_v5 in spawn_world
   kgadmin: {}

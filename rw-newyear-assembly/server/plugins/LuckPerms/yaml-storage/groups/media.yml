@@ -1,11 +1,14 @@
 name: media
 permissions:
-- weight.108
-- essentials.kits.media
-- essentials.broadcast
-- protectionstones.limit.15
+- weight.165
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - yt
 prefixes:
-- '&#EC4899&l🎬 MEDIA &f':
-    priority: 108
+- '&f &f':
+    priority: 165

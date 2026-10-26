@@ -13,13 +13,26 @@ import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 public final class KingGriefCore extends JavaPlugin {
+
+    public static final String[] ALL_CASE_IDS = new String[]{
+            "donate", "sdonate", "legendary", "reallydev", "riliks",
+            "allorno", "ditems", "kits", "money", "djamshut", "summer"
+    };
 
     private DataStore store;
     private RankManager ranks;
@@ -28,6 +41,7 @@ public final class KingGriefCore extends JavaPlugin {
     private SpawnEngine spawnEngine;
     private GuiManager guis;
     private HudManager hud;
+    private ModerationManager moderation;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -40,7 +54,6 @@ public final class KingGriefCore extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        // Silence command block spam across all loaded worlds
         for (World w : Bukkit.getWorlds()) {
             VoidSpawnWorldGenerator.silenceCommandSpam(w);
         }
@@ -52,8 +65,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.spawnEngine = new SpawnEngine(this);
         this.guis = new GuiManager(this);
         this.hud = new HudManager(this);
+        this.moderation = new ModerationManager(this);
 
-        // Register /lp, /luckperms, /lpeditor with TabCompleter
         for (String lpCmd : new String[]{"lp", "luckperms", "lpeditor"}) {
             PluginCommand pc = getCommand(lpCmd);
             if (pc != null) {
@@ -61,13 +74,27 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.lp);
             }
         }
+        for (String modCmd : new String[]{"check", "sw", "spek", "mute", "unmute", "ban", "unban"}) {
+            PluginCommand pc = getCommand(modCmd);
+            if (pc != null) {
+                pc.setExecutor(this.moderation);
+                pc.setTabCompleter(this.moderation);
+            }
+        }
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty"}) {
+            PluginCommand pc = getCommand(tcCmd);
+            if (pc != null) {
+                pc.setTabCompleter(this);
+            }
+        }
 
         Bukkit.getPluginManager().registerEvents(new GameplayListener(this), this);
 
-        // Build Void World 'spawn_world' + 181x96x181 Spawn + 11 Shulker Cases + 22 RW NPCs + 6 Kabinki
         this.spawnEngine.initializeSpawnWorldAndBuild(false);
         this.bossEvents.start();
         this.hud.start();
+        this.moderation.start();
+        startWebsitePromoSyncLoop();
 
         for (Player on : Bukkit.getOnlinePlayers()) {
             this.store.refreshPermissions(on, this.ranks);
@@ -76,15 +103,17 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v4.0.0 — NEW YEAR REALLYWORLD EDITION READY ");
-        getLogger().info(" Dedicated Void Spawn: 'spawn_world' (181x96x181)           ");
-        getLogger().info(" 22 Working RW NPCs (incl. Bafovar) + 11 Shulker Cases      ");
-        getLogger().info(" 5 Stacked Boss Events + Full /lp & Web LP Editor Ready!    ");
+        getLogger().info(" KINGGRIEF CORE v5.0.0 — SUPREME FT x REALLYWORLD EDITION   ");
+        getLogger().info(" 40 Animated Rank Badges + Colorful 241x124x241 Void Spawn  ");
+        getLogger().info(" /check (AnyDesk/Discord) | /sw | /spek | Sky-Ascension Ban ");
+        getLogger().info(" /cases give | /p give | /money give | Website Promo Sync   ");
         getLogger().info("============================================================");
     }
 
     @Override
     public void onDisable() {
+        if (this.moderation != null) this.moderation.shutdown();
+        if (this.hud != null) this.hud.shutdown();
         if (this.bossEvents != null) this.bossEvents.shutdown();
         if (this.store != null) this.store.save();
     }
@@ -96,18 +125,143 @@ public final class KingGriefCore extends JavaPlugin {
     public SpawnEngine getSpawnEngine() { return spawnEngine; }
     public GuiManager getGuis() { return guis; }
     public HudManager getHud() { return hud; }
+    public ModerationManager getModeration() { return moderation; }
+
+    private boolean hasEconomyAdmin(CommandSender s) {
+        if (!(s instanceof Player)) return true;
+        Player p = (Player) s;
+        String rid = ranks.getRank(p).id;
+        return p.isOp() || "owner".equals(rid) || "techadmin".equals(rid) || "curator".equals(rid);
+    }
+
+    // ================= CLOUD PROMO SYNC WITH https://kinggrief.vercel.app =================
+    private void startWebsitePromoSyncLoop() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                syncPromosFromWebsiteNow();
+            }
+        }.runTaskTimerAsynchronously(this, 60L, 900L); // every 45 seconds
+    }
+
+    public void syncPromosFromWebsiteNow() {
+        String apiBase = getConfig().getString("site-api-url", "https://kinggrief.vercel.app");
+        try {
+            URL url = new URL(apiBase + "/api/promos/server");
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("GET");
+            con.setConnectTimeout(5000);
+            con.setReadTimeout(5000);
+            con.setRequestProperty("Accept", "text/plain");
+            if (con.getResponseCode() != 200) return;
+
+            BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
+            final List<String[]> rows = new ArrayList<String[]>();
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                // Format: CODE|MAX_USES|COINS|RELICS|CASE_ID|CASE_QTY|RANK_ID
+                String[] parts = line.split("\\|", -1);
+                if (parts.length >= 4) rows.add(parts);
+            }
+            br.close();
+            if (!rows.isEmpty()) {
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        for (String[] r : rows) {
+                            try {
+                                String code = r[0];
+                                int maxU = Integer.parseInt(r[1]);
+                                double coins = Double.parseDouble(r[2]);
+                                int relics = Integer.parseInt(r[3]);
+                                String cid = r.length > 4 ? r[4] : "";
+                                int cqty = r.length > 5 && !r[5].isEmpty() ? Integer.parseInt(r[5]) : (cid.isEmpty() ? 0 : 1);
+                                String rid = r.length > 6 ? r[6] : "";
+                                store.syncServerPromo(code, maxU, coins, relics, cid, cqty, rid);
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }.runTask(this);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+        String c = cmd.getName().toLowerCase(Locale.ROOT);
+        List<String> out = new ArrayList<String>();
+        if ("cases".equals(c)) {
+            if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take"), args[0]);
+            if (args.length == 2 && hasEconomyAdmin(sender)) return onlineNames(args[1]);
+            if (args.length == 3 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList(ALL_CASE_IDS), args[2]);
+            if (args.length == 4 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("1", "3", "5", "10", "25"), args[3]);
+        } else if ("p".equals(c) || "money".equals(c)) {
+            if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take", "look"), args[0]);
+            if (args.length == 2) return onlineNames(args[1]);
+            if (args.length == 3 && hasEconomyAdmin(sender)) {
+                return filterPrefix("p".equals(c) ? Arrays.asList("50", "100", "250", "500", "1000")
+                        : Arrays.asList("10000", "50000", "100000", "500000", "1000000"), args[2]);
+            }
+        } else if ("shop".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("pvp", "food", "gear", "raid", "elytra", "blocks", "spawners", "ores"), args[0]);
+        } else if ("bounty".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("add"), args[0]);
+        } else if ("bounty".equals(c) && args.length == 2) {
+            return onlineNames(args[1]);
+        }
+        return out;
+    }
+
+    private List<String> onlineNames(String pref) {
+        List<String> list = new ArrayList<String>();
+        for (Player p : Bukkit.getOnlinePlayers()) list.add(p.getName());
+        return filterPrefix(list, pref);
+    }
+
+    private List<String> filterPrefix(List<String> src, String pref) {
+        String p = pref == null ? "" : pref.toLowerCase(Locale.ROOT);
+        List<String> res = new ArrayList<String>();
+        for (String s : src) {
+            if (s.toLowerCase(Locale.ROOT).startsWith(p)) res.add(s);
+        }
+        return res;
+    }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
 
-        // Console / Bridge / Admin command (/kgadmin)
+        // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
         if ("kgadmin".equals(c)) {
             return handleKgAdmin(sender, args);
         }
+        if ("rebuildspawn".equals(c)) {
+            if (!hasEconomyAdmin(sender)) {
+                sender.sendMessage(ColorUtil.c("&cДоступно только OWNER и Консоли!"));
+                return true;
+            }
+            spawnEngine.initializeSpawnWorldAndBuild(true);
+            sender.sendMessage(ColorUtil.c("&#00E676✔ Яркий красочный спавн v5.0 успешно перестроен в мире spawn_world!"));
+            return true;
+        }
+        if ("promoadmin".equals(c)) {
+            return handlePromoAdmin(sender, args);
+        }
+        if ("cases".equals(c) && args.length >= 1 && ("give".equalsIgnoreCase(args[0]) || "set".equalsIgnoreCase(args[0]) || "take".equalsIgnoreCase(args[0]))) {
+            return handleCasesAdminCmd(sender, args);
+        }
+        if ("p".equals(c) && (args.length >= 1 || !(sender instanceof Player))) {
+            return handleRelicsCommand(sender, args);
+        }
+        if ("money".equals(c) && (args.length >= 1 || !(sender instanceof Player))) {
+            return handleMoneyCommand(sender, args);
+        }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Command is for players only (use /kgadmin or /lp from console).");
+            sender.sendMessage("Use /cases give, /p give, /money give, /kgadmin or /lp from console.");
             return true;
         }
         Player p = (Player) sender;
@@ -124,7 +278,7 @@ public final class KingGriefCore extends JavaPlugin {
             }
             store.registerPassword(p, args[0]);
             ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на ReallyWorld!"), 5, 40, 10);
+            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на KINGGRIEF v5.0!"), 5, 40, 10);
             p.sendMessage(ColorUtil.c("&#00E676✔ Регистрация успешна! Вам выдан Новогодний Кейс (/cases) и стартовый баланс!"));
             return true;
         }
@@ -162,13 +316,13 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
-        // ================= NAVIGATION & SEPARATE WORLDS =================
+        // ================= NAVIGATION & SEPARATE WORLDS (/rtp ONLY TO SURVIVAL WORLD!) =================
         if ("spawn".equals(c)) {
             store.setBack(p, p.getLocation());
             store.setParkourCp(p, null);
             p.teleport(spawnEngine.getSpawnArrival());
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c("&#80D8FF❄ Вы телепортированы в мир Новогоднего Спавна!"));
+            p.sendMessage(ColorUtil.c("&#80D8FF❄ Вы в отдельном мире Яркого Зимнего Спавна! Вход в мир выживания: &#00E676/rtp"));
             return true;
         }
         if ("rtp".equals(c)) {
@@ -216,17 +370,58 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
-        // ================= MENUS & REALLYWORLD SYSTEMS =================
+        // ================= MENUS, SHOPS, BAFOVAR, SKINS & BOUNTY =================
         if ("menu".equals(c)) { guis.openMainMenu(p); return true; }
         if ("donate".equals(c)) { guis.openDonateMenu(p); return true; }
-        if ("shop".equals(c)) { guis.openRelicShop(p); return true; }
-        if ("bafovar".equals(c)) { guis.openBafovarMenu(p); return true; }
+        if ("shop".equals(c)) {
+            if (args.length >= 1) guis.openCoinShopCat(p, args[0]);
+            else guis.openCoinShopHub(p);
+            return true;
+        }
+        if ("rshop".equals(c)) { guis.openRelicShop(p); return true; }
+        if ("skins".equals(c)) { guis.openTrapSkinsMenu(p); return true; }
+        if ("bafovar".equals(c)) {
+            if (args.length >= 1 && "brew".equalsIgnoreCase(args[0])) guis.openBafovarBrewerMenu(p);
+            else guis.openBafovarMenu(p);
+            return true;
+        }
+        if ("bounty".equals(c)) {
+            if (args.length >= 3 && "add".equalsIgnoreCase(args[0])) {
+                String target = args[1];
+                double amt;
+                try { amt = Double.parseDouble(args[2]); } catch (Exception ex) { amt = -1; }
+                if (amt < 5000 || target.equalsIgnoreCase(p.getName())) {
+                    p.sendMessage(ColorUtil.c("&eИспользование: &f/bounty add <ник> <сумма от 5000$>"));
+                    return true;
+                }
+                if (!store.takeCoins(p.getName(), amt)) {
+                    p.sendMessage(ColorUtil.c("&cНедостаточно монет!"));
+                    return true;
+                }
+                store.addBounty(target, amt);
+                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🎯 [ОХОТА ЗА ГОЛОВАМИ] &f" + p.getName()
+                        + " &7назначил &a+" + ColorUtil.fmtMoney(amt) + "$ &7за голову игрока &c" + target
+                        + " &8(Всего: &a" + ColorUtil.fmtMoney(store.getBounty(target)) + "$&8)&7!"));
+                return true;
+            }
+            guis.openBountyMenu(p);
+            return true;
+        }
         if ("free".equals(c)) { guis.openFreebieMenu(p); return true; }
         if ("trash".equals(c)) { guis.openTrashMenu(p); return true; }
         if ("enchants".equals(c)) { guis.openEnchantsMenu(p); return true; }
         if ("casino".equals(c)) { guis.openCasinoMenu(p); return true; }
         if ("buyer".equals(c)) { guis.openBuyerMenu(p); return true; }
         if ("cases".equals(c)) { guis.openCasesMenu(p); return true; }
+        if ("p".equals(c)) {
+            p.sendMessage(ColorUtil.c("&#00E5FF❖ Ваши Рилики: &b" + ColorUtil.fmtInt(store.getRelics(p)) + " ❖ &8(&7Пополнить: &fkinggrief.vercel.app&8)"));
+            return true;
+        }
+        if ("money".equals(c) || "bal".equals(c)) {
+            p.sendMessage(ColorUtil.c("&#FFD740💰 Баланс: &a" + ColorUtil.fmtMoney(store.getCoins(p.getName())) + "$ &8| &b"
+                    + store.getRelics(p) + " Риликов ❖ &8| &b" + store.getSnowflakes(p.getName()) + " Снежинок ❄"));
+            return true;
+        }
         if ("kits".equals(c)) { guis.openKitsMenu(p, 0); return true; }
         if ("kit".equals(c)) {
             if (args.length < 1) guis.openKitsMenu(p, 0);
@@ -240,7 +435,11 @@ public final class KingGriefCore extends JavaPlugin {
         if ("playtime".equals(c)) { guis.openPlaytimeMenu(p); return true; }
         if ("bm".equals(c)) { guis.openBlackMarket(p); return true; }
         if ("events".equals(c)) {
-            if (args.length >= 2 && "start".equalsIgnoreCase(args[0]) && ("owner".equals(ranks.getRank(p).id) || p.isOp())) {
+            if (args.length >= 2 && "start".equalsIgnoreCase(args[0])) {
+                if (!bossEvents.canAdminSpawnEvents(p)) {
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Запускать ивенты могут только Админы и выше (D.ADMIN+ / OWNER)!"));
+                    return true;
+                }
                 bossEvents.spawnBossEvent(args[1], null);
                 return true;
             }
@@ -296,8 +495,8 @@ public final class KingGriefCore extends JavaPlugin {
                     return true;
                 }
                 World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-                ch.teleport(new Location(sw, 50.5, 100.0, -26.5, 0f, 0f));
-                p.teleport(new Location(sw, 51.5, 100.0, -24.5, 180f, 0f));
+                ch.teleport(new Location(sw, 70.5, 100.0, -42.5, 0f, 0f));
+                p.teleport(new Location(sw, 71.5, 100.0, -40.5, 180f, 0f));
                 Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Дуэль началась: &f" + ch.getName() + " &cvs &f" + p.getName() + " &7в Кабинке #1!"));
                 return true;
             }
@@ -316,12 +515,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
-        // ================= ECONOMY, PROMO, DAILY, CLAN, CLAIMS =================
-        if ("bal".equals(c)) {
-            p.sendMessage(ColorUtil.c("&#FFD740💰 Баланс: &a" + ColorUtil.fmtMoney(store.getCoins(p.getName())) + "$ &8| &b"
-                    + store.getRelics(p) + " Риликов ❖ &8| &b" + store.getSnowflakes(p.getName()) + " Снежинок ❄"));
-            return true;
-        }
+        // ================= PAY, BALTOP, DAILY & WEBSITE+SERVER PROMO CODES =================
         if ("pay".equals(c)) {
             if (args.length < 2) { p.sendMessage(ColorUtil.c("&eИспользование: &f/pay <ник> <сумма>")); return true; }
             Player rec = Bukkit.getPlayer(args[0]);
@@ -364,17 +558,57 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("promo".equals(c)) {
             if (args.length < 1) { guis.openFreebieMenu(p); return true; }
-            String code = args[0].toUpperCase(Locale.ROOT);
+            String code = args[0].trim().toUpperCase(Locale.ROOT);
             if (store.hasUsedPromo(p.getName(), code)) {
-                p.sendMessage(ColorUtil.c("&cВы уже активировали этот промокод!"));
+                p.sendMessage(ColorUtil.c("&cВы уже активировали промокод " + code + "!"));
                 return true;
             }
+
+            // 1. Check Cloud/Website & Admin-Created Server Promo Codes FIRST!
+            DataStore.ServerPromo sp = store.getServerPromo(code);
+            if (sp != null) {
+                if (sp.maxUses > 0 && sp.usedCount >= sp.maxUses) {
+                    p.sendMessage(ColorUtil.c("&cЛимит активаций этого промокода исчерпан (" + sp.maxUses + "/" + sp.maxUses + ")!"));
+                    return true;
+                }
+                List<String> granted = new ArrayList<String>();
+                if (sp.coins > 0) {
+                    store.addCoins(p.getName(), sp.coins);
+                    granted.add("&a+" + ColorUtil.fmtMoney(sp.coins) + "$");
+                }
+                if (sp.relics > 0) {
+                    store.addRelics(p.getName(), sp.relics);
+                    granted.add("&b+" + sp.relics + " Риликов ❖");
+                }
+                if (sp.caseId != null && !sp.caseId.isEmpty() && sp.caseQty > 0) {
+                    store.addCaseKeys(p.getName(), sp.caseId, sp.caseQty);
+                    granted.add("&#FF4081+" + sp.caseQty + " Кейс [" + sp.caseId.toUpperCase(Locale.ROOT) + "]");
+                }
+                if (sp.rankId != null && !sp.rankId.isEmpty()) {
+                    RankManager.RankDef targetRank = ranks.byId(sp.rankId);
+                    if (targetRank.weight > ranks.getRank(p).weight) {
+                        ranks.setRank(p.getName(), targetRank.id, true);
+                    }
+                    granted.add("&#FFD740Привилегия " + targetRank.id.toUpperCase(Locale.ROOT));
+                }
+                store.incrementServerPromoUsed(code);
+                store.markUsedPromo(p.getName(), code);
+                store.save();
+                hud.updatePlayerHud(p);
+                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+                p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод с сайта &f" + code + " &#00E676активирован! Награда: " + String.join("&7, ", granted)));
+                return true;
+            }
+
+            // 2. Built-in Festive & FT×RW Promo Codes
             if ("NEWYEAR2026".equals(code)) {
                 store.addCoins(p.getName(), 25000); store.addRelics(p.getName(), 25); store.addCaseKeys(p.getName(), "summer", 1);
             } else if ("REALLYWORLD".equals(code)) {
                 store.addCoins(p.getName(), 30000); store.addRelics(p.getName(), 30); store.addSnowflakes(p.getName(), 10);
             } else if ("KINGGRIEF".equals(code)) {
                 store.addCoins(p.getName(), 20000); store.addRelics(p.getName(), 20); p.getInventory().addItem(ItemFactory.potionKiller(1));
+            } else if ("FTRW".equals(code) || "FTRW2026".equals(code)) {
+                store.addCoins(p.getName(), 25000); p.getInventory().addItem(ItemFactory.plast(4), ItemFactory.trapka(2));
             } else if ("SANTA".equals(code)) {
                 store.addCoins(p.getName(), 15000); p.getInventory().addItem(ItemFactory.nyMandarin(8), ItemFactory.potionChampagne(1));
             } else if ("RILIK".equals(code)) {
@@ -382,11 +616,12 @@ public final class KingGriefCore extends JavaPlugin {
             } else if ("FREE".equals(code)) {
                 store.addCoins(p.getName(), 15000); store.addCaseKeys(p.getName(), "money", 1);
             } else {
-                p.sendMessage(ColorUtil.c("&cНеизвестный промокод! Все промокоды доступны в меню &f/free"));
+                p.sendMessage(ColorUtil.c("&cНеизвестный промокод! Создайте на сайте &fkinggrief.vercel.app &cили посмотрите в &f/free"));
                 return true;
             }
             store.markUsedPromo(p.getName(), code);
             store.save();
+            hud.updatePlayerHud(p);
             ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
             p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод &f" + code + " &#00E676активирован! Награда выдана!"));
             return true;
@@ -400,7 +635,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
-        // ================= HOMES, TPA, BACK & REALLYWORLD PERKS =================
+        // ================= HOMES, TPA, BACK & PERKS =================
         if ("sethome".equals(c)) {
             if (spawnEngine.isInSpawnWorld(p.getLocation())) {
                 p.sendMessage(ColorUtil.c("&cНельзя ставить дом на спавне! Перейдите в выживание: /rtp"));
@@ -554,6 +789,179 @@ public final class KingGriefCore extends JavaPlugin {
         return true;
     }
 
+    // ================= /cases give | /p give (Рилики ❖) | /money give (Монеты $) =================
+    private boolean handleCasesAdminCmd(CommandSender s, String[] args) {
+        if (!hasEconomyAdmin(s)) {
+            s.sendMessage(ColorUtil.c("&cНедостаточно прав! Команда доступна OWNER / Администрации / Консоли."));
+            return true;
+        }
+        if (args.length < 3) {
+            s.sendMessage(ColorUtil.c("&#FFD740Использование: &f/cases give <ник> <кейс> [кол-во]"));
+            s.sendMessage(ColorUtil.c("&7Кейсы: &fdonate, sdonate, legendary, reallydev, riliks, allorno, ditems, kits, money, djamshut, summer"));
+            return true;
+        }
+        String mode = args[0].toLowerCase(Locale.ROOT);
+        String target = args[1];
+        String caseId = args[2].toLowerCase(Locale.ROOT);
+        int qty = 1;
+        if (args.length >= 4) {
+            try { qty = Math.max(0, Integer.parseInt(args[3])); } catch (Exception ex) { qty = 1; }
+        }
+        if ("set".equals(mode)) {
+            store.setCaseKeys(target, caseId, qty);
+        } else if ("take".equals(mode)) {
+            store.addCaseKeys(target, caseId, -qty);
+            store.save();
+        } else {
+            store.addCaseKeys(target, caseId, qty);
+            store.save();
+        }
+        int totalNow = store.getCaseKeys(target, caseId);
+        s.sendMessage(ColorUtil.c("&#00E676✔ Кейсы обновлены для &f" + target + "&7: кейс &#FFD740" + caseId + " &7→ сейчас &a" + totalNow + " шт."));
+        Player tp = Bukkit.getPlayerExact(target);
+        if (tp != null && "give".equals(mode)) {
+            ColorUtil.sound(tp, "entity.player.levelup", 1f, 1.25f);
+            tp.sendMessage(ColorUtil.c("&#FF4081🎁 Вам выдано &f+" + qty + " шт. &#FF4081кейса [&e" + caseId.toUpperCase(Locale.ROOT) + "&#FF4081]! Открыть: &f/cases"));
+        }
+        return true;
+    }
+
+    private boolean handleRelicsCommand(CommandSender s, String[] args) {
+        if (args.length == 0 && s instanceof Player) {
+            Player p = (Player) s;
+            p.sendMessage(ColorUtil.c("&#00E5FF❖ Ваши Рилики: &b" + ColorUtil.fmtInt(store.getRelics(p)) + " ❖"));
+            return true;
+        }
+        if (args.length >= 1 && ("look".equalsIgnoreCase(args[0]) || "me".equalsIgnoreCase(args[0]))) {
+            String target = args.length >= 2 ? args[1] : s.getName();
+            s.sendMessage(ColorUtil.c("&#00E5FF❖ Рилики игрока &f" + target + "&7: &b" + store.getRelics(target) + " ❖"));
+            return true;
+        }
+        if (!hasEconomyAdmin(s)) {
+            s.sendMessage(ColorUtil.c("&cНедостаточно прав для управления Риликами!"));
+            return true;
+        }
+        if (args.length < 3) {
+            s.sendMessage(ColorUtil.c("&#00E5FFИспользование: &f/p give <ник> <кол-во> &8| &f/p set <ник> <кол-во> &8| &f/p take <ник> <кол-во>"));
+            return true;
+        }
+        String mode = args[0].toLowerCase(Locale.ROOT);
+        String target = args[1];
+        int amt;
+        try { amt = Integer.parseInt(args[2]); } catch (Exception ex) { amt = -1; }
+        if (amt < 0) {
+            s.sendMessage(ColorUtil.c("&cУкажите корректное число Риликов!"));
+            return true;
+        }
+        if ("set".equals(mode)) {
+            store.setRelics(target, amt);
+        } else if ("take".equals(mode)) {
+            store.addRelics(target, -amt);
+        } else {
+            store.addRelics(target, amt);
+        }
+        store.save();
+        Player tp = Bukkit.getPlayerExact(target);
+        if (tp != null) {
+            hud.updatePlayerHud(tp);
+            if ("give".equals(mode)) {
+                ColorUtil.sound(tp, "entity.player.levelup", 1f, 1.3f);
+                tp.sendMessage(ColorUtil.c("&#00E5FF❖ Вам начислено &b+" + amt + " Риликов ❖&7! Потратить: &f/rshop"));
+            }
+        }
+        s.sendMessage(ColorUtil.c("&#00E676✔ Баланс Риликов игрока &f" + target + " &#00E676обновлён: &b" + store.getRelics(target) + " ❖"));
+        return true;
+    }
+
+    private boolean handleMoneyCommand(CommandSender s, String[] args) {
+        if (args.length == 0 && s instanceof Player) {
+            Player p = (Player) s;
+            p.sendMessage(ColorUtil.c("&#FFD740💰 Ваши Монеты: &a" + ColorUtil.fmtMoney(store.getCoins(p.getName())) + "$"));
+            return true;
+        }
+        if (!hasEconomyAdmin(s)) {
+            s.sendMessage(ColorUtil.c("&cНедостаточно прав для управления Монетами!"));
+            return true;
+        }
+        if (args.length < 3) {
+            s.sendMessage(ColorUtil.c("&#FFD740Использование: &f/money give <ник> <сумма> &8| &f/money set <ник> <сумма> &8| &f/money take <ник> <сумма>"));
+            return true;
+        }
+        String mode = args[0].toLowerCase(Locale.ROOT);
+        String target = args[1];
+        double amt;
+        try { amt = Double.parseDouble(args[2]); } catch (Exception ex) { amt = -1; }
+        if (amt < 0) {
+            s.sendMessage(ColorUtil.c("&cУкажите корректную сумму Монет!"));
+            return true;
+        }
+        if ("set".equals(mode)) {
+            store.setCoins(target, amt);
+        } else if ("take".equals(mode)) {
+            store.addCoins(target, -amt);
+        } else {
+            store.addCoins(target, amt);
+        }
+        store.save();
+        Player tp = Bukkit.getPlayerExact(target);
+        if (tp != null) {
+            hud.updatePlayerHud(tp);
+            if ("give".equals(mode)) {
+                ColorUtil.sound(tp, "entity.experience_orb.pickup", 1f, 1.3f);
+                tp.sendMessage(ColorUtil.c("&#FFD740💰 Вам начислено &a+" + ColorUtil.fmtMoney(amt) + "$ Монет&7! Магазин: &f/shop"));
+            }
+        }
+        s.sendMessage(ColorUtil.c("&#00E676✔ Баланс Монет игрока &f" + target + " &#00E676обновлён: &a" + ColorUtil.fmtMoney(store.getCoins(target)) + "$"));
+        return true;
+    }
+
+    private boolean handlePromoAdmin(CommandSender s, String[] args) {
+        if (!hasEconomyAdmin(s)) {
+            s.sendMessage(ColorUtil.c("&cДоступно только OWNER / Администрации / Консоли!"));
+            return true;
+        }
+        if (args.length < 1) {
+            s.sendMessage(ColorUtil.c("&#FFD740/promoadmin create <КОД> <лимит> <монеты> <рилики> [кейс] [ранг]"));
+            s.sendMessage(ColorUtil.c("&#FFD740/promoadmin delete <КОД> &8| &f/promoadmin sync &8| &f/promoadmin list"));
+            return true;
+        }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        if ("sync".equals(sub)) {
+            new BukkitRunnable() {
+                @Override
+                public void run() { syncPromosFromWebsiteNow(); }
+            }.runTaskAsynchronously(this);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Запущена синхронизация промокодов с сайта kinggrief.vercel.app!"));
+            return true;
+        }
+        if ("list".equals(sub)) {
+            List<DataStore.ServerPromo> all = store.getAllServerPromos();
+            s.sendMessage(ColorUtil.c("&#FFD740Активные промокоды сервера/сайта (" + all.size() + "):"));
+            for (DataStore.ServerPromo sp : all) {
+                s.sendMessage(ColorUtil.c(" &f• &#00E676" + sp.code + " &7(" + sp.usedCount + "/" + sp.maxUses
+                        + ") — &a" + (int) sp.coins + "$ &b" + sp.relics + "❖ &d" + sp.caseId + " &e" + sp.rankId));
+            }
+            return true;
+        }
+        if ("delete".equals(sub) && args.length >= 2) {
+            store.deleteServerPromo(args[1]);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Промокод " + args[1].toUpperCase(Locale.ROOT) + " удалён."));
+            return true;
+        }
+        if ("create".equals(sub) && args.length >= 5) {
+            String code = args[1];
+            int maxU = Integer.parseInt(args[2]);
+            double coins = Double.parseDouble(args[3]);
+            int relics = Integer.parseInt(args[4]);
+            String caseId = args.length >= 6 ? args[5] : "";
+            String rankId = args.length >= 7 ? args[6] : "";
+            store.syncServerPromo(code, maxU, coins, relics, caseId, caseId.isEmpty() ? 0 : 1, rankId);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Промокод &f" + code.toUpperCase(Locale.ROOT) + " &#00E676создан и активен в &f/promo " + code.toUpperCase(Locale.ROOT) + "&#00E676!"));
+            return true;
+        }
+        return true;
+    }
+
     private void handleClanCmd(Player p, String[] args) {
         if (args.length == 0) { guis.openClanMenu(p); return; }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -639,18 +1047,18 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private boolean handleKgAdmin(CommandSender s, String[] args) {
-        if ((s instanceof Player) && !((Player) s).isOp() && !"owner".equals(ranks.getRank((Player) s).id)) {
+        if (!hasEconomyAdmin(s)) {
             s.sendMessage(ColorUtil.c("&cДоступно только OWNER и Консоли!"));
             return true;
         }
         if (args.length < 1) {
-            s.sendMessage(ColorUtil.c("&e/kgadmin <givecase | giverank | giverelics | givemoney | rebuildspawn | startboss>"));
+            s.sendMessage(ColorUtil.c("&e/kgadmin <givecase | giverank | giverelics | givemoney | syncpromo | rebuildspawn | startboss>"));
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("rebuildspawn".equals(sub)) {
             spawnEngine.initializeSpawnWorldAndBuild(true);
-            s.sendMessage(ColorUtil.c("&#00E676✔ Спавн v4.0 в мире spawn_world перестроен!"));
+            s.sendMessage(ColorUtil.c("&#00E676✔ Яркий Спавн v5.0 в мире spawn_world перестроен!"));
             return true;
         }
         if ("startboss".equals(sub)) {
@@ -681,6 +1089,18 @@ public final class KingGriefCore extends JavaPlugin {
             store.addCoins(args[1], Double.parseDouble(args[2]));
             store.save();
             s.sendMessage(ColorUtil.c("&#00E676✔ Начислены Монеты игроку " + args[1]));
+            return true;
+        }
+        if ("syncpromo".equals(sub) && args.length >= 5) {
+            String code = args[1];
+            int maxU = Integer.parseInt(args[2]);
+            double coins = Double.parseDouble(args[3]);
+            int relics = Integer.parseInt(args[4]);
+            String caseId = args.length >= 6 ? args[5] : "";
+            int caseQty = args.length >= 7 ? Integer.parseInt(args[6]) : (caseId.isEmpty() ? 0 : 1);
+            String rankId = args.length >= 8 ? args[7] : "";
+            store.syncServerPromo(code, maxU, coins, relics, caseId, caseQty, rankId);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Серверный промокод " + code + " синхронизирован!"));
             return true;
         }
         return true;

@@ -1,13 +1,8 @@
 name: pegas
 permissions:
-- weight.20
-- essentials.kits.pegas
-- essentials.sethome.multiple.pegas
-- essentials.workbench
-- essentials.hat
-- protectionstones.limit.3
+- weight.12
 parents:
 - default
 prefixes:
-- '&#22C55E&lPEGAS &f':
-    priority: 20
+- '&f &f':
+    priority: 12

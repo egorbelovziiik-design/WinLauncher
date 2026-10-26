@@ -1,56 +1,14 @@
 name: dglmoder
 permissions:
-- weight.140
-- essentials.kits.dglmoder
-- essentials.sethome.multiple.dglmoder
-- essentials.unban
-- essentials.gamemode.spectator
-- essentials.gamemode.survival
-- protectionstones.limit.22
-- 'bukkit.command.stop':
-    value: false
-- 'minecraft.command.stop':
-    value: false
-- 'bukkit.command.restart':
-    value: false
-- 'spigot.restart':
-    value: false
-- 'bukkit.command.op':
-    value: false
-- 'minecraft.command.op':
-    value: false
-- 'bukkit.command.deop':
-    value: false
-- 'minecraft.command.deop':
-    value: false
-- 'bukkit.command.plugins':
-    value: false
-- 'bukkit.command.version':
-    value: false
-- 'bukkit.command.reload':
-    value: false
-- 'luckperms.*':
-    value: false
-- 'worldedit.*':
-    value: false
-- 'fawe.*':
-    value: false
-- 'worldguard.*':
-    value: false
-- 'fancynpcs.*':
-    value: false
-- 'citizens.*':
-    value: false
-- 'decentholograms.*':
-    value: false
-- 'commandpanels.*':
-    value: false
-- 'deluxemenus.admin':
-    value: false
-- 'conditionalevents.admin':
-    value: false
+- weight.185
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - dstmoder
 prefixes:
-- '&#8B5CF6&lD.GLMODER &f':
-    priority: 140
+- '&f &f':
+    priority: 185

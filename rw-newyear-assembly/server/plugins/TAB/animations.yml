@@ -1,27 +1,126 @@
 winter_title:
-  change-interval: 120
+  change-interval: 150
   texts:
-    - "&#80D8FF❄ &#FF1744&lK&#FF3D57&lI&#FF636A&lN&#FF897D&lG&#FFAF90&lG&#FF897D&lR&#FF636A&lI&#FF3D57&lE&#FF1744&lF &#80D8FF❄"
-    - "&#FFFFFF❅ &#FF3D57&lK&#FF636A&lI&#FF897D&lN&#FFAF90&lG&#FFFFFF&lG&#FFAF90&lR&#FF897D&lI&#FF636A&lE&#FF3D57&lF &#FFFFFF❅"
-    - "&#80D8FF❆ &#FF636A&lK&#FF897D&lI&#FFAF90&lN&#FFFFFF&lG&#FFD740&lG&#FFFFFF&lR&#FFAF90&lI&#FF897D&lE&#FF636A&lF &#80D8FF❆"
-curator_rw:
-  change-interval: 70
-  texts: ["&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f"]
-owner_rw:
-  change-interval: 70
-  texts: ["&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f","&f"]
-downer_anim:
-  change-interval: 100
-  texts: ["&f &#FACC15&lD.OWNER","&f &#FEF08A&lD.OWNER","&f &#F59E0B&lD.OWNER","&f &#FACC15&lD.OWNER"]
-opka_anim:
-  change-interval: 100
-  texts: ["&#C026D3&l🔥 OPKA","&#EC4899&l🔥 OPKA","&#A855F7&l🔥 OPKA"]
-king_anim:
-  change-interval: 120
-  texts: ["&#A855F7&l👑 KING","&#C084FC&l👑 KING","&#FACC15&l👑 KING"]
-kp_anim:
-  change-interval: 120
-  texts: ["&#10B981&l🛡 КП","&#34D399&l🛡 КП"]
-dkp_anim:
-  change-interval: 120
-  texts: ["&#FF6D00&l⚡ ДКП","&#FFAB40&l⚡ ДКП"]
+    - "&#80D8FF❄ &#FF1744&lK&#FF5252&lI&#FF8A80&lN&#FFD740&lG&#00E676&lG&#00E5FF&lR&#40C4FF&lI&#B388FF&lE&#FF4081&lF &#FFD740&lv5.0 &#80D8FF❄"
+    - "&#FFFFFF❅ &#FFD740&lK&#FFEA00&lI&#00E676&lN&#00E5FF&lG&#40C4FF&lG&#B388FF&lR&#FF4081&lI&#FF1744&lE&#FFD740&lF &#00E5FF&lv5.0 &#FFFFFF❅"
+    - "&#80D8FF❆ &#00E5FF&lK&#40C4FF&lI&#B388FF&lN&#FF4081&lG&#FF1744&lG&#FFD740&lR&#00E676&lI&#00E5FF&lE&#40C4FF&lF &#FF4081&lv5.0 &#80D8FF❆"
+rank_owner:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_techadmin:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_curator:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_kp:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_glmoder:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_stmoder:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_moder:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_sthelper:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_helper:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_downer:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_opka:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dkp:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dadmin:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dmladmin:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dglmoder:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dstmoder:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dmoder:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dhelper:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_mediaplus:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_media:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_yt:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_twitch:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_tiktok:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_sponsor:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_bull:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_king:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dragon:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_imperator:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_overlord:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_god:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_dracula:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_tiger:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_vampire:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_rabbit:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_titan:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_bunny:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_hero:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_cobra:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_pegas:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]
+rank_default:
+  change-interval: 150
+  texts: ["&f", "&f", "&f", "&f", "&f", "&f", "&f", "&f"]

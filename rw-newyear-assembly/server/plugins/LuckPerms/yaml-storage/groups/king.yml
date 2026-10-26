@@ -1,14 +1,14 @@
 name: king
 permissions:
-- weight.90
-- essentials.kits.king
-- essentials.sethome.multiple.king
-- essentials.chat.format
-- essentials.itemname
-- essentials.nick.rgb
-- protectionstones.limit.12
+- weight.130
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - dragon
 prefixes:
-- '&#A855F7&l👑 KING &f':
-    priority: 90
+- '&f &f':
+    priority: 130

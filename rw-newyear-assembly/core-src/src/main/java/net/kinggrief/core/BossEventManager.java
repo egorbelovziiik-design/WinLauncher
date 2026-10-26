@@ -1,12 +1,15 @@
 package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
@@ -16,11 +19,13 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -39,21 +44,31 @@ import java.util.UUID;
 
 public final class BossEventManager {
 
+    public enum EventKind {
+        BOSS,
+        AIRDROP,
+        METEOR,
+        BEACON,
+        FROST_CITADEL
+    }
+
     public static final class BossTemplate {
         public final String id;
+        public final EventKind kind;
         public final String displayName;
-        public final EntityType entityType;
-        public final double maxHp;
+        public final EntityType entityType; // null for timed world events
+        public final double maxHp;           // HP for BOSS, or unlock duration seconds for world events
         public final BarColor barColor;
         public final BarStyle barStyle;
         public final Material platformMat;
         public final double coinReward;
         public final int relicReward;
 
-        public BossTemplate(String id, String displayName, EntityType entityType, double maxHp,
+        public BossTemplate(String id, EventKind kind, String displayName, EntityType entityType, double maxHp,
                             BarColor barColor, BarStyle barStyle, Material platformMat,
                             double coinReward, int relicReward) {
             this.id = id;
+            this.kind = kind;
             this.displayName = displayName;
             this.entityType = entityType;
             this.maxHp = maxHp;
@@ -68,10 +83,12 @@ public final class BossEventManager {
     public static final class ActiveBossEvent {
         public String instanceId;
         public BossTemplate template;
-        public Location center; // chest location
+        public Location center; // loot chest location
         public UUID bossUuid;
         public BossBar bossBar;
-        public boolean bossDefeated = false;
+        public boolean bossDefeated = false; // true = unlocked / open chest!
+        public int unlockCountdownSec = 0;   // >0 while timed event (airdrop/meteor/beacon/citadel) is unlocking
+        public int unlockTotalSec = 180;
         public int secondsLeft;
         public final Map<String, Double> damageMap = new HashMap<String, Double>();
         public final Map<Location, BlockState> savedBlocks = new LinkedHashMap<Location, BlockState>();
@@ -81,9 +98,8 @@ public final class BossEventManager {
     private final KingGriefCore plugin;
     private final Random rng = new Random();
     private final Map<String, BossTemplate> templates = new LinkedHashMap<String, BossTemplate>();
-    // LinkedHashMap preserves exact insertion order -> BossBars stack cleanly top-to-bottom without overlapping!
     private final Map<String, ActiveBossEvent> activeEvents = new LinkedHashMap<String, ActiveBossEvent>();
-    private int autoCountdownSec = 420; // First auto-boss in 7 minutes, then every 12 minutes
+    private int autoCountdownSec = 360;
     private int seq = 1;
 
     public BossEventManager(KingGriefCore plugin) {
@@ -92,21 +108,46 @@ public final class BossEventManager {
     }
 
     private void registerTemplates() {
+        // 5 Mythic Bosses
         templates.put("grinch", new BossTemplate(
-                "grinch", "&#80D8FF❄ Ледяной Король Гринч", EntityType.STRAY, 800.0,
+                "grinch", EventKind.BOSS, "&#80D8FF❄ Ледяной Король Гринч", EntityType.STRAY, 800.0,
                 BarColor.BLUE, BarStyle.SEGMENTED_10, Material.PACKED_ICE, 75000.0, 25));
         templates.put("krush", new BossTemplate(
-                "krush", "&#FF1744🔥 Адский Крушитель", EntityType.WITHER_SKELETON, 1100.0,
+                "krush", EventKind.BOSS, "&#FF1744🔥 Адский Крушитель", EntityType.WITHER_SKELETON, 1100.0,
                 BarColor.RED, BarStyle.SEGMENTED_12, Material.CRYING_OBSIDIAN, 100000.0, 35));
         templates.put("titan", new BossTemplate(
-                "titan", "&#FFD740⚡ Титан Олимпа", EntityType.IRON_GOLEM, 1400.0,
+                "titan", EventKind.BOSS, "&#FFD740⚡ Титан Олимпа", EntityType.IRON_GOLEM, 1400.0,
                 BarColor.YELLOW, BarStyle.SEGMENTED_20, Material.GOLD_BLOCK, 125000.0, 40));
         templates.put("osiris", new BossTemplate(
-                "osiris", "&#00E676☠ Фараон Осирис", EntityType.HUSK, 950.0,
+                "osiris", EventKind.BOSS, "&#00E676☠ Фараон Осирис", EntityType.HUSK, 950.0,
                 BarColor.GREEN, BarStyle.SEGMENTED_10, Material.EMERALD_BLOCK, 90000.0, 30));
         templates.put("andromeda", new BossTemplate(
-                "andromeda", "&#E040FB🌠 Страж Андромеды", EntityType.BLAZE, 900.0,
+                "andromeda", EventKind.BOSS, "&#E040FB🌠 Страж Андромеды", EntityType.BLAZE, 900.0,
                 BarColor.PURPLE, BarStyle.SEGMENTED_10, Material.AMETHYST_BLOCK, 95000.0, 32));
+
+        // 4 Distinct Non-Boss World Events (AirDrop + 3 New World Events!)
+        templates.put("airdrop", new BossTemplate(
+                "airdrop", EventKind.AIRDROP, "&#FF9100🪂 Военный АирДроп Снабжения", null, 150.0,
+                BarColor.YELLOW, BarStyle.SEGMENTED_10, Material.RED_SHULKER_BOX, 80000.0, 30));
+        templates.put("meteor", new BossTemplate(
+                "meteor", EventKind.METEOR, "&#FF5252☄ Звёздный Метеорит", null, 150.0,
+                BarColor.RED, BarStyle.SEGMENTED_12, Material.MAGMA_BLOCK, 95000.0, 35));
+        templates.put("beacon", new BossTemplate(
+                "beacon", EventKind.BEACON, "&#FFD740💎 Золотой Маяк Богатства", null, 180.0,
+                BarColor.GREEN, BarStyle.SEGMENTED_10, Material.BEACON, 110000.0, 40));
+        templates.put("citadel", new BossTemplate(
+                "citadel", EventKind.FROST_CITADEL, "&#40C4FF❄ Ледяная Цитадель Санты", null, 150.0,
+                BarColor.WHITE, BarStyle.SEGMENTED_10, Material.BLUE_ICE, 100000.0, 35));
+    }
+
+    /**
+     * Строгая проверка: призывать ивенты через меню / команды могут ТОЛЬКО Админы и выше (D.ADMIN+, Куратор, Тех.Админ, OWNER),
+     * а НЕ обычные игроки/донатеры (даже если игрок тестирует ранг Игрок с включённым /op!).
+     */
+    public boolean canAdminSpawnEvents(Player p) {
+        if (p == null) return false;
+        RankManager.RankDef r = plugin.getRanks().getRank(p);
+        return r.weight >= 200; // dadmin (200), dkp (210), opka (215), downer (220), kp (285), curator (290), techadmin (295), owner (300)
     }
 
     public void start() {
@@ -152,29 +193,37 @@ public final class BossEventManager {
     }
 
     public ActiveBossEvent startRandomEvent() {
-        List<BossTemplate> list = new ArrayList<BossTemplate>(templates.values());
-        // Prefer a template not currently active so bars look maximally distinct
-        List<BossTemplate> unused = new ArrayList<BossTemplate>();
-        for (BossTemplate bt : list) {
+        // Alternate richly between AirDrop, Meteor, Beacon, Frost Citadel, and Mythic Bosses!
+        String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "grinch", "krush", "titan", "osiris", "andromeda"};
+        List<String> unused = new ArrayList<String>();
+        for (String pid : pool) {
             boolean used = false;
             for (ActiveBossEvent ev : activeEvents.values()) {
-                if (ev.template.id.equals(bt.id)) { used = true; break; }
+                if (ev.template.id.equals(pid)) { used = true; break; }
             }
-            if (!used) unused.add(bt);
+            if (!used) unused.add(pid);
         }
-        BossTemplate pick = unused.isEmpty() ? list.get(rng.nextInt(list.size())) : unused.get(rng.nextInt(unused.size()));
-        return spawnBossEvent(pick.id, null);
+        String pick = unused.isEmpty() ? pool[rng.nextInt(pool.length)] : unused.get(rng.nextInt(unused.size()));
+        return spawnBossEvent(pick, null);
+    }
+
+    public ActiveBossEvent startRandomBossOnly() {
+        String[] bosses = new String[]{"grinch", "krush", "titan", "osiris", "andromeda"};
+        return spawnBossEvent(bosses[rng.nextInt(bosses.length)], null);
     }
 
     public ActiveBossEvent spawnBossEvent(String templateId, Location forcedCenter) {
         if (activeEvents.size() >= 4) {
-            // Remove oldest finished/expiring event if 4 already stacked so screen stays readable
             String oldest = activeEvents.keySet().iterator().next();
             endEvent(oldest, false);
         }
-        BossTemplate tpl = templates.get(templateId == null ? "" : templateId.toLowerCase(Locale.ROOT));
+        String key = templateId == null ? "" : templateId.toLowerCase(Locale.ROOT);
+        if ("boss".equals(key)) {
+            return startRandomBossOnly();
+        }
+        BossTemplate tpl = templates.get(key);
         if (tpl == null) {
-            tpl = templates.get("grinch");
+            tpl = templates.get("airdrop");
         }
 
         World surv = forcedCenter != null && forcedCenter.getWorld() != null
@@ -182,28 +231,40 @@ public final class BossEventManager {
                 : VoidSpawnWorldGenerator.getSurvivalWorld();
         if (surv == null) return null;
 
-        Location center = forcedCenter != null ? forcedCenter.getBlock().getLocation() : findNonOverlappingSpot(surv);
+        Location center = forcedCenter != null ? forcedCenter.getBlock().getLocation() : findStrictDryLandSpot(surv);
         if (center == null) return null;
 
         ActiveBossEvent ev = new ActiveBossEvent();
         ev.instanceId = tpl.id + "_" + (seq++);
         ev.template = tpl;
         ev.center = center;
-        ev.secondsLeft = 900; // 15 minutes
 
-        // Build 5x5 event altar & save original blocks
-        buildEventAltar(ev);
+        if (tpl.kind == EventKind.BOSS) {
+            ev.secondsLeft = 900;
+            ev.unlockCountdownSec = 0;
+            buildBossAltar(ev);
 
-        // Spawn Boss Mob above altar
-        Location bossLoc = center.clone().add(0.5, 1.2, 2.5);
-        LivingEntity boss = (LivingEntity) surv.spawnEntity(bossLoc, tpl.entityType);
-        configureBossEntity(boss, tpl, ev.instanceId);
-        ev.bossUuid = boss.getUniqueId();
+            Location bossLoc = center.clone().add(0.5, 1.2, 2.5);
+            LivingEntity boss = (LivingEntity) surv.spawnEntity(bossLoc, tpl.entityType);
+            configureBossEntity(boss, tpl, ev.instanceId);
+            ev.bossUuid = boss.getUniqueId();
+        } else {
+            ev.unlockTotalSec = (int) tpl.maxHp;
+            ev.unlockCountdownSec = ev.unlockTotalSec;
+            ev.secondsLeft = ev.unlockTotalSec + 180;
+            if (tpl.kind == EventKind.AIRDROP) {
+                buildBeautifulAirdropStructure(ev);
+            } else if (tpl.kind == EventKind.METEOR) {
+                buildStarMeteorStructure(ev);
+            } else if (tpl.kind == EventKind.BEACON) {
+                buildGoldenBeaconStructure(ev);
+            } else {
+                buildFrostCitadelStructure(ev);
+            }
+        }
 
-        // Spawn floating hologram lines above Event Chest
         spawnChestHologram(ev);
 
-        // Create dedicated BossBar (automatically stacks BELOW any existing BossBars at top-center!)
         String initTitle = formatBarTitle(ev, tpl.maxHp);
         BossBar bar = Bukkit.createBossBar(initTitle, tpl.barColor, tpl.barStyle);
         bar.setProgress(1.0);
@@ -214,79 +275,280 @@ public final class BossEventManager {
         ev.bossBar = bar;
         activeEvents.put(ev.instanceId, ev);
 
-        int bx = center.getBlockX(), by = center.getBlockY(), bz = center.getBlockZ();
-        Bukkit.broadcastMessage("");
-        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l╔══════════════════════════════════════════╗"));
-        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l║  \uE97A &#FFD740&lНОВЫЙ БОСС-ИВЕНТ НА СЕРВЕРЕ! &#FF1744&l        ║"));
-        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l║  &fБосс: " + tpl.displayName + " &7(&c" + (int) tpl.maxHp + " ❤&7)"));
-        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l║  &fМир: &#00E676Выживание (/rtp) &8| &fКоординаты: &#80D8FF" + bx + ", " + by + ", " + bz));
-        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l║  &7Убейте Босса, чтобы открыть Мифический Сундук!"));
-        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l╚══════════════════════════════════════════╝"));
-        Bukkit.broadcastMessage("");
-        for (Player on : Bukkit.getOnlinePlayers()) {
-            ColorUtil.sound(on, "entity.ender_dragon.growl", 0.75f, 0.9f);
-        }
+        announceEventSpawn(ev);
         return ev;
     }
 
-    private Location findNonOverlappingSpot(World surv) {
-        for (int attempt = 0; attempt < 40; attempt++) {
-            int x = rng.nextInt(2200) - 1100;
-            int z = rng.nextInt(2200) - 1100;
-            if (Math.abs(x) < 200 && Math.abs(z) < 200) continue;
+    private void announceEventSpawn(ActiveBossEvent ev) {
+        int bx = ev.center.getBlockX(), by = ev.center.getBlockY(), bz = ev.center.getBlockZ();
+        Bukkit.broadcastMessage("");
+        Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l╔══════════════════════════════════════════════╗"));
+        if (ev.template.kind == EventKind.BOSS) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF1744&l👹 НОВЫЙ БОСС-ИВЕНТ НА СУШЕ!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &fБосс: " + ev.template.displayName + " &7(&c" + (int) ev.template.maxHp + " ❤&7)"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Убейте Босса, чтобы распечатать Мифический Сундук!"));
+        } else if (ev.template.kind == EventKind.AIRDROP) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF9100&l🪂 СБРОШЕН ВОЕННЫЙ АИРДРОП НА ЗЕМЛЮ!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Купол с парашютом приземлился на суше — открытие через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
+        } else if (ev.template.kind == EventKind.METEOR) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF5252&l☄ УПАЛ ЗВЁЗДНЫЙ МЕТЕОРИТ С РУДАМИ!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Добывайте алмазы/незерит в кратере! Ядро откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
+        } else if (ev.template.kind == EventKind.BEACON) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#00E676&l💎 АКТИВИРОВАН ЗОЛОТОЙ МАЯК БОГАТСТВА!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Стойте рядом с Маяком — каждые 5 сек капают &a+3 000$ &7и &b+2❖&7!"));
+        } else {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#40C4FF&l❄ ВЫРОСЛА ЛЕДЯНАЯ ЦИТАДЕЛЬ САНТЫ!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Захватите ротонду — Ледяной Сундук откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
+        }
+        Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &fМир: &#00E676Выживание (/rtp) &8│ &fКоординаты: &#80D8FF" + bx + ", " + by + ", " + bz));
+        Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l╚══════════════════════════════════════════════╝"));
+        Bukkit.broadcastMessage("");
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            ColorUtil.sound(on, ev.template.kind == EventKind.BOSS ? "entity.ender_dragon.growl" : "block.beacon.activate", 0.85f, 1.05f);
+        }
+    }
 
-            // Ensure >= 450 blocks distance from ALL other active Boss Events so they NEVER overlap!
+    /**
+     * 100% сухопутный поиск координат: НИКОГДА не спавнит в океане, море, реке, болоте, воде, лаве или на льду над водой!
+     */
+    private Location findStrictDryLandSpot(World surv) {
+        for (int attempt = 0; attempt < 140; attempt++) {
+            int x = rng.nextInt(2400) - 1200;
+            int z = rng.nextInt(2400) - 1200;
+            if (Math.abs(x) < 180 && Math.abs(z) < 180) continue;
+
             boolean tooClose = false;
             for (ActiveBossEvent other : activeEvents.values()) {
                 if (other.center.getWorld() != null && other.center.getWorld().equals(surv)) {
-                    double dx = other.center.getBlockX() - x;
-                    double dz = other.center.getBlockZ() - z;
-                    if (Math.hypot(dx, dz) < 450.0) {
+                    if (Math.hypot(other.center.getBlockX() - x, other.center.getBlockZ() - z) < 380.0) {
                         tooClose = true;
                         break;
                     }
                 }
             }
             if (tooClose) continue;
-            if (plugin.getStore().overlapsAnyClaim(surv.getName(), x, z, 15)) continue;
+            if (plugin.getStore().overlapsAnyClaim(surv.getName(), x, z, 16)) continue;
 
-            surv.getChunkAt(x >> 4, z >> 4).load();
-            Block highest = surv.getHighestBlockAt(x, z);
-            Material m = highest.getType();
-            if (m == Material.WATER || m == Material.LAVA || m.name().contains("LEAVES")) continue;
-            return highest.getLocation().add(0, 1, 0);
+            Location dry = inspectDryColumn(surv, x, z);
+            if (dry != null) return dry;
         }
-        Block fb = surv.getHighestBlockAt(450 + activeEvents.size() * 500, 450);
+        // Spiral scan fallback until strict dry land is found
+        for (int r = 250; r <= 2000; r += 85) {
+            for (int deg = 0; deg < 360; deg += 30) {
+                int x = (int) Math.round(Math.cos(Math.toRadians(deg)) * r);
+                int z = (int) Math.round(Math.sin(Math.toRadians(deg)) * r);
+                Location dry = inspectDryColumn(surv, x, z);
+                if (dry != null) return dry;
+            }
+        }
+        Block fb = surv.getHighestBlockAt(350, 350);
         return fb.getLocation().add(0, 1, 0);
     }
 
-    private void buildEventAltar(ActiveBossEvent ev) {
-        Location c = ev.center;
-        World w = c.getWorld();
-        if (w == null) return;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                Location floor = c.clone().add(dx, -1, dz);
-                saveBlock(ev, floor);
-                boolean border = Math.abs(dx) == 2 || Math.abs(dz) == 2;
-                floor.getBlock().setType(border ? Material.OBSIDIAN : ev.template.platformMat);
-                for (int dy = 0; dy <= 3; dy++) {
-                    Location air = c.clone().add(dx, dy, dz);
-                    saveBlock(ev, air);
-                    air.getBlock().setType(Material.AIR);
+    private Location inspectDryColumn(World surv, int x, int z) {
+        surv.getChunkAt(x >> 4, z >> 4).load();
+        try {
+            Biome bio = surv.getBiome(x, 70, z);
+            if (bio != null) {
+                String bn = bio.name().toUpperCase(Locale.ROOT);
+                if (bn.contains("OCEAN") || bn.contains("RIVER") || bn.contains("BEACH") || bn.contains("SWAMP")) {
+                    return null;
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        int topY = surv.getHighestBlockYAt(x, z);
+        // Step down through leaves/snow/grass/logs to find true solid terrain
+        int groundY = -1;
+        for (int y = topY; y >= 62; y--) {
+            Material m = surv.getBlockAt(x, y, z).getType();
+            String mn = m.name();
+            if (m == Material.AIR || mn.contains("LEAVES") || mn.contains("LOG") || mn.contains("GRASS") && m != Material.GRASS_BLOCK
+                    || mn.contains("FERN") || mn.contains("FLOWER") || m == Material.SNOW || mn.contains("VINE")) {
+                continue;
+            }
+            if (isWetOrAquatic(m)) return null;
+            if (m.isSolid()) {
+                groundY = y;
+                break;
+            }
+            return null;
+        }
+        if (groundY < 63 || groundY > 135) return null;
+
+        // Verify 7x7 area around (x, groundY, z) has ZERO water/lava/ice/kelp!
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                for (int dy = -2; dy <= 2; dy++) {
+                    Material check = surv.getBlockAt(x + dx, groundY + dy, z + dz).getType();
+                    if (isWetOrAquatic(check)) return null;
                 }
             }
         }
-        // Corner pillars
+        return new Location(surv, x, groundY + 1, z);
+    }
+
+    private boolean isWetOrAquatic(Material m) {
+        if (m == null) return false;
+        String n = m.name();
+        return m == Material.WATER || m == Material.LAVA || m == Material.BUBBLE_COLUMN
+                || m == Material.ICE || m == Material.FROSTED_ICE || m == Material.KELP
+                || m == Material.KELP_PLANT || m == Material.SEAGRASS || m == Material.TALL_SEAGRASS
+                || n.contains("CORAL") || m == Material.LILY_PAD;
+    }
+
+    // ================= ARCHITECTURAL EVENT STRUCTURES =================
+    private void clearAndSavePad(ActiveBossEvent ev, int radius, int height) {
+        Location c = ev.center;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                for (int dy = -1; dy <= height; dy++) {
+                    Location l = c.clone().add(dx, dy, dz);
+                    saveBlock(ev, l);
+                    if (dy >= 0) l.getBlock().setType(Material.AIR, false);
+                }
+            }
+        }
+    }
+
+    private void buildBossAltar(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 2, 4);
+        Location c = ev.center;
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                boolean border = Math.abs(dx) == 2 || Math.abs(dz) == 2;
+                c.clone().add(dx, -1, dz).getBlock().setType(border ? Material.OBSIDIAN : ev.template.platformMat, false);
+            }
+        }
         int[][] corners = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
         for (int[] cr : corners) {
-            Location p1 = c.clone().add(cr[0], 0, cr[1]);
-            Location p2 = c.clone().add(cr[0], 1, cr[1]);
-            p1.getBlock().setType(Material.COBBLED_DEEPSLATE_WALL);
-            p2.getBlock().setType(Material.SEA_LANTERN);
+            c.clone().add(cr[0], 0, cr[1]).getBlock().setType(Material.COBBLED_DEEPSLATE_WALL, false);
+            c.clone().add(cr[0], 1, cr[1]).getBlock().setType(Material.SEA_LANTERN, false);
         }
-        // Center Loot Chest
-        c.getBlock().setType(Material.ENDER_CHEST); // Locked visual until boss dies, then turns into CHEST with loot!
+        c.getBlock().setType(Material.ENDER_CHEST, false);
+    }
+
+    /**
+     * 🪂 Красивейший Военный АирДроп на сухой земле с парашютным куполом сверху, сигнальными огнями и грузовыми опорами!
+     */
+    private void buildBeautifulAirdropStructure(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 3, 9);
+        Location c = ev.center;
+        // 5x5 Armored Landing Pad with yellow/black hazard trim & glowing beacons
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                Material floor;
+                if (Math.abs(dx) == 2 || Math.abs(dz) == 2) {
+                    floor = ((dx + dz) & 1) == 0 ? Material.YELLOW_CONCRETE : Material.BLACK_CONCRETE;
+                } else if (dx == 0 || dz == 0) {
+                    floor = Material.SEA_LANTERN;
+                } else {
+                    floor = Material.IRON_BLOCK;
+                }
+                c.clone().add(dx, -1, dz).getBlock().setType(floor, false);
+            }
+        }
+        // Corner flare campfires + iron bar parachute rigging up to Y+5..Y+7 parachute canopy!
+        int[][] corners = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
+        for (int[] cr : corners) {
+            c.clone().add(cr[0], 0, cr[1]).getBlock().setType(Material.CAMPFIRE, false);
+        }
+        int[][] cords = new int[][]{{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
+        for (int[] cd : cords) {
+            for (int dy = 1; dy <= 5; dy++) {
+                c.clone().add(cd[0], dy, cd[1]).getBlock().setType(Material.IRON_BARS, false);
+            }
+        }
+        // Parachute Canopy Dome at dy = 6..7 (Red & White striped parachute!)
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int dist = Math.abs(dx) + Math.abs(dz);
+                if (dist <= 3) {
+                    int dy = dist <= 1 ? 7 : 6;
+                    Material wool = (dx & 1) == 0 ? Material.RED_WOOL : Material.WHITE_WOOL;
+                    c.clone().add(dx, dy, dz).getBlock().setType(wool, false);
+                }
+            }
+        }
+        // Supply Crate Core (Locked Red Shulker / EnderChest until timer hits 0)
+        c.getBlock().setType(Material.ENDER_CHEST, false);
+    }
+
+    /**
+     * ☄ Звёздный Метеорит: кратер из обсидиана, магмы, аметистов и настоящих алмазных руд!
+     */
+    private void buildStarMeteorStructure(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 3, 5);
+        Location c = ev.center;
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                double d = Math.hypot(dx, dz);
+                if (d > 3.2) continue;
+                Material m = d < 1.5 ? Material.CRYING_OBSIDIAN
+                        : (rng.nextInt(3) == 0 ? Material.MAGMA_BLOCK : Material.OBSIDIAN);
+                c.clone().add(dx, -1, dz).getBlock().setType(m, false);
+                if (d >= 2.2 && d <= 3.1 && rng.nextBoolean()) {
+                    c.clone().add(dx, 0, dz).getBlock().setType(rng.nextBoolean() ? Material.AMETHYST_BLOCK : Material.MAGMA_BLOCK, false);
+                }
+            }
+        }
+        // Bonus mineable ores around the meteor core!
+        c.clone().add(1, 0, 0).getBlock().setType(Material.DEEPSLATE_DIAMOND_ORE, false);
+        c.clone().add(-1, 0, 0).getBlock().setType(Material.DEEPSLATE_EMERALD_ORE, false);
+        c.clone().add(0, 0, 1).getBlock().setType(Material.GOLD_BLOCK, false);
+        c.clone().add(0, 0, -1).getBlock().setType(Material.AMETHYST_BLOCK, false);
+        c.getBlock().setType(Material.ENDER_CHEST, false);
+    }
+
+    /**
+     * 💎 Золотой Маяк Богатства: настоящая 3x3 золотая пирамида + активный Маяк под сундуком сокровищ!
+     */
+    private void buildGoldenBeaconStructure(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 3, 5);
+        Location c = ev.center;
+        // 3x3 Gold Pyramid base at y-2 and Beacon at y-1 so a real Minecraft Beacon beam shoots skyward!
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                Location b2 = c.clone().add(dx, -2, dz);
+                saveBlock(ev, b2);
+                if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                    b2.getBlock().setType(Material.GOLD_BLOCK, false);
+                }
+                c.clone().add(dx, -1, dz).getBlock().setType(
+                        (dx == 0 && dz == 0) ? Material.BEACON
+                                : (Math.abs(dx) == 2 || Math.abs(dz) == 2 ? Material.EMERALD_BLOCK : Material.GOLD_BLOCK),
+                        false);
+            }
+        }
+        int[][] corners = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
+        for (int[] cr : corners) {
+            c.clone().add(cr[0], 0, cr[1]).getBlock().setType(Material.QUARTZ_PILLAR, false);
+            c.clone().add(cr[0], 1, cr[1]).getBlock().setType(Material.SEA_LANTERN, false);
+        }
+        // Stained glass while locked so Beacon beam shines right through to the sky!
+        c.getBlock().setType(Material.YELLOW_STAINED_GLASS, false);
+    }
+
+    /**
+     * ❄ Ледяная Цитадель Санты: кварцево-ледяная ротонда с морозным куполом!
+     */
+    private void buildFrostCitadelStructure(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 3, 6);
+        Location c = ev.center;
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                Material fl = ((dx + dz) & 1) == 0 ? Material.BLUE_ICE : Material.SMOOTH_QUARTZ;
+                c.clone().add(dx, -1, dz).getBlock().setType(fl, false);
+            }
+        }
+        int[][] pillars = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
+        for (int[] pl : pillars) {
+            for (int dy = 0; dy <= 2; dy++) {
+                c.clone().add(pl[0], dy, pl[1]).getBlock().setType(Material.QUARTZ_PILLAR, false);
+            }
+            c.clone().add(pl[0], 3, pl[1]).getBlock().setType(Material.SEA_LANTERN, false);
+        }
+        c.getBlock().setType(Material.ENDER_CHEST, false);
     }
 
     private void saveBlock(ActiveBossEvent ev, Location loc) {
@@ -298,18 +560,29 @@ public final class BossEventManager {
 
     private void spawnChestHologram(ActiveBossEvent ev) {
         removeHologram(ev);
-        String[] lines = ev.bossDefeated
-                ? new String[]{
-                        "&#00E676&l🔓 МИФИЧЕСКИЙ СУНДУК ОТКРЫТ!",
-                        "&fБосс повержен: " + ev.template.displayName,
-                        "&#FFD740▸ Открой и забери награду РВ!"
-                }
-                : new String[]{
-                        "&#FF1744&l🔒 СУНДУК ЗАПЕЧАТАН БОССОМ",
-                        "&fСтраж: " + ev.template.displayName,
-                        "&7Убейте Босса рядом, чтобы открыть!"
-                };
-        double baseY = ev.center.getY() + 1.95;
+        String[] lines;
+        if (ev.bossDefeated) {
+            lines = new String[]{
+                    "&#00E676&l🔓 СОКРОВИЩНИЦА ОТКРЫТА!",
+                    "&fИвент: " + ev.template.displayName,
+                    "&#FFD740▸ Забирай редкий 3D лут скорее!"
+            };
+        } else if (ev.template.kind == EventKind.BOSS) {
+            lines = new String[]{
+                    "&#FF1744&l🔒 СУНДУК ЗАПЕЧАТАН БОССОМ",
+                    "&fСтраж: " + ev.template.displayName,
+                    "&7Убейте Босса рядом, чтобы открыть!"
+            };
+        } else {
+            lines = new String[]{
+                    ev.template.displayName,
+                    "&#FFD740⏳ До открытия замка: &f" + ColorUtil.fmtTime(ev.unlockCountdownSec),
+                    ev.template.kind == EventKind.BEACON
+                            ? "&#00E676💰 Раздаёт по +3 000$ и +2❖ каждые 5 сек!"
+                            : "&7Удерживайте точку от других игроков!"
+            };
+        }
+        double baseY = ev.center.getY() + 2.05;
         for (int i = 0; i < lines.length; i++) {
             Location hl = ev.center.clone().add(0.5, baseY - i * 0.28, 0.5);
             ArmorStand as = (ArmorStand) hl.getWorld().spawnEntity(hl, EntityType.ARMOR_STAND);
@@ -387,21 +660,26 @@ public final class BossEventManager {
 
     private String formatBarTitle(ActiveBossEvent ev, double curHp) {
         int bx = ev.center.getBlockX(), by = ev.center.getBlockY(), bz = ev.center.getBlockZ();
-        if (!ev.bossDefeated) {
+        if (ev.bossDefeated) {
+            return ColorUtil.c("&#00E676&l🔓 ОТКРЫТ &8(" + ev.template.displayName + "&8)"
+                    + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz
+                    + " &8│ &#FFD740⏳ " + ColorUtil.fmtTime(ev.secondsLeft));
+        }
+        if (ev.template.kind == EventKind.BOSS) {
             return ColorUtil.c(ev.template.displayName
                     + " &8│ &c❤ " + (int) Math.ceil(curHp) + "&7/&c" + (int) ev.template.maxHp
                     + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz
                     + " &8│ &#FFD740⏳ " + ColorUtil.fmtTime(ev.secondsLeft));
         }
-        return ColorUtil.c("&#00E676&l🔓 СУНДУК ОТКРЫТ &8(" + ev.template.displayName + "&8)"
-                + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz
-                + " &8│ &#FFD740⏳ " + ColorUtil.fmtTime(ev.secondsLeft));
+        return ColorUtil.c(ev.template.displayName
+                + " &8│ &#FFD740🔒 Открытие: &f" + ColorUtil.fmtTime(ev.unlockCountdownSec)
+                + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz);
     }
 
     private void tickSecond() {
         autoCountdownSec--;
         if (autoCountdownSec <= 0) {
-            autoCountdownSec = 720; // Next auto-event in 12 minutes
+            autoCountdownSec = 600; // Every 10 minutes auto-spawn a world event or boss!
             if (activeEvents.size() < 3) {
                 startRandomEvent();
             }
@@ -416,38 +694,177 @@ public final class BossEventManager {
                 toEnd.add(ev.instanceId);
                 continue;
             }
+
             double curHp = 0.0;
-            if (!ev.bossDefeated) {
-                Entity e = ev.bossUuid != null ? Bukkit.getEntity(ev.bossUuid) : null;
-                if (e instanceof LivingEntity && !e.isDead()) {
-                    LivingEntity le = (LivingEntity) e;
-                    curHp = le.getHealth();
-                    le.setCustomName(ColorUtil.c(ev.template.displayName + " &c❤ " + (int) Math.ceil(curHp)));
-                    // Keep boss near its event altar so it never wanders into ocean/caves
-                    if (le.getLocation().distanceSquared(ev.center) > 22 * 22) {
-                        le.teleport(ev.center.clone().add(0.5, 1.2, 1.5));
+            if (ev.template.kind == EventKind.BOSS) {
+                if (!ev.bossDefeated) {
+                    Entity e = ev.bossUuid != null ? Bukkit.getEntity(ev.bossUuid) : null;
+                    if (e instanceof LivingEntity && !e.isDead()) {
+                        LivingEntity le = (LivingEntity) e;
+                        curHp = le.getHealth();
+                        le.setCustomName(ColorUtil.c(ev.template.displayName + " &c❤ " + (int) Math.ceil(curHp)));
+                        if (le.getLocation().distanceSquared(ev.center) > 22 * 22) {
+                            le.teleport(ev.center.clone().add(0.5, 1.2, 1.5));
+                        }
+                        if (ev.secondsLeft % 9 == 0) {
+                            castBossSkill(ev, le);
+                        }
+                    } else if (ev.center.getChunk().isLoaded()) {
+                        onBossSlain(ev, null);
+                    } else {
+                        curHp = ev.template.maxHp;
                     }
-                    // Boss Special Ability every 9 seconds!
-                    if (ev.secondsLeft % 9 == 0) {
-                        castBossSkill(ev, le);
+                }
+            } else {
+                // Timed World Events: AirDrop, Meteor, Golden Beacon, Frost Citadel!
+                tickWorldEventVisualsAndRewards(ev);
+                if (!ev.bossDefeated) {
+                    ev.unlockCountdownSec--;
+                    if (ev.unlockCountdownSec % 5 == 0 && ev.center.getChunk().isLoaded()) {
+                        updateCountdownHoloLine(ev);
                     }
-                } else if (ev.center.getChunk().isLoaded()) {
-                    // Entity died or vanished unexpectedly while chunk loaded -> mark defeated
-                    onBossSlain(ev, null);
-                } else {
-                    curHp = ev.template.maxHp;
+                    if (ev.unlockCountdownSec <= 0) {
+                        unlockTimedWorldEvent(ev);
+                    }
                 }
             }
+
             if (ev.bossBar != null) {
                 ev.bossBar.setTitle(formatBarTitle(ev, curHp));
-                double prog = ev.bossDefeated
-                        ? Math.max(0.0, Math.min(1.0, ev.secondsLeft / 180.0))
-                        : Math.max(0.0, Math.min(1.0, curHp / ev.template.maxHp));
+                double prog;
+                if (ev.bossDefeated) {
+                    prog = Math.max(0.0, Math.min(1.0, ev.secondsLeft / 180.0));
+                } else if (ev.template.kind == EventKind.BOSS) {
+                    prog = Math.max(0.0, Math.min(1.0, curHp / ev.template.maxHp));
+                } else {
+                    prog = Math.max(0.0, Math.min(1.0, (double) ev.unlockCountdownSec / (double) Math.max(1, ev.unlockTotalSec)));
+                }
                 ev.bossBar.setProgress(prog);
             }
         }
         for (String id : toEnd) {
             endEvent(id, true);
+        }
+    }
+
+    private void updateCountdownHoloLine(ActiveBossEvent ev) {
+        if (ev.hologramStands.size() >= 2) {
+            Entity st = Bukkit.getEntity(ev.hologramStands.get(1));
+            if (st instanceof ArmorStand) {
+                st.setCustomName(ColorUtil.c("&#FFD740⏳ До открытия замка: &f" + ColorUtil.fmtTime(Math.max(0, ev.unlockCountdownSec))));
+            }
+        }
+    }
+
+    private void tickWorldEventVisualsAndRewards(ActiveBossEvent ev) {
+        if (!ev.center.getChunk().isLoaded()) return;
+        World w = ev.center.getWorld();
+        if (w == null) return;
+        Location mid = ev.center.clone().add(0.5, 1.2, 0.5);
+
+        if (ev.template.kind == EventKind.AIRDROP) {
+            // Signal flare beam shooting into the sky!
+            for (int dy = 1; dy <= 10; dy += 2) {
+                w.spawnParticle(Particle.FIREWORK, mid.clone().add(0, dy, 0), 4, 0.15, 0.3, 0.15, 0.02);
+            }
+            w.spawnParticle(Particle.FLAME, mid, 8, 0.4, 0.3, 0.4, 0.02);
+        } else if (ev.template.kind == EventKind.METEOR) {
+            w.spawnParticle(Particle.LAVA, mid, 6, 1.2, 0.6, 1.2, 0.02);
+            w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, mid.clone().add(0, 0.8, 0), 5, 0.6, 0.8, 0.6, 0.02);
+        } else if (ev.template.kind == EventKind.BEACON) {
+            w.spawnParticle(Particle.TOTEM_OF_UNDYING, mid.clone().add(0, 0.8, 0), 12, 1.5, 1.0, 1.5, 0.08);
+            // Every 5 seconds, rain real Coins & Relics to all players standing near the Golden Beacon!
+            if (ev.secondsLeft % 5 == 0) {
+                for (Entity ent : w.getNearbyEntities(mid, 14, 10, 14)) {
+                    if (ent instanceof Player) {
+                        Player p = (Player) ent;
+                        plugin.getStore().addCoins(p.getName(), 3000.0);
+                        plugin.getStore().addRelics(p.getName(), 2);
+                        p.giveExp(8);
+                        ColorUtil.sound(p, "entity.experience_orb.pickup", 0.7f, 1.4f);
+                        ColorUtil.actionBar(p, "&#FFD740💎 Маяк Богатства: &a+3 000$ &8│ &b+2 Рилика ❖");
+                    }
+                }
+            }
+        } else if (ev.template.kind == EventKind.FROST_CITADEL) {
+            w.spawnParticle(Particle.SNOWFLAKE, mid.clone().add(0, 0.6, 0), 22, 1.8, 1.2, 1.8, 0.04);
+            w.spawnParticle(Particle.SOUL_FIRE_FLAME, mid, 6, 0.8, 0.4, 0.8, 0.02);
+        }
+    }
+
+    private void unlockTimedWorldEvent(ActiveBossEvent ev) {
+        if (ev.bossDefeated) return;
+        ev.bossDefeated = true;
+        ev.secondsLeft = 180;
+
+        int bx = ev.center.getBlockX(), by = ev.center.getBlockY(), bz = ev.center.getBlockZ();
+        Bukkit.broadcastMessage("");
+        Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l🔓 [ИВЕНТ ОТКРЫТ] &f" + ev.template.displayName
+                + " &#00E676открыл сокровищницу на координатах &#80D8FF" + bx + ", " + by + ", " + bz + "&#00E676!"));
+        Bukkit.broadcastMessage("");
+
+        Block b = ev.center.getBlock();
+        b.setType(Material.CHEST, false);
+        if (b.getState() instanceof Chest) {
+            Chest ch = (Chest) b.getState();
+            populateWorldEventLoot(ch.getBlockInventory(), ev.template.kind);
+        }
+
+        // Fountain-drop bonus loot around AirDrop / Meteor / Citadel!
+        World w = ev.center.getWorld();
+        if (w != null) {
+            ColorUtil.spawnFirework(ev.center);
+            ItemStack[] fountain = new ItemStack[]{
+                    new ItemStack(Material.DIAMOND, 12),
+                    new ItemStack(Material.GOLDEN_CARROT, 32),
+                    new ItemStack(Material.ENDER_PEARL, 16),
+                    ItemFactory.plast(4),
+                    ItemFactory.trapka(2),
+                    ItemFactory.snowflakeCoin(10)
+            };
+            for (ItemStack it : fountain) {
+                org.bukkit.entity.Item dropped = w.dropItemNaturally(ev.center.clone().add(0.5, 1.4, 0.5), it);
+                dropped.setVelocity(new Vector((rng.nextDouble() - 0.5) * 0.45, 0.45, (rng.nextDouble() - 0.5) * 0.45));
+            }
+        }
+        spawnChestHologram(ev);
+    }
+
+    private void populateWorldEventLoot(Inventory inv, EventKind kind) {
+        if (kind == EventKind.AIRDROP) {
+            inv.setItem(4, rng.nextBoolean() ? ItemFactory.sharTitana() : ItemFactory.elytraWind());
+            inv.setItem(10, ItemFactory.plast(8));
+            inv.setItem(11, ItemFactory.trapka(4));
+            inv.setItem(12, ItemFactory.dezorient(3));
+            inv.setItem(13, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 3));
+            inv.setItem(14, ItemFactory.bozhyaAura(2));
+            inv.setItem(15, new ItemStack(Material.ENDER_PEARL, 16));
+            inv.setItem(16, new ItemStack(Material.GOLDEN_CARROT, 64));
+            inv.setItem(22, ItemFactory.potionKiller(2));
+        } else if (kind == EventKind.METEOR) {
+            inv.setItem(4, rng.nextBoolean() ? ItemFactory.sharAresa() : ItemFactory.elytraPhoenix());
+            inv.setItem(11, new ItemStack(Material.NETHERITE_INGOT, 5));
+            inv.setItem(12, ItemFactory.ognennySmerch(4));
+            inv.setItem(13, ItemFactory.pickDjamshut());
+            inv.setItem(14, new ItemStack(Material.DIAMOND_BLOCK, 8));
+            inv.setItem(15, ItemFactory.talKrushitelya());
+            inv.setItem(22, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 4));
+        } else if (kind == EventKind.BEACON) {
+            inv.setItem(4, ItemFactory.sharApollona());
+            inv.setItem(11, new ItemStack(Material.GOLD_BLOCK, 24));
+            inv.setItem(12, new ItemStack(Material.EMERALD_BLOCK, 16));
+            inv.setItem(13, ItemFactory.pickSpawner());
+            inv.setItem(14, ItemFactory.yavnayaPyl(4));
+            inv.setItem(15, ItemFactory.snowflakeCoin(24));
+            inv.setItem(22, ItemFactory.elytraThunder());
+        } else {
+            inv.setItem(4, rng.nextBoolean() ? ItemFactory.elytraSanta() : ItemFactory.sharSanty());
+            inv.setItem(11, ItemFactory.snezokZamorozki(8));
+            inv.setItem(12, ItemFactory.pautinnayaGranata(6));
+            inv.setItem(13, ItemFactory.talStuzhi());
+            inv.setItem(14, ItemFactory.nyMandarin(16));
+            inv.setItem(15, ItemFactory.potionChampagne(2));
+            inv.setItem(22, ItemFactory.talFeniksa(3));
         }
     }
 
@@ -533,9 +950,8 @@ public final class BossEventManager {
     private void onBossSlain(ActiveBossEvent ev, Player killer) {
         if (ev.bossDefeated) return;
         ev.bossDefeated = true;
-        ev.secondsLeft = 180; // 3 minutes to loot chest!
+        ev.secondsLeft = 180;
 
-        // Sort top damagers
         List<Map.Entry<String, Double>> top = new ArrayList<Map.Entry<String, Double>>(ev.damageMap.entrySet());
         Collections.sort(top, new Comparator<Map.Entry<String, Double>>() {
             @Override
@@ -572,13 +988,11 @@ public final class BossEventManager {
         Bukkit.broadcastMessage("");
         plugin.getStore().save();
 
-        // Replace EnderChest seal with real Loot Chest stocked with authentic ReallyWorld items!
         Block b = ev.center.getBlock();
-        b.setType(Material.CHEST);
+        b.setType(Material.CHEST, false);
         if (b.getState() instanceof Chest) {
             Chest ch = (Chest) b.getState();
-            Inventory inv = ch.getBlockInventory();
-            populateBossChestLoot(inv, ev.template.id);
+            populateBossChestLoot(ch.getBlockInventory(), ev.template.id);
         }
         spawnChestHologram(ev);
         ColorUtil.spawnFirework(ev.center);
@@ -612,7 +1026,6 @@ public final class BossEventManager {
             if (e != null) e.remove();
         }
         removeHologram(ev);
-        // Clear chest inventory before restoring terrain so items don't scatter
         if (ev.center.getBlock().getState() instanceof Chest) {
             ((Chest) ev.center.getBlock().getState()).getBlockInventory().clear();
         }
@@ -622,7 +1035,7 @@ public final class BossEventManager {
             try { st.update(true, false); } catch (Throwable ignored) {}
         }
         if (announce && !ev.bossDefeated) {
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName + " &7истекло, алтарь исчез."));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName + " &7истекло, постройка исчезла."));
         }
     }
 }

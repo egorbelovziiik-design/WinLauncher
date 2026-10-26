@@ -1,45 +1,6 @@
 name: default
 permissions:
-- weight.10
-- essentials.spawn
-- essentials.kit
-- essentials.kits.start
-- essentials.kits.newyear
-- essentials.sethome
-- essentials.sethome.multiple.default
-- essentials.home
-- essentials.delhome
-- essentials.tpa
-- essentials.tpaccept
-- essentials.tpdeny
-- essentials.pay
-- essentials.balance
-- essentials.balancetop
-- essentials.msg
-- essentials.reply
-- essentials.ignore
-- essentials.mail
-- essentials.mail.send
-- essentials.suicide
-- essentials.list
-- essentials.rules
-- essentials.motd
-- betterrtp.use
-- protectionstones.create
-- protectionstones.destroy
-- protectionstones.view
-- protectionstones.info
-- protectionstones.members
-- protectionstones.owners
-- protectionstones.flags
-- protectionstones.limit.2
-- crazyauctions.access
-- crazyauctions.sell
-- crazyauctions.bid
-- clanslite.player
-- jobs.use
-- playerpoints.points
-- playerpoints.pay
+- weight.1
 prefixes:
-- '&#B0BEC5Игрок &f':
-    priority: 10
+- '&f &f':
+    priority: 1

@@ -1,135 +1,95 @@
-last-created-npc-id: 15
+last-created-npc-id: 24
 npc:
   '0':
     name: ''
-    uuid: b0f66a29-634c-5e45-9222-d928bd4cf071
+    uuid: 9040974d-181b-5b75-aca0-e4340c5b8744
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: -5.5
-        y: 101.0
-        z: 8.5
-        yaw: -35.0
+        world: spawn_world
+        x: 0.5
+        y: 100.0
+        z: 42.5
+        yaw: 180.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
+      skintrait:
+        skinName: MHF_Enderman
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: rtp gui
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '1':
+    name: ''
+    uuid: 5978aa7a-b0dc-5a49-a2b5-35c100896796
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: -5.5
+        y: 100.0
+        z: 12.5
+        yaw: 165.0
+        pitch: 0.0
       skintrait:
         skinName: Santa
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: nyshop
+            command: daily
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '1':
-    name: ''
-    uuid: 9f551e66-b0b8-52ec-8ff3-8cff2c1ff0ff
-    traits:
-      type: PLAYER
-      location:
-        world: world
-        x: 6.5
-        y: 101.0
-        z: 8.5
-        yaw: 35.0
-        pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
-      skintrait:
-        skinName: SnowMaiden
-        fetchDefaultSkin: true
-      commandtrait:
-        commands:
-          '0':
-            command: gifts
-            hand: BOTH
-            player: true
-            op: false
-            cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
+    traitnames: type,spawned,location,skintrait,commandtrait
   '2':
     name: ''
-    uuid: e84fb0e4-bd3d-5171-93ad-61db1f8251e1
+    uuid: 85b4c8b9-77b4-56ee-865a-80c8155aa436
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: 0.5
-        y: 101.0
-        z: -8.5
-        yaw: 0.0
+        world: spawn_world
+        x: 5.5
+        y: 100.0
+        z: 12.5
+        yaw: -165.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
-      skintrait:
-        skinName: Grinch
-        fetchDefaultSkin: true
-      commandtrait:
-        commands:
-          '0':
-            command: nyshop
-            hand: BOTH
-            player: true
-            op: false
-            cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '3':
-    name: ''
-    uuid: 8f033ff2-4edc-5568-94e5-87c99a4b517d
-    traits:
-      type: PLAYER
-      location:
-        world: world
-        x: -17.5
-        y: 101.0
-        z: 6.5
-        yaw: -90.0
-        pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
-      skintrait:
-        skinName: Traveler
-        fetchDefaultSkin: true
-      commandtrait:
-        commands:
-          '0':
-            command: rtp
-            hand: BOTH
-            player: true
-            op: false
-            cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '4':
-    name: ''
-    uuid: 9348c8e5-eb54-5b38-84c2-2bacb0906bb4
-    traits:
-      type: PLAYER
-      location:
-        world: world
-        x: 18.5
-        y: 101.0
-        z: 6.5
-        yaw: 90.0
-        pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
         skinName: Notch
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: donate
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '3':
+    name: ''
+    uuid: 05bccd2e-81c4-5382-a2d9-3e50f77be21e
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: -13.5
+        y: 100.0
+        z: 5.5
+        yaw: 115.0
+        pitch: 0.0
+      skintrait:
+        skinName: Villager
         fetchDefaultSkin: true
       commandtrait:
         commands:
@@ -139,53 +99,122 @@ npc:
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '5':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '4':
     name: ''
-    uuid: f25ffe6c-5707-57e4-bf72-d1fa1e6ce6b3
+    uuid: 9d1564b7-92f5-51c1-8563-22b66092a2d1
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: 20.5
-        y: 101.0
-        z: 0.5
-        yaw: 90.0
+        world: spawn_world
+        x: 13.5
+        y: 100.0
+        z: 5.5
+        yaw: -115.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
-        skinName: GoldTrader
+        skinName: Hypixel
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: ah
+            command: rshop
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '6':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '5':
     name: ''
-    uuid: bce08eff-a14d-52bb-803c-21c86878bc02
+    uuid: fc3e38c0-eaf1-5fcc-b4c2-d5e0e14bcf6c
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: 18.5
-        y: 101.0
+        world: spawn_world
+        x: -13.5
+        y: 100.0
         z: -5.5
-        yaw: 90.0
+        yaw: 65.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
-        skinName: Villager
+        skinName: Witch
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: bafovar
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '6':
+    name: ''
+    uuid: 84619f3a-3be0-54eb-b575-a47efc91633f
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 13.5
+        y: 100.0
+        z: -5.5
+        yaw: -65.0
+        pitch: 0.0
+      skintrait:
+        skinName: Technoblade
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: skins
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '7':
+    name: ''
+    uuid: baa7ede7-d9a9-5fda-b145-6e43733f9d8d
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: -8.5
+        y: 100.0
+        z: 28.5
+        yaw: 110.0
+        pitch: 0.0
+      skintrait:
+        skinName: Knight
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: kits
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '8':
+    name: ''
+    uuid: 58262c3c-fa4b-58a7-9558-c17309ad7861
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 8.5
+        y: 100.0
+        z: 28.5
+        yaw: -110.0
+        pitch: 0.0
+      skintrait:
+        skinName: Trader
         fetchDefaultSkin: true
       commandtrait:
         commands:
@@ -195,23 +224,120 @@ npc:
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '7':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '9':
     name: ''
-    uuid: 5955fcdb-d570-553d-aee8-77bc1b1ad213
+    uuid: 61ce9e4c-d607-57fa-82f4-fd434713f3f9
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: 15.5
-        y: 101.0
-        z: 14.5
-        yaw: 135.0
+        world: spawn_world
+        x: -8.5
+        y: 100.0
+        z: -18.5
+        yaw: 70.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
+      skintrait:
+        skinName: Banker
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: ah
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '10':
+    name: ''
+    uuid: 0fc5d6de-ff26-5d99-8c85-1559c8d74470
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 8.5
+        y: 100.0
+        z: -18.5
+        yaw: -70.0
+        pitch: 0.0
+      skintrait:
+        skinName: Assassin
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: bounty
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '11':
+    name: ''
+    uuid: 0505c330-0979-5ae4-a179-bd52d6caea0b
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 0.5
+        y: 100.0
+        z: -24.5
+        yaw: 0.0
+        pitch: 0.0
+      skintrait:
+        skinName: SnowMaiden
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: bp
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '12':
+    name: ''
+    uuid: 2d3a70a8-b1e6-5e6a-bbcf-207646b4a72d
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 0.5
+        y: 102.0
+        z: -56.5
+        yaw: 0.0
+        pitch: 0.0
+      skintrait:
+        skinName: Jeb_
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: cases
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '13':
+    name: ''
+    uuid: 4e954230-a8b5-59c4-a425-7d78e8b1cb7f
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: -68.5
+        y: 100.0
+        z: 4.5
+        yaw: 90.0
+        pitch: 0.0
       skintrait:
         skinName: Miner
         fetchDefaultSkin: true
@@ -223,228 +349,254 @@ npc:
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '8':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '14':
     name: ''
-    uuid: 8de6d525-4add-5be8-8653-0051974eb4ed
+    uuid: be9c00f9-187e-5f7f-9538-45fa801a86a7
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: -19.5
-        y: 101.0
-        z: 0.5
+        world: spawn_world
+        x: -78.5
+        y: 100.0
+        z: -35.5
+        yaw: 90.0
+        pitch: 0.0
+      skintrait:
+        skinName: Farmer
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: jobs
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '15':
+    name: ''
+    uuid: 643fed5c-d211-51e8-8d14-724675a7db9c
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: -61.5
+        y: 100.0
+        z: 52.5
+        yaw: 135.0
+        pitch: 0.0
+      skintrait:
+        skinName: RichMan
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: casino
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '16':
+    name: ''
+    uuid: 08d83147-8bee-5f0a-9c2a-429d301481b9
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 38.5
+        y: 100.0
+        z: -25.5
+        yaw: 0.0
+        pitch: 0.0
+      skintrait:
+        skinName: Dream
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: parkour
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '17':
+    name: ''
+    uuid: 20459017-aa20-5240-867f-3ff7846f7f02
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 52.5
+        y: 100.0
+        z: 54.5
         yaw: -90.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
-        skinName: Knight
+        skinName: Technoblade
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: clan
+            command: shop pvp
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '9':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '18':
     name: ''
-    uuid: e73315ae-dfa5-5254-a352-cf389d5f423c
+    uuid: daaa1950-b982-5936-a5ee-9537cccc4edf
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: -17.5
-        y: 101.0
-        z: -5.5
-        yaw: -90.0
-        pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
-      skintrait:
-        skinName: Blacksmith
-        fetchDefaultSkin: true
-      commandtrait:
-        commands:
-          '0':
-            command: kits
-            hand: BOTH
-            player: true
-            op: false
-            cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '10':
-    name: ''
-    uuid: 4a32d6da-e8a3-5150-ac84-7eb6032d18f2
-    traits:
-      type: PLAYER
-      location:
-        world: world
-        x: -14.5
-        y: 101.0
-        z: 14.5
-        yaw: -135.0
-        pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
-      skintrait:
-        skinName: Present
-        fetchDefaultSkin: true
-      commandtrait:
-        commands:
-          '0':
-            command: gifts
-            hand: BOTH
-            player: true
-            op: false
-            cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '11':
-    name: ''
-    uuid: 2d3bcfe0-98a2-557a-9a11-474b6c679747
-    traits:
-      type: PLAYER
-      location:
-        world: world
-        x: -7.5
-        y: 101.0
-        z: 24.5
+        world: spawn_world
+        x: 56.5
+        y: 100.0
+        z: 62.5
         yaw: 180.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
-        skinName: Gladiator
+        skinName: DiamondKing
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: kits
+            command: shop gear
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '12':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '19':
     name: ''
-    uuid: a3008efa-cdec-5122-8a5b-119b72444f9c
+    uuid: cccf382f-df81-507e-ab42-3d7e931d645a
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: 8.5
-        y: 101.0
-        z: 24.5
+        world: spawn_world
+        x: 64.5
+        y: 100.0
+        z: 65.5
         yaw: 180.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
+      skintrait:
+        skinName: Bomber
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: shop raid
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '20':
+    name: ''
+    uuid: eecfd625-2feb-5c29-ba7f-a97137c6db02
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 72.5
+        y: 100.0
+        z: 62.5
+        yaw: 180.0
+        pitch: 0.0
       skintrait:
         skinName: Builder
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: kits
+            command: shop blocks
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '13':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '21':
     name: ''
-    uuid: 031243df-e039-5594-ab2d-88f9243e8a22
+    uuid: 6b43a643-f563-5867-b2fc-d72a92e5a3f7
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: 0.5
-        y: 101.0
-        z: -19.5
+        world: spawn_world
+        x: 76.5
+        y: 100.0
+        z: 54.5
+        yaw: 90.0
+        pitch: 0.0
+      skintrait:
+        skinName: Chef
+        fetchDefaultSkin: true
+      commandtrait:
+        commands:
+          '0':
+            command: shop food
+            hand: BOTH
+            player: true
+            op: false
+            cooldown: 1
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '22':
+    name: ''
+    uuid: 3b318fb4-94e3-5f4b-ae11-35b59597c1cd
+    traits:
+      type: PLAYER
+      spawned: false
+      location:
+        world: spawn_world
+        x: 72.5
+        y: 100.0
+        z: 46.5
         yaw: 0.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
-        skinName: King
+        skinName: Ph1LzA
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: donate
+            command: shop elytra
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '14':
+    traitnames: type,spawned,location,skintrait,commandtrait
+  '23':
     name: ''
-    uuid: 2161fe83-4242-5685-9494-6221763f888a
+    uuid: 37a91932-cbe7-5553-adf6-0072421a7ecf
     traits:
       type: PLAYER
+      spawned: false
       location:
-        world: world
-        x: -9.5
-        y: 101.0
-        z: -14.5
-        yaw: -25.0
+        world: spawn_world
+        x: 56.5
+        y: 100.0
+        z: 46.5
+        yaw: 0.0
         pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
       skintrait:
-        skinName: Guard
+        skinName: SpawnerLord
         fetchDefaultSkin: true
       commandtrait:
         commands:
           '0':
-            command: kp
+            command: shop spawners
             hand: BOTH
             player: true
             op: false
             cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
-  '15':
-    name: ''
-    uuid: 8bdd3408-aaf4-5de1-a92f-0d8f070b55a5
-    traits:
-      type: PLAYER
-      location:
-        world: world
-        x: 10.5
-        y: 101.0
-        z: -14.5
-        yaw: 25.0
-        pitch: 0.0
-      lookclose:
-        enabled: true
-        range: 9.0
-        realisticlooking: false
-      skintrait:
-        skinName: YouTuber
-        fetchDefaultSkin: true
-      commandtrait:
-        commands:
-          '0':
-            command: media
-            hand: BOTH
-            player: true
-            op: false
-            cooldown: 1
-    traitnames: type,spawned,location,lookclose,skintrait,commandtrait
+    traitnames: type,spawned,location,skintrait,commandtrait

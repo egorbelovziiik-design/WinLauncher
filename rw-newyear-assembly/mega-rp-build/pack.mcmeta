@@ -1,12 +1,12 @@
 {
   "pack": {
-    "pack_format": 46,
+    "pack_format": 75,
+    "supported_formats": [
+      7,
+      99
+    ],
     "min_format": 7,
     "max_format": 99,
-    "supported_formats": {
-      "min_inclusive": 7,
-      "max_inclusive": 99
-    },
-    "description": "§b❄ §c§lKING§6§lGRIEF §bНовогодний Мега-РП v4.0 §7(Префиксы, Сферы, Руды, PvP)"
+    "description": "§b§l❄ §c§lKINGGRIEF v5.0 §8· §f3D Blender Items, 40 Anim Ranks & FT/RW PvP"
   }
 }

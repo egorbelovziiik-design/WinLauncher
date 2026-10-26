@@ -120,6 +120,7 @@ public final class KingGriefBridge extends JavaPlugin {
                     "excellentcrates ", "crazycrates ", "acubelets ",
                     "lp ", "luckperms ", "pex ", "relics ", "riliks ",
                     "p ", "points ", "playerpoints ", "eco ", "money ",
+                    "kgadmin ", "promoadmin ",
                     "kit ", "kits ", "give ", "unban ", "pardon ",
                     "unmute ", "unbanip ", "pardon-ip ", "unmuteip ");
         }
@@ -199,6 +200,9 @@ public final class KingGriefBridge extends JavaPlugin {
             Collections.sort(names);
             return joinStrings(names, ",");
         } catch (Throwable ignored) {
+            if (Bukkit.getPluginManager().getPlugin("KingGriefCore") != null) {
+                return "owner,techadmin,curator,kp,glmoder,stmoder,moder,sthelper,helper,downer,opka,dkp,dadmin,dmladmin,dglmoder,dstmoder,dmoder,dhelper,mediaplus,media,yt,twitch,tiktok,sponsor,bull,king,dragon,imperator,overlord,god,dracula,tiger,vampire,rabbit,titan,bunny,hero,cobra,pegas,default";
+            }
             return "";
         }
     }
@@ -212,7 +216,7 @@ public final class KingGriefBridge extends JavaPlugin {
             List<String> interesting = new ArrayList<String>();
             for (String p : pluginNames) {
                 String low = p.toLowerCase(Locale.ROOT);
-                if (low.contains("case") || low.contains("crate") || low.contains("luckperms")
+                if (low.contains("kinggrief") || low.contains("case") || low.contains("crate") || low.contains("luckperms")
                         || low.contains("authme") || low.contains("playerpoints") || low.contains("cubelet")) {
                     interesting.add(p);
                 }
@@ -227,6 +231,13 @@ public final class KingGriefBridge extends JavaPlugin {
             if (caseCommandOverride != null && !caseCommandOverride.isEmpty()) {
                 this.detectedCaseTemplate = caseCommandOverride;
                 getLogger().info("Используется ручной шаблон выдачи кейсов из config.yml: /" + detectedCaseTemplate);
+                return;
+            }
+
+            // 0. Проверяем встроенное ядро KingGriefCore v5.0 (поддерживает /cases give, /p give, /money give, /lp)
+            if (hasInstalledPlugin(pluginNames, "KingGriefCore")) {
+                this.detectedCaseTemplate = "cases give {player} {case} {amount}";
+                getLogger().info("Обнаружено ядро KingGriefCore v5.0 -> команда выдачи: /" + this.detectedCaseTemplate);
                 return;
             }
 

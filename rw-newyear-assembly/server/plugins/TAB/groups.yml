@@ -1,24 +1,123 @@
 owner:
-  tabprefix: "%animation:owner_rw% &f"
-  tagprefix: "%animation:owner_rw% &f"
+  tabprefix: "%animation:rank_owner% &f"
+  tagprefix: "%animation:rank_owner% &f"
+techadmin:
+  tabprefix: "%animation:rank_techadmin% &f"
+  tagprefix: "%animation:rank_techadmin% &f"
 curator:
-  tabprefix: "%animation:curator_rw% &f"
-  tagprefix: "%animation:curator_rw% &f"
+  tabprefix: "%animation:rank_curator% &f"
+  tagprefix: "%animation:rank_curator% &f"
 kp:
-  tabprefix: "%animation:kp_anim% &f"
-  tagprefix: "%animation:kp_anim% &f"
+  tabprefix: "%animation:rank_kp% &f"
+  tagprefix: "%animation:rank_kp% &f"
+glmoder:
+  tabprefix: "%animation:rank_glmoder% &f"
+  tagprefix: "%animation:rank_glmoder% &f"
+stmoder:
+  tabprefix: "%animation:rank_stmoder% &f"
+  tagprefix: "%animation:rank_stmoder% &f"
+moder:
+  tabprefix: "%animation:rank_moder% &f"
+  tagprefix: "%animation:rank_moder% &f"
+sthelper:
+  tabprefix: "%animation:rank_sthelper% &f"
+  tagprefix: "%animation:rank_sthelper% &f"
+helper:
+  tabprefix: "%animation:rank_helper% &f"
+  tagprefix: "%animation:rank_helper% &f"
 downer:
-  tabprefix: "%animation:downer_anim% &f"
-  tagprefix: "%animation:downer_anim% &f"
+  tabprefix: "%animation:rank_downer% &f"
+  tagprefix: "%animation:rank_downer% &f"
 opka:
-  tabprefix: "%animation:opka_anim% &f"
-  tagprefix: "%animation:opka_anim% &f"
+  tabprefix: "%animation:rank_opka% &f"
+  tagprefix: "%animation:rank_opka% &f"
 dkp:
-  tabprefix: "%animation:dkp_anim% &f"
-  tagprefix: "%animation:dkp_anim% &f"
+  tabprefix: "%animation:rank_dkp% &f"
+  tagprefix: "%animation:rank_dkp% &f"
+dadmin:
+  tabprefix: "%animation:rank_dadmin% &f"
+  tagprefix: "%animation:rank_dadmin% &f"
+dmladmin:
+  tabprefix: "%animation:rank_dmladmin% &f"
+  tagprefix: "%animation:rank_dmladmin% &f"
+dglmoder:
+  tabprefix: "%animation:rank_dglmoder% &f"
+  tagprefix: "%animation:rank_dglmoder% &f"
+dstmoder:
+  tabprefix: "%animation:rank_dstmoder% &f"
+  tagprefix: "%animation:rank_dstmoder% &f"
+dmoder:
+  tabprefix: "%animation:rank_dmoder% &f"
+  tagprefix: "%animation:rank_dmoder% &f"
+dhelper:
+  tabprefix: "%animation:rank_dhelper% &f"
+  tagprefix: "%animation:rank_dhelper% &f"
+mediaplus:
+  tabprefix: "%animation:rank_mediaplus% &f"
+  tagprefix: "%animation:rank_mediaplus% &f"
+media:
+  tabprefix: "%animation:rank_media% &f"
+  tagprefix: "%animation:rank_media% &f"
+yt:
+  tabprefix: "%animation:rank_yt% &f"
+  tagprefix: "%animation:rank_yt% &f"
+twitch:
+  tabprefix: "%animation:rank_twitch% &f"
+  tagprefix: "%animation:rank_twitch% &f"
+tiktok:
+  tabprefix: "%animation:rank_tiktok% &f"
+  tagprefix: "%animation:rank_tiktok% &f"
+sponsor:
+  tabprefix: "%animation:rank_sponsor% &f"
+  tagprefix: "%animation:rank_sponsor% &f"
+bull:
+  tabprefix: "%animation:rank_bull% &f"
+  tagprefix: "%animation:rank_bull% &f"
 king:
-  tabprefix: "%animation:king_anim% &f"
-  tagprefix: "%animation:king_anim% &f"
+  tabprefix: "%animation:rank_king% &f"
+  tagprefix: "%animation:rank_king% &f"
+dragon:
+  tabprefix: "%animation:rank_dragon% &f"
+  tagprefix: "%animation:rank_dragon% &f"
+imperator:
+  tabprefix: "%animation:rank_imperator% &f"
+  tagprefix: "%animation:rank_imperator% &f"
+overlord:
+  tabprefix: "%animation:rank_overlord% &f"
+  tagprefix: "%animation:rank_overlord% &f"
+god:
+  tabprefix: "%animation:rank_god% &f"
+  tagprefix: "%animation:rank_god% &f"
+dracula:
+  tabprefix: "%animation:rank_dracula% &f"
+  tagprefix: "%animation:rank_dracula% &f"
+tiger:
+  tabprefix: "%animation:rank_tiger% &f"
+  tagprefix: "%animation:rank_tiger% &f"
+vampire:
+  tabprefix: "%animation:rank_vampire% &f"
+  tagprefix: "%animation:rank_vampire% &f"
+rabbit:
+  tabprefix: "%animation:rank_rabbit% &f"
+  tagprefix: "%animation:rank_rabbit% &f"
+titan:
+  tabprefix: "%animation:rank_titan% &f"
+  tagprefix: "%animation:rank_titan% &f"
+bunny:
+  tabprefix: "%animation:rank_bunny% &f"
+  tagprefix: "%animation:rank_bunny% &f"
+hero:
+  tabprefix: "%animation:rank_hero% &f"
+  tagprefix: "%animation:rank_hero% &f"
+cobra:
+  tabprefix: "%animation:rank_cobra% &f"
+  tagprefix: "%animation:rank_cobra% &f"
+pegas:
+  tabprefix: "%animation:rank_pegas% &f"
+  tagprefix: "%animation:rank_pegas% &f"
+default:
+  tabprefix: "%animation:rank_default% &f"
+  tagprefix: "%animation:rank_default% &f"
 _DEFAULT_:
-  tabprefix: "%luckperms-prefix%"
-  tagprefix: "%luckperms-prefix%"
+  tabprefix: "%animation:rank_default% &f"
+  tagprefix: "%animation:rank_default% &f"

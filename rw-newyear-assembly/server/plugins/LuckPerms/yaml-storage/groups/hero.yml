@@ -1,13 +1,8 @@
 name: hero
 permissions:
-- weight.30
-- essentials.kits.hero
-- essentials.sethome.multiple.hero
-- essentials.disposal
-- essentials.stonecutter
-- essentials.loom
+- weight.28
 parents:
 - cobra
 prefixes:
-- '&#38BDF8&lHERO &f':
-    priority: 30
+- '&f &f':
+    priority: 28

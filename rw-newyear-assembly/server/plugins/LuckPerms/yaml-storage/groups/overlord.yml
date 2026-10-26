@@ -1,13 +1,14 @@
 name: overlord
 permissions:
-- weight.70
-- essentials.kits.overlord
-- essentials.sethome.multiple.overlord
-- essentials.chat.rgb
-- essentials.repair.enchanted
-- protectionstones.limit.9
+- weight.100
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - god
 prefixes:
-- '&#2DD4BF&lOVERLORD &f':
-    priority: 70
+- '&f &f':
+    priority: 100

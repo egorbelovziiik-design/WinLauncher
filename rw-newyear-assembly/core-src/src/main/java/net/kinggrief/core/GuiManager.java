@@ -119,54 +119,61 @@ public final class GuiManager {
     // ================= 1. ГЛАВНОЕ МЕНЮ (/menu) =================
     public void openMainMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("main", "", 0), 54,
-                ColorUtil.c("&#FF1744&l❄ МЕНЮ REALLYWORLD v4.0"));
+                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v5.0"));
         decorateFrame(inv);
         DataStore st = plugin.getStore();
         RankManager.RankDef r = plugin.getRanks().getRank(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.PLAYER_HEAD, "&#FFD740&l👤 Профиль: &f" + p.getName(),
-                "&7Привилегия: " + r.shortLabel,
+                "&7Ранг: " + plugin.getRanks().getAnimatedBadge(r, 0),
                 "&7Монеты: &a" + ColorUtil.fmtMoney(st.getCoins(p.getName())) + "$",
                 "&7Рилики: &b" + st.getRelics(p) + " ❖ &8| &7Снежинки: &b" + st.getSnowflakes(p.getName()) + " ❄",
                 "&7Наиграно: &e" + ColorUtil.fmtTime(st.getPlaySeconds(p.getName()))));
 
-        inv.setItem(10, ItemFactory.glowIcon(Material.COMPASS, "&#00E676&l⚡ РТП в Мир Выживания",
-                "&7Телепорт из мира спавна в отдельный", "&7мир выживания, Ад или дальний РТП!", "", "&#00E676▸ Нажми для выбора!"));
+        inv.setItem(10, ItemFactory.glowIcon(Material.COMPASS, "&#00E676&l⚡ РТП в Мир Выживания (/rtp)",
+                "&7Единственный вход из мира спавна в", "&7обычный мир выживания, Дальний РТП и Ад!", "", "&#00E676▸ Нажми для выбора!"));
         inv.setItem(11, ItemFactory.glowIcon(Material.ENDER_PEARL, "&#80D8FF&l🧭 Все Варпы и Арены",
-                "&7Авто-Шахта, Фармилка, Казино, Паркур,", "&7PvP-Колизей, 6 Кабинок, Кейсы, Чары!", "", "&#80D8FF▸ Открыть /warps"));
-        inv.setItem(12, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#00E5FF&l🔮 Магазин Риликов РВ",
-                "&77 Шаров РВ, 7 Кастомных Тотемов,", "&7Зелья Киллера/Отрыжки/Кислоты, Буры!", "", "&#00E5FF▸ Открыть /shop"));
-        inv.setItem(13, ItemFactory.glowIcon(Material.ENDER_CHEST, "&#38BDF8&l📦 Киты Привилегий",
-                "&7Богатые наборы с шалкерами ресурсов!", "&cДоступ строго по вашей привилегии.", "", "&#38BDF8▸ Открыть /kits"));
+                "&7Авто-Шахта, Фармилка, Казино, 40-Остр. Паркур,", "&7PvP-Колизей, 8 Кабинок, Кейсы, Бафовар!", "", "&#80D8FF▸ Открыть /warps"));
+        inv.setItem(12, ItemFactory.glowIcon(Material.EMERALD_BLOCK, "&#00E5FF&l🛒 Серверный Магазин (/shop)",
+                "&78 категорий (64+ товара за Монеты $):", "&7Блоки, Еда/Перки, PvP FT×RW, Рейд, Элитры!", "", "&#00E5FF▸ Открыть /shop"));
+        inv.setItem(13, ItemFactory.glowIcon(Material.ENDER_CHEST, "&#38BDF8&l📦 Киты Привилегий (/kits)",
+                "&72 стака перок + Золотая морковь + Пласты!", "&cДоступ строго по вашей привилегии.", "", "&#38BDF8▸ Открыть /kits"));
         inv.setItem(14, ItemFactory.glowIcon(Material.RED_SHULKER_BOX, "&#FF4081&l🎁 Шалкер-Кейсы (11 шт.)",
                 "&7Открывай кейсы на спавне или в меню!", "", "&#FF4081▸ Открыть /cases"));
         inv.setItem(15, ItemFactory.glowIcon(Material.NETHER_STAR, "&#FFD740&l👑 Донат и Привилегии",
-                "&740 привилегий от 19₽ на сайте:", "&fkinggrief.vercel.app", "", "&#FFD740▸ Открыть /donate"));
+                "&740 анимированных рангов от 19₽:", "&fkinggrief.vercel.app", "", "&#FFD740▸ Открыть /donate"));
         inv.setItem(16, ItemFactory.glowIcon(Material.DIAMOND, "&#FFEA00&l🎰 Гранд-Казино 777",
                 "&7Слоты 777, Рулетка ×14, PvP-Монетка!", "&7Джекпот банка: &a" + ColorUtil.fmtMoney(casinoJackpotPool) + "$", "", "&#FFEA00▸ Открыть /casino"));
 
-        inv.setItem(19, ItemFactory.icon(Material.EMERALD, "&#69F0AE&l💰 Скупщик Ресурсов",
-                "&7Продай руду, урожай и дроп мобов", "&7в 1 клик с бонусом привилегии!", "", "&#69F0AE▸ Открыть /buyer"));
+        inv.setItem(19, ItemFactory.icon(Material.EMERALD, "&#69F0AE&l💰 Скупщик [Прокачка до ×2.0]",
+                "&7Продай руду, урожай и дроп мобов", "&7в 1 клик с прокачкой множителя!", "", "&#69F0AE▸ Открыть /buyer"));
         inv.setItem(20, ItemFactory.icon(Material.GOLD_INGOT, "&#FFAB40&l⚖ Аукцион Игроков",
-                "&7Покупай и продавай редкие вещи РВ!", "&7Продать предмет: &f/ah sell <цена>", "", "&#FFAB40▸ Открыть /ah"));
+                "&7Покупай и продавай редкие вещи!", "&7Продать предмет: &f/ah sell <цена>", "", "&#FFAB40▸ Открыть /ah"));
         inv.setItem(21, ItemFactory.glowIcon(Material.BLAZE_POWDER, "&#FF1744&l🔥 Боссы и Ивенты",
-                "&7Активные Боссы (Ледяной Гринч, Крушитель,", "&7Титан Олимпа, Осирис, Андромеда)!", "", "&#FF1744▸ Открыть /events"));
-        inv.setItem(22, ItemFactory.glowIcon(Material.WITHER_SKELETON_SKULL, "&#D500F9&l🕵 Чёрный Рынок РВ",
-                "&7Редкие товары за Монеты и Снежинки!", "", "&#D500F9▸ Открыть /bm"));
-        inv.setItem(23, ItemFactory.icon(Material.BREWING_STAND, "&#E040FB&l🧪 Алхимик и Кузнец",
-                "&7Баффы за монеты и починка всей брони!", "", "&#E040FB▸ Открыть /enchants"));
+                "&7Боссы, Метеорит и Маяк Смерти!", "", "&#FF1744▸ Открыть /events"));
+        inv.setItem(22, ItemFactory.glowIcon(Material.WITHER_SKELETON_SKULL, "&#D500F9&l🕵 Чёрный Рынок",
+                "&7Редкие 3D товары за Монеты!", "", "&#D500F9▸ Открыть /bm"));
+        inv.setItem(23, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 Магазин Риликов (/rshop)",
+                "&7Blender 3D Шары, Талисманы, Элитры и FT-расходники!", "", "&#E040FB▸ Открыть /rshop"));
         inv.setItem(24, ItemFactory.icon(Material.PRISMARINE_CRYSTALS, "&#80D8FF&l👳 Обменник Джамшута",
-                "&7Обменяй Снежинки ❄ на Шары и Рилики!", "", "&#80D8FF▸ Открыть /quests"));
+                "&7Обменяй 3D Снежинки ❄ на Шары и Рилики!", "", "&#80D8FF▸ Открыть /quests"));
         inv.setItem(25, ItemFactory.icon(Material.SHIELD, "&#B388FF&l🛡 Кланы Сервера",
                 "&7Рейтинг кланов, казна и клан-база!", "", "&#B388FF▸ Открыть /clan"));
 
         inv.setItem(29, ItemFactory.icon(Material.IRON_PICKAXE, "&#AEEA00&l💼 Работы (/jobs)", "&7Шахтёр, Охотник, Дровосек, Воин!"));
         inv.setItem(30, ItemFactory.icon(Material.EXPERIENCE_BOTTLE, "&#40C4FF&l🎄 Боевой Пропуск (/bp)", "&7Награды за активность на сервере!"));
-        inv.setItem(31, ItemFactory.icon(Material.SNOW_BLOCK, "&#80D8FF&l🏰 Телепорт на Спавн", "&7Вернуться в Зимний Замок спавна!"));
+        inv.setItem(31, ItemFactory.icon(Material.SNOW_BLOCK, "&#80D8FF&l🏰 Телепорт на Спавн", "&7Вернуться в Яркое Зимнее Королевство!"));
         inv.setItem(32, ItemFactory.icon(Material.NAME_TAG, "&#FFD740&l✨ Титулы (/titles)", "&712 красивых титулов в чат и ТАБ!"));
         inv.setItem(33, ItemFactory.icon(Material.CLOCK, "&#00E676&l⏰ Награды за Время (/pt)", "&7Получай Рилики и Кейсы за онлайн!"));
-        inv.setItem(38, ItemFactory.glowIcon(Material.POTION, "&#FF1744&l🧪 Лавка Бафовара (/bafovar)", "&7Все Зелья РВ, Пакеты Баффов и Стакер Зелий!"));
-        inv.setItem(42, ItemFactory.glowIcon(Material.CHEST_MINECART, "&#FFD740&l🎁 Халява и Промокоды (/free)", "&7Активация 6 промокодов и подарков в 1 клик!"));
+
+        inv.setItem(38, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF9100&l⚗ Бафовар (/bafs)",
+                "&7Свари кастомное зелье (макс 8 зелек за 5 000$)", "&7или купи готовые зелья и пакеты баффов!"));
+        inv.setItem(39, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Скины Трапок (/skins)",
+                "&7Выбери скин для Трапки 5×5×5 с дебаффом врагам!"));
+        inv.setItem(41, ItemFactory.glowIcon(Material.SKELETON_SKULL, "&#FF1744&l🎯 Охота за Головами (/bounty)",
+                "&7Закажи награду за голову врага!"));
+        inv.setItem(42, ItemFactory.glowIcon(Material.CHEST_MINECART, "&#FFD740&l🎁 Халява и Промокоды (/promo)",
+                "&7Промокоды с сайта и бесплатные подарки!"));
 
         if (plugin.getLp().hasLpAccess(p)) {
             inv.setItem(49, ItemFactory.glowIcon(Material.COMMAND_BLOCK, "&#00E676&l⚡ LP EDITOR & ГРУППЫ (/lp)",
@@ -313,22 +320,23 @@ public final class GuiManager {
     // ================= 5. ЧИСТЫЙ МАГАЗИН РИЛИКОВ REALLYWORLD (/shop) =================
     public void openRelicShop(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("shop", "", 0), 54,
-                ColorUtil.c("&#00E5FF&l🔮 МАГАЗИН РИЛИКОВ REALLYWORLD"));
+                ColorUtil.c("&#00E5FF&l🔮 МАГАЗИН РИЛИКОВ [3D FT×RW]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         inv.setItem(4, ItemFactory.glowIcon(Material.DIAMOND, "&#00E5FF&lВаш баланс: &f" + bal + " Риликов ❖",
-                "&7100% оригинальные предметы ReallyWorld!", "&7Пополнить Рилики: &#FF4081kinggrief.vercel.app"));
+                "&7Blender Cycles 3D Шары, Талисманы, Элитры и FT-предметы!",
+                "&7Пополнить Рилики: &#FF4081kinggrief.vercel.app"));
 
-        // Row 1: 7 Шаров ReallyWorld
+        // Row 1: 7 Blender 3D Шаров
         inv.setItem(10, shopTag(ItemFactory.sharTitana(),    290));
         inv.setItem(11, shopTag(ItemFactory.sharAndromedy(), 260));
         inv.setItem(12, shopTag(ItemFactory.sharChimery(),   220));
         inv.setItem(13, shopTag(ItemFactory.sharApollona(),  270));
         inv.setItem(14, shopTag(ItemFactory.sharAida(),      280));
-        inv.setItem(15, shopTag(ItemFactory.sharOsirisa(),   240));
+        inv.setItem(15, shopTag(ItemFactory.sharAresa(),     310));
         inv.setItem(16, shopTag(ItemFactory.sharSanty(),     350));
 
-        // Row 2: 7 Кастомных Тотемов Бессмертия РВ
+        // Row 2: 7 Blender 3D Талисманов
         inv.setItem(19, shopTag(ItemFactory.talKrushitelya(), 310));
         inv.setItem(20, shopTag(ItemFactory.talGrani(),       290));
         inv.setItem(21, shopTag(ItemFactory.talDedala(),      250));
@@ -337,23 +345,155 @@ public final class GuiManager {
         inv.setItem(24, shopTag(ItemFactory.talEchidny(),     280));
         inv.setItem(25, shopTag(ItemFactory.talStuzhi(),      300));
 
-        // Row 3: Зелья РВ и Оружие/Инструменты РВ
-        inv.setItem(28, shopTag(ItemFactory.potionKiller(2),    45));
-        inv.setItem(29, shopTag(ItemFactory.potionBurp(2),      40));
-        inv.setItem(30, shopTag(ItemFactory.potionAcid(2),      45));
-        inv.setItem(31, shopTag(ItemFactory.pickDjamshut(),    340));
-        inv.setItem(32, shopTag(ItemFactory.pickSpawner(),     190));
-        inv.setItem(33, shopTag(ItemFactory.swordDracula(),    320));
-        inv.setItem(34, shopTag(ItemFactory.swordKrush(),      420));
+        // Row 3: 6 Кастомных 3D Элитр с разными баффами + Шар Осириса!
+        inv.setItem(28, shopTag(ItemFactory.elytraWind(),     220));
+        inv.setItem(29, shopTag(ItemFactory.elytraPhoenix(),  270));
+        inv.setItem(30, shopTag(ItemFactory.elytraVampire(),  290));
+        inv.setItem(31, shopTag(ItemFactory.elytraThunder(),  310));
+        inv.setItem(32, shopTag(ItemFactory.elytraTitan(),    360));
+        inv.setItem(33, shopTag(ItemFactory.elytraSanta(),    420));
+        inv.setItem(34, shopTag(ItemFactory.sharOsirisa(),    240));
 
-        // Row 4: Доп. товары и приваты РВ
-        inv.setItem(38, shopTag(ItemFactory.bowIceRw(),        210));
-        inv.setItem(39, shopTag(ItemFactory.mysteryEgg(2),     110));
-        inv.setItem(40, shopTag(ItemFactory.potionMedic(2),     35));
-        inv.setItem(41, shopTag(ItemFactory.potionAgent(2),     35));
-        inv.setItem(42, shopTag(ItemFactory.claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61"), 150));
+        // Row 4: 3D Оружие, Инструменты и FT×RW Расходники
+        inv.setItem(37, shopTag(ItemFactory.plast(8),          35));
+        inv.setItem(38, shopTag(ItemFactory.trapka(4),         45));
+        inv.setItem(39, shopTag(ItemFactory.dezorient(4),      40));
+        inv.setItem(40, shopTag(ItemFactory.bozhyaAura(2),     50));
+        inv.setItem(41, shopTag(ItemFactory.pickDjamshut(),   340));
+        inv.setItem(42, shopTag(ItemFactory.swordDracula(),   320));
+        inv.setItem(43, shopTag(ItemFactory.swordKrush(),     420));
 
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    // ================= 5B. 8-КАТЕГОРИЙНЫЙ СЕРВЕРНЫЙ МАГАЗИН ЗА МОНЕТЫ (/shop) =================
+    public void openCoinShopHub(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("cshop_hub", "", 0), 45,
+                ColorUtil.c("&#00E5FF&l🛒 МАГАЗИН СЕРВЕРА (/shop)"));
+        decorateFrame(inv);
+        inv.setItem(4, ItemFactory.glowIcon(Material.EMERALD_BLOCK, "&#00E5FF&lВаш баланс: &a" + ColorUtil.fmtMoney(plugin.getStore().getCoins(p.getName())) + "$",
+                "&7Выбери нужный отдел магазина ниже", "&7или открой Магазин за Рилики ❖!"));
+
+        inv.setItem(10, ItemFactory.glowIcon(Material.QUARTZ_BLOCK, "&#38BDF8&l🧱 Строительные и Цветные Блоки",
+                "&7Кварц, Цветной бетон, Лёд, Стекло, Дерево!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(11, ItemFactory.glowIcon(Material.GOLDEN_CARROT, "&#FB923C&l🥕 Еда, Перки и Фермерство",
+                "&7Золотая морковь, Эндер-жемчуг, Гэплы, Хорусы!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(12, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FACC15&l⚔ Броня, Оружие и Тотемы",
+                "&7Снаряжение, Тотемы, Фейерверки, Стрелы!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(13, ItemFactory.glowIcon(Material.TNT, "&#EF4444&l💣 Рейд, Обсидиан и Механизмы",
+                "&7ТНТ, Кристаллы, Якоря, Поршни, Паутина!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(14, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#A855F7&l⛓ PvP Расходники FT × RW",
+                "&7Пласты, Трапки, Дезориентация, Явная Пыль,", "&7Божья Аура, Огненный Смерч, Снежки Заморозки!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(15, ItemFactory.glowIcon(Material.ELYTRA, "&#00E5FF&l🪽 Лавка 3D Кастомных Элитр",
+                "&76 видов Элитр с уникальными баффами!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(16, ItemFactory.glowIcon(Material.SPAWNER, "&#AEEA00&l🥚 Спавнера, Яйца и Опыт",
+                "&7Рассадники, Яйца Джамшута, Божье Прикосновение!", "", "&#00E676▸ Открыть отдел"));
+
+        inv.setItem(21, ItemFactory.glowIcon(Material.DIAMOND_ORE, "&#69F0AE&l🛡 Рудные Приваты и Слитки",
+                "&7Угольный, Железный, Алмазный и Изумрудный приват!", "", "&#00E676▸ Открыть отдел"));
+        inv.setItem(22, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF9100&l⚗ Лавка и Варка Бафовара (/bafs)",
+                "&7Свари микс до 8 зелий за 5 000$ + готовые зелья!", "", "&#00E676▸ Открыть /bafs"));
+        inv.setItem(23, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 Магазин за Рилики (/rshop)",
+                "&73D Шары, Талисманы и Топовые Артефакты!", "", "&#00E676▸ Открыть /rshop"));
+
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в главное меню"));
+        p.openInventory(inv);
+    }
+
+    public void openCoinShopCat(Player p, String cat) {
+        String c = cat == null ? "blocks" : cat.toLowerCase(Locale.ROOT);
+        String title = "&#00E5FF&l🛒 МАГАЗИН: " + c.toUpperCase(Locale.ROOT);
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("cshop_cat", c, 0), 45, ColorUtil.c(title));
+        decorateFrame(inv);
+        inv.setItem(4, ItemFactory.glowIcon(Material.GOLD_INGOT, "&#FFD740&lБаланс: &a" + ColorUtil.fmtMoney(plugin.getStore().getCoins(p.getName())) + "$",
+                "&7Нажми на предмет для мгновенной покупки!"));
+
+        List<ItemStack> items = new ArrayList<ItemStack>();
+        List<Integer> costs = new ArrayList<Integer>();
+        if ("pvp".equals(c)) {
+            items.add(ItemFactory.plast(4));             costs.add(Integer.valueOf(8500));
+            items.add(ItemFactory.trapka(2));            costs.add(Integer.valueOf(12000));
+            items.add(ItemFactory.dezorient(2));         costs.add(Integer.valueOf(14000));
+            items.add(ItemFactory.yavnayaPyl(2));        costs.add(Integer.valueOf(11000));
+            items.add(ItemFactory.bozhyaAura(1));        costs.add(Integer.valueOf(18000));
+            items.add(ItemFactory.ognennySmerch(2));     costs.add(Integer.valueOf(13500));
+            items.add(ItemFactory.snezokZamorozki(8));   costs.add(Integer.valueOf(9000));
+            items.add(ItemFactory.pautinnayaGranata(4)); costs.add(Integer.valueOf(10500));
+        } else if ("food".equals(c)) {
+            items.add(new ItemStack(Material.GOLDEN_CARROT, 64));          costs.add(Integer.valueOf(2500));
+            items.add(new ItemStack(Material.ENDER_PEARL, 16));            costs.add(Integer.valueOf(3500));
+            items.add(new ItemStack(Material.GOLDEN_APPLE, 16));           costs.add(Integer.valueOf(9500));
+            items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 1));  costs.add(Integer.valueOf(45000));
+            items.add(new ItemStack(Material.CHORUS_FRUIT, 32));           costs.add(Integer.valueOf(4500));
+            items.add(ItemFactory.nyMandarin(8));                          costs.add(Integer.valueOf(8000));
+            items.add(new ItemStack(Material.COOKED_BEEF, 64));            costs.add(Integer.valueOf(1200));
+            items.add(new ItemStack(Material.EXPERIENCE_BOTTLE, 64));      costs.add(Integer.valueOf(7500));
+        } else if ("gear".equals(c)) {
+            items.add(new ItemStack(Material.TOTEM_OF_UNDYING, 1));        costs.add(Integer.valueOf(15000));
+            items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));        costs.add(Integer.valueOf(3000));
+            items.add(new ItemStack(Material.DIAMOND_SWORD, 1));           costs.add(Integer.valueOf(4500));
+            items.add(new ItemStack(Material.DIAMOND_CHESTPLATE, 1));      costs.add(Integer.valueOf(7500));
+            items.add(new ItemStack(Material.NETHERITE_INGOT, 1));         costs.add(Integer.valueOf(18000));
+            items.add(new ItemStack(Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE, 1)); costs.add(Integer.valueOf(14000));
+            items.add(new ItemStack(Material.SHIELD, 1));                  costs.add(Integer.valueOf(1500));
+            items.add(ItemFactory.arrowIce(32));                           costs.add(Integer.valueOf(9000));
+        } else if ("raid".equals(c)) {
+            items.add(new ItemStack(Material.OBSIDIAN, 64));               costs.add(Integer.valueOf(6000));
+            items.add(new ItemStack(Material.TNT, 32));                    costs.add(Integer.valueOf(7500));
+            items.add(new ItemStack(Material.END_CRYSTAL, 8));             costs.add(Integer.valueOf(14000));
+            items.add(new ItemStack(Material.RESPAWN_ANCHOR, 4));          costs.add(Integer.valueOf(12000));
+            items.add(new ItemStack(Material.GLOWSTONE, 32));              costs.add(Integer.valueOf(3500));
+            items.add(new ItemStack(Material.COBWEB, 32));                 costs.add(Integer.valueOf(5000));
+            items.add(new ItemStack(Material.STICKY_PISTON, 16));          costs.add(Integer.valueOf(4000));
+            items.add(new ItemStack(Material.SLIME_BLOCK, 16));            costs.add(Integer.valueOf(4500));
+        } else if ("elytra".equals(c)) {
+            items.add(new ItemStack(Material.ELYTRA, 1));                  costs.add(Integer.valueOf(65000));
+            items.add(ItemFactory.elytraWind());                           costs.add(Integer.valueOf(185000));
+            items.add(ItemFactory.elytraPhoenix());                        costs.add(Integer.valueOf(240000));
+            items.add(ItemFactory.elytraVampire());                        costs.add(Integer.valueOf(265000));
+            items.add(ItemFactory.elytraThunder());                        costs.add(Integer.valueOf(290000));
+            items.add(ItemFactory.elytraTitan());                          costs.add(Integer.valueOf(340000));
+            items.add(ItemFactory.elytraSanta());                          costs.add(Integer.valueOf(420000));
+            items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));        costs.add(Integer.valueOf(3000));
+        } else if ("spawners".equals(c)) {
+            items.add(new ItemStack(Material.SPAWNER, 1));                 costs.add(Integer.valueOf(160000));
+            items.add(ItemFactory.pickSpawner());                          costs.add(Integer.valueOf(140000));
+            items.add(ItemFactory.mysteryEgg(1));                          costs.add(Integer.valueOf(75000));
+            items.add(ItemFactory.xpOrb100(1));                            costs.add(Integer.valueOf(12000));
+            items.add(new ItemStack(Material.HOPPER, 8));                  costs.add(Integer.valueOf(5000));
+            items.add(new ItemStack(Material.CHEST, 32));                  costs.add(Integer.valueOf(2000));
+        } else if ("ores".equals(c)) {
+            items.add(ItemFactory.claimBlock(Material.COAL_ORE, 7, "&a🛡 Угольный Приват 15×15"));         costs.add(Integer.valueOf(5000));
+            items.add(ItemFactory.claimBlock(Material.IRON_ORE, 12, "&#38BDF8🛡 Железный Приват 25×25"));  costs.add(Integer.valueOf(15000));
+            items.add(ItemFactory.claimBlock(Material.DIAMOND_ORE, 20, "&#38BDF8💎 Алмазный Приват 41×41"));costs.add(Integer.valueOf(45000));
+            items.add(ItemFactory.claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61"));costs.add(Integer.valueOf(110000));
+            items.add(new ItemStack(Material.DIAMOND, 16));                costs.add(Integer.valueOf(9000));
+            items.add(new ItemStack(Material.EMERALD, 16));                costs.add(Integer.valueOf(9500));
+            items.add(new ItemStack(Material.GOLD_INGOT, 32));             costs.add(Integer.valueOf(5500));
+            items.add(new ItemStack(Material.IRON_INGOT, 32));             costs.add(Integer.valueOf(3500));
+        } else {
+            items.add(new ItemStack(Material.QUARTZ_BLOCK, 64));           costs.add(Integer.valueOf(2200));
+            items.add(new ItemStack(Material.SNOW_BLOCK, 64));             costs.add(Integer.valueOf(1000));
+            items.add(new ItemStack(Material.PACKED_ICE, 64));             costs.add(Integer.valueOf(2500));
+            items.add(new ItemStack(Material.SEA_LANTERN, 32));            costs.add(Integer.valueOf(3500));
+            items.add(new ItemStack(Material.WHITE_CONCRETE, 64));         costs.add(Integer.valueOf(1800));
+            items.add(new ItemStack(Material.LIGHT_BLUE_CONCRETE, 64));    costs.add(Integer.valueOf(1800));
+            items.add(new ItemStack(Material.RED_CONCRETE, 64));           costs.add(Integer.valueOf(1800));
+            items.add(new ItemStack(Material.OAK_LOG, 64));                costs.add(Integer.valueOf(1600));
+        }
+
+        int[] slots = new int[]{10,11,12,13,14,15,16,19,20,21,22,23,24,25};
+        for (int i = 0; i < items.size() && i < slots.length; i++) {
+            ItemStack tagged = coinShopTag(items.get(i), costs.get(i).intValue());
+            ItemMeta m = tagged.getItemMeta();
+            if (m != null) {
+                m.getPersistentDataContainer().set(ItemFactory.CHARGES_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, costs.get(i));
+                tagged.setItemMeta(m);
+            }
+            inv.setItem(slots[i], tagged);
+        }
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Все отделы магазина (/shop)"));
         p.openInventory(inv);
     }
 
@@ -374,7 +514,7 @@ public final class GuiManager {
     // ================= 6. АЛТАРЬ АЛХИМИКА И КУЗНЕЦА РВ (/enchants) =================
     public void openEnchantsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("enchants", "", 0), 45,
-                ColorUtil.c("&#E040FB&l🧪 АЛХИМИК И КУЗНЕЦ РВ"));
+                ColorUtil.c("&#E040FB&l🧪 АЛХИМИК И КУЗНЕЦ"));
         decorateFrame(inv);
         inv.setItem(10, coinShopTag(ItemFactory.potionKiller(1),    15000));
         inv.setItem(11, coinShopTag(ItemFactory.potionMedic(1),     12000));
@@ -394,16 +534,16 @@ public final class GuiManager {
         p.openInventory(inv);
     }
 
-    // ================= 6B. NPC БАФОВАР REALLYWORLD (/bafovar, /bafs) =================
+    // ================= 6B. NPC БАФОВАР (/bafs, /bafovar): ВАРКА ДО 8 ЗЕЛИЙ ЗА 5 000$ + ЛАВКА ГОТОВЫХ ЗЕЛИЙ =================
     public void openBafovarMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("bafovar", "", 0), 54,
-                ColorUtil.c("&#FF1744&l🧪 ЛАВКА БАФОВАРА REALLYWORLD"));
+                ColorUtil.c("&#FF9100&l⚗ АЛХИМИК БАФОВАР [ВАРКА + ЛАВКА]"));
         decorateFrame(inv);
-        inv.setItem(4, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF1744&l🧪 БАФОВАР РВ — Зелья и Баффы",
+        inv.setItem(4, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF9100&l⚗ АЛХИМИК БАФОВАР — Варка & Зелья",
                 "&7Ваш баланс: &a" + ColorUtil.fmtMoney(plugin.getStore().getCoins(p.getName())) + "$",
-                "&7Покупай топовые зелья РВ, накладывай", "&7мгновенные пакеты баффов и стакай зелья!"));
+                "&f1) &eВари кастомное зелье (макс 8 зелек в 1 флакон) за &a5 000$&e!",
+                "&f2) &bПокупай готовые кастомные зелья и стакай флаконы!"));
 
-        // Row 1: Все 9 Кастомных Зелий ReallyWorld
         inv.setItem(10, coinShopTag(ItemFactory.potionKiller(1),    14000));
         inv.setItem(11, coinShopTag(ItemFactory.potionMedic(1),     11000));
         inv.setItem(12, coinShopTag(ItemFactory.potionFlash(1),      9500));
@@ -414,7 +554,16 @@ public final class GuiManager {
         inv.setItem(19, coinShopTag(ItemFactory.potionTurtle(1),    16000));
         inv.setItem(20, coinShopTag(ItemFactory.potionVampire(1),   18000));
 
-        // Row 2-3: Мгновенные пакеты баффов прямо на игрока + Стакер зелий РВ + Снятие дебаффов!
+        inv.setItem(29, ItemFactory.glowIcon(Material.DRAGON_BREATH, "&#FF9100&l⚗ СВАРИТЬ КАСТОМНОЕ ЗЕЛЬЕ (МАКС 8 ЗЕЛЕК — 5 000$!)",
+                "&7Открой варочный котёл Бафовара:",
+                "&f• Положи от &e1 до 8 любых зелий &fиз инвентаря",
+                "&f• Бафовар смешает их все в &aОДИН мощный флакон&f!",
+                "", "&#FFEA00Стоимость варки: &a5 000$", "&#00E676▸ Нажми, чтобы открыть Котёл Варки!"));
+
+        inv.setItem(30, ItemFactory.glowIcon(Material.CAULDRON, "&#00E676&l🧪 СТАКНУТЬ ЗЕЛЬЯ В ИНВЕНТАРЕ (до x8 — 5 000$)",
+                "&7Объединяет одинаковые зелья в вашем", "&7инвентаре в удобные стаки по &e8 штук&7!",
+                "", "&#FFEA00Цена: &a5 000$", "&#00E676▸ Нажми, чтобы стакнуть все зелья!"));
+
         inv.setItem(22, ItemFactory.glowIcon(Material.BLAZE_POWDER, "&#FF6D00&l⚔ Пакет «Боевой Баф» (5 мин)",
                 "&7Мгновенно накладывает на вас:", "&c• Сила II  &b• Скорость II  &6• Огнестойкость  &9• Ночное Зрение",
                 "", "&#FFEA00Цена: &a12 000$", "&#00E676▸ Нажми для активации!"));
@@ -426,15 +575,103 @@ public final class GuiManager {
                 "&7Мгновенно накладывает на вас:", "&e• Спешка III  &b• Скорость III  &9• Ночное Зрение",
                 "", "&#FFEA00Цена: &a8 000$", "&#00E676▸ Нажми для активации!"));
 
-        inv.setItem(30, ItemFactory.glowIcon(Material.CAULDRON, "&#00E676&l🧪 СТАКНУТЬ ЗЕЛЬЯ В ИНВЕНТАРЕ (до x8!)",
-                "&7Фирменная функция Бафовара ReallyWorld!",
-                "&7Объединяет одинаковые зелья в вашем", "&7инвентаре в удобные стаки по &e8 штук&7!",
-                "", "&#FFEA00Цена: &a5 000$", "&#00E676▸ Нажми, чтобы стакнуть все зелья!"));
         inv.setItem(32, ItemFactory.glowIcon(Material.MILK_BUCKET, "&f&l🥛 Очистить Негативные Дебаффы",
                 "&7Мгновенно снимает Отравление, Иссушение,", "&7Слепоту, Слабость и Замедление!",
                 "", "&#FFEA00Цена: &a2 500$", "&#00E676▸ Нажми для очищения!"));
 
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    public static final int[] BAFOVAR_SLOTS = new int[]{10, 11, 12, 13, 14, 15, 16, 22};
+
+    public void openBafovarBrewerMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("baf_brew", "", 0), 45,
+                ColorUtil.c("&#FF9100&l⚗ КОТЁЛ БАФОВАРА (МАКС 8 ЗЕЛЕК)"));
+        ItemStack orange = ItemFactory.icon(Material.ORANGE_STAINED_GLASS_PANE, " ");
+        ItemStack black = ItemFactory.icon(Material.BLACK_STAINED_GLASS_PANE, " ");
+        for (int i = 0; i < 45; i++) inv.setItem(i, (i % 2 == 0) ? black : orange);
+        for (int s : BAFOVAR_SLOTS) inv.setItem(s, null);
+
+        inv.setItem(4, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FFD740&l⚗ Положи от 1 до 8 любых зелий в слоты!",
+                "&7Кликни по зельям в своём инвентаре или перетащи",
+                "&7их в &e8 пустых слотов &7выше!",
+                "&7Все эффекты объединятся в &a1 кастомное зелье&7!"));
+        inv.setItem(30, ItemFactory.glowIcon(Material.LIME_CONCRETE, "&#00E676&l✔ СВАРИТЬ ПИТЬЕВОЕ ЗЕЛЬЕ ЗА 5 000$",
+                "&7Объединяет все вложенные зелья (до 8 шт.)",
+                "&7в один питьевой флакон &eМикс Бафовара&7!",
+                "", "&#FFEA00Цена варки: &a5 000$"));
+        inv.setItem(32, ItemFactory.glowIcon(Material.MAGENTA_CONCRETE, "&#E040FB&l💥 СВАРИТЬ ВЗРЫВНОЕ ЗЕЛЬЕ ЗА 5 000$",
+                "&7Объединяет все вложенные зелья (до 8 шт.)",
+                "&7в один взрывной флакон &dМикс Бафовара&7!",
+                "", "&#FFEA00Цена варки: &a5 000$"));
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в лавку Бафовара"));
+        p.openInventory(inv);
+    }
+
+    // ================= 6D. СКИНЫ ТРАПОК С ДЕБАФФАМИ (/skins) & ОХОТА ЗА ГОЛОВАМИ (/bounty) =================
+    public static final String[][] TRAP_SKINS = new String[][]{
+            {"classic", "&#B0BEC5&l⛓ Незеритовый Бастион [Стандарт]", "NETHERITE_BLOCK",      "0",     "0",   "&7Замедление I врагам внутри трапки"},
+            {"ice",     "&#80D8FF&l❄ Ледяная Гробница Стужи",          "BLUE_ICE",             "25000", "35",  "&bМедлительность III + Заморозка врагам!"},
+            {"inferno", "&#FF6D00&l🔥 Адское Пекло Аида",              "MAGMA_BLOCK",          "35000", "45",  "&6Поджог на 6 сек + Слабость I врагам!"},
+            {"toxic",   "&#76FF03&l☣ Кислотный Реактор Ехидны",        "EMERALD_BLOCK",        "45000", "60",  "&aОтравление II + Голод III врагам!"},
+            {"void",    "&#E040FB&l👁 Бездна Эндера",                  "CRYING_OBSIDIAN",      "60000", "80",  "&dСлепота + Утомление II врагам!"},
+            {"royal",   "&#FFD740&l👑 Императорская Золотая Клетка",   "GOLD_BLOCK",           "85000", "110", "&eИссушение II + Свечение + Слабость II врагам!"}
+    };
+
+    public void openTrapSkinsMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("skins", "", 0), 36,
+                ColorUtil.c("&#E040FB&l⛓ СКИНЫ ТРАПОК И ДЕБАФФЫ (/skins)"));
+        decorateFrame(inv);
+        String active = plugin.getStore().getSelectedTrapSkin(p.getName());
+        inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Кастомизация Трапки 5×5×5",
+                "&7Выбранный скин меняет блоки вашей &cТрапки",
+                "&7и накладывает &dмощный дебафф на всех врагов&7,",
+                "&7попавших внутрь (кроме вас и соклановцев)!"));
+
+        int[] slots = new int[]{10, 11, 12, 14, 15, 16};
+        for (int i = 0; i < TRAP_SKINS.length; i++) {
+            String[] sk = TRAP_SKINS[i];
+            boolean owned = plugin.getStore().hasTrapSkin(p.getName(), sk[0]);
+            boolean sel = sk[0].equalsIgnoreCase(active);
+            Material mat = ColorUtil.mat(sk[2], "OBSIDIAN");
+            List<String> lore = new ArrayList<String>();
+            lore.add("&8Скин для боевой Трапки FT×RW");
+            lore.add("");
+            lore.add("&7Дебафф врагам: " + sk[5]);
+            lore.add("");
+            if (sel) {
+                lore.add("&#00E676&l✔ АКТИВЕН СЕЙЧАС!");
+            } else if (owned) {
+                lore.add("&#00E676✔ Разблокирован — Нажмите ЛКМ для выбора!");
+            } else {
+                lore.add("&#FFEA00ЛКМ — Купить за &a" + sk[3] + "$ Монет");
+                lore.add("&#00E5FFПКМ — Купить за &b" + sk[4] + " Риликов ❖");
+            }
+            inv.setItem(slots[i], ItemFactory.make(mat, 1, sk[1], lore, sel, "skin_" + sk[0], null, 0));
+        }
+        inv.setItem(31, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    public void openBountyMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("bounty", "", 0), 45,
+                ColorUtil.c("&#FF1744&l🎯 ОХОТА ЗА ГОЛОВАМИ (/bounty)"));
+        decorateFrame(inv);
+        inv.setItem(4, ItemFactory.glowIcon(Material.SKELETON_SKULL, "&#FF1744&l🎯 Контракты на Головы Игроков",
+                "&7Убей цель с контрактом — забери 100% награды!",
+                "&7Назначить награду: &#FFD740/bounty add <ник> <сумма>"));
+        Map<String, Double> all = plugin.getStore().getActiveBounties();
+        int slot = 10;
+        for (Map.Entry<String, Double> en : all.entrySet()) {
+            if (slot >= 35) break;
+            if (slot % 9 == 0 || slot % 9 == 8) slot++;
+            if (slot % 9 == 0 || slot % 9 == 8) slot++;
+            inv.setItem(slot++, ItemFactory.glowIcon(Material.PLAYER_HEAD, "&#FF5252🎯 Цель: &f" + en.getKey(),
+                    "&7Награда за убийство: &a" + ColorUtil.fmtMoney(en.getValue().doubleValue()) + "$",
+                    "&7Статус: " + (Bukkit.getPlayerExact(en.getKey()) != null ? "&#00E676В сети!" : "&7Не в сети")));
+        }
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
 
@@ -580,35 +817,59 @@ public final class GuiManager {
         }.runTaskTimer(plugin, 0L, 3L);
     }
 
-    // ================= 8. БОССЫ И ИВЕНТЫ (/events) & ЧЁРНЫЙ РЫНОК (/bm) =================
+    // ================= 8. БОССЫ, АИРДРОПЫ И 4 МИРОВЫХ ИВЕНТА (/events) & ЧЁРНЫЙ РЫНОК (/bm) =================
     public void openEventsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("events", "", 0), 45,
                 ColorUtil.c("&#FF1744&l🔥 АКТИВНЫЕ БОССЫ И ИВЕНТЫ"));
         decorateFrame(inv);
         List<BossEventManager.ActiveBossEvent> active = plugin.getBossEvents().getActiveEvents();
-        inv.setItem(4, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&lРадар Боссов ReallyWorld",
-                "&7Активных боссов сейчас: &a" + active.size(),
-                "&7Следующий авто-босс через: &e" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds()),
-                "&7Все полоски ХП боссов отображаются", "&7сверху экрана друг под другом!"));
+        inv.setItem(4, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&lРадар Мировых Ивентов KINGGRIEF",
+                "&7Активных ивентов сейчас: &a" + active.size(),
+                "&7Следующий авто-ивент через: &e" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds()),
+                "",
+                "&fВиды ивентов (спавнятся строго на СУШЕ!):",
+                " &#FF1744• Мифические Боссы &8(5 видов)",
+                " &#FF9100• Военный АирДроп с парашютом",
+                " &#FF5252• Звёздный Метеорит с рудами",
+                " &#FFD740• Золотой Маяк Богатства (+$$$)",
+                " &#40C4FF• Ледяная Цитадель Санты"));
 
         if (active.isEmpty()) {
-            inv.setItem(22, ItemFactory.icon(Material.CLOCK, "&eСейчас нет активных Боссов",
-                    "&7Новый Босс появится через &f" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds())));
+            inv.setItem(22, ItemFactory.icon(Material.CLOCK, "&eСейчас нет активных ивентов",
+                    "&7Новый Ивент появится на суше через &f" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds())));
         } else {
             int[] slots = new int[]{19, 21, 23, 25};
             for (int i = 0; i < Math.min(slots.length, active.size()); i++) {
                 BossEventManager.ActiveBossEvent ev = active.get(i);
+                String statusLine;
+                if (ev.bossDefeated) {
+                    statusLine = "&#00E676🔓 Сокровищница Открыта!";
+                } else if (ev.template.kind == BossEventManager.EventKind.BOSS) {
+                    statusLine = "&#FF1744⚔ Босс Жив!";
+                } else {
+                    statusLine = "&#FFD740⏳ Замок откроется через " + ColorUtil.fmtTime(ev.unlockCountdownSec);
+                }
                 inv.setItem(slots[i], ItemFactory.glowIcon(ev.template.platformMat,
                         ev.template.displayName,
-                        "&7Статус: " + (ev.bossDefeated ? "&#00E676🔓 Сундук Открыт!" : "&#FF1744⚔ Босс Жив!"),
-                        "&7Координаты в выживании (/rtp):",
+                        "&7Статус: " + statusLine,
+                        "&7Координаты на суше (/rtp):",
                         " &#80D8FFX: " + ev.center.getBlockX() + "  Y: " + ev.center.getBlockY() + "  Z: " + ev.center.getBlockZ(),
-                        "&7Осталось времени: &e" + ColorUtil.fmtTime(ev.secondsLeft)));
+                        "&7До исчезновения: &e" + ColorUtil.fmtTime(ev.secondsLeft)));
             }
         }
-        if ("owner".equals(plugin.getRanks().getRank(p).id) || p.isOp()) {
-            inv.setItem(38, ItemFactory.glowIcon(Material.BLAZE_SPAWN_EGG, "&#00E676&l⚡ [АДМИН] Запустить Случайного Босса!",
-                    "&7Создаёт нового Босса (полоска ХП встанет", "&7ниже текущих ивентов без наложения!)"));
+
+        // СТРОГО ТОЛЬКО ДЛЯ АДМИНОВ И ВЫШЕ (D.ADMIN+, ДКП, OPKA, D.OWNER, КП, CURATOR, TECH.ADMIN, OWNER)!
+        if (plugin.getBossEvents().canAdminSpawnEvents(p)) {
+            inv.setItem(36, ItemFactory.glowIcon(Material.BLAZE_SPAWN_EGG, "&#FF1744&l👹 [АДМИН+] Призвать Босса",
+                    "&7Спавнит случайного Мифического Босса на суше"));
+            inv.setItem(37, ItemFactory.glowIcon(Material.RED_SHULKER_BOX, "&#FF9100&l🪂 [АДМИН+] Сбросить АирДроп",
+                    "&7Красивый АирДроп с куполом парашюта на суше"));
+            inv.setItem(38, ItemFactory.glowIcon(Material.MAGMA_BLOCK, "&#FF5252&l☄ [АДМИН+] Уронить Метеорит",
+                    "&7Огненный кратер с алмазами и звёздным ядром"));
+            inv.setItem(42, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l💎 [АДМИН+] Маяк Богатства",
+                    "&7Золотая пирамида — раздаёт Монеты и Рилики!"));
+            inv.setItem(43, ItemFactory.glowIcon(Material.BLUE_ICE, "&#40C4FF&l❄ [АДМИН+] Ледяная Цитадель",
+                    "&7Зимняя ротонда Санты с 3D Элитрами и Шарами!"));
         }
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -709,11 +970,15 @@ public final class GuiManager {
     // ================= 11. СКУПЩИК, КЕЙСЫ, ДОНАТ, АУКЦИОН, РАБОТЫ, БП, КЛАНЫ, LP GUI =================
     public void openBuyerMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("buyer", "", 0), 45,
-                ColorUtil.c("&#69F0AE&l💰 СКУПЩИК РЕСУРСОВ REALLYWORLD"));
+                ColorUtil.c("&#69F0AE&l💰 СКУПЩИК [ПРОКАЧКА МНОЖИТЕЛЯ]"));
         decorateFrame(inv);
-        double mult = 1.0 + plugin.getRanks().getRank(p).tier * 0.15;
+        double lvlMult = plugin.getStore().getBuyerMultiplier(p.getName());
+        double rankMult = 1.0 + plugin.getRanks().getRank(p).tier * 0.12;
+        double mult = lvlMult * rankMult;
         inv.setItem(4, ItemFactory.glowIcon(Material.EMERALD_BLOCK, "&#00E676&l⚡ ПРОДАТЬ ВСЁ ИЗ ИНВЕНТАРЯ В 1 КЛИК!",
-                "&7Ваш бонус привилегии: &e×" + String.format(Locale.US, "%.2f", Double.valueOf(mult)),
+                "&7Множитель прокачки Скупщика: &#00E676×" + String.format(Locale.US, "%.2f", Double.valueOf(lvlMult)) + " &8(макс ×2.00)",
+                "&7Общий множитель с рангом: &e×" + String.format(Locale.US, "%.2f", Double.valueOf(mult)),
+                "&7Продано всего: &a" + ColorUtil.fmtMoney(plugin.getStore().getBuyerSoldTotal(p.getName())) + "$",
                 "", "&#00E676▸ Нажми, чтобы продать всю руду, слитки, урожай и дроп!"));
         Material[] mats = new Material[]{
                 Material.COAL, Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND,
@@ -903,13 +1168,16 @@ public final class GuiManager {
         if (top == null || !(top.getHolder() instanceof KgMenuHolder)) return;
         KgMenuHolder h = (KgMenuHolder) top.getHolder();
         if ("trash".equals(h.menuType)) {
-            // Allow placing items freely into trash inventory!
+            return;
+        }
+        Player p = (Player) e.getWhoClicked();
+        if ("baf_brew".equals(h.menuType)) {
+            handleBafovarBrewerClick(e, p, top);
             return;
         }
         e.setCancelled(true);
         if (e.getClickedInventory() == null || !e.getClickedInventory().equals(top)) return;
 
-        Player p = (Player) e.getWhoClicked();
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || clicked.getType() == Material.AIR) return;
         int slot = e.getSlot();
@@ -918,7 +1186,7 @@ public final class GuiManager {
         if ("main".equals(type)) {
             if (slot == 10) openRtpMenu(p);
             else if (slot == 11) openWarpsMenu(p);
-            else if (slot == 12) openRelicShop(p);
+            else if (slot == 12) openCoinShopHub(p);
             else if (slot == 13) openKitsMenu(p, 0);
             else if (slot == 14) openCasesMenu(p);
             else if (slot == 15) openDonateMenu(p);
@@ -927,7 +1195,7 @@ public final class GuiManager {
             else if (slot == 20) openAuctionMenu(p, 0);
             else if (slot == 21) openEventsMenu(p);
             else if (slot == 22) openBlackMarket(p);
-            else if (slot == 23) openEnchantsMenu(p);
+            else if (slot == 23) openRelicShop(p);
             else if (slot == 24) openDjamshutMenu(p);
             else if (slot == 25) openClanMenu(p);
             else if (slot == 29) openJobsMenu(p);
@@ -936,8 +1204,30 @@ public final class GuiManager {
             else if (slot == 32) openTitlesMenu(p);
             else if (slot == 33) openPlaytimeMenu(p);
             else if (slot == 38) openBafovarMenu(p);
+            else if (slot == 39) openTrapSkinsMenu(p);
+            else if (slot == 41) openBountyMenu(p);
             else if (slot == 42) openFreebieMenu(p);
             else if (slot == 49 && plugin.getLp().hasLpAccess(p)) openLpGroupsGui(p, 0);
+        } else if ("cshop_hub".equals(type)) {
+            if (slot == 40) { openMainMenu(p); return; }
+            if (slot == 10) openCoinShopCat(p, "blocks");
+            else if (slot == 11) openCoinShopCat(p, "food");
+            else if (slot == 12) openCoinShopCat(p, "gear");
+            else if (slot == 13) openCoinShopCat(p, "raid");
+            else if (slot == 14) openCoinShopCat(p, "pvp");
+            else if (slot == 15) openCoinShopCat(p, "elytra");
+            else if (slot == 16) openCoinShopCat(p, "spawners");
+            else if (slot == 21) openCoinShopCat(p, "ores");
+            else if (slot == 22) openBafovarMenu(p);
+            else if (slot == 23) openRelicShop(p);
+        } else if ("cshop_cat".equals(type)) {
+            if (slot == 40) { openCoinShopHub(p); return; }
+            handleCategoryCoinPurchase(p, clicked, h.extra);
+        } else if ("skins".equals(type)) {
+            if (slot == 31) { openMainMenu(p); return; }
+            handleTrapSkinClick(p, clicked, e.getClick());
+        } else if ("bounty".equals(type)) {
+            if (slot == 40) openMainMenu(p);
         } else if ("bafovar".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             handleBafovarClick(p, slot);
@@ -1007,8 +1297,16 @@ public final class GuiManager {
             handleCasinoClick(p, slot);
         } else if ("events".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
-            if (slot == 38 && ("owner".equals(plugin.getRanks().getRank(p).id) || p.isOp())) {
-                plugin.getBossEvents().startRandomEvent();
+            if (slot == 36 || slot == 37 || slot == 38 || slot == 42 || slot == 43) {
+                if (!plugin.getBossEvents().canAdminSpawnEvents(p)) {
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Призывать Боссов и Ивенты могут только Админы и выше!"));
+                    return;
+                }
+                if (slot == 36) plugin.getBossEvents().startRandomBossOnly();
+                else if (slot == 37) plugin.getBossEvents().spawnBossEvent("airdrop", null);
+                else if (slot == 38) plugin.getBossEvents().spawnBossEvent("meteor", null);
+                else if (slot == 42) plugin.getBossEvents().spawnBossEvent("beacon", null);
+                else if (slot == 43) plugin.getBossEvents().spawnBossEvent("citadel", null);
                 openEventsMenu(p);
             }
         } else if ("titles".equals(type)) {
@@ -1121,7 +1419,7 @@ public final class GuiManager {
             case 12: reward = ItemFactory.sharChimery(); cost = 220; break;
             case 13: reward = ItemFactory.sharApollona(); cost = 270; break;
             case 14: reward = ItemFactory.sharAida(); cost = 280; break;
-            case 15: reward = ItemFactory.sharOsirisa(); cost = 240; break;
+            case 15: reward = ItemFactory.sharAresa(); cost = 310; break;
             case 16: reward = ItemFactory.sharSanty(); cost = 350; break;
             case 19: reward = ItemFactory.talKrushitelya(); cost = 310; break;
             case 20: reward = ItemFactory.talGrani(); cost = 290; break;
@@ -1130,18 +1428,20 @@ public final class GuiManager {
             case 23: reward = ItemFactory.talFeniksa(3); cost = 390; break;
             case 24: reward = ItemFactory.talEchidny(); cost = 280; break;
             case 25: reward = ItemFactory.talStuzhi(); cost = 300; break;
-            case 28: reward = ItemFactory.potionKiller(2); cost = 45; break;
-            case 29: reward = ItemFactory.potionBurp(2); cost = 40; break;
-            case 30: reward = ItemFactory.potionAcid(2); cost = 45; break;
-            case 31: reward = ItemFactory.pickDjamshut(); cost = 340; break;
-            case 32: reward = ItemFactory.pickSpawner(); cost = 190; break;
-            case 33: reward = ItemFactory.swordDracula(); cost = 320; break;
-            case 34: reward = ItemFactory.swordKrush(); cost = 420; break;
-            case 38: reward = ItemFactory.bowIceRw(); cost = 210; break;
-            case 39: reward = ItemFactory.mysteryEgg(2); cost = 110; break;
-            case 40: reward = ItemFactory.potionMedic(2); cost = 35; break;
-            case 41: reward = ItemFactory.potionAgent(2); cost = 35; break;
-            case 42: reward = ItemFactory.claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61"); cost = 150; break;
+            case 28: reward = ItemFactory.elytraWind(); cost = 220; break;
+            case 29: reward = ItemFactory.elytraPhoenix(); cost = 270; break;
+            case 30: reward = ItemFactory.elytraVampire(); cost = 290; break;
+            case 31: reward = ItemFactory.elytraThunder(); cost = 310; break;
+            case 32: reward = ItemFactory.elytraTitan(); cost = 360; break;
+            case 33: reward = ItemFactory.elytraSanta(); cost = 420; break;
+            case 34: reward = ItemFactory.sharOsirisa(); cost = 240; break;
+            case 37: reward = ItemFactory.plast(8); cost = 35; break;
+            case 38: reward = ItemFactory.trapka(4); cost = 45; break;
+            case 39: reward = ItemFactory.dezorient(4); cost = 40; break;
+            case 40: reward = ItemFactory.bozhyaAura(2); cost = 50; break;
+            case 41: reward = ItemFactory.pickDjamshut(); cost = 340; break;
+            case 42: reward = ItemFactory.swordDracula(); cost = 320; break;
+            case 43: reward = ItemFactory.swordKrush(); cost = 420; break;
             default: return;
         }
         if (!plugin.getStore().takeRelics(p, cost)) {
@@ -1341,7 +1641,9 @@ public final class GuiManager {
     }
 
     private void handleBuyerSell(Player p, int slot, Material targetMat) {
-        double mult = 1.0 + plugin.getRanks().getRank(p).tier * 0.15;
+        double lvlMult = plugin.getStore().getBuyerMultiplier(p.getName());
+        double rankMult = 1.0 + plugin.getRanks().getRank(p).tier * 0.12;
+        double mult = lvlMult * rankMult;
         Material[] mats = new Material[]{
                 Material.COAL, Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND,
                 Material.EMERALD, Material.NETHERITE_INGOT, Material.LAPIS_LAZULI,
@@ -1368,12 +1670,19 @@ public final class GuiManager {
             return;
         }
         plugin.getStore().addCoins(p.getName(), earned);
+        plugin.getStore().addBuyerSold(p.getName(), earned);
         plugin.getStore().save();
         ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.3f);
-        p.sendMessage(ColorUtil.c("&#00E676💰 Скупщик купил &f" + count + " шт. &#00E676ресурсов за &a+" + ColorUtil.fmtMoney(earned) + "$&7!"));
+        p.sendMessage(ColorUtil.c("&#00E676💰 Скупщик купил &f" + count + " шт. &#00E676за &a+" + ColorUtil.fmtMoney(earned)
+                + "$ &8(Множитель Скупщика: &#00E676×" + String.format(Locale.US, "%.2f", Double.valueOf(plugin.getStore().getBuyerMultiplier(p.getName()))) + "&8)&7!"));
+        openBuyerMenu(p);
     }
 
     private void handleBafovarClick(Player p, int slot) {
+        if (slot == 29) {
+            openBafovarBrewerMenu(p);
+            return;
+        }
         ItemStack pot = null;
         int cost = 0;
         if (slot == 10) { pot = ItemFactory.potionKiller(1); cost = 14000; }
@@ -1507,6 +1816,206 @@ public final class GuiManager {
         if (m instanceof Damageable) {
             ((Damageable) m).setDamage(0);
             it.setItemMeta(m);
+        }
+    }
+
+    private void handleCategoryCoinPurchase(Player p, ItemStack clicked, String cat) {
+        ItemMeta m = clicked.getItemMeta();
+        if (m == null) return;
+        Integer costObj = m.getPersistentDataContainer().get(ItemFactory.CHARGES_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
+        if (costObj == null || costObj.intValue() <= 0) return;
+        int cost = costObj.intValue();
+        if (!plugin.getStore().takeCoins(p.getName(), cost)) {
+            ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
+            p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cost) + "$"));
+            return;
+        }
+        plugin.getStore().save();
+        // Rebuild clean item copy without shop price lore
+        ItemStack give = clicked.clone();
+        ItemMeta gm = give.getItemMeta();
+        if (gm != null) {
+            if (gm.hasLore() && gm.getLore().size() >= 3) {
+                List<String> l = new ArrayList<String>(gm.getLore());
+                for (int k = 0; k < 3 && !l.isEmpty(); k++) l.remove(l.size() - 1);
+                gm.setLore(l.isEmpty() ? null : l);
+            }
+            if (!"tal_feniksa".equals(ItemFactory.getCustomId(give))) {
+                gm.getPersistentDataContainer().remove(ItemFactory.CHARGES_KEY);
+            }
+            give.setItemMeta(gm);
+        }
+        for (ItemStack rem : p.getInventory().addItem(give).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), rem);
+        }
+        ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.25f);
+        p.sendMessage(ColorUtil.c("&#00E676✔ Покупка успешна за &a" + ColorUtil.fmtMoney(cost) + "$&7!"));
+        openCoinShopCat(p, cat);
+    }
+
+    private void handleTrapSkinClick(Player p, ItemStack clicked, ClickType click) {
+        String cid = ItemFactory.getCustomId(clicked);
+        if (cid == null || !cid.startsWith("skin_")) return;
+        String skinId = cid.substring(5);
+        String[] found = null;
+        for (String[] sk : TRAP_SKINS) {
+            if (sk[0].equalsIgnoreCase(skinId)) { found = sk; break; }
+        }
+        if (found == null) return;
+        if (plugin.getStore().hasTrapSkin(p.getName(), skinId)) {
+            plugin.getStore().setSelectedTrapSkin(p.getName(), skinId);
+            ColorUtil.sound(p, "block.enchantment_table.use", 1f, 1.2f);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Выбран скин Трапки: " + found[1] + " &8(" + found[5] + "&8)"));
+            openTrapSkinsMenu(p);
+            return;
+        }
+        if (click == ClickType.RIGHT || click == ClickType.SHIFT_RIGHT) {
+            int rCost = Integer.parseInt(found[4]);
+            if (!plugin.getStore().takeRelics(p, rCost)) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + rCost + " ❖"));
+                return;
+            }
+        } else {
+            int cCost = Integer.parseInt(found[3]);
+            if (!plugin.getStore().takeCoins(p.getName(), cCost)) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cCost) + "$"));
+                return;
+            }
+        }
+        plugin.getStore().unlockTrapSkin(p.getName(), skinId);
+        plugin.getStore().setSelectedTrapSkin(p.getName(), skinId);
+        ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+        p.sendMessage(ColorUtil.c("&#00E676🎉 Скин Трапки " + found[1] + " &#00E676разблокирован и активирован!"));
+        openTrapSkinsMenu(p);
+    }
+
+    private boolean isBafovarSlot(int rawSlot) {
+        for (int s : BAFOVAR_SLOTS) if (s == rawSlot) return true;
+        return false;
+    }
+
+    private boolean isPotionStack(ItemStack it) {
+        if (it == null) return false;
+        Material t = it.getType();
+        return t == Material.POTION || t == Material.SPLASH_POTION || t == Material.LINGERING_POTION;
+    }
+
+    private void handleBafovarBrewerClick(InventoryClickEvent e, Player p, Inventory top) {
+        int raw = e.getRawSlot();
+        // Clicking player's own inventory: allow normal pickup or quick-move of 1 potion into an open brew slot!
+        if (raw >= top.getSize()) {
+            if (e.isShiftClick()) {
+                e.setCancelled(true);
+                ItemStack cur = e.getCurrentItem();
+                if (!isPotionStack(cur)) {
+                    p.sendMessage(ColorUtil.c("&cВ котёл Бафовара можно класть только зелья (макс 8 шт.)!"));
+                    return;
+                }
+                for (int bs : BAFOVAR_SLOTS) {
+                    if (top.getItem(bs) == null || top.getItem(bs).getType() == Material.AIR) {
+                        ItemStack one = cur.clone();
+                        one.setAmount(1);
+                        top.setItem(bs, one);
+                        if (cur.getAmount() <= 1) e.setCurrentItem(null);
+                        else cur.setAmount(cur.getAmount() - 1);
+                        ColorUtil.sound(p, "item.bottle.fill", 0.8f, 1.2f);
+                        return;
+                    }
+                }
+                p.sendMessage(ColorUtil.c("&eВсе 8 слотов котла Бафовара уже заполнены!"));
+            }
+            return;
+        }
+        // Inside top brewer inventory: allow placing/taking ONLY in the 8 BAFOVAR_SLOTS
+        if (isBafovarSlot(raw)) {
+            ItemStack cursor = e.getCursor();
+            if (cursor != null && cursor.getType() != Material.AIR && !isPotionStack(cursor)) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&cВ этот слот можно положить только зелье!"));
+            }
+            return;
+        }
+        e.setCancelled(true);
+        if (raw == 40) {
+            returnBrewerPotions(p, top);
+            openBafovarMenu(p);
+            return;
+        }
+        if (raw == 30 || raw == 32) {
+            boolean splash = (raw == 32);
+            List<org.bukkit.potion.PotionEffect> merged = new ArrayList<org.bukkit.potion.PotionEffect>();
+            List<String> labels = new ArrayList<String>();
+            int potCount = 0;
+            for (int bs : BAFOVAR_SLOTS) {
+                ItemStack inSlot = top.getItem(bs);
+                if (!isPotionStack(inSlot)) continue;
+                potCount++;
+                org.bukkit.inventory.meta.PotionMeta pm = (org.bukkit.inventory.meta.PotionMeta) inSlot.getItemMeta();
+                if (pm != null) {
+                    List<org.bukkit.potion.PotionEffect> allEffs = new ArrayList<org.bukkit.potion.PotionEffect>();
+                    if (pm.hasCustomEffects()) allEffs.addAll(pm.getCustomEffects());
+                    try {
+                        if (pm.getBasePotionType() != null && pm.getBasePotionType().getPotionEffects() != null) {
+                            allEffs.addAll(pm.getBasePotionType().getPotionEffects());
+                        }
+                    } catch (Throwable ignored) {}
+                    for (org.bukkit.potion.PotionEffect pe : allEffs) {
+                        merged.add(pe);
+                        labels.add("&e" + pe.getType().getKey().getKey() + " " + (pe.getAmplifier() + 1) + " &7(" + (pe.getDuration() / 20) + "с)");
+                    }
+                }
+            }
+            if (potCount <= 0 || merged.isEmpty()) {
+                p.sendMessage(ColorUtil.c("&cПоложите от 1 до 8 зелий с эффектами в пустые слоты котла!"));
+                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
+                return;
+            }
+            if (!plugin.getStore().takeCoins(p.getName(), 5000)) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно монет! Варка у Бафовара стоит 5 000$."));
+                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
+                return;
+            }
+            for (int bs : BAFOVAR_SLOTS) {
+                ItemStack inSlot = top.getItem(bs);
+                if (inSlot == null) continue;
+                if (inSlot.getAmount() > 1) {
+                    inSlot.setAmount(inSlot.getAmount() - 1);
+                    top.setItem(bs, inSlot);
+                } else {
+                    top.setItem(bs, null);
+                }
+            }
+            plugin.getStore().save();
+            ItemStack result = ItemFactory.bafovarCustomPotion(splash, merged, labels);
+            for (ItemStack rem : p.getInventory().addItem(result).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), rem);
+            }
+            ColorUtil.sound(p, "block.brewing_stand.brew", 1f, 1.15f);
+            p.sendMessage(ColorUtil.c("&#FF9100⚗ Бафовар сварил для вас кастомное зелье из &e" + potCount + " зелек &#FF9100за &a5 000$&7!"));
+        }
+    }
+
+    public void returnBrewerPotions(Player p, Inventory top) {
+        if (top == null) return;
+        for (int bs : BAFOVAR_SLOTS) {
+            ItemStack it = top.getItem(bs);
+            if (it != null && it.getType() != Material.AIR) {
+                top.setItem(bs, null);
+                for (ItemStack rem : p.getInventory().addItem(it).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                }
+            }
+        }
+    }
+
+    public void handleInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (!(e.getPlayer() instanceof Player)) return;
+        Inventory top = e.getView().getTopInventory();
+        if (top != null && top.getHolder() instanceof KgMenuHolder) {
+            KgMenuHolder h = (KgMenuHolder) top.getHolder();
+            if ("baf_brew".equals(h.menuType)) {
+                returnBrewerPotions((Player) e.getPlayer(), top);
+            }
         }
     }
 }

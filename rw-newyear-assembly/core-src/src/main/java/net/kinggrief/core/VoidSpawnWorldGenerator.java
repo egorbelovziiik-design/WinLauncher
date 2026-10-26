@@ -90,7 +90,7 @@ public final class VoidSpawnWorldGenerator extends ChunkGenerator {
         if (w == null) return;
         try {
             w.setDifficulty(Difficulty.NORMAL);
-            w.setTime(18000L); // Midnight winter starry sky with glowing Christmas tree!
+            w.setTime(6000L); // Bright sunny winter noon so colorful Quartz, Emerald Pine, Gold & Concrete pop!
             w.setStorm(false);
             w.setThundering(false);
             setRule(w, "DO_DAYLIGHT_CYCLE", Boolean.FALSE);
@@ -104,7 +104,7 @@ public final class VoidSpawnWorldGenerator extends ChunkGenerator {
             setRule(w, "DO_PATROL_SPAWNING", Boolean.FALSE);
             setRule(w, "DO_TRADER_SPAWNING", Boolean.FALSE);
             setRule(w, "RANDOM_TICK_SPEED", Integer.valueOf(0));
-            w.setSpawnLocation(0, 100, 42);
+            w.setSpawnLocation(0, 100, 52);
             // Clean up any accidental dragons/slimes in spawn_world
             for (Entity e : w.getEntities()) {
                 if (e instanceof EnderDragon || e instanceof Slime) {

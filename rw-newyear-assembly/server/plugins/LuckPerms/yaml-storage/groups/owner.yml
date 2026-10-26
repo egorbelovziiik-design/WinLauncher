@@ -3,13 +3,11 @@ permissions:
 - weight.300
 - '*'
 - luckperms.*
-- luckperms.autoop
-- fawe.admin
-- worldedit.*
-- worldguard.*
 - kinggrief.admin
+- kinggrief.lp
+- kinggrief.spawn.edit
 parents:
 - techadmin
 prefixes:
-- '&f &f':
+- '&f &f':
     priority: 300

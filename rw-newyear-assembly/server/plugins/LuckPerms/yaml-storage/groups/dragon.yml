@@ -1,13 +1,14 @@
 name: dragon
 permissions:
-- weight.80
-- essentials.kits.dragon
-- essentials.sethome.multiple.dragon
-- essentials.keepxp
-- essentials.seen
-- protectionstones.limit.11
+- weight.120
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - imperator
 prefixes:
-- '&#D946EF&lDRAGON &f':
-    priority: 80
+- '&f &f':
+    priority: 120

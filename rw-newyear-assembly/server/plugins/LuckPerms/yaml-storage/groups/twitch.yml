@@ -1,9 +1,14 @@
 name: twitch
 permissions:
-- weight.104
-- essentials.kits.media
+- weight.160
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - tiktok
 prefixes:
-- '&#9146FF&lTWITCH &f':
-    priority: 104
+- '&f &f':
+    priority: 160

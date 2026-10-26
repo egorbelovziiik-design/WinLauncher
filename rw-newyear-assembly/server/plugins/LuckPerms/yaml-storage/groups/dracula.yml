@@ -1,12 +1,12 @@
 name: dracula
 permissions:
-- weight.60
-- essentials.kits.dracula
-- essentials.sethome.multiple.dracula
-- essentials.heal
-- essentials.repair.armor
+- weight.80
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - tiger
 prefixes:
-- '&#DC2626&lDRACULA &f':
-    priority: 60
+- '&f &f':
+    priority: 80

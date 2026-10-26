@@ -74,6 +74,15 @@ export type CaseGroup = {
   active: boolean;
 };
 
+export type ServerPromoReward = {
+  enabled: boolean;
+  coins: number;
+  relics: number;
+  caseId: string;
+  caseQty: number;
+  rankId: string;
+};
+
 export type Promo = {
   code: string;
   type: 'percent' | 'fixed';
@@ -85,6 +94,7 @@ export type Promo = {
   categories: string[] | null;
   expiresAt: string | null;
   active: boolean;
+  serverReward?: ServerPromoReward;
 };
 
 export type OrderStatus = 'pending_payment' | 'paid' | 'delivering' | 'delivered' | 'cancelled' | 'failed';

@@ -612,6 +612,12 @@ public final class DataStore {
         return local;
     }
 
+    public int getRelics(String name) {
+        Player p = org.bukkit.Bukkit.getPlayerExact(name);
+        if (p != null) return getRelics(p);
+        return yml.getInt("players." + key(name) + ".relics", 50);
+    }
+
     public int getRelicsByName(String name) {
         Player on = Bukkit.getPlayerExact(name);
         if (on != null) return getRelics(on);
@@ -904,20 +910,40 @@ public final class DataStore {
         return null;
     }
 
-    // ================= MODERATION & FLAGS =================
+    // ================= MODERATION & STAFFWORK (/sw) FLAGS =================
     public void mute(String name, long durationMs, String reason) {
-        yml.set("mutes." + key(name) + ".until", System.currentTimeMillis() + durationMs);
-        yml.set("mutes." + key(name) + ".reason", reason);
+        mute(name, durationMs, reason, "Консоль");
     }
-    public void unmute(String name) { yml.set("mutes." + key(name), null); }
+    public void mute(String name, long durationMs, String reason, String staff) {
+        long until = durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs;
+        yml.set("mutes." + key(name) + ".until", until);
+        yml.set("mutes." + key(name) + ".reason", reason);
+        yml.set("mutes." + key(name) + ".staff", staff);
+        save();
+    }
+    public void unmute(String name) {
+        yml.set("mutes." + key(name), null);
+        save();
+    }
     public long getMuteRemainingSec(String name) {
         long u = yml.getLong("mutes." + key(name) + ".until", 0L);
+        if (u == Long.MAX_VALUE) return Long.MAX_VALUE / 2000L;
         return u > System.currentTimeMillis() ? (u - System.currentTimeMillis()) / 1000L : 0L;
+    }
+    public String getMuteReason(String name) {
+        return yml.getString("mutes." + key(name) + ".reason", "Нарушение правил чата");
+    }
+    public String getMuteStaff(String name) {
+        return yml.getString("mutes." + key(name) + ".staff", "Модерация");
     }
 
     public void ban(String name, long durationMs, String reason) {
+        ban(name, durationMs, reason, "Консоль");
+    }
+    public void ban(String name, long durationMs, String reason, String staff) {
         yml.set("bans." + key(name) + ".until", durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs);
         yml.set("bans." + key(name) + ".reason", reason);
+        yml.set("bans." + key(name) + ".staff", staff);
         save();
     }
     public void unban(String name) {
@@ -930,6 +956,42 @@ public final class DataStore {
             return yml.getString("bans." + key(name) + ".reason", "Нарушение правил сервера");
         }
         return null;
+    }
+    public long getBanRemainingSec(String name) {
+        long u = yml.getLong("bans." + key(name) + ".until", 0L);
+        if (u == Long.MAX_VALUE) return -1L;
+        return u > System.currentTimeMillis() ? (u - System.currentTimeMillis()) / 1000L : 0L;
+    }
+    public String getBanStaff(String name) {
+        return yml.getString("bans." + key(name) + ".staff", "Модерация");
+    }
+
+    // StaffWork (/sw) persistent counters
+    public int getStaffBans(String staff) { return yml.getInt("staff." + key(staff) + ".bans", 0); }
+    public void addStaffBan(String staff) {
+        yml.set("staff." + key(staff) + ".bans", getStaffBans(staff) + 1);
+        save();
+    }
+    public int getStaffMutes(String staff) { return yml.getInt("staff." + key(staff) + ".mutes", 0); }
+    public void addStaffMute(String staff) {
+        yml.set("staff." + key(staff) + ".mutes", getStaffMutes(staff) + 1);
+        save();
+    }
+    public int getStaffChecks(String staff) { return yml.getInt("staff." + key(staff) + ".checks", 0); }
+    public void addStaffCheck(String staff) {
+        yml.set("staff." + key(staff) + ".checks", getStaffChecks(staff) + 1);
+        save();
+    }
+    public int getStaffSpeks(String staff) { return yml.getInt("staff." + key(staff) + ".speks", 0); }
+    public void addStaffSpek(String staff) {
+        yml.set("staff." + key(staff) + ".speks", getStaffSpeks(staff) + 1);
+        save();
+    }
+    public long getStaffWorkSeconds(String staff) { return yml.getLong("staff." + key(staff) + ".workSec", 0L); }
+    public void addStaffWorkSeconds(String staff, long sec) {
+        if (sec <= 0) return;
+        yml.set("staff." + key(staff) + ".workSec", getStaffWorkSeconds(staff) + sec);
+        save();
     }
 
     public boolean isSbEnabled(Player p) { return !sbDisabled.contains(p.getUniqueId()); }
@@ -960,5 +1022,145 @@ public final class DataStore {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ================= v5.0: CASE SET, TRAP SKINS, BUYER LEVEL, BOUNTIES & CLOUD PROMOS =================
+    public void setCaseKeys(String name, String caseId, int amount) {
+        yml.set("players." + key(name) + ".cases." + caseId.toLowerCase(Locale.ROOT), Math.max(0, amount));
+        save();
+    }
+
+    public String getSelectedTrapSkin(String name) {
+        return yml.getString("players." + key(name) + ".trapSkin", "classic");
+    }
+
+    public void setSelectedTrapSkin(String name, String skinId) {
+        yml.set("players." + key(name) + ".trapSkin", skinId.toLowerCase(Locale.ROOT));
+        save();
+    }
+
+    public boolean hasTrapSkin(String name, String skinId) {
+        if ("classic".equalsIgnoreCase(skinId)) return true;
+        return yml.getBoolean("players." + key(name) + ".trapSkins." + skinId.toLowerCase(Locale.ROOT), false);
+    }
+
+    public void unlockTrapSkin(String name, String skinId) {
+        yml.set("players." + key(name) + ".trapSkins." + skinId.toLowerCase(Locale.ROOT), Boolean.TRUE);
+        save();
+    }
+
+    public double getBuyerSoldTotal(String name) {
+        return yml.getDouble("players." + key(name) + ".buyerSold", 0.0);
+    }
+
+    public void addBuyerSold(String name, double delta) {
+        yml.set("players." + key(name) + ".buyerSold", getBuyerSoldTotal(name) + Math.max(0.0, delta));
+    }
+
+    public double getBuyerMultiplier(String name) {
+        double sold = getBuyerSoldTotal(name);
+        // Up to x2.00 multiplier (+0.10x per 25,000$ sold!)
+        double bonus = Math.min(1.0, Math.floor(sold / 25000.0) * 0.10);
+        return Math.round((1.0 + bonus) * 100.0) / 100.0;
+    }
+
+    public double getBounty(String target) {
+        return yml.getDouble("bounties." + key(target), 0.0);
+    }
+
+    public void addBounty(String target, double amt) {
+        yml.set("bounties." + key(target), getBounty(target) + Math.max(0.0, amt));
+        save();
+    }
+
+    public double claimBounty(String target) {
+        double b = getBounty(target);
+        if (b > 0) {
+            yml.set("bounties." + key(target), null);
+            save();
+        }
+        return b;
+    }
+
+    public Map<String, Double> getActiveBounties() {
+        Map<String, Double> out = new LinkedHashMap<String, Double>();
+        ConfigurationSection sec = yml.getConfigurationSection("bounties");
+        if (sec != null) {
+            for (String k : sec.getKeys(false)) {
+                double v = sec.getDouble(k, 0.0);
+                if (v > 0) out.put(k, Double.valueOf(v));
+            }
+        }
+        return out;
+    }
+
+    public static final class ServerPromo {
+        public String code;
+        public int maxUses;
+        public int usedCount;
+        public double coins;
+        public int relics;
+        public String caseId;
+        public int caseQty;
+        public String rankId;
+        public boolean active = true;
+    }
+
+    public synchronized void syncServerPromo(String code, int maxUses, double coins, int relics,
+                                             String caseId, int caseQty, String rankId) {
+        if (code == null || code.trim().isEmpty()) return;
+        String c = code.trim().toUpperCase(Locale.ROOT);
+        String p = "serverPromos." + c;
+        yml.set(p + ".maxUses", maxUses);
+        yml.set(p + ".coins", coins);
+        yml.set(p + ".relics", relics);
+        yml.set(p + ".caseId", (caseId == null || "none".equalsIgnoreCase(caseId)) ? "" : caseId.toLowerCase(Locale.ROOT));
+        yml.set(p + ".caseQty", Math.max(0, caseQty));
+        yml.set(p + ".rankId", (rankId == null || "none".equalsIgnoreCase(rankId)) ? "" : rankId.toLowerCase(Locale.ROOT));
+        yml.set(p + ".active", Boolean.TRUE);
+        save();
+    }
+
+    public synchronized void deleteServerPromo(String code) {
+        if (code == null) return;
+        yml.set("serverPromos." + code.trim().toUpperCase(Locale.ROOT), null);
+        save();
+    }
+
+    public synchronized ServerPromo getServerPromo(String code) {
+        if (code == null) return null;
+        String c = code.trim().toUpperCase(Locale.ROOT);
+        ConfigurationSection sec = yml.getConfigurationSection("serverPromos." + c);
+        if (sec == null || !sec.getBoolean("active", true)) return null;
+        ServerPromo sp = new ServerPromo();
+        sp.code = c;
+        sp.maxUses = sec.getInt("maxUses", 0);
+        sp.usedCount = sec.getInt("usedCount", 0);
+        sp.coins = sec.getDouble("coins", 0.0);
+        sp.relics = sec.getInt("relics", 0);
+        sp.caseId = sec.getString("caseId", "");
+        sp.caseQty = sec.getInt("caseQty", 0);
+        sp.rankId = sec.getString("rankId", "");
+        sp.active = true;
+        return sp;
+    }
+
+    public synchronized List<ServerPromo> getAllServerPromos() {
+        List<ServerPromo> list = new ArrayList<ServerPromo>();
+        ConfigurationSection root = yml.getConfigurationSection("serverPromos");
+        if (root != null) {
+            for (String k : root.getKeys(false)) {
+                ServerPromo sp = getServerPromo(k);
+                if (sp != null) list.add(sp);
+            }
+        }
+        return list;
+    }
+
+    public synchronized void incrementServerPromoUsed(String code) {
+        String c = code.trim().toUpperCase(Locale.ROOT);
+        int cur = yml.getInt("serverPromos." + c + ".usedCount", 0);
+        yml.set("serverPromos." + c + ".usedCount", cur + 1);
+        save();
     }
 }

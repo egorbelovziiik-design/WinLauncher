@@ -1,57 +1,14 @@
 name: moder
 permissions:
-- weight.225
-- essentials.tempban
-- essentials.unban
-- essentials.gamemode.spectator
-- essentials.gamemode.survival
-- essentials.tphere
-- coreprotect.inspect
-- coreprotect.lookup
-- 'bukkit.command.stop':
-    value: false
-- 'minecraft.command.stop':
-    value: false
-- 'bukkit.command.restart':
-    value: false
-- 'spigot.restart':
-    value: false
-- 'bukkit.command.op':
-    value: false
-- 'minecraft.command.op':
-    value: false
-- 'bukkit.command.deop':
-    value: false
-- 'minecraft.command.deop':
-    value: false
-- 'bukkit.command.plugins':
-    value: false
-- 'bukkit.command.version':
-    value: false
-- 'bukkit.command.reload':
-    value: false
-- 'luckperms.*':
-    value: false
-- 'worldedit.*':
-    value: false
-- 'fawe.*':
-    value: false
-- 'worldguard.*':
-    value: false
-- 'fancynpcs.*':
-    value: false
-- 'citizens.*':
-    value: false
-- 'decentholograms.*':
-    value: false
-- 'commandpanels.*':
-    value: false
-- 'deluxemenus.admin':
-    value: false
-- 'conditionalevents.admin':
-    value: false
+- weight.255
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - sthelper
 prefixes:
-- '&#2563EB&l[Модер] &f':
-    priority: 225
+- '&f &f':
+    priority: 255

@@ -1,58 +1,14 @@
 name: dadmin
 permissions:
-- weight.160
-- essentials.kits.dadmin
-- essentials.sethome.multiple.dadmin
-- essentials.time
-- essentials.time.set
-- essentials.weather
-- essentials.heal.others
-- essentials.feed.others
-- protectionstones.limit.30
-- 'bukkit.command.stop':
-    value: false
-- 'minecraft.command.stop':
-    value: false
-- 'bukkit.command.restart':
-    value: false
-- 'spigot.restart':
-    value: false
-- 'bukkit.command.op':
-    value: false
-- 'minecraft.command.op':
-    value: false
-- 'bukkit.command.deop':
-    value: false
-- 'minecraft.command.deop':
-    value: false
-- 'bukkit.command.plugins':
-    value: false
-- 'bukkit.command.version':
-    value: false
-- 'bukkit.command.reload':
-    value: false
-- 'luckperms.*':
-    value: false
-- 'worldedit.*':
-    value: false
-- 'fawe.*':
-    value: false
-- 'worldguard.*':
-    value: false
-- 'fancynpcs.*':
-    value: false
-- 'citizens.*':
-    value: false
-- 'decentholograms.*':
-    value: false
-- 'commandpanels.*':
-    value: false
-- 'deluxemenus.admin':
-    value: false
-- 'conditionalevents.admin':
-    value: false
+- weight.200
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - dmladmin
 prefixes:
-- '&#DC2626&lD.ADMIN &f':
-    priority: 160
+- '&f &f':
+    priority: 200

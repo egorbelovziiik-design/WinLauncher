@@ -3,12 +3,12 @@ header-footer:
   header:
     - ""
     - "%animation:winter_title%"
-    - "&#B3E5FCЗимний Новогодний Вайп · Копия ReallyWorld"
+    - "&#B3E5FCЗимнее Королевство · FT × ReallyWorld v5.0"
     - ""
   footer:
     - ""
     - "&#80D8FFОнлайн: &#00E676%online% &8| &#80D8FFПинг: &#FFD740%ping% мс"
-    - "&#FFD740Привилегии от 19₽ и Кейсы от 19₽: &#FF4081kinggrief.vercel.app"
+    - "&#FFD740Привилегии, Кейсы и Промокоды: &#FF4081kinggrief.vercel.app"
     - "&#80D8FFIP сервера: &fkinggrief.pickme.cloud"
     - ""
 tablist-name-formatting:
@@ -28,11 +28,12 @@ scoreboard:
       lines:
         - "&8&m                     "
         - " &#80D8FF👤 Ник: &f%player%"
-        - " &#FFD740👑 Ранг: &f%luckperms-prefix%"
+        - " &#FFD740👑 Ранг: %luckperms-prefix%"
+        - " &#B388FF🛡 Клан: &f%clans_tag%"
         - ""
-        - " &#FFEA00💰 Монеты: &f%vault_eco_balance_formatted%$"
-        - " &#00E5FF❖ Рилики: &f%playerpoints_points%"
-        - " &#FF5252⚔ Убийств: &f%statistic_player_kills%"
+        - " &#FFEA00💰 Монеты: &a%vault_eco_balance_formatted%$"
+        - " &#00E5FF❖ Рилики: &b%playerpoints_points% ❖"
+        - " &#69F0AE📶 Пинг: &a%ping% мс"
         - ""
-        - " &#69F0AE🎄 Донат: &fkinggrief.vercel.app"
+        - " &#FF4081🌐 Сайт: &fkinggrief.vercel.app"
         - "&8&m                     "

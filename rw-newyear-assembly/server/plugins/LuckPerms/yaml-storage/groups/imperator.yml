@@ -1,13 +1,14 @@
 name: imperator
 permissions:
-- weight.75
-- essentials.kits.imperator
-- essentials.sethome.multiple.imperator
-- essentials.tpahere
-- essentials.invsee
-- protectionstones.limit.10
+- weight.110
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - overlord
 prefixes:
-- '&#F43F5E&lIMPERATOR &f':
-    priority: 75
+- '&f &f':
+    priority: 110

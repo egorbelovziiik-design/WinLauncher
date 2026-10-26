@@ -1,26 +1,58 @@
+# Синхронизировано с KingGriefCore v5.0 (24 анимированных кастомных NPC уже встроены в ядро в мире spawn_world!)
 npcs:
-  santa:
-    name: santa
-    creator: b0f66a29-634c-5e45-9222-d928bd4cf071
+  rtp:
+    name: rtp
+    creator: 9040974d-181b-5b75-aca0-e4340c5b8744
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: -5.5
-      y: 101.0
-      z: 8.5
-      yaw: -35.0
+      world: spawn_world
+      x: 0.5
+      y: 100.0
+      z: 42.5
+      yaw: 180.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: AQUA
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: MHF_Enderman
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: rtp gui
+  santa:
+    name: santa
+    creator: 5978aa7a-b0dc-5a49-a2b5-35c100896796
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: -5.5
+      y: 100.0
+      z: 12.5
+      yaw: 165.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
     collidable: false
     glowing: true
     glowingColor: RED
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
       identifier: Santa
       variant: AUTO
@@ -29,122 +61,29 @@ npcs:
       ANY_CLICK:
         '1':
           action: player_command
-          value: nyshop
-  snowmaiden:
-    name: snowmaiden
-    creator: 9f551e66-b0b8-52ec-8ff3-8cff2c1ff0ff
+          value: daily
+  donate:
+    name: donate
+    creator: 85b4c8b9-77b4-56ee-865a-80c8155aa436
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: 6.5
-      y: 101.0
-      z: 8.5
-      yaw: 35.0
+      world: spawn_world
+      x: 5.5
+      y: 100.0
+      z: 12.5
+      yaw: -165.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
-    glowingColor: AQUA
+    glowingColor: GOLD
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: SnowMaiden
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: gifts
-  grinch:
-    name: grinch
-    creator: e84fb0e4-bd3d-5171-93ad-61db1f8251e1
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: 0.5
-      y: 101.0
-      z: -8.5
-      yaw: 0.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: GREEN
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: Grinch
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: nyshop
-  rtp:
-    name: rtp
-    creator: 8f033ff2-4edc-5568-94e5-87c99a4b517d
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: -17.5
-      y: 101.0
-      z: 6.5
-      yaw: -90.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: GREEN
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: Traveler
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: rtp
-  shop:
-    name: shop
-    creator: 9348c8e5-eb54-5b38-84c2-2bacb0906bb4
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: 18.5
-      y: 101.0
-      z: 6.5
-      yaw: 90.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: LIGHT_PURPLE
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
       identifier: Notch
       variant: AUTO
@@ -153,60 +92,29 @@ npcs:
       ANY_CLICK:
         '1':
           action: player_command
-          value: shop
-  auction:
-    name: auction
-    creator: f25ffe6c-5707-57e4-bf72-d1fa1e6ce6b3
+          value: donate
+  shop:
+    name: shop
+    creator: 05bccd2e-81c4-5382-a2d9-3e50f77be21e
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: 20.5
-      y: 101.0
-      z: 0.5
-      yaw: 90.0
+      world: spawn_world
+      x: -13.5
+      y: 100.0
+      z: 5.5
+      yaw: 115.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: GOLD
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: GoldTrader
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: ah
-  buyer:
-    name: buyer
-    creator: bce08eff-a14d-52bb-803c-21c86878bc02
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: 18.5
-      y: 101.0
-      z: -5.5
-      yaw: 90.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
     glowingColor: YELLOW
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
       identifier: Villager
       variant: AUTO
@@ -215,29 +123,308 @@ npcs:
       ANY_CLICK:
         '1':
           action: player_command
-          value: buyer
-  jobs:
-    name: jobs
-    creator: 5955fcdb-d570-553d-aee8-77bc1b1ad213
+          value: shop
+  rshop:
+    name: rshop
+    creator: 9d1564b7-92f5-51c1-8563-22b66092a2d1
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: 15.5
-      y: 101.0
-      z: 14.5
-      yaw: 135.0
+      world: spawn_world
+      x: 13.5
+      y: 100.0
+      z: 5.5
+      yaw: -115.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: LIGHT_PURPLE
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Hypixel
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: rshop
+  bafovar:
+    name: bafovar
+    creator: fc3e38c0-eaf1-5fcc-b4c2-d5e0e14bcf6c
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: -13.5
+      y: 100.0
+      z: -5.5
+      yaw: 65.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: GREEN
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Witch
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: bafovar
+  skins:
+    name: skins
+    creator: 84619f3a-3be0-54eb-b575-a47efc91633f
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 13.5
+      y: 100.0
+      z: -5.5
+      yaw: -65.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: DARK_PURPLE
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Technoblade
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: skins
+  kits:
+    name: kits
+    creator: baa7ede7-d9a9-5fda-b145-6e43733f9d8d
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: -8.5
+      y: 100.0
+      z: 28.5
+      yaw: 110.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: GOLD
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Knight
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: kits
+  buyer:
+    name: buyer
+    creator: 58262c3c-fa4b-58a7-9558-c17309ad7861
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 8.5
+      y: 100.0
+      z: 28.5
+      yaw: -110.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: GREEN
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Trader
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: buyer
+  auction:
+    name: auction
+    creator: 61ce9e4c-d607-57fa-82f4-fd434713f3f9
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: -8.5
+      y: 100.0
+      z: -18.5
+      yaw: 70.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
     collidable: false
     glowing: true
     glowingColor: YELLOW
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
+    skin:
+      identifier: Banker
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: ah
+  bounty:
+    name: bounty
+    creator: 0fc5d6de-ff26-5d99-8c85-1559c8d74470
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 8.5
+      y: 100.0
+      z: -18.5
+      yaw: -70.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: RED
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Assassin
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: bounty
+  bp:
+    name: bp
+    creator: 0505c330-0979-5ae4-a179-bd52d6caea0b
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 0.5
+      y: 100.0
+      z: -24.5
+      yaw: 0.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: AQUA
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: SnowMaiden
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: bp
+  cases:
+    name: cases
+    creator: 2d3a70a8-b1e6-5e6a-bbcf-207646b4a72d
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 0.5
+      y: 102.0
+      z: -56.5
+      yaw: 0.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: LIGHT_PURPLE
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Jeb_
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: cases
+  miner:
+    name: miner
+    creator: 4e954230-a8b5-59c4-a425-7d78e8b1cb7f
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: -68.5
+      y: 100.0
+      z: 4.5
+      yaw: 90.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: GOLD
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
     skin:
       identifier: Miner
       variant: AUTO
@@ -247,152 +434,214 @@ npcs:
         '1':
           action: player_command
           value: jobs
-  clans:
-    name: clans
-    creator: 8de6d525-4add-5be8-8653-0051974eb4ed
+  farmer:
+    name: farmer
+    creator: be9c00f9-187e-5f7f-9538-45fa801a86a7
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: -19.5
-      y: 101.0
-      z: 0.5
-      yaw: -90.0
+      world: spawn_world
+      x: -78.5
+      y: 100.0
+      z: -35.5
+      yaw: 90.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: DARK_PURPLE
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: Knight
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: clan
-  blacksmith:
-    name: blacksmith
-    creator: e73315ae-dfa5-5254-a352-cf389d5f423c
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: -17.5
-      y: 101.0
-      z: -5.5
-      yaw: -90.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: GOLD
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: Blacksmith
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: kits
-  freedonate:
-    name: freedonate
-    creator: 4a32d6da-e8a3-5150-ac84-7eb6032d18f2
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: -14.5
-      y: 101.0
-      z: 14.5
-      yaw: -135.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
     glowingColor: GREEN
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
-      identifier: Present
+      identifier: Farmer
       variant: AUTO
       mirrorSkin: false
     actions:
       ANY_CLICK:
         '1':
           action: player_command
-          value: gifts
-  pvp:
-    name: pvp
-    creator: 2d3bcfe0-98a2-557a-9a11-474b6c679747
+          value: jobs
+  casino:
+    name: casino
+    creator: 643fed5c-d211-51e8-8d14-724675a7db9c
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: -7.5
-      y: 101.0
-      z: 24.5
-      yaw: 180.0
+      world: spawn_world
+      x: -61.5
+      y: 100.0
+      z: 52.5
+      yaw: 135.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
-    collidable: false
-    glowing: true
-    glowingColor: RED
-    turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
-    scale: 1.0
-    visibility_distance: 52
-    skin:
-      identifier: Gladiator
-      variant: AUTO
-      mirrorSkin: false
-    actions:
-      ANY_CLICK:
-        '1':
-          action: player_command
-          value: kits
-  djamshut:
-    name: djamshut
-    creator: a3008efa-cdec-5122-8a5b-119b72444f9c
-    displayName: <empty>
-    type: PLAYER
-    location:
-      world: world
-      x: 8.5
-      y: 101.0
-      z: 24.5
-      yaw: 180.0
-      pitch: 0.0
-    showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
     glowingColor: GOLD
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
+    skin:
+      identifier: RichMan
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: casino
+  parkour:
+    name: parkour
+    creator: 08d83147-8bee-5f0a-9c2a-429d301481b9
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 38.5
+      y: 100.0
+      z: -25.5
+      yaw: 0.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: AQUA
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Dream
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: parkour
+  shop_pvp:
+    name: shop_pvp
+    creator: 20459017-aa20-5240-867f-3ff7846f7f02
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 52.5
+      y: 100.0
+      z: 54.5
+      yaw: -90.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: RED
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Technoblade
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: shop pvp
+  shop_gear:
+    name: shop_gear
+    creator: daaa1950-b982-5936-a5ee-9537cccc4edf
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 56.5
+      y: 100.0
+      z: 62.5
+      yaw: 180.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: AQUA
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: DiamondKing
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: shop gear
+  shop_raid:
+    name: shop_raid
+    creator: cccf382f-df81-507e-ab42-3d7e931d645a
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 64.5
+      y: 100.0
+      z: 65.5
+      yaw: 180.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: RED
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
+    skin:
+      identifier: Bomber
+      variant: AUTO
+      mirrorSkin: false
+    actions:
+      ANY_CLICK:
+        '1':
+          action: player_command
+          value: shop raid
+  shop_blocks:
+    name: shop_blocks
+    creator: eecfd625-2feb-5c29-ba7f-a97137c6db02
+    displayName: <empty>
+    type: PLAYER
+    location:
+      world: spawn_world
+      x: 72.5
+      y: 100.0
+      z: 62.5
+      yaw: 180.0
+      pitch: 0.0
+    showInTab: false
+    spawnEntity: false
+    collidable: false
+    glowing: true
+    glowingColor: BLUE
+    turnToPlayer: true
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
+    scale: 1.0
+    visibility_distance: 64
     skin:
       identifier: Builder
       variant: AUTO
@@ -401,97 +650,97 @@ npcs:
       ANY_CLICK:
         '1':
           action: player_command
-          value: kits
-  donate:
-    name: donate
-    creator: 031243df-e039-5594-ab2d-88f9243e8a22
+          value: shop blocks
+  shop_food:
+    name: shop_food
+    creator: 6b43a643-f563-5867-b2fc-d72a92e5a3f7
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: 0.5
-      y: 101.0
-      z: -19.5
-      yaw: 0.0
+      world: spawn_world
+      x: 76.5
+      y: 100.0
+      z: 54.5
+      yaw: 90.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
     glowingColor: GOLD
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
-      identifier: King
+      identifier: Chef
       variant: AUTO
       mirrorSkin: false
     actions:
       ANY_CLICK:
         '1':
           action: player_command
-          value: donate
-  kp_staff:
-    name: kp_staff
-    creator: 2161fe83-4242-5685-9494-6221763f888a
+          value: shop food
+  shop_elytra:
+    name: shop_elytra
+    creator: 3b318fb4-94e3-5f4b-ae11-35b59597c1cd
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: -9.5
-      y: 101.0
-      z: -14.5
-      yaw: -25.0
+      world: spawn_world
+      x: 72.5
+      y: 100.0
+      z: 46.5
+      yaw: 0.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
-    glowingColor: AQUA
+    glowingColor: LIGHT_PURPLE
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
-      identifier: Guard
+      identifier: Ph1LzA
       variant: AUTO
       mirrorSkin: false
     actions:
       ANY_CLICK:
         '1':
           action: player_command
-          value: kp
-  media_npc:
-    name: media_npc
-    creator: 8bdd3408-aaf4-5de1-a92f-0d8f070b55a5
+          value: shop elytra
+  shop_spawners:
+    name: shop_spawners
+    creator: 37a91932-cbe7-5553-adf6-0072421a7ecf
     displayName: <empty>
     type: PLAYER
     location:
-      world: world
-      x: 10.5
-      y: 101.0
-      z: -14.5
-      yaw: 25.0
+      world: spawn_world
+      x: 56.5
+      y: 100.0
+      z: 46.5
+      yaw: 0.0
       pitch: 0.0
     showInTab: false
-    spawnEntity: true
+    spawnEntity: false
     collidable: false
     glowing: true
-    glowingColor: RED
+    glowingColor: DARK_PURPLE
     turnToPlayer: true
-    turnToPlayerDistance: 10
-    interactionCooldown: 1.0
+    turnToPlayerDistance: 12
+    interactionCooldown: 0.5
     scale: 1.0
-    visibility_distance: 52
+    visibility_distance: 64
     skin:
-      identifier: YouTuber
+      identifier: SpawnerLord
       variant: AUTO
       mirrorSkin: false
     actions:
       ANY_CLICK:
         '1':
           action: player_command
-          value: media
+          value: shop spawners

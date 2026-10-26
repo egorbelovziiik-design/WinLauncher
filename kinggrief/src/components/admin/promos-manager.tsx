@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, Ticket, Trash2 } from 'lucide-react';
+import { Gamepad2, Pencil, Plus, Ticket, Trash2 } from 'lucide-react';
 import type { Promo } from '@/lib/types';
 import { formatDate, formatPrice } from '@/lib/utils';
 import { adminPost } from './api-client';
@@ -19,6 +19,12 @@ type Draft = {
   expiresAt: string;
   active: boolean;
   categories: string;
+  serverEnabled: boolean;
+  serverCoins: number;
+  serverRelics: number;
+  serverCaseId: string;
+  serverCaseQty: number;
+  serverRankId: string;
 };
 
 const CATEGORY_OPTIONS = [
@@ -28,12 +34,51 @@ const CATEGORY_OPTIONS = [
   { value: 'other', label: 'Услуги' },
 ];
 
+const SERVER_CASE_OPTIONS = [
+  { value: '', label: 'Без кейса' },
+  { value: 'donate', label: 'Donate Кейс' },
+  { value: 'sdonate', label: 'Супер Donate' },
+  { value: 'legendary', label: 'Легендарный' },
+  { value: 'reallydev', label: 'ReallyDev' },
+  { value: 'riliks', label: 'Рилики Кейс' },
+  { value: 'allorno', label: 'Всё или Ничего' },
+  { value: 'ditems', label: 'Донат-Вещи' },
+  { value: 'kits', label: 'Кейсы с Китами' },
+  { value: 'money', label: 'Монетный Кейс' },
+  { value: 'djamshut', label: 'Кейс Джамшута' },
+  { value: 'summer', label: 'Новогодний (Summer)' },
+];
+
 function blank(): Draft {
   const inMonth = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-  return { code: '', type: 'percent', value: 10, minTotal: 0, maxDiscount: null, usageLimit: null, expiresAt: inMonth, active: true, categories: '' };
+  return {
+    code: '',
+    type: 'percent',
+    value: 15,
+    minTotal: 0,
+    maxDiscount: null,
+    usageLimit: null,
+    expiresAt: inMonth,
+    active: true,
+    categories: '',
+    serverEnabled: true,
+    serverCoins: 25000,
+    serverRelics: 25,
+    serverCaseId: 'money',
+    serverCaseQty: 1,
+    serverRankId: '',
+  };
 }
 
 function toDraft(promo: Promo): Draft {
+  const sr = promo.serverReward ?? {
+    enabled: true,
+    coins: Math.max(10000, promo.value * 1000),
+    relics: Math.max(10, promo.value),
+    caseId: '',
+    caseQty: 1,
+    rankId: '',
+  };
   return {
     code: promo.code,
     type: promo.type,
@@ -44,6 +89,12 @@ function toDraft(promo: Promo): Draft {
     expiresAt: promo.expiresAt ? promo.expiresAt.slice(0, 10) : '',
     active: promo.active,
     categories: (promo.categories ?? []).join(','),
+    serverEnabled: sr.enabled,
+    serverCoins: sr.coins,
+    serverRelics: sr.relics,
+    serverCaseId: sr.caseId,
+    serverCaseQty: sr.caseQty || 1,
+    serverRankId: sr.rankId,
   };
 }
 
@@ -73,10 +124,22 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
         expiresAt: draft.expiresAt ? new Date(`${draft.expiresAt}T23:59:59`).toISOString() : null,
         active: draft.active,
       },
+      serverReward: {
+        enabled: draft.serverEnabled,
+        coins: Math.max(0, Number(draft.serverCoins) || 0),
+        relics: Math.max(0, Number(draft.serverRelics) || 0),
+        caseId: draft.serverCaseId.trim().toLowerCase(),
+        caseQty: draft.serverCaseId ? Math.max(1, Number(draft.serverCaseQty) || 1) : 0,
+        rankId: draft.serverRankId.trim().toLowerCase(),
+      },
     });
     setSaving(false);
     if (!res.ok) return setError(res.data.error ?? 'Не удалось сохранить');
-    push({ tone: 'success', title: 'Промокод сохранён', description: draft.code.toUpperCase() });
+    push({
+      tone: 'success',
+      title: 'Промокод синхронизирован (Сайт + Сервер)',
+      description: `${draft.code.toUpperCase()} теперь работает в корзине и в /promo на сервере!`,
+    });
     setDraft(null);
     setEditingCode(null);
     router.refresh();
@@ -96,34 +159,47 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-neon/70">маркетинг</p>
-          <h1 className="mt-1 font-display text-2xl font-extrabold uppercase tracking-tight text-white">Промокоды</h1>
-          <p className="mt-1 text-[0.76rem] text-white/35">Скидка проверяется на сервере. Лимиты и сроки соблюдаются автоматически.</p>
+          <p className="font-mono text-[0.58rem] uppercase tracking-[0.2em] text-neon/70">маркетинг + minecraft sync</p>
+          <h1 className="mt-1 font-display text-2xl font-extrabold uppercase tracking-tight text-white">Промокоды (Сайт + Сервер)</h1>
+          <p className="mt-1 text-[0.76rem] text-white/35">
+            Каждый промокод работает как на скидку в корзине сайта, так и напрямую на Minecraft-сервере через команду <code className="text-neon">/promo &lt;КОД&gt;</code>!
+          </p>
         </div>
         <button onClick={() => { setDraft(blank()); setEditingCode(null); }} className="btn btn-primary btn-sm"><Plus size={14} /> Создать промокод</button>
       </div>
 
       <AdminCard>
         <div className="overflow-x-auto">
-          <table className="admin-table min-w-[720px]">
-            <thead><tr><th>Код</th><th>Скидка</th><th>Мин. сумма</th><th>Лимит</th><th>Действует до</th><th>Категории</th><th>Статус</th><th /></tr></thead>
+          <table className="admin-table min-w-[820px]">
+            <thead><tr><th>Код</th><th>Скидка на сайте</th><th>Награда в /promo на сервере</th><th>Лимит</th><th>Действует до</th><th>Статус</th><th /></tr></thead>
             <tbody>
               {promos.map((promo) => {
                 const expired = promo.expiresAt ? new Date(promo.expiresAt).getTime() < Date.now() : false;
                 const exhausted = promo.usageLimit != null && promo.usedCount >= promo.usageLimit;
+                const sr = promo.serverReward;
                 return (
                   <tr key={promo.code}>
                     <td className="font-mono text-[0.76rem] font-bold text-white">{promo.code}</td>
                     <td className="text-white/70">{promo.type === 'percent' ? `${promo.value}%` : formatPrice(promo.value)}{promo.maxDiscount ? ` (макс. ${formatPrice(promo.maxDiscount)})` : ''}</td>
-                    <td className="text-white/50">{formatPrice(promo.minTotal)}</td>
+                    <td className="text-[0.68rem] text-emerald-300/85">
+                      {sr?.enabled === false ? (
+                        <span className="text-white/30">только сайт</span>
+                      ) : (
+                        <span>
+                          {sr?.coins ? `+${sr.coins.toLocaleString('ru-RU')}$ ` : ''}
+                          {sr?.relics ? `+${sr.relics}❖ ` : ''}
+                          {sr?.caseId ? `+${sr.caseQty || 1}×[${sr.caseId}] ` : ''}
+                          {sr?.rankId ? `[${sr.rankId.toUpperCase()}]` : ''}
+                        </span>
+                      )}
+                    </td>
                     <td className="font-mono text-[0.66rem] text-white/50">{promo.usedCount} / {promo.usageLimit ?? '∞'}</td>
                     <td className="font-mono text-[0.64rem] text-white/40">{promo.expiresAt ? formatDate(promo.expiresAt) : 'бессрочно'}</td>
-                    <td className="text-[0.66rem] text-white/40">{(promo.categories ?? []).join(', ') || 'все'}</td>
                     <td>
                       {expired || exhausted || !promo.active ? (
                         <Pill color="#EF4444">{expired ? 'истёк' : exhausted ? 'лимит' : 'выкл'}</Pill>
                       ) : (
-                        <Pill color="#22C55E">активен</Pill>
+                        <Pill color="#22C55E">сайт + сервер</Pill>
                       )}
                     </td>
                     <td>
@@ -154,23 +230,18 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
         </div>
       </AdminCard>
 
-      <p className="text-[0.66rem] leading-relaxed text-white/25">
-        Примеры: KING10 — 10% без ограничений; WELCOME — 15% от 300 ₽; GRIEF20 — 20% от 500 ₽ с максимальной скидкой.
-        Один промокод применяется к заказу один раз, повторное использование блокируется на сервере.
-      </p>
-
       <Modal
         open={Boolean(draft)}
         onClose={() => { setDraft(null); setEditingCode(null); }}
-        title={editingCode ? `Промокод ${editingCode}` : 'Новый промокод'}
+        title={editingCode ? `Промокод ${editingCode}` : 'Новый промокод (Сайт + Сервер)'}
         footer={<>
           <button onClick={() => { setDraft(null); setEditingCode(null); }} className="btn btn-ghost btn-sm">Отмена</button>
-          <button onClick={save} disabled={saving} className="btn btn-primary btn-sm">{saving ? '…' : 'Сохранить'}</button>
+          <button onClick={save} disabled={saving} className="btn btn-primary btn-sm">{saving ? '…' : 'Сохранить и синхронизировать'}</button>
         </>}
       >
         {draft && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Код" hint="Латиница, цифры, - и _. Приводится к верхнему регистру." className="sm:col-span-2">
+            <Field label="Код" hint="Латиница, цифры, - и _. Работает на сайте и в /promo <КОД> в игре." className="sm:col-span-2">
               <input
                 value={draft.code}
                 onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase() })}
@@ -179,7 +250,7 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
                 disabled={Boolean(editingCode)}
               />
             </Field>
-            <Field label="Тип скидки">
+            <Field label="Тип скидки на сайте">
               <select value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value as Draft['type'] })} className="field">
                 <option value="percent" className="bg-panel">Процент</option>
                 <option value="fixed" className="bg-panel">Фиксированная сумма</option>
@@ -195,13 +266,10 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
               <input type="number" min={0} value={draft.maxDiscount ?? ''} onChange={(e) => setDraft({ ...draft, maxDiscount: e.target.value ? Number(e.target.value) : null })} className="field" />
             </Field>
             <Field label="Лимит использований" hint="Пусто — без ограничения.">
-              <input type="number" min={1} value={draft.usageLimit ?? ''} onChange={(e) => setDraft({ ...draft, usageLimit: e.target.value ? Number(e.target.value) : null })} className="field" />
+              <input type="number" min={1} value={draft.usageLimit ?? ''} onChange={(e) => setDraft({ ...draft, usageLimit: e.target.value ? Number(draft.usageLimit) : null })} className="field" />
             </Field>
             <Field label="Действует до" hint="Пусто — бессрочно.">
               <input type="date" value={draft.expiresAt} onChange={(e) => setDraft({ ...draft, expiresAt: e.target.value })} className="field" />
-            </Field>
-            <Field label="Категории" hint="Через запятую: rank, case, relic, other. Пусто — все." className="sm:col-span-2">
-              <input value={draft.categories} onChange={(e) => setDraft({ ...draft, categories: e.target.value })} className="field font-mono text-xs" placeholder="rank,relic" />
             </Field>
             <div className="flex flex-wrap gap-1.5 sm:col-span-2">
               {CATEGORY_OPTIONS.map((cat) => (
@@ -219,6 +287,44 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
                 </button>
               ))}
             </div>
+
+            <div className="sm:col-span-2 mt-1 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-3 space-y-3">
+              <label className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[0.78rem] font-bold text-emerald-300">
+                  <Gamepad2 size={15} /> Награда на Minecraft-сервере (/promo {draft.code || 'КОД'})
+                </span>
+                <input
+                  type="checkbox"
+                  checked={draft.serverEnabled}
+                  onChange={(e) => setDraft({ ...draft, serverEnabled: e.target.checked })}
+                  className="h-4 w-4 accent-emerald-500"
+                />
+              </label>
+              {draft.serverEnabled && (
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  <Field label="Монеты на сервере ($)">
+                    <input type="number" min={0} value={draft.serverCoins} onChange={(e) => setDraft({ ...draft, serverCoins: Number(e.target.value) })} className="field" />
+                  </Field>
+                  <Field label="Рилики на сервере (❖)">
+                    <input type="number" min={0} value={draft.serverRelics} onChange={(e) => setDraft({ ...draft, serverRelics: Number(e.target.value) })} className="field" />
+                  </Field>
+                  <Field label="Бонусный Кейс">
+                    <select value={draft.serverCaseId} onChange={(e) => setDraft({ ...draft, serverCaseId: e.target.value })} className="field">
+                      {SERVER_CASE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value} className="bg-panel">{opt.label}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Кол-во кейсов">
+                    <input type="number" min={1} max={64} value={draft.serverCaseQty} onChange={(e) => setDraft({ ...draft, serverCaseQty: Number(e.target.value) })} className="field" />
+                  </Field>
+                  <Field label="Привилегия (опционально, например pegas / hero / bunny)" className="sm:col-span-2">
+                    <input value={draft.serverRankId} onChange={(e) => setDraft({ ...draft, serverRankId: e.target.value.toLowerCase() })} className="field font-mono text-xs" placeholder="Пусто — без выдачи привилегии" />
+                  </Field>
+                </div>
+              )}
+            </div>
+
             <label className="flex items-center gap-2 sm:col-span-2">
               <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} className="h-4 w-4 accent-[#a855f7]" />
               <span className="text-[0.76rem] text-white/60">Промокод активен</span>
@@ -237,7 +343,7 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
           <button onClick={remove} className="btn btn-sm" style={{ background: '#ef4444', color: '#fff' }}>Удалить</button>
         </>}
       >
-        <p className="text-[0.8rem] text-white/55">Код {toDelete?.code} перестанет работать. История использований останется в аналитике.</p>
+        <p className="text-[0.8rem] text-white/55">Код {toDelete?.code} перестанет работать на сайте и на сервере.</p>
       </Modal>
     </div>
   );

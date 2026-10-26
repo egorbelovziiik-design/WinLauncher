@@ -1,0 +1,12 @@
+name: King_antisoft
+version: 5.0.0
+main: net.kinggrief.antisoft.KingAntiSoftPlugin
+api-version: '1.21'
+softdepend: [KingGriefCore]
+author: KINGGRIEF
+description: King_antisoft v5.0 — Live Injection Anti-Cheat (KillAura Probe, AimBot, Reach, XRay, Fly/Speed, AutoTotem) with Staff Alerts
+
+commands:
+  kingantisoft:
+    aliases: [kas, antisoft]
+    description: King_antisoft Anti-Cheat Control & Suspect GUI

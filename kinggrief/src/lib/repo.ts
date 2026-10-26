@@ -260,11 +260,57 @@ export function caseChanceTotal(caseId: string) {
 
 /* ─────────────────────────── promos ─────────────────────────── */
 
+export function getServerPromoRewardsMap(): Record<string, NonNullable<Promo['serverReward']>> {
+  const raw = getSetting('server_promo_rewards', '');
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, NonNullable<Promo['serverReward']>>;
+  } catch {
+    return {};
+  }
+}
+
+export function saveServerPromoReward(
+  code: string,
+  reward: Partial<NonNullable<Promo['serverReward']>>,
+): Record<string, NonNullable<Promo['serverReward']>> {
+  const map = getServerPromoRewardsMap();
+  const key = code.trim().toUpperCase();
+  map[key] = {
+    enabled: reward.enabled ?? true,
+    coins: Math.max(0, Math.round(Number(reward.coins ?? 15000))),
+    relics: Math.max(0, Math.round(Number(reward.relics ?? 15))),
+    caseId: String(reward.caseId ?? '').trim().toLowerCase(),
+    caseQty: Math.max(0, Math.round(Number(reward.caseQty ?? (reward.caseId ? 1 : 0)))),
+    rankId: String(reward.rankId ?? '').trim().toLowerCase(),
+  };
+  setSettings({ server_promo_rewards: JSON.stringify(map) });
+  return map;
+}
+
+export function deleteServerPromoReward(code: string): Record<string, NonNullable<Promo['serverReward']>> {
+  const map = getServerPromoRewardsMap();
+  delete map[code.trim().toUpperCase()];
+  setSettings({ server_promo_rewards: JSON.stringify(map) });
+  return map;
+}
+
 function mapPromo(r: Row): Promo {
+  const code = str(r.code);
+  const val = num(r.value);
+  const rewardsMap = getServerPromoRewardsMap();
+  const sr = rewardsMap[code.toUpperCase()] ?? {
+    enabled: true,
+    coins: Math.max(10000, val * 1000),
+    relics: Math.max(10, val),
+    caseId: '',
+    caseQty: 0,
+    rankId: '',
+  };
   return {
-    code: str(r.code),
+    code,
     type: str(r.type) as Promo['type'],
-    value: num(r.value),
+    value: val,
     minTotal: num(r.min_total),
     maxDiscount: r.max_discount == null ? null : num(r.max_discount),
     usageLimit: r.usage_limit == null ? null : num(r.usage_limit),
@@ -272,6 +318,7 @@ function mapPromo(r: Row): Promo {
     categories: r.categories ? JSON.parse(str(r.categories)) : null,
     expiresAt: r.expires_at == null ? null : str(r.expires_at),
     active: bool(r.active),
+    serverReward: sr,
   };
 }
 

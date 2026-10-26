@@ -1,11 +1,14 @@
 name: tiktok
 permissions:
-- weight.102
-- essentials.kits.media
-- essentials.sethome.multiple.media
-- essentials.afk.kickexempt
+- weight.158
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
-- king
+- sponsor
 prefixes:
-- '&#FF0050&lTik&#00F2EA&lTok &f':
-    priority: 102
+- '&f &f':
+    priority: 158

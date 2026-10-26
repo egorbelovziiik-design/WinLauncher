@@ -1,15 +1,14 @@
 name: curator
 permissions:
-- weight.275
-- essentials.kits.curator
-- essentials.sethome.multiple.unlimited
-- luckperms.user.info
-- luckperms.user.parent.info
-- luckperms.user.promote
-- luckperms.user.demote
-- luckperms.group.listmembers
+- weight.290
+- kinggrief.fly
+- kinggrief.repair
+- kinggrief.heal
+- kinggrief.enderchest
+- kinggrief.feed
+- kinggrief.workbench
 parents:
 - kp
 prefixes:
-- '&f &f':
-    priority: 275
+- '&f &f':
+    priority: 290
