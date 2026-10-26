@@ -1,15 +1,8 @@
+# KINGGRIEF CORE v4.0.0 — НОВОГОДНИЙ REALLYWORLD
 server-ip: "kinggrief.pickme.cloud"
-site-url: "https://kinggrief.vercel.app"
-resource-pack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp.zip"
-resource-pack-sha1: "67958285eae977aa1ce6afcbf8a94c57f3c691ce"
-auto-send-resource-pack: true
-auto-build-spawn-on-first-boot: true
-spawn-world: "world"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
-enable-builtin-npcs-and-holograms: true
-starting-coins: 2500.0
+push-resourcepack-on-join: true
+resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp.zip"
+starting-coins: 5000.0
 starting-relics: 50
-airdrop-interval-minutes: 30
-automine-reset-seconds: 180
-combat-tag-seconds: 30

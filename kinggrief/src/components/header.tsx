@@ -14,6 +14,7 @@ const NAV = [
   { href: '/cases', label: 'Кейсы' },
   { href: '/relics', label: 'Рилики' },
   { href: '/other', label: 'Другое' },
+  { href: '/lp-editor', label: '⚡ LP Editor' },
   { href: '/reviews', label: 'Отзывы' },
   { href: '/rules', label: 'Правила' },
   { href: '/support', label: 'Поддержка' },

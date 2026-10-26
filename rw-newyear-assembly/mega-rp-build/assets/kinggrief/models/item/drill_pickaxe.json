@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "kinggrief:item/drill_pickaxe"
+  }
+}

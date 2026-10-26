@@ -4,918 +4,685 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-public final class KingGriefCore extends JavaPlugin implements CommandExecutor, TabCompleter {
-
-    private static KingGriefCore instance;
+public final class KingGriefCore extends JavaPlugin {
 
     private DataStore store;
     private RankManager ranks;
-    private SpawnEngine spawn;
-    private HudManager hud;
+    private LpManager lp;
+    private BossEventManager bossEvents;
+    private SpawnEngine spawnEngine;
     private GuiManager guis;
-    private GameplayListener listener;
+    private HudManager hud;
 
-    public static KingGriefCore get() {
-        return instance;
+    @Override
+    public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+        if (VoidSpawnWorldGenerator.SPAWN_WORLD_NAME.equalsIgnoreCase(worldName)) {
+            return new VoidSpawnWorldGenerator();
+        }
+        return null;
     }
-
-    public DataStore getStore() { return store; }
-    public RankManager getRanks() { return ranks; }
-    public SpawnEngine getSpawn() { return spawn; }
-    public SpawnEngine getSpawnEngine() { return spawn; }
-    public HudManager getHud() { return hud; }
-    public GuiManager getGuis() { return guis; }
 
     @Override
     public void onEnable() {
-        instance = this;
         saveDefaultConfig();
+        // Silence command block spam across all loaded worlds
+        for (World w : Bukkit.getWorlds()) {
+            VoidSpawnWorldGenerator.silenceCommandSpam(w);
+        }
 
         this.store = new DataStore(this);
         this.ranks = new RankManager(this.store);
-        this.spawn = new SpawnEngine(this);
-        this.hud = new HudManager(this);
+        this.lp = new LpManager(this);
+        this.bossEvents = new BossEventManager(this);
+        this.spawnEngine = new SpawnEngine(this);
         this.guis = new GuiManager(this);
-        this.listener = new GameplayListener(this);
+        this.hud = new HudManager(this);
 
-        Bukkit.getPluginManager().registerEvents(listener, this);
-
-        for (String cmdName : getDescription().getCommands().keySet()) {
-            PluginCommand pc = getCommand(cmdName);
+        // Register /lp, /luckperms, /lpeditor with TabCompleter
+        for (String lpCmd : new String[]{"lp", "luckperms", "lpeditor"}) {
+            PluginCommand pc = getCommand(lpCmd);
             if (pc != null) {
-                pc.setExecutor(this);
-                pc.setTabCompleter(this);
+                pc.setExecutor(this.lp);
+                pc.setTabCompleter(this.lp);
             }
         }
 
-        spawn.initOnStartup();
-        hud.start();
-        listener.startLoops();
+        Bukkit.getPluginManager().registerEvents(new GameplayListener(this), this);
 
-        Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
-            @Override
-            public void run() {
-                store.save();
-            }
-        }, 3600L, 3600L);
+        // Build Void World 'spawn_world' + 181x96x181 Spawn + 11 Shulker Cases + 22 RW NPCs + 6 Kabinki
+        this.spawnEngine.initializeSpawnWorldAndBuild(false);
+        this.bossEvents.start();
+        this.hud.start();
 
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            listener.setAuthed(p, true);
-            hud.updatePlayerHud(p);
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            this.store.refreshPermissions(on, this.ranks);
+            this.bossEvents.syncBarsForJoin(on);
+            this.hud.updatePlayerHud(on);
         }
 
-        getLogger().info("==================================================");
-        getLogger().info("  KINGGRIEF NEW YEAR REALLYWORLD CORE v3.0 READY!");
-        getLogger().info("  Spawn 3D + 16 NPCs + 11 Cases + Auth + TAB + SB");
-        getLogger().info("==================================================");
+        getLogger().info("============================================================");
+        getLogger().info(" KINGGRIEF CORE v4.0.0 — NEW YEAR REALLYWORLD EDITION READY ");
+        getLogger().info(" Dedicated Void Spawn: 'spawn_world' (181x96x181)           ");
+        getLogger().info(" 22 Working RW NPCs (incl. Bafovar) + 11 Shulker Cases      ");
+        getLogger().info(" 5 Stacked Boss Events + Full /lp & Web LP Editor Ready!    ");
+        getLogger().info("============================================================");
     }
 
     @Override
     public void onDisable() {
-        if (store != null) store.save();
+        if (this.bossEvents != null) this.bossEvents.shutdown();
+        if (this.store != null) this.store.save();
     }
 
-    private boolean requireRankWeight(Player p, int minWeight, String minRankTitle) {
-        if (p.isOp() || p.hasPermission("kinggrief.admin") || ranks.getRank(p).weight >= minWeight) {
-            return true;
-        }
-        ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-        p.sendMessage(ColorUtil.c("&cЭта команда доступна от привилегии &e" + minRankTitle
-                + " &cи выше! Купить на: &#FFD740https://kinggrief.vercel.app"));
-        return false;
-    }
+    public DataStore getStore() { return store; }
+    public RankManager getRanks() { return ranks; }
+    public LpManager getLp() { return lp; }
+    public BossEventManager getBossEvents() { return bossEvents; }
+    public SpawnEngine getSpawnEngine() { return spawnEngine; }
+    public GuiManager getGuis() { return guis; }
+    public HudManager getHud() { return hud; }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        String cmd = command.getName().toLowerCase();
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        String c = cmd.getName().toLowerCase(Locale.ROOT);
 
-        // Console-compatible admin commands
-        if ("setrank".equals(cmd)) {
-            if (!sender.hasPermission("kinggrief.admin") && !sender.isOp()) {
-                sender.sendMessage(ColorUtil.c("&cНедостаточно прав!"));
-                return true;
-            }
-            if (args.length < 2) {
-                sender.sendMessage(ColorUtil.c("&eИспользование: /setrank <ник> <ранг>"));
-                return true;
-            }
-            ranks.setRank(args[0], args[1], true);
-            sender.sendMessage(ColorUtil.c("&#00E676✔ Игроку &f" + args[0] + " &aвыдан ранг &e" + args[1].toUpperCase()));
-            return true;
-        }
-        if ("riliks".equals(cmd) && args.length >= 3 && ("give".equalsIgnoreCase(args[0]) || "set".equalsIgnoreCase(args[0]))) {
-            if (!sender.hasPermission("kinggrief.admin") && !sender.isOp()) {
-                sender.sendMessage(ColorUtil.c("&cНедостаточно прав!"));
-                return true;
-            }
-            try {
-                int amt = Integer.parseInt(args[2]);
-                if ("give".equalsIgnoreCase(args[0])) store.addRelics(args[1], amt);
-                else store.setRelics(args[1], amt);
-                store.save();
-                sender.sendMessage(ColorUtil.c("&#00E676✔ Баланс риликов игрока &f" + args[1] + " &aобновлён!"));
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(ColorUtil.c("&cУкажите корректное число!"));
-            }
-            return true;
-        }
-        if ("cases".equals(cmd) && args.length >= 4 && "give".equalsIgnoreCase(args[0])) {
-            if (!sender.hasPermission("kinggrief.admin") && !sender.isOp()) {
-                sender.sendMessage(ColorUtil.c("&cНедостаточно прав!"));
-                return true;
-            }
-            try {
-                int amt = Integer.parseInt(args[3]);
-                store.addCaseKeys(args[1], args[2].toLowerCase(), amt);
-                store.save();
-                sender.sendMessage(ColorUtil.c("&#00E676✔ Выдано " + amt + " ключ(ей) " + args[2] + " игроку " + args[1]));
-            } catch (NumberFormatException ex) {
-                sender.sendMessage(ColorUtil.c("&cУкажите число ключей!"));
-            }
-            return true;
-        }
-        if ("unban".equals(cmd)) {
-            if ((sender instanceof Player) && !requireRankWeight((Player) sender, 220, "D.GLMODER / СТ.МОДЕР")) return true;
-            if (args.length < 1) { sender.sendMessage(ColorUtil.c("&e/unban <ник>")); return true; }
-            store.unban(args[0]);
-            store.save();
-            Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Игрок &f" + args[0] + " &aразбанен администратором &e" + sender.getName()));
-            return true;
-        }
-        if ("unmute".equals(cmd)) {
-            if ((sender instanceof Player) && !requireRankWeight((Player) sender, 180, "ХЕЛПЕР / D.MODER")) return true;
-            if (args.length < 1) { sender.sendMessage(ColorUtil.c("&e/unmute <ник>")); return true; }
-            store.unmute(args[0]);
-            store.save();
-            sender.sendMessage(ColorUtil.c("&#00E676🔊 С игрока &f" + args[0] + " &aснят мут чата!"));
-            return true;
-        }
-        if ("bc".equals(cmd) || "broadcast".equals(cmd)) {
-            if ((sender instanceof Player) && !requireRankWeight((Player) sender, 230, "D.ML.ADMIN / ГЛ.МОДЕР")) return true;
-            if (args.length < 1) { sender.sendMessage(ColorUtil.c("&e/bc <объявление>")); return true; }
-            String msg = joinArgs(args, 0);
-            Bukkit.broadcastMessage(ColorUtil.c("&8&m                                                    "));
-            Bukkit.broadcastMessage(ColorUtil.c("  &#FF1744&l📢 ОБЪЯВЛЕНИЕ &8(&f" + sender.getName() + "&8):"));
-            Bukkit.broadcastMessage(ColorUtil.c("  &f" + msg));
-            Bukkit.broadcastMessage(ColorUtil.c("&8&m                                                    "));
-            return true;
+        // Console / Bridge / Admin command (/kgadmin)
+        if ("kgadmin".equals(c)) {
+            return handleKgAdmin(sender, args);
         }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Command requires a player.");
+            sender.sendMessage("Command is for players only (use /kgadmin or /lp from console).");
             return true;
         }
         Player p = (Player) sender;
 
         // ================= AUTH COMMANDS =================
-        if ("reg".equals(cmd) || "register".equals(cmd)) {
-            if (store.isRegistered(p.getName())) {
-                p.sendMessage(ColorUtil.c("&eВы уже зарегистрированы! Введите: &#00E676/login <пароль>"));
-                return true;
-            }
-            if (args.length < 2) {
-                p.sendMessage(ColorUtil.c("&eИспользование: &#00E676/reg <пароль> <повтор пароля>"));
-                return true;
-            }
-            if (!args[0].equals(args[1])) {
-                p.sendMessage(ColorUtil.c("&cПароли не совпадают! Попробуйте снова."));
-                return true;
-            }
-            if (args[0].length() < 4 || args[0].length() > 32) {
-                p.sendMessage(ColorUtil.c("&cДлина пароля должна быть от 4 до 32 символов!"));
-                return true;
-            }
-            store.registerPassword(p, args[0]);
-            store.save();
-            listener.setAuthed(p, true);
-            ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
-            p.sendTitle(ColorUtil.c("&#00E676&l✔ УСПЕШНО!"), ColorUtil.c("&fПриятной игры! Открой &#FFD740/menu"), 5, 50, 10);
-            p.sendMessage(ColorUtil.c("&#00E676✔ Вы успешно зарегистрировались! Не забудьте забрать подарок: &e/promo NEWYEAR"));
-            return true;
-        }
-        if ("login".equals(cmd)) {
-            if (listener.isAuthed(p)) {
+        if ("register".equals(c)) {
+            if (store.isAuthenticated(p) && store.isRegistered(p.getName())) {
                 p.sendMessage(ColorUtil.c("&aВы уже авторизованы!"));
                 return true;
             }
-            if (!store.isRegistered(p.getName())) {
-                p.sendMessage(ColorUtil.c("&eАккаунт не зарегистрирован! Введите: &#00E676/reg <пароль> <повтор>"));
+            if (args.length < 2 || !args[0].equals(args[1]) || args[0].length() < 4) {
+                p.sendMessage(ColorUtil.c("&#FFD740Использование: &f/register <пароль> <повтор> &7(мин. 4 символа)"));
+                return true;
+            }
+            store.registerPassword(p, args[0]);
+            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
+            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на ReallyWorld!"), 5, 40, 10);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Регистрация успешна! Вам выдан Новогодний Кейс (/cases) и стартовый баланс!"));
+            return true;
+        }
+        if ("login".equals(c)) {
+            if (store.isAuthenticated(p)) {
+                p.sendMessage(ColorUtil.c("&aВы уже вошли в аккаунт!"));
                 return true;
             }
             if (args.length < 1) {
-                p.sendMessage(ColorUtil.c("&eВведите: &#00E676/login <пароль>"));
+                p.sendMessage(ColorUtil.c("&#FFD740Использование: &f/login <пароль>"));
                 return true;
             }
             if (!store.checkPassword(p.getName(), args[0])) {
-                ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
-                p.sendMessage(ColorUtil.c("&cНеверный пароль! Попробуйте ещё раз."));
+                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Неверный пароль!"));
                 return true;
             }
-            listener.setAuthed(p, true);
-            store.save();
-            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fГлавное меню: &#FFD740/menu"), 5, 45, 10);
+            store.setAuthenticated(p, true);
+            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.25f);
+            p.sendTitle(ColorUtil.c("&#00E676&l✔ ВХОД ВЫПОЛНЕН"), ColorUtil.c("&fС возвращением, " + p.getName() + "!"), 5, 35, 10);
             return true;
         }
-        if ("changepassword".equals(cmd)) {
-            if (args.length < 2) { p.sendMessage(ColorUtil.c("&e/changepassword <старый> <новый>")); return true; }
-            if (!store.checkPassword(p.getName(), args[0])) {
-                p.sendMessage(ColorUtil.c("&cСтарый пароль указан неверно!"));
+        if ("changepassword".equals(c)) {
+            if (args.length < 2 || !store.checkPassword(p.getName(), args[0])) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/changepassword <старый> <новый>"));
                 return true;
             }
             store.changePassword(p.getName(), args[1]);
-            store.save();
-            p.sendMessage(ColorUtil.c("&#00E676✔ Пароль успешно изменён!"));
-            return true;
-        }
-        if ("logout".equals(cmd)) {
-            listener.setAuthed(p, false);
-            p.teleport(spawn.getSpawnLocation());
-            p.sendMessage(ColorUtil.c("&eВы вышли из аккаунта. Введите /login <пароль>."));
+            p.sendMessage(ColorUtil.c("&#00E676✔ Пароль успешно обновлён!"));
             return true;
         }
 
-        // ================= MENUS & SPAWN & EVENTS =================
-        if ("menu".equals(cmd)) { guis.openMainMenu(p); return true; }
-        if ("donate".equals(cmd)) { guis.openDonateMenu(p); return true; }
-        if ("kp".equals(cmd)) { guis.openKpMenu(p); return true; }
-        if ("media".equals(cmd)) { guis.openMediaMenu(p); return true; }
-        if ("shop".equals(cmd)) { guis.openShopMenu(p); return true; }
-        if ("nyshop".equals(cmd)) { guis.openNyShop(p); return true; }
-        if ("gifts".equals(cmd)) { guis.openGiftsMenu(p); return true; }
-        if ("cases".equals(cmd)) { guis.openAllCasesMenu(p); return true; }
-        if ("kits".equals(cmd)) { guis.openKitsMenu(p); return true; }
-        if ("rtp".equals(cmd)) { guis.openRtpMenu(p); return true; }
-        if ("buyer".equals(cmd)) { guis.openBuyerMenu(p); return true; }
-        if ("jobs".equals(cmd)) { guis.openJobsMenu(p); return true; }
-        if ("bp".equals(cmd)) { guis.openBattlePassMenu(p); return true; }
-
-        if ("sb".equals(cmd)) {
-            boolean on = store.toggleSb(p);
-            hud.updatePlayerHud(p);
-            p.sendMessage(ColorUtil.c(on ? "&#00E676✔ Боковая панель включена!" : "&eБоковая панель скрыта."));
+        if (!store.isAuthenticated(p)) {
+            p.sendMessage(ColorUtil.c("&#FF1744🔐 Сначала войдите: /login или /register"));
             return true;
         }
-        if ("spawn".equals(cmd)) {
+
+        // ================= NAVIGATION & SEPARATE WORLDS =================
+        if ("spawn".equals(c)) {
             store.setBack(p, p.getLocation());
-            p.teleport(spawn.getSpawnLocation());
+            store.setParkourCp(p, null);
+            p.teleport(spawnEngine.getSpawnArrival());
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c("&#80D8FF🎄 Вы телепортированы на Новогодний Спавн KINGGRIEF!"));
+            p.sendMessage(ColorUtil.c("&#80D8FF❄ Вы телепортированы в мир Новогоднего Спавна!"));
             return true;
         }
-        if ("setspawn".equals(cmd)) {
-            if (!requireRankWeight(p, 280, "OPKA / OWNER")) return true;
-            Location l = p.getLocation();
-            getConfig().set("spawn-world", l.getWorld().getName());
-            getConfig().set("spawn-x", l.getX());
-            getConfig().set("spawn-y", l.getY());
-            getConfig().set("spawn-z", l.getZ());
-            getConfig().set("spawn-yaw", l.getYaw());
-            getConfig().set("spawn-pitch", l.getPitch());
-            saveConfig();
-            p.sendMessage(ColorUtil.c("&#00E676✔ Точка спавна обновлена!"));
-            return true;
-        }
-        if ("spawnbuild".equals(cmd)) {
-            if (!requireRankWeight(p, 280, "OPKA / OWNER")) return true;
-            p.sendMessage(ColorUtil.c("&#80D8FF❄ Запускаем перестройку 3D Новогоднего Спавна, всех 16 NPC и 11 кейсов..."));
-            spawn.buildSpawnAsyncBatched(p);
-            return true;
-        }
-        if ("mine".equals(cmd)) {
-            p.teleport(new Location(spawn.getSpawnWorld(), -30.5, 100.0, 20.5, 90f, 10f));
-            ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c("&#FFEE58⛏ Добро пожаловать на Авто-Шахту! Руда обновляется каждые 3 минуты."));
-            return true;
-        }
-        if ("airdrop".equals(cmd)) {
-            if (args.length > 0 && "start".equalsIgnoreCase(args[0])) {
-                if (!requireRankWeight(p, 260, "КП / OPKA / OWNER")) return true;
-                spawn.triggerMysticAirdrop();
-                return true;
-            }
-            Location air = spawn.getActiveAirdropLoc();
-            if (air == null) {
-                p.sendMessage(ColorUtil.c("&eАктивного Аирдропа сейчас нет. До следующего: &f"
-                        + ColorUtil.fmtTime(spawn.getAirdropSecondsLeft())));
+        if ("rtp".equals(c)) {
+            if (args.length > 0 && "gui".equalsIgnoreCase(args[0])) {
+                guis.openRtpMenu(p);
             } else {
-                p.sendMessage(ColorUtil.c("&#FF1744☄ Мистический Аирдроп находится на: &#FFD740X: "
-                        + air.getBlockX() + ", Y: " + air.getBlockY() + ", Z: " + air.getBlockZ()));
+                String mode = args.length > 0 ? args[0] : "normal";
+                spawnEngine.performRtp(p, mode);
             }
             return true;
         }
-
-        // ================= PROMO CODES =================
-        if ("promo".equals(cmd)) {
+        if ("warps".equals(c)) {
+            guis.openWarpsMenu(p);
+            return true;
+        }
+        if ("warp".equals(c)) {
             if (args.length < 1) {
-                p.sendMessage(ColorUtil.c("&eДоступные промокоды: &#00E676/promo NEWYEAR &7| &#00E676/promo KINGGRIEF &7| &#00E676/promo FREE"));
+                guis.openWarpsMenu(p);
                 return true;
             }
-            String code = args[0].toUpperCase();
-            if (!"NEWYEAR".equals(code) && !"KINGGRIEF".equals(code) && !"FREE".equals(code)) {
-                p.sendMessage(ColorUtil.c("&cТакого промокода не существует! Попробуйте: &e/promo NEWYEAR"));
+            Location wl = spawnEngine.getWarpLocation(args[0]);
+            if (wl == null) {
+                p.sendMessage(ColorUtil.c("&eДоступные варпы: &fmine, farm, casino, pvp, kabinki, parkour, cases, enchant"));
                 return true;
             }
-            if (store.hasUsedPromo(p.getName(), code)) {
-                p.sendMessage(ColorUtil.c("&cВы уже активировали промокод &e" + code + "&c!"));
-                return true;
-            }
-            store.markUsedPromo(p.getName(), code);
-            if ("NEWYEAR".equals(code)) {
-                store.addCoins(p.getName(), 10000.0);
-                store.addCaseKeys(p.getName(), "summer", 1);
-                p.sendMessage(ColorUtil.c("&#80D8FF🎄 Промокод NEWYEAR активирован! &#FFEA00+10 000$ &fи &b1 Ключ Сезонного Кейса (/cases)&f!"));
-            } else if ("KINGGRIEF".equals(code)) {
-                store.addRelics(p.getName(), 50);
-                p.getInventory().addItem(ItemFactory.godAura(2));
-                p.sendMessage(ColorUtil.c("&#FFD740👑 Промокод KINGGRIEF активирован! &#00E5FF+50 риликов ❖ &fи &e2 Божьи Ауры&f!"));
+            store.setBack(p, p.getLocation());
+            p.teleport(wl);
+            ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.15f);
+            p.sendMessage(ColorUtil.c("&#80D8FF🧭 Вы телепортированы на &f/warp " + args[0].toLowerCase(Locale.ROOT) + "&#80D8FF!"));
+            return true;
+        }
+        if ("mine".equals(c) || "farm".equals(c) || "pvp".equals(c)) {
+            p.teleport(spawnEngine.getWarpLocation(c));
+            ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.15f);
+            return true;
+        }
+        if ("parkour".equals(c)) {
+            if (args.length > 0 && "cp".equalsIgnoreCase(args[0])) {
+                Location cp = store.getParkourCp(p);
+                p.teleport(cp != null ? cp : spawnEngine.getWarpLocation("parkour"));
+                p.sendMessage(ColorUtil.c("&#40C4FF🏃 Телепорт на чекпоинт паркура!"));
             } else {
-                store.addCoins(p.getName(), 5000.0);
-                p.getInventory().addItem(ItemFactory.nyCandy(2));
-                p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод FREE активирован! &#FFEA00+5 000$ &fи &d2 Леденца&f!"));
+                p.teleport(spawnEngine.getWarpLocation("parkour"));
             }
-            store.save();
-            ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
             return true;
         }
 
-        // ================= KITS (/kit <id>) =================
-        if ("kit".equals(cmd)) {
-            if (args.length < 1) { guis.openKitsMenu(p); return true; }
-            String kit = args[0].toLowerCase();
-            RankManager.RankDef myRank = ranks.getRank(p);
-            int reqW = 0;
-            if ("start".equals(kit) || "newyear".equals(kit)) reqW = 0;
-            else if ("media".equals(kit)) reqW = 70;
-            else if ("kp".equals(kit)) reqW = 180;
-            else reqW = ranks.byId(kit).weight;
-
-            if (myRank.weight < reqW && !p.isOp() && !p.hasPermission("kinggrief.admin")) {
-                p.sendMessage(ColorUtil.c("&cНабор &e/kit " + kit + " &cнедоступен вашему рангу! Повысить ранг: &#FFD740/donate"));
-                return true;
-            }
-            long now = System.currentTimeMillis();
-            long ready = store.getKitReadyAt(p.getName(), kit);
-            if (now < ready && !p.hasPermission("kinggrief.admin")) {
-                p.sendMessage(ColorUtil.c("&eПодождите ещё &f" + ColorUtil.fmtTime((ready - now) / 1000L) + " &eдо получения набора!"));
-                return true;
-            }
-            long cdSec = ("start".equals(kit) || "newyear".equals(kit)) ? 3600L : 21600L;
-            store.setKitReadyAt(p.getName(), kit, now + cdSec * 1000L);
-            store.save();
-            ItemFactory.giveKitItems(p, kit);
-            ColorUtil.sound(p, "item.armor.equip_netherite", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c("&#00E676🎁 Набор &e" + kit.toUpperCase() + " &aвыдан в ваш инвентарь!"));
+        // ================= MENUS & REALLYWORLD SYSTEMS =================
+        if ("menu".equals(c)) { guis.openMainMenu(p); return true; }
+        if ("donate".equals(c)) { guis.openDonateMenu(p); return true; }
+        if ("shop".equals(c)) { guis.openRelicShop(p); return true; }
+        if ("bafovar".equals(c)) { guis.openBafovarMenu(p); return true; }
+        if ("free".equals(c)) { guis.openFreebieMenu(p); return true; }
+        if ("trash".equals(c)) { guis.openTrashMenu(p); return true; }
+        if ("enchants".equals(c)) { guis.openEnchantsMenu(p); return true; }
+        if ("casino".equals(c)) { guis.openCasinoMenu(p); return true; }
+        if ("buyer".equals(c)) { guis.openBuyerMenu(p); return true; }
+        if ("cases".equals(c)) { guis.openCasesMenu(p); return true; }
+        if ("kits".equals(c)) { guis.openKitsMenu(p, 0); return true; }
+        if ("kit".equals(c)) {
+            if (args.length < 1) guis.openKitsMenu(p, 0);
+            else guis.tryClaimKit(p, args[0]);
             return true;
         }
-
-        // ================= AUCTION (/ah, /ah sell <price>) =================
-        if ("ah".equals(cmd)) {
+        if ("jobs".equals(c)) { guis.openJobsMenu(p); return true; }
+        if ("bp".equals(c)) { guis.openBpMenu(p); return true; }
+        if ("quests".equals(c)) { guis.openDjamshutMenu(p); return true; }
+        if ("titles".equals(c)) { guis.openTitlesMenu(p); return true; }
+        if ("playtime".equals(c)) { guis.openPlaytimeMenu(p); return true; }
+        if ("bm".equals(c)) { guis.openBlackMarket(p); return true; }
+        if ("events".equals(c)) {
+            if (args.length >= 2 && "start".equalsIgnoreCase(args[0]) && ("owner".equals(ranks.getRank(p).id) || p.isOp())) {
+                bossEvents.spawnBossEvent(args[1], null);
+                return true;
+            }
+            guis.openEventsMenu(p);
+            return true;
+        }
+        if ("ah".equals(c)) {
             if (args.length >= 2 && "sell".equalsIgnoreCase(args[0])) {
+                double price;
+                try { price = Double.parseDouble(args[1]); } catch (Exception ex) { price = -1; }
                 ItemStack hand = p.getInventory().getItemInMainHand();
-                if (hand == null || hand.getType() == Material.AIR) {
-                    p.sendMessage(ColorUtil.c("&cВозьмите предмет в основную руку для продажи на аукционе!"));
+                if (price <= 0 || hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
+                    p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку и введите: &f/ah sell <цена>"));
                     return true;
                 }
-                try {
-                    double price = Double.parseDouble(args[1]);
-                    if (price < 10 || price > 100000000) {
-                        p.sendMessage(ColorUtil.c("&cЦена должна быть от 10$ до 100 000 000$!"));
-                        return true;
-                    }
-                    ItemStack toSell = hand.clone();
-                    p.getInventory().setItemInMainHand(null);
-                    DataStore.AuctionLot lot = store.addAuctionLot(p.getName(), toSell, price);
-                    store.save();
-                    ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.2f);
-                    p.sendMessage(ColorUtil.c("&#00E676⚖ Ваш предмет выставлен на Аукцион (#" + lot.id + ") за &#FFEA00" + ColorUtil.fmtMoney(price) + "$&a!"));
-                } catch (NumberFormatException ex) {
-                    p.sendMessage(ColorUtil.c("&cУкажите цену числом: &e/ah sell 15000"));
-                }
+                store.addAuctionLot(p.getName(), hand, price);
+                p.getInventory().setItemInMainHand(null);
+                p.sendMessage(ColorUtil.c("&#00E676⚖ Предмет выставлен на Аукцион за &a" + ColorUtil.fmtMoney(price) + "$&7!"));
                 return true;
             }
             guis.openAuctionMenu(p, 0);
             return true;
         }
 
-        // ================= CLANS (/clan & /cc) =================
-        if ("cc".equals(cmd)) {
-            DataStore.Clan cl = store.getClanOf(p.getName());
-            if (cl == null) { p.sendMessage(ColorUtil.c("&cВы не состоите в клане! Создайте: &e/clan create <тег>")); return true; }
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/cc <сообщение> &7(или пишите &f@сообщение &7в обычный чат)")); return true; }
-            String line = ColorUtil.c("&8[&#B388FFКлан " + cl.tag + "&8] &e" + p.getName() + "&7: &f" + joinArgs(args, 0));
-            for (Player on : Bukkit.getOnlinePlayers()) {
-                if (cl.members.contains(on.getName().toLowerCase())) on.sendMessage(line);
+        // ================= CASINO COINFLIP (/cf) & DUELS (/duel) =================
+        if ("cf".equals(c)) {
+            if (args.length < 1) { guis.openCasinoMenu(p); return true; }
+            double bet;
+            try { bet = Double.parseDouble(args[0]); } catch (Exception ex) { bet = -1; }
+            if (bet < 1000) {
+                p.sendMessage(ColorUtil.c("&eМинимальная ставка Монетки: &a1 000$ &7(/cf <сумма>)"));
+                return true;
             }
+            if (!store.takeCoins(p.getName(), bet)) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно монет!"));
+                return true;
+            }
+            store.createCoinflip(p.getName(), bet);
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740🪙 [Монетка] &f" + p.getName() + " &7создал игру на &a"
+                    + ColorUtil.fmtMoney(bet) + "$&7! Принять: &f/casino"));
             return true;
         }
-        if ("clan".equals(cmd)) {
-            return handleClanCommand(p, args);
-        }
-
-        // ================= REGION / CLAIM MANAGEMENT (/rg) =================
-        if ("rg".equals(cmd)) {
-            DataStore.Claim cl = store.getClaimAt(p.getLocation());
-            if (args.length == 0 || "info".equalsIgnoreCase(args[0])) {
-                if (cl == null) {
-                    p.sendMessage(ColorUtil.c("&eЗдесь свободная территория! Поставьте блок руды-привата из кита или &6/shop&e."));
-                } else {
-                    p.sendMessage(ColorUtil.c("&#00E676🛡 Приват #" + cl.id + " &8| &7Владелец: &f" + cl.owner
-                            + " &8| &7Размер: &e" + (cl.radius * 2) + "×" + (cl.radius * 2)
-                            + " &8| &7Участники: &a" + cl.members));
+        if ("duel".equals(c)) {
+            if (args.length >= 1 && "accept".equalsIgnoreCase(args[0])) {
+                DataStore.DuelRequest dr = store.popDuelRequest(p);
+                if (dr == null) {
+                    p.sendMessage(ColorUtil.c("&cУ вас нет активных вызовов на дуэль!"));
+                    return true;
                 }
+                Player ch = Bukkit.getPlayer(dr.challenger);
+                if (ch == null || !ch.isOnline()) {
+                    p.sendMessage(ColorUtil.c("&cСоперник вышел из игры."));
+                    return true;
+                }
+                World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
+                ch.teleport(new Location(sw, 50.5, 100.0, -26.5, 0f, 0f));
+                p.teleport(new Location(sw, 51.5, 100.0, -24.5, 180f, 0f));
+                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Дуэль началась: &f" + ch.getName() + " &cvs &f" + p.getName() + " &7в Кабинке #1!"));
                 return true;
             }
-            if (cl == null || (!cl.owner.equalsIgnoreCase(p.getName()) && !p.hasPermission("kinggrief.admin"))) {
-                p.sendMessage(ColorUtil.c("&cВстаньте внутрь своего привата для управления им!"));
+            if (args.length < 1) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/duel <ник> &7или &f/duel accept"));
                 return true;
             }
-            if ("add".equalsIgnoreCase(args[0]) && args.length >= 2) {
-                cl.members.add(args[1].toLowerCase());
-                store.save();
-                p.sendMessage(ColorUtil.c("&#00E676✔ Игрок &f" + args[1] + " &aдобавлен в ваш приват!"));
-            } else if ("remove".equalsIgnoreCase(args[0]) && args.length >= 2) {
-                cl.members.remove(args[1].toLowerCase());
-                store.save();
-                p.sendMessage(ColorUtil.c("&eИгрок &f" + args[1] + " &eудалён из привата."));
-            } else {
-                p.sendMessage(ColorUtil.c("&eКоманды привата: &f/rg info&7, &f/rg add <ник>&7, &f/rg remove <ник>"));
-            }
-            return true;
-        }
-
-        // ================= HOMES & TPA & BACK =================
-        if ("sethome".equals(cmd)) {
-            String hName = args.length > 0 ? args[0].toLowerCase() : "home";
-            Map<String, Location> homes = store.getHomes(p.getName());
-            RankManager.RankDef rk = ranks.getRank(p);
-            if (!homes.containsKey(hName) && homes.size() >= rk.maxHomes) {
-                p.sendMessage(ColorUtil.c("&cДостигнут лимит домов вашего ранга (&e" + rk.maxHomes + "&c)! Увеличьте лимит: &#FFD740/donate"));
-                return true;
-            }
-            store.setHome(p.getName(), hName, p.getLocation());
-            store.save();
-            p.sendMessage(ColorUtil.c("&#00E676🏠 Точка дома &e" + hName + " &aуспешно сохранена!"));
-            return true;
-        }
-        if ("home".equals(cmd)) {
-            String hName = args.length > 0 ? args[0].toLowerCase() : "home";
-            Map<String, Location> homes = store.getHomes(p.getName());
-            Location dst = homes.get(hName);
-            if (dst == null && !homes.isEmpty() && args.length == 0) {
-                dst = homes.values().iterator().next();
-            }
-            if (dst == null) {
-                p.sendMessage(ColorUtil.c("&cТочка дома не найдена! Создайте: &e/sethome"));
-                return true;
-            }
-            store.setBack(p, p.getLocation());
-            p.teleport(dst);
-            ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c("&#00E676🏠 Телепортация домой!"));
-            return true;
-        }
-        if ("delhome".equals(cmd)) {
-            String hName = args.length > 0 ? args[0].toLowerCase() : "home";
-            if (store.delHome(p.getName(), hName)) {
-                store.save();
-                p.sendMessage(ColorUtil.c("&eТочка дома &f" + hName + " &eудалена."));
-            } else {
-                p.sendMessage(ColorUtil.c("&cТакого дома нет!"));
-            }
-            return true;
-        }
-        if ("homes".equals(cmd)) {
-            Map<String, Location> homes = store.getHomes(p.getName());
-            p.sendMessage(ColorUtil.c("&#FFD740🏠 Ваши дома (&f" + homes.size() + "/" + ranks.getRank(p).maxHomes + "&#FFD740): &f"
-                    + (homes.isEmpty() ? "Нет домов (/sethome)" : homes.keySet())));
-            return true;
-        }
-        if ("tpa".equals(cmd) || "tpahere".equals(cmd)) {
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/" + cmd + " <ник>")); return true; }
-            Player target = Bukkit.getPlayerExact(args[0]);
+            Player target = Bukkit.getPlayer(args[0]);
             if (target == null || target.equals(p)) {
-                p.sendMessage(ColorUtil.c("&cИгрок не найден в сети!"));
+                p.sendMessage(ColorUtil.c("&cИгрок не найден!"));
                 return true;
             }
-            boolean here = "tpahere".equals(cmd);
-            store.sendTpa(p, target, here);
-            p.sendMessage(ColorUtil.c("&#00E676✔ Запрос на телепортацию отправлен игроку &f" + target.getName()));
-            target.sendMessage(ColorUtil.c("&#FFD740⚡ Игрок &f" + p.getName()
-                    + (here ? " &eпросит телепортироваться К НЕМУ!" : " &eпросит телепортироваться К ВАМ!")
-                    + "\n&aПринять: &l/tpaccept &8| &cОтклонить: &l/tpdeny"));
-            ColorUtil.sound(target, "block.note_block.pling", 1f, 1.4f);
-            return true;
-        }
-        if ("tpaccept".equals(cmd)) {
-            boolean[] isHere = new boolean[1];
-            UUID senderId = store.popTpaSender(p, isHere);
-            if (senderId == null) { p.sendMessage(ColorUtil.c("&cУ вас нет активных запросов на телепортацию!")); return true; }
-            Player senderP = Bukkit.getPlayer(senderId);
-            if (senderP == null) { p.sendMessage(ColorUtil.c("&cИгрок уже вышел с сервера.")); return true; }
-            if (isHere[0]) {
-                store.setBack(p, p.getLocation());
-                p.teleport(senderP.getLocation());
-            } else {
-                store.setBack(senderP, senderP.getLocation());
-                senderP.teleport(p.getLocation());
-            }
-            p.sendMessage(ColorUtil.c("&#00E676✔ Запрос принят!"));
-            senderP.sendMessage(ColorUtil.c("&#00E676✔ Игрок &f" + p.getName() + " &aпринял ваш запрос!"));
-            return true;
-        }
-        if ("tpdeny".equals(cmd)) {
-            store.popTpaSender(p, new boolean[1]);
-            p.sendMessage(ColorUtil.c("&eЗапрос на телепортацию отклонён."));
-            return true;
-        }
-        if ("back".equals(cmd)) {
-            if (!requireRankWeight(p, 40, "BUNNY (59₽)")) return true;
-            Location b = store.getBack(p);
-            if (b == null) { p.sendMessage(ColorUtil.c("&cНет сохранённой точки возврата!")); return true; }
-            p.teleport(b);
-            p.sendMessage(ColorUtil.c("&#00E676✔ Вы вернулись на предыдущее место!"));
+            store.putDuelRequest(p, target, 0.0);
+            p.sendMessage(ColorUtil.c("&#00E676⚔ Вызов на дуэль отправлен игроку &f" + target.getName() + "&7!"));
+            target.sendMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вызывает вас на дуэль в Кабинку! Введите: &#00E676/duel accept"));
             return true;
         }
 
-        // ================= ECONOMY (/bal, /pay, /baltop, /riliks) =================
-        if ("bal".equals(cmd) || "balance".equals(cmd)) {
-            String target = args.length > 0 ? args[0] : p.getName();
-            p.sendMessage(ColorUtil.c("&#FFEA00💰 Баланс &f" + target + "&#FFEA00: &#00E676"
-                    + ColorUtil.fmtMoney(store.getCoins(target)) + "$ &8| &#00E5FF" + store.getRelicsByName(target) + " риликов ❖"));
+        // ================= ECONOMY, PROMO, DAILY, CLAN, CLAIMS =================
+        if ("bal".equals(c)) {
+            p.sendMessage(ColorUtil.c("&#FFD740💰 Баланс: &a" + ColorUtil.fmtMoney(store.getCoins(p.getName())) + "$ &8| &b"
+                    + store.getRelics(p) + " Риликов ❖ &8| &b" + store.getSnowflakes(p.getName()) + " Снежинок ❄"));
             return true;
         }
-        if ("riliks".equals(cmd)) {
-            p.sendMessage(ColorUtil.c("&#00E5FF❖ Ваши рилики: &f" + store.getRelics(p)
-                    + " ❖ &8| &7Магазин: &e/shop &8| &7Пополнить от 19₽: &#FFD740https://kinggrief.vercel.app/relics"));
-            return true;
-        }
-        if ("pay".equals(cmd)) {
-            if (args.length < 2) { p.sendMessage(ColorUtil.c("&e/pay <ник> <сумма>")); return true; }
-            Player dst = Bukkit.getPlayerExact(args[0]);
-            if (dst == null || dst.equals(p)) { p.sendMessage(ColorUtil.c("&cУкажите другого игрока онлайн!")); return true; }
-            try {
-                double amt = Double.parseDouble(args[1]);
-                if (amt < 1) { p.sendMessage(ColorUtil.c("&cМинимальный перевод — 1$!")); return true; }
-                if (!store.takeCoins(p.getName(), amt)) { p.sendMessage(ColorUtil.c("&cНедостаточно монет!")); return true; }
-                store.addCoins(dst.getName(), amt);
-                store.save();
-                p.sendMessage(ColorUtil.c("&#00E676💸 Вы перевели &#FFEA00" + ColorUtil.fmtMoney(amt) + "$ &aигроку &f" + dst.getName()));
-                dst.sendMessage(ColorUtil.c("&#00E676💸 Игрок &f" + p.getName() + " &aперевёл вам &#FFEA00+" + ColorUtil.fmtMoney(amt) + "$&a!"));
-            } catch (NumberFormatException ex) {
-                p.sendMessage(ColorUtil.c("&cУкажите корректную сумму!"));
+        if ("pay".equals(c)) {
+            if (args.length < 2) { p.sendMessage(ColorUtil.c("&eИспользование: &f/pay <ник> <сумма>")); return true; }
+            Player rec = Bukkit.getPlayer(args[0]);
+            double amt;
+            try { amt = Double.parseDouble(args[1]); } catch (Exception ex) { amt = -1; }
+            if (rec == null || rec.equals(p) || amt < 10) {
+                p.sendMessage(ColorUtil.c("&cУкажите игрока онлайн и сумму от 10$!"));
+                return true;
             }
+            if (!store.takeCoins(p.getName(), amt)) { p.sendMessage(ColorUtil.c("&cНедостаточно монет!")); return true; }
+            store.addCoins(rec.getName(), amt);
+            store.save();
+            p.sendMessage(ColorUtil.c("&#00E676✔ Вы перевели &a" + ColorUtil.fmtMoney(amt) + "$ &7игроку &f" + rec.getName()));
+            rec.sendMessage(ColorUtil.c("&#00E676💰 Игрок &f" + p.getName() + " &7перевёл вам &a+" + ColorUtil.fmtMoney(amt) + "$&7!"));
             return true;
         }
-        if ("baltop".equals(cmd)) {
+        if ("baltop".equals(c)) {
+            p.sendMessage(ColorUtil.c("&#FFD740&l🏆 ТОП БОГАЧЕЙ СЕРВЕРА:"));
             List<Map.Entry<String, Double>> top = store.getBalTop(10);
-            p.sendMessage(ColorUtil.c("&#FFD740&l🏆 ТОП БОГАЧЕЙ KINGGRIEF:"));
             for (int i = 0; i < top.size(); i++) {
-                p.sendMessage(ColorUtil.c(" &e#" + (i + 1) + " &f" + top.get(i).getKey()
-                        + " &8— &#00E676" + ColorUtil.fmtMoney(top.get(i).getValue().doubleValue()) + "$"));
+                p.sendMessage(ColorUtil.c(" &#FFD740#" + (i + 1) + " &f" + top.get(i).getKey() + " &8— &a" + ColorUtil.fmtMoney(top.get(i).getValue().doubleValue()) + "$"));
             }
             return true;
         }
-
-        // ================= DONATE PERKS & STAFF COMMANDS =================
-        if ("wb".equals(cmd)) {
-            if (!requireRankWeight(p, 10, "PEGAS (19₽)")) return true;
-            p.openWorkbench(null, true);
+        if ("daily".equals(c)) {
+            long now = System.currentTimeMillis();
+            long ready = store.getDailyReadyAt(p.getName());
+            if (now < ready) {
+                p.sendMessage(ColorUtil.c("&#FFD740🎅 Подарок уже получен! Следующий через &f" + ColorUtil.fmtTime((ready - now) / 1000L)));
+                return true;
+            }
+            store.setDailyReadyAt(p.getName(), now + 86400_000L);
+            store.addCoins(p.getName(), 20000);
+            store.addRelics(p.getName(), 15);
+            store.addSnowflakes(p.getName(), 5);
+            store.save();
+            ColorUtil.spawnFirework(p.getLocation());
+            p.sendMessage(ColorUtil.c("&#80D8FF🎅 Дедушка Мороз подарил вам &a+20 000$&f, &b+15 Риликов ❖ &fи &b+5 Снежинок ❄&f!"));
             return true;
         }
-        if ("hat".equals(cmd)) {
-            if (!requireRankWeight(p, 10, "PEGAS (19₽)")) return true;
+        if ("promo".equals(c)) {
+            if (args.length < 1) { guis.openFreebieMenu(p); return true; }
+            String code = args[0].toUpperCase(Locale.ROOT);
+            if (store.hasUsedPromo(p.getName(), code)) {
+                p.sendMessage(ColorUtil.c("&cВы уже активировали этот промокод!"));
+                return true;
+            }
+            if ("NEWYEAR2026".equals(code)) {
+                store.addCoins(p.getName(), 25000); store.addRelics(p.getName(), 25); store.addCaseKeys(p.getName(), "summer", 1);
+            } else if ("REALLYWORLD".equals(code)) {
+                store.addCoins(p.getName(), 30000); store.addRelics(p.getName(), 30); store.addSnowflakes(p.getName(), 10);
+            } else if ("KINGGRIEF".equals(code)) {
+                store.addCoins(p.getName(), 20000); store.addRelics(p.getName(), 20); p.getInventory().addItem(ItemFactory.potionKiller(1));
+            } else if ("SANTA".equals(code)) {
+                store.addCoins(p.getName(), 15000); p.getInventory().addItem(ItemFactory.nyMandarin(8), ItemFactory.potionChampagne(1));
+            } else if ("RILIK".equals(code)) {
+                store.addRelics(p.getName(), 35);
+            } else if ("FREE".equals(code)) {
+                store.addCoins(p.getName(), 15000); store.addCaseKeys(p.getName(), "money", 1);
+            } else {
+                p.sendMessage(ColorUtil.c("&cНеизвестный промокод! Все промокоды доступны в меню &f/free"));
+                return true;
+            }
+            store.markUsedPromo(p.getName(), code);
+            store.save();
+            ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+            p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод &f" + code + " &#00E676активирован! Награда выдана!"));
+            return true;
+        }
+        if ("clan".equals(c)) {
+            handleClanCmd(p, args);
+            return true;
+        }
+        if ("rg".equals(c)) {
+            handleRgCmd(p, args);
+            return true;
+        }
+
+        // ================= HOMES, TPA, BACK & REALLYWORLD PERKS =================
+        if ("sethome".equals(c)) {
+            if (spawnEngine.isInSpawnWorld(p.getLocation())) {
+                p.sendMessage(ColorUtil.c("&cНельзя ставить дом на спавне! Перейдите в выживание: /rtp"));
+                return true;
+            }
+            String hn = args.length > 0 ? args[0] : "home";
+            Map<String, Location> homes = store.getHomes(p.getName());
+            int max = ranks.getRank(p).maxHomes;
+            if (!homes.containsKey(hn.toLowerCase(Locale.ROOT)) && homes.size() >= max) {
+                p.sendMessage(ColorUtil.c("&cЛимит точек дома вашей привилегии: &f" + max));
+                return true;
+            }
+            store.setHome(p.getName(), hn, p.getLocation());
+            p.sendMessage(ColorUtil.c("&#00E676🏠 Точка дома &f" + hn + " &#00E676установлена!"));
+            return true;
+        }
+        if ("home".equals(c)) {
+            String hn = args.length > 0 ? args[0].toLowerCase(Locale.ROOT) : "home";
+            Location hl = store.getHomes(p.getName()).get(hn);
+            if (hl == null) { p.sendMessage(ColorUtil.c("&cДом не найден! Список: /homes")); return true; }
+            store.setBack(p, p.getLocation());
+            p.teleport(hl);
+            p.sendMessage(ColorUtil.c("&#00E676🏠 Телепорт домой (&f" + hn + "&#00E676)!"));
+            return true;
+        }
+        if ("delhome".equals(c)) {
+            String hn = args.length > 0 ? args[0] : "home";
+            p.sendMessage(ColorUtil.c(store.delHome(p.getName(), hn) ? "&#00E676✔ Дом удалён." : "&cДом не найден."));
+            return true;
+        }
+        if ("homes".equals(c)) {
+            Map<String, Location> hs = store.getHomes(p.getName());
+            p.sendMessage(ColorUtil.c("&#FFD740Ваши дома (" + hs.size() + "/" + ranks.getRank(p).maxHomes + "): &f" + hs.keySet()));
+            return true;
+        }
+        if ("back".equals(c)) {
+            Location b = store.getBack(p);
+            if (b == null) { p.sendMessage(ColorUtil.c("&cНет сохранённой локации для возврата.")); return true; }
+            p.teleport(b);
+            p.sendMessage(ColorUtil.c("&#00E676↩ Возврат на предыдущее место!"));
+            return true;
+        }
+        if ("tpa".equals(c) || "tpahere".equals(c)) {
+            if (args.length < 1) { p.sendMessage(ColorUtil.c("&eИспользование: &f/" + c + " <ник>")); return true; }
+            Player t = Bukkit.getPlayer(args[0]);
+            if (t == null || t.equals(p)) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
+            boolean here = "tpahere".equals(c);
+            store.sendTpa(p, t, here);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Запрос отправлен игроку &f" + t.getName()));
+            t.sendMessage(ColorUtil.c("&#FFD740⚡ Игрок &f" + p.getName() + (here ? " &7просит вас телепортироваться к нему!" : " &7хочет телепортироваться к вам!") + " &aВведите: &f/tpaccept"));
+            return true;
+        }
+        if ("tpaccept".equals(c)) {
+            boolean[] isHere = new boolean[1];
+            UUID sid = store.popTpaSender(p, isHere);
+            Player s = sid != null ? Bukkit.getPlayer(sid) : null;
+            if (s == null) { p.sendMessage(ColorUtil.c("&cНет активных запросов телепортации!")); return true; }
+            if (isHere[0]) p.teleport(s.getLocation());
+            else s.teleport(p.getLocation());
+            p.sendMessage(ColorUtil.c("&#00E676✔ Запрос принят!"));
+            s.sendMessage(ColorUtil.c("&#00E676✔ Телепортация выполнена!"));
+            return true;
+        }
+        if ("sb".equals(c)) {
+            boolean en = store.toggleSb(p);
+            hud.updatePlayerHud(p);
+            p.sendMessage(ColorUtil.c(en ? "&aСкорборд включён!" : "&eСкорборд скрыт."));
+            return true;
+        }
+        if ("near".equals(c)) {
+            if (ranks.getRank(p).weight < 35) {
+                p.sendMessage(ColorUtil.c("&cКоманда /near доступна с привилегии BUNNY (59₽)!"));
+                return true;
+            }
+            StringBuilder sb = new StringBuilder();
+            for (Entity en : p.getNearbyEntities(150, 120, 150)) {
+                if (en instanceof Player && !en.equals(p) && !store.isVanished((Player) en)) {
+                    int dist = (int) p.getLocation().distance(en.getLocation());
+                    if (sb.length() > 0) sb.append("&7, ");
+                    sb.append("&f").append(en.getName()).append(" &e(").append(dist).append("м)");
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#80D8FF📡 Игроки рядом (150м): " + (sb.length() == 0 ? "&7никого нет" : sb.toString())));
+            return true;
+        }
+        if ("hat".equals(c)) {
             ItemStack hand = p.getInventory().getItemInMainHand();
-            if (hand == null || hand.getType() == Material.AIR) { p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку!")); return true; }
+            if (hand == null || hand.getType() == Material.AIR) {
+                p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку!"));
+                return true;
+            }
             ItemStack oldHelm = p.getInventory().getHelmet();
             p.getInventory().setHelmet(hand);
             p.getInventory().setItemInMainHand(oldHelm);
-            p.sendMessage(ColorUtil.c("&#00E676🎩 Новая шляпа надета!"));
+            p.sendMessage(ColorUtil.c("&#00E676🎩 Предмет надет на голову!"));
             return true;
         }
-        if ("ext".equals(cmd)) {
-            if (!requireRankWeight(p, 20, "COBRA (39₽)")) return true;
+        if ("ext".equals(c)) {
             p.setFireTicks(0);
-            p.sendMessage(ColorUtil.c("&#00E5FF💧 Вы потушили огонь!"));
-            return true;
-        }
-        if ("ci".equals(cmd)) {
-            if (!requireRankWeight(p, 20, "COBRA (39₽)")) return true;
-            p.getInventory().clear();
-            p.getInventory().setItem(8, ItemFactory.menuStar());
-            p.sendMessage(ColorUtil.c("&eИнвентарь очищен!"));
-            return true;
-        }
-        if ("near".equals(cmd)) {
-            if (!requireRankWeight(p, 80, "VAMPIRE (99₽)")) return true;
-            StringBuilder sb = new StringBuilder();
-            for (Player other : p.getWorld().getPlayers()) {
-                if (!other.equals(p) && !store.isVanished(other)) {
-                    double d = other.getLocation().distance(p.getLocation());
-                    if (d <= 150.0) {
-                        if (sb.length() > 0) sb.append("&7, ");
-                        sb.append("&f").append(other.getName()).append(" &e(").append((int) d).append("м)");
-                    }
-                }
-            }
-            p.sendMessage(ColorUtil.c("&#FFD740📡 Игроки рядом (150м): " + (sb.length() == 0 ? "&7Никого нет" : sb.toString())));
-            return true;
-        }
-        if ("fly".equals(cmd)) {
-            if (!requireRankWeight(p, 70, "MEDIA / GOD (149₽)")) return true;
-            if (listener.isInPvp(p)) { p.sendMessage(ColorUtil.c("&cНельзя включать полёт в PvP!")); return true; }
-            boolean next = !p.getAllowFlight();
-            p.setAllowFlight(next);
-            if (!next) p.setFlying(false);
-            p.sendMessage(ColorUtil.c(next ? "&#00E676🕊 Режим полёта включён!" : "&eРежим полёта выключен."));
-            return true;
-        }
-        if ("feed".equals(cmd)) {
-            if (!requireRankWeight(p, 110, "GOD (149₽)")) return true;
-            p.setFoodLevel(20);
-            p.setSaturation(20f);
-            p.sendMessage(ColorUtil.c("&#00E676🍖 Голод полностью утолён!"));
-            return true;
-        }
-        if ("fix".equals(cmd)) {
-            if (!requireRankWeight(p, 110, "GOD (149₽)")) return true;
-            if (args.length > 0 && "all".equalsIgnoreCase(args[0])) {
-                for (ItemStack it : p.getInventory().getContents()) repairItem(it);
-                for (ItemStack it : p.getInventory().getArmorContents()) repairItem(it);
-                p.sendMessage(ColorUtil.c("&#00E676🔨 Все предметы в инвентаре починены!"));
-            } else {
-                repairItem(p.getInventory().getItemInMainHand());
-                p.sendMessage(ColorUtil.c("&#00E676🔨 Предмет в руке починен!"));
-            }
-            return true;
-        }
-        if ("ec".equals(cmd)) {
-            if (!requireRankWeight(p, 150, "KING (199₽)")) return true;
-            p.openInventory(p.getEnderChest());
-            return true;
-        }
-        if ("anvil".equals(cmd)) {
-            if (!requireRankWeight(p, 150, "KING (199₽)")) return true;
-            p.openInventory(Bukkit.createInventory(p, org.bukkit.event.inventory.InventoryType.ANVIL));
-            return true;
-        }
-        if ("heal".equals(cmd)) {
-            if (!requireRankWeight(p, 150, "KING (199₽)")) return true;
-            if (listener.isInPvp(p)) { p.sendMessage(ColorUtil.c("&cНельзя лечиться командой в бою!")); return true; }
-            p.setHealth(p.getMaxHealth());
-            p.setFoodLevel(20);
-            p.sendMessage(ColorUtil.c("&#00E676❤ Здоровье восстановлено!"));
+            p.sendMessage(ColorUtil.c("&#80D8FF💧 Вы потушили себя!"));
             return true;
         }
 
-        // Staff / DKP Moderation
-        if ("mute".equals(cmd)) {
-            if (!requireRankWeight(p, 180, "ХЕЛПЕР / D.MODER (249₽)")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/mute <ник> [минуты] [причина]")); return true; }
-            long mins = 15L;
-            if (args.length >= 2) {
-                try { mins = Long.parseLong(args[1].replaceAll("[^0-9]", "")); } catch (Exception ignored) {}
+        // ================= PRIVILEGE & STAFF COMMANDS =================
+        RankManager.RankDef myRank = ranks.getRank(p);
+        if ("wb".equals(c) && (myRank.weight >= 35 || p.hasPermission("kinggrief.workbench"))) {
+            p.openWorkbench(null, true); return true;
+        }
+        if ("ec".equals(c) && (myRank.weight >= 65 || p.hasPermission("kinggrief.enderchest"))) {
+            p.openInventory(p.getEnderChest()); return true;
+        }
+        if ("feed".equals(c) && (myRank.weight >= 45 || p.hasPermission("kinggrief.feed"))) {
+            p.setFoodLevel(20); p.setSaturation(20f); p.sendMessage(ColorUtil.c("&#00E676🍖 Голод утолён!")); return true;
+        }
+        if ("heal".equals(c) && (myRank.weight >= 65 || p.hasPermission("kinggrief.heal"))) {
+            p.setHealth(p.getMaxHealth()); p.setFoodLevel(20); p.sendMessage(ColorUtil.c("&#00E676💖 Здоровье восстановлено!")); return true;
+        }
+        if ("repair".equals(c) && (myRank.weight >= 80 || p.hasPermission("kinggrief.repair"))) {
+            guis.repairAllItems(p); p.sendMessage(ColorUtil.c("&#00E676🔧 Все предметы починены!")); return true;
+        }
+        if ("fly".equals(c) && (myRank.weight >= 90 || p.hasPermission("kinggrief.fly"))) {
+            p.setAllowFlight(!p.getAllowFlight());
+            p.sendMessage(ColorUtil.c(p.getAllowFlight() ? "&#00E676🕊 Режим полёта включён!" : "&eРежим полёта выключен."));
+            return true;
+        }
+        if ("gm".equals(c) && (myRank.weight >= 178 || p.hasPermission("kinggrief.gm"))) {
+            String m = args.length > 0 ? args[0] : "1";
+            GameMode gm = "0".equals(m) ? GameMode.SURVIVAL : "3".equals(m) ? GameMode.SPECTATOR : GameMode.CREATIVE;
+            if (gm == GameMode.CREATIVE && spawnEngine.isInSpawnWorld(p.getLocation()) && !"owner".equals(myRank.id) && !"techadmin".equals(myRank.id)) {
+                p.sendMessage(ColorUtil.c("&eВнимание: строить/ломать на спавне может только OWNER!"));
             }
-            String reason = args.length >= 3 ? joinArgs(args, 2) : "Нарушение правил чата";
-            store.mute(args[0], mins * 60000L, reason);
-            store.save();
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252🔇 &f" + p.getName() + " &cвыдал мут игроку &e" + args[0]
-                    + " &cна " + mins + " мин. Причина: &f" + reason));
+            p.setGameMode(gm);
+            p.sendMessage(ColorUtil.c("&#00E676⚡ Режим игры: &f" + gm.name()));
             return true;
         }
-        if ("kick".equals(cmd)) {
-            if (!requireRankWeight(p, 190, "СТ.ХЕЛПЕР / D.MODER (249₽)")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/kick <ник> [причина]")); return true; }
-            Player target = Bukkit.getPlayerExact(args[0]);
-            if (target == null) { p.sendMessage(ColorUtil.c("&cИгрок не в сети!")); return true; }
-            String reason = args.length >= 2 ? joinArgs(args, 1) : "Нарушение правил";
-            target.kickPlayer(ColorUtil.c("&#FF1744Вы кикнуты модератором " + p.getName() + "\n&7Причина: &f" + reason));
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF9100⚡ &f" + p.getName() + " &eкикнул &f" + target.getName() + " &7(" + reason + ")"));
-            return true;
-        }
-        if ("invsee".equals(cmd)) {
-            if (!requireRankWeight(p, 195, "D.MODER (249₽) / МОДЕР")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/invsee <ник>")); return true; }
-            Player target = Bukkit.getPlayerExact(args[0]);
-            if (target == null) { p.sendMessage(ColorUtil.c("&cИгрок не в сети!")); return true; }
-            p.openInventory(target.getInventory());
-            return true;
-        }
-        if ("tp".equals(cmd)) {
-            if (!requireRankWeight(p, 195, "D.MODER (249₽) / МОДЕР")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/tp <ник>")); return true; }
-            Player target = Bukkit.getPlayerExact(args[0]);
-            if (target == null) { p.sendMessage(ColorUtil.c("&cИгрок не в сети!")); return true; }
-            p.teleport(target.getLocation());
-            p.sendMessage(ColorUtil.c("&#00E676✔ Телепортация к &f" + target.getName()));
-            return true;
-        }
-        if ("v".equals(cmd) || "vanish".equals(cmd)) {
-            if (!requireRankWeight(p, 200, "МОДЕР / D.ST.MODER (349₽)")) return true;
-            boolean vNow = store.toggleVanish(p);
-            for (Player on : Bukkit.getOnlinePlayers()) {
-                if (vNow) {
-                    if (!on.hasPermission("kinggrief.admin") && ranks.getRank(on).weight < 200) on.hidePlayer(this, p);
-                } else {
-                    on.showPlayer(this, p);
-                }
+        if ("vanish".equals(c) && (myRank.tier >= 4 || p.hasPermission("kinggrief.vanish"))) {
+            boolean v = store.toggleVanish(p);
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (other.equals(p)) continue;
+                if (v) other.hidePlayer(this, p); else other.showPlayer(this, p);
             }
-            p.sendMessage(ColorUtil.c(vNow ? "&#00E676👻 Вы скрыты от обычных игроков!" : "&eРежим невидимости выключен."));
+            p.sendMessage(ColorUtil.c(v ? "&#00E676👻 Ваниш включён!" : "&eВаниш выключен."));
             return true;
         }
-        if ("tempban".equals(cmd) || "ban".equals(cmd)) {
-            if (!requireRankWeight(p, 205, "МОДЕР / D.ST.MODER (349₽)")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/" + cmd + " <ник> [причина]")); return true; }
-            long dur = "tempban".equals(cmd) ? 86400000L : 0L;
-            String reason = args.length >= 2 ? joinArgs(args, 1) : "Нарушение правил сервера";
-            store.ban(args[0], dur, reason);
-            store.save();
-            Player online = Bukkit.getPlayerExact(args[0]);
-            if (online != null) {
-                online.kickPlayer(ColorUtil.c("&#FF1744&l⛔ ВЫ ЗАБАНЕНЫ\n&7Модератор: &f" + p.getName()
-                        + "\n&7Причина: &f" + reason + "\n&#00E676Разбан на сайте: &fhttps://kinggrief.vercel.app"));
-            }
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⛔ &f" + p.getName() + " &cзаблокировал игрока &e" + args[0] + " &7(" + reason + ")"));
+        if (("mute".equals(c) || "unmute".equals(c) || "kick".equals(c) || "ban".equals(c) || "unban".equals(c) || "bc".equals(c))
+                && (myRank.tier >= 4 || p.isOp())) {
+            handleModeration(p, c, args);
             return true;
         }
-        if ("tphere".equals(cmd)) {
-            if (!requireRankWeight(p, 270, "OPKA (999₽) / OWNER")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/tphere <ник>")); return true; }
-            Player target = Bukkit.getPlayerExact(args[0]);
-            if (target == null) { p.sendMessage(ColorUtil.c("&cИгрок не в сети!")); return true; }
-            target.teleport(p.getLocation());
-            p.sendMessage(ColorUtil.c("&#00E676✔ Игрок &f" + target.getName() + " &aтелепортирован к вам!"));
-            return true;
-        }
-        if ("gm".equals(cmd)) {
-            if (!requireRankWeight(p, 270, "OPKA (999₽) / OWNER")) return true;
-            if (args.length < 1) { p.sendMessage(ColorUtil.c("&e/gm <0|1|2|3>")); return true; }
-            String m = args[0].toLowerCase();
-            if ("1".equals(m) || m.startsWith("c")) p.setGameMode(GameMode.CREATIVE);
-            else if ("2".equals(m) || m.startsWith("a")) p.setGameMode(GameMode.ADVENTURE);
-            else if ("3".equals(m) || m.startsWith("sp")) p.setGameMode(GameMode.SPECTATOR);
-            else p.setGameMode(GameMode.SURVIVAL);
-            p.sendMessage(ColorUtil.c("&#00E676🎮 Режим игры изменён на: &e" + p.getGameMode().name()));
-            return true;
-        }
-
+        p.sendMessage(ColorUtil.c("&#FF1744✖ У вашей привилегии нет доступа к этой команде! Повысить ранг: &#FFD740/donate"));
         return true;
     }
 
-    private boolean handleClanCommand(Player p, String[] args) {
-        if (args.length == 0) {
-            p.sendMessage(ColorUtil.c("&8&m                                                    "));
-            p.sendMessage(ColorUtil.c(" &#B388FF&l🏰 КЛАНЫ KINGGRIEF:"));
-            p.sendMessage(ColorUtil.c(" &e/clan create <тег> &7— Создать клан (15 000$)"));
-            p.sendMessage(ColorUtil.c(" &e/clan invite <ник> &7— Пригласить игрока"));
-            p.sendMessage(ColorUtil.c(" &e/clan join <тег> &7— Вступить по приглашению"));
-            p.sendMessage(ColorUtil.c(" &e/clan sethome &7/ &e/clan home &7— База клана"));
-            p.sendMessage(ColorUtil.c(" &e/clan pvp &7— Переключить PvP между своими"));
-            p.sendMessage(ColorUtil.c(" &e/clan top &7— Открыть ТОП кланов | &e/cc <текст> &7— Чат"));
-            p.sendMessage(ColorUtil.c("&8&m                                                    "));
-            return true;
-        }
-        String sub = args[0].toLowerCase();
-        if ("top".equals(sub)) {
-            guis.openClanTopMenu(p);
-            return true;
-        }
-        if ("create".equals(sub)) {
-            if (store.getClanOf(p.getName()) != null) { p.sendMessage(ColorUtil.c("&cВы уже в клане!")); return true; }
-            if (args.length < 2) { p.sendMessage(ColorUtil.c("&e/clan create <тег 2-8 букв>")); return true; }
-            String tag = args[1].replaceAll("[^A-Za-zА-Яа-я0-9_]", "");
-            if (tag.length() < 2 || tag.length() > 8) { p.sendMessage(ColorUtil.c("&cТег клана должен быть от 2 до 8 символов!")); return true; }
-            if (store.getClanById(tag) != null) { p.sendMessage(ColorUtil.c("&cКлан с таким тегом уже существует!")); return true; }
-            if (!store.takeCoins(p.getName(), 15000.0)) {
-                p.sendMessage(ColorUtil.c("&cСоздание клана стоит 15 000$! Заработайте в /buyer и /jobs."));
-                return true;
-            }
-            store.createClan(p.getName(), tag);
-            store.save();
-            hud.updatePlayerHud(p);
-            Bukkit.broadcastMessage(ColorUtil.c("&#B388FF🏰 Игрок &f" + p.getName() + " &dосновал новый клан &8[&#B388FF" + tag + "&8]&d!"));
-            return true;
-        }
-        if ("invite".equals(sub)) {
-            DataStore.Clan cl = store.getClanOf(p.getName());
-            if (cl == null || !cl.leader.equalsIgnoreCase(p.getName())) {
-                p.sendMessage(ColorUtil.c("&cТолько лидер клана может приглашать игроков!"));
-                return true;
-            }
-            if (args.length < 2) { p.sendMessage(ColorUtil.c("&e/clan invite <ник>")); return true; }
-            Player target = Bukkit.getPlayerExact(args[1]);
-            if (target == null) { p.sendMessage(ColorUtil.c("&cИгрок не в сети!")); return true; }
-            store.inviteToClan(cl.id, target.getName());
-            p.sendMessage(ColorUtil.c("&#00E676✔ Приглашение отправлено игроку &f" + target.getName()));
-            target.sendMessage(ColorUtil.c("&#B388FF🏰 Вас пригласили в клан &8[&#B388FF" + cl.tag + "&8]&d! Вступить: &a/clan join " + cl.tag));
-            return true;
-        }
-        if ("join".equals(sub)) {
-            if (store.getClanOf(p.getName()) != null) { p.sendMessage(ColorUtil.c("&cСначала выйдите из текущего клана (/clan leave)!")); return true; }
-            if (args.length < 2) { p.sendMessage(ColorUtil.c("&e/clan join <тег>")); return true; }
-            String cid = args[1].toLowerCase();
-            if (!store.hasClanInvite(p.getName(), cid)) { p.sendMessage(ColorUtil.c("&cУ вас нет приглашения в этот клан!")); return true; }
-            DataStore.Clan cl = store.getClanById(cid);
-            if (cl == null) { p.sendMessage(ColorUtil.c("&cКлан больше не существует.")); return true; }
-            store.joinClan(p.getName(), cl);
-            hud.updatePlayerHud(p);
-            p.sendMessage(ColorUtil.c("&#00E676🏰 Вы вступили в клан [" + cl.tag + "]!"));
-            return true;
-        }
+    private void handleClanCmd(Player p, String[] args) {
+        if (args.length == 0) { guis.openClanMenu(p); return; }
+        String sub = args[0].toLowerCase(Locale.ROOT);
         DataStore.Clan my = store.getClanOf(p.getName());
-        if (my == null) { p.sendMessage(ColorUtil.c("&cВы не состоите в клане!")); return true; }
-
-        if ("leave".equals(sub)) {
-            if (my.leader.equalsIgnoreCase(p.getName())) {
-                store.disbandClan(my);
-                p.sendMessage(ColorUtil.c("&cВаш клан [" + my.tag + "] распущен."));
-            } else {
-                store.leaveClan(p.getName(), my);
-                p.sendMessage(ColorUtil.c("&eВы покинули клан [" + my.tag + "]."));
+        if ("create".equals(sub) && args.length >= 2) {
+            if (my != null) { p.sendMessage(ColorUtil.c("&cВы уже в клане!")); return; }
+            if (!store.takeCoins(p.getName(), 25000)) { p.sendMessage(ColorUtil.c("&cСоздание клана стоит 25 000$!")); return; }
+            DataStore.Clan created = store.createClan(p.getName(), args[1]);
+            if (created == null) { store.addCoins(p.getName(), 25000); p.sendMessage(ColorUtil.c("&cТакой тег уже занят!")); return; }
+            Bukkit.broadcastMessage(ColorUtil.c("&#B388FF🛡 Игрок &f" + p.getName() + " &#B388FFосновал клан [" + created.tag + "]!"));
+        } else if ("invite".equals(sub) && args.length >= 2 && my != null && my.leader.equalsIgnoreCase(p.getName())) {
+            store.inviteToClan(my.id, args[1]);
+            Player t = Bukkit.getPlayer(args[1]);
+            if (t != null) t.sendMessage(ColorUtil.c("&#B388FF🛡 Вас пригласили в клан [" + my.tag + "]! Введите: &f/clan join " + my.id));
+            p.sendMessage(ColorUtil.c("&aПриглашение отправлено!"));
+        } else if ("join".equals(sub) && args.length >= 2 && my == null) {
+            DataStore.Clan c = store.getClanById(args[1]);
+            if (c != null && store.hasClanInvite(p.getName(), c.id)) {
+                store.joinClan(p.getName(), c);
+                p.sendMessage(ColorUtil.c("&#00E676🛡 Вы вступили в клан [" + c.tag + "]!"));
             }
-            hud.updatePlayerHud(p);
-        } else if ("sethome".equals(sub)) {
-            if (!my.leader.equalsIgnoreCase(p.getName())) { p.sendMessage(ColorUtil.c("&cТолько лидер может ставить базу клана!")); return true; }
-            my.home = p.getLocation();
-            store.save();
-            p.sendMessage(ColorUtil.c("&#00E676🏰 База клана сохранена! Телепорт: /clan home"));
-        } else if ("home".equals(sub)) {
-            if (my.home == null) { p.sendMessage(ColorUtil.c("&cЛидер ещё не установил базу клана (/clan sethome)!")); return true; }
+        } else if ("sethome".equals(sub) && my != null && my.leader.equalsIgnoreCase(p.getName())) {
+            if (spawnEngine.isInSpawnWorld(p.getLocation())) { p.sendMessage(ColorUtil.c("&cТолько в мире выживания (/rtp)!")); return; }
+            my.home = p.getLocation(); store.save();
+            p.sendMessage(ColorUtil.c("&#00E676🛡 База клана установлена!"));
+        } else if ("home".equals(sub) && my != null && my.home != null) {
             p.teleport(my.home);
-            p.sendMessage(ColorUtil.c("&#00E676🏰 Телепортация на базу клана [" + my.tag + "]!"));
-        } else if ("pvp".equals(sub)) {
-            if (!my.leader.equalsIgnoreCase(p.getName())) { p.sendMessage(ColorUtil.c("&cТолько лидер клана может менять режим PvP!")); return true; }
-            my.friendlyFire = !my.friendlyFire;
+            p.sendMessage(ColorUtil.c("&#B388FF🛡 Телепорт на базу клана!"));
+        } else if ("leave".equals(sub) && my != null) {
+            if (my.leader.equalsIgnoreCase(p.getName())) store.disbandClan(my);
+            else store.leaveClan(p.getName(), my);
+            p.sendMessage(ColorUtil.c("&eВы покинули клан."));
+        } else {
+            guis.openClanMenu(p);
+        }
+    }
+
+    private void handleRgCmd(Player p, String[] args) {
+        DataStore.Claim cl = store.getClaimAt(p.getLocation());
+        if (cl == null) {
+            p.sendMessage(ColorUtil.c("&eВы стоите вне региона! Поставьте Рудный Приват в выживании (/rtp)."));
+            return;
+        }
+        if (args.length >= 2 && "add".equalsIgnoreCase(args[0]) && cl.owner.equalsIgnoreCase(p.getName())) {
+            cl.members.add(args[1].toLowerCase(Locale.ROOT));
             store.save();
-            p.sendMessage(ColorUtil.c("&#B388FF🏰 Клановый урон теперь: " + (my.friendlyFire ? "&cВКЛЮЧЁН" : "&aВЫКЛЮЧЕН")));
-        } else if ("info".equals(sub)) {
-            p.sendMessage(ColorUtil.c("&#B388FF🏰 Клан [" + my.tag + "] &8| &7Лидер: &f" + my.leader
-                    + " &8| &7Убийств: &c" + my.kills + " &8| &7Состав: &a" + my.members));
+            p.sendMessage(ColorUtil.c("&#00E676🛡 Игрок &f" + args[1] + " &#00E676добавлен в ваш приват!"));
+            return;
+        }
+        if (args.length >= 2 && "remove".equalsIgnoreCase(args[0]) && cl.owner.equalsIgnoreCase(p.getName())) {
+            cl.members.remove(args[1].toLowerCase(Locale.ROOT));
+            store.save();
+            p.sendMessage(ColorUtil.c("&eИгрок удалён из привата."));
+            return;
+        }
+        p.sendMessage(ColorUtil.c("&#00E676🛡 Регион владельца: &f" + cl.owner + " &8| &7Участники: &f" + cl.members));
+    }
+
+    private void handleModeration(Player staff, String c, String[] args) {
+        if ("bc".equals(c) && args.length >= 1) {
+            StringBuilder sb = new StringBuilder();
+            for (String a : args) sb.append(a).append(' ');
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l[ОБЪЯВЛЕНИЕ] &f" + sb.toString().trim()));
+            return;
+        }
+        if (args.length < 1) { staff.sendMessage(ColorUtil.c("&eУкажите ник игрока!")); return; }
+        String target = args[0];
+        if ("unmute".equals(c)) { store.unmute(target); staff.sendMessage(ColorUtil.c("&aМут снят с " + target)); return; }
+        if ("unban".equals(c)) { store.unban(target); staff.sendMessage(ColorUtil.c("&aБан снят с " + target)); return; }
+        String reason = args.length >= 2 ? args[1] : "Нарушение правил";
+        if ("mute".equals(c)) {
+            store.mute(target, 1800_000L, reason);
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252🔇 &f" + staff.getName() + " &7выдал мут &f" + target + " &7на 30м (" + reason + ")"));
+        } else if ("kick".equals(c)) {
+            Player t = Bukkit.getPlayerExact(target);
+            if (t != null) t.kickPlayer(ColorUtil.c("&cВы кикнуты: &f" + reason));
+        } else if ("ban".equals(c)) {
+            store.ban(target, 0L, reason);
+            Player t = Bukkit.getPlayerExact(target);
+            if (t != null) t.kickPlayer(ColorUtil.c("&#FF1744Вы забанены! Причина: &f" + reason));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744🔨 &f" + staff.getName() + " &7заблокировал &f" + target + " &7(" + reason + ")"));
+        }
+    }
+
+    private boolean handleKgAdmin(CommandSender s, String[] args) {
+        if ((s instanceof Player) && !((Player) s).isOp() && !"owner".equals(ranks.getRank((Player) s).id)) {
+            s.sendMessage(ColorUtil.c("&cДоступно только OWNER и Консоли!"));
+            return true;
+        }
+        if (args.length < 1) {
+            s.sendMessage(ColorUtil.c("&e/kgadmin <givecase | giverank | giverelics | givemoney | rebuildspawn | startboss>"));
+            return true;
+        }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        if ("rebuildspawn".equals(sub)) {
+            spawnEngine.initializeSpawnWorldAndBuild(true);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Спавн v4.0 в мире spawn_world перестроен!"));
+            return true;
+        }
+        if ("startboss".equals(sub)) {
+            String bid = args.length >= 2 ? args[1] : "grinch";
+            bossEvents.spawnBossEvent(bid, null);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Босс-Ивент запущен!"));
+            return true;
+        }
+        if ("givecase".equals(sub) && args.length >= 4) {
+            int amt = Integer.parseInt(args[3]);
+            store.addCaseKeys(args[1], args[2], amt);
+            store.save();
+            s.sendMessage(ColorUtil.c("&#00E676✔ Выдано " + amt + " кейсов [" + args[2] + "] игроку " + args[1]));
+            return true;
+        }
+        if ("giverank".equals(sub) && args.length >= 3) {
+            ranks.setRank(args[1], args[2], true);
+            s.sendMessage(ColorUtil.c("&#00E676✔ Выдана привилегия " + args[2] + " игроку " + args[1]));
+            return true;
+        }
+        if ("giverelics".equals(sub) && args.length >= 3) {
+            store.addRelics(args[1], Integer.parseInt(args[2]));
+            store.save();
+            s.sendMessage(ColorUtil.c("&#00E676✔ Начислены Рилики игроку " + args[1]));
+            return true;
+        }
+        if ("givemoney".equals(sub) && args.length >= 3) {
+            store.addCoins(args[1], Double.parseDouble(args[2]));
+            store.save();
+            s.sendMessage(ColorUtil.c("&#00E676✔ Начислены Монеты игроку " + args[1]));
+            return true;
         }
         return true;
-    }
-
-    private void repairItem(ItemStack it) {
-        if (it == null || it.getType() == Material.AIR) return;
-        ItemMeta m = it.getItemMeta();
-        if (m instanceof Damageable) {
-            ((Damageable) m).setDamage(0);
-            it.setItemMeta(m);
-        }
-    }
-
-    private String joinArgs(String[] args, int from) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = from; i < args.length; i++) {
-            if (i > from) sb.append(' ');
-            sb.append(args[i]);
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        String cmd = command.getName().toLowerCase();
-        if ("setrank".equals(cmd) && args.length == 2) {
-            List<String> out = new ArrayList<String>();
-            for (RankManager.RankDef r : ranks.allRanks()) {
-                if (r.id.startsWith(args[1].toLowerCase())) out.add(r.id);
-            }
-            return out;
-        }
-        if ("kit".equals(cmd) && args.length == 1) {
-            return Arrays.asList("start", "newyear", "pegas", "cobra", "bunny", "rabbit", "vampire", "god", "king", "media", "kp", "dmoder", "dadmin", "dkp", "opka", "downer", "curator");
-        }
-        if ("clan".equals(cmd) && args.length == 1) {
-            return Arrays.asList("create", "invite", "join", "leave", "home", "sethome", "pvp", "top", "info");
-        }
-        if ("promo".equals(cmd) && args.length == 1) {
-            return Arrays.asList("NEWYEAR", "KINGGRIEF", "FREE");
-        }
-        if ("rg".equals(cmd) && args.length == 1) {
-            return Arrays.asList("info", "add", "remove");
-        }
-        if ("ah".equals(cmd) && args.length == 1) {
-            return Collections.singletonList("sell");
-        }
-        return null;
     }
 }

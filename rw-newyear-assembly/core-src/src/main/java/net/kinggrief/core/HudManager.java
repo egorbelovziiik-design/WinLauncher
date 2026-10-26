@@ -52,6 +52,7 @@ public final class HudManager {
                 if (Bukkit.getPluginManager().isPluginEnabled("TAB")) return;
                 frame = (frame + 1) % HEADER_FRAMES.length;
                 for (Player p : Bukkit.getOnlinePlayers()) {
+                    plugin.getStore().addPlaySeconds(p.getName(), 1L);
                     updatePlayerHud(p);
                 }
             }
@@ -71,23 +72,22 @@ public final class HudManager {
         int ping = safePing(p);
         String ip = plugin.getConfig().getString("server-ip", "kinggrief.pickme.cloud");
         String titleAnim = HEADER_FRAMES[frame];
+        int activeBosses = plugin.getBossEvents() != null ? plugin.getBossEvents().getActiveEvents().size() : 0;
 
-        // 1. Animated TAB Header & Footer
-        String header = ColorUtil.c("\n" + titleAnim + "\n&#B3E5FCЗимний Новогодний Сезон · Копия ReallyWorld\n");
+        String header = ColorUtil.c("\n" + titleAnim + "\n&#B3E5FCЗимний Новогодний Сезон v4.0 · Копия ReallyWorld\n");
         String footer = ColorUtil.c("\n&#80D8FFОнлайн: &#00E676" + online + "&8/&f" + max
                 + " &8| &#80D8FFПинг: &#FFD740" + ping + " мс"
-                + " &8| &#FF5252Аирдроп: &#FFE082" + ColorUtil.fmtTime(plugin.getSpawnEngine().getAirdropSecondsLeft())
-                + "\n&#FFD740Донат и Кейсы от 19₽: &#FF4081kinggrief.vercel.app"
+                + " &8| &#FF5252Активных Боссов: &#FFE082" + activeBosses + " &7(/events)"
+                + "\n&#FFD740Донат, Кейсы и LP-Редактор: &#FF4081kinggrief.vercel.app"
                 + "\n&#80D8FFIP сервера: &f" + ip + "\n");
         p.setPlayerListHeaderFooter(header, footer);
 
-        // 2. Player List Name with Rank Badge + Clan Tag
         RankManager.RankDef myRank = ranks.getRank(p);
+        String effPrefix = ranks.getEffectivePrefix(p);
         DataStore.Clan myClan = store.getClanOf(p.getName());
         String clanBadge = myClan != null ? " &8[&#B388FF" + myClan.tag + "&8]" : "";
-        p.setPlayerListName(ColorUtil.c(myRank.chatPrefix + p.getName() + clanBadge));
+        p.setPlayerListName(ColorUtil.c(effPrefix + p.getName() + clanBadge));
 
-        // 3. Flicker-free Right-Side Scoreboard + Overhead Nametag Teams
         ScoreboardManager sm = Bukkit.getScoreboardManager();
         if (sm == null) return;
         if (!store.isSbEnabled(p)) {
@@ -117,6 +117,7 @@ public final class HudManager {
         String clanStr = myClan != null ? "&#B388FF[" + myClan.tag + "]" : "&7Нет клана";
         String coinsStr = ColorUtil.fmtMoney(store.getCoins(p.getName())) + "$";
         String relicsStr = ColorUtil.fmtInt(store.getRelics(p));
+        int snow = store.getSnowflakes(p.getName());
         int kills = store.getKills(p.getName());
         int deaths = store.getDeaths(p.getName());
 
@@ -127,7 +128,7 @@ public final class HudManager {
                 " \uE973 &#B388FFКлан: " + clanStr,
                 "",
                 " \uE971 &#FFEA00Монеты: &a" + coinsStr,
-                " \uE972 &#00E5FFРилики: &b" + relicsStr + " ❖",
+                " \uE972 &#00E5FFРилики: &b" + relicsStr + " ❖ &8(&b" + snow + "❄&8)",
                 " \uE974 &#FF5252Убийств: &f" + kills + " &8(&7См: " + deaths + "&8)",
                 " \uE975 &#69F0AEПинг: &e" + ping + " мс &8| &a" + online + " онл.",
                 " ",
@@ -142,7 +143,6 @@ public final class HudManager {
             }
         }
 
-        // Sync overhead nametag teams on this player's scoreboard for all online players
         for (Player other : Bukkit.getOnlinePlayers()) {
             RankManager.RankDef rOther = ranks.getRank(other);
             DataStore.Clan cOther = store.getClanOf(other.getName());
@@ -150,7 +150,7 @@ public final class HudManager {
                     other.getName().substring(0, Math.min(8, other.getName().length())));
             Team nt = sb.getTeam(tName);
             if (nt == null) nt = sb.registerNewTeam(tName);
-            nt.setPrefix(ColorUtil.c(rOther.chatPrefix));
+            nt.setPrefix(ColorUtil.c(ranks.getEffectivePrefix(other)));
             nt.setSuffix(cOther != null ? ColorUtil.c(" &8[&#B388FF" + cOther.tag + "&8]") : "");
             if (!nt.hasEntry(other.getName())) {
                 nt.addEntry(other.getName());

@@ -7,6 +7,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.PermissionAttachment;
 
 import java.io.File;
 import java.io.IOException;
@@ -71,6 +72,20 @@ public final class DataStore {
         public long createdAt;
     }
 
+    public static final class CoinflipRoom {
+        public int id;
+        public String creator;
+        public double bet;
+        public long createdAt;
+    }
+
+    public static final class DuelRequest {
+        public UUID challenger;
+        public UUID target;
+        public double bet;
+        public long expiresAt;
+    }
+
     private final KingGriefCore plugin;
     private final File file;
     private YamlConfiguration yml;
@@ -82,6 +97,12 @@ public final class DataStore {
     private final List<Claim> claims = new ArrayList<Claim>();
     private final List<AuctionLot> auction = new ArrayList<AuctionLot>();
     private int nextLotId = 1;
+
+    private final List<CoinflipRoom> coinflips = new ArrayList<CoinflipRoom>();
+    private int nextCfId = 1;
+    private final Map<UUID, DuelRequest> duelRequests = new HashMap<UUID, DuelRequest>();
+    private final Map<UUID, Location> parkourCheckpoints = new HashMap<UUID, Location>();
+    private final Map<UUID, PermissionAttachment> attachments = new HashMap<UUID, PermissionAttachment>();
 
     private final Map<UUID, Location> backLocs = new HashMap<UUID, Location>();
     private final Map<UUID, UUID> tpaFrom = new HashMap<UUID, UUID>();
@@ -259,6 +280,13 @@ public final class DataStore {
         return parts[1].equals(ColorUtil.sha256(parts[0] + ":" + rawPass));
     }
 
+    public void changePassword(String name, String rawPass) {
+        String salt = UUID.randomUUID().toString().substring(0, 8);
+        String hash = salt + "$" + ColorUtil.sha256(salt + ":" + rawPass);
+        yml.set("players." + key(name) + ".pass", hash);
+        save();
+    }
+
     private String getIp(Player p) {
         try {
             if (p.getAddress() != null && p.getAddress().getAddress() != null) {
@@ -277,6 +305,256 @@ public final class DataStore {
             yml.set(k + ".relics", plugin.getConfig().getInt("starting-relics", 50));
             addCaseKeys(p.getName(), "summer", 1);
         }
+    }
+
+    // ================= LUCKPERMS BUILT-IN ENGINE & ATTACHMENTS =================
+    public Map<String, Map<String, Object>> getLpGroupOverrides() {
+        Map<String, Map<String, Object>> out = new LinkedHashMap<String, Map<String, Object>>();
+        ConfigurationSection gs = yml.getConfigurationSection("lp.groups");
+        if (gs != null) {
+            for (String g : gs.getKeys(false)) {
+                Map<String, Object> m = new HashMap<String, Object>();
+                if (gs.contains(g + ".weight")) m.put("weight", Integer.valueOf(gs.getInt(g + ".weight")));
+                if (gs.contains(g + ".prefix")) m.put("prefix", gs.getString(g + ".prefix"));
+                out.put(g.toLowerCase(Locale.ROOT), m);
+            }
+        }
+        return out;
+    }
+
+    public void saveLpGroupMeta(String group, int weight, String prefix) {
+        String g = group.toLowerCase(Locale.ROOT);
+        yml.set("lp.groups." + g + ".weight", Integer.valueOf(weight));
+        yml.set("lp.groups." + g + ".prefix", prefix);
+        save();
+    }
+
+    public void deleteLpGroup(String group) {
+        yml.set("lp.groups." + group.toLowerCase(Locale.ROOT), null);
+        save();
+    }
+
+    public Map<String, Boolean> getGroupPermissions(String group) {
+        Map<String, Boolean> out = new LinkedHashMap<String, Boolean>();
+        List<String> list = yml.getStringList("lp.groups." + group.toLowerCase(Locale.ROOT) + ".perms");
+        for (String line : list) {
+            if (line.startsWith("-")) out.put(line.substring(1), Boolean.FALSE);
+            else out.put(line, Boolean.TRUE);
+        }
+        return out;
+    }
+
+    public void setGroupPermission(String group, String node, boolean value) {
+        String g = group.toLowerCase(Locale.ROOT);
+        Map<String, Boolean> map = getGroupPermissions(g);
+        map.put(node.toLowerCase(Locale.ROOT), Boolean.valueOf(value));
+        savePermMap("lp.groups." + g + ".perms", map);
+    }
+
+    public void unsetGroupPermission(String group, String node) {
+        String g = group.toLowerCase(Locale.ROOT);
+        Map<String, Boolean> map = getGroupPermissions(g);
+        map.remove(node.toLowerCase(Locale.ROOT));
+        savePermMap("lp.groups." + g + ".perms", map);
+    }
+
+    public Map<String, Boolean> getUserPermissions(String playerName) {
+        Map<String, Boolean> out = new LinkedHashMap<String, Boolean>();
+        List<String> list = yml.getStringList("players." + key(playerName) + ".lpPerms");
+        for (String line : list) {
+            if (line.startsWith("-")) out.put(line.substring(1), Boolean.FALSE);
+            else out.put(line, Boolean.TRUE);
+        }
+        return out;
+    }
+
+    public void setUserPermission(String playerName, String node, boolean value) {
+        Map<String, Boolean> map = getUserPermissions(playerName);
+        map.put(node.toLowerCase(Locale.ROOT), Boolean.valueOf(value));
+        savePermMap("players." + key(playerName) + ".lpPerms", map);
+    }
+
+    public void unsetUserPermission(String playerName, String node) {
+        Map<String, Boolean> map = getUserPermissions(playerName);
+        map.remove(node.toLowerCase(Locale.ROOT));
+        savePermMap("players." + key(playerName) + ".lpPerms", map);
+    }
+
+    private void savePermMap(String path, Map<String, Boolean> map) {
+        List<String> list = new ArrayList<String>();
+        for (Map.Entry<String, Boolean> e : map.entrySet()) {
+            list.add(e.getValue().booleanValue() ? e.getKey() : ("-" + e.getKey()));
+        }
+        yml.set(path, list);
+        save();
+    }
+
+    public String getUserCustomPrefix(String name) {
+        return yml.getString("players." + key(name) + ".lpPrefix", "");
+    }
+
+    public void setUserCustomPrefix(String name, String prefix) {
+        yml.set("players." + key(name) + ".lpPrefix", prefix == null ? null : prefix);
+        save();
+    }
+
+    public void refreshPermissions(Player p, RankManager ranks) {
+        if (p == null || !p.isOnline()) return;
+        PermissionAttachment old = attachments.remove(p.getUniqueId());
+        if (old != null) {
+            try { p.removeAttachment(old); } catch (Throwable ignored) {}
+        }
+        PermissionAttachment att = p.addAttachment(plugin);
+        attachments.put(p.getUniqueId(), att);
+
+        RankManager.RankDef rank = ranks.getRank(p);
+        // Built-in tier permissions
+        if (rank.weight >= 35) att.setPermission("kinggrief.workbench", true);
+        if (rank.weight >= 50) att.setPermission("kinggrief.feed", true);
+        if (rank.weight >= 65) {
+            att.setPermission("kinggrief.heal", true);
+            att.setPermission("kinggrief.enderchest", true);
+        }
+        if (rank.weight >= 90) {
+            att.setPermission("kinggrief.fly", true);
+            att.setPermission("kinggrief.repair", true);
+        }
+        if (rank.tier >= 4) {
+            att.setPermission("kinggrief.staff", true);
+        }
+        if ("owner".equals(rank.id) || "techadmin".equals(rank.id)) {
+            att.setPermission("kinggrief.admin", true);
+            att.setPermission("kinggrief.lp", true);
+            att.setPermission("kinggrief.spawn.edit", true);
+        }
+        // Apply group custom permissions
+        for (Map.Entry<String, Boolean> gp : getGroupPermissions("default").entrySet()) {
+            att.setPermission(gp.getKey(), gp.getValue().booleanValue());
+        }
+        for (Map.Entry<String, Boolean> gp : getGroupPermissions(rank.id).entrySet()) {
+            att.setPermission(gp.getKey(), gp.getValue().booleanValue());
+        }
+        // Apply user custom permissions
+        for (Map.Entry<String, Boolean> up : getUserPermissions(p.getName()).entrySet()) {
+            att.setPermission(up.getKey(), up.getValue().booleanValue());
+        }
+        try { p.recalculatePermissions(); } catch (Throwable ignored) {}
+    }
+
+    public void removeAttachment(Player p) {
+        PermissionAttachment old = attachments.remove(p.getUniqueId());
+        if (old != null) {
+            try { p.removeAttachment(old); } catch (Throwable ignored) {}
+        }
+    }
+
+    // ================= TITLES & PLAYTIME & SNOWFLAKES =================
+    public String getActiveTitleDisplay(String name) {
+        return yml.getString("players." + key(name) + ".activeTitle", "");
+    }
+
+    public void setActiveTitleDisplay(String name, String display) {
+        yml.set("players." + key(name) + ".activeTitle", display == null ? "" : display);
+        save();
+    }
+
+    public boolean hasUnlockedTitle(String name, String titleId) {
+        return yml.getBoolean("players." + key(name) + ".titles." + titleId.toLowerCase(Locale.ROOT), false);
+    }
+
+    public void unlockTitle(String name, String titleId) {
+        yml.set("players." + key(name) + ".titles." + titleId.toLowerCase(Locale.ROOT), Boolean.TRUE);
+        save();
+    }
+
+    public long getPlaySeconds(String name) {
+        return yml.getLong("players." + key(name) + ".playSec", 0L);
+    }
+
+    public void addPlaySeconds(String name, long delta) {
+        yml.set("players." + key(name) + ".playSec", getPlaySeconds(name) + delta);
+    }
+
+    public boolean hasClaimedPlayReward(String name, String rewardId) {
+        return yml.getBoolean("players." + key(name) + ".playRewards." + rewardId, false);
+    }
+
+    public void setClaimedPlayReward(String name, String rewardId) {
+        yml.set("players." + key(name) + ".playRewards." + rewardId, Boolean.TRUE);
+        save();
+    }
+
+    public int getSnowflakes(String name) {
+        return yml.getInt("players." + key(name) + ".snowflakes", 0);
+    }
+
+    public void addSnowflakes(String name, int delta) {
+        yml.set("players." + key(name) + ".snowflakes", Math.max(0, getSnowflakes(name) + delta));
+    }
+
+    public boolean takeSnowflakes(String name, int amt) {
+        int cur = getSnowflakes(name);
+        if (cur < amt) return false;
+        yml.set("players." + key(name) + ".snowflakes", cur - amt);
+        return true;
+    }
+
+    // ================= PARKOUR & CASINO COINFLIP & DUELS =================
+    public void setParkourCp(Player p, Location loc) {
+        if (p != null) {
+            if (loc == null) parkourCheckpoints.remove(p.getUniqueId());
+            else parkourCheckpoints.put(p.getUniqueId(), loc.clone());
+        }
+    }
+
+    public Location getParkourCp(Player p) {
+        return p == null ? null : parkourCheckpoints.get(p.getUniqueId());
+    }
+
+    public long getParkourRewardReadyAt(String name) {
+        return yml.getLong("players." + key(name) + ".pkReady", 0L);
+    }
+
+    public void setParkourRewardReadyAt(String name, long ts) {
+        yml.set("players." + key(name) + ".pkReady", ts);
+    }
+
+    public synchronized List<CoinflipRoom> getCoinflips() {
+        return new ArrayList<CoinflipRoom>(coinflips);
+    }
+
+    public synchronized CoinflipRoom createCoinflip(String creator, double bet) {
+        CoinflipRoom r = new CoinflipRoom();
+        r.id = nextCfId++;
+        r.creator = creator;
+        r.bet = bet;
+        r.createdAt = System.currentTimeMillis();
+        coinflips.add(0, r);
+        return r;
+    }
+
+    public synchronized CoinflipRoom takeCoinflip(int id) {
+        for (int i = 0; i < coinflips.size(); i++) {
+            if (coinflips.get(i).id == id) {
+                return coinflips.remove(i);
+            }
+        }
+        return null;
+    }
+
+    public void putDuelRequest(Player challenger, Player target, double bet) {
+        DuelRequest dr = new DuelRequest();
+        dr.challenger = challenger.getUniqueId();
+        dr.target = target.getUniqueId();
+        dr.bet = bet;
+        dr.expiresAt = System.currentTimeMillis() + 60_000L;
+        duelRequests.put(target.getUniqueId(), dr);
+    }
+
+    public DuelRequest popDuelRequest(Player target) {
+        DuelRequest dr = duelRequests.remove(target.getUniqueId());
+        if (dr == null || System.currentTimeMillis() > dr.expiresAt) return null;
+        return dr;
     }
 
     // ================= RANK, ECONOMY & RELICS =================
@@ -353,10 +631,6 @@ public final class DataStore {
         yml.set("players." + key(name) + ".relics", next);
         Player on = Bukkit.getPlayerExact(name);
         if (on != null) writePlayerPoints(on.getUniqueId(), next);
-    }
-
-    public void changePassword(String name, String rawPass) {
-        yml.set("auth." + key(name) + ".hash", ColorUtil.sha256(rawPass));
     }
 
     public boolean takeRelics(Player p, int amount) {
