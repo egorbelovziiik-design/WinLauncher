@@ -108,16 +108,22 @@ export default async function AdminSettingsPage() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm">
-            <Download size={13} /> Скачать ядро KingGriefCore.jar (v3.0)
+            <Download size={13} /> Скачать ядро KingGriefCore.jar (v5.7)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
             <Download size={13} /> Скачать KingGriefBridge.jar
           </a>
+          <a href="/King_antisoft.jar" download className="btn btn-ghost btn-sm">
+            <Download size={13} /> Античит King_antisoft.jar
+          </a>
           <a href="/kinggrief-mega-rp.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Новогодний РП (kinggrief-mega-rp.zip)
+            <Download size={13} /> Мега-РП v5.7 (kinggrief-mega-rp.zip)
           </a>
           <a href="/rw-newyear-full-assembly.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Вся сборка v3.0 (.zip)
+            <Download size={13} /> Вся сборка v5.7 (.zip)
+          </a>
+          <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm">
+            <Download size={13} /> Сайт + Админ-панель v5.7 (.zip)
           </a>
           <Link href="/admin/cases" className="btn btn-ghost btn-sm">Выдать кейсы игроку</Link>
         </div>
