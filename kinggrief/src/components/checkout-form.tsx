@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowRight, CreditCard, Lock, ShieldCheck, Tag, User, Wallet } from 'lucide-react';
-import { methodMeta } from '@/lib/payments';
 import type { CardMethod } from '@/lib/payments';
 import { formatPrice } from '@/lib/utils';
 import { useCart, useToast } from './providers';
@@ -18,12 +17,12 @@ export function CheckoutForm({
   provider,
   testMode,
   user = null,
-  methods = [],
+  methodOptions = [],
 }: {
   provider: string;
   testMode: boolean;
   user?: { username: string; email: string } | null;
-  methods?: CardMethod[];
+  methodOptions?: { id: CardMethod; label: string; hint: string }[];
 }) {
   const router = useRouter();
   const { items, subtotal, discount, total, promo, applyPromo, clearPromo, clear, nickname, setNickname, rememberOrder, ready, count } = useCart();
@@ -33,7 +32,7 @@ export function CheckoutForm({
   const [email, setEmail] = useState(user?.email ?? '');
   const [code, setCode] = useState(promo?.code ?? '');
   const [agree, setAgree] = useState(false);
-  const [method, setMethod] = useState<'kassa' | CardMethod>(methods[0] ?? 'kassa');
+  const [method, setMethod] = useState<'kassa' | CardMethod>(methodOptions[0]?.id ?? 'kassa');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -173,24 +172,23 @@ export function CheckoutForm({
               <h2 className="font-mono text-[0.7rem] uppercase tracking-widest text-white/60">Способ оплаты</h2>
             </div>
             <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup" aria-label="Способ оплаты">
-              {methods.map((m) => {
-                const meta = methodMeta(m);
+              {methodOptions.map((m) => {
                 return (
                   <button
-                    key={m}
+                    key={m.id}
                     type="button"
                     role="radio"
-                    aria-checked={method === m}
-                    onClick={() => setMethod(m)}
+                    aria-checked={method === m.id}
+                    onClick={() => setMethod(m.id)}
                     className={
                       'rounded-xl border p-3 text-left transition ' +
-                      (method === m
+                      (method === m.id
                         ? 'border-neon/70 bg-neon/10 shadow-[0_0_24px_-8px_var(--neon)]'
                         : 'border-white/10 bg-white/[0.03] hover:border-white/25')
                     }
                   >
-                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">{meta.label}</span>
-                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">{meta.hint}</span>
+                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">{m.label}</span>
+                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">{m.hint}</span>
                   </button>
                 );
               })}
@@ -212,7 +210,7 @@ export function CheckoutForm({
                 </span>
               </button>
             </div>
-            {methods.length > 0 && method !== 'kassa' && (
+            {methodOptions.length > 0 && method !== 'kassa' && (
               <p className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3 text-[0.7rem] leading-relaxed text-white/50">
                 Счёт на оплату создаётся сразу после подтверждения заказа: сумма в выбранной валюте, код заказа и
                 инструкция будут на странице заказа, там же кнопка «Я оплатил(а)». Мы не запрашиваем данные вашего

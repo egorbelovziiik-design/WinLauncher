@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSettings } from '@/lib/repo';
-import { activeProvider, enabledCardMethods, isTestMode } from '@/lib/payments';
+import { activeProvider, enabledCardMethods, isTestMode, methodMeta } from '@/lib/payments';
 import { CheckoutForm } from '@/components/checkout-form';
 import { currentUser } from '@/lib/auth';
 
@@ -37,7 +37,7 @@ export default async function CheckoutPage() {
         provider={provider}
         testMode={testMode}
         user={user ? { username: user.username, email: user.email } : null}
-        methods={enabledCardMethods()}
+        methodOptions={enabledCardMethods().map((id) => ({ id, label: methodMeta(id).label, hint: methodMeta(id).hint }))}
       />
     </section>
   );
