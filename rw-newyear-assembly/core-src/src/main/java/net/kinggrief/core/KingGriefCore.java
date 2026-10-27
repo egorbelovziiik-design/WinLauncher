@@ -47,6 +47,9 @@ public final class KingGriefCore extends JavaPlugin {
     private HudManager hud;
     private ModerationManager moderation;
     private GameplayListener gameplayListener;
+    private AntiLagDdosManager antiLagDdos;
+    private OwnerGiveawayManager ownerGiveaway;
+    private CuratorManager curatorManager;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -96,11 +99,35 @@ public final class KingGriefCore extends JavaPlugin {
         this.gameplayListener = new GameplayListener(this);
         Bukkit.getPluginManager().registerEvents(this.gameplayListener, this);
 
+        this.antiLagDdos = new AntiLagDdosManager(this);
+        Bukkit.getPluginManager().registerEvents(this.antiLagDdos, this);
+        PluginCommand ddosCmd = getCommand("antiddos");
+        if (ddosCmd != null) ddosCmd.setExecutor(this.antiLagDdos);
+
+        this.ownerGiveaway = new OwnerGiveawayManager(this);
+        Bukkit.getPluginManager().registerEvents(this.ownerGiveaway, this);
+        for (String ogCmd : new String[]{"razdacha", "txt", "tex", "thanksowner"}) {
+            PluginCommand pc = getCommand(ogCmd);
+            if (pc != null) {
+                pc.setExecutor(this.ownerGiveaway);
+                pc.setTabCompleter(this.ownerGiveaway);
+            }
+        }
+
+        this.curatorManager = new CuratorManager(this);
+        Bukkit.getPluginManager().registerEvents(this.curatorManager, this);
+        PluginCommand curCmd = getCommand("curator");
+        if (curCmd != null) {
+            curCmd.setExecutor(this.curatorManager);
+            curCmd.setTabCompleter(this.curatorManager);
+        }
+
         this.spawnEngine.initializeSpawnWorldAndBuild(false);
         this.bossEvents.start();
         this.hud.start();
         this.moderation.start();
         startWebsitePromoSyncLoop();
+        startAutoBroadcastLoops();
 
         new BukkitRunnable() {
             @Override
@@ -112,18 +139,25 @@ public final class KingGriefCore extends JavaPlugin {
         for (Player on : Bukkit.getOnlinePlayers()) {
             this.store.refreshPermissions(on, this.ranks);
             this.bossEvents.syncBarsForJoin(on);
+            this.ownerGiveaway.syncBarsForJoin(on);
             this.hud.updatePlayerHud(on);
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v5.7.0 — ZERO-FREEZE NEW YEAR FT x RW       ");
-        getLogger().info(" 41 Luxury Badges (incl. ML.MODER) | Unblocked /warp pvp    ");
-        getLogger().info(" /tphere (ML.MODER+) | /gm 0 <nick> | /fps Optimizer        ");
+        getLogger().info(" KINGGRIEF CORE v5.8.0 — GRAND WINTER CITADEL & 12 PICKS    ");
+        getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
+        getLogger().info(" Anti-DDoS Lightning | 6 Custom TNTs | /razdacha | /txt     ");
         getLogger().info("============================================================");
     }
 
     @Override
     public void onDisable() {
+        if (this.ownerGiveaway != null) {
+            this.ownerGiveaway.kickAllForShutdownTechWorks();
+            this.ownerGiveaway.shutdown();
+        }
+        if (this.curatorManager != null) this.curatorManager.shutdown();
+        if (this.antiLagDdos != null) this.antiLagDdos.shutdown();
         if (this.gameplayListener != null) this.gameplayListener.cleanupAllTempBlocks();
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
@@ -140,12 +174,134 @@ public final class KingGriefCore extends JavaPlugin {
     public GuiManager getGuis() { return guis; }
     public HudManager getHud() { return hud; }
     public ModerationManager getModeration() { return moderation; }
+    public AntiLagDdosManager getAntiLagDdos() { return antiLagDdos; }
+    public OwnerGiveawayManager getOwnerGiveaway() { return ownerGiveaway; }
+    public CuratorManager getCurator() { return curatorManager; }
 
     private boolean hasEconomyAdmin(CommandSender s) {
         if (!(s instanceof Player)) return true;
         Player p = (Player) s;
         String rid = ranks.getRank(p).id;
         return p.isOp() || "owner".equals(rid) || "techadmin".equals(rid) || "curator".equals(rid);
+    }
+
+    public static final String SITE_URL = "https://kinggrief.vercel.app";
+    public static final String DISCORD_URL = "https://discord.gg/7Cugj4X3eU";
+    private int siteAdRotationIdx = 0;
+    private int mediaAdRotationIdx = 0;
+
+    // ================= АВТО-ОБЪЯВЛЕНИЯ: САЙТ (15 МИН), НАБОР В КП (20 МИН), МЕДИА (34 МИН) =================
+    private void startAutoBroadcastLoops() {
+        // 1. Каждые 15 минут (18 000 тиков) — Реклама сайта с РАЗНЫМИ донатами и кейсами!
+        final String[][] siteAds = new String[][]{
+                {
+                        "&#FFD740&l🛒 МАГАЗИН СЕРВЕРА KINGGRIEF &8• &#80D8FF" + SITE_URL,
+                        "&fТоп привилегии: &#F5D0FEDRAGON &7(15₽) &8• &#FDE047GOD &7(149₽) &8• &#FB7185IMPERATOR &7(179₽) &8• &#FFD740KING &7(199₽) &8• &#38BDF8SPONSOR &7(215₽)!",
+                        "&7Мгновенная авто-выдача за 3 секунды прямо в игру без перезахода!"
+                },
+                {
+                        "&#FF1744&l🎁 ГОРЯЧИЕ КЕЙСЫ НА САЙТЕ &8• &#80D8FF" + SITE_URL,
+                        "&fИспытай удачу: &#FF1744Донат-Кейс &7(29₽) &8• &#E040FBСупер-Донат &7(99₽) &8• &#A855F7Кейс ReallyDev &7(129₽)!",
+                        "&7Шанс выбить привилегии вплоть до &#FF9100OPKA &7и &#FF1744D.OWNER &7с первой прокрутки!"
+                },
+                {
+                        "&#FF9100&l👑 ЭЛИТНЫЕ ДКП ПРИВИЛЕГИИ &8• &#80D8FF" + SITE_URL,
+                        "&fСтань властелином сервера: &#60A5FAД.МОДЕР &7(249₽) &8• &#F87171Д.АДМИН &7(799₽) &8• &#FF9100ОПКА &7(999₽) &8• &#FF1744Д.ОВНЕР &7(1499₽)!",
+                        "&7Доступ к запуску Босс-Ивентов (/events), мощнейшим китам и донат-командам!"
+                },
+                {
+                        "&#00E5FF&l❖ КЕЙСЫ РИЛИКОВ И 3D АРТЕФАКТОВ &8• &#80D8FF" + SITE_URL,
+                        "&fЗабирай: &#00E5FFКейс Риликов &7(39₽ — до 2 500 ❖!) &8• &#FFD740Легендарный Кейс &7(59₽) &8• &#FF91003D Донат-Вещи &7(49₽)!",
+                        "&7Трать Рилики в &#FFD740/picks &7и &#00E5FF/rshop &7на Кирку Крушителя 3×3, Бур 5×5 и Талисманы!"
+                },
+                {
+                        "&#69F0AE&l💰 ВЫГОДНЫЕ КЕЙСЫ ДЛЯ СТАРТА &8• &#80D8FF" + SITE_URL,
+                        "&fПрокачайся за минуту: &#69F0AEДенежный Кейс &7(19₽) &8• &#FFAB40Кейс Джамшута &7(25₽) &8• &#26C6DAКейс Китов &7(35₽)!",
+                        "&7Внутри: миллионы монет, кирки Бур 3×3, Божье Прикосновение и полные шалкеры ресов!"
+                },
+                {
+                        "&#FF5252&l🎲 КЕЙС «ВСЁ ИЛИ НИЧЕГО» И НОВОГОДНИЙ КЕЙС &8• &#80D8FF" + SITE_URL,
+                        "&fРискни 50/50 в &#FF5252Кейсе Всё или Ничего &7(45₽) или открой &#80D8FFНовогодний Кейс &7(39₽)!",
+                        "&7Все 11 кейсов ждут тебя на &#FFD740/warp cases &7и на сайте &#80D8FF" + SITE_URL
+                }
+        };
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (Bukkit.getOnlinePlayers().isEmpty()) return;
+                String[] ad = siteAds[siteAdRotationIdx % siteAds.length];
+                siteAdRotationIdx++;
+
+                TextComponent btn = new TextComponent(ColorUtil.c(" &#00E676&l[ 🌐 ОТКРЫТЬ МАГАЗИН: kinggrief.vercel.app ]"));
+                btn.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, SITE_URL));
+                btn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        new ComponentBuilder(ColorUtil.c("&#FFD740Нажмите, чтобы перейти на сайт " + SITE_URL)).create()));
+
+                for (Player on : Bukkit.getOnlinePlayers()) {
+                    on.sendMessage(ColorUtil.c("&#FFD740&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                    on.sendMessage(ColorUtil.c(" " + ad[0]));
+                    on.sendMessage(ColorUtil.c(" " + ad[1]));
+                    on.sendMessage(ColorUtil.c(" " + ad[2]));
+                    on.spigot().sendMessage(btn);
+                    on.sendMessage(ColorUtil.c("&#FFD740&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                    ColorUtil.sound(on, "entity.experience_orb.pickup", 0.55f, 1.35f);
+                }
+            }
+        }.runTaskTimer(this, 18000L, 18000L); // Строго каждые 15 минут!
+
+        // 2. Каждые 20 минут (24 000 тиков) — Набор в КП с Discord https://discord.gg/7Cugj4X3eU!
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (Bukkit.getOnlinePlayers().isEmpty()) return;
+
+                TextComponent kpLink = new TextComponent(ColorUtil.c(" &#5865F2&l[ 🛡 ВСТУПИТЬ В КП — " + DISCORD_URL + " ]"));
+                kpLink.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, DISCORD_URL));
+                kpLink.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        new ComponentBuilder(ColorUtil.c("&#86EFACНажмите, чтобы перейти в Discord и подать заявку в КП!")).create()));
+
+                for (Player on : Bukkit.getOnlinePlayers()) {
+                    on.sendMessage(ColorUtil.c("&#4ADE80&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                    on.sendMessage(ColorUtil.c(" &#4ADE80&l🛡 НАБОР В СОСТАВ КП KINGGRIEF!"));
+                    on.sendMessage(ColorUtil.c(" &fХочешь вступить в состав и бороться с читерами?"));
+                    on.sendMessage(ColorUtil.c(" &fТогда тебе к нам в КП — присоединяйся: &#80D8FF&n" + DISCORD_URL));
+                    on.spigot().sendMessage(kpLink);
+                    on.sendMessage(ColorUtil.c("&#4ADE80&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                    ColorUtil.sound(on, "block.note_block.bell", 0.65f, 1.25f);
+                }
+            }
+        }.runTaskTimer(this, 24000L, 24000L); // Строго каждые 20 минут!
+
+        // 3. Каждые 34 минуты (40 800 тиков) — Набор на МЕДИА с Discord https://discord.gg/7Cugj4X3eU!
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (Bukkit.getOnlinePlayers().isEmpty()) return;
+                boolean alt = (mediaAdRotationIdx++ % 2 == 1);
+
+                TextComponent mediaLink = new TextComponent(ColorUtil.c(" &#EC4899&l[ 🎬 ПОДАТЬ ЗАЯВКУ НА МЕДИА — " + DISCORD_URL + " ]"));
+                mediaLink.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, DISCORD_URL));
+                mediaLink.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        new ComponentBuilder(ColorUtil.c("&#EC4899Нажмите, чтобы подать заявку на TIKTOK / YT / TWITCH / MEDIA+!")).create()));
+
+                for (Player on : Bukkit.getOnlinePlayers()) {
+                    on.sendMessage(ColorUtil.c("&#EC4899&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                    on.sendMessage(ColorUtil.c(" &#EC4899&l🎬 СОТРУДНИЧЕСТВО И НАБОР НА МЕДИА KINGGRIEF!"));
+                    if (!alt) {
+                        on.sendMessage(ColorUtil.c(" &fСнимаешь ролики в &#FF2E93TikTok &f/ &#FF1744YouTube &fили стримишь на &#A855F7Twitch&f?"));
+                        on.sendMessage(ColorUtil.c(" &fПолучи статус &#EC4899MEDIA / MEDIA+&f, бесплатные кейсы и зарплату в Риликах!"));
+                    } else {
+                        on.sendMessage(ColorUtil.c(" &fХочешь прокачать свой канал и получить префикс &#FF1744YT &f/ &#FF2E93TIKTOK &f/ &#EC4899MEDIA+&f?"));
+                        on.sendMessage(ColorUtil.c(" &fВыдаём промокоды для подписчиков, Рилики и наборы для съёмок!"));
+                    }
+                    on.sendMessage(ColorUtil.c(" &fОставляй заявку в нашем Discord: &#80D8FF&n" + DISCORD_URL));
+                    on.spigot().sendMessage(mediaLink);
+                    on.sendMessage(ColorUtil.c("&#EC4899&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                    ColorUtil.sound(on, "block.amethyst_block.chime", 0.85f, 1.2f);
+                }
+            }
+        }.runTaskTimer(this, 40800L, 40800L); // Строго каждые 34 минуты!
     }
 
     // ================= CLOUD PROMO SYNC WITH https://kinggrief.vercel.app =================
@@ -505,7 +661,11 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("parkour".equals(c)) {
-            if (args.length > 0 && "cp".equalsIgnoreCase(args[0])) {
+            if (args.length > 0 && ("leave".equalsIgnoreCase(args[0]) || "reset".equalsIgnoreCase(args[0]))) {
+                store.setParkourCp(p, null);
+                p.teleport(spawnEngine.getWarpLocation("parkour"));
+                p.sendMessage(ColorUtil.c("&#FF9100🏃 Чекпоинт паркура сброшен. Вы на старте!"));
+            } else if (args.length > 0 && "cp".equalsIgnoreCase(args[0])) {
                 Location cp = store.getParkourCp(p);
                 p.teleport(cp != null ? cp : spawnEngine.getWarpLocation("parkour"));
                 p.sendMessage(ColorUtil.c("&#40C4FF🏃 Телепорт на чекпоинт паркура!"));
@@ -517,6 +677,19 @@ public final class KingGriefCore extends JavaPlugin {
 
         // ================= MENUS, SHOPS, BAFOVAR, SKINS & BOUNTY =================
         if ("menu".equals(c)) { guis.openMainMenu(p); return true; }
+        if ("picks".equals(c)) { guis.openPickaxesMenu(p); return true; }
+        if ("discord".equals(c)) {
+            p.sendMessage(ColorUtil.c("&#5865F2&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+            p.sendMessage(ColorUtil.c(" &#80D8FF&l🌐 ОФИЦИАЛЬНЫЕ ССЫЛКИ KINGGRIEF:"));
+            TextComponent ds = new TextComponent(ColorUtil.c(" &#5865F2&l💬 Наш Discord (Набор в КП и Медиа): &f&n" + DISCORD_URL));
+            ds.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, DISCORD_URL));
+            p.spigot().sendMessage(ds);
+            TextComponent st = new TextComponent(ColorUtil.c(" &#FFD740&l🛒 Сайт и Авто-Донат: &f&n" + SITE_URL));
+            st.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, SITE_URL));
+            p.spigot().sendMessage(st);
+            p.sendMessage(ColorUtil.c("&#5865F2&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+            return true;
+        }
         if ("donate".equals(c)) { guis.openDonateMenu(p); return true; }
         if ("shop".equals(c)) {
             if (args.length >= 1) guis.openCoinShopCat(p, args[0]);

@@ -644,11 +644,206 @@ public final class ItemFactory {
 
     public static ItemStack pickSpawner() {
         return make(Material.GOLDEN_PICKAXE, 1, "&#FACC15&l✨ 3D Божье Прикосновение [Спавнера]",
-                Arrays.asList("&8Blender 3D Уникальная кирка",
+                Arrays.asList("&8Blender 3D Уникальная кирка (#2/12)",
                         "&7Позволяет &eсломать и забрать Рассадник Мобов",
                         "&7в инвентарь с сохранением типа моба!",
                         "&cОдноразовый предмет (1 прочность на спавнер)."),
                 true, "pick_spawner", "pick_spawner", 1302);
+    }
+
+    // ================= 10 НОВЫХ 3D КИРОК И МОЛОТОВ (ИТОГО 12 КИРОК v5.8!) =================
+    private static ItemStack enchantedPick(Material base, String name, List<String> lore, boolean unbreakable,
+                                           String customId, int cmd, int eff, int fort, int unb) {
+        ItemStack pick = make(base, 1, name, lore, unbreakable, customId, customId, cmd);
+        ItemMeta m = pick.getItemMeta();
+        if (m != null) {
+            if (eff > 0) addEnch(m, "efficiency", "DIG_SPEED", eff);
+            if (fort > 0) addEnch(m, "fortune", "LOOT_BONUS_BLOCKS", fort);
+            if (unb > 0) addEnch(m, "unbreaking", "DURABILITY", unb);
+            addEnch(m, "mending", "MENDING", 1);
+            pick.setItemMeta(m);
+        }
+        return pick;
+    }
+
+    /** #3/12 — КИРКА КРУШИТЕЛЯ 3×3 (Особый заказ v5.8!) */
+    public static ItemStack pickKrush() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#FF5722&l💥 3D Кирка Крушителя [Бур 3×3 + Магнит]",
+                Arrays.asList("&8Легендарная Кирка FunTime × ReallyWorld (#3/12)",
+                        "",
+                        "&7• &#FF9100Бульдозер Крушителя 3×3 &7(по направлению взгляда!)",
+                        "&7• &#FF5252Авто-Плавка + Магнит &7— слитки сразу в инвентарь!",
+                        "&7• &#FFD740Пассивно: Спешка II &7пока в руке! &8(Shift = 1×1)",
+                        "&7• Эффективность VIII · Удача V · Нерушимая"),
+                true, "pick_krush", 1801, 8, 5, 10);
+    }
+
+    /** #4/12 — БОЖЕСТВЕННЫЙ МОЛОТ OWNER'А 10×10 (Эксклюзив Владельца v5.8!) */
+    public static ItemStack hammerOwner() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#FF1744&l👑 3D Божественный Молот OWNER'а [Мега-Бур 10×10!]",
+                Arrays.asList("&8Божественный Инструмент Владельца (#4/12)",
+                        "",
+                        "&7• &#FF1744МЕГА-РАЗЛОМ 10×10 &7(сносит 100 блоков за 1 взмах!)",
+                        "&7• &#00E676Авто-Плавка ×2 + Телекинез &7— руда сразу в инвентарь!",
+                        "&7• &#FFD740Пассивно: Спешка IV + Ночное Зрение &8(Shift = 1×1)",
+                        "&7• Эффективность X · Удача VII · Вечная прочность"),
+                true, "hammer_owner", 1802, 10, 7, 10);
+    }
+
+    /** #5/12 — ИЗУМРУДНАЯ ЖИЛЬНАЯ КИРКА (VeinMiner до 32 руд сразу!) */
+    public static ItemStack pickVein() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#00E676&l💎 3D Изумрудная Жильная Кирка [Вся Жила]",
+                Arrays.asList("&8Кристальная Кирка Рудокопа (#5/12)",
+                        "",
+                        "&7• &#00E676Жилоискатель (VeinMiner) &7— ломает всю жилу руды",
+                        "&7  целиком (до 32 блоков за 1 удар) с Авто-Плавкой!",
+                        "&7• Эффективность VI · Удача V · Прочность VI"),
+                false, "pick_vein", 1803, 6, 5, 6);
+    }
+
+    /** #6/12 — ЛЕДЯНАЯ КИРКА СТУЖИ 2026 (Бур 3×3 + Заморозка Лавы/Воды) */
+    public static ItemStack pickFrost() {
+        return enchantedPick(Material.DIAMOND_PICKAXE,
+                "&#38BDF8&l❄ 3D Ледяная Кирка Стужи [3×3 + Анти-Лава]",
+                Arrays.asList("&8Зимний Инструмент 2026 (#6/12)",
+                        "",
+                        "&7• &#38BDF8Ледяной Бур 3×3 &7+ мгновенно превращает",
+                        "&7  соседнюю лаву в Обсидиан, а воду — в Плотный Лёд!",
+                        "&7• Эффективность VI · Удача IV · Прочность V"),
+                false, "pick_frost", 1804, 6, 4, 5);
+    }
+
+    /** #7/12 — ВУЛКАНИЧЕСКАЯ КИРКА ГЕФЕСТА (Авто-Плавка ×2 Слитков + Огнестойкость) */
+    public static ItemStack pickMolten() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#FF6D00&l🌋 3D Вулканическая Кирка Гефеста [Плавка ×2]",
+                Arrays.asList("&8Огненная Кирка Кузнеца Богов (#7/12)",
+                        "",
+                        "&7• &#FF6D00Двойная Плавка &7— даёт 2–3 слитка с каждой руды",
+                        "&7  и &#FFD7402× Незеритового Лома &7с Древних Обломков!",
+                        "&7• Пассивно даёт &#FF9100Огнестойкость &7в руке!"),
+                false, "pick_molten", 1805, 7, 4, 6);
+    }
+
+    /** #8/12 — КВАНТОВАЯ МАГНИТНАЯ КИРКА (Бур 3×3 + 100% Телекинез) */
+    public static ItemStack pickMagnet() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#00E5FF&l🧲 3D Квантовая Магнитная Кирка [3×3 + Телекинез]",
+                Arrays.asList("&8Технологический Инструмент (#8/12)",
+                        "",
+                        "&7• &#00E5FFБур 3×3 + 100% Телекинез &7— все добытые блоки",
+                        "&7  и опыт мгновенно попадают прямо в ваш инвентарь!",
+                        "&7• Ни один алмаз не сгорит в лаве!"),
+                false, "pick_magnet", 1806, 7, 4, 6);
+    }
+
+    /** #9/12 — ОБСИДИАНОВЫЙ КРУШИТЕЛЬ (Мгновенный слом Обсидиана / Трапок!) */
+    public static ItemStack pickObsidian() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#A855F7&l🟣 3D Обсидиановый Крушитель [Анти-Обсидиан]",
+                Arrays.asList("&8Штурмовая Рейд-Кирка (#9/12)",
+                        "",
+                        "&7• &#E040FBМгновенно раскалывает Обсидиан&7, Плачущий Обсидиан,",
+                        "&7  Якоря Возрождения и Эндер-Сундуки с 1 удара ЛКМ!",
+                        "&7• Идеальна для рейда баз! (Не ломает временную Трапку)"),
+                false, "pick_obsidian", 1807, 8, 3, 7);
+    }
+
+    /** #10/12 — ЗОЛОТАЯ КИРКА МИДАСА (Монеты + Золото с обычного камня!) */
+    public static ItemStack pickMidas() {
+        return enchantedPick(Material.GOLDEN_PICKAXE,
+                "&#FFD740&l🪙 3D Золотая Кирка Мидаса [+Монеты с Камня]",
+                Arrays.asList("&8Королевская Кирка Богатства (#10/12)",
+                        "",
+                        "&7• &#FFD740Дар Мидаса &7— каждый вскопанный камень/руда",
+                        "&7  приносит &#00E676+25$..+250$ Монет &7и золотые слитки!",
+                        "&7• Нерушимая золотая сталь · Эффективность VIII · Удача V"),
+                true, "pick_midas", 1808, 8, 5, 10);
+    }
+
+    /** #11/12 — ТУННЕЛЬНЫЙ МЕГА-БУР ТИТАНА 5×5 (25 блоков за удар!) */
+    public static ItemStack pickTunnel() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#3B82F6&l🚇 3D Туннельный Мега-Бур Титана [Бур 5×5!]",
+                Arrays.asList("&8Тяжёлый Промышленный Молот (#11/12)",
+                        "",
+                        "&7• &#38BDF8Пробивает туннель 5×5 &7(25 блоков за 1 удар!)",
+                        "&7• &#00E676Авто-Плавка + Телекинез ценных руд &8(Shift = 1×1)",
+                        "&7• Эффективность VIII · Удача V · Нерушимый"),
+                true, "pick_tunnel", 1809, 8, 5, 10);
+    }
+
+    /** #12/12 — МЕТЕОРИТНАЯ КИРКА ЗЕВСА 3×3×3 КУБ (27 блоков + Шанс Риликов!) */
+    public static ItemStack pickMeteor() {
+        return enchantedPick(Material.NETHERITE_PICKAXE,
+                "&#D946EF&l☄ 3D Метеоритная Кирка Зевса [Куб 3×3×3!]",
+                Arrays.asList("&8Звёздный Артефакт Олимпа (#12/12)",
+                        "",
+                        "&7• &#E040FBКубический Разлом 3×3×3 &7(27 блоков вокруг точки!)",
+                        "&7• Авто-Плавка + шанс найти &#00E5FFСнежинку ❄ / Рилик ❖&7!",
+                        "&7• Эффективность IX · Удача VI · Нерушимая &8(Shift = 1×1)"),
+                true, "pick_meteor", 1810, 9, 6, 10);
+    }
+
+    // ================= 4 НОВЫХ 3D АРТЕФАКТА И ОРУЖИЯ v5.8 ("И МНОГО ЧЕГО ТОЖЕ ДОБАВЬ") =================
+    public static ItemStack scytheReaper() {
+        ItemStack sc = make(Material.NETHERITE_SWORD, 1, "&#E11D48&l⚔ 3D Коса Смерти Жнеца [Казнь + Вампиризм]",
+                Arrays.asList("&8Мифическое 3D Оружие Жнеца Душ",
+                        "",
+                        "&7• &#FF1744Жатва Душ: &7лечит на &c25% &7от нанесённого урона!",
+                        "&7• &#A855F7Казнь: &7+35% урона по врагам, у которых < 8 сердец!",
+                        "&7• Накладывает &#9C27B0Иссушение II &7на 4 сек при ударе!",
+                        "&7• Острота VII · Заговор Огня II · Нерушимая"),
+                true, "scythe_reaper", "scythe_reaper", 1821);
+        ItemMeta m = sc.getItemMeta();
+        if (m != null) {
+            addEnch(m, "sharpness", "DAMAGE_ALL", 7);
+            addEnch(m, "fire_aspect", "FIRE_ASPECT", 2);
+            addEnch(m, "sweeping_edge", "SWEEPING_EDGE", 3);
+            sc.setItemMeta(m);
+        }
+        return sc;
+    }
+
+    public static ItemStack axeThor() {
+        ItemStack ax = make(Material.NETHERITE_AXE, 1, "&#38BDF8&l🪓 3D Громовая Секира Тора [Молния + Слом Щита]",
+                Arrays.asList("&8Божественная 3D Секира Шторма",
+                        "",
+                        "&7• &#FFD740Удар Грома: &7призывает настоящую молнию во врага",
+                        "&7  (+5 чистого урона шоком, перезарядка 7 сек)!",
+                        "&7• &#FF5252Пробивает любой Щит &7и оглушает врага!",
+                        "&7• Острота VII · Эффективность VI · Нерушимая"),
+                true, "axe_thor", "axe_thor", 1822);
+        ItemMeta m = ax.getItemMeta();
+        if (m != null) {
+            addEnch(m, "sharpness", "DAMAGE_ALL", 7);
+            addEnch(m, "efficiency", "DIG_SPEED", 6);
+            ax.setItemMeta(m);
+        }
+        return ax;
+    }
+
+    public static ItemStack orbRecall(int amt) {
+        return make(Material.HEART_OF_THE_SEA, amt, "&#00E5FF&l🧪 3D Сфера Возврата [Экстренный Сейв]",
+                Arrays.asList("&8Тактический Артефакт Выживания",
+                        "",
+                        "&7Нажмите ПКМ — запускает &#80D8FF3-секундный портал",
+                        "&7экстренной эвакуации прямиком на &#00E676/spawn&7!",
+                        "&c(Сбивается, если получить урон во время телепортации)"),
+                true, "orb_recall", "orb_recall", 1823);
+    }
+
+    public static ItemStack lootMagnet() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#FF4081&l🧲 3D Квантовый Магнит Лута [Авто-Сбор 9м]",
+                Arrays.asList("&8Пассивный Реликт (Левая рука / Инвентарь)",
+                        "",
+                        "&7• Автоматически притягивает &#FFD740весь дроп и опыт",
+                        "&7  в радиусе &b9 блоков &7прямо к вам каждую секунду!",
+                        "&7• Идеален для Авто-Шахты, Боссов и ПвП!"),
+                true, "loot_magnet", "loot_magnet", 1824);
     }
 
     public static ItemStack swordDracula() {
@@ -1067,11 +1262,12 @@ public final class ItemFactory {
         String k = kitId == null ? "start" : kitId.toLowerCase();
         List<ItemStack> items = new ArrayList<ItemStack>();
         if ("owner".equals(k)) {
-            // ЭКСКЛЮЗИВНЫЙ БОЖЕСТВЕННЫЙ КИТ OWNER — ТОЛЬКО ДЛЯ OWNER!
+            // ЭКСКЛЮЗИВНЫЙ БОЖЕСТВЕННЫЙ КИТ OWNER — ТОЛЬКО ДЛЯ OWNER! (Включает Молот OWNER 10×10, Кирку Крушителя 3×3, Косу Жнеца, Секиру Тора и все 12 Кирок!)
             items.add(swordOwner());
-            items.add(maceKrush());
-            items.add(tridentPoseidon());
-            items.add(pickDjamshut());
+            items.add(scytheReaper());
+            items.add(axeThor());
+            items.add(hammerOwner());
+            items.add(pickKrush());
             items.add(bowZeus());
             items.add(customArmorPiece("owner", "helmet"));
             items.add(customArmorPiece("owner", "chestplate"));
@@ -1079,7 +1275,7 @@ public final class ItemFactory {
             items.add(customArmorPiece("owner", "boots"));
             items.add(elytraSanta());
             items.add(talOwner(5));
-            items.add(talImperatora());
+            items.add(lootMagnet());
             items.add(sharSanty());
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
             items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 32));
@@ -1090,28 +1286,34 @@ public final class ItemFactory {
             items.add(plast(16));
             items.add(trapka(16));
             items.add(dezorient(8));
-            items.add(bozhyaKara(8));
-            items.add(gravSfera(8));
+            items.add(orbRecall(8));
             items.add(packedShulker(Material.RED_SHULKER_BOX, "&#FF1744&l👑 Божественный Арсенал OWNER #1",
                     Arrays.asList("&7Все кастомные Талисманы, Стрелы и Зелья ВЛАДЕЛЬЦА!"),
+                    maceKrush(), tridentPoseidon(), talImperatora(),
                     talKaratelya(), talZeusa(), talDraculy(), talKolossa(),
                     talZhneca(), talSevera(), talBezdn(2), talFeniksa(3),
+                    bozhyaKara(8), gravSfera(8),
                     bozhyaAura(8), yavnayaPyl(8), ognennySmerch(8), snegZavesa(8),
                     arrowIce(64), arrowExplosive(64), arrowLightning(64),
                     arrowVampire(64), arrowPoison(64), arrowAntiFly(64),
-                    potionKiller(2), potionMedic(2), potionAgent(2),
-                    potionBurp(2), potionAcid(2), pickSpawner(),
+                    potionKiller(2), potionMedic(2),
                     new ItemStack(Material.NETHERITE_BLOCK, 16),
-                    new ItemStack(Material.DIAMOND_BLOCK, 64),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
             items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ OWNER #2",
-                    Arrays.asList("&7Все 6 разновидностей кастомного ТНТ для эпичных рейдов!"),
+                    Arrays.asList("&7Все 6 разновидностей РАБОЧЕГО кастомного ТНТ для рейдов!"),
                     tntBlack(32), tntNuke(16), tntTier1(32),
                     tntFlash(32), tntCryo(32), tntMiner(32),
                     new ItemStack(Material.OBSIDIAN, 64),
                     new ItemStack(Material.END_CRYSTAL, 64),
                     new ItemStack(Material.RESPAWN_ANCHOR, 32),
                     new ItemStack(Material.GLOWSTONE, 64)));
+            items.add(packedShulker(Material.CYAN_SHULKER_BOX, "&#00E5FF&l⛏ Полная Коллекция 12 Кирок OWNER #3",
+                    Arrays.asList("&7Все 12 кастомных 3D Кирок и Молотов (включая Молот 10×10 и Крушителя 3×3)!"),
+                    hammerOwner(), pickKrush(), pickTunnel(), pickMeteor(),
+                    pickVein(), pickFrost(), pickMolten(), pickMagnet(),
+                    pickObsidian(), pickMidas(), pickDjamshut(), pickSpawner(),
+                    new ItemStack(Material.DIAMOND_BLOCK, 64),
+                    new ItemStack(Material.EMERALD_BLOCK, 64)));
             return items;
         }
         if ("start".equals(k)) {
@@ -1282,9 +1484,9 @@ public final class ItemFactory {
             boolean supreme = "opka".equals(k) || "downer".equals(k) || "techadmin".equals(k) || "curator".equals(k);
             String tag = k.toUpperCase();
             items.add(supreme ? swordKrush() : swordDracula());
-            items.add(pickDjamshut());
+            items.add(supreme ? pickKrush() : pickDjamshut());
             items.add(supreme ? bowZeus() : bowIceRw());
-            items.add(supreme ? maceKrush() : gear(Material.NETHERITE_AXE, "&#FFD740👑 Топор " + tag, 6, 5, 0));
+            items.add(supreme ? axeThor() : gear(Material.NETHERITE_AXE, "&#FFD740👑 Топор " + tag, 6, 5, 0));
             String setKey = supreme ? "krush" : "frost";
             items.add(customArmorPiece(setKey, "helmet"));
             items.add(customArmorPiece(setKey, "chestplate"));

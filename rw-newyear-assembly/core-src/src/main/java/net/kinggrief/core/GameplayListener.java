@@ -25,6 +25,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -69,15 +71,31 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
 public final class GameplayListener implements Listener {
+
+    private static final class PrimedTntEntry {
+        final String tntType;
+        final String baseLabel;
+        final UUID ownerId;
+
+        PrimedTntEntry(String tntType, String baseLabel, UUID ownerId) {
+            this.tntType = tntType;
+            this.baseLabel = baseLabel;
+            this.ownerId = ownerId;
+        }
+    }
 
     private static final NamespacedKey SPAWNER_TYPE_KEY = new NamespacedKey("kinggrief", "spawner_mob");
     private static final NamespacedKey PROJ_TAG_KEY = new NamespacedKey("kinggrief", "proj_type");
@@ -86,11 +104,15 @@ public final class GameplayListener implements Listener {
     private final Random rng = new Random();
     private final Set<UUID> drillGuard = new HashSet<UUID>();
     private final Map<UUID, Long> parkourPlateCd = new HashMap<UUID, Long>();
+    private final Map<UUID, Long> parkourRunStartMs = new HashMap<UUID, Long>();
     private final Map<UUID, Long> npcClickCd = new HashMap<UUID, Long>();
     private final Map<String, Long> itemCooldowns = new HashMap<String, Long>();
     private final Set<String> activeTempBlocks = new HashSet<String>();
     private final Map<Block, org.bukkit.block.data.BlockData> allSavedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
     private final Map<UUID, Integer> killStreaks = new HashMap<UUID, Integer>();
+    private final Map<UUID, PrimedTntEntry> activeCustomTnts = new HashMap<UUID, PrimedTntEntry>();
+    private final Set<UUID> detonatedTntIds = new HashSet<UUID>();
+    private final Map<UUID, Long> recallDamagedAt = new HashMap<UUID, Long>();
     private String activeChatAnswer = null;
 
     private static String blockKey(Block b) {
@@ -100,6 +122,106 @@ public final class GameplayListener implements Listener {
     public GameplayListener(KingGriefCore plugin) {
         this.plugin = plugin;
         startChatQuizLoop();
+        startCustomTntAndPassiveRelicLoops();
+    }
+
+    private void startCustomTntAndPassiveRelicLoops() {
+        // 1. Live 2-Tick Custom TNT Countdown + Failsafe Detonation Engine (100% immune to cancelled vanilla explosions!)
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (activeCustomTnts.isEmpty()) return;
+                java.util.Iterator<Map.Entry<UUID, PrimedTntEntry>> it = activeCustomTnts.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry<UUID, PrimedTntEntry> en = it.next();
+                    UUID uid = en.getKey();
+                    PrimedTntEntry info = en.getValue();
+                    Entity ent = Bukkit.getEntity(uid);
+                    if (!(ent instanceof TNTPrimed) || ent.isDead() || !ent.isValid()) {
+                        it.remove();
+                        detonatedTntIds.remove(uid);
+                        continue;
+                    }
+                    TNTPrimed tnt = (TNTPrimed) ent;
+                    int fuse = tnt.getFuseTicks();
+                    double sec = Math.max(0.0, fuse / 20.0);
+                    tnt.setCustomName(ColorUtil.c(info.baseLabel + " &8• &f" + String.format(java.util.Locale.US, "%.1fс", Double.valueOf(sec))));
+                    Location tl = tnt.getLocation().add(0, 0.85, 0);
+                    World w = tl.getWorld();
+                    if (w != null) {
+                        try {
+                            if ("tnt_black".equals(info.tntType)) {
+                                w.spawnParticle(Particle.WITCH, tl, 4, 0.25, 0.25, 0.25, 0.02);
+                            } else if ("tnt_nuke".equals(info.tntType)) {
+                                w.spawnParticle(Particle.FLAME, tl, 5, 0.3, 0.3, 0.3, 0.03);
+                                if (fuse % 10 <= 1) w.playSound(tl, "minecraft:block.note_block.pling", 1.2f, 1.8f);
+                            } else if ("tnt_cryo".equals(info.tntType)) {
+                                w.spawnParticle(Particle.SNOWFLAKE, tl, 5, 0.3, 0.3, 0.3, 0.02);
+                            } else if ("tnt_flash".equals(info.tntType)) {
+                                w.spawnParticle(Particle.ELECTRIC_SPARK, tl, 5, 0.25, 0.25, 0.25, 0.05);
+                            } else if ("tnt_miner".equals(info.tntType)) {
+                                w.spawnParticle(Particle.HAPPY_VILLAGER, tl, 4, 0.3, 0.3, 0.3, 0.02);
+                            } else {
+                                w.spawnParticle(Particle.LAVA, tl, 2, 0.2, 0.2, 0.2, 0.01);
+                            }
+                        } catch (Throwable ignored) {}
+                    }
+                    // Failsafe: if fuse reached <= 2 ticks, guarantee custom detonation even if WorldGuard/Essentials cancels EntityExplodeEvent!
+                    if (fuse <= 2 && !detonatedTntIds.contains(uid)) {
+                        detonatedTntIds.add(uid);
+                        Player src = info.ownerId != null ? Bukkit.getPlayer(info.ownerId) : null;
+                        Location detLoc = tnt.getLocation().clone();
+                        tnt.remove();
+                        it.remove();
+                        detonateCustomTnt(detLoc, info.tntType, src);
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 4L, 2L);
+
+        // 2. 1-Second Passive Pickaxe Buffs (Молот OWNER 10×10, Кирка Крушителя 3×3, Бур Титана, Вулканическая) + Магнит Лута!
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (!p.isOnline() || p.isDead()) continue;
+                    String mainId = ItemFactory.getCustomId(p.getInventory().getItemInMainHand());
+                    String offId = ItemFactory.getCustomId(p.getInventory().getItemInOffHand());
+
+                    if ("hammer_owner".equals(mainId)) {
+                        ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 3);
+                        ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
+                    } else if ("pick_krush".equals(mainId) || "pick_tunnel".equals(mainId) || "pick_meteor".equals(mainId)) {
+                        ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 1);
+                    } else if ("pick_molten".equals(mainId)) {
+                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+                    }
+
+                    // 3D Квантовый Магнит Лута (в левой руке или в хотбаре) — притягивает дроп и опыт в радиусе 9 блоков!
+                    boolean hasMagnet = "loot_magnet".equals(offId) || "loot_magnet".equals(mainId);
+                    if (!hasMagnet) {
+                        for (int s = 0; s < 9; s++) {
+                            if ("loot_magnet".equals(ItemFactory.getCustomId(p.getInventory().getItem(s)))) {
+                                hasMagnet = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (hasMagnet && p.getGameMode() != GameMode.SPECTATOR) {
+                        Location pl = p.getLocation().add(0, 0.6, 0);
+                        for (Entity near : p.getWorld().getNearbyEntities(pl, 9.0, 6.0, 9.0)) {
+                            if (near instanceof org.bukkit.entity.Item) {
+                                org.bukkit.entity.Item it = (org.bukkit.entity.Item) near;
+                                if (it.getScoreboardTags().contains("kg_case_float") || it.getPickupDelay() > 60) continue;
+                                it.teleport(pl);
+                            } else if (near instanceof org.bukkit.entity.ExperienceOrb) {
+                                near.teleport(pl);
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     public void cleanupAllTempBlocks() {
@@ -166,9 +288,9 @@ public final class GameplayListener implements Listener {
             p.teleport(plugin.getSpawnEngine().getSpawnArrival());
         }
 
-        // Auto-push Mega Resourcepack v5.7 with exact SHA-1 & cache-busting query so clients always get fixed offhand + 92 3D items + Bow Animation!
-        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=61");
-        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "b35d948cd7a4ddf073dcc845248f415c7990eec6");
+        // Auto-push Mega Resourcepack v5.8 with exact SHA-1 & cache-busting query (106 3D items + 12 Pickaxes + Молот OWNER 10×10 + Bow Animation!)
+        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=62");
+        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "83393b7629c17a1163183fe3894824339a898d2c");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -179,8 +301,8 @@ public final class GameplayListener implements Listener {
                         String effectiveUrl = rawRpUrl;
                         String effectiveSha1 = rpSha1;
                         if (effectiveUrl.contains("kinggrief.vercel.app/kinggrief-mega-rp.zip")) {
-                            effectiveUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=61";
-                            effectiveSha1 = "b35d948cd7a4ddf073dcc845248f415c7990eec6";
+                            effectiveUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=62";
+                            effectiveSha1 = "83393b7629c17a1163183fe3894824339a898d2c";
                         }
                         byte[] hashBytes = ColorUtil.hexToBytes(effectiveSha1);
                         if (hashBytes != null) {
@@ -202,7 +324,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v5.7 ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v5.8 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"
@@ -224,6 +346,7 @@ public final class GameplayListener implements Listener {
             Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вышел с сервера во время 30-секундного ПвП и потерял вещи!"));
         }
         plugin.getBossEvents().removeBarsForQuit(p);
+        if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().removeBarsForQuit(p);
         plugin.getStore().clearQuickFreeze(p.getUniqueId());
         plugin.getStore().removeAttachment(p);
         plugin.getHud().removePlayer(p);
@@ -382,11 +505,14 @@ public final class GameplayListener implements Listener {
             return;
         }
 
-        // 5. Кирка Джамшута (Бульдозер 3×3 + Авто-Плавка!)
-        if ("pick_djamshut".equals(toolId) && !drillGuard.contains(p.getUniqueId()) && !p.isSneaking()) {
+        // 5. СИСТЕМА 12 КАСТОМНЫХ 3D КИРОК И МОЛОТОВ v5.8 (Кирка Крушителя 3×3, Молот OWNER 10×10, Бур 5×5, Жильная, Мидас, Гефест и др.)!
+        if (toolId != null && !drillGuard.contains(p.getUniqueId())) {
             drillGuard.add(p.getUniqueId());
             try {
-                mine3x3AndSmelt(p, b, tool);
+                if (handleCustomPickaxeBreak(e, p, b, tool, toolId)) {
+                    plugin.getStore().addMined(p.getName());
+                    return;
+                }
             } finally {
                 drillGuard.remove(p.getUniqueId());
             }
@@ -402,6 +528,33 @@ public final class GameplayListener implements Listener {
         }
     }
 
+    // Мгновенный раскол Обсидиана 9-й киркой «Обсидиановый Крушитель» (pick_obsidian)!
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onObsidianBreakerTap(BlockDamageEvent e) {
+        Player p = e.getPlayer();
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isFrozenOrAscending(p)) return;
+        ItemStack hand = p.getInventory().getItemInMainHand();
+        if (!"pick_obsidian".equals(ItemFactory.getCustomId(hand))) return;
+
+        Block b = e.getBlock();
+        Material m = b.getType();
+        if (m != Material.OBSIDIAN && m != Material.CRYING_OBSIDIAN
+                && m != Material.RESPAWN_ANCHOR && m != Material.ENDER_CHEST) {
+            return;
+        }
+        if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return;
+        if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) return;
+        DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
+        if (cl != null && (!cl.canAccess(p.getName()) || cl.isCenter(b.getLocation()))
+                && !"owner".equals(plugin.getRanks().getRank(p).id)) {
+            return;
+        }
+        if (!checkAndSetCd(p, "obs_pick", 1)) return;
+        e.setInstaBreak(true);
+        b.getWorld().spawnParticle(Particle.PORTAL, b.getLocation().add(0.5, 0.5, 0.5), 25, 0.3, 0.3, 0.3, 0.2);
+        ColorUtil.sound(p, "block.glass.break", 1.0f, 0.65f);
+    }
+
     private void handleAutoMineBreak(BlockBreakEvent e, Player p, Block b) {
         Material m = b.getType();
         if (m == Material.COBBLESTONE || m == Material.BEDROCK) {
@@ -409,27 +562,29 @@ public final class GameplayListener implements Listener {
             return;
         }
         e.setDropItems(false);
+        String tid = ItemFactory.getCustomId(p.getInventory().getItemInMainHand());
+        int bonusMult = ("hammer_owner".equals(tid) ? 3 : ("pick_krush".equals(tid) || "pick_molten".equals(tid) || "pick_midas".equals(tid) || "pick_tunnel".equals(tid) ? 2 : 1));
         ItemStack drop;
         double coins;
-        if (m == Material.COAL_ORE) { drop = new ItemStack(Material.COAL, 2); coins = 25; }
-        else if (m == Material.IRON_ORE) { drop = new ItemStack(Material.IRON_INGOT, 1); coins = 55; }
-        else if (m == Material.GOLD_ORE) { drop = new ItemStack(Material.GOLD_INGOT, 1); coins = 85; }
-        else if (m == Material.LAPIS_ORE) { drop = new ItemStack(Material.LAPIS_LAZULI, 4); coins = 60; }
-        else if (m == Material.REDSTONE_ORE) { drop = new ItemStack(Material.REDSTONE, 4); coins = 60; }
-        else if (m == Material.DIAMOND_ORE) { drop = new ItemStack(Material.DIAMOND, 1); coins = 190; }
-        else if (m == Material.EMERALD_ORE) { drop = new ItemStack(Material.EMERALD, 1); coins = 240; }
-        else if (m == Material.ANCIENT_DEBRIS) { drop = new ItemStack(Material.NETHERITE_SCRAP, 1); coins = 900; }
-        else { drop = new ItemStack(Material.COBBLESTONE, 1); coins = 8; }
+        if (m == Material.COAL_ORE) { drop = new ItemStack(Material.COAL, 2 * bonusMult); coins = 25 * bonusMult; }
+        else if (m == Material.IRON_ORE) { drop = new ItemStack(Material.IRON_INGOT, bonusMult); coins = 55 * bonusMult; }
+        else if (m == Material.GOLD_ORE) { drop = new ItemStack(Material.GOLD_INGOT, bonusMult); coins = 85 * bonusMult; }
+        else if (m == Material.LAPIS_ORE) { drop = new ItemStack(Material.LAPIS_LAZULI, 4 * bonusMult); coins = 60 * bonusMult; }
+        else if (m == Material.REDSTONE_ORE) { drop = new ItemStack(Material.REDSTONE, 4 * bonusMult); coins = 60 * bonusMult; }
+        else if (m == Material.DIAMOND_ORE) { drop = new ItemStack(Material.DIAMOND, bonusMult); coins = 190 * bonusMult; }
+        else if (m == Material.EMERALD_ORE) { drop = new ItemStack(Material.EMERALD, bonusMult); coins = 240 * bonusMult; }
+        else if (m == Material.ANCIENT_DEBRIS) { drop = new ItemStack(Material.NETHERITE_SCRAP, bonusMult); coins = 900 * bonusMult; }
+        else { drop = new ItemStack(Material.COBBLESTONE, 1); coins = 8 * bonusMult; }
 
         p.getInventory().addItem(drop);
-        p.giveExp(4);
+        p.giveExp(4 * bonusMult);
         plugin.getStore().addCoins(p.getName(), coins);
         plugin.getStore().addMined(p.getName());
         if (rng.nextInt(100) < 22) {
             plugin.getStore().addSnowflakes(p.getName(), 1);
             ColorUtil.actionBar(p, "&#FF9100⛏ +" + (int) coins + "$ &8| &#80D8FF+1 Снежинка Джамшута ❄!");
         } else {
-            ColorUtil.actionBar(p, "&#FF9100⛏ Авто-Шахта: &a+" + (int) coins + "$");
+            ColorUtil.actionBar(p, "&#FF9100⛏ Авто-Шахта: &a+" + (int) coins + "$" + (bonusMult > 1 ? " &e(Бонус Кирки ×" + bonusMult + "!)" : ""));
         }
         new BukkitRunnable() {
             @Override
@@ -439,39 +594,268 @@ public final class GameplayListener implements Listener {
         }.runTaskLater(plugin, 1L);
     }
 
-    private void mine3x3AndSmelt(Player p, Block center, ItemStack tool) {
-        World w = center.getWorld();
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    // Mine 3x3 vertical or horizontal slice depending on pitch
-                    if (Math.abs(p.getLocation().getPitch()) > 50f) {
-                        if (dy != 0) continue;
-                    } else {
-                        Vector dir = p.getLocation().getDirection();
-                        if (Math.abs(dir.getX()) > Math.abs(dir.getZ())) {
-                            if (dx != 0) continue;
-                        } else {
-                            if (dz != 0) continue;
+    private boolean canDrillBreakBlock(Player p, Block t) {
+        Material m = t.getType();
+        if (m == Material.AIR || m == Material.BEDROCK || m == Material.BARRIER || m == Material.END_PORTAL_FRAME
+                || m == Material.END_PORTAL || m == Material.NETHER_PORTAL || m == Material.WATER || m == Material.LAVA
+                || m == Material.SPAWNER || m == Material.CHEST || m == Material.TRAPPED_CHEST || m == Material.BARREL
+                || m == Material.ENDER_CHEST || m.name().endsWith("SHULKER_BOX")) {
+            return false;
+        }
+        if (activeTempBlocks.contains(blockKey(t)) || plugin.getBossEvents().isLockedEventChest(t)
+                || plugin.getBossEvents().isProtectedEventStructureBlock(t, true)) {
+            return false;
+        }
+        DataStore.Claim cl = plugin.getStore().getClaimAt(t.getLocation());
+        if (cl != null) {
+            if (cl.isCenter(t.getLocation())) return false;
+            if (!cl.canAccess(p.getName()) && !"owner".equals(plugin.getRanks().getRank(p).id)) return false;
+        }
+        return true;
+    }
+
+    private ItemStack smeltedDropForBlock(Material m, int smeltMult, int fortuneBonus) {
+        if (m == Material.IRON_ORE || m == Material.DEEPSLATE_IRON_ORE) {
+            return new ItemStack(Material.IRON_INGOT, Math.max(1, smeltMult + (fortuneBonus > 0 ? rng.nextInt(fortuneBonus) : 0)));
+        }
+        if (m == Material.GOLD_ORE || m == Material.DEEPSLATE_GOLD_ORE || m == Material.NETHER_GOLD_ORE) {
+            return new ItemStack(Material.GOLD_INGOT, Math.max(1, smeltMult + (fortuneBonus > 0 ? rng.nextInt(fortuneBonus) : 0)));
+        }
+        if (m == Material.COPPER_ORE || m == Material.DEEPSLATE_COPPER_ORE) {
+            return new ItemStack(Material.COPPER_INGOT, 2 * smeltMult);
+        }
+        if (m == Material.ANCIENT_DEBRIS) {
+            return new ItemStack(Material.NETHERITE_SCRAP, smeltMult);
+        }
+        if (m == Material.DIAMOND_ORE || m == Material.DEEPSLATE_DIAMOND_ORE) {
+            return new ItemStack(Material.DIAMOND, 1 + (fortuneBonus > 0 ? rng.nextInt(fortuneBonus + 1) : 0));
+        }
+        if (m == Material.EMERALD_ORE || m == Material.DEEPSLATE_EMERALD_ORE) {
+            return new ItemStack(Material.EMERALD, 1 + (fortuneBonus > 0 ? rng.nextInt(fortuneBonus + 1) : 0));
+        }
+        if (m == Material.COAL_ORE || m == Material.DEEPSLATE_COAL_ORE) {
+            return new ItemStack(Material.COAL, 1 + rng.nextInt(2 + fortuneBonus));
+        }
+        if (m == Material.LAPIS_ORE || m == Material.DEEPSLATE_LAPIS_ORE) {
+            return new ItemStack(Material.LAPIS_LAZULI, 4 + rng.nextInt(4 + fortuneBonus * 2));
+        }
+        if (m == Material.REDSTONE_ORE || m == Material.DEEPSLATE_REDSTONE_ORE) {
+            return new ItemStack(Material.REDSTONE, 4 + rng.nextInt(3 + fortuneBonus));
+        }
+        if (m == Material.NETHER_QUARTZ_ORE) {
+            return new ItemStack(Material.QUARTZ, 2 + rng.nextInt(2 + fortuneBonus));
+        }
+        if (m == Material.STONE) return new ItemStack(Material.COBBLESTONE, 1);
+        if (m == Material.DEEPSLATE) return new ItemStack(Material.COBBLED_DEEPSLATE, 1);
+        if (m == Material.GRASS_BLOCK) return new ItemStack(Material.DIRT, 1);
+        if (m.isItem()) return new ItemStack(m, 1);
+        return null;
+    }
+
+    private void addLootBundled(Map<Material, Integer> tally, ItemStack drop) {
+        if (drop == null || drop.getType() == Material.AIR || drop.getAmount() <= 0) return;
+        Integer prev = tally.get(drop.getType());
+        tally.put(drop.getType(), Integer.valueOf((prev == null ? 0 : prev.intValue()) + drop.getAmount()));
+    }
+
+    private void deliverBundledLoot(Player p, Location dropSpot, Map<Material, Integer> tally, boolean telekinesis) {
+        World w = dropSpot.getWorld();
+        for (Map.Entry<Material, Integer> en : tally.entrySet()) {
+            Material mat = en.getKey();
+            int rem = en.getValue().intValue();
+            int maxStack = Math.max(1, mat.getMaxStackSize());
+            while (rem > 0) {
+                int batch = Math.min(maxStack, rem);
+                rem -= batch;
+                ItemStack stack = new ItemStack(mat, batch);
+                if (telekinesis) {
+                    for (ItemStack left : p.getInventory().addItem(stack).values()) {
+                        if (w != null) w.dropItemNaturally(p.getLocation(), left);
+                    }
+                } else if (w != null) {
+                    w.dropItemNaturally(dropSpot, stack);
+                }
+            }
+        }
+    }
+
+    /**
+     * Полная обработка ВСЕХ 12 кастомных 3D кирок и молотов!
+     * Shift (приседание) временно включает точный режим 1×1, чтобы не сломать лишний блок на базе!
+     */
+    private boolean handleCustomPickaxeBreak(BlockBreakEvent e, Player p, Block center, ItemStack tool, String toolId) {
+        // #10 Золотая Кирка Мидаса (+Монеты и Золото с камня/руды!)
+        if ("pick_midas".equals(toolId)) {
+            e.setDropItems(false);
+            ItemStack mainDrop = smeltedDropForBlock(center.getType(), 1, 2);
+            if (mainDrop != null) p.getInventory().addItem(mainDrop);
+            int reward = 25 + rng.nextInt(176);
+            if (rng.nextInt(100) < 4) reward += 1200;
+            plugin.getStore().addCoins(p.getName(), reward);
+            if (rng.nextInt(100) < 16) {
+                p.getInventory().addItem(new ItemStack(Material.GOLD_INGOT, 1));
+            }
+            p.giveExp(3);
+            ColorUtil.actionBar(p, "&#FFD740🪙 Дар Мидаса: &a+" + reward + "$ Монет!");
+            return true;
+        }
+
+        // #7 Вулканическая Кирка Гефеста (Двойная плавка 1×1 с гарантированным ×2 слитков!)
+        if ("pick_molten".equals(toolId)) {
+            e.setDropItems(false);
+            ItemStack drop = smeltedDropForBlock(center.getType(), 2, 2);
+            if (drop != null) {
+                for (ItemStack rem : p.getInventory().addItem(drop).values()) {
+                    center.getWorld().dropItemNaturally(center.getLocation().add(0.5, 0.5, 0.5), rem);
+                }
+            }
+            center.getWorld().spawnParticle(Particle.FLAME, center.getLocation().add(0.5, 0.5, 0.5), 8, 0.25, 0.25, 0.25, 0.02);
+            p.giveExp(4);
+            return true;
+        }
+
+        // #5 Изумрудная Жильная Кирка (VeinMiner — вся жила руды до 32 блоков сразу!)
+        if ("pick_vein".equals(toolId)) {
+            String mn = center.getType().name();
+            if (!mn.endsWith("_ORE") && center.getType() != Material.ANCIENT_DEBRIS && center.getType() != Material.GILDED_BLACKSTONE) {
+                return false;
+            }
+            e.setDropItems(false);
+            Material targetMat = center.getType();
+            Map<Material, Integer> tally = new HashMap<Material, Integer>();
+            Queue<Block> q = new ArrayDeque<Block>();
+            Set<String> seen = new HashSet<String>();
+            q.add(center);
+            seen.add(blockKey(center));
+            int broken = 0;
+            while (!q.isEmpty() && broken < 32) {
+                Block cur = q.poll();
+                if (!cur.equals(center) && !canDrillBreakBlock(p, cur)) continue;
+                addLootBundled(tally, smeltedDropForBlock(cur.getType(), 1, 2));
+                if (!cur.equals(center)) cur.setType(Material.AIR, false);
+                broken++;
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            if (dx == 0 && dy == 0 && dz == 0) continue;
+                            Block nb = cur.getRelative(dx, dy, dz);
+                            String nk = blockKey(nb);
+                            if (!seen.contains(nk) && nb.getType() == targetMat) {
+                                seen.add(nk);
+                                q.add(nb);
+                            }
                         }
+                    }
+                }
+            }
+            deliverBundledLoot(p, center.getLocation().add(0.5, 0.5, 0.5), tally, true);
+            p.giveExp(broken * 4);
+            ColorUtil.sound(p, "entity.experience_orb.pickup", 0.9f, 1.35f);
+            ColorUtil.actionBar(p, "&#00E676💎 Жилоискатель добыл всю жилу: &f" + broken + " шт.!");
+            return true;
+        }
+
+        // Буровые кирки и молоты (3×3, 5×5, Куб 3×3×3, и МОЛОТ OWNER'А 10×10!)
+        boolean isOwnerHammer10x10 = "hammer_owner".equals(toolId);
+        boolean isTunnel5x5 = "pick_tunnel".equals(toolId);
+        boolean isMeteorCube = "pick_meteor".equals(toolId);
+        boolean is3x3 = "pick_krush".equals(toolId) || "pick_djamshut".equals(toolId)
+                || "pick_frost".equals(toolId) || "pick_magnet".equals(toolId);
+
+        if (!isOwnerHammer10x10 && !isTunnel5x5 && !isMeteorCube && !is3x3) {
+            return false;
+        }
+        // Shift = точный режим 1×1 (кроме авто-плавки на центральном блоке!)
+        if (p.isSneaking()) {
+            e.setDropItems(false);
+            ItemStack single = smeltedDropForBlock(center.getType(), isOwnerHammer10x10 ? 2 : 1, 2);
+            if (single != null) p.getInventory().addItem(single);
+            return true;
+        }
+
+        e.setDropItems(false);
+        World w = center.getWorld();
+        int minOff, maxOff;
+        if (isOwnerHammer10x10) {
+            minOff = -4;
+            maxOff = 5; // 10×10 = 100 блоков за 1 удар!
+        } else if (isTunnel5x5) {
+            minOff = -2;
+            maxOff = 2; // 5×5 = 25 блоков!
+        } else {
+            minOff = -1;
+            maxOff = 1; // 3×3 или 3×3×3 куб!
+        }
+
+        boolean horizPlane = Math.abs(p.getLocation().getPitch()) > 50f;
+        Vector dir = p.getLocation().getDirection();
+        boolean xNormal = Math.abs(dir.getX()) > Math.abs(dir.getZ());
+
+        boolean telekinesis = isOwnerHammer10x10 || "pick_krush".equals(toolId)
+                || "pick_magnet".equals(toolId) || isTunnel5x5 || isMeteorCube;
+        int smeltMult = isOwnerHammer10x10 ? 2 : 1;
+        int fortuneBonus = isOwnerHammer10x10 ? 3 : ("pick_krush".equals(toolId) || isMeteorCube ? 2 : 1);
+
+        Map<Material, Integer> tally = new HashMap<Material, Integer>();
+        int brokenCount = 0;
+
+        for (int a = minOff; a <= maxOff; a++) {
+            for (int bOff = minOff; bOff <= maxOff; bOff++) {
+                int cMin = isMeteorCube ? -1 : 0;
+                int cMax = isMeteorCube ? 1 : 0;
+                for (int cOff = cMin; cOff <= cMax; cOff++) {
+                    int dx, dy, dz;
+                    if (isMeteorCube) {
+                        dx = a; dy = bOff; dz = cOff;
+                    } else if (horizPlane) {
+                        dx = a; dy = 0; dz = bOff;
+                    } else if (xNormal) {
+                        dx = 0; dy = a; dz = bOff;
+                    } else {
+                        dx = a; dy = bOff; dz = 0;
                     }
                     Block t = w.getBlockAt(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
                     Material m = t.getType();
-                    if (m == Material.AIR || m == Material.BEDROCK || m == Material.OBSIDIAN || m == Material.SPAWNER || m == Material.CHEST) continue;
-                    DataStore.Claim cl = plugin.getStore().getClaimAt(t.getLocation());
-                    if (cl != null && (!cl.canAccess(p.getName()) || cl.isCenter(t.getLocation()))) continue;
-                    if (m == Material.IRON_ORE || m == Material.DEEPSLATE_IRON_ORE) {
-                        t.setType(Material.AIR);
-                        w.dropItemNaturally(t.getLocation(), new ItemStack(Material.IRON_INGOT, 1));
-                    } else if (m == Material.GOLD_ORE || m == Material.DEEPSLATE_GOLD_ORE) {
-                        t.setType(Material.AIR);
-                        w.dropItemNaturally(t.getLocation(), new ItemStack(Material.GOLD_INGOT, 1));
-                    } else if (!t.equals(center)) {
-                        t.breakNaturally(tool);
+                    if (m == Material.OBSIDIAN && !isOwnerHammer10x10) continue;
+                    if (!t.equals(center) && !canDrillBreakBlock(p, t)) continue;
+                    if (t.equals(center) && (m == Material.BEDROCK || m == Material.SPAWNER)) continue;
+
+                    addLootBundled(tally, smeltedDropForBlock(m, smeltMult, fortuneBonus));
+                    if (!t.equals(center)) {
+                        t.setType(Material.AIR, false);
+                    }
+                    brokenCount++;
+
+                    if (isMeteorCube && m.name().endsWith("_ORE") && rng.nextInt(100) < 8) {
+                        plugin.getStore().addSnowflakes(p.getName(), 1);
                     }
                 }
             }
         }
+
+        // #6 Ледяная Кирка Стужи: замораживает любую соседнюю лаву в Обсидиан, а воду — в Плотный Лёд!
+        if ("pick_frost".equals(toolId)) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dy = -2; dy <= 2; dy++) {
+                    for (int dz = -2; dz <= 2; dz++) {
+                        Block lb = w.getBlockAt(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
+                        if (lb.getType() == Material.LAVA) lb.setType(Material.OBSIDIAN, false);
+                        else if (lb.getType() == Material.WATER) lb.setType(Material.PACKED_ICE, false);
+                    }
+                }
+            }
+            w.spawnParticle(Particle.SNOWFLAKE, center.getLocation().add(0.5, 0.5, 0.5), 14, 0.8, 0.8, 0.8, 0.03);
+        } else if (isOwnerHammer10x10) {
+            w.spawnParticle(Particle.EXPLOSION, center.getLocation().add(0.5, 0.5, 0.5), 3, 1.5, 1.5, 1.5, 0.02);
+            ColorUtil.sound(p, "entity.zombie.break_wooden_door", 0.55f, 1.35f);
+            ColorUtil.actionBar(p, "&#FF1744&l👑 МОЛОТ OWNER 10×10: &fСнесено &#FFD740" + brokenCount + " блоков &f(Телекинез + Плавка ×2)!");
+        } else if (isMeteorCube) {
+            w.spawnParticle(Particle.ELECTRIC_SPARK, center.getLocation().add(0.5, 0.5, 0.5), 18, 0.9, 0.9, 0.9, 0.08);
+        }
+
+        deliverBundledLoot(p, center.getLocation().add(0.5, 0.5, 0.5), tally, telekinesis);
+        p.giveExp(Math.min(40, brokenCount));
+        return true;
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -513,7 +897,7 @@ public final class GameplayListener implements Listener {
             return;
         }
 
-        // Установка 6 разновидностей Кастомного 3D ТНТ для рейдов!
+        // Установка 6 разновидностей РАБОЧЕГО Кастомного 3D ТНТ для рейдов!
         if (cid != null && cid.startsWith("tnt_")) {
             final Location spawnLoc = b.getLocation().add(0.5, 0.0, 0.5);
             final String tntType = cid;
@@ -523,38 +907,7 @@ public final class GameplayListener implements Listener {
                     if (b.getType() == Material.TNT) {
                         b.setType(Material.AIR, false);
                     }
-                    TNTPrimed tnt = (TNTPrimed) spawnLoc.getWorld().spawnEntity(spawnLoc, EntityType.TNT);
-                    tnt.getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, tntType);
-                    tnt.setCustomNameVisible(true);
-                    int fuse = 70;
-                    String label = "&#EF4444&l🧨 ТНТ TIER-II";
-                    float yield = 6.5f;
-                    if ("tnt_black".equals(tntType)) {
-                        label = "&#A855F7&l💣 ТНТ BLACK [Обсидиан]";
-                        yield = 5.5f;
-                    } else if ("tnt_nuke".equals(tntType)) {
-                        label = "&#84CC16&l☢ ЯДЕРНЫЙ ТНТ";
-                        fuse = 90;
-                        yield = 9.0f;
-                    } else if ("tnt_flash".equals(tntType)) {
-                        label = "&#FACC15&l⚡ ШТУРМОВОЙ ТНТ";
-                        fuse = 20;
-                        yield = 4.5f;
-                    } else if ("tnt_cryo".equals(tntType)) {
-                        label = "&#38BDF8&l❄ КРИО-ТНТ";
-                        yield = 4.5f;
-                    } else if ("tnt_miner".equals(tntType)) {
-                        label = "&#FB923C&l⛏ БУРОВОЙ ТНТ";
-                        fuse = 50;
-                        yield = 0.0f;
-                    }
-                    tnt.setFuseTicks(fuse);
-                    tnt.setYield(yield);
-                    tnt.setCustomName(ColorUtil.c(label));
-                    try {
-                        TNTPrimed.class.getMethod("setSource", Entity.class).invoke(tnt, p);
-                    } catch (Throwable ignored) {}
-                    ColorUtil.sound(p, "entity.tnt.primed", 1.0f, 1.05f);
+                    spawnCustomPrimedTnt(spawnLoc, tntType, p, null);
                 }
             }.runTask(plugin);
             return;
@@ -581,6 +934,90 @@ public final class GameplayListener implements Listener {
         }
     }
 
+    public TNTPrimed spawnCustomPrimedTnt(Location spawnLoc, String tntType, Player owner, Vector launchVel) {
+        if (spawnLoc.getWorld() == null) return null;
+        TNTPrimed tnt = (TNTPrimed) spawnLoc.getWorld().spawnEntity(spawnLoc, EntityType.TNT);
+        tnt.getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, tntType);
+        tnt.setCustomNameVisible(true);
+        int fuse = 70;
+        String label = "&#EF4444&l🧨 ТНТ TIER-II";
+        float yield = 6.5f;
+        if ("tnt_black".equals(tntType)) {
+            label = "&#A855F7&l💣 ТНТ BLACK [Обсидиан]";
+            fuse = 70;
+            yield = 5.5f;
+        } else if ("tnt_nuke".equals(tntType)) {
+            label = "&#84CC16&l☢ ЯДЕРНЫЙ ТНТ";
+            fuse = 90;
+            yield = 9.0f;
+        } else if ("tnt_flash".equals(tntType)) {
+            label = "&#FACC15&l⚡ ШТУРМОВОЙ ТНТ";
+            fuse = 20;
+            yield = 4.5f;
+        } else if ("tnt_cryo".equals(tntType)) {
+            label = "&#38BDF8&l❄ КРИО-ТНТ";
+            fuse = 60;
+            yield = 4.0f;
+        } else if ("tnt_miner".equals(tntType)) {
+            label = "&#FB923C&l⛏ БУРОВОЙ ТНТ";
+            fuse = 50;
+            yield = 4.0f;
+        }
+        tnt.setFuseTicks(fuse);
+        tnt.setYield(yield);
+        tnt.setCustomName(ColorUtil.c(label));
+        if (launchVel != null) {
+            tnt.setVelocity(launchVel);
+        }
+        if (owner != null) {
+            try {
+                TNTPrimed.class.getMethod("setSource", Entity.class).invoke(tnt, owner);
+            } catch (Throwable ignored) {}
+            ColorUtil.sound(owner, "entity.tnt.primed", 1.0f, 1.05f);
+        } else {
+            spawnLoc.getWorld().playSound(spawnLoc, "minecraft:entity.tnt.primed", 1.0f, 1.05f);
+        }
+        activeCustomTnts.put(tnt.getUniqueId(), new PrimedTntEntry(tntType, label, owner != null ? owner.getUniqueId() : null));
+        return tnt;
+    }
+
+    // Поддержка стрельбы Кастомным ТНТ из Раздатчиков (ТНТ-пушки для рейдов!)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onCustomTntDispense(BlockDispenseEvent e) {
+        String cid = ItemFactory.getCustomId(e.getItem());
+        if (cid == null || !cid.startsWith("tnt_")) return;
+        Block b = e.getBlock();
+        if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) {
+            e.setCancelled(true);
+            return;
+        }
+        e.setCancelled(true);
+        org.bukkit.block.BlockFace face = org.bukkit.block.BlockFace.NORTH;
+        if (b.getBlockData() instanceof org.bukkit.block.data.Directional) {
+            face = ((org.bukkit.block.data.Directional) b.getBlockData()).getFacing();
+        }
+        final String tntType = cid;
+        final Location spLoc = b.getRelative(face).getLocation().add(0.5, 0.1, 0.5);
+        final Vector vel = new Vector(face.getModX() * 0.45, face.getModY() * 0.25 + 0.12, face.getModZ() * 0.45);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (b.getState() instanceof org.bukkit.block.Container) {
+                    org.bukkit.inventory.Inventory inv = ((org.bukkit.block.Container) b.getState()).getInventory();
+                    for (int s = 0; s < inv.getSize(); s++) {
+                        ItemStack st = inv.getItem(s);
+                        if (tntType.equals(ItemFactory.getCustomId(st))) {
+                            if (st.getAmount() > 1) st.setAmount(st.getAmount() - 1);
+                            else inv.setItem(s, null);
+                            break;
+                        }
+                    }
+                }
+                spawnCustomPrimedTnt(spLoc, tntType, null, vel);
+            }
+        }.runTask(plugin);
+    }
+
     @EventHandler public void onBucketEmpty(PlayerBucketEmptyEvent e) {
         if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation()) && !plugin.getRanks().canModifySpawn(e.getPlayer())) {
             e.setCancelled(true);
@@ -591,13 +1028,16 @@ public final class GameplayListener implements Listener {
             e.setCancelled(true);
         }
     }
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+
+    // ignoreCancelled = false: Даже если WorldGuard/Essentials отменяет ванильный ТНТ или ТНТ в воде — КАСТОМНЫЙ ТНТ СРАБАТЫВАЕТ НА 100%!
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onEntityExplode(EntityExplodeEvent e) {
         if (plugin.getSpawnEngine().isInSpawnWorld(e.getLocation())) {
             e.blockList().clear();
+            e.setCancelled(true);
             return;
         }
-        // Всегда защищаем временные блоки Пласта/Трапки и архитектуру Ивентов от взрывов!
+        // Всегда защищаем временные блоки Пласта/Трапки и архитектуру Ивентов от любых взрывов!
         java.util.Iterator<Block> bit = e.blockList().iterator();
         while (bit.hasNext()) {
             Block b = bit.next();
@@ -609,103 +1049,270 @@ public final class GameplayListener implements Listener {
         }
         String tntType = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
         if (tntType == null) return;
-        Location c = e.getLocation();
-        World w = c.getWorld();
-        if (w == null) return;
+
+        UUID eid = e.getEntity().getUniqueId();
+        activeCustomTnts.remove(eid);
+        if (detonatedTntIds.contains(eid)) {
+            e.blockList().clear();
+            return;
+        }
+        detonatedTntIds.add(eid);
+        e.blockList().clear();
+        e.setCancelled(false);
 
         Player srcPlayer = null;
         if (e.getEntity() instanceof TNTPrimed && ((TNTPrimed) e.getEntity()).getSource() instanceof Player) {
             srcPlayer = (Player) ((TNTPrimed) e.getEntity()).getSource();
         }
+        detonateCustomTnt(e.getLocation(), tntType, srcPlayer);
+    }
 
-        if ("tnt_black".equals(tntType)) {
-            w.spawnParticle(Particle.WITCH, c, 90, 2.5, 2.0, 2.5, 0.08);
-            for (int dx = -5; dx <= 5; dx++) {
-                for (int dy = -4; dy <= 4; dy++) {
-                    for (int dz = -5; dz <= 5; dz++) {
-                        Block b = w.getBlockAt(c.getBlockX() + dx, c.getBlockY() + dy, c.getBlockZ() + dz);
-                        if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)) continue;
+    private boolean isUnbreakableRaidProtected(Block b) {
+        Material m = b.getType();
+        if (m == Material.BEDROCK || m == Material.BARRIER || m == Material.END_PORTAL_FRAME
+                || m == Material.END_PORTAL || m == Material.NETHER_PORTAL || m == Material.COMMAND_BLOCK) {
+            return true;
+        }
+        if (activeTempBlocks.contains(blockKey(b))
+                || plugin.getBossEvents().isLockedEventChest(b)
+                || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) {
+            return true;
+        }
+        DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
+        return cl != null && cl.isCenter(b.getLocation());
+    }
+
+    /**
+     * РЕАЛЬНАЯ МЕХАНИКА ВСЕХ 6 ВИДОВ КАСТОМНОГО 3D ТНТ (РАБОТАЕТ ДАЖЕ ПОД ВОДОЙ И ЧЕРЕЗ ESSENTIALS/WG!):
+     */
+    public void detonateCustomTnt(Location c, String tntType, Player srcPlayer) {
+        if (c == null || c.getWorld() == null || plugin.getSpawnEngine().isInSpawnWorld(c)) return;
+        World w = c.getWorld();
+        int cx = c.getBlockX(), cy = c.getBlockY(), cz = c.getBlockZ();
+
+        w.playSound(c, "minecraft:entity.generic.explode", 2.0f, 0.85f);
+        try {
+            w.spawnParticle(Particle.EXPLOSION_EMITTER, c, 3, 1.0, 0.8, 1.0, 0.02);
+        } catch (Throwable ignored) {}
+
+        if ("tnt_tier1".equals(tntType)) {
+            // 1. 🧨 ТНТ TIER-II [Усиленный ×2]: Мощный сферический взрыв R=5.5 (пробивает стены даже в воде!)
+            w.playSound(c, "minecraft:entity.dragon_fireball.explode", 1.6f, 0.95f);
+            w.spawnParticle(Particle.FLAME, c, 70, 2.5, 2.0, 2.5, 0.08);
+            int r = 5;
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dy = -r; dy <= r; dy++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        if (dx * dx + dy * dy + dz * dz > 29) continue;
+                        Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                        if (isUnbreakableRaidProtected(b)) continue;
                         Material m = b.getType();
+                        if (m == Material.AIR || m == Material.OBSIDIAN || m == Material.CRYING_OBSIDIAN || m == Material.ANCIENT_DEBRIS) continue;
                         if (m == Material.WATER || m == Material.LAVA) {
+                            if (dx * dx + dy * dy + dz * dz <= 12) b.setType(Material.AIR, false);
+                            continue;
+                        }
+                        if (rng.nextInt(100) < 25) b.breakNaturally();
+                        else b.setType(Material.AIR, false);
+                    }
+                }
+            }
+            damageNearbyPlayersFromTnt(c, srcPlayer, 7.5, 11.0);
+
+        } else if ("tnt_black".equals(tntType)) {
+            // 2. 💣 ТНТ BLACK [Ломает Обсидиан и Воду!]: Испаряет всю воду/лаву R=6 и разносит Обсидиан, Якоря и Сундуки R=4.2!
+            w.playSound(c, "minecraft:entity.wither.break_block", 1.8f, 0.85f);
+            w.spawnParticle(Particle.WITCH, c, 120, 3.0, 2.5, 3.0, 0.10);
+            w.spawnParticle(Particle.PORTAL, c, 90, 2.5, 2.0, 2.5, 0.35);
+            for (int dx = -6; dx <= 6; dx++) {
+                for (int dy = -5; dy <= 5; dy++) {
+                    for (int dz = -6; dz <= 6; dz++) {
+                        int d2 = dx * dx + dy * dy + dz * dz;
+                        if (d2 > 38) continue;
+                        Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                        if (isUnbreakableRaidProtected(b)) continue;
+                        Material m = b.getType();
+                        if (m == Material.AIR) continue;
+                        if (m == Material.WATER || m == Material.LAVA || m == Material.BUBBLE_COLUMN || m == Material.KELP || m == Material.SEAGRASS) {
                             b.setType(Material.AIR, false);
-                        } else if (Math.abs(dx) <= 3 && Math.abs(dy) <= 3 && Math.abs(dz) <= 3
-                                && (m == Material.OBSIDIAN || m == Material.CRYING_OBSIDIAN || m == Material.RESPAWN_ANCHOR || m == Material.ENDER_CHEST)) {
-                            b.breakNaturally();
+                        } else if (d2 <= 18) {
+                            if (m == Material.OBSIDIAN || m == Material.CRYING_OBSIDIAN || m == Material.RESPAWN_ANCHOR
+                                    || m == Material.ENDER_CHEST || m == Material.ANVIL || m == Material.ENCHANTING_TABLE) {
+                                b.breakNaturally();
+                            } else if (rng.nextInt(100) < 30) {
+                                b.breakNaturally();
+                            } else {
+                                b.setType(Material.AIR, false);
+                            }
                         }
                     }
                 }
             }
+            damageNearbyPlayersFromTnt(c, srcPlayer, 7.5, 13.0);
+
         } else if ("tnt_nuke".equals(tntType)) {
-            w.spawnParticle(Particle.EXPLOSION_EMITTER, c, 6, 2.0, 1.5, 2.0, 0.05);
-            w.spawnParticle(Particle.FLAME, c, 120, 4.0, 2.5, 4.0, 0.12);
-            for (Entity en : w.getNearbyEntities(c, 10, 8, 10)) {
-                if (en instanceof Player) {
-                    Player vp = (Player) en;
-                    vp.setFireTicks(160);
-                    ColorUtil.addPot(vp, "wither", "WITHER", 140, 1);
-                    if (srcPlayer != null && isEnemyTarget(srcPlayer, vp)) {
-                        tagPvp30(srcPlayer, vp);
+            // 3. ☢ ЯДЕРНЫЙ ТНТ КРУШИТЕЛЯ: Огромный кратер R=8.5 + Ядерный Гриб + Оплавленная магма + Радиация!
+            w.playSound(c, "minecraft:entity.wither.spawn", 1.5f, 0.65f);
+            w.playSound(c, "minecraft:entity.generic.explode", 2.5f, 0.55f);
+            w.spawnParticle(Particle.EXPLOSION_EMITTER, c, 10, 3.8, 2.8, 3.8, 0.05);
+            w.spawnParticle(Particle.FLAME, c, 200, 5.0, 3.5, 5.0, 0.16);
+            w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, c.clone().add(0, 4, 0), 90, 2.5, 4.5, 2.5, 0.04);
+            int r = 8;
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dy = -6; dy <= r; dy++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        int d2 = dx * dx + dy * dy + dz * dz;
+                        if (d2 > 68) continue;
+                        Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                        if (isUnbreakableRaidProtected(b)) continue;
+                        Material m = b.getType();
+                        if (m == Material.AIR) continue;
+                        if (d2 <= 54) {
+                            b.setType(Material.AIR, false);
+                        } else if (m.isSolid() && dy <= -2 && rng.nextInt(100) < 28) {
+                            b.setType(rng.nextBoolean() ? Material.MAGMA_BLOCK : Material.NETHERRACK, false);
+                        }
                     }
                 }
             }
+            for (Entity en : w.getNearbyEntities(c, 12, 10, 12)) {
+                if (en instanceof Player) {
+                    Player vp = (Player) en;
+                    vp.setFireTicks(200);
+                    ColorUtil.addPot(vp, "wither", "WITHER", 160, 1);
+                    ColorUtil.addPot(vp, "poison", "POISON", 140, 1);
+                    if (srcPlayer != null && isEnemyTarget(srcPlayer, vp)) {
+                        tagPvp30(srcPlayer, vp);
+                        vp.damage(10.0, srcPlayer);
+                    }
+                }
+            }
+
         } else if ("tnt_flash".equals(tntType)) {
-            for (Entity en : w.getNearbyEntities(c, 7, 5, 7)) {
-                if (en instanceof Player) {
-                    Player vp = (Player) en;
-                    Vector kb = vp.getLocation().toVector().subtract(c.toVector());
-                    if (kb.lengthSquared() < 0.01) kb = new Vector(0.4, 0.5, 0.4);
-                    vp.setVelocity(kb.normalize().multiply(1.35).setY(0.55));
-                    if (srcPlayer != null && isEnemyTarget(srcPlayer, vp)) {
-                        tagPvp30(srcPlayer, vp);
-                    }
-                }
-            }
-        } else if ("tnt_cryo".equals(tntType)) {
-            e.blockList().clear();
-            w.spawnParticle(Particle.SNOWFLAKE, c, 140, 4.0, 2.5, 4.0, 0.06);
-            for (int dx = -5; dx <= 5; dx++) {
+            // 4. ⚡ ШТУРМОВОЙ МГНОВЕННЫЙ ТНТ [1 сек]: Светошумовой взрыв + мощный отброс + Слепота + Слом паутины/стёкол!
+            w.playSound(c, "minecraft:entity.lightning_bolt.thunder", 1.6f, 1.35f);
+            w.spawnParticle(Particle.FLASH, c, 4, 0.5, 0.5, 0.5, 0.01);
+            w.spawnParticle(Particle.ELECTRIC_SPARK, c, 95, 3.0, 2.0, 3.0, 0.18);
+            for (int dx = -4; dx <= 4; dx++) {
                 for (int dy = -3; dy <= 3; dy++) {
-                    for (int dz = -5; dz <= 5; dz++) {
-                        Block b = w.getBlockAt(c.getBlockX() + dx, c.getBlockY() + dy, c.getBlockZ() + dz);
-                        if (b.getType() == Material.WATER) b.setType(Material.BLUE_ICE, false);
-                        else if (b.getType() == Material.LAVA) b.setType(Material.OBSIDIAN, false);
+                    for (int dz = -4; dz <= 4; dz++) {
+                        if (dx * dx + dy * dy + dz * dz > 18) continue;
+                        Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                        if (isUnbreakableRaidProtected(b)) continue;
+                        Material m = b.getType();
+                        if (m == Material.COBWEB || m.name().contains("GLASS") || m.name().contains("DOOR") || m.name().contains("PLANKS")) {
+                            b.setType(Material.AIR, false);
+                        }
                     }
                 }
             }
             for (Entity en : w.getNearbyEntities(c, 8, 6, 8)) {
                 if (en instanceof Player) {
                     Player vp = (Player) en;
+                    Vector kb = vp.getLocation().toVector().subtract(c.toVector());
+                    if (kb.lengthSquared() < 0.01) kb = new Vector(0.4, 0.5, 0.4);
+                    vp.setVelocity(kb.normalize().multiply(1.55).setY(0.68));
                     if (srcPlayer == null || isEnemyTarget(srcPlayer, vp)) {
-                        vp.setFreezeTicks(220);
-                        ColorUtil.addPot(vp, "slowness", "SLOW", 120, 3);
+                        ColorUtil.addPot(vp, "blindness", "BLINDNESS", 50, 0);
+                        ColorUtil.addPot(vp, "slowness", "SLOW", 70, 1);
+                        ColorUtil.addPot(vp, "glowing", "GLOWING", 160, 0);
+                        vp.setCooldown(Material.SHIELD, 80);
                         if (srcPlayer != null) tagPvp30(srcPlayer, vp);
                     }
                 }
             }
+
+        } else if ("tnt_cryo".equals(tntType)) {
+            // 5. ❄ ЛЕДЯНОЙ КРИО-ТНТ: Замораживает воду в Синий Лёд, лаву в Обсидиан, землю покрывает льдом и сковывает врагов!
+            w.playSound(c, "minecraft:block.glass.break", 2.0f, 0.7f);
+            w.spawnParticle(Particle.SNOWFLAKE, c, 180, 4.5, 2.8, 4.5, 0.06);
+            for (int dx = -6; dx <= 6; dx++) {
+                for (int dy = -4; dy <= 4; dy++) {
+                    for (int dz = -6; dz <= 6; dz++) {
+                        if (dx * dx + dy * dy + dz * dz > 38) continue;
+                        Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                        if (isUnbreakableRaidProtected(b)) continue;
+                        Material m = b.getType();
+                        if (m == Material.WATER || m == Material.BUBBLE_COLUMN) {
+                            b.setType(Material.BLUE_ICE, false);
+                        } else if (m == Material.LAVA) {
+                            b.setType(Material.OBSIDIAN, false);
+                        } else if (m == Material.FIRE) {
+                            b.setType(Material.AIR, false);
+                        } else if (m.isSolid() && w.getBlockAt(cx + dx, cy + dy + 1, cz + dz).getType() == Material.AIR && rng.nextInt(100) < 35) {
+                            DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
+                            if (cl == null || (srcPlayer != null && cl.canAccess(srcPlayer.getName()))) {
+                                b.setType(Material.PACKED_ICE, false);
+                            }
+                        }
+                    }
+                }
+            }
+            for (Entity en : w.getNearbyEntities(c, 8.5, 6.0, 8.5)) {
+                if (en instanceof Player) {
+                    Player vp = (Player) en;
+                    if (srcPlayer == null || isEnemyTarget(srcPlayer, vp)) {
+                        vp.setFreezeTicks(280);
+                        ColorUtil.addPot(vp, "slowness", "SLOW", 140, 3);
+                        ColorUtil.addPot(vp, "mining_fatigue", "SLOW_DIGGING", 120, 1);
+                        if (srcPlayer != null) {
+                            tagPvp30(srcPlayer, vp);
+                            vp.damage(5.0, srcPlayer);
+                        }
+                    }
+                }
+            }
+
         } else if ("tnt_miner".equals(tntType)) {
-            e.blockList().clear();
+            // 6. ⛏ ШАХТЁРСКИЙ БУРОВОЙ ТНТ [9×9×9]: Выкапывает шахту 9×9×9 с авто-плавкой и Удачей прямо в инвентарь/центр!
+            w.playSound(c, "minecraft:block.anvil.use", 1.5f, 1.2f);
+            w.spawnParticle(Particle.HAPPY_VILLAGER, c, 80, 3.5, 3.0, 3.5, 0.08);
+            Map<Material, Integer> mined = new HashMap<Material, Integer>();
+            int oresFound = 0;
             for (int dx = -4; dx <= 4; dx++) {
                 for (int dy = -4; dy <= 4; dy++) {
                     for (int dz = -4; dz <= 4; dz++) {
-                        Block b = w.getBlockAt(c.getBlockX() + dx, c.getBlockY() + dy, c.getBlockZ() + dz);
-                        if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)) continue;
+                        Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                        if (isUnbreakableRaidProtected(b)) continue;
                         DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
-                        if (cl != null && (srcPlayer == null || !cl.canAccess(srcPlayer.getName()) || cl.isCenter(b.getLocation()))) continue;
+                        if (cl != null && (srcPlayer == null || !cl.canAccess(srcPlayer.getName()))) continue;
                         Material m = b.getType();
-                        if (m == Material.BEDROCK || m == Material.OBSIDIAN || m == Material.SPAWNER || m == Material.CHEST || m == Material.AIR) continue;
-                        if (m == Material.IRON_ORE || m == Material.DEEPSLATE_IRON_ORE) {
-                            b.setType(Material.AIR, false);
-                            w.dropItemNaturally(c, new ItemStack(Material.IRON_INGOT, 1));
-                        } else if (m == Material.GOLD_ORE || m == Material.DEEPSLATE_GOLD_ORE) {
-                            b.setType(Material.AIR, false);
-                            w.dropItemNaturally(c, new ItemStack(Material.GOLD_INGOT, 1));
-                        } else if (m.name().endsWith("_ORE") || m == Material.ANCIENT_DEBRIS) {
-                            for (ItemStack dr : b.getDrops()) w.dropItemNaturally(c, dr);
-                            b.setType(Material.AIR, false);
-                        } else {
-                            b.setType(Material.AIR, false);
+                        if (m == Material.AIR || m == Material.OBSIDIAN || m == Material.SPAWNER
+                                || m == Material.CHEST || m == Material.BARREL || m == Material.ENDER_CHEST
+                                || m.name().endsWith("SHULKER_BOX") || m == Material.WATER || m == Material.LAVA) {
+                            continue;
                         }
+                        if (m.name().endsWith("_ORE") || m == Material.ANCIENT_DEBRIS) {
+                            oresFound++;
+                            addLootBundled(mined, smeltedDropForBlock(m, 2, 2));
+                        } else if (rng.nextInt(100) < 35) {
+                            addLootBundled(mined, smeltedDropForBlock(m, 1, 0));
+                        }
+                        b.setType(Material.AIR, false);
                     }
+                }
+            }
+            deliverBundledLoot(srcPlayer, c, mined, srcPlayer != null && srcPlayer.isOnline());
+            if (srcPlayer != null && srcPlayer.isOnline()) {
+                srcPlayer.giveExp(25 + oresFound * 5);
+                srcPlayer.sendMessage(ColorUtil.c("&#FB923C&l⛏ [БУРОВОЙ ТНТ] &fШахта &e9×9×9 &fвыкопана! Найдено и переплавлено руд: &#00E676" + oresFound + " шт.&f!"));
+            }
+        }
+    }
+
+    private void damageNearbyPlayersFromTnt(Location c, Player srcPlayer, double radius, double maxDmg) {
+        if (c.getWorld() == null) return;
+        for (Entity en : c.getWorld().getNearbyEntities(c, radius, radius, radius)) {
+            if (en instanceof Player) {
+                Player vp = (Player) en;
+                double d = Math.max(0.5, vp.getLocation().distance(c));
+                if (d > radius) continue;
+                double dmg = Math.max(2.0, maxDmg * (1.0 - d / (radius + 1.5)));
+                if (srcPlayer != null && isEnemyTarget(srcPlayer, vp)) {
+                    tagPvp30(srcPlayer, vp);
+                    vp.damage(dmg, srcPlayer);
+                } else if (srcPlayer == null || vp.equals(srcPlayer)) {
+                    vp.damage(dmg * 0.5);
                 }
             }
         }
@@ -819,21 +1426,36 @@ public final class GameplayListener implements Listener {
         Player p = e.getPlayer();
         if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
 
-        // 1. Нажимные плиты Радужного Паркура v5.0 (40 островов: #10/#20/#30 Золотая плита = Чекпоинт, #39 Железная плита Y=131 = Финиш!)
+        // 1. Нажимные плиты Небесного Паркура v5.8 (32 острова: Старт Y=102, Чекпоинты #1/#2/#3, Финиш Y=130!)
         if (e.getAction() == Action.PHYSICAL && e.getClickedBlock() != null
                 && plugin.getSpawnEngine().isInSpawnWorld(e.getClickedBlock().getLocation())) {
             Block pb = e.getClickedBlock();
-            if (pb.getY() >= 108) {
+            if (pb.getY() >= 101) {
                 long now = System.currentTimeMillis();
                 Long last = parkourPlateCd.get(p.getUniqueId());
-                if (last != null && now - last.longValue() < 2000L) return;
+                if (last != null && now - last.longValue() < 1500L) return;
                 parkourPlateCd.put(p.getUniqueId(), Long.valueOf(now));
                 if (pb.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE) {
-                    plugin.getStore().setParkourCp(p, pb.getLocation().add(0.5, 0.2, 0.5));
-                    ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.3f);
-                    p.sendMessage(ColorUtil.c("&#40C4FF🏃 Чекпоинт паркура сохранён! Вернуться при падении: &f/parkour cp"));
-                } else if (pb.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE && pb.getY() >= 129) {
+                    Location cpLoc = pb.getLocation().add(0.5, 0.2, 0.5);
+                    cpLoc.setYaw(p.getLocation().getYaw());
+                    plugin.getStore().setParkourCp(p, cpLoc);
+                    if (p.isFlying()) p.setFlying(false);
+                    if (p.getGameMode() == GameMode.SURVIVAL) p.setAllowFlight(false);
+                    ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.35f);
+                    if (pb.getY() <= 104) {
+                        parkourRunStartMs.put(p.getUniqueId(), Long.valueOf(now));
+                        p.sendMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fСтарт забега на &e32 острова&f! Полёт отключён. Выйти: &f/parkour leave"));
+                    } else {
+                        Long stMs = parkourRunStartMs.get(p.getUniqueId());
+                        String elapsed = stMs != null ? (" &8(" + String.format(java.util.Locale.US, "%.1fс", Double.valueOf((now - stMs.longValue()) / 1000.0)) + ")") : "";
+                        p.sendMessage(ColorUtil.c("&#40C4FF🏃 Чекпоинт сохранён!" + elapsed + " &7При падении вы вернётесь сюда автоматически!"));
+                        if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
+                    }
+                } else if (pb.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE && pb.getY() >= 126) {
+                    if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
                     plugin.getStore().setParkourCp(p, null);
+                    Long stMs = parkourRunStartMs.remove(p.getUniqueId());
+                    String timeStr = stMs != null ? String.format(java.util.Locale.US, "%.1f сек.", Double.valueOf((now - stMs.longValue()) / 1000.0)) : "рекордное время";
                     long ready = plugin.getStore().getParkourRewardReadyAt(p.getName());
                     if (now >= ready) {
                         plugin.getStore().setParkourRewardReadyAt(p.getName(), now + 900_000L);
@@ -844,9 +1466,10 @@ public final class GameplayListener implements Listener {
                         plugin.getStore().save();
                         ColorUtil.spawnFirework(p.getLocation());
                         Bukkit.broadcastMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fИгрок &#00E676" + p.getName()
-                                + " &fпрошёл Радужный Паркур (40 островов) и получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
+                                + " &fпрошёл Небесный Паркур (32 острова) за &#FFD740" + timeStr
+                                + " &fи получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
                     } else {
-                        p.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы снова прошли паркур! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
+                        p.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы прошли паркур за &#FFD740" + timeStr + "&#40C4FF! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
                     }
                     p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 }
@@ -930,6 +1553,38 @@ public final class GameplayListener implements Listener {
                 ColorUtil.sound(p, "entity.ender_dragon.flap", 1f, 1.2f);
                 p.sendMessage(ColorUtil.c("&#E040FB🥚 Загадочное Яйцо изменило спавнер на: &f" + pick.name() + "&7!"));
             }
+        } else if ("orb_recall".equals(cid)) {
+            e.setCancelled(true);
+            if (!checkAndSetCd(p, "orb_recall", 20)) return;
+            consumeOne(p, hand);
+            final long startMs = System.currentTimeMillis();
+            p.sendMessage(ColorUtil.c("&#00E5FF🧪 [Сфера Возврата] &fЗапущена экстренная эвакуация на спавн (&e3 сек.&f) — не получайте урон!"));
+            ColorUtil.sound(p, "block.beacon.power_select", 1.0f, 1.35f);
+            new BukkitRunnable() {
+                int step = 0;
+                @Override
+                public void run() {
+                    if (!p.isOnline() || p.isDead()) { cancel(); return; }
+                    Long dmgAt = recallDamagedAt.get(p.getUniqueId());
+                    if (dmgAt != null && dmgAt.longValue() >= startMs) {
+                        cancel();
+                        p.sendMessage(ColorUtil.c("&#FF1744✖ Телепортация Сферы Возврата сбита полученным уроном!"));
+                        ColorUtil.sound(p, "entity.item.break", 1.0f, 0.8f);
+                        return;
+                    }
+                    step++;
+                    p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.0, 0), 14, 0.45, 0.8, 0.45, 0.03);
+                    if (step < 3) {
+                        ColorUtil.actionBar(p, "&#00E5FF🧪 Эвакуация через &f" + (3 - step) + " сек...");
+                        return;
+                    }
+                    cancel();
+                    plugin.getHud().clearCombat(p.getUniqueId());
+                    p.teleport(plugin.getSpawnEngine().getSpawnArrival());
+                    ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 1.25f);
+                    p.sendTitle(ColorUtil.c("&#00E5FF&l🧪 ЭВАКУАЦИЯ!"), ColorUtil.c("&fВы спасены Сферой Возврата!"), 5, 35, 10);
+                }
+            }.runTaskTimer(plugin, 20L, 20L);
         } else if ("plast".equals(cid) || "trapka".equals(cid) || "dezorient".equals(cid)
                 || "yavnaya_pyl".equals(cid) || "bozhya_aura".equals(cid)
                 || "ognenny_smerch".equals(cid) || "pautinnaya_granata".equals(cid)
@@ -1758,6 +2413,7 @@ public final class GameplayListener implements Listener {
 
             // 30-СЕКУНДНЫЙ РЕЖИМ ПВП СВЕРХУ ЭКРАНА НАД ИВЕНТАМИ!
             tagPvp30(attacker, victim);
+            recallDamagedAt.put(victim.getUniqueId(), Long.valueOf(System.currentTimeMillis()));
 
             String weaponId = ItemFactory.getCustomId(attacker.getInventory().getItemInMainHand());
             String offId = ItemFactory.getCustomId(attacker.getInventory().getItemInOffHand());
@@ -1766,12 +2422,35 @@ public final class GameplayListener implements Listener {
             String atkArmorSet = HudManager.detectFullCustomArmorSet(attacker);
             String vicArmorSet = HudManager.detectFullCustomArmorSet(victim);
 
-            // Вампиризм (Меч Дракулы / Меч OWNER / Талисман Дракулы / Сет Дракулы / Элитры Вампира)
-            if ("sword_dracula".equals(weaponId) || "sword_owner".equals(weaponId)
+            // Вампиризм (Меч Дракулы / Меч OWNER / Коса Смерти Жнеца / Талисман Дракулы / Сет Дракулы / Элитры Вампира)
+            if ("sword_dracula".equals(weaponId) || "sword_owner".equals(weaponId) || "scythe_reaper".equals(weaponId)
                     || "tal_draculy".equals(offId) || "elytra_vampire".equals(atkChest)
                     || "dracula".equals(atkArmorSet)) {
-                double heal = Math.min(4.5, e.getFinalDamage() * 0.25);
+                double heal = Math.min(5.0, e.getFinalDamage() * 0.25);
                 attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + heal));
+            }
+            // Коса Смерти Жнеца (scythe_reaper): Казнь (+35% урона по целям < 16 HP) + Иссушение II!
+            if ("scythe_reaper".equals(weaponId)) {
+                ColorUtil.addPot(victim, "wither", "WITHER", 80, 1);
+                victim.getWorld().spawnParticle(Particle.SOUL, victim.getLocation().add(0, 1.1, 0), 10, 0.35, 0.4, 0.35, 0.03);
+                if (victim.getHealth() <= 16.0) {
+                    e.setDamage(e.getDamage() * 1.35);
+                    ColorUtil.actionBar(attacker, "&#E11D48⚔ ЖАТВА ДУШ: Казнь +35% урона!");
+                }
+            }
+            // Громовая Секира Тора (axe_thor): Слом Щита + Цепная Молния (КД 7 сек)!
+            if ("axe_thor".equals(weaponId)) {
+                victim.setCooldown(Material.SHIELD, 100);
+                String thorKey = attacker.getUniqueId() + ":thor_bolt";
+                long nowMs = System.currentTimeMillis();
+                Long boltReady = itemCooldowns.get(thorKey);
+                if (boltReady == null || nowMs >= boltReady.longValue()) {
+                    itemCooldowns.put(thorKey, Long.valueOf(nowMs + 7000L));
+                    victim.getWorld().strikeLightningEffect(victim.getLocation());
+                    e.setDamage(e.getDamage() + 5.0);
+                    ColorUtil.addPot(victim, "slowness", "SLOW", 40, 1);
+                    ColorUtil.actionBar(attacker, "&#38BDF8🪓 СЕКИРА ТОРА: Удар Грома (+5⚡ урона + Слом Щита)!");
+                }
             }
             // Сет Фантома: +18% крита в прыжке!
             if ("phantom".equals(atkArmorSet) && attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {

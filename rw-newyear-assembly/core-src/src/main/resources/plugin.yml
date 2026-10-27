@@ -1,10 +1,10 @@
 name: KingGriefCore
-version: 5.7.0
+version: 5.8.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
 author: KINGGRIEF
-description: KINGGRIEF v5.7 Zero-Freeze New Year FT x RW Edition (41 Luxury OWNER-Style Badges incl. ML.MODER, Unblocked /warp pvp, /tphere & Staff Tools from ML.MODER, /gm 0 <nick>, /fps Optimizer, 10 Santa Gifts, DPS Dummies)
+description: KINGGRIEF v5.8 Grand Winter Citadel FT x RW Edition (Real Leaf Tree, 3-Floor Palace, 32-Island Sky Parkour, 12 Custom 3D Pickaxes & Hammer OWNER 10x10, Redstone Lightning Anti-DDoS, 6 Working Custom TNTs, Owner /razdacha & /txt, TechWorks Screen)
 
 commands:
   lp:
@@ -203,5 +203,31 @@ commands:
   bc:
     aliases: [broadcast]
   rebuildspawn:
-    description: Rebuild Zero-Freeze New Year Spawn v5.7 in spawn_world
+    description: Rebuild Grand Winter Citadel Spawn v5.8 in spawn_world
   kgadmin: {}
+  picks:
+    aliases: [pickaxes, kirki, hammers]
+    description: Forge of 12 Custom 3D Pickaxes, Hammer OWNER 10x10 & Mythic Weapons
+  razdacha:
+    aliases: [giveaway]
+    description: OWNER Timed Giveaway (Relics, Money, Cases) & Global Server Quests
+  txt:
+    aliases: [screentxt]
+    description: OWNER 4-Second Red Screen Broadcast with Smooth Fade-Out
+  tex:
+    aliases: [techworks, maint, teh]
+    description: OWNER Maintenance Mode Toggle (Тех работы!)
+  thanksowner:
+    description: Thank OWNER after server giveaway (+2500$)
+  antiddos:
+    aliases: [ddos, antilag]
+    description: Anti-DDoS & Redstone Lightning Protection Status
+  curator:
+    aliases: [kurator, cur]
+    description: Curator Control Panel (/curator) - Grant KP, Media & Donate Ranks
+  discord:
+    aliases: [ds, links, site]
+    description: Official KINGGRIEF Discord & Store Links
+
+
+

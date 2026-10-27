@@ -34,7 +34,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Footer
         ip={settings.server_ip || 'kinggrief.pickme.cloud'}
         version={bridge.mcVersion || settings.server_version || '1.16.5 — 1.21.11'}
-        discord={settings.discord_url || 'https://discord.gg/kinggrief'}
+        discord={settings.discord_url || 'https://discord.gg/7Cugj4X3eU'}
         telegram={settings.telegram_url || 'https://t.me/kinggrief'}
         supportEmail={settings.support_email || 'support@kinggrief.net'}
       />

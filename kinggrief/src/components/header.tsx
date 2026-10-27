@@ -223,7 +223,7 @@ export function Header({
                 <Link href="/privileges" className="btn btn-primary flex-1" onClick={() => setMenuOpen(false)}>
                   Перейти в магазин
                 </Link>
-                <a href="https://discord.gg/kinggrief" target="_blank" rel="noreferrer noopener" className="btn btn-ghost btn-icon" aria-label="Discord">
+                <a href="https://discord.gg/7Cugj4X3eU" target="_blank" rel="noreferrer noopener" className="btn btn-ghost btn-icon" aria-label="Discord">
                   <DiscordGlyph size={17} />
                 </a>
                 <a href="https://t.me/kinggrief" target="_blank" rel="noreferrer noopener" className="btn btn-ghost btn-icon" aria-label="Telegram">

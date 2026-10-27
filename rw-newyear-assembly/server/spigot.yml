@@ -1,5 +1,12 @@
-# KINGGRIEF v5.7 Anti-Freeze & 20.0 TPS Spigot Optimization Config
+# KINGGRIEF v5.8 Anti-Freeze, Anti-DDoS & TechWorks Spigot Config
 config-version: 12
+messages:
+  whitelist: "§c§l⚙ Тех работы!\n\n§fСервер временно закрыт на обслуживание.\n§7Подождите пару минут и заходите снова!\n\n§eНаш сайт: §bhttps://kinggrief.vercel.app"
+  unknown-command: "§cНеизвестная команда! Введите §e/menu §cили §e/help"
+  server-full: "§cСервер переполнен! Купите привилегию для входа без очереди: §bkinggrief.vercel.app"
+  outdated-client: "§cПожалуйста, зайдите с версии §e1.21 — 1.21.11§c!"
+  outdated-server: "§cПожалуйста, зайдите с версии §e1.21 — 1.21.11§c!"
+  restart: "§c§l⚙ Тех работы!\n\n§fСервер перезагружается или обновляется.\n§7Зайдите снова через минуту!\n\n§eНаш сайт: §bhttps://kinggrief.vercel.app"
 settings:
   save-user-cache-on-stop-only: true
   moved-wrongly-threshold: 0.0625
@@ -29,6 +36,6 @@ world-settings:
       animals: 32
       monsters: 32
       misc: 24
-      display: 48
+      display: 56
       other: 32
     max-tnt-per-tick: 40

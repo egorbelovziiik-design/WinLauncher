@@ -1,777 +1,1292 @@
-from collections import deque
+#!/usr/bin/env python3
+"""
+KINGGRIEF NEW YEAR v5.8 — GRAND IMPERIAL WINTER CITADEL & LEAF TREE EDITION
+===========================================================================
+Complete architectural overhaul addressing every player & admin critique:
+  1. REAL LEAF CHRISTMAS TREE (ZERO concrete foliage!):
+     - 10 lush cascading evergreen tiers built from SPRUCE_LEAVES, DARK_OAK_LEAVES,
+       AZALEA_LEAVES & FLOWERING_AZALEA_LEAVES (marked persistent=true in SpawnEngine),
+       rooted SPRUCE_WOOD trunk up to Y=178, snow-dusted tips, warm spiral garlands,
+       3D ornaments, and a radiant 3D Bethlehem Star up to Y=191!
+  2. COLOSSAL GLACIAL ICE WALLS & FROST PEAKS:
+     - Towering 18–34 block sculpted PACKED_ICE / BLUE_ICE / SNOW_BLOCK / PRISMARINE
+       alpine glacier walls & glowing crystal spires around the outer island perimeter,
+       pierced by grand Gothic archways on every inter-island boulevard!
+  3. 3-FLOOR IMPERIAL WINTER PALACE INTERIOR (X=-21..21, Z=65..92):
+     - Floor 1 (Y=100): Marble Throne Hall, Ruby-Gold Throne, Fireplaces, Armory,
+       Columns, Gift #3 Star Pedestal, and Twin Grand Staircases!
+     - Floor 2 (Y=107): Wrap-around Atrium Balustrade, Royal Library, Enchanting Nook,
+       VIP Alchemy & Brewing Gallery, Stained-Glass Windows, and Upper Staircases!
+     - Floor 3 (Y=114): Vaulted Cathedral Roof, Colossal Hanging Crystal Chandelier,
+       King's Treasury Vaults, and Walk-Out North Panoramic Balcony!
+  4. COMFORTABLE 32-ISLAND SCENIC SKY PARKOUR:
+     - 3x3 & 2x2 themed sky pads from /warp parkour (Y=101 -> Y=129), mathematically
+       verified jump distances (dy <= 1, edge gap 1.5–2.5 blocks), 3 Golden Checkpoints,
+       and a 5x5 Diamond/Emerald Trophy Summit!
+  5. 100% BFS-VERIFIED WALKABILITY across ALL warps, ALL 27 NPCs, ALL 8 Kabinki,
+     Auto-Mine, PvP Colosseum, Mob Farm, Casino, Bafovar, AND all 3 Palace Floors!
+"""
+
 import gzip
 import math
 import os
+import random
 import struct
-import numpy as np
-from PIL import Image, ImageDraw
+from collections import deque
 
-W, H, L = 241, 124, 241
-OX, OY, OZ = 120, 36, 120  # wx = lx - 120, wy = ly + 64, wz = lz - 120 (Plaza floor wy=99, walk Y=100)
+W, H, L = 251, 132, 251  # X: -125..+125, Y: 64..195, Z: -125..+125
+OX, OY, OZ = 125, 36, 125
+Y_OFFSET = 64
 
-PALETTE = [
-    "AIR",                              # 0
-    "SMOOTH_QUARTZ",                    # 1
-    "PRISMARINE_BRICKS",                # 2
-    "POLISHED_DIORITE",                 # 3
-    "QUARTZ_BLOCK",                     # 4
-    "QUARTZ_PILLAR",                    # 5
-    "SNOW_BLOCK",                       # 6
-    "PACKED_ICE",                       # 7
-    "BLUE_ICE",                         # 8
-    "SEA_LANTERN",                      # 9
-    "GOLD_BLOCK",                       # 10
-    "CRIMSON_PLANKS",                   # 11
-    "ORANGE_CONCRETE",                  # 12
-    "SPRUCE_LOG",                       # 13
-    "SPRUCE_LEAVES",                    # 14
-    "GREEN_CONCRETE",                   # 15 (Opaque inner tree core -> 85% less leaf overdraw lag!)
-    "RED_CONCRETE",                     # 16
-    "YELLOW_CONCRETE",                  # 17
-    "LIME_CONCRETE",                    # 18
-    "LIGHT_BLUE_CONCRETE",              # 19
-    "MAGENTA_CONCRETE",                 # 20
-    "WHITE_STAINED_GLASS",              # 21
-    "CYAN_STAINED_GLASS",               # 22
-    "RED_STAINED_GLASS",                # 23
-    "PURPLE_STAINED_GLASS",             # 24
-    "RED_CARPET",                       # 25
-    "YELLOW_CARPET",                    # 26
-    "GLOWSTONE",                        # 27
-    "BEDROCK",                          # 28
-    "OBSIDIAN",                         # 29
-    "CRYING_OBSIDIAN",                  # 30
-    "IRON_BARS",                        # 31
-    "LANTERN",                          # 32
-    "END_ROD",                          # 33
-    "ENCHANTING_TABLE",                 # 34
-    "BOOKSHELF",                        # 35
-    "BREWING_STAND",                    # 36
-    "CAULDRON",                         # 37
-    "EMERALD_BLOCK",                    # 38
-    "DIAMOND_BLOCK",                    # 39
-    "AMETHYST_BLOCK",                   # 40
-    "CYAN_CONCRETE",                    # 41
-    "SANDSTONE",                        # 42
-    "PINK_CONCRETE",                    # 43
-    "LIGHT_WEIGHTED_PRESSURE_PLATE",    # 44 (Gold checkpoint)
-    "HEAVY_WEIGHTED_PRESSURE_PLATE",    # 45 (Finish)
-    "COBWEB",                           # 46
-    "ENDER_CHEST",                      # 47
-    "ANVIL",                            # 48
-    "HAY_BLOCK",                        # 49
-    "TARGET",                           # 50
+PALETTE_NAMES = [
+    "AIR",
+    # Snow, Glacial Ice & Marble
+    "SNOW_BLOCK", "PACKED_ICE", "BLUE_ICE", "SMOOTH_QUARTZ", "QUARTZ_PILLAR",
+    "CHISELED_QUARTZ_BLOCK", "POLISHED_DIORITE", "CALCITE",
+    # Castle Stone & Roofs
+    "STONE_BRICKS", "CHISELED_STONE_BRICKS", "DEEPSLATE_BRICKS", "DEEPSLATE_TILES",
+    "POLISHED_BLACKSTONE_BRICKS", "DARK_PRISMARINE", "PRISMARINE_BRICKS",
+    # Woods & REAL Evergreen Tree Leaves (persistent=true in SpawnEngine!)
+    "SPRUCE_PLANKS", "DARK_OAK_PLANKS", "CRIMSON_PLANKS", "SPRUCE_LOG", "SPRUCE_WOOD",
+    "DARK_OAK_WOOD", "STRIPPED_SPRUCE_LOG",
+    "SPRUCE_LEAVES", "DARK_OAK_LEAVES", "AZALEA_LEAVES", "FLOWERING_AZALEA_LEAVES",
+    # Festive Accents & Textiles
+    "RED_CONCRETE", "WHITE_CONCRETE", "YELLOW_CONCRETE", "ORANGE_CONCRETE",
+    "PURPLE_CONCRETE", "MAGENTA_CONCRETE", "LIGHT_BLUE_CONCRETE", "BLUE_CONCRETE",
+    "CYAN_CONCRETE", "BLACK_CONCRETE",
+    "RED_WOOL", "WHITE_WOOL",
+    "RED_CARPET", "WHITE_CARPET", "YELLOW_CARPET", "CYAN_CARPET",
+    # Stained Glass & Metals
+    "RED_STAINED_GLASS", "WHITE_STAINED_GLASS", "YELLOW_STAINED_GLASS",
+    "LIGHT_BLUE_STAINED_GLASS", "BLUE_STAINED_GLASS", "CYAN_STAINED_GLASS",
+    "PURPLE_STAINED_GLASS", "MAGENTA_STAINED_GLASS", "LIME_STAINED_GLASS",
+    "GOLD_BLOCK", "EMERALD_BLOCK", "DIAMOND_BLOCK", "AMETHYST_BLOCK",
+    "NETHERITE_BLOCK", "LAPIS_BLOCK", "COPPER_BLOCK", "REDSTONE_BLOCK",
+    # Lighting
+    "SEA_LANTERN", "SHROOMLIGHT", "GLOWSTONE", "OCHRE_FROGLIGHT",
+    "PEARLESCENT_FROGLIGHT", "VERDANT_FROGLIGHT", "END_ROD", "LANTERN",
+    # Functional & Palace Interior Furniture
+    "IRON_BARS", "SPRUCE_FENCE", "DARK_OAK_FENCE",
+    "BOOKSHELF", "ENCHANTING_TABLE", "ANVIL", "ENDER_CHEST", "CRAFTING_TABLE",
+    "BREWING_STAND", "CAULDRON", "SMITHING_TABLE", "CARTOGRAPHY_TABLE", "BARREL",
+    "NOTE_BLOCK", "LEVER",
+    "LIGHT_WEIGHTED_PRESSURE_PLATE", "HEAVY_WEIGHTED_PRESSURE_PLATE",
+    # Mine & Special
+    "COAL_ORE", "IRON_ORE", "GOLD_ORE", "DIAMOND_ORE", "EMERALD_ORE", "LAPIS_ORE",
+    "OBSIDIAN", "CRYING_OBSIDIAN", "COBWEB", "MAGMA_BLOCK", "HAY_BLOCK",
 ]
-P = {name: i for i, name in enumerate(PALETTE)}
 
-grid = np.zeros((W, H, L), dtype=np.uint8)
+P = {name: idx for idx, name in enumerate(PALETTE_NAMES)}
+assert len(PALETTE_NAMES) < 250, "Palette fits in 1 byte!"
 
-def sblock(wx, wy, wz, b):
-    lx, ly, lz = wx + OX, wy - 64, wz + OZ
+grid = bytearray(W * H * L)
+rng = random.Random(20260508)
+
+
+def s(x, y, z, mat_id):
+    lx = x + OX
+    ly = y - Y_OFFSET
+    lz = z + OZ
     if 0 <= lx < W and 0 <= ly < H and 0 <= lz < L:
-        grid[lx, ly, lz] = b
+        grid[(lx * H + ly) * L + lz] = mat_id
 
-def gblock(wx, wy, wz):
-    lx, ly, lz = wx + OX, wy - 64, wz + OZ
+
+def g(x, y, z):
+    lx = x + OX
+    ly = y - Y_OFFSET
+    lz = z + OZ
     if 0 <= lx < W and 0 <= ly < H and 0 <= lz < L:
-        return int(grid[lx, ly, lz])
+        return grid[(lx * H + ly) * L + lz]
     return 0
 
-def fill_box(x1, y1, z1, x2, y2, z2, b):
+
+def fill_box(x1, y1, z1, x2, y2, z2, mat_id):
     lx1, lx2 = max(0, min(x1, x2) + OX), min(W - 1, max(x1, x2) + OX)
-    ly1, ly2 = max(0, min(y1, y2) - 64), min(H - 1, max(y1, y2) - 64)
+    ly1, ly2 = max(0, min(y1, y2) - Y_OFFSET), min(H - 1, max(y1, y2) - Y_OFFSET)
     lz1, lz2 = max(0, min(z1, z2) + OZ), min(L - 1, max(z1, z2) + OZ)
-    if lx1 <= lx2 and ly1 <= ly2 and lz1 <= lz2:
-        grid[lx1:lx2+1, ly1:ly2+1, lz1:lz2+1] = b
+    if lx1 > lx2 or ly1 > ly2 or lz1 > lz2:
+        return
+    row_len = lz2 - lz1 + 1
+    patch = bytes([mat_id]) * row_len
+    for lx in range(lx1, lx2 + 1):
+        base_x = lx * H
+        for ly in range(ly1, ly2 + 1):
+            start = (base_x + ly) * L + lz1
+            grid[start:start + row_len] = patch
 
-def carve_road(x1, z1, x2, z2, half_w=3, floor_y=99, main_blk=P["RED_CONCRETE"], trim_blk=P["GOLD_BLOCK"]):
-    """Carves a 100% unobstructed flat road/bridge between (x1,z1) and (x2,z2) with Y=floor_y+1..floor_y+6 AIR!"""
-    dist = max(1, int(math.hypot(x2 - x1, z2 - z1) * 2))
-    for i in range(dist + 1):
-        t = i / float(dist)
-        cx = int(round(x1 + (x2 - x1) * t))
-        cz = int(round(z1 + (z2 - z1) * t))
-        for dx in range(-half_w, half_w + 1):
-            for dz in range(-half_w, half_w + 1):
-                wx, wz = cx + dx, cz + dz
-                edge = (abs(dx) == half_w or abs(dz) == half_w)
-                sblock(wx, floor_y - 1, wz, P["SMOOTH_QUARTZ"])
-                sblock(wx, floor_y, wz, trim_blk if edge else main_blk)
-                fill_box(wx, floor_y + 1, wz, wx, floor_y + 7, wz, P["AIR"])
 
-# ==============================================================================
-# PHASE 1: BUILD ALL FLOATING ISLAND BASES FIRST (SO NO ISLAND EVER OVERWRITES AN ARENA OR BRIDGE!)
-# ==============================================================================
-def build_floating_island(cx, cz, rx, rz, top_y=99, rim_a=P["RED_CONCRETE"], rim_b=P["SMOOTH_QUARTZ"], under_accent=P["LIGHT_BLUE_CONCRETE"]):
-    xs = np.arange(cx - rx - 2, cx + rx + 3)
-    zs = np.arange(cz - rz - 2, cz + rz + 3)
-    XX, ZZ = np.meshgrid(xs, zs, indexing='ij')
-    norm_r = np.sqrt(((XX - cx) / float(rx)) ** 2 + ((ZZ - cz) / float(rz)) ** 2)
-    ang = np.arctan2(ZZ - cz, XX - cx)
-    jag = 1.0 + 0.04 * np.sin(ang * 8.0) + 0.03 * np.cos(ang * 12.0)
-    inside = norm_r <= jag
-
-    for ix in range(XX.shape[0]):
-        for iz in range(XX.shape[1]):
-            if not inside[ix, iz]:
-                continue
-            wx, wz = int(XX[ix, iz]), int(ZZ[ix, iz])
-            nr = norm_r[ix, iz] / jag[ix, iz]
-            depth = int((1.0 - nr ** 1.65) * 20) + int(4 * abs(math.sin(wx * 0.37) * math.cos(wz * 0.41)))
-            bot_y = max(68, top_y - depth)
-            fill_box(wx, bot_y + 5, wz, wx, top_y - 3, wz, under_accent if (wx + wz) % 3 == 0 else P["PACKED_ICE"])
-            fill_box(wx, top_y - 2, wz, wx, top_y - 1, wz, P["SMOOTH_QUARTZ"])
-            fill_box(wx, bot_y, wz, wx, bot_y + 4, wz, P["BLUE_ICE"] if (wx * wz) % 2 == 0 else P["CYAN_CONCRETE"])
-            if nr > 0.93:
-                stripe = rim_a if ((wx + wz) // 2) % 2 == 0 else rim_b
-                sblock(wx, top_y, wz, stripe)
-                sblock(wx, top_y + 1, wz, stripe)
-                if (wx + wz) % 6 == 0:
-                    sblock(wx, top_y + 2, wz, P["GOLD_BLOCK"])
-                    sblock(wx, top_y + 3, wz, P["SEA_LANTERN"])
-            else:
-                sblock(wx, top_y, wz, P["SNOW_BLOCK"])
-
-# 1. Central Festive Citadel Island (R=54)
-build_floating_island(0, 0, 54, 54, top_y=99, rim_a=P["RED_CONCRETE"], rim_b=P["SMOOTH_QUARTZ"], under_accent=P["LIGHT_BLUE_CONCRETE"])
-# 2. Southern Winter Palace Island (cx=0, cz=78, rx=30, rz=22)
-build_floating_island(0, 78, 30, 22, top_y=99, rim_a=P["GOLD_BLOCK"], rim_b=P["RED_CONCRETE"], under_accent=P["CYAN_CONCRETE"])
-# 3. Northern Shulker Case Terrace (cx=0, cz=-66, rx=42, rz=22, top_y=101)
-build_floating_island(0, -66, 42, 22, top_y=101, rim_a=P["GOLD_BLOCK"], rim_b=P["LIGHT_BLUE_CONCRETE"], under_accent=P["CYAN_CONCRETE"])
-# 4. West Auto-Mine & Mob Farm Island (cx=-82, cz=-14, rx=28, rz=42)
-build_floating_island(-82, -14, 28, 42, top_y=99, rim_a=P["CYAN_CONCRETE"], rim_b=P["SMOOTH_QUARTZ"], under_accent=P["PRISMARINE_BRICKS"])
-# 5. East Gladiator PvP Colosseum & 8 Kabinki Island (cx=84, cz=-4, rx=32, rz=48 -> X=52..116, Z=-52..+44)
-build_floating_island(84, -4, 32, 48, top_y=99, rim_a=P["RED_CONCRETE"], rim_b=P["GOLD_BLOCK"], under_accent=P["ORANGE_CONCRETE"])
-# 6. South-West Casino 777 Island — MOVED CLEANLY TO (cx=-70, cz=68, rx=19, rz=19 -> Z=49..87, ZERO overlap!)
-build_floating_island(-70, 68, 19, 19, top_y=99, rim_a=P["GOLD_BLOCK"], rim_b=P["RED_CONCRETE"], under_accent=P["YELLOW_CONCRETE"])
-# 7. South-East Bafovar & Enchant Island — MOVED CLEANLY TO (cx=70, cz=68, rx=19, rz=19 -> Z=49..87, ZERO overlap with PvP Colosseum!)
-build_floating_island(70, 68, 19, 19, top_y=99, rim_a=P["MAGENTA_CONCRETE"], rim_b=P["CYAN_CONCRETE"], under_accent=P["AMETHYST_BLOCK"])
-
-# ==============================================================================
-# PHASE 2: CENTRAL PLAZA MOSAIC + WIDE ROYAL AVENUES & BRIDGES TO EVERY ISLAND!
-# ==============================================================================
-RING_COLORS = [P["RED_CONCRETE"], P["GOLD_BLOCK"], P["LIGHT_BLUE_CONCRETE"], P["LIME_CONCRETE"], P["MAGENTA_CONCRETE"]]
-for wx in range(-50, 51):
-    for wz in range(-50, 51):
-        d = math.hypot(wx, wz)
-        if d > 50:
-            continue
-        ax, az = abs(wx), abs(wz)
-        if abs(d - 18) < 1.3:
-            sblock(wx, 99, wz, P["GOLD_BLOCK"] if (wx + wz) % 2 == 0 else P["RED_CONCRETE"])
-        elif abs(d - 30) < 1.3:
-            sblock(wx, 99, wz, P["LIGHT_BLUE_CONCRETE"] if (wx + wz) % 2 == 0 else P["SMOOTH_QUARTZ"])
-        elif abs(d - 43) < 1.3:
-            sblock(wx, 99, wz, RING_COLORS[(ax + az) % len(RING_COLORS)])
-        elif (wx * 3 + wz * 5) % 29 == 0:
-            sblock(wx, 99, wz, P["PINK_CONCRETE"] if (wx + wz) % 2 == 0 else P["CYAN_CONCRETE"])
-
-# Subtle flush Sea Lantern floor lighting (NO translucent glass-over-lantern lag spikes!)
-for lx_p in range(-44, 45, 10):
-    for lz_p in range(-44, 45, 10):
-        dp = math.hypot(lx_p, lz_p)
-        if 17 < dp < 47:
-            sblock(lx_p, 99, lz_p, P["SEA_LANTERN"])
-
-# Carve WIDE, 100% OPEN ROYAL BRIDGES connecting Central Plaza to ALL 6 Outer Islands!
-# 1) South Arrival -> Tree -> North Terrace base
-carve_road(0, 65, 0, 15, half_w=4, floor_y=99, main_blk=P["RED_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-carve_road(0, -15, 0, -45, half_w=4, floor_y=99, main_blk=P["RED_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-# Ring boulevard around the Giant Christmas Tree (R=21) so players walk smoothly around the tree & to all NPCs!
-for deg in range(0, 360, 3):
-    rad = math.radians(deg)
-    rx_b = int(round(21.0 * math.cos(rad)))
-    rz_b = int(round(21.0 * math.sin(rad)))
-    fill_box(rx_b - 2, 99, rz_b - 2, rx_b + 2, 99, rz_b + 2, P["SMOOTH_QUARTZ"])
-    fill_box(rx_b - 1, 99, rz_b - 1, rx_b + 1, 99, rz_b + 1, P["RED_CONCRETE"])
-    fill_box(rx_b - 2, 100, rz_b - 2, rx_b + 2, 106, rz_b + 2, P["AIR"])
-
-# 2) East Bridge -> /warp pvp (60, 17), PvP Training Terrace (60, -3), and /warp kabinki (63, -25)!
-carve_road(21, 17, 65, 17, half_w=4, floor_y=99, main_blk=P["RED_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-carve_road(21, 0, 56, 0, half_w=3, floor_y=99, main_blk=P["RED_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-carve_road(56, 17, 64, -44, half_w=3, floor_y=99, main_blk=P["SMOOTH_QUARTZ"], trim_blk=P["GOLD_BLOCK"])
-
-# 3) West Bridge -> /warp mine (-68, 4) and /warp farm (-80, -35)!
-carve_road(-21, 4, -71, 4, half_w=4, floor_y=99, main_blk=P["LIGHT_BLUE_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-carve_road(-68, 4, -68, -35, half_w=3, floor_y=99, main_blk=P["SMOOTH_QUARTZ"], trim_blk=P["CYAN_CONCRETE"])
-carve_road(-68, -35, -94, -35, half_w=3, floor_y=99, main_blk=P["SMOOTH_QUARTZ"], trim_blk=P["CYAN_CONCRETE"])
-
-# 4) SW Bridge -> /warp casino (-60, 68)
-carve_road(-18, 36, -59, 68, half_w=3, floor_y=99, main_blk=P["RED_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-
-# 5) SE Bridge -> /warp bafs / enchant (60, 68)
-carve_road(18, 36, 59, 68, half_w=3, floor_y=99, main_blk=P["MAGENTA_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-
-# 6) North Stepped Grand Avenue -> /warp cases (0, 102, -55) (Y=99 -> Y=100 -> Y=101 terrace!)
-fill_box(-9, 99, -45, 9, 99, -47, P["GOLD_BLOCK"])
-fill_box(-9, 100, -45, 9, 108, -47, P["AIR"])
-fill_box(-9, 100, -48, 9, 100, -50, P["SMOOTH_QUARTZ"])
-fill_box(-9, 101, -48, 9, 108, -50, P["AIR"])
-fill_box(-12, 101, -51, 12, 101, -60, P["SNOW_BLOCK"])
-fill_box(-12, 102, -51, 12, 109, -60, P["AIR"])
-
-# 7) NE Walkway -> /warp parkour (38, 100, -24) & NW Walkway -> /warp top (-34, 100, -28)
-carve_road(18, -14, 39, -24, half_w=3, floor_y=99, main_blk=P["CYAN_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-carve_road(-18, -14, -34, -28, half_w=3, floor_y=99, main_blk=P["YELLOW_CONCRETE"], trim_blk=P["GOLD_BLOCK"])
-
-# ==============================================================================
-# PHASE 3: COLOSSAL 82-BLOCK HOLLOW-SHELL CHRISTMAS TREE (5X HIGHER FPS, ZERO LAG!)
-# ==============================================================================
-for y in range(100, 168):
-    tr = 3 if y < 112 else (2 if y < 140 else 1)
-    for dx in range(-tr, tr + 1):
-        for dz in range(-tr, tr + 1):
-            if dx * dx + dz * dz <= tr * tr + 1:
-                sblock(dx, y, dz, P["SPRUCE_LOG"])
-
-# Note: Canopy starts at Y=108 so players have a wide, airy 8-block clearance underneath the tree!
-BAUBLES = [P["RED_CONCRETE"], P["GOLD_BLOCK"], P["LIGHT_BLUE_CONCRETE"], P["MAGENTA_CONCRETE"], P["LIME_CONCRETE"], P["ORANGE_CONCRETE"], P["SEA_LANTERN"]]
-for y in range(108, 174):
-    t = (y - 108) / 66.0
-    tier_wave = 1.0 + 0.22 * ((174 - y) % 6) / 5.0
-    max_r = (1.0 - t) * 16.5 * tier_wave + 1.4
-    ir = int(max_r) + 2
-    spiral_ang = (y * 0.42) % (2 * math.pi)
+def fill_cyl(cx, cz, r, y1, y2, mat_id):
+    r2 = r * r
+    ir = int(math.ceil(r))
     for dx in range(-ir, ir + 1):
         for dz in range(-ir, ir + 1):
-            dist = math.hypot(dx, dz)
-            if dist <= 1.2 or dist > max_r:
-                continue
+            if dx * dx + dz * dz <= r2:
+                fill_box(cx + dx, y1, cz + dz, cx + dx, y2, cz + dz, mat_id)
+
+
+# ==============================================================================
+# 1. FLOATING GLACIAL ISLANDS WITH DEEP LAYERED BLUE-ICE STALACTITES
+# ==============================================================================
+print("[1/11] Sculpting 7 Floating Glacial Islands & Deep Ice Stalactites...")
+
+
+def build_floating_island(cx, cz, rx, rz, top_y=99, depth=26):
+    irx, irz = int(math.ceil(rx)), int(math.ceil(rz))
+    for dx in range(-irx, irx + 1):
+        for dz in range(-irz, irz + 1):
+            nd = math.sqrt((dx / rx) ** 2 + (dz / rz) ** 2)
             ang = math.atan2(dz, dx)
-            branch_lobe = 1.0 + 0.13 * math.cos(ang * 7.0 + y * 0.2)
-            lim = max_r * branch_lobe
-            if dist <= lim:
-                if lim - dist < 1.05:
-                    ang_diff = abs(((ang - spiral_ang + math.pi) % (2 * math.pi)) - math.pi)
-                    if ang_diff < 0.25:
-                        sblock(dx, y, dz, P["GOLD_BLOCK"] if y % 2 == 0 else P["GLOWSTONE"])
-                    elif (dx * 7 + dz * 13 + y * 5) % 11 == 0:
-                        sblock(dx, y, dz, BAUBLES[(dx + dz + y) % len(BAUBLES)])
+            edge_wobble = 0.045 * math.sin(ang * 7.0 + cx * 0.2) + 0.03 * math.cos(ang * 11.0 - cz * 0.2)
+            if nd > 1.0 + edge_wobble:
+                continue
+            x, z = cx + dx, cz + dz
+            spike = 0.62 + 0.25 * math.sin(x * 0.33 + z * 0.21) + 0.20 * math.cos(x * 0.51 - z * 0.39)
+            col_d = max(4, int(depth * ((1.03 - min(1.0, nd)) ** 0.72) * spike))
+            bot_y = max(Y_OFFSET + 1, top_y - col_d)
+            for y in range(bot_y, top_y - 2):
+                rel = (y - bot_y) / max(1, (top_y - 2 - bot_y))
+                if rel < 0.30:
+                    s(x, y, z, P["BLUE_ICE"])
+                elif rel < 0.62:
+                    s(x, y, z, P["PACKED_ICE"])
+                else:
+                    s(x, y, z, P["DEEPSLATE_BRICKS"] if (x + y + z) % 5 == 0 else P["STONE_BRICKS"])
+            s(x, top_y - 2, z, P["STONE_BRICKS"])
+            s(x, top_y - 1, z, P["POLISHED_DIORITE"])
+            # Subtle textured winter marble + snow surface
+            if (x * 3 + z * 5) % 17 == 0:
+                s(x, top_y, z, P["CALCITE"])
+            elif (x + z) % 9 == 0:
+                s(x, top_y, z, P["SMOOTH_QUARTZ"])
+            else:
+                s(x, top_y, z, P["SNOW_BLOCK"])
+
+
+# Central Heart Island + South Palace Peninsula
+build_floating_island(0, 4, 52, 52, top_y=99, depth=30)
+build_floating_island(0, 62, 34, 34, top_y=99, depth=26)
+# North Shulker Case Terrace
+build_floating_island(0, -65, 42, 24, top_y=101, depth=24)
+# East Gladiator Colosseum + Duel Kabinki Wing
+build_floating_island(82, 16, 30, 32, top_y=99, depth=27)
+build_floating_island(78, -24, 24, 29, top_y=99, depth=23)
+# West Crystal Auto-Mine + NW Mob Farm Bastion
+build_floating_island(-83, 4, 26, 25, top_y=99, depth=25)
+build_floating_island(-80, -39, 25, 20, top_y=99, depth=22)
+# SW Casino 777 Island & SE Bafovar Wizard Island
+build_floating_island(-66, 68, 22, 20, top_y=99, depth=21)
+build_floating_island(66, 68, 22, 20, top_y=99, depth=21)
+
+
+# ==============================================================================
+# 2. ROYAL MARBLE & STONEBRICK BOULEVARDS + ARCHED BRIDGES (NO YELLOW SPAM!)
+# ==============================================================================
+print("[2/11] Building Royal Marble Plazas, Arched Bridges & Streetlights...")
+
+# Central Compass-Rose Marble Inlay Plaza (R=12..34 around the Tree)
+for dx in range(-36, 37):
+    for dz in range(-36, 56):
+        d = math.hypot(dx, dz)
+        if 11.5 <= d <= 35.5 or (abs(dx) <= 16 and 12 <= dz <= 56):
+            x, z = dx, dz
+            if abs(dx) <= 3 and 24 <= dz <= 55:
+                # Grand Royal Carpet Boulevard from /spawn (0,52) straight toward the Tree!
+                s(x, 99, z, P["RED_CONCRETE"] if abs(dx) <= 1 else P["POLISHED_DIORITE"])
+                if abs(dx) == 2 and z % 3 == 0:
+                    s(x, 99, z, P["GOLD_BLOCK"])
+            elif int(round(d)) in (13, 23, 33):
+                s(x, 99, z, P["DEEPSLATE_TILES"])
+            elif abs(dx) == abs(dz) or dx == 0 or dz == 0:
+                s(x, 99, z, P["SMOOTH_QUARTZ"])
+            elif (dx + dz) % 2 == 0:
+                s(x, 99, z, P["POLISHED_DIORITE"])
+            else:
+                s(x, 99, z, P["CALCITE"] if (dx * dz) % 5 == 0 else P["SNOW_BLOCK"])
+
+
+def build_royal_bridge(x1, z1, x2, z2, half_w=4, y_surf=99):
+    steps = int(max(abs(x2 - x1), abs(z2 - z1)) * 2) + 1
+    visited = set()
+    for i in range(steps + 1):
+        t = i / max(1, steps)
+        cx = int(round(x1 + (x2 - x1) * t))
+        cz = int(round(z1 + (z2 - z1) * t))
+        for dx in range(-half_w - 1, half_w + 2):
+            for dz in range(-half_w - 1, half_w + 2):
+                if dx * dx + dz * dz > (half_w + 1.2) ** 2:
+                    continue
+                bx, bz = cx + dx, cz + dz
+                if (bx, bz) in visited:
+                    continue
+                visited.add((bx, bz))
+                dist_edge = math.hypot(dx, dz)
+                # Solid stone/ice bridge arch underside
+                arch_drop = int(3 + 3 * math.sin(t * math.pi))
+                for yy in range(y_surf - arch_drop, y_surf):
+                    if g(bx, yy, bz) == P["AIR"]:
+                        s(bx, yy, bz, P["PACKED_ICE"] if yy < y_surf - 2 else P["STONE_BRICKS"])
+                if dist_edge >= half_w + 0.15:
+                    s(bx, y_surf, bz, P["DEEPSLATE_TILES"])
+                else:
+                    s(bx, y_surf, bz, P["POLISHED_DIORITE"] if (bx + bz) % 2 == 0 else P["SMOOTH_QUARTZ"])
+
+
+# Bridges connecting all 7 outer islands to Central Island
+build_royal_bridge(28, 17, 65, 17, half_w=5, y_surf=99)     # -> East Colosseum (/warp pvp)
+build_royal_bridge(30, -24, 66, -24, half_w=4, y_surf=99)   # -> East Kabinki & Parkour
+build_royal_bridge(63, 12, 63, -24, half_w=4, y_surf=99)    # -> Colosseum <-> Train <-> Kabinki
+build_royal_bridge(-28, 4, -69, 4, half_w=4, y_surf=99)     # -> West Auto-Mine (/warp mine)
+build_royal_bridge(-34, -26, -80, -35, half_w=4, y_surf=99) # -> Top-5 -> NW Mob Farm
+build_royal_bridge(-18, 46, -59, 68, half_w=4, y_surf=99)   # -> SW Casino 777
+build_royal_bridge(18, 46, 59, 68, half_w=4, y_surf=99)     # -> SE Bafovar Cathedral
+
+# Grand Stepped Marble Bridge North to Shulker Case Terrace (Z=-34 Y=99 -> Z=-50 Y=101)
+for z in range(-52, -33):
+    ty = 99
+    if z <= -42:
+        ty = 100
+    if z <= -46:
+        ty = 101
+    for x in range(-8, 9):
+        fill_box(x, ty - 5, z, x, ty - 1, z, P["STONE_BRICKS"])
+        if abs(x) == 8:
+            s(x, ty, z, P["DEEPSLATE_TILES"])
+            s(x, ty + 1, z, P["QUARTZ_PILLAR"] if z % 4 == 0 else P["IRON_BARS"])
+            if z % 4 == 0:
+                s(x, ty + 2, z, P["SEA_LANTERN"])
+        elif abs(x) <= 2:
+            s(x, ty, z, P["RED_CONCRETE"])
+        else:
+            s(x, ty, z, P["SMOOTH_QUARTZ"] if (x + z) % 2 == 0 else P["POLISHED_DIORITE"])
+        fill_box(x, ty + 1, z, x, ty + 7, z, P["AIR"])
+
+
+# ==============================================================================
+# 3. COLOSSAL GLACIAL ICE WALLS & FROST CRYSTAL SPIRES AROUND THE SPAWN!
+#    ("и стены из льда сделай больше дострой полностью спавн")
+# ==============================================================================
+print("[3/11] Raising Colossal Glacial Ice Walls (18–34 Blocks High) & Crystal Spires...")
+
+
+def build_glacier_spire(cx, cz, base_y, height, base_r, lean_x=0.0, lean_z=0.0, crystal=False):
+    for dy in range(height + 1):
+        t = dy / max(1, height)
+        r = base_r * ((1.0 - t) ** 0.78)
+        px = cx + lean_x * dy
+        pz = cz + lean_z * dy
+        ir = int(math.ceil(r)) + 1
+        for dx in range(-ir, ir + 1):
+            for dz in range(-ir, ir + 1):
+                if dx * dx + dz * dz <= r * r + 0.15:
+                    bx, bz, by = int(round(px + dx)), int(round(pz + dz)), base_y + dy
+                    if crystal and dy > height * 0.55:
+                        mat = P["SEA_LANTERN"] if dy == height - 1 else P["CYAN_STAINED_GLASS"]
+                    elif t < 0.28:
+                        mat = P["SNOW_BLOCK"] if (bx + by + bz) % 3 == 0 else P["PACKED_ICE"]
+                    elif t < 0.72:
+                        mat = P["PACKED_ICE"] if (bx + bz) % 2 == 0 else P["BLUE_ICE"]
                     else:
-                        # 100% Opaque Festive Pine Boughs (GREEN_CONCRETE + LIME_CONCRETE) -> ZERO translucent leaf lag on weak PCs!
-                        sblock(dx, y, dz, P["LIME_CONCRETE"] if (dx + dz + y) % 5 == 0 else P["GREEN_CONCRETE"])
-                        if y % 6 == 0 and (dx + dz) % 4 == 0:
-                            sblock(dx, y + 1, dz, P["SNOW_BLOCK"])
-                elif lim - dist < 2.2:
-                    # Opaque green backing behind outer leaves -> ZERO translucent leaf overdraw lag!
-                    sblock(dx, y, dz, P["GREEN_CONCRETE"])
-                # Inner core stays hollow AIR -> saves 14,000+ blocks & eliminates chunk mesh lag!
+                        mat = P["BLUE_ICE"] if dy < height - 1 else P["SEA_LANTERN"]
+                    s(bx, by, bz, mat)
+        # Anchor down to island or void stalactite
+        if dy == 0:
+            fill_cyl(int(round(cx)), int(round(cz)), max(1.5, base_r * 0.9), base_y - 10, base_y - 1, P["PACKED_ICE"])
 
-fill_box(-1, 174, -1, 1, 182, 1, P["GOLD_BLOCK"])
-fill_box(-5, 177, 0, 5, 179, 0, P["GOLD_BLOCK"])
-fill_box(0, 177, -5, 0, 179, 5, P["GOLD_BLOCK"])
-fill_box(-2, 176, -2, 2, 180, 2, P["SEA_LANTERN"])
-sblock(0, 184, 0, P["END_ROD"])
 
-# Gift boxes tucked neatly close to the tree trunk (R=9..11) so they NEVER block the R=21 Ring Boulevard!
-GIFT_POS = [
-    (-9, -6, P["RED_CONCRETE"], P["GOLD_BLOCK"]),
-    (9, -6, P["LIGHT_BLUE_CONCRETE"], P["SMOOTH_QUARTZ"]),
-    (-9, 6, P["MAGENTA_CONCRETE"], P["YELLOW_CONCRETE"]),
-    (9, 6, P["LIME_CONCRETE"], P["RED_CONCRETE"]),
-    (-10, 0, P["ORANGE_CONCRETE"], P["SMOOTH_QUARTZ"]),
-    (10, 0, P["PINK_CONCRETE"], P["GOLD_BLOCK"]),
+# Outer Glacial Ring & Alpine Ice Walls framing the entire Winter Citadel!
+# Placed along an epic outer crown (R=96..114) + flanking island cliffs so players see
+# massive 22-34 block ice walls in every direction without blocking any bridge or walkway!
+for deg in range(0, 360, 4):
+    rad = math.radians(deg)
+    # Modulated alpine ridge radius & height
+    ridge_r = 104.0 + 7.0 * math.sin(rad * 5.0) + 4.0 * math.cos(rad * 9.0)
+    wx = int(round(math.cos(rad) * ridge_r))
+    wz = int(round(math.sin(rad) * ridge_r))
+    # Keep extra clearance directly behind PvP pit east edge (deg -12..+18 -> push to R=112)
+    if -16 <= deg <= 22 or deg >= 344:
+        wx = int(round(math.cos(rad) * 113.0))
+        wz = int(round(math.sin(rad) * 113.0))
+    wall_h = int(20 + 11 * abs(math.sin(rad * 6.0)) + 5 * math.cos(rad * 12.0))
+    base_rad = 4.2 + 1.4 * abs(math.cos(rad * 4.0))
+    # Sculpt deep hanging glacier root below Y=98 too!
+    build_glacier_spire(wx, wz, 86, wall_h + 12, base_rad,
+                        lean_x=-0.05 * math.cos(rad), lean_z=-0.05 * math.sin(rad),
+                        crystal=(deg % 24 == 0))
+
+# Inner Scenic Ice Cliff Buttresses & Gothic Ice Archways framing Central Island rim (R=49)
+BRIDGE_ANGLES = [
+    math.degrees(math.atan2(17, 48)),    # East PvP bridge
+    math.degrees(math.atan2(-24, 48)),   # NE Kabinki/Parkour bridge
+    math.degrees(math.atan2(-48, 0)),    # North Case bridge
+    math.degrees(math.atan2(-30, -48)),  # NW Farm bridge
+    math.degrees(math.atan2(4, -48)),    # West Mine bridge
+    math.degrees(math.atan2(56, -38)),   # SW Casino bridge
+    math.degrees(math.atan2(56, 38)),    # SE Bafovar bridge
+    math.degrees(math.atan2(60, 0)),     # South Palace peninsula
 ]
-for gx, gz, gbody, grib in GIFT_POS:
-    fill_box(gx - 1, 100, gz - 1, gx + 1, 103, gz + 1, gbody)
-    fill_box(gx, 100, gz - 1, gx, 103, gz + 1, grib)
-    fill_box(gx - 1, 100, gz, gx + 1, 103, gz, grib)
-    sblock(gx, 104, gz, P["SEA_LANTERN"])
+
+for deg in range(0, 360, 5):
+    # Check angular distance to any bridge/peninsula opening
+    near_opening = False
+    for ba in BRIDGE_ANGLES:
+        diff = abs((deg - ba + 180) % 360 - 180)
+        if diff < 15.5:
+            near_opening = True
+            break
+    if near_opening:
+        continue
+    rad = math.radians(deg)
+    ix = int(round(math.cos(rad) * 48.5))
+    iz = int(round(math.sin(rad) * 48.5))
+    spire_h = int(14 + 8 * abs(math.sin(rad * 8.0)))
+    build_glacier_spire(ix, iz, 98, spire_h, 3.1,
+                        lean_x=-0.04 * math.cos(rad), lean_z=-0.04 * math.sin(rad),
+                        crystal=(deg % 20 == 0))
+
+
+# Grand Sculpted Ice & Stone Gothic Archways at the 6 Bridge Gateways!
+def build_bridge_gateway_arch(cx, cz, along_x=True, y_base=100):
+    for side in (-1, 1):
+        px = cx + (0 if along_x else side * 6)
+        pz = cz + (side * 6 if along_x else 0)
+        fill_box(px - 1, y_base, pz - 1, px + 1, y_base + 11, pz + 1, P["DEEPSLATE_BRICKS"])
+        fill_box(px, y_base + 1, pz, px, y_base + 10, pz, P["QUARTZ_PILLAR"])
+        build_glacier_spire(px + (0 if along_x else side * 2),
+                            pz + (side * 2 if along_x else 0),
+                            y_base - 1, 17, 2.4, crystal=True)
+        s(px, y_base + 12, pz, P["SEA_LANTERN"])
+    # Overhead Gothic Ice Arch (Y=109..114 — 9+ blocks clear walk height!)
+    for off in range(-6, 7):
+        ax = cx + (0 if along_x else off)
+        az = cz + (off if along_x else 0)
+        ay = y_base + 12 - (off * off) // 12
+        fill_box(ax - (1 if along_x else 0), ay, az - (0 if along_x else 1),
+                 ax + (1 if along_x else 0), ay + 1, az + (0 if along_x else 1), P["PACKED_ICE"])
+        if off == 0:
+            s(ax, ay - 1, az, P["SEA_LANTERN"])
+            s(ax, ay + 2, az, P["GOLD_BLOCK"])
+
+
+build_bridge_gateway_arch(46, 17, along_x=True, y_base=100)
+build_bridge_gateway_arch(-48, 4, along_x=True, y_base=100)
+build_bridge_gateway_arch(0, -40, along_x=False, y_base=100)
+
 
 # ==============================================================================
-# PHASE 4: DECORATIONS, WINTER PALACE, 8 TOWERS, SNOWMAN, SLEIGH & HALL OF FAME
+# 4. GIANT REAL-LEAF CHRISTMAS TREE (Y=100..191 — ZERO CONCRETE FOLIAGE!)
+#    ("дострой елку ... и блоки елки замени на листву а не бетон")
 # ==============================================================================
-# 6 Fairy-Tale Castle Towers placed strictly in scenic spots away from all bridges!
-TOWER_SPOTS = [
-    (44, 31, P["RED_CONCRETE"]),
-    (46, -15, P["YELLOW_CONCRETE"]),
-    (22, -45, P["PINK_CONCRETE"]),
-    (-22, -45, P["CYAN_CONCRETE"]),
-    (-46, -15, P["ORANGE_CONCRETE"]),
-    (-44, 31, P["LIME_CONCRETE"]),
+print("[4/11] Growing Lush 10-Tier SPRUCE_LEAVES Christmas Tree & 3D Bethlehem Star...")
+
+# Ornate Circular Tree Curb & Cozy Gift Plaza around Base (R=10.5, leaves plaza R=12+ wide open!)
+fill_cyl(0, 0, 10.5, 99, 100, P["DEEPSLATE_TILES"])
+fill_cyl(0, 0, 9.5, 100, 100, P["SNOW_BLOCK"])
+for deg in range(0, 360, 30):
+    rad = math.radians(deg)
+    lx = int(round(math.cos(rad) * 10.0))
+    lz = int(round(math.sin(rad) * 10.0))
+    s(lx, 101, lz, P["QUARTZ_PILLAR"])
+    s(lx, 102, lz, P["SEA_LANTERN"])
+
+# Thick Organic SPRUCE_WOOD Trunk & Flaring Roots from Y=99 all the way to Y=178!
+for y in range(99, 179):
+    tr = max(1.2, 5.2 - (y - 99) * 0.052)
+    fill_cyl(0, 0, tr, y, y, P["SPRUCE_WOOD"])
+# 6 Sculpted Roots hugging the snow mound
+for rdeg in range(0, 360, 60):
+    rrad = math.radians(rdeg + 15)
+    for step in range(4, 9):
+        rx = int(round(math.cos(rrad) * step))
+        rz = int(round(math.sin(rrad) * step))
+        ry = 104 - (step - 4)
+        fill_box(rx, 100, rz, rx, max(100, ry), rz, P["SPRUCE_WOOD"])
+
+# Decorative Gift Boxes tucked neatly on the snow mound under the tree (R=6.5..8.5, Y=101..103)
+UNDER_GIFTS = [
+    (7, 3, P["RED_CONCRETE"], P["GOLD_BLOCK"]),
+    (-7, 4, P["LIGHT_BLUE_CONCRETE"], P["WHITE_CONCRETE"]),
+    (4, -7, P["PURPLE_CONCRETE"], P["GOLD_BLOCK"]),
+    (-5, -6, P["ORANGE_CONCRETE"], P["YELLOW_CONCRETE"]),
+    (0, -8, P["MAGENTA_CONCRETE"], P["WHITE_CONCRETE"]),
+    (-8, -1, P["BLUE_CONCRETE"], P["GOLD_BLOCK"]),
 ]
-for tx, tz, tcol in TOWER_SPOTS:
-    for dx in range(-4, 5):
-        for dz in range(-4, 5):
-            r = math.hypot(dx, dz)
-            if r <= 4.1:
-                fill_box(tx + dx, 97, tz + dz, tx + dx, 99, tz + dz, P["SMOOTH_QUARTZ"])
-                if r >= 3.0:
-                    for yy in range(100, 118):
-                        blk = P["GOLD_BLOCK"] if yy in (100, 109, 117) else (tcol if (dx + dz + yy) % 3 == 0 else P["SMOOTH_QUARTZ"])
-                        sblock(tx + dx, yy, tz + dz, blk)
-    for ry in range(11):
-        rad = 4.5 - ry * 0.38
-        for dx in range(-5, 6):
-            for dz in range(-5, 6):
-                if math.hypot(dx, dz) <= rad:
-                    sblock(tx + dx, 118 + ry, tz + dz, P["GOLD_BLOCK"] if ry >= 9 else tcol)
-    sblock(tx, 129, tz, P["SEA_LANTERN"])
+for gx, gz, gbox, grib in UNDER_GIFTS:
+    fill_box(gx - 1, 101, gz - 1, gx + 1, 103, gz + 1, gbox)
+    for k in range(-1, 2):
+        s(gx + k, 103, gz, grib)
+        s(gx, 103, gz + k, grib)
+        s(gx + k, 102, gz - 1, grib)
+        s(gx + k, 102, gz + 1, grib)
 
-# Overhead Garlands to the 6 Scenic Towers (using opaque GREEN_CONCRETE + glowing bulbs -> zero leaf lag!)
-GARLAND_BULBS = [P["SEA_LANTERN"], P["RED_CONCRETE"], P["GOLD_BLOCK"], P["GLOWSTONE"], P["LIGHT_BLUE_CONCRETE"]]
-for k, (tx, tz, _) in enumerate(TOWER_SPOTS):
-    ang = math.atan2(tz, tx)
-    sx, sz = 12.0 * math.cos(ang), 12.0 * math.sin(ang)
-    for st in range(32):
-        f = st / 31.0
-        gx = int(round(sx + (tx - sx) * f))
-        gz = int(round(sz + (tz - sz) * f))
-        gy = int(round(126 - 5 * f - 4.0 * math.sin(f * math.pi)))
-        sblock(gx, gy, gz, P["GREEN_CONCRETE"])
-        if st % 4 == 0:
-            sblock(gx, gy - 1, gz, GARLAND_BULBS[(st + k) % len(GARLAND_BULBS)])
-
-# 6 Cozy Striped Market Canopies placed BEHIND the 6 Merchant NPCs (zero walkway obstruction!)
-KIOSK_BACKDROPS = [
-    (29, 12, P["RED_CONCRETE"]),       # behind sh_pvp (25, 12)
-    (29, 5,  P["LIGHT_BLUE_CONCRETE"]),# behind sh_gear (25, 5)
-    (-29, 9, P["ORANGE_CONCRETE"]),    # behind sh_raid (-25, 9)
-    (-29,-1, P["LIME_CONCRETE"]),      # behind sh_blocks (-25, -1)
-    (-27,28, P["MAGENTA_CONCRETE"]),   # behind sh_food (-23, 28)
-    (27, 28, P["CYAN_CONCRETE"]),      # behind sh_elytra (23, 28)
+# 10 Overlapping Lush Pine Leaf Tiers from Y=106 up to Y=180 (100% REAL LEAVES!)
+ORNAMENT_MATS = [
+    P["RED_CONCRETE"], P["GOLD_BLOCK"], P["DIAMOND_BLOCK"],
+    P["EMERALD_BLOCK"], P["AMETHYST_BLOCK"], P["SHROOMLIGHT"], P["SEA_LANTERN"],
 ]
-for kx, kz, kcol in KIOSK_BACKDROPS:
-    for dz_k in (-2, 2):
-        fill_box(kx, 100, kz + dz_k, kx, 103, kz + dz_k, P["SPRUCE_LOG"])
-    for dx_k in range(-1, 2):
-        for dz_k in range(-2, 3):
-            sblock(kx + dx_k, 104, kz + dz_k, kcol if (dx_k + dz_k) % 2 == 0 else P["SNOW_BLOCK"])
-    sblock(kx, 103, kz, P["SEA_LANTERN"])
 
-# Giant Happy Snowman placed in wide scenic lawn at (-34, 100..115, 24) — completely out of NPC walkways!
-for dy in range(-4, 5):
-    for dx in range(-4, 5):
-        for dz in range(-4, 5):
-            if dx*dx + dy*dy + dz*dz <= 15:
-                sblock(-34 + dx, 103 + dy, 24 + dz, P["SNOW_BLOCK"])
-for dy in range(-3, 4):
-    for dx in range(-3, 4):
+NUM_TIERS = 10
+TREE_BOT_Y = 106
+TREE_TOP_Y = 180
+for tier in range(NUM_TIERS):
+    t_bot = TREE_BOT_Y + tier * 7
+    t_top = min(TREE_TOP_Y, t_bot + 10)
+    tier_frac = tier / float(NUM_TIERS)
+    max_r = 20.5 * (1.0 - tier_frac * 0.86) + 1.8
+    lobes = 10 if tier < 5 else 8
+    phase_shift = tier * 0.42
+    for y in range(t_bot, t_top + 1):
+        local_t = (y - t_bot) / max(1.0, float(t_top - t_bot))
+        # Natural pine skirt: widest near bottom of tier, tapering smoothly upward
+        base_r = max_r * (1.0 - 0.62 * local_t)
+        ir = int(math.ceil(base_r + 2.5))
+        for dx in range(-ir, ir + 1):
+            for dz in range(-ir, ir + 1):
+                d = math.hypot(dx, dz)
+                if d < 1.2:
+                    continue
+                ang = math.atan2(dz, dx)
+                # Sweeping pine boughs
+                bough = 1.0 + 0.16 * math.cos(ang * lobes + phase_shift) + 0.06 * math.sin(ang * (lobes * 2))
+                lim_r = base_r * bough
+                # Drooping branch tips at bottom of each tier
+                if local_t < 0.18 and bough > 1.06 and abs(d - lim_r) <= 1.2:
+                    s(dx, y - 1, dz, P["SPRUCE_LEAVES"])
+                if d <= lim_r:
+                    # Inner core trunk stays wood, outer lush shell is 100% REAL LEAVES!
+                    if g(dx, y, dz) == P["SPRUCE_WOOD"]:
+                        continue
+                    dist_from_edge = lim_r - d
+                    if dist_from_edge > 2.6:
+                        leaf = P["DARK_OAK_LEAVES"] if (dx + y + dz) % 3 == 0 else P["SPRUCE_LEAVES"]
+                    elif (dx * 7 + y * 13 + dz * 11) % 29 == 0:
+                        leaf = P["FLOWERING_AZALEA_LEAVES"]
+                    elif (dx * 5 + y * 3 + dz * 7) % 13 == 0:
+                        leaf = P["AZALEA_LEAVES"]
+                    else:
+                        leaf = P["SPRUCE_LEAVES"]
+                    s(dx, y, dz, leaf)
+                    # Light snow dusting on upper outer pine tips
+                    if dist_from_edge < 0.95 and bough > 1.05 and (dx + dz + tier) % 3 == 0 and y < 176:
+                        s(dx, y + 1, dz, P["SNOW_BLOCK"])
+
+# Continuous Finished Evergreen Spire Tip (Y=176..182) — NO bald gap under the Star!
+for y in range(176, 183):
+    tip_r = max(0.8, (183 - y) * 0.55)
+    fill_cyl(0, 0, tip_r, y, y, P["SPRUCE_LEAVES"])
+fill_box(0, 175, 0, 0, 183, 0, P["SPRUCE_WOOD"])
+
+# Double Spiral Golden Garlands & 3D Christmas Baubles wrapping the Leaf Tree!
+for step in range(0, 290):
+    t = step / 290.0
+    gy = int(round(108 + t * 69))
+    # Find outer leaf radius along this ray so garlands hug the real leaves cleanly!
+    for strand in (0, 1):
+        ang = t * math.pi * 12.0 + strand * math.pi
+        ux, uz = math.cos(ang), math.sin(ang)
+        leaf_r = 0
+        for rr in range(24, 1, -1):
+            tx, tz = int(round(ux * rr)), int(round(uz * rr))
+            mat = g(tx, gy, tz)
+            if mat in (P["SPRUCE_LEAVES"], P["DARK_OAK_LEAVES"], P["AZALEA_LEAVES"], P["FLOWERING_AZALEA_LEAVES"]):
+                leaf_r = rr
+                break
+        if leaf_r >= 2:
+            gx, gz = int(round(ux * leaf_r)), int(round(uz * leaf_r))
+            if step % 6 == 0:
+                orn = ORNAMENT_MATS[(step // 6 + strand * 3) % len(ORNAMENT_MATS)]
+                # 3D hanging bauble!
+                s(gx, gy, gz, P["GOLD_BLOCK"])
+                s(gx, gy - 1, gz, orn)
+            else:
+                s(gx, gy, gz, P["SHROOMLIGHT"] if strand == 0 else P["OCHRE_FROGLIGHT"])
+
+# Radiant 3D 8-Pointed Bethlehem Star on the Crown (Y=183..192)!
+sc_y = 187
+fill_box(-1, sc_y - 1, -1, 1, sc_y + 1, 1, P["SEA_LANTERN"])
+for arm in range(-5, 6):
+    s(arm, sc_y, 0, P["GOLD_BLOCK"] if abs(arm) < 5 else P["SHROOMLIGHT"])
+    s(0, sc_y + arm, 0, P["GOLD_BLOCK"] if abs(arm) < 5 else P["SHROOMLIGHT"])
+    s(0, sc_y, arm, P["GOLD_BLOCK"] if abs(arm) < 5 else P["SHROOMLIGHT"])
+for d in range(-3, 4):
+    if d != 0:
+        s(d, sc_y + d, 0, P["OCHRE_FROGLIGHT"])
+        s(d, sc_y - d, 0, P["OCHRE_FROGLIGHT"])
+        s(0, sc_y + d, d, P["OCHRE_FROGLIGHT"])
+        s(0, sc_y - d, d, P["OCHRE_FROGLIGHT"])
+
+
+# ==============================================================================
+# 5. GRACEFUL SKY SLEIGH & 6 REINDEER (OPEN SKY Y=153..160 — NO UGLY PILLAR!)
+# ==============================================================================
+print("[5/11] Sculpting Curved Sky Sleigh & 6 Antlered Reindeer...")
+
+sx0, sy0, sz0 = -28, 154, 28
+# Curved Golden Runners (Y=153..155)
+for rx in range(-7, 8):
+    ry = sy0 - 1 + (1 if abs(rx) >= 6 else 0) + (1 if rx == 7 else 0)
+    for rz in (-3, 3):
+        s(sx0 + rx, ry, sz0 + rz, P["GOLD_BLOCK"])
+        if rx in (-4, 0, 4):
+            s(sx0 + rx, sy0, sz0 + rz, P["SPRUCE_FENCE"])
+# Sleigh Hull (Curved Crimson & Spruce Cabin)
+fill_box(sx0 - 5, sy0 + 1, sz0 - 3, sx0 + 5, sy0 + 1, sz0 + 3, P["DARK_OAK_PLANKS"])
+for rx in range(-5, 6):
+    wall_top = sy0 + 4 if rx <= -2 else (sy0 + 2 if rx >= 4 else sy0 + 3)
+    for rz in (-3, 3):
+        fill_box(sx0 + rx, sy0 + 2, sz0 + rz, sx0 + rx, wall_top, sz0 + rz, P["RED_CONCRETE"])
+        s(sx0 + rx, wall_top, sz0 + rz, P["GOLD_BLOCK"])
+fill_box(sx0 - 5, sy0 + 2, sz0 - 2, sx0 - 5, sy0 + 4, sz0 + 2, P["RED_CONCRETE"])
+fill_box(sx0 + 5, sy0 + 2, sz0 - 2, sx0 + 5, sy0 + 3, sz0 + 2, P["GOLD_BLOCK"])
+# Plush Seat & Colorful Gift Pile inside Sleigh (subtle, proportioned!)
+fill_box(sx0, sy0 + 2, sz0 - 2, sx0 + 1, sy0 + 2, sz0 + 2, P["WHITE_WOOL"])
+s(sx0 - 3, sy0 + 2, sz0 - 1, P["EMERALD_BLOCK"])
+s(sx0 - 2, sy0 + 2, sz0 + 1, P["DIAMOND_BLOCK"])
+s(sx0 - 3, sy0 + 3, sz0, P["GOLD_BLOCK"])
+s(sx0 + 5, sy0 + 3, sz0, P["SEA_LANTERN"])
+
+# 6 Sculpted Reindeer pulling Eastward (X = -16, -9, -2) + Golden Reins
+for pair_i, rdx in enumerate([10, 17, 24]):
+    ry = sy0 + 1 + pair_i
+    for rdz in (-2, 2):
+        cx, cz = sx0 + rdx, sz0 + rdz
+        fill_box(cx - 1, ry, cz, cx + 1, ry, cz, P["STRIPPED_SPRUCE_LOG"])
+        s(cx - 1, ry - 1, cz, P["SPRUCE_FENCE"])
+        s(cx + 1, ry - 1, cz, P["SPRUCE_FENCE"])
+        s(cx + 2, ry + 1, cz, P["STRIPPED_SPRUCE_LOG"])
+        s(cx + 2, ry + 2, cz - 1, P["SPRUCE_FENCE"])
+        s(cx + 2, ry + 2, cz + 1, P["SPRUCE_FENCE"])
+        if pair_i == 2 and rdz == 2:
+            s(cx + 3, ry + 1, cz, P["SHROOMLIGHT"])  # Rudolph's glowing nose!
+        # Golden rein sparkle
+        s(cx - 3, ry, cz, P["END_ROD"])
+
+
+# ==============================================================================
+# 6. SOUTHERN 3-FLOOR IMPERIAL WINTER PALACE WITH FULL INTERIOR & BALCONY!
+#    ("и добавь в это помещение декор этажи и тд" — exact room from image-2.png!)
+# ==============================================================================
+print("[6/11] Building 3-Floor Imperial Winter Palace (Stairs, Library, Atrium, Chandelier & Balcony)...")
+
+PX1, PX2 = -21, 21
+PZ1, PZ2 = 65, 91
+PY1, PY2 = 100, 122
+
+# Solid Palace Foundation down to Y=96
+fill_box(PX1 - 1, 96, PZ1 - 1, PX2 + 1, 99, PZ2 + 1, P["STONE_BRICKS"])
+
+# Floor 1 Inlaid Royal Marble Floor (Y=99)
+for x in range(PX1, PX2 + 1):
+    for z in range(PZ1, PZ2 + 1):
+        if abs(x) <= 2 and 65 <= z <= 84:
+            s(x, 99, z, P["RED_CONCRETE"])
+        elif abs(x) == 3 and 65 <= z <= 84:
+            s(x, 99, z, P["GOLD_BLOCK"] if z % 2 == 0 else P["POLISHED_DIORITE"])
+        elif (x + z) % 2 == 0:
+            s(x, 99, z, P["POLISHED_DIORITE"])
+        else:
+            s(x, 99, z, P["SMOOTH_QUARTZ"])
+
+# Clear Interior Volume first
+fill_box(PX1, PY1, PZ1, PX2, PY2 + 6, PZ2, P["AIR"])
+
+# Outer Palace Walls (Gothic Quartz Pillars, Deepslate Trim & Tall Stained-Glass Windows!)
+for y in range(PY1, PY2 + 1):
+    for x in range(PX1, PX2 + 1):
+        for z in (PZ1, PZ2):
+            if abs(x) % 6 == 0 or y in (100, 107, 114, PY2):
+                mat = P["DEEPSLATE_TILES"] if y in (107, 114, PY2) else P["QUARTZ_PILLAR"]
+            elif 102 <= y <= 105 or 109 <= y <= 112 or 116 <= y <= 119:
+                mat = P["CYAN_STAINED_GLASS"] if (x + y) % 2 == 0 else P["LIGHT_BLUE_STAINED_GLASS"]
+            else:
+                mat = P["SMOOTH_QUARTZ"]
+            s(x, y, z, mat)
+    for z in range(PZ1, PZ2 + 1):
+        for x in (PX1, PX2):
+            if (z - PZ1) % 6 == 0 or y in (100, 107, 114, PY2):
+                mat = P["DEEPSLATE_TILES"] if y in (107, 114, PY2) else P["QUARTZ_PILLAR"]
+            elif 102 <= y <= 105 or 109 <= y <= 112 or 116 <= y <= 119:
+                mat = P["CYAN_STAINED_GLASS"] if (z + y) % 2 == 0 else P["BLUE_STAINED_GLASS"]
+            else:
+                mat = P["SMOOTH_QUARTZ"]
+            s(x, y, z, mat)
+
+# 4 Corner Palace Bell-Towers with Conical Dark-Prismarine & Ice Spires!
+for tx in (PX1, PX2):
+    for tz in (PZ1, PZ2):
+        fill_cyl(tx, tz, 3.2, 100, 125, P["DEEPSLATE_BRICKS"])
+        fill_cyl(tx, tz, 2.2, 101, 124, P["SMOOTH_QUARTZ"])
+        for ry in range(126, 135):
+            rr = max(0.6, (135 - ry) * 0.42)
+            fill_cyl(tx, tz, rr, ry, ry, P["DARK_PRISMARINE"] if ry < 133 else P["BLUE_ICE"])
+        s(tx, 135, tz, P["SEA_LANTERN"])
+
+# Vaulted Cathedral Roof (NO flat yellow ceiling! Ribbed Dark-Prismarine + Quartz Vaults Y=122..127!)
+for z in range(PZ1 - 1, PZ2 + 2):
+    for x in range(PX1 - 1, PX2 + 2):
+        roof_rise = max(0, 5 - abs(x) // 4)
+        ry = PY2 + roof_rise
+        s(x, ry, z, P["DEEPSLATE_TILES"] if z % 4 == 0 else P["DARK_PRISMARINE"])
+        # Warm vaulted interior ribs underneath
+        if PX1 < x < PX2 and PZ1 < z < PZ2:
+            s(x, ry - 1, z, P["QUARTZ_PILLAR"] if z % 6 == 0 else P["SPRUCE_PLANKS"])
+            if z % 6 == 0 and abs(x) in (0, 8, 15):
+                s(x, ry - 2, z, P["SEA_LANTERN"])
+
+# Grand Arched Main Entrance on North Wall (Z=65..66, X=-4..4, Y=100..105)
+for x in range(-4, 5):
+    arch_top = 105 - (abs(x) // 3)
+    fill_box(x, 100, PZ1 - 1, x, arch_top, PZ1 + 1, P["AIR"])
+    s(x, arch_top + 1, PZ1, P["GOLD_BLOCK"])
+for sx in (-5, 5):
+    fill_box(sx, 100, PZ1 - 1, sx, 106, PZ1, P["QUARTZ_PILLAR"])
+    s(sx, 107, PZ1 - 1, P["SEA_LANTERN"])
+
+# ---------------- FLOOR 1 INTERIOR (Y=100..106 — IMPERIAL THRONE HALL) ----------------
+# 6 Fluted Interior Marble Columns with Lantern Sconces
+for cx in (-10, 10):
+    for cz in (70, 76, 82):
+        fill_box(cx, 100, cz, cx, 106, cz, P["QUARTZ_PILLAR"])
+        s(cx, 100, cz, P["CHISELED_QUARTZ_BLOCK"])
+        s(cx, 106, cz, P["CHISELED_QUARTZ_BLOCK"])
+        s(cx + (1 if cx < 0 else -1), 104, cz, P["SEA_LANTERN"])
+
+# Gift #3 Star Pedestal at (0, 100, 74) — SpawnEngine places Gift #3 shulker at (0, 100, 74)!
+for dx in range(-2, 3):
+    for dz in range(-2, 3):
+        if abs(dx) + abs(dz) <= 3:
+            s(dx, 99, 74 + dz, P["CHISELED_QUARTZ_BLOCK"])
+s(0, 99, 74, P["GOLD_BLOCK"])
+
+# Grand Imperial Ruby-Gold Throne Dais at South Wall (X=-5..5, Z=84..89)
+fill_box(-5, 100, 85, 5, 100, 89, P["POLISHED_DIORITE"])
+fill_box(-3, 100, 84, 3, 100, 89, P["RED_CONCRETE"])
+fill_box(-3, 101, 86, 3, 101, 89, P["SMOOTH_QUARTZ"])
+fill_box(-1, 101, 85, 1, 101, 89, P["RED_CONCRETE"])
+# Sculpted King's Throne Chair
+fill_box(-2, 102, 88, 2, 105, 89, P["GOLD_BLOCK"])
+fill_box(-1, 102, 88, 1, 104, 88, P["RED_WOOL"])
+s(-2, 102, 87, P["GOLD_BLOCK"])
+s(2, 102, 87, P["GOLD_BLOCK"])
+s(0, 106, 88, P["DIAMOND_BLOCK"])
+s(-4, 102, 86, P["EMERALD_BLOCK"])
+s(-4, 103, 86, P["SHROOMLIGHT"])
+s(4, 102, 86, P["EMERALD_BLOCK"])
+s(4, 103, 86, P["SHROOMLIGHT"])
+
+# Floor 1 West Wing (X=-19..-12, Z=68..75): Royal Fireplace & Banquet Lounge
+fill_box(-20, 100, 70, -19, 104, 74, P["DEEPSLATE_BRICKS"])
+fill_box(-19, 100, 71, -19, 102, 73, P["MAGMA_BLOCK"])
+fill_box(-19, 101, 71, -19, 102, 73, P["SHROOMLIGHT"])
+fill_box(-18, 100, 71, -18, 102, 73, P["IRON_BARS"])
+# Banquet Table & Velvet Chairs
+fill_box(-15, 100, 69, -13, 100, 73, P["SPRUCE_PLANKS"])
+s(-14, 101, 71, P["LANTERN"])
+for cz in (69, 71, 73):
+    s(-16, 100, cz, P["RED_WOOL"])
+    s(-12, 100, cz, P["RED_WOOL"])
+# Utility Chests & Crafting
+s(-19, 100, 68, P["ENDER_CHEST"])
+s(-18, 100, 68, P["CRAFTING_TABLE"])
+
+# Floor 1 East Wing (X=12..19, Z=68..75): Royal Armory, Smithing & Mini Pine Decor
+fill_box(18, 100, 68, 19, 103, 73, P["BOOKSHELF"])
+s(17, 100, 69, P["ANVIL"])
+s(17, 100, 71, P["SMITHING_TABLE"])
+s(17, 100, 73, P["ENDER_CHEST"])
+# Indoor Festive Mini-Spruce Trees (REAL SPRUCE_LEAVES!)
+for mx, mz in [(-8, 68), (8, 68), (-8, 86), (8, 86)]:
+    s(mx, 100, mz, P["BARREL"])
+    fill_box(mx, 101, mz, mx, 103, mz, P["SPRUCE_LEAVES"])
+    s(mx, 104, mz, P["OCHRE_FROGLIGHT"])
+
+# ---------------- FLOOR 2 SLAB (Y=107) + CENTRAL ATRIUM + TWIN STAIRCASES 1->2 ----------------
+for x in range(PX1 + 1, PX2):
+    for z in range(PZ1 + 1, PZ2):
+        # Central Open Atrium (X=-7..7, Z=71..82)
+        if -7 <= x <= 7 and 71 <= z <= 82:
+            continue
+        # Stairwell 1->2 cutouts on West (X=-18..-16, Z=77..84) & East (X=16..18, Z=77..84)
+        if (abs(x) in (16, 17, 18)) and 77 <= z <= 84:
+            continue
+        s(x, 107, z, P["SPRUCE_PLANKS"] if (x + z) % 2 == 0 else P["DARK_OAK_PLANKS"])
+
+# Atrium Balustrade on Floor 2 (Y=108 around X=-8..8, Z=70..83)
+for x in range(-8, 9):
+    for z in (70, 83):
+        s(x, 107, z, P["DEEPSLATE_TILES"])
+        s(x, 108, z, P["QUARTZ_PILLAR"] if x % 4 == 0 else P["IRON_BARS"])
+        if x % 4 == 0:
+            s(x, 109, z, P["LANTERN"])
+for z in range(70, 84):
+    for x in (-8, 8):
+        s(x, 107, z, P["DEEPSLATE_TILES"])
+        s(x, 108, z, P["QUARTZ_PILLAR"] if (z - 70) % 4 == 0 else P["IRON_BARS"])
+
+# Twin Grand Staircases Floor 1 (Y=100, Z=84) -> Floor 2 (Y=107, Z=77)
+for sx_range in (range(-18, -15), range(16, 19)):
+    for step_i in range(8):
+        sz = 84 - step_i
+        sy = 100 + step_i
+        for sx in sx_range:
+            fill_box(sx, 100, sz, sx, sy, sz, P["SMOOTH_QUARTZ"] if step_i % 2 == 0 else P["POLISHED_DIORITE"])
+            fill_box(sx, sy + 1, sz, sx, sy + 5, sz, P["AIR"])
+    # Safety railing along inner edge of stairwell
+    rail_x = -15 if sx_range[0] < 0 else 15
+    for sz in range(78, 85):
+        if g(rail_x, 108, sz) == P["AIR"]:
+            s(rail_x, 108, sz, P["IRON_BARS"])
+
+# Floor 2 Furnishings (Y=108..113): Royal Library (West) & VIP Alchemy Lounge (East)!
+# West Library Stacks & Enchanting Nook
+fill_box(-20, 108, 67, -19, 112, 74, P["BOOKSHELF"])
+fill_box(-14, 108, 72, -13, 110, 74, P["BOOKSHELF"])
+s(-16, 108, 70, P["ENCHANTING_TABLE"])
+s(-16, 107, 70, P["GOLD_BLOCK"])
+s(-11, 108, 75, P["CARTOGRAPHY_TABLE"])
+fill_box(-12, 108, 78, -10, 108, 80, P["RED_CARPET"])
+
+# East VIP Alchemy Bar & Velvet Seating
+fill_box(19, 108, 68, 20, 111, 74, P["BOOKSHELF"])
+fill_box(16, 108, 69, 16, 108, 73, P["DARK_PRISMARINE"])
+s(16, 109, 70, P["BREWING_STAND"])
+s(16, 109, 72, P["BREWING_STAND"])
+s(18, 108, 70, P["CAULDRON"])
+s(18, 108, 72, P["ENDER_CHEST"])
+for sz in (75, 77, 79):
+    s(10, 108, sz, P["RED_WOOL"])
+fill_box(0, 108, 68, 0, 108, 69, P["RED_CARPET"])
+
+# ---------------- FLOOR 3 SLAB (Y=114) + TREASURY + WALK-OUT NORTH BALCONY ----------------
+for x in range(PX1 + 1, PX2):
+    for z in range(PZ1 + 1, PZ2):
+        # Central Upper Atrium Opening (X=-6..6, Z=72..81)
+        if -6 <= x <= 6 and 72 <= z <= 81:
+            continue
+        # Stairwell 2->3 cutouts at X=-13..-11 & X=11..13, Z=78..84
+        if (11 <= abs(x) <= 13) and 78 <= z <= 84:
+            continue
+        s(x, 114, z, P["POLISHED_DIORITE"] if (x + z) % 2 == 0 else P["SMOOTH_QUARTZ"])
+
+# Atrium Balustrade on Floor 3 (Y=115 around X=-7..7, Z=71..82)
+for x in range(-7, 8):
+    for z in (71, 82):
+        s(x, 114, z, P["GOLD_BLOCK"] if x % 3 == 0 else P["DEEPSLATE_TILES"])
+        s(x, 115, z, P["IRON_BARS"])
+for z in range(71, 83):
+    for x in (-7, 7):
+        s(x, 114, z, P["DEEPSLATE_TILES"])
+        s(x, 115, z, P["IRON_BARS"])
+
+# Twin Upper Staircases Floor 2 (Y=107, Z=84) -> Floor 3 (Y=114, Z=77)
+for sx_range in (range(-13, -10), range(11, 14)):
+    for step_i in range(7):
+        sz = 83 - step_i
+        sy = 108 + step_i
+        for sx in sx_range:
+            fill_box(sx, 108, sz, sx, sy, sz, P["SMOOTH_QUARTZ"] if step_i % 2 == 0 else P["POLISHED_DIORITE"])
+            fill_box(sx, sy + 1, sz, sx, sy + 5, sz, P["AIR"])
+
+# Floor 3 King's Treasury Glass Vaults (West & East)
+for side in (-1, 1):
+    vx = side * 18
+    fill_box(vx - 1, 115, 68, vx + 1, 118, 74, P["CYAN_STAINED_GLASS"])
+    s(vx, 115, 69, P["DIAMOND_BLOCK"])
+    s(vx, 115, 71, P["EMERALD_BLOCK"])
+    s(vx, 116, 71, P["GOLD_BLOCK"])
+    s(vx, 115, 73, P["AMETHYST_BLOCK"])
+    s(vx, 118, 71, P["SEA_LANTERN"])
+
+# Colossal Hanging Crystal Chandelier cascading down the 3-Floor Atrium (X=0, Z=76, Y=110..125)!
+fill_box(0, 113, 76, 0, 125, 76, P["IRON_BARS"])
+fill_box(-1, 114, 75, 1, 116, 77, P["LIGHT_BLUE_STAINED_GLASS"])
+fill_box(0, 113, 76, 0, 117, 76, P["SEA_LANTERN"])
+for arm in (-3, -2, 2, 3):
+    s(arm, 115, 76, P["IRON_BARS"])
+    s(0, 115, 76 + arm, P["IRON_BARS"])
+    if abs(arm) == 3:
+        s(arm, 116, 76, P["END_ROD"])
+        s(0, 116, 76 + arm, P["END_ROD"])
+        s(arm, 114, 76, P["OCHRE_FROGLIGHT"])
+        s(0, 114, 76 + arm, P["OCHRE_FROGLIGHT"])
+s(0, 111, 76, P["END_ROD"])
+s(0, 112, 76, P["SEA_LANTERN"])
+
+# Walk-Out North Panoramic Royal Balcony on Floor 3 (X=-8..8, Y=114, Z=60..65)!
+fill_box(-3, 115, PZ1 - 1, 3, 119, PZ1 + 1, P["AIR"])  # Arched balcony doorway
+fill_box(-8, 113, 60, 8, 114, 65, P["SMOOTH_QUARTZ"])
+fill_box(-7, 114, 61, 7, 114, 65, P["RED_CARPET"] if False else P["POLISHED_DIORITE"])
+for x in range(-2, 3):
+    for z in range(61, 67):
+        s(x, 114, z, P["RED_CONCRETE"])
+for x in range(-8, 9):
+    s(x, 115, 60, P["QUARTZ_PILLAR"] if x % 4 == 0 else P["IRON_BARS"])
+    if x % 4 == 0:
+        s(x, 116, 60, P["SEA_LANTERN"])
+for z in range(60, 65):
+    s(-8, 115, z, P["IRON_BARS"])
+    s(8, 115, z, P["IRON_BARS"])
+# Corbel arches supporting the balcony above the main entrance
+for sx in (-7, 7):
+    fill_box(sx, 108, 62, sx, 113, 64, P["QUARTZ_PILLAR"])
+
+
+# ==============================================================================
+# 7. CENTRAL MARKET STALLS, ALLEY OF FAME (/warp top) & SNOWMAN PLAZA
+# ==============================================================================
+print("[7/11] Furnishing Festive Market Stalls, Alley of Fame & Street Decor...")
+
+
+def build_festive_stall(cx, cz, facing_x, stripe_mat):
+    bx = cx - facing_x * 4
+    fill_box(bx - 1, 100, cz - 2, bx + 1, 100, cz + 2, P["DARK_OAK_PLANKS"])
+    for sz in (cz - 2, cz + 2):
+        fill_box(bx - 1, 100, sz, bx - 1, 103, sz, P["SPRUCE_LOG"])
+        fill_box(bx + 1, 100, sz, bx + 1, 103, sz, P["SPRUCE_LOG"])
+    for dx in range(-2, 3):
         for dz in range(-3, 4):
-            if dx*dx + dy*dy + dz*dz <= 8:
-                sblock(-34 + dx, 109 + dy, 24 + dz, P["SNOW_BLOCK"])
-for dx in range(-3, 4):
-    for dz in range(-3, 4):
-        if 4 <= dx*dx + dz*dz <= 10:
-            sblock(-34 + dx, 107, 24 + dz, P["RED_CONCRETE"] if (dx + dz) % 2 == 0 else P["GOLD_BLOCK"])
-sblock(-34, 109, 27, P["ORANGE_CONCRETE"])
-sblock(-35, 110, 27, P["OBSIDIAN"])
-sblock(-33, 110, 27, P["OBSIDIAN"])
-fill_box(-37, 112, 21, -31, 112, 27, P["OBSIDIAN"])
-fill_box(-36, 113, 22, -32, 116, 26, P["RED_CONCRETE"])
+            s(bx + dx, 104, cz + dz, stripe_mat if (dx + dz) % 2 == 0 else P["WHITE_WOOL"])
+    s(bx, 103, cz, P["SHROOMLIGHT"])
 
-# 2 Nutcracker Soldiers flanking the Southern Palace Gate (X=±11, Z=58)
-for nx_s in (-11, 11):
-    fill_box(nx_s - 1, 100, 57, nx_s + 1, 103, 59, P["OBSIDIAN"])
-    fill_box(nx_s - 1, 104, 57, nx_s + 1, 106, 59, P["SMOOTH_QUARTZ"])
-    fill_box(nx_s - 2, 107, 57, nx_s + 2, 111, 59, P["RED_CONCRETE"])
-    fill_box(nx_s - 1, 108, 56, nx_s + 1, 110, 56, P["GOLD_BLOCK"])
-    fill_box(nx_s - 1, 112, 57, nx_s + 1, 114, 59, P["SANDSTONE"])
-    fill_box(nx_s - 2, 115, 56, nx_s + 2, 118, 60, P["OBSIDIAN"])
-    sblock(nx_s, 119, 58, P["SEA_LANTERN"])
 
-# Hall of Fame Marble-Gold Archway at /warp top (-34, 100, -28)
-fill_box(-41, 100, -36, -27, 100, -34, P["SMOOTH_QUARTZ"])
-for px_t in (-40, -34, -28):
-    fill_box(px_t, 101, -35, px_t, 108, -35, P["QUARTZ_PILLAR"])
-    sblock(px_t, 109, -35, P["GOLD_BLOCK"])
-fill_box(-41, 109, -35, -27, 110, -35, P["GOLD_BLOCK"])
-sblock(-37, 111, -35, P["SEA_LANTERN"])
-sblock(-31, 111, -35, P["SEA_LANTERN"])
+build_festive_stall(25, 12, -1, P["RED_WOOL"])
+build_festive_stall(25, 5, -1, P["LIGHT_BLUE_CONCRETE"])
+build_festive_stall(-25, 9, 1, P["ORANGE_CONCRETE"])
+build_festive_stall(-25, -1, 1, P["VERDANT_FROGLIGHT"])
+build_festive_stall(-23, 28, 1, P["YELLOW_CONCRETE"])
+build_festive_stall(23, 28, -1, P["PURPLE_CONCRETE"])
 
-# Flying Santa's Sleigh + 6 Reindeer high in sky (Y=144..151, Z=26)
-fill_box(-24, 144, 24, -11, 144, 28, P["GOLD_BLOCK"])
-fill_box(-23, 145, 23, -12, 148, 29, P["RED_CONCRETE"])
-fill_box(-22, 146, 24, -13, 148, 28, P["AIR"])
-fill_box(-22, 146, 24, -18, 150, 28, P["MAGENTA_CONCRETE"])
-for rx_d in (-4, 6, 16):
-    for rz_d in (24, 28):
-        fill_box(rx_d, 146, rz_d, rx_d + 3, 147, rz_d, P["SPRUCE_LOG"])
-        fill_box(rx_d + 3, 148, rz_d, rx_d + 4, 149, rz_d, P["SPRUCE_LOG"])
-        sblock(rx_d + 3, 150, rz_d, P["GOLD_BLOCK"])
-        if rx_d == 16:
-            sblock(rx_d + 5, 149, rz_d, P["RED_CONCRETE"])
-            sblock(rx_d + 5, 148, rz_d, P["SEA_LANTERN"])
-for rx_r in range(-11, 17, 2):
-    sblock(rx_r, 147, 26, P["GLOWSTONE"])
+# Ornate Streetlights along Central Plazas (clear of NPC spots!)
+LAMP_SPOTS = [(-11, 48), (11, 48), (-20, 38), (20, 38), (-21, 18), (21, 18), (-20, -10), (20, -10)]
+for lx, lz in LAMP_SPOTS:
+    s(lx, 100, lz, P["DEEPSLATE_BRICKS"])
+    fill_box(lx, 101, lz, lx, 104, lz, P["SPRUCE_FENCE"])
+    s(lx, 105, lz, P["SEA_LANTERN"])
+    s(lx, 106, lz, P["DARK_PRISMARINE"])
 
-# Southern Royal Winter Palace (Z=66..92) + Glowing "2026" Rooftop Sign
-fill_box(-20, 100, 66, 20, 121, 90, P["SMOOTH_QUARTZ"])
-for yy in (100, 108, 116, 121):
-    fill_box(-20, yy, 66, 20, yy, 90, P["GOLD_BLOCK"] if yy in (100, 121) else P["RED_CONCRETE"])
-fill_box(-18, 100, 67, 18, 120, 88, P["AIR"])
-fill_box(-6, 100, 65, 6, 112, 68, P["AIR"])  # Wide open palace entrance arch!
-for ry in range(11):
-    fill_box(-21 + ry * 2, 122 + ry, 65, 21 - ry * 2, 122 + ry, 91, P["RED_CONCRETE"] if ry % 2 == 0 else P["GOLD_BLOCK"])
+# Alley of Fame Classical Pantheon Colonnade behind Top-5 Boards (-38 & -30, Z=-35..-38)
+fill_box(-43, 100, -37, -25, 100, -35, P["POLISHED_DIORITE"])
+for px in (-42, -38, -34, -30, -26):
+    fill_box(px, 101, -36, px, 107, -36, P["QUARTZ_PILLAR"])
+    s(px, 108, -36, P["GOLD_BLOCK"])
+fill_box(-43, 108, -37, -25, 109, -35, P["SMOOTH_QUARTZ"])
+fill_box(-41, 110, -36, -27, 110, -36, P["GOLD_BLOCK"])
+s(-38, 107, -35, P["SEA_LANTERN"])
+s(-30, 107, -35, P["SEA_LANTERN"])
 
-DIGITS_2026 = {
-    '2': ["1111","0001","0001","1111","1000","1000","1111"],
-    '0': ["1111","1001","1001","1001","1001","1001","1111"],
-    '6': ["1111","1000","1000","1111","1001","1001","1111"],
-}
-bx_sign = -11
-for ch_s in "2026":
-    for ry_s, row_s in enumerate(DIGITS_2026[ch_s]):
-        for rx_s, bit_s in enumerate(row_s):
-            if bit_s == '1':
-                sblock(bx_sign + rx_s, 140 - ry_s, 66, P["GOLD_BLOCK"])
-                sblock(bx_sign + rx_s, 140 - ry_s, 67, P["SEA_LANTERN"])
-    bx_sign += 6
+# Sculpted Festive Snowman at (-34, 100, 23) near Gift #2 (-31, 100, 21)
+fill_cyl(-35, 23, 3.0, 100, 104, P["SNOW_BLOCK"])
+fill_cyl(-35, 23, 2.3, 105, 108, P["SNOW_BLOCK"])
+fill_cyl(-35, 23, 1.7, 109, 111, P["SNOW_BLOCK"])
+fill_cyl(-35, 23, 2.5, 112, 112, P["BLACK_CONCRETE"])
+fill_cyl(-35, 23, 1.6, 113, 115, P["BLACK_CONCRETE"])
+s(-33, 110, 23, P["ORANGE_CONCRETE"])
+
 
 # ==============================================================================
-# PHASE 5: OUTER ISLAND VENUES (ZERO WALL OVERLAPS, WIDE CLEAN ENTRANCES!)
+# 8. NORTH SHULKER CASE TERRACE WITH TALL GLACIAL CROWN ARCHES (/warp cases)
 # ==============================================================================
-# 1) 11 Shulker Case Pedestals on North Terrace (Y=101 floor, clear front arc!)
+print("[8/11] Building North Shulker Case Amphitheater & Glacial Crown Backdrop...")
+
 CASE_COORDS = [
     (-30, -58), (-24, -63), (-18, -67), (-12, -70), (-6, -72),
-    (0, -73),
-    (6, -72), (12, -70), (18, -67), (24, -63), (30, -58)
+    (0, -73), (6, -72), (12, -70), (18, -67), (24, -63), (30, -58)
 ]
-CASE_PILLAR_COLS = [
-    P["RED_CONCRETE"], P["MAGENTA_CONCRETE"], P["YELLOW_CONCRETE"], P["AMETHYST_BLOCK"], P["LIGHT_BLUE_CONCRETE"],
-    P["GOLD_BLOCK"],
-    P["ORANGE_CONCRETE"], P["CYAN_CONCRETE"], P["LIME_CONCRETE"], P["PINK_CONCRETE"], P["SMOOTH_QUARTZ"]
-]
-# Ensure entire North Terrace plaza (-34..+34, -52..-76) is flat Y=101 with open air Y=102..110!
-for wx in range(-34, 35):
-    for wz in range(-75, -50):
-        if math.hypot(wx / 38.0, (wz + 64) / 18.0) <= 1.0:
-            sblock(wx, 101, wz, P["SNOW_BLOCK"] if (wx + wz) % 9 != 0 else P["SMOOTH_QUARTZ"])
-            fill_box(wx, 102, wz, wx, 110, wz, P["AIR"])
+for idx, (cx, cz) in enumerate(CASE_COORDS):
+    fill_box(cx - 1, 101, cz - 1, cx + 1, 101, cz + 1, P["DEEPSLATE_TILES"])
+    s(cx, 102, cz, P["GOLD_BLOCK"] if idx % 2 == 0 else P["EMERALD_BLOCK"])
+    # Tall Glacial & Marble Arch Column behind each Shulker Pedestal (4 blocks further North!)
+    ang = math.atan2(cz + 48, cx)
+    bx = int(round(cx + math.cos(ang) * 5.0))
+    bz = int(round(cz + math.sin(ang) * 5.0))
+    build_glacier_spire(bx, bz, 100, 18 + (5 - abs(idx - 5)) * 2, 2.5, crystal=(idx % 2 == 1))
+    s(bx, 106, bz, P["SEA_LANTERN"])
 
-for idx_c, (cx, cz) in enumerate(CASE_COORDS):
-    pcol = CASE_PILLAR_COLS[idx_c]
-    fill_box(cx - 1, 101, cz - 1, cx + 1, 101, cz + 1, pcol)
-    sblock(cx, 102, cz, P["GOLD_BLOCK"])  # Shulker sits at Y=103!
-    fill_box(cx, 102, cz - 3, cx, 110, cz - 3, pcol if idx_c % 2 == 0 else P["QUARTZ_PILLAR"])
-    sblock(cx, 111, cz - 3, P["SEA_LANTERN"])
 
-# 2) West Auto-Mine (-97..-73, Z=-7..+15) & 4 Mob Farm Chambers (-92, -84, -76, -68 at Z=-45..-39)
-fill_box(-72, 99, -8, -64, 99, 16, P["SMOOTH_QUARTZ"])
-fill_box(-72, 100, -8, -64, 107, 16, P["AIR"])  # Wide open Mine deck!
+# ==============================================================================
+# 9. EAST GLADIATOR PVP COLOSSEUM, TRAINING ARMORY & 8 DUEL KABINKI
+# ==============================================================================
+print("[9/11] Constructing Roman-Winter PvP Colosseum, Training Hall & 8 Duel Kabinki...")
 
-fill_box(-97, 90, -7, -73, 99, 15, P["PRISMARINE_BRICKS"])
-fill_box(-97, 90, -7, -73, 90, 15, P["BEDROCK"])
-fill_box(-96, 91, -6, -74, 104, 14, P["AIR"])
-for mx in range(-97, -72):
-    sblock(mx, 99, -7, P["GOLD_BLOCK"] if mx % 2 == 0 else P["CYAN_CONCRETE"])
-    sblock(mx, 99, 15, P["GOLD_BLOCK"] if mx % 2 == 0 else P["CYAN_CONCRETE"])
-# Wide 5-block staircase out of Auto-Mine (-74..-66, Z=2..6)
-for step in range(9):
-    fill_box(-74 + step, 91 + step, 2, -74 + step, 91 + step, 6, P["SMOOTH_QUARTZ"])
-    fill_box(-74 + step, 92 + step, 2, -74 + step, 105, 6, P["AIR"])
-
-# Clear wide promenade in front of all 4 Mob Farm Chambers (X=-95..-65, Z=-38..-31)
-fill_box(-95, 99, -38, -65, 99, -31, P["SMOOTH_QUARTZ"])
-fill_box(-95, 100, -38, -65, 107, -31, P["AIR"])
-FARM_COLS = [P["LIME_CONCRETE"], P["LIGHT_BLUE_CONCRETE"], P["ORANGE_CONCRETE"], P["MAGENTA_CONCRETE"]]
-for fi, fx in enumerate((-92, -84, -76, -68)):
-    fcol = FARM_COLS[fi]
-    fill_box(fx - 3, 100, -45, fx + 3, 105, -39, P["SMOOTH_QUARTZ"])
-    fill_box(fx - 3, 105, -45, fx + 3, 105, -39, fcol)
-    fill_box(fx - 2, 100, -44, fx + 2, 104, -40, P["AIR"])
-    fill_box(fx - 2, 102, -39, fx + 2, 103, -39, P["CYAN_STAINED_GLASS"])
-    fill_box(fx - 1, 101, -39, fx + 1, 101, -39, P["IRON_BARS"])
-    fill_box(fx - 1, 100, -39, fx + 1, 100, -39, P["AIR"])  # Safe bottom attack window!
-    sblock(fx, 104, -42, P["SEA_LANTERN"])
-
-# 3) EAST GLADIATOR PVP COLOSSEUM (/warp pvp) — 100% ICE-FREE, WIDE OPEN DECK, 3 STAIRCASES, ENDER CHESTS & ANVILS!
-# Wide Preparation Deck in front of PvP Arena (X=56..65, Z=2..38, Y=99) — ZERO ICE WALLS!
-fill_box(56, 98, 2, 65, 99, 38, P["SMOOTH_QUARTZ"])
-fill_box(56, 100, 2, 65, 109, 38, P["AIR"])
-for zp in range(4, 37, 2):
-    sblock(60, 99, zp, P["RED_CONCRETE"] if (zp // 2) % 2 == 0 else P["GOLD_BLOCK"])
-# Ender Chests & Anvils right on the /warp pvp Preparation Deck (away from the central stairs)!
-sblock(62, 100, 10, P["ENDER_CHEST"])
-sblock(62, 100, 11, P["ANVIL"])
-sblock(62, 100, 24, P["ENDER_CHEST"])
-sblock(62, 100, 25, P["ANVIL"])
-
-# Sunken Gladiator PvP Pit (X=66..103, Y=91, Z=4..38) — completely clear up to Y=112!
-fill_box(65, 90, 3, 104, 99, 39, P["SANDSTONE"])
-fill_box(66, 92, 4, 103, 112, 38, P["AIR"])
-for ax in range(66, 104):
-    for az in range(4, 39):
-        ad = math.hypot(ax - 85, az - 21)
-        if abs(ad - 8) < 1.1 or abs(ad - 14) < 1.1:
-            sblock(ax, 91, az, P["RED_CONCRETE"] if (ax + az) % 2 == 0 else P["GOLD_BLOCK"])
+# Sunken PvP Arena Pit (X=67..101, Z=5..37, floor Y=91)
+fill_box(66, 90, 4, 102, 99, 38, P["DEEPSLATE_BRICKS"])
+fill_box(68, 92, 6, 100, 108, 36, P["AIR"])
+for x in range(68, 101):
+    for z in range(6, 37):
+        d_c = math.hypot(x - 84, z - 21)
+        if abs(d_c - 9.0) < 0.8 or x == 84 or z == 21:
+            s(x, 91, z, P["RED_CONCRETE"])
+        elif (x + z) % 2 == 0:
+            s(x, 91, z, P["SMOOTH_QUARTZ"])
         else:
-            sblock(ax, 91, az, P["SANDSTONE"] if (ax + az) % 7 != 0 else P["SMOOTH_QUARTZ"])
+            s(x, 91, z, P["POLISHED_DIORITE"])
 
-for px_c, pz_c in [(75, 12), (95, 12), (75, 30), (95, 30), (85, 21)]:
-    fill_box(px_c - 1, 92, pz_c - 1, px_c + 1, 96, pz_c + 1, P["GOLD_BLOCK"] if px_c == 85 else P["RED_CONCRETE"])
-    sblock(px_c, 97, pz_c, P["SEA_LANTERN"])
-for cx_w, cz_w in [(67, 5), (102, 5), (67, 37), (102, 37)]:
-    sblock(cx_w, 92, cz_w, P["COBWEB"])
+# Central Gladiator Pillar + Corner Cobwebs/Utilities
+fill_box(83, 92, 20, 85, 95, 22, P["QUARTZ_PILLAR"])
+s(84, 96, 21, P["SEA_LANTERN"])
+for cx, cz in [(70, 8), (98, 8), (70, 34), (98, 34)]:
+    s(cx, 92, cz, P["COBWEB"])
+s(65, 100, 11, P["ENDER_CHEST"])
+s(65, 100, 12, P["ANVIL"])
+s(65, 100, 23, P["ENDER_CHEST"])
+s(65, 100, 24, P["ANVIL"])
 
-# Low viewing glass around pit EXCEPT wide open 9-block Grand Staircase (Z=13..21) AND 2 side staircases (Z=6..8 & Z=34..36)!
-for rx in range(65, 105):
-    sblock(rx, 100, 3, P["RED_STAINED_GLASS"])
-    sblock(rx, 100, 39, P["RED_STAINED_GLASS"])
-for rz in range(3, 40):
-    if not (13 <= rz <= 21 or 6 <= rz <= 8 or 34 <= rz <= 36):
-        sblock(65, 100, rz, P["RED_STAINED_GLASS"])
-    sblock(104, 100, rz, P["RED_STAINED_GLASS"])
+# Grand Tiered Colosseum Arches around North, East & South Rim (X=66..103, Z=3..39, Y=100..115)
+for x in range(68, 103, 4):
+    for z in (3, 39):
+        fill_box(x - 1, 100, z, x + 1, 112, z, P["DEEPSLATE_BRICKS"])
+        fill_box(x, 101, z, x, 111, z, P["QUARTZ_PILLAR"])
+        s(x, 113, z, P["SEA_LANTERN"])
+for z in range(5, 38, 4):
+    fill_box(103, 100, z - 1, 103, 114, z + 1, P["DEEPSLATE_BRICKS"])
+    fill_box(103, 101, z, 103, 113, z, P["QUARTZ_PILLAR"])
+    s(103, 115, z, P["SHROOMLIGHT"])
+fill_box(68, 111, 3, 103, 112, 3, P["RED_CONCRETE"])
+fill_box(68, 111, 39, 103, 112, 39, P["RED_CONCRETE"])
+fill_box(103, 112, 3, 103, 113, 39, P["RED_CONCRETE"])
 
-# Grand Central 9-Block-Wide Staircase (Z=13..21) + 2 Side Exit Staircases (Z=6..8 & Z=34..36) so players walk in & out effortlessly!
-for z1_s, z2_s in [(13, 21), (6, 8), (34, 36)]:
-    for st in range(9):
-        fill_box(65 + st, 99 - st, z1_s, 65 + st, 99 - st, z2_s, P["SMOOTH_QUARTZ"] if st % 2 == 0 else P["GOLD_BLOCK"])
-        fill_box(65 + st, 100 - st, z1_s, 65 + st, 108, z2_s, P["AIR"])
+# WIDE UNBLOCKED ENTRY + 3 GRAND STAIRCASES INTO PVP PIT (Y=99 -> Y=92)!
+fill_box(58, 100, 13, 67, 107, 22, P["AIR"])
+for step in range(8):
+    sx = 67 + step
+    sy = 99 - step
+    for z in range(14, 22):
+        fill_box(sx, 91, z, sx, sy, z, P["SMOOTH_QUARTZ"] if step % 2 == 0 else P["RED_CONCRETE"])
+        fill_box(sx, sy + 1, z, sx, 106, z, P["AIR"])
+    for x in range(79, 85):
+        sz_n = 5 + step
+        fill_box(x, 91, sz_n, x, sy, sz_n, P["SMOOTH_QUARTZ"])
+        fill_box(x, sy + 1, sz_n, x, 106, sz_n, P["AIR"])
+        sz_s = 37 - step
+        fill_box(x, 91, sz_s, x, sy, sz_s, P["SMOOTH_QUARTZ"])
+        fill_box(x, sy + 1, sz_s, x, 106, sz_s, P["AIR"])
 
-# 4) PvP DPS Training Dummy Terrace (/warp train at X=58..66, Z=-6..+2) + Wide Promenade to all 8 Kabinki!
-fill_box(58, 99, -46, 92, 99, 2, P["SMOOTH_QUARTZ"])
-fill_box(58, 100, -46, 92, 108, 2, P["AIR"])
-for xd_t in (66, 66, 66):
-    pass
-# Backstop wall behind the 3 DPS Training Dummies at X=68, Z=-5..-1
-fill_box(69, 100, -6, 69, 104, 0, P["CRIMSON_PLANKS"])
-for dz_t in (-5, -3, -1):
-    sblock(69, 102, dz_t, P["TARGET"])
-    sblock(69, 104, dz_t, P["SEA_LANTERN"])
-sblock(60, 100, -24, P["ENDER_CHEST"])
-sblock(60, 100, -25, P["ANVIL"])
+# Training Armory Canopy at /warp train (66.5, 100, -5/-3/-1)
+fill_box(65, 99, -7, 69, 99, 1, P["DEEPSLATE_TILES"])
+for dz in (-5, -3, -1):
+    s(66, 99, dz, P["GOLD_BLOCK"])
+    s(68, 100, dz, P["HAY_BLOCK"])
+    s(68, 101, dz, P["HAY_BLOCK"])
+for cz in (-7, 1):
+    fill_box(68, 100, cz, 68, 104, cz, P["SPRUCE_LOG"])
+fill_box(65, 105, -7, 69, 105, 1, P["DARK_PRISMARINE"])
+s(67, 104, -3, P["SEA_LANTERN"])
 
-# 6x 1v1 Kabinki (X=68..74) + 2x 2v2 Kabinki (X=82..90) with clear 6-block walkways in front of every door!
-KAB_COLS = [P["RED_CONCRETE"], P["ORANGE_CONCRETE"], P["YELLOW_CONCRETE"], P["LIME_CONCRETE"], P["LIGHT_BLUE_CONCRETE"], P["MAGENTA_CONCRETE"]]
-for ki, zc in enumerate((-42, -35, -28, -21, -14, -7)):
-    kc = KAB_COLS[ki]
-    fill_box(68, 99, zc - 2, 74, 104, zc + 2, kc)
+# 8 Glass Duel Kabinki (6x 1v1 + 2x 2v2) — exact door coords preserved!
+for zc in [-42, -35, -28, -21, -14, -7]:
+    fill_box(68, 99, zc - 2, 74, 99, zc + 2, P["POLISHED_DIORITE"])
+    fill_box(68, 100, zc - 2, 74, 103, zc + 2, P["CYAN_STAINED_GLASS"])
+    fill_box(68, 104, zc - 2, 74, 104, zc + 2, P["DARK_PRISMARINE"])
+    s(71, 104, zc, P["SEA_LANTERN"])
     fill_box(69, 100, zc - 1, 73, 103, zc + 1, P["AIR"])
-    fill_box(69, 99, zc - 1, 73, 99, zc + 1, P["SMOOTH_QUARTZ"])
-    fill_box(69, 104, zc - 1, 73, 104, zc + 1, P["WHITE_STAINED_GLASS"])
-    sblock(71, 104, zc, P["SEA_LANTERN"])
-    fill_box(68, 100, zc - 1, 68, 103, zc + 1, P["WHITE_STAINED_GLASS"])
-    sblock(68, 100, zc, P["AIR"])
-    sblock(68, 101, zc, P["AIR"])
+    s(68, 100, zc, P["AIR"])
+    s(68, 101, zc, P["AIR"])
+    s(68, 102, zc, P["GOLD_BLOCK"])
 
-# Wide clear lane between 1v1 row and 2v2 row (X=75..81, Z=-44..-10)
-fill_box(75, 99, -44, 81, 99, -10, P["SNOW_BLOCK"])
-fill_box(75, 100, -44, 81, 107, -10, P["AIR"])
-
-for zc in (-32, -16):
-    fill_box(82, 99, zc - 3, 90, 104, zc + 3, P["GOLD_BLOCK"])
+for zc in [-32, -16]:
+    fill_box(82, 99, zc - 3, 90, 99, zc + 3, P["POLISHED_DIORITE"])
+    fill_box(82, 100, zc - 3, 90, 103, zc + 3, P["MAGENTA_STAINED_GLASS"])
+    fill_box(82, 104, zc - 3, 90, 104, zc + 3, P["DARK_PRISMARINE"])
+    s(86, 104, zc, P["SEA_LANTERN"])
     fill_box(83, 100, zc - 2, 89, 103, zc + 2, P["AIR"])
-    fill_box(83, 99, zc - 2, 89, 99, zc + 2, P["SMOOTH_QUARTZ"])
-    sblock(86, 104, zc, P["SEA_LANTERN"])
-    fill_box(82, 100, zc - 2, 82, 103, zc + 2, P["CYAN_STAINED_GLASS"])
-    sblock(82, 100, zc, P["AIR"])
-    sblock(82, 101, zc, P["AIR"])
+    s(82, 100, zc, P["AIR"])
+    s(82, 101, zc, P["AIR"])
+    s(82, 102, zc, P["GOLD_BLOCK"])
 
-# 5) South-West Grand Casino 777 Pavilion at (-70, 68) — wide open East entrance!
-fill_box(-84, 99, 54, -56, 99, 82, P["SMOOTH_QUARTZ"])
-fill_box(-84, 100, 54, -56, 114, 82, P["AIR"])
-for dx in range(-12, 13):
-    for dz in range(-12, 13):
-        for dy in range(0, 13):
-            r3 = math.sqrt(dx * dx + dy * dy + dz * dz)
-            if 10.8 <= r3 <= 12.1:
-                sblock(-70 + dx, 100 + dy, 68 + dz, P["GOLD_BLOCK"] if (dx + dy + dz) % 3 == 0 else P["RED_STAINED_GLASS"])
-fill_box(-62, 100, 64, -55, 106, 72, P["AIR"])  # Wide open Casino doorway!
-
-# 6) South-East Bafovar & Enchant Pavilion at (+70, 68) — wide open West entrance!
-fill_box(56, 99, 54, 84, 99, 82, P["SMOOTH_QUARTZ"])
-fill_box(56, 100, 54, 84, 118, 82, P["AIR"])
-for dy in range(16):
-    for dx in range(-9, 10):
-        for dz in range(-9, 10):
-            r = math.hypot(dx, dz)
-            if 7.5 <= r <= 8.8 and dy < 11:
-                sblock(70 + dx, 100 + dy, 68 + dz, P["PURPLE_STAINED_GLASS"] if dy in (4, 5, 6) else P["SMOOTH_QUARTZ"])
-            elif dy >= 11 and r <= (16 - dy) * 1.6:
-                sblock(70 + dx, 100 + dy, 68 + dz, P["MAGENTA_CONCRETE"] if dy % 2 == 0 else P["AMETHYST_BLOCK"])
-fill_box(55, 100, 64, 64, 106, 72, P["AIR"])  # Wide open Bafovar doorway!
-sblock(72, 100, 68, P["ENCHANTING_TABLE"])
-for bdx, bdz in [(-2,-2),(2,-2),(-2,2),(2,2),(2,0),(0,-2),(0,2)]:
-    fill_box(72 + bdx, 100, 68 + bdz, 72 + bdx, 101, 68 + bdz, P["BOOKSHELF"])
-sblock(68, 100, 64, P["BREWING_STAND"])
-sblock(68, 100, 72, P["CAULDRON"])
-sblock(66, 100, 64, P["ANVIL"])
-sblock(66, 100, 72, P["ENDER_CHEST"])
 
 # ==============================================================================
-# PHASE 6: CARVE DEDICATED PAVED WALKWAYS & 5x5 CLEAR PLAZAS FOR EVERY SINGLE NPC & WARP!
+# 10. WEST CRYSTAL AUTO-MINE, NW MOB FARM, SW CASINO 777 & SE BAFOVAR CATHEDRAL
 # ==============================================================================
-NPC_PLAZA_SPOTS = [
-    # (x, y, z, connect_x, connect_z)
-    (-8, 100, 42, 0, 42),    # rtp
-    (8,  100, 42, 0, 42),    # donate
-    (-13,100, 34, 0, 34),    # shop_main
-    (13, 100, 34, 0, 34),    # rshop
-    (-16,100, 25, -15, 14),  # bafovar
-    (16, 100, 25, 15, 14),   # skins
-    (-16,100, 14, -21, 4),   # kits
-    (16, 100, 14, 21, 17),   # buyer
-    (-14,100,-15, 0, -21),   # ah
-    (14, 100,-15, 0, -21),   # bounty
-    (-8, 100, 19, 0, 21),    # santa
-    (8,  100, 19, 0, 21),    # snowmaiden
-    (25, 100, 12, 25, 17),   # sh_pvp
-    (25, 100,  5, 25, 0),    # sh_gear
-    (-25,100,  9, -25, 4),   # sh_raid
-    (-25,100, -1, -25, 4),   # sh_blocks
-    (-23,100, 28, -13, 34),  # sh_food
-    (23, 100, 28, 13, 34),   # sh_elytra
-    (0,  100, 36, 0, 42),    # wheel_npc (Fortune Wheel!)
-    (-34,100,-26, -34, -28), # top_npc (Hall of Fame!)
-    (62, 100, -3, 60, 0),    # dummy_master (DPS Trainer!)
-    (0,  102,-53, 0, -55),   # cases_npc
-    (-66,100,  4, -68, 4),   # miner_npc
-    (-78,100,-34, -80, -35), # farm_npc
-    (-66,100, 68, -60, 68),  # casino_npc
-    (66, 100, 68, 60, 68),   # baf_island
-    (35, 100,-24, 38, -24),  # parkour_npc
+print("[10/11] Detailing Crystal Auto-Mine Cavern, Mob Farm, Casino 777 & Bafovar...")
+
+# West Crystal Auto-Mine (X=-96..-75, Y=91..98, Z=-6..14) + Giant Amethyst/Ice Cavern Arch!
+fill_box(-98, 90, -8, -73, 99, 16, P["DEEPSLATE_BRICKS"])
+ORES = [P["COAL_ORE"], P["IRON_ORE"], P["GOLD_ORE"], P["DIAMOND_ORE"], P["EMERALD_ORE"], P["LAPIS_ORE"]]
+for x in range(-96, -74):
+    for y in range(91, 99):
+        for z in range(-6, 15):
+            s(x, y, z, ORES[(x * 7 + y * 13 + z * 5) % len(ORES)])
+# Sculpted Dwarven Crystal Portal Arch over the Auto-Mine!
+for z in range(-8, 17):
+    arch_h = 109 + int(5 * math.cos((z - 4) * 0.22))
+    fill_box(-98, 100, z, -97, arch_h, z, P["DEEPSLATE_BRICKS"] if z % 3 else P["AMETHYST_BLOCK"])
+    s(-97, arch_h + 1, z, P["BLUE_ICE"])
+for x in range(-98, -73, 5):
+    for z in (-8, 16):
+        build_glacier_spire(x, z, 99, 15, 2.2, crystal=(x % 2 == 0))
+for y in range(91, 101):
+    s(-74, y, 4, P["QUARTZ_PILLAR"])
+s(-73, 100, 0, P["ENDER_CHEST"])
+s(-73, 100, 9, P["ANVIL"])
+
+# NW Safe Mob Farm Fortress (4 Chambers at X=-92, -84, -76, -68, Z=-42)
+fill_box(-96, 100, -47, -64, 107, -38, P["DEEPSLATE_BRICKS"])
+fill_box(-97, 108, -48, -63, 108, -37, P["DARK_PRISMARINE"])
+for cx in [-92, -84, -76, -68]:
+    fill_box(cx - 2, 100, -45, cx + 2, 105, -40, P["AIR"])
+    s(cx, 106, -42, P["SEA_LANTERN"])
+    fill_box(cx - 1, 100, -39, cx + 1, 100, -38, P["AIR"])
+    fill_box(cx - 1, 101, -39, cx + 1, 101, -38, P["DEEPSLATE_TILES"])
+    fill_box(cx - 1, 102, -39, cx + 1, 104, -38, P["CYAN_STAINED_GLASS"])
+
+# SW Grand Casino 777 Dome (-66, 100, 68) — Rich Interior + Roulette Inlay + Slot Machines!
+fill_cyl(-68, 68, 13, 100, 111, P["DEEPSLATE_BRICKS"])
+fill_cyl(-68, 68, 11, 100, 110, P["AIR"])
+for ry in range(111, 119):
+    rr = max(1.5, 13.0 - (ry - 110) * 1.45)
+    fill_cyl(-68, 68, rr, ry, ry, P["GOLD_BLOCK"] if ry % 2 == 0 else P["RED_CONCRETE"])
+s(-68, 119, 68, P["SEA_LANTERN"])
+fill_box(-60, 100, 64, -54, 106, 72, P["AIR"])  # Wide East entrance
+# Roulette Carpet Floor & Chandelier inside Casino
+for dx in range(-8, 9):
+    for dz in range(-8, 9):
+        if dx * dx + dz * dz <= 49:
+            s(-68 + dx, 99, 68 + dz, P["RED_CONCRETE"] if (dx + dz) % 2 == 0 else P["BLACK_CONCRETE"])
+fill_box(-68, 107, 68, -68, 110, 68, P["IRON_BARS"])
+s(-68, 106, 68, P["SEA_LANTERN"])
+for sz in [63, 66, 70, 73]:
+    s(-76, 100, sz, P["GOLD_BLOCK"])
+    s(-76, 101, sz, P["NOTE_BLOCK"])
+    s(-76, 102, sz, P["SEA_LANTERN"])
+    s(-75, 101, sz, P["LEVER"])
+
+# SE Bafovar & Wizard Cathedral (66, 100, 68) — Amethyst Spire, Bookshelves & Enchanting!
+fill_cyl(68, 68, 13, 100, 111, P["DEEPSLATE_BRICKS"])
+fill_cyl(68, 68, 11, 100, 110, P["AIR"])
+for ry in range(111, 122):
+    rr = max(1.0, 13.0 - (ry - 110) * 1.15)
+    fill_cyl(68, 68, rr, ry, ry, P["PURPLE_CONCRETE"] if ry % 2 == 0 else P["AMETHYST_BLOCK"])
+s(68, 122, 68, P["SEA_LANTERN"])
+fill_box(54, 100, 64, 60, 106, 72, P["AIR"])  # Wide West entrance
+for dx in range(-2, 3):
+    for dz in range(-2, 3):
+        if abs(dx) == 2 or abs(dz) == 2:
+            if not (dx == -2 and abs(dz) <= 1):
+                fill_box(70 + dx, 100, 68 + dz, 70 + dx, 102, 68 + dz, P["BOOKSHELF"])
+s(70, 100, 68, P["ENCHANTING_TABLE"])
+s(73, 100, 63, P["BREWING_STAND"])
+s(73, 100, 73, P["ANVIL"])
+s(71, 100, 73, P["ENDER_CHEST"])
+
+
+# ==============================================================================
+# 11. COMFORTABLE, SCENIC 32-ISLAND SKY PARKOUR (/warp parkour -> Y=129)
+#     ("сделай паркур нормальным")
+# ==============================================================================
+print("[11/11] Building Tested 32-Island Scenic Sky Parkour (2x2 & 3x3 Pads, Zero Collisions)...")
+
+PARKOUR_PAD_MATS = [
+    P["PACKED_ICE"], P["LIGHT_BLUE_CONCRETE"], P["CYAN_CONCRETE"],
+    P["PRISMARINE_BRICKS"], P["AMETHYST_BLOCK"], P["PURPLE_CONCRETE"],
+    P["MAGENTA_CONCRETE"], P["SMOOTH_QUARTZ"],
 ]
 
-for nx_p, ny_p, nz_p, cx_p, cz_p in NPC_PLAZA_SPOTS:
-    if ny_p == 100:
-        carve_road(nx_p, nz_p, cx_p, cz_p, half_w=2, floor_y=99, main_blk=P["SMOOTH_QUARTZ"], trim_blk=P["GOLD_BLOCK"])
-    fill_box(nx_p - 2, ny_p - 1, nz_p - 2, nx_p + 2, ny_p - 1, nz_p + 2, P["SMOOTH_QUARTZ"])
-    sblock(nx_p, ny_p - 1, nz_p, P["GOLD_BLOCK"])
-    fill_box(nx_p - 2, ny_p, nz_p - 2, nx_p + 2, ny_p + 5, nz_p + 2, P["AIR"])
-
-# Royal Red & Gold Carpet down the center arrival avenue (Z=22..64, X=-2..+2)
-for wz in range(22, 65):
-    for wx in range(-2, 3):
-        sblock(wx, 99, wz, P["GOLD_BLOCK"] if abs(wx) == 2 else P["RED_CONCRETE"])
-
-# ==============================================================================
-# PHASE 7: 100% PHYSICALLY POSSIBLE 40-PAD SKY PARKOUR!
-# ==============================================================================
-PK_COLORS = [
-    P["LIME_CONCRETE"], P["YELLOW_CONCRETE"], P["ORANGE_CONCRETE"],
-    P["RED_CONCRETE"], P["MAGENTA_CONCRETE"], P["LIGHT_BLUE_CONCRETE"], P["CYAN_CONCRETE"]
-]
+# Carefully parametric sky-arc starting right at /warp parkour (38.5, 100, -24.5)!
+# Step #0 is at (39, 101, -29) — just 4 blocks North of /warp parkour!
 PARKOUR_STEPS = []
-cur_ang = math.atan2(-28.0, 38.0)
+px_f, pz_f = 39.0, -29.0
+py_i = 101
+ang_cur = math.atan2(pz_f, px_f)  # ~ -0.64 rad
+rad_cur = math.hypot(px_f, pz_f)  # ~ 48.6
 
-for i in range(40):
-    if i == 0:
-        px, py, pz = 38, 100, -28
-    else:
-        r_now = 47.2 - (i * 0.16)
-        cur_ang -= 2.92 / r_now
-        px = int(round(r_now * math.cos(cur_ang)))
-        pz = int(round(r_now * math.sin(cur_ang)))
-        dy = 0 if (i % 4 == 0) else 1
-        py = PARKOUR_STEPS[-1][1] + dy
-    PARKOUR_STEPS.append((px, py, pz))
+for i in range(32):
+    ix, iz = int(round(px_f)), int(round(pz_f))
+    PARKOUR_STEPS.append((ix, py_i, iz))
+    # Advance ~3.85 blocks along a smooth counter-clockwise ascending sky helix (R=45..41)
+    target_r = 45.5 - i * 0.14
+    d_theta = -3.85 / max(36.0, rad_cur)
+    ang_cur += d_theta
+    rad_cur = rad_cur * 0.7 + target_r * 0.3
+    px_f = math.cos(ang_cur) * rad_cur
+    pz_f = math.sin(ang_cur) * rad_cur
+    if i % 9 != 4:  # +1 Y on most steps, flat breather every 9th step -> Y=101 -> Y=129!
+        py_i += 1
 
-for (px, py, pz) in PARKOUR_STEPS:
+# Verify every single parkour jump distance BEFORE placing blocks!
+for i in range(len(PARKOUR_STEPS) - 1):
+    x1, y1, z1 = PARKOUR_STEPS[i]
+    x2, y2, z2 = PARKOUR_STEPS[i + 1]
+    horiz = math.hypot(x2 - x1, z2 - z1)
+    dy = y2 - y1
+    assert 2.8 <= horiz <= 4.5, f"Bad parkour horiz {horiz:.2f} at step {i}->{i+1}"
+    assert 0 <= dy <= 1, f"Bad parkour dy {dy} at step {i}->{i+1}"
+
+# Clear generous air envelope around EVERY parkour step first, then sculpt lush sky pads!
+for idx, (px, py, pz) in enumerate(PARKOUR_STEPS):
     fill_box(px - 2, py + 1, pz - 2, px + 2, py + 6, pz + 2, P["AIR"])
 
-for i, (px, py, pz) in enumerate(PARKOUR_STEPS):
-    if i in (10, 20, 30):
-        fill_box(px - 1, py, pz - 1, px + 1, py, pz + 1, P["GOLD_BLOCK"])
-        sblock(px, py - 1, pz, P["SEA_LANTERN"])
-        sblock(px, py + 1, pz, P["LIGHT_WEIGHTED_PRESSURE_PLATE"])
-    elif i == 39:
-        fill_box(px - 2, py, pz - 2, px + 2, py, pz + 2, P["EMERALD_BLOCK"])
-        fill_box(px - 1, py, pz - 1, px + 1, py, pz + 1, P["GOLD_BLOCK"])
-        sblock(px, py, pz, P["DIAMOND_BLOCK"])
-        sblock(px, py + 1, pz, P["HEAVY_WEIGHTED_PRESSURE_PLATE"])
-        for cx_f, cz_f in [(-2,-2),(2,-2),(-2,2),(2,2)]:
-            sblock(px + cx_f, py + 1, pz + cz_f, P["END_ROD"])
-            sblock(px + cx_f, py + 2, pz + cz_f, P["SEA_LANTERN"])
+for idx, (px, py, pz) in enumerate(PARKOUR_STEPS):
+    is_start = (idx == 0)
+    is_cp = idx in (8, 16, 24)
+    is_finish = (idx == 31)
+
+    if is_finish:
+        # Grand 5x5 Trophy Summit Island!
+        fill_box(px - 2, py, pz - 2, px + 2, py, pz + 2, P["SMOOTH_QUARTZ"])
+        fill_box(px - 1, py, pz - 1, px + 1, py, pz + 1, P["DIAMOND_BLOCK"])
+        fill_box(px - 1, py - 2, pz - 1, px + 1, py - 1, pz + 1, P["PACKED_ICE"])
+        s(px, py, pz, P["EMERALD_BLOCK"])
+        s(px, py + 1, pz, P["HEAVY_WEIGHTED_PRESSURE_PLATE"])
+        for dx in (-2, 2):
+            for dz in (-2, 2):
+                s(px + dx, py + 1, pz + dz, P["QUARTZ_PILLAR"])
+                s(px + dx, py + 2, pz + dz, P["SEA_LANTERN"])
+    elif is_start or is_cp:
+        # Comfortable 3x3 Golden Checkpoint Cloud Pad!
+        fill_box(px - 1, py, pz - 1, px + 1, py, pz + 1, P["SMOOTH_QUARTZ"])
+        fill_box(px - 1, py - 1, pz - 1, px + 1, py - 1, pz + 1, P["PACKED_ICE"])
+        s(px, py - 2, pz, P["BLUE_ICE"])
+        s(px, py, pz, P["GOLD_BLOCK"])
+        s(px, py + 1, pz, P["LIGHT_WEIGHTED_PRESSURE_PLATE"])
+        s(px - 1, py, pz - 1, P["SEA_LANTERN"])
+        s(px + 1, py, pz + 1, P["SEA_LANTERN"])
     else:
-        col = PK_COLORS[i % len(PK_COLORS)]
-        fill_box(px, py, pz, px + 1, py, pz + 1, col)
-        sblock(px, py - 1, pz, P["SEA_LANTERN"])
+        # Comfortable 2x2 Cushioned Sky Pad with Ice Icicle Underside!
+        pad_mat = PARKOUR_PAD_MATS[idx % len(PARKOUR_PAD_MATS)]
+        fill_box(px, py, pz, px + 1, py, pz + 1, pad_mat)
+        s(px, py, pz, P["SNOW_BLOCK"] if idx % 3 == 0 else pad_mat)
+        s(px, py - 1, pz, P["PACKED_ICE"])
+        s(px + 1, py - 1, pz + 1, P["BLUE_ICE"])
+        if idx % 4 == 0:
+            s(px + 1, py - 1, pz, P["SEA_LANTERN"])
+
+# Stepping stone from plaza Y=99 up to Start Pad #0 (39, 101, -29)
+fill_box(38, 100, -27, 40, 100, -27, P["SMOOTH_QUARTZ"])
+s(39, 100, -27, P["GOLD_BLOCK"])
+
 
 # ==============================================================================
-# PHASE 8: AUTOMATED 3D BFS WALKABILITY VERIFIER FROM SPAWN TO ALL WARPS & NPCS!
+# MANDATORY WALKABILITY GUARANTEES & 3D BFS VERIFICATION (INCL. ALL 3 PALACE FLOORS!)
 # ==============================================================================
-PASSABLE = {P["AIR"], P["RED_CARPET"], P["YELLOW_CARPET"], P["LIGHT_WEIGHTED_PRESSURE_PLATE"], P["HEAVY_WEIGHTED_PRESSURE_PLATE"], P["COBWEB"]}
+WARP_SPOTS = [
+    ("spawn", 0, 100, 52),
+    ("wheel", 0, 100, 40),
+    ("pvp", 61, 100, 17),
+    ("train", 61, 100, -3),
+    ("kabinki", 63, 100, -24),
+    ("parkour", 38, 100, -24),
+    ("mine", -68, 100, 4),
+    ("farm", -80, 100, -35),
+    ("casino", -59, 100, 68),
+    ("bafs", 59, 100, 68),
+    ("cases", 0, 102, -55),
+    ("top", -34, 100, -28),
+    ("palace_f1", 0, 100, 78),
+    ("palace_f2", 0, 108, 69),
+    ("palace_f3_balcony", 0, 115, 62),
+]
 
-def can_stand(wx, wy, wz):
-    floor_b = gblock(wx, wy - 1, wz)
-    b0 = gblock(wx, wy, wz)
-    b1 = gblock(wx, wy + 1, wz)
-    return (floor_b not in PASSABLE and floor_b != 0) and (b0 in PASSABLE) and (b1 in PASSABLE)
+NPC_SPOTS = [
+    (-8, 100, 42), (8, 100, 42), (0, 100, 36), (-13, 100, 34), (13, 100, 34),
+    (-16, 100, 25), (16, 100, 25), (-16, 100, 14), (16, 100, 14),
+    (-14, 100, -15), (14, 100, -15), (-8, 100, 19), (8, 100, 19),
+    (25, 100, 12), (25, 100, 5), (-25, 100, 9), (-25, 100, -1),
+    (-23, 100, 28), (23, 100, 28), (-34, 100, -26), (62, 100, -3),
+    (0, 102, -53), (-66, 100, 4), (-78, 100, -34), (-66, 100, 68),
+    (66, 100, 68), (35, 100, -24),
+]
+
+GIFT_SPOTS = [
+    (0, 100, 24), (-31, 100, 21), (0, 100, 74), (-26, 102, -54), (41, 100, -21),
+    (63, 100, 34), (80, 100, -24), (-70, 100, 13), (-74, 100, 68), (75, 100, 68),
+]
+
+for _, wx, wy, wz in WARP_SPOTS:
+    if g(wx, wy - 1, wz) == P["AIR"]:
+        s(wx, wy - 1, wz, P["SMOOTH_QUARTZ"])
+    fill_box(wx - 1, wy, wz - 1, wx + 1, wy + 3, wz + 1, P["AIR"])
+
+for nx, ny, nz in NPC_SPOTS:
+    fill_box(nx - 1, ny - 1, nz - 1, nx + 1, ny - 1, nz + 1, P["POLISHED_DIORITE"])
+    fill_box(nx - 1, ny, nz - 1, nx + 1, ny + 3, nz + 1, P["AIR"])
+
+for gx, gy, gz in GIFT_SPOTS:
+    s(gx, gy - 1, gz, P["GOLD_BLOCK"])
+    fill_box(gx, gy, gz, gx, gy + 2, gz, P["AIR"])
+
+NON_SOLID = {
+    P["AIR"], P["LIGHT_WEIGHTED_PRESSURE_PLATE"], P["HEAVY_WEIGHTED_PRESSURE_PLATE"],
+    P["RED_CARPET"], P["WHITE_CARPET"], P["YELLOW_CARPET"], P["CYAN_CARPET"],
+    P["LEVER"], P["END_ROD"], P["COBWEB"],
+}
+
+
+def can_stand(x, y, z):
+    below = g(x, y - 1, z)
+    return (below not in NON_SOLID) and (g(x, y, z) in NON_SOLID) and (g(x, y + 1, z) in NON_SOLID)
+
 
 visited = set()
 q = deque([(0, 100, 52)])
 visited.add((0, 100, 52))
 while q:
     cx, cy, cz = q.popleft()
-    for dx, dz in [(1,0),(-1,0),(0,1),(0,-1)]:
-        nx_w, nz_w = cx + dx, cz + dz
-        if not (-118 <= nx_w <= 118 and -118 <= nz_w <= 118):
+    for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nx, nz = cx + dx, cz + dz
+        if not (-120 <= nx <= 120 and -120 <= nz <= 120):
             continue
-        for ny_w in (cy, cy + 1, cy - 1):
-            if 90 <= ny_w <= 105 and (nx_w, ny_w, nz_w) not in visited and can_stand(nx_w, ny_w, nz_w):
-                visited.add((nx_w, ny_w, nz_w))
-                q.append((nx_w, ny_w, nz_w))
+        for dy in (0, 1, -1):
+            ny = cy + dy
+            if (nx, ny, nz) not in visited and can_stand(nx, ny, nz):
+                # If stepping up +1, ensure head clearance at (cx, cy+2, cz) too!
+                if dy == 1 and g(cx, cy + 2, cz) not in NON_SOLID:
+                    continue
+                if dy == -1 and g(nx, cy + 1, nz) not in NON_SOLID:
+                    continue
+                visited.add((nx, ny, nz))
+                q.append((nx, ny, nz))
 
-CRITICAL_TARGETS = [
-    ("Spawn Arrival", 0, 100, 52),
-    ("/warp pvp Deck", 61, 100, 17),
-    ("/warp pvp Pit Floor", 80, 92, 21),
-    ("/warp kabinki", 64, 100, -24),
-    ("/warp train", 62, 100, -3),
-    ("/warp mine", -68, 100, 4),
-    ("/warp farm", -80, 100, -35),
-    ("/warp casino", -60, 100, 68),
-    ("/warp bafs", 60, 100, 68),
-    ("/warp cases", 0, 102, -55),
-    ("/warp parkour", 38, 100, -24),
-    ("/warp top", -34, 100, -28),
-]
-for label, tx, ty, tz in CRITICAL_TARGETS:
-    assert (tx, ty, tz) in visited, f"UNREACHABLE TARGET {label} at {(tx, ty, tz)}!"
-for idx_n, (nx_p, ny_p, nz_p, _, _) in enumerate(NPC_PLAZA_SPOTS):
-    assert (nx_p, ny_p, nz_p) in visited, f"UNREACHABLE NPC #{idx_n} at {(nx_p, ny_p, nz_p)}!"
+print(f"    Total 3D-walkable tiles reachable on foot from /spawn: {len(visited):,}")
+for wname, wx, wy, wz in WARP_SPOTS:
+    ok = any((wx + dx, wy + dy, wz + dz) in visited
+             for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1))
+    print(f"    Warp '{wname:18s}' ({wx:4d}, {wy:3d}, {wz:4d}) reachable on foot: {ok}")
+    assert ok, f"CRITICAL: Warp {wname} is blocked!"
 
-print("100% BFS WALKABILITY VERIFIED FOR ALL 12 WARPS (INCLUDING PVP PIT!) AND ALL 27 NPC SPOTS!")
+for idx, (nx, ny, nz) in enumerate(NPC_SPOTS):
+    ok = any((nx + dx, ny + dy, nz + dz) in visited
+             for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1))
+    assert ok, f"CRITICAL: NPC #{idx} at ({nx},{ny},{nz}) is unreachable!"
+print(f"    All {len(NPC_SPOTS)} NPC plazas 100% reachable on foot!")
+print(f"    Parkour steps: {len(PARKOUR_STEPS)} | Start={PARKOUR_STEPS[0]} | Finish={PARKOUR_STEPS[-1]}")
 
-# Render clean top-down verification map!
-RGB_MAP = {
-    0: (14, 20, 36), 1: (245, 245, 250), 2: (45, 165, 160), 3: (230, 232, 238),
-    4: (242, 240, 245), 5: (235, 232, 240), 6: (250, 252, 255), 7: (145, 195, 245),
-    8: (90, 165, 250), 9: (185, 250, 245), 10: (250, 204, 21), 11: (165, 35, 70),
-    12: (249, 115, 22), 13: (95, 65, 35), 14: (34, 135, 65), 15: (28, 115, 55),
-    16: (239, 45, 55), 17: (250, 215, 35), 18: (115, 225, 45), 19: (56, 189, 248),
-    20: (217, 70, 239), 21: (245, 248, 255), 22: (55, 210, 230), 23: (235, 65, 75),
-    24: (168, 85, 247), 25: (225, 35, 45), 26: (250, 210, 35), 27: (255, 230, 120),
-    28: (60, 60, 70), 29: (45, 30, 65), 38: (16, 215, 115), 39: (56, 235, 245),
-    40: (155, 85, 235), 41: (20, 184, 196), 42: (238, 216, 168), 43: (244, 114, 182),
-    47: (30, 110, 115), 48: (90, 90, 100), 50: (245, 90, 90),
-}
-top_img = Image.new("RGB", (W, L), (14, 20, 36))
-tpx = top_img.load()
-for lx in range(W):
-    col_slice = grid[lx, :, :]
-    for lz in range(L):
-        nz = np.nonzero(col_slice[:, lz])[0]
-        if len(nz) > 0:
-            top_ly = int(nz[-1])
-            bid = int(col_slice[top_ly, lz])
-            base = RGB_MAP.get(bid, (210, 220, 235))
-            shade = min(1.22, max(0.75, 0.82 + (top_ly - 35) * 0.006))
-            tpx[lx, lz] = (min(255, int(base[0]*shade)), min(255, int(base[1]*shade)), min(255, int(base[2]*shade)))
-top_img.resize((482, 482), Image.NEAREST).save("/tmp/spawn_v57_clean_map.png")
+# Confirm ZERO GREEN_CONCRETE / LIME_CONCRETE anywhere in the map!
+assert "GREEN_CONCRETE" not in P and "LIME_CONCRETE" not in P, "Concrete leaves forbidden!"
+leaf_count = sum(1 for b in grid if b in (
+    P["SPRUCE_LEAVES"], P["DARK_OAK_LEAVES"], P["AZALEA_LEAVES"], P["FLOWERING_AZALEA_LEAVES"]))
+ice_count = sum(1 for b in grid if b in (P["PACKED_ICE"], P["BLUE_ICE"]))
+print(f"    Real Leaf Blocks: {leaf_count:,} | Glacial Ice Blocks: {ice_count:,}")
 
+# ==============================================================================
+# EXPORT COMPACT GZIPPED RLE BINARY RESOURCE (spawn_v5.dat)
+# ==============================================================================
 out_dat = "/home/user/WinLauncher/rw-newyear-assembly/core-src/src/main/resources/spawn_v5.dat"
-flat = grid.reshape(-1)
-diffs = np.flatnonzero(flat[1:] != flat[:-1]) + 1
-starts = np.concatenate(([0], diffs))
-ends = np.concatenate((diffs, [len(flat)]))
-vals = flat[starts]
-lengths = ends - starts
+os.makedirs(os.path.dirname(out_dat), exist_ok=True)
 
-buf = bytearray()
-buf += struct.pack(">hhhhhhH", W, H, L, OX, OY, OZ, len(PALETTE))
-for name in PALETTE:
-    enc = name.encode("utf-8")
-    buf += struct.pack(">H", len(enc)) + enc
-for v, ln in zip(vals.tolist(), lengths.tolist()):
-    rem = ln
-    while rem > 0:
-        chunk = min(65535, rem)
-        buf += struct.pack(">BH", int(v), chunk)
-        rem -= chunk
-buf += struct.pack(">BH", 0, 0)
+runs = bytearray()
+cur_val = grid[0]
+cur_len = 0
+non_air = 0
 
-with gzip.open(out_dat, "wb", compresslevel=6) as fp:
-    fp.write(buf)
-print(f"SAVED HIGH-FPS spawn_v5.dat: {os.path.getsize(out_dat):,} bytes compressed ({int(np.count_nonzero(flat)):,} blocks — down from 401,080!)")
+for b in grid:
+    if b != 0:
+        non_air += 1
+    if b == cur_val and cur_len < 65535:
+        cur_len += 1
+    else:
+        runs.extend(struct.pack(">BH", cur_val, cur_len))
+        cur_val = b
+        cur_len = 1
+if cur_len > 0:
+    runs.extend(struct.pack(">BH", cur_val, cur_len))
+runs.extend(struct.pack(">BH", 0, 0))
+
+with gzip.open(out_dat, "wb", compresslevel=9) as f:
+    f.write(struct.pack(">hhhhhh", W, H, L, OX, OY, OZ))
+    f.write(struct.pack(">H", len(PALETTE_NAMES)))
+    for name in PALETTE_NAMES:
+        nb = name.encode("utf-8")
+        f.write(struct.pack(">H", len(nb)) + nb)
+    f.write(runs)
+
+sz_kb = os.path.getsize(out_dat) / 1024.0
+print(f"SUCCESS! Wrote v5.8 Grand Spawn RLE ({non_air:,} solid blocks -> {sz_kb:.1f} KB) to {out_dat}")

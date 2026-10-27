@@ -171,6 +171,8 @@ public final class GuiManager {
         inv.setItem(34, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня, Луки и ТНТ (/armors)",
                 "&76 кастомных сетов брони, 4 3D Лука,", "&76 видов Стрел и 6 видов Рейд-ТНТ!"));
 
+        inv.setItem(37, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
+                "&7Кирка Крушителя 3×3, Молот OWNER 10×10,", "&7Бур 5×5, Жильная, Коса Жнеца, Секира Тора!"));
         inv.setItem(38, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF9100&l⚗ Бафовар (/bafs)",
                 "&7Свари кастомное зелье (макс 8 зелек за 5 000$)", "&7или купи готовые зелья и пакеты баффов!"));
         inv.setItem(39, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Скины Трапок (/skins)",
@@ -185,7 +187,15 @@ public final class GuiManager {
         inv.setItem(42, ItemFactory.glowIcon(Material.CHEST_MINECART, "&#FFD740&l🎁 Халява и Промокоды (/promo)",
                 "&7Промокоды с сайта и бесплатные подарки!"));
 
+        if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
+            inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
+                    "&7Выдача ролей КП, Медиа и Донатов,",
+                    "&7список состава КП/Медиа и Журнал выдач!", "", "&#86EFAC▸ Открыть /curator"));
+        }
         if (plugin.getLp().hasLpAccess(p)) {
+            inv.setItem(48, ItemFactory.glowIcon(Material.MAGENTA_SHULKER_BOX, "&#FF1744&l🎁 Раздачи, Квесты и Тех.Работы (/razdacha)",
+                    "&7Раздача Риликов, Денег, Кейсов по таймеру,",
+                    "&7Квесты всему серверу, /txt и /tex!", "", "&#FF1744▸ Открыть панель OWNER"));
             inv.setItem(49, ItemFactory.glowIcon(Material.COMMAND_BLOCK, "&#00E676&l⚡ LP EDITOR & ГРУППЫ (/lp)",
                     "&7Управление 40 группами, правами и Веб-Редактор!", "", "&#00E676▸ Нажми для открытия LP GUI"));
         }
@@ -463,11 +473,62 @@ public final class GuiManager {
         inv.setItem(42, shopTag(ItemFactory.swordDracula(),   320));
         inv.setItem(43, shopTag(ItemFactory.swordKrush(),     420));
 
+        inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
+                "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
         inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 17 3D Талисманов (/talismans)",
-                "&7Открой полный Алтарь Талисманов v5.7!"));
+                "&7Открой полный Алтарь Талисманов v5.8!"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня, Луки и ТНТ (/armors)",
                 "&7Открой Оружейную 6 сетов брони, Луков и ТНТ!"));
+        p.openInventory(inv);
+    }
+
+    // ================= 5A. КУЗНИЦА 12 КАСТОМНЫХ 3D КИРОК, МОЛОТА OWNER 10×10 И АРТЕФАКТОВ (/picks) =================
+    public void openPickaxesMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("picks", "", 0), 54,
+                ColorUtil.c("&#FF5722&l⛏ 12 КИРОК, МОЛОТ 10×10 И ОРУЖИЕ"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+
+        inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
+                "&7Все 12 кастомных 3D Кирок и Молотов v5.8!",
+                "&7Подсказка: зажмите &eShift &7при копке для точного режима 1×1!"));
+
+        // Row 1 & Row 2: ALL 12 CUSTOM 3D PICKAXES & HAMMERS!
+        inv.setItem(10, shopTag(ItemFactory.pickDjamshut(), 320));
+        inv.setItem(11, shopTag(ItemFactory.pickSpawner(),  260));
+        inv.setItem(12, shopTag(ItemFactory.pickKrush(),    460));
+
+        ItemStack ownerHammerDisplay = ItemFactory.hammerOwner();
+        ItemMeta ohm = ownerHammerDisplay.getItemMeta();
+        if (ohm != null) {
+            List<String> ol = ohm.hasLore() ? new ArrayList<String>(ohm.getLore()) : new ArrayList<String>();
+            ol.add("");
+            ol.add(ColorUtil.c(isOwner ? "&#00E676&l👑 ДОСТУПНО БЕСПЛАТНО (ВЫ — OWNER)!" : "&#FF1744&l🔒 ЭКСКЛЮЗИВ СТРОГО ДЛЯ OWNER!"));
+            ol.add(ColorUtil.c(isOwner ? "&#FFD740▸ Нажми, чтобы забрать Молот 10×10!" : "&7Не продаётся обычным игрокам."));
+            ohm.setLore(ol);
+            ownerHammerDisplay.setItemMeta(ohm);
+        }
+        inv.setItem(13, ownerHammerDisplay);
+
+        inv.setItem(14, shopTag(ItemFactory.pickVein(),     360));
+        inv.setItem(15, shopTag(ItemFactory.pickFrost(),    330));
+        inv.setItem(16, shopTag(ItemFactory.pickMolten(),   370));
+
+        inv.setItem(20, shopTag(ItemFactory.pickMagnet(),   390));
+        inv.setItem(21, shopTag(ItemFactory.pickObsidian(), 440));
+        inv.setItem(22, shopTag(ItemFactory.pickMidas(),    380));
+        inv.setItem(23, shopTag(ItemFactory.pickTunnel(),   520));
+        inv.setItem(24, shopTag(ItemFactory.pickMeteor(),   560));
+
+        // Row 3: 4 NEW 3D MYTHIC WEAPONS & ARTIFACTS!
+        inv.setItem(29, shopTag(ItemFactory.scytheReaper(), 480));
+        inv.setItem(31, shopTag(ItemFactory.axeThor(),      470));
+        inv.setItem(32, shopTag(ItemFactory.orbRecall(4),    95));
+        inv.setItem(33, shopTag(ItemFactory.lootMagnet(),   350));
+
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в главное меню"));
         p.openInventory(inv);
     }
 
@@ -500,6 +561,8 @@ public final class GuiManager {
                 "&7Свари микс до 8 зелий за 5 000$ + готовые зелья!", "", "&#00E676▸ Открыть /bafs"));
         inv.setItem(23, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 Магазин за Рилики (/rshop)",
                 "&73D Шары, Талисманы и Топовые Артефакты!", "", "&#00E676▸ Открыть /rshop"));
+        inv.setItem(24, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Легендарных Кирок (/picks)",
+                "&7Кирка Крушителя 3×3, Молот 10×10, Бур 5×5!", "", "&#00E676▸ Открыть /picks"));
 
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в главное меню"));
         p.openInventory(inv);
@@ -1523,11 +1586,14 @@ public final class GuiManager {
             else if (slot == 32) openTitlesMenu(p);
             else if (slot == 33) openPlaytimeMenu(p);
             else if (slot == 34) openArmorsMenu(p);
+            else if (slot == 37) openPickaxesMenu(p);
             else if (slot == 38) openBafovarMenu(p);
             else if (slot == 39) openTrapSkinsMenu(p);
             else if (slot == 40) { p.performCommand("fps"); openMainMenu(p); }
             else if (slot == 41) openBountyMenu(p);
             else if (slot == 42) openFreebieMenu(p);
+            else if (slot == 47 && plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) plugin.getCurator().openMainCuratorGui(p, "");
+            else if (slot == 48 && plugin.getLp().hasLpAccess(p)) { p.closeInventory(); plugin.getOwnerGiveaway().openRazdachaMainGui(p); }
             else if (slot == 49 && plugin.getLp().hasLpAccess(p)) openLpGroupsGui(p, 0);
         } else if ("cshop_hub".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
@@ -1541,6 +1607,7 @@ public final class GuiManager {
             else if (slot == 21) openCoinShopCat(p, "ores");
             else if (slot == 22) openBafovarMenu(p);
             else if (slot == 23) openRelicShop(p);
+            else if (slot == 24) openPickaxesMenu(p);
         } else if ("cshop_cat".equals(type)) {
             if (slot == 40) { openCoinShopHub(p); return; }
             handleCategoryCoinPurchase(p, clicked, h.extra);
@@ -1597,10 +1664,27 @@ public final class GuiManager {
         } else if ("kit_preview".equals(type)) {
             if (slot == 49) openKitsMenu(p, h.page);
         } else if ("shop".equals(type)) {
+            if (slot == 47) { openPickaxesMenu(p); return; }
             if (slot == 48) { openTalismansMenu(p); return; }
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openArmorsMenu(p); return; }
             handleRelicPurchase(p, slot);
+        } else if ("picks".equals(type)) {
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 13) {
+                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Божественный Молот OWNER'а [10×10] доступен СТРОГО ТОЛЬКО владельцу (OWNER)!"));
+                    return;
+                }
+                for (ItemStack rem : p.getInventory().addItem(ItemFactory.hammerOwner()).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                }
+                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+                p.sendMessage(ColorUtil.c("&#FF1744👑 Вы получили эксклюзивный &lБожественный Молот OWNER'а [Мега-Бур 10×10]&r&#FF1744!"));
+                return;
+            }
+            handleRelicItemTagPurchase(p, clicked, "picks");
         } else if ("talismans".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 32) {
@@ -2251,6 +2335,7 @@ public final class GuiManager {
         }
         if ("talismans".equals(reopenMenu)) openTalismansMenu(p);
         else if ("armors".equals(reopenMenu)) openArmorsMenu(p);
+        else if ("picks".equals(reopenMenu)) openPickaxesMenu(p);
     }
 
     private void handleCategoryCoinPurchase(Player p, ItemStack clicked, String cat) {

@@ -519,16 +519,16 @@ export function AdminGrantPanel({
           <button type="button" onClick={pollStatus} className="btn btn-ghost btn-sm" title="Обновить статус очереди">
             <RefreshCw size={12} /> Статус
           </button>
-          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v5.7 (Спавн, 27 NPC по 1 шт., 39 Рангов, Кланы, Боссы, Ивенты, Талисманы, Броня)">
-            <Download size={12} /> Ядро v5.7 (.jar)
+          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v5.8 (Зимний Дворец 3 этажа, Ёлка из листвы, 12 Кирок, Молот 10x10, Рабочий ТНТ, Anti-DDoS, /razdacha, /txt, /curator)">
+            <Download size={12} /> Ядро v5.8 (.jar)
           </a>
-          <a href="/kinggrief-mega-rp.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v5.7">
-            <Download size={12} /> Мега-РП v5.7 (.zip)
+          <a href="/kinggrief-mega-rp.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v5.8">
+            <Download size={12} /> Мега-РП v5.8 (.zip)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
             <Download size={12} /> Мост (.jar)
           </a>
-          <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm" title="Скачать архив Сайта и Веб Админ-Панели v5.7">
+          <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm" title="Скачать архив Сайта и Веб Админ-Панели v5.8">
             <Download size={12} /> Админ-Панель (.zip)
           </a>
         </div>

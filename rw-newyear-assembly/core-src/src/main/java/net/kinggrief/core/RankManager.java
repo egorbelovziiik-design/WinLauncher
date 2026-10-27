@@ -266,6 +266,11 @@ public final class RankManager {
         return d != null ? d : ranks.get("default");
     }
 
+    public RankDef getRankByName(String playerName) {
+        if (playerName == null) return ranks.get("default");
+        return byId(store.getSavedRank(playerName));
+    }
+
     public RankDef getRank(Player p) {
         if (p == null) return ranks.get("default");
         String stored = store.getSavedRank(p.getName());

@@ -585,6 +585,22 @@ ITEMS_SPECS = [
 
     ("pick_djamshut",     ["drill_pickaxe"],    "pickaxe",  "djamshut",  (255, 130, 20),  (255, 235, 85),  (82, 72, 92)),
     ("pick_spawner",      [],                   "pickaxe",  "spawner",   (250, 204, 21),  (95, 245, 255),  (165, 75, 245)),
+    # 10 NEW CUSTOM 3D PICKAXES & HAMMERS -> 12 LEGENDARY PICKAXES TOTAL (incl. Кирка Крушителя 3x3 & Молот OWNER 10x10)!
+    ("pick_krush",        [],                   "pickaxe",  "krush",     (255, 78, 20),   (255, 225, 65),  (58, 44, 68)),
+    ("hammer_owner",      [],                   "hammer",   "owner",     (238, 22, 58),   (255, 215, 45),  (65, 18, 36)),
+    ("pick_vein",         [],                   "pickaxe",  "vein",      (18, 205, 95),   (155, 255, 195), (38, 72, 58)),
+    ("pick_frost",        [],                   "pickaxe",  "frost",     (48, 192, 255),  (235, 252, 255), (36, 68, 112)),
+    ("pick_molten",       [],                   "pickaxe",  "molten",    (235, 58, 18),   (255, 215, 55),  (68, 36, 32)),
+    ("pick_magnet",       [],                   "pickaxe",  "magnet",    (38, 168, 255),  (255, 55, 85),   (54, 62, 82)),
+    ("pick_obsidian",     [],                   "pickaxe",  "obsidian",  (145, 48, 245),  (235, 145, 255), (36, 26, 54)),
+    ("pick_midas",        [],                   "pickaxe",  "midas",     (252, 198, 24),  (255, 250, 185), (145, 92, 18)),
+    ("pick_tunnel",       [],                   "hammer",   "tunnel",    (56, 138, 245),  (255, 208, 52),  (52, 58, 74)),
+    ("pick_meteor",       [],                   "pickaxe",  "meteor",    (175, 52, 248),  (255, 225, 75),  (52, 38, 78)),
+    # 4 NEW 3D WEAPONS & ARTIFACTS (Коса Жнеца, Секира Тора, Сфера Возврата, Магнит Лута)!
+    ("scythe_reaper",     [],                   "scythe",   "reaper",    (215, 20, 62),   (215, 95, 255),  (44, 28, 52)),
+    ("axe_thor",          [],                   "axe",      "thor",      (42, 175, 255),  (255, 232, 95),  (58, 68, 88)),
+    ("orb_recall",        [],                   "sphere",   "recall",    (38, 212, 245),  (225, 255, 255), (255, 215, 65)),
+    ("loot_magnet",       [],                   "talisman", "magnet",    (238, 38, 62),   (52, 188, 255),  (245, 248, 252)),
     ("sword_dracula",     [],                   "sword",    "dracula",   (215, 22, 48),   (255, 110, 135), (58, 42, 68)),
     ("sword_krush",       ["krush_sword"],      "sword",    "krush",     (255, 105, 20),  (255, 235, 85),  (75, 62, 82)),
     ("sword_owner",       [],                   "sword",    "owner",     (245, 20, 60),   (255, 235, 95),  (255, 200, 35)),
@@ -1034,6 +1050,44 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pul
         rgb[spark] = white * 0.6 + g_v * 0.4
         mask |= top_rhomb | sides | fuse | spark
 
+    elif cat in ("hammer", "scythe", "axe"):
+        u = (nx + ny) * 0.7071
+        v = (ny - nx) * 0.7071
+        shaft = (u >= -1.04) & (u <= 0.56) & (np.abs(v) <= 0.085)
+        pommel = ((u + 1.02)**2 + v*v) <= 0.032
+        rgb[shaft] = t_v * 0.85
+        rgb[pommel] = g_v
+        if cat == "hammer":
+            # Colossal Twin-Headed Royal Warhammer (Молот OWNER'а 10x10 / Бур Титана 5x5)!
+            block_h = (u >= 0.24) & (u <= 0.82) & (np.abs(v) <= 0.54)
+            bevel = (u >= 0.18) & (u <= 0.88) & (np.abs(np.abs(v) - 0.50) <= 0.11)
+            crown_tip = (u >= 0.80) & (u <= 1.04) & (np.abs(v) <= 0.18 * (1.05 - u) * 3.2)
+            gem = ((u - 0.53)**2 + v*v) <= 0.055
+            shade = np.clip(0.84 + 0.35 * v * 1.8, 0.55, 1.32)
+            rgb[block_h] = (m_v * shade[..., None])[block_h]
+            rgb[bevel | crown_tip] = g_v
+            rgb[gem] = white * 0.45 + g_v * 0.55
+            mask |= shaft | pommel | block_h | bevel | crown_tip
+        elif cat == "scythe":
+            # Wicked Curved Soul Reaper Scythe!
+            collar = (np.abs(u - 0.52) <= 0.10) & (np.abs(v) <= 0.16)
+            vp = np.clip(v, 0.0, 1.0)
+            curve = (v >= -0.04) & (v <= 0.78) & (np.abs(u - (0.64 - 0.52 * (vp ** 1.35))) <= (0.17 - 0.11 * vp))
+            edge = curve & (u >= (0.68 - 0.52 * (vp ** 1.35)))
+            rgb[collar] = g_v
+            rgb[curve] = m_v * 1.08
+            rgb[edge] = g_v * 0.7 + white * 0.3
+            mask |= shaft | pommel | collar | curve
+        else:
+            # Double-Bladed Storm Battleaxe of Thor!
+            wings_a = (u >= 0.20) & (u <= 0.84) & (np.abs(v) >= 0.06) & (np.abs(v) <= (0.24 + 0.46 * np.sin(np.clip((u - 0.18) / 0.68, 0, 1) * math.pi)))
+            rim_a = wings_a & (np.abs(v) >= 0.46)
+            core_a = ((u - 0.52)**2 + v*v) <= 0.04
+            rgb[wings_a] = m_v * 1.05
+            rgb[rim_a] = g_v * 0.75 + white * 0.25
+            rgb[core_a] = g_v
+            mask |= shaft | pommel | wings_a
+
     elif cat in ("mace", "trident"):
         u = (nx + ny) * 0.7071
         v = (ny - nx) * 0.7071
@@ -1192,7 +1246,7 @@ def make_clean_item_model_json(item_id, cat):
                 {"predicate": {"pulling": 1, "pull": 0.9}, "model": f"kinggrief:item/{item_id}_pulling_2"}
             ]
         }
-    if cat in ("sword", "pickaxe", "mace", "trident"):
+    if cat in ("sword", "pickaxe", "mace", "trident", "hammer", "scythe", "axe"):
         return {
             "parent": "minecraft:item/handheld",
             "textures": {"layer0": tex_ref},
@@ -1410,7 +1464,7 @@ with open(os.path.join(OUT_RP_DIR, "pack.mcmeta"), "w", encoding="utf-8") as fp:
             "supported_formats": [7, 99],
             "min_format": 7,
             "max_format": 99,
-            "description": "§b§l❄ §c§lKINGGRIEF v5.7 §8· §f92 3D Предмета, Броня, ТНТ, Луки & 41 Люкс-Ранг"
+            "description": "§b§l❄ §c§lKINGGRIEF v5.8 §8· §f106 3D Вещей, 12 Кирок, Молот 10×10, ТНТ, Луки & 41 Ранг"
         }
     }, fp, ensure_ascii=False, indent=2)
 

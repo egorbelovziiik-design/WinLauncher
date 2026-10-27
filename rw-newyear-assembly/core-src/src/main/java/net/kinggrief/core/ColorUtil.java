@@ -54,8 +54,19 @@ public final class ColorUtil {
     }
 
     public static String fmtMoney(double amount) {
+        if (Double.isNaN(amount) || amount <= 0.0) return "0";
+        if (Double.isInfinite(amount) || amount >= 1.0e15) {
+            double q = Math.min(999.9, amount / 1.0e15);
+            return String.format(Locale.US, "%.1fQ", q);
+        }
+        if (amount >= 1.0e12) {
+            return String.format(Locale.US, "%.2fT", amount / 1.0e12);
+        }
         if (amount >= 1_000_000_000.0) {
             return String.format(Locale.US, "%.2fB", amount / 1_000_000_000.0);
+        }
+        if (amount >= 10_000_000.0) {
+            return String.format(Locale.US, "%.1fM", amount / 1_000_000.0);
         }
         return MONEY_FMT.format(Math.round(amount));
     }

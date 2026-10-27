@@ -637,6 +637,33 @@ public final class DataStore {
         yml.set("players." + key(name) + ".rank", rank.toLowerCase(Locale.ROOT));
     }
 
+    public Map<String, String> getAllSavedPlayerRanks() {
+        Map<String, String> out = new java.util.LinkedHashMap<String, String>();
+        org.bukkit.configuration.ConfigurationSection sec = yml.getConfigurationSection("players");
+        if (sec != null) {
+            for (String k : sec.getKeys(false)) {
+                String r = sec.getString(k + ".rank", "default");
+                if (r != null && !"default".equalsIgnoreCase(r)) {
+                    out.put(k, r.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        return out;
+    }
+
+    public List<String> getCuratorAuditLog() {
+        List<String> list = yml.getStringList("curator-log");
+        return list != null ? new ArrayList<String>(list) : new ArrayList<String>();
+    }
+
+    public void appendCuratorAuditLog(String entry) {
+        List<String> list = getCuratorAuditLog();
+        list.add(0, entry);
+        while (list.size() > 40) list.remove(list.size() - 1);
+        yml.set("curator-log", list);
+        save();
+    }
+
     public double getCoins(String name) {
         return yml.getDouble("players." + key(name) + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
     }
