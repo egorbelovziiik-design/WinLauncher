@@ -218,7 +218,7 @@ public final class SpawnEngine {
         npcDefs.add(new NpcDef("shop_main",  "&#38BDF8&l🛒 ГЛАВНЫЙ МАГАЗИН",     "&f8 категорий за Монеты (/shop)",      -13.0, 100.0,  34.0, -55f, sDealer, Color.fromRGB(56, 189, 248), new ItemStack(Material.EMERALD), new ItemStack(Material.GOLDEN_CARROT), null, "gui:shop"));
         npcDefs.add(new NpcDef("rshop",      "&#00E5FF&l❖ МАГАЗИН РИЛИКОВ",      "&f3D Шары, Элитры, Талисманы (/rshop)", 13.0, 100.0,  34.0,  55f, sMage,   Color.fromRGB(14, 165, 233), ItemFactory.swordKrush(), ItemFactory.sharTitana(), ItemFactory.elytraSanta(), "gui:rshop"));
         npcDefs.add(new NpcDef("bafovar",    "&#D946EF&l⚗ АЛХИМИК БАФОВАР",      "&fСмешивание 8 зелий — 5 000$ (/bafs)", -16.0, 100.0,  25.0, -70f, sMage,   Color.fromRGB(192, 38, 211), ItemFactory.potionKiller(1), new ItemStack(Material.BREWING_STAND), null, "gui:bafovar"));
-        npcDefs.add(new NpcDef("skins",      "&#F43F5E&l⛓ СКИНЫ НА ТРАПКУ",      "&fДебаффы врагам в Трапке (/skins)",    16.0, 100.0,  25.0,  70f, sPirate, Color.fromRGB(225, 29, 72),  ItemFactory.trapka(1), ItemFactory.plast(1), null, "gui:skins"));
+        npcDefs.add(new NpcDef("skins",      "&#F43F5E&l⛓ СКИНЫ ТРАПКИ И ПЛАСТА","&fОкна в Трапках и Пласты (/skins)",    16.0, 100.0,  25.0,  70f, sPirate, Color.fromRGB(225, 29, 72),  ItemFactory.trapka(1), ItemFactory.plast(1), null, "gui:skins"));
         npcDefs.add(new NpcDef("kits",       "&#38BDF8&l📦 НАБОРЫ КИТОВ",        "&fСтрого по привилегии (/kits)",       -16.0, 100.0,  14.0, -85f, sKnight, Color.fromRGB(59, 130, 246), new ItemStack(Material.CHEST), new ItemStack(Material.ENDER_PEARL), null, "gui:kits"));
         npcDefs.add(new NpcDef("buyer",      "&#69F0AE&l💰 СКУПЩИК РЕСУРСОВ",    "&fПродавай лут за Монеты (/buyer)",     16.0, 100.0,  14.0,  85f, sDealer, Color.fromRGB(34, 197, 94),  new ItemStack(Material.GOLD_INGOT), new ItemStack(Material.DIAMOND), null, "gui:buyer"));
         npcDefs.add(new NpcDef("ah",         "&#FB923C&l⚖ АУКЦИОН ИГРОКОВ",     "&fТорговля между игроками (/ah)",      -14.0, 100.0, -15.0,-140f, sDealer, Color.fromRGB(249, 115, 22), new ItemStack(Material.GOLD_BLOCK), null, null, "gui:ah"));
@@ -528,7 +528,7 @@ public final class SpawnEngine {
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
                 "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v5.8 &#80D8FF&l❄\n"
                 + "&#FF4081&l12 КИРОК &8• &#FFD740&lМОЛОТ 10×10 &8• &#00E676&lРАБОЧИЙ ТНТ &8• &#00E5FF&lANTI-DDOS\n"
-                + "&fВыживание: &#00E676&l/rtp &8│ &f12 Кирок: &#FFD740&l/picks &8│ &fВарпы: &#38BDF8&l/warps"));
+                + "&fВыживание: &#00E676&l/rtp &8│ &f12 Мечей: &#FF1744&l/swords &8│ &f12 Кирок: &#FFD740&l/picks &8│ &fВарпы: &#38BDF8&l/warps"));
 
         staticHoloDefs.add(new StaticHoloDef("holo_palace", 0.5, 103.6, 64.2,
                 "&#FFD740&l🏰 ИМПЕРАТОРСКИЙ ЗИМНИЙ ДВОРЕЦ (3 ЭТАЖА)\n&fТронный Зал &8• &bБиблиотека &8• &eСокровищница и Панорамный Балкон!"));

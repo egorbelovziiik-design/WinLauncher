@@ -84,11 +84,12 @@ public final class ItemFactory {
     public static ItemStack menuStar() {
         return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW &#80D8FF❄ &7(ПКМ)",
                 Arrays.asList(
-                        "&7Быстрый доступ ко всем системам v5.0:",
+                        "&7Быстрый доступ ко всем системам v5.9:",
                         "&f• Выход в мир выживания: &#00E676/rtp &7(Спавн — отдельный мир!)",
-                        "&f• 8-категорийный Магазин: &#00E5FF/shop &7+ Рилики: &#FFD740/rshop",
-                        "&f• Бафовар (до 8 зелий за 5 000$): &#FF9100/bafs &7+ Скины Трапок: &#E040FB/skins",
-                        "&f• Киты с 2 стаками перок: &#69F0AE/kits &7+ Головы за награду: &#FF5252/bounty",
+                        "&f• 12 Кастомных 3D Мечей: &#FF1744/swords &7+ 12 Кирок: &#FF5722/picks",
+                        "&f• Скины Трапок (с окнами) и Пластов: &#E040FB/skins &7(&f/plastskins&7)",
+                        "&f• Бафовар (до 8 зелий за 5 000$): &#FF9100/bafs &7+ Магазин: &#00E5FF/shop",
+                        "&f• Киты с 2 стаками перок: &#69F0AE/kits &7+ Броня ×2 прочнее в ПвП!",
                         "",
                         "&#00E676▸ Нажми ПКМ, чтобы открыть главное меню!"
                 ),
@@ -394,26 +395,29 @@ public final class ItemFactory {
                         "&7ПКМ — мгновенно создаёт нерушимый",
                         "&7пласт &d5×5×2 &7по направлению взгляда",
                         "&7(или под ногами при взгляде вниз) на &e12 сек&7!",
+                        "&7• Применяет ваш &bСкин Пласта (&f/plastskins&b) &7с витражным",
+                        "&7  стеклом и тактическим эффектом при установке!",
                         "&8Перезарядка: 10 сек."),
                 true, "plast", "plast", 1501);
     }
 
     public static ItemStack trapka(int amt) {
-        return make(Material.NETHERITE_SCRAP, amt, "&#FF1744&l⛓ Трапка 5×5×5 [FT]",
+        return make(Material.NETHERITE_SCRAP, amt, "&#FF1744&l⛓ Трапка 5×5×5 [Стекло + Скин]",
                 Arrays.asList("&8Боевая клетка FunTime × ReallyWorld", "",
                         "&7ПКМ — закрывает вас и врагов в нерушимой",
-                        "&7клетке &c5×5×5 &7на &e15 сек&7!",
-                        "&7• Применяет ваш активный &dСкин Трапки (&f/skins&d)&7,",
-                        "&7  накладывающий мощный дебафф на врагов внутри!",
+                        "&7клетке &c5×5×5 &7на &e15 сек &7с &#80D8FFброне-стеклянными окнами&7!",
+                        "&7• Через витражное стекло отлично видно врагов внутри и снаружи!",
+                        "&7• Активный &dСкин Трапки (&f/skins&d) &7накладывает мощный дебафф!",
                         "&8Перезарядка: 20 сек."),
                 true, "trapka", "trapka", 1502);
     }
 
     public static ItemStack dezorient(int amt) {
-        return make(Material.ENDER_EYE, amt, "&#E040FB&l👁 Дезориентация [FT]",
+        return make(Material.ENDER_EYE, amt, "&#E040FB&l👁 Дезориентация [FT · Иссушение III]",
                 Arrays.asList("&8Боевой расходник FunTime × ReallyWorld", "",
-                        "&7ПКМ — ослепляет, замедляет и дезориентирует",
-                        "&7всех врагов в радиусе &d10 блоков &7на &e7 сек&7!",
+                        "&7ПКМ — поражает всех врагов в радиусе &d10 блоков&7:",
+                        "&7• Ослепление + Тошнота II + Замедление II на &e7 сек&7!",
+                        "&7• &#FF1744Иссушение III &7на &c5 секунд&7!",
                         "&8Перезарядка: 20 сек."),
                 true, "dezorient", "dezorient", 1503);
     }
@@ -898,6 +902,121 @@ public final class ItemFactory {
         return sw;
     }
 
+    // ================= 9 НОВЫХ КАСТОМНЫХ 3D МЕЧЕЙ v5.9 (ИТОГО 12 3D МЕЧЕЙ В /swords!) =================
+    private static ItemStack enchantedCustomSword(String display, List<String> lore, String id, int cmd, int sharp, int fire, int loot, int unb) {
+        ItemStack sw = make(Material.NETHERITE_SWORD, 1, display, lore, false, id, id, cmd);
+        ItemMeta m = sw.getItemMeta();
+        if (m != null) {
+            addEnch(m, "sharpness", "DAMAGE_ALL", sharp);
+            if (fire > 0) addEnch(m, "fire_aspect", "FIRE_ASPECT", fire);
+            if (loot > 0) addEnch(m, "looting", "LOOT_BONUS_MOBS", loot);
+            addEnch(m, "sweeping_edge", "SWEEPING_EDGE", 3);
+            addEnch(m, "unbreaking", "DURABILITY", unb);
+            addEnch(m, "mending", "MENDING", 1);
+            sw.setItemMeta(m);
+        }
+        return sw;
+    }
+
+    /** #4/12 — ЛЕДЯНОЙ КЛИНОК СТУЖИ */
+    public static ItemStack swordFrost() {
+        return enchantedCustomSword(
+                "&#38BDF8&l❄ 3D Ледяной Клинок Стужи [Заморозка II]",
+                Arrays.asList("&8Кастомный 3D Меч Оружейной (#4/12)",
+                        "&7• &#80D8FFВечная Мерзлота: &7замораживает врага на 6 сек",
+                        "&7  и накладывает &bМедлительность III &7при ударе!",
+                        "&7• Острота VI · Разящий Клинок III · Прочность V"),
+                "sword_frost", 1831, 6, 0, 3, 5);
+    }
+
+    /** #5/12 — ГРОМОВОЙ МЕЧ ЗЕВСА */
+    public static ItemStack swordZeus() {
+        return enchantedCustomSword(
+                "&#FACC15&l⚡ 3D Громовой Меч Зевса [Цепная Молния]",
+                Arrays.asList("&8Кастомный 3D Меч Олимпа (#5/12)",
+                        "&7• &#FFD740Гнев Олимпа: &7бьёт врага молнией (+4⚡ чистого урона)",
+                        "&7  и пробивает блок щита &8(перезарядка 5 сек)&7!",
+                        "&7• Острота VII · Заговор Огня II · Прочность V"),
+                "sword_zeus", 1832, 7, 2, 3, 5);
+    }
+
+    /** #6/12 — САМУРАЙСКАЯ КАТАНА САКУРЫ */
+    public static ItemStack swordKatana() {
+        return enchantedCustomSword(
+                "&#F472B6&l🌸 3D Самурайская Катана Сакуры [Крит +25%]",
+                Arrays.asList("&8Изогнутая 3D Катана Мастера (#6/12)",
+                        "&7• &#FB7185Танец Лепестков: &7+25% критического урона в прыжке!",
+                        "&7• Выдаёт вам &bСкорость III &7на 3 сек при попадании!",
+                        "&7• Острота VI · Разящий Клинок III · Прочность V"),
+                "sword_katana", 1833, 6, 0, 3, 5);
+    }
+
+    /** #7/12 — ПРОКЛЯТЫЙ КЛИНОК ИССУШЕНИЯ */
+    public static ItemStack swordWither() {
+        return enchantedCustomSword(
+                "&#A855F7&l💀 3D Проклятый Клинок Иссушения [Иссушение III]",
+                Arrays.asList("&8Зубчатый 3D Тесак Тьмы (#7/12)",
+                        "&7• &#E040FBЧёрная Метка: &7накладывает &5Иссушение III &7на 4 сек",
+                        "&7  при каждом точном ударе по противнику!",
+                        "&7• Острота VII · Заговор Огня II · Прочность V"),
+                "sword_wither", 1834, 7, 2, 3, 5);
+    }
+
+    /** #8/12 — ЯДОВИТЫЙ ЯТАГАН ЕХИДНЫ */
+    public static ItemStack swordVenom() {
+        return enchantedCustomSword(
+                "&#22C55E&l🐍 3D Ядовитый Ятаган Ехидны [Яд III + Слабость]",
+                Arrays.asList("&8Изогнутый 3D Скимитар Чумы (#8/12)",
+                        "&7• &#4ADE80Нейротоксин: &7отравляет врага (&aЯд III&7) и снижает",
+                        "&7  его урон (&7Слабость I&7) на 4 секунды!",
+                        "&7• Острота VI · Добыча IV · Прочность V"),
+                "sword_venom", 1835, 6, 0, 4, 5);
+    }
+
+    /** #9/12 — ПРИЗРАЧНАЯ РАПИРА ТЕНЕЙ */
+    public static ItemStack swordPhantom() {
+        return enchantedCustomSword(
+                "&#818CF8&l👻 3D Призрачная Рапира Теней [Удар в Спину]",
+                Arrays.asList("&8Дуэльная 3D Рапира Ассасина (#9/12)",
+                        "&7• &#38BDF8Удар из Тени: &7+30% урона при ударе в спину врагу",
+                        "&7  + кратковременная Слепота &8(перезарядка 6 сек)&7!",
+                        "&7• Острота VI · Разящий Клинок III · Прочность V"),
+                "sword_phantom", 1836, 6, 0, 3, 5);
+    }
+
+    /** #10/12 — ПЛАМЕННЫЙ ФЛАМБЕРГ ФЕНИКСА */
+    public static ItemStack swordPhoenix() {
+        return enchantedCustomSword(
+                "&#FB923C&l🔥 3D Пламенный Фламберг Феникса [Волна Огня]",
+                Arrays.asList("&8Волнистый 3D Двуручник Солнца (#10/12)",
+                        "&7• &#FACC15Вспышка Феникса: &7поджигает врагов вокруг цели",
+                        "&7  и даёт вам &dРегенерацию II &7на 4 сек!",
+                        "&7• Острота VII · Заговор Огня III · Прочность V"),
+                "sword_phoenix", 1837, 7, 3, 3, 5);
+    }
+
+    /** #11/12 — АСТРАЛЬНЫЙ МЕЧ БЕЗДНЫ */
+    public static ItemStack swordVoid() {
+        return enchantedCustomSword(
+                "&#38BDF8&l🌌 3D Астральный Меч Бездны [Анти-Элитры + Тяга]",
+                Arrays.asList("&8Парный 3D Клинок Разлома (#11/12)",
+                        "&7• &#C084FCГравитационный Разлом: &7притягивает убегающего врага",
+                        "&7  к вам и мгновенно складывает его Элитры &8(КД 5 сек)&7!",
+                        "&7• Острота VII · Заговор Огня II · Прочность VI"),
+                "sword_void", 1838, 7, 2, 4, 6);
+    }
+
+    /** #12/12 — КОРОЛЕВСКИЙ ЭКСКАЛИБУР МИДАСА */
+    public static ItemStack swordMidas() {
+        return enchantedCustomSword(
+                "&#FFD740&l👑 3D Королевский Экскалибур Мидаса [Золото + Щиты]",
+                Arrays.asList("&8Золотой 3D Меч Императоров (#12/12)",
+                        "&7• &#FFEA00Золотая Дань: &7каждый удар по врагу приносит вам",
+                        "&7  &a+75$..+250$ Монет &7и даёт &eЗолотые Сердца&7!",
+                        "&7• Острота VII · Добыча V · Заговор Огня II · Прочность VI"),
+                "sword_midas", 1839, 7, 2, 5, 6);
+    }
+
     public static ItemStack maceKrush() {
         Material maceMat = ColorUtil.mat("MACE", "NETHERITE_AXE");
         ItemStack mc = make(maceMat, 1, "&#FF6D00&l🔨 3D Булава Крушителя [Удар с Небес]",
@@ -1137,11 +1256,12 @@ public final class ItemFactory {
         String modelId = "armor_" + setKey + "_" + slot;
         String customId = "armor_" + setKey + "_" + slot;
         List<String> lore = Arrays.asList(
-                "&8Кастомная 3D Броня KINGGRIEF v5.7",
+                "&8Кастомная 3D Броня KINGGRIEF v5.9",
                 "",
                 "&7Бонус комплекта:",
                 bonusLine1,
                 bonusLine2,
+                " &#00E676• Усиленная Закалка ×2 (в 2 раза прочнее в ПвП!)",
                 "",
                 "&bЗащита " + (prot == 6 ? "VI" : "V") + " · Прочность " + (unb == 6 ? "VI" : "V") + " · Починка"
         );
@@ -1314,6 +1434,14 @@ public final class ItemFactory {
                     pickObsidian(), pickMidas(), pickDjamshut(), pickSpawner(),
                     new ItemStack(Material.DIAMOND_BLOCK, 64),
                     new ItemStack(Material.EMERALD_BLOCK, 64)));
+            items.add(packedShulker(Material.PURPLE_SHULKER_BOX, "&#FF1744&l⚔ Полная Оружейная 12 Мечей OWNER #4",
+                    Arrays.asList("&7Все 12 кастомных 3D Мечей v5.9 + Коса Жнеца, Секира Тора и 4 3D Лука!"),
+                    swordOwner(), swordKrush(), swordDracula(),
+                    swordFrost(), swordZeus(), swordKatana(),
+                    swordWither(), swordVenom(), swordPhantom(),
+                    swordPhoenix(), swordVoid(), swordMidas(),
+                    scytheReaper(), axeThor(), maceKrush(), tridentPoseidon(),
+                    bowZeus(), bowInferno(), bowVampire(), bowIceRw()));
             return items;
         }
         if ("start".equals(k)) {
@@ -1433,7 +1561,7 @@ public final class ItemFactory {
                     claimBlock(Material.DIAMOND_ORE, 20, "&#38BDF8💎 Алмазный Приват 41×41")));
         } else if ("imperator".equals(k) || "king".equals(k) || "sponsor".equals(k) || "media".equals(k) || "mediaplus".equals(k) || "yt".equals(k) || "twitch".equals(k) || "tiktok".equals(k) || "kp".equals(k) || "mlmoder".equals(k)) {
             String tag = k.toUpperCase();
-            items.add(gear(Material.NETHERITE_SWORD, "&#A855F7👑 Меч " + tag, 5, 4, 2));
+            items.add("sponsor".equals(k) ? swordPhoenix() : ("king".equals(k) ? swordKatana() : ("imperator".equals(k) ? swordFrost() : gear(Material.NETHERITE_SWORD, "&#A855F7👑 Меч " + tag, 5, 4, 2))));
             items.add(gear(Material.NETHERITE_PICKAXE, "&#A855F7⛏ Кирка " + tag, 5, 4, 3));
             items.add(gear(Material.NETHERITE_AXE, "&#A855F7🪓 Топор " + tag, 5, 4, 0));
             items.add("imperator".equals(k) ? bowInferno() : bowIceRw());

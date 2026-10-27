@@ -88,6 +88,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     // /spek cooldowns & return locations
     private final Map<UUID, Long> spekCooldowns = new HashMap<UUID, Long>();
     private final Map<UUID, SpekReturnState> spekReturns = new HashMap<UUID, SpekReturnState>();
+    // v5.9: SlowChat global cooldown & per-player last chat timestamp
+    private volatile int slowChatSeconds = 0;
+    private final Map<UUID, Long> lastChatAtMs = new HashMap<UUID, Long>();
 
     private BukkitRunnable checkTickTask;
 
@@ -132,7 +135,64 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         if (!(s instanceof Player)) return true;
         Player p = (Player) s;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
-        return p.isOp() || r.tier >= 4 || p.hasPermission("kinggrief.staff") || p.hasPermission("kinggrief.admin");
+        return r != null && ("owner".equalsIgnoreCase(r.id) || r.tier >= 4 || r.weight >= 200 || p.hasPermission("kinggrief.staff"));
+    }
+
+    public int getSlowChatSeconds() {
+        return slowChatSeconds;
+    }
+
+    /** Returns remaining wait seconds if blocked by /slowchat, or 0 if allowed. */
+    public int checkAndRecordSlowChat(Player p) {
+        int cd = slowChatSeconds;
+        if (cd <= 0 || isStaff(p)) return 0;
+        long now = System.currentTimeMillis();
+        Long prev = lastChatAtMs.get(p.getUniqueId());
+        if (prev != null && now - prev.longValue() < cd * 1000L) {
+            return (int) ((cd * 1000L - (now - prev.longValue())) / 1000L + 1L);
+        }
+        lastChatAtMs.put(p.getUniqueId(), Long.valueOf(now));
+        return 0;
+    }
+
+    private boolean canPunishTarget(CommandSender sender, String targetName) {
+        if (!(sender instanceof Player)) return true;
+        Player staff = (Player) sender;
+        RankManager.RankDef myRank = plugin.getRanks().getRank(staff);
+        if ("owner".equalsIgnoreCase(myRank.id)) return true;
+        RankManager.RankDef targetRank = plugin.getRanks().getRankByName(targetName);
+        Player onTarget = Bukkit.getPlayerExact(targetName);
+        if (onTarget != null) targetRank = plugin.getRanks().getRank(onTarget);
+        if ("owner".equalsIgnoreCase(targetRank.id)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя выдать наказание владельцу сервера OWNER!"));
+            return false;
+        }
+        if (targetRank.weight >= myRank.weight && targetRank.weight >= 200) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя наказать сотрудника КП равного или более высокого ранга!"));
+            return false;
+        }
+        return true;
+    }
+
+    private boolean ipBelongsToOwner(String ip) {
+        for (String acc : plugin.getStore().getAccountsByIp(ip)) {
+            if ("owner".equalsIgnoreCase(plugin.getRanks().getRankByName(acc).id)) return true;
+        }
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            if (ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))
+                    && "owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String maskIp(String ip, boolean isOwnerViewer) {
+        if (ip == null || ip.isEmpty()) return "неизвестен";
+        if (isOwnerViewer) return ip;
+        String[] parts = ip.split("\\.");
+        if (parts.length == 4) return parts[0] + "." + parts[1] + ".*.*";
+        return ip.length() > 6 ? ip.substring(0, 6) + "***" : "***";
     }
 
     public boolean isOnShift(Player p) {
@@ -255,31 +315,30 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         return false;
     }
 
-    // ================= COMMAND ROUTER (/check, /sw, /mute, /unmute, /ban, /unban, /spek) =================
+    // ================= COMMAND ROUTER (/check, /sw, /mute, /muteip, /unmute, /unmuteip, /ban, /banip, /unban, /unbanip, /dupeip, /warn, /unwarn, /warns, /history, /clearchat, /slowchat, /kick, /staff, /spek) =================
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
-        if ("spek".equals(c)) {
-            return handleSpekCommand(sender, args);
-        }
-        if ("sw".equals(c)) {
-            return handleStaffWorkCommand(sender, args);
-        }
-        if ("check".equals(c)) {
-            return handleCheckCommand(sender, args);
-        }
-        if ("mute".equals(c)) {
-            return handleTimedMute(sender, args);
-        }
-        if ("unmute".equals(c)) {
-            return handleUnmute(sender, args);
-        }
-        if ("ban".equals(c)) {
-            return handleTimedBanWithAscension(sender, args);
-        }
-        if ("unban".equals(c)) {
-            return handleUnban(sender, args);
-        }
+        if ("spek".equals(c)) return handleSpekCommand(sender, args);
+        if ("sw".equals(c)) return handleStaffWorkCommand(sender, args);
+        if ("check".equals(c)) return handleCheckCommand(sender, args);
+        if ("mute".equals(c)) return handleTimedMute(sender, args);
+        if ("unmute".equals(c)) return handleUnmute(sender, args);
+        if ("muteip".equals(c)) return handleTimedIpMute(sender, args);
+        if ("unmuteip".equals(c)) return handleUnmuteIp(sender, args);
+        if ("ban".equals(c)) return handleTimedBanWithAscension(sender, args);
+        if ("unban".equals(c)) return handleUnban(sender, args);
+        if ("banip".equals(c)) return handleTimedIpBan(sender, args);
+        if ("unbanip".equals(c)) return handleUnbanIp(sender, args);
+        if ("kick".equals(c)) return handleKick(sender, args);
+        if ("dupeip".equals(c)) return handleDupeIp(sender, args);
+        if ("warn".equals(c)) return handleWarn(sender, args);
+        if ("unwarn".equals(c)) return handleUnwarn(sender, args);
+        if ("warns".equals(c)) return handleWarnsList(sender, args);
+        if ("history".equals(c)) return handleHistory(sender, args);
+        if ("clearchat".equals(c)) return handleClearChat(sender);
+        if ("slowchat".equals(c)) return handleSlowChat(sender, args);
+        if ("staff".equals(c)) return handleStaffOnlineList(sender);
         return true;
     }
 
@@ -312,18 +371,27 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             if (args.length == 2 && "status".equalsIgnoreCase(args[0])) {
                 return onlineNames(args[1]);
             }
-        } else if (("mute".equals(c) || "ban".equals(c)) && isStaff(sender)) {
+        } else if (("mute".equals(c) || "muteip".equals(c) || "ban".equals(c) || "banip".equals(c)) && isStaff(sender)) {
             if (args.length == 1) return onlineNames(args[0]);
             if (args.length == 2) {
-                return filter("mute".equals(c)
+                return filter(c.startsWith("mute")
                         ? Arrays.asList("15m", "30m", "1h", "3h", "1d", "perm")
                         : Arrays.asList("7d", "14d", "30d", "90d", "perm"), args[1]);
             }
             if (args.length == 3) {
-                return filter("mute".equals(c)
-                        ? Arrays.asList("Оскорбление", "Флуд", "Спам", "Реклама", "Неадекват")
-                        : Arrays.asList("Читы", "KillAura", "XRay", "Уклон_от_проверки", "Багоюз"), args[2]);
+                return filter(c.startsWith("mute")
+                        ? Arrays.asList("Оскорбление", "Обход_мута", "Флуд", "Спам", "Реклама")
+                        : Arrays.asList("Читы", "Обход_бана", "Твинк_читера", "KillAura", "XRay"), args[2]);
             }
+        } else if (("unmute".equals(c) || "unmuteip".equals(c) || "unban".equals(c) || "unbanip".equals(c)
+                || "dupeip".equals(c) || "warn".equals(c) || "unwarn".equals(c) || "warns".equals(c)
+                || "history".equals(c) || "kick".equals(c)) && isStaff(sender)) {
+            if (args.length == 1) return onlineNames(args[0]);
+            if (args.length == 2 && "warn".equals(c)) {
+                return filter(Arrays.asList("Спам", "Оскорбление", "Багоюз", "Помеха", "Нарушение_правил"), args[1]);
+            }
+        } else if ("slowchat".equals(c) && isStaff(sender) && args.length == 1) {
+            return filter(Arrays.asList("off", "3", "5", "10", "15"), args[0]);
         } else if ("spek".equals(c)) {
             if (args.length == 1) {
                 List<String> opts = new ArrayList<String>();
@@ -669,25 +737,36 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.c("&#FF1744✖ У вас нет прав на выдачу мута!"));
             return true;
         }
-        if (args.length < 3) {
-            sender.sendMessage(ColorUtil.c("&#FFD740Использование: &f/mute <игрок> <время> <причина> &7(Пример: &f/mute Steve 30m Оскорбление&7)"));
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&#FFD740Использование: &f/mute <игрок> [время] [причина] &7(Пример: &f/mute Steve 30m Оскорбление&7)"));
             return true;
         }
         String target = args[0];
-        long durMs = parseDurationMs(args[1]);
-        if (durMs == Long.MIN_VALUE) {
-            sender.sendMessage(ColorUtil.c("&#FF1744✖ Неверный формат времени! Примеры: &f15m, 2h, 7d, 30м, 1ч, perm"));
-            return true;
+        if (!canPunishTarget(sender, target)) return true;
+        long durMs;
+        String reason;
+        if (args.length >= 2) {
+            long parsed = parseDurationMs(args[1]);
+            if (parsed != Long.MIN_VALUE) {
+                durMs = parsed;
+                reason = args.length >= 3 ? joinArgs(args, 2) : "Нарушение правил чата";
+            } else {
+                durMs = 30L * 60_000L;
+                reason = joinArgs(args, 1);
+            }
+        } else {
+            durMs = 30L * 60_000L;
+            reason = "Нарушение правил чата";
         }
-        String reason = joinArgs(args, 2);
         String staffName = sender instanceof Player ? sender.getName() : "Консоль";
 
         plugin.getStore().mute(target, durMs, reason, staffName);
+        String timeLabel = formatDurationRu(durMs);
+        plugin.getStore().appendPunishHistory(target, "&#FF5252[МУТ]", staffName, timeLabel, reason);
         if (sender instanceof Player) {
             plugin.getStore().addStaffMute(staffName);
         }
 
-        String timeLabel = formatDurationRu(durMs);
         Bukkit.broadcastMessage(ColorUtil.c("&#FF5252&l🔇 [МУТ] &fМодератор &#FFD740" + staffName
                 + " &fвыдал мут игроку &c" + target + " &fна &#80D8FF" + timeLabel + "&f. Причина: &e" + reason));
 
@@ -718,24 +797,30 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.c("&#FF1744✖ У вас нет прав на выдачу бана!"));
             return true;
         }
-        if (args.length < 3) {
-            sender.sendMessage(ColorUtil.c("&#FFD740Использование: &f/ban <игрок> <время> <причина> &7(Пример: &f/ban Cheater 30d KillAura&7)"));
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&#FFD740Использование: &f/ban <игрок> [время] [причина] &7(Пример: &f/ban Cheater 30d KillAura&7)"));
             return true;
         }
         String targetName = args[0];
-        Player onlineTarget = Bukkit.getPlayerExact(targetName);
-        if (onlineTarget != null && "owner".equals(plugin.getRanks().getRank(onlineTarget).id) && (sender instanceof Player)) {
-            sender.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя забанить владельца сервера OWNER!"));
-            return true;
-        }
+        if (!canPunishTarget(sender, targetName)) return true;
 
-        long durMs = parseDurationMs(args[1]);
-        if (durMs == Long.MIN_VALUE) {
-            sender.sendMessage(ColorUtil.c("&#FF1744✖ Неверный формат времени! Примеры: &f12h, 7d, 30d, 30д, perm"));
-            return true;
+        long durMs;
+        String reason;
+        if (args.length >= 2) {
+            long parsed = parseDurationMs(args[1]);
+            if (parsed != Long.MIN_VALUE) {
+                durMs = parsed;
+                reason = args.length >= 3 ? joinArgs(args, 2) : "Нарушение правил сервера";
+            } else {
+                durMs = 30L * 86_400_000L;
+                reason = joinArgs(args, 1);
+            }
+        } else {
+            durMs = 30L * 86_400_000L;
+            reason = "Нарушение правил сервера";
         }
-        String reason = joinArgs(args, 2);
         String staffName = sender instanceof Player ? sender.getName() : "Консоль";
+        plugin.getStore().appendPunishHistory(targetName, "&#FF1744[БАН]", staffName, formatDurationRu(durMs), reason);
         executeBanWithSkyAnimation(staffName, sender instanceof Player, targetName, durMs, reason);
         return true;
     }
@@ -868,6 +953,17 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         );
     }
 
+    public String buildIpBanKickScreen(String staff, String timeLabel, String reason, String origTarget) {
+        return ColorUtil.c(
+                "&#FF1744&l❄ KINGGRIEF — ВАШ IP-АДРЕС ЗАБЛОКИРОВАН ❄\n\n"
+                        + "&7Основание (аккаунт): &#FF8A80" + origTarget + "\n"
+                        + "&7Модератор: &#FFD740" + staff + "\n"
+                        + "&7Срок блокировки IP: &#FF5252" + timeLabel + "\n"
+                        + "&7Причина: &f" + reason + "\n\n"
+                        + "&7Разбан и обжалование: &#00E5FFkinggrief.vercel.app"
+        );
+    }
+
     private boolean handleUnban(CommandSender sender, String[] args) {
         if (!isStaff(sender)) {
             sender.sendMessage(ColorUtil.c("&#FF1744✖ Недостаточно прав!"));
@@ -879,6 +975,430 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         plugin.getStore().unban(args[0]);
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Модератор &f" + sender.getName() + " &#00E676разбанил игрока &f" + args[0] + "&#00E676."));
+        return true;
+    }
+
+    // ================= v5.9: МУТ ПО IP (/muteip, /unmuteip), БАН ПО IP (/banip, /unbanip), ТВИНКИ (/dupeip), ВАРНЫ (/warn), ИСТОРИЯ (/history) =================
+    private boolean handleTimedIpMute(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ У вас нет прав на выдачу мута по IP!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&#FFD740Использование: &f/muteip <игрок | IP> [время] [причина] &7(Пример: &f/muteip Steve 2h Обход мута с твинка&7)"));
+            return true;
+        }
+        String rawTarget = args[0];
+        if (!DataStore.looksLikeIp(rawTarget) && !canPunishTarget(sender, rawTarget)) return true;
+
+        String ip = plugin.getStore().resolveIpForTarget(rawTarget);
+        if (ip.isEmpty()) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Не удалось найти IP-адрес игрока &f" + rawTarget + " &#FF1744(игрок ещё ни разу не заходил на сервер)!"));
+            return true;
+        }
+        boolean isOwnerViewer = !(sender instanceof Player) || "owner".equalsIgnoreCase(plugin.getRanks().getRank((Player) sender).id);
+        if (!isOwnerViewer && ipBelongsToOwner(ip)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Запрещено выдавать IP-мут на IP владельца сервера OWNER!"));
+            return true;
+        }
+
+        long durMs = 60L * 60_000L; // default 1h
+        String reason = "Обход мута / Нарушение правил чата";
+        if (args.length >= 2) {
+            long parsed = parseDurationMs(args[1]);
+            if (parsed != Long.MIN_VALUE) {
+                durMs = parsed;
+                reason = args.length >= 3 ? joinArgs(args, 2) : reason;
+            } else {
+                reason = joinArgs(args, 1);
+            }
+        }
+        String staffName = sender instanceof Player ? sender.getName() : "Консоль";
+        String targetLabel = DataStore.looksLikeIp(rawTarget) ? maskIp(ip, false) : rawTarget;
+
+        plugin.getStore().muteIp(ip, targetLabel, durMs, reason, staffName);
+        if (!DataStore.looksLikeIp(rawTarget)) {
+            plugin.getStore().mute(rawTarget, durMs, reason, staffName);
+            plugin.getStore().appendPunishHistory(rawTarget, "&#FF5252[МУТ-IP]", staffName, formatDurationRu(durMs), reason);
+        }
+        if (sender instanceof Player) plugin.getStore().addStaffMute(staffName);
+
+        String timeLabel = formatDurationRu(durMs);
+        Bukkit.broadcastMessage(ColorUtil.c("&#FF5252&l🔇 [МУТ ПО IP] &fМодератор &#FFD740" + staffName
+                + " &fзамутил по IP &c" + targetLabel + " &fна &#80D8FF" + timeLabel + "&f. Причина: &e" + reason));
+
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            if (ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))
+                    && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) {
+                ColorUtil.sound(on, "entity.villager.no", 1.0f, 0.75f);
+                on.sendTitle(ColorUtil.c("&#FF5252&l🔇 МУТ ПО IP-АДРЕСУ"),
+                        ColorUtil.c("&fСрок: &e" + timeLabel + " &8│ &f" + reason), 5, 60, 10);
+            }
+        }
+        return true;
+    }
+
+    private boolean handleUnmuteIp(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Недостаточно прав!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/unmuteip <игрок | IP>"));
+            return true;
+        }
+        boolean removedIp = plugin.getStore().unmuteIp(args[0]);
+        if (!DataStore.looksLikeIp(args[0])) plugin.getStore().unmute(args[0]);
+        if (!removedIp) {
+            sender.sendMessage(ColorUtil.c("&eАктивный IP-мут для &f" + args[0] + " &eне найден (обычный мут также снят)."));
+            return true;
+        }
+        Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔊 Модератор &f" + sender.getName() + " &#00E676снял IP-мут с &f" + args[0] + "&#00E676."));
+        return true;
+    }
+
+    private boolean handleTimedIpBan(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ У вас нет прав на выдачу бана по IP!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&#FFD740Использование: &f/banip <игрок | IP> [время] [причина] &7(Пример: &f/banip Cheater 30d Обход бана твинками&7)"));
+            return true;
+        }
+        String rawTarget = args[0];
+        if (!DataStore.looksLikeIp(rawTarget) && !canPunishTarget(sender, rawTarget)) return true;
+
+        final String ip = plugin.getStore().resolveIpForTarget(rawTarget);
+        if (ip.isEmpty()) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Не удалось найти IP-адрес игрока &f" + rawTarget + " &#FF1744(игрок ещё ни разу не заходил на сервер)!"));
+            return true;
+        }
+        boolean isOwnerViewer = !(sender instanceof Player) || "owner".equalsIgnoreCase(plugin.getRanks().getRank((Player) sender).id);
+        if (!isOwnerViewer && ipBelongsToOwner(ip)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Запрещено выдавать IP-бан на IP владельца сервера OWNER!"));
+            return true;
+        }
+
+        long durMs = 0L; // default permanent for IP-ban unless duration specified
+        String reason = "Обход блокировки / Читы с твинков";
+        if (args.length >= 2) {
+            long parsed = parseDurationMs(args[1]);
+            if (parsed != Long.MIN_VALUE) {
+                durMs = parsed;
+                reason = args.length >= 3 ? joinArgs(args, 2) : reason;
+            } else {
+                reason = joinArgs(args, 1);
+            }
+        }
+        final String staffName = sender instanceof Player ? sender.getName() : "Консоль";
+        final String targetLabel = DataStore.looksLikeIp(rawTarget) ? maskIp(ip, false) : rawTarget;
+        final String timeLabel = formatDurationRu(durMs);
+
+        plugin.getStore().banIp(ip, targetLabel, durMs, reason, staffName);
+        if (!DataStore.looksLikeIp(rawTarget)) {
+            plugin.getStore().ban(rawTarget, durMs, reason, staffName);
+            plugin.getStore().appendPunishHistory(rawTarget, "&#FF1744[БАН-IP]", staffName, timeLabel, reason);
+        }
+        if (sender instanceof Player) plugin.getStore().addStaffBan(staffName);
+
+        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔨 [БАН ПО IP] &fМодератор &#FFD740" + staffName
+                + " &fзаблокировал по IP &c" + targetLabel + " &fна &#FF8A80" + timeLabel + "&f. Причина: &e" + reason));
+
+        // Kick ALL online accounts sharing this IP (with sky animation on main target if online!)
+        final String finalReason = reason;
+        Player primaryOnline = DataStore.looksLikeIp(rawTarget) ? null : Bukkit.getPlayerExact(rawTarget);
+        for (Player on : new ArrayList<Player>(Bukkit.getOnlinePlayers())) {
+            if (!ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))) continue;
+            if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) continue;
+            if (primaryOnline != null && on.equals(primaryOnline)) {
+                executeBanSkyAnimationOnly(on, staffName, timeLabel, buildIpBanKickScreen(staffName, timeLabel, finalReason, targetLabel));
+            } else {
+                on.kickPlayer(buildIpBanKickScreen(staffName, timeLabel, finalReason, targetLabel));
+            }
+        }
+        return true;
+    }
+
+    private void executeBanSkyAnimationOnly(final Player victim, final String staffName, final String timeLabel, final String kickScreen) {
+        CheckSession cs = activeChecks.remove(victim.getUniqueId());
+        if (cs != null) {
+            try { cs.bossBar.removeAll(); } catch (Throwable ignored) {}
+        }
+        ascendingBanPlayers.add(victim.getUniqueId());
+        victim.setAllowFlight(true);
+        victim.setFlying(true);
+        victim.setGlowing(true);
+        victim.sendTitle(ColorUtil.c("&#FF1744&l🔨 БАН ПО IP-АДРЕСУ!"),
+                ColorUtil.c("&fМодератор: &e" + staffName + " &8│ &fСрок: &c" + timeLabel), 2, 60, 5);
+        victim.getWorld().playSound(victim.getLocation(), "minecraft:block.beacon.activate", 2.0f, 0.7f);
+        new BukkitRunnable() {
+            int ticks = 0;
+            @Override
+            public void run() {
+                if (!victim.isOnline()) {
+                    ascendingBanPlayers.remove(victim.getUniqueId());
+                    cancel();
+                    return;
+                }
+                ticks++;
+                Location loc = victim.getLocation();
+                victim.setVelocity(new Vector(0.0, 0.34, 0.0));
+                double angle = ticks * 0.45;
+                loc.getWorld().spawnParticle(Particle.FLAME, loc.clone().add(Math.cos(angle) * 1.15, 0.9, Math.sin(angle) * 1.15), 4, 0.05, 0.05, 0.05, 0.01);
+                loc.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, loc.clone().add(Math.cos(angle + Math.PI) * 1.15, 0.9, Math.sin(angle + Math.PI) * 1.15), 4, 0.05, 0.05, 0.05, 0.01);
+                if (ticks >= 52) {
+                    ascendingBanPlayers.remove(victim.getUniqueId());
+                    victim.setGlowing(false);
+                    try {
+                        loc.getWorld().strikeLightningEffect(loc);
+                        spawnBanFireworkBurst(loc);
+                    } catch (Throwable ignored) {}
+                    victim.kickPlayer(kickScreen);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private boolean handleUnbanIp(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Недостаточно прав!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/unbanip <игрок | IP>"));
+            return true;
+        }
+        boolean removedIp = plugin.getStore().unbanIp(args[0]);
+        if (!DataStore.looksLikeIp(args[0])) plugin.getStore().unban(args[0]);
+        if (!removedIp) {
+            sender.sendMessage(ColorUtil.c("&eАктивный IP-бан для &f" + args[0] + " &eне найден (обычный бан также снят)."));
+            return true;
+        }
+        Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Модератор &f" + sender.getName() + " &#00E676разблокировал IP &f" + args[0] + "&#00E676."));
+        return true;
+    }
+
+    private boolean handleKick(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ У вас нет прав на кик игроков!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/kick <игрок> [причина]"));
+            return true;
+        }
+        String targetName = args[0];
+        if (!canPunishTarget(sender, targetName)) return true;
+        Player tp = Bukkit.getPlayerExact(targetName);
+        if (tp == null || !tp.isOnline()) {
+            sender.sendMessage(ColorUtil.c("&cИгрок &f" + targetName + " &cсейчас не в сети!"));
+            return true;
+        }
+        String reason = args.length >= 2 ? joinArgs(args, 1) : "Нарушение правил сервера";
+        String staffName = sender instanceof Player ? sender.getName() : "Консоль";
+        plugin.getStore().appendPunishHistory(targetName, "&#FFAB40[КИК]", staffName, "Мгновенно", reason);
+        tp.kickPlayer(ColorUtil.c("&#FF9100&l❄ KINGGRIEF — ВЫ КИКНУТЫ С СЕРВЕРА ❄\n\n&7Модератор: &#FFD740" + staffName + "\n&7Причина: &f" + reason));
+        Bukkit.broadcastMessage(ColorUtil.c("&#FF9100👢 [КИК] &fМодератор &#FFD740" + staffName + " &fкикнул &c" + tp.getName() + "&f. Причина: &e" + reason));
+        return true;
+    }
+
+    private boolean handleDupeIp(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Доступно только персоналу сервера!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/dupeip <игрок | IP> &7— проверка твинков на одном IP"));
+            return true;
+        }
+        String ip = plugin.getStore().resolveIpForTarget(args[0]);
+        if (ip.isEmpty()) {
+            sender.sendMessage(ColorUtil.c("&cДанные по IP для &f" + args[0] + " &cне найдены."));
+            return true;
+        }
+        boolean isOwnerViewer = !(sender instanceof Player) || "owner".equalsIgnoreCase(plugin.getRanks().getRank((Player) sender).id);
+        List<String> accs = plugin.getStore().getAccountsByIp(ip);
+        String ipLabel = maskIp(ip, isOwnerViewer);
+        boolean ipBanned = plugin.getStore().getActiveIpBanReason(ip) != null;
+        boolean ipMuted = plugin.getStore().getIpMuteRemainingSec(ip) > 0;
+
+        sender.sendMessage(ColorUtil.c("&#38BDF8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        sender.sendMessage(ColorUtil.c(" &#38BDF8&l🔎 ПРОВЕРКА ТВИНКОВ (/dupeip): &f" + args[0] + " &8[" + ipLabel + "]"));
+        sender.sendMessage(ColorUtil.c(" &7Статус IP: " + (ipBanned ? "&#FF1744ЗАБАНЕН ПО IP" : (ipMuted ? "&#FF9100В МУТЕ ПО IP" : "&#00E676Чист"))
+                + " &8│ &7Найдено аккаунтов: &e" + accs.size()));
+        StringBuilder sb = new StringBuilder(" ");
+        for (int i = 0; i < accs.size(); i++) {
+            String acc = accs.get(i);
+            if (i > 0) sb.append("&8, ");
+            boolean banned = plugin.getStore().getActiveBanReason(acc) != null;
+            boolean muted = plugin.getStore().getMuteRemainingSec(acc) > 0;
+            boolean online = Bukkit.getPlayerExact(acc) != null;
+            String col = banned ? "&#FF1744" : (muted ? "&#FF9100" : (online ? "&#00E676" : "&7"));
+            String tag = banned ? " [БАН]" : (muted ? " [МУТ]" : (online ? " [ОНЛАЙН]" : ""));
+            sb.append(col).append(acc).append(tag);
+        }
+        sender.sendMessage(ColorUtil.c(sb.toString()));
+        sender.sendMessage(ColorUtil.c(" &8Легенда: &#00E676Зелёный=Онлайн &8| &7Серый=Оффлайн &8| &#FF9100Оранж=Мут &8| &#FF1744Красный=Бан"));
+        sender.sendMessage(ColorUtil.c("&#38BDF8&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        return true;
+    }
+
+    private boolean handleWarn(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ У вас нет прав на выдачу предупреждений!"));
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/warn <игрок> <причина> &7(2/3 = авто-мут 30м, 3/3 = авто-бан 3д!)"));
+            return true;
+        }
+        String target = args[0];
+        if (!canPunishTarget(sender, target)) return true;
+        String reason = joinArgs(args, 1);
+        String staffName = sender instanceof Player ? sender.getName() : "Консоль";
+
+        int count = plugin.getStore().addWarn(target, staffName, reason);
+        plugin.getStore().appendPunishHistory(target, "&#FFD740[ВАРН " + count + "/3]", staffName, "-", reason);
+        Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l⚠ [ПРЕДУПРЕЖДЕНИЕ " + count + "/3] &fМодератор &#00E676" + staffName
+                + " &fвыдал варн &c" + target + "&f: &e" + reason));
+
+        Player tp = Bukkit.getPlayerExact(target);
+        if (tp != null) {
+            ColorUtil.sound(tp, "block.anvil.place", 0.9f, 0.85f);
+            tp.sendTitle(ColorUtil.c("&#FFD740&l⚠ ВАРН [" + count + "/3]"), ColorUtil.c("&fПричина: &e" + reason), 5, 55, 10);
+        }
+        if (count == 2) {
+            plugin.getStore().mute(target, 30L * 60_000L, "2/3 предупреждений (" + reason + ")", "Авто-Система");
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252🔇 &fИгрок &c" + target + " &fполучил &e2/3 варнов &f→ Авто-Мут на &b30 мин.&f!"));
+        } else if (count >= 3) {
+            plugin.getStore().clearWarns(target);
+            executeBanWithSkyAnimation("Авто-Система (3/3 Варнов)", false, target, 3L * 86_400_000L, "Достигнут лимит 3/3 предупреждений (" + reason + ")");
+        }
+        return true;
+    }
+
+    private boolean handleUnwarn(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Недостаточно прав!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/unwarn <игрок>"));
+            return true;
+        }
+        int left = plugin.getStore().removeLastWarn(args[0]);
+        sender.sendMessage(ColorUtil.c("&#00E676✔ Снято последнее предупреждение у &f" + args[0] + " &7(Осталось: &e" + left + "/3&7)."));
+        return true;
+    }
+
+    private boolean handleWarnsList(CommandSender sender, String[] args) {
+        String target = args.length >= 1 ? args[0] : sender.getName();
+        List<String> list = plugin.getStore().getWarns(target);
+        sender.sendMessage(ColorUtil.c("&#FFD740&l⚠ Предупреждения игрока &f" + target + " &8(&e" + list.size() + "/3&8):"));
+        if (list.isEmpty()) {
+            sender.sendMessage(ColorUtil.c(" &aУ игрока нет активных предупреждений!"));
+        } else {
+            for (int i = 0; i < list.size(); i++) {
+                sender.sendMessage(ColorUtil.c(" &e#" + (i + 1) + " " + list.get(i)));
+            }
+        }
+        return true;
+    }
+
+    private boolean handleHistory(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Доступно только персоналу сервера!"));
+            return true;
+        }
+        if (args.length < 1) {
+            sender.sendMessage(ColorUtil.c("&eИспользование: &f/history <игрок> &7— досье наказаний игрока"));
+            return true;
+        }
+        String target = args[0];
+        String ip = plugin.getStore().resolveIpForTarget(target);
+        String activeBan = plugin.getStore().getActiveBanReason(target);
+        String activeIpBan = ip.isEmpty() ? null : plugin.getStore().getActiveIpBanReason(ip);
+        long muteSec = plugin.getStore().getMuteRemainingSec(target);
+        long ipMuteSec = ip.isEmpty() ? 0L : plugin.getStore().getIpMuteRemainingSec(ip);
+        int warns = plugin.getStore().getWarns(target).size();
+        List<String> hist = plugin.getStore().getPunishHistory(target);
+
+        sender.sendMessage(ColorUtil.c("&#FF1744&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        sender.sendMessage(ColorUtil.c(" &#FFD740&l📋 ДОСЬЕ НАКАЗАНИЙ ИГРОКА: &f" + target));
+        sender.sendMessage(ColorUtil.c(" &7Активный Бан: " + (activeBan != null ? "&#FF1744Да (" + activeBan + ")" : "&#00E676Нет")
+                + " &8│ &7IP-Бан: " + (activeIpBan != null ? "&#FF1744Да (" + activeIpBan + ")" : "&#00E676Нет")));
+        sender.sendMessage(ColorUtil.c(" &7Активный Мут: " + (muteSec > 0 ? "&#FF9100Да" : "&#00E676Нет")
+                + " &8│ &7IP-Мут: " + (ipMuteSec > 0 ? "&#FF9100Да" : "&#00E676Нет")
+                + " &8│ &7Варны: &e" + warns + "/3"));
+        if (hist.isEmpty()) {
+            sender.sendMessage(ColorUtil.c(" &7История прошлых наказаний пуста."));
+        } else {
+            for (int i = 0; i < Math.min(10, hist.size()); i++) {
+                sender.sendMessage(ColorUtil.c(" " + hist.get(i)));
+            }
+        }
+        sender.sendMessage(ColorUtil.c("&#FF1744&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        return true;
+    }
+
+    private boolean handleClearChat(CommandSender sender) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Доступно только модерации!"));
+            return true;
+        }
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            if (!isStaff(on)) {
+                for (int i = 0; i < 90; i++) on.sendMessage("");
+            }
+        }
+        Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        Bukkit.broadcastMessage(ColorUtil.c(" &#00E5FF&l🧹 ЧАТ ОЧИЩЕН &fмодератором &#FFD740" + sender.getName() + "&f!"));
+        Bukkit.broadcastMessage(ColorUtil.c(" &7Соблюдайте правила общения · Discord: &#5865F2https://discord.gg/7Cugj4X3eU"));
+        Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        return true;
+    }
+
+    private boolean handleSlowChat(CommandSender sender, String[] args) {
+        if (!isStaff(sender)) {
+            sender.sendMessage(ColorUtil.c("&#FF1744✖ Доступно только модерации!"));
+            return true;
+        }
+        if (args.length < 1 || "off".equalsIgnoreCase(args[0]) || "0".equals(args[0])) {
+            slowChatSeconds = 0;
+            Bukkit.broadcastMessage(ColorUtil.c("&#00E676💬 Медленный режим чата выключен модератором &f" + sender.getName() + "&#00E676!"));
+            return true;
+        }
+        int sec;
+        try { sec = Math.max(1, Math.min(120, Integer.parseInt(args[0]))); } catch (Exception ex) { sec = 5; }
+        slowChatSeconds = sec;
+        Bukkit.broadcastMessage(ColorUtil.c("&#FFD740⏱ [МЕДЛЕННЫЙ ЧАТ] &fМодератор &#00E676" + sender.getName()
+                + " &fустановил задержку чата: &e1 сообщение в " + sec + " сек.&f!"));
+        return true;
+    }
+
+    private boolean handleStaffOnlineList(CommandSender sender) {
+        List<Player> list = new ArrayList<Player>();
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            RankManager.RankDef r = plugin.getRanks().getRank(on);
+            if (r.weight >= 200 && !plugin.getStore().isVanished(on)) {
+                list.add(on);
+            }
+        }
+        sender.sendMessage(ColorUtil.c("&#00E676&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        sender.sendMessage(ColorUtil.c(" &#00E676&l🛡 ПЕРСОНАЛ КП В СЕТИ (&f" + list.size() + "&#00E676&l):"));
+        if (list.isEmpty()) {
+            sender.sendMessage(ColorUtil.c(" &7Сейчас нет видимых сотрудников КП онлайн. Вызвать проверку: &f/спек"));
+        } else {
+            for (Player st : list) {
+                String badge = plugin.getRanks().getAnimatedBadge(plugin.getRanks().getRank(st), 0);
+                boolean shift = isOnShift(st);
+                sender.sendMessage(ColorUtil.c(" &8• " + badge + " &f" + st.getName()
+                        + (shift ? " &8[&#00E676На дежурстве /sw&8]" : " &8[&7В сети&8]")));
+            }
+        }
+        sender.sendMessage(ColorUtil.c("&#00E676&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
         return true;
     }
 

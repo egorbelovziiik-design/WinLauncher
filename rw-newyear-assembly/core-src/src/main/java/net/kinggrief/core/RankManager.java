@@ -349,13 +349,16 @@ public final class RankManager {
             }
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " setweight " + r.weight);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " meta clear prefix");
-            if (r.glyphIndex >= 0 && r.glyphIndex < 40) {
+            if (r.glyphIndex >= 0 && r.glyphIndex < 43) {
                 char f0 = (char) (0xEA00 + r.glyphIndex * 8);
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " meta setprefix " + r.weight + " \"&f" + f0 + " &f\"");
             }
             if (!"owner".equals(r.id)) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset *");
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset luckperms.*");
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset kinggrief.lp");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset minecraft.command.op");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset bukkit.command.op");
             }
         }
     }

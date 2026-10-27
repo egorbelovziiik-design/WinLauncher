@@ -120,7 +120,7 @@ public final class GuiManager {
     // ================= 1. ГЛАВНОЕ МЕНЮ (/menu) =================
     public void openMainMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("main", "", 0), 54,
-                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v5.0"));
+                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v5.9"));
         decorateFrame(inv);
         DataStore st = plugin.getStore();
         RankManager.RankDef r = plugin.getRanks().getRank(p);
@@ -175,8 +175,9 @@ public final class GuiManager {
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10,", "&7Бур 5×5, Жильная, Коса Жнеца, Секира Тора!"));
         inv.setItem(38, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF9100&l⚗ Бафовар (/bafs)",
                 "&7Свари кастомное зелье (макс 8 зелек за 5 000$)", "&7или купи готовые зелья и пакеты баффов!"));
-        inv.setItem(39, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Скины Трапок (/skins)",
-                "&7Выбери скин для Трапки 5×5×5 с дебаффом врагам!"));
+        inv.setItem(39, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Скины Трапок и Пластов (/skins)",
+                "&7Витражное броне-стекло в Трапках 5×5×5",
+                "&7+ 8 кастомных скинов на Пласты (/plastskins)!"));
         boolean fpsOn = plugin.getStore().isFpsBoost(p);
         inv.setItem(40, ItemFactory.glowIcon(fpsOn ? Material.LIME_DYE : Material.REDSTONE_TORCH,
                 "&#00E676&l🚀 FPS-БУСТЕР (/fps) &8[" + (fpsOn ? "&aВКЛ" : "&eВЫКЛ") + "&8]",
@@ -186,6 +187,9 @@ public final class GuiManager {
                 "&7Закажи награду за голову врага!"));
         inv.setItem(42, ItemFactory.glowIcon(Material.CHEST_MINECART, "&#FFD740&l🎁 Халява и Промокоды (/promo)",
                 "&7Промокоды с сайта и бесплатные подарки!"));
+        inv.setItem(43, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ 12 Кастомных 3D Мечей (/swords)",
+                "&7Катана Сакуры, Меч Зевса, Фламберг Феникса,",
+                "&7Астральный Меч Бездны, Экскалибур Мидаса!"));
 
         if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
             inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
@@ -476,10 +480,12 @@ public final class GuiManager {
         inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
         inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 17 3D Талисманов (/talismans)",
-                "&7Открой полный Алтарь Талисманов v5.8!"));
+                "&7Открой полный Алтарь Талисманов v5.9!"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
-        inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня, Луки и ТНТ (/armors)",
-                "&7Открой Оружейную 6 сетов брони, Луков и ТНТ!"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня ×2, Луки и ТНТ (/armors)",
+                "&76 сетов брони с Закалкой ×2, Луки и ТНТ!"));
+        inv.setItem(51, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ Оружейная 12 3D Мечей (/swords)",
+                "&7Открой все 12 кастомных 3D Мечей v5.9!"));
         p.openInventory(inv);
     }
 
@@ -529,6 +535,60 @@ public final class GuiManager {
         inv.setItem(33, shopTag(ItemFactory.lootMagnet(),   350));
 
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в главное меню"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ Открыть 12 3D Мечей (/swords)",
+                "&7Перейти в Оружейную всех 12 кастомных мечей!"));
+        p.openInventory(inv);
+    }
+
+    // ================= 5A-2. ОРУЖЕЙНАЯ 12 КАСТОМНЫХ 3D МЕЧЕЙ (/swords) =================
+    public void openSwordsMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("swords", "", 0), 54,
+                ColorUtil.c("&#FF1744&l⚔ ОРУЖЕЙНАЯ 12 3D МЕЧЕЙ (/swords)"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+
+        inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
+                "&7Все 12 уникальных 3D Мечей KINGGRIEF v5.9!",
+                "&7У каждого меча свой 3D-силуэт и боевая способность!"));
+
+        inv.setItem(10, shopTag(ItemFactory.swordDracula(), 320));
+        inv.setItem(11, shopTag(ItemFactory.swordKrush(),   420));
+
+        ItemStack ownerSwordDisplay = ItemFactory.swordOwner();
+        ItemMeta osm = ownerSwordDisplay.getItemMeta();
+        if (osm != null) {
+            List<String> ol = osm.hasLore() ? new ArrayList<String>(osm.getLore()) : new ArrayList<String>();
+            ol.add("");
+            ol.add(ColorUtil.c(isOwner ? "&#00E676&l👑 ДОСТУПНО БЕСПЛАТНО (ВЫ — OWNER)!" : "&#FF1744&l🔒 ЭКСКЛЮЗИВ СТРОГО ДЛЯ OWNER!"));
+            ol.add(ColorUtil.c(isOwner ? "&#FFD740▸ Нажми, чтобы забрать Меч OWNER!" : "&7Не продаётся обычным игрокам."));
+            osm.setLore(ol);
+            ownerSwordDisplay.setItemMeta(osm);
+        }
+        inv.setItem(12, ownerSwordDisplay);
+
+        inv.setItem(13, shopTag(ItemFactory.swordFrost(),   330));
+        inv.setItem(14, shopTag(ItemFactory.swordZeus(),    450));
+        inv.setItem(15, shopTag(ItemFactory.swordKatana(),  380));
+        inv.setItem(16, shopTag(ItemFactory.swordWither(),  410));
+
+        inv.setItem(20, shopTag(ItemFactory.swordVenom(),   340));
+        inv.setItem(21, shopTag(ItemFactory.swordPhantom(), 390));
+        inv.setItem(22, shopTag(ItemFactory.swordPhoenix(), 440));
+        inv.setItem(23, shopTag(ItemFactory.swordVoid(),    490));
+        inv.setItem(24, shopTag(ItemFactory.swordMidas(),   470));
+
+        // Row 3: Mythic Heavy Arsenal
+        inv.setItem(29, shopTag(ItemFactory.scytheReaper(),    480));
+        inv.setItem(30, shopTag(ItemFactory.axeThor(),         470));
+        inv.setItem(32, shopTag(ItemFactory.maceKrush(),       380));
+        inv.setItem(33, shopTag(ItemFactory.tridentPoseidon(), 320));
+
+        inv.setItem(48, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 3D Кирок и Молот (/picks)",
+                "&7Перейти в Кузницу Кирок и Молотов!"));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в главное меню"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня ×2 и Луки (/armors)",
+                "&7Перейти к сетам брони и 3D лукам!"));
         p.openInventory(inv);
     }
 
@@ -563,6 +623,8 @@ public final class GuiManager {
                 "&73D Шары, Талисманы и Топовые Артефакты!", "", "&#00E676▸ Открыть /rshop"));
         inv.setItem(24, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Легендарных Кирок (/picks)",
                 "&7Кирка Крушителя 3×3, Молот 10×10, Бур 5×5!", "", "&#00E676▸ Открыть /picks"));
+        inv.setItem(25, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ 12 Кастомных 3D Мечей (/swords)",
+                "&7Катана, Фламберг, Зевс, Бездна, Экскалибур!", "", "&#00E676▸ Открыть /swords"));
 
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в главное меню"));
         p.openInventory(inv);
@@ -687,6 +749,7 @@ public final class GuiManager {
             lore.add(ColorUtil.c("&#00E5FFЦена: &f" + relicCost + " Риликов ❖"));
             lore.add(ColorUtil.c("&#00E676▸ Нажмите ЛКМ для покупки!"));
             m.setLore(lore);
+            m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(relicCost));
             copy.setItemMeta(m);
         }
         return copy;
@@ -790,48 +853,114 @@ public final class GuiManager {
         p.openInventory(inv);
     }
 
-    // ================= 6D. СКИНЫ ТРАПОК С ДЕБАФФАМИ (/skins) & ОХОТА ЗА ГОЛОВАМИ (/bounty) =================
+    // ================= 6D. СКИНЫ ТРАПОК (СО СТЕКЛОМ!) И СКИНЫ ПЛАСТОВ (/skins, /plastskins) =================
     public static final String[][] TRAP_SKINS = new String[][]{
-            {"classic", "&#B0BEC5&l⛓ Незеритовый Бастион [Стандарт]", "NETHERITE_BLOCK",      "0",     "0",   "&7Замедление I врагам внутри трапки"},
-            {"ice",     "&#80D8FF&l❄ Ледяная Гробница Стужи",          "BLUE_ICE",             "25000", "35",  "&bМедлительность III + Заморозка врагам!"},
-            {"inferno", "&#FF6D00&l🔥 Адское Пекло Аида",              "MAGMA_BLOCK",          "35000", "45",  "&6Поджог на 6 сек + Слабость I врагам!"},
-            {"toxic",   "&#76FF03&l☣ Кислотный Реактор Ехидны",        "EMERALD_BLOCK",        "45000", "60",  "&aОтравление II + Голод III врагам!"},
-            {"void",    "&#E040FB&l👁 Бездна Эндера",                  "CRYING_OBSIDIAN",      "60000", "80",  "&dСлепота + Утомление II врагам!"},
-            {"royal",   "&#FFD740&l👑 Императорская Золотая Клетка",   "GOLD_BLOCK",           "85000", "110", "&eИссушение II + Свечение + Слабость II врагам!"}
+            {"classic", "&#B0BEC5&l⛓ Незеритовый Бастион [Стандарт]",   "NETHERITE_BLOCK", "0",     "0",   "&7Чёрное броне-стекло · Замедление I врагам"},
+            {"ice",     "&#80D8FF&l❄ Ледяная Гробница Стужи",            "BLUE_ICE",        "25000", "35",  "&bГолубое броне-стекло · Мороз + Медлительность III!"},
+            {"inferno", "&#FF6D00&l🔥 Адское Пекло Аида",                "MAGMA_BLOCK",     "35000", "45",  "&6Оранжевое стекло · Поджог 6 сек + Слабость I!"},
+            {"toxic",   "&#76FF03&l☣ Кислотный Реактор Ехидны",          "EMERALD_BLOCK",   "45000", "60",  "&aЛаймовое стекло · Отравление II + Голод III!"},
+            {"void",    "&#E040FB&l👁 Бездна Эндера",                    "CRYING_OBSIDIAN", "60000", "80",  "&dПурпурное стекло · Слепота + Утомление II!"},
+            {"royal",   "&#FFD740&l👑 Императорская Золотая Клетка",     "GOLD_BLOCK",      "85000", "110", "&eЖёлтое стекло · Иссушение II + Свечение!"},
+            {"blood",   "&#EF4444&l🩸 Кровавый Саркофаг Дракулы",        "REDSTONE_BLOCK",  "95000", "125", "&cКрасное стекло · Иссушение II + Медлительность II!"},
+            {"owner",   "&#FF1744&l👑 &#FFD740&lБОЖЕСТВЕННАЯ ТРАПКА OWNER","BEACON",         "-1",    "-1",  "&#FF1744Иссушение III + Слепота врагам · Сила II вам!"}
+    };
+
+    public static final String[][] PLAST_SKINS = new String[][]{
+            {"classic",  "&#A855F7&l🧱 Обсидиановый Монолит [Стандарт]", "OBSIDIAN",        "0",     "0",   "&7Фиолетовое броне-стекло в центре пласта"},
+            {"ice",      "&#38BDF8&l❄ Крио-Щит Северной Вьюги",          "BLUE_ICE",        "20000", "30",  "&bГолубое стекло · Замораживает врагов рядом!"},
+            {"magma",    "&#FB923C&l🔥 Вулканический Бастион",           "MAGMA_BLOCK",     "30000", "40",  "&6Оранжевое стекло · Огнестойкость вам + поджог врагам!"},
+            {"toxic",    "&#22C55E&l☣ Изумрудный Био-Барьер",            "EMERALD_BLOCK",   "40000", "55",  "&aЛаймовое стекло · Отравление II врагам рядом!"},
+            {"amethyst", "&#E879F9&l🔮 Аметистовый Резонатор",           "AMETHYST_BLOCK",  "50000", "70",  "&dПурпурное стекло · Скорость II и Прыгучесть II вам!"},
+            {"royal",    "&#FFD740&l👑 Золотая Цитадель Мидаса",         "GOLD_BLOCK",      "70000", "95",  "&eЖёлтое стекло · +2 Золотых Сердца при установке!"},
+            {"wither",   "&#9333EA&l💀 Тёмный Бастион Жнеца",            "NETHERITE_BLOCK", "85000", "115", "&cКрасное стекло · Иссушение II врагам рядом!"},
+            {"owner",    "&#FF1744&l👑 &#FFD740&lБОЖЕСТВЕННЫЙ ПЛАСТ OWNER","BEACON",        "-1",    "-1",  "&#FFD740Реген II + Скорость III вам · Иссушение II врагам!"}
     };
 
     public void openTrapSkinsMenu(Player p) {
-        Inventory inv = Bukkit.createInventory(new KgMenuHolder("skins", "", 0), 36,
-                ColorUtil.c("&#E040FB&l⛓ СКИНЫ ТРАПОК И ДЕБАФФЫ (/skins)"));
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("skins", "", 0), 45,
+                ColorUtil.c("&#E040FB&l⛓ СКИНЫ ТРАПОК [СТЕКЛО + ДЕБАФФЫ]"));
         decorateFrame(inv);
         String active = plugin.getStore().getSelectedTrapSkin(p.getName());
-        inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Кастомизация Трапки 5×5×5",
-                "&7Выбранный скин меняет блоки вашей &cТрапки",
-                "&7и накладывает &dмощный дебафф на всех врагов&7,",
-                "&7попавших внутрь (кроме вас и соклановцев)!"));
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
 
-        int[] slots = new int[]{10, 11, 12, 14, 15, 16};
-        for (int i = 0; i < TRAP_SKINS.length; i++) {
+        inv.setItem(3, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#FF1744&l⛓ [ВКЛАДКА] Скины Трапок 5×5×5",
+                "&a✔ Сейчас открыта эта вкладка!",
+                "&7Все трапки оснащены нерушимыми витражными",
+                "&7окнами 3×3 со всех сторон и сверху!"));
+        inv.setItem(5, ItemFactory.glowIcon(Material.DRIED_KELP, "&#A855F7&l🧱 [ПЕРЕЙТИ] Скины Пластов 5×5×2 (/plastskins)",
+                "&7Нажми, чтобы открыть 8 кастомных скинов",
+                "&7для вашего боевого Пласта 5×5×2!", "",
+                "&#00E676▸ Нажмите для переключения!"));
+
+        int[] slots = new int[]{10, 11, 12, 13, 14, 15, 16, 22};
+        for (int i = 0; i < TRAP_SKINS.length && i < slots.length; i++) {
             String[] sk = TRAP_SKINS[i];
-            boolean owned = plugin.getStore().hasTrapSkin(p.getName(), sk[0]);
-            boolean sel = sk[0].equalsIgnoreCase(active);
+            boolean ownerOnly = "owner".equalsIgnoreCase(sk[0]);
+            boolean owned = ownerOnly ? isOwner : plugin.getStore().hasTrapSkin(p.getName(), sk[0]);
+            boolean sel = sk[0].equalsIgnoreCase(active) && (!ownerOnly || isOwner);
             Material mat = ColorUtil.mat(sk[2], "OBSIDIAN");
             List<String> lore = new ArrayList<String>();
-            lore.add("&8Скин для боевой Трапки FT×RW");
+            lore.add("&8Скин Трапки 5×5×5 с витражным броне-стеклом");
             lore.add("");
-            lore.add("&7Дебафф врагам: " + sk[5]);
+            lore.add("&7Эффект: " + sk[5]);
             lore.add("");
             if (sel) {
                 lore.add("&#00E676&l✔ АКТИВЕН СЕЙЧАС!");
+            } else if (ownerOnly && !isOwner) {
+                lore.add("&#FF1744&l🔒 ЭКСКЛЮЗИВ СТРОГО ДЛЯ OWNER!");
             } else if (owned) {
                 lore.add("&#00E676✔ Разблокирован — Нажмите ЛКМ для выбора!");
             } else {
                 lore.add("&#FFEA00ЛКМ — Купить за &a" + sk[3] + "$ Монет");
                 lore.add("&#00E5FFПКМ — Купить за &b" + sk[4] + " Риликов ❖");
             }
-            inv.setItem(slots[i], ItemFactory.make(mat, 1, sk[1], lore, sel, "skin_" + sk[0], null, 0));
+            inv.setItem(slots[i], ItemFactory.make(mat, 1, sk[1], lore, sel || ownerOnly, "skin_" + sk[0], null, 0));
         }
-        inv.setItem(31, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    public void openPlastSkinsMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("plast_skins", "", 0), 45,
+                ColorUtil.c("&#A855F7&l🧱 СКИНЫ ПЛАСТОВ 5×5×2 (/plastskins)"));
+        decorateFrame(inv);
+        String active = plugin.getStore().getSelectedPlastSkin(p.getName());
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+
+        inv.setItem(3, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#FF1744&l⛓ [ПЕРЕЙТИ] Скины Трапок 5×5×5 (/skins)",
+                "&7Нажми, чтобы открыть скины для Трапки",
+                "&7с бронированными стеклянными окнами!", "",
+                "&#00E676▸ Нажмите для переключения!"));
+        inv.setItem(5, ItemFactory.glowIcon(Material.DRIED_KELP, "&#A855F7&l🧱 [ВКЛАДКА] Скины Пластов 5×5×2",
+                "&a✔ Сейчас открыта эта вкладка!",
+                "&7Меняет блоки и витражное окно вашего Пласта",
+                "&7+ даёт тактический бафф при установке!"));
+
+        int[] slots = new int[]{10, 11, 12, 13, 14, 15, 16, 22};
+        for (int i = 0; i < PLAST_SKINS.length && i < slots.length; i++) {
+            String[] sk = PLAST_SKINS[i];
+            boolean ownerOnly = "owner".equalsIgnoreCase(sk[0]);
+            boolean owned = ownerOnly ? isOwner : plugin.getStore().hasPlastSkin(p.getName(), sk[0]);
+            boolean sel = sk[0].equalsIgnoreCase(active) && (!ownerOnly || isOwner);
+            Material mat = ColorUtil.mat(sk[2], "OBSIDIAN");
+            List<String> lore = new ArrayList<String>();
+            lore.add("&8Скин боевого Пласта 5×5×2 FT×RW");
+            lore.add("");
+            lore.add("&7Эффект: " + sk[5]);
+            lore.add("");
+            if (sel) {
+                lore.add("&#00E676&l✔ АКТИВЕН СЕЙЧАС!");
+            } else if (ownerOnly && !isOwner) {
+                lore.add("&#FF1744&l🔒 ЭКСКЛЮЗИВ СТРОГО ДЛЯ OWNER!");
+            } else if (owned) {
+                lore.add("&#00E676✔ Разблокирован — Нажмите ЛКМ для выбора!");
+            } else {
+                lore.add("&#FFEA00ЛКМ — Купить за &a" + sk[3] + "$ Монет");
+                lore.add("&#00E5FFПКМ — Купить за &b" + sk[4] + " Риликов ❖");
+            }
+            inv.setItem(slots[i], ItemFactory.make(mat, 1, sk[1], lore, sel || ownerOnly, "pskin_" + sk[0], null, 0));
+        }
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
 
@@ -1592,6 +1721,7 @@ public final class GuiManager {
             else if (slot == 40) { p.performCommand("fps"); openMainMenu(p); }
             else if (slot == 41) openBountyMenu(p);
             else if (slot == 42) openFreebieMenu(p);
+            else if (slot == 43) openSwordsMenu(p);
             else if (slot == 47 && plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) plugin.getCurator().openMainCuratorGui(p, "");
             else if (slot == 48 && plugin.getLp().hasLpAccess(p)) { p.closeInventory(); plugin.getOwnerGiveaway().openRazdachaMainGui(p); }
             else if (slot == 49 && plugin.getLp().hasLpAccess(p)) openLpGroupsGui(p, 0);
@@ -1608,12 +1738,18 @@ public final class GuiManager {
             else if (slot == 22) openBafovarMenu(p);
             else if (slot == 23) openRelicShop(p);
             else if (slot == 24) openPickaxesMenu(p);
+            else if (slot == 25) openSwordsMenu(p);
         } else if ("cshop_cat".equals(type)) {
             if (slot == 40) { openCoinShopHub(p); return; }
             handleCategoryCoinPurchase(p, clicked, h.extra);
         } else if ("skins".equals(type)) {
-            if (slot == 31) { openMainMenu(p); return; }
+            if (slot == 40 || slot == 31) { openMainMenu(p); return; }
+            if (slot == 5) { openPlastSkinsMenu(p); return; }
             handleTrapSkinClick(p, clicked, e.getClick());
+        } else if ("plast_skins".equals(type)) {
+            if (slot == 40) { openMainMenu(p); return; }
+            if (slot == 3) { openTrapSkinsMenu(p); return; }
+            handlePlastSkinClick(p, clicked, e.getClick());
         } else if ("bounty".equals(type)) {
             if (slot == 40) openMainMenu(p);
         } else if ("bafovar".equals(type)) {
@@ -1668,9 +1804,11 @@ public final class GuiManager {
             if (slot == 48) { openTalismansMenu(p); return; }
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openArmorsMenu(p); return; }
+            if (slot == 51) { openSwordsMenu(p); return; }
             handleRelicPurchase(p, slot);
         } else if ("picks".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 50) { openSwordsMenu(p); return; }
             if (slot == 13) {
                 if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
@@ -1685,6 +1823,24 @@ public final class GuiManager {
                 return;
             }
             handleRelicItemTagPurchase(p, clicked, "picks");
+        } else if ("swords".equals(type)) {
+            if (slot == 48) { openPickaxesMenu(p); return; }
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 50) { openArmorsMenu(p); return; }
+            if (slot == 12) {
+                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Божественный Меч OWNER доступен СТРОГО ТОЛЬКО владельцу (OWNER)!"));
+                    return;
+                }
+                for (ItemStack rem : p.getInventory().addItem(ItemFactory.swordOwner()).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                }
+                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+                p.sendMessage(ColorUtil.c("&#FF1744👑 Вы получили эксклюзивный &lБожественный Меч OWNER [Острота VIII]&r&#FF1744!"));
+                return;
+            }
+            handleRelicItemTagPurchase(p, clicked, "swords");
         } else if ("talismans".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 32) {
@@ -2336,6 +2492,7 @@ public final class GuiManager {
         if ("talismans".equals(reopenMenu)) openTalismansMenu(p);
         else if ("armors".equals(reopenMenu)) openArmorsMenu(p);
         else if ("picks".equals(reopenMenu)) openPickaxesMenu(p);
+        else if ("swords".equals(reopenMenu)) openSwordsMenu(p);
     }
 
     private void handleCategoryCoinPurchase(Player p, ItemStack clicked, String cat) {
@@ -2379,6 +2536,19 @@ public final class GuiManager {
             if (sk[0].equalsIgnoreCase(skinId)) { found = sk; break; }
         }
         if (found == null) return;
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if ("owner".equalsIgnoreCase(skinId)) {
+            if (!isOwner) {
+                ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Скин Трапки OWNER доступен СТРОГО только владельцу (OWNER)!"));
+                return;
+            }
+            plugin.getStore().setSelectedTrapSkin(p.getName(), "owner");
+            ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Активирован эксклюзивный скин: " + found[1]));
+            openTrapSkinsMenu(p);
+            return;
+        }
         if (plugin.getStore().hasTrapSkin(p.getName(), skinId)) {
             plugin.getStore().setSelectedTrapSkin(p.getName(), skinId);
             ColorUtil.sound(p, "block.enchantment_table.use", 1f, 1.2f);
@@ -2404,6 +2574,55 @@ public final class GuiManager {
         ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
         p.sendMessage(ColorUtil.c("&#00E676🎉 Скин Трапки " + found[1] + " &#00E676разблокирован и активирован!"));
         openTrapSkinsMenu(p);
+    }
+
+    private void handlePlastSkinClick(Player p, ItemStack clicked, ClickType click) {
+        String cid = ItemFactory.getCustomId(clicked);
+        if (cid == null || !cid.startsWith("pskin_")) return;
+        String skinId = cid.substring(6);
+        String[] found = null;
+        for (String[] sk : PLAST_SKINS) {
+            if (sk[0].equalsIgnoreCase(skinId)) { found = sk; break; }
+        }
+        if (found == null) return;
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if ("owner".equalsIgnoreCase(skinId)) {
+            if (!isOwner) {
+                ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Скин Пласта OWNER доступен СТРОГО только владельцу (OWNER)!"));
+                return;
+            }
+            plugin.getStore().setSelectedPlastSkin(p.getName(), "owner");
+            ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Активирован эксклюзивный скин Пласта: " + found[1]));
+            openPlastSkinsMenu(p);
+            return;
+        }
+        if (plugin.getStore().hasPlastSkin(p.getName(), skinId)) {
+            plugin.getStore().setSelectedPlastSkin(p.getName(), skinId);
+            ColorUtil.sound(p, "block.enchantment_table.use", 1f, 1.2f);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Выбран скин Пласта: " + found[1] + " &8(" + found[5] + "&8)"));
+            openPlastSkinsMenu(p);
+            return;
+        }
+        if (click == ClickType.RIGHT || click == ClickType.SHIFT_RIGHT) {
+            int rCost = Integer.parseInt(found[4]);
+            if (!plugin.getStore().takeRelics(p, rCost)) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + rCost + " ❖"));
+                return;
+            }
+        } else {
+            int cCost = Integer.parseInt(found[3]);
+            if (!plugin.getStore().takeCoins(p.getName(), cCost)) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cCost) + "$"));
+                return;
+            }
+        }
+        plugin.getStore().unlockPlastSkin(p.getName(), skinId);
+        plugin.getStore().setSelectedPlastSkin(p.getName(), skinId);
+        ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+        p.sendMessage(ColorUtil.c("&#00E676🎉 Скин Пласта " + found[1] + " &#00E676разблокирован и активирован!"));
+        openPlastSkinsMenu(p);
     }
 
     private boolean isBafovarSlot(int rawSlot) {

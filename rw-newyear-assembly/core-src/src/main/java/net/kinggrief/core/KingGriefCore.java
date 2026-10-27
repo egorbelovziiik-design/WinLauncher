@@ -82,7 +82,11 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.lp);
             }
         }
-        for (String modCmd : new String[]{"check", "sw", "spek", "mute", "unmute", "ban", "unban"}) {
+        for (String modCmd : new String[]{
+                "check", "sw", "spek", "mute", "unmute", "muteip", "unmuteip",
+                "ban", "unban", "banip", "unbanip", "kick", "dupeip",
+                "warn", "unwarn", "warns", "history", "clearchat", "slowchat", "staff"
+        }) {
             PluginCommand pc = getCommand(modCmd);
             if (pc != null) {
                 pc.setExecutor(this.moderation);
@@ -178,11 +182,15 @@ public final class KingGriefCore extends JavaPlugin {
     public OwnerGiveawayManager getOwnerGiveaway() { return ownerGiveaway; }
     public CuratorManager getCurator() { return curatorManager; }
 
-    private boolean hasEconomyAdmin(CommandSender s) {
+    private boolean isStrictOwnerOrConsole(CommandSender s) {
         if (!(s instanceof Player)) return true;
         Player p = (Player) s;
-        String rid = ranks.getRank(p).id;
-        return p.isOp() || "owner".equals(rid) || "techadmin".equals(rid) || "curator".equals(rid);
+        return "owner".equalsIgnoreCase(ranks.getRank(p).id);
+    }
+
+    private boolean hasEconomyAdmin(CommandSender s) {
+        // STRICT OWNER + CONSOLE ONLY — no OP bypass, no non-owner backdoor!
+        return isStrictOwnerOrConsole(s);
     }
 
     public static final String SITE_URL = "https://kinggrief.vercel.app";
@@ -678,6 +686,8 @@ public final class KingGriefCore extends JavaPlugin {
         // ================= MENUS, SHOPS, BAFOVAR, SKINS & BOUNTY =================
         if ("menu".equals(c)) { guis.openMainMenu(p); return true; }
         if ("picks".equals(c)) { guis.openPickaxesMenu(p); return true; }
+        if ("swords".equals(c)) { guis.openSwordsMenu(p); return true; }
+        if ("plastskins".equals(c)) { guis.openPlastSkinsMenu(p); return true; }
         if ("discord".equals(c)) {
             p.sendMessage(ColorUtil.c("&#5865F2&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
             p.sendMessage(ColorUtil.c(" &#80D8FF&l🌐 ОФИЦИАЛЬНЫЕ ССЫЛКИ KINGGRIEF:"));
@@ -697,7 +707,14 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("rshop".equals(c)) { guis.openRelicShop(p); return true; }
-        if ("skins".equals(c)) { guis.openTrapSkinsMenu(p); return true; }
+        if ("skins".equals(c)) {
+            if (args.length >= 1 && ("plast".equalsIgnoreCase(args[0]) || "plasts".equalsIgnoreCase(args[0]))) {
+                guis.openPlastSkinsMenu(p);
+            } else {
+                guis.openTrapSkinsMenu(p);
+            }
+            return true;
+        }
         if ("bafovar".equals(c)) {
             if (args.length >= 1 && "brew".equalsIgnoreCase(args[0])) guis.openBafovarBrewerMenu(p);
             else guis.openBafovarMenu(p);
@@ -1113,7 +1130,10 @@ public final class KingGriefCore extends JavaPlugin {
             p.setHealth(p.getMaxHealth()); p.setFoodLevel(20); p.sendMessage(ColorUtil.c("&#00E676💖 Здоровье восстановлено!")); return true;
         }
         if ("repair".equals(c) && (myRank.weight >= 80 || p.hasPermission("kinggrief.repair"))) {
-            guis.repairAllItems(p); p.sendMessage(ColorUtil.c("&#00E676🔧 Все предметы починены!")); return true;
+            guis.repairAllItems(p);
+            ColorUtil.sound(p, "block.anvil.use", 0.85f, 1.25f);
+            p.sendMessage(ColorUtil.c("&#00E676🔧 Все предметы, оружие и броня (Закалка ×2) полностью починены!"));
+            return true;
         }
         if ("anvil".equals(c) && (myRank.weight >= 80 || p.hasPermission("kinggrief.anvil"))) {
             try {
@@ -1213,7 +1233,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if (("mute".equals(c) || "unmute".equals(c) || "kick".equals(c) || "ban".equals(c) || "unban".equals(c) || "bc".equals(c))
-                && (myRank.tier >= 4 || ranks.isRealStaffHelperOrHigher(p) || p.isOp())) {
+                && (myRank.tier >= 4 || ranks.isRealStaffHelperOrHigher(p) || "owner".equalsIgnoreCase(myRank.id))) {
             handleModeration(p, c, args);
             return true;
         }

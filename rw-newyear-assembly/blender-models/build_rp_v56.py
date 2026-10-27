@@ -604,6 +604,16 @@ ITEMS_SPECS = [
     ("sword_dracula",     [],                   "sword",    "dracula",   (215, 22, 48),   (255, 110, 135), (58, 42, 68)),
     ("sword_krush",       ["krush_sword"],      "sword",    "krush",     (255, 105, 20),  (255, 235, 85),  (75, 62, 82)),
     ("sword_owner",       [],                   "sword",    "owner",     (245, 20, 60),   (255, 235, 95),  (255, 200, 35)),
+    # 9 BRAND-NEW 3D SWORDS FOR FULL 12-SWORD ARSENAL (/swords)!
+    ("sword_frost",       [],                   "sword",    "frost",     (68, 205, 255),  (235, 253, 255), (38, 95, 185)),
+    ("sword_zeus",        [],                   "sword",    "zeus",      (252, 208, 32),  (115, 242, 255), (242, 248, 255)),
+    ("sword_katana",      [],                   "sword",    "katana",    (235, 240, 248), (255, 92, 168),  (48, 28, 42)),
+    ("sword_wither",      [],                   "sword",    "wither",    (54, 42, 68),    (198, 52, 255),  (235, 38, 72)),
+    ("sword_venom",       [],                   "sword",    "venom",     (28, 208, 88),   (192, 255, 85),  (38, 68, 52)),
+    ("sword_phantom",     [],                   "sword",    "phantom",   (128, 68, 238),  (68, 238, 255),  (42, 38, 64)),
+    ("sword_phoenix",     [],                   "sword",    "phoenix",   (252, 82, 18),   (255, 232, 72),  (145, 34, 28)),
+    ("sword_void",        [],                   "sword",    "void",      (38, 32, 64),    (88, 225, 255),  (185, 95, 255)),
+    ("sword_midas",       [],                   "sword",    "midas",     (252, 198, 22),  (255, 252, 195), (168, 98, 18)),
     ("mace_krush",        [],                   "mace",     "krush",     (245, 95, 25),   (255, 230, 75),  (85, 72, 95)),
     ("trident_poseidon",  [],                   "trident",  "poseidon",  (25, 195, 235),  (165, 252, 255), (255, 215, 65)),
 
@@ -868,17 +878,75 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pul
         wave_pos = -0.3 + 1.45 * (frame_idx / float(n_frames))
 
         if cat == "sword":
-            hilt = (u >= -1.02) & (u <= -0.46) & (np.abs(v) <= 0.10)
-            pommel = ((u + 1.02)**2 + v*v) <= 0.032
-            guard = (np.abs(u + 0.42) <= (0.11 + 0.08 * np.abs(v))) & (np.abs(v) <= 0.48)
-            taper = np.clip(1.0 - np.maximum(0.0, u - 0.52) / 0.58, 0.0, 1.0)
-            blade = (u >= -0.38) & (u <= 1.06) & (np.abs(v) <= 0.22 * taper + 0.03)
-            fuller = blade & (np.abs(v) <= 0.065) & (u <= 0.78)
+            # Distinct custom silhouettes across all 12 swords!
+            if sub == "katana":
+                # Sleek curved Samurai Katana with round tsuba guard
+                vc = v - 0.14 * np.clip(u + 0.38, 0.0, 1.5) ** 2
+                hilt = (u >= -1.06) & (u <= -0.44) & (np.abs(v + 0.02) <= 0.085)
+                pommel = ((u + 1.05)**2 + (v + 0.02)**2) <= 0.022
+                guard = ((u + 0.42)**2 + v*v) <= 0.075
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.68) / 0.44, 0.0, 1.0)
+                blade = (u >= -0.38) & (u <= 1.10) & (np.abs(vc) <= 0.13 * taper + 0.025)
+                fuller = blade & (vc >= 0.02) & (u <= 0.92)
+            elif sub == "venom":
+                # Hooked Persian Cobra Scimitar
+                vc = v + 0.16 * np.sin(np.clip(u + 0.38, 0.0, 1.45) * 2.15)
+                hilt = (u >= -1.02) & (u <= -0.45) & (np.abs(v) <= 0.095)
+                pommel = ((u + 1.02)**2 + (v - 0.06)**2) <= 0.032
+                guard = (np.abs(u + 0.42) <= 0.10) & (np.abs(v) <= 0.42)
+                widen = 1.0 + 0.35 * np.clip(u - 0.15, 0.0, 0.65)
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.65) / 0.44, 0.0, 1.0)
+                blade = (u >= -0.38) & (u <= 1.06) & (np.abs(vc) <= 0.19 * widen * taper + 0.025)
+                fuller = blade & (np.abs(vc) <= 0.055) & (u <= 0.80)
+            elif sub == "phantom":
+                # Slender Assassin Rapier with swept basket guard
+                hilt = (u >= -1.04) & (u <= -0.44) & (np.abs(v) <= 0.08)
+                pommel = ((u + 1.04)**2 + v*v) <= 0.028
+                ring = (np.abs(np.hypot(u + 0.56, v * 0.85) - 0.24) <= 0.055) & (u <= -0.34)
+                guard = ((np.abs(u + 0.40) <= 0.08) & (np.abs(v) <= 0.52)) | ring
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.45) / 0.68, 0.0, 1.0)
+                blade = (u >= -0.38) & (u <= 1.12) & (np.abs(v) <= 0.125 * taper + 0.022)
+                fuller = blade & (np.abs(v) <= 0.04) & (u <= 0.86)
+            elif sub == "phoenix":
+                # Flamberge Wave-Edge Solar Greatsword
+                wave_edge = 0.045 * np.sin(u * 15.0)
+                hilt = (u >= -1.04) & (u <= -0.44) & (np.abs(v) <= 0.105)
+                pommel = ((u + 1.03)**2 + v*v) <= 0.036
+                guard = (np.abs(u + 0.40 - 0.16 * np.abs(v)) <= 0.11) & (np.abs(v) <= 0.56)
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.55) / 0.54, 0.0, 1.0)
+                blade = (u >= -0.38) & (u <= 1.08) & (np.abs(v - wave_edge * 0.5) <= (0.24 + np.abs(wave_edge)) * taper + 0.03)
+                fuller = blade & (np.abs(v) <= 0.07) & (u <= 0.80)
+            elif sub == "void":
+                # Split-Core Astral Greatsword (twin dark blades around glowing energy rift!)
+                hilt = (u >= -1.04) & (u <= -0.44) & (np.abs(v) <= 0.11)
+                pommel = ((u + 1.03)**2 + v*v) <= 0.038
+                guard = (np.abs(u + 0.42) <= (0.12 + 0.10 * np.abs(v))) & (np.abs(v) <= 0.54)
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.56) / 0.54, 0.0, 1.0)
+                outer = (u >= -0.38) & (u <= 1.08) & (np.abs(v) <= 0.27 * taper + 0.035)
+                rift = (u >= -0.22) & (u <= 0.68) & (np.abs(v) <= 0.055)
+                blade = outer & (~rift)
+                fuller = (u >= -0.26) & (u <= 0.82) & (np.abs(np.abs(v) - 0.085) <= 0.035) & outer
+            elif sub in ("wither", "frost", "zeus"):
+                # Jagged Sawtooth / Crystal Spike / Forked Thunder Greatsword!
+                teeth = 0.055 * ((np.floor((u + 0.3) * 8.0) % 2 == 0).astype(np.float32)) * ((u >= -0.15) & (u <= 0.72))
+                hilt = (u >= -1.04) & (u <= -0.44) & (np.abs(v) <= 0.105)
+                pommel = ((u + 1.02)**2 + v*v) <= 0.035
+                guard = (np.abs(u + 0.42 + (0.14 * np.abs(v) if sub == "wither" else -0.12 * np.abs(v))) <= 0.115) & (np.abs(v) <= 0.54)
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.54) / 0.56, 0.0, 1.0)
+                fork_gap = (sub == "zeus") & (u >= 0.78) & (np.abs(v) <= 0.045)
+                blade = (u >= -0.38) & (u <= 1.08) & (np.abs(v) <= (0.23 + teeth) * taper + 0.03) & (~fork_gap)
+                fuller = blade & (np.abs(v) <= 0.07) & (u <= 0.80)
+            else:
+                hilt = (u >= -1.02) & (u <= -0.46) & (np.abs(v) <= 0.10)
+                pommel = ((u + 1.02)**2 + v*v) <= 0.032
+                guard = (np.abs(u + 0.42) <= (0.11 + 0.08 * np.abs(v))) & (np.abs(v) <= 0.48)
+                taper = np.clip(1.0 - np.maximum(0.0, u - 0.52) / 0.58, 0.0, 1.0)
+                blade = (u >= -0.38) & (u <= 1.06) & (np.abs(v) <= 0.22 * taper + 0.03)
+                fuller = blade & (np.abs(v) <= 0.065) & (u <= 0.78)
 
             rgb[hilt] = t_v * 0.85
             rgb[pommel] = g_v
-            rgb[guard] = t_v if sub == "dracula" else np.array([255, 200, 45], dtype=np.float32)
-            # Crisp 2-bevel metallic blade + glowing fuller + traveling energy wave!
+            rgb[guard] = t_v if sub in ("dracula", "wither", "katana", "venom") else np.array([255, 204, 48], dtype=np.float32)
             rgb[blade] = np.where((v >= 0)[..., None], m_v * 1.18 + 30, m_v * 0.78)[blade]
             rgb[fuller] = g_v
             ewave = blade & (np.abs(u - wave_pos) <= 0.14)
@@ -1384,6 +1452,29 @@ with open(os.path.join(mc_mod_item_dir, "bow.json"), "w", encoding="utf-8") as f
         "overrides": bow_overrides
     }, fp, indent=2)
 
+# Legacy 1.16.5-1.21.3 CustomModelData Netherite Sword Overrides for ALL 12 Custom Swords (+ Scythe)!
+sword_cmd_map = [
+    (1303, "sword_dracula"),
+    (1304, "sword_krush"),
+    (1314, "sword_owner"),
+    (1821, "scythe_reaper"),
+    (1831, "sword_frost"),
+    (1832, "sword_zeus"),
+    (1833, "sword_katana"),
+    (1834, "sword_wither"),
+    (1835, "sword_venom"),
+    (1836, "sword_phantom"),
+    (1837, "sword_phoenix"),
+    (1838, "sword_void"),
+    (1839, "sword_midas"),
+]
+with open(os.path.join(mc_mod_item_dir, "netherite_sword.json"), "w", encoding="utf-8") as fp:
+    json.dump({
+        "parent": "minecraft:item/handheld",
+        "textures": {"layer0": "minecraft:item/netherite_sword"},
+        "overrides": [{"predicate": {"custom_model_data": c}, "model": f"kinggrief:item/{sid}"} for c, sid in sword_cmd_map]
+    }, fp, indent=2)
+
 # Clean PvP left-hand & right-hand display for vanilla Totem of Undying too!
 with open(os.path.join(mc_mod_item_dir, "totem_of_undying.json"), "w", encoding="utf-8") as fp:
     json.dump({
@@ -1464,7 +1555,7 @@ with open(os.path.join(OUT_RP_DIR, "pack.mcmeta"), "w", encoding="utf-8") as fp:
             "supported_formats": [7, 99],
             "min_format": 7,
             "max_format": 99,
-            "description": "§b§l❄ §c§lKINGGRIEF v5.8 §8· §f106 3D Вещей, 12 Кирок, Молот 10×10, ТНТ, Луки & 41 Ранг"
+            "description": "§b§l❄ §c§lKINGGRIEF v5.9 §8· §f115 3D Вещей, 12 Мечей, 12 Кирок, Молот 10×10, Скины Пласта и Трапки"
         }
     }, fp, ensure_ascii=False, indent=2)
 

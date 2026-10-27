@@ -53,11 +53,14 @@ import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerCommandSendEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -261,16 +264,63 @@ public final class GameplayListener implements Listener {
     }
 
     // ================= ВХОД / ВЫХОД / РЕСПАВН В МИРЕ СПАВНА =================
-    @EventHandler
-    public void onJoin(final PlayerJoinEvent e) {
-        final Player p = e.getPlayer();
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPreLoginCheck(PlayerLoginEvent e) {
+        Player p = e.getPlayer();
+        String ip = "";
+        try {
+            if (e.getAddress() != null) ip = e.getAddress().getHostAddress();
+        } catch (Throwable ignored) {}
+        if (!ip.isEmpty()) {
+            plugin.getStore().recordPlayerIp(p.getName(), ip);
+        }
+        if ("owner".equalsIgnoreCase(plugin.getRanks().getRankByName(p.getName()).id)) {
+            return;
+        }
         String ban = plugin.getStore().getActiveBanReason(p.getName());
         if (ban != null) {
             long remSec = plugin.getStore().getBanRemainingSec(p.getName());
             String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
             String staff = plugin.getStore().getBanStaff(p.getName());
-            p.kickPlayer(plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
+            e.disallow(PlayerLoginEvent.Result.KICK_BANNED, plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
             return;
+        }
+        if (!ip.isEmpty()) {
+            String ipBan = plugin.getStore().getActiveIpBanReason(ip);
+            if (ipBan != null) {
+                long remSec = plugin.getStore().getIpBanRemainingSec(ip);
+                String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
+                String staff = plugin.getStore().getIpBanStaff(ip);
+                String origTarget = plugin.getStore().getIpBanTarget(ip);
+                e.disallow(PlayerLoginEvent.Result.KICK_BANNED,
+                        plugin.getModeration().buildIpBanKickScreen(staff, timeLabel, ipBan, origTarget));
+            }
+        }
+    }
+
+    @EventHandler
+    public void onJoin(final PlayerJoinEvent e) {
+        final Player p = e.getPlayer();
+        boolean isOwnerJoin = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if (!isOwnerJoin) {
+            String ban = plugin.getStore().getActiveBanReason(p.getName());
+            if (ban != null) {
+                long remSec = plugin.getStore().getBanRemainingSec(p.getName());
+                String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
+                String staff = plugin.getStore().getBanStaff(p.getName());
+                p.kickPlayer(plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
+                return;
+            }
+            String joinIp = plugin.getStore().getPlayerIp(p);
+            String ipBan = plugin.getStore().getActiveIpBanReason(joinIp);
+            if (ipBan != null) {
+                long remSec = plugin.getStore().getIpBanRemainingSec(joinIp);
+                String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
+                String staff = plugin.getStore().getIpBanStaff(joinIp);
+                String origTarget = plugin.getStore().getIpBanTarget(joinIp);
+                p.kickPlayer(plugin.getModeration().buildIpBanKickScreen(staff, timeLabel, ipBan, origTarget));
+                return;
+            }
         }
         e.setJoinMessage(null);
         plugin.getStore().ensureProfileInitialized(p);
@@ -288,9 +338,9 @@ public final class GameplayListener implements Listener {
             p.teleport(plugin.getSpawnEngine().getSpawnArrival());
         }
 
-        // Auto-push Mega Resourcepack v5.8 with exact SHA-1 & cache-busting query (106 3D items + 12 Pickaxes + Молот OWNER 10×10 + Bow Animation!)
-        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=62");
-        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "83393b7629c17a1163183fe3894824339a898d2c");
+        // Auto-push Mega Resourcepack v5.9 with exact SHA-1 & cache-busting query (115 3D items + 12 Swords + 12 Pickaxes + Молот OWNER 10×10 + Bow Animation!)
+        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63");
+        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "3637015af079e6fea621c10fe6dfa51e35cc0113");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -301,8 +351,8 @@ public final class GameplayListener implements Listener {
                         String effectiveUrl = rawRpUrl;
                         String effectiveSha1 = rpSha1;
                         if (effectiveUrl.contains("kinggrief.vercel.app/kinggrief-mega-rp.zip")) {
-                            effectiveUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=62";
-                            effectiveSha1 = "83393b7629c17a1163183fe3894824339a898d2c";
+                            effectiveUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63";
+                            effectiveSha1 = "3637015af079e6fea621c10fe6dfa51e35cc0113";
                         }
                         byte[] hashBytes = ColorUtil.hexToBytes(effectiveSha1);
                         if (hashBytes != null) {
@@ -1642,7 +1692,8 @@ public final class GameplayListener implements Listener {
         } else if ("dezorient".equals(cid)) {
             if (!checkAndSetCd(p, "dezorient", 20)) return;
             consumeOne(p, hand);
-            p.getWorld().spawnParticle(Particle.WITCH, p.getLocation().add(0, 1, 0), 80, 4.0, 1.5, 4.0, 0.05);
+            p.getWorld().spawnParticle(Particle.WITCH, p.getLocation().add(0, 1, 0), 85, 4.0, 1.5, 4.0, 0.05);
+            p.getWorld().spawnParticle(Particle.SOUL, p.getLocation().add(0, 1, 0), 40, 3.5, 1.2, 3.5, 0.04);
             ColorUtil.sound(p, "entity.elder_guardian.curse", 1f, 1.1f);
             int hit = 0;
             for (Entity en : p.getNearbyEntities(10, 6, 10)) {
@@ -1652,11 +1703,14 @@ public final class GameplayListener implements Listener {
                     ColorUtil.addPot(v, "blindness", "BLINDNESS", 140, 0);
                     ColorUtil.addPot(v, "nausea", "CONFUSION", 140, 1);
                     ColorUtil.addPot(v, "slowness", "SLOW", 140, 1);
-                    v.sendMessage(ColorUtil.c("&#E040FB👁 Вы поражены Дезориентацией игрока &f" + p.getName() + " &#E040FB(+30 сек ПвП)!"));
+                    // v5.9: Иссушение III (amplifier 2) ровно на 5 секунд (100 тиков)!
+                    ColorUtil.addPot(v, "wither", "WITHER", 100, 2);
+                    v.getWorld().spawnParticle(Particle.SOUL, v.getLocation().add(0, 1.1, 0), 18, 0.4, 0.5, 0.4, 0.03);
+                    v.sendMessage(ColorUtil.c("&#E040FB👁 Вы поражены Дезориентацией игрока &f" + p.getName() + " &#FF1744(+Иссушение III на 5 сек)!"));
                     hit++;
                 }
             }
-            p.sendMessage(ColorUtil.c("&#E040FB👁 Дезориентация активирована! Поражено врагов: &f" + hit));
+            p.sendMessage(ColorUtil.c("&#E040FB👁 Дезориентация активирована (+Иссушение III 5 сек)! Поражено врагов: &f" + hit));
         } else if ("yavnaya_pyl".equals(cid)) {
             if (!checkAndSetCd(p, "yavnaya_pyl", 15)) return;
             consumeOne(p, hand);
@@ -1885,29 +1939,54 @@ public final class GameplayListener implements Listener {
     }
 
     private void spawnTemporaryPlast(Player p) {
+        String skin = plugin.getStore().getSelectedPlastSkin(p.getName());
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if ("owner".equalsIgnoreCase(skin) && !isOwner) skin = "classic";
+
+        Material mainMat = Material.OBSIDIAN;
+        Material accentMat = Material.CRYING_OBSIDIAN;
+        Material glassMat = Material.PURPLE_STAINED_GLASS;
+        if ("ice".equalsIgnoreCase(skin)) {
+            mainMat = Material.BLUE_ICE; accentMat = Material.PACKED_ICE; glassMat = Material.LIGHT_BLUE_STAINED_GLASS;
+        } else if ("magma".equalsIgnoreCase(skin)) {
+            mainMat = Material.RED_NETHER_BRICKS; accentMat = Material.MAGMA_BLOCK; glassMat = Material.ORANGE_STAINED_GLASS;
+        } else if ("toxic".equalsIgnoreCase(skin)) {
+            mainMat = Material.EMERALD_BLOCK; accentMat = ColorUtil.mat("OXIDIZED_COPPER", "PRISMARINE_BRICKS"); glassMat = Material.LIME_STAINED_GLASS;
+        } else if ("amethyst".equalsIgnoreCase(skin)) {
+            mainMat = Material.AMETHYST_BLOCK; accentMat = Material.PURPUR_BLOCK; glassMat = Material.MAGENTA_STAINED_GLASS;
+        } else if ("royal".equalsIgnoreCase(skin)) {
+            mainMat = Material.GOLD_BLOCK; accentMat = ColorUtil.mat("GILDED_BLACKSTONE", "OBSIDIAN"); glassMat = Material.YELLOW_STAINED_GLASS;
+        } else if ("wither".equalsIgnoreCase(skin)) {
+            mainMat = Material.NETHERITE_BLOCK; accentMat = ColorUtil.mat("POLISHED_BLACKSTONE_BRICKS", "OBSIDIAN"); glassMat = Material.RED_STAINED_GLASS;
+        } else if ("owner".equalsIgnoreCase(skin)) {
+            mainMat = Material.NETHERITE_BLOCK; accentMat = Material.GOLD_BLOCK; glassMat = Material.RED_STAINED_GLASS;
+        }
+
         Location pl = p.getLocation();
         World w = pl.getWorld();
         final Map<Block, org.bukkit.block.data.BlockData> saved = new HashMap<Block, org.bukkit.block.data.BlockData>();
         float pitch = pl.getPitch();
 
         if (Math.abs(pitch) > 42f) {
-            // Horizontal 5x5x2 floor/ceiling!
+            // Horizontal 5x5x2 floor/ceiling with armored stained-glass window inlays!
             int baseY = pitch > 0 ? pl.getBlockY() - 1 : pl.getBlockY() + 3;
             int cx = pl.getBlockX(), cz = pl.getBlockZ();
             for (int dx = -2; dx <= 2; dx++) {
                 for (int dz = -2; dz <= 2; dz++) {
+                    boolean windowCell = Math.abs(dx) <= 1 && Math.abs(dz) <= 1 && !(dx == 0 && dz == 0);
                     for (int dy = 0; dy > -2; dy--) {
                         Block b = w.getBlockAt(cx + dx, baseY + dy, cz + dz);
                         if (isReplaceableForTemp(b)) {
                             saved.put(b, b.getBlockData().clone());
                             activeTempBlocks.add(blockKey(b));
-                            b.setType(((dx + dz) % 2 == 0) ? Material.OBSIDIAN : Material.CRYING_OBSIDIAN, false);
+                            Material chosen = windowCell ? glassMat : (((dx + dz + dy) % 2 == 0) ? mainMat : accentMat);
+                            b.setType(chosen, false);
                         }
                     }
                 }
             }
         } else {
-            // Vertical 5x4x2 shield wall 2 blocks ahead of player!
+            // Vertical 5x4x2 shield wall 2 blocks ahead of player with armored tactical glass viewport!
             Vector dir = pl.getDirection().setY(0).normalize();
             boolean alongX = Math.abs(dir.getX()) > Math.abs(dir.getZ());
             int stepX = alongX ? (dir.getX() >= 0 ? 2 : -2) : 0;
@@ -1917,6 +1996,7 @@ public final class GameplayListener implements Listener {
             int cy = pl.getBlockY();
             for (int spread = -2; spread <= 2; spread++) {
                 for (int dy = 0; dy <= 3; dy++) {
+                    boolean viewport = Math.abs(spread) <= 1 && (dy == 1 || dy == 2);
                     for (int thick = 0; thick <= 1; thick++) {
                         int bx = alongX ? cx + (stepX > 0 ? thick : -thick) : cx + spread;
                         int bz = alongX ? cz + spread : cz + (stepZ > 0 ? thick : -thick);
@@ -1924,26 +2004,79 @@ public final class GameplayListener implements Listener {
                         if (isReplaceableForTemp(b)) {
                             saved.put(b, b.getBlockData().clone());
                             activeTempBlocks.add(blockKey(b));
-                            b.setType(((spread + dy) % 2 == 0) ? Material.OBSIDIAN : Material.CRYING_OBSIDIAN, false);
+                            Material chosen = viewport ? glassMat : (((spread + dy + thick) % 2 == 0) ? mainMat : accentMat);
+                            b.setType(chosen, false);
                         }
                     }
                 }
             }
         }
+
+        // Apply Plast Skin tactical buffs/debuffs!
+        if ("magma".equalsIgnoreCase(skin)) {
+            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 160, 0);
+        } else if ("amethyst".equalsIgnoreCase(skin)) {
+            ColorUtil.addPot(p, "speed", "SPEED", 120, 1);
+            ColorUtil.addPot(p, "jump_boost", "JUMP", 120, 1);
+        } else if ("royal".equalsIgnoreCase(skin)) {
+            ColorUtil.addPot(p, "absorption", "ABSORPTION", 160, 0);
+        } else if ("owner".equalsIgnoreCase(skin)) {
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 120, 1);
+            ColorUtil.addPot(p, "speed", "SPEED", 120, 2);
+            ColorUtil.addPot(p, "absorption", "ABSORPTION", 160, 1);
+        }
+        for (Entity en : p.getNearbyEntities(5.0, 4.0, 5.0)) {
+            if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                Player v = (Player) en;
+                if ("ice".equalsIgnoreCase(skin)) {
+                    v.setFreezeTicks(160);
+                    ColorUtil.addPot(v, "slowness", "SLOW", 80, 1);
+                } else if ("magma".equalsIgnoreCase(skin)) {
+                    v.setFireTicks(80);
+                } else if ("toxic".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "poison", "POISON", 80, 1);
+                } else if ("wither".equalsIgnoreCase(skin) || "owner".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "wither", "WITHER", 80, 1);
+                }
+            }
+        }
+
         ColorUtil.sound(p, "block.anvil.land", 0.85f, 1.2f);
-        p.sendMessage(ColorUtil.c("&#A855F7🧱 Пласт 5×5×2 установлен на &e12 секунд&#A855F7!"));
+        p.sendMessage(ColorUtil.c("&#A855F7🧱 Пласт 5×5×2 установлен на &e12 сек. &8(Скин: &d" + skin.toUpperCase() + "&8)"));
         scheduleRestore(saved, 240L);
     }
 
     private void spawnTemporaryTrapka(Player p) {
         String skin = plugin.getStore().getSelectedTrapSkin(p.getName());
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if ("owner".equalsIgnoreCase(skin) && !isOwner) skin = "classic";
+
         Material mainMat = Material.NETHERITE_BLOCK;
         Material accentMat = Material.OBSIDIAN;
-        if ("ice".equalsIgnoreCase(skin)) { mainMat = Material.BLUE_ICE; accentMat = Material.PACKED_ICE; }
-        else if ("inferno".equalsIgnoreCase(skin)) { mainMat = Material.RED_NETHER_BRICKS; accentMat = Material.MAGMA_BLOCK; }
-        else if ("toxic".equalsIgnoreCase(skin)) { mainMat = Material.EMERALD_BLOCK; accentMat = Material.LIME_STAINED_GLASS; }
-        else if ("void".equalsIgnoreCase(skin)) { mainMat = Material.CRYING_OBSIDIAN; accentMat = Material.PURPUR_BLOCK; }
-        else if ("royal".equalsIgnoreCase(skin)) { mainMat = Material.GOLD_BLOCK; accentMat = Material.AMETHYST_BLOCK; }
+        Material windowGlass = Material.BLACK_STAINED_GLASS;
+        Material cornerLight = Material.SEA_LANTERN;
+        if ("ice".equalsIgnoreCase(skin)) {
+            mainMat = Material.BLUE_ICE; accentMat = Material.PACKED_ICE;
+            windowGlass = Material.LIGHT_BLUE_STAINED_GLASS; cornerLight = Material.SEA_LANTERN;
+        } else if ("inferno".equalsIgnoreCase(skin)) {
+            mainMat = Material.RED_NETHER_BRICKS; accentMat = Material.MAGMA_BLOCK;
+            windowGlass = Material.ORANGE_STAINED_GLASS; cornerLight = Material.SHROOMLIGHT;
+        } else if ("toxic".equalsIgnoreCase(skin)) {
+            mainMat = Material.EMERALD_BLOCK; accentMat = ColorUtil.mat("OXIDIZED_COPPER", "PRISMARINE_BRICKS");
+            windowGlass = Material.LIME_STAINED_GLASS; cornerLight = Material.SEA_LANTERN;
+        } else if ("void".equalsIgnoreCase(skin)) {
+            mainMat = Material.CRYING_OBSIDIAN; accentMat = Material.PURPUR_BLOCK;
+            windowGlass = Material.MAGENTA_STAINED_GLASS; cornerLight = ColorUtil.mat("PEARLESCENT_FROGLIGHT", "SEA_LANTERN");
+        } else if ("royal".equalsIgnoreCase(skin)) {
+            mainMat = Material.GOLD_BLOCK; accentMat = Material.AMETHYST_BLOCK;
+            windowGlass = Material.YELLOW_STAINED_GLASS; cornerLight = ColorUtil.mat("OCHRE_FROGLIGHT", "GLOWSTONE");
+        } else if ("blood".equalsIgnoreCase(skin)) {
+            mainMat = Material.REDSTONE_BLOCK; accentMat = ColorUtil.mat("CRIMSON_HYPHAE", "NETHER_WART_BLOCK");
+            windowGlass = Material.RED_STAINED_GLASS; cornerLight = Material.SHROOMLIGHT;
+        } else if ("owner".equalsIgnoreCase(skin)) {
+            mainMat = Material.NETHERITE_BLOCK; accentMat = Material.GOLD_BLOCK;
+            windowGlass = Material.RED_STAINED_GLASS; cornerLight = ColorUtil.mat("OCHRE_FROGLIGHT", "SEA_LANTERN");
+        }
 
         Location pl = p.getLocation();
         World w = pl.getWorld();
@@ -1958,10 +2091,28 @@ public final class GameplayListener implements Listener {
                     if (shell && isReplaceableForTemp(b)) {
                         saved.put(b, b.getBlockData().clone());
                         activeTempBlocks.add(blockKey(b));
-                        b.setType(((dx + dy + dz) % 2 == 0) ? mainMat : accentMat, false);
+                        // 3x3 armored stained-glass windows on all 4 side walls + 3x3 roof skylight!
+                        boolean sideWindow = (dy >= 0 && dy <= 2)
+                                && ((Math.abs(dx) == 2 && Math.abs(dz) <= 1) || (Math.abs(dz) == 2 && Math.abs(dx) <= 1));
+                        boolean roofSkylight = (dy == 3) && Math.abs(dx) <= 1 && Math.abs(dz) <= 1;
+                        boolean floorLight = (dy == -1) && Math.abs(dx) == 1 && Math.abs(dz) == 1;
+                        Material chosen;
+                        if (sideWindow || roofSkylight) {
+                            chosen = windowGlass;
+                        } else if (floorLight) {
+                            chosen = cornerLight;
+                        } else {
+                            chosen = ((dx + dy + dz) % 2 == 0) ? mainMat : accentMat;
+                        }
+                        b.setType(chosen, false);
                     }
                 }
             }
+        }
+
+        if ("owner".equalsIgnoreCase(skin)) {
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 160, 1);
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 140, 1);
         }
 
         // Apply /skins Trapka Debuff to all enemies caught inside the 5x5x5 cage!
@@ -1987,6 +2138,14 @@ public final class GameplayListener implements Listener {
                     ColorUtil.addPot(v, "wither", "WITHER", 120, 1);
                     ColorUtil.addPot(v, "glowing", "GLOWING", 200, 0);
                     ColorUtil.addPot(v, "weakness", "WEAKNESS", 120, 1);
+                } else if ("blood".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "wither", "WITHER", 140, 1);
+                    ColorUtil.addPot(v, "slowness", "SLOW", 140, 1);
+                } else if ("owner".equalsIgnoreCase(skin)) {
+                    ColorUtil.addPot(v, "wither", "WITHER", 120, 2);
+                    ColorUtil.addPot(v, "blindness", "BLINDNESS", 100, 0);
+                    ColorUtil.addPot(v, "slowness", "SLOW", 160, 2);
+                    ColorUtil.addPot(v, "glowing", "GLOWING", 240, 0);
                 } else {
                     ColorUtil.addPot(v, "slowness", "SLOW", 120, 0);
                 }
@@ -1995,7 +2154,7 @@ public final class GameplayListener implements Listener {
         }
 
         ColorUtil.sound(p, "block.iron_door.close", 1f, 0.7f);
-        p.sendMessage(ColorUtil.c("&#FF1744⛓ Трапка 5×5×5 активирована на &e15 сек. &8(Скин: &d" + skin.toUpperCase() + "&8, врагов: &f" + trappedEnemies + "&8)"));
+        p.sendMessage(ColorUtil.c("&#FF1744⛓ Трапка 5×5×5 [Броне-Стекло] активирована на &e15 сек. &8(Скин: &d" + skin.toUpperCase() + "&8, врагов: &f" + trappedEnemies + "&8)"));
         scheduleRestore(saved, 300L);
     }
 
@@ -2471,9 +2630,9 @@ public final class GameplayListener implements Listener {
                 targetBolt.getWorld().strikeLightningEffect(targetBolt.getLocation());
                 e.setDamage(e.getDamage() + 3.0);
             }
-            // Окисление брони (Меч Крушителя и Меч OWNER)
+            // Окисление брони (Меч Крушителя и Меч OWNER — сбалансировано с учётом Закалки брони ×2!)
             if ("sword_krush".equals(weaponId) || "sword_owner".equals(weaponId)) {
-                int shred = "sword_owner".equals(weaponId) ? 5 : 3;
+                int shred = "sword_owner".equals(weaponId) ? 2 : 1;
                 for (ItemStack arm : victim.getInventory().getArmorContents()) {
                     if (arm != null && arm.hasItemMeta() && arm.getItemMeta() instanceof Damageable) {
                         ItemMeta m = arm.getItemMeta();
@@ -2482,6 +2641,90 @@ public final class GameplayListener implements Listener {
                         arm.setItemMeta(m);
                     }
                 }
+            }
+            // ================= v5.9: 9 НОВЫХ КАСТОМНЫХ 3D МЕЧЕЙ (СПОСОБНОСТИ В ПВП) =================
+            boolean customBannerShown = false;
+            if ("sword_frost".equals(weaponId)) {
+                victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 160));
+                ColorUtil.addPot(victim, "slowness", "SLOW", 80, 2);
+                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1.1, 0), 12, 0.35, 0.4, 0.35, 0.03);
+            } else if ("sword_zeus".equals(weaponId)) {
+                String zKey = attacker.getUniqueId() + ":sword_zeus";
+                long nowMs = System.currentTimeMillis();
+                Long zReady = itemCooldowns.get(zKey);
+                if (zReady == null || nowMs >= zReady.longValue()) {
+                    itemCooldowns.put(zKey, Long.valueOf(nowMs + 5000L));
+                    victim.getWorld().strikeLightningEffect(victim.getLocation());
+                    e.setDamage(e.getDamage() + 4.0);
+                    victim.setCooldown(Material.SHIELD, 80);
+                    ColorUtil.actionBar(attacker, "&#FACC15⚡ МЕЧ ЗЕВСА: Удар Молнии Олимпа (+4⚡ урона + Слом Щита)!");
+                    customBannerShown = true;
+                }
+            } else if ("sword_katana".equals(weaponId)) {
+                ColorUtil.addPot(attacker, "speed", "SPEED", 60, 2);
+                if (attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {
+                    e.setDamage(e.getDamage() * 1.25);
+                    victim.getWorld().spawnParticle(Particle.CRIT, victim.getLocation().add(0, 1.1, 0), 18, 0.35, 0.4, 0.35, 0.15);
+                    ColorUtil.actionBar(attacker, "&#F472B6🌸 КАТАНА САКУРЫ: Идеальный Крит +25% + Скорость III!");
+                    customBannerShown = true;
+                }
+            } else if ("sword_wither".equals(weaponId)) {
+                ColorUtil.addPot(victim, "wither", "WITHER", 80, 2); // Иссушение III на 4 сек!
+                victim.getWorld().spawnParticle(Particle.SOUL, victim.getLocation().add(0, 1.1, 0), 10, 0.35, 0.4, 0.35, 0.03);
+            } else if ("sword_venom".equals(weaponId)) {
+                ColorUtil.addPot(victim, "poison", "POISON", 80, 2);
+                ColorUtil.addPot(victim, "weakness", "WEAKNESS", 80, 0);
+            } else if ("sword_phantom".equals(weaponId)) {
+                Vector atkDir = attacker.getLocation().getDirection().setY(0).normalize();
+                Vector vicDir = victim.getLocation().getDirection().setY(0).normalize();
+                if (atkDir.dot(vicDir) > 0.35) {
+                    e.setDamage(e.getDamage() * 1.30);
+                    String phKey = attacker.getUniqueId() + ":sword_phantom";
+                    long nowMs = System.currentTimeMillis();
+                    Long phReady = itemCooldowns.get(phKey);
+                    if (phReady == null || nowMs >= phReady.longValue()) {
+                        itemCooldowns.put(phKey, Long.valueOf(nowMs + 6000L));
+                        ColorUtil.addPot(victim, "blindness", "BLINDNESS", 45, 0);
+                    }
+                    ColorUtil.actionBar(attacker, "&#818CF8👻 РАПИРА ТЕНЕЙ: Удар в Спину +30% урона!");
+                    customBannerShown = true;
+                }
+            } else if ("sword_phoenix".equals(weaponId)) {
+                victim.setFireTicks(140);
+                ColorUtil.addPot(attacker, "regeneration", "REGENERATION", 80, 1);
+                victim.getWorld().spawnParticle(Particle.FLAME, victim.getLocation().add(0, 1.0, 0), 16, 0.6, 0.4, 0.6, 0.04);
+                for (Entity near : victim.getNearbyEntities(2.8, 2.0, 2.8)) {
+                    if (near instanceof Player && isEnemyTarget(attacker, (Player) near) && !near.equals(victim)) {
+                        near.setFireTicks(80);
+                    }
+                }
+            } else if ("sword_void".equals(weaponId)) {
+                String vdKey = attacker.getUniqueId() + ":sword_void";
+                long nowMs = System.currentTimeMillis();
+                Long vdReady = itemCooldowns.get(vdKey);
+                if (vdReady == null || nowMs >= vdReady.longValue()) {
+                    itemCooldowns.put(vdKey, Long.valueOf(nowMs + 5000L));
+                    if (victim.isGliding()) victim.setGliding(false);
+                    Vector pull = attacker.getLocation().toVector().subtract(victim.getLocation().toVector());
+                    if (pull.lengthSquared() > 0.25) {
+                        victim.setVelocity(pull.normalize().multiply(0.75).setY(0.22));
+                    }
+                    ColorUtil.actionBar(attacker, "&#38BDF8🌌 МЕЧ БЕЗДНЫ: Враг притянут + Анти-Элитры!");
+                    customBannerShown = true;
+                }
+            } else if ("sword_midas".equals(weaponId)) {
+                int goldHit = 75 + rng.nextInt(176);
+                plugin.getStore().addCoins(attacker.getName(), goldHit);
+                ColorUtil.addPot(attacker, "absorption", "ABSORPTION", 100, 1);
+                ColorUtil.actionBar(attacker, "&#FFD740👑 ЭКСКАЛИБУР МИДАСА: &a+" + goldHit + "$ &8| &eЗолотые Сердца!");
+                customBannerShown = true;
+            }
+
+            if (!customBannerShown) {
+                double remHp = Math.max(0.0, victim.getHealth() - e.getFinalDamage());
+                ColorUtil.actionBar(attacker, "&#FF5252⚔ " + victim.getName() + ": &#FF1744"
+                        + String.format(java.util.Locale.US, "%.1f", Double.valueOf(remHp / 2.0)) + " ❤ &8(-"
+                        + String.format(java.util.Locale.US, "%.1f", Double.valueOf(e.getFinalDamage() / 2.0)) + "❤)");
             }
             // Кастомные Луки, Стрелы и Трезубец Посейдона!
             if (e.getDamager() instanceof Projectile) {
@@ -2572,11 +2815,57 @@ public final class GameplayListener implements Listener {
         }
     }
 
+    // ================= v5.9: БРОНЯ В 2 РАЗА ПРОЧНЕЕ + УВЕДОМЛЕНИЕ О НИЗКОЙ ПРОЧНОСТИ =================
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onArmorDurabilityDamage(PlayerItemDamageEvent e) {
+        ItemStack item = e.getItem();
+        if (item == null || item.getType() == Material.AIR) return;
+        String tn = item.getType().name();
+        boolean isArmorOrShield = tn.endsWith("_HELMET") || tn.endsWith("_CHESTPLATE")
+                || tn.endsWith("_LEGGINGS") || tn.endsWith("_BOOTS")
+                || "TURTLE_HELMET".equals(tn) || "ELYTRA".equals(tn) || "SHIELD".equals(tn);
+        if (!isArmorOrShield) return;
+
+        int dmg = e.getDamage();
+        if (dmg <= 0) return;
+
+        // Halve incoming durability loss -> strictly 2x more durable!
+        int reduced = dmg / 2;
+        if ((dmg & 1) == 1 && rng.nextBoolean()) {
+            reduced++;
+        }
+        if (reduced <= 0) {
+            e.setCancelled(true);
+            return;
+        }
+        e.setDamage(reduced);
+
+        // Warn player if an armor piece drops below 15% remaining durability!
+        int maxDur = item.getType().getMaxDurability();
+        if (maxDur > 0 && item.hasItemMeta() && item.getItemMeta() instanceof Damageable) {
+            int usedAfter = ((Damageable) item.getItemMeta()).getDamage() + reduced;
+            int left = Math.max(0, maxDur - usedAfter);
+            if (left > 0 && left <= maxDur * 0.15) {
+                Player p = e.getPlayer();
+                String warnKey = p.getUniqueId() + ":low_armor_warn";
+                long now = System.currentTimeMillis();
+                Long nextWarn = itemCooldowns.get(warnKey);
+                if (nextWarn == null || now >= nextWarn.longValue()) {
+                    itemCooldowns.put(warnKey, Long.valueOf(now + 4500L));
+                    ColorUtil.actionBar(p, (left <= maxDur * 0.05 ? "&#FF1744&l⚠ КРИТИЧЕСКАЯ ПРОЧНОСТЬ БРОНИ: " : "&#FFD740⚠ Прочность брони низкая: ")
+                            + "&fосталось &c" + left + " ед. &8(/repair)");
+                    ColorUtil.sound(p, "block.anvil.place", 0.55f, 1.5f);
+                }
+            }
+        }
+    }
+
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent e) {
         Player dead = e.getEntity();
         plugin.getHud().clearCombat(dead.getUniqueId());
-        killStreaks.remove(dead.getUniqueId());
+        Integer deadPrevStreakObj = killStreaks.remove(dead.getUniqueId());
+        int deadPrevStreak = deadPrevStreakObj != null ? deadPrevStreakObj.intValue() : 0;
         plugin.getStore().setBack(dead, dead.getLocation());
         plugin.getStore().addDeath(dead.getName());
         plugin.getSpawnEngine().notifyKabinkaDeath(dead.getLocation());
@@ -2588,6 +2877,14 @@ public final class GameplayListener implements Listener {
             double clanBonus = kClan != null ? kClan.level * 50.0 : 0.0;
             if (kClan != null) kClan.kills++;
             plugin.getStore().addCoins(killer.getName(), 250.0 + clanBonus);
+
+            if (deadPrevStreak >= 3) {
+                double shutBonus = deadPrevStreak * 1500.0;
+                plugin.getStore().addCoins(killer.getName(), shutBonus);
+                Bukkit.broadcastMessage(ColorUtil.c("&#00E5FF&l⚡ [ПРЕРЫВАНИЕ СЕРИИ] &fИгрок &#00E676" + killer.getName()
+                        + " &fостановил серию из &c" + deadPrevStreak + " убийств &fигрока &e" + dead.getName()
+                        + " &fи получил &a+" + ColorUtil.fmtMoney(shutBonus) + "$&f!"));
+            }
 
             int streak = (killStreaks.containsKey(killer.getUniqueId()) ? killStreaks.get(killer.getUniqueId()).intValue() : 0) + 1;
             killStreaks.put(killer.getUniqueId(), Integer.valueOf(streak));
@@ -2661,17 +2958,75 @@ public final class GameplayListener implements Listener {
         }
     }
 
-    @EventHandler
+    // ================= v5.9: HIDE ALL /lp, /op & ADMIN COMMANDS FROM CLIENT COMMAND LIST FOR EVERYONE EXCEPT OWNER! =================
+    private static final Set<String> STRICT_OWNER_ONLY_COMMANDS = new HashSet<String>(Arrays.asList(
+            "lp", "lpeditor", "luckperms", "perm", "perms", "permission", "permissions", "pex",
+            "op", "deop", "kgadmin", "rebuildspawn", "promoadmin", "setupserver",
+            "cp", "cpanel", "commandpanels", "razdacha", "giveaway", "txt", "screentxt",
+            "tex", "techworks", "maint", "teh", "stop", "reload", "rl", "restart",
+            "plugins", "pl", "ver", "version", "about", "icanhasbukkit", "spigot", "paper", "bukkit",
+            "give", "i", "item", "enchant", "effect", "execute", "forceload", "datapack",
+            "function", "fill", "setblock", "clone", "summon", "kill", "attribute", "bossbar", "scoreboard", "team"
+    ));
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCommandSend(PlayerCommandSendEvent e) {
+        Player p = e.getPlayer();
+        RankManager.RankDef rk = plugin.getRanks().getRank(p);
+        boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
+        if (isOwner) return;
+
+        boolean isCuratorPlus = rk != null && rk.weight >= 275;
+        boolean isStaff = plugin.getModeration().isStaff(p);
+        boolean isMlModerPlus = plugin.getRanks().isMlModerOrHigher(p);
+
+        java.util.Iterator<String> it = e.getCommands().iterator();
+        while (it.hasNext()) {
+            String cmd = it.next().toLowerCase(java.util.Locale.ROOT);
+            // Hide ALL plugin-namespaced commands (`luckperms:lp`, `minecraft:op`, `bukkit:pl`, etc.) for non-owner!
+            if (cmd.contains(":")) {
+                it.remove();
+                continue;
+            }
+            if (STRICT_OWNER_ONLY_COMMANDS.contains(cmd)) {
+                it.remove();
+                continue;
+            }
+            if (!isCuratorPlus && ("curator".equals(cmd) || "kurator".equals(cmd) || "cur".equals(cmd))) {
+                it.remove();
+                continue;
+            }
+            if (!isStaff && ("ban".equals(cmd) || "banip".equals(cmd) || "ipban".equals(cmd) || "tempbanip".equals(cmd)
+                    || "unban".equals(cmd) || "unbanip".equals(cmd) || "unipban".equals(cmd) || "pardonip".equals(cmd)
+                    || "mute".equals(cmd) || "muteip".equals(cmd) || "ipmute".equals(cmd) || "tempmuteip".equals(cmd)
+                    || "unmute".equals(cmd) || "unmuteip".equals(cmd) || "unipmute".equals(cmd)
+                    || "kick".equals(cmd) || "check".equals(cmd) || "ss".equals(cmd) || "cheatcheck".equals(cmd)
+                    || "sw".equals(cmd) || "staffwork".equals(cmd) || "dupeip".equals(cmd) || "alts".equals(cmd)
+                    || "twinks".equals(cmd) || "checkip".equals(cmd) || "warn".equals(cmd) || "unwarn".equals(cmd)
+                    || "history".equals(cmd) || "clearchat".equals(cmd) || "cc".equals(cmd) || "slowchat".equals(cmd)
+                    || "freeze".equals(cmd) || "invsee".equals(cmd) || "ecsee".equals(cmd) || "whois".equals(cmd)
+                    || "sc".equals(cmd) || "staffchat".equals(cmd) || "bc".equals(cmd) || "broadcast".equals(cmd))) {
+                it.remove();
+                continue;
+            }
+            if (!isMlModerPlus && ("tp".equals(cmd) || "tphere".equals(cmd) || "s".equals(cmd)
+                    || "gm".equals(cmd) || "gms".equals(cmd) || "gamemode".equals(cmd) || "clearlag".equals(cmd))) {
+                it.remove();
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onCmdPreprocess(PlayerCommandPreprocessEvent e) {
         Player p = e.getPlayer();
         String rawMsg = e.getMessage();
-        String msg = rawMsg.toLowerCase(java.util.Locale.ROOT);
+        String msg = rawMsg.toLowerCase(java.util.Locale.ROOT).trim();
 
         // Поддержка русской команды /спек -> /spek!
         if (msg.equals("/спек") || msg.startsWith("/спек ")) {
             String rest = rawMsg.length() > 5 ? rawMsg.substring(5) : "";
             e.setMessage("/spek" + rest);
-            msg = e.getMessage().toLowerCase(java.util.Locale.ROOT);
+            msg = e.getMessage().toLowerCase(java.util.Locale.ROOT).trim();
         }
 
         if (!plugin.getStore().isAuthenticated(p)) {
@@ -2682,20 +3037,39 @@ public final class GameplayListener implements Listener {
             }
         }
 
-        // STRICT OWNER-ONLY GUARD FOR ALL LP / LUCKPERMS / LPEDITOR COMMANDS!
         String firstTok = msg.contains(" ") ? msg.substring(0, msg.indexOf(' ')) : msg;
-        if (firstTok.equals("/lp") || firstTok.equals("/lpeditor") || firstTok.equals("/luckperms")
-                || firstTok.equals("/perms") || firstTok.equals("/perm")
-                || firstTok.startsWith("/luckperms:") || firstTok.startsWith("/kinggriefcore:lp")) {
-            RankManager.RankDef rk = plugin.getRanks().getRank(p);
-            if (rk == null || !"owner".equalsIgnoreCase(rk.id)) {
+        String bareCmd = firstTok.startsWith("/") ? firstTok.substring(1) : firstTok;
+        String baseCmd = bareCmd.contains(":") ? bareCmd.substring(bareCmd.lastIndexOf(':') + 1) : bareCmd;
+
+        RankManager.RankDef rk = plugin.getRanks().getRank(p);
+        boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
+
+        // STRICT OWNER-ONLY LOCKDOWN FOR ALL LP, LUCKPERMS, OP ("ЗВЕЗДА"), PLUGIN-LIST & DANGEROUS COMMANDS!
+        if (!isOwner && (STRICT_OWNER_ONLY_COMMANDS.contains(baseCmd)
+                || bareCmd.startsWith("luckperms:") || bareCmd.startsWith("kinggriefcore:lp")
+                || bareCmd.startsWith("minecraft:op") || bareCmd.startsWith("minecraft:deop")
+                || bareCmd.startsWith("bukkit:") || bareCmd.startsWith("spigot:") || bareCmd.startsWith("paper:"))) {
+            e.setCancelled(true);
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Команда недоступна! Откройте меню сервера: &#FFD740/menu"));
+            return;
+        }
+
+        // Block private-message bypasses when muted or IP-muted!
+        if (!isOwner && ("msg".equals(baseCmd) || "tell".equals(baseCmd) || "w".equals(baseCmd)
+                || "m".equals(baseCmd) || "pm".equals(baseCmd) || "r".equals(baseCmd)
+                || "reply".equals(baseCmd) || "me".equals(baseCmd))) {
+            long mSec = plugin.getStore().getMuteRemainingSec(p.getName());
+            String pIp = plugin.getStore().getPlayerIp(p);
+            long ipMSec = plugin.getStore().getIpMuteRemainingSec(pIp);
+            if (mSec > 0 || ipMSec > 0) {
                 e.setCancelled(true);
-                p.sendMessage(ColorUtil.c("&#FF1744✖ Доступ к LP Editor разрешён СТРОГО только владельцу (привилегия OWNER)!"));
+                p.sendMessage(ColorUtil.c("&#FF5252🔇 Вы находитесь в муте — отправка личных сообщений запрещена!"));
                 return;
             }
         }
+
         // STRICT ML.MODER+ GUARD FOR VANILLA /minecraft:tp & /minecraft:teleport!
-        if (firstTok.equals("/minecraft:tp") || firstTok.equals("/minecraft:teleport") || firstTok.equals("/teleport")) {
+        if ("tp".equals(baseCmd) || "teleport".equals(baseCmd)) {
             if (!plugin.getRanks().isMlModerOrHigher(p)) {
                 e.setCancelled(true);
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Команды прямой телепортации (/tp, /tphere) доступны ТОЛЬКО от Мл. Модера и выше!"));
@@ -2708,7 +3082,7 @@ public final class GameplayListener implements Listener {
             return;
         }
         // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER)!
-        if (plugin.getHud().isInCombat(p) && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+        if (plugin.getHud().isInCombat(p) && !isOwner) {
             int left = plugin.getHud().getCombatSecondsLeft(p);
             e.setCancelled(true);
             p.sendMessage(ColorUtil.c("&#FF1744⚔ Вы находитесь в &#FF1744&lРЕЖИМЕ ПВП &7(осталось &#FFD740" + left + " сек.&7)! Писать команды в бою запрещено!"));
@@ -2732,15 +3106,35 @@ public final class GameplayListener implements Listener {
             return;
         }
 
-        long muteSec = plugin.getStore().getMuteRemainingSec(p.getName());
-        if (muteSec > 0) {
-            e.setCancelled(true);
-            String mReason = plugin.getStore().getMuteReason(p.getName());
-            String mStaff = plugin.getStore().getMuteStaff(p.getName());
-            String remLabel = muteSec > 36500L * 86400L ? "Навсегда" : ColorUtil.fmtTime(muteSec);
-            p.sendMessage(ColorUtil.c("&#FF5252🔇 Вы замучены модератором &#FFD740" + mStaff
-                    + "&#FF5252! Осталось: &f" + remLabel + " &8│ &7Причина: &e" + mReason));
-            return;
+        boolean isOwnerChat = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if (!isOwnerChat) {
+            long muteSec = plugin.getStore().getMuteRemainingSec(p.getName());
+            if (muteSec > 0) {
+                e.setCancelled(true);
+                String mReason = plugin.getStore().getMuteReason(p.getName());
+                String mStaff = plugin.getStore().getMuteStaff(p.getName());
+                String remLabel = muteSec > 36500L * 86400L ? "Навсегда" : ColorUtil.fmtTime(muteSec);
+                p.sendMessage(ColorUtil.c("&#FF5252🔇 Вы замучены модератором &#FFD740" + mStaff
+                        + "&#FF5252! Осталось: &f" + remLabel + " &8│ &7Причина: &e" + mReason));
+                return;
+            }
+            String pIp = plugin.getStore().getPlayerIp(p);
+            long ipMuteSec = plugin.getStore().getIpMuteRemainingSec(pIp);
+            if (ipMuteSec > 0) {
+                e.setCancelled(true);
+                String mReason = plugin.getStore().getIpMuteReason(pIp);
+                String mStaff = plugin.getStore().getIpMuteStaff(pIp);
+                String remLabel = ipMuteSec > 36500L * 86400L ? "Навсегда" : ColorUtil.fmtTime(ipMuteSec);
+                p.sendMessage(ColorUtil.c("&#FF5252🔇 Ваш IP-адрес в муте (Модератор: &#FFD740" + mStaff
+                        + "&#FF5252)! Осталось: &f" + remLabel + " &8│ &7Причина: &e" + mReason));
+                return;
+            }
+            int slowWait = plugin.getModeration().checkAndRecordSlowChat(p);
+            if (slowWait > 0) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&#FFD740⏱ Включён медленный режим чата! Подождите ещё &f" + slowWait + " сек."));
+                return;
+            }
         }
         if (activeChatAnswer != null && raw.equalsIgnoreCase(activeChatAnswer)) {
             activeChatAnswer = null;

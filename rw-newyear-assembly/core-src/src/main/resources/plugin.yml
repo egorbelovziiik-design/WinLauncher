@@ -1,10 +1,10 @@
 name: KingGriefCore
-version: 5.8.0
+version: 5.9.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
 author: KINGGRIEF
-description: KINGGRIEF v5.8 Grand Winter Citadel FT x RW Edition (Real Leaf Tree, 3-Floor Palace, 32-Island Sky Parkour, 12 Custom 3D Pickaxes & Hammer OWNER 10x10, Redstone Lightning Anti-DDoS, 6 Working Custom TNTs, Owner /razdacha & /txt, TechWorks Screen)
+description: KINGGRIEF v5.9 FT x RW Edition (Strict OWNER-Only /lp & Star Lockdown + /lp user permission clear, IP-Mute & IP-Ban + /dupeip + /warn + /history, 2x Armor Durability, Dezorient Wither III 5s, Glass Trapkas + Plast Skins, 12 Custom 3D Swords)
 
 commands:
   lp:
@@ -66,7 +66,13 @@ commands:
     description: Bafovar 8-Potion Custom Brewer (5000$) & Potion Shop
   skins:
     aliases: [trapskins]
-    description: Trapka Skins with Enemy Debuffs
+    description: Trapka Skins (with Armored Glass Windows) & Plast Skins
+  plastskins:
+    aliases: [pskins, plastskin]
+    description: Plast 5x5x2 Custom Skins & Tactical Buffs
+  swords:
+    aliases: [mechi, weapons, blades]
+    description: Armory of 12 Custom 3D Swords (/swords)
   bounty:
     aliases: [bounties]
     description: Player Head Bounties
@@ -197,9 +203,41 @@ commands:
     description: Request moderator spectate (/спек или /spek)
   mute: {}
   unmute: {}
+  muteip:
+    aliases: [ipmute, tempmuteip]
+    description: Mute player and all twinks by IP (/muteip <nick|IP> [time] [reason])
+  unmuteip:
+    aliases: [unipmute]
+    description: Unmute IP address (/unmuteip <nick|IP>)
   kick: {}
   ban: {}
   unban: {}
+  banip:
+    aliases: [ipban, tempbanip]
+    description: Ban player and all twinks by IP with Sky Animation (/banip <nick|IP> [time] [reason])
+  unbanip:
+    aliases: [unipban, pardonip]
+    description: Unban IP address (/unbanip <nick|IP>)
+  dupeip:
+    aliases: [alts, twinks, checkip]
+    description: Check all accounts sharing the same IP address
+  warn:
+    description: Issue warning (/warn <nick> <reason>, 2/3 mute, 3/3 ban)
+  unwarn:
+    description: Remove last warning from player
+  warns:
+    description: View warnings of a player
+  history:
+    aliases: [checkpunish, punishhistory]
+    description: View full punishment history of a player
+  clearchat:
+    aliases: [cc]
+    description: Clear global chat for players
+  slowchat:
+    description: Set global chat cooldown in seconds (/slowchat <sec|off>)
+  staff:
+    aliases: [moders]
+    description: View online KP staff & active shifts
   bc:
     aliases: [broadcast]
   rebuildspawn:

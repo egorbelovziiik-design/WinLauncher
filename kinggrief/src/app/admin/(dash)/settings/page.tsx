@@ -117,13 +117,13 @@ export default async function AdminSettingsPage() {
             <Download size={13} /> Античит King_antisoft.jar
           </a>
           <a href="/kinggrief-mega-rp.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Мега-РП v5.8 (kinggrief-mega-rp.zip)
+            <Download size={13} /> Мега-РП v5.9 (kinggrief-mega-rp.zip)
           </a>
           <a href="/rw-newyear-full-assembly.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Вся сборка v5.8 (.zip)
+            <Download size={13} /> Вся сборка v5.9 (.zip)
           </a>
           <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Сайт + Админ-панель v5.8 (.zip)
+            <Download size={13} /> Сайт + Админ-панель v5.9 (.zip)
           </a>
           <Link href="/admin/cases" className="btn btn-ghost btn-sm">Выдать кейсы игроку</Link>
         </div>

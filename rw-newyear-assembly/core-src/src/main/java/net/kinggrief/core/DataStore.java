@@ -358,9 +358,13 @@ public final class DataStore {
         save();
     }
 
+    public String getPlayerIp(Player p) {
+        return getIp(p);
+    }
+
     private String getIp(Player p) {
         try {
-            if (p.getAddress() != null && p.getAddress().getAddress() != null) {
+            if (p != null && p.getAddress() != null && p.getAddress().getAddress() != null) {
                 return p.getAddress().getAddress().getHostAddress();
             }
         } catch (Throwable ignored) {
@@ -368,8 +372,88 @@ public final class DataStore {
         return "";
     }
 
+    public String ipKey(String rawIp) {
+        if (rawIp == null) return "";
+        return rawIp.trim().toLowerCase(Locale.ROOT).replace('.', '_').replace(':', '_');
+    }
+
+    public static boolean looksLikeIp(String s) {
+        if (s == null || s.isEmpty()) return false;
+        String t = s.trim();
+        if (t.contains(":")) return true;
+        String[] parts = t.split("\\.");
+        if (parts.length != 4) return false;
+        for (String p : parts) {
+            if (p.isEmpty() || p.length() > 3) return false;
+            for (int i = 0; i < p.length(); i++) {
+                if (!Character.isDigit(p.charAt(i))) return false;
+            }
+        }
+        return true;
+    }
+
+    public void recordPlayerIp(String playerName, String ip) {
+        if (playerName == null || playerName.isEmpty() || ip == null || ip.isEmpty()) return;
+        String k = "players." + key(playerName);
+        yml.set(k + ".joinIp", ip);
+        yml.set(k + ".lastIp", ip);
+        yml.set(k + ".displayName", playerName);
+        String ik = "ipHistory." + ipKey(ip);
+        List<String> accs = new ArrayList<String>(yml.getStringList(ik));
+        boolean found = false;
+        for (String ex : accs) {
+            if (ex.equalsIgnoreCase(playerName)) { found = true; break; }
+        }
+        if (!found) {
+            accs.add(playerName);
+            yml.set(ik, accs);
+        }
+    }
+
+    public String resolveIpForTarget(String nickOrIp) {
+        if (nickOrIp == null || nickOrIp.trim().isEmpty()) return "";
+        String t = nickOrIp.trim();
+        if (looksLikeIp(t)) return t;
+        Player on = Bukkit.getPlayerExact(t);
+        if (on != null) {
+            String live = getIp(on);
+            if (!live.isEmpty()) return live;
+        }
+        String jIp = yml.getString("players." + key(t) + ".joinIp", "");
+        if (jIp != null && !jIp.isEmpty()) return jIp;
+        String lIp = yml.getString("players." + key(t) + ".lastIp", "");
+        return lIp == null ? "" : lIp;
+    }
+
+    public List<String> getAccountsByIp(String ip) {
+        List<String> out = new ArrayList<String>();
+        if (ip == null || ip.isEmpty()) return out;
+        for (String n : yml.getStringList("ipHistory." + ipKey(ip))) {
+            boolean dup = false;
+            for (String ex : out) if (ex.equalsIgnoreCase(n)) { dup = true; break; }
+            if (!dup) out.add(n);
+        }
+        ConfigurationSection ps = yml.getConfigurationSection("players");
+        if (ps != null) {
+            for (String pk : ps.getKeys(false)) {
+                String j = ps.getString(pk + ".joinIp", ps.getString(pk + ".lastIp", ""));
+                if (ip.equalsIgnoreCase(j)) {
+                    String disp = ps.getString(pk + ".displayName", pk);
+                    boolean dup = false;
+                    for (String ex : out) if (ex.equalsIgnoreCase(disp)) { dup = true; break; }
+                    if (!dup) out.add(disp);
+                }
+            }
+        }
+        return out;
+    }
+
     public void ensureProfileInitialized(Player p) {
         String k = "players." + key(p.getName());
+        String ip = getIp(p);
+        if (!ip.isEmpty()) {
+            recordPlayerIp(p.getName(), ip);
+        }
         if (!yml.contains(k + ".initialized")) {
             yml.set(k + ".initialized", true);
             yml.set(k + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
@@ -429,6 +513,14 @@ public final class DataStore {
         savePermMap("lp.groups." + g + ".perms", map);
     }
 
+    public int clearGroupPermissions(String group) {
+        String g = group.toLowerCase(Locale.ROOT);
+        int count = getGroupPermissions(g).size();
+        yml.set("lp.groups." + g + ".perms", null);
+        save();
+        return count;
+    }
+
     public Map<String, Boolean> getUserPermissions(String playerName) {
         Map<String, Boolean> out = new LinkedHashMap<String, Boolean>();
         List<String> list = yml.getStringList("players." + key(playerName) + ".lpPerms");
@@ -449,6 +541,24 @@ public final class DataStore {
         Map<String, Boolean> map = getUserPermissions(playerName);
         map.remove(node.toLowerCase(Locale.ROOT));
         savePermMap("players." + key(playerName) + ".lpPerms", map);
+    }
+
+    public int clearUserPermissions(String playerName) {
+        int count = getUserPermissions(playerName).size();
+        yml.set("players." + key(playerName) + ".lpPerms", null);
+        save();
+        return count;
+    }
+
+    private static boolean isOwnerOnlyPermNode(String node) {
+        if (node == null) return false;
+        String n = node.toLowerCase(Locale.ROOT);
+        return n.startsWith("luckperms") || "kinggrief.lp".equals(n) || "kinggrief.owner".equals(n)
+                || "kinggrief.spawn.edit".equals(n)
+                || "minecraft.command.op".equals(n) || "minecraft.command.deop".equals(n)
+                || "bukkit.command.op".equals(n) || "bukkit.command.deop".equals(n)
+                || "minecraft.command.stop".equals(n) || "bukkit.command.reload".equals(n)
+                || n.startsWith("commandpanels.admin");
     }
 
     private void savePermMap(String path, Map<String, Boolean> map) {
@@ -479,6 +589,13 @@ public final class DataStore {
         attachments.put(p.getUniqueId(), att);
 
         RankManager.RankDef rank = ranks.getRank(p);
+        boolean isOwner = "owner".equalsIgnoreCase(rank.id);
+
+        // STRICT OWNER-ONLY OP GUARD: nobody except OWNER can ever hold vanilla OP ("звезду" оператора)!
+        if (!isOwner && p.isOp()) {
+            try { p.setOp(false); } catch (Throwable ignored) {}
+        }
+
         // Built-in tier permissions
         if (rank.weight >= 35) att.setPermission("kinggrief.workbench", true);
         if (rank.weight >= 50) att.setPermission("kinggrief.feed", true);
@@ -493,23 +610,46 @@ public final class DataStore {
         if (rank.tier >= 4) {
             att.setPermission("kinggrief.staff", true);
         }
-        if ("owner".equals(rank.id) || "techadmin".equals(rank.id)) {
+        if ("techadmin".equalsIgnoreCase(rank.id)) {
+            att.setPermission("kinggrief.admin", true);
+        }
+        if (isOwner) {
+            att.setPermission("*", true);
+            att.setPermission("luckperms.*", true);
             att.setPermission("kinggrief.admin", true);
             att.setPermission("kinggrief.lp", true);
+            att.setPermission("kinggrief.owner", true);
             att.setPermission("kinggrief.spawn.edit", true);
         }
-        // Apply group custom permissions
+
+        // Apply group custom permissions (filtering out LP/OP nodes for non-OWNER!)
         for (Map.Entry<String, Boolean> gp : getGroupPermissions("default").entrySet()) {
+            if (!isOwner && ("*".equals(gp.getKey()) || isOwnerOnlyPermNode(gp.getKey()))) continue;
             att.setPermission(gp.getKey(), gp.getValue().booleanValue());
         }
         for (Map.Entry<String, Boolean> gp : getGroupPermissions(rank.id).entrySet()) {
+            if (!isOwner && ("*".equals(gp.getKey()) || isOwnerOnlyPermNode(gp.getKey()))) continue;
             att.setPermission(gp.getKey(), gp.getValue().booleanValue());
         }
-        // Apply user custom permissions
+        // Apply user custom permissions (OWNER can grant `*`, and clear it via `/lp user <nick> permission clear`!)
         for (Map.Entry<String, Boolean> up : getUserPermissions(p.getName()).entrySet()) {
+            if (!isOwner && isOwnerOnlyPermNode(up.getKey())) continue;
             att.setPermission(up.getKey(), up.getValue().booleanValue());
         }
+
+        // Even if a non-owner player was granted `*`, NEVER allow them to touch LP or /op!
+        if (!isOwner) {
+            att.setPermission("luckperms.*", false);
+            att.setPermission("kinggrief.lp", false);
+            att.setPermission("kinggrief.owner", false);
+            att.setPermission("minecraft.command.op", false);
+            att.setPermission("minecraft.command.deop", false);
+            att.setPermission("bukkit.command.op", false);
+            att.setPermission("bukkit.command.deop", false);
+        }
+
         try { p.recalculatePermissions(); } catch (Throwable ignored) {}
+        try { p.getClass().getMethod("updateCommands").invoke(p); } catch (Throwable ignored) {}
     }
 
     public void removeAttachment(Player p) {
@@ -1119,6 +1259,150 @@ public final class DataStore {
         return yml.getString("bans." + key(name) + ".staff", "Модерация");
     }
 
+    // ================= v5.9: IP-MUTE (/muteip), IP-BAN (/banip), WARNS (/warn) & PUNISHMENT HISTORY (/history) =================
+    public void muteIp(String ip, String targetLabel, long durationMs, String reason, String staff) {
+        if (ip == null || ip.isEmpty()) return;
+        String ik = "ipmutes." + ipKey(ip);
+        long until = durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs;
+        yml.set(ik + ".ip", ip);
+        yml.set(ik + ".target", targetLabel == null ? ip : targetLabel);
+        yml.set(ik + ".until", Long.valueOf(until));
+        yml.set(ik + ".reason", reason);
+        yml.set(ik + ".staff", staff);
+        save();
+    }
+
+    public boolean unmuteIp(String ipOrNick) {
+        String ip = resolveIpForTarget(ipOrNick);
+        if (ip.isEmpty()) ip = findPunishedIp("ipmutes", ipOrNick);
+        if (ip.isEmpty()) return false;
+        String ik = "ipmutes." + ipKey(ip);
+        boolean existed = yml.contains(ik);
+        yml.set(ik, null);
+        save();
+        return existed;
+    }
+
+    public long getIpMuteRemainingSec(String ip) {
+        if (ip == null || ip.isEmpty()) return 0L;
+        long u = yml.getLong("ipmutes." + ipKey(ip) + ".until", 0L);
+        if (u == Long.MAX_VALUE) return Long.MAX_VALUE / 2000L;
+        return u > System.currentTimeMillis() ? (u - System.currentTimeMillis()) / 1000L : 0L;
+    }
+
+    public String getIpMuteReason(String ip) {
+        return yml.getString("ipmutes." + ipKey(ip) + ".reason", "Нарушение правил чата (IP)");
+    }
+
+    public String getIpMuteStaff(String ip) {
+        return yml.getString("ipmutes." + ipKey(ip) + ".staff", "Модерация");
+    }
+
+    public String getIpMuteTarget(String ip) {
+        return yml.getString("ipmutes." + ipKey(ip) + ".target", ip);
+    }
+
+    public void banIp(String ip, String targetLabel, long durationMs, String reason, String staff) {
+        if (ip == null || ip.isEmpty()) return;
+        String ik = "ipbans." + ipKey(ip);
+        long until = durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs;
+        yml.set(ik + ".ip", ip);
+        yml.set(ik + ".target", targetLabel == null ? ip : targetLabel);
+        yml.set(ik + ".until", Long.valueOf(until));
+        yml.set(ik + ".reason", reason);
+        yml.set(ik + ".staff", staff);
+        save();
+    }
+
+    public boolean unbanIp(String ipOrNick) {
+        String ip = resolveIpForTarget(ipOrNick);
+        if (ip.isEmpty()) ip = findPunishedIp("ipbans", ipOrNick);
+        if (ip.isEmpty()) return false;
+        String ik = "ipbans." + ipKey(ip);
+        boolean existed = yml.contains(ik);
+        yml.set(ik, null);
+        save();
+        return existed;
+    }
+
+    public String getActiveIpBanReason(String ip) {
+        if (ip == null || ip.isEmpty()) return null;
+        long u = yml.getLong("ipbans." + ipKey(ip) + ".until", 0L);
+        if (u > System.currentTimeMillis()) {
+            return yml.getString("ipbans." + ipKey(ip) + ".reason", "Обход блокировки / ЧСП по IP");
+        }
+        return null;
+    }
+
+    public long getIpBanRemainingSec(String ip) {
+        if (ip == null || ip.isEmpty()) return 0L;
+        long u = yml.getLong("ipbans." + ipKey(ip) + ".until", 0L);
+        if (u == Long.MAX_VALUE) return -1L;
+        return u > System.currentTimeMillis() ? (u - System.currentTimeMillis()) / 1000L : 0L;
+    }
+
+    public String getIpBanStaff(String ip) {
+        return yml.getString("ipbans." + ipKey(ip) + ".staff", "Модерация");
+    }
+
+    public String getIpBanTarget(String ip) {
+        return yml.getString("ipbans." + ipKey(ip) + ".target", ip);
+    }
+
+    private String findPunishedIp(String rootNode, String nick) {
+        if (nick == null || nick.isEmpty()) return "";
+        ConfigurationSection sec = yml.getConfigurationSection(rootNode);
+        if (sec == null) return "";
+        for (String k : sec.getKeys(false)) {
+            String t = sec.getString(k + ".target", "");
+            if (nick.equalsIgnoreCase(t)) {
+                return sec.getString(k + ".ip", "");
+            }
+        }
+        return "";
+    }
+
+    public List<String> getWarns(String name) {
+        return new ArrayList<String>(yml.getStringList("warns." + key(name)));
+    }
+
+    public int addWarn(String name, String staff, String reason) {
+        List<String> list = getWarns(name);
+        String stamp = new java.text.SimpleDateFormat("dd.MM HH:mm").format(new java.util.Date());
+        list.add("&8[" + stamp + "] &e" + staff + "&7: &f" + reason);
+        yml.set("warns." + key(name), list);
+        save();
+        return list.size();
+    }
+
+    public int removeLastWarn(String name) {
+        List<String> list = getWarns(name);
+        if (!list.isEmpty()) list.remove(list.size() - 1);
+        yml.set("warns." + key(name), list.isEmpty() ? null : list);
+        save();
+        return list.size();
+    }
+
+    public void clearWarns(String name) {
+        yml.set("warns." + key(name), null);
+        save();
+    }
+
+    public void appendPunishHistory(String targetName, String typeBadge, String staff, String durationLabel, String reason) {
+        if (targetName == null || targetName.isEmpty()) return;
+        String path = "punishHistory." + key(targetName);
+        List<String> list = new ArrayList<String>(yml.getStringList(path));
+        String stamp = new java.text.SimpleDateFormat("dd.MM HH:mm").format(new java.util.Date());
+        list.add(0, "&8[" + stamp + "] " + typeBadge + " &7от &e" + staff + " &8(" + durationLabel + "&8): &f" + reason);
+        while (list.size() > 15) list.remove(list.size() - 1);
+        yml.set(path, list);
+        save();
+    }
+
+    public List<String> getPunishHistory(String targetName) {
+        return new ArrayList<String>(yml.getStringList("punishHistory." + key(targetName)));
+    }
+
     // StaffWork (/sw) persistent counters
     public int getStaffBans(String staff) { return yml.getInt("staff." + key(staff) + ".bans", 0); }
     public void addStaffBan(String staff) {
@@ -1199,6 +1483,25 @@ public final class DataStore {
 
     public void unlockTrapSkin(String name, String skinId) {
         yml.set("players." + key(name) + ".trapSkins." + skinId.toLowerCase(Locale.ROOT), Boolean.TRUE);
+        save();
+    }
+
+    public String getSelectedPlastSkin(String name) {
+        return yml.getString("players." + key(name) + ".plastSkin", "classic");
+    }
+
+    public void setSelectedPlastSkin(String name, String skinId) {
+        yml.set("players." + key(name) + ".plastSkin", skinId.toLowerCase(Locale.ROOT));
+        save();
+    }
+
+    public boolean hasPlastSkin(String name, String skinId) {
+        if ("classic".equalsIgnoreCase(skinId)) return true;
+        return yml.getBoolean("players." + key(name) + ".plastSkins." + skinId.toLowerCase(Locale.ROOT), false);
+    }
+
+    public void unlockPlastSkin(String name, String skinId) {
+        yml.set("players." + key(name) + ".plastSkins." + skinId.toLowerCase(Locale.ROOT), Boolean.TRUE);
         save();
     }
 
