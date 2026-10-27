@@ -1,6 +1,6 @@
-# 🎄 Новогодняя Сборка KINGGRIEF v6.0.1 (FunTime × ReallyWorld) + Нейро-Античит **KingАЧ v8.0**
+# 🎄 Новогодняя Сборка KINGGRIEF v6.0.1 (FunTime × ReallyWorld) + Нейро-Античит **KingАЧ v8.1**
 
-Полностью готовая под ключ сборка: ядро `KingGriefCore.jar` **v6.0.1**, античит `KingAC.jar` **v8.0**
+Полностью готовая под ключ сборка: ядро `KingGriefCore.jar` **v6.0.1**, античит `KingAC.jar` **v8.1**
 (8 Схем Инжекта + 3D Raycast Хитбокса), сеть Хаб ↔ 1 Гриф (`KingHub.jar` v1.2.0 + `KingConnect.jar` v2.2.0),
 `KingClear.jar` v1.0.1, Мега-Ресурспак и облачная синхронизация с сайтом **https://kinggrief.vercel.app**.
 
@@ -16,8 +16,8 @@
 
 ```
 [KingAC] ==================================================================
-[KingAC]  KingAC v8.0 - PROFESSIONAL NEURAL ANTI-CHEAT ENABLED
-[KingAC]  * 8 LIVE INJECTION SCHEMES (360 / WALL / ORBIT / ZENITH / SWARM
+[KingAC]  KingAC v8.1 - PROFESSIONAL NEURAL ANTI-CHEAT ENABLED
+[KingAC]  * 12 LIVE INJECTION SCHEMES (360 / WALL / ORBIT / ZENITH / SWARM
 [KingAC]  * Commands: /ac /kac /kingac /inject /report /reports
 ```
 
@@ -54,10 +54,10 @@
 |---|---|
 | `/ac` или `/kac` или `/kingac` или `/ач` или `/античит` или `/кингач` | Центр детектов: подозреваемые, VL, настройки |
 | `/ac inject` | **GUI выбора цели** для схем инжекта |
-| `/ac inject <ник>` | **GUI выбора одной из 8 схем** для игрока |
+| `/ac inject <ник>` | **GUI выбора одной из 12 схем** для игрока |
 | `/ac inject <ник> <схема>` | Запуск схемы: `back wall orbit zenith swarm hitbox backtrack cascade auto all` |
 | `/inject`, `/инжект`, `/схемы` | Быстрый вход в схемы инжекта |
-| `/ac schemes` | Вкл/выкл модулей всех 8 схем + авто-прогон |
+| `/ac schemes` | Вкл/выкл модулей всех 12 схем + авто-прогон |
 | `/ac monitor <ник>` | **Живой HUD в ActionBar**: VL, CPS, пинг, схема, последний детект (повторно — выкл.) |
 | `/ac top` | Топ-10 подозреваемых по VL |
 | `/ac checks` | Полный список всех проверок античита |
@@ -71,7 +71,7 @@
 
 ---
 
-## 💉 8 СХЕМ ИНЖЕКТА (новое в v8.0)
+## 💉 12 СХЕМ ИНЖЕКТА (новое в v8.1)
 
 Схемы спавнят **невидимых микро-фантомов** в точки, куда честный клиент физически не может
 отправить пакет атаки. Любой чит-клиент бьёт по ним — и мгновенно получает детект и VL.
@@ -85,17 +85,23 @@
 | 5 | `swarm` | Мульти-Рой x4 | MultiAura / SwitchAura (4 фантома во всех слепых зонах) |
 | 6 | `hitbox` | Байт-Хитбокс | HitBoxes (+0.5…+2.0) / SilentAim / удары в воздух |
 | 7 | `backtrack` | Призрак-Отступ | Reach + Backtrack (фантом отпрыгивает на 4.2 м) |
-| 8 | `cascade` | Каскад «Полный Нейро-Скан» | Прогон всех 7 схем подряд с отчётом в чат и ActionBar |
+| 8 | `nadir` | Надир-Пол | Ауры «голова вниз» (фантом ПОД НОГАМИ, -1.15 м) |
+| 9 | `twinwall` | Двойная-Стена | WallHit сквозь 2 стены сразу (фронт + фланг 90°) |
+| 10 | `swap` | Фантом-Обман | Спереди 2.3 м → телепорт за спину (TriggerBot/SwitchAura) |
+| 11 | `sweep` | Нижний-Луч | Low-Aim ауры (фантом на уровне ступней, дуга 2.9 м) |
+| 12 | `cascade` | Каскад «Полный Нейро-Скан» | Прогон всех 10 боевых схем подряд с отчётом в чат и ActionBar |
 
-Авто-прогон: KingАЧ сам каждые 3 сек. подбирает схему для игроков под жалобой / Deep Watch / VL > 4.
+Авто-прогон: KingАЧ сам каждые 3 сек. подбирает схему для игроков под жалобой / Deep Watch / VL > 4,
+а **каждый дерущийся игрок раз в 12 сек. автоматически получает фантом-приманку** — читер с аурой неизбежно заденет невидимку.
 
 ---
 
 ## 🧠 ВСЕ ПРОВЕРКИ v8.0
 
 **Бой:** KillAura (360° / Мульти / в GUI / со щитом-едой / без взмаха руки), Reach, HitBoxes,
-SilentAura, Backtrack, WallAura (13-лучевой RayTrace), **TriggerBot**, AutoClicker (CPS + макрос + **куртозис**),
-Criticals (пакет-крит + **микро-хоп**), KeepSprint, AimBot, Aim (микро-дёргание / GCD / горизонт-лок), FastBow.
+SilentAura, Backtrack, **WallHit с жёстким блоком урона (голосование 11 лучей: 8+ закрытых = урон не регает)**, **TriggerBot**, AutoClicker (CPS + макрос + **куртозис**),
+Criticals (пакет-крит + **микро-хоп**), KeepSprint, AimBot, Aim (микро-дёргание / GCD / горизонт-лок),
+**Вертикальный Aim v8.1: Pitch-Snap >45°/тик, «Голова Вниз-Вверх» (флипы pitch), Вертикальный Лок ±75-90° во время ударов**, FastBow.
 
 **Движение:** Fly, AirJump, Speed/Bhop, AirStrafe, Jesus, NoSlow, **Phase (NoClip)**, **AntiKB (вертикаль + горизонталь)**,
 **Timer/Blink (баланс move-пакетов)**, Step.
@@ -121,7 +127,7 @@ plugins/KingAC/detections.log     <- полный лог детектов (вр�
 `settings.auto-ban-duration-seconds` (30 дней), `settings.movement-setback-enabled`,
 `settings.micro-head-twitch-check`, `settings.ray-hitbox-air-block`, `settings.auto-inject-schemes`,
 `settings.max-autoban-ping-ms` (420), `settings.report-cooldown-seconds` (25),
-`schemes.back/wall/orbit/zenith/swarm/hitbox/backtrack/cascade`.
+`schemes.back/wall/orbit/zenith/swarm/hitbox/backtrack/nadir/twinwall/swap/sweep/cascade`.
 
 ---
 
@@ -129,7 +135,7 @@ plugins/KingAC/detections.log     <- полный лог детектов (вр�
 
 | Файл | Версия | Назначение |
 |---|---|---|
-| `plugins/KingAC.jar` | **8.0.0** | Нейро-античит KingАЧ + 8 Схем Инжекта (1.16.5–1.21.x) |
+| `plugins/KingAC.jar` | **8.1.0** | Нейро-античит KingАЧ + 12 Схем Инжекта (1.16.5–1.21.x) |
 | `plugins/KingGriefCore.jar` | **6.0.1** | Ядро: ранги, киты, кейсы, /tm, /duel, Божья Аура, модерация, мост KingАЧ |
 | `plugins/KingClear.jar` | 1.0.1 | Отдельный `/clear` |
 | `plugins/KingGriefBridge.jar` | 2.x | Облачный мост на сайт kinggrief.vercel.app |

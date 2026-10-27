@@ -519,7 +519,7 @@ export function AdminGrantPanel({
           <button type="button" onClick={pollStatus} className="btn btn-ghost btn-sm" title="Обновить статус очереди">
             <RefreshCw size={12} /> Статус
           </button>
-          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v6.0.1 (Божья Аура, /tm + /friends GUI + /tc, 8 Артефактов FT×RW, Киллстрики, /duel на деньги, Мост KingАЧ v8.0: /ac /kac /inject для состава и OP)">
+          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v6.0.1 (Божья Аура, /tm + /friends GUI + /tc, 8 Артефактов FT×RW, Киллстрики, /duel на деньги, Мост KingАЧ v8.1: /ac /kac /inject для состава и OP)">
             <Download size={12} /> Ядро v6.0.1 (.jar)
           </a>
           <a href="/kinggrief-mega-rp.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v5.9 (115 3D Предметов, 12 Мечей, 12 Кирок)">
@@ -534,8 +534,8 @@ export function AdminGrantPanel({
           <a href="/KingConnect.jar" download className="btn btn-primary btn-sm" title="Плагин №2 для СЕРВЕРА (1 ГРИФ): приём переходов из KingHub без повторного /login, /hub, /servers и облачная синхронизация">
             <Download size={12} /> №2 Для Сервера: KingConnect (.jar)
           </a>
-          <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm" title="Скачать нейро-античит KingАЧ v8.0 (8 Схем Инжекта: Спина-360°, Сквозь-Стену, Орбита-Вихрь, Купол +85°, Рой x4, Байт-Хитбокс, Призрак-Отступ, Каскад + 3D Raycast Хитбокса, GCD, TriggerBot, Timer, GuiMove, Phase, AntiKB, Живой Монитор-HUD и Авто-Бан 24/7). Команды: /ac /kac /kingac /inject /ач /античит /report">
-            <Download size={12} /> KingАЧ v8.0 (.jar)
+          <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm" title="Скачать нейро-античит KingАЧ v8.1 (12 Схем Инжекта: Спина-360°, Сквозь-Стену, Орбита-Вихрь, Купол +85°, Рой x4, Байт-Хитбокс, Отступ, Надир, Двойная-Стена, Обман, Луч, Каскад + 3D Raycast Хитбокса, GCD, TriggerBot, Timer, GuiMove, Phase, AntiKB, Живой Монитор-HUD и Авто-Бан 24/7). Команды: /ac /kac /kingac /inject /ач /античит /report">
+            <Download size={12} /> KingАЧ v8.1 (.jar)
           </a>
           <a href="/KingClear.jar" download className="btn btn-ghost btn-sm" title="Скачать отдельный плагин очистки инвентаря KingClear.jar (/clear, /ci, /clear inv, /clear trash, /clear gui, /clear undo)">
             <Download size={12} /> KingClear (.jar)

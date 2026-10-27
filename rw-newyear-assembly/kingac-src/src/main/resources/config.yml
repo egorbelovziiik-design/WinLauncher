@@ -30,4 +30,8 @@ schemes:
   swarm: true
   hitbox: true
   backtrack: true
+  nadir: true
+  twinwall: true
+  swap: true
+  sweep: true
   cascade: true

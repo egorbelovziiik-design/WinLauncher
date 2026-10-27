@@ -58,6 +58,38 @@ public enum InjectionScheme {
             "Фантом появляется сзади-сбоку (2.4м) и резко отпрыгивает на 4.2м,",
             "детектя Reach и Backtrack-задержку пакетов атаки!"
     ),
+    NADIR_FLOOR(
+            "nadir",
+            "Надир-Пол [Голова-Вниз Аура]",
+            "ANVIL",
+            7,
+            "Вешает фантом ПОД НОГАМИ игрока (-1.15м) — зона, куда честный",
+            "игрок не бьёт никогда. Ловит ауры с наводкой «голова вниз»!"
+    ),
+    TWIN_WALL(
+            "twinwall",
+            "Двойная-Стена [WallHit x2]",
+            "GLASS",
+            9,
+            "Ставит приманки ЗА ДВУМЯ стенами сразу (фронт + фланг 90°).",
+            "WallAura через стекло трапки попадёт хотя бы по одной!"
+    ),
+    SWAP_DECOY(
+            "swap",
+            "Фантом-Обман [Switch/Trigger]",
+            "ENDER_PEARL",
+            7,
+            "Фантом стоит СПЕРЕДИ (2.3м), а через 5 тиков телепортируется",
+            "ЗА СПИНУ — ловит TriggerBot и ауры с фиксацией цели!"
+    ),
+    LOW_SWEEP(
+            "sweep",
+            "Нижний-Луч [Low-Aim Аура]",
+            "IRON_BOOTS",
+            6,
+            "Фантом на уровне СТУПНЕЙ в 2.9м медленно ползёт по дуге.",
+            "Ловит ауры, бьющие по ногам сквозь блоки и полублоки!"
+    ),
     FULL_CASCADE(
             "cascade",
             "Каскад «Полный Нейро-Скан»",
@@ -98,6 +130,10 @@ public enum InjectionScheme {
         if ("multi".equals(s) || "quad".equals(s) || "рой".equals(s)) return SWARM_QUAD;
         if ("box".equals(s) || "air".equals(s) || "хитбокс".equals(s)) return HITBOX_OFFSET;
         if ("reach".equals(s) || "bt".equals(s)) return BACKTRACK_PULSE;
+        if ("floor".equals(s) || "пол".equals(s) || "низ".equals(s)) return NADIR_FLOOR;
+        if ("twin".equals(s) || "2wall".equals(s) || "двойная".equals(s)) return TWIN_WALL;
+        if ("decoy".equals(s) || "обман".equals(s)) return SWAP_DECOY;
+        if ("low".equals(s) || "legs".equals(s) || "ноги".equals(s)) return LOW_SWEEP;
         if ("all".equals(s) || "full".equals(s) || "scan".equals(s) || "каскад".equals(s)) return FULL_CASCADE;
         return null;
     }

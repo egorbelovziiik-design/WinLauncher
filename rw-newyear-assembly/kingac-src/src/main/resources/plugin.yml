@@ -1,11 +1,11 @@
 name: KingAC
 prefix: KingАЧ
-version: 8.0.0
+version: 8.1.0
 main: net.kinggrief.kingac.KingAcPlugin
 api-version: '1.16'
 softdepend: [KingGriefCore, LuckPerms]
 author: KINGGRIEF
-description: "KingАЧ v8.0 — Профессиональный Нейро-Античит (8 Схем Инжекта, Точный 3D Raycast Хитбокса — блок ударов в воздух / HitBox / SilentAura / Backtrack, 13-лучевой RayTrace сквозь стены, Микро-дёргания GCD, TriggerBot, Timer, Blink, GuiMove, Phase, AntiKB, Scaffold, FastPlace, X-Ray, Живой Монитор-HUD и Авто-Бан 24/7). Совместим с ядрами Spigot/Paper 1.16.5 — 1.21.x"
+description: "KingАЧ v8.1 — Профессиональный Нейро-Античит (12 Схем Инжекта, жёсткий блок урона сквозь стены по голосованию 11 лучей, вертикальный Aim-детект Голова-Вниз-Вверх, Точный 3D Raycast Хитбокса — блок ударов в воздух / HitBox / SilentAura / Backtrack, 13-лучевой RayTrace, Микро-дёргания GCD, TriggerBot, Timer, Blink, GuiMove, Phase, AntiKB, Scaffold, FastPlace, X-Ray, Живой Монитор-HUD и Авто-Бан 24/7). Совместим с ядрами Spigot/Paper 1.16.5 — 1.21.x"
 
 commands:
   kingac:

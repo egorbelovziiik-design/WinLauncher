@@ -120,7 +120,7 @@ export default async function AdminSettingsPage() {
             <Download size={13} /> Плагин №2 для Сервера: KingConnect.jar (Связка с Хабом)
           </a>
           <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm">
-            <Download size={13} /> Нейро-Античит KingАЧ v8.0 — 8 Схем Инжекта (KingAC.jar)
+            <Download size={13} /> Нейро-Античит KingАЧ v8.1 — 12 Схем Инжекта (KingAC.jar)
           </a>
           <a href="/KingClear.jar" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Очистка инвентаря KingClear.jar (/clear)

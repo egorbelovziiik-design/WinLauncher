@@ -131,6 +131,13 @@ public final class PlayerAcData {
     public int velocityTicks = 0;
     public double velocityClimb = 0.0;
     public double velocityRun = 0.0;
+
+    // ================= v8.1: ВЕРТИКАЛЬНЫЙ AIM (голова вниз/вверх) =================
+    public int pitchSnapBuffer = 0;
+    public int pitchFlipCount = 0;
+    public long lastPitchFlipMs = 0L;
+    public float lastFlipPitch = 0f;
+    public int headLockTicks = 0;
     public int microHopBuffer = 0;
     public InjectionScheme lastInjectScheme = null;
     public long lastInjectSchemeMs = 0L;
