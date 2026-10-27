@@ -113,6 +113,7 @@ public final class SpawnEngine {
         public boolean locked = false;
         public int lootLockSec = 0;
         public UUID statusStandId;
+        public String lastHoloText = "";
 
         public KabinkaState(int index, boolean is2v2, int minX, int maxX, int minZ, int maxZ, int doorX, int doorZ) {
             this.index = index;
@@ -526,9 +527,34 @@ public final class SpawnEngine {
         if (!staticHoloDefs.isEmpty()) return;
 
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
-                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v5.8 &#80D8FF&l❄\n"
-                + "&#FF4081&l12 КИРОК &8• &#FFD740&lМОЛОТ 10×10 &8• &#00E676&lРАБОЧИЙ ТНТ &8• &#00E5FF&lANTI-DDOS\n"
+                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v5.9 &#80D8FF&l❄\n"
+                + "&#FF1744&l12 3D МЕЧЕЙ &8• &#FFD740&l12 КИРОК &8• &#00E676&lБРОНЯ ×2 &8• &#E040FB&lОКНА В ТРАПКАХ\n"
                 + "&fВыживание: &#00E676&l/rtp &8│ &f12 Мечей: &#FF1744&l/swords &8│ &f12 Кирок: &#FFD740&l/picks &8│ &fВарпы: &#38BDF8&l/warps"));
+
+        // ================= ГОЛОГРАММЫ СЛЕВА И СПРАВА НА СПАВНЕ (ПРИВИЛЕГИИ + КЕЙСЫ) =================
+        staticHoloDefs.add(new StaticHoloDef("holo_spawn_left_privs", -7.0, 101.55, 47.5,
+                "&#FFD740&l👑 ПРИВИЛЕГИИ СЕРВЕРА &#80D8FF&l(/donate)\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&#00E676&lDRAGON &8— &a15₽ &7(Бесплатно: &#00E676/free dragon&7)\n"
+                + "&#38BDF8&lPEGAS &a19₽ &8• &#22C55E&lCOBRA &a39₽ &8• &#EF4444&lDRACULA &a49₽\n"
+                + "&#F472B6&lBUNNY &a59₽ &8• &#A855F7&lVAMPIRE &a99₽ &8• &#FB923C&lTIGER &a119₽\n"
+                + "&#FEF08A&lGOD &a149₽ &8• &#EC4899&lIMPERATOR &a179₽ &8• &#FACC15&lKING &a199₽\n"
+                + "&#38BDF8&lSPONSOR &a215₽ &8• &#2DD4BF&lD.HELPER &a219₽ &8• &#60A5FA&lD.MODER &a249₽\n"
+                + "&#F97316&lD.ADMIN &a799₽ &8• &#EF4444&lOPKA &a999₽ &8• &#FF1744&lD.OWNER &a1499₽\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&fКиты: &#38BDF8&l/kits &8│ &fСайт: &#FFD740&lkinggrief.vercel.app"));
+
+        staticHoloDefs.add(new StaticHoloDef("holo_spawn_right_cases", 8.0, 101.55, 47.5,
+                "&#FF4081&l🎁 11 ШАЛКЕР-КЕЙСОВ &#80D8FF&l(/cases)\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&#69F0AE💰 Денежный &8— &a19₽ &8│ &#FFAB40⛏ Джамшута &8— &a25₽\n"
+                + "&#FF1744🎁 Донат Кейс &8— &a29₽ &8│ &#26C6DA📦 Кейс Китов &8— &a35₽\n"
+                + "&#00E5FF❖ Кейс Риликов &8— &a39₽ &8│ &#80D8FF❄ Новогодний &8— &a39₽\n"
+                + "&#FF5252🎲 Всё или Ничего &8— &a45₽ &8│ &#FF9100🔮 3D Донат-Вещи &8— &a49₽\n"
+                + "&#FFD740⭐ Легендарный &8— &a59₽ &8│ &#E040FB👑 Супер-Донат &8— &a99₽\n"
+                + "&#A855F7&l⚡ КЕЙС REALLYDEV &8— &a129₽ &7(Топ ДКП + 3D Шары!)\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&fАрена Кейсов: &#00E676&l/warp cases &8│ &#FFD740&lkinggrief.vercel.app"));
 
         staticHoloDefs.add(new StaticHoloDef("holo_palace", 0.5, 103.6, 64.2,
                 "&#FFD740&l🏰 ИМПЕРАТОРСКИЙ ЗИМНИЙ ДВОРЕЦ (3 ЭТАЖА)\n&fТронный Зал &8• &bБиблиотека &8• &eСокровищница и Панорамный Балкон!"));
@@ -545,8 +571,36 @@ public final class SpawnEngine {
         staticHoloDefs.add(new StaticHoloDef("holo_train", 66.5, 103.0, -3.0,
                 "&#FF5252&l🥊 БОЕВЫЕ МАНЕКЕНЫ УРОНА (/warp train)\n&7Бейте манекенов для замера урона мечей и критов!"));
 
-        staticHoloDefs.add(new StaticHoloDef("holo_kabinki", 66.5, 104.0, -24.5,
-                "&#FF5252&l🥊 8 КАБИНОК ДЛЯ ДУЭЛЕЙ (6× 1v1 + 2× 2v2)\n&fАвто-закрытие дверей + 8 сек защита лута!"));
+        // ================= ГОЛОГРАММЫ ВОЗЛЕ КАБИНОК (ЦЕНТР + СЛЕВА ПРИВИЛЕГИИ + СПРАВА КЕЙСЫ + 2x2) =================
+        staticHoloDefs.add(new StaticHoloDef("holo_kabinki", 66.8, 103.4, -24.5,
+                "&#FF1744&l🥊 8 КАБИНОК ДЛЯ ДУЭЛЕЙ (6× 1v1 + 2× 2v2)\n"
+                + "&fДвери закрываются автоматически при входе бойцов!\n"
+                + "&#00E676✔ 8 сек анти-подсос лута &8• &#38BDF8🛡 Броня ×2 &8• &#E040FB⛓ Скины /skins"));
+
+        staticHoloDefs.add(new StaticHoloDef("holo_kabinki_left_privs", 65.2, 101.55, -31.5,
+                "&#FFD740&l👑 ТОП ПРИВИЛЕГИИ ДЛЯ ПВП &#80D8FF&l(/donate)\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&#00E676&lDRAGON &a15₽ &7(&f/free dragon&7) &8• &#A855F7&lVAMPIRE &a99₽\n"
+                + "&#FEF08A&lGOD &a149₽ &8• &#EC4899&lIMPERATOR &a179₽ &7(Меч Сакуры!)\n"
+                + "&#FACC15&lKING &a199₽ &7(Клинок Мороза!) &8• &#38BDF8&lSPONSOR &a215₽\n"
+                + "&#F97316&lD.ADMIN &a799₽ &8• &#EF4444&lOPKA &a999₽ &8• &#FF1744&lD.OWNER &a1499₽\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&fВзять кит: &#00E676&l/kits &8│ &fПочинка: &#FFD740&l/repair"));
+
+        staticHoloDefs.add(new StaticHoloDef("holo_kabinki_right_cases", 65.2, 101.55, -17.5,
+                "&#FF4081&l🎁 КЕЙСЫ И 3D ОРУЖИЕ ДЛЯ КАБИНОК\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&#FF1744🎁 Донат Кейс &a29₽ &8• &#00E5FF❖ Кейс Риликов &a39₽\n"
+                + "&#FF9100🔮 3D Донат-Вещи &a49₽ &8• &#FFD740⭐ Легендарный &a59₽\n"
+                + "&#E040FB👑 Супер-Донат &a99₽ &8• &#A855F7⚡ ReallyDev &a129₽\n"
+                + "&#FF5252⚔ 12 3D Мечей: &f/swords &8│ &#E040FB⛓ Скины: &f/skins\n"
+                + "&8━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                + "&fОткрыть кейсы: &#00E676&l/cases &8│ &#FFD740&lkinggrief.vercel.app"));
+
+        staticHoloDefs.add(new StaticHoloDef("holo_kabinki_2v2", 79.5, 102.5, -24.5,
+                "&#FFD740&l⚔ ПАРНЫЕ КАБИНКИ 2×2 (КАБИНКИ #7 И #8)\n"
+                + "&fЗаходите вчетвером (&e4/4&f) — двери закроются сами!\n"
+                + "&7Союзники клана: &#00E676/clan &8• &7Защита лута: &#FFD7408 сек"));
 
         staticHoloDefs.add(new StaticHoloDef("holo_parkour", 39.0, 104.0, -29.0,
                 "&#40C4FF&l🏃 НЕБЕСНЫЙ ПАРКУР (32 ОСТРОВА)\n&fВстань на золотую плиту для старта! Приз: &a+25 000$ &f+ &b15❖ &f+ &b15❄!"));
@@ -596,9 +650,11 @@ public final class SpawnEngine {
             if (cur == null || cur.isDead() || !cur.isValid()) {
                 if (kb.statusStandId != null) validSpawnEntities.remove(kb.statusStandId);
                 String mode = kb.is2v2 ? "2×2" : "1×1";
-                Entity st = spawnHolo(sw, kb.doorX - 0.35, 102.55, kb.doorZ + 0.5,
-                        "&#00E676&l[КАБИНКА #" + kb.index + " • " + mode + "] &aСВОБОДНА");
+                int req = kb.is2v2 ? 4 : 2;
+                String initTxt = "&#00E676&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&a✔ СВОБОДНА &7(0/" + req + ")";
+                Entity st = spawnHolo(sw, kb.doorX - 0.35, 102.45, kb.doorZ + 0.5, initTxt);
                 kb.statusStandId = st.getUniqueId();
+                kb.lastHoloText = initTxt;
             }
         }
     }
@@ -632,8 +688,10 @@ public final class SpawnEngine {
             td.setBillboard(Display.Billboard.CENTER);
             td.setShadowed(true);
             td.setSeeThrough(false);
-            td.setBackgroundColor(Color.fromARGB(115, 8, 12, 24));
-            td.setViewRange(0.75f); // ~48 blocks view range -> every case hologram visible across the whole Case Amphitheater!
+            td.setLineWidth(380);
+            td.setAlignment(TextDisplay.TextAlignment.CENTER);
+            td.setBackgroundColor(Color.fromARGB(135, 8, 12, 26));
+            td.setViewRange(0.85f); // ~54 blocks view range -> crystal-clear visibility across Spawn & Kabinki!
             td.setText(ColorUtil.c(text));
             td.addScoreboardTag("kg_holo");
             td.addScoreboardTag(sessionTag);
@@ -1058,15 +1116,20 @@ public final class SpawnEngine {
                     inside.add(p);
                 }
             }
+            String mode = kb.is2v2 ? "2×2" : "1×1";
             if (!kb.locked) {
                 if (inside.size() >= required) {
                     kb.locked = true;
                     setKabinkaDoor(sw, kb, Material.RED_STAINED_GLASS);
-                    updateKabinkaHolo(kb, "&#FF1744&l[КАБИНКА #" + kb.index + "] &cИДЁТ БОЙ (" + inside.size() + "/" + required + ")");
+                    updateKabinkaHolo(kb, "&#FF1744&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&c🔥 ИДЁТ БОЙ &7(" + inside.size() + "/" + required + ")");
                     for (Player f : inside) {
                         ColorUtil.sound(f, "block.iron_door.close", 1.0f, 0.8f);
                         f.sendTitle(ColorUtil.c("&#FF1744&l🥊 БОЙ НАЧАЛСЯ!"), ColorUtil.c("&fКабинка закрыта до победы!"), 3, 25, 8);
                     }
+                } else if (!inside.isEmpty()) {
+                    updateKabinkaHolo(kb, "&#FFD740&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&e⏳ ЖДЁТ СОПЕРНИКА &f(" + inside.size() + "/" + required + ")");
+                } else {
+                    updateKabinkaHolo(kb, "&#00E676&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&a✔ СВОБОДНА &7(0/" + required + ")");
                 }
             } else {
                 if (inside.size() <= 1 && kb.lootLockSec == 0) {
@@ -1079,14 +1142,15 @@ public final class SpawnEngine {
                 }
                 if (kb.lootLockSec > 0) {
                     kb.lootLockSec--;
-                    updateKabinkaHolo(kb, "&#FFD740&l[КАБИНКА #" + kb.index + "] &eСБОР ЛУТА: " + kb.lootLockSec + "с");
+                    updateKabinkaHolo(kb, "&#FFD740&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&e🏆 СБОР ЛУТА: &f" + kb.lootLockSec + " сек.");
                     if (kb.lootLockSec == 0 || inside.isEmpty()) {
                         kb.locked = false;
                         kb.lootLockSec = 0;
                         setKabinkaDoor(sw, kb, Material.AIR);
-                        String mode = kb.is2v2 ? "2×2" : "1×1";
-                        updateKabinkaHolo(kb, "&#00E676&l[КАБИНКА #" + kb.index + " • " + mode + "] &aСВОБОДНА");
+                        updateKabinkaHolo(kb, "&#00E676&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&a✔ СВОБОДНА &7(0/" + required + ")");
                     }
+                } else {
+                    updateKabinkaHolo(kb, "&#FF1744&l⚔ КАБИНКА #" + kb.index + " &8[&f" + mode + "&8]\n&c🔥 ИДЁТ БОЙ &7(" + inside.size() + "/" + required + ")");
                 }
             }
         }
@@ -1098,9 +1162,12 @@ public final class SpawnEngine {
     }
 
     private void updateKabinkaHolo(KabinkaState kb, String txt) {
-        if (kb.statusStandId == null) return;
+        if (kb.statusStandId == null || txt.equals(kb.lastHoloText)) return;
         Entity e = Bukkit.getEntity(kb.statusStandId);
-        if (e != null) setHoloText(e, txt);
+        if (e != null) {
+            kb.lastHoloText = txt;
+            setHoloText(e, txt);
+        }
     }
 
     public void notifyKabinkaDeath(Location loc) {
@@ -1557,7 +1624,10 @@ public final class SpawnEngine {
                     ItemFactory.sharTitana(), ItemFactory.sharAndromedy(), ItemFactory.sharApollona(),
                     ItemFactory.sharAresa(), ItemFactory.sharSanty(), ItemFactory.talKrushitelya(),
                     ItemFactory.talFeniksa(3), ItemFactory.elytraPhoenix(), ItemFactory.elytraSanta(),
-                    ItemFactory.swordDracula(), ItemFactory.swordKrush()
+                    ItemFactory.swordDracula(), ItemFactory.swordKrush(),
+                    ItemFactory.swordFrost(), ItemFactory.swordZeus(), ItemFactory.swordKatana(),
+                    ItemFactory.swordWither(), ItemFactory.swordVenom(), ItemFactory.swordPhantom(),
+                    ItemFactory.swordPhoenix(), ItemFactory.swordVoid(), ItemFactory.swordMidas()
             };
             ItemStack won = pool[rng.nextInt(pool.length)];
             p.getInventory().addItem(won);
