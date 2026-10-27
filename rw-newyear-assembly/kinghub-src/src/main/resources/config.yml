@@ -1,0 +1,67 @@
+# =====================================================================
+# ❄ KingHub v1.0.0 — ПЛАГИН №1 (ДЛЯ ХАБА / ЛОББИ)
+# Ставится на сервер ХАБА в пару к плагину №2 (KingConnect.jar на 1 ГРИФЕ).
+# Включает:
+#   • Авто-постройку Новогодней Карты Хаба с живой Ёлкой, подарками и льдом
+#   • Компас в хотбаре (ПКМ -> выбор «1 ГРИФ» -> переход на сервер)
+#   • Новогоднего НПС «1 ГРИФ» прямо перед спавном (ПКМ -> выбор «1 ГРИФ» -> вход)
+#   • Авторизацию /register и /login + передачу сессии без повторного пароля!
+# =====================================================================
+
+# Режим переноса на сервер 1 ГРИФ:
+#   auto     — Умный 2-в-1 (прямой перенос 1.20.5-1.21+ по IP:Port ИЛИ через Velocity)
+#   transfer — Прямой перенос по IP:Port без прокси-сервера (1.20.5 - 1.21.11)
+#   proxy    — Через прокси Velocity / BungeeCord
+mode: "auto"
+
+# Единый секретный ключ (ДОЛЖЕН СОВПАДАТЬ с secret-key в KingConnect/config.yml на 1 Грифе!)
+secret-key: "KingGrief-Network-Secret-2026"
+
+# Настройки игрового сервера «1 ГРИФ» (можно изменить прямо в игре командой /setgrief <IP:ПОРТ>!)
+grief1:
+  id: "grief1"
+  name: "&#80D8FF&l❄ 1 ГРИФ · НОВОГОДНИЙ"
+  host: "127.0.0.1"
+  port: 25566
+  proxy-name: "grief1"
+  maintenance: false
+  lore:
+    - "&7Главный игровой сервер &#80D8FF&lKINGGRIEF v5.9"
+    - "&7FT × ReallyWorld · Новогодний Вайп!"
+    - ""
+    - " &#00E5FF✦ &f115 кастомных 3D-предметов и 12 Мечей"
+    - " &#FFD740✦ &fСкины Трапок со стеклом и Пластов"
+    - " &#FF4081✦ &fБоссы, Ивенты, Кланы и Кабинки ПвП"
+    - " &#00E676✦ &fБесплатный донат: &#FFD740/free dragon"
+
+# Авто-раздача Мега-Ресурспака прямо при входе в Хаб (чтобы на Грифе он уже был загружен!)
+push-resourcepack-on-join: true
+resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63"
+resourcepack-sha1: "3637015af079e6fea621c10fe6dfa51e35cc0113"
+
+# Настройки Новогодней Карты и НПС Хаба
+hub:
+  world-name: "hub_world"
+  auto-build-newyear-map: true
+  compass-slot: 4
+  double-jump: true
+  auth-enabled: true
+  spawn:
+    x: 0.5
+    y: 100.0
+    z: 22.5
+    yaw: 180.0
+    pitch: 0.0
+  npc:
+    x: 0.5
+    y: 100.0
+    z: 9.5
+    yaw: 0.0
+
+# Облачная синхронизация онлайна, сессий и банов KingАЧ с 1 Грифом
+cloud-sync:
+  enabled: true
+  url: "https://kinggrief.vercel.app/api/minecraft/network"
+  interval-seconds: 4
+
+ping-interval-seconds: 4

@@ -3010,7 +3010,7 @@ public final class GameplayListener implements Listener {
                     || "kas".equals(cmd) || "kingantisoft".equals(cmd) || "anticheat".equals(cmd)
                     || "kingconnect".equals(cmd) || "kcon".equals(cmd) || "knet".equals(cmd) || "network".equals(cmd)
                     || "send".equals(cmd) || "gsend".equals(cmd) || "galert".equals(cmd) || "gbroadcast".equals(cmd)
-                    || "gbc".equals(cmd) || "sethub".equals(cmd) || "setlobby".equals(cmd) || "gsc".equals(cmd)
+                    || "gbc".equals(cmd) || "sethub".equals(cmd) || "sethubip".equals(cmd) || "setlobby".equals(cmd) || "gsc".equals(cmd)
                     || "globalsc".equals(cmd) || "gstaff".equals(cmd))) {
                 it.remove();
                 continue;

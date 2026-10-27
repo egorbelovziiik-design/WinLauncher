@@ -39,6 +39,9 @@ commands:
     description: Установить точку спавна Хаба (/sethub)
     aliases: [setlobby]
     permission: kingconnect.admin
+  sethubip:
+    description: Привязать IP:Порт сервера Хаба для команды /hub (/sethubip <ip:port>)
+    permission: kingconnect.admin
   kingconnect:
     description: Панель управления связкой серверов KingConnect (/kcon)
     aliases: [kcon, knet, network]

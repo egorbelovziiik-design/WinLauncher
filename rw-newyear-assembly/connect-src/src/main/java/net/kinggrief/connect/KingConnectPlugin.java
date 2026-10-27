@@ -174,7 +174,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        this.ssoCookieKey = new NamespacedKey(this, "sso_token");
+        this.ssoCookieKey = new NamespacedKey("kingconnect", "sso_token");
         this.itemServerKey = new NamespacedKey(this, "server_id");
         this.itemCompassKey = new NamespacedKey(this, "selector_compass");
 
@@ -186,7 +186,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         Bukkit.getMessenger().registerIncomingPluginChannel(this, BUNGEE_CHANNEL, this);
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        String[] cmds = {"servers", "hub", "grief", "glist", "find", "send", "gsc", "galert", "sethub", "kingconnect"};
+        String[] cmds = {"servers", "hub", "grief", "glist", "find", "send", "gsc", "galert", "sethub", "sethubip", "kingconnect"};
         for (String cn : cmds) {
             PluginCommand pc = getCommand(cn);
             if (pc != null) {
@@ -1815,6 +1815,19 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                 sendProxyBusPacket("send_player", sender.getName(), who, dest.id, "");
             }
             sender.sendMessage(c("&#00E676✔ Запрос на перевод игрока &f" + who + " &#00E676на " + dest.displayName + " &#00E676выполнен!"));
+            return true;
+        }
+
+        if ("sethubip".equals(cmd)) {
+            if (sender instanceof Player && !isAdmin((Player) sender)) {
+                sender.sendMessage(c("&#FF1744✖ У вас нет прав!"));
+                return true;
+            }
+            if (args.length < 1 || !applyAddressUpdate(hubServerId, args[0])) {
+                sender.sendMessage(c("&#FFD740Использование: &f/sethubip <IP:ПОРТ> &7(например: &f/sethubip 185.10.20.30:25565&7)"));
+                return true;
+            }
+            sender.sendMessage(c("&#00E676✔ Сервер Хаба (&f" + hubServerId + "&#00E676) привязан к адресу &f" + args[0] + " &#00E676для команды /hub!"));
             return true;
         }
 

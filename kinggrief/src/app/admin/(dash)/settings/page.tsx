@@ -113,8 +113,11 @@ export default async function AdminSettingsPage() {
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
             <Download size={13} /> Скачать KingGriefBridge.jar
           </a>
+          <a href="/KingHub.jar" download className="btn btn-primary btn-sm">
+            <Download size={13} /> Плагин №1 для Хаба: KingHub.jar (Новогодняя Карта + Компас + НПС 1 Гриф)
+          </a>
           <a href="/KingConnect.jar" download className="btn btn-primary btn-sm">
-            <Download size={13} /> Связка Серверов KingConnect.jar (2-в-1)
+            <Download size={13} /> Плагин №2 для Сервера: KingConnect.jar (Связка с Хабом)
           </a>
           <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm">
             <Download size={13} /> Нейро-Античит KingАЧ v6.0 (KingAC.jar)

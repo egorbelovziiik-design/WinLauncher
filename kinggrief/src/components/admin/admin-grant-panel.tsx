@@ -528,8 +528,11 @@ export function AdminGrantPanel({
           <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
             <Download size={12} /> Мост (.jar)
           </a>
-          <a href="/KingConnect.jar" download className="btn btn-primary btn-sm" title="Скачать универсальный плагин связки серверов KingConnect.jar (2-в-1: прямой перенос 1.20.5-1.21+ БЕЗ прокси с Cookie SSO + Velocity/Bungee, /servers, /hub, режим Лобби и облачная синхронизация)">
-            <Download size={12} /> Связка KingConnect (.jar)
+          <a href="/KingHub.jar" download className="btn btn-primary btn-sm" title="Плагин №1 для ХАБА: Новогодняя Карта с Ёлкой, Компас (выбор 1 ГРИФ -> вход) и НПС (ПКМ -> выбор 1 ГРИФ -> вход)">
+            <Download size={12} /> №1 Для Хаба: KingHub (.jar)
+          </a>
+          <a href="/KingConnect.jar" download className="btn btn-primary btn-sm" title="Плагин №2 для СЕРВЕРА (1 ГРИФ): приём переходов из KingHub без повторного /login, /hub, /servers и облачная синхронизация">
+            <Download size={12} /> №2 Для Сервера: KingConnect (.jar)
           </a>
           <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm" title="Скачать топовый нейро-античит KingАЧ v6.0 (Детект микро-дёрганий головой, GCD, Инжект-Бот, /report и Авто-Бан 24/7)">
             <Download size={12} /> KingАЧ v6.0 (.jar)

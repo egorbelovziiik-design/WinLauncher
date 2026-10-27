@@ -1,0 +1,37 @@
+name: KingHub
+prefix: KingHub
+version: 1.0.0
+main: net.kinggrief.hub.KingHubPlugin
+api-version: '1.21'
+load: POSTWORLD
+author: KINGGRIEF
+description: Standalone New Year Hub Plugin #1 (Auto-Built Winter Map with Christmas Tree, Server Selector Compass -> 1 GRIEF, Right-Click NPC -> 1 GRIEF, Hub Auth & SSO Transfer to KingConnect)
+
+commands:
+  servers:
+    description: Открыть новогоднее меню выбора режима (1 ГРИФ)
+    aliases: [server, menu, modes, grief, grief1]
+  register:
+    description: Регистрация аккаунта в Хабе (/register <пароль> <повтор>)
+    aliases: [reg]
+  login:
+    description: Вход в аккаунт в Хабе (/login <пароль>)
+    aliases: [l]
+  changepassword:
+    description: Смена пароля (/changepassword <старый> <новый>)
+    aliases: [cpw]
+  spawn:
+    description: Телепорт в центр Новогоднего Хаба
+    aliases: [hub, lobby]
+  setgrief:
+    description: Указать IP:Порт игрового сервера 1 ГРИФ (/setgrief <ip:port>)
+    permission: kinghub.admin
+  khub:
+    description: Панель управления Новогодним Хабом (/khub)
+    aliases: [kinghub, sethub, setnpc]
+    permission: kinghub.admin
+
+permissions:
+  kinghub.admin:
+    description: Управление Новогодним Хабом и адресом 1 Грифа
+    default: op
