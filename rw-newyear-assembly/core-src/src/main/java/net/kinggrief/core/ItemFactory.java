@@ -83,14 +83,14 @@ public final class ItemFactory {
 
     // ================= МЕНЮ СЕРВЕРА =================
     public static ItemStack menuStar() {
-        return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW &#80D8FF❄ &7(ПКМ)",
+        return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW v6.0 &#80D8FF❄ &7(ПКМ)",
                 Arrays.asList(
-                        "&7Быстрый доступ ко всем системам v5.9:",
-                        "&f• Выход в мир выживания: &#00E676/rtp &7(Спавн — отдельный мир!)",
-                        "&f• 12 Кастомных 3D Мечей: &#FF1744/swords &7+ 12 Кирок: &#FF5722/picks",
-                        "&f• Скины Трапок (с окнами) и Пластов: &#E040FB/skins &7(&f/plastskins&7)",
-                        "&f• Бафовар (до 8 зелий за 5 000$): &#FF9100/bafs &7+ Магазин: &#00E5FF/shop",
-                        "&f• Киты с 2 стаками перок: &#69F0AE/kits &7+ Броня ×2 прочнее в ПвП!",
+                        "&7Быстрый доступ ко всем системам v6.0:",
+                        "&f• Система Тиммейтов и Пати: &#00E676/tm <ник> &7(&f/friends&7, чат: &f/tc&7)",
+                        "&f• Божья Аура (лечит всю тиму!) + 8 новых артефактов FT: &#00E5FF/shop",
+                        "&f• Выход в выживание: &#00E676/rtp &7+ 12 Мечей: &#FF1744/swords &7+ 12 Кирок: &#FF5722/picks",
+                        "&f• Скины Трапок и Пластов: &#E040FB/skins &7+ Бафовар (до 8 зелий): &#FF9100/bafs",
+                        "&f• Дуэли на ставку: &#FFD740/duel <ник> <сумма> &7+ Киты: &#69F0AE/kits",
                         "",
                         "&#00E676▸ Нажми ПКМ, чтобы открыть главное меню!"
                 ),
@@ -433,10 +433,13 @@ public final class ItemFactory {
     }
 
     public static ItemStack bozhyaAura(int amt) {
-        return make(Material.PHANTOM_MEMBRANE, amt, "&#FFD740&l☀ Божья Аура [FT]",
-                Arrays.asList("&8Священный расходник FunTime × ReallyWorld", "",
-                        "&7ПКМ — мгновенно снимает ВСЕ дебаффы",
-                        "&7и даёт &dРегенерацию III &7+ &aСопротивление II &7на &e6 сек&7!",
+        return make(Material.PHANTOM_MEMBRANE, amt, "&#FFD740&l☀ Божья Аура [Хил Тиммейтов FT]",
+                Arrays.asList("&8Священный командный расходник FunTime × ReallyWorld", "",
+                        "&7ПКМ — исцеляет &fВАС &7и &aВСЕХ ТИММЕЙТОВ &7(&f/tm &7и &f/clan&7)",
+                        "&7в радиусе &e12 блоков&7:",
+                        " &#00E676• Мгновенно +4❤ Здоровья и снятие ВСЕХ дебаффов!",
+                        " &#FF80AB• Регенерация III (7с) + Сопротивление II (6с)",
+                        " &#FFD740• +4 Золотых Сердца 💛 и Священный Купол (+1❤/с 5 сек)!",
                         "&8Перезарядка: 30 сек."),
                 true, "bozhya_aura", "bozhya_aura", 1505);
     }
@@ -492,6 +495,95 @@ public final class ItemFactory {
                         "&7снежной бурей всех врагов в радиусе &b6 блоков&7!",
                         "&8Перезарядка: 16 сек."),
                 true, "sneg_zavesa", "sneg_zavesa", 1511);
+    }
+
+    // ================= 8 НОВЫХ КОМАНДНЫХ И ТАКТИЧЕСКИХ АРТЕФАКТОВ v6.0 =================
+    public static ItemStack teamTotem(int amt) {
+        return make(Material.BEACON, amt, "&#00E676&l🛡 Тотем Командного Спасения [FT×RW]",
+                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — разворачивает щит спасения на &e6 сек &7(&b10 блоков&7):",
+                        " &#00E676• Даёт ВАМ и ВСЕМ ТИММЕЙТАМ Сопротивление III + Огнестойкость!",
+                        " &#FF80AB• Каждую секунду лечит всю тиму на +1.5❤",
+                        " &#FF5252• Отталкивает всех врагов от вашей команды!",
+                        "&8Перезарядка: 35 сек."),
+                true, "team_totem", null, 0);
+    }
+
+    public static ItemStack battleAdrenaline(int amt) {
+        return make(Material.MAGMA_CREAM, amt, "&#FF6D00&l💉 Боевой Адреналин [Раш Тимы]",
+                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — заряжает &fВАС &7и &aВСЕХ ТИММЕЙТОВ &7в радиусе &e10 блоков&7:",
+                        " &#00E5FF• Скорость III на 10 сек",
+                        " &#FF1744• Сила II на 8 сек",
+                        " &#FFD740• Спешка II + Огнестойкость на 10 сек",
+                        "&8Перезарядка: 25 сек."),
+                true, "battle_adrenaline", null, 0);
+    }
+
+    public static ItemStack swapOrb(int amt) {
+        return make(Material.ENDER_EYE, amt, "&#D500F9&l🌀 Сфера Рокировки [Сваппер FT]",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — бросок сферы рокировки (до &d28 блоков&7):",
+                        " &#FF5252• Попал во ВРАГА — меняет вас местами + Замедление II и Слабость!",
+                        " &#00E676• Попал в ТИММЕЙТА — вытаскивает его из замеса и даёт +4💛 обоим!",
+                        "&8Перезарядка: 22 сек. (Запрещена в кабинках)"),
+                true, "swap_orb", null, 0);
+    }
+
+    public static ItemStack iceDome(int amt) {
+        return make(Material.BLUE_ICE, amt, "&#40C4FF&l🧊 Ледяной Купол [Барьер 7×7]",
+                Arrays.asList("&8Защитный расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — мгновенно возводит вокруг вас и тиммейтов",
+                        "&7броне-купол из &bПлотного Льда и Стекла 7×7 &7на &e12 сек",
+                        "&7для безопасного отхила Чаркой и Божьей Аурой!",
+                        "&8Перезарядка: 28 сек."),
+                true, "ice_dome", null, 0);
+    }
+
+    public static ItemStack vampirePulse(int amt) {
+        return make(Material.GHAST_TEAR, amt, "&#FF1744&l🩸 Импульс Крови Вампира [FT×RW]",
+                Arrays.asList("&8Атакующий расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — высасывает по &c3❤ (6 HP) &7у каждого врага",
+                        "&7в радиусе &c8 блоков &7и распределяет выпитую кровь",
+                        "&7между &fвами &7и &aранеными тиммейтами &7рядом!",
+                        "&8Перезарядка: 24 сек."),
+                true, "vampire_pulse", null, 0);
+    }
+
+    public static ItemStack empShock(int amt) {
+        return make(Material.PRISMARINE_SHARD, amt, "&#00E5FF&l⚡ ЭМИ-Разрядник [Анти-Щит & Анти-Элитры]",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — электромагнитный взрыв в радиусе &b11 блоков&7:",
+                        " &#FF1744• Сбивает полёт на Элитрах всем врагам в воздухе!",
+                        " &#FFD740• Отключает Щиты врагам на 5 сек + Слабость I!",
+                        " &#00E676• Безопасен для ваших тиммейтов!",
+                        "&8Перезарядка: 20 сек."),
+                true, "emp_shock", null, 0);
+    }
+
+    public static ItemStack smokeBomb(int amt) {
+        return make(Material.CHARCOAL, amt, "&#94A3B8&l💣 Дымовая Бомба Ниндзя [Инвиз Тимы]",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.0", "",
+                        "&7ПКМ — создаёт плотную дымовую завесу на &e6 сек&7:",
+                        " &#FF5252• Ослепляет врагов внутри облака на 4 сек",
+                        " &#00E676• Даёт ВАМ и ТИММЕЙТАМ Невидимость + Скорость II на 8 сек!",
+                        "&8Перезарядка: 22 сек."),
+                true, "smoke_bomb", null, 0);
+    }
+
+    public static ItemStack grapplingHook() {
+        ItemStack it = make(Material.FISHING_ROD, 1, "&#F59E0B&l🧲 Крюк-Кошка [Гарпун FT]",
+                Arrays.asList("&8Тактический инструмент FunTime × ReallyWorld v6.0", "",
+                        "&7Брось крюк и нажми ПКМ — мощно притягивает",
+                        "&7тебя вперёд и вверх к точке зацепа!",
+                        "&8Перезарядка: 5 сек. (Не разрушается, запрещён в кабинках)"),
+                true, "grappling_hook", null, 0);
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            try { m.setUnbreakable(true); } catch (Throwable ignored) {}
+            it.setItemMeta(m);
+        }
+        return it;
     }
 
     // ================= ЗЕЛЬЯ И МИКСЫ БАФОВАРА (ДО 8 ЗЕЛИЙ ЗА 5 000$!) =================
@@ -1502,10 +1594,13 @@ public final class ItemFactory {
                     bookArmorUnbreaking7(4),
                     new ItemStack(Material.NETHERITE_BLOCK, 16),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
-            items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ OWNER #2",
-                    Arrays.asList("&7Все 6 разновидностей РАБОЧЕГО кастомного ТНТ для рейдов!"),
+            items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ и Тактики OWNER #2",
+                    Arrays.asList("&7Все 6 видов ТНТ + 8 новых командных артефактов v6.0!"),
                     tntBlack(32), tntNuke(16), tntTier1(32),
                     tntFlash(32), tntCryo(32), tntMiner(32),
+                    teamTotem(16), battleAdrenaline(16), swapOrb(16),
+                    iceDome(16), vampirePulse(16), empShock(16),
+                    smokeBomb(16), grapplingHook(),
                     new ItemStack(Material.OBSIDIAN, 64),
                     new ItemStack(Material.END_CRYSTAL, 64),
                     new ItemStack(Material.RESPAWN_ANCHOR, 32),

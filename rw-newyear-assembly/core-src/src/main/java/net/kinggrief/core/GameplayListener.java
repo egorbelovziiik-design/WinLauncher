@@ -56,6 +56,7 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerCommandSendEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -395,6 +396,18 @@ public final class GameplayListener implements Listener {
         killStreaks.remove(p.getUniqueId());
         boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
         plugin.getModeration().handleQuitDuringCheck(p);
+        DataStore.ActiveWagerDuel quitDuel = plugin.getStore().finishWagerDuel(p.getName());
+        if (quitDuel != null) {
+            String winnerName = quitDuel.playerA.equalsIgnoreCase(p.getName()) ? quitDuel.playerB : quitDuel.playerA;
+            double pot = quitDuel.betEach * 2.0;
+            if (pot > 0.0) {
+                plugin.getStore().addCoins(winnerName, pot);
+                plugin.getStore().save();
+            }
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l⚔ [ДУЭЛЬ] &fИгрок &c" + p.getName()
+                    + " &fливнул с дуэли! Победа присуждена &#00E676" + winnerName
+                    + (pot > 0.0 ? " &8(&a+" + ColorUtil.fmtMoney(pot) + "$&8)" : "") + "&f!"));
+        }
         if (!wasFrozen && plugin.getHud().isInCombat(p) && !p.isDead()
                 && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
             p.setHealth(0.0);
@@ -1692,13 +1705,19 @@ public final class GameplayListener implements Listener {
         } else if ("plast".equals(cid) || "trapka".equals(cid) || "dezorient".equals(cid)
                 || "yavnaya_pyl".equals(cid) || "bozhya_aura".equals(cid)
                 || "ognenny_smerch".equals(cid) || "pautinnaya_granata".equals(cid)
-                || "bozhya_kara".equals(cid) || "grav_sfera".equals(cid) || "sneg_zavesa".equals(cid)) {
+                || "bozhya_kara".equals(cid) || "grav_sfera".equals(cid) || "sneg_zavesa".equals(cid)
+                || "team_totem".equals(cid) || "battle_adrenaline".equals(cid) || "swap_orb".equals(cid)
+                || "ice_dome".equals(cid) || "vampire_pulse".equals(cid) || "emp_shock".equals(cid)
+                || "smoke_bomb".equals(cid)) {
             e.setCancelled(true);
             handleFtConsumable(p, hand, cid);
         }
     }
 
     private boolean checkAndSetCd(Player p, String key, int sec) {
+        if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+            return true;
+        }
         String k = p.getUniqueId() + ":" + key;
         long now = System.currentTimeMillis();
         Long until = itemCooldowns.get(k);
@@ -1711,17 +1730,43 @@ public final class GameplayListener implements Listener {
         return true;
     }
 
+    private boolean isTeammateTarget(Player caster, Player other) {
+        if (caster == null || other == null || other.equals(caster) || !other.isOnline()) return false;
+        if (other.getGameMode() == GameMode.SPECTATOR || other.isDead()) return false;
+        return plugin.getStore().areTeammates(caster.getName(), other.getName());
+    }
+
     private boolean isEnemyTarget(Player caster, Player other) {
         if (other == null || other.equals(caster) || other.getGameMode() == GameMode.SPECTATOR) return false;
         if (plugin.getSpawnEngine().isInSpawnWorld(other.getLocation())
                 && !plugin.getSpawnEngine().isInsidePvpZone(other.getLocation())) return false;
-        DataStore.Clan c1 = plugin.getStore().getClanOf(caster.getName());
-        DataStore.Clan c2 = plugin.getStore().getClanOf(other.getName());
-        if (c1 != null && c2 != null) {
-            if (c1.equals(c2) && !c1.friendlyFire) return false;
-            if (c1.allies.contains(c2.id)) return false;
+        if (plugin.getStore().areTeammates(caster.getName(), other.getName())
+                && !plugin.getStore().isTeammatePvpAllowed(caster.getName(), other.getName())) {
+            return false;
         }
         return true;
+    }
+
+    private void cleanseAndBlessBozhyaAuraTarget(Player target) {
+        String[][] bads = new String[][]{
+                {"poison", "POISON"}, {"wither", "WITHER"}, {"blindness", "BLINDNESS"},
+                {"darkness", "DARKNESS"}, {"weakness", "WEAKNESS"}, {"slowness", "SLOW"},
+                {"mining_fatigue", "SLOW_DIGGING"}, {"nausea", "CONFUSION"},
+                {"hunger", "HUNGER"}, {"levitation", "LEVITATION"}, {"glowing", "GLOWING"}
+        };
+        for (String[] b : bads) {
+            org.bukkit.potion.PotionEffectType t = ColorUtil.potType(b[0], b[1]);
+            if (t != null) target.removePotionEffect(t);
+        }
+        target.setFireTicks(0);
+        target.setFreezeTicks(0);
+        target.setHealth(Math.min(target.getMaxHealth(), target.getHealth() + 8.0));
+        ColorUtil.addPot(target, "regeneration", "REGENERATION", 140, 2);
+        ColorUtil.addPot(target, "resistance", "DAMAGE_RESISTANCE", 120, 1);
+        ColorUtil.addPot(target, "absorption", "ABSORPTION", 300, 1);
+        target.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, target.getLocation().add(0, 1.0, 0), 38, 0.65, 0.85, 0.65, 0.14);
+        target.getWorld().spawnParticle(Particle.HEART, target.getLocation().add(0, 2.05, 0), 6, 0.35, 0.25, 0.35, 0.02);
+        ColorUtil.sound(target, "item.totem.use", 0.75f, 1.4f);
     }
 
     private void handleFtConsumable(final Player p, ItemStack hand, String cid) {
@@ -1785,24 +1830,63 @@ public final class GameplayListener implements Listener {
         } else if ("bozhya_aura".equals(cid)) {
             if (!checkAndSetCd(p, "bozhya_aura", 30)) return;
             consumeOne(p, hand);
-            String[][] bads = new String[][]{
-                    {"poison","POISON"}, {"wither","WITHER"}, {"blindness","BLINDNESS"},
-                    {"weakness","WEAKNESS"}, {"slowness","SLOW"}, {"mining_fatigue","SLOW_DIGGING"}, {"nausea","CONFUSION"}
-            };
-            for (String[] b : bads) {
-                org.bukkit.potion.PotionEffectType t = ColorUtil.potType(b[0], b[1]);
-                if (t != null) p.removePotionEffect(t);
+            cleanseAndBlessBozhyaAuraTarget(p);
+
+            int healedTeammates = 0;
+            List<String> healedNames = new ArrayList<String>();
+            for (Entity en : p.getNearbyEntities(12, 7, 12)) {
+                if (!(en instanceof Player)) continue;
+                Player other = (Player) en;
+                if (isTeammateTarget(p, other)) {
+                    cleanseAndBlessBozhyaAuraTarget(other);
+                    healedTeammates++;
+                    healedNames.add(other.getName());
+                    ColorUtil.actionBar(other, "&#FFD740☀ Тиммейт &f" + p.getName() + " &#FFD740исцелил вас Божьей Аурой! &#00E676(+4❤ + Реген III + Сопр II)");
+                    other.sendMessage(ColorUtil.c("&#FFD740☀ Ваш тиммейт &f" + p.getName()
+                            + " &#FFD740активировал &lБожью Ауру&#FFD740! С вас сняты все дебаффы, выдано &a+4❤&7, &dРегенерация III&7, &bСопротивление II &7и &e+4💛&7!"));
+                } else if (isEnemyTarget(p, other) && other.getLocation().distanceSquared(p.getLocation()) <= 64.0) {
+                    tagPvp30(p, other);
+                }
             }
-            p.setFireTicks(0);
-            p.setFreezeTicks(0);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 120, 2);
-            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 120, 1);
-            for (Entity en : p.getNearbyEntities(8, 5, 8)) {
-                if (en instanceof Player && isEnemyTarget(p, (Player) en)) tagPvp30(p, (Player) en);
+
+            if (healedTeammates > 0) {
+                p.sendMessage(ColorUtil.c("&#FFD740☀ &lБожья Аура &#FFD740исцелила вас и &#00E676" + healedTeammates
+                        + " тиммейтов &#FFD740(&f" + String.join("&7, &f", healedNames) + "&#FFD740)! Активирован Священный Купол на 5 сек!"));
+                ColorUtil.actionBar(p, "&#FFD740☀ Исцелено тиммейтов: &#00E676" + healedTeammates + " &8│ &#FFD740Священный Купол 5 сек!");
+            } else {
+                p.sendMessage(ColorUtil.c("&#FFD740☀ Божья Аура сняла все дебаффы, исцелила &a+4❤ &7и включила Священный Купол (добавить тиму: &f/tm <ник>&7)!"));
             }
-            p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 50, 0.8, 1.0, 0.8, 0.15);
-            ColorUtil.sound(p, "item.totem.use", 0.9f, 1.35f);
-            p.sendMessage(ColorUtil.c("&#FFD740☀ Божья Аура сняла все дебаффы и дала Регенерацию III + Сопротивление II!"));
+
+            // 5-секундный пульсирующий Священный Купол Божьей Ауры для кастера и всех его тиммейтов!
+            new BukkitRunnable() {
+                int pulse = 0;
+                @Override
+                public void run() {
+                    if (!p.isOnline() || p.isDead() || pulse >= 5) {
+                        cancel();
+                        return;
+                    }
+                    pulse++;
+                    Location center = p.getLocation();
+                    for (int a = 0; a < 360; a += 20) {
+                        double rad = Math.toRadians(a);
+                        Location ringPt = center.clone().add(Math.cos(rad) * 4.5, 0.25, Math.sin(rad) * 4.5);
+                        center.getWorld().spawnParticle(Particle.END_ROD, ringPt, 1, 0.0, 0.05, 0.0, 0.01);
+                    }
+                    p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 2.0));
+                    p.setFireTicks(0);
+                    p.setFreezeTicks(0);
+                    for (Entity en : p.getNearbyEntities(10, 5, 10)) {
+                        if (en instanceof Player && isTeammateTarget(p, (Player) en)) {
+                            Player ally = (Player) en;
+                            ally.setHealth(Math.min(ally.getMaxHealth(), ally.getHealth() + 2.0));
+                            ally.setFireTicks(0);
+                            ally.setFreezeTicks(0);
+                            ally.getWorld().spawnParticle(Particle.HEART, ally.getLocation().add(0, 2.0, 0), 2, 0.25, 0.15, 0.25, 0.01);
+                        }
+                    }
+                }
+            }.runTaskTimer(plugin, 20L, 20L);
         } else if ("ognenny_smerch".equals(cid)) {
             if (!checkAndSetCd(p, "ognenny_smerch", 18)) return;
             consumeOne(p, hand);
@@ -1877,7 +1961,274 @@ public final class GameplayListener implements Listener {
             }
             ColorUtil.sound(p, "entity.breeze.jump", 1.0f, 1.2f);
             p.sendMessage(ColorUtil.c("&#7DD3FC❄ Снежная Завеса активирована!"));
+        } else if ("team_totem".equals(cid)) {
+            if (!checkAndSetCd(p, "team_totem", 35)) return;
+            consumeOne(p, hand);
+            final Location totemCenter = p.getLocation().clone();
+            ColorUtil.sound(p, "block.beacon.activate", 1.0f, 1.25f);
+            int allies = 0;
+            List<Player> teamGroup = new ArrayList<Player>();
+            teamGroup.add(p);
+            for (Entity en : p.getNearbyEntities(10, 6, 10)) {
+                if (en instanceof Player) {
+                    Player pl = (Player) en;
+                    if (isTeammateTarget(p, pl)) {
+                        teamGroup.add(pl);
+                        allies++;
+                        pl.sendMessage(ColorUtil.c("&#00E676🛡 Тиммейт &f" + p.getName() + " &#00E676поставил &lТотем Командного Спасения&#00E676! (+Сопротивление III и Огнестойкость)"));
+                    } else if (isEnemyTarget(p, pl)) {
+                        tagPvp30(p, pl);
+                        Vector kb = pl.getLocation().toVector().subtract(totemCenter.toVector());
+                        if (kb.lengthSquared() < 0.01) kb = new Vector(0.5, 0.3, 0.5);
+                        pl.setVelocity(kb.normalize().multiply(1.15).setY(0.42));
+                    }
+                }
+            }
+            for (Player member : teamGroup) {
+                ColorUtil.addPot(member, "resistance", "DAMAGE_RESISTANCE", 130, 2);
+                ColorUtil.addPot(member, "fire_resistance", "FIRE_RESISTANCE", 200, 0);
+                member.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, member.getLocation().add(0, 1, 0), 35, 0.6, 0.8, 0.6, 0.12);
+            }
+            p.sendMessage(ColorUtil.c("&#00E676🛡 Тотем Командного Спасения развёрнут на 6 сек! Защищено тиммейтов: &f" + allies));
+            new BukkitRunnable() {
+                int step = 0;
+                @Override
+                public void run() {
+                    if (step >= 6 || totemCenter.getWorld() == null) { cancel(); return; }
+                    step++;
+                    for (int a = 0; a < 360; a += 18) {
+                        double r = Math.toRadians(a);
+                        totemCenter.getWorld().spawnParticle(Particle.HAPPY_VILLAGER,
+                                totemCenter.clone().add(Math.cos(r) * 6.0, 0.35, Math.sin(r) * 6.0), 1, 0, 0, 0, 0);
+                    }
+                    if (p.isOnline() && !p.isDead() && p.getWorld().equals(totemCenter.getWorld())
+                            && p.getLocation().distanceSquared(totemCenter) <= 100.0) {
+                        p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 3.0));
+                    }
+                    for (Entity en : totemCenter.getWorld().getNearbyEntities(totemCenter, 10, 6, 10)) {
+                        if (en instanceof Player && isTeammateTarget(p, (Player) en)) {
+                            Player ally = (Player) en;
+                            ally.setHealth(Math.min(ally.getMaxHealth(), ally.getHealth() + 3.0));
+                        }
+                    }
+                }
+            }.runTaskTimer(plugin, 20L, 20L);
+        } else if ("battle_adrenaline".equals(cid)) {
+            if (!checkAndSetCd(p, "battle_adrenaline", 25)) return;
+            consumeOne(p, hand);
+            List<Player> targets = new ArrayList<Player>();
+            targets.add(p);
+            for (Entity en : p.getNearbyEntities(10, 6, 10)) {
+                if (en instanceof Player && isTeammateTarget(p, (Player) en)) {
+                    targets.add((Player) en);
+                }
+            }
+            for (Player member : targets) {
+                ColorUtil.addPot(member, "speed", "SPEED", 200, 2);
+                ColorUtil.addPot(member, "strength", "INCREASE_DAMAGE", 160, 1);
+                ColorUtil.addPot(member, "haste", "FAST_DIGGING", 200, 1);
+                ColorUtil.addPot(member, "fire_resistance", "FIRE_RESISTANCE", 200, 0);
+                member.getWorld().spawnParticle(Particle.FLAME, member.getLocation().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0.06);
+                ColorUtil.sound(member, "entity.ENDER_DRAGON.growl".toLowerCase(java.util.Locale.ROOT), 0.55f, 1.55f);
+                if (!member.equals(p)) {
+                    member.sendMessage(ColorUtil.c("&#FF6D00💉 Тиммейт &f" + p.getName() + " &#FF6D00вколол вашей тиме &lБоевой Адреналин&#FF6D00! (+Скорость III, Сила II, Спешка II)"));
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#FF6D00💉 Боевой Адреналин активирован! Заряжено бойцов тимы: &f" + targets.size()));
+        } else if ("swap_orb".equals(cid)) {
+            if (plugin.getSpawnEngine().isInsideAnyKabinka(p.getLocation())) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ В кабинках ПвП Сфера Рокировки запрещена!"));
+                return;
+            }
+            if (!checkAndSetCd(p, "swap_orb", 22)) return;
+            consumeOne(p, hand);
+            org.bukkit.entity.Snowball proj = p.launchProjectile(org.bukkit.entity.Snowball.class);
+            proj.setItem(new ItemStack(Material.ENDER_EYE));
+            proj.setVelocity(p.getLocation().getDirection().normalize().multiply(1.75));
+            proj.getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "swap_orb");
+            ColorUtil.sound(p, "entity.ender_eye.launch", 1.0f, 1.15f);
+        } else if ("ice_dome".equals(cid)) {
+            if (plugin.getSpawnEngine().isInsideAnyKabinka(p.getLocation())) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ В кабинках нельзя ставить Ледяной Купол!"));
+                return;
+            }
+            if (!checkAndSetCd(p, "ice_dome", 28)) return;
+            consumeOne(p, hand);
+            spawnTemporaryIceDome(p);
+        } else if ("vampire_pulse".equals(cid)) {
+            if (!checkAndSetCd(p, "vampire_pulse", 24)) return;
+            consumeOne(p, hand);
+            double drainedPool = 0.0;
+            int hitEnemies = 0;
+            for (Entity en : p.getNearbyEntities(8, 5, 8)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    tagPvp30(p, v);
+                    v.damage(6.0, p);
+                    v.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, v.getLocation().add(0, 1.1, 0), 12, 0.35, 0.4, 0.35, 0.05);
+                    drainedPool += 6.0;
+                    hitEnemies++;
+                }
+            }
+            List<Player> recipients = new ArrayList<Player>();
+            recipients.add(p);
+            for (Entity en : p.getNearbyEntities(10, 6, 10)) {
+                if (en instanceof Player && isTeammateTarget(p, (Player) en)) {
+                    recipients.add((Player) en);
+                }
+            }
+            double healEach = Math.max(4.0, drainedPool / Math.max(1, recipients.size()));
+            for (Player rec : recipients) {
+                rec.setHealth(Math.min(rec.getMaxHealth(), rec.getHealth() + healEach));
+                rec.getWorld().spawnParticle(Particle.HEART, rec.getLocation().add(0, 2.0, 0), 5, 0.3, 0.2, 0.3, 0.02);
+                if (!rec.equals(p)) {
+                    rec.sendMessage(ColorUtil.c("&#FF1744🩸 Тиммейт &f" + p.getName() + " &#FF1744передал вам вампирское исцеление &a+"
+                            + String.format(java.util.Locale.US, "%.1f❤", Double.valueOf(healEach / 2.0)) + "&#FF1744!"));
+                }
+            }
+            ColorUtil.sound(p, "entity.phantom.bite", 1.0f, 0.85f);
+            p.sendMessage(ColorUtil.c("&#FF1744🩸 Импульс Вампира поразил &f" + hitEnemies
+                    + " &#FF1744врагов и восстановил команде по &a+" + String.format(java.util.Locale.US, "%.1f❤", Double.valueOf(healEach / 2.0)) + "&#FF1744!"));
+        } else if ("emp_shock".equals(cid)) {
+            if (!checkAndSetCd(p, "emp_shock", 20)) return;
+            consumeOne(p, hand);
+            p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1.1, 0), 120, 4.5, 2.0, 4.5, 0.12);
+            ColorUtil.sound(p, "block.respawn_anchor.deplete", 1.0f, 1.35f);
+            int shocked = 0;
+            for (Entity en : p.getNearbyEntities(11, 8, 11)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    tagPvp30(p, v);
+                    if (v.isGliding()) {
+                        v.setGliding(false);
+                        v.sendMessage(ColorUtil.c("&#FF1744⚡ ЭМИ-Разрядник игрока &f" + p.getName() + " &#FF1744вырубил ваши Элитры!"));
+                    }
+                    v.setCooldown(Material.SHIELD, 100);
+                    ColorUtil.addPot(v, "weakness", "WEAKNESS", 100, 0);
+                    ColorUtil.addPot(v, "glowing", "GLOWING", 160, 0);
+                    v.damage(4.0, p);
+                    shocked++;
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#00E5FF⚡ ЭМИ-Разрядник отключил щиты и Элитры врагам (&f" + shocked + " шт.&#00E5FF)!"));
+        } else if ("smoke_bomb".equals(cid)) {
+            if (!checkAndSetCd(p, "smoke_bomb", 22)) return;
+            consumeOne(p, hand);
+            final Location smokeLoc = p.getLocation().clone();
+            ColorUtil.sound(p, "entity.generic.extinguish_fire", 1.0f, 0.8f);
+            List<Player> allies = new ArrayList<Player>();
+            allies.add(p);
+            for (Entity en : p.getNearbyEntities(9, 5, 9)) {
+                if (en instanceof Player) {
+                    Player other = (Player) en;
+                    if (isTeammateTarget(p, other)) {
+                        allies.add(other);
+                    } else if (isEnemyTarget(p, other)) {
+                        tagPvp30(p, other);
+                        ColorUtil.addPot(other, "blindness", "BLINDNESS", 80, 0);
+                        ColorUtil.addPot(other, "darkness", "DARKNESS", 80, 0);
+                        ColorUtil.addPot(other, "slowness", "SLOW", 80, 1);
+                    }
+                }
+            }
+            for (Player ally : allies) {
+                ColorUtil.addPot(ally, "invisibility", "INVISIBILITY", 160, 0);
+                ColorUtil.addPot(ally, "speed", "SPEED", 160, 1);
+                if (!ally.equals(p)) {
+                    ally.sendMessage(ColorUtil.c("&#94A3B8💣 Дымовая бомба тиммейта &f" + p.getName() + " &#94A3B8скрыла вас в инвизе на 8 сек!"));
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#94A3B8💣 Дымовая Бомба активирована! Скрыто тиммейтов: &f" + allies.size()));
+            new BukkitRunnable() {
+                int t = 0;
+                @Override
+                public void run() {
+                    if (t >= 12 || smokeLoc.getWorld() == null) { cancel(); return; }
+                    t++;
+                    smokeLoc.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, smokeLoc.clone().add(0, 1.1, 0), 45, 3.2, 1.4, 3.2, 0.01);
+                }
+            }.runTaskTimer(plugin, 0L, 10L);
         }
+    }
+
+    private void spawnTemporaryIceDome(Player p) {
+        Location pl = p.getLocation();
+        World w = pl.getWorld();
+        if (w == null) return;
+        int cx = pl.getBlockX(), cy = pl.getBlockY(), cz = pl.getBlockZ();
+        final Map<Block, org.bukkit.block.data.BlockData> saved = new HashMap<Block, org.bukkit.block.data.BlockData>();
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dy = -1; dy <= 3; dy++) {
+                for (int dz = -3; dz <= 3; dz++) {
+                    double distSq = dx * dx + dy * dy + dz * dz;
+                    boolean domeShell = (dy == -1 && (dx * dx + dz * dz) <= 9)
+                            || (dy >= 0 && distSq >= 6.2 && distSq <= 12.6);
+                    if (!domeShell) continue;
+                    Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
+                    if (isReplaceableForTemp(b)) {
+                        saved.put(b, b.getBlockData().clone());
+                        activeTempBlocks.add(blockKey(b));
+                        Material m = (dy >= 1 && ((Math.abs(dx) + Math.abs(dz)) % 2 == 1))
+                                ? Material.LIGHT_BLUE_STAINED_GLASS
+                                : Material.BLUE_ICE;
+                        b.setType(m, false);
+                    }
+                }
+            }
+        }
+        p.setFireTicks(0);
+        for (Entity en : p.getNearbyEntities(4, 3, 4)) {
+            if (en instanceof Player && isTeammateTarget(p, (Player) en)) {
+                ((Player) en).setFireTicks(0);
+                ColorUtil.addPot((Player) en, "regeneration", "REGENERATION", 100, 1);
+            }
+        }
+        ColorUtil.sound(p, "block.glass.place", 1.0f, 0.85f);
+        p.getWorld().spawnParticle(Particle.SNOWFLAKE, pl.clone().add(0, 1.2, 0), 80, 2.2, 1.4, 2.2, 0.04);
+        p.sendMessage(ColorUtil.c("&#40C4FF🧊 Защитный Ледяной Купол 7×7 установлен на &e12 секунд&#40C4FF!"));
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : saved.entrySet()) {
+                    activeTempBlocks.remove(blockKey(en.getKey()));
+                    en.getKey().setBlockData(en.getValue(), false);
+                }
+            }
+        }.runTaskLater(plugin, 240L);
+    }
+
+    @EventHandler
+    public void onGrapplingHook(PlayerFishEvent e) {
+        Player p = e.getPlayer();
+        String cidMain = ItemFactory.getCustomId(p.getInventory().getItemInMainHand());
+        String cidOff = ItemFactory.getCustomId(p.getInventory().getItemInOffHand());
+        if (!"grappling_hook".equals(cidMain) && !"grappling_hook".equals(cidOff)) return;
+        PlayerFishEvent.State st = e.getState();
+        if (st != PlayerFishEvent.State.REEL_IN && st != PlayerFishEvent.State.IN_GROUND
+                && st != PlayerFishEvent.State.CAUGHT_ENTITY && st != PlayerFishEvent.State.FAILED_ATTEMPT) {
+            return;
+        }
+        if (plugin.getSpawnEngine().isInsideAnyKabinka(p.getLocation())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ В кабинках Крюк-Кошка запрещён!"));
+            return;
+        }
+        if (plugin.getSpawnEngine().isInSpawnWorld(p.getLocation())
+                && !plugin.getSpawnEngine().isInsidePvpZone(p.getLocation())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Крюк-Кошка работает в мире выживания (/rtp) и на /warp pvp!"));
+            return;
+        }
+        Location hookLoc = e.getHook().getLocation();
+        if (hookLoc.distanceSquared(p.getLocation()) < 4.0) return;
+        if (!checkAndSetCd(p, "grappling_hook", 5)) return;
+
+        Vector pull = hookLoc.toVector().subtract(p.getLocation().toVector());
+        double dist = Math.min(18.0, pull.length());
+        Vector vel = pull.normalize().multiply(Math.min(1.85, 0.85 + dist * 0.08));
+        vel.setY(Math.max(0.45, Math.min(1.05, vel.getY() * 0.65 + 0.38)));
+        p.setVelocity(vel);
+        p.setFallDistance(0.0f);
+        ColorUtil.sound(p, "entity.fishing_bobber.retrieve", 1.0f, 1.35f);
+        p.getWorld().spawnParticle(Particle.CRIT, p.getLocation().add(0, 0.8, 0), 18, 0.3, 0.3, 0.3, 0.08);
     }
 
     @EventHandler
@@ -1944,6 +2295,42 @@ public final class GameplayListener implements Listener {
                 ColorUtil.addPot(hit, "weakness", "WEAKNESS", 120, 1);
                 hit.getWorld().spawnParticle(Particle.SNOWFLAKE, hit.getLocation().add(0, 1, 0), 40, 0.6, 0.8, 0.6, 0.03);
                 hit.sendMessage(ColorUtil.c("&#80D8FF❄ Вы заморожены Снежком Заморозки от &f" + shooter.getName() + "&#80D8FF!"));
+            }
+        } else if ("swap_orb".equals(ptype) && e.getHitEntity() instanceof Player && e.getEntity().getShooter() instanceof Player) {
+            Player shooter = (Player) e.getEntity().getShooter();
+            Player hit = (Player) e.getHitEntity();
+            if (shooter.equals(hit) || !shooter.isOnline() || !hit.isOnline()) return;
+            if (plugin.getSpawnEngine().isInsideAnyKabinka(shooter.getLocation())
+                    || plugin.getSpawnEngine().isInsideAnyKabinka(hit.getLocation())) {
+                shooter.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя меняться местами с игроком в ПвП-кабинке!"));
+                return;
+            }
+            if ((plugin.getSpawnEngine().isInSpawnWorld(hit.getLocation()) && !plugin.getSpawnEngine().isInsidePvpZone(hit.getLocation()))
+                    || (plugin.getSpawnEngine().isInSpawnWorld(shooter.getLocation()) && !plugin.getSpawnEngine().isInsidePvpZone(shooter.getLocation()))) {
+                shooter.sendMessage(ColorUtil.c("&#FF1744✖ Сфера Рокировки не действует в мирной зоне спавна!"));
+                return;
+            }
+            Location locA = shooter.getLocation().clone();
+            Location locB = hit.getLocation().clone();
+            shooter.teleport(locB);
+            hit.teleport(locA);
+            shooter.getWorld().spawnParticle(Particle.PORTAL, locB.clone().add(0, 1, 0), 45, 0.5, 0.8, 0.5, 0.2);
+            hit.getWorld().spawnParticle(Particle.PORTAL, locA.clone().add(0, 1, 0), 45, 0.5, 0.8, 0.5, 0.2);
+            ColorUtil.sound(shooter, "entity.enderman.teleport", 1.0f, 1.25f);
+            ColorUtil.sound(hit, "entity.enderman.teleport", 1.0f, 0.85f);
+            if (isTeammateTarget(shooter, hit)) {
+                ColorUtil.addPot(shooter, "absorption", "ABSORPTION", 200, 1);
+                ColorUtil.addPot(shooter, "resistance", "DAMAGE_RESISTANCE", 80, 1);
+                ColorUtil.addPot(hit, "absorption", "ABSORPTION", 200, 1);
+                ColorUtil.addPot(hit, "resistance", "DAMAGE_RESISTANCE", 80, 1);
+                shooter.sendMessage(ColorUtil.c("&#00E676🌀 Вы спасли тиммейта &f" + hit.getName() + " &#00E676Сферой Рокировки! (+4💛 и Сопр II обоим)"));
+                hit.sendMessage(ColorUtil.c("&#00E676🌀 Тиммейт &f" + shooter.getName() + " &#00E676поменялся с вами местами и спас вас!"));
+            } else if (isEnemyTarget(shooter, hit)) {
+                tagPvp30(shooter, hit);
+                ColorUtil.addPot(hit, "slowness", "SLOW", 80, 1);
+                ColorUtil.addPot(hit, "weakness", "WEAKNESS", 80, 0);
+                shooter.sendMessage(ColorUtil.c("&#D500F9🌀 Рокировка выполнена с врагом &f" + hit.getName() + "&#D500F9!"));
+                hit.sendMessage(ColorUtil.c("&#D500F9🌀 Игрок &f" + shooter.getName() + " &#D500F9поменялся с вами местами Сферой Рокировки!"));
             }
         } else if ("web_grenade".equals(ptype)) {
             Location center = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0, 1, 0)
@@ -2632,16 +3019,30 @@ public final class GameplayListener implements Listener {
             }
             DataStore.Clan c1 = plugin.getStore().getClanOf(attacker.getName());
             DataStore.Clan c2 = plugin.getStore().getClanOf(victim.getName());
-            if (c1 != null && c2 != null) {
-                if (c1.equals(c2) && !c1.friendlyFire) {
+            boolean inWagerDuel = false;
+            DataStore.ActiveWagerDuel wd = plugin.getStore().getActiveWagerDuel(attacker.getName());
+            if (wd != null && (wd.playerA.equalsIgnoreCase(victim.getName()) || wd.playerB.equalsIgnoreCase(victim.getName()))) {
+                inWagerDuel = true;
+            }
+            boolean inKabinka = plugin.getSpawnEngine().isInsideAnyKabinka(victim.getLocation());
+            if (!inWagerDuel && !inKabinka) {
+                if (plugin.getStore().isDirectTeammate(attacker.getName(), victim.getName())
+                        && !plugin.getStore().isTeammatePvpAllowed(attacker.getName(), victim.getName())) {
                     e.setCancelled(true);
-                    ColorUtil.actionBar(attacker, "&#B388FF🛡 Соклановец! Огонь по своим отключён (/clan pvp).");
+                    ColorUtil.actionBar(attacker, "&#00E676🤝 Ваш тиммейт! Урон по тиммейтам отключён (/tm pvp).");
                     return;
                 }
-                if (c1.allies.contains(c2.id)) {
-                    e.setCancelled(true);
-                    ColorUtil.actionBar(attacker, "&#69F0AE🤝 Игрок из союзного клана [" + c2.tag + "]!");
-                    return;
+                if (c1 != null && c2 != null) {
+                    if (c1.equals(c2) && !c1.friendlyFire) {
+                        e.setCancelled(true);
+                        ColorUtil.actionBar(attacker, "&#B388FF🛡 Соклановец! Огонь по своим отключён (/clan pvp).");
+                        return;
+                    }
+                    if (c1.allies.contains(c2.id)) {
+                        e.setCancelled(true);
+                        ColorUtil.actionBar(attacker, "&#69F0AE🤝 Игрок из союзного клана [" + c2.tag + "]!");
+                        return;
+                    }
                 }
             }
 
@@ -3095,6 +3496,18 @@ public final class GameplayListener implements Listener {
                 plugin.getStore().addCoins(killer.getName(), bounty);
                 Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🎯 [ОХОТА ЗА ГОЛОВАМИ] &fИгрок &#00E676" + killer.getName()
                         + " &fликвидировал цель &c" + dead.getName() + " &fи забрал контракт &a+" + ColorUtil.fmtMoney(bounty) + "$&f!"));
+            }
+
+            DataStore.ActiveWagerDuel finishedDuel = plugin.getStore().finishWagerDuel(dead.getName());
+            if (finishedDuel != null) {
+                String duelWinner = finishedDuel.playerA.equalsIgnoreCase(dead.getName()) ? finishedDuel.playerB : finishedDuel.playerA;
+                double pot = finishedDuel.betEach * 2.0;
+                if (pot > 0.0) {
+                    plugin.getStore().addCoins(duelWinner, pot);
+                }
+                Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l⚔ [ДУЭЛЬ] &fПобедитель дуэли: &#00E676&l" + duelWinner
+                        + " &7(повержен &c" + dead.getName() + "&7)"
+                        + (pot > 0.0 ? " &8— &fКуш: &a+" + ColorUtil.fmtMoney(pot) + "$!" : "!")));
             }
             ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
             ItemMeta hm = head.getItemMeta();

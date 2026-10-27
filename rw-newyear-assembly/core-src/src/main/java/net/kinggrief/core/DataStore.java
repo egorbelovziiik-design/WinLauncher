@@ -1881,4 +1881,177 @@ public final class DataStore {
         });
         return list.size() > limit ? list.subList(0, limit) : list;
     }
+
+    // ================= СИСТЕМА ТИММЕЙТОВ / ДРУЗЕЙ (/tm, /friend, /friends, /tc) + KILLSTREAKS & DUELS v6.0 =================
+    private final Map<String, Set<String>> friendInvites = new HashMap<String, Set<String>>();
+    private final Map<String, Integer> activeKillstreaks = new HashMap<String, Integer>();
+
+    public static final class ActiveWagerDuel {
+        public final String playerA;
+        public final String playerB;
+        public final double betEach;
+        public final long startedAtMs;
+
+        public ActiveWagerDuel(String playerA, String playerB, double betEach, long startedAtMs) {
+            this.playerA = playerA;
+            this.playerB = playerB;
+            this.betEach = betEach;
+            this.startedAtMs = startedAtMs;
+        }
+    }
+
+    private final Map<String, ActiveWagerDuel> activeWagerDuels = new HashMap<String, ActiveWagerDuel>();
+
+    public List<String> getTeammateKeys(String name) {
+        List<String> raw = yml.getStringList("players." + key(name) + ".teammates");
+        return raw != null ? new ArrayList<String>(raw) : new ArrayList<String>();
+    }
+
+    public String getStoredDisplayName(String k) {
+        return yml.getString("players." + key(k) + ".name", k);
+    }
+
+    public boolean isDirectTeammate(String nameA, String nameB) {
+        if (nameA == null || nameB == null) return false;
+        return getTeammateKeys(nameA).contains(key(nameB));
+    }
+
+    /**
+     * Проверяет, являются ли два игрока ТИММЕЙТАМИ:
+     * 1) Добавили друг друга через /tm (/friend);
+     * 2) Состоят в одном Клане (/clan) или в союзных кланах (/clan ally)!
+     */
+    public boolean areTeammates(String nameA, String nameB) {
+        if (nameA == null || nameB == null || nameA.equalsIgnoreCase(nameB)) return false;
+        if (isDirectTeammate(nameA, nameB)) return true;
+        Clan c1 = getClanOf(nameA);
+        Clan c2 = getClanOf(nameB);
+        if (c1 != null && c2 != null) {
+            if (c1.equals(c2)) return true;
+            if (c1.allies.contains(c2.id) || c2.allies.contains(c1.id)) return true;
+        }
+        return false;
+    }
+
+    public boolean isTeammatePvpAllowed(String nameA, String nameB) {
+        if (!areTeammates(nameA, nameB)) return true;
+        if (isDirectTeammate(nameA, nameB)) {
+            return isTeammatePvpEnabled(nameA) && isTeammatePvpEnabled(nameB);
+        }
+        Clan c1 = getClanOf(nameA);
+        Clan c2 = getClanOf(nameB);
+        if (c1 != null && c2 != null && c1.equals(c2)) {
+            return c1.friendlyFire;
+        }
+        return false;
+    }
+
+    public boolean isTeammatePvpEnabled(String name) {
+        return yml.getBoolean("players." + key(name) + ".teammatePvp", false);
+    }
+
+    public boolean toggleTeammatePvp(String name) {
+        boolean next = !isTeammatePvpEnabled(name);
+        yml.set("players." + key(name) + ".teammatePvp", Boolean.valueOf(next));
+        save();
+        return next;
+    }
+
+    public void sendTeammateInvite(String senderName, String targetName) {
+        Set<String> set = friendInvites.get(key(targetName));
+        if (set == null) {
+            set = new LinkedHashSetCompat();
+            friendInvites.put(key(targetName), set);
+        }
+        String sk = key(senderName);
+        set.remove(sk);
+        set.add(sk);
+    }
+
+    public String popTeammateInvite(String targetName, String optionalSender) {
+        Set<String> set = friendInvites.get(key(targetName));
+        if (set == null || set.isEmpty()) return null;
+        if (optionalSender != null && !optionalSender.trim().isEmpty()) {
+            String sk = key(optionalSender.trim());
+            if (set.remove(sk)) return sk;
+            return null;
+        }
+        String last = null;
+        for (String s : set) last = s;
+        if (last != null) set.remove(last);
+        return last;
+    }
+
+    public void addMutualTeammates(String nameA, String nameB) {
+        String ka = key(nameA);
+        String kb = key(nameB);
+        if (ka.equals(kb)) return;
+        List<String> la = getTeammateKeys(ka);
+        if (!la.contains(kb)) la.add(kb);
+        List<String> lb = getTeammateKeys(kb);
+        if (!lb.contains(ka)) lb.add(ka);
+        yml.set("players." + ka + ".teammates", la);
+        yml.set("players." + kb + ".teammates", lb);
+        if (yml.getString("players." + ka + ".name") == null) yml.set("players." + ka + ".name", nameA);
+        if (yml.getString("players." + kb + ".name") == null) yml.set("players." + kb + ".name", nameB);
+        Set<String> invA = friendInvites.get(ka);
+        if (invA != null) invA.remove(kb);
+        Set<String> invB = friendInvites.get(kb);
+        if (invB != null) invB.remove(ka);
+        save();
+    }
+
+    public boolean removeMutualTeammates(String nameA, String nameB) {
+        String ka = key(nameA);
+        String kb = key(nameB);
+        List<String> la = getTeammateKeys(ka);
+        List<String> lb = getTeammateKeys(kb);
+        boolean ch = la.remove(kb) | lb.remove(ka);
+        if (ch) {
+            yml.set("players." + ka + ".teammates", la);
+            yml.set("players." + kb + ".teammates", lb);
+            save();
+        }
+        return ch;
+    }
+
+    public int incrementKillstreak(String name) {
+        String k = key(name);
+        int next = (activeKillstreaks.containsKey(k) ? activeKillstreaks.get(k).intValue() : 0) + 1;
+        activeKillstreaks.put(k, Integer.valueOf(next));
+        int best = yml.getInt("players." + k + ".bestStreak", 0);
+        if (next > best) {
+            yml.set("players." + k + ".bestStreak", Integer.valueOf(next));
+        }
+        return next;
+    }
+
+    public int getKillstreak(String name) {
+        Integer v = activeKillstreaks.get(key(name));
+        return v != null ? v.intValue() : 0;
+    }
+
+    public int resetKillstreak(String name) {
+        Integer prev = activeKillstreaks.remove(key(name));
+        return prev != null ? prev.intValue() : 0;
+    }
+
+    public void startWagerDuel(String a, String b, double betEach) {
+        ActiveWagerDuel d = new ActiveWagerDuel(a, b, betEach, System.currentTimeMillis());
+        activeWagerDuels.put(key(a), d);
+        activeWagerDuels.put(key(b), d);
+    }
+
+    public ActiveWagerDuel getActiveWagerDuel(String name) {
+        return activeWagerDuels.get(key(name));
+    }
+
+    public ActiveWagerDuel finishWagerDuel(String name) {
+        ActiveWagerDuel d = activeWagerDuels.remove(key(name));
+        if (d != null) {
+            activeWagerDuels.remove(key(d.playerA));
+            activeWagerDuels.remove(key(d.playerB));
+        }
+        return d;
+    }
 }

@@ -1,10 +1,10 @@
 name: KingGriefCore
-version: 5.9.2
+version: 6.0.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
 author: KINGGRIEF
-description: KINGGRIEF v5.9 FT x RW Edition (Strict OWNER-Only /lp & Star Lockdown + /lp user permission clear, IP-Mute & IP-Ban + /dupeip + /warn + /history, 2x Armor Durability, Dezorient Wither III 5s, Glass Trapkas + Plast Skins, 12 Custom 3D Swords)
+description: KINGGRIEF v6.0 FT x RW Mega-Edition (Teammate-Healing Bozhya Aura + Sacred Dome, /tm Teammate & Party System + GUI + /tc, 8 New Tactical FT Artifacts, Wager Duels, 10s Recall Orb, Kabinka Pearl/Chorus Lockdown, OWNER 0-KT)
 
 commands:
   lp:
@@ -344,6 +344,12 @@ commands:
   socialspy:
     aliases: [spy]
     description: Toggle Private Message Spy (ST.MODER+ / OWNER)
+  friend:
+    aliases: [friends, tm, team, ally, party]
+    description: Teammate & Party System (/tm <nick>, /friends GUI, /tm pvp)
+  tc:
+    aliases: [fc, teamchat, friendchat]
+    description: Private Teammate & Clan Chat (/tc <message>)
 
 
 

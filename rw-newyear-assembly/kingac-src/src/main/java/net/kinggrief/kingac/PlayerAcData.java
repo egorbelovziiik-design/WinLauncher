@@ -1,6 +1,8 @@
 package net.kinggrief.kingac;
 
 import org.bukkit.Location;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -14,12 +16,28 @@ import java.util.UUID;
 
 public final class PlayerAcData {
 
+    public static final class BoxSnapshot {
+        public final long timeMs;
+        public final BoundingBox box;
+
+        public BoxSnapshot(long timeMs, BoundingBox box) {
+            this.timeMs = timeMs;
+            this.box = box;
+        }
+    }
+
     public final Map<String, Integer> vlByCheck = new LinkedHashMap<String, Integer>();
     public int totalVl = 0;
     public int combatConfirmations = 0;
     public String lastCheat = "Чисто";
     public long lastAlertMs = 0L;
     public boolean banInProgress = false;
+
+    // ================= ИСТОРИЯ ХИТБОКСОВ ЖЕРТВЫ (ДЛЯ ТОЧНОГО RAYCAST И PING-КОМПЕНСАЦИИ) =================
+    public final Deque<BoxSnapshot> boxHistory = new ArrayDeque<BoxSnapshot>(20);
+    public Vector prevEyeVec = null;
+    public float prevTickYaw = 0f;
+    public float prevTickPitch = 0f;
 
     // ================= МИКРО-ДЁРГАНИЕ ГОЛОВОЙ (MICRO-TWITCH / GCD / SNAP) =================
     public float lastYaw = 0f;
@@ -42,7 +60,7 @@ public final class PlayerAcData {
     public long pendingHitSnapMs = 0L;
     public int maxMicroTwitchScore = 0;
 
-    // ================= БОЕВЫЕ ПРОВЕРКИ (KILLAURA / CPS / REACH / CRITS) =================
+    // ================= БОЕВЫЕ ПРОВЕРКИ (RAYCAST HITBOX / AIR-HIT / WALL-INJECT / NOSWING / KEEPSPRINT) =================
     public final List<Long> clickTimes = new ArrayList<Long>();
     public final Deque<Long> clickIntervals = new ArrayDeque<Long>(20);
     public long prevClickMs = 0L;
@@ -51,8 +69,24 @@ public final class PlayerAcData {
     public long lastProbeMs = 0L;
     public long lastWallProbeMs = 0L;
     public int wallHitBuffer = 0;
+    public int airHitBuffer = 0;
+    public int totalAirHitsBlocked = 0;
+    public int backtrackBuffer = 0;
+    public long lastArmSwingMs = 0L;
+    public int noSwingBuffer = 0;
+    public int keepSprintBuffer = 0;
+    public double lastMoveHoriz = 0.0;
+    public long bowDrawStartMs = 0L;
     public int fakeCritBuffer = 0;
     public int reachBuffer = 0;
+
+    public void pushBoxSnapshot(long now, BoundingBox box) {
+        if (box == null) return;
+        while (boxHistory.size() >= 18) {
+            boxHistory.pollFirst();
+        }
+        boxHistory.addLast(new BoxSnapshot(now, box.clone()));
+    }
 
     // ================= ДВИЖЕНИЕ (FLY / SPEED / AIRSTRAFE / JESUS / NOSLOW / SCAFFOLD) =================
     public Location lastSafeGroundLoc = null;

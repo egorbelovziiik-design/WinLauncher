@@ -452,6 +452,22 @@ public final class KingGriefCore extends JavaPlugin {
             return filterPrefix(Arrays.asList("1", "2", "3", "4", "5", "7", "10"), args[0]);
         } else if ("ptime".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("day", "night", "reset"), args[0]);
+        } else if ("friend".equals(c)) {
+            if (args.length == 1) {
+                List<String> opts = new ArrayList<String>(Arrays.asList("add", "accept", "deny", "remove", "del", "list", "pvp", "menu"));
+                opts.addAll(onlineNames(""));
+                return filterPrefix(opts, args[0]);
+            }
+            if (args.length == 2) return onlineNames(args[1]);
+        } else if ("duel".equals(c)) {
+            if (args.length == 1) {
+                List<String> opts = new ArrayList<String>(Arrays.asList("accept"));
+                opts.addAll(onlineNames(""));
+                return filterPrefix(opts, args[0]);
+            }
+            if (args.length == 2) {
+                return filterPrefix(Arrays.asList("0", "5000", "15000", "50000", "100000", "500000"), args[1]);
+            }
         } else if ("gm".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("0", "1", "2", "3"), args[0]);
             if (args.length == 2) return onlineNames(args[1]);
@@ -937,14 +953,30 @@ public final class KingGriefCore extends JavaPlugin {
                     p.sendMessage(ColorUtil.c("&cСоперник вышел из игры."));
                     return true;
                 }
+                if (store.getActiveWagerDuel(p.getName()) != null || store.getActiveWagerDuel(ch.getName()) != null) {
+                    p.sendMessage(ColorUtil.c("&cОдин из игроков уже участвует в активной дуэли!"));
+                    return true;
+                }
+                double bet = Math.max(0.0, dr.bet);
+                if (bet > 0.0) {
+                    if (store.getCoins(ch.getName()) < bet || store.getCoins(p.getName()) < bet) {
+                        p.sendMessage(ColorUtil.c("&cУ одного из дуэлянтов недостаточно монет для ставки &e" + ColorUtil.fmtMoney(bet) + "$&c!"));
+                        return true;
+                    }
+                    store.takeCoins(ch.getName(), bet);
+                    store.takeCoins(p.getName(), bet);
+                    store.save();
+                }
+                store.startWagerDuel(ch.getName(), p.getName(), bet);
                 World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
                 ch.teleport(new Location(sw, 70.5, 100.0, -42.5, 0f, 0f));
                 p.teleport(new Location(sw, 71.5, 100.0, -40.5, 180f, 0f));
-                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Дуэль началась: &f" + ch.getName() + " &cvs &f" + p.getName() + " &7в Кабинке #1!"));
+                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Дуэль началась: &f" + ch.getName() + " &cvs &f" + p.getName()
+                        + (bet > 0.0 ? " &8[&#FFD740Банк: &a" + ColorUtil.fmtMoney(bet * 2.0) + "$&8]" : " &7в Кабинке #1") + "!"));
                 return true;
             }
             if (args.length < 1) {
-                p.sendMessage(ColorUtil.c("&eИспользование: &f/duel <ник> &7или &f/duel accept"));
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/duel <ник> [ставка$] &7или &f/duel accept"));
                 return true;
             }
             Player target = Bukkit.getPlayer(args[0]);
@@ -952,9 +984,30 @@ public final class KingGriefCore extends JavaPlugin {
                 p.sendMessage(ColorUtil.c("&cИгрок не найден!"));
                 return true;
             }
-            store.putDuelRequest(p, target, 0.0);
-            p.sendMessage(ColorUtil.c("&#00E676⚔ Вызов на дуэль отправлен игроку &f" + target.getName() + "&7!"));
-            target.sendMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вызывает вас на дуэль в Кабинку! Введите: &#00E676/duel accept"));
+            double bet = 0.0;
+            if (args.length >= 2) {
+                try { bet = Math.max(0.0, Double.parseDouble(args[1])); } catch (Exception ex) { bet = 0.0; }
+                if (bet > 0.0 && bet < 100.0) {
+                    p.sendMessage(ColorUtil.c("&cМинимальная ставка на дуэль — 100$ (или 0 для обычной дуэли)!"));
+                    return true;
+                }
+                if (bet > 0.0 && store.getCoins(p.getName()) < bet) {
+                    p.sendMessage(ColorUtil.c("&cУ вас недостаточно монет для ставки &e" + ColorUtil.fmtMoney(bet) + "$&c!"));
+                    return true;
+                }
+            }
+            store.putDuelRequest(p, target, bet);
+            p.sendMessage(ColorUtil.c("&#00E676⚔ Вызов на дуэль"
+                    + (bet > 0.0 ? " на ставку &a" + ColorUtil.fmtMoney(bet) + "$&#00E676" : "")
+                    + " отправлен игроку &f" + target.getName() + "&7!"));
+            TextComponent msg = new TextComponent(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вызывает вас на дуэль"
+                    + (bet > 0.0 ? " на ставку &a" + ColorUtil.fmtMoney(bet) + "$ " : " в Кабинку! ")));
+            TextComponent btn = new TextComponent(ColorUtil.c("&#00E676&l[ ⚔ ПРИНЯТЬ ДУЭЛЬ ]"));
+            btn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel accept"));
+            btn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    new ComponentBuilder(ColorUtil.c("&aНажмите, чтобы принять дуэль!")).create()));
+            msg.addExtra(btn);
+            target.spigot().sendMessage(msg);
             return true;
         }
 
@@ -1205,6 +1258,12 @@ public final class KingGriefCore extends JavaPlugin {
                 || "setspawn".equals(c) || "socialspy".equals(c)) {
             return handleExtraPowerCommands(p, c, args);
         }
+        if ("friend".equals(c)) {
+            return handleFriendTeamCommand(p, args);
+        }
+        if ("tc".equals(c)) {
+            return handleTeamChatCommand(p, args);
+        }
         if ("sb".equals(c)) {
             boolean en = store.toggleSb(p);
             hud.updatePlayerHud(p);
@@ -1212,16 +1271,19 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("near".equals(c)) {
-            if (ranks.getRank(p).weight < 35) {
+            if (ranks.getRank(p).weight < 35 && !"owner".equalsIgnoreCase(ranks.getRank(p).id)) {
                 p.sendMessage(ColorUtil.c("&cКоманда /near доступна с привилегии BUNNY (59₽)!"));
                 return true;
             }
             StringBuilder sb = new StringBuilder();
             for (Entity en : p.getNearbyEntities(150, 120, 150)) {
                 if (en instanceof Player && !en.equals(p) && !store.isVanished((Player) en)) {
-                    int dist = (int) p.getLocation().distance(en.getLocation());
+                    Player other = (Player) en;
+                    int dist = (int) p.getLocation().distance(other.getLocation());
+                    boolean ally = store.areTeammates(p.getName(), other.getName());
                     if (sb.length() > 0) sb.append("&7, ");
-                    sb.append("&f").append(en.getName()).append(" &e(").append(dist).append("м)");
+                    sb.append(ally ? "&#00E676[ТИМА] " : "&#FF5252⚔ ")
+                      .append("&f").append(other.getName()).append(" &e(").append(dist).append("м)");
                 }
             }
             p.sendMessage(ColorUtil.c("&#80D8FF📡 Игроки рядом (150м): " + (sb.length() == 0 ? "&7никого нет" : sb.toString())));
@@ -1229,7 +1291,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("hat".equals(c)) {
             ItemStack hand = p.getInventory().getItemInMainHand();
-            if (hand == null || hand.getType() == Material.AIR) {
+            if (hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
                 p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку!"));
                 return true;
             }
@@ -1241,7 +1303,14 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("ext".equals(c)) {
             p.setFireTicks(0);
-            p.sendMessage(ColorUtil.c("&#80D8FF💧 Вы потушили себя!"));
+            int teamExt = 0;
+            for (Entity en : p.getNearbyEntities(10, 5, 10)) {
+                if (en instanceof Player && store.areTeammates(p.getName(), ((Player) en).getName())) {
+                    ((Player) en).setFireTicks(0);
+                    teamExt++;
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#80D8FF💧 Вы потушили себя" + (teamExt > 0 ? " и &#00E676" + teamExt + " тиммейтов рядом" : "") + "!"));
             return true;
         }
 
@@ -2739,6 +2808,127 @@ public final class KingGriefCore extends JavaPlugin {
             store.setCustomSpawnLoc(p.getLocation());
             p.sendMessage(ColorUtil.c("&#00E676✔ Новая точка появления /spawn успешно установлена! (Сброс: /setspawn reset)"));
             return true;
+        }
+        return true;
+    }
+
+    // ================= СИСТЕМА ТИММЕЙТОВ И ДРУЗЕЙ (/tm, /friend, /friends, /tc) v6.0 =================
+    private boolean handleFriendTeamCommand(Player p, String[] args) {
+        if (args.length == 0 || "list".equalsIgnoreCase(args[0]) || "menu".equalsIgnoreCase(args[0])) {
+            guis.openTeammatesMenu(p);
+            return true;
+        }
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        if ("pvp".equals(sub) || "ff".equals(sub)) {
+            boolean on = store.toggleTeammatePvp(p.getName());
+            p.sendMessage(ColorUtil.c(on
+                    ? "&#FF5252⚔ Урон по вашим тиммейтам ВКЛЮЧЁН!"
+                    : "&#00E676🛡 Урон по вашим тиммейтам ОТКЛЮЧЁН (Защита активна)!"));
+            return true;
+        }
+        if ("accept".equals(sub) || "yes".equals(sub)) {
+            String fromKey = store.popTeammateInvite(p.getName(), args.length >= 2 ? args[1] : null);
+            if (fromKey == null) {
+                p.sendMessage(ColorUtil.c("&#FF5252✖ У вас нет активных приглашений в тиму!"));
+                return true;
+            }
+            Player inviter = Bukkit.getPlayerExact(fromKey);
+            String inviterDisp = inviter != null ? inviter.getName() : store.getStoredDisplayName(fromKey);
+            store.addMutualTeammates(p.getName(), inviterDisp);
+            ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.3f);
+            p.sendMessage(ColorUtil.c("&#00E676🤝 Вы приняли запрос! Игрок &f" + inviterDisp
+                    + " &#00E676теперь ваш ТИММЕЙТ (Божья Аура лечит вас обоих, чат: &f/tc <текст>&#00E676)!"));
+            if (inviter != null && inviter.isOnline()) {
+                ColorUtil.sound(inviter, "entity.player.levelup", 1.0f, 1.3f);
+                inviter.sendMessage(ColorUtil.c("&#00E676🤝 Игрок &f" + p.getName() + " &#00E676принял ваш запрос в тиму! Открыть тиму: &f/friends"));
+            }
+            return true;
+        }
+        if ("deny".equals(sub) || "no".equals(sub)) {
+            String fromKey = store.popTeammateInvite(p.getName(), args.length >= 2 ? args[1] : null);
+            if (fromKey == null) {
+                p.sendMessage(ColorUtil.c("&cНет активных приглашений в тиму."));
+                return true;
+            }
+            p.sendMessage(ColorUtil.c("&#FF5252✖ Приглашение в тиму отклонено."));
+            return true;
+        }
+        if ("remove".equals(sub) || "del".equals(sub) || "delete".equals(sub) || "unfriend".equals(sub)) {
+            if (args.length < 2) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/tm del <ник>"));
+                return true;
+            }
+            boolean removed = store.removeMutualTeammates(p.getName(), args[1]);
+            p.sendMessage(ColorUtil.c(removed
+                    ? "&#FF5252✖ Игрок &f" + args[1] + " &#FF5252удалён из списка тиммейтов."
+                    : "&cЭтот игрок не состоит с вами в тиме."));
+            return true;
+        }
+
+        // /tm add <nick> OR shorthand /tm <nick>
+        String targetNick = "add".equals(sub) || "invite".equals(sub)
+                ? (args.length >= 2 ? args[1] : null)
+                : args[0];
+        if (targetNick == null || targetNick.trim().isEmpty()) {
+            p.sendMessage(ColorUtil.c("&eИспользование: &f/tm <ник> &7(меню: &f/friends&7, урон: &f/tm pvp&7, чат: &f/tc&7)"));
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(targetNick);
+        if (target == null) target = Bukkit.getPlayer(targetNick);
+        if (target == null || !target.isOnline() || target.equals(p)) {
+            p.sendMessage(ColorUtil.c("&#FF5252✖ Укажите другого игрока онлайн!"));
+            return true;
+        }
+        if (store.isDirectTeammate(p.getName(), target.getName())) {
+            p.sendMessage(ColorUtil.c("&#00E676✔ Игрок &f" + target.getName() + " &#00E676уже состоит в вашей тиме! Меню: &f/friends"));
+            return true;
+        }
+        store.sendTeammateInvite(p.getName(), target.getName());
+        p.sendMessage(ColorUtil.c("&#00E676🤝 Приглашение в тиммейты отправлено игроку &f" + target.getName() + "&#00E676!"));
+
+        TextComponent line = new TextComponent(ColorUtil.c("&#00E676🤝 Игрок &#FFD740" + p.getName()
+                + " &#00E676приглашает вас в &lТИММЕЙТЫ &#80D8FF(общий хил Божьей Аурой + защита от урона)! "));
+        TextComponent acceptBtn = new TextComponent(ColorUtil.c("&#00E676&l[ ✔ ПРИНЯТЬ ] "));
+        acceptBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tm accept " + p.getName()));
+        acceptBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new ComponentBuilder(ColorUtil.c("&aСтать тиммейтами с " + p.getName())).create()));
+        TextComponent denyBtn = new TextComponent(ColorUtil.c("&#FF5252&l[ ✖ ОТКЛОНИТЬ ]"));
+        denyBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tm deny " + p.getName()));
+        denyBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new ComponentBuilder(ColorUtil.c("&cОтклонить приглашение")).create()));
+        line.addExtra(acceptBtn);
+        line.addExtra(denyBtn);
+        target.spigot().sendMessage(line);
+        ColorUtil.sound(target, "entity.experience_orb.pickup", 0.9f, 1.35f);
+        return true;
+    }
+
+    private boolean handleTeamChatCommand(Player p, String[] args) {
+        if (args.length < 1) {
+            p.sendMessage(ColorUtil.c("&eИспользование: &f/tc <сообщение для тиммейтов и клана>"));
+            return true;
+        }
+        boolean isOwner = "owner".equalsIgnoreCase(ranks.getRank(p).id);
+        if (!isOwner && (store.getMuteRemainingSec(p.getName()) > 0
+                || store.getIpMuteRemainingSec(store.getPlayerIp(p)) > 0)) {
+            p.sendMessage(ColorUtil.c("&#FF5252🔇 Вы в муте!"));
+            return true;
+        }
+        String text = String.join(" ", args);
+        String formatted = ColorUtil.c("&#00E676&l[ТИМА] &#FFD740" + p.getName() + " &8» &f") + text;
+        int delivered = 0;
+        p.sendMessage(formatted);
+        for (Player on : Bukkit.getOnlinePlayers()) {
+            if (!on.equals(p) && store.areTeammates(p.getName(), on.getName())) {
+                on.sendMessage(formatted);
+                ColorUtil.sound(on, "block.note_block.chime", 0.6f, 1.5f);
+                delivered++;
+            } else if (!on.equals(p) && store.isSocialSpy(on)) {
+                on.sendMessage(ColorUtil.c("&8[👁 Spy-TC] &7" + p.getName() + ": &f") + text);
+            }
+        }
+        if (delivered == 0) {
+            p.sendMessage(ColorUtil.c("&8(Сейчас никого из ваших тиммейтов нет онлайн — добавьте друга: &e/tm <ник>&8)"));
         }
         return true;
     }

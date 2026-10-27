@@ -36,15 +36,19 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityResurrectEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerVelocityEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -149,11 +153,13 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     private long autoBanDurationSec = 2592000L; // 30d
     private boolean setbackEnabled = true;
     private boolean microTwitchEnabled = true;
+    private boolean rayHitboxEnabled = true;
     private int maxAutobanPingMs = 420;
     private int reportCooldownSec = 25;
 
     private int sessionFlags = 0;
     private int sessionAutoBans = 0;
+    private int sessionAirHitsBlocked = 0;
 
     @Override
     public void onEnable() {
@@ -170,6 +176,21 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             }
         }
 
+        // Потиковая запись истории 3D хитбоксов (18 тиков = 900мс) для точного Raycast "в игрока, а не в воздух"!
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                long now = System.currentTimeMillis();
+                for (Player on : Bukkit.getOnlinePlayers()) {
+                    PlayerAcData d = data(on);
+                    d.pushBoxSnapshot(now, on.getBoundingBox());
+                    d.prevEyeVec = on.getEyeLocation().toVector();
+                    d.prevTickYaw = on.getLocation().getYaw();
+                    d.prevTickPitch = on.getLocation().getPitch();
+                }
+            }
+        }.runTaskTimer(this, 1L, 1L);
+
         // Gradual VL decay every 40s so rare lag spikes never result in false bans
         new BukkitRunnable() {
             @Override
@@ -181,6 +202,8 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                     if (d.microTwitchBuffer > 0) d.microTwitchBuffer = Math.max(0, d.microTwitchBuffer - 1);
                     if (d.gcdFailBuffer > 0) d.gcdFailBuffer = Math.max(0, d.gcdFailBuffer - 2);
                     if (d.wallHitBuffer > 0) d.wallHitBuffer = Math.max(0, d.wallHitBuffer - 1);
+                    if (d.airHitBuffer > 0) d.airHitBuffer = Math.max(0, d.airHitBuffer - 1);
+                    if (d.backtrackBuffer > 0) d.backtrackBuffer = Math.max(0, d.backtrackBuffer - 1);
                 }
                 long cutoff = System.currentTimeMillis() - 5000L;
                 for (Iterator<Map.Entry<String, Long>> it = recentBlockPlaces.entrySet().iterator(); it.hasNext(); ) {
@@ -190,10 +213,10 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         }.runTaskTimer(this, 800L, 800L);
 
         getLogger().info("==================================================================");
-        getLogger().info(" 🛡 KingАЧ v6.1 — НЕЙРО-АНТИЧИТ И ЗАЩИТА ОТ WALLHIT ЗАПУЩЕНЫ!     ");
-        getLogger().info(" ▸ 3D RayTrace Стены/Стекла Трапки + Инжект-Бот Сквозь Стены: ВКЛ ");
-        getLogger().info(" ▸ Сенсор Микро-Дёрганий Головой (Micro-Twitch + GCD + Snap): ВКЛ ");
-        getLogger().info(" ▸ Инжект-Бот 360° KillAura + HitBox/Reach + AutoTotem + Fly: ВКЛ ");
+        getLogger().info(" 🛡 KingАЧ v7.0 — ПРОФЕССИОНАЛЬНЫЙ НЕЙРО-АНТИЧИТ ЗАПУЩЕН!          ");
+        getLogger().info(" ▸ 3D Raycast Хитбокса (Блок ударов в воздух / HitBox / Backtrack)");
+        getLogger().info(" ▸ 3D RayTrace Стены/Трапки + Инжект-Бот Сквозь Стены + 360° Бот  ");
+        getLogger().info(" ▸ Сенсор Микро-Дёрганий Головой (GCD) + NoSwing + KeepSprint     ");
         getLogger().info(" ▸ Система жалоб (/report, /reports) + Авто-Бан 24/7: ВКЛ         ");
         getLogger().info("==================================================================");
     }
@@ -219,6 +242,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         this.autoBanDurationSec = Math.max(300L, getConfig().getLong("settings.auto-ban-duration-seconds", 2592000L));
         this.setbackEnabled = getConfig().getBoolean("settings.movement-setback-enabled", true);
         this.microTwitchEnabled = getConfig().getBoolean("settings.micro-head-twitch-check", true);
+        this.rayHitboxEnabled = getConfig().getBoolean("settings.ray-hitbox-air-block", true);
         this.maxAutobanPingMs = Math.max(150, getConfig().getInt("settings.max-autoban-ping-ms", 420));
         this.reportCooldownSec = Math.max(5, getConfig().getInt("settings.report-cooldown-seconds", 25));
     }
@@ -228,6 +252,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         getConfig().set("settings.auto-ban-vl", Integer.valueOf(autoBanVl));
         getConfig().set("settings.movement-setback-enabled", Boolean.valueOf(setbackEnabled));
         getConfig().set("settings.micro-head-twitch-check", Boolean.valueOf(microTwitchEnabled));
+        getConfig().set("settings.ray-hitbox-air-block", Boolean.valueOf(rayHitboxEnabled));
         saveConfig();
     }
 
@@ -402,6 +427,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
 
         PlayerAcData d = data(p);
         long now = System.currentTimeMillis();
+        d.pushBoxSnapshot(now, p.getBoundingBox());
 
         // -------- A. СЕНСОР ВРАЩЕНИЯ И МИКРО-ДЁРГАНИЙ ГОЛОВОЙ --------
         float signedDyaw = wrapAngle(to.getYaw() - d.lastYaw);
@@ -434,6 +460,10 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         double dz = to.getZ() - from.getZ();
         double dy = to.getY() - from.getY();
         double horiz = Math.hypot(dx, dz);
+        d.lastMoveHoriz = horiz;
+        if (horiz < 0.235 && d.keepSprintBuffer > 0) {
+            d.keepSprintBuffer = Math.max(0, d.keepSprintBuffer - 2);
+        }
 
         if (horiz > 8.5) {
             d.lastTeleportOrGlideMs = now;
@@ -743,6 +773,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
 
         PlayerAcData d = data(attacker);
         long now = System.currentTimeMillis();
+        long prevCombatMs = d.lastCombatMs;
         d.lastCombatMs = now;
 
         // Если игрок под усиленной слежкой после /report — сразу инжектим невидимого проверочного бота за спиной!
@@ -810,39 +841,64 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return;
         }
 
+        // 4B. KillAura [NoSwing / Пакетный Удар без Взмаха Руки]
+        if (victim instanceof Player && d.lastArmSwingMs > 0L && (now - d.lastArmSwingMs) > 290L) {
+            d.noSwingBuffer += 2;
+            if (d.noSwingBuffer >= 4) {
+                d.noSwingBuffer = 1;
+                e.setCancelled(true);
+                d.combatConfirmations += 2;
+                flag(attacker, "KillAura [Без Взмаха Руки]", "Пакет атаки без анимации взмаха руки", 5, false);
+                return;
+            }
+        } else if (d.noSwingBuffer > 0) {
+            d.noSwingBuffer--;
+        }
+
         // 5. Reach / HitBox (Точный 3D луч до BoundingBox с пинг-компенсацией)
         int ping = safePing(attacker);
         double maxReach = 3.38 + (attacker.getGameMode() == GameMode.CREATIVE ? 1.5 : 0.0) + Math.min(0.62, ping * 0.0024);
         double distToBox = distanceToBox(attacker.getEyeLocation().toVector(), victim.getBoundingBox());
         if (distToBox > maxReach) {
+            if (distToBox > maxReach + 0.25) {
+                e.setCancelled(true);
+            }
             d.reachBuffer += 2;
             if (d.reachBuffer >= 4) {
                 d.reachBuffer = 1;
-                if (distToBox > maxReach + 0.45) e.setCancelled(true);
+                e.setCancelled(true);
                 flag(attacker, "Reach / HitBox",
                         String.format(Locale.US, "Удар за %.2f бл. (лимит %.2f)", Double.valueOf(distToBox), Double.valueOf(maxReach)),
-                        3, true);
+                        4, true);
                 injectInvisibleDecoyProbe(attacker, d, now, false);
+                return;
             }
         } else if (d.reachBuffer > 0) {
             d.reachBuffer--;
         }
 
-        // 6. KillAura [Angle & 3D Voxel RayTrace WallHit + Through-Wall Inject-Bot]
-        Vector eyeDir = attacker.getEyeLocation().getDirection().normalize();
-        Vector toVictim = victim.getBoundingBox().getCenter().subtract(attacker.getEyeLocation().toVector());
-        if (toVictim.lengthSquared() > 0.35) {
-            double dot = eyeDir.dot(toVictim.clone().normalize());
-            double angleDeg = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, dot))));
-            if (angleDeg > 86.0 && distToBox > 1.30) {
-                e.setCancelled(true);
-                d.combatConfirmations++;
-                flag(attacker, "KillAura [Мимо Хитбокса]", "Удар под углом " + (int) angleDeg + "° мимо цели", 3, false);
-                injectInvisibleDecoyProbe(attacker, d, now, true);
+        // 6A. ТОЧНЫЙ 3D RAYCAST ХИТБОКСА: ПРОВЕРКА ЧТО ИГРОК БЬЁТ В ИГРОКА, А НЕ В ВОЗДУХ! (HitBox / SilentAura / Backtrack)
+        if (rayHitboxEnabled && victim instanceof Player) {
+            if (!verifyHitboxRayIntersection(attacker, d, (Player) victim, e, now, ping, distToBox)) {
+                return;
+            }
+        } else {
+            Vector eyeDir = attacker.getEyeLocation().getDirection().normalize();
+            Vector toVictim = victim.getBoundingBox().getCenter().subtract(attacker.getEyeLocation().toVector());
+            if (toVictim.lengthSquared() > 0.35) {
+                double dot = eyeDir.dot(toVictim.clone().normalize());
+                double angleDeg = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, dot))));
+                if (angleDeg > 78.0 && distToBox > 1.15) {
+                    e.setCancelled(true);
+                    d.combatConfirmations++;
+                    flag(attacker, "KillAura [Мимо Хитбокса]", "Удар под углом " + (int) angleDeg + "° мимо цели", 4, false);
+                    injectInvisibleDecoyProbe(attacker, d, now, true);
+                    return;
+                }
             }
         }
 
-        // ТОЧНЫЙ 13-ТОЧЕЧНЫЙ 3D RAYTRACE СКВОЗЬ СТЕНЫ / СТЕКЛО ТРАПКИ / ДВЕРИ / КАБИНКИ (от 0.15м до 6.0м!)
+        // 6B. ТОЧНЫЙ 13-ТОЧЕЧНЫЙ 3D RAYTRACE СКВОЗЬ СТЕНЫ / СТЕКЛО ТРАПКИ / ДВЕРИ / КАБИНКИ (от 0.15м до 6.0м!)
         Block wallBlock = findBlockingWallBetween(attacker, victim);
         if (wallBlock != null) {
             // МГНОВЕННО блокируем урон сквозь любую стену / трапку / пласт / стекло!
@@ -860,11 +916,25 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return;
         }
 
-        // 7. KillAura [MultiAura] (смена 2 разных целей быстрее 50мс)
-        if (d.lastTargetId != null && !d.lastTargetId.equals(victim.getUniqueId()) && (now - d.lastCombatMs) < 50L) {
+        // 7. KillAura [MultiAura] (смена 2 разных целей быстрее 45мс)
+        if (d.lastTargetId != null && !d.lastTargetId.equals(victim.getUniqueId()) && (now - prevCombatMs) < 45L) {
+            e.setCancelled(true);
             d.combatConfirmations++;
-            flag(attacker, "KillAura [Мульти-Аура]", "Переключение между 2 целями за <50мс", 3, false);
+            flag(attacker, "KillAura [Мульти-Аура]", "Переключение между 2 целями за <45мс", 4, false);
             injectInvisibleDecoyProbe(attacker, d, now, true);
+            return;
+        }
+
+        // 7B. KeepSprint [Бег при Атаке без ванильного замедления *0.6]
+        if (victim instanceof Player && attacker.isSprinting() && d.lastMoveHoriz > 0.278 && getPotionAmp(attacker, "SPEED") <= 1) {
+            d.keepSprintBuffer++;
+            if (d.keepSprintBuffer >= 7) {
+                d.keepSprintBuffer = 2;
+                d.combatConfirmations++;
+                flag(attacker, "KeepSprint [Бег при Атаке]", "Серия из 7 ударов без сброса спринта", 3, true);
+            }
+        } else if (d.keepSprintBuffer > 0) {
+            d.keepSprintBuffer--;
         }
 
         // 8. Criticals [Packet-Crit] (критический удар стоя на земле / с фейк-падением < 0.05)
@@ -919,6 +989,192 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 }
             }.runTaskLater(this, 7L);
         } catch (Throwable ignored) {}
+    }
+
+    /**
+     * ТОЧНЫЙ 3D RAYCAST ХИТБОКСА (Grim/Polar-уровень):
+     * Проверяет, что луч взгляда атакующего реально пересекает хитбокс жертвы (0.6×1.8×0.6)
+     * с учётом пинга (история позиций жертвы до 550мс) и порядка пакетов 1.8–1.21 (интерполяция камеры).
+     * Если игрок бьёт в ВОЗДУХ рядом с моделью игрока (HitBox / SilentAura / Air-Reg) — урон МГНОВЕННО отменяется!
+     */
+    private boolean verifyHitboxRayIntersection(Player attacker, PlayerAcData atkData, Player victim,
+                                                EntityDamageByEntityEvent e, long now, int ping, double distToBox) {
+        // Вплотную внутри одного блока (0.0..0.48м в углу трапки) модели пересекаются физически
+        if (distToBox <= 0.48) {
+            if (atkData.airHitBuffer > 0) atkData.airHitBuffer--;
+            return true;
+        }
+
+        PlayerAcData vicData = data(victim);
+        Vector curEye = attacker.getEyeLocation().toVector();
+        Vector prevEye = atkData.prevEyeVec != null ? atkData.prevEyeVec : curEye;
+
+        float curYaw = attacker.getLocation().getYaw();
+        float curPitch = attacker.getLocation().getPitch();
+        float oldYaw = atkData.prevTickYaw != 0f ? atkData.prevTickYaw : atkData.lastYaw;
+        float oldPitch = atkData.prevTickPitch != 0f ? atkData.prevTickPitch : atkData.lastPitch;
+        float dYaw = wrapAngle(curYaw - oldYaw);
+        float dPitch = curPitch - oldPitch;
+
+        Vector[] rayDirs = new Vector[]{
+                directionFromYawPitch(curYaw, curPitch),
+                directionFromYawPitch(oldYaw, oldPitch),
+                directionFromYawPitch(oldYaw + dYaw * 0.50f, oldPitch + dPitch * 0.50f),
+                directionFromYawPitch(oldYaw + dYaw * 0.25f, oldPitch + dPitch * 0.25f),
+                directionFromYawPitch(oldYaw + dYaw * 0.75f, oldPitch + dPitch * 0.75f)
+        };
+        Vector[] origins = curEye.distanceSquared(prevEye) > 0.002
+                ? new Vector[]{curEye, prevEye}
+                : new Vector[]{curEye};
+
+        long maxRewindMs = Math.min(560L, Math.max(150L, (long) ping + 145L));
+        double minMissRecent = minRayMissForBox(origins, rayDirs, victim.getBoundingBox(), 6.3);
+        double minMissWindow = minMissRecent;
+
+        for (PlayerAcData.BoxSnapshot snap : vicData.boxHistory) {
+            long age = now - snap.timeMs;
+            if (age < 0L || age > maxRewindMs) continue;
+            double m = minRayMissForBox(origins, rayDirs, snap.box, 6.3);
+            if (m < minMissWindow) minMissWindow = m;
+            if (age <= 145L && m < minMissRecent) minMissRecent = m;
+            if (minMissWindow <= 0.0) break;
+        }
+
+        // Ванильный допуск хитбокса (0.10 для 1.8/ViaVersion + 0.13 субтиковая интерполяция клиента + компенсация пинга)
+        double allowedMargin = 0.23 + Math.min(0.10, ping * 0.0005);
+
+        if (minMissWindow <= allowedMargin) {
+            // Проверка на Backtrack: при низком пинге (<115мс) бьёт в пустое место, где враг был 300-550мс назад!
+            if (ping < 115 && minMissRecent > 0.75 && distToBox > 1.45) {
+                atkData.backtrackBuffer += 2;
+                if (atkData.backtrackBuffer >= 5) {
+                    atkData.backtrackBuffer = 1;
+                    e.setCancelled(true);
+                    atkData.combatConfirmations += 2;
+                    flag(attacker, "Backtrack [Задержка Хитбокса]",
+                            String.format(Locale.US, "Удар по старой позиции (промах %.2f бл. при %dмс)", Double.valueOf(minMissRecent), Integer.valueOf(ping)),
+                            4, true);
+                    return false;
+                }
+            } else if (atkData.backtrackBuffer > 0) {
+                atkData.backtrackBuffer--;
+            }
+
+            if (atkData.airHitBuffer > 0) atkData.airHitBuffer--;
+            return true;
+        }
+
+        // ИГРОК УДАРИЛ В ВОЗДУХ МИМО МОДЕЛИ ИГРОКА -> ОТМЕНЯЕМ РЕГИСТРАЦИЮ УДАРА!
+        e.setCancelled(true);
+        atkData.totalAirHitsBlocked++;
+        sessionAirHitsBlocked++;
+
+        int addBuf = minMissWindow > 0.60 ? 3 : 2;
+        atkData.airHitBuffer += addBuf;
+        if (atkData.airHitBuffer >= 3) {
+            atkData.airHitBuffer = 1;
+            atkData.combatConfirmations += 2;
+            int vl = minMissWindow > 0.85 ? 6 : 5;
+            flag(attacker, "HitBox / SilentAura [Удар в Воздух]",
+                    String.format(Locale.US, "Бил в воздух мимо игрока на %.2f бл. (не регнуло!)", Double.valueOf(minMissWindow)),
+                    vl, false);
+            injectInvisibleDecoyProbe(attacker, atkData, now, true);
+        }
+        return false;
+    }
+
+    private static double minRayMissForBox(Vector[] origins, Vector[] dirs, BoundingBox box, double maxDist) {
+        double best = 999.0;
+        for (int oi = 0; oi < origins.length; oi++) {
+            Vector orig = origins[oi];
+            if (box.contains(orig)) return 0.0;
+            for (int di = 0; di < dirs.length; di++) {
+                double d = rayMissDistanceToBox(orig, dirs[di], box, maxDist);
+                if (d <= 0.0) return 0.0;
+                if (d < best) best = d;
+            }
+        }
+        return best;
+    }
+
+    private static double rayMissDistanceToBox(Vector origin, Vector unitDir, BoundingBox box, double maxDist) {
+        if (box.rayTrace(origin, unitDir, maxDist) != null) {
+            return 0.0;
+        }
+        // Выпуклый тернарный поиск точного минимума расстояния от луча O + t*D до 3D AABB (точность < 2 мм за 14 шагов)
+        double lo = 0.0;
+        double hi = maxDist;
+        for (int iter = 0; iter < 14; iter++) {
+            double m1 = lo + (hi - lo) / 3.0;
+            double m2 = hi - (hi - lo) / 3.0;
+            double d1 = distSqPointToBox(
+                    origin.getX() + unitDir.getX() * m1,
+                    origin.getY() + unitDir.getY() * m1,
+                    origin.getZ() + unitDir.getZ() * m1, box);
+            double d2 = distSqPointToBox(
+                    origin.getX() + unitDir.getX() * m2,
+                    origin.getY() + unitDir.getY() * m2,
+                    origin.getZ() + unitDir.getZ() * m2, box);
+            if (d1 < d2) {
+                hi = m2;
+            } else {
+                lo = m1;
+            }
+        }
+        double mid = (lo + hi) * 0.5;
+        double minSq = distSqPointToBox(
+                origin.getX() + unitDir.getX() * mid,
+                origin.getY() + unitDir.getY() * mid,
+                origin.getZ() + unitDir.getZ() * mid, box);
+        return Math.sqrt(Math.max(0.0, minSq));
+    }
+
+    private static double distSqPointToBox(double px, double py, double pz, BoundingBox box) {
+        double cx = Math.max(box.getMinX(), Math.min(px, box.getMaxX()));
+        double cy = Math.max(box.getMinY(), Math.min(py, box.getMaxY()));
+        double cz = Math.max(box.getMinZ(), Math.min(pz, box.getMaxZ()));
+        double dx = px - cx;
+        double dy = py - cy;
+        double dz = pz - cz;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private static Vector directionFromYawPitch(float yawDeg, float pitchDeg) {
+        double yawRad = Math.toRadians(yawDeg);
+        double pitchRad = Math.toRadians(pitchDeg);
+        double xz = Math.cos(pitchRad);
+        return new Vector(-xz * Math.sin(yawRad), -Math.sin(pitchRad), xz * Math.cos(yawRad));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onArmSwing(PlayerAnimationEvent e) {
+        if (e.getAnimationType() == PlayerAnimationType.ARM_SWING) {
+            data(e.getPlayer()).lastArmSwingMs = System.currentTimeMillis();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBowShootInspect(EntityShootBowEvent e) {
+        if (!(e.getEntity() instanceof Player)) return;
+        Player p = (Player) e.getEntity();
+        if (isExempt(p)) return;
+        PlayerAcData d = data(p);
+        long now = System.currentTimeMillis();
+        if (e.getBow() != null && e.getBow().getType() == Material.BOW
+                && d.bowDrawStartMs > 0L && e.getForce() >= 0.94f && (now - d.bowDrawStartMs) < 460L) {
+            e.setCancelled(true);
+            d.combatConfirmations += 2;
+            flag(p, "FastBow [Пакетный Лук]", "Полный натяг лука за " + (now - d.bowDrawStartMs) + "мс", 5, false);
+        }
+        d.bowDrawStartMs = 0L;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onServerVelocityGrace(PlayerVelocityEvent e) {
+        PlayerAcData d = data(e.getPlayer());
+        d.lastTeleportOrGlideMs = System.currentTimeMillis();
+        d.airHoverTicks = 0;
+        d.speedBuffer = 0;
     }
 
     /**
@@ -1053,8 +1309,12 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWallSwingInspect(PlayerInteractEvent e) {
-        if (e.getAction() != Action.LEFT_CLICK_BLOCK && e.getAction() != Action.LEFT_CLICK_AIR) return;
         Player p = e.getPlayer();
+        if ((e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK)
+                && e.getItem() != null && e.getItem().getType() == Material.BOW) {
+            data(p).bowDrawStartMs = System.currentTimeMillis();
+        }
+        if (e.getAction() != Action.LEFT_CLICK_BLOCK && e.getAction() != Action.LEFT_CLICK_AIR) return;
         if (isExempt(p)) return;
         PlayerAcData d = data(p);
         long now = System.currentTimeMillis();
@@ -1582,6 +1842,14 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 "&7при детекте Fly / Speed / Jesus / NoSlow!",
                 "", "&#80D8FF▸ Нажмите для переключения"));
 
+        inv.setItem(51, makeIcon(rayHitboxEnabled ? Material.SPECTRAL_ARROW : Material.GRAY_DYE,
+                "&#FF1744&l🎯 Анти-Хитбокс (Удар в Игрока): " + (rayHitboxEnabled ? "&#00E676&lВКЛЮЧЁН" : "&#FF5252&lВЫКЛЮЧЕН"),
+                "&73D Raycast проверяет, что прицел смотрит в модель игрока!",
+                "&7Если читер бьёт в воздух (HitBox / SilentAura) —",
+                "&7удар НЕ регает + срабатывает детект KingАЧ!",
+                "&7Заблокировано ударов в воздух: &#FFD740" + sessionAirHitsBlocked,
+                "", "&#80D8FF▸ Нажмите для переключения"));
+
         boolean alertsOn = !mutedAlertsStaff.contains(viewer.getUniqueId());
         inv.setItem(53, makeIcon(alertsOn ? Material.BELL : Material.BARRIER,
                 "&#FFD740&l🔔 Ваши Уведомления: " + (alertsOn ? "&#00E676&lВКЛ" : "&e&lСКРЫТЫ"),
@@ -1754,6 +2022,17 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 openMainControlGui(p);
                 return;
             }
+            if (slot == 51) {
+                if (!isAdminController(p)) {
+                    p.sendMessage(c("&#FF1744✖ Переключать глобальные модули KingАЧ может только ст. администрация / OWNER!"));
+                    return;
+                }
+                rayHitboxEnabled = !rayHitboxEnabled;
+                persistSettingsToConfig();
+                playSound(p, "ui.button.click", 0.9f, 1.2f);
+                openMainControlGui(p);
+                return;
+            }
             if (slot == 53) {
                 if (mutedAlertsStaff.contains(p.getUniqueId())) mutedAlertsStaff.remove(p.getUniqueId());
                 else mutedAlertsStaff.add(p.getUniqueId());
@@ -1892,7 +2171,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
 
         // -------- /kingac (/kac, /kas, /ач) --------
         if ((sender instanceof Player) && !isStaffMember((Player) sender)) {
-            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v6.0] &fНейро-античит активен 24/7! Пожаловаться на софт: &#FFD740/report <ник>"));
+            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v7.0] &fНейро-античит активен 24/7 (3D Raycast Хитбокса + Анти-Стены)! Пожаловаться: &#FFD740/report <ник>"));
             return true;
         }
 
@@ -1900,7 +2179,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             if (sender instanceof Player) {
                 openMainControlGui((Player) sender);
             } else {
-                sender.sendMessage("[KingАЧ v6.0] Флагов: " + sessionFlags + " | Авто-банов: " + sessionAutoBans + " | Жалоб: " + activeReports.size());
+                sender.sendMessage("[KingАЧ v7.0] Флагов: " + sessionFlags + " | Отменено ударов в воздух: " + sessionAirHitsBlocked + " | Авто-банов: " + sessionAutoBans + " | Жалоб: " + activeReports.size());
             }
             return true;
         }
@@ -1939,10 +2218,11 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 return true;
             }
             PlayerAcData d = data(t);
-            sender.sendMessage(c("&#FF1744&l🛡 Досье KingАЧ на &#FFD740" + t.getName() + "&f:"));
+            sender.sendMessage(c("&#FF1744&l🛡 Досье KingАЧ v7.0 на &#FFD740" + t.getName() + "&f:"));
             sender.sendMessage(c(" &7Уровень нарушений: &e" + d.totalVl + "/" + autoBanVl + " VL &8│ &7Пинг: &a" + safePing(t) + " мс"));
-            sender.sendMessage(c(" &7Индекс микро-дёрганий головы: &#00E5FF" + d.maxMicroTwitchScore + "/15 &8│ &7Жалоб: &#FF4081" + d.reporters.size()));
-            sender.sendMessage(c(" &7Последний детект: &f" + d.lastCheat));
+            sender.sendMessage(c(" &7Ударов в воздух отменено (Air-Hit): &#FF5252" + d.totalAirHitsBlocked
+                    + " &8│ &7Индекс микро-дёрганий: &#00E5FF" + d.maxMicroTwitchScore + "/15"));
+            sender.sendMessage(c(" &7Жалоб: &#FF4081" + d.reporters.size() + " &8│ &7Последний детект: &f" + d.lastCheat));
             return true;
         }
 

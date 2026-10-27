@@ -191,6 +191,14 @@ public final class GuiManager {
                 "&7Катана Сакуры, Меч Зевса, Фламберг Феникса,",
                 "&7Астральный Меч Бездны, Экскалибур Мидаса!"));
 
+        inv.setItem(46, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#00E676&l🤝 Тиммейты и Пати (/tm)",
+                "&7Добавь друзей в тиму без клана: &f/tm <ник>",
+                "&7Божья Аура лечит всю тиму + защита от урона!",
+                "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
+        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.0",
+                "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
+                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.0"));
+
         if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
             inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
                     "&7Выдача ролей КП, Медиа и Донатов,",
@@ -481,6 +489,7 @@ public final class GuiManager {
         inv.setItem(42, shopTag(ItemFactory.swordDracula(),   320));
         inv.setItem(43, shopTag(ItemFactory.swordKrush(),     420));
 
+        inv.setItem(45, shopTag(ItemFactory.teamTotem(2),      70));
         inv.setItem(46, shopTag(ItemFactory.orbRecall(2),      65));
         inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
@@ -491,6 +500,8 @@ public final class GuiManager {
                 "&76 сетов брони с Закалкой ×2, Луки и ТНТ!"));
         inv.setItem(51, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ Оружейная 12 3D Мечей (/swords)",
                 "&7Открой все 12 кастомных 3D Мечей v5.9!"));
+        inv.setItem(52, shopTag(ItemFactory.swapOrb(4),        60));
+        inv.setItem(53, shopTag(ItemFactory.grapplingHook(),   95));
         p.openInventory(inv);
     }
 
@@ -658,6 +669,14 @@ public final class GuiManager {
             items.add(ItemFactory.gravSfera(2));         costs.add(Integer.valueOf(19500));
             items.add(ItemFactory.snegZavesa(2));        costs.add(Integer.valueOf(16000));
             items.add(ItemFactory.orbRecall(1));         costs.add(Integer.valueOf(24000));
+            items.add(ItemFactory.teamTotem(1));         costs.add(Integer.valueOf(26000));
+            items.add(ItemFactory.battleAdrenaline(2));  costs.add(Integer.valueOf(19000));
+            items.add(ItemFactory.swapOrb(2));           costs.add(Integer.valueOf(21000));
+            items.add(ItemFactory.iceDome(2));           costs.add(Integer.valueOf(22500));
+            items.add(ItemFactory.vampirePulse(2));      costs.add(Integer.valueOf(20000));
+            items.add(ItemFactory.empShock(2));          costs.add(Integer.valueOf(18500));
+            items.add(ItemFactory.smokeBomb(2));         costs.add(Integer.valueOf(17500));
+            items.add(ItemFactory.grapplingHook());      costs.add(Integer.valueOf(48000));
         } else if ("food".equals(c)) {
             items.add(new ItemStack(Material.GOLDEN_CARROT, 64));          costs.add(Integer.valueOf(2500));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));            costs.add(Integer.valueOf(3500));
@@ -734,7 +753,11 @@ public final class GuiManager {
             items.add(new ItemStack(Material.OAK_LOG, 64));                costs.add(Integer.valueOf(1600));
         }
 
-        int[] slots = new int[]{10,11,12,13,14,15,16,19,20,21,22,23,24,25};
+        int[] slots = new int[]{
+                10,11,12,13,14,15,16,
+                19,20,21,22,23,24,25,
+                28,29,30,31,32,33,34
+        };
         for (int i = 0; i < items.size() && i < slots.length; i++) {
             ItemStack tagged = coinShopTag(items.get(i), costs.get(i).intValue());
             ItemMeta m = tagged.getItemMeta();
@@ -1003,6 +1026,68 @@ public final class GuiManager {
             inv.setItem(slot++, ItemFactory.glowIcon(Material.PLAYER_HEAD, "&#FF5252🎯 Цель: &f" + en.getKey(),
                     "&7Награда за убийство: &a" + ColorUtil.fmtMoney(en.getValue().doubleValue()) + "$",
                     "&7Статус: " + (Bukkit.getPlayerExact(en.getKey()) != null ? "&#00E676В сети!" : "&7Не в сети")));
+        }
+        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    // ================= 6B-TEAM. МЕНЮ ТИММЕЙТОВ И ПАТИ (/friends, /tm list) v6.0 =================
+    public void openTeammatesMenu(Player p) {
+        List<String> keys = plugin.getStore().getTeammateKeys(p.getName());
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("teammates", "", 0), 45,
+                ColorUtil.c("&#00E676&l🤝 ВАШИ ТИММЕЙТЫ (" + keys.size() + ")"));
+        decorateFrame(inv);
+        boolean ff = plugin.getStore().isTeammatePvpEnabled(p.getName());
+        inv.setItem(4, ItemFactory.glowIcon(ff ? Material.RED_DYE : Material.LIME_DYE,
+                "&#FFD740&l⚔ Урон по тиммейтам: " + (ff ? "&#FF5252&lВКЛЮЧЁН" : "&#00E676&lОТКЛЮЧЁН (Защита!)"),
+                "&7Тиммейты получают исцеление от вашей &eБожьей Ауры&7,",
+                "&7&aТотема Спасения&7, &6Адреналина &7и &cИмпульса Вампира&7!",
+                "&7Добавить друга в тиму: &#00E676/tm <ник> &8│ &7Чат тимы: &#80D8FF/tc <текст>",
+                "", "&#FFD740▸ Нажмите ЛКМ для переключения урона (/tm pvp)"));
+
+        int[] slots = new int[]{
+                10,11,12,13,14,15,16,
+                19,20,21,22,23,24,25,
+                28,29,30,31,32,33,34
+        };
+        int idx = 0;
+        for (String tk : keys) {
+            if (idx >= slots.length) break;
+            String disp = plugin.getStore().getStoredDisplayName(tk);
+            Player online = Bukkit.getPlayerExact(disp);
+            List<String> lore = new ArrayList<String>();
+            if (online != null && online.isOnline()) {
+                String distStr = online.getWorld().equals(p.getWorld())
+                        ? ((int) online.getLocation().distance(p.getLocation()) + " м")
+                        : ("Мир: " + online.getWorld().getName());
+                lore.add("&7Статус: &#00E676● В сети");
+                lore.add("&7Здоровье: &#FF5252" + String.format(Locale.US, "%.1f❤", Double.valueOf(online.getHealth() / 2.0)));
+                lore.add("&7Дистанция: &#80D8FF" + distStr);
+                lore.add("");
+                lore.add("&#00E676▸ ЛКМ — Отправить /tpa к тиммейту");
+                lore.add("&#FF5252▸ Shift+ПКМ — Удалить из тиммейтов");
+            } else {
+                lore.add("&7Статус: &8○ Не в сети");
+                lore.add("");
+                lore.add("&#FF5252▸ Shift+ПКМ — Удалить из тиммейтов");
+            }
+            ItemStack head = ItemFactory.make(
+                    online != null ? Material.PLAYER_HEAD : Material.SKELETON_SKULL,
+                    1,
+                    (online != null ? "&#00E676🤝 " : "&7🤝 ") + disp,
+                    lore, online != null, "tm_" + tk, null, 0);
+            if (online != null && head.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta) {
+                org.bukkit.inventory.meta.SkullMeta sm = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
+                sm.setOwningPlayer(online);
+                head.setItemMeta(sm);
+            }
+            inv.setItem(slots[idx++], head);
+        }
+        if (keys.isEmpty()) {
+            inv.setItem(22, ItemFactory.glowIcon(Material.EMERALD, "&#00E676&lУ вас пока нет тиммейтов!",
+                    "&7Пригласите друга командой: &#FFD740/tm <ник>",
+                    "&7Соклановцы (/clan) также автоматически считаются",
+                    "&7тиммейтами для &eБожьей Ауры &7и командных баффов!"));
         }
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -1745,6 +1830,8 @@ public final class GuiManager {
             else if (slot == 41) openBountyMenu(p);
             else if (slot == 42) openFreebieMenu(p);
             else if (slot == 43) openSwordsMenu(p);
+            else if (slot == 46) openTeammatesMenu(p);
+            else if (slot == 52) openCoinShopCat(p, "pvp");
             else if (slot == 47 && plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) plugin.getCurator().openMainCuratorGui(p, "");
             else if (slot == 48 && plugin.getLp().hasLpAccess(p)) { p.closeInventory(); plugin.getOwnerGiveaway().openRazdachaMainGui(p); }
             else if (slot == 49 && plugin.getLp().hasLpAccess(p)) openLpGroupsGui(p, 0);
@@ -1775,6 +1862,27 @@ public final class GuiManager {
             handlePlastSkinClick(p, clicked, e.getClick());
         } else if ("bounty".equals(type)) {
             if (slot == 40) openMainMenu(p);
+        } else if ("teammates".equals(type)) {
+            if (slot == 40) { openMainMenu(p); return; }
+            if (slot == 4) {
+                plugin.getStore().toggleTeammatePvp(p.getName());
+                ColorUtil.sound(p, "ui.button.click", 0.9f, 1.2f);
+                openTeammatesMenu(p);
+                return;
+            }
+            String cid = ItemFactory.getCustomId(clicked);
+            if (cid != null && cid.startsWith("tm_")) {
+                String tk = cid.substring(3);
+                String disp = plugin.getStore().getStoredDisplayName(tk);
+                if (e.getClick() == ClickType.SHIFT_RIGHT) {
+                    plugin.getStore().removeMutualTeammates(p.getName(), tk);
+                    p.sendMessage(ColorUtil.c("&#FF5252✖ Игрок &f" + disp + " &#FF5252удалён из ваших тиммейтов."));
+                    openTeammatesMenu(p);
+                } else {
+                    p.closeInventory();
+                    p.performCommand("tpa " + disp);
+                }
+            }
         } else if ("bafovar".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             handleBafovarClick(p, slot);
@@ -2132,7 +2240,10 @@ public final class GuiManager {
             case 41: reward = ItemFactory.pickDjamshut(); cost = 340; break;
             case 42: reward = ItemFactory.swordDracula(); cost = 320; break;
             case 43: reward = ItemFactory.swordKrush(); cost = 420; break;
+            case 45: reward = ItemFactory.teamTotem(2); cost = 70; break;
             case 46: reward = ItemFactory.orbRecall(2); cost = 65; break;
+            case 52: reward = ItemFactory.swapOrb(4); cost = 60; break;
+            case 53: reward = ItemFactory.grapplingHook(); cost = 95; break;
             default: return;
         }
         if (!plugin.getStore().takeRelics(p, cost)) {

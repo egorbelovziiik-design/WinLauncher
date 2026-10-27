@@ -1,11 +1,11 @@
 name: KingAC
 prefix: KingАЧ
-version: 6.1.0
+version: 7.0.0
 main: net.kinggrief.kingac.KingAcPlugin
 api-version: '1.21'
 softdepend: [KingGriefCore]
 author: KINGGRIEF
-description: KingАЧ v6.1 — Топовый Античит (3D RayTrace ударов через стены + Инжект-Бот сквозь стены, Детект микро-дёрганий головой, GCD Aim, 360° Inject-Probe, HitBox/Reach, AutoTotem, Fly/Speed/NoSlow, /report и Авто-Бан 24/7)
+description: KingАЧ v7.0 — Профессиональный Нейро-Античит (Точный 3D Raycast Хитбокса: Блокировка ударов в воздух / HitBox / SilentAura / Backtrack, 3D RayTrace Стены + Инжект Через Стены, NoSwing, KeepSprint, FastBow, Micro-Twitch GCD и Авто-Бан 24/7)
 
 commands:
   kingac:
