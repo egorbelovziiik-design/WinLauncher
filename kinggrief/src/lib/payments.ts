@@ -91,7 +91,7 @@ export function siteUrl() {
 }
 
 export type InitPayment = {
-  provider: ProviderId;
+  provider: string;
   providerPaymentId: string;
   url: string;
   demo: boolean;
