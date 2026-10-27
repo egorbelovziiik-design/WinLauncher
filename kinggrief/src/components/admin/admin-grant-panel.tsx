@@ -528,6 +528,9 @@ export function AdminGrantPanel({
           <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
             <Download size={12} /> Мост (.jar)
           </a>
+          <a href="/KingClear.jar" download className="btn btn-ghost btn-sm" title="Скачать отдельный плагин очистки инвентаря KingClear.jar (/clear, /ci, /clear inv, /clear trash, /clear gui, /clear undo)">
+            <Download size={12} /> KingClear (.jar)
+          </a>
           <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm" title="Скачать архив Сайта и Веб Админ-Панели v5.9">
             <Download size={12} /> Админ-Панель (.zip)
           </a>

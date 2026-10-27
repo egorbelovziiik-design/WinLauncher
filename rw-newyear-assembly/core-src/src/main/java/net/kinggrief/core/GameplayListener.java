@@ -3014,6 +3014,11 @@ public final class GameplayListener implements Listener {
                 it.remove();
             }
         }
+        if (Bukkit.getPluginManager().getPlugin("KingClear") != null) {
+            e.getCommands().add("clear");
+            e.getCommands().add("ci");
+            e.getCommands().add("clearinv");
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

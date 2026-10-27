@@ -1,0 +1,5 @@
+# KingClear v1.0 — Плагин быстрой и безопасной очистки инвентаря (/clear)
+pvp-combat-tag-seconds: 15
+undo-expire-seconds: 30
+keep-spawn-menu-star: true
+cooldown-seconds: 2

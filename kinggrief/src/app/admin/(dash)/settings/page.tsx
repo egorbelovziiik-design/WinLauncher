@@ -116,6 +116,9 @@ export default async function AdminSettingsPage() {
           <a href="/King_antisoft.jar" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Античит King_antisoft.jar
           </a>
+          <a href="/KingClear.jar" download className="btn btn-ghost btn-sm">
+            <Download size={13} /> Очистка инвентаря KingClear.jar (/clear)
+          </a>
           <a href="/kinggrief-mega-rp.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Мега-РП v5.9 (kinggrief-mega-rp.zip)
           </a>

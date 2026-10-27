@@ -1,0 +1,21 @@
+name: KingClear
+version: 1.0.0
+main: net.kinggrief.clear.KingClearPlugin
+api-version: '1.21'
+author: KINGGRIEF
+softdepend: [KingGriefCore]
+description: Standalone & KINGGRIEF-ready /clear inventory cleaner plugin (Full, Slots-only, Trash-only, Hand, GUI & 30s Undo + PvP Anti-Abuse)
+
+commands:
+  clear:
+    aliases: [ci, clearinv, clearinventory, cleaninv]
+    description: Очистить свой инвентарь (/clear, /clear inv, /clear trash, /clear hand, /clear gui, /clear undo)
+    permission: kingclear.use
+
+permissions:
+  kingclear.use:
+    description: Позволяет очищать собственный инвентарь командой /clear
+    default: true
+  kingclear.others:
+    description: Позволяет очищать инвентарь других игроков (/clear <ник>)
+    default: op
