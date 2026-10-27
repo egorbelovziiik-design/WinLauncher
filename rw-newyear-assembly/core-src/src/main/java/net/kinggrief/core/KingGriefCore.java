@@ -2077,6 +2077,10 @@ public final class KingGriefCore extends JavaPlugin {
         if ("mute".equals(c)) {
             store.mute(target, 1800_000L, reason);
             Bukkit.broadcastMessage(ColorUtil.c("&#FF5252🔇 &f" + staff.getName() + " &7выдал мут &f" + target + " &7на 30м (" + reason + ")"));
+            Player mt = Bukkit.getPlayerExact(target);
+            if (mt != null && mt.isOnline() && moderation != null) {
+                moderation.playSantaTapeMuteAnimation(mt, "30 мин.", reason);
+            }
         } else if ("kick".equals(c)) {
             Player t = Bukkit.getPlayerExact(target);
             if (t != null) t.kickPlayer(ColorUtil.c("&cВы кикнуты: &f" + reason));

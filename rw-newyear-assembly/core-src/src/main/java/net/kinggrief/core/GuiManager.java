@@ -301,23 +301,26 @@ public final class GuiManager {
         };
         int start = pg * slots.length;
         long now = System.currentTimeMillis();
+        boolean isOwnerViewer = myRank != null && "owner".equalsIgnoreCase(myRank.id);
         for (int i = 0; i < slots.length && (start + i) < ALL_KITS.length; i++) {
             String[] kd = ALL_KITS[start + i];
             String kid = kd[0];
             String kTitle = kd[1];
             Material mat = ColorUtil.mat(kd[2], "CHEST");
             long cdSec = Long.parseLong(kd[3]);
-            boolean allowed = plugin.getRanks().canClaimKit(p, kid);
-            long readyAt = plugin.getStore().getKitReadyAt(p.getName(), kid);
+            boolean allowed = isOwnerViewer || plugin.getRanks().canClaimKit(p, kid);
+            long readyAt = isOwnerViewer ? 0L : plugin.getStore().getKitReadyAt(p.getName(), kid);
             RankManager.RankDef reqDef = plugin.getRanks().byId(kid);
 
             List<String> lore = new ArrayList<String>();
             lore.add("&8Богатый набор ресурсов ReallyWorld");
-            lore.add("&7Кулдаун: &f" + ColorUtil.fmtTime(cdSec));
+            lore.add(isOwnerViewer ? "&7Кулдаун: &#00E676Без КД (OWNER ∞)" : "&7Кулдаун: &f" + ColorUtil.fmtTime(cdSec));
             lore.add("");
             if (allowed) {
-                if (now >= readyAt) {
-                    lore.add("&#00E676✔ ДОСТУПНО ВАШЕЙ ПРИВИЛЕГИИ!");
+                if (isOwnerViewer || now >= readyAt) {
+                    lore.add(isOwnerViewer
+                            ? "&#00E676✔ БЕЗ КД — БЕРИТЕ СКОЛЬКО ХОТИТЕ!"
+                            : "&#00E676✔ ДОСТУПНО ВАШЕЙ ПРИВИЛЕГИИ!");
                     lore.add("&#00E676▸ ЛКМ — Забрать кит сейчас");
                 } else {
                     lore.add("&#FFD740⏳ Перезарядка: " + ColorUtil.fmtTime((readyAt - now) / 1000L));
@@ -396,7 +399,8 @@ public final class GuiManager {
             }
         }
 
-        boolean isHighAdmin = fromConsole || (!"owner".equals(k) && senderRank != null && senderRank.weight >= 160);
+        boolean isOwnerSender = fromConsole || (senderRank != null && "owner".equalsIgnoreCase(senderRank.id));
+        boolean isHighAdmin = isOwnerSender || (!"owner".equals(k) && senderRank != null && senderRank.weight >= 160);
 
         if (!isHighAdmin && sp != null) {
             if (!plugin.getRanks().canClaimKit(sp, k)) {
@@ -676,6 +680,8 @@ public final class GuiManager {
             items.add(ItemFactory.bowVampire());                           costs.add(Integer.valueOf(225000));
             items.add(ItemFactory.maceKrush());                            costs.add(Integer.valueOf(360000));
             items.add(ItemFactory.tridentPoseidon());                      costs.add(Integer.valueOf(295000));
+            items.add(ItemFactory.bookArmorUnbreaking6(1));                costs.add(Integer.valueOf(35000));
+            items.add(ItemFactory.bookArmorUnbreaking7(1));                costs.add(Integer.valueOf(75000));
         } else if ("raid".equals(c)) {
             items.add(new ItemStack(Material.OBSIDIAN, 64));               costs.add(Integer.valueOf(6000));
             items.add(new ItemStack(Material.TNT, 32));                    costs.add(Integer.valueOf(7500));
@@ -774,6 +780,21 @@ public final class GuiManager {
                 "&7Мгновенно чинит все вещи в инвентаре!", "&7Стоимость: &a10 000$ Монет", "", "&#00E676▸ Нажми для починки!"));
         inv.setItem(23, coinShopTag(ItemFactory.claimBlock(Material.IRON_ORE, 12, "&#38BDF8🛡 Железный Приват 25×25"), 15000));
         inv.setItem(24, coinShopTag(ItemFactory.claimBlock(Material.DIAMOND_ORE, 20, "&#38BDF8💎 Алмазный Приват 41×41"), 45000));
+
+        // Row 4: Прочность Брони VI (6) и VII (7) — книги + мгновенная закалка всего надетого сета!
+        inv.setItem(29, coinShopTag(ItemFactory.bookArmorUnbreaking6(1), 35000));
+        inv.setItem(30, coinShopTag(ItemFactory.bookArmorUnbreaking7(1), 75000));
+        inv.setItem(32, ItemFactory.glowIcon(Material.DIAMOND_CHESTPLATE, "&#38BDF8&l🛡 Закалить ВСЮ надетую броню: Прочность VI",
+                "&7Мгновенно накладывает &#00E5FFПрочность VI (6 LVL)",
+                "&7на ваш Шлем, Нагрудник/Элитры, Поножи и Ботинки!",
+                "&7• 82% шанс полностью поглотить износ брони в ПвП!",
+                "", "&#FFEA00Стоимость: &a110 000$ Монет", "&#00E676▸ Нажми для закалки сета!"));
+        inv.setItem(33, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FF1744&l👑 Закалить ВСЮ надетую броню: Прочность VII",
+                "&7Мгновенно накладывает &#FFD740Прочность VII (7 LVL)",
+                "&7на ваш Шлем, Нагрудник/Элитры, Поножи и Ботинки!",
+                "&7• 88% шанс полностью поглотить износ брони в ПвП!",
+                "", "&#FFEA00Стоимость: &a220 000$ Монет", "&#00E676▸ Нажми для закалки сета!"));
+
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
@@ -1900,6 +1921,43 @@ public final class GuiManager {
                 ColorUtil.sound(p, "block.anvil.use", 1f, 1.1f);
                 return;
             }
+            if (slot == 32 || slot == 33) {
+                int targetLvl = slot == 33 ? 7 : 6;
+                int forgeCost = slot == 33 ? 220000 : 110000;
+                ItemStack[] worn = p.getInventory().getArmorContents();
+                int upgradable = 0;
+                org.bukkit.enchantments.Enchantment unb = ColorUtil.ench("unbreaking", "DURABILITY");
+                if (worn != null && unb != null) {
+                    for (ItemStack ar : worn) {
+                        if (ItemFactory.isArmorOrShieldItem(ar) && ar.getEnchantmentLevel(unb) < targetLvl) {
+                            upgradable++;
+                        }
+                    }
+                }
+                if (upgradable <= 0) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.9f);
+                    p.sendMessage(ColorUtil.c("&#FFD740⚠ Наденьте на себя броню / элитры (или на всей надетой броне уже стоит Прочность "
+                            + (targetLvl == 7 ? "VII" : "VI") + "+)!"));
+                    return;
+                }
+                if (!plugin.getStore().takeCoins(p.getName(), forgeCost)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.9f);
+                    p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(forgeCost) + "$"));
+                    return;
+                }
+                for (int i = 0; i < worn.length; i++) {
+                    if (ItemFactory.isArmorOrShieldItem(worn[i])) {
+                        ItemFactory.applyArmorUnbreakingLevel(worn[i], targetLvl);
+                    }
+                }
+                p.getInventory().setArmorContents(worn);
+                plugin.getStore().save();
+                ColorUtil.sound(p, "block.anvil.use", 1.0f, 1.2f);
+                ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.35f);
+                p.sendMessage(ColorUtil.c("&#00E676🛡 &lКУЗНИЦА БРОНИ &8» &fВся надетая броня (&e" + upgradable
+                        + " шт.&f) закалена на &#FFD740Прочность " + (targetLvl == 7 ? "VII (7 LVL)" : "VI (6 LVL)") + "&f!"));
+                return;
+            }
             handleCoinPurchase(p, "enchants", slot);
         } else if ("bm".equals(type)) {
             if (slot == 31) { openMainMenu(p); return; }
@@ -2101,6 +2159,8 @@ public final class GuiManager {
             else if (slot == 21) { reward = ItemFactory.xpOrb100(1); cost = 12000; }
             else if (slot == 23) { reward = ItemFactory.claimBlock(Material.IRON_ORE, 12, "&#38BDF8🛡 Железный Приват 25×25"); cost = 15000; }
             else if (slot == 24) { reward = ItemFactory.claimBlock(Material.DIAMOND_ORE, 20, "&#38BDF8💎 Алмазный Приват 41×41"); cost = 45000; }
+            else if (slot == 29) { reward = ItemFactory.bookArmorUnbreaking6(1); cost = 35000; }
+            else if (slot == 30) { reward = ItemFactory.bookArmorUnbreaking7(1); cost = 75000; }
         } else {
             if (slot == 11) { reward = ItemFactory.pickSpawner(); cost = 180000; }
             else if (slot == 12) { reward = ItemFactory.mysteryEgg(1); cost = 95000; }

@@ -34,6 +34,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -133,13 +134,17 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     private int cloudIntervalSec = 4;
     private int pingIntervalSec = 4;
 
-    // Live Grief #1 status
+    // Live Grief #1 status + Auto-Discovered Cloud Address (eliminates Connection refused: getsockopt!)
     private volatile boolean griefOnline = false;
     private volatile boolean griefTechWorksRemote = false;
     private volatile int griefPlayers = 0;
     private volatile int griefMaxPlayers = 250;
     private volatile int griefPingMs = -1;
     private volatile long griefLastSeenMs = 0L;
+    private volatile long griefLastCloudSeenMs = 0L;
+    private volatile String cloudDiscoveredGriefHost = "";
+    private volatile int cloudDiscoveredGriefPort = 0;
+    private volatile String learnedSelfPublicHost = "";
 
     @Override
     public void onEnable() {
@@ -232,14 +237,45 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                 + "&#00E676&l▶ Нажми ПКМ — выбрать 1 ГРИФ и зайти!";
     }
 
+    public String getEffectiveGriefHost() {
+        if (!HubPingAndCloud.isLoopbackHost(griefHost)) {
+            return griefHost;
+        }
+        if (!HubPingAndCloud.isLoopbackHost(cloudDiscoveredGriefHost)) {
+            return cloudDiscoveredGriefHost;
+        }
+        return griefHost;
+    }
+
+    public int getEffectiveGriefPort() {
+        if (!HubPingAndCloud.isLoopbackHost(griefHost)) {
+            return griefPort;
+        }
+        if (!HubPingAndCloud.isLoopbackHost(cloudDiscoveredGriefHost) && cloudDiscoveredGriefPort > 0) {
+            return cloudDiscoveredGriefPort;
+        }
+        return griefPort;
+    }
+
+    private int detectRealListeningPort() {
+        try {
+            String envPort = System.getenv("SERVER_PORT");
+            if (envPort != null && !envPort.trim().isEmpty()) {
+                int p = Integer.parseInt(envPort.trim());
+                if (p > 0 && p <= 65535) return p;
+            }
+        } catch (Throwable ignored) {}
+        return Bukkit.getPort();
+    }
+
     private void startHubTasks() {
-        // 1) Ping Grief #1 + Proxy PlayerCount
+        // 1) Ping Grief #1 + Proxy PlayerCount (uses auto-discovered cloud host if config is still 127.0.0.1!)
         new BukkitRunnable() {
             @Override
             public void run() {
                 requestProxyCount();
-                final String host = griefHost;
-                final int port = griefPort;
+                final String host = getEffectiveGriefHost();
+                final int port = getEffectiveGriefPort();
                 Bukkit.getScheduler().runTaskAsynchronously(KingHubPlugin.this, new Runnable() {
                     @Override
                     public void run() {
@@ -251,7 +287,8 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                             griefPingMs = st.pingMs;
                             griefTechWorksRemote = st.techWorks;
                             griefLastSeenMs = System.currentTimeMillis();
-                        } else if (System.currentTimeMillis() - griefLastSeenMs > 18_000L) {
+                        } else if (System.currentTimeMillis() - griefLastSeenMs > 18_000L
+                                && System.currentTimeMillis() - griefLastCloudSeenMs > 20_000L) {
                             griefOnline = false;
                             griefPingMs = -1;
                         }
@@ -399,40 +436,101 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                 + "\",\"rank\":\"" + HubPingAndCloud.esc(rank) + "\",\"ttlMs\":75000}");
         pushCloudImmediately();
 
-        p.sendTitle(c("&#80D8FF&l❄ ВХОД НА 1 ГРИФ..."), c("&fПереносим вас на " + griefName), 5, 45, 10);
-        p.sendMessage(c("&#80D8FF❄ &lKingHub &8» &fПодключаем вас к серверу " + griefName + "&f..."));
-        playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.95f, 1.25f);
-
         if (shouldUseProxy()) {
+            p.sendTitle(c("&#80D8FF&l❄ ВХОД НА 1 ГРИФ..."), c("&fПереносим вас на " + griefName), 5, 45, 10);
+            p.sendMessage(c("&#80D8FF❄ &lKingHub &8» &fПодключаем вас к серверу " + griefName + "&f..."));
+            playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.95f, 1.25f);
             sendProxySsoForward(p, fullToken);
             sendBungeeConnect(p, griefProxyName);
             return;
         }
 
-        try {
-            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
-            final String targetHost = griefHost;
-            final int targetPort = griefPort;
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (!p.isOnline()) return;
-                    try {
-                        p.transfer(targetHost, targetPort);
-                    } catch (Throwable ex) {
-                        p.sendMessage(c("&#FF1744✖ Ошибка переноса! Проверьте адрес 1 Грифа (/setgrief <IP:Порт>) — сейчас указан &f" + targetHost + ":" + targetPort));
-                    }
-                }
-            }.runTaskLater(this, 2L);
-        } catch (Throwable fallback) {
-            sendProxySsoForward(p, fullToken);
-            sendBungeeConnect(p, griefProxyName);
+        final String rawHost = getEffectiveGriefHost();
+        final int rawPort = getEffectiveGriefPort();
+        final String playerIp = getPlayerIp(p);
+
+        // Block localhost transfer for remote players BEFORE disconnecting client (fixes Connection refused: getsockopt!)
+        if (HubPingAndCloud.isLoopbackHost(rawHost) && !HubPingAndCloud.isLoopbackHost(playerIp)) {
+            transferCooldowns.remove(p.getUniqueId());
+            playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
+            p.sendTitle(c("&#FFD740&l⚠ ПРИВЯЖИТЕ 1 ГРИФ"), c("&fПропишите: &#00E676/setgrief <IP:Порт>"), 5, 65, 10);
+            p.sendMessage(c("&#FF5252⚠ &lKingHub &8» &fАдрес &#80D8FF1 ГРИФ &fещё не указан (сейчас стоит &e127.0.0.1&f), поэтому переход остановлен без вылета!"));
+            p.sendMessage(c("&#00E676💡 Решение 1: &fПросто запустите сервер &#80D8FF1 Гриф &fс плагином &#FFD740KingConnect.jar &f— он привяжется автоматически за 4 сек!"));
+            p.sendMessage(c("&#00E676💡 Решение 2: &fПропишите в чате (с OP) или в консоли Хаба: &#FFD740setgrief <IP_Грифа:Порт>"));
+            return;
         }
+
+        p.sendMessage(c("&#80D8FF❄ &lKingHub &8» &7Проверяем доступность " + griefName + "&7..."));
+        Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
+            @Override
+            public void run() {
+                final HubPingAndCloud.PingStatus check = HubPingAndCloud.pingServer(rawHost, rawPort, 850);
+                final boolean cloudAlive = (System.currentTimeMillis() - griefLastCloudSeenMs) < 25_000L
+                        && !HubPingAndCloud.isLoopbackHost(check.resolvedHost);
+
+                Bukkit.getScheduler().runTask(KingHubPlugin.this, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!p.isOnline()) return;
+                        if (!check.alive && !cloudAlive) {
+                            transferCooldowns.remove(p.getUniqueId());
+                            playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
+                            p.sendTitle(c("&#FF5252&l⚠ 1 ГРИФ ВЫКЛЮЧЕН"),
+                                    c("&7Сервер " + check.resolvedHost + ":" + check.resolvedPort + " не отвечает!"), 5, 60, 10);
+                            p.sendMessage(c("&#FF5252✖ &lKingHub &8» &fСервер " + griefName + " &7(&e"
+                                    + check.resolvedHost + ":" + check.resolvedPort
+                                    + "&7) &fсейчас выключен или указан неверный порт — вы оставлены в Хабе без вылета (getsockopt)!"));
+                            if (isAdmin(p)) {
+                                p.sendMessage(c("&#FFD740⚙ Админ-подсказка: &fпроверьте, запущен ли 1 Гриф, или укажите его точный порт: &#00E676/setgrief <IP:Порт>"));
+                            }
+                            return;
+                        }
+
+                        p.sendTitle(c("&#80D8FF&l❄ ВХОД НА 1 ГРИФ..."), c("&fПереносим вас на " + griefName), 5, 45, 10);
+                        playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.95f, 1.25f);
+                        try {
+                            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    if (!p.isOnline()) return;
+                                    try {
+                                        p.transfer(check.resolvedHost, check.resolvedPort);
+                                    } catch (Throwable ex) {
+                                        p.sendMessage(c("&#FF1744✖ Перенос доступен на клиентах 1.20.5 - 1.21+!"));
+                                    }
+                                }
+                            }.runTaskLater(KingHubPlugin.this, 2L);
+                        } catch (Throwable fallback) {
+                            sendProxySsoForward(p, fullToken);
+                            sendBungeeConnect(p, griefProxyName);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     // =========================================================================
     // 2. EVENTS: JOIN, COMPASS CLICK, NPC RIGHT-CLICK, AUTH, HUB PROTECTION
     // =========================================================================
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onLoginCaptureHost(PlayerLoginEvent e) {
+        try {
+            String hn = e.getHostname();
+            if (hn != null && !hn.isEmpty()) {
+                int nul = hn.indexOf('\0');
+                if (nul >= 0) hn = hn.substring(0, nul);
+                int col = hn.lastIndexOf(':');
+                if (col > 0) hn = hn.substring(0, col);
+                hn = hn.trim();
+                if (!HubPingAndCloud.isLoopbackHost(hn)) {
+                    learnedSelfPublicHost = hn;
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onJoin(final PlayerJoinEvent e) {
@@ -1022,7 +1120,12 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     }
 
     private boolean saveGriefHostPort(String raw) {
-        String hp = raw.trim();
+        if (raw == null) return false;
+        String hp = raw.trim()
+                .replace("http://", "")
+                .replace("https://", "")
+                .replace("/", "")
+                .replace(" ", "");
         String h = hp;
         int pt = 25565;
         int colon = hp.lastIndexOf(':');
@@ -1127,8 +1230,9 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
             ssoJoined.append(ssoBatch.get(i));
         }
 
-        return "{\"serverId\":\"hub\",\"serverName\":\"&#FFD740&l🏰 НОВОГОДНИЙ ХАБ\",\"host\":\"\","
-                + "\"port\":" + Bukkit.getPort() + ",\"proxyName\":\"hub\",\"online\":" + names.size()
+        return "{\"serverId\":\"hub\",\"serverName\":\"&#FFD740&l🏰 НОВОГОДНИЙ ХАБ\",\"host\":\""
+                + HubPingAndCloud.esc(learnedSelfPublicHost) + "\","
+                + "\"port\":" + detectRealListeningPort() + ",\"proxyName\":\"hub\",\"online\":" + names.size()
                 + ",\"max\":" + Bukkit.getMaxPlayers() + ",\"tps\":20.0,\"maintenance\":false,"
                 + "\"players\":" + HubPingAndCloud.buildStrArray(names)
                 + ",\"pushSso\":[" + ssoJoined + "]}";
@@ -1160,12 +1264,19 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
             String[] f = lines[i].split("\t", -1);
             if ("NODE".equals(f[0]) && f.length >= 12 && f[1].equalsIgnoreCase(griefId)) {
                 long age = parseLongSafe(f[10], 99_999L);
+                String nodeHost = f[3] == null ? "" : f[3].trim();
+                int nodePort = (int) parseLongSafe(f[4], 25565L);
+                if (!HubPingAndCloud.isLoopbackHost(nodeHost) && nodePort > 0) {
+                    cloudDiscoveredGriefHost = nodeHost;
+                    cloudDiscoveredGriefPort = nodePort;
+                }
                 if (age < 20_000L) {
                     griefOnline = true;
                     griefPlayers = (int) parseLongSafe(f[6], 0L);
                     griefMaxPlayers = Math.max(1, (int) parseLongSafe(f[7], 250L));
                     griefTechWorksRemote = "1".equals(f[9]);
                     griefLastSeenMs = System.currentTimeMillis();
+                    griefLastCloudSeenMs = System.currentTimeMillis();
                 }
             } else if ("BAN".equals(f[0]) && f.length >= 5) {
                 banned.add(f[1].toLowerCase(Locale.ROOT));

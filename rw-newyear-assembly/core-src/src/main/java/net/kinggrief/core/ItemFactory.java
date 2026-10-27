@@ -11,6 +11,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -320,13 +321,13 @@ public final class ItemFactory {
                 true, "totem_rw", "totem_rw", 1217);
     }
 
-    // ================= 6 КАСТОМНЫХ BLENDER 3D ЭЛИТР С РАЗНЫМИ БАФФАМИ =================
-    private static ItemStack makeBuffedElytra(String name, String id, int cmd, int protLvl, List<String> lore) {
+    // ================= 6 КАСТОМНЫХ BLENDER 3D ЭЛИТР С РАЗНЫМИ БАФФАМИ (ПРОЧНОСТЬ VI / VII!) =================
+    private static ItemStack makeBuffedElytra(String name, String id, int cmd, int protLvl, int unbLvl, List<String> lore) {
         ItemStack el = make(Material.ELYTRA, 1, name, lore, false, id, id, cmd);
         ItemMeta m = el.getItemMeta();
         if (m != null) {
             addEnch(m, "protection", "PROTECTION_ENVIRONMENTAL", protLvl);
-            addEnch(m, "unbreaking", "DURABILITY", 5);
+            addEnch(m, "unbreaking", "DURABILITY", unbLvl);
             addEnch(m, "mending", "MENDING", 1);
             el.setItemMeta(m);
         }
@@ -334,58 +335,58 @@ public final class ItemFactory {
     }
 
     public static ItemStack elytraWind() {
-        return makeBuffedElytra("&#80D8FF&l🪽 3D Элитры Ветра [FT×RW]", "elytra_wind", 1401, 4,
+        return makeBuffedElytra("&#80D8FF&l🪽 3D Элитры Ветра [FT×RW]", "elytra_wind", 1401, 4, 6,
                 Arrays.asList("&8Blender 3D Кастомные Элитры", "",
                         "&7Когда надеты в слот нагрудника:",
                         " &#40C4FF• Постоянная Скорость II",
                         " &#80D8FF• Плавное падение на Shift в воздухе",
-                        " &#B3E5FC• Защита IV · Прочность V · Починка"));
+                        " &#B3E5FC• Защита IV · Прочность VI · Починка"));
     }
 
     public static ItemStack elytraPhoenix() {
-        return makeBuffedElytra("&#FF6D00&l🔥 3D Элитры Феникса [FT×RW]", "elytra_phoenix", 1402, 4,
+        return makeBuffedElytra("&#FF6D00&l🔥 3D Элитры Феникса [FT×RW]", "elytra_phoenix", 1402, 4, 6,
                 Arrays.asList("&8Blender 3D Кастомные Элитры", "",
                         "&7Когда надеты в слот нагрудника:",
                         " &#FF5252• +2 ❤ Максимального Здоровья",
                         " &#FFD740• Постоянная Огнестойкость + Огненный шлейф",
                         " &#FF9100• Поджигают атакующих в ближнем бою!",
-                        " &#B3E5FC• Защита IV · Прочность V · Починка"));
+                        " &#B3E5FC• Защита IV · Прочность VI · Починка"));
     }
 
     public static ItemStack elytraVampire() {
-        return makeBuffedElytra("&#FF1744&l🦇 3D Элитры Вампира [FT×RW]", "elytra_vampire", 1403, 4,
+        return makeBuffedElytra("&#FF1744&l🦇 3D Элитры Вампира [FT×RW]", "elytra_vampire", 1403, 4, 6,
                 Arrays.asList("&8Blender 3D Кастомные Элитры", "",
                         "&7Когда надеты в слот нагрудника:",
                         " &#FF1744• Постоянная Сила I + Ночное Зрение",
                         " &#F50057• Вампиризм: исцеляют 20% от урона в PvP!",
-                        " &#B3E5FC• Защита IV · Прочность V · Починка"));
+                        " &#B3E5FC• Защита IV · Прочность VI · Починка"));
     }
 
     public static ItemStack elytraThunder() {
-        return makeBuffedElytra("&#FFD740&l⚡ 3D Элитры Грома [FT×RW]", "elytra_thunder", 1404, 4,
+        return makeBuffedElytra("&#FFD740&l⚡ 3D Элитры Грома [FT×RW]", "elytra_thunder", 1404, 4, 6,
                 Arrays.asList("&8Blender 3D Кастомные Элитры", "",
                         "&7Когда надеты в слот нагрудника:",
                         " &#40C4FF• Скорость II (Сила II во время полёта!)",
                         " &#FFD740• 18% шанс ударить врага Молнией при ударе!",
-                        " &#B3E5FC• Защита IV · Прочность V · Починка"));
+                        " &#B3E5FC• Защита IV · Прочность VI · Починка"));
     }
 
     public static ItemStack elytraTitan() {
-        return makeBuffedElytra("&#F59E0B&l🛡 3D Элитры Крушителя [Броня]", "elytra_titan", 1405, 5,
+        return makeBuffedElytra("&#F59E0B&l🛡 3D Элитры Крушителя [Броня]", "elytra_titan", 1405, 5, 7,
                 Arrays.asList("&8Blender 3D Тяжёлые Боевые Элитры", "",
                         "&7Когда надеты в слот нагрудника:",
                         " &#FF5252• +4 ❤ Максимального Здоровья",
                         " &#00E676• Постоянное Сопротивление I (как нагрудник!)",
-                        " &#FFD740• Защита V · Прочность V · Починка"));
+                        " &#FFD740• Защита V · Прочность VII · Починка"));
     }
 
     public static ItemStack elytraSanta() {
-        return makeBuffedElytra("&#00E5FF&l❄ 3D Императорские Элитры Санты [2026]", "elytra_santa", 1406, 5,
+        return makeBuffedElytra("&#00E5FF&l❄ 3D Императорские Элитры Санты [2026]", "elytra_santa", 1406, 5, 7,
                 Arrays.asList("&8Топовые Blender 3D Новогодние Элитры", "",
                         "&7Когда надеты в слот нагрудника:",
                         " &#FF5252• +6 ❤ Максимального Здоровья",
                         " &#FF1744• Сила II  &#40C4FF• Скорость II  &#FF4081• Регенерация I",
-                        " &#80D8FF• Ледяной шлейф + Защита V · Прочность V · Починка"));
+                        " &#80D8FF• Ледяной шлейф + Защита V · Прочность VII · Починка"));
     }
 
     // ================= 8 БОЕВЫХ PvP ПРЕДМЕТОВ FUN-TIME × REALLYWORLD =================
@@ -1211,7 +1212,7 @@ public final class ItemFactory {
         String trimMat;
         String trimPat;
         int prot = 5;
-        int unb = 5;
+        int unb = 6;
         int thorns = 0;
         int baseCmd;
 
@@ -1220,39 +1221,40 @@ public final class ItemFactory {
             setTitle = "БОЖЕСТВЕННЫЙ " + pieceRu.toUpperCase() + " OWNER";
             bonusLine1 = " &#FF1744• Полный сет (4/4): +12 ❤ · Сила III · Скорость III";
             bonusLine2 = " &#FFD740• Сопротивление II · Регенерация II · Огнестойкость";
-            trimMat = "gold"; trimPat = "silence"; prot = 6; unb = 6; thorns = 3; baseCmd = 1721;
+            trimMat = "gold"; trimPat = "silence"; prot = 6; unb = 7; thorns = 3; baseCmd = 1721;
         } else if ("krush".equals(setKey)) {
             colorPref = "&#FF6D00&l🔥 ";
             setTitle = "3D " + pieceRu + " Крушителя";
             bonusLine1 = " &#FF6D00• Полный сет (4/4): +6 ❤ · Сила II · Огнестойкость";
             bonusLine2 = " &#FACC15• Несокрушимая броня для жёсткого PvP!";
-            trimMat = "redstone"; trimPat = "silence"; baseCmd = 1701;
+            trimMat = "redstone"; trimPat = "silence"; unb = 7; baseCmd = 1701;
         } else if ("dracula".equals(setKey)) {
             colorPref = "&#E11D48&l🩸 ";
             setTitle = "3D " + pieceRu + " Дракулы";
             bonusLine1 = " &#E11D48• Полный сет (4/4): +4 ❤ · Скорость II · Ночное Зрение";
             bonusLine2 = " &#FB7185• Вампиризм: лечит +20% от каждого удара!";
-            trimMat = "amethyst"; trimPat = "vex"; baseCmd = 1705;
+            trimMat = "amethyst"; trimPat = "vex"; unb = 6; baseCmd = 1705;
         } else if ("frost".equals(setKey)) {
             colorPref = "&#38BDF8&l❄ ";
             setTitle = "3D " + pieceRu + " Северной Стужи [2026]";
             bonusLine1 = " &#38BDF8• Полный сет (4/4): +6 ❤ · Скорость II · Регенерация I";
             bonusLine2 = " &#BAE6FD• Замораживает врагов при ударе по вам!";
-            trimMat = "diamond"; trimPat = "tide"; baseCmd = 1709;
+            trimMat = "diamond"; trimPat = "tide"; unb = 7; baseCmd = 1709;
         } else if ("zeus".equals(setKey)) {
             colorPref = "&#FACC15&l⚡ ";
             setTitle = "3D " + pieceRu + " Громовержца Зевса";
             bonusLine1 = " &#FACC15• Полный сет (4/4): +4 ❤ · Скорость III · Прыгучесть II";
             bonusLine2 = " &#7DD3FC• 20% шанс ударить атакующего молнией!";
-            trimMat = "gold"; trimPat = "eye"; baseCmd = 1713;
+            trimMat = "gold"; trimPat = "eye"; unb = 6; baseCmd = 1713;
         } else {
             colorPref = "&#A855F7&l☠ ";
             setTitle = "3D " + pieceRu + " Теневого Фантома";
             bonusLine1 = " &#A855F7• Полный сет (4/4): +3 ❤ · Скорость III · Сила II";
             bonusLine2 = " &#38BDF8• +18% критического урона в прыжке!";
-            trimMat = "quartz"; trimPat = "spire"; baseCmd = 1717;
+            trimMat = "quartz"; trimPat = "spire"; unb = 6; baseCmd = 1717;
         }
 
+        String unbRoman = unb >= 7 ? "VII" : (unb == 6 ? "VI" : "V");
         String modelId = "armor_" + setKey + "_" + slot;
         String customId = "armor_" + setKey + "_" + slot;
         List<String> lore = Arrays.asList(
@@ -1261,9 +1263,9 @@ public final class ItemFactory {
                 "&7Бонус комплекта:",
                 bonusLine1,
                 bonusLine2,
-                " &#00E676• Усиленная Закалка ×2 (в 2 раза прочнее в ПвП!)",
+                " &#00E676• Титановая Закалка Брони (Прочность " + unbRoman + " — ломается до ×12 дольше!)",
                 "",
-                "&bЗащита " + (prot == 6 ? "VI" : "V") + " · Прочность " + (unb == 6 ? "VI" : "V") + " · Починка"
+                "&bЗащита " + (prot == 6 ? "VI" : "V") + " · Прочность " + unbRoman + " · Починка"
         );
         ItemStack piece = make(mat, 1, colorPref + setTitle, lore, false, customId, modelId, baseCmd + slotIdx);
         ItemMeta m = piece.getItemMeta();
@@ -1292,6 +1294,85 @@ public final class ItemFactory {
                         "&7ПКМ по спавнеру — меняет моба внутри на:",
                         "&fКорову, Крипера, Ифрита, Скелета или Зомби!"),
                 true, "mystery_egg", null, 0);
+    }
+
+    public static ItemStack bookArmorUnbreaking6(int amt) {
+        return buildArmorUnbreakingBook(amt, 6);
+    }
+
+    public static ItemStack bookArmorUnbreaking7(int amt) {
+        return buildArmorUnbreakingBook(amt, 7);
+    }
+
+    private static ItemStack buildArmorUnbreakingBook(int amt, int level) {
+        String roman = level >= 7 ? "VII" : "VI";
+        String accent = level >= 7 ? "&#FF1744&l📕 Книга Брони: &#FFD740&lПрочность VII [7 LVL]"
+                : "&#38BDF8&l📘 Книга Брони: &#00E5FF&lПрочность VI [6 LVL]";
+        String chanceTxt = level >= 7 ? "88%" : "82%";
+        ItemStack book = make(Material.ENCHANTED_BOOK, Math.max(1, amt), accent,
+                Arrays.asList(
+                        "&8Древний Манускрипт Закалки Брони",
+                        "",
+                        "&7Накладывает кастомное зачарование:",
+                        " &#00E676• Прочность " + roman + " (" + level + " уровень)",
+                        " &#80D8FF• " + chanceTxt + " шанс полностью поглотить износ брони в ПвП!",
+                        "",
+                        "&#FFD740Как применить:",
+                        " &f1) Перетащи книгу курсором на Броню / Элитры / Щит в инвентаре",
+                        " &f2) Или соедини с бронёй в обычной Наковальне!"
+                ),
+                false, "book_armor_unb_" + level, null, 0);
+        ItemMeta meta = book.getItemMeta();
+        if (meta != null) {
+            Enchantment unb = ColorUtil.ench("unbreaking", "DURABILITY");
+            if (unb != null) {
+                if (meta instanceof EnchantmentStorageMeta) {
+                    ((EnchantmentStorageMeta) meta).addStoredEnchant(unb, level, true);
+                } else {
+                    meta.addEnchant(unb, level, true);
+                }
+            }
+            book.setItemMeta(meta);
+        }
+        return book;
+    }
+
+    public static boolean isArmorOrShieldItem(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return false;
+        String tn = item.getType().name();
+        return tn.endsWith("_HELMET") || tn.endsWith("_CHESTPLATE")
+                || tn.endsWith("_LEGGINGS") || tn.endsWith("_BOOTS")
+                || "TURTLE_HELMET".equals(tn) || "ELYTRA".equals(tn) || "SHIELD".equals(tn);
+    }
+
+    public static boolean applyArmorUnbreakingLevel(ItemStack target, int level) {
+        if (!isArmorOrShieldItem(target)) return false;
+        Enchantment unb = ColorUtil.ench("unbreaking", "DURABILITY");
+        if (unb == null) return false;
+        if (target.getEnchantmentLevel(unb) >= level) return false;
+        ItemMeta m = target.getItemMeta();
+        if (m == null) return false;
+        m.addEnchant(unb, level, true);
+        String roman = level >= 7 ? "VII" : "VI";
+        String badgeLine = ColorUtil.c("&#00E676🛡 Закалка Кузнеца: Прочность " + roman + " [" + level + " LVL]");
+        List<String> lore = m.hasLore() && m.getLore() != null
+                ? new ArrayList<String>(m.getLore())
+                : new ArrayList<String>();
+        boolean replaced = false;
+        for (int i = 0; i < lore.size(); i++) {
+            String plain = lore.get(i);
+            if (plain != null && plain.contains("Закалка Кузнеца:")) {
+                lore.set(i, badgeLine);
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
+            lore.add(badgeLine);
+        }
+        m.setLore(lore);
+        target.setItemMeta(m);
+        return true;
     }
 
     public static ItemStack xpOrb100(int amt) {
@@ -1417,6 +1498,7 @@ public final class ItemFactory {
                     arrowIce(64), arrowExplosive(64), arrowLightning(64),
                     arrowVampire(64), arrowPoison(64), arrowAntiFly(64),
                     potionKiller(2), potionMedic(2),
+                    bookArmorUnbreaking7(4),
                     new ItemStack(Material.NETHERITE_BLOCK, 16),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
             items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ OWNER #2",
@@ -1523,10 +1605,10 @@ public final class ItemFactory {
             items.add(gear(neth ? Material.NETHERITE_PICKAXE : Material.DIAMOND_PICKAXE, "&#FACC15⛏ Кирка " + tag, 5, 3, 3));
             items.add(gear(neth ? Material.NETHERITE_AXE : Material.DIAMOND_AXE, "&#FACC15🪓 Топор " + tag, 5, 3, 0));
             items.add("vampire".equals(k) ? bowVampire() : gear(Material.BOW, "&#FACC15🏹 Лук " + tag, 5, 3, 1));
-            items.add(gear(neth ? Material.NETHERITE_HELMET : Material.DIAMOND_HELMET, "&#FACC15Шлем " + tag, 4, 3, 0));
-            items.add(gear(neth ? Material.NETHERITE_CHESTPLATE : Material.DIAMOND_CHESTPLATE, "&#FACC15Нагрудник " + tag, 4, 3, 0));
-            items.add(gear(neth ? Material.NETHERITE_LEGGINGS : Material.DIAMOND_LEGGINGS, "&#FACC15Поножи " + tag, 4, 3, 0));
-            items.add(gear(neth ? Material.NETHERITE_BOOTS : Material.DIAMOND_BOOTS, "&#FACC15Ботинки " + tag, 4, 3, 0));
+            items.add(gear(neth ? Material.NETHERITE_HELMET : Material.DIAMOND_HELMET, "&#FACC15Шлем " + tag, 4, 6, 0));
+            items.add(gear(neth ? Material.NETHERITE_CHESTPLATE : Material.DIAMOND_CHESTPLATE, "&#FACC15Нагрудник " + tag, 4, 6, 0));
+            items.add(gear(neth ? Material.NETHERITE_LEGGINGS : Material.DIAMOND_LEGGINGS, "&#FACC15Поножи " + tag, 4, 6, 0));
+            items.add(gear(neth ? Material.NETHERITE_BOOTS : Material.DIAMOND_BOOTS, "&#FACC15Ботинки " + tag, 4, 6, 0));
             items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, neth ? 3 : 1));
             items.add(new ItemStack(Material.GOLDEN_APPLE, 32));
             items.add(new ItemStack(Material.GOLDEN_CARROT, 64));
@@ -1565,10 +1647,11 @@ public final class ItemFactory {
             items.add(gear(Material.NETHERITE_PICKAXE, "&#A855F7⛏ Кирка " + tag, 5, 4, 3));
             items.add(gear(Material.NETHERITE_AXE, "&#A855F7🪓 Топор " + tag, 5, 4, 0));
             items.add("imperator".equals(k) ? bowInferno() : bowIceRw());
-            items.add(gear(Material.NETHERITE_HELMET, "&#A855F7Шлем " + tag, 4, 4, 0));
-            items.add(gear(Material.NETHERITE_CHESTPLATE, "&#A855F7Нагрудник " + tag, 4, 4, 0));
-            items.add(gear(Material.NETHERITE_LEGGINGS, "&#A855F7Поножи " + tag, 4, 4, 0));
-            items.add(gear(Material.NETHERITE_BOOTS, "&#A855F7Ботинки " + tag, 4, 4, 0));
+            int highUnb = ("sponsor".equals(k) || "king".equals(k)) ? 7 : 6;
+            items.add(gear(Material.NETHERITE_HELMET, "&#A855F7Шлем " + tag, 5, highUnb, 0));
+            items.add(gear(Material.NETHERITE_CHESTPLATE, "&#A855F7Нагрудник " + tag, 5, highUnb, 0));
+            items.add(gear(Material.NETHERITE_LEGGINGS, "&#A855F7Поножи " + tag, 5, highUnb, 0));
+            items.add(gear(Material.NETHERITE_BOOTS, "&#A855F7Ботинки " + tag, 5, highUnb, 0));
             items.add("sponsor".equals(k) ? elytraPhoenix() : elytraWind());
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
             items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 6));

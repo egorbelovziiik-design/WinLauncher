@@ -48,6 +48,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -65,9 +66,12 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -2815,29 +2819,46 @@ public final class GameplayListener implements Listener {
         }
     }
 
-    // ================= v5.9: БРОНЯ В 2 РАЗА ПРОЧНЕЕ + УВЕДОМЛЕНИЕ О НИЗКОЙ ПРОЧНОСТИ =================
+    // ================= v5.9.1: БРОНЯ ЛОМАЕТСЯ НАМНОГО ДОЛЬШЕ + НАСТОЯЩАЯ ПРОЧНОСТЬ VI (6) И VII (7)! =================
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onArmorDurabilityDamage(PlayerItemDamageEvent e) {
         ItemStack item = e.getItem();
-        if (item == null || item.getType() == Material.AIR) return;
-        String tn = item.getType().name();
-        boolean isArmorOrShield = tn.endsWith("_HELMET") || tn.endsWith("_CHESTPLATE")
-                || tn.endsWith("_LEGGINGS") || tn.endsWith("_BOOTS")
-                || "TURTLE_HELMET".equals(tn) || "ELYTRA".equals(tn) || "SHIELD".equals(tn);
-        if (!isArmorOrShield) return;
+        if (!ItemFactory.isArmorOrShieldItem(item)) return;
 
         int dmg = e.getDamage();
         if (dmg <= 0) return;
 
-        // Halve incoming durability loss -> strictly 2x more durable!
-        int reduced = dmg / 2;
-        if ((dmg & 1) == 1 && rng.nextBoolean()) {
-            reduced++;
+        // Vanilla Minecraft nerfs Unbreaking on armor to 60% + 40%/(lvl+1), so even Unbreaking VII still breaks 65% of hits!
+        // Here we overcome that formula so ALL armor lasts ~4x longer AND Прочность VI / VII give massive PvP endurance!
+        Enchantment unbEnch = ColorUtil.ench("unbreaking", "DURABILITY");
+        int unbLvl = unbEnch != null ? item.getEnchantmentLevel(unbEnch) : 0;
+
+        int ignoreChancePct;
+        int maxLossPerHit;
+        if (unbLvl >= 7) {
+            ignoreChancePct = 88; // Прочность VII: 88% шанс полностью игнорировать износ + максимум 1 ед.!
+            maxLossPerHit = 1;
+        } else if (unbLvl == 6) {
+            ignoreChancePct = 82; // Прочность VI: 82% шанс полностью игнорировать износ + максимум 1 ед.!
+            maxLossPerHit = 1;
+        } else if (unbLvl == 5) {
+            ignoreChancePct = 74;
+            maxLossPerHit = 1;
+        } else if (unbLvl == 4) {
+            ignoreChancePct = 68;
+            maxLossPerHit = 1;
+        } else {
+            ignoreChancePct = 64; // Даже обычная броня ломается в ~3.5 - 4 раза дольше!
+            maxLossPerHit = 2;
         }
-        if (reduced <= 0) {
+
+        if (rng.nextInt(100) < ignoreChancePct) {
             e.setCancelled(true);
             return;
         }
+
+        // Cap heavy crystal/axe/sharpness bursts so armor never shreds in 3 crits!
+        int reduced = Math.min(maxLossPerHit, Math.max(1, (dmg + 2) / 4));
         e.setDamage(reduced);
 
         // Warn player if an armor piece drops below 15% remaining durability!
@@ -2858,6 +2879,57 @@ public final class GameplayListener implements Listener {
                 }
             }
         }
+    }
+
+    /** Поддержка Наковальни для Прочности VI (6) и Прочности VII (7) без сброса до ванильной III! */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPrepareArmorUnbreakingAnvil(PrepareAnvilEvent e) {
+        AnvilInventory inv = e.getInventory();
+        ItemStack left = inv.getItem(0);
+        ItemStack right = inv.getItem(1);
+        if (left == null || right == null || left.getType() == Material.AIR || right.getType() == Material.AIR) return;
+
+        Enchantment unb = ColorUtil.ench("unbreaking", "DURABILITY");
+        if (unb == null) return;
+
+        int leftLvl = extractUnbreakingLevel(left, unb);
+        int rightLvl = extractUnbreakingLevel(right, unb);
+        int targetLvl = 0;
+        if (leftLvl == 6 && rightLvl == 6) {
+            targetLvl = 7; // Соединение двух VI даёт Прочность VII!
+        } else {
+            targetLvl = Math.max(leftLvl, rightLvl);
+        }
+        if (targetLvl < 6) return;
+
+        // Case A: Combining two Enchanted Books (e.g. VI + VI -> Book VII)
+        if (left.getType() == Material.ENCHANTED_BOOK && right.getType() == Material.ENCHANTED_BOOK && targetLvl == 7) {
+            e.setResult(ItemFactory.bookArmorUnbreaking7(1));
+            try { inv.setRepairCost(12); } catch (Throwable ignored) {}
+            return;
+        }
+
+        // Case B: Applying book/armor onto Armor, Elytra, or Shield
+        if (!ItemFactory.isArmorOrShieldItem(left)) return;
+        ItemStack base = e.getResult();
+        ItemStack out = (base != null && base.getType() != Material.AIR) ? base.clone() : left.clone();
+        if (ItemFactory.applyArmorUnbreakingLevel(out, targetLvl) || out.getEnchantmentLevel(unb) >= targetLvl) {
+            e.setResult(out);
+            try { inv.setRepairCost(targetLvl >= 7 ? 15 : 10); } catch (Throwable ignored) {}
+        }
+    }
+
+    private int extractUnbreakingLevel(ItemStack st, Enchantment unb) {
+        if (st == null || st.getType() == Material.AIR) return 0;
+        String cid = ItemFactory.getCustomId(st);
+        if ("book_armor_unb_7".equals(cid)) return 7;
+        if ("book_armor_unb_6".equals(cid)) return 6;
+        int direct = st.getEnchantmentLevel(unb);
+        if (direct > 0) return direct;
+        if (st.hasItemMeta() && st.getItemMeta() instanceof EnchantmentStorageMeta) {
+            return ((EnchantmentStorageMeta) st.getItemMeta()).getStoredEnchantLevel(unb);
+        }
+        return 0;
     }
 
     @EventHandler
@@ -2933,6 +3005,35 @@ public final class GameplayListener implements Listener {
                 && e.getView().getTopInventory().getType() != InventoryType.CRAFTING) {
             e.setCancelled(true);
             return;
+        }
+
+        // Наложение Книги Прочности VI / VII перетаскиванием курсора прямо на любую Броню / Элитры / Щит!
+        if (e.getWhoClicked() instanceof Player && !(e.getView().getTopInventory().getHolder() instanceof GuiManager.KgMenuHolder)) {
+            ItemStack cursor = e.getCursor();
+            ItemStack target = e.getCurrentItem();
+            String bookId = ItemFactory.getCustomId(cursor);
+            if (("book_armor_unb_6".equals(bookId) || "book_armor_unb_7".equals(bookId))
+                    && ItemFactory.isArmorOrShieldItem(target)) {
+                Player p = (Player) e.getWhoClicked();
+                int lvl = "book_armor_unb_7".equals(bookId) ? 7 : 6;
+                if (ItemFactory.applyArmorUnbreakingLevel(target, lvl)) {
+                    e.setCancelled(true);
+                    e.setCurrentItem(target);
+                    if (cursor.getAmount() > 1) {
+                        cursor.setAmount(cursor.getAmount() - 1);
+                        e.setCursor(cursor);
+                    } else {
+                        e.setCursor(null);
+                    }
+                    ColorUtil.sound(p, "block.anvil.use", 1.0f, 1.25f);
+                    ColorUtil.sound(p, "entity.player.levelup", 0.9f, 1.4f);
+                    p.sendMessage(ColorUtil.c("&#00E676🛡 &lКУЗНИЦА БРОНИ &8» &fНа предмет успешно наложена &#FFD740Прочность "
+                            + (lvl == 7 ? "VII (7 LVL)" : "VI (6 LVL)") + "&f!"));
+                } else {
+                    p.sendMessage(ColorUtil.c("&#FFD740⚠ На этой броне уже установлена такая же или более высокая Прочность!"));
+                }
+                return;
+            }
         }
         plugin.getGuis().handleInventoryClick(e);
     }

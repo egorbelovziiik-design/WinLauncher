@@ -121,12 +121,28 @@ export async function POST(req: Request) {
   const state = await loadState(nsKey);
   const srvId = String(body.serverId || 'server').trim().toLowerCase().slice(0, 32);
 
+  // Auto-detect real public IP of the Minecraft server container from HTTP request headers!
+  const rawFwd = (req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '')
+    .split(',')[0]
+    .trim()
+    .replace(/^::ffff:/i, '');
+  const detectedIp =
+    rawFwd && rawFwd !== '127.0.0.1' && rawFwd !== '::1' && rawFwd !== '0.0.0.0' ? rawFwd.slice(0, 64) : '';
+
+  const rawBodyHost = String(body.host || '').trim();
+  const isLoopbackHost =
+    !rawBodyHost ||
+    rawBodyHost === '127.0.0.1' ||
+    rawBodyHost.toLowerCase() === 'localhost' ||
+    rawBodyHost === '0.0.0.0';
+  const effectiveNodeHost = (isLoopbackHost ? detectedIp : rawBodyHost).slice(0, 96);
+
   // 1. Update current server heartbeat
   if (srvId) {
     state.nodes[srvId] = {
       id: srvId,
       name: String(body.serverName || srvId).slice(0, 64),
-      host: String(body.host || '').slice(0, 96),
+      host: effectiveNodeHost,
       port: typeof body.port === 'number' && body.port > 0 ? Math.floor(body.port) : 25565,
       proxyName: String(body.proxyName || srvId).slice(0, 48),
       online: Math.max(0, Math.floor(Number(body.online || 0))),

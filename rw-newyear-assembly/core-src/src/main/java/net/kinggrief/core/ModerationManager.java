@@ -1,10 +1,12 @@
 package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -12,19 +14,29 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.profile.PlayerProfile;
+import org.bukkit.profile.PlayerTextures;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -91,6 +103,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     // v5.9: SlowChat global cooldown & per-player last chat timestamp
     private volatile int slowChatSeconds = 0;
     private final Map<UUID, Long> lastChatAtMs = new HashMap<UUID, Long>();
+    // v5.9.1: 6-Second (120 ticks) Santa Claus Duct-Tape Mute Animation entity tracker
+    private static final String SANTA_SKIN_HASH = "fb8f9a667dc8c53f9d4fb8ca428dc0bf97c46f76ca4e22e307d5771856c5015b";
+    private final Map<UUID, BukkitRunnable> activeMuteAnimTasks = new HashMap<UUID, BukkitRunnable>();
+    private final Map<UUID, List<Entity>> activeMuteAnimEntities = new HashMap<UUID, List<Entity>>();
+    private ItemStack cachedSantaHead = null;
 
     private BukkitRunnable checkTickTask;
 
@@ -129,6 +146,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             }
         }
         activeStaffShifts.clear();
+        for (UUID uid : new ArrayList<UUID>(activeMuteAnimTasks.keySet())) {
+            cleanupMuteAnimationFor(uid);
+        }
     }
 
     public boolean isStaff(CommandSender s) {
@@ -260,6 +280,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
     public void handleQuitDuringCheck(Player quitting) {
         ascendingBanPlayers.remove(quitting.getUniqueId());
+        cleanupMuteAnimationFor(quitting.getUniqueId());
         // Save shift if quitting moderator was on /sw
         Long shiftStart = activeStaffShifts.remove(quitting.getUniqueId());
         if (shiftStart != null) {
@@ -771,9 +792,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 + " &fвыдал мут игроку &c" + target + " &fна &#80D8FF" + timeLabel + "&f. Причина: &e" + reason));
 
         Player tp = Bukkit.getPlayerExact(target);
-        if (tp != null) {
-            ColorUtil.sound(tp, "entity.villager.no", 1.0f, 0.8f);
-            tp.sendTitle(ColorUtil.c("&#FF5252&l🔇 ВАМ ВЫДАН МУТ"), ColorUtil.c("&fСрок: &e" + timeLabel + " &8│ &f" + reason), 5, 50, 10);
+        if (tp != null && tp.isOnline()) {
+            playSantaTapeMuteAnimation(tp, timeLabel, reason);
         }
         return true;
     }
@@ -788,8 +808,330 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             return true;
         }
         plugin.getStore().unmute(args[0]);
+        Player unmutedOnline = Bukkit.getPlayerExact(args[0]);
+        if (unmutedOnline != null) {
+            cleanupMuteAnimationFor(unmutedOnline.getUniqueId());
+        }
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔊 Модератор &f" + sender.getName() + " &#00E676снял мут с игрока &f" + args[0] + "&#00E676."));
         return true;
+    }
+
+    /**
+     * 6-СЕКУНДНАЯ (РОВНО 120 ТИКОВ) АНИМАЦИЯ МУТА С ДЕДОМ МОРОЗОМ И СКОТЧЕМ!
+     *  - Тики 1..40   (0.0 - 2.0 сек): Дед Мороз появляется в вихре снежинок и подходит вплотную к лицу игрока.
+     *  - Тики 41..85  (2.0 - 4.25 сек): Дед Мороз поднимает руки с рулоном скотча и ножницами, наклеивает серебристый
+     *                                   скотч прямо на рот игрока и отрезает ножницами ("ЩЁЛК!").
+     *  - Тики 86..120 (4.25 - 6.0 сек): Дед Мороз разворачивается на 180°, машет рукой, уходит и исчезает на 120-м тике (6.0 сек)!
+     */
+    public void playSantaTapeMuteAnimation(final Player victim, final String timeLabel, final String reason) {
+        if (victim == null || !victim.isOnline() || victim.getWorld() == null) return;
+        final UUID victimId = victim.getUniqueId();
+        cleanupMuteAnimationFor(victimId);
+
+        final World w = victim.getWorld();
+        final Location vLoc0 = victim.getLocation();
+        Vector fwd0 = vLoc0.getDirection().setY(0.0);
+        if (fwd0.lengthSquared() < 0.001) {
+            fwd0 = new Vector(0.0, 0.0, 1.0);
+        } else {
+            fwd0.normalize();
+        }
+        final Vector approachAxis = fwd0.clone();
+
+        Location spawnPos = vLoc0.clone().add(approachAxis.clone().multiply(3.6));
+        spawnPos.setYaw(yawFacing(spawnPos, vLoc0));
+        spawnPos.setPitch(0.0f);
+
+        final List<Entity> spawned = new ArrayList<Entity>();
+        activeMuteAnimEntities.put(victimId, spawned);
+
+        final ArmorStand santa;
+        final TextDisplay speechBubble;
+        try {
+            santa = w.spawn(spawnPos, ArmorStand.class, new org.bukkit.util.Consumer<ArmorStand>() {
+                @Override
+                public void accept(ArmorStand as) {
+                    as.setPersistent(false);
+                    as.setGravity(false);
+                    as.setInvulnerable(true);
+                    as.setBasePlate(false);
+                    as.setArms(true);
+                    as.setVisible(true);
+                    as.setSilent(true);
+                    as.setCanPickupItems(false);
+                    as.setCustomName(ColorUtil.c("&#FF1744&l🎅 ДЕД МОРОЗ &8[&#CFD8DCСкотч-Патруль&8]"));
+                    as.setCustomNameVisible(true);
+                    EntityEquipment eq = as.getEquipment();
+                    if (eq != null) {
+                        eq.setHelmet(getSantaHeadItem());
+                        eq.setChestplate(dyedLeather(Material.LEATHER_CHESTPLATE, Color.fromRGB(212, 24, 36)));
+                        eq.setLeggings(dyedLeather(Material.LEATHER_LEGGINGS, Color.fromRGB(190, 20, 32)));
+                        eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(28, 28, 32)));
+                        eq.setItemInMainHand(namedItem(Material.IRON_BLOCK, "&#CFD8DC&l🧻 Серебристый скотч"));
+                        eq.setItemInOffHand(namedItem(Material.SHEARS, "&#FFD740&l✂ Ножницы Деда Мороза"));
+                    }
+                }
+            });
+            spawned.add(santa);
+
+            Location bubbleLoc = spawnPos.clone().add(0.0, 2.38, 0.0);
+            speechBubble = w.spawn(bubbleLoc, TextDisplay.class, new org.bukkit.util.Consumer<TextDisplay>() {
+                @Override
+                public void accept(TextDisplay td) {
+                    td.setPersistent(false);
+                    td.setBillboard(Display.Billboard.CENTER);
+                    td.setShadowed(true);
+                    td.setSeeThrough(true);
+                    td.setBackgroundColor(Color.fromARGB(185, 22, 24, 34));
+                    td.setText(ColorUtil.c("&#FFD740🎅 «Хо-хо-хо! Много шумишь — несу скотч!»"));
+                }
+            });
+            spawned.add(speechBubble);
+        } catch (Throwable ex) {
+            cleanupMuteAnimationFor(victimId);
+            return;
+        }
+
+        // Initial arrival sound & snow swirl
+        w.spawnParticle(Particle.SNOWFLAKE, spawnPos.clone().add(0.0, 1.1, 0.0), 32, 0.45, 0.75, 0.45, 0.04);
+        w.spawnParticle(Particle.CLOUD, spawnPos.clone().add(0.0, 0.25, 0.0), 14, 0.35, 0.15, 0.35, 0.02);
+        ColorUtil.sound(victim, "block.bell.use", 1.0f, 1.25f);
+        ColorUtil.sound(victim, "entity.villager.no", 0.9f, 0.85f);
+        victim.sendTitle(
+                ColorUtil.c("&#FF5252&l🎅 К ВАМ ИДЁТ ДЕД МОРОЗ..."),
+                ColorUtil.c("&fМут на &#FFD740" + timeLabel + " &8│ &7Причина: &e" + reason),
+                4, 42, 6
+        );
+
+        final TextDisplay[] faceTapeRef = new TextDisplay[1];
+
+        BukkitRunnable animTask = new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                ticks++;
+                if (!victim.isOnline() || victim.getWorld() == null || !victim.getWorld().equals(w) || !santa.isValid()) {
+                    cleanupMuteAnimationFor(victimId);
+                    return;
+                }
+
+                Location vNow = victim.getLocation();
+                Vector vDir = vNow.getDirection().setY(0.0);
+                if (vDir.lengthSquared() < 0.001) {
+                    vDir = approachAxis.clone();
+                } else {
+                    vDir.normalize();
+                }
+
+                // =====================================================================
+                // ACT 1: Ticks 1..40 (0.0s .. 2.0s) — Дед Мороз подходит к игроку!
+                // =====================================================================
+                if (ticks <= 40) {
+                    double progress = ticks / 40.0; // 0 -> 1
+                    double dist = 3.6 - (3.6 - 0.92) * progress;
+                    Location sLoc = vNow.clone().add(vDir.clone().multiply(dist));
+                    sLoc.setYaw(yawFacing(sLoc, vNow));
+                    sLoc.setPitch(0.0f);
+                    santa.teleport(sLoc);
+
+                    double swing = Math.sin(ticks * 0.52) * 0.62;
+                    santa.setLeftLegPose(new EulerAngle(swing, 0.0, 0.0));
+                    santa.setRightLegPose(new EulerAngle(-swing, 0.0, 0.0));
+                    santa.setLeftArmPose(new EulerAngle(-swing * 0.75, 0.0, -0.08));
+                    santa.setRightArmPose(new EulerAngle(swing * 0.75 - 0.35, 0.0, 0.08));
+                    santa.setHeadPose(new EulerAngle(0.0, 0.0, 0.0));
+
+                    if (speechBubble.isValid()) {
+                        speechBubble.teleport(sLoc.clone().add(0.0, 2.38, 0.0));
+                    }
+                    if (ticks % 4 == 0) {
+                        w.spawnParticle(Particle.SNOWFLAKE, sLoc.clone().add(0.0, 0.25, 0.0), 5, 0.25, 0.1, 0.25, 0.01);
+                    }
+                    if (ticks % 7 == 0) {
+                        w.playSound(sLoc, "minecraft:block.snow.step", 0.9f, 0.95f);
+                    }
+                    ColorUtil.actionBar(victim, "&#FF5252🎅 Дед Мороз подходит с рулоном скотча... &8[&e" + timeLabel + "&8]");
+                }
+                // =====================================================================
+                // ACT 2: Ticks 41..85 (2.0s .. 4.25s) — Наклеивает скотч прямо на лицо!
+                // =====================================================================
+                else if (ticks <= 85) {
+                    Location sLoc = vNow.clone().add(vDir.clone().multiply(0.88));
+                    sLoc.setYaw(yawFacing(sLoc, vNow));
+                    sLoc.setPitch(0.0f);
+                    santa.teleport(sLoc);
+                    santa.setLeftLegPose(EulerAngle.ZERO);
+                    santa.setRightLegPose(EulerAngle.ZERO);
+
+                    // Sweep arms across player's mouth while unrolling tape + snipping with shears!
+                    double tPhase = (ticks - 41) / 44.0; // 0..1
+                    double sweepY = -0.42 + tPhase * 0.84;
+                    santa.setRightArmPose(new EulerAngle(-1.48, sweepY, 0.06));
+                    santa.setLeftArmPose(new EulerAngle(-1.42, -sweepY * 0.65, -0.06));
+                    santa.setHeadPose(new EulerAngle(0.06, Math.sin(tPhase * Math.PI * 2.0) * 0.12, 0.0));
+
+                    if (speechBubble.isValid()) {
+                        speechBubble.teleport(sLoc.clone().add(0.0, 2.38, 0.0));
+                        if (ticks == 42) {
+                            speechBubble.setText(ColorUtil.c("&#FF5252🎅 «А ну-ка ротик на замок! Клеим СКОТЧ...»"));
+                        } else if (ticks == 68) {
+                            speechBubble.setText(ColorUtil.c("&#00E676✂ «ЩЁЛК! Держится крепко!»"));
+                        }
+                    }
+
+                    // Spawn & stick 3D Duct-Tape Display directly on the victim's mouth!
+                    Location mouthLoc = victim.getEyeLocation().add(vDir.clone().multiply(0.32)).add(0.0, -0.14, 0.0);
+                    if (ticks == 45 && faceTapeRef[0] == null) {
+                        try {
+                            faceTapeRef[0] = w.spawn(mouthLoc, TextDisplay.class, new org.bukkit.util.Consumer<TextDisplay>() {
+                                @Override
+                                public void accept(TextDisplay td) {
+                                    td.setPersistent(false);
+                                    td.setBillboard(Display.Billboard.CENTER);
+                                    td.setShadowed(true);
+                                    td.setBackgroundColor(Color.fromARGB(235, 165, 175, 184));
+                                    td.setText(ColorUtil.c("&#263238&l[ ▒▒ СКОТЧ... ]"));
+                                }
+                            });
+                            spawned.add(faceTapeRef[0]);
+                        } catch (Throwable ignored) {}
+                        w.playSound(mouthLoc, "minecraft:block.honey_block.slide", 1.2f, 1.35f);
+                        victim.sendTitle(
+                                ColorUtil.c("&#CFD8DC&l[ ▒▒▒ СКОТЧ... ]"),
+                                ColorUtil.c("&#FF5252🎅 Дед Мороз заклеивает вам рот!"),
+                                0, 30, 5
+                        );
+                    } else if (faceTapeRef[0] != null && faceTapeRef[0].isValid()) {
+                        faceTapeRef[0].teleport(mouthLoc);
+                        if (ticks == 57) {
+                            faceTapeRef[0].setText(ColorUtil.c("&#263238&l[ ▒▒▒▒ СКОТЧ ▒▒▒▒ ]"));
+                            w.playSound(mouthLoc, "minecraft:block.slime_block.place", 1.1f, 1.45f);
+                        } else if (ticks == 68) {
+                            // Shears SNIP! Full silver duct-tape sealed across mouth!
+                            faceTapeRef[0].setText(ColorUtil.c("&#263238&l[ ████ СКОТЧ ████ ]"));
+                            w.playSound(mouthLoc, "minecraft:entity.sheep.shear", 1.5f, 1.35f);
+                            w.spawnParticle(Particle.CRIT, mouthLoc, 10, 0.15, 0.08, 0.15, 0.03);
+                            victim.sendTitle(
+                                    ColorUtil.c("&#CFD8DC&l[ ████ СКОТЧ ████ ]"),
+                                    ColorUtil.c("&#FF5252🤐 Рот заклеен на &#FFD740" + timeLabel + " &8│ &f" + reason),
+                                    2, 62, 10
+                            );
+                        }
+                    }
+                    ColorUtil.actionBar(victim, "&#CFD8DC&l[ ████ СКОТЧ ████ ] &8│ &#FF5252Дед Мороз заклеил вам лицо! &7(" + timeLabel + ")");
+                }
+                // =====================================================================
+                // ACT 3: Ticks 86..120 (4.25s .. 6.00s) — Разворачивается и уходит!
+                // =====================================================================
+                else if (ticks < 120) {
+                    double walkOut = (ticks - 85) / 35.0; // 0..1
+                    double dist = 0.90 + walkOut * 3.35;  // walks away to 4.25 blocks!
+                    Location sLoc = vNow.clone().add(vDir.clone().multiply(dist));
+                    // Turn 180 degrees away from player!
+                    sLoc.setYaw(yawFacing(vNow, sLoc));
+                    sLoc.setPitch(0.0f);
+                    santa.teleport(sLoc);
+
+                    double swing = Math.sin(ticks * 0.55) * 0.62;
+                    santa.setLeftLegPose(new EulerAngle(swing, 0.0, 0.0));
+                    santa.setRightLegPose(new EulerAngle(-swing, 0.0, 0.0));
+                    // Brief farewell wave on ticks 86..96, then normal brisk walk swing
+                    if (ticks <= 96) {
+                        santa.setRightArmPose(new EulerAngle(-2.35, 0.0, Math.sin(ticks * 0.9) * 0.35));
+                    } else {
+                        santa.setRightArmPose(new EulerAngle(-swing * 0.75, 0.0, 0.08));
+                    }
+                    santa.setLeftArmPose(new EulerAngle(swing * 0.75, 0.0, -0.08));
+                    santa.setHeadPose(EulerAngle.ZERO);
+
+                    if (speechBubble.isValid()) {
+                        speechBubble.teleport(sLoc.clone().add(0.0, 2.38, 0.0));
+                        if (ticks == 86) {
+                            speechBubble.setText(ColorUtil.c("&#FFD740🎅 «Вот так тише! Не нарушай, с Новым Годом!»"));
+                            w.playSound(sLoc, "minecraft:block.note_block.chime", 1.2f, 1.4f);
+                        }
+                    }
+
+                    // Keep the silver duct-tape visibly stuck on the player's face while Santa walks away!
+                    if (faceTapeRef[0] != null && faceTapeRef[0].isValid()) {
+                        Location mouthLoc = victim.getEyeLocation().add(vDir.clone().multiply(0.32)).add(0.0, -0.14, 0.0);
+                        faceTapeRef[0].teleport(mouthLoc);
+                    }
+
+                    if (ticks % 4 == 0) {
+                        w.spawnParticle(Particle.SNOWFLAKE, sLoc.clone().add(0.0, 0.5, 0.0), 6, 0.28, 0.25, 0.28, 0.02);
+                    }
+                    if (ticks % 7 == 0) {
+                        w.playSound(sLoc, "minecraft:block.snow.step", 0.85f, 1.0f);
+                    }
+                }
+                // =====================================================================
+                // EXACT TICK 120 (6.00 SECONDS) — Финальное исчезновение и очистка!
+                // =====================================================================
+                else {
+                    Location endLoc = santa.getLocation().add(0.0, 1.0, 0.0);
+                    w.spawnParticle(Particle.SNOWFLAKE, endLoc, 38, 0.45, 0.75, 0.45, 0.05);
+                    w.spawnParticle(Particle.CLOUD, endLoc, 16, 0.35, 0.35, 0.35, 0.03);
+                    w.playSound(endLoc, "minecraft:entity.enderman.teleport", 0.85f, 1.35f);
+                    cleanupMuteAnimationFor(victimId);
+                }
+            }
+        };
+
+        activeMuteAnimTasks.put(victimId, animTask);
+        animTask.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private void cleanupMuteAnimationFor(UUID victimId) {
+        BukkitRunnable task = activeMuteAnimTasks.remove(victimId);
+        if (task != null) {
+            try { task.cancel(); } catch (Throwable ignored) {}
+        }
+        List<Entity> ents = activeMuteAnimEntities.remove(victimId);
+        if (ents != null) {
+            for (Entity en : ents) {
+                if (en != null) {
+                    try { en.remove(); } catch (Throwable ignored) {}
+                }
+            }
+        }
+    }
+
+    private float yawFacing(Location from, Location to) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        return (float) Math.toDegrees(Math.atan2(-dx, dz));
+    }
+
+    private ItemStack dyedLeather(Material mat, Color color) {
+        ItemStack it = new ItemStack(mat, 1);
+        LeatherArmorMeta lam = (LeatherArmorMeta) it.getItemMeta();
+        if (lam != null) {
+            lam.setColor(color);
+            lam.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE);
+            it.setItemMeta(lam);
+        }
+        return it;
+    }
+
+    private ItemStack getSantaHeadItem() {
+        if (cachedSantaHead != null) return cachedSantaHead.clone();
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
+        SkullMeta sm = (SkullMeta) head.getItemMeta();
+        if (sm != null) {
+            try {
+                String shortName = "KGS_" + SANTA_SKIN_HASH.substring(0, 10);
+                PlayerProfile prof = Bukkit.createPlayerProfile(UUID.nameUUIDFromBytes(SANTA_SKIN_HASH.getBytes("UTF-8")), shortName);
+                PlayerTextures tex = prof.getTextures();
+                tex.setSkin(new URL("http://textures.minecraft.net/texture/" + SANTA_SKIN_HASH));
+                prof.setTextures(tex);
+                sm.setOwnerProfile(prof);
+            } catch (Throwable ignored) {}
+            head.setItemMeta(sm);
+        }
+        cachedSantaHead = head;
+        return head.clone();
     }
 
     public boolean handleTimedBanWithAscension(CommandSender sender, String[] args) {
@@ -1030,9 +1372,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         for (Player on : Bukkit.getOnlinePlayers()) {
             if (ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))
                     && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) {
-                ColorUtil.sound(on, "entity.villager.no", 1.0f, 0.75f);
-                on.sendTitle(ColorUtil.c("&#FF5252&l🔇 МУТ ПО IP-АДРЕСУ"),
-                        ColorUtil.c("&fСрок: &e" + timeLabel + " &8│ &f" + reason), 5, 60, 10);
+                playSantaTapeMuteAnimation(on, timeLabel, reason);
             }
         }
         return true;
@@ -1272,6 +1612,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         if (count == 2) {
             plugin.getStore().mute(target, 30L * 60_000L, "2/3 предупреждений (" + reason + ")", "Авто-Система");
             Bukkit.broadcastMessage(ColorUtil.c("&#FF5252🔇 &fИгрок &c" + target + " &fполучил &e2/3 варнов &f→ Авто-Мут на &b30 мин.&f!"));
+            if (tp != null && tp.isOnline()) {
+                playSantaTapeMuteAnimation(tp, "30 мин.", "2/3 предупреждений (" + reason + ")");
+            }
         } else if (count >= 3) {
             plugin.getStore().clearWarns(target);
             executeBanWithSkyAnimation("Авто-Система (3/3 Варнов)", false, target, 3L * 86_400_000L, "Достигнут лимит 3/3 предупреждений (" + reason + ")");

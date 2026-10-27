@@ -35,6 +35,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
@@ -119,6 +120,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     private final Set<String> processedEventIds = Collections.synchronizedSet(new HashSet<String>());
     private final Set<String> pushedLocalBanKeys = Collections.synchronizedSet(new HashSet<String>());
     private volatile boolean lastCloudOk = false;
+    private volatile String learnedSelfPublicHost = "";
 
     // Config fields
     private String thisServerId = "grief1";
@@ -516,38 +518,76 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         }
         triggerImmediateAsyncCloudPush();
 
-        p.sendTitle(c("&#00E5FF&l🌐 ПЕРЕХОД..."), c("&7Подключаемся к " + target.displayName), 5, 40, 10);
-        p.sendMessage(c("&#00E5FF🌐 &lKingConnect &8» &fПереносим вас на сервер " + target.displayName + "&f..."));
-        playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.9f, 1.25f);
-
         if (shouldUseProxyFor(target)) {
+            p.sendTitle(c("&#00E5FF&l🌐 ПЕРЕХОД..."), c("&7Подключаемся к " + target.displayName), 5, 40, 10);
+            p.sendMessage(c("&#00E5FF🌐 &lKingConnect &8» &fПереносим вас на сервер " + target.displayName + "&f..."));
+            playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.9f, 1.25f);
             sendProxySsoForward(p, fullToken);
             sendBungeeConnect(p, target.proxyName);
             return;
         }
 
-        // Direct 1.20.5 - 1.21.11 Transfer + Signed Client Cookie!
-        try {
-            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
-            // Give 2 ticks so client processes StoreCookie packet right before Transfer packet!
-            final String host = target.host;
-            final int port = target.port;
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (!p.isOnline()) return;
-                    try {
-                        p.transfer(host, port);
-                    } catch (Throwable ex) {
-                        p.sendMessage(c("&#FF1744✖ Не удалось выполнить прямой перенос (проверьте версию 1.20.5+ и адрес " + host + ":" + port + ")!"));
-                    }
-                }
-            }.runTaskLater(this, 2L);
-        } catch (Throwable ex) {
-            // Fallback to Proxy channel if running on older client/server
-            sendProxySsoForward(p, fullToken);
-            sendBungeeConnect(p, target.proxyName);
+        final String rawHost = target.host;
+        final int rawPort = target.port;
+        final String playerIp = getPlayerIp(p);
+
+        // Prevent sending 127.0.0.1 transfer packet to remote clients (fixes Connection refused: getsockopt!)
+        if (ServerPinger.isLoopbackHost(rawHost) && !ServerPinger.isLoopbackHost(playerIp)) {
+            transferCooldowns.remove(p.getUniqueId());
+            playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
+            p.sendTitle(c("&#FFD740&l⚠ АДРЕС НЕ УКАЗАН"), c("&fПропишите /sethubip <IP:Порт> или /kcon"), 5, 60, 10);
+            p.sendMessage(c("&#FF5252⚠ &lKingConnect &8» &fАдрес сервера " + target.displayName + " &fещё не указан (стоит &e127.0.0.1&f), поэтому вы оставлены на сервере без вылета!"));
+            p.sendMessage(c("&#00E676💡 Решение: &fЗапустите Хаб с плагином &#FFD740KingHub.jar &f(он привяжется сам!) или укажите адрес командой &#FFD740/sethubip <IP:Порт>"));
+            return;
         }
+
+        Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
+            @Override
+            public void run() {
+                final ServerPinger.PingResult check = ServerPinger.ping(rawHost, rawPort, 850);
+                final boolean cloudAlive = target.onlineState
+                        && (System.currentTimeMillis() - target.lastUpdatedMs) < 25_000L
+                        && !ServerPinger.isLoopbackHost(check.resolvedHost);
+
+                Bukkit.getScheduler().runTask(KingConnectPlugin.this, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!p.isOnline()) return;
+                        if (!check.alive && !cloudAlive) {
+                            transferCooldowns.remove(p.getUniqueId());
+                            playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
+                            p.sendTitle(c("&#FF5252&l⚠ СЕРВЕР ВЫКЛЮЧЕН"),
+                                    c("&7" + check.resolvedHost + ":" + check.resolvedPort + " сейчас недоступен!"), 5, 60, 10);
+                            p.sendMessage(c("&#FF5252✖ &lKingConnect &8» &fСервер " + target.displayName + " &7(&e"
+                                    + check.resolvedHost + ":" + check.resolvedPort
+                                    + "&7) &fсейчас выключен или не отвечает — вы оставлены в игре без ошибки getsockopt!"));
+                            return;
+                        }
+
+                        p.sendTitle(c("&#00E5FF&l🌐 ПЕРЕХОД..."), c("&7Подключаемся к " + target.displayName), 5, 40, 10);
+                        p.sendMessage(c("&#00E5FF🌐 &lKingConnect &8» &fПереносим вас на сервер " + target.displayName + "&f..."));
+                        playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.9f, 1.25f);
+                        try {
+                            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    if (!p.isOnline()) return;
+                                    try {
+                                        p.transfer(check.resolvedHost, check.resolvedPort);
+                                    } catch (Throwable ex) {
+                                        p.sendMessage(c("&#FF1744✖ Перенос доступен на версиях 1.20.5 - 1.21+!"));
+                                    }
+                                }
+                            }.runTaskLater(KingConnectPlugin.this, 2L);
+                        } catch (Throwable ex) {
+                            sendProxySsoForward(p, fullToken);
+                            sendBungeeConnect(p, target.proxyName);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private void sendBungeeConnect(Player p, String proxyServerName) {
@@ -659,6 +699,23 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     // =========================================================================
     // 4. JOIN / SSO VERIFICATION / GLOBAL BAN / STANDALONE HUB LOGIC
     // =========================================================================
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onLoginCaptureSelfHost(PlayerLoginEvent e) {
+        try {
+            String hn = e.getHostname();
+            if (hn != null && !hn.isEmpty()) {
+                int nul = hn.indexOf('\0');
+                if (nul >= 0) hn = hn.substring(0, nul);
+                int col = hn.lastIndexOf(':');
+                if (col > 0) hn = hn.substring(0, col);
+                hn = hn.trim();
+                if (!ServerPinger.isLoopbackHost(hn)) {
+                    learnedSelfPublicHost = hn;
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoinLowest(final PlayerJoinEvent e) {
@@ -1411,7 +1468,12 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     }
 
     private boolean applyAddressUpdate(String srvId, String hostPort) {
-        String hp = hostPort.trim();
+        if (hostPort == null) return false;
+        String hp = hostPort.trim()
+                .replace("http://", "")
+                .replace("https://", "")
+                .replace("/", "")
+                .replace(" ", "");
         String host = hp;
         int port = 25565;
         int colon = hp.lastIndexOf(':');
@@ -1475,14 +1537,29 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         }
     }
 
+    private int detectRealListeningPort() {
+        try {
+            String envPort = System.getenv("SERVER_PORT");
+            if (envPort != null && !envPort.trim().isEmpty()) {
+                int p = Integer.parseInt(envPort.trim());
+                if (p > 0 && p <= 65535) return p;
+            }
+        } catch (Throwable ignored) {}
+        return Bukkit.getPort();
+    }
+
     private String buildCloudSyncPayload() {
         ServerNode self = servers.get(thisServerId);
-        String host = getConfig().getString("cloud-sync.public-host", "");
-        int port = getConfig().getInt("cloud-sync.public-port", Bukkit.getPort());
-        if ((host == null || host.isEmpty()) && self != null) {
-            host = self.host;
-            port = self.port;
+        String host = getConfig().getString("cloud-sync.public-host", "").trim();
+        if (ServerPinger.isLoopbackHost(host)) {
+            host = !ServerPinger.isLoopbackHost(learnedSelfPublicHost)
+                    ? learnedSelfPublicHost
+                    : (self != null && !ServerPinger.isLoopbackHost(self.host) ? self.host : "");
         }
+        int cfgPubPort = getConfig().getInt("cloud-sync.public-port", 0);
+        int port = (cfgPubPort > 0 && !ServerPinger.isLoopbackHost(getConfig().getString("cloud-sync.public-host", "")))
+                ? cfgPubPort
+                : ((self != null && !ServerPinger.isLoopbackHost(self.host)) ? self.port : detectRealListeningPort());
         boolean maint = self != null && self.maintenance;
         List<String> onlineNames = new ArrayList<String>();
         for (Player p : Bukkit.getOnlinePlayers()) onlineNames.add(p.getName());
@@ -1557,7 +1634,14 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                 if (id.equals(thisServerId)) continue;
                 ServerNode node = servers.get(id);
                 long ageMs = parseLongSafe(f[10], 99_999L);
+                String cloudHost = f[3] == null ? "" : f[3].trim();
+                int cloudPort = (int) parseLongSafe(f[4], 25565L);
                 if (node != null) {
+                    // Auto-adopt real Cloud-discovered IP:Port if local config still has default 127.0.0.1!
+                    if (ServerPinger.isLoopbackHost(node.host) && !ServerPinger.isLoopbackHost(cloudHost) && cloudPort > 0) {
+                        node.host = cloudHost;
+                        node.port = cloudPort;
+                    }
                     if (ageMs < 20_000L) {
                         node.onlineState = true;
                         node.onlinePlayers = (int) parseLongSafe(f[6], 0L);
