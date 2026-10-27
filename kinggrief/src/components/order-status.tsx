@@ -228,7 +228,7 @@ export function OrderStatusView({ initialOrder }: { initialOrder: Order }) {
           <div className="mt-4 space-y-2 border-t border-white/6 pt-4 text-[0.72rem]">
             <p className="flex items-center justify-between text-white/40">
               <span>Способ оплаты</span>
-              <span className="font-semibold text-white/70">{order.provider === 'mock' ? 'демо' : order.provider === 'yookassa' ? 'ЮKassa' : order.provider.startsWith('card2card:') ? (order.provider.endsWith('visa_eu') ? 'Visa Europe' : 'Visa Украина') : 'Robokassa'}</span>
+              <span className="font-semibold text-white/70">{order.provider === 'mock' ? 'демо' : order.provider === 'yookassa' ? 'ЮKassa' : order.provider.startsWith('card2card:') ? (order.provider.endsWith('visa_eu') ? 'Visa Europe' : order.provider.endsWith('sber_ru') ? 'Сбербанк' : 'Visa Украина') : 'Robokassa'}</span>
             </p>
             <p className="flex items-center justify-between text-white/40">
               <span>Оплачен</span>

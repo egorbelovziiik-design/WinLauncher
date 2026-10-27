@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, Check, Download, Server, ShieldCheck } from 'lucide-react';
 import { getSettings, listDemoOrders } from '@/lib/repo';
-import { cardMethodsEnabled, convertForMethod, maskPan, payoutCardPan, payoutChannel, payoutChannelTitle } from '@/lib/payments';
+import { cardMethodsEnabled, convertForMethod, maskPan, methodEnabled, payoutCardPan, payoutPanFor, payoutChannel, payoutChannelTitle } from '@/lib/payments';
 import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { SettingsForm, type SettingField } from '@/components/admin/settings-form';
 import { AdminCard } from '@/components/admin/kit';
@@ -56,6 +56,8 @@ export default async function AdminSettingsPage() {
   const bridgeConfigured = Boolean(process.env.MINECRAFT_BRIDGE_SECRET);
   const cardOk = cardMethodsEnabled();
   const cardMasked = maskPan(payoutCardPan());
+  const sberOk = methodEnabled('sber_ru');
+  const sberMasked = maskPan(payoutPanFor('sber_ru'));
   const sampleUah = convertForMethod(1000, 'visa_ua');
   const sampleEur = convertForMethod(1000, 'visa_eu');
   const endpoints = ['/api/minecraft/poll', '/api/minecraft/ack'];
@@ -78,6 +80,7 @@ export default async function AdminSettingsPage() {
             { label: 'Robokassa', ok: robokassaConfigured, keys: 'ROBOKASSA_LOGIN + PASSWORD1' },
             { label: 'Minecraft bridge', ok: bridgeConfigured, keys: 'MINECRAFT_BRIDGE_SECRET' },
             { label: 'Visa UA / EU · счёт', ok: cardOk, keys: 'PAYOUT_CARD_PAN' },
+            { label: 'Сбербанк · счёт', ok: sberOk, keys: 'PAYOUT_SBER_PAN' },
           ].map((item) => (
             <div key={item.label} className={`rounded-lg border px-3 py-2 ${item.ok ? 'border-emerald/25 bg-emerald/[0.06]' : 'border-amber/25 bg-amber/[0.06]'}`}>
               <p className="flex items-center gap-1.5 text-[0.74rem] font-bold text-white">
@@ -101,6 +104,10 @@ export default async function AdminSettingsPage() {
             <span className="text-[0.72rem] text-white/50">Счёт получения (маска, только для админа):</span>
             <code className="font-mono text-[0.78rem] font-bold tracking-[0.12em] text-neon">{cardMasked}</code>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/6 bg-void/40 px-3 py-2">
+            <span className="text-[0.72rem] text-white/50">Счёт получения Сбербанк (маска, только для админа):</span>
+            <code className="font-mono text-[0.78rem] font-bold tracking-[0.12em] text-neon">{sberMasked}</code>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-lg border border-white/6 bg-void/40 px-3 py-2 text-[0.7rem] text-white/50">
               <b className="text-white/85">Visa Украина (UAH)</b> · курс {sampleUah.rate} ₴/₽ · 1000 ₽ → {sampleUah.amount} ₴
@@ -111,7 +118,8 @@ export default async function AdminSettingsPage() {
           </div>
           <div className="rounded-lg border border-white/6 bg-void/40 px-3 py-2 text-[0.7rem] text-white/50">
             Канал оплаты на странице заказа: <b className="text-white/85">{payoutChannelTitle(payoutChannel('visa_ua'))}</b> (UAH) ·{' '}
-            <b className="text-white/85">{payoutChannelTitle(payoutChannel('visa_eu'))}</b> (EUR)
+            <b className="text-white/85">{payoutChannelTitle(payoutChannel('visa_eu'))}</b> (EUR) ·{' '}
+            <b className="text-white/85">{payoutChannelTitle(payoutChannel('sber_ru'))}</b> (RUB)
             <span className="mt-1 block text-[0.64rem] leading-relaxed text-white/35">
               Задаётся env: PAYMENT_LINK_UAH / PAYMENT_LINK_EUR (платёжная ссылка банка), PAYOUT_IBAN (перевод по
               реквизитам), PAYOUT_PHONE (перевод по номеру). Без них оплата идёт через поддержку.

@@ -11,7 +11,7 @@ export type ProviderId = 'mock' | 'yookassa' | 'robokassa' | 'card2card';
  * оплаты конкретного заказа (как в любом P2P-переводе) и больше нигде.
  * Сайт НЕ собирает и НЕ хранит платёжные данные плательщика → вне scope PCI DSS.
  */
-export type CardMethod = 'visa_ua' | 'visa_eu';
+export type CardMethod = 'visa_ua' | 'visa_eu' | 'sber_ru';
 
 const METHOD_META: Record<CardMethod, { currency: string; symbol: string; rateEnv: string; defRate: number; label: string; hint: string }> = {
   visa_ua: {
@@ -30,6 +30,14 @@ const METHOD_META: Record<CardMethod, { currency: string; symbol: string; rateEn
     label: 'Visa Europe',
     hint: 'Евро (EUR) · онлайн-оплата счёта',
   },
+  sber_ru: {
+    currency: 'RUB',
+    symbol: '₽',
+    rateEnv: 'RATE_RUB_PER_RUB',
+    defRate: 1,
+    label: 'Сбербанк',
+    hint: 'Рубли ₽ · онлайн-оплата счёта',
+  },
 };
 
 /* Канал оплаты счёта: настраивается env-переменными, на сайте не показывается
@@ -45,7 +53,8 @@ export type PayoutChannel =
   | { kind: 'support' };
 
 export function payoutChannel(method: CardMethod): PayoutChannel {
-  const link = (method === 'visa_ua' ? process.env.PAYMENT_LINK_UAH : process.env.PAYMENT_LINK_EUR) || '';
+  const linkEnv = method === 'visa_ua' ? 'PAYMENT_LINK_UAH' : method === 'visa_eu' ? 'PAYMENT_LINK_EUR' : 'PAYMENT_LINK_RUB';
+  const link = process.env[linkEnv] || '';
   if (link.trim()) return { kind: 'link', url: link.trim() };
   const iban = (process.env.PAYOUT_IBAN || '').trim();
   const phone = (process.env.PAYOUT_PHONE || '').trim();
@@ -67,12 +76,26 @@ export function payoutChannelTitle(channel: PayoutChannel): string {
   }
 }
 
+/** PAN счёта получения для конкретного метода (только server-env). */
+export function payoutPanFor(method: CardMethod): string {
+  const raw = method === 'sber_ru' ? process.env.PAYOUT_SBER_PAN : process.env.PAYOUT_CARD_PAN;
+  return (raw || '').replace(/\D/g, '');
+}
+
 export function payoutCardPan(): string {
-  return (process.env.PAYOUT_CARD_PAN || '').replace(/\D/g, '');
+  return payoutPanFor('visa_ua');
+}
+
+export function methodEnabled(method: CardMethod): boolean {
+  return payoutPanFor(method).length >= 12;
+}
+
+export function enabledCardMethods(): CardMethod[] {
+  return (['visa_ua', 'visa_eu', 'sber_ru'] as CardMethod[]).filter(methodEnabled);
 }
 
 export function cardMethodsEnabled(): boolean {
-  return payoutCardPan().length >= 12;
+  return enabledCardMethods().length > 0;
 }
 
 export function maskPan(pan: string): string {
@@ -95,7 +118,7 @@ export function isCardMethod(provider: string): boolean {
 
 export function methodOfProvider(provider: string): CardMethod | null {
   const tail = provider.split(':')[1];
-  return tail === 'visa_ua' || tail === 'visa_eu' ? tail : null;
+  return tail === 'visa_ua' || tail === 'visa_eu' || tail === 'sber_ru' ? tail : null;
 }
 
 /** Конвертация суммы заказа в валюту выбранного card-to-card метода. */

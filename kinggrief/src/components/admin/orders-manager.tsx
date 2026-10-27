@@ -123,7 +123,7 @@ export function OrdersManager({
                   <td className="max-w-[15rem] truncate text-[0.7rem] text-white/45">{order.items.map((i) => `${i.name} ×${i.quantity}`).join(', ')}</td>
                   <td className="stat-num text-white/85">{formatPrice(order.total)}</td>
                   <td className="font-mono text-[0.6rem] uppercase text-white/40">
-                    {order.provider.startsWith('card2card:') ? (order.provider.endsWith('visa_eu') ? 'Visa Europe' : 'Visa UA') : order.provider}
+                    {order.provider.startsWith('card2card:') ? (order.provider.endsWith('visa_eu') ? 'Visa Europe' : order.provider.endsWith('sber_ru') ? 'Сбербанк' : 'Visa UA') : order.provider}
                     {claims[order.id] && order.status === 'pending_payment' && (
                       <span className="mt-0.5 block"><Pill color="#F59E0B">заявка: «я оплатил(а)»</Pill></span>
                     )}

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { AlertTriangle, ArrowRight, CreditCard, Lock, ShieldCheck, Tag, User, Wallet } from 'lucide-react';
+import { methodMeta } from '@/lib/payments';
+import type { CardMethod } from '@/lib/payments';
 import { formatPrice } from '@/lib/utils';
 import { useCart, useToast } from './providers';
 import { EmptyState } from './ui';
@@ -16,12 +18,12 @@ export function CheckoutForm({
   provider,
   testMode,
   user = null,
-  cardMethods = false,
+  methods = [],
 }: {
   provider: string;
   testMode: boolean;
   user?: { username: string; email: string } | null;
-  cardMethods?: boolean;
+  methods?: CardMethod[];
 }) {
   const router = useRouter();
   const { items, subtotal, discount, total, promo, applyPromo, clearPromo, clear, nickname, setNickname, rememberOrder, ready, count } = useCart();
@@ -31,7 +33,7 @@ export function CheckoutForm({
   const [email, setEmail] = useState(user?.email ?? '');
   const [code, setCode] = useState(promo?.code ?? '');
   const [agree, setAgree] = useState(false);
-  const [method, setMethod] = useState<'kassa' | 'visa_ua' | 'visa_eu'>(cardMethods ? 'visa_ua' : 'kassa');
+  const [method, setMethod] = useState<'kassa' | CardMethod>(methods[0] ?? 'kassa');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -170,45 +172,28 @@ export function CheckoutForm({
               <Wallet className="h-4 w-4 text-neon" aria-hidden />
               <h2 className="font-mono text-[0.7rem] uppercase tracking-widest text-white/60">Способ оплаты</h2>
             </div>
-            <div className="grid gap-2.5 sm:grid-cols-3" role="radiogroup" aria-label="Способ оплаты">
-              {cardMethods && (
-                <>
+            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup" aria-label="Способ оплаты">
+              {methods.map((m) => {
+                const meta = methodMeta(m);
+                return (
                   <button
+                    key={m}
                     type="button"
                     role="radio"
-                    aria-checked={method === 'visa_ua'}
-                    onClick={() => setMethod('visa_ua')}
+                    aria-checked={method === m}
+                    onClick={() => setMethod(m)}
                     className={
                       'rounded-xl border p-3 text-left transition ' +
-                      (method === 'visa_ua'
+                      (method === m
                         ? 'border-neon/70 bg-neon/10 shadow-[0_0_24px_-8px_var(--neon)]'
                         : 'border-white/10 bg-white/[0.03] hover:border-white/25')
                     }
                   >
-                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Visa Украина</span>
-                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
-                      Гривна ₴ · онлайн-оплата счёта
-                    </span>
+                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">{meta.label}</span>
+                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">{meta.hint}</span>
                   </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={method === 'visa_eu'}
-                    onClick={() => setMethod('visa_eu')}
-                    className={
-                      'rounded-xl border p-3 text-left transition ' +
-                      (method === 'visa_eu'
-                        ? 'border-neon/70 bg-neon/10 shadow-[0_0_24px_-8px_var(--neon)]'
-                        : 'border-white/10 bg-white/[0.03] hover:border-white/25')
-                    }
-                  >
-                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Visa Europe</span>
-                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
-                      Евро € · онлайн-оплата счёта
-                    </span>
-                  </button>
-                </>
-              )}
+                );
+              })}
               <button
                 type="button"
                 role="radio"
@@ -227,7 +212,7 @@ export function CheckoutForm({
                 </span>
               </button>
             </div>
-            {cardMethods && method !== 'kassa' && (
+            {methods.length > 0 && method !== 'kassa' && (
               <p className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3 text-[0.7rem] leading-relaxed text-white/50">
                 Счёт на оплату создаётся сразу после подтверждения заказа: сумма в выбранной валюте, код заказа и
                 инструкция будут на странице заказа, там же кнопка «Я оплатил(а)». Мы не запрашиваем данные вашего

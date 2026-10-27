@@ -1,7 +1,7 @@
 import { applyPromo, createOrder, getOrder, getProduct, logEvent, recordPayment, registerPromoUse, setOrderPayment, updateOrderStatus, updatePaymentRecord } from './repo';
 import { markPaidAndQueue } from './delivery';
 import { cloudSaveTable, cloudSyncLocalDb, cloudUpsertOrder, isCloudEnabled } from './cloud-store';
-import { activeProvider, cardMethodsEnabled, initPayment, isTestMode, PaymentConfigError } from './payments';
+import { activeProvider, cardMethodsEnabled, initPayment, isTestMode, PaymentConfigError, methodEnabled } from './payments';
 import type { CardMethod } from './payments';
 import type { Order, OrderItem, Product } from './types';
 
@@ -106,7 +106,7 @@ export async function createCheckout(payload: CheckoutPayload): Promise<{
 
   const baseProvider = activeProvider();
   const provider =
-    payload.method && cardMethodsEnabled() ? (`card2card:${payload.method}` as string) : baseProvider;
+    payload.method && methodEnabled(payload.method) ? (`card2card:${payload.method}` as string) : baseProvider;
   const order = createOrder({
     nickname: payload.nickname,
     email: payload.email || null,
