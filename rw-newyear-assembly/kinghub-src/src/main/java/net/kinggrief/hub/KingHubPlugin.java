@@ -145,6 +145,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     private volatile String cloudDiscoveredGriefHost = "";
     private volatile int cloudDiscoveredGriefPort = 0;
     private volatile String learnedSelfPublicHost = "";
+    private final Map<UUID, String> playerHubOriginHostPort = new ConcurrentHashMap<UUID, String>();
 
     @Override
     public void onEnable() {
@@ -424,10 +425,15 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         transferCooldowns.put(p.getUniqueId(), now);
         p.closeInventory();
 
-        // Build HMAC-SHA256 SSO session token identical to KingConnect.jar (#2)!
+        // Build HMAC-SHA256 SSO session token identical to KingConnect.jar (#2) + embed exact Hub return host:port!
         String rank = p.isOp() ? "owner" : "default";
         String ipHash = sha256Hex(getPlayerIp(p) + "|" + secretKey).substring(0, 24);
-        String rawData = p.getName() + "|" + p.getUniqueId().toString() + "|" + ipHash + "|" + rank + "|" + now + "|hub";
+        String originHp = playerHubOriginHostPort.get(p.getUniqueId());
+        if (originHp == null || originHp.isEmpty()) {
+            String sh = !HubPingAndCloud.isLoopbackHost(learnedSelfPublicHost) ? learnedSelfPublicHost : "127.0.0.1";
+            originHp = sh + ":" + detectRealListeningPort();
+        }
+        String rawData = p.getName() + "|" + p.getUniqueId().toString() + "|" + ipHash + "|" + rank + "|" + now + "|hub@" + originHp;
         String sig = hmacSha256(rawData, secretKey);
         String fullToken = rawData + "|" + sig;
 
@@ -522,9 +528,19 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
             if (hn != null && !hn.isEmpty()) {
                 int nul = hn.indexOf('\0');
                 if (nul >= 0) hn = hn.substring(0, nul);
+                int parsedPort = detectRealListeningPort();
                 int col = hn.lastIndexOf(':');
-                if (col > 0) hn = hn.substring(0, col);
+                if (col > 0) {
+                    try {
+                        int pCand = Integer.parseInt(hn.substring(col + 1).trim());
+                        if (pCand > 0 && pCand <= 65535) parsedPort = pCand;
+                    } catch (Throwable ignored) {}
+                    hn = hn.substring(0, col);
+                }
                 hn = hn.trim();
+                if (!hn.isEmpty()) {
+                    playerHubOriginHostPort.put(e.getPlayer().getUniqueId(), hn + ":" + parsedPort);
+                }
                 if (!HubPingAndCloud.isLoopbackHost(hn)) {
                     learnedSelfPublicHost = hn;
                 }

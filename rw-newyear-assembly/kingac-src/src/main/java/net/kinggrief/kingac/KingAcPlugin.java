@@ -6,11 +6,13 @@ import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
@@ -38,10 +40,12 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
@@ -54,6 +58,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BoundingBox;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.io.File;
@@ -133,6 +138,8 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     private final Set<UUID> mutedAlertsStaff = new HashSet<UUID>();
     private final Set<UUID> ascendingExecution = new HashSet<UUID>();
     private final Map<UUID, UUID> activeProbes = new HashMap<UUID, UUID>();
+    private final Set<UUID> wallProbeIds = new HashSet<UUID>();
+    private final Map<String, Long> recentBlockPlaces = new HashMap<String, Long>();
 
     private File bansFile;
     private YamlConfiguration bansYaml;
@@ -173,12 +180,18 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                     }
                     if (d.microTwitchBuffer > 0) d.microTwitchBuffer = Math.max(0, d.microTwitchBuffer - 1);
                     if (d.gcdFailBuffer > 0) d.gcdFailBuffer = Math.max(0, d.gcdFailBuffer - 2);
+                    if (d.wallHitBuffer > 0) d.wallHitBuffer = Math.max(0, d.wallHitBuffer - 1);
+                }
+                long cutoff = System.currentTimeMillis() - 5000L;
+                for (Iterator<Map.Entry<String, Long>> it = recentBlockPlaces.entrySet().iterator(); it.hasNext(); ) {
+                    if (it.next().getValue().longValue() < cutoff) it.remove();
                 }
             }
         }.runTaskTimer(this, 800L, 800L);
 
         getLogger().info("==================================================================");
-        getLogger().info(" 🛡 KingАЧ v6.0 — НЕЙРО-АНТИЧИТ И АВТО-ЗАЩИТА СЕРВЕРА ЗАПУЩЕНЫ!  ");
+        getLogger().info(" 🛡 KingАЧ v6.1 — НЕЙРО-АНТИЧИТ И ЗАЩИТА ОТ WALLHIT ЗАПУЩЕНЫ!     ");
+        getLogger().info(" ▸ 3D RayTrace Стены/Стекла Трапки + Инжект-Бот Сквозь Стены: ВКЛ ");
         getLogger().info(" ▸ Сенсор Микро-Дёрганий Головой (Micro-Twitch + GCD + Snap): ВКЛ ");
         getLogger().info(" ▸ Инжект-Бот 360° KillAura + HitBox/Reach + AutoTotem + Fly: ВКЛ ");
         getLogger().info(" ▸ Система жалоб (/report, /reports) + Авто-Бан 24/7: ВКЛ         ");
@@ -192,6 +205,8 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             if (e != null) e.remove();
         }
         activeProbes.clear();
+        wallProbeIds.clear();
+        recentBlockPlaces.clear();
         ascendingExecution.clear();
         players.clear();
         saveBansFile();
@@ -683,22 +698,41 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         if (!(e.getDamager() instanceof Player)) return;
         Player attacker = (Player) e.getDamager();
 
-        // 1. Проверка попадания по НЕВИДИМОМУ ИНЖЕКТ-БОТУ KingАЧ (100% детект Киллауры / ТриггерБота!)
+        // 1. Проверка попадания по НЕВИДИМОМУ ИНЖЕКТ-БОТУ KingАЧ (360° ИЛИ СКВОЗЬ СТЕНУ!)
         UUID probeSuspect = activeProbes.get(e.getEntity().getUniqueId());
         if (probeSuspect != null) {
             e.setCancelled(true);
             Entity probe = e.getEntity();
+            boolean isWallProbe = wallProbeIds.remove(probe.getUniqueId());
             activeProbes.remove(probe.getUniqueId());
+            Block stillBlockedBy = (isWallProbe && probe instanceof LivingEntity)
+                    ? findBlockingWallBetween(attacker, (LivingEntity) probe)
+                    : null;
             probe.remove();
-            if (probeSuspect.equals(attacker.getUniqueId()) && !isExempt(attacker)) {
+            if (probeSuspect.equals(attacker.getUniqueId()) && !isExempt(attacker)
+                    && e.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
                 PlayerAcData d = data(attacker);
-                d.combatConfirmations += 2;
-                flag(attacker, "KillAura [Инжект-Бот 360°]", "Атаковал невидимую приманку за спиной", 5, false);
+                if (isWallProbe) {
+                    if (stillBlockedBy != null) {
+                        // Честный клиент ФИЗИЧЕСКИ не может кликнуть сущность за сплошным блоком!
+                        d.combatConfirmations += 3;
+                        d.wallHitBuffer += 2;
+                        int addVl = d.wallHitBuffer >= 3 ? Math.max(9, autoBanVl) : 9;
+                        flag(attacker, "WallAura [Инжект Через Стену]",
+                                "Пробил проверочного инжект-бота сквозь " + stillBlockedBy.getType().name(),
+                                addVl, false);
+                    }
+                } else {
+                    d.combatConfirmations += 2;
+                    flag(attacker, "KillAura [Инжект-Бот 360°]", "Атаковал невидимую приманку за спиной", 5, false);
+                }
             }
             return;
         }
 
         if (e.isCancelled() || isExempt(attacker)) return;
+        // Проверяем только прямые удары рукой/оружием (исключаем Sweeping Edge и Шипы/Thorns!)
+        if (e.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
         if (!(e.getEntity() instanceof LivingEntity)) return;
         LivingEntity victim = (LivingEntity) e.getEntity();
         if (victim.getScoreboardTags().contains("kg_npc")
@@ -794,7 +828,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             d.reachBuffer--;
         }
 
-        // 6. KillAura [Angle & WallHit]
+        // 6. KillAura [Angle & 3D Voxel RayTrace WallHit + Through-Wall Inject-Bot]
         Vector eyeDir = attacker.getEyeLocation().getDirection().normalize();
         Vector toVictim = victim.getBoundingBox().getCenter().subtract(attacker.getEyeLocation().toVector());
         if (toVictim.lengthSquared() > 0.35) {
@@ -807,13 +841,23 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 injectInvisibleDecoyProbe(attacker, d, now, true);
             }
         }
-        if (distToBox > 2.30 && !attacker.hasLineOfSight(victim)) {
-            Block mid = attacker.getEyeLocation().add(eyeDir.clone().multiply(1.4)).getBlock();
-            if (mid.getType().isSolid() && mid.getType().isOccluding()) {
-                e.setCancelled(true);
-                d.combatConfirmations++;
-                flag(attacker, "KillAura [Сквозь Стену]", "Удар через сплошной блок (" + mid.getType().name() + ")", 3, false);
+
+        // ТОЧНЫЙ 13-ТОЧЕЧНЫЙ 3D RAYTRACE СКВОЗЬ СТЕНЫ / СТЕКЛО ТРАПКИ / ДВЕРИ / КАБИНКИ (от 0.15м до 6.0м!)
+        Block wallBlock = findBlockingWallBetween(attacker, victim);
+        if (wallBlock != null) {
+            // МГНОВЕННО блокируем урон сквозь любую стену / трапку / пласт / стекло!
+            e.setCancelled(true);
+            // Сразу инжектируем проверочного бота за эту же стену, чтобы на следующем ударе WallAura попалась со 100% точностью!
+            injectThroughWallProbe(attacker, d, wallBlock, now, true);
+
+            if (!wasBlockJustPlaced(wallBlock, now, 320L)) {
+                d.wallHitBuffer++;
+                d.combatConfirmations += 2;
+                flag(attacker, "WallHit [Удар Через Стену]",
+                        "Атака сквозь " + wallBlock.getType().name() + String.format(Locale.US, " (%.2fм)", Double.valueOf(distToBox)),
+                        6, false);
             }
+            return;
         }
 
         // 7. KillAura [MultiAura] (смена 2 разных целей быстрее 50мс)
@@ -877,18 +921,185 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         } catch (Throwable ignored) {}
     }
 
+    /**
+     * 13-лучевая 3D воксельная проверка прямой видимости между глазами атакующего и всем BoundingBox цели.
+     * Возвращает преграждающий блок ТОЛЬКО если ВСЕ 13 лучей (голова, центр, ноги, все 8 углов хитбокса
+     * + микро-сдвиг глаз ±0.14м на интерполяцию клиента) упираются в твёрдую коллизию блока (включая стекло Трапки, двери, стены 1 блок!).
+     * Исключает любые ложные срабатывания при ударе по пяткам под полублоком или из-за угла.
+     */
+    private Block findBlockingWallBetween(Player attacker, LivingEntity target) {
+        if (attacker == null || target == null || !attacker.getWorld().equals(target.getWorld())) return null;
+        World world = attacker.getWorld();
+        Location eyeLoc = attacker.getEyeLocation();
+        Vector eye = eyeLoc.toVector();
+        BoundingBox box = target.getBoundingBox().clone().expand(0.06);
+        if (box.contains(eye)) return null;
+
+        double minX = box.getMinX(), maxX = box.getMaxX();
+        double minY = box.getMinY() + 0.05, maxY = Math.max(minY + 0.05, box.getMaxY() - 0.05);
+        double minZ = box.getMinZ(), maxZ = box.getMaxZ();
+        double cx = (minX + maxX) * 0.5;
+        double cy = (minY + maxY) * 0.5;
+        double cz = (minZ + maxZ) * 0.5;
+
+        Vector[] samplePoints = new Vector[]{
+                new Vector(cx, cy, cz),
+                new Vector(cx, maxY, cz),
+                new Vector(cx, minY, cz),
+                new Vector(minX, maxY, minZ),
+                new Vector(maxX, maxY, minZ),
+                new Vector(minX, maxY, maxZ),
+                new Vector(maxX, maxY, maxZ),
+                new Vector(minX, minY, minZ),
+                new Vector(maxX, minY, minZ),
+                new Vector(minX, minY, maxZ),
+                new Vector(maxX, minY, maxZ)
+        };
+
+        Block primaryWall = null;
+        for (int i = 0; i < samplePoints.length; i++) {
+            Vector delta = samplePoints[i].clone().subtract(eye);
+            double len = delta.length();
+            if (len <= 0.16) return null;
+            RayTraceResult rt = world.rayTraceBlocks(eyeLoc, delta.multiply(1.0 / len), len - 0.05, FluidCollisionMode.NEVER, true);
+            if (rt == null || rt.getHitBlock() == null) {
+                // Хотя бы один уголок хитбокса реально открыт (например ноги под плитой / щель в блоках) — удар честный!
+                return null;
+            }
+            if (primaryWall == null) primaryWall = rt.getHitBlock();
+        }
+
+        // Дополнительные 2 луча с боковым смещением глаз (±0.14м) от микро-рассинхрона 1 тика на углу двери/колонны
+        Vector lookHoriz = eyeLoc.getDirection().clone().setY(0);
+        if (lookHoriz.lengthSquared() > 0.001) {
+            Vector side = new Vector(-lookHoriz.getZ(), 0, lookHoriz.getX()).normalize().multiply(0.14);
+            for (int s = -1; s <= 1; s += 2) {
+                Location shiftedEye = eyeLoc.clone().add(side.getX() * s, 0, side.getZ() * s);
+                if (shiftedEye.getBlock().getType().isSolid() && !shiftedEye.getBlock().isPassable()) continue;
+                Vector delta = new Vector(cx, cy, cz).subtract(shiftedEye.toVector());
+                double len = delta.length();
+                if (len <= 0.16) return null;
+                RayTraceResult rt = world.rayTraceBlocks(shiftedEye, delta.multiply(1.0 / len), len - 0.05, FluidCollisionMode.NEVER, true);
+                if (rt == null || rt.getHitBlock() == null) {
+                    return null;
+                }
+            }
+        }
+        return primaryWall;
+    }
+
+    /**
+     * ИНЖЕКТ ЧЕРЕЗ СТЕНУ (Through-Wall Inject-Bot):
+     * Спавнит невидимого проверочного бота СТРОГО ЗА СПЛОШНОЙ СТЕНОЙ перед подозреваемым на 16 тиков (0.80 сек).
+     * Обычный клиент Minecraft не может отправить пакет атаки на сущность за стеной (луч упирается в блок стены),
+     * а читер с KillAura / WallHit / ThroughWalls мгновенно бьёт инжект-бота сквозь стену и улетает в авто-бан KingАЧ!
+     */
+    private boolean injectThroughWallProbe(final Player suspect, PlayerAcData d, Block wallBlock, long now, boolean forceFast) {
+        if (suspect == null || !suspect.isOnline() || wallBlock == null) return false;
+        long cd = forceFast ? 900L : 2600L;
+        if (now - d.lastWallProbeMs < cd) return false;
+        d.lastWallProbeMs = now;
+
+        try {
+            Location eye = suspect.getEyeLocation();
+            Vector wallCenter = wallBlock.getLocation().add(0.5, 0.5, 0.5).toVector();
+            Vector pushDir = wallCenter.clone().subtract(eye.toVector()).setY(0);
+            if (pushDir.lengthSquared() < 0.001) {
+                pushDir = eye.getDirection().clone().setY(0);
+            }
+            if (pushDir.lengthSquared() < 0.001) return false;
+            pushDir.normalize();
+
+            // Размещаем приманку на 0.95 блока ЗА центром стены (в соседнем блоке по ту сторону преграды)
+            Location behindWall = wallBlock.getLocation().add(0.5 + pushDir.getX() * 0.95, 0.05, 0.5 + pushDir.getZ() * 0.95);
+            if (behindWall.distanceSquared(eye) > 9.6) return false; // в пределах досягаемости меча (~3.1м), чтобы WallAura достала!
+
+            final ArmorStand probe = (ArmorStand) suspect.getWorld().spawnEntity(behindWall, EntityType.ARMOR_STAND);
+            probe.setPersistent(false);
+            probe.setVisible(false);
+            probe.setGravity(false);
+            probe.setSmall(true);
+            probe.setSilent(true);
+            probe.setBasePlate(false);
+            probe.addScoreboardTag("kingac_probe");
+            probe.addScoreboardTag("kingac_wall_probe");
+
+            // Гарантия 0% ложных срабатываний: если сбоку есть окно/проём и бот виден — тут же удаляем его!
+            if (findBlockingWallBetween(suspect, probe) == null) {
+                probe.remove();
+                return false;
+            }
+
+            activeProbes.put(probe.getUniqueId(), suspect.getUniqueId());
+            wallProbeIds.add(probe.getUniqueId());
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    activeProbes.remove(probe.getUniqueId());
+                    wallProbeIds.remove(probe.getUniqueId());
+                    if (probe.isValid()) probe.remove();
+                }
+            }.runTaskLater(this, 16L);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Проактивный инжект через стену: если игрок под жалобой (/report Deep Watch) или уже подозревается в WallHit
+     * машет мечом/топором вплотную к стене (трапке/кабинке), KingАЧ незаметно ставит приманку за этой стеной!
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWallSwingInspect(PlayerInteractEvent e) {
+        if (e.getAction() != Action.LEFT_CLICK_BLOCK && e.getAction() != Action.LEFT_CLICK_AIR) return;
+        Player p = e.getPlayer();
+        if (isExempt(p)) return;
+        PlayerAcData d = data(p);
+        long now = System.currentTimeMillis();
+        if (!d.isUnderDeepWatch() && d.wallHitBuffer <= 0 && d.totalVl < 5 && (now - d.lastCombatMs) > 8000L) {
+            return;
+        }
+        RayTraceResult rt = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), 2.15, FluidCollisionMode.NEVER, true);
+        if (rt != null && rt.getHitBlock() != null) {
+            injectThroughWallProbe(p, d, rt.getHitBlock(), now, false);
+        }
+    }
+
+    private static String blockKey(World w, int x, int y, int z) {
+        return w.getName() + ":" + x + ":" + y + ":" + z;
+    }
+
+    private boolean wasBlockJustPlaced(Block b, long now, long windowMs) {
+        if (b == null) return false;
+        World w = b.getWorld();
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    Long placedAt = recentBlockPlaces.get(blockKey(w, b.getX() + dx, b.getY() + dy, b.getZ() + dz));
+                    if (placedAt != null && (now - placedAt.longValue()) <= windowMs) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     // =================================================================================
     //  3. SCAFFOLD, AUTOTOTEM / GUIMOVE & XRAY
     // =================================================================================
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlaceScaffold(BlockPlaceEvent e) {
         Player p = e.getPlayer();
+        Block placed = e.getBlockPlaced();
+        long now = System.currentTimeMillis();
+        recentBlockPlaces.put(blockKey(placed.getWorld(), placed.getX(), placed.getY(), placed.getZ()), Long.valueOf(now));
         if (isExempt(p)) return;
         PlayerAcData d = data(p);
-        long now = System.currentTimeMillis();
         d.lastBlockPlaceMs = now;
 
-        Block placed = e.getBlockPlaced();
         Location pl = p.getLocation();
         if (placed.getY() == pl.getBlockY() - 1 && p.isSprinting() && pl.getPitch() > 79.0f && Math.abs(d.prevDeltaPitch) > 32.0f) {
             d.scaffoldSnapBuffer += 2;
@@ -1771,16 +1982,42 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        if ("reload".equals(sub) && isAdminController(sender)) {
-            reloadSettingsFromConfig();
-            sender.sendMessage(c("&#00E676✔ Конфигурация KingАЧ v6.0 перезагружена!"));
+        if ("probe".equals(sub) || "wallprobe".equals(sub)) {
+            if (args.length < 2) {
+                sender.sendMessage(c("&cИспользование: /kac probe <ник>"));
+                return true;
+            }
+            Player t = Bukkit.getPlayerExact(args[1]);
+            if (t == null) {
+                sender.sendMessage(c("&cИгрок не в сети."));
+                return true;
+            }
+            PlayerAcData d = data(t);
+            long now = System.currentTimeMillis();
+            d.lastProbeMs = 0L;
+            d.lastWallProbeMs = 0L;
+            injectInvisibleDecoyProbe(t, d, now, true);
+            boolean wallSpawned = false;
+            RayTraceResult rt = t.getWorld().rayTraceBlocks(t.getEyeLocation(), t.getEyeLocation().getDirection(), 2.4, FluidCollisionMode.NEVER, true);
+            if (rt != null && rt.getHitBlock() != null) {
+                wallSpawned = injectThroughWallProbe(t, d, rt.getHitBlock(), now, true);
+            }
+            sender.sendMessage(c("&#00E676🛡 [KingАЧ] Инжект-проверка запущена на &#FFD740" + t.getName()
+                    + " &8(360° за спиной" + (wallSpawned ? " + &#00E5FFИнжект СКВОЗЬ СТЕНУ" : "") + "&8)!"));
             return true;
         }
 
-        sender.sendMessage(c("&#FF1744&l🛡 Команды KingАЧ v6.0:"));
+        if ("reload".equals(sub) && isAdminController(sender)) {
+            reloadSettingsFromConfig();
+            sender.sendMessage(c("&#00E676✔ Конфигурация KingАЧ v6.1 перезагружена!"));
+            return true;
+        }
+
+        sender.sendMessage(c("&#FF1744&l🛡 Команды KingАЧ v6.1:"));
         sender.sendMessage(c(" &#00E676/kac &8— &fОткрыть центр детектов и настроек"));
         sender.sendMessage(c(" &#00E676/reports &8— &fСписок активных жалоб игроков"));
         sender.sendMessage(c(" &#00E676/kac info <ник> &8— &fНейро-досье и индекс микро-дёрганий"));
+        sender.sendMessage(c(" &#00E676/kac probe <ник> &8— &fЗапустить 360° + сквозь-стену Инжект-Бота"));
         sender.sendMessage(c(" &#00E676/kac ban <ник> [причина] &8— &fЗапустить авто-бан KingАЧ"));
         sender.sendMessage(c(" &#00E676/kac unban <ник> &8— &fРазбанить игрока"));
         sender.sendMessage(c(" &#00E676/kac alerts &8— &fВкл/выкл уведомления в чате"));
@@ -1795,16 +2032,17 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 return matchOnline(args[0]);
             }
             if (args.length == 2) {
-                return filterPrefix(args[1], Arrays.asList("Киллаура", "Микро-дёргание", "Хитбоксы", "Рич", "Флай", "АвтоТотем", "XRay"));
+                return filterPrefix(args[1], Arrays.asList("Киллаура", "УдарЧерезСтену", "Микро-дёргание", "Хитбоксы", "Рич", "Флай", "АвтоТотем", "XRay"));
             }
             return Collections.emptyList();
         }
         if ("kingac".equals(name)) {
             if ((sender instanceof Player) && !isStaffMember((Player) sender)) return Collections.emptyList();
             if (args.length == 1) {
-                return filterPrefix(args[0], Arrays.asList("reports", "bans", "info", "ban", "unban", "alerts", "reload"));
+                return filterPrefix(args[0], Arrays.asList("reports", "bans", "info", "probe", "wallprobe", "ban", "unban", "alerts", "reload"));
             }
-            if (args.length == 2 && ("info".equalsIgnoreCase(args[0]) || "ban".equalsIgnoreCase(args[0]))) {
+            if (args.length == 2 && ("info".equalsIgnoreCase(args[0]) || "ban".equalsIgnoreCase(args[0])
+                    || "probe".equalsIgnoreCase(args[0]) || "wallprobe".equalsIgnoreCase(args[0]))) {
                 return matchOnline(args[1]);
             }
             if (args.length == 2 && "unban".equalsIgnoreCase(args[0])) {

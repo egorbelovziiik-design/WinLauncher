@@ -59,6 +59,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
@@ -414,6 +415,18 @@ public final class GameplayListener implements Listener {
 
     @EventHandler
     public void onPlayerTeleportToSpawn(org.bukkit.event.player.PlayerTeleportEvent e) {
+        org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause = e.getCause();
+        if (cause == org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.ENDER_PEARL
+                || cause == org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) {
+            if (plugin.getSpawnEngine().isInsideAnyKabinka(e.getFrom())
+                    || plugin.getSpawnEngine().isInsideAnyKabinka(e.getTo())) {
+                e.setCancelled(true);
+                Player p = e.getPlayer();
+                ColorUtil.sound(p, "entity.villager.no", 0.9f, 0.9f);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ В ПвП-кабинках Перки и Хорусы строго запрещены!"));
+                return;
+            }
+        }
         if (e.getTo() != null && plugin.getSpawnEngine().isInSpawnWorld(e.getTo())) {
             final World sw = e.getTo().getWorld();
             new BukkitRunnable() {
@@ -1569,9 +1582,39 @@ public final class GameplayListener implements Listener {
 
         // 3. Звезда Меню, 8 Боевых Расходников FT×RW (Пласт, Трапка, Дезориентация, Явная Пыль, Божья Аура, Смерч, Граната) и Предметы РВ
         ItemStack hand = e.getItem();
+        boolean rightClick = e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK;
+        if (rightClick && hand != null) {
+            Material hm = hand.getType();
+            if ((hm == Material.ENDER_PEARL || hm == Material.CHORUS_FRUIT)
+                    && plugin.getSpawnEngine().isInsideAnyKabinka(p.getLocation())) {
+                e.setCancelled(true);
+                ColorUtil.sound(p, "entity.villager.no", 0.9f, 0.9f);
+                ColorUtil.actionBar(p, "&#FF1744✖ В кабинках Эндер-Перки и Хорусы запрещены!");
+                p.sendMessage(ColorUtil.c("&#FF1744✖ В ПвП-кабинках использование Эндер-Перок и Хорусов запрещено!"));
+                return;
+            }
+            if (hm == Material.ENCHANTED_GOLDEN_APPLE || hm == Material.GOLDEN_APPLE) {
+                boolean isOwnerP = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+                if (isOwnerP) {
+                    try { p.setCooldown(hm, 0); } catch (Throwable ignored) {}
+                } else {
+                    String cdKey = p.getUniqueId() + (hm == Material.ENCHANTED_GOLDEN_APPLE ? ":cd_charka" : ":cd_gapple");
+                    Long readyAt = itemCooldowns.get(cdKey);
+                    long nowMs = System.currentTimeMillis();
+                    if (readyAt != null && nowMs < readyAt.longValue()) {
+                        long remSec = Math.max(1L, (readyAt.longValue() - nowMs + 999L) / 1000L);
+                        int remTicks = (int) Math.max(2L, (readyAt.longValue() - nowMs) / 50L);
+                        e.setCancelled(true);
+                        try { p.setCooldown(hm, remTicks); } catch (Throwable ignored) {}
+                        String appleName = hm == Material.ENCHANTED_GOLDEN_APPLE ? "&#FF9100Чарка" : "&#FFD740Гепл";
+                        ColorUtil.actionBar(p, "&#FF5252⏳ " + appleName + " &fна КТ: подождите ещё &#FFD740" + remSec + " сек.&f!");
+                        return;
+                    }
+                }
+            }
+        }
         String cid = ItemFactory.getCustomId(hand);
         if (cid == null) return;
-        boolean rightClick = e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK;
         if (!rightClick) return;
 
         if ("menu_star".equals(cid)) {
@@ -1609,10 +1652,12 @@ public final class GameplayListener implements Listener {
             }
         } else if ("orb_recall".equals(cid)) {
             e.setCancelled(true);
-            if (!checkAndSetCd(p, "orb_recall", 20)) return;
+            boolean isOwnerUser = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+            if (!isOwnerUser && !checkAndSetCd(p, "orb_recall", 25)) return;
             consumeOne(p, hand);
             final long startMs = System.currentTimeMillis();
-            p.sendMessage(ColorUtil.c("&#00E5FF🧪 [Сфера Возврата] &fЗапущена экстренная эвакуация на спавн (&e3 сек.&f) — не получайте урон!"));
+            p.sendMessage(ColorUtil.c("&#00E5FF🌀 &lСфера Эвакуации &8» &fЗапущен купол экстренной эвакуации на спавн (&#FFD74010 сек.&f) — не получайте урон!"));
+            ColorUtil.actionBar(p, "&#00E5FF🌀 Сфера Эвакуации: телепортация через &f10 сек...");
             ColorUtil.sound(p, "block.beacon.power_select", 1.0f, 1.35f);
             new BukkitRunnable() {
                 int step = 0;
@@ -1622,21 +1667,26 @@ public final class GameplayListener implements Listener {
                     Long dmgAt = recallDamagedAt.get(p.getUniqueId());
                     if (dmgAt != null && dmgAt.longValue() >= startMs) {
                         cancel();
-                        p.sendMessage(ColorUtil.c("&#FF1744✖ Телепортация Сферы Возврата сбита полученным уроном!"));
+                        p.sendMessage(ColorUtil.c("&#FF1744✖ Телепортация Сферы Эвакуации сбита полученным уроном!"));
+                        ColorUtil.actionBar(p, "&#FF1744✖ Сфера Эвакуации сбита ударом!");
                         ColorUtil.sound(p, "entity.item.break", 1.0f, 0.8f);
                         return;
                     }
                     step++;
-                    p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.0, 0), 14, 0.45, 0.8, 0.45, 0.03);
-                    if (step < 3) {
-                        ColorUtil.actionBar(p, "&#00E5FF🧪 Эвакуация через &f" + (3 - step) + " сек...");
+                    Location center = p.getLocation().add(0, 1.0, 0);
+                    p.getWorld().spawnParticle(Particle.END_ROD, center, 16, 0.55, 0.85, 0.55, 0.03);
+                    p.getWorld().spawnParticle(Particle.PORTAL, center, 20, 0.45, 0.65, 0.45, 0.15);
+                    if (step < 10) {
+                        int leftSec = 10 - step;
+                        ColorUtil.actionBar(p, "&#00E5FF🌀 Сфера Эвакуации: телепортация через &#FFD740" + leftSec + " сек...");
+                        ColorUtil.sound(p, "block.note_block.chime", 0.75f, 0.9f + step * 0.08f);
                         return;
                     }
                     cancel();
                     plugin.getHud().clearCombat(p.getUniqueId());
                     p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                     ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 1.25f);
-                    p.sendTitle(ColorUtil.c("&#00E5FF&l🧪 ЭВАКУАЦИЯ!"), ColorUtil.c("&fВы спасены Сферой Возврата!"), 5, 35, 10);
+                    p.sendTitle(ColorUtil.c("&#00E5FF&l🌀 ЭВАКУАЦИЯ!"), ColorUtil.c("&fВы спасены Сферой Эвакуации (10 сек)!"), 5, 40, 10);
                 }
             }.runTaskTimer(plugin, 20L, 20L);
         } else if ("plast".equals(cid) || "trapka".equals(cid) || "dezorient".equals(cid)
@@ -1834,6 +1884,13 @@ public final class GameplayListener implements Listener {
     public void onProjectileLaunch(ProjectileLaunchEvent e) {
         if (!(e.getEntity().getShooter() instanceof Player)) return;
         Player p = (Player) e.getEntity().getShooter();
+        if (e.getEntity() instanceof org.bukkit.entity.EnderPearl
+                && plugin.getSpawnEngine().isInsideAnyKabinka(p.getLocation())) {
+            e.setCancelled(true);
+            ColorUtil.sound(p, "entity.villager.no", 0.9f, 0.9f);
+            p.sendMessage(ColorUtil.c("&#FF1744✖ В ПвП-кабинках бросать Эндер-Перки запрещено!"));
+            return;
+        }
         ItemStack main = p.getInventory().getItemInMainHand();
         ItemStack off = p.getInventory().getItemInOffHand();
         String mainId = ItemFactory.getCustomId(main);
@@ -2475,6 +2532,20 @@ public final class GameplayListener implements Listener {
     // ================= PVP, АРЕНА, КАБИНКИ, ВАМПИРИЗМ, БРОНЯ, СТРЕЛЫ, ЛУКИ И БОССЫ =================
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent e) {
+        if (e.getEntity() instanceof Player) {
+            Player gp = (Player) e.getEntity();
+            if (plugin.getStore().isGodMode(gp)) {
+                if (e instanceof EntityDamageByEntityEvent
+                        && ((EntityDamageByEntityEvent) e).getDamager() instanceof Player
+                        && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(gp).id)) {
+                    plugin.getStore().disableGodMode(gp);
+                    gp.sendMessage(ColorUtil.c("&#FF5252⚔ Режим бессмертия (/god) автоматически отключён при входе в ПвП!"));
+                } else {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+        }
         if (e.getEntity() instanceof Player && e.getCause() == EntityDamageEvent.DamageCause.FALL) {
             Player fp = (Player) e.getEntity();
             if ("mace_krush".equals(ItemFactory.getCustomId(fp.getInventory().getItemInMainHand()))) {
@@ -2820,6 +2891,57 @@ public final class GameplayListener implements Listener {
     }
 
     // ================= v5.9.1: БРОНЯ ЛОМАЕТСЯ НАМНОГО ДОЛЬШЕ + НАСТОЯЩАЯ ПРОЧНОСТЬ VI (6) И VII (7)! =================
+    /** КТ на Чарки (50 сек) и Геплы (20 сек)! У привилегии OWNER нету КТ (0 сек)! */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onGoldenAppleConsume(PlayerItemConsumeEvent e) {
+        ItemStack item = e.getItem();
+        if (item == null) return;
+        Material m = item.getType();
+        if (m == Material.CHORUS_FRUIT && plugin.getSpawnEngine().isInsideAnyKabinka(e.getPlayer().getLocation())) {
+            e.setCancelled(true);
+            ColorUtil.sound(e.getPlayer(), "entity.villager.no", 0.9f, 0.9f);
+            e.getPlayer().sendMessage(ColorUtil.c("&#FF1744✖ В ПвП-кабинках Хорусы и Перки запрещены!"));
+            return;
+        }
+        if (m != Material.ENCHANTED_GOLDEN_APPLE && m != Material.GOLDEN_APPLE) return;
+
+        Player p = e.getPlayer();
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        if (isOwner) {
+            try { p.setCooldown(m, 0); } catch (Throwable ignored) {}
+            return;
+        }
+
+        boolean isCharka = (m == Material.ENCHANTED_GOLDEN_APPLE);
+        String cdKey = p.getUniqueId() + (isCharka ? ":cd_charka" : ":cd_gapple");
+        long now = System.currentTimeMillis();
+        Long readyAt = itemCooldowns.get(cdKey);
+        if (readyAt != null && now < readyAt.longValue()) {
+            long remSec = Math.max(1L, (readyAt.longValue() - now + 999L) / 1000L);
+            int remTicks = (int) Math.max(2L, (readyAt.longValue() - now) / 50L);
+            e.setCancelled(true);
+            try { p.setCooldown(m, remTicks); } catch (Throwable ignored) {}
+            p.sendMessage(ColorUtil.c("&#FF5252⏳ " + (isCharka ? "Чарка" : "Гепл")
+                    + " на перезарядке (КТ): подождите ещё &#FFD740" + remSec + " сек.&f!"));
+            return;
+        }
+
+        final int cdSec = isCharka ? 50 : 20;
+        itemCooldowns.put(cdKey, Long.valueOf(now + cdSec * 1000L));
+        // Schedule 1 tick later so Minecraft doesn't overwrite our setCooldown after completing consume!
+        Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
+            @Override
+            public void run() {
+                if (p.isOnline()) {
+                    try { p.setCooldown(m, cdSec * 20); } catch (Throwable ignored) {}
+                }
+            }
+        }, 1L);
+        ColorUtil.actionBar(p, isCharka
+                ? "&#FF9100🍎 Чарка съедена! КТ на чарку: &f50 сек."
+                : "&#FFD740🍏 Гепл съеден! КТ на гепл: &f20 сек.");
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onArmorDurabilityDamage(PlayerItemDamageEvent e) {
         ItemStack item = e.getItem();
@@ -3297,6 +3419,7 @@ public final class GameplayListener implements Listener {
         e.setCancelled(true);
         Bukkit.getConsoleSender().sendMessage(formatted);
         for (Player rec : Bukkit.getOnlinePlayers()) {
+            if (!isOwnerChat && plugin.getStore().isIgnoring(rec.getName(), p.getName())) continue;
             if (global || (rec.getWorld().equals(p.getWorld()) && rec.getLocation().distanceSquared(p.getLocation()) <= 10000.0)) {
                 rec.sendMessage(formatted);
             }

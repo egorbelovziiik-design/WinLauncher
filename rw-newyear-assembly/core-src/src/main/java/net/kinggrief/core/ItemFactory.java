@@ -832,12 +832,12 @@ public final class ItemFactory {
     }
 
     public static ItemStack orbRecall(int amt) {
-        return make(Material.HEART_OF_THE_SEA, amt, "&#00E5FF&l🧪 3D Сфера Возврата [Экстренный Сейв]",
-                Arrays.asList("&8Тактический Артефакт Выживания",
+        return make(Material.HEART_OF_THE_SEA, amt, "&#00E5FF&l🌀 3D Сфера Эвакуации [Экстренный Сейв · 10 сек]",
+                Arrays.asList("&8Тактический Артефакт Выживания FT × RW",
                         "",
-                        "&7Нажмите ПКМ — запускает &#80D8FF3-секундный портал",
+                        "&7Нажмите ПКМ — запускает &#80D8FF10-секундный купол",
                         "&7экстренной эвакуации прямиком на &#00E676/spawn&7!",
-                        "&c(Сбивается, если получить урон во время телепортации)"),
+                        "&c(Если не получить урон 10 секунд — вытаскивает даже из ПвП!)"),
                 true, "orb_recall", "orb_recall", 1823);
     }
 
@@ -1498,6 +1498,7 @@ public final class ItemFactory {
                     arrowIce(64), arrowExplosive(64), arrowLightning(64),
                     arrowVampire(64), arrowPoison(64), arrowAntiFly(64),
                     potionKiller(2), potionMedic(2),
+                    orbRecall(8),
                     bookArmorUnbreaking7(4),
                     new ItemStack(Material.NETHERITE_BLOCK, 16),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));

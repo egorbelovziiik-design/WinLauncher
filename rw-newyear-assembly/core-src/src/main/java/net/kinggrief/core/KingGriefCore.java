@@ -5,10 +5,13 @@ import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.WeatherType;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
@@ -16,8 +19,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.RayTraceResult;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -424,13 +430,35 @@ public final class KingGriefCore extends JavaPlugin {
                     return filterPrefix(Arrays.asList("purple", "red", "gold", "aqua", "green", "pink", "white"), args[1]);
                 }
             }
-        } else if ("warp".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top", "spawn"), args[0]);
+        } else if ("warp".equals(c)) {
+            if (args.length == 1) {
+                List<String> wlist = new ArrayList<String>(Arrays.asList(
+                        "set", "del", "list", "info",
+                        "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top", "spawn"));
+                if (store != null) wlist.addAll(store.getAllCustomWarps().keySet());
+                return filterPrefix(wlist, args[0]);
+            }
+            if (args.length == 2 && ("del".equalsIgnoreCase(args[0]) || "delete".equalsIgnoreCase(args[0])
+                    || "remove".equalsIgnoreCase(args[0]) || "info".equalsIgnoreCase(args[0]))) {
+                List<String> wlist = new ArrayList<String>();
+                if (store != null) wlist.addAll(store.getAllCustomWarps().keySet());
+                return filterPrefix(wlist, args[1]);
+            }
+        } else if (("delwarp".equals(c) || "warpinfo".equals(c)) && args.length == 1) {
+            List<String> wlist = new ArrayList<String>();
+            if (store != null) wlist.addAll(store.getAllCustomWarps().keySet());
+            return filterPrefix(wlist, args[0]);
+        } else if ("speed".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("1", "2", "3", "4", "5", "7", "10"), args[0]);
+        } else if ("ptime".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("day", "night", "reset"), args[0]);
         } else if ("gm".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("0", "1", "2", "3"), args[0]);
             if (args.length == 2) return onlineNames(args[1]);
-        } else if (("tphere".equals(c) || "tp".equals(c) || "invsee".equals(c) || "ecsee".equals(c) || "freeze".equals(c) || "whois".equals(c)) && args.length >= 1) {
-            return onlineNames(args[args.length - 1]);
+        } else if (("tphere".equals(c) || "tp".equals(c) || "invsee".equals(c) || "ecsee".equals(c)
+                || "freeze".equals(c) || "whois".equals(c) || "msg".equals(c) || "ignore".equals(c)
+                || "skull".equals(c) || "burn".equals(c) || "smite".equals(c) || "sudo".equals(c)) && args.length == 1) {
+            return onlineNames(args[0]);
         }
         return out;
     }
@@ -593,16 +621,55 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("warps".equals(c)) {
             guis.openWarpsMenu(p);
+            Map<String, DataStore.CustomWarp> cws = store.getAllCustomWarps();
+            if (!cws.isEmpty()) {
+                p.sendMessage(ColorUtil.c("&#80D8FF🧭 Кастомные варпы (&f" + cws.size() + "&#80D8FF): &f"
+                        + String.join("&7, &f", cws.keySet()) + " &8(Вход: &e/warp <название>&8)"));
+            }
             return true;
+        }
+        if ("setwarp".equals(c)) {
+            return handleWarpSet(p, args.length >= 1 ? args[0] : null);
+        }
+        if ("delwarp".equals(c)) {
+            return handleWarpDel(p, args.length >= 1 ? args[0] : null);
+        }
+        if ("warpinfo".equals(c)) {
+            return handleWarpInfo(p, args.length >= 1 ? args[0] : null);
         }
         if ("warp".equals(c)) {
             if (args.length < 1) {
                 guis.openWarpsMenu(p);
                 return true;
             }
+            String sub = args[0].toLowerCase(Locale.ROOT);
+            if ("set".equals(sub) || "create".equals(sub) || "add".equals(sub)) {
+                return handleWarpSet(p, args.length >= 2 ? args[1] : null);
+            }
+            if ("del".equals(sub) || "delete".equals(sub) || "remove".equals(sub) || "rem".equals(sub)) {
+                return handleWarpDel(p, args.length >= 2 ? args[1] : null);
+            }
+            if ("info".equals(sub)) {
+                return handleWarpInfo(p, args.length >= 2 ? args[1] : null);
+            }
+            if ("list".equals(sub)) {
+                Map<String, DataStore.CustomWarp> cws = store.getAllCustomWarps();
+                p.sendMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                p.sendMessage(ColorUtil.c(" &#00E5FF&l🧭 СПИСОК ВСЕХ ВАРПОВ СЕРВЕРА:"));
+                p.sendMessage(ColorUtil.c(" &7Системные: &fpvp, kabinki, train, mine, farm, casino, wheel, bafs, parkour, cases, top, spawn"));
+                p.sendMessage(ColorUtil.c(" &7Кастомные (&e" + cws.size() + "&7): "
+                        + (cws.isEmpty() ? "&8пока нет (/warp set <имя>)" : "&a" + String.join("&7, &a", cws.keySet()))));
+                p.sendMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+                return true;
+            }
             Location wl = spawnEngine.getWarpLocation(args[0]);
             if (wl == null) {
-                p.sendMessage(ColorUtil.c("&eДоступные варпы: &fpvp, kabinki, train, mine, farm, casino, wheel, bafs, parkour, cases, top"));
+                Map<String, DataStore.CustomWarp> cws = store.getAllCustomWarps();
+                p.sendMessage(ColorUtil.c("&#FF5252✖ Варп &f" + args[0] + " &#FF5252не найден!"));
+                p.sendMessage(ColorUtil.c("&eСистемные варпы: &fpvp, kabinki, train, mine, farm, casino, wheel, bafs, parkour, cases, top"));
+                if (!cws.isEmpty()) {
+                    p.sendMessage(ColorUtil.c("&bКастомные варпы: &f" + String.join(", ", cws.keySet())));
+                }
                 return true;
             }
             store.setBack(p, p.getLocation());
@@ -1058,10 +1125,18 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length < 1) { p.sendMessage(ColorUtil.c("&eИспользование: &f/" + c + " <ник>")); return true; }
             Player t = Bukkit.getPlayer(args[0]);
             if (t == null || t.equals(p)) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
+            if (store.isTpDisabled(t.getName()) && !"owner".equalsIgnoreCase(ranks.getRank(p).id)) {
+                p.sendMessage(ColorUtil.c("&#FF5252✖ Игрок &f" + t.getName() + " &#FF5252отключил приём запросов телепортации (/tptoggle)!"));
+                return true;
+            }
+            if (store.isIgnoring(t.getName(), p.getName()) && !"owner".equalsIgnoreCase(ranks.getRank(p).id)) {
+                p.sendMessage(ColorUtil.c("&#FF5252✖ Этот игрок добавил вас в игнор!"));
+                return true;
+            }
             boolean here = "tpahere".equals(c);
             store.sendTpa(p, t, here);
             p.sendMessage(ColorUtil.c("&#00E676✔ Запрос отправлен игроку &f" + t.getName()));
-            t.sendMessage(ColorUtil.c("&#FFD740⚡ Игрок &f" + p.getName() + (here ? " &7просит вас телепортироваться к нему!" : " &7хочет телепортироваться к вам!") + " &aВведите: &f/tpaccept"));
+            t.sendMessage(ColorUtil.c("&#FFD740⚡ Игрок &f" + p.getName() + (here ? " &7просит вас телепортироваться к нему!" : " &7хочет телепортироваться к вам!") + " &a/tpaccept &8или &c/tpdeny"));
             return true;
         }
         if ("tpaccept".equals(c)) {
@@ -1069,11 +1144,66 @@ public final class KingGriefCore extends JavaPlugin {
             UUID sid = store.popTpaSender(p, isHere);
             Player s = sid != null ? Bukkit.getPlayer(sid) : null;
             if (s == null) { p.sendMessage(ColorUtil.c("&cНет активных запросов телепортации!")); return true; }
-            if (isHere[0]) p.teleport(s.getLocation());
-            else s.teleport(p.getLocation());
+            if (isHere[0]) {
+                store.setBack(p, p.getLocation());
+                p.teleport(s.getLocation());
+            } else {
+                store.setBack(s, s.getLocation());
+                s.teleport(p.getLocation());
+            }
             p.sendMessage(ColorUtil.c("&#00E676✔ Запрос принят!"));
             s.sendMessage(ColorUtil.c("&#00E676✔ Телепортация выполнена!"));
             return true;
+        }
+        if ("tpdeny".equals(c)) {
+            UUID sid = store.denyTpaSender(p);
+            Player s = sid != null ? Bukkit.getPlayer(sid) : null;
+            if (sid == null) {
+                p.sendMessage(ColorUtil.c("&cУ вас нет активных запросов телепортации."));
+                return true;
+            }
+            p.sendMessage(ColorUtil.c("&#FF5252✖ Вы отклонили запрос на телепортацию."));
+            if (s != null) s.sendMessage(ColorUtil.c("&#FF5252✖ Игрок &f" + p.getName() + " &#FF5252отклонил ваш запрос на телепортацию."));
+            return true;
+        }
+        if ("tptoggle".equals(c)) {
+            boolean off = store.toggleTpDisabled(p.getName());
+            p.sendMessage(ColorUtil.c(off
+                    ? "&#FF5252🔕 Приём запросов /tpa ОТКЛЮЧЁН!"
+                    : "&#00E676🔔 Приём запросов /tpa снова ВКЛЮЧЁН!"));
+            return true;
+        }
+        if ("msg".equals(c) || "reply".equals(c)) {
+            return handlePrivateMessageCommand(p, c, args);
+        }
+        if ("msgtoggle".equals(c)) {
+            boolean off = store.toggleMsgDisabled(p.getName());
+            p.sendMessage(ColorUtil.c(off
+                    ? "&#FF5252🔕 Личные сообщения (/msg) ОТКЛЮЧЕНЫ!"
+                    : "&#00E676🔔 Личные сообщения (/msg) ВКЛЮЧЕНЫ!"));
+            return true;
+        }
+        if ("ignore".equals(c)) {
+            if (args.length < 1) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/ignore <ник>"));
+                return true;
+            }
+            if (args[0].equalsIgnoreCase(p.getName())) {
+                p.sendMessage(ColorUtil.c("&cНельзя добавить в игнор самого себя!"));
+                return true;
+            }
+            boolean ignored = store.toggleIgnore(p.getName(), args[0]);
+            p.sendMessage(ColorUtil.c(ignored
+                    ? "&#FF5252🚫 Игрок &f" + args[0] + " &#FF5252добавлен в чёрный список (/ignore)!"
+                    : "&#00E676✔ Игрок &f" + args[0] + " &#00E676удалён из чёрного списка."));
+            return true;
+        }
+        if ("god".equals(c) || "speed".equals(c) || "ptime".equals(c) || "day".equals(c) || "night".equals(c)
+                || "sun".equals(c) || "topblock".equals(c) || "jump".equals(c) || "rename".equals(c)
+                || "relore".equals(c) || "skull".equals(c) || "suicide".equals(c) || "xp".equals(c)
+                || "burn".equals(c) || "smite".equals(c) || "giveall".equals(c) || "sudo".equals(c)
+                || "setspawn".equals(c) || "socialspy".equals(c)) {
+            return handleExtraPowerCommands(p, c, args);
         }
         if ("sb".equals(c)) {
             boolean en = store.toggleSb(p);
@@ -2147,6 +2277,467 @@ public final class KingGriefCore extends JavaPlugin {
             String rankId = args.length >= 8 ? args[7] : "";
             store.syncServerPromo(code, maxU, coins, relics, caseId, caseQty, rankId);
             s.sendMessage(ColorUtil.c("&#00E676✔ Серверный промокод " + code + " синхронизирован!"));
+            return true;
+        }
+        return true;
+    }
+
+    // ================= НОВАЯ СИСТЕМА ВАРПОВ (/warp set, /setwarp, /delwarp, /warp info) И 20+ ДОП. КОМАНД v5.9.2 =================
+
+    private static final List<String> RESERVED_SYSTEM_WARPS = Arrays.asList(
+            "set", "create", "add", "del", "delete", "remove", "rem", "list", "info",
+            "mine", "шахта", "farm", "фарм", "casino", "казино", "wheel", "колесо",
+            "enchant", "enchants", "bafs", "чары", "pvp", "пвп", "arena",
+            "train", "totem", "dummy", "тренировка", "kabinki", "duels", "кабинки",
+            "parkour", "паркур", "cases", "кейсы", "top", "топ", "spawn", "спавн"
+    );
+
+    private boolean handleWarpSet(Player p, String rawName) {
+        RankManager.RankDef r = ranks.getRank(p);
+        boolean isOwnerOrAdmin = "owner".equalsIgnoreCase(r.id) || r.weight >= 250;
+        if (!isOwnerOrAdmin && r.weight < 12) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Создание варпов (/warp set) доступно с бесплатной привилегии &#00E676DRAGON &8(/free dragon)&#FF1744!"));
+            return true;
+        }
+        if (rawName == null || !rawName.matches("^[A-Za-zА-Яа-я0-9_-]{2,18}$")) {
+            p.sendMessage(ColorUtil.c("&#FFD740Использование: &f/warp set <название> &7или &f/setwarp <название> &8(2–18 букв/цифр)"));
+            return true;
+        }
+        String wName = rawName.toLowerCase(Locale.ROOT);
+        if (RESERVED_SYSTEM_WARPS.contains(wName)) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Имя &f" + wName + " &#FF1744зарезервировано системным варпом!"));
+            return true;
+        }
+        if (!isOwnerOrAdmin && spawnEngine.isInSpawnWorld(p.getLocation())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Игрокам нельзя создавать варпы на территории спавна! Перейдите в мир выживания: &f/rtp"));
+            return true;
+        }
+        DataStore.Claim claim = store.getClaimAt(p.getLocation());
+        if (!isOwnerOrAdmin && claim != null && !claim.canAccess(p.getName())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя ставить варп в чужом привате!"));
+            return true;
+        }
+        DataStore.CustomWarp existing = store.getCustomWarp(wName);
+        if (existing != null && !isOwnerOrAdmin && !existing.creator.equalsIgnoreCase(p.getName())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Варп &f" + wName + " &#FF1744уже занят игроком &e" + existing.creator + "&#FF1744!"));
+            return true;
+        }
+        if (!isOwnerOrAdmin && existing == null) {
+            int maxWarps = r.weight >= 112 ? 5 : (r.weight >= 75 ? 3 : (r.weight >= 45 ? 2 : 1));
+            int myCount = store.countCustomWarpsOf(p.getName());
+            if (myCount >= maxWarps) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Достигнут лимит варпов вашей привилегии (&f" + myCount + "/" + maxWarps + "&#FF1744)! Удалите старый: &f/delwarp <имя>"));
+                return true;
+            }
+        }
+        store.setCustomWarp(wName, p.getName(), p.getLocation());
+        ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.25f);
+        p.sendMessage(ColorUtil.c("&#00E676🧭 Варп &f/warp " + wName + " &#00E676успешно установлен! Удалить: &f/delwarp " + wName));
+        return true;
+    }
+
+    private boolean handleWarpDel(Player p, String rawName) {
+        if (rawName == null || rawName.trim().isEmpty()) {
+            p.sendMessage(ColorUtil.c("&#FFD740Использование: &f/warp del <название> &7или &f/delwarp <название>"));
+            return true;
+        }
+        String wName = rawName.trim().toLowerCase(Locale.ROOT);
+        DataStore.CustomWarp cw = store.getCustomWarp(wName);
+        if (cw == null) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Кастомный варп &f" + wName + " &#FF1744не найден!"));
+            return true;
+        }
+        RankManager.RankDef r = ranks.getRank(p);
+        boolean isOwnerOrAdmin = "owner".equalsIgnoreCase(r.id) || r.weight >= 250;
+        if (!isOwnerOrAdmin && !cw.creator.equalsIgnoreCase(p.getName())) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Вы не являетесь владельцем варпа &f" + wName + " &#FF1744(создатель: &e" + cw.creator + "&#FF1744)!"));
+            return true;
+        }
+        store.delCustomWarp(wName);
+        ColorUtil.sound(p, "block.anvil.break", 0.8f, 1.2f);
+        p.sendMessage(ColorUtil.c("&#00E676✔ Варп &f" + wName + " &#00E676успешно удалён!"));
+        return true;
+    }
+
+    private boolean handleWarpInfo(Player p, String rawName) {
+        if (rawName == null || rawName.trim().isEmpty()) {
+            p.sendMessage(ColorUtil.c("&eИспользование: &f/warp info <название>"));
+            return true;
+        }
+        String wName = rawName.trim().toLowerCase(Locale.ROOT);
+        DataStore.CustomWarp cw = store.getCustomWarp(wName);
+        if (cw != null && cw.loc != null) {
+            p.sendMessage(ColorUtil.c("&#00E5FF&l🧭 ИНФОРМАЦИЯ О ВАРПЕ &f" + cw.name + "&#00E5FF:"));
+            p.sendMessage(ColorUtil.c(" &7• Создатель: &#FFD740" + cw.creator));
+            p.sendMessage(ColorUtil.c(" &7• Мир: &f" + (cw.loc.getWorld() != null ? cw.loc.getWorld().getName() : "world")
+                    + " &8│ &7Координаты: &b" + cw.loc.getBlockX() + ", " + cw.loc.getBlockY() + ", " + cw.loc.getBlockZ()));
+            return true;
+        }
+        Location sys = spawnEngine.getWarpLocation(wName);
+        if (sys != null) {
+            p.sendMessage(ColorUtil.c("&#00E5FF&l🧭 СИСТЕМНЫЙ ВАРП &f" + wName + " &8— &7официальная локация Спавна KINGGRIEF!"));
+            return true;
+        }
+        p.sendMessage(ColorUtil.c("&#FF1744✖ Варп &f" + wName + " &#FF1744не найден."));
+        return true;
+    }
+
+    private boolean handlePrivateMessageCommand(Player sender, String cmdName, String[] args) {
+        boolean isOwner = "owner".equalsIgnoreCase(ranks.getRank(sender).id);
+        if (!isOwner && (store.getMuteRemainingSec(sender.getName()) > 0
+                || store.getIpMuteRemainingSec(store.getPlayerIp(sender)) > 0)) {
+            sender.sendMessage(ColorUtil.c("&#FF5252🔇 Вы находитесь в муте и не можете писать в ЛС!"));
+            return true;
+        }
+        Player target;
+        String msgText;
+        if ("reply".equals(cmdName)) {
+            if (args.length < 1) {
+                sender.sendMessage(ColorUtil.c("&eИспользование: &f/r <сообщение>"));
+                return true;
+            }
+            UUID partnerId = store.getLastReplyPartner(sender.getUniqueId());
+            target = partnerId == null ? null : Bukkit.getPlayer(partnerId);
+            if (target == null || !target.isOnline()) {
+                sender.sendMessage(ColorUtil.c("&#FF5252✖ У вас нет недавнего собеседника онлайн!"));
+                return true;
+            }
+            msgText = String.join(" ", args);
+        } else {
+            if (args.length < 2) {
+                sender.sendMessage(ColorUtil.c("&eИспользование: &f/msg <ник> <сообщение>"));
+                return true;
+            }
+            target = Bukkit.getPlayerExact(args[0]);
+            if (target == null) target = Bukkit.getPlayer(args[0]);
+            if (target == null || !target.isOnline() || (store.isVanished(target) && !ranks.isMlModerOrHigher(sender))) {
+                sender.sendMessage(ColorUtil.c("&#FF5252✖ Игрок &f" + args[0] + " &#FF5252не в сети!"));
+                return true;
+            }
+            StringBuilder sb = new StringBuilder();
+            for (int i = 1; i < args.length; i++) {
+                if (i > 1) sb.append(' ');
+                sb.append(args[i]);
+            }
+            msgText = sb.toString();
+        }
+        if (target.equals(sender)) {
+            sender.sendMessage(ColorUtil.c("&eНельзя писать самому себе!"));
+            return true;
+        }
+        if (!isOwner && store.isMsgDisabled(target.getName())) {
+            sender.sendMessage(ColorUtil.c("&#FF5252✖ Игрок &f" + target.getName() + " &#FF5252отключил личные сообщения (/msgtoggle)!"));
+            return true;
+        }
+        if (!isOwner && store.isIgnoring(target.getName(), sender.getName())) {
+            sender.sendMessage(ColorUtil.c("&#FF5252✖ Этот игрок ограничил сообщения от вас!"));
+            return true;
+        }
+
+        store.setLastReplyPartner(sender.getUniqueId(), target.getUniqueId());
+        sender.sendMessage(ColorUtil.c("&#FF80AB✉ &8[&fЯ &7→ &#FFD740" + target.getName() + "&8] &f") + msgText);
+        target.sendMessage(ColorUtil.c("&#FF80AB✉ &8[&#FFD740" + sender.getName() + " &7→ &fМне&8] &f") + msgText);
+        ColorUtil.sound(target, "entity.experience_orb.pickup", 0.75f, 1.45f);
+
+        for (Player st : Bukkit.getOnlinePlayers()) {
+            if (!st.equals(sender) && !st.equals(target) && store.isSocialSpy(st)) {
+                st.sendMessage(ColorUtil.c("&8[👁 Spy] &7" + sender.getName() + " -> " + target.getName() + ": &f") + msgText);
+            }
+        }
+        return true;
+    }
+
+    private boolean handleExtraPowerCommands(Player p, String c, String[] args) {
+        RankManager.RankDef r = ranks.getRank(p);
+        boolean isOwner = "owner".equalsIgnoreCase(r.id);
+
+        if ("suicide".equals(c)) {
+            p.setHealth(0.0);
+            p.sendMessage(ColorUtil.c("&#FF5252☠ Вы совершили самоубийство."));
+            return true;
+        }
+        if ("xp".equals(c)) {
+            if (args.length >= 3 && "give".equalsIgnoreCase(args[0]) && isOwner) {
+                Player t = Bukkit.getPlayer(args[1]);
+                if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
+                int lvls;
+                try { lvls = Integer.parseInt(args[2]); } catch (Exception ex) { lvls = 10; }
+                t.giveExpLevels(lvls);
+                p.sendMessage(ColorUtil.c("&#00E676✔ Выдано &e+" + lvls + " LVL &aигроку &f" + t.getName()));
+                return true;
+            }
+            p.sendMessage(ColorUtil.c("&#69F0AE✨ Ваш опыт: &f" + p.getLevel() + " LVL &7(Всего очков: &e" + p.getTotalExperience() + "&7)"));
+            return true;
+        }
+        if ("day".equals(c) || "night".equals(c) || "ptime".equals(c)) {
+            if (!isOwner && r.weight < 12) {
+                p.sendMessage(ColorUtil.c("&cДоступно с привилегии DRAGON (/free dragon)!"));
+                return true;
+            }
+            String mode = "ptime".equals(c) ? (args.length > 0 ? args[0].toLowerCase(Locale.ROOT) : "day") : c;
+            if ("reset".equals(mode)) {
+                p.resetPlayerTime();
+                p.sendMessage(ColorUtil.c("&#80D8FF🕒 Личное время синхронизировано с сервером!"));
+            } else if ("night".equals(mode)) {
+                p.setPlayerTime(18000L, false);
+                p.sendMessage(ColorUtil.c("&#A855F7🌙 Установлено личное время: &fНочь"));
+            } else {
+                p.setPlayerTime(6000L, false);
+                p.sendMessage(ColorUtil.c("&#FFD740☀ Установлено личное время: &fДень"));
+            }
+            return true;
+        }
+        if ("sun".equals(c)) {
+            if (!isOwner && r.weight < 12) {
+                p.sendMessage(ColorUtil.c("&cДоступно с привилегии DRAGON (/free dragon)!"));
+                return true;
+            }
+            p.setPlayerWeather(WeatherType.CLEAR);
+            p.sendMessage(ColorUtil.c("&#FFD740☀ Установлена ясная солнечная погода!"));
+            return true;
+        }
+        if ("rename".equals(c)) {
+            if (!isOwner && r.weight < 58) {
+                p.sendMessage(ColorUtil.c("&cКоманда /rename доступна с привилегии TIGER!"));
+                return true;
+            }
+            if (args.length < 1) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/rename <новое имя с цветами & / &#HEX>"));
+                return true;
+            }
+            ItemStack hand = p.getInventory().getItemInMainHand();
+            if (hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
+                p.sendMessage(ColorUtil.c("&cВозьмите обычный предмет в главную руку!"));
+                return true;
+            }
+            ItemMeta im = hand.getItemMeta();
+            if (im != null) {
+                im.setDisplayName(ColorUtil.c(String.join(" ", args)));
+                hand.setItemMeta(im);
+                p.sendMessage(ColorUtil.c("&#00E676✨ Имя предмета успешно изменено!"));
+            }
+            return true;
+        }
+        if ("relore".equals(c)) {
+            if (!isOwner && r.weight < 75) {
+                p.sendMessage(ColorUtil.c("&cКоманда /relore доступна с привилегии IMPERATOR!"));
+                return true;
+            }
+            ItemStack hand = p.getInventory().getItemInMainHand();
+            if (hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
+                p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку!"));
+                return true;
+            }
+            ItemMeta im = hand.getItemMeta();
+            if (im != null) {
+                if (args.length == 0 || "clear".equalsIgnoreCase(args[0])) {
+                    im.setLore(new ArrayList<String>());
+                    p.sendMessage(ColorUtil.c("&#00E676✔ Описание предмета очищено!"));
+                } else {
+                    List<String> lore = im.hasLore() && im.getLore() != null ? new ArrayList<String>(im.getLore()) : new ArrayList<String>();
+                    lore.add(ColorUtil.c(String.join(" ", args)));
+                    im.setLore(lore);
+                    p.sendMessage(ColorUtil.c("&#00E676✔ Строка добавлена в описание предмета!"));
+                }
+                hand.setItemMeta(im);
+            }
+            return true;
+        }
+        if ("skull".equals(c)) {
+            if (!isOwner && r.weight < 85) {
+                p.sendMessage(ColorUtil.c("&cКоманда /skull доступна с привилегии KING!"));
+                return true;
+            }
+            String targetNick = args.length >= 1 ? args[0] : p.getName();
+            ItemStack skull = new ItemStack(Material.PLAYER_HEAD, 1);
+            SkullMeta sm = (SkullMeta) skull.getItemMeta();
+            if (sm != null) {
+                try { sm.setOwner(targetNick); } catch (Throwable ignored) {}
+                sm.setDisplayName(ColorUtil.c("&#FFD740👑 Голова игрока &f" + targetNick));
+                skull.setItemMeta(sm);
+            }
+            p.getInventory().addItem(skull);
+            p.sendMessage(ColorUtil.c("&#00E676👑 Получена голова игрока &f" + targetNick + "&#00E676!"));
+            return true;
+        }
+        if ("topblock".equals(c)) {
+            if (!isOwner && r.weight < 75) {
+                p.sendMessage(ColorUtil.c("&cКоманда /topblock доступна с привилегии IMPERATOR!"));
+                return true;
+            }
+            Block highest = p.getWorld().getHighestBlockAt(p.getLocation());
+            Location dest = highest.getLocation().add(0.5, 1.0, 0.5);
+            dest.setYaw(p.getLocation().getYaw());
+            dest.setPitch(p.getLocation().getPitch());
+            store.setBack(p, p.getLocation());
+            p.teleport(dest);
+            p.sendMessage(ColorUtil.c("&#00E676⬆ Вы поднялись на самую высокую точку!"));
+            return true;
+        }
+        if ("jump".equals(c)) {
+            if (!isOwner && r.weight < 92) {
+                p.sendMessage(ColorUtil.c("&cКоманда /jump доступна с привилегии SPONSOR!"));
+                return true;
+            }
+            RayTraceResult rt = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), 80.0, FluidCollisionMode.NEVER, true);
+            if (rt == null || rt.getHitBlock() == null) {
+                p.sendMessage(ColorUtil.c("&cБлок в прицеле (до 80м) не найден!"));
+                return true;
+            }
+            Location dest = rt.getHitBlock().getLocation().add(0.5, 1.05, 0.5);
+            dest.setYaw(p.getLocation().getYaw());
+            dest.setPitch(p.getLocation().getPitch());
+            store.setBack(p, p.getLocation());
+            p.teleport(dest);
+            ColorUtil.sound(p, "entity.enderman.teleport", 0.9f, 1.25f);
+            return true;
+        }
+        if ("god".equals(c)) {
+            if (!isOwner && r.weight < 150) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Режим /god доступен только старшему составу и OWNER!"));
+                return true;
+            }
+            boolean on = store.toggleGodMode(p);
+            p.sendMessage(ColorUtil.c(on
+                    ? "&#00E676🛡 Режим бессмертия (/god) ВКЛЮЧЁН!"
+                    : "&#FFD740🛡 Режим бессмертия (/god) ВЫКЛЮЧЕН."));
+            return true;
+        }
+        if ("speed".equals(c)) {
+            if (!isOwner && r.weight < 112) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команда /speed доступна с привилегии D.HELPER и выше!"));
+                return true;
+            }
+            if (args.length < 1) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/speed <1-10>"));
+                return true;
+            }
+            float val;
+            try { val = Float.parseFloat(args[0]); } catch (Exception ex) { val = 2.0f; }
+            val = Math.max(0.5f, Math.min(10.0f, val));
+            if (p.isFlying()) {
+                p.setFlySpeed(Math.min(1.0f, val / 10.0f));
+                p.sendMessage(ColorUtil.c("&#00E676🕊 Скорость полёта установлена на &f" + val));
+            } else {
+                p.setWalkSpeed(Math.min(1.0f, 0.1f + (val / 10.0f) * 0.9f));
+                p.sendMessage(ColorUtil.c("&#00E676🏃 Скорость бега установлена на &f" + val));
+            }
+            return true;
+        }
+        if ("burn".equals(c)) {
+            if (!ranks.isMlModerOrHigher(p)) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Доступно от Мл. Модера и выше!"));
+                return true;
+            }
+            if (args.length < 1) { p.sendMessage(ColorUtil.c("&eИспользование: &f/burn <ник> [сек]")); return true; }
+            Player t = Bukkit.getPlayer(args[0]);
+            if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
+            if ("owner".equalsIgnoreCase(ranks.getRank(t).id) && !isOwner) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя поджечь OWNER!"));
+                return true;
+            }
+            int sec = 5;
+            if (args.length >= 2) {
+                try { sec = Math.max(1, Math.min(60, Integer.parseInt(args[1]))); } catch (Exception ignored) {}
+            }
+            t.setFireTicks(sec * 20);
+            p.sendMessage(ColorUtil.c("&#FF6D00🔥 Игрок &f" + t.getName() + " &#FF6D00подожжён на &e" + sec + " сек.!"));
+            return true;
+        }
+        if ("smite".equals(c)) {
+            if (!isOwner && r.weight < 240) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команда /smite доступна от Ст. Модера и OWNER!"));
+                return true;
+            }
+            if (args.length >= 1) {
+                Player t = Bukkit.getPlayer(args[0]);
+                if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
+                t.getWorld().strikeLightningEffect(t.getLocation());
+                p.sendMessage(ColorUtil.c("&#FFD740⚡ Молния ударила в игрока &f" + t.getName() + "&#FFD740!"));
+                return true;
+            }
+            RayTraceResult rt = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), 80.0, FluidCollisionMode.NEVER, true);
+            if (rt != null && rt.getHitBlock() != null) {
+                p.getWorld().strikeLightningEffect(rt.getHitBlock().getLocation().add(0.5, 1.0, 0.5));
+            }
+            return true;
+        }
+        if ("socialspy".equals(c)) {
+            if (!isOwner && r.weight < 240) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Прослушка /socialspy доступна от Ст. Модера и OWNER!"));
+                return true;
+            }
+            boolean on = store.toggleSocialSpy(p);
+            p.sendMessage(ColorUtil.c(on ? "&#00E676👁 Режим SocialSpy ВКЛЮЧЁН!" : "&#FFD740👁 Режим SocialSpy ВЫКЛЮЧЕН."));
+            return true;
+        }
+        if ("giveall".equals(c)) {
+            if (!isOwner) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команда /giveall доступна СТРОГО ТОЛЬКО владельцу (OWNER)!"));
+                return true;
+            }
+            ItemStack hand = p.getInventory().getItemInMainHand();
+            if (hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
+                p.sendMessage(ColorUtil.c("&eВозьмите в руку предмет, который хотите раздать всем игрокам онлайн!"));
+                return true;
+            }
+            ItemStack gift = hand.clone();
+            int count = 0;
+            for (Player on : Bukkit.getOnlinePlayers()) {
+                for (ItemStack rem : on.getInventory().addItem(gift.clone()).values()) {
+                    on.getWorld().dropItemNaturally(on.getLocation(), rem);
+                }
+                ColorUtil.sound(on, "entity.player.levelup", 1.0f, 1.3f);
+                count++;
+            }
+            String label = (gift.hasItemMeta() && gift.getItemMeta().hasDisplayName())
+                    ? gift.getItemMeta().getDisplayName()
+                    : ("&e" + gift.getType().name());
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🎁 [РАЗДАЧА ПРЕДМЕТА] &fВладелец &#FFD740&l" + p.getName()
+                    + " &fвыдал всем онлайн (&a" + count + " игр.&f): " + label + " &7×" + gift.getAmount() + "!"));
+            return true;
+        }
+        if ("sudo".equals(c)) {
+            if (!isOwner) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команда /sudo доступна СТРОГО ТОЛЬКО владельцу (OWNER)!"));
+                return true;
+            }
+            if (args.length < 2) {
+                p.sendMessage(ColorUtil.c("&eИспользование: &f/sudo <ник> <команда без / или c:сообщение>"));
+                return true;
+            }
+            Player t = Bukkit.getPlayer(args[0]);
+            if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
+            if ("owner".equalsIgnoreCase(ranks.getRank(t).id) && !t.equals(p)) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя применять /sudo на другого OWNER!"));
+                return true;
+            }
+            StringBuilder sb = new StringBuilder();
+            for (int i = 1; i < args.length; i++) {
+                if (i > 1) sb.append(' ');
+                sb.append(args[i]);
+            }
+            String act = sb.toString();
+            if (act.startsWith("c:")) {
+                t.chat(act.substring(2));
+            } else {
+                t.performCommand(act.startsWith("/") ? act.substring(1) : act);
+            }
+            p.sendMessage(ColorUtil.c("&#00E676✔ Выполнено от лица &f" + t.getName() + "&7: &e" + act));
+            return true;
+        }
+        if ("setspawn".equals(c)) {
+            if (!isOwner) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команда /setspawn доступна СТРОГО ТОЛЬКО владельцу (OWNER)!"));
+                return true;
+            }
+            if (args.length >= 1 && "reset".equalsIgnoreCase(args[0])) {
+                store.setCustomSpawnLoc(null);
+                p.sendMessage(ColorUtil.c("&#00E676✔ Точка /spawn возвращена на стандартную площадь Зимней Цитадели!"));
+                return true;
+            }
+            store.setCustomSpawnLoc(p.getLocation());
+            p.sendMessage(ColorUtil.c("&#00E676✔ Новая точка появления /spawn успешно установлена! (Сброс: /setspawn reset)"));
             return true;
         }
         return true;

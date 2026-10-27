@@ -49,6 +49,8 @@ public final class PlayerAcData {
     public UUID lastTargetId = null;
     public long lastCombatMs = 0L;
     public long lastProbeMs = 0L;
+    public long lastWallProbeMs = 0L;
+    public int wallHitBuffer = 0;
     public int fakeCritBuffer = 0;
     public int reachBuffer = 0;
 

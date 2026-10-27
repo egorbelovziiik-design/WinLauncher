@@ -1248,6 +1248,8 @@ public final class SpawnEngine {
 
     // ================= ZONE HELPERS (v5.7 100% BFS-VERIFIED CLEAN WARPS!) =================
     public Location getSpawnArrival() {
+        Location override = plugin.getStore() != null ? plugin.getStore().getCustomSpawnLoc() : null;
+        if (override != null && override.getWorld() != null) return override;
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         return new Location(sw, 0.5, 100.0, 52.5, 180.0f, 0.0f);
     }
@@ -1267,6 +1269,10 @@ public final class SpawnEngine {
         if ("cases".equals(w) || "кейсы".equals(w)) return new Location(sw, 0.5, 102.0, -54.5, 180.0f, 0.0f);
         if ("top".equals(w) || "топ".equals(w)) return new Location(sw, -34.0, 100.0, -28.0, 180.0f, 0.0f);
         if ("spawn".equals(w) || "спавн".equals(w)) return getSpawnArrival();
+        if (plugin.getStore() != null) {
+            Location custom = plugin.getStore().getCustomWarpLocation(w);
+            if (custom != null) return custom;
+        }
         return null;
     }
 
@@ -1291,6 +1297,19 @@ public final class SpawnEngine {
         // Any of the 8 Duel Kabinki interiors
         for (KabinkaState kb : kabinki) {
             if (kb.contains(loc)) return true;
+        }
+        return false;
+    }
+
+    public boolean isInsideAnyKabinka(Location loc) {
+        if (loc == null || !isInSpawnWorld(loc)) return false;
+        for (KabinkaState kb : kabinki) {
+            if (kb.contains(loc)) return true;
+            // Also include 1-block doorway threshold of the kabinka
+            if (Math.abs(loc.getBlockX() - kb.doorX) <= 1 && Math.abs(loc.getBlockZ() - kb.doorZ) <= 1
+                    && loc.getBlockY() >= 99 && loc.getBlockY() <= 104) {
+                return true;
+            }
         }
         return false;
     }

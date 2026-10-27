@@ -106,8 +106,19 @@ public final class HudManager {
         hudCaches.clear();
     }
 
+    private boolean isOwnerBypassCombat(Player p) {
+        if (p == null) return false;
+        RankManager.RankDef r = plugin.getRanks().getRank(p);
+        return r != null && "owner".equalsIgnoreCase(r.id);
+    }
+
     public void tagCombat(Player p) {
         if (p == null || !p.isOnline()) return;
+        // У привилегии OWNER нету КТ (боевого режима)!
+        if (isOwnerBypassCombat(p)) {
+            clearCombat(p.getUniqueId());
+            return;
+        }
         boolean wasInCombat = isInCombat(p);
         combatUntil.put(p.getUniqueId(), Long.valueOf(System.currentTimeMillis() + 30_000L));
         BossBar bar = combatBars.get(p.getUniqueId());
@@ -138,12 +149,13 @@ public final class HudManager {
     }
 
     public boolean isInCombat(Player p) {
-        if (p == null) return false;
+        if (p == null || isOwnerBypassCombat(p)) return false;
         Long u = combatUntil.get(p.getUniqueId());
         return u != null && u.longValue() > System.currentTimeMillis();
     }
 
     public int getCombatSecondsLeft(Player p) {
+        if (p == null || isOwnerBypassCombat(p)) return 0;
         Long u = combatUntil.get(p.getUniqueId());
         if (u == null) return 0;
         long d = u.longValue() - System.currentTimeMillis();

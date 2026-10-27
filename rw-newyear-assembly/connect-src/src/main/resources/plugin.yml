@@ -1,6 +1,6 @@
 name: KingConnect
 prefix: KingConnect
-version: 2.1.0
+version: 2.2.0
 main: net.kinggrief.connect.KingConnectPlugin
 api-version: '1.21'
 author: KINGGRIEF

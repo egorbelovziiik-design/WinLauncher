@@ -121,6 +121,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     private final Set<String> pushedLocalBanKeys = Collections.synchronizedSet(new HashSet<String>());
     private volatile boolean lastCloudOk = false;
     private volatile String learnedSelfPublicHost = "";
+    private final Map<UUID, String> playerLearnedHubHostPort = new ConcurrentHashMap<UUID, String>();
 
     // Config fields
     private String thisServerId = "grief1";
@@ -453,7 +454,8 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
             File paperGlobal = new File("config/paper-global.yml");
             if (paperGlobal.exists()) {
                 YamlConfiguration y = YamlConfiguration.loadConfiguration(paperGlobal);
-                if (y.getBoolean("proxies.velocity.enabled", false) || y.getBoolean("proxies.bungee-cord.online-mode", false)) {
+                // IMPORTANT: Never check proxies.bungee-cord.online-mode (it is TRUE by default in Paper 1.21 even WITHOUT a proxy!)
+                if (y.getBoolean("proxies.velocity.enabled", false)) {
                     return true;
                 }
             }
@@ -482,7 +484,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                 return;
             }
             int combatSec = getCombatSecondsLeft(p);
-            if (combatSec > 0 && !isAdmin(p)) {
+            if (combatSec > 0 && !isOwner(p) && !isAdmin(p)) {
                 p.sendMessage(c("&#FF1744⚔ Вы в режиме ПвП (осталось &#FFD740" + combatSec + " сек.&#FF1744)! Сбежать на другой сервер нельзя!"));
                 playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.9f);
                 return;
@@ -518,22 +520,67 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         }
         triggerImmediateAsyncCloudPush();
 
+        String candidateHost = target.host;
+        int candidatePort = target.port;
+        boolean learnedFromHubCookie = false;
+        if (target.id.equalsIgnoreCase(hubServerId)) {
+            String learnedHp = playerLearnedHubHostPort.get(p.getUniqueId());
+            if (learnedHp != null && learnedHp.contains(":") && ServerPinger.isLoopbackHost(candidateHost)) {
+                int idx = learnedHp.lastIndexOf(':');
+                String lh = learnedHp.substring(0, idx).trim();
+                try {
+                    int lp = Integer.parseInt(learnedHp.substring(idx + 1).trim());
+                    if (!lh.isEmpty() && lp > 0 && lp <= 65535) {
+                        candidateHost = lh;
+                        candidatePort = lp;
+                        learnedFromHubCookie = true;
+                    }
+                } catch (Throwable ignored) {}
+            } else if (learnedHp != null && learnedHp.equalsIgnoreCase(candidateHost + ":" + candidatePort)) {
+                learnedFromHubCookie = true;
+            }
+        }
+
+        final String rawHost = candidateHost;
+        final int rawPort = candidatePort;
+        final boolean cookieVerifiedHub = learnedFromHubCookie;
+        final boolean isHubTarget = target.id.equalsIgnoreCase(hubServerId);
+        final String playerIp = getPlayerIp(p);
+
         if (shouldUseProxyFor(target)) {
             p.sendTitle(c("&#00E5FF&l🌐 ПЕРЕХОД..."), c("&7Подключаемся к " + target.displayName), 5, 40, 10);
             p.sendMessage(c("&#00E5FF🌐 &lKingConnect &8» &fПереносим вас на сервер " + target.displayName + "&f..."));
             playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.9f, 1.25f);
             sendProxySsoForward(p, fullToken);
             sendBungeeConnect(p, target.proxyName);
+            // Safety fallback: if Bungee/Velocity did not move the player within 12 ticks, execute direct 1.21 Transfer!
+            if (!(ServerPinger.isLoopbackHost(rawHost) && !ServerPinger.isLoopbackHost(playerIp))) {
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!p.isOnline()) return;
+                        try {
+                            ServerPinger.HostPort hp = ServerPinger.resolveMinecraftAddress(rawHost, rawPort);
+                            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
+                            p.transfer(hp.host, hp.port);
+                        } catch (Throwable ignored) {}
+                    }
+                }.runTaskLater(KingConnectPlugin.this, 12L);
+            }
             return;
         }
 
-        final String rawHost = target.host;
-        final int rawPort = target.port;
-        final String playerIp = getPlayerIp(p);
-
-        // Prevent sending 127.0.0.1 transfer packet to remote clients (fixes Connection refused: getsockopt!)
-        if (ServerPinger.isLoopbackHost(rawHost) && !ServerPinger.isLoopbackHost(playerIp)) {
+        // Standalone / unconfigured 127.0.0.1 handling (prevents getsockopt AND teleports to local Spawn Lobby on /hub!)
+        if ((ServerPinger.isLoopbackHost(rawHost) && !ServerPinger.isLoopbackHost(playerIp))
+                || (ServerPinger.isLoopbackHost(rawHost) && rawPort == Bukkit.getPort())) {
             transferCooldowns.remove(p.getUniqueId());
+            if (isHubTarget && Bukkit.getPluginManager().getPlugin("KingGriefCore") != null) {
+                p.performCommand("spawn");
+                if (isAdmin(p) || isOwner(p)) {
+                    p.sendMessage(c("&8[KingConnect] Вы телепортированы на локальный Спавн. Для перехода на отдельный сервер Хаба укажите: &e/sethubip <IP:Порт>"));
+                }
+                return;
+            }
             playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
             p.sendTitle(c("&#FFD740&l⚠ АДРЕС НЕ УКАЗАН"), c("&fПропишите /sethubip <IP:Порт> или /kcon"), 5, 60, 10);
             p.sendMessage(c("&#FF5252⚠ &lKingConnect &8» &fАдрес сервера " + target.displayName + " &fещё не указан (стоит &e127.0.0.1&f), поэтому вы оставлены на сервере без вылета!"));
@@ -546,15 +593,21 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
             public void run() {
                 final ServerPinger.PingResult check = ServerPinger.ping(rawHost, rawPort, 850);
                 final boolean cloudAlive = target.onlineState
-                        && (System.currentTimeMillis() - target.lastUpdatedMs) < 25_000L
+                        && (System.currentTimeMillis() - target.lastUpdatedMs) < 35_000L
                         && !ServerPinger.isLoopbackHost(check.resolvedHost);
+                final boolean allowHairpinTransfer = cookieVerifiedHub && !ServerPinger.isLoopbackHost(check.resolvedHost);
 
                 Bukkit.getScheduler().runTask(KingConnectPlugin.this, new Runnable() {
                     @Override
                     public void run() {
                         if (!p.isOnline()) return;
-                        if (!check.alive && !cloudAlive) {
+                        if (!check.alive && !cloudAlive && !allowHairpinTransfer) {
                             transferCooldowns.remove(p.getUniqueId());
+                            if (isHubTarget && ServerPinger.isLoopbackHost(rawHost)
+                                    && Bukkit.getPluginManager().getPlugin("KingGriefCore") != null) {
+                                p.performCommand("spawn");
+                                return;
+                            }
                             playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
                             p.sendTitle(c("&#FF5252&l⚠ СЕРВЕР ВЫКЛЮЧЕН"),
                                     c("&7" + check.resolvedHost + ":" + check.resolvedPort + " сейчас недоступен!"), 5, 60, 10);
@@ -831,11 +884,18 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
             return;
         }
         String fromSrv = parts[5];
+        String cleanFromSrv = fromSrv;
+        String embeddedHubHp = null;
+        int atIdx = fromSrv.indexOf('@');
+        if (atIdx > 0) {
+            cleanFromSrv = fromSrv.substring(0, atIdx);
+            embeddedHubHp = fromSrv.substring(atIdx + 1).trim();
+        }
         if (Math.abs(System.currentTimeMillis() - ts) > 90_000L) return;
 
         if (targetPlayerOrNull == null) {
             // Store briefly in local cache in case Forward arrives 1 tick before/after join
-            cloudSsoCache.put(nick.toLowerCase(Locale.ROOT), new CloudSsoEntry(nick, ipHash, rankId, fromSrv));
+            cloudSsoCache.put(nick.toLowerCase(Locale.ROOT), new CloudSsoEntry(nick, ipHash, rankId, cleanFromSrv));
             targetPlayerOrNull = Bukkit.getPlayerExact(nick);
         }
         if (targetPlayerOrNull == null || !targetPlayerOrNull.isOnline()) return;
@@ -846,8 +906,22 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
             return;
         }
 
+        if (embeddedHubHp != null && embeddedHubHp.contains(":")) {
+            playerLearnedHubHostPort.put(targetPlayerOrNull.getUniqueId(), embeddedHubHp);
+            int cIdx = embeddedHubHp.lastIndexOf(':');
+            String eh = embeddedHubHp.substring(0, cIdx).trim();
+            try {
+                int ep = Integer.parseInt(embeddedHubHp.substring(cIdx + 1).trim());
+                ServerNode hubNode = servers.get(hubServerId);
+                if (hubNode != null && ServerPinger.isLoopbackHost(hubNode.host) && !ServerPinger.isLoopbackHost(eh) && ep > 0) {
+                    hubNode.host = eh;
+                    hubNode.port = ep;
+                }
+            } catch (Throwable ignored) {}
+        }
+
         verifiedSsoPlayers.add(targetPlayerOrNull.getUniqueId());
-        markAuthenticatedEverywhere(targetPlayerOrNull, rankId, fromSrv, true);
+        markAuthenticatedEverywhere(targetPlayerOrNull, rankId, cleanFromSrv, true);
     }
 
     private void markAuthenticatedEverywhere(Player p, String rankId, String fromServer, boolean announce) {

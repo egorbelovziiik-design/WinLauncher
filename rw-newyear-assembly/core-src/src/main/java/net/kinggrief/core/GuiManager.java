@@ -481,6 +481,7 @@ public final class GuiManager {
         inv.setItem(42, shopTag(ItemFactory.swordDracula(),   320));
         inv.setItem(43, shopTag(ItemFactory.swordKrush(),     420));
 
+        inv.setItem(46, shopTag(ItemFactory.orbRecall(2),      65));
         inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
         inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 17 3D Талисманов (/talismans)",
@@ -656,6 +657,7 @@ public final class GuiManager {
             items.add(ItemFactory.bozhyaKara(2));        costs.add(Integer.valueOf(22000));
             items.add(ItemFactory.gravSfera(2));         costs.add(Integer.valueOf(19500));
             items.add(ItemFactory.snegZavesa(2));        costs.add(Integer.valueOf(16000));
+            items.add(ItemFactory.orbRecall(1));         costs.add(Integer.valueOf(24000));
         } else if ("food".equals(c)) {
             items.add(new ItemStack(Material.GOLDEN_CARROT, 64));          costs.add(Integer.valueOf(2500));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));            costs.add(Integer.valueOf(3500));
@@ -2130,6 +2132,7 @@ public final class GuiManager {
             case 41: reward = ItemFactory.pickDjamshut(); cost = 340; break;
             case 42: reward = ItemFactory.swordDracula(); cost = 320; break;
             case 43: reward = ItemFactory.swordKrush(); cost = 420; break;
+            case 46: reward = ItemFactory.orbRecall(2); cost = 65; break;
             default: return;
         }
         if (!plugin.getStore().takeRelics(p, cost)) {

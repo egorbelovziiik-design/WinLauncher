@@ -1,5 +1,5 @@
 name: KingGriefCore
-version: 5.9.1
+version: 5.9.2
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
@@ -266,6 +266,84 @@ commands:
   discord:
     aliases: [ds, links, site]
     description: Official KINGGRIEF Discord & Store Links
+  setwarp:
+    aliases: [createwarp]
+    description: Create Server or Player Warp (/setwarp <name> or /warp set <name>)
+  delwarp:
+    aliases: [remwarp, removewarp, deletewarp]
+    description: Delete Warp (/delwarp <name> or /warp del <name>)
+  warpinfo:
+    aliases: [winfo]
+    description: View Warp Information (/warp info <name>)
+  tpdeny:
+    aliases: [tpno, tpadeny]
+    description: Deny Teleport Request (/tpdeny)
+  tptoggle:
+    aliases: [tpatoggle]
+    description: Toggle Incoming Teleport Requests
+  msg:
+    aliases: [m, tell, w, pm, whisper]
+    description: Send Private Message (/msg <nick> <text>)
+  reply:
+    aliases: [r]
+    description: Reply to Last Private Message (/r <text>)
+  msgtoggle:
+    aliases: [pmtoggle]
+    description: Toggle Private Messages
+  ignore:
+    aliases: [unignore]
+    description: Ignore or Unignore Player Messages (/ignore <nick>)
+  god:
+    aliases: [godmode]
+    description: Toggle God Mode Invincibility
+  speed:
+    aliases: [flyspeed, walkspeed]
+    description: Set Movement or Flight Speed (1-10)
+  ptime:
+    aliases: [playertime]
+    description: Set Personal Time (/ptime <day|night|reset>)
+  day:
+    description: Set Personal Time to Day
+  night:
+    description: Set Personal Time to Night
+  sun:
+    aliases: [pweather]
+    description: Clear Personal Weather
+  topblock:
+    aliases: [ascend]
+    description: Teleport to Highest Surface Block Above You
+  jump:
+    aliases: [j, jumpto]
+    description: Teleport to Target Block in Crosshair
+  rename:
+    aliases: [itemname]
+    description: Rename Held Item with Color Codes
+  relore:
+    aliases: [itemlore, lore]
+    description: Set or Clear Lore on Held Item
+  skull:
+    aliases: [head, phead]
+    description: Obtain Player Head (/skull [nick])
+  suicide:
+    description: Commit Suicide if Stuck
+  xp:
+    aliases: [exp]
+    description: Check Experience or Grant Levels (OWNER)
+  burn:
+    aliases: [ignite]
+    description: Ignite Target Player (ML.MODER+)
+  smite:
+    aliases: [thor, lightning]
+    description: Strike Target with Lightning (ST.MODER+ / OWNER)
+  giveall:
+    description: Give Held Item to All Online Players (OWNER Only)
+  sudo:
+    description: Force Player Command or Chat (OWNER Only)
+  setspawn:
+    description: Update Spawn Arrival Location (OWNER Only)
+  socialspy:
+    aliases: [spy]
+    description: Toggle Private Message Spy (ST.MODER+ / OWNER)
 
 
 

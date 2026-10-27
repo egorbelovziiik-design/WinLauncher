@@ -1120,6 +1120,181 @@ public final class DataStore {
         tpaTime.put(target.getUniqueId(), Long.valueOf(System.currentTimeMillis() + 60_000L));
     }
 
+    public static final class CustomWarp {
+        public final String name;
+        public final String creator;
+        public final Location loc;
+        public final long createdAt;
+
+        public CustomWarp(String name, String creator, Location loc, long createdAt) {
+            this.name = name;
+            this.creator = creator;
+            this.loc = loc;
+            this.createdAt = createdAt;
+        }
+    }
+
+    private final Set<UUID> godModePlayers = new HashSet<UUID>();
+    private final Set<UUID> socialSpyPlayers = new HashSet<UUID>();
+    private final Map<UUID, UUID> lastReplyPartner = new HashMap<UUID, UUID>();
+
+    public boolean toggleGodMode(Player p) {
+        if (godModePlayers.contains(p.getUniqueId())) {
+            godModePlayers.remove(p.getUniqueId());
+            return false;
+        }
+        godModePlayers.add(p.getUniqueId());
+        return true;
+    }
+
+    public boolean isGodMode(Player p) {
+        return p != null && godModePlayers.contains(p.getUniqueId());
+    }
+
+    public void disableGodMode(Player p) {
+        if (p != null) godModePlayers.remove(p.getUniqueId());
+    }
+
+    public boolean toggleSocialSpy(Player p) {
+        if (socialSpyPlayers.contains(p.getUniqueId())) {
+            socialSpyPlayers.remove(p.getUniqueId());
+            return false;
+        }
+        socialSpyPlayers.add(p.getUniqueId());
+        return true;
+    }
+
+    public boolean isSocialSpy(Player p) {
+        return p != null && socialSpyPlayers.contains(p.getUniqueId());
+    }
+
+    public void setLastReplyPartner(UUID a, UUID b) {
+        if (a != null && b != null) {
+            lastReplyPartner.put(a, b);
+            lastReplyPartner.put(b, a);
+        }
+    }
+
+    public UUID getLastReplyPartner(UUID a) {
+        return a == null ? null : lastReplyPartner.get(a);
+    }
+
+    public boolean isTpDisabled(String name) {
+        return yml.getBoolean("players." + key(name) + ".tpDisabled", false);
+    }
+
+    public boolean toggleTpDisabled(String name) {
+        boolean next = !isTpDisabled(name);
+        yml.set("players." + key(name) + ".tpDisabled", Boolean.valueOf(next));
+        save();
+        return next;
+    }
+
+    public boolean isMsgDisabled(String name) {
+        return yml.getBoolean("players." + key(name) + ".msgDisabled", false);
+    }
+
+    public boolean toggleMsgDisabled(String name) {
+        boolean next = !isMsgDisabled(name);
+        yml.set("players." + key(name) + ".msgDisabled", Boolean.valueOf(next));
+        save();
+        return next;
+    }
+
+    public boolean isIgnoring(String viewerName, String senderName) {
+        List<String> list = yml.getStringList("players." + key(viewerName) + ".ignoreList");
+        return list != null && list.contains(key(senderName));
+    }
+
+    public boolean toggleIgnore(String viewerName, String targetName) {
+        String p = "players." + key(viewerName) + ".ignoreList";
+        List<String> list = new ArrayList<String>(yml.getStringList(p));
+        String tk = key(targetName);
+        boolean nowIgnoring;
+        if (list.contains(tk)) {
+            list.remove(tk);
+            nowIgnoring = false;
+        } else {
+            list.add(tk);
+            nowIgnoring = true;
+        }
+        yml.set(p, list);
+        save();
+        return nowIgnoring;
+    }
+
+    public void setCustomSpawnLoc(Location loc) {
+        yml.set("customSpawnArrival", loc == null ? null : writeLoc(loc));
+        save();
+    }
+
+    public Location getCustomSpawnLoc() {
+        String raw = yml.getString("customSpawnArrival", null);
+        return raw == null ? null : readLoc(raw);
+    }
+
+    // ================= CUSTOM SERVER & PLAYER WARPS (/warp set, /setwarp, /delwarp) =================
+    public void setCustomWarp(String warpName, String creator, Location loc) {
+        String k = warpName.toLowerCase(Locale.ROOT);
+        String base = "customWarps." + k;
+        yml.set(base + ".creator", creator);
+        yml.set(base + ".loc", writeLoc(loc));
+        yml.set(base + ".createdAt", Long.valueOf(System.currentTimeMillis()));
+        save();
+    }
+
+    public boolean delCustomWarp(String warpName) {
+        String base = "customWarps." + warpName.toLowerCase(Locale.ROOT);
+        if (!yml.contains(base)) return false;
+        yml.set(base, null);
+        save();
+        return true;
+    }
+
+    public CustomWarp getCustomWarp(String warpName) {
+        if (warpName == null) return null;
+        String k = warpName.toLowerCase(Locale.ROOT);
+        String base = "customWarps." + k;
+        if (!yml.contains(base + ".loc")) return null;
+        Location loc = readLoc(yml.getString(base + ".loc"));
+        if (loc == null) return null;
+        String creator = yml.getString(base + ".creator", "Сервер");
+        long ts = yml.getLong(base + ".createdAt", 0L);
+        return new CustomWarp(k, creator, loc, ts);
+    }
+
+    public Location getCustomWarpLocation(String warpName) {
+        CustomWarp cw = getCustomWarp(warpName);
+        return cw == null ? null : cw.loc;
+    }
+
+    public Map<String, CustomWarp> getAllCustomWarps() {
+        Map<String, CustomWarp> out = new LinkedHashMap<String, CustomWarp>();
+        ConfigurationSection sec = yml.getConfigurationSection("customWarps");
+        if (sec != null) {
+            for (String k : sec.getKeys(false)) {
+                CustomWarp cw = getCustomWarp(k);
+                if (cw != null) out.put(k, cw);
+            }
+        }
+        return out;
+    }
+
+    public int countCustomWarpsOf(String creatorName) {
+        int n = 0;
+        for (CustomWarp cw : getAllCustomWarps().values()) {
+            if (cw.creator != null && cw.creator.equalsIgnoreCase(creatorName)) n++;
+        }
+        return n;
+    }
+
+    public UUID denyTpaSender(Player target) {
+        UUID s = tpaFrom.remove(target.getUniqueId());
+        tpaHere.remove(target.getUniqueId());
+        tpaTime.remove(target.getUniqueId());
+        return s;
+    }
+
     public UUID popTpaSender(Player target, boolean[] isHereOut) {
         Long exp = tpaTime.get(target.getUniqueId());
         if (exp == null || System.currentTimeMillis() > exp.longValue()) return null;
