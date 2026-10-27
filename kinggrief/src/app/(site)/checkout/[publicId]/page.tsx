@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { getOrder } from '@/lib/repo';
 import { cloudGetOrder, isCloudEnabled } from '@/lib/cloud-store';
 import { OrderStatusView } from '@/components/order-status';
+import { CardTransferPanel } from '@/components/card-transfer';
+import { convertForMethod, formatPan, isCardMethod, maskPan, methodOfProvider, payoutCardPan } from '@/lib/payments';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +34,26 @@ export default async function OrderPage({ params }: Params) {
           Страница обновляется автоматически. Сохраните ссылку — она содержит номер заказа и открывается без входа.
         </p>
       </div>
+      {(() => {
+        const method = methodOfProvider(order.provider);
+        if (!isCardMethod(order.provider) || !method) return null;
+        const pan = payoutCardPan();
+        const conv = convertForMethod(order.total, method);
+        return (
+          <div className="mb-6">
+            <CardTransferPanel
+              publicId={order.publicId}
+              panFormatted={formatPan(pan)}
+              masked={maskPan(pan)}
+              amount={conv.amount}
+              currency={conv.currency}
+              symbol={conv.symbol}
+              methodLabel={conv.label}
+              totalRub={order.total}
+            />
+          </div>
+        );
+      })()}
       <OrderStatusView
         initialOrder={{
           ...order,

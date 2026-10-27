@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle, Check, Download, Server, ShieldCheck } from 'lucide-react';
 import { getSettings, listDemoOrders } from '@/lib/repo';
+import { cardMethodsEnabled, convertForMethod, maskPan, payoutCardPan } from '@/lib/payments';
 import { cloudSyncLocalDb } from '@/lib/cloud-store';
 import { SettingsForm, type SettingField } from '@/components/admin/settings-form';
 import { AdminCard } from '@/components/admin/kit';
@@ -53,6 +54,10 @@ export default async function AdminSettingsPage() {
   const yookassaConfigured = Boolean(process.env.YOOKASSA_SHOP_ID && process.env.YOOKASSA_SECRET_KEY);
   const robokassaConfigured = Boolean(process.env.ROBOKASSA_LOGIN && process.env.ROBOKASSA_PASSWORD1);
   const bridgeConfigured = Boolean(process.env.MINECRAFT_BRIDGE_SECRET);
+  const cardOk = cardMethodsEnabled();
+  const cardMasked = maskPan(payoutCardPan());
+  const sampleUah = convertForMethod(1000, 'visa_ua');
+  const sampleEur = convertForMethod(1000, 'visa_eu');
   const endpoints = ['/api/minecraft/poll', '/api/minecraft/ack'];
   const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://kinggrief.vercel.app';
 
@@ -72,6 +77,7 @@ export default async function AdminSettingsPage() {
             { label: 'ЮKassa', ok: yookassaConfigured, keys: 'YOOKASSA_SHOP_ID + SECRET_KEY' },
             { label: 'Robokassa', ok: robokassaConfigured, keys: 'ROBOKASSA_LOGIN + PASSWORD1' },
             { label: 'Minecraft bridge', ok: bridgeConfigured, keys: 'MINECRAFT_BRIDGE_SECRET' },
+            { label: 'Visa card-to-card', ok: cardOk, keys: 'PAYOUT_CARD_PAN' },
           ].map((item) => (
             <div key={item.label} className={`rounded-lg border px-3 py-2 ${item.ok ? 'border-emerald/25 bg-emerald/[0.06]' : 'border-amber/25 bg-amber/[0.06]'}`}>
               <p className="flex items-center gap-1.5 text-[0.74rem] font-bold text-white">
@@ -87,6 +93,28 @@ export default async function AdminSettingsPage() {
             В окружении задан PAYMENT_PROVIDER={process.env.PAYMENT_PROVIDER}. Переменная имеет приоритет над настройкой в панели.
           </p>
         )}
+      </AdminCard>
+
+      <AdminCard title="Карта приёма переводов (Visa Украина / Visa Europe)" description="Реквизиты хранятся в зашифрованной server-env Vercel и не попадают в Git, бандл и логи">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/6 bg-void/40 px-3 py-2">
+            <span className="text-[0.72rem] text-white/50">Карта получения (маска):</span>
+            <code className="font-mono text-[0.78rem] font-bold tracking-[0.12em] text-neon">{cardMasked}</code>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg border border-white/6 bg-void/40 px-3 py-2 text-[0.7rem] text-white/50">
+              <b className="text-white/85">Visa Украина (UAH)</b> · курс {sampleUah.rate} ₴/₽ · 1000 ₽ → {sampleUah.amount} ₴
+            </div>
+            <div className="rounded-lg border border-white/6 bg-void/40 px-3 py-2 text-[0.7rem] text-white/50">
+              <b className="text-white/85">Visa Europe (EUR)</b> · курс {sampleEur.rate} €/₽ · 1000 ₽ → {sampleEur.amount} €
+            </div>
+          </div>
+          <p className="rounded-lg border border-white/6 bg-void/40 px-3 py-2 text-[0.68rem] leading-relaxed text-white/40">
+            Полный номер открывается покупателю только на странице оплаты его заказа (/checkout/&lt;номер&gt;) и больше
+            нигде. Заявки «Я перевёл(а)» падают в журнал событий (payment_sent_claim); после сверки поступления
+            отметьте заказ оплаченным в «Заказах» — выдача уйдёт автоматически.
+          </p>
+        </div>
       </AdminCard>
 
       <SettingsForm title="Minecraft-интеграция" description="Выдача доната через плагин KingGriefBridge (Paper/Purpur/Spigot) и LuckPerms." fields={DELIVERY} values={settings} cardId="minecraft" />

@@ -2,7 +2,75 @@ import { createHash, randomUUID } from 'node:crypto';
 import { getSetting } from './repo';
 import type { Order } from './types';
 
-export type ProviderId = 'mock' | 'yookassa' | 'robokassa';
+export type ProviderId = 'mock' | 'yookassa' | 'robokassa' | 'card2card';
+
+/* ─────────────── v6.1: CARD-TO-CARD (Visa Украина / Visa Europe) ───────────────
+ * Реквизиты карты получения хранятся ТОЛЬКО в server-env Vercel (PAYOUT_CARD_PAN,
+ * тип sensitive/encrypted): в Git, в клиентский бандл и в логи они не попадают.
+ * В UI везде показывается маска; полный номер открывается только на странице
+ * оплаты конкретного заказа (как в любом P2P-переводе) и больше нигде.
+ * Сайт НЕ собирает и НЕ хранит платёжные данные плательщика → вне scope PCI DSS.
+ */
+export type CardMethod = 'visa_ua' | 'visa_eu';
+
+const METHOD_META: Record<CardMethod, { currency: string; symbol: string; rateEnv: string; defRate: number; label: string; hint: string }> = {
+  visa_ua: {
+    currency: 'UAH',
+    symbol: '₴',
+    rateEnv: 'RATE_UAH_PER_RUB',
+    defRate: 0.45,
+    label: 'Visa Украина · перевод с карты на карту',
+    hint: 'Гривна (UAH) · карты Visa/Mastercard банков Украины',
+  },
+  visa_eu: {
+    currency: 'EUR',
+    symbol: '€',
+    rateEnv: 'RATE_EUR_PER_RUB',
+    defRate: 0.0102,
+    label: 'Visa Europe · card-to-card',
+    hint: 'Евро (EUR) · карты Visa/Mastercard европейских банков',
+  },
+};
+
+export function payoutCardPan(): string {
+  return (process.env.PAYOUT_CARD_PAN || '').replace(/\D/g, '');
+}
+
+export function cardMethodsEnabled(): boolean {
+  return payoutCardPan().length >= 12;
+}
+
+export function maskPan(pan: string): string {
+  const d = pan.replace(/\D/g, '');
+  if (d.length < 8) return '•••• •••• •••• ••••';
+  return `${d.slice(0, 4)} •••• •••• ${d.slice(-4)}`;
+}
+
+export function formatPan(pan: string): string {
+  return pan.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
+}
+
+export function methodMeta(method: CardMethod) {
+  return METHOD_META[method];
+}
+
+export function isCardMethod(provider: string): boolean {
+  return provider.startsWith('card2card:');
+}
+
+export function methodOfProvider(provider: string): CardMethod | null {
+  const tail = provider.split(':')[1];
+  return tail === 'visa_ua' || tail === 'visa_eu' ? tail : null;
+}
+
+/** Конвертация суммы заказа в валюту выбранного card-to-card метода. */
+export function convertForMethod(totalRub: number, method: CardMethod) {
+  const meta = METHOD_META[method];
+  const rate = Number(process.env[meta.rateEnv] || meta.defRate);
+  const min = meta.currency === 'UAH' ? 5 : 1;
+  const value = Math.max(min, Math.round(totalRub * rate * 100) / 100);
+  return { amount: value.toFixed(2), currency: meta.currency, symbol: meta.symbol, label: meta.label, hint: meta.hint, rate };
+}
 
 export function activeProvider(): ProviderId {
   const fromEnv = (process.env.PAYMENT_PROVIDER || '').toLowerCase();
@@ -33,6 +101,17 @@ export type InitPayment = {
 export async function initPayment(order: Order, invId?: number): Promise<InitPayment> {
   const provider = activeProvider();
   const test = isTestMode();
+
+  // Card-to-card: внешнего провайдера нет — инструкция по переводу открывается
+  // на странице заказа /checkout/<publicId> (серверный рендер реквизитов).
+  if (isCardMethod(order.provider)) {
+    return {
+      provider: order.provider,
+      providerPaymentId: `c2c-${order.publicId}`,
+      url: `/checkout/${order.publicId}`,
+      demo: false,
+    };
+  }
 
   if (provider === 'yookassa') {
     const shopId = process.env.YOOKASSA_SHOP_ID;

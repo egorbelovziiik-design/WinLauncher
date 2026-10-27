@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       items: parsed.data.items,
       promoCode: parsed.data.promoCode ?? null,
       note: parsed.data.note ?? null,
+      method: parsed.data.method ?? null,
       ip,
       userId: user?.id ?? null,
     });

@@ -1,7 +1,8 @@
 import { applyPromo, createOrder, getOrder, getProduct, logEvent, recordPayment, registerPromoUse, setOrderPayment, updateOrderStatus, updatePaymentRecord } from './repo';
 import { markPaidAndQueue } from './delivery';
 import { cloudSaveTable, cloudSyncLocalDb, cloudUpsertOrder, isCloudEnabled } from './cloud-store';
-import { activeProvider, initPayment, isTestMode, PaymentConfigError } from './payments';
+import { activeProvider, cardMethodsEnabled, initPayment, isTestMode, PaymentConfigError } from './payments';
+import type { CardMethod } from './payments';
 import type { Order, OrderItem, Product } from './types';
 
 export type CartLine = { productId: string; quantity: number };
@@ -88,6 +89,7 @@ export type CheckoutPayload = {
   note?: string | null;
   ip?: string | null;
   userId?: number | null;
+  method?: CardMethod | null;
 };
 
 export async function createCheckout(payload: CheckoutPayload): Promise<{
@@ -102,7 +104,9 @@ export async function createCheckout(payload: CheckoutPayload): Promise<{
   const priced = priceCart(payload.items, payload.promoCode);
   if (!priced.ok) throw new OrderError(priced.error);
 
-  const provider = activeProvider();
+  const baseProvider = activeProvider();
+  const provider =
+    payload.method && cardMethodsEnabled() ? (`card2card:${payload.method}` as string) : baseProvider;
   const order = createOrder({
     nickname: payload.nickname,
     email: payload.email || null,
@@ -112,7 +116,7 @@ export async function createCheckout(payload: CheckoutPayload): Promise<{
     total: priced.total,
     promoCode: priced.promoCode,
     provider,
-    isDemo: provider === 'mock' || isTestMode(),
+    isDemo: provider.startsWith('card2card:') ? false : provider === 'mock' || isTestMode(),
     note: payload.note || null,
     ip: payload.ip || null,
     userId: payload.userId ?? null,

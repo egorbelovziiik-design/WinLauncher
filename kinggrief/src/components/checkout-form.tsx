@@ -16,10 +16,14 @@ export function CheckoutForm({
   provider,
   testMode,
   user = null,
+  cardMethods = false,
+  cardMasked = '',
 }: {
   provider: string;
   testMode: boolean;
   user?: { username: string; email: string } | null;
+  cardMethods?: boolean;
+  cardMasked?: string;
 }) {
   const router = useRouter();
   const { items, subtotal, discount, total, promo, applyPromo, clearPromo, clear, nickname, setNickname, rememberOrder, ready, count } = useCart();
@@ -29,6 +33,7 @@ export function CheckoutForm({
   const [email, setEmail] = useState(user?.email ?? '');
   const [code, setCode] = useState(promo?.code ?? '');
   const [agree, setAgree] = useState(false);
+  const [method, setMethod] = useState<'kassa' | 'visa_ua' | 'visa_eu'>(cardMethods ? 'visa_ua' : 'kassa');
   const [note, setNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -67,6 +72,7 @@ export function CheckoutForm({
           items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
           promoCode: promo?.code ?? null,
           note: note.trim() || undefined,
+          method: method === 'kassa' ? undefined : method,
           agree: true,
         }),
       });
@@ -160,6 +166,79 @@ export function CheckoutForm({
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Например: друг попросил KING" className="field" maxLength={300} />
           </label>
         </section>
+
+          <section className="rounded-2xl border border-white/8 bg-panel/40 p-5">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <CreditCard className="h-4 w-4 text-neon" aria-hidden />
+              <h2 className="font-mono text-[0.7rem] uppercase tracking-widest text-white/60">Способ оплаты</h2>
+            </div>
+            <div className="grid gap-2.5 sm:grid-cols-3" role="radiogroup" aria-label="Способ оплаты">
+              {cardMethods && (
+                <>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={method === 'visa_ua'}
+                    onClick={() => setMethod('visa_ua')}
+                    className={
+                      'rounded-xl border p-3 text-left transition ' +
+                      (method === 'visa_ua'
+                        ? 'border-neon/70 bg-neon/10 shadow-[0_0_24px_-8px_var(--neon)]'
+                        : 'border-white/10 bg-white/[0.03] hover:border-white/25')
+                    }
+                  >
+                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Visa Украина</span>
+                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
+                      Гривна ₴ · card-to-card перевод на карту состава
+                    </span>
+                    <span className="mt-2 block font-mono text-[0.62rem] text-white/35">{cardMasked}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={method === 'visa_eu'}
+                    onClick={() => setMethod('visa_eu')}
+                    className={
+                      'rounded-xl border p-3 text-left transition ' +
+                      (method === 'visa_eu'
+                        ? 'border-neon/70 bg-neon/10 shadow-[0_0_24px_-8px_var(--neon)]'
+                        : 'border-white/10 bg-white/[0.03] hover:border-white/25')
+                    }
+                  >
+                    <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Visa Europe</span>
+                    <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
+                      Евро € · card-to-card для карт европейских банков
+                    </span>
+                    <span className="mt-2 block font-mono text-[0.62rem] text-white/35">{cardMasked}</span>
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={method === 'kassa'}
+                onClick={() => setMethod('kassa')}
+                className={
+                  'rounded-xl border p-3 text-left transition ' +
+                  (method === 'kassa'
+                    ? 'border-neon/70 bg-neon/10 shadow-[0_0_24px_-8px_var(--neon)]'
+                    : 'border-white/10 bg-white/[0.03] hover:border-white/25')
+                }
+              >
+                <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Касса</span>
+                <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
+                  Онлайн-касса провайдера ({provider})
+                </span>
+              </button>
+            </div>
+            {cardMethods && method !== 'kassa' && (
+              <p className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3 text-[0.7rem] leading-relaxed text-white/50">
+                Полные реквизиты карты открытия будут показаны <b className="text-white/80">только на странице оплаты
+                вашего заказа</b> после создания — там же сумма в выбранной валюте и кнопка «Я перевёл(а)».
+                Сайт не собирает данные вашей карты: перевод вы делаете сами из своего банка.
+              </p>
+            )}
+          </section>
 
         <section className="rounded-2xl border border-white/8 bg-panel/40 p-5">
           <div className="mb-4 flex items-center gap-2">

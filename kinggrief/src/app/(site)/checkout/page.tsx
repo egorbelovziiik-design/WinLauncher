@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSettings } from '@/lib/repo';
-import { activeProvider, isTestMode } from '@/lib/payments';
+import { activeProvider, cardMethodsEnabled, isTestMode, maskPan, payoutCardPan } from '@/lib/payments';
 import { CheckoutForm } from '@/components/checkout-form';
 import { currentUser } from '@/lib/auth';
 
@@ -37,6 +37,8 @@ export default async function CheckoutPage() {
         provider={provider}
         testMode={testMode}
         user={user ? { username: user.username, email: user.email } : null}
+        cardMethods={cardMethodsEnabled()}
+        cardMasked={maskPan(payoutCardPan())}
       />
     </section>
   );

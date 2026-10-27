@@ -19,6 +19,7 @@ export const createOrderSchema = z.object({
   promoCode: z.string().trim().max(32).optional().nullable(),
   agree: z.literal(true, { errorMap: () => ({ message: 'Подтвердите согласие с правилами' }) }),
   note: z.string().trim().max(300).optional(),
+  method: z.enum(['visa_ua', 'visa_eu']).optional().nullable(),
 });
 
 export const promoCheckSchema = z.object({

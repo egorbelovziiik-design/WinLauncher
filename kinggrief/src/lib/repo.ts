@@ -550,6 +550,14 @@ export function updatePaymentRecord(
   if (patch.raw !== undefined) db.prepare('UPDATE payments SET raw = ? WHERE id = ?').run(patch.raw, id);
 }
 
+export function latestPaymentForOrder(orderId: string) {
+  const row = getDb()
+    .prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1')
+    .get(orderId) as Row | undefined;
+  if (!row) return null;
+  return { id: num(row.id), provider: str(row.provider), status: str(row.status), amount: num(row.amount) };
+}
+
 export function findPaymentByProviderId(provider: string, providerPaymentId: string) {
   const row = getDb()
     .prepare('SELECT * FROM payments WHERE provider = ? AND provider_payment_id = ? ORDER BY id DESC LIMIT 1')
