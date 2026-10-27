@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { AlertTriangle, ArrowRight, CreditCard, Lock, ShieldCheck, Tag, User } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CreditCard, Lock, ShieldCheck, Tag, User, Wallet } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useCart, useToast } from './providers';
 import { EmptyState } from './ui';
@@ -17,13 +17,11 @@ export function CheckoutForm({
   testMode,
   user = null,
   cardMethods = false,
-  cardMasked = '',
 }: {
   provider: string;
   testMode: boolean;
   user?: { username: string; email: string } | null;
   cardMethods?: boolean;
-  cardMasked?: string;
 }) {
   const router = useRouter();
   const { items, subtotal, discount, total, promo, applyPromo, clearPromo, clear, nickname, setNickname, rememberOrder, ready, count } = useCart();
@@ -157,7 +155,7 @@ export function CheckoutForm({
               maxLength={120}
               aria-invalid={Boolean(errors.email)}
             />
-            <span className="mt-1 block text-[0.66rem] text-white/30">На почту отправит чек платёжная система. Мы не храним карточные данные.</span>
+            <span className="mt-1 block text-[0.66rem] text-white/30">На почту отправит чек платёжная система. Мы не храним платёжные данные.</span>
             {errors.email && <span className="mt-1 block text-[0.7rem] font-semibold text-danger">{errors.email}</span>}
           </label>
 
@@ -169,7 +167,7 @@ export function CheckoutForm({
 
           <section className="rounded-2xl border border-white/8 bg-panel/40 p-5">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <CreditCard className="h-4 w-4 text-neon" aria-hidden />
+              <Wallet className="h-4 w-4 text-neon" aria-hidden />
               <h2 className="font-mono text-[0.7rem] uppercase tracking-widest text-white/60">Способ оплаты</h2>
             </div>
             <div className="grid gap-2.5 sm:grid-cols-3" role="radiogroup" aria-label="Способ оплаты">
@@ -189,9 +187,8 @@ export function CheckoutForm({
                   >
                     <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Visa Украина</span>
                     <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
-                      Гривна ₴ · card-to-card перевод на карту состава
+                      Гривна ₴ · онлайн-оплата счёта
                     </span>
-                    <span className="mt-2 block font-mono text-[0.62rem] text-white/35">{cardMasked}</span>
                   </button>
                   <button
                     type="button"
@@ -207,9 +204,8 @@ export function CheckoutForm({
                   >
                     <span className="block font-mono text-[0.68rem] font-bold uppercase tracking-widest text-white">Visa Europe</span>
                     <span className="mt-1 block text-[0.68rem] leading-relaxed text-white/45">
-                      Евро € · card-to-card для карт европейских банков
+                      Евро € · онлайн-оплата счёта
                     </span>
-                    <span className="mt-2 block font-mono text-[0.62rem] text-white/35">{cardMasked}</span>
                   </button>
                 </>
               )}
@@ -233,9 +229,9 @@ export function CheckoutForm({
             </div>
             {cardMethods && method !== 'kassa' && (
               <p className="mt-3 rounded-lg border border-white/8 bg-white/[0.03] p-3 text-[0.7rem] leading-relaxed text-white/50">
-                Полные реквизиты карты открытия будут показаны <b className="text-white/80">только на странице оплаты
-                вашего заказа</b> после создания — там же сумма в выбранной валюте и кнопка «Я перевёл(а)».
-                Сайт не собирает данные вашей карты: перевод вы делаете сами из своего банка.
+                Счёт на оплату создаётся сразу после подтверждения заказа: сумма в выбранной валюте, код заказа и
+                инструкция будут на странице заказа, там же кнопка «Я оплатил(а)». Мы не запрашиваем данные вашего
+                способа оплаты.
               </p>
             )}
           </section>

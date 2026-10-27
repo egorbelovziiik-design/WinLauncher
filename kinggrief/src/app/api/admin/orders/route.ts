@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardAdmin } from '@/lib/auth';
-import { getOrder, listOrders, listPayments, logAudit, updateDelivery, updateOrderStatus, listDeliveries } from '@/lib/repo';
-import { syncOrderDeliveryStatus } from '@/lib/delivery';
+import { getOrder, listOrders, listPayments, logAudit, updateDelivery, updateOrderStatus, listDeliveries, latestPaymentForOrder, updatePaymentRecord } from '@/lib/repo';
+import { confirmPaidOrderCloud, syncOrderDeliveryStatus } from '@/lib/delivery';
 import {
   cloudGetOrder,
   cloudListDeliveries,
@@ -69,6 +69,28 @@ export async function POST(req: Request) {
   if (!guard.ok) return NextResponse.json({ error: guard.error }, { status: guard.status });
   const body = await readJson<{ action?: string; orderId?: string; status?: string; deliveryId?: string }>(req);
   if (!body?.action || !body.orderId) return NextResponse.json({ error: 'Не указан заказ' }, { status: 400 });
+
+  // Ручное подтверждение оплаты администратором: статус → paid/delivering
+  // и автоматическая постановка задач выдачи (локально или в облачную очередь).
+  if (body.action === 'confirm-payment') {
+    const pre = (isCloudEnabled() ? await cloudGetOrder(body.orderId).catch(() => null) : null) ?? getOrder(body.orderId);
+    if (!pre) return NextResponse.json({ error: 'Заказ не найден' }, { status: 404 });
+    if (['paid', 'delivering', 'delivered'].includes(pre.status)) {
+      return NextResponse.json({ ok: true, already: true });
+    }
+    const result = await confirmPaidOrderCloud({
+      idOrPublicId: pre.id,
+      provider: pre.provider,
+      providerPaymentId: `admin-confirm-${pre.publicId}`,
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error || 'Не удалось подтвердить оплату' }, { status: 400 });
+    }
+    const pay = latestPaymentForOrder(pre.id);
+    if (pay && pay.status !== 'succeeded') updatePaymentRecord(pay.id, { status: 'succeeded' });
+    logAudit(guard.admin.username, 'order_payment_confirmed', `${pre.publicId} → оплачен (вручную)`, clientIp(req));
+    return NextResponse.json({ ok: true });
+  }
 
   if (isCloudEnabled()) {
     const order = (await cloudGetOrder(body.orderId)) ?? getOrder(body.orderId);

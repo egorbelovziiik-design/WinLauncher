@@ -19,18 +19,53 @@ const METHOD_META: Record<CardMethod, { currency: string; symbol: string; rateEn
     symbol: '₴',
     rateEnv: 'RATE_UAH_PER_RUB',
     defRate: 0.45,
-    label: 'Visa Украина · перевод с карты на карту',
-    hint: 'Гривна (UAH) · карты Visa/Mastercard банков Украины',
+    label: 'Visa Украина',
+    hint: 'Гривна (UAH) · онлайн-оплата счёта',
   },
   visa_eu: {
     currency: 'EUR',
     symbol: '€',
     rateEnv: 'RATE_EUR_PER_RUB',
     defRate: 0.0102,
-    label: 'Visa Europe · card-to-card',
-    hint: 'Евро (EUR) · карты Visa/Mastercard европейских банков',
+    label: 'Visa Europe',
+    hint: 'Евро (EUR) · онлайн-оплата счёта',
   },
 };
+
+/* Канал оплаты счёта: настраивается env-переменными, на сайте не показывается
+ * ничего, что раскрывало бы реквизиты получения.
+ *  PAYMENT_LINK_UAH / PAYMENT_LINK_EUR — защищённая платёжная ссылка банка/сервиса;
+ *  PAYOUT_IBAN  — счёт (IBAN) для перевода по реквизитам;
+ *  PAYOUT_PHONE — номер для перевода в приложении банка;
+ *  иначе — счёт оплачивается через поддержку (реквизиты вручную). */
+export type PayoutChannel =
+  | { kind: 'link'; url: string }
+  | { kind: 'iban'; iban: string; phone?: string }
+  | { kind: 'phone'; phone: string }
+  | { kind: 'support' };
+
+export function payoutChannel(method: CardMethod): PayoutChannel {
+  const link = (method === 'visa_ua' ? process.env.PAYMENT_LINK_UAH : process.env.PAYMENT_LINK_EUR) || '';
+  if (link.trim()) return { kind: 'link', url: link.trim() };
+  const iban = (process.env.PAYOUT_IBAN || '').trim();
+  const phone = (process.env.PAYOUT_PHONE || '').trim();
+  if (iban) return { kind: 'iban', iban, phone: phone || undefined };
+  if (phone) return { kind: 'phone', phone };
+  return { kind: 'support' };
+}
+
+export function payoutChannelTitle(channel: PayoutChannel): string {
+  switch (channel.kind) {
+    case 'link':
+      return 'платёжная ссылка банка';
+    case 'iban':
+      return 'перевод по реквизитам (IBAN)';
+    case 'phone':
+      return 'перевод по номеру телефона';
+    default:
+      return 'через поддержку';
+  }
+}
 
 export function payoutCardPan(): string {
   return (process.env.PAYOUT_CARD_PAN || '').replace(/\D/g, '');

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Download, ExternalLink, RefreshCw, Search } from 'lucide-react';
+import { Check, Download, ExternalLink, RefreshCw, Search, XCircle } from 'lucide-react';
 import type { Order, OrderStatus } from '@/lib/types';
 import { formatDate, formatPrice, statusColors, statusLabels } from '@/lib/utils';
 import { adminPost } from './api-client';
@@ -12,7 +12,15 @@ import { useToast } from '../providers';
 
 const STATUSES: OrderStatus[] = ['pending_payment', 'paid', 'delivering', 'delivered', 'cancelled', 'failed'];
 
-export function OrdersManager({ orders, initialQuery = '' }: { orders: Order[]; initialQuery?: string }) {
+export function OrdersManager({
+  orders,
+  initialQuery = '',
+  claims = {},
+}: {
+  orders: Order[];
+  initialQuery?: string;
+  claims?: Record<string, boolean>;
+}) {
   const router = useRouter();
   const { push } = useToast();
   const [status, setStatus] = useState<string>('all');
@@ -43,6 +51,16 @@ export function OrdersManager({ orders, initialQuery = '' }: { orders: Order[]; 
     setBusyId(null);
     if (res.ok) {
       push({ tone: 'success', title: 'Статус обновлён', description: `${order.publicId} → ${statusLabels[next] ?? next}` });
+      router.refresh();
+    } else push({ tone: 'error', title: 'Ошибка', description: res.data.error });
+  };
+
+  const confirmPayment = async (order: Order) => {
+    setBusyId(order.id);
+    const res = await adminPost('/api/admin/orders', { action: 'confirm-payment', orderId: order.id });
+    setBusyId(null);
+    if (res.ok) {
+      push({ tone: 'success', title: 'Оплата подтверждена', description: `${order.publicId} → задачи выдачи созданы` });
       router.refresh();
     } else push({ tone: 'error', title: 'Ошибка', description: res.data.error });
   };
@@ -104,7 +122,12 @@ export function OrdersManager({ orders, initialQuery = '' }: { orders: Order[]; 
                   <td className="text-white/75">{order.nickname}<span className="block font-mono text-[0.56rem] text-white/25">{order.email ?? '—'}</span></td>
                   <td className="max-w-[15rem] truncate text-[0.7rem] text-white/45">{order.items.map((i) => `${i.name} ×${i.quantity}`).join(', ')}</td>
                   <td className="stat-num text-white/85">{formatPrice(order.total)}</td>
-                  <td className="font-mono text-[0.6rem] uppercase text-white/40">{order.provider}</td>
+                  <td className="font-mono text-[0.6rem] uppercase text-white/40">
+                    {order.provider.startsWith('card2card:') ? (order.provider.endsWith('visa_eu') ? 'Visa Europe' : 'Visa UA') : order.provider}
+                    {claims[order.id] && order.status === 'pending_payment' && (
+                      <span className="mt-0.5 block"><Pill color="#F59E0B">заявка: «я оплатил(а)»</Pill></span>
+                    )}
+                  </td>
                   <td>
                     <select
                       value={order.status}
@@ -119,13 +142,35 @@ export function OrdersManager({ orders, initialQuery = '' }: { orders: Order[]; 
                   </td>
                   <td className="font-mono text-[0.6rem] text-white/30">{formatDate(order.createdAt)}</td>
                   <td>
-                    <div className="flex justify-end gap-1">
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {order.status === 'pending_payment' && (
+                        <button
+                          onClick={() => confirmPayment(order)}
+                          disabled={busyId === order.id}
+                          className="btn btn-primary !h-7 !px-2 !text-[0.62rem]"
+                          title="Подтвердить поступление и создать задачи выдачи"
+                        >
+                          <Check size={12} /> Подтвердить оплату
+                        </button>
+                      )}
+                      {(order.status === 'paid' || order.status === 'delivering' || order.status === 'failed') && (
+                        <button onClick={() => markDelivered(order)} disabled={busyId === order.id} className="btn btn-ghost !h-7 !px-2 !text-[0.62rem]">
+                          Выдан
+                        </button>
+                      )}
+                      {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                        <button
+                          onClick={() => changeStatus(order, 'cancelled')}
+                          disabled={busyId === order.id}
+                          className="btn btn-ghost !h-7 !px-2 !text-[0.62rem] hover:!text-danger"
+                          title="Отменить заказ"
+                        >
+                          <XCircle size={12} /> Отменить
+                        </button>
+                      )}
                       <Link href={`/admin/orders/${order.publicId}`} className="btn btn-ghost btn-icon !h-7 !w-7" aria-label="Открыть заказ">
                         <ExternalLink size={12} />
                       </Link>
-                      {order.status !== 'delivered' && order.status !== 'pending_payment' && (
-                        <button onClick={() => markDelivered(order)} className="btn btn-ghost !h-7 !px-2 !text-[0.62rem]">Выдан</button>
-                      )}
                     </div>
                   </td>
                 </tr>

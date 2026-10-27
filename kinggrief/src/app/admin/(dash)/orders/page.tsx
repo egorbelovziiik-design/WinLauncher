@@ -1,4 +1,4 @@
-import { listOrders } from '@/lib/repo';
+import { listOrders, latestPaymentForOrder } from '@/lib/repo';
 import { cloudListOrders, isCloudEnabled } from '@/lib/cloud-store';
 import { OrdersManager } from '@/components/admin/orders-manager';
 
@@ -13,5 +13,6 @@ export default async function AdminOrdersPage({
   const orders = isCloudEnabled()
     ? await cloudListOrders(300).catch(() => listOrders({ limit: 300 }))
     : listOrders({ limit: 300 });
-  return <OrdersManager orders={orders} initialQuery={q ?? ''} />;
+  const claims = Object.fromEntries(orders.map((o) => [o.id, latestPaymentForOrder(o.id)?.status === 'sent']));
+  return <OrdersManager orders={orders} initialQuery={q ?? ''} claims={claims} />;
 }

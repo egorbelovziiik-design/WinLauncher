@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { getOrder, listDeliveries, listPayments } from '@/lib/repo';
+import { getOrder, listDeliveries, listPayments, latestPaymentForOrder } from '@/lib/repo';
 import { cloudGetOrder, cloudListDeliveries, isCloudEnabled } from '@/lib/cloud-store';
 import { OrderDetail } from '@/components/admin/order-detail';
 
@@ -25,7 +25,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           <h1 className="mt-1 font-display text-2xl font-extrabold uppercase tracking-tight text-white">Заказ {order.publicId}</h1>
         </div>
       </div>
-      <OrderDetail order={order} deliveries={deliveries} payments={listPayments(order.id)} />
+      <OrderDetail order={order} deliveries={deliveries} payments={listPayments(order.id)} claim={latestPaymentForOrder(order.id)?.status === 'sent'} />
     </div>
   );
 }

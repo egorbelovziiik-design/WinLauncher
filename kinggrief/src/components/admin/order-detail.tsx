@@ -13,7 +13,17 @@ const STATUSES: OrderStatus[] = ['pending_payment', 'paid', 'delivering', 'deliv
 
 type PaymentRow = { id: number; provider: string; providerPaymentId: string | null; amount: number; status: string; createdAt: string };
 
-export function OrderDetail({ order, deliveries, payments }: { order: Order; deliveries: Delivery[]; payments: PaymentRow[] }) {
+export function OrderDetail({
+  order,
+  deliveries,
+  payments,
+  claim = false,
+}: {
+  order: Order;
+  deliveries: Delivery[];
+  payments: PaymentRow[];
+  claim?: boolean;
+}) {
   const router = useRouter();
   const { push } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
@@ -128,7 +138,9 @@ export function OrderDetail({ order, deliveries, payments }: { order: Order; del
                 <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/6 bg-void/30 px-3 py-2 text-[0.72rem]">
                   <span className="font-mono text-white/50">#{payment.id} · {payment.provider}</span>
                   <span className="stat-num text-white/75">{formatPrice(payment.amount)}</span>
-                  <Pill color={payment.status === 'succeeded' ? '#22C55E' : payment.status === 'failed' ? '#EF4444' : '#F59E0B'}>{payment.status}</Pill>
+                  <Pill color={payment.status === 'succeeded' ? '#22C55E' : payment.status === 'failed' ? '#EF4444' : '#F59E0B'}>
+                    {payment.status === 'succeeded' ? 'успешен' : payment.status === 'sent' ? 'заявка: переведён' : payment.status === 'failed' ? 'ошибка' : payment.status}
+                  </Pill>
                   <span className="font-mono text-[0.58rem] text-white/25">{formatDate(payment.createdAt)}</span>
                 </li>
               ))}
@@ -138,8 +150,29 @@ export function OrderDetail({ order, deliveries, payments }: { order: Order; del
       </div>
 
       <aside className="space-y-4">
-        <AdminCard title="Управление">
-          <dl className="space-y-2 text-[0.76rem]">
+        <AdminCard
+          title="Управление"
+          action={claim && order.status === 'pending_payment' ? <Pill color="#F59E0B">заявка: «я оплатил(а)»</Pill> : undefined}
+        >
+          {(order.status === 'pending_payment' || claim) && order.status !== 'delivered' && (
+            <button
+              onClick={() => run({ action: 'confirm-payment' }, 'Оплата подтверждена, задачи выдачи созданы')}
+              disabled={busy === 'confirm-payment'}
+              className="btn btn-primary btn-sm w-full"
+            >
+              <Check size={13} /> Подтвердить оплату и выдать
+            </button>
+          )}
+          {order.status !== 'cancelled' && order.status !== 'delivered' && (
+            <button
+              onClick={() => run({ action: 'status', status: 'cancelled' }, 'Заказ отменён')}
+              disabled={busy === 'status'}
+              className="btn btn-ghost btn-sm mt-2 w-full hover:!text-danger"
+            >
+              <X size={13} /> Отменить заказ
+            </button>
+          )}
+          <dl className="space-y-2 text-[0.76rem] mt-3">
             <div className="flex justify-between gap-2"><dt className="text-white/40">Номер</dt><dd className="font-mono text-white/80">{order.publicId}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-white/40">Никнейм</dt><dd className="font-bold text-white">{order.nickname}</dd></div>
             <div className="flex justify-between gap-2"><dt className="text-white/40">Email</dt><dd className="truncate text-white/60">{order.email ?? '—'}</dd></div>
