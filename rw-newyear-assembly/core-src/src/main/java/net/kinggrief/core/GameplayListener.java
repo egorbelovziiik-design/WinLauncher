@@ -3005,7 +3005,9 @@ public final class GameplayListener implements Listener {
                     || "twinks".equals(cmd) || "checkip".equals(cmd) || "warn".equals(cmd) || "unwarn".equals(cmd)
                     || "history".equals(cmd) || "clearchat".equals(cmd) || "cc".equals(cmd) || "slowchat".equals(cmd)
                     || "freeze".equals(cmd) || "invsee".equals(cmd) || "ecsee".equals(cmd) || "whois".equals(cmd)
-                    || "sc".equals(cmd) || "staffchat".equals(cmd) || "bc".equals(cmd) || "broadcast".equals(cmd))) {
+                    || "sc".equals(cmd) || "staffchat".equals(cmd) || "bc".equals(cmd) || "broadcast".equals(cmd)
+                    || "reports".equals(cmd) || "replist".equals(cmd) || "kingac".equals(cmd) || "kac".equals(cmd)
+                    || "kas".equals(cmd) || "kingantisoft".equals(cmd) || "anticheat".equals(cmd))) {
                 it.remove();
                 continue;
             }
@@ -3018,6 +3020,10 @@ public final class GameplayListener implements Listener {
             e.getCommands().add("clear");
             e.getCommands().add("ci");
             e.getCommands().add("clearinv");
+        }
+        if (Bukkit.getPluginManager().getPlugin("KingAC") != null) {
+            e.getCommands().add("report");
+            e.getCommands().add("rep");
         }
     }
 
@@ -3086,11 +3092,13 @@ public final class GameplayListener implements Listener {
             p.sendMessage(ColorUtil.c("&#FF1744⚠ Во время проверки на читы команды отключены! Пишите в обычный чат."));
             return;
         }
-        // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER)!
-        if (plugin.getHud().isInCombat(p) && !isOwner) {
+        // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER и жалоб /report, /спек в KingАЧ)!
+        if (plugin.getHud().isInCombat(p) && !isOwner
+                && !"report".equals(baseCmd) && !"rep".equals(baseCmd) && !"cheater".equals(baseCmd)
+                && !"жалоба".equals(baseCmd) && !"spek".equals(baseCmd)) {
             int left = plugin.getHud().getCombatSecondsLeft(p);
             e.setCancelled(true);
-            p.sendMessage(ColorUtil.c("&#FF1744⚔ Вы находитесь в &#FF1744&lРЕЖИМЕ ПВП &7(осталось &#FFD740" + left + " сек.&7)! Писать команды в бою запрещено!"));
+            p.sendMessage(ColorUtil.c("&#FF1744⚔ Вы находитесь в &#FF1744&lРЕЖИМЕ ПВП &7(осталось &#FFD740" + left + " сек.&7)! В бою разрешена только жалоба на читера: &#00E676/report <ник>"));
             return;
         }
     }

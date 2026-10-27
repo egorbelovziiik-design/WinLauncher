@@ -1,0 +1,31 @@
+name: KingAC
+prefix: KingАЧ
+version: 6.0.0
+main: net.kinggrief.kingac.KingAcPlugin
+api-version: '1.21'
+softdepend: [KingGriefCore]
+author: KINGGRIEF
+description: KingАЧ v6.0 — Топовый Античит (Детект микро-дёрганий головой, GCD Aim, Inject-Probe KillAura, HitBox/Reach, AutoTotem, Fly/Speed/NoSlow, Система жалоб /report и Авто-Бан 24/7)
+
+commands:
+  kingac:
+    aliases: [kac, kas, kingantisoft, anticheat]
+    description: Панель управления античитом KingАЧ, детекты, авто-баны и настройки
+  report:
+    aliases: [rep, cheater]
+    description: Подать жалобу на читера в KingАЧ (/report <ник> [причина])
+    permission: kingac.report
+  reports:
+    aliases: [replist]
+    description: Открыть список жалоб игроков в KingАЧ
+
+permissions:
+  kingac.report:
+    description: Позволяет отправлять жалобы /report на подозрительных игроков
+    default: true
+  kingac.staff:
+    description: Доступ к уведомлениям KingАЧ и списку жалоб /reports
+    default: op
+  kingac.admin:
+    description: Полное управление античитом KingАЧ и разбан (/kac unban)
+    default: op

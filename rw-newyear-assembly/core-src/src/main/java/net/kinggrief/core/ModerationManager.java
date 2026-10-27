@@ -1494,7 +1494,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
         ColorUtil.sound(p, "entity.experience_orb.pickup", 1.0f, 1.3f);
         p.sendMessage(ColorUtil.c("&#00E676✔ Запрос на спек отправлен модерации"
-                + (notifiedStaff > 0 ? " (&aонлайн модераторов: " + notifiedStaff + "&a)" : " &7(сейчас свободных модераторов нет, King_antisoft ведёт запись)") + "!"));
+                + (notifiedStaff > 0 ? " (&aонлайн модераторов: " + notifiedStaff + "&a)" : " &7(сейчас свободных модераторов нет, нейро-античит KingАЧ ведёт слежку и сам забанит читера)") + "!"));
         return true;
     }
 

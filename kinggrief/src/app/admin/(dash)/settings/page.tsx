@@ -113,8 +113,8 @@ export default async function AdminSettingsPage() {
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
             <Download size={13} /> Скачать KingGriefBridge.jar
           </a>
-          <a href="/King_antisoft.jar" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Античит King_antisoft.jar
+          <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm">
+            <Download size={13} /> Нейро-Античит KingАЧ v6.0 (KingAC.jar)
           </a>
           <a href="/KingClear.jar" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Очистка инвентаря KingClear.jar (/clear)
