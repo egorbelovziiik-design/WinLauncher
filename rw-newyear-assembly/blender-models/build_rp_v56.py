@@ -65,6 +65,9 @@ RANKS_40 = [
     (37, "cobra",     "COBRA",     (26, 56, 10),  (136, 212, 26),  (222, 252, 162), "fang"),
     (38, "pegas",     "PEGAS",     (10, 56, 26),  (36, 204, 98),   (195, 250, 215), "wing"),
     (39, "default",   "PLAYER",    (28, 36, 48),  (148, 166, 190), (228, 236, 246), "helm"),
+    (40, "mlmoder",   "ML.MODER",  (10, 42, 86),  (38, 162, 252),  (168, 228, 255), "shield"),
+    (41, "mladmin",   "ML.ADMIN",  (66, 22, 8),   (249, 115, 22),  (255, 224, 71),  "sword"),
+    (42, "admin",     "ADMIN",     (72, 8, 18),   (239, 44, 68),   (255, 208, 52),  "crown"),
 ]
 
 # Bold 2px-stroke 8px-tall Arcade/ReallyWorld Font (matches OWNER in owner_preview_10x.png!)
@@ -417,8 +420,8 @@ font_dir = os.path.join(OUT_RP_DIR, "assets/minecraft/textures/font")
 os.makedirs(os.path.join(font_dir, "ranks"), exist_ok=True)
 providers = []
 
-# Generate preview sheet of all 40 luxury badges to verify visually!
-badge_preview = Image.new("RGBA", (680, 20 * 38 + 24), (18, 22, 32, 255))
+# Generate preview sheet of all 41 luxury badges to verify visually!
+badge_preview = Image.new("RGBA", (680, 21 * 38 + 24), (18, 22, 32, 255))
 
 for idx, rid, label, bg, border, accent, icon_type in RANKS_40:
     for f in range(8):
@@ -549,6 +552,16 @@ ITEMS_SPECS = [
     ("tal_echidny",       [],                   "talisman", "echidna",   (34, 197, 94),   (185, 255, 110), (155, 65, 235)),
     ("tal_stuzhi",        ["frost_talisman"],   "talisman", "frost",     (95, 210, 255),  (235, 252, 255), (255, 220, 80)),
     ("immortal_totem",    [],                   "talisman", "immortal",  (250, 204, 21),  (80, 255, 155),  (255, 245, 175)),
+    # 9 NEW v5.7 CUSTOM 3D TALISMANS (INCLUDING DIVINE OWNER TALISMAN!)
+    ("tal_owner",         ["owner_talisman"],   "talisman", "owner",     (245, 22, 62),   (255, 235, 95),  (255, 205, 35)),
+    ("tal_karatelya",     [],                   "talisman", "karatel",   (195, 20, 35),   (255, 125, 35),  (95, 75, 105)),
+    ("tal_zeusa",         [],                   "talisman", "zeus",      (250, 204, 21),  (125, 235, 255), (255, 248, 210)),
+    ("tal_draculy",       [],                   "talisman", "dracula",   (175, 15, 55),   (255, 75, 125),  (58, 38, 72)),
+    ("tal_kolossa",       [],                   "talisman", "koloss",    (115, 130, 155), (95, 245, 185),  (255, 195, 55)),
+    ("tal_zhneca",        [],                   "talisman", "reaper",    (115, 45, 195),  (225, 125, 255), (215, 225, 240)),
+    ("tal_severa",        [],                   "talisman", "sever",     (56, 189, 248),  (240, 252, 255), (145, 215, 255)),
+    ("tal_bezdn",         [],                   "talisman", "void",      (78, 35, 155),   (56, 235, 255),  (215, 155, 255)),
+    ("tal_imperatora",    [],                   "talisman", "imperator", (255, 155, 20),  (255, 245, 135), (235, 40, 65)),
 
     ("elytra_wind",       [],                   "wings",    "wind",      (125, 218, 255), (240, 252, 255), (255, 220, 85)),
     ("elytra_phoenix",    [],                   "wings",    "phoenix",   (255, 95, 20),   (255, 225, 70),  (195, 25, 35)),
@@ -565,18 +578,78 @@ ITEMS_SPECS = [
     ("ognenny_smerch",    [],                   "tornado",  "fire",      (255, 95, 20),   (255, 230, 75),  (215, 30, 35)),
     ("snezok_zamorozki",  ["snow_freeze"],      "snowflake","icebomb",   (95, 210, 255),  (240, 253, 255), (55, 135, 235)),
     ("pautinnaya_granata",["spider_net"],       "web",      "web",       (225, 242, 248), (105, 245, 175), (65, 175, 125)),
+    # 3 NEW FTxRW PVP CONSUMABLES
+    ("bozhya_kara",       [],                   "bolt",     "smite",     (255, 215, 35),  (135, 238, 255), (255, 252, 220)),
+    ("grav_sfera",        [],                   "vortex",   "gravity",   (115, 35, 215),  (235, 95, 255),  (56, 215, 255)),
+    ("sneg_zavesa",       [],                   "snowflake","veil",      (155, 230, 255), (250, 254, 255), (95, 175, 255)),
 
     ("pick_djamshut",     ["drill_pickaxe"],    "pickaxe",  "djamshut",  (255, 130, 20),  (255, 235, 85),  (82, 72, 92)),
     ("pick_spawner",      [],                   "pickaxe",  "spawner",   (250, 204, 21),  (95, 245, 255),  (165, 75, 245)),
     ("sword_dracula",     [],                   "sword",    "dracula",   (215, 22, 48),   (255, 110, 135), (58, 42, 68)),
     ("sword_krush",       ["krush_sword"],      "sword",    "krush",     (255, 105, 20),  (255, 235, 85),  (75, 62, 82)),
+    ("sword_owner",       [],                   "sword",    "owner",     (245, 20, 60),   (255, 235, 95),  (255, 200, 35)),
+    ("mace_krush",        [],                   "mace",     "krush",     (245, 95, 25),   (255, 230, 75),  (85, 72, 95)),
+    ("trident_poseidon",  [],                   "trident",  "poseidon",  (25, 195, 235),  (165, 252, 255), (255, 215, 65)),
+
+    # 6 CUSTOM 3D TNT VARIETIES!
+    ("tnt_tier1",         [],                   "tnt",      "tier2",     (225, 38, 38),   (255, 215, 75),  (245, 245, 248)),
+    ("tnt_black",         [],                   "tnt",      "black",     (42, 36, 54),    (195, 75, 255),  (255, 195, 45)),
+    ("tnt_nuke",          [],                   "tnt",      "nuke",      (45, 195, 65),   (245, 255, 65),  (38, 42, 48)),
+    ("tnt_flash",         [],                   "tnt",      "flash",     (255, 175, 20),  (125, 238, 255), (255, 250, 225)),
+    ("tnt_cryo",          [],                   "tnt",      "cryo",      (65, 195, 255),  (240, 253, 255), (45, 105, 195)),
+    ("tnt_miner",         [],                   "tnt",      "miner",     (235, 125, 25),  (65, 235, 255),  (95, 85, 98)),
+
+    # 4 CUSTOM 3D BOWS WITH FULL 4-STAGE PULLING ANIMATION!
     ("bow_ice_rw",        [],                   "bow",      "icebow",    (85, 205, 255),  (235, 252, 255), (255, 215, 70)),
+    ("bow_inferno",       [],                   "bow",      "inferno",   (245, 75, 20),   (255, 225, 65),  (95, 45, 55)),
+    ("bow_zeus",          [],                   "bow",      "zeus",      (250, 205, 35),  (125, 238, 255), (245, 248, 255)),
+    ("bow_vampire",       [],                   "bow",      "vampire",   (205, 18, 52),   (255, 95, 135),  (58, 38, 68)),
+
+    # 6 CUSTOM 3D ARROWS!
+    ("arrow_ice",         [],                   "arrow",    "ice",       (85, 210, 255),  (240, 253, 255), (205, 235, 255)),
+    ("arrow_explosive",   [],                   "arrow",    "explosive", (245, 65, 25),   (255, 220, 65),  (85, 75, 85)),
+    ("arrow_lightning",   [],                   "arrow",    "lightning", (250, 210, 35),  (135, 240, 255), (255, 250, 220)),
+    ("arrow_vampire",     [],                   "arrow",    "vampire",   (210, 18, 55),   (255, 105, 140), (68, 45, 78)),
+    ("arrow_poison",      [],                   "arrow",    "poison",    (34, 205, 85),   (185, 255, 105), (135, 65, 195)),
+    ("arrow_anti_fly",    [],                   "arrow",    "antifly",   (155, 65, 245),  (95, 235, 255),  (235, 215, 75)),
+
+    # 6 CUSTOM ARMOR SETS x 4 PIECES = 24 ARMOR MODELS!
+    ("armor_krush_helmet",      [], "helmet",     "krush",   (225, 65, 25),   (255, 210, 65),  (75, 58, 72)),
+    ("armor_krush_chestplate",  [], "chestplate", "krush",   (225, 65, 25),   (255, 210, 65),  (75, 58, 72)),
+    ("armor_krush_leggings",    [], "leggings",   "krush",   (225, 65, 25),   (255, 210, 65),  (75, 58, 72)),
+    ("armor_krush_boots",       [], "boots",      "krush",   (225, 65, 25),   (255, 210, 65),  (75, 58, 72)),
+
+    ("armor_dracula_helmet",     [], "helmet",     "dracula", (195, 18, 52),  (255, 95, 135),  (52, 36, 65)),
+    ("armor_dracula_chestplate", [], "chestplate", "dracula", (195, 18, 52),  (255, 95, 135),  (52, 36, 65)),
+    ("armor_dracula_leggings",   [], "leggings",   "dracula", (195, 18, 52),  (255, 95, 135),  (52, 36, 65)),
+    ("armor_dracula_boots",      [], "boots",      "dracula", (195, 18, 52),  (255, 95, 135),  (52, 36, 65)),
+
+    ("armor_frost_helmet",      [], "helmet",     "frost",   (75, 195, 255),  (240, 253, 255), (255, 215, 75)),
+    ("armor_frost_chestplate",  [], "chestplate", "frost",   (75, 195, 255),  (240, 253, 255), (255, 215, 75)),
+    ("armor_frost_leggings",    [], "leggings",   "frost",   (75, 195, 255),  (240, 253, 255), (255, 215, 75)),
+    ("armor_frost_boots",       [], "boots",      "frost",   (75, 195, 255),  (240, 253, 255), (255, 215, 75)),
+
+    ("armor_zeus_helmet",       [], "helmet",     "zeus",    (250, 200, 30),  (120, 238, 255), (248, 250, 255)),
+    ("armor_zeus_chestplate",   [], "chestplate", "zeus",    (250, 200, 30),  (120, 238, 255), (248, 250, 255)),
+    ("armor_zeus_leggings",     [], "leggings",   "zeus",    (250, 200, 30),  (120, 238, 255), (248, 250, 255)),
+    ("armor_zeus_boots",        [], "boots",      "zeus",    (250, 200, 30),  (120, 238, 255), (248, 250, 255)),
+
+    ("armor_phantom_helmet",     [], "helmet",     "phantom", (95, 55, 185),  (56, 235, 255),  (45, 42, 62)),
+    ("armor_phantom_chestplate", [], "chestplate", "phantom", (95, 55, 185),  (56, 235, 255),  (45, 42, 62)),
+    ("armor_phantom_leggings",   [], "leggings",   "phantom", (95, 55, 185),  (56, 235, 255),  (45, 42, 62)),
+    ("armor_phantom_boots",      [], "boots",      "phantom", (95, 55, 185),  (56, 235, 255),  (45, 42, 62)),
+
+    ("armor_owner_helmet",      [], "helmet",     "owner",   (245, 18, 58),   (255, 238, 95),  (255, 198, 28)),
+    ("armor_owner_chestplate",  [], "chestplate", "owner",   (245, 18, 58),   (255, 238, 95),  (255, 198, 28)),
+    ("armor_owner_leggings",    [], "leggings",   "owner",   (245, 18, 58),   (255, 238, 95),  (255, 198, 28)),
+    ("armor_owner_boots",       [], "boots",      "owner",   (245, 18, 58),   (255, 238, 95),  (255, 198, 28)),
+
     ("ny_mandarin",       [],                   "mandarin", "mandarin",  (255, 132, 18),  (255, 215, 95),  (42, 195, 75)),
     ("snowflake_coin",    [],                   "snowflake","coin",      (80, 205, 255),  (240, 252, 255), (255, 215, 65)),
     ("bounty_scroll",     [],                   "scroll",   "bounty",    (235, 215, 165), (235, 45, 55),   (255, 195, 45)),
 ]
 
-def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12):
+def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pull_stage=-1):
     # Render on 64x64 supersampled canvas -> crisp 32x32 pixel-art with binary alpha & 1px dark outline!
     S = 32
     yy, xx = np.mgrid[0:S, 0:S].astype(np.float32)
@@ -702,6 +775,16 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12):
         rgb[eyes] = white * 0.7 + g_v * 0.3
         rgb[gem] = g_v * (0.85 + 0.15 * math.sin(ph * 2)) + white * 0.25
         mask |= wings | body | crown | eyes | gem
+        if sub == "owner":
+            # Divine 5-spiked Royal Crown + Ruby-Gold Seraphim Halo & Upper Wings!
+            big_crown = (np.abs(nx) <= 0.46) & (ny_b >= 0.62) & (ny_b <= 0.92) & (
+                (ny_b <= 0.74) | (np.abs(nx) <= 0.09) | (np.abs(np.abs(nx) - 0.22) <= 0.07) | (np.abs(np.abs(nx) - 0.39) <= 0.07)
+            )
+            halo_ring = (r_b >= 0.78) & (r_b <= 0.92) & (np.cos(ang * 6.0 - ph * 2.0) > -0.35)
+            rgb[big_crown] = [255, 215, 45]
+            rgb[big_crown & (ny_b >= 0.84)] = [255, 250, 190]
+            rgb[halo_ring & (~mask)] = g_v * 0.9
+            mask |= big_crown | halo_ring
 
     elif cat == "wings":
         # Wide, majestic, unmistakable Pair of Sculpted Multi-Feather Elytra Wings!
@@ -802,19 +885,178 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12):
             mask |= shaft | pommel | head
 
     elif cat == "bow":
-        # Crisp curved Ice Sniper Bow + glowing frost arrow!
+        # Full 4-Stage Bow Animation! pull_stage: -1=idle, 0=pulling_0, 1=pulling_1, 2=pulling_2
         u = (nx + ny) * 0.7071
         v = (ny - nx) * 0.7071
-        arc_u = 0.36 - 0.75 * (v * v)
-        limb = (np.abs(v) <= 0.88) & (np.abs(u - arc_u) <= 0.11)
-        string = (np.abs(v) <= 0.84) & (np.abs(u + 0.22) <= 0.045)
-        arrow = (u >= -0.35) & (u <= 0.85) & (np.abs(v) <= 0.055)
-        tip = (u >= 0.72) & (u <= 0.98) & (np.abs(v) <= 0.18 * (1.0 - (u - 0.72)/0.28))
-        rgb[string] = [215, 238, 255]
-        rgb[limb] = m_v
-        rgb[limb & (np.abs(v) <= 0.22)] = t_v
-        rgb[arrow | tip] = g_v * (0.8 + 0.2 * math.sin(ph * 2))
-        mask |= limb | string | arrow | tip
+        flex = 0.0 if pull_stage < 0 else (0.12 + 0.11 * pull_stage)
+        arc_u = (0.38 - 0.10 * flex) - (0.72 + 0.35 * flex) * (v * v)
+        limb = (np.abs(v) <= (0.88 - 0.04 * flex)) & (np.abs(u - arc_u) <= 0.115)
+        tips_u = (0.38 - 0.10 * flex) - (0.72 + 0.35 * flex) * (0.82 * 0.82)
+        if pull_stage < 0:
+            # Taut straight bowstring when idle!
+            string = (np.abs(v) <= 0.82) & (np.abs(u - tips_u) <= 0.045)
+            rgb[string] = [225, 240, 255]
+            rgb[limb] = (m_v * np.clip(0.85 + 0.35 * (u - arc_u) * 4.0, 0.65, 1.3)[..., None])[limb]
+            rgb[limb & (np.abs(v) <= 0.22)] = t_v
+            rgb[limb & (np.abs(v) >= 0.72)] = g_v
+            mask |= limb | string
+        else:
+            # V-shaped pulled bowstring + nocked elemental arrow!
+            pull_back = tips_u - (0.18 + 0.20 * pull_stage)
+            str_target_u = pull_back + (tips_u - pull_back) * (np.abs(v) / 0.82)
+            string = (np.abs(v) <= 0.82) & (np.abs(u - str_target_u) <= 0.05)
+            arr_tail = pull_back
+            arr_head = arr_tail + 1.12
+            shaft = (u >= arr_tail) & (u <= arr_head - 0.16) & (np.abs(v) <= 0.055)
+            fletch = (u >= arr_tail) & (u <= arr_tail + 0.22) & (np.abs(np.abs(v) - 0.11) <= 0.055)
+            tip = (u >= arr_head - 0.24) & (u <= arr_head + 0.06) & (np.abs(v) <= 0.20 * np.clip(1.0 - (u - (arr_head - 0.24)) / 0.30, 0.0, 1.0))
+            rgb[string] = [235, 246, 255]
+            rgb[limb] = (m_v * np.clip(0.85 + 0.35 * (u - arc_u) * 4.0, 0.65, 1.3)[..., None])[limb]
+            rgb[limb & (np.abs(v) <= 0.22)] = t_v
+            rgb[limb & (np.abs(v) >= 0.70)] = g_v
+            rgb[shaft] = [185, 145, 95]
+            rgb[fletch] = t_v
+            rgb[tip] = g_v * (0.85 + 0.15 * math.sin(ph * 2)) + white * (0.25 if pull_stage == 2 else 0.10)
+            if pull_stage == 2:
+                spark = ((u - (arr_head - 0.06))**2 + v*v) <= 0.055
+                rgb[spark] = white * 0.7 + g_v * 0.3
+                mask |= spark
+            mask |= limb | string | shaft | fletch | tip
+
+    elif cat == "arrow":
+        # Crisp 45° Elemental Arrow: feathered tail (-,-) -> razor broadhead (+,+)!
+        u = (nx + ny) * 0.7071
+        v = (ny - nx) * 0.7071
+        shaft = (u >= -0.82) & (u <= 0.62) & (np.abs(v) <= 0.065)
+        fletch = (u >= -0.96) & (u <= -0.54) & (np.abs(np.abs(v) - (0.08 + 0.32 * (-0.54 - u))) <= 0.075)
+        head = (u >= 0.44) & (u <= 0.98) & (np.abs(v) <= 0.28 * np.clip(1.0 - (u - 0.44) / 0.54, 0.0, 1.0) + 0.02)
+        barb = (u >= 0.36) & (u <= 0.52) & (np.abs(np.abs(v) - 0.20) <= 0.07)
+        rgb[shaft] = t_v * 0.78
+        rgb[fletch] = g_v
+        rgb[head | barb] = m_v * 1.12
+        rgb[head & (np.abs(v) <= 0.08)] = g_v * 0.75 + white * 0.25
+        mask |= shaft | fletch | head | barb
+
+    elif cat == "helmet":
+        dome = (np.abs(nx) <= 0.64) & (ny_b >= -0.46) & (ny_b <= 0.58) & ((nx*nx / 0.46 + (ny_b - 0.05)**2 / 0.38) <= 1.18)
+        visor = dome & (np.abs(nx) <= 0.42) & (ny_b >= -0.26) & (ny_b <= 0.04)
+        nose = (np.abs(nx) <= 0.09) & (ny_b >= -0.34) & (ny_b <= 0.22)
+        horns = (np.abs(nx) >= 0.48) & (np.abs(nx) <= 0.86) & (ny_b >= 0.24) & (ny_b <= 0.78) & (np.abs(ny_b - (0.20 + (np.abs(nx) - 0.44) * 1.25)) <= 0.14)
+        crest = (np.abs(nx) <= 0.34) & (ny_b >= 0.50) & (ny_b <= 0.84) & ((sub == "owner") | (np.abs(nx) <= 0.14))
+        shade = np.clip(0.75 + 0.38 * (-nx * 0.6 + ny_b * 0.5), 0.48, 1.28)
+        rgb[dome] = (m_v * shade[..., None])[dome]
+        rgb[dome & (np.abs(ny_b - 0.22) <= 0.08)] = t_v
+        rgb[visor] = g_v * (0.75 + 0.25 * math.sin(ph * 2))
+        rgb[nose] = t_v
+        rgb[horns | crest] = g_v if sub == "owner" else t_v
+        mask |= dome | horns | crest
+
+    elif cat == "chestplate":
+        shoulders = (np.abs(nx) <= 0.86) & (np.abs(nx) >= 0.26) & (ny_b >= 0.18) & (ny_b <= 0.68)
+        torso = (np.abs(nx) <= 0.58 * (1.0 - 0.22 * np.clip(-ny_b, 0, 1))) & (ny_b >= -0.72) & (ny_b <= 0.52)
+        neck_cut = (np.abs(nx) <= 0.24) & (ny_b >= 0.36)
+        plate = (shoulders | torso) & (~neck_cut)
+        shade = np.clip(0.74 + 0.38 * (-nx * 0.55 + ny_b * 0.45), 0.48, 1.28)
+        rgb[plate] = (m_v * shade[..., None])[plate]
+        trim = plate & ((ny_b >= 0.52) | (ny_b <= -0.58) | (np.abs(np.abs(nx) - 0.52) <= 0.07))
+        core = plate & ((np.abs(nx) + np.abs(ny_b - 0.04)) <= 0.26)
+        rgb[trim] = t_v
+        rgb[core] = g_v * (0.82 + 0.18 * math.sin(ph * 2)) + white * 0.2
+        mask |= plate
+
+    elif cat == "leggings":
+        belt = (np.abs(nx) <= 0.58) & (ny_b >= 0.42) & (ny_b <= 0.68)
+        legs = (np.abs(np.abs(nx) - 0.32) <= 0.22) & (ny_b >= -0.74) & (ny_b <= 0.46)
+        knees = legs & (np.abs(ny_b + 0.08) <= 0.14)
+        cuffs = legs & (ny_b <= -0.56)
+        all_leg = belt | legs
+        shade = np.clip(0.76 + 0.34 * (-nx * 0.5 + ny_b * 0.4), 0.5, 1.25)
+        rgb[all_leg] = (m_v * shade[..., None])[all_leg]
+        rgb[belt & (np.abs(nx) <= 0.16)] = g_v
+        rgb[knees] = g_v
+        rgb[cuffs] = t_v
+        mask |= all_leg
+
+    elif cat == "boots":
+        shins = (np.abs(np.abs(nx) - 0.36) <= 0.20) & (ny_b >= -0.48) & (ny_b <= 0.36)
+        soles = (np.abs(np.abs(nx) - 0.42) <= 0.28) & (ny_b >= -0.68) & (ny_b <= -0.34)
+        wings_b = (np.abs(nx) >= 0.54) & (np.abs(nx) <= 0.80) & (ny_b >= -0.10) & (ny_b <= 0.34)
+        boot = shins | soles
+        shade = np.clip(0.76 + 0.34 * (-nx * 0.5 + ny_b * 0.4), 0.5, 1.25)
+        rgb[boot] = (m_v * shade[..., None])[boot]
+        rgb[soles & (ny_b <= -0.54)] = t_v
+        rgb[shins & (ny_b >= 0.22)] = g_v
+        rgb[wings_b] = g_v
+        mask |= boot | wings_b
+
+    elif cat == "bolt":
+        # Divine Lightning Bolt (Bozhya Kara)!
+        zig_x = np.where(ny_b >= 0.0, -0.22 + 0.55 * ny_b, 0.22 + 0.55 * ny_b)
+        bolt = (np.abs(ny_b) <= 0.86) & (np.abs(nx - zig_x) <= (0.22 - 0.10 * np.abs(ny_b)))
+        aura = (r_b >= 0.58) & (r_b <= 0.78) & (np.cos(ang * 6.0 + ph * 2.0) > 0.25)
+        rgb[aura] = g_v
+        rgb[bolt] = m_v
+        rgb[bolt & (np.abs(nx - zig_x) <= 0.08)] = white
+        mask |= bolt | aura
+
+    elif cat == "vortex":
+        # Gravity Black Hole Vortex (Grav Sfera)!
+        arms = np.zeros((S, S), dtype=bool)
+        spiral = np.sin(ang * 3.0 + r_b * 8.0 - ph * 2.0)
+        swirl = (r_b >= 0.24) & (r_b <= 0.88) & (spiral > 0.15)
+        core = r_b <= 0.34
+        rim = (r_b >= 0.30) & (r_b <= 0.40)
+        rgb[swirl] = g_v
+        rgb[core] = m_v * 0.45
+        rgb[rim] = t_v
+        mask |= swirl | core
+
+    elif cat == "tnt":
+        # Crisp 3D Isometric Dynamite Block + Label Band + Sparkling Fuse on Top!
+        top_rhomb = (np.abs(nx) / 0.78 + np.abs(ny_b - 0.34) / 0.36) <= 1.0
+        left_face = (nx >= -0.78) & (nx <= 0.0) & (ny_b <= 0.34 - (1.0 + nx / 0.78) * 0.36 + 0.03) & (ny_b >= -0.52 - (1.0 + nx / 0.78) * 0.32)
+        right_face = (nx > 0.0) & (nx <= 0.78) & (ny_b <= 0.34 - (1.0 - nx / 0.78) * 0.36 + 0.03) & (ny_b >= -0.52 - (1.0 - nx / 0.78) * 0.32)
+        sides = left_face | right_face
+        band_y = -0.10 - (1.0 - np.abs(nx) / 0.78) * 0.34
+        band = sides & (np.abs(ny_b - band_y) <= 0.16)
+        fuse = (np.abs(nx - 0.08 * np.sin(ny_b * 8.0)) <= 0.07) & (ny_b >= 0.34) & (ny_b <= 0.76)
+        spark = ((nx - 0.05)**2 + (ny_b - 0.80)**2) <= (0.038 + 0.018 * math.sin(ph * 3.0))
+        rgb[left_face] = m_v * 0.92
+        rgb[right_face] = m_v * 0.68
+        # Vertical dynamite stick seams
+        seams = sides & ((np.abs(np.abs(nx) - 0.28) <= 0.04) | (np.abs(np.abs(nx) - 0.56) <= 0.04))
+        rgb[seams] = m_v * 0.48
+        rgb[band] = t_v
+        rgb[band & (np.abs(nx) <= 0.34) & (np.abs(ny_b - band_y) <= 0.08)] = g_v
+        rgb[top_rhomb] = m_v * 1.15
+        rgb[top_rhomb & ((np.abs(nx) / 0.45 + np.abs(ny_b - 0.34) / 0.22) <= 1.0)] = g_v * 0.65 + t_v * 0.35
+        rgb[fuse] = [215, 205, 185]
+        rgb[spark] = white * 0.6 + g_v * 0.4
+        mask |= top_rhomb | sides | fuse | spark
+
+    elif cat in ("mace", "trident"):
+        u = (nx + ny) * 0.7071
+        v = (ny - nx) * 0.7071
+        shaft = (u >= -1.02) & (u <= 0.48) & (np.abs(v) <= 0.085)
+        pommel = ((u + 1.00)**2 + v*v) <= 0.03
+        rgb[shaft] = t_v * 0.8
+        rgb[pommel] = g_v
+        if cat == "mace":
+            head = (u >= 0.28) & (u <= 0.88) & (np.abs(v) <= 0.34)
+            spikes = ((np.abs(u - 0.58) <= 0.09) & (np.abs(v) <= 0.50)) | ((u >= 0.84) & (u <= 1.02) & (np.abs(v) <= 0.10))
+            core = ((u - 0.58)**2 + v*v) <= 0.045
+            rgb[head] = (m_v * np.clip(0.85 + 0.35 * v * 2.5, 0.6, 1.3)[..., None])[head]
+            rgb[spikes] = t_v
+            rgb[core] = g_v * (0.8 + 0.2 * math.sin(ph * 2)) + white * 0.2
+            mask |= shaft | pommel | head | spikes
+        else:
+            crossbar = (np.abs(u - 0.36) <= 0.08) & (np.abs(v) <= 0.36)
+            prongs = (u >= 0.36) & (u <= 0.98) & ((np.abs(v) <= 0.075) | (np.abs(np.abs(v) - 0.28) <= 0.07))
+            tips = prongs & (u >= 0.78)
+            rgb[crossbar] = t_v
+            rgb[prongs] = m_v * 1.1
+            rgb[tips] = g_v * 0.75 + white * 0.25
+            mask |= shaft | pommel | crossbar | prongs
 
     elif cat == "eye":
         # Hypnotic Arcane Eye (Dezorient)
@@ -929,7 +1171,7 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12):
         shifted[y_dst, x_dst] = mask[y_src, x_src]
         dil |= shifted
     outline = dil & (~mask)
-    dark_out = np.clip(m_v * 0.22 + 12.0, 8, 55)
+    dark_out = np.clip(m_v * 0.52 + g_v * 0.16 + 20.0, 28, 135)
     rgb[outline] = dark_out
 
     final_mask = mask | outline
@@ -940,13 +1182,23 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12):
 
 def make_clean_item_model_json(item_id, cat):
     tex_ref = f"kinggrief:item/{item_id}"
-    if cat in ("sword", "pickaxe"):
+    if cat == "bow":
+        return {
+            "parent": "minecraft:item/bow",
+            "textures": {"layer0": tex_ref},
+            "overrides": [
+                {"predicate": {"pulling": 1}, "model": f"kinggrief:item/{item_id}_pulling_0"},
+                {"predicate": {"pulling": 1, "pull": 0.65}, "model": f"kinggrief:item/{item_id}_pulling_1"},
+                {"predicate": {"pulling": 1, "pull": 0.9}, "model": f"kinggrief:item/{item_id}_pulling_2"}
+            ]
+        }
+    if cat in ("sword", "pickaxe", "mace", "trident"):
         return {
             "parent": "minecraft:item/handheld",
             "textures": {"layer0": tex_ref},
             "display": {
-                "firstperson_righthand": {"rotation": [0, -82, 25], "translation": [1.13, 3.4, 1.13], "scale": [0.72, 0.72, 0.72]},
-                "firstperson_lefthand":  {"rotation": [0,  82, -25], "translation": [1.13, 3.4, 1.13], "scale": [0.72, 0.72, 0.72]},
+                "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+                "firstperson_lefthand":  {"rotation": [0,  90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.62, 0.62, 0.62]},
                 "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
                 "thirdperson_lefthand":  {"rotation": [0,  90, -55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
             }
@@ -955,12 +1207,10 @@ def make_clean_item_model_json(item_id, cat):
         "parent": "minecraft:item/generated",
         "textures": {"layer0": tex_ref},
         "display": {
-            # Turned 28° toward the player's eyes (-62° instead of -90°) so Spheres, Talismans, Elytras,
-            # Trapka & Plast show their FULL 3D extruded face clearly in both hands!
-            "firstperson_righthand": {"rotation": [0, -58, 16], "translation": [1.35, 3.5, 1.15], "scale": [0.60, 0.60, 0.60]},
-            "firstperson_lefthand":  {"rotation": [0,  58, -16], "translation": [1.35, 3.5, 1.15], "scale": [0.60, 0.60, 0.60]},
-            "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.58, 0.58, 0.58]},
-            "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.58, 0.58, 0.58]},
+            "firstperson_righthand": {"rotation": [0, -24, 8], "translation": [1.25, 2.8, 1.15], "scale": [0.50, 0.50, 0.50]},
+            "firstperson_lefthand":  {"rotation": [0, -24, 8], "translation": [1.25, 2.6, 1.15], "scale": [0.45, 0.45, 0.45]},
+            "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.55, 0.55, 0.55]},
+            "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.55, 0.55, 0.55]},
             "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1.0, 1.0, 1.0]},
             "ground": {"rotation": [0, 0, 0], "translation": [0, 2.5, 0], "scale": [0.55, 0.55, 0.55]},
             "fixed": {"rotation": [0, 180, 0], "scale": [1.0, 1.0, 1.0]}
@@ -970,17 +1220,20 @@ def make_clean_item_model_json(item_id, cat):
 tex_item_dir = os.path.join(OUT_RP_DIR, "assets/kinggrief/textures/item")
 mod_item_dir = os.path.join(OUT_RP_DIR, "assets/kinggrief/models/item")
 def_item_dir = os.path.join(OUT_RP_DIR, "assets/kinggrief/items")
+mc_mod_item_dir = os.path.join(OUT_RP_DIR, "assets/minecraft/models/item")
 os.makedirs(tex_item_dir, exist_ok=True)
 os.makedirs(mod_item_dir, exist_ok=True)
 os.makedirs(def_item_dir, exist_ok=True)
+os.makedirs(mc_mod_item_dir, exist_ok=True)
 
 N_FRAMES = 12
-items_preview = Image.new("RGBA", (8 * 76 + 16, 5 * 76 + 16), (20, 24, 36, 255))
+n_rows = (len(ITEMS_SPECS) + 7) // 8
+items_preview = Image.new("RGBA", (8 * 76 + 16, n_rows * 76 + 16), (20, 24, 36, 255))
 
 for idx, (primary_id, aliases, cat, sub, mcol, gcol, tcol) in enumerate(ITEMS_SPECS):
     strip = Image.new("RGBA", (32, 32 * N_FRAMES), (0, 0, 0, 0))
     for f in range(N_FRAMES):
-        fim = render_item_frame_32(cat, sub, mcol, gcol, tcol, f, N_FRAMES)
+        fim = render_item_frame_32(cat, sub, mcol, gcol, tcol, f, N_FRAMES, -1)
         strip.paste(fim, (0, f * 32))
         if f == 0:
             col = idx % 8
@@ -988,20 +1241,110 @@ for idx, (primary_id, aliases, cat, sub, mcol, gcol, tcol) in enumerate(ITEMS_SP
             up = fim.resize((64, 64), Image.NEAREST)
             items_preview.paste(up, (14 + col * 76, 14 + row * 76), up)
 
+    pull_strips = {}
+    if cat == "bow":
+        for ps in (0, 1, 2):
+            pstrip = Image.new("RGBA", (32, 32 * N_FRAMES), (0, 0, 0, 0))
+            for f in range(N_FRAMES):
+                pfim = render_item_frame_32(cat, sub, mcol, gcol, tcol, f, N_FRAMES, ps)
+                pstrip.paste(pfim, (0, f * 32))
+            pull_strips[ps] = pstrip
+
     all_ids = [primary_id] + aliases
     for iid in all_ids:
         png_p = os.path.join(tex_item_dir, f"{iid}.png")
         strip.save(png_p)
-        # interpolate: false -> ZERO blurry ghosting! Crisp frame-by-frame animation!
         with open(png_p + ".mcmeta", "w", encoding="utf-8") as fp:
             json.dump({"animation": {"frametime": 3, "interpolate": False}}, fp, indent=2)
         with open(os.path.join(mod_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
             json.dump(make_clean_item_model_json(iid, cat), fp, indent=2)
-        with open(os.path.join(def_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
-            json.dump({"model": {"type": "minecraft:model", "model": f"kinggrief:item/{iid}"}}, fp, indent=2)
 
-items_preview.save("/tmp/preview_all_38_items.png")
-print("2. Rendered ALL", len(ITEMS_SPECS), "crisp 3D items + aliases!")
+        if cat == "bow":
+            for ps in (0, 1, 2):
+                ppng = os.path.join(tex_item_dir, f"{iid}_pulling_{ps}.png")
+                pull_strips[ps].save(ppng)
+                with open(ppng + ".mcmeta", "w", encoding="utf-8") as fp:
+                    json.dump({"animation": {"frametime": 3, "interpolate": False}}, fp, indent=2)
+                with open(os.path.join(mod_item_dir, f"{iid}_pulling_{ps}.json"), "w", encoding="utf-8") as fp:
+                    json.dump({
+                        "parent": f"kinggrief:item/{iid}",
+                        "textures": {"layer0": f"kinggrief:item/{iid}_pulling_{ps}"}
+                    }, fp, indent=2)
+            # 1.21.4 - 1.21.11 Official Bow Pulling Item Definition!
+            with open(os.path.join(def_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
+                json.dump({
+                    "model": {
+                        "type": "minecraft:condition",
+                        "property": "minecraft:using_item",
+                        "on_false": {
+                            "type": "minecraft:model",
+                            "model": f"kinggrief:item/{iid}"
+                        },
+                        "on_true": {
+                            "type": "minecraft:range_dispatch",
+                            "property": "minecraft:use_duration",
+                            "scale": 0.05,
+                            "entries": [
+                                {"threshold": 0.65, "model": {"type": "minecraft:model", "model": f"kinggrief:item/{iid}_pulling_1"}},
+                                {"threshold": 0.9,  "model": {"type": "minecraft:model", "model": f"kinggrief:item/{iid}_pulling_2"}}
+                            ],
+                            "fallback": {
+                                "type": "minecraft:model",
+                                "model": f"kinggrief:item/{iid}_pulling_0"
+                            }
+                        }
+                    }
+                }, fp, indent=2)
+        else:
+            with open(os.path.join(def_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
+                json.dump({"model": {"type": "minecraft:model", "model": f"kinggrief:item/{iid}"}}, fp, indent=2)
+
+# Legacy 1.16.5-1.21.3 CustomModelData Bow Overrides so pulling works across ALL client versions!
+bow_cmd_map = [
+    (1305, "bow_ice_rw"),
+    (1308, "bow_inferno"),
+    (1309, "bow_zeus"),
+    (1310, "bow_vampire"),
+]
+bow_overrides = [
+    {"predicate": {"pulling": 1}, "model": "minecraft:item/bow_pulling_0"},
+    {"predicate": {"pulling": 1, "pull": 0.65}, "model": "minecraft:item/bow_pulling_1"},
+    {"predicate": {"pulling": 1, "pull": 0.9}, "model": "minecraft:item/bow_pulling_2"},
+]
+for cmd_num, bid in bow_cmd_map:
+    bow_overrides.append({"predicate": {"custom_model_data": cmd_num}, "model": f"kinggrief:item/{bid}"})
+    bow_overrides.append({"predicate": {"custom_model_data": cmd_num, "pulling": 1}, "model": f"kinggrief:item/{bid}_pulling_0"})
+    bow_overrides.append({"predicate": {"custom_model_data": cmd_num, "pulling": 1, "pull": 0.65}, "model": f"kinggrief:item/{bid}_pulling_1"})
+    bow_overrides.append({"predicate": {"custom_model_data": cmd_num, "pulling": 1, "pull": 0.9}, "model": f"kinggrief:item/{bid}_pulling_2"})
+
+with open(os.path.join(mc_mod_item_dir, "bow.json"), "w", encoding="utf-8") as fp:
+    json.dump({
+        "parent": "minecraft:item/generated",
+        "textures": {"layer0": "minecraft:item/bow"},
+        "display": {
+            "thirdperson_righthand": {"rotation": [-80, 260, -40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
+            "thirdperson_lefthand":  {"rotation": [-80, -280, 40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
+            "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
+            "firstperson_lefthand":  {"rotation": [0,  90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]}
+        },
+        "overrides": bow_overrides
+    }, fp, indent=2)
+
+# Clean PvP left-hand & right-hand display for vanilla Totem of Undying too!
+with open(os.path.join(mc_mod_item_dir, "totem_of_undying.json"), "w", encoding="utf-8") as fp:
+    json.dump({
+        "parent": "minecraft:item/generated",
+        "textures": {"layer0": "minecraft:item/totem_of_undying"},
+        "display": {
+            "firstperson_righthand": {"rotation": [0, -24, 8], "translation": [1.25, 2.6, 1.15], "scale": [0.46, 0.46, 0.46]},
+            "firstperson_lefthand":  {"rotation": [0, -24, 8], "translation": [1.25, 2.4, 1.15], "scale": [0.44, 0.44, 0.44]},
+            "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.52, 0.52, 0.52]},
+            "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.52, 0.52, 0.52]}
+        }
+    }, fp, indent=2)
+
+items_preview.save("/tmp/preview_all_items_v57.png")
+print("2. Rendered ALL", len(ITEMS_SPECS), "crisp 3D items + 4-stage Bow Pulling Animations + Custom Arrows + 6 Armor Sets!")
 
 # ==============================================================================
 # 3. SUBTLE CLEAN PVP ENCHANTMENT GLINT (NO MORE PURPLE FOG HIDING ITEM DETAILS!)
@@ -1067,7 +1410,7 @@ with open(os.path.join(OUT_RP_DIR, "pack.mcmeta"), "w", encoding="utf-8") as fp:
             "supported_formats": [7, 99],
             "min_format": 7,
             "max_format": 99,
-            "description": "§b§l❄ §c§lKINGGRIEF v5.6 §8· §fЧёткие 3D Предметы, 40 Люкс-Рангов & Новогодний Сезон"
+            "description": "§b§l❄ §c§lKINGGRIEF v5.7 §8· §f92 3D Предмета, Броня, ТНТ, Луки & 41 Люкс-Ранг"
         }
     }, fp, ensure_ascii=False, indent=2)
 

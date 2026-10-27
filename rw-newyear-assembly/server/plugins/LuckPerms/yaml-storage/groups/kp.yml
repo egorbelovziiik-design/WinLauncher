@@ -1,14 +1,6 @@
 name: kp
 permissions:
-- weight.285
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- glmoder
+- weight.200
 prefixes:
-- '&f &f':
-    priority: 285
+- '&f &c':
+    priority: 200

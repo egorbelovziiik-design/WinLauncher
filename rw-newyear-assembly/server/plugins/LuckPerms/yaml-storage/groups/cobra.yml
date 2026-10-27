@@ -1,8 +1,6 @@
 name: cobra
 permissions:
-- weight.20
-parents:
-- pegas
+- weight.24
 prefixes:
-- '&f &f':
-    priority: 20
+- '&f &2':
+    priority: 24

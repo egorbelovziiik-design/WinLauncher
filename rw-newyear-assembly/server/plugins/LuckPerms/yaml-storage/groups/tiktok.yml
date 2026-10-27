@@ -1,14 +1,6 @@
 name: tiktok
 permissions:
-- weight.158
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- sponsor
+- weight.100
 prefixes:
-- '&f &f':
-    priority: 158
+- '&f &b':
+    priority: 100

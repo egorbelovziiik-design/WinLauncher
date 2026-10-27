@@ -1,13 +1,6 @@
 name: owner
 permissions:
 - weight.300
-- '*'
-- luckperms.*
-- kinggrief.admin
-- kinggrief.lp
-- kinggrief.spawn.edit
-parents:
-- techadmin
 prefixes:
-- '&f &f':
+- '&f &4':
     priority: 300

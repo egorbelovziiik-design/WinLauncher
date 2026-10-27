@@ -318,7 +318,7 @@ export function PromosManager({ promos }: { promos: Promo[] }) {
                   <Field label="Кол-во кейсов">
                     <input type="number" min={1} max={64} value={draft.serverCaseQty} onChange={(e) => setDraft({ ...draft, serverCaseQty: Number(e.target.value) })} className="field" />
                   </Field>
-                  <Field label="Привилегия (опционально, например pegas / hero / bunny)" className="sm:col-span-2">
+                  <Field label="Привилегия (опционально, например dragon / pegas / imperator)" className="sm:col-span-2">
                     <input value={draft.serverRankId} onChange={(e) => setDraft({ ...draft, serverRankId: e.target.value.toLowerCase() })} className="field font-mono text-xs" placeholder="Пусто — без выдачи привилегии" />
                   </Field>
                 </div>

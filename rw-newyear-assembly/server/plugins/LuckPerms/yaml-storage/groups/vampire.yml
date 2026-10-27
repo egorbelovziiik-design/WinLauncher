@@ -1,12 +1,6 @@
 name: vampire
 permissions:
-- weight.65
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- rabbit
+- weight.52
 prefixes:
-- '&f &f':
-    priority: 65
+- '&f &4':
+    priority: 52

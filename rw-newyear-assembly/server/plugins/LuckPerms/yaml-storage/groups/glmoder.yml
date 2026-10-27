@@ -1,14 +1,6 @@
 name: glmoder
 permissions:
-- weight.275
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- stmoder
+- weight.250
 prefixes:
-- '&f &f':
-    priority: 275
+- '&f &9':
+    priority: 250

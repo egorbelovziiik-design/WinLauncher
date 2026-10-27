@@ -1,6 +1,6 @@
 name: default
 permissions:
-- weight.1
+- weight.5
 prefixes:
-- '&f &f':
-    priority: 1
+- '&f &7':
+    priority: 5

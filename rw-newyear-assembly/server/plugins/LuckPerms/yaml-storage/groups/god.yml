@@ -1,14 +1,6 @@
 name: god
 permissions:
-- weight.90
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- dracula
+- weight.65
 prefixes:
-- '&f &f':
-    priority: 90
+- '&f &e':
+    priority: 65

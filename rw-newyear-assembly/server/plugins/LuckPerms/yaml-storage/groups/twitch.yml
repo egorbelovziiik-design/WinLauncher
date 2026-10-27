@@ -1,14 +1,6 @@
 name: twitch
 permissions:
-- weight.160
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- tiktok
+- weight.102
 prefixes:
-- '&f &f':
-    priority: 160
+- '&f &5':
+    priority: 102

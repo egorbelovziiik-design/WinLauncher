@@ -1,14 +1,6 @@
 name: curator
 permissions:
-- weight.290
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- kp
+- weight.275
 prefixes:
-- '&f &f':
-    priority: 290
+- '&f &a':
+    priority: 275

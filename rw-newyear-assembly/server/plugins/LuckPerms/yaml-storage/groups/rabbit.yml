@@ -1,10 +1,6 @@
 name: rabbit
 permissions:
-- weight.55
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- titan
+- weight.45
 prefixes:
 - '&f &f':
-    priority: 55
+    priority: 45

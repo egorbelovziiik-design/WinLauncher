@@ -165,7 +165,7 @@ public final class ColorUtil {
         }
     }
 
-    public static void addPot(Player p, String modernKey, String legacyName, int durationTicks, int amplifier) {
+    public static void addPot(org.bukkit.entity.LivingEntity p, String modernKey, String legacyName, int durationTicks, int amplifier) {
         if (p == null) return;
         PotionEffectType t = potType(modernKey, legacyName);
         if (t != null) {
@@ -186,6 +186,66 @@ public final class ColorUtil {
                 setModel.invoke(meta, new NamespacedKey("kinggrief", modelId));
             } catch (Throwable ignored) {
             }
+        }
+    }
+
+    public static void applyArmorTrimSafe(ItemMeta meta, String trimMaterialKey, String trimPatternKey) {
+        if (meta == null) return;
+        try {
+            Class<?> armorMetaCls = Class.forName("org.bukkit.inventory.meta.ArmorMeta");
+            if (!armorMetaCls.isInstance(meta)) return;
+            Class<?> registryCls = Class.forName("org.bukkit.Registry");
+            Object matReg = registryCls.getField("TRIM_MATERIAL").get(null);
+            Object patReg = registryCls.getField("TRIM_PATTERN").get(null);
+            Method getM = registryCls.getMethod("get", NamespacedKey.class);
+            Object tMat = getM.invoke(matReg, NamespacedKey.minecraft(trimMaterialKey.toLowerCase(Locale.ROOT)));
+            Object tPat = getM.invoke(patReg, NamespacedKey.minecraft(trimPatternKey.toLowerCase(Locale.ROOT)));
+            if (tMat != null && tPat != null) {
+                Class<?> trimMatCls = Class.forName("org.bukkit.inventory.meta.trim.TrimMaterial");
+                Class<?> trimPatCls = Class.forName("org.bukkit.inventory.meta.trim.TrimPattern");
+                Class<?> armorTrimCls = Class.forName("org.bukkit.inventory.meta.trim.ArmorTrim");
+                Object trim = armorTrimCls.getConstructor(trimMatCls, trimPatCls).newInstance(tMat, tPat);
+                armorMetaCls.getMethod("setTrim", armorTrimCls).invoke(meta, trim);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    public static void setMaxHealthSafe(Player p, double targetHp) {
+        if (p == null) return;
+        double clamped = Math.max(20.0, Math.min(80.0, targetHp));
+        try {
+            org.bukkit.attribute.Attribute attr = null;
+            try {
+                Class<?> regCls = Class.forName("org.bukkit.Registry");
+                Object attrReg = regCls.getField("ATTRIBUTE").get(null);
+                Object found = regCls.getMethod("get", NamespacedKey.class).invoke(attrReg, NamespacedKey.minecraft("max_health"));
+                if (found == null) {
+                    found = regCls.getMethod("get", NamespacedKey.class).invoke(attrReg, NamespacedKey.minecraft("generic.max_health"));
+                }
+                if (found instanceof org.bukkit.attribute.Attribute) {
+                    attr = (org.bukkit.attribute.Attribute) found;
+                }
+            } catch (Throwable ignored) {}
+            if (attr == null) {
+                for (String fn : new String[]{"MAX_HEALTH", "GENERIC_MAX_HEALTH"}) {
+                    try {
+                        Object v = org.bukkit.attribute.Attribute.class.getField(fn).get(null);
+                        if (v instanceof org.bukkit.attribute.Attribute) {
+                            attr = (org.bukkit.attribute.Attribute) v;
+                            break;
+                        }
+                    } catch (Throwable ignored) {}
+                }
+            }
+            if (attr != null) {
+                org.bukkit.attribute.AttributeInstance inst = p.getAttribute(attr);
+                if (inst != null && Math.abs(inst.getBaseValue() - clamped) > 0.05) {
+                    inst.setBaseValue(clamped);
+                    if (p.getHealth() > clamped) p.setHealth(clamped);
+                }
+            }
+        } catch (Throwable ignored) {
         }
     }
 

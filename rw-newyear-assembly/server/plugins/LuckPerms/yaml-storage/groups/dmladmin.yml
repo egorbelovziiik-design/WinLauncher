@@ -1,14 +1,6 @@
 name: dmladmin
 permissions:
-- weight.190
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- dglmoder
+- weight.152
 prefixes:
-- '&f &f':
-    priority: 190
+- '&f &6':
+    priority: 152

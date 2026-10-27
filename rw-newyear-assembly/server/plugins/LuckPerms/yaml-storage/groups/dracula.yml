@@ -1,12 +1,6 @@
 name: dracula
 permissions:
-- weight.80
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- tiger
+- weight.30
 prefixes:
-- '&f &f':
-    priority: 80
+- '&f &c':
+    priority: 30

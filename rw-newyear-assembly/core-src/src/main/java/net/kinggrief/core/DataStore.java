@@ -30,12 +30,42 @@ public final class DataStore {
     public static final class Clan {
         public String id;
         public String tag;
+        public String displayName = "";
+        public String color = "&#B388FF";
         public String leader;
+        public int level = 1;
         public final Set<String> members = new HashSet<String>();
+        public final Map<String, Integer> roles = new HashMap<String, Integer>(); // 0=Новичок, 1=Проверенный, 2=Модератор, 3=Зам.Лидера, 4=Лидер
+        public final Set<String> allies = new HashSet<String>();
         public double bank = 0.0;
         public int kills = 0;
         public boolean friendlyFire = false;
         public Location home = null;
+        public org.bukkit.inventory.Inventory liveStorage = null;
+
+        public int getRole(String playerName) {
+            if (playerName == null) return 0;
+            if (leader != null && leader.equalsIgnoreCase(playerName)) return 4;
+            Integer r = roles.get(playerName.toLowerCase(Locale.ROOT));
+            return r != null ? r.intValue() : 0;
+        }
+
+        public String getRoleName(String playerName) {
+            int r = getRole(playerName);
+            if (r >= 4) return "&#FFD740👑 Лидер";
+            if (r == 3) return "&#FF5252⚔ Зам.Лидера";
+            if (r == 2) return "&#40C4FF🛡 Модератор";
+            if (r == 1) return "&#69F0AE✦ Проверенный";
+            return "&7Участник";
+        }
+
+        public int getMaxMembers() {
+            return Math.min(35, 10 + (level - 1) * 3);
+        }
+
+        public int getStorageSize() {
+            return level >= 5 ? 54 : (level >= 3 ? 36 : 27);
+        }
     }
 
     public static final class Claim {
@@ -130,15 +160,41 @@ public final class DataStore {
                 Clan c = new Clan();
                 c.id = cid.toLowerCase(Locale.ROOT);
                 c.tag = cs.getString(cid + ".tag", cid.toUpperCase(Locale.ROOT));
+                c.displayName = cs.getString(cid + ".name", c.tag);
+                c.color = cs.getString(cid + ".color", "&#B388FF");
                 c.leader = cs.getString(cid + ".leader", "");
+                c.level = Math.max(1, cs.getInt(cid + ".level", 1));
                 c.bank = cs.getDouble(cid + ".bank", 0.0);
                 c.kills = cs.getInt(cid + ".kills", 0);
                 c.friendlyFire = cs.getBoolean(cid + ".ff", false);
                 c.home = readLoc(cs.getString(cid + ".home", null));
+                for (String al : cs.getStringList(cid + ".allies")) {
+                    c.allies.add(al.toLowerCase(Locale.ROOT));
+                }
+                ConfigurationSection roleSec = cs.getConfigurationSection(cid + ".roles");
+                if (roleSec != null) {
+                    for (String rk : roleSec.getKeys(false)) {
+                        c.roles.put(rk.toLowerCase(Locale.ROOT), Integer.valueOf(roleSec.getInt(rk, 0)));
+                    }
+                }
                 for (String m : cs.getStringList(cid + ".members")) {
                     String low = m.toLowerCase(Locale.ROOT);
                     c.members.add(low);
                     playerClan.put(low, c.id);
+                }
+                int stSize = c.getStorageSize();
+                c.liveStorage = Bukkit.createInventory(null, stSize, ColorUtil.c("&0📦 Хранилище Клана [" + c.tag + "]"));
+                ConfigurationSection stSec = cs.getConfigurationSection(cid + ".storage");
+                if (stSec != null) {
+                    for (String sk : stSec.getKeys(false)) {
+                        try {
+                            int slot = Integer.parseInt(sk);
+                            if (slot >= 0 && slot < stSize) {
+                                ItemStack it = stSec.getItemStack(sk);
+                                if (it != null) c.liveStorage.setItem(slot, it);
+                            }
+                        } catch (Throwable ignored) {}
+                    }
                 }
                 clans.put(c.id, c);
             }
@@ -182,12 +238,27 @@ public final class DataStore {
         for (Clan c : clans.values()) {
             String p = "clans." + c.id;
             yml.set(p + ".tag", c.tag);
+            yml.set(p + ".name", c.displayName);
+            yml.set(p + ".color", c.color);
             yml.set(p + ".leader", c.leader);
+            yml.set(p + ".level", c.level);
             yml.set(p + ".bank", c.bank);
             yml.set(p + ".kills", c.kills);
             yml.set(p + ".ff", c.friendlyFire);
             yml.set(p + ".home", writeLoc(c.home));
+            yml.set(p + ".allies", new ArrayList<String>(c.allies));
             yml.set(p + ".members", new ArrayList<String>(c.members));
+            for (Map.Entry<String, Integer> re : c.roles.entrySet()) {
+                yml.set(p + ".roles." + re.getKey(), re.getValue());
+            }
+            if (c.liveStorage != null) {
+                for (int s = 0; s < c.liveStorage.getSize(); s++) {
+                    ItemStack stIt = c.liveStorage.getItem(s);
+                    if (stIt != null && stIt.getType() != org.bukkit.Material.AIR) {
+                        yml.set(p + ".storage." + s, stIt);
+                    }
+                }
+            }
         }
         yml.set("claims", null);
         for (Claim cl : claims) {
@@ -745,17 +816,36 @@ public final class DataStore {
         Clan c = new Clan();
         c.id = cid;
         c.tag = rawTag;
+        c.displayName = rawTag;
         c.leader = leaderName;
         c.members.add(key(leaderName));
+        c.roles.put(key(leaderName), Integer.valueOf(4));
+        c.liveStorage = Bukkit.createInventory(null, 27, ColorUtil.c("&0📦 Хранилище Клана [" + c.tag + "]"));
         clans.put(cid, c);
         playerClan.put(key(leaderName), cid);
         save();
         return c;
     }
 
+    public org.bukkit.inventory.Inventory getOrCreateClanStorage(Clan c) {
+        if (c == null) return null;
+        int want = c.getStorageSize();
+        if (c.liveStorage == null) {
+            c.liveStorage = Bukkit.createInventory(null, want, ColorUtil.c("&0📦 Хранилище Клана [" + c.tag + "]"));
+        } else if (c.liveStorage.getSize() < want) {
+            org.bukkit.inventory.Inventory next = Bukkit.createInventory(null, want, ColorUtil.c("&0📦 Хранилище Клана [" + c.tag + "]"));
+            for (int i = 0; i < c.liveStorage.getSize(); i++) {
+                next.setItem(i, c.liveStorage.getItem(i));
+            }
+            c.liveStorage = next;
+        }
+        return c.liveStorage;
+    }
+
     public void disbandClan(Clan c) {
         if (c == null) return;
         for (String m : c.members) playerClan.remove(m);
+        for (Clan other : clans.values()) other.allies.remove(c.id);
         clans.remove(c.id);
         save();
     }
@@ -763,19 +853,45 @@ public final class DataStore {
     public void inviteToClan(String cid, String targetName) {
         Set<String> set = clanInvites.get(key(targetName));
         if (set == null) {
-            set = new HashSet<String>();
+            set = new LinkedHashSetCompat();
             clanInvites.put(key(targetName), set);
         }
+        set.remove(cid.toLowerCase(Locale.ROOT));
         set.add(cid.toLowerCase(Locale.ROOT));
     }
+
+    private static final class LinkedHashSetCompat extends java.util.LinkedHashSet<String> {}
 
     public boolean hasClanInvite(String targetName, String cid) {
         Set<String> set = clanInvites.get(key(targetName));
         return set != null && set.contains(cid.toLowerCase(Locale.ROOT));
     }
 
+    public String getLatestClanInvite(String targetName) {
+        Set<String> set = clanInvites.get(key(targetName));
+        if (set == null || set.isEmpty()) return null;
+        String last = null;
+        for (String s : set) last = s;
+        return last;
+    }
+
+    public boolean denyClanInvite(String targetName, String cid) {
+        Set<String> set = clanInvites.get(key(targetName));
+        if (set == null || set.isEmpty()) return false;
+        if (cid == null || cid.isEmpty()) {
+            String last = getLatestClanInvite(targetName);
+            if (last != null) {
+                set.remove(last);
+                return true;
+            }
+            return false;
+        }
+        return set.remove(cid.toLowerCase(Locale.ROOT));
+    }
+
     public void joinClan(String playerName, Clan c) {
         c.members.add(key(playerName));
+        c.roles.put(key(playerName), Integer.valueOf(0));
         playerClan.put(key(playerName), c.id);
         Set<String> set = clanInvites.get(key(playerName));
         if (set != null) set.remove(c.id);
@@ -784,7 +900,17 @@ public final class DataStore {
 
     public void leaveClan(String playerName, Clan c) {
         c.members.remove(key(playerName));
+        c.roles.remove(key(playerName));
         playerClan.remove(key(playerName));
+        save();
+    }
+
+    public boolean hasClaimedFreeDragon(String name) {
+        return yml.getBoolean("players." + key(name) + ".freeDragon", false);
+    }
+
+    public void markClaimedFreeDragon(String name) {
+        yml.set("players." + key(name) + ".freeDragon", Boolean.TRUE);
         save();
     }
 
@@ -1162,5 +1288,92 @@ public final class DataStore {
         int cur = yml.getInt("serverPromos." + c + ".usedCount", 0);
         yml.set("serverPromos." + c + ".usedCount", cur + 1);
         save();
+    }
+
+    // ================= v5.7 FPS BOOSTER, QUICK FREEZE, SANTA GIFT HUNT & TOP LEADERBOARDS =================
+    private final Set<UUID> quickFrozenPlayers = new HashSet<UUID>();
+
+    public boolean isFpsBoost(Player p) {
+        if (p == null) return false;
+        return yml.getBoolean("players." + key(p.getName()) + ".fpsBoost", false);
+    }
+
+    public boolean toggleFpsBoost(Player p) {
+        boolean next = !isFpsBoost(p);
+        yml.set("players." + key(p.getName()) + ".fpsBoost", Boolean.valueOf(next));
+        save();
+        return next;
+    }
+
+    public boolean isQuickFrozen(Player p) {
+        return p != null && quickFrozenPlayers.contains(p.getUniqueId());
+    }
+
+    public boolean toggleQuickFreeze(UUID id) {
+        if (quickFrozenPlayers.contains(id)) {
+            quickFrozenPlayers.remove(id);
+            return false;
+        }
+        quickFrozenPlayers.add(id);
+        return true;
+    }
+
+    public void clearQuickFreeze(UUID id) {
+        quickFrozenPlayers.remove(id);
+    }
+
+    public boolean hasFoundSpawnGift(String name, int giftIndex) {
+        return yml.getBoolean("players." + key(name) + ".spawnGifts.g" + giftIndex, false);
+    }
+
+    public void markFoundSpawnGift(String name, int giftIndex) {
+        yml.set("players." + key(name) + ".spawnGifts.g" + giftIndex, Boolean.TRUE);
+        save();
+    }
+
+    public int getFoundSpawnGiftCount(String name) {
+        int c = 0;
+        for (int i = 0; i < 10; i++) {
+            if (hasFoundSpawnGift(name, i)) c++;
+        }
+        return c;
+    }
+
+    public List<Map.Entry<String, Double>> getTopCoins(int limit) {
+        List<Map.Entry<String, Double>> list = new ArrayList<Map.Entry<String, Double>>();
+        ConfigurationSection sec = yml.getConfigurationSection("players");
+        if (sec != null) {
+            for (String k : sec.getKeys(false)) {
+                double val = sec.getDouble(k + ".coins", 0.0);
+                String disp = sec.getString(k + ".name", k);
+                list.add(new java.util.AbstractMap.SimpleEntry<String, Double>(disp, Double.valueOf(val)));
+            }
+        }
+        Collections.sort(list, new Comparator<Map.Entry<String, Double>>() {
+            @Override
+            public int compare(Map.Entry<String, Double> a, Map.Entry<String, Double> b) {
+                return Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue());
+            }
+        });
+        return list.size() > limit ? list.subList(0, limit) : list;
+    }
+
+    public List<Map.Entry<String, Integer>> getTopKills(int limit) {
+        List<Map.Entry<String, Integer>> list = new ArrayList<Map.Entry<String, Integer>>();
+        ConfigurationSection sec = yml.getConfigurationSection("players");
+        if (sec != null) {
+            for (String k : sec.getKeys(false)) {
+                int val = sec.getInt(k + ".kills", 0);
+                String disp = sec.getString(k + ".name", k);
+                list.add(new java.util.AbstractMap.SimpleEntry<String, Integer>(disp, Integer.valueOf(val)));
+            }
+        }
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+            @Override
+            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) {
+                return Integer.compare(b.getValue().intValue(), a.getValue().intValue());
+            }
+        });
+        return list.size() > limit ? list.subList(0, limit) : list;
     }
 }

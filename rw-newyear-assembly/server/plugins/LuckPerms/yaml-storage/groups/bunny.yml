@@ -1,9 +1,6 @@
 name: bunny
 permissions:
-- weight.35
-- kinggrief.workbench
-parents:
-- hero
+- weight.36
 prefixes:
-- '&f &f':
-    priority: 35
+- '&f &d':
+    priority: 36

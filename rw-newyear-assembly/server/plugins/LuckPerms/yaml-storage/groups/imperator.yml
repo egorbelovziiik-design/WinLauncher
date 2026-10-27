@@ -1,14 +1,6 @@
 name: imperator
 permissions:
-- weight.110
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- overlord
+- weight.75
 prefixes:
-- '&f &f':
-    priority: 110
+- '&f &c':
+    priority: 75

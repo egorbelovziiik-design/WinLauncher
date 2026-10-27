@@ -18,6 +18,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -27,6 +28,7 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -36,6 +38,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityResurrectEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -56,6 +59,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -77,14 +81,16 @@ public final class GameplayListener implements Listener {
 
     private static final NamespacedKey SPAWNER_TYPE_KEY = new NamespacedKey("kinggrief", "spawner_mob");
     private static final NamespacedKey PROJ_TAG_KEY = new NamespacedKey("kinggrief", "proj_type");
+    private static final NamespacedKey PROJ_ARROW_KEY = new NamespacedKey("kinggrief", "arrow_type");
     private final KingGriefCore plugin;
     private final Random rng = new Random();
-    private final Map<UUID, Long> combatUntil = new HashMap<UUID, Long>();
     private final Set<UUID> drillGuard = new HashSet<UUID>();
     private final Map<UUID, Long> parkourPlateCd = new HashMap<UUID, Long>();
     private final Map<UUID, Long> npcClickCd = new HashMap<UUID, Long>();
     private final Map<String, Long> itemCooldowns = new HashMap<String, Long>();
     private final Set<String> activeTempBlocks = new HashSet<String>();
+    private final Map<Block, org.bukkit.block.data.BlockData> allSavedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
+    private final Map<UUID, Integer> killStreaks = new HashMap<UUID, Integer>();
     private String activeChatAnswer = null;
 
     private static String blockKey(Block b) {
@@ -93,99 +99,29 @@ public final class GameplayListener implements Listener {
 
     public GameplayListener(KingGriefCore plugin) {
         this.plugin = plugin;
-        startPassiveArtifactLoop();
         startChatQuizLoop();
     }
 
-    // ================= ПАССИВНЫЕ БАФФЫ ШАРОВ И ТАЛИСМАНОВ РВ В ЛЕВОЙ РУКЕ =================
-    private void startPassiveArtifactLoop() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                long now = System.currentTimeMillis();
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    // Combat actionbar timer
-                    Long cu = combatUntil.get(p.getUniqueId());
-                    if (cu != null) {
-                        if (now < cu.longValue()) {
-                            long sec = (cu.longValue() - now) / 1000L + 1L;
-                            ColorUtil.actionBar(p, "&#FF1744⚔ РЕЖИМ ПВП: &f" + sec + " сек &7(Не выходите с сервера!)");
-                        } else {
-                            combatUntil.remove(p.getUniqueId());
-                            ColorUtil.actionBar(p, "&#00E676✔ Вы вышли из режима боя!");
-                        }
-                    }
+    public void cleanupAllTempBlocks() {
+        for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : allSavedTempBlocks.entrySet()) {
+            try {
+                en.getKey().setBlockData(en.getValue(), false);
+            } catch (Throwable ignored) {}
+        }
+        allSavedTempBlocks.clear();
+        activeTempBlocks.clear();
+    }
 
-                    ItemStack off = p.getInventory().getItemInOffHand();
-                    String cid = ItemFactory.getCustomId(off);
-                    if (cid == null) continue;
-                    int dur = 90; // 4.5s refreshed every 2s
-                    if ("shar_titana".equals(cid)) {
-                        ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", dur, 1);
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                        ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", dur, 0);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                    } else if ("shar_andromedy".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 2);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                    } else if ("shar_chimery".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 1);
-                        ColorUtil.addPot(p, "haste", "FAST_DIGGING", dur, 1);
-                        ColorUtil.addPot(p, "jump_boost", "JUMP", dur, 1);
-                    } else if ("shar_apollona".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 1);
-                        ColorUtil.addPot(p, "regeneration", "REGENERATION", dur, 1);
-                    } else if ("shar_aida".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
-                        ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", dur, 1);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                    } else if ("shar_osirisa".equals(cid)) {
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 2);
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                        ColorUtil.addPot(p, "water_breathing", "WATER_BREATHING", dur, 0);
-                        ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
-                    } else if ("shar_aresa".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 1);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                    } else if ("shar_santy".equals(cid)) {
-                        ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", dur, 2);
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 1);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                        p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1.0, 0), 5, 0.4, 0.5, 0.4, 0.01);
-                    } else if ("tal_krushitelya".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 1);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                    } else if ("tal_grani".equals(cid)) {
-                        ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", dur, 1);
-                        ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", dur, 1);
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                    } else if ("tal_dedala".equals(cid)) {
-                        ColorUtil.addPot(p, "speed", "SPEED", dur, 2);
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                        ColorUtil.addPot(p, "haste", "FAST_DIGGING", dur, 1);
-                    } else if ("tal_tritona".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 1);
-                        ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", dur, 1);
-                        ColorUtil.addPot(p, "dolphins_grace", "DOLPHINS_GRACE", dur, 0);
-                        ColorUtil.addPot(p, "water_breathing", "WATER_BREATHING", dur, 0);
-                    } else if ("tal_feniksa".equals(cid)) {
-                        ColorUtil.addPot(p, "regeneration", "REGENERATION", dur, 1);
-                        ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", dur, 0);
-                    } else if ("tal_echidny".equals(cid)) {
-                        ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", dur, 2);
-                    } else if ("tal_stuzhi".equals(cid)) {
-                        ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", dur, 1);
-                        ColorUtil.addPot(p, "regeneration", "REGENERATION", dur, 1);
-                    }
-                }
+    public void tagPvp30(Player... players) {
+        for (Player p : players) {
+            if (p == null || !p.isOnline()) continue;
+            if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id) && p.getGameMode() == GameMode.CREATIVE) continue;
+            plugin.getHud().tagCombat(p);
+            if (p.isFlying() && p.getGameMode() == GameMode.SURVIVAL) {
+                p.setFlying(false);
+                p.setAllowFlight(false);
             }
-        }.runTaskTimer(plugin, 40L, 40L);
+        }
     }
 
     private void startChatQuizLoop() {
@@ -230,9 +166,9 @@ public final class GameplayListener implements Listener {
             p.teleport(plugin.getSpawnEngine().getSpawnArrival());
         }
 
-        // Auto-push Mega Resourcepack v5.6 with exact SHA-1 & cache-busting query so clients never keep old cached RP
-        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=56");
-        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "6f7cb15f3f5bc22441b799c779b71c3b9776d857");
+        // Auto-push Mega Resourcepack v5.7 with exact SHA-1 & cache-busting query so clients always get fixed offhand + 92 3D items + Bow Animation!
+        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=61");
+        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "b35d948cd7a4ddf073dcc845248f415c7990eec6");
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -241,10 +177,12 @@ public final class GameplayListener implements Listener {
                 try {
                     if (plugin.getConfig().getBoolean("push-resourcepack-on-join", true) && rawRpUrl != null && !rawRpUrl.isEmpty()) {
                         String effectiveUrl = rawRpUrl;
-                        if (effectiveUrl.endsWith("kinggrief-mega-rp.zip")) {
-                            effectiveUrl = effectiveUrl + "?v=56";
+                        String effectiveSha1 = rpSha1;
+                        if (effectiveUrl.contains("kinggrief.vercel.app/kinggrief-mega-rp.zip")) {
+                            effectiveUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=61";
+                            effectiveSha1 = "b35d948cd7a4ddf073dcc845248f415c7990eec6";
                         }
-                        byte[] hashBytes = ColorUtil.hexToBytes(rpSha1);
+                        byte[] hashBytes = ColorUtil.hexToBytes(effectiveSha1);
                         if (hashBytes != null) {
                             p.setResourcePack(effectiveUrl, hashBytes);
                         } else {
@@ -252,6 +190,9 @@ public final class GameplayListener implements Listener {
                         }
                     }
                 } catch (Throwable ignored) {}
+                if ("default".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                    p.sendMessage(ColorUtil.c("&#F5D0FE&l🎁 [ХАЛЯВА] &fПропиши команду &#FFD740&l/free dragon &fи забери привилегию &#F5D0FE&lDRAGON &fБЕСПЛАТНО!"));
+                }
             }
         }.runTaskLater(plugin, 15L);
 
@@ -261,7 +202,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v5.0 ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v5.7 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"
@@ -274,16 +215,37 @@ public final class GameplayListener implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
         e.setQuitMessage(null);
+        killStreaks.remove(p.getUniqueId());
         boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
         plugin.getModeration().handleQuitDuringCheck(p);
-        Long cu = combatUntil.remove(p.getUniqueId());
-        if (!wasFrozen && cu != null && System.currentTimeMillis() < cu.longValue() && !p.isDead()) {
+        if (!wasFrozen && plugin.getHud().isInCombat(p) && !p.isDead()
+                && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
             p.setHealth(0.0);
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вышел из игры во время боя и был наказан!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вышел с сервера во время 30-секундного ПвП и потерял вещи!"));
         }
         plugin.getBossEvents().removeBarsForQuit(p);
+        plugin.getStore().clearQuickFreeze(p.getUniqueId());
         plugin.getStore().removeAttachment(p);
         plugin.getHud().removePlayer(p);
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent e) {
+        plugin.getSpawnEngine().onSpawnChunkLoad(e.getChunk());
+        plugin.getBossEvents().purgeOrphanEventEntitiesInChunk(e.getChunk());
+    }
+
+    @EventHandler
+    public void onPlayerTeleportToSpawn(org.bukkit.event.player.PlayerTeleportEvent e) {
+        if (e.getTo() != null && plugin.getSpawnEngine().isInSpawnWorld(e.getTo())) {
+            final World sw = e.getTo().getWorld();
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    plugin.getSpawnEngine().enforceStrictSingletonsOnSpawn(sw);
+                }
+            }.runTaskLater(plugin, 4L);
+        }
     }
 
     @EventHandler
@@ -291,11 +253,11 @@ public final class GameplayListener implements Listener {
         e.setRespawnLocation(plugin.getSpawnEngine().getSpawnArrival());
     }
 
-    // ================= ЗАЩИТА ДО АВТОРИЗАЦИИ И ЗАМОРОЗКА НА ПРОВЕРКЕ /check =================
+    // ================= ЗАЩИТА ДО АВТОРИЗАЦИИ И ЗАМОРОЗКА НА ПРОВЕРКЕ /check ИЛИ /freeze =================
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
         Player p = e.getPlayer();
-        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isUnderCheck(p)) {
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isUnderCheck(p) || plugin.getStore().isQuickFrozen(p)) {
             if (e.getTo() != null && (e.getFrom().getX() != e.getTo().getX()
                     || e.getFrom().getZ() != e.getTo().getZ()
                     || e.getTo().getY() > e.getFrom().getY())) {
@@ -361,6 +323,13 @@ public final class GameplayListener implements Listener {
         if (plugin.getBossEvents().isLockedEventChest(b)) {
             e.setCancelled(true);
             p.sendMessage(ColorUtil.c("&#FF1744🔒 Сначала убейте Босса Ивента!"));
+            return;
+        }
+
+        // 2B. Защита стильных архитектурных храмов Ивентов (кроме добываемых руд Метеорита!)
+        if (plugin.getBossEvents().isProtectedEventStructureBlock(b, true)) {
+            e.setCancelled(true);
+            ColorUtil.actionBar(p, "&#FF1744🛡 Архитектура активного Ивента защищена от разрушения!");
             return;
         }
 
@@ -517,6 +486,11 @@ public final class GameplayListener implements Listener {
             }
             return;
         }
+        if (plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) {
+            e.setCancelled(true);
+            ColorUtil.actionBar(p, "&#FF1744🛡 Нельзя ставить блоки в зоне святилища активного Ивента!");
+            return;
+        }
         DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
         if (cl != null && !cl.canAccess(p.getName()) && !"owner".equals(plugin.getRanks().getRank(p).id)) {
             e.setCancelled(true);
@@ -536,6 +510,53 @@ public final class GameplayListener implements Listener {
                     cs.update(true, false);
                 } catch (Throwable ignored) {}
             }
+            return;
+        }
+
+        // Установка 6 разновидностей Кастомного 3D ТНТ для рейдов!
+        if (cid != null && cid.startsWith("tnt_")) {
+            final Location spawnLoc = b.getLocation().add(0.5, 0.0, 0.5);
+            final String tntType = cid;
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (b.getType() == Material.TNT) {
+                        b.setType(Material.AIR, false);
+                    }
+                    TNTPrimed tnt = (TNTPrimed) spawnLoc.getWorld().spawnEntity(spawnLoc, EntityType.TNT);
+                    tnt.getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, tntType);
+                    tnt.setCustomNameVisible(true);
+                    int fuse = 70;
+                    String label = "&#EF4444&l🧨 ТНТ TIER-II";
+                    float yield = 6.5f;
+                    if ("tnt_black".equals(tntType)) {
+                        label = "&#A855F7&l💣 ТНТ BLACK [Обсидиан]";
+                        yield = 5.5f;
+                    } else if ("tnt_nuke".equals(tntType)) {
+                        label = "&#84CC16&l☢ ЯДЕРНЫЙ ТНТ";
+                        fuse = 90;
+                        yield = 9.0f;
+                    } else if ("tnt_flash".equals(tntType)) {
+                        label = "&#FACC15&l⚡ ШТУРМОВОЙ ТНТ";
+                        fuse = 20;
+                        yield = 4.5f;
+                    } else if ("tnt_cryo".equals(tntType)) {
+                        label = "&#38BDF8&l❄ КРИО-ТНТ";
+                        yield = 4.5f;
+                    } else if ("tnt_miner".equals(tntType)) {
+                        label = "&#FB923C&l⛏ БУРОВОЙ ТНТ";
+                        fuse = 50;
+                        yield = 0.0f;
+                    }
+                    tnt.setFuseTicks(fuse);
+                    tnt.setYield(yield);
+                    tnt.setCustomName(ColorUtil.c(label));
+                    try {
+                        TNTPrimed.class.getMethod("setSource", Entity.class).invoke(tnt, p);
+                    } catch (Throwable ignored) {}
+                    ColorUtil.sound(p, "entity.tnt.primed", 1.0f, 1.05f);
+                }
+            }.runTask(plugin);
             return;
         }
 
@@ -570,11 +591,182 @@ public final class GameplayListener implements Listener {
             e.setCancelled(true);
         }
     }
-    @EventHandler public void onEntityExplode(EntityExplodeEvent e) {
-        if (plugin.getSpawnEngine().isInSpawnWorld(e.getLocation())) e.blockList().clear();
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityExplode(EntityExplodeEvent e) {
+        if (plugin.getSpawnEngine().isInSpawnWorld(e.getLocation())) {
+            e.blockList().clear();
+            return;
+        }
+        // Всегда защищаем временные блоки Пласта/Трапки и архитектуру Ивентов от взрывов!
+        java.util.Iterator<Block> bit = e.blockList().iterator();
+        while (bit.hasNext()) {
+            Block b = bit.next();
+            if (activeTempBlocks.contains(blockKey(b))
+                    || plugin.getBossEvents().isLockedEventChest(b)
+                    || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) {
+                bit.remove();
+            }
+        }
+        String tntType = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
+        if (tntType == null) return;
+        Location c = e.getLocation();
+        World w = c.getWorld();
+        if (w == null) return;
+
+        Player srcPlayer = null;
+        if (e.getEntity() instanceof TNTPrimed && ((TNTPrimed) e.getEntity()).getSource() instanceof Player) {
+            srcPlayer = (Player) ((TNTPrimed) e.getEntity()).getSource();
+        }
+
+        if ("tnt_black".equals(tntType)) {
+            w.spawnParticle(Particle.WITCH, c, 90, 2.5, 2.0, 2.5, 0.08);
+            for (int dx = -5; dx <= 5; dx++) {
+                for (int dy = -4; dy <= 4; dy++) {
+                    for (int dz = -5; dz <= 5; dz++) {
+                        Block b = w.getBlockAt(c.getBlockX() + dx, c.getBlockY() + dy, c.getBlockZ() + dz);
+                        if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)) continue;
+                        Material m = b.getType();
+                        if (m == Material.WATER || m == Material.LAVA) {
+                            b.setType(Material.AIR, false);
+                        } else if (Math.abs(dx) <= 3 && Math.abs(dy) <= 3 && Math.abs(dz) <= 3
+                                && (m == Material.OBSIDIAN || m == Material.CRYING_OBSIDIAN || m == Material.RESPAWN_ANCHOR || m == Material.ENDER_CHEST)) {
+                            b.breakNaturally();
+                        }
+                    }
+                }
+            }
+        } else if ("tnt_nuke".equals(tntType)) {
+            w.spawnParticle(Particle.EXPLOSION_EMITTER, c, 6, 2.0, 1.5, 2.0, 0.05);
+            w.spawnParticle(Particle.FLAME, c, 120, 4.0, 2.5, 4.0, 0.12);
+            for (Entity en : w.getNearbyEntities(c, 10, 8, 10)) {
+                if (en instanceof Player) {
+                    Player vp = (Player) en;
+                    vp.setFireTicks(160);
+                    ColorUtil.addPot(vp, "wither", "WITHER", 140, 1);
+                    if (srcPlayer != null && isEnemyTarget(srcPlayer, vp)) {
+                        tagPvp30(srcPlayer, vp);
+                    }
+                }
+            }
+        } else if ("tnt_flash".equals(tntType)) {
+            for (Entity en : w.getNearbyEntities(c, 7, 5, 7)) {
+                if (en instanceof Player) {
+                    Player vp = (Player) en;
+                    Vector kb = vp.getLocation().toVector().subtract(c.toVector());
+                    if (kb.lengthSquared() < 0.01) kb = new Vector(0.4, 0.5, 0.4);
+                    vp.setVelocity(kb.normalize().multiply(1.35).setY(0.55));
+                    if (srcPlayer != null && isEnemyTarget(srcPlayer, vp)) {
+                        tagPvp30(srcPlayer, vp);
+                    }
+                }
+            }
+        } else if ("tnt_cryo".equals(tntType)) {
+            e.blockList().clear();
+            w.spawnParticle(Particle.SNOWFLAKE, c, 140, 4.0, 2.5, 4.0, 0.06);
+            for (int dx = -5; dx <= 5; dx++) {
+                for (int dy = -3; dy <= 3; dy++) {
+                    for (int dz = -5; dz <= 5; dz++) {
+                        Block b = w.getBlockAt(c.getBlockX() + dx, c.getBlockY() + dy, c.getBlockZ() + dz);
+                        if (b.getType() == Material.WATER) b.setType(Material.BLUE_ICE, false);
+                        else if (b.getType() == Material.LAVA) b.setType(Material.OBSIDIAN, false);
+                    }
+                }
+            }
+            for (Entity en : w.getNearbyEntities(c, 8, 6, 8)) {
+                if (en instanceof Player) {
+                    Player vp = (Player) en;
+                    if (srcPlayer == null || isEnemyTarget(srcPlayer, vp)) {
+                        vp.setFreezeTicks(220);
+                        ColorUtil.addPot(vp, "slowness", "SLOW", 120, 3);
+                        if (srcPlayer != null) tagPvp30(srcPlayer, vp);
+                    }
+                }
+            }
+        } else if ("tnt_miner".equals(tntType)) {
+            e.blockList().clear();
+            for (int dx = -4; dx <= 4; dx++) {
+                for (int dy = -4; dy <= 4; dy++) {
+                    for (int dz = -4; dz <= 4; dz++) {
+                        Block b = w.getBlockAt(c.getBlockX() + dx, c.getBlockY() + dy, c.getBlockZ() + dz);
+                        if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)) continue;
+                        DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
+                        if (cl != null && (srcPlayer == null || !cl.canAccess(srcPlayer.getName()) || cl.isCenter(b.getLocation()))) continue;
+                        Material m = b.getType();
+                        if (m == Material.BEDROCK || m == Material.OBSIDIAN || m == Material.SPAWNER || m == Material.CHEST || m == Material.AIR) continue;
+                        if (m == Material.IRON_ORE || m == Material.DEEPSLATE_IRON_ORE) {
+                            b.setType(Material.AIR, false);
+                            w.dropItemNaturally(c, new ItemStack(Material.IRON_INGOT, 1));
+                        } else if (m == Material.GOLD_ORE || m == Material.DEEPSLATE_GOLD_ORE) {
+                            b.setType(Material.AIR, false);
+                            w.dropItemNaturally(c, new ItemStack(Material.GOLD_INGOT, 1));
+                        } else if (m.name().endsWith("_ORE") || m == Material.ANCIENT_DEBRIS) {
+                            for (ItemStack dr : b.getDrops()) w.dropItemNaturally(c, dr);
+                            b.setType(Material.AIR, false);
+                        } else {
+                            b.setType(Material.AIR, false);
+                        }
+                    }
+                }
+            }
+        }
     }
     @EventHandler public void onBlockExplode(BlockExplodeEvent e) {
-        if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation())) e.blockList().clear();
+        if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation())) {
+            e.blockList().clear();
+            return;
+        }
+        java.util.Iterator<Block> bit = e.blockList().iterator();
+        while (bit.hasNext()) {
+            Block b = bit.next();
+            if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)) bit.remove();
+        }
+    }
+
+    // ================= РЕЖИМ ПВП 30 СЕК ОТ ВЗРЫВНЫХ И ТУМАННЫХ ЗЕЛИЙ =================
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPotionSplash(PotionSplashEvent e) {
+        if (!(e.getPotion().getShooter() instanceof Player)) return;
+        Player shooter = (Player) e.getPotion().getShooter();
+        for (LivingEntity le : e.getAffectedEntities()) {
+            if (le instanceof Player && !le.equals(shooter)) {
+                Player target = (Player) le;
+                if (plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())
+                        && (!plugin.getSpawnEngine().isInsidePvpZone(target.getLocation())
+                        || !plugin.getSpawnEngine().isInsidePvpZone(shooter.getLocation()))) {
+                    e.setIntensity(le, 0.0);
+                    continue;
+                }
+                if (isEnemyTarget(shooter, target)) {
+                    tagPvp30(shooter, target);
+                } else {
+                    e.setIntensity(le, 0.0);
+                }
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onLingeringApply(AreaEffectCloudApplyEvent e) {
+        if (!(e.getEntity().getSource() instanceof Player)) return;
+        Player shooter = (Player) e.getEntity().getSource();
+        java.util.Iterator<LivingEntity> it = e.getAffectedEntities().iterator();
+        while (it.hasNext()) {
+            LivingEntity le = it.next();
+            if (le instanceof Player && !le.equals(shooter)) {
+                Player target = (Player) le;
+                if (plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())
+                        && (!plugin.getSpawnEngine().isInsidePvpZone(target.getLocation())
+                        || !plugin.getSpawnEngine().isInsidePvpZone(shooter.getLocation()))) {
+                    it.remove();
+                    continue;
+                }
+                if (isEnemyTarget(shooter, target)) {
+                    tagPvp30(shooter, target);
+                } else {
+                    it.remove();
+                }
+            }
+        }
     }
     @EventHandler public void onIgnite(BlockIgniteEvent e) {
         if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation())
@@ -608,8 +800,15 @@ public final class GameplayListener implements Listener {
         }
         if (e.getInventory().getLocation() != null) {
             Block b = e.getInventory().getLocation().getBlock();
-            if (plugin.getSpawnEngine().getCasePedestalAt(b) != null) {
+            if (plugin.getSpawnEngine().getCasePedestalAt(b) != null || plugin.getSpawnEngine().getSantaGiftAt(b) >= 0) {
                 e.setCancelled(true);
+                return;
+            }
+            if (plugin.getBossEvents().isLockedEventChest(b)) {
+                e.setCancelled(true);
+                if (e.getPlayer() instanceof Player) {
+                    ColorUtil.actionBar((Player) e.getPlayer(), "&#FF1744🔒 Сокровищница Ивента ещё запечатана! Дождитесь открытия!");
+                }
             }
         }
     }
@@ -657,9 +856,15 @@ public final class GameplayListener implements Listener {
 
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
 
-        // 2. Шалкер-Кейсы, Запечатанные Сундуки Боссов и Автоматы Казино
+        // 2. Шалкер-Кейсы, Подарки Санты 10/10, Запечатанные Сундуки Боссов и Автоматы Казино
         Block cb = e.getClickedBlock();
         if (cb != null) {
+            int giftIdx = plugin.getSpawnEngine().getSantaGiftAt(cb);
+            if (giftIdx >= 0) {
+                e.setCancelled(true);
+                handleSantaGiftClick(p, giftIdx);
+                return;
+            }
             SpawnEngine.CasePedestal cp = plugin.getSpawnEngine().getCasePedestalAt(cb);
             if (cp != null) {
                 e.setCancelled(true);
@@ -727,7 +932,8 @@ public final class GameplayListener implements Listener {
             }
         } else if ("plast".equals(cid) || "trapka".equals(cid) || "dezorient".equals(cid)
                 || "yavnaya_pyl".equals(cid) || "bozhya_aura".equals(cid)
-                || "ognenny_smerch".equals(cid) || "pautinnaya_granata".equals(cid)) {
+                || "ognenny_smerch".equals(cid) || "pautinnaya_granata".equals(cid)
+                || "bozhya_kara".equals(cid) || "grav_sfera".equals(cid) || "sneg_zavesa".equals(cid)) {
             e.setCancelled(true);
             handleFtConsumable(p, hand, cid);
         }
@@ -752,11 +958,14 @@ public final class GameplayListener implements Listener {
                 && !plugin.getSpawnEngine().isInsidePvpZone(other.getLocation())) return false;
         DataStore.Clan c1 = plugin.getStore().getClanOf(caster.getName());
         DataStore.Clan c2 = plugin.getStore().getClanOf(other.getName());
-        return !(c1 != null && c1.equals(c2) && !c1.friendlyFire);
+        if (c1 != null && c2 != null) {
+            if (c1.equals(c2) && !c1.friendlyFire) return false;
+            if (c1.allies.contains(c2.id)) return false;
+        }
+        return true;
     }
 
     private void handleFtConsumable(final Player p, ItemStack hand, String cid) {
-        // Disallow building consumables on peaceful spawn plaza (allowed in world AND in /warp pvp pit / Kabinki!)
         if (plugin.getSpawnEngine().isInSpawnWorld(p.getLocation())
                 && !plugin.getSpawnEngine().isInsidePvpZone(p.getLocation())) {
             p.sendMessage(ColorUtil.c("&#FF1744✖ Расходники FT можно использовать в мире выживания (&a/rtp&#FF1744) или на &e/warp pvp&#FF1744!"));
@@ -766,6 +975,11 @@ public final class GameplayListener implements Listener {
             if (!checkAndSetCd(p, "plast", 10)) return;
             consumeOne(p, hand);
             spawnTemporaryPlast(p);
+            for (Entity en : p.getNearbyEntities(7, 5, 7)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    tagPvp30(p, (Player) en);
+                }
+            }
         } else if ("trapka".equals(cid)) {
             if (!checkAndSetCd(p, "trapka", 20)) return;
             consumeOne(p, hand);
@@ -779,10 +993,11 @@ public final class GameplayListener implements Listener {
             for (Entity en : p.getNearbyEntities(10, 6, 10)) {
                 if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                     Player v = (Player) en;
+                    tagPvp30(p, v);
                     ColorUtil.addPot(v, "blindness", "BLINDNESS", 140, 0);
                     ColorUtil.addPot(v, "nausea", "CONFUSION", 140, 1);
                     ColorUtil.addPot(v, "slowness", "SLOW", 140, 1);
-                    v.sendMessage(ColorUtil.c("&#E040FB👁 Вы поражены Дезориентацией игрока &f" + p.getName() + "&#E040FB!"));
+                    v.sendMessage(ColorUtil.c("&#E040FB👁 Вы поражены Дезориентацией игрока &f" + p.getName() + " &#E040FB(+30 сек ПвП)!"));
                     hit++;
                 }
             }
@@ -799,6 +1014,7 @@ public final class GameplayListener implements Listener {
                     org.bukkit.potion.PotionEffectType invT = ColorUtil.potType("invisibility", "INVISIBILITY");
                     if (invT != null) v.removePotionEffect(invT);
                     ColorUtil.addPot(v, "glowing", "GLOWING", 300, 0);
+                    if (isEnemyTarget(p, v)) tagPvp30(p, v);
                     rev++;
                 }
             }
@@ -818,6 +1034,9 @@ public final class GameplayListener implements Listener {
             p.setFreezeTicks(0);
             ColorUtil.addPot(p, "regeneration", "REGENERATION", 120, 2);
             ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 120, 1);
+            for (Entity en : p.getNearbyEntities(8, 5, 8)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) tagPvp30(p, (Player) en);
+            }
             p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 50, 0.8, 1.0, 0.8, 0.15);
             ColorUtil.sound(p, "item.totem.use", 0.9f, 1.35f);
             p.sendMessage(ColorUtil.c("&#FFD740☀ Божья Аура сняла все дебаффы и дала Регенерацию III + Сопротивление II!"));
@@ -829,6 +1048,7 @@ public final class GameplayListener implements Listener {
             for (Entity en : p.getNearbyEntities(8, 5, 8)) {
                 if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                     Player v = (Player) en;
+                    tagPvp30(p, v);
                     v.setFireTicks(140);
                     v.damage(10.0, p);
                     Vector kb = v.getLocation().toVector().subtract(p.getLocation().toVector());
@@ -844,6 +1064,56 @@ public final class GameplayListener implements Listener {
             proj.setItem(new ItemStack(Material.SLIME_BALL));
             proj.getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "web_grenade");
             ColorUtil.sound(p, "entity.snowball.throw", 1f, 0.8f);
+        } else if ("bozhya_kara".equals(cid)) {
+            if (!checkAndSetCd(p, "bozhya_kara", 22)) return;
+            consumeOne(p, hand);
+            int hits = 0;
+            for (Entity en : p.getNearbyEntities(8, 6, 8)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    tagPvp30(p, v);
+                    v.getWorld().strikeLightningEffect(v.getLocation());
+                    v.setFireTicks(100);
+                    v.damage(12.0, p);
+                    hits++;
+                }
+            }
+            ColorUtil.sound(p, "entity.lightning_bolt.thunder", 1.0f, 1.1f);
+            p.sendMessage(ColorUtil.c("&#FACC15⚡ Божья Кара Зевса поразила молнией врагов: &f" + hits));
+        } else if ("grav_sfera".equals(cid)) {
+            if (!checkAndSetCd(p, "grav_sfera", 20)) return;
+            consumeOne(p, hand);
+            Location pullCenter = p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(2.0));
+            p.getWorld().spawnParticle(Particle.PORTAL, pullCenter.clone().add(0, 1, 0), 95, 2.0, 1.5, 2.0, 0.25);
+            int pulled = 0;
+            for (Entity en : p.getNearbyEntities(9, 6, 9)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    tagPvp30(p, v);
+                    Vector pull = pullCenter.toVector().subtract(v.getLocation().toVector());
+                    v.setVelocity(pull.multiply(0.38).setY(0.32));
+                    ColorUtil.addPot(v, "slowness", "SLOW", 60, 1);
+                    pulled++;
+                }
+            }
+            ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 0.75f);
+            p.sendMessage(ColorUtil.c("&#C084FC🕳 Гравитационная Сфера стянула врагов: &f" + pulled));
+        } else if ("sneg_zavesa".equals(cid)) {
+            if (!checkAndSetCd(p, "sneg_zavesa", 16)) return;
+            consumeOne(p, hand);
+            p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 90, 2.5, 1.2, 2.5, 0.08);
+            p.setVelocity(p.getLocation().getDirection().normalize().multiply(1.35).setY(0.42));
+            ColorUtil.addPot(p, "speed", "SPEED", 160, 2);
+            for (Entity en : p.getNearbyEntities(6, 4, 6)) {
+                if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
+                    Player v = (Player) en;
+                    tagPvp30(p, v);
+                    ColorUtil.addPot(v, "blindness", "BLINDNESS", 60, 0);
+                    v.setFreezeTicks(140);
+                }
+            }
+            ColorUtil.sound(p, "entity.breeze.jump", 1.0f, 1.2f);
+            p.sendMessage(ColorUtil.c("&#7DD3FC❄ Снежная Завеса активирована!"));
         }
     }
 
@@ -852,19 +1122,53 @@ public final class GameplayListener implements Listener {
         if (!(e.getEntity().getShooter() instanceof Player)) return;
         Player p = (Player) e.getEntity().getShooter();
         ItemStack main = p.getInventory().getItemInMainHand();
-        if ("snezok_zamorozki".equals(ItemFactory.getCustomId(main))) {
+        ItemStack off = p.getInventory().getItemInOffHand();
+        String mainId = ItemFactory.getCustomId(main);
+        String offId = ItemFactory.getCustomId(off);
+        if ("snezok_zamorozki".equals(mainId)) {
             e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "frost_ball");
+            return;
+        }
+        if ("trident_poseidon".equals(mainId)) {
+            e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "trident_poseidon");
+            return;
+        }
+        if (e.getEntity() instanceof Arrow) {
+            if (mainId != null && mainId.startsWith("bow_")) {
+                e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, mainId);
+            } else if (offId != null && offId.startsWith("bow_")) {
+                e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, offId);
+            }
+            // Detect custom arrow in offhand or first arrow slot in inventory!
+            String arrowType = null;
+            if (offId != null && offId.startsWith("arrow_")) {
+                arrowType = offId;
+            } else {
+                for (ItemStack invIt : p.getInventory().getContents()) {
+                    if (invIt != null && invIt.getType() == Material.ARROW) {
+                        String aid = ItemFactory.getCustomId(invIt);
+                        if (aid != null && aid.startsWith("arrow_")) {
+                            arrowType = aid;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (arrowType != null) {
+                e.getEntity().getPersistentDataContainer().set(PROJ_ARROW_KEY, PersistentDataType.STRING, arrowType);
+            }
         }
     }
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent e) {
         String ptype = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
-        if (ptype == null) return;
+        String atype = e.getEntity().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
         if ("frost_ball".equals(ptype) && e.getHitEntity() instanceof Player && e.getEntity().getShooter() instanceof Player) {
             Player shooter = (Player) e.getEntity().getShooter();
             Player hit = (Player) e.getHitEntity();
             if (isEnemyTarget(shooter, hit)) {
+                tagPvp30(shooter, hit);
                 hit.setFreezeTicks(200);
                 ColorUtil.addPot(hit, "slowness", "SLOW", 120, 3);
                 ColorUtil.addPot(hit, "weakness", "WEAKNESS", 120, 1);
@@ -875,11 +1179,21 @@ public final class GameplayListener implements Listener {
             Location center = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0, 1, 0)
                     : (e.getHitEntity() != null ? e.getHitEntity().getLocation() : e.getEntity().getLocation());
             if (plugin.getSpawnEngine().isInSpawnWorld(center) && !plugin.getSpawnEngine().isInsidePvpZone(center)) return;
+            if (e.getEntity().getShooter() instanceof Player) {
+                Player shooter = (Player) e.getEntity().getShooter();
+                for (Entity en : center.getWorld().getNearbyEntities(center, 3.5, 3.0, 3.5)) {
+                    if (en instanceof Player && isEnemyTarget(shooter, (Player) en)) {
+                        tagPvp30(shooter, (Player) en);
+                    }
+                }
+            }
             final java.util.List<Block> placed = new java.util.ArrayList<Block>();
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     Block b = center.getWorld().getBlockAt(center.getBlockX() + dx, center.getBlockY(), center.getBlockZ() + dz);
-                    if (b.getType() == Material.AIR) {
+                    if (b.getType() == Material.AIR && !activeTempBlocks.contains(blockKey(b))) {
+                        activeTempBlocks.add(blockKey(b));
+                        allSavedTempBlocks.put(b, b.getBlockData().clone());
                         b.setType(Material.COBWEB, false);
                         placed.add(b);
                     }
@@ -889,10 +1203,20 @@ public final class GameplayListener implements Listener {
                 @Override
                 public void run() {
                     for (Block b : placed) {
+                        activeTempBlocks.remove(blockKey(b));
+                        allSavedTempBlocks.remove(b);
                         if (b.getType() == Material.COBWEB) b.setType(Material.AIR, false);
                     }
                 }
             }.runTaskLater(plugin, 160L);
+        }
+        // Разрывная стрела на блоке
+        if ("arrow_explosive".equals(atype) && e.getHitBlock() != null && e.getEntity().getShooter() instanceof Player) {
+            Location loc = e.getHitBlock().getLocation().add(0.5, 1.0, 0.5);
+            if (!plugin.getSpawnEngine().isInSpawnWorld(loc) || plugin.getSpawnEngine().isInsidePvpZone(loc)) {
+                loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 3, 0.5, 0.5, 0.5, 0.02);
+                ColorUtil.sound((Player) e.getEntity().getShooter(), "entity.generic.explode", 0.7f, 1.2f);
+            }
         }
     }
 
@@ -991,6 +1315,7 @@ public final class GameplayListener implements Listener {
             if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                 Player v = (Player) en;
                 trappedEnemies++;
+                tagPvp30(p, v);
                 if ("ice".equalsIgnoreCase(skin)) {
                     v.setFreezeTicks(220);
                     ColorUtil.addPot(v, "slowness", "SLOW", 160, 2);
@@ -1020,12 +1345,14 @@ public final class GameplayListener implements Listener {
     }
 
     private void scheduleRestore(final Map<Block, org.bukkit.block.data.BlockData> saved, long delayTicks) {
+        allSavedTempBlocks.putAll(saved);
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : saved.entrySet()) {
                     Block b = en.getKey();
                     activeTempBlocks.remove(blockKey(b));
+                    allSavedTempBlocks.remove(b);
                     b.setBlockData(en.getValue(), false);
                 }
             }
@@ -1041,6 +1368,12 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNpcRightClick(PlayerInteractEntityEvent e) {
         Entity target = e.getRightClicked();
+        final int giftIdx = plugin.getSpawnEngine().getGiftIndexByEntity(target);
+        if (giftIdx >= 0) {
+            e.setCancelled(true);
+            handleSantaGiftClick(e.getPlayer(), giftIdx);
+            return;
+        }
         final SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(target);
         if (nd != null) {
             e.setCancelled(true);
@@ -1065,6 +1398,12 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onNpcInteractAt(PlayerInteractAtEntityEvent e) {
         Entity target = e.getRightClicked();
+        final int giftIdx = plugin.getSpawnEngine().getGiftIndexByEntity(target);
+        if (giftIdx >= 0) {
+            e.setCancelled(true);
+            handleSantaGiftClick(e.getPlayer(), giftIdx);
+            return;
+        }
         final SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(target);
         if (nd != null) {
             e.setCancelled(true);
@@ -1084,6 +1423,38 @@ public final class GameplayListener implements Listener {
         if (target instanceof AbstractVillager && plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())) {
             e.setCancelled(true);
         }
+    }
+
+    private void handleSantaGiftClick(Player p, int giftIdx) {
+        if (!plugin.getStore().isAuthenticated(p)) return;
+        long now = System.currentTimeMillis();
+        Long last = npcClickCd.get(p.getUniqueId());
+        if (last != null && now - last.longValue() < 350L) return;
+        npcClickCd.put(p.getUniqueId(), Long.valueOf(now));
+
+        if (plugin.getStore().hasFoundSpawnGift(p.getName(), giftIdx)) {
+            int found = plugin.getStore().getFoundSpawnGiftCount(p.getName());
+            p.sendMessage(ColorUtil.c("&#FFD740🎁 Вы уже нашли Подарок #" + (giftIdx + 1)
+                    + "! Всего собрано: &#00E676" + found + "/10 &7(/gifts)"));
+            return;
+        }
+        plugin.getStore().markFoundSpawnGift(p.getName(), giftIdx);
+        plugin.getStore().addCoins(p.getName(), 3500);
+        plugin.getStore().addSnowflakes(p.getName(), 3);
+        int total = plugin.getStore().getFoundSpawnGiftCount(p.getName());
+        ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.35f);
+        p.sendMessage(ColorUtil.c("&#00E676🎁 Найден Секретный Подарок Санты #" + (giftIdx + 1)
+                + "! &a+3 500$ &fи &b+3 Снежинки ❄ &8(&e" + total + "/10&8)"));
+        if (total >= 10) {
+            plugin.getStore().addCoins(p.getName(), 25000);
+            plugin.getStore().addRelics(p.getName(), 25);
+            plugin.getStore().addCaseKeys(p.getName(), "donate", 1);
+            ColorUtil.spawnFirework(p.getLocation());
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l🎅 [ПОДАРКИ САНТЫ] &fИгрок &#00E676" + p.getName()
+                    + " &fнашёл ВСЕ 10/10 подарков на спавне и забрал &a+25 000$&f, &b+25❖ &fи &#FF1744Донат-Кейс&f!"));
+        }
+        plugin.getStore().save();
+        plugin.getHud().updatePlayerHud(p);
     }
 
     private void triggerNpcAction(Player p, SpawnEngine.NpcDef nd) {
@@ -1117,6 +1488,12 @@ public final class GameplayListener implements Listener {
             if (wl != null) p.teleport(wl);
         } else if ("action:santa".equals(act)) {
             p.performCommand("daily");
+        } else if ("action:wheel".equals(act)) {
+            plugin.getSpawnEngine().spinFortuneWheel(p, plugin.getStore().getSnowflakes(p.getName()) >= 5);
+        } else if ("action:top".equals(act)) {
+            p.performCommand("top");
+        } else if ("action:train_hint".equals(act)) {
+            p.sendMessage(ColorUtil.c("&#FF5252🥊 Бейте Незеритовые Манекены рядом для точного замера урона, критов и баффов!"));
         }
     }
 
@@ -1193,14 +1570,100 @@ public final class GameplayListener implements Listener {
                     } else {
                         p.sendMessage(ColorUtil.c("&#FFAB00🦅 Использован последний заряд Талисмана Феникса (0/3)!"));
                     }
+                } else if ("tal_owner".equals(tid)) {
+                    p.setHealth(p.getMaxHealth());
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 600, 4);
+                    ColorUtil.addPot(p, "regeneration", "REGENERATION", 300, 3);
+                    ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 300, 2);
+                    for (Entity en : p.getNearbyEntities(8, 5, 8)) {
+                        if (en instanceof Player && !en.equals(p)) {
+                            en.getWorld().strikeLightningEffect(en.getLocation());
+                            en.setFireTicks(120);
+                        }
+                    }
+                    if (curCharges > 1) {
+                        ItemStack nextTotem = ItemFactory.talOwner(curCharges - 1);
+                        if (inOff) p.getInventory().setItemInOffHand(nextTotem);
+                        else p.getInventory().setItemInMainHand(nextTotem);
+                        p.sendMessage(ColorUtil.c("&#FF1744👑 &#FFD740&lТАЛИСМАН OWNER &fвоскресил вас со 100% ХП и +10 Золотыми ❤! Осталось зарядов: &#FFD740" + (curCharges - 1) + "/5"));
+                    } else {
+                        p.sendMessage(ColorUtil.c("&#FF1744👑 Использован финальный заряд Божественного Талисмана OWNER (0/5)!"));
+                    }
+                } else if ("tal_bezdn".equals(tid)) {
+                    p.setHealth(p.getMaxHealth());
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 360, 2);
+                    if (curCharges > 1) {
+                        ItemStack nextTotem = ItemFactory.talBezdn(curCharges - 1);
+                        if (inOff) p.getInventory().setItemInOffHand(nextTotem);
+                        else p.getInventory().setItemInMainHand(nextTotem);
+                        p.sendMessage(ColorUtil.c("&#8B5CF6🔮 Талисман Бездны спас вам жизнь! Осталось зарядов: &a" + (curCharges - 1) + "/2"));
+                    } else {
+                        p.sendMessage(ColorUtil.c("&#8B5CF6🔮 Использован последний заряд Талисмана Бездны (0/2)!"));
+                    }
+                } else if ("tal_karatelya".equals(tid)) {
+                    ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 260, 2);
+                    for (Entity en : p.getNearbyEntities(6, 4, 6)) {
+                        if (en instanceof Player && !en.equals(p)) {
+                            en.setFireTicks(120);
+                            ColorUtil.addPot((Player) en, "wither", "WITHER", 120, 1);
+                        }
+                    }
+                    p.sendMessage(ColorUtil.c("&#EF4444⚔ Сработал Талисман Карателя! Враги охвачены Иссушением!"));
+                } else if ("tal_zeusa".equals(tid)) {
+                    for (Entity en : p.getNearbyEntities(7, 5, 7)) {
+                        if (en instanceof Player && !en.equals(p)) {
+                            en.getWorld().strikeLightningEffect(en.getLocation());
+                            ((Player) en).damage(6.0, p);
+                        }
+                    }
+                    p.sendMessage(ColorUtil.c("&#FACC15⚡ Сработал Талисман Зевса! Громовой удар по врагам!"));
+                } else if ("tal_draculy".equals(tid)) {
+                    p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 10.0));
+                    for (Entity en : p.getNearbyEntities(6, 4, 6)) {
+                        if (en instanceof Player && !en.equals(p)) {
+                            ((Player) en).damage(6.0, p);
+                        }
+                    }
+                    p.sendMessage(ColorUtil.c("&#E11D48🩸 Сработал Талисман Дракулы!"));
+                } else if ("tal_kolossa".equals(tid)) {
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 500, 5);
+                    ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 260, 2);
+                    p.sendMessage(ColorUtil.c("&#6EE7B7🛡 Сработал Талисман Колосса (+12 Золотых ❤)!"));
+                } else if ("tal_zhneca".equals(tid)) {
+                    for (Entity en : p.getNearbyEntities(7, 4, 7)) {
+                        if (en instanceof Player && !en.equals(p)) {
+                            ColorUtil.addPot((Player) en, "blindness", "BLINDNESS", 100, 0);
+                            ColorUtil.addPot((Player) en, "weakness", "WEAKNESS", 140, 1);
+                        }
+                    }
+                    p.sendMessage(ColorUtil.c("&#A855F7💀 Сработал Талисман Жнеца!"));
+                } else if ("tal_severa".equals(tid)) {
+                    for (Entity en : p.getNearbyEntities(7, 4, 7)) {
+                        if (en instanceof Player && !en.equals(p)) {
+                            en.setFreezeTicks(220);
+                            ColorUtil.addPot((Player) en, "slowness", "SLOW", 140, 3);
+                        }
+                    }
+                    p.sendMessage(ColorUtil.c("&#38BDF8❄ Сработал Талисман Северной Вьюги!"));
+                } else if ("tal_imperatora".equals(tid)) {
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 450, 3);
+                    ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 260, 2);
+                    p.sendMessage(ColorUtil.c("&#FB923C👑 Сработал Талисман Императора (+8 Золотых ❤ + Сила III)!"));
                 }
             }
         }.runTaskLater(plugin, 1L);
     }
 
-    // ================= PVP, АРЕНА, КАБИНКИ, ВАМПИРИЗМ, БОССЫ И ФАРМИЛКА =================
+    // ================= PVP, АРЕНА, КАБИНКИ, ВАМПИРИЗМ, БРОНЯ, СТРЕЛЫ, ЛУКИ И БОССЫ =================
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent e) {
+        if (e.getEntity() instanceof Player && e.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            Player fp = (Player) e.getEntity();
+            if ("mace_krush".equals(ItemFactory.getCustomId(fp.getInventory().getItemInMainHand()))) {
+                e.setCancelled(true);
+                return;
+            }
+        }
         if (!plugin.getSpawnEngine().isInSpawnWorld(e.getEntity().getLocation())) return;
         if (e.getEntity() instanceof Player) {
             if (e.getCause() == EntityDamageEvent.DamageCause.FALL || e.getCause() == EntityDamageEvent.DamageCause.VOID) {
@@ -1243,6 +1706,23 @@ public final class GameplayListener implements Listener {
             return;
         }
 
+        // DPS Training Dummy at /warp train!
+        if (e.getEntity().getScoreboardTags().contains("kg_dps_dummy")) {
+            e.setCancelled(true);
+            if (e.getDamager() instanceof Player) {
+                Player hitter = (Player) e.getDamager();
+                boolean isCrit = hitter.getFallDistance() > 0.0f && !hitter.isOnGround() && !hitter.isSwimming();
+                double rawDmg = e.getDamage() * (isCrit ? 1.5 : 1.0);
+                double netDmg = Math.max(0.5, rawDmg * 0.42); // Simulated Netherite Prot IV reduction
+                ColorUtil.sound(hitter, isCrit ? "entity.player.attack.crit" : "entity.player.attack.strong", 0.9f, 1.15f);
+                ColorUtil.actionBar(hitter, (isCrit ? "&#FFD740&l⚡ КРИТ! " : "&#FF5252⚔ Удар: ")
+                        + "&fЧистый: &#FF8A80" + String.format("%.1f", Double.valueOf(rawDmg)) + " ❤ &8│ "
+                        + "&fПо Незериту: &#00E676" + String.format("%.1f", Double.valueOf(netDmg)) + " ❤");
+                spawnDamageIndicator(e.getEntity().getLocation(), netDmg);
+            }
+            return;
+        }
+
         // Event Boss damage tracking
         if (e.getEntity() instanceof LivingEntity && e.getEntity().getScoreboardTags().contains("kg_event_boss")) {
             plugin.getBossEvents().recordBossDamage((LivingEntity) e.getEntity(), attacker, e.getFinalDamage());
@@ -1263,48 +1743,105 @@ public final class GameplayListener implements Listener {
             }
             DataStore.Clan c1 = plugin.getStore().getClanOf(attacker.getName());
             DataStore.Clan c2 = plugin.getStore().getClanOf(victim.getName());
-            if (c1 != null && c1.equals(c2) && !c1.friendlyFire) {
-                e.setCancelled(true);
-                ColorUtil.actionBar(attacker, "&#B388FF🛡 Соклановец! Огонь по своим отключён.");
-                return;
+            if (c1 != null && c2 != null) {
+                if (c1.equals(c2) && !c1.friendlyFire) {
+                    e.setCancelled(true);
+                    ColorUtil.actionBar(attacker, "&#B388FF🛡 Соклановец! Огонь по своим отключён (/clan pvp).");
+                    return;
+                }
+                if (c1.allies.contains(c2.id)) {
+                    e.setCancelled(true);
+                    ColorUtil.actionBar(attacker, "&#69F0AE🤝 Игрок из союзного клана [" + c2.tag + "]!");
+                    return;
+                }
             }
 
-            long tagEnd = System.currentTimeMillis() + 15_000L;
-            combatUntil.put(attacker.getUniqueId(), Long.valueOf(tagEnd));
-            combatUntil.put(victim.getUniqueId(), Long.valueOf(tagEnd));
-            if (attacker.isFlying() && attacker.getGameMode() == GameMode.SURVIVAL) attacker.setFlying(false);
-            if (victim.isFlying() && victim.getGameMode() == GameMode.SURVIVAL) victim.setFlying(false);
+            // 30-СЕКУНДНЫЙ РЕЖИМ ПВП СВЕРХУ ЭКРАНА НАД ИВЕНТАМИ!
+            tagPvp30(attacker, victim);
 
-            // Кастомные чары и Элитры FT×RW: Вампиризм, Окисление, Элитры Феникса/Вампира/Грома, Стужа
             String weaponId = ItemFactory.getCustomId(attacker.getInventory().getItemInMainHand());
             String offId = ItemFactory.getCustomId(attacker.getInventory().getItemInOffHand());
             String atkChest = ItemFactory.getCustomId(attacker.getInventory().getChestplate());
             String vicChest = ItemFactory.getCustomId(victim.getInventory().getChestplate());
+            String atkArmorSet = HudManager.detectFullCustomArmorSet(attacker);
+            String vicArmorSet = HudManager.detectFullCustomArmorSet(victim);
 
-            if ("sword_dracula".equals(weaponId) || "tal_echidny".equals(offId) || "elytra_vampire".equals(atkChest)) {
-                double heal = Math.min(3.5, e.getFinalDamage() * 0.22);
+            // Вампиризм (Меч Дракулы / Меч OWNER / Талисман Дракулы / Сет Дракулы / Элитры Вампира)
+            if ("sword_dracula".equals(weaponId) || "sword_owner".equals(weaponId)
+                    || "tal_draculy".equals(offId) || "elytra_vampire".equals(atkChest)
+                    || "dracula".equals(atkArmorSet)) {
+                double heal = Math.min(4.5, e.getFinalDamage() * 0.25);
                 attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + heal));
             }
-            if ("elytra_phoenix".equals(vicChest)) {
-                attacker.setFireTicks(80);
+            // Сет Фантома: +18% крита в прыжке!
+            if ("phantom".equals(atkArmorSet) && attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {
+                e.setDamage(e.getDamage() * 1.18);
             }
-            if ("elytra_thunder".equals(atkChest) && rng.nextInt(100) < 18) {
-                victim.getWorld().strikeLightningEffect(victim.getLocation());
+            // Булава Крушителя: удар с воздуха!
+            if ("mace_krush".equals(weaponId) && attacker.getFallDistance() > 1.5f) {
+                double extra = Math.min(12.0, attacker.getFallDistance() * 1.6);
+                e.setDamage(e.getDamage() + extra);
+                victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation().add(0, 1, 0), 3, 0.5, 0.4, 0.5, 0.02);
+                attacker.setFallDistance(0f);
+            }
+            // Ответка сетов брони и элитр
+            if ("elytra_phoenix".equals(vicChest)) attacker.setFireTicks(80);
+            if ("frost".equals(vicArmorSet)) attacker.setFreezeTicks(110);
+            if (("elytra_thunder".equals(atkChest) || "zeus".equals(vicArmorSet)) && rng.nextInt(100) < 20) {
+                Player targetBolt = "zeus".equals(vicArmorSet) ? attacker : victim;
+                targetBolt.getWorld().strikeLightningEffect(targetBolt.getLocation());
                 e.setDamage(e.getDamage() + 3.0);
             }
-            if ("sword_krush".equals(weaponId)) {
+            // Окисление брони (Меч Крушителя и Меч OWNER)
+            if ("sword_krush".equals(weaponId) || "sword_owner".equals(weaponId)) {
+                int shred = "sword_owner".equals(weaponId) ? 5 : 3;
                 for (ItemStack arm : victim.getInventory().getArmorContents()) {
                     if (arm != null && arm.hasItemMeta() && arm.getItemMeta() instanceof Damageable) {
                         ItemMeta m = arm.getItemMeta();
                         Damageable d = (Damageable) m;
-                        d.setDamage(d.getDamage() + 3);
+                        d.setDamage(d.getDamage() + shred);
                         arm.setItemMeta(m);
                     }
                 }
             }
-            if (e.getDamager() instanceof Arrow && "bow_ice_rw".equals(weaponId)) {
-                victim.setFreezeTicks(140);
-                ColorUtil.addPot(victim, "slowness", "SLOW", 60, 1);
+            // Кастомные Луки, Стрелы и Трезубец Посейдона!
+            if (e.getDamager() instanceof Projectile) {
+                String pTag = e.getDamager().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
+                String aTag = e.getDamager().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
+                if ("trident_poseidon".equals(pTag)) {
+                    victim.getWorld().strikeLightningEffect(victim.getLocation());
+                    e.setDamage(e.getDamage() + 4.0);
+                }
+                if ("bow_ice_rw".equals(pTag) || "arrow_ice".equals(aTag)) {
+                    victim.setFreezeTicks(180);
+                    ColorUtil.addPot(victim, "slowness", "SLOW", 100, 3);
+                }
+                if ("bow_inferno".equals(pTag)) {
+                    victim.setFireTicks(140);
+                    ColorUtil.addPot(victim, "wither", "WITHER", 100, 1);
+                }
+                if ("bow_zeus".equals(pTag) || "arrow_lightning".equals(aTag)) {
+                    victim.getWorld().strikeLightningEffect(victim.getLocation());
+                    e.setDamage(e.getDamage() + 4.0);
+                    victim.setCooldown(Material.SHIELD, 100);
+                }
+                if ("bow_vampire".equals(pTag) || "arrow_vampire".equals(aTag)) {
+                    attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + 4.5));
+                }
+                if ("arrow_explosive".equals(aTag)) {
+                    victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation().add(0, 1, 0), 3, 0.4, 0.4, 0.4, 0.02);
+                    e.setDamage(e.getDamage() + 5.0);
+                }
+                if ("arrow_poison".equals(aTag)) {
+                    ColorUtil.addPot(victim, "poison", "POISON", 120, 2);
+                    ColorUtil.addPot(victim, "wither", "WITHER", 100, 1);
+                    ColorUtil.addPot(victim, "weakness", "WEAKNESS", 120, 1);
+                }
+                if ("arrow_anti_fly".equals(aTag)) {
+                    if (victim.isGliding()) victim.setGliding(false);
+                    victim.setVelocity(new Vector(0, -1.1, 0));
+                    victim.sendMessage(ColorUtil.c("&#A855F7⛓ Анти-Флай Стрела ПВО сбила ваш полёт!"));
+                }
             }
             spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
         }
@@ -1314,6 +1851,7 @@ public final class GameplayListener implements Listener {
         if (dmg < 0.5 || base.getWorld() == null) return;
         Location hl = base.clone().add((rng.nextDouble() - 0.5) * 0.7, 1.4, (rng.nextDouble() - 0.5) * 0.7);
         final ArmorStand st = (ArmorStand) base.getWorld().spawnEntity(hl, EntityType.ARMOR_STAND);
+        st.setPersistent(false);
         st.setVisible(false);
         st.setMarker(true);
         st.setGravity(false);
@@ -1358,7 +1896,8 @@ public final class GameplayListener implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent e) {
         Player dead = e.getEntity();
-        combatUntil.remove(dead.getUniqueId());
+        plugin.getHud().clearCombat(dead.getUniqueId());
+        killStreaks.remove(dead.getUniqueId());
         plugin.getStore().setBack(dead, dead.getLocation());
         plugin.getStore().addDeath(dead.getName());
         plugin.getSpawnEngine().notifyKabinkaDeath(dead.getLocation());
@@ -1366,14 +1905,27 @@ public final class GameplayListener implements Listener {
         Player killer = dead.getKiller();
         if (killer != null && !killer.equals(dead)) {
             plugin.getStore().addKill(killer.getName());
-            plugin.getStore().addCoins(killer.getName(), 250.0);
+            DataStore.Clan kClan = plugin.getStore().getClanOf(killer.getName());
+            double clanBonus = kClan != null ? kClan.level * 50.0 : 0.0;
+            if (kClan != null) kClan.kills++;
+            plugin.getStore().addCoins(killer.getName(), 250.0 + clanBonus);
+
+            int streak = (killStreaks.containsKey(killer.getUniqueId()) ? killStreaks.get(killer.getUniqueId()).intValue() : 0) + 1;
+            killStreaks.put(killer.getUniqueId(), Integer.valueOf(streak));
+            if (streak == 3 || streak == 5 || streak == 10 || streak == 15) {
+                double rew = streak * 2000.0;
+                plugin.getStore().addCoins(killer.getName(), rew);
+                if (streak >= 10) plugin.getStore().addRelics(killer.getName(), 10);
+                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔥 [СЕРИЯ УБИЙСТВ] &fИгрок &#FFD740" + killer.getName()
+                        + " &fсделал &#FF5252" + streak + " убийств подряд &fи получил &a+" + ColorUtil.fmtMoney(rew) + "$&f!"));
+            }
+
             double bounty = plugin.getStore().claimBounty(dead.getName());
             if (bounty > 0.0) {
                 plugin.getStore().addCoins(killer.getName(), bounty);
                 Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🎯 [ОХОТА ЗА ГОЛОВАМИ] &fИгрок &#00E676" + killer.getName()
                         + " &fликвидировал цель &c" + dead.getName() + " &fи забрал контракт &a+" + ColorUtil.fmtMoney(bounty) + "$&f!"));
             }
-            // Drop PvP Trophy Skull
             ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
             ItemMeta hm = head.getItemMeta();
             if (hm instanceof SkullMeta) {
@@ -1397,6 +1949,12 @@ public final class GameplayListener implements Listener {
             return;
         }
         if (e.getWhoClicked() instanceof Player && plugin.getModeration().isFrozenOrAscending((Player) e.getWhoClicked())) {
+            e.setCancelled(true);
+            return;
+        }
+        // Запрет класть Звезду Меню в сундуки, шалкеры, хранилище клана или наковальню!
+        if (e.getCurrentItem() != null && "menu_star".equals(ItemFactory.getCustomId(e.getCurrentItem()))
+                && e.getView().getTopInventory().getType() != InventoryType.CRAFTING) {
             e.setCancelled(true);
             return;
         }
@@ -1457,18 +2015,25 @@ public final class GameplayListener implements Listener {
                 return;
             }
         }
-        if (plugin.getModeration().isFrozenOrAscending(p)) {
+        // STRICT ML.MODER+ GUARD FOR VANILLA /minecraft:tp & /minecraft:teleport!
+        if (firstTok.equals("/minecraft:tp") || firstTok.equals("/minecraft:teleport") || firstTok.equals("/teleport")) {
+            if (!plugin.getRanks().isMlModerOrHigher(p)) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Команды прямой телепортации (/tp, /tphere) доступны ТОЛЬКО от Мл. Модера и выше!"));
+                return;
+            }
+        }
+        if (plugin.getModeration().isFrozenOrAscending(p) || plugin.getStore().isQuickFrozen(p)) {
             e.setCancelled(true);
             p.sendMessage(ColorUtil.c("&#FF1744⚠ Во время проверки на читы команды отключены! Пишите в обычный чат."));
             return;
         }
-        Long cu = combatUntil.get(p.getUniqueId());
-        if (cu != null && System.currentTimeMillis() < cu.longValue() && !"owner".equals(plugin.getRanks().getRank(p).id)) {
-            if (msg.startsWith("/spawn") || msg.startsWith("/rtp") || msg.startsWith("/warp")
-                    || msg.startsWith("/home") || msg.startsWith("/tpa") || msg.startsWith("/ec")) {
-                e.setCancelled(true);
-                p.sendMessage(ColorUtil.c("&#FF1744⚔ Команды телепортации заблокированы во время PvP!"));
-            }
+        // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER)!
+        if (plugin.getHud().isInCombat(p) && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+            int left = plugin.getHud().getCombatSecondsLeft(p);
+            e.setCancelled(true);
+            p.sendMessage(ColorUtil.c("&#FF1744⚔ Вы находитесь в &#FF1744&lРЕЖИМЕ ПВП &7(осталось &#FFD740" + left + " сек.&7)! Писать команды в бою запрещено!"));
+            return;
         }
     }
 
@@ -1517,7 +2082,8 @@ public final class GameplayListener implements Listener {
 
         String pref = plugin.getRanks().getAnimatedPrefix(p, plugin.getHud().getAnimTick());
         DataStore.Clan clan = plugin.getStore().getClanOf(p.getName());
-        String clanPart = clan != null ? "&#B388FF[" + clan.tag + "] " : "";
+        String clanCol = (clan != null && clan.color != null && !clan.color.isEmpty()) ? clan.color : "&#B388FF";
+        String clanPart = clan != null ? clanCol + "[" + clan.tag + "] " : "";
         String chTag = global ? "&#FFD740&l[G] " : "&#80D8FF&l[L] ";
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         String rankChatCol = (r != null && r.chatTextColor != null && !r.chatTextColor.isEmpty()) ? r.chatTextColor : "&7";

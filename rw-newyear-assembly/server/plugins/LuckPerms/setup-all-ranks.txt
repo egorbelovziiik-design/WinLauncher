@@ -1,120 +1,118 @@
+# KINGGRIEF v5.7 — 39 Рангов (вкл. mlmoder, mladmin и admin в КП; без hero/titan/overlord/bull!)
 lp creategroup owner
-lp group owner permission set weight.300 true
-lp group owner meta setprefix 300 "&f &f"
+lp group owner setweight 300
+lp group owner meta setprefix 300 "&f &4"
 lp creategroup techadmin
-lp group techadmin permission set weight.295 true
-lp group techadmin meta setprefix 295 "&f &f"
+lp group techadmin setweight 290
+lp group techadmin meta setprefix 290 "&f &b"
 lp creategroup curator
-lp group curator permission set weight.290 true
-lp group curator meta setprefix 290 "&f &f"
-lp creategroup kp
-lp group kp permission set weight.285 true
-lp group kp meta setprefix 285 "&f &f"
+lp group curator setweight 275
+lp group curator meta setprefix 275 "&f &a"
+lp creategroup admin
+lp group admin setweight 268
+lp group admin meta setprefix 268 "&f &c"
+lp creategroup mladmin
+lp group mladmin setweight 260
+lp group mladmin meta setprefix 260 "&f &6"
 lp creategroup glmoder
-lp group glmoder permission set weight.275 true
-lp group glmoder meta setprefix 275 "&f &f"
+lp group glmoder setweight 250
+lp group glmoder meta setprefix 250 "&f &9"
 lp creategroup stmoder
-lp group stmoder permission set weight.265 true
-lp group stmoder meta setprefix 265 "&f &f"
+lp group stmoder setweight 240
+lp group stmoder meta setprefix 240 "&f &3"
 lp creategroup moder
-lp group moder permission set weight.255 true
-lp group moder meta setprefix 255 "&f &f"
+lp group moder setweight 230
+lp group moder meta setprefix 230 "&f &9"
+lp creategroup mlmoder
+lp group mlmoder setweight 220
+lp group mlmoder meta setprefix 220 "&f &b"
 lp creategroup sthelper
-lp group sthelper permission set weight.245 true
-lp group sthelper meta setprefix 245 "&f &f"
+lp group sthelper setweight 214
+lp group sthelper meta setprefix 214 "&f &e"
 lp creategroup helper
-lp group helper permission set weight.235 true
-lp group helper meta setprefix 235 "&f &f"
+lp group helper setweight 208
+lp group helper meta setprefix 208 "&f &a"
+lp creategroup kp
+lp group kp setweight 200
+lp group kp meta setprefix 200 "&f &c"
 lp creategroup downer
-lp group downer permission set weight.220 true
-lp group downer meta setprefix 220 "&f &f"
+lp group downer setweight 190
+lp group downer meta setprefix 190 "&f &4"
 lp creategroup opka
-lp group opka permission set weight.215 true
-lp group opka meta setprefix 215 "&f &f"
-lp creategroup dkp
-lp group dkp permission set weight.210 true
-lp group dkp meta setprefix 210 "&f &f"
+lp group opka setweight 178
+lp group opka meta setprefix 178 "&f &6"
 lp creategroup dadmin
-lp group dadmin permission set weight.200 true
-lp group dadmin meta setprefix 200 "&f &f"
+lp group dadmin setweight 162
+lp group dadmin meta setprefix 162 "&f &c"
 lp creategroup dmladmin
-lp group dmladmin permission set weight.190 true
-lp group dmladmin meta setprefix 190 "&f &f"
+lp group dmladmin setweight 152
+lp group dmladmin meta setprefix 152 "&f &6"
 lp creategroup dglmoder
-lp group dglmoder permission set weight.185 true
-lp group dglmoder meta setprefix 185 "&f &f"
+lp group dglmoder setweight 142
+lp group dglmoder meta setprefix 142 "&f &b"
 lp creategroup dstmoder
-lp group dstmoder permission set weight.180 true
-lp group dstmoder meta setprefix 180 "&f &f"
+lp group dstmoder setweight 132
+lp group dstmoder meta setprefix 132 "&f &3"
 lp creategroup dmoder
-lp group dmoder permission set weight.178 true
-lp group dmoder meta setprefix 178 "&f &f"
+lp group dmoder setweight 124
+lp group dmoder meta setprefix 124 "&f &9"
+lp creategroup dkp
+lp group dkp setweight 118
+lp group dkp meta setprefix 118 "&f &d"
 lp creategroup dhelper
-lp group dhelper permission set weight.175 true
-lp group dhelper meta setprefix 175 "&f &f"
+lp group dhelper setweight 112
+lp group dhelper meta setprefix 112 "&f &a"
 lp creategroup mediaplus
-lp group mediaplus permission set weight.168 true
-lp group mediaplus meta setprefix 168 "&f &f"
+lp group mediaplus setweight 108
+lp group mediaplus meta setprefix 108 "&f &d"
 lp creategroup media
-lp group media permission set weight.165 true
-lp group media meta setprefix 165 "&f &f"
+lp group media setweight 106
+lp group media meta setprefix 106 "&f &d"
 lp creategroup yt
-lp group yt permission set weight.162 true
-lp group yt meta setprefix 162 "&f &f"
+lp group yt setweight 104
+lp group yt meta setprefix 104 "&f &c"
 lp creategroup twitch
-lp group twitch permission set weight.160 true
-lp group twitch meta setprefix 160 "&f &f"
+lp group twitch setweight 102
+lp group twitch meta setprefix 102 "&f &5"
 lp creategroup tiktok
-lp group tiktok permission set weight.158 true
-lp group tiktok meta setprefix 158 "&f &f"
+lp group tiktok setweight 100
+lp group tiktok meta setprefix 100 "&f &b"
 lp creategroup sponsor
-lp group sponsor permission set weight.150 true
-lp group sponsor meta setprefix 150 "&f &f"
-lp creategroup bull
-lp group bull permission set weight.140 true
-lp group bull meta setprefix 140 "&f &f"
+lp group sponsor setweight 92
+lp group sponsor meta setprefix 92 "&f &b"
 lp creategroup king
-lp group king permission set weight.130 true
-lp group king meta setprefix 130 "&f &f"
-lp creategroup dragon
-lp group dragon permission set weight.120 true
-lp group dragon meta setprefix 120 "&f &f"
+lp group king setweight 85
+lp group king meta setprefix 85 "&f &6"
 lp creategroup imperator
-lp group imperator permission set weight.110 true
-lp group imperator meta setprefix 110 "&f &f"
-lp creategroup overlord
-lp group overlord permission set weight.100 true
-lp group overlord meta setprefix 100 "&f &f"
+lp group imperator setweight 75
+lp group imperator meta setprefix 75 "&f &c"
 lp creategroup god
-lp group god permission set weight.90 true
-lp group god meta setprefix 90 "&f &f"
-lp creategroup dracula
-lp group dracula permission set weight.80 true
-lp group dracula meta setprefix 80 "&f &f"
+lp group god setweight 65
+lp group god meta setprefix 65 "&f &e"
 lp creategroup tiger
-lp group tiger permission set weight.72 true
-lp group tiger meta setprefix 72 "&f &f"
+lp group tiger setweight 58
+lp group tiger meta setprefix 58 "&f &6"
 lp creategroup vampire
-lp group vampire permission set weight.65 true
-lp group vampire meta setprefix 65 "&f &f"
+lp group vampire setweight 52
+lp group vampire meta setprefix 52 "&f &4"
 lp creategroup rabbit
-lp group rabbit permission set weight.55 true
-lp group rabbit meta setprefix 55 "&f &f"
-lp creategroup titan
-lp group titan permission set weight.45 true
-lp group titan meta setprefix 45 "&f &f"
+lp group rabbit setweight 45
+lp group rabbit meta setprefix 45 "&f &f"
 lp creategroup bunny
-lp group bunny permission set weight.35 true
-lp group bunny meta setprefix 35 "&f &f"
-lp creategroup hero
-lp group hero permission set weight.28 true
-lp group hero meta setprefix 28 "&f &f"
+lp group bunny setweight 36
+lp group bunny meta setprefix 36 "&f &d"
+lp creategroup dracula
+lp group dracula setweight 30
+lp group dracula meta setprefix 30 "&f &c"
 lp creategroup cobra
-lp group cobra permission set weight.20 true
-lp group cobra meta setprefix 20 "&f &f"
+lp group cobra setweight 24
+lp group cobra meta setprefix 24 "&f &2"
 lp creategroup pegas
-lp group pegas permission set weight.12 true
-lp group pegas meta setprefix 12 "&f &f"
+lp group pegas setweight 18
+lp group pegas meta setprefix 18 "&f &b"
+lp creategroup dragon
+lp group dragon setweight 12
+lp group dragon meta setprefix 12 "&f &5"
 lp creategroup default
-lp group default permission set weight.1 true
-lp group default meta setprefix 1 "&f &f"
+lp group default setweight 5
+lp group default meta setprefix 5 "&f &7"

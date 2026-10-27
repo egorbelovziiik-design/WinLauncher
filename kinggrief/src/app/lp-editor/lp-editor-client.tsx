@@ -27,45 +27,44 @@ interface LpUser {
 
 const INITIAL_GROUPS: LpGroup[] = [
   { id: 'owner', label: 'OWNER', weight: 300, prefix: '&#FF1744&lOWNER &f', tier: 'Владелец', perms: [{ node: '*', value: true }, { node: 'kinggrief.spawn.edit', value: true }, { node: 'kinggrief.lp', value: true }] },
-  { id: 'techadmin', label: 'Тех.Админ', weight: 290, prefix: '&#F43F5E&l[Тех.Админ] &f', tier: 'Владелец', perms: [{ node: 'kinggrief.admin', value: true }, { node: 'kinggrief.staff', value: true }] },
+  { id: 'techadmin', label: 'Тех.Админ', weight: 290, prefix: '&#00E5FF&l[Тех.Админ] &f', tier: 'КП', perms: [{ node: 'kinggrief.admin', value: true }, { node: 'kinggrief.staff', value: true }] },
   { id: 'curator', label: 'CURATOR', weight: 275, prefix: '&#22C55E&lCURATOR &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.vanish', value: true }] },
-  { id: 'kp', label: 'КП', weight: 255, prefix: '&#10B981&l[КП] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.ban', value: true }, { node: 'kinggrief.mute', value: true }] },
-  { id: 'glmoder', label: 'Гл.Модер', weight: 245, prefix: '&#7C3AED&l[Гл.Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.ban', value: true }] },
-  { id: 'stmoder', label: 'Ст.Модер', weight: 235, prefix: '&#4F46E5&l[Ст.Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.mute', value: true }] },
-  { id: 'moder', label: 'Модер', weight: 225, prefix: '&#2563EB&l[Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'sthelper', label: 'Ст.Хелпер', weight: 215, prefix: '&#0EA5E9&l[Ст.Хелпер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'helper', label: 'Хелпер', weight: 205, prefix: '&#38BDF8&l[Хелпер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'downer', label: 'D.OWNER (1499₽)', weight: 190, prefix: '&#FACC15&lD.OWNER &f', tier: 'Донат-Админ', perms: [{ node: 'kinggrief.gm', value: true }, { node: 'kinggrief.fly', value: true }, { node: 'kinggrief.vanish', value: true }] },
-  { id: 'opka', label: 'OPKA (999₽)', weight: 178, prefix: '&#C026D3&lOPKA &f', tier: 'Донат-Админ', perms: [{ node: 'kinggrief.gm', value: true }, { node: 'kinggrief.fly', value: true }] },
-  { id: 'dkp', label: 'ДКП (899₽)', weight: 168, prefix: '&#FF6D00&lДКП &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.fly', value: true }] },
-  { id: 'dadmin', label: 'D.ADMIN (799₽)', weight: 160, prefix: '&#DC2626&lD.ADMIN &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.fly', value: true }] },
-  { id: 'dmladmin', label: 'D.ML.ADMIN (599₽)', weight: 150, prefix: '&#F97316&lD.ML.ADMIN &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.fly', value: true }] },
-  { id: 'dglmoder', label: 'D.GLMODER (449₽)', weight: 140, prefix: '&#8B5CF6&lD.GLMODER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'dstmoder', label: 'D.ST.MODER (349₽)', weight: 130, prefix: '&#3B82F6&lD.ST.MODER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'dmoder', label: 'D.MODER (249₽)', weight: 120, prefix: '&#14B8A6&lD.MODER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'dhelper', label: 'D.HELPER (219₽)', weight: 115, prefix: '&#2DD4BF&lD.HELPER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.staff', value: true }] },
-  { id: 'mediaplus', label: 'MEDIA+', weight: 110, prefix: '&#F43F5E&lMEDIA+ &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
-  { id: 'media', label: 'MEDIA', weight: 108, prefix: '&#EC4899&lMEDIA &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
-  { id: 'yt', label: 'YOUTUBE', weight: 106, prefix: '&#FF0000&lYOUTUBE &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
-  { id: 'twitch', label: 'TWITCH', weight: 104, prefix: '&#9146FF&lTWITCH &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
-  { id: 'tiktok', label: 'TikTok', weight: 102, prefix: '&#FF0050&lTikTok &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
-  { id: 'sponsor', label: 'SPONSOR', weight: 98, prefix: '&#FBBF24&lSPONSOR &f', tier: 'Донат', perms: [{ node: 'kinggrief.fly', value: true }, { node: 'kinggrief.repair', value: true }] },
-  { id: 'bull', label: 'BULL', weight: 94, prefix: '&#EA580C&lBULL &f', tier: 'Донат', perms: [{ node: 'kinggrief.fly', value: true }, { node: 'kinggrief.repair', value: true }] },
-  { id: 'king', label: 'KING (199₽)', weight: 90, prefix: '&#A855F7&lKING &f', tier: 'Донат', perms: [{ node: 'kinggrief.fly', value: true }, { node: 'kinggrief.repair', value: true }] },
-  { id: 'dragon', label: 'DRAGON', weight: 80, prefix: '&#D946EF&lDRAGON &f', tier: 'Донат', perms: [{ node: 'kinggrief.repair', value: true }] },
-  { id: 'imperator', label: 'IMPERATOR', weight: 75, prefix: '&#F43F5E&lIMPERATOR &f', tier: 'Донат', perms: [{ node: 'kinggrief.heal', value: true }] },
-  { id: 'overlord', label: 'OVERLORD', weight: 70, prefix: '&#2DD4BF&lOVERLORD &f', tier: 'Донат', perms: [{ node: 'kinggrief.heal', value: true }] },
+  { id: 'admin', label: 'Админ (КП)', weight: 268, prefix: '&#EF4444&l[Админ] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.ban', value: true }, { node: 'kinggrief.events', value: true }] },
+  { id: 'mladmin', label: 'Мл.Админ (КП)', weight: 260, prefix: '&#F97316&l[Мл.Админ] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.ban', value: true }] },
+  { id: 'glmoder', label: 'Гл.Модер', weight: 250, prefix: '&#7C3AED&l[Гл.Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.ban', value: true }] },
+  { id: 'stmoder', label: 'Ст.Модер', weight: 240, prefix: '&#4F46E5&l[Ст.Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.mute', value: true }] },
+  { id: 'moder', label: 'Модер', weight: 230, prefix: '&#2563EB&l[Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.tphere', value: true }] },
+  { id: 'mlmoder', label: 'Мл.Модер', weight: 220, prefix: '&#38BDF8&l[Мл.Модер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }, { node: 'kinggrief.tphere', value: true }] },
+  { id: 'sthelper', label: 'Ст.Хелпер', weight: 214, prefix: '&#0EA5E9&l[Ст.Хелпер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }] },
+  { id: 'helper', label: 'Хелпер', weight: 208, prefix: '&#22C55E&l[Хелпер] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }] },
+  { id: 'kp', label: 'КП (Стажёр КП)', weight: 200, prefix: '&#EF4444&l[КП] &f', tier: 'КП', perms: [{ node: 'kinggrief.staff', value: true }] },
+  { id: 'downer', label: 'D.OWNER (1499₽)', weight: 190, prefix: '&#FACC15&lD.OWNER &f', tier: 'Донат-Админ', perms: [{ node: 'kinggrief.gm', value: true }, { node: 'kinggrief.fly', value: true }, { node: 'kinggrief.events', value: true }] },
+  { id: 'opka', label: 'OPKA (999₽)', weight: 178, prefix: '&#C026D3&lOPKA &f', tier: 'Донат-Админ', perms: [{ node: 'kinggrief.gm', value: true }, { node: 'kinggrief.fly', value: true }, { node: 'kinggrief.events', value: true }] },
+  { id: 'dadmin', label: 'D.ADMIN (799₽)', weight: 162, prefix: '&#DC2626&lD.ADMIN &f', tier: 'ДКП', perms: [{ node: 'kinggrief.events', value: true }, { node: 'kinggrief.fly', value: true }] },
+  { id: 'dmladmin', label: 'D.ML.ADMIN (599₽)', weight: 152, prefix: '&#F97316&lD.ML.ADMIN &f', tier: 'ДКП', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'dglmoder', label: 'D.GLMODER (449₽)', weight: 142, prefix: '&#8B5CF6&lD.GLMODER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'dstmoder', label: 'D.ST.MODER (349₽)', weight: 132, prefix: '&#3B82F6&lD.ST.MODER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'dmoder', label: 'D.MODER (249₽)', weight: 124, prefix: '&#14B8A6&lD.MODER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'dkp', label: 'D.KP (229₽)', weight: 118, prefix: '&#E879F9&lD.KP &f', tier: 'ДКП', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'dhelper', label: 'D.HELPER (219₽)', weight: 112, prefix: '&#2DD4BF&lD.HELPER &f', tier: 'ДКП', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'mediaplus', label: 'MEDIA+', weight: 108, prefix: '&#F43F5E&lMEDIA+ &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'media', label: 'MEDIA', weight: 106, prefix: '&#EC4899&lMEDIA &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'yt', label: 'YOUTUBE', weight: 104, prefix: '&#FF0000&lYOUTUBE &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'twitch', label: 'TWITCH', weight: 102, prefix: '&#9146FF&lTWITCH &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'tiktok', label: 'TikTok', weight: 100, prefix: '&#FF0050&lTikTok &f', tier: 'Медиа', perms: [{ node: 'kinggrief.fly', value: true }] },
+  { id: 'sponsor', label: 'SPONSOR (215₽)', weight: 92, prefix: '&#38BDF8&lSPONSOR &f', tier: 'Донат', perms: [{ node: 'kinggrief.fly', value: true }, { node: 'kinggrief.repair', value: true }] },
+  { id: 'king', label: 'KING (199₽)', weight: 85, prefix: '&#A855F7&lKING &f', tier: 'Донат', perms: [{ node: 'kinggrief.fly', value: true }, { node: 'kinggrief.repair', value: true }] },
+  { id: 'imperator', label: 'IMPERATOR (179₽)', weight: 75, prefix: '&#F43F5E&lIMPERATOR &f', tier: 'Донат', perms: [{ node: 'kinggrief.fly', value: true }, { node: 'kinggrief.repair', value: true }] },
   { id: 'god', label: 'GOD (149₽)', weight: 65, prefix: '&#FACC15&lGOD &f', tier: 'Донат', perms: [{ node: 'kinggrief.heal', value: true }, { node: 'kinggrief.enderchest', value: true }] },
-  { id: 'dracula', label: 'DRACULA', weight: 60, prefix: '&#DC2626&lDRACULA &f', tier: 'Донат', perms: [{ node: 'kinggrief.feed', value: true }] },
-  { id: 'tiger', label: 'TIGER', weight: 55, prefix: '&#FB923C&lTIGER &f', tier: 'Донат', perms: [{ node: 'kinggrief.feed', value: true }] },
-  { id: 'vampire', label: 'VAMPIRE (99₽)', weight: 50, prefix: '&#EF4444&lVAMPIRE &f', tier: 'Донат', perms: [{ node: 'kinggrief.feed', value: true }] },
+  { id: 'tiger', label: 'TIGER (119₽)', weight: 58, prefix: '&#FB923C&lTIGER &f', tier: 'Донат', perms: [{ node: 'kinggrief.feed', value: true }] },
+  { id: 'vampire', label: 'VAMPIRE (99₽)', weight: 52, prefix: '&#EF4444&lVAMPIRE &f', tier: 'Донат', perms: [{ node: 'kinggrief.feed', value: true }] },
   { id: 'rabbit', label: 'RABBIT (89₽)', weight: 45, prefix: '&#38BDF8&lRABBIT &f', tier: 'Донат', perms: [{ node: 'kinggrief.workbench', value: true }] },
-  { id: 'titan', label: 'TITAN', weight: 40, prefix: '&#60A5FA&lTITAN &f', tier: 'Донат', perms: [{ node: 'kinggrief.workbench', value: true }] },
-  { id: 'bunny', label: 'BUNNY (59₽)', weight: 35, prefix: '&#EC4899&lBUNNY &f', tier: 'Донат', perms: [{ node: 'kinggrief.workbench', value: true }] },
-  { id: 'hero', label: 'HERO', weight: 30, prefix: '&#38BDF8&lHERO &f', tier: 'Донат', perms: [] },
-  { id: 'cobra', label: 'COBRA (39₽)', weight: 25, prefix: '&#84CC16&lCOBRA &f', tier: 'Донат', perms: [] },
-  { id: 'pegas', label: 'PEGAS (19₽)', weight: 20, prefix: '&#22C55E&lPEGAS &f', tier: 'Донат', perms: [] },
-  { id: 'default', label: 'Игрок (default)', weight: 10, prefix: '&#B0BEC5', tier: 'Базовая', perms: [] },
+  { id: 'bunny', label: 'BUNNY (59₽)', weight: 36, prefix: '&#EC4899&lBUNNY &f', tier: 'Донат', perms: [{ node: 'kinggrief.workbench', value: true }] },
+  { id: 'dracula', label: 'DRACULA (49₽)', weight: 30, prefix: '&#DC2626&lDRACULA &f', tier: 'Донат', perms: [{ node: 'kinggrief.enderchest', value: true }] },
+  { id: 'cobra', label: 'COBRA (39₽)', weight: 24, prefix: '&#84CC16&lCOBRA &f', tier: 'Донат', perms: [] },
+  { id: 'pegas', label: 'PEGAS (19₽)', weight: 18, prefix: '&#22C55E&lPEGAS &f', tier: 'Донат', perms: [] },
+  { id: 'dragon', label: 'DRAGON (15₽ / /free dragon)', weight: 12, prefix: '&#D946EF&lDRAGON &f', tier: 'Донат', perms: [] },
+  { id: 'default', label: 'Игрок (default)', weight: 5, prefix: '&#B0BEC5', tier: 'Базовая', perms: [] },
 ];
 
 const QUICK_PERMS = [
@@ -454,19 +453,19 @@ export function LpEditorClient() {
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <div className="font-bold text-amber-300 mb-1">Ветка: donate</div>
                 <p className="text-slate-400 leading-relaxed">
-                  default → pegas → cobra → hero → bunny → titan → rabbit → vampire → tiger → dracula → god → overlord → imperator → dragon → king → bull → sponsor
+                  default → dragon → pegas → cobra → dracula → bunny → rabbit → vampire → tiger → god → imperator → king → sponsor
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <div className="font-bold text-orange-400 mb-1">Ветка: dkp</div>
                 <p className="text-slate-400 leading-relaxed">
-                  dhelper → dmoder → dstmoder → dglmoder → dmladmin → dadmin → dkp → opka → downer
+                  dhelper → dkp → dmoder → dstmoder → dglmoder → dmladmin → dadmin → opka → downer
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <div className="font-bold text-emerald-400 mb-1">Ветка: kp</div>
                 <p className="text-slate-400 leading-relaxed">
-                  helper → sthelper → moder → stmoder → glmoder → kp → curator → techadmin → owner
+                  kp → helper → sthelper → mlmoder → moder → stmoder → glmoder → mladmin → admin → curator → techadmin → owner
                 </p>
               </div>
             </div>

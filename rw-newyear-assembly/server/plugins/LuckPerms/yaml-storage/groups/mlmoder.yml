@@ -1,0 +1,6 @@
+name: mlmoder
+permissions:
+- weight.220
+prefixes:
+- '&f &b':
+    priority: 220

@@ -1,14 +1,6 @@
 name: dmoder
 permissions:
-- weight.178
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- dhelper
+- weight.124
 prefixes:
-- '&f &f':
-    priority: 178
+- '&f &9':
+    priority: 124

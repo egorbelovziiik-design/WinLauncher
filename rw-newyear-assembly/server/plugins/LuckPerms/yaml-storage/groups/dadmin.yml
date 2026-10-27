@@ -1,14 +1,6 @@
 name: dadmin
 permissions:
-- weight.200
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- dmladmin
+- weight.162
 prefixes:
-- '&f &f':
-    priority: 200
+- '&f &c':
+    priority: 162

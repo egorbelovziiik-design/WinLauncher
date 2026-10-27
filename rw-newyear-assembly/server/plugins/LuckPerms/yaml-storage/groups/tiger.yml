@@ -1,12 +1,6 @@
 name: tiger
 permissions:
-- weight.72
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- vampire
+- weight.58
 prefixes:
-- '&f &f':
-    priority: 72
+- '&f &6':
+    priority: 58

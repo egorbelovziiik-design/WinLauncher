@@ -1,10 +1,10 @@
 name: KingGriefCore
-version: 5.6.0
+version: 5.7.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.21'
 load: POSTWORLD
 author: KINGGRIEF
-description: KINGGRIEF v5.6 Luxury New Year FT x RW Edition (40 Luxury Animated Rank Badges, Festive 2026 New Year Spawn, 38 Crisp 3D Items, Tiered /rtp & /rtp near, /kit <kit> [nick], OWNER-only LP Editor)
+description: KINGGRIEF v5.7 Zero-Freeze New Year FT x RW Edition (41 Luxury OWNER-Style Badges incl. ML.MODER, Unblocked /warp pvp, /tphere & Staff Tools from ML.MODER, /gm 0 <nick>, /fps Optimizer, 10 Santa Gifts, DPS Dummies)
 
 commands:
   lp:
@@ -20,7 +20,7 @@ commands:
   changepassword:
     aliases: [cpw]
   spawn:
-    description: Teleport to Festive New Year Spawn World
+    description: Teleport to Festive Zero-Freeze New Year Spawn World
   rtp:
     description: Tiered RTP Menu (Close, Medium, High, Near, Nether)
   rtpnear:
@@ -28,7 +28,7 @@ commands:
   warp:
     description: Teleport to Server Warp
   warps:
-    description: Open Warps Menu
+    description: Open Warps Menu (11 Zones)
   mine:
     description: Auto-Mine Warp
   farm:
@@ -36,9 +36,29 @@ commands:
   casino:
     description: Grand Casino 777
   pvp:
-    description: PvP Arena & Kabinki
+    description: Gladiator PvP Arena
   parkour:
     description: 40-Step Possible Sky Parkour
+  wheel:
+    description: Fortune Wheel 2026 (/wheel)
+  top:
+    description: Top-5 Rich & Killers Leaderboard (/top)
+  gifts:
+    description: Santa Secret Spawn Gifts 10/10 (/gifts)
+  fps:
+    aliases: [opt, optimize]
+    description: Client FPS Booster Toggle (+40..80 FPS)
+  lag:
+    aliases: [tps, gc]
+    description: Server TPS, RAM & Performance Monitor
+  clearlag:
+    description: Smart Ground Trash & Arrow Cleanup (ML.MODER+)
+  ping:
+    description: Check Player Ping
+  stats:
+    description: Player Statistics Card
+  anvil:
+    description: Open Virtual Anvil (DRAGON+)
   enchants:
     aliases: [smith]
   bafovar:
@@ -51,7 +71,7 @@ commands:
     aliases: [bounties]
     description: Player Head Bounties
   free:
-    aliases: [freecase, gifts]
+    aliases: [freecase]
     description: Freebies & Promo Codes Menu
   trash:
     aliases: [disposal]
@@ -78,7 +98,7 @@ commands:
   kits:
     description: Privilege Kits Menu
   kit:
-    description: Claim Privilege Kit
+    description: Claim Privilege Kit (/kit <kit> [nick])
   ah:
     aliases: [auc, auction]
   jobs:
@@ -136,7 +156,34 @@ commands:
     aliases: [fix]
   fly: {}
   gm:
-    aliases: [gamemode]
+    aliases: [gamemode, gmc, gmsp]
+    description: Change own or target gamemode (/gm 0 [nick])
+  gms:
+    description: Set survival mode for self or target (/gms [nick])
+  tphere:
+    aliases: [s]
+    description: Teleport player to you (STRICTLY ML.MODER+ ONLY)
+  tp:
+    aliases: [tp2p]
+    description: Direct staff teleport (STRICTLY ML.MODER+ ONLY)
+  tppos:
+    description: Teleport to coordinates (STRICTLY ML.MODER+ ONLY)
+  tpall:
+    description: Teleport all players to you (KP / CURATOR / OWNER)
+  invsee:
+    description: Inspect player inventory (STRICTLY ML.MODER+ ONLY)
+  ecsee:
+    aliases: [endersee]
+    description: Inspect player enderchest (STRICTLY ML.MODER+ ONLY)
+  freeze:
+    aliases: [ssfreeze]
+    description: Quick freeze/unfreeze suspect (STRICTLY ML.MODER+ ONLY)
+  whois:
+    aliases: [seen, pinfo]
+    description: Moderator player dossier (STRICTLY ML.MODER+ ONLY)
+  staffchat:
+    aliases: [sc]
+    description: Private staff chat (HELPER+)
   vanish:
     aliases: [v]
   check:
@@ -144,7 +191,7 @@ commands:
     description: Cheat check system (start/stop + AnyDesk/Discord)
   sw:
     aliases: [staffwork]
-    description: Staff work shift & statistics (/sw начать работу, /sw закончить работу, /sw status)
+    description: Staff work shift & statistics (/sw)
   spek:
     aliases: [spec]
     description: Request moderator spectate (/спек или /spek)
@@ -156,5 +203,5 @@ commands:
   bc:
     aliases: [broadcast]
   rebuildspawn:
-    description: Rebuild colorful spawn_v5 in spawn_world
+    description: Rebuild Zero-Freeze New Year Spawn v5.7 in spawn_world
   kgadmin: {}

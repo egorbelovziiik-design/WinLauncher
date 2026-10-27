@@ -206,8 +206,117 @@ public final class ItemFactory {
     public static ItemStack talStuzhi() {
         return make(Material.TOTEM_OF_UNDYING, 1, "&#80D8FF&l❄ 3D Новогодний Тотем Стужи [2026]",
                 Arrays.asList("&8Blender 3D Зимний Талисман", "",
+                        "&7Когда в &fлевой руке&7: &#80D8FF+2 ❤ · Скорость II · Реген I",
                         "&7При срабатывании тотема:", " &#80D8FF• Замораживает всех врагов вокруг на 6 сек!"),
                 true, "tal_stuzhi", "tal_stuzhi", 1207);
+    }
+
+    // ================= 9 НОВЫХ 3D ТАЛИСМАНОВ v5.7 (ВСЕГО 16 ТАЛИСМАНОВ + БОЖЕСТВЕННЫЙ OWNER!) =================
+    public static ItemStack talOwner(int charges) {
+        int ch = Math.max(1, Math.min(5, charges));
+        ItemStack it = make(Material.TOTEM_OF_UNDYING, 1, "&#FF1744&l👑 &#FFD740&lБОЖЕСТВЕННЫЙ ТАЛИСМАН OWNER [" + ch + "/5]",
+                Arrays.asList("&8Эксклюзивный Божественный Артефакт ВЛАДЕЛЬЦА", "",
+                        "&7Осталось зарядов бессмертия: &#FFD740&l" + ch + " / 5",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF1744• +10 ❤ Максимального Здоровья (30 ❤!)",
+                        " &#FF5252• Сила III  &#40C4FF• Скорость III  &#00E676• Сопротивление II",
+                        " &#FF80AB• Регенерация II  &#FFD740• Огнестойкость  &#69F0AE• Спешка II",
+                        "&7При срабатывании:",
+                        " &#FFD740• Полное исцеление + 10 Золотых ❤ + Молнии по врагам!"),
+                true, "tal_owner", "tal_owner", 1208);
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(CHARGES_KEY, PersistentDataType.INTEGER, Integer.valueOf(ch));
+            it.setItemMeta(m);
+        }
+        return it;
+    }
+
+    public static ItemStack talKaratelya() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#EF4444&l⚔ 3D Талисман Карателя [FT×RW]",
+                Arrays.asList("&8Боевой 3D Талисман Атаки", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +3 ❤ Здоровья  &#FF1744• Сила III  &#40C4FF• Скорость II",
+                        "&7При срабатывании:", " &#EF4444• Поджигает и накладывает Иссушение II врагам!"),
+                true, "tal_karatelya", "tal_karatelya", 1209);
+    }
+
+    public static ItemStack talZeusa() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#FACC15&l⚡ 3D Талисман Зевса [FT×RW]",
+                Arrays.asList("&8Громовой 3D Талисман Олимпа", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +3 ❤ Здоровья  &#FFD740• Сила II  &#40C4FF• Скорость II",
+                        "&7При срабатывании:", " &#FACC15• Удар Молнии Зевса по всем врагам в 7 блоках!"),
+                true, "tal_zeusa", "tal_zeusa", 1210);
+    }
+
+    public static ItemStack talDraculy() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#E11D48&l🩸 3D Талисман Дракулы [Вампиризм]",
+                Arrays.asList("&8Кровавый 3D Талисман Ночи", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +4 ❤ Здоровья  &#FF1744• Сила II  &#F43F5E• Вампиризм +25%",
+                        "&7При срабатывании:", " &#E11D48• Крадёт 4❤ у ближайших врагов!"),
+                true, "tal_draculy", "tal_draculy", 1211);
+    }
+
+    public static ItemStack talKolossa() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#6EE7B7&l🛡 3D Талисман Колосса [Танк]",
+                Arrays.asList("&8Непробиваемый 3D Талисман Титанов", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +6 ❤ Максимального Здоровья  &#00E676• Сопротивление II  &#FFD740• Огнестойкость",
+                        "&7При срабатывании:", " &#6EE7B7• Каменная Крепость (+12 Золотых ❤)!"),
+                true, "tal_kolossa", "tal_kolossa", 1212);
+    }
+
+    public static ItemStack talZhneca() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#A855F7&l💀 3D Талисман Жнеца Душ [FT×RW]",
+                Arrays.asList("&8Теневой 3D Талисман Жнеца", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +3 ❤ Здоровья  &#C084FC• Сила III  &#38BDF8• Скорость II",
+                        "&7При срабатывании:", " &#A855F7• Ослепляет и ослабляет всех врагов вокруг!"),
+                true, "tal_zhneca", "tal_zhneca", 1213);
+    }
+
+    public static ItemStack talSevera() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#38BDF8&l❄ 3D Талисман Северной Вьюги [2026]",
+                Arrays.asList("&8Новогодний 3D Талисман Метели", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +4 ❤ Здоровья  &#38BDF8• Скорость III  &#F472B6• Регенерация II",
+                        "&7При срабатывании:", " &#38BDF8• Снежная Буря замораживает врагов на 7 сек!"),
+                true, "tal_severa", "tal_severa", 1214);
+    }
+
+    public static ItemStack talBezdn(int charges) {
+        int ch = Math.max(1, Math.min(2, charges));
+        ItemStack it = make(Material.TOTEM_OF_UNDYING, 1, "&#8B5CF6&l🔮 3D Талисман Бездны [" + ch + "/2]",
+                Arrays.asList("&8Двухзарядный 3D Талисман Пустоты", "",
+                        "&7Осталось зарядов: &#00E676&l" + ch + " / 2",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +4 ❤ Здоровья  &#A855F7• Сила II  &#00E676• Сопротивление I"),
+                true, "tal_bezdn", "tal_bezdn", 1215);
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(CHARGES_KEY, PersistentDataType.INTEGER, Integer.valueOf(ch));
+            it.setItemMeta(m);
+        }
+        return it;
+    }
+
+    public static ItemStack talImperatora() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#FB923C&l👑 3D Талисман Императора [FT×RW]",
+                Arrays.asList("&8Королевский 3D Талисман Власти", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• +5 ❤ Здоровья  &#FF1744• Сила II  &#38BDF8• Скорость II  &#F472B6• Реген II",
+                        "&7При срабатывании:", " &#FB923C• Императорский Щит (+8 Золотых ❤ + Сила III)!"),
+                true, "tal_imperatora", "tal_imperatora", 1216);
+    }
+
+    public static ItemStack totemRw() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#FFD740&l🔱 3D Тотем Бессмертия [RW]",
+                Arrays.asList("&8Фирменный 3D Тотем ReallyWorld", "",
+                        "&7• Усиленное возрождение + Регенерация III",
+                        "&7• Компактная PvP-модель в левой руке!"),
+                true, "totem_rw", "totem_rw", 1217);
     }
 
     // ================= 6 КАСТОМНЫХ BLENDER 3D ЭЛИТР С РАЗНЫМИ БАФФАМИ =================
@@ -351,6 +460,33 @@ public final class ItemFactory {
                         "&7паутиной &a3×3 &7на месте падения на &e8 сек&7!",
                         "&8Перезарядка: 15 сек."),
                 true, "pautinnaya_granata", "pautinnaya_granata", 1508);
+    }
+
+    public static ItemStack bozhyaKara(int amt) {
+        return make(Material.BLAZE_ROD, amt, "&#FACC15&l⚡ Божья Кара Зевса [FT×RW]",
+                Arrays.asList("&8Карающий расходник FunTime × ReallyWorld", "",
+                        "&7ПКМ — обрушивает небесные молнии на всех врагов",
+                        "&7в радиусе &e8 блоков &7(&c8❤ урона &7+ поджог + КТ 30с)!",
+                        "&8Перезарядка: 22 сек."),
+                true, "bozhya_kara", "bozhya_kara", 1509);
+    }
+
+    public static ItemStack gravSfera(int amt) {
+        return make(Material.HEART_OF_THE_SEA, amt, "&#C084FC&l🕳 Гравитационная Сфера [Чёрная Дыра]",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld", "",
+                        "&7ПКМ — создаёт гравитационный импульс и стягивает",
+                        "&7всех врагов в радиусе &d9 блоков &7прямо под комбо!",
+                        "&8Перезарядка: 20 сек."),
+                true, "grav_sfera", "grav_sfera", 1510);
+    }
+
+    public static ItemStack snegZavesa(int amt) {
+        return make(Material.FEATHER, amt, "&#7DD3FC&l❄ Снежная Завеса [Рывок]",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld", "",
+                        "&7ПКМ — рывок вперёд + &bСкорость III &7и ослепление",
+                        "&7снежной бурей всех врагов в радиусе &b6 блоков&7!",
+                        "&8Перезарядка: 16 сек."),
+                true, "sneg_zavesa", "sneg_zavesa", 1511);
     }
 
     // ================= ЗЕЛЬЯ И МИКСЫ БАФОВАРА (ДО 8 ЗЕЛИЙ ЗА 5 000$!) =================
@@ -549,27 +685,290 @@ public final class ItemFactory {
         return sw;
     }
 
-    public static ItemStack bowIceRw() {
-        ItemStack bow = make(Material.BOW, 1, "&#80D8FF&l🏹 3D Ледяной Лук Снайпера [FT×RW]",
-                Arrays.asList("&8Blender 3D Зимнее оружие",
-                        "&7• Замораживает и замедляет врага при попадании!",
-                        "&7• Сила VI · Бесконечность · Горящая Стрела"),
-                false, "bow_ice_rw", "bow_ice_rw", 1305);
+    public static ItemStack swordOwner() {
+        ItemStack sw = make(Material.NETHERITE_SWORD, 1, "&#FF1744&l👑 &#FFD740&lБОЖЕСТВЕННЫЙ МЕЧ OWNER [Острота VIII]",
+                Arrays.asList("&8Эксклюзивный клинок ВЛАДЕЛЬЦА сервера",
+                        "&7• Зачарование: &#FF1744Вампиризм III &7+ &#76FF03Окисление III",
+                        "&7• Острота VIII · Заговор Огня III · Добыча V · Прочность VI"),
+                false, "sword_owner", "sword_owner", 1314);
+        ItemMeta m = sw.getItemMeta();
+        if (m != null) {
+            addEnch(m, "sharpness", "DAMAGE_ALL", 8);
+            addEnch(m, "fire_aspect", "FIRE_ASPECT", 3);
+            addEnch(m, "looting", "LOOT_BONUS_MOBS", 5);
+            addEnch(m, "unbreaking", "DURABILITY", 6);
+            addEnch(m, "mending", "MENDING", 1);
+            sw.setItemMeta(m);
+        }
+        return sw;
+    }
+
+    public static ItemStack maceKrush() {
+        Material maceMat = ColorUtil.mat("MACE", "NETHERITE_AXE");
+        ItemStack mc = make(maceMat, 1, "&#FF6D00&l🔨 3D Булава Крушителя [Удар с Небес]",
+                Arrays.asList("&8Тяжёлое 3D оружие сокрушения",
+                        "&7• При ударе в падении создаёт ударную волну",
+                        "&7  и полностью гасит ваш урон от падения!",
+                        "&7• Острота VI · Прочность V · Починка"),
+                false, "mace_krush", "mace_krush", 1311);
+        ItemMeta m = mc.getItemMeta();
+        if (m != null) {
+            addEnch(m, "sharpness", "DAMAGE_ALL", 6);
+            addEnch(m, "density", "DAMAGE_ALL", 5);
+            addEnch(m, "wind_burst", "KNOCKBACK", 2);
+            addEnch(m, "unbreaking", "DURABILITY", 5);
+            addEnch(m, "mending", "MENDING", 1);
+            mc.setItemMeta(m);
+        }
+        return mc;
+    }
+
+    public static ItemStack tridentPoseidon() {
+        ItemStack tr = make(Material.TRIDENT, 1, "&#00E5FF&l🔱 3D Трезубец Посейдона [Громовержец]",
+                Arrays.asList("&8Морское 3D оружие Богов",
+                        "&7• Призывает молнию во врага даже в ясную погоду!",
+                        "&7• Верность III · Пронзатель V · Прочность V"),
+                false, "trident_poseidon", "trident_poseidon", 1312);
+        ItemMeta m = tr.getItemMeta();
+        if (m != null) {
+            addEnch(m, "loyalty", "LOYALTY", 3);
+            addEnch(m, "impaling", "IMPALING", 5);
+            addEnch(m, "channeling", "CHANNELING", 1);
+            addEnch(m, "unbreaking", "DURABILITY", 5);
+            addEnch(m, "mending", "MENDING", 1);
+            tr.setItemMeta(m);
+        }
+        return tr;
+    }
+
+    // ================= 4 КАСТОМНЫХ 3D ЛУКА С ПОЛНОЙ 4-КАДРОВОЙ АНИМАЦИЕЙ НАТЯЖЕНИЯ =================
+    private static ItemStack makeCustomBow(String name, String id, int cmd, int powerLvl, boolean flame, List<String> lore) {
+        ItemStack bow = make(Material.BOW, 1, name, lore, false, id, id, cmd);
         ItemMeta m = bow.getItemMeta();
         if (m != null) {
-            addEnch(m, "power", "ARROW_DAMAGE", 6);
+            addEnch(m, "power", "ARROW_DAMAGE", powerLvl);
             addEnch(m, "infinity", "ARROW_INFINITE", 1);
-            addEnch(m, "flame", "ARROW_FIRE", 1);
+            if (flame) addEnch(m, "flame", "ARROW_FIRE", 1);
             addEnch(m, "unbreaking", "DURABILITY", 5);
+            addEnch(m, "mending", "MENDING", 1);
             bow.setItemMeta(m);
         }
         return bow;
     }
 
+    public static ItemStack bowIceRw() {
+        return makeCustomBow("&#80D8FF&l🏹 3D Ледяной Лук Снайпера [FT×RW]", "bow_ice_rw", 1305, 6, false,
+                Arrays.asList("&83D Лук с плавной анимацией натяжения",
+                        "&7• Замораживает и замедляет врага при попадании!",
+                        "&7• Сила VI · Бесконечность · Прочность V"));
+    }
+
+    public static ItemStack bowInferno() {
+        return makeCustomBow("&#FF6D00&l🔥 3D Лук Адского Пламени [FT×RW]", "bow_inferno", 1308, 6, true,
+                Arrays.asList("&83D Лук с плавной анимацией натяжения",
+                        "&7• Поджигает и накладывает Иссушение II на 5 сек!",
+                        "&7• Сила VI · Горящая Стрела · Бесконечность"));
+    }
+
+    public static ItemStack bowZeus() {
+        return makeCustomBow("&#FACC15&l⚡ 3D Громовой Лук Зевса [Олимп]", "bow_zeus", 1309, 7, true,
+                Arrays.asList("&83D Лук с плавной анимацией натяжения",
+                        "&7• Бьёт врага Небесной Молнией (+3❤ чистого урона)!",
+                        "&7• Сила VII · Горящая Стрела · Бесконечность"));
+    }
+
+    public static ItemStack bowVampire() {
+        return makeCustomBow("&#E11D48&l🩸 3D Кровавый Лук Дракулы [Вампиризм]", "bow_vampire", 1310, 6, false,
+                Arrays.asList("&83D Лук с плавной анимацией натяжения",
+                        "&7• Исцеляет стрелка на 35% от нанесённого урона!",
+                        "&7• Сила VI · Бесконечность · Прочность V"));
+    }
+
+    // ================= 6 РАЗНОВИДНОСТЕЙ 3D СТРЕЛ =================
     public static ItemStack arrowIce(int amt) {
-        return make(Material.TIPPED_ARROW, amt, "&#80D8FF&l❄ Ледяная Стрела РВ",
-                Arrays.asList("&7Замораживает противника и снимает скорость!"),
-                true, "arrow_ice", null, 0);
+        return make(Material.ARROW, amt, "&#80D8FF&l❄ 3D Ледяная Стрела РВ",
+                Arrays.asList("&7Замораживает противника (Медлительность IV на 5 сек)!"),
+                true, "arrow_ice", "arrow_ice", 1321);
+    }
+
+    public static ItemStack arrowExplosive(int amt) {
+        return make(Material.ARROW, amt, "&#FF6D00&l💥 3D Разрывная Стрела Крушителя",
+                Arrays.asList("&7Создаёт ударный взрыв при попадании (+3❤ урона)!"),
+                true, "arrow_explosive", "arrow_explosive", 1322);
+    }
+
+    public static ItemStack arrowLightning(int amt) {
+        return make(Material.ARROW, amt, "&#FACC15&l⚡ 3D Громовая Стрела Зевса",
+                Arrays.asList("&7Призывает молнию в точку попадания и сбивает щит!"),
+                true, "arrow_lightning", "arrow_lightning", 1323);
+    }
+
+    public static ItemStack arrowVampire(int amt) {
+        return make(Material.ARROW, amt, "&#E11D48&l🩸 3D Вампирская Стрела",
+                Arrays.asList("&7Вытягивает 2.5❤ здоровья у врага и лечит стрелка!"),
+                true, "arrow_vampire", "arrow_vampire", 1324);
+    }
+
+    public static ItemStack arrowPoison(int amt) {
+        return make(Material.ARROW, amt, "&#22C55E&l☠ 3D Стрела Чумы Ехидны",
+                Arrays.asList("&7Накладывает Отравление III, Иссушение II и Слабость!"),
+                true, "arrow_poison", "arrow_poison", 1325);
+    }
+
+    public static ItemStack arrowAntiFly(int amt) {
+        return make(Material.ARROW, amt, "&#A855F7&l⛓ 3D Анти-Флай Стрела ПВО",
+                Arrays.asList("&7Мгновенно складывает Элитры врага в полёте и тянет вниз!"),
+                true, "arrow_anti_fly", "arrow_anti_fly", 1326);
+    }
+
+    // ================= 6 РАЗНОВИДНОСТЕЙ 3D КАСТОМНОГО ТНТ ДЛЯ РЕЙДОВ =================
+    public static ItemStack tntTier1(int amt) {
+        return make(Material.TNT, amt, "&#EF4444&l🧨 3D ТНТ TIER-II [Усиленный ×2]",
+                Arrays.asList("&8Кастомный 3D Динамит для Рейдов", "",
+                        "&7Поставь в мире выживания — авто-поджиг &e3.5 сек&7!",
+                        "&7• Мощность взрыва увеличена в &c2 раза &7(Power 7.0)!"),
+                true, "tnt_tier1", "tnt_tier1", 1601);
+    }
+
+    public static ItemStack tntBlack(int amt) {
+        return make(Material.TNT, amt, "&#A855F7&l💣 3D ТНТ BLACK [Ломает Обсидиан и Воду!]",
+                Arrays.asList("&8Легендарный Рейд-Динамит FunTime × ReallyWorld", "",
+                        "&7Поставь у базы врага — авто-поджиг &e3.5 сек&7!",
+                        "&7• &#00E5FFИспаряет воду и лаву &7в радиусе 5 блоков!",
+                        "&7• &#E040FBПробивает Обсидиан и Плачущий Обсидиан&7!"),
+                true, "tnt_black", "tnt_black", 1602);
+    }
+
+    public static ItemStack tntNuke(int amt) {
+        return make(Material.TNT, amt, "&#84CC16&l☢ 3D Ядерный ТНТ Крушителя [Кратер ×3.5]",
+                Arrays.asList("&8Сверхмощный Рейд-Динамит", "",
+                        "&7Поставь на рейде — авто-поджиг &e4.5 сек&7!",
+                        "&7• Огромный кратер (Power 10.0) + Огонь + Иссушение II!"),
+                true, "tnt_nuke", "tnt_nuke", 1603);
+    }
+
+    public static ItemStack tntFlash(int amt) {
+        return make(Material.TNT, amt, "&#FACC15&l⚡ 3D Штурмовой Мгновенный ТНТ [1 сек]",
+                Arrays.asList("&8Тактический PvP-Динамит", "",
+                        "&7Взрывается всего через &e1.0 секунду &7после установки!",
+                        "&7• Отбрасывает врагов и даёт 30 сек режима ПвП!"),
+                true, "tnt_flash", "tnt_flash", 1604);
+    }
+
+    public static ItemStack tntCryo(int amt) {
+        return make(Material.TNT, amt, "&#38BDF8&l❄ 3D Ледяной Крио-ТНТ [Заморозка]",
+                Arrays.asList("&8Зимний Тактический Динамит 2026", "",
+                        "&7• Замораживает воду в Синий Лёд, лаву — в Обсидиан!",
+                        "&7• Замораживает всех врагов в радиусе &b8 блоков &7на 6 сек!"),
+                true, "tnt_cryo", "tnt_cryo", 1605);
+    }
+
+    public static ItemStack tntMiner(int amt) {
+        return make(Material.TNT, amt, "&#FB923C&l⛏ 3D Шахтёрский Буровой ТНТ [100% Руда]",
+                Arrays.asList("&8Промышленный Динамит Джамшута", "",
+                        "&7• Выкапывает шахту &e9×9×9 &7со &a100% выпадением",
+                        "&7  всех руд и авто-плавкой слитков к вашим ногам!"),
+                true, "tnt_miner", "tnt_miner", 1606);
+    }
+
+    public static ItemStack bowIce() {
+        return bowIceRw();
+    }
+
+    public static ItemStack armorPiece(String setKey, int slotIdx) {
+        String slot = slotIdx == 0 ? "helmet" : slotIdx == 1 ? "chestplate" : slotIdx == 2 ? "leggings" : "boots";
+        return customArmorPiece(setKey, slot);
+    }
+
+    // ================= 6 ПОЛНЫХ КАСТОМНЫХ СЕТОВ БРОНИ (24 ПРЕДМЕТА С 3D ИКОНКАМИ + ARMOR TRIMS + СЕТ-БОНУСЫ!) =================
+    public static ItemStack customArmorPiece(String setKey, String slot) {
+        Material mat;
+        String pieceRu;
+        int slotIdx;
+        if ("helmet".equals(slot)) { mat = Material.NETHERITE_HELMET; pieceRu = "Шлем"; slotIdx = 0; }
+        else if ("chestplate".equals(slot)) { mat = Material.NETHERITE_CHESTPLATE; pieceRu = "Нагрудник"; slotIdx = 1; }
+        else if ("leggings".equals(slot)) { mat = Material.NETHERITE_LEGGINGS; pieceRu = "Поножи"; slotIdx = 2; }
+        else { mat = Material.NETHERITE_BOOTS; pieceRu = "Ботинки"; slotIdx = 3; }
+
+        String colorPref;
+        String setTitle;
+        String bonusLine1;
+        String bonusLine2;
+        String trimMat;
+        String trimPat;
+        int prot = 5;
+        int unb = 5;
+        int thorns = 0;
+        int baseCmd;
+
+        if ("owner".equals(setKey)) {
+            colorPref = "&#FF1744&l👑 &#FFD740&l";
+            setTitle = "БОЖЕСТВЕННЫЙ " + pieceRu.toUpperCase() + " OWNER";
+            bonusLine1 = " &#FF1744• Полный сет (4/4): +12 ❤ · Сила III · Скорость III";
+            bonusLine2 = " &#FFD740• Сопротивление II · Регенерация II · Огнестойкость";
+            trimMat = "gold"; trimPat = "silence"; prot = 6; unb = 6; thorns = 3; baseCmd = 1721;
+        } else if ("krush".equals(setKey)) {
+            colorPref = "&#FF6D00&l🔥 ";
+            setTitle = "3D " + pieceRu + " Крушителя";
+            bonusLine1 = " &#FF6D00• Полный сет (4/4): +6 ❤ · Сила II · Огнестойкость";
+            bonusLine2 = " &#FACC15• Несокрушимая броня для жёсткого PvP!";
+            trimMat = "redstone"; trimPat = "silence"; baseCmd = 1701;
+        } else if ("dracula".equals(setKey)) {
+            colorPref = "&#E11D48&l🩸 ";
+            setTitle = "3D " + pieceRu + " Дракулы";
+            bonusLine1 = " &#E11D48• Полный сет (4/4): +4 ❤ · Скорость II · Ночное Зрение";
+            bonusLine2 = " &#FB7185• Вампиризм: лечит +20% от каждого удара!";
+            trimMat = "amethyst"; trimPat = "vex"; baseCmd = 1705;
+        } else if ("frost".equals(setKey)) {
+            colorPref = "&#38BDF8&l❄ ";
+            setTitle = "3D " + pieceRu + " Северной Стужи [2026]";
+            bonusLine1 = " &#38BDF8• Полный сет (4/4): +6 ❤ · Скорость II · Регенерация I";
+            bonusLine2 = " &#BAE6FD• Замораживает врагов при ударе по вам!";
+            trimMat = "diamond"; trimPat = "tide"; baseCmd = 1709;
+        } else if ("zeus".equals(setKey)) {
+            colorPref = "&#FACC15&l⚡ ";
+            setTitle = "3D " + pieceRu + " Громовержца Зевса";
+            bonusLine1 = " &#FACC15• Полный сет (4/4): +4 ❤ · Скорость III · Прыгучесть II";
+            bonusLine2 = " &#7DD3FC• 20% шанс ударить атакующего молнией!";
+            trimMat = "gold"; trimPat = "eye"; baseCmd = 1713;
+        } else {
+            colorPref = "&#A855F7&l☠ ";
+            setTitle = "3D " + pieceRu + " Теневого Фантома";
+            bonusLine1 = " &#A855F7• Полный сет (4/4): +3 ❤ · Скорость III · Сила II";
+            bonusLine2 = " &#38BDF8• +18% критического урона в прыжке!";
+            trimMat = "quartz"; trimPat = "spire"; baseCmd = 1717;
+        }
+
+        String modelId = "armor_" + setKey + "_" + slot;
+        String customId = "armor_" + setKey + "_" + slot;
+        List<String> lore = Arrays.asList(
+                "&8Кастомная 3D Броня KINGGRIEF v5.7",
+                "",
+                "&7Бонус комплекта:",
+                bonusLine1,
+                bonusLine2,
+                "",
+                "&bЗащита " + (prot == 6 ? "VI" : "V") + " · Прочность " + (unb == 6 ? "VI" : "V") + " · Починка"
+        );
+        ItemStack piece = make(mat, 1, colorPref + setTitle, lore, false, customId, modelId, baseCmd + slotIdx);
+        ItemMeta m = piece.getItemMeta();
+        if (m != null) {
+            addEnch(m, "protection", "PROTECTION_ENVIRONMENTAL", prot);
+            addEnch(m, "unbreaking", "DURABILITY", unb);
+            addEnch(m, "mending", "MENDING", 1);
+            if (thorns > 0) addEnch(m, "thorns", "THORNS", thorns);
+            if ("boots".equals(slot)) {
+                addEnch(m, "feather_falling", "PROTECTION_FALL", 4);
+                addEnch(m, "depth_strider", "DEPTH_STRIDER", 3);
+            }
+            if ("helmet".equals(slot)) {
+                addEnch(m, "aqua_affinity", "WATER_WORKER", 1);
+                addEnch(m, "respiration", "OXYGEN", 3);
+            }
+            ColorUtil.applyArmorTrimSafe(m, trimMat, trimPat);
+            piece.setItemMeta(m);
+        }
+        return piece;
     }
 
     public static ItemStack mysteryEgg(int amt) {
@@ -663,10 +1062,58 @@ public final class ItemFactory {
         return it;
     }
 
-    // ================= СБАЛАНСИРОВАННЫЕ КИТЫ v5.0 (2 СТАКА ПЕРОК + ЗОЛОТАЯ МОРКОВЬ + ПЛАСТЫ/ТРАПКИ + УМЕРЕННО ЗЕЛЕК) =================
+    // ================= СБАЛАНСИРОВАННЫЕ КИТЫ v5.7 (DRAGON /FREE -> OWNER EXCLUSIVE!) =================
     public static List<ItemStack> buildKitItems(String kitId) {
         String k = kitId == null ? "start" : kitId.toLowerCase();
         List<ItemStack> items = new ArrayList<ItemStack>();
+        if ("owner".equals(k)) {
+            // ЭКСКЛЮЗИВНЫЙ БОЖЕСТВЕННЫЙ КИТ OWNER — ТОЛЬКО ДЛЯ OWNER!
+            items.add(swordOwner());
+            items.add(maceKrush());
+            items.add(tridentPoseidon());
+            items.add(pickDjamshut());
+            items.add(bowZeus());
+            items.add(customArmorPiece("owner", "helmet"));
+            items.add(customArmorPiece("owner", "chestplate"));
+            items.add(customArmorPiece("owner", "leggings"));
+            items.add(customArmorPiece("owner", "boots"));
+            items.add(elytraSanta());
+            items.add(talOwner(5));
+            items.add(talImperatora());
+            items.add(sharSanty());
+            items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
+            items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 32));
+            items.add(new ItemStack(Material.GOLDEN_APPLE, 64));
+            items.add(new ItemStack(Material.GOLDEN_CARROT, 64));
+            items.add(new ItemStack(Material.ENDER_PEARL, 16));
+            items.add(new ItemStack(Material.ENDER_PEARL, 16));
+            items.add(plast(16));
+            items.add(trapka(16));
+            items.add(dezorient(8));
+            items.add(bozhyaKara(8));
+            items.add(gravSfera(8));
+            items.add(packedShulker(Material.RED_SHULKER_BOX, "&#FF1744&l👑 Божественный Арсенал OWNER #1",
+                    Arrays.asList("&7Все кастомные Талисманы, Стрелы и Зелья ВЛАДЕЛЬЦА!"),
+                    talKaratelya(), talZeusa(), talDraculy(), talKolossa(),
+                    talZhneca(), talSevera(), talBezdn(2), talFeniksa(3),
+                    bozhyaAura(8), yavnayaPyl(8), ognennySmerch(8), snegZavesa(8),
+                    arrowIce(64), arrowExplosive(64), arrowLightning(64),
+                    arrowVampire(64), arrowPoison(64), arrowAntiFly(64),
+                    potionKiller(2), potionMedic(2), potionAgent(2),
+                    potionBurp(2), potionAcid(2), pickSpawner(),
+                    new ItemStack(Material.NETHERITE_BLOCK, 16),
+                    new ItemStack(Material.DIAMOND_BLOCK, 64),
+                    claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
+            items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ OWNER #2",
+                    Arrays.asList("&7Все 6 разновидностей кастомного ТНТ для эпичных рейдов!"),
+                    tntBlack(32), tntNuke(16), tntTier1(32),
+                    tntFlash(32), tntCryo(32), tntMiner(32),
+                    new ItemStack(Material.OBSIDIAN, 64),
+                    new ItemStack(Material.END_CRYSTAL, 64),
+                    new ItemStack(Material.RESPAWN_ANCHOR, 32),
+                    new ItemStack(Material.GLOWSTONE, 64)));
+            return items;
+        }
         if ("start".equals(k)) {
             items.add(gear(Material.IRON_SWORD, "&fМеч Игрока", 2, 2, 0));
             items.add(gear(Material.IRON_PICKAXE, "&fКирка Игрока", 2, 2, 1));
@@ -702,12 +1149,12 @@ public final class ItemFactory {
             items.add(plast(3));
             items.add(trapka(2));
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
-        } else if ("pegas".equals(k) || "cobra".equals(k) || "hero".equals(k) || "bunny".equals(k) || "titan".equals(k) || "rabbit".equals(k)) {
-            int lv = ("rabbit".equals(k) || "titan".equals(k)) ? 4 : 3;
-            int mult = ("rabbit".equals(k) || "titan".equals(k)) ? 2 : 1;
+        } else if ("dragon".equals(k) || "pegas".equals(k) || "cobra".equals(k) || "dracula".equals(k) || "bunny".equals(k) || "rabbit".equals(k)) {
+            int lv = "rabbit".equals(k) ? 4 : ("dragon".equals(k) ? 2 : 3);
+            int mult = "rabbit".equals(k) ? 2 : 1;
             String tag = k.toUpperCase();
-            items.add(gear(Material.DIAMOND_SWORD, "&#38BDF8⚔ Меч " + tag, lv, 3, 1));
-            items.add(gear(Material.DIAMOND_PICKAXE, "&#38BDF8⛏ Кирка " + tag, 4, 3, 2));
+            items.add("dracula".equals(k) ? swordDracula() : gear(Material.DIAMOND_SWORD, "&#38BDF8⚔ Меч " + tag, lv, 3, 1));
+            items.add(gear(Material.DIAMOND_PICKAXE, "&#38BDF8⛏ Кирка " + tag, Math.max(3, lv), 3, 2));
             items.add(gear(Material.DIAMOND_AXE, "&#38BDF8🪓 Топор " + tag, lv, 3, 0));
             items.add(gear(Material.BOW, "&#38BDF8🏹 Лук " + tag, lv, 3, 1));
             items.add(gear(Material.DIAMOND_HELMET, "&#38BDF8Шлем " + tag, lv, 3, 0));
@@ -715,7 +1162,7 @@ public final class ItemFactory {
             items.add(gear(Material.DIAMOND_LEGGINGS, "&#38BDF8Поножи " + tag, lv, 3, 0));
             items.add(gear(Material.DIAMOND_BOOTS, "&#38BDF8Ботинки " + tag, lv, 3, 0));
             items.add(new ItemStack(Material.SHIELD, 1));
-            items.add(new ItemStack(Material.GOLDEN_APPLE, 16 * mult));
+            items.add(new ItemStack(Material.GOLDEN_APPLE, 12 * mult));
             items.add(new ItemStack(Material.GOLDEN_CARROT, 64));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
@@ -723,7 +1170,6 @@ public final class ItemFactory {
             items.add(new ItemStack(Material.TOTEM_OF_UNDYING, mult));
             items.add(plast(3 * mult));
             items.add(trapka(2 * mult));
-            // Чуть меньше зелек, но и не слишком мало (2 шт):
             items.add(potionFlash(1));
             items.add(potionMedic(1));
             items.add(packedShulker(Material.LIGHT_BLUE_SHULKER_BOX, "&#38BDF8&l📦 Сундук Ресурсов " + tag,
@@ -733,20 +1179,20 @@ public final class ItemFactory {
                     new ItemStack(Material.IRON_BLOCK, 16 * mult),
                     new ItemStack(Material.EMERALD_BLOCK, 6 * mult),
                     new ItemStack(Material.OBSIDIAN, 64),
-                    new ItemStack(Material.TNT, 32 * mult),
+                    tntTier1(4 * mult),
                     new ItemStack(Material.OAK_LOG, 64),
                     new ItemStack(Material.COBWEB, 24),
                     new ItemStack(Material.GOLDEN_CARROT, 64),
                     new ItemStack(Material.EXPERIENCE_BOTTLE, 64),
-                    new ItemStack(Material.ARROW, 64),
+                    arrowIce(32),
                     claimBlock(Material.IRON_ORE, 12, "&#38BDF8🛡 Железный Приват 25×25")));
-        } else if ("vampire".equals(k) || "tiger".equals(k) || "dracula".equals(k) || "god".equals(k)) {
-            boolean neth = "dracula".equals(k) || "god".equals(k);
+        } else if ("vampire".equals(k) || "tiger".equals(k) || "god".equals(k)) {
+            boolean neth = "god".equals(k);
             String tag = k.toUpperCase();
-            items.add("dracula".equals(k) ? swordDracula() : gear(neth ? Material.NETHERITE_SWORD : Material.DIAMOND_SWORD, "&#FACC15⚡ Меч " + tag, 5, 3, 2));
+            items.add("vampire".equals(k) ? swordDracula() : gear(neth ? Material.NETHERITE_SWORD : Material.DIAMOND_SWORD, "&#FACC15⚡ Меч " + tag, 5, 3, 2));
             items.add(gear(neth ? Material.NETHERITE_PICKAXE : Material.DIAMOND_PICKAXE, "&#FACC15⛏ Кирка " + tag, 5, 3, 3));
             items.add(gear(neth ? Material.NETHERITE_AXE : Material.DIAMOND_AXE, "&#FACC15🪓 Топор " + tag, 5, 3, 0));
-            items.add(gear(Material.BOW, "&#FACC15🏹 Лук " + tag, 5, 3, 1));
+            items.add("vampire".equals(k) ? bowVampire() : gear(Material.BOW, "&#FACC15🏹 Лук " + tag, 5, 3, 1));
             items.add(gear(neth ? Material.NETHERITE_HELMET : Material.DIAMOND_HELMET, "&#FACC15Шлем " + tag, 4, 3, 0));
             items.add(gear(neth ? Material.NETHERITE_CHESTPLATE : Material.DIAMOND_CHESTPLATE, "&#FACC15Нагрудник " + tag, 4, 3, 0));
             items.add(gear(neth ? Material.NETHERITE_LEGGINGS : Material.DIAMOND_LEGGINGS, "&#FACC15Поножи " + tag, 4, 3, 0));
@@ -758,42 +1204,42 @@ public final class ItemFactory {
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(new ItemStack(Material.CHORUS_FRUIT, 32));
             items.add(new ItemStack(Material.TOTEM_OF_UNDYING, 2));
-            items.add("god".equals(k) ? sharChimery() : talTritona());
+            items.add("god".equals(k) ? sharChimery() : talDraculy());
             items.add(plast(6));
             items.add(trapka(4));
             items.add(dezorient(2));
-            // Сбалансированные зельки (3 шт вместо 6):
             items.add(potionKiller(1));
             items.add(potionMedic(1));
             items.add(potionBurp(1));
             items.add(packedShulker(Material.YELLOW_SHULKER_BOX, "&#FACC15&l📦 Мега-Бокс Ресурсов " + tag,
-                    Arrays.asList("&7Богатый запас ресурсов, расходников FT и блоков!"),
+                    Arrays.asList("&7Богатый запас ресурсов, кастомного ТНТ и расходников FT!"),
                     new ItemStack(Material.NETHERITE_INGOT, neth ? 6 : 2),
                     new ItemStack(Material.DIAMOND_BLOCK, 24),
                     new ItemStack(Material.EMERALD_BLOCK, 20),
                     new ItemStack(Material.GOLD_BLOCK, 32),
                     new ItemStack(Material.IRON_BLOCK, 32),
                     new ItemStack(Material.OBSIDIAN, 64),
-                    new ItemStack(Material.TNT, 64),
+                    tntTier1(12),
+                    tntBlack(2),
                     new ItemStack(Material.END_CRYSTAL, 12),
                     new ItemStack(Material.COBWEB, 48),
                     new ItemStack(Material.GOLDEN_CARROT, 64),
                     yavnayaPyl(2),
                     snezokZamorozki(8),
                     xpOrb100(2),
-                    arrowIce(32),
+                    arrowVampire(32),
                     claimBlock(Material.DIAMOND_ORE, 20, "&#38BDF8💎 Алмазный Приват 41×41")));
-        } else if ("overlord".equals(k) || "imperator".equals(k) || "dragon".equals(k) || "king".equals(k) || "bull".equals(k) || "sponsor".equals(k) || "media".equals(k) || "mediaplus".equals(k) || "yt".equals(k) || "twitch".equals(k) || "tiktok".equals(k) || "kp".equals(k)) {
+        } else if ("imperator".equals(k) || "king".equals(k) || "sponsor".equals(k) || "media".equals(k) || "mediaplus".equals(k) || "yt".equals(k) || "twitch".equals(k) || "tiktok".equals(k) || "kp".equals(k) || "mlmoder".equals(k)) {
             String tag = k.toUpperCase();
             items.add(gear(Material.NETHERITE_SWORD, "&#A855F7👑 Меч " + tag, 5, 4, 2));
             items.add(gear(Material.NETHERITE_PICKAXE, "&#A855F7⛏ Кирка " + tag, 5, 4, 3));
             items.add(gear(Material.NETHERITE_AXE, "&#A855F7🪓 Топор " + tag, 5, 4, 0));
-            items.add(bowIceRw());
+            items.add("imperator".equals(k) ? bowInferno() : bowIceRw());
             items.add(gear(Material.NETHERITE_HELMET, "&#A855F7Шлем " + tag, 4, 4, 0));
             items.add(gear(Material.NETHERITE_CHESTPLATE, "&#A855F7Нагрудник " + tag, 4, 4, 0));
             items.add(gear(Material.NETHERITE_LEGGINGS, "&#A855F7Поножи " + tag, 4, 4, 0));
             items.add(gear(Material.NETHERITE_BOOTS, "&#A855F7Ботинки " + tag, 4, 4, 0));
-            items.add("sponsor".equals(k) || "bull".equals(k) ? elytraPhoenix() : elytraWind());
+            items.add("sponsor".equals(k) ? elytraPhoenix() : elytraWind());
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
             items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 6));
             items.add(new ItemStack(Material.GOLDEN_APPLE, 48));
@@ -801,17 +1247,16 @@ public final class ItemFactory {
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(new ItemStack(Material.CHORUS_FRUIT, 64));
-            items.add("king".equals(k) || "sponsor".equals(k) ? sharAndromedy() : sharApollona());
+            items.add("imperator".equals(k) ? talImperatora() : ("king".equals(k) ? sharAndromedy() : sharApollona()));
             items.add(talKrushitelya());
             items.add(plast(10));
             items.add(trapka(6));
             items.add(dezorient(4));
-            // Сбалансированные зельки (5 шт вместо 11):
             items.add(potionKiller(2));
             items.add(potionMedic(2));
             items.add(potionBurp(1));
             items.add(packedShulker(Material.PURPLE_SHULKER_BOX, "&#A855F7&l📦 Королевский Сундук Ресурсов " + tag,
-                    Arrays.asList("&7Полный шалкер ресурсов, 3D расходников FT и рейд-набора!"),
+                    Arrays.asList("&7Полный шалкер ресурсов, 3D расходников FT и кастомного ТНТ!"),
                     new ItemStack(Material.NETHERITE_BLOCK, 2),
                     new ItemStack(Material.NETHERITE_INGOT, 12),
                     new ItemStack(Material.DIAMOND_BLOCK, 48),
@@ -819,7 +1264,9 @@ public final class ItemFactory {
                     new ItemStack(Material.GOLD_BLOCK, 64),
                     new ItemStack(Material.IRON_BLOCK, 64),
                     new ItemStack(Material.OBSIDIAN, 64),
-                    new ItemStack(Material.TNT, 64),
+                    tntBlack(6),
+                    tntTier1(16),
+                    tntCryo(8),
                     new ItemStack(Material.END_CRYSTAL, 24),
                     new ItemStack(Material.GOLDEN_CARROT, 64),
                     yavnayaPyl(4),
@@ -828,20 +1275,21 @@ public final class ItemFactory {
                     pautinnayaGranata(4),
                     xpOrb100(4),
                     nyMandarin(16),
-                    arrowIce(64),
+                    arrowLightning(32),
                     claimBlock(Material.DIAMOND_ORE, 20, "&#38BDF8💎 Алмазный Приват 41×41")));
         } else {
-            // DHELPER..DADMIN, DKP, OPKA, DOWNER, CURATOR, TECHADMIN, OWNER — SUPREME FT × RW КИТЫ!
-            boolean supreme = "opka".equals(k) || "downer".equals(k) || "owner".equals(k) || "techadmin".equals(k) || "curator".equals(k) || "dkp".equals(k);
+            // DHELPER, DKP, DMODER..DADMIN, OPKA, DOWNER, CURATOR, TECHADMIN — ТОПОВЫЕ ДОНАТ/КП КИТЫ!
+            boolean supreme = "opka".equals(k) || "downer".equals(k) || "techadmin".equals(k) || "curator".equals(k);
             String tag = k.toUpperCase();
             items.add(supreme ? swordKrush() : swordDracula());
             items.add(pickDjamshut());
-            items.add(bowIceRw());
-            items.add(gear(Material.NETHERITE_AXE, "&#FFD740👑 Топор " + tag, 6, 5, 0));
-            items.add(gear(Material.NETHERITE_HELMET, "&#FFD740👑 Шлем " + tag, 5, 5, 0));
-            items.add(gear(Material.NETHERITE_CHESTPLATE, "&#FFD740👑 Нагрудник " + tag, 5, 5, 0));
-            items.add(gear(Material.NETHERITE_LEGGINGS, "&#FFD740👑 Поножи " + tag, 5, 5, 0));
-            items.add(gear(Material.NETHERITE_BOOTS, "&#FFD740👑 Ботинки " + tag, 5, 5, 0));
+            items.add(supreme ? bowZeus() : bowIceRw());
+            items.add(supreme ? maceKrush() : gear(Material.NETHERITE_AXE, "&#FFD740👑 Топор " + tag, 6, 5, 0));
+            String setKey = supreme ? "krush" : "frost";
+            items.add(customArmorPiece(setKey, "helmet"));
+            items.add(customArmorPiece(setKey, "chestplate"));
+            items.add(customArmorPiece(setKey, "leggings"));
+            items.add(customArmorPiece(setKey, "boots"));
             items.add(supreme ? elytraSanta() : elytraTitan());
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
             items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, supreme ? 16 : 8));
@@ -850,19 +1298,18 @@ public final class ItemFactory {
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(supreme ? sharSanty() : sharTitana());
-            items.add(talFeniksa(3));
+            items.add(supreme ? talKaratelya() : talFeniksa(3));
             items.add(plast(16));
             items.add(trapka(10));
             items.add(dezorient(6));
             items.add(bozhyaAura(4));
-            // Умеренное количество зелий (7 шт вместо 18):
             items.add(potionKiller(2));
             items.add(potionMedic(2));
             items.add(potionAgent(1));
             items.add(potionBurp(1));
             items.add(potionAcid(1));
             items.add(packedShulker(Material.RED_SHULKER_BOX, "&#FF1744&l📦 Шалкер Богатств " + tag + " #1",
-                    Arrays.asList("&7Элитные ресурсы, 3D Элитры, Шары и расходники FT×RW!"),
+                    Arrays.asList("&7Элитные ресурсы, 3D Элитры, Талисманы и Стрелы!"),
                     new ItemStack(Material.NETHERITE_BLOCK, supreme ? 8 : 4),
                     new ItemStack(Material.NETHERITE_INGOT, supreme ? 32 : 16),
                     new ItemStack(Material.DIAMOND_BLOCK, 64),
@@ -870,11 +1317,12 @@ public final class ItemFactory {
                     new ItemStack(Material.GOLD_BLOCK, 64),
                     new ItemStack(Material.IRON_BLOCK, 64),
                     new ItemStack(Material.GOLDEN_CARROT, 64),
-                    new ItemStack(Material.ENDER_PEARL, 16),
-                    new ItemStack(Material.ENDER_PEARL, 16),
-                    new ItemStack(Material.CHORUS_FRUIT, 64),
                     elytraThunder(),
-                    sharAresa(),
+                    talZeusa(),
+                    talKolossa(),
+                    bozhyaKara(4),
+                    gravSfera(4),
+                    snegZavesa(4),
                     yavnayaPyl(8),
                     ognennySmerch(6),
                     snezokZamorozki(16),
@@ -884,23 +1332,23 @@ public final class ItemFactory {
                     xpOrb100(8),
                     nyMandarin(32),
                     snowflakeCoin(supreme ? 25 : 10),
-                    talStuzhi(),
+                    arrowExplosive(48),
+                    arrowAntiFly(32),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
-            items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l💣 Рейд-Шалкер " + tag + " #2",
-                    Arrays.asList("&7Полный набор для грифа, рейда баз и трапок на выживании!"),
+            items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l💣 Рейд-Шалкер ТНТ " + tag + " #2",
+                    Arrays.asList("&7Полный набор кастомного ТНТ для грифа и рейда баз!"),
+                    tntBlack(supreme ? 16 : 8),
+                    tntNuke(supreme ? 8 : 4),
+                    tntTier1(24),
+                    tntFlash(16),
+                    tntCryo(16),
+                    tntMiner(12),
                     new ItemStack(Material.OBSIDIAN, 64),
                     new ItemStack(Material.OBSIDIAN, 64),
-                    new ItemStack(Material.TNT, 64),
-                    new ItemStack(Material.TNT, 64),
                     new ItemStack(Material.END_CRYSTAL, 64),
                     new ItemStack(Material.RESPAWN_ANCHOR, 16),
                     new ItemStack(Material.GLOWSTONE, 64),
-                    new ItemStack(Material.COBWEB, 64),
-                    new ItemStack(Material.PISTON, 64),
-                    new ItemStack(Material.STICKY_PISTON, 64),
-                    new ItemStack(Material.SLIME_BLOCK, 64),
-                    new ItemStack(Material.REDSTONE_BLOCK, 64),
-                    arrowIce(64)));
+                    new ItemStack(Material.COBWEB, 64)));
         }
         return items;
     }

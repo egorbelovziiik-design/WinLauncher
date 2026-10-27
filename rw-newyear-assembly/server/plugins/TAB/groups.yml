@@ -1,123 +1,157 @@
+# KINGGRIEF v5.7 TAB Groups (39 рангов)
 owner:
-  tabprefix: "%animation:rank_owner% &f"
-  tagprefix: "%animation:rank_owner% &f"
+  tabprefix: "&f &4"
+  tagprefix: "&f &4"
+
 techadmin:
-  tabprefix: "%animation:rank_techadmin% &f"
-  tagprefix: "%animation:rank_techadmin% &f"
+  tabprefix: "&f &b"
+  tagprefix: "&f &b"
+
 curator:
-  tabprefix: "%animation:rank_curator% &f"
-  tagprefix: "%animation:rank_curator% &f"
-kp:
-  tabprefix: "%animation:rank_kp% &f"
-  tagprefix: "%animation:rank_kp% &f"
+  tabprefix: "&f &a"
+  tagprefix: "&f &a"
+
+admin:
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
+mladmin:
+  tabprefix: "&f &6"
+  tagprefix: "&f &6"
+
 glmoder:
-  tabprefix: "%animation:rank_glmoder% &f"
-  tagprefix: "%animation:rank_glmoder% &f"
+  tabprefix: "&f &9"
+  tagprefix: "&f &9"
+
 stmoder:
-  tabprefix: "%animation:rank_stmoder% &f"
-  tagprefix: "%animation:rank_stmoder% &f"
+  tabprefix: "&f &3"
+  tagprefix: "&f &3"
+
 moder:
-  tabprefix: "%animation:rank_moder% &f"
-  tagprefix: "%animation:rank_moder% &f"
+  tabprefix: "&f &9"
+  tagprefix: "&f &9"
+
+mlmoder:
+  tabprefix: "&f &b"
+  tagprefix: "&f &b"
+
 sthelper:
-  tabprefix: "%animation:rank_sthelper% &f"
-  tagprefix: "%animation:rank_sthelper% &f"
+  tabprefix: "&f &e"
+  tagprefix: "&f &e"
+
 helper:
-  tabprefix: "%animation:rank_helper% &f"
-  tagprefix: "%animation:rank_helper% &f"
+  tabprefix: "&f &a"
+  tagprefix: "&f &a"
+
+kp:
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
 downer:
-  tabprefix: "%animation:rank_downer% &f"
-  tagprefix: "%animation:rank_downer% &f"
+  tabprefix: "&f &4"
+  tagprefix: "&f &4"
+
 opka:
-  tabprefix: "%animation:rank_opka% &f"
-  tagprefix: "%animation:rank_opka% &f"
-dkp:
-  tabprefix: "%animation:rank_dkp% &f"
-  tagprefix: "%animation:rank_dkp% &f"
+  tabprefix: "&f &6"
+  tagprefix: "&f &6"
+
 dadmin:
-  tabprefix: "%animation:rank_dadmin% &f"
-  tagprefix: "%animation:rank_dadmin% &f"
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
 dmladmin:
-  tabprefix: "%animation:rank_dmladmin% &f"
-  tagprefix: "%animation:rank_dmladmin% &f"
+  tabprefix: "&f &6"
+  tagprefix: "&f &6"
+
 dglmoder:
-  tabprefix: "%animation:rank_dglmoder% &f"
-  tagprefix: "%animation:rank_dglmoder% &f"
+  tabprefix: "&f &b"
+  tagprefix: "&f &b"
+
 dstmoder:
-  tabprefix: "%animation:rank_dstmoder% &f"
-  tagprefix: "%animation:rank_dstmoder% &f"
+  tabprefix: "&f &3"
+  tagprefix: "&f &3"
+
 dmoder:
-  tabprefix: "%animation:rank_dmoder% &f"
-  tagprefix: "%animation:rank_dmoder% &f"
+  tabprefix: "&f &9"
+  tagprefix: "&f &9"
+
+dkp:
+  tabprefix: "&f &d"
+  tagprefix: "&f &d"
+
 dhelper:
-  tabprefix: "%animation:rank_dhelper% &f"
-  tagprefix: "%animation:rank_dhelper% &f"
+  tabprefix: "&f &a"
+  tagprefix: "&f &a"
+
 mediaplus:
-  tabprefix: "%animation:rank_mediaplus% &f"
-  tagprefix: "%animation:rank_mediaplus% &f"
+  tabprefix: "&f &d"
+  tagprefix: "&f &d"
+
 media:
-  tabprefix: "%animation:rank_media% &f"
-  tagprefix: "%animation:rank_media% &f"
+  tabprefix: "&f &d"
+  tagprefix: "&f &d"
+
 yt:
-  tabprefix: "%animation:rank_yt% &f"
-  tagprefix: "%animation:rank_yt% &f"
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
 twitch:
-  tabprefix: "%animation:rank_twitch% &f"
-  tagprefix: "%animation:rank_twitch% &f"
+  tabprefix: "&f &5"
+  tagprefix: "&f &5"
+
 tiktok:
-  tabprefix: "%animation:rank_tiktok% &f"
-  tagprefix: "%animation:rank_tiktok% &f"
+  tabprefix: "&f &b"
+  tagprefix: "&f &b"
+
 sponsor:
-  tabprefix: "%animation:rank_sponsor% &f"
-  tagprefix: "%animation:rank_sponsor% &f"
-bull:
-  tabprefix: "%animation:rank_bull% &f"
-  tagprefix: "%animation:rank_bull% &f"
+  tabprefix: "&f &b"
+  tagprefix: "&f &b"
+
 king:
-  tabprefix: "%animation:rank_king% &f"
-  tagprefix: "%animation:rank_king% &f"
-dragon:
-  tabprefix: "%animation:rank_dragon% &f"
-  tagprefix: "%animation:rank_dragon% &f"
+  tabprefix: "&f &6"
+  tagprefix: "&f &6"
+
 imperator:
-  tabprefix: "%animation:rank_imperator% &f"
-  tagprefix: "%animation:rank_imperator% &f"
-overlord:
-  tabprefix: "%animation:rank_overlord% &f"
-  tagprefix: "%animation:rank_overlord% &f"
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
 god:
-  tabprefix: "%animation:rank_god% &f"
-  tagprefix: "%animation:rank_god% &f"
-dracula:
-  tabprefix: "%animation:rank_dracula% &f"
-  tagprefix: "%animation:rank_dracula% &f"
+  tabprefix: "&f &e"
+  tagprefix: "&f &e"
+
 tiger:
-  tabprefix: "%animation:rank_tiger% &f"
-  tagprefix: "%animation:rank_tiger% &f"
+  tabprefix: "&f &6"
+  tagprefix: "&f &6"
+
 vampire:
-  tabprefix: "%animation:rank_vampire% &f"
-  tagprefix: "%animation:rank_vampire% &f"
+  tabprefix: "&f &4"
+  tagprefix: "&f &4"
+
 rabbit:
-  tabprefix: "%animation:rank_rabbit% &f"
-  tagprefix: "%animation:rank_rabbit% &f"
-titan:
-  tabprefix: "%animation:rank_titan% &f"
-  tagprefix: "%animation:rank_titan% &f"
+  tabprefix: "&f &f"
+  tagprefix: "&f &f"
+
 bunny:
-  tabprefix: "%animation:rank_bunny% &f"
-  tagprefix: "%animation:rank_bunny% &f"
-hero:
-  tabprefix: "%animation:rank_hero% &f"
-  tagprefix: "%animation:rank_hero% &f"
+  tabprefix: "&f &d"
+  tagprefix: "&f &d"
+
+dracula:
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
 cobra:
-  tabprefix: "%animation:rank_cobra% &f"
-  tagprefix: "%animation:rank_cobra% &f"
+  tabprefix: "&f &2"
+  tagprefix: "&f &2"
+
 pegas:
-  tabprefix: "%animation:rank_pegas% &f"
-  tagprefix: "%animation:rank_pegas% &f"
+  tabprefix: "&f &b"
+  tagprefix: "&f &b"
+
+dragon:
+  tabprefix: "&f &5"
+  tagprefix: "&f &5"
+
 default:
-  tabprefix: "%animation:rank_default% &f"
-  tagprefix: "%animation:rank_default% &f"
-_DEFAULT_:
-  tabprefix: "%animation:rank_default% &f"
-  tagprefix: "%animation:rank_default% &f"
+  tabprefix: "&f &7"
+  tagprefix: "&f &7"
+

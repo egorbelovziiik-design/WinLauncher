@@ -1,8 +1,6 @@
 name: pegas
 permissions:
-- weight.12
-parents:
-- default
+- weight.18
 prefixes:
-- '&f &f':
-    priority: 12
+- '&f &b':
+    priority: 18

@@ -11,8 +11,12 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
+import org.bukkit.block.data.Bisected;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -49,7 +53,8 @@ public final class BossEventManager {
         AIRDROP,
         METEOR,
         BEACON,
-        FROST_CITADEL
+        FROST_CITADEL,
+        VOLCANO
     }
 
     public static final class BossTemplate {
@@ -86,6 +91,7 @@ public final class BossEventManager {
         public Location center; // loot chest location
         public UUID bossUuid;
         public BossBar bossBar;
+        public double lastKnownHp = 1000.0;
         public boolean bossDefeated = false; // true = unlocked / open chest!
         public int unlockCountdownSec = 0;   // >0 while timed event (airdrop/meteor/beacon/citadel) is unlocking
         public int unlockTotalSec = 180;
@@ -138,25 +144,67 @@ public final class BossEventManager {
         templates.put("citadel", new BossTemplate(
                 "citadel", EventKind.FROST_CITADEL, "&#40C4FF❄ Ледяная Цитадель Санты", null, 150.0,
                 BarColor.WHITE, BarStyle.SEGMENTED_10, Material.BLUE_ICE, 100000.0, 35));
+        templates.put("volcano", new BossTemplate(
+                "volcano", EventKind.VOLCANO, "&#FF6D00🌋 Адский Вулкан Ифрита", null, 150.0,
+                BarColor.RED, BarStyle.SEGMENTED_20, Material.MAGMA_BLOCK, 115000.0, 40));
     }
 
     /**
-     * Строгая проверка: призывать ивенты через меню / команды могут ТОЛЬКО Админы и выше (D.ADMIN+, Куратор, Тех.Админ, OWNER),
+     * Строгая проверка: призывать ивенты через меню / команды могут ТОЛЬКО Админы и выше (D.ADMIN+, ДКП, OPKA, D.OWNER, КП, CURATOR, TECH.ADMIN, OWNER),
      * а НЕ обычные игроки/донатеры (даже если игрок тестирует ранг Игрок с включённым /op!).
      */
     public boolean canAdminSpawnEvents(Player p) {
         if (p == null) return false;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
-        return r.weight >= 200; // dadmin (200), dkp (210), opka (215), downer (220), kp (285), curator (290), techadmin (295), owner (300)
+        return r.weight >= 162; // dadmin(162), opka(178), downer(190), kp(200), curator(275), techadmin(290), owner(300)
     }
 
     public void start() {
+        // Purge any leftover event bosses or holograms from previous server runs!
+        for (World w : Bukkit.getWorlds()) {
+            for (org.bukkit.Chunk ch : w.getLoadedChunks()) {
+                purgeOrphanEventEntitiesInChunk(ch);
+            }
+        }
         new BukkitRunnable() {
             @Override
             public void run() {
                 tickSecond();
             }
         }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    public void purgeOrphanEventEntitiesInChunk(org.bukkit.Chunk chunk) {
+        if (chunk == null) return;
+        try {
+            for (Entity en : chunk.getEntities()) {
+                if (en.getScoreboardTags().contains("kg_event_boss")) {
+                    boolean belongsToActive = false;
+                    for (ActiveBossEvent ev : activeEvents.values()) {
+                        if (!ev.bossDefeated && (en.getUniqueId().equals(ev.bossUuid)
+                                || en.getScoreboardTags().contains("kg_boss_" + ev.instanceId))) {
+                            belongsToActive = true;
+                            ev.bossUuid = en.getUniqueId();
+                            break;
+                        }
+                    }
+                    if (!belongsToActive) {
+                        en.remove();
+                    }
+                } else if (en.getScoreboardTags().contains("kg_holo")) {
+                    boolean activeHolo = false;
+                    for (ActiveBossEvent ev : activeEvents.values()) {
+                        if (ev.hologramStands.contains(en.getUniqueId())) {
+                            activeHolo = true;
+                            break;
+                        }
+                    }
+                    if (!activeHolo) {
+                        en.remove();
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
     }
 
     public void shutdown() {
@@ -192,9 +240,23 @@ public final class BossEventManager {
         }
     }
 
+    /**
+     * Гарантирует, что полоска РЕЖИМА ПВП (BossBar КТ) ВСЕГДА находится #1 САМОЙ ВЕРХНЕЙ
+     * посередине экрана над любыми активными ивентами!
+     */
+    public void moveEventBarsBelowCombat(Player p) {
+        if (p == null || !p.isOnline()) return;
+        for (ActiveBossEvent ev : activeEvents.values()) {
+            if (ev.bossBar != null && ev.bossBar.getPlayers().contains(p)) {
+                ev.bossBar.removePlayer(p);
+                ev.bossBar.addPlayer(p);
+            }
+        }
+    }
+
     public ActiveBossEvent startRandomEvent() {
-        // Alternate richly between AirDrop, Meteor, Beacon, Frost Citadel, and Mythic Bosses!
-        String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "grinch", "krush", "titan", "osiris", "andromeda"};
+        // Alternate richly between AirDrop, Meteor, Beacon, Frost Citadel, Volcano, and Mythic Bosses!
+        String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "volcano", "grinch", "krush", "titan", "osiris", "andromeda"};
         List<String> unused = new ArrayList<String>();
         for (String pid : pool) {
             boolean used = false;
@@ -242,11 +304,12 @@ public final class BossEventManager {
         if (tpl.kind == EventKind.BOSS) {
             ev.secondsLeft = 900;
             ev.unlockCountdownSec = 0;
+            ev.lastKnownHp = tpl.maxHp;
             buildBossAltar(ev);
 
             Location bossLoc = center.clone().add(0.5, 1.2, 2.5);
             LivingEntity boss = (LivingEntity) surv.spawnEntity(bossLoc, tpl.entityType);
-            configureBossEntity(boss, tpl, ev.instanceId);
+            configureBossEntity(boss, tpl, ev.instanceId, tpl.maxHp);
             ev.bossUuid = boss.getUniqueId();
         } else {
             ev.unlockTotalSec = (int) tpl.maxHp;
@@ -258,6 +321,8 @@ public final class BossEventManager {
                 buildStarMeteorStructure(ev);
             } else if (tpl.kind == EventKind.BEACON) {
                 buildGoldenBeaconStructure(ev);
+            } else if (tpl.kind == EventKind.VOLCANO) {
+                buildVolcanoStructure(ev);
             } else {
                 buildFrostCitadelStructure(ev);
             }
@@ -294,11 +359,14 @@ public final class BossEventManager {
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF5252&l☄ УПАЛ ЗВЁЗДНЫЙ МЕТЕОРИТ С РУДАМИ!"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Добывайте алмазы/незерит в кратере! Ядро откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
         } else if (ev.template.kind == EventKind.BEACON) {
-            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#00E676&l💎 АКТИВИРОВАН ЗОЛОТОЙ МАЯК БОГАТСТВА!"));
-            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Стойте рядом с Маяком — каждые 5 сек капают &a+3 000$ &7и &b+2❖&7!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#00E676&l💎 АКТИВИРОВАН ХРАМ МАЯКА БОГАТСТВА!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Стойте в Пантеоне — каждые 5 сек капают &a+3 000$ &7и &b+2❖&7!"));
+        } else if (ev.template.kind == EventKind.VOLCANO) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF6D00&l🌋 НАЧАЛОСЬ ИЗВЕРЖЕНИЕ АДСКОГО ВУЛКАНА!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Кальдера с Кастомными ТНТ и 3D Луками откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
         } else {
-            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#40C4FF&l❄ ВЫРОСЛА ЛЕДЯНАЯ ЦИТАДЕЛЬ САНТЫ!"));
-            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Захватите ротонду — Ледяной Сундук откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#40C4FF&l❄ ВЫРОСЛА ГОТИЧЕСКАЯ ЦИТАДЕЛЬ САНТЫ!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Захватите ледяной дворец — Сундук откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
         }
         Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &fМир: &#00E676Выживание (/rtp) &8│ &fКоординаты: &#80D8FF" + bx + ", " + by + ", " + bz));
         Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l╚══════════════════════════════════════════════╝"));
@@ -397,12 +465,36 @@ public final class BossEventManager {
                 || n.contains("CORAL") || m == Material.LILY_PAD;
     }
 
-    // ================= ARCHITECTURAL EVENT STRUCTURES =================
+    // ================= STYLISH v5.7 ARCHITECTURAL EVENT STRUCTURES =================
+    private void setBlk(ActiveBossEvent ev, int dx, int dy, int dz, Material mat) {
+        Location l = ev.center.clone().add(dx, dy, dz);
+        saveBlock(ev, l);
+        l.getBlock().setType(mat, false);
+    }
+
+    private void setStair(ActiveBossEvent ev, int dx, int dy, int dz, Material stairMat, BlockFace facing, boolean upsideDown) {
+        Location l = ev.center.clone().add(dx, dy, dz);
+        saveBlock(ev, l);
+        Block b = l.getBlock();
+        b.setType(stairMat, false);
+        try {
+            BlockData bd = b.getBlockData();
+            if (bd instanceof Directional) {
+                ((Directional) bd).setFacing(facing);
+            }
+            if (bd instanceof Bisected) {
+                ((Bisected) bd).setHalf(upsideDown ? Bisected.Half.TOP : Bisected.Half.BOTTOM);
+            }
+            b.setBlockData(bd, false);
+        } catch (Throwable ignored) {}
+    }
+
     private void clearAndSavePad(ActiveBossEvent ev, int radius, int height) {
         Location c = ev.center;
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
-                for (int dy = -1; dy <= height; dy++) {
+                if (dx * dx + dz * dz > (radius + 1) * (radius + 1)) continue;
+                for (int dy = -3; dy <= height; dy++) {
                     Location l = c.clone().add(dx, dy, dz);
                     saveBlock(ev, l);
                     if (dy >= 0) l.getBlock().setType(Material.AIR, false);
@@ -411,144 +503,441 @@ public final class BossEventManager {
         }
     }
 
-    private void buildBossAltar(ActiveBossEvent ev) {
-        clearAndSavePad(ev, 2, 4);
-        Location c = ev.center;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                boolean border = Math.abs(dx) == 2 || Math.abs(dz) == 2;
-                c.clone().add(dx, -1, dz).getBlock().setType(border ? Material.OBSIDIAN : ev.template.platformMat, false);
+    private void fillGroundedFloor(ActiveBossEvent ev, int dx, int dz, Material floorMat, Material baseMat) {
+        setBlk(ev, dx, -1, dz, floorMat);
+        for (int dy = -2; dy >= -4; dy--) {
+            Block below = ev.center.clone().add(dx, dy, dz).getBlock();
+            if (!below.getType().isSolid()) {
+                setBlk(ev, dx, dy, dz, baseMat);
             }
         }
-        int[][] corners = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
-        for (int[] cr : corners) {
-            c.clone().add(cr[0], 0, cr[1]).getBlock().setType(Material.COBBLED_DEEPSLATE_WALL, false);
-            c.clone().add(cr[0], 1, cr[1]).getBlock().setType(Material.SEA_LANTERN, false);
+    }
+
+    private void addCardinalStairRamps(ActiveBossEvent ev, int ringDist, Material stairMat, Material baseMat) {
+        //Note: In Minecraft Stairs, setFacing() points toward the BACK (full-height side) of the stair!
+        //So walking UP toward center (0,0) from z=-ringDist means facing SOUTH; from z=+ringDist means facing NORTH!
+        for (int w = -2; w <= 2; w++) {
+            fillGroundedFloor(ev, w, -ringDist - 1, baseMat, baseMat);
+            setStair(ev, w, -1, -ringDist, stairMat, BlockFace.SOUTH, false);
+            fillGroundedFloor(ev, w, ringDist + 1, baseMat, baseMat);
+            setStair(ev, w, -1, ringDist, stairMat, BlockFace.NORTH, false);
+            fillGroundedFloor(ev, -ringDist - 1, w, baseMat, baseMat);
+            setStair(ev, -ringDist, -1, w, stairMat, BlockFace.EAST, false);
+            fillGroundedFloor(ev, ringDist + 1, w, baseMat, baseMat);
+            setStair(ev, ringDist, -1, w, stairMat, BlockFace.WEST, false);
         }
-        c.getBlock().setType(Material.ENDER_CHEST, false);
+    }
+
+    private void buildCenterPedestalBevel(ActiveBossEvent ev, Material stairMat, Material centerBase) {
+        setBlk(ev, 0, -1, 0, centerBase);
+        setStair(ev, 0, 0, -1, stairMat, BlockFace.SOUTH, false);
+        setStair(ev, 0, 0, 1, stairMat, BlockFace.NORTH, false);
+        setStair(ev, -1, 0, 0, stairMat, BlockFace.EAST, false);
+        setStair(ev, 1, 0, 0, stairMat, BlockFace.WEST, false);
     }
 
     /**
-     * 🪂 Красивейший Военный АирДроп на сухой земле с парашютным куполом сверху, сигнальными огнями и грузовыми опорами!
+     * 👹 17×17 Стильный Храмовый Колизей для каждого из 5 Мифических Боссов (5 индивидуальных стилей архитектуры!)
+     */
+    private void buildBossAltar(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 8, 9);
+        String id = ev.template.id;
+
+        Material mainFloor = Material.POLISHED_BLACKSTONE_BRICKS;
+        Material accentFloor = Material.CHISELED_POLISHED_BLACKSTONE;
+        Material runeGlass = Material.RED_STAINED_GLASS;
+        Material pillarMat = Material.POLISHED_BLACKSTONE_BRICKS;
+        Material capMat = Material.CRYING_OBSIDIAN;
+        Material stairMat = Material.POLISHED_BLACKSTONE_BRICK_STAIRS;
+        Material lightMat = Material.SHROOMLIGHT;
+        Material lanternMat = Material.SOUL_LANTERN;
+
+        if ("grinch".equals(id)) {
+            mainFloor = Material.SMOOTH_QUARTZ;
+            accentFloor = Material.BLUE_ICE;
+            runeGlass = Material.LIGHT_BLUE_STAINED_GLASS;
+            pillarMat = Material.QUARTZ_PILLAR;
+            capMat = Material.PACKED_ICE;
+            stairMat = Material.QUARTZ_STAIRS;
+            lightMat = Material.SEA_LANTERN;
+            lanternMat = Material.SOUL_LANTERN;
+        } else if ("titan".equals(id)) {
+            mainFloor = Material.SMOOTH_QUARTZ;
+            accentFloor = Material.CHISELED_QUARTZ_BLOCK;
+            runeGlass = Material.YELLOW_STAINED_GLASS;
+            pillarMat = Material.QUARTZ_PILLAR;
+            capMat = Material.GOLD_BLOCK;
+            stairMat = Material.QUARTZ_STAIRS;
+            lightMat = Material.SEA_LANTERN;
+            lanternMat = Material.LANTERN;
+        } else if ("osiris".equals(id)) {
+            mainFloor = Material.SMOOTH_SANDSTONE;
+            accentFloor = Material.EMERALD_BLOCK;
+            runeGlass = Material.LIME_STAINED_GLASS;
+            pillarMat = Material.CHISELED_SANDSTONE;
+            capMat = Material.GOLD_BLOCK;
+            stairMat = Material.SMOOTH_SANDSTONE_STAIRS;
+            lightMat = Material.SEA_LANTERN;
+            lanternMat = Material.LANTERN;
+        } else if ("andromeda".equals(id)) {
+            mainFloor = Material.DEEPSLATE_TILES;
+            accentFloor = Material.AMETHYST_BLOCK;
+            runeGlass = Material.MAGENTA_STAINED_GLASS;
+            pillarMat = Material.PURPUR_PILLAR;
+            capMat = Material.CRYING_OBSIDIAN;
+            stairMat = Material.DEEPSLATE_TILE_STAIRS;
+            lightMat = Material.SEA_LANTERN;
+            lanternMat = Material.SOUL_LANTERN;
+        }
+
+        // Circular 15x15 Sanctum Floor with Glowing Geometric Star-Sigil!
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r > 7.4) continue;
+                boolean isStarRune = (dx == 0 || dz == 0 || Math.abs(dx) == Math.abs(dz)) && r >= 1.5 && r <= 5.8;
+                boolean isRim = r >= 6.3;
+                if (isStarRune) {
+                    setBlk(ev, dx, -2, dz, lightMat);
+                    setBlk(ev, dx, -1, dz, runeGlass);
+                } else {
+                    fillGroundedFloor(ev, dx, dz, isRim ? accentFloor : mainFloor, mainFloor);
+                }
+            }
+        }
+        addCardinalStairRamps(ev, 7, stairMat, mainFloor);
+
+        // 8 Octagonal Gothic Sanctuary Columns + Sculpted Arch Finials!
+        int[][] cols = new int[][]{
+                {-6, -2}, {-6, 2}, {6, -2}, {6, 2},
+                {-2, -6}, {2, -6}, {-2, 6}, {2, 6}
+        };
+        for (int[] cl : cols) {
+            int cx = cl[0], cz = cl[1];
+            setBlk(ev, cx, 0, cz, accentFloor);
+            for (int dy = 1; dy <= 4; dy++) {
+                setBlk(ev, cx, dy, cz, pillarMat);
+            }
+            setBlk(ev, cx, 5, cz, capMat);
+            setBlk(ev, cx, 6, cz, lightMat);
+            setBlk(ev, cx, 7, cz, Material.END_ROD);
+            // Inward hanging lantern bracket facing arena!
+            int ix = cx == 0 ? 0 : (cx > 0 ? cx - 1 : cx + 1);
+            int iz = cz == 0 ? 0 : (cz > 0 ? cz - 1 : cz + 1);
+            if (Math.abs(cx) == 6) {
+                setStair(ev, ix, 4, cz, stairMat, cx > 0 ? BlockFace.EAST : BlockFace.WEST, true);
+                setBlk(ev, ix, 3, cz, lanternMat);
+            } else {
+                setStair(ev, cx, 4, iz, stairMat, cz > 0 ? BlockFace.SOUTH : BlockFace.NORTH, true);
+                setBlk(ev, cx, 3, iz, lanternMat);
+            }
+        }
+
+        // Connect paired columns into 4 Grand Entrance Portals!
+        for (int s = -1; s <= 1; s++) {
+            setBlk(ev, -6, 5, s, accentFloor);
+            setBlk(ev, 6, 5, s, accentFloor);
+            setBlk(ev, s, 5, -6, accentFloor);
+            setBlk(ev, s, 5, 6, accentFloor);
+        }
+
+        // Raised Central Vault Pedestal + Sealed Chest
+        buildCenterPedestalBevel(ev, stairMat, lightMat);
+        setBlk(ev, 0, 0, 0, Material.ENDER_CHEST);
+    }
+
+    /**
+     * 🪂 Стильный Военный АирДроп 15×15: бронированная вертолётная площадка, сигнальные вышки и огромный 3D купол парашюта 11×11!
      */
     private void buildBeautifulAirdropStructure(ActiveBossEvent ev) {
-        clearAndSavePad(ev, 3, 9);
-        Location c = ev.center;
-        // 5x5 Armored Landing Pad with yellow/black hazard trim & glowing beacons
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                Material floor;
-                if (Math.abs(dx) == 2 || Math.abs(dz) == 2) {
-                    floor = ((dx + dz) & 1) == 0 ? Material.YELLOW_CONCRETE : Material.BLACK_CONCRETE;
-                } else if (dx == 0 || dz == 0) {
-                    floor = Material.SEA_LANTERN;
+        clearAndSavePad(ev, 8, 12);
+        // 15x15 Octagonal Tactical Helipad with Yellow/Black Chevron Hazard Rim & Glowing Crosshair!
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                if (Math.abs(dx) + Math.abs(dz) > 10 || Math.max(Math.abs(dx), Math.abs(dz)) > 6) continue;
+                boolean border = Math.max(Math.abs(dx), Math.abs(dz)) == 6 || Math.abs(dx) + Math.abs(dz) == 10;
+                boolean lightCross = (dx == 0 || dz == 0) && Math.max(Math.abs(dx), Math.abs(dz)) <= 4;
+                boolean innerRing = Math.max(Math.abs(dx), Math.abs(dz)) == 3 && Math.min(Math.abs(dx), Math.abs(dz)) <= 3;
+                if (border) {
+                    Material haz = ((dx + dz) & 1) == 0 ? Material.YELLOW_CONCRETE : Material.BLACK_CONCRETE;
+                    fillGroundedFloor(ev, dx, dz, haz, Material.POLISHED_BLACKSTONE_BRICKS);
+                } else if (lightCross) {
+                    setBlk(ev, dx, -2, dz, Material.SHROOMLIGHT);
+                    setBlk(ev, dx, -1, dz, Material.ORANGE_STAINED_GLASS);
                 } else {
-                    floor = Material.IRON_BLOCK;
-                }
-                c.clone().add(dx, -1, dz).getBlock().setType(floor, false);
-            }
-        }
-        // Corner flare campfires + iron bar parachute rigging up to Y+5..Y+7 parachute canopy!
-        int[][] corners = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
-        for (int[] cr : corners) {
-            c.clone().add(cr[0], 0, cr[1]).getBlock().setType(Material.CAMPFIRE, false);
-        }
-        int[][] cords = new int[][]{{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
-        for (int[] cd : cords) {
-            for (int dy = 1; dy <= 5; dy++) {
-                c.clone().add(cd[0], dy, cd[1]).getBlock().setType(Material.IRON_BARS, false);
-            }
-        }
-        // Parachute Canopy Dome at dy = 6..7 (Red & White striped parachute!)
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                int dist = Math.abs(dx) + Math.abs(dz);
-                if (dist <= 3) {
-                    int dy = dist <= 1 ? 7 : 6;
-                    Material wool = (dx & 1) == 0 ? Material.RED_WOOL : Material.WHITE_WOOL;
-                    c.clone().add(dx, dy, dz).getBlock().setType(wool, false);
+                    fillGroundedFloor(ev, dx, dz,
+                            innerRing ? Material.CHISELED_POLISHED_BLACKSTONE : Material.POLISHED_BLACKSTONE_BRICKS,
+                            Material.DEEPSLATE_TILES);
                 }
             }
         }
-        // Supply Crate Core (Locked Red Shulker / EnderChest until timer hits 0)
-        c.getBlock().setType(Material.ENDER_CHEST, false);
+        addCardinalStairRamps(ev, 6, Material.POLISHED_BLACKSTONE_BRICK_STAIRS, Material.POLISHED_BLACKSTONE_BRICKS);
+
+        // 4 Tactical Flare Towers at (±4, ±4)
+        int[][] towers = new int[][]{{-4, -4}, {4, -4}, {-4, 4}, {4, 4}};
+        for (int[] tw : towers) {
+            setBlk(ev, tw[0], 0, tw[1], Material.POLISHED_BLACKSTONE_BRICKS);
+            setBlk(ev, tw[0], 1, tw[1], Material.COBBLED_DEEPSLATE_WALL);
+            setBlk(ev, tw[0], 2, tw[1], Material.SHROOMLIGHT);
+            setBlk(ev, tw[0], 3, tw[1], Material.CAMPFIRE);
+        }
+
+        // Diagonal Parachute Rigging Cables (Chains & Iron Bars rising from cargo corners up to 11x11 Canopy!)
+        int[][] dirs = new int[][]{{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
+        for (int[] d : dirs) {
+            setBlk(ev, d[0], 0, d[1], Material.IRON_BARS);
+            setBlk(ev, d[0], 1, d[1], Material.CHAIN);
+            setBlk(ev, d[0] * 2, 2, d[1] * 2, Material.CHAIN);
+            setBlk(ev, d[0] * 2, 3, d[1] * 2, Material.CHAIN);
+            setBlk(ev, d[0] * 3, 4, d[1] * 3, Material.CHAIN);
+            setBlk(ev, d[0] * 3, 5, d[1] * 3, Material.CHAIN);
+            setBlk(ev, d[0] * 4, 6, d[1] * 4, Material.CHAIN);
+            setBlk(ev, d[0] * 4, 7, d[1] * 4, Material.CHAIN);
+        }
+
+        // Giant Billowing 11x11 3D Curved Parachute Canopy (dy = 8..11) in Red & White Military Stripes!
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r > 5.4) continue;
+                int dy = r <= 1.6 ? 11 : (r <= 3.3 ? 10 : (r <= 4.5 ? 9 : 8));
+                // Leave small realistic central apex air-vent at (0,11,0)
+                if (dx == 0 && dz == 0) {
+                    setBlk(ev, 0, 11, 0, Material.IRON_BARS);
+                    continue;
+                }
+                boolean redGore = (((int) Math.floor((Math.atan2(dz, dx) + Math.PI) / (Math.PI / 4.0))) & 1) == 0;
+                setBlk(ev, dx, dy, dz, redGore ? Material.RED_CONCRETE : Material.WHITE_CONCRETE);
+            }
+        }
+
+        // Armored Supply Pod Core
+        buildCenterPedestalBevel(ev, Material.POLISHED_BLACKSTONE_BRICK_STAIRS, Material.LODESTONE);
+        setBlk(ev, 0, 0, 0, Material.RED_SHULKER_BOX);
     }
 
     /**
-     * ☄ Звёздный Метеорит: кратер из обсидиана, магмы, аметистов и настоящих алмазных руд!
+     * ☄ Стильный Звёздный Метеорит 17×17: ударный кратер с разломами магмы под стеклом, пиками аметиста и огненным хвостом!
      */
     private void buildStarMeteorStructure(ActiveBossEvent ev) {
-        clearAndSavePad(ev, 3, 5);
-        Location c = ev.center;
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dz = -3; dz <= 3; dz++) {
-                double d = Math.hypot(dx, dz);
-                if (d > 3.2) continue;
-                Material m = d < 1.5 ? Material.CRYING_OBSIDIAN
-                        : (rng.nextInt(3) == 0 ? Material.MAGMA_BLOCK : Material.OBSIDIAN);
-                c.clone().add(dx, -1, dz).getBlock().setType(m, false);
-                if (d >= 2.2 && d <= 3.1 && rng.nextBoolean()) {
-                    c.clone().add(dx, 0, dz).getBlock().setType(rng.nextBoolean() ? Material.AMETHYST_BLOCK : Material.MAGMA_BLOCK, false);
+        clearAndSavePad(ev, 8, 10);
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r > 7.5) continue;
+                boolean cardinalPass = Math.abs(dx) <= 1 || Math.abs(dz) <= 1;
+                boolean fissure = (Math.abs(dx - dz) <= 0 || Math.abs(dx + dz) <= 0) && r >= 1.5 && r <= 5.5;
+                if (fissure) {
+                    setBlk(ev, dx, -2, dz, Material.SHROOMLIGHT);
+                    setBlk(ev, dx, -1, dz, r < 3.2 ? Material.RED_STAINED_GLASS : Material.ORANGE_STAINED_GLASS);
+                } else {
+                    Material fl = r < 2.4 ? Material.CRYING_OBSIDIAN
+                            : (r < 4.8 ? Material.BLACKSTONE : Material.POLISHED_BASALT);
+                    fillGroundedFloor(ev, dx, dz, fl, Material.BLACKSTONE);
+                }
+                // Jagged Impact Crater Rim + Erupting Amethyst Crystal Spikes!
+                if (r >= 5.6 && r <= 7.4 && !cardinalPass) {
+                    setBlk(ev, dx, 0, dz, (dx + dz) % 2 == 0 ? Material.OBSIDIAN : Material.BLACKSTONE);
+                    if (((dx * 31 + dz * 17) & 3) == 0) {
+                        setBlk(ev, dx, 1, dz, Material.AMETHYST_BLOCK);
+                        setBlk(ev, dx, 2, dz, Material.PURPLE_STAINED_GLASS);
+                    } else if (((dx + dz) & 1) == 0) {
+                        setBlk(ev, dx, 1, dz, Material.MAGMA_BLOCK);
+                    }
                 }
             }
         }
-        // Bonus mineable ores around the meteor core!
-        c.clone().add(1, 0, 0).getBlock().setType(Material.DEEPSLATE_DIAMOND_ORE, false);
-        c.clone().add(-1, 0, 0).getBlock().setType(Material.DEEPSLATE_EMERALD_ORE, false);
-        c.clone().add(0, 0, 1).getBlock().setType(Material.GOLD_BLOCK, false);
-        c.clone().add(0, 0, -1).getBlock().setType(Material.AMETHYST_BLOCK, false);
-        c.getBlock().setType(Material.ENDER_CHEST, false);
+
+        // Rich Mineable Meteorite Ore Cluster around the core!
+        setBlk(ev, 2, 0, 0, Material.DEEPSLATE_DIAMOND_ORE);
+        setBlk(ev, -2, 0, 0, Material.DEEPSLATE_DIAMOND_ORE);
+        setBlk(ev, 0, 0, 2, Material.DEEPSLATE_EMERALD_ORE);
+        setBlk(ev, 0, 0, -2, Material.DEEPSLATE_EMERALD_ORE);
+        setBlk(ev, 1, 0, 1, Material.GILDED_BLACKSTONE);
+        setBlk(ev, -1, 0, -1, Material.GILDED_BLACKSTONE);
+        setBlk(ev, 1, 0, -1, Material.AMETHYST_BLOCK);
+        setBlk(ev, -1, 0, 1, Material.CRYING_OBSIDIAN);
+
+        // Dramatic Diagonal Cosmic Fire-Plume Trailing into the Sky!
+        for (int step = 1; step <= 5; step++) {
+            setBlk(ev, -step, step + 2, -step, step <= 2 ? Material.MAGMA_BLOCK : Material.ORANGE_STAINED_GLASS);
+            setBlk(ev, -step, step + 3, -step, step <= 3 ? Material.RED_STAINED_GLASS : Material.PURPLE_STAINED_GLASS);
+        }
+        setBlk(ev, -2, 1, -2, Material.CAMPFIRE);
+        setBlk(ev, 2, 1, 2, Material.CAMPFIRE);
+
+        setBlk(ev, 0, -1, 0, Material.CRYING_OBSIDIAN);
+        setBlk(ev, 0, 0, 0, Material.ENDER_CHEST);
     }
 
     /**
-     * 💎 Золотой Маяк Богатства: настоящая 3x3 золотая пирамида + активный Маяк под сундуком сокровищ!
+     * 💎 Стильный Пантеон Золотого Маяка Богатства 17×17 с мраморной колоннадой, фризом и небесным лучом Маяка!
      */
     private void buildGoldenBeaconStructure(ActiveBossEvent ev) {
-        clearAndSavePad(ev, 3, 5);
-        Location c = ev.center;
-        // 3x3 Gold Pyramid base at y-2 and Beacon at y-1 so a real Minecraft Beacon beam shoots skyward!
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                Location b2 = c.clone().add(dx, -2, dz);
-                saveBlock(ev, b2);
-                if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-                    b2.getBlock().setType(Material.GOLD_BLOCK, false);
-                }
-                c.clone().add(dx, -1, dz).getBlock().setType(
-                        (dx == 0 && dz == 0) ? Material.BEACON
-                                : (Math.abs(dx) == 2 || Math.abs(dz) == 2 ? Material.EMERALD_BLOCK : Material.GOLD_BLOCK),
-                        false);
+        clearAndSavePad(ev, 8, 9);
+        // Real 3x3 Gold Pyramid at y=-2 so the Beacon at (0,-1,0) activates a real sky beam!
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                setBlk(ev, dx, -2, dz, Material.GOLD_BLOCK);
             }
         }
-        int[][] corners = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
-        for (int[] cr : corners) {
-            c.clone().add(cr[0], 0, cr[1]).getBlock().setType(Material.QUARTZ_PILLAR, false);
-            c.clone().add(cr[0], 1, cr[1]).getBlock().setType(Material.SEA_LANTERN, false);
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r > 7.4) continue;
+                Material fl;
+                if (dx == 0 && dz == 0) {
+                    fl = Material.BEACON;
+                } else if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                    fl = Material.GOLD_BLOCK;
+                } else if ((dx == 0 || dz == 0) && r <= 6.0) {
+                    fl = Material.CHISELED_QUARTZ_BLOCK;
+                } else if (Math.abs(dx) == Math.abs(dz) && r <= 5.5) {
+                    fl = Material.EMERALD_BLOCK;
+                } else if (r >= 6.3) {
+                    fl = Material.GOLD_BLOCK;
+                } else {
+                    fl = Material.SMOOTH_QUARTZ;
+                }
+                if (dx == 0 && dz == 0) {
+                    setBlk(ev, 0, -1, 0, Material.BEACON);
+                } else {
+                    fillGroundedFloor(ev, dx, dz, fl, Material.SMOOTH_QUARTZ);
+                }
+            }
         }
-        // Stained glass while locked so Beacon beam shines right through to the sky!
-        c.getBlock().setType(Material.YELLOW_STAINED_GLASS, false);
+        addCardinalStairRamps(ev, 7, Material.QUARTZ_STAIRS, Material.SMOOTH_QUARTZ);
+
+        // 8 Fluted Temple Columns + Circular Marble & Gold Entablature Ring at dy=5..6 (open sky center for Beacon beam!)
+        int[][] cols = new int[][]{
+                {-5, -2}, {-5, 2}, {5, -2}, {5, 2},
+                {-2, -5}, {2, -5}, {-2, 5}, {2, 5}
+        };
+        for (int[] cl : cols) {
+            for (int dy = 0; dy <= 4; dy++) {
+                setBlk(ev, cl[0], dy, cl[1], Material.QUARTZ_PILLAR);
+            }
+            setBlk(ev, cl[0], 5, cl[1], Material.GOLD_BLOCK);
+            setBlk(ev, cl[0], 6, cl[1], Material.SEA_LANTERN);
+            setBlk(ev, cl[0], 7, cl[1], Material.END_ROD);
+        }
+        // Connect Temple Ring Crown at dy = 5
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r >= 4.7 && r <= 5.6) {
+                    setBlk(ev, dx, 5, dz, ((dx + dz) & 1) == 0 ? Material.SMOOTH_QUARTZ : Material.CHISELED_QUARTZ_BLOCK);
+                }
+            }
+        }
+        setBlk(ev, -4, 4, 0, Material.LANTERN);
+        setBlk(ev, 4, 4, 0, Material.LANTERN);
+        setBlk(ev, 0, 4, -4, Material.LANTERN);
+        setBlk(ev, 0, 4, 4, Material.LANTERN);
+
+        // Stained glass while locked so Beacon beam pierces straight into the sky!
+        buildCenterPedestalBevel(ev, Material.QUARTZ_STAIRS, Material.BEACON);
+        setBlk(ev, 0, 0, 0, Material.YELLOW_STAINED_GLASS);
     }
 
     /**
-     * ❄ Ледяная Цитадель Санты: кварцево-ледяная ротонда с морозным куполом!
+     * ❄ Стильная Готическая Ледяная Цитадель Санты 17×17 с шпилями изо льда, ковровыми дорожками и люстрами душ!
      */
     private void buildFrostCitadelStructure(ActiveBossEvent ev) {
-        clearAndSavePad(ev, 3, 6);
-        Location c = ev.center;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                Material fl = ((dx + dz) & 1) == 0 ? Material.BLUE_ICE : Material.SMOOTH_QUARTZ;
-                c.clone().add(dx, -1, dz).getBlock().setType(fl, false);
+        clearAndSavePad(ev, 8, 10);
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r > 7.4) continue;
+                boolean redCarpet = (dx == 0 || dz == 0) && r >= 1.5 && r <= 6.5;
+                boolean snowflakeDiag = Math.abs(dx) == Math.abs(dz) && r <= 5.8;
+                if (redCarpet) {
+                    fillGroundedFloor(ev, dx, dz, Material.RED_CONCRETE, Material.SMOOTH_QUARTZ);
+                } else if (snowflakeDiag) {
+                    setBlk(ev, dx, -2, dz, Material.SEA_LANTERN);
+                    setBlk(ev, dx, -1, dz, Material.LIGHT_BLUE_STAINED_GLASS);
+                } else {
+                    Material fl = r >= 6.3 ? Material.PRISMARINE_BRICKS
+                            : (((dx + dz) & 1) == 0 ? Material.BLUE_ICE : Material.SMOOTH_QUARTZ);
+                    fillGroundedFloor(ev, dx, dz, fl, Material.PACKED_ICE);
+                }
             }
         }
-        int[][] pillars = new int[][]{{-2, -2}, {2, -2}, {-2, 2}, {2, 2}};
-        for (int[] pl : pillars) {
-            for (int dy = 0; dy <= 2; dy++) {
-                c.clone().add(pl[0], dy, pl[1]).getBlock().setType(Material.QUARTZ_PILLAR, false);
-            }
-            c.clone().add(pl[0], 3, pl[1]).getBlock().setType(Material.SEA_LANTERN, false);
+        addCardinalStairRamps(ev, 7, Material.QUARTZ_STAIRS, Material.SMOOTH_QUARTZ);
+
+        // 8 Tall Gothic Ice Spires (dy = 0..8) + Frosted Crystal Dome Crown!
+        int[][] spires = new int[][]{
+                {-5, -2}, {-5, 2}, {5, -2}, {5, 2},
+                {-2, -5}, {2, -5}, {-2, 5}, {2, 5}
+        };
+        for (int[] sp : spires) {
+            setBlk(ev, sp[0], 0, sp[1], Material.CHISELED_QUARTZ_BLOCK);
+            setBlk(ev, sp[0], 1, sp[1], Material.QUARTZ_PILLAR);
+            setBlk(ev, sp[0], 2, sp[1], Material.BLUE_ICE);
+            setBlk(ev, sp[0], 3, sp[1], Material.QUARTZ_PILLAR);
+            setBlk(ev, sp[0], 4, sp[1], Material.BLUE_ICE);
+            setBlk(ev, sp[0], 5, sp[1], Material.SEA_LANTERN);
+            setBlk(ev, sp[0], 6, sp[1], Material.BLUE_ICE);
+            setBlk(ev, sp[0], 7, sp[1], Material.LIGHT_BLUE_STAINED_GLASS);
+            setBlk(ev, sp[0], 8, sp[1], Material.END_ROD);
         }
-        c.getBlock().setType(Material.ENDER_CHEST, false);
+        // Overhead Frost Crystal Halo at dy = 6..7
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dz = -4; dz <= 4; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r >= 2.8 && r <= 4.3) {
+                    setBlk(ev, dx, 6, dz, ((dx + dz) & 1) == 0 ? Material.LIGHT_BLUE_STAINED_GLASS : Material.WHITE_STAINED_GLASS);
+                } else if (r > 1.2 && r < 2.8) {
+                    setBlk(ev, dx, 7, dz, Material.LIGHT_BLUE_STAINED_GLASS);
+                }
+            }
+        }
+        setBlk(ev, 0, 7, 0, Material.SEA_LANTERN);
+        setBlk(ev, 0, 6, 0, Material.CHAIN);
+        setBlk(ev, 0, 5, 0, Material.SOUL_LANTERN);
+
+        buildCenterPedestalBevel(ev, Material.QUARTZ_STAIRS, Material.SEA_LANTERN);
+        setBlk(ev, 0, 0, 0, Material.LIGHT_BLUE_SHULKER_BOX);
+    }
+
+    /**
+     * 🌋 НОВЫЙ СТИЛЬНЫЙ ИВЕНТ v5.7 — Адский Вулкан Ифрита 17×17 с базальтовыми рогами, реками лавы под стеклом и Рейд-лутом!
+     */
+    private void buildVolcanoStructure(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 8, 10);
+        for (int dx = -7; dx <= 7; dx++) {
+            for (int dz = -7; dz <= 7; dz++) {
+                double r = Math.hypot(dx, dz);
+                if (r > 7.5) continue;
+                boolean lavaRiver = (dx == 0 || dz == 0 || Math.abs(dx) == Math.abs(dz)) && r >= 1.4 && r <= 6.2;
+                if (lavaRiver && Math.abs(dx) != 0 && Math.abs(dz) != 0) {
+                    setBlk(ev, dx, -2, dz, Material.SHROOMLIGHT);
+                    setBlk(ev, dx, -1, dz, Material.ORANGE_STAINED_GLASS);
+                } else {
+                    Material fl = r < 2.6 ? Material.MAGMA_BLOCK
+                            : (r >= 6.2 ? Material.CRIMSON_HYPHAE : Material.POLISHED_BLACKSTONE_BRICKS);
+                    fillGroundedFloor(ev, dx, dz, fl, Material.BLACKSTONE);
+                }
+            }
+        }
+        addCardinalStairRamps(ev, 7, Material.POLISHED_BLACKSTONE_BRICK_STAIRS, Material.POLISHED_BLACKSTONE_BRICKS);
+
+        // 4 Towering Curved Volcanic Horn Spires curving inward toward the caldera!
+        int[][] horns = new int[][]{{-1, -1}, {1, -1}, {-1, 1}, {1, 1}};
+        for (int[] h : horns) {
+            int hx = h[0], hz = h[1];
+            for (int dy = 0; dy <= 3; dy++) {
+                setBlk(ev, hx * 5, dy, hz * 5, dy == 0 ? Material.GILDED_BLACKSTONE : Material.POLISHED_BASALT);
+            }
+            for (int dy = 3; dy <= 5; dy++) {
+                setBlk(ev, hx * 4, dy, hz * 4, Material.BLACKSTONE);
+            }
+            setBlk(ev, hx * 3, 6, hz * 3, Material.MAGMA_BLOCK);
+            setBlk(ev, hx * 3, 7, hz * 3, Material.CAMPFIRE);
+        }
+
+        buildCenterPedestalBevel(ev, Material.POLISHED_BLACKSTONE_BRICK_STAIRS, Material.SHROOMLIGHT);
+        setBlk(ev, 0, 0, 0, Material.ORANGE_SHULKER_BOX);
     }
 
     private void saveBlock(ActiveBossEvent ev, Location loc) {
@@ -598,6 +987,14 @@ public final class BossEventManager {
     }
 
     private void removeHologram(ActiveBossEvent ev) {
+        if (ev.center != null && ev.center.getWorld() != null) {
+            try { ev.center.getChunk().load(); } catch (Throwable ignored) {}
+            for (Entity near : ev.center.getWorld().getNearbyEntities(ev.center, 6, 8, 6)) {
+                if (near.getScoreboardTags().contains("kg_holo") && ev.hologramStands.contains(near.getUniqueId())) {
+                    near.remove();
+                }
+            }
+        }
         for (UUID id : ev.hologramStands) {
             Entity e = Bukkit.getEntity(id);
             if (e != null) e.remove();
@@ -605,32 +1002,39 @@ public final class BossEventManager {
         ev.hologramStands.clear();
     }
 
-    private void configureBossEntity(LivingEntity boss, BossTemplate tpl, String instanceId) {
+    private void configureBossEntity(LivingEntity boss, BossTemplate tpl, String instanceId, double currentHp) {
         boss.addScoreboardTag("kg_event_boss");
         boss.addScoreboardTag("kg_boss_" + instanceId);
         boss.setRemoveWhenFarAway(false);
         boss.setPersistent(true);
         setMaxHealthSafe(boss, tpl.maxHp);
-        boss.setHealth(tpl.maxHp);
-        boss.setCustomName(ColorUtil.c(tpl.displayName + " &c❤ " + (int) tpl.maxHp));
+        boss.setHealth(Math.max(1.0, Math.min(tpl.maxHp, currentHp)));
+        boss.setCustomName(ColorUtil.c(tpl.displayName + " &c❤ " + (int) Math.ceil(boss.getHealth())));
         boss.setCustomNameVisible(true);
+        ColorUtil.addPot(boss, "fire_resistance", "FIRE_RESISTANCE", 72000, 0);
 
         EntityEquipment eq = boss.getEquipment();
         if (eq != null) {
             if ("krush".equals(tpl.id)) {
-                eq.setHelmet(new ItemStack(Material.NETHERITE_HELMET));
-                eq.setChestplate(new ItemStack(Material.NETHERITE_CHESTPLATE));
-                eq.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
-                eq.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
+                eq.setHelmet(ItemFactory.armorPiece("krush", 0));
+                eq.setChestplate(ItemFactory.armorPiece("krush", 1));
+                eq.setLeggings(ItemFactory.armorPiece("krush", 2));
+                eq.setBoots(ItemFactory.armorPiece("krush", 3));
                 eq.setItemInMainHand(ItemFactory.swordKrush());
             } else if ("grinch".equals(tpl.id)) {
-                eq.setHelmet(new ItemStack(Material.DIAMOND_HELMET));
-                eq.setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));
+                eq.setHelmet(ItemFactory.armorPiece("frost", 0));
+                eq.setChestplate(ItemFactory.armorPiece("frost", 1));
+                eq.setLeggings(ItemFactory.armorPiece("frost", 2));
+                eq.setBoots(ItemFactory.armorPiece("frost", 3));
                 eq.setItemInMainHand(ItemFactory.bowIceRw());
             } else if ("osiris".equals(tpl.id)) {
-                eq.setHelmet(new ItemStack(Material.GOLDEN_HELMET));
-                eq.setChestplate(new ItemStack(Material.NETHERITE_CHESTPLATE));
+                eq.setHelmet(ItemFactory.armorPiece("dracula", 0));
+                eq.setChestplate(ItemFactory.armorPiece("dracula", 1));
+                eq.setLeggings(ItemFactory.armorPiece("dracula", 2));
+                eq.setBoots(ItemFactory.armorPiece("dracula", 3));
                 eq.setItemInMainHand(ItemFactory.swordDracula());
+            } else if ("andromeda".equals(tpl.id)) {
+                eq.setHelmet(ItemFactory.armorPiece("phantom", 0));
             }
             eq.setHelmetDropChance(0f);
             eq.setChestplateDropChance(0f);
@@ -701,18 +1105,52 @@ public final class BossEventManager {
                     Entity e = ev.bossUuid != null ? Bukkit.getEntity(ev.bossUuid) : null;
                     if (e instanceof LivingEntity && !e.isDead()) {
                         LivingEntity le = (LivingEntity) e;
+                        le.setFireTicks(0);
                         curHp = le.getHealth();
+                        ev.lastKnownHp = curHp;
                         le.setCustomName(ColorUtil.c(ev.template.displayName + " &c❤ " + (int) Math.ceil(curHp)));
-                        if (le.getLocation().distanceSquared(ev.center) > 22 * 22) {
-                            le.teleport(ev.center.clone().add(0.5, 1.2, 1.5));
+                        if (le.getLocation().distanceSquared(ev.center) > 16 * 16) {
+                            le.teleport(ev.center.clone().add(0.5, 1.2, 2.0));
                         }
                         if (ev.secondsLeft % 9 == 0) {
                             castBossSkill(ev, le);
                         }
-                    } else if (ev.center.getChunk().isLoaded()) {
+                    } else if (e != null && e.isDead() && !ev.damageMap.isEmpty()) {
                         onBossSlain(ev, null);
                     } else {
-                        curHp = ev.template.maxHp;
+                        // Entity chunk may be unloaded when no player is nearby — NEVER falsely kill the Boss!
+                        // If a player IS nearby (<= 48 blocks) and the Boss entity vanished, respawn it with lastKnownHp!
+                        curHp = ev.lastKnownHp;
+                        World bw = ev.center.getWorld();
+                        if (bw != null) {
+                            boolean playerNear = false;
+                            for (Player pl : bw.getPlayers()) {
+                                if (pl.getLocation().distanceSquared(ev.center) <= 48 * 48) {
+                                    playerNear = true;
+                                    break;
+                                }
+                            }
+                            if (playerNear) {
+                                ev.center.getChunk().load();
+                                LivingEntity found = null;
+                                for (Entity near : bw.getNearbyEntities(ev.center, 32, 24, 32)) {
+                                    if (near instanceof LivingEntity && !near.isDead()
+                                            && near.getScoreboardTags().contains("kg_boss_" + ev.instanceId)) {
+                                        found = (LivingEntity) near;
+                                        break;
+                                    }
+                                }
+                                if (found != null) {
+                                    ev.bossUuid = found.getUniqueId();
+                                    curHp = found.getHealth();
+                                    ev.lastKnownHp = curHp;
+                                } else {
+                                    LivingEntity respawned = (LivingEntity) bw.spawnEntity(ev.center.clone().add(0.5, 1.2, 2.5), ev.template.entityType);
+                                    configureBossEntity(respawned, ev.template, ev.instanceId, ev.lastKnownHp);
+                                    ev.bossUuid = respawned.getUniqueId();
+                                }
+                            }
+                        }
                     }
                 }
             } else {
@@ -789,6 +1227,10 @@ public final class BossEventManager {
         } else if (ev.template.kind == EventKind.FROST_CITADEL) {
             w.spawnParticle(Particle.SNOWFLAKE, mid.clone().add(0, 0.6, 0), 22, 1.8, 1.2, 1.8, 0.04);
             w.spawnParticle(Particle.SOUL_FIRE_FLAME, mid, 6, 0.8, 0.4, 0.8, 0.02);
+        } else if (ev.template.kind == EventKind.VOLCANO) {
+            w.spawnParticle(Particle.LAVA, mid.clone().add(0, 1.5, 0), 10, 1.8, 1.2, 1.8, 0.03);
+            w.spawnParticle(Particle.FLAME, mid, 16, 1.5, 0.8, 1.5, 0.04);
+            w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, mid.clone().add(0, 2.0, 0), 6, 1.0, 1.2, 1.0, 0.02);
         }
     }
 
@@ -838,33 +1280,51 @@ public final class BossEventManager {
             inv.setItem(12, ItemFactory.dezorient(3));
             inv.setItem(13, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 3));
             inv.setItem(14, ItemFactory.bozhyaAura(2));
-            inv.setItem(15, new ItemStack(Material.ENDER_PEARL, 16));
+            inv.setItem(15, ItemFactory.tntTier1(4));
             inv.setItem(16, new ItemStack(Material.GOLDEN_CARROT, 64));
+            inv.setItem(21, ItemFactory.arrowAntiFly(16));
             inv.setItem(22, ItemFactory.potionKiller(2));
+            inv.setItem(23, ItemFactory.armorPiece("zeus", rng.nextInt(4)));
         } else if (kind == EventKind.METEOR) {
             inv.setItem(4, rng.nextBoolean() ? ItemFactory.sharAresa() : ItemFactory.elytraPhoenix());
             inv.setItem(11, new ItemStack(Material.NETHERITE_INGOT, 5));
             inv.setItem(12, ItemFactory.ognennySmerch(4));
             inv.setItem(13, ItemFactory.pickDjamshut());
             inv.setItem(14, new ItemStack(Material.DIAMOND_BLOCK, 8));
-            inv.setItem(15, ItemFactory.talKrushitelya());
+            inv.setItem(15, rng.nextBoolean() ? ItemFactory.talKrushitelya() : ItemFactory.talKolossa());
+            inv.setItem(21, ItemFactory.tntBlack(2));
             inv.setItem(22, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 4));
+            inv.setItem(23, ItemFactory.maceKrush());
         } else if (kind == EventKind.BEACON) {
             inv.setItem(4, ItemFactory.sharApollona());
             inv.setItem(11, new ItemStack(Material.GOLD_BLOCK, 24));
             inv.setItem(12, new ItemStack(Material.EMERALD_BLOCK, 16));
             inv.setItem(13, ItemFactory.pickSpawner());
             inv.setItem(14, ItemFactory.yavnayaPyl(4));
-            inv.setItem(15, ItemFactory.snowflakeCoin(24));
+            inv.setItem(15, ItemFactory.talImperatora());
+            inv.setItem(21, ItemFactory.bowZeus());
             inv.setItem(22, ItemFactory.elytraThunder());
+            inv.setItem(23, ItemFactory.arrowLightning(24));
+        } else if (kind == EventKind.VOLCANO) {
+            inv.setItem(4, rng.nextBoolean() ? ItemFactory.tntNuke(2) : ItemFactory.bowInferno());
+            inv.setItem(11, ItemFactory.tntBlack(4));
+            inv.setItem(12, ItemFactory.tntFlash(4));
+            inv.setItem(13, ItemFactory.talZhneca());
+            inv.setItem(14, ItemFactory.bozhyaKara(3));
+            inv.setItem(15, ItemFactory.armorPiece("krush", rng.nextInt(4)));
+            inv.setItem(21, ItemFactory.arrowExplosive(24));
+            inv.setItem(22, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 4));
+            inv.setItem(23, ItemFactory.gravSfera(3));
         } else {
             inv.setItem(4, rng.nextBoolean() ? ItemFactory.elytraSanta() : ItemFactory.sharSanty());
             inv.setItem(11, ItemFactory.snezokZamorozki(8));
             inv.setItem(12, ItemFactory.pautinnayaGranata(6));
-            inv.setItem(13, ItemFactory.talStuzhi());
+            inv.setItem(13, rng.nextBoolean() ? ItemFactory.talStuzhi() : ItemFactory.talSevera());
             inv.setItem(14, ItemFactory.nyMandarin(16));
-            inv.setItem(15, ItemFactory.potionChampagne(2));
+            inv.setItem(15, ItemFactory.tntCryo(4));
+            inv.setItem(21, ItemFactory.bowIceRw());
             inv.setItem(22, ItemFactory.talFeniksa(3));
+            inv.setItem(23, ItemFactory.armorPiece("frost", rng.nextInt(4)));
         }
     }
 
@@ -933,6 +1393,27 @@ public final class BossEventManager {
         Location loc = block.getLocation();
         for (ActiveBossEvent ev : activeEvents.values()) {
             if (!ev.bossDefeated && ev.center.equals(loc)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Защищает стильные храмы/ротонды/пантеоны ивентов от грифа и фарма золотых блоков!
+     * Исключение: алмазные/изумрудные/золочёные руды внутри Звёздного Метеорита можно честно добывать киркой!
+     */
+    public boolean isProtectedEventStructureBlock(Block block, boolean allowMeteorOres) {
+        if (block == null) return false;
+        Location loc = block.getLocation();
+        for (ActiveBossEvent ev : activeEvents.values()) {
+            if (ev.savedBlocks.containsKey(loc)) {
+                if (allowMeteorOres && ev.template.kind == EventKind.METEOR && !ev.center.equals(loc)) {
+                    Material m = block.getType();
+                    if (m == Material.DEEPSLATE_DIAMOND_ORE || m == Material.DEEPSLATE_EMERALD_ORE || m == Material.GILDED_BLACKSTONE) {
+                        return false;
+                    }
+                }
                 return true;
             }
         }
@@ -1021,9 +1502,29 @@ public final class BossEventManager {
             ev.bossBar.removeAll();
             ev.bossBar.setVisible(false);
         }
+        // Force-load surrounding chunks so Boss & Holograms ALWAYS die and get 100% removed when the event ends!
+        World w = ev.center != null ? ev.center.getWorld() : null;
+        if (w != null) {
+            int cx = ev.center.getBlockX() >> 4;
+            int cz = ev.center.getBlockZ() >> 4;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    try { w.getChunkAt(cx + dx, cz + dz).load(); } catch (Throwable ignored) {}
+                }
+            }
+            for (Entity near : w.getNearbyEntities(ev.center, 45, 35, 45)) {
+                if ((ev.bossUuid != null && ev.bossUuid.equals(near.getUniqueId()))
+                        || near.getScoreboardTags().contains("kg_boss_" + ev.instanceId)) {
+                    w.spawnParticle(Particle.POOF, near.getLocation().add(0, 1.0, 0), 35, 0.5, 0.8, 0.5, 0.05);
+                    near.remove();
+                }
+            }
+        }
         if (ev.bossUuid != null) {
             Entity e = Bukkit.getEntity(ev.bossUuid);
-            if (e != null) e.remove();
+            if (e != null) {
+                e.remove();
+            }
         }
         removeHologram(ev);
         if (ev.center.getBlock().getState() instanceof Chest) {
@@ -1035,7 +1536,8 @@ public final class BossEventManager {
             try { st.update(true, false); } catch (Throwable ignored) {}
         }
         if (announce && !ev.bossDefeated) {
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName + " &7истекло, постройка исчезла."));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName
+                    + " &7вышло — Босс погиб и храм исчез!"));
         }
     }
 }

@@ -1,0 +1,6 @@
+name: admin
+permissions:
+- weight.268
+prefixes:
+- '&f &c':
+    priority: 268

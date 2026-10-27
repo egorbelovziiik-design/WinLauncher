@@ -1,14 +1,6 @@
 name: dragon
 permissions:
-- weight.120
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- imperator
+- weight.12
 prefixes:
-- '&f &f':
-    priority: 120
+- '&f &5':
+    priority: 12

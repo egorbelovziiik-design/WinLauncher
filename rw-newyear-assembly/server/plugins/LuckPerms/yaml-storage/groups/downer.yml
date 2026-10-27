@@ -1,14 +1,6 @@
 name: downer
 permissions:
-- weight.220
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- opka
+- weight.190
 prefixes:
-- '&f &f':
-    priority: 220
+- '&f &4':
+    priority: 190

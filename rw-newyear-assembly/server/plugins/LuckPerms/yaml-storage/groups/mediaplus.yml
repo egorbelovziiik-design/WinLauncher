@@ -1,14 +1,6 @@
 name: mediaplus
 permissions:
-- weight.168
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- media
+- weight.108
 prefixes:
-- '&f &f':
-    priority: 168
+- '&f &d':
+    priority: 108

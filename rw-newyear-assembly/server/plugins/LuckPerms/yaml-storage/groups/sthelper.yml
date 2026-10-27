@@ -1,14 +1,6 @@
 name: sthelper
 permissions:
-- weight.245
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- helper
+- weight.214
 prefixes:
-- '&f &f':
-    priority: 245
+- '&f &e':
+    priority: 214

@@ -41,38 +41,39 @@ public final class GuiManager {
         }
     }
 
+    public static final org.bukkit.NamespacedKey SHOP_PRICE_KEY = new org.bukkit.NamespacedKey("kinggrief", "shop_price");
+
     private static final String[][] ALL_KITS = new String[][]{
             {"start",     "Кит Игрока",      "IRON_SWORD",           "900"},
             {"newyear",   "Новогодний Кит",  "SNOWBALL",             "3600"},
+            {"dragon",    "Кит DRAGON (/free dragon)", "DRAGON_BREATH", "21600"},
             {"pegas",     "Кит PEGAS",       "FEATHER",              "21600"},
             {"cobra",     "Кит COBRA",       "SLIME_BALL",           "21600"},
-            {"hero",      "Кит HERO",        "SHIELD",               "21600"},
+            {"dracula",   "Кит DRACULA",     "NETHERITE_SWORD",      "21600"},
             {"bunny",     "Кит BUNNY",       "RABBIT_FOOT",          "21600"},
-            {"titan",     "Кит TITAN",       "IRON_CHESTPLATE",      "21600"},
             {"rabbit",    "Кит RABBIT",      "GOLDEN_CARROT",        "21600"},
             {"vampire",   "Кит VAMPIRE",     "REDSTONE",             "21600"},
             {"tiger",     "Кит TIGER",       "BLAZE_POWDER",         "21600"},
-            {"dracula",   "Кит DRACULA",     "NETHERITE_SWORD",      "21600"},
             {"god",       "Кит GOD",         "ENCHANTED_GOLDEN_APPLE","21600"},
-            {"overlord",  "Кит OVERLORD",    "PRISMARINE_SHARD",     "21600"},
             {"imperator", "Кит IMPERATOR",   "GOLDEN_HELMET",        "21600"},
-            {"dragon",    "Кит DRAGON",      "DRAGON_BREATH",        "21600"},
             {"king",      "Кит KING",        "NETHER_STAR",          "21600"},
-            {"bull",      "Кит BULL",        "ANVIL",                "21600"},
             {"sponsor",   "Кит SPONSOR",     "BEACON",               "21600"},
             {"media",     "Кит MEDIA",       "AMETHYST_SHARD",       "21600"},
-            {"kp",        "Кит Персонала КП","EMERALD",              "21600"},
             {"dhelper",   "Кит D.HELPER",    "CYAN_SHULKER_BOX",     "21600"},
+            {"dkp",       "Кит ДКП",         "YELLOW_SHULKER_BOX",   "18000"},
             {"dmoder",    "Кит D.MODER",     "LIGHT_BLUE_SHULKER_BOX","21600"},
             {"dstmoder",  "Кит D.ST.MODER",  "BLUE_SHULKER_BOX",     "21600"},
             {"dglmoder",  "Кит D.GLMODER",   "PURPLE_SHULKER_BOX",   "21600"},
             {"dmladmin",  "Кит D.ML.ADMIN",  "ORANGE_SHULKER_BOX",   "21600"},
             {"dadmin",    "Кит D.ADMIN",     "RED_SHULKER_BOX",      "21600"},
-            {"dkp",       "Кит ДКП",         "YELLOW_SHULKER_BOX",   "18000"},
             {"opka",      "Кит OPKA",        "MAGENTA_SHULKER_BOX",  "14400"},
             {"downer",    "Кит D.OWNER",     "BLACK_SHULKER_BOX",    "10800"},
+            {"kp",        "Кит Персонала КП","EMERALD",              "21600"},
+            {"mlmoder",   "Кит МЛ. МОДЕРА",  "DIAMOND_SWORD",        "18000"},
+            {"mladmin",   "Кит МЛ. АДМИНА",  "ORANGE_SHULKER_BOX",   "14400"},
+            {"admin",     "Кит АДМИНА КП",   "RED_SHULKER_BOX",      "12000"},
             {"curator",   "Кит CURATOR",     "LIME_SHULKER_BOX",     "10800"},
-            {"owner",     "Кит OWNER",       "COMMAND_BLOCK",        "3600"}
+            {"owner",     "Кит OWNER [ТОЛЬКО OWNER]", "COMMAND_BLOCK", "3600"}
     };
 
     private static final String[][] TITLES_CATALOG = new String[][]{
@@ -160,16 +161,25 @@ public final class GuiManager {
         inv.setItem(25, ItemFactory.icon(Material.SHIELD, "&#B388FF&l🛡 Кланы Сервера",
                 "&7Рейтинг кланов, казна и клан-база!", "", "&#B388FF▸ Открыть /clan"));
 
+        inv.setItem(28, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 17 3D Талисманов (/talismans)",
+                "&7Все талисманы Крушителя, Зевса, Жнеца,", "&7Дракулы, Бездны и &#FF1744Талисман OWNER&7!"));
         inv.setItem(29, ItemFactory.icon(Material.IRON_PICKAXE, "&#AEEA00&l💼 Работы (/jobs)", "&7Шахтёр, Охотник, Дровосек, Воин!"));
         inv.setItem(30, ItemFactory.icon(Material.EXPERIENCE_BOTTLE, "&#40C4FF&l🎄 Боевой Пропуск (/bp)", "&7Награды за активность на сервере!"));
         inv.setItem(31, ItemFactory.icon(Material.SNOW_BLOCK, "&#80D8FF&l🏰 Телепорт на Спавн", "&7Вернуться в Яркое Зимнее Королевство!"));
         inv.setItem(32, ItemFactory.icon(Material.NAME_TAG, "&#FFD740&l✨ Титулы (/titles)", "&712 красивых титулов в чат и ТАБ!"));
         inv.setItem(33, ItemFactory.icon(Material.CLOCK, "&#00E676&l⏰ Награды за Время (/pt)", "&7Получай Рилики и Кейсы за онлайн!"));
+        inv.setItem(34, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня, Луки и ТНТ (/armors)",
+                "&76 кастомных сетов брони, 4 3D Лука,", "&76 видов Стрел и 6 видов Рейд-ТНТ!"));
 
         inv.setItem(38, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FF9100&l⚗ Бафовар (/bafs)",
                 "&7Свари кастомное зелье (макс 8 зелек за 5 000$)", "&7или купи готовые зелья и пакеты баффов!"));
         inv.setItem(39, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#E040FB&l⛓ Скины Трапок (/skins)",
                 "&7Выбери скин для Трапки 5×5×5 с дебаффом врагам!"));
+        boolean fpsOn = plugin.getStore().isFpsBoost(p);
+        inv.setItem(40, ItemFactory.glowIcon(fpsOn ? Material.LIME_DYE : Material.REDSTONE_TORCH,
+                "&#00E676&l🚀 FPS-БУСТЕР (/fps) &8[" + (fpsOn ? "&aВКЛ" : "&eВЫКЛ") + "&8]",
+                "&7Убирает лишние частицы и анимации для слабых ПК!",
+                "&a+40..80 FPS &7на спавне и в замесах!", "", "&#00E676▸ Нажми для переключения"));
         inv.setItem(41, ItemFactory.glowIcon(Material.SKELETON_SKULL, "&#FF1744&l🎯 Охота за Головами (/bounty)",
                 "&7Закажи награду за голову врага!"));
         inv.setItem(42, ItemFactory.glowIcon(Material.CHEST_MINECART, "&#FFD740&l🎁 Халява и Промокоды (/promo)",
@@ -222,29 +232,38 @@ public final class GuiManager {
         p.openInventory(inv);
     }
 
-    // ================= 3. ВАРПЫ СЕРВЕРА (/warps) =================
+    // ================= 3. ВАРПЫ СЕРВЕРА (/warps — v5.7 11 ЧИСТЫХ ВАРПОВ БЕЗ СТЕН!) =================
     public void openWarpsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("warps", "", 0), 45,
                 ColorUtil.c("&#80D8FF&l🧭 ВАРПЫ И АРЕНЫ СЕРВЕРА"));
         decorateFrame(inv);
         inv.setItem(10, ItemFactory.glowIcon(Material.DIAMOND_PICKAXE, "&#FF9100&l⛏ /warp mine — Авто-Шахта",
-                "&7Огромный карьер с алмазами, изумрудами", "&7и древними обломками! Авто-реген 90с.", "&a• Разрешено копать всем игрокам!"));
+                "&7Кристальный карьер с алмазами, изумрудами", "&7и древними обломками! Авто-реген 90с.", "&a• Широкий мост и лестница!"));
         inv.setItem(11, ItemFactory.glowIcon(Material.ZOMBIE_HEAD, "&#AEEA00&l🧟 /warp farm — Фармилка Мобов",
-                "&73 безопасные камеры с зимними мобами!", "&7Фарми Монеты, Опыт и Снежинки ❄!"));
-        inv.setItem(12, ItemFactory.glowIcon(Material.GOLD_BLOCK, "&#FFD740&l🎰 /warp casino — Гранд-Казино",
+                "&74 безопасные камеры с зимними мобами!", "&7Фарми Монеты, Опыт и Снежинки ❄!"));
+        inv.setItem(12, ItemFactory.glowIcon(Material.GOLD_BLOCK, "&#FFD740&l🎰 /warp casino — Гранд-Казино 777",
                 "&7Зал игровых автоматов 777, Рулетка ×14,", "&7Монетка между игроками и Колесо Риликов!"));
         inv.setItem(13, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ /warp pvp — PvP-Колизей",
-                "&7Гладиаторская яма для массовых замесов!"));
-        inv.setItem(14, ItemFactory.glowIcon(Material.RED_STAINED_GLASS, "&#FF5252&l🥊 Кабинки 1×1 и 2×2",
-                "&75 кабинок 1×1 + 1 кабинка 2×2!", "&7Авто-закрытие + 8 сек анти-подсос лута!"));
+                "&7Огромная открытая арена без ледяных стен!", "&73 лестницы + Эндер-Сундуки и Наковальни!"));
+        inv.setItem(14, ItemFactory.glowIcon(Material.RED_STAINED_GLASS, "&#FF5252&l🥊 /warp kabinki — Кабинки 1×1 и 2×2",
+                "&76 кабинок 1×1 + 2 кабинки 2×2!", "&7Авто-закрытие + 8 сек анти-подсос лута!"));
         inv.setItem(15, ItemFactory.glowIcon(Material.FEATHER, "&#40C4FF&l🏃 /warp parkour — Небесный Паркур",
-                "&730 парящих островов до высоты Y=131,", "&73 чекпоинта и приз +25 000$ + 15❖ + Титул!"));
-        inv.setItem(16, ItemFactory.glowIcon(Material.RED_SHULKER_BOX, "&#FF4081&l🎁 /warp cases — Шалкер-Кейсы",
-                "&7Амфитеатр из 11 цветных Шалкер-Кейсов!"));
-        inv.setItem(22, ItemFactory.glowIcon(Material.ENCHANTING_TABLE, "&#E040FB&l🧪 /warp enchant — Чары и Алхимик",
-                "&7Купол чародея на 30 уровень и алхимик РВ!"));
+                "&740 парящих островов до высоты Y=131,", "&73 чекпоинта и приз +25 000$ + 15❖ + Титул!"));
+        inv.setItem(16, ItemFactory.glowIcon(Material.RED_SHULKER_BOX, "&#FF4081&l🎁 /warp cases — 11 Шалкер-Кейсов",
+                "&7Королевская терраса из 11 цветных кейсов!"));
+        inv.setItem(20, ItemFactory.glowIcon(Material.TARGET, "&#FF5252&l🥊 /warp train — Манекены Урона",
+                "&73 Незеритовых Манекена для замера критов и мечей!"));
+        inv.setItem(21, ItemFactory.glowIcon(Material.SUNFLOWER, "&#FF4081&l🎡 /warp wheel — Колесо Фортуны",
+                "&7Беспроигрышный прокрут за 5❄ или 15 000$!"));
+        inv.setItem(22, ItemFactory.glowIcon(Material.ENCHANTING_TABLE, "&#E040FB&l🔮 /warp bafs — Бафовар и Чары",
+                "&7Отдельный павильон чародея 30 лвл и Алхимика!"));
+        inv.setItem(23, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FFD740&l🏆 /warp top — Аллея Топеров",
+                "&7Живые стенды ТОП-5 Богачей и ТОП-5 Киллеров!"));
+        inv.setItem(24, ItemFactory.glowIcon(Material.PINK_SHULKER_BOX, "&#00E676&l🎅 Подарки Санты (/gifts)",
+                "&7Найдено подарков на спавне: &e" + plugin.getStore().getFoundSpawnGiftCount(p.getName()) + "/10",
+                "&7Супер-приз 10/10: &a+25 000$ + 25❖ + Донат-Кейс!"));
         inv.setItem(31, ItemFactory.icon(Material.SNOW_BLOCK, "&#80D8FF&l🏰 Центральный Спавн (/spawn)",
-                "&7Главная площадь у 64-блоковой Ёлки"));
+                "&7Главная площадь у 82-блоковой Новогодней Ёлки"));
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
@@ -349,7 +368,21 @@ public final class GuiManager {
         boolean fromConsole = !(sender instanceof Player);
         Player sp = fromConsole ? null : (Player) sender;
         RankManager.RankDef senderRank = fromConsole ? plugin.getRanks().byId("owner") : plugin.getRanks().getRank(sp);
-        boolean isHighAdmin = fromConsole || (senderRank != null && senderRank.weight >= 160);
+
+        // СТРОЖАЙШИЙ ЗАКОН v5.7: Кит OWNER могут брать и выдавать СТРОГО ТОЛЬКО ОВНЕРЫ!
+        if ("owner".equals(k)) {
+            if (!fromConsole && (senderRank == null || !"owner".equalsIgnoreCase(senderRank.id))) {
+                if (sp != null) ColorUtil.sound(sp, "entity.villager.no", 1.0f, 0.8f);
+                sender.sendMessage(ColorUtil.c("&#FF1744✖ Кит &f/kit owner &#FF1744могут брать СТРОГО ТОЛЬКО владельцы (привилегия &#FF1744&lOWNER&#FF1744)!"));
+                return;
+            }
+            if (target != null && !fromConsole && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(target).id)) {
+                sender.sendMessage(ColorUtil.c("&#FF1744✖ Кит &f/kit owner &#FF1744предназначен исключительно для владельцев (&#FF1744&lOWNER&#FF1744)!"));
+                return;
+            }
+        }
+
+        boolean isHighAdmin = fromConsole || (!"owner".equals(k) && senderRank != null && senderRank.weight >= 160);
 
         if (!isHighAdmin && sp != null) {
             if (!plugin.getRanks().canClaimKit(sp, k)) {
@@ -430,7 +463,11 @@ public final class GuiManager {
         inv.setItem(42, shopTag(ItemFactory.swordDracula(),   320));
         inv.setItem(43, shopTag(ItemFactory.swordKrush(),     420));
 
+        inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 17 3D Талисманов (/talismans)",
+                "&7Открой полный Алтарь Талисманов v5.7!"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня, Луки и ТНТ (/armors)",
+                "&7Открой Оружейную 6 сетов брони, Луков и ТНТ!"));
         p.openInventory(inv);
     }
 
@@ -487,6 +524,9 @@ public final class GuiManager {
             items.add(ItemFactory.ognennySmerch(2));     costs.add(Integer.valueOf(13500));
             items.add(ItemFactory.snezokZamorozki(8));   costs.add(Integer.valueOf(9000));
             items.add(ItemFactory.pautinnayaGranata(4)); costs.add(Integer.valueOf(10500));
+            items.add(ItemFactory.bozhyaKara(2));        costs.add(Integer.valueOf(22000));
+            items.add(ItemFactory.gravSfera(2));         costs.add(Integer.valueOf(19500));
+            items.add(ItemFactory.snegZavesa(2));        costs.add(Integer.valueOf(16000));
         } else if ("food".equals(c)) {
             items.add(new ItemStack(Material.GOLDEN_CARROT, 64));          costs.add(Integer.valueOf(2500));
             items.add(new ItemStack(Material.ENDER_PEARL, 16));            costs.add(Integer.valueOf(3500));
@@ -499,18 +539,29 @@ public final class GuiManager {
         } else if ("gear".equals(c)) {
             items.add(new ItemStack(Material.TOTEM_OF_UNDYING, 1));        costs.add(Integer.valueOf(15000));
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));        costs.add(Integer.valueOf(3000));
-            items.add(new ItemStack(Material.DIAMOND_SWORD, 1));           costs.add(Integer.valueOf(4500));
-            items.add(new ItemStack(Material.DIAMOND_CHESTPLATE, 1));      costs.add(Integer.valueOf(7500));
-            items.add(new ItemStack(Material.NETHERITE_INGOT, 1));         costs.add(Integer.valueOf(18000));
-            items.add(new ItemStack(Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE, 1)); costs.add(Integer.valueOf(14000));
-            items.add(new ItemStack(Material.SHIELD, 1));                  costs.add(Integer.valueOf(1500));
             items.add(ItemFactory.arrowIce(32));                           costs.add(Integer.valueOf(9000));
+            items.add(ItemFactory.arrowExplosive(16));                     costs.add(Integer.valueOf(16000));
+            items.add(ItemFactory.arrowLightning(16));                     costs.add(Integer.valueOf(18000));
+            items.add(ItemFactory.arrowVampire(24));                       costs.add(Integer.valueOf(14000));
+            items.add(ItemFactory.arrowPoison(24));                        costs.add(Integer.valueOf(12000));
+            items.add(ItemFactory.arrowAntiFly(16));                       costs.add(Integer.valueOf(22000));
+            items.add(ItemFactory.bowIce());                               costs.add(Integer.valueOf(185000));
+            items.add(ItemFactory.bowInferno());                           costs.add(Integer.valueOf(210000));
+            items.add(ItemFactory.bowZeus());                              costs.add(Integer.valueOf(245000));
+            items.add(ItemFactory.bowVampire());                           costs.add(Integer.valueOf(225000));
+            items.add(ItemFactory.maceKrush());                            costs.add(Integer.valueOf(360000));
+            items.add(ItemFactory.tridentPoseidon());                      costs.add(Integer.valueOf(295000));
         } else if ("raid".equals(c)) {
             items.add(new ItemStack(Material.OBSIDIAN, 64));               costs.add(Integer.valueOf(6000));
             items.add(new ItemStack(Material.TNT, 32));                    costs.add(Integer.valueOf(7500));
+            items.add(ItemFactory.tntTier1(4));                            costs.add(Integer.valueOf(24000));
+            items.add(ItemFactory.tntBlack(2));                            costs.add(Integer.valueOf(58000));
+            items.add(ItemFactory.tntNuke(1));                             costs.add(Integer.valueOf(115000));
+            items.add(ItemFactory.tntFlash(4));                            costs.add(Integer.valueOf(32000));
+            items.add(ItemFactory.tntCryo(4));                             costs.add(Integer.valueOf(34000));
+            items.add(ItemFactory.tntMiner(4));                            costs.add(Integer.valueOf(29000));
             items.add(new ItemStack(Material.END_CRYSTAL, 8));             costs.add(Integer.valueOf(14000));
             items.add(new ItemStack(Material.RESPAWN_ANCHOR, 4));          costs.add(Integer.valueOf(12000));
-            items.add(new ItemStack(Material.GLOWSTONE, 32));              costs.add(Integer.valueOf(3500));
             items.add(new ItemStack(Material.COBWEB, 32));                 costs.add(Integer.valueOf(5000));
             items.add(new ItemStack(Material.STICKY_PISTON, 16));          costs.add(Integer.valueOf(4000));
             items.add(new ItemStack(Material.SLIME_BLOCK, 16));            costs.add(Integer.valueOf(4500));
@@ -555,7 +606,7 @@ public final class GuiManager {
             ItemStack tagged = coinShopTag(items.get(i), costs.get(i).intValue());
             ItemMeta m = tagged.getItemMeta();
             if (m != null) {
-                m.getPersistentDataContainer().set(ItemFactory.CHARGES_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, costs.get(i));
+                m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, costs.get(i));
                 tagged.setItemMeta(m);
             }
             inv.setItem(slots[i], tagged);
@@ -928,15 +979,17 @@ public final class GuiManager {
         // СТРОГО ТОЛЬКО ДЛЯ АДМИНОВ И ВЫШЕ (D.ADMIN+, ДКП, OPKA, D.OWNER, КП, CURATOR, TECH.ADMIN, OWNER)!
         if (plugin.getBossEvents().canAdminSpawnEvents(p)) {
             inv.setItem(36, ItemFactory.glowIcon(Material.BLAZE_SPAWN_EGG, "&#FF1744&l👹 [АДМИН+] Призвать Босса",
-                    "&7Спавнит случайного Мифического Босса на суше"));
+                    "&7Спавнит Босса в стильном Храмовом Колизее 17×17"));
             inv.setItem(37, ItemFactory.glowIcon(Material.RED_SHULKER_BOX, "&#FF9100&l🪂 [АДМИН+] Сбросить АирДроп",
-                    "&7Красивый АирДроп с куполом парашюта на суше"));
+                    "&7Бронированная площадка + 3D купол парашюта 11×11"));
             inv.setItem(38, ItemFactory.glowIcon(Material.MAGMA_BLOCK, "&#FF5252&l☄ [АДМИН+] Уронить Метеорит",
-                    "&7Огненный кратер с алмазами и звёздным ядром"));
-            inv.setItem(42, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l💎 [АДМИН+] Маяк Богатства",
-                    "&7Золотая пирамида — раздаёт Монеты и Рилики!"));
+                    "&7Кратер с пиками аметиста, рудами и огненным хвостом"));
+            inv.setItem(41, ItemFactory.glowIcon(Material.CAMPFIRE, "&#FF6D00&l🌋 [АДМИН+] Извержение Вулкана",
+                    "&7Базальтовая кальдера с лавой, ТНТ и 3D Луками!"));
+            inv.setItem(42, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l💎 [АДМИН+] Пантеон Маяка",
+                    "&7Мраморно-золотой храм — раздаёт Монеты и Рилики!"));
             inv.setItem(43, ItemFactory.glowIcon(Material.BLUE_ICE, "&#40C4FF&l❄ [АДМИН+] Ледяная Цитадель",
-                    "&7Зимняя ротонда Санты с 3D Элитрами и Шарами!"));
+                    "&7Готический ледяной дворец со шпилями Санты!"));
         }
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -1088,18 +1141,24 @@ public final class GuiManager {
                 ColorUtil.c("&#FFD740&l👑 ПРИВИЛЕГИИ KINGGRIEF (kinggrief.vercel.app)"));
         decorateFrame(inv);
         String[] topRanks = new String[]{
-                "pegas", "cobra", "bunny", "rabbit", "vampire", "god", "king",
-                "dmoder", "dstmoder", "dglmoder", "dmladmin", "dadmin", "opka", "downer"
+                "dragon", "pegas", "cobra", "dracula", "bunny", "rabbit", "vampire",
+                "tiger", "god", "imperator", "king", "sponsor",
+                "dhelper", "dkp", "dmoder", "dstmoder", "dglmoder", "dmladmin", "dadmin", "opka", "downer"
         };
-        int[] slots = new int[]{10,11,12,13,14,15,16,19,20,21,22,23,24,25};
-        for (int i = 0; i < topRanks.length; i++) {
+        int[] slots = new int[]{
+                10,11,12,13,14,15,16,
+                19,20,21,22,23,24,25,
+                28,29,30,31,32,33,34
+        };
+        for (int i = 0; i < topRanks.length && i < slots.length; i++) {
             RankManager.RankDef r = plugin.getRanks().byId(topRanks[i]);
+            boolean isFreeDragon = "dragon".equals(r.id);
             inv.setItem(slots[i], ItemFactory.glowIcon(
-                    i >= 7 ? Material.NETHER_STAR : Material.EMERALD,
-                    r.shortLabel + " &8— &#FFD740" + r.priceRub + "₽",
+                    i >= 12 ? Material.NETHER_STAR : (isFreeDragon ? Material.DRAGON_BREATH : Material.EMERALD),
+                    r.shortLabel + (isFreeDragon ? " &8— &#00E676БЕСПЛАТНО (/free dragon)" : " &8— &#FFD740" + r.priceRub + "₽"),
                     "&7Домов: &e" + r.maxHomes + " &8| &7Приватов: &e" + r.maxClaims,
                     "&7Личный богатый кит: &f/kit " + r.kitName,
-                    "", "&#00E676▸ Нажми для ссылки на покупку!"));
+                    isFreeDragon ? "&#00E676▸ Нажми, чтобы получить DRAGON бесплатно!" : "&#00E676▸ Нажми для ссылки на покупку!"));
         }
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -1164,28 +1223,215 @@ public final class GuiManager {
     }
 
     public void openClanMenu(Player p) {
-        Inventory inv = Bukkit.createInventory(new KgMenuHolder("clans", "", 0), 36,
-                ColorUtil.c("&#B388FF&l🛡 ТОП КЛАНОВ СЕРВЕРА"));
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("clans", "", 0), 54,
+                ColorUtil.c("&#B388FF&l🛡 КЛАНОВАЯ СИСТЕМА СЕРВЕРА"));
         decorateFrame(inv);
+        DataStore.Clan my = plugin.getStore().getClanOf(p.getName());
+        if (my == null) {
+            inv.setItem(4, ItemFactory.glowIcon(Material.SHIELD, "&#B388FF&lВы ещё не состоите в клане!",
+                    "&7Создай свой клан командой: &#00E676/clan create <тег>",
+                    "&7Стоимость создания: &a25 000$",
+                    "&7Приглашения с кликабельными кнопками: &#00E676[Принять] &8/ &#FF5252[Отклонить]"));
+        } else {
+            String role = my.getRoleName(p.getName());
+            inv.setItem(4, ItemFactory.glowIcon(Material.SHIELD,
+                    my.color + "&l[" + my.tag + "] &8— &fКлан Ур. " + my.level,
+                    "&7Ваша должность: " + role,
+                    "&7Лидер: &f" + my.leader + " &8| &7Участников: &a" + my.members.size() + "/" + my.getMaxMembers(),
+                    "&7Казна: &e" + ColorUtil.fmtMoney(my.bank) + "$ &8| &7Убийств: &c" + my.kills,
+                    "&7Огонь по своим: " + (my.friendlyFire ? "&cВКЛЮЧЁН" : "&aОТКЛЮЧЁН")));
+            inv.setItem(19, ItemFactory.glowIcon(Material.ENDER_CHEST, "&#00E5FF&l📦 Хранилище Клана (/clan storage)",
+                    "&7Общий сейф клана на &e" + my.getStorageSize() + " слотов&7!", "", "&#00E676▸ Нажми, чтобы открыть"));
+            inv.setItem(20, ItemFactory.glowIcon(Material.RED_BED, "&#00E676&l🏠 База Клана (/clan home)",
+                    my.home != null ? "&7Телепортация на клановую базу" : "&cТочка базы не установлена (/clan sethome)", "", "&#00E676▸ Телепортироваться"));
+            inv.setItem(21, ItemFactory.glowIcon(Material.GOLD_BLOCK, "&#FFD740&l💰 Внести 10 000$ в Казну",
+                    "&7Баланс казны: &a" + ColorUtil.fmtMoney(my.bank) + "$", "", "&#00E676▸ Нажми, чтобы пополнить +10 000$"));
+            inv.setItem(23, ItemFactory.glowIcon(Material.EXPERIENCE_BOTTLE, "&#E040FB&l⬆ Прокачать Уровень Клана (/clan upgrade)",
+                    "&7Текущий уровень: &e" + my.level + "/10",
+                    "&7Бонус за килл: &a+" + (my.level * 50) + "$ &8| &7Мест: &a" + my.getMaxMembers(),
+                    my.level < 10 ? "&7Цена апгрейда: &e" + ColorUtil.fmtMoney(my.level * 50000.0) + "$ из казны" : "&#00E676МАКСИМАЛЬНЫЙ УРОВЕНЬ!"));
+            inv.setItem(24, ItemFactory.glowIcon(Material.IRON_SWORD, "&#FF5252&l⚔ PvP внутри клана (/clan pvp)",
+                    "&7Сейчас: " + (my.friendlyFire ? "&cВКЛ" : "&aВЫКЛ"), "", "&e▸ Нажми для переключения"));
+            inv.setItem(25, ItemFactory.glowIcon(Material.RECOVERY_COMPASS, "&#40C4FF&l📍 Координаты Тиммейтов (/clan coords)",
+                    "&7Показать координаты всех участников онлайн!"));
+        }
+
         List<DataStore.Clan> all = new ArrayList<DataStore.Clan>(plugin.getStore().getAllClans());
         Collections.sort(all, new Comparator<DataStore.Clan>() {
             @Override
             public int compare(DataStore.Clan a, DataStore.Clan b) {
-                return Integer.compare(b.kills, a.kills);
+                if (b.kills != a.kills) return Integer.compare(b.kills, a.kills);
+                return Double.compare(b.bank, a.bank);
             }
         });
-        inv.setItem(4, ItemFactory.glowIcon(Material.SHIELD, "&#B388FFУправление Кланом (/clan)",
-                "&f/clan create <тег> &7— Создать клан (25 000$)",
-                "&f/clan invite <ник> &8| &f/clan home &8| &f/clan sethome"));
         int[] slots = new int[]{10,11,12,13,14,15,16};
         for (int i = 0; i < Math.min(slots.length, all.size()); i++) {
             DataStore.Clan c = all.get(i);
             inv.setItem(slots[i], ItemFactory.glowIcon(Material.DRAGON_HEAD,
-                    "&#FFD740#" + (i + 1) + " &#B388FF[" + c.tag + "]",
-                    "&7Лидер: &f" + c.leader, "&7Участников: &a" + c.members.size(),
-                    "&7Убийств: &c" + c.kills + " &8| &7Банк: &e" + ColorUtil.fmtMoney(c.bank) + "$"));
+                    "&#FFD740#" + (i + 1) + " " + c.color + "[" + c.tag + "] &7(Ур." + c.level + ")",
+                    "&7Лидер: &f" + c.leader, "&7Участников: &a" + c.members.size() + "/" + c.getMaxMembers(),
+                    "&7Убийств: &c" + c.kills + " &8| &7Казна: &e" + ColorUtil.fmtMoney(c.bank) + "$"));
         }
-        inv.setItem(31, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    public void openClanStorage(Player p, DataStore.Clan clan) {
+        if (clan == null) return;
+        Inventory inv = plugin.getStore().getOrCreateClanStorage(clan);
+        p.openInventory(inv);
+    }
+
+    // ================= 12. АЛТАРЬ 17 КАСТОМНЫХ 3D ТАЛИСМАНОВ (/talismans) =================
+    public void openTalismansMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("talismans", "", 0), 54,
+                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 3D ТАЛИСМАНОВ [v5.7]"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        inv.setItem(4, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&lВаш баланс: &f" + bal + " Риликов ❖",
+                "&7Все 3D Талисманы дают пассивные эффекты в левой руке",
+                "&7и спасают от смерти с уникальным взрывом!",
+                "&8Предметы в левой руке откалиброваны под чистый PvP-обзор!"));
+
+        ItemStack[] tals = new ItemStack[]{
+                ItemFactory.talKrushitelya(), ItemFactory.talGrani(), ItemFactory.talDedala(),
+                ItemFactory.talTritona(),     ItemFactory.talFeniksa(3), ItemFactory.talEchidny(),
+                ItemFactory.talStuzhi(),      ItemFactory.talKaratelya(), ItemFactory.talZeusa(),
+                ItemFactory.talDraculy(),     ItemFactory.talKolossa(),   ItemFactory.talZhneca(),
+                ItemFactory.talSevera(),      ItemFactory.talBezdn(2),    ItemFactory.talImperatora(),
+                ItemFactory.totemRw()
+        };
+        int[] costs = new int[]{310, 290, 250, 230, 390, 280, 300, 340, 360, 330, 350, 370, 310, 440, 410, 190};
+        int[] slots = new int[]{10,11,12,13,14,15,16, 19,20,21,22,23,24,25, 29,30};
+        for (int i = 0; i < tals.length && i < slots.length; i++) {
+            ItemStack tagged = shopTag(tals[i], costs[i]);
+            ItemMeta m = tagged.getItemMeta();
+            if (m != null) {
+                m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(costs[i]));
+                tagged.setItemMeta(m);
+            }
+            inv.setItem(slots[i], tagged);
+        }
+
+        // Слот 32: ЭКСКЛЮЗИВНЫЙ ТАЛИСМАН OWNER (СТРОГО ТОЛЬКО ДЛЯ OWNER!)
+        ItemStack ownerTal = ItemFactory.talOwner(5);
+        ItemMeta om = ownerTal.getItemMeta();
+        if (om != null) {
+            List<String> l = om.hasLore() ? new ArrayList<String>(om.getLore()) : new ArrayList<String>();
+            l.add("");
+            if (isOwner) {
+                l.add(ColorUtil.c("&#00E676✔ ДОСТУПНО ВЛАДЕЛЬЦУ (БЕСПЛАТНО)!"));
+                l.add(ColorUtil.c("&#00E676▸ Нажми, чтобы получить Талисман OWNER!"));
+            } else {
+                l.add(ColorUtil.c("&#FF1744✖ СТРОГО ТОЛЬКО ДЛЯ ПРИВИЛЕГИИ OWNER!"));
+            }
+            om.setLore(l);
+            ownerTal.setItemMeta(om);
+        }
+        inv.setItem(32, ownerTal);
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        p.openInventory(inv);
+    }
+
+    // ================= 13. ОРУЖЕЙНАЯ 3D БРОНИ, ЛУКОВ И КАСТОМНЫХ ТНТ (/armors) =================
+    public void openArmorsMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("armors", "", 0), 54,
+                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v5.7]"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&lВаш баланс: &f" + bal + " Риликов ❖",
+                "&7Полный сет из 4 вещей даёт мощный пассивный бонус сета!",
+                "&7Нажми на нагрудник сета, чтобы купить СРАЗУ ПОЛНЫЙ КОМПЛЕКТ (4 вещи)!"));
+
+        String[][] sets = new String[][]{
+                {"krush",   "&#FF1744&l🔥 Полный Сет Крушителя (4 предмета)", "590", "&7Бонус 4/4: &cСила III + Сопротивление I + Огнестойкость"},
+                {"dracula", "&#D500F9&l🩸 Полный Сет Дракулы (4 предмета)",   "540", "&7Бонус 4/4: &dВампиризм + Скорость II + Ночное зрение"},
+                {"frost",   "&#40C4FF&l❄ Полный Сет Стужи (4 предмета)",     "520", "&7Бонус 4/4: &bАура льда + Защита от огня + Скорость II"},
+                {"zeus",    "&#FFD740&l⚡ Полный Сет Зевса (4 предмета)",     "580", "&7Бонус 4/4: &eСкорость III + Спешка II + Анти-отдача"},
+                {"phantom", "&#B388FF&l👻 Полный Сет Фантома (4 предмета)",   "550", "&7Бонус 4/4: &dНевидимость + Прыгучесть II + Плавное падение"}
+        };
+        int[] setSlots = new int[]{10,11,12,13,14};
+        for (int i = 0; i < sets.length; i++) {
+            String sid = sets[i][0];
+            int cost = Integer.parseInt(sets[i][2]);
+            ItemStack chest = ItemFactory.armorPiece(sid, 1);
+            ItemMeta m = chest.getItemMeta();
+            if (m != null) {
+                m.setDisplayName(ColorUtil.c(sets[i][1]));
+                m.setLore(Arrays.asList(
+                        ColorUtil.c(sets[i][3]),
+                        ColorUtil.c("&7В комплекте: &fШлем + Нагрудник + Поножи + Ботинки (Защита V)"),
+                        "",
+                        ColorUtil.c("&#00E5FFЦена комплекта: &f" + cost + " Риликов ❖"),
+                        ColorUtil.c("&#00E676▸ Нажми, чтобы получить весь сет!")));
+                m.getPersistentDataContainer().set(ItemFactory.ITEM_TAG_KEY, org.bukkit.persistence.PersistentDataType.STRING, "armorset_" + sid);
+                m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(cost));
+                chest.setItemMeta(m);
+            }
+            inv.setItem(setSlots[i], chest);
+        }
+
+        // Слот 16: Сет OWNER (СТРОГО ТОЛЬКО ДЛЯ OWNER!)
+        ItemStack ownerChest = ItemFactory.armorPiece("owner", 1);
+        ItemMeta ocm = ownerChest.getItemMeta();
+        if (ocm != null) {
+            ocm.setDisplayName(ColorUtil.c("&#FF1744&l👑 Полный Сет OWNER [4 предмета]"));
+            ocm.setLore(Arrays.asList(
+                    ColorUtil.c("&7Бонус 4/4: &cСила IV + Сопр. II + Регенерация II + +20 HP"),
+                    "",
+                    ColorUtil.c(isOwner ? "&#00E676✔ ДОСТУПНО ВЛАДЕЛЬЦУ (БЕСПЛАТНО)!" : "&#FF1744✖ СТРОГО ТОЛЬКО ДЛЯ ПРИВИЛЕГИИ OWNER!")));
+                ocm.getPersistentDataContainer().set(ItemFactory.ITEM_TAG_KEY, org.bukkit.persistence.PersistentDataType.STRING, "armorset_owner");
+            ownerChest.setItemMeta(ocm);
+        }
+        inv.setItem(16, ownerChest);
+
+        // Ряд 2: 4 Анимированных 3D Лука + Булава + Трезубец + Меч OWNER
+        ItemStack[] weps = new ItemStack[]{
+                ItemFactory.bowIce(), ItemFactory.bowInferno(), ItemFactory.bowZeus(),
+                ItemFactory.bowVampire(), ItemFactory.maceKrush(), ItemFactory.tridentPoseidon()
+        };
+        int[] wCosts = new int[]{240, 260, 290, 270, 380, 320};
+        int[] wSlots = new int[]{19,20,21,22,23,24};
+        for (int i = 0; i < weps.length; i++) {
+            ItemStack tagged = shopTag(weps[i], wCosts[i]);
+            ItemMeta m = tagged.getItemMeta();
+            if (m != null) {
+                m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(wCosts[i]));
+                tagged.setItemMeta(m);
+            }
+            inv.setItem(wSlots[i], tagged);
+        }
+        ItemStack owSword = ItemFactory.swordOwner();
+        ItemMeta osm = owSword.getItemMeta();
+        if (osm != null) {
+            List<String> l = osm.hasLore() ? new ArrayList<String>(osm.getLore()) : new ArrayList<String>();
+            l.add("");
+            l.add(ColorUtil.c(isOwner ? "&#00E676✔ ДОСТУПНО ВЛАДЕЛЬЦУ (БЕСПЛАТНО)!" : "&#FF1744✖ СТРОГО ТОЛЬКО ДЛЯ ПРИВИЛЕГИИ OWNER!"));
+            osm.setLore(l);
+            owSword.setItemMeta(osm);
+        }
+        inv.setItem(25, owSword);
+
+        // Ряд 3: 6 Кастомных 3D ТНТ
+        ItemStack[] tnts = new ItemStack[]{
+                ItemFactory.tntTier1(4), ItemFactory.tntBlack(2), ItemFactory.tntNuke(1),
+                ItemFactory.tntFlash(4), ItemFactory.tntCryo(4),  ItemFactory.tntMiner(4)
+        };
+        int[] tCosts = new int[]{35, 75, 130, 45, 45, 40};
+        int[] tSlots = new int[]{28,29,30,31,32,33};
+        for (int i = 0; i < tnts.length; i++) {
+            ItemStack tagged = shopTag(tnts[i], tCosts[i]);
+            ItemMeta m = tagged.getItemMeta();
+            if (m != null) {
+                m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(tCosts[i]));
+                tagged.setItemMeta(m);
+            }
+            inv.setItem(tSlots[i], tagged);
+        }
+
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
 
@@ -1239,7 +1485,7 @@ public final class GuiManager {
         Inventory top = e.getView().getTopInventory();
         if (top == null || !(top.getHolder() instanceof KgMenuHolder)) return;
         KgMenuHolder h = (KgMenuHolder) top.getHolder();
-        if ("trash".equals(h.menuType)) {
+        if ("trash".equals(h.menuType) || "clan_storage".equals(h.menuType)) {
             return;
         }
         Player p = (Player) e.getWhoClicked();
@@ -1270,13 +1516,16 @@ public final class GuiManager {
             else if (slot == 23) openRelicShop(p);
             else if (slot == 24) openDjamshutMenu(p);
             else if (slot == 25) openClanMenu(p);
+            else if (slot == 28) openTalismansMenu(p);
             else if (slot == 29) openJobsMenu(p);
             else if (slot == 30) openBpMenu(p);
             else if (slot == 31) { p.closeInventory(); p.teleport(plugin.getSpawnEngine().getSpawnArrival()); }
             else if (slot == 32) openTitlesMenu(p);
             else if (slot == 33) openPlaytimeMenu(p);
+            else if (slot == 34) openArmorsMenu(p);
             else if (slot == 38) openBafovarMenu(p);
             else if (slot == 39) openTrapSkinsMenu(p);
+            else if (slot == 40) { p.performCommand("fps"); openMainMenu(p); }
             else if (slot == 41) openBountyMenu(p);
             else if (slot == 42) openFreebieMenu(p);
             else if (slot == 49 && plugin.getLp().hasLpAccess(p)) openLpGroupsGui(p, 0);
@@ -1320,11 +1569,14 @@ public final class GuiManager {
             else if (slot == 22) plugin.getSpawnEngine().performRtp(p, "nether");
         } else if ("warps".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
+            if (slot == 24) { p.closeInventory(); p.performCommand("gifts"); return; }
             String w = slot == 10 ? "mine" : slot == 11 ? "farm" : slot == 12 ? "casino"
                     : slot == 13 ? "pvp" : slot == 14 ? "kabinki" : slot == 15 ? "parkour"
-                    : slot == 16 ? "cases" : slot == 22 ? "enchant" : slot == 31 ? "spawn" : null;
+                    : slot == 16 ? "cases" : slot == 20 ? "train" : slot == 21 ? "wheel"
+                    : slot == 22 ? "bafs" : slot == 23 ? "top" : slot == 31 ? "spawn" : null;
             if (w != null) {
                 p.closeInventory();
+                plugin.getStore().setBack(p, p.getLocation());
                 p.teleport("spawn".equals(w) ? plugin.getSpawnEngine().getSpawnArrival() : plugin.getSpawnEngine().getWarpLocation(w));
                 ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
             }
@@ -1345,8 +1597,57 @@ public final class GuiManager {
         } else if ("kit_preview".equals(type)) {
             if (slot == 49) openKitsMenu(p, h.page);
         } else if ("shop".equals(type)) {
+            if (slot == 48) { openTalismansMenu(p); return; }
             if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 50) { openArmorsMenu(p); return; }
             handleRelicPurchase(p, slot);
+        } else if ("talismans".equals(type)) {
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 32) {
+                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Талисман OWNER доступен СТРОГО ТОЛЬКО владельцам (привилегия OWNER)!"));
+                    return;
+                }
+                for (ItemStack rem : p.getInventory().addItem(ItemFactory.talOwner(5)).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                }
+                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+                p.sendMessage(ColorUtil.c("&#FF1744👑 Вы получили эксклюзивный &lТалисман OWNER (5 зарядов)&r&#FF1744!"));
+                return;
+            }
+            handleRelicItemTagPurchase(p, clicked, "talismans");
+        } else if ("armors".equals(type)) {
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 16) {
+                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Сет Брони OWNER доступен СТРОГО ТОЛЬКО владельцам (привилегия OWNER)!"));
+                    return;
+                }
+                for (int s = 0; s < 4; s++) {
+                    for (ItemStack rem : p.getInventory().addItem(ItemFactory.armorPiece("owner", s)).values()) {
+                        p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                    }
+                }
+                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+                p.sendMessage(ColorUtil.c("&#FF1744👑 Вы получили полный комплект &lБрони OWNER [4 предмета]&r&#FF1744!"));
+                return;
+            }
+            if (slot == 25) {
+                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                    p.sendMessage(ColorUtil.c("&#FF1744✖ Клинок Властелина OWNER доступен СТРОГО ТОЛЬКО владельцам!"));
+                    return;
+                }
+                for (ItemStack rem : p.getInventory().addItem(ItemFactory.swordOwner()).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                }
+                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
+                p.sendMessage(ColorUtil.c("&#FF1744👑 Вы получили &lКлинок Властелина OWNER&r&#FF1744!"));
+                return;
+            }
+            handleRelicItemTagPurchase(p, clicked, "armors");
         } else if ("enchants".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
             if (slot == 22) {
@@ -1371,7 +1672,7 @@ public final class GuiManager {
             handleCasinoClick(p, slot);
         } else if ("events".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
-            if (slot == 36 || slot == 37 || slot == 38 || slot == 42 || slot == 43) {
+            if (slot == 36 || slot == 37 || slot == 38 || slot == 41 || slot == 42 || slot == 43) {
                 if (!plugin.getBossEvents().canAdminSpawnEvents(p)) {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Призывать Боссов и Ивенты могут только Админы и выше!"));
                     return;
@@ -1379,6 +1680,7 @@ public final class GuiManager {
                 if (slot == 36) plugin.getBossEvents().startRandomBossOnly();
                 else if (slot == 37) plugin.getBossEvents().spawnBossEvent("airdrop", null);
                 else if (slot == 38) plugin.getBossEvents().spawnBossEvent("meteor", null);
+                else if (slot == 41) plugin.getBossEvents().spawnBossEvent("volcano", null);
                 else if (slot == 42) plugin.getBossEvents().spawnBossEvent("beacon", null);
                 else if (slot == 43) plugin.getBossEvents().spawnBossEvent("citadel", null);
                 openEventsMenu(p);
@@ -1418,7 +1720,10 @@ public final class GuiManager {
             }
         } else if ("donate".equals(type)) {
             if (slot == 49) openMainMenu(p);
-            else {
+            else if (slot == 10) {
+                p.closeInventory();
+                p.performCommand("free dragon");
+            } else {
                 p.closeInventory();
                 p.sendMessage(ColorUtil.c("&#FFD740👑 Покупка и моментальная авто-выдача на сайте: &#FF4081https://kinggrief.vercel.app"));
             }
@@ -1462,7 +1767,16 @@ public final class GuiManager {
                 openBpMenu(p);
             }
         } else if ("clans".equals(type)) {
-            if (slot == 31) openMainMenu(p);
+            if (slot == 49 || slot == 31) { openMainMenu(p); return; }
+            DataStore.Clan my = plugin.getStore().getClanOf(p.getName());
+            if (my != null) {
+                if (slot == 19) { openClanStorage(p, my); return; }
+                if (slot == 20) { p.closeInventory(); p.performCommand("clan home"); return; }
+                if (slot == 21) { p.performCommand("clan deposit 10000"); openClanMenu(p); return; }
+                if (slot == 23) { p.performCommand("clan upgrade"); openClanMenu(p); return; }
+                if (slot == 24) { p.performCommand("clan pvp"); openClanMenu(p); return; }
+                if (slot == 25) { p.closeInventory(); p.performCommand("clan coords"); return; }
+            }
         } else if ("lp_groups".equals(type)) {
             if (!plugin.getLp().hasLpAccess(p)) { p.closeInventory(); return; }
             if (slot == 45 && h.page > 0) { openLpGroupsGui(p, h.page - 1); return; }
@@ -1895,10 +2209,54 @@ public final class GuiManager {
         }
     }
 
+    private void handleRelicItemTagPurchase(Player p, ItemStack clicked, String reopenMenu) {
+        ItemMeta m = clicked.getItemMeta();
+        if (m == null) return;
+        Integer costObj = m.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
+        if (costObj == null || costObj.intValue() <= 0) return;
+        int cost = costObj.intValue();
+        if (!plugin.getStore().takeRelics(p, cost)) {
+            ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
+            p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + cost + " ❖ (kinggrief.vercel.app)"));
+            return;
+        }
+        plugin.getStore().save();
+        String cid = ItemFactory.getCustomId(clicked);
+        if (cid != null && cid.startsWith("armorset_")) {
+            String sid = cid.substring(9);
+            for (int s = 0; s < 4; s++) {
+                for (ItemStack rem : p.getInventory().addItem(ItemFactory.armorPiece(sid, s)).values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
+                }
+            }
+            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.25f);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Вы приобрели полный 3D сет брони за &b" + cost + " ❖&7!"));
+        } else {
+            ItemStack give = clicked.clone();
+            ItemMeta gm = give.getItemMeta();
+            if (gm != null) {
+                if (gm.hasLore() && gm.getLore().size() >= 3) {
+                    List<String> l = new ArrayList<String>(gm.getLore());
+                    for (int k = 0; k < 3 && !l.isEmpty(); k++) l.remove(l.size() - 1);
+                    gm.setLore(l.isEmpty() ? null : l);
+                }
+                gm.getPersistentDataContainer().remove(SHOP_PRICE_KEY);
+                give.setItemMeta(gm);
+            }
+            for (ItemStack rem : p.getInventory().addItem(give).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), rem);
+            }
+            ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.25f);
+            p.sendMessage(ColorUtil.c("&#00E676✔ Вы приобрели предмет за &b" + cost + " ❖&7!"));
+        }
+        if ("talismans".equals(reopenMenu)) openTalismansMenu(p);
+        else if ("armors".equals(reopenMenu)) openArmorsMenu(p);
+    }
+
     private void handleCategoryCoinPurchase(Player p, ItemStack clicked, String cat) {
         ItemMeta m = clicked.getItemMeta();
         if (m == null) return;
-        Integer costObj = m.getPersistentDataContainer().get(ItemFactory.CHARGES_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
+        Integer costObj = m.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
         if (costObj == null || costObj.intValue() <= 0) return;
         int cost = costObj.intValue();
         if (!plugin.getStore().takeCoins(p.getName(), cost)) {
@@ -1916,9 +2274,7 @@ public final class GuiManager {
                 for (int k = 0; k < 3 && !l.isEmpty(); k++) l.remove(l.size() - 1);
                 gm.setLore(l.isEmpty() ? null : l);
             }
-            if (!"tal_feniksa".equals(ItemFactory.getCustomId(give))) {
-                gm.getPersistentDataContainer().remove(ItemFactory.CHARGES_KEY);
-            }
+            gm.getPersistentDataContainer().remove(SHOP_PRICE_KEY);
             give.setItemMeta(gm);
         }
         for (ItemStack rem : p.getInventory().addItem(give).values()) {
@@ -2092,6 +2448,9 @@ public final class GuiManager {
             if ("baf_brew".equals(h.menuType)) {
                 returnBrewerPotions((Player) e.getPlayer(), top);
             }
+        }
+        if (e.getView().getTitle() != null && e.getView().getTitle().contains("Хранилище Клана")) {
+            plugin.getStore().save();
         }
     }
 }

@@ -1,14 +1,6 @@
 name: dhelper
 permissions:
-- weight.175
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- mediaplus
+- weight.112
 prefixes:
-- '&f &f':
-    priority: 175
+- '&f &a':
+    priority: 112

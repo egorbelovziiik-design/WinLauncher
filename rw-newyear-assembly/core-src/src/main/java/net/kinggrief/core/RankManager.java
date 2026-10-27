@@ -20,8 +20,10 @@ import java.util.UUID;
 public final class RankManager {
 
     private static final Set<String> STALE_PLAIN_LABELS = new HashSet<String>(Arrays.asList(
-            "owner", "techadmin", "tech.adm", "тех.админ", "curator", "куратор", "kp", "кп",
-            "glmoder", "гл.модер", "stmoder", "ст.модер", "moder", "модер", "sthelper", "ст.хелпер",
+            "owner", "techadmin", "tech.adm", "тех.админ", "curator", "куратор",
+            "admin", "админ", "mladmin", "ml.admin", "мл.админ", "младмин", "kp", "кп",
+            "glmoder", "гл.модер", "stmoder", "ст.модер", "moder", "модер",
+            "mlmoder", "мл.модер", "млмодер", "jrmoder", "sthelper", "ст.хелпер",
             "helper", "хелпер", "downer", "d.owner", "д.овнер", "opka", "опка", "dkp", "д.кп",
             "dadmin", "д.админ", "dmladmin", "д.мл.админ", "dglmoder", "д.гл.модер", "dstmoder", "д.ст.модер",
             "dmoder", "д.модер", "dhelper", "д.хелпер", "media+", "mediaplus", "медиа+", "media", "медиа",
@@ -76,56 +78,59 @@ public final class RankManager {
     private void add(int glyphIdx, String id, int weight, int homes, int claims, String kit, int tier, int priceRub, String chatColor) {
         String low = id.toLowerCase(Locale.ROOT);
         char frame0 = (char) (0xEA00 + glyphIdx * 8);
-        // ONLY the luxury OWNER-style graphical badge glyph — ZERO duplicate plain text!
         String badgeOnly = "&f" + frame0;
         String chatPref = badgeOnly + " &f";
-        ranks.put(low, new RankDef(low, weight, glyphIdx + 1, glyphIdx, chatPref, badgeOnly, chatColor, homes, claims, kit, tier, priceRub));
+        int order = ranks.size() + 1;
+        ranks.put(low, new RankDef(low, weight, order, glyphIdx, chatPref, badgeOnly, chatColor, homes, claims, kit, tier, priceRub));
     }
 
     private void registerAll() {
+        // НАСТОЯЩИЙ ПЕРСОНАЛ КП (КП ниже Хелпера, Мл.Модер между Ст.Хелпером и Модером, Мл.Админ и Админ выше Гл.Модера!)
         add(0,  "owner",     300, 500, 99, "owner",     7, 0,    "&#FF6B8B");
-        add(1,  "techadmin", 290, 500, 99, "owner",     7, 0,    "&#7DD3FC");
+        add(1,  "techadmin", 290, 500, 99, "curator",   7, 0,    "&#7DD3FC");
         add(2,  "curator",   275, 500, 50, "curator",   6, 0,    "&#86EFAC");
-        add(3,  "kp",        255,  30, 30, "kp",        6, 0,    "&#6EE7B7");
-        add(4,  "glmoder",   245,  25, 25, "kp",        6, 0,    "&#D8B4FE");
-        add(5,  "stmoder",   235,  20, 20, "kp",        6, 0,    "&#A5B4FC");
-        add(6,  "moder",     225,  15, 15, "kp",        6, 0,    "&#93C5FD");
-        add(7,  "sthelper",  215,  12, 12, "kp",        6, 0,    "&#BAE6FD");
-        add(8,  "helper",    205,  10, 10, "kp",        6, 0,    "&#E0F2FE");
+        add(42, "admin",     268, 100, 40, "admin",     6, 0,    "&#FCA5A5");
+        add(41, "mladmin",   260,  50, 30, "mladmin",   6, 0,    "&#FED7AA");
+        add(4,  "glmoder",   250,  25, 25, "kp",        6, 0,    "&#D8B4FE");
+        add(5,  "stmoder",   240,  20, 20, "kp",        6, 0,    "&#A5B4FC");
+        add(6,  "moder",     230,  16, 16, "kp",        6, 0,    "&#93C5FD");
+        add(40, "mlmoder",   220,  14, 14, "kp",        6, 0,    "&#7DD3FC");
+        add(7,  "sthelper",  214,  12, 12, "kp",        6, 0,    "&#BAE6FD");
+        add(8,  "helper",    208,  10, 10, "kp",        6, 0,    "&#E0F2FE");
+        add(3,  "kp",        200,  10, 10, "kp",        6, 0,    "&#6EE7B7");
 
+        // ДОНАТ-ПЕРСОНАЛ (ДКП ниже Д.Модера!)
         add(9,  "downer",    190, 500, 99, "downer",    5, 1499, "&#FDE047");
         add(10, "opka",      178,  60, 50, "opka",      5, 999,  "&#F0ABFC");
-        add(11, "dkp",       168,  45, 35, "dkp",       4, 899,  "&#FDBA74");
-        add(12, "dadmin",    160,  40, 30, "dadmin",    4, 799,  "&#FCA5A5");
-        add(13, "dmladmin",  150,  36, 25, "dmladmin",  4, 599,  "&#FED7AA");
-        add(14, "dglmoder",  140,  32, 22, "dglmoder",  4, 449,  "&#E9D5FF");
-        add(15, "dstmoder",  130,  28, 20, "dstmoder",  4, 349,  "&#BFDBFE");
-        add(16, "dmoder",    120,  24, 18, "dmoder",    4, 249,  "&#99F6E4");
-        add(17, "dhelper",   115,  20, 16, "dhelper",   4, 219,  "&#CCFBF1");
+        add(12, "dadmin",    162,  40, 30, "dadmin",    4, 799,  "&#FCA5A5");
+        add(13, "dmladmin",  152,  36, 25, "dmladmin",  4, 599,  "&#FED7AA");
+        add(14, "dglmoder",  142,  32, 22, "dglmoder",  4, 449,  "&#E9D5FF");
+        add(15, "dstmoder",  132,  28, 20, "dstmoder",  4, 349,  "&#BFDBFE");
+        add(16, "dmoder",    124,  24, 18, "dmoder",    4, 249,  "&#99F6E4");
+        add(11, "dkp",       118,  22, 17, "dkp",       4, 229,  "&#FDBA74");
+        add(17, "dhelper",   112,  20, 16, "dhelper",   4, 219,  "&#CCFBF1");
 
-        add(18, "mediaplus", 110,  20, 20, "media",     3, 0,    "&#FDA4AF");
-        add(19, "media",     108,  15, 15, "media",     3, 0,    "&#F9A8D4");
-        add(20, "yt",        106,  15, 12, "media",     3, 0,    "&#FECDD3");
-        add(21, "twitch",    104,  15, 12, "media",     3, 0,    "&#D8B4FE");
-        add(22, "tiktok",    102,  15, 12, "media",     3, 0,    "&#67E8F9");
+        // МЕДИА
+        add(18, "mediaplus", 108,  20, 20, "media",     3, 0,    "&#FDA4AF");
+        add(19, "media",     106,  15, 15, "media",     3, 0,    "&#F9A8D4");
+        add(20, "yt",        104,  15, 12, "media",     3, 0,    "&#FECDD3");
+        add(21, "twitch",    102,  15, 12, "media",     3, 0,    "&#D8B4FE");
+        add(22, "tiktok",    100,  15, 12, "media",     3, 0,    "&#67E8F9");
 
-        add(23, "sponsor",    98,  22, 15, "sponsor",   2, 229,  "&#FEF08A");
-        add(24, "bull",       94,  20, 14, "bull",      2, 209,  "&#FDBA74");
-        add(25, "king",       90,  18, 12, "king",      2, 199,  "&#FDE047");
-        add(26, "dragon",     80,  16, 11, "dragon",    2, 179,  "&#F5D0FE");
-        add(27, "imperator",  75,  15, 10, "imperator", 2, 169,  "&#FECDD3");
-        add(28, "overlord",   70,  14,  9, "overlord",  2, 159,  "&#99F6E4");
+        // ДОНАТ-ПРИВИЛЕГИИ (Убраны hero, titan, overlord, bull; Дракула ниже Банни; Драгон ниже всех!)
+        add(23, "sponsor",    92,  22, 15, "sponsor",   2, 219,  "&#FEF08A");
+        add(25, "king",       85,  18, 12, "king",      2, 199,  "&#FDE047");
+        add(27, "imperator",  75,  15, 10, "imperator", 2, 179,  "&#FECDD3");
         add(29, "god",        65,  13,  8, "god",       2, 149,  "&#FEF9C3");
-        add(30, "dracula",    60,  12,  7, "dracula",   1, 129,  "&#FCA5A5");
-        add(31, "tiger",      55,  11,  7, "tiger",     1, 115,  "&#FED7AA");
-        add(32, "vampire",    50,  10,  6, "vampire",   1, 99,   "&#FECACA");
+        add(31, "tiger",      58,  11,  7, "tiger",     1, 119,  "&#FED7AA");
+        add(32, "vampire",    52,  10,  6, "vampire",   1, 99,   "&#FECACA");
         add(33, "rabbit",     45,   8,  6, "rabbit",    1, 89,   "&#BAE6FD");
-        add(34, "titan",      40,   7,  5, "titan",     1, 69,   "&#BFDBFE");
-        add(35, "bunny",      35,   6,  5, "bunny",     1, 59,   "&#FBCFE8");
-        add(36, "hero",       30,   5,  4, "hero",      1, 49,   "&#BAE6FD");
-        add(37, "cobra",      25,   4,  4, "cobra",     1, 39,   "&#BBF7D0");
-        add(38, "pegas",      20,   3,  3, "pegas",     1, 19,   "&#D1FAE5");
-        add(39, "default",    10,   2,  2, "start",     0, 0,    "&7");
+        add(35, "bunny",      36,   6,  5, "bunny",     1, 59,   "&#FBCFE8");
+        add(30, "dracula",    30,   5,  5, "dracula",   1, 49,   "&#FCA5A5");
+        add(37, "cobra",      24,   4,  4, "cobra",     1, 39,   "&#BBF7D0");
+        add(38, "pegas",      18,   3,  3, "pegas",     1, 19,   "&#D1FAE5");
+        add(26, "dragon",     12,   3,  3, "dragon",    1, 15,   "&#F5D0FE");
+        add(39, "default",     5,   2,  2, "start",     0, 0,    "&7");
     }
 
     /** Strips legacy \uE900..\uE96F boxes and stale plain-text rank names like "[Модер]" or "OPKA". */
@@ -135,7 +140,7 @@ public final class RankManager {
         for (int i = 0; i < raw.length(); i++) {
             char ch = raw.charAt(i);
             if (ch >= 0xE900 && ch <= 0xE96F) continue;
-            if (ch >= 0xEA00 && ch <= 0xEB3F) continue;
+            if (ch >= 0xEA00 && ch <= 0xEB5F) continue;
             sb.append(ch);
         }
         String cleaned = sb.toString().trim();
@@ -152,10 +157,39 @@ public final class RankManager {
         if (r.hasCustomTextOverride && r.glyphIndex < 0) {
             return r.shortLabel;
         }
-        int g = (r.glyphIndex >= 0 && r.glyphIndex < 40) ? r.glyphIndex : 39;
+        int g = (r.glyphIndex >= 0 && r.glyphIndex < 43) ? r.glyphIndex : 39;
         int f = Math.abs(animFrame) % 8;
         char c = (char) (0xEA00 + g * 8 + f);
         return "&f" + c;
+    }
+
+    /**
+     * Строгая проверка: доступно ТОЛЬКО от Мл. Модера (mlmoder, weight >= 220) и выше!
+     * НЕ доступно хелперам (helper/sthelper) и НЕ доступно донат-привилегиям (dhelper..downer)!
+     */
+    public boolean isMlModerOrHigher(Player p) {
+        if (p == null) return false;
+        RankDef r = getRank(p);
+        return r != null && r.weight >= 220;
+    }
+
+    public boolean isRealStaffHelperOrHigher(Player p) {
+        if (p == null) return false;
+        RankDef r = getRank(p);
+        return r != null && r.weight >= 200;
+    }
+
+    public static String normalizeRankAlias(String id) {
+        if (id == null) return "default";
+        String low = id.trim().toLowerCase(Locale.ROOT);
+        if ("jrmoder".equals(low) || "junior_moder".equals(low) || "ml.moder".equals(low)
+                || "мл.модер".equals(low) || "млмодер".equals(low) || "ml_moder".equals(low)) {
+            return "mlmoder";
+        }
+        if ("hero".equals(low) || "titan".equals(low) || "overlord".equals(low) || "bull".equals(low)) {
+            return "default";
+        }
+        return low;
     }
 
     public String getAnimatedPrefix(Player p, int animFrame) {
@@ -175,6 +209,7 @@ public final class RankManager {
     public void loadCustomRankOverrides() {
         for (Map.Entry<String, Map<String, Object>> e : store.getLpGroupOverrides().entrySet()) {
             String gid = e.getKey().toLowerCase(Locale.ROOT);
+            if ("hero".equals(gid) || "titan".equals(gid) || "overlord".equals(gid) || "bull".equals(gid)) continue;
             Map<String, Object> meta = e.getValue();
             int w = meta.containsKey("weight") ? ((Number) meta.get("weight")).intValue() : 15;
             RankDef existing = ranks.get(gid);
@@ -222,12 +257,12 @@ public final class RankManager {
     }
 
     public boolean exists(String id) {
-        return id != null && ranks.containsKey(id.toLowerCase(Locale.ROOT));
+        return id != null && ranks.containsKey(normalizeRankAlias(id));
     }
 
     public RankDef byId(String id) {
         if (id == null) return ranks.get("default");
-        RankDef d = ranks.get(id.toLowerCase(Locale.ROOT));
+        RankDef d = ranks.get(normalizeRankAlias(id));
         return d != null ? d : ranks.get("default");
     }
 
@@ -247,17 +282,18 @@ public final class RankManager {
         return "owner".equalsIgnoreCase(r.id) && p.getGameMode() == GameMode.CREATIVE;
     }
 
-    /** Strict Privilege-Only Kits */
+    /** Strict Privilege-Only Kits — /kit owner ONLY for owner! */
     public boolean canClaimKit(Player p, String kitId) {
         if (p == null || kitId == null) return false;
         String k = kitId.toLowerCase(Locale.ROOT);
-        if ("start".equals(k) || "newyear".equals(k)) return true;
         RankDef my = getRank(p);
-        if ("owner".equals(my.id) || "techadmin".equals(my.id)) return true;
-        if ("owner".equals(k)) return "owner".equals(my.id);
-        if ("curator".equals(k)) return "curator".equals(my.id);
+        if ("owner".equals(k)) return "owner".equalsIgnoreCase(my.id);
+        if ("start".equals(k) || "newyear".equals(k)) return true;
+        if ("owner".equalsIgnoreCase(my.id)) return true;
+        if ("techadmin".equalsIgnoreCase(my.id)) return !"owner".equals(k);
+        if ("curator".equals(k)) return "curator".equalsIgnoreCase(my.id);
         if ("kp".equals(k)) return my.tier == 6;
-        if ("media".equals(k)) return my.tier == 3 || "downer".equals(my.id);
+        if ("media".equals(k)) return my.tier == 3 || "downer".equalsIgnoreCase(my.id);
         RankDef req = byId(k);
         if (req == null || "default".equals(req.id)) return false;
         if (my.tier == 0) return false;

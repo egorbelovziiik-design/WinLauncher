@@ -1,0 +1,6 @@
+name: mladmin
+permissions:
+- weight.260
+prefixes:
+- '&f &6':
+    priority: 260

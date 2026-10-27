@@ -1,14 +1,6 @@
 name: dkp
 permissions:
-- weight.210
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- dadmin
+- weight.118
 prefixes:
-- '&f &f':
-    priority: 210
+- '&f &d':
+    priority: 118

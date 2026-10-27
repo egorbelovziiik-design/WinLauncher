@@ -1,14 +1,6 @@
 name: opka
 permissions:
-- weight.215
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- dkp
+- weight.178
 prefixes:
-- '&f &f':
-    priority: 215
+- '&f &6':
+    priority: 178

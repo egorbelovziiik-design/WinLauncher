@@ -1,8 +1,0 @@
-name: hero
-permissions:
-- weight.28
-parents:
-- cobra
-prefixes:
-- '&f &f':
-    priority: 28

@@ -82,31 +82,27 @@ const LP_MODES: Array<{ key: PrivilegeGrantMode; label: string; desc: string; tp
 ];
 
 const DEFAULT_RANK_OPTIONS: Array<{ id: string; name: string; color: string; price?: number }> = [
-  // Игровые и Донат-привилегии (с сайта + расширенные RW)
+  // Игровые и Донат-привилегии (в точном порядке 39-ранговой лестницы v5.7)
+  { id: 'dragon', name: 'DRAGON (/free dragon)', color: '#D946EF', price: 15 },
   { id: 'pegas', name: 'PEGAS', color: '#22C55E', price: 19 },
   { id: 'cobra', name: 'COBRA', color: '#84CC16', price: 39 },
-  { id: 'hero', name: 'HERO', color: '#38BDF8', price: 49 },
+  { id: 'dracula', name: 'DRACULA', color: '#DC2626', price: 49 },
   { id: 'bunny', name: 'BUNNY', color: '#EC4899', price: 59 },
-  { id: 'titan', name: 'TITAN', color: '#60A5FA', price: 75 },
   { id: 'rabbit', name: 'RABBIT', color: '#38BDF8', price: 89 },
   { id: 'vampire', name: 'VAMPIRE', color: '#EF4444', price: 99 },
   { id: 'tiger', name: 'TIGER', color: '#FB923C', price: 119 },
-  { id: 'dracula', name: 'DRACULA', color: '#DC2626', price: 135 },
   { id: 'god', name: 'GOD', color: '#FACC15', price: 149 },
-  { id: 'overlord', name: 'OVERLORD', color: '#2DD4BF', price: 169 },
   { id: 'imperator', name: 'IMPERATOR', color: '#F43F5E', price: 179 },
-  { id: 'dragon', name: 'DRAGON', color: '#D946EF', price: 189 },
   { id: 'king', name: 'KING', color: '#A855F7', price: 199 },
-  { id: 'bull', name: 'BULL', color: '#EA580C', price: 219 },
-  { id: 'sponsor', name: 'SPONSOR', color: '#FBBF24', price: 239 },
+  { id: 'sponsor', name: 'SPONSOR', color: '#38BDF8', price: 215 },
   // ДКП (Донатная Команда Проекта) и Топ-Донат
-  { id: 'dhelper', name: 'D.HELPER (ДКП)', color: '#2DD4BF', price: 229 },
+  { id: 'dhelper', name: 'D.HELPER (ДКП)', color: '#2DD4BF', price: 219 },
+  { id: 'dkp', name: 'D.KP (ДКП)', color: '#E879F9', price: 229 },
   { id: 'dmoder', name: 'D.MODER (ДКП)', color: '#14B8A6', price: 249 },
   { id: 'dstmoder', name: 'D.ST.MODER (ДКП)', color: '#3B82F6', price: 349 },
   { id: 'dglmoder', name: 'D.GLMODER (ДКП)', color: '#8B5CF6', price: 449 },
   { id: 'dmladmin', name: 'D.ML.ADMIN (ДКП)', color: '#F97316', price: 599 },
   { id: 'dadmin', name: 'D.ADMIN (ДКП)', color: '#DC2626', price: 799 },
-  { id: 'dkp', name: 'ДКП (D.KP)', color: '#FF6D00', price: 899 },
   { id: 'opka', name: 'OPKA', color: '#C026D3', price: 999 },
   { id: 'downer', name: 'D.OWNER', color: '#FACC15', price: 1499 },
   // МЕДИА (Media)
@@ -116,14 +112,17 @@ const DEFAULT_RANK_OPTIONS: Array<{ id: string; name: string; color: string; pri
   { id: 'media', name: 'MEDIA', color: '#EC4899' },
   { id: 'mediaplus', name: 'MEDIA+', color: '#F43F5E' },
   // КП (Команда Проекта / Персонал)
-  { id: 'helper', name: 'Хелпер (КП)', color: '#38BDF8' },
+  { id: 'kp', name: 'КП (Стажёр КП)', color: '#EF4444' },
+  { id: 'helper', name: 'Хелпер (КП)', color: '#22C55E' },
   { id: 'sthelper', name: 'Ст.Хелпер (КП)', color: '#0EA5E9' },
+  { id: 'mlmoder', name: 'Мл.Модератор (КП)', color: '#38BDF8' },
   { id: 'moder', name: 'Модератор (КП)', color: '#2563EB' },
   { id: 'stmoder', name: 'Ст.Модератор (КП)', color: '#4F46E5' },
   { id: 'glmoder', name: 'Гл.Модератор (КП)', color: '#7C3AED' },
-  { id: 'kp', name: 'КП (Команда Проекта)', color: '#10B981' },
+  { id: 'mladmin', name: 'Мл.Админ (КП)', color: '#F97316' },
+  { id: 'admin', name: 'Админ (КП)', color: '#EF4444' },
   { id: 'curator', name: 'CURATOR (Куратор КП)', color: '#22C55E' },
-  { id: 'techadmin', name: 'Тех.Админ (КП)', color: '#F43F5E' },
+  { id: 'techadmin', name: 'Тех.Админ (КП)', color: '#00E5FF' },
   { id: 'owner', name: 'OWNER (Владелец)', color: '#EF4444' },
 ];
 

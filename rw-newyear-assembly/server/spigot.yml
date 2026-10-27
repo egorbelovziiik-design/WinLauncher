@@ -1,0 +1,34 @@
+# KINGGRIEF v5.7 Anti-Freeze & 20.0 TPS Spigot Optimization Config
+config-version: 12
+settings:
+  save-user-cache-on-stop-only: true
+  moved-wrongly-threshold: 0.0625
+  moved-too-quickly-multiplier: 10.0
+  netty-threads: 4
+world-settings:
+  default:
+    view-distance: 6
+    simulation-distance: 4
+    merge-radius:
+      item: 3.5
+      exp: 6.0
+    arrow-despawn-rate: 300
+    trident-despawn-rate: 600
+    nerf-spawner-mobs: true
+    mob-spawn-range: 5
+    entity-activation-range:
+      animals: 16
+      monsters: 24
+      raiders: 32
+      misc: 8
+      water: 12
+      villagers: 16
+      flying-monsters: 24
+    entity-tracking-range:
+      players: 48
+      animals: 32
+      monsters: 32
+      misc: 24
+      display: 48
+      other: 32
+    max-tnt-per-tick: 40

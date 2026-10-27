@@ -1,14 +1,6 @@
 name: yt
 permissions:
-- weight.162
-- kinggrief.fly
-- kinggrief.repair
-- kinggrief.heal
-- kinggrief.enderchest
-- kinggrief.feed
-- kinggrief.workbench
-parents:
-- twitch
+- weight.104
 prefixes:
-- '&f &f':
-    priority: 162
+- '&f &c':
+    priority: 104
