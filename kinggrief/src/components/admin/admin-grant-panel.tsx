@@ -528,6 +528,9 @@ export function AdminGrantPanel({
           <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
             <Download size={12} /> Мост (.jar)
           </a>
+          <a href="/KingConnect.jar" download className="btn btn-primary btn-sm" title="Скачать универсальный плагин связки серверов KingConnect.jar (2-в-1: прямой перенос 1.20.5-1.21+ БЕЗ прокси с Cookie SSO + Velocity/Bungee, /servers, /hub, режим Лобби и облачная синхронизация)">
+            <Download size={12} /> Связка KingConnect (.jar)
+          </a>
           <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm" title="Скачать топовый нейро-античит KingАЧ v6.0 (Детект микро-дёрганий головой, GCD, Инжект-Бот, /report и Авто-Бан 24/7)">
             <Download size={12} /> KingАЧ v6.0 (.jar)
           </a>

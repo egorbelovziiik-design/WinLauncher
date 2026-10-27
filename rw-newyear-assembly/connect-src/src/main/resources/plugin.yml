@@ -1,0 +1,56 @@
+name: KingConnect
+prefix: KingConnect
+version: 1.0.0
+main: net.kinggrief.connect.KingConnectPlugin
+api-version: '1.21'
+author: KINGGRIEF
+softdepend: [KingGriefCore, KingAC, LuckPerms]
+description: Universal 2-in-1 Server Network Linking Plugin (Direct 1.20.5-1.21+ Transfer + Cookie SSO WITHOUT Proxy, Velocity/BungeeCord Proxy Mode, Cloud Sync, Hub Mode & Live Server Selector GUI)
+
+commands:
+  servers:
+    description: Открыть меню выбора серверов или перейти на сервер (/servers, /server <id>)
+    aliases: [server, modes, realms, sv]
+  hub:
+    description: Вернуться в главное Лобби / Хаб (/hub, /lobby)
+    aliases: [lobby, lhub]
+  grief:
+    description: Быстрый переход на игровые режимы (/grief, /grief1, /grief2, /anarchy, /duels)
+    aliases: [grief1, grief2, anarchy, duels]
+  glist:
+    description: Показать общий онлайн всей связки серверов (/glist)
+    aliases: [gonline, networkonline]
+  find:
+    description: Найти на каком сервере связки играет игрок (/find <ник>)
+    aliases: [whereis, gfind]
+  send:
+    description: Перекинуть игрока или весь сервер на другой режим (/send <ник|current|all> <сервер>)
+    aliases: [gsend]
+    permission: kingconnect.admin
+  gsc:
+    description: Глобальный межсерверный чат администрации (/gsc <сообщение>)
+    aliases: [globalsc, gstaff]
+    permission: kingconnect.staff
+  galert:
+    description: Глобальное объявление на все серверы связки (/galert <текст>)
+    aliases: [gbroadcast, gbc]
+    permission: kingconnect.admin
+  sethub:
+    description: Установить точку спавна Хаба (/sethub)
+    aliases: [setlobby]
+    permission: kingconnect.admin
+  kingconnect:
+    description: Панель управления связкой серверов KingConnect (/kcon)
+    aliases: [kcon, knet, network]
+    permission: kingconnect.admin
+
+permissions:
+  kingconnect.use:
+    description: Доступ к меню серверов и переходам
+    default: true
+  kingconnect.staff:
+    description: Доступ к межсерверному чату КП (/gsc) и /find
+    default: op
+  kingconnect.admin:
+    description: Полное управление связкой серверов KingConnect
+    default: op

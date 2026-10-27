@@ -3007,7 +3007,11 @@ public final class GameplayListener implements Listener {
                     || "freeze".equals(cmd) || "invsee".equals(cmd) || "ecsee".equals(cmd) || "whois".equals(cmd)
                     || "sc".equals(cmd) || "staffchat".equals(cmd) || "bc".equals(cmd) || "broadcast".equals(cmd)
                     || "reports".equals(cmd) || "replist".equals(cmd) || "kingac".equals(cmd) || "kac".equals(cmd)
-                    || "kas".equals(cmd) || "kingantisoft".equals(cmd) || "anticheat".equals(cmd))) {
+                    || "kas".equals(cmd) || "kingantisoft".equals(cmd) || "anticheat".equals(cmd)
+                    || "kingconnect".equals(cmd) || "kcon".equals(cmd) || "knet".equals(cmd) || "network".equals(cmd)
+                    || "send".equals(cmd) || "gsend".equals(cmd) || "galert".equals(cmd) || "gbroadcast".equals(cmd)
+                    || "gbc".equals(cmd) || "sethub".equals(cmd) || "setlobby".equals(cmd) || "gsc".equals(cmd)
+                    || "globalsc".equals(cmd) || "gstaff".equals(cmd))) {
                 it.remove();
                 continue;
             }
@@ -3024,6 +3028,19 @@ public final class GameplayListener implements Listener {
         if (Bukkit.getPluginManager().getPlugin("KingAC") != null) {
             e.getCommands().add("report");
             e.getCommands().add("rep");
+        }
+        if (Bukkit.getPluginManager().getPlugin("KingConnect") != null) {
+            e.getCommands().add("servers");
+            e.getCommands().add("server");
+            e.getCommands().add("hub");
+            e.getCommands().add("lobby");
+            e.getCommands().add("grief");
+            e.getCommands().add("grief1");
+            e.getCommands().add("grief2");
+            e.getCommands().add("anarchy");
+            e.getCommands().add("duels");
+            e.getCommands().add("glist");
+            e.getCommands().add("find");
         }
     }
 
