@@ -1,10 +1,10 @@
 name: KingGriefCore
-version: 6.0.0
+version: 6.0.1
 main: net.kinggrief.core.KingGriefCore
-api-version: '1.21'
+api-version: '1.20'
 load: POSTWORLD
 author: KINGGRIEF
-description: KINGGRIEF v6.0 FT x RW Mega-Edition (Teammate-Healing Bozhya Aura + Sacred Dome, /tm Teammate & Party System + GUI + /tc, 8 New Tactical FT Artifacts, Wager Duels, 10s Recall Orb, Kabinka Pearl/Chorus Lockdown, OWNER 0-KT)
+description: "KINGGRIEF v6.0.1 FT x RW Mega-Edition (Мост KingАЧ v8.0 — команды /ac /kac /inject для состава и OP, поддержка 8 Схем Инжекта) (Teammate-Healing Bozhya Aura + Sacred Dome, /tm Teammate & Party System + GUI + /tc, 8 New Tactical FT Artifacts, Wager Duels, 10s Recall Orb, Kabinka Pearl/Chorus Lockdown, OWNER 0-KT)"
 
 commands:
   lp:

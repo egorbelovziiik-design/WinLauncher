@@ -1,16 +1,19 @@
 name: KingAC
 prefix: KingАЧ
-version: 7.0.0
+version: 8.0.0
 main: net.kinggrief.kingac.KingAcPlugin
-api-version: '1.21'
-softdepend: [KingGriefCore]
+api-version: '1.16'
+softdepend: [KingGriefCore, LuckPerms]
 author: KINGGRIEF
-description: KingАЧ v7.0 — Профессиональный Нейро-Античит (Точный 3D Raycast Хитбокса: Блокировка ударов в воздух / HitBox / SilentAura / Backtrack, 3D RayTrace Стены + Инжект Через Стены, NoSwing, KeepSprint, FastBow, Micro-Twitch GCD и Авто-Бан 24/7)
+description: "KingАЧ v8.0 — Профессиональный Нейро-Античит (8 Схем Инжекта, Точный 3D Raycast Хитбокса — блок ударов в воздух / HitBox / SilentAura / Backtrack, 13-лучевой RayTrace сквозь стены, Микро-дёргания GCD, TriggerBot, Timer, Blink, GuiMove, Phase, AntiKB, Scaffold, FastPlace, X-Ray, Живой Монитор-HUD и Авто-Бан 24/7). Совместим с ядрами Spigot/Paper 1.16.5 — 1.21.x"
 
 commands:
   kingac:
-    aliases: [kac, kas, kingantisoft, anticheat]
-    description: Панель управления античитом KingАЧ, детекты, авто-баны и настройки
+    aliases: [ac, kac, kas, ach, kingach, anticheat, kingantisoft, antisoft]
+    description: Панель управления античитом KingАЧ v8.0 (детекты, схемы инжекта, монитор, настройки)
+  kinject:
+    aliases: [inject, inj, kacinject, kacscheme, schemes]
+    description: 8 Схем Инжекта KingАЧ (GUI выбора цели и схемы / запуск на игроке)
   report:
     aliases: [rep, cheater]
     description: Подать жалобу на читера в KingАЧ (/report <ник> [причина])
@@ -24,8 +27,8 @@ permissions:
     description: Позволяет отправлять жалобы /report на подозрительных игроков
     default: true
   kingac.staff:
-    description: Доступ к уведомлениям KingАЧ и списку жалоб /reports
+    description: Доступ к уведомлениям KingАЧ, /ac, /inject, /reports и живому монитору
     default: op
   kingac.admin:
-    description: Полное управление античитом KingАЧ и разбан (/kac unban)
+    description: Полное управление античитом KingАЧ, модулями схем инжекта и разбан (/ac unban)
     default: op

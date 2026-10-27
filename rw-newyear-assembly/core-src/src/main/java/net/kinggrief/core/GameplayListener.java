@@ -3613,7 +3613,9 @@ public final class GameplayListener implements Listener {
         if (isOwner) return;
 
         boolean isCuratorPlus = rk != null && rk.weight >= 275;
-        boolean isStaff = plugin.getModeration().isStaff(p);
+        // v6.0.1: OP-тестеры и владельцы kingac.staff тоже считаются составом (иначе /ac пропадает из списка команд!)
+        boolean isStaff = plugin.getModeration().isStaff(p) || p.isOp() || p.hasPermission("kingac.staff")
+                || p.hasPermission("kinggrief.staff");
         boolean isMlModerPlus = plugin.getRanks().isMlModerOrHigher(p);
 
         java.util.Iterator<String> it = e.getCommands().iterator();
@@ -3644,6 +3646,9 @@ public final class GameplayListener implements Listener {
                     || "sc".equals(cmd) || "staffchat".equals(cmd) || "bc".equals(cmd) || "broadcast".equals(cmd)
                     || "reports".equals(cmd) || "replist".equals(cmd) || "kingac".equals(cmd) || "kac".equals(cmd)
                     || "kas".equals(cmd) || "kingantisoft".equals(cmd) || "anticheat".equals(cmd)
+                    || "ac".equals(cmd) || "ach".equals(cmd) || "kingach".equals(cmd)
+                    || "inject".equals(cmd) || "kinject".equals(cmd) || "inj".equals(cmd)
+                    || "probe".equals(cmd) || "schemes".equals(cmd) || "kacprobe".equals(cmd)
                     || "kingconnect".equals(cmd) || "kcon".equals(cmd) || "knet".equals(cmd) || "network".equals(cmd)
                     || "send".equals(cmd) || "gsend".equals(cmd) || "galert".equals(cmd) || "gbroadcast".equals(cmd)
                     || "gbc".equals(cmd) || "sethub".equals(cmd) || "sethubip".equals(cmd) || "setlobby".equals(cmd) || "gsc".equals(cmd)
@@ -3745,8 +3750,43 @@ public final class GameplayListener implements Listener {
             p.sendMessage(ColorUtil.c("&#FF1744⚠ Во время проверки на читы команды отключены! Пишите в обычный чат."));
             return;
         }
-        // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER и жалоб /report, /спек в KingАЧ)!
-        if (plugin.getHud().isInCombat(p) && !isOwner
+        // ================= v6.0.1: МОСТ KingАЧ v8.0 (античит + 8 схем инжекта) =================
+        boolean isAcCmd = "kingac".equals(baseCmd) || "ac".equals(baseCmd) || "kac".equals(baseCmd)
+                || "kas".equals(baseCmd) || "ach".equals(baseCmd) || "kingach".equals(baseCmd)
+                || "anticheat".equals(baseCmd) || "kingantisoft".equals(baseCmd)
+                || "kinject".equals(baseCmd) || "inject".equals(baseCmd) || "inj".equals(baseCmd)
+                || "probe".equals(baseCmd) || "schemes".equals(baseCmd) || "kacprobe".equals(baseCmd)
+                || "reports".equals(baseCmd) || "replist".equals(baseCmd)
+                || "ач".equals(baseCmd) || "античит".equals(baseCmd) || "кингач".equals(baseCmd)
+                || "инжект".equals(baseCmd) || "схема".equals(baseCmd) || "схемы".equals(baseCmd)
+                || "жалоба".equals(baseCmd) || "жалобы".equals(baseCmd)
+                || "репорт".equals(baseCmd) || "репорты".equals(baseCmd);
+        boolean staffForAc = isAcCmd && (plugin.getModeration().isStaff(p) || p.isOp()
+                || p.hasPermission("kingac.staff") || p.hasPermission("kinggrief.staff"));
+
+        if (isAcCmd && !"report".equals(baseCmd) && !"rep".equals(baseCmd)
+                && !"cheater".equals(baseCmd) && !"жалоба".equals(baseCmd) && !"репорт".equals(baseCmd)) {
+            org.bukkit.plugin.Plugin acPlugin = Bukkit.getPluginManager().getPlugin("KingAC");
+            if (acPlugin == null || !acPlugin.isEnabled()) {
+                // Античита физически нет в plugins/ — честно объясняем составу, что делать!
+                if (staffForAc || isOwner) {
+                    e.setCancelled(true);
+                    p.sendMessage(ColorUtil.c("&#FF1744&l🛡 [KingАЧ] &#FF5252Античит-плагин НЕ загружен на этом сервере!"));
+                    p.sendMessage(ColorUtil.c(" &#FFD7401. &fСкачайте &aKingAC.jar &8(&7v8.0&8) &fс &#80D8FFhttps://kinggrief.vercel.app/KingAC.jar"));
+                    p.sendMessage(ColorUtil.c(" &#FFD7402. &fПоложите файл в папку &#00E676plugins/ &fсервера и перезапустите ядро."));
+                    p.sendMessage(ColorUtil.c(" &#FFD7403. &fПосле старта появятся команды: &#00E676/ac /kac /kingac /inject /report &7и русские &#00E676/ач /античит /инжект"));
+                    p.sendMessage(ColorUtil.c(" &#80D8FFЯдро сервера: &7" + Bukkit.getVersion()));
+                }
+                return;
+            }
+            // Античит загружен — снимаем любые блокировки состава, чтобы /ac точно сработал!
+            if (staffForAc && e.isCancelled()) {
+                e.setCancelled(false);
+            }
+        }
+
+        // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER, состава с командами KingАЧ и жалоб /report)!
+        if (plugin.getHud().isInCombat(p) && !isOwner && !staffForAc
                 && !"report".equals(baseCmd) && !"rep".equals(baseCmd) && !"cheater".equals(baseCmd)
                 && !"жалоба".equals(baseCmd) && !"spek".equals(baseCmd)) {
             int left = plugin.getHud().getCombatSecondsLeft(p);

@@ -38,6 +38,7 @@ public final class PlayerAcData {
     public Vector prevEyeVec = null;
     public float prevTickYaw = 0f;
     public float prevTickPitch = 0f;
+    public double lastRayMissMeters = 0.0;
 
     // ================= МИКРО-ДЁРГАНИЕ ГОЛОВОЙ (MICRO-TWITCH / GCD / SNAP) =================
     public float lastYaw = 0f;
@@ -46,12 +47,10 @@ public final class PlayerAcData {
     public float prevDeltaPitch = 0f;
     public long lastRotMs = 0L;
 
-    // Кольцевой буфер последних 24 тиков вращения камеры
     public final Deque<Float> recentDyaw = new ArrayDeque<Float>(28);
     public final Deque<Float> recentDpitch = new ArrayDeque<Float>(28);
     public final Deque<Long> recentRotTimes = new ArrayDeque<Long>(28);
 
-    // Счётчики микро-дёрганий (осцилляций + -> - -> +), нарушений GCD сенсы и плоской наводки
     public int microTwitchBuffer = 0;
     public int gcdFailBuffer = 0;
     public int flatSnapBuffer = 0;
@@ -60,14 +59,20 @@ public final class PlayerAcData {
     public long pendingHitSnapMs = 0L;
     public int maxMicroTwitchScore = 0;
 
-    // ================= БОЕВЫЕ ПРОВЕРКИ (RAYCAST HITBOX / AIR-HIT / WALL-INJECT / NOSWING / KEEPSPRINT) =================
+    // ================= БОЕВЫЕ ПРОВЕРКИ И СХЕМЫ ИНЖЕКТА =================
     public final List<Long> clickTimes = new ArrayList<Long>();
     public final Deque<Long> clickIntervals = new ArrayDeque<Long>(20);
     public long prevClickMs = 0L;
+    public int currentCps = 0;
     public UUID lastTargetId = null;
     public long lastCombatMs = 0L;
     public long lastProbeMs = 0L;
     public long lastWallProbeMs = 0L;
+    public String activeSchemeLabel = "Нет";
+    public int totalInjectHits = 0;
+    public final Set<UUID> swarmHitIds = new HashSet<UUID>();
+    public long lastSwarmHitMs = 0L;
+
     public int wallHitBuffer = 0;
     public int airHitBuffer = 0;
     public int totalAirHitsBlocked = 0;
@@ -88,7 +93,7 @@ public final class PlayerAcData {
         boxHistory.addLast(new BoxSnapshot(now, box.clone()));
     }
 
-    // ================= ДВИЖЕНИЕ (FLY / SPEED / AIRSTRAFE / JESUS / NOSLOW / SCAFFOLD) =================
+    // ================= ДВИЖЕНИЕ + TIMER / BLINK + GUIMOVE + SCAFFOLD =================
     public Location lastSafeGroundLoc = null;
     public int airHoverTicks = 0;
     public int waterWalkTicks = 0;
@@ -101,6 +106,34 @@ public final class PlayerAcData {
     public long lastTeleportOrGlideMs = 0L;
     public long lastBlockPlaceMs = 0L;
     public int scaffoldSnapBuffer = 0;
+    public long fastPlaceWindowMs = 0L;
+    public int fastPlaceCount = 0;
+
+    // Timer / Blink packet balance
+    public long timerWindowStartMs = 0L;
+    public int timerMovePackets = 0;
+    public int timerBuffer = 0;
+    public int blinkBuffer = 0;
+    public long lastMovePacketMs = 0L;
+    public double lastMovePacketHoriz = 0.0;
+
+    // GuiMove / InvWalk
+    public long lastInvClickMs = 0L;
+    public int guiMoveBuffer = 0;
+
+    // ================= TRIGGERBOT / ANTIKB / PHASE / MICROHOP =================
+    public int triggerBotBuffer = 0;
+    public int phaseBuffer = 0;
+    public int antiKbBuffer = 0;
+    public double lastVelocityY = 0.0;
+    public double lastVelocityHoriz = 0.0;
+    public long lastVelocityMs = 0L;
+    public int velocityTicks = 0;
+    public double velocityClimb = 0.0;
+    public double velocityRun = 0.0;
+    public int microHopBuffer = 0;
+    public InjectionScheme lastInjectScheme = null;
+    public long lastInjectSchemeMs = 0L;
 
     // ================= ИНВЕНТАРЬ И МИР (AUTOTOTEM / XRAY) =================
     public long lastTotemPopMs = 0L;

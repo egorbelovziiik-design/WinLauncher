@@ -108,7 +108,7 @@ export default async function AdminSettingsPage() {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm">
-            <Download size={13} /> Скачать ядро KingGriefCore.jar (v5.8)
+            <Download size={13} /> Скачать ядро KingGriefCore.jar (v6.0.1)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
             <Download size={13} /> Скачать KingGriefBridge.jar
@@ -120,7 +120,7 @@ export default async function AdminSettingsPage() {
             <Download size={13} /> Плагин №2 для Сервера: KingConnect.jar (Связка с Хабом)
           </a>
           <a href="/KingAC.jar" download="KingАЧ.jar" className="btn btn-primary btn-sm">
-            <Download size={13} /> Нейро-Античит KingАЧ v6.0 (KingAC.jar)
+            <Download size={13} /> Нейро-Античит KingАЧ v8.0 — 8 Схем Инжекта (KingAC.jar)
           </a>
           <a href="/KingClear.jar" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Очистка инвентаря KingClear.jar (/clear)
@@ -129,7 +129,7 @@ export default async function AdminSettingsPage() {
             <Download size={13} /> Мега-РП v5.9 (kinggrief-mega-rp.zip)
           </a>
           <a href="/rw-newyear-full-assembly.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Вся сборка v5.9 (.zip)
+            <Download size={13} /> Вся сборка v6.0.1 (.zip)
           </a>
           <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Сайт + Админ-панель v5.9 (.zip)

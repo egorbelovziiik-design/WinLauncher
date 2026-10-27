@@ -1,5 +1,5 @@
 # =====================================================================
-#  🛡 KingАЧ v7.0 — ПРОФЕССИОНАЛЬНЫЙ НЕЙРО-АНТИЧИТ + RAYCAST ХИТБОКСА
+#  🛡 KingАЧ v8.0 — НЕЙРО-АНТИЧИТ + 8 СХЕМ ИНЖЕКТА + 3D RAYCAST ХИТБОКСА
 # =====================================================================
 
 settings:
@@ -9,13 +9,25 @@ settings:
   auto-ban-vl: 18
   # Длительность авто-бана в секундах (30 дней = 2592000 сек.)
   auto-ban-duration-seconds: 2592000
-  # Откидывать ли (Setback) читеров назад при срабатывании Fly / Speed / AirJump / Jesus / NoSlow
+  # Откидывать ли (Setback) читеров назад при срабатывании Fly / Speed / Timer / AirJump / Jesus / NoSlow
   movement-setback-enabled: true
   # Включить глубокий анализ микро-дёрганий головой (Micro-Twitch / Sub-Tick Jitter / GCD / Snap)
   micro-head-twitch-check: true
   # Точный 3D Raycast Хитбокса: проверять, что игрок бьёт точно в модель игрока, а не в воздух (HitBox / SilentAura / Backtrack)
   ray-hitbox-air-block: true
-  # Максимальный пинг игрока (мс), выше которого лаго-зависимые проверки (Reach/Speed) не идут в авто-бан
+  # Автоматический запуск 8 схем инжекта (360°, Сквозь Стену, Орбита-Вихрь, Купол +85°, Рой x4, Хитбокс, Отступ, Каскад)
+  auto-inject-schemes: true
+  # Максимальный пинг игрока (мс), выше которого лаго-зависимые проверки (Reach/Speed/Timer) не идут в авто-бан
   max-autoban-ping-ms: 420
   # Кулдаун на отправку /report одним игроком (сек.)
   report-cooldown-seconds: 25
+
+schemes:
+  back: true
+  wall: true
+  orbit: true
+  zenith: true
+  swarm: true
+  hitbox: true
+  backtrack: true
+  cascade: true
