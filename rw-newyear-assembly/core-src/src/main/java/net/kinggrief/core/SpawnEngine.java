@@ -365,6 +365,7 @@ public final class SpawnEngine {
                 if (!wasLoaded) ch.load(false);
                 for (Entity e : ch.getEntities()) {
                     if (!(e instanceof Player)) {
+                        if (e.getScoreboardTags().contains("kg_mod_anim")) continue; // анимации модерации!
                         e.remove();
                         removed++;
                     }
@@ -390,6 +391,7 @@ public final class SpawnEngine {
         if (sw == null) return;
         for (Entity e : sw.getEntities()) {
             if (e instanceof Player) continue;
+            if (e.getScoreboardTags().contains("kg_mod_anim")) continue; // мешок/голова/пузырь анимаций!
             if (e instanceof ArmorStand || e instanceof TextDisplay || e instanceof Interaction || e instanceof org.bukkit.entity.Villager) {
                 if (!validSpawnEntities.contains(e.getUniqueId()) || !e.getScoreboardTags().contains(sessionTag)) {
                     e.remove();
@@ -1023,7 +1025,8 @@ public final class SpawnEngine {
                         it.remove();
                         cleaned++;
                     } else if (e instanceof Mob && !e.getScoreboardTags().contains("kg_event_boss")
-                            && !e.getScoreboardTags().contains("kg_farm_mob") && e.getCustomName() == null) {
+                            && !e.getScoreboardTags().contains("kg_farm_mob")
+                            && !e.getScoreboardTags().contains("kg_mod_anim") && e.getCustomName() == null) {
                         mobCountInChunk++;
                         if (mobCountInChunk > 18) {
                             e.remove();
