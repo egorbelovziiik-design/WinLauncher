@@ -1016,6 +1016,28 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     }
                     ColorUtil.actionBar(victim, "&#CFD8DC&l[ ████ СКОТЧ ████ ] &8│ &#FF5252Дед Мороз заклеил вам лицо! &7(" + timeLabel + ")");
                 }
+                if (ticks == 86) {
+                    // v6.2: ВИДИМЫЙ КЛЯП 🤐 над головой замутого (следует за игроком)!
+                    try {
+                        TextDisplay gag = w.spawn(victim.getLocation().clone().add(0.0, 2.3, 0.0), TextDisplay.class,
+                                new org.bukkit.util.Consumer<TextDisplay>() {
+                                    @Override
+                                    public void accept(TextDisplay td) {
+                                        td.setPersistent(false);
+                                        td.addScoreboardTag("kg_mod_anim");
+                                        td.setBillboard(Display.Billboard.CENTER);
+                                        td.setText(ColorUtil.c("&#CFD8DC&l🤐 ЗАКЛЕЕН СКOTЧЕМ"));
+                                        td.setTransformation(new org.bukkit.util.Transformation(
+                                                new org.joml.Vector3f(0.0f, 0.9f, 0.0f),
+                                                new org.joml.Quaternionf(),
+                                                new org.joml.Vector3f(1.0f, 1.0f, 1.0f),
+                                                new org.joml.Quaternionf()));
+                                    }
+                                });
+                        spawned.add(gag);
+                        try { victim.addPassenger(gag); } catch (Throwable ignored) {}
+                    } catch (Throwable ignored) {}
+                }
                 // =====================================================================
                 // ACT 3: Ticks 86..120 (4.25s .. 6.00s) — Разворачивается и уходит!
                 // =====================================================================
@@ -1194,21 +1216,20 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                             grabVictim();
                         }
                     } else if (phase == 1) {
-                        // АКТ 2: нарушитель ВИДИМЫЙ сидит на плече — Дед разворачивается к порталу!
+                        // АКТ 2: Дед ЗАВЯЗЫВАЕТ мешок с нарушителем (махает над мешком), затем поднимает его!
                         phaseTick++;
-                        if (portalCenter != null) {
-                            Location sLoc = santa.getLocation();
-                            sLoc.setYaw(yawFacing(sLoc, portalCenter));
-                            sLoc.setPitch(0.0f);
-                            santa.teleport(sLoc);
+                        if (sack != null && sack.isValid()) {
+                            Location sk = sack.getLocation();
+                            sk.setYaw(sk.getYaw() + 6.0f);
+                            sack.teleport(sk);
                         }
-                        if (ticks % 4 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
-                        if (ticks % 6 == 0) w.playSound(santa.getLocation(), "minecraft:block.snow.step", 0.85f, 0.9f);
-                        if (victim.isOnline() && !santa.getPassengers().contains(victim)) {
-                            try { santa.addPassenger(victim); } catch (Throwable ignored) {}
+                        if (phaseTick == 4 || phaseTick == 10) {
+                            try { santa.swingMainHand(); } catch (Throwable ignored) {}
+                            w.playSound(victim.getLocation(), "minecraft:block.wool.place", 0.9f, 1.1f);
+                            w.spawnParticle(Particle.CRIT, victim.getLocation().clone().add(0.0, 1.1, 0.0), 8, 0.25, 0.3, 0.25, 0.04);
                         }
-                        ColorUtil.actionBar(victim, "&#FFD740🎅 Дед Мороз схватил вас и несёт к мешку!");
-                        if (phaseTick >= 16) putInSack();
+                        ColorUtil.actionBar(victim, "&#8D6E63💰 Дед Мороз завязывает мешок с вами...");
+                        if (phaseTick >= 14) putInSack();
                     } else if (phase == 2) {
                         // АКТ 3: несёт МЕШОК-МОДЕЛЬ с нарушителем к новогоднему порталу!
                         phaseTick++;
@@ -1261,29 +1282,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 w.spawnParticle(Particle.CRIT, vl.clone().add(0.0, 1.2, 0.0), 22, 0.35, 0.4, 0.35, 0.06);
                 w.spawnParticle(Particle.SNOWFLAKE, vl.clone().add(0.0, 1.0, 0.0), 28, 0.5, 0.7, 0.5, 0.03);
                 try { victim.leaveVehicle(); } catch (Throwable ignored) {}
-                try { santa.addPassenger(victim); } catch (Throwable ignored) {}
-                victim.sendTitle(
-                        ColorUtil.c("&#FF1744&l🎅 ДЕД МОРОЗ СХВАТИЛ ВАС!"),
-                        ColorUtil.c("&fОн взвалил вас на плечо и несёт к мешку..."),
-                        2, 34, 6
-                );
-                for (Player near : w.getPlayers()) {
-                    if (near.equals(victim)) continue;
-                    try {
-                        if (near.getLocation().distanceSquared(vl) <= 64.0 * 64.0) {
-                            near.sendMessage(ColorUtil.c("&#FF1744&l🎅 [ДЕД МОРОЗ] &fСхватил &c" + victim.getName()
-                                    + " &fи взвалил на плечо! &8(&7бан: &e" + timeLabel + "&8)"));
-                        }
-                    } catch (Throwable ignored) {}
-                }
-            }
-
-            void putInSack() {
-                phase = 2;
-                phaseTick = 0;
-                try { victim.leaveVehicle(); } catch (Throwable ignored) {}
-                Location vl = victim.getLocation().clone();
-                // МЕШОК-МОДЕЛЬ: коричневое тело из кожи + голова нарушителя торчит сверху!
+                // v6.2: СРАЗУ КЛАДЁМ В МЕШОК — мешок-модель надевается на игрока, голова торчит!
                 try {
                     sack = spawnSackModel(w, vl, victim);
                     ents.add(sack);
@@ -1295,10 +1294,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 w.playSound(vl, "minecraft:block.wool.place", 1.4f, 0.8f);
                 w.playSound(vl, "minecraft:entity.player.burp", 1.2f, 0.7f);
                 w.spawnParticle(Particle.POOF, vl.clone().add(0.0, 0.9, 0.0), 26, 0.4, 0.5, 0.4, 0.04);
-                w.spawnParticle(Particle.CRIT, vl.clone().add(0.0, 1.1, 0.0), 18, 0.3, 0.4, 0.3, 0.05);
                 victim.sendTitle(
                         ColorUtil.c("&#8D6E63&l💰 ВЫ В МЕШКЕ!"),
-                        ColorUtil.c("&#FF5252🎅 Дед Мороз несёт вас в новогодний портал... &8(&c" + timeLabel + "&8)"),
+                        ColorUtil.c("&#FF1744🎅 Дед Мороз засунул вас в мешок и несёт в портал... &8(&c" + timeLabel + "&8)"),
                         2, 50, 6
                 );
                 ColorUtil.actionBar(victim, "&#8D6E63&l💰 Вы сидите в мешке Деда Мороза! Сопротивление бесполезно!");
@@ -1306,11 +1304,19 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     if (near.equals(victim)) continue;
                     try {
                         if (near.getLocation().distanceSquared(vl) <= 64.0 * 64.0) {
-                            near.sendMessage(ColorUtil.c("&#FF1744&l🎅 [ДЕД МОРОЗ] &fЗасунул &c" + victim.getName()
-                                    + " &fв мешок и уносит в новогодний портал! &8(&7бан: &e" + timeLabel + "&8)"));
+                            near.sendMessage(ColorUtil.c("&#FF1744&l🎅 [ДЕД МОРОЗ] &fСхватил &c" + victim.getName()
+                                    + " &fи СРАЗУ засунул в мешок (голова торчит)! &8(&7бан: &e" + timeLabel + "&8)"));
                         }
                     } catch (Throwable ignored) {}
                 }
+            }
+
+            void putInSack() {
+                // v6.2: мешок уже на игроке — Дед ПОДНИМАЕТ его и несёт к порталу!
+                phase = 2;
+                phaseTick = 0;
+                w.playSound(victim.getLocation(), "minecraft:entity.iron_golem.attack", 1.0f, 0.9f);
+                w.spawnParticle(Particle.CLOUD, victim.getLocation().clone().add(0.0, 0.5, 0.0), 12, 0.3, 0.2, 0.3, 0.02);
             }
 
             void enterPortal() {

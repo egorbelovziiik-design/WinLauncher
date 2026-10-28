@@ -1218,6 +1218,30 @@ for dx in range(-2, 3):
 
 
 # ==============================================================================
+# 13. v6.2 MEGA POLISH: ФОНАРНЫЕ СТОЛБЫ И СВЕТЯЩИЕСЯ АРКИ НАД КОРОЛЕВСКИМ БУЛЬВАРОМ
+# ==============================================================================
+print("[13/13] v6.2 Mega Polish: Lantern Posts & Glow Arches over Royal Boulevard...")
+
+# --- Ледяные фонарные столбы вдоль бульвара (x=±6, шаг 6 по z) ---
+for pz in range(14, 52, 6):
+    for px in (-6, 6):
+        if g(px, 99, pz) == P["AIR"]:
+            continue
+        if g(px, 100, pz) != P["AIR"] or g(px, 101, pz) != P["AIR"] or g(px, 102, pz) != P["AIR"] or g(px, 103, pz) != P["AIR"]:
+            continue
+        s(px, 100, pz, P["PACKED_ICE"])
+        s(px, 101, pz, P["PACKED_ICE"])
+        s(px, 102, pz, P["PACKED_ICE"])
+        s(px, 103, pz, P["SEA_LANTERN"])
+
+# --- Светящиеся арки-гирлянды над бульваром (y=106, выше голов) ---
+for az in (16, 28, 40, 50):
+    for ax in range(-6, 7):
+        s(ax, 106, az, P["SEA_LANTERN"])
+    for hx in (-3, 0, 3):
+        s(hx, 105, az, P["GOLD_BLOCK"])
+
+# ==============================================================================
 # MANDATORY WALKABILITY GUARANTEES & 3D BFS VERIFICATION (INCL. ALL 3 PALACE FLOORS!)
 # ==============================================================================
 WARP_SPOTS = [

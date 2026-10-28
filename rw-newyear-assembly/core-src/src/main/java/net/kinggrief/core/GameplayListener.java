@@ -3273,6 +3273,26 @@ public final class GameplayListener implements Listener {
                     ColorUtil.actionBar(attacker, "&#38BDF8🌌 МЕЧ БЕЗДНЫ: Враг притянут + Анти-Элитры!");
                     customBannerShown = true;
                 }
+            } else if ("sword_sever".equals(weaponId)) {
+                // v6.2: Клинок Севера — заморозка цели!
+                victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 200));
+                ColorUtil.addPot(victim, "slowness", "SLOW", 100, 3);
+                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1.1, 0), 18, 0.4, 0.6, 0.4, 0.03);
+                victim.getWorld().playSound(victim.getLocation(), "minecraft:block.glass.place", 0.7f, 1.4f);
+            } else if ("sword_zima".equals(weaponId)) {
+                // v6.2: Молот Зимы — ледяная нова вокруг цели!
+                Location zl = victim.getLocation();
+                for (Entity en : zl.getWorld().getNearbyEntities(zl, 3.0, 2.5, 3.0)) {
+                    if (!(en instanceof LivingEntity) || en.equals(attacker)) continue;
+                    if (en instanceof Player && !isEnemyTarget(attacker, (Player) en)) continue;
+                    LivingEntity le = (LivingEntity) en;
+                    Vector push = le.getLocation().toVector().subtract(zl.toVector()).setY(0.0);
+                    if (push.lengthSquared() < 0.01) push = new Vector(0.0, 0.0, 1.0);
+                    le.setVelocity(push.normalize().multiply(0.9).setY(0.45));
+                    ColorUtil.addPot(le, "slowness", "SLOW", 100, 2);
+                }
+                zl.getWorld().spawnParticle(Particle.SNOWFLAKE, zl.clone().add(0, 1.0, 0), 40, 1.0, 0.7, 1.0, 0.05);
+                zl.getWorld().playSound(zl, "minecraft:block.glass.break", 0.9f, 0.8f);
             } else if ("sword_midas".equals(weaponId)) {
                 int goldHit = 60 + rng.nextInt(141);
                 plugin.getStore().addCoins(attacker.getName(), goldHit);
@@ -3290,6 +3310,15 @@ public final class GameplayListener implements Listener {
             // Кастомные Луки, Стрелы и Трезубец Посейдона!
             if (e.getDamager() instanceof Projectile) {
                 applyProjectileWeaponEffects(e, attacker, victim);
+            }
+            // v6.2: Талисман Мороза — атакующий враг замерзает!
+            if (ItemFactory.getCustomId(victim.getInventory().getItemInOffHand()) != null
+                    && "tal_moroza".equals(ItemFactory.getCustomId(victim.getInventory().getItemInOffHand()))
+                    && checkAndSetCd(victim, "tal_moroza", 4)) {
+                attacker.setFreezeTicks(120);
+                ColorUtil.addPot(attacker, "slowness", "SLOW", 60, 2);
+                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, attacker.getLocation().add(0, 1.0, 0), 20, 0.4, 0.6, 0.4, 0.03);
+                ColorUtil.actionBar(victim, "&#80D8FF🧊 Талисман Мороза заморозил атакующего!");
             }
             spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
         } else if (e.getEntity() instanceof LivingEntity) {
@@ -3450,6 +3479,10 @@ public final class GameplayListener implements Listener {
         if (dead.getScoreboardTags().contains("kg_farm_mob") && killer != null) {
             e.setDroppedExp(12);
             double c = 40.0;
+            if ("tal_zvezdy".equals(ItemFactory.getCustomId(killer.getInventory().getItemInOffHand()))) {
+                c = 50.0;
+                ColorUtil.actionBar(killer, "&#FFD740⭐ Талисман Звезды: +25% монет!");
+            }
             plugin.getStore().addCoins(killer.getName(), c);
             if (rng.nextInt(100) < 35) {
                 plugin.getStore().addSnowflakes(killer.getName(), 1);
@@ -3460,7 +3493,9 @@ public final class GameplayListener implements Listener {
             return;
         }
         if (dead instanceof Monster && killer != null && "hunter".equals(plugin.getStore().getJob(killer.getName()))) {
-            plugin.getStore().addCoins(killer.getName(), 30.0);
+            double hc = 30.0;
+            if ("tal_zvezdy".equals(ItemFactory.getCustomId(killer.getInventory().getItemInOffHand()))) hc = 38.0;
+            plugin.getStore().addCoins(killer.getName(), hc);
         }
     }
 

@@ -468,6 +468,7 @@ public final class HudManager {
         // Проверка полного сета кастомной 3D брони (4/4 частей!)
         String fullSet = detectFullCustomArmorSet(p);
         if (fullSet != null) {
+            spawnSetAura(p, fullSet);
             if ("owner".equals(fullSet)) {
                 bonusHp += 24.0;
                 giveEff(p, "strength", 80, 2);
@@ -499,6 +500,22 @@ public final class HudManager {
         }
 
         ColorUtil.setMaxHealthSafe(p, 20.0 + bonusHp);
+    }
+
+    /** v6.2: АУРА ПОЛНОГО СЕТА — цветные частицы вокруг игрока, броню ВИДНО издалека! */
+    private static void spawnSetAura(Player p, String set) {
+        try {
+            org.bukkit.Color c;
+            if ("owner".equals(set)) c = org.bukkit.Color.fromRGB(255, 215, 0);
+            else if ("krush".equals(set)) c = org.bukkit.Color.fromRGB(255, 109, 0);
+            else if ("dracula".equals(set)) c = org.bukkit.Color.fromRGB(225, 29, 72);
+            else if ("frost".equals(set)) c = org.bukkit.Color.fromRGB(128, 216, 255);
+            else if ("zeus".equals(set)) c = org.bukkit.Color.fromRGB(250, 204, 21);
+            else c = org.bukkit.Color.fromRGB(168, 85, 247);
+            org.bukkit.Location base = p.getLocation().clone().add(0.0, 0.4, 0.0);
+            p.getWorld().spawnParticle(org.bukkit.Particle.REDSTONE, base, 10, 0.45, 0.7, 0.45, 0.0,
+                    new org.bukkit.Particle.DustOptions(c, 1.2f));
+        } catch (Throwable ignored) {}
     }
 
     public static String detectFullCustomArmorSet(Player p) {

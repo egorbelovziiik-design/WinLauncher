@@ -1398,6 +1398,34 @@ public final class ItemFactory {
         return piece;
     }
 
+    public static ItemStack swordSever() {
+        return make(Material.NETHERITE_SWORD, 1, "&#80D8FF&l❄ 3D Клинок Севера",
+                Arrays.asList("&7Замораживает врага при ударе:",
+                        "&#80D8FF• Заморозка + Медлительность IV на 5 сек!"),
+                false, "sword_sever", "sword_sever", 1841);
+    }
+
+    public static ItemStack swordZima() {
+        return make(Material.NETHERITE_SWORD, 1, "&#AEEA00&l🌨 3D Молот Зимы",
+                Arrays.asList("&7Ледяная нова при ударе:",
+                        "&#AEEA00• Отбрасывает и замедляет ВСЕХ врагов в 3 блоках!"),
+                false, "sword_zima", "sword_zima", 1842);
+    }
+
+    public static ItemStack talZvezdy() {
+        return make(Material.NETHER_STAR, 1, "&#FFD740&l⭐ 3D Талисман Звезды",
+                Arrays.asList("&7Пассивно в левой руке:",
+                        "&#FFD740• +25% монет с фармилки и охоты!"),
+                true, "tal_zvezdy", "tal_zvezdy", 1843);
+    }
+
+    public static ItemStack talMoroza() {
+        return make(Material.NETHER_STAR, 1, "&#80D8FF&l🧊 3D Талисман Мороза",
+                Arrays.asList("&7Пассивно в левой руке:",
+                        "&#80D8FF• Атакующий вас враг замерзает на 3 сек!"),
+                true, "tal_moroza", "tal_moroza", 1844);
+    }
+
     public static ItemStack mysteryEgg(int amt) {
         return make(Material.PIG_SPAWN_EGG, amt, "&#E040FB&l🥚 Загадочное Яйцо Джамшута",
                 Arrays.asList("&8Предмет для спавнеров",

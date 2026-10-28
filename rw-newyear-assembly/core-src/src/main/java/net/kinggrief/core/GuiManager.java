@@ -559,13 +559,13 @@ public final class GuiManager {
     // ================= 5A-2. ОРУЖЕЙНАЯ 12 КАСТОМНЫХ 3D МЕЧЕЙ (/swords) =================
     public void openSwordsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("swords", "", 0), 54,
-                ColorUtil.c("&#FF1744&l⚔ ОРУЖЕЙНАЯ 12 3D МЕЧЕЙ (/swords)"));
+                ColorUtil.c("&#FF1744&l⚔ ОРУЖЕЙНАЯ 14 3D МЕЧЕЙ (/swords)"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 12 уникальных 3D Мечей KINGGRIEF v5.9!",
+                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.2!",
                 "&7У каждого меча свой 3D-силуэт и боевая способность!"));
 
         inv.setItem(10, shopTag(ItemFactory.swordDracula(), 320));
@@ -595,6 +595,8 @@ public final class GuiManager {
         inv.setItem(24, shopTag(ItemFactory.swordMidas(),   470));
 
         // Row 3: Mythic Heavy Arsenal
+        inv.setItem(33, shopTag(ItemFactory.swordSever(),    430));
+        inv.setItem(34, shopTag(ItemFactory.swordZima(),     460));
         inv.setItem(29, shopTag(ItemFactory.scytheReaper(),    480));
         inv.setItem(30, shopTag(ItemFactory.axeThor(),         470));
         inv.setItem(32, shopTag(ItemFactory.maceKrush(),       380));
@@ -1608,10 +1610,10 @@ public final class GuiManager {
                 ItemFactory.talStuzhi(),      ItemFactory.talKaratelya(), ItemFactory.talZeusa(),
                 ItemFactory.talDraculy(),     ItemFactory.talKolossa(),   ItemFactory.talZhneca(),
                 ItemFactory.talSevera(),      ItemFactory.talBezdn(2),    ItemFactory.talImperatora(),
-                ItemFactory.totemRw()
+                ItemFactory.totemRw(),        ItemFactory.talZvezdy(),    ItemFactory.talMoroza()
         };
-        int[] costs = new int[]{310, 290, 250, 230, 390, 280, 300, 340, 360, 330, 350, 370, 310, 440, 410, 190};
-        int[] slots = new int[]{10,11,12,13,14,15,16, 19,20,21,22,23,24,25, 29,30};
+        int[] costs = new int[]{310, 290, 250, 230, 390, 280, 300, 340, 360, 330, 350, 370, 310, 440, 410, 190, 380, 360};
+        int[] slots = new int[]{10,11,12,13,14,15,16, 19,20,21,22,23,24,25, 29,30, 31,33};
         for (int i = 0; i < tals.length && i < slots.length; i++) {
             ItemStack tagged = shopTag(tals[i], costs[i]);
             ItemMeta m = tagged.getItemMeta();
