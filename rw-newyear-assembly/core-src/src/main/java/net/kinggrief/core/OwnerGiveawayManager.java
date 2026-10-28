@@ -183,7 +183,7 @@ public final class OwnerGiveawayManager implements Listener, CommandExecutor, Ta
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPingTechWorks(ServerListPingEvent e) {
         if (techWorkMode) {
-            e.setMotd(ColorUtil.c("&#FF1744&l⚙ Тех работы! &8│ &#FFD740&lKINGGRIEF NEW YEAR v5.8\n"
+            e.setMotd(ColorUtil.c("&#FF1744&l⚙ Тех работы! &8│ &#FFD740&lKINGGRIEF NEW YEAR v6.3\n"
                     + "&fИдёт установка обновления — скоро откроемся!"));
             e.setMaxPlayers(0);
         }

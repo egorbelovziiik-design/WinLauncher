@@ -169,6 +169,10 @@ public final class SpawnEngine {
     private final List<StaticHoloDef> staticHoloDefs = new ArrayList<StaticHoloDef>();
     private final List<KabinkaState> kabinki = new ArrayList<KabinkaState>();
     private final Map<String, UUID> npcBodyMap = new HashMap<String, UUID>();
+    // v6.3.0: планировщик «волн рукой» живых NPC + отдельный быстрый таск анимации
+    private final Map<String, Integer> npcWaveSwings = new HashMap<String, Integer>();
+    private final Map<String, Long> npcNextWaveAt = new HashMap<String, Long>();
+    private BukkitRunnable npcAnimTask;
     private final Map<String, UUID> npcHitboxMap = new HashMap<String, UUID>();
     private final Map<String, UUID> npcHoloMap = new HashMap<String, UUID>();
     private final Map<String, UUID> staticHoloMap = new HashMap<String, UUID>();
@@ -274,7 +278,7 @@ public final class SpawnEngine {
 
         File marker = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok");
         if (forceRebuild || !marker.exists()) {
-            plugin.getLogger().info("[SpawnEngine v5.9] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
+            plugin.getLogger().info("[SpawnEngine v6.3] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
             boolean hadOldSpawn = new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
@@ -381,7 +385,7 @@ public final class SpawnEngine {
         topHoloIds.clear();
         for (KabinkaState kb : kabinki) kb.statusStandId = null;
         if (removed > 0) {
-            plugin.getLogger().info("[SpawnEngine v5.9] Purged " + removed + " stale spawn entities (zero lag!).");
+            plugin.getLogger().info("[SpawnEngine v6.3] Purged " + removed + " stale spawn entities (zero lag!).");
         }
     }
 
@@ -412,7 +416,7 @@ public final class SpawnEngine {
     private void buildFromRleResource(World sw, String resourcePath) {
         InputStream raw = plugin.getClass().getResourceAsStream(resourcePath);
         if (raw == null) {
-            plugin.getLogger().severe("[SpawnEngine v5.7] Missing resource " + resourcePath + "!");
+            plugin.getLogger().severe("[SpawnEngine v6.3] Missing resource " + resourcePath + "!");
             return;
         }
         for (int cx = -9; cx <= 9; cx++) {
@@ -467,9 +471,9 @@ public final class SpawnEngine {
                 }
             }
             sw.setSpawnLocation(0, 100, 52);
-            plugin.getLogger().info("[SpawnEngine v5.7] High-FPS Spawn built cleanly (" + placed + " blocks).");
+            plugin.getLogger().info("[SpawnEngine v6.3] High-FPS Spawn built cleanly (" + placed + " blocks).");
         } catch (Exception e) {
-            plugin.getLogger().warning("[SpawnEngine v5.7] Error decoding spawn_v5.dat: " + e.getMessage());
+            plugin.getLogger().warning("[SpawnEngine v6.3] Error decoding spawn_v5.dat: " + e.getMessage());
         }
     }
 
@@ -532,7 +536,7 @@ public final class SpawnEngine {
         if (!staticHoloDefs.isEmpty()) return;
 
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
-                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v5.9 &#80D8FF&l❄\n"
+                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v6.3 &#80D8FF&l❄\n"
                 + "&#FF1744&l12 3D МЕЧЕЙ &8• &#FFD740&l12 КИРОК &8• &#00E676&lБРОНЯ ×2 &8• &#E040FB&lОКНА В ТРАПКАХ\n"
                 + "&fВыживание: &#00E676&l/rtp &8│ &f12 Мечей: &#FF1744&l/swords &8│ &f12 Кирок: &#FFD740&l/picks &8│ &fВарпы: &#38BDF8&l/warps"));
 
@@ -747,35 +751,84 @@ public final class SpawnEngine {
     }
 
     /** v6.2.1: ЖИВЫЕ NPC — смотрят на ближайшего игрока и периодически машут рукой! */
+    /**
+     * v6.3.0: ПЛАВНАЯ анимация живых NPC (вызов каждые 2 тика, а не раз в 2 секунды!):
+     *  - NPC плавно доворачивается к ближайшему игроку (без рывков, с ограничением угла, чтобы не «крутился»);
+     *  - периодически РЕАЛЬНО машет рукой (серия из 3 взмахов), а не дёргается случайно;
+     *  - когда игроков рядом нет — спокойно возвращается в свою исходную позу;
+     *  - телепорт вызывается только если поворот заметен (экономия пакетов = нет лагов).
+     */
     private void animateNpcs(World sw) {
         try {
+            long now = System.currentTimeMillis();
+            List<Player> players = sw.getPlayers();
+            if (players.isEmpty()) return;
             for (NpcDef nd : npcDefs) {
                 UUID bid = npcBodyMap.get(nd.id);
                 if (bid == null) continue;
                 Entity body = Bukkit.getEntity(bid);
                 if (body == null || !body.isValid() || body.isDead()) continue;
                 Location bl = body.getLocation();
+
                 Player nearest = null;
-                double best = 7.0 * 7.0;
-                for (Player pl : sw.getPlayers()) {
+                double best = 9.0 * 9.0;
+                for (Player pl : players) {
                     try {
                         double d = pl.getLocation().distanceSquared(bl);
                         if (d < best) { best = d; nearest = pl; }
                     } catch (Throwable ignored) {}
                 }
+
+                float wantYaw;
                 if (nearest != null) {
+                    double dx = nearest.getEyeLocation().getX() - bl.getX();
+                    double dz = nearest.getEyeLocation().getZ() - bl.getZ();
+                    wantYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+                    // ограничиваем угол относительно «домашней» позы витрины: NPC не крутится волчком
+                    float rel = wrapYaw(wantYaw - nd.yaw);
+                    if (rel > 78.0f) wantYaw = nd.yaw + 78.0f;
+                    else if (rel < -78.0f) wantYaw = nd.yaw - 78.0f;
+                } else {
+                    wantYaw = nd.yaw;
+                }
+
+                float cur = bl.getYaw();
+                float newYaw = cur + wrapYaw(wantYaw - cur) * 0.30f;
+                if (Math.abs(wrapYaw(newYaw - cur)) > 0.35f) {
                     Location look = bl.clone();
-                    double dx = nearest.getLocation().getX() - bl.getX();
-                    double dz = nearest.getLocation().getZ() - bl.getZ();
-                    look.setYaw((float) Math.toDegrees(Math.atan2(-dx, dz)));
+                    look.setYaw(newYaw);
                     look.setPitch(0.0f);
-                    body.teleport(look);
-                    if (Math.random() < 0.06) {
+                    try { body.teleport(look); } catch (Throwable ignored) {}
+                }
+
+                // Волна рукой: планируем заранее, машем серией из 3 взмахов
+                Integer swings = npcWaveSwings.get(nd.id);
+                if (swings != null && swings.intValue() > 0) {
+                    if (swings.intValue() % 2 == 0) {
                         try { ((LivingEntity) body).swingMainHand(); } catch (Throwable ignored) {}
+                    }
+                    npcWaveSwings.put(nd.id, Integer.valueOf(swings.intValue() - 1));
+                } else if (nearest != null && best <= 6.5 * 6.5) {
+                    Long nextAt = npcNextWaveAt.get(nd.id);
+                    if (nextAt == null || now >= nextAt.longValue()) {
+                        npcWaveSwings.put(nd.id, Integer.valueOf(6));
+                        npcNextWaveAt.put(nd.id, Long.valueOf(now + 9000L + (long) (Math.random() * 9000.0)));
+                        try { sw.playSound(bl, "minecraft:entity.villager.yes", 0.45f, 1.25f); } catch (Throwable ignored) {}
+                        try {
+                            sw.spawnParticle(Particle.HAPPY_VILLAGER, bl.clone().add(0.0, 2.05, 0.0), 4, 0.25, 0.2, 0.25, 0.0);
+                        } catch (Throwable ignored) {}
                     }
                 }
             }
         } catch (Throwable ignored) {}
+    }
+
+    /** Нормализация разницы углов в диапазон -180..180. */
+    private float wrapYaw(float y) {
+        float r = y % 360.0f;
+        if (r > 180.0f) r -= 360.0f;
+        if (r < -180.0f) r += 360.0f;
+        return r;
     }
 
     public void refreshTopLeaderboards(World sw) {
@@ -949,7 +1002,11 @@ public final class SpawnEngine {
             if (near instanceof Player) continue;
             UUID u = near.getUniqueId();
             if (u.equals(keepBody) || u.equals(keepHit) || u.equals(keepHolo)) continue;
-            if (near.getScoreboardTags().contains(npcTag)
+            // v6.3.0: НИКОГДА не сносим модели анимаций модерации (мешок, кляп 🤐, скотч, пузырь Деда) —
+            // раньше чистилка спавна убивала их прямо посреди анимации мута/бана!
+            Set<String> tags = near.getScoreboardTags();
+            if (tags.contains("kg_mod_anim") || tags.contains("kg_sack") || tags.contains("kg_mute_gag")) continue;
+            if (tags.contains(npcTag)
                     || (!validSpawnEntities.contains(u) && (near instanceof ArmorStand || near instanceof TextDisplay || near instanceof Interaction))) {
                 near.remove();
             }
@@ -968,6 +1025,19 @@ public final class SpawnEngine {
                 animateCustomNpcs(sw);
             }
         }.runTaskTimer(plugin, 25L, 20L);
+
+        // 1b. v6.3.0: БЫСТРАЯ плавная анимация живых NPC каждые 2 тика (поворот головы + волна рукой)!
+        npcAnimTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
+                    if (sw == null || sw.getPlayers().isEmpty()) return;
+                    animateNpcs(sw);
+                } catch (Throwable ignored) {}
+            }
+        };
+        npcAnimTask.runTaskTimer(plugin, 30L, 2L);
 
         // 2. 1-Second Engine Loop (TPS meter, Auto-Mine, Farm Mobs, Kabinki, Top-5 & Auto-ClearLag)
         new BukkitRunnable() {
@@ -1006,9 +1076,6 @@ public final class SpawnEngine {
                     if (tickCounter % 2 == 0) {
                         enforceStrictSingletonsOnSpawn(sw);
                     }
-                    if (tickCounter % 2 == 1) {
-                        animateNpcs(sw);
-                    }
                     if (tickCounter % 5 == 0) {
                         maintainMobFarm(sw);
                     }
@@ -1023,6 +1090,12 @@ public final class SpawnEngine {
     }
 
     public void shutdown() {
+        if (npcAnimTask != null) {
+            try { npcAnimTask.cancel(); } catch (Throwable ignored) {}
+            npcAnimTask = null;
+        }
+        npcWaveSwings.clear();
+        npcNextWaveAt.clear();
         try {
             World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
             if (sw != null) {

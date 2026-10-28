@@ -154,7 +154,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v5.8.0 — GRAND WINTER CITADEL & 12 PICKS    ");
+        getLogger().info(" KINGGRIEF CORE v6.3.0 — GRAND WINTER CITADEL & CINEMA ANIMATIONS    ");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | 6 Custom TNTs | /razdacha | /txt     ");
         getLogger().info("============================================================");
@@ -508,7 +508,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             spawnEngine.initializeSpawnWorldAndBuild(true);
-            sender.sendMessage(ColorUtil.c("&#00E676✔ Яркий красочный спавн v5.0 успешно перестроен в мире spawn_world!"));
+            sender.sendMessage(ColorUtil.c("&#00E676✔ Яркий красочный спавн v6.3 успешно перестроен в мире spawn_world!"));
             return true;
         }
         if ("promoadmin".equals(c)) {
@@ -576,7 +576,7 @@ public final class KingGriefCore extends JavaPlugin {
             }
             store.registerPassword(p, args[0]);
             ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на KINGGRIEF v5.0!"), 5, 40, 10);
+            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на KINGGRIEF v6.3!"), 5, 40, 10);
             p.sendMessage(ColorUtil.c("&#00E676✔ Регистрация успешна! Вам выдан Новогодний Кейс (/cases) и стартовый баланс!"));
             return true;
         }
@@ -1639,7 +1639,7 @@ public final class KingGriefCore extends JavaPlugin {
             chunks += w.getLoadedChunks().length;
             entities += w.getEntities().size();
         }
-        s.sendMessage(ColorUtil.c("&#00E676&l⚡ ПРОИЗВОДИТЕЛЬНОСТЬ KINGGRIEF v5.7:"));
+        s.sendMessage(ColorUtil.c("&#00E676&l⚡ ПРОИЗВОДИТЕЛЬНОСТЬ KINGGRIEF v6.3:"));
         s.sendMessage(ColorUtil.c(" &7• TPS сервера: &#00E676" + spawnEngine.getCurrentTps() + " / 20.0"));
         s.sendMessage(ColorUtil.c(" &7• Память ОЗУ: &#FFD740" + usedMb + " МБ &7/ &f" + maxMb + " МБ"));
         s.sendMessage(ColorUtil.c(" &7• Чанки: &#80D8FF" + chunks + " &8│ &7Энтити во всех мирах: &f" + entities));
@@ -1849,7 +1849,7 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private void sendClanHelp(Player p) {
-        p.sendMessage(ColorUtil.c("&#B388FF&l╔══════════ 🛡 КОМАНДЫ КЛАНА KINGGRIEF v5.7 ══════════╗"));
+        p.sendMessage(ColorUtil.c("&#B388FF&l╔══════════ 🛡 КОМАНДЫ КЛАНА KINGGRIEF v6.3 ══════════╗"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan menu &7— Интерактивное меню клана и ТОП"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan create <тег> &7— Создать клан (&a25 000$&7)"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan invite <ник> &7— Пригласить игрока &a[Кнопки Принять/Отклонить]"));
@@ -2303,7 +2303,7 @@ public final class KingGriefCore extends JavaPlugin {
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("rebuildspawn".equals(sub)) {
             spawnEngine.initializeSpawnWorldAndBuild(true);
-            s.sendMessage(ColorUtil.c("&#00E676✔ Яркий Спавн v5.0 в мире spawn_world перестроен!"));
+            s.sendMessage(ColorUtil.c("&#00E676✔ Яркий Спавн v6.3 в мире spawn_world перестроен!"));
             return true;
         }
         if ("startboss".equals(sub)) {

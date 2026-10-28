@@ -334,6 +334,17 @@ public final class GameplayListener implements Listener {
         plugin.getStore().refreshPermissions(p, plugin.getRanks());
         plugin.getBossEvents().syncBarsForJoin(p);
 
+        // v6.3.0: страховка от «замороженного» игрока — если скорость ходьбы/полёта осталась нулевой
+        // после сбоя/перезагрузки во время бан-анимации, возвращаем нормальную сразу на входе.
+        try {
+            if (p.getWalkSpeed() < 0.05f) p.setWalkSpeed(0.2f);
+            if (p.getFlySpeed() < 0.02f) p.setFlySpeed(0.1f);
+            if (!plugin.getModeration().isFrozenOrAscending(p)) {
+                p.removePotionEffect(org.bukkit.potion.PotionEffectType.INVISIBILITY);
+                p.removePotionEffect(org.bukkit.potion.PotionEffectType.DAMAGE_RESISTANCE);
+            }
+        } catch (Throwable ignored) {}
+
         // Give menu star in slot 8 if missing
         ItemStack s8 = p.getInventory().getItem(8);
         if (s8 == null || s8.getType() == Material.AIR) {
@@ -353,6 +364,8 @@ public final class GameplayListener implements Listener {
             public void run() {
                 if (!p.isOnline()) return;
                 plugin.getHud().updatePlayerHud(p);
+                // v6.3.0: если игрок зашёл с действующим мутом — кляп 🤐 сразу висит над ним!
+                plugin.getModeration().syncMuteGagFor(p);
                 try {
                     if (plugin.getConfig().getBoolean("push-resourcepack-on-join", true) && rawRpUrl != null && !rawRpUrl.isEmpty()) {
                         String effectiveUrl = rawRpUrl;
@@ -381,7 +394,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v5.8 ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.3 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"

@@ -414,7 +414,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onServerPing(ServerListPingEvent e) {
         if (isShieldActive()) {
-            e.setMotd(ColorUtil.c("&#80D8FF&l❄ &#FFD740&lKINGGRIEF v5.8 &#80D8FF&l❄ &8│ &#00E676🛡 ANTI-DDOS ЗАЩИТА АКТИВНА\n"
+            e.setMotd(ColorUtil.c("&#80D8FF&l❄ &#FFD740&lKINGGRIEF v6.3 &#80D8FF&l❄ &8│ &#00E676🛡 ANTI-DDOS ЗАЩИТА АКТИВНА\n"
                     + "&#FF408112 Кирок &8• &#FFD740Молот 10×10 &8• &#00E5FFРабочий ТНТ &8• &#AEEA00Новый Спавн"));
         }
     }
@@ -542,7 +542,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         if (sender instanceof Player) {
             Player p = (Player) sender;
             if (plugin.getRanks().getRank(p).weight < 220) {
-                p.sendMessage(ColorUtil.c("&#00E676🛡 [KINGGRIEF Anti-DDoS v5.8] &fЗащита активна! TPS: &#00E676"
+                p.sendMessage(ColorUtil.c("&#00E676🛡 [KINGGRIEF Anti-DDoS v6.3] &fЗащита активна! TPS: &#00E676"
                         + plugin.getSpawnEngine().getCurrentTps() + " &8│ &fУничтожено лаг-машин молнией: &#FFD740"
                         + destroyedLagMachines.get()));
                 return true;
@@ -563,7 +563,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         }
 
         sender.sendMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-        sender.sendMessage(ColorUtil.c(" &#00E5FF&l🛡 KINGGRIEF ANTI-DDOS & АНТИ-ЛАГ МОЛНИЯ v5.8"));
+        sender.sendMessage(ColorUtil.c(" &#00E5FF&l🛡 KINGGRIEF ANTI-DDOS & АНТИ-ЛАГ МОЛНИЯ v6.3"));
         sender.sendMessage(ColorUtil.c(" &fСтатус щита: " + (isShieldActive() ? "&#FF1744&lАКТИВНОЕ ОТРАЖЕНИЕ АТАКИ" : "&#00E676&lШТАТНЫЙ РЕЖИМ (ЗАЩИЩЁН)")));
         sender.sendMessage(ColorUtil.c(" &fТекущий TPS: &#00E676" + plugin.getSpawnEngine().getCurrentTps()
                 + " &8│ &fПик CPS: &#FFD740" + peakCps + " подкл./сек"));
