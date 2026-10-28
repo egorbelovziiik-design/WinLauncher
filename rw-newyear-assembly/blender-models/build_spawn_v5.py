@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KINGGRIEF NEW YEAR v5.8 — GRAND IMPERIAL WINTER CITADEL & LEAF TREE EDITION
+KINGGRIEF NEW YEAR v5.9 — AURORA POLISH EDITION (v5.8 + Северное сияние, снеговики, канделябры)
 ===========================================================================
 Complete architectural overhaul addressing every player & admin critique:
   1. REAL LEAF CHRISTMAS TREE (ZERO concrete foliage!):
@@ -64,7 +64,7 @@ PALETTE_NAMES = [
     "NETHERITE_BLOCK", "LAPIS_BLOCK", "COPPER_BLOCK", "REDSTONE_BLOCK",
     # Lighting
     "SEA_LANTERN", "SHROOMLIGHT", "GLOWSTONE", "OCHRE_FROGLIGHT",
-    "PEARLESCENT_FROGLIGHT", "VERDANT_FROGLIGHT", "END_ROD", "LANTERN",
+    "PEARLESCENT_FROGLIGHT", "VERDANT_FROGLIGHT", "END_ROD", "LANTERN", "CARVED_PUMPKIN",
     # Functional & Palace Interior Furniture
     "IRON_BARS", "SPRUCE_FENCE", "DARK_OAK_FENCE",
     "BOOKSHELF", "ENCHANTING_TABLE", "ANVIL", "ENDER_CHEST", "CRAFTING_TABLE",
@@ -1155,6 +1155,69 @@ s(39, 100, -27, P["GOLD_BLOCK"])
 
 
 # ==============================================================================
+# 12. v5.9 POLISH: AURORA BOREALIS, ICE CANDELABRAS, SNOWMAN ALLEY, GOLD INLAY
+#     (каждый наземный декор проверяет наличие пола — НИКАКИХ парящих багов!)
+# ==============================================================================
+print("[12/12] v5.9 Polish: Aurora Borealis, Ice Candelabras, Snowman Alley & Gold Inlay...")
+
+# --- Северное сияние: 3 высоких стеклянных ленты (y>=142, выше ЛЮБЫХ построек) ---
+AURORA_MATS = [P["LIGHT_BLUE_STAINED_GLASS"], P["LIME_STAINED_GLASS"], P["PURPLE_STAINED_GLASS"]]
+AURORA_Z = [-78, 74, 34]
+for band in range(3):
+    zc = AURORA_Z[band]
+    base_y = 152 + band * 9
+    amp = 9 + band * 4
+    for x in range(-96, 97):
+        # центральная лента пропускает небо над ёлкой (макушка Y=191)!
+        if band == 2 and -18 <= x <= 18:
+            continue
+        y1 = base_y + int(round(amp * math.sin(x * 0.042 + band * 2.2)))
+        y2 = base_y + int(round(amp * math.sin((x + 1) * 0.042 + band * 2.2)))
+        mat = AURORA_MATS[band]
+        for t in range(3):
+            for yy in (y1, y2, (y1 + y2) // 2 + 1):
+                if 142 <= yy <= 190 and rng.random() < 0.72:
+                    s(x, yy, zc + t, mat)
+
+# --- Ледяные канделябры вокруг ёлки (R=14, между кольцами площади 13 и 23) ---
+for deg in range(0, 360, 45):
+    rad = math.radians(deg + 22.5)
+    cx = int(round(math.cos(rad) * 14.0))
+    cz = int(round(math.sin(rad) * 14.0))
+    if g(cx, 99, cz) == P["AIR"]:
+        continue
+    if abs(cx) <= 4 and cz > 10:
+        continue  # южный королевский бульвар не трогаем!
+    if g(cx, 100, cz) != P["AIR"] or g(cx, 101, cz) != P["AIR"] or g(cx, 102, cz) != P["AIR"]:
+        continue  # место занято — пропускаем (без багов!)
+    s(cx, 100, cz, P["PACKED_ICE"])
+    s(cx, 101, cz, P["PACKED_ICE"])
+    s(cx, 102, cz, P["SEA_LANTERN"])
+
+# --- Аллея снеговиков вдоль королевского бульвара (/spawn -> ёлка) ---
+SNOWMAN_SPOTS = [(-5, 22), (5, 22), (-5, 30), (5, 30), (-5, 38), (5, 38), (-5, 46), (5, 46)]
+for sx, sz in SNOWMAN_SPOTS:
+    if g(sx, 99, sz) == P["AIR"]:
+        continue
+    if g(sx, 100, sz) != P["AIR"] or g(sx, 101, sz) != P["AIR"] or g(sx, 102, sz) != P["AIR"]:
+        continue
+    s(sx, 100, sz, P["SNOW_BLOCK"])
+    s(sx, 101, sz, P["SNOW_BLOCK"])
+    s(sx, 102, sz, P["CARVED_PUMPKIN"])
+
+# --- Золотая инкрустация точки прибытия /spawn (0,52) ---
+for dx in range(-2, 3):
+    for dz in range(50, 55):
+        x, z = dx, dz
+        if g(x, 99, z) == P["AIR"]:
+            continue
+        if abs(dx) + abs(z - 52) <= 2:
+            s(x, 99, z, P["GOLD_BLOCK"])
+        elif (dx + z) % 2 == 0:
+            s(x, 99, z, P["CHISELED_QUARTZ_BLOCK"])
+
+
+# ==============================================================================
 # MANDATORY WALKABILITY GUARANTEES & 3D BFS VERIFICATION (INCL. ALL 3 PALACE FLOORS!)
 # ==============================================================================
 WARP_SPOTS = [
@@ -1289,4 +1352,4 @@ with gzip.open(out_dat, "wb", compresslevel=9) as f:
     f.write(runs)
 
 sz_kb = os.path.getsize(out_dat) / 1024.0
-print(f"SUCCESS! Wrote v5.8 Grand Spawn RLE ({non_air:,} solid blocks -> {sz_kb:.1f} KB) to {out_dat}")
+print(f"SUCCESS! Wrote v5.9 Aurora Spawn RLE ({non_air:,} solid blocks -> {sz_kb:.1f} KB) to {out_dat}")

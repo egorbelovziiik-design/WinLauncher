@@ -260,7 +260,7 @@ public final class GuiManager {
                 ColorUtil.c("&#80D8FF&l🧭 ВАРПЫ И АРЕНЫ СЕРВЕРА"));
         decorateFrame(inv);
         inv.setItem(10, ItemFactory.glowIcon(Material.DIAMOND_PICKAXE, "&#FF9100&l⛏ /warp mine — Авто-Шахта",
-                "&7Кристальный карьер с алмазами, изумрудами", "&7и древними обломками! Авто-реген 90с.", "&a• Широкий мост и лестница!"));
+                "&7Кристальный карьер с РЕДКОСТЯМИ РУДЫ:", "&7🌌 1% Обломки • 💚 4% Изумруд • 💎 7% Алмаз", "&7Блоки ломаются, реген каждые 5 минут!", "&a• Широкий мост и лестница!"));
         inv.setItem(11, ItemFactory.glowIcon(Material.ZOMBIE_HEAD, "&#AEEA00&l🧟 /warp farm — Фармилка Мобов",
                 "&74 безопасные камеры с зимними мобами!", "&7Фарми Монеты, Опыт и Снежинки ❄!"));
         inv.setItem(12, ItemFactory.glowIcon(Material.GOLD_BLOCK, "&#FFD740&l🎰 /warp casino — Гранд-Казино 777",

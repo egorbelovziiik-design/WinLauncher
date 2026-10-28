@@ -177,7 +177,7 @@ public final class SpawnEngine {
     private final Map<String, ItemStack> cachedSkinHeads = new HashMap<String, ItemStack>();
     private final Set<String> spinningCases = new HashSet<String>();
     private final List<UUID> topHoloIds = new ArrayList<UUID>();
-    private int mineRefillCountdown = 90;
+    private int mineRefillCountdown = 300; // v6.1: регенерация шахты каждые 5 минут!
     private int clearLagCountdown = 300;
     private int tickCounter = 0;
     private int animPhase = 0;
@@ -271,10 +271,11 @@ public final class SpawnEngine {
             }
         }
 
-        File marker = new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok");
+        File marker = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok");
         if (forceRebuild || !marker.exists()) {
-            plugin.getLogger().info("[SpawnEngine v5.8] Building Grand Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
-            boolean hadOldSpawn = new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
+            plugin.getLogger().info("[SpawnEngine v5.9] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
+            boolean hadOldSpawn = new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
+                    || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v56_ny_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v5_built").exists()
@@ -290,6 +291,7 @@ public final class SpawnEngine {
                 new File(sw.getWorldFolder(), ".spawn_v56_ny_ok").delete();
                 new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").delete();
                 new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").delete();
+                new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").delete();
                 marker.createNewFile();
             } catch (Exception ignored) {}
         } else {
@@ -377,7 +379,7 @@ public final class SpawnEngine {
         topHoloIds.clear();
         for (KabinkaState kb : kabinki) kb.statusStandId = null;
         if (removed > 0) {
-            plugin.getLogger().info("[SpawnEngine v5.8] Purged " + removed + " stale spawn entities (zero lag!).");
+            plugin.getLogger().info("[SpawnEngine v5.9] Purged " + removed + " stale spawn entities (zero lag!).");
         }
     }
 
@@ -560,7 +562,10 @@ public final class SpawnEngine {
                 "&#FFD740&l🏰 ИМПЕРАТОРСКИЙ ЗИМНИЙ ДВОРЕЦ (3 ЭТАЖА)\n&fТронный Зал &8• &bБиблиотека &8• &eСокровищница и Панорамный Балкон!"));
 
         staticHoloDefs.add(new StaticHoloDef("holo_mine", -71.0, 102.5, 4.5,
-                "&#FF9100&l⛏ КРИСТАЛЬНАЯ АВТО-ШАХТА\n&fОбновление руды каждые &e90 сек. &8• &aСнежинки ❄ и Монеты!"));
+                "&#FF9100&l⛏ КРИСТАЛЬНАЯ АВТО-ШАХТА — РЕДКОСТИ РУДЫ\n"
+                + "&f🪨 46% Камень • ⚫ 20% Уголь • ⛓ 12% Железо • 🟣 10% Золото/Лазурит/Редстоун\n"
+                + "&#80D8FF💎 7% Алмаз • &#22C55E💚 4% Изумруд • &#E040FB&l🌌 1% ДРЕВНИЕ ОБЛОМКИ\n"
+                + "&fБлоки ломаются по-настоящему • Регенерация каждые &e5 минут&f!"));
 
         staticHoloDefs.add(new StaticHoloDef("holo_farm", -80.0, 103.4, -37.5,
                 "&#AEEA00&l🧟 ЗИМНЯЯ ФАРМИЛКА МОБОВ (4 КАМЕРЫ)\n&fБейте мобов через нижнее окно — полная безопасность!"));
@@ -934,8 +939,13 @@ public final class SpawnEngine {
                 World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
 
                 mineRefillCountdown--;
+                if (mineRefillCountdown == 60) {
+                    for (Player mp : sw.getPlayers()) {
+                        mp.sendMessage(ColorUtil.c("&#FF9100⛏ [Авто-Шахта] &fРуда восстановится через &#FFD74060 секунд&f! Успейте добыть редкость!"));
+                    }
+                }
                 if (mineRefillCountdown <= 0) {
-                    mineRefillCountdown = 90;
+                    mineRefillCountdown = 300;
                     refillAutoMine(sw, true);
                 }
 
@@ -1220,28 +1230,43 @@ public final class SpawnEngine {
     }
 
     // ================= AUTO-MINE REFILL (DELTA-ONLY BLOCK UPDATES = ZERO SPIKE!) =================
+    /**
+     * v6.1: РЕДКОСТИ АВТО-ШАХТЫ (взвешенная таблица, 1000 роллов):
+     * 🪨 Камень 46% • ⚫ Уголь 20% • ⛓ Железо 12% • 🟣 Золото 4% / Лазурит 3% / Редстоун 3%
+     * 💎 Алмаз 7% • 💚 Изумруд 4% • 🌌 Древние Обломки 1%
+     */
+    private Material pickMineOreByRarity() {
+        int roll = rng.nextInt(1000);
+        if (roll < 10) return Material.ANCIENT_DEBRIS;   // 🌌 1.0% АРТЕФАКТ
+        if (roll < 50) return Material.EMERALD_ORE;      // 💚 4.0% Мифическая
+        if (roll < 120) return Material.DIAMOND_ORE;     // 💎 7.0% Легендарная
+        if (roll < 160) return Material.GOLD_ORE;        // 🟣 4.0% Эпическая
+        if (roll < 190) return Material.LAPIS_ORE;       // 🟣 3.0% Эпическая
+        if (roll < 220) return Material.REDSTONE_ORE;    // 🟣 3.0% Эпическая
+        if (roll < 340) return Material.IRON_ORE;        // ⛓ 12.0% Редкая
+        if (roll < 540) return Material.COAL_ORE;        // ⚫ 20.0% Необычная
+        return Material.STONE;                           // 🪨 46.0% Обычная
+    }
+
     public void refillAutoMine(World sw, boolean announce) {
-        Material[] ores = new Material[]{
-                Material.COAL_ORE, Material.COAL_ORE, Material.IRON_ORE, Material.IRON_ORE,
-                Material.GOLD_ORE, Material.LAPIS_ORE, Material.REDSTONE_ORE,
-                Material.DIAMOND_ORE, Material.EMERALD_ORE
-        };
         for (int x = -96; x <= -75; x++) {
             for (int y = 91; y <= 98; y++) {
                 for (int z = -6; z <= 14; z++) {
                     Block blk = sw.getBlockAt(x, y, z);
                     Material cur = blk.getType();
-                    // Only replace mined/cobblestone/air blocks so untouched ores send 0 chunk packets!
-                    if (!announce || cur == Material.COBBLESTONE || cur == Material.AIR || cur == Material.STONE) {
-                        Material pick = rng.nextInt(85) == 0 ? Material.ANCIENT_DEBRIS : ores[rng.nextInt(ores.length)];
-                        blk.setType(pick, false);
+                    // v6.1: восполняем воздух/камень/булыжник/любую старую руду — блоки теперь реально ломаются!
+                    if (!announce || cur == Material.COBBLESTONE || cur == Material.AIR
+                            || cur == Material.STONE || cur == Material.CAVE_AIR
+                            || cur.name().endsWith("_ORE") || cur == Material.ANCIENT_DEBRIS) {
+                        blk.setType(pickMineOreByRarity(), false);
                     }
                 }
             }
         }
         if (announce && !sw.getPlayers().isEmpty()) {
             for (Player p : sw.getPlayers()) {
-                p.sendMessage(ColorUtil.c("&#FF9100[Авто-Шахта] &fРуда на &e/warp mine &fполностью обновилась!"));
+                p.sendMessage(ColorUtil.c("&#FF9100⛏ [Авто-Шахта] &fРуда полностью восстановилась! Следующий реген через &#FFD7405 минут&f. "
+                        + "&7Редкости: &#BDBDBD🪨46% &#9E9E9E⚫20% &#FB923C⛓12% &#A855F7🟣10% &#80D8FF💎7% &#22C55E💚4% &#E040FB🌌1%"));
             }
         }
     }

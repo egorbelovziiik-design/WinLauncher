@@ -602,9 +602,9 @@ public final class GameplayListener implements Listener {
         plugin.getStore().addMined(p.getName());
         String job = plugin.getStore().getJob(p.getName());
         if ("miner".equals(job) && (b.getType().name().contains("ORE") || b.getType() == Material.STONE)) {
-            plugin.getStore().addCoins(p.getName(), 15.0);
+            plugin.getStore().addCoins(p.getName(), 12.0);
         } else if ("lumber".equals(job) && b.getType().name().contains("_LOG")) {
-            plugin.getStore().addCoins(p.getName(), 18.0);
+            plugin.getStore().addCoins(p.getName(), 14.0);
         }
     }
 
@@ -635,6 +635,24 @@ public final class GameplayListener implements Listener {
         ColorUtil.sound(p, "block.glass.break", 1.0f, 0.65f);
     }
 
+    /** v6.1: РЕДКОСТИ АВТО-ШАХТЫ — метка редкости для экшен-бара и эффектов! */
+    private String mineRarityTag(Material m) {
+        if (m == Material.ANCIENT_DEBRIS) return "&#E040FB&l🌌 АРТЕФАКТНАЯ РУДА (Древние Обломки)!";
+        if (m == Material.EMERALD_ORE) return "&#22C55E&l💚 МИФИЧЕСКАЯ РУДА (Изумруд)!";
+        if (m == Material.DIAMOND_ORE) return "&#80D8FF&l💎 ЛЕГЕНДАРНАЯ РУДА (Алмаз)!";
+        if (m == Material.GOLD_ORE || m == Material.LAPIS_ORE || m == Material.REDSTONE_ORE) return "&#A855F7🟣 ЭПИЧЕСКАЯ РУДА!";
+        if (m == Material.IRON_ORE) return "&#FB923C⛓ РЕДКАЯ РУДА (Железо)!";
+        if (m == Material.COAL_ORE) return "&#9E9E9E⚫ Необычная руда (Уголь)";
+        return "&#BDBDBD🪨 Обычная порода";
+    }
+
+    private int mineRarityLevel(Material m) {
+        if (m == Material.ANCIENT_DEBRIS) return 3;
+        if (m == Material.EMERALD_ORE || m == Material.DIAMOND_ORE) return 2;
+        if (m == Material.GOLD_ORE || m == Material.LAPIS_ORE || m == Material.REDSTONE_ORE || m == Material.IRON_ORE) return 1;
+        return 0;
+    }
+
     private void handleAutoMineBreak(BlockBreakEvent e, Player p, Block b) {
         Material m = b.getType();
         if (m == Material.COBBLESTONE || m == Material.BEDROCK) {
@@ -642,36 +660,53 @@ public final class GameplayListener implements Listener {
             return;
         }
         e.setDropItems(false);
+        e.setExpToDrop(0);
         String tid = ItemFactory.getCustomId(p.getInventory().getItemInMainHand());
         int bonusMult = ("hammer_owner".equals(tid) ? 3 : ("pick_krush".equals(tid) || "pick_molten".equals(tid) || "pick_midas".equals(tid) || "pick_tunnel".equals(tid) ? 2 : 1));
         ItemStack drop;
         double coins;
-        if (m == Material.COAL_ORE) { drop = new ItemStack(Material.COAL, 2 * bonusMult); coins = 25 * bonusMult; }
-        else if (m == Material.IRON_ORE) { drop = new ItemStack(Material.IRON_INGOT, bonusMult); coins = 55 * bonusMult; }
-        else if (m == Material.GOLD_ORE) { drop = new ItemStack(Material.GOLD_INGOT, bonusMult); coins = 85 * bonusMult; }
-        else if (m == Material.LAPIS_ORE) { drop = new ItemStack(Material.LAPIS_LAZULI, 4 * bonusMult); coins = 60 * bonusMult; }
-        else if (m == Material.REDSTONE_ORE) { drop = new ItemStack(Material.REDSTONE, 4 * bonusMult); coins = 60 * bonusMult; }
-        else if (m == Material.DIAMOND_ORE) { drop = new ItemStack(Material.DIAMOND, bonusMult); coins = 190 * bonusMult; }
-        else if (m == Material.EMERALD_ORE) { drop = new ItemStack(Material.EMERALD, bonusMult); coins = 240 * bonusMult; }
-        else if (m == Material.ANCIENT_DEBRIS) { drop = new ItemStack(Material.NETHERITE_SCRAP, bonusMult); coins = 900 * bonusMult; }
-        else { drop = new ItemStack(Material.COBBLESTONE, 1); coins = 8 * bonusMult; }
+        // v6.1: СБАЛАНСИРОВАННАЯ ЭКОНОМИКА шахты (редкость = награда!)
+        if (m == Material.COAL_ORE) { drop = new ItemStack(Material.COAL, 2 * bonusMult); coins = 20 * bonusMult; }
+        else if (m == Material.IRON_ORE) { drop = new ItemStack(Material.IRON_INGOT, bonusMult); coins = 45 * bonusMult; }
+        else if (m == Material.GOLD_ORE) { drop = new ItemStack(Material.GOLD_INGOT, bonusMult); coins = 70 * bonusMult; }
+        else if (m == Material.LAPIS_ORE) { drop = new ItemStack(Material.LAPIS_LAZULI, 4 * bonusMult); coins = 50 * bonusMult; }
+        else if (m == Material.REDSTONE_ORE) { drop = new ItemStack(Material.REDSTONE, 4 * bonusMult); coins = 50 * bonusMult; }
+        else if (m == Material.DIAMOND_ORE) { drop = new ItemStack(Material.DIAMOND, bonusMult); coins = 150 * bonusMult; }
+        else if (m == Material.EMERALD_ORE) { drop = new ItemStack(Material.EMERALD, bonusMult); coins = 200 * bonusMult; }
+        else if (m == Material.ANCIENT_DEBRIS) { drop = new ItemStack(Material.NETHERITE_SCRAP, bonusMult); coins = 700 * bonusMult; }
+        else { drop = new ItemStack(Material.COBBLESTONE, 1); coins = 5 * bonusMult; }
 
         p.getInventory().addItem(drop);
         p.giveExp(4 * bonusMult);
         plugin.getStore().addCoins(p.getName(), coins);
         plugin.getStore().addMined(p.getName());
+        // v6.1: РЕДКОСТИ ШАХТЫ — эффекты и цвета по редкости руды!
+        int rarityLv = mineRarityLevel(m);
+        String rarityTag = mineRarityTag(m);
+        Location bLoc = b.getLocation().add(0.5, 0.5, 0.5);
+        if (rarityLv >= 2) {
+            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, bLoc, 22, 0.4, 0.4, 0.4, 0.08);
+            b.getWorld().spawnParticle(Particle.CRIT, bLoc, 14, 0.35, 0.35, 0.35, 0.05);
+            ColorUtil.sound(p, "entity.player.levelup", 0.85f, rarityLv >= 3 ? 0.8f : 1.3f);
+            if (rarityLv >= 3) {
+                b.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, bLoc, 30, 0.5, 0.5, 0.5, 0.1);
+                for (Player near : b.getWorld().getPlayers()) {
+                    if (near.getLocation().distanceSquared(bLoc) <= 64.0 * 64.0) {
+                        near.sendMessage(ColorUtil.c("&#E040FB&l🌌 [АВТО-ШАХТА] &fИгрок &#FFD740" + p.getName() + " &#E040FBнашёл ДРЕВНИЕ ОБЛОМКИ! (&a+" + (int) coins + "$&#E040FB)"));
+                    }
+                }
+            }
+        } else if (rarityLv == 1) {
+            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, bLoc, 8, 0.3, 0.3, 0.3, 0.05);
+            ColorUtil.sound(p, "entity.experience_orb.pickup", 0.8f, 1.15f);
+        }
         if (rng.nextInt(100) < 22) {
             plugin.getStore().addSnowflakes(p.getName(), 1);
-            ColorUtil.actionBar(p, "&#FF9100⛏ +" + (int) coins + "$ &8| &#80D8FF+1 Снежинка Джамшута ❄!");
+            ColorUtil.actionBar(p, rarityTag + " &8│ &a+" + (int) coins + "$ &8| &#80D8FF+1 Снежинка Джамшута ❄!");
         } else {
-            ColorUtil.actionBar(p, "&#FF9100⛏ Авто-Шахта: &a+" + (int) coins + "$" + (bonusMult > 1 ? " &e(Бонус Кирки ×" + bonusMult + "!)" : ""));
+            ColorUtil.actionBar(p, rarityTag + " &8│ &#FF9100⛏ &a+" + (int) coins + "$" + (bonusMult > 1 ? " &e(Бонус Кирки ×" + bonusMult + "!)" : ""));
         }
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                b.setType(Material.COBBLESTONE, false);
-            }
-        }.runTaskLater(plugin, 1L);
+        // v6.1: блок ЛОМАЕТСЯ ПО-НАСТОЯЩЕМУ (остаётся воздух) — шахта регенерирует каждые 5 минут!
     }
 
     private boolean canDrillBreakBlock(Player p, Block t) {
@@ -769,8 +804,8 @@ public final class GameplayListener implements Listener {
             e.setDropItems(false);
             ItemStack mainDrop = smeltedDropForBlock(center.getType(), 1, 2);
             if (mainDrop != null) p.getInventory().addItem(mainDrop);
-            int reward = 25 + rng.nextInt(176);
-            if (rng.nextInt(100) < 4) reward += 1200;
+            int reward = 15 + rng.nextInt(121);
+            if (rng.nextInt(100) < 4) reward += 800;
             plugin.getStore().addCoins(p.getName(), reward);
             if (rng.nextInt(100) < 16) {
                 p.getInventory().addItem(new ItemStack(Material.GOLD_INGOT, 1));
@@ -2265,7 +2300,9 @@ public final class GameplayListener implements Listener {
             if (offId != null && offId.startsWith("arrow_")) {
                 arrowType = offId;
             } else {
-                for (ItemStack invIt : p.getInventory().getContents()) {
+                // v6.1: ищем 3D-стрелу только в хотбаре (ванilla-лук берёт стрелы именно оттуда!)
+                for (int slot = 0; slot <= 8; slot++) {
+                    ItemStack invIt = p.getInventory().getItem(slot);
                     if (invIt != null && invIt.getType() == Material.ARROW) {
                         String aid = ItemFactory.getCustomId(invIt);
                         if (aid != null && aid.startsWith("arrow_")) {
@@ -2367,12 +2404,38 @@ public final class GameplayListener implements Listener {
                 }
             }.runTaskLater(plugin, 160L);
         }
-        // Разрывная стрела на блоке
-        if ("arrow_explosive".equals(atype) && e.getHitBlock() != null && e.getEntity().getShooter() instanceof Player) {
-            Location loc = e.getHitBlock().getLocation().add(0.5, 1.0, 0.5);
-            if (!plugin.getSpawnEngine().isInSpawnWorld(loc) || plugin.getSpawnEngine().isInsidePvpZone(loc)) {
-                loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 3, 0.5, 0.5, 0.5, 0.02);
-                ColorUtil.sound((Player) e.getEntity().getShooter(), "entity.generic.explode", 0.7f, 1.2f);
+        // v6.1: 3D-СТРЕЛЫ РАБОТАЮТ ПРИ ПОПАДАНИИ В БЛОК (настоящие эффекты в точке удара!)
+        Location hitLoc = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0.5, 1.0, 0.5)
+                : (e.getHitEntity() != null ? e.getHitEntity().getLocation() : e.getEntity().getLocation());
+        boolean hitFxAllowed = !plugin.getSpawnEngine().isInSpawnWorld(hitLoc) || plugin.getSpawnEngine().isInsidePvpZone(hitLoc);
+        if (atype != null && hitFxAllowed) {
+            if ("arrow_explosive".equals(atype)) {
+                final Location fLoc = hitLoc;
+                final Player shooterRef = e.getEntity().getShooter() instanceof Player ? (Player) e.getEntity().getShooter() : null;
+                try {
+                    if (shooterRef != null) {
+                        fLoc.getWorld().createExplosion(fLoc, 1.6F, false, false, shooterRef);
+                    } else {
+                        fLoc.getWorld().createExplosion(fLoc.getX(), fLoc.getY(), fLoc.getZ(), 1.6F, false, false);
+                    }
+                } catch (Throwable t) {
+                    try { fLoc.getWorld().createExplosion(fLoc.getX(), fLoc.getY(), fLoc.getZ(), 1.6F, false, false); } catch (Throwable ignored) {}
+                }
+                fLoc.getWorld().spawnParticle(Particle.LARGE_SMOKE, fLoc, 24, 0.7, 0.55, 0.7, 0.03);
+                fLoc.getWorld().playSound(fLoc, "minecraft:entity.generic.explode", 0.9f, 1.15f);
+            } else if ("arrow_lightning".equals(atype)) {
+                hitLoc.getWorld().strikeLightningEffect(hitLoc);
+                hitLoc.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, hitLoc.clone().add(0, 0.6, 0), 24, 0.3, 0.4, 0.3, 0.06);
+                hitLoc.getWorld().playSound(hitLoc, "minecraft:entity.lightning_bolt.thunder", 0.8f, 1.45f);
+            } else if ("arrow_ice".equals(atype)) {
+                hitLoc.getWorld().spawnParticle(Particle.SNOWFLAKE, hitLoc.clone().add(0, 0.4, 0), 28, 0.5, 0.4, 0.5, 0.02);
+                hitLoc.getWorld().playSound(hitLoc, "minecraft:block.glass.place", 0.9f, 1.5f);
+            } else if ("arrow_vampire".equals(atype)) {
+                hitLoc.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, hitLoc.clone().add(0, 0.6, 0), 10, 0.25, 0.3, 0.25, 0.02);
+                hitLoc.getWorld().playSound(hitLoc, "minecraft:entity.witch.drink", 0.8f, 0.85f);
+            } else if ("arrow_poison".equals(atype)) {
+                hitLoc.getWorld().spawnParticle(Particle.ITEM, hitLoc.clone().add(0, 0.5, 0), 18, 0.35, 0.3, 0.35, 0.05, new ItemStack(Material.SLIME_BALL));
+                hitLoc.getWorld().playSound(hitLoc, "minecraft:entity.spider.hurt", 0.8f, 1.2f);
             }
         }
     }
@@ -3189,7 +3252,7 @@ public final class GameplayListener implements Listener {
                     customBannerShown = true;
                 }
             } else if ("sword_midas".equals(weaponId)) {
-                int goldHit = 75 + rng.nextInt(176);
+                int goldHit = 60 + rng.nextInt(141);
                 plugin.getStore().addCoins(attacker.getName(), goldHit);
                 ColorUtil.addPot(attacker, "absorption", "ABSORPTION", 100, 1);
                 ColorUtil.actionBar(attacker, "&#FFD740👑 ЭКСКАЛИБУР МИДАСА: &a+" + goldHit + "$ &8| &eЗолотые Сердца!");
@@ -3204,44 +3267,78 @@ public final class GameplayListener implements Listener {
             }
             // Кастомные Луки, Стрелы и Трезубец Посейдона!
             if (e.getDamager() instanceof Projectile) {
-                String pTag = e.getDamager().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
-                String aTag = e.getDamager().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
-                if ("trident_poseidon".equals(pTag)) {
-                    victim.getWorld().strikeLightningEffect(victim.getLocation());
-                    e.setDamage(e.getDamage() + 4.0);
-                }
-                if ("bow_ice_rw".equals(pTag) || "arrow_ice".equals(aTag)) {
-                    victim.setFreezeTicks(180);
-                    ColorUtil.addPot(victim, "slowness", "SLOW", 100, 3);
-                }
-                if ("bow_inferno".equals(pTag)) {
-                    victim.setFireTicks(140);
-                    ColorUtil.addPot(victim, "wither", "WITHER", 100, 1);
-                }
-                if ("bow_zeus".equals(pTag) || "arrow_lightning".equals(aTag)) {
-                    victim.getWorld().strikeLightningEffect(victim.getLocation());
-                    e.setDamage(e.getDamage() + 4.0);
-                    victim.setCooldown(Material.SHIELD, 100);
-                }
-                if ("bow_vampire".equals(pTag) || "arrow_vampire".equals(aTag)) {
-                    attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + 4.5));
-                }
-                if ("arrow_explosive".equals(aTag)) {
-                    victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation().add(0, 1, 0), 3, 0.4, 0.4, 0.4, 0.02);
-                    e.setDamage(e.getDamage() + 5.0);
-                }
-                if ("arrow_poison".equals(aTag)) {
-                    ColorUtil.addPot(victim, "poison", "POISON", 120, 2);
-                    ColorUtil.addPot(victim, "wither", "WITHER", 100, 1);
-                    ColorUtil.addPot(victim, "weakness", "WEAKNESS", 120, 1);
-                }
-                if ("arrow_anti_fly".equals(aTag)) {
-                    if (victim.isGliding()) victim.setGliding(false);
-                    victim.setVelocity(new Vector(0, -1.1, 0));
-                    victim.sendMessage(ColorUtil.c("&#A855F7⛓ Анти-Флай Стрела ПВО сбила ваш полёт!"));
-                }
+                applyProjectileWeaponEffects(e, attacker, victim);
             }
             spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
+        } else if (e.getEntity() instanceof LivingEntity) {
+            // v6.1: 3D-ЛУКИ И 3D-СТРЕЛЫ ТЕПЕРЬ РАБОТАЮТ И ПО МОБАМ (фармилка, боссы, выживание)!
+            LivingEntity mobVictim = (LivingEntity) e.getEntity();
+            if (e.getDamager() instanceof Projectile) {
+                applyProjectileWeaponEffects(e, attacker, mobVictim);
+                spawnDamageIndicator(mobVictim.getLocation(), e.getFinalDamage());
+            }
+        }
+    }
+
+    /**
+     * v6.1: ЭФФЕКТЫ 3D-ОРУЖИЯ СТРЕЛКОВ — работают по игрокам И мобам,
+     * числа строго как в описании предметов (Зевс +3❤, Вампир 35%, Разрывная +3❤)!
+     */
+    private void applyProjectileWeaponEffects(EntityDamageByEntityEvent e, Player attacker, LivingEntity victim) {
+        String pTag = e.getDamager().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
+        String aTag = e.getDamager().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
+        if (pTag == null && aTag == null) return;
+        Location vl = victim.getLocation();
+        if ("trident_poseidon".equals(pTag)) {
+            vl.getWorld().strikeLightningEffect(vl);
+            e.setDamage(e.getDamage() + 4.0);
+        }
+        if ("bow_ice_rw".equals(pTag) || "arrow_ice".equals(aTag)) {
+            victim.setFreezeTicks(180);
+            ColorUtil.addPot(victim, "slowness", "SLOW", 100, 3);
+            vl.getWorld().spawnParticle(Particle.SNOWFLAKE, vl.clone().add(0, 1.0, 0), 20, 0.45, 0.7, 0.45, 0.02);
+            vl.getWorld().playSound(vl, "minecraft:block.glass.place", 0.7f, 1.5f);
+        }
+        if ("bow_inferno".equals(pTag)) {
+            victim.setFireTicks(140);
+            ColorUtil.addPot(victim, "wither", "WITHER", 100, 1);
+            vl.getWorld().spawnParticle(Particle.FLAME, vl.clone().add(0, 1.0, 0), 16, 0.4, 0.6, 0.4, 0.03);
+        }
+        if ("bow_zeus".equals(pTag) || "arrow_lightning".equals(aTag)) {
+            vl.getWorld().strikeLightningEffect(vl);
+            e.setDamage(e.getDamage() + 6.0); // +3❤ чистого урона по лору!
+            if (victim instanceof Player) {
+                try { ((Player) victim).setCooldown(Material.SHIELD, 100); } catch (Throwable ignored) {}
+            }
+        }
+        if ("bow_vampire".equals(pTag)) {
+            double heal = Math.min(e.getFinalDamage() * 0.35, Math.max(0.0, attacker.getMaxHealth() - attacker.getHealth()));
+            if (heal > 0.0) attacker.setHealth(attacker.getHealth() + heal);
+            attacker.getWorld().spawnParticle(Particle.HEART, attacker.getLocation().add(0, 1.4, 0), 6, 0.3, 0.3, 0.3, 0.02);
+        }
+        if ("arrow_vampire".equals(aTag)) {
+            e.setDamage(e.getDamage() + 5.0); // вытягивает 2.5❤ у врага!
+            double heal = Math.min(5.0, Math.max(0.0, attacker.getMaxHealth() - attacker.getHealth()));
+            if (heal > 0.0) attacker.setHealth(attacker.getHealth() + heal);
+            attacker.getWorld().spawnParticle(Particle.HEART, attacker.getLocation().add(0, 1.4, 0), 8, 0.3, 0.3, 0.3, 0.02);
+        }
+        if ("arrow_explosive".equals(aTag)) {
+            vl.getWorld().spawnParticle(Particle.EXPLOSION, vl.clone().add(0, 1, 0), 4, 0.5, 0.5, 0.5, 0.02);
+            vl.getWorld().playSound(vl, "minecraft:entity.generic.explode", 0.75f, 1.3f);
+            e.setDamage(e.getDamage() + 6.0); // +3❤ ударного урона по лору!
+        }
+        if ("arrow_poison".equals(aTag)) {
+            ColorUtil.addPot(victim, "poison", "POISON", 120, 2);
+            ColorUtil.addPot(victim, "wither", "WITHER", 100, 1);
+            ColorUtil.addPot(victim, "weakness", "WEAKNESS", 120, 1);
+            vl.getWorld().spawnParticle(Particle.ITEM, vl.clone().add(0, 1.0, 0), 14, 0.35, 0.4, 0.35, 0.04, new ItemStack(Material.SLIME_BALL));
+        }
+        if ("arrow_anti_fly".equals(aTag)) {
+            if (victim.isGliding()) victim.setGliding(false);
+            victim.setVelocity(new Vector(0, -1.1, 0));
+            if (victim instanceof Player) {
+                ((Player) victim).sendMessage(ColorUtil.c("&#A855F7⛓ Анти-Флай Стрела ПВО сбила ваш полёт!"));
+            }
         }
     }
 
@@ -3276,18 +3373,18 @@ public final class GameplayListener implements Listener {
         }
         if (dead.getScoreboardTags().contains("kg_farm_mob") && killer != null) {
             e.setDroppedExp(12);
-            double c = 45.0;
+            double c = 40.0;
             plugin.getStore().addCoins(killer.getName(), c);
             if (rng.nextInt(100) < 35) {
                 plugin.getStore().addSnowflakes(killer.getName(), 1);
-                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+45$ &8| &#80D8FF+1 Снежинка ❄!");
+                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+40$ &8| &#80D8FF+1 Снежинка ❄!");
             } else {
-                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+45$ &7(+12 XP)");
+                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+40$ &7(+12 XP)");
             }
             return;
         }
         if (dead instanceof Monster && killer != null && "hunter".equals(plugin.getStore().getJob(killer.getName()))) {
-            plugin.getStore().addCoins(killer.getName(), 35.0);
+            plugin.getStore().addCoins(killer.getName(), 30.0);
         }
     }
 
@@ -3469,12 +3566,12 @@ public final class GameplayListener implements Listener {
         if (killer != null && !killer.equals(dead)) {
             plugin.getStore().addKill(killer.getName());
             DataStore.Clan kClan = plugin.getStore().getClanOf(killer.getName());
-            double clanBonus = kClan != null ? kClan.level * 50.0 : 0.0;
+            double clanBonus = kClan != null ? kClan.level * 40.0 : 0.0;
             if (kClan != null) kClan.kills++;
-            plugin.getStore().addCoins(killer.getName(), 250.0 + clanBonus);
+            plugin.getStore().addCoins(killer.getName(), 200.0 + clanBonus);
 
             if (deadPrevStreak >= 3) {
-                double shutBonus = deadPrevStreak * 1500.0;
+                double shutBonus = deadPrevStreak * 1000.0;
                 plugin.getStore().addCoins(killer.getName(), shutBonus);
                 Bukkit.broadcastMessage(ColorUtil.c("&#00E5FF&l⚡ [ПРЕРЫВАНИЕ СЕРИИ] &fИгрок &#00E676" + killer.getName()
                         + " &fостановил серию из &c" + deadPrevStreak + " убийств &fигрока &e" + dead.getName()
@@ -3484,7 +3581,7 @@ public final class GameplayListener implements Listener {
             int streak = (killStreaks.containsKey(killer.getUniqueId()) ? killStreaks.get(killer.getUniqueId()).intValue() : 0) + 1;
             killStreaks.put(killer.getUniqueId(), Integer.valueOf(streak));
             if (streak == 3 || streak == 5 || streak == 10 || streak == 15) {
-                double rew = streak * 2000.0;
+                double rew = streak * 1200.0;
                 plugin.getStore().addCoins(killer.getName(), rew);
                 if (streak >= 10) plugin.getStore().addRelics(killer.getName(), 10);
                 Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔥 [СЕРИЯ УБИЙСТВ] &fИгрок &#FFD740" + killer.getName()

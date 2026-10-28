@@ -14,11 +14,16 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Zombie;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.Inventory;
@@ -107,7 +112,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     private static final String SANTA_SKIN_HASH = "fb8f9a667dc8c53f9d4fb8ca428dc0bf97c46f76ca4e22e307d5771856c5015b";
     private final Map<UUID, BukkitRunnable> activeMuteAnimTasks = new HashMap<UUID, BukkitRunnable>();
     private final Map<UUID, List<Entity>> activeMuteAnimEntities = new HashMap<UUID, List<Entity>>();
+    private final Map<UUID, BukkitRunnable> activeBanAnimTasks = new HashMap<UUID, BukkitRunnable>();
+    private final Map<UUID, List<Entity>> activeBanAnimEntities = new HashMap<UUID, List<Entity>>();
+    private final Map<UUID, Map<Block, BlockData>> activeBanAnimPortals = new HashMap<UUID, Map<Block, BlockData>>();
     private ItemStack cachedSantaHead = null;
+    private ItemStack cachedSackItem = null;
 
     private BukkitRunnable checkTickTask;
 
@@ -148,6 +157,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         activeStaffShifts.clear();
         for (UUID uid : new ArrayList<UUID>(activeMuteAnimTasks.keySet())) {
             cleanupMuteAnimationFor(uid);
+        }
+        for (UUID uid : new ArrayList<UUID>(activeBanAnimTasks.keySet())) {
+            cleanupSantaBanAnimationFor(uid);
         }
     }
 
@@ -845,33 +857,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         final List<Entity> spawned = new ArrayList<Entity>();
         activeMuteAnimEntities.put(victimId, spawned);
 
-        final ArmorStand santa;
+        final Zombie santa;
         final TextDisplay speechBubble;
         try {
-            santa = w.spawn(spawnPos, ArmorStand.class, new org.bukkit.util.Consumer<ArmorStand>() {
-                @Override
-                public void accept(ArmorStand as) {
-                    as.setPersistent(false);
-                    as.setGravity(false);
-                    as.setInvulnerable(true);
-                    as.setBasePlate(false);
-                    as.setArms(true);
-                    as.setVisible(true);
-                    as.setSilent(true);
-                    as.setCanPickupItems(false);
-                    as.setCustomName(ColorUtil.c("&#FF1744&l🎅 ДЕД МОРОЗ &8[&#CFD8DCСкотч-Патруль&8]"));
-                    as.setCustomNameVisible(true);
-                    EntityEquipment eq = as.getEquipment();
-                    if (eq != null) {
-                        eq.setHelmet(getSantaHeadItem());
-                        eq.setChestplate(dyedLeather(Material.LEATHER_CHESTPLATE, Color.fromRGB(212, 24, 36)));
-                        eq.setLeggings(dyedLeather(Material.LEATHER_LEGGINGS, Color.fromRGB(190, 20, 32)));
-                        eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(28, 28, 32)));
-                        eq.setItemInMainHand(namedItem(Material.IRON_BLOCK, "&#CFD8DC&l🧻 Серебристый скотч"));
-                        eq.setItemInOffHand(namedItem(Material.SHEARS, "&#FFD740&l✂ Ножницы Деда Мороза"));
-                    }
-                }
-            });
+            // v6.1: ЖИВАЯ 3D-МОДЕЛЬКА Деда Мороза (анимированный персонаж, а не стойка!)!
+            santa = spawnSantaModel(w, spawnPos, "tape");
             spawned.add(santa);
 
             Location bubbleLoc = spawnPos.clone().add(0.0, 2.38, 0.0);
@@ -935,12 +925,10 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     sLoc.setPitch(0.0f);
                     santa.teleport(sLoc);
 
-                    double swing = Math.sin(ticks * 0.52) * 0.62;
-                    santa.setLeftLegPose(new EulerAngle(swing, 0.0, 0.0));
-                    santa.setRightLegPose(new EulerAngle(-swing, 0.0, 0.0));
-                    santa.setLeftArmPose(new EulerAngle(-swing * 0.75, 0.0, -0.08));
-                    santa.setRightArmPose(new EulerAngle(swing * 0.75 - 0.35, 0.0, 0.08));
-                    santa.setHeadPose(new EulerAngle(0.0, 0.0, 0.0));
+                    // v6.1: живая моделька сама шагает — машем рукой со скотчем!
+                    if (ticks % 4 == 0) {
+                        try { santa.swingMainHand(); } catch (Throwable ignored) {}
+                    }
 
                     if (speechBubble.isValid()) {
                         speechBubble.teleport(sLoc.clone().add(0.0, 2.38, 0.0));
@@ -961,15 +949,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     sLoc.setYaw(yawFacing(sLoc, vNow));
                     sLoc.setPitch(0.0f);
                     santa.teleport(sLoc);
-                    santa.setLeftLegPose(EulerAngle.ZERO);
-                    santa.setRightLegPose(EulerAngle.ZERO);
 
-                    // Sweep arms across player's mouth while unrolling tape + snipping with shears!
-                    double tPhase = (ticks - 41) / 44.0; // 0..1
-                    double sweepY = -0.42 + tPhase * 0.84;
-                    santa.setRightArmPose(new EulerAngle(-1.48, sweepY, 0.06));
-                    santa.setLeftArmPose(new EulerAngle(-1.42, -sweepY * 0.65, -0.06));
-                    santa.setHeadPose(new EulerAngle(0.06, Math.sin(tPhase * Math.PI * 2.0) * 0.12, 0.0));
+                    // v6.1: Дед Мороз шлепает скотчем по рту живыми взмахами руки (3D-модель)!
+                    if (ticks % 5 == 0 || ticks == 45 || ticks == 57 || ticks == 68) {
+                        try { santa.swingMainHand(); } catch (Throwable ignored) {}
+                    }
 
                     if (speechBubble.isValid()) {
                         speechBubble.teleport(sLoc.clone().add(0.0, 2.38, 0.0));
@@ -1033,17 +1017,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     sLoc.setPitch(0.0f);
                     santa.teleport(sLoc);
 
-                    double swing = Math.sin(ticks * 0.55) * 0.62;
-                    santa.setLeftLegPose(new EulerAngle(swing, 0.0, 0.0));
-                    santa.setRightLegPose(new EulerAngle(-swing, 0.0, 0.0));
-                    // Brief farewell wave on ticks 86..96, then normal brisk walk swing
-                    if (ticks <= 96) {
-                        santa.setRightArmPose(new EulerAngle(-2.35, 0.0, Math.sin(ticks * 0.9) * 0.35));
-                    } else {
-                        santa.setRightArmPose(new EulerAngle(-swing * 0.75, 0.0, 0.08));
+                    if (ticks % 4 == 0) {
+                        try { santa.swingMainHand(); } catch (Throwable ignored) {}
                     }
-                    santa.setLeftArmPose(new EulerAngle(swing * 0.75, 0.0, -0.08));
-                    santa.setHeadPose(EulerAngle.ZERO);
 
                     if (speechBubble.isValid()) {
                         speechBubble.teleport(sLoc.clone().add(0.0, 2.38, 0.0));
@@ -1098,6 +1074,320 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
     }
 
+    // =====================================================================
+    // v6.1: БАН-АНИМАЦИЯ «МЕШОК ДЕДА МОРОЗА» (полное кино на ~10 секунд):
+    //  АКТ 1: Дед Мороз появляется в вихре снега ПРЯМО ПЕРЕД игроком и идёт к нему.
+    //  АКТ 2: ХВАТАЕТ игрока, сажает на плечо и прячет в мешок (торчит только голова!).
+    //  АКТ 3: Строится волшебный обсидиановый портал; Мороз несёт мешок к порталу.
+    //  АКТ 4: Заходит в портал — вспышка, портал исчезает, игрок выкинут с бан-экраном.
+    //  Все эффекты временные: блоки портала восстанавливаются, сущности удаляются,
+    //  скорость/эффекты игрока возвращаются. Полный фейл-сейф на любой сбой/выход!
+    // =====================================================================
+    public void playSantaBagBanAnimation(final Player victim, final String staffName, final String timeLabel, final String kickScreen) {
+        if (victim == null || !victim.isOnline() || victim.getWorld() == null) return;
+        final UUID victimId = victim.getUniqueId();
+        cleanupSantaBanAnimationFor(victimId);
+
+        final World w = victim.getWorld();
+        final Location startLoc = victim.getLocation().clone();
+
+        // Заморозка: сбежать из мешка не получится!
+        ascendingBanPlayers.add(victimId);
+        try { victim.leaveVehicle(); } catch (Throwable ignored) {}
+        try { victim.setWalkSpeed(0.0f); victim.setFlySpeed(0.0f); } catch (Throwable ignored) {}
+        ColorUtil.addPot(victim, "invisibility", "INVISIBILITY", 460, 0);
+        ColorUtil.addPot(victim, "resistance", "DAMAGE_RESISTANCE", 460, 9);
+
+        Vector fwd0 = startLoc.getDirection().setY(0.0);
+        if (fwd0.lengthSquared() < 0.001) fwd0 = new Vector(0.0, 0.0, 1.0);
+        fwd0.normalize();
+        final Vector approachDir = fwd0.clone();
+        Location santaSpawn = startLoc.clone().add(approachDir.clone().multiply(9.0));
+        santaSpawn.setYaw(yawFacing(santaSpawn, startLoc));
+        santaSpawn.setPitch(0.0f);
+
+        final List<Entity> ents = new ArrayList<Entity>();
+        activeBanAnimEntities.put(victimId, ents);
+        activeBanAnimPortals.put(victimId, new HashMap<Block, BlockData>());
+
+        final Zombie santa;
+        try {
+            santa = spawnSantaModel(w, santaSpawn, "staff");
+            ents.add(santa);
+        } catch (Throwable ex) {
+            cleanupSantaBanAnimationFor(victimId);
+            try { victim.kickPlayer(kickScreen); } catch (Throwable ignored) {}
+            return;
+        }
+
+        w.spawnParticle(Particle.SNOWFLAKE, santaSpawn.clone().add(0.0, 1.2, 0.0), 52, 0.65, 1.0, 0.65, 0.05);
+        w.spawnParticle(Particle.CLOUD, santaSpawn.clone().add(0.0, 0.3, 0.0), 18, 0.4, 0.2, 0.4, 0.02);
+        w.playSound(santaSpawn, "minecraft:block.bell.use", 1.8f, 0.8f);
+        w.playSound(santaSpawn, "minecraft:entity.villager.ambient", 1.0f, 0.7f);
+        victim.sendTitle(
+                ColorUtil.c("&#FF1744&l🎅 ЗА ВАМИ ПРИШЁЛ ДЕД МОРОЗ!"),
+                ColorUtil.c("&fСрок: &c" + timeLabel + " &8│ &7Модератор: &e" + staffName),
+                4, 70, 8
+        );
+
+        BukkitRunnable task = new BukkitRunnable() {
+            int ticks = 0;
+            int enterTick = -1;
+            boolean grabbed = false;
+            boolean portalBuilt = false;
+            boolean entered = false;
+            Location portalCenter = null;
+
+            @Override
+            public void run() {
+                try {
+                    ticks++;
+                    if (!victim.isOnline() || ticks > 320) {
+                        finishUp(true);
+                        return;
+                    }
+                    if (!santa.isValid()) {
+                        finishUp(true);
+                        return;
+                    }
+
+                    if (entered) {
+                        // АКТ 4: вспышка уже была — через 14 тиков портал гаснет и игрок выкинут!
+                        if (ticks >= enterTick + 14) {
+                            finishUp(true);
+                        }
+                        return;
+                    }
+
+                    if (!grabbed) {
+                        // АКТ 1: уверенный шаг к нарушителю!
+                        Location sLoc = santa.getLocation();
+                        Vector toVictim = victim.getLocation().toVector().subtract(sLoc.toVector()).setY(0.0);
+                        double dist = toVictim.length();
+                        if (dist > 1.25 && ticks < 70) {
+                            Location step = sLoc.clone().add(toVictim.clone().normalize().multiply(0.30));
+                            step.setYaw(yawFacing(step, victim.getLocation()));
+                            step.setPitch(0.0f);
+                            santa.teleport(step);
+                            if (ticks % 5 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
+                            if (ticks % 4 == 0) w.spawnParticle(Particle.SNOWFLAKE, step.clone().add(0.0, 0.25, 0.0), 4, 0.25, 0.1, 0.25, 0.01);
+                            if (ticks % 7 == 0) w.playSound(step, "minecraft:block.snow.step", 0.9f, 0.9f);
+                            ColorUtil.actionBar(victim, "&#FF5252🎅 Дед Мороз идёт к вам... &8[&f"
+                                    + String.format(Locale.US, "%.0f", Double.valueOf(dist)) + " блоков&8]");
+                        } else {
+                            if (dist > 1.6) {
+                                // телепорт вплотную (игрок улетел/убежал) — от мешка не уйти!
+                                Location snap = victim.getLocation().clone().subtract(approachDir.clone().multiply(0.9));
+                                snap.setYaw(yawFacing(snap, victim.getLocation()));
+                                snap.setPitch(0.0f);
+                                santa.teleport(snap);
+                            }
+                            grabVictim();
+                        }
+                    } else {
+                        // АКТ 2-3: мешок на плече — строим портал и несём нарушителя!
+                        if (!portalBuilt) {
+                            portalCenter = buildMagicPortal();
+                            portalBuilt = true;
+                            if (portalCenter != null) {
+                                victim.sendTitle(ColorUtil.c("&#A855F7&l🌀 ПОРТАЛ ОТКРЫТ!"),
+                                        ColorUtil.c("&#FF5252🎅 Вас несут прямо в него..."), 3, 40, 6);
+                            }
+                        }
+                        if (portalCenter != null) {
+                            Location sLoc = santa.getLocation();
+                            Vector toPortal = portalCenter.toVector().subtract(sLoc.toVector()).setY(0.0);
+                            double pdist = toPortal.length();
+                            if (pdist > 1.15 && ticks < 260) {
+                                Location step = sLoc.clone().add(toPortal.clone().normalize().multiply(0.32));
+                                step.setYaw(yawFacing(step, portalCenter));
+                                step.setPitch(0.0f);
+                                santa.teleport(step);
+                                if (ticks % 5 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
+                                if (ticks % 3 == 0) w.spawnParticle(Particle.SNOWFLAKE, step.clone().add(0.0, 0.25, 0.0), 3, 0.25, 0.1, 0.25, 0.01);
+                                if (ticks % 7 == 0) w.playSound(step, "minecraft:block.snow.step", 0.9f, 0.95f);
+                                if (ticks % 10 == 0) {
+                                    w.playSound(portalCenter, "minecraft:block.portal.ambient", 0.8f, 1.15f);
+                                    w.spawnParticle(Particle.PORTAL, portalCenter.clone().add(0.0, 1.0, 0.0), 14, 0.4, 0.8, 0.4, 0.25);
+                                }
+                                ColorUtil.actionBar(victim, "&#A855F7🌀 Вас несут в волшебный портал... &8[&f"
+                                        + String.format(Locale.US, "%.0f", Double.valueOf(pdist)) + " блоков&8]");
+                            } else {
+                                enterPortal();
+                            }
+                        } else {
+                            enterPortal();
+                        }
+                        // Авто-возврат в мешок при попытке спешиться!
+                        if (victim.isOnline() && !santa.getPassengers().contains(victim)) {
+                            try { santa.addPassenger(victim); } catch (Throwable ignored) {}
+                        }
+                    }
+                } catch (Throwable ex) {
+                    finishUp(true);
+                }
+            }
+
+            void grabVictim() {
+                grabbed = true;
+                Location vl = victim.getLocation();
+                w.playSound(vl, "minecraft:entity.villager.no", 1.5f, 0.7f);
+                w.playSound(vl, "minecraft:entity.iron_golem.attack", 1.3f, 0.85f);
+                w.playSound(vl, "minecraft:entity.slime.attack", 1.0f, 0.6f);
+                w.spawnParticle(Particle.CRIT, vl.clone().add(0.0, 1.2, 0.0), 24, 0.35, 0.4, 0.35, 0.06);
+                w.spawnParticle(Particle.SNOWFLAKE, vl.clone().add(0.0, 1.0, 0.0), 30, 0.5, 0.7, 0.5, 0.03);
+                // Мешок в руку!
+                try {
+                    EntityEquipment eq = santa.getEquipment();
+                    if (eq != null) eq.setItemInMainHand(getSackItem());
+                } catch (Throwable ignored) {}
+                // Игрок — на плечо, голова торчит из мешка!
+                try { victim.leaveVehicle(); } catch (Throwable ignored) {}
+                try { santa.addPassenger(victim); } catch (Throwable ignored) {}
+                try {
+                    ArmorStand sackHead = w.spawn(santa.getLocation().clone().add(0.0, 2.1, 0.0), ArmorStand.class,
+                            new org.bukkit.util.Consumer<ArmorStand>() {
+                                @Override
+                                public void accept(ArmorStand as) {
+                                    as.setPersistent(false);
+                                    as.setVisible(false);
+                                    as.setMarker(true);
+                                    as.setSmall(true);
+                                    as.setGravity(false);
+                                    as.setInvulnerable(true);
+                                    as.setSilent(true);
+                                    EntityEquipment hEq = as.getEquipment();
+                                    if (hEq != null) {
+                                        hEq.setHelmet(victimHeadItem(victim));
+                                        hEq.setHelmetDropChance(0.0f);
+                                    }
+                                }
+                            });
+                    ents.add(sackHead);
+                    try { santa.addPassenger(sackHead); } catch (Throwable ignored) {}
+                } catch (Throwable ignored) {}
+                victim.sendTitle(
+                        ColorUtil.c("&#8D6E63&l💰 ВЫ В МЕШКЕ!"),
+                        ColorUtil.c("&#FF5252🎅 Дед Мороз несёт вас в портал... &8(&c" + timeLabel + "&8)"),
+                        3, 64, 6
+                );
+                ColorUtil.actionBar(victim, "&#8D6E63&l💰 Вы сидите в мешке Деда Мороза! Сопротивление бесполезно!");
+                for (Player near : w.getPlayers()) {
+                    if (near.equals(victim)) continue;
+                    try {
+                        if (near.getLocation().distanceSquared(vl) <= 64.0 * 64.0) {
+                            near.sendMessage(ColorUtil.c("&#FF1744&l🎅 [ДЕД МОРОЗ] &fСхватил &c" + victim.getName()
+                                    + "&f, засунул в мешок и уносит в портал! &8(&7бан: &e" + timeLabel + "&8)"));
+                        }
+                    } catch (Throwable ignored) {}
+                }
+            }
+
+            Location buildMagicPortal() {
+                try {
+                    Location base = startLoc.clone().add(approachDir.clone().multiply(-8.0));
+                    // Ищем землю: падаем вниз до первого твёрдого блока (нет земли — портал парит в воздухе)!
+                    int gy = base.getBlockY();
+                    for (int yy = base.getBlockY() + 4; yy >= base.getBlockY() - 14; yy--) {
+                        Block under = w.getBlockAt(base.getBlockX(), yy, base.getBlockZ());
+                        if (under.getType().isSolid()) {
+                            gy = yy + 1;
+                            break;
+                        }
+                    }
+                    base.setY(gy);
+                    boolean alongX = Math.abs(approachDir.getX()) >= Math.abs(approachDir.getZ());
+                    Map<Block, BlockData> saved = activeBanAnimPortals.get(victimId);
+                    for (int fw = -1; fw <= 2; fw++) {
+                        for (int fh = 0; fh <= 4; fh++) {
+                            boolean border = (fw == -1 || fw == 2 || fh == 0 || fh == 4);
+                            int bx = base.getBlockX() + (alongX ? 0 : fw);
+                            int bz = base.getBlockZ() + (alongX ? fw : 0);
+                            Block blk = w.getBlockAt(bx, base.getBlockY() + fh, bz);
+                            if (saved != null && !saved.containsKey(blk)) {
+                                saved.put(blk, blk.getBlockData().clone());
+                            }
+                            blk.setType(border ? Material.OBSIDIAN : Material.PURPLE_STAINED_GLASS, false);
+                        }
+                    }
+                    Location center = alongX
+                            ? new Location(w, base.getBlockX() + 0.5, base.getBlockY() + 2.0, base.getBlockZ() + 1.0)
+                            : new Location(w, base.getBlockX() + 1.0, base.getBlockY() + 2.0, base.getBlockZ() + 0.5);
+                    center.setYaw(yawFacing(center, startLoc));
+                    w.spawnParticle(Particle.PORTAL, center.clone().add(0.0, 0.0, 0.0), 40, 0.4, 0.9, 0.4, 0.3);
+                    w.spawnParticle(Particle.REVERSE_PORTAL, center.clone().add(0.0, 0.0, 0.0), 24, 0.35, 0.8, 0.35, 0.15);
+                    w.playSound(center, "minecraft:block.portal.trigger", 1.0f, 1.2f);
+                    return center;
+                } catch (Throwable t) {
+                    return null;
+                }
+            }
+
+            void enterPortal() {
+                entered = true;
+                enterTick = ticks;
+                Location fx = portalCenter != null ? portalCenter.clone() : santa.getLocation().clone();
+                try { santa.teleport(fx); } catch (Throwable ignored) {}
+                w.spawnParticle(Particle.PORTAL, fx.clone().add(0.0, 1.0, 0.0), 110, 0.5, 1.1, 0.5, 0.5);
+                w.spawnParticle(Particle.REVERSE_PORTAL, fx.clone().add(0.0, 1.0, 0.0), 50, 0.4, 0.9, 0.4, 0.3);
+                w.spawnParticle(Particle.POOF, fx.clone().add(0.0, 1.0, 0.0), 30, 0.45, 0.8, 0.45, 0.05);
+                w.playSound(fx, "minecraft:entity.enderman.teleport", 1.8f, 0.75f);
+                w.playSound(fx, "minecraft:block.portal.travel", 1.4f, 1.25f);
+                victim.sendTitle(
+                        ColorUtil.c("&#A855F7&l🌀 УНЕСЁН В ПОРТАЛ!"),
+                        ColorUtil.c("&#FF1744🎅 Дед Мороз забрал вас на &#FFD740" + timeLabel),
+                        2, 40, 8
+                );
+            }
+
+            void finishUp(boolean kickNow) {
+                try { cleanupSantaBanAnimationFor(victimId); } catch (Throwable ignored) {}
+                if (kickNow && victim.isOnline()) {
+                    try { victim.kickPlayer(kickScreen); } catch (Throwable ignored) {}
+                }
+                try { cancel(); } catch (Throwable ignored) {}
+            }
+        };
+
+        activeBanAnimTasks.put(victimId, task);
+        task.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    /** v6.1: полная очистка бан-анимации — сущности, портал (блоки возвращаются!), эффекты и скорость игрока. */
+    private void cleanupSantaBanAnimationFor(UUID victimId) {
+        BukkitRunnable task = activeBanAnimTasks.remove(victimId);
+        if (task != null) {
+            try { task.cancel(); } catch (Throwable ignored) {}
+        }
+        List<Entity> ents = activeBanAnimEntities.remove(victimId);
+        if (ents != null) {
+            for (Entity en : ents) {
+                if (en != null) {
+                    try { en.eject(); } catch (Throwable ignored) {}
+                    try { en.remove(); } catch (Throwable ignored) {}
+                }
+            }
+        }
+        Map<Block, BlockData> portal = activeBanAnimPortals.remove(victimId);
+        if (portal != null) {
+            for (Map.Entry<Block, BlockData> pe : portal.entrySet()) {
+                try {
+                    Block blk = pe.getKey();
+                    blk.setBlockData(pe.getValue(), false);
+                    blk.getWorld().spawnParticle(Particle.POOF, blk.getLocation().add(0.5, 0.5, 0.5), 3, 0.2, 0.2, 0.2, 0.01);
+                } catch (Throwable ignored) {}
+            }
+        }
+        ascendingBanPlayers.remove(victimId);
+        Player v = Bukkit.getPlayer(victimId);
+        if (v != null && v.isOnline()) {
+            try { v.leaveVehicle(); } catch (Throwable ignored) {}
+            try { v.setWalkSpeed(0.2f); v.setFlySpeed(0.1f); } catch (Throwable ignored) {}
+            try { v.removePotionEffect(PotionEffectType.INVISIBILITY); } catch (Throwable ignored) {}
+            try { v.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE); } catch (Throwable ignored) {}
+        }
+    }
+
     private float yawFacing(Location from, Location to) {
         double dx = to.getX() - from.getX();
         double dz = to.getZ() - from.getZ();
@@ -1132,6 +1422,73 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         cachedSantaHead = head;
         return head.clone();
+    }
+
+    private ItemStack getSackItem() {
+        if (cachedSackItem != null) return cachedSackItem.clone();
+        Material sackMat = ColorUtil.mat("BUNDLE", "BROWN_SHULKER_BOX", "CHEST");
+        cachedSackItem = namedItem(sackMat != null ? sackMat : Material.CHEST, "&#8D6E63&l🎒 Мешок Деда Мороза");
+        return cachedSackItem.clone();
+    }
+
+    private ItemStack victimHeadItem(Player victim) {
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
+        try {
+            SkullMeta sm = (SkullMeta) head.getItemMeta();
+            if (sm != null) {
+                sm.setOwningPlayer(victim);
+                head.setItemMeta(sm);
+            }
+        } catch (Throwable ignored) {}
+        return head;
+    }
+
+    /**
+     * v6.1: ЕДИНАЯ ЖИВАЯ 3D-МОДЕЛЬ ДЕДА МОРОЗА (анимированный персонаж вместо стойки!) —
+     * настоящий скин- head, красная шуба из крашеной кожи, посох/скотч/мешок в руках.
+     * Используется и в мут-анимации, и в бан-анимации с мешком!
+     */
+    private Zombie spawnSantaModel(World w, Location loc, final String handMode) {
+        return w.spawn(loc, Zombie.class, new org.bukkit.util.Consumer<Zombie>() {
+            @Override
+            public void accept(Zombie zo) {
+                zo.setPersistent(false);
+                zo.setSilent(true);
+                zo.setInvulnerable(true);
+                zo.setGravity(false);
+                zo.setCanPickupItems(false);
+                zo.setRemoveWhenFarAway(false);
+                try { zo.setAI(false); } catch (Throwable ignored) {}
+                try { zo.setBaby(false); } catch (Throwable ignored) {}
+                try { zo.setCollidable(false); } catch (Throwable ignored) {}
+                try { zo.setVisualFire(false); } catch (Throwable ignored) {}
+                zo.setCustomName(ColorUtil.c("&#FF1744&l🎅 ДЕД МОРОЗ"));
+                zo.setCustomNameVisible(true);
+                EntityEquipment eq = zo.getEquipment();
+                if (eq != null) {
+                    eq.setHelmet(getSantaHeadItem());
+                    eq.setChestplate(dyedLeather(Material.LEATHER_CHESTPLATE, Color.fromRGB(212, 24, 36)));
+                    eq.setLeggings(dyedLeather(Material.LEATHER_LEGGINGS, Color.fromRGB(190, 20, 32)));
+                    eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(28, 28, 32)));
+                    if ("tape".equals(handMode)) {
+                        eq.setItemInMainHand(namedItem(Material.IRON_BLOCK, "&#CFD8DC&l🧻 Серебристый скотч"));
+                        eq.setItemInOffHand(namedItem(Material.SHEARS, "&#FFD740&l✂ Ножницы Деда Мороза"));
+                    } else if ("bag".equals(handMode)) {
+                        eq.setItemInMainHand(getSackItem());
+                        eq.setItemInOffHand(namedItem(Material.IRON_BLOCK, "&#CFD8DC&l🧻 Скотч"));
+                    } else {
+                        eq.setItemInMainHand(namedItem(Material.BLAZE_ROD, "&#FFD740&l✨ Волшебный Посох"));
+                        eq.setItemInOffHand(getSackItem());
+                    }
+                    eq.setHelmetDropChance(0.0f);
+                    eq.setChestplateDropChance(0.0f);
+                    eq.setLeggingsDropChance(0.0f);
+                    eq.setBootsDropChance(0.0f);
+                    eq.setItemInMainHandDropChance(0.0f);
+                    eq.setItemInOffHandDropChance(0.0f);
+                }
+            }
+        });
     }
 
     public boolean handleTimedBanWithAscension(CommandSender sender, String[] args) {
@@ -1189,66 +1546,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             try { cs.bossBar.removeAll(); } catch (Throwable ignored) {}
         }
 
-        // 2. EPIC SKY-ASCENSION BAN ANIMATION: Victim rises up into the sky in swirling crimson/gold fire & gets struck by lightning!
-        ascendingBanPlayers.add(victim.getUniqueId());
-        victim.setAllowFlight(true);
-        victim.setFlying(true);
-        victim.setGlowing(true);
-        victim.sendTitle(
-                ColorUtil.c("&#FF1744&l🔨 ВЫ ЗАБАНЕНЫ!"),
-                ColorUtil.c("&fМодератор: &e" + staffName + " &8│ &fСрок: &c" + timeLabel),
-                2, 60, 5
-        );
-        victim.getWorld().playSound(victim.getLocation(), "minecraft:block.beacon.activate", 2.0f, 0.7f);
-
-        new BukkitRunnable() {
-            int ticks = 0;
-
-            @Override
-            public void run() {
-                if (!victim.isOnline()) {
-                    ascendingBanPlayers.remove(victim.getUniqueId());
-                    cancel();
-                    return;
-                }
-                ticks++;
-                Location loc = victim.getLocation();
-
-                // Smooth upward levitation (+0.34 blocks per tick -> ~17.5 blocks high over 52 ticks!)
-                victim.setVelocity(new Vector(0.0, 0.34, 0.0));
-                float newYaw = loc.getYaw() + 14.0f;
-
-                // Double-helix flame + soul-fire + totem spiral around the ascending player
-                double angle = ticks * 0.45;
-                double r = 1.15;
-                Location p1 = loc.clone().add(Math.cos(angle) * r, 0.9, Math.sin(angle) * r);
-                Location p2 = loc.clone().add(Math.cos(angle + Math.PI) * r, 0.9, Math.sin(angle + Math.PI) * r);
-                loc.getWorld().spawnParticle(Particle.FLAME, p1, 4, 0.05, 0.05, 0.05, 0.01);
-                loc.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, p2, 4, 0.05, 0.05, 0.05, 0.01);
-                loc.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, loc.clone().add(0, 0.5, 0), 5, 0.25, 0.25, 0.25, 0.05);
-
-                if (ticks % 8 == 0) {
-                    float pitch = Math.min(2.0f, 0.75f + ticks * 0.025f);
-                    loc.getWorld().playSound(loc, "minecraft:block.note_block.chime", 1.6f, pitch);
-                }
-                loc.setYaw(newYaw);
-
-                // Climax at tick 52 (~2.6s): Lightning Bolt + Firework Burst + Kick!
-                if (ticks >= 52) {
-                    ascendingBanPlayers.remove(victim.getUniqueId());
-                    victim.setGlowing(false);
-                    try {
-                        loc.getWorld().strikeLightningEffect(loc);
-                        loc.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, loc, 1, 0, 0, 0, 0);
-                        loc.getWorld().playSound(loc, "minecraft:entity.lightning_bolt.thunder", 2.2f, 0.9f);
-                        spawnBanFireworkBurst(loc);
-                    } catch (Throwable ignored) {}
-
-                    victim.kickPlayer(buildBanKickScreen(staffName, timeLabel, reason));
-                    cancel();
-                }
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
+        // 2. v6.1: БАН-АНИМАЦИЯ «МЕШОК ДЕДА МОРОЗА» — приходит, хватает, кладёт в мешок и уносит в портал!
+        playSantaBagBanAnimation(victim, staffName, timeLabel, buildBanKickScreen(staffName, timeLabel, reason));
     }
 
     private void spawnBanFireworkBurst(Location loc) {
@@ -1465,40 +1764,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         if (cs != null) {
             try { cs.bossBar.removeAll(); } catch (Throwable ignored) {}
         }
-        ascendingBanPlayers.add(victim.getUniqueId());
-        victim.setAllowFlight(true);
-        victim.setFlying(true);
-        victim.setGlowing(true);
-        victim.sendTitle(ColorUtil.c("&#FF1744&l🔨 БАН ПО IP-АДРЕСУ!"),
-                ColorUtil.c("&fМодератор: &e" + staffName + " &8│ &fСрок: &c" + timeLabel), 2, 60, 5);
-        victim.getWorld().playSound(victim.getLocation(), "minecraft:block.beacon.activate", 2.0f, 0.7f);
-        new BukkitRunnable() {
-            int ticks = 0;
-            @Override
-            public void run() {
-                if (!victim.isOnline()) {
-                    ascendingBanPlayers.remove(victim.getUniqueId());
-                    cancel();
-                    return;
-                }
-                ticks++;
-                Location loc = victim.getLocation();
-                victim.setVelocity(new Vector(0.0, 0.34, 0.0));
-                double angle = ticks * 0.45;
-                loc.getWorld().spawnParticle(Particle.FLAME, loc.clone().add(Math.cos(angle) * 1.15, 0.9, Math.sin(angle) * 1.15), 4, 0.05, 0.05, 0.05, 0.01);
-                loc.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, loc.clone().add(Math.cos(angle + Math.PI) * 1.15, 0.9, Math.sin(angle + Math.PI) * 1.15), 4, 0.05, 0.05, 0.05, 0.01);
-                if (ticks >= 52) {
-                    ascendingBanPlayers.remove(victim.getUniqueId());
-                    victim.setGlowing(false);
-                    try {
-                        loc.getWorld().strikeLightningEffect(loc);
-                        spawnBanFireworkBurst(loc);
-                    } catch (Throwable ignored) {}
-                    victim.kickPlayer(kickScreen);
-                    cancel();
-                }
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
+        // v6.1: та же киношная анимация с мешком Деда Мороза (для IP-бана)!
+        playSantaBagBanAnimation(victim, staffName, timeLabel, kickScreen);
     }
 
     private boolean handleUnbanIp(CommandSender sender, String[] args) {
