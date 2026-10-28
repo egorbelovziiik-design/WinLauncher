@@ -278,7 +278,7 @@ public final class SpawnEngine {
 
         File marker = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok");
         if (forceRebuild || !marker.exists()) {
-            plugin.getLogger().info("[SpawnEngine v6.3.3] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
+            plugin.getLogger().info("[SpawnEngine v6.4.0] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
             boolean hadOldSpawn = new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
@@ -385,7 +385,7 @@ public final class SpawnEngine {
         topHoloIds.clear();
         for (KabinkaState kb : kabinki) kb.statusStandId = null;
         if (removed > 0) {
-            plugin.getLogger().info("[SpawnEngine v6.3.3] Purged " + removed + " stale spawn entities (zero lag!).");
+            plugin.getLogger().info("[SpawnEngine v6.4.0] Purged " + removed + " stale spawn entities (zero lag!).");
         }
     }
 
@@ -416,7 +416,7 @@ public final class SpawnEngine {
     private void buildFromRleResource(World sw, String resourcePath) {
         InputStream raw = plugin.getClass().getResourceAsStream(resourcePath);
         if (raw == null) {
-            plugin.getLogger().severe("[SpawnEngine v6.3.3] Missing resource " + resourcePath + "!");
+            plugin.getLogger().severe("[SpawnEngine v6.4.0] Missing resource " + resourcePath + "!");
             return;
         }
         for (int cx = -9; cx <= 9; cx++) {
@@ -471,15 +471,18 @@ public final class SpawnEngine {
                 }
             }
             sw.setSpawnLocation(0, 100, 52);
-            plugin.getLogger().info("[SpawnEngine v6.3.3] High-FPS Spawn built cleanly (" + placed + " blocks).");
+            plugin.getLogger().info("[SpawnEngine v6.4.0] High-FPS Spawn built cleanly (" + placed + " blocks).");
         } catch (Exception e) {
-            plugin.getLogger().warning("[SpawnEngine v6.3.3] Error decoding spawn_v5.dat: " + e.getMessage());
+            plugin.getLogger().warning("[SpawnEngine v6.4.0] Error decoding spawn_v5.dat: " + e.getMessage());
         }
     }
 
     private void placeShulkerPedestalBlocks(World sw) {
         for (CasePedestal cp : casePedestals) {
             Block b = sw.getBlockAt(cp.x, cp.y, cp.z);
+            // v6.4.0: пьедестал не перекрывает постройку — ставим только в свободный блок.
+            Material cur = b.getType();
+            if (cur != Material.AIR && cur != Material.CAVE_AIR && !cur.name().endsWith("SHULKER_BOX")) continue;
             b.setType(cp.shulkerMat, false);
             BlockData bd = b.getBlockData();
             if (bd instanceof Directional) {
@@ -492,22 +495,44 @@ public final class SpawnEngine {
     private void placeSantaGiftBlocks(World sw) {
         for (int i = 0; i < GIFT_BLOCKS.length; i++) {
             int gx = GIFT_BLOCKS[i][0], gy = GIFT_BLOCKS[i][1], gz = GIFT_BLOCKS[i][2];
-            sw.getBlockAt(gx, gy - 1, gz).setType(Material.GOLD_BLOCK, false);
+            // v6.4.0: МАЛЕНЬКИЕ подарочки — тонкий коврик вместо массивного золотого пьедестала
+            // и компактная коробочка вместо огромного шалкера. Плюс постройки спавна больше НЕ
+            // перекрываются: декорация ставится только в воздух или поверх своей же старой декорации.
+            Block under = sw.getBlockAt(gx, gy - 1, gz);
+            if (isFreeForDecoration(under)) under.setType(Material.RED_CARPET, false);
             Block b = sw.getBlockAt(gx, gy, gz);
-            b.setType((i % 2 == 0) ? Material.PINK_SHULKER_BOX : Material.LIME_SHULKER_BOX, false);
+            if (!isFreeForDecoration(b)) continue;
+            b.setType(Material.CHEST, false);
             BlockData bd = b.getBlockData();
-            if (bd instanceof Directional) {
-                ((Directional) bd).setFacing(BlockFace.UP);
-                b.setBlockData(bd, false);
+            if (bd instanceof org.bukkit.block.data.Rotatable) {
+                try {
+                    ((org.bukkit.block.data.Rotatable) bd).setRotation(BlockFace.SOUTH);
+                    b.setBlockData(bd, false);
+                } catch (Throwable ignored) {}
             }
         }
+    }
+
+    /**
+     * v6.4.0: декорации спавна (подарки, пьедесталы кейсов) НЕ заходят в постройки —
+     * блок можно занять, только если он пустой или это наша собственная старая декорация.
+     */
+    private boolean isFreeForDecoration(Block b) {
+        if (b == null) return false;
+        Material m = b.getType();
+        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.RED_CARPET
+                || m == Material.CHEST || m == Material.TRAPPED_CHEST
+                || m == Material.PINK_SHULKER_BOX || m == Material.LIME_SHULKER_BOX
+                || m == Material.GOLD_BLOCK;
     }
 
     public int getSantaGiftAt(Block b) {
         if (b == null || !isInSpawnWorld(b.getLocation())) return -1;
         int bx = b.getX(), by = b.getY(), bz = b.getZ();
         for (int i = 0; i < GIFT_BLOCKS.length; i++) {
-            if (GIFT_BLOCKS[i][0] == bx && GIFT_BLOCKS[i][1] == by && GIFT_BLOCKS[i][2] == bz) {
+            int gx = GIFT_BLOCKS[i][0], gy = GIFT_BLOCKS[i][1], gz = GIFT_BLOCKS[i][2];
+            // v6.4.0: засчитываем и сам подарочек, и коврик под ним (маленькие подарочки удобнее кликать).
+            if (gx == bx && gz == bz && (gy == by || gy - 1 == by)) {
                 return i;
             }
         }
@@ -536,7 +561,7 @@ public final class SpawnEngine {
         if (!staticHoloDefs.isEmpty()) return;
 
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
-                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v6.3.3 &#80D8FF&l❄\n"
+                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v6.4.0 &#80D8FF&l❄\n"
                 + "&#FF1744&l12 3D МЕЧЕЙ &8• &#FFD740&l12 КИРОК &8• &#00E676&lБРОНЯ ×2 &8• &#E040FB&lОКНА В ТРАПКАХ\n"
                 + "&fВыживание: &#00E676&l/rtp &8│ &f12 Мечей: &#FF1744&l/swords &8│ &f12 Кирок: &#FFD740&l/picks &8│ &fВарпы: &#38BDF8&l/warps"));
 
@@ -1082,11 +1107,154 @@ public final class SpawnEngine {
                     if (tickCounter % 30 == 0) {
                         refreshTopLeaderboards(sw);
                     }
+                    // v6.4.0: красота спавна — лёгкие частицы у варпов и подарков (без лагов и без правки блоков).
+                    spawnBeautyParticles(sw);
                     updateDuelKabinki(sw);
                 }
                 checkVoidAndParkourSafety(sw);
             }
         }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    // ================= v6.4.0: ЖИВОЙ МАНЕКЕН БРОНИ И ЭЛИТР (/maneken -> «Примерить») =================
+    private String mannequinSetName(String setId) {
+        if ("krush".equals(setId)) return "&#FF1744&l🔥 Сет Крушителя";
+        if ("dracula".equals(setId)) return "&#D500F9&l🩸 Сет Дракулы";
+        if ("frost".equals(setId)) return "&#40C4FF&l❄ Сет Стужи";
+        if ("zeus".equals(setId)) return "&#FFD740&l⚡ Сет Зевса";
+        if ("phantom".equals(setId)) return "&#B388FF&l👻 Сет Фантома";
+        if ("owner".equals(setId)) return "&#FFD740&l👑 Сет OWNER";
+        return "&#FFD740&l👀 Манекен";
+    }
+
+    private ItemStack mannequinElytraItem(String elytraId) {
+        if ("elytra_vampire".equals(elytraId)) return ItemFactory.elytraVampire();
+        if ("elytra_wind".equals(elytraId)) return ItemFactory.elytraWind();
+        if ("elytra_thunder".equals(elytraId)) return ItemFactory.elytraThunder();
+        if ("elytra_titan".equals(elytraId)) return ItemFactory.elytraTitan();
+        if ("elytra_santa".equals(elytraId)) return ItemFactory.elytraSanta();
+        return ItemFactory.elytraPhoenix();
+    }
+
+    /**
+     * v6.4.0: ставит рядом с игроком ЖИВУЮ модель в полном 3D-сете брони и с элитрами за спиной,
+     * вращает её 15 секунд и убирает. Никаких блоков не меняет — значит никаких багов спавна.
+     */
+    public void spawnArmorMannequin(Player p, String setId, String elytraId) {
+        if (p == null || setId == null) return;
+        try {
+            Location base = p.getLocation().clone();
+            Vector look = base.getDirection().setY(0);
+            if (look.lengthSquared() < 0.0001) look = new Vector(0, 0, 1);
+            look.normalize();
+            Location spot = base.clone().add(look.multiply(1.7));
+            for (int i = 0; i < 6; i++) {
+                Block under = spot.clone().add(0, -1 - i, 0).getBlock();
+                if (under.getType().isSolid()) {
+                    spot.setY(under.getY() + 1);
+                    break;
+                }
+            }
+            spot.setYaw(base.getYaw() + 180.0f);
+            spot.setPitch(0.0f);
+            final ArmorStand as = (ArmorStand) p.getWorld().spawnEntity(spot, EntityType.ARMOR_STAND);
+            as.setGravity(false);
+            as.setInvulnerable(true);
+            as.setPersistent(false);
+            as.setRemoveWhenFarAway(false);
+            as.setArms(true);
+            as.setBasePlate(false);
+            as.setCustomName(ColorUtil.c(mannequinSetName(setId)));
+            as.setCustomNameVisible(true);
+            as.addScoreboardTag("kg_mod_anim"); // защита от зачистки спавна (как у анимаций Деда)
+            as.addScoreboardTag("kg_preview");
+            as.setHelmet(ItemFactory.armorPiece(setId, 0));
+            as.setChestplate(mannequinElytraItem(elytraId));   // элитры за спиной — их реально видно!
+            as.setItemInHand(ItemFactory.armorPiece(setId, 1)); // нагрудник в руке — видно и его
+            as.setLeggings(ItemFactory.armorPiece(setId, 2));
+            as.setBoots(ItemFactory.armorPiece(setId, 3));
+            final Location center = spot.clone();
+            ColorUtil.sound(p, "block.amethyst_block.chime", 1.0f, 1.25f);
+            p.sendMessage(ColorUtil.c("&#FFD740👀 Манекен поставлен на &f15 секунд&#FFD740: " + mannequinSetName(setId)
+                    + " &#FFD740+ элитры! Модель вращается — смотрите со всех сторон."));
+            new BukkitRunnable() {
+                int t = 0;
+                float yaw = center.getYaw();
+                @Override
+                public void run() {
+                    t++;
+                    if (!as.isValid()) { cancel(); return; }
+                    yaw += 5.0f;
+                    if (yaw > 360.0f) yaw -= 360.0f;
+                    try {
+                        // Location#setYaw возвращает void — собираем локацию отдельно.
+                        Location spin = center.clone();
+                        spin.setYaw(yaw);
+                        spin.setPitch(0.0f);
+                        as.teleport(spin);
+                    } catch (Throwable ignored) {}
+                    if (t % 5 == 0) {
+                        try {
+                            center.getWorld().spawnParticle(Particle.END_ROD, center.clone().add(0, 1.15, 0), 5, 0.45, 0.75, 0.45, 0.01);
+                            center.getWorld().spawnParticle(Particle.CRIT_MAGIC, center.clone().add(0, 0.85, 0), 4, 0.5, 0.85, 0.5, 0.02);
+                        } catch (Throwable ignored) {}
+                    }
+                    if (t >= 300) {
+                        try {
+                            center.getWorld().spawnParticle(Particle.POOF, center.clone().add(0, 1.0, 0), 26, 0.4, 0.7, 0.4, 0.04);
+                        } catch (Throwable ignored) {}
+                        try { as.remove(); } catch (Throwable ignored) {}
+                        cancel();
+                    }
+                }
+            }.runTaskTimer(plugin, 1L, 1L);
+        } catch (Throwable t) {
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Не удалось поставить манекен — рядом нет места."));
+        }
+    }
+
+    // ================= v6.4.0: КРАСОТА СПАВНА БЕЗ БАГОВ (частицы у варпов и подарков) =================
+    private final List<Location> beautyPoints = new ArrayList<Location>();
+    private long lastBeautyMs = 0L;
+
+    /**
+     * Лёгкие праздничные частицы у всех варпов и подарков. Блоки НЕ меняются вообще,
+     * рисуются только рядом с игроками (радиус 25) и не чаще 1 раза в секунду — ноль лагов.
+     */
+    private void spawnBeautyParticles(World sw) {
+        if (sw == null || sw.getPlayers().isEmpty()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastBeautyMs < 900L) return;
+        lastBeautyMs = now;
+        try {
+            if (beautyPoints.isEmpty()) {
+                String[] names = new String[]{"spawn", "mine", "farm", "casino", "wheel", "enchant",
+                        "pvp", "train", "kabinki", "parkour", "cases", "top"};
+                for (String n : names) {
+                    try {
+                        Location l = getWarpLocation(n);
+                        if (l != null && l.getWorld() != null) beautyPoints.add(l.clone().add(0.0, 1.3, 0.0));
+                    } catch (Throwable ignored) {}
+                }
+                for (int i = 0; i < GIFT_BLOCKS.length; i++) {
+                    beautyPoints.add(new Location(sw, GIFT_BLOCKS[i][0] + 0.5, GIFT_BLOCKS[i][1] + 1.15, GIFT_BLOCKS[i][2] + 0.5));
+                }
+            }
+            for (Player p : sw.getPlayers()) {
+                Location pl = p.getLocation();
+                int shown = 0;
+                for (int i = 0; i < beautyPoints.size() && shown < 3; i++) {
+                    Location bp = beautyPoints.get(i);
+                    if (bp == null || bp.getWorld() == null || !bp.getWorld().equals(sw)) continue;
+                    try {
+                        if (bp.distanceSquared(pl) > 625.0) continue;
+                        sw.spawnParticle(Particle.END_ROD, bp.clone().add(0, 0.95, 0), 3, 0.35, 0.5, 0.35, 0.005);
+                        sw.spawnParticle(Particle.SNOWFLAKE, bp.clone().add(0, 1.6, 0), 2, 0.45, 0.25, 0.45, 0.0);
+                        shown++;
+                    } catch (Throwable ignored) {}
+                }
+            }
+        } catch (Throwable ignored) {}
     }
 
     public void shutdown() {

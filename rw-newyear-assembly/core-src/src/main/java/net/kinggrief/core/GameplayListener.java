@@ -207,6 +207,9 @@ public final class GameplayListener implements Listener {
                         ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
                     }
 
+                    // v6.4.0: 3D ШАРЫ в ЛЕВОЙ РУКЕ — баффы наконец-то работают (раньше шары были просто декором)!
+                    applyOrbBuffs(p, offId);
+
                     // 3D Квантовый Магнит Лута (в левой руке или в хотбаре) — притягивает дроп и опыт в радиусе 9 блоков!
                     boolean hasMagnet = "loot_magnet".equals(offId) || "loot_magnet".equals(mainId);
                     if (!hasMagnet) {
@@ -232,6 +235,186 @@ public final class GameplayListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    /**
+     * v6.4.0: 3D ШАРЫ (shar_*) в ЛЕВОЙ РУКЕ наконец-то дают свои баффы из описания.
+     * Раньше шары продавались в /shop, /rshop, кейсах и за снежинки, но НЕ ДЕЛАЛИ НИЧЕГО.
+     * Баффы выдаются на 2.5 сек и обновляются каждую секунду -> снял шар = баффы пропали.
+     */
+    private void applyOrbBuffs(Player p, String offId) {
+        if (offId == null || !offId.startsWith("shar_")) return;
+        if (p.getGameMode() == GameMode.SPECTATOR || p.isDead()) return;
+        if ("shar_titana".equals(offId)) {
+            ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", 50, 1);
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 0);
+            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 0);
+        } else if ("shar_andromedy".equals(offId)) {
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPot(p, "speed", "SPEED", 50, 1);
+            ColorUtil.addPot(p, "jump_boost", "JUMP", 50, 1);
+        } else if ("shar_chimery".equals(offId)) {
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+        } else if ("shar_apollona".equals(offId)) {
+            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 1);
+            ColorUtil.addPot(p, "speed", "SPEED", 50, 1);
+            ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
+        } else if ("shar_aida".equals(offId)) {
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+        } else if ("shar_osirisa".equals(offId)) {
+            ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", 50, 0);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 1);
+            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 0);
+        } else if ("shar_aresa".equals(offId)) {
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 2);
+            ColorUtil.addPot(p, "speed", "SPEED", 50, 0);
+        } else if ("shar_santy".equals(offId)) {
+            ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", 50, 2);
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPot(p, "speed", "SPEED", 50, 1);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+        } else if ("shar_kronosa".equals(offId)) {
+            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 2);
+            ColorUtil.addPot(p, "speed", "SPEED", 50, 0);
+            ColorUtil.addPot(p, "jump_boost", "JUMP", 50, 0);
+        } else if ("shar_geliosa".equals(offId)) {
+            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+            ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
+            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 0);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+        } else if ("shar_morozko".equals(offId)) {
+            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 1);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 0);
+        } else if ("shar_kvadrat".equals(offId)) {
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 1);
+            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 1);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPot(p, "jump_boost", "JUMP", 50, 1);
+        } else {
+            return;
+        }
+        // v6.4.0: Морозная аура Шара Морозко — враги рядом замерзают и тормозят.
+        if ("shar_morozko".equals(offId)) {
+            for (Entity en : p.getNearbyEntities(6, 4, 6)) {
+                if (en instanceof Player && !en.equals(p) && isEnemyTarget(p, (Player) en)) {
+                    en.setFreezeTicks(Math.max(en.getFreezeTicks(), 90));
+                    ColorUtil.addPot((Player) en, "slowness", "SLOW", 40, 0);
+                }
+            }
+        }
+    }
+
+    /**
+     * v6.4.0: НОВЫЕ ЗАЧАРОВАНИЯ-СВИТКИ. Свиток в ПРАВОЙ руке, предмет в ЛЕВОЙ -> ПКМ.
+     * Возвращает true, если свиток был применён (событие уже отменено).
+     */
+    private boolean handleEnchantScroll(Player p, ItemStack scroll, String enchId) {
+        if (ItemFactory.scrollIndex(enchId) < 0) return false;
+        ItemStack tool = p.getInventory().getItemInOffHand();
+        if (tool == null || tool.getType() == Material.AIR) {
+            ColorUtil.sound(p, "entity.villager.no", 1.0f, 0.8f);
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Положите оружие/инструмент в &fЛЕВУЮ руку&#FF1744, свиток держите в правой и нажмите ПКМ!"));
+            return true;
+        }
+        Material tm = tool.getType();
+        String tn = tm.name();
+        boolean weapon = tn.endsWith("_SWORD") || tn.endsWith("_AXE") || tm == Material.TRIDENT;
+        boolean pick = tn.endsWith("_PICKAXE");
+        if ("smelt".equals(enchId) && !pick) {
+            ColorUtil.sound(p, "entity.villager.no", 1.0f, 0.8f);
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Зачарование «Авто-Плавка» применяется только на &fкирку&#FF1744!"));
+            return true;
+        }
+        if (!"smelt".equals(enchId) && !weapon) {
+            ColorUtil.sound(p, "entity.villager.no", 1.0f, 0.8f);
+            p.sendMessage(ColorUtil.c("&#FF1744✖ Это зачарование применяется только на &fоружие&#FF1744 (меч, топор, булава, трезубец)!"));
+            return true;
+        }
+        int lvl = ItemFactory.applyScrollToTool(tool, enchId);
+        if (lvl < 0) {
+            ColorUtil.sound(p, "entity.villager.no", 1.0f, 0.8f);
+            p.sendMessage(ColorUtil.c("&#FF1744✖ На этом предмете уже максимальный уровень &#FFD740III&#FF1744!"));
+            return true;
+        }
+        consumeOne(p, scroll);
+        p.getInventory().setItemInOffHand(tool);
+        ColorUtil.sound(p, "block.enchantment_table.use", 1.0f, 1.25f);
+        p.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, p.getLocation().add(0, 1.1, 0), 45, 0.5, 0.7, 0.5, 0.4);
+        p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1.1, 0), 25, 0.4, 0.6, 0.4, 0.05);
+        p.sendMessage(ColorUtil.c("&#00E676✔ Зачарование &#7DD3FC" + ItemFactory.scrollMark(enchId)
+                + " " + ItemFactory.romanLevel(lvl) + " &#00E676успешно нанесено на предмет в левой руке!"));
+        ColorUtil.actionBar(p, "&#7DD3FC✨ " + ItemFactory.scrollMark(enchId) + " " + ItemFactory.romanLevel(lvl));
+        return true;
+    }
+
+    /** v6.4.0: боевые свитки-зачарования срабатывают при ударе (Лёд / Вампиризм / Взрывной Удар). */
+    private void applyScrollEnchantsOnHit(Player attacker, LivingEntity victim) {
+        ItemStack w = attacker.getInventory().getItemInMainHand();
+        if (w == null || w.getType() == Material.AIR) return;
+        int ice = ItemFactory.getToolEnchant(w, "ice");
+        int vamp = ItemFactory.getToolEnchant(w, "vampire");
+        int blast = ItemFactory.getToolEnchant(w, "blast");
+        if (ice <= 0 && vamp <= 0 && blast <= 0) return;
+        Location vl = victim.getLocation();
+        if (ice > 0) {
+            victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 40 + 40 * ice));
+            ColorUtil.addPot(victim, "slowness", "SLOW", 40 + 20 * ice, Math.min(3, ice));
+            victim.getWorld().spawnParticle(Particle.SNOWFLAKE, vl.add(0, 1.0, 0), 14 * ice, 0.4, 0.6, 0.4, 0.02);
+            vl.subtract(0, 1.0, 0);
+        }
+        if (vamp > 0) {
+            double heal = Math.min(vamp * 1.0, victim instanceof Player ? 4.0 : 6.0);
+            attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + heal));
+            attacker.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, vl.clone().add(0, 1.0, 0), 6, 0.3, 0.4, 0.3, 0.02);
+            ColorUtil.actionBar(attacker, "&#FF1744🩸 Вампиризм " + ItemFactory.romanLevel(vamp) + ": &a+" + heal + "❤");
+        }
+        if (blast > 0) {
+            double dmg = 2.0 * blast;
+            int hit = 0;
+            for (Entity en : victim.getWorld().getNearbyEntities(vl, 3.0, 2.5, 3.0)) {
+                if (en.equals(attacker) || en.equals(victim)) continue;
+                if (!(en instanceof LivingEntity)) continue;
+                if (en instanceof Player) {
+                    Player op = (Player) en;
+                    if (!isEnemyTarget(attacker, op)) continue;
+                    tagPvp30(attacker, op);
+                }
+                ((LivingEntity) en).damage(dmg, attacker);
+                hit++;
+            }
+            victim.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, vl.clone().add(0, 0.9, 0), 1, 0, 0, 0, 0);
+            victim.getWorld().spawnParticle(Particle.FLAME, vl.clone().add(0, 0.9, 0), 18 * blast, 1.1, 0.7, 1.1, 0.03);
+            ColorUtil.sound(attacker, "entity.generic.explode", 0.55f, 1.5f);
+            if (hit > 0) ColorUtil.actionBar(attacker, "&#FF9100💥 Взрывной Удар " + ItemFactory.romanLevel(blast) + ": задел &f" + hit + " &7врагов");
+        }
+    }
+
+    /**
+     * v6.4.0: «Авто-Плавка» из свитка работает на ЛЮБОЙ кирке (даже ванильной) и ВЕЗДЕ:
+     * в мире выживания, в Незере, в Энде и на всех варпах. Возвращает true, если дроп заменён.
+     */
+    private boolean applySmeltEnchant(BlockBreakEvent e, Player p, Block b, ItemStack tool) {
+        int lvl = ItemFactory.getToolEnchant(tool, "smelt");
+        if (lvl <= 0) return false;
+        Material m = b.getType();
+        String mn = m.name();
+        if (!mn.endsWith("_ORE") && m != Material.ANCIENT_DEBRIS && m != Material.GILDED_BLACKSTONE) return false;
+        if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return false; // в авто-шахте своя экономика
+        ItemStack drop = smeltedDropForBlock(m, 1 + lvl, 1 + lvl);
+        if (drop == null) return false;
+        e.setDropItems(false);
+        Map<Material, Integer> tally = new HashMap<Material, Integer>();
+        addLootBundled(tally, drop);
+        deliverBundledLoot(p, b.getLocation().add(0.5, 0.5, 0.5), tally, true);
+        b.getWorld().spawnParticle(Particle.FLAME, b.getLocation().add(0.5, 0.5, 0.5), 6 * lvl, 0.25, 0.25, 0.25, 0.02);
+        ColorUtil.actionBar(p, "&#FFD740🔥 Авто-Плавка " + ItemFactory.romanLevel(lvl) + ": руда сразу в слитках ×" + (1 + lvl));
+        plugin.getStore().addMined(p.getName());
+        return true;
     }
 
     public void cleanupAllTempBlocks() {
@@ -394,7 +577,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.3.3 ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.4.0 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"
@@ -612,6 +795,9 @@ public final class GameplayListener implements Listener {
             }
         }
 
+        // v6.4.0: зачарование «Авто-Плавка» (свиток) работает на ЛЮБОЙ кирке и везде, кроме авто-шахты.
+        if (applySmeltEnchant(e, p, b, tool)) return;
+
         // Job payouts
         plugin.getStore().addMined(p.getName());
         String job = plugin.getStore().getJob(p.getName());
@@ -667,6 +853,56 @@ public final class GameplayListener implements Listener {
         return 0;
     }
 
+    // ================= v6.4.0: АВТО-ШАХТА /warp mine — РАБОТАЮТ ВСЕ 13 ИНСТРУМЕНТОВ + БУРЕНИЕ! =================
+    /** v6.4.0: deepslate-руды приводим к обычной руде — раньше они давали булыжник и 5 монет (баг!). */
+    private Material autoMineBaseOre(Material m) {
+        if (m == null) return Material.STONE;
+        String n = m.name();
+        if (n.startsWith("DEEPSLATE_")) {
+            Material base = Material.matchMaterial(n.substring("DEEPSLATE_".length()));
+            if (base != null) return base;
+        }
+        if (m == Material.NETHER_GOLD_ORE) return Material.GOLD_ORE;
+        return m;
+    }
+
+    /** v6.4.0: бонус награды Авто-Шахты теперь есть у ВСЕХ инструментов (раньше только у 5 из 13). */
+    private int autoMineBonus(String tid) {
+        if (tid == null) return 1;
+        if ("hammer_owner".equals(tid)) return 3;
+        if ("pick_krush".equals(tid) || "pick_molten".equals(tid) || "pick_midas".equals(tid)
+                || "pick_tunnel".equals(tid) || "pick_meteor".equals(tid) || "pick_djamshut".equals(tid)
+                || "pick_frost".equals(tid) || "pick_magnet".equals(tid) || "pick_vein".equals(tid)
+                || "pick_obsidian".equals(tid) || "pick_spawner".equals(tid)) return 2;
+        return 1;
+    }
+
+    private ItemStack autoMineDrop(Material base, int mult) {
+        if (base == Material.COAL_ORE) return new ItemStack(Material.COAL, 2 * mult);
+        if (base == Material.IRON_ORE) return new ItemStack(Material.IRON_INGOT, mult);
+        if (base == Material.GOLD_ORE) return new ItemStack(Material.GOLD_INGOT, mult);
+        if (base == Material.LAPIS_ORE) return new ItemStack(Material.LAPIS_LAZULI, 4 * mult);
+        if (base == Material.REDSTONE_ORE) return new ItemStack(Material.REDSTONE, 4 * mult);
+        if (base == Material.DIAMOND_ORE) return new ItemStack(Material.DIAMOND, mult);
+        if (base == Material.EMERALD_ORE) return new ItemStack(Material.EMERALD, mult);
+        if (base == Material.COPPER_ORE) return new ItemStack(Material.COPPER_INGOT, 2 * mult);
+        if (base == Material.ANCIENT_DEBRIS) return new ItemStack(Material.NETHERITE_SCRAP, mult);
+        return new ItemStack(Material.COBBLESTONE, 1);
+    }
+
+    private double autoMineCoins(Material base, int mult) {
+        if (base == Material.COAL_ORE) return 20.0 * mult;
+        if (base == Material.IRON_ORE) return 45.0 * mult;
+        if (base == Material.GOLD_ORE) return 70.0 * mult;
+        if (base == Material.LAPIS_ORE) return 50.0 * mult;
+        if (base == Material.REDSTONE_ORE) return 50.0 * mult;
+        if (base == Material.COPPER_ORE) return 35.0 * mult;
+        if (base == Material.DIAMOND_ORE) return 150.0 * mult;
+        if (base == Material.EMERALD_ORE) return 200.0 * mult;
+        if (base == Material.ANCIENT_DEBRIS) return 700.0 * mult;
+        return 5.0 * mult;
+    }
+
     private void handleAutoMineBreak(BlockBreakEvent e, Player p, Block b) {
         Material m = b.getType();
         if (m == Material.COBBLESTONE || m == Material.BEDROCK) {
@@ -675,52 +911,173 @@ public final class GameplayListener implements Listener {
         }
         e.setDropItems(false);
         e.setExpToDrop(0);
-        String tid = ItemFactory.getCustomId(p.getInventory().getItemInMainHand());
-        int bonusMult = ("hammer_owner".equals(tid) ? 3 : ("pick_krush".equals(tid) || "pick_molten".equals(tid) || "pick_midas".equals(tid) || "pick_tunnel".equals(tid) ? 2 : 1));
-        ItemStack drop;
-        double coins;
-        // v6.1: СБАЛАНСИРОВАННАЯ ЭКОНОМИКА шахты (редкость = награда!)
-        if (m == Material.COAL_ORE) { drop = new ItemStack(Material.COAL, 2 * bonusMult); coins = 20 * bonusMult; }
-        else if (m == Material.IRON_ORE) { drop = new ItemStack(Material.IRON_INGOT, bonusMult); coins = 45 * bonusMult; }
-        else if (m == Material.GOLD_ORE) { drop = new ItemStack(Material.GOLD_INGOT, bonusMult); coins = 70 * bonusMult; }
-        else if (m == Material.LAPIS_ORE) { drop = new ItemStack(Material.LAPIS_LAZULI, 4 * bonusMult); coins = 50 * bonusMult; }
-        else if (m == Material.REDSTONE_ORE) { drop = new ItemStack(Material.REDSTONE, 4 * bonusMult); coins = 50 * bonusMult; }
-        else if (m == Material.DIAMOND_ORE) { drop = new ItemStack(Material.DIAMOND, bonusMult); coins = 150 * bonusMult; }
-        else if (m == Material.EMERALD_ORE) { drop = new ItemStack(Material.EMERALD, bonusMult); coins = 200 * bonusMult; }
-        else if (m == Material.ANCIENT_DEBRIS) { drop = new ItemStack(Material.NETHERITE_SCRAP, bonusMult); coins = 700 * bonusMult; }
-        else { drop = new ItemStack(Material.COBBLESTONE, 1); coins = 5 * bonusMult; }
+        ItemStack tool = p.getInventory().getItemInMainHand();
+        String tid = ItemFactory.getCustomId(tool);
+        int bonusMult = autoMineBonus(tid);
+        Material base = autoMineBaseOre(m);
 
-        p.getInventory().addItem(drop);
-        p.giveExp(4 * bonusMult);
+        Map<Material, Integer> tally = new HashMap<Material, Integer>();
+        double[] acc = new double[2]; // acc[0] = монеты за добуренные блоки, acc[1] = опыт
+
+        // 1) ЦЕНТРАЛЬНЫЙ БЛОК — полная награда + личный эффект кирки
+        int dropMult = "pick_molten".equals(tid) ? bonusMult * 2 : bonusMult; // Вулканическая Гефеста: двойная плавка
+        addLootBundled(tally, autoMineDrop(base, dropMult));
+        double coins = autoMineCoins(base, bonusMult);
+        if ("pick_midas".equals(tid)) {
+            int reward = 15 + rng.nextInt(121);
+            if (rng.nextInt(100) < 4) reward += 800;
+            coins += reward;
+            if (rng.nextInt(100) < 16) addLootBundled(tally, new ItemStack(Material.GOLD_INGOT, 1));
+        }
+        if ("pick_magnet".equals(tid) || "pick_krush".equals(tid) || "hammer_owner".equals(tid)) {
+            // телекинез: весь лут бурения сразу в инвентарь (deliverBundledLoot ниже и так это делает)
+        }
+
+        // 2) v6.4.0: БУРЕНИЕ В АВТО-ШАХТЕ (3×3, туннель 5×5, куб 3×3×3, молот OWNER, жила до 32)
+        int extra = 0;
+        if (tid != null && !p.isSneaking()) {
+            if ("pick_vein".equals(tid)) extra = drillAutoMineVein(p, b, bonusMult, tally, acc);
+            else extra = drillAutoMineArea(p, b, tid, bonusMult, tally, acc);
+        }
+        coins += acc[0];
+
+        Location dropSpot = b.getLocation().add(0.5, 0.5, 0.5);
+        deliverBundledLoot(p, dropSpot, tally, true);
+        int exp = Math.min(500, 4 * bonusMult + (int) acc[1]);
+        if (exp > 0) p.giveExp(exp);
         plugin.getStore().addCoins(p.getName(), coins);
         plugin.getStore().addMined(p.getName());
-        // v6.1: РЕДКОСТИ ШАХТЫ — эффекты и цвета по редкости руды!
-        int rarityLv = mineRarityLevel(m);
-        String rarityTag = mineRarityTag(m);
-        Location bLoc = b.getLocation().add(0.5, 0.5, 0.5);
+
+        // 3) v6.1/v6.4.0: РЕДКОСТИ ШАХТЫ — эффекты, цвет и объявление артефакта
+        int rarityLv = mineRarityLevel(base);
+        String rarityTag = mineRarityTag(base);
         if (rarityLv >= 2) {
-            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, bLoc, 22, 0.4, 0.4, 0.4, 0.08);
-            b.getWorld().spawnParticle(Particle.CRIT, bLoc, 14, 0.35, 0.35, 0.35, 0.05);
+            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, dropSpot, 22, 0.4, 0.4, 0.4, 0.08);
+            b.getWorld().spawnParticle(Particle.CRIT, dropSpot, 14, 0.35, 0.35, 0.35, 0.05);
             ColorUtil.sound(p, "entity.player.levelup", 0.85f, rarityLv >= 3 ? 0.8f : 1.3f);
             if (rarityLv >= 3) {
-                b.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, bLoc, 30, 0.5, 0.5, 0.5, 0.1);
+                b.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, dropSpot, 30, 0.5, 0.5, 0.5, 0.1);
                 for (Player near : b.getWorld().getPlayers()) {
-                    if (near.getLocation().distanceSquared(bLoc) <= 64.0 * 64.0) {
-                        near.sendMessage(ColorUtil.c("&#E040FB&l🌌 [АВТО-ШАХТА] &fИгрок &#FFD740" + p.getName() + " &#E040FBнашёл ДРЕВНИЕ ОБЛОМКИ! (&a+" + (int) coins + "$&#E040FB)"));
-                    }
+                    try {
+                        if (near.getLocation().distanceSquared(dropSpot) <= 64.0 * 64.0) {
+                            near.sendMessage(ColorUtil.c("&#E040FB&l🌌 [АВТО-ШАХТА] &fИгрок &#FFD740" + p.getName()
+                                    + " &#E040FBнашёл ДРЕВНИЕ ОБЛОМКИ! (&a+" + (int) coins + "$&#E040FB)"));
+                        }
+                    } catch (Throwable ignored) {}
                 }
             }
         } else if (rarityLv == 1) {
-            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, bLoc, 8, 0.3, 0.3, 0.3, 0.05);
+            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, dropSpot, 8, 0.3, 0.3, 0.3, 0.05);
             ColorUtil.sound(p, "entity.experience_orb.pickup", 0.8f, 1.15f);
         }
         if (rng.nextInt(100) < 22) {
             plugin.getStore().addSnowflakes(p.getName(), 1);
-            ColorUtil.actionBar(p, rarityTag + " &8│ &a+" + (int) coins + "$ &8| &#80D8FF+1 Снежинка Джамшута ❄!");
+            ColorUtil.actionBar(p, rarityTag + " &8│ &a+" + (int) coins + "$ &8| &#80D8FF+1 Снежинка Джамшута ❄!"
+                    + (extra > 0 ? " &8| &#00E5FF⛏ Бурение: +" + extra + " бл." : ""));
         } else {
-            ColorUtil.actionBar(p, rarityTag + " &8│ &#FF9100⛏ &a+" + (int) coins + "$" + (bonusMult > 1 ? " &e(Бонус Кирки ×" + bonusMult + "!)" : ""));
+            ColorUtil.actionBar(p, rarityTag + " &8│ &#FF9100⛏ &a+" + (int) coins + "$"
+                    + (bonusMult > 1 ? " &e(Бонус Кирки ×" + bonusMult + "!)" : "")
+                    + (extra > 0 ? " &8| &#00E5FF⛏ Бурение: +" + extra + " бл." : ""));
         }
         // v6.1: блок ЛОМАЕТСЯ ПО-НАСТОЯЩЕМУ (остаётся воздух) — шахта регенерирует каждые 5 минут!
+    }
+
+    /**
+     * v6.4.0: бурение в Авто-Шахте плоскостью (3×3, туннель 5×5, молот OWNER 7×7) или кубом 3×3×3.
+     * СТРОГО в пределах ямы /warp mine — стены, постройки спавна и соседние варпы не затрагиваются.
+     * За дополнительные блоки даётся 50% монет (баланс экономики), лут сразу летит в инвентарь.
+     */
+    private int drillAutoMineArea(Player p, Block center, String tid, int mult,
+                                  Map<Material, Integer> tally, double[] acc) {
+        int radius;
+        boolean cube;
+        if ("hammer_owner".equals(tid)) { radius = 3; cube = false; }
+        else if ("pick_tunnel".equals(tid)) { radius = 2; cube = false; }
+        else if ("pick_meteor".equals(tid)) { radius = 1; cube = true; }
+        else if ("pick_krush".equals(tid) || "pick_djamshut".equals(tid)
+                || "pick_frost".equals(tid) || "pick_magnet".equals(tid)) { radius = 1; cube = false; }
+        else return 0;
+
+        World w = center.getWorld();
+        boolean horizPlane = Math.abs(p.getLocation().getPitch()) > 50f;
+        Vector dir = p.getLocation().getDirection();
+        boolean xNormal = Math.abs(dir.getX()) > Math.abs(dir.getZ());
+        int dropMult = "pick_molten".equals(tid) ? mult * 2 : mult;
+        int count = 0;
+        final int hardCap = 64; // защита от лаг-спайка: максимум 64 блока за один удар
+
+        for (int a = -radius; a <= radius && count < hardCap; a++) {
+            for (int bOff = -radius; bOff <= radius && count < hardCap; bOff++) {
+                int cMin = cube ? -radius : 0;
+                int cMax = cube ? radius : 0;
+                for (int cOff = cMin; cOff <= cMax && count < hardCap; cOff++) {
+                    int dx, dy, dz;
+                    if (cube) { dx = a; dy = bOff; dz = cOff; }
+                    else if (horizPlane) { dx = a; dy = 0; dz = bOff; }
+                    else if (xNormal) { dx = 0; dy = a; dz = bOff; }
+                    else { dx = a; dy = bOff; dz = 0; }
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    Block t = w.getBlockAt(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
+                    Material tm = t.getType();
+                    if (tm == Material.AIR || tm == Material.CAVE_AIR || tm == Material.COBBLESTONE
+                            || tm == Material.BEDROCK || tm == Material.BARRIER) continue;
+                    if (!plugin.getSpawnEngine().isInsideAutoMine(t.getLocation())) continue;
+                    Material tb = autoMineBaseOre(tm);
+                    addLootBundled(tally, autoMineDrop(tb, dropMult));
+                    acc[0] += autoMineCoins(tb, mult) * 0.5;
+                    acc[1] += 2;
+                    t.setType(Material.AIR, false);
+                    count++;
+                }
+            }
+        }
+        if (count > 0) {
+            ColorUtil.sound(p, "entity.generic.explode", 0.35f, 1.6f);
+            w.spawnParticle(Particle.LARGE_SMOKE, center.getLocation().add(0.5, 0.5, 0.5), 12, 0.8, 0.6, 0.8, 0.02);
+        }
+        return count;
+    }
+
+    /** v6.4.0: Жильная кирка в Авто-Шахте вынимает ВСЮ жилу руды (до 32 блоков) прямо из ямы. */
+    private int drillAutoMineVein(Player p, Block center, int mult,
+                                  Map<Material, Integer> tally, double[] acc) {
+        Material target = center.getType();
+        String tn = target.name();
+        if (!tn.endsWith("_ORE") && target != Material.ANCIENT_DEBRIS) return 0;
+        World w = center.getWorld();
+        Queue<Block> q = new ArrayDeque<Block>();
+        Set<String> seen = new HashSet<String>();
+        q.add(center);
+        seen.add(blockKey(center));
+        int count = 0;
+        while (!q.isEmpty() && count < 32) {
+            Block cur = q.poll();
+            if (!cur.equals(center)) {
+                if (cur.getType() != target) continue;
+                if (!plugin.getSpawnEngine().isInsideAutoMine(cur.getLocation())) continue;
+                Material tb = autoMineBaseOre(target);
+                addLootBundled(tally, autoMineDrop(tb, mult));
+                acc[0] += autoMineCoins(tb, mult) * 0.5;
+                acc[1] += 3;
+                cur.setType(Material.AIR, false);
+                count++;
+            }
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+                        Block nb = cur.getRelative(dx, dy, dz);
+                        String nk = blockKey(nb);
+                        if (!seen.contains(nk) && nb.getType() == target) {
+                            seen.add(nk);
+                            q.add(nb);
+                        }
+                    }
+                }
+            }
+        }
+        if (count > 0) ColorUtil.sound(p, "entity.experience_orb.pickup", 0.9f, 1.35f);
+        return count;
     }
 
     private boolean canDrillBreakBlock(Player p, Block t) {
@@ -1757,6 +2114,52 @@ public final class GameplayListener implements Listener {
                     p.sendTitle(ColorUtil.c("&#00E5FF&l🌀 ЭВАКУАЦИЯ!"), ColorUtil.c("&fВы спасены Сферой Эвакуации (10 сек)!"), 5, 40, 10);
                 }
             }.runTaskTimer(plugin, 20L, 20L);
+        } else if (cid != null && cid.startsWith("scroll_")) {
+            // v6.4.0: НОВЫЕ ЗАЧАРОВАНИЯ — свиток в правой руке, предмет в левой, ПКМ.
+            e.setCancelled(true);
+            handleEnchantScroll(p, hand, cid.substring(7));
+        } else if ("mega_heal".equals(cid)) {
+            e.setCancelled(true); // v6.4.0: расходник не должен ставить блок/открывать сундук под курсором
+            if (!checkAndSetCd(p, "mega_heal", 45)) return;
+            consumeOne(p, hand);
+            p.setHealth(p.getMaxHealth());
+            p.setFoodLevel(20);
+            p.setSaturation(20f);
+            p.setFireTicks(0);
+            ColorUtil.addPot(p, "absorption", "ABSORPTION", 1200, 3);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 400, 2);
+            p.getWorld().spawnParticle(Particle.HEART, p.getLocation().add(0, 1.2, 0), 45, 0.6, 0.9, 0.6, 0.05);
+            p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1.0, 0), 30, 0.5, 0.8, 0.5, 0.1);
+            ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.35f);
+            p.sendTitle(ColorUtil.c("&#FF4081&l💗 МЕГА-ХИЛ!"),
+                    ColorUtil.c("&f100% ХП + 8 Золотых ❤ + Регенерация III (20 сек)"), 5, 40, 10);
+            p.sendMessage(ColorUtil.c("&#FF4081💗 МЕГА-ХИЛ: здоровье полностью восстановлено, +8 Золотых ❤ на 60 сек!"));
+        } else if ("mega_buff".equals(cid)) {
+            e.setCancelled(true); // v6.4.0: расходник не должен ставить блок/открывать сундук под курсором
+            if (!checkAndSetCd(p, "mega_buff", 90)) return;
+            consumeOne(p, hand);
+            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 3600, 2);
+            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 3600, 2);
+            ColorUtil.addPot(p, "speed", "SPEED", 3600, 1);
+            ColorUtil.addPot(p, "jump_boost", "JUMP", 3600, 1);
+            ColorUtil.addPot(p, "regeneration", "REGENERATION", 3600, 1);
+            p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1.2, 0), 60, 0.6, 1.0, 0.6, 0.08);
+            ColorUtil.sound(p, "block.beacon.activate", 1.0f, 1.3f);
+            p.sendTitle(ColorUtil.c("&#FFD740&l⚡ МЕГА-БАФФ!"),
+                    ColorUtil.c("&fСила III + Спешка III + Скорость II + Прыгучесть II + Реген II (3 мин)"), 5, 40, 10);
+            p.sendMessage(ColorUtil.c("&#FFD740⚡ МЕГА-БАФФ активирован на &f3 минуты&#FFD740! Новый мега-геймплей v6.4.0."));
+        } else if ("mega_shield".equals(cid)) {
+            e.setCancelled(true); // v6.4.0: расходник не должен ставить блок/открывать сундук под курсором
+            if (!checkAndSetCd(p, "mega_shield", 60)) return;
+            consumeOne(p, hand);
+            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 1200, 2);
+            ColorUtil.addPot(p, "absorption", "ABSORPTION", 1800, 3);
+            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 1200, 0);
+            p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 1.1, 0), 50, 0.7, 1.0, 0.7, 0.02);
+            ColorUtil.sound(p, "block.beacon.power_select", 1.0f, 1.2f);
+            p.sendTitle(ColorUtil.c("&#00E5FF&l🛡 МЕГА-ЩИТ!"),
+                    ColorUtil.c("&fСопротивление III (-60% урона) + 8 Золотых ❤ + Огнестойкость"), 5, 40, 10);
+            p.sendMessage(ColorUtil.c("&#00E5FF🛡 МЕГА-ЩИТ: урон снижен на 60% на &f60 секунд&#00E5FF!"));
         } else if ("plast".equals(cid) || "trapka".equals(cid) || "dezorient".equals(cid)
                 || "yavnaya_pyl".equals(cid) || "bozhya_aura".equals(cid)
                 || "ognenny_smerch".equals(cid) || "pautinnaya_granata".equals(cid)
@@ -3015,6 +3418,81 @@ public final class GameplayListener implements Listener {
                     ColorUtil.addPot(p, "absorption", "ABSORPTION", 450, 3);
                     ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 260, 2);
                     p.sendMessage(ColorUtil.c("&#FB923C👑 Сработал Талисман Императора (+8 Золотых ❤ + Сила III)!"));
+                } else if ("totem_ledyanoy".equals(tid)) {
+                    // v6.4.0: НОВЫЙ ТОТЕМ — Ледяное Спасение (3 заряда)
+                    p.setHealth(p.getMaxHealth());
+                    ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 300, 2);
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 500, 3);
+                    p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1.0, 0), 90, 2.5, 1.2, 2.5, 0.05);
+                    ColorUtil.sound(p, "block.glass.break", 1.0f, 0.7f);
+                    for (Entity en : p.getNearbyEntities(7, 4, 7)) {
+                        if (en instanceof Player && !en.equals(p) && isEnemyTarget(p, (Player) en)) {
+                            Player v = (Player) en;
+                            tagPvp30(p, v);
+                            v.setFreezeTicks(220);
+                            ColorUtil.addPot(v, "slowness", "SLOW", 140, 2);
+                        }
+                    }
+                    if (curCharges > 1) {
+                        ItemStack next = ItemFactory.totemLedyanoy(curCharges - 1);
+                        if (inOff) p.getInventory().setItemInOffHand(next); else p.getInventory().setItemInMainHand(next);
+                        p.sendMessage(ColorUtil.c("&#7DD3FC🧊 Тотем Ледяного Спасения сработал! Осталось зарядов: &a" + (curCharges - 1) + "/3"));
+                    } else {
+                        p.sendMessage(ColorUtil.c("&#7DD3FC🧊 Использован последний заряд Тотема Ледяного Спасения (0/3)!"));
+                    }
+                } else if ("totem_voskresheniya".equals(tid)) {
+                    // v6.4.0: НОВЫЙ ТОТЕМ — Воскрешение (5 зарядов + награда)
+                    p.setHealth(p.getMaxHealth());
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 600, 5);
+                    ColorUtil.addPot(p, "regeneration", "REGENERATION", 600, 2);
+                    ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 160, 1);
+                    p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1.0, 0), 90, 1.0, 1.4, 1.0, 0.2);
+                    ColorUtil.sound(p, "item.totem.use", 1.0f, 1.1f);
+                    for (Entity en : p.getNearbyEntities(6, 4, 6)) {
+                        if (en instanceof LivingEntity && !en.equals(p)) {
+                            en.setVelocity(en.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.5).setY(0.5));
+                        }
+                    }
+                    plugin.getStore().addCoins(p.getName(), 2500);
+                    plugin.getStore().addRelics(p.getName(), 5);
+                    if (curCharges > 1) {
+                        ItemStack next = ItemFactory.totemVoskresheniya(curCharges - 1);
+                        if (inOff) p.getInventory().setItemInOffHand(next); else p.getInventory().setItemInMainHand(next);
+                        p.sendMessage(ColorUtil.c("&#FFD740✨ Тотем Воскрешения спас вас (+2 500$ и +5❖)! Осталось зарядов: &a" + (curCharges - 1) + "/5"));
+                    } else {
+                        p.sendMessage(ColorUtil.c("&#FFD740✨ Использован последний заряд Тотема Воскрешения (0/5)!"));
+                    }
+                } else if ("totem_santy".equals(tid)) {
+                    // v6.4.0: НОВЫЙ ТОТЕМ — Деда Мороза (3 заряда + подарки)
+                    p.setHealth(p.getMaxHealth());
+                    ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 240, 1);
+                    ColorUtil.addPot(p, "regeneration", "REGENERATION", 300, 1);
+                    p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1.2, 0), 120, 3.0, 1.5, 3.0, 0.06);
+                    ColorUtil.sound(p, "entity.villager.celebrate", 1.0f, 1.1f);
+                    for (Entity en : p.getNearbyEntities(6, 4, 6)) {
+                        if (en instanceof Player && !en.equals(p) && isEnemyTarget(p, (Player) en)) {
+                            ColorUtil.addPot((Player) en, "blindness", "BLINDNESS", 100, 0);
+                            ColorUtil.addPot((Player) en, "slowness", "SLOW", 100, 1);
+                        }
+                    }
+                    plugin.getStore().addCoins(p.getName(), 5000);
+                    plugin.getStore().addSnowflakes(p.getName(), 5);
+                    if (curCharges > 1) {
+                        ItemStack next = ItemFactory.totemSanty(curCharges - 1);
+                        if (inOff) p.getInventory().setItemInOffHand(next); else p.getInventory().setItemInMainHand(next);
+                        p.sendMessage(ColorUtil.c("&#FF4081🎅 Дед Мороз спас вас и рассыпал подарки: +5 000$ и +5 Снежинок ❄! Зарядов: &a" + (curCharges - 1) + "/3"));
+                    } else {
+                        p.sendMessage(ColorUtil.c("&#FF4081🎅 Использован последний заряд Тотема Деда Мороза (0/3)!"));
+                    }
+                } else if (tid != null && tid.startsWith("shar_")) {
+                    // v6.4.0: любой 3D ШАР в левой руке спасает от смерти ОДИН раз (как тотем) —
+                    // раньше шар просто исчезал без всякого эффекта.
+                    p.setHealth(Math.min(p.getMaxHealth(), 10.0));
+                    ColorUtil.addPot(p, "absorption", "ABSORPTION", 300, 1);
+                    ColorUtil.addPot(p, "regeneration", "REGENERATION", 200, 1);
+                    p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1.0, 0), 70, 0.9, 1.2, 0.9, 0.1);
+                    ColorUtil.sound(p, "block.amethyst_cluster.break", 1.0f, 1.2f);
+                    p.sendMessage(ColorUtil.c("&#E040FB🔮 Ваш 3D Шар &#FFD740разбился&#E040FB, но спас вас от смерти! (&a10❤ + Поглощение II&8)"));
                 }
             }
         }.runTaskLater(plugin, 1L);
@@ -3084,6 +3562,13 @@ public final class GameplayListener implements Listener {
             e.setCancelled(true);
             ColorUtil.actionBar(attacker, "&#FFD740🔍 Этот игрок находится на проверке модерации!");
             return;
+        }
+
+        // v6.4.0: НОВЫЕ ЗАЧАРОВАНИЯ из свитков (Ледяной Клинок / Вампиризм / Взрывной Удар)
+        if (e.getDamager() instanceof Player && e.getEntity() instanceof LivingEntity) {
+            try {
+                applyScrollEnchantsOnHit((Player) e.getDamager(), (LivingEntity) e.getEntity());
+            } catch (Throwable ignored) {}
         }
 
         // DPS Training Dummy at /warp train!

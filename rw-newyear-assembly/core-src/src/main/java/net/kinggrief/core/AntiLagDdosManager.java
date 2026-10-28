@@ -429,7 +429,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         if (strikeNo >= 2) {
             p.kickPlayer(ColorUtil.c("&#FF1744&l⚡ КИК: СПАМ МЕХАНИЗМАМИ\n\n"
                     + "&fТы дважды за 5 минут спамил рычагом/кнопкой/плитой.\n"
-                    + "&7Одиночные нажатия разрешены, СПАМ — запрещён.\n\n&8KINGGRIEF Anti-Lag v6.3.3"));
+                    + "&7Одиночные нажатия разрешены, СПАМ — запрещён.\n\n&8KINGGRIEF Anti-Lag v6.4.0"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l⚡ [АНТИ-ЛАГ] &fИгрок &c" + p.getName()
                     + " &fкикнут за СПАМ рычагом (&e" + hits + " нажатий за 3 сек&e)."));
             return;
@@ -744,7 +744,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onServerPing(ServerListPingEvent e) {
         if (isShieldActive()) {
-            e.setMotd(ColorUtil.c("&#80D8FF&l❄ &#FFD740&lKINGGRIEF v6.3.3 &#80D8FF&l❄ &8│ &#00E676🛡 ANTI-DDOS ЗАЩИТА АКТИВНА\n"
+            e.setMotd(ColorUtil.c("&#80D8FF&l❄ &#FFD740&lKINGGRIEF v6.4.0 &#80D8FF&l❄ &8│ &#00E676🛡 ANTI-DDOS ЗАЩИТА АКТИВНА\n"
                     + "&#FF408112 Кирок &8• &#FFD740Молот 10×10 &8• &#00E5FFРабочий ТНТ &8• &#AEEA00Новый Спавн"));
         }
     }
@@ -872,7 +872,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         if (sender instanceof Player) {
             Player p = (Player) sender;
             if (plugin.getRanks().getRank(p).weight < 220) {
-                p.sendMessage(ColorUtil.c("&#00E676🛡 [KINGGRIEF Anti-DDoS v6.3.3] &fЗащита активна! TPS: &#00E676"
+                p.sendMessage(ColorUtil.c("&#00E676🛡 [KINGGRIEF Anti-DDoS v6.4.0] &fЗащита активна! TPS: &#00E676"
                         + plugin.getSpawnEngine().getCurrentTps() + " &8│ &fУничтожено лаг-машин молнией: &#FFD740"
                         + destroyedLagMachines.get()));
                 return true;
@@ -893,14 +893,14 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         }
 
         sender.sendMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-        sender.sendMessage(ColorUtil.c(" &#00E5FF&l🛡 KINGGRIEF ANTI-DDOS & АНТИ-ЛАГ МОЛНИЯ v6.3.3"));
+        sender.sendMessage(ColorUtil.c(" &#00E5FF&l🛡 KINGGRIEF ANTI-DDOS & АНТИ-ЛАГ МОЛНИЯ v6.4.0"));
         sender.sendMessage(ColorUtil.c(" &fСтатус щита: " + (isShieldActive() ? "&#FF1744&lАКТИВНОЕ ОТРАЖЕНИЕ АТАКИ" : "&#00E676&lШТАТНЫЙ РЕЖИМ (ЗАЩИЩЁН)")));
         sender.sendMessage(ColorUtil.c(" &fТекущий TPS: &#00E676" + plugin.getSpawnEngine().getCurrentTps()
                 + " &8│ &fПик CPS: &#FFD740" + peakCps + " подкл./сек"));
         sender.sendMessage(ColorUtil.c(" &fОтражено DDoS / Бот-атак: &#FF5252" + blockedBotConnections.get()));
         sender.sendMessage(ColorUtil.c(" &fЗаблокировано Краш-Пакетов: &#FFA726" + blockedExploitPackets.get()));
         sender.sendMessage(ColorUtil.c(" &fСломано Редстоун Лаг-Машин Молнией ⚡: &#FFD740" + destroyedLagMachines.get()));
-        sender.sendMessage(ColorUtil.c(" &#00E676&l✓ ПРАВИЛО v6.3.3: &fмолния бьёт ТОЛЬКО за &cСПАМ &f— рычаг/кнопка "
+        sender.sendMessage(ColorUtil.c(" &#00E676&l✓ ПРАВИЛО v6.4.0: &fмолния бьёт ТОЛЬКО за &cСПАМ &f— рычаг/кнопка "
                 + SPAM_TOGGLE_LIMIT + "+ нажатий за 3 сек по одному блоку, "
                 + SPAM_ANY_TOGGLE_LIMIT + "+ нажатий за 3 сек по ЛЮБЫМ рычагам/кнопкам, плита "
                 + SPAM_PLATE_LIMIT + "+, или устойчивый редстоун-клок ("

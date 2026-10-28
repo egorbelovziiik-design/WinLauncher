@@ -313,6 +313,13 @@ public final class RankManager {
         if ("owner".equalsIgnoreCase(my.id)) return true;
         if ("techadmin".equalsIgnoreCase(my.id)) return !"owner".equals(k);
         if ("curator".equals(k)) return "curator".equalsIgnoreCase(my.id);
+        // v6.4.0: КИТ ХЕЛПЕРА и КИТ ТЕХ.АДМИНА — явные правила, без зависимости от веса в таблице.
+        if ("helper".equals(k)) {
+            return "helper".equalsIgnoreCase(my.id) || "sthelper".equalsIgnoreCase(my.id)
+                    || "curator".equalsIgnoreCase(my.id) || "techadmin".equalsIgnoreCase(my.id)
+                    || my.weight >= 208 || isOwnerLevel(p);
+        }
+        if ("techadmin".equals(k)) return isOwnerLevel(p) || "curator".equalsIgnoreCase(my.id);
         if ("kp".equals(k)) return my.tier == 6;
         if ("media".equals(k)) return my.tier == 3 || "downer".equalsIgnoreCase(my.id);
         RankDef req = byId(k);

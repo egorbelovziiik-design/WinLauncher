@@ -73,6 +73,8 @@ public final class GuiManager {
             {"mladmin",   "Кит МЛ. АДМИНА",  "ORANGE_SHULKER_BOX",   "14400"},
             {"admin",     "Кит АДМИНА КП",   "RED_SHULKER_BOX",      "12000"},
             {"curator",   "Кит CURATOR",     "LIME_SHULKER_BOX",     "10800"},
+            {"techadmin", "Кит TECH.ADMIN",  "NETHER_STAR",          "3600"},
+            {"helper",    "Кит HELPER",      "LIGHT_GRAY_SHULKER_BOX","7200"},
             {"owner",     "Кит OWNER [ТОЛЬКО OWNER]", "COMMAND_BLOCK", "3600"}
     };
 
@@ -120,7 +122,7 @@ public final class GuiManager {
     // ================= 1. ГЛАВНОЕ МЕНЮ (/menu) =================
     public void openMainMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("main", "", 0), 54,
-                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v6.3.3"));
+                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v6.4.0"));
         decorateFrame(inv);
         DataStore st = plugin.getStore();
         RankManager.RankDef r = plugin.getRanks().getRank(p);
@@ -195,9 +197,9 @@ public final class GuiManager {
                 "&7Добавь друзей в тиму без клана: &f/tm <ник>",
                 "&7Божья Аура лечит всю тиму + защита от урона!",
                 "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
-        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.3.3",
+        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.4.0",
                 "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
-                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.3.3"));
+                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.4.0"));
 
         if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
             inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
@@ -494,14 +496,21 @@ public final class GuiManager {
         inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
         inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 18 3D Талисманов (/talismans)",
-                "&7Открой полный Алтарь Талисманов v6.3.3!"));
+                "&7Открой полный Алтарь Талисманов v6.4.0!"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня ×2, Луки и ТНТ (/armors)",
                 "&76 сетов брони с Закалкой ×2, Луки и ТНТ!"));
         inv.setItem(51, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ Оружейная 14 3D Мечей (/swords)",
-                "&7Открой все 14 кастомных 3D Мечей v6.3.3!"));
+                "&7Открой все 14 кастомных 3D Мечей v6.4.0!"));
         inv.setItem(52, shopTag(ItemFactory.swapOrb(4),        60));
         inv.setItem(53, shopTag(ItemFactory.grapplingHook(),   95));
+        // v6.4.0: вход в «ШАРЫ КВАДРАТОМ» и «МЕГА-МАГАЗИН»
+        inv.setItem(2, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 ШАРЫ КВАДРАТОМ 4×4",
+                "&7Все 12 3D Шаров идеальным квадратом + 4 НОВЫХ шара!",
+                "&7Шар в левой руке реально даёт баффы и спасает от смерти!"));
+        inv.setItem(6, ItemFactory.glowIcon(Material.NETHER_STAR, "&#FFD740&l⚡ МЕГА-МАГАЗИН v6.4.0",
+                "&7Свитки НОВЫХ зачарований, МЕГА-Хил/Бафф/Щит",
+                "&7и 3 новых тотема с зарядами!"));
         p.openInventory(inv);
     }
 
@@ -514,7 +523,7 @@ public final class GuiManager {
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 12 кастомных 3D Кирок и Молотов v6.3.3!",
+                "&7Все 12 кастомных 3D Кирок и Молотов v6.4.0!",
                 "&7Подсказка: зажмите &eShift &7при копке для точного режима 1×1!"));
 
         // Row 1 & Row 2: ALL 12 CUSTOM 3D PICKAXES & HAMMERS!
@@ -565,7 +574,7 @@ public final class GuiManager {
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.3.3!",
+                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.4.0!",
                 "&7У каждого меча свой 3D-силуэт и боевая способность!"));
 
         inv.setItem(10, shopTag(ItemFactory.swordDracula(), 320));
@@ -1595,7 +1604,7 @@ public final class GuiManager {
     // ================= 12. АЛТАРЬ 17 КАСТОМНЫХ 3D ТАЛИСМАНОВ (/talismans) =================
     public void openTalismansMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("talismans", "", 0), 54,
-                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.3.3]"));
+                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.4.0]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
@@ -1647,7 +1656,7 @@ public final class GuiManager {
     // ================= 13. ОРУЖЕЙНАЯ 3D БРОНИ, ЛУКОВ И КАСТОМНЫХ ТНТ (/armors) =================
     public void openArmorsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("armors", "", 0), 54,
-                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.3.3]"));
+                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.4.0]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
@@ -1725,6 +1734,13 @@ public final class GuiManager {
             owSword.setItemMeta(osm);
         }
         inv.setItem(25, owSword);
+        // v6.4.0: ЛУЧШЕЕ ОТОБРАЖЕНИЕ БРОНИ И ЭЛИТР — МАНЕКЕН с живой 3D-моделью!
+        inv.setItem(2, ItemFactory.glowIcon(Material.ARMOR_STAND, "&#FFD740&l👀 МАНЕКЕН: броня и элитры",
+                "&7Каждый сет разложен как на манекене:",
+                "&7шлем, нагрудник, поножи, ботинки и &fэлитры&7.",
+                "&7Кнопка «Примерить» ставит рядом &aживую модель&7 в сете на 15 сек!"));
+        inv.setItem(6, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 ШАРЫ КВАДРАТОМ",
+                "&712 3D Шаров сеткой 4×4 (4 новых шара v6.4.0)"));
 
         // Ряд 3: 6 Кастомных 3D ТНТ
         ItemStack[] tnts = new ItemStack[]{
@@ -1948,7 +1964,23 @@ public final class GuiManager {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openArmorsMenu(p); return; }
             if (slot == 51) { openSwordsMenu(p); return; }
+            if (slot == 2) { openOrbsMenu(p); return; }
+            if (slot == 6) { openMegaShop(p); return; }
             handleRelicPurchase(p, slot);
+        } else if ("orbs".equals(type)) {
+            if (slot == 48) { openRelicShop(p); return; }
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 50 || slot == 38) { openMegaShop(p); return; }
+            if (slot == 39) { openMannequinMenu(p); return; }
+            handleRelicItemTagPurchase(p, clicked, "orbs");
+        } else if ("mega".equals(type)) {
+            if (slot == 48) { openOrbsMenu(p); return; }
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 50) { openMannequinMenu(p); return; }
+            handleRelicItemTagPurchase(p, clicked, "mega");
+        } else if ("maneken".equals(type)) {
+            handleMannequinClick(p, slot, h.page);
+            return;
         } else if ("picks".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openSwordsMenu(p); return; }
@@ -2002,6 +2034,8 @@ public final class GuiManager {
             handleRelicItemTagPurchase(p, clicked, "talismans");
         } else if ("armors".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 2) { openMannequinMenu(p); return; }
+            if (slot == 6) { openOrbsMenu(p); return; }
             if (slot == 16) {
                 if (!plugin.getRanks().isOwnerLevel(p)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
@@ -2627,6 +2661,227 @@ public final class GuiManager {
         repairSingle(p.getInventory().getItemInOffHand());
     }
 
+    // ================= v6.4.0: 🔮 ШАРЫ КВАДРАТОМ — все 12 3D Шаров сеткой 4×4 =================
+    public void openOrbsMenu(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("orbs", "", 0), 54,
+                ColorUtil.c("&#E040FB&l🔮 ШАРЫ КВАДРАТОМ [12 3D Шаров v6.4.0]"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        inv.setItem(4, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 ШАРЫ КВАДРАТОМ 4×4",
+                "&7Все 12 3D Шаров выложены &fидеальным квадратом&7 — как заказывали!",
+                "&7Баланс: &b" + bal + " Риликов ❖",
+                "&7Шар в &fЛЕВОЙ руке&7 даёт пассивные баффы",
+                "&7и &aспасает от смерти один раз&7 (как тотем)!"));
+
+        // РЯД 1 квадрата
+        inv.setItem(10, shopTag(ItemFactory.sharTitana(),    290));
+        inv.setItem(11, shopTag(ItemFactory.sharAndromedy(), 260));
+        inv.setItem(12, shopTag(ItemFactory.sharChimery(),   220));
+        inv.setItem(13, shopTag(ItemFactory.sharApollona(),  270));
+        // РЯД 2 квадрата
+        inv.setItem(19, shopTag(ItemFactory.sharAida(),      280));
+        inv.setItem(20, shopTag(ItemFactory.sharOsirisa(),   240));
+        inv.setItem(21, shopTag(ItemFactory.sharAresa(),     310));
+        inv.setItem(22, shopTag(ItemFactory.sharSanty(),     350));
+        // РЯД 3 квадрата — НОВЫЕ ШАРЫ v6.4.0
+        inv.setItem(28, shopTag(ItemFactory.sharKronosa(),   300));
+        inv.setItem(29, shopTag(ItemFactory.sharGeliosa(),   280));
+        inv.setItem(30, shopTag(ItemFactory.sharMorozko(),   330));
+        inv.setItem(31, shopTag(ItemFactory.sharKvadrat(),   520));
+        // РЯД 4 квадрата — подсказки
+        inv.setItem(37, ItemFactory.glowIcon(Material.PLAYER_HEAD, "&#00E676&l💡 Как работают шары?",
+                "&71. Купи шар и положи его в &fЛЕВУЮ руку&7 (щит-слот).",
+                "&72. Баффы из описания работают сразу и постоянно.",
+                "&73. При смертельном ударе шар &aспасает тебя&7 (1 раз).",
+                "&74. Шары НЕ тратятся на баффы — только на спасение!"));
+        inv.setItem(38, ItemFactory.glowIcon(Material.NETHER_STAR, "&#FFD740&l⚡ МЕГА-МАГАЗИН v6.4.0",
+                "&7Новые зачарования-свитки, МЕГА-Хил/Бафф/Щит",
+                "&7и 3 новых тотема с зарядами!", "", "&#FFD740▸ Открыть /mega"));
+        inv.setItem(39, ItemFactory.glowIcon(Material.ARMOR_STAND, "&#FFD740&l👀 МАНЕКЕН: броня и элитры",
+                "&7Полная раскладка сетов: шлем, нагрудник,",
+                "&7поножи, ботинки и элитры — и живое превью!", "", "&#FFD740▸ Открыть /maneken"));
+        inv.setItem(40, ItemFactory.glowIcon(Material.DIAMOND, "&#00E5FF&l❖ Рилики: &f" + bal,
+                "&7Пополнить: &#FF4081kinggrief.vercel.app"));
+
+        inv.setItem(48, ItemFactory.icon(Material.ARROW, "&7« Назад в Магазин Реликов"));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.PAPER, "&#7DD3FC&l📜 Новые зачарования (свитки)",
+                "&7Ледяной Клинок, Вампиризм, Взрывной Удар, Авто-Плавка", "", "&#7DD3FC▸ Открыть /mega"));
+        p.openInventory(inv);
+    }
+
+    // ================= v6.4.0: ⚡ МЕГА-МАГАЗИН (свитки, МЕГА-расходники, новые тотемы) =================
+    public void openMegaShop(Player p) {
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("mega", "", 0), 54,
+                ColorUtil.c("&#FFD740&l⚡ МЕГА-МАГАЗИН v6.4.0"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        inv.setItem(4, ItemFactory.glowIcon(Material.NETHER_STAR, "&#FFD740&l⚡ МЕГА-МАГАЗИН [v6.4.0]",
+                "&7Новые зачарования-свитки, МЕГА-расходники и тотемы!",
+                "&7Баланс: &b" + bal + " Риликов ❖",
+                "&7Свиток: держи его в &fправой&7 руке, предмет — в &fлевой&7, нажми &fПКМ&7."));
+
+        // Ряд 1: НОВЫЕ ЗАЧАРОВАНИЯ (свитки)
+        inv.setItem(10, shopTag(ItemFactory.enchantScroll("ice"),     180));
+        inv.setItem(11, shopTag(ItemFactory.enchantScroll("vampire"), 200));
+        inv.setItem(12, shopTag(ItemFactory.enchantScroll("blast"),   240));
+        inv.setItem(13, shopTag(ItemFactory.enchantScroll("smelt"),   220));
+        // Ряд 2: МЕГА-расходники (новый мега-геймплей)
+        inv.setItem(19, shopTag(ItemFactory.megaHeal(1),   90));
+        inv.setItem(20, shopTag(ItemFactory.megaBuff(1),  140));
+        inv.setItem(21, shopTag(ItemFactory.megaShield(1),120));
+        inv.setItem(22, shopTag(ItemFactory.megaHeal(4),  320));
+        inv.setItem(23, shopTag(ItemFactory.megaBuff(4),  500));
+        // Ряд 3: НОВЫЕ ТОТЕМЫ С ЗАРЯДАМИ
+        inv.setItem(28, shopTag(ItemFactory.totemLedyanoy(3),      300));
+        inv.setItem(29, shopTag(ItemFactory.totemVoskresheniya(5), 620));
+        inv.setItem(30, shopTag(ItemFactory.totemSanty(3),         340));
+        inv.setItem(31, shopTag(ItemFactory.sharKvadrat(),         520));
+
+        inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 Шары квадратом", "&7Открыть витрину 12 шаров"));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l👀 Манекен брони", "&7Раскладка сетов и элитр + живое превью"));
+        p.openInventory(inv);
+    }
+
+    // ================= v6.4.0: 👀 МАНЕКЕН — ЛУЧШЕЕ ОТОБРАЖЕНИЕ БРОНИ И ЭЛИТР =================
+    private static final String[][] MANNEQUIN_SETS = new String[][]{
+            {"krush",   "&#FF1744&l🔥 Сет Крушителя",   "590", "elytra_phoenix"},
+            {"dracula", "&#D500F9&l🩸 Сет Дракулы",     "540", "elytra_vampire"},
+            {"frost",   "&#40C4FF&l❄ Сет Стужи",       "520", "elytra_wind"},
+            {"zeus",    "&#FFD740&l⚡ Сет Зевса",       "580", "elytra_thunder"},
+            {"phantom", "&#B388FF&l👻 Сет Фантома",     "550", "elytra_titan"},
+            {"owner",   "&#FF1744&l👑 Сет OWNER",         "0", "elytra_santa"}
+    };
+
+    public void openMannequinMenu(Player p) { openMannequinMenu(p, 0); }
+
+    public void openMannequinMenu(Player p, int page) {
+        int pg = Math.max(0, Math.min(1, page));
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("maneken", "", pg), 54,
+                ColorUtil.c("&#FFD740&l👀 МАНЕКЕН: БРОНЯ И ЭЛИТРЫ [" + (pg + 1) + "/2]"));
+        decorateFrame(inv);
+        int bal = plugin.getStore().getRelics(p);
+        inv.setItem(4, ItemFactory.glowIcon(Material.ARMOR_STAND, "&#FFD740&l👀 МАНЕКЕН v6.4.0",
+                "&7Каждый сет разложен &fкак на манекене&7: шлем, нагрудник, поножи, ботинки,",
+                "&7а справа — &fэлитры&7 и кнопка &a«Примерить»&7 (живая 3D-модель рядом с вами!).",
+                "&7Баланс: &b" + bal + " Риликов ❖"));
+
+        for (int i = 0; i < 3; i++) {
+            int idx = pg * 3 + i;
+            if (idx >= MANNEQUIN_SETS.length) break;
+            String[] set = MANNEQUIN_SETS[idx];
+            String sid = set[0];
+            int cost = ColorUtil.parseInt(set[2], 0);
+            int c = 1 + i * 2;                 // колонка манекена
+            ItemStack helm = ItemFactory.armorPiece(sid, 0);
+            ItemStack chestp = ItemFactory.armorPiece(sid, 1);
+            ItemStack legs = ItemFactory.armorPiece(sid, 2);
+            ItemStack boots = ItemFactory.armorPiece(sid, 3);
+            // имя сета сверху
+            inv.setItem(c, ItemFactory.glowIcon(Material.NAME_TAG, set[1],
+                    "&7Полный комплект из 4 вещей + элитры",
+                    cost > 0 ? "&7Цена комплекта: &b" + cost + " ❖" : "&#00E676✔ Выдаётся ВЛАДЕЛЬЦУ бесплатно"));
+            // «манекен»: шлем -> нагрудник -> поножи -> ботинки сверху вниз
+            inv.setItem(9 + c, helm);
+            inv.setItem(18 + c, chestp);
+            inv.setItem(27 + c, legs);
+            inv.setItem(36 + c, boots);
+            // элитры + кнопки
+            inv.setItem(18 + c + 1, mannequinElytra(set[3], set[1]));
+            inv.setItem(27 + c + 1, ItemFactory.glowIcon(Material.ARMOR_STAND, "&#00E676&l👀 Примерить на модели",
+                    "&7Рядом с вами появится &fживой манекен&7 в этом сете",
+                    "&7и с этими элитрами на &a15 секунд&7 — модель вращается!"));
+            inv.setItem(36 + c + 1, cost > 0
+                    ? shopTag(ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, set[1] + " &#FFD740[КУПИТЬ ВЕСЬ КОМПЛЕКТ]",
+                            "&7Шлем + Нагрудник + Поножи + Ботинки (Защита V)",
+                            "&7Плюс &fэлитры&7 этого сета", "", "&#FFD740Цена: &b" + cost + " ❖"), cost)
+                    : ItemFactory.glowIcon(Material.BARRIER, "&#FF1744&l👑 Комплект OWNER",
+                            "&7Доступен &aСТРОГО&7 только привилегии OWNER!",
+                            "&7Выдаётся бесплатно в ките &f/kit owner"));
+        }
+
+        inv.setItem(45, ItemFactory.icon(Material.ARROW, "&7« Назад к броне (/armors)"));
+        inv.setItem(48, pg > 0 ? ItemFactory.icon(Material.ARROW, "&7« Страница 1") : ItemFactory.icon(Material.GRAY_STAINED_GLASS_PANE, " "));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(50, pg < 1 ? ItemFactory.icon(Material.ARROW, "&7Страница 2 »") : ItemFactory.icon(Material.GRAY_STAINED_GLASS_PANE, " "));
+        inv.setItem(53, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 Шары квадратом", "&7Все 12 шаров сеткой 4×4"));
+        p.openInventory(inv);
+    }
+
+    private ItemStack mannequinElytra(String elytraId, String setName) {
+        ItemStack el;
+        if ("elytra_vampire".equals(elytraId)) el = ItemFactory.elytraVampire();
+        else if ("elytra_wind".equals(elytraId)) el = ItemFactory.elytraWind();
+        else if ("elytra_thunder".equals(elytraId)) el = ItemFactory.elytraThunder();
+        else if ("elytra_titan".equals(elytraId)) el = ItemFactory.elytraTitan();
+        else if ("elytra_santa".equals(elytraId)) el = ItemFactory.elytraSanta();
+        else el = ItemFactory.elytraPhoenix();
+        ItemMeta m = el.getItemMeta();
+        if (m != null) {
+            List<String> lore = m.hasLore() && m.getLore() != null ? new ArrayList<String>(m.getLore()) : new ArrayList<String>();
+            lore.add("");
+            lore.add(ColorUtil.c("&#FFD740🪽 Элитры сета " + setName));
+            m.setLore(lore);
+            el.setItemMeta(m);
+        }
+        return el;
+    }
+
+    /** v6.4.0: клики в МАНЕКЕНЕ — превью модели и покупка полного комплекта. */
+    private void handleMannequinClick(Player p, int slot, int page) {
+        if (slot == 45 || slot == 49) { if (slot == 49) { openMainMenu(p); } else { openArmorsMenu(p); } return; }
+        if (slot == 48 && page > 0) { openMannequinMenu(p, page - 1); return; }
+        if (slot == 50 && page < 1) { openMannequinMenu(p, page + 1); return; }
+        if (slot == 53) { openOrbsMenu(p); return; }
+        for (int i = 0; i < 3; i++) {
+            int idx = page * 3 + i;
+            if (idx >= MANNEQUIN_SETS.length) break;
+            String[] set = MANNEQUIN_SETS[idx];
+            int c = 1 + i * 2;
+            if (slot == 27 + c + 1) {
+                plugin.getSpawnEngine().spawnArmorMannequin(p, set[0], set[3]);
+                return;
+            }
+            if (slot == 36 + c + 1) {
+                int cost = ColorUtil.parseInt(set[2], 0);
+                if (cost <= 0) {
+                    if (!plugin.getRanks().isOwnerLevel(p)) {
+                        ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
+                        p.sendMessage(ColorUtil.c("&#FF1744✖ Комплект OWNER — только для владельца сервера!"));
+                        return;
+                    }
+                    giveFullSet(p, set[0], set[3], 0);
+                    return;
+                }
+                if (!plugin.getStore().takeRelics(p, cost)) {
+                    ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
+                    p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + cost + " ❖ (kinggrief.vercel.app)"));
+                    return;
+                }
+                plugin.getStore().save();
+                giveFullSet(p, set[0], set[3], cost);
+                return;
+            }
+        }
+    }
+
+    /** v6.4.0: выдаёт 4 предмета сета + элитры одним пакетом. */
+    private void giveFullSet(Player p, String sid, String elytraId, int cost) {
+        for (int s = 0; s < 4; s++) {
+            for (ItemStack rem : p.getInventory().addItem(ItemFactory.armorPiece(sid, s)).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), rem);
+            }
+        }
+        ItemStack el = mannequinElytra(elytraId, sid);
+        for (ItemStack rem : p.getInventory().addItem(el).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), rem);
+        }
+        ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.25f);
+        p.sendMessage(ColorUtil.c("&#00E676✔ Выдан полный 3D комплект брони &f" + sid.toUpperCase()
+                + " &#00E676(4 предмета) + &#FFD740элитры&#00E676!" + (cost > 0 ? " &7Списано: &b" + cost + " ❖" : "")));
+    }
+
     private void repairSingle(ItemStack it) {
         if (it == null || it.getType() == Material.AIR || !it.hasItemMeta()) return;
         ItemMeta m = it.getItemMeta();
@@ -2677,6 +2932,8 @@ public final class GuiManager {
             p.sendMessage(ColorUtil.c("&#00E676✔ Вы приобрели предмет за &b" + cost + " ❖&7!"));
         }
         if ("talismans".equals(reopenMenu)) openTalismansMenu(p);
+        else if ("orbs".equals(reopenMenu)) openOrbsMenu(p);
+        else if ("mega".equals(reopenMenu)) openMegaShop(p);
         else if ("armors".equals(reopenMenu)) openArmorsMenu(p);
         else if ("picks".equals(reopenMenu)) openPickaxesMenu(p);
         else if ("swords".equals(reopenMenu)) openSwordsMenu(p);

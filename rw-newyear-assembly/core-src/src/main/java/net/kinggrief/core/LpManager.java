@@ -99,7 +99,7 @@ public final class LpManager implements CommandExecutor, TabCompleter {
             return true;
         }
         if ("tracks".equals(sub)) {
-            s.sendMessage(ColorUtil.c("&#00E676&l[LP] Ветки повышений (Tracks v6.3.3):"));
+            s.sendMessage(ColorUtil.c("&#00E676&l[LP] Ветки повышений (Tracks v6.4.0):"));
             s.sendMessage(ColorUtil.c(" &e• donate: &7default → dragon → pegas → cobra → dracula → bunny → rabbit → vampire → tiger → god → imperator → king → sponsor"));
             s.sendMessage(ColorUtil.c(" &6• dkp: &7dhelper → dkp → dmoder → dstmoder → dglmoder → dmladmin → dadmin → opka → downer"));
             s.sendMessage(ColorUtil.c(" &a• kp: &7kp → helper → sthelper → mlmoder → moder → stmoder → glmoder → mladmin → admin → curator → techadmin → owner"));
@@ -466,7 +466,7 @@ public final class LpManager implements CommandExecutor, TabCompleter {
     }
 
     private void sendHelp(CommandSender s) {
-        s.sendMessage(ColorUtil.c("&#00E676&l⚡ КОМАНДЫ LUCKPERMS (СТРОГО ТОЛЬКО OWNER · v6.3.3):"));
+        s.sendMessage(ColorUtil.c("&#00E676&l⚡ КОМАНДЫ LUCKPERMS (СТРОГО ТОЛЬКО OWNER · v6.4.0):"));
         s.sendMessage(ColorUtil.c(" &#00E676/lp editor &7— Открыть Веб LP-Редактор (kinggrief.vercel.app/lp-editor)"));
         s.sendMessage(ColorUtil.c(" &#FFD740/lp gui &7— Открыть внутриигровое меню групп и прав"));
         s.sendMessage(ColorUtil.c(" &#FF5252/lp user <ник> permission clear &7— Снять ВСЕ права, звезду (*) и OP!"));

@@ -83,9 +83,9 @@ public final class ItemFactory {
 
     // ================= МЕНЮ СЕРВЕРА =================
     public static ItemStack menuStar() {
-        return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW v6.3.3 &#80D8FF❄ &7(ПКМ)",
+        return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW v6.4.0 &#80D8FF❄ &7(ПКМ)",
                 Arrays.asList(
-                        "&7Быстрый доступ ко всем системам v6.3.3:",
+                        "&7Быстрый доступ ко всем системам v6.4.0:",
                         "&f• Система Тиммейтов и Пати: &#00E676/tm <ник> &7(&f/friends&7, чат: &f/tc&7)",
                         "&f• Божья Аура (лечит всю тиму!) + 8 новых артефактов FT: &#00E5FF/shop",
                         "&f• Выход в выживание: &#00E676/rtp &7+ 12 Мечей: &#FF1744/swords &7+ 12 Кирок: &#FF5722/picks",
@@ -152,6 +152,42 @@ public final class ItemFactory {
                 Arrays.asList("&8Эксклюзивный Blender 3D Зимний Шар", "", "&7Когда в &fлевой руке&7:",
                         " &#FF5252• +6 ❤ Максимального Здоровья", " &#FF1744• Сила II", " &#40C4FF• Скорость II", " &#FF4081• Регенерация I"),
                 true, "shar_santy", "shar_santy", 1107);
+    }
+
+    // ============ v6.4.0: 4 НОВЫХ 3D ШАРА (включая КВАДРАТНЫЙ ШАР-КУБ!) ============
+    public static ItemStack sharKronosa() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#B388FF&l⏳ 3D Шар Хроноса [FT×RW]",
+                Arrays.asList("&8Blender Cycles 3D Анимированный Шар", "", "&7Когда в &fлевой руке&7:",
+                        " &#FFD740• Спешка III (копаешь в 3 раза быстрее!)", " &#40C4FF• Скорость I",
+                        " &#69F0AE• Прыгучесть I"),
+                true, "shar_kronosa", "shar_kronosa", 1109);
+    }
+
+    public static ItemStack sharGeliosa() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#FFB300&l🌞 3D Шар Гелиоса [FT×RW]",
+                Arrays.asList("&8Blender Cycles 3D Анимированный Шар", "", "&7Когда в &fлевой руке&7:",
+                        " &#FFD740• Огнестойкость I", " &#FFFFFF• Ночное зрение",
+                        " &#FFD740• Спешка I", " &#FF4081• Регенерация I"),
+                true, "shar_geliosa", "shar_geliosa", 1110);
+    }
+
+    public static ItemStack sharMorozko() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#7DD3FC&l❄ 3D Шар Морозко [Новогодний]",
+                Arrays.asList("&8Зимний Blender 3D Шар v6.4.0", "", "&7Когда в &fлевой руке&7:",
+                        " &#00E676• Сопротивление II", " &#FF4081• Регенерация I", " &#FF5252• Сила I",
+                        " &#80D8FF• Морозная аура: враги в радиусе 6 замерзают и тормозят"),
+                true, "shar_morozko", "shar_morozko", 1111);
+    }
+
+    public static ItemStack sharKvadrat() {
+        return make(Material.TOTEM_OF_UNDYING, 1, "&#FF4081&l◼ КВАДРАТНЫЙ ШАР-КУБ [МЕГА v6.4.0]",
+                Arrays.asList("&8Квадратный 3D Шар-Куб — топовый шар сервера", "",
+                        "&7Когда в &fлевой руке&7:",
+                        " &#FF5252• Сила II", " &#FFD740• Спешка II", " &#00E676• Сопротивление II",
+                        " &#FF4081• Регенерация I", " &#B388FF• Прыгучесть II", "",
+                        "&#FFD740◼ Форма: идеальный КУБ — шары квадратом!",
+                        "&#00E676🛡 Как и любой шар: спасает от смерти 1 раз (как тотем)"),
+                true, "shar_kvadrat", "shar_kvadrat", 1112);
     }
 
     // ================= 7 BLENDER 3D ТАЛИСМАНОВ =================
@@ -500,7 +536,7 @@ public final class ItemFactory {
     // ================= 8 НОВЫХ КОМАНДНЫХ И ТАКТИЧЕСКИХ АРТЕФАКТОВ v6.0 =================
     public static ItemStack teamTotem(int amt) {
         return make(Material.BEACON, amt, "&#00E676&l🛡 Тотем Командного Спасения [FT×RW]",
-                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — разворачивает щит спасения на &e6 сек &7(&b10 блоков&7):",
                         " &#00E676• Даёт ВАМ и ВСЕМ ТИММЕЙТАМ Сопротивление III + Огнестойкость!",
                         " &#FF80AB• Каждую секунду лечит всю тиму на +1.5❤",
@@ -511,7 +547,7 @@ public final class ItemFactory {
 
     public static ItemStack battleAdrenaline(int amt) {
         return make(Material.MAGMA_CREAM, amt, "&#FF6D00&l💉 Боевой Адреналин [Раш Тимы]",
-                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — заряжает &fВАС &7и &aВСЕХ ТИММЕЙТОВ &7в радиусе &e10 блоков&7:",
                         " &#00E5FF• Скорость III на 10 сек",
                         " &#FF1744• Сила II на 8 сек",
@@ -522,7 +558,7 @@ public final class ItemFactory {
 
     public static ItemStack swapOrb(int amt) {
         return make(Material.ENDER_EYE, amt, "&#D500F9&l🌀 Сфера Рокировки [Сваппер FT]",
-                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — бросок сферы рокировки (до &d28 блоков&7):",
                         " &#FF5252• Попал во ВРАГА — меняет вас местами + Замедление II и Слабость!",
                         " &#00E676• Попал в ТИММЕЙТА — вытаскивает его из замеса и даёт +4💛 обоим!",
@@ -532,7 +568,7 @@ public final class ItemFactory {
 
     public static ItemStack iceDome(int amt) {
         return make(Material.BLUE_ICE, amt, "&#40C4FF&l🧊 Ледяной Купол [Барьер 7×7]",
-                Arrays.asList("&8Защитный расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Защитный расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — мгновенно возводит вокруг вас и тиммейтов",
                         "&7броне-купол из &bПлотного Льда и Стекла 7×7 &7на &e12 сек",
                         "&7для безопасного отхила Чаркой и Божьей Аурой!",
@@ -542,7 +578,7 @@ public final class ItemFactory {
 
     public static ItemStack vampirePulse(int amt) {
         return make(Material.GHAST_TEAR, amt, "&#FF1744&l🩸 Импульс Крови Вампира [FT×RW]",
-                Arrays.asList("&8Атакующий расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Атакующий расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — высасывает по &c3❤ (6 HP) &7у каждого врага",
                         "&7в радиусе &c8 блоков &7и распределяет выпитую кровь",
                         "&7между &fвами &7и &aранеными тиммейтами &7рядом!",
@@ -552,7 +588,7 @@ public final class ItemFactory {
 
     public static ItemStack empShock(int amt) {
         return make(Material.PRISMARINE_SHARD, amt, "&#00E5FF&l⚡ ЭМИ-Разрядник [Анти-Щит & Анти-Элитры]",
-                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — электромагнитный взрыв в радиусе &b11 блоков&7:",
                         " &#FF1744• Сбивает полёт на Элитрах всем врагам в воздухе!",
                         " &#FFD740• Отключает Щиты врагам на 5 сек + Слабость I!",
@@ -563,7 +599,7 @@ public final class ItemFactory {
 
     public static ItemStack smokeBomb(int amt) {
         return make(Material.CHARCOAL, amt, "&#94A3B8&l💣 Дымовая Бомба Ниндзя [Инвиз Тимы]",
-                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.4.0", "",
                         "&7ПКМ — создаёт плотную дымовую завесу на &e6 сек&7:",
                         " &#FF5252• Ослепляет врагов внутри облака на 4 сек",
                         " &#00E676• Даёт ВАМ и ТИММЕЙТАМ Невидимость + Скорость II на 8 сек!",
@@ -573,7 +609,7 @@ public final class ItemFactory {
 
     public static ItemStack grapplingHook() {
         ItemStack it = make(Material.FISHING_ROD, 1, "&#F59E0B&l🧲 Крюк-Кошка [Гарпун FT]",
-                Arrays.asList("&8Тактический инструмент FunTime × ReallyWorld v6.3.3", "",
+                Arrays.asList("&8Тактический инструмент FunTime × ReallyWorld v6.4.0", "",
                         "&7Брось крюк и нажми ПКМ — мощно притягивает",
                         "&7тебя вперёд и вверх к точке зацепа!",
                         "&8Перезарядка: 5 сек. (Не разрушается, запрещён в кабинках)"),
@@ -1368,7 +1404,7 @@ public final class ItemFactory {
         String modelId = "armor_" + setKey + "_" + slot;
         String customId = "armor_" + setKey + "_" + slot;
         List<String> lore = Arrays.asList(
-                "&8Кастомная 3D Броня KINGGRIEF v6.3.3",
+                "&8Кастомная 3D Броня KINGGRIEF v6.4.0",
                 "",
                 "&7Бонус комплекта:",
                 bonusLine1,
@@ -1597,6 +1633,171 @@ public final class ItemFactory {
     }
 
     // ================= СБАЛАНСИРОВАННЫЕ КИТЫ v5.7 (DRAGON /FREE -> OWNER EXCLUSIVE!) =================
+    // ================= v6.4.0: 3 НОВЫХ ТОТЕМА С ЗАРЯДАМИ =================
+    public static ItemStack totemLedyanoy(int charges) {
+        int ch = Math.max(1, Math.min(3, charges));
+        ItemStack it = make(Material.TOTEM_OF_UNDYING, 1, "&#7DD3FC&l🧊 Тотем Ледяного Спасения [" + ch + "/3]",
+                Arrays.asList("&8Новый многоразовый тотем v6.4.0", "",
+                        "&7Осталось зарядов: &#00E676&l" + ch + " / 3",
+                        "&7При смертельном ударе:", " &#7DD3FC• Полное исцеление 20❤",
+                        " &#00E676• Сопротивление III + Поглощение IV (+8 Золотых ❤)",
+                        " &#80D8FF• Ледяной взрыв: враги в радиусе 7 замерзают и тормозят"),
+                true, "totem_ledyanoy", "totem_ledyanoy", 1250);
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(CHARGES_KEY, PersistentDataType.INTEGER, Integer.valueOf(ch));
+            it.setItemMeta(m);
+        }
+        return it;
+    }
+
+    public static ItemStack totemVoskresheniya(int charges) {
+        int ch = Math.max(1, Math.min(5, charges));
+        ItemStack it = make(Material.TOTEM_OF_UNDYING, 1, "&#FFD740&l✨ Тотем Воскрешения [" + ch + "/5]",
+                Arrays.asList("&8Легендарный тотем v6.4.0 — 5 зарядов!", "",
+                        "&7Осталось зарядов: &#00E676&l" + ch + " / 5",
+                        "&7При смертельном ударе:", " &#FFD740• Полное исцеление 20❤ + Поглощение VI (+12 Золотых ❤)",
+                        " &#FF4081• Регенерация III на 30 сек", " &#B388FF• Взрывная волна отбрасывает врагов",
+                        " &#00E676• +2 500$ и +5 Риликов за каждое воскрешение"),
+                true, "totem_voskresheniya", "totem_voskresheniya", 1251);
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(CHARGES_KEY, PersistentDataType.INTEGER, Integer.valueOf(ch));
+            it.setItemMeta(m);
+        }
+        return it;
+    }
+
+    public static ItemStack totemSanty(int charges) {
+        int ch = Math.max(1, Math.min(3, charges));
+        ItemStack it = make(Material.TOTEM_OF_UNDYING, 1, "&#FF4081&l🎅 Тотем Деда Мороза [" + ch + "/3]",
+                Arrays.asList("&8Новогодний тотем v6.4.0", "",
+                        "&7Осталось зарядов: &#00E676&l" + ch + " / 3",
+                        "&7При смертельном ударе:", " &#FF4081• Полное исцеление 20❤ + Сопротивление II",
+                        " &#FFD740• Дед Мороз рассыпает подарки: +5 000$ и +5 Снежинок ❄",
+                        " &#80D8FF• Снежная буря ослепляет врагов вокруг"),
+                true, "totem_santy", "totem_santy", 1252);
+        ItemMeta m = it.getItemMeta();
+        if (m != null) {
+            m.getPersistentDataContainer().set(CHARGES_KEY, PersistentDataType.INTEGER, Integer.valueOf(ch));
+            it.setItemMeta(m);
+        }
+        return it;
+    }
+
+    // ================= v6.4.0: ЛИНЕЙКА «МЕГА» =================
+    public static ItemStack megaHeal(int amt) {
+        return make(Material.GLISTERING_MELON_SLICE, Math.max(1, amt), "&#FF4081&l💗 МЕГА-ХИЛ [FT×RW]",
+                Arrays.asList("&8Мгновенный мега-хил v6.4.0 (ПКМ)", "",
+                        " &#FF4081• Мгновенно восстанавливает 100% ХП",
+                        " &#FFD740• +8 Золотых ❤ (Поглощение IV) на 60 сек",
+                        " &#00E676• Регенерация III на 20 сек", "&7Кулдаун: &f45 сек"),
+                true, "mega_heal", "mega_heal", 1300);
+    }
+
+    public static ItemStack megaBuff(int amt) {
+        return make(Material.NETHER_STAR, Math.max(1, amt), "&#FFD740&l⚡ МЕГА-БАФФ [FT×RW]",
+                Arrays.asList("&8Мега-геймплей v6.4.0 (ПКМ)", "",
+                        " &#FF5252• Сила III на 3 мин", " &#FFD740• Спешка III на 3 мин",
+                        " &#40C4FF• Скорость II + Прыгучесть II на 3 мин",
+                        " &#00E676• Регенерация II на 3 мин", "&7Кулдаун: &f90 сек"),
+                true, "mega_buff", "mega_buff", 1301);
+    }
+
+    public static ItemStack megaShield(int amt) {
+        return make(Material.HEART_OF_THE_SEA, Math.max(1, amt), "&#00E5FF&l🛡 МЕГА-ЩИТ [FT×RW]",
+                Arrays.asList("&8Мега-защита v6.4.0 (ПКМ)", "",
+                        " &#00E676• Сопротивление III на 60 сек (-60% урона)",
+                        " &#FFD740• Поглощение IV (+8 Золотых ❤) на 90 сек",
+                        " &#FF9100• Огнестойкость на 60 сек", "&7Кулдаун: &f60 сек"),
+                true, "mega_shield", "mega_shield", 1302);
+    }
+
+    // ================= v6.4.0: НОВЫЕ ЗАЧАРОВАНИЯ (СВИТКИ) =================
+    public static final String[] SCROLL_IDS = new String[]{"ice", "vampire", "blast", "smelt"};
+
+    public static int scrollIndex(String id) {
+        for (int i = 0; i < SCROLL_IDS.length; i++) if (SCROLL_IDS[i].equals(id)) return i;
+        return -1;
+    }
+
+    public static String scrollName(String id) {
+        if ("ice".equals(id)) return "&#7DD3FC&l❄ Свиток Зачарования: Ледяной Клинок";
+        if ("vampire".equals(id)) return "&#FF1744&l🩸 Свиток Зачарования: Вампиризм";
+        if ("blast".equals(id)) return "&#FF9100&l💥 Свиток Зачарования: Взрывной Удар";
+        if ("smelt".equals(id)) return "&#FFD740&l🔥 Свиток Зачарования: Авто-Плавка";
+        return "&#7DD3FC&l❄ Свиток Зачарования";
+    }
+
+    public static String scrollDesc(String id) {
+        if ("ice".equals(id)) return " &#7DD3FC• Жертва замерзает и получает Замедление II (урон от мороза)";
+        if ("vampire".equals(id)) return " &#FF1744• Вытягивает 1❤ у врага за каждый удар (×уровень)";
+        if ("blast".equals(id)) return " &#FF9100• Мини-взрыв: 2❤ урона врагам в радиусе 3 (×уровень)";
+        return " &#FFD740• Руда сразу плавится в слитки ×(1+уровень) — без печки!";
+    }
+
+    public static String scrollMark(String id) {
+        if ("ice".equals(id)) return "Ледяной Клинок";
+        if ("vampire".equals(id)) return "Вампиризм";
+        if ("blast".equals(id)) return "Взрывной Удар";
+        return "Авто-Плавка";
+    }
+
+    public static String romanLevel(int v) {
+        return v >= 3 ? "III" : (v == 2 ? "II" : "I");
+    }
+
+    public static ItemStack enchantScroll(String id) {
+        int idx = scrollIndex(id);
+        if (idx < 0) return null;
+        return make(Material.PAPER, 1, scrollName(id),
+                Arrays.asList("&8Новое зачарование v6.4.0 — свиток", "", scrollDesc(id), "",
+                        "&7Применение: &fсвиток — в ПРАВУЮ руку&7,",
+                        "&fмеч/инструмент — в ЛЕВУЮ руку&7 (off-hand),",
+                        "&7затем &fПКМ&7. Макс. уровень: &#FFD740III"),
+                true, "scroll_" + id, "scroll_" + id, 1400 + idx);
+    }
+
+    public static NamespacedKey enchKey(String id) {
+        return new NamespacedKey("kinggrief", "kg_ench_" + id);
+    }
+
+    /** v6.4.0: уровень кастомного зачарования на инструменте (0 = нет). */
+    public static int getToolEnchant(ItemStack tool, String id) {
+        if (tool == null || !tool.hasItemMeta() || id == null) return 0;
+        try {
+            ItemMeta m = tool.getItemMeta();
+            if (m == null) return 0;
+            Integer v = m.getPersistentDataContainer().get(enchKey(id), PersistentDataType.INTEGER);
+            return v == null ? 0 : v.intValue();
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    /** v6.4.0: применяет свиток к предмету. Возвращает новый уровень или -1 (нельзя применить). */
+    public static int applyScrollToTool(ItemStack tool, String id) {
+        if (tool == null || scrollIndex(id) < 0) return -1;
+        ItemMeta m = tool.getItemMeta();
+        if (m == null) return -1;
+        int cur = getToolEnchant(tool, id);
+        if (cur >= 3) return -1;
+        int next = cur + 1;
+        m.getPersistentDataContainer().set(enchKey(id), PersistentDataType.INTEGER, Integer.valueOf(next));
+        List<String> lore = (m.hasLore() && m.getLore() != null)
+                ? new ArrayList<String>(m.getLore()) : new ArrayList<String>();
+        String mark = scrollMark(id);
+        for (int i = lore.size() - 1; i >= 0; i--) {
+            String ln = lore.get(i);
+            if (ln != null && ln.contains(mark)) lore.remove(i);
+        }
+        lore.add("");
+        lore.add(ColorUtil.c("&#7DD3FC" + mark + " " + romanLevel(next)));
+        m.setLore(lore);
+        tool.setItemMeta(m);
+        return next;
+    }
+
     public static List<ItemStack> buildKitItems(String kitId) {
         String k = kitId == null ? "start" : kitId.toLowerCase();
         List<ItemStack> items = new ArrayList<ItemStack>();
@@ -1616,6 +1817,20 @@ public final class ItemFactory {
             items.add(talOwner(5));
             items.add(lootMagnet());
             items.add(sharSanty());
+            // v6.4.0: новые шары, тотемы, МЕГА-расходники и свитки зачарований!
+            items.add(sharKvadrat());
+            items.add(sharKronosa());
+            items.add(sharGeliosa());
+            items.add(sharMorozko());
+            items.add(totemVoskresheniya(5));
+            items.add(totemSanty(3));
+            items.add(megaHeal(32));
+            items.add(megaBuff(16));
+            items.add(megaShield(16));
+            items.add(enchantScroll("ice"));
+            items.add(enchantScroll("vampire"));
+            items.add(enchantScroll("blast"));
+            items.add(enchantScroll("smelt"));
             items.add(new ItemStack(Material.FIREWORK_ROCKET, 64));
             items.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 32));
             items.add(new ItemStack(Material.GOLDEN_APPLE, 64));
@@ -1641,7 +1856,7 @@ public final class ItemFactory {
                     new ItemStack(Material.NETHERITE_BLOCK, 16),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
             items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ и Тактики OWNER #2",
-                    Arrays.asList("&7Все 6 видов ТНТ + 8 новых командных артефактов v6.3.3!"),
+                    Arrays.asList("&7Все 6 видов ТНТ + 8 новых командных артефактов v6.4.0!"),
                     tntBlack(32), tntNuke(16), tntTier1(32),
                     tntFlash(32), tntCryo(32), tntMiner(32),
                     teamTotem(16), battleAdrenaline(16), swapOrb(16),
@@ -1659,7 +1874,7 @@ public final class ItemFactory {
                     new ItemStack(Material.DIAMOND_BLOCK, 64),
                     new ItemStack(Material.EMERALD_BLOCK, 64)));
             items.add(packedShulker(Material.PURPLE_SHULKER_BOX, "&#FF1744&l⚔ Полная Оружейная 12 Мечей OWNER #4",
-                    Arrays.asList("&7Все 12 кастомных 3D Мечей v6.3.3 + Коса Жнеца, Секира Тора и 4 3D Лука!"),
+                    Arrays.asList("&7Все 12 кастомных 3D Мечей v6.4.0 + Коса Жнеца, Секира Тора и 4 3D Лука!"),
                     swordOwner(), swordKrush(), swordDracula(),
                     swordFrost(), swordZeus(), swordKatana(),
                     swordWither(), swordVenom(), swordPhantom(),
@@ -1854,6 +2069,16 @@ public final class ItemFactory {
             items.add(new ItemStack(Material.ENDER_PEARL, 16));
             items.add(supreme ? sharSanty() : sharTitana());
             items.add(supreme ? talKaratelya() : talFeniksa(3));
+            // v6.4.0: КИТ TECH.ADMIN и КИТ HELPER получили новые шары, тотемы, МЕГА-расходники и свитки!
+            items.add(supreme ? sharKvadrat() : sharMorozko());
+            items.add(supreme ? sharKronosa() : sharGeliosa());
+            items.add(supreme ? totemVoskresheniya(3) : totemLedyanoy(2));
+            items.add(megaHeal(supreme ? 16 : 8));
+            items.add(megaBuff(supreme ? 8 : 4));
+            items.add(megaShield(supreme ? 8 : 4));
+            items.add(enchantScroll("ice"));
+            items.add(enchantScroll(supreme ? "blast" : "vampire"));
+            items.add(enchantScroll("smelt"));
             items.add(plast(16));
             items.add(trapka(10));
             items.add(dezorient(6));

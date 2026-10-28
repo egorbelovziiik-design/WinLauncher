@@ -509,7 +509,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             spawnEngine.initializeSpawnWorldAndBuild(true);
-            sender.sendMessage(ColorUtil.c("&#00E676✔ Яркий красочный спавн v6.3.3 успешно перестроен в мире spawn_world!"));
+            sender.sendMessage(ColorUtil.c("&#00E676✔ Яркий красочный спавн v6.4.0 успешно перестроен в мире spawn_world!"));
             return true;
         }
         if ("promoadmin".equals(c)) {
@@ -577,7 +577,7 @@ public final class KingGriefCore extends JavaPlugin {
             }
             store.registerPassword(p, args[0]);
             ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на KINGGRIEF v6.3.3!"), 5, 40, 10);
+            p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на KINGGRIEF v6.4.0!"), 5, 40, 10);
             p.sendMessage(ColorUtil.c("&#00E676✔ Регистрация успешна! Вам выдан Новогодний Кейс (/cases) и стартовый баланс!"));
             return true;
         }
@@ -857,6 +857,40 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("talismans".equals(c)) { guis.openTalismansMenu(p); return true; }
         if ("armors".equals(c)) { guis.openArmorsMenu(p); return true; }
+        // ================= v6.4.0: ШАРЫ КВАДРАТОМ, МЕГА-МАГАЗИН, МАНЕКЕН И СВИТКИ ЗАЧАРОВАНИЙ =================
+        if ("shars".equals(c) || "orbs".equals(c) || "shary".equals(c)) { guis.openOrbsMenu(p); return true; }
+        if ("mega".equals(c)) { guis.openMegaShop(p); return true; }
+        if ("maneken".equals(c) || "manekin".equals(c) || "mannequin".equals(c)) { guis.openMannequinMenu(p); return true; }
+        if ("scroll".equals(c) || "scrolls".equals(c) || "svitki".equals(c)) {
+            if (args.length < 1) {
+                p.sendMessage(ColorUtil.c("&#FFD740📜 &fСвитки НОВЫХ зачарований v6.4.0:"));
+                p.sendMessage(ColorUtil.c("&#40C4FF  /scroll ice &8— Ледяная Стужа (заморозка + Замедление)"));
+                p.sendMessage(ColorUtil.c("&#FF1744  /scroll vampire &8— Вампиризм (хил с урона)"));
+                p.sendMessage(ColorUtil.c("&#FF5722  /scroll blast &8— Взрыв (AOE урон + метка PvP)"));
+                p.sendMessage(ColorUtil.c("&#FFD740  /scroll smelt &8— Плавка (переплавка дропа)"));
+                p.sendMessage(ColorUtil.c("&#80D8FFКупить свитки: &f/mega &8или &f/shop&8. Применить: &fсвиток в правую руку, инструмент — в левую, ПКМ."));
+                return true;
+            }
+            String w = args[0].toLowerCase(Locale.ROOT);
+            if (ItemFactory.scrollIndex(w) < 0) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Нет такого свитка! Доступны: &fice, vampire, blast, smelt&8."));
+                return true;
+            }
+            if (!(ranks.isOwnerLevel(p) || ranks.getRank(p).weight >= 208)) {
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Выдавать свитки может только стафф (HELPER+). Купить: &f/mega"));
+                return true;
+            }
+            int cnt = 1;
+            if (args.length >= 2) { try { cnt = Math.max(1, Math.min(64, Integer.parseInt(args[1]))); } catch (Throwable ig) {} }
+            for (int i = 0; i < cnt; i++) {
+                java.util.Map<Integer, ItemStack> left = p.getInventory().addItem(ItemFactory.enchantScroll(w));
+                for (ItemStack rest : left.values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), rest);
+                }
+            }
+            p.sendMessage(ColorUtil.c("&#00E676📜 Выдано свитков: &f" + cnt + " &8(" + ItemFactory.scrollName(w) + "&8)"));
+            return true;
+        }
         if ("cc".equals(c)) {
             sendClanChat(p, args, 0);
             return true;
@@ -1640,7 +1674,7 @@ public final class KingGriefCore extends JavaPlugin {
             chunks += w.getLoadedChunks().length;
             entities += w.getEntities().size();
         }
-        s.sendMessage(ColorUtil.c("&#00E676&l⚡ ПРОИЗВОДИТЕЛЬНОСТЬ KINGGRIEF v6.3.3:"));
+        s.sendMessage(ColorUtil.c("&#00E676&l⚡ ПРОИЗВОДИТЕЛЬНОСТЬ KINGGRIEF v6.4.0:"));
         s.sendMessage(ColorUtil.c(" &7• TPS сервера: &#00E676" + spawnEngine.getCurrentTps() + " / 20.0"));
         s.sendMessage(ColorUtil.c(" &7• Память ОЗУ: &#FFD740" + usedMb + " МБ &7/ &f" + maxMb + " МБ"));
         s.sendMessage(ColorUtil.c(" &7• Чанки: &#80D8FF" + chunks + " &8│ &7Энтити во всех мирах: &f" + entities));
@@ -1850,7 +1884,7 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private void sendClanHelp(Player p) {
-        p.sendMessage(ColorUtil.c("&#B388FF&l╔══════════ 🛡 КОМАНДЫ КЛАНА KINGGRIEF v6.3.3 ══════════╗"));
+        p.sendMessage(ColorUtil.c("&#B388FF&l╔══════════ 🛡 КОМАНДЫ КЛАНА KINGGRIEF v6.4.0 ══════════╗"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan menu &7— Интерактивное меню клана и ТОП"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan create <тег> &7— Создать клан (&a25 000$&7)"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan invite <ник> &7— Пригласить игрока &a[Кнопки Принять/Отклонить]"));
@@ -2304,7 +2338,7 @@ public final class KingGriefCore extends JavaPlugin {
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("rebuildspawn".equals(sub)) {
             spawnEngine.initializeSpawnWorldAndBuild(true);
-            s.sendMessage(ColorUtil.c("&#00E676✔ Яркий Спавн v6.3.3 в мире spawn_world перестроен!"));
+            s.sendMessage(ColorUtil.c("&#00E676✔ Яркий Спавн v6.4.0 в мире spawn_world перестроен!"));
             return true;
         }
         if ("startboss".equals(sub)) {

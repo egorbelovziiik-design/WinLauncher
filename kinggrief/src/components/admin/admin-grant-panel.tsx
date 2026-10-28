@@ -519,8 +519,8 @@ export function AdminGrantPanel({
           <button type="button" onClick={pollStatus} className="btn btn-ghost btn-sm" title="Обновить статус очереди">
             <RefreshCw size={12} /> Статус
           </button>
-          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v6.0.1 (Божья Аура, /tm + /friends GUI + /tc, 8 Артефактов FT×RW, Киллстрики, /duel на деньги, Мост KingАЧ v8.1: /ac /kac /inject для состава и OP)">
-            <Download size={12} /> Ядро v6.0.1 (.jar)
+          <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v6.4.0 (МЕГА-ОБНОВА: кастомные кирки и молоты работают везде и в /warp mine, 12 Шаров квадратом 4×4 с реальными баффами в левой руке, новые зачарования-свитки /scroll, МЕГА-МАГАЗИН /mega с МЕГА-Хилом и 3 новыми тотемами, МАНЕКЕН /maneken с живой 3D-моделью брони и элитр, киты ТЕХ.АДМИН и ХЕЛПЕР, безопасный спавн и маленькие подарочки Санты, анти-лаг молния v6.3.3)">
+            <Download size={12} /> Ядро v6.4.0 (.jar)
           </a>
           <a href="/kinggrief-mega-rp.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v5.9 (115 3D Предметов, 12 Мечей, 12 Кирок)">
             <Download size={12} /> Мега-РП v5.9 (.zip)
