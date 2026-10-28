@@ -207,7 +207,7 @@ public final class HudManager {
         int activeBosses = plugin.getBossEvents() != null ? plugin.getBossEvents().getActiveEvents().size() : 0;
 
         String header = ColorUtil.c("\n" + HEADER_FRAMES[(effTick / 3) % HEADER_FRAMES.length]
-                + "\n&#B3E5FC❄ Новогодний Сезон v6.3.2 · Anti-Lag FT & RW Edition ❄\n");
+                + "\n&#B3E5FC❄ Новогодний Сезон v6.3.3 · Anti-Lag FT & RW Edition ❄\n");
         String footer = ColorUtil.c("\n&#80D8FFОнлайн: &#00E676" + online + "&8/&f" + max
                 + " &8| &#80D8FFПинг: &#FFD740" + ping + " мс"
                 + " &8| &#FF5252Ивентов: &#FFE082" + activeBosses + " &7(/events)"

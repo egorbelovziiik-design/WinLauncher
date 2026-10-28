@@ -120,7 +120,7 @@ public final class GuiManager {
     // ================= 1. ГЛАВНОЕ МЕНЮ (/menu) =================
     public void openMainMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("main", "", 0), 54,
-                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v6.3.2"));
+                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v6.3.3"));
         decorateFrame(inv);
         DataStore st = plugin.getStore();
         RankManager.RankDef r = plugin.getRanks().getRank(p);
@@ -195,9 +195,9 @@ public final class GuiManager {
                 "&7Добавь друзей в тиму без клана: &f/tm <ник>",
                 "&7Божья Аура лечит всю тиму + защита от урона!",
                 "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
-        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.3.2",
+        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.3.3",
                 "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
-                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.3.2"));
+                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.3.3"));
 
         if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
             inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
@@ -315,7 +315,7 @@ public final class GuiManager {
             String kid = kd[0];
             String kTitle = kd[1];
             Material mat = ColorUtil.mat(kd[2], "CHEST");
-            long cdSec = Long.parseLong(kd[3]);
+            long cdSec = ColorUtil.parseLong(kd[3], 21600L);
             boolean allowed = isOwnerViewer || plugin.getRanks().canClaimKit(p, kid);
             long readyAt = isOwnerViewer ? 0L : plugin.getStore().getKitReadyAt(p.getName(), kid);
             RankManager.RankDef reqDef = plugin.getRanks().byId(kid);
@@ -420,7 +420,7 @@ public final class GuiManager {
             }
             long cdSec = 21600L;
             for (String[] row : ALL_KITS) {
-                if (row[0].equals(k)) { cdSec = Long.parseLong(row[3]); break; }
+                if (row[0].equals(k)) { cdSec = ColorUtil.parseLong(row[3], cdSec); break; }
             }
             long now = System.currentTimeMillis();
             long ready = plugin.getStore().getKitReadyAt(sp.getName(), k);
@@ -494,12 +494,12 @@ public final class GuiManager {
         inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
         inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 18 3D Талисманов (/talismans)",
-                "&7Открой полный Алтарь Талисманов v6.3.2!"));
+                "&7Открой полный Алтарь Талисманов v6.3.3!"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня ×2, Луки и ТНТ (/armors)",
                 "&76 сетов брони с Закалкой ×2, Луки и ТНТ!"));
         inv.setItem(51, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ Оружейная 14 3D Мечей (/swords)",
-                "&7Открой все 14 кастомных 3D Мечей v6.3.2!"));
+                "&7Открой все 14 кастомных 3D Мечей v6.3.3!"));
         inv.setItem(52, shopTag(ItemFactory.swapOrb(4),        60));
         inv.setItem(53, shopTag(ItemFactory.grapplingHook(),   95));
         p.openInventory(inv);
@@ -514,7 +514,7 @@ public final class GuiManager {
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 12 кастомных 3D Кирок и Молотов v6.3.2!",
+                "&7Все 12 кастомных 3D Кирок и Молотов v6.3.3!",
                 "&7Подсказка: зажмите &eShift &7при копке для точного режима 1×1!"));
 
         // Row 1 & Row 2: ALL 12 CUSTOM 3D PICKAXES & HAMMERS!
@@ -565,7 +565,7 @@ public final class GuiManager {
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.3.2!",
+                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.3.3!",
                 "&7У каждого меча свой 3D-силуэт и боевая способность!"));
 
         inv.setItem(10, shopTag(ItemFactory.swordDracula(), 320));
@@ -1358,7 +1358,7 @@ public final class GuiManager {
         for (int i = 0; i < TITLES_CATALOG.length && i < slots.length; i++) {
             String[] t = TITLES_CATALOG[i];
             String tid = t[0], disp = t[1], desc = t[3];
-            int cost = Integer.parseInt(t[2]);
+            int cost = ColorUtil.parseInt(t[2], -1);
             boolean unlocked = cost == 0 || plugin.getStore().hasUnlockedTitle(p.getName(), tid);
             inv.setItem(slots[i], ItemFactory.make(unlocked ? Material.NAME_TAG : Material.PAPER, 1, disp,
                     Arrays.asList("&7" + desc, "",
@@ -1595,7 +1595,7 @@ public final class GuiManager {
     // ================= 12. АЛТАРЬ 17 КАСТОМНЫХ 3D ТАЛИСМАНОВ (/talismans) =================
     public void openTalismansMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("talismans", "", 0), 54,
-                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.3.2]"));
+                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.3.3]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
@@ -1647,7 +1647,7 @@ public final class GuiManager {
     // ================= 13. ОРУЖЕЙНАЯ 3D БРОНИ, ЛУКОВ И КАСТОМНЫХ ТНТ (/armors) =================
     public void openArmorsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("armors", "", 0), 54,
-                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.3.2]"));
+                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.3.3]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
@@ -1665,7 +1665,9 @@ public final class GuiManager {
         int[] setSlots = new int[]{10,11,12,13,14};
         for (int i = 0; i < sets.length; i++) {
             String sid = sets[i][0];
-            int cost = Integer.parseInt(sets[i][2]);
+            // v6.3.3: если цена в таблице битая — сет НЕ выставляется (и тем более не становится бесплатным).
+            int cost = ColorUtil.parseInt(sets[i][2], -1);
+            if (cost < 0) continue;
             ItemStack chest = ItemFactory.armorPiece(sid, 1);
             ItemMeta m = chest.getItemMeta();
             if (m != null) {
@@ -2411,7 +2413,7 @@ public final class GuiManager {
         String tid = cid.substring(6);
         for (String[] row : TITLES_CATALOG) {
             if (row[0].equals(tid)) {
-                int cost = Integer.parseInt(row[2]);
+                int cost = ColorUtil.parseInt(row[2], -1);
                 boolean unlocked = cost == 0 || plugin.getStore().hasUnlockedTitle(p.getName(), tid);
                 if (!unlocked) {
                     if (cost < 0) {
@@ -2437,7 +2439,8 @@ public final class GuiManager {
     private void handlePlaytimeReward(Player p, ItemStack clicked) {
         String rid = ItemFactory.getCustomId(clicked);
         if (rid == null || !rid.startsWith("pt_")) return;
-        int reqSec = Integer.parseInt(rid.substring(3));
+        int reqSec = ColorUtil.parseInt(rid.substring(3), -1);
+        if (reqSec <= 0) return; // v6.3.3: битый id предмета не выдаёт награду и не роняет клик
         if (plugin.getStore().hasClaimedPlayReward(p.getName(), rid)) return;
         if (plugin.getStore().getPlaySeconds(p.getName()) < reqSec) {
             p.sendMessage(ColorUtil.c("&cВы ещё не наиграли нужное время!"));
@@ -2741,13 +2744,21 @@ public final class GuiManager {
             return;
         }
         if (click == ClickType.RIGHT || click == ClickType.SHIFT_RIGHT) {
-            int rCost = Integer.parseInt(found[4]);
+            int rCost = ColorUtil.parseInt(found[4], -1);
+            if (rCost < 0) { // v6.3.3: битая цена = продажа запрещена (не бесплатно!)
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Ошибка цены в каталоге — продажа отключена."));
+                return;
+            }
             if (!plugin.getStore().takeRelics(p, rCost)) {
                 p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + rCost + " ❖"));
                 return;
             }
         } else {
-            int cCost = Integer.parseInt(found[3]);
+            int cCost = ColorUtil.parseInt(found[3], -1);
+            if (cCost < 0) { // v6.3.3: битая цена = продажа запрещена (не бесплатно!)
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Ошибка цены в каталоге — продажа отключена."));
+                return;
+            }
             if (!plugin.getStore().takeCoins(p.getName(), cCost)) {
                 p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cCost) + "$"));
                 return;
@@ -2790,13 +2801,21 @@ public final class GuiManager {
             return;
         }
         if (click == ClickType.RIGHT || click == ClickType.SHIFT_RIGHT) {
-            int rCost = Integer.parseInt(found[4]);
+            int rCost = ColorUtil.parseInt(found[4], -1);
+            if (rCost < 0) { // v6.3.3: битая цена = продажа запрещена (не бесплатно!)
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Ошибка цены в каталоге — продажа отключена."));
+                return;
+            }
             if (!plugin.getStore().takeRelics(p, rCost)) {
                 p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + rCost + " ❖"));
                 return;
             }
         } else {
-            int cCost = Integer.parseInt(found[3]);
+            int cCost = ColorUtil.parseInt(found[3], -1);
+            if (cCost < 0) { // v6.3.3: битая цена = продажа запрещена (не бесплатно!)
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Ошибка цены в каталоге — продажа отключена."));
+                return;
+            }
             if (!plugin.getStore().takeCoins(p.getName(), cCost)) {
                 p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cCost) + "$"));
                 return;

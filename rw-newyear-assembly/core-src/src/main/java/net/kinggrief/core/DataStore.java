@@ -221,15 +221,21 @@ public final class DataStore {
         ConfigurationSection as = yml.getConfigurationSection("auction");
         if (as != null) {
             for (String k : as.getKeys(false)) {
-                ItemStack it = as.getItemStack(k + ".item");
-                if (it == null) continue;
-                AuctionLot lot = new AuctionLot();
-                lot.id = Integer.parseInt(k);
-                lot.seller = as.getString(k + ".seller", "Server");
-                lot.price = as.getDouble(k + ".price", 1000.0);
-                lot.createdAt = as.getLong(k + ".time", System.currentTimeMillis());
-                lot.item = it;
-                auction.add(lot);
+                // v6.3.3: битый/нечисловой ключ или повреждённый предмет больше НЕ роняют загрузку
+                // всего аукциона (раньше NumberFormatException обрывал load целиком).
+                try {
+                    int lotId = ColorUtil.parseInt(k, -1);
+                    if (lotId < 0) continue;
+                    ItemStack it = as.getItemStack(k + ".item");
+                    if (it == null) continue;
+                    AuctionLot lot = new AuctionLot();
+                    lot.id = lotId;
+                    lot.seller = as.getString(k + ".seller", "Server");
+                    lot.price = as.getDouble(k + ".price", 1000.0);
+                    lot.createdAt = as.getLong(k + ".time", System.currentTimeMillis());
+                    lot.item = it;
+                    auction.add(lot);
+                } catch (Throwable ignored) {}
             }
         }
     }

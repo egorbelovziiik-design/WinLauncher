@@ -37,6 +37,26 @@ public final class ColorUtil {
 
     private ColorUtil() {}
 
+    /** v6.3.3: безопасный парсинг int из таблиц/конфигов — опечатка больше не роняет GUI и загрузку данных. */
+    public static int parseInt(String s, int def) {
+        if (s == null) return def;
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (Throwable t) {
+            return def;
+        }
+    }
+
+    /** v6.3.3: безопасный парсинг long (кулдауны китов, таймеры, цены из строк). */
+    public static long parseLong(String s, long def) {
+        if (s == null) return def;
+        try {
+            return Long.parseLong(s.trim());
+        } catch (Throwable t) {
+            return def;
+        }
+    }
+
     public static String c(String text) {
         if (text == null || text.isEmpty()) return "";
         Matcher matcher = HEX_PATTERN.matcher(text);

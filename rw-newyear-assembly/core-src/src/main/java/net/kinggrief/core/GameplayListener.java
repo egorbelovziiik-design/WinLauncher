@@ -394,7 +394,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.3.2 ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.3.3 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"
@@ -1044,7 +1044,13 @@ public final class GameplayListener implements Listener {
 
         // Установка Рудного Привата ReallyWorld
         if (cid != null && cid.startsWith("claim_")) {
-            int rad = Integer.parseInt(cid.substring(6));
+            // v6.3.3: безопасный парсинг радиуса — битый предмет не роняет обработку клика.
+            int rad = ColorUtil.parseInt(cid.substring(6), -1);
+            if (rad <= 0) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&#FF1744✖ Этот рудный приват повреждён — возьми новый в /shop."));
+                return;
+            }
             int max = plugin.getRanks().getRank(p).maxClaims;
             if (plugin.getStore().getClaimsOf(p.getName()).size() >= max) {
                 e.setCancelled(true);

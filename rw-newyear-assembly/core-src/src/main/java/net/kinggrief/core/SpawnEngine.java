@@ -278,7 +278,7 @@ public final class SpawnEngine {
 
         File marker = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok");
         if (forceRebuild || !marker.exists()) {
-            plugin.getLogger().info("[SpawnEngine v6.3.2] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
+            plugin.getLogger().info("[SpawnEngine v6.3.3] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
             boolean hadOldSpawn = new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
                     || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
@@ -385,7 +385,7 @@ public final class SpawnEngine {
         topHoloIds.clear();
         for (KabinkaState kb : kabinki) kb.statusStandId = null;
         if (removed > 0) {
-            plugin.getLogger().info("[SpawnEngine v6.3.2] Purged " + removed + " stale spawn entities (zero lag!).");
+            plugin.getLogger().info("[SpawnEngine v6.3.3] Purged " + removed + " stale spawn entities (zero lag!).");
         }
     }
 
@@ -416,7 +416,7 @@ public final class SpawnEngine {
     private void buildFromRleResource(World sw, String resourcePath) {
         InputStream raw = plugin.getClass().getResourceAsStream(resourcePath);
         if (raw == null) {
-            plugin.getLogger().severe("[SpawnEngine v6.3.2] Missing resource " + resourcePath + "!");
+            plugin.getLogger().severe("[SpawnEngine v6.3.3] Missing resource " + resourcePath + "!");
             return;
         }
         for (int cx = -9; cx <= 9; cx++) {
@@ -471,9 +471,9 @@ public final class SpawnEngine {
                 }
             }
             sw.setSpawnLocation(0, 100, 52);
-            plugin.getLogger().info("[SpawnEngine v6.3.2] High-FPS Spawn built cleanly (" + placed + " blocks).");
+            plugin.getLogger().info("[SpawnEngine v6.3.3] High-FPS Spawn built cleanly (" + placed + " blocks).");
         } catch (Exception e) {
-            plugin.getLogger().warning("[SpawnEngine v6.3.2] Error decoding spawn_v5.dat: " + e.getMessage());
+            plugin.getLogger().warning("[SpawnEngine v6.3.3] Error decoding spawn_v5.dat: " + e.getMessage());
         }
     }
 
@@ -536,7 +536,7 @@ public final class SpawnEngine {
         if (!staticHoloDefs.isEmpty()) return;
 
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
-                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v6.3.2 &#80D8FF&l❄\n"
+                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v6.3.3 &#80D8FF&l❄\n"
                 + "&#FF1744&l12 3D МЕЧЕЙ &8• &#FFD740&l12 КИРОК &8• &#00E676&lБРОНЯ ×2 &8• &#E040FB&lОКНА В ТРАПКАХ\n"
                 + "&fВыживание: &#00E676&l/rtp &8│ &f12 Мечей: &#FF1744&l/swords &8│ &f12 Кирок: &#FFD740&l/picks &8│ &fВарпы: &#38BDF8&l/warps"));
 
