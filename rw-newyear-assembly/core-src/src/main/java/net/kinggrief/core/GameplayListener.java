@@ -281,9 +281,8 @@ public final class GameplayListener implements Listener {
         if (!ip.isEmpty()) {
             plugin.getStore().recordPlayerIp(p.getName(), ip);
         }
-        if ("owner".equalsIgnoreCase(plugin.getRanks().getRankByName(p.getName()).id)) {
-            return;
-        }
+        // v6.2.1: БАН ПО НИКУ действует на ВСЕХ (даже OWNER-ранг) — иначе бан невозможно выдать!
+        boolean isOwnerRank = "owner".equalsIgnoreCase(plugin.getRanks().getRankByName(p.getName()).id);
         String ban = plugin.getStore().getActiveBanReason(p.getName());
         if (ban != null) {
             long remSec = plugin.getStore().getBanRemainingSec(p.getName());
@@ -292,7 +291,7 @@ public final class GameplayListener implements Listener {
             e.disallow(PlayerLoginEvent.Result.KICK_BANNED, plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
             return;
         }
-        if (!ip.isEmpty()) {
+        if (!ip.isEmpty() && !isOwnerRank) {
             String ipBan = plugin.getStore().getActiveIpBanReason(ip);
             if (ipBan != null) {
                 long remSec = plugin.getStore().getIpBanRemainingSec(ip);
@@ -309,15 +308,16 @@ public final class GameplayListener implements Listener {
     public void onJoin(final PlayerJoinEvent e) {
         final Player p = e.getPlayer();
         boolean isOwnerJoin = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        // v6.2.1: бан по нику кикает ВСЕХ (включая OWNER-ранг)!
+        String ban = plugin.getStore().getActiveBanReason(p.getName());
+        if (ban != null) {
+            long remSec = plugin.getStore().getBanRemainingSec(p.getName());
+            String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
+            String staff = plugin.getStore().getBanStaff(p.getName());
+            p.kickPlayer(plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
+            return;
+        }
         if (!isOwnerJoin) {
-            String ban = plugin.getStore().getActiveBanReason(p.getName());
-            if (ban != null) {
-                long remSec = plugin.getStore().getBanRemainingSec(p.getName());
-                String timeLabel = remSec < 0 ? "Навсегда" : ColorUtil.fmtTime(remSec);
-                String staff = plugin.getStore().getBanStaff(p.getName());
-                p.kickPlayer(plugin.getModeration().buildBanKickScreen(staff, timeLabel, ban));
-                return;
-            }
             String joinIp = plugin.getStore().getPlayerIp(p);
             String ipBan = plugin.getStore().getActiveIpBanReason(joinIp);
             if (ipBan != null) {
@@ -3825,7 +3825,8 @@ public final class GameplayListener implements Listener {
         Player p = e.getPlayer();
         RankManager.RankDef rk = plugin.getRanks().getRank(p);
         boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
-        if (isOwner) return;
+        // v6.2.1: TECH.ADMIN видит все команды как OWNER!
+        if (isOwner || (rk != null && "techadmin".equalsIgnoreCase(rk.id))) return;
         final boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
 
         boolean isCuratorPlus = rk != null && rk.weight >= 275;
@@ -3930,7 +3931,7 @@ public final class GameplayListener implements Listener {
         String baseCmd = bareCmd.contains(":") ? bareCmd.substring(bareCmd.lastIndexOf(':') + 1) : bareCmd;
 
         RankManager.RankDef rk = plugin.getRanks().getRank(p);
-        boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
+        boolean isOwner = rk != null && ("owner".equalsIgnoreCase(rk.id) || "techadmin".equalsIgnoreCase(rk.id));
         boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
         boolean lpAllowed = isTech && (isTechLpCommand(baseCmd)
                 || bareCmd.startsWith("luckperms:") || bareCmd.startsWith("kinggriefcore:lp"));

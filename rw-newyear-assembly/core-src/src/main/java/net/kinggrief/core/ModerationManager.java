@@ -192,7 +192,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         if (!(sender instanceof Player)) return true;
         Player staff = (Player) sender;
         RankManager.RankDef myRank = plugin.getRanks().getRank(staff);
-        if ("owner".equalsIgnoreCase(myRank.id)) return true;
+        // v6.2.1: TECH.ADMIN наказывает наравне с OWNER!
+        if ("owner".equalsIgnoreCase(myRank.id) || "techadmin".equalsIgnoreCase(myRank.id)) return true;
         RankManager.RankDef targetRank = plugin.getRanks().getRankByName(targetName);
         Player onTarget = Bukkit.getPlayerExact(targetName);
         if (onTarget != null) targetRank = plugin.getRanks().getRank(onTarget);
@@ -1571,6 +1572,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         if (center == null || center.getWorld() == null) return;
         final World w = center.getWorld();
         final UUID animKey = UUID.randomUUID();
+        // v6.2.1: ОБЯЗАТЕЛЬНО регистрируем карту блоков — иначе портал не уберётся!
+        activeBanAnimPortals.put(animKey, new HashMap<Block, BlockData>());
         final Location portalCenter = buildNewYearPortal(w, center.clone(), new Vector(0.0, 0.0, 1.0), animKey);
         Location santaStart = portalCenter != null ? portalCenter.clone() : center.clone().add(0.0, 0.0, -4.0);
         santaStart.setYaw(yawFacing(santaStart, center));

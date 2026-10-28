@@ -12,6 +12,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Arrow;
@@ -745,6 +746,38 @@ public final class SpawnEngine {
         }
     }
 
+    /** v6.2.1: ЖИВЫЕ NPC — смотрят на ближайшего игрока и периодически машут рукой! */
+    private void animateNpcs(World sw) {
+        try {
+            for (NpcDef nd : npcDefs) {
+                UUID bid = npcBodyMap.get(nd.id);
+                if (bid == null) continue;
+                Entity body = Bukkit.getEntity(bid);
+                if (body == null || !body.isValid() || body.isDead()) continue;
+                Location bl = body.getLocation();
+                Player nearest = null;
+                double best = 7.0 * 7.0;
+                for (Player pl : sw.getPlayers()) {
+                    try {
+                        double d = pl.getLocation().distanceSquared(bl);
+                        if (d < best) { best = d; nearest = pl; }
+                    } catch (Throwable ignored) {}
+                }
+                if (nearest != null) {
+                    Location look = bl.clone();
+                    double dx = nearest.getLocation().getX() - bl.getX();
+                    double dz = nearest.getLocation().getZ() - bl.getZ();
+                    look.setYaw((float) Math.toDegrees(Math.atan2(-dx, dz)));
+                    look.setPitch(0.0f);
+                    body.teleport(look);
+                    if (Math.random() < 0.06) {
+                        try { ((LivingEntity) body).swingMainHand(); } catch (Throwable ignored) {}
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+    }
+
     public void refreshTopLeaderboards(World sw) {
         StringBuilder sbRich = new StringBuilder("&#FFD740&l💰 ТОП-5 БОГАЧЕЙ СЕРВЕРА");
         List<Map.Entry<String, Double>> rich = plugin.getStore().getTopCoins(5);
@@ -846,15 +879,18 @@ public final class SpawnEngine {
         Entity curBody = curBodyId != null ? Bukkit.getEntity(curBodyId) : null;
         if (curBody == null || curBody.isDead() || !curBody.isValid()) {
             if (curBodyId != null) validSpawnEntities.remove(curBodyId);
-            ArmorStand as = (ArmorStand) sw.spawnEntity(loc, EntityType.ARMOR_STAND);
+            // v6.2.1: ЖИВАЯ МОДЕЛЬ NPC (скелет-база: нормальная поза, не горит на солнце в шлеме)!
+            Skeleton as = (Skeleton) sw.spawnEntity(loc, EntityType.SKELETON);
             as.setPersistent(false);
-            as.setBasePlate(false);
-            as.setArms(true);
-            as.setGravity(false);
-            as.setVisible(true);
+            try { as.setAI(false); } catch (Throwable ignored) {}
+            as.setGravity(true);
+            as.setSilent(true);
             as.setInvulnerable(true);
-            as.setCustomNameVisible(false);
+            as.setCanPickupItems(false);
             as.setRemoveWhenFarAway(false);
+            try { as.setCollidable(false); } catch (Throwable ignored) {}
+            try { as.setVisualFire(false); } catch (Throwable ignored) {}
+            as.setCustomNameVisible(false);
             as.addScoreboardTag("kg_npc");
             as.addScoreboardTag("kg_npc_body");
             as.addScoreboardTag(npcTag);
@@ -868,6 +904,12 @@ public final class SpawnEngine {
                 eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(30, 35, 45)));
                 if (nd.mainHand != null) eq.setItemInMainHand(nd.mainHand.clone());
                 if (nd.offHand != null) eq.setItemInOffHand(nd.offHand.clone());
+                eq.setHelmetDropChance(0.0f);
+                eq.setChestplateDropChance(0.0f);
+                eq.setLeggingsDropChance(0.0f);
+                eq.setBootsDropChance(0.0f);
+                eq.setItemInMainHandDropChance(0.0f);
+                eq.setItemInOffHandDropChance(0.0f);
             }
             npcBodyMap.put(nd.id, as.getUniqueId());
             validSpawnEntities.add(as.getUniqueId());
@@ -964,6 +1006,9 @@ public final class SpawnEngine {
                     if (tickCounter % 2 == 0) {
                         enforceStrictSingletonsOnSpawn(sw);
                     }
+                    if (tickCounter % 2 == 1) {
+                        animateNpcs(sw);
+                    }
                     if (tickCounter % 5 == 0) {
                         maintainMobFarm(sw);
                     }
@@ -1026,6 +1071,7 @@ public final class SpawnEngine {
                         cleaned++;
                     } else if (e instanceof Mob && !e.getScoreboardTags().contains("kg_event_boss")
                             && !e.getScoreboardTags().contains("kg_farm_mob")
+                            && !e.getScoreboardTags().contains("kg_npc")
                             && !e.getScoreboardTags().contains("kg_mod_anim") && e.getCustomName() == null) {
                         mobCountInChunk++;
                         if (mobCountInChunk > 18) {

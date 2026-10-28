@@ -1,5 +1,5 @@
 name: KingGriefCore
-version: 6.2.0
+version: 6.2.1
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
