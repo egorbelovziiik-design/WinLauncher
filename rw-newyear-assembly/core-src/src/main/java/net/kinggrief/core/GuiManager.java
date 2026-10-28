@@ -695,6 +695,9 @@ public final class GuiManager {
             items.add(ItemFactory.arrowVampire(24));                       costs.add(Integer.valueOf(14000));
             items.add(ItemFactory.arrowPoison(24));                        costs.add(Integer.valueOf(12000));
             items.add(ItemFactory.arrowAntiFly(16));                       costs.add(Integer.valueOf(22000));
+            items.add(ItemFactory.arrowThor(16));                          costs.add(Integer.valueOf(26000));
+            items.add(ItemFactory.arrowFrostNova(16));                     costs.add(Integer.valueOf(24000));
+            items.add(ItemFactory.arrowGold(16));                          costs.add(Integer.valueOf(20000));
             items.add(ItemFactory.bowIce());                               costs.add(Integer.valueOf(185000));
             items.add(ItemFactory.bowInferno());                           costs.add(Integer.valueOf(210000));
             items.add(ItemFactory.bowZeus());                              costs.add(Integer.valueOf(245000));
@@ -758,6 +761,11 @@ public final class GuiManager {
                 19,20,21,22,23,24,25,
                 28,29,30,31,32,33,34
         };
+        // v6.1.3: ЦЕНЫ В МАГАЗИНЕ ДОРОЖЕ (×1.6, округлено до 10)!
+        for (int ci = 0; ci < costs.size(); ci++) {
+            costs.set(ci, Integer.valueOf((int) (Math.round(costs.get(ci).intValue() * 1.6 / 10.0) * 10)));
+        }
+
         for (int i = 0; i < items.size() && i < slots.length; i++) {
             ItemStack tagged = coinShopTag(items.get(i), costs.get(i).intValue());
             ItemMeta m = tagged.getItemMeta();

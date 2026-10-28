@@ -1228,6 +1228,24 @@ public final class ItemFactory {
                 true, "arrow_anti_fly", "arrow_anti_fly", 1326);
     }
 
+    public static ItemStack arrowThor(int amt) {
+        return make(Material.ARROW, amt, "&#00E5FF&l⚡ 3D Стрела Тора",
+                Arrays.asList("&7Цепная молния: +4❤ и бьёт до 3 целей рядом!"),
+                true, "arrow_thor", "arrow_thor", 1327);
+    }
+
+    public static ItemStack arrowFrostNova(int amt) {
+        return make(Material.ARROW, amt, "&#80D8FF&l❄ 3D Стрела Морозной Новы",
+                Arrays.asList("&7Замораживает ВСЕХ врагов в радиусе 4 блоков!"),
+                true, "arrow_frostnova", "arrow_frostnova", 1328);
+    }
+
+    public static ItemStack arrowGold(int amt) {
+        return make(Material.ARROW, amt, "&#FFD740&l💰 3D Золотая Стрела",
+                Arrays.asList("&7Крадёт до 150$ у игрока-врага (с моба +150$)!"),
+                true, "arrow_gold", "arrow_gold", 1329);
+    }
+
     // ================= 6 РАЗНОВИДНОСТЕЙ 3D КАСТОМНОГО ТНТ ДЛЯ РЕЙДОВ =================
     public static ItemStack tntTier1(int amt) {
         return make(Material.TNT, amt, "&#EF4444&l🧨 3D ТНТ TIER-II [Усиленный ×2]",

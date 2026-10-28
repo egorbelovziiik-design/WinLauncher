@@ -926,6 +926,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     sLoc.setYaw(yawFacing(sLoc, vNow));
                     sLoc.setPitch(0.0f);
                     sLoc.setY(groundYAt(w, sLoc.getX(), sLoc.getY(), sLoc.getZ()));
+                    sLoc.setY(sLoc.getY() + Math.sin(ticks * 0.35) * 0.03);
                     santa.teleport(sLoc);
 
                     // v6.1: живая моделька сама шагает — машем рукой со скотчем!
@@ -942,6 +943,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     if (ticks % 7 == 0) {
                         w.playSound(sLoc, "minecraft:block.snow.step", 0.9f, 0.95f);
                     }
+                    if (ticks % 20 == 0) {
+                        w.playSound(sLoc, "minecraft:block.bell.use", 0.5f, 1.4f);
+                    }
                     ColorUtil.actionBar(victim, "&#FF5252🎅 Дед Мороз подходит с рулоном скотча... &8[&e" + timeLabel + "&8]");
                 }
                 // =====================================================================
@@ -956,6 +960,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     // v6.1: Дед Мороз шлепает скотчем по рту живыми взмахами руки (3D-модель)!
                     if (ticks % 5 == 0 || ticks == 45 || ticks == 57 || ticks == 68) {
                         try { santa.swingMainHand(); } catch (Throwable ignored) {}
+                        w.spawnParticle(Particle.CRIT, vNow.clone().add(0.0, 1.45, 0.0), 8, 0.18, 0.12, 0.18, 0.04);
+                        w.playSound(vNow, "minecraft:block.wool.place", 0.8f, 1.2f);
                     }
 
                     if (speechBubble.isValid()) {
@@ -1167,10 +1173,12 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                             step.setYaw(yawFacing(step, victim.getLocation()));
                             step.setPitch(0.0f);
                             step.setY(groundYAt(w, step.getX(), sLoc.getY(), step.getZ()));
+                            step.setY(step.getY() + Math.sin(ticks * 0.35) * 0.03);
                             santa.teleport(step);
                             if (ticks % 4 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
                             if (ticks % 3 == 0) w.spawnParticle(Particle.SNOWFLAKE, step.clone().add(0.0, 0.22, 0.0), 3, 0.22, 0.08, 0.22, 0.01);
                             if (ticks % 6 == 0) w.playSound(step, "minecraft:block.snow.step", 0.9f, 0.95f);
+                            if (ticks % 5 == 0) w.spawnParticle(Particle.FIREWORK, step.clone().add(0.45, 1.35, 0.0), 2, 0.08, 0.18, 0.08, 0.02);
                             ColorUtil.actionBar(victim, "&#FF5252🎅 Дед Мороз идёт к вам... &8[&f"
                                     + String.format(Locale.US, "%.0f", Double.valueOf(dist)) + " блоков&8]");
                         } else {
@@ -1211,6 +1219,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                             step.setYaw(yawFacing(step, portalCenter));
                             step.setPitch(0.0f);
                             step.setY(groundYAt(w, step.getX(), sLoc.getY(), step.getZ()));
+                            step.setY(step.getY() + Math.sin(ticks * 0.35) * 0.03);
                             santa.teleport(step);
                             if (sack != null && sack.isValid()) {
                                 Vector face = step.getDirection().setY(0.0);
@@ -1318,6 +1327,15 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 w.playSound(fx, "minecraft:entity.firework.rocket.blast", 1.2f, 0.9f);
                 w.playSound(fx, "minecraft:block.bell.use", 1.6f, 1.1f);
                 w.playSound(fx, "minecraft:block.portal.travel", 1.2f, 1.25f);
+                try { spawnBanFireworkBurst(fx.clone().add(0.0, 1.6, 0.0)); } catch (Throwable ignored) {}
+                for (Player near : w.getPlayers()) {
+                    try {
+                        if (near.getLocation().distanceSquared(fx) <= 48.0 * 48.0) {
+                            near.sendTitle(ColorUtil.c("&#FF1744&l🎅 " + victim.getName() + " УНЕСЁН В ПОРТАЛ!"),
+                                    ColorUtil.c("&7Бан: &e" + timeLabel + " &8│ &7Модератор: &e" + staffName), 3, 40, 8);
+                        }
+                    } catch (Throwable ignored) {}
+                }
                 victim.sendTitle(
                         ColorUtil.c("&#A855F7&l🌀 УНЕСЁН В НОВОГОДНИЙ ПОРТАЛ!"),
                         ColorUtil.c("&#FF1744🎅 Дед Мороз забрал вас на &#FFD740" + timeLabel),

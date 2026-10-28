@@ -38,6 +38,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityResurrectEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
@@ -2318,6 +2319,26 @@ public final class GameplayListener implements Listener {
         }
     }
 
+    /**
+     * v6.1.3: ТОЧНЫЙ детект стрелы по ФАКТИЧЕСКИ израсходованному стаку (getConsumable) —
+     * эффекты вешаются ровно на ту стрелу, которой выстрелили (и на лук)!
+     */
+    @EventHandler
+    public void onBowShootConsume(EntityShootBowEvent e) {
+        try {
+            if (!(e.getEntity() instanceof Player)) return;
+            if (!(e.getProjectile() instanceof Arrow)) return;
+            String cid = ItemFactory.getCustomId(e.getConsumable());
+            if (cid != null && cid.startsWith("arrow_")) {
+                e.getProjectile().getPersistentDataContainer().set(PROJ_ARROW_KEY, PersistentDataType.STRING, cid);
+            }
+            String bid = ItemFactory.getCustomId(e.getBow());
+            if (bid != null && bid.startsWith("bow_")) {
+                e.getProjectile().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, bid);
+            }
+        } catch (Throwable ignored) {}
+    }
+
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent e) {
         String ptype = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
@@ -2407,7 +2428,8 @@ public final class GameplayListener implements Listener {
         // v6.1: 3D-СТРЕЛЫ РАБОТАЮТ ПРИ ПОПАДАНИИ В БЛОК (настоящие эффекты в точке удара!)
         Location hitLoc = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0.5, 1.0, 0.5)
                 : (e.getHitEntity() != null ? e.getHitEntity().getLocation() : e.getEntity().getLocation());
-        boolean hitFxAllowed = !plugin.getSpawnEngine().isInSpawnWorld(hitLoc) || plugin.getSpawnEngine().isInsidePvpZone(hitLoc);
+        // v6.1.3: стрелы РАБОТАЮТ ВЕЗДЕ (спавн, фармилка, выживание) — запрет только в кабинках!
+        boolean hitFxAllowed = !plugin.getSpawnEngine().isInsideAnyKabinka(hitLoc);
         if (atype != null && hitFxAllowed) {
             if ("arrow_explosive".equals(atype)) {
                 final Location fLoc = hitLoc;
@@ -3339,6 +3361,60 @@ public final class GameplayListener implements Listener {
             if (victim instanceof Player) {
                 ((Player) victim).sendMessage(ColorUtil.c("&#A855F7⛓ Анти-Флай Стрела ПВО сбила ваш полёт!"));
             }
+        }
+        if ("arrow_thor".equals(aTag)) {
+            // v6.1.3: СТРЕЛА ТОРА — цепная молния до 3 целей рядом!
+            vl.getWorld().strikeLightningEffect(vl);
+            e.setDamage(e.getDamage() + 8.0);
+            int chained = 0;
+            for (Entity en : vl.getWorld().getNearbyEntities(vl, 6.0, 4.0, 6.0)) {
+                if (chained >= 3) break;
+                if (en.equals(victim) || !(en instanceof LivingEntity)) continue;
+                if (en instanceof Player && !isEnemyTarget(attacker, (Player) en)) continue;
+                Location cl = en.getLocation();
+                cl.getWorld().strikeLightningEffect(cl);
+                try { ((LivingEntity) en).damage(4.0, attacker); } catch (Throwable ignored) {}
+                chained++;
+            }
+            vl.getWorld().playSound(vl, "minecraft:entity.lightning_bolt.thunder", 0.9f, 1.1f);
+            ColorUtil.actionBar(attacker, "&#00E5FF⚡ СТРЕЛА ТОРА: +4❤ и цепная молния по " + chained + " целям!");
+        }
+        if ("arrow_frostnova".equals(aTag)) {
+            // v6.1.3: МОРОЗНАЯ НОВА — заморозка всех врагов вокруг точки попадания!
+            victim.setFreezeTicks(240);
+            ColorUtil.addPot(victim, "slowness", "SLOW", 140, 4);
+            int frozen = 0;
+            for (Entity en : vl.getWorld().getNearbyEntities(vl, 4.0, 3.0, 4.0)) {
+                if (en.equals(victim) || !(en instanceof LivingEntity)) continue;
+                if (en instanceof Player && !isEnemyTarget(attacker, (Player) en)) continue;
+                LivingEntity le = (LivingEntity) en;
+                le.setFreezeTicks(200);
+                ColorUtil.addPot(le, "slowness", "SLOW", 120, 3);
+                frozen++;
+            }
+            vl.getWorld().spawnParticle(Particle.SNOWFLAKE, vl.clone().add(0, 1.0, 0), 60, 1.2, 0.8, 1.2, 0.05);
+            vl.getWorld().playSound(vl, "minecraft:block.glass.break", 1.0f, 0.8f);
+            ColorUtil.actionBar(attacker, "&#80D8FF❄ МОРОЗНАЯ НОВА: заморожено врагов: " + (frozen + 1) + "!");
+        }
+        if ("arrow_gold".equals(aTag)) {
+            // v6.1.3: ЗОЛОТАЯ СТРЕЛА — крадёт монеты у врага (с моба — бонус)!
+            double steal = 0.0;
+            if (victim instanceof Player) {
+                Player vp = (Player) victim;
+                steal = Math.min(150.0, plugin.getStore().getCoins(vp.getName()));
+                if (steal > 0.0) {
+                    plugin.getStore().takeCoins(vp.getName(), steal);
+                    plugin.getStore().addCoins(attacker.getName(), steal);
+                    vp.sendMessage(ColorUtil.c("&#FFD740💰 Золотая стрела " + attacker.getName() + " украла у вас &c"
+                            + String.format(java.util.Locale.US, "%.0f", Double.valueOf(steal)) + "$&7!"));
+                }
+            } else {
+                steal = 150.0;
+                plugin.getStore().addCoins(attacker.getName(), steal);
+            }
+            vl.getWorld().spawnParticle(Particle.ITEM, vl.clone().add(0, 1.0, 0), 20, 0.4, 0.5, 0.4, 0.05, new ItemStack(Material.GOLD_NUGGET));
+            vl.getWorld().playSound(vl, "minecraft:entity.experience_orb.pickup", 1.0f, 0.9f);
+            ColorUtil.actionBar(attacker, "&#FFD740💰 ЗОЛОТАЯ СТРЕЛА: +" + String.format(java.util.Locale.US, "%.0f", Double.valueOf(steal)) + "$ с врага!");
         }
     }
 
