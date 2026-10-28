@@ -824,6 +824,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         Player unmutedOnline = Bukkit.getPlayerExact(args[0]);
         if (unmutedOnline != null) {
             cleanupMuteAnimationFor(unmutedOnline.getUniqueId());
+            // v6.1.4: АНИМАЦИЯ РАЗМУТА — Дед Мороз срезает скотч ножницами!
+            playSantaUnmuteAnimation(unmutedOnline, sender.getName());
         }
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔊 Модератор &f" + sender.getName() + " &#00E676снял мут с игрока &f" + args[0] + "&#00E676."));
         return true;
@@ -1377,7 +1379,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 if (eq != null) {
                     eq.setChestplate(dyedLeather(Material.LEATHER_CHESTPLATE, Color.fromRGB(112, 66, 32)));
                     eq.setLeggings(dyedLeather(Material.LEATHER_LEGGINGS, Color.fromRGB(96, 56, 26)));
-                    eq.setHelmet(victimHeadItem(victim));
+                    eq.setHelmet(victim != null ? victimHeadItem(victim)
+                            : dyedLeather(Material.LEATHER_HELMET, Color.fromRGB(96, 56, 26)));
                     eq.setChestplateDropChance(0.0f);
                     eq.setLeggingsDropChance(0.0f);
                     eq.setHelmetDropChance(0.0f);
@@ -1460,6 +1463,225 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             }
         } catch (Throwable ignored) {}
         return y;
+    }
+
+    /**
+     * v6.1.4: АНИМАЦИЯ РАЗМУТА — Дед Мороз приходит, НОЖНИЦАМИ срезает скотч (ЩЁЛК-ЩЁЛК-ЩЁЛК),
+     * отклеивает его с лица (серебристые частички) и уходит под звон колокольчика!
+     */
+    public void playSantaUnmuteAnimation(final Player victim, final String staffName) {
+        if (victim == null || !victim.isOnline() || victim.getWorld() == null) return;
+        final UUID victimId = victim.getUniqueId();
+        cleanupMuteAnimationFor(victimId);
+        final World w = victim.getWorld();
+        Vector fwd = victim.getLocation().getDirection().setY(0.0);
+        if (fwd.lengthSquared() < 0.001) fwd = new Vector(0.0, 0.0, 1.0);
+        fwd.normalize();
+        Location spawnLoc = victim.getLocation().clone().add(fwd.multiply(5.5));
+        spawnLoc.setYaw(yawFacing(spawnLoc, victim.getLocation()));
+        spawnLoc.setPitch(0.0f);
+        spawnLoc.setY(groundYAt(w, spawnLoc.getX(), spawnLoc.getY(), spawnLoc.getZ()));
+        final List<Entity> ents = new ArrayList<Entity>();
+        activeMuteAnimEntities.put(victimId, ents);
+        final Skeleton santa;
+        try {
+            santa = spawnSantaModel(w, spawnLoc, "tape");
+            ents.add(santa);
+        } catch (Throwable ex) {
+            return;
+        }
+        w.spawnParticle(Particle.SNOWFLAKE, spawnLoc.clone().add(0.0, 1.2, 0.0), 40, 0.6, 1.0, 0.6, 0.05);
+        w.playSound(spawnLoc, "minecraft:block.bell.use", 1.5f, 1.0f);
+        victim.sendTitle(ColorUtil.c("&#00E676&l🎅 ДЕД МОРОЗ ИДЁТ ОТКЛЕИВАТЬ РОТ!"),
+                ColorUtil.c("&7Модератор: &e" + staffName), 2, 50, 8);
+        BukkitRunnable task = new BukkitRunnable() {
+            int ticks = 0;
+            @Override
+            public void run() {
+                try {
+                    ticks++;
+                    if (!victim.isOnline() || ticks > 120 || !santa.isValid()) { finish(); return; }
+                    if (ticks <= 30) {
+                        Location sLoc = santa.getLocation();
+                        Vector toV = victim.getLocation().toVector().subtract(sLoc.toVector()).setY(0.0);
+                        double dist = toV.length();
+                        if (dist > 1.1) {
+                            Location step = sLoc.clone().add(toV.normalize().multiply(0.34));
+                            step.setYaw(yawFacing(step, victim.getLocation()));
+                            step.setPitch(0.0f);
+                            step.setY(groundYAt(w, step.getX(), sLoc.getY(), step.getZ()));
+                            step.setY(step.getY() + Math.sin(ticks * 0.35) * 0.03);
+                            santa.teleport(step);
+                            if (ticks % 4 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
+                            if (ticks % 6 == 0) w.playSound(step, "minecraft:block.snow.step", 0.9f, 0.95f);
+                        }
+                    } else if (ticks <= 60) {
+                        if (ticks == 32 || ticks == 44 || ticks == 56) {
+                            try { santa.swingMainHand(); } catch (Throwable ignored) {}
+                            w.playSound(victim.getLocation(), "minecraft:entity.sheep.shear", 1.2f, 1.1f);
+                            w.spawnParticle(Particle.CRIT, victim.getLocation().clone().add(0.0, 1.5, 0.0), 10, 0.2, 0.15, 0.2, 0.05);
+                            ColorUtil.actionBar(victim, "&#CFD8DC✂ ЩЁЛК! Ножницы Деда Мороза режут скотч...");
+                        }
+                        if (ticks == 58) {
+                            w.spawnParticle(Particle.ITEM, victim.getLocation().clone().add(0.0, 1.5, 0.0), 24, 0.3, 0.25, 0.3, 0.08, new ItemStack(Material.IRON_INGOT));
+                            w.playSound(victim.getLocation(), "minecraft:block.wool.break", 1.0f, 1.2f);
+                        }
+                    } else if (ticks <= 80) {
+                        if (ticks == 62) {
+                            victim.sendTitle(ColorUtil.c("&#00E676&l🔊 РОТ ОТКЛЕЕН!"),
+                                    ColorUtil.c("&fДед Мороз снял скотч — говори свободно!"), 2, 40, 8);
+                            for (Player near : w.getPlayers()) {
+                                try {
+                                    if (near.getLocation().distanceSquared(victim.getLocation()) <= 64.0 * 64.0) {
+                                        near.sendMessage(ColorUtil.c("&#00E676🎅 [ДЕД МОРОЗ] &fОтклеил рот &a" + victim.getName() + "&f! Скотч снят."));
+                                    }
+                                } catch (Throwable ignored) {}
+                            }
+                        }
+                        if (ticks % 6 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
+                    } else {
+                        w.spawnParticle(Particle.POOF, santa.getLocation().clone().add(0.0, 1.0, 0.0), 24, 0.4, 0.6, 0.4, 0.04);
+                        w.spawnParticle(Particle.SNOWFLAKE, santa.getLocation().clone().add(0.0, 1.0, 0.0), 30, 0.5, 0.8, 0.5, 0.03);
+                        w.playSound(santa.getLocation(), "minecraft:block.bell.use", 1.0f, 1.3f);
+                        finish();
+                    }
+                } catch (Throwable ex) { finish(); }
+            }
+            void finish() {
+                for (Entity en : ents) { try { en.remove(); } catch (Throwable ignored) {} }
+                activeMuteAnimEntities.remove(victimId);
+                try { cancel(); } catch (Throwable ignored) {}
+            }
+        };
+        activeMuteAnimTasks.put(victimId, task);
+        task.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /**
+     * v6.1.4: АНИМАЦИЯ РАЗБАНА — из НОВОГОДНЕГО портала выходит Дед Мороз с мешком, ставит мешок,
+     * РАЗВЯЗЫВАЕТ его и выпускает нарушителя на свободу (фейерверк + снежинки), портал исчезает!
+     */
+    public void playSantaUnbanAnimation(Location center, final String freedNick, final String staffName, final Player onlineVictim) {
+        if (center == null || center.getWorld() == null) return;
+        final World w = center.getWorld();
+        final UUID animKey = UUID.randomUUID();
+        final Location portalCenter = buildNewYearPortal(w, center.clone(), new Vector(0.0, 0.0, 1.0), animKey);
+        Location santaStart = portalCenter != null ? portalCenter.clone() : center.clone().add(0.0, 0.0, -4.0);
+        santaStart.setYaw(yawFacing(santaStart, center));
+        santaStart.setPitch(0.0f);
+        final Skeleton santa;
+        final ArmorStand sack;
+        final List<Entity> ents = new ArrayList<Entity>();
+        try {
+            santa = spawnSantaModel(w, santaStart, "staff");
+            ents.add(santa);
+            sack = spawnSackModel(w, santaStart.clone().add(0.0, 0.35, 0.0), onlineVictim);
+            ents.add(sack);
+        } catch (Throwable ex) {
+            for (Entity en : ents) { try { en.remove(); } catch (Throwable ignored) {} }
+            return;
+        }
+        w.spawnParticle(Particle.PORTAL, santaStart.clone().add(0.0, 1.0, 0.0), 50, 0.5, 1.0, 0.5, 0.3);
+        w.playSound(santaStart, "minecraft:block.bell.use", 1.6f, 1.0f);
+        w.playSound(santaStart, "minecraft:block.portal.travel", 0.9f, 1.2f);
+        BukkitRunnable task = new BukkitRunnable() {
+            int ticks = 0;
+            boolean done = false;
+            @Override
+            public void run() {
+                try {
+                    ticks++;
+                    if (done) return;
+                    if (ticks > 140 || !santa.isValid()) { finishAll(); return; }
+                    if (ticks <= 30) {
+                        // Дед Мороз выходит из портала, неся мешок с освобождённым!
+                        Location sLoc = santa.getLocation();
+                        Vector toC = center.toVector().subtract(sLoc.toVector()).setY(0.0);
+                        double dist = toC.length();
+                        if (dist > 1.3) {
+                            Location step = sLoc.clone().add(toC.normalize().multiply(0.36));
+                            step.setYaw(yawFacing(step, center));
+                            step.setPitch(0.0f);
+                            step.setY(groundYAt(w, step.getX(), sLoc.getY(), step.getZ()));
+                            step.setY(step.getY() + Math.sin(ticks * 0.35) * 0.03);
+                            santa.teleport(step);
+                            if (sack.isValid()) {
+                                Vector face = step.getDirection().setY(0.0);
+                                if (face.lengthSquared() < 0.001) face = new Vector(0.0, 0.0, 1.0);
+                                Location sl = step.clone().add(face.normalize().multiply(0.62));
+                                sl.setY(step.getY() + 0.35 + Math.sin(ticks * 0.25) * 0.06);
+                                sl.setYaw(step.getYaw());
+                                sl.setPitch(10.0f);
+                                sack.teleport(sl);
+                            }
+                            if (ticks % 4 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
+                            if (ticks % 6 == 0) w.playSound(step, "minecraft:block.snow.step", 0.9f, 0.95f);
+                        }
+                    } else if (ticks <= 52) {
+                        if (ticks == 32 && sack.isValid()) {
+                            Location gl = center.clone();
+                            gl.setY(groundYAt(w, gl.getX(), gl.getY(), gl.getZ()));
+                            sack.teleport(gl);
+                        }
+                        if (ticks == 36 || ticks == 44) {
+                            try { santa.swingMainHand(); } catch (Throwable ignored) {}
+                            w.playSound(center, "minecraft:block.wool.break", 1.0f, 1.0f);
+                            w.spawnParticle(Particle.CRIT, center.clone().add(0.0, 0.9, 0.0), 10, 0.3, 0.3, 0.3, 0.05);
+                        }
+                        if (ticks == 50) {
+                            // МЕШОК РАЗВЯЗАН — нарушитель СВОБОДЕН!
+                            if (sack.isValid()) { try { sack.remove(); } catch (Throwable ignored) {} }
+                            w.spawnParticle(Particle.POOF, center.clone().add(0.0, 0.9, 0.0), 30, 0.45, 0.6, 0.45, 0.05);
+                            w.spawnParticle(Particle.SNOWFLAKE, center.clone().add(0.0, 1.2, 0.0), 50, 0.8, 1.0, 0.8, 0.04);
+                            w.spawnParticle(Particle.FIREWORK, center.clone().add(0.0, 1.4, 0.0), 40, 0.5, 0.8, 0.5, 0.3);
+                            w.playSound(center, "minecraft:entity.firework.rocket.blast", 1.1f, 1.0f);
+                            w.playSound(center, "minecraft:block.bell.use", 1.5f, 1.2f);
+                            try { spawnBanFireworkBurst(center.clone().add(0.0, 1.6, 0.0)); } catch (Throwable ignored) {}
+                            for (Player near : w.getPlayers()) {
+                                try {
+                                    if (near.getLocation().distanceSquared(center) <= 64.0 * 64.0) {
+                                        near.sendTitle(ColorUtil.c("&#00E676&l🎅 " + freedNick + " ОТПУЩЕН НА СВОБОДУ!"),
+                                                ColorUtil.c("&7Дед Мороз развязал мешок. Модератор: &e" + staffName), 3, 44, 8);
+                                    }
+                                } catch (Throwable ignored) {}
+                            }
+                            if (onlineVictim != null && onlineVictim.isOnline()) {
+                                onlineVictim.sendTitle(ColorUtil.c("&#00E676&l🔓 ВЫ СВОБОДНЫ!"),
+                                        ColorUtil.c("&fБан снял модератор &e" + staffName + "&f. С возвращением!"), 3, 50, 8);
+                                try { onlineVictim.removePotionEffect(PotionEffectType.INVISIBILITY); } catch (Throwable ignored) {}
+                                try { onlineVictim.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE); } catch (Throwable ignored) {}
+                            }
+                        }
+                    } else if (ticks <= 70) {
+                        if (ticks % 6 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
+                    } else if (ticks == 71) {
+                        w.spawnParticle(Particle.POOF, santa.getLocation().clone().add(0.0, 1.0, 0.0), 26, 0.4, 0.6, 0.4, 0.04);
+                        w.spawnParticle(Particle.SNOWFLAKE, santa.getLocation().clone().add(0.0, 1.0, 0.0), 34, 0.5, 0.8, 0.5, 0.03);
+                        w.playSound(santa.getLocation(), "minecraft:block.bell.use", 1.0f, 1.3f);
+                        for (Entity en : ents) { try { en.remove(); } catch (Throwable ignored) {} }
+                    } else if (ticks >= 84) {
+                        finishAll();
+                    }
+                } catch (Throwable ex) { finishAll(); }
+            }
+            void finishAll() {
+                if (done) return;
+                done = true;
+                for (Entity en : ents) { try { en.remove(); } catch (Throwable ignored) {} }
+                Map<Block, BlockData> saved = activeBanAnimPortals.remove(animKey);
+                if (saved != null) {
+                    for (Map.Entry<Block, BlockData> pe : saved.entrySet()) {
+                        try {
+                            Block blk = pe.getKey();
+                            blk.setBlockData(pe.getValue(), false);
+                            blk.getWorld().spawnParticle(Particle.POOF, blk.getLocation().add(0.5, 0.5, 0.5), 2, 0.2, 0.2, 0.2, 0.01);
+                        } catch (Throwable ignored) {}
+                    }
+                }
+                try { cancel(); } catch (Throwable ignored) {}
+            }
+        };
+        task.runTaskTimer(plugin, 0L, 1L);
     }
 
     /** v6.1: полная очистка бан-анимации — сущности, портал (блоки возвращаются!), эффекты и скорость игрока. */
@@ -1729,6 +1951,18 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         plugin.getStore().unban(args[0]);
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Модератор &f" + sender.getName() + " &#00E676разбанил игрока &f" + args[0] + "&#00E676."));
+        // v6.1.4: АНИМАЦИЯ РАЗБАНА — Дед Мороз выносит мешок из портала и развязывает его!
+        Player unbOnline = Bukkit.getPlayerExact(args[0]);
+        Location unbanLoc;
+        if (unbOnline != null && unbOnline.isOnline()) {
+            unbanLoc = unbOnline.getLocation();
+        } else if (sender instanceof Player) {
+            unbanLoc = ((Player) sender).getLocation();
+        } else {
+            World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
+            unbanLoc = sw != null ? sw.getSpawnLocation() : null;
+        }
+        if (unbanLoc != null) playSantaUnbanAnimation(unbanLoc, args[0], sender.getName(), unbOnline);
         return true;
     }
 
@@ -1801,6 +2035,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         boolean removedIp = plugin.getStore().unmuteIp(args[0]);
         if (!DataStore.looksLikeIp(args[0])) plugin.getStore().unmute(args[0]);
+        Player unmIpOnline = Bukkit.getPlayerExact(args[0]);
+        if (unmIpOnline != null && unmIpOnline.isOnline()) {
+            cleanupMuteAnimationFor(unmIpOnline.getUniqueId());
+            playSantaUnmuteAnimation(unmIpOnline, sender.getName());
+        }
         if (!removedIp) {
             sender.sendMessage(ColorUtil.c("&eАктивный IP-мут для &f" + args[0] + " &eне найден (обычный мут также снят)."));
             return true;
@@ -1904,6 +2143,18 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             return true;
         }
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Модератор &f" + sender.getName() + " &#00E676разблокировал IP &f" + args[0] + "&#00E676."));
+        // v6.1.4: АНИМАЦИЯ РАЗБАНА и для IP-разбана!
+        Player unbIpOnline = DataStore.looksLikeIp(args[0]) ? null : Bukkit.getPlayerExact(args[0]);
+        Location unbanIpLoc;
+        if (unbIpOnline != null && unbIpOnline.isOnline()) {
+            unbanIpLoc = unbIpOnline.getLocation();
+        } else if (sender instanceof Player) {
+            unbanIpLoc = ((Player) sender).getLocation();
+        } else {
+            World sw2 = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
+            unbanIpLoc = sw2 != null ? sw2.getSpawnLocation() : null;
+        }
+        if (unbanIpLoc != null) playSantaUnbanAnimation(unbanIpLoc, args[0], sender.getName(), unbIpOnline);
         return true;
     }
 
