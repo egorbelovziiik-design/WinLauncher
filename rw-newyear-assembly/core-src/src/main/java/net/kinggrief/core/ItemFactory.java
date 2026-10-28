@@ -83,9 +83,9 @@ public final class ItemFactory {
 
     // ================= МЕНЮ СЕРВЕРА =================
     public static ItemStack menuStar() {
-        return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW v6.3 &#80D8FF❄ &7(ПКМ)",
+        return make(Material.NETHER_STAR, 1, "&#80D8FF❄ &#FFD740&lМЕНЮ KINGGRIEF FT × RW v6.3.2 &#80D8FF❄ &7(ПКМ)",
                 Arrays.asList(
-                        "&7Быстрый доступ ко всем системам v6.3:",
+                        "&7Быстрый доступ ко всем системам v6.3.2:",
                         "&f• Система Тиммейтов и Пати: &#00E676/tm <ник> &7(&f/friends&7, чат: &f/tc&7)",
                         "&f• Божья Аура (лечит всю тиму!) + 8 новых артефактов FT: &#00E5FF/shop",
                         "&f• Выход в выживание: &#00E676/rtp &7+ 12 Мечей: &#FF1744/swords &7+ 12 Кирок: &#FF5722/picks",
@@ -500,7 +500,7 @@ public final class ItemFactory {
     // ================= 8 НОВЫХ КОМАНДНЫХ И ТАКТИЧЕСКИХ АРТЕФАКТОВ v6.0 =================
     public static ItemStack teamTotem(int amt) {
         return make(Material.BEACON, amt, "&#00E676&l🛡 Тотем Командного Спасения [FT×RW]",
-                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — разворачивает щит спасения на &e6 сек &7(&b10 блоков&7):",
                         " &#00E676• Даёт ВАМ и ВСЕМ ТИММЕЙТАМ Сопротивление III + Огнестойкость!",
                         " &#FF80AB• Каждую секунду лечит всю тиму на +1.5❤",
@@ -511,7 +511,7 @@ public final class ItemFactory {
 
     public static ItemStack battleAdrenaline(int amt) {
         return make(Material.MAGMA_CREAM, amt, "&#FF6D00&l💉 Боевой Адреналин [Раш Тимы]",
-                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Командный расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — заряжает &fВАС &7и &aВСЕХ ТИММЕЙТОВ &7в радиусе &e10 блоков&7:",
                         " &#00E5FF• Скорость III на 10 сек",
                         " &#FF1744• Сила II на 8 сек",
@@ -522,7 +522,7 @@ public final class ItemFactory {
 
     public static ItemStack swapOrb(int amt) {
         return make(Material.ENDER_EYE, amt, "&#D500F9&l🌀 Сфера Рокировки [Сваппер FT]",
-                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — бросок сферы рокировки (до &d28 блоков&7):",
                         " &#FF5252• Попал во ВРАГА — меняет вас местами + Замедление II и Слабость!",
                         " &#00E676• Попал в ТИММЕЙТА — вытаскивает его из замеса и даёт +4💛 обоим!",
@@ -532,7 +532,7 @@ public final class ItemFactory {
 
     public static ItemStack iceDome(int amt) {
         return make(Material.BLUE_ICE, amt, "&#40C4FF&l🧊 Ледяной Купол [Барьер 7×7]",
-                Arrays.asList("&8Защитный расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Защитный расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — мгновенно возводит вокруг вас и тиммейтов",
                         "&7броне-купол из &bПлотного Льда и Стекла 7×7 &7на &e12 сек",
                         "&7для безопасного отхила Чаркой и Божьей Аурой!",
@@ -542,7 +542,7 @@ public final class ItemFactory {
 
     public static ItemStack vampirePulse(int amt) {
         return make(Material.GHAST_TEAR, amt, "&#FF1744&l🩸 Импульс Крови Вампира [FT×RW]",
-                Arrays.asList("&8Атакующий расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Атакующий расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — высасывает по &c3❤ (6 HP) &7у каждого врага",
                         "&7в радиусе &c8 блоков &7и распределяет выпитую кровь",
                         "&7между &fвами &7и &aранеными тиммейтами &7рядом!",
@@ -552,7 +552,7 @@ public final class ItemFactory {
 
     public static ItemStack empShock(int amt) {
         return make(Material.PRISMARINE_SHARD, amt, "&#00E5FF&l⚡ ЭМИ-Разрядник [Анти-Щит & Анти-Элитры]",
-                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — электромагнитный взрыв в радиусе &b11 блоков&7:",
                         " &#FF1744• Сбивает полёт на Элитрах всем врагам в воздухе!",
                         " &#FFD740• Отключает Щиты врагам на 5 сек + Слабость I!",
@@ -563,7 +563,7 @@ public final class ItemFactory {
 
     public static ItemStack smokeBomb(int amt) {
         return make(Material.CHARCOAL, amt, "&#94A3B8&l💣 Дымовая Бомба Ниндзя [Инвиз Тимы]",
-                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Тактический расходник FunTime × ReallyWorld v6.3.2", "",
                         "&7ПКМ — создаёт плотную дымовую завесу на &e6 сек&7:",
                         " &#FF5252• Ослепляет врагов внутри облака на 4 сек",
                         " &#00E676• Даёт ВАМ и ТИММЕЙТАМ Невидимость + Скорость II на 8 сек!",
@@ -573,7 +573,7 @@ public final class ItemFactory {
 
     public static ItemStack grapplingHook() {
         ItemStack it = make(Material.FISHING_ROD, 1, "&#F59E0B&l🧲 Крюк-Кошка [Гарпун FT]",
-                Arrays.asList("&8Тактический инструмент FunTime × ReallyWorld v6.3", "",
+                Arrays.asList("&8Тактический инструмент FunTime × ReallyWorld v6.3.2", "",
                         "&7Брось крюк и нажми ПКМ — мощно притягивает",
                         "&7тебя вперёд и вверх к точке зацепа!",
                         "&8Перезарядка: 5 сек. (Не разрушается, запрещён в кабинках)"),
@@ -1368,7 +1368,7 @@ public final class ItemFactory {
         String modelId = "armor_" + setKey + "_" + slot;
         String customId = "armor_" + setKey + "_" + slot;
         List<String> lore = Arrays.asList(
-                "&8Кастомная 3D Броня KINGGRIEF v6.3",
+                "&8Кастомная 3D Броня KINGGRIEF v6.3.2",
                 "",
                 "&7Бонус комплекта:",
                 bonusLine1,
@@ -1641,7 +1641,7 @@ public final class ItemFactory {
                     new ItemStack(Material.NETHERITE_BLOCK, 16),
                     claimBlock(Material.EMERALD_ORE, 30, "&#00E676💚 Изумрудный Приват 61×61")));
             items.add(packedShulker(Material.BLACK_SHULKER_BOX, "&#FFD740&l☢ Мега-Шалкер ТНТ и Тактики OWNER #2",
-                    Arrays.asList("&7Все 6 видов ТНТ + 8 новых командных артефактов v6.3!"),
+                    Arrays.asList("&7Все 6 видов ТНТ + 8 новых командных артефактов v6.3.2!"),
                     tntBlack(32), tntNuke(16), tntTier1(32),
                     tntFlash(32), tntCryo(32), tntMiner(32),
                     teamTotem(16), battleAdrenaline(16), swapOrb(16),
@@ -1659,7 +1659,7 @@ public final class ItemFactory {
                     new ItemStack(Material.DIAMOND_BLOCK, 64),
                     new ItemStack(Material.EMERALD_BLOCK, 64)));
             items.add(packedShulker(Material.PURPLE_SHULKER_BOX, "&#FF1744&l⚔ Полная Оружейная 12 Мечей OWNER #4",
-                    Arrays.asList("&7Все 12 кастомных 3D Мечей v6.3 + Коса Жнеца, Секира Тора и 4 3D Лука!"),
+                    Arrays.asList("&7Все 12 кастомных 3D Мечей v6.3.2 + Коса Жнеца, Секира Тора и 4 3D Лука!"),
                     swordOwner(), swordKrush(), swordDracula(),
                     swordFrost(), swordZeus(), swordKatana(),
                     swordWither(), swordVenom(), swordPhantom(),

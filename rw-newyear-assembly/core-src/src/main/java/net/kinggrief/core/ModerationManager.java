@@ -98,7 +98,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
     private final KingGriefCore plugin;
     // Active /check sessions keyed by suspect UUID
-    private final Map<UUID, CheckSession> activeChecks = new HashMap<UUID, CheckSession>();
+    // v6.3.2: читается/пишется из АСИНХРОННОГО потока чата (/check) -> только потокобезопасная карта!
+    private final Map<UUID, CheckSession> activeChecks = new java.util.concurrent.ConcurrentHashMap<UUID, CheckSession>();
     // Active /sw shifts: staff UUID -> shift start millis
     private final Map<UUID, Long> activeStaffShifts = new HashMap<UUID, Long>();
     // Players currently floating upward in /ban ascension animation
@@ -108,7 +109,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     private final Map<UUID, SpekReturnState> spekReturns = new HashMap<UUID, SpekReturnState>();
     // v5.9: SlowChat global cooldown & per-player last chat timestamp
     private volatile int slowChatSeconds = 0;
-    private final Map<UUID, Long> lastChatAtMs = new HashMap<UUID, Long>();
+    private final Map<UUID, Long> lastChatAtMs = new java.util.concurrent.ConcurrentHashMap<UUID, Long>();
     // v5.9.1: 6-Second (120 ticks) Santa Claus Duct-Tape Mute Animation entity tracker
     private static final String SANTA_SKIN_HASH = "d178ae03d84227f21fa23682d9c620131000ffb7673395533b2740fa83ab1037";
     private final Map<UUID, BukkitRunnable> activeMuteAnimTasks = new HashMap<UUID, BukkitRunnable>();

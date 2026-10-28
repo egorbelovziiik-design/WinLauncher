@@ -120,9 +120,10 @@ public final class DataStore {
     private final File file;
     private YamlConfiguration yml;
 
-    private final Set<UUID> loggedIn = new HashSet<UUID>();
+    // v6.3.2: читается из асинхронного потока чата/пре-логина -> потокобезопасное множество!
+    private final Set<UUID> loggedIn = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final Map<String, Clan> clans = new LinkedHashMap<String, Clan>();
-    private final Map<String, String> playerClan = new HashMap<String, String>();
+    private final Map<String, String> playerClan = new java.util.concurrent.ConcurrentHashMap<String, String>();
     private final Map<String, Set<String>> clanInvites = new HashMap<String, Set<String>>();
     private final List<Claim> claims = new ArrayList<Claim>();
     private final List<AuctionLot> auction = new ArrayList<AuctionLot>();

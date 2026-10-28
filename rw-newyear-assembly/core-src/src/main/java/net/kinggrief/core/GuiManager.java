@@ -120,7 +120,7 @@ public final class GuiManager {
     // ================= 1. ГЛАВНОЕ МЕНЮ (/menu) =================
     public void openMainMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("main", "", 0), 54,
-                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v6.3"));
+                ColorUtil.c("&#FF1744&l❄ МЕНЮ KINGGRIEF FT×RW v6.3.2"));
         decorateFrame(inv);
         DataStore st = plugin.getStore();
         RankManager.RankDef r = plugin.getRanks().getRank(p);
@@ -195,9 +195,9 @@ public final class GuiManager {
                 "&7Добавь друзей в тиму без клана: &f/tm <ник>",
                 "&7Божья Аура лечит всю тиму + защита от урона!",
                 "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
-        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.3",
+        inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.3.2",
                 "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
-                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.3"));
+                "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.3.2"));
 
         if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
             inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
@@ -494,12 +494,12 @@ public final class GuiManager {
         inv.setItem(47, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 Кирок и Молот 10×10 (/picks)",
                 "&7Кирка Крушителя 3×3, Молот OWNER 10×10, Коса Жнеца!"));
         inv.setItem(48, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&l🔮 Все 18 3D Талисманов (/talismans)",
-                "&7Открой полный Алтарь Талисманов v6.3!"));
+                "&7Открой полный Алтарь Талисманов v6.3.2!"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         inv.setItem(50, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&l🛡 3D Броня ×2, Луки и ТНТ (/armors)",
                 "&76 сетов брони с Закалкой ×2, Луки и ТНТ!"));
         inv.setItem(51, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744&l⚔ Оружейная 14 3D Мечей (/swords)",
-                "&7Открой все 14 кастомных 3D Мечей v6.3!"));
+                "&7Открой все 14 кастомных 3D Мечей v6.3.2!"));
         inv.setItem(52, shopTag(ItemFactory.swapOrb(4),        60));
         inv.setItem(53, shopTag(ItemFactory.grapplingHook(),   95));
         p.openInventory(inv);
@@ -514,7 +514,7 @@ public final class GuiManager {
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 12 кастомных 3D Кирок и Молотов v6.3!",
+                "&7Все 12 кастомных 3D Кирок и Молотов v6.3.2!",
                 "&7Подсказка: зажмите &eShift &7при копке для точного режима 1×1!"));
 
         // Row 1 & Row 2: ALL 12 CUSTOM 3D PICKAXES & HAMMERS!
@@ -565,7 +565,7 @@ public final class GuiManager {
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
-                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.3!",
+                "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.3.2!",
                 "&7У каждого меча свой 3D-силуэт и боевая способность!"));
 
         inv.setItem(10, shopTag(ItemFactory.swordDracula(), 320));
@@ -1595,7 +1595,7 @@ public final class GuiManager {
     // ================= 12. АЛТАРЬ 17 КАСТОМНЫХ 3D ТАЛИСМАНОВ (/talismans) =================
     public void openTalismansMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("talismans", "", 0), 54,
-                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.3]"));
+                ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.3.2]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
@@ -1647,7 +1647,7 @@ public final class GuiManager {
     // ================= 13. ОРУЖЕЙНАЯ 3D БРОНИ, ЛУКОВ И КАСТОМНЫХ ТНТ (/armors) =================
     public void openArmorsMenu(Player p) {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("armors", "", 0), 54,
-                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.3]"));
+                ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.3.2]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);

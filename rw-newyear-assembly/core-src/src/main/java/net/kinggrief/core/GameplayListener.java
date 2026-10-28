@@ -394,7 +394,7 @@ public final class GameplayListener implements Listener {
             } else {
                 p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                 boolean reg = plugin.getStore().isRegistered(p.getName());
-                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.3 ❄"),
+                p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.3.2 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
                 p.sendMessage(ColorUtil.c(reg
                         ? "&#FFD740🔐 Авторизуйтесь в чате: &f/login <пароль>"
@@ -4106,12 +4106,31 @@ public final class GameplayListener implements Listener {
         String formatted = ColorUtil.c(chTag + clanPart + pref + p.getName() + " &8» ") + msgText;
 
         e.setCancelled(true);
-        Bukkit.getConsoleSender().sendMessage(formatted);
-        for (Player rec : Bukkit.getOnlinePlayers()) {
-            if (!isOwnerChat && plugin.getStore().isIgnoring(rec.getName(), p.getName())) continue;
-            if (global || (rec.getWorld().equals(p.getWorld()) && rec.getLocation().distanceSquared(p.getLocation()) <= 10000.0)) {
-                rec.sendMessage(formatted);
+        // v6.3.2: КРИТИЧНО — этот обработчик работает в АСИНХРОННОМ потоке чата, а здесь раньше
+        // читались миры/координаты игроков и конфиг хранилища (гонка потоков -> вылеты и «пропажа» чата).
+        // Строка сообщения уже собрана, поэтому сама доставка перенесена в главный поток (задержка 1 тик).
+        final String outMsg = formatted;
+        final boolean globalFinal = global;
+        final boolean ownerChatFinal = isOwnerChat;
+        final String senderName = p.getName();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!p.isOnline()) return;
+                    Bukkit.getConsoleSender().sendMessage(outMsg);
+                    World pw = p.getWorld();
+                    Location pl = p.getLocation();
+                    for (Player rec : Bukkit.getOnlinePlayers()) {
+                        try {
+                            if (!ownerChatFinal && plugin.getStore().isIgnoring(rec.getName(), senderName)) continue;
+                            if (globalFinal || (rec.getWorld().equals(pw) && rec.getLocation().distanceSquared(pl) <= 10000.0)) {
+                                rec.sendMessage(outMsg);
+                            }
+                        } catch (Throwable ignored) {}
+                    }
+                } catch (Throwable ignored) {}
             }
-        }
+        }.runTask(plugin);
     }
 }

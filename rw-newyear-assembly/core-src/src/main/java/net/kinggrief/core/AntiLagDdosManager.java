@@ -391,7 +391,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         if (strikeNo >= 2) {
             p.kickPlayer(ColorUtil.c("&#FF1744&l⚡ КИК: СПАМ МЕХАНИЗМАМИ\n\n"
                     + "&fТы дважды за 5 минут спамил рычагом/кнопкой/плитой.\n"
-                    + "&7Одиночные нажатия разрешены, СПАМ — запрещён.\n\n&8KINGGRIEF Anti-Lag v6.3"));
+                    + "&7Одиночные нажатия разрешены, СПАМ — запрещён.\n\n&8KINGGRIEF Anti-Lag v6.3.2"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l⚡ [АНТИ-ЛАГ] &fИгрок &c" + p.getName()
                     + " &fкикнут за СПАМ рычагом (&e" + hits + " нажатий за 3 сек&e)."));
             return;
@@ -687,7 +687,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onServerPing(ServerListPingEvent e) {
         if (isShieldActive()) {
-            e.setMotd(ColorUtil.c("&#80D8FF&l❄ &#FFD740&lKINGGRIEF v6.3 &#80D8FF&l❄ &8│ &#00E676🛡 ANTI-DDOS ЗАЩИТА АКТИВНА\n"
+            e.setMotd(ColorUtil.c("&#80D8FF&l❄ &#FFD740&lKINGGRIEF v6.3.2 &#80D8FF&l❄ &8│ &#00E676🛡 ANTI-DDOS ЗАЩИТА АКТИВНА\n"
                     + "&#FF408112 Кирок &8• &#FFD740Молот 10×10 &8• &#00E5FFРабочий ТНТ &8• &#AEEA00Новый Спавн"));
         }
     }
@@ -815,7 +815,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         if (sender instanceof Player) {
             Player p = (Player) sender;
             if (plugin.getRanks().getRank(p).weight < 220) {
-                p.sendMessage(ColorUtil.c("&#00E676🛡 [KINGGRIEF Anti-DDoS v6.3] &fЗащита активна! TPS: &#00E676"
+                p.sendMessage(ColorUtil.c("&#00E676🛡 [KINGGRIEF Anti-DDoS v6.3.2] &fЗащита активна! TPS: &#00E676"
                         + plugin.getSpawnEngine().getCurrentTps() + " &8│ &fУничтожено лаг-машин молнией: &#FFD740"
                         + destroyedLagMachines.get()));
                 return true;
