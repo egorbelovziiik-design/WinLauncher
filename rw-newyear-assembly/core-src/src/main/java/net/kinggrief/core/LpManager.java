@@ -39,14 +39,14 @@ public final class LpManager implements CommandExecutor, TabCompleter {
         if (!(s instanceof Player)) return false;
         Player p = (Player) s;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
-        // STRICTLY OWNER ONLY — no OP leak, no techadmin/curator/downer/opka access!
-        return r != null && "owner".equalsIgnoreCase(r.id);
+        // v6.1.2: OWNER + TECH.ADMIN (тех.админу выдан полный LP); куратор/даунер/опка — НЕТ!
+        return r != null && ("owner".equalsIgnoreCase(r.id) || "techadmin".equalsIgnoreCase(r.id));
     }
 
     @Override
     public boolean onCommand(CommandSender s, Command cmd, String label, String[] args) {
         if (!hasLpAccess(s)) {
-            s.sendMessage(ColorUtil.c("&#FF1744✖ Доступ к LP Editor (/lp) разрешён СТРОГО только владельцу (привилегия OWNER)!"));
+            s.sendMessage(ColorUtil.c("&#FF1744✖ Доступ к LP Editor (/lp) разрешён только OWNER и TECH.ADMIN!"));
             return true;
         }
         String lbl = label.toLowerCase(Locale.ROOT);

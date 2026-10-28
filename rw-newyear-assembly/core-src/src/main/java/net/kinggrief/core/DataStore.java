@@ -612,6 +612,9 @@ public final class DataStore {
         }
         if ("techadmin".equalsIgnoreCase(rank.id)) {
             att.setPermission("kinggrief.admin", true);
+            // v6.1.2: тех.админу выдан полный LuckPerms (/lp)!
+            att.setPermission("luckperms.*", true);
+            att.setPermission("kinggrief.lp", true);
         }
         if (isOwner) {
             att.setPermission("*", true);
@@ -639,8 +642,10 @@ public final class DataStore {
 
         // Even if a non-owner player was granted `*`, NEVER allow them to touch LP or /op!
         if (!isOwner) {
-            att.setPermission("luckperms.*", false);
-            att.setPermission("kinggrief.lp", false);
+            if (!"techadmin".equalsIgnoreCase(rank.id)) {
+                att.setPermission("luckperms.*", false);
+                att.setPermission("kinggrief.lp", false);
+            }
             att.setPermission("kinggrief.owner", false);
             att.setPermission("minecraft.command.op", false);
             att.setPermission("minecraft.command.deop", false);

@@ -3702,12 +3702,20 @@ public final class GameplayListener implements Listener {
             "function", "fill", "setblock", "clone", "summon", "kill", "attribute", "bossbar", "scoreboard", "team"
     ));
 
+    /** v6.1.2: LP-команды, которые видит и может вызывать TECH.ADMIN (полный LuckPerms). */
+    private static boolean isTechLpCommand(String cmd) {
+        return "lp".equals(cmd) || "lpeditor".equals(cmd) || "luckperms".equals(cmd)
+                || "perm".equals(cmd) || "perms".equals(cmd) || "permission".equals(cmd)
+                || "permissions".equals(cmd) || "pex".equals(cmd);
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCommandSend(PlayerCommandSendEvent e) {
         Player p = e.getPlayer();
         RankManager.RankDef rk = plugin.getRanks().getRank(p);
         boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
         if (isOwner) return;
+        final boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
 
         boolean isCuratorPlus = rk != null && rk.weight >= 275;
         // v6.0.1: OP-тестеры и владельцы kingac.staff тоже считаются составом (иначе /ac пропадает из списка команд!)
@@ -3720,10 +3728,13 @@ public final class GameplayListener implements Listener {
             String cmd = it.next().toLowerCase(java.util.Locale.ROOT);
             // Hide ALL plugin-namespaced commands (`luckperms:lp`, `minecraft:op`, `bukkit:pl`, etc.) for non-owner!
             if (cmd.contains(":")) {
+                String base = cmd.substring(cmd.lastIndexOf(':') + 1);
+                if (isTech && isTechLpCommand(base)) continue; // тех.админ видит luckperms:lp!
                 it.remove();
                 continue;
             }
             if (STRICT_OWNER_ONLY_COMMANDS.contains(cmd)) {
+                if (isTech && isTechLpCommand(cmd)) continue; // тех.админ видит /lp в списке!
                 it.remove();
                 continue;
             }
@@ -3809,9 +3820,12 @@ public final class GameplayListener implements Listener {
 
         RankManager.RankDef rk = plugin.getRanks().getRank(p);
         boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
+        boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
+        boolean lpAllowed = isTech && (isTechLpCommand(baseCmd)
+                || bareCmd.startsWith("luckperms:") || bareCmd.startsWith("kinggriefcore:lp"));
 
         // STRICT OWNER-ONLY LOCKDOWN FOR ALL LP, LUCKPERMS, OP ("ЗВЕЗДА"), PLUGIN-LIST & DANGEROUS COMMANDS!
-        if (!isOwner && (STRICT_OWNER_ONLY_COMMANDS.contains(baseCmd)
+        if (!isOwner && !lpAllowed && (STRICT_OWNER_ONLY_COMMANDS.contains(baseCmd)
                 || bareCmd.startsWith("luckperms:") || bareCmd.startsWith("kinggriefcore:lp")
                 || bareCmd.startsWith("minecraft:op") || bareCmd.startsWith("minecraft:deop")
                 || bareCmd.startsWith("bukkit:") || bareCmd.startsWith("spigot:") || bareCmd.startsWith("paper:"))) {
