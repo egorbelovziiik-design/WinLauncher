@@ -1,19 +1,30 @@
+import atexit
+import copy
 import hashlib
 import json
 import math
 import os
+from pathlib import Path
 import shutil
+import tempfile
 import zipfile
+
 import numpy as np
 from PIL import Image, ImageDraw
 
-OUT_RP_DIR = "/home/user/WinLauncher/rw-newyear-assembly/mega-rp-build"
-OUT_ZIP = "/home/user/WinLauncher/rw-newyear-assembly/kinggrief-mega-rp.zip"
-OUT_RANKS_ONLY_ZIP = "/home/user/WinLauncher/kinggrief-ranks-pack/kinggrief-ranks-pack.zip"
+# The old /kinggrief-mega-rp.zip URL and its SHA-1 are still used by older
+# server installations. Build to a new versioned filename instead of changing
+# those bytes. The build directory is temporary and never deletes user files.
+SCRIPT_DIR = Path(__file__).resolve().parent
+ASSEMBLY_DIR = SCRIPT_DIR.parent
+OUT_RP_DIR = tempfile.mkdtemp(prefix="kinggrief-rp-")
+atexit.register(shutil.rmtree, OUT_RP_DIR, ignore_errors=True)
+OUT_ZIP = os.environ.get("KINGGRIEF_RP_OUTPUT", str(ASSEMBLY_DIR / "kinggrief-mega-rp-v64.zip"))
+# Rebuilding the separate ranks-only pack is opt-in, not a side effect.
+OUT_RANKS_ONLY_ZIP = os.environ.get("KINGGRIEF_RP_RANKS_ZIP")
 
-if os.path.exists(OUT_RP_DIR):
-    shutil.rmtree(OUT_RP_DIR)
-os.makedirs(OUT_RP_DIR, exist_ok=True)
+MODEL_DATA = json.loads((SCRIPT_DIR / "item-model-map.json").read_text(encoding="utf-8"))
+VANILLA_FALLBACKS = json.loads((SCRIPT_DIR / "vanilla-item-fallbacks.json").read_text(encoding="utf-8"))
 
 # ==============================================================================
 # 1. ALL 40 RANKS IN EXACT 16PX-TALL LUXURY REALLYWORLD "OWNER" SPLIT-PLAQUE STYLE!
@@ -511,7 +522,7 @@ with open(os.path.join(OUT_RP_DIR, "assets/minecraft/font/default.json"), "w", e
     json.dump({"providers": providers}, fp, ensure_ascii=False, indent=2)
 
 # Also rebuild standalone kinggrief-ranks-pack.zip so if user has both packs loaded, ALL 40 work!
-if os.path.exists(os.path.dirname(OUT_RANKS_ONLY_ZIP)):
+if OUT_RANKS_ONLY_ZIP:
     with zipfile.ZipFile(OUT_RANKS_ONLY_ZIP, "w", zipfile.ZIP_DEFLATED) as rzf:
         rzf.writestr("pack.mcmeta", json.dumps({
             "pack": {"pack_format": 75, "supported_formats": [7, 99], "min_format": 7, "max_format": 99,
@@ -673,6 +684,31 @@ ITEMS_SPECS = [
     ("ny_mandarin",       [],                   "mandarin", "mandarin",  (255, 132, 18),  (255, 215, 95),  (42, 195, 75)),
     ("snowflake_coin",    [],                   "snowflake","coin",      (80, 205, 255),  (240, 252, 255), (255, 215, 65)),
     ("bounty_scroll",     [],                   "scroll",   "bounty",    (235, 215, 165), (235, 45, 55),   (255, 195, 45)),
+
+    # Items introduced after the original v5.9 pack. The IDs must match the
+    # item_model / CustomModelData assigned by KingGriefCore's ItemFactory.
+    ("shar_kronosa",      [], "sphere", "kronos",    (136, 83, 233), (232, 205, 255), (255, 211, 75)),
+    ("shar_geliosa",      [], "sphere", "gelios",    (255, 150, 24), (255, 243, 158), (255, 192, 42)),
+    ("shar_morozko",      [], "sphere", "morozko",   (45, 181, 245), (228, 253, 255), (120, 220, 255)),
+    ("shar_kvadrat",      [], "sphere", "kvadrat",   (208, 37, 221), (143, 247, 255), (255, 220, 80)),
+    ("totem_rw",          [], "talisman", "rw",      (235, 115, 34), (255, 240, 130), (255, 204, 66)),
+    ("totem_ledyanoy",    [], "talisman", "ice",     (53, 170, 245), (224, 252, 255), (116, 222, 255)),
+    ("totem_voskresheniya", [], "talisman", "life",  (245, 183, 33), (238, 255, 172), (255, 226, 93)),
+    ("totem_santy",       [], "talisman", "santa",   (226, 37, 67), (240, 252, 255), (255, 207, 70)),
+    ("mega_heal",         [], "heal", "heal",        (232, 49, 105), (255, 225, 240), (255, 198, 73)),
+    ("mega_buff",         [], "flask", "buff",       (236, 167, 32), (255, 244, 109), (255, 207, 73)),
+    ("mega_shield",       [], "shield", "shield",    (35, 165, 224), (218, 250, 255), (255, 210, 83)),
+    ("scroll_ice",        [], "scroll", "ice",       (235, 224, 191), (66, 191, 255), (204, 157, 85)),
+    ("scroll_vampire",    [], "scroll", "vampire",   (235, 224, 191), (221, 37, 80), (204, 157, 85)),
+    ("scroll_blast",      [], "scroll", "blast",     (235, 224, 191), (255, 132, 32), (204, 157, 85)),
+    ("scroll_smelt",      [], "scroll", "smelt",     (235, 224, 191), (248, 186, 29), (204, 157, 85)),
+    ("sword_sever",       [], "sword", "sever",      (72, 190, 247), (235, 253, 255), (92, 149, 190)),
+    ("sword_zima",        [], "hammer", "zima",      (90, 180, 226), (233, 252, 255), (145, 210, 240)),
+    ("tal_zvezdy",        [], "talisman", "star",    (238, 186, 25), (255, 248, 150), (255, 214, 66)),
+    ("tal_moroza",        [], "talisman", "frost",   (60, 174, 235), (233, 252, 255), (144, 221, 255)),
+    ("arrow_thor",        [], "arrow", "thor",       (39, 183, 240), (255, 236, 111), (123, 217, 255)),
+    ("arrow_frostnova",   [], "arrow", "frostnova",  (83, 201, 248), (235, 252, 255), (189, 232, 255)),
+    ("arrow_gold",        [], "arrow", "gold",       (241, 180, 24), (255, 245, 137), (188, 128, 34)),
 ]
 
 def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pull_stage=-1):
@@ -732,7 +768,7 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pul
         elif sub == "titan":
             band = in_orb & ((np.abs(nx) <= 0.10) | (np.abs(ny_b) <= 0.10) | ((r_b >= 0.56) & (r_b <= 0.68)))
             rgb[band] = t_v * (0.65 + 0.45 * diff)[band, None]
-        elif sub == "apollo":
+        elif sub in ("apollo", "gelios"):
             for k in range(8):
                 a = k * (math.pi / 4.0) + 0.18 * math.sin(ph)
                 rx_d = nx * math.cos(a) + ny_b * math.sin(a)
@@ -740,6 +776,19 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pul
                 ray = (rx_d >= 0.62) & (rx_d <= 0.92) & (np.abs(ry_d) <= 0.11 * (1.0 - (rx_d - 0.62)/0.34))
                 rgb[ray] = t_v if k % 2 == 0 else g_v
                 mask |= ray
+        elif sub == "kronos":
+            clock_rim = in_orb & (np.abs(r_b - 0.40) <= 0.055)
+            hands = in_orb & (((np.abs(nx) <= 0.055) & (ny_b >= 0) & (ny_b <= 0.28)) |
+                              ((np.abs(ny_b) <= 0.055) & (nx >= 0) & (nx <= 0.25)))
+            rgb[clock_rim | hands] = t_v
+        elif sub == "morozko":
+            snow = in_orb & (r_b <= 0.48) & ((np.abs(nx) <= 0.055) |
+                    (np.abs(ny_b - nx * 0.58) <= 0.055) | (np.abs(ny_b + nx * 0.58) <= 0.055))
+            rgb[snow] = white * 0.80 + g_v * 0.20
+        elif sub == "kvadrat":
+            ax, ay = np.abs(nx), np.abs(ny_b)
+            square = in_orb & (ax <= 0.40) & (ay <= 0.40) & ((ax >= 0.29) | (ay >= 0.29))
+            rgb[square] = t_v
         elif sub == "aida":
             for sx in (-1.0, 1.0):
                 horn = ((nx - sx*0.48)**2 + (ny_b - 0.52)**2 <= 0.06) & ((nx - sx*0.36)**2 + (ny_b - 0.42)**2 >= 0.015)
@@ -1258,6 +1307,32 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pul
         rgb[core] = g_v
         mask |= spokes | rings | core
 
+    elif cat == "heal":
+        # A bright heart and a contrasting medical cross read clearly in a GUI slot.
+        lobes = (((nx - 0.29)**2 + (ny_b - 0.22)**2) <= 0.12) | (((nx + 0.29)**2 + (ny_b - 0.22)**2) <= 0.12)
+        lower = (ny_b >= -0.74) & (ny_b <= 0.25) & (np.abs(nx) <= 0.64 * np.clip((ny_b + 0.74) / 0.99, 0.0, 1.0))
+        heart = lobes | lower
+        shine = heart & (nx < -0.20) & (ny_b > 0.18)
+        cross = heart & (((np.abs(nx) <= 0.085) & (np.abs(ny_b + 0.02) <= 0.26)) |
+                         ((np.abs(ny_b + 0.02) <= 0.085) & (np.abs(nx) <= 0.26)))
+        rgb[heart] = m_v
+        rgb[shine] = np.clip(m_v * 0.65 + white * 0.35, 0, 255)
+        rgb[cross] = g_v
+        mask |= heart
+
+    elif cat == "shield":
+        # Gold-edged blue shield with a high-contrast central emblem.
+        width = 0.67 * np.clip((ny_b + 0.78) / 0.78, 0.0, 1.0)
+        outer = (ny_b >= -0.78) & (ny_b <= 0.68) & (np.abs(nx) <= width)
+        inner_width = 0.49 * np.clip((ny_b + 0.60) / 0.60, 0.0, 1.0)
+        inner = outer & (ny_b <= 0.51) & (ny_b >= -0.59) & (np.abs(nx) <= inner_width)
+        emblem = inner & (((np.abs(nx) <= 0.07) & (np.abs(ny_b) <= 0.31)) |
+                           ((np.abs(ny_b) <= 0.07) & (np.abs(nx) <= 0.27)))
+        rgb[outer] = t_v
+        rgb[inner] = m_v
+        rgb[emblem] = g_v
+        mask |= outer
+
     elif cat == "mandarin":
         orb = (nx*nx / 0.56 + (ny_b + 0.06)**2 / 0.44) <= 1.0
         leaf = ((nx - 0.22)**2 / 0.10 + (ny_b - 0.62)**2 / 0.03) <= 1.0
@@ -1305,14 +1380,13 @@ def render_item_frame_32(cat, sub, mcol, gcol, tcol, frame_idx, n_frames=12, pul
 def make_clean_item_model_json(item_id, cat):
     tex_ref = f"kinggrief:item/{item_id}"
     if cat == "bow":
+        # Drawing states are selected by the base bow's legacy overrides or by
+        # the modern item definition. Keeping the custom parent free of
+        # overrides also prevents inherited pull models selecting themselves.
         return {
-            "parent": "minecraft:item/bow",
+            "parent": "minecraft:item/generated",
             "textures": {"layer0": tex_ref},
-            "overrides": [
-                {"predicate": {"pulling": 1}, "model": f"kinggrief:item/{item_id}_pulling_0"},
-                {"predicate": {"pulling": 1, "pull": 0.65}, "model": f"kinggrief:item/{item_id}_pulling_1"},
-                {"predicate": {"pulling": 1, "pull": 0.9}, "model": f"kinggrief:item/{item_id}_pulling_2"}
-            ]
+            "display": copy.deepcopy(VANILLA_FALLBACKS["legacy"]["bow"]["display"]),
         }
     if cat in ("sword", "pickaxe", "mace", "trident", "hammer", "scythe", "axe"):
         return {
@@ -1421,72 +1495,104 @@ for idx, (primary_id, aliases, cat, sub, mcol, gcol, tcol) in enumerate(ITEMS_SP
             with open(os.path.join(def_item_dir, f"{iid}.json"), "w", encoding="utf-8") as fp:
                 json.dump({"model": {"type": "minecraft:model", "model": f"kinggrief:item/{iid}"}}, fp, indent=2)
 
-# Legacy 1.16.5-1.21.3 CustomModelData Bow Overrides so pulling works across ALL client versions!
-bow_cmd_map = [
-    (1305, "bow_ice_rw"),
-    (1308, "bow_inferno"),
-    (1309, "bow_zeus"),
-    (1310, "bow_vampire"),
-]
-bow_overrides = [
-    {"predicate": {"pulling": 1}, "model": "minecraft:item/bow_pulling_0"},
-    {"predicate": {"pulling": 1, "pull": 0.65}, "model": "minecraft:item/bow_pulling_1"},
-    {"predicate": {"pulling": 1, "pull": 0.9}, "model": "minecraft:item/bow_pulling_2"},
-]
-for cmd_num, bid in bow_cmd_map:
-    bow_overrides.append({"predicate": {"custom_model_data": cmd_num}, "model": f"kinggrief:item/{bid}"})
-    bow_overrides.append({"predicate": {"custom_model_data": cmd_num, "pulling": 1}, "model": f"kinggrief:item/{bid}_pulling_0"})
-    bow_overrides.append({"predicate": {"custom_model_data": cmd_num, "pulling": 1, "pull": 0.65}, "model": f"kinggrief:item/{bid}_pulling_1"})
-    bow_overrides.append({"predicate": {"custom_model_data": cmd_num, "pulling": 1, "pull": 0.9}, "model": f"kinggrief:item/{bid}_pulling_2"})
+# Models in the old pack had no dispatch files for most base materials. As a
+# result, a perfectly valid item on 1.16–1.21.3 appeared as a vanilla totem,
+# pickaxe, etc. 1.21.4+ needs *item definitions*, not just those legacy models.
+def json_write(path, value):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(value, fp, ensure_ascii=False, indent=2)
+        fp.write("\n")
 
-with open(os.path.join(mc_mod_item_dir, "bow.json"), "w", encoding="utf-8") as fp:
-    json.dump({
-        "parent": "minecraft:item/generated",
-        "textures": {"layer0": "minecraft:item/bow"},
-        "display": {
-            "thirdperson_righthand": {"rotation": [-80, 260, -40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
-            "thirdperson_lefthand":  {"rotation": [-80, -280, 40], "translation": [-1, -2, 2.5], "scale": [0.9, 0.9, 0.9]},
-            "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]},
-            "firstperson_lefthand":  {"rotation": [0,  90, -25], "translation": [1.13, 3.2, 1.13], "scale": [0.68, 0.68, 0.68]}
-        },
-        "overrides": bow_overrides
-    }, fp, indent=2)
 
-# Legacy 1.16.5-1.21.3 CustomModelData Netherite Sword Overrides for ALL 12 Custom Swords (+ Scythe)!
-sword_cmd_map = [
-    (1303, "sword_dracula"),
-    (1304, "sword_krush"),
-    (1314, "sword_owner"),
-    (1821, "scythe_reaper"),
-    (1831, "sword_frost"),
-    (1832, "sword_zeus"),
-    (1833, "sword_katana"),
-    (1834, "sword_wither"),
-    (1835, "sword_venom"),
-    (1836, "sword_phantom"),
-    (1837, "sword_phoenix"),
-    (1838, "sword_void"),
-    (1839, "sword_midas"),
-]
-with open(os.path.join(mc_mod_item_dir, "netherite_sword.json"), "w", encoding="utf-8") as fp:
-    json.dump({
-        "parent": "minecraft:item/handheld",
-        "textures": {"layer0": "minecraft:item/netherite_sword"},
-        "overrides": [{"predicate": {"custom_model_data": c}, "model": f"kinggrief:item/{sid}"} for c, sid in sword_cmd_map]
-    }, fp, indent=2)
-
-# Clean PvP left-hand & right-hand display for vanilla Totem of Undying too!
-with open(os.path.join(mc_mod_item_dir, "totem_of_undying.json"), "w", encoding="utf-8") as fp:
-    json.dump({
-        "parent": "minecraft:item/generated",
-        "textures": {"layer0": "minecraft:item/totem_of_undying"},
-        "display": {
-            "firstperson_righthand": {"rotation": [0, -24, 8], "translation": [1.25, 2.6, 1.15], "scale": [0.46, 0.46, 0.46]},
-            "firstperson_lefthand":  {"rotation": [0, -24, 8], "translation": [1.25, 2.4, 1.15], "scale": [0.44, 0.44, 0.44]},
-            "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.52, 0.52, 0.52]},
-            "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.52, 0.52, 0.52]}
+def legacy_base_model(material):
+    if material in ("bow", "elytra"):
+        return copy.deepcopy(VANILLA_FALLBACKS["legacy"][material])
+    if material == "tnt":
+        return {"parent": "minecraft:block/tnt"}
+    if material == "totem_of_undying":
+        # Keep the smaller PvP totem position from the previous pack.
+        return {
+            "parent": "minecraft:item/generated",
+            "textures": {"layer0": "minecraft:item/totem_of_undying"},
+            "display": {
+                "firstperson_righthand": {"rotation": [0, -24, 8], "translation": [1.25, 2.6, 1.15], "scale": [0.46, 0.46, 0.46]},
+                "firstperson_lefthand": {"rotation": [0, -24, 8], "translation": [1.25, 2.4, 1.15], "scale": [0.44, 0.44, 0.44]},
+                "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.52, 0.52, 0.52]},
+                "thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.52, 0.52, 0.52]},
+            },
         }
-    }, fp, indent=2)
+    parent = "minecraft:item/generated"
+    if material.endswith(("_sword", "_pickaxe", "_axe")):
+        parent = "minecraft:item/handheld"
+    elif material == "mace":
+        parent = "minecraft:item/handheld_mace"
+    return {"parent": parent, "textures": {"layer0": f"minecraft:item/{material}"}}
+
+
+def legacy_overrides(material, entries):
+    result = []
+    for cmd, item_id in entries:
+        result.append({"predicate": {"custom_model_data": cmd}, "model": f"kinggrief:item/{item_id}"})
+        if material == "bow":
+            for stage, pull in ((0, None), (1, 0.65), (2, 0.9)):
+                predicate = {"custom_model_data": cmd, "pulling": 1}
+                if pull is not None:
+                    predicate["pull"] = pull
+                result.append({"predicate": predicate, "model": f"kinggrief:item/{item_id}_pulling_{stage}"})
+    return result
+
+
+def modern_vanilla_fallback(material):
+    special = VANILLA_FALLBACKS["modern"].get(material)
+    return copy.deepcopy(special) if special else {"type": "minecraft:model", "model": f"minecraft:item/{material}"}
+
+
+mc_item_def_dir = os.path.join(OUT_RP_DIR, "assets/minecraft/items")
+for material_name, mapped_items in sorted(MODEL_DATA.items()):
+    material = material_name.lower()
+    entries = sorted((int(cmd), item_id) for cmd, item_id in mapped_items)
+    if len({cmd for cmd, _ in entries}) != len(entries):
+        raise ValueError(f"Duplicate CustomModelData for {material_name}")
+    for _, item_id in entries:
+        if not os.path.isfile(os.path.join(def_item_dir, f"{item_id}.json")):
+            raise ValueError(f"{material_name}: missing item definition for {item_id}")
+
+    legacy = legacy_base_model(material)
+    legacy.setdefault("overrides", []).extend(legacy_overrides(material, entries))
+    json_write(os.path.join(mc_mod_item_dir, f"{material}.json"), legacy)
+
+    # Armor trim item models were added in 1.20. The trim-aware override is
+    # applied only to 1.20.2–1.21.3 (which support overlays); 1.16 clients do
+    # not have to resolve nonexistent trim models. 1.21.4+ uses the definition
+    # below and retains its native trim selector in the fallback.
+    if material in ("netherite_helmet", "netherite_chestplate", "netherite_leggings", "netherite_boots"):
+        trimmed = copy.deepcopy(VANILLA_FALLBACKS["legacy"][material])
+        trimmed.setdefault("overrides", []).extend(legacy_overrides(material, entries))
+        json_write(os.path.join(OUT_RP_DIR, "legacy_trim", "assets/minecraft/models/item", f"{material}.json"), trimmed)
+
+    fallback = modern_vanilla_fallback(material)
+    occupied = {cmd for cmd, _ in entries}
+    modern_entries = []
+    for cmd, item_id in entries:
+        with open(os.path.join(def_item_dir, f"{item_id}.json"), encoding="utf-8") as fp:
+            custom_model = json.load(fp)["model"]
+        modern_entries.append({"threshold": cmd, "model": custom_model})
+        # range_dispatch selects the highest lower bound. Reset after each
+        # group of consecutive integer IDs so unrelated IDs don't inherit the
+        # last KINGGRIEF item model.
+        if cmd + 1 not in occupied:
+            modern_entries.append({"threshold": cmd + 1, "model": copy.deepcopy(fallback)})
+    json_write(os.path.join(mc_item_def_dir, f"{material}.json"), {
+        "model": {
+            "type": "minecraft:range_dispatch",
+            "property": "minecraft:custom_model_data",
+            "fallback": fallback,
+            "entries": modern_entries,
+        },
+    })
+
+print(f"3. Mapped {sum(map(len, MODEL_DATA.values()))} material/CMD pairs for old and modern clients.")
 
 items_preview.save("/tmp/preview_all_items_v57.png")
 print("2. Rendered ALL", len(ITEMS_SPECS), "crisp 3D items + 4-stage Bow Pulling Animations + Custom Arrows + 6 Armor Sets!")
@@ -1551,25 +1657,34 @@ for fn in ("fire_0", "fire_1"):
 with open(os.path.join(OUT_RP_DIR, "pack.mcmeta"), "w", encoding="utf-8") as fp:
     json.dump({
         "pack": {
-            "pack_format": 75,
-            "supported_formats": [7, 99],
-            "min_format": 7,
-            "max_format": 99,
-            "description": "§b§l❄ §c§lKINGGRIEF v5.9 §8· §f115 3D Вещей, 12 Мечей, 12 Кирок, Молот 10×10, Скины Пласта и Трапки"
-        }
+            # 1.16.5 reads pack_format; 1.20.2–1.21.8 read
+            # supported_formats; 1.21.9+ read min_format/max_format.
+            "pack_format": 6,
+            "supported_formats": [6, 75],
+            "min_format": 6,
+            "max_format": 75,
+            "description": "§b§l❄ §c§lKINGGRIEF v6.4 §8· §fНовые предметы, шары, броня и свитки",
+        },
+        "overlays": {
+            "entries": [{"directory": "legacy_trim", "formats": [18, 42], "min_format": 18, "max_format": 42}]
+        },
     }, fp, ensure_ascii=False, indent=2)
 
 pack_icon = Image.open(os.path.join(tex_item_dir, "shar_santy.png")).crop((0, 0, 32, 32)).resize((64, 64), Image.NEAREST)
 pack_icon.save(os.path.join(OUT_RP_DIR, "pack.png"))
 
-if os.path.exists(OUT_ZIP):
-    os.remove(OUT_ZIP)
-with zipfile.ZipFile(OUT_ZIP, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-    for root_d, _, files in os.walk(OUT_RP_DIR):
-        for f in sorted(files):
-            full = os.path.join(root_d, f)
-            rel = os.path.relpath(full, OUT_RP_DIR)
-            zf.write(full, rel)
+# Fixed timestamps and sorted paths make the ZIP (and therefore the server's
+# SHA-1) reproducible when built with the same Pillow and NumPy versions.
+output_path = Path(OUT_ZIP)
+output_path.parent.mkdir(parents=True, exist_ok=True)
+with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+    files = sorted(p for p in Path(OUT_RP_DIR).rglob("*") if p.is_file())
+    for full in files:
+        rel = full.relative_to(OUT_RP_DIR).as_posix()
+        info = zipfile.ZipInfo(rel, date_time=(1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = 0o100644 << 16
+        zf.writestr(info, full.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 
-sha1 = hashlib.sha1(open(OUT_ZIP, "rb").read()).hexdigest()
-print(f"PACKAGED kinggrief-mega-rp.zip v5.6: {os.path.getsize(OUT_ZIP):,} bytes | SHA1={sha1}")
+sha1 = hashlib.sha1(output_path.read_bytes()).hexdigest()
+print(f"PACKAGED {output_path.name} v6.4: {output_path.stat().st_size:,} bytes | SHA1={sha1}")

@@ -1,0 +1,819 @@
+{
+  "source": "Minecraft vanilla assets: 1.21.4 item definitions and 1.21.3 legacy models (misode/mcmeta)",
+  "modern": {
+    "bow": {
+      "type": "minecraft:condition",
+      "on_false": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/bow"
+      },
+      "on_true": {
+        "type": "minecraft:range_dispatch",
+        "entries": [
+          {
+            "model": {
+              "type": "minecraft:model",
+              "model": "minecraft:item/bow_pulling_1"
+            },
+            "threshold": 0.65
+          },
+          {
+            "model": {
+              "type": "minecraft:model",
+              "model": "minecraft:item/bow_pulling_2"
+            },
+            "threshold": 0.9
+          }
+        ],
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "minecraft:item/bow_pulling_0"
+        },
+        "property": "minecraft:use_duration",
+        "scale": 0.05
+      },
+      "property": "minecraft:using_item"
+    },
+    "elytra": {
+      "type": "minecraft:condition",
+      "on_false": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/elytra"
+      },
+      "on_true": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/elytra_broken"
+      },
+      "property": "minecraft:broken"
+    },
+    "trident": {
+      "type": "minecraft:select",
+      "cases": [
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/trident"
+          },
+          "when": [
+            "gui",
+            "ground",
+            "fixed"
+          ]
+        }
+      ],
+      "fallback": {
+        "type": "minecraft:condition",
+        "on_false": {
+          "type": "minecraft:special",
+          "base": "minecraft:item/trident_in_hand",
+          "model": {
+            "type": "minecraft:trident"
+          }
+        },
+        "on_true": {
+          "type": "minecraft:special",
+          "base": "minecraft:item/trident_throwing",
+          "model": {
+            "type": "minecraft:trident"
+          }
+        },
+        "property": "minecraft:using_item"
+      },
+      "property": "minecraft:display_context"
+    },
+    "netherite_helmet": {
+      "type": "minecraft:select",
+      "cases": [
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_quartz_trim"
+          },
+          "when": "minecraft:quartz"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_iron_trim"
+          },
+          "when": "minecraft:iron"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_netherite_trim"
+          },
+          "when": "minecraft:netherite"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_redstone_trim"
+          },
+          "when": "minecraft:redstone"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_copper_trim"
+          },
+          "when": "minecraft:copper"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_gold_trim"
+          },
+          "when": "minecraft:gold"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_emerald_trim"
+          },
+          "when": "minecraft:emerald"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_diamond_trim"
+          },
+          "when": "minecraft:diamond"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_lapis_trim"
+          },
+          "when": "minecraft:lapis"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_amethyst_trim"
+          },
+          "when": "minecraft:amethyst"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_helmet_resin_trim"
+          },
+          "when": "minecraft:resin"
+        }
+      ],
+      "fallback": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/netherite_helmet"
+      },
+      "property": "minecraft:trim_material"
+    },
+    "netherite_chestplate": {
+      "type": "minecraft:select",
+      "cases": [
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_quartz_trim"
+          },
+          "when": "minecraft:quartz"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_iron_trim"
+          },
+          "when": "minecraft:iron"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_netherite_trim"
+          },
+          "when": "minecraft:netherite"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_redstone_trim"
+          },
+          "when": "minecraft:redstone"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_copper_trim"
+          },
+          "when": "minecraft:copper"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_gold_trim"
+          },
+          "when": "minecraft:gold"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_emerald_trim"
+          },
+          "when": "minecraft:emerald"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_diamond_trim"
+          },
+          "when": "minecraft:diamond"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_lapis_trim"
+          },
+          "when": "minecraft:lapis"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_amethyst_trim"
+          },
+          "when": "minecraft:amethyst"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_chestplate_resin_trim"
+          },
+          "when": "minecraft:resin"
+        }
+      ],
+      "fallback": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/netherite_chestplate"
+      },
+      "property": "minecraft:trim_material"
+    },
+    "netherite_leggings": {
+      "type": "minecraft:select",
+      "cases": [
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_quartz_trim"
+          },
+          "when": "minecraft:quartz"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_iron_trim"
+          },
+          "when": "minecraft:iron"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_netherite_trim"
+          },
+          "when": "minecraft:netherite"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_redstone_trim"
+          },
+          "when": "minecraft:redstone"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_copper_trim"
+          },
+          "when": "minecraft:copper"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_gold_trim"
+          },
+          "when": "minecraft:gold"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_emerald_trim"
+          },
+          "when": "minecraft:emerald"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_diamond_trim"
+          },
+          "when": "minecraft:diamond"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_lapis_trim"
+          },
+          "when": "minecraft:lapis"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_amethyst_trim"
+          },
+          "when": "minecraft:amethyst"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_leggings_resin_trim"
+          },
+          "when": "minecraft:resin"
+        }
+      ],
+      "fallback": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/netherite_leggings"
+      },
+      "property": "minecraft:trim_material"
+    },
+    "netherite_boots": {
+      "type": "minecraft:select",
+      "cases": [
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_quartz_trim"
+          },
+          "when": "minecraft:quartz"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_iron_trim"
+          },
+          "when": "minecraft:iron"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_netherite_trim"
+          },
+          "when": "minecraft:netherite"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_redstone_trim"
+          },
+          "when": "minecraft:redstone"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_copper_trim"
+          },
+          "when": "minecraft:copper"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_gold_trim"
+          },
+          "when": "minecraft:gold"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_emerald_trim"
+          },
+          "when": "minecraft:emerald"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_diamond_trim"
+          },
+          "when": "minecraft:diamond"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_lapis_trim"
+          },
+          "when": "minecraft:lapis"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_amethyst_trim"
+          },
+          "when": "minecraft:amethyst"
+        },
+        {
+          "model": {
+            "type": "minecraft:model",
+            "model": "minecraft:item/netherite_boots_resin_trim"
+          },
+          "when": "minecraft:resin"
+        }
+      ],
+      "fallback": {
+        "type": "minecraft:model",
+        "model": "minecraft:item/netherite_boots"
+      },
+      "property": "minecraft:trim_material"
+    }
+  },
+  "legacy": {
+    "bow": {
+      "parent": "item/generated",
+      "textures": {
+        "layer0": "item/bow"
+      },
+      "display": {
+        "thirdperson_righthand": {
+          "rotation": [
+            -80,
+            260,
+            -40
+          ],
+          "translation": [
+            -1,
+            -2,
+            2.5
+          ],
+          "scale": [
+            0.9,
+            0.9,
+            0.9
+          ]
+        },
+        "thirdperson_lefthand": {
+          "rotation": [
+            -80,
+            -280,
+            40
+          ],
+          "translation": [
+            -1,
+            -2,
+            2.5
+          ],
+          "scale": [
+            0.9,
+            0.9,
+            0.9
+          ]
+        },
+        "firstperson_righthand": {
+          "rotation": [
+            0,
+            -90,
+            25
+          ],
+          "translation": [
+            1.13,
+            3.2,
+            1.13
+          ],
+          "scale": [
+            0.68,
+            0.68,
+            0.68
+          ]
+        },
+        "firstperson_lefthand": {
+          "rotation": [
+            0,
+            90,
+            -25
+          ],
+          "translation": [
+            1.13,
+            3.2,
+            1.13
+          ],
+          "scale": [
+            0.68,
+            0.68,
+            0.68
+          ]
+        }
+      },
+      "overrides": [
+        {
+          "predicate": {
+            "pulling": 1
+          },
+          "model": "item/bow_pulling_0"
+        },
+        {
+          "predicate": {
+            "pulling": 1,
+            "pull": 0.65
+          },
+          "model": "item/bow_pulling_1"
+        },
+        {
+          "predicate": {
+            "pulling": 1,
+            "pull": 0.9
+          },
+          "model": "item/bow_pulling_2"
+        }
+      ]
+    },
+    "elytra": {
+      "parent": "item/generated",
+      "textures": {
+        "layer0": "item/elytra"
+      },
+      "overrides": [
+        {
+          "predicate": {
+            "broken": 1
+          },
+          "model": "item/broken_elytra"
+        }
+      ]
+    },
+    "netherite_helmet": {
+      "parent": "minecraft:item/generated",
+      "overrides": [
+        {
+          "model": "minecraft:item/netherite_helmet_quartz_trim",
+          "predicate": {
+            "trim_type": 0.1
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_iron_trim",
+          "predicate": {
+            "trim_type": 0.2
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_netherite_darker_trim",
+          "predicate": {
+            "trim_type": 0.3
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_redstone_trim",
+          "predicate": {
+            "trim_type": 0.4
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_copper_trim",
+          "predicate": {
+            "trim_type": 0.5
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_gold_trim",
+          "predicate": {
+            "trim_type": 0.6
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_emerald_trim",
+          "predicate": {
+            "trim_type": 0.7
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_diamond_trim",
+          "predicate": {
+            "trim_type": 0.8
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_lapis_trim",
+          "predicate": {
+            "trim_type": 0.9
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_helmet_amethyst_trim",
+          "predicate": {
+            "trim_type": 1.0
+          }
+        }
+      ],
+      "textures": {
+        "layer0": "minecraft:item/netherite_helmet"
+      }
+    },
+    "netherite_chestplate": {
+      "parent": "minecraft:item/generated",
+      "overrides": [
+        {
+          "model": "minecraft:item/netherite_chestplate_quartz_trim",
+          "predicate": {
+            "trim_type": 0.1
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_iron_trim",
+          "predicate": {
+            "trim_type": 0.2
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_netherite_darker_trim",
+          "predicate": {
+            "trim_type": 0.3
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_redstone_trim",
+          "predicate": {
+            "trim_type": 0.4
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_copper_trim",
+          "predicate": {
+            "trim_type": 0.5
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_gold_trim",
+          "predicate": {
+            "trim_type": 0.6
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_emerald_trim",
+          "predicate": {
+            "trim_type": 0.7
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_diamond_trim",
+          "predicate": {
+            "trim_type": 0.8
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_lapis_trim",
+          "predicate": {
+            "trim_type": 0.9
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_chestplate_amethyst_trim",
+          "predicate": {
+            "trim_type": 1.0
+          }
+        }
+      ],
+      "textures": {
+        "layer0": "minecraft:item/netherite_chestplate"
+      }
+    },
+    "netherite_leggings": {
+      "parent": "minecraft:item/generated",
+      "overrides": [
+        {
+          "model": "minecraft:item/netherite_leggings_quartz_trim",
+          "predicate": {
+            "trim_type": 0.1
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_iron_trim",
+          "predicate": {
+            "trim_type": 0.2
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_netherite_darker_trim",
+          "predicate": {
+            "trim_type": 0.3
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_redstone_trim",
+          "predicate": {
+            "trim_type": 0.4
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_copper_trim",
+          "predicate": {
+            "trim_type": 0.5
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_gold_trim",
+          "predicate": {
+            "trim_type": 0.6
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_emerald_trim",
+          "predicate": {
+            "trim_type": 0.7
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_diamond_trim",
+          "predicate": {
+            "trim_type": 0.8
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_lapis_trim",
+          "predicate": {
+            "trim_type": 0.9
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_leggings_amethyst_trim",
+          "predicate": {
+            "trim_type": 1.0
+          }
+        }
+      ],
+      "textures": {
+        "layer0": "minecraft:item/netherite_leggings"
+      }
+    },
+    "netherite_boots": {
+      "parent": "minecraft:item/generated",
+      "overrides": [
+        {
+          "model": "minecraft:item/netherite_boots_quartz_trim",
+          "predicate": {
+            "trim_type": 0.1
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_iron_trim",
+          "predicate": {
+            "trim_type": 0.2
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_netherite_darker_trim",
+          "predicate": {
+            "trim_type": 0.3
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_redstone_trim",
+          "predicate": {
+            "trim_type": 0.4
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_copper_trim",
+          "predicate": {
+            "trim_type": 0.5
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_gold_trim",
+          "predicate": {
+            "trim_type": 0.6
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_emerald_trim",
+          "predicate": {
+            "trim_type": 0.7
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_diamond_trim",
+          "predicate": {
+            "trim_type": 0.8
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_lapis_trim",
+          "predicate": {
+            "trim_type": 0.9
+          }
+        },
+        {
+          "model": "minecraft:item/netherite_boots_amethyst_trim",
+          "predicate": {
+            "trim_type": 1.0
+          }
+        }
+      ],
+      "textures": {
+        "layer0": "minecraft:item/netherite_boots"
+      }
+    }
+  }
+}

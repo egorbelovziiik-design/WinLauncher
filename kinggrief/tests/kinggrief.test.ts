@@ -21,17 +21,24 @@ beforeAll(() => {
 });
 
 describe('каталог и цены', () => {
-  it('содержит 14 привилегий с зафиксированными ценами', () => {
+  it('содержит 21 привилегию с зафиксированными ценами', () => {
     const ranks = repo.listProducts({ kind: 'rank', activeOnly: true });
-    expect(ranks).toHaveLength(14);
+    expect(ranks).toHaveLength(21);
     const price = (name: string) => ranks.find((r) => r.name === name)?.price;
+    expect(price('DRAGON')).toBe(15);
     expect(price('PEGAS')).toBe(19);
     expect(price('COBRA')).toBe(39);
+    expect(price('DRACULA')).toBe(49);
     expect(price('BUNNY')).toBe(59);
     expect(price('RABBIT')).toBe(89);
     expect(price('VAMPIRE')).toBe(99);
+    expect(price('TIGER')).toBe(119);
     expect(price('GOD')).toBe(149);
+    expect(price('IMPERATOR')).toBe(179);
     expect(price('KING')).toBe(199);
+    expect(price('SPONSOR')).toBe(215);
+    expect(price('D.HELPER')).toBe(219);
+    expect(price('D.KP')).toBe(229);
     expect(price('D.MODER')).toBe(249);
     expect(price('D.ST.MODER')).toBe(349);
     expect(price('D.GLMODER')).toBe(449);

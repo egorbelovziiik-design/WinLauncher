@@ -522,8 +522,8 @@ export function AdminGrantPanel({
           <a href="/KingGriefCore.jar" download className="btn btn-primary btn-sm" title="Скачать ядро сервера KingGriefCore.jar v6.4.0 (МЕГА-ОБНОВА: кастомные кирки и молоты работают везде и в /warp mine, 12 Шаров квадратом 4×4 с реальными баффами в левой руке, новые зачарования-свитки /scroll, МЕГА-МАГАЗИН /mega с МЕГА-Хилом и 3 новыми тотемами, МАНЕКЕН /maneken с живой 3D-моделью брони и элитр, киты ТЕХ.АДМИН и ХЕЛПЕР, безопасный спавн и маленькие подарочки Санты, анти-лаг молния v6.3.3)">
             <Download size={12} /> Ядро v6.4.0 (.jar)
           </a>
-          <a href="/kinggrief-mega-rp.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v5.9 (115 3D Предметов, 12 Мечей, 12 Кирок)">
-            <Download size={12} /> Мега-РП v5.9 (.zip)
+          <a href="/kinggrief-mega-rp-v64.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v6.4: модели шаров, кирок, брони, тотемов и новых предметов">
+            <Download size={12} /> Мега-РП v6.4 (.zip)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
             <Download size={12} /> Мост (.jar)
