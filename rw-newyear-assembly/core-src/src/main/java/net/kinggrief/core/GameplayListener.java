@@ -247,7 +247,7 @@ public final class GameplayListener implements Listener {
     public void tagPvp30(Player... players) {
         for (Player p : players) {
             if (p == null || !p.isOnline()) continue;
-            if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id) && p.getGameMode() == GameMode.CREATIVE) continue;
+            if (plugin.getRanks().isOwnerLevel(p) && p.getGameMode() == GameMode.CREATIVE) continue;
             plugin.getHud().tagCombat(p);
             if (p.isFlying() && p.getGameMode() == GameMode.SURVIVAL) {
                 p.setFlying(false);
@@ -282,7 +282,7 @@ public final class GameplayListener implements Listener {
             plugin.getStore().recordPlayerIp(p.getName(), ip);
         }
         // v6.2.1: БАН ПО НИКУ действует на ВСЕХ (даже OWNER-ранг) — иначе бан невозможно выдать!
-        boolean isOwnerRank = "owner".equalsIgnoreCase(plugin.getRanks().getRankByName(p.getName()).id);
+        boolean isOwnerRank = plugin.getRanks().isOwnerLevelByName(p.getName());
         String ban = plugin.getStore().getActiveBanReason(p.getName());
         if (ban != null) {
             long remSec = plugin.getStore().getBanRemainingSec(p.getName());
@@ -307,7 +307,7 @@ public final class GameplayListener implements Listener {
     @EventHandler
     public void onJoin(final PlayerJoinEvent e) {
         final Player p = e.getPlayer();
-        boolean isOwnerJoin = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwnerJoin = plugin.getRanks().isOwnerLevel(p);
         // v6.2.1: бан по нику кикает ВСЕХ (включая OWNER-ранг)!
         String ban = plugin.getStore().getActiveBanReason(p.getName());
         if (ban != null) {
@@ -423,7 +423,7 @@ public final class GameplayListener implements Listener {
                     + (pot > 0.0 ? " &8(&a+" + ColorUtil.fmtMoney(pot) + "$&8)" : "") + "&f!"));
         }
         if (!wasFrozen && plugin.getHud().isInCombat(p) && !p.isDead()
-                && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                && !plugin.getRanks().isOwnerLevel(p)) {
             p.setHealth(0.0);
             Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вышел с сервера во время 30-секундного ПвП и потерял вещи!"));
         }
@@ -1656,7 +1656,7 @@ public final class GameplayListener implements Listener {
                 return;
             }
             if (hm == Material.ENCHANTED_GOLDEN_APPLE || hm == Material.GOLDEN_APPLE) {
-                boolean isOwnerP = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+                boolean isOwnerP = plugin.getRanks().isOwnerLevel(p);
                 if (isOwnerP) {
                     try { p.setCooldown(hm, 0); } catch (Throwable ignored) {}
                 } else {
@@ -1714,7 +1714,7 @@ public final class GameplayListener implements Listener {
             }
         } else if ("orb_recall".equals(cid)) {
             e.setCancelled(true);
-            boolean isOwnerUser = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+            boolean isOwnerUser = plugin.getRanks().isOwnerLevel(p);
             if (!isOwnerUser && !checkAndSetCd(p, "orb_recall", 25)) return;
             consumeOne(p, hand);
             final long startMs = System.currentTimeMillis();
@@ -1764,7 +1764,7 @@ public final class GameplayListener implements Listener {
     }
 
     private boolean checkAndSetCd(Player p, String key, int sec) {
-        if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+        if (plugin.getRanks().isOwnerLevel(p)) {
             return true;
         }
         String k = p.getUniqueId() + ":" + key;
@@ -2486,7 +2486,7 @@ public final class GameplayListener implements Listener {
 
     private void spawnTemporaryPlast(Player p) {
         String skin = plugin.getStore().getSelectedPlastSkin(p.getName());
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if ("owner".equalsIgnoreCase(skin) && !isOwner) skin = "classic";
 
         Material mainMat = Material.OBSIDIAN;
@@ -2594,7 +2594,7 @@ public final class GameplayListener implements Listener {
 
     private void spawnTemporaryTrapka(Player p) {
         String skin = plugin.getStore().getSelectedTrapSkin(p.getName());
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if ("owner".equalsIgnoreCase(skin) && !isOwner) skin = "classic";
 
         Material mainMat = Material.NETHERITE_BLOCK;
@@ -3022,7 +3022,7 @@ public final class GameplayListener implements Listener {
             if (plugin.getStore().isGodMode(gp)) {
                 if (e instanceof EntityDamageByEntityEvent
                         && ((EntityDamageByEntityEvent) e).getDamager() instanceof Player
-                        && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(gp).id)) {
+                        && !plugin.getRanks().isOwnerLevel(gp)) {
                     plugin.getStore().disableGodMode(gp);
                     gp.sendMessage(ColorUtil.c("&#FF5252⚔ Режим бессмертия (/god) автоматически отключён при входе в ПвП!"));
                 } else {
@@ -3528,7 +3528,7 @@ public final class GameplayListener implements Listener {
         if (m != Material.ENCHANTED_GOLDEN_APPLE && m != Material.GOLDEN_APPLE) return;
 
         Player p = e.getPlayer();
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if (isOwner) {
             try { p.setCooldown(m, 0); } catch (Throwable ignored) {}
             return;
@@ -3837,7 +3837,7 @@ public final class GameplayListener implements Listener {
     public void onCommandSend(PlayerCommandSendEvent e) {
         Player p = e.getPlayer();
         RankManager.RankDef rk = plugin.getRanks().getRank(p);
-        boolean isOwner = rk != null && "owner".equalsIgnoreCase(rk.id);
+        boolean isOwner = rk != null && plugin.getRanks().isOwnerLevel(rk.id);
         // v6.2.1: TECH.ADMIN видит все команды как OWNER!
         if (isOwner || (rk != null && "techadmin".equalsIgnoreCase(rk.id))) return;
         final boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
@@ -4048,7 +4048,7 @@ public final class GameplayListener implements Listener {
             return;
         }
 
-        boolean isOwnerChat = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwnerChat = plugin.getRanks().isOwnerLevel(p);
         if (!isOwnerChat) {
             long muteSec = plugin.getStore().getMuteRemainingSec(p.getName());
             if (muteSec > 0) {

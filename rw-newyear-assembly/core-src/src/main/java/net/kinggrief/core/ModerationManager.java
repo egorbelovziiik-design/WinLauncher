@@ -265,11 +265,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
     private boolean ipBelongsToOwner(String ip) {
         for (String acc : plugin.getStore().getAccountsByIp(ip)) {
-            if ("owner".equalsIgnoreCase(plugin.getRanks().getRankByName(acc).id)) return true;
+            if (plugin.getRanks().isOwnerLevelByName(acc)) return true;
         }
         for (Player on : Bukkit.getOnlinePlayers()) {
             if (ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))
-                    && "owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) {
+                    && plugin.getRanks().isOwnerLevel(on)) {
                 return true;
             }
         }
@@ -2441,7 +2441,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
         for (Player on : Bukkit.getOnlinePlayers()) {
             if (ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))
-                    && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) {
+                    && !plugin.getRanks().isOwnerLevel(on)) {
                 playSantaTapeMuteAnimation(on, timeLabel, reason);
             }
         }
@@ -2532,7 +2532,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         Player primaryOnline = DataStore.looksLikeIp(rawTarget) ? null : Bukkit.getPlayerExact(rawTarget);
         for (Player on : new ArrayList<Player>(Bukkit.getOnlinePlayers())) {
             if (!ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))) continue;
-            if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(on).id)) continue;
+            if (plugin.getRanks().isOwnerLevel(on)) continue;
             if (primaryOnline != null && on.equals(primaryOnline)) {
                 executeBanSkyAnimationOnly(on, staffName, timeLabel, buildIpBanKickScreen(staffName, timeLabel, finalReason, targetLabel), deferredBan);
             } else {

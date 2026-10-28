@@ -309,7 +309,7 @@ public final class GuiManager {
         };
         int start = pg * slots.length;
         long now = System.currentTimeMillis();
-        boolean isOwnerViewer = myRank != null && "owner".equalsIgnoreCase(myRank.id);
+        boolean isOwnerViewer = myRank != null && plugin.getRanks().isOwnerLevel(myRank.id);
         for (int i = 0; i < slots.length && (start + i) < ALL_KITS.length; i++) {
             String[] kd = ALL_KITS[start + i];
             String kid = kd[0];
@@ -396,18 +396,18 @@ public final class GuiManager {
 
         // СТРОЖАЙШИЙ ЗАКОН v5.7: Кит OWNER могут брать и выдавать СТРОГО ТОЛЬКО ОВНЕРЫ!
         if ("owner".equals(k)) {
-            if (!fromConsole && (senderRank == null || !"owner".equalsIgnoreCase(senderRank.id))) {
+            if (!fromConsole && (senderRank == null || !plugin.getRanks().isOwnerLevel(senderRank.id))) {
                 if (sp != null) ColorUtil.sound(sp, "entity.villager.no", 1.0f, 0.8f);
                 sender.sendMessage(ColorUtil.c("&#FF1744✖ Кит &f/kit owner &#FF1744могут брать СТРОГО ТОЛЬКО владельцы (привилегия &#FF1744&lOWNER&#FF1744)!"));
                 return;
             }
-            if (target != null && !fromConsole && !"owner".equalsIgnoreCase(plugin.getRanks().getRank(target).id)) {
+            if (target != null && !fromConsole && !plugin.getRanks().isOwnerLevel(target)) {
                 sender.sendMessage(ColorUtil.c("&#FF1744✖ Кит &f/kit owner &#FF1744предназначен исключительно для владельцев (&#FF1744&lOWNER&#FF1744)!"));
                 return;
             }
         }
 
-        boolean isOwnerSender = fromConsole || (senderRank != null && "owner".equalsIgnoreCase(senderRank.id));
+        boolean isOwnerSender = fromConsole || (senderRank != null && plugin.getRanks().isOwnerLevel(senderRank.id));
         boolean isHighAdmin = isOwnerSender || (!"owner".equals(k) && senderRank != null && senderRank.weight >= 160);
 
         if (!isHighAdmin && sp != null) {
@@ -511,7 +511,7 @@ public final class GuiManager {
                 ColorUtil.c("&#FF5722&l⛏ 12 КИРОК, МОЛОТ 10×10 И ОРУЖИЕ"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
                 "&7Все 12 кастомных 3D Кирок и Молотов v6.3!",
@@ -562,7 +562,7 @@ public final class GuiManager {
                 ColorUtil.c("&#FF1744&l⚔ ОРУЖЕЙНАЯ 14 3D МЕЧЕЙ (/swords)"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FFD740&lВаш баланс: &b" + bal + " Риликов ❖",
                 "&7Все 14 уникальных 3D Мечей KINGGRIEF v6.3!",
@@ -937,7 +937,7 @@ public final class GuiManager {
                 ColorUtil.c("&#E040FB&l⛓ СКИНЫ ТРАПОК [СТЕКЛО + ДЕБАФФЫ]"));
         decorateFrame(inv);
         String active = plugin.getStore().getSelectedTrapSkin(p.getName());
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(3, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#FF1744&l⛓ [ВКЛАДКА] Скины Трапок 5×5×5",
                 "&a✔ Сейчас открыта эта вкладка!",
@@ -981,7 +981,7 @@ public final class GuiManager {
                 ColorUtil.c("&#A855F7&l🧱 СКИНЫ ПЛАСТОВ 5×5×2 (/plastskins)"));
         decorateFrame(inv);
         String active = plugin.getStore().getSelectedPlastSkin(p.getName());
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
 
         inv.setItem(3, ItemFactory.glowIcon(Material.NETHERITE_SCRAP, "&#FF1744&l⛓ [ПЕРЕЙТИ] Скины Трапок 5×5×5 (/skins)",
                 "&7Нажми, чтобы открыть скины для Трапки",
@@ -1598,7 +1598,7 @@ public final class GuiManager {
                 ColorUtil.c("&#FF1744&l🔮 АЛТАРЬ 18 3D ТАЛИСМАНОВ [v6.3]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         inv.setItem(4, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FF1744&lВаш баланс: &f" + bal + " Риликов ❖",
                 "&7Все 3D Талисманы дают пассивные эффекты в левой руке",
                 "&7и спасают от смерти с уникальным взрывом!",
@@ -1650,7 +1650,7 @@ public final class GuiManager {
                 ColorUtil.c("&#FFD740&l🛡 3D БРОНЯ, ЛУКИ И ТНТ [v6.3]"));
         decorateFrame(inv);
         int bal = plugin.getStore().getRelics(p);
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHERITE_CHESTPLATE, "&#FFD740&lВаш баланс: &f" + bal + " Риликов ❖",
                 "&7Полный сет из 4 вещей даёт мощный пассивный бонус сета!",
                 "&7Нажми на нагрудник сета, чтобы купить СРАЗУ ПОЛНЫЙ КОМПЛЕКТ (4 вещи)!"));
@@ -1951,7 +1951,7 @@ public final class GuiManager {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openSwordsMenu(p); return; }
             if (slot == 13) {
-                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                if (!plugin.getRanks().isOwnerLevel(p)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Божественный Молот OWNER'а [10×10] доступен СТРОГО ТОЛЬКО владельцу (OWNER)!"));
                     return;
@@ -1969,7 +1969,7 @@ public final class GuiManager {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openArmorsMenu(p); return; }
             if (slot == 12) {
-                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                if (!plugin.getRanks().isOwnerLevel(p)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Божественный Меч OWNER доступен СТРОГО ТОЛЬКО владельцу (OWNER)!"));
                     return;
@@ -1985,7 +1985,7 @@ public final class GuiManager {
         } else if ("talismans".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 32) {
-                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                if (!plugin.getRanks().isOwnerLevel(p)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Талисман OWNER доступен СТРОГО ТОЛЬКО владельцам (привилегия OWNER)!"));
                     return;
@@ -2001,7 +2001,7 @@ public final class GuiManager {
         } else if ("armors".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 16) {
-                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                if (!plugin.getRanks().isOwnerLevel(p)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Сет Брони OWNER доступен СТРОГО ТОЛЬКО владельцам (привилегия OWNER)!"));
                     return;
@@ -2016,7 +2016,7 @@ public final class GuiManager {
                 return;
             }
             if (slot == 25) {
-                if (!"owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) {
+                if (!plugin.getRanks().isOwnerLevel(p)) {
                     ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Клинок Властелина OWNER доступен СТРОГО ТОЛЬКО владельцам!"));
                     return;
@@ -2720,7 +2720,7 @@ public final class GuiManager {
             if (sk[0].equalsIgnoreCase(skinId)) { found = sk; break; }
         }
         if (found == null) return;
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if ("owner".equalsIgnoreCase(skinId)) {
             if (!isOwner) {
                 ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
@@ -2769,7 +2769,7 @@ public final class GuiManager {
             if (sk[0].equalsIgnoreCase(skinId)) { found = sk; break; }
         }
         if (found == null) return;
-        boolean isOwner = "owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id);
+        boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if ("owner".equalsIgnoreCase(skinId)) {
             if (!isOwner) {
                 ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);

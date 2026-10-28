@@ -111,6 +111,7 @@ public final class KingGriefCore extends JavaPlugin {
 
         this.antiLagDdos = new AntiLagDdosManager(this);
         Bukkit.getPluginManager().registerEvents(this.antiLagDdos, this);
+        this.antiLagDdos.start();   // v6.3.1: фоновая чистка счётчиков (без неё карты текли вечно)
         PluginCommand ddosCmd = getCommand("antiddos");
         if (ddosCmd != null) ddosCmd.setExecutor(this.antiLagDdos);
 
@@ -191,7 +192,7 @@ public final class KingGriefCore extends JavaPlugin {
     private boolean isStrictOwnerOrConsole(CommandSender s) {
         if (!(s instanceof Player)) return true;
         Player p = (Player) s;
-        return "owner".equalsIgnoreCase(ranks.getRank(p).id);
+        return ranks.isOwnerLevel(p);
     }
 
     private boolean hasEconomyAdmin(CommandSender s) {
@@ -1178,11 +1179,11 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length < 1) { p.sendMessage(ColorUtil.c("&eИспользование: &f/" + c + " <ник>")); return true; }
             Player t = Bukkit.getPlayer(args[0]);
             if (t == null || t.equals(p)) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
-            if (store.isTpDisabled(t.getName()) && !"owner".equalsIgnoreCase(ranks.getRank(p).id)) {
+            if (store.isTpDisabled(t.getName()) && !ranks.isOwnerLevel(p)) {
                 p.sendMessage(ColorUtil.c("&#FF5252✖ Игрок &f" + t.getName() + " &#FF5252отключил приём запросов телепортации (/tptoggle)!"));
                 return true;
             }
-            if (store.isIgnoring(t.getName(), p.getName()) && !"owner".equalsIgnoreCase(ranks.getRank(p).id)) {
+            if (store.isIgnoring(t.getName(), p.getName()) && !ranks.isOwnerLevel(p)) {
                 p.sendMessage(ColorUtil.c("&#FF5252✖ Этот игрок добавил вас в игнор!"));
                 return true;
             }
@@ -1271,7 +1272,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("near".equals(c)) {
-            if (ranks.getRank(p).weight < 35 && !"owner".equalsIgnoreCase(ranks.getRank(p).id)) {
+            if (ranks.getRank(p).weight < 35 && !ranks.isOwnerLevel(p)) {
                 p.sendMessage(ColorUtil.c("&cКоманда /near доступна с привилегии BUNNY (59₽)!"));
                 return true;
             }
@@ -2452,7 +2453,7 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private boolean handlePrivateMessageCommand(Player sender, String cmdName, String[] args) {
-        boolean isOwner = "owner".equalsIgnoreCase(ranks.getRank(sender).id);
+        boolean isOwner = ranks.isOwnerLevel(sender);
         if (!isOwner && (store.getMuteRemainingSec(sender.getName()) > 0
                 || store.getIpMuteRemainingSec(store.getPlayerIp(sender)) > 0)) {
             sender.sendMessage(ColorUtil.c("&#FF5252🔇 Вы находитесь в муте и не можете писать в ЛС!"));
@@ -2701,7 +2702,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length < 1) { p.sendMessage(ColorUtil.c("&eИспользование: &f/burn <ник> [сек]")); return true; }
             Player t = Bukkit.getPlayer(args[0]);
             if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
-            if ("owner".equalsIgnoreCase(ranks.getRank(t).id) && !isOwner) {
+            if (ranks.isOwnerLevel(t) && !isOwner) {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя поджечь OWNER!"));
                 return true;
             }
@@ -2777,7 +2778,7 @@ public final class KingGriefCore extends JavaPlugin {
             }
             Player t = Bukkit.getPlayer(args[0]);
             if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
-            if ("owner".equalsIgnoreCase(ranks.getRank(t).id) && !t.equals(p)) {
+            if (ranks.isOwnerLevel(t) && !t.equals(p)) {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя применять /sudo на другого OWNER!"));
                 return true;
             }
@@ -2908,7 +2909,7 @@ public final class KingGriefCore extends JavaPlugin {
             p.sendMessage(ColorUtil.c("&eИспользование: &f/tc <сообщение для тиммейтов и клана>"));
             return true;
         }
-        boolean isOwner = "owner".equalsIgnoreCase(ranks.getRank(p).id);
+        boolean isOwner = ranks.isOwnerLevel(p);
         if (!isOwner && (store.getMuteRemainingSec(p.getName()) > 0
                 || store.getIpMuteRemainingSec(store.getPlayerIp(p)) > 0)) {
             p.sendMessage(ColorUtil.c("&#FF5252🔇 Вы в муте!"));

@@ -16,6 +16,8 @@ import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
@@ -25,14 +27,18 @@ import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.event.server.TabCompleteEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.inventory.EquipmentSlot;
 
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -63,7 +69,31 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
                 "TRIPWIRE_HOOK", "STONE_BUTTON", "OAK_BUTTON", "POLISHED_BLACKSTONE_BUTTON"
         };
         for (String n : names) REDSTONE_MACHINE_PARTS.add(n);
+        // v6.3.1: добираем ВСЕ виды кнопок и нажимных плит (раньше учитывались только 3 кнопки из 10!)
+        try {
+            for (Material mm : Material.values()) {
+                String n = mm.name();
+                if (n.endsWith("_BUTTON") || n.endsWith("_PRESSURE_PLATE")) REDSTONE_MACHINE_PARTS.add(n);
+            }
+        } catch (Throwable ignored) {}
     }
+
+    // ================= v6.3.1: ПОРОГИ АНТИ-ЛАГ МОЛНИИ ( SpamOnly — одиночное нажатие НЕ наказуемо! ) =====
+    /** Сколько переключений рычага/кнопки за окно считается СПАМОМ. */
+    private static final int SPAM_TOGGLE_LIMIT = 10;
+    private static final int SPAM_PLATE_LIMIT = 22;
+    private static final long SPAM_WINDOW_MS = 3000L;
+    /** Де-дупликация каскада: один и тот же блок даёт не больше 1 импульса за это время. */
+    private static final long PULSE_DEDUPE_MS = 300L;
+    /** Лимиты импульсов за 2 секунды (одиночный механизм столько НИКОГДА не даёт). */
+    private static final int CELL_PULSE_LIMIT = 45;
+    private static final int CHUNK_PULSE_LIMIT = 110;
+    private static final int PISTON_EXTEND_LIMIT = 16;
+    private static final int PISTON_RETRACT_LIMIT = 18;
+    private static final int DISPENSE_LIMIT = 22;
+    /** Молния бьёт только если перегрузка держится ПОДРЯД в двух окнах (т.е. это реально спам/клок). */
+    private static final long OVERLOAD_STREAK_MS = 8000L;
+    private static final int LAG_BLOCK_PER_CHUNK_LIMIT = 28;
 
     private static final class WindowCounter {
         long windowStartMs;
@@ -95,12 +125,86 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
     private final Map<String, WindowCounter> chunkRedstoneMap = new ConcurrentHashMap<String, WindowCounter>();
     private final Map<String, WindowCounter> cellPistonMap = new ConcurrentHashMap<String, WindowCounter>();
     private final Map<String, Long> chunkLightningCd = new ConcurrentHashMap<String, Long>();
+    // v6.3.1: СПАМ-детектор рычагов/кнопок/плит + де-дупликатор каскадов + «подряд идущие» окна перегрузки
+    private final Map<String, WindowCounter> toggleSpamMap = new ConcurrentHashMap<String, WindowCounter>();
+    private final Map<String, Long> lastPulseAtMs = new ConcurrentHashMap<String, Long>();
+    private final Map<String, Integer> overloadStreak = new ConcurrentHashMap<String, Integer>();
+    private final Map<String, Long> overloadFlaggedAt = new ConcurrentHashMap<String, Long>();
+    private final Map<String, Long> lastOverloadWarnAt = new ConcurrentHashMap<String, Long>();
+    private final Map<UUID, Long> spamStrikes = new ConcurrentHashMap<UUID, Long>();
+    // v6.3.1: O(1)-счётчики лаг-блоков в чанке вместо скана 8448 блоков на каждое размещение!
+    private final Map<String, Integer> chunkLagCounts = new ConcurrentHashMap<String, Integer>();
+    private BukkitRunnable cleanupTask;
 
     public AntiLagDdosManager(KingGriefCore plugin) {
         this.plugin = plugin;
     }
 
+    /** v6.3.1: фоновая чистка счётчиков — раньше карты росли вечно (утечка памяти за дни аптайма)! */
+    public void start() {
+        if (cleanupTask != null) return;
+        cleanupTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    long now = System.currentTimeMillis();
+                    purgeStale(ipBurstMap, now, 120000L);
+                    purgeStale(cmdRateMap, now, 120000L);
+                    purgeStale(tabRateMap, now, 120000L);
+                    purgeStale(dropRateMap, now, 120000L);
+                    purgeStale(cellRedstoneMap, now, 60000L);
+                    purgeStale(chunkRedstoneMap, now, 60000L);
+                    purgeStale(cellPistonMap, now, 60000L);
+                    purgeStale(toggleSpamMap, now, 60000L);
+                    purgeOldValues(lastPulseAtMs, now, 15000L);
+                    purgeOldValues(chunkLightningCd, now, 60000L);
+                    purgeOldValues(lastOverloadWarnAt, now, 60000L);
+                    purgeOldValues(spamStrikes, now, 600000L);
+                    purgeOldValues(overloadFlaggedAt, now, 60000L);
+                    for (String k : new ArrayList<String>(overloadStreak.keySet())) {
+                        Long at = overloadFlaggedAt.get(k);
+                        if (at == null || now - at.longValue() > 60000L) overloadStreak.remove(k);
+                    }
+                    for (String k : new ArrayList<String>(lastConnectMsByKey.keySet())) {
+                        Long at = lastConnectMsByKey.get(k);
+                        if (at != null && now - at.longValue() > 300000L) lastConnectMsByKey.remove(k);
+                    }
+                } catch (Throwable ignored) {}
+            }
+        };
+        cleanupTask.runTaskTimer(plugin, 600L, 600L);
+    }
+
+    private void purgeStale(Map<?, WindowCounter> map, long now, long maxAgeMs) {
+        try {
+            for (Object k : new ArrayList<Object>(map.keySet())) {
+                WindowCounter wc = map.get(k);
+                if (wc == null || now - wc.windowStartMs > maxAgeMs) map.remove(k);
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private void purgeOldValues(Map<?, Long> map, long now, long maxAgeMs) {
+        try {
+            for (Object k : new ArrayList<Object>(map.keySet())) {
+                Long v = map.get(k);
+                if (v == null || now - v.longValue() > maxAgeMs) map.remove(k);
+            }
+        } catch (Throwable ignored) {}
+    }
+
     public void shutdown() {
+        if (cleanupTask != null) {
+            try { cleanupTask.cancel(); } catch (Throwable ignored) {}
+            cleanupTask = null;
+        }
+        toggleSpamMap.clear();
+        lastPulseAtMs.clear();
+        overloadStreak.clear();
+        overloadFlaggedAt.clear();
+        lastOverloadWarnAt.clear();
+        spamStrikes.clear();
+        chunkLagCounts.clear();
         ipBurstMap.clear();
         lastConnectMsByKey.clear();
         cmdRateMap.clear();
@@ -113,21 +217,26 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
     }
 
     private int incrementWindow(Map<String, WindowCounter> map, String key, long now, long windowMs) {
+        return incrementWindowObj(map, key, now, windowMs).count;
+    }
+
+    /** v6.3.1: возвращает сам счётчик окна — нужно, чтобы отличать «одно окно» от «следующего». */
+    private WindowCounter incrementWindowObj(Map<String, WindowCounter> map, String key, long now, long windowMs) {
         WindowCounter wc = map.get(key);
         if (wc == null) {
             wc = new WindowCounter();
             wc.windowStartMs = now;
             wc.count = 1;
             map.put(key, wc);
-            return 1;
+            return wc;
         }
         if (now - wc.windowStartMs > windowMs) {
             wc.windowStartMs = now;
             wc.count = 1;
-            return 1;
+            return wc;
         }
         wc.count++;
-        return wc.count;
+        return wc;
     }
 
     private int incrementUuidWindow(Map<UUID, WindowCounter> map, UUID id, long now, long windowMs) {
@@ -155,25 +264,140 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
     public void onRedstonePulse(BlockRedstoneEvent e) {
         if (e.getOldCurrent() == e.getNewCurrent()) return;
         Block b = e.getBlock();
+        Material m = b.getType();
+        // v6.3.1: ПРОВОД НЕ СЧИТАЕМ ВОВСЕ. Одно нажатие рычага рассылает десятки событий по всем
+        // сегментам провода (каскад) — именно поэтому молния раньше била по обычным механизмам!
+        if (m == Material.REDSTONE_WIRE) return;
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return;
 
         long now = System.currentTimeMillis();
         String wName = b.getWorld().getName();
+        String blockKey = wName + ":" + b.getX() + ":" + b.getY() + ":" + b.getZ();
+        // Де-дупликация каскада: один и тот же блок даёт не больше ОДНОГО импульса за 300 мс.
+        Long prevPulse = lastPulseAtMs.get(blockKey);
+        if (prevPulse != null && now - prevPulse.longValue() < PULSE_DEDUPE_MS) return;
+        lastPulseAtMs.put(blockKey, Long.valueOf(now));
+
         String cellKey = wName + ":" + (b.getX() >> 3) + ":" + (b.getY() >> 3) + ":" + (b.getZ() >> 3);
         String chunkKey = wName + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4);
 
-        int weight = (b.getType() == Material.OBSERVER || b.getType() == Material.COMPARATOR || b.getType() == Material.REPEATER) ? 2 : 1;
-        int cellPulses = 0;
-        int chunkPulses = 0;
+        int weight = (m == Material.OBSERVER || m == Material.COMPARATOR || m == Material.REPEATER) ? 2 : 1;
+        WindowCounter cw = null;
+        WindowCounter kw = null;
         for (int i = 0; i < weight; i++) {
-            cellPulses = incrementWindow(cellRedstoneMap, cellKey, now, 2000L);
-            chunkPulses = incrementWindow(chunkRedstoneMap, chunkKey, now, 2000L);
+            cw = incrementWindowObj(cellRedstoneMap, cellKey, now, 2000L);
+            kw = incrementWindowObj(chunkRedstoneMap, chunkKey, now, 2000L);
         }
+        int pulses = Math.max(cw.count, kw.count);
+        boolean overloaded = (cw.count >= CELL_PULSE_LIMIT) || (kw.count >= CHUNK_PULSE_LIMIT);
+        // Одиночное нажатие рычага/кнопки физически не набирает лимит -> НИКАКОГО наказания!
+        if (!overloaded) return;
 
-        if (cellPulses >= 36 || chunkPulses >= 85) {
-            e.setNewCurrent(0);
-            smiteAndDestroyRedstoneMachine(b, chunkKey, now, "Редстоун-клок / Лаг-машина");
+        e.setNewCurrent(0);
+        if (overloadConfirmed(cellKey, cw.windowStartMs, now)) {
+            overloadStreak.remove(cellKey);
+            smiteAndDestroyRedstoneMachine(b, chunkKey, now, "Редстоун-клок / Лаг-машина (СПАМ импульсами)");
+        } else {
+            warnOverload(b, cellKey, now, pulses);
         }
+    }
+
+    /**
+     * v6.3.1: молния бьёт ТОЛЬКО если перегрузка держится подряд в двух окнах (2 сек каждое),
+     * т.е. это реальный спам/клок. Первое окно — только честное предупреждение без разрушений.
+     */
+    private boolean overloadConfirmed(String streakKey, long windowStartMs, long now) {
+        Long flagged = overloadFlaggedAt.get(streakKey);
+        if (flagged != null && flagged.longValue() == windowStartMs) return false; // это окно уже учтено
+        Integer st = overloadStreak.get(streakKey);
+        int v = (st == null || flagged == null || now - flagged.longValue() > OVERLOAD_STREAK_MS) ? 1 : st.intValue() + 1;
+        overloadStreak.put(streakKey, Integer.valueOf(v));
+        overloadFlaggedAt.put(streakKey, Long.valueOf(windowStartMs));
+        return v >= 2;
+    }
+
+    /** v6.3.1: предупреждение вместо молнии — искры, звук выгоревшего факела и сообщение всем рядом. */
+    private void warnOverload(Block b, String cellKey, long now, int pulses) {
+        Long last = lastOverloadWarnAt.get(cellKey);
+        if (last != null && now - last.longValue() < 5000L) return;
+        lastOverloadWarnAt.put(cellKey, Long.valueOf(now));
+        Location loc = b.getLocation().add(0.5, 1.0, 0.5);
+        try {
+            b.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, loc, 16, 0.5, 0.6, 0.5, 0.05);
+            b.getWorld().playSound(loc, "minecraft:block.redstone_torch.burnout", 0.9f, 1.0f);
+        } catch (Throwable ignored) {}
+        String bar = ColorUtil.c("&#FFD740&l⚡ [АНТИ-ЛАГ] &fПерегрузка редстоуна (&e" + pulses
+                + " импульсов/2 сек&f)! &#FF1744Прекрати спам — следующим ударом будет МОЛНИЯ!");
+        String staffMsg = ColorUtil.c("&#FFD740&l⚡ [АНТИ-ЛАГ] &fПерегрузка редстоуна на &e" + b.getX() + ", "
+                + b.getY() + ", " + b.getZ() + " &7(" + pulses + " импульсов/2 сек) — выдано предупреждение.");
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            try {
+                boolean nearby = p.getWorld().equals(b.getWorld()) && p.getLocation().distanceSquared(loc) <= 1024.0;
+                if (nearby) ColorUtil.actionBar(p, bar);
+                else if (plugin.getRanks().getRank(p).weight >= 220) p.sendMessage(staffMsg);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    /**
+     * v6.3.1: ГЛАВНОЕ — СПАМ рычагом/кнопкой/нажимной плитой. Молния прилетает именно за СПАМ
+     * (10+ переключений за 3 секунды одним игроком), а одиночное нажатие механизма не наказуемо вообще.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onToggleSpam(PlayerInteractEvent e) {
+        Action act = e.getAction();
+        if (act != Action.RIGHT_CLICK_BLOCK && act != Action.PHYSICAL) return;
+        if (act == Action.RIGHT_CLICK_BLOCK) {
+            // событие приходит на обе руки — считаем только основную, иначе всё удваивается!
+            try {
+                EquipmentSlot hand = e.getHand();
+                if (hand != null && hand != EquipmentSlot.HAND) return;
+            } catch (Throwable ignored) {}
+        }
+        Block b = e.getClickedBlock();
+        if (b == null) return;
+        Material m = b.getType();
+        String mn = m.name();
+        boolean leverOrButton = (m == Material.LEVER || mn.endsWith("_BUTTON"));
+        boolean plate = mn.endsWith("_PRESSURE_PLATE");
+        if (!leverOrButton && !plate) return;
+        Player p = e.getPlayer();
+        if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return;
+        // OWNER / TECH.ADMIN / Мл.Админ+ (weight>=260) — свои механизмы, без наказания
+        try {
+            if (plugin.getRanks().getRank(p).weight >= 260) return;
+        } catch (Throwable ignored) {}
+        long now = System.currentTimeMillis();
+        String key = p.getUniqueId() + ":" + b.getWorld().getName() + ":" + b.getX() + ":" + b.getY() + ":" + b.getZ();
+        int hits = incrementWindow(toggleSpamMap, key, now, SPAM_WINDOW_MS);
+        int limit = plate ? SPAM_PLATE_LIMIT : SPAM_TOGGLE_LIMIT;
+        if (hits < limit) return;
+        toggleSpamMap.remove(key); // сбрасываем счётчик после удара
+        punishToggleSpam(p, b, hits, now, plate);
+    }
+
+    private void punishToggleSpam(Player p, Block b, int hits, long now, boolean plate) {
+        UUID id = p.getUniqueId();
+        String chunkKey = b.getWorld().getName() + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4);
+        Long prev = spamStrikes.get(id);
+        int strikeNo = (prev != null && now - prev.longValue() < 300000L) ? 2 : 1;
+        spamStrikes.put(id, Long.valueOf(now));
+        String kind = (plate ? "СПАМ по нажимной плите (" : "СПАМ рычагом/кнопкой (")
+                + hits + " нажатий за 3 сек) — " + p.getName();
+        smiteAndDestroyRedstoneMachine(b, chunkKey, now, kind);
+        p.sendMessage(ColorUtil.c("&#FF1744&l⚡ [АНТИ-ЛАГ МОЛНИЯ] &fТы &cСПАМИЛ "
+                + (plate ? "нажимную плиту" : "рычаг/кнопку") + " &f(&e" + hits
+                + " раз за 3 сек&f) — механизм уничтожен молнией! &7Одиночные нажатия НЕ наказываются."));
+        if (strikeNo >= 2) {
+            p.kickPlayer(ColorUtil.c("&#FF1744&l⚡ КИК: СПАМ МЕХАНИЗМАМИ\n\n"
+                    + "&fТы дважды за 5 минут спамил рычагом/кнопкой/плитой.\n"
+                    + "&7Одиночные нажатия разрешены, СПАМ — запрещён.\n\n&8KINGGRIEF Anti-Lag v6.3"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l⚡ [АНТИ-ЛАГ] &fИгрок &c" + p.getName()
+                    + " &fкикнут за СПАМ рычагом (&e" + hits + " нажатий за 3 сек&e)."));
+            return;
+        }
+        p.sendTitle(ColorUtil.c("&#FF1744&l⚡ МОЛНИЯ ЗА СПАМ!"),
+                ColorUtil.c("&fЕщё раз — будет КИК. Одиночные нажатия НЕ наказываются!"), 5, 60, 10);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -185,8 +409,10 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         }
         long now = System.currentTimeMillis();
         String wName = b.getWorld().getName();
-        String cellKey = wName + ":" + (b.getX() >> 3) + ":" + (b.getY() >> 3) + ":" + (b.getZ() >> 3);
-        String chunkKey = wName + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4);
+        String blockKey = wName + ":p:" + b.getX() + ":" + b.getY() + ":" + b.getZ();
+        Long prevPulse = lastPulseAtMs.get(blockKey);
+        boolean dup = (prevPulse != null && now - prevPulse.longValue() < 200L);
+        lastPulseAtMs.put(blockKey, Long.valueOf(now));
 
         // Detect slime/honey flying lag machines or rapid piston clocks!
         int slimeCount = 0;
@@ -196,14 +422,26 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
                 slimeCount++;
             }
         }
-        int inc = slimeCount >= 2 ? 3 : 1;
-        int count = 0;
+        boolean flyMachine = slimeCount >= 2;
+        String cellKey = wName + ":" + (b.getX() >> 3) + ":" + (b.getY() >> 3) + ":" + (b.getZ() >> 3);
+        String chunkKey = wName + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4);
+
+        // Одиночное срабатывание поршня (дверь, ферма) — 1 импульс, никакого наказания.
+        if (dup && !flyMachine) return;
+        int inc = flyMachine ? 3 : 1;
+        WindowCounter wc = null;
         for (int i = 0; i < inc; i++) {
-            count = incrementWindow(cellPistonMap, cellKey, now, 2500L);
+            wc = incrementWindowObj(cellPistonMap, cellKey, now, 2500L);
         }
-        if (count >= 14) {
-            e.setCancelled(true);
-            smiteAndDestroyRedstoneMachine(b, chunkKey, now, slimeCount >= 2 ? "Флай-машина / Поршневой лаг-механизм" : "Скоростной поршневой клок");
+        if (wc == null || wc.count < PISTON_EXTEND_LIMIT) return;
+        e.setCancelled(true);
+        // Флай-машина на слизи/мёде запрещена ВСЕГДА -> бьём сразу; обычный спам -> после 2 окон подряд.
+        if (flyMachine || overloadConfirmed(cellKey, wc.windowStartMs, now)) {
+            overloadStreak.remove(cellKey);
+            smiteAndDestroyRedstoneMachine(b, chunkKey, now, flyMachine
+                    ? "Флай-машина / Поршневой лаг-механизм" : "Скоростной поршневой клок (СПАМ)");
+        } else {
+            warnOverload(b, cellKey, now, wc.count);
         }
     }
 
@@ -216,12 +454,21 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         }
         long now = System.currentTimeMillis();
         String wName = b.getWorld().getName();
+        String blockKey = wName + ":pr:" + b.getX() + ":" + b.getY() + ":" + b.getZ();
+        Long prevPulse = lastPulseAtMs.get(blockKey);
+        boolean dup = (prevPulse != null && now - prevPulse.longValue() < 200L);
+        lastPulseAtMs.put(blockKey, Long.valueOf(now));
+        if (dup) return;
         String cellKey = wName + ":" + (b.getX() >> 3) + ":" + (b.getY() >> 3) + ":" + (b.getZ() >> 3);
         String chunkKey = wName + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4);
-        int count = incrementWindow(cellPistonMap, cellKey, now, 2500L);
-        if (count >= 16) {
-            e.setCancelled(true);
-            smiteAndDestroyRedstoneMachine(b, chunkKey, now, "Поршневая лаг-машина");
+        WindowCounter wc = incrementWindowObj(cellPistonMap, cellKey, now, 2500L);
+        if (wc.count < PISTON_RETRACT_LIMIT) return;
+        e.setCancelled(true);
+        if (overloadConfirmed(cellKey, wc.windowStartMs, now)) {
+            overloadStreak.remove(cellKey);
+            smiteAndDestroyRedstoneMachine(b, chunkKey, now, "Поршневая лаг-машина (СПАМ)");
+        } else {
+            warnOverload(b, cellKey, now, wc.count);
         }
     }
 
@@ -231,12 +478,21 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return;
         long now = System.currentTimeMillis();
         String wName = b.getWorld().getName();
+        String blockKey = wName + ":d:" + b.getX() + ":" + b.getY() + ":" + b.getZ();
+        Long prevPulse = lastPulseAtMs.get(blockKey);
+        boolean dup = (prevPulse != null && now - prevPulse.longValue() < 200L);
+        lastPulseAtMs.put(blockKey, Long.valueOf(now));
+        if (dup) return;
         String cellKey = wName + ":disp:" + (b.getX() >> 3) + ":" + (b.getY() >> 3) + ":" + (b.getZ() >> 3);
         String chunkKey = wName + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4);
-        int count = incrementWindow(cellRedstoneMap, cellKey, now, 2000L);
-        if (count >= 20) {
-            e.setCancelled(true);
-            smiteAndDestroyRedstoneMachine(b, chunkKey, now, "Раздатчик-спамер / Лаг-машина");
+        WindowCounter wc = incrementWindowObj(cellRedstoneMap, cellKey, now, 2000L);
+        if (wc.count < DISPENSE_LIMIT) return;
+        e.setCancelled(true);
+        if (overloadConfirmed(cellKey, wc.windowStartMs, now)) {
+            overloadStreak.remove(cellKey);
+            smiteAndDestroyRedstoneMachine(b, chunkKey, now, "Раздатчик-спамер / Лаг-машина (СПАМ)");
+        } else {
+            warnOverload(b, cellKey, now, wc.count);
         }
     }
 
@@ -307,7 +563,10 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         return m != null && REDSTONE_MACHINE_PARTS.contains(m.name());
     }
 
-    // Prevent placing excessive Hoppers / Observers / Pistons in a single survival chunk (> 24 per chunk)
+    /**
+     * v6.3.1: лимит лаг-блоков в чанке БЕЗ скана 8448 блоков на каждое размещение (раньше это
+     * само по себе сажало TPS при постройке). Теперь O(1)-счётчики: +1 при установке, -1 при ломании.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onLagBlockPlace(BlockPlaceEvent e) {
         Block b = e.getBlock();
@@ -316,26 +575,40 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
             return;
         }
         Player p = e.getPlayer();
-        if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) return;
-        Chunk ch = b.getChunk();
-        int count = 0;
-        int minY = Math.max(b.getWorld().getMinHeight(), b.getY() - 16);
-        int maxY = Math.min(b.getWorld().getMaxHeight() - 1, b.getY() + 16);
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                for (int y = minY; y <= maxY; y++) {
-                    Material cm = ch.getBlock(x, y, z).getType();
-                    if (cm == m) {
-                        count++;
-                        if (count > 28) {
-                            e.setCancelled(true);
-                            ColorUtil.actionBar(p, "&#FF1744⚡ [Анти-Лаг] Лимит " + m.name() + " в одном чанке (макс. 28 шт.)!");
-                            return;
-                        }
-                    }
-                }
-            }
+        String rid = plugin.getRanks().getRank(p).id;
+        // OWNER и TECH.ADMIN (права уровня OWNER) не ограничиваются
+        if ("owner".equalsIgnoreCase(rid) || "techadmin".equalsIgnoreCase(rid)) return;
+        if (p.hasPermission("kinggrief.owner")) return;
+        if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return;
+        String key = lagKey(b, m);
+        Integer cur = chunkLagCounts.get(key);
+        int next = (cur == null ? 0 : cur.intValue()) + 1;
+        if (next > LAG_BLOCK_PER_CHUNK_LIMIT) {
+            e.setCancelled(true);
+            ColorUtil.actionBar(p, "&#FF1744⚡ [Анти-Лаг] Лимит " + m.name() + " в одном чанке (макс. "
+                    + LAG_BLOCK_PER_CHUNK_LIMIT + " шт.)!");
+            return;
         }
+        chunkLagCounts.put(key, Integer.valueOf(next));
+    }
+
+    /** v6.3.1: сломал лаг-блок -> счётчик чанка уменьшается (иначе лимит «залипал» навсегда). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onLagBlockBreak(BlockBreakEvent e) {
+        Block b = e.getBlock();
+        Material m = b.getType();
+        if (m != Material.OBSERVER && m != Material.HOPPER && m != Material.PISTON && m != Material.STICKY_PISTON) {
+            return;
+        }
+        String key = lagKey(b, m);
+        Integer cur = chunkLagCounts.get(key);
+        if (cur == null) return;
+        if (cur.intValue() <= 1) chunkLagCounts.remove(key);
+        else chunkLagCounts.put(key, Integer.valueOf(cur.intValue() - 1));
+    }
+
+    private String lagKey(Block b, Material m) {
+        return b.getWorld().getName() + ":" + (b.getX() >> 4) + ":" + (b.getZ() >> 4) + ":" + m.name();
     }
 
     // =========================================================================
@@ -451,7 +724,7 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
             p.sendMessage(ColorUtil.c("&#FF1744🛡 [Anti-Crash] Запрещённый эксплойт заблокирован!"));
             return;
         }
-        if ("owner".equalsIgnoreCase(plugin.getRanks().getRank(p).id)) return;
+        if (plugin.getRanks().isOwnerLevel(p)) return;
         int rate = incrementUuidWindow(cmdRateMap, p.getUniqueId(), System.currentTimeMillis(), 1000L);
         if (rate > 9) {
             e.setCancelled(true);
@@ -563,13 +836,17 @@ public final class AntiLagDdosManager implements Listener, CommandExecutor {
         }
 
         sender.sendMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
-        sender.sendMessage(ColorUtil.c(" &#00E5FF&l🛡 KINGGRIEF ANTI-DDOS & АНТИ-ЛАГ МОЛНИЯ v6.3"));
+        sender.sendMessage(ColorUtil.c(" &#00E5FF&l🛡 KINGGRIEF ANTI-DDOS & АНТИ-ЛАГ МОЛНИЯ v6.3.1"));
         sender.sendMessage(ColorUtil.c(" &fСтатус щита: " + (isShieldActive() ? "&#FF1744&lАКТИВНОЕ ОТРАЖЕНИЕ АТАКИ" : "&#00E676&lШТАТНЫЙ РЕЖИМ (ЗАЩИЩЁН)")));
         sender.sendMessage(ColorUtil.c(" &fТекущий TPS: &#00E676" + plugin.getSpawnEngine().getCurrentTps()
                 + " &8│ &fПик CPS: &#FFD740" + peakCps + " подкл./сек"));
         sender.sendMessage(ColorUtil.c(" &fОтражено DDoS / Бот-атак: &#FF5252" + blockedBotConnections.get()));
         sender.sendMessage(ColorUtil.c(" &fЗаблокировано Краш-Пакетов: &#FFA726" + blockedExploitPackets.get()));
         sender.sendMessage(ColorUtil.c(" &fСломано Редстоун Лаг-Машин Молнией ⚡: &#FFD740" + destroyedLagMachines.get()));
+        sender.sendMessage(ColorUtil.c(" &#00E676&l✓ ПРАВИЛО v6.3.1: &fмолния бьёт ТОЛЬКО за &cСПАМ &f— рычаг/кнопка "
+                + SPAM_TOGGLE_LIMIT + "+ нажатий за 3 сек, или устойчивый редстоун-клок ("
+                + CELL_PULSE_LIMIT + "+ импульсов/2 сек подряд в двух окнах)."));
+        sender.sendMessage(ColorUtil.c(" &7Одиночное нажатие рычага и обычные механизмы молнией &aНЕ &7наказываются — только предупреждение."));
         sender.sendMessage(ColorUtil.c(" &7Команды (Мл.Админ+): &f/antiddos shield &8│ &f/antiddos smite"));
         sender.sendMessage(ColorUtil.c("&#80D8FF&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
         return true;

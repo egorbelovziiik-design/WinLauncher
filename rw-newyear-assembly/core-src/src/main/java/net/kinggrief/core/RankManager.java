@@ -266,6 +266,22 @@ public final class RankManager {
         return d != null ? d : ranks.get("default");
     }
 
+    /**
+     * v6.3.1: TECH.ADMIN имеет ПРАВА УРОВНЯ OWNER — все проверки «owner?» в плагине идут через эти
+     * методы, поэтому тех.админ видит и может всё то же, что и владелец (кроме vanilla OP/LP-скрытого).
+     */
+    public boolean isOwnerLevel(String rankId) {
+        return "owner".equalsIgnoreCase(rankId) || "techadmin".equalsIgnoreCase(rankId);
+    }
+
+    public boolean isOwnerLevel(Player p) {
+        return p != null && isOwnerLevel(getRank(p).id);
+    }
+
+    public boolean isOwnerLevelByName(String playerName) {
+        return isOwnerLevel(getRankByName(playerName).id);
+    }
+
     public RankDef getRankByName(String playerName) {
         if (playerName == null) return ranks.get("default");
         return byId(store.getSavedRank(playerName));

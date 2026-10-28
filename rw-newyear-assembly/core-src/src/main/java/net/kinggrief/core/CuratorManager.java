@@ -149,7 +149,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
     private boolean isOwnerSender(CommandSender s) {
         if (!(s instanceof Player)) return true;
         RankManager.RankDef r = plugin.getRanks().getRank((Player) s);
-        return r != null && "owner".equalsIgnoreCase(r.id);
+        return r != null && plugin.getRanks().isOwnerLevel(r.id);
     }
 
     @EventHandler
