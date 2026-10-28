@@ -70,6 +70,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -119,6 +120,8 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     private final Map<String, CloudBanEntry> cloudBanCache = new ConcurrentHashMap<String, CloudBanEntry>();
     private final Set<String> processedEventIds = Collections.synchronizedSet(new HashSet<String>());
     private final Set<String> pushedLocalBanKeys = Collections.synchronizedSet(new HashSet<String>());
+    /** v2.3: ники, чьи KingАЧ-баны уже отправлены в сеть — чтобы отследить разбан и разослать unban. */
+    private final Set<String> syncedBanNicks = Collections.synchronizedSet(new HashSet<String>());
     private volatile boolean lastCloudOk = false;
     private volatile String learnedSelfPublicHost = "";
     private final Map<UUID, String> playerLearnedHubHostPort = new ConcurrentHashMap<UUID, String>();
@@ -284,11 +287,95 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     }
 
     private boolean safeIsAcceptingTransfers() {
+        // v2.3: рефлексия — API 1.20.5+ отсутствует в spigot-api 1.16, на старых ядрах просто false
         try {
-            return Bukkit.getServer().isAcceptingTransfers();
+            Method m = Bukkit.getServer().getClass().getMethod("isAcceptingTransfers");
+            Object r = m.invoke(Bukkit.getServer());
+            return r instanceof Boolean && ((Boolean) r).booleanValue();
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    private boolean safeIsTransferred(Player p) {
+        try {
+            Method m = p.getClass().getMethod("isTransferred");
+            Object r = m.invoke(p);
+            return r instanceof Boolean && ((Boolean) r).booleanValue();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static final ItemFlag[] ENCHANTS_ATTRIBUTES = new ItemFlag[]{ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES};
+
+    private static ItemFlag[] safeFlags(String... names) {
+        java.util.List<ItemFlag> ok = new ArrayList<>();
+        for (String n : names) {
+            try { ok.add(ItemFlag.valueOf(n)); } catch (Throwable ignored) {}
+        }
+        return ok.isEmpty() ? ENCHANTS_ATTRIBUTES : ok.toArray(new ItemFlag[0]);
+    }
+
+    private static final Enchantment UNB = unbreakingEnchant();
+    private static final Material REC_COMPASS = resolveMaterial("RECOVERY_COMPASS", "COMPASS");
+
+    private static Enchantment unbreakingEnchant() {
+        try { Enchantment e = Enchantment.getByName("UNBREAKING"); if (e != null) return e; } catch (Throwable ignored) {}
+        return Enchantment.getByName("DURABILITY");
+    }
+
+    private static Material resolveMaterial(String pref, String def) {
+        Material m = null;
+        try { m = Material.matchMaterial(pref); } catch (Throwable ignored) {}
+        if (m == null) m = Material.matchMaterial(def);
+        return m != null ? m : Material.STONE;
+    }
+
+    private void safeStoreCookie(Player p, byte[] data) {
+        try {
+            Method m = p.getClass().getMethod("storeCookie", NamespacedKey.class, byte[].class);
+            m.invoke(p, ssoCookieKey, data);
+        } catch (Throwable ignored) {}
+    }
+
+    private void safeTransfer(Player p, String host, int port) {
+        try {
+            Method m = p.getClass().getMethod("transfer", String.class, int.class);
+            m.invoke(p, host, Integer.valueOf(port));
+        } catch (Throwable ignored) {}
+    }
+
+    private void safeRetrieveCookieAccept(final Player p) {
+        try {
+            Method m = p.getClass().getMethod("retrieveCookie", NamespacedKey.class);
+            final Object fut = m.invoke(p, ssoCookieKey);
+            if (fut == null) return;
+            final Class<?> consumerCls = Class.forName("java.util.function.Consumer");
+            ClassLoader cl = consumerCls.getClassLoader();
+            if (cl == null) cl = KingConnectPlugin.class.getClassLoader();
+            Object consumer = java.lang.reflect.Proxy.newProxyInstance(cl, new Class<?>[]{consumerCls},
+                    new java.lang.reflect.InvocationHandler() {
+                        @Override
+                        public Object invoke(Object proxy, Method mm, Object[] a) throws Throwable {
+                            if ("accept".equals(mm.getName()) && a != null && a.length == 1) {
+                                final byte[] bytes = (byte[]) a[0];
+                                if (bytes == null || bytes.length == 0) return null;
+                                final String token = new String(bytes, StandardCharsets.UTF_8);
+                                Bukkit.getScheduler().runTask(KingConnectPlugin.this, new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (!p.isOnline()) return;
+                                        handleVerifiedTokenString(token, p);
+                                    }
+                                });
+                            }
+                            return null;
+                        }
+                    });
+            Method thenAccept = fut.getClass().getMethod("thenAccept", consumerCls);
+            thenAccept.invoke(fut, consumer);
+        } catch (Throwable ignored) {}
     }
 
     // =========================================================================
@@ -561,8 +648,8 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                         if (!p.isOnline()) return;
                         try {
                             ServerPinger.HostPort hp = ServerPinger.resolveMinecraftAddress(rawHost, rawPort);
-                            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
-                            p.transfer(hp.host, hp.port);
+                            safeStoreCookie(p, fullToken.getBytes(StandardCharsets.UTF_8));
+                            safeTransfer(p, hp.host, hp.port);
                         } catch (Throwable ignored) {}
                     }
                 }.runTaskLater(KingConnectPlugin.this, 12L);
@@ -621,13 +708,13 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                         p.sendMessage(c("&#00E5FF🌐 &lKingConnect &8» &fПереносим вас на сервер " + target.displayName + "&f..."));
                         playSoundSafe(p, "ENTITY_ENDERMAN_TELEPORT", 0.9f, 1.25f);
                         try {
-                            p.storeCookie(ssoCookieKey, fullToken.getBytes(StandardCharsets.UTF_8));
+                            safeStoreCookie(p, fullToken.getBytes(StandardCharsets.UTF_8));
                             new BukkitRunnable() {
                                 @Override
                                 public void run() {
                                     if (!p.isOnline()) return;
                                     try {
-                                        p.transfer(check.resolvedHost, check.resolvedPort);
+                                        safeTransfer(p, check.resolvedHost, check.resolvedPort);
                                     } catch (Throwable ex) {
                                         p.sendMessage(c("&#FF1744✖ Перенос доступен на версиях 1.20.5 - 1.21+!"));
                                     }
@@ -808,23 +895,11 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         // 4) Check 1.20.5 - 1.21+ Client Cookie if player arrived via Player#transfer!
         boolean transferred = false;
         try {
-            transferred = p.isTransferred();
+            transferred = safeIsTransferred(p);
         } catch (Throwable ignored) {}
 
         if (transferred) {
-            try {
-                p.retrieveCookie(ssoCookieKey).thenAccept(bytes -> {
-                    if (bytes == null || bytes.length == 0) return;
-                    final String token = new String(bytes, StandardCharsets.UTF_8);
-                    Bukkit.getScheduler().runTask(KingConnectPlugin.this, new Runnable() {
-                        @Override
-                        public void run() {
-                            if (!p.isOnline()) return;
-                            handleVerifiedTokenString(token, p);
-                        }
-                    });
-                });
-            } catch (Throwable ignored) {}
+            safeRetrieveCookieAccept(p);
         }
 
         // 5) Hub-Mode arrival setup (Compass, Hub Spawn, Standalone Hub Auth)
@@ -1021,7 +1096,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                     "",
                     c("&#00E676▶ Команда: &f/servers")
             ));
-            im.addEnchant(Enchantment.UNBREAKING, 1, true);
+            im.addEnchant(UNB, 1, true);
             im.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES);
             im.getPersistentDataContainer().set(itemCompassKey, PersistentDataType.BYTE, (byte) 1);
             compass.setItemMeta(im);
@@ -1380,7 +1455,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                         "&#00E676▶ ЛКМ — переключить защиту"
                 ), requireSsoFromHub));
 
-        inv.setItem(16, makeItem(Material.RECOVERY_COMPASS, "&#00E676&l⚡ ОБНОВИТЬ ПИНГ И КОНФИГ", Arrays.asList(
+        inv.setItem(16, makeItem(REC_COMPASS, "&#00E676&l⚡ ОБНОВИТЬ ПИНГ И КОНФИГ", Arrays.asList(
                 "&7Мгновенно опросить все серверы связки",
                 "&7и перечитать plugins/KingConnect/config.yml",
                 "",
@@ -1574,6 +1649,19 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     private void scanLocalBansAndRanksForSync() {
         // 1) Push local KingАЧ auto-bans to global network!
         if (cloudSyncBans) {
+            // v2.3: явная очередь разбанов от KingАЧ (/ac unban, /ac unbanall) — разбанить ХАБ и всю сеть
+            try {
+                File uq = new File("plugins/KingAC/unban-queue.yml");
+                if (uq.exists()) {
+                    YamlConfiguration yq = YamlConfiguration.loadConfiguration(uq);
+                    for (String nick : yq.getStringList("queue")) {
+                        if (nick != null && !nick.trim().isEmpty()) {
+                            pendingUnbans.add(nick.trim().toLowerCase(Locale.ROOT));
+                        }
+                    }
+                    uq.delete();
+                }
+            } catch (Throwable ignored) {}
             try {
                 File kacBans = new File("plugins/KingAC/bans.yml");
                 if (kacBans.exists()) {
@@ -1581,9 +1669,11 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                     ConfigurationSection bs = y.getConfigurationSection("bans");
                     if (bs != null) {
                         long now = System.currentTimeMillis();
+                        Set<String> currentNicks = new HashSet<String>();
                         for (String nickKey : bs.getKeys(false)) {
                             long until = bs.getLong(nickKey + ".until", -1L);
                             if (until > 0 && now > until) continue;
+                            currentNicks.add(nickKey.toLowerCase(Locale.ROOT));
                             String sigKey = nickKey + ":" + until;
                             if (pushedLocalBanKeys.add(sigKey)) {
                                 String realName = bs.getString(nickKey + ".name", nickKey);
@@ -1593,6 +1683,15 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                                         + "\",\"reason\":\"" + CloudSyncClient.esc(reason)
                                         + "\",\"staff\":\"" + CloudSyncClient.esc(staff)
                                         + "\",\"untilMs\":" + until + "}");
+                            }
+                            syncedBanNicks.add(nickKey.toLowerCase(Locale.ROOT));
+                        }
+                        // v2.3: бан исчез из bans.yml KingАЧ (/ac unban) — шлём разбан в сеть, чтобы ХАБ тоже разбанил
+                        for (Iterator<String> it = syncedBanNicks.iterator(); it.hasNext(); ) {
+                            String nick = it.next();
+                            if (!currentNicks.contains(nick)) {
+                                it.remove();
+                                pendingUnbans.add(nick);
                             }
                         }
                     }
@@ -2320,9 +2419,9 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                 im.setLore(colored);
             }
             if (glint) {
-                im.addEnchant(Enchantment.UNBREAKING, 1, true);
+                im.addEnchant(UNB, 1, true);
             }
-            im.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+            im.addItemFlags(safeFlags("HIDE_ENCHANTS", "HIDE_ATTRIBUTES", "HIDE_ADDITIONAL_TOOLTIP"));
             is.setItemMeta(im);
         }
         return is;
