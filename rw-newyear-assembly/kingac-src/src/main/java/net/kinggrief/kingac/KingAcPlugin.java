@@ -151,20 +151,20 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     private final Set<UUID> wallProbeIds = new HashSet<UUID>();
     private final Map<String, Long> recentBlockPlaces = new HashMap<String, Long>();
 
-    // ================= v8.1: СХЕМЫ ИНЖЕКТА (8 ШТ.) =================
+    // ================= v8.2: СХЕМЫ ИНЖЕКТА (8 ШТ.) =================
     private final Map<UUID, InjectionScheme> probeSchemes = new HashMap<UUID, InjectionScheme>();
     private final EnumMap<InjectionScheme, Boolean> schemeEnabled = new EnumMap<InjectionScheme, Boolean>(InjectionScheme.class);
     private boolean autoInjectSchemes = true;
     private int sessionInjectHits = 0;
     private int sessionInjectProbes = 0;
 
-    /** v8.1: слоты GUI для 12 схем инжекта (2 ряда по 7 usable-слотов). */
+    /** v8.2: слоты GUI для 12 схем инжекта (2 ряда по 7 usable-слотов). */
     private static final int[] SCHEME_SLOTS = new int[]{10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23};
 
-    // ================= v8.1: ЖИВОЙ МОНИТОР-HUD ДЛЯ СОСТАВА =================
+    // ================= v8.2: ЖИВОЙ МОНИТОР-HUD ДЛЯ СОСТАВА =================
     private final Map<UUID, String> monitors = new HashMap<UUID, String>();
 
-    // ================= v8.1: ФАЙЛОВЫЙ ЛОГ ДЕТЕКТОВ =================
+    // ================= v8.2: ФАЙЛОВЫЙ ЛОГ ДЕТЕКТОВ =================
     private File logFile;
     private final List<String> logTail = new ArrayList<String>();
 
@@ -211,7 +211,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                     d.prevEyeVec = on.getEyeLocation().toVector();
                     d.prevTickYaw = on.getLocation().getYaw();
                     d.prevTickPitch = on.getLocation().getPitch();
-                    // v8.1: сброс CPS для живого монитора, если игрок уже не дерётся
+                    // v8.2: сброс CPS для живого монитора, если игрок уже не дерётся
                     if (d.currentCps != 0 && (now - d.lastCombatMs) > 1100L) {
                         d.currentCps = 0;
                         d.clickTimes.clear();
@@ -220,7 +220,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             }
         }.runTaskTimer(this, 1L, 1L);
 
-        // v8.1: ЖИВОЙ МОНИТОР-HUD В ACTIONBAR ДЛЯ СОСТАВА (/ac monitor <ник>)
+        // v8.2: ЖИВОЙ МОНИТОР-HUD В ACTIONBAR ДЛЯ СОСТАВА (/ac monitor <ник>)
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -236,7 +236,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             }
         }.runTaskTimer(this, 20L, 10L);
 
-        // v8.1: АВТОМАТИЧЕСКИЙ ПРОГОН СХЕМ ИНЖЕКТА ПО ПОДОЗРЕВАЕМЫМ (Deep Watch / жалобы / VL)
+        // v8.2: АВТОМАТИЧЕСКИЙ ПРОГОН СХЕМ ИНЖЕКТА ПО ПОДОЗРЕВАЕМЫМ (Deep Watch / жалобы / VL)
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -287,7 +287,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         }.runTaskTimer(this, 800L, 800L);
 
         getLogger().info("==================================================================");
-        getLogger().info(" KingAC v8.1 - PROFESSIONAL NEURAL ANTI-CHEAT ENABLED              ");
+        getLogger().info(" KingAC v8.2 - PROFESSIONAL NEURAL ANTI-CHEAT ENABLED              ");
         getLogger().info(" * 12 LIVE INJECTION SCHEMES (360 / WALL / ORBIT / ZENITH / SWARM  ");
         getLogger().info("   x4 / HITBOX / BACKTRACK / NADIR / TWIN-WALL / SWAP / LOW-SWEEP  ");
         getLogger().info(" * 3D RAYCAST HITBOX: air-hit blocker (HitBox / SilentAura)        ");
@@ -298,7 +298,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 new Object[]{Bukkit.getVersion(), autoBanEnabled ? "ON" : "OFF"});
         getLogger().info(" * Commands: /ac /kac /kingac /inject /report /reports            ");
         getLogger().info("==================================================================");
-        Bukkit.getConsoleSender().sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] &fНейро-античит запущен! &7Схем инжекта: &#FFD74012&7, команд: &#00E676/ac /kac /inject /report"));
+        Bukkit.getConsoleSender().sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] &fНейро-античит запущен! &7Схем инжекта: &#FFD74012&7, команд: &#00E676/ac /kac /inject /report"));
     }
 
     @Override
@@ -324,7 +324,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             logFile = new File(getDataFolder(), "detections.log");
             if (!logFile.exists()) logFile.createNewFile();
             logTail.clear();
-            logDetection("SERVER-START", "KingAC v8.1 запущен на " + Bukkit.getVersion()
+            logDetection("SERVER-START", "KingAC v8.2 запущен на " + Bukkit.getVersion()
                     + " | api-version=1.16 | схем инжекта=12");
         } catch (Throwable t) {
             logFile = null;
@@ -581,7 +581,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         // -------- B. ПРОВЕРКИ ДВИЖЕНИЯ (FLY / SPEED / AIRSTRAFE / JESUS / NOSLOW) --------
         if (isExempt(p)) return;
 
-        // -------- B0. v8.1: TIMER / BLINK (пакетный баланс move-пакетов) + GUIMOVE --------
+        // -------- B0. v8.2: TIMER / BLINK (пакетный баланс move-пакетов) + GUIMOVE --------
         analyzePacketBalance(p, d, now, from, to);
         analyzeGuiMove(p, d, now, from, to);
 
@@ -613,7 +613,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             d.lastSafeGroundLoc = from.clone();
         }
 
-        // -------- B1. v8.1: PHASE (проход сквозь блоки) / ANTIKB (вертикаль+горизонталь) / MICROHOP-КРИТЫ --------
+        // -------- B1. v8.2: PHASE (проход сквозь блоки) / ANTIKB (вертикаль+горизонталь) / MICROHOP-КРИТЫ --------
         analyzePhaseNoClip(p, d, from, to, now);
         analyzeAntiKnockback(p, d, dx, dz, dy, now, pingEarly(p));
         analyzeMicroHopCrits(p, d, dy, to, now, onGround);
@@ -849,7 +849,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             d.flatSnapBuffer--;
         }
 
-        // 5. v8.1: PITCH-SNAP — вертикальный снап прицела (>45° за 1 тик в бою)
+        // 5. v8.2: PITCH-SNAP — вертикальный снап прицела (>45° за 1 тик в бою)
         if (absPitch >= 45.0f && absPitch <= 92.0f) {
             d.pitchSnapBuffer += 2 * sensitivityMult;
             if (d.pitchSnapBuffer >= 5) {
@@ -863,7 +863,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             d.pitchSnapBuffer--;
         }
 
-        // 6. v8.1: ГОЛОВА ВНИЗ-ВВЕРХ — осцилляции pitch (флипы знака >= 18° подряд в бою)
+        // 6. v8.2: ГОЛОВА ВНИЗ-ВВЕРХ — осцилляции pitch (флипы знака >= 18° подряд в бою)
         if (absPitch >= 18.0f) {
             if (d.lastFlipPitch != 0f && (dpitch * d.lastFlipPitch) < 0f && (now - d.lastPitchFlipMs) <= 950L) {
                 d.pitchFlipCount++;
@@ -882,7 +882,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             d.lastPitchFlipMs = now;
         }
 
-        // 7. v8.1: ВЕРТИКАЛЬНЫЙ ЛОК — голова зажата вверх/вниз (±75..90°) ВО ВРЕМЯ УДАРОВ
+        // 7. v8.2: ВЕРТИКАЛЬНЫЙ ЛОК — голова зажата вверх/вниз (±75..90°) ВО ВРЕМЯ УДАРОВ
         if (curPitch <= -75.0f || curPitch >= 75.0f) {
             d.headLockTicks++;
             if (d.headLockTicks >= 7) {
@@ -911,7 +911,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     // =================================================================================
-    //  1B. v8.1 — НОВЫЕ ПРОВЕРКИ: TIMER / BLINK / GUIMOVE / PHASE / ANTIKB / MICROHOP
+    //  1B. v8.2 — НОВЫЕ ПРОВЕРКИ: TIMER / BLINK / GUIMOVE / PHASE / ANTIKB / MICROHOP
     // =================================================================================
 
     /** Пинг без падения на 1.16.5 (Player#getPing появился только в 1.17). */
@@ -1040,7 +1040,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             if (d.phaseBuffer > 0) d.phaseBuffer--;
             return;
         }
-        // v8.1: ловим ТОЛЬКО вход в блок из проходимой позиции (игрок, застрявший в блоке после грифа, не флажится!)
+        // v8.2: ловим ТОЛЬКО вход в блок из проходимой позиции (игрок, застрявший в блоке после грифа, не флажится!)
         boolean fromOpen = from.getBlock().isPassable() || from.clone().add(0, 1.15, 0).getBlock().isPassable();
         if (!fromOpen) {
             if (d.phaseBuffer > 0) d.phaseBuffer--;
@@ -1072,7 +1072,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         }
         if (p.isInsideVehicle() || p.isFlying() || p.isGliding() || p.getAllowFlight()
                 || hasEffectName(p, "LEVITATION") || hasEffectName(p, "SLOW_FALLING")) return;
-        // v8.1: проверяем AntiKB только сразу после получения урона (боевое отбрасывание),
+        // v8.2: проверяем AntiKB только сразу после получения урона (боевое отбрасывание),
         // а не после взрывов/поршней/удочек, и не в воде/паутине/со щитом!
         if ((now - d.lastDamagedMs) > 900L) return;
         if (p.isBlocking()) return;
@@ -1168,7 +1168,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         Player attacker = (Player) e.getDamager();
 
         // 1. Проверка попадания по НЕВИДИМОМУ ИНЖЕКТ-БОТУ KingАЧ (360° ИЛИ СКВОЗЬ СТЕНУ!)
-        // ================= v8.1: ПОПАДАНИЕ ПО НЕВИДИМОМУ ФАНТОМУ ОДНОЙ ИЗ 8 СХЕМ ИНЖЕКТА =================
+        // ================= v8.2: ПОПАДАНИЕ ПО НЕВИДИМОМУ ФАНТОМУ ОДНОЙ ИЗ 8 СХЕМ ИНЖЕКТА =================
         UUID probeSuspect = activeProbes.get(e.getEntity().getUniqueId());
         if (probeSuspect != null) {
             e.setCancelled(true);
@@ -1335,7 +1335,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             }
         }
 
-        // 2B. v8.1: TriggerBot — удар в тот же тик, когда цель только-только попала в прицел
+        // 2B. v8.2: TriggerBot — удар в тот же тик, когда цель только-только попала в прицел
         if (victim instanceof Player && d.lastTargetId != null && !d.lastTargetId.equals(victim.getUniqueId())
                 && (now - d.lastRotMs) <= 95L && Math.abs(d.prevDeltaYaw) >= 7.0f
                 && Math.abs(d.prevDeltaPitch) <= 22.0f) {
@@ -1428,7 +1428,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             }
         }
 
-        // 6B. v8.1: ЖЁСТКИЙ БЛОК УРОНА СКВОЗЬ СТЕНЫ / СТЕКЛО ТРАПКИ / ПЛАСТ / ДВЕРИ.
+        // 6B. v8.2: ЖЁСТКИЙ БЛОК УРОНА СКВОЗЬ СТЕНЫ / СТЕКЛО ТРАПКИ / ПЛАСТ / ДВЕРИ.
         // Голосование 11 лучей: если >= 8 из 11 углов хитбокса жертвы закрыты блоком —
         // урон НЕ регается НИКОГДА (раньше одна открытая щель разрешала весь урон!).
         WallVote vote = voteWallBetween(attacker, victim);
@@ -1503,7 +1503,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             injectInvisibleDecoyProbe(attacker, d, now, true);
         }
 
-        // v8.1: АВТО-ИНЖЕКТ ПО БОЮ — КАЖДЫЙ дерущийся игрок раз в 12 сек. получает
+        // v8.2: АВТО-ИНЖЕКТ ПО БОЮ — КАЖДЫЙ дерущийся игрок раз в 12 сек. получает
         // фантом-приманку одной из 12 схем. Читер с аурой неизбежно заденет невидимку!
         if (autoInjectSchemes && victim instanceof Player && (now - d.lastInjectSchemeMs) > 12000L) {
             InjectionScheme autoSc = pickAutoScheme(d);
@@ -1549,7 +1549,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     // =================================================================================
-    //  2B. v8.1 — 8 ЖИВЫХ СХЕМ ИНЖЕКТА (INJECTION SCHEMES) + /inject + GUI СХЕМ
+    //  2B. v8.2 — 8 ЖИВЫХ СХЕМ ИНЖЕКТА (INJECTION SCHEMES) + /inject + GUI СХЕМ
     //      Схемы спавнят невидимых микро-фантомов в тех точках, куда честный клиент
     //      ФИЗИЧЕСКИ не может отправить пакет атаки. Любой чит-клиент бьёт по ним.
     // =================================================================================
@@ -1887,7 +1887,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                         cancel();
                         if (notify != null) {
                             PlayerAcData fd = data(target);
-                            notify.sendMessage(c("&#00E676✔ [KingАЧ v8.1] Каскад завершён для &#FFD740" + target.getName()
+                            notify.sendMessage(c("&#00E676✔ [KingАЧ v8.2] Каскад завершён для &#FFD740" + target.getName()
                                     + " &8│ &7Попаданий по фантомам: &#FF5252" + fd.totalInjectHits
                                     + " &8│ &7VL: &#FFD740" + fd.totalVl + "/" + autoBanVl));
                         }
@@ -1902,7 +1902,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 }
             }.runTaskTimer(this, 0L, 24L);
             if (by != null) {
-                by.sendMessage(c("&#E040FB&l⚡ [KingАЧ v8.1] Запущен КАСКАД «Полный Нейро-Скан» на &#FFD740"
+                by.sendMessage(c("&#E040FB&l⚡ [KingАЧ v8.2] Запущен КАСКАД «Полный Нейро-Скан» на &#FFD740"
                         + target.getName() + " &8(&710 схем по 1.2 сек.&8)"));
             }
             return true;
@@ -2128,7 +2128,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         d.airHoverTicks = 0;
         d.speedBuffer = 0;
 
-        // v8.1: фиксируем выданное сервером отбрасывание для проверки AntiKB
+        // v8.2: фиксируем выданное сервером отбрасывание для проверки AntiKB
         try {
             Vector v = e.getVelocity();
             if (v != null && !isExempt(p)) {
@@ -2143,7 +2143,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     /**
-     * v8.1: РЕЗУЛЬТАТ ГОЛОСОВАНИЯ ЛУЧЕЙ — сколько из 11 углов хитбокса жертвы
+     * v8.2: РЕЗУЛЬТАТ ГОЛОСОВАНИЯ ЛУЧЕЙ — сколько из 11 углов хитбокса жертвы
      * закрыто твёрдым блоком от глаз атакующего. Позволяет жёстко блокировать урон
      * сквозь стены/стёкла трапок, даже если читер нашёл одну «щель» в 1 пиксель.
      */
@@ -2351,7 +2351,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         RayTraceResult rt = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), 3.2, FluidCollisionMode.NEVER, true);
         if (rt == null || rt.getHitBlock() == null) return;
 
-        // v8.1: ПРОАКТИВНАЯ ПРИМАНКА ЗА СТЕНОЙ ДЛЯ ВСЕХ ИГРОКОВ (не только под слежкой!):
+        // v8.2: ПРОАКТИВНАЯ ПРИМАНКА ЗА СТЕНОЙ ДЛЯ ВСЕХ ИГРОКОВ (не только под слежкой!):
         // если за простреленной стеной в 6м стоит живой игрок — KingАЧ тихо сует приманку за неё.
         boolean victimBehind = false;
         if (rt.getHitPosition() != null) {
@@ -2410,7 +2410,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         PlayerAcData d = data(p);
         d.lastBlockPlaceMs = now;
 
-        // v8.1: FastPlace — больше 8 поставленных блоков в секунду (человек так не может!)
+        // v8.2: FastPlace — больше 8 поставленных блоков в секунду (человек так не может!)
         if (now - d.fastPlaceWindowMs > 1000L) {
             d.fastPlaceWindowMs = now;
             d.fastPlaceCount = 0;
@@ -2449,7 +2449,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         if (isExempt(p)) return;
         PlayerAcData d = data(p);
         long sincePop = System.currentTimeMillis() - d.lastTotemPopMs;
-        // v8.1: клики внутри собственных GUI KingАЧ не считаются за GuiMove
+        // v8.2: клики внутри собственных GUI KingАЧ не считаются за GuiMove
         if (!(e.getInventory().getHolder() instanceof KacGuiHolder)) {
             d.lastInvClickMs = System.currentTimeMillis();
         }
@@ -2534,7 +2534,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     /**
-     * РУССКИЕ И АЛЬТЕРНАТИВНЫЕ АЛИАСЫ КОМАНД KingАЧ v8.1:
+     * РУССКИЕ И АЛЬТЕРНАТИВНЫЕ АЛИАСЫ КОМАНД KingАЧ v8.2:
      * /ач /античит /кингач /kingach /kingac /ac /kac -> /kingac,
      * /инжект /схемы -> /kinject, /жалоба /репорт -> /report, /жалобы /репорты -> /reports.
      * Перехват идёт через PlayerCommandPreprocessEvent, поэтому работает даже если
@@ -2628,7 +2628,41 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         // АВТОНОМНЫЙ АВТО-БАН САМИМ KingАЧ!
         if (autoBanEnabled && d.totalVl >= effectiveThreshold) {
             triggerAutonomousKingAcBan(suspect, checkName, d.totalVl);
+        } else if (!autoBanEnabled && d.totalVl >= effectiveThreshold && !d.autoBanSkipNotified) {
+            // v8.2: авто-бан выключен командой /ac AutoBanOff — бан не применяем, но стафф видит порог
+            d.autoBanSkipNotified = true;
+            logDetection("AUTOBAN-SKIP", suspect.getName() + ": VL " + d.totalVl + " >= " + effectiveThreshold
+                    + " — бан НЕ применён (авто-бан выключен через /ac AutoBanOff)");
+            for (Player staff : Bukkit.getOnlinePlayers()) {
+                if (!isStaffMember(staff) || mutedAlertsStaff.contains(staff.getUniqueId())) continue;
+                staff.sendMessage(c(" &#FFD740⚠ [KingАЧ] &#FF5252" + suspect.getName() + " &#FFD740VL "
+                        + d.totalVl + "/" + autoBanVl + " &7— авто-бан ВЫКЛ, решайте вручную: &#FFD740/ac ban "
+                        + suspect.getName()));
+            }
         }
+    }
+
+    /** v8.2: включение/выключение автономного авто-бана командой, с сохранением в config.yml. */
+    private void setAutoBanEnabled(boolean on, CommandSender sender) {
+        if (autoBanEnabled == on) {
+            sender.sendMessage(c(on ? "&#00E676✔ Авто-бан KingАЧ уже ВКЛЮЧЁН (&e" + autoBanVl + " VL&7)."
+                                    : "&#FFD740⚠ Авто-бан KingАЧ уже ВЫКЛЮЧЕН."));
+            return;
+        }
+        autoBanEnabled = on;
+        getConfig().set("settings.auto-ban-enabled", Boolean.valueOf(on));
+        saveConfig();
+        for (PlayerAcData pd : players.values()) pd.autoBanSkipNotified = false;
+        if (on) {
+            sender.sendMessage(c("&#00E676&l✔ [KingАЧ v8.2] АВТО-БАН ВКЛЮЧЁН: &7порог &#FFD740" + autoBanVl
+                    + " VL&7, срок &#00E5FF" + formatDuration(autoBanDurationSec)
+                    + "&7. Бан снова применяется автоматически 24/7."));
+        } else {
+            sender.sendMessage(c("&#FFD740&l⚠ [KingАЧ v8.2] АВТО-БАН ВЫКЛЮЧЕН: &7детекты, VL и алерты продолжают"
+                    + " работать, но бан — только вручную через &#FFD740/ac ban <ник>&7."));
+        }
+        logDetection("AUTOBAN-TOGGLE", (on ? "Авто-бан ВКЛЮЧЁН" : "Авто-бан ВЫКЛЮЧЕН") + " — команда от " + sender.getName());
+        getLogger().info("[KingАЧ] Авто-бан: " + (on ? "ON" : "OFF") + " (команда от " + sender.getName() + ")");
     }
 
     public void triggerAutonomousKingAcBan(final Player target, final String detectReason, final int finalVl) {
@@ -2847,10 +2881,10 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         for (InjectionScheme sc : InjectionScheme.values()) if (schemeOn(sc)) schemesOnCount++;
 
         Inventory inv = Bukkit.createInventory(new KacGuiHolder("main", ""), 54,
-                c("&#FF1744&l🛡 KingАЧ v8.1 — ЦЕНТР ДЕТЕКТОВ"));
+                c("&#FF1744&l🛡 KingАЧ v8.2 — ЦЕНТР ДЕТЕКТОВ"));
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        inv.setItem(4, makeIcon(Material.SHIELD, "&#FF1744&l🛡 KingАЧ v8.1 — Нейро-Античит 24/7",
+        inv.setItem(4, makeIcon(Material.SHIELD, "&#FF1744&l🛡 KingАЧ v8.2 — Нейро-Античит 24/7",
                 "&7Активные модули защиты:",
                 " &#E040FB✔ 12 Схем Инжекта &8(360° / Стена x2 / Орбита / Купол / Надир / Рой x4 / Хитбокс / Отступ / Обман / Луч / Каскад)",
                 " &#00E676✔ 3D Raycast Хитбокса &8(удар в воздух НЕ регает)",
@@ -3102,7 +3136,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return;
         }
 
-        // 1B. v8.1: выбор цели для схем инжекта
+        // 1B. v8.2: выбор цели для схем инжекта
         if ("inject_targets".equals(h.menuType)) {
             if (slot == 49) { openMainControlGui(p); return; }
             ItemStack clicked = e.getCurrentItem();
@@ -3113,7 +3147,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return;
         }
 
-        // 1C. v8.1: выбор одной из 8 схем инжекта для конкретного игрока
+        // 1C. v8.2: выбор одной из 8 схем инжекта для конкретного игрока
         if ("inject_scheme".equals(h.menuType)) {
             if (slot == 40) { openInjectTargetsGui(p); return; }
             Player target = Bukkit.getPlayerExact(h.targetName);
@@ -3161,7 +3195,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return;
         }
 
-        // 1D. v8.1: глобальные модули схем инжекта
+        // 1D. v8.2: глобальные модули схем инжекта
         if ("schemes_config".equals(h.menuType)) {
             if (slot == 40) { openMainControlGui(p); return; }
             if (slot == 31) { openInjectTargetsGui(p); return; }
@@ -3317,7 +3351,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     // =================================================================================
-    //  6B. v8.1 — СХЕМЫ ИНЖЕКТА: GUI + ЖИВОЙ МОНИТОР-HUD + ТОП + СПИСОК ПРОВЕРОК
+    //  6B. v8.2 — СХЕМЫ ИНЖЕКТА: GUI + ЖИВОЙ МОНИТОР-HUD + ТОП + СПИСОК ПРОВЕРОК
     // =================================================================================
     private static void sendActionBar(Player p, String text) {
         if (p == null || !p.isOnline()) return;
@@ -3330,7 +3364,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         return safeMat(sc.iconMaterialName, "SHIELD", "IRON_SWORD", "STONE");
     }
 
-    /** v8.1: номер схемы (0..11) по кликнутому слоту GUI, либо -1. */
+    /** v8.2: номер схемы (0..11) по кликнутому слоту GUI, либо -1. */
     private static int schemeSlotIndex(int slot) {
         for (int i = 0; i < SCHEME_SLOTS.length; i++) {
             if (SCHEME_SLOTS[i] == slot) return i;
@@ -3363,7 +3397,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
 
     private void openInjectTargetsGui(Player viewer) {
         Inventory inv = Bukkit.createInventory(new KacGuiHolder("inject_targets", ""), 54,
-                c("&#E040FB&l💉 KingАЧ v8.1 — ВЫБОР ЦЕЛИ ИНЖЕКТА"));
+                c("&#E040FB&l💉 KingАЧ v8.2 — ВЫБОР ЦЕЛИ ИНЖЕКТА"));
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         int on = 0;
@@ -3397,7 +3431,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             inv.setItem(22, makeIcon(Material.EMERALD_BLOCK, "&#00E676&l✔ Нет подходящих целей",
                     "&7Все игроки в креативе/спектре или под иммунитетом OWNER."));
         }
-        inv.setItem(4, makeIcon(Material.END_CRYSTAL, "&#E040FB&l💉 12 Схем Инжекта KingАЧ v8.1",
+        inv.setItem(4, makeIcon(Material.END_CRYSTAL, "&#E040FB&l💉 12 Схем Инжекта KingАЧ v8.2",
                 "&7Схемы спавнят невидимых микро-фантомов туда,",
                 "&7куда честный клиент не может отправить атаку:",
                 " &#FFD7401. &fСпина-360° &8(Rage/KillAura)",
@@ -3452,7 +3486,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
 
     private void openSchemesConfigGui(Player viewer) {
         Inventory inv = Bukkit.createInventory(new KacGuiHolder("schemes_config", ""), 45,
-                c("&#E040FB&l⚙ KingАЧ v8.1 — МОДУЛИ СХЕМ ИНЖЕКТА"));
+                c("&#E040FB&l⚙ KingАЧ v8.2 — МОДУЛИ СХЕМ ИНЖЕКТА"));
         fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
         InjectionScheme[] all = InjectionScheme.values();
         for (int i = 0; i < all.length && i < SCHEME_SLOTS.length; i++) {
@@ -3487,7 +3521,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 return Integer.compare(data(b).totalVl, data(a).totalVl);
             }
         });
-        s.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] ТОП подозреваемых (по VL):"));
+        s.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] ТОП подозреваемых (по VL):"));
         if (list.isEmpty()) {
             s.sendMessage(c(" &#00E676✔ Нарушителей нет — все игроки чисты."));
             return;
@@ -3507,7 +3541,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     private void showChecksList(CommandSender s) {
-        s.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] Активные проверки и схемы инжекта:"));
+        s.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] Активные проверки и схемы инжекта:"));
         s.sendMessage(c(" &#00E676▸ &fБой: &7KillAura (360°/Мульти/В GUI/Щит-Еда/Без взмаха), Reach, HitBoxes, SilentAura, Backtrack, WallAura, TriggerBot, AutoClicker (CPS+Макрос+Куртозис), Criticals (Пакет-Крит/Микро-Хоп), KeepSprint, AimBot, Aim (Микро-дёргание/GCD/Горизонт-Лок)"));
         s.sendMessage(c(" &#00E5FF▸ &fДвижение: &7Fly, AirJump, Speed/Bhop, AirStrafe, Jesus, NoSlow, Phase, AntiKB (Вертикаль), Timer/Blink (пакетный баланс), Step"));
         s.sendMessage(c(" &#FFD740▸ &fМир/Инвентарь: &7Scaffold, FastPlace, GuiMove (ИнвХод), AutoTotem, XRay (Скрытые жилы), AutoArmor"));
@@ -3581,15 +3615,15 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        // -------- /kinject (/inject) — 8 СХЕМ ИНЖЕКТА v8.1 --------
+        // -------- /kinject (/inject) — 8 СХЕМ ИНЖЕКТА v8.2 --------
         if ("kinject".equals(name)) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage("[KingАЧ v8.1] Использование: kinject <ник> <back|wall|orbit|zenith|swarm|hitbox|backtrack|cascade|auto|all>");
+                sender.sendMessage("[KingАЧ v8.2] Использование: kinject <ник> <back|wall|orbit|zenith|swarm|hitbox|backtrack|cascade|auto|all>");
                 return true;
             }
             Player p = (Player) sender;
             if (!isStaffMember(p)) {
-                p.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] &fНейро-античит активен 24/7 (8 схем инжекта + 3D Raycast Хитбокса)! Пожаловаться: &#FFD740/report <ник>"));
+                p.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] &fНейро-античит активен 24/7 (8 схем инжекта + 3D Raycast Хитбокса)! Пожаловаться: &#FFD740/report <ник>"));
                 return true;
             }
             if (args.length == 0) {
@@ -3642,7 +3676,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 return true;
             }
             boolean ok = runInjectionScheme(target, sc, true, p);
-            p.sendMessage(c((ok ? "&#00E676" : "&#FFD740") + "💉 [KingАЧ v8.1] Схема &#FFD740«" + sc.displayTitle
+            p.sendMessage(c((ok ? "&#00E676" : "&#FFD740") + "💉 [KingАЧ v8.2] Схема &#FFD740«" + sc.displayTitle
                     + "» " + (ok ? "&#00E676запущена" : "&#FFD740не сработала") + " &8(&7цель: &f" + target.getName() + "&8)"));
             if (ok) {
                 p.sendMessage(c(" &7Если игрок заденет невидимого фантома — детект придёт в чат, а VL улетит в авто-бан."));
@@ -3653,7 +3687,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         // -------- /kingac (/ac, /kac, /kas, /ач, /античит) --------
         if ((sender instanceof Player) && !isStaffMember((Player) sender)) {
             Player pl = (Player) sender;
-            pl.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] &fНейро-античит активен 24/7!"));
+            pl.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] &fНейро-античит активен 24/7!"));
             pl.sendMessage(c(" &#00E676▸ &f12 схем инжекта &8(360°, Стена x2, Орбита, Купол, Надир, Рой x4, Хитбокс, Отступ, Обман, Луч, Каскад)"));
             pl.sendMessage(c(" &#00E676▸ &f3D Raycast Хитбокса: удары в воздух и сквозь стены НЕ региструются"));
             pl.sendMessage(c(" &#00E676▸ &fПожаловаться на читера: &#FFD740/report <ник> &7или &#FFD740/жалоба <ник>"));
@@ -3664,7 +3698,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             if (sender instanceof Player) {
                 openMainControlGui((Player) sender);
             } else {
-                sender.sendMessage("[KingАЧ v8.1] Флагов: " + sessionFlags + " | Ударов в воздух отменено: " + sessionAirHitsBlocked
+                sender.sendMessage("[KingАЧ v8.2] Флагов: " + sessionFlags + " | Ударов в воздух отменено: " + sessionAirHitsBlocked
                         + " | Попаданий по фантомам инжекта: " + sessionInjectHits + " | Авто-банов: " + sessionAutoBans
                         + " | Жалоб: " + activeReports.size());
             }
@@ -3694,10 +3728,10 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        // -------- v8.1: /ac inject <ник> [схема] --------
+        // -------- v8.2: /ac inject <ник> [схема] --------
         if ("inject".equals(sub) || "inj".equals(sub) || "инжект".equals(sub) || "схема".equals(sub) || "схемы".equals(sub)) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage("[KingАЧ v8.1] Схемы инжекта доступны только игрокам (GUI).");
+                sender.sendMessage("[KingАЧ v8.2] Схемы инжекта доступны только игрокам (GUI).");
                 return true;
             }
             Player p = (Player) sender;
@@ -3714,12 +3748,12 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        // -------- v8.1: /ac schemes [config] — модули 8 схем --------
+        // -------- v8.2: /ac schemes [config] — модули 8 схем --------
         if ("schemes".equals(sub) || "scheme".equals(sub) || "modules".equals(sub)) {
             if (!(sender instanceof Player)) {
                 int on = 0;
                 for (InjectionScheme sc : InjectionScheme.values()) if (schemeOn(sc)) on++;
-                sender.sendMessage("[KingАЧ v8.1] Схем инжекта включено: " + on + "/12 | авто-прогон: " + autoInjectSchemes);
+                sender.sendMessage("[KingАЧ v8.2] Схем инжекта включено: " + on + "/12 | авто-прогон: " + autoInjectSchemes);
                 return true;
             }
             Player p = (Player) sender;
@@ -3735,10 +3769,10 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        // -------- v8.1: /ac monitor <ник> — живой ActionBar-HUD --------
+        // -------- v8.2: /ac monitor <ник> — живой ActionBar-HUD --------
         if ("monitor".equals(sub) || "hud".equals(sub) || "монитор".equals(sub)) {
             if (!(sender instanceof Player)) {
-                sender.sendMessage("[KingАЧ v8.1] Монитор доступен только игрокам.");
+                sender.sendMessage("[KingАЧ v8.2] Монитор доступен только игрокам.");
                 return true;
             }
             Player p = (Player) sender;
@@ -3768,26 +3802,26 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        // -------- v8.1: /ac top — топ подозреваемых --------
+        // -------- v8.2: /ac top — топ подозреваемых --------
         if ("top".equals(sub) || "топ".equals(sub)) {
             showTopSuspects(sender);
             return true;
         }
 
-        // -------- v8.1: /ac checks — список всех проверок --------
+        // -------- v8.2: /ac checks — список всех проверок --------
         if ("checks".equals(sub) || "list".equals(sub) || "проверки".equals(sub)) {
             showChecksList(sender);
             return true;
         }
 
-        // -------- v8.1: /ac log — последние записи detections.log --------
+        // -------- v8.2: /ac log — последние записи detections.log --------
         if ("log".equals(sub) || "logs".equals(sub)) {
             List<String> tail;
             synchronized (logTail) {
                 tail = new ArrayList<String>(logTail);
             }
             int from = Math.max(0, tail.size() - 12);
-            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] Последние детекты (plugins/KingAC/detections.log):"));
+            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] Последние детекты (plugins/KingAC/detections.log):"));
             if (tail.isEmpty()) {
                 sender.sendMessage(c(" &#00E676✔ Записей пока нет."));
             }
@@ -3797,11 +3831,11 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             return true;
         }
 
-        // -------- v8.1: /ac status --------
+        // -------- v8.2: /ac status --------
         if ("status".equals(sub) || "stats".equals(sub) || "статус".equals(sub)) {
             int schemesOn = 0;
             for (InjectionScheme sc : InjectionScheme.values()) if (schemeOn(sc)) schemesOn++;
-            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.1] Статус нейро-античита:"));
+            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] Статус нейро-античита:"));
             sender.sendMessage(c(" &#00E676▸ &fЯдро сервера: &7" + Bukkit.getVersion()));
             sender.sendMessage(c(" &#00E676▸ &fСхем инжекта: &#FFD740" + schemesOn + "/12 &8│ &7авто-прогон: "
                     + (autoInjectSchemes ? "&#00E676ВКЛ" : "&#FF5252ВЫКЛ")));
@@ -3827,7 +3861,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 return true;
             }
             PlayerAcData d = data(t);
-            sender.sendMessage(c("&#FF1744&l🛡 Досье KingАЧ v8.1 на &#FFD740" + t.getName() + "&f:"));
+            sender.sendMessage(c("&#FF1744&l🛡 Досье KingАЧ v8.2 на &#FFD740" + t.getName() + "&f:"));
             sender.sendMessage(c(" &7Уровень нарушений: &e" + d.totalVl + "/" + autoBanVl + " VL &8│ &7Пинг: &a" + safePing(t) + " мс &8│ &7CPS: &e" + d.currentCps));
             sender.sendMessage(c(" &7Ударов в воздух отменено (Air-Hit): &#FF5252" + d.totalAirHitsBlocked
                     + " &8│ &7Индекс микро-дёрганий: &#00E5FF" + d.maxMicroTwitchScore + "/15"));
@@ -3917,7 +3951,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             if (rt != null && rt.getHitBlock() != null) {
                 wallSpawned = injectThroughWallProbe(t, d, rt.getHitBlock(), now, true);
             }
-            sender.sendMessage(c("&#00E676🛡 [KingАЧ v8.1] Инжект-проверка запущена на &#FFD740" + t.getName()
+            sender.sendMessage(c("&#00E676🛡 [KingАЧ v8.2] Инжект-проверка запущена на &#FFD740" + t.getName()
                     + " &8(Спина-360°" + (wallSpawned ? " + &#00E5FFСквозь-Стену" : "") + "&8)!"));
             sender.sendMessage(c(" &7Все 8 схем: &#FFD740/ac inject " + t.getName() + " cascade"));
             return true;
@@ -3927,12 +3961,41 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             reloadSettingsFromConfig();
             int schemesOn = 0;
             for (InjectionScheme sc : InjectionScheme.values()) if (schemeOn(sc)) schemesOn++;
-            sender.sendMessage(c("&#00E676✔ Конфигурация KingАЧ v8.1 перезагружена! &7Схем инжекта: &#FFD740" + schemesOn + "/12"));
+            sender.sendMessage(c("&#00E676✔ Конфигурация KingАЧ v8.2 перезагружена! &7Схем инжекта: &#FFD740" + schemesOn + "/12"));
             logDetection("RELOAD", "Конфиг перезагружен (схем вкл: " + schemesOn + "/8, авто-бан: " + autoBanEnabled + ")");
             return true;
         }
 
-        sender.sendMessage(c("&#FF1744&l🛡 Команды KingАЧ v8.1 &8(&fнейро-античит + 8 схем инжекта&8):"));
+        // -------- v8.2: /ac AutoBanOff | /ac AutoBanOn | /ac autoban [on|off] --------
+        if ("autobanoff".equals(sub) || "autoban-off".equals(sub) || "автобанoff".equals(sub) || "автобанвыкл".equals(sub)
+                || ("autoban".equals(sub) && args.length >= 2
+                    && ("off".equalsIgnoreCase(args[1]) || "disable".equalsIgnoreCase(args[1]) || "выкл".equalsIgnoreCase(args[1])))) {
+            if (!isAdminController(sender)) {
+                sender.sendMessage(c("&#FF1744✖ Управление авто-баном доступно только ст. администрации / OWNER!"));
+                return true;
+            }
+            setAutoBanEnabled(false, sender);
+            return true;
+        }
+        if ("autobanon".equals(sub) || "autoban-on".equals(sub) || "автобанon".equals(sub) || "автобанвкл".equals(sub)
+                || ("autoban".equals(sub) && args.length >= 2
+                    && ("on".equalsIgnoreCase(args[1]) || "enable".equalsIgnoreCase(args[1]) || "вкл".equalsIgnoreCase(args[1])))) {
+            if (!isAdminController(sender)) {
+                sender.sendMessage(c("&#FF1744✖ Управление авто-баном доступно только ст. администрации / OWNER!"));
+                return true;
+            }
+            setAutoBanEnabled(true, sender);
+            return true;
+        }
+        if ("autoban".equals(sub) || "автобан".equals(sub)) {
+            sender.sendMessage(c("&#FF1744&l🛡 [KingАЧ v8.2] Авто-бан: " + (autoBanEnabled ? "&#00E676ВКЛ" : "&#FF5252ВЫКЛ")
+                    + " &7| порог &#FFD740" + autoBanVl + " VL &7| срок &#00E5FF" + formatDuration(autoBanDurationSec)
+                    + " &7| банов за сессию: &#FF5252" + sessionAutoBans));
+            sender.sendMessage(c(" &#808080Включить/выключить: &#FFD740/ac AutoBanOn &8/ &#FFD740/ac AutoBanOff"));
+            return true;
+        }
+
+        sender.sendMessage(c("&#FF1744&l🛡 Команды KingАЧ v8.2 &8(&fнейро-античит + 8 схем инжекта&8):"));
         sender.sendMessage(c(" &#00E676/ac &8— &fЦентр детектов, подозреваемые и настройки"));
         sender.sendMessage(c(" &#E040FB/ac inject &8— &fGUI выбора цели для инжект-схем"));
         sender.sendMessage(c(" &#E040FB/ac inject <ник> <back|wall|orbit|zenith|swarm|hitbox|backtrack|cascade|auto> &8— &fзапуск схемы"));
@@ -3945,6 +4008,8 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         sender.sendMessage(c(" &#00E676/ac info <ник> &8— &fНейро-досье и индекс микро-дёрганий"));
         sender.sendMessage(c(" &#00E676/ac probe <ник> [схема] &8— &fБыстрый инжект (360° + стена)"));
         sender.sendMessage(c(" &#00E676/ac ban <ник> [причина] &8— &fЗапустить авто-бан KingАЧ"));
+        sender.sendMessage(c(" &#00E676/ac AutoBanOff &8— &fВыключить авто-бан (детекты и алерты работают)"));
+        sender.sendMessage(c(" &#00E676/ac AutoBanOn &8— &fВключить авто-бан обратно"));
         sender.sendMessage(c(" &#00E676/ac unban <ник> &8— &fРазбанить игрока"));
         sender.sendMessage(c(" &#00E676/ac alerts &8— &fВкл/выкл уведомления в чате"));
         sender.sendMessage(c(" &#00E676/reports &8— &fСписок активных жалоб игроков"));
@@ -3971,7 +4036,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
             if (args.length == 1) {
                 return filterPrefix(args[0], Arrays.asList("inject", "schemes", "monitor", "top", "checks",
                         "status", "log", "reports", "bans", "info", "probe", "wallprobe", "ban", "unban",
-                        "alerts", "reload"));
+                        "alerts", "reload", "autoban", "autobanon", "autobanoff"));
             }
             String s0 = args[0].toLowerCase(Locale.ROOT);
             if (args.length == 2 && ("info".equals(s0) || "ban".equals(s0) || "probe".equals(s0)
@@ -4010,7 +4075,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
 
-    /** v8.1: формат времени без SimpleDateFormat (макс. совместимость везде). */
+    /** v8.2: формат времени без SimpleDateFormat (макс. совместимость везде). */
     private static String pad2(int v) {
         return (v < 10 ? "0" : "") + v;
     }
@@ -4095,7 +4160,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
     }
 
     /**
-     * v8.1 КРОСС-ВЕРСИОННАЯ БЕЗОПАСНОСТЬ (1.16.5 - 1.21.x):
+     * v8.2 КРОСС-ВЕРСИОННАЯ БЕЗОПАСНОСТЬ (1.16.5 - 1.21.x):
      * имя эффекта берётся через Keyed#getKey (1.20.5+) с откатом на getName (1.16-1.20.4),
      * чтобы на новых ядрах не получить NoSuchMethodError.
      */

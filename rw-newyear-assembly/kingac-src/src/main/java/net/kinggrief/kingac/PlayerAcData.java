@@ -32,6 +32,8 @@ public final class PlayerAcData {
     public String lastCheat = "Чисто";
     public long lastAlertMs = 0L;
     public boolean banInProgress = false;
+    /** v8.2: стаффу уже показано, что бан пропущен из-за выключенного авто-бана. */
+    public boolean autoBanSkipNotified = false;
 
     // ================= ИСТОРИЯ ХИТБОКСОВ ЖЕРТВЫ (ДЛЯ ТОЧНОГО RAYCAST И PING-КОМПЕНСАЦИИ) =================
     public final Deque<BoxSnapshot> boxHistory = new ArrayDeque<BoxSnapshot>(20);
