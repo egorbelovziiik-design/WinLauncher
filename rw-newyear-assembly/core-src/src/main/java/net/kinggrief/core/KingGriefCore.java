@@ -159,7 +159,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.6.1 — PREBUILT SPAWN, EVENTS, RANKS & TNT");
+        getLogger().info(" KINGGRIEF CORE v6.6.3 — WORKING ORBS, SAFE TOTEMS & NON-BLOCKING EVENTS");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -943,9 +943,7 @@ public final class KingGriefCore extends JavaPlugin {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Запускать ивенты могут только Админы и выше (D.ADMIN+ / OWNER)!"));
                     return true;
                 }
-                if (bossEvents.spawnBossEvent(args[1], null) == null) {
-                    p.sendMessage(ColorUtil.c("&cНеизвестный ивент или не найдено безопасное место вдали от построек и приватов."));
-                }
+                bossEvents.requestBossEvent(args[1], p);
                 return true;
             }
             guis.openEventsMenu(p);
@@ -2359,8 +2357,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("startboss".equals(sub)) {
             String bid = args.length >= 2 ? args[1] : "grinch";
-            bossEvents.spawnBossEvent(bid, null);
-            s.sendMessage(ColorUtil.c("&#00E676✔ Босс-Ивент запущен!"));
+            bossEvents.requestBossEvent(bid, s);
             return true;
         }
         if ("givecase".equals(sub) && args.length >= 4) {

@@ -51,7 +51,12 @@ def main():
     args = parser.parse_args()
     core = build("KingGriefCore", ROOT / "core-src", args)
     hub = build("KingHub", ROOT / "kinghub-src", args)
-    copies = {core: [ROOT / "plugins/KingGriefCore.jar", ROOT / "server/plugins/KingGriefCore.jar", ROOT.parent / "kinggrief/public/KingGriefCore.jar"],
+    version_line = next(line for line in (ROOT / "core-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
+                        if line.startswith("version:"))
+    core_version = version_line.split(":", 1)[1].strip().strip("'\"")
+    copies = {core: [ROOT / "plugins/KingGriefCore.jar", ROOT / "server/plugins/KingGriefCore.jar",
+                     ROOT.parent / "kinggrief/public/KingGriefCore.jar",
+                     ROOT.parent / "kinggrief/public" / f"KingGriefCore-v{core_version}.jar"],
               hub: [ROOT.parent / "kinggrief/public/KingHub.jar"]}
     for source, dests in copies.items():
         for destination in dests:

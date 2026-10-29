@@ -1,0 +1,5 @@
+name: KgOrbsProbe
+version: 1.0
+main: net.kinggrief.probe.OrbProbe
+api-version: "1.21"
+depend: [KingGriefCore]

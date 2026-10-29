@@ -35,6 +35,34 @@ symbolic link. `--only-symlink` runs just the linked-world case. It accepts the 
 `--accept-eula` options; no network/client is needed. Pass `--prebuilt` with
 `--existing-unknown` to verify that an incomplete old world is not replaced.
 
+`test-event-search.py` runs a dedicated Paper regression for the event search.
+It rejects an unloaded forced site without loading it, holds one asynchronous
+chunk future open while checking the server heartbeat, checks the timeout and
+release of a previously held ticket, then exercises real Paper async chunk
+generation, already-loaded candidate selection, event restoration and world
+unload. The intentionally stalled future is a test double; actual chunk loading
+and event construction in the final phase use Paper. Run it with the same
+`--paper`, `--vanilla`, `--api-classpath`, `--core`, `--java`, `--javac` and
+`--accept-eula` arguments as `test-prebuilt-install.py`.
+
+`test-orbs.py` uses **two real protocol clients** on Paper to buy all 12
+orbs through `/shars`, then exercises each offhand effect and lethal totem
+consumption, exact max-health stacking, real healing cadence, removal and
+spectator mode. It also covers teammate/safe-zone/world-PvP/radius checks for
+frost aura, vanilla main-hand precedence, cancellation, six multi-charge totems
+and their metadata, an occupied-hand race, final-charge consumption, the
+inventory magnet, and accepted versus cancelled/recursive scroll hits. Real
+bow and crossbow shots verify actual consumed ammunition (ordinary, custom,
+storage and offhand), all nine custom arrow abilities, and effects on an
+event-tagged mob. A protection listener
+cancels real ice and explosive arrow hits; the tests check that no effects,
+explosion or combat penalty leak through, and that an accepted explosive hit
+still damages a nearby mob once. Real snowballs and tridents exercise both hands,
+identity and impact. `--arrows-only` runs the projectile tests; `--boss-only`,
+`--crossbows-only`, `--throws-only`, `--protect-only` and `--abilities-only`
+select subsets. It needs
+the same `--node-modules` as `run.py`; it is not a visual Minecraft-client test.
+
 The template itself is generated with `build-spawn-template.py` in the
 assembly root. Pass `--update-checksum` when regenerating it, then rebuild Core
 with `build-core-hub.py` before running `build-assembly.py`. The template does

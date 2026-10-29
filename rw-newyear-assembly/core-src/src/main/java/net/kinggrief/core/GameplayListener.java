@@ -114,6 +114,7 @@ public final class GameplayListener implements Listener {
     private final KingGriefCore plugin;
     private final Random rng = new Random();
     private final Set<UUID> drillGuard = new HashSet<UUID>();
+    private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
     private final Map<UUID, Long> parkourPlateCd = new HashMap<UUID, Long>();
     private final Map<UUID, Long> parkourRunStartMs = new HashMap<UUID, Long>();
     private final Map<UUID, Long> npcClickCd = new HashMap<UUID, Long>();
@@ -203,11 +204,11 @@ public final class GameplayListener implements Listener {
                     // v6.4.0: 3D ШАРЫ в ЛЕВОЙ РУКЕ — баффы наконец-то работают (раньше шары были просто декором)!
                     applyOrbBuffs(p, offId);
 
-                    // 3D Квантовый Магнит Лута (в левой руке или в хотбаре) — притягивает дроп и опыт в радиусе 9 блоков!
+                    // 3D Квантовый Магнит Лута (в левой руке или в инвентаре) — притягивает дроп и опыт в радиусе 9 блоков!
                     boolean hasMagnet = "loot_magnet".equals(offId) || "loot_magnet".equals(mainId);
                     if (!hasMagnet) {
-                        for (int s = 0; s < 9; s++) {
-                            if ("loot_magnet".equals(ItemFactory.getCustomId(p.getInventory().getItem(s)))) {
+                        for (ItemStack item : p.getInventory().getStorageContents()) {
+                            if ("loot_magnet".equals(ItemFactory.getCustomId(item))) {
                                 hasMagnet = true;
                                 break;
                             }
@@ -218,7 +219,8 @@ public final class GameplayListener implements Listener {
                         for (Entity near : p.getWorld().getNearbyEntities(pl, 9.0, 6.0, 9.0)) {
                             if (near instanceof org.bukkit.entity.Item) {
                                 org.bukkit.entity.Item it = (org.bukkit.entity.Item) near;
-                                if (it.getScoreboardTags().contains("kg_case_float") || it.getPickupDelay() > 60) continue;
+                                if (it.getScoreboardTags().contains("kg_case_float") || it.getPickupDelay() > 60
+                                        || (it.getOwner() != null && !it.getOwner().equals(p.getUniqueId()))) continue;
                                 it.teleport(pl);
                             } else if (near instanceof org.bukkit.entity.ExperienceOrb) {
                                 near.teleport(pl);
@@ -239,62 +241,60 @@ public final class GameplayListener implements Listener {
         if (offId == null || !offId.startsWith("shar_")) return;
         if (p.getGameMode() == GameMode.SPECTATOR || p.isDead()) return;
         if ("shar_titana".equals(offId)) {
-            ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", 50, 1);
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 0);
-            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 0);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 0);
+            ColorUtil.addPassivePot(p, "resistance", "DAMAGE_RESISTANCE", 50, 0);
         } else if ("shar_andromedy".equals(offId)) {
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
-            ColorUtil.addPot(p, "speed", "SPEED", 50, 1);
-            ColorUtil.addPot(p, "jump_boost", "JUMP", 50, 1);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPassivePot(p, "speed", "SPEED", 50, 1);
+            ColorUtil.addPassivePot(p, "jump_boost", "JUMP", 50, 1);
         } else if ("shar_chimery".equals(offId)) {
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
-            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPassivePot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+            ColorUtil.addPassivePot(p, "regeneration", "REGENERATION", 50, 0);
         } else if ("shar_apollona".equals(offId)) {
-            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 1);
-            ColorUtil.addPot(p, "speed", "SPEED", 50, 1);
-            ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
+            ColorUtil.addPassivePot(p, "haste", "FAST_DIGGING", 50, 1);
+            ColorUtil.addPassivePot(p, "speed", "SPEED", 50, 1);
+            ColorUtil.addPassivePot(p, "night_vision", "NIGHT_VISION", 260, 0);
         } else if ("shar_aida".equals(offId)) {
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
-            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPassivePot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
         } else if ("shar_osirisa".equals(offId)) {
-            ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", 50, 0);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 1);
-            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 0);
+            ColorUtil.addPassivePot(p, "regeneration", "REGENERATION", 50, 1);
+            ColorUtil.addPassivePot(p, "resistance", "DAMAGE_RESISTANCE", 50, 0);
         } else if ("shar_aresa".equals(offId)) {
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 2);
-            ColorUtil.addPot(p, "speed", "SPEED", 50, 0);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 2);
+            ColorUtil.addPassivePot(p, "speed", "SPEED", 50, 0);
         } else if ("shar_santy".equals(offId)) {
-            ColorUtil.addPot(p, "health_boost", "HEALTH_BOOST", 50, 2);
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
-            ColorUtil.addPot(p, "speed", "SPEED", 50, 1);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPassivePot(p, "speed", "SPEED", 50, 1);
+            ColorUtil.addPassivePot(p, "regeneration", "REGENERATION", 50, 0);
         } else if ("shar_kronosa".equals(offId)) {
-            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 2);
-            ColorUtil.addPot(p, "speed", "SPEED", 50, 0);
-            ColorUtil.addPot(p, "jump_boost", "JUMP", 50, 0);
+            ColorUtil.addPassivePot(p, "haste", "FAST_DIGGING", 50, 2);
+            ColorUtil.addPassivePot(p, "speed", "SPEED", 50, 0);
+            ColorUtil.addPassivePot(p, "jump_boost", "JUMP", 50, 0);
         } else if ("shar_geliosa".equals(offId)) {
-            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
-            ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 260, 0);
-            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 0);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPassivePot(p, "fire_resistance", "FIRE_RESISTANCE", 60, 0);
+            ColorUtil.addPassivePot(p, "night_vision", "NIGHT_VISION", 260, 0);
+            ColorUtil.addPassivePot(p, "haste", "FAST_DIGGING", 50, 0);
+            ColorUtil.addPassivePot(p, "regeneration", "REGENERATION", 50, 0);
         } else if ("shar_morozko".equals(offId)) {
-            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 1);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 0);
+            ColorUtil.addPassivePot(p, "resistance", "DAMAGE_RESISTANCE", 50, 1);
+            ColorUtil.addPassivePot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 0);
         } else if ("shar_kvadrat".equals(offId)) {
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 50, 1);
-            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 50, 1);
-            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 50, 1);
-            ColorUtil.addPot(p, "regeneration", "REGENERATION", 50, 0);
-            ColorUtil.addPot(p, "jump_boost", "JUMP", 50, 1);
+            ColorUtil.addPassivePot(p, "strength", "INCREASE_DAMAGE", 50, 1);
+            ColorUtil.addPassivePot(p, "haste", "FAST_DIGGING", 50, 1);
+            ColorUtil.addPassivePot(p, "resistance", "DAMAGE_RESISTANCE", 50, 1);
+            ColorUtil.addPassivePot(p, "regeneration", "REGENERATION", 50, 0);
+            ColorUtil.addPassivePot(p, "jump_boost", "JUMP", 50, 1);
         } else {
             return;
         }
         // v6.4.0: Морозная аура Шара Морозко — враги рядом замерзают и тормозят.
         if ("shar_morozko".equals(offId)) {
-            for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                if (en instanceof Player && !en.equals(p) && isEnemyTarget(p, (Player) en)) {
+            for (Entity en : p.getNearbyEntities(6, 6, 6)) {
+                if (en instanceof Player && en.getLocation().distanceSquared(p.getLocation()) <= 36.0
+                        && isEnemyTarget(p, (Player) en)) {
                     en.setFreezeTicks(Math.max(en.getFreezeTicks(), 90));
                     ColorUtil.addPot((Player) en, "slowness", "SLOW", 40, 0);
                 }
@@ -619,6 +619,11 @@ public final class GameplayListener implements Listener {
     public void onChunkLoad(ChunkLoadEvent e) {
         plugin.getSpawnEngine().onSpawnChunkLoad(e.getChunk());
         plugin.getBossEvents().purgeOrphanEventEntitiesInChunk(e.getChunk());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEventWorldUnload(org.bukkit.event.world.WorldUnloadEvent e) {
+        plugin.getBossEvents().onWorldUnload(e.getWorld());
     }
 
     @EventHandler
@@ -2274,7 +2279,11 @@ public final class GameplayListener implements Listener {
     }
 
     private boolean isEnemyTarget(Player caster, Player other) {
-        if (other == null || other.equals(caster) || other.getGameMode() == GameMode.SPECTATOR) return false;
+        if (caster == null || other == null || other.equals(caster) || caster.getGameMode() == GameMode.SPECTATOR
+                || other.getGameMode() == GameMode.SPECTATOR || caster.isDead() || other.isDead()) return false;
+        if (!caster.getWorld().equals(other.getWorld()) || !caster.getWorld().getPVP()) return false;
+        if (plugin.getSpawnEngine().isInSpawnWorld(caster.getLocation())
+                && !plugin.getSpawnEngine().isInsidePvpZone(caster.getLocation())) return false;
         if (plugin.getSpawnEngine().isInSpawnWorld(other.getLocation())
                 && !plugin.getSpawnEngine().isInsidePvpZone(other.getLocation())) return false;
         if (plugin.getStore().areTeammates(caster.getName(), other.getName())
@@ -2779,65 +2788,28 @@ public final class GameplayListener implements Listener {
             p.sendMessage(ColorUtil.c("&#FF1744✖ В ПвП-кабинках бросать Эндер-Перки запрещено!"));
             return;
         }
-        ItemStack main = p.getInventory().getItemInMainHand();
-        ItemStack off = p.getInventory().getItemInOffHand();
-        String mainId = ItemFactory.getCustomId(main);
-        String offId = ItemFactory.getCustomId(off);
-        if ("snezok_zamorozki".equals(mainId)) {
+        if (e.getEntity() instanceof org.bukkit.entity.Snowball
+                && "snezok_zamorozki".equals(ItemFactory.getCustomId(((org.bukkit.entity.Snowball) e.getEntity()).getItem()))) {
             e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "frost_ball");
-            return;
-        }
-        if ("trident_poseidon".equals(mainId)) {
+        } else if (e.getEntity() instanceof org.bukkit.entity.Trident
+                && "trident_poseidon".equals(ItemFactory.getCustomId(((org.bukkit.entity.Trident) e.getEntity()).getItem()))) {
             e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, "trident_poseidon");
-            return;
         }
-        if (e.getEntity() instanceof Arrow) {
-            if (mainId != null && mainId.startsWith("bow_")) {
-                e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, mainId);
-            } else if (offId != null && offId.startsWith("bow_")) {
-                e.getEntity().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, offId);
-            }
-            // Detect custom arrow in offhand or first arrow slot in inventory!
-            String arrowType = null;
-            if (offId != null && offId.startsWith("arrow_")) {
-                arrowType = offId;
-            } else {
-                // v6.1: ищем 3D-стрелу только в хотбаре (ванilla-лук берёт стрелы именно оттуда!)
-                for (int slot = 0; slot <= 8; slot++) {
-                    ItemStack invIt = p.getInventory().getItem(slot);
-                    if (invIt != null && invIt.getType() == Material.ARROW) {
-                        String aid = ItemFactory.getCustomId(invIt);
-                        if (aid != null && aid.startsWith("arrow_")) {
-                            arrowType = aid;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (arrowType != null) {
-                e.getEntity().getPersistentDataContainer().set(PROJ_ARROW_KEY, PersistentDataType.STRING, arrowType);
-            }
-        }
+        // Never guess arrow ammunition from inventory here: the actual consumed
+        // stack is available from EntityShootBowEvent, including offhand, storage,
+        // and ordinary arrows which precede custom arrows in the inventory.
     }
 
-    /**
-     * v6.1.3: ТОЧНЫЙ детект стрелы по ФАКТИЧЕСКИ израсходованному стаку (getConsumable) —
-     * эффекты вешаются ровно на ту стрелу, которой выстрелили (и на лук)!
-     */
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBowShootConsume(EntityShootBowEvent e) {
-        try {
-            if (!(e.getEntity() instanceof Player)) return;
-            if (!(e.getProjectile() instanceof Arrow)) return;
-            String cid = ItemFactory.getCustomId(e.getConsumable());
-            if (cid != null && cid.startsWith("arrow_")) {
-                e.getProjectile().getPersistentDataContainer().set(PROJ_ARROW_KEY, PersistentDataType.STRING, cid);
-            }
-            String bid = ItemFactory.getCustomId(e.getBow());
-            if (bid != null && bid.startsWith("bow_")) {
-                e.getProjectile().getPersistentDataContainer().set(PROJ_TAG_KEY, PersistentDataType.STRING, bid);
-            }
-        } catch (Throwable ignored) {}
+        if (!(e.getEntity() instanceof Player) || !(e.getProjectile() instanceof Arrow)) return;
+        org.bukkit.persistence.PersistentDataContainer data = e.getProjectile().getPersistentDataContainer();
+        String cid = ItemFactory.getCustomId(e.getConsumable());
+        if (cid != null && cid.startsWith("arrow_")) data.set(PROJ_ARROW_KEY, PersistentDataType.STRING, cid);
+        else data.remove(PROJ_ARROW_KEY);
+        String bid = ItemFactory.getCustomId(e.getBow());
+        if (bid != null && bid.startsWith("bow_")) data.set(PROJ_TAG_KEY, PersistentDataType.STRING, bid);
+        else data.remove(PROJ_TAG_KEY);
     }
 
     @EventHandler
@@ -2933,19 +2905,17 @@ public final class GameplayListener implements Listener {
         boolean hitFxAllowed = !plugin.getSpawnEngine().isInsideAnyKabinka(hitLoc);
         if (atype != null && hitFxAllowed) {
             if ("arrow_explosive".equals(atype)) {
-                final Location fLoc = hitLoc;
-                final Player shooterRef = e.getEntity().getShooter() instanceof Player ? (Player) e.getEntity().getShooter() : null;
-                try {
-                    if (shooterRef != null) {
-                        fLoc.getWorld().createExplosion(fLoc, 1.6F, false, false, shooterRef);
-                    } else {
-                        fLoc.getWorld().createExplosion(fLoc.getX(), fLoc.getY(), fLoc.getZ(), 1.6F, false, false);
-                    }
-                } catch (Throwable t) {
-                    try { fLoc.getWorld().createExplosion(fLoc.getX(), fLoc.getY(), fLoc.getZ(), 1.6F, false, false); } catch (Throwable ignored) {}
+                // Living-entity explosions are deferred until the actual damage
+                // event is accepted; ProjectileHitEvent fires before that check.
+                // For block/non-living hits, wait for other hit protections too.
+                if (!(e.getHitEntity() instanceof LivingEntity)) {
+                    final Location impact = hitLoc.clone();
+                    final Player shooter = e.getEntity().getShooter() instanceof Player
+                            ? (Player) e.getEntity().getShooter() : null;
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (!e.isCancelled()) explodeArrow(impact, shooter);
+                    });
                 }
-                fLoc.getWorld().spawnParticle(Particle.LARGE_SMOKE, fLoc, 24, 0.7, 0.55, 0.7, 0.03);
-                fLoc.getWorld().playSound(fLoc, "minecraft:entity.generic.explode", 0.9f, 1.15f);
             } else if ("arrow_lightning".equals(atype)) {
                 hitLoc.getWorld().strikeLightningEffect(hitLoc);
                 hitLoc.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, hitLoc.clone().add(0, 0.6, 0), 24, 0.3, 0.4, 0.3, 0.06);
@@ -2961,6 +2931,20 @@ public final class GameplayListener implements Listener {
                 hitLoc.getWorld().playSound(hitLoc, "minecraft:entity.spider.hurt", 0.8f, 1.2f);
             }
         }
+    }
+
+    private void explodeArrow(Location impact, Player shooter) {
+        if (impact == null || impact.getWorld() == null || Bukkit.getWorld(impact.getWorld().getUID()) == null) return;
+        if (plugin.getSpawnEngine().isInsideAnyKabinka(impact)
+                || (plugin.getSpawnEngine().isInSpawnWorld(impact) && !plugin.getSpawnEngine().isInsidePvpZone(impact))) return;
+        if (shooter != null) {
+            if (!shooter.isOnline() || !plugin.getStore().isAuthenticated(shooter)) return;
+            impact.getWorld().createExplosion(impact, 1.6F, false, false, shooter);
+        } else {
+            impact.getWorld().createExplosion(impact.getX(), impact.getY(), impact.getZ(), 1.6F, false, false);
+        }
+        impact.getWorld().spawnParticle(Particle.LARGE_SMOKE, impact, 24, 0.7, 0.55, 0.7, 0.03);
+        impact.getWorld().playSound(impact, "minecraft:entity.generic.explode", 0.9f, 1.15f);
     }
 
     private boolean isReplaceableForTemp(Block b) {
@@ -3346,29 +3330,33 @@ public final class GameplayListener implements Listener {
     }
 
     // ================= НАСТОЯЩИЕ КАСТОМНЫЕ ТОТЕМЫ БЕССМЕРТИЯ REALLYWORLD =================
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onResurrect(final EntityResurrectEvent e) {
-        if (!(e.getEntity() instanceof Player)) return;
+        if (!(e.getEntity() instanceof Player) || e.getHand() == null) return;
         final Player p = (Player) e.getEntity();
-        ItemStack off = p.getInventory().getItemInOffHand();
-        ItemStack main = p.getInventory().getItemInMainHand();
-        final boolean inOff = off != null && off.getType() == Material.TOTEM_OF_UNDYING;
-        ItemStack totem = inOff ? off : (main != null && main.getType() == Material.TOTEM_OF_UNDYING ? main : null);
-        if (totem == null) return;
+        final EquipmentSlot usedHand = e.getHand();
+        if (usedHand != EquipmentSlot.HAND && usedHand != EquipmentSlot.OFF_HAND) return;
+        ItemStack totem = usedHand == EquipmentSlot.OFF_HAND
+                ? p.getInventory().getItemInOffHand() : p.getInventory().getItemInMainHand();
+        if (totem == null || totem.getType() != Material.TOTEM_OF_UNDYING) return;
         final String tid = ItemFactory.getCustomId(totem);
         if (tid == null) return;
         final int curCharges = ItemFactory.getTotemCharges(totem);
+        final ItemStack usedItem = totem.clone();
 
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (!p.isOnline()) return;
+                if (!p.isOnline() || p.isDead()) return;
+                if (curCharges > 1 && isChargedTotem(tid)) {
+                    restoreChargedTotem(p, usedHand, usedItem, curCharges - 1);
+                }
                 if ("tal_krushitelya".equals(tid)) {
                     ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 300, 2);
                     ColorUtil.addPot(p, "absorption", "ABSORPTION", 400, 3);
                     p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 50, 2.0, 1.0, 2.0, 0.08);
                     for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.setFireTicks(100);
                             en.setVelocity(en.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.1).setY(0.4));
                         }
@@ -3385,14 +3373,14 @@ public final class GameplayListener implements Listener {
                 } else if ("tal_tritona".equals(tid)) {
                     ColorUtil.addPot(p, "regeneration", "REGENERATION", 240, 2);
                     for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.setVelocity(en.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.3).setY(0.45));
                         }
                     }
                     p.sendMessage(ColorUtil.c("&#00E5FF🔱 Сработал Талисман Тритона!"));
                 } else if ("tal_echidny".equals(tid)) {
                     for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             ColorUtil.addPot((Player) en, "poison", "POISON", 160, 2);
                             ColorUtil.addPot((Player) en, "weakness", "WEAKNESS", 160, 1);
                         }
@@ -3401,7 +3389,7 @@ public final class GameplayListener implements Listener {
                 } else if ("tal_stuzhi".equals(tid)) {
                     p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 65, 2.5, 1.0, 2.5, 0.04);
                     for (Entity en : p.getNearbyEntities(7, 4, 7)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.setFreezeTicks(180);
                             ColorUtil.addPot((Player) en, "slowness", "SLOW", 120, 3);
                         }
@@ -3411,9 +3399,6 @@ public final class GameplayListener implements Listener {
                     p.setHealth(p.getMaxHealth());
                     ColorUtil.addPot(p, "regeneration", "REGENERATION", 240, 3);
                     if (curCharges > 1) {
-                        ItemStack nextTotem = ItemFactory.talFeniksa(curCharges - 1);
-                        if (inOff) p.getInventory().setItemInOffHand(nextTotem);
-                        else p.getInventory().setItemInMainHand(nextTotem);
                         p.sendMessage(ColorUtil.c("&#FFAB00🦅 Талисман Феникса спас вам жизнь и восстановил 100% ХП! Осталось зарядов: &a" + (curCharges - 1) + "/3"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#FFAB00🦅 Использован последний заряд Талисмана Феникса (0/3)!"));
@@ -3424,15 +3409,12 @@ public final class GameplayListener implements Listener {
                     ColorUtil.addPot(p, "regeneration", "REGENERATION", 300, 3);
                     ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 300, 2);
                     for (Entity en : p.getNearbyEntities(8, 5, 8)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.getWorld().strikeLightningEffect(en.getLocation());
                             en.setFireTicks(120);
                         }
                     }
                     if (curCharges > 1) {
-                        ItemStack nextTotem = ItemFactory.talOwner(curCharges - 1);
-                        if (inOff) p.getInventory().setItemInOffHand(nextTotem);
-                        else p.getInventory().setItemInMainHand(nextTotem);
                         p.sendMessage(ColorUtil.c("&#FF1744👑 &#FFD740&lТАЛИСМАН OWNER &fвоскресил вас со 100% ХП и +10 Золотыми ❤! Осталось зарядов: &#FFD740" + (curCharges - 1) + "/5"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#FF1744👑 Использован финальный заряд Божественного Талисмана OWNER (0/5)!"));
@@ -3441,9 +3423,6 @@ public final class GameplayListener implements Listener {
                     p.setHealth(p.getMaxHealth());
                     ColorUtil.addPot(p, "absorption", "ABSORPTION", 360, 2);
                     if (curCharges > 1) {
-                        ItemStack nextTotem = ItemFactory.talBezdn(curCharges - 1);
-                        if (inOff) p.getInventory().setItemInOffHand(nextTotem);
-                        else p.getInventory().setItemInMainHand(nextTotem);
                         p.sendMessage(ColorUtil.c("&#8B5CF6🔮 Талисман Бездны спас вам жизнь! Осталось зарядов: &a" + (curCharges - 1) + "/2"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#8B5CF6🔮 Использован последний заряд Талисмана Бездны (0/2)!"));
@@ -3451,7 +3430,7 @@ public final class GameplayListener implements Listener {
                 } else if ("tal_karatelya".equals(tid)) {
                     ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 260, 2);
                     for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.setFireTicks(120);
                             ColorUtil.addPot((Player) en, "wither", "WITHER", 120, 1);
                         }
@@ -3459,7 +3438,7 @@ public final class GameplayListener implements Listener {
                     p.sendMessage(ColorUtil.c("&#EF4444⚔ Сработал Талисман Карателя! Враги охвачены Иссушением!"));
                 } else if ("tal_zeusa".equals(tid)) {
                     for (Entity en : p.getNearbyEntities(7, 5, 7)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.getWorld().strikeLightningEffect(en.getLocation());
                             ((Player) en).damage(6.0, p);
                         }
@@ -3468,7 +3447,7 @@ public final class GameplayListener implements Listener {
                 } else if ("tal_draculy".equals(tid)) {
                     p.setHealth(Math.min(p.getMaxHealth(), p.getHealth() + 10.0));
                     for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             ((Player) en).damage(6.0, p);
                         }
                     }
@@ -3479,7 +3458,7 @@ public final class GameplayListener implements Listener {
                     p.sendMessage(ColorUtil.c("&#6EE7B7🛡 Сработал Талисман Колосса (+12 Золотых ❤)!"));
                 } else if ("tal_zhneca".equals(tid)) {
                     for (Entity en : p.getNearbyEntities(7, 4, 7)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             ColorUtil.addPot((Player) en, "blindness", "BLINDNESS", 100, 0);
                             ColorUtil.addPot((Player) en, "weakness", "WEAKNESS", 140, 1);
                         }
@@ -3487,7 +3466,7 @@ public final class GameplayListener implements Listener {
                     p.sendMessage(ColorUtil.c("&#A855F7💀 Сработал Талисман Жнеца!"));
                 } else if ("tal_severa".equals(tid)) {
                     for (Entity en : p.getNearbyEntities(7, 4, 7)) {
-                        if (en instanceof Player && !en.equals(p)) {
+                        if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                             en.setFreezeTicks(220);
                             ColorUtil.addPot((Player) en, "slowness", "SLOW", 140, 3);
                         }
@@ -3513,8 +3492,6 @@ public final class GameplayListener implements Listener {
                         }
                     }
                     if (curCharges > 1) {
-                        ItemStack next = ItemFactory.totemLedyanoy(curCharges - 1);
-                        if (inOff) p.getInventory().setItemInOffHand(next); else p.getInventory().setItemInMainHand(next);
                         p.sendMessage(ColorUtil.c("&#7DD3FC🧊 Тотем Ледяного Спасения сработал! Осталось зарядов: &a" + (curCharges - 1) + "/3"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#7DD3FC🧊 Использован последний заряд Тотема Ледяного Спасения (0/3)!"));
@@ -3528,15 +3505,14 @@ public final class GameplayListener implements Listener {
                     p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1.0, 0), 90, 1.0, 1.4, 1.0, 0.2);
                     ColorUtil.sound(p, "item.totem.use", 1.0f, 1.1f);
                     for (Entity en : p.getNearbyEntities(6, 4, 6)) {
-                        if (en instanceof LivingEntity && !en.equals(p)) {
+                        if (en instanceof LivingEntity && !en.equals(p)
+                                && (!(en instanceof Player) || isEnemyTarget(p, (Player) en))) {
                             en.setVelocity(en.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.5).setY(0.5));
                         }
                     }
                     plugin.getStore().addCoins(p.getName(), 2500);
                     plugin.getStore().addRelics(p.getName(), 5);
                     if (curCharges > 1) {
-                        ItemStack next = ItemFactory.totemVoskresheniya(curCharges - 1);
-                        if (inOff) p.getInventory().setItemInOffHand(next); else p.getInventory().setItemInMainHand(next);
                         p.sendMessage(ColorUtil.c("&#FFD740✨ Тотем Воскрешения спас вас (+2 500$ и +5❖)! Осталось зарядов: &a" + (curCharges - 1) + "/5"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#FFD740✨ Использован последний заряд Тотема Воскрешения (0/5)!"));
@@ -3557,16 +3533,17 @@ public final class GameplayListener implements Listener {
                     plugin.getStore().addCoins(p.getName(), 5000);
                     plugin.getStore().addSnowflakes(p.getName(), 5);
                     if (curCharges > 1) {
-                        ItemStack next = ItemFactory.totemSanty(curCharges - 1);
-                        if (inOff) p.getInventory().setItemInOffHand(next); else p.getInventory().setItemInMainHand(next);
                         p.sendMessage(ColorUtil.c("&#FF4081🎅 Дед Мороз спас вас и рассыпал подарки: +5 000$ и +5 Снежинок ❄! Зарядов: &a" + (curCharges - 1) + "/3"));
                     } else {
                         p.sendMessage(ColorUtil.c("&#FF4081🎅 Использован последний заряд Тотема Деда Мороза (0/3)!"));
                     }
-                } else if (tid != null && tid.startsWith("shar_")) {
+                } else if ("totem_rw".equals(tid)) {
+                    ColorUtil.addPot(p, "regeneration", "REGENERATION", 300, 2);
+                    p.sendMessage(ColorUtil.c("&#FFD740🔱 Тотем Бессмертия спас вас! Регенерация III."));
+                } else if (tid.startsWith("shar_")) {
                     // v6.4.0: любой 3D ШАР в левой руке спасает от смерти ОДИН раз (как тотем) —
                     // раньше шар просто исчезал без всякого эффекта.
-                    p.setHealth(Math.min(p.getMaxHealth(), 10.0));
+                    p.setHealth(Math.min(p.getMaxHealth(), 20.0));
                     ColorUtil.addPot(p, "absorption", "ABSORPTION", 300, 1);
                     ColorUtil.addPot(p, "regeneration", "REGENERATION", 200, 1);
                     p.getWorld().spawnParticle(ColorUtil.particle("ENCHANTED_HIT", "CRIT_MAGIC"), p.getLocation().add(0, 1.0, 0), 70, 0.9, 1.2, 0.9, 0.1);
@@ -3575,6 +3552,50 @@ public final class GameplayListener implements Listener {
                 }
             }
         }.runTaskLater(plugin, 1L);
+    }
+
+    private static boolean isChargedTotem(String id) {
+        return "tal_feniksa".equals(id) || "tal_owner".equals(id) || "tal_bezdn".equals(id)
+                || "totem_ledyanoy".equals(id) || "totem_voskresheniya".equals(id) || "totem_santy".equals(id);
+    }
+
+    /** Vanilla consumes after the event. Keep all custom metadata and never overwrite
+     * another item which has appeared in the slot in the intervening tick. */
+    private void restoreChargedTotem(Player player, EquipmentSlot hand, ItemStack used, int remaining) {
+        ItemStack restored = used.clone();
+        restored.setAmount(1);
+        ItemMeta meta = restored.getItemMeta();
+        if (meta == null) return;
+        int previous = remaining + 1;
+        int max = "tal_bezdn".equals(ItemFactory.getCustomId(used)) ? 2
+                : ("tal_owner".equals(ItemFactory.getCustomId(used))
+                || "totem_voskresheniya".equals(ItemFactory.getCustomId(used)) ? 5 : 3);
+        meta.getPersistentDataContainer().set(ItemFactory.CHARGES_KEY, PersistentDataType.INTEGER, Integer.valueOf(remaining));
+        if (meta.hasDisplayName()) {
+            meta.setDisplayName(meta.getDisplayName().replace("[" + previous + "/" + max + "]", "[" + remaining + "/" + max + "]"));
+        }
+        if (meta.hasLore()) {
+            List<String> lore = new ArrayList<String>(meta.getLore());
+            for (int i = 0; i < lore.size(); i++) {
+                String line = lore.get(i);
+                if (org.bukkit.ChatColor.stripColor(line).contains("Осталось зарядов")) {
+                    lore.set(i, line.replace(previous + " / " + max, remaining + " / " + max));
+                }
+            }
+            meta.setLore(lore);
+        }
+        restored.setItemMeta(meta);
+        ItemStack current = hand == EquipmentSlot.OFF_HAND ? player.getInventory().getItemInOffHand()
+                : player.getInventory().getItemInMainHand();
+        if (current == null || current.getType() == Material.AIR || current.getAmount() <= 0) {
+            if (hand == EquipmentSlot.OFF_HAND) player.getInventory().setItemInOffHand(restored);
+            else player.getInventory().setItemInMainHand(restored);
+        } else {
+            for (ItemStack overflow : player.getInventory().addItem(restored).values()) {
+                org.bukkit.entity.Item dropped = player.getWorld().dropItemNaturally(player.getLocation(), overflow);
+                dropped.setOwner(player.getUniqueId());
+            }
+        }
     }
 
     // ================= PVP, АРЕНА, КАБИНКИ, ВАМПИРИЗМ, БРОНЯ, СТРЕЛЫ, ЛУКИ И БОССЫ =================
@@ -3643,13 +3664,6 @@ public final class GameplayListener implements Listener {
             return;
         }
 
-        // v6.4.0: НОВЫЕ ЗАЧАРОВАНИЯ из свитков (Ледяной Клинок / Вампиризм / Взрывной Удар)
-        if (e.getDamager() instanceof Player && e.getEntity() instanceof LivingEntity) {
-            try {
-                applyScrollEnchantsOnHit((Player) e.getDamager(), (LivingEntity) e.getEntity());
-            } catch (Throwable ignored) {}
-        }
-
         // DPS Training Dummy at /warp train!
         if (e.getEntity().getScoreboardTags().contains("kg_dps_dummy")) {
             e.setCancelled(true);
@@ -3669,9 +3683,8 @@ public final class GameplayListener implements Listener {
 
         // Event Boss damage tracking
         if (e.getEntity() instanceof LivingEntity && e.getEntity().getScoreboardTags().contains("kg_event_boss")) {
-            plugin.getBossEvents().recordBossDamage((LivingEntity) e.getEntity(), attacker, e.getFinalDamage());
-            spawnDamageIndicator(e.getEntity().getLocation(), e.getFinalDamage());
-            return;
+            if (e.getDamager() instanceof Projectile) applyProjectileDamageBonuses(e);
+            return; // Bookkeeping and side effects happen only after final protection checks.
         }
 
         // PvP checks
@@ -3713,10 +3726,6 @@ public final class GameplayListener implements Listener {
                     }
                 }
             }
-
-            // 30-СЕКУНДНЫЙ РЕЖИМ ПВП СВЕРХУ ЭКРАНА НАД ИВЕНТАМИ!
-            tagPvp30(attacker, victim);
-            recallDamagedAt.put(victim.getUniqueId(), Long.valueOf(System.currentTimeMillis()));
 
             String weaponId = ItemFactory.getCustomId(attacker.getInventory().getItemInMainHand());
             String offId = ItemFactory.getCustomId(attacker.getInventory().getItemInOffHand());
@@ -3892,7 +3901,7 @@ public final class GameplayListener implements Listener {
             }
             // Кастомные Луки, Стрелы и Трезубец Посейдона!
             if (e.getDamager() instanceof Projectile) {
-                applyProjectileWeaponEffects(e, attacker, victim);
+                applyProjectileDamageBonuses(e);
             }
             // v6.2: Талисман Мороза — атакующий враг замерзает!
             if (ItemFactory.getCustomId(victim.getInventory().getItemInOffHand()) != null
@@ -3908,16 +3917,73 @@ public final class GameplayListener implements Listener {
             // v6.1: 3D-ЛУКИ И 3D-СТРЕЛЫ ТЕПЕРЬ РАБОТАЮТ И ПО МОБАМ (фармилка, боссы, выживание)!
             LivingEntity mobVictim = (LivingEntity) e.getEntity();
             if (e.getDamager() instanceof Projectile) {
-                applyProjectileWeaponEffects(e, attacker, mobVictim);
+                applyProjectileDamageBonuses(e);
                 spawnDamageIndicator(mobVictim.getLocation(), e.getFinalDamage());
             }
         }
     }
 
-    /**
-     * v6.1: ЭФФЕКТЫ 3D-ОРУЖИЯ СТРЕЛКОВ — работают по игрокам И мобам,
-     * числа строго как в описании предметов (Зевс +3❤, Вампир 35%, Разрывная +3❤)!
-     */
+    /** Only proc on hits actually accepted by protection plugins. Guard secondary
+     * blast damage from recursively re-triggering the same enchantment. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onAcceptedScrollHit(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player) || !(e.getEntity() instanceof LivingEntity)
+                || e.getEntity().getScoreboardTags().contains("kg_dps_dummy")) return;
+        Player attacker = (Player) e.getDamager();
+        if (!scrollBlastGuard.add(attacker.getUniqueId())) return;
+        try {
+            applyScrollEnchantsOnHit(attacker, (LivingEntity) e.getEntity());
+        } finally {
+            scrollBlastGuard.remove(attacker.getUniqueId());
+        }
+    }
+
+    /** Final acceptance: a later protection plugin may have cancelled the hit
+     * after our HIGH-priority PvP checks. Projectile effects and combat timers
+     * must not be granted for such an aborted attack. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onAcceptedPlayerDamage(EntityDamageByEntityEvent e) {
+        Player attacker = null;
+        if (e.getDamager() instanceof Player) attacker = (Player) e.getDamager();
+        else if (e.getDamager() instanceof Projectile && ((Projectile) e.getDamager()).getShooter() instanceof Player)
+            attacker = (Player) ((Projectile) e.getDamager()).getShooter();
+        if (attacker == null || !(e.getEntity() instanceof LivingEntity)) return;
+        LivingEntity victim = (LivingEntity) e.getEntity();
+        if (victim instanceof Player) {
+            tagPvp30(attacker, (Player) victim);
+            recallDamagedAt.put(victim.getUniqueId(), Long.valueOf(System.currentTimeMillis()));
+        }
+        if (victim.getScoreboardTags().contains("kg_event_boss")) {
+            plugin.getBossEvents().recordBossDamage(victim, attacker, e.getFinalDamage());
+            spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
+        }
+        if (e.getDamager() instanceof Projectile) {
+            applyProjectileWeaponEffects(e, attacker, victim);
+            String arrowType = e.getDamager().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
+            if ("arrow_explosive".equals(arrowType)) {
+                final Location impact = victim.getLocation().clone();
+                final Player shooter = attacker;
+                // Apply the direct arrow damage first; the next-tick explosion
+                // cannot pre-empt protection handlers or replace the arrow hit.
+                Bukkit.getScheduler().runTask(plugin, () -> explodeArrow(impact, shooter));
+            }
+        }
+    }
+
+    /** Damage modifiers must be applied before MONITOR; harmless if the event is
+     * later cancelled. Side effects are deliberately separate and run only once
+     * the event has survived protection handlers. */
+    private void applyProjectileDamageBonuses(EntityDamageByEntityEvent e) {
+        String pTag = e.getDamager().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
+        String aTag = e.getDamager().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
+        if ("trident_poseidon".equals(pTag)) e.setDamage(e.getDamage() + 4.0);
+        if ("bow_zeus".equals(pTag) || "arrow_lightning".equals(aTag)) e.setDamage(e.getDamage() + 6.0);
+        if ("arrow_vampire".equals(aTag)) e.setDamage(e.getDamage() + 5.0);
+        if ("arrow_explosive".equals(aTag)) e.setDamage(e.getDamage() + 6.0);
+        if ("arrow_thor".equals(aTag)) e.setDamage(e.getDamage() + 8.0);
+    }
+
+    /** Apply projectile status, sound and reward effects only on an accepted hit. */
     private void applyProjectileWeaponEffects(EntityDamageByEntityEvent e, Player attacker, LivingEntity victim) {
         String pTag = e.getDamager().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
         String aTag = e.getDamager().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
@@ -3925,7 +3991,6 @@ public final class GameplayListener implements Listener {
         Location vl = victim.getLocation();
         if ("trident_poseidon".equals(pTag)) {
             vl.getWorld().strikeLightningEffect(vl);
-            e.setDamage(e.getDamage() + 4.0);
         }
         if ("bow_ice_rw".equals(pTag) || "arrow_ice".equals(aTag)) {
             victim.setFreezeTicks(180);
@@ -3940,7 +4005,6 @@ public final class GameplayListener implements Listener {
         }
         if ("bow_zeus".equals(pTag) || "arrow_lightning".equals(aTag)) {
             vl.getWorld().strikeLightningEffect(vl);
-            e.setDamage(e.getDamage() + 6.0); // +3❤ чистого урона по лору!
             if (victim instanceof Player) {
                 try { ((Player) victim).setCooldown(Material.SHIELD, 100); } catch (Throwable ignored) {}
             }
@@ -3951,7 +4015,6 @@ public final class GameplayListener implements Listener {
             attacker.getWorld().spawnParticle(Particle.HEART, attacker.getLocation().add(0, 1.4, 0), 6, 0.3, 0.3, 0.3, 0.02);
         }
         if ("arrow_vampire".equals(aTag)) {
-            e.setDamage(e.getDamage() + 5.0); // вытягивает 2.5❤ у врага!
             double heal = Math.min(5.0, Math.max(0.0, attacker.getMaxHealth() - attacker.getHealth()));
             if (heal > 0.0) attacker.setHealth(attacker.getHealth() + heal);
             attacker.getWorld().spawnParticle(Particle.HEART, attacker.getLocation().add(0, 1.4, 0), 8, 0.3, 0.3, 0.3, 0.02);
@@ -3959,7 +4022,6 @@ public final class GameplayListener implements Listener {
         if ("arrow_explosive".equals(aTag)) {
             vl.getWorld().spawnParticle(Particle.EXPLOSION, vl.clone().add(0, 1, 0), 4, 0.5, 0.5, 0.5, 0.02);
             vl.getWorld().playSound(vl, "minecraft:entity.generic.explode", 0.75f, 1.3f);
-            e.setDamage(e.getDamage() + 6.0); // +3❤ ударного урона по лору!
         }
         if ("arrow_poison".equals(aTag)) {
             ColorUtil.addPot(victim, "poison", "POISON", 120, 2);
@@ -3977,7 +4039,6 @@ public final class GameplayListener implements Listener {
         if ("arrow_thor".equals(aTag)) {
             // v6.1.3: СТРЕЛА ТОРА — цепная молния до 3 целей рядом!
             vl.getWorld().strikeLightningEffect(vl);
-            e.setDamage(e.getDamage() + 8.0);
             int chained = 0;
             for (Entity en : vl.getWorld().getNearbyEntities(vl, 6.0, 4.0, 6.0)) {
                 if (chained >= 3) break;

@@ -83,7 +83,7 @@ public final class HudManager {
             }
         }.runTaskTimer(plugin, 20L, 20L);
 
-        // Passive Offhand 3D Spheres + Custom Buffed Elytras every 30 ticks (1.5s)
+        // Passive equipment/elytra and health reconciliation every 30 ticks (1.5s)
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -340,40 +340,21 @@ public final class HudManager {
     }
 
     private void applyOffhandAndElytraPassives(Player p) {
+        if (p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) {
+            ColorUtil.setEquipmentHealthBonus(p, 0.0);
+            return;
+        }
         double bonusHp = 0.0;
         String offId = ItemFactory.getCustomId(p.getInventory().getItemInOffHand());
         if (offId != null) {
+            // Orb potion effects are maintained in GameplayListener only. Health is
+            // an independent equipment modifier so it stacks with other gear/effects.
             if ("shar_titana".equals(offId)) {
                 bonusHp += 8.0;
-                giveEff(p, "resistance", 80, 0);
-                giveEff(p, "strength", 80, 0);
-            } else if ("shar_andromedy".equals(offId)) {
-                giveEff(p, "speed", 80, 1);
-                giveEff(p, "strength", 80, 1);
-                giveEff(p, "jump_boost", 80, 1);
-            } else if ("shar_chimery".equals(offId)) {
-                giveEff(p, "strength", 80, 1);
-                giveEff(p, "fire_resistance", 80, 0);
-                giveEff(p, "regeneration", 80, 0);
-            } else if ("shar_apollona".equals(offId)) {
-                giveEff(p, "haste", 80, 1);
-                giveEff(p, "speed", 80, 1);
-                giveEff(p, "night_vision", 300, 0);
-            } else if ("shar_aida".equals(offId)) {
-                giveEff(p, "strength", 80, 1);
-                giveEff(p, "fire_resistance", 80, 0);
             } else if ("shar_osirisa".equals(offId)) {
                 bonusHp += 4.0;
-                giveEff(p, "regeneration", 80, 1);
-                giveEff(p, "resistance", 80, 0);
-            } else if ("shar_aresa".equals(offId)) {
-                giveEff(p, "strength", 80, 2);
-                giveEff(p, "speed", 80, 0);
             } else if ("shar_santy".equals(offId)) {
                 bonusHp += 12.0;
-                giveEff(p, "strength", 80, 1);
-                giveEff(p, "speed", 80, 1);
-                giveEff(p, "regeneration", 80, 0);
             } else if ("tal_owner".equals(offId)) {
                 bonusHp += 20.0;
                 giveEff(p, "strength", 80, 2);
@@ -499,7 +480,7 @@ public final class HudManager {
             }
         }
 
-        ColorUtil.setMaxHealthSafe(p, 20.0 + bonusHp);
+        ColorUtil.setEquipmentHealthBonus(p, bonusHp);
     }
 
     /** v6.2: АУРА ПОЛНОГО СЕТА — цветные частицы вокруг игрока, броню ВИДНО издалека! */
@@ -536,11 +517,7 @@ public final class HudManager {
     }
 
     private void giveEff(Player p, String key, int ticks, int amp) {
-        PotionEffectType pet = PotionEffectType.getByKey(NamespacedKey.minecraft(key));
-        if (pet != null) {
-            // particles=false so custom buffs NEVER obscure screen or hurt FPS!
-            p.addPotionEffect(new PotionEffect(pet, ticks, amp, true, false, true));
-        }
+        ColorUtil.addPassivePot(p, key, key, ticks, amp);
     }
 
     private int safePing(Player p) {

@@ -205,6 +205,35 @@ public final class ColorUtil {
         }
     }
 
+    /** Refresh a short equipment passive without restarting regeneration's heal timer.
+     * Stronger or longer external effects are left in place; no effects are removed.
+     */
+    public static void addPassivePot(org.bukkit.entity.LivingEntity entity, String modernKey, String legacyName,
+                                     int durationTicks, int amplifier) {
+        if (entity == null) return;
+        PotionEffectType type = potType(modernKey, legacyName);
+        if (type == null) return;
+        PotionEffect current = entity.getPotionEffect(type);
+        int duration = durationTicks;
+        if (current != null) {
+            if (current.getAmplifier() > amplifier) return;
+            if (current.getAmplifier() == amplifier) {
+                int remaining = current.getDuration();
+                // -1 is an infinite effect on supported Paper versions.
+                int refreshAt = "night_vision".equals(modernKey) ? 220 : 25;
+                if (remaining < 0 || remaining > refreshAt) return;
+                if ("regeneration".equals(modernKey)) {
+                    int interval = Math.max(1, 50 >> Math.min(5, Math.max(0, amplifier)));
+                    // Adding an exact multiple of the vanilla healing interval keeps
+                    // the next heal on the same tick even when passives overlap.
+                    duration = Math.max(interval, ((durationTicks + interval - 1) / interval) * interval)
+                            + remaining % interval;
+                }
+            }
+        }
+        entity.addPotionEffect(new PotionEffect(type, duration, amplifier, true, false, true));
+    }
+
     public static void removePot(org.bukkit.entity.LivingEntity entity, String modernKey, String legacyName) {
         if (entity == null) return;
         PotionEffectType type = potType(modernKey, legacyName);
@@ -249,6 +278,42 @@ public final class ColorUtil {
                 armorMetaCls.getMethod("setTrim", armorTrimCls).invoke(meta, trim);
             }
         } catch (Throwable ignored) {
+        }
+    }
+
+    private static final NamespacedKey PASSIVE_HEALTH_KEY = new NamespacedKey("kinggrief", "equipment_max_health");
+
+    /** Apply only KingGrief's equipment contribution, never overwrite the player's base value
+     * or another plugin's attribute modifiers. The named modifier is reconciled each tick.
+     */
+    public static void setEquipmentHealthBonus(Player p, double bonus) {
+        if (p == null) return;
+        try {
+            org.bukkit.attribute.Attribute attr = null;
+            Class<?> registryType = Class.forName("org.bukkit.Registry");
+            Object registry = registryType.getField("ATTRIBUTE").get(null);
+            Method lookup = registryType.getMethod("get", NamespacedKey.class);
+            Object found = lookup.invoke(registry, NamespacedKey.minecraft("max_health"));
+            if (found == null) found = lookup.invoke(registry, NamespacedKey.minecraft("generic.max_health"));
+            if (found instanceof org.bukkit.attribute.Attribute) attr = (org.bukkit.attribute.Attribute) found;
+            if (attr == null) return;
+            org.bukkit.attribute.AttributeInstance instance = p.getAttribute(attr);
+            if (instance == null) return;
+            org.bukkit.attribute.AttributeModifier old = null;
+            for (org.bukkit.attribute.AttributeModifier modifier : instance.getModifiers()) {
+                if (PASSIVE_HEALTH_KEY.equals(modifier.getKey())) { old = modifier; break; }
+            }
+            double wanted = Math.max(0.0, Math.min(60.0, bonus));
+            if (old != null && Math.abs(old.getAmount() - wanted) < 0.0001) return;
+            if (old != null) instance.removeModifier(old);
+            if (wanted > 0.0) {
+                instance.addModifier(new org.bukkit.attribute.AttributeModifier(PASSIVE_HEALTH_KEY, wanted,
+                        org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                        org.bukkit.inventory.EquipmentSlotGroup.ANY));
+            }
+            if (!p.isDead() && p.getHealth() > instance.getValue()) p.setHealth(instance.getValue());
+        } catch (ReflectiveOperationException ex) {
+            throw new IllegalStateException("Could not resolve max-health attribute", ex);
         }
     }
 

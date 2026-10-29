@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 6.6.1
+version: 6.6.3
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit]
 author: KINGGRIEF
-description: "KINGGRIEF v6.6.1: готовый спавн с безопасной установкой, ранги, TNT за рилики и события."
+description: "KINGGRIEF v6.6.3: рабочие шары, тотемы и безопасный поиск событий."
 
 
 commands:

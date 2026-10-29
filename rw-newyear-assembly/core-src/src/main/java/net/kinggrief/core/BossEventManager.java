@@ -17,6 +17,7 @@ import org.bukkit.block.Chest;
 import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.command.CommandSender;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -34,7 +35,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -45,6 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public final class BossEventManager {
 
@@ -105,7 +109,16 @@ public final class BossEventManager {
         // may belong to another plugin/player and must never be overwritten on cleanup.
         public final Map<Location, BlockData> expectedBlocks = new HashMap<Location, BlockData>();
         public final List<UUID> hologramStands = new ArrayList<UUID>();
+        // The event owns tickets for every chunk touched by its structure. This
+        // keeps cleanup and chest unlocks from synchronously loading chunks.
+        private final List<ChunkPos> chunkTickets = new ArrayList<ChunkPos>();
     }
+
+    private static final int SITE_RADIUS = 9;
+    private static final int MAX_LOADED_CANDIDATES = 160;
+    private static final int MAX_GENERATED_CANDIDATES = 8;
+    private static final int ASYNC_CHUNK_TIMEOUT_TICKS = 20 * 20;
+    private static final int SEARCH_TIMEOUT_TICKS = 20 * 120;
 
     private final KingGriefCore plugin;
     private final Random rng = new Random();
@@ -113,6 +126,22 @@ public final class BossEventManager {
     private final Map<String, ActiveBossEvent> activeEvents = new LinkedHashMap<String, ActiveBossEvent>();
     private int autoCountdownSec = 360;
     private int seq = 1;
+    private SearchJob pendingSearch;
+    private boolean shuttingDown;
+
+    // Paper exposes asynchronous chunk loading on World. Reflection keeps the
+    // compile-time API usable on Spigot; no synchronous fallback is permitted.
+    interface AsyncChunkLoader {
+        CompletableFuture<?> request(World world, int chunkX, int chunkZ) throws Exception;
+    }
+    private AsyncChunkLoader chunkLoader = new AsyncChunkLoader() {
+        @Override public CompletableFuture<?> request(World world, int chunkX, int chunkZ) throws Exception {
+            Method method = World.class.getMethod("getChunkAtAsync", int.class, int.class, boolean.class);
+            Object future = method.invoke(world, chunkX, chunkZ, true);
+            if (!(future instanceof CompletableFuture)) throw new IllegalStateException("Paper async chunk API unavailable");
+            return (CompletableFuture<?>) future;
+        }
+    };
 
     public BossEventManager(KingGriefCore plugin) {
         this.plugin = plugin;
@@ -223,10 +252,24 @@ public final class BossEventManager {
     }
 
     public void shutdown() {
+        shuttingDown = true;
+        if (pendingSearch != null) pendingSearch.cancelSearch();
         List<String> ids = new ArrayList<String>(activeEvents.keySet());
         for (String id : ids) {
             endEvent(id, false);
         }
+    }
+
+    /** Restore event blocks before a plugin unloads their world. */
+    public void onWorldUnload(World world) {
+        if (world == null) return;
+        if (pendingSearch != null && world.equals(pendingSearch.world))
+            pendingSearch.finish(false, "Мир ивента выгружается; поиск отменён.");
+        List<String> ids = new ArrayList<String>();
+        for (ActiveBossEvent event : activeEvents.values()) {
+            if (world.equals(event.center.getWorld())) ids.add(event.instanceId);
+        }
+        for (String id : ids) endEvent(id, false);
     }
 
     public List<ActiveBossEvent> getActiveEvents() {
@@ -269,8 +312,8 @@ public final class BossEventManager {
         }
     }
 
-    public ActiveBossEvent startRandomEvent() {
-        // Alternate richly between AirDrop, Meteor, Beacon, Frost Citadel, Volcano, and Mythic Bosses!
+    /** Queue the automatic event search. Search never waits for chunk generation on the tick thread. */
+    public boolean requestRandomEvent(CommandSender sender) {
         String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"};
         List<String> unused = new ArrayList<String>();
         for (String pid : pool) {
@@ -281,29 +324,106 @@ public final class BossEventManager {
             if (!used) unused.add(pid);
         }
         String pick = unused.isEmpty() ? pool[rng.nextInt(pool.length)] : unused.get(rng.nextInt(unused.size()));
-        return spawnBossEvent(pick, null);
+        return requestBossEvent(pick, sender);
     }
 
+    /** Legacy APIs now queue the search and cannot return an event synchronously. */
+    @Deprecated
+    public ActiveBossEvent startRandomEvent() {
+        requestRandomEvent(null);
+        return null;
+    }
+
+    @Deprecated
     public ActiveBossEvent startRandomBossOnly() {
-        String[] bosses = new String[]{"grinch", "krush", "titan", "osiris", "andromeda"};
-        return spawnBossEvent(bosses[rng.nextInt(bosses.length)], null);
+        requestBossEvent("boss", null);
+        return null;
     }
 
-    public ActiveBossEvent spawnBossEvent(String templateId, Location forcedCenter) {
+    public boolean requestBossEvent(String templateId, CommandSender sender) {
+        if (!Bukkit.isPrimaryThread()) throw new IllegalStateException("Event requests must be made on the server thread");
+        String key = normalizeTemplateId(templateId);
+        BossTemplate tpl = templates.get(key);
+        if (tpl == null) {
+            notifyRequester(sender, "&cНеизвестный ивент: &f" + key);
+            return false;
+        }
+        if (shuttingDown || pendingSearch != null) {
+            notifyRequester(sender, "&eПоиск места для другого ивента уже выполняется. Попробуйте позже.");
+            return false;
+        }
+        World world = null;
+        for (World candidate : Bukkit.getWorlds()) {
+            if (candidate.getEnvironment() == World.Environment.NORMAL
+                    && !VoidSpawnWorldGenerator.SPAWN_WORLD_NAME.equalsIgnoreCase(candidate.getName())) {
+                world = candidate;
+                break;
+            }
+        }
+        // Do not create a missing survival world from an event tick.
+        return queueSearch(tpl, world, sender);
+    }
+
+    private String normalizeTemplateId(String templateId) {
         String key = templateId == null ? "" : templateId.toLowerCase(Locale.ROOT);
         if ("boss".equals(key)) {
-            return startRandomBossOnly();
+            String[] bosses = new String[]{"grinch", "krush", "titan", "osiris", "andromeda"};
+            return bosses[rng.nextInt(bosses.length)];
         }
-        BossTemplate tpl = templates.get(key);
-        if (tpl == null) return null;
+        return key;
+    }
 
-        World surv = forcedCenter != null && forcedCenter.getWorld() != null
-                ? forcedCenter.getWorld()
-                : VoidSpawnWorldGenerator.getSurvivalWorld();
-        if (surv == null) return null;
+    private boolean queueSearch(BossTemplate tpl, World world, CommandSender sender) {
+        if (world == null || shuttingDown || pendingSearch != null) {
+            notifyRequester(sender, "&cНе удалось начать поиск места для ивента.");
+            return false;
+        }
+        SearchJob job = new SearchJob(tpl, world, sender);
+        pendingSearch = job;
+        job.runTaskTimer(plugin, 1L, 1L);
+        notifyRequester(sender, "&eПоиск безопасного места для ивента запущен. Сервер продолжает работать.");
+        return true;
+    }
 
-        Location center = forcedCenter != null ? forcedCenter.getBlock().getLocation() : findStrictDryLandSpot(surv);
-        if (center == null || !isSafeEventSite(center)) return null;
+    private void notifyRequester(CommandSender sender, String message) {
+        if (sender != null) sender.sendMessage(ColorUtil.c(message));
+    }
+
+    /**
+     * Compatibility entry point: a null center queues a non-blocking search and
+     * returns null. A forced center is accepted only if its whole footprint is
+     * already loaded and safe. Never call getBlock() before the loaded check.
+     */
+    public ActiveBossEvent spawnBossEvent(String templateId, Location forcedCenter) {
+        if (!Bukkit.isPrimaryThread()) throw new IllegalStateException("Events must be created on the server thread");
+        if (forcedCenter == null) {
+            requestBossEvent(templateId, null);
+            return null;
+        }
+        BossTemplate tpl = templates.get(normalizeTemplateId(templateId));
+        World world = forcedCenter.getWorld();
+        if (tpl == null || world == null || shuttingDown) return null;
+        Location center = new Location(world, forcedCenter.getBlockX(), forcedCenter.getBlockY(), forcedCenter.getBlockZ());
+        if (!isSafeEventSite(center)) return null;
+        List<ChunkPos> tickets = new ArrayList<ChunkPos>();
+        try {
+            if (!pinAlreadyLoadedChunks(world, footprint(center.getBlockX(), center.getBlockZ()), tickets)) {
+                releaseTickets(world, tickets);
+                return null;
+            }
+            ActiveBossEvent event = createEvent(tpl, center, tickets);
+            if (event == null) releaseTickets(world, tickets);
+            return event;
+        } catch (Exception error) {
+            releaseTickets(world, tickets);
+            plugin.getLogger().warning("[Events] Forced event could not reserve its chunks: " + error.getMessage());
+            return null;
+        }
+    }
+
+    private ActiveBossEvent createEvent(BossTemplate tpl, Location center, List<ChunkPos> tickets) {
+        World surv = center.getWorld();
+        if (surv == null || !allSiteChunksLoaded(surv, center.getBlockX(), center.getBlockZ())) return null;
         if (activeEvents.size() >= 4) {
             String oldest = activeEvents.keySet().iterator().next();
             endEvent(oldest, false);
@@ -313,50 +433,285 @@ public final class BossEventManager {
         ev.instanceId = tpl.id + "_" + (seq++);
         ev.template = tpl;
         ev.center = center;
-
-        if (tpl.kind == EventKind.BOSS) {
-            ev.secondsLeft = 900;
-            ev.unlockCountdownSec = 0;
-            ev.lastKnownHp = tpl.maxHp;
-            buildBossAltar(ev);
-
-            Location bossLoc = center.clone().add(0.5, 1.2, 2.5);
-            LivingEntity boss = (LivingEntity) surv.spawnEntity(bossLoc, tpl.entityType);
-            configureBossEntity(boss, tpl, ev.instanceId, tpl.maxHp);
-            ev.bossUuid = boss.getUniqueId();
-        } else {
-            ev.unlockTotalSec = (int) tpl.maxHp;
-            ev.unlockCountdownSec = ev.unlockTotalSec;
-            ev.secondsLeft = ev.unlockTotalSec + 180;
-            if (tpl.kind == EventKind.AIRDROP) {
-                buildBeautifulAirdropStructure(ev);
-            } else if (tpl.kind == EventKind.METEOR) {
-                buildStarMeteorStructure(ev);
-            } else if (tpl.kind == EventKind.BEACON) {
-                buildGoldenBeaconStructure(ev);
-            } else if (tpl.kind == EventKind.VOLCANO) {
-                buildVolcanoStructure(ev);
-            } else if (tpl.kind == EventKind.CRYSTAL || tpl.kind == EventKind.RUINS || tpl.kind == EventKind.CAMP) {
-                buildNewWorldEventStructure(ev);
+        ev.chunkTickets.addAll(tickets);
+        try {
+            if (tpl.kind == EventKind.BOSS) {
+                ev.secondsLeft = 900;
+                ev.unlockCountdownSec = 0;
+                ev.lastKnownHp = tpl.maxHp;
+                buildBossAltar(ev);
+                Location bossLoc = center.clone().add(0.5, 1.2, 2.5);
+                LivingEntity boss = (LivingEntity) surv.spawnEntity(bossLoc, tpl.entityType);
+                ev.bossUuid = boss.getUniqueId();
+                configureBossEntity(boss, tpl, ev.instanceId, tpl.maxHp);
             } else {
-                buildFrostCitadelStructure(ev);
+                ev.unlockTotalSec = (int) tpl.maxHp;
+                ev.unlockCountdownSec = ev.unlockTotalSec;
+                ev.secondsLeft = ev.unlockTotalSec + 180;
+                if (tpl.kind == EventKind.AIRDROP) buildBeautifulAirdropStructure(ev);
+                else if (tpl.kind == EventKind.METEOR) buildStarMeteorStructure(ev);
+                else if (tpl.kind == EventKind.BEACON) buildGoldenBeaconStructure(ev);
+                else if (tpl.kind == EventKind.VOLCANO) buildVolcanoStructure(ev);
+                else if (tpl.kind == EventKind.CRYSTAL || tpl.kind == EventKind.RUINS || tpl.kind == EventKind.CAMP) buildNewWorldEventStructure(ev);
+                else buildFrostCitadelStructure(ev);
+            }
+            spawnChestHologram(ev);
+            BossBar bar = Bukkit.createBossBar(formatBarTitle(ev, tpl.maxHp), tpl.barColor, tpl.barStyle);
+            ev.bossBar = bar;
+            bar.setProgress(1.0);
+            bar.setVisible(true);
+            for (Player on : Bukkit.getOnlinePlayers()) bar.addPlayer(on);
+            activeEvents.put(ev.instanceId, ev);
+            announceEventSpawn(ev);
+            return ev;
+        } catch (Exception error) {
+            // A failed build must not leave blocks or tickets behind.
+            plugin.getLogger().severe("[Events] Event construction failed: " + error.getMessage());
+            activeEvents.remove(ev.instanceId);
+            if (ev.bossBar != null) ev.bossBar.removeAll();
+            if (ev.bossUuid != null) {
+                Entity boss = Bukkit.getEntity(ev.bossUuid);
+                if (boss != null) boss.remove();
+            }
+            removeHologram(ev);
+            restoreEventBlocks(ev);
+            return null;
+        }
+    }
+
+    private static final class ChunkPos {
+        final int x, z;
+        ChunkPos(int x, int z) { this.x = x; this.z = z; }
+    }
+
+    private List<ChunkPos> footprint(int x, int z) {
+        List<ChunkPos> chunks = new ArrayList<ChunkPos>();
+        for (int cx = (x - SITE_RADIUS) >> 4; cx <= (x + SITE_RADIUS) >> 4; cx++) {
+            for (int cz = (z - SITE_RADIUS) >> 4; cz <= (z + SITE_RADIUS) >> 4; cz++) {
+                chunks.add(new ChunkPos(cx, cz));
+            }
+        }
+        return chunks;
+    }
+
+    private boolean allSiteChunksLoaded(World world, int x, int z) {
+        for (ChunkPos chunk : footprint(x, z)) {
+            if (!world.isChunkLoaded(chunk.x, chunk.z)) return false;
+        }
+        return true;
+    }
+
+    private boolean pinAlreadyLoadedChunks(World world, List<ChunkPos> positions, List<ChunkPos> pinned) {
+        for (ChunkPos pos : positions) {
+            if (!pinLoadedChunk(world, pos, pinned)) return false;
+        }
+        return true;
+    }
+
+    private boolean pinLoadedChunk(World world, ChunkPos pos, List<ChunkPos> pinned) {
+        // addPluginChunkTicket itself loads a chunk, so it is crucial that this
+        // guard and the ticket operation both run on the main thread, together.
+        if (!world.isChunkLoaded(pos.x, pos.z)) return false;
+        if (!world.addPluginChunkTicket(pos.x, pos.z, plugin)) return false;
+        pinned.add(pos);
+        return true;
+    }
+
+    private void releaseTickets(World world, List<ChunkPos> tickets) {
+        for (ChunkPos pos : tickets) {
+            try { world.removePluginChunkTicket(pos.x, pos.z, plugin); }
+            catch (Exception error) { plugin.getLogger().warning("[Events] Could not release a chunk ticket: " + error.getMessage()); }
+        }
+        tickets.clear();
+    }
+
+    private boolean candidateAllowed(World world, int x, int z) {
+        if ((Math.abs(x) < 180 && Math.abs(z) < 180) || Math.abs(x) > 2000 || Math.abs(z) > 2000) return false;
+        if (plugin.getStore().overlapsAnyClaim(world.getName(), x, z, 16)) return false;
+        for (ActiveBossEvent other : activeEvents.values()) {
+            if (world.equals(other.center.getWorld())) {
+                double dx = (double) other.center.getBlockX() - x, dz = (double) other.center.getBlockZ() - z;
+                if (dx * dx + dz * dz < 380.0 * 380.0) return false;
+            }
+        }
+        return world.getWorldBorder().isInside(new Location(world, x - SITE_RADIUS, 70, z - SITE_RADIUS))
+                && world.getWorldBorder().isInside(new Location(world, x + SITE_RADIUS, 70, z + SITE_RADIUS));
+    }
+
+    private final class SearchJob extends BukkitRunnable {
+        final BossTemplate template;
+        final World world;
+        final CommandSender sender;
+        final List<int[]> loadedCandidates = new ArrayList<int[]>();
+        final List<ChunkPos> pinned = new ArrayList<ChunkPos>();
+        int loadedIndex, generatedCandidates, elapsedTicks, waitingSince;
+        int[] candidate;
+        List<ChunkPos> required;
+        ChunkPos awaited;
+        boolean allowAsync, waiting, finished;
+
+        SearchJob(BossTemplate template, World world, CommandSender sender) {
+            this.template = template;
+            this.world = world;
+            this.sender = sender;
+            List<org.bukkit.Chunk> chunks = Arrays.asList(world.getLoadedChunks());
+            Collections.shuffle(chunks, rng);
+            for (org.bukkit.Chunk chunk : chunks) {
+                if (loadedCandidates.size() >= MAX_LOADED_CANDIDATES) break;
+                // Offset 6 or 9 makes the 19x19 footprint intersect only four
+                // chunks instead of nine. All are checked before any block read.
+                int x = chunk.getX() * 16 + (rng.nextBoolean() ? 6 : 9);
+                int z = chunk.getZ() * 16 + (rng.nextBoolean() ? 6 : 9);
+                if (Math.abs(x) >= 180 || Math.abs(z) >= 180) loadedCandidates.add(new int[]{x, z});
             }
         }
 
-        spawnChestHologram(ev);
-
-        String initTitle = formatBarTitle(ev, tpl.maxHp);
-        BossBar bar = Bukkit.createBossBar(initTitle, tpl.barColor, tpl.barStyle);
-        bar.setProgress(1.0);
-        bar.setVisible(true);
-        for (Player on : Bukkit.getOnlinePlayers()) {
-            bar.addPlayer(on);
+        @Override public void run() {
+            try {
+                tickSearch();
+            } catch (Exception error) {
+                plugin.getLogger().warning("[Events] Event search failed: " + error.getMessage());
+                finish(false, "Ошибка поиска места ивента; сервер продолжает работу.");
+            }
         }
-        ev.bossBar = bar;
-        activeEvents.put(ev.instanceId, ev);
 
-        announceEventSpawn(ev);
-        return ev;
+        private void tickSearch() {
+            if (finished || shuttingDown || pendingSearch != this) { cancelSearch(); return; }
+            elapsedTicks++;
+            if (elapsedTicks >= SEARCH_TIMEOUT_TICKS) {
+                finish(false, "Поиск ивента прерван по тайм-ауту.");
+                return;
+            }
+            if (waiting) {
+                // Do not launch more chunk generation when a request is stuck.
+                if (elapsedTicks - waitingSince >= ASYNC_CHUNK_TIMEOUT_TICKS)
+                    finish(false, "Чанк не загрузился вовремя; поиск ивента отменён.");
+                return;
+            }
+            if (candidate == null) {
+                if (!selectCandidate()) return;
+                required = footprint(candidate[0], candidate[1]);
+            }
+            if (pinned.size() < required.size()) {
+                ChunkPos next = required.get(pinned.size());
+                if (world.isChunkLoaded(next.x, next.z)) {
+                    if (!pinLoadedChunk(world, next, pinned)) abandonCandidate();
+                } else if (allowAsync) {
+                    requestChunk(next);
+                } else {
+                    abandonCandidate();
+                }
+                return; // At most one chunk/ticket operation per tick.
+            }
+            Location center = inspectDryColumn(world, candidate[0], candidate[1]);
+            if (center != null && isSafeEventSite(center)) {
+                ActiveBossEvent event = createEvent(template, center, pinned);
+                if (event != null) {
+                    pinned.clear(); // ownership transferred to the active event
+                    finish(true, null);
+                    return;
+                }
+                finish(false, "Не удалось построить ивент; изменения отменены.");
+                return;
+            }
+            abandonCandidate();
+        }
+
+        private boolean selectCandidate() {
+            while (loadedIndex < loadedCandidates.size()) {
+                int[] next = loadedCandidates.get(loadedIndex++);
+                if (candidateAllowed(world, next[0], next[1])) {
+                    candidate = next;
+                    allowAsync = false;
+                    return true;
+                }
+            }
+            if (generatedCandidates >= MAX_GENERATED_CANDIDATES) {
+                finish(false, "Не найдено безопасное место для ивента вдали от построек и приватов.");
+                return false;
+            }
+            // Small bounded fallback: only ONE chunk request can be in flight,
+            // and no more than eight new sites are considered per search.
+            for (int i = 0; i < 64; i++) {
+                int x = (rng.nextInt(150) - 75) * 16 + (rng.nextBoolean() ? 6 : 9);
+                int z = (rng.nextInt(150) - 75) * 16 + (rng.nextBoolean() ? 6 : 9);
+                if (candidateAllowed(world, x, z)) {
+                    generatedCandidates++;
+                    candidate = new int[]{x, z};
+                    allowAsync = true;
+                    return true;
+                }
+            }
+            finish(false, "Нет доступных координат ивента внутри границы мира.");
+            return false;
+        }
+
+        private void requestChunk(final ChunkPos pos) {
+            waiting = true;
+            waitingSince = elapsedTicks;
+            awaited = pos;
+            final CompletableFuture<?> future;
+            try {
+                future = chunkLoader.request(world, pos.x, pos.z);
+                if (future == null) throw new IllegalStateException("Async chunk API returned no future");
+            } catch (Exception error) {
+                waiting = false;
+                plugin.getLogger().warning("[Events] Paper async chunk API unavailable: " + error.getClass().getSimpleName());
+                finish(false, "Асинхронная загрузка чанков недоступна. Используйте Paper 1.21.4.");
+                return;
+            }
+            future.whenComplete((chunk, error) -> {
+                Runnable completion = new Runnable() {
+                    @Override public void run() { chunkReady(pos, chunk, error); }
+                };
+                if (Bukkit.isPrimaryThread()) completion.run();
+                else if (plugin.isEnabled()) {
+                    try { Bukkit.getScheduler().runTask(plugin, completion); }
+                    catch (IllegalStateException ignored) { /* plugin stopped before completion */ }
+                }
+            });
+        }
+
+        private void chunkReady(ChunkPos pos, Object chunk, Throwable error) {
+            if (finished || shuttingDown || pendingSearch != this || !waiting || awaited != pos) return;
+            waiting = false;
+            awaited = null;
+            try {
+                if (error != null || chunk == null || !world.isChunkLoaded(pos.x, pos.z)
+                        || !pinLoadedChunk(world, pos, pinned)) {
+                    abandonCandidate();
+                }
+            } catch (Exception failure) {
+                plugin.getLogger().warning("[Events] Could not reserve a loaded chunk: " + failure.getMessage());
+                finish(false, "Не удалось зарезервировать чанки ивента.");
+            }
+        }
+
+        private void abandonCandidate() {
+            releaseTickets(world, pinned);
+            candidate = null;
+            required = null;
+            waiting = false;
+            awaited = null;
+        }
+
+        void cancelSearch() {
+            if (finished) return;
+            finished = true;
+            releaseTickets(world, pinned);
+            if (pendingSearch == this) pendingSearch = null;
+            cancel();
+        }
+
+        private void finish(boolean success, String reason) {
+            if (finished) return;
+            if (!success) {
+                plugin.getLogger().warning("[Events] " + reason);
+                notifyRequester(sender, "&c" + reason);
+                if (sender == null) autoCountdownSec = Math.min(autoCountdownSec, 60);
+            }
+            cancelSearch();
+        }
     }
 
     private void announceEventSpawn(ActiveBossEvent ev) {
@@ -394,45 +749,10 @@ public final class BossEventManager {
         }
     }
 
-    /**
-     * 100% сухопутный поиск координат: НИКОГДА не спавнит в океане, море, реке, болоте, воде, лаве или на льду над водой!
-     */
-    private Location findStrictDryLandSpot(World surv) {
-        for (int attempt = 0; attempt < 140; attempt++) {
-            int x = rng.nextInt(2400) - 1200;
-            int z = rng.nextInt(2400) - 1200;
-            if (Math.abs(x) < 180 && Math.abs(z) < 180) continue;
-
-            boolean tooClose = false;
-            for (ActiveBossEvent other : activeEvents.values()) {
-                if (other.center.getWorld() != null && other.center.getWorld().equals(surv)) {
-                    if (Math.hypot(other.center.getBlockX() - x, other.center.getBlockZ() - z) < 380.0) {
-                        tooClose = true;
-                        break;
-                    }
-                }
-            }
-            if (tooClose) continue;
-            if (plugin.getStore().overlapsAnyClaim(surv.getName(), x, z, 16)) continue;
-
-            Location dry = inspectDryColumn(surv, x, z);
-            if (dry != null && isSafeEventSite(dry)) return dry;
-        }
-        // Spiral scan fallback until strict dry land is found
-        for (int r = 250; r <= 2000; r += 85) {
-            for (int deg = 0; deg < 360; deg += 30) {
-                int x = (int) Math.round(Math.cos(Math.toRadians(deg)) * r);
-                int z = (int) Math.round(Math.sin(Math.toRadians(deg)) * r);
-                Location dry = inspectDryColumn(surv, x, z);
-                if (dry != null && isSafeEventSite(dry)) return dry;
-            }
-        }
-        // Never fall back to an unchecked position (claims/buildings/water).
-        return null;
-    }
-
     private Location inspectDryColumn(World surv, int x, int z) {
-        surv.getChunkAt(x >> 4, z >> 4).load();
+        // Includes the 7x7 dry-land sample and the larger 19x19 structure.
+        // getHighestBlockYAt/getBlockAt can otherwise generate a neighbour.
+        if (!allSiteChunksLoaded(surv, x, z)) return null;
         try {
             Biome bio = surv.getBiome(x, 70, z);
             if (bio != null) {
@@ -445,7 +765,7 @@ public final class BossEventManager {
 
         int topY = surv.getHighestBlockYAt(x, z);
         // Step down through leaves/snow/grass/logs to find true solid terrain
-        int groundY = -1;
+        int groundY = Integer.MIN_VALUE;
         for (int y = topY; y >= surv.getMinHeight() + 4; y--) {
             Material m = surv.getBlockAt(x, y, z).getType();
             String mn = m.name();
@@ -478,11 +798,15 @@ public final class BossEventManager {
         if (center == null || center.getWorld() == null || plugin.getSpawnEngine().isInSpawnWorld(center)) return false;
         World w = center.getWorld();
         int x = center.getBlockX(), y = center.getBlockY(), z = center.getBlockZ();
+        if (!allSiteChunksLoaded(w, x, z)) return false;
         if (y - 4 < w.getMinHeight() || y + 13 >= w.getMaxHeight()) return false;
         if (plugin.getStore().overlapsAnyClaim(w.getName(), x, z, 16)) return false;
         if (intersectsWorldGuardRegion(w, x, y, z)) return false;
         for (ActiveBossEvent other : activeEvents.values()) {
-            if (w.equals(other.center.getWorld()) && other.center.distanceSquared(center) < 40.0 * 40.0) return false;
+            if (w.equals(other.center.getWorld())) {
+                double dx = (double) other.center.getBlockX() - x, dz = (double) other.center.getBlockZ() - z;
+                if (dx * dx + dz * dz < 40.0 * 40.0) return false;
+            }
         }
         for (int dx = -9; dx <= 9; dx++) for (int dz = -9; dz <= 9; dz++) {
             if (!w.getWorldBorder().isInside(new Location(w, x + dx, y, z + dz))) return false;
@@ -1146,19 +1470,18 @@ public final class BossEventManager {
     }
 
     private void removeHologram(ActiveBossEvent ev) {
-        if (ev.center != null && ev.center.getWorld() != null) {
-            try { ev.center.getChunk().load(); } catch (Throwable ignored) {}
-            for (Entity near : ev.center.getWorld().getNearbyEntities(ev.center, 6, 8, 6)) {
-                if (near.getScoreboardTags().contains("kg_holo") && ev.hologramStands.contains(near.getUniqueId())) {
-                    near.remove();
-                }
-            }
-        }
+        // The UUID lookup does not force-load an absent chunk. Orphaned tagged
+        // entities are also purged when their chunk is loaded later.
         for (UUID id : ev.hologramStands) {
             Entity e = Bukkit.getEntity(id);
             if (e != null) e.remove();
         }
         ev.hologramStands.clear();
+    }
+
+    private boolean isCenterChunkLoaded(ActiveBossEvent ev) {
+        World world = ev.center != null ? ev.center.getWorld() : null;
+        return world != null && world.isChunkLoaded(ev.center.getBlockX() >> 4, ev.center.getBlockZ() >> 4);
     }
 
     private void configureBossEntity(LivingEntity boss, BossTemplate tpl, String instanceId, double currentHp) {
@@ -1244,7 +1567,7 @@ public final class BossEventManager {
         if (autoCountdownSec <= 0) {
             autoCountdownSec = 600; // Every 10 minutes auto-spawn a world event or boss!
             if (activeEvents.size() < 3) {
-                startRandomEvent();
+                requestRandomEvent(null);
             }
         }
 
@@ -1289,8 +1612,7 @@ public final class BossEventManager {
                                     break;
                                 }
                             }
-                            if (playerNear) {
-                                ev.center.getChunk().load();
+                            if (playerNear && isCenterChunkLoaded(ev)) {
                                 LivingEntity found = null;
                                 for (Entity near : bw.getNearbyEntities(ev.center, 32, 24, 32)) {
                                     if (near instanceof LivingEntity && !near.isDead()
@@ -1317,11 +1639,12 @@ public final class BossEventManager {
                 tickWorldEventVisualsAndRewards(ev);
                 if (!ev.bossDefeated) {
                     ev.unlockCountdownSec--;
-                    if (ev.unlockCountdownSec % 5 == 0 && ev.center.getChunk().isLoaded()) {
+                    if (ev.unlockCountdownSec % 5 == 0 && isCenterChunkLoaded(ev)) {
                         updateCountdownHoloLine(ev);
                     }
                     if (ev.unlockCountdownSec <= 0) {
-                        unlockTimedWorldEvent(ev);
+                        ev.unlockCountdownSec = 0;
+                        if (isCenterChunkLoaded(ev)) unlockTimedWorldEvent(ev);
                     }
                 }
             }
@@ -1354,7 +1677,7 @@ public final class BossEventManager {
     }
 
     private void tickWorldEventVisualsAndRewards(ActiveBossEvent ev) {
-        if (!ev.center.getChunk().isLoaded()) return;
+        if (!isCenterChunkLoaded(ev)) return;
         World w = ev.center.getWorld();
         if (w == null) return;
         Location mid = ev.center.clone().add(0.5, 1.2, 0.5);
@@ -1693,35 +2016,47 @@ public final class BossEventManager {
     public void endEvent(String instanceId, boolean announce) {
         ActiveBossEvent ev = activeEvents.remove(instanceId);
         if (ev == null) return;
-        if (ev.bossBar != null) {
-            ev.bossBar.removeAll();
-            ev.bossBar.setVisible(false);
-        }
-        // Force-load surrounding chunks so Boss & Holograms ALWAYS die and get 100% removed when the event ends!
-        World w = ev.center != null ? ev.center.getWorld() : null;
-        if (w != null) {
-            int cx = ev.center.getBlockX() >> 4;
-            int cz = ev.center.getBlockZ() >> 4;
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    try { w.getChunkAt(cx + dx, cz + dz).load(); } catch (Throwable ignored) {}
+        World world = ev.center != null ? ev.center.getWorld() : null;
+        try {
+            if (ev.bossBar != null) {
+                ev.bossBar.removeAll();
+                ev.bossBar.setVisible(false);
+            }
+            // Do not synchronously load 3x3 chunks at the end of an event.
+            // The structure footprint stays loaded via our tickets; any boss
+            // outside it is removed by UUID or as an orphan on chunk load.
+            if (world != null && isCenterChunkLoaded(ev)) {
+                for (Entity near : world.getNearbyEntities(ev.center, 45, 35, 45)) {
+                    if ((ev.bossUuid != null && ev.bossUuid.equals(near.getUniqueId()))
+                            || near.getScoreboardTags().contains("kg_boss_" + ev.instanceId)) {
+                        world.spawnParticle(Particle.POOF, near.getLocation().add(0, 1.0, 0), 35, 0.5, 0.8, 0.5, 0.05);
+                        near.remove();
+                    }
                 }
             }
-            for (Entity near : w.getNearbyEntities(ev.center, 45, 35, 45)) {
-                if ((ev.bossUuid != null && ev.bossUuid.equals(near.getUniqueId()))
-                        || near.getScoreboardTags().contains("kg_boss_" + ev.instanceId)) {
-                    w.spawnParticle(Particle.POOF, near.getLocation().add(0, 1.0, 0), 35, 0.5, 0.8, 0.5, 0.05);
-                    near.remove();
-                }
+            if (ev.bossUuid != null) {
+                Entity boss = Bukkit.getEntity(ev.bossUuid);
+                if (boss != null) boss.remove();
             }
-        }
-        if (ev.bossUuid != null) {
-            Entity e = Bukkit.getEntity(ev.bossUuid);
-            if (e != null) {
-                e.remove();
+            removeHologram(ev);
+            restoreEventBlocks(ev);
+            if (announce && !ev.bossDefeated) {
+                Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName
+                        + " &7вышло — Босс погиб и храм исчез!"));
             }
+        } finally {
+            if (world != null) releaseTickets(world, ev.chunkTickets);
         }
-        removeHologram(ev);
+    }
+
+    private void restoreEventBlocks(ActiveBossEvent ev) {
+        World world = ev.center != null ? ev.center.getWorld() : null;
+        if (world == null || !allSiteChunksLoaded(world, ev.center.getBlockX(), ev.center.getBlockZ())) {
+            // Normally impossible while event tickets are held. Fail closed rather
+            // than block the tick thread if a third party forcibly unloads them.
+            plugin.getLogger().severe("[Events] Event chunks unexpectedly unloaded; blocks were not force-loaded for restoration: " + ev.instanceId);
+            return;
+        }
         Block centerBlock = ev.center.getBlock();
         if (eventStillOwnsBlock(ev, centerBlock) && centerBlock.getState() instanceof Chest) {
             ((Chest) centerBlock.getState()).getBlockInventory().clear();
@@ -1738,13 +2073,10 @@ public final class BossEventManager {
                         || expected.getMaterial() == Material.DEEPSLATE_EMERALD_ORE
                         || expected.getMaterial() == Material.GILDED_BLACKSTONE);
                 if (eventStillOwnsBlock(ev, current) || minedMeteorOre) st.update(true, false);
-            } catch (Throwable ex) {
-                plugin.getLogger().warning("[Events] Could not restore block at " + st.getLocation() + ": " + ex.getMessage());
+            } catch (Exception error) {
+                plugin.getLogger().warning("[Events] Could not restore block at " + st.getLocation() + ": " + error.getMessage());
             }
         }
-        if (announce && !ev.bossDefeated) {
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName
-                    + " &7вышло — Босс погиб и храм исчез!"));
-        }
     }
+
 }

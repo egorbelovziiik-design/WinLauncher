@@ -388,11 +388,12 @@ class DistributionTests(unittest.TestCase):
         self.assertIn(PACK.name, shared)
 
         core_jar = (public / "KingGriefCore.jar").read_bytes()
+        self.assertEqual((public / "KingGriefCore-v6.6.3.jar").read_bytes(), core_jar)
         for file in (HERE.parent / "KingGriefCore.jar", HERE.parent / "plugins/KingGriefCore.jar",
                      HERE.parent / "server/plugins/KingGriefCore.jar"):
             self.assertEqual(file.read_bytes(), core_jar)
         self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
-        for name, version, default in (("KingGriefCore.jar", "6.6.1", core_default),
+        for name, version, default in (("KingGriefCore.jar", "6.6.3", core_default),
                                        ("KingHub.jar", "1.2.2", hub_default)):
             with zipfile.ZipFile(public / name) as jar:
                 self.assertIsNone(jar.testzip())

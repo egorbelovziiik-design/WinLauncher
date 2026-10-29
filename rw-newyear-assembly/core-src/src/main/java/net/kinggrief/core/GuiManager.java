@@ -2132,15 +2132,15 @@ public final class GuiManager {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Призывать Боссов и Ивенты могут только Админы и выше!"));
                     return;
                 }
-                if (slot == 36) plugin.getBossEvents().startRandomBossOnly();
-                else if (slot == 37) plugin.getBossEvents().spawnBossEvent("airdrop", null);
-                else if (slot == 38) plugin.getBossEvents().spawnBossEvent("meteor", null);
-                else if (slot == 41) plugin.getBossEvents().spawnBossEvent("volcano", null);
-                else if (slot == 42) plugin.getBossEvents().spawnBossEvent("beacon", null);
-                else if (slot == 43) plugin.getBossEvents().spawnBossEvent("citadel", null);
-                else if (slot == 46) plugin.getBossEvents().spawnBossEvent("crystal", null);
-                else if (slot == 47) plugin.getBossEvents().spawnBossEvent("ruins", null);
-                else if (slot == 48) plugin.getBossEvents().spawnBossEvent("camp", null);
+                if (slot == 36) plugin.getBossEvents().requestBossEvent("boss", p);
+                else if (slot == 37) plugin.getBossEvents().requestBossEvent("airdrop", p);
+                else if (slot == 38) plugin.getBossEvents().requestBossEvent("meteor", p);
+                else if (slot == 41) plugin.getBossEvents().requestBossEvent("volcano", p);
+                else if (slot == 42) plugin.getBossEvents().requestBossEvent("beacon", p);
+                else if (slot == 43) plugin.getBossEvents().requestBossEvent("citadel", p);
+                else if (slot == 46) plugin.getBossEvents().requestBossEvent("crystal", p);
+                else if (slot == 47) plugin.getBossEvents().requestBossEvent("ruins", p);
+                else if (slot == 48) plugin.getBossEvents().requestBossEvent("camp", p);
                 openEventsMenu(p);
             }
         } else if ("titles".equals(type)) {

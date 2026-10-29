@@ -274,10 +274,18 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
   if(!event.isCancelled() || allowed.getType()!=Material.STONE) throw new AssertionError("TNT ignored cancelled explosion");
   protectedExplosionBlock=null; cancelProbeExplosion=false;
  }
+ private void loadEventFixture(World world, Location site) {
+  // Test setup deliberately prepares the entire 19x19 footprint. Production
+  // event code must never synchronously load an unprepared forced site.
+  for (int x=(site.getBlockX()-9)>>4; x<=(site.getBlockX()+9)>>4; x++)
+   for (int z=(site.getBlockZ()-9)>>4; z<=(site.getBlockZ()+9)>>4; z++) world.getChunkAt(x,z).load();
+ }
  private void testEvents(KingGriefCore core, Player p) throws Exception {
   World world=VoidSpawnWorldGenerator.getSurvivalWorld(); BossEventManager manager=core.getBossEvents();
-  if (getConfig().getBoolean("mock-wg"))
+  if (getConfig().getBoolean("mock-wg")) {
+   loadEventFixture(world,new Location(world,520,150,520));
    Class.forName("net.kinggrief.probe.MockWgAssertions").getMethod("run",BossEventManager.class,World.class).invoke(null,manager,world);
+  }
   org.bukkit.entity.ArmorStand foreignHolo=(org.bukkit.entity.ArmorStand)world.spawnEntity(new Location(world,280,151,280),org.bukkit.entity.EntityType.ARMOR_STAND);
   foreignHolo.addScoreboardTag("kg_holo");
   org.bukkit.entity.ArmorStand staleHolo=(org.bukkit.entity.ArmorStand)world.spawnEntity(new Location(world,281,151,280),org.bukkit.entity.EntityType.ARMOR_STAND);
@@ -285,7 +293,8 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
   manager.purgeOrphanEventEntitiesInChunk(foreignHolo.getLocation().getChunk());
   if (!foreignHolo.isValid() || staleHolo.isValid()) throw new AssertionError("event cleanup removed unrelated hologram or kept stale event holo");
   foreignHolo.remove();
-  Location blocked=new Location(world,300,150,300); Block foreign=blocked.clone().add(4,0,0).getBlock();
+  Location blocked=new Location(world,300,150,300); loadEventFixture(world,blocked);
+  Block foreign=blocked.clone().add(4,0,0).getBlock();
   foreign.setType(Material.CHEST,false);
   ((Chest)foreign.getState()).getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,3));
   if(manager.spawnBossEvent("crystal",blocked)!=null || ((Chest)foreign.getState()).getBlockInventory().getItem(0)==null) throw new AssertionError("event overwrote chest");
@@ -298,7 +307,7 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
   Method tick=BossEventManager.class.getDeclaredMethod("tickSecond"); tick.setAccessible(true);
   int x=400;
   for(String id:new String[]{"crystal","ruins","camp"}) {
-   Location site=new Location(world,x,150,400); x+=80;
+   Location site=new Location(world,x,150,400); x+=80; loadEventFixture(world,site);
    BossEventManager.ActiveBossEvent ev=manager.spawnBossEvent(id,site);
    if(ev==null || ev.template.kind==BossEventManager.EventKind.BOSS || ev.unlockCountdownSec<=0) throw new AssertionError("event did not start: "+id);
    Entity hologram=Bukkit.getEntity(ev.hologramStands.get(0));
