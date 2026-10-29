@@ -387,29 +387,39 @@ class DistributionTests(unittest.TestCase):
         self.assertIn(checksum, shared)
         self.assertIn(PACK.name, shared)
 
+        plugin_yml = (HERE.parent / "core-src/src/main/resources/plugin.yml").read_text(encoding="utf-8")
+        match = re.search(r"^version:\s*['\"]?([0-9]+\.[0-9]+\.[0-9]+)", plugin_yml, re.MULTILINE)
+        self.assertIsNotNone(match, "Core version missing from plugin.yml")
+        core_version = match.group(1)
         core_jar = (public / "KingGriefCore.jar").read_bytes()
-        self.assertEqual((public / "KingGriefCore-v6.7.0.jar").read_bytes(), core_jar)
+        self.assertEqual((public / f"KingGriefCore-v{core_version}.jar").read_bytes(), core_jar)
         for file in (HERE.parent / "KingGriefCore.jar", HERE.parent / "plugins/KingGriefCore.jar",
                      HERE.parent / "server/plugins/KingGriefCore.jar"):
             self.assertEqual(file.read_bytes(), core_jar)
         self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
-        update = HERE.parent / "KingGriefCore-6.7.0-update.zip"
+        update = HERE.parent / f"KingGriefCore-{core_version}-update.zip"
         self.assertEqual(update.read_bytes(), (public / update.name).read_bytes())
         with zipfile.ZipFile(update) as patch:
             self.assertIsNone(patch.testzip())
             self.assertEqual(set(patch.namelist()), {"KingGriefCore.jar", "ПРОЧИТАЙ_СНАЧАЛА.md"})
             self.assertEqual(patch.read("KingGriefCore.jar"), core_jar)
             instruction = patch.read("ПРОЧИТАЙ_СНАЧАЛА.md").decode("utf-8")
-            self.assertEqual(instruction, (HERE.parent / "ОБНОВЛЕНИЕ_6.7.0.md").read_text(encoding="utf-8"))
+            self.assertEqual(instruction, (HERE.parent / f"ОБНОВЛЕНИЕ_{core_version}.md").read_text(encoding="utf-8"))
             self.assertIn(hashlib.sha256(core_jar).hexdigest(), instruction)
             self.assertIn("plugins/update/", instruction)
             self.assertNotIn("{{CORE_SHA256}}", instruction)
-        # The older watchdog-only patch remains available and must not be overwritten.
+        # Older versioned downloads must remain byte-for-byte available.
+        previous = HERE.parent / "KingGriefCore-6.7.0-update.zip"
+        self.assertEqual(previous.read_bytes(), (public / previous.name).read_bytes())
+        self.assertEqual(hashlib.sha256(previous.read_bytes()).hexdigest(),
+                         "d3aa9c406d380edbe5476e9024b5c10c6048b0adcd74b88fd5b83caa6e308250")
+        with zipfile.ZipFile(previous) as patch:
+            self.assertEqual(patch.read("KingGriefCore.jar"), (public / "KingGriefCore-v6.7.0.jar").read_bytes())
         hotfix = HERE.parent / "KingGriefCore-6.6.4-hotfix.zip"
         self.assertEqual(hotfix.read_bytes(), (public / hotfix.name).read_bytes())
         with zipfile.ZipFile(hotfix) as patch:
             self.assertEqual(patch.read("KingGriefCore.jar"), (public / "KingGriefCore-v6.6.4.jar").read_bytes())
-        for name, version, default in (("KingGriefCore.jar", "6.7.0", core_default),
+        for name, version, default in (("KingGriefCore.jar", core_version, core_default),
                                        ("KingHub.jar", "1.2.2", hub_default)):
             with zipfile.ZipFile(public / name) as jar:
                 self.assertIsNone(jar.testzip())

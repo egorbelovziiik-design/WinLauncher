@@ -42,11 +42,27 @@ release of a previously held ticket. It also tests the auto/manual switch,
 low-heap and generation-disabled guards, wall-clock timeout, cancellation and
 late callbacks, duplicate-JAR diagnosis, and the loaded archive's SHA-256 in
 the startup log. It then exercises real Paper async chunk generation, a loaded
-site with generation disabled, event restoration and world unload. The stalled
-future and heap-pressure simulation are test doubles; actual chunk loading and
-event construction in the final phase use Paper. Run it with the same
-`--paper`, `--vanilla`, `--api-classpath`, `--core`, `--java`, `--javac` and
-`--accept-eula` arguments as `test-prebuilt-install.py`.
+site with generation disabled, event restoration and world unload. Its normal
+Overworld phase checks that generation starts and can be cancelled; it does not
+claim a completed natural-world search. Test fixtures are loaded asynchronously.
+The stalled future and heap-pressure simulation are test doubles. Run it with
+the same `--paper`, `--vanilla`, `--api-classpath`, `--core`, `--java`, `--javac`
+and `--accept-eula` arguments as `test-prebuilt-install.py`.
+
+`test-event-placement.py` tests a nearby safe site within four pinned chunks,
+shallow slopes, restoration of natural flowers/leaves, refusal of persistent
+leaves, a chest added after its column was scanned, claim and mock WorldGuard
+fail-closed behaviour, displaced world spawn/border without synchronously loading
+the border-center chunk, all 14 bounded event templates, all five real bosses
+receiving damage, ticket release and the server heartbeat. `--natural` runs a
+separate ordinary Overworld with no forced coordinates or candidate injection:
+a console airship and an automatically selected event must both be constructed
+and cleaned up. The search tries nearer sites before expanding, can skip wholly
+oceanic first chunks, and is bounded to 32 areas and 64 async chunk requests.
+`--world-seed` and `--search-seed` allow additional deterministic worlds/search sequences. `--worldguard path --worldedit path` selects a third,
+real-plugin test of WorldGuard region overlap, clear areas and fail-closed
+behaviour; provide compatible WorldGuard and WorldEdit JARs separately. The
+default placement test uses a mock WG, not the real plugin.
 
 `test-orbs.py` uses **two real protocol clients** on Paper to buy all 12
 orbs through `/shars`, then exercises each offhand effect and lethal totem
@@ -72,7 +88,10 @@ and rewards; trade confirmation, PDC/lore, inventory capacity and drag/hotbar
 cancellation; and order reservation, partial sale, mailbox, cancellation and a
 simulated `data.yml` write failure. Most clicks are synthetic Bukkit events.
 `test-wire-features.py` complements it with actual protocol block-use and window
-click packets from two clients. `test-trade-crash.py` and `test-order-crash.py`
+click packets from two clients, including an administrator clicking the airship
+button in the event menu. Both prepare their remote fixtures asynchronously and
+check the client/server exit codes and Paper watchdog output.
+`test-trade-crash.py` and `test-order-crash.py`
 SIGKILL the disposable Paper process between commit steps, restart it, and verify
 recovery without repeating the item transfer or payment. The kill points are
 set up via the same production journal methods. `test-data-failclosed.py`

@@ -79,7 +79,8 @@ def main():
             for line in proc.stdout:
                 output.append(line)
                 messages.put(line)
-        threading.Thread(target=read, daemon=True).start()
+        reader = threading.Thread(target=read, daemon=True)
+        reader.start()
         client, success = None, False
         try:
             started = False
@@ -127,8 +128,14 @@ def main():
                     proc.stdin.write('stop\n'); proc.stdin.flush(); proc.wait(timeout=40)
                 except (BrokenPipeError, subprocess.TimeoutExpired):
                     proc.kill(); proc.wait()
+            reader.join(timeout=10)
             if not success:
                 print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-180:]), file=sys.stderr)
+        watchdog = next((i for i, line in enumerate(output) if 'The server has not responded for 10 seconds' in line), None)
+        if proc.returncode != 0 or client.returncode != 0 or watchdog is not None:
+            if watchdog is not None: print('\n--- WATCHDOG ---\n' + ''.join(output[watchdog:watchdog+100]), file=sys.stderr)
+            print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-180:]), file=sys.stderr)
+            raise RuntimeError(f'Paper exit={proc.returncode}, client exit={client.returncode}, watchdog={watchdog is not None}')
     print('WIRE FEATURES INTEGRATION: PASS', flush=True)
 
 

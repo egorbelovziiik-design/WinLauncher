@@ -1,0 +1,5 @@
+name: KgRealWorldGuardProbe
+version: 1.0
+main: net.kinggrief.probe.RealWorldGuardProbe
+api-version: '1.20'
+depend: [KingGriefCore, WorldEdit, WorldGuard]

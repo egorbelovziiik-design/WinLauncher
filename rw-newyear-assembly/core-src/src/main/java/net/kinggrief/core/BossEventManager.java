@@ -118,11 +118,15 @@ public final class BossEventManager {
         // The event owns tickets for every chunk touched by its structure. This
         // keeps cleanup and chest unlocks from synchronously loading chunks.
         private final List<ChunkPos> chunkTickets = new ArrayList<ChunkPos>();
+        private boolean boundedSearch;
     }
 
     private static final int SITE_RADIUS = 9;
-    private static final int MAX_LOADED_CANDIDATES = 160;
-    private static final int MAX_GENERATED_CANDIDATES = 8;
+    private static final int MIN_SPAWN_DISTANCE = 180;
+    private static final int MAX_LOADED_CANDIDATES = 48;
+    private static final int MAX_GENERATED_CANDIDATES = 32;
+    private static final int MAX_ASYNC_CHUNK_REQUESTS = 64;
+    private static final int SITE_BLOCKS_PER_TICK = 512;
     private static final int ASYNC_CHUNK_TIMEOUT_TICKS = 20 * 20;
     private static final int SEARCH_TIMEOUT_TICKS = 20 * 120;
     private static final long ASYNC_CHUNK_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(20);
@@ -170,11 +174,13 @@ public final class BossEventManager {
         templates.put("grinch", new BossTemplate(
                 "grinch", EventKind.BOSS, "&#80D8FF❄ Ледяной Король Гринч", EntityType.STRAY, 800.0,
                 BarColor.BLUE, BarStyle.SEGMENTED_10, Material.PACKED_ICE, 75000.0, 25));
+        // Vanilla/Paper caps the effective MAX_HEALTH attribute at 1024.
+        // Higher values make setHealth throw and abort event construction.
         templates.put("krush", new BossTemplate(
-                "krush", EventKind.BOSS, "&#FF1744🔥 Адский Крушитель", EntityType.WITHER_SKELETON, 1100.0,
+                "krush", EventKind.BOSS, "&#FF1744🔥 Адский Крушитель", EntityType.WITHER_SKELETON, 1024.0,
                 BarColor.RED, BarStyle.SEGMENTED_12, Material.CRYING_OBSIDIAN, 100000.0, 35));
         templates.put("titan", new BossTemplate(
-                "titan", EventKind.BOSS, "&#FFD740⚡ Титан Олимпа", EntityType.IRON_GOLEM, 1400.0,
+                "titan", EventKind.BOSS, "&#FFD740⚡ Титан Олимпа", EntityType.IRON_GOLEM, 1024.0,
                 BarColor.YELLOW, BarStyle.SEGMENTED_20, Material.GOLD_BLOCK, 125000.0, 40));
         templates.put("osiris", new BossTemplate(
                 "osiris", EventKind.BOSS, "&#00E676☠ Фараон Осирис", EntityType.HUSK, 950.0,
@@ -402,6 +408,10 @@ public final class BossEventManager {
             notifyRequester(sender, "&cНе удалось начать поиск места для ивента.");
             return false;
         }
+        if (eventSpawnWithoutChunkLoad(world) == null) {
+            notifyRequester(sender, "&cНе удалось безопасно определить спавн мира; поиск ивента остановлен. Подробности: [Events] в логе.");
+            return false;
+        }
         SearchJob job = new SearchJob(tpl, world, sender);
         pendingSearch = job;
         job.runTaskTimer(plugin, 1L, 1L);
@@ -435,7 +445,7 @@ public final class BossEventManager {
                 releaseTickets(world, tickets);
                 return null;
             }
-            ActiveBossEvent event = createEvent(tpl, center, tickets);
+            ActiveBossEvent event = createEvent(tpl, center, tickets, false);
             if (event == null) releaseTickets(world, tickets);
             return event;
         } catch (Exception error) {
@@ -445,7 +455,7 @@ public final class BossEventManager {
         }
     }
 
-    private ActiveBossEvent createEvent(BossTemplate tpl, Location center, List<ChunkPos> tickets) {
+    private ActiveBossEvent createEvent(BossTemplate tpl, Location center, List<ChunkPos> tickets, boolean boundedSearch) {
         World surv = center.getWorld();
         if (surv == null || !allSiteChunksLoaded(surv, center.getBlockX(), center.getBlockZ())) return null;
         if (activeEvents.size() >= 4) {
@@ -457,6 +467,7 @@ public final class BossEventManager {
         ev.instanceId = tpl.id + "_" + (seq++);
         ev.template = tpl;
         ev.center = center;
+        ev.boundedSearch = boundedSearch;
         ev.chunkTickets.addAll(tickets);
         try {
             if (tpl.kind == EventKind.BOSS) {
@@ -468,6 +479,7 @@ public final class BossEventManager {
                 LivingEntity boss = (LivingEntity) surv.spawnEntity(bossLoc, tpl.entityType);
                 ev.bossUuid = boss.getUniqueId();
                 configureBossEntity(boss, tpl, ev.instanceId, tpl.maxHp);
+                ev.lastKnownHp = boss.getHealth();
             } else {
                 ev.unlockTotalSec = (int) tpl.maxHp;
                 ev.unlockCountdownSec = ev.unlockTotalSec;
@@ -550,17 +562,67 @@ public final class BossEventManager {
         tickets.clear();
     }
 
-    private boolean candidateAllowed(World world, int x, int z) {
-        if ((Math.abs(x) < 180 && Math.abs(z) < 180) || Math.abs(x) > 2000 || Math.abs(z) > 2000) return false;
-        if (plugin.getStore().overlapsAnyClaim(world.getName(), x, z, 16)) return false;
+    private boolean warnedSpawnLookup;
+
+    /** Bukkit's getSpawnLocation may synchronously load the border-center chunk
+     * when the saved spawn is outside a moved border. Read Paper's saved world
+     * metadata instead; never cause a terrain load just to check coordinates. */
+    private Location eventSpawnWithoutChunkLoad(World world) {
+        org.bukkit.WorldBorder border = world.getWorldBorder();
+        try {
+            Object handle = world.getClass().getMethod("getHandle").invoke(world);
+            Class<?> level = Class.forName("net.minecraft.world.level.Level");
+            Object data = level.getMethod("getLevelData").invoke(handle);
+            Class<?> levelData = Class.forName("net.minecraft.world.level.storage.LevelData");
+            Object pos = levelData.getMethod("getSpawnPos").invoke(data);
+            Class<?> vector = Class.forName("net.minecraft.core.Vec3i");
+            int x = ((Number)vector.getMethod("getX").invoke(pos)).intValue();
+            int y = ((Number)vector.getMethod("getY").invoke(pos)).intValue();
+            int z = ((Number)vector.getMethod("getZ").invoke(pos)).intValue();
+            Location saved = new Location(world, x, y, z);
+            // Paper itself treats the border center as spawn when the saved
+            // spawn lies outside it. Y is irrelevant to this 2D exclusion.
+            if (border.isInside(saved)) return saved;
+            Location center = border.getCenter();
+            return new Location(world, center.getBlockX(), 70, center.getBlockZ());
+        } catch (Throwable error) {
+            Location center = border.getCenter();
+            if (world.isChunkLoaded(center.getBlockX() >> 4, center.getBlockZ() >> 4)) {
+                // The only chunk Bukkit may need for the fallback is loaded.
+                return world.getSpawnLocation();
+            }
+            if (!warnedSpawnLookup) {
+                warnedSpawnLookup = true;
+                plugin.getLogger().warning("[Events] Could not read world spawn without loading a chunk; refusing search: "
+                        + error.getClass().getSimpleName());
+            }
+            return null;
+        }
+    }
+
+    private enum CandidateRejection { SPAWN, SPAWN_UNAVAILABLE, CLAIM, EVENT, BORDER }
+
+    /** Check world-space constraints without touching or loading a chunk. */
+    private CandidateRejection candidateRejection(World world, int x, int z) {
+        Location spawn = eventSpawnWithoutChunkLoad(world);
+        if (spawn == null) return CandidateRejection.SPAWN_UNAVAILABLE;
+        if (Math.abs((long) x - spawn.getBlockX()) < MIN_SPAWN_DISTANCE
+                && Math.abs((long) z - spawn.getBlockZ()) < MIN_SPAWN_DISTANCE) return CandidateRejection.SPAWN;
+        if (plugin.getStore().overlapsAnyClaim(world.getName(), x, z, 16)) return CandidateRejection.CLAIM;
         for (ActiveBossEvent other : activeEvents.values()) {
             if (world.equals(other.center.getWorld())) {
                 double dx = (double) other.center.getBlockX() - x, dz = (double) other.center.getBlockZ() - z;
-                if (dx * dx + dz * dz < 380.0 * 380.0) return false;
+                if (dx * dx + dz * dz < 380.0 * 380.0) return CandidateRejection.EVENT;
             }
         }
-        return world.getWorldBorder().isInside(new Location(world, x - SITE_RADIUS, 70, z - SITE_RADIUS))
-                && world.getWorldBorder().isInside(new Location(world, x + SITE_RADIUS, 70, z + SITE_RADIUS));
+        if (!world.getWorldBorder().isInside(new Location(world, x - SITE_RADIUS, 70, z - SITE_RADIUS))
+                || !world.getWorldBorder().isInside(new Location(world, x + SITE_RADIUS, 70, z + SITE_RADIUS)))
+            return CandidateRejection.BORDER;
+        return null;
+    }
+
+    private boolean candidateAllowed(World world, int x, int z) {
+        return candidateRejection(world, x, z) == null;
     }
 
     private final class SearchJob extends BukkitRunnable {
@@ -569,11 +631,15 @@ public final class BossEventManager {
         final CommandSender sender;
         final List<int[]> loadedCandidates = new ArrayList<int[]>();
         final List<ChunkPos> pinned = new ArrayList<ChunkPos>();
-        int loadedIndex, generatedCandidates, elapsedTicks, waitingSince;
-        int[] candidate;
+        final Map<String, Integer> rejections = new LinkedHashMap<String, Integer>();
+        int loadedIndex, generatedCandidates, asyncChunkRequests, elapsedTicks, waitingSince, checkedSites;
+        int[] candidate, checkingCandidate;
+        List<int[]> localCandidates;
+        int localIndex;
+        EventSiteScanner scanner;
         List<ChunkPos> required;
         ChunkPos awaited;
-        boolean allowAsync, waiting, finished;
+        boolean allowAsync, waiting, finished, candidateOceanChecked;
         final long startedNanos = System.nanoTime();
         long waitingStartedNanos;
         CompletableFuture<?> inFlight;
@@ -584,13 +650,20 @@ public final class BossEventManager {
             this.sender = sender;
             List<org.bukkit.Chunk> chunks = Arrays.asList(world.getLoadedChunks());
             Collections.shuffle(chunks, rng);
+            Location spawn = eventSpawnWithoutChunkLoad(world);
+            if (spawn == null) return;
+            java.util.Set<Long> footprints = new java.util.HashSet<Long>();
             for (org.bukkit.Chunk chunk : chunks) {
                 if (loadedCandidates.size() >= MAX_LOADED_CANDIDATES) break;
-                // Offset 6 or 9 makes the 19x19 footprint intersect only four
-                // chunks instead of nine. All are checked before any block read.
+                // Offset 6 or 9 keeps the 19x19 footprint in four chunks.
                 int x = chunk.getX() * 16 + (rng.nextBoolean() ? 6 : 9);
                 int z = chunk.getZ() * 16 + (rng.nextBoolean() ? 6 : 9);
-                if (Math.abs(x) >= 180 || Math.abs(z) >= 180) loadedCandidates.add(new int[]{x, z});
+                // A group can try other points within these four chunks, so do
+                // not discard it merely because its first point is too close.
+                if (Math.abs((long) x - spawn.getBlockX()) < MIN_SPAWN_DISTANCE - 16
+                        && Math.abs((long) z - spawn.getBlockZ()) < MIN_SPAWN_DISTANCE - 16) continue;
+                long key = ((long) ((x - SITE_RADIUS) >> 4) << 32) ^ (((z - SITE_RADIUS) >> 4) & 0xffffffffL);
+                if (footprints.add(Long.valueOf(key))) loadedCandidates.add(new int[]{x, z});
             }
         }
 
@@ -622,6 +695,17 @@ public final class BossEventManager {
                 if (!selectCandidate()) return;
                 required = footprint(candidate[0], candidate[1]);
             }
+            // Avoid spending three more asynchronous chunk requests on an
+            // entirely oceanic first chunk. A coast may be skipped, but no
+            // unsafe water is accepted; another candidate is always tried.
+            if (allowAsync && !candidateOceanChecked && !pinned.isEmpty()) {
+                candidateOceanChecked = true;
+                if (entirelyOcean(pinned.get(0))) {
+                    reject("AREA_OCEAN");
+                    abandonCandidate();
+                    return;
+                }
+            }
             if (pinned.size() < required.size()) {
                 ChunkPos next = required.get(pinned.size());
                 if (world.isChunkLoaded(next.x, next.z)) {
@@ -629,57 +713,158 @@ public final class BossEventManager {
                 } else if (allowAsync) {
                     if (mayRequestNewChunk()) requestChunk(next);
                 } else {
+                    reject("FOOTPRINT_NOT_LOADED");
                     abandonCandidate();
                 }
                 return; // At most one chunk/ticket operation per tick.
             }
-            Location center = inspectDryColumn(world, candidate[0], candidate[1]);
-            if (center != null && isSafeEventSite(center)) {
-                ActiveBossEvent event = createEvent(template, center, pinned);
-                if (event != null) {
-                    pinned.clear(); // ownership transferred to the active event
-                    finish(true, null);
+            if (localCandidates == null) localCandidates = localSites(candidate, required);
+            if (scanner == null) {
+                if (localIndex >= localCandidates.size()) { abandonCandidate(); return; }
+                checkingCandidate = localCandidates.get(localIndex++);
+                checkedSites++;
+                CandidateRejection rejected = candidateRejection(world, checkingCandidate[0], checkingCandidate[1]);
+                if (rejected == CandidateRejection.SPAWN_UNAVAILABLE) {
+                    reject(rejected.name());
+                    finish(false, "Не удалось безопасно определить спавн мира; поиск ивента остановлен.");
                     return;
                 }
-                finish(false, "Не удалось построить ивент; изменения отменены.");
+                if (rejected != null) { reject(rejected.name()); return; }
+                TerrainCheck terrain = inspectDryColumn(world, checkingCandidate[0], checkingCandidate[1], template);
+                if (terrain.center == null) {
+                    reject("TERRAIN_OR_WATER");
+                    reject("TERRAIN_" + terrain.reason);
+                    return;
+                }
+                scanner = new EventSiteScanner(terrain.center, true, template);
+            }
+            SiteFailure result = scanner.advance(SITE_BLOCKS_PER_TICK);
+            if (result == null) return; // yield; never inspect the whole volume every tick
+            Location center = scanner.center;
+            Material obstruction = scanner.obstruction;
+            scanner = null;
+            if (result == SiteFailure.WORLDGUARD_UNAVAILABLE) {
+                reject(result.name());
+                finish(false, "Не удалось проверить регионы WorldGuard в мире " + world.getName() + "; поиск остановлен для защиты построек.");
                 return;
             }
-            abandonCandidate();
+            if (result != SiteFailure.NONE) {
+                reject(result.name());
+                if (obstruction != null) reject(result.name() + "_" + obstruction.name());
+                return;
+            }
+            // A player/plugin may have changed an earlier block while the scan
+            // yielded. Recheck the complete, still-loaded site immediately
+            // before construction; never trade safety for a successful search.
+            CandidateRejection changed = candidateRejection(world, center.getBlockX(), center.getBlockZ());
+            if (changed != null) { reject(changed.name()); return; }
+            SiteFailure finalCheck = checkSite(center, true, template);
+            if (finalCheck != SiteFailure.NONE) { reject("RECHECK_" + finalCheck.name()); return; }
+            ActiveBossEvent event = createEvent(template, center, pinned, true);
+            if (event != null) {
+                pinned.clear(); // ownership transferred to the active event
+                finish(true, null);
+                return;
+            }
+            finish(false, "Не удалось построить ивент; изменения отменены.");
+        }
+
+        /** Try multiple positions inside the same pinned footprint instead of
+         * throwing away all four chunks after one tree or small slope. */
+        private List<int[]> localSites(int[] first, List<ChunkPos> chunks) {
+            int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
+            int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+            for (ChunkPos pos : chunks) {
+                minX = Math.min(minX, pos.x); maxX = Math.max(maxX, pos.x);
+                minZ = Math.min(minZ, pos.z); maxZ = Math.max(maxZ, pos.z);
+            }
+            int lowX = minX * 16 + SITE_RADIUS, highX = maxX * 16 + 15 - SITE_RADIUS;
+            int lowZ = minZ * 16 + SITE_RADIUS, highZ = maxZ * 16 + 15 - SITE_RADIUS;
+            List<int[]> sites = new ArrayList<int[]>();
+            sites.add(first);
+            int[] xs = new int[]{lowX, lowX + (highX - lowX) / 3, lowX + 2 * (highX - lowX) / 3, highX};
+            int[] zs = new int[]{lowZ, lowZ + (highZ - lowZ) / 3, lowZ + 2 * (highZ - lowZ) / 3, highZ};
+            for (int x : xs) for (int z : zs) {
+                if (x != first[0] || z != first[1]) sites.add(new int[]{x, z});
+            }
+            return sites;
+        }
+
+        private void reject(String reason) {
+            Integer n = rejections.get(reason);
+            rejections.put(reason, Integer.valueOf(n == null ? 1 : n.intValue() + 1));
         }
 
         private boolean selectCandidate() {
             while (loadedIndex < loadedCandidates.size()) {
-                int[] next = loadedCandidates.get(loadedIndex++);
-                if (candidateAllowed(world, next[0], next[1])) {
-                    candidate = next;
-                    allowAsync = false;
-                    return true;
-                }
+                candidate = loadedCandidates.get(loadedIndex++);
+                allowAsync = false;
+                return true;
             }
             if (generatedCandidates >= MAX_GENERATED_CANDIDATES) {
-                finish(false, "Не найдено безопасное место для ивента вдали от построек и приватов.");
+                finish(false, "Не найдена безопасная площадка в мире " + world.getName()
+                        + " (проверено точек: " + checkedSites + "). Причины: [Events] в логе сервера.");
                 return false;
             }
             // Prefer already-loaded locations. An administrator may forbid new
             // generation, and low heap headroom also stops this fallback.
             if (!mayRequestNewChunk()) return false;
-            // Small bounded fallback: only ONE chunk request can be in flight,
-            // and no more than eight new sites are considered per search.
-            for (int i = 0; i < 64; i++) {
-                int x = (rng.nextInt(150) - 75) * 16 + (rng.nextBoolean() ? 6 : 9);
-                int z = (rng.nextInt(150) - 75) * 16 + (rng.nextBoolean() ? 6 : 9);
-                if (candidateAllowed(world, x, z)) {
-                    generatedCandidates++;
-                    candidate = new int[]{x, z};
-                    allowAsync = true;
-                    return true;
-                }
+            // At most 32 candidate areas, 64 async requests, and one in flight.
+            // Sample relative to the survival spawn/world border, not (0,0):
+            // servers frequently move their border or their world spawn.
+            int[] next = randomSiteWithinBorder();
+            if (next != null) {
+                generatedCandidates++;
+                candidate = next;
+                allowAsync = true;
+                return true;
             }
-            finish(false, "Нет доступных координат ивента внутри границы мира.");
+            finish(false, "Нет доступных координат ивента внутри границы мира и вне зоны спавна.");
             return false;
         }
 
+        private int[] randomSiteWithinBorder() {
+            org.bukkit.WorldBorder border = world.getWorldBorder();
+            Location bc = border.getCenter(), spawn = eventSpawnWithoutChunkLoad(world);
+            if (spawn == null) return null;
+            int radius = Math.max(256, Math.min(10000, plugin.getConfig().getInt("events.search-radius-blocks", 2500)));
+            // Prefer the nearer survival terrain first; if it is unsuitable,
+            // expand to the configured radius instead of replacing it.
+            if (generatedCandidates < 8) radius = Math.min(radius, 1200);
+            double originX = border.isInside(spawn) ? spawn.getX() : bc.getX();
+            double originZ = border.isInside(spawn) ? spawn.getZ() : bc.getZ();
+            double half = border.getSize() / 2.0 - SITE_RADIUS - 1.0;
+            if (half <= 0) return null;
+            int minX = (int)Math.ceil(Math.max(-29999970.0, Math.max(bc.getX() - half, originX - radius)));
+            int maxX = (int)Math.floor(Math.min(29999970.0, Math.min(bc.getX() + half, originX + radius)));
+            int minZ = (int)Math.ceil(Math.max(-29999970.0, Math.max(bc.getZ() - half, originZ - radius)));
+            int maxZ = (int)Math.floor(Math.min(29999970.0, Math.min(bc.getZ() + half, originZ + radius)));
+            if (minX > maxX || minZ > maxZ) return null;
+            for (int i = 0; i < 64; i++) {
+                int rawX = minX + rng.nextInt(maxX - minX + 1);
+                int rawZ = minZ + rng.nextInt(maxZ - minZ + 1);
+                int x = (rawX >> 4) * 16 + (rng.nextBoolean() ? 6 : 9);
+                int z = (rawZ >> 4) * 16 + (rng.nextBoolean() ? 6 : 9);
+                if (candidateAllowed(world, x, z)) return new int[]{x, z};
+            }
+            return null;
+        }
+
+        /** Check five biome positions in the already-pinned chunk only. */
+        private boolean entirelyOcean(ChunkPos chunk) {
+            int[][] offsets = {{0, 0}, {15, 0}, {0, 15}, {15, 15}, {8, 8}};
+            for (int[] offset : offsets) {
+                Biome biome = world.getBiome(chunk.x * 16 + offset[0], 70, chunk.z * 16 + offset[1]);
+                if (biome == null || !biome.name().contains("OCEAN")) return false;
+            }
+            return true;
+        }
+
         private boolean mayRequestNewChunk() {
+            if (asyncChunkRequests >= MAX_ASYNC_CHUNK_REQUESTS) {
+                finish(false, "Достигнут безопасный предел загрузки чанков; подходящее место не найдено.");
+                return false;
+            }
             if (!plugin.getConfig().getBoolean("events.allow-chunk-generation", true)) {
                 finish(false, "Генерация новых чанков для ивентов отключена; подходящее загруженное место не найдено.", 300);
                 return false;
@@ -693,6 +878,7 @@ public final class BossEventManager {
         }
 
         private void requestChunk(final ChunkPos pos) {
+            asyncChunkRequests++;
             waiting = true;
             waitingSince = elapsedTicks;
             waitingStartedNanos = System.nanoTime();
@@ -739,6 +925,11 @@ public final class BossEventManager {
         private void abandonCandidate() {
             releaseTickets(world, pinned);
             candidate = null;
+            checkingCandidate = null;
+            localCandidates = null;
+            localIndex = 0;
+            candidateOceanChecked = false;
+            scanner = null;
             required = null;
             waiting = false;
             awaited = null;
@@ -766,7 +957,9 @@ public final class BossEventManager {
         private void finish(boolean success, String reason, int autoRetrySeconds) {
             if (finished) return;
             if (!success) {
-                plugin.getLogger().warning("[Events] " + reason);
+                plugin.getLogger().warning("[Events] " + reason + " world=" + world.getName()
+                        + " loadedAreas=" + loadedIndex + " generatedAreas=" + generatedCandidates
+                        + " checkedSites=" + checkedSites + " rejected=" + rejections);
                 notifyRequester(sender, "&c" + reason);
                 if (sender == null) autoCountdownSec = Math.min(autoCountdownSec, autoRetrySeconds);
             }
@@ -812,91 +1005,178 @@ public final class BossEventManager {
         }
     }
 
-    private Location inspectDryColumn(World surv, int x, int z) {
+    /** Conservative horizontal construction envelope for each built-in event.
+     * Mutation helpers enforce the same envelope during construction. */
+    private boolean eventAffectsColumn(BossTemplate template, int dx, int dz) {
+        if (template == null) return true; // legacy forced-site API remains conservative
+        if (template.kind == EventKind.AIRSHIP) return Math.abs(dx) <= 7 && Math.abs(dz) <= 4;
+        if (template.kind == EventKind.CRYSTAL || template.kind == EventKind.RUINS || template.kind == EventKind.CAMP)
+            return Math.abs(dx) <= 7 && Math.abs(dz) <= 7 && dx * dx + dz * dz <= 64;
+        return Math.abs(dx) <= 8 && Math.abs(dz) <= 8 && dx * dx + dz * dz <= 81;
+    }
+
+    private static final class TerrainCheck {
+        final Location center;
+        final String reason;
+        TerrainCheck(Location center, String reason) { this.center = center; this.reason = reason; }
+    }
+
+    private TerrainCheck inspectDryColumn(World surv, int x, int z, BossTemplate template) {
         // Includes the 7x7 dry-land sample and the larger 19x19 structure.
         // getHighestBlockYAt/getBlockAt can otherwise generate a neighbour.
-        if (!allSiteChunksLoaded(surv, x, z)) return null;
+        if (!allSiteChunksLoaded(surv, x, z)) return new TerrainCheck(null, "UNLOADED");
         try {
             Biome bio = surv.getBiome(x, 70, z);
             if (bio != null) {
                 String bn = bio.name().toUpperCase(Locale.ROOT);
                 if (bn.contains("OCEAN") || bn.contains("RIVER") || bn.contains("BEACH") || bn.contains("SWAMP")) {
-                    return null;
+                    return new TerrainCheck(null, "BIOME_" + bn);
                 }
             }
         } catch (Throwable ignored) {}
 
-        int topY = surv.getHighestBlockYAt(x, z);
-        // Step down through leaves/snow/grass/logs to find true solid terrain
-        int groundY = Integer.MIN_VALUE;
-        for (int y = topY; y >= surv.getMinHeight() + 4; y--) {
-            Material m = surv.getBlockAt(x, y, z).getType();
-            String mn = m.name();
-            if (m == Material.AIR || mn.contains("LEAVES") || mn.contains("LOG") || mn.contains("GRASS") && m != Material.GRASS_BLOCK
-                    || mn.contains("FERN") || mn.contains("FLOWER") || m == Material.SNOW || mn.contains("VINE")) {
-                continue;
-            }
-            if (isWetOrAquatic(m)) return null;
-            if (m.isSolid()) {
-                groundY = y;
-                break;
-            }
-            return null;
+        // Normal Overworld terrain is rarely perfectly level across 19x19.
+        // Sample the already-loaded surface and put the temporary platform at
+        // the highest point of a shallow slope, rather than cutting into it.
+        int low = Integer.MAX_VALUE, high = Integer.MIN_VALUE;
+        int[] xs = template.kind == EventKind.AIRSHIP ? new int[]{-7, -3, 0, 3, 7} : new int[]{-7, -4, 0, 4, 7};
+        int[] zs = template.kind == EventKind.AIRSHIP ? new int[]{-4, -2, 0, 2, 4} : new int[]{-7, -4, 0, 4, 7};
+        for (int dx : xs) for (int dz : zs) {
+            if (!eventAffectsColumn(template, dx, dz)) continue;
+            int ground = naturalGroundY(surv, x + dx, z + dz);
+            if (ground == Integer.MIN_VALUE) return new TerrainCheck(null, "SURFACE_BLOCKED_OR_WET");
+            low = Math.min(low, ground); high = Math.max(high, ground);
         }
-        if (groundY < surv.getMinHeight() + 4 || groundY + 14 >= surv.getMaxHeight()) return null;
+        if (high - low > 4) return new TerrainCheck(null, "STEEP");
+        if (high - 4 < surv.getMinHeight() || high + 14 >= surv.getMaxHeight()) return new TerrainCheck(null, "HEIGHT");
 
-        // Verify 7x7 area around (x, groundY, z) has ZERO water/lava/ice/kelp!
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dz = -3; dz <= 3; dz++) {
-                for (int dy = -2; dy <= 2; dy++) {
-                    Material check = surv.getBlockAt(x + dx, groundY + dy, z + dz).getType();
-                    if (isWetOrAquatic(check)) return null;
-                }
+        for (int dx = -3; dx <= 3; dx++) for (int dz = -3; dz <= 3; dz++) {
+            for (int y = low - 2; y <= high + 2; y++) {
+                if (isWetOrAquatic(surv.getBlockAt(x + dx, y, z + dz).getType())) return new TerrainCheck(null, "WATER_OR_LAVA");
             }
         }
-        return new Location(surv, x, groundY + 1, z);
+        return new TerrainCheck(new Location(surv, x, high + 1, z), null);
     }
 
-    private boolean isSafeEventSite(Location center) {
-        if (center == null || center.getWorld() == null || plugin.getSpawnEngine().isInSpawnWorld(center)) return false;
-        World w = center.getWorld();
-        int x = center.getBlockX(), y = center.getBlockY(), z = center.getBlockZ();
-        if (!allSiteChunksLoaded(w, x, z)) return false;
-        if (y - 4 < w.getMinHeight() || y + 13 >= w.getMaxHeight()) return false;
-        if (plugin.getStore().overlapsAnyClaim(w.getName(), x, z, 16)) return false;
-        if (intersectsWorldGuardRegion(w, x, y, z)) return false;
-        for (ActiveBossEvent other : activeEvents.values()) {
-            if (w.equals(other.center.getWorld())) {
-                double dx = (double) other.center.getBlockX() - x, dz = (double) other.center.getBlockZ() - z;
-                if (dx * dx + dz * dz < 40.0 * 40.0) return false;
-            }
+    private int naturalGroundY(World world, int x, int z) {
+        int top = world.getHighestBlockYAt(x, z);
+        for (int y = top; y >= world.getMinHeight() + 4; y--) {
+            Material m = world.getBlockAt(x, y, z).getType();
+            String n = m.name();
+            if (isReplaceableEventSurface(m) || n.endsWith("_LEAVES") || n.endsWith("_LOG")) continue;
+            if (isWetOrAquatic(m)) return Integer.MIN_VALUE;
+            if (m.isSolid() && isNaturalEventMaterial(m)) return y;
+            return Integer.MIN_VALUE;
         }
-        for (int dx = -9; dx <= 9; dx++) for (int dz = -9; dz <= 9; dz++) {
-            if (!w.getWorldBorder().isInside(new Location(w, x + dx, y, z + dz))) return false;
-            for (int dy = -4; dy <= 13; dy++) {
-                Block block = w.getBlockAt(x + dx, y + dy, z + dz);
+        return Integer.MIN_VALUE;
+    }
+
+    private enum SiteFailure { NONE, UNLOADED, HEIGHT, CLAIM, WORLDGUARD_REGION, WORLDGUARD_UNAVAILABLE,
+        EVENT, BORDER, NO_FOUNDATION, OBSTRUCTION }
+    private enum RegionCheck { CLEAR, PROTECTED, UNAVAILABLE }
+
+    private boolean isSafeEventSite(Location center) { return checkSite(center, false, null) == SiteFailure.NONE; }
+
+    private SiteFailure checkSite(Location center, boolean requireFoundation, BossTemplate template) {
+        EventSiteScanner scan = new EventSiteScanner(center, requireFoundation, template);
+        SiteFailure result;
+        do { result = scan.advance(Integer.MAX_VALUE); } while (result == null);
+        return result;
+    }
+
+    /** Incremental inspection runs on the main thread but yields between small
+     * batches. It reads blocks only after every intersecting chunk is pinned. */
+    private final class EventSiteScanner {
+        final Location center;
+        final boolean requireFoundation;
+        final BossTemplate template;
+        World world;
+        int x, y, z, cursor;
+        boolean initialized;
+        SiteFailure failure;
+        Material obstruction;
+
+        EventSiteScanner(Location center, boolean requireFoundation, BossTemplate template) {
+            this.center = center;
+            this.requireFoundation = requireFoundation;
+            this.template = template;
+        }
+
+        SiteFailure advance(int budget) {
+            if (failure != null) return failure;
+            if (!initialized) {
+                initialized = true;
+                if (center == null || center.getWorld() == null || plugin.getSpawnEngine().isInSpawnWorld(center))
+                    return failure = SiteFailure.UNLOADED;
+                world = center.getWorld();
+                x = center.getBlockX(); y = center.getBlockY(); z = center.getBlockZ();
+                if (!allSiteChunksLoaded(world, x, z)) return failure = SiteFailure.UNLOADED;
+                if (y - (requireFoundation ? 5 : 4) < world.getMinHeight() || y + 13 >= world.getMaxHeight())
+                    return failure = SiteFailure.HEIGHT;
+                if (plugin.getStore().overlapsAnyClaim(world.getName(), x, z, 16)) return failure = SiteFailure.CLAIM;
+                RegionCheck region = checkWorldGuardRegions(world, x, y, z);
+                if (region == RegionCheck.UNAVAILABLE) return failure = SiteFailure.WORLDGUARD_UNAVAILABLE;
+                if (region == RegionCheck.PROTECTED) return failure = SiteFailure.WORLDGUARD_REGION;
+                for (ActiveBossEvent other : activeEvents.values()) {
+                    if (world.equals(other.center.getWorld())) {
+                        double dx = (double) other.center.getBlockX() - x, dz = (double) other.center.getBlockZ() - z;
+                        if (dx * dx + dz * dz < 40.0 * 40.0) return failure = SiteFailure.EVENT;
+                    }
+                }
+                if (!world.getWorldBorder().isInside(new Location(world, x - SITE_RADIUS, y, z - SITE_RADIUS))
+                        || !world.getWorldBorder().isInside(new Location(world, x + SITE_RADIUS, y, z + SITE_RADIUS)))
+                    return failure = SiteFailure.BORDER;
+            }
+            int side = SITE_RADIUS * 2 + 1;
+            int layers = requireFoundation ? 19 : 18;
+            int total = side * side * layers;
+            while (budget-- > 0 && cursor < total) {
+                int column = cursor / layers, offset = cursor % layers;
+                int dx = column / side - SITE_RADIUS, dz = column % side - SITE_RADIUS;
+                int dy = offset - (requireFoundation ? 5 : 4);
+                cursor++;
+                Block block = world.getBlockAt(x + dx, y + dy, z + dz);
                 Material m = block.getType();
-                if (!isNaturalEventMaterial(m)) return false;
-                // Never clear trees, logs, stone walls or other possible structures
-                // above ground even if their materials can also occur naturally.
-                if (dy >= 0 && !isReplaceableEventSurface(m)) return false;
-                if (dy == -1 && (m == Material.STONE || m == Material.DEEPSLATE || m == Material.TUFF
-                        || m == Material.ANDESITE || m == Material.DIORITE || m == Material.GRANITE
-                        || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m.name().endsWith("_ORE"))) return false;
+                boolean affected = eventAffectsColumn(template, dx, dz);
+                if (m.name().endsWith("_LEAVES") && !isReplaceableEventBlock(block, m)) {
+                    obstruction = m; return failure = SiteFailure.OBSTRUCTION;
+                }
+                if (requireFoundation && affected && dy == -5) {
+                    if (!m.isSolid() || !isNaturalEventMaterial(m) || isWetOrAquatic(m)) {
+                        obstruction = m; return failure = SiteFailure.NO_FOUNDATION;
+                    }
+                } else {
+                    if (!isNaturalEventMaterial(m)) { obstruction = m; return failure = SiteFailure.OBSTRUCTION; }
+                    // In the validated construction envelope do not replace
+                    // logs, walls, player leaves or other possible structures.
+                    // Outside it, natural tree/terrain blocks can remain in
+                    // place, while foreign materials still reject the site.
+                    if (dy >= 0 && !isReplaceableEventBlock(block, m)
+                            && (affected || !isUntouchedNaturalOutside(m))) {
+                        obstruction = m; return failure = SiteFailure.OBSTRUCTION;
+                    }
+                    if (dy == -1 && (m == Material.STONE || m == Material.DEEPSLATE || m == Material.TUFF
+                            || m == Material.ANDESITE || m == Material.DIORITE || m == Material.GRANITE
+                            || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m.name().endsWith("_ORE"))) {
+                        obstruction = m; return failure = SiteFailure.OBSTRUCTION;
+                    }
+                }
                 if (m != Material.AIR && m != Material.CAVE_AIR && m != Material.VOID_AIR
-                        && block.getState() instanceof org.bukkit.block.TileState) return false;
+                        && block.getState() instanceof org.bukkit.block.TileState) {
+                    obstruction = m; return failure = SiteFailure.OBSTRUCTION;
+                }
             }
+            return cursor >= total ? SiteFailure.NONE : null;
         }
-        return true;
     }
 
     private boolean warnedWorldGuard = false;
 
     /** Conservatively reject a site whose construction volume intersects any WG region.
      * If WorldGuard is present but its region data/API is unavailable, fail closed. */
-    private boolean intersectsWorldGuardRegion(World world, int x, int y, int z) {
-        if (Bukkit.getPluginManager().getPlugin("WorldGuard") == null) return false;
-        if (!Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) return true;
+    private RegionCheck checkWorldGuardRegions(World world, int x, int y, int z) {
+        if (Bukkit.getPluginManager().getPlugin("WorldGuard") == null) return RegionCheck.CLEAR;
+        if (!Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) return RegionCheck.UNAVAILABLE;
         try {
             Class<?> wgClass = Class.forName("com.sk89q.worldguard.WorldGuard");
             Object wg = wgClass.getMethod("getInstance").invoke(null);
@@ -910,49 +1190,69 @@ public final class BossEventManager {
             Object manager = containerType.getMethod("get", worldType).invoke(container, adapted);
             if (manager == null) throw new IllegalStateException("region manager unavailable");
             Class<?> managerType = Class.forName("com.sk89q.worldguard.protection.managers.RegionManager");
-            Object regions = managerType.getMethod("getRegions").invoke(manager);
-            if (!(regions instanceof java.util.Map)) throw new IllegalStateException("region data unavailable");
             Class<?> regionType = Class.forName("com.sk89q.worldguard.protection.regions.ProtectedRegion");
+            Class<?> cuboidType = Class.forName("com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion");
             Class<?> vectorType = Class.forName("com.sk89q.worldedit.math.BlockVector3");
-            java.lang.reflect.Method bx = vectorType.getMethod("getBlockX"), by = vectorType.getMethod("getBlockY"), bz = vectorType.getMethod("getBlockZ");
-            for (Object region : ((java.util.Map<?, ?>) regions).values()) {
-                Object min = regionType.getMethod("getMinimumPoint").invoke(region);
-                Object max = regionType.getMethod("getMaximumPoint").invoke(region);
-                int minX = ((Number) bx.invoke(min)).intValue(), minY = ((Number) by.invoke(min)).intValue(), minZ = ((Number) bz.invoke(min)).intValue();
-                int maxX = ((Number) bx.invoke(max)).intValue(), maxY = ((Number) by.invoke(max)).intValue(), maxZ = ((Number) bz.invoke(max)).intValue();
-                if (x + 9 >= minX && x - 9 <= maxX && y + 13 >= minY && y - 4 <= maxY && z + 9 >= minZ && z - 9 <= maxZ) return true;
-            }
-            return false;
+            Method at = vectorType.getMethod("at", int.class, int.class, int.class);
+            Object min = at.invoke(null, x - SITE_RADIUS, y - 4, z - SITE_RADIUS);
+            Object max = at.invoke(null, x + SITE_RADIUS, y + 13, z + SITE_RADIUS);
+            Object footprint = cuboidType.getConstructor(String.class, vectorType, vectorType)
+                    .newInstance("kg_event_probe", min, max);
+            // Use WorldGuard's spatial index rather than walking every region
+            // on the main thread. __global__ has no physical volume and is not
+            // returned as an intersecting protected region by this query.
+            Object applicable = managerType.getMethod("getApplicableRegions", regionType).invoke(manager, footprint);
+            Class<?> resultType = Class.forName("com.sk89q.worldguard.protection.ApplicableRegionSet");
+            int count = ((Number)resultType.getMethod("size").invoke(applicable)).intValue();
+            return count == 0 ? RegionCheck.CLEAR : RegionCheck.PROTECTED;
         } catch (Throwable error) {
             if (!warnedWorldGuard) {
                 warnedWorldGuard = true;
                 plugin.getLogger().warning("[Events] WorldGuard regions could not be checked; refusing event placement: " + error.getClass().getSimpleName());
             }
+            return RegionCheck.UNAVAILABLE;
+        }
+    }
+
+    private boolean isUntouchedNaturalOutside(Material m) {
+        return m.name().endsWith("_LOG") || m == Material.GRASS_BLOCK || m == Material.DIRT
+                || m == Material.COARSE_DIRT || m == Material.ROOTED_DIRT || m == Material.PODZOL;
+    }
+
+    private boolean isReplaceableEventBlock(Block block, Material material) {
+        if (isReplaceableEventSurface(material)) return true;
+        if (material.name().endsWith("_LEAVES")) {
+            BlockData data = block.getBlockData();
+            if (!(data instanceof org.bukkit.block.data.type.Leaves)) return false;
+            if (((org.bukkit.block.data.type.Leaves)data).isPersistent()) return false;
+            if (data instanceof org.bukkit.block.data.Waterlogged
+                    && ((org.bukkit.block.data.Waterlogged)data).isWaterlogged()) return false;
             return true;
         }
+        return false;
     }
 
     private boolean isReplaceableEventSurface(Material m) {
         String n = m.name();
         return m == Material.AIR || m == Material.CAVE_AIR || m == Material.VOID_AIR || m == Material.SNOW
                 || n.endsWith("_SAPLING") || n.endsWith("_GRASS") || n.endsWith("_FERN")
-                || n.endsWith("_FLOWER") || n.endsWith("_TULIP") || n.equals("DANDELION")
-                || n.equals("POPPY") || n.equals("VINE") || n.equals("DEAD_BUSH");
+                || n.endsWith("_TULIP") || n.equals("FERN") || n.equals("GRASS") || n.equals("DANDELION")
+                || n.equals("POPPY") || n.equals("BLUE_ORCHID") || n.equals("ALLIUM") || n.equals("AZURE_BLUET")
+                || n.equals("OXEYE_DAISY") || n.equals("CORNFLOWER") || n.equals("LILY_OF_THE_VALLEY")
+                || n.equals("SUNFLOWER") || n.equals("LILAC") || n.equals("ROSE_BUSH") || n.equals("PEONY")
+                || n.equals("RED_MUSHROOM") || n.equals("BROWN_MUSHROOM") || n.equals("VINE") || n.equals("DEAD_BUSH");
     }
 
     private boolean isNaturalEventMaterial(Material m) {
         String n = m.name();
-        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.VOID_AIR
+        return isReplaceableEventSurface(m)
                 || m == Material.STONE || m == Material.DIRT || m == Material.GRASS_BLOCK
                 || m == Material.COARSE_DIRT || m == Material.ROOTED_DIRT || m == Material.PODZOL
                 || m == Material.GRAVEL || m == Material.SAND || m == Material.RED_SAND
                 || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m == Material.CLAY
                 || m == Material.TUFF || m == Material.DEEPSLATE || m == Material.ANDESITE
                 || m == Material.DIORITE || m == Material.GRANITE || m == Material.SNOW || m == Material.SNOW_BLOCK
-                || n.endsWith("_ORE") || n.endsWith("_LOG") || n.endsWith("_LEAVES")
-                || n.endsWith("_SAPLING") || n.endsWith("_GRASS") || n.endsWith("_FERN")
-                || n.endsWith("_FLOWER") || n.endsWith("_TULIP") || n.equals("DANDELION")
-                || n.equals("POPPY") || n.equals("VINE") || n.equals("DEAD_BUSH");
+                || n.endsWith("_ORE") || n.endsWith("_LOG") || n.endsWith("_LEAVES");
     }
 
     private boolean isWetOrAquatic(Material m) {
@@ -965,7 +1265,13 @@ public final class BossEventManager {
     }
 
     // ================= STYLISH v5.7 ARCHITECTURAL EVENT STRUCTURES =================
+    private void requireCheckedMutation(ActiveBossEvent ev, int dx, int dy, int dz) {
+        if (ev.boundedSearch && (dy < -4 || dy > 13 || !eventAffectsColumn(ev.template, dx, dz)))
+            throw new IllegalStateException("Event attempted to modify an unchecked block: " + dx + "," + dy + "," + dz);
+    }
+
     private void setBlk(ActiveBossEvent ev, int dx, int dy, int dz, Material mat) {
+        requireCheckedMutation(ev, dx, dy, dz);
         Location l = ev.center.clone().add(dx, dy, dz);
         saveBlock(ev, l);
         l.getBlock().setType(mat, false);
@@ -973,6 +1279,7 @@ public final class BossEventManager {
     }
 
     private void setStair(ActiveBossEvent ev, int dx, int dy, int dz, Material stairMat, BlockFace facing, boolean upsideDown) {
+        requireCheckedMutation(ev, dx, dy, dz);
         Location l = ev.center.clone().add(dx, dy, dz);
         saveBlock(ev, l);
         Block b = l.getBlock();
@@ -995,6 +1302,8 @@ public final class BossEventManager {
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
                 if (dx * dx + dz * dz > (radius + 1) * (radius + 1)) continue;
+                requireCheckedMutation(ev, dx, 0, dz);
+                if (height > 13) throw new IllegalStateException("Event clearing exceeds checked height");
                 for (int dy = -3; dy <= height; dy++) {
                     Location l = c.clone().add(dx, dy, dz);
                     saveBlock(ev, l);
@@ -1008,6 +1317,7 @@ public final class BossEventManager {
     }
 
     private void fillGroundedFloor(ActiveBossEvent ev, int dx, int dz, Material floorMat, Material baseMat) {
+        requireCheckedMutation(ev, dx, -4, dz);
         setBlk(ev, dx, -1, dz, floorMat);
         for (int dy = -2; dy >= -4; dy--) {
             Block below = ev.center.clone().add(dx, dy, dz).getBlock();
@@ -1614,8 +1924,8 @@ public final class BossEventManager {
         boss.addScoreboardTag("kg_boss_" + instanceId);
         boss.setRemoveWhenFarAway(false);
         boss.setPersistent(true);
-        setMaxHealthSafe(boss, tpl.maxHp);
-        boss.setHealth(Math.max(1.0, Math.min(tpl.maxHp, currentHp)));
+        double actualMax = setMaxHealthSafe(boss, tpl.maxHp);
+        boss.setHealth(Math.max(1.0, Math.min(actualMax, currentHp)));
         boss.setCustomName(ColorUtil.c(tpl.displayName + " &c❤ " + (int) Math.ceil(boss.getHealth())));
         boss.setCustomNameVisible(true);
         ColorUtil.addPot(boss, "fire_resistance", "FIRE_RESISTANCE", 72000, 0);
@@ -1651,7 +1961,7 @@ public final class BossEventManager {
         }
     }
 
-    private void setMaxHealthSafe(LivingEntity ent, double maxHp) {
+    private double setMaxHealthSafe(LivingEntity ent, double maxHp) {
         try {
             Attribute attr = null;
             for (String fn : new String[]{"MAX_HEALTH", "GENERIC_MAX_HEALTH"}) {
@@ -1663,10 +1973,16 @@ public final class BossEventManager {
             }
             if (attr != null) {
                 AttributeInstance inst = ent.getAttribute(attr);
-                if (inst != null) inst.setBaseValue(maxHp);
+                if (inst != null) {
+                    inst.setBaseValue(Math.min(1024.0, maxHp));
+                    return Math.max(1.0, inst.getValue());
+                }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable error) {
+            plugin.getLogger().warning("[Events] Could not set boss maximum health: " + error.getClass().getSimpleName());
         }
+        // Do not throw on a server with a missing/unusual attribute API.
+        return Math.max(1.0, ent.getHealth());
     }
 
     private String formatBarTitle(ActiveBossEvent ev, double curHp) {

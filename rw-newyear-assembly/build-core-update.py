@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the versioned 6.7 Core JAR and safe update instructions.
+"""Package a versioned Core JAR and its matching safe update instructions.
 
 The archive is deliberately not a server-root overlay: it cannot overwrite
 worlds, data folders or configs. Build the Core JAR first.
@@ -14,7 +14,6 @@ import zipfile
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT.parent / "kinggrief" / "public"
 CORE = ROOT / "KingGriefCore.jar"
-INSTRUCTIONS = ROOT / "ОБНОВЛЕНИЕ_6.7.0.md"
 
 
 def add_file(archive, name, data):
@@ -36,7 +35,8 @@ def main():
         raise ValueError("Server and patch Core JAR differ")
     if (PUBLIC / f"KingGriefCore-v{version}.jar").read_bytes() != core:
         raise ValueError("Public versioned Core JAR differs")
-    instructions = INSTRUCTIONS.read_text(encoding="utf8")
+    instructions_path = ROOT / f"ОБНОВЛЕНИЕ_{version}.md"
+    instructions = instructions_path.read_text(encoding="utf8")
     if f"KingGriefCore {version}" not in instructions:
         raise ValueError("Patch instructions do not match the built version")
     digest = hashlib.sha256(core).hexdigest()
@@ -44,7 +44,7 @@ def main():
                                    f"   `{digest}`", instructions)
     if count != 1:
         raise ValueError("Patch instructions need exactly one Core SHA-256 line")
-    INSTRUCTIONS.write_text(instructions, encoding="utf8")
+    instructions_path.write_text(instructions, encoding="utf8")
     instructions = instructions.encode("utf8")
     destination = ROOT / f"KingGriefCore-{version}-update.zip"
     with tempfile.TemporaryDirectory(prefix="kinggrief-core-update-", dir=ROOT) as tmp:

@@ -121,7 +121,8 @@ def launch_and_check(args, server, port):
             output.append(line)
             messages.put(line)
 
-    threading.Thread(target=read_server, daemon=True).start()
+    reader = threading.Thread(target=read_server, daemon=True)
+    reader.start()
     client = None
     success = False
     try:
@@ -203,6 +204,11 @@ def launch_and_check(args, server, port):
             except (BrokenPipeError, subprocess.TimeoutExpired):
                 process.kill()
                 process.wait()
+        reader.join(timeout=10)
+        if success and (process.returncode != 0
+                        or any("The server has not responded for 10 seconds" in line for line in output)):
+            print("\n--- SERVER LOG TAIL ---\n" + "".join(output[-150:]), file=sys.stderr)
+            raise RuntimeError("Paper exit failure or watchdog warning")
         if not success:
             print("\n--- LUCKPERMS STARTUP LOG ---", file=sys.stderr)
             lp = [i for i, line in enumerate(output) if "LuckPerms" in line and ("ERROR" in line or "WARN" in line or "Loading" in line or "Enabling" in line)]

@@ -111,7 +111,13 @@ public final class EventSearchProbe extends JavaPlugin implements Listener {
         // request is held forever by a test double while the real tick thread runs.
         int candidateX = 6406, candidateZ = 6406;
         heldX = (candidateX - 9) >> 4; heldZ = (candidateZ - 9) >> 4;
-        world.getChunkAt(heldX, heldZ).load(); // fixture setup, not production search
+        loadFixtureAsync(world, Arrays.asList(new int[]{heldX, heldZ}), 0, () -> {
+            try { startStallProbe(candidateX, candidateZ); }
+            catch (Throwable error) { fail(error); }
+        });
+    }
+
+    private void startStallProbe(int candidateX, int candidateZ) throws Exception {
         Field loader = field(events, "chunkLoader");
         originalLoader = loader.get(events);
         stalled = new NonCancellableFuture();
@@ -143,6 +149,34 @@ public final class EventSearchProbe extends JavaPlugin implements Listener {
                 }
             }
         }.runTaskTimer(this, 1L, 1L);
+    }
+
+    /** Prepare test chunks through Paper too: the harness itself must never
+     * synchronously generate a remote fixture on the server tick thread. */
+    private void loadFixtureAsync(World target, List<int[]> chunks, int index, Runnable ready) throws Exception {
+        if (index >= chunks.size()) { ready.run(); return; }
+        int[] pos = chunks.get(index);
+        Method async = World.class.getMethod("getChunkAtAsync", int.class, int.class, boolean.class);
+        @SuppressWarnings("unchecked") CompletableFuture<Object> future =
+                (CompletableFuture<Object>) async.invoke(target, pos[0], pos[1], true);
+        future.whenComplete((chunk, error) -> {
+            if (!isEnabled()) return;
+            Bukkit.getScheduler().runTask(this, () -> {
+                try {
+                    if (error != null || chunk == null || !target.isChunkLoaded(pos[0], pos[1]))
+                        throw new AssertionError("fixture async load failed " + pos[0] + "," + pos[1], error);
+                    target.addPluginChunkTicket(pos[0], pos[1], this);
+                    loadFixtureAsync(target, chunks, index + 1, ready);
+                } catch (Throwable failure) { fail(failure); }
+            });
+        });
+    }
+
+    private List<int[]> fixtureFootprint(int x, int z) {
+        List<int[]> chunks = new java.util.ArrayList<int[]>();
+        for (int cx=(x-9)>>4; cx<=(x+9)>>4; cx++) for (int cz=(z-9)>>4; cz<=(z+9)>>4; cz++)
+            chunks.add(new int[]{cx,cz});
+        return chunks;
     }
 
     private void verifyInstallDiagnostics() throws Exception {
@@ -257,6 +291,7 @@ public final class EventSearchProbe extends JavaPlugin implements Listener {
         if (stage == 2) {
             if (field(events, "pendingSearch").get(events) != null) return;
             if (world.getPluginChunkTickets(heldX, heldZ).contains(core)) throw new AssertionError("timeout leaked a chunk ticket");
+            world.removePluginChunkTicket(heldX, heldZ, this);
             if (requests != 1 || !stalled.cancelAttempted) throw new AssertionError("timeout did not cancel the pending request");
             stalled.complete(null); // Non-cancellable late completion must be ignored.
             if (field(events, "pendingSearch").get(events) != null) throw new AssertionError("late future resurrected search");
@@ -335,23 +370,11 @@ public final class EventSearchProbe extends JavaPlugin implements Listener {
             for (int cx=(REAL_X-9)>>4; cx<=(REAL_X+9)>>4; cx++) for (int cz=(REAL_Z-9)>>4; cz<=(REAL_Z+9)>>4; cz++)
                 if (world.getPluginChunkTickets(cx,cz).contains(core)) throw new AssertionError("event cleanup leaked a ticket");
             external.setType(Material.AIR, false);
-            // Even when generation is disabled, an already-loaded, safe site
-            // should work without asking the loader for a new chunk.
-            for (int cx=(LOADED_X-9)>>4; cx<=(LOADED_X+9)>>4; cx++) for (int cz=(LOADED_Z-9)>>4; cz<=(LOADED_Z+9)>>4; cz++)
-                world.getChunkAt(cx,cz).load(); // fixture setup only
-            requests = 0;
-            core.getConfig().set("events.allow-chunk-generation", false);
-            Field loader = field(events, "chunkLoader");
-            Class<?> loaderType = loader.getType();
-            loader.set(events, Proxy.newProxyInstance(loaderType.getClassLoader(), new Class<?>[]{loaderType}, (proxy, method, args) -> {
-                requests++;
-                throw new IllegalStateException("loaded-site search requested a chunk");
-            }));
-            job = queueSearch();
-            @SuppressWarnings("unchecked") List<int[]> candidates = (List<int[]>)field(job, "loadedCandidates").get(job);
-            candidates.add(new int[]{LOADED_X, LOADED_Z});
-            stage = 7;
-            ticks = 0;
+            // Prepare the loaded-only fixture asynchronously as well.
+            stage = 61;
+            loadFixtureAsync(world, fixtureFootprint(LOADED_X, LOADED_Z), 0, () -> {
+                try { startLoadedProbe(); } catch (Throwable error) { fail(error); }
+            });
             return;
         }
         if (stage == 7) {
@@ -365,6 +388,7 @@ public final class EventSearchProbe extends JavaPlugin implements Listener {
             }
             if (requests != 0) throw new AssertionError("loaded-site search unnecessarily requested generation");
             field(events, "chunkLoader").set(events, originalLoader);
+            for (int[] pos : fixtureFootprint(LOADED_X, LOADED_Z)) world.removePluginChunkTicket(pos[0], pos[1], this);
             if (!Bukkit.unloadWorld(world, true)) throw new AssertionError("test world failed to unload");
             if (events.getActiveEvents().contains(unloading) || !unloadChecked || unloadFailure != null)
                 throw new AssertionError("world unload failed to restore event: " + unloadFailure);
@@ -412,6 +436,22 @@ public final class EventSearchProbe extends JavaPlugin implements Listener {
             stage = 9;
             Bukkit.shutdown();
         }
+    }
+
+    private void startLoadedProbe() throws Exception {
+        requests = 0;
+        core.getConfig().set("events.allow-chunk-generation", false);
+        Field loader = field(events, "chunkLoader");
+        Class<?> loaderType = loader.getType();
+        loader.set(events, Proxy.newProxyInstance(loaderType.getClassLoader(), new Class<?>[]{loaderType}, (proxy, method, args) -> {
+            requests++;
+            throw new IllegalStateException("loaded-site search requested a chunk");
+        }));
+        job = queueSearch();
+        @SuppressWarnings("unchecked") List<int[]> candidates = (List<int[]>)field(job, "loadedCandidates").get(job);
+        candidates.add(new int[]{LOADED_X, LOADED_Z});
+        stage = 7;
+        ticks = 0;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

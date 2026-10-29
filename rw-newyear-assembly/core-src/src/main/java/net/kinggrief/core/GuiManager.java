@@ -2134,7 +2134,7 @@ public final class GuiManager {
         } else if ("events".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 36 || slot == 37 || slot == 38 || slot == 41 || slot == 42 || slot == 43
-                    || slot == 46 || slot == 47 || slot == 48) {
+                    || slot == 46 || slot == 47 || slot == 48 || slot == 50) {
                 if (!plugin.getBossEvents().canAdminSpawnEvents(p)) {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Призывать Боссов и Ивенты могут только Админы и выше!"));
                     return;

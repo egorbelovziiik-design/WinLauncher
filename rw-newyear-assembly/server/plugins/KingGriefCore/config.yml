@@ -1,4 +1,4 @@
-# KINGGRIEF CORE v6.7.0 — EVENTS, BUY ORDERS AND RECOVERABLE TRADES
+# KINGGRIEF CORE v6.7.1 — EVENT SEARCH, BUY ORDERS AND RECOVERABLE TRADES
 server-ip: "kinggrief.pickme.cloud"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
@@ -12,6 +12,7 @@ starting-relics: 50
 events:
   auto-enabled: true             # false: отключить только автоматический запуск
   allow-chunk-generation: true  # false: использовать лишь уже загруженные чанки
+  search-radius-blocks: 2500    # радиус поиска от спавна или центра смещённой границы (256–10000)
   min-free-heap-mb: 256         # запас JVM heap перед запросом новых чанков; не лимит RAM контейнера
 
 # Охота за короной в существующей PvP-яме; телепортация и смена инвентаря не выполняются.

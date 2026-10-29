@@ -173,7 +173,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.7.0 — AIRSHIP, CROWN, BUY ORDERS & RECOVERABLE TRADES");
+        getLogger().info(" KINGGRIEF CORE v6.7.1 — SAFE EVENTS, CROWN, BUY ORDERS & TRADES");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -605,6 +605,11 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         if ("crown".equals(c) && !(sender instanceof Player)) return crownEvents.handleCommand(sender, args);
+        if ("events".equals(c) && !(sender instanceof Player)) {
+            if (args.length >= 2 && "start".equalsIgnoreCase(args[0])) bossEvents.requestBossEvent(args[1], sender);
+            else sender.sendMessage("Usage from console: events start <event>");
+            return true;
+        }
         if (!(sender instanceof Player)) {
             sender.sendMessage("Use /cases give, /p give, /money give, /kgadmin or /lp from console.");
             return true;

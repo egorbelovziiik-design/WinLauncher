@@ -74,18 +74,25 @@ public final class NewFeaturesProbe extends JavaPlugin implements Listener {
     }
     private void begin() {
         try {
-            airship();
-            World w=Bukkit.getWorld("spawn_world");
-            w.setPVP(true);
-            a.teleport(new Location(w,75.5,94,10.5)); b.teleport(new Location(w,77.5,94,10.5));
-            a.setGameMode(GameMode.SURVIVAL); b.setGameMode(GameMode.SURVIVAL);
-            // Teleport/join invulnerability and chunk tracking settle on real ticks.
-            later(40, () -> {
-                try { crown(); trade(); } catch (Exception error) { throw new RuntimeException(error); }
+            World fixture=createFixtureWorld();
+            List<int[]> chunks=new ArrayList<int[]>();
+            for(int cx=(422-9)>>4;cx<=(422+9)>>4;cx++) for(int cz=(422-9)>>4;cz<=(422+9)>>4;cz++) chunks.add(new int[]{cx,cz});
+            loadFixtureAsync(fixture,chunks,0,() -> {
+                try {
+                    airship(fixture);
+                    World w=Bukkit.getWorld("spawn_world");
+                    w.setPVP(true);
+                    a.teleport(new Location(w,75.5,94,10.5)); b.teleport(new Location(w,77.5,94,10.5));
+                    a.setGameMode(GameMode.SURVIVAL); b.setGameMode(GameMode.SURVIVAL);
+                    // Teleport/join invulnerability and chunk tracking settle on real ticks.
+                    later(40, () -> {
+                        try { crown(); trade(); } catch (Exception error) { throw new RuntimeException(error); }
+                    });
+                } catch (Exception error) { fail(error); }
             });
         } catch (Exception error) { throw new RuntimeException(error); }
     }
-    private void airship() throws Exception {
+    private World createFixtureWorld() {
         WorldCreator wc=new WorldCreator("kg_new_fixture");
         wc.generator(new ChunkGenerator() {
             @Override public ChunkData generateChunkData(World world, Random rng, int x,int z,BiomeGrid biome) {
@@ -102,10 +109,26 @@ public final class NewFeaturesProbe extends JavaPlugin implements Listener {
             @Override public boolean shouldGenerateStructures(){return false;}
         });
         wc.generateStructures(false);
-        World w=Bukkit.createWorld(wc);
-        int x=422,z=422;
-        for(int cx=(x-9)>>4;cx<=(x+9)>>4;cx++) for(int cz=(z-9)>>4;cz<=(z+9)>>4;cz++) w.getChunkAt(cx,cz).load();
-        Location center=new Location(w,x,65,z);
+        return Bukkit.createWorld(wc);
+    }
+    private void loadFixtureAsync(World w,List<int[]> chunks,int index,Runnable ready) throws Exception {
+        if(index>=chunks.size()){ready.run();return;}
+        int[] pos=chunks.get(index);
+        Method async=World.class.getMethod("getChunkAtAsync",int.class,int.class,boolean.class);
+        java.util.concurrent.CompletableFuture<?> future=(java.util.concurrent.CompletableFuture<?>)async.invoke(w,pos[0],pos[1],true);
+        future.whenComplete((chunk,error)->{
+            if(!isEnabled())return;
+            Bukkit.getScheduler().runTask(this,()->{
+                try{
+                    if(error!=null || chunk==null || !w.isChunkLoaded(pos[0],pos[1])) throw new AssertionError("fixture async load failed",error);
+                    w.addPluginChunkTicket(pos[0],pos[1],this);
+                    loadFixtureAsync(w,chunks,index+1,ready);
+                }catch(Throwable failure){fail(failure);}
+            });
+        });
+    }
+    private void airship(World w) throws Exception {
+        Location center=new Location(w,422,65,422);
         BossEventManager events=core.getBossEvents();
         BossEventManager.ActiveBossEvent ev=events.spawnBossEvent("airship",center);
         ok(ev!=null && ev.airshipParts.size()==3 && events.isLockedEventChest(center.getBlock()), "airship spawned with three distinct parts and locked cargo");

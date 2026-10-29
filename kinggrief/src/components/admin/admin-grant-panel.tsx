@@ -519,8 +519,8 @@ export function AdminGrantPanel({
           <button type="button" onClick={pollStatus} className="btn btn-ghost btn-sm" title="Обновить статус очереди">
             <RefreshCw size={12} /> Статус
           </button>
-          <a href="/KingGriefCore-v6.7.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm" title="Скачать KingGriefCore v6.7.0: дирижабль, корона, заказы и обмен">
-            <Download size={12} /> Ядро v6.7.0 (.jar)
+          <a href="/KingGriefCore-v6.7.1.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm" title="Скачать KingGriefCore v6.7.1: поиск ивентов, дирижабль, корона, заказы и обмен">
+            <Download size={12} /> Ядро v6.7.1 (.jar)
           </a>
           <a href="/kinggrief-mega-rp-v66.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v66: модели шаров, кирок, брони, тотемов и новых предметов">
             <Download size={12} /> Мега-РП v66 (.zip)
