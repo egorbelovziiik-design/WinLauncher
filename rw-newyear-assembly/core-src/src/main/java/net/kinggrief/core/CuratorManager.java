@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * KINGGRIEF v5.8 — Панель и команда Куратора (/curator):
@@ -61,7 +63,12 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
 
     // 1. КП (Команда Проекта — ниже Куратора)
     public static final List<String> KP_RANKS = Collections.unmodifiableList(Arrays.asList(
-            "kp", "helper", "sthelper", "mlmoder", "moder", "stmoder", "glmoder", "mladmin", "admin"
+            "kp", "helper", "sthelper", "mlmoder", "moder", "stmoder", "glmoder", "mladmin", "admin", "stadmin", "gladmin",
+            "curator", "curator_dkp", "curator_media", "curator_kp", "curator_discord"
+    ));
+
+    public static final List<String> CURATOR_RANKS = Collections.unmodifiableList(Arrays.asList(
+            "curator", "curator_dkp", "curator_media", "curator_kp", "curator_discord"
     ));
 
     // 2. МЕДИА
@@ -87,6 +94,13 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         RANK_TITLES.put("glmoder",   "&#C084FCГЛ. МОДЕР");
         RANK_TITLES.put("mladmin",   "&#FB923CМЛ. АДМИН");
         RANK_TITLES.put("admin",     "&#F87171АДМИН");
+        RANK_TITLES.put("stadmin",   "&#FFBA9CСТ. АДМИН");
+        RANK_TITLES.put("gladmin",   "&#FF9DA8ГЛ. АДМИН");
+        RANK_TITLES.put("curator", "&#86EFACКУРАТОР");
+        RANK_TITLES.put("curator_dkp", "&#FFD29CКУРАТОР ДКП");
+        RANK_TITLES.put("curator_media", "&#FFD0EDКУРАТОР МЕДИА");
+        RANK_TITLES.put("curator_kp", "&#A5EFC3КУРАТОР КП");
+        RANK_TITLES.put("curator_discord", "&#B4C5FFКУРАТОР DISCORD");
 
         RANK_TITLES.put("tiktok",    "&#FF2E93TIKTOK");
         RANK_TITLES.put("twitch",    "&#A855F7TWITCH");
@@ -135,15 +149,13 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         Player p = (Player) sender;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         if (r == null) return false;
-        return "curator".equalsIgnoreCase(r.id)
-                || "techadmin".equalsIgnoreCase(r.id)
-                || "owner".equalsIgnoreCase(r.id);
+        return plugin.getRanks().isCuratorRank(r.id) || plugin.getRanks().isOwnerLevel(r.id);
     }
 
     public boolean isAllowedCuratorRank(String rankId) {
         if (rankId == null) return false;
         String low = rankId.toLowerCase(Locale.ROOT);
-        return KP_RANKS.contains(low) || MEDIA_RANKS.contains(low) || DONATE_RANKS.contains(low);
+        return KP_RANKS.contains(low) || MEDIA_RANKS.contains(low) || DONATE_RANKS.contains(low) || CURATOR_RANKS.contains(low);
     }
 
     private boolean isOwnerSender(CommandSender s) {
@@ -268,7 +280,16 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
     // 2. БЕЗОПАСНАЯ ВЫДАЧА / СНЯТИЕ РОЛИ С ПРОВЕРКОЙ ИЕРАРХИИ И ЛОГИРОВАНИЕМ!
     // =========================================================================
     public void executeRankChange(CommandSender actor, String targetNick, String newRankId, String optReason) {
-        if (targetNick == null || targetNick.trim().isEmpty() || targetNick.length() > 16) {
+        executeRankChange(actor, targetNick, newRankId, optReason, null, false);
+    }
+
+    private void executeRankChange(CommandSender actor, String targetNick, String newRankId,
+                                   String optReason, String verifiedLpGroup, boolean lpChecked) {
+        if (!hasCuratorAccess(actor)) {
+            actor.sendMessage(ColorUtil.c("&cНедостаточно прав для управления ролями."));
+            return;
+        }
+        if (targetNick == null || !targetNick.trim().matches("[A-Za-z0-9_]{1,16}")) {
             actor.sendMessage(ColorUtil.c("&#FF1744✖ Укажите корректный ник игрока!"));
             return;
         }
@@ -276,17 +297,29 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         Player exactOnline = Bukkit.getPlayerExact(targetNick);
         if (exactOnline != null) targetNick = exactOnline.getName();
 
-        String lowRank = newRankId.toLowerCase(Locale.ROOT);
+        String lowRank = RankManager.normalizeRankAlias(newRankId);
         boolean isDemote = "default".equals(lowRank);
 
         if (!isDemote && !isAllowedCuratorRank(lowRank)) {
             actor.sendMessage(ColorUtil.c("&#FF1744✖ Привилегия &f" + newRankId + " &#FF1744недоступна для выдачи через /curator!"));
-            actor.sendMessage(ColorUtil.c("&7Кураторы могут выдавать все роли &aКП&7, &dМЕДИА &7и &eДОНАТЫ&7 (кроме Curator / TechAdmin / Owner)."));
+            actor.sendMessage(ColorUtil.c("&7Кураторы могут выдавать все роли &aКП&7, &dМЕДИА &7и &eДОНАТЫ&7 (в пределах своей иерархии; TechAdmin / Owner через LP)."));
             if (actor instanceof Player) ColorUtil.sound((Player) actor, "entity.villager.no", 1f, 0.8f);
             return;
         }
 
-        // Проверяем текущий ранг цели — Куратор не может трогать других Кураторов, Тех.Админов и Овнеров!
+        // A saved rank may be stale if LuckPerms was edited independently. Resolve
+        // even offline users asynchronously, then repeat all authorization checks
+        // on the server thread. An API/storage error must never imply "default".
+        if (!isOwnerSender(actor) && Bukkit.getPluginManager().getPlugin("LuckPerms") != null && !lpChecked) {
+            verifyLuckPermsThenChange(actor, targetNick, newRankId, optReason, exactOnline);
+            return;
+        }
+        if (lpChecked && (verifiedLpGroup == null || !plugin.getRanks().exists(verifiedLpGroup))) {
+            actor.sendMessage(ColorUtil.c("&cНе удалось безопасно проверить группу цели в LuckPerms. Обратитесь к владельцу."));
+            return;
+        }
+
+        // Check the highest of Core, live and verified LuckPerms ranks.
         String curSaved = plugin.getStore().getSavedRank(targetNick);
         RankManager.RankDef curDef = plugin.getRanks().byId(curSaved);
         if (exactOnline != null) {
@@ -294,14 +327,21 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
             if (liveDef != null && liveDef.weight > curDef.weight) curDef = liveDef;
         }
 
-        if (!isOwnerSender(actor) && curDef != null && curDef.weight >= 275) {
-            actor.sendMessage(ColorUtil.c("&#FF1744✖ Защита иерархии! Нельзя изменять или снимать роль у Кураторов, Тех.Админов и Владельцев ("
-                    + curDef.id.toUpperCase(Locale.ROOT) + ")!"));
-            if (actor instanceof Player) ColorUtil.sound((Player) actor, "entity.villager.no", 1f, 0.8f);
-            return;
+        if (lpChecked) {
+            RankManager.RankDef lpDef = plugin.getRanks().byId(verifiedLpGroup);
+            if (lpDef.weight > curDef.weight) curDef = lpDef;
         }
 
         RankManager.RankDef targetDef = plugin.getRanks().byId(lowRank);
+        if (!isOwnerSender(actor)) {
+            RankManager.RankDef actorDef = plugin.getRanks().getRank((Player) actor);
+            if (curDef.weight >= actorDef.weight || targetDef.weight >= actorDef.weight) {
+                actor.sendMessage(ColorUtil.c("&#FF1744✖ Защита иерархии: можно изменять и выдавать только роли ниже своей!"));
+                ColorUtil.sound((Player) actor, "entity.villager.no", 1f, 0.8f);
+                return;
+            }
+        }
+
         plugin.getRanks().setRank(targetNick, targetDef.id, true);
 
         String actorName = actor instanceof Player ? ((Player) actor).getName() : "CONSOLE";
@@ -351,6 +391,49 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private void verifyLuckPermsThenChange(final CommandSender actor, final String target, final String rank,
+                                            final String reason, Player online) {
+        try {
+            Class<?> provider = Class.forName("net.luckperms.api.LuckPermsProvider");
+            Object api = provider.getMethod("get").invoke(null);
+            Object manager = Class.forName("net.luckperms.api.LuckPerms").getMethod("getUserManager").invoke(api);
+            Class<?> managerApi = Class.forName("net.luckperms.api.model.user.UserManager");
+            final java.lang.reflect.Method load = managerApi.getMethod("loadUser", UUID.class);
+            final java.lang.reflect.Method primary = Class.forName("net.luckperms.api.model.user.User").getMethod("getPrimaryGroup");
+            CompletableFuture<UUID> lookup = online != null
+                    ? CompletableFuture.completedFuture(online.getUniqueId())
+                    : (CompletableFuture<UUID>) managerApi.getMethod("lookupUniqueId", String.class).invoke(manager, target);
+            actor.sendMessage(ColorUtil.c("&7Проверка группы игрока в LuckPerms…"));
+            lookup.thenCompose(uuid -> {
+                if (uuid == null) return CompletableFuture.completedFuture("default");
+                try {
+                    CompletableFuture<?> userFuture = (CompletableFuture<?>) load.invoke(manager, uuid);
+                    return userFuture.thenApply(user -> {
+                        try { return user == null ? null : (String) primary.invoke(user); }
+                        catch (Exception ex) { throw new CompletionException(ex); }
+                    });
+                } catch (Exception ex) {
+                    CompletableFuture<String> failed = new CompletableFuture<String>();
+                    failed.completeExceptionally(ex);
+                    return failed;
+                }
+            }).whenComplete((group, error) -> {
+                if (!plugin.isEnabled()) return;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (actor instanceof Player && !((Player) actor).isOnline()) return;
+                    if (error != null) {
+                        actor.sendMessage(ColorUtil.c("&cLuckPerms недоступен: изменение роли отменено."));
+                    } else {
+                        executeRankChange(actor, target, rank, reason, group, true);
+                    }
+                });
+            });
+        } catch (Throwable ex) {
+            actor.sendMessage(ColorUtil.c("&cНе удалось проверить LuckPerms: изменение роли отменено."));
+        }
+    }
+
     // =========================================================================
     // 3. GUI МЕНЮ КУРАТОРА (/curator)
     // =========================================================================
@@ -370,11 +453,12 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
                 "",
                 "&7Все действия записываются в лог кураторов."));
 
-        inv.setItem(11, ItemFactory.glowIcon(Material.DIAMOND_SWORD, "&#4ADE80&l🛡 ВЫДАТЬ РОЛЬ КП (9 должностей)",
+        inv.setItem(11, ItemFactory.glowIcon(Material.DIAMOND_SWORD, "&#4ADE80&l🛡 ВЫДАТЬ РОЛЬ КП И КУРАТОРА",
                 "&7Назначение персонала проекта:",
                 "&f• КП, Хелпер, Ст. Хелпер",
                 "&f• Мл. Модер, Модер, Ст. Модер, Гл. Модер",
-                "&f• Мл. Админ, Админ",
+                "&f• Мл. Админ, Админ, Ст. и Гл. Админ",
+                "&f• Кураторы ДКП, Медиа, КП, Discord",
                 "",
                 targetLine,
                 "&#00E676▸ Нажмите для выбора должности КП!"));
@@ -521,7 +605,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         for (Map.Entry<String, String> en : allSaved.entrySet()) {
             String rid = en.getValue();
             if (KP_RANKS.contains(rid) || MEDIA_RANKS.contains(rid)
-                    || "curator".equals(rid) || "techadmin".equals(rid) || "owner".equals(rid)) {
+                    || CURATOR_RANKS.contains(rid) || "techadmin".equals(rid) || "owner".equals(rid)) {
                 staffAndMedia.add(en);
             }
         }
@@ -739,7 +823,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         for (Map.Entry<String, String> en : all.entrySet()) {
             String rid = en.getValue();
             if (KP_RANKS.contains(rid) || MEDIA_RANKS.contains(rid)
-                    || "curator".equals(rid) || "techadmin".equals(rid) || "owner".equals(rid)) {
+                    || CURATOR_RANKS.contains(rid) || "techadmin".equals(rid) || "owner".equals(rid)) {
                 RankManager.RankDef def = plugin.getRanks().byId(rid);
                 boolean online = Bukkit.getPlayerExact(en.getKey()) != null;
                 s.sendMessage(ColorUtil.c(" " + (online ? "&#00E676●" : "&7○") + " &f" + en.getKey()
@@ -788,6 +872,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
             allRanks.addAll(KP_RANKS);
             allRanks.addAll(MEDIA_RANKS);
             allRanks.addAll(DONATE_RANKS);
+            allRanks.addAll(CURATOR_RANKS);
             return filterPrefix(allRanks, args[1]);
         }
         if (args.length == 3) {
@@ -800,6 +885,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
                 allRanks.addAll(KP_RANKS);
                 allRanks.addAll(MEDIA_RANKS);
                 allRanks.addAll(DONATE_RANKS);
+                allRanks.addAll(CURATOR_RANKS);
                 return filterPrefix(allRanks, args[2]);
             }
         }

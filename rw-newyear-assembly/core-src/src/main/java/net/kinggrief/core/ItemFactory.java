@@ -1283,6 +1283,24 @@ public final class ItemFactory {
     }
 
     // ================= 6 РАЗНОВИДНОСТЕЙ 3D КАСТОМНОГО ТНТ ДЛЯ РЕЙДОВ =================
+    public static ItemStack tntStorm(int amt) {
+        return make(Material.TNT, amt, "&#FDE047&l⚡ Грозовой ТНТ",
+                Arrays.asList("&7Тактический заряд: урон и подсветка врагов", "&7Без молний, пожаров и разрушения блоков."),
+                true, "tnt_storm", "tnt_storm", 1607);
+    }
+
+    public static ItemStack tntGravity(int amt) {
+        return make(Material.TNT, amt, "&#C4B5FD&l✦ Гравитационный ТНТ",
+                Arrays.asList("&7Притягивает врагов к центру и замедляет их.", "&7Не разрушает блоки."),
+                true, "tnt_gravity", "tnt_gravity", 1608);
+    }
+
+    public static ItemStack tntEnder(int amt) {
+        return make(Material.TNT, amt, "&#A78BFA&l✧ Эндер-ТНТ",
+                Arrays.asList("&7Ослепляет и дезориентирует врагов.", "&7Не разрушает блоки."),
+                true, "tnt_ender", "tnt_ender", 1609);
+    }
+
     public static ItemStack tntTier1(int amt) {
         return make(Material.TNT, amt, "&#EF4444&l🧨 3D ТНТ TIER-II [Усиленный ×2]",
                 Arrays.asList("&8Кастомный 3D Динамит для Рейдов", "",
@@ -1881,6 +1899,21 @@ public final class ItemFactory {
                     swordPhoenix(), swordVoid(), swordMidas(),
                     scytheReaper(), axeThor(), maceKrush(), tridentPoseidon(),
                     bowZeus(), bowInferno(), bowVampire(), bowIceRw()));
+            return items;
+        }
+        if ("helper".equals(k)) {
+            // HELPER is intentionally below ML.MODER: modest diamond gear, no mythic shulkers.
+            items.add(gear(Material.DIAMOND_SWORD, "&#7DD3FC⚔ Меч HELPER", 3, 3, 0));
+            items.add(gear(Material.DIAMOND_PICKAXE, "&#7DD3FC⛏ Кирка HELPER", 3, 3, 1));
+            items.add(gear(Material.DIAMOND_HELMET, "&#7DD3FCШлем HELPER", 3, 3, 0));
+            items.add(gear(Material.DIAMOND_CHESTPLATE, "&#7DD3FCНагрудник HELPER", 3, 3, 0));
+            items.add(gear(Material.DIAMOND_LEGGINGS, "&#7DD3FCПоножи HELPER", 3, 3, 0));
+            items.add(gear(Material.DIAMOND_BOOTS, "&#7DD3FCБотинки HELPER", 3, 3, 0));
+            items.add(new ItemStack(Material.GOLDEN_APPLE, 12));
+            items.add(new ItemStack(Material.GOLDEN_CARROT, 64));
+            items.add(new ItemStack(Material.ENDER_PEARL, 16));
+            items.add(plast(3));
+            items.add(trapka(2));
             return items;
         }
         if ("start".equals(k)) {

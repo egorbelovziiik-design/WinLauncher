@@ -111,7 +111,7 @@ public final class OwnerGiveawayManager implements Listener, CommandExecutor, Ta
         if (!(s instanceof Player)) return true;
         Player p = (Player) s;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
-        return r != null && "owner".equalsIgnoreCase(r.id);
+        return r != null && plugin.getRanks().isOwnerLevel(r.id);
     }
 
     public boolean isTechWorkMode() {

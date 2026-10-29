@@ -109,7 +109,7 @@ public final class HudManager {
     private boolean isOwnerBypassCombat(Player p) {
         if (p == null) return false;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
-        return r != null && "owner".equalsIgnoreCase(r.id);
+        return r != null && plugin.getRanks().isOwnerLevel(r.id);
     }
 
     public void tagCombat(Player p) {

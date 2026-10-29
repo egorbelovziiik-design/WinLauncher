@@ -3,3 +3,4 @@ version: 1.0
 main: net.kinggrief.probe.ProbePlugin
 api-version: "1.21"
 depend: [KingGriefCore]
+softdepend: [LuckPerms, WorldGuard]

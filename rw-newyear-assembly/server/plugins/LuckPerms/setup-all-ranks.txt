@@ -1,10 +1,28 @@
-# KINGGRIEF v5.7 — 39 Рангов (вкл. mlmoder, mladmin и admin в КП; без hero/titan/overlord/bull!)
+# KINGGRIEF v6.6 — 45 рангов и актуальная иерархия
 lp creategroup owner
 lp group owner setweight 300
 lp group owner meta setprefix 300 "&f &4"
 lp creategroup techadmin
 lp group techadmin setweight 290
 lp group techadmin meta setprefix 290 "&f &b"
+lp creategroup curator_discord
+lp group curator_discord setweight 285
+lp group curator_discord meta setprefix 285 "&f &9"
+lp creategroup curator_kp
+lp group curator_kp setweight 282
+lp group curator_kp meta setprefix 282 "&f &a"
+lp creategroup curator_media
+lp group curator_media setweight 280
+lp group curator_media meta setprefix 280 "&f &d"
+lp creategroup curator_dkp
+lp group curator_dkp setweight 278
+lp group curator_dkp meta setprefix 278 "&f &6"
+lp creategroup gladmin
+lp group gladmin setweight 273
+lp group gladmin meta setprefix 273 "&f &c"
+lp creategroup stadmin
+lp group stadmin setweight 271
+lp group stadmin meta setprefix 271 "&f &c"
 lp creategroup curator
 lp group curator setweight 275
 lp group curator meta setprefix 275 "&f &a"

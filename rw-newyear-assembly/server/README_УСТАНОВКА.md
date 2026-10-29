@@ -1,43 +1,57 @@
-# 🎄 Новогодняя сборка KINGGRIEF v6.4.1 + KingАЧ v8.3.0
+# 🎄 Новогодняя сборка KINGGRIEF v6.6.0 + KingАЧ v8.3.0
 
-Сборка грифа содержит `KingGriefCore.jar` **v6.4.1**, `KingAC.jar` **v8.3.0**,
-`KingConnect.jar` **v2.3.0**, `KingClear.jar` v1.0.1 и ресурспак v65. Для отдельного
-хаба доступен `KingHub.jar` **v1.2.1**. Сайт: **https://kinggrief.vercel.app**.
+Для всей сборки используйте **Paper 1.21.4 и Java 21** (скачиваются отдельно).
+Совместимость отдельного KingAC со старыми версиями не означает совместимость
+всех плагинов сборки с ними.
+
+Сборка грифа содержит `KingGriefCore.jar` **v6.6.0**, `KingAC.jar` **v8.3.0**,
+`KingConnect.jar` **v2.3.0**, `KingClear.jar` v1.0.1 и ресурспак v66. Для отдельного
+хаба доступен `KingHub.jar` **v1.2.2**. Сайт: **https://kinggrief.vercel.app**.
+
+
+## Обновление v6.6
+
+- Новый спавн со свободными проходами и тремя зимними павильонами строится автоматически только для нового `spawn_world`. Старый мир автоматически не стирается.
+- **Обновление существующего спавна:** сохраните свою внешнюю резервную копию сервера, выведите всех игроков из `spawn_world`, затем выполните `/rebuildspawn confirm` (OWNER, TECH.ADMIN или консоль). Плагин дополнительно сохраняет ZIP в `plugins/KingGriefCore/backups/` и отменяет перестройку при ошибке резервирования. Для восстановления остановите сервер и восстановите содержимое архива в `spawn_world`.
+- `/shop` → рейдовый отдел: весь TNT продаётся поштучно за рилики; обычный — 1, ядерный — 5000. Новые виды: грозовой, гравитационный, эндер.
+- Иерархия: `curator_discord > curator_kp > curator_media > curator_dkp > curator > gladmin > stadmin > admin`. Назначение, например: `/curator give Ник curator_media`; куратор может управлять только ролями ниже своей. TECH.ADMIN обладает правами уровня OWNER, но автоматического vanilla OP нет.
+- События: `/events start crystal`, `/events start ruins`, `/events start camp`. Они запускаются также автоматически и открывают сундуки; после завершения блоки восстанавливаются. Площадка проверяется на встроенные приваты, границы мира и постройки. При наличии WorldGuard проверяются границы его регионов; другие системы приватов отдельно не проверены.
+- Отдельный [ранк-пак v66](https://kinggrief.vercel.app/kinggrief-ranks-pack-v66.zip) содержит только шрифты/значки рангов. Полный ресурспак уже включает их; оба пака одновременно не обязательны.
 
 ---
 
-## 🎨 Ресурспак v65 — исправление предметов и уменьшенные шары
+## 🎨 Ресурспак v66 — настоящие маленькие кубические шары
 
-Скачайте **[ресурспак v65](https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip)**.
-Его копия есть в `resourcepack/kinggrief-mega-rp-v65.zip`. Он для Minecraft Java Edition:
-шары уменьшены в меню, хотбаре и руках; модели покрывают свитки, тотемы, МЕГА-предметы,
+Скачайте **[ресурспак v66](https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip)**.
+Его копия есть в `resourcepack/kinggrief-mega-rp-v66.zip`. Он для Minecraft Java Edition:
+шары сделаны небольшими шестигранными кубиками в меню, хотбаре и руках; модели покрывают свитки, тотемы, МЕГА-предметы,
 кирки, броню, элитры и другие вещи. Модели надетой брони/элитр отдельно не добавляются.
 
 ### Обновление работающего сервера
 
 1. **Остановите сервер и сохраните резервную копию миров и данных игроков.** Замените
-   `plugins/KingGriefCore.jar` на **[новый KingGriefCore v6.4.1](https://kinggrief.vercel.app/KingGriefCore.jar)**.
+   `plugins/KingGriefCore.jar` на **[новый KingGriefCore v6.6.0](https://kinggrief.vercel.app/KingGriefCore.jar)**.
    Если у вас отдельный сервер хаба, на нём также замените `plugins/KingHub.jar` на
-   **[KingHub v1.2.1](https://kinggrief.vercel.app/KingHub.jar)**. Хаб и гриф могут
+   **[KingHub v1.2.2](https://kinggrief.vercel.app/KingHub.jar)**. Хаб и гриф могут
    быть разными серверами; не устанавливайте Hub на гриф только ради этого обновления.
 2. На каждом сервере, который автоматически отправляет ресурспак, измените **только**
    следующие строки в его `server.properties`:
 
    ```properties
-   resource-pack=https\://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip
-   resource-pack-sha1=fc61175f0692ab85486898160dce223097aa4382
+   resource-pack=https\://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip
+   resource-pack-sha1=63461884bd573de19a043f11b5982a34536e47d9
    ```
 
    В `plugins/KingGriefCore/config.yml` на грифе и, если есть отдельный хаб,
    в `plugins/KingHub/config.yml` на хабе установите:
 
    ```yaml
-   resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip"
-   resourcepack-sha1: "fc61175f0692ab85486898160dce223097aa4382"
+   resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip"
+   resourcepack-sha1: "63461884bd573de19a043f11b5982a34536e47d9"
    ```
 
-   Новые JAR при отправке автоматически заменяют известные официальные пары v63/v64
-   на v65, не меняя другие URL и не переписывая конфиги. `server.properties`
+   Новые JAR при отправке автоматически заменяют известные официальные пары v63/v64/v65
+   на v66, не меняя другие URL и не переписывая конфиги. `server.properties`
    обрабатывается самим сервером отдельно, поэтому его всё равно нужно обновить.
 3. **Полностью перезапустите серверы** (не `/reload`), перезайдите и разрешите
    загрузку серверного ресурспака. В настройках подключения к серверу поставьте
@@ -53,9 +67,9 @@
 **Настройки → Наборы ресурсов → Открыть папку** → положите ZIP без распаковки →
 включите его выше других пользовательских паков. Если сервер продолжает навязывать
 старую версию, обновите сервер, либо в настройках подключения к нему отключите
-серверные ресурспаки и используйте v65 вручную. Уберите другие паки, которые могут
+серверные ресурспаки и используйте v66 вручную. Уберите другие паки, которые могут
 перекрывать модели предметов. Если пак не принят/не загрузился, кастомные иконки
-не появятся. Старые ZIP v63 и v64 оставлены без изменений из-за закреплённых SHA-1.
+не появятся. Старые ZIP v63, v64 и v65 оставлены без изменений из-за закреплённых SHA-1.
 
 ---
 
@@ -69,7 +83,7 @@
 
 ```
 [KingAC] ==================================================================
-[KingAC]  KingAC v8.1 - PROFESSIONAL NEURAL ANTI-CHEAT ENABLED
+[KingAC]  KingAC v8.3 - PROFESSIONAL NEURAL ANTI-CHEAT ENABLED
 [KingAC]  * 12 LIVE INJECTION SCHEMES (360 / WALL / ORBIT / ZENITH / SWARM
 [KingAC]  * Commands: /ac /kac /kingac /inject /report /reports
 ```
@@ -82,8 +96,8 @@
 |---|---|
 | Файл лежит в `plugins/` | `plugins/KingAC.jar` (ровно так, в корне папки плагинов, **не** в подпапке) |
 | Старый античит удалён | Файла `plugins/King_antisoft.jar` быть **не должно** (иначе два античита конфликтуют) |
-| Версия ядра | Spigot / Paper / Purpur **1.16.5 – 1.21.x** (`api-version: '1.16'` — плагин грузится везде) |
-| Java | Java 8+ для 1.16.5, Java 17+ для 1.18+, Java 21 для 1.20.5+ |
+| Версия сервера | Для всей сборки: **Paper 1.21.4**. У отдельного античита может быть более широкий диапазон совместимости |
+| Java | **Java 21** для Paper 1.21.4 и всей сборки |
 | Перезапуск | После добавления `.jar` нужен **полный рестарт**, `/reload` не подходит |
 | Команда в игре | `/ac` → откроется центр детектов (для состава и OP) |
 
@@ -170,7 +184,7 @@ Criticals (пакет-крит + **микро-хоп**), KeepSprint, AimBot, Aim
 ## ⚙ ФАЙЛЫ И НАСТРОЙКИ
 
 ```
-plugins/KingAC.jar                <- сам античит v8.0
+plugins/KingAC.jar                <- сам античит v8.3
 plugins/KingAC/config.yml         <- пороги VL, авто-бан, setback, вкл/выкл каждой из 8 схем
 plugins/KingAC/bans.yml           <- база авто-банов KingАЧ
 plugins/KingAC/detections.log     <- полный лог детектов (время, проверка, игрок, VL, пинг, схема)
@@ -188,19 +202,19 @@ plugins/KingAC/detections.log     <- полный лог детектов (вр�
 
 | Файл | Версия | Назначение |
 |---|---|---|
-| `plugins/KingAC.jar` | **8.1.0** | Нейро-античит KingАЧ + 12 Схем Инжекта (1.16.5–1.21.x) |
-| `plugins/KingGriefCore.jar` | **6.0.1** | Ядро: ранги, киты, кейсы, /tm, /duel, Божья Аура, модерация, мост KingАЧ |
+| `plugins/KingAC.jar` | **8.3.0** | Нейро-античит KingАЧ + 12 Схем Инжекта (1.16.5–1.21.x) |
+| `plugins/KingGriefCore.jar` | **6.6.0** | Ядро: ранги, киты, кейсы, /tm, /duel, Божья Аура, модерация, мост KingАЧ |
 | `plugins/KingClear.jar` | 1.0.1 | Отдельный `/clear` |
-| `plugins/KingGriefBridge.jar` | 2.x | Облачный мост на сайт kinggrief.vercel.app |
-| `plugins/KingConnect.jar` | 2.2.0 | Сервер 1 Гриф: приём переходов из Хаба |
-| `KingHub.jar` | 1.2.0 | Хаб: новогодняя карта, компас, НПС (ставится **в папку Хаба**) |
-| `resourcepack/` | v6.0 | Мега-РП (115+ 3D предметов) |
+| `plugins/KingGriefBridge.jar` | 1.4.0 | Облачный мост на сайт kinggrief.vercel.app |
+| `plugins/KingConnect.jar` | 2.3.0 | Сервер 1 Гриф: приём переходов из Хаба |
+| `KingHub.jar` | 1.2.2 | Отдельная загрузка для Хаба; в полном ZIP грифа не находится |
+| `resourcepack/` | v66 | Мега-РП (115+ 3D предметов) |
 | `TechWorksStub.jar` | 1.0 | Заглушка `⚙ Тех работы!` |
 
 ---
 
 ## ☁ САЙТ И ОБЛАКО
 
-* Сайт и админ-панель: **https://kinggrief.vercel.app** (`/admin`: `admin` / `KingGrief-2026`)
+* Сайт и админ-панель: **https://kinggrief.vercel.app**. Настройте собственные учётные данные и секреты перед публикацией.
 * Прямые ссылки: `https://kinggrief.vercel.app/KingAC.jar`, `/KingGriefCore.jar`, `/rw-newyear-full-assembly.zip`
 * Discord: **https://discord.gg/7Cugj4X3eU**

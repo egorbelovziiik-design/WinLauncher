@@ -1,0 +1,6 @@
+name: curator_dkp
+permissions:
+- weight.278
+prefixes:
+- '&f &6':
+    priority: 278

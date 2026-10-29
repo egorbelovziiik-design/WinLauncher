@@ -104,16 +104,7 @@ public final class VoidSpawnWorldGenerator extends ChunkGenerator {
             setRule(w, "DO_PATROL_SPAWNING", Boolean.FALSE);
             setRule(w, "DO_TRADER_SPAWNING", Boolean.FALSE);
             setRule(w, "RANDOM_TICK_SPEED", Integer.valueOf(0));
-            w.setSpawnLocation(0, 100, 52);
-            // Clean up any accidental dragons/slimes in spawn_world
-            for (Entity e : w.getEntities()) {
-                if (e instanceof EnderDragon || e instanceof Slime) {
-                    e.remove();
-                } else if (e instanceof Monster && !e.getScoreboardTags().contains("kg_npc")
-                        && !e.getScoreboardTags().contains("kg_farm_mob")) {
-                    e.remove();
-                }
-            }
+            // Do not delete user-owned entities or reset an existing world spawn here.
         } catch (Throwable ignored) {
         }
     }

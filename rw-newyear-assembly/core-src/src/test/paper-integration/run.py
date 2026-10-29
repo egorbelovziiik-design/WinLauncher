@@ -29,6 +29,10 @@ def arguments():
     parser.add_argument("--java", default="java", help="Java 21 executable for Paper")
     parser.add_argument("--javac", default="javac", help="Java compiler executable")
     parser.add_argument("--node", default="node", help="Node.js executable")
+    parser.add_argument("--mock-wg", action="store_true", help="test event region checks against a WorldGuard API double")
+    parser.add_argument("--mock-lp", action="store_true", help="exercise LP integration against a test-only mock")
+    parser.add_argument("--luckperms", type=Path, help="optional real LuckPerms Bukkit JAR to test integration")
+    parser.add_argument("--existing-unknown", action="store_true", help="test preservation of an existing non-empty spawn directory")
     parser.add_argument("--accept-eula", action="store_true", help="accept the Minecraft EULA for the temporary test server")
     args = parser.parse_args()
     if not args.accept_eula:
@@ -60,13 +64,32 @@ def build_probe(args, root):
     classes = root / "probe-classes"
     classes.mkdir()
     classpath = str(args.core.resolve()) + os.pathsep + args.api_classpath
+    sources = [HERE / ("ExistingSpawnProbe.java" if args.existing_unknown else "ProbePlugin.java")]
+    if (args.luckperms or args.mock_lp) and not args.existing_unknown:
+        classpath += os.pathsep + str((root / "server/plugins/LuckPerms.jar").resolve())
+        sources.append(HERE / ("MockLpAssertions.java" if args.mock_lp else "LuckPermsAssertions.java"))
+    if args.mock_wg and not args.existing_unknown:
+        classpath += os.pathsep + str((root / "server/plugins/WorldGuard.jar").resolve())
+        sources.append(HERE / "MockWgAssertions.java")
     subprocess.run([args.javac, "-encoding", "UTF-8", "-classpath", classpath,
-                    "-d", str(classes), str(HERE / "ProbePlugin.java")], check=True)
+                    "-d", str(classes)] + [str(source) for source in sources], check=True)
     plugin = root / "server/plugins/KgProbe.jar"
     with ZipFile(plugin, "w", ZIP_DEFLATED) as archive:
         for path in sorted(classes.rglob("*.class")):
             archive.write(path, path.relative_to(classes).as_posix())
-        archive.write(HERE / "plugin.yml", "plugin.yml")
+        archive.write(HERE / ("plugin-existing.yml" if args.existing_unknown else "plugin.yml"), "plugin.yml")
+
+
+def build_mock_plugin(args, root, short_name, plugin_name):
+    source = HERE / ("mock-" + short_name)
+    classes = root / ("mock-" + short_name + "-classes")
+    classes.mkdir()
+    subprocess.run([args.javac, "-encoding", "UTF-8", "-classpath", args.api_classpath,
+                    "-d", str(classes)] + [str(p) for p in source.rglob("*.java")], check=True)
+    with ZipFile(root / "server/plugins" / (plugin_name + ".jar"), "w", ZIP_DEFLATED) as archive:
+        for path in sorted(classes.rglob("*.class")):
+            archive.write(path, path.relative_to(classes).as_posix())
+        archive.write(source / "plugin.yml", "plugin.yml")
 
 
 def launch_and_check(args, server, port):
@@ -101,11 +124,27 @@ def launch_and_check(args, server, port):
                 break
         if not started:
             return False
+        if args.existing_unknown:
+            deadline = time.monotonic() + 40
+            while time.monotonic() < deadline:
+                try:
+                    line = messages.get(timeout=1)
+                except queue.Empty:
+                    if process.poll() is not None: break
+                    continue
+                if "KG-PROBE PASS" in line:
+                    print("SERVER ASSERTIONS:", line.strip())
+                    success = True
+                    return True
+                if "KG-PROBE FAIL" in line:
+                    print("SERVER ASSERTIONS:", line.strip())
+                    return False
+            return False
         env = os.environ.copy()
         env["NODE_PATH"] = str(args.node_modules.resolve())
         client = subprocess.Popen([args.node, str(HERE / "client.cjs"), str(port)],
-                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
-        deadline = time.monotonic() + 70
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+        deadline = time.monotonic() + 120
         while time.monotonic() < deadline:
             try:
                 line = messages.get(timeout=1)
@@ -121,7 +160,7 @@ def launch_and_check(args, server, port):
                 print("SERVER ASSERTIONS:", line.strip())
                 break
         try:
-            client_output = client.communicate(timeout=30)[0]
+            client_output = client.communicate(input="done\n", timeout=15)[0]
         except subprocess.TimeoutExpired:
             client.kill()
             client_output = client.communicate()[0]
@@ -141,6 +180,9 @@ def launch_and_check(args, server, port):
                 process.kill()
                 process.wait()
         if not success:
+            print("\n--- LUCKPERMS STARTUP LOG ---", file=sys.stderr)
+            lp = [i for i, line in enumerate(output) if "LuckPerms" in line and ("ERROR" in line or "WARN" in line or "Loading" in line or "Enabling" in line)]
+            for i in lp[:8]: print("".join(output[max(0,i-1):i+12]), file=sys.stderr)
             print("\n--- SERVER LOG TAIL ---", file=sys.stderr)
             print("".join(output[-150:]), file=sys.stderr)
 
@@ -153,8 +195,28 @@ def main():
         server = root / "server"
         (server / "plugins/KingGriefCore").mkdir(parents=True)
         (server / "cache").mkdir()
+        if args.existing_unknown:
+            (server / "spawn_world").mkdir()
+            (server / "spawn_world/kg-user-data.txt").write_text("user data must remain", encoding="utf-8")
         shutil.copy2(args.vanilla, server / "cache" / cache_name)
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
+        if args.mock_lp:
+            build_mock_plugin(args, root, "lp", "LuckPerms")
+        if args.mock_wg:
+            build_mock_plugin(args, root, "wg", "WorldGuard")
+            wg_probe_config = server / "plugins/KgProbe/config.yml"
+            wg_probe_config.parent.mkdir(parents=True, exist_ok=True)
+            wg_probe_config.write_text("mock-wg: true\n", encoding="utf-8")
+        if args.luckperms or args.mock_lp:
+            if args.luckperms and not args.mock_lp:
+                shutil.copy2(args.luckperms, server / "plugins/LuckPerms.jar")
+            lp_config = server / "plugins/LuckPerms/config.yml"
+            lp_config.parent.mkdir(parents=True, exist_ok=True)
+            lp_config.write_text("server: global\nstorage-method: yaml\nmessaging-service: none\n", encoding="utf-8")
+            probe_config = server / "plugins/KgProbe/config.yml"
+            probe_config.parent.mkdir(parents=True, exist_ok=True)
+            with probe_config.open("a", encoding="utf-8") as config:
+                config.write("expect-luckperms: true\nmock-lp: " + ("true" if args.mock_lp else "false") + "\n")
         (server / "eula.txt").write_text("eula=true\n", encoding="utf-8")
         (server / "plugins/KingGriefCore/config.yml").write_text(
             'enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\n'

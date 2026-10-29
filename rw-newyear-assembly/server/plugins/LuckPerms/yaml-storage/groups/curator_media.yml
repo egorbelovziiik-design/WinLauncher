@@ -1,0 +1,6 @@
+name: curator_media
+permissions:
+- weight.280
+prefixes:
+- '&f &d':
+    priority: 280

@@ -155,9 +155,9 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.4.1 — RESOURCE PACK & ITEM MODEL FIX    ");
+        getLogger().info(" KINGGRIEF CORE v6.6.0 — SPAWN, EVENTS, RANKS & TNT       ");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
-        getLogger().info(" Anti-DDoS Lightning | 6 Custom TNTs | /razdacha | /txt     ");
+        getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
     }
 
@@ -403,7 +403,7 @@ public final class KingGriefCore extends JavaPlugin {
                     "start", "newyear", "dragon", "pegas", "cobra", "dracula", "bunny", "rabbit",
                     "vampire", "tiger", "god", "imperator", "king", "sponsor", "media",
                     "dhelper", "dkp", "dmoder", "dstmoder", "dglmoder", "dmladmin", "dadmin",
-                    "opka", "downer", "kp", "mlmoder", "mladmin", "admin", "curator", "owner"
+                    "opka", "downer", "kp", "helper", "mlmoder", "mladmin", "admin", "curator", "techadmin", "owner"
             ), args[0]);
         } else if ("kit".equals(c) && args.length == 2) {
             return onlineNames(args[1]);
@@ -411,7 +411,7 @@ public final class KingGriefCore extends JavaPlugin {
             return filterPrefix(Arrays.asList("dragon"), args[0]);
         } else if ("events".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("start"), args[0]);
-            if (args.length == 2) return filterPrefix(Arrays.asList("airdrop", "meteor", "beacon", "citadel", "volcano", "grinch", "krush", "titan", "osiris", "andromeda"), args[1]);
+            if (args.length == 2) return filterPrefix(Arrays.asList("airdrop", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"), args[1]);
         } else if ("clan".equals(c)) {
             if (args.length == 1) {
                 return filterPrefix(Arrays.asList(
@@ -508,8 +508,13 @@ public final class KingGriefCore extends JavaPlugin {
                 sender.sendMessage(ColorUtil.c("&cДоступно только OWNER и Консоли!"));
                 return true;
             }
-            spawnEngine.initializeSpawnWorldAndBuild(true);
-            sender.sendMessage(ColorUtil.c("&#00E676✔ Яркий красочный спавн v6.4.0 успешно перестроен в мире spawn_world!"));
+            if (args.length != 1 || !"confirm".equalsIgnoreCase(args[0])) {
+                sender.sendMessage(ColorUtil.c("&eСпавн будет заменён! Выведите игроков из spawn_world и дополнительно сохраните мир. Подтвердите: &f/rebuildspawn confirm"));
+                return true;
+            }
+            boolean rebuilt = spawnEngine.initializeSpawnWorldAndBuild(true);
+            sender.sendMessage(ColorUtil.c(rebuilt ? "&#00E676✔ Спавн v6.6 перестроен; резервная копия в plugins/KingGriefCore/backups."
+                    : "&cПерестройка не выполнена. Проверьте, что игроков нет в spawn_world, и посмотрите журнал."));
             return true;
         }
         if ("promoadmin".equals(c)) {
@@ -934,7 +939,9 @@ public final class KingGriefCore extends JavaPlugin {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Запускать ивенты могут только Админы и выше (D.ADMIN+ / OWNER)!"));
                     return true;
                 }
-                bossEvents.spawnBossEvent(args[1], null);
+                if (bossEvents.spawnBossEvent(args[1], null) == null) {
+                    p.sendMessage(ColorUtil.c("&cНеизвестный ивент или не найдено безопасное место вдали от построек и приватов."));
+                }
                 return true;
             }
             guis.openEventsMenu(p);
@@ -1405,7 +1412,7 @@ public final class KingGriefCore extends JavaPlugin {
                     return true;
                 }
                 RankManager.RankDef tRank = ranks.getRank(target);
-                if (!target.equals(p) && tRank.weight > myRank.weight && !"owner".equals(myRank.id)) {
+                if (!target.equals(p) && tRank.weight > myRank.weight && !ranks.isOwnerLevel(myRank.id)) {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя менять режим игры старшему по должности (&f" + target.getName() + "&#FF1744)!"));
                     return true;
                 }
@@ -1425,7 +1432,7 @@ public final class KingGriefCore extends JavaPlugin {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ У вашей привилегии нет доступа к /gm!"));
                 return true;
             }
-            if (gm == GameMode.CREATIVE && spawnEngine.isInSpawnWorld(p.getLocation()) && !"owner".equals(myRank.id) && !"techadmin".equals(myRank.id)) {
+            if (gm == GameMode.CREATIVE && spawnEngine.isInSpawnWorld(p.getLocation()) && !ranks.isOwnerLevel(myRank.id) && !"techadmin".equals(myRank.id)) {
                 p.sendMessage(ColorUtil.c("&eВнимание: строить/ломать на спавне может только OWNER!"));
             }
             applyGameModeToTarget(p, gm);
@@ -1532,7 +1539,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             RankManager.RankDef tr = ranks.getRank(t);
-            if (tr.weight > myRank.weight && !"owner".equals(myRank.id)) {
+            if (tr.weight > myRank.weight && !ranks.isOwnerLevel(myRank.id)) {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя телепортировать к себе старшего по должности (&f" + t.getName() + "&#FF1744)!"));
                 return true;
             }
@@ -2337,8 +2344,13 @@ public final class KingGriefCore extends JavaPlugin {
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("rebuildspawn".equals(sub)) {
-            spawnEngine.initializeSpawnWorldAndBuild(true);
-            s.sendMessage(ColorUtil.c("&#00E676✔ Яркий Спавн v6.4.0 в мире spawn_world перестроен!"));
+            if (args.length != 2 || !"confirm".equalsIgnoreCase(args[1])) {
+                s.sendMessage(ColorUtil.c("&eВыведите игроков и сохраните мир. Подтверждение: &f/kgadmin rebuildspawn confirm"));
+                return true;
+            }
+            boolean rebuilt = spawnEngine.initializeSpawnWorldAndBuild(true);
+            s.sendMessage(ColorUtil.c(rebuilt ? "&#00E676✔ Спавн v6.6 перестроен; копия в plugins/KingGriefCore/backups."
+                    : "&cПерестройка отменена. Проверьте журнал и отсутствие игроков в spawn_world."));
             return true;
         }
         if ("startboss".equals(sub)) {
@@ -2553,7 +2565,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     private boolean handleExtraPowerCommands(Player p, String c, String[] args) {
         RankManager.RankDef r = ranks.getRank(p);
-        boolean isOwner = "owner".equalsIgnoreCase(r.id);
+        boolean isOwner = ranks.isOwnerLevel(r.id);
 
         if ("suicide".equals(c)) {
             p.setHealth(0.0);

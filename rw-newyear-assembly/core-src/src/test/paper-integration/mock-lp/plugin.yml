@@ -1,0 +1,8 @@
+name: LuckPerms
+version: mock-test-only
+main: net.kinggrief.probe.FakeLuckPerms
+api-version: "1.21"
+load: STARTUP
+commands:
+  luckperms:
+    aliases: [lp]

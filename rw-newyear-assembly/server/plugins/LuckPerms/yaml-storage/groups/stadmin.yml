@@ -1,0 +1,6 @@
+name: stadmin
+permissions:
+- weight.271
+prefixes:
+- '&f &c':
+    priority: 271

@@ -1,0 +1,6 @@
+name: gladmin
+permissions:
+- weight.273
+prefixes:
+- '&f &c':
+    priority: 273

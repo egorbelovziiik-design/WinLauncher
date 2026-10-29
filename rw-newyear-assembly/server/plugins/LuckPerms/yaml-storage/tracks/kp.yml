@@ -1,11 +1,20 @@
 name: kp
 groups:
+- kp
 - helper
 - sthelper
+- mlmoder
 - moder
 - stmoder
 - glmoder
-- kp
+- mladmin
+- admin
+- stadmin
+- gladmin
 - curator
+- curator_dkp
+- curator_media
+- curator_kp
+- curator_discord
 - techadmin
 - owner

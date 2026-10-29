@@ -1,0 +1,5 @@
+name: KgProbe
+version: 1.0
+main: net.kinggrief.probe.ExistingSpawnProbe
+api-version: "1.21"
+depend: [KingGriefCore]

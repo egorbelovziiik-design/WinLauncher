@@ -177,15 +177,7 @@ public final class GameplayListener implements Listener {
                             }
                         } catch (Throwable ignored) {}
                     }
-                    // Failsafe: if fuse reached <= 2 ticks, guarantee custom detonation even if WorldGuard/Essentials cancels EntityExplodeEvent!
-                    if (fuse <= 2 && !detonatedTntIds.contains(uid)) {
-                        detonatedTntIds.add(uid);
-                        Player src = info.ownerId != null ? Bukkit.getPlayer(info.ownerId) : null;
-                        Location detLoc = tnt.getLocation().clone();
-                        tnt.remove();
-                        it.remove();
-                        detonateCustomTnt(detLoc, info.tntType, src);
-                    }
+
                 }
             }
         }.runTaskTimer(plugin, 4L, 2L);
@@ -743,7 +735,7 @@ public final class GameplayListener implements Listener {
         DataStore.Claim cl = plugin.getStore().getClaimAt(loc);
         if (cl != null) {
             if (cl.isCenter(loc)) {
-                if (!cl.owner.equalsIgnoreCase(p.getName()) && !"owner".equals(plugin.getRanks().getRank(p).id)) {
+                if (!cl.owner.equalsIgnoreCase(p.getName()) && !plugin.getRanks().isOwnerLevel(p)) {
                     e.setCancelled(true);
                     p.sendMessage(ColorUtil.c("&#FF1744🛡 Это центральный блок чужого привата (&f" + cl.owner + "&#FF1744)!"));
                     return;
@@ -754,7 +746,7 @@ public final class GameplayListener implements Listener {
                 p.sendMessage(ColorUtil.c("&#FFD740🛡 Вы сняли свой приват! Блок возвращён."));
                 return;
             }
-            if (!cl.canAccess(p.getName()) && !"owner".equals(plugin.getRanks().getRank(p).id)) {
+            if (!cl.canAccess(p.getName()) && !plugin.getRanks().isOwnerLevel(p)) {
                 e.setCancelled(true);
                 ColorUtil.actionBar(p, "&#FF1744🛡 Территория защищена игроком &f" + cl.owner);
                 return;
@@ -832,7 +824,7 @@ public final class GameplayListener implements Listener {
         if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) return;
         DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
         if (cl != null && (!cl.canAccess(p.getName()) || cl.isCenter(b.getLocation()))
-                && !"owner".equals(plugin.getRanks().getRank(p).id)) {
+                && !plugin.getRanks().isOwnerLevel(p)) {
             return;
         }
         if (!checkAndSetCd(p, "obs_pick", 1)) return;
@@ -1101,7 +1093,7 @@ public final class GameplayListener implements Listener {
         DataStore.Claim cl = plugin.getStore().getClaimAt(t.getLocation());
         if (cl != null) {
             if (cl.isCenter(t.getLocation())) return false;
-            if (!cl.canAccess(p.getName()) && !"owner".equals(plugin.getRanks().getRank(p).id)) return false;
+            if (!cl.canAccess(p.getName()) && !plugin.getRanks().isOwnerLevel(p)) return false;
         }
         return true;
     }
@@ -1358,7 +1350,7 @@ public final class GameplayListener implements Listener {
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) {
             if (!plugin.getRanks().canModifySpawn(p)) {
                 e.setCancelled(true);
-                ColorUtil.actionBar(p, "&#FF1744🛡 Строить на спавне может только OWNER! Выживание: &#00E676/rtp");
+                ColorUtil.actionBar(p, "&#FF1744🛡 Строить на спавне могут OWNER и TECH.ADMIN! Выживание: &#00E676/rtp");
             }
             return;
         }
@@ -1368,7 +1360,7 @@ public final class GameplayListener implements Listener {
             return;
         }
         DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
-        if (cl != null && !cl.canAccess(p.getName()) && !"owner".equals(plugin.getRanks().getRank(p).id)) {
+        if (cl != null && !cl.canAccess(p.getName()) && !plugin.getRanks().isOwnerLevel(p)) {
             e.setCancelled(true);
             ColorUtil.actionBar(p, "&#FF1744🛡 Чужая территория (&f" + cl.owner + "&#FF1744)!");
             return;
@@ -1396,9 +1388,8 @@ public final class GameplayListener implements Listener {
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    if (b.getType() == Material.TNT) {
-                        b.setType(Material.AIR, false);
-                    }
+                    if (b.getType() != Material.TNT) return; // a later plugin may have cancelled/removed the placement
+                    b.setType(Material.AIR, false);
                     spawnCustomPrimedTnt(spawnLoc, tntType, p, null);
                 }
             }.runTask(plugin);
@@ -1460,6 +1451,12 @@ public final class GameplayListener implements Listener {
             label = "&#FB923C&l⛏ БУРОВОЙ ТНТ";
             fuse = 50;
             yield = 4.0f;
+        } else if ("tnt_storm".equals(tntType)) {
+            label = "&#FDE047&l⚡ ГРОЗОВОЙ ТНТ"; fuse = 55; yield = 3.0f;
+        } else if ("tnt_gravity".equals(tntType)) {
+            label = "&#C4B5FD&l✦ ГРАВИТАЦИОННЫЙ ТНТ"; fuse = 60; yield = 3.0f;
+        } else if ("tnt_ender".equals(tntType)) {
+            label = "&#8B5CF6&l✧ ЭНДЕР-ТНТ"; fuse = 65; yield = 3.0f;
         }
         tnt.setFuseTicks(fuse);
         tnt.setYield(yield);
@@ -1500,6 +1497,7 @@ public final class GameplayListener implements Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
+                boolean consumed = false;
                 if (b.getState() instanceof org.bukkit.block.Container) {
                     org.bukkit.inventory.Inventory inv = ((org.bukkit.block.Container) b.getState()).getInventory();
                     for (int s = 0; s < inv.getSize(); s++) {
@@ -1507,11 +1505,12 @@ public final class GameplayListener implements Listener {
                         if (tntType.equals(ItemFactory.getCustomId(st))) {
                             if (st.getAmount() > 1) st.setAmount(st.getAmount() - 1);
                             else inv.setItem(s, null);
+                            consumed = true;
                             break;
                         }
                     }
                 }
-                spawnCustomPrimedTnt(spLoc, tntType, null, vel);
+                if (consumed) spawnCustomPrimedTnt(spLoc, tntType, null, vel);
             }
         }.runTask(plugin);
     }
@@ -1527,8 +1526,44 @@ public final class GameplayListener implements Listener {
         }
     }
 
-    // ignoreCancelled = false: Даже если WorldGuard/Essentials отменяет ванильный ТНТ или ТНТ в воде — КАСТОМНЫЙ ТНТ СРАБАТЫВАЕТ НА 100%!
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    /** Make every block the custom explosion might touch visible to protection
+     * plugins before they filter/cancel the event. The final effect may only
+     * modify blocks still present in this list at HIGHEST priority. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void prepareCustomTntExplosion(EntityExplodeEvent e) {
+        String type = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
+        if (type == null || !type.startsWith("tnt_")) return;
+        if (plugin.getSpawnEngine().isInSpawnWorld(e.getLocation())) {
+            e.setCancelled(true);
+            return;
+        }
+        int radius;
+        if ("tnt_nuke".equals(type)) radius = 8;
+        else if ("tnt_black".equals(type) || "tnt_cryo".equals(type)) radius = 6;
+        else if ("tnt_tier1".equals(type)) radius = 5;
+        else if ("tnt_flash".equals(type) || "tnt_miner".equals(type)) radius = 4;
+        else return; // tactical charges do not edit terrain
+        Location c = e.getLocation();
+        World w = c.getWorld();
+        if (w == null) return;
+        e.blockList().clear();
+        for (int dx = -radius; dx <= radius; dx++) for (int dy = -radius; dy <= radius; dy++)
+            for (int dz = -radius; dz <= radius; dz++) {
+                int y = c.getBlockY() + dy;
+                if (y < w.getMinHeight() || y >= w.getMaxHeight()) continue;
+                int d2 = dx * dx + dy * dy + dz * dz;
+                if ("tnt_nuke".equals(type) && (dy < -6 || d2 > 68)) continue;
+                if ("tnt_black".equals(type) && (Math.abs(dy) > 5 || d2 > 38)) continue;
+                if ("tnt_cryo".equals(type) && (Math.abs(dy) > 4 || d2 > 38)) continue;
+                if ("tnt_tier1".equals(type) && d2 > 29) continue;
+                if ("tnt_flash".equals(type) && (Math.abs(dy) > 3 || d2 > 18)) continue;
+                Block block = w.getBlockAt(c.getBlockX() + dx, y, c.getBlockZ() + dz);
+                if (block.getType() != Material.AIR) e.blockList().add(block);
+            }
+    }
+
+    // Never override an explosion cancelled by another protection plugin.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent e) {
         if (plugin.getSpawnEngine().isInSpawnWorld(e.getLocation())) {
             e.blockList().clear();
@@ -1554,18 +1589,21 @@ public final class GameplayListener implements Listener {
             e.blockList().clear();
             return;
         }
-        detonatedTntIds.add(eid);
+        // Protection plugins have now cancelled the event or removed blocks they
+        // protect. Keep that filtered set before suppressing vanilla terrain damage.
+        Set<String> allowedBlocks = new HashSet<String>();
+        for (Block block : e.blockList()) allowedBlocks.add(blockKey(block));
         e.blockList().clear();
-        e.setCancelled(false);
 
         Player srcPlayer = null;
         if (e.getEntity() instanceof TNTPrimed && ((TNTPrimed) e.getEntity()).getSource() instanceof Player) {
             srcPlayer = (Player) ((TNTPrimed) e.getEntity()).getSource();
         }
-        detonateCustomTnt(e.getLocation(), tntType, srcPlayer);
+        detonateCustomTnt(e.getLocation(), tntType, srcPlayer, allowedBlocks);
     }
 
-    private boolean isUnbreakableRaidProtected(Block b) {
+    private boolean isUnbreakableRaidProtected(Block b, Set<String> allowedBlocks) {
+        if (allowedBlocks != null && !allowedBlocks.contains(blockKey(b))) return true;
         Material m = b.getType();
         if (m == Material.BEDROCK || m == Material.BARRIER || m == Material.END_PORTAL_FRAME
                 || m == Material.END_PORTAL || m == Material.NETHER_PORTAL || m == Material.COMMAND_BLOCK) {
@@ -1581,9 +1619,13 @@ public final class GameplayListener implements Listener {
     }
 
     /**
-     * РЕАЛЬНАЯ МЕХАНИКА ВСЕХ 6 ВИДОВ КАСТОМНОГО 3D ТНТ (РАБОТАЕТ ДАЖЕ ПОД ВОДОЙ И ЧЕРЕЗ ESSENTIALS/WG!):
+     * Custom TNT respects cancelled explosions and block lists filtered by protection plugins.
      */
     public void detonateCustomTnt(Location c, String tntType, Player srcPlayer) {
+        detonateCustomTnt(c, tntType, srcPlayer, null);
+    }
+
+    private void detonateCustomTnt(Location c, String tntType, Player srcPlayer, Set<String> allowedBlocks) {
         if (c == null || c.getWorld() == null || plugin.getSpawnEngine().isInSpawnWorld(c)) return;
         World w = c.getWorld();
         int cx = c.getBlockX(), cy = c.getBlockY(), cz = c.getBlockZ();
@@ -1603,7 +1645,7 @@ public final class GameplayListener implements Listener {
                     for (int dz = -r; dz <= r; dz++) {
                         if (dx * dx + dy * dy + dz * dz > 29) continue;
                         Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                        if (isUnbreakableRaidProtected(b)) continue;
+                        if (isUnbreakableRaidProtected(b, allowedBlocks)) continue;
                         Material m = b.getType();
                         if (m == Material.AIR || m == Material.OBSIDIAN || m == Material.CRYING_OBSIDIAN || m == Material.ANCIENT_DEBRIS) continue;
                         if (m == Material.WATER || m == Material.LAVA) {
@@ -1628,7 +1670,7 @@ public final class GameplayListener implements Listener {
                         int d2 = dx * dx + dy * dy + dz * dz;
                         if (d2 > 38) continue;
                         Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                        if (isUnbreakableRaidProtected(b)) continue;
+                        if (isUnbreakableRaidProtected(b, allowedBlocks)) continue;
                         Material m = b.getType();
                         if (m == Material.AIR) continue;
                         if (m == Material.WATER || m == Material.LAVA || m == Material.BUBBLE_COLUMN || m == Material.KELP || m == Material.SEAGRASS) {
@@ -1662,7 +1704,7 @@ public final class GameplayListener implements Listener {
                         int d2 = dx * dx + dy * dy + dz * dz;
                         if (d2 > 68) continue;
                         Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                        if (isUnbreakableRaidProtected(b)) continue;
+                        if (isUnbreakableRaidProtected(b, allowedBlocks)) continue;
                         Material m = b.getType();
                         if (m == Material.AIR) continue;
                         if (d2 <= 54) {
@@ -1696,7 +1738,7 @@ public final class GameplayListener implements Listener {
                     for (int dz = -4; dz <= 4; dz++) {
                         if (dx * dx + dy * dy + dz * dz > 18) continue;
                         Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                        if (isUnbreakableRaidProtected(b)) continue;
+                        if (isUnbreakableRaidProtected(b, allowedBlocks)) continue;
                         Material m = b.getType();
                         if (m == Material.COBWEB || m.name().contains("GLASS") || m.name().contains("DOOR") || m.name().contains("PLANKS")) {
                             b.setType(Material.AIR, false);
@@ -1729,7 +1771,7 @@ public final class GameplayListener implements Listener {
                     for (int dz = -6; dz <= 6; dz++) {
                         if (dx * dx + dy * dy + dz * dz > 38) continue;
                         Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                        if (isUnbreakableRaidProtected(b)) continue;
+                        if (isUnbreakableRaidProtected(b, allowedBlocks)) continue;
                         Material m = b.getType();
                         if (m == Material.WATER || m == Material.BUBBLE_COLUMN) {
                             b.setType(Material.BLUE_ICE, false);
@@ -1761,6 +1803,31 @@ public final class GameplayListener implements Listener {
                 }
             }
 
+        } else if ("tnt_storm".equals(tntType) || "tnt_gravity".equals(tntType) || "tnt_ender".equals(tntType)) {
+            // Three tactical charges: visual-only lightning, pull, and brief disorientation.
+            // No fire or terrain edits; never harm allies or the TNT's owner.
+            boolean storm = "tnt_storm".equals(tntType);
+            boolean gravity = "tnt_gravity".equals(tntType);
+            w.playSound(c, storm ? "minecraft:entity.lightning_bolt.thunder" : "minecraft:entity.enderman.teleport", 1.3f, 1.1f);
+            w.spawnParticle(storm ? Particle.ELECTRIC_SPARK : Particle.PORTAL, c, 100, 2.5, 1.5, 2.5, 0.12);
+            for (Entity en : w.getNearbyEntities(c, 7, 5, 7)) {
+                if (!(en instanceof Player)) continue;
+                Player victim = (Player) en;
+                if (srcPlayer != null && !isEnemyTarget(srcPlayer, victim)) continue;
+                if (gravity) {
+                    Vector pull = c.toVector().subtract(victim.getLocation().toVector());
+                    if (pull.lengthSquared() > 0.01) victim.setVelocity(pull.normalize().multiply(0.85).setY(0.32));
+                    ColorUtil.addPot(victim, "slowness", "SLOW", 60, 1);
+                } else if (storm) {
+                    ColorUtil.addPot(victim, "glowing", "GLOWING", 100, 0);
+                    if (srcPlayer != null) victim.damage(6.0, srcPlayer); else victim.damage(3.0);
+                } else {
+                    ColorUtil.addPot(victim, "blindness", "BLINDNESS", 60, 0);
+                    ColorUtil.addPot(victim, "nausea", "CONFUSION", 80, 0);
+                }
+                if (srcPlayer != null) tagPvp30(srcPlayer, victim);
+            }
+
         } else if ("tnt_miner".equals(tntType)) {
             // 6. ⛏ ШАХТЁРСКИЙ БУРОВОЙ ТНТ [9×9×9]: Выкапывает шахту 9×9×9 с авто-плавкой и Удачей прямо в инвентарь/центр!
             w.playSound(c, "minecraft:block.anvil.use", 1.5f, 1.2f);
@@ -1771,7 +1838,7 @@ public final class GameplayListener implements Listener {
                 for (int dy = -4; dy <= 4; dy++) {
                     for (int dz = -4; dz <= 4; dz++) {
                         Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                        if (isUnbreakableRaidProtected(b)) continue;
+                        if (isUnbreakableRaidProtected(b, allowedBlocks)) continue;
                         DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
                         if (cl != null && (srcPlayer == null || !cl.canAccess(srcPlayer.getName()))) continue;
                         Material m = b.getType();
@@ -4346,8 +4413,18 @@ public final class GameplayListener implements Listener {
         Player p = e.getPlayer();
         RankManager.RankDef rk = plugin.getRanks().getRank(p);
         boolean isOwner = rk != null && plugin.getRanks().isOwnerLevel(rk.id);
-        // v6.2.1: TECH.ADMIN видит все команды как OWNER!
-        if (isOwner || (rk != null && "techadmin".equalsIgnoreCase(rk.id))) return;
+        // TECH.ADMIN sees owner-level commands, except vanilla /op and /deop.
+        if (isOwner) {
+            if (rk != null && !"owner".equalsIgnoreCase(rk.id)) {
+                java.util.Iterator<String> ownerCommands = e.getCommands().iterator();
+                while (ownerCommands.hasNext()) {
+                    String name = ownerCommands.next().toLowerCase(java.util.Locale.ROOT);
+                    String base = name.contains(":") ? name.substring(name.lastIndexOf(':') + 1) : name;
+                    if ("op".equals(base) || "deop".equals(base)) ownerCommands.remove();
+                }
+            }
+            return;
+        }
         final boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
 
         boolean isCuratorPlus = rk != null && rk.weight >= 275;
@@ -4457,6 +4534,15 @@ public final class GameplayListener implements Listener {
         boolean lpAllowed = isTech && (isTechLpCommand(baseCmd)
                 || bareCmd.startsWith("luckperms:") || bareCmd.startsWith("kinggriefcore:lp"));
 
+        // Permission parents may implicitly grant minecraft.command.op even when
+        // a child node is denied. Enforce the vanilla-OP safeguard at the command.
+        if (("op".equals(baseCmd) || "deop".equals(baseCmd))
+                && (rk == null || !"owner".equalsIgnoreCase(rk.id))) {
+            e.setCancelled(true);
+            p.sendMessage(ColorUtil.c("&cВыдача vanilla OP доступна только OWNER и консоли."));
+            return;
+        }
+
         // STRICT OWNER-ONLY LOCKDOWN FOR ALL LP, LUCKPERMS, OP ("ЗВЕЗДА"), PLUGIN-LIST & DANGEROUS COMMANDS!
         if (!isOwner && !lpAllowed && (STRICT_OWNER_ONLY_COMMANDS.contains(baseCmd)
                 || bareCmd.startsWith("luckperms:") || bareCmd.startsWith("kinggriefcore:lp")
@@ -4543,16 +4629,25 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onChat(AsyncPlayerChatEvent e) {
         final Player p = e.getPlayer();
+        final String message = e.getMessage();
+        e.setCancelled(true);
+        // Rank, mute, clan, location and YAML state are Bukkit/main-thread data.
+        // Never read them from AsyncPlayerChatEvent's network thread.
+        new BukkitRunnable() {
+            @Override public void run() { dispatchChatOnMainThread(p, message); }
+        }.runTask(plugin);
+    }
+
+    private void dispatchChatOnMainThread(final Player p, String message) {
+        if (!p.isOnline()) return;
         if (!plugin.getStore().isAuthenticated(p)) {
-            e.setCancelled(true);
             p.sendMessage(ColorUtil.c("&#FF1744🔐 Сначала авторизуйтесь: /login или /register"));
             return;
         }
-        String raw = e.getMessage().trim();
+        String raw = message == null ? "" : message.trim();
 
         // Прямой приватный канал чата на проверке /check (работает даже при муте!)
         if (plugin.getModeration().handleCheckChat(p, raw)) {
-            e.setCancelled(true);
             return;
         }
 
@@ -4560,7 +4655,6 @@ public final class GameplayListener implements Listener {
         if (!isOwnerChat) {
             long muteSec = plugin.getStore().getMuteRemainingSec(p.getName());
             if (muteSec > 0) {
-                e.setCancelled(true);
                 String mReason = plugin.getStore().getMuteReason(p.getName());
                 String mStaff = plugin.getStore().getMuteStaff(p.getName());
                 String remLabel = muteSec > 36500L * 86400L ? "Навсегда" : ColorUtil.fmtTime(muteSec);
@@ -4571,7 +4665,6 @@ public final class GameplayListener implements Listener {
             String pIp = plugin.getStore().getPlayerIp(p);
             long ipMuteSec = plugin.getStore().getIpMuteRemainingSec(pIp);
             if (ipMuteSec > 0) {
-                e.setCancelled(true);
                 String mReason = plugin.getStore().getIpMuteReason(pIp);
                 String mStaff = plugin.getStore().getIpMuteStaff(pIp);
                 String remLabel = ipMuteSec > 36500L * 86400L ? "Навсегда" : ColorUtil.fmtTime(ipMuteSec);
@@ -4581,23 +4674,17 @@ public final class GameplayListener implements Listener {
             }
             int slowWait = plugin.getModeration().checkAndRecordSlowChat(p);
             if (slowWait > 0) {
-                e.setCancelled(true);
                 p.sendMessage(ColorUtil.c("&#FFD740⏱ Включён медленный режим чата! Подождите ещё &f" + slowWait + " сек."));
                 return;
             }
         }
         if (activeChatAnswer != null && raw.equalsIgnoreCase(activeChatAnswer)) {
             activeChatAnswer = null;
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    plugin.getStore().addCoins(p.getName(), 7500);
-                    plugin.getStore().addSnowflakes(p.getName(), 4);
-                    plugin.getStore().save();
-                    Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l[Викторина РВ] &fИгрок &e" + p.getName()
-                            + " &fответил первым и получил &a+7 500$ &fи &b+4 Снежинки ❄&f!"));
-                }
-            }.runTask(plugin);
+            plugin.getStore().addCoins(p.getName(), 7500);
+            plugin.getStore().addSnowflakes(p.getName(), 4);
+            plugin.getStore().save();
+            Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l[Викторина РВ] &fИгрок &e" + p.getName()
+                    + " &fответил первым и получил &a+7 500$ &fи &b+4 Снежинки ❄&f!"));
         }
 
         boolean global = raw.startsWith("!");
@@ -4610,35 +4697,20 @@ public final class GameplayListener implements Listener {
         String chTag = global ? "&#FFD740&l[G] " : "&#80D8FF&l[L] ";
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         String rankChatCol = (r != null && r.chatTextColor != null && !r.chatTextColor.isEmpty()) ? r.chatTextColor : "&7";
-        String msgText = (r != null && r.weight >= 65) ? ColorUtil.c(rankChatCol + raw) : (ColorUtil.c(rankChatCol) + raw);
+        // Player-supplied formatting is removed so every rank keeps its own readable colour
+        // and normal font (no bold, obfuscated or injected colour codes).
+        String cleanText = org.bukkit.ChatColor.stripColor(ColorUtil.c(raw));
+        String msgText = ColorUtil.c(rankChatCol) + (cleanText == null ? "" : cleanText);
         String formatted = ColorUtil.c(chTag + clanPart + pref + p.getName() + " &8» ") + msgText;
 
-        e.setCancelled(true);
-        // v6.3.2: КРИТИЧНО — этот обработчик работает в АСИНХРОННОМ потоке чата, а здесь раньше
-        // читались миры/координаты игроков и конфиг хранилища (гонка потоков -> вылеты и «пропажа» чата).
-        // Строка сообщения уже собрана, поэтому сама доставка перенесена в главный поток (задержка 1 тик).
-        final String outMsg = formatted;
-        final boolean globalFinal = global;
-        final boolean ownerChatFinal = isOwnerChat;
-        final String senderName = p.getName();
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                try {
-                    if (!p.isOnline()) return;
-                    Bukkit.getConsoleSender().sendMessage(outMsg);
-                    World pw = p.getWorld();
-                    Location pl = p.getLocation();
-                    for (Player rec : Bukkit.getOnlinePlayers()) {
-                        try {
-                            if (!ownerChatFinal && plugin.getStore().isIgnoring(rec.getName(), senderName)) continue;
-                            if (globalFinal || (rec.getWorld().equals(pw) && rec.getLocation().distanceSquared(pl) <= 10000.0)) {
-                                rec.sendMessage(outMsg);
-                            }
-                        } catch (Throwable ignored) {}
-                    }
-                } catch (Throwable ignored) {}
+        Bukkit.getConsoleSender().sendMessage(formatted);
+        World world = p.getWorld();
+        Location location = p.getLocation();
+        for (Player recipient : Bukkit.getOnlinePlayers()) {
+            if (!isOwnerChat && plugin.getStore().isIgnoring(recipient.getName(), p.getName())) continue;
+            if (global || (recipient.getWorld().equals(world) && recipient.getLocation().distanceSquared(location) <= 10000.0)) {
+                recipient.sendMessage(formatted);
             }
-        }.runTask(plugin);
+        }
     }
 }

@@ -1,4 +1,4 @@
-# KINGGRIEF v5.7 TAB Groups (39 рангов)
+# KINGGRIEF v6.6 TAB Groups (45 рангов)
 owner:
   tabprefix: "&f &4"
   tagprefix: "&f &4"
@@ -6,6 +6,30 @@ owner:
 techadmin:
   tabprefix: "&f &b"
   tagprefix: "&f &b"
+
+curator_discord:
+  tabprefix: "&f &9"
+  tagprefix: "&f &9"
+
+curator_kp:
+  tabprefix: "&f &a"
+  tagprefix: "&f &a"
+
+curator_media:
+  tabprefix: "&f &d"
+  tagprefix: "&f &d"
+
+curator_dkp:
+  tabprefix: "&f &6"
+  tagprefix: "&f &6"
+
+gladmin:
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
+
+stadmin:
+  tabprefix: "&f &c"
+  tagprefix: "&f &c"
 
 curator:
   tabprefix: "&f &a"

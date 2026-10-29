@@ -54,7 +54,10 @@ public final class BossEventManager {
         METEOR,
         BEACON,
         FROST_CITADEL,
-        VOLCANO
+        VOLCANO,
+        CRYSTAL,
+        RUINS,
+        CAMP
     }
 
     public static final class BossTemplate {
@@ -98,6 +101,9 @@ public final class BossEventManager {
         public int secondsLeft;
         public final Map<String, Double> damageMap = new HashMap<String, Double>();
         public final Map<Location, BlockState> savedBlocks = new LinkedHashMap<Location, BlockState>();
+        // Last block data actually written by this event. A different current block
+        // may belong to another plugin/player and must never be overwritten on cleanup.
+        public final Map<Location, BlockData> expectedBlocks = new HashMap<Location, BlockData>();
         public final List<UUID> hologramStands = new ArrayList<UUID>();
     }
 
@@ -147,6 +153,15 @@ public final class BossEventManager {
         templates.put("volcano", new BossTemplate(
                 "volcano", EventKind.VOLCANO, "&#FF6D00🌋 Адский Вулкан Ифрита", null, 150.0,
                 BarColor.RED, BarStyle.SEGMENTED_20, Material.MAGMA_BLOCK, 115000.0, 40));
+        templates.put("crystal", new BossTemplate(
+                "crystal", EventKind.CRYSTAL, "&#C4B5FD✧ Кристальный храм", null, 120.0,
+                BarColor.PURPLE, BarStyle.SEGMENTED_10, Material.AMETHYST_BLOCK, 85000.0, 30));
+        templates.put("ruins", new BossTemplate(
+                "ruins", EventKind.RUINS, "&#A7F3D0⚒ Древние руины", null, 130.0,
+                BarColor.GREEN, BarStyle.SEGMENTED_10, Material.MOSSY_STONE_BRICKS, 90000.0, 32));
+        templates.put("camp", new BossTemplate(
+                "camp", EventKind.CAMP, "&#FCD34D⛺ Лагерь кладоискателей", null, 100.0,
+                BarColor.YELLOW, BarStyle.SEGMENTED_10, Material.SPRUCE_PLANKS, 70000.0, 24));
     }
 
     /**
@@ -191,7 +206,7 @@ public final class BossEventManager {
                     if (!belongsToActive) {
                         en.remove();
                     }
-                } else if (en.getScoreboardTags().contains("kg_holo")) {
+                } else if (en.getScoreboardTags().contains("kg_event_holo")) {
                     boolean activeHolo = false;
                     for (ActiveBossEvent ev : activeEvents.values()) {
                         if (ev.hologramStands.contains(en.getUniqueId())) {
@@ -256,7 +271,7 @@ public final class BossEventManager {
 
     public ActiveBossEvent startRandomEvent() {
         // Alternate richly between AirDrop, Meteor, Beacon, Frost Citadel, Volcano, and Mythic Bosses!
-        String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "volcano", "grinch", "krush", "titan", "osiris", "andromeda"};
+        String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"};
         List<String> unused = new ArrayList<String>();
         for (String pid : pool) {
             boolean used = false;
@@ -275,18 +290,12 @@ public final class BossEventManager {
     }
 
     public ActiveBossEvent spawnBossEvent(String templateId, Location forcedCenter) {
-        if (activeEvents.size() >= 4) {
-            String oldest = activeEvents.keySet().iterator().next();
-            endEvent(oldest, false);
-        }
         String key = templateId == null ? "" : templateId.toLowerCase(Locale.ROOT);
         if ("boss".equals(key)) {
             return startRandomBossOnly();
         }
         BossTemplate tpl = templates.get(key);
-        if (tpl == null) {
-            tpl = templates.get("airdrop");
-        }
+        if (tpl == null) return null;
 
         World surv = forcedCenter != null && forcedCenter.getWorld() != null
                 ? forcedCenter.getWorld()
@@ -294,7 +303,11 @@ public final class BossEventManager {
         if (surv == null) return null;
 
         Location center = forcedCenter != null ? forcedCenter.getBlock().getLocation() : findStrictDryLandSpot(surv);
-        if (center == null) return null;
+        if (center == null || !isSafeEventSite(center)) return null;
+        if (activeEvents.size() >= 4) {
+            String oldest = activeEvents.keySet().iterator().next();
+            endEvent(oldest, false);
+        }
 
         ActiveBossEvent ev = new ActiveBossEvent();
         ev.instanceId = tpl.id + "_" + (seq++);
@@ -323,6 +336,8 @@ public final class BossEventManager {
                 buildGoldenBeaconStructure(ev);
             } else if (tpl.kind == EventKind.VOLCANO) {
                 buildVolcanoStructure(ev);
+            } else if (tpl.kind == EventKind.CRYSTAL || tpl.kind == EventKind.RUINS || tpl.kind == EventKind.CAMP) {
+                buildNewWorldEventStructure(ev);
             } else {
                 buildFrostCitadelStructure(ev);
             }
@@ -364,6 +379,9 @@ public final class BossEventManager {
         } else if (ev.template.kind == EventKind.VOLCANO) {
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF6D00&l🌋 НАЧАЛОСЬ ИЗВЕРЖЕНИЕ АДСКОГО ВУЛКАНА!"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Кальдера с Кастомными ТНТ и 3D Луками откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
+        } else if (ev.template.kind == EventKind.CRYSTAL || ev.template.kind == EventKind.RUINS || ev.template.kind == EventKind.CAMP) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &fНОВОЕ СОБЫТИЕ: " + ev.template.displayName));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Сокровищница откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
         } else {
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#40C4FF&l❄ ВЫРОСЛА ГОТИЧЕСКАЯ ЦИТАДЕЛЬ САНТЫ!"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Захватите ледяной дворец — Сундук откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
@@ -398,7 +416,7 @@ public final class BossEventManager {
             if (plugin.getStore().overlapsAnyClaim(surv.getName(), x, z, 16)) continue;
 
             Location dry = inspectDryColumn(surv, x, z);
-            if (dry != null) return dry;
+            if (dry != null && isSafeEventSite(dry)) return dry;
         }
         // Spiral scan fallback until strict dry land is found
         for (int r = 250; r <= 2000; r += 85) {
@@ -406,11 +424,11 @@ public final class BossEventManager {
                 int x = (int) Math.round(Math.cos(Math.toRadians(deg)) * r);
                 int z = (int) Math.round(Math.sin(Math.toRadians(deg)) * r);
                 Location dry = inspectDryColumn(surv, x, z);
-                if (dry != null) return dry;
+                if (dry != null && isSafeEventSite(dry)) return dry;
             }
         }
-        Block fb = surv.getHighestBlockAt(350, 350);
-        return fb.getLocation().add(0, 1, 0);
+        // Never fall back to an unchecked position (claims/buildings/water).
+        return null;
     }
 
     private Location inspectDryColumn(World surv, int x, int z) {
@@ -428,7 +446,7 @@ public final class BossEventManager {
         int topY = surv.getHighestBlockYAt(x, z);
         // Step down through leaves/snow/grass/logs to find true solid terrain
         int groundY = -1;
-        for (int y = topY; y >= 62; y--) {
+        for (int y = topY; y >= surv.getMinHeight() + 4; y--) {
             Material m = surv.getBlockAt(x, y, z).getType();
             String mn = m.name();
             if (m == Material.AIR || mn.contains("LEAVES") || mn.contains("LOG") || mn.contains("GRASS") && m != Material.GRASS_BLOCK
@@ -442,7 +460,7 @@ public final class BossEventManager {
             }
             return null;
         }
-        if (groundY < 63 || groundY > 135) return null;
+        if (groundY < surv.getMinHeight() + 4 || groundY + 14 >= surv.getMaxHeight()) return null;
 
         // Verify 7x7 area around (x, groundY, z) has ZERO water/lava/ice/kelp!
         for (int dx = -3; dx <= 3; dx++) {
@@ -454,6 +472,100 @@ public final class BossEventManager {
             }
         }
         return new Location(surv, x, groundY + 1, z);
+    }
+
+    private boolean isSafeEventSite(Location center) {
+        if (center == null || center.getWorld() == null || plugin.getSpawnEngine().isInSpawnWorld(center)) return false;
+        World w = center.getWorld();
+        int x = center.getBlockX(), y = center.getBlockY(), z = center.getBlockZ();
+        if (y - 4 < w.getMinHeight() || y + 13 >= w.getMaxHeight()) return false;
+        if (plugin.getStore().overlapsAnyClaim(w.getName(), x, z, 16)) return false;
+        if (intersectsWorldGuardRegion(w, x, y, z)) return false;
+        for (ActiveBossEvent other : activeEvents.values()) {
+            if (w.equals(other.center.getWorld()) && other.center.distanceSquared(center) < 40.0 * 40.0) return false;
+        }
+        for (int dx = -9; dx <= 9; dx++) for (int dz = -9; dz <= 9; dz++) {
+            if (!w.getWorldBorder().isInside(new Location(w, x + dx, y, z + dz))) return false;
+            for (int dy = -4; dy <= 13; dy++) {
+                Block block = w.getBlockAt(x + dx, y + dy, z + dz);
+                Material m = block.getType();
+                if (!isNaturalEventMaterial(m)) return false;
+                // Never clear trees, logs, stone walls or other possible structures
+                // above ground even if their materials can also occur naturally.
+                if (dy >= 0 && !isReplaceableEventSurface(m)) return false;
+                if (dy == -1 && (m == Material.STONE || m == Material.DEEPSLATE || m == Material.TUFF
+                        || m == Material.ANDESITE || m == Material.DIORITE || m == Material.GRANITE
+                        || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m.name().endsWith("_ORE"))) return false;
+                if (m != Material.AIR && m != Material.CAVE_AIR && m != Material.VOID_AIR
+                        && block.getState() instanceof org.bukkit.block.TileState) return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean warnedWorldGuard = false;
+
+    /** Conservatively reject a site whose construction volume intersects any WG region.
+     * If WorldGuard is present but its region data/API is unavailable, fail closed. */
+    private boolean intersectsWorldGuardRegion(World world, int x, int y, int z) {
+        if (Bukkit.getPluginManager().getPlugin("WorldGuard") == null) return false;
+        if (!Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) return true;
+        try {
+            Class<?> wgClass = Class.forName("com.sk89q.worldguard.WorldGuard");
+            Object wg = wgClass.getMethod("getInstance").invoke(null);
+            Object platform = wgClass.getMethod("getPlatform").invoke(wg);
+            Class<?> platformType = Class.forName("com.sk89q.worldguard.internal.platform.WorldGuardPlatform");
+            Object container = platformType.getMethod("getRegionContainer").invoke(platform);
+            Class<?> adapter = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
+            Object adapted = adapter.getMethod("adapt", World.class).invoke(null, world);
+            Class<?> worldType = Class.forName("com.sk89q.worldedit.world.World");
+            Class<?> containerType = Class.forName("com.sk89q.worldguard.protection.regions.RegionContainer");
+            Object manager = containerType.getMethod("get", worldType).invoke(container, adapted);
+            if (manager == null) throw new IllegalStateException("region manager unavailable");
+            Class<?> managerType = Class.forName("com.sk89q.worldguard.protection.managers.RegionManager");
+            Object regions = managerType.getMethod("getRegions").invoke(manager);
+            if (!(regions instanceof java.util.Map)) throw new IllegalStateException("region data unavailable");
+            Class<?> regionType = Class.forName("com.sk89q.worldguard.protection.regions.ProtectedRegion");
+            Class<?> vectorType = Class.forName("com.sk89q.worldedit.math.BlockVector3");
+            java.lang.reflect.Method bx = vectorType.getMethod("getBlockX"), by = vectorType.getMethod("getBlockY"), bz = vectorType.getMethod("getBlockZ");
+            for (Object region : ((java.util.Map<?, ?>) regions).values()) {
+                Object min = regionType.getMethod("getMinimumPoint").invoke(region);
+                Object max = regionType.getMethod("getMaximumPoint").invoke(region);
+                int minX = ((Number) bx.invoke(min)).intValue(), minY = ((Number) by.invoke(min)).intValue(), minZ = ((Number) bz.invoke(min)).intValue();
+                int maxX = ((Number) bx.invoke(max)).intValue(), maxY = ((Number) by.invoke(max)).intValue(), maxZ = ((Number) bz.invoke(max)).intValue();
+                if (x + 9 >= minX && x - 9 <= maxX && y + 13 >= minY && y - 4 <= maxY && z + 9 >= minZ && z - 9 <= maxZ) return true;
+            }
+            return false;
+        } catch (Throwable error) {
+            if (!warnedWorldGuard) {
+                warnedWorldGuard = true;
+                plugin.getLogger().warning("[Events] WorldGuard regions could not be checked; refusing event placement: " + error.getClass().getSimpleName());
+            }
+            return true;
+        }
+    }
+
+    private boolean isReplaceableEventSurface(Material m) {
+        String n = m.name();
+        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.VOID_AIR || m == Material.SNOW
+                || n.endsWith("_SAPLING") || n.endsWith("_GRASS") || n.endsWith("_FERN")
+                || n.endsWith("_FLOWER") || n.endsWith("_TULIP") || n.equals("DANDELION")
+                || n.equals("POPPY") || n.equals("VINE") || n.equals("DEAD_BUSH");
+    }
+
+    private boolean isNaturalEventMaterial(Material m) {
+        String n = m.name();
+        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.VOID_AIR
+                || m == Material.STONE || m == Material.DIRT || m == Material.GRASS_BLOCK
+                || m == Material.COARSE_DIRT || m == Material.ROOTED_DIRT || m == Material.PODZOL
+                || m == Material.GRAVEL || m == Material.SAND || m == Material.RED_SAND
+                || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m == Material.CLAY
+                || m == Material.TUFF || m == Material.DEEPSLATE || m == Material.ANDESITE
+                || m == Material.DIORITE || m == Material.GRANITE || m == Material.SNOW || m == Material.SNOW_BLOCK
+                || n.endsWith("_ORE") || n.endsWith("_LOG") || n.endsWith("_LEAVES")
+                || n.endsWith("_SAPLING") || n.endsWith("_GRASS") || n.endsWith("_FERN")
+                || n.endsWith("_FLOWER") || n.endsWith("_TULIP") || n.equals("DANDELION")
+                || n.equals("POPPY") || n.equals("VINE") || n.equals("DEAD_BUSH");
     }
 
     private boolean isWetOrAquatic(Material m) {
@@ -470,6 +582,7 @@ public final class BossEventManager {
         Location l = ev.center.clone().add(dx, dy, dz);
         saveBlock(ev, l);
         l.getBlock().setType(mat, false);
+        rememberEventBlock(ev, l.getBlock());
     }
 
     private void setStair(ActiveBossEvent ev, int dx, int dy, int dz, Material stairMat, BlockFace facing, boolean upsideDown) {
@@ -487,6 +600,7 @@ public final class BossEventManager {
             }
             b.setBlockData(bd, false);
         } catch (Throwable ignored) {}
+        rememberEventBlock(ev, b);
     }
 
     private void clearAndSavePad(ActiveBossEvent ev, int radius, int height) {
@@ -497,7 +611,10 @@ public final class BossEventManager {
                 for (int dy = -3; dy <= height; dy++) {
                     Location l = c.clone().add(dx, dy, dz);
                     saveBlock(ev, l);
-                    if (dy >= 0) l.getBlock().setType(Material.AIR, false);
+                    if (dy >= 0) {
+                        l.getBlock().setType(Material.AIR, false);
+                        rememberEventBlock(ev, l.getBlock());
+                    }
                 }
             }
         }
@@ -940,6 +1057,47 @@ public final class BossEventManager {
         setBlk(ev, 0, 0, 0, Material.ORANGE_SHULKER_BOX);
     }
 
+    /** Three timed world events, each built from saved blocks and restored on end/shutdown. */
+    private void buildNewWorldEventStructure(ActiveBossEvent ev) {
+        clearAndSavePad(ev, 7, 10);
+        boolean crystal = ev.template.kind == EventKind.CRYSTAL;
+        boolean ruins = ev.template.kind == EventKind.RUINS;
+        Material floor = crystal ? Material.DEEPSLATE_TILES : (ruins ? Material.MOSSY_STONE_BRICKS : Material.SPRUCE_PLANKS);
+        Material accent = crystal ? Material.AMETHYST_BLOCK : (ruins ? Material.CHISELED_STONE_BRICKS : Material.HAY_BLOCK);
+        Material light = crystal ? Material.SEA_LANTERN : (ruins ? Material.GLOWSTONE : Material.LANTERN);
+        for (int dx = -6; dx <= 6; dx++) for (int dz = -6; dz <= 6; dz++) {
+            if (dx * dx + dz * dz <= 39) fillGroundedFloor(ev, dx, dz,
+                    (dx == 0 || dz == 0) ? accent : floor, floor);
+        }
+        for (int sx : new int[]{-5, 5}) for (int sz : new int[]{-5, 5}) {
+            for (int dy = 0; dy < (ruins ? 3 : 5); dy++) setBlk(ev, sx, dy, sz, floor);
+            setBlk(ev, sx, ruins ? 3 : 5, sz, accent);
+            setBlk(ev, sx, ruins ? 4 : 6, sz, light);
+        }
+        if (crystal) {
+            for (int dy = 2; dy <= 7; dy++) setBlk(ev, 0, dy, 4, dy % 2 == 0 ? Material.AMETHYST_BLOCK : Material.PURPLE_STAINED_GLASS);
+        } else if (ruins) {
+            for (int dx = -3; dx <= 3; dx++) setBlk(ev, dx, 4, 5, floor);
+            setBlk(ev, 0, 5, 5, accent);
+        } else {
+            for (int dx = -4; dx <= 4; dx++) for (int dz = -4; dz <= 4; dz++) {
+                if ((dx + dz) % 2 == 0) setBlk(ev, dx, 6, dz, Material.RED_WOOL);
+                else setBlk(ev, dx, 6, dz, Material.WHITE_WOOL);
+            }
+        }
+        setBlk(ev, 0, -1, 0, accent);
+        setBlk(ev, 0, 0, 0, Material.ENDER_CHEST);
+    }
+
+    private void rememberEventBlock(ActiveBossEvent ev, Block block) {
+        ev.expectedBlocks.put(block.getLocation(), block.getBlockData());
+    }
+
+    private boolean eventStillOwnsBlock(ActiveBossEvent ev, Block block) {
+        BlockData expected = ev.expectedBlocks.get(block.getLocation());
+        return expected != null && expected.equals(block.getBlockData());
+    }
+
     private void saveBlock(ActiveBossEvent ev, Location loc) {
         Location key = loc.getBlock().getLocation();
         if (!ev.savedBlocks.containsKey(key)) {
@@ -971,7 +1129,7 @@ public final class BossEventManager {
                             : "&7Удерживайте точку от других игроков!"
             };
         }
-        double baseY = ev.center.getY() + 2.05;
+        double baseY = 2.05; // add() is relative to center, not an absolute Y
         for (int i = 0; i < lines.length; i++) {
             Location hl = ev.center.clone().add(0.5, baseY - i * 0.28, 0.5);
             ArmorStand as = (ArmorStand) hl.getWorld().spawnEntity(hl, EntityType.ARMOR_STAND);
@@ -982,6 +1140,7 @@ public final class BossEventManager {
             as.setCustomName(ColorUtil.c(lines[i]));
             as.setCustomNameVisible(true);
             as.addScoreboardTag("kg_holo");
+            as.addScoreboardTag("kg_event_holo");
             ev.hologramStands.add(as.getUniqueId());
         }
     }
@@ -1227,6 +1386,12 @@ public final class BossEventManager {
         } else if (ev.template.kind == EventKind.FROST_CITADEL) {
             w.spawnParticle(Particle.SNOWFLAKE, mid.clone().add(0, 0.6, 0), 22, 1.8, 1.2, 1.8, 0.04);
             w.spawnParticle(Particle.SOUL_FIRE_FLAME, mid, 6, 0.8, 0.4, 0.8, 0.02);
+        } else if (ev.template.kind == EventKind.CRYSTAL) {
+            w.spawnParticle(Particle.END_ROD, mid.clone().add(0, 1, 0), 12, 1.1, 1.2, 1.1, 0.01);
+        } else if (ev.template.kind == EventKind.RUINS) {
+            w.spawnParticle(Particle.HAPPY_VILLAGER, mid, 10, 1.2, 0.6, 1.2, 0.01);
+        } else if (ev.template.kind == EventKind.CAMP) {
+            w.spawnParticle(Particle.FIREWORK, mid, 10, 1.2, 0.5, 1.2, 0.01);
         } else if (ev.template.kind == EventKind.VOLCANO) {
             w.spawnParticle(Particle.LAVA, mid.clone().add(0, 1.5, 0), 10, 1.8, 1.2, 1.8, 0.03);
             w.spawnParticle(Particle.FLAME, mid, 16, 1.5, 0.8, 1.5, 0.04);
@@ -1246,7 +1411,13 @@ public final class BossEventManager {
         Bukkit.broadcastMessage("");
 
         Block b = ev.center.getBlock();
+        if (!eventStillOwnsBlock(ev, b)) {
+            plugin.getLogger().warning("[Events] Chest location was changed externally; ending " + ev.instanceId + " without overwriting it.");
+            ev.secondsLeft = 0; // removed safely by the next event tick
+            return;
+        }
         b.setType(Material.CHEST, false);
+        rememberEventBlock(ev, b);
         if (b.getState() instanceof Chest) {
             Chest ch = (Chest) b.getState();
             populateWorldEventLoot(ch.getBlockInventory(), ev.template.kind);
@@ -1315,6 +1486,24 @@ public final class BossEventManager {
             inv.setItem(21, ItemFactory.arrowExplosive(24));
             inv.setItem(22, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 4));
             inv.setItem(23, ItemFactory.gravSfera(3));
+        } else if (kind == EventKind.CRYSTAL) {
+            inv.setItem(4, ItemFactory.sharAndromedy());
+            inv.setItem(11, new ItemStack(Material.AMETHYST_SHARD, 32));
+            inv.setItem(13, ItemFactory.enchantScroll("ice"));
+            inv.setItem(15, ItemFactory.tntEnder(2));
+            inv.setItem(22, new ItemStack(Material.DIAMOND, 16));
+        } else if (kind == EventKind.RUINS) {
+            inv.setItem(4, ItemFactory.pickDjamshut());
+            inv.setItem(11, new ItemStack(Material.EMERALD, 24));
+            inv.setItem(13, ItemFactory.enchantScroll("smelt"));
+            inv.setItem(15, ItemFactory.tntMiner(2));
+            inv.setItem(22, new ItemStack(Material.GOLDEN_APPLE, 8));
+        } else if (kind == EventKind.CAMP) {
+            inv.setItem(4, ItemFactory.totemLedyanoy(3));
+            inv.setItem(11, new ItemStack(Material.GOLDEN_CARROT, 64));
+            inv.setItem(13, ItemFactory.tntGravity(2));
+            inv.setItem(15, ItemFactory.trapka(3));
+            inv.setItem(22, new ItemStack(Material.ENDER_PEARL, 16));
         } else {
             inv.setItem(4, rng.nextBoolean() ? ItemFactory.elytraSanta() : ItemFactory.sharSanty());
             inv.setItem(11, ItemFactory.snezokZamorozki(8));
@@ -1470,7 +1659,13 @@ public final class BossEventManager {
         plugin.getStore().save();
 
         Block b = ev.center.getBlock();
+        if (!eventStillOwnsBlock(ev, b)) {
+            plugin.getLogger().warning("[Events] Chest location was changed externally; ending " + ev.instanceId + " without overwriting it.");
+            ev.secondsLeft = 0; // removed safely by the next event tick
+            return;
+        }
         b.setType(Material.CHEST, false);
+        rememberEventBlock(ev, b);
         if (b.getState() instanceof Chest) {
             Chest ch = (Chest) b.getState();
             populateBossChestLoot(ch.getBlockInventory(), ev.template.id);
@@ -1527,13 +1722,25 @@ public final class BossEventManager {
             }
         }
         removeHologram(ev);
-        if (ev.center.getBlock().getState() instanceof Chest) {
-            ((Chest) ev.center.getBlock().getState()).getBlockInventory().clear();
+        Block centerBlock = ev.center.getBlock();
+        if (eventStillOwnsBlock(ev, centerBlock) && centerBlock.getState() instanceof Chest) {
+            ((Chest) centerBlock.getState()).getBlockInventory().clear();
         }
         List<BlockState> states = new ArrayList<BlockState>(ev.savedBlocks.values());
         Collections.reverse(states);
         for (BlockState st : states) {
-            try { st.update(true, false); } catch (Throwable ignored) {}
+            try {
+                Block current = st.getBlock();
+                BlockData expected = ev.expectedBlocks.get(current.getLocation());
+                if (expected == null) continue;
+                boolean minedMeteorOre = ev.template.kind == EventKind.METEOR && current.getType() == Material.AIR
+                        && (expected.getMaterial() == Material.DEEPSLATE_DIAMOND_ORE
+                        || expected.getMaterial() == Material.DEEPSLATE_EMERALD_ORE
+                        || expected.getMaterial() == Material.GILDED_BLACKSTONE);
+                if (eventStillOwnsBlock(ev, current) || minedMeteorOre) st.update(true, false);
+            } catch (Throwable ex) {
+                plugin.getLogger().warning("[Events] Could not restore block at " + st.getLocation() + ": " + ex.getMessage());
+            }
         }
         if (announce && !ev.bossDefeated) {
             Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName

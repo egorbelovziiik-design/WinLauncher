@@ -1,0 +1,6 @@
+name: curator_discord
+permissions:
+- weight.285
+prefixes:
+- '&f &9':
+    priority: 285

@@ -4,10 +4,11 @@ import java.net.URL;
 
 /** Shared by the grief and hub plugins. Never rewrite a custom pack URL. */
 public final class ResourcePackSettings {
-    public static final String LATEST_URL = "https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip";
-    public static final String LATEST_SHA1 = "fc61175f0692ab85486898160dce223097aa4382";
+    public static final String LATEST_URL = "https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip";
+    public static final String LATEST_SHA1 = "63461884bd573de19a043f11b5982a34536e47d9";
 
     private static final String V63_SHA1 = "3637015af079e6fea621c10fe6dfa51e35cc0113";
+    private static final String V65_SHA1 = "fc61175f0692ab85486898160dce223097aa4382";
     private static final String V64_SHA1 = "21b2343076c751bf392ac3bd47528c59988fb92c";
 
     private ResourcePackSettings() {}
@@ -25,7 +26,7 @@ public final class ResourcePackSettings {
     }
 
     /**
-     * Upgrade only known, unmodified official v63/v64 installations. A blank
+     * Upgrade only known, unmodified official v63/v64/v65 installations. A blank
      * SHA is also accepted for those exact URLs; an unknown SHA is preserved.
      * Config is not written, so server owners retain control of their settings.
      */
@@ -48,6 +49,9 @@ public final class ResourcePackSettings {
             } else if ("/kinggrief-mega-rp-v64.zip".equals(path)
                     && (query == null || "v=64".equals(query))) {
                 expected = V64_SHA1;
+            } else if ("/kinggrief-mega-rp-v65.zip".equals(path)
+                    && (query == null || "v=65".equals(query))) {
+                expected = V65_SHA1;
             }
             String hash = sha1 == null ? "" : sha1.trim();
             if (expected != null && (hash.isEmpty() || expected.equalsIgnoreCase(hash))) {

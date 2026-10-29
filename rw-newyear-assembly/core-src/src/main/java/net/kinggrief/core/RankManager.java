@@ -88,7 +88,14 @@ public final class RankManager {
         // НАСТОЯЩИЙ ПЕРСОНАЛ КП (КП ниже Хелпера, Мл.Модер между Ст.Хелпером и Модером, Мл.Админ и Админ выше Гл.Модера!)
         add(0,  "owner",     300, 500, 99, "owner",     7, 0,    "&#FF6B8B");
         add(1,  "techadmin", 290, 500, 99, "curator",   7, 0,    "&#7DD3FC");
+        // The four curators are ordered: Discord > KP > Media > DKP.
+        add(43, "curator_discord", 285, 500, 50, "curator", 6, 0, "&#B4C5FF");
+        add(44, "curator_kp",      282, 500, 50, "curator", 6, 0, "&#B2F5D0");
+        add(45, "curator_media",   280, 500, 50, "curator", 6, 0, "&#FFD0ED");
+        add(46, "curator_dkp",     278, 500, 50, "curator", 6, 0, "&#FFE1AC");
         add(2,  "curator",   275, 500, 50, "curator",   6, 0,    "&#86EFAC");
+        add(47, "gladmin",   273, 150, 45, "admin",     6, 0, "&#FFBCC8");
+        add(48, "stadmin",   271, 125, 42, "admin",     6, 0, "&#FFD0BA");
         add(42, "admin",     268, 100, 40, "admin",     6, 0,    "&#FCA5A5");
         add(41, "mladmin",   260,  50, 30, "mladmin",   6, 0,    "&#FED7AA");
         add(4,  "glmoder",   250,  25, 25, "kp",        6, 0,    "&#D8B4FE");
@@ -100,15 +107,15 @@ public final class RankManager {
         add(3,  "kp",        200,  10, 10, "kp",        6, 0,    "&#6EE7B7");
 
         // ДОНАТ-ПЕРСОНАЛ (ДКП ниже Д.Модера!)
-        add(9,  "downer",    190, 500, 99, "downer",    5, 1499, "&#FDE047");
-        add(10, "opka",      178,  60, 50, "opka",      5, 999,  "&#F0ABFC");
-        add(12, "dadmin",    162,  40, 30, "dadmin",    4, 799,  "&#FCA5A5");
-        add(13, "dmladmin",  152,  36, 25, "dmladmin",  4, 599,  "&#FED7AA");
-        add(14, "dglmoder",  142,  32, 22, "dglmoder",  4, 449,  "&#E9D5FF");
-        add(15, "dstmoder",  132,  28, 20, "dstmoder",  4, 349,  "&#BFDBFE");
-        add(16, "dmoder",    124,  24, 18, "dmoder",    4, 249,  "&#99F6E4");
-        add(11, "dkp",       118,  22, 17, "dkp",       4, 229,  "&#FDBA74");
-        add(17, "dhelper",   112,  20, 16, "dhelper",   4, 219,  "&#CCFBF1");
+        add(9,  "downer",    190, 500, 99, "downer",    5, 1499, "&#FFE166");
+        add(10, "opka",      178,  60, 50, "opka",      5, 999,  "&#E9A8FF");
+        add(12, "dadmin",    162,  40, 30, "dadmin",    4, 799,  "&#FF9DA8");
+        add(13, "dmladmin",  152,  36, 25, "dmladmin",  4, 599,  "&#FFD09A");
+        add(14, "dglmoder",  142,  32, 22, "dglmoder",  4, 449,  "&#DFC5FF");
+        add(15, "dstmoder",  132,  28, 20, "dstmoder",  4, 349,  "&#B4C7FF");
+        add(16, "dmoder",    124,  24, 18, "dmoder",    4, 249,  "&#99F1DE");
+        add(11, "dkp",       118,  22, 17, "dkp",       4, 229,  "&#FFD2A1");
+        add(17, "dhelper",   112,  20, 16, "dhelper",   4, 219,  "&#B8F5E6");
 
         // МЕДИА
         add(18, "mediaplus", 108,  20, 20, "media",     3, 0,    "&#FDA4AF");
@@ -118,18 +125,18 @@ public final class RankManager {
         add(22, "tiktok",    100,  15, 12, "media",     3, 0,    "&#67E8F9");
 
         // ДОНАТ-ПРИВИЛЕГИИ (Убраны hero, titan, overlord, bull; Дракула ниже Банни; Драгон ниже всех!)
-        add(23, "sponsor",    92,  22, 15, "sponsor",   2, 219,  "&#FEF08A");
-        add(25, "king",       85,  18, 12, "king",      2, 199,  "&#FDE047");
-        add(27, "imperator",  75,  15, 10, "imperator", 2, 179,  "&#FECDD3");
-        add(29, "god",        65,  13,  8, "god",       2, 149,  "&#FEF9C3");
-        add(31, "tiger",      58,  11,  7, "tiger",     1, 119,  "&#FED7AA");
-        add(32, "vampire",    52,  10,  6, "vampire",   1, 99,   "&#FECACA");
-        add(33, "rabbit",     45,   8,  6, "rabbit",    1, 89,   "&#BAE6FD");
-        add(35, "bunny",      36,   6,  5, "bunny",     1, 59,   "&#FBCFE8");
-        add(30, "dracula",    30,   5,  5, "dracula",   1, 49,   "&#FCA5A5");
-        add(37, "cobra",      24,   4,  4, "cobra",     1, 39,   "&#BBF7D0");
-        add(38, "pegas",      18,   3,  3, "pegas",     1, 19,   "&#D1FAE5");
-        add(26, "dragon",     12,   3,  3, "dragon",    1, 15,   "&#F5D0FE");
+        add(23, "sponsor",    92,  22, 15, "sponsor",   2, 219,  "&#FFF1A0");
+        add(25, "king",       85,  18, 12, "king",      2, 199,  "&#F8E477");
+        add(27, "imperator",  75,  15, 10, "imperator", 2, 179,  "&#FFBFCB");
+        add(29, "god",        65,  13,  8, "god",       2, 149,  "&#FFF6C0");
+        add(31, "tiger",      58,  11,  7, "tiger",     1, 119,  "&#FFD3AD");
+        add(32, "vampire",    52,  10,  6, "vampire",   1, 99,   "&#FFB3B8");
+        add(33, "rabbit",     45,   8,  6, "rabbit",    1, 89,   "&#B7E4FF");
+        add(35, "bunny",      36,   6,  5, "bunny",     1, 59,   "&#FFD2EC");
+        add(30, "dracula",    30,   5,  5, "dracula",   1, 49,   "&#F4A2B1");
+        add(37, "cobra",      24,   4,  4, "cobra",     1, 39,   "&#C3F5AC");
+        add(38, "pegas",      18,   3,  3, "pegas",     1, 19,   "&#C2F6D9");
+        add(26, "dragon",     12,   3,  3, "dragon",    1, 15,   "&#EFD5FF");
         add(39, "default",     5,   2,  2, "start",     0, 0,    "&7");
     }
 
@@ -140,7 +147,7 @@ public final class RankManager {
         for (int i = 0; i < raw.length(); i++) {
             char ch = raw.charAt(i);
             if (ch >= 0xE900 && ch <= 0xE96F) continue;
-            if (ch >= 0xEA00 && ch <= 0xEB5F) continue;
+            if (ch >= 0xEA00 && ch <= 0xEB87) continue;
             sb.append(ch);
         }
         String cleaned = sb.toString().trim();
@@ -157,7 +164,7 @@ public final class RankManager {
         if (r.hasCustomTextOverride && r.glyphIndex < 0) {
             return r.shortLabel;
         }
-        int g = (r.glyphIndex >= 0 && r.glyphIndex < 43) ? r.glyphIndex : 39;
+        int g = (r.glyphIndex >= 0 && r.glyphIndex < 49) ? r.glyphIndex : 39;
         int f = Math.abs(animFrame) % 8;
         char c = (char) (0xEA00 + g * 8 + f);
         return "&f" + c;
@@ -274,6 +281,12 @@ public final class RankManager {
         return "owner".equalsIgnoreCase(rankId) || "techadmin".equalsIgnoreCase(rankId);
     }
 
+    public boolean isCuratorRank(String rankId) {
+        return "curator".equalsIgnoreCase(rankId) || "curator_discord".equalsIgnoreCase(rankId)
+                || "curator_kp".equalsIgnoreCase(rankId) || "curator_media".equalsIgnoreCase(rankId)
+                || "curator_dkp".equalsIgnoreCase(rankId);
+    }
+
     public boolean isOwnerLevel(Player p) {
         return p != null && isOwnerLevel(getRank(p).id);
     }
@@ -300,7 +313,7 @@ public final class RankManager {
     public boolean canModifySpawn(Player p) {
         if (p == null) return false;
         RankDef r = getRank(p);
-        return "owner".equalsIgnoreCase(r.id) && p.getGameMode() == GameMode.CREATIVE;
+        return isOwnerLevel(r.id) && p.getGameMode() == GameMode.CREATIVE;
     }
 
     /** Strict Privilege-Only Kits — /kit owner ONLY for owner! */
@@ -308,24 +321,25 @@ public final class RankManager {
         if (p == null || kitId == null) return false;
         String k = kitId.toLowerCase(Locale.ROOT);
         RankDef my = getRank(p);
-        if ("owner".equals(k)) return "owner".equalsIgnoreCase(my.id);
+        if ("owner".equals(k)) return isOwnerLevel(my.id);
         if ("start".equals(k) || "newyear".equals(k)) return true;
         if ("owner".equalsIgnoreCase(my.id)) return true;
         if ("techadmin".equalsIgnoreCase(my.id)) return !"owner".equals(k);
-        if ("curator".equals(k)) return "curator".equalsIgnoreCase(my.id);
+        if ("curator".equals(k)) return isCuratorRank(my.id);
         // v6.4.0: КИТ ХЕЛПЕРА и КИТ ТЕХ.АДМИНА — явные правила, без зависимости от веса в таблице.
         if ("helper".equals(k)) {
             return "helper".equalsIgnoreCase(my.id) || "sthelper".equalsIgnoreCase(my.id)
-                    || "curator".equalsIgnoreCase(my.id) || "techadmin".equalsIgnoreCase(my.id)
+                    || isCuratorRank(my.id) || "techadmin".equalsIgnoreCase(my.id)
                     || my.weight >= 208 || isOwnerLevel(p);
         }
-        if ("techadmin".equals(k)) return isOwnerLevel(p) || "curator".equalsIgnoreCase(my.id);
+        if ("techadmin".equals(k)) return isOwnerLevel(p);
         if ("kp".equals(k)) return my.tier == 6;
         if ("media".equals(k)) return my.tier == 3 || "downer".equalsIgnoreCase(my.id);
         RankDef req = byId(k);
         if (req == null || "default".equals(req.id)) return false;
         if (my.tier == 0) return false;
-        if (my.tier == 6 || my.tier == 3) return req.weight <= 90;
+        if (my.tier == 6) return req.tier == 6 ? my.weight >= req.weight : req.weight <= 90;
+        if (my.tier == 3) return req.weight <= 90;
         return my.weight >= req.weight;
     }
 
@@ -338,9 +352,9 @@ public final class RankManager {
         store.setSavedRank(playerName, def.id);
         store.setUserCustomPrefix(playerName, "");
         store.save();
-        if (syncLp && Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + playerName + " meta clear prefix");
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + playerName + " parent set " + def.id);
+        if (syncLp && Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms user " + playerName + " meta clear prefix");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms user " + playerName + " parent set " + def.id);
         }
         Player online = Bukkit.getPlayerExact(playerName);
         if (online != null) {
@@ -350,13 +364,13 @@ public final class RankManager {
 
     private String readLuckPermsPrimaryGroup(UUID uuid) {
         try {
-            if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) return "default";
+            if (!Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) return "default";
             Class<?> prov = Class.forName("net.luckperms.api.LuckPermsProvider");
             Object api = prov.getMethod("get").invoke(null);
-            Object um = api.getClass().getMethod("getUserManager").invoke(api);
-            Object user = um.getClass().getMethod("getUser", UUID.class).invoke(um, uuid);
+            Object um = Class.forName("net.luckperms.api.LuckPerms").getMethod("getUserManager").invoke(api);
+            Object user = Class.forName("net.luckperms.api.model.user.UserManager").getMethod("getUser", UUID.class).invoke(um, uuid);
             if (user == null) return "default";
-            Object pg = user.getClass().getMethod("getPrimaryGroup").invoke(user);
+            Object pg = Class.forName("net.luckperms.api.model.user.User").getMethod("getPrimaryGroup").invoke(user);
             return pg != null ? String.valueOf(pg) : "default";
         } catch (Throwable ignored) {
             return "default";
@@ -364,24 +378,24 @@ public final class RankManager {
     }
 
     public void syncAllGroupsToLuckPermsIfPresent() {
-        if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) return;
+        if (!Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) return;
         List<RankDef> list = new ArrayList<RankDef>(ranks.values());
         for (RankDef r : list) {
             if (!"default".equals(r.id)) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp creategroup " + r.id);
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms creategroup " + r.id);
             }
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " setweight " + r.weight);
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " meta clear prefix");
-            if (r.glyphIndex >= 0 && r.glyphIndex < 43) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " setweight " + r.weight);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " meta clear prefix");
+            if (r.glyphIndex >= 0 && r.glyphIndex < 49) {
                 char f0 = (char) (0xEA00 + r.glyphIndex * 8);
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " meta setprefix " + r.weight + " \"&f" + f0 + " &f\"");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " meta setprefix " + r.weight + " \"&f" + f0 + " &f\"");
             }
             if (!"owner".equals(r.id)) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset *");
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset luckperms.*");
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset kinggrief.lp");
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset minecraft.command.op");
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + r.id + " permission unset bukkit.command.op");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " permission unset *");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " permission unset luckperms.*");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " permission unset kinggrief.lp");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " permission unset minecraft.command.op");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " permission unset bukkit.command.op");
             }
         }
     }

@@ -1,0 +1,5 @@
+name: WorldGuard
+version: mock-test-only
+main: net.kinggrief.probe.FakeWorldGuard
+api-version: "1.21"
+load: STARTUP

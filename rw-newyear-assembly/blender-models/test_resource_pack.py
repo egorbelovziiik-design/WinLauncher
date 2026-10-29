@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the generated pack against KingGriefCore without a running server.
 
-Run after build_rp_v56.py: python3 test_resource_pack.py
+Run after build_rp_v66.py: python3 test_resource_pack.py
 Pillow is required only for the pixel-visibility test.
 """
 from __future__ import annotations
@@ -14,12 +14,25 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PACK = HERE.parent / "kinggrief-mega-rp-v65.zip"
+PACK = HERE.parent / "kinggrief-mega-rp-v66.zip"
+V65_PACK = HERE.parent / "kinggrief-mega-rp-v65.zip"
+RANK_PACK = HERE.parent.parent / "kinggrief-ranks-pack/kinggrief-ranks-pack-v66.zip"
 V64_PACK = HERE.parent / "kinggrief-mega-rp-v64.zip"
 JAVA_DIR = HERE.parent / "core-src/src/main/java/net/kinggrief/core"
-MAPPING = json.loads((HERE / "item-model-map.json").read_text(encoding="utf-8"))
+MAPPING = json.loads((HERE / "item-model-map-v66.json").read_text(encoding="utf-8"))
 FALLBACKS = json.loads((HERE / "vanilla-item-fallbacks.json").read_text(encoding="utf-8"))
 
+
+def sphere_names():
+    source = ast.parse((HERE / "build_rp_v66.py").read_text(encoding="utf-8"))
+    assignments = [n for n in source.body if isinstance(n, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id == "ITEMS_SPECS" for t in n.targets)]
+    specs = ast.literal_eval(assignments[0].value)
+    return {name for primary, aliases, category, *_ in specs if category == "sphere"
+            for name in [primary, *aliases]}
+
+
+SPHERE_NAMES = sphere_names()
 
 def split_java_args(text: str, start: int) -> list[str]:
     """Split an invocation without getting confused by nested calls/strings."""
@@ -278,28 +291,43 @@ class ResourcePackTests(unittest.TestCase):
                 self.assertTrue(any(x["predicate"] == predicate and x["model"] == f"kinggrief:item/{item}_pulling_{stage}" for x in legacy))
                 self.assertIn(f"assets/kinggrief/textures/item/{item}_pulling_{stage}.png", self.names)
 
-    def test_spheres_are_smaller_without_changing_other_items(self):
-        source = ast.parse((HERE / "build_rp_v56.py").read_text(encoding="utf-8"))
-        assignments = [node for node in source.body if isinstance(node, ast.Assign)
-                       and any(isinstance(target, ast.Name) and target.id == "ITEMS_SPECS" for target in node.targets)]
-        specs = ast.literal_eval(assignments[0].value)
-        spheres = [name for primary, aliases, category, *_ in specs if category == "sphere" for name in [primary, *aliases]]
+    def test_spheres_are_real_small_cubes(self):
+        spheres = SPHERE_NAMES
         self.assertGreaterEqual(len(spheres), 12)
         with zipfile.ZipFile(V64_PACK) as old:
             for item in spheres:
                 with self.subTest(sphere=item):
                     path = f"assets/kinggrief/models/item/{item}.json"
-                    new_model = self.load(path)
-                    old_model = json.loads(old.read(path))
-                    for context in ("gui", "firstperson_righthand", "firstperson_lefthand",
-                                    "thirdperson_righthand", "thirdperson_lefthand", "ground", "fixed"):
-                        self.assertLess(new_model["display"][context]["scale"][0],
-                                        old_model["display"][context]["scale"][0])
-                    texture = f"assets/kinggrief/textures/item/{item}.png"
-                    self.assertEqual(self.z.read(texture), old.read(texture), "sphere artwork changed")
-            # The dedicated sphere branch must not shrink the new Santa totem.
+                    model = self.load(path)
+                    previous = json.loads(old.read(path))
+                    self.assertEqual(model["parent"], "minecraft:block/block")
+                    self.assertEqual(len(model["elements"]), 1)
+                    cube = model["elements"][0]
+                    self.assertEqual(cube["from"], [5, 5, 5])
+                    self.assertEqual(cube["to"], [11, 11, 11])
+                    self.assertEqual(set(cube["faces"]), {"up", "down", "north", "south", "east", "west"})
+                    self.assertTrue(all(face["texture"] == "#layer0" for face in cube["faces"].values()))
+                    for ctx in ("gui", "firstperson_righthand", "firstperson_lefthand",
+                                "thirdperson_righthand", "thirdperson_lefthand", "ground", "fixed"):
+                        self.assertLess(6 / 16 * model["display"][ctx]["scale"][0], previous["display"][ctx]["scale"][0], ctx)
             other = "assets/kinggrief/models/item/totem_santy.json"
             self.assertEqual(self.z.read(other), old.read(other))
+
+    def test_new_glyphs_and_separate_ranks_pack(self):
+        font = self.load("assets/minecraft/font/default.json")
+        providers = {char: p for p in font["providers"] for line in p.get("chars", []) for char in line}
+        for idx, rank in enumerate(("curator_discord", "curator_kp", "curator_media", "curator_dkp", "gladmin", "stadmin"), 43):
+            for frame in range(8):
+                provider = providers[chr(0xea00 + idx * 8 + frame)]
+                self.assertEqual(provider["file"], f"minecraft:font/ranks/{rank}_{frame}.png")
+                self.assertIn(f"assets/minecraft/textures/font/ranks/{rank}_{frame}.png", self.names)
+        with zipfile.ZipFile(RANK_PACK) as ranks:
+            self.assertIsNone(ranks.testzip())
+            for path in ranks.namelist():
+                if not path.endswith("/") and path != "pack.mcmeta":
+                    self.assertIn(path, self.names)
+                    self.assertEqual(ranks.read(path), self.z.read(path), path)
+            self.assertFalse(any("/models/item/" in path for path in ranks.namelist()))
 
     def test_font_provider_files_exist(self):
         font = self.load("assets/minecraft/font/default.json")
@@ -323,7 +351,8 @@ class ResourcePackTests(unittest.TestCase):
                     for frame in range(12):
                         alpha = im.crop((0, frame * 32, 32, (frame + 1) * 32)).getchannel("A")
                         self.assertIsNotNone(alpha.getbbox(), f"empty animation frame {frame}")
-                        self.assertEqual(alpha.getextrema(), (0, 255), f"invalid transparency in frame {frame}")
+                        expected = (255, 255) if Path(name).stem in SPHERE_NAMES else (0, 255)
+                        self.assertEqual(alpha.getextrema(), expected, f"invalid transparency in frame {frame}")
 
 
 class DistributionTests(unittest.TestCase):
@@ -342,6 +371,9 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual(hashlib.sha1((public / V64_PACK.name).read_bytes()).hexdigest(),
                          "21b2343076c751bf392ac3bd47528c59988fb92c")
         self.assertEqual((public / V64_PACK.name).read_bytes(), V64_PACK.read_bytes())
+        self.assertEqual(hashlib.sha1(V65_PACK.read_bytes()).hexdigest(), "fc61175f0692ab85486898160dce223097aa4382")
+        self.assertEqual((public / V65_PACK.name).read_bytes(), V65_PACK.read_bytes())
+        self.assertEqual((public / RANK_PACK.name).read_bytes(), RANK_PACK.read_bytes())
         props = (HERE.parent / "server/server.properties").read_text(encoding="utf-8")
         config = (HERE.parent / "server/plugins/KingGriefCore/config.yml").read_text(encoding="utf-8")
         core_default = (HERE.parent / "core-src/src/main/resources/config.yml").read_text(encoding="utf-8")
@@ -360,8 +392,8 @@ class DistributionTests(unittest.TestCase):
                      HERE.parent / "server/plugins/KingGriefCore.jar"):
             self.assertEqual(file.read_bytes(), core_jar)
         self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
-        for name, version, default in (("KingGriefCore.jar", "6.4.1", core_default),
-                                       ("KingHub.jar", "1.2.1", hub_default)):
+        for name, version, default in (("KingGriefCore.jar", "6.6.0", core_default),
+                                       ("KingHub.jar", "1.2.2", hub_default)):
             with zipfile.ZipFile(public / name) as jar:
                 self.assertIsNone(jar.testzip())
                 self.assertIn(f"version: {version}", jar.read("plugin.yml").decode("utf-8"))
@@ -375,9 +407,15 @@ class DistributionTests(unittest.TestCase):
             self.assertIsNone(z.testzip())
             self.assertEqual(z.read("resourcepack/" + PACK.name), pack_bytes)
             self.assertEqual(z.read("resourcepack/" + V64_PACK.name), V64_PACK.read_bytes())
+            self.assertEqual(z.read("resourcepack/" + V65_PACK.name), V65_PACK.read_bytes())
+            self.assertEqual(z.read("resourcepack/" + RANK_PACK.name), RANK_PACK.read_bytes())
             self.assertEqual(z.read("server.properties").decode("utf-8"), props)
             self.assertEqual(z.read("plugins/KingGriefCore/config.yml").decode("utf-8"), config)
             self.assertEqual(z.read("plugins/KingGriefCore.jar"), core_jar)
+            self.assertNotIn("plugins/KingHub.jar", z.namelist())
+            for rank in ("curator_discord", "curator_kp", "curator_media", "curator_dkp", "gladmin", "stadmin"):
+                self.assertIn("plugins/LuckPerms/yaml-storage/groups/" + rank + ".yml", z.namelist())
+                self.assertIn(rank + ":", z.read("plugins/TAB/groups.yml").decode("utf-8"))
 
     def test_source_does_not_force_the_old_item_or_pack_models(self):
         color = (JAVA_DIR / "ColorUtil.java").read_text(encoding="utf-8")

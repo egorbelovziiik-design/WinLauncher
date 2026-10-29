@@ -654,7 +654,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
     public void startCheck(Player staff, Player suspect, String program) {
         RankManager.RankDef targetRank = plugin.getRanks().getRank(suspect);
-        if ("owner".equals(targetRank.id) && !"owner".equals(plugin.getRanks().getRank(staff).id)) {
+        if ("owner".equals(targetRank.id) && !plugin.getRanks().isOwnerLevel(staff)) {
             staff.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя вызвать OWNER на проверку!"));
             return;
         }

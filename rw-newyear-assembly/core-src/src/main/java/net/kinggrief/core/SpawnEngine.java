@@ -219,7 +219,7 @@ public final class SpawnEngine {
 
         // ALL 27 ANIMATED SKINNED NPCs — 100% BFS-VERIFIED WIDE OPEN PLAZAS!
         npcDefs.add(new NpcDef("rtp",        "&#00E676&l🧭 МАСТЕР РТП",          "&fВход в мир выживания (/rtp)",         -8.0, 100.0,  42.0, -35f, sKnight, Color.fromRGB(16, 185, 129), new ItemStack(Material.COMPASS), ItemFactory.sharApollona(), null, "gui:rtp"));
-        npcDefs.add(new NpcDef("donate",     "&#FFD740&l👑 ДОНАТ И ПРИВИЛЕГИИ",  "&fВсе 39 привилегий (/donate)",          8.0, 100.0,  42.0,  35f, sKing,   Color.fromRGB(250, 204, 21), new ItemStack(Material.NETHER_STAR), ItemFactory.sharSanty(), null, "gui:donate"));
+        npcDefs.add(new NpcDef("donate",     "&#FFD740&l👑 ДОНАТ И ПРИВИЛЕГИИ",  "&fВсе 45 привилегий (/donate)",          8.0, 100.0,  42.0,  35f, sKing,   Color.fromRGB(250, 204, 21), new ItemStack(Material.NETHER_STAR), ItemFactory.sharSanty(), null, "gui:donate"));
         npcDefs.add(new NpcDef("wheel_npc",  "&#FF4081&l🎡 КОЛЕСО ФОРТУНЫ",      "&fБеспроигрышный прокрут (/wheel)",      0.5, 100.0,  36.5,   0f, sMaiden, Color.fromRGB(244, 63, 94),  ItemFactory.snowflakeCoin(1), ItemFactory.sharSanty(), null, "action:wheel"));
         npcDefs.add(new NpcDef("shop_main",  "&#38BDF8&l🛒 ГЛАВНЫЙ МАГАЗИН",     "&f8 категорий за Монеты (/shop)",      -13.0, 100.0,  34.0, -55f, sDealer, Color.fromRGB(56, 189, 248), new ItemStack(Material.EMERALD), new ItemStack(Material.GOLDEN_CARROT), null, "gui:shop"));
         npcDefs.add(new NpcDef("rshop",      "&#00E5FF&l❖ МАГАЗИН РИЛИКОВ",      "&f3D Шары, Элитры, Талисманы (/rshop)", 13.0, 100.0,  34.0,  55f, sMage,   Color.fromRGB(14, 165, 233), ItemFactory.swordKrush(), ItemFactory.sharTitana(), ItemFactory.elytraSanta(), "gui:rshop"));
@@ -264,8 +264,15 @@ public final class SpawnEngine {
     }
 
     // ================= BUILD / REBUILD IN SEPARATE VOID WORLD "spawn_world" =================
-    public void initializeSpawnWorldAndBuild(boolean forceRebuild) {
+    public boolean initializeSpawnWorldAndBuild(boolean forceRebuild) {
+        File worldFolder = new File(Bukkit.getWorldContainer(), VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        boolean existedBefore = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME) != null
+                || worldFolder.exists() || java.nio.file.Files.isSymbolicLink(worldFolder.toPath());
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
+        if (sw == null) {
+            plugin.getLogger().severe("[SpawnEngine] Could not load spawn_world; no build attempted.");
+            return false;
+        }
         lockSpawnWorldRules(sw);
         // Pin all 15x15 spawn chunks permanently in RAM so walking NEVER triggers chunk IO or light recalculation!
         for (int cx = -8; cx <= 8; cx++) {
@@ -276,30 +283,76 @@ public final class SpawnEngine {
             }
         }
 
-        File marker = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok");
-        if (forceRebuild || !marker.exists()) {
-            plugin.getLogger().info("[SpawnEngine v6.4.0] Building Aurora Winter Citadel & Leaf Tree Spawn in world '" + sw.getName() + "'...");
-            boolean hadOldSpawn = new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
-                    || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
-                    || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
-                    || new File(sw.getWorldFolder(), ".spawn_v56_ny_ok").exists()
-                    || new File(sw.getWorldFolder(), ".spawn_v5_built").exists()
-                    || new File(sw.getWorldFolder(), ".spawn_v5_colorful_ok").exists();
-            if (forceRebuild || hadOldSpawn) {
-                clearPreviousSpawnArea(sw);
+        File marker = new File(sw.getWorldFolder(), ".spawn_v66_royal_ok");
+        boolean hasKnownOldSpawn = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v56_ny_ok").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v5_built").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v5_colorful_ok").exists();
+        if (forceRebuild) {
+            if (!sw.getPlayers().isEmpty()) {
+                plugin.getLogger().warning("[SpawnEngine] Rebuild refused: move all players out of spawn_world first.");
+                return false;
             }
-            buildFromRleResource(sw, "/spawn_v5.dat");
+            // World.save() can schedule asynchronous chunk I/O on Paper. Unload
+            // with saving first, so the ZIP is a consistent, fully flushed snapshot.
+            File snapshotFolder = sw.getWorldFolder();
+            try {
+                // Reject links and unreadable paths before unloading. Minecraft
+                // itself may refuse to reload a world containing forbidden links.
+                addBackupFiles(snapshotFolder, snapshotFolder, null);
+            } catch (java.io.IOException ex) {
+                plugin.getLogger().severe("[SpawnEngine] Backup preflight failed; rebuild cancelled: " + ex.getMessage());
+                return false;
+            }
+            if (!Bukkit.unloadWorld(sw, true)) {
+                plugin.getLogger().severe("[SpawnEngine] Cannot unload and flush spawn_world; rebuild cancelled.");
+                return false;
+            }
+            boolean backupOk = backupSpawnWorld(snapshotFolder);
+            try {
+                sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
+            } catch (RuntimeException ex) {
+                plugin.getLogger().severe("[SpawnEngine] Cannot reload spawn_world; rebuild cancelled: " + ex.getMessage());
+                return false;
+            }
+            if (sw == null) {
+                plugin.getLogger().severe("[SpawnEngine] Cannot reload spawn_world; rebuild cancelled.");
+                return false;
+            }
+            lockSpawnWorldRules(sw);
+            if (!backupOk) return false;
+            if (marker.exists() && !marker.delete()) {
+                plugin.getLogger().severe("[SpawnEngine] Cannot remove build marker; rebuild cancelled.");
+                return false;
+            }
+            clearPreviousSpawnArea(sw);
+        } else if (existedBefore && !marker.exists() && !hasKnownOldSpawn) {
+            // Unknown/custom world: do not build, decorate, clear entities or refill its blocks.
+            plugin.getLogger().warning("[SpawnEngine] Existing unmarked spawn_world preserved. Back it up and use /rebuildspawn confirm to replace it.");
+            return false;
+        }
+        if (forceRebuild || (!existedBefore && !marker.exists())) {
+            plugin.getLogger().info("[SpawnEngine] Building the v6.6 Royal Winter Spawn...");
+            if (!buildFromRleResource(sw, "/spawn_v66.dat")) {
+                plugin.getLogger().severe("[SpawnEngine] Build failed; marker not created. Restore the backup if this was a rebuild.");
+                return false;
+            }
             placeShulkerPedestalBlocks(sw);
             placeSantaGiftBlocks(sw);
             refillAutoMine(sw, false);
             try {
-                new File(sw.getWorldFolder(), ".spawn_v56_ny_ok").delete();
-                new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").delete();
-                new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").delete();
-                new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").delete();
-                marker.createNewFile();
-            } catch (Exception ignored) {}
+                if (!marker.exists() && !marker.createNewFile()) throw new java.io.IOException("Cannot create marker");
+            } catch (Exception e) {
+                plugin.getLogger().severe("[SpawnEngine] Could not create build marker: " + e.getMessage());
+                return false;
+            }
         } else {
+            if (!marker.exists() && hasKnownOldSpawn) {
+                plugin.getLogger().info("[SpawnEngine] Existing spawn preserved; /rebuildspawn confirm backs it up and installs v6.6.");
+            }
             placeShulkerPedestalBlocks(sw);
             placeSantaGiftBlocks(sw);
         }
@@ -324,6 +377,57 @@ public final class SpawnEngine {
                 enforceStrictSingletonsOnSpawn(VoidSpawnWorldGenerator.getOrCreateSpawnWorld());
             }
         }.runTaskLater(plugin, 60L);
+        return true;
+    }
+
+    /** Save a recoverable copy of the world before any destructive rebuild. */
+    private boolean backupSpawnWorld(File worldFolder) {
+        File backup = null;
+        try {
+            File dir = new File(plugin.getDataFolder(), "backups");
+            if (!dir.exists() && !dir.mkdirs()) throw new java.io.IOException("Cannot create backup directory");
+            backup = new File(dir, "spawn_world-before-" + System.currentTimeMillis() + ".zip");
+            try (java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(backup))) {
+                addBackupFiles(worldFolder, worldFolder, out);
+            }
+            try (java.util.zip.ZipFile check = new java.util.zip.ZipFile(backup)) {
+                if (check.getEntry("level.dat") == null) throw new java.io.IOException("Backup is missing level.dat");
+            }
+            plugin.getLogger().info("[SpawnEngine] Backup saved: " + backup.getAbsolutePath());
+            return true;
+        } catch (Exception ex) {
+            if (backup != null) backup.delete();
+            plugin.getLogger().severe("[SpawnEngine] Backup failed, rebuild cancelled: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private void addBackupFiles(File root, File file, java.util.zip.ZipOutputStream out) throws java.io.IOException {
+        // Fail closed on links, including dangling links: silently skipping even one
+        // path could produce an apparently valid but unrecoverable backup.
+        File parent = file.getParentFile();
+        File withoutLinks = parent == null ? file.getAbsoluteFile() : new File(parent.getCanonicalFile(), file.getName());
+        if (java.nio.file.Files.isSymbolicLink(file.toPath()) || !file.getCanonicalFile().equals(withoutLinks))
+            throw new java.io.IOException("Unsupported symbolic link in world: " + file);
+        if (file.equals(new File(root, "session.lock")) && file.isFile()) return;
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children == null) throw new java.io.IOException("Cannot read " + file);
+            for (File child : children) addBackupFiles(root, child, out);
+        } else if (file.isFile()) {
+            if (!file.canRead()) throw new java.io.IOException("Cannot read " + file);
+            if (out == null) return; // preflight before the world is unloaded
+            String entry = file.getAbsolutePath().substring(root.getAbsolutePath().length() + 1).replace(File.separatorChar, '/');
+            out.putNextEntry(new java.util.zip.ZipEntry(entry));
+            try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
+                byte[] buffer = new byte[65536];
+                int n;
+                while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            }
+            out.closeEntry();
+        } else {
+            throw new java.io.IOException("Cannot back up non-regular path: " + file);
+        }
     }
 
     private void lockSpawnWorldRules(World sw) {
@@ -370,7 +474,9 @@ public final class SpawnEngine {
                 if (!wasLoaded) ch.load(false);
                 for (Entity e : ch.getEntities()) {
                     if (!(e instanceof Player)) {
-                        if (e.getScoreboardTags().contains("kg_mod_anim")) continue; // анимации модерации!
+                        Set<String> tags = e.getScoreboardTags();
+                        if (tags.contains("kg_mod_anim") || tags.contains("kg_sack") || tags.contains("kg_mute_gag")) continue;
+                        if (!isSpawnOwnedEntity(tags)) continue;
                         e.remove();
                         removed++;
                     }
@@ -396,12 +502,10 @@ public final class SpawnEngine {
         if (sw == null) return;
         for (Entity e : sw.getEntities()) {
             if (e instanceof Player) continue;
-            if (e.getScoreboardTags().contains("kg_mod_anim")) continue; // мешок/голова/пузырь анимаций!
-            if (e instanceof ArmorStand || e instanceof TextDisplay || e instanceof Interaction || e instanceof org.bukkit.entity.Villager) {
-                if (!validSpawnEntities.contains(e.getUniqueId()) || !e.getScoreboardTags().contains(sessionTag)) {
-                    e.remove();
-                }
-            }
+            Set<String> tags = e.getScoreboardTags();
+            if (tags.contains("kg_mod_anim") || tags.contains("kg_sack") || tags.contains("kg_mute_gag")) continue;
+            if ((tags.contains("kg_npc") || tags.contains("kg_holo") || tags.contains("kg_dps_dummy"))
+                    && (!validSpawnEntities.contains(e.getUniqueId()) || !tags.contains(sessionTag))) e.remove();
         }
         ensureStaticHolosAlive(sw);
         for (NpcDef nd : npcDefs) {
@@ -413,11 +517,16 @@ public final class SpawnEngine {
         }
     }
 
-    private void buildFromRleResource(World sw, String resourcePath) {
+    private boolean isSpawnOwnedEntity(Set<String> tags) {
+        return tags.contains("kg_npc") || tags.contains("kg_holo") || tags.contains("kg_top_holo")
+                || tags.contains("kg_dps_dummy") || tags.contains("kg_farm_mob") || tags.contains("kg_case_float");
+    }
+
+    private boolean buildFromRleResource(World sw, String resourcePath) {
         InputStream raw = plugin.getClass().getResourceAsStream(resourcePath);
         if (raw == null) {
-            plugin.getLogger().severe("[SpawnEngine v6.4.0] Missing resource " + resourcePath + "!");
-            return;
+            plugin.getLogger().severe("[SpawnEngine] Missing resource " + resourcePath + "!");
+            return false;
         }
         for (int cx = -9; cx <= 9; cx++) {
             for (int cz = -9; cz <= 9; cz++) {
@@ -433,6 +542,8 @@ public final class SpawnEngine {
             in.readShort();
             int oz = in.readShort();
             int palLen = in.readUnsignedShort();
+            if (w != 251 || h != 132 || l != 251 || ox != 125 || oz != 125 || palLen < 1 || palLen > 255)
+                throw new java.io.IOException("Invalid spawn dimensions/palette");
 
             BlockData[] palData = new BlockData[palLen];
             for (int i = 0; i < palLen; i++) {
@@ -455,6 +566,8 @@ public final class SpawnEngine {
                 int val = in.readUnsignedByte();
                 int count = in.readUnsignedShort();
                 if (val == 0 && count == 0) break;
+                if (count == 0 || val >= palLen || idx + count > (long) w * h * l)
+                    throw new java.io.IOException("Invalid spawn RLE run");
                 if (val == 0) {
                     idx += count;
                     continue;
@@ -470,10 +583,13 @@ public final class SpawnEngine {
                     placed++;
                 }
             }
+            if (idx != (long) w * h * l) throw new java.io.IOException("Incomplete spawn RLE");
             sw.setSpawnLocation(0, 100, 52);
-            plugin.getLogger().info("[SpawnEngine v6.4.0] High-FPS Spawn built cleanly (" + placed + " blocks).");
+            plugin.getLogger().info("[SpawnEngine] Spawn built (" + placed + " blocks).");
+            return true;
         } catch (Exception e) {
-            plugin.getLogger().warning("[SpawnEngine v6.4.0] Error decoding spawn_v5.dat: " + e.getMessage());
+            plugin.getLogger().warning("[SpawnEngine] Error decoding " + resourcePath + ": " + e.getMessage());
+            return false;
         }
     }
 
@@ -482,7 +598,7 @@ public final class SpawnEngine {
             Block b = sw.getBlockAt(cp.x, cp.y, cp.z);
             // v6.4.0: пьедестал не перекрывает постройку — ставим только в свободный блок.
             Material cur = b.getType();
-            if (cur != Material.AIR && cur != Material.CAVE_AIR && !cur.name().endsWith("SHULKER_BOX")) continue;
+            if (cur != Material.AIR && cur != Material.CAVE_AIR) continue;
             b.setType(cp.shulkerMat, false);
             BlockData bd = b.getBlockData();
             if (bd instanceof Directional) {
@@ -520,10 +636,7 @@ public final class SpawnEngine {
     private boolean isFreeForDecoration(Block b) {
         if (b == null) return false;
         Material m = b.getType();
-        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.RED_CARPET
-                || m == Material.CHEST || m == Material.TRAPPED_CHEST
-                || m == Material.PINK_SHULKER_BOX || m == Material.LIME_SHULKER_BOX
-                || m == Material.GOLD_BLOCK;
+        return m == Material.AIR || m == Material.CAVE_AIR;
     }
 
     public int getSantaGiftAt(Block b) {
@@ -1031,8 +1144,7 @@ public final class SpawnEngine {
             // раньше чистилка спавна убивала их прямо посреди анимации мута/бана!
             Set<String> tags = near.getScoreboardTags();
             if (tags.contains("kg_mod_anim") || tags.contains("kg_sack") || tags.contains("kg_mute_gag")) continue;
-            if (tags.contains(npcTag)
-                    || (!validSpawnEntities.contains(u) && (near instanceof ArmorStand || near instanceof TextDisplay || near instanceof Interaction))) {
+            if (tags.contains(npcTag)) {
                 near.remove();
             }
         }

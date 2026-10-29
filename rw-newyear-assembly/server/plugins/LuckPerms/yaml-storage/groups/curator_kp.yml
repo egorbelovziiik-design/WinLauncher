@@ -1,0 +1,6 @@
+name: curator_kp
+permissions:
+- weight.282
+prefixes:
+- '&f &a':
+    priority: 282

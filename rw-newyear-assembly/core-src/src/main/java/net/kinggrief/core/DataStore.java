@@ -659,6 +659,21 @@ public final class DataStore {
             att.setPermission("bukkit.command.deop", false);
         }
 
+        // Bukkit does not interpret the "*" attachment as every permission node.
+        // Grant all registered nodes explicitly to both owner-level ranks.
+        if (ranks.isOwnerLevel(rank.id)) {
+            for (org.bukkit.permissions.Permission perm : Bukkit.getPluginManager().getPermissions()) {
+                att.setPermission(perm.getName(), true);
+            }
+            if (!isOwner) {
+                // Preserve the separate vanilla-operator safeguard: TECH.ADMIN is not made OP.
+                att.setPermission("minecraft.command.op", false);
+                att.setPermission("minecraft.command.deop", false);
+                att.setPermission("bukkit.command.op", false);
+                att.setPermission("bukkit.command.deop", false);
+            }
+        }
+
         try { p.recalculatePermissions(); } catch (Throwable ignored) {}
         try { p.getClass().getMethod("updateCommands").invoke(p); } catch (Throwable ignored) {}
     }

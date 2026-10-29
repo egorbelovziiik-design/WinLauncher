@@ -1,18 +1,20 @@
-# Paper 1.21.4 integration test
+# Paper 1.21.4 integration probe
 
-Runs a disposable, loopback-only Paper 1.21.4 server and protocol client. It
-checks old `item_model` migration on player join, ender chest, container open
-and item pickup; preserves charges/CMD; tests fresh items, `/mega`, MEGA buff,
-the official old-pack upgrade and the actual resource-pack packet. This does
-**not** render a Minecraft client or verify visuals.
+Runs a disposable, loopback-only Paper 1.21.4 server and a protocol client. It
+checks item-model migration, old-pack migration and the actual resource-pack
+packet, inventory/menu packets, asynchronous chat delegation and the delivered
+message's colour/style, rank hierarchy, kits, TNT prices/purchases/effects and
+cancelled/filtered explosions, new events and scoped entity cleanup, plus fresh
+spawn creation, fail-closed backups and a chest restored from a ZIP backup.
+It does **not** render a Minecraft client or verify visuals.
 
 Requirements: Java 21, `javac`, Node.js and `minecraft-protocol@1.62.0` in a
 local `node_modules`, a Paper 1.21.4 paperclip JAR, its matching Mojang vanilla
 server JAR, and a Spigot 1.21 API JAR with compile dependencies. The runner
 verifies the vanilla JAR's SHA-256 against the Paper download context and never
-downloads or changes the supplied JARs. It creates all server data in a
-`TemporaryDirectory` and removes it on exit. Review the Minecraft EULA before
-explicitly accepting it for this temporary server.
+downloads or changes the supplied JARs. It creates server data in a temporary
+directory and removes it on exit. Review the Minecraft EULA before explicitly
+accepting it for this temporary server.
 
 ```sh
 python3 src/test/paper-integration/run.py \
@@ -23,5 +25,12 @@ python3 src/test/paper-integration/run.py \
 
 Pass `--core`, `--java`, `--javac` or `--node` to override the defaults. The
 core JAR under test must already have been built from the intended sources.
-The isolated server uses offline mode exclusively for this local test; do not
-copy its generated settings to a live server.
+`--existing-unknown` separately checks preservation of a nonempty existing
+spawn directory without a `level.dat`. `--mock-lp` adds a deliberately minimal
+LuckPerms test double to check namespaced commands, async hierarchy checking,
+and re-authorization; it is **not** a real LuckPerms integration test.
+`--mock-wg` checks event placement against a minimal WorldGuard API double,
+not the real WorldGuard plugin. Both mock modes may be combined. The optional `--luckperms /path/to/LuckPerms-Bukkit.jar` mode needs that plugin and
+its runtime dependencies to be available, including network access on first
+startup. The isolated server uses offline mode exclusively for this local test;
+do not copy its generated settings to a live server.

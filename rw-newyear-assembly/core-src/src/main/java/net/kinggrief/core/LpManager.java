@@ -102,7 +102,7 @@ public final class LpManager implements CommandExecutor, TabCompleter {
             s.sendMessage(ColorUtil.c("&#00E676&l[LP] Ветки повышений (Tracks v6.4.0):"));
             s.sendMessage(ColorUtil.c(" &e• donate: &7default → dragon → pegas → cobra → dracula → bunny → rabbit → vampire → tiger → god → imperator → king → sponsor"));
             s.sendMessage(ColorUtil.c(" &6• dkp: &7dhelper → dkp → dmoder → dstmoder → dglmoder → dmladmin → dadmin → opka → downer"));
-            s.sendMessage(ColorUtil.c(" &a• kp: &7kp → helper → sthelper → mlmoder → moder → stmoder → glmoder → mladmin → admin → curator → techadmin → owner"));
+            s.sendMessage(ColorUtil.c(" &a• kp: &7kp → helper → sthelper → mlmoder → moder → stmoder → glmoder → mladmin → admin → stadmin → gladmin → curator → curator_dkp → curator_media → curator_kp → curator_discord → techadmin → owner"));
             s.sendMessage(ColorUtil.c(" &d• media: &7tiktok → twitch → yt → media → mediaplus"));
             return true;
         }
@@ -163,9 +163,9 @@ public final class LpManager implements CommandExecutor, TabCompleter {
         if (alsoResetGroup) {
             plugin.getRanks().setRank(nick, "default", true);
         }
-        if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + nick + " permission clear");
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + nick + " meta clear");
+        if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms user " + nick + " permission clear");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms user " + nick + " meta clear");
         }
         if (on != null) {
             plugin.getStore().refreshPermissions(on, plugin.getRanks());
@@ -263,15 +263,15 @@ public final class LpManager implements CommandExecutor, TabCompleter {
                     Player on = Bukkit.getPlayerExact(nick);
                     if (on != null && on.isOp()) { try { on.setOp(false); } catch (Throwable ignored) {} }
                 }
-                if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + nick + " permission unset " + node);
+                if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms user " + nick + " permission unset " + node);
                 }
                 s.sendMessage(ColorUtil.c("&#00E676[LP] ✔ Право &f" + node + " &#00E676снято с игрока &f" + nick));
             } else {
                 boolean val = args.length < 6 || !"false".equalsIgnoreCase(args[5]);
                 plugin.getStore().setUserPermission(nick, node, val);
-                if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + nick + " permission set " + node + " " + val);
+                if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms user " + nick + " permission set " + node + " " + val);
                 }
                 s.sendMessage(ColorUtil.c("&#00E676[LP] ✔ Игроку &f" + nick + " &#00E676установлено право &e" + node + " &7= " + (val ? "&atrue" : "&cfalse")));
                 if ("*".equals(node) && val) {
@@ -333,9 +333,9 @@ public final class LpManager implements CommandExecutor, TabCompleter {
         if (isPermWord(act)) {
             if (args.length >= 4 && ("clear".equalsIgnoreCase(args[3]) || "reset".equalsIgnoreCase(args[3]))) {
                 int removed = plugin.getStore().clearGroupPermissions(gid);
-                if (Bukkit.getPluginManager().getPlugin("LuckPerms") != null && !"owner".equals(gid)) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + gid + " permission clear");
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp group " + gid + " setweight " + def.weight);
+                if (Bukkit.getPluginManager().isPluginEnabled("LuckPerms") && !"owner".equals(gid)) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + gid + " permission clear");
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + gid + " setweight " + def.weight);
                 }
                 for (Player on : Bukkit.getOnlinePlayers()) {
                     plugin.getStore().refreshPermissions(on, plugin.getRanks());

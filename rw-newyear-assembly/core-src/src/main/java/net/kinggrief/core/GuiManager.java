@@ -69,12 +69,12 @@ public final class GuiManager {
             {"opka",      "Кит OPKA",        "MAGENTA_SHULKER_BOX",  "14400"},
             {"downer",    "Кит D.OWNER",     "BLACK_SHULKER_BOX",    "10800"},
             {"kp",        "Кит Персонала КП","EMERALD",              "21600"},
+            {"helper",    "Кит HELPER",      "LIGHT_GRAY_SHULKER_BOX","7200"},
             {"mlmoder",   "Кит МЛ. МОДЕРА",  "DIAMOND_SWORD",        "18000"},
             {"mladmin",   "Кит МЛ. АДМИНА",  "ORANGE_SHULKER_BOX",   "14400"},
             {"admin",     "Кит АДМИНА КП",   "RED_SHULKER_BOX",      "12000"},
             {"curator",   "Кит CURATOR",     "LIME_SHULKER_BOX",     "10800"},
             {"techadmin", "Кит TECH.ADMIN",  "NETHER_STAR",          "3600"},
-            {"helper",    "Кит HELPER",      "LIGHT_GRAY_SHULKER_BOX","7200"},
             {"owner",     "Кит OWNER [ТОЛЬКО OWNER]", "COMMAND_BLOCK", "3600"}
     };
 
@@ -410,9 +410,9 @@ public final class GuiManager {
         }
 
         boolean isOwnerSender = fromConsole || (senderRank != null && plugin.getRanks().isOwnerLevel(senderRank.id));
-        boolean isHighAdmin = isOwnerSender || (!"owner".equals(k) && senderRank != null && senderRank.weight >= 160);
-
-        if (!isHighAdmin && sp != null) {
+        // Every non-owner must pass the rank hierarchy, including staff and
+        // high-tier donors. Weight >= 160 previously bypassed HELPER/ML.MODER.
+        if (!isOwnerSender && sp != null) {
             if (!plugin.getRanks().canClaimKit(sp, k)) {
                 RankManager.RankDef req = plugin.getRanks().byId(k);
                 ColorUtil.sound(sp, "entity.villager.no", 1.0f, 1.0f);
@@ -719,13 +719,17 @@ public final class GuiManager {
             items.add(ItemFactory.bookArmorUnbreaking7(1));                costs.add(Integer.valueOf(75000));
         } else if ("raid".equals(c)) {
             items.add(new ItemStack(Material.OBSIDIAN, 64));               costs.add(Integer.valueOf(6000));
-            items.add(new ItemStack(Material.TNT, 32));                    costs.add(Integer.valueOf(7500));
-            items.add(ItemFactory.tntTier1(4));                            costs.add(Integer.valueOf(24000));
-            items.add(ItemFactory.tntBlack(2));                            costs.add(Integer.valueOf(58000));
-            items.add(ItemFactory.tntNuke(1));                             costs.add(Integer.valueOf(115000));
-            items.add(ItemFactory.tntFlash(4));                            costs.add(Integer.valueOf(32000));
-            items.add(ItemFactory.tntCryo(4));                             costs.add(Integer.valueOf(34000));
-            items.add(ItemFactory.tntMiner(4));                            costs.add(Integer.valueOf(29000));
+            // TNT prices are per ONE item and always in relics (including vanilla TNT).
+            items.add(new ItemStack(Material.TNT, 1));  costs.add(Integer.valueOf(1));
+            items.add(ItemFactory.tntTier1(1));         costs.add(Integer.valueOf(5));
+            items.add(ItemFactory.tntBlack(1));         costs.add(Integer.valueOf(60));
+            items.add(ItemFactory.tntNuke(1));          costs.add(Integer.valueOf(5000));
+            items.add(ItemFactory.tntFlash(1));         costs.add(Integer.valueOf(8));
+            items.add(ItemFactory.tntCryo(1));          costs.add(Integer.valueOf(12));
+            items.add(ItemFactory.tntMiner(1));         costs.add(Integer.valueOf(20));
+            items.add(ItemFactory.tntStorm(1));         costs.add(Integer.valueOf(30));
+            items.add(ItemFactory.tntGravity(1));       costs.add(Integer.valueOf(25));
+            items.add(ItemFactory.tntEnder(1));         costs.add(Integer.valueOf(40));
             items.add(new ItemStack(Material.END_CRYSTAL, 8));             costs.add(Integer.valueOf(14000));
             items.add(new ItemStack(Material.RESPAWN_ANCHOR, 4));          costs.add(Integer.valueOf(12000));
             items.add(new ItemStack(Material.COBWEB, 32));                 costs.add(Integer.valueOf(5000));
@@ -774,11 +778,15 @@ public final class GuiManager {
         };
         // v6.1.3: ЦЕНЫ В МАГАЗИНЕ ДОРОЖЕ (×1.6, округлено до 10)!
         for (int ci = 0; ci < costs.size(); ci++) {
-            costs.set(ci, Integer.valueOf((int) (Math.round(costs.get(ci).intValue() * 1.6 / 10.0) * 10)));
+            if (items.get(ci).getType() != Material.TNT) {
+                costs.set(ci, Integer.valueOf((int) (Math.round(costs.get(ci).intValue() * 1.6 / 10.0) * 10)));
+            }
         }
 
         for (int i = 0; i < items.size() && i < slots.length; i++) {
-            ItemStack tagged = coinShopTag(items.get(i), costs.get(i).intValue());
+            ItemStack tagged = items.get(i).getType() == Material.TNT
+                    ? shopTag(items.get(i), costs.get(i).intValue())
+                    : coinShopTag(items.get(i), costs.get(i).intValue());
             ItemMeta m = tagged.getItemMeta();
             if (m != null) {
                 m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, costs.get(i));
@@ -796,7 +804,7 @@ public final class GuiManager {
         if (m != null) {
             List<String> lore = m.hasLore() ? new ArrayList<String>(m.getLore()) : new ArrayList<String>();
             lore.add("");
-            lore.add(ColorUtil.c("&#00E5FFЦена: &f" + relicCost + " Риликов ❖"));
+            lore.add(ColorUtil.c("&#00E5FFЦена: &f" + relicCost + " Риликов ❖" + (copy.getType() == Material.TNT ? " &7за 1 шт." : "")));
             lore.add(ColorUtil.c("&#00E676▸ Нажмите ЛКМ для покупки!"));
             m.setLore(lore);
             m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(relicCost));
@@ -1256,7 +1264,7 @@ public final class GuiManager {
 
     // ================= 8. БОССЫ, АИРДРОПЫ И 4 МИРОВЫХ ИВЕНТА (/events) & ЧЁРНЫЙ РЫНОК (/bm) =================
     public void openEventsMenu(Player p) {
-        Inventory inv = Bukkit.createInventory(new KgMenuHolder("events", "", 0), 45,
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("events", "", 0), 54,
                 ColorUtil.c("&#FF1744&l🔥 АКТИВНЫЕ БОССЫ И ИВЕНТЫ"));
         decorateFrame(inv);
         List<BossEventManager.ActiveBossEvent> active = plugin.getBossEvents().getActiveEvents();
@@ -1269,7 +1277,8 @@ public final class GuiManager {
                 " &#FF9100• Военный АирДроп с парашютом",
                 " &#FF5252• Звёздный Метеорит с рудами",
                 " &#FFD740• Золотой Маяк Богатства (+$$$)",
-                " &#40C4FF• Ледяная Цитадель Санты"));
+                " &#40C4FF• Ледяная Цитадель и Вулкан",
+                " &#C4B5FD• Кристальный храм, Руины и Лагерь"));
 
         if (active.isEmpty()) {
             inv.setItem(22, ItemFactory.icon(Material.CLOCK, "&eСейчас нет активных ивентов",
@@ -1309,8 +1318,11 @@ public final class GuiManager {
                     "&7Мраморно-золотой храм — раздаёт Монеты и Рилики!"));
             inv.setItem(43, ItemFactory.glowIcon(Material.BLUE_ICE, "&#40C4FF&l❄ [АДМИН+] Ледяная Цитадель",
                     "&7Готический ледяной дворец со шпилями Санты!"));
+            inv.setItem(46, ItemFactory.glowIcon(Material.AMETHYST_BLOCK, "&#C4B5FD&l✧ Кристальный храм", "&7Событие с сундуком и наградами"));
+            inv.setItem(47, ItemFactory.glowIcon(Material.MOSSY_STONE_BRICKS, "&#A7F3D0&l⚒ Древние руины", "&7Событие с сундуком и наградами"));
+            inv.setItem(48, ItemFactory.glowIcon(Material.CAMPFIRE, "&#FCD34D&l⛺ Лагерь кладоискателей", "&7Событие с сундуком и наградами"));
         }
-        inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
 
@@ -1742,22 +1754,9 @@ public final class GuiManager {
         inv.setItem(6, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#E040FB&l🔮 ШАРЫ КВАДРАТОМ",
                 "&712 3D Шаров сеткой 4×4 (4 новых шара v6.4.0)"));
 
-        // Ряд 3: 6 Кастомных 3D ТНТ
-        ItemStack[] tnts = new ItemStack[]{
-                ItemFactory.tntTier1(4), ItemFactory.tntBlack(2), ItemFactory.tntNuke(1),
-                ItemFactory.tntFlash(4), ItemFactory.tntCryo(4),  ItemFactory.tntMiner(4)
-        };
-        int[] tCosts = new int[]{35, 75, 130, 45, 45, 40};
-        int[] tSlots = new int[]{28,29,30,31,32,33};
-        for (int i = 0; i < tnts.length; i++) {
-            ItemStack tagged = shopTag(tnts[i], tCosts[i]);
-            ItemMeta m = tagged.getItemMeta();
-            if (m != null) {
-                m.getPersistentDataContainer().set(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER, Integer.valueOf(tCosts[i]));
-                tagged.setItemMeta(m);
-            }
-            inv.setItem(tSlots[i], tagged);
-        }
+        inv.setItem(28, ItemFactory.glowIcon(Material.TNT, "&#FF7A50&l🧨 Все виды TNT за рилики",
+                "&7Обычный TNT — &b1 ❖/шт&7, ядерный — &b5000 ❖/шт&7.",
+                "&7Нажми, чтобы открыть полную рейдовую витрину."));
 
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -2033,6 +2032,7 @@ public final class GuiManager {
             }
             handleRelicItemTagPurchase(p, clicked, "talismans");
         } else if ("armors".equals(type)) {
+            if (slot == 28) { openCoinShopCat(p, "raid"); return; }
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 2) { openMannequinMenu(p); return; }
             if (slot == 6) { openOrbsMenu(p); return; }
@@ -2125,8 +2125,9 @@ public final class GuiManager {
             if (slot == 40) { openMainMenu(p); return; }
             handleCasinoClick(p, slot);
         } else if ("events".equals(type)) {
-            if (slot == 40) { openMainMenu(p); return; }
-            if (slot == 36 || slot == 37 || slot == 38 || slot == 41 || slot == 42 || slot == 43) {
+            if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 36 || slot == 37 || slot == 38 || slot == 41 || slot == 42 || slot == 43
+                    || slot == 46 || slot == 47 || slot == 48) {
                 if (!plugin.getBossEvents().canAdminSpawnEvents(p)) {
                     p.sendMessage(ColorUtil.c("&#FF1744✖ Призывать Боссов и Ивенты могут только Админы и выше!"));
                     return;
@@ -2137,6 +2138,9 @@ public final class GuiManager {
                 else if (slot == 41) plugin.getBossEvents().spawnBossEvent("volcano", null);
                 else if (slot == 42) plugin.getBossEvents().spawnBossEvent("beacon", null);
                 else if (slot == 43) plugin.getBossEvents().spawnBossEvent("citadel", null);
+                else if (slot == 46) plugin.getBossEvents().spawnBossEvent("crystal", null);
+                else if (slot == 47) plugin.getBossEvents().spawnBossEvent("ruins", null);
+                else if (slot == 48) plugin.getBossEvents().spawnBossEvent("camp", null);
                 openEventsMenu(p);
             }
         } else if ("titles".equals(type)) {
@@ -2937,6 +2941,7 @@ public final class GuiManager {
         else if ("armors".equals(reopenMenu)) openArmorsMenu(p);
         else if ("picks".equals(reopenMenu)) openPickaxesMenu(p);
         else if ("swords".equals(reopenMenu)) openSwordsMenu(p);
+        else if ("raid".equals(reopenMenu)) openCoinShopCat(p, "raid");
     }
 
     private void handleCategoryCoinPurchase(Player p, ItemStack clicked, String cat) {
@@ -2945,6 +2950,10 @@ public final class GuiManager {
         Integer costObj = m.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
         if (costObj == null || costObj.intValue() <= 0) return;
         int cost = costObj.intValue();
+        if (clicked.getType() == Material.TNT) {
+            handleRelicItemTagPurchase(p, clicked, "raid");
+            return;
+        }
         if (!plugin.getStore().takeCoins(p.getName(), cost)) {
             ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
             p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cost) + "$"));
