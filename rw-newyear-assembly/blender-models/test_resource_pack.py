@@ -388,12 +388,23 @@ class DistributionTests(unittest.TestCase):
         self.assertIn(PACK.name, shared)
 
         core_jar = (public / "KingGriefCore.jar").read_bytes()
-        self.assertEqual((public / "KingGriefCore-v6.6.3.jar").read_bytes(), core_jar)
+        self.assertEqual((public / "KingGriefCore-v6.6.4.jar").read_bytes(), core_jar)
         for file in (HERE.parent / "KingGriefCore.jar", HERE.parent / "plugins/KingGriefCore.jar",
                      HERE.parent / "server/plugins/KingGriefCore.jar"):
             self.assertEqual(file.read_bytes(), core_jar)
         self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
-        for name, version, default in (("KingGriefCore.jar", "6.6.3", core_default),
+        hotfix = HERE.parent / "KingGriefCore-6.6.4-hotfix.zip"
+        self.assertEqual(hotfix.read_bytes(), (public / hotfix.name).read_bytes())
+        with zipfile.ZipFile(hotfix) as patch:
+            self.assertIsNone(patch.testzip())
+            self.assertEqual(set(patch.namelist()), {"KingGriefCore.jar", "ПРОЧИТАЙ_СНАЧАЛА.md"})
+            self.assertEqual(patch.read("KingGriefCore.jar"), core_jar)
+            instruction = patch.read("ПРОЧИТАЙ_СНАЧАЛА.md").decode("utf-8")
+            self.assertEqual(instruction, (HERE.parent / "ИСПРАВЛЕНИЕ_WATCHDOG.md").read_text(encoding="utf-8"))
+            self.assertIn(hashlib.sha256(core_jar).hexdigest(), instruction)
+            self.assertIn("plugins/update/", instruction)
+            self.assertNotIn("{{CORE_SHA256}}", instruction)
+        for name, version, default in (("KingGriefCore.jar", "6.6.4", core_default),
                                        ("KingHub.jar", "1.2.2", hub_default)):
             with zipfile.ZipFile(public / name) as jar:
                 self.assertIsNone(jar.testzip())

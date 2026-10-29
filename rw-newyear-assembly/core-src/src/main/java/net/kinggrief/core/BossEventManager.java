@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 public final class BossEventManager {
 
@@ -119,6 +121,9 @@ public final class BossEventManager {
     private static final int MAX_GENERATED_CANDIDATES = 8;
     private static final int ASYNC_CHUNK_TIMEOUT_TICKS = 20 * 20;
     private static final int SEARCH_TIMEOUT_TICKS = 20 * 120;
+    private static final long ASYNC_CHUNK_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(20);
+    private static final long SEARCH_TIMEOUT_NANOS = TimeUnit.SECONDS.toNanos(120);
+    private static final long MEBIBYTE = 1024L * 1024L;
 
     private final KingGriefCore plugin;
     private final Random rng = new Random();
@@ -128,6 +133,14 @@ public final class BossEventManager {
     private int seq = 1;
     private SearchJob pendingSearch;
     private boolean shuttingDown;
+    // Headroom inside the JVM heap only; it does not measure native memory or
+    // the host/container RAM limit. Do not force a GC on the main thread.
+    private LongSupplier availableHeapBytes = new LongSupplier() {
+        @Override public long getAsLong() {
+            Runtime runtime = Runtime.getRuntime();
+            return Math.max(0L, runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory()));
+        }
+    };
 
     // Paper exposes asynchronous chunk loading on World. Reflection keeps the
     // compile-time API usable on Spigot; no synchronous fallback is permitted.
@@ -278,6 +291,10 @@ public final class BossEventManager {
 
     public int getNextAutoSeconds() {
         return autoCountdownSec;
+    }
+
+    public boolean isAutoEnabled() {
+        return plugin.getConfig().getBoolean("events.auto-enabled", true);
     }
 
     public void syncBarsForJoin(Player p) {
@@ -549,6 +566,9 @@ public final class BossEventManager {
         List<ChunkPos> required;
         ChunkPos awaited;
         boolean allowAsync, waiting, finished;
+        final long startedNanos = System.nanoTime();
+        long waitingStartedNanos;
+        CompletableFuture<?> inFlight;
 
         SearchJob(BossTemplate template, World world, CommandSender sender) {
             this.template = template;
@@ -578,13 +598,15 @@ public final class BossEventManager {
         private void tickSearch() {
             if (finished || shuttingDown || pendingSearch != this) { cancelSearch(); return; }
             elapsedTicks++;
-            if (elapsedTicks >= SEARCH_TIMEOUT_TICKS) {
+            if (elapsedTicks >= SEARCH_TIMEOUT_TICKS || System.nanoTime() - startedNanos >= SEARCH_TIMEOUT_NANOS) {
                 finish(false, "Поиск ивента прерван по тайм-ауту.");
                 return;
             }
             if (waiting) {
-                // Do not launch more chunk generation when a request is stuck.
-                if (elapsedTicks - waitingSince >= ASYNC_CHUNK_TIMEOUT_TICKS)
+                // Wall-clock deadlines still expire when TPS is low. They are
+                // checked between ticks and never interrupt or block the tick.
+                if (elapsedTicks - waitingSince >= ASYNC_CHUNK_TIMEOUT_TICKS
+                        || System.nanoTime() - waitingStartedNanos >= ASYNC_CHUNK_TIMEOUT_NANOS)
                     finish(false, "Чанк не загрузился вовремя; поиск ивента отменён.");
                 return;
             }
@@ -597,7 +619,7 @@ public final class BossEventManager {
                 if (world.isChunkLoaded(next.x, next.z)) {
                     if (!pinLoadedChunk(world, next, pinned)) abandonCandidate();
                 } else if (allowAsync) {
-                    requestChunk(next);
+                    if (mayRequestNewChunk()) requestChunk(next);
                 } else {
                     abandonCandidate();
                 }
@@ -630,6 +652,9 @@ public final class BossEventManager {
                 finish(false, "Не найдено безопасное место для ивента вдали от построек и приватов.");
                 return false;
             }
+            // Prefer already-loaded locations. An administrator may forbid new
+            // generation, and low heap headroom also stops this fallback.
+            if (!mayRequestNewChunk()) return false;
             // Small bounded fallback: only ONE chunk request can be in flight,
             // and no more than eight new sites are considered per search.
             for (int i = 0; i < 64; i++) {
@@ -646,14 +671,29 @@ public final class BossEventManager {
             return false;
         }
 
+        private boolean mayRequestNewChunk() {
+            if (!plugin.getConfig().getBoolean("events.allow-chunk-generation", true)) {
+                finish(false, "Генерация новых чанков для ивентов отключена; подходящее загруженное место не найдено.", 300);
+                return false;
+            }
+            int minMb = Math.max(0, Math.min(4096, plugin.getConfig().getInt("events.min-free-heap-mb", 256)));
+            if (availableHeapBytes.getAsLong() < minMb * MEBIBYTE) {
+                finish(false, "Мало свободного места в Java heap для поиска ивента (нужно " + minMb + " МиБ); генерация отложена.", 300);
+                return false;
+            }
+            return true;
+        }
+
         private void requestChunk(final ChunkPos pos) {
             waiting = true;
             waitingSince = elapsedTicks;
+            waitingStartedNanos = System.nanoTime();
             awaited = pos;
             final CompletableFuture<?> future;
             try {
                 future = chunkLoader.request(world, pos.x, pos.z);
-                if (future == null) throw new IllegalStateException("Async chunk API returned no future");
+                if (future == null) throw new IllegalStateException("Paper async chunk API returned no future");
+                inFlight = future;
             } catch (Exception error) {
                 waiting = false;
                 plugin.getLogger().warning("[Events] Paper async chunk API unavailable: " + error.getClass().getSimpleName());
@@ -674,6 +714,7 @@ public final class BossEventManager {
 
         private void chunkReady(ChunkPos pos, Object chunk, Throwable error) {
             if (finished || shuttingDown || pendingSearch != this || !waiting || awaited != pos) return;
+            inFlight = null;
             waiting = false;
             awaited = null;
             try {
@@ -697,18 +738,29 @@ public final class BossEventManager {
 
         void cancelSearch() {
             if (finished) return;
-            finished = true;
+            finished = true; // callbacks, including cancellation, must not re-enter the search
+            CompletableFuture<?> future = inFlight;
+            inFlight = null;
+            if (future != null && !future.isDone()) {
+                // Best effort only: Paper may continue work already scheduled.
+                try { future.cancel(false); }
+                catch (RuntimeException error) { plugin.getLogger().warning("[Events] Could not cancel chunk future: " + error.getMessage()); }
+            }
             releaseTickets(world, pinned);
             if (pendingSearch == this) pendingSearch = null;
             cancel();
         }
 
         private void finish(boolean success, String reason) {
+            finish(success, reason, 60);
+        }
+
+        private void finish(boolean success, String reason, int autoRetrySeconds) {
             if (finished) return;
             if (!success) {
                 plugin.getLogger().warning("[Events] " + reason);
                 notifyRequester(sender, "&c" + reason);
-                if (sender == null) autoCountdownSec = Math.min(autoCountdownSec, 60);
+                if (sender == null) autoCountdownSec = Math.min(autoCountdownSec, autoRetrySeconds);
             }
             cancelSearch();
         }
@@ -1563,11 +1615,13 @@ public final class BossEventManager {
     }
 
     private void tickSecond() {
-        autoCountdownSec--;
-        if (autoCountdownSec <= 0) {
-            autoCountdownSec = 600; // Every 10 minutes auto-spawn a world event or boss!
-            if (activeEvents.size() < 3) {
-                requestRandomEvent(null);
+        if (isAutoEnabled()) {
+            autoCountdownSec--;
+            if (autoCountdownSec <= 0) {
+                autoCountdownSec = 600; // Every 10 minutes auto-spawn a world event or boss!
+                if (activeEvents.size() < 3) {
+                    requestRandomEvent(null);
+                }
             }
         }
 

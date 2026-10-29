@@ -67,6 +67,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        CoreInstallDiagnostics.report(this, getFile());
         saveDefaultConfig();
         for (World w : Bukkit.getWorlds()) {
             VoidSpawnWorldGenerator.silenceCommandSpam(w);
@@ -159,7 +160,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.6.3 — WORKING ORBS, SAFE TOTEMS & NON-BLOCKING EVENTS");
+        getLogger().info(" KINGGRIEF CORE v6.6.4 — WORKING ORBS, SAFE TOTEMS & NON-BLOCKING EVENTS");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");

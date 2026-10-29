@@ -22,6 +22,7 @@ def main():
     p.add_argument("--vanilla", type=Path, required=True)
     p.add_argument("--api-classpath", required=True)
     p.add_argument("--core", type=Path, default=ROOT / "KingGriefCore.jar")
+    p.add_argument("--core-name", default="KingGriefCore.jar", help="JAR basename to exercise the startup identity log")
     p.add_argument("--template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v66-template.zip")
     p.add_argument("--java", default="java")
     p.add_argument("--javac", default="javac")
@@ -29,6 +30,8 @@ def main():
     args = p.parse_args()
     if not args.accept_eula:
         p.error("review https://aka.ms/MinecraftEULA and explicitly pass --accept-eula")
+    if Path(args.core_name).name != args.core_name or not args.core_name.lower().endswith(".jar"):
+        p.error("--core-name must be a JAR basename, not a path")
     with zipfile.ZipFile(args.paper) as z:
         if json.loads(z.read("version.json"))["id"] != "1.21.4":
             raise ValueError("Paper 1.21.4 required")
@@ -45,14 +48,14 @@ def main():
         data.mkdir(parents=True)
         (server / "cache").mkdir()
         shutil.copy2(args.vanilla, server / "cache" / cache_name)
-        shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
+        shutil.copy2(args.core, server / "plugins" / args.core_name)
         shutil.copy2(args.template, data / "spawn-v66-template.zip")
         (data / "config.yml").write_text("enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n", encoding="utf8")
         (server / "eula.txt").write_text("eula=true\n", encoding="utf8")
         (server / "server.properties").write_text(
             f"online-mode=false\nserver-ip=127.0.0.1\nserver-port={port}\n"
             "view-distance=2\nsimulation-distance=3\nallow-nether=false\nspawn-protection=0\n"
-            "level-type=minecraft:flat\ngenerate-structures=false\nmax-players=1\n", encoding="utf8")
+            "level-type=minecraft:normal\ngenerate-structures=false\nmax-players=1\n", encoding="utf8")
         classes = root / "classes"
         classes.mkdir()
         cp = str(args.core.resolve()) + os.pathsep + args.api_classpath
@@ -69,14 +72,18 @@ def main():
             print((error.stdout or b"")[-30000:], file=sys.stderr)
             raise RuntimeError("Paper did not complete the event-search probe")
         log = result.stdout
+        core_sha = hashlib.sha256(args.core.read_bytes()).hexdigest()
+        install_marker = f"[Install] Active KingGriefCore v6.6.4; JAR={args.core_name}; SHA-256={core_sha}"
+        duplicate_marker = "[Install] Other KingGriefCore JARs in plugins/: diagnostic-duplicate-test.jar"
         good = (result.returncode == 0 and "KG-EVENT-SEARCH PASS:" in log
+                and install_marker in log and duplicate_marker in log
                 and "KG-EVENT-SEARCH FAIL:" not in log
                 and "The server has not responded for 10 seconds" not in log)
         if not good:
             print("\n--- SERVER LOG TAIL ---\n" + "\n".join(log.splitlines()[-220:]), file=sys.stderr)
             raise RuntimeError(f"event-search probe failed (exit {result.returncode})")
         for line in log.splitlines():
-            if "KG-EVENT-SEARCH PASS:" in line:
+            if "KG-EVENT-SEARCH PASS:" in line or install_marker in line or duplicate_marker in line:
                 print(line, flush=True)
     print("EVENT SEARCH INTEGRATION: PASS", flush=True)
 

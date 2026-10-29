@@ -1268,9 +1268,13 @@ public final class GuiManager {
                 ColorUtil.c("&#FF1744&l🔥 АКТИВНЫЕ БОССЫ И ИВЕНТЫ"));
         decorateFrame(inv);
         List<BossEventManager.ActiveBossEvent> active = plugin.getBossEvents().getActiveEvents();
+        boolean autoEnabled = plugin.getBossEvents().isAutoEnabled();
+        String nextEvent = autoEnabled
+                ? "&7Следующий авто-ивент через: &e" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds())
+                : "&7Автоматические ивенты: &cвыключены";
         inv.setItem(4, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&lРадар Мировых Ивентов KINGGRIEF",
                 "&7Активных ивентов сейчас: &a" + active.size(),
-                "&7Следующий авто-ивент через: &e" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds()),
+                nextEvent,
                 "",
                 "&fВиды ивентов (спавнятся строго на СУШЕ!):",
                 " &#FF1744• Мифические Боссы &8(5 видов)",
@@ -1282,7 +1286,8 @@ public final class GuiManager {
 
         if (active.isEmpty()) {
             inv.setItem(22, ItemFactory.icon(Material.CLOCK, "&eСейчас нет активных ивентов",
-                    "&7Новый Ивент появится на суше через &f" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds())));
+                    autoEnabled ? "&7Новый ивент появится примерно через &f" + ColorUtil.fmtTime(plugin.getBossEvents().getNextAutoSeconds())
+                            : "&7Авто-ивенты выключены; ручной запуск доступен администраторам."));
         } else {
             int[] slots = new int[]{19, 21, 23, 25};
             for (int i = 0; i < Math.min(slots.length, active.size()); i++) {

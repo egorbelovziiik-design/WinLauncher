@@ -1,4 +1,4 @@
-# KINGGRIEF CORE v6.6.3 — ZERO-FREEZE NEW YEAR FT × REALLYWORLD EDITION
+# KINGGRIEF CORE v6.6.4 — SAFER EVENTS NEW YEAR FT × REALLYWORLD EDITION
 server-ip: "kinggrief.pickme.cloud"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
@@ -7,3 +7,9 @@ resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip"
 resourcepack-sha1: "63461884bd573de19a043f11b5982a34536e47d9"
 starting-coins: 5000.0
 starting-relics: 50
+
+# Защита поиска мировых ивентов. Изменения применяются после полного перезапуска.
+events:
+  auto-enabled: true             # false: отключить только автоматический запуск
+  allow-chunk-generation: true  # false: использовать лишь уже загруженные чанки
+  min-free-heap-mb: 256         # запас JVM heap перед запросом новых чанков; не лимит RAM контейнера

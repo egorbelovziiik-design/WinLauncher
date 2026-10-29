@@ -38,10 +38,13 @@ symbolic link. `--only-symlink` runs just the linked-world case. It accepts the 
 `test-event-search.py` runs a dedicated Paper regression for the event search.
 It rejects an unloaded forced site without loading it, holds one asynchronous
 chunk future open while checking the server heartbeat, checks the timeout and
-release of a previously held ticket, then exercises real Paper async chunk
-generation, already-loaded candidate selection, event restoration and world
-unload. The intentionally stalled future is a test double; actual chunk loading
-and event construction in the final phase use Paper. Run it with the same
+release of a previously held ticket. It also tests the auto/manual switch,
+low-heap and generation-disabled guards, wall-clock timeout, cancellation and
+late callbacks, duplicate-JAR diagnosis, and the loaded archive's SHA-256 in
+the startup log. It then exercises real Paper async chunk generation, a loaded
+site with generation disabled, event restoration and world unload. The stalled
+future and heap-pressure simulation are test doubles; actual chunk loading and
+event construction in the final phase use Paper. Run it with the same
 `--paper`, `--vanilla`, `--api-classpath`, `--core`, `--java`, `--javac` and
 `--accept-eula` arguments as `test-prebuilt-install.py`.
 
