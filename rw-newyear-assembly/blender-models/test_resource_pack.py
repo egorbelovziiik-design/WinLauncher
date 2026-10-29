@@ -6,6 +6,7 @@ Pillow is required only for the pixel-visibility test.
 """
 from __future__ import annotations
 
+import ast
 import json
 import re
 import unittest
@@ -13,7 +14,8 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PACK = HERE.parent / "kinggrief-mega-rp-v64.zip"
+PACK = HERE.parent / "kinggrief-mega-rp-v65.zip"
+V64_PACK = HERE.parent / "kinggrief-mega-rp-v64.zip"
 JAVA_DIR = HERE.parent / "core-src/src/main/java/net/kinggrief/core"
 MAPPING = json.loads((HERE / "item-model-map.json").read_text(encoding="utf-8"))
 FALLBACKS = json.loads((HERE / "vanilla-item-fallbacks.json").read_text(encoding="utf-8"))
@@ -276,6 +278,29 @@ class ResourcePackTests(unittest.TestCase):
                 self.assertTrue(any(x["predicate"] == predicate and x["model"] == f"kinggrief:item/{item}_pulling_{stage}" for x in legacy))
                 self.assertIn(f"assets/kinggrief/textures/item/{item}_pulling_{stage}.png", self.names)
 
+    def test_spheres_are_smaller_without_changing_other_items(self):
+        source = ast.parse((HERE / "build_rp_v56.py").read_text(encoding="utf-8"))
+        assignments = [node for node in source.body if isinstance(node, ast.Assign)
+                       and any(isinstance(target, ast.Name) and target.id == "ITEMS_SPECS" for target in node.targets)]
+        specs = ast.literal_eval(assignments[0].value)
+        spheres = [name for primary, aliases, category, *_ in specs if category == "sphere" for name in [primary, *aliases]]
+        self.assertGreaterEqual(len(spheres), 12)
+        with zipfile.ZipFile(V64_PACK) as old:
+            for item in spheres:
+                with self.subTest(sphere=item):
+                    path = f"assets/kinggrief/models/item/{item}.json"
+                    new_model = self.load(path)
+                    old_model = json.loads(old.read(path))
+                    for context in ("gui", "firstperson_righthand", "firstperson_lefthand",
+                                    "thirdperson_righthand", "thirdperson_lefthand", "ground", "fixed"):
+                        self.assertLess(new_model["display"][context]["scale"][0],
+                                        old_model["display"][context]["scale"][0])
+                    texture = f"assets/kinggrief/textures/item/{item}.png"
+                    self.assertEqual(self.z.read(texture), old.read(texture), "sphere artwork changed")
+            # The dedicated sphere branch must not shrink the new Santa totem.
+            other = "assets/kinggrief/models/item/totem_santy.json"
+            self.assertEqual(self.z.read(other), old.read(other))
+
     def test_font_provider_files_exist(self):
         font = self.load("assets/minecraft/font/default.json")
         for provider in font["providers"]:
@@ -314,23 +339,57 @@ class DistributionTests(unittest.TestCase):
         # the old pinned checksum.
         self.assertEqual(hashlib.sha1((public / "kinggrief-mega-rp.zip").read_bytes()).hexdigest(),
                          "3637015af079e6fea621c10fe6dfa51e35cc0113")
+        self.assertEqual(hashlib.sha1((public / V64_PACK.name).read_bytes()).hexdigest(),
+                         "21b2343076c751bf392ac3bd47528c59988fb92c")
+        self.assertEqual((public / V64_PACK.name).read_bytes(), V64_PACK.read_bytes())
         props = (HERE.parent / "server/server.properties").read_text(encoding="utf-8")
         config = (HERE.parent / "server/plugins/KingGriefCore/config.yml").read_text(encoding="utf-8")
+        core_default = (HERE.parent / "core-src/src/main/resources/config.yml").read_text(encoding="utf-8")
+        hub_default = (HERE.parent / "kinghub-src/src/main/resources/config.yml").read_text(encoding="utf-8")
+        shared = (HERE.parent / "common-src/src/main/java/net/kinggrief/common/ResourcePackSettings.java").read_text(encoding="utf-8")
         self.assertIn(f"resource-pack-sha1={checksum}", props)
-        self.assertIn(f'resourcepack-sha1: "{checksum}"', config)
-        self.assertIn("kinggrief-mega-rp-v64.zip", props)
-        self.assertIn("kinggrief-mega-rp-v64.zip", config)
-        old_forced_url = "kinggrief.vercel.app/kinggrief-mega-rp.zip"
-        self.assertNotIn(old_forced_url, config, "the old plugin would rewrite this to its legacy pack")
+        for text in (config, core_default, hub_default):
+            self.assertIn(f'resourcepack-sha1: "{checksum}"', text)
+            self.assertIn(PACK.name, text)
+        self.assertIn(PACK.name, props)
+        self.assertIn(checksum, shared)
+        self.assertIn(PACK.name, shared)
+
+        core_jar = (public / "KingGriefCore.jar").read_bytes()
+        for file in (HERE.parent / "KingGriefCore.jar", HERE.parent / "plugins/KingGriefCore.jar",
+                     HERE.parent / "server/plugins/KingGriefCore.jar"):
+            self.assertEqual(file.read_bytes(), core_jar)
+        self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
+        for name, version, default in (("KingGriefCore.jar", "6.4.1", core_default),
+                                       ("KingHub.jar", "1.2.1", hub_default)):
+            with zipfile.ZipFile(public / name) as jar:
+                self.assertIsNone(jar.testzip())
+                self.assertIn(f"version: {version}", jar.read("plugin.yml").decode("utf-8"))
+                self.assertEqual(jar.read("config.yml").decode("utf-8"), default)
+                self.assertIn("net/kinggrief/common/ResourcePackSettings.class", jar.namelist())
+                self.assertFalse(any(path.startswith("org/bukkit/") for path in jar.namelist()), "test fixtures leaked into JAR")
 
         assembly = HERE.parent / "rw-newyear-full-assembly.zip"
         self.assertEqual(assembly.read_bytes(), (public / assembly.name).read_bytes())
         with zipfile.ZipFile(assembly) as z:
             self.assertIsNone(z.testzip())
             self.assertEqual(z.read("resourcepack/" + PACK.name), pack_bytes)
+            self.assertEqual(z.read("resourcepack/" + V64_PACK.name), V64_PACK.read_bytes())
             self.assertEqual(z.read("server.properties").decode("utf-8"), props)
             self.assertEqual(z.read("plugins/KingGriefCore/config.yml").decode("utf-8"), config)
-            self.assertEqual(z.read("plugins/KingGriefCore.jar"), (public / "KingGriefCore.jar").read_bytes())
+            self.assertEqual(z.read("plugins/KingGriefCore.jar"), core_jar)
+
+    def test_source_does_not_force_the_old_item_or_pack_models(self):
+        color = (JAVA_DIR / "ColorUtil.java").read_text(encoding="utf-8")
+        method = color[color.index("public static void applyCustomItemModel("):]
+        method = method[:method.index("public static void applyArmorTrimSafe(")]
+        self.assertIn("setCustomModelData", method)
+        self.assertNotIn("setItemModel", method)
+        gameplay = (JAVA_DIR / "GameplayListener.java").read_text(encoding="utf-8")
+        self.assertIn("ResourcePackSettings.resolve", gameplay)
+        self.assertNotIn("effectiveUrl.contains", gameplay)
+        for hook in ("repairInventory(p.getInventory())", "repairInventory(e.getInventory())", "repairItem(item)"):
+            self.assertIn(hook, gameplay)
 
 
 if __name__ == "__main__":

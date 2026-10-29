@@ -169,7 +169,7 @@ export default async function AdminSettingsPage() {
           <a href="/KingClear.jar" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Очистка инвентаря KingClear.jar (/clear)
           </a>
-          <a href="/kinggrief-mega-rp-v64.zip" download className="btn btn-ghost btn-sm">
+          <a href="/kinggrief-mega-rp-v65.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Мега-РП v6.4 — новые предметы (.zip)
           </a>
           <a href="/rw-newyear-full-assembly.zip" download className="btn btn-ghost btn-sm">

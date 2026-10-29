@@ -1,9 +1,9 @@
-# KINGGRIEF CORE v5.9.0 — ZERO-FREEZE NEW YEAR FT × REALLYWORLD EDITION
+# KINGGRIEF CORE v6.4.1 — ZERO-FREEZE NEW YEAR FT × REALLYWORLD EDITION
 server-ip: "kinggrief.pickme.cloud"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
 push-resourcepack-on-join: true
-resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v64.zip"
-resourcepack-sha1: "21b2343076c751bf392ac3bd47528c59988fb92c"
+resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip"
+resourcepack-sha1: "fc61175f0692ab85486898160dce223097aa4382"
 starting-coins: 5000.0
 starting-relics: 50

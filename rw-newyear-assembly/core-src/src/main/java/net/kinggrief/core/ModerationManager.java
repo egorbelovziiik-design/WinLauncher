@@ -359,7 +359,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             quitting.setWalkSpeed(0.2f);
             quitting.setFlySpeed(0.1f);
             quitting.removePotionEffect(PotionEffectType.INVISIBILITY);
-            quitting.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
+            ColorUtil.removePot(quitting, "resistance", "DAMAGE_RESISTANCE");
         } catch (Throwable ignored) {}
         // Save shift if quitting moderator was on /sw
         Long shiftStart = activeStaffShifts.remove(quitting.getUniqueId());
@@ -2080,7 +2080,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     onlineVictim.sendTitle(ColorUtil.c("&#00E676&l🔓 ВЫ СВОБОДНЫ!"),
                             ColorUtil.c("&fБан снял модератор &e" + staffName + "&f. С возвращением!"), 3, 50, 8);
                     try { onlineVictim.removePotionEffect(PotionEffectType.INVISIBILITY); } catch (Throwable ignored) {}
-                    try { onlineVictim.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE); } catch (Throwable ignored) {}
+                    try { ColorUtil.removePot(onlineVictim, "resistance", "DAMAGE_RESISTANCE"); } catch (Throwable ignored) {}
                     try { onlineVictim.setWalkSpeed(0.2f); onlineVictim.setFlySpeed(0.1f); } catch (Throwable ignored) {}
                 }
             }
@@ -2140,7 +2140,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             try { v.leaveVehicle(); } catch (Throwable ignored) {}
             try { v.setWalkSpeed(0.2f); v.setFlySpeed(0.1f); } catch (Throwable ignored) {}
             try { v.removePotionEffect(PotionEffectType.INVISIBILITY); } catch (Throwable ignored) {}
-            try { v.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE); } catch (Throwable ignored) {}
+            try { ColorUtil.removePot(v, "resistance", "DAMAGE_RESISTANCE"); } catch (Throwable ignored) {}
         }
     }
 

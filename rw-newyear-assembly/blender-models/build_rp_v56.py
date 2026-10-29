@@ -19,7 +19,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 ASSEMBLY_DIR = SCRIPT_DIR.parent
 OUT_RP_DIR = tempfile.mkdtemp(prefix="kinggrief-rp-")
 atexit.register(shutil.rmtree, OUT_RP_DIR, ignore_errors=True)
-OUT_ZIP = os.environ.get("KINGGRIEF_RP_OUTPUT", str(ASSEMBLY_DIR / "kinggrief-mega-rp-v64.zip"))
+OUT_ZIP = os.environ.get("KINGGRIEF_RP_OUTPUT", str(ASSEMBLY_DIR / "kinggrief-mega-rp-v65.zip"))
 # Rebuilding the separate ranks-only pack is opt-in, not a side effect.
 OUT_RANKS_ONLY_ZIP = os.environ.get("KINGGRIEF_RP_RANKS_ZIP")
 
@@ -1388,6 +1388,22 @@ def make_clean_item_model_json(item_id, cat):
             "textures": {"layer0": tex_ref},
             "display": copy.deepcopy(VANILLA_FALLBACKS["legacy"]["bow"]["display"]),
         }
+    if cat == "sphere":
+        # Smaller in menus and in both hands, without shrinking other totems,
+        # weapons, or the source texture. GUI also covers the hotbar.
+        return {
+            "parent": "minecraft:item/generated",
+            "textures": {"layer0": tex_ref},
+            "display": {
+                "firstperson_righthand": {"rotation": [0, -24, 8], "translation": [1.25, 2.8, 1.15], "scale": [0.33, 0.33, 0.33]},
+                "firstperson_lefthand":  {"rotation": [0, -24, 8], "translation": [1.25, 2.6, 1.15], "scale": [0.30, 0.30, 0.30]},
+                "thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.40, 0.40, 0.40]},
+                "thirdperson_lefthand":  {"rotation": [0, 0, 0], "translation": [0, 3.0, 1.0], "scale": [0.40, 0.40, 0.40]},
+                "gui": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [0.75, 0.75, 0.75]},
+                "ground": {"rotation": [0, 0, 0], "translation": [0, 2.5, 0], "scale": [0.40, 0.40, 0.40]},
+                "fixed": {"rotation": [0, 180, 0], "scale": [0.75, 0.75, 0.75]},
+            },
+        }
     if cat in ("sword", "pickaxe", "mace", "trident", "hammer", "scythe", "axe"):
         return {
             "parent": "minecraft:item/handheld",
@@ -1663,7 +1679,7 @@ with open(os.path.join(OUT_RP_DIR, "pack.mcmeta"), "w", encoding="utf-8") as fp:
             "supported_formats": [6, 75],
             "min_format": 6,
             "max_format": 75,
-            "description": "§b§l❄ §c§lKINGGRIEF v6.4 §8· §fНовые предметы, шары, броня и свитки",
+            "description": "§b§l❄ §c§lKINGGRIEF v6.5 §8· §fМодели предметов и уменьшенные шары",
         },
         "overlays": {
             "entries": [{"directory": "legacy_trim", "formats": [18, 42], "min_format": 18, "max_format": 42}]
@@ -1687,4 +1703,4 @@ with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED, compres
         zf.writestr(info, full.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
 
 sha1 = hashlib.sha1(output_path.read_bytes()).hexdigest()
-print(f"PACKAGED {output_path.name} v6.4: {output_path.stat().st_size:,} bytes | SHA1={sha1}")
+print(f"PACKAGED {output_path.name} v6.5: {output_path.stat().st_size:,} bytes | SHA1={sha1}")

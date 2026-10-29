@@ -1,6 +1,6 @@
 name: KingHub
 prefix: KingHub
-version: 1.2.0
+version: 1.2.1
 main: net.kinggrief.hub.KingHubPlugin
 api-version: '1.21'
 load: POSTWORLD

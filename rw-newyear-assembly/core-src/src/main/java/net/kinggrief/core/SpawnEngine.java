@@ -1196,7 +1196,7 @@ public final class SpawnEngine {
                     if (t % 5 == 0) {
                         try {
                             center.getWorld().spawnParticle(Particle.END_ROD, center.clone().add(0, 1.15, 0), 5, 0.45, 0.75, 0.45, 0.01);
-                            center.getWorld().spawnParticle(Particle.CRIT_MAGIC, center.clone().add(0, 0.85, 0), 4, 0.5, 0.85, 0.5, 0.02);
+                            center.getWorld().spawnParticle(ColorUtil.particle("ENCHANTED_HIT", "CRIT_MAGIC"), center.clone().add(0, 0.85, 0), 4, 0.5, 0.85, 0.5, 0.02);
                         } catch (Throwable ignored) {}
                     }
                     if (t >= 300) {

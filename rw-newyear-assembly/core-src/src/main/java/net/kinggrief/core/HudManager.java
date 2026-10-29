@@ -513,7 +513,7 @@ public final class HudManager {
             else if ("zeus".equals(set)) c = org.bukkit.Color.fromRGB(250, 204, 21);
             else c = org.bukkit.Color.fromRGB(168, 85, 247);
             org.bukkit.Location base = p.getLocation().clone().add(0.0, 0.4, 0.0);
-            p.getWorld().spawnParticle(org.bukkit.Particle.REDSTONE, base, 10, 0.45, 0.7, 0.45, 0.0,
+            p.getWorld().spawnParticle(ColorUtil.particle("DUST", "REDSTONE"), base, 10, 0.45, 0.7, 0.45, 0.0,
                     new org.bukkit.Particle.DustOptions(c, 1.2f));
         } catch (Throwable ignored) {}
     }

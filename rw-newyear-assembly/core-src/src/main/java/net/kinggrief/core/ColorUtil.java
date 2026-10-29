@@ -205,18 +205,28 @@ public final class ColorUtil {
         }
     }
 
+    public static void removePot(org.bukkit.entity.LivingEntity entity, String modernKey, String legacyName) {
+        if (entity == null) return;
+        PotionEffectType type = potType(modernKey, legacyName);
+        if (type != null) entity.removePotionEffect(type);
+    }
+
+    /** Particle constants were renamed in 1.20.5; avoid a NoSuchFieldError. */
+    public static org.bukkit.Particle particle(String modernName, String legacyName) {
+        try { return org.bukkit.Particle.valueOf(modernName); } catch (IllegalArgumentException ignored) {}
+        try { return org.bukkit.Particle.valueOf(legacyName); } catch (IllegalArgumentException ignored) {}
+        return org.bukkit.Particle.CRIT;
+    }
+
     public static void applyCustomItemModel(ItemMeta meta, String modelId, int cmdData) {
         if (meta == null) return;
         try {
+            // Both legacy overrides and 1.21.4+ item definitions in the pack
+            // use CustomModelData. Do not force kinggrief:<id> as item_model:
+            // if the pack is missing, an explicit unknown model is purple/black
+            // instead of falling back to the item's vanilla base model.
             meta.setCustomModelData(Integer.valueOf(cmdData));
         } catch (Throwable ignored) {
-        }
-        if (modelId != null && !modelId.isEmpty()) {
-            try {
-                Method setModel = ItemMeta.class.getMethod("setItemModel", NamespacedKey.class);
-                setModel.invoke(meta, new NamespacedKey("kinggrief", modelId));
-            } catch (Throwable ignored) {
-            }
         }
     }
 

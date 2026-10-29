@@ -1,5 +1,6 @@
 package net.kinggrief.core;
 
+import net.kinggrief.common.ResourcePackSettings;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -344,8 +345,8 @@ public final class GameplayListener implements Listener {
         consumeOne(p, scroll);
         p.getInventory().setItemInOffHand(tool);
         ColorUtil.sound(p, "block.enchantment_table.use", 1.0f, 1.25f);
-        p.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, p.getLocation().add(0, 1.1, 0), 45, 0.5, 0.7, 0.5, 0.4);
-        p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1.1, 0), 25, 0.4, 0.6, 0.4, 0.05);
+        p.getWorld().spawnParticle(ColorUtil.particle("ENCHANT", "ENCHANTMENT_TABLE"), p.getLocation().add(0, 1.1, 0), 45, 0.5, 0.7, 0.5, 0.4);
+        p.getWorld().spawnParticle(ColorUtil.particle("ENCHANTED_HIT", "CRIT_MAGIC"), p.getLocation().add(0, 1.1, 0), 25, 0.4, 0.6, 0.4, 0.05);
         p.sendMessage(ColorUtil.c("&#00E676✔ Зачарование &#7DD3FC" + ItemFactory.scrollMark(enchId)
                 + " " + ItemFactory.romanLevel(lvl) + " &#00E676успешно нанесено на предмет в левой руке!"));
         ColorUtil.actionBar(p, "&#7DD3FC✨ " + ItemFactory.scrollMark(enchId) + " " + ItemFactory.romanLevel(lvl));
@@ -517,6 +518,11 @@ public final class GameplayListener implements Listener {
         plugin.getStore().refreshPermissions(p, plugin.getRanks());
         plugin.getBossEvents().syncBarsForJoin(p);
 
+        // Repair old explicit kinggrief item models without changing names,
+        // charges, enchants, armor, offhand, or other plugin metadata.
+        LegacyItemModelMigration.repairInventory(p.getInventory());
+        LegacyItemModelMigration.repairInventory(p.getEnderChest());
+
         // v6.3.0: страховка от «замороженного» игрока — если скорость ходьбы/полёта осталась нулевой
         // после сбоя/перезагрузки во время бан-анимации, возвращаем нормальную сразу на входе.
         try {
@@ -524,7 +530,7 @@ public final class GameplayListener implements Listener {
             if (p.getFlySpeed() < 0.02f) p.setFlySpeed(0.1f);
             if (!plugin.getModeration().isFrozenOrAscending(p)) {
                 p.removePotionEffect(org.bukkit.potion.PotionEffectType.INVISIBILITY);
-                p.removePotionEffect(org.bukkit.potion.PotionEffectType.DAMAGE_RESISTANCE);
+                ColorUtil.removePot(p, "resistance", "DAMAGE_RESISTANCE");
             }
         } catch (Throwable ignored) {}
 
@@ -539,9 +545,15 @@ public final class GameplayListener implements Listener {
             p.teleport(plugin.getSpawnEngine().getSpawnArrival());
         }
 
-        // Auto-push Mega Resourcepack v5.9 with exact SHA-1 & cache-busting query (115 3D items + 12 Swords + 12 Pickaxes + Молот OWNER 10×10 + Bow Animation!)
-        final String rawRpUrl = plugin.getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63");
-        final String rpSha1 = plugin.getConfig().getString("resourcepack-sha1", "3637015af079e6fea621c10fe6dfa51e35cc0113");
+        // Only known official old URL/hash pairs are upgraded; custom packs
+        // remain exactly as configured. The built-in server.properties pack is
+        // separate and should also be updated by the server administrator.
+        String configuredUrl = plugin.getConfig().getString("resourcepack-url", ResourcePackSettings.LATEST_URL);
+        // Do not invent the official checksum for a custom URL with no hash.
+        String configuredSha = plugin.getConfig().contains("resourcepack-sha1", true)
+                ? plugin.getConfig().getString("resourcepack-sha1")
+                : (ResourcePackSettings.LATEST_URL.equals(configuredUrl) ? ResourcePackSettings.LATEST_SHA1 : null);
+        final ResourcePackSettings.Pack pack = ResourcePackSettings.resolve(configuredUrl, configuredSha);
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -550,18 +562,12 @@ public final class GameplayListener implements Listener {
                 // v6.3.0: если игрок зашёл с действующим мутом — кляп 🤐 сразу висит над ним!
                 plugin.getModeration().syncMuteGagFor(p);
                 try {
-                    if (plugin.getConfig().getBoolean("push-resourcepack-on-join", true) && rawRpUrl != null && !rawRpUrl.isEmpty()) {
-                        String effectiveUrl = rawRpUrl;
-                        String effectiveSha1 = rpSha1;
-                        if (effectiveUrl.contains("kinggrief.vercel.app/kinggrief-mega-rp.zip")) {
-                            effectiveUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63";
-                            effectiveSha1 = "3637015af079e6fea621c10fe6dfa51e35cc0113";
-                        }
-                        byte[] hashBytes = ColorUtil.hexToBytes(effectiveSha1);
+                    if (plugin.getConfig().getBoolean("push-resourcepack-on-join", true) && pack.url != null && !pack.url.isEmpty()) {
+                        byte[] hashBytes = ColorUtil.hexToBytes(pack.sha1);
                         if (hashBytes != null) {
-                            p.setResourcePack(effectiveUrl, hashBytes);
+                            p.setResourcePack(pack.url, hashBytes);
                         } else {
-                            p.setResourcePack(effectiveUrl);
+                            p.setResourcePack(pack.url);
                         }
                     }
                 } catch (Throwable ignored) {}
@@ -1910,6 +1916,12 @@ public final class GameplayListener implements Listener {
                 }
             }
         }
+        if (!e.isCancelled()) {
+            LegacyItemModelMigration.repairInventory(e.getInventory());
+            LegacyItemModelMigration.repairInventory(e.getPlayer().getInventory());
+            ItemStack cursor = e.getPlayer().getItemOnCursor();
+            if (LegacyItemModelMigration.repairItem(cursor)) e.getPlayer().setItemOnCursor(cursor);
+        }
     }
 
     // ================= КЛИКИ ПО ШАЛКЕР-КЕЙСАМ, КАЗИНО, ПАРКУРУ И КАСТОМНЫМ ВЕЩАМ РВ =================
@@ -2143,7 +2155,7 @@ public final class GameplayListener implements Listener {
             ColorUtil.addPot(p, "speed", "SPEED", 3600, 1);
             ColorUtil.addPot(p, "jump_boost", "JUMP", 3600, 1);
             ColorUtil.addPot(p, "regeneration", "REGENERATION", 3600, 1);
-            p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1.2, 0), 60, 0.6, 1.0, 0.6, 0.08);
+            p.getWorld().spawnParticle(ColorUtil.particle("ENCHANTED_HIT", "CRIT_MAGIC"), p.getLocation().add(0, 1.2, 0), 60, 0.6, 1.0, 0.6, 0.08);
             ColorUtil.sound(p, "block.beacon.activate", 1.0f, 1.3f);
             p.sendTitle(ColorUtil.c("&#FFD740&l⚡ МЕГА-БАФФ!"),
                     ColorUtil.c("&fСила III + Спешка III + Скорость II + Прыгучесть II + Реген II (3 мин)"), 5, 40, 10);
@@ -3490,7 +3502,7 @@ public final class GameplayListener implements Listener {
                     p.setHealth(Math.min(p.getMaxHealth(), 10.0));
                     ColorUtil.addPot(p, "absorption", "ABSORPTION", 300, 1);
                     ColorUtil.addPot(p, "regeneration", "REGENERATION", 200, 1);
-                    p.getWorld().spawnParticle(Particle.CRIT_MAGIC, p.getLocation().add(0, 1.0, 0), 70, 0.9, 1.2, 0.9, 0.1);
+                    p.getWorld().spawnParticle(ColorUtil.particle("ENCHANTED_HIT", "CRIT_MAGIC"), p.getLocation().add(0, 1.0, 0), 70, 0.9, 1.2, 0.9, 0.1);
                     ColorUtil.sound(p, "block.amethyst_cluster.break", 1.0f, 1.2f);
                     p.sendMessage(ColorUtil.c("&#E040FB🔮 Ваш 3D Шар &#FFD740разбился&#E040FB, но спас вас от смерти! (&a10❤ + Поглощение II&8)"));
                 }
@@ -4303,6 +4315,11 @@ public final class GameplayListener implements Listener {
     public void onPickup(EntityPickupItemEvent e) {
         if (e.getItem().getScoreboardTags().contains("kg_case_float")) {
             e.setCancelled(true);
+            return;
+        }
+        if (!e.isCancelled() && e.getEntity() instanceof Player) {
+            ItemStack item = e.getItem().getItemStack();
+            if (LegacyItemModelMigration.repairItem(item)) e.getItem().setItemStack(item);
         }
     }
 

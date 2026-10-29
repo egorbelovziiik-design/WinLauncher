@@ -155,7 +155,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.3.0 — GRAND WINTER CITADEL & CINEMA ANIMATIONS    ");
+        getLogger().info(" KINGGRIEF CORE v6.4.1 — RESOURCE PACK & ITEM MODEL FIX    ");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | 6 Custom TNTs | /razdacha | /txt     ");
         getLogger().info("============================================================");

@@ -36,8 +36,8 @@ grief1:
 
 # Авто-раздача Мега-Ресурспака прямо при входе в Хаб (чтобы на Грифе он уже был загружен!)
 push-resourcepack-on-join: true
-resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63"
-resourcepack-sha1: "3637015af079e6fea621c10fe6dfa51e35cc0113"
+resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip"
+resourcepack-sha1: "fc61175f0692ab85486898160dce223097aa4382"
 
 # Настройки Новогодней Карты и НПС Хаба
 hub:

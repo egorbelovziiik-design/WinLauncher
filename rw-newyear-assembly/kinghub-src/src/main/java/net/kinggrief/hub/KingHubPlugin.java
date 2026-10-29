@@ -1,5 +1,6 @@
 package net.kinggrief.hub;
 
+import net.kinggrief.common.ResourcePackSettings;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -120,8 +121,8 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     private List<String> griefLore = new ArrayList<String>();
 
     private boolean pushRpOnJoin = true;
-    private String rpUrl = "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63";
-    private String rpSha1 = "3637015af079e6fea621c10fe6dfa51e35cc0113";
+    private String rpUrl = ResourcePackSettings.LATEST_URL;
+    private String rpSha1 = ResourcePackSettings.LATEST_SHA1;
 
     private String hubWorldName = "hub_world";
     private boolean autoBuildMap = true;
@@ -171,7 +172,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         }
 
         startHubTasks();
-        getLogger().info("KingHub v1.0.0 enabled! New Year Map ready in '" + hubWorld.getName()
+        getLogger().info("KingHub v1.2.1 enabled! New Year Map ready in '" + hubWorld.getName()
                 + "', Target Grief1=" + griefHost + ":" + griefPort);
     }
 
@@ -196,8 +197,13 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         this.griefLore = getConfig().getStringList("grief1.lore");
 
         this.pushRpOnJoin = getConfig().getBoolean("push-resourcepack-on-join", true);
-        this.rpUrl = getConfig().getString("resourcepack-url", "https://kinggrief.vercel.app/kinggrief-mega-rp.zip?v=63");
-        this.rpSha1 = getConfig().getString("resourcepack-sha1", "3637015af079e6fea621c10fe6dfa51e35cc0113");
+        String configuredUrl = getConfig().getString("resourcepack-url", ResourcePackSettings.LATEST_URL);
+        String configuredSha = getConfig().contains("resourcepack-sha1", true)
+                ? getConfig().getString("resourcepack-sha1")
+                : (ResourcePackSettings.LATEST_URL.equals(configuredUrl) ? ResourcePackSettings.LATEST_SHA1 : null);
+        ResourcePackSettings.Pack pack = ResourcePackSettings.resolve(configuredUrl, configuredSha);
+        this.rpUrl = pack.url;
+        this.rpSha1 = pack.sha1;
 
         this.hubWorldName = getConfig().getString("hub.world-name", "hub_world").trim();
         this.autoBuildMap = getConfig().getBoolean("hub.auto-build-newyear-map", true);

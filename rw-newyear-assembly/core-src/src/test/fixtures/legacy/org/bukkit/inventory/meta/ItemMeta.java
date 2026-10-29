@@ -1,0 +1,3 @@
+package org.bukkit.inventory.meta;
+import org.bukkit.persistence.PersistentDataContainer;
+public interface ItemMeta { boolean hasCustomModelData(); PersistentDataContainer getPersistentDataContainer(); }
