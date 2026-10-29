@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 6.6.4
+version: 6.7.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit]
 author: KINGGRIEF
-description: "KINGGRIEF v6.6.4: рабочие шары, тотемы и безопасный поиск событий."
+description: "KINGGRIEF v6.7.0: дирижабль, корона, заказы и обмен с журналом восстановления."
 
 
 commands:
@@ -123,6 +123,16 @@ commands:
     aliases: [blackmarket]
   events:
     aliases: [event, boss, bosses, airdrop, myst]
+  crown:
+    description: Hunt for the crown in the PvP arena
+    usage: /crown [join|leave|status|start|stop]
+  trade:
+    description: Mutual item exchange with recovery journal
+    usage: /trade <player|accept|deny|cancel>
+  buyorder:
+    aliases: [buyorders]
+    description: Escrowed buy orders and item mailbox
+    usage: /buyorder <create|list|sell|cancel|claim>
   cf:
     aliases: [coinflip]
   duel:

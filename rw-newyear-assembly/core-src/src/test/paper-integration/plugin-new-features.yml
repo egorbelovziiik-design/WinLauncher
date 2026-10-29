@@ -1,0 +1,5 @@
+name: KgNewFeaturesProbe
+version: 1.0
+main: net.kinggrief.probe.NewFeaturesProbe
+api-version: '1.21'
+depend: [KingGriefCore]

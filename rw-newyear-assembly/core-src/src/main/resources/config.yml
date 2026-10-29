@@ -1,4 +1,4 @@
-# KINGGRIEF CORE v6.6.4 — SAFER EVENTS NEW YEAR FT × REALLYWORLD EDITION
+# KINGGRIEF CORE v6.7.0 — EVENTS, BUY ORDERS AND RECOVERABLE TRADES
 server-ip: "kinggrief.pickme.cloud"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
@@ -13,3 +13,11 @@ events:
   auto-enabled: true             # false: отключить только автоматический запуск
   allow-chunk-generation: true  # false: использовать лишь уже загруженные чанки
   min-free-heap-mb: 256         # запас JVM heap перед запросом новых чанков; не лимит RAM контейнера
+
+# Охота в существующей PvP-яме. Игроков не телепортирует и инвентарь не меняет.
+crown-event:
+  auto-enabled: true
+  interval-seconds: 1800
+  lobby-seconds: 45
+  match-seconds: 300
+  goal-seconds: 90

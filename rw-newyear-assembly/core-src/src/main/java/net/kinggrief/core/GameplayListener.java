@@ -1895,7 +1895,8 @@ public final class GameplayListener implements Listener {
         java.util.Iterator<Block> bit = e.blockList().iterator();
         while (bit.hasNext()) {
             Block b = bit.next();
-            if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)) bit.remove();
+            if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)
+                    || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) bit.remove();
         }
     }
 
@@ -1952,7 +1953,26 @@ public final class GameplayListener implements Listener {
         }
     }
     @EventHandler public void onBurn(BlockBurnEvent e) {
-        if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation())) e.setCancelled(true);
+        if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation())
+                || plugin.getBossEvents().isProtectedEventStructureBlock(e.getBlock(), false)) e.setCancelled(true);
+    }
+    @EventHandler(ignoreCancelled = true)
+    public void onEventPistonExtend(org.bukkit.event.block.BlockPistonExtendEvent e) {
+        for (Block block : e.getBlocks()) {
+            if (plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
+                    || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection()), false)) {
+                e.setCancelled(true); return;
+            }
+        }
+    }
+    @EventHandler(ignoreCancelled = true)
+    public void onEventPistonRetract(org.bukkit.event.block.BlockPistonRetractEvent e) {
+        for (Block block : e.getBlocks()) {
+            if (plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
+                    || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection().getOppositeFace()), false)) {
+                e.setCancelled(true); return;
+            }
+        }
     }
     @EventHandler public void onArmorStandManip(PlayerArmorStandManipulateEvent e) {
         if (e.getRightClicked().getScoreboardTags().contains("kg_holo")
@@ -1994,6 +2014,14 @@ public final class GameplayListener implements Listener {
             ItemStack cursor = e.getPlayer().getItemOnCursor();
             if (LegacyItemModelMigration.repairItem(cursor)) e.getPlayer().setItemOnCursor(cursor);
         }
+    }
+
+    // Collect only once, after normal protection listeners have had a chance to cancel.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onAirshipPartInteract(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getHand() != EquipmentSlot.HAND
+                || e.getClickedBlock() == null) return;
+        if (plugin.getBossEvents().collectAirshipPart(e.getPlayer(), e.getClickedBlock())) e.setCancelled(true);
     }
 
     // ================= КЛИКИ ПО ШАЛКЕР-КЕЙСАМ, КАЗИНО, ПАРКУРУ И КАСТОМНЫМ ВЕЩАМ РВ =================
@@ -2077,7 +2105,7 @@ public final class GameplayListener implements Listener {
             if (plugin.getBossEvents().isLockedEventChest(cb)) {
                 e.setCancelled(true);
                 ColorUtil.sound(p, "block.chest.locked", 1f, 1f);
-                p.sendMessage(ColorUtil.c("&#FF1744🔒 Мифический Сундук запечатан! Убейте Босса рядом, чтобы открыть его!"));
+                p.sendMessage(ColorUtil.c("&#FF1744🔒 Сундук запечатан: выполните условия ивента или дождитесь открытия."));
                 return;
             }
             if (plugin.getSpawnEngine().isInSpawnWorld(cb.getLocation())
@@ -4380,6 +4408,9 @@ public final class GameplayListener implements Listener {
     // ================= ИНВЕНТАРЬ И ЧАТ REALLYWORLD =================
     @EventHandler
     public void onInvClick(InventoryClickEvent e) {
+        // Trade previews are handled by SafeTradeManager. In particular, do not
+        // apply the custom anvil/book action to the virtual preview items.
+        if (e.getView().getTopInventory().getHolder() instanceof SafeTradeManager.TradeHolder) return;
         if (plugin.getModeration().handleGuiClick(e, e.getView().getTitle())) {
             return;
         }

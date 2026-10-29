@@ -1279,6 +1279,7 @@ public final class GuiManager {
                 "&fВиды ивентов (спавнятся строго на СУШЕ!):",
                 " &#FF1744• Мифические Боссы &8(5 видов)",
                 " &#FF9100• Военный АирДроп с парашютом",
+                " &#80D8FF• Разбитый дирижабль с грузом",
                 " &#FF5252• Звёздный Метеорит с рудами",
                 " &#FFD740• Золотой Маяк Богатства (+$$$)",
                 " &#40C4FF• Ледяная Цитадель и Вулкан",
@@ -1326,6 +1327,7 @@ public final class GuiManager {
             inv.setItem(46, ItemFactory.glowIcon(Material.AMETHYST_BLOCK, "&#C4B5FD&l✧ Кристальный храм", "&7Событие с сундуком и наградами"));
             inv.setItem(47, ItemFactory.glowIcon(Material.MOSSY_STONE_BRICKS, "&#A7F3D0&l⚒ Древние руины", "&7Событие с сундуком и наградами"));
             inv.setItem(48, ItemFactory.glowIcon(Material.CAMPFIRE, "&#FCD34D&l⛺ Лагерь кладоискателей", "&7Событие с сундуком и наградами"));
+            inv.setItem(50, ItemFactory.glowIcon(Material.LIGHT_BLUE_WOOL, "&#80D8FF&l✈ Разбитый дирижабль", "&7Найдите три медные детали до конца таймера"));
         }
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -2146,6 +2148,7 @@ public final class GuiManager {
                 else if (slot == 46) plugin.getBossEvents().requestBossEvent("crystal", p);
                 else if (slot == 47) plugin.getBossEvents().requestBossEvent("ruins", p);
                 else if (slot == 48) plugin.getBossEvents().requestBossEvent("camp", p);
+                else if (slot == 50) plugin.getBossEvents().requestBossEvent("airship", p);
                 openEventsMenu(p);
             }
         } else if ("titles".equals(type)) {

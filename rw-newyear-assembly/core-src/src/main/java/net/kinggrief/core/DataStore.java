@@ -152,7 +152,17 @@ public final class DataStore {
         if (!plugin.getDataFolder().exists()) {
             plugin.getDataFolder().mkdirs();
         }
-        this.yml = file.exists() ? YamlConfiguration.loadConfiguration(file) : new YamlConfiguration();
+        this.yml = new YamlConfiguration();
+        try {
+            // A dangling link also has exists()==false; never treat it as a fresh
+            // data file or replace the link with an empty economy on first save.
+            if (java.nio.file.Files.isSymbolicLink(file.toPath())) throw new IOException("data.yml is a symbolic link");
+            if (file.exists()) this.yml.load(file);
+        } catch (Exception error) {
+            plugin.getLogger().severe("[DataStore] Cannot read data.yml; stopping without replacing player data: " + error);
+            Bukkit.shutdown();
+            throw new IllegalStateException("Invalid KingGrief data.yml", error);
+        }
         clans.clear();
         playerClan.clear();
         ConfigurationSection cs = yml.getConfigurationSection("clans");
@@ -240,7 +250,11 @@ public final class DataStore {
         }
     }
 
-    public synchronized void save() {
+    public synchronized void save() { saveInternal(false); }
+
+    /** Atomic replace keeps the previous data file intact if writing fails. The
+     * durable variant is used by economy operations that must detect failure. */
+    private boolean saveInternal(boolean durable) {
         yml.set("clans", null);
         for (Clan c : clans.values()) {
             String p = "clans." + c.id;
@@ -287,11 +301,64 @@ public final class DataStore {
             yml.set(p + ".time", lot.createdAt);
             yml.set(p + ".item", lot.item);
         }
+        java.nio.file.Path temp = null;
         try {
-            yml.save(file);
-        } catch (IOException ignored) {
+            java.nio.file.Path target = file.toPath().toAbsolutePath();
+            java.nio.file.Path parent = target.getParent();
+            if (java.nio.file.Files.isSymbolicLink(target)) throw new IOException("data.yml is a symbolic link");
+            java.nio.file.Files.createDirectories(parent);
+            byte[] bytes = yml.saveToString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            java.util.Set<java.nio.file.attribute.PosixFilePermission> permissions = null;
+            try {
+                if (java.nio.file.Files.exists(target)) permissions = java.nio.file.Files.getPosixFilePermissions(target);
+            } catch (UnsupportedOperationException ignored) { /* non-POSIX filesystem */ }
+            temp = java.nio.file.Files.createTempFile(parent, ".data-", ".tmp");
+            if (permissions != null) java.nio.file.Files.setPosixFilePermissions(temp, permissions);
+            try (java.nio.channels.FileChannel out = java.nio.channels.FileChannel.open(temp,
+                    java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                java.nio.ByteBuffer buf = java.nio.ByteBuffer.wrap(bytes);
+                while (buf.hasRemaining()) out.write(buf);
+                if (durable) out.force(true);
+            }
+            java.nio.file.Files.move(temp, target, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            if (durable) {
+                try (java.nio.channels.FileChannel dir = java.nio.channels.FileChannel.open(parent, java.nio.file.StandardOpenOption.READ)) {
+                    dir.force(true);
+                } catch (Exception noDirectorySync) {
+                    // The atomic rename already committed; report uncertainty but
+                    // never claim a rollback after the file was replaced.
+                    plugin.getLogger().warning("[DataStore] Directory fsync unavailable: " + noDirectorySync.getMessage());
+                }
+            }
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().severe("[DataStore] Save failed; previous data file was not intentionally overwritten: " + error);
+            return false;
+        } finally {
+            if (temp != null) try { java.nio.file.Files.deleteIfExists(temp); }
+            catch (IOException cleanup) { plugin.getLogger().warning("[DataStore] Temp cleanup failed: " + cleanup); }
         }
     }
+
+    interface CheckedMutation<T> { T apply(YamlConfiguration data) throws Exception; }
+
+    /** One checked, durable update of balances and order metadata in the same YAML file. */
+    synchronized <T> T transact(CheckedMutation<T> mutation) throws Exception {
+        YamlConfiguration before = new YamlConfiguration();
+        before.loadFromString(yml.saveToString());
+        try {
+            T result = mutation.apply(yml);
+            if (!saveInternal(true)) throw new IOException("durable data.yml commit failed");
+            return result;
+        } catch (Exception error) {
+            yml = before;
+            throw error;
+        }
+    }
+
+    /** Main-thread read access for the order manager; callers must not mutate. */
+    synchronized <T> T inspect(CheckedMutation<T> reader) throws Exception { return reader.apply(yml); }
 
     private String key(String name) {
         return name == null ? "unknown" : name.toLowerCase(Locale.ROOT);

@@ -66,6 +66,20 @@ identity and impact. `--arrows-only` runs the projectile tests; `--boss-only`,
 select subsets. It needs
 the same `--node-modules` as `run.py`; it is not a visual Minecraft-client test.
 
+`test-new-features.py` exercises the airship's protected, non-repeatable scrap,
+expiry and terrain restoration; opt-in crown scoring, accepted/cancelled damage
+and rewards; trade confirmation, PDC/lore, inventory capacity and drag/hotbar
+cancellation; and order reservation, partial sale, mailbox, cancellation and a
+simulated `data.yml` write failure. Most clicks are synthetic Bukkit events.
+`test-wire-features.py` complements it with actual protocol block-use and window
+click packets from two clients. `test-trade-crash.py` and `test-order-crash.py`
+SIGKILL the disposable Paper process between commit steps, restart it, and verify
+recovery without repeating the item transfer or payment. The kill points are
+set up via the same production journal methods. `test-data-failclosed.py`
+separately checks malformed YAML, a dangling data-file symlink, and unidentifiable
+corrupt trade/order journals. These tests do not simulate power loss or third-party
+plugins directly changing player data.
+
 The template itself is generated with `build-spawn-template.py` in the
 assembly root. Pass `--update-checksum` when regenerating it, then rebuild Core
 with `build-core-hub.py` before running `build-assembly.py`. The template does

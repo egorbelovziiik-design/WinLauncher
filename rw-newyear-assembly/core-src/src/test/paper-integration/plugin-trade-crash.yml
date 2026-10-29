@@ -1,0 +1,5 @@
+name: KgTradeCrashProbe
+version: 1.0
+main: net.kinggrief.probe.TradeCrashProbe
+api-version: '1.21'
+depend: [KingGriefCore]

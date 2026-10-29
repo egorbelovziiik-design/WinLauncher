@@ -73,7 +73,13 @@ def main():
             raise RuntimeError("Paper did not complete the event-search probe")
         log = result.stdout
         core_sha = hashlib.sha256(args.core.read_bytes()).hexdigest()
-        install_marker = f"[Install] Active KingGriefCore v6.6.4; JAR={args.core_name}; SHA-256={core_sha}"
+        with zipfile.ZipFile(args.core) as core_jar:
+            import re
+            match = re.search(r"(?m)^version:\s*['\"]?([0-9.]+)", core_jar.read("plugin.yml").decode("utf8"))
+            if not match:
+                raise ValueError("Core JAR has no version")
+            core_version = match.group(1)
+        install_marker = f"[Install] Active KingGriefCore v{core_version}; JAR={args.core_name}; SHA-256={core_sha}"
         duplicate_marker = "[Install] Other KingGriefCore JARs in plugins/: diagnostic-duplicate-test.jar"
         good = (result.returncode == 0 and "KG-EVENT-SEARCH PASS:" in log
                 and install_marker in log and duplicate_marker in log

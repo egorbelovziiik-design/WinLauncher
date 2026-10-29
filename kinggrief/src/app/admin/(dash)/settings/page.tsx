@@ -151,10 +151,10 @@ export default async function AdminSettingsPage() {
           <code className="mx-1 rounded bg-black/40 px-1 font-mono text-[0.64rem] text-white/70">minecraft-plugin/</code>.
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <a href="/KingGriefCore-v6.6.4.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm">
-            <Download size={13} /> Скачать ядро KingGriefCore.jar (v6.6.4)
+          <a href="/KingGriefCore-v6.7.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm">
+            <Download size={13} /> Скачать ядро KingGriefCore.jar (v6.7.0)
           </a>
-          <a href="/KingGriefCore-6.6.4-hotfix.zip" download className="btn btn-ghost btn-sm">
+          <a href="/KingGriefCore-6.7.0-update.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Патч и инструкция установки (.zip)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
@@ -175,8 +175,8 @@ export default async function AdminSettingsPage() {
           <a href="/kinggrief-mega-rp-v66.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Мега-РП v66 — новые предметы (.zip)
           </a>
-          <a href="/rw-newyear-full-assembly.zip?v=664" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Вся сборка v6.6.4 (.zip)
+          <a href="/rw-newyear-full-assembly.zip?v=670" download className="btn btn-ghost btn-sm">
+            <Download size={13} /> Вся сборка v6.7.0 (.zip)
           </a>
           <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Сайт + Админ-панель v5.9 (.zip)

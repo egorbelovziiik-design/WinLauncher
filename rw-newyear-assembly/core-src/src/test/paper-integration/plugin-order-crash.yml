@@ -1,0 +1,5 @@
+name: KgOrderCrashProbe
+version: 1.0
+main: net.kinggrief.probe.OrderCrashProbe
+api-version: '1.21'
+depend: [KingGriefCore]

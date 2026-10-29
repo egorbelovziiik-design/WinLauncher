@@ -48,6 +48,9 @@ public final class KingGriefCore extends JavaPlugin {
     private RankManager ranks;
     private LpManager lp;
     private BossEventManager bossEvents;
+    private CrownEventManager crownEvents;
+    private SafeTradeManager safeTrades;
+    private BuyOrderManager buyOrders;
     private SpawnEngine spawnEngine;
     private GuiManager guis;
     private HudManager hud;
@@ -81,6 +84,15 @@ public final class KingGriefCore extends JavaPlugin {
         this.guis = new GuiManager(this);
         this.hud = new HudManager(this);
         this.moderation = new ModerationManager(this);
+        this.crownEvents = new CrownEventManager(this);
+        Bukkit.getPluginManager().registerEvents(this.crownEvents, this);
+        this.safeTrades = new SafeTradeManager(this);
+        Bukkit.getPluginManager().registerEvents(this.safeTrades, this);
+        this.safeTrades.start();
+        this.buyOrders = new BuyOrderManager(this);
+        Bukkit.getPluginManager().registerEvents(this.buyOrders, this);
+        this.buyOrders.start();
+        this.safeTrades.recoverOnlinePlayers();
 
         for (String lpCmd : new String[]{"lp", "luckperms", "lpeditor"}) {
             PluginCommand pc = getCommand(lpCmd);
@@ -100,7 +112,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -140,6 +152,7 @@ public final class KingGriefCore extends JavaPlugin {
             return;
         }
         this.bossEvents.start();
+        this.crownEvents.start();
         this.hud.start();
         this.moderation.start();
         startWebsitePromoSyncLoop();
@@ -160,7 +173,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.6.4 — WORKING ORBS, SAFE TOTEMS & NON-BLOCKING EVENTS");
+        getLogger().info(" KINGGRIEF CORE v6.7.0 — AIRSHIP, CROWN, BUY ORDERS & RECOVERABLE TRADES");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -172,6 +185,9 @@ public final class KingGriefCore extends JavaPlugin {
             this.ownerGiveaway.kickAllForShutdownTechWorks();
             this.ownerGiveaway.shutdown();
         }
+        if (this.buyOrders != null) this.buyOrders.shutdown();
+        if (this.safeTrades != null) this.safeTrades.shutdown();
+        if (this.crownEvents != null) this.crownEvents.shutdown();
         if (this.curatorManager != null) this.curatorManager.shutdown();
         if (this.antiLagDdos != null) this.antiLagDdos.shutdown();
         if (this.gameplayListener != null) this.gameplayListener.cleanupAllTempBlocks();
@@ -186,6 +202,8 @@ public final class KingGriefCore extends JavaPlugin {
     public RankManager getRanks() { return ranks; }
     public LpManager getLp() { return lp; }
     public BossEventManager getBossEvents() { return bossEvents; }
+    public SafeTradeManager getSafeTrades() { return safeTrades; }
+    public BuyOrderManager getBuyOrders() { return buyOrders; }
     public SpawnEngine getSpawnEngine() { return spawnEngine; }
     public GuiManager getGuis() { return guis; }
     public HudManager getHud() { return hud; }
@@ -414,9 +432,26 @@ public final class KingGriefCore extends JavaPlugin {
             return onlineNames(args[1]);
         } else if ("free".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("dragon"), args[0]);
+        } else if ("buyorder".equals(c)) {
+            if (args.length == 1) return filterPrefix(Arrays.asList("create", "list", "sell", "cancel", "claim"), args[0]);
+        } else if ("trade".equals(c)) {
+            if (args.length == 1) {
+                List<String> choices = new ArrayList<String>(Arrays.asList("accept", "deny", "cancel"));
+                choices.addAll(onlineNames(args[0]));
+                return filterPrefix(choices, args[0]);
+            }
+            if (args.length == 2 && "accept".equalsIgnoreCase(args[0])) return onlineNames(args[1]);
+        } else if ("crown".equals(c)) {
+            if (args.length == 1) {
+                List<String> choices = new ArrayList<String>(Arrays.asList("join", "leave", "status"));
+                if (!(sender instanceof Player) || bossEvents.canAdminSpawnEvents((Player)sender)) {
+                    choices.add("start"); choices.add("stop");
+                }
+                return filterPrefix(choices, args[0]);
+            }
         } else if ("events".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("start"), args[0]);
-            if (args.length == 2) return filterPrefix(Arrays.asList("airdrop", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"), args[1]);
+            if (args.length == 2) return filterPrefix(Arrays.asList("airdrop", "airship", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"), args[1]);
         } else if ("clan".equals(c)) {
             if (args.length == 1) {
                 return filterPrefix(Arrays.asList(
@@ -569,6 +604,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
+        if ("crown".equals(c) && !(sender instanceof Player)) return crownEvents.handleCommand(sender, args);
         if (!(sender instanceof Player)) {
             sender.sendMessage("Use /cases give, /p give, /money give, /kgadmin or /lp from console.");
             return true;
@@ -624,6 +660,10 @@ public final class KingGriefCore extends JavaPlugin {
             p.sendMessage(ColorUtil.c("&#FF1744🔐 Сначала войдите: /login или /register"));
             return true;
         }
+
+        if ("crown".equals(c)) return crownEvents.handleCommand(p, args);
+        if ("trade".equals(c)) return safeTrades.handleCommand(p, args);
+        if ("buyorder".equals(c)) return buyOrders.handleCommand(p, args);
 
         // ================= NAVIGATION & SEPARATE WORLDS (/rtp ONLY TO SURVIVAL WORLD!) =================
         if ("spawn".equals(c)) {

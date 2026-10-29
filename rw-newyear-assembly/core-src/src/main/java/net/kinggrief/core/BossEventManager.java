@@ -57,6 +57,7 @@ public final class BossEventManager {
     public enum EventKind {
         BOSS,
         AIRDROP,
+        AIRSHIP,
         METEOR,
         BEACON,
         FROST_CITADEL,
@@ -111,6 +112,9 @@ public final class BossEventManager {
         // may belong to another plugin/player and must never be overwritten on cleanup.
         public final Map<Location, BlockData> expectedBlocks = new HashMap<Location, BlockData>();
         public final List<UUID> hologramStands = new ArrayList<UUID>();
+        // Unique world-space scrap nodes. Parts are virtual and bound to this event,
+        // so they cannot be copied, carried into another event or farmed repeatedly.
+        public final java.util.Set<Location> airshipParts = new java.util.LinkedHashSet<Location>();
         // The event owns tickets for every chunk touched by its structure. This
         // keeps cleanup and chest unlocks from synchronously loading chunks.
         private final List<ChunkPos> chunkTickets = new ArrayList<ChunkPos>();
@@ -183,6 +187,9 @@ public final class BossEventManager {
         templates.put("airdrop", new BossTemplate(
                 "airdrop", EventKind.AIRDROP, "&#FF9100🪂 Военный АирДроп Снабжения", null, 150.0,
                 BarColor.YELLOW, BarStyle.SEGMENTED_10, Material.RED_SHULKER_BOX, 80000.0, 30));
+        templates.put("airship", new BossTemplate(
+                "airship", EventKind.AIRSHIP, "&#80D8FF✈ Разбитый дирижабль", null, 300.0,
+                BarColor.BLUE, BarStyle.SEGMENTED_10, Material.SPRUCE_PLANKS, 85000.0, 30));
         templates.put("meteor", new BossTemplate(
                 "meteor", EventKind.METEOR, "&#FF5252☄ Звёздный Метеорит", null, 150.0,
                 BarColor.RED, BarStyle.SEGMENTED_12, Material.MAGMA_BLOCK, 95000.0, 35));
@@ -331,7 +338,7 @@ public final class BossEventManager {
 
     /** Queue the automatic event search. Search never waits for chunk generation on the tick thread. */
     public boolean requestRandomEvent(CommandSender sender) {
-        String[] pool = new String[]{"airdrop", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"};
+        String[] pool = new String[]{"airdrop", "airship", "meteor", "beacon", "citadel", "volcano", "crystal", "ruins", "camp", "grinch", "krush", "titan", "osiris", "andromeda"};
         List<String> unused = new ArrayList<String>();
         for (String pid : pool) {
             boolean used = false;
@@ -466,6 +473,7 @@ public final class BossEventManager {
                 ev.unlockCountdownSec = ev.unlockTotalSec;
                 ev.secondsLeft = ev.unlockTotalSec + 180;
                 if (tpl.kind == EventKind.AIRDROP) buildBeautifulAirdropStructure(ev);
+                else if (tpl.kind == EventKind.AIRSHIP) buildCrashedAirship(ev);
                 else if (tpl.kind == EventKind.METEOR) buildStarMeteorStructure(ev);
                 else if (tpl.kind == EventKind.BEACON) buildGoldenBeaconStructure(ev);
                 else if (tpl.kind == EventKind.VOLCANO) buildVolcanoStructure(ev);
@@ -777,6 +785,9 @@ public final class BossEventManager {
         } else if (ev.template.kind == EventKind.AIRDROP) {
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF9100&l🪂 СБРОШЕН ВОЕННЫЙ АИРДРОП НА ЗЕМЛЮ!"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Купол с парашютом приземлился на суше — открытие через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
+        } else if (ev.template.kind == EventKind.AIRSHIP) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#80D8FF&l✈ РАЗБИЛСЯ ЗИМНИЙ ДИРИЖАБЛЬ!"));
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Найдите три медные детали среди обломков и нажмите ПКМ. Время: &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
         } else if (ev.template.kind == EventKind.METEOR) {
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &#FF5252&l☄ УПАЛ ЗВЁЗДНЫЙ МЕТЕОРИТ С РУДАМИ!"));
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l║  &7Добывайте алмазы/незерит в кратере! Ядро откроется через &e" + ColorUtil.fmtTime(ev.unlockCountdownSec) + "&7!"));
@@ -1433,6 +1444,64 @@ public final class BossEventManager {
         setBlk(ev, 0, 0, 0, Material.ORANGE_SHULKER_BOX);
     }
 
+    /** Compact wreck inside the already checked 19x19 footprint. Only changed blocks are saved. */
+    private void buildCrashedAirship(ActiveBossEvent ev) {
+        for (int x = -6; x <= 6; x++) for (int z = -3; z <= 3; z++) {
+            int width = Math.abs(x) >= 5 ? 2 : 3;
+            if (Math.abs(z) > width) continue;
+            fillGroundedFloor(ev, x, z, Math.abs(z) == width ? Material.DARK_OAK_PLANKS : Material.SPRUCE_PLANKS,
+                    Material.SPRUCE_PLANKS);
+            if (Math.abs(z) == width && !(x == 0 && z < 0)) {
+                setBlk(ev, x, 0, z, Material.STRIPPED_SPRUCE_LOG);
+                if (Math.abs(x) <= 4 && x % 2 == 0) setBlk(ev, x, 1, z, Material.SPRUCE_FENCE);
+            }
+        }
+        // A damaged envelope, connected to the low mast by chains. Leave the
+        // approach and the chest hologram clear; no hanging entities or mobs.
+        for (int y = 6; y <= 11; y++) for (int x = -4; x <= 4; x++) for (int z = -3; z <= 3; z++) {
+            double d = x*x/16.0 + (y-8.5)*(y-8.5)/6.25 + z*z/9.0;
+            if (d < 0.58 || d > 1.04 || (x >= 1 && y <= 7 && z >= 0)) continue;
+            setBlk(ev, x, y, z, ((x + y) & 1) == 0 ? Material.LIGHT_BLUE_WOOL : Material.WHITE_WOOL);
+        }
+        for (int y = 1; y <= 7; y++) setBlk(ev, -3, y, 2, Material.STRIPPED_SPRUCE_LOG);
+        for (int y = 3; y <= 6; y++) setBlk(ev, 3, y, -2, Material.CHAIN);
+        setBlk(ev, -5, 1, -2, Material.LANTERN);
+        setBlk(ev, 5, 1, 2, Material.SOUL_LANTERN);
+        // Three distinct pieces among the wreckage. Ground the markers on uneven
+        // terrain and remember every modified block for the usual safe restoration.
+        int[][] parts = new int[][]{{-7, -3}, {7, 3}, {6, -4}};
+        for (int[] part : parts) {
+            fillGroundedFloor(ev, part[0], part[1], Material.SPRUCE_PLANKS, Material.SPRUCE_PLANKS);
+            setBlk(ev, part[0], 0, part[1], Material.COPPER_BLOCK);
+            ev.airshipParts.add(ev.center.clone().add(part[0], 0, part[1]).getBlock().getLocation());
+        }
+        setBlk(ev, 0, 0, 0, Material.ENDER_CHEST);
+    }
+
+    /** Collect one event-bound component, after other plugins' protection checks. */
+    public boolean collectAirshipPart(Player player, Block block) {
+        if (player == null || block == null || !plugin.getStore().isAuthenticated(player)) return false;
+        for (ActiveBossEvent ev : activeEvents.values()) {
+            Location loc = block.getLocation();
+            if (ev.template.kind != EventKind.AIRSHIP || ev.bossDefeated || !ev.airshipParts.contains(loc)) continue;
+            if (!eventStillOwnsBlock(ev, block)) {
+                player.sendMessage(ColorUtil.c("&cДеталь изменена извне. Ивент завершится без замены чужого блока."));
+                ev.secondsLeft = 0;
+                return true;
+            }
+            ev.airshipParts.remove(loc);
+            setBlk(ev, loc.getBlockX() - ev.center.getBlockX(), loc.getBlockY() - ev.center.getBlockY(),
+                    loc.getBlockZ() - ev.center.getBlockZ(), Material.AIR);
+            int collected = 3 - ev.airshipParts.size();
+            Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF✈ " + player.getName() + " нашёл деталь дирижабля: &f" + collected + "/3"));
+            ColorUtil.sound(player, "entity.experience_orb.pickup", 1f, 1.3f);
+            if (ev.airshipParts.isEmpty() && isCenterChunkLoaded(ev)) unlockTimedWorldEvent(ev);
+            else updateCountdownHoloLine(ev);
+            return true;
+        }
+        return false;
+    }
+
     /** Three timed world events, each built from saved blocks and restored on end/shutdown. */
     private void buildNewWorldEventStructure(ActiveBossEvent ev) {
         clearAndSavePad(ev, 7, 10);
@@ -1496,6 +1565,10 @@ public final class BossEventManager {
                     "&fСтраж: " + ev.template.displayName,
                     "&7Убейте Босса рядом, чтобы открыть!"
             };
+        } else if (ev.template.kind == EventKind.AIRSHIP) {
+            lines = new String[]{ev.template.displayName,
+                    "&#FFD740⚙ Детали: &f" + (3 - ev.airshipParts.size()) + "/3 &7| " + ColorUtil.fmtTime(ev.unlockCountdownSec),
+                    "&7Найдите медные блоки и нажмите ПКМ"};
         } else {
             lines = new String[]{
                     ev.template.displayName,
@@ -1609,6 +1682,11 @@ public final class BossEventManager {
                     + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz
                     + " &8│ &#FFD740⏳ " + ColorUtil.fmtTime(ev.secondsLeft));
         }
+        if (ev.template.kind == EventKind.AIRSHIP) {
+            return ColorUtil.c(ev.template.displayName + " &8│ &#FFD740⚙ Детали: &f" + (3 - ev.airshipParts.size())
+                    + "/3 &8│ ⏳ " + ColorUtil.fmtTime(ev.unlockCountdownSec)
+                    + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz);
+        }
         return ColorUtil.c(ev.template.displayName
                 + " &8│ &#FFD740🔒 Открытие: &f" + ColorUtil.fmtTime(ev.unlockCountdownSec)
                 + " &8│ &#80D8FFXYZ: &f" + bx + " " + by + " " + bz);
@@ -1698,7 +1776,9 @@ public final class BossEventManager {
                     }
                     if (ev.unlockCountdownSec <= 0) {
                         ev.unlockCountdownSec = 0;
-                        if (isCenterChunkLoaded(ev)) unlockTimedWorldEvent(ev);
+                        if (ev.template.kind == EventKind.AIRSHIP) {
+                            toEnd.add(ev.instanceId); // no free unlock if the parts were not found
+                        } else if (isCenterChunkLoaded(ev)) unlockTimedWorldEvent(ev);
                     }
                 }
             }
@@ -1725,7 +1805,9 @@ public final class BossEventManager {
         if (ev.hologramStands.size() >= 2) {
             Entity st = Bukkit.getEntity(ev.hologramStands.get(1));
             if (st instanceof ArmorStand) {
-                st.setCustomName(ColorUtil.c("&#FFD740⏳ До открытия замка: &f" + ColorUtil.fmtTime(Math.max(0, ev.unlockCountdownSec))));
+                st.setCustomName(ColorUtil.c(ev.template.kind == EventKind.AIRSHIP
+                        ? "&#FFD740⚙ Детали: &f" + (3 - ev.airshipParts.size()) + "/3 &7| " + ColorUtil.fmtTime(Math.max(0, ev.unlockCountdownSec))
+                        : "&#FFD740⏳ До открытия замка: &f" + ColorUtil.fmtTime(Math.max(0, ev.unlockCountdownSec))));
             }
         }
     }
@@ -1742,6 +1824,12 @@ public final class BossEventManager {
                 w.spawnParticle(Particle.FIREWORK, mid.clone().add(0, dy, 0), 4, 0.15, 0.3, 0.15, 0.02);
             }
             w.spawnParticle(Particle.FLAME, mid, 8, 0.4, 0.3, 0.4, 0.02);
+        } else if (ev.template.kind == EventKind.AIRSHIP) {
+            w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, mid.clone().add(-3, 1.2, 2), 3, 0.3, 0.4, 0.3, 0.01);
+            w.spawnParticle(Particle.SNOWFLAKE, mid.clone().add(0, 5, 0), 4, 1.5, 0.8, 1.5, 0.01);
+            if (ev.secondsLeft % 3 == 0) for (Location part : ev.airshipParts) {
+                w.spawnParticle(Particle.ELECTRIC_SPARK, part.clone().add(0.5, 1.1, 0.5), 3, 0.15, 0.12, 0.15, 0.01);
+            }
         } else if (ev.template.kind == EventKind.METEOR) {
             w.spawnParticle(Particle.LAVA, mid, 6, 1.2, 0.6, 1.2, 0.02);
             w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, mid.clone().add(0, 0.8, 0), 5, 0.6, 0.8, 0.6, 0.02);
@@ -1833,6 +1921,16 @@ public final class BossEventManager {
             inv.setItem(21, ItemFactory.arrowAntiFly(16));
             inv.setItem(22, ItemFactory.potionKiller(2));
             inv.setItem(23, ItemFactory.armorPiece("zeus", rng.nextInt(4)));
+        } else if (kind == EventKind.AIRSHIP) {
+            inv.setItem(4, rng.nextBoolean() ? ItemFactory.sharSanty() : ItemFactory.elytraWind());
+            inv.setItem(10, ItemFactory.plast(4));
+            inv.setItem(11, ItemFactory.trapka(2));
+            inv.setItem(12, new ItemStack(Material.ENDER_PEARL, 8));
+            inv.setItem(13, new ItemStack(Material.ENCHANTED_GOLDEN_APPLE, 2));
+            inv.setItem(14, ItemFactory.snowflakeCoin(12));
+            inv.setItem(15, new ItemStack(Material.DIAMOND, 16));
+            inv.setItem(16, new ItemStack(Material.GOLDEN_CARROT, 32));
+            inv.setItem(22, ItemFactory.arrowIce(12));
         } else if (kind == EventKind.METEOR) {
             inv.setItem(4, rng.nextBoolean() ? ItemFactory.sharAresa() : ItemFactory.elytraPhoenix());
             inv.setItem(11, new ItemStack(Material.NETHERITE_INGOT, 5));
@@ -2096,7 +2194,9 @@ public final class BossEventManager {
             restoreEventBlocks(ev);
             if (announce && !ev.bossDefeated) {
                 Bukkit.broadcastMessage(ColorUtil.c("&#FF5252[Ивенты] &7Время ивента " + ev.template.displayName
-                        + " &7вышло — Босс погиб и храм исчез!"));
+                        + (ev.template.kind == EventKind.AIRSHIP
+                        ? " &7вышло: все детали не собраны, груз остался закрыт."
+                        : " &7вышло — событие завершено.")));
             }
         } finally {
             if (world != null) releaseTickets(world, ev.chunkTickets);
