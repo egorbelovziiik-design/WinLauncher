@@ -33,6 +33,7 @@ def arguments():
     parser.add_argument("--mock-lp", action="store_true", help="exercise LP integration against a test-only mock")
     parser.add_argument("--luckperms", type=Path, help="optional real LuckPerms Bukkit JAR to test integration")
     parser.add_argument("--existing-unknown", action="store_true", help="test preservation of an existing non-empty spawn directory")
+    parser.add_argument("--prebuilt", type=Path, help="install and test this bundled spawn template")
     parser.add_argument("--accept-eula", action="store_true", help="accept the Minecraft EULA for the temporary test server")
     args = parser.parse_args()
     if not args.accept_eula:
@@ -93,6 +94,23 @@ def build_mock_plugin(args, root, short_name, plugin_name):
 
 
 def launch_and_check(args, server, port):
+    if args.existing_unknown and args.prebuilt:
+        # A requested install over an incomplete world must stop the server
+        # without loading it or creating a level.dat/backup.
+        result = subprocess.run([args.java, "-Xms512M", "-Xmx1536M", "-jar", str(args.paper.resolve()), "nogui"],
+                                cwd=server, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, timeout=360)
+        world = server / "spawn_world"
+        good = (result.returncode == 0 and "Prepared spawn NOT installed" in result.stdout
+                and "Server is stopping after a failed spawn install" in result.stdout
+                and sorted(p.name for p in world.iterdir()) == ["kg-user-data.txt"]
+                and (world / "kg-user-data.txt").read_text(encoding="utf-8") == "user data must remain"
+                and not list(server.glob("spawn_world_backup_*")))
+        if not good:
+            print("\n--- SERVER LOG TAIL ---\n" + "\n".join(result.stdout.splitlines()[-150:]), file=sys.stderr)
+        else:
+            print("SERVER ASSERTIONS: incomplete old spawn left untouched; server stopped safely")
+        return good
     process = subprocess.Popen([args.java, "-Xms512M", "-Xmx1536M", "-jar", str(args.paper.resolve()), "nogui"],
                                cwd=server, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -124,6 +142,12 @@ def launch_and_check(args, server, port):
                 break
         if not started:
             return False
+        if args.prebuilt and not args.existing_unknown:
+            startup_log = "".join(output)
+            if "Prepared v66 spawn installed and initialized" not in startup_log or "Building the v6.6 Royal Winter Spawn" in startup_log:
+                print("SERVER ASSERTIONS: prepared world was not loaded directly")
+                return False
+            print("SERVER ASSERTIONS: prepared world loaded directly, no startup block rebuild")
         if args.existing_unknown:
             deadline = time.monotonic() + 40
             while time.monotonic() < deadline:
@@ -200,13 +224,19 @@ def main():
             (server / "spawn_world/kg-user-data.txt").write_text("user data must remain", encoding="utf-8")
         shutil.copy2(args.vanilla, server / "cache" / cache_name)
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
+        if args.prebuilt:
+            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v66-template.zip")
+            probe_config = server / "plugins/KgProbe/config.yml"
+            probe_config.parent.mkdir(parents=True, exist_ok=True)
+            probe_config.write_text("expect-untouched: true\n" if args.existing_unknown else "expect-prebuilt: true\n", encoding="utf-8")
         if args.mock_lp:
             build_mock_plugin(args, root, "lp", "LuckPerms")
         if args.mock_wg:
             build_mock_plugin(args, root, "wg", "WorldGuard")
             wg_probe_config = server / "plugins/KgProbe/config.yml"
             wg_probe_config.parent.mkdir(parents=True, exist_ok=True)
-            wg_probe_config.write_text("mock-wg: true\n", encoding="utf-8")
+            with wg_probe_config.open("a", encoding="utf-8") as config:
+                config.write("mock-wg: true\n")
         if args.luckperms or args.mock_lp:
             if args.luckperms and not args.mock_lp:
                 shutil.copy2(args.luckperms, server / "plugins/LuckPerms.jar")

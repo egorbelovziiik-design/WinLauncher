@@ -133,7 +133,11 @@ public final class KingGriefCore extends JavaPlugin {
             curCmd.setTabCompleter(this.curatorManager);
         }
 
-        this.spawnEngine.initializeSpawnWorldAndBuild(false);
+        if (PreparedSpawnInstaller.initialize(this, this.spawnEngine) == PreparedSpawnInstaller.Result.STOP_SERVER) {
+            getLogger().severe("[SpawnInstall] Server is stopping after a failed spawn install to protect world data. Fix the error before restarting.");
+            Bukkit.shutdown();
+            return;
+        }
         this.bossEvents.start();
         this.hud.start();
         this.moderation.start();
@@ -155,7 +159,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.6.0 — SPAWN, EVENTS, RANKS & TNT       ");
+        getLogger().info(" KINGGRIEF CORE v6.6.1 — PREBUILT SPAWN, EVENTS, RANKS & TNT");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");

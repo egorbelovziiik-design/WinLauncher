@@ -12,10 +12,8 @@ code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 <h2>⚡ Быстрая установка за 3 шага</h2>
 <ol>
 <li><b>Плагины (.jar):</b> Если вы на ПК — дважды кликните <code>СКАЧАТЬ_ВСЕ_ПЛАГИНЫ_WINDOWS.bat</code> (или на Linux <code>bash download-plugins.sh</code>) — скрипт сам скачает все 20 бесплатных официальных <code>.jar</code> плагинов в папку <code>plugins/</code>! Либо скачайте нужные <code>.jar</code> кнопками ниже. <i>(Плагин автодоната <code>KingGriefBridge.jar</code> уже лежит внутри <code>plugins/</code>!)</i></li>
-<li><b>Загрузка на хостинг:</b> Закиньте папку <code>plugins/</code> и <code>server.properties</code> в корень вашего сервера (где лежит <code>world</code> и <code>eula.txt</code>) и запустите сервер.</li>
-<li><b>Вставка спавна и авто-настройка всех 40 привилегий в 1 клик:</b> Зайдите на сервер с OP и введите:<br>
-<code>/tp 0 100 0</code> → <code>//schem load rw_newyear_spawn</code> → <code>//paste -a</code> → <code>/tp 0.5 100 14.5 180 0</code> → <code>/setspawn</code><br>
-Затем откройте панель <code>/setupserver</code> и нажмите поочерёдно кнопки <b>1 → 2 → 3</b> — все <b>40 привилегий (KING, OPKA, D.OWNER, КП, ДКП, Медиа)</b>, плейсхолдеры и голограммы с ценами с сайта заработают автоматически!</li>
+<li><b>Загрузка на хостинг:</b> На новом сервере распакуйте содержимое сборки в корень сервера с Paper 1.21.4 и Java 21. Для обновления существующего сервера сначала остановите его и сохраните резервные копии; не перезаписывайте свои конфиги и миры.</li>
+<li><b>Готовый спавн:</b> <code>plugins/KingGriefCore.jar</code> и <code>plugins/KingGriefCore/spawn-v66-template.zip</code> уже входят в сборку. При первом запуске они автоматически устанавливают готовый <code>spawn_world</code> — команды WorldEdit и <code>/rebuildspawn</code> не нужны. Если старый <code>spawn_world</code> существует, плагин переносит его в резервную папку <code>spawn_world_backup_…</code>. На следующих запусках ваши изменения не перезаписываются. Подробности и условия безопасности — в <code>README_УСТАНОВКА.md</code>.</li>
 </ol>
 </div>
 <div class="card">
@@ -38,7 +36,7 @@ code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 <tr><td><b>CMILib1.5.9.6.jar</b></td><td>Библиотека для работ Jobs</td><td><a class='btn' href='https://github.com/Zrips/CMILib/releases/download/1.5.9.6/CMILib1.5.9.6.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>Jobs5.2.6.3.jar</b></td><td>Работы /jobs (Шахтёр, Лесоруб, Охотник, Фермер)</td><td><a class='btn' href='https://github.com/Zrips/Jobs/releases/download/v5.2.6.3/Jobs5.2.6.3.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>AuthMe-6.0.1-Paper.jar</b></td><td>Авторизация /reg и /login</td><td><a class='btn' href='https://github.com/AuthMe/AuthMeReloaded/releases/download/6.0.1/AuthMe-6.0.1-Paper.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>FastAsyncWorldEdit-Paper-2.16.1.jar</b></td><td>Вставка новогоднего спавна //schem load rw_newyear_spawn</td><td><a class='btn' href='https://github.com/IntellectualSites/FastAsyncWorldEdit/releases/download/2.16.1/FastAsyncWorldEdit-Paper-2.16.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>FastAsyncWorldEdit-Paper-2.16.1.jar</b></td><td>Дополнительное редактирование схем; для установки готового спавна v66 не требуется</td><td><a class='btn' href='https://github.com/IntellectualSites/FastAsyncWorldEdit/releases/download/2.16.1/FastAsyncWorldEdit-Paper-2.16.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>ViaVersion-5.12.1.jar</b></td><td>Поддержка входа с новых версий до 1.21.11</td><td><a class='btn' href='https://github.com/ViaVersion/ViaVersion/releases/download/5.12.1/ViaVersion-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>ViaBackwards-5.12.1.jar</b></td><td>Поддержка входа со старых версий 1.16.5+</td><td><a class='btn' href='https://github.com/ViaVersion/ViaBackwards/releases/download/5.12.1/ViaBackwards-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 </tbody></table>

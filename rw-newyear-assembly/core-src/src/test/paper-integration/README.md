@@ -6,6 +6,8 @@ packet, inventory/menu packets, asynchronous chat delegation and the delivered
 message's colour/style, rank hierarchy, kits, TNT prices/purchases/effects and
 cancelled/filtered explosions, new events and scoped entity cleanup, plus fresh
 spawn creation, fail-closed backups and a chest restored from a ZIP backup.
+With `--prebuilt /path/to/spawn-v66-template.zip`, it additionally checks that
+an actual pre-generated world is loaded directly, rather than rebuilt at startup.
 It does **not** render a Minecraft client or verify visuals.
 
 Requirements: Java 21, `javac`, Node.js and `minecraft-protocol@1.62.0` in a
@@ -22,6 +24,21 @@ python3 src/test/paper-integration/run.py \
   --api-classpath '/path/to/spigot-api.jar:/path/to/dependencies/*' \
   --node-modules /path/to/node_modules --accept-eula
 ```
+
+`test-prebuilt-install.py` runs a separate, multi-start Paper test. It checks
+replacement of a previously loaded spawn, restoration of an old chest and a
+block changed immediately before unload from the backup, preservation of the old world
+UUID, preservation of edits on repeat restart, restoration of the old world,
+and a safe server stop when the template is corrupted or the world is a
+symbolic link. `--only-symlink` runs just the linked-world case. It accepts the same `--paper`,
+`--vanilla`, `--api-classpath`, `--core`, `--java`, `--javac` and
+`--accept-eula` options; no network/client is needed. Pass `--prebuilt` with
+`--existing-unknown` to verify that an incomplete old world is not replaced.
+
+The template itself is generated with `build-spawn-template.py` in the
+assembly root. Pass `--update-checksum` when regenerating it, then rebuild Core
+with `build-core-hub.py` before running `build-assembly.py`. The template does
+not contain `uid.dat`, player data, a session lock or runtime NPC entities.
 
 Pass `--core`, `--java`, `--javac` or `--node` to override the defaults. The
 core JAR under test must already have been built from the intended sources.

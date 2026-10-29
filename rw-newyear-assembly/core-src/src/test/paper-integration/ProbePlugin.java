@@ -317,6 +317,14 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
  private void testSpawnPreservation(KingGriefCore core, Player p) throws Exception {
   World spawn=Bukkit.getWorld("spawn_world");
   if(spawn==null || !new File(spawn.getWorldFolder(),".spawn_v66_royal_ok").isFile()) throw new AssertionError("fresh spawn not generated");
+  if (getConfig().getBoolean("expect-prebuilt") && (!new File(spawn.getWorldFolder(), ".kinggrief_prebuilt_v66").isFile()
+      || !new File(core.getDataFolder(), ".spawn-v66-template-installed").isFile()))
+   throw new AssertionError("prepared spawn was not installed on first startup");
+  Location arrival=core.getSpawnEngine().getSpawnArrival();
+  if (arrival.getWorld()!=spawn || !arrival.getBlock().isPassable()
+      || !arrival.clone().add(0,1,0).getBlock().isPassable()
+      || !arrival.clone().add(0,-1,0).getBlock().getType().isSolid())
+   throw new AssertionError("prepared spawn arrival has no solid floor or clear headroom");
   p.teleport(new Location(spawn,0.5,101,52.5));
   Block chest=spawn.getBlockAt(50,101,50); chest.setType(Material.CHEST,false);
   ((Chest)chest.getState()).getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,7));

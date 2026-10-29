@@ -392,7 +392,7 @@ class DistributionTests(unittest.TestCase):
                      HERE.parent / "server/plugins/KingGriefCore.jar"):
             self.assertEqual(file.read_bytes(), core_jar)
         self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
-        for name, version, default in (("KingGriefCore.jar", "6.6.0", core_default),
+        for name, version, default in (("KingGriefCore.jar", "6.6.1", core_default),
                                        ("KingHub.jar", "1.2.2", hub_default)):
             with zipfile.ZipFile(public / name) as jar:
                 self.assertIsNone(jar.testzip())
@@ -413,9 +413,65 @@ class DistributionTests(unittest.TestCase):
             self.assertEqual(z.read("plugins/KingGriefCore/config.yml").decode("utf-8"), config)
             self.assertEqual(z.read("plugins/KingGriefCore.jar"), core_jar)
             self.assertNotIn("plugins/KingHub.jar", z.namelist())
+            self.assertFalse(any(name.startswith("spawn_world/") for name in z.namelist()),
+                             "archive must not overwrite an existing world during extraction")
             for rank in ("curator_discord", "curator_kp", "curator_media", "curator_dkp", "gladmin", "stadmin"):
                 self.assertIn("plugins/LuckPerms/yaml-storage/groups/" + rank + ".yml", z.namelist())
                 self.assertIn(rank + ":", z.read("plugins/TAB/groups.yml").decode("utf-8"))
+
+    def test_prebuilt_spawn_distribution(self):
+        import hashlib
+        import io
+        repo = HERE.parent.parent
+        template = HERE.parent / "server/plugins/KingGriefCore/spawn-v66-template.zip"
+        data = template.read_bytes()
+        digest = hashlib.sha256(data).hexdigest()
+        expected = (HERE.parent / "core-src/src/main/resources/spawn_v66_template.sha256").read_text(encoding="ascii").strip()
+        self.assertEqual(digest, expected)
+        self.assertEqual((repo / "kinggrief/public/kinggrief-spawn-v66.zip").read_bytes(), data)
+        with zipfile.ZipFile(HERE.parent / "server/plugins/KingGriefCore.jar") as jar:
+            self.assertEqual(jar.read("spawn_v66_template.sha256").decode("ascii").strip(), digest)
+            self.assertIn("net/kinggrief/core/PreparedSpawnInstaller.class", jar.namelist())
+        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly.zip") as assembly:
+            self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v66-template.zip"), data)
+            self.assertFalse(any(name.startswith("spawn_world/") for name in assembly.namelist()))
+        with zipfile.ZipFile(io.BytesIO(data)) as world:
+            self.assertIsNone(world.testzip())
+            names = world.namelist()
+            self.assertEqual(len(names), len(set(names)))
+            self.assertTrue({"level.dat", ".spawn_v66_royal_ok", ".kinggrief_prebuilt_v66"}.issubset(names))
+            self.assertTrue(any(name.startswith("region/") and name.endswith(".mca") for name in names))
+            self.assertFalse(any(name.startswith(("entities/", "playerdata/", "stats/", "advancements/"))
+                                 or name in {"uid.dat", "session.lock", "level.dat_old"} for name in names))
+
+    def test_prebuilt_spawn_bad_template_does_not_replace_archives(self):
+        import importlib.util
+        import tempfile
+        from unittest.mock import patch
+        spec = importlib.util.spec_from_file_location("kinggrief_assembly_builder", HERE.parent / "build-assembly.py")
+        builder = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(builder)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            server = root / "server"
+            data = server / "plugins/KingGriefCore"
+            data.mkdir(parents=True)
+            template = data / "spawn-v66-template.zip"
+            template.write_bytes(b"corrupted")
+            output = root / "assembly.zip"
+            public = root / "public.zip"
+            output.write_bytes(b"old assembly")
+            public.write_bytes(b"old public assembly")
+            with patch.object(builder, "SERVER", server), patch.object(builder, "TEMPLATE", template), \
+                 patch.object(builder, "ASSEMBLY", output), patch.object(builder, "PUBLIC", public):
+                with self.assertRaisesRegex(RuntimeError, "SHA-256"):
+                    builder.main()
+                self.assertEqual(output.read_bytes(), b"old assembly")
+                self.assertEqual(public.read_bytes(), b"old public assembly")
+                (server / "spawn_world").mkdir()
+                with self.assertRaisesRegex(RuntimeError, "Do not place spawn_world"):
+                    builder.main()
+                self.assertEqual(output.read_bytes(), b"old assembly")
 
     def test_source_does_not_force_the_old_item_or_pack_models(self):
         color = (JAVA_DIR / "ColorUtil.java").read_text(encoding="utf-8")
