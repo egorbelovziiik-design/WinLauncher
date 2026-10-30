@@ -52,8 +52,9 @@ WEAPON_VIEW_META = {
 
 
 class Game(Entity):
-    def __init__(self, settings):
+    def __init__(self, settings, progress=None):
         super().__init__()
+        self._prog = progress or (lambda *a: None)
         self.settings = settings
         self.assets_path = str(Path(resource_root()) / "assets")
         self.rng = random.Random(4242)
@@ -70,13 +71,14 @@ class Game(Entity):
 
         self.anim_library = AnimationLibrary(
             os.path.join(self.assets_path, "animations", "zombie_animations.json"))
-        self.audio = AudioManager(settings)
+        self.audio = AudioManager(settings, self.assets_path)
+        self._prog("Звук и анимации...", 0.38)
         self.stats = SurvivalStats()
         self.inventory = Inventory()
 
         # world & environment
         self.world = World(self)
-        self.world.build()
+        self.world.build(progress=self._prog)
         self.sky = Sky()
         camera.clip_plane_far = max(400.0, settings.view_distance * 2.0)
         self.sun = DirectionalLight(shadows=bool(settings.shadows))
@@ -93,12 +95,14 @@ class Game(Entity):
         self.menu_rig = Entity(position=(0, 16, 46))
         self.menu_rig.look_at((0, 2, 0))
 
+        self._prog("Игрок и интерфейс...", 0.78)
         self.player = Player(self)
         self.weapon_view_meta = WEAPON_VIEW_META
         self.hud = HUD(self)
         self.director = Director(self)
         self.director.hour = START_HOUR
 
+        self._prog("Транспорт и выжившие...", 0.86)
         self.zombies = []
         self.pickups = []
         self.vehicles = []
@@ -106,10 +110,12 @@ class Game(Entity):
         self.wrecks = spawn_wrecks(self)
         self.npcs = []
         self._spawn_npcs()
+        self._prog("Разбрасываем припасы...", 0.94)
         self.spawn_loot(initial=True)
         self._initial_vehicle_state = [v.to_dict() for v in self.vehicles]
 
         self._build_menus()
+        self._ready = True
         self.show_menu()
 
     # ------------------------------------------------------------------ assets helpers
@@ -866,6 +872,8 @@ class Game(Entity):
 
     # ------------------------------------------------------------------ input
     def input(self, key):
+        if not getattr(self, "_ready", False):
+            return
         if self.state == "playing":
             if key == "escape":
                 self.pause()
@@ -910,6 +918,8 @@ class Game(Entity):
 
     # ------------------------------------------------------------------ main loop
     def update(self):
+        if not getattr(self, "_ready", False):
+            return
         from ursina import time as utime
         dt = min(0.05, utime.dt)
         if self.state == "menu":
@@ -983,7 +993,81 @@ class Game(Entity):
             self.save_to("autosave")
 
 
+def _startup_log_file():
+    try:
+        from game.config import user_data_dir
+        return open(os.path.join(user_data_dir(), "startup.log"), "w", encoding="utf-8")
+    except Exception:
+        return None
+
+
+def _preload_models(progress):
+    """Pre-convert every .obj into Ursina's mesh cache by DIRECT file path.
+
+    Entity(model='assets/.../x.obj') otherwise triggers a recursive
+    glob('**/...') over the whole application folder for every model -
+    inside a PyInstaller bundle that is thousands of files per lookup and
+    made the game sit on a white window for minutes on Windows."""
+    import time as _time
+    try:
+        from ursina.mesh_importer import imported_meshes, obj_to_ursinamesh
+    except Exception:
+        return 0
+    root = Path(resource_root())
+    files = sorted((root / "assets" / "models").rglob("*.obj"))
+    total = len(files)
+    t0 = _time.time()
+    for i, f in enumerate(files):
+        key = f.relative_to(root).with_suffix("").as_posix()
+        if key not in imported_meshes:
+            try:
+                m = obj_to_ursinamesh(path=f.parent, name=f.stem, return_mesh=True)
+            except Exception:
+                m = None
+            if m is not None:
+                try:
+                    m.path = f
+                    m.name = key
+                except Exception:
+                    pass
+                imported_meshes[key] = m
+        if progress and (i % 8 == 0 or i == total - 1):
+            progress(f"Загрузка моделей: {i + 1}/{total}", 0.04 + 0.30 * (i + 1) / max(1, total))
+    return total
+
+
 def run_game(headless=False):
+    import time as _time
+    import faulthandler
+    log_fh = _startup_log_file()
+    boot_t0 = _time.time()
+
+    def log(msg):
+        line = f"[{_time.time() - boot_t0:7.2f}s] {msg}"
+        print(line, flush=True)
+        if log_fh:
+            try:
+                log_fh.write(line + "\n")
+                log_fh.flush()
+            except Exception:
+                pass
+
+    log("DEAD WORLD: APOCALYPSE starting")
+    if log_fh:
+        try:
+            faulthandler.enable(file=log_fh, all_threads=True)
+            # if startup ever hangs again, dump where after 120s
+            faulthandler.dump_traceback_later(120, repeat=False, file=log_fh)
+        except Exception:
+            pass
+
+    def _excepthook(exc_type, exc, tb):
+        import traceback as _tb
+        log("FATAL EXCEPTION:\n" + "".join(_tb.format_exception(exc_type, exc, tb)))
+        sys.__excepthook__(exc_type, exc, tb)
+
+    sys.excepthook = _excepthook
+
     settings = load_settings()
     from ursina import Ursina
     kwargs = dict(title="DEAD WORLD: APOCALYPSE", borderless=False,
@@ -993,9 +1077,8 @@ def run_game(headless=False):
     if headless:
         kwargs["window_type"] = "none"
     app = Ursina(**kwargs)
+    log("window created")
     if headless and not hasattr(camera, "lens"):
-        # window_type='none' creates no real camera lens; stub it so that
-        # fov/clip setters used by gameplay code are harmless.
         try:
             from panda3d.core import PerspectiveLens
             camera.lens = PerspectiveLens()
@@ -1004,23 +1087,16 @@ def run_game(headless=False):
     # asset folder must be the game root (dev or frozen _MEIPASS / exe dir)
     application.asset_folder = Path(resource_root())
     try:
-        # Ursina caches converted .obj meshes as .bam under models_compressed/;
-        # its folder is captured at import-time as a relative path, so pin it
-        # to the game root and pre-create the mirrored subdirs (Mesh.save does
-        # not create parents). Non-fatal if the install dir is read-only.
-        cmf = Path(resource_root()) / "models_compressed"
-        application.compressed_models_folder = cmf
-        models_root = Path(resource_root()) / "assets" / "models"
-        for d in models_root.rglob("*"):
-            if d.is_dir():
-                rel = d.relative_to(Path(resource_root()))
-                (cmf / rel).mkdir(parents=True, exist_ok=True)
-    except Exception:
-        pass
-    try:
         import ursina.texture_importer as _ti
         root = Path(resource_root())
         _ti.folders = [root, root / "assets" / "textures"] + list(_ti.folders)
+    except Exception:
+        pass
+    # Never write .bam caches at runtime: slow on Windows, pointless with the
+    # in-memory preload below, and fails noisily in read-only install dirs.
+    try:
+        import ursina.mesh as _meshmod
+        _meshmod.Mesh.save = lambda self, *a, **k: None
     except Exception:
         pass
     # UI font: Ursina's bundled OpenSans already ships Cyrillic glyphs (verified).
@@ -1029,7 +1105,48 @@ def run_game(headless=False):
     window.title = "DEAD WORLD: APOCALYPSE"
     window.exit_button_visible = False
     window.fps_counter_enabled = False
-    game = Game(settings)
+    try:
+        window.clear_color = color.rgb(8, 8, 11)
+    except Exception:
+        pass
+
+    # ---- loading splash: first frame immediately, progress while building
+    splash = Entity(parent=camera.ui)
+    Entity(parent=splash, model="quad", scale=(3, 2), color=color.rgb(8, 8, 11), z=0.1)
+    Text("DEAD WORLD", parent=splash, position=(0, 0.16), origin=(0, 0), scale=2.6,
+         color=color.rgb(214, 40, 34))
+    Text("APOCALYPSE", parent=splash, position=(0, 0.085), origin=(0, 0), scale=1.3,
+         color=color.rgb(232, 224, 206))
+    splash_status = Text("Загрузка...", parent=splash, position=(0, -0.06), origin=(0, 0),
+                         scale=0.95, color=color.rgb(205, 210, 215))
+    Entity(parent=splash, model="quad", position=(0, -0.13), scale=(0.52, 0.02),
+           color=color.rgb(34, 34, 40))
+    splash_bar = Entity(parent=splash, model="quad", position=(-0.26, -0.13, -0.01),
+                        scale=(0.001, 0.014), color=color.rgb(214, 60, 44), origin=(-0.5, 0))
+    Text("первый запуск может занять до минуты", parent=splash, position=(0, -0.2),
+         origin=(0, 0), scale=0.65, color=color.rgb(140, 145, 155))
+
+    def progress(msg, frac=0.0):
+        log(f"load {int(frac * 100):3d}%  {msg}")
+        try:
+            splash_status.text = msg
+            splash_bar.scale_x = max(0.001, 0.52 * min(1.0, frac))
+            splash_bar.x = -0.26 + 0.52 * min(1.0, frac) / 2
+            app.taskMgr.step()   # render splash + pump window events
+        except Exception:
+            pass
+
+    progress("Подготовка...", 0.02)
+    n = _preload_models(progress)
+    log(f"preloaded {n} models")
+    game = Game(settings, progress=progress)
+    progress("Готово", 1.0)
+    destroy(splash)
+    try:
+        faulthandler.cancel_dump_traceback_later()
+    except Exception:
+        pass
+    log(f"startup complete in {_time.time() - boot_t0:.1f}s")
     if headless:
         return app, game
     app.run()

@@ -198,9 +198,10 @@ class World:
             self.game.notify("Дверь выбита!", bad=True)
 
     # -------------------------------------------------------------- build
-    def build(self):
+    def build(self, progress=None):
         g = self.game
         T = g.tex
+        prog = progress or (lambda *a: None)
         # ground
         ground = Entity(model="plane", scale=(WORLD_SIZE + 60, 1, WORLD_SIZE + 60),
                         texture=T("grass.png"), texture_scale=(110, 110), color=color.rgb(150, 160, 140))
@@ -225,17 +226,20 @@ class World:
             Entity(model="plane", position=(x, 0.015, z), scale=(s, 1, s),
                    texture=T("dirt.png"), texture_scale=(24, 24), color=color.rgb(140, 128, 108))
 
-        self._place_buildings()
-        self._place_enterable((2, 66), "Дом у дороги")
-        self._place_enterable((-52, 60), "Дом лесника")
-        self._place_enterable((84, -44), "Медпункт")
-        self._place_enterable((-88, 16), "Склад-магазин")
-        self._place_gas_station()
-        self._place_military()
-        self._place_props()
-        self._place_forest()
-        self._border()
-        self._loot_points_init()
+        steps = [
+            ("Строим город...", self._place_buildings),
+            ("Строим дома...", lambda: [self._place_enterable((2, 66), "Дом у дороги"),
+                                        self._place_enterable((-52, 60), "Дом лесника"),
+                                        self._place_enterable((84, -44), "Медпункт"),
+                                        self._place_enterable((-88, 16), "Склад-магазин")]),
+            ("Заправка и блокпост...", lambda: (self._place_gas_station(), self._place_military())),
+            ("Расставляем объекты...", self._place_props),
+            ("Сажаем лес...", self._place_forest),
+            ("Границы района...", lambda: (self._border(), self._loot_points_init())),
+        ]
+        for i, (label, fn) in enumerate(steps):
+            prog(label, 0.42 + 0.30 * i / len(steps))
+            fn()
 
     def _building(self, name, x, z, yaw_deg, loot=None, sign=None):
         info = self.manifest["buildings"].get(name) or self.manifest["environment"].get(name)

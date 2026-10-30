@@ -79,11 +79,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag = "deadworld-v0.1.0"
+          $tag = "deadworld-v0.1.1"
           $zip = "DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE.zip"
           gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.0 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
+            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.1 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
           }
           gh release upload $tag $zip --clobber
           Write-Host "Release updated: $tag"
