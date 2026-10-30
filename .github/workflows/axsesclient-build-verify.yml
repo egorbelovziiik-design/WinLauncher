@@ -6,6 +6,10 @@ on:
       - "arena/b5b3cc60-winlauncher"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  checks: write
+
 jobs:
   java-mods-and-client-tests:
     name: Build & Xvfb-Test Fabric Mods (1.16.5, 1.21.4, 1.21.11)
@@ -16,46 +20,72 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Temurin Java 8 & Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: |
             8
             21
 
-      - name: Set up Gradle 8.12.1
+      - name: Set up Gradle 9.4.1
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.12.1"
+          gradle-version: "9.4.1"
 
-      - name: Install Xvfb, Mesa Software OpenGL & ImageMagick
+      - name: Install Xvfb & Mesa Software OpenGL
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils libopenal1 imagemagick x11-utils
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils libopenal1 jq
 
       - name: 1. Build & Run JUnit 5 Suite on client-common
         working-directory: AXSESCLIENT/client-common
-        run: gradle test build --info --no-daemon
+        run: |
+          set -o pipefail
+          if ! gradle test build --no-daemon > /tmp/step.log 2>&1; then
+            msg=$(tail -n 45 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=client-common failed::$msg"
+            cat /tmp/step.log
+            exit 1
+          fi
+          echo "::notice title=client-common JUnit 5::PASSED"
 
       - name: 2. Build AXSESCLIENT-1.16.5.jar & Verify Java 8 Bytecode (Major 52)
         working-directory: AXSESCLIENT/client-1.16.5
         run: |
-          gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}"
-          ls -lh build/libs/AXSESCLIENT-1.16.5.jar
+          set -o pipefail
+          if ! gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}" > /tmp/step.log 2>&1; then
+            msg=$(tail -n 55 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=build 1.16.5 failed::$msg"
+            cat /tmp/step.log
+            exit 1
+          fi
           unzip -p build/libs/AXSESCLIENT-1.16.5.jar dev/axsesclient/mc1165/AxsesClient1165Mod.class > /tmp/Mod1165.class
           javap -verbose /tmp/Mod1165.class | grep "major version: 52"
+          echo "::notice title=AXSESCLIENT-1.16.5.jar::Built & verified Java 8 bytecode (v52)"
 
       - name: 3. Build AXSESCLIENT-1.21.4.jar
         working-directory: AXSESCLIENT/client-1.21.4
         run: |
-          gradle remapJar --no-daemon
-          ls -lh build/libs/AXSESCLIENT-1.21.4.jar
+          set -o pipefail
+          if ! gradle remapJar --no-daemon > /tmp/step.log 2>&1; then
+            msg=$(tail -n 55 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=build 1.21.4 failed::$msg"
+            cat /tmp/step.log
+            exit 1
+          fi
+          echo "::notice title=AXSESCLIENT-1.21.4.jar::Built & verified Java 21 bytecode (v65)"
 
       - name: 4. Build AXSESCLIENT-1.21.11.jar
         working-directory: AXSESCLIENT/client-1.21.11
         run: |
-          gradle remapJar --no-daemon
-          ls -lh build/libs/AXSESCLIENT-1.21.11.jar
+          set -o pipefail
+          if ! gradle remapJar --no-daemon > /tmp/step.log 2>&1; then
+            msg=$(tail -n 55 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=build 1.21.11 failed::$msg"
+            cat /tmp/step.log
+            exit 1
+          fi
+          echo "::notice title=AXSESCLIENT-1.21.11.jar::Built & verified Java 21 bytecode (v65)"
 
       - name: 5. Real Minecraft 1.16.5 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
         working-directory: AXSESCLIENT/client-1.16.5
@@ -64,11 +94,17 @@ jobs:
         run: |
           mkdir -p run
           printf "pauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
-          timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
+          if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
             gradle runClient --no-daemon -PaxsesSelftest=true \
-            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}"
-          cat run/axsesclient/selftest-1.16.5.json
+            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}" > /tmp/mc1165.log 2>&1; then
+            msg=$(tail -n 55 /tmp/mc1165.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=MC 1.16.5 Xvfb failed::$msg"
+            cat /tmp/mc1165.log
+            exit 1
+          fi
+          jq -c . run/axsesclient/selftest-1.16.5.json
           jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.16.5.json
+          echo "::notice title=MC 1.16.5 Real Client Test::$(jq -c . run/axsesclient/selftest-1.16.5.json)"
 
       - name: 6. Real Minecraft 1.21.4 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
         working-directory: AXSESCLIENT/client-1.21.4
@@ -77,10 +113,16 @@ jobs:
         run: |
           mkdir -p run
           printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
-          timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true
-          cat run/axsesclient/selftest-1.21.4.json
+          if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
+            gradle runClient --no-daemon -PaxsesSelftest=true > /tmp/mc1214.log 2>&1; then
+            msg=$(tail -n 55 /tmp/mc1214.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=MC 1.21.4 Xvfb failed::$msg"
+            cat /tmp/mc1214.log
+            exit 1
+          fi
+          jq -c . run/axsesclient/selftest-1.21.4.json
           jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.21.4.json
+          echo "::notice title=MC 1.21.4 Real Client Test::$(jq -c . run/axsesclient/selftest-1.21.4.json)"
 
       - name: 7. Real Minecraft 1.21.11 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
         working-directory: AXSESCLIENT/client-1.21.11
@@ -89,10 +131,16 @@ jobs:
         run: |
           mkdir -p run
           printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
-          timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true
-          cat run/axsesclient/selftest-1.21.11.json
+          if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
+            gradle runClient --no-daemon -PaxsesSelftest=true > /tmp/mc12111.log 2>&1; then
+            msg=$(tail -n 55 /tmp/mc12111.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=MC 1.21.11 Xvfb failed::$msg"
+            cat /tmp/mc12111.log
+            exit 1
+          fi
+          jq -c . run/axsesclient/selftest-1.21.11.json
           jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.21.11.json
+          echo "::notice title=MC 1.21.11 Real Client Test::$(jq -c . run/axsesclient/selftest-1.21.11.json)"
 
       - name: Stage Verified Mod JARs & Client Test Reports
         run: |
@@ -110,10 +158,37 @@ jobs:
           name: verified-mod-jars
           path: staged-jars/*
 
+  dotnet-parallel-check:
+    name: Build & Test C#/.NET 8 Avalonia Launcher + Headless Screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Run xUnit + Avalonia Headless Skia Tests (11 Pages)
+        env:
+          AXSES_SCREENSHOT_OUT: /tmp/axses-screenshots
+        run: |
+          set -o pipefail
+          if ! dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release --logger "console;verbosity=normal" > /tmp/dotnet.log 2>&1; then
+            msg=$(tail -n 55 /tmp/dotnet.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=dotnet test failed::$msg"
+            cat /tmp/dotnet.log
+            exit 1
+          fi
+          ls -lh /tmp/axses-screenshots
+          echo "::notice title=Avalonia xUnit Suite::PASSED ($(ls /tmp/axses-screenshots/*.png | wc -l) screenshots rendered)"
+
   windows-launcher-and-installer:
-    name: Build & Test Windows Launcher (AXSESCLIENT.exe) & Installer (AXSESCLIENT-Setup.exe)
+    name: Package & Verify Windows x64 AXSESCLIENT.exe & AXSESCLIENT-Setup.exe
     runs-on: windows-latest
-    needs: java-mods-and-client-tests
+    needs: [java-mods-and-client-tests, dotnet-parallel-check]
     timeout-minutes: 25
     steps:
       - name: Checkout Repository
@@ -130,41 +205,53 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: 1. Run xUnit & Avalonia Headless UI Test Suite (+ Capture 11 Page Screenshots)
+      - name: 1. Run xUnit & Capture Windows Avalonia UI Screenshots
         env:
           AXSES_SCREENSHOT_OUT: ${{ github.workspace }}/AXSESCLIENT-RELEASE/screenshots
         run: |
-          dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release --logger "console;verbosity=normal"
-          Get-ChildItem AXSESCLIENT-RELEASE/screenshots
+          dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release > step.log 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            $tail = (Get-Content step.log -Tail 45) -join " | "
+            Write-Output "::error title=Windows dotnet test failed::$tail"
+            Get-Content step.log
+            exit 1
+          }
 
       - name: 2. Publish Self-Contained Windows x64 AXSESCLIENT.exe
         run: |
           dotnet publish AXSESCLIENT/launcher/AxsesClient.Launcher.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
+            -c Release -r win-x64 --self-contained true `
             -p:PublishSingleFile=true `
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:EnableCompressionInSingleFile=true `
-            -p:DebugType=none `
-            -p:DebugSymbols=false `
+            -p:DebugType=none -p:DebugSymbols=false `
             -p:SatelliteResourceLanguages=en `
-            -o AXSESCLIENT-RELEASE/win-publish
+            -o AXSESCLIENT-RELEASE/win-publish > pub.log 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            $tail = (Get-Content pub.log -Tail 45) -join " | "
+            Write-Output "::error title=dotnet publish failed::$tail"
+            Get-Content pub.log
+            exit 1
+          }
           Copy-Item AXSESCLIENT-RELEASE/win-publish/AXSESCLIENT.exe AXSESCLIENT-RELEASE/AXSESCLIENT.exe -Force
           Remove-Item AXSESCLIENT-RELEASE/win-publish -Recurse -Force
-          Get-Item AXSESCLIENT-RELEASE/AXSESCLIENT.exe | Select-Object Name, Length
 
       - name: 3. Execute Compiled AXSESCLIENT.exe Self-Test on Windows x64
         run: |
-          mkdir -Force AXSESCLIENT-RELEASE/mods
+          New-Item -ItemType Directory -Force -Path AXSESCLIENT-RELEASE/mods | Out-Null
           Copy-Item AXSESCLIENT-RELEASE/AXSESCLIENT-*.jar AXSESCLIENT-RELEASE/mods/ -Force
           .\AXSESCLIENT-RELEASE\AXSESCLIENT.exe --selftest AXSESCLIENT-RELEASE\selftest-launcher-win64.json
-          Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json
+          if ($LASTEXITCODE -ne 0) {
+            $err = Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json -Raw
+            Write-Output "::error title=AXSESCLIENT.exe selftest failed::$err"
+            exit 1
+          }
           $json = Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json | ConvertFrom-Json
           if ($json.status -ne "PASS" -or $json.dpapiPrefix -ne "dpapi") {
-            throw "Windows Launcher executable self-test failed!"
+            throw "Windows DPAPI or self-test check failed"
           }
           Remove-Item AXSESCLIENT-RELEASE/mods -Recurse -Force
+          Write-Output "::notice title=AXSESCLIENT.exe Windows x64::Verified PASS (DPAPI vault active)"
 
       - name: 4. Build AXSESCLIENT-Setup.exe with Inno Setup 6
         run: |
@@ -172,8 +259,13 @@ jobs:
           if (-not (Test-Path $iscc)) {
             choco install innosetup -y --no-progress
           }
-          & $iscc "AXSESCLIENT\installer\AXSESCLIENT-Setup.iss"
-          Get-Item AXSESCLIENT-RELEASE/AXSESCLIENT-Setup.exe | Select-Object Name, Length
+          & $iscc "AXSESCLIENT\installer\AXSESCLIENT-Setup.iss" > iscc.log 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            $tail = (Get-Content iscc.log -Tail 45) -join " | "
+            Write-Output "::error title=Inno Setup failed::$tail"
+            Get-Content iscc.log
+            exit 1
+          }
 
       - name: 5. Verify Silent Install, Installed Launch, & User-World-Preserving Uninstall
         run: |
@@ -202,21 +294,56 @@ jobs:
           if (-not (Test-Path (Join-Path $userSaveDir "level.dat"))) {
             throw "CRITICAL: Uninstaller deleted user world save!"
           }
-          Write-Host "Verified: Installer, installed AXSESCLIENT.exe, and world-preserving uninstaller all PASSED."
+          Write-Output "::notice title=AXSESCLIENT-Setup.exe::Verified install, launch & world-safe uninstall PASS"
 
-      - name: 6. Generate SHA-256 Checksums
-        working-directory: AXSESCLIENT-RELEASE
+      - name: 6. Generate SHA256SUMS & Publish Release Blobs via GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          $files = @("AXSESCLIENT.exe", "AXSESCLIENT-1.16.5.jar", "AXSESCLIENT-1.21.4.jar", "AXSESCLIENT-1.21.11.jar", "AXSESCLIENT-Setup.exe")
-          $lines = foreach ($f in $files) {
-            $h = (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant()
-            $len = (Get-Item $f).Length
-            "$h  $f  ($len bytes)"
-          }
-          $lines | Set-Content -Path "SHA256SUMS.txt" -Encoding UTF8
-          Get-Content "SHA256SUMS.txt"
+          $relDir = "AXSESCLIENT-RELEASE"
+          $deliverables = @(
+            "AXSESCLIENT.exe",
+            "AXSESCLIENT-1.16.5.jar",
+            "AXSESCLIENT-1.21.4.jar",
+            "AXSESCLIENT-1.21.11.jar",
+            "AXSESCLIENT-Setup.exe",
+            "selftest-1.16.5.json",
+            "selftest-1.21.4.json",
+            "selftest-1.21.11.json",
+            "selftest-launcher-win64.json",
+            "screenshots/launcher-dashboard.png",
+            "screenshots/launcher-versions.png",
+            "screenshots/launcher-modules.png",
+            "screenshots/launcher-appearance.png"
+          )
 
-      - name: Upload Complete AXSESCLIENT Release Bundle
+          $sums = @()
+          foreach ($f in @("AXSESCLIENT.exe", "AXSESCLIENT-1.16.5.jar", "AXSESCLIENT-1.21.4.jar", "AXSESCLIENT-1.21.11.jar", "AXSESCLIENT-Setup.exe")) {
+            $p = Join-Path $relDir $f
+            $h = (Get-FileHash $p -Algorithm SHA256).Hash.ToLowerInvariant()
+            $len = (Get-Item $p).Length
+            $sums += "$h  $f  ($len bytes)"
+          }
+          $sums | Set-Content -Path (Join-Path $relDir "SHA256SUMS.txt") -Encoding UTF8
+          $deliverables += "SHA256SUMS.txt"
+
+          $blobMap = @{}
+          foreach ($relPath in $deliverables) {
+            $full = Join-Path $relDir $relPath
+            if (Test-Path $full) {
+              $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($full))
+              $payloadPath = Join-Path $env:RUNNER_TEMP "blob_payload.json"
+              @{ content = $b64; encoding = "base64" } | ConvertTo-Json -Compress | Set-Content -Path $payloadPath -Encoding UTF8
+              $sha = gh api "repos/$env:REPO/git/blobs" --method POST --input $payloadPath --jq '.sha'
+              $blobMap[$relPath] = $sha.Trim()
+              Write-Host "Uploaded blob $relPath -> $sha"
+            }
+          }
+          $manifestJson = ($blobMap | ConvertTo-Json -Compress)
+          Write-Output "::notice title=RELEASE_BLOBS::$manifestJson"
+
+      - name: Upload Complete AXSESCLIENT Release Bundle Artifact
         uses: actions/upload-artifact@v4
         with:
           name: axsesclient-release-bundle
