@@ -12,6 +12,16 @@ public final class Mc12111RenderAdapter implements RenderAdapter {
     }
 
     @Override
+    public int getScaledWidth() {
+        return graphics.guiWidth();
+    }
+
+    @Override
+    public int getScaledHeight() {
+        return graphics.guiHeight();
+    }
+
+    @Override
     public void fillRect(float x, float y, float width, float height, int argb) {
         if (width <= 0.0f || height <= 0.0f || ((argb >>> 24) & 0xFF) == 0) return;
         int x1 = Math.round(x);
@@ -63,12 +73,12 @@ public final class Mc12111RenderAdapter implements RenderAdapter {
     }
 
     @Override
-    public void pushClip(int x, int y, int width, int height) {
+    public void pushScissor(int x, int y, int width, int height) {
         graphics.enableScissor(x, y, x + Math.max(0, width), y + Math.max(0, height));
     }
 
     @Override
-    public void popClip() {
+    public void popScissor() {
         graphics.disableScissor();
     }
 
