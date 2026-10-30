@@ -26,8 +26,8 @@ public sealed class DiagnosticsService
     {
         var items = new List<DiagnosticCheckItem>();
 
-        // 1. OS & Hardware
-        long totalRamMb = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024);
+        // 1. OS & Real Hardware Memory
+        var mem = SystemMemoryDetector.Query();
         items.Add(new DiagnosticCheckItem(
             "System",
             "Operating System & Architecture",
@@ -35,10 +35,10 @@ public sealed class DiagnosticsService
             $"{RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture}, {Environment.ProcessorCount} threads)"));
 
         items.Add(new DiagnosticCheckItem(
-            "System",
-            "Available System Memory",
-            totalRamMb >= 4096,
-            $"{totalRamMb:N0} MB detected (.NET {Environment.Version})"));
+            "Memory",
+            "Physical RAM & Allocated JVM Heap",
+            mem.TotalPhysicalMb >= 4096,
+            $"PC Total: {mem.TotalPhysicalMb:N0} MB • Free: {mem.AvailablePhysicalMb:N0} MB • Allocated JVM (-Xmx): {settings.AllocatedRamMb:N0} MB"));
 
         // 2. Java Runtimes
         var j8 = _javaLocator.FindMatchingRuntime(8, settings.Java8Path);

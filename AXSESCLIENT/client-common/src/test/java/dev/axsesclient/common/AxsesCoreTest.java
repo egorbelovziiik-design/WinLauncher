@@ -9,6 +9,7 @@ import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
 import dev.axsesclient.common.platform.StatusEffectInfo;
+import dev.axsesclient.common.platform.TargetEntityInfo;
 import dev.axsesclient.common.settings.ColorSetting;
 import dev.axsesclient.common.settings.MultiSelectSetting;
 import dev.axsesclient.common.settings.NumberSetting;
@@ -45,6 +46,9 @@ public class AxsesCoreTest {
         int scaledH = 540;
         String clipboard = "";
         int drawCalls = 0;
+        float attackCooldown = 0.96f;
+        int lastAttackedEntityId = -1;
+        List<TargetEntityInfo> mockTargets = Collections.emptyList();
 
         MockPlatform(Path gameDir) {
             this.gameDir = gameDir;
@@ -74,7 +78,7 @@ public class AxsesCoreTest {
         @Override public void setSprinting(boolean s) { this.sprinting = s; }
         @Override public boolean isSneaking() { return sneaking; }
         @Override public void setSneakingKeyHeld(boolean h) { this.sneaking = h; }
-        @Override public float getAttackCooldownProgress() { return 0.65f; }
+        @Override public float getAttackCooldownProgress() { return attackCooldown; }
         @Override public int getPingMs() { return 24; }
         @Override public float getHealth() { return 20.0f; }
         @Override public float getMaxHealth() { return 20.0f; }
@@ -142,18 +146,39 @@ public class AxsesCoreTest {
         @Override public void popScissor() {}
         @Override public void pushTransform(float translateX, float translateY, float scale) {}
         @Override public void popTransform() {}
+        @Override public List<TargetEntityInfo> getNearbyTargets(double range, boolean p, boolean h, boolean a, boolean inv) {
+            return mockTargets;
+        }
+        @Override public boolean attackEntityById(int entityId, boolean swingHand) {
+            lastAttackedEntityId = entityId;
+            return true;
+        }
     }
 
     @Test
-    public void registersAll90RealModulesAndRendersCleanly(@TempDir Path tempDir) {
+    public void registersAll93RealModulesKillAuraAndTargetHudWork(@TempDir Path tempDir) {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);
 
-        assertEquals(90, core.getModuleManager().getAll().size(), "Must register all 90 modules & GUI features");
+        assertEquals(93, core.getModuleManager().getAll().size(), "Must register all 93 modules & GUI features");
         assertEquals(8, core.getThemeManager().getAllThemes().size(), "Must register all 8 built-in themes");
 
-        // Tick & render all default-enabled modules + ClickGUI + HUD Editor + Main Menu
+        // Verify Russian search finds KillAura & Target HUD
+        assertFalse(core.getModuleManager().query(null, false, "киллаура").isEmpty(), "Russian search must find KillAura");
+        assertFalse(core.getModuleManager().query(null, false, "таргет").isEmpty(), "Russian search must find Target HUD");
+
+        // Verify KillAura locks onto nearby hostile & feeds Target HUD
+        platform.mockTargets = Collections.singletonList(
+                new TargetEntityInfo(42, "Zombie", false, true, false, 14.0f, 20.0f, 0.0f, 3.4f, 4, 2, 130.0, 64.0, -256.0, 65.6)
+        );
+        Module ka = core.getModuleManager().getById("kill_aura");
+        assertNotNull(ka);
+        ka.setEnabled(true, platform);
         core.onClientTick();
+        assertEquals(42, platform.lastAttackedEntityId, "KillAura must attack valid hostile in range");
+        assertNotNull(core.getRuntimeState().getActiveTarget(3000L), "KillAura must populate active Target HUD target");
+
+        // Tick & render all default-enabled modules + ClickGUI + HUD Editor + Main Menu
         core.onHudRender(platform);
         core.getClickGuiController().onOpen();
         core.getClickGuiController().render(platform, platform, 300, 200, 0.5f);

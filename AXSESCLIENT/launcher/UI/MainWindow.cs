@@ -4,8 +4,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Avalonia.Threading;
 using AxsesClient.Launcher.Models;
 using AxsesClient.Launcher.Services;
@@ -15,1507 +13,1338 @@ namespace AxsesClient.Launcher.UI;
 public sealed class MainWindow : Window
 {
     private readonly LauncherStateController _state;
-    private CancellationTokenSource? _authCts;
+    private LauncherPage _currentPage = LauncherPage.Dashboard;
+    private string _moduleSearch = "";
+    private string _moduleCategoryFilter = "ALL";
 
-    private string _moduleSearchQuery = "";
-    private string _selectedModuleCategory = "All";
+    private readonly Border _rootShell = new();
+    private readonly Border _sidebarBorder = new();
+    private readonly Border _topBarBorder = new();
+    private readonly Border _footerBarBorder = new();
+    private readonly ScrollViewer _pageScroller = new();
+    private readonly StackPanel _navStack = new() { Spacing = 4 };
+    private readonly TextBlock _footerStatusText = new() { FontSize = 12.5, FontWeight = FontWeight.Medium };
+    private readonly ProgressBar _footerProgress = new() { Height = 6, Minimum = 0, Maximum = 1, CornerRadius = new CornerRadius(3) };
 
-    private Border _rootShell = null!;
-    private StackPanel _navStack = null!;
-    private ContentControl _pageHost = null!;
-    private TextBlock _statusText = null!;
-    private ProgressBar _footerProgress = null!;
-    private TextBlock _headerVersionPillText = null!;
-    private TextBlock _headerAccountText = null!;
-
-    public MainWindow() : this(new LauncherStateController())
-    {
-    }
+    public MainWindow() : this(new LauncherStateController()) { }
 
     public MainWindow(LauncherStateController state)
     {
         _state = state;
-        Title = "AXSESCLIENT — GENESIS X v1.0.0";
+        Title = "AXSESCLIENT v2.0 • OBSIDIAN AURORA";
         Width = 1220;
-        Height = 760;
-        MinWidth = 980;
-        MinHeight = 640;
+        Height = 780;
+        MinWidth = 1000;
+        MinHeight = 660;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        ExtendClientAreaToDecorationsHint = true;
-        ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
-        ExtendClientAreaTitleBarHeightHint = -1;
 
-        TrySetWindowIcon();
-        BuildShell();
-        _state.StateChanged += () => Dispatcher.UIThread.Post(RefreshUi);
-        RefreshUi();
+        _state.StateChanged += () => Dispatcher.UIThread.Post(RebuildDynamicRegions);
+        _state.ProgressUpdated += (txt, prog) => Dispatcher.UIThread.Post(() =>
+        {
+            _footerStatusText.Text = txt;
+            _footerProgress.Value = prog;
+        });
+
+        BuildRootShell();
+        RebuildDynamicRegions();
     }
-
-    public LauncherStateController Controller => _state;
 
     public void NavigateTo(LauncherPage page)
     {
-        _state.CurrentPage = page;
-        RefreshUi();
+        _currentPage = page;
+        RebuildDynamicRegions();
+        _pageScroller.Offset = Vector.Zero;
     }
 
-    private void TrySetWindowIcon()
+    private void BuildRootShell()
     {
-        try
+        var outerGrid = new Grid
         {
-            using var stream = AssetLoader.Open(new Uri("avares://AXSESCLIENT/Assets/icon-128.png"));
-            Icon = new WindowIcon(stream);
-        }
-        catch { }
-    }
-
-    private void BuildShell()
-    {
-        var theme = _state.ActiveTheme;
-        Background = BrushOf(theme.BgPrimary);
-
-        var mainGrid = new Grid
-        {
-            RowDefinitions = new RowDefinitions("58,*,36"),
-            ColumnDefinitions = new ColumnDefinitions("228,*")
+            ColumnDefinitions = new ColumnDefinitions("244,*"),
+            RowDefinitions = new RowDefinitions("62,*,46")
         };
 
-        // Top Header Bar
-        var header = BuildHeaderBar();
-        Grid.SetRow(header, 0);
-        Grid.SetColumnSpan(header, 2);
-        mainGrid.Children.Add(header);
+        // Sidebar spanning full height on left
+        Grid.SetColumn(_sidebarBorder, 0);
+        Grid.SetRow(_sidebarBorder, 0);
+        Grid.SetRowSpan(_sidebarBorder, 3);
+        outerGrid.Children.Add(_sidebarBorder);
 
-        // Left Sidebar Navigation
-        var sidebar = new Border
-        {
-            Background = BrushOf(theme.BgSecondary),
-            BorderBrush = BrushOf("#22FFFFFF"),
-            BorderThickness = new Thickness(0, 0, 1, 0),
-            Padding = new Thickness(12, 14, 12, 14)
-        };
-        _navStack = new StackPanel { Spacing = 4 };
-        sidebar.Child = new ScrollViewer { Content = _navStack };
-        Grid.SetRow(sidebar, 1);
-        Grid.SetColumn(sidebar, 0);
-        mainGrid.Children.Add(sidebar);
+        // Top Command Header
+        Grid.SetColumn(_topBarBorder, 1);
+        Grid.SetRow(_topBarBorder, 0);
+        outerGrid.Children.Add(_topBarBorder);
 
-        // Main Content Host
-        _pageHost = new ContentControl
-        {
-            Padding = new Thickness(24, 20, 24, 20)
-        };
-        var contentScroll = new ScrollViewer
-        {
-            Content = _pageHost,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        };
-        Grid.SetRow(contentScroll, 1);
-        Grid.SetColumn(contentScroll, 1);
-        mainGrid.Children.Add(contentScroll);
+        // Main Scrollable Workspace
+        _pageScroller.Padding = new Thickness(26, 20, 26, 24);
+        _pageScroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+        Grid.SetColumn(_pageScroller, 1);
+        Grid.SetRow(_pageScroller, 1);
+        outerGrid.Children.Add(_pageScroller);
 
-        // Footer Status & Telemetry Bar
-        var footer = BuildFooterBar();
-        Grid.SetRow(footer, 2);
-        Grid.SetColumnSpan(footer, 2);
-        mainGrid.Children.Add(footer);
+        // Sleek Live Progress & Telemetry Footer
+        Grid.SetColumn(_footerBarBorder, 1);
+        Grid.SetRow(_footerBarBorder, 2);
+        outerGrid.Children.Add(_footerBarBorder);
 
-        _rootShell = new Border
-        {
-            Background = BrushOf(theme.BgPrimary),
-            BorderBrush = BrushOf("#289060FF"),
-            BorderThickness = new Thickness(1),
-            Child = mainGrid
-        };
+        _rootShell.Child = outerGrid;
         Content = _rootShell;
     }
 
-    private Control BuildHeaderBar()
+    private void RebuildDynamicRegions()
     {
-        var theme = _state.ActiveTheme;
-        var grid = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto,Auto")
-        };
+        var t = _state.ActiveTheme;
+        bool ru = _state.IsRu;
 
-        var brandRow = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 10,
-            VerticalAlignment = VerticalAlignment.Center
-        };
+        Background = BrushOf(t.BgPrimary);
+        _rootShell.Background = BrushOf(t.BgPrimary);
 
-        try
+        BuildSidebar(t, ru);
+        BuildTopBar(t, ru);
+        BuildFooterBar(t);
+
+        _pageScroller.Content = _currentPage switch
         {
-            using var iconStream = AssetLoader.Open(new Uri("avares://AXSESCLIENT/Assets/icon-128.png"));
-            brandRow.Children.Add(new Image
+            LauncherPage.Dashboard => BuildDashboardPage(t, ru),
+            LauncherPage.Play => BuildPlayPage(t, ru),
+            LauncherPage.Versions => BuildVersionsPage(t, ru),
+            LauncherPage.Accounts => BuildAccountsPage(t, ru),
+            LauncherPage.Profiles => BuildProfilesPage(t, ru),
+            LauncherPage.Modules => BuildModulesPage(t, ru),
+            LauncherPage.Appearance => BuildAppearancePage(t, ru),
+            LauncherPage.Settings => BuildSettingsPage(t, ru),
+            LauncherPage.Downloads => BuildDownloadsPage(t, ru),
+            LauncherPage.Diagnostics => BuildDiagnosticsPage(t, ru),
+            LauncherPage.About => BuildAboutPage(t, ru),
+            _ => BuildDashboardPage(t, ru)
+        };
+    }
+
+    private void BuildSidebar(LauncherThemePalette t, bool ru)
+    {
+        _sidebarBorder.Background = BrushOf(t.BgSecondary);
+        _sidebarBorder.BorderBrush = BrushOf("#1EFFFFFF");
+        _sidebarBorder.BorderThickness = new Thickness(0, 0, 1, 0);
+        _sidebarBorder.Padding = new Thickness(16, 18, 16, 16);
+
+        var dock = new DockPanel { LastChildFill = true };
+
+        // Brand Crest Header
+        var brandCard = new Border
+        {
+            Background = AuroraGradient(t, 0.22),
+            BorderBrush = BrushOf(t.AccentPrimary, 0.45),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(14, 12),
+            Margin = new Thickness(0, 0, 0, 18)
+        };
+        var brandRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 11 };
+        brandRow.Children.Add(new Border
+        {
+            Width = 36,
+            Height = 36,
+            CornerRadius = new CornerRadius(10),
+            Background = AuroraGradient(t, 1.0),
+            Child = new TextBlock
             {
-                Source = new Bitmap(iconStream),
-                Width = 28,
-                Height = 28
-            });
-        }
-        catch { }
-
-        var titleCol = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
-        titleCol.Children.Add(new TextBlock
+                Text = "AX",
+                Foreground = Brushes.White,
+                FontWeight = FontWeight.Black,
+                FontSize = 14,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        });
+        var brandTextStack = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        brandTextStack.Children.Add(new TextBlock
         {
             Text = "AXSESCLIENT",
-            FontWeight = FontWeight.Bold,
-            FontSize = 15,
-            Foreground = BrushOf(theme.TextPrimary)
+            Foreground = BrushOf(t.TextPrimary),
+            FontWeight = FontWeight.ExtraBold,
+            FontSize = 15
         });
-        titleCol.Children.Add(new TextBlock
+        brandTextStack.Children.Add(new TextBlock
         {
-            Text = "GENESIS X • v1.0.0",
-            FontSize = 10,
-            Foreground = BrushOf(theme.AccentCyan)
+            Text = "v2.0 • OBSIDIAN AURORA",
+            Foreground = BrushOf(t.AccentCyan),
+            FontWeight = FontWeight.SemiBold,
+            FontSize = 10.5
         });
-        brandRow.Children.Add(titleCol);
-        Grid.SetColumn(brandRow, 0);
-        grid.Children.Add(brandRow);
+        brandRow.Children.Add(brandTextStack);
+        brandCard.Child = brandRow;
+        DockPanel.SetDock(brandCard, Dock.Top);
+        dock.Children.Add(brandCard);
 
-        // Drag region
-        var dragSpacer = new Border { Background = Brushes.Transparent };
-        dragSpacer.PointerPressed += (_, e) =>
+        // Quick Hardware Status Card at Bottom of Sidebar
+        var sysCard = new Border
         {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                BeginMoveDrag(e);
+            Background = BrushOf(t.BgSurface, 0.72),
+            BorderBrush = BrushOf("#1AFFFFFF"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(12, 10),
+            Margin = new Thickness(0, 12, 0, 0)
         };
-        Grid.SetColumn(dragSpacer, 1);
-        grid.Children.Add(dragSpacer);
-
-        // Version Pill
-        _headerVersionPillText = new TextBlock
+        var sysStack = new StackPanel { Spacing = 5 };
+        bool jReady = _state.DetectedJava8 is not null && _state.DetectedJava21 is not null;
+        sysStack.Children.Add(new TextBlock
         {
-            Text = $"MC {_state.SelectedVersionSpec.MinecraftVersion}",
+            Text = ru ? $"⚡ ОЗУ игры: {_state.Settings.AllocatedRamMb} МБ" : $"⚡ JVM RAM: {_state.Settings.AllocatedRamMb} MB",
+            Foreground = BrushOf(t.TextPrimary),
             FontSize = 12,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = BrushOf(theme.AccentCyan)
-        };
-        var versionPill = new Border
+            FontWeight = FontWeight.SemiBold
+        });
+        sysStack.Children.Add(new TextBlock
         {
-            Background = BrushOf(theme.BgSurface),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(10, 5),
-            Margin = new Thickness(0, 0, 10, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = _headerVersionPillText
-        };
-        Grid.SetColumn(versionPill, 2);
-        grid.Children.Add(versionPill);
+            Text = jReady
+                ? (ru ? "✓ Java 8 и Java 21 активны" : "✓ Java 8 & Java 21 Ready")
+                : (ru ? "⬇ Авто-установка Java включена" : "⬇ Auto-Java Provisioning Active"),
+            Foreground = BrushOf(jReady ? t.Success : t.AccentCyan),
+            FontSize = 11.2
+        });
+        sysCard.Child = sysStack;
+        DockPanel.SetDock(sysCard, Dock.Bottom);
+        dock.Children.Add(sysCard);
 
-        // Account Pill
-        _headerAccountText = new TextBlock
-        {
-            Text = _state.SelectedAccount?.Username ?? "No Account",
-            FontSize = 12,
-            Foreground = BrushOf(theme.TextSecondary),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        var accountBtn = CreateSecondaryButton("Accounts", () => NavigateTo(LauncherPage.Accounts));
-        var accountWrap = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 8,
-            Margin = new Thickness(0, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Children = { _headerAccountText, accountBtn }
-        };
-        Grid.SetColumn(accountWrap, 3);
-        grid.Children.Add(accountWrap);
-
-        // Window Controls
-        var winBtns = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 6,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        winBtns.Children.Add(CreateChromeButton("—", () => WindowState = WindowState.Minimized));
-        winBtns.Children.Add(CreateChromeButton("□", () =>
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized));
-        winBtns.Children.Add(CreateChromeButton("✕", Close, isDanger: true));
-        Grid.SetColumn(winBtns, 4);
-        grid.Children.Add(winBtns);
-
-        return new Border
-        {
-            Background = BrushOf(theme.BgSecondary),
-            BorderBrush = BrushOf("#22FFFFFF"),
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(16, 0, 14, 0),
-            Child = grid
-        };
-    }
-
-    private Control BuildFooterBar()
-    {
-        var theme = _state.ActiveTheme;
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,220,Auto") };
-
-        _statusText = new TextBlock
-        {
-            Text = _state.StatusBanner,
-            FontSize = 11.5,
-            Foreground = BrushOf(theme.TextSecondary),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(_statusText, 0);
-        grid.Children.Add(_statusText);
-
-        _footerProgress = new ProgressBar
-        {
-            Minimum = 0,
-            Maximum = 1,
-            Value = _state.ActiveOperationProgress,
-            Height = 6,
-            Foreground = BrushOf(theme.AccentPrimary),
-            Background = BrushOf(theme.BgPrimary),
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(12, 0)
-        };
-        Grid.SetColumn(_footerProgress, 1);
-        grid.Children.Add(_footerProgress);
-
-        var badge = new TextBlock
-        {
-            Text = "FAIR-PLAY VERIFIED • ZERO TELEMETRY",
-            FontSize = 10.5,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = BrushOf(theme.Success),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        Grid.SetColumn(badge, 2);
-        grid.Children.Add(badge);
-
-        return new Border
-        {
-            Background = BrushOf(theme.BgSecondary),
-            BorderBrush = BrushOf("#22FFFFFF"),
-            BorderThickness = new Thickness(0, 1, 0, 0),
-            Padding = new Thickness(16, 0),
-            Child = grid
-        };
-    }
-
-    public void RefreshUi()
-    {
-        var theme = _state.ActiveTheme;
-        _rootShell.Background = BrushOf(theme.BgPrimary);
-        _statusText.Text = _state.StatusBanner;
-        _footerProgress.Value = _state.ActiveOperationProgress;
-        _footerProgress.Foreground = BrushOf(theme.AccentPrimary);
-        _headerVersionPillText.Text = $"MC {_state.SelectedVersionSpec.MinecraftVersion} • {_state.SelectedVersionSpec.State.ToDisplayBadge()}";
-        _headerAccountText.Text = _state.SelectedAccount is { } acc
-            ? $"{acc.Username} ({(acc.OwnsMinecraftJava ? "Verified" : "Sandbox")})"
-            : "Not Signed In";
-
-        RebuildSidebar(theme);
-        _pageHost.Content = _state.CurrentPage switch
-        {
-            LauncherPage.Dashboard => BuildDashboardPage(theme),
-            LauncherPage.Play => BuildPlayPage(theme),
-            LauncherPage.Versions => BuildVersionsPage(theme),
-            LauncherPage.Accounts => BuildAccountsPage(theme),
-            LauncherPage.Profiles => BuildProfilesPage(theme),
-            LauncherPage.Modules => BuildModulesPage(theme),
-            LauncherPage.Appearance => BuildAppearancePage(theme),
-            LauncherPage.Settings => BuildSettingsPage(theme),
-            LauncherPage.Downloads => BuildDownloadsPage(theme),
-            LauncherPage.Diagnostics => BuildDiagnosticsPage(theme),
-            LauncherPage.About => BuildAboutPage(theme),
-            _ => BuildDashboardPage(theme)
-        };
-    }
-
-    private void RebuildSidebar(LauncherThemePalette theme)
-    {
+        // Navigation Items
         _navStack.Children.Clear();
-        (LauncherPage Page, string Label, string Glyph)[] items =
+        (LauncherPage Page, string Icon, string LabelRu, string LabelEn)[] items =
         [
-            (LauncherPage.Dashboard, "Dashboard", "◈"),
-            (LauncherPage.Play, "Play", "▶"),
-            (LauncherPage.Versions, "Versions", "❖"),
-            (LauncherPage.Accounts, "Accounts", "◉"),
-            (LauncherPage.Profiles, "Profiles", "☰"),
-            (LauncherPage.Modules, "Modules (90)", "✦"),
-            (LauncherPage.Appearance, "Appearance", "◐"),
-            (LauncherPage.Settings, "Settings", "⚙"),
-            (LauncherPage.Downloads, "Downloads", "⬇"),
-            (LauncherPage.Diagnostics, "Diagnostics", "✚"),
-            (LauncherPage.About, "About", "ⓘ")
+            (LauncherPage.Dashboard, "◈", "Главная", "Dashboard"),
+            (LauncherPage.Play, "▶", "Запуск и ОЗУ", "Play & RAM"),
+            (LauncherPage.Modules, "✦", "Модули (93)", "Modules (93)"),
+            (LauncherPage.Versions, "❖", "Версии игры", "Versions"),
+            (LauncherPage.Accounts, "◉", "Аккаунты", "Accounts"),
+            (LauncherPage.Profiles, "▤", "Профили", "Profiles"),
+            (LauncherPage.Appearance, "◐", "Темы и стиль", "Appearance"),
+            (LauncherPage.Settings, "⚙", "Настройки и Java", "Settings & Java"),
+            (LauncherPage.Downloads, "⬇", "Загрузки", "Downloads"),
+            (LauncherPage.Diagnostics, " pulse", "Диагностика", "Diagnostics"),
+            (LauncherPage.About, "ⓘ", "О клиенте", "About")
         ];
 
-        foreach (var (page, label, glyph) in items)
+        foreach (var item in items)
         {
-            bool active = _state.CurrentPage == page;
-            var row = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 10,
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = glyph,
-                        Width = 18,
-                        Foreground = BrushOf(active ? theme.AccentCyan : theme.TextSecondary),
-                        FontWeight = FontWeight.Bold
-                    },
-                    new TextBlock
-                    {
-                        Text = label,
-                        FontSize = 13,
-                        FontWeight = active ? FontWeight.Bold : FontWeight.Medium,
-                        Foreground = BrushOf(active ? theme.TextPrimary : theme.TextSecondary)
-                    }
-                }
-            };
+            bool active = _currentPage == item.Page;
+            string iconText = item.Icon == " pulse" ? " pulse"[0..1] : item.Icon;
+            if (item.Page == LauncherPage.Diagnostics) iconText = "⚡";
 
-            var btn = new Button
+            var btnRow = new Grid { ColumnDefinitions = new ColumnDefinitions("24,*") };
+            btnRow.Children.Add(new TextBlock
+            {
+                Text = iconText,
+                Foreground = BrushOf(active ? t.AccentCyan : t.TextSecondary),
+                FontSize = 13.5,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            var lbl = new TextBlock
+            {
+                Text = ru ? item.LabelRu : item.LabelEn,
+                Foreground = BrushOf(active ? t.TextPrimary : t.TextSecondary),
+                FontWeight = active ? FontWeight.Bold : FontWeight.Medium,
+                FontSize = 13,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(lbl, 1);
+            btnRow.Children.Add(lbl);
+
+            var navBtn = new Button
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                Background = BrushOf(active ? theme.BgSurface : "#00000000"),
-                BorderBrush = BrushOf(active ? theme.AccentPrimary : "#00000000"),
-                BorderThickness = new Thickness(active ? 2 : 0, 0, 0, 0),
-                CornerRadius = new CornerRadius(7),
-                Padding = new Thickness(12, 9),
-                Content = row
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                Background = active ? AuroraGradient(t, 0.26) : Brushes.Transparent,
+                BorderBrush = active ? BrushOf(t.AccentPrimary, 0.65) : Brushes.Transparent,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12, 8.5),
+                Cursor = new Cursor(StandardCursorType.Hand),
+                Content = btnRow
             };
-            var captured = page;
-            btn.Click += (_, _) => NavigateTo(captured);
-            _navStack.Children.Add(btn);
+            var targetPage = item.Page;
+            navBtn.Click += (_, _) => NavigateTo(targetPage);
+            _navStack.Children.Add(navBtn);
         }
+
+        dock.Children.Add(new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = _navStack
+        });
+        _sidebarBorder.Child = dock;
     }
 
-    // =====================================================================
-    // 01. DASHBOARD PAGE
-    // =====================================================================
-    private Control BuildDashboardPage(LauncherThemePalette theme)
+    private void BuildTopBar(LauncherThemePalette t, bool ru)
+    {
+        _topBarBorder.Background = BrushOf(t.BgSecondary, 0.92);
+        _topBarBorder.BorderBrush = BrushOf("#1AFFFFFF");
+        _topBarBorder.BorderThickness = new Thickness(0, 0, 0, 1);
+        _topBarBorder.Padding = new Thickness(24, 0);
+
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+
+        var titleStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
+        titleStack.Children.Add(new TextBlock
+        {
+            Text = GetPageTitle(_currentPage, ru),
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 18,
+            FontWeight = FontWeight.ExtraBold,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        titleStack.Children.Add(CreatePillBadge(
+            $"MC {_state.SelectedVersionSpec.MinecraftVersion} • Fabric {_state.SelectedVersionSpec.FabricLoaderVersion}",
+            t.AccentCyan, t.BgSurface));
+        grid.Children.Add(titleStack);
+
+        var rightRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+
+        // Language Toggle Pill (RU | EN)
+        var langBtn = CreateGhostButton(ru ? "🌐 RU" : "🌐 EN", t);
+        langBtn.Click += (_, _) => _state.ToggleLanguage();
+        rightRow.Children.Add(langBtn);
+
+        // Active Account Pill
+        var accBtn = CreateGhostButton($"👤 {_state.SelectedAccount.Username}", t);
+        accBtn.Click += (_, _) => NavigateTo(LauncherPage.Accounts);
+        rightRow.Children.Add(accBtn);
+
+        // Quick Launch CTA
+        var spec = _state.SelectedVersionSpec;
+        string ctaLabel = spec.State == VersionInstallState.Installed
+            ? (ru ? $"▶ ИГРАТЬ {spec.MinecraftVersion}" : $"▶ PLAY {spec.MinecraftVersion}")
+            : (ru ? $"⬇ УСТАНОВИТЬ {spec.MinecraftVersion}" : $"⬇ INSTALL {spec.MinecraftVersion}");
+        var quickPlay = CreatePrimaryButton(ctaLabel, t, fontSize: 12.5, padH: 16, padV: 8);
+        quickPlay.IsEnabled = !_state.IsBusy && spec.State != VersionInstallState.Running;
+        quickPlay.Click += async (_, _) => await _state.InstallOrPlaySelectedAsync();
+        rightRow.Children.Add(quickPlay);
+
+        Grid.SetColumn(rightRow, 1);
+        grid.Children.Add(rightRow);
+        _topBarBorder.Child = grid;
+    }
+
+    private void BuildFooterBar(LauncherThemePalette t)
+    {
+        _footerBarBorder.Background = BrushOf(t.BgSecondary);
+        _footerBarBorder.BorderBrush = BrushOf("#1AFFFFFF");
+        _footerBarBorder.BorderThickness = new Thickness(0, 1, 0, 0);
+        _footerBarBorder.Padding = new Thickness(24, 0);
+
+        _footerStatusText.Foreground = BrushOf(t.TextSecondary);
+        _footerStatusText.Text = _state.CurrentStatusText;
+        _footerProgress.Foreground = AuroraGradient(t, 1.0);
+        _footerProgress.Background = BrushOf(t.BgSurface);
+        _footerProgress.Value = _state.CurrentProgress;
+
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,280"), VerticalAlignment = VerticalAlignment.Center };
+        _footerStatusText.VerticalAlignment = VerticalAlignment.Center;
+        grid.Children.Add(_footerStatusText);
+
+        _footerProgress.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(_footerProgress, 1);
+        grid.Children.Add(_footerProgress);
+        _footerBarBorder.Child = grid;
+    }
+
+    private Control BuildDashboardPage(LauncherThemePalette t, bool ru)
     {
         var root = new StackPanel { Spacing = 18 };
         var spec = _state.SelectedVersionSpec;
 
-        // Hero Banner Card
+        // 1. AURORA HERO LAUNCH CARD
+        var hero = new Border
+        {
+            Background = AuroraGradient(t, 0.20),
+            BorderBrush = BrushOf(t.AccentPrimary, 0.55),
+            BorderThickness = new Thickness(1.2),
+            CornerRadius = new CornerRadius(18),
+            Padding = new Thickness(26, 22)
+        };
         var heroGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        var heroLeft = new StackPanel { Spacing = 8 };
+
+        var heroLeft = new StackPanel { Spacing = 10 };
+        var chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        chipRow.Children.Add(CreatePillBadge("OBSIDIAN AURORA v2.0", t.AccentPrimary, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge(spec.State.ToDisplayBadge(ru),
+            spec.State == VersionInstallState.Installed ? t.Success : t.AccentCyan, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge(ru ? "КиллАура + Таргет HUD" : "KillAura + Target HUD", t.AccentCyan, t.BgPrimary));
+        heroLeft.Children.Add(chipRow);
+
         heroLeft.Children.Add(new TextBlock
         {
-            Text = "AXSESCLIENT • GENESIS X",
-            FontSize = 12,
-            FontWeight = FontWeight.Bold,
-            Foreground = BrushOf(theme.AccentCyan)
+            Text = spec.DisplayTitle,
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 28,
+            FontWeight = FontWeight.Black
         });
         heroLeft.Children.Add(new TextBlock
         {
-            Text = $"Ready to Launch {spec.DisplayTitle}",
-            FontSize = 26,
-            FontWeight = FontWeight.Bold,
-            Foreground = BrushOf(theme.TextPrimary)
-        });
-        heroLeft.Children.Add(new TextBlock
-        {
-            Text = $"{spec.Subtitle} • Status: {spec.State.ToDisplayBadge()}",
-            FontSize = 13,
-            Foreground = BrushOf(theme.TextSecondary)
+            Text = ru && !string.IsNullOrWhiteSpace(spec.SubtitleRu) ? spec.SubtitleRu : spec.Subtitle,
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 13.5
         });
 
-        var versionSwitchRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0) };
+        // Version Quick Switcher Pills inside Hero
+        var verSwitchRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0) };
         foreach (var v in _state.Versions)
         {
             bool sel = v.MinecraftVersion == spec.MinecraftVersion;
-            var capturedVer = v.MinecraftVersion;
-            versionSwitchRow.Children.Add(sel
-                ? CreatePrimaryButton($"✓ {v.MinecraftVersion}", () => _state.SelectVersion(capturedVer))
-                : CreateSecondaryButton(v.MinecraftVersion, () => _state.SelectVersion(capturedVer)));
+            var vBtn = new Button
+            {
+                Content = $"Minecraft {v.MinecraftVersion}",
+                Background = sel ? AuroraGradient(t, 0.85) : BrushOf(t.BgPrimary, 0.78),
+                Foreground = BrushOf(sel ? "#FFFFFF" : t.TextSecondary),
+                BorderBrush = BrushOf(sel ? t.AccentCyan : "#28FFFFFF"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(14, 7),
+                FontWeight = sel ? FontWeight.Bold : FontWeight.Medium,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            string verId = v.MinecraftVersion;
+            vBtn.Click += (_, _) => _state.SelectVersion(verId);
+            verSwitchRow.Children.Add(vBtn);
         }
-        heroLeft.Children.Add(versionSwitchRow);
-        Grid.SetColumn(heroLeft, 0);
+        heroLeft.Children.Add(verSwitchRow);
         heroGrid.Children.Add(heroLeft);
 
-        var heroRight = new StackPanel
+        // Big Hero Launch CTA Column
+        var heroRight = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right };
+        string bigLabel = spec.State switch
         {
-            Spacing = 8,
-            VerticalAlignment = VerticalAlignment.Center
+            VersionInstallState.Installed => ru ? "▶  ЗАПУСТИТЬ ИГРУ" : "▶  LAUNCH GAME",
+            VersionInstallState.Running => ru ? "●  ИГРА АКТИВНА" : "●  GAME RUNNING",
+            _ => ru ? "⬇  УСТАНОВИТЬ И ИГРАТЬ" : "⬇  INSTALL & PLAY"
         };
-        string ctaLabel = spec.State == VersionInstallState.Installed
-            ? $"▶ LAUNCH {spec.MinecraftVersion}"
-            : $"⬇ INSTALL & PLAY {spec.MinecraftVersion}";
-        var launchCta = CreatePrimaryButton(ctaLabel, () => TriggerPlayAsync(spec));
-        launchCta.FontSize = 15;
-        launchCta.Padding = new Thickness(24, 14);
-        heroRight.Children.Add(launchCta);
-        heroRight.Children.Add(CreateSecondaryButton("Configure Launch Options →", () => NavigateTo(LauncherPage.Play)));
+        var bigBtn = CreatePrimaryButton(bigLabel, t, fontSize: 15.5, padH: 28, padV: 15);
+        bigBtn.IsEnabled = !_state.IsBusy && spec.State != VersionInstallState.Running;
+        bigBtn.Click += async (_, _) => await _state.InstallOrPlaySelectedAsync();
+        heroRight.Children.Add(bigBtn);
+        heroRight.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? $"ОЗУ: {_state.Settings.AllocatedRamMb} МБ • ClickGUI: Правый Shift"
+                : $"RAM: {_state.Settings.AllocatedRamMb} MB • ClickGUI: Right Shift",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 11.5,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
         Grid.SetColumn(heroRight, 1);
         heroGrid.Children.Add(heroRight);
+        hero.Child = heroGrid;
+        root.Children.Add(hero);
 
-        root.Children.Add(WrapSurfaceCard(theme, heroGrid, accentBorder: true));
+        // 2. TWO-COLUMN INTERACTIVE RAM ALLOCATOR + AUTO-JAVA PROVISIONER
+        var midGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("1.15*,16,0.85*") };
+        midGrid.Children.Add(BuildInteractiveRamCard(t, ru));
+        var javaCard = BuildAutoJavaCard(t, ru);
+        Grid.SetColumn(javaCard, 2);
+        midGrid.Children.Add(javaCard);
+        root.Children.Add(midGrid);
 
-        // 4 Stat Cards
-        var statsGrid = new UniformGrid { Columns = 4 };
-        statsGrid.Children.Add(BuildStatTile(theme, "MODULES ENABLED", $"{_state.Modules.Count(m => m.Enabled)} / {_state.Modules.Count}", "Synced to ClickGUI (Right Shift)"));
-        statsGrid.Children.Add(BuildStatTile(theme, "ACTIVE THEME", theme.Name, "Live AXSES NEO-DARK Engine"));
-        statsGrid.Children.Add(BuildStatTile(theme, "MEMORY ALLOCATION", $"{_state.SelectedProfile.RamMb} MB", $"Profile: {_state.SelectedProfile.Name}"));
-        statsGrid.Children.Add(BuildStatTile(theme, "SUPPORTED ENGINES", "1.16.5 • 1.21.4 • 1.21.11", "Isolated Per-Version Fabric JARs"));
-        root.Children.Add(statsGrid);
+        // 3. FEATURED COMBAT & HUD MODULES QUICK TOGGLES
+        var quickCard = CreateSurfaceCard(t);
+        var quickStack = new StackPanel { Spacing = 12 };
+        var qHeader = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        qHeader.Children.Add(new TextBlock
+        {
+            Text = ru ? "✦ Быстрое управление ключевыми функциями" : "✦ Flagship In-Game Modules",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15.5,
+            FontWeight = FontWeight.Bold,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var allModsBtn = CreateGhostButton(ru ? "Открыть все 93 модуля →" : "All 93 Modules →", t);
+        allModsBtn.Click += (_, _) => NavigateTo(LauncherPage.Modules);
+        Grid.SetColumn(allModsBtn, 1);
+        qHeader.Children.Add(allModsBtn);
+        quickStack.Children.Add(qHeader);
 
-        // Quick Actions + Release Highlights
-        var lowerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*") };
-        var notesStack = new StackPanel { Spacing = 6 };
-        notesStack.Children.Add(SectionHeader(theme, "GENESIS X v1.0.0 Highlights"));
-        notesStack.Children.Add(BodyText(theme, "• Separate native Fabric mods: AXSESCLIENT-1.16.5.jar, AXSESCLIENT-1.21.4.jar, AXSESCLIENT-1.21.11.jar."));
-        notesStack.Children.Add(BodyText(theme, "• Press RIGHT SHIFT in-game or on Main Menu to open AXSES PREMIUM CLICKGUI; close with RIGHT SHIFT or ESCAPE."));
-        notesStack.Children.Add(BodyText(theme, "• Full HUD Editor with drag-and-drop, snapping, grouping, multi-resolution preview, and 4 layout presets."));
-        notesStack.Children.Add(BodyText(theme, "• 100% Fair-Play compliant: zero packet cheats, singleplayer-gated training targets, DPAPI token vault."));
-        var leftCard = WrapSurfaceCard(theme, notesStack);
-        leftCard.Margin = new Thickness(0, 0, 8, 0);
-        Grid.SetColumn(leftCard, 0);
-        lowerGrid.Children.Add(leftCard);
+        var featuredGrid = new UniformGrid { Columns = 3 };
+        string[] featuredIds = ["kill_aura", "target_hud", "trigger_bot", "toggle_sprint", "fullbright", "memory_display"];
+        foreach (string fid in featuredIds)
+        {
+            var mod = _state.Modules.FirstOrDefault(m => m.Id == fid);
+            if (mod is null) continue;
+            featuredGrid.Children.Add(BuildCompactModuleTile(mod, t, ru));
+        }
+        quickStack.Children.Add(featuredGrid);
+        quickCard.Child = quickStack;
+        root.Children.Add(quickCard);
 
-        var quickStack = new StackPanel { Spacing = 8 };
-        quickStack.Children.Add(SectionHeader(theme, "Quick Navigation"));
-        quickStack.Children.Add(CreateSecondaryButton("❖ Open Version Manager (Install / Repair / Update)", () => NavigateTo(LauncherPage.Versions)));
-        quickStack.Children.Add(CreateSecondaryButton("✦ Customize 90 Client Modules Before Launch", () => NavigateTo(LauncherPage.Modules)));
-        quickStack.Children.Add(CreateSecondaryButton("◐ Switch AXSES NEO-DARK Theme Palette", () => NavigateTo(LauncherPage.Appearance)));
-        quickStack.Children.Add(CreateSecondaryButton("✚ Run System & Java Diagnostics", () => NavigateTo(LauncherPage.Diagnostics)));
-        var rightCard = WrapSurfaceCard(theme, quickStack);
-        rightCard.Margin = new Thickness(8, 0, 0, 0);
-        Grid.SetColumn(rightCard, 1);
-        lowerGrid.Children.Add(rightCard);
-
-        root.Children.Add(lowerGrid);
         return root;
     }
 
-    // =====================================================================
-    // 02. PLAY PAGE
-    // =====================================================================
-    private Control BuildPlayPage(LauncherThemePalette theme)
+    private Control BuildInteractiveRamCard(LauncherThemePalette t, bool ru)
     {
-        var root = new StackPanel { Spacing = 16 };
-        root.Children.Add(PageHeader(theme, "Launch Deck", "Direct 13-stage JVM launcher — launches Minecraft + Fabric + AXSESCLIENT directly without external launchers."));
+        var card = CreateSurfaceCard(t);
+        var stack = new StackPanel { Spacing = 12 };
+        var mem = _state.MemorySnapshot;
+        int currentRam = _state.Settings.AllocatedRamMb;
+        int maxSlider = Math.Max(2048, mem.MaxRecommendedAllocationMb);
 
-        var profile = _state.SelectedProfile;
-        var spec = _state.SelectedVersionSpec;
-
-        var configStack = new StackPanel { Spacing = 12 };
-
-        // Version & Profile Row
-        var verRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        verRow.Children.Add(LabelText(theme, "Target Version:"));
-        foreach (var v in _state.Versions)
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        header.Children.Add(new TextBlock
         {
-            string verId = v.MinecraftVersion;
-            verRow.Children.Add(verId == spec.MinecraftVersion
-                ? CreatePrimaryButton($"{verId} ({v.State.ToDisplayBadge()})", () => _state.SelectVersion(verId))
-                : CreateSecondaryButton($"{verId} ({v.State.ToDisplayBadge()})", () => _state.SelectVersion(verId)));
-        }
-        configStack.Children.Add(verRow);
+            Text = ru ? "⚡ Реальное выделение ОЗУ (JVM -Xmx)" : "⚡ Real JVM Memory Allocation (-Xmx)",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15,
+            FontWeight = FontWeight.Bold,
+            VerticalAlignment = VerticalAlignment.Center
+        });
 
-        // RAM Slider
-        var ramLabel = LabelText(theme, $"Allocated JVM Heap Memory: {profile.RamMb} MB");
-        var ramSlider = new Slider
+        var ramValueBadge = new TextBlock
+        {
+            Text = $"{currentRam} МБ ({currentRam / 1024.0:0.0} ГБ)",
+            Foreground = BrushOf(t.AccentCyan),
+            FontSize = 14.5,
+            FontWeight = FontWeight.ExtraBold,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        if (!ru) ramValueBadge.Text = $"{currentRam} MB ({currentRam / 1024.0:0.0} GB)";
+        Grid.SetColumn(ramValueBadge, 1);
+        header.Children.Add(ramValueBadge);
+        stack.Children.Add(header);
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? $"Физическая память ПК: {mem.TotalPhysicalMb:N0} МБ • Свободно сейчас: {mem.AvailablePhysicalMb:N0} МБ"
+                : $"System Physical RAM: {mem.TotalPhysicalMb:N0} MB • Currently Free: {mem.AvailablePhysicalMb:N0} MB",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 12
+        });
+
+        var slider = new Slider
         {
             Minimum = 1024,
-            Maximum = 16384,
-            TickFrequency = 512,
+            Maximum = maxSlider,
+            Value = Math.Clamp(currentRam, 1024, maxSlider),
+            TickFrequency = 256,
             IsSnapToTickEnabled = true,
-            Value = profile.RamMb,
-            Width = 420,
-            HorizontalAlignment = HorizontalAlignment.Left
+            Foreground = BrushOf(t.AccentPrimary)
         };
-        ramSlider.PropertyChanged += (_, e) =>
+        slider.PropertyChanged += (_, e) =>
         {
             if (e.Property == RangeBase.ValueProperty)
             {
-                profile.RamMb = (int)Math.Round(ramSlider.Value);
-                ramLabel.Text = $"Allocated JVM Heap Memory: {profile.RamMb} MB";
-                _state.SaveProfiles();
+                int val = ((int)Math.Round(slider.Value / 128.0)) * 128;
+                ramValueBadge.Text = ru
+                    ? $"{val} МБ ({val / 1024.0:0.0} ГБ)"
+                    : $"{val} MB ({val / 1024.0:0.0} GB)";
             }
         };
-        configStack.Children.Add(ramLabel);
-        configStack.Children.Add(ramSlider);
-
-        // Resolution presets + Fullscreen
-        var resRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        resRow.Children.Add(LabelText(theme, $"Window Size ({profile.ResolutionWidth}x{profile.ResolutionHeight}):"));
-        (int W, int H)[] resolutions = [(854, 480), (1280, 720), (1600, 900), (1920, 1080), (2560, 1440)];
-        foreach (var (w, h) in resolutions)
+        slider.PointerCaptureLost += (_, _) =>
         {
-            int cw = w, ch = h;
-            resRow.Children.Add(profile.ResolutionWidth == cw && profile.ResolutionHeight == ch
-                ? CreatePrimaryButton($"{cw}x{ch}", () => { profile.ResolutionWidth = cw; profile.ResolutionHeight = ch; _state.SaveProfiles(); RefreshUi(); })
-                : CreateSecondaryButton($"{cw}x{ch}", () => { profile.ResolutionWidth = cw; profile.ResolutionHeight = ch; _state.SaveProfiles(); RefreshUi(); }));
+            int val = ((int)Math.Round(slider.Value / 128.0)) * 128;
+            _state.SetAllocatedRamMb(val);
+        };
+        stack.Children.Add(slider);
+
+        // Quick Preset Pills (2 GB, 4 GB, 6 GB, 8 GB, 12 GB, 16 GB)
+        var presetsRow = new WrapPanel { Orientation = Orientation.Horizontal };
+        int[] presetsMb = [2048, 4096, 6144, 8192, 12288, 16384];
+        foreach (int pMb in presetsMb)
+        {
+            if (pMb > maxSlider && pMb > 4096) continue;
+            bool isSel = Math.Abs(currentRam - pMb) < 128;
+            var pBtn = new Button
+            {
+                Content = ru ? $"{pMb / 1024} ГБ" : $"{pMb / 1024} GB",
+                Background = isSel ? AuroraGradient(t, 0.85) : BrushOf(t.BgPrimary),
+                Foreground = BrushOf(isSel ? "#FFFFFF" : t.TextSecondary),
+                BorderBrush = BrushOf(isSel ? t.AccentCyan : "#24FFFFFF"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(11, 5),
+                Margin = new Thickness(0, 0, 6, 6),
+                FontSize = 12,
+                FontWeight = FontWeight.SemiBold,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            int targetMb = Math.Min(pMb, maxSlider);
+            pBtn.Click += (_, _) => _state.SetAllocatedRamMb(targetMb);
+            presetsRow.Children.Add(pBtn);
         }
-        var fsCheck = new CheckBox
-        {
-            Content = "Start Fullscreen",
-            IsChecked = profile.Fullscreen,
-            Foreground = BrushOf(theme.TextPrimary),
-            Margin = new Thickness(12, 0, 0, 0)
-        };
-        fsCheck.IsCheckedChanged += (_, _) =>
-        {
-            profile.Fullscreen = fsCheck.IsChecked == true;
-            _state.SaveProfiles();
-        };
-        resRow.Children.Add(fsCheck);
-        configStack.Children.Add(resRow);
+        stack.Children.Add(presetsRow);
 
-        // JVM Flags
-        configStack.Children.Add(LabelText(theme, "Custom JVM Arguments:"));
-        var jvmBox = new TextBox
+        card.Child = stack;
+        return card;
+    }
+
+    private Control BuildAutoJavaCard(LauncherThemePalette t, bool ru)
+    {
+        var card = CreateSurfaceCard(t);
+        var stack = new StackPanel { Spacing = 10 };
+
+        stack.Children.Add(new TextBlock
         {
-            Text = profile.CustomJvmArgs,
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextPrimary)
+            Text = ru ? "☕ Автоматическая Java 8 и 21" : "☕ Automatic Java 8 & 21",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15,
+            FontWeight = FontWeight.Bold
+        });
+
+        stack.Children.Add(BuildJavaStatusRow("Java 8 (MC 1.16.5)", _state.DetectedJava8, t, ru));
+        stack.Children.Add(BuildJavaStatusRow("Java 21 (MC 1.21.x)", _state.DetectedJava21, t, ru));
+
+        bool bothReady = _state.DetectedJava8 is not null && _state.DetectedJava21 is not null;
+        var autoBtn = CreatePrimaryButton(
+            _state.IsJavaProvisioning
+                ? (ru ? "⏳ Скачивание и распаковка Java..." : "⏳ Installing Java...")
+                : bothReady
+                    ? (ru ? "✓ Обе версии Java установлены" : "✓ Both Java Runtimes Ready")
+                    : (ru ? "⬇ Авто-установить Java 8 + Java 21" : "⬇ Auto-Install Java 8 + 21"),
+            t, fontSize: 12.5, padH: 14, padV: 9);
+        autoBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+        autoBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
+        autoBtn.IsEnabled = !_state.IsJavaProvisioning;
+        autoBtn.Click += async (_, _) => await _state.AutoInstallMissingJavaSilentOrInteractiveAsync(interactiveError: true);
+        stack.Children.Add(autoBtn);
+
+        card.Child = stack;
+        return card;
+    }
+
+    private static Control BuildJavaStatusRow(string label, DetectedJavaRuntime? rt, LauncherThemePalette t, bool ru)
+    {
+        var border = new Border
+        {
+            Background = BrushOf(t.BgPrimary, 0.75),
+            BorderBrush = BrushOf(rt is not null ? t.Success : t.AccentCyan, 0.35),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(9),
+            Padding = new Thickness(10, 7)
         };
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        grid.Children.Add(new TextBlock
+        {
+            Text = label,
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 12.5,
+            FontWeight = FontWeight.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var badge = new TextBlock
+        {
+            Text = rt is not null
+                ? $"✓ v{rt.RawVersion}"
+                : (ru ? "Авто при старте" : "Auto on Play"),
+            Foreground = BrushOf(rt is not null ? t.Success : t.AccentCyan),
+            FontSize = 11.5,
+            FontWeight = FontWeight.Bold,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(badge, 1);
+        grid.Children.Add(badge);
+        border.Child = grid;
+        return border;
+    }
+
+    private Control BuildCompactModuleTile(ModuleCatalogItem mod, LauncherThemePalette t, bool ru)
+    {
+        var border = new Border
+        {
+            Background = mod.Enabled ? AuroraGradient(t, 0.16) : BrushOf(t.BgPrimary, 0.72),
+            BorderBrush = BrushOf(mod.Enabled ? t.AccentPrimary : "#20FFFFFF", mod.Enabled ? 0.65 : 1.0),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Padding = new Thickness(12, 10),
+            Margin = new Thickness(4)
+        };
+        var stack = new StackPanel { Spacing = 5 };
+        var top = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        top.Children.Add(new TextBlock
+        {
+            Text = mod.DisplayName(ru),
+            Foreground = BrushOf(t.TextPrimary),
+            FontWeight = FontWeight.Bold,
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var toggle = new CheckBox { IsChecked = mod.Enabled, VerticalAlignment = VerticalAlignment.Center };
+        toggle.IsCheckedChanged += (_, _) =>
+        {
+            mod.Enabled = toggle.IsChecked == true;
+            _state.SyncModulesAndThemeToSelectedInstance();
+            RebuildDynamicRegions();
+        };
+        Grid.SetColumn(toggle, 1);
+        top.Children.Add(toggle);
+        stack.Children.Add(top);
+
+        stack.Children.Add(new TextBlock
+        {
+            Text = mod.DisplayDescription(ru),
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 11.2,
+            TextWrapping = TextWrapping.Wrap,
+            MaxLines = 2
+        });
+        border.Child = stack;
+        return border;
+    }
+
+    private Control BuildPlayPage(LauncherThemePalette t, bool ru)
+    {
+        var stack = new StackPanel { Spacing = 18 };
+        stack.Children.Add(BuildInteractiveRamCard(t, ru));
+
+        var resCard = CreateSurfaceCard(t);
+        var resStack = new StackPanel { Spacing = 12 };
+        resStack.Children.Add(new TextBlock
+        {
+            Text = ru ? "🖥 Параметры окна игры и JVM" : "🖥 Display & JVM Launch Parameters",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15.5,
+            FontWeight = FontWeight.Bold
+        });
+
+        var p = _state.SelectedProfile;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        var wBox = new TextBox { Width = 110, Text = p.ResolutionWidth.ToString(), Watermark = "Width" };
+        var hBox = new TextBox { Width = 110, Text = p.ResolutionHeight.ToString(), Watermark = "Height" };
+        var fsChk = new CheckBox
+        {
+            Content = ru ? "Полный экран (Fullscreen)" : "Start Fullscreen",
+            IsChecked = p.Fullscreen,
+            Foreground = BrushOf(t.TextPrimary)
+        };
+        var applyBtn = CreateGhostButton(ru ? "Сохранить разрешение" : "Save Resolution", t);
+        applyBtn.Click += (_, _) =>
+        {
+            if (int.TryParse(wBox.Text, out int w)) p.ResolutionWidth = Math.Clamp(w, 640, 7680);
+            if (int.TryParse(hBox.Text, out int h)) p.ResolutionHeight = Math.Clamp(h, 480, 4320);
+            p.Fullscreen = fsChk.IsChecked == true;
+            _state.SaveAllState();
+            _state.NotifyChanged();
+        };
+        row.Children.Add(wBox);
+        row.Children.Add(new TextBlock { Text = "×", Foreground = BrushOf(t.TextSecondary), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(hBox);
+        row.Children.Add(fsChk);
+        row.Children.Add(applyBtn);
+        resStack.Children.Add(row);
+
+        var jvmBox = new TextBox { Text = p.CustomJvmArgs, Watermark = "-XX:+UseG1GC ..." };
         jvmBox.LostFocus += (_, _) =>
         {
-            profile.CustomJvmArgs = jvmBox.Text ?? "";
-            _state.SaveProfiles();
+            p.CustomJvmArgs = jvmBox.Text ?? "";
+            _state.SaveAllState();
         };
-        configStack.Children.Add(jvmBox);
+        resStack.Children.Add(jvmBox);
+        resCard.Child = resStack;
+        stack.Children.Add(resCard);
 
-        // Launch Action Row
-        var actionRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Margin = new Thickness(0, 6, 0, 0) };
-        var playBtn = CreatePrimaryButton($"▶ PLAY MINECRAFT {spec.MinecraftVersion}", () => TriggerPlayAsync(spec));
-        playBtn.Padding = new Thickness(24, 12);
-        actionRow.Children.Add(playBtn);
-        actionRow.Children.Add(CreateSecondaryButton("Open Instance Folder", () =>
-            _state.OpenDirectoryInExplorer(_state.LaunchEngine.GetInstanceDir(spec.MinecraftVersion))));
-        configStack.Children.Add(actionRow);
-
-        root.Children.Add(WrapSurfaceCard(theme, configStack, accentBorder: true));
-
-        // Live Game & Engine Console
-        var logCard = new StackPanel { Spacing = 8 };
-        logCard.Children.Add(SectionHeader(theme, "Live Launch Engine & Game Console (Tokens Auto-Redacted)"));
-        string logText;
-        lock (_state.Logs)
-        {
-            logText = string.Join(Environment.NewLine, _state.Logs.TakeLast(30));
-        }
-        logCard.Children.Add(new TextBox
-        {
-            Text = logText,
-            IsReadOnly = true,
-            AcceptsReturn = true,
-            Height = 200,
-            FontFamily = new FontFamily("Consolas, Monospace"),
-            FontSize = 11.5,
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextSecondary)
-        });
-        root.Children.Add(WrapSurfaceCard(theme, logCard));
-
-        return root;
+        return stack;
     }
 
-    // =====================================================================
-    // 03. VERSIONS PAGE (VERSION MANAGER)
-    // =====================================================================
-    private Control BuildVersionsPage(LauncherThemePalette theme)
+    private Control BuildVersionsPage(LauncherThemePalette t, bool ru)
     {
-        var root = new StackPanel { Spacing = 16 };
-        var topRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        var hdr = PageHeader(theme, "Version Manager", "Independent isolated installations for Minecraft 1.16.5 (Java 8), 1.21.4 (Java 21), and 1.21.11 (Java 21).");
-        Grid.SetColumn(hdr, 0);
-        topRow.Children.Add(hdr);
-        var refreshBtn = CreateSecondaryButton("↻ Re-Verify All Installations", () => _state.RefreshAllVersions());
-        refreshBtn.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(refreshBtn, 1);
-        topRow.Children.Add(refreshBtn);
-        root.Children.Add(topRow);
-
-        foreach (var spec in _state.Versions)
-        {
-            var cardGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-            var left = new StackPanel { Spacing = 6 };
-
-            var titleLine = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-            titleLine.Children.Add(new TextBlock
-            {
-                Text = spec.DisplayTitle,
-                FontSize = 18,
-                FontWeight = FontWeight.Bold,
-                Foreground = BrushOf(theme.TextPrimary)
-            });
-            titleLine.Children.Add(BuildStateBadge(theme, spec.State));
-            left.Children.Add(titleLine);
-
-            left.Children.Add(BodyText(theme, $"{spec.Subtitle} • Mod Artifact: {spec.ModJarFileName}"));
-            left.Children.Add(BodyText(theme, spec.StatusDetail));
-
-            if (spec.State == VersionInstallState.Installing || spec.Progress > 0 && spec.Progress < 1.0)
-            {
-                left.Children.Add(new ProgressBar
-                {
-                    Minimum = 0,
-                    Maximum = 1,
-                    Value = spec.Progress,
-                    Height = 6,
-                    Foreground = BrushOf(theme.AccentCyan),
-                    Width = 420,
-                    HorizontalAlignment = HorizontalAlignment.Left
-                });
-            }
-
-            Grid.SetColumn(left, 0);
-            cardGrid.Children.Add(left);
-
-            // All 5 Required Version Actions: INSTALL, PLAY, UPDATE, REPAIR, OPEN FOLDER
-            var captured = spec;
-            var actionsWrap = new WrapPanel
-            {
-                Orientation = Orientation.Horizontal,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            actionsWrap.Children.Add(WrapMargin(CreatePrimaryButton("PLAY", () => TriggerPlayAsync(captured))));
-            actionsWrap.Children.Add(WrapMargin(CreateSecondaryButton("INSTALL", () => TriggerInstallOrRepairAsync(captured))));
-            actionsWrap.Children.Add(WrapMargin(CreateSecondaryButton("UPDATE", () =>
-            {
-                _state.LaunchEngine.UpdateModJarOnly(captured, _state.AppendLog);
-                _state.StatusBanner = $"Updated {captured.ModJarFileName} in {captured.MinecraftVersion} instance.";
-                RefreshUi();
-            })));
-            actionsWrap.Children.Add(WrapMargin(CreateSecondaryButton("REPAIR", () => TriggerInstallOrRepairAsync(captured))));
-            actionsWrap.Children.Add(WrapMargin(CreateSecondaryButton("OPEN FOLDER", () =>
-                _state.OpenDirectoryInExplorer(_state.LaunchEngine.GetInstanceDir(captured.MinecraftVersion)))));
-
-            Grid.SetColumn(actionsWrap, 1);
-            cardGrid.Children.Add(actionsWrap);
-
-            root.Children.Add(WrapSurfaceCard(theme, cardGrid, accentBorder: spec.MinecraftVersion == _state.SelectedVersionSpec.MinecraftVersion));
-        }
-
-        return root;
-    }
-
-    // =====================================================================
-    // 04. ACCOUNTS PAGE
-    // =====================================================================
-    private Control BuildAccountsPage(LauncherThemePalette theme)
-    {
-        var root = new StackPanel { Spacing = 16 };
-        root.Children.Add(PageHeader(theme, "Account Vault", "Official browser-based Microsoft OAuth2 + PKCE authentication with Windows DPAPI encryption & Java Edition ownership verification."));
-
-        // Microsoft OAuth Card
-        var oauthStack = new StackPanel { Spacing = 10 };
-        oauthStack.Children.Add(SectionHeader(theme, "Official Microsoft Sign-In (Recommended for Online & Singleplayer)"));
-        oauthStack.Children.Add(BodyText(theme, "AXSESCLIENT never asks for your Microsoft password inside the launcher. Clicking Sign In opens login.microsoftonline.com in your default browser and verifies Minecraft: Java Edition ownership."));
-
-        var oauthBtns = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        oauthBtns.Children.Add(CreatePrimaryButton("🔐 Sign in with Microsoft (Browser OAuth2)", TriggerBrowserOAuthAsync));
-        if (_authCts is not null)
-        {
-            oauthBtns.Children.Add(CreateSecondaryButton("Cancel Pending Browser Login", () =>
-            {
-                _authCts?.Cancel();
-                _authCts = null;
-                _state.StatusBanner = "Browser OAuth sign-in cancelled.";
-                RefreshUi();
-            }));
-        }
-        oauthStack.Children.Add(oauthBtns);
-        root.Children.Add(WrapSurfaceCard(theme, oauthStack, accentBorder: true));
-
-        // Local Singleplayer Test Sandbox Card
-        var sandboxStack = new StackPanel { Spacing = 8 };
-        sandboxStack.Children.Add(SectionHeader(theme, "Local Singleplayer Test Sandbox Profile"));
-        sandboxStack.Children.Add(BodyText(theme, "For offline local singleplayer & HUD/ClickGUI testing only. Does not bypass online server authentication or Java Edition ownership checks."));
-        var nameInput = new TextBox
-        {
-            Watermark = "Sandbox Player Name (3-16 chars, e.g. AxsesTester)",
-            Text = "AxsesTester",
-            Width = 300,
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextPrimary)
-        };
-        var sbRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        sbRow.Children.Add(nameInput);
-        sbRow.Children.Add(CreateSecondaryButton("+ Add Local Test Profile", () =>
-        {
-            var rec = _state.AuthService.CreateLocalSandboxAccount(nameInput.Text ?? "AxsesTester");
-            _state.Settings.SelectedAccountUuid = rec.Uuid;
-            _state.SaveSettings();
-            _state.StatusBanner = $"Selected local singleplayer test profile '{rec.Username}'.";
-            RefreshUi();
-        }));
-        sandboxStack.Children.Add(sbRow);
-        root.Children.Add(WrapSurfaceCard(theme, sandboxStack));
-
-        // Saved Multi-Account List
-        var listStack = new StackPanel { Spacing = 10 };
-        listStack.Children.Add(SectionHeader(theme, $"Saved Accounts ({_state.AuthService.Accounts.Count})"));
-        if (_state.AuthService.Accounts.Count == 0)
-        {
-            listStack.Children.Add(BodyText(theme, "No accounts added yet. Sign in with Microsoft above to play online, or create a Local Singleplayer Test profile."));
-        }
-        else
-        {
-            foreach (var acc in _state.AuthService.Accounts)
-            {
-                bool isSel = _state.SelectedAccount?.Uuid == acc.Uuid;
-                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-                var info = new StackPanel { Spacing = 2 };
-                info.Children.Add(new TextBlock
-                {
-                    Text = $"{acc.Username} {(isSel ? "• [ACTIVE]" : "")}",
-                    FontWeight = FontWeight.Bold,
-                    FontSize = 14,
-                    Foreground = BrushOf(isSel ? theme.AccentCyan : theme.TextPrimary)
-                });
-                info.Children.Add(BodyText(theme,
-                    $"Type: {acc.AccountType} • Java Ownership: {(acc.OwnsMinecraftJava ? "VERIFIED" : "Unverified (Singleplayer Sandbox Only)")} • UUID: {acc.Uuid}"));
-                Grid.SetColumn(info, 0);
-                row.Children.Add(info);
-
-                var capturedAcc = acc;
-                var btns = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-                if (!isSel)
-                {
-                    btns.Children.Add(CreatePrimaryButton("Switch Active", () =>
-                    {
-                        _state.Settings.SelectedAccountUuid = capturedAcc.Uuid;
-                        _state.SaveSettings();
-                        RefreshUi();
-                    }));
-                }
-                if (acc.AccountType == "Microsoft")
-                {
-                    btns.Children.Add(CreateSecondaryButton("Refresh Session", async () =>
-                    {
-                        try
-                        {
-                            await _state.AuthService.RefreshSessionAsync(capturedAcc, _state.AppendLog);
-                            _state.StatusBanner = $"Refreshed session for {capturedAcc.Username}.";
-                        }
-                        catch (Exception ex)
-                        {
-                            _state.StatusBanner = ex.Message;
-                        }
-                        RefreshUi();
-                    }));
-                }
-                btns.Children.Add(CreateSecondaryButton("Logout / Remove", () =>
-                {
-                    _state.AuthService.RemoveAccount(capturedAcc.Uuid);
-                    _state.StatusBanner = $"Removed account {capturedAcc.Username}.";
-                    RefreshUi();
-                }));
-                Grid.SetColumn(btns, 1);
-                row.Children.Add(btns);
-                listStack.Children.Add(WrapSurfaceCard(theme, row, accentBorder: isSel));
-            }
-        }
-        root.Children.Add(listStack);
-        return root;
-    }
-
-    // =====================================================================
-    // 05. PROFILES PAGE
-    // =====================================================================
-    private Control BuildProfilesPage(LauncherThemePalette theme)
-    {
-        var root = new StackPanel { Spacing = 16 };
-        root.Children.Add(PageHeader(theme, "Launch Profiles", "Create and switch between custom RAM, JVM flag, and version presets."));
-
-        var createRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        var nameBox = new TextBox
-        {
-            Watermark = "New Profile Name (e.g. PvP Practice)",
-            Width = 240,
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextPrimary)
-        };
-        createRow.Children.Add(nameBox);
+        var stack = new StackPanel { Spacing = 14 };
         foreach (var v in _state.Versions)
         {
-            string ver = v.MinecraftVersion;
-            createRow.Children.Add(CreatePrimaryButton($"+ Create {ver} Profile", () =>
-            {
-                _state.CreateProfile(string.IsNullOrWhiteSpace(nameBox.Text) ? $"Custom {ver}" : nameBox.Text, ver, 4096);
-                RefreshUi();
-            }));
-        }
-        root.Children.Add(WrapSurfaceCard(theme, createRow));
-
-        foreach (var p in _state.Profiles)
-        {
-            bool active = p.Id == _state.SelectedProfile.Id;
+            var card = CreateSurfaceCard(t);
             var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-            var info = new StackPanel { Spacing = 4 };
-            info.Children.Add(new TextBlock
-            {
-                Text = $"{p.Name} {(active ? "• [ACTIVE]" : "")}",
-                FontSize = 15,
-                FontWeight = FontWeight.Bold,
-                Foreground = BrushOf(active ? theme.AccentCyan : theme.TextPrimary)
-            });
-            info.Children.Add(BodyText(theme, $"Minecraft {p.MinecraftVersion} • {p.RamMb} MB Heap • {p.ResolutionWidth}x{p.ResolutionHeight}"));
-            Grid.SetColumn(info, 0);
-            grid.Children.Add(info);
+            var left = new StackPanel { Spacing = 6 };
 
-            var captured = p;
-            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            if (!active)
+            var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            titleRow.Children.Add(new TextBlock
             {
-                actions.Children.Add(CreatePrimaryButton("Activate", () =>
-                {
-                    _state.Settings.SelectedProfileId = captured.Id;
-                    _state.Settings.SelectedVersion = captured.MinecraftVersion;
-                    _state.SaveSettings();
-                    RefreshUi();
-                }));
-            }
-            if (_state.Profiles.Count > 1)
+                Text = v.DisplayTitle,
+                Foreground = BrushOf(t.TextPrimary),
+                FontSize = 17,
+                FontWeight = FontWeight.ExtraBold
+            });
+            titleRow.Children.Add(CreatePillBadge(v.State.ToDisplayBadge(ru),
+                v.State == VersionInstallState.Installed ? t.Success : t.AccentCyan, t.BgPrimary));
+            titleRow.Children.Add(CreatePillBadge($"Java {v.RequiredJavaMajor}", t.AccentPrimary, t.BgPrimary));
+            left.Children.Add(titleRow);
+
+            left.Children.Add(new TextBlock
             {
-                actions.Children.Add(CreateSecondaryButton("Delete", () => _state.DeleteProfile(captured.Id)));
-            }
+                Text = ru && !string.IsNullOrWhiteSpace(v.SubtitleRu) ? v.SubtitleRu : v.Subtitle,
+                Foreground = BrushOf(t.TextSecondary),
+                FontSize = 12.5
+            });
+            left.Children.Add(new TextBlock
+            {
+                Text = v.StatusDetail,
+                Foreground = BrushOf(t.AccentCyan),
+                FontSize = 11.8
+            });
+            grid.Children.Add(left);
+
+            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+            var specRef = v;
+
+            var playBtn = CreatePrimaryButton(
+                v.State == VersionInstallState.Installed
+                    ? (ru ? "▶ ИГРАТЬ" : "▶ PLAY")
+                    : (ru ? "⬇ УСТАНОВИТЬ" : "⬇ INSTALL"),
+                t, fontSize: 12.5, padH: 16, padV: 9);
+            playBtn.Click += async (_, _) =>
+            {
+                _state.SelectVersion(specRef.MinecraftVersion);
+                await _state.InstallOrPlaySelectedAsync();
+            };
+            actions.Children.Add(playBtn);
+
+            var repairBtn = CreateGhostButton(ru ? "Починить" : "Repair", t);
+            repairBtn.Click += async (_, _) => await _state.RepairVersionAsync(specRef);
+            actions.Children.Add(repairBtn);
+
+            var folderBtn = CreateGhostButton(ru ? "Папка" : "Folder", t);
+            folderBtn.Click += (_, _) => _state.OpenInstanceFolder(specRef);
+            actions.Children.Add(folderBtn);
+
             Grid.SetColumn(actions, 1);
             grid.Children.Add(actions);
-
-            root.Children.Add(WrapSurfaceCard(theme, grid, accentBorder: active));
+            card.Child = grid;
+            stack.Children.Add(card);
         }
-
-        return root;
+        return stack;
     }
 
-    // =====================================================================
-    // 06. MODULES PAGE (ALL 90 MODULES SYNCED TO CLIENT)
-    // =====================================================================
-    private Control BuildModulesPage(LauncherThemePalette theme)
+    private Control BuildModulesPage(LauncherThemePalette t, bool ru)
     {
         var root = new StackPanel { Spacing = 14 };
-        root.Children.Add(PageHeader(theme, $"AXSES Module Pre-Configurator ({_state.Modules.Count} Modules)",
-            $"Changes sync directly to {_state.SelectedVersionSpec.DisplayTitle} (axsesclient/configs/default.json). Press RIGHT SHIFT in-game for full per-setting sliders & color pickers."));
 
-        // Search + Category Filter Bar
+        var filterCard = CreateSurfaceCard(t);
         var filterStack = new StackPanel { Spacing = 10 };
+
         var searchBox = new TextBox
         {
-            Text = _moduleSearchQuery,
-            Watermark = "Search all 90 modules by name or description...",
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextPrimary)
+            Text = _moduleSearch,
+            Watermark = ru
+                ? "🔎 Поиск по 93 модулям (например: КиллАура, Таргет HUD, Авто-спринт, FPS)..."
+                : "🔎 Search 93 modules (e.g. KillAura, Target HUD, Toggle Sprint, FPS)..."
         };
-        searchBox.KeyUp += (_, _) =>
+        searchBox.TextChanged += (_, _) =>
         {
-            _moduleSearchQuery = searchBox.Text ?? "";
-            RefreshUi();
+            _moduleSearch = searchBox.Text ?? "";
+            RebuildDynamicRegions();
         };
         filterStack.Children.Add(searchBox);
 
-        string[] cats = ["All", "Favorites", "Combat Training", "Movement", "Render", "Player", "World", "Utility", "HUD", "Settings"];
-        var catWrap = new WrapPanel { Orientation = Orientation.Horizontal };
-        foreach (string c in cats)
+        var catRow = new WrapPanel { Orientation = Orientation.Horizontal };
+        (string Key, string Ru, string En)[] cats =
+        [
+            ("ALL", "Все (93)", "All (93)"),
+            ("Combat", "Бой (Combat)", "Combat"),
+            ("HUD", "HUD Виджеты", "HUD"),
+            ("Render", "Визуал", "Render"),
+            ("Movement", "Движение", "Movement"),
+            ("Player", "Игрок", "Player"),
+            ("World", "Мир", "World"),
+            ("Utility", "Утилиты", "Utility"),
+            ("Settings", "Интерфейс", "Settings")
+        ];
+        foreach (var c in cats)
         {
-            string capturedCat = c;
-            catWrap.Children.Add(WrapMargin(_selectedModuleCategory == capturedCat
-                ? CreatePrimaryButton(capturedCat, () => { _selectedModuleCategory = capturedCat; RefreshUi(); })
-                : CreateSecondaryButton(capturedCat, () => { _selectedModuleCategory = capturedCat; RefreshUi(); })));
+            bool active = _moduleCategoryFilter == c.Key;
+            var btn = new Button
+            {
+                Content = ru ? c.Ru : c.En,
+                Background = active ? AuroraGradient(t, 0.85) : BrushOf(t.BgPrimary),
+                Foreground = BrushOf(active ? "#FFFFFF" : t.TextSecondary),
+                BorderBrush = BrushOf(active ? t.AccentCyan : "#24FFFFFF"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12, 6),
+                Margin = new Thickness(0, 0, 6, 6),
+                FontSize = 12,
+                FontWeight = FontWeight.SemiBold,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            string key = c.Key;
+            btn.Click += (_, _) =>
+            {
+                _moduleCategoryFilter = key;
+                RebuildDynamicRegions();
+            };
+            catRow.Children.Add(btn);
         }
-        filterStack.Children.Add(catWrap);
-        root.Children.Add(WrapSurfaceCard(theme, filterStack));
+        filterStack.Children.Add(catRow);
+        filterCard.Child = filterStack;
+        root.Children.Add(filterCard);
 
-        // Filtered Module Grid
         var filtered = _state.Modules.Where(m =>
         {
-            if (_selectedModuleCategory == "Favorites" && !m.Favorite) return false;
-            if (_selectedModuleCategory != "All" && _selectedModuleCategory != "Favorites" && m.Category != _selectedModuleCategory) return false;
-            if (!string.IsNullOrWhiteSpace(_moduleSearchQuery))
-            {
-                return m.Name.Contains(_moduleSearchQuery, StringComparison.OrdinalIgnoreCase)
-                       || m.Description.Contains(_moduleSearchQuery, StringComparison.OrdinalIgnoreCase);
-            }
-            return true;
+            if (_moduleCategoryFilter != "ALL" && !string.Equals(m.Category, _moduleCategoryFilter, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (string.IsNullOrWhiteSpace(_moduleSearch)) return true;
+            string q = _moduleSearch.Trim();
+            return m.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+                   || m.NameRu.Contains(q, StringComparison.OrdinalIgnoreCase)
+                   || m.Description.Contains(q, StringComparison.OrdinalIgnoreCase)
+                   || m.DescriptionRu.Contains(q, StringComparison.OrdinalIgnoreCase)
+                   || m.Id.Contains(q, StringComparison.OrdinalIgnoreCase);
         }).ToList();
 
         var grid = new UniformGrid { Columns = 2 };
         foreach (var mod in filtered)
-        {
-            var capturedMod = mod;
-            var cardRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto") };
-            var txt = new StackPanel { Spacing = 3, Margin = new Thickness(0, 0, 10, 0) };
-            txt.Children.Add(new TextBlock
-            {
-                Text = $"{mod.Name}  [{mod.Category}]",
-                FontWeight = FontWeight.Bold,
-                FontSize = 13.5,
-                Foreground = BrushOf(mod.Enabled ? theme.TextPrimary : theme.TextSecondary)
-            });
-            txt.Children.Add(new TextBlock
-            {
-                Text = mod.Description,
-                FontSize = 11.5,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = BrushOf(theme.TextSecondary)
-            });
-            Grid.SetColumn(txt, 0);
-            cardRow.Children.Add(txt);
+            grid.Children.Add(BuildCompactModuleTile(mod, t, ru));
 
-            var favBtn = CreateSecondaryButton(mod.Favorite ? "★" : "☆", () =>
-            {
-                capturedMod.Favorite = !capturedMod.Favorite;
-                _state.SyncModulesAndThemeToSelectedInstance();
-                RefreshUi();
-            });
-            favBtn.Margin = new Thickness(0, 0, 6, 0);
-            Grid.SetColumn(favBtn, 1);
-            cardRow.Children.Add(favBtn);
-
-            var toggleBtn = mod.Enabled
-                ? CreatePrimaryButton("ENABLED", () =>
-                {
-                    capturedMod.Enabled = false;
-                    _state.SyncModulesAndThemeToSelectedInstance();
-                    RefreshUi();
-                })
-                : CreateSecondaryButton("OFF", () =>
-                {
-                    capturedMod.Enabled = true;
-                    _state.SyncModulesAndThemeToSelectedInstance();
-                    RefreshUi();
-                });
-            Grid.SetColumn(toggleBtn, 2);
-            cardRow.Children.Add(toggleBtn);
-
-            var card = WrapSurfaceCard(theme, cardRow, accentBorder: mod.Enabled);
-            card.Margin = new Thickness(4);
-            grid.Children.Add(card);
-        }
         root.Children.Add(grid);
         return root;
     }
 
-    // =====================================================================
-    // 07. APPEARANCE PAGE (8 OFFICIAL AXSES THEMES)
-    // =====================================================================
-    private Control BuildAppearancePage(LauncherThemePalette theme)
+    private Control BuildAccountsPage(LauncherThemePalette t, bool ru)
     {
-        var root = new StackPanel { Spacing = 16 };
-        root.Children.Add(PageHeader(theme, "AXSES NEO-DARK Theme Engine", "8 curated precision dark themes synchronized seamlessly across AXSESCLIENT.exe and all 3 Minecraft versions."));
+        var stack = new StackPanel { Spacing = 16 };
+
+        var addCard = CreateSurfaceCard(t);
+        var addStack = new StackPanel { Spacing = 12 };
+        addStack.Children.Add(new TextBlock
+        {
+            Text = ru ? "🔐 Авторизация Microsoft OAuth2 и Локальный никнейм" : "🔐 Microsoft OAuth2 & Local Nickname",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15.5,
+            FontWeight = FontWeight.Bold
+        });
+        addStack.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? "Лицензионный вход открывается в системном браузере (OAuth2 + PKCE) и шифруется через Windows DPAPI. Мы никогда не запрашиваем пароль в лаунчере."
+                : "Official Microsoft sign-in uses your system browser (OAuth2 + PKCE) encrypted with Windows DPAPI.",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap
+        });
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var msBtn = CreatePrimaryButton(ru ? "🌐 Войти через Microsoft (Браузер)" : "🌐 Sign In with Microsoft", t, 12.5, 16, 9);
+        msBtn.Click += async (_, _) =>
+        {
+            try
+            {
+                var acc = await _state.AuthService.SignInWithBrowserAsync(msg => _state.AppendConsole(msg));
+                _state.Settings.SelectedAccountUuid = acc.Uuid;
+                _state.SaveAllState();
+                _state.NotifyChanged();
+            }
+            catch (Exception ex)
+            {
+                _state.AppendConsole($"[OAuth] {ex.Message}");
+            }
+        };
+        row.Children.Add(msBtn);
+
+        var nickBox = new TextBox { Width = 200, Watermark = ru ? "Ваш никнейм (3-16 симв.)" : "Player Nickname" };
+        var localBtn = CreateGhostButton(ru ? "+ Добавить локальный ник" : "+ Add Local Profile", t);
+        localBtn.Click += (_, _) =>
+        {
+            var created = _state.AuthService.CreateLocalSandboxAccount(nickBox.Text ?? "AxsesPlayer");
+            _state.Settings.SelectedAccountUuid = created.Uuid;
+            _state.SaveAllState();
+            _state.NotifyChanged();
+        };
+        row.Children.Add(nickBox);
+        row.Children.Add(localBtn);
+        addStack.Children.Add(row);
+        addCard.Child = addStack;
+        stack.Children.Add(addCard);
+
+        foreach (var acc in _state.Accounts)
+        {
+            bool active = acc.Uuid == _state.Settings.SelectedAccountUuid;
+            var card = CreateSurfaceCard(t);
+            var g = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+            var info = new StackPanel { Spacing = 3 };
+            info.Children.Add(new TextBlock
+            {
+                Text = $"👤 {acc.Username}",
+                Foreground = BrushOf(t.TextPrimary),
+                FontSize = 15,
+                FontWeight = FontWeight.Bold
+            });
+            info.Children.Add(new TextBlock
+            {
+                Text = $"{acc.AccountType} • UUID: {acc.Uuid}",
+                Foreground = BrushOf(t.TextSecondary),
+                FontSize = 11.5
+            });
+            g.Children.Add(info);
+
+            var act = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+            string uid = acc.Uuid;
+            var selBtn = active
+                ? CreatePrimaryButton(ru ? "✓ Активен" : "✓ Active", t, 12, 14, 7)
+                : CreateGhostButton(ru ? "Выбрать" : "Select", t);
+            selBtn.Click += (_, _) =>
+            {
+                _state.Settings.SelectedAccountUuid = uid;
+                _state.SaveAllState();
+                _state.NotifyChanged();
+            };
+            act.Children.Add(selBtn);
+            Grid.SetColumn(act, 1);
+            g.Children.Add(act);
+            card.Child = g;
+            stack.Children.Add(card);
+        }
+
+        return stack;
+    }
+
+    private Control BuildProfilesPage(LauncherThemePalette t, bool ru)
+    {
+        var stack = new StackPanel { Spacing = 14 };
+        foreach (var prof in _state.Profiles)
+        {
+            bool sel = prof.Id == _state.Settings.SelectedProfileId;
+            var card = CreateSurfaceCard(t);
+            var g = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+            var info = new StackPanel { Spacing = 4 };
+            info.Children.Add(new TextBlock
+            {
+                Text = prof.Name,
+                Foreground = BrushOf(t.TextPrimary),
+                FontSize = 15.5,
+                FontWeight = FontWeight.Bold
+            });
+            info.Children.Add(new TextBlock
+            {
+                Text = $"Minecraft {prof.MinecraftVersion} • ОЗУ: {prof.RamMb} МБ • {prof.ResolutionWidth}×{prof.ResolutionHeight}",
+                Foreground = BrushOf(t.TextSecondary),
+                FontSize = 12
+            });
+            g.Children.Add(info);
+
+            string pid = prof.Id;
+            string pVer = prof.MinecraftVersion;
+            var btn = sel
+                ? CreatePrimaryButton(ru ? "✓ Выбран" : "✓ Active", t, 12, 14, 7)
+                : CreateGhostButton(ru ? "Активировать" : "Activate", t);
+            btn.Click += (_, _) =>
+            {
+                _state.Settings.SelectedProfileId = pid;
+                _state.Settings.SelectedVersion = pVer;
+                _state.SaveAllState();
+                _state.NotifyChanged();
+            };
+            Grid.SetColumn(btn, 1);
+            g.Children.Add(btn);
+            card.Child = g;
+            stack.Children.Add(card);
+        }
+        return stack;
+    }
+
+    private Control BuildAppearancePage(LauncherThemePalette t, bool ru)
+    {
+        var stack = new StackPanel { Spacing = 14 };
+        stack.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? "Выберите фирменную тему оформления (применяется одновременно к лаунчеру и внутриигровому ClickGUI / HUD):"
+                : "Select synchronized theme for both Launcher and in-game ClickGUI / HUD:",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 13
+        });
 
         var grid = new UniformGrid { Columns = 2 };
-        foreach (var palette in _state.Themes)
+        foreach (var th in _state.Themes)
         {
-            bool active = palette.Id == theme.Id;
-            var stack = new StackPanel { Spacing = 10 };
-            stack.Children.Add(new TextBlock
+            bool active = th.Id == t.Id;
+            var card = new Border
             {
-                Text = $"{palette.Name} {(active ? "• ACTIVE" : "")}",
-                FontSize = 16,
-                FontWeight = FontWeight.Bold,
-                Foreground = BrushOf(active ? palette.AccentCyan : theme.TextPrimary)
-            });
-
-            var swatches = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            foreach (string hex in new[] { palette.BgPrimary, palette.BgSurface, palette.AccentPrimary, palette.AccentSecondary, palette.AccentCyan, palette.Success })
+                Background = BrushOf(th.BgSecondary),
+                BorderBrush = BrushOf(active ? th.AccentCyan : th.AccentPrimary, active ? 0.95 : 0.35),
+                BorderThickness = new Thickness(active ? 2 : 1),
+                CornerRadius = new CornerRadius(14),
+                Padding = new Thickness(16, 14),
+                Margin = new Thickness(6)
+            };
+            var s = new StackPanel { Spacing = 10 };
+            var swatches = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            foreach (string hex in new[] { th.AccentPrimary, th.AccentSecondary, th.AccentCyan, th.Success })
             {
                 swatches.Children.Add(new Border
                 {
-                    Width = 32,
-                    Height = 22,
-                    CornerRadius = new CornerRadius(5),
-                    Background = BrushOf(hex),
-                    BorderBrush = BrushOf("#44FFFFFF"),
-                    BorderThickness = new Thickness(1)
+                    Width = 22, Height = 22, CornerRadius = new CornerRadius(6), Background = BrushOf(hex)
                 });
             }
-            stack.Children.Add(swatches);
-
-            string capturedId = palette.Id;
-            stack.Children.Add(active
-                ? CreatePrimaryButton("✓ Active Theme", () => { })
-                : CreateSecondaryButton($"Apply {palette.Name}", () => _state.SetActiveTheme(capturedId)));
-
-            var card = WrapSurfaceCard(theme, stack, accentBorder: active);
-            card.Margin = new Thickness(6);
+            s.Children.Add(swatches);
+            s.Children.Add(new TextBlock
+            {
+                Text = th.Name,
+                Foreground = BrushOf(th.TextPrimary),
+                FontWeight = FontWeight.ExtraBold,
+                FontSize = 15
+            });
+            string tid = th.Id;
+            var apply = CreatePrimaryButton(active ? (ru ? "✓ Активная тема" : "✓ Active Theme") : (ru ? "Применить" : "Apply"), th, 12, 14, 7);
+            apply.Click += (_, _) =>
+            {
+                _state.SetActiveTheme(tid);
+                _state.SyncModulesAndThemeToSelectedInstance();
+            };
+            s.Children.Add(apply);
+            card.Child = s;
             grid.Children.Add(card);
         }
-        root.Children.Add(grid);
-        return root;
+        stack.Children.Add(grid);
+        return stack;
     }
 
-    // =====================================================================
-    // 08. SETTINGS PAGE
-    // =====================================================================
-    private Control BuildSettingsPage(LauncherThemePalette theme)
+    private Control BuildSettingsPage(LauncherThemePalette t, bool ru)
     {
-        var s = _state.Settings;
-        var root = new StackPanel { Spacing = 14 };
-        root.Children.Add(PageHeader(theme, "Launcher & Runtime Settings", "Configure isolated Java runtimes, download concurrency, accessibility, and localization."));
+        var stack = new StackPanel { Spacing = 16 };
+        stack.Children.Add(BuildInteractiveRamCard(t, ru));
+        stack.Children.Add(BuildAutoJavaCard(t, ru));
 
-        var form = new StackPanel { Spacing = 12 };
-        form.Children.Add(LabelText(theme, $"AXSESCLIENT Data Directory: {s.RootDataDir}"));
-        form.Children.Add(CreateSecondaryButton("Open Data Directory in File Explorer", () => _state.OpenDirectoryInExplorer(s.RootDataDir)));
-
-        var j8Box = new TextBox
+        var pathCard = CreateSurfaceCard(t);
+        var pStack = new StackPanel { Spacing = 10 };
+        pStack.Children.Add(new TextBlock
         {
-            Text = s.Java8Path,
-            Watermark = "Auto-detect or auto-download Eclipse Temurin Java 8 (for Minecraft 1.16.5)",
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextPrimary)
-        };
-        form.Children.Add(LabelText(theme, "Java 8 Executable Override (1.16.5):"));
-        form.Children.Add(j8Box);
-
-        var j21Box = new TextBox
-        {
-            Text = s.Java21Path,
-            Watermark = "Auto-detect or auto-download Eclipse Temurin Java 21 (for Minecraft 1.21.4 & 1.21.11)",
-            Background = BrushOf(theme.BgPrimary),
-            Foreground = BrushOf(theme.TextPrimary)
-        };
-        form.Children.Add(LabelText(theme, "Java 21 Executable Override (1.21.4 & 1.21.11):"));
-        form.Children.Add(j21Box);
-
-        var threadsLabel = LabelText(theme, $"Parallel Download Streams: {s.ConcurrentDownloads}");
-        var threadsSlider = new Slider
-        {
-            Minimum = 2,
-            Maximum = 16,
-            Value = s.ConcurrentDownloads,
-            Width = 320,
-            HorizontalAlignment = HorizontalAlignment.Left
-        };
-        threadsSlider.PropertyChanged += (_, e) =>
-        {
-            if (e.Property == RangeBase.ValueProperty)
-            {
-                s.ConcurrentDownloads = (int)Math.Round(threadsSlider.Value);
-                threadsLabel.Text = $"Parallel Download Streams: {s.ConcurrentDownloads}";
-            }
-        };
-        form.Children.Add(threadsLabel);
-        form.Children.Add(threadsSlider);
-
-        var rmCheck = new CheckBox
-        {
-            Content = "Reduced Motion Mode (instant transitions in Launcher & ClickGUI)",
-            IsChecked = s.ReducedMotion,
-            Foreground = BrushOf(theme.TextPrimary)
-        };
-        form.Children.Add(rmCheck);
-
-        var langRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        langRow.Children.Add(LabelText(theme, "Client & HUD Language:"));
-        langRow.Children.Add(s.Language == "en_US"
-            ? CreatePrimaryButton("English (en_US)", () => { s.Language = "en_US"; _state.SaveSettings(); _state.SyncModulesAndThemeToSelectedInstance(); RefreshUi(); })
-            : CreateSecondaryButton("English (en_US)", () => { s.Language = "en_US"; _state.SaveSettings(); _state.SyncModulesAndThemeToSelectedInstance(); RefreshUi(); }));
-        langRow.Children.Add(s.Language == "ru_RU"
-            ? CreatePrimaryButton("Русский (ru_RU)", () => { s.Language = "ru_RU"; _state.SaveSettings(); _state.SyncModulesAndThemeToSelectedInstance(); RefreshUi(); })
-            : CreateSecondaryButton("Русский (ru_RU)", () => { s.Language = "ru_RU"; _state.SaveSettings(); _state.SyncModulesAndThemeToSelectedInstance(); RefreshUi(); }));
-        form.Children.Add(langRow);
-
-        form.Children.Add(CreatePrimaryButton("💾 Save Settings", () =>
-        {
-            s.Java8Path = j8Box.Text?.Trim() ?? "";
-            s.Java21Path = j21Box.Text?.Trim() ?? "";
-            s.ReducedMotion = rmCheck.IsChecked == true;
-            _state.SaveSettings();
-            _state.SyncModulesAndThemeToSelectedInstance();
-            _state.StatusBanner = "Settings saved and synced to client instance.";
-            RefreshUi();
-        }));
-
-        root.Children.Add(WrapSurfaceCard(theme, form));
-        return root;
-    }
-
-    // =====================================================================
-    // 09. DOWNLOADS PAGE
-    // =====================================================================
-    private Control BuildDownloadsPage(LauncherThemePalette theme)
-    {
-        var root = new StackPanel { Spacing = 14 };
-        var top = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        var dlHdr = PageHeader(theme, "Download & Integrity Queue", "Every Mojang JAR, Maven library, and asset object is verified against official SHA-1/SHA-256 digests.");
-        Grid.SetColumn(dlHdr, 0);
-        top.Children.Add(dlHdr);
-        var clearBtn = CreateSecondaryButton("Clear Completed", () =>
-        {
-            lock (_state.DownloadTasks) { _state.DownloadTasks.RemoveAll(t => t.Status == "Verified"); }
-            RefreshUi();
+            Text = ru ? "⚙ Пути к Java и Автоматизация" : "⚙ Java Paths & Automation",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15,
+            FontWeight = FontWeight.Bold
         });
-        clearBtn.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(clearBtn, 1);
-        top.Children.Add(clearBtn);
-        root.Children.Add(top);
 
-        List<DownloadTaskItem> snapshot;
-        lock (_state.DownloadTasks) { snapshot = _state.DownloadTasks.Take(40).ToList(); }
-
-        if (snapshot.Count == 0)
+        var autoJavaChk = new CheckBox
         {
-            root.Children.Add(WrapSurfaceCard(theme, BodyText(theme, "No active downloads. Install or launch a Minecraft version from Play or Versions to monitor live verified transfers.")));
+            Content = ru
+                ? "Автоматически скачивать и настраивать Java 8 и Java 21 без ручной установки"
+                : "Automatically download & configure Java 8 and Java 21 runtimes",
+            IsChecked = _state.Settings.AutoInstallJava,
+            Foreground = BrushOf(t.TextPrimary)
+        };
+        autoJavaChk.IsCheckedChanged += (_, _) =>
+        {
+            _state.Settings.AutoInstallJava = autoJavaChk.IsChecked == true;
+            _state.SaveAllState();
+        };
+        pStack.Children.Add(autoJavaChk);
+
+        var j8Box = new TextBox { Text = _state.Settings.Java8Path, Watermark = "Java 8 executable (auto-detected)" };
+        var j21Box = new TextBox { Text = _state.Settings.Java21Path, Watermark = "Java 21 executable (auto-detected)" };
+        var savePaths = CreateGhostButton(ru ? "Сохранить настройки путей" : "Save Paths", t);
+        savePaths.Click += (_, _) =>
+        {
+            _state.Settings.Java8Path = j8Box.Text ?? "";
+            _state.Settings.Java21Path = j21Box.Text ?? "";
+            _state.RefreshJavaStatus();
+            _state.SaveAllState();
+            _state.NotifyChanged();
+        };
+        pStack.Children.Add(j8Box);
+        pStack.Children.Add(j21Box);
+        pStack.Children.Add(savePaths);
+        pathCard.Child = pStack;
+        stack.Children.Add(pathCard);
+
+        return stack;
+    }
+
+    private Control BuildDownloadsPage(LauncherThemePalette t, bool ru)
+    {
+        var stack = new StackPanel { Spacing = 10 };
+        var card = CreateSurfaceCard(t);
+        var inner = new StackPanel { Spacing = 8 };
+        inner.Children.Add(new TextBlock
+        {
+            Text = ru ? "⬇ Очередь загрузок и SHA-1 верификация" : "⬇ Verified Asset & Library Downloads",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15.5,
+            FontWeight = FontWeight.Bold
+        });
+
+        List<DownloadTaskItem> items;
+        lock (_state.Downloads) items = _state.Downloads.Take(40).ToList();
+
+        if (items.Count == 0)
+        {
+            inner.Children.Add(new TextBlock
+            {
+                Text = ru ? "Нет активных загрузок. Все файлы проверены или ожидают старта." : "No active downloads in queue.",
+                Foreground = BrushOf(t.TextSecondary),
+                FontSize = 12.5
+            });
         }
         else
         {
-            foreach (var d in snapshot)
+            foreach (var d in items)
             {
-                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,160,120") };
-                row.Children.Add(new TextBlock
+                inner.Children.Add(new TextBlock
                 {
-                    Text = $"[{d.Stage}] {d.FileName}",
-                    Foreground = BrushOf(theme.TextPrimary),
-                    FontSize = 12.5
+                    Text = $"• [{d.Stage}] {d.FileName} — {d.Status} ({d.SpeedMbps:0.0} MB/s)",
+                    Foreground = BrushOf(d.ShaVerified ? t.Success : t.TextSecondary),
+                    FontSize = 12
                 });
-                var pb = new ProgressBar { Minimum = 0, Maximum = 1, Value = d.Progress, Height = 6, Foreground = BrushOf(theme.AccentCyan) };
-                Grid.SetColumn(pb, 1);
-                row.Children.Add(pb);
-                var status = new TextBlock
-                {
-                    Text = d.ShaVerified ? $"✓ SHA1 ({d.SpeedMbps} MB/s)" : d.Status,
-                    Foreground = BrushOf(d.ShaVerified ? theme.Success : theme.Warning),
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    FontSize = 11.5
-                };
-                Grid.SetColumn(status, 2);
-                row.Children.Add(status);
-                root.Children.Add(WrapSurfaceCard(theme, row));
             }
         }
-        return root;
+        card.Child = inner;
+        stack.Children.Add(card);
+        return stack;
     }
 
-    // =====================================================================
-    // 10. DIAGNOSTICS PAGE
-    // =====================================================================
-    private Control BuildDiagnosticsPage(LauncherThemePalette theme)
+    private Control BuildDiagnosticsPage(LauncherThemePalette t, bool ru)
     {
-        var root = new StackPanel { Spacing = 14 };
-        root.Children.Add(PageHeader(theme, "System & Installation Diagnostics", "Hardware, Java 8/21 runtimes, Mojang/Fabric API reachability, and SHA-256 client artifact checks."));
+        var stack = new StackPanel { Spacing = 14 };
+        var topCard = CreateSurfaceCard(t);
+        var topStack = new StackPanel { Spacing = 10 };
+        var runBtn = CreatePrimaryButton(ru ? "⚡ Запустить полную диагностику ПК и Java" : "⚡ Run Full Diagnostics", t, 12.5, 16, 9);
+        runBtn.Click += async (_, _) => await _state.RunDiagnosticsAsync();
+        topStack.Children.Add(runBtn);
 
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        actions.Children.Add(CreatePrimaryButton("✚ Run Full Diagnostic Scan", async () => await _state.RunDiagnosticsAsync()));
-        actions.Children.Add(CreateSecondaryButton("📋 Copy Scrubbed Diagnostic Report", async () =>
+        foreach (var check in _state.LastDiagnostics)
         {
-            List<string> logsSnap;
-            lock (_state.Logs) { logsSnap = _state.Logs.ToList(); }
-            string report = DiagnosticsService.FormatReport(_state.LastDiagnostics, logsSnap);
-            if (Clipboard is not null)
-                await Clipboard.SetTextAsync(report);
-            _state.StatusBanner = "Copied token-scrubbed diagnostic report to clipboard.";
-            RefreshUi();
-        }));
-        root.Children.Add(actions);
-
-        if (_state.LastDiagnostics.Count == 0)
-        {
-            root.Children.Add(WrapSurfaceCard(theme, BodyText(theme, "Click 'Run Full Diagnostic Scan' above to inspect Java runtimes, network endpoints, and client JARs.")));
-        }
-        else
-        {
-            foreach (var item in _state.LastDiagnostics)
+            topStack.Children.Add(new TextBlock
             {
-                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("90,260,*") };
-                row.Children.Add(new TextBlock
-                {
-                    Text = item.Passed ? "● PASS" : "▲ INFO",
-                    FontWeight = FontWeight.Bold,
-                    Foreground = BrushOf(item.Passed ? theme.Success : theme.Warning)
-                });
-                var nameTb = new TextBlock { Text = item.Name, FontWeight = FontWeight.SemiBold, Foreground = BrushOf(theme.TextPrimary) };
-                Grid.SetColumn(nameTb, 1);
-                row.Children.Add(nameTb);
-                var detTb = new TextBlock { Text = item.Detail, Foreground = BrushOf(theme.TextSecondary), TextWrapping = TextWrapping.Wrap };
-                Grid.SetColumn(detTb, 2);
-                row.Children.Add(detTb);
-                root.Children.Add(WrapSurfaceCard(theme, row));
-            }
+                Text = $"{(check.Passed ? "✓" : "!")} [{check.Category}] {check.Name}: {check.Detail}",
+                Foreground = BrushOf(check.Passed ? t.Success : t.Warning),
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap
+            });
         }
-        return root;
-    }
+        topCard.Child = topStack;
+        stack.Children.Add(topCard);
 
-    // =====================================================================
-    // 11. ABOUT PAGE
-    // =====================================================================
-    private Control BuildAboutPage(LauncherThemePalette theme)
-    {
-        var root = new StackPanel { Spacing = 14 };
-        root.Children.Add(PageHeader(theme, "About AXSESCLIENT", "Version 1.0.0 • Codename: GENESIS X • Built for Windows 10/11 x64"));
-
-        var info = new StackPanel { Spacing = 8 };
-        info.Children.Add(SectionHeader(theme, "Architecture & Fair-Play Pledge"));
-        info.Children.Add(BodyText(theme, "• Launcher: Native C# / .NET 8 / Avalonia UI 11 Desktop Application with 13-stage direct JVM launch engine."));
-        info.Children.Add(BodyText(theme, "• Client Core: Shared AXSES CORE engine + version-isolated Fabric mods for Minecraft 1.16.5, 1.21.4, and 1.21.11."));
-        info.Children.Add(BodyText(theme, "• Fair-Play Compliance: Strictly visual, HUD, utility, and singleplayer-gated PvP training tools. Zero anti-cheat bypasses, zero reach/aim/packet cheats, zero client brand spoofing."));
-        info.Children.Add(BodyText(theme, "• Security & Privacy: Official browser-based Microsoft OAuth2 + PKCE, Windows DPAPI encrypted vault, zero telemetry, automatic log token redaction."));
-
-        var updBtn = CreatePrimaryButton("🔄 Check for AXSESCLIENT Updates", async () =>
+        var logCard = CreateSurfaceCard(t);
+        var logStack = new StackPanel { Spacing = 8 };
+        logStack.Children.Add(new TextBlock
         {
-            _state.StatusBanner = "Checking update manifest...";
-            RefreshUi();
-            var res = await _state.UpdaterService.CheckForUpdatesAsync("1.0.0", _state.Settings.UpdateManifestUrl);
-            _state.StatusBanner = res.StatusMessage;
-            _state.AppendLog($"[Updater] {res.StatusMessage}");
-            RefreshUi();
-        });
-        updBtn.Margin = new Thickness(0, 8, 0, 0);
-        info.Children.Add(updBtn);
-
-        root.Children.Add(WrapSurfaceCard(theme, info, accentBorder: true));
-        return root;
-    }
-
-    // =====================================================================
-    // ASYNC OPERATIONS (PLAY, INSTALL, OAUTH)
-    // =====================================================================
-    private async void TriggerInstallOrRepairAsync(SupportedVersionSpec spec)
-    {
-        if (_state.IsBusy) return;
-        _state.IsBusy = true;
-        try
-        {
-            await _state.LaunchEngine.InstallOrRepairVersionAsync(
-                spec,
-                _state.Settings,
-                stage => Dispatcher.UIThread.Post(() =>
-                {
-                    _state.StatusBanner = $"[{spec.MinecraftVersion}] Stage {stage.StageNumber}/{stage.TotalStages}: {stage.StageName}";
-                    _state.ActiveOperationProgress = stage.OverallProgress;
-                    RefreshUi();
-                }),
-                dl => Dispatcher.UIThread.Post(() => _state.TrackDownloadTask(dl)),
-                log => _state.AppendLog(log));
-
-            _state.StatusBanner = $"Minecraft {spec.MinecraftVersion} + {spec.ModJarFileName} installed and SHA-verified.";
-            _state.ActiveOperationProgress = 1.0;
-        }
-        catch (Exception ex)
-        {
-            _state.StatusBanner = $"Install error ({spec.MinecraftVersion}): {ex.Message}";
-        }
-        finally
-        {
-            _state.IsBusy = false;
-            RefreshUi();
-        }
-    }
-
-    private async void TriggerPlayAsync(SupportedVersionSpec spec)
-    {
-        if (_state.IsBusy) return;
-        var account = _state.SelectedAccount;
-        if (account is null)
-        {
-            _state.StatusBanner = "Select or sign in to an account first (opening Accounts page)...";
-            NavigateTo(LauncherPage.Accounts);
-            return;
-        }
-
-        _state.IsBusy = true;
-        try
-        {
-            _state.SelectVersion(spec.MinecraftVersion);
-            await _state.LaunchEngine.LaunchMinecraftAsync(
-                spec,
-                _state.SelectedProfile,
-                account,
-                _state.Settings,
-                _state.Modules,
-                stage => Dispatcher.UIThread.Post(() =>
-                {
-                    _state.StatusBanner = $"[{spec.MinecraftVersion}] {stage.StageName}";
-                    _state.ActiveOperationProgress = stage.OverallProgress;
-                    RefreshUi();
-                }),
-                log =>
-                {
-                    _state.AppendLog(log);
-                    if (_state.CurrentPage == LauncherPage.Play)
-                        Dispatcher.UIThread.Post(RefreshUi);
-                },
-                exitCode => Dispatcher.UIThread.Post(() =>
-                {
-                    _state.StatusBanner = $"Minecraft {spec.MinecraftVersion} session ended (exit code {exitCode}).";
-                    _state.ActiveOperationProgress = 0;
-                    RefreshUi();
-                }));
-
-            _state.StatusBanner = $"Minecraft {spec.MinecraftVersion} is RUNNING.";
-        }
-        catch (Exception ex)
-        {
-            _state.StatusBanner = $"Launch aborted: {ex.Message}";
-        }
-        finally
-        {
-            _state.IsBusy = false;
-            RefreshUi();
-        }
-    }
-
-    private async void TriggerBrowserOAuthAsync()
-    {
-        _authCts?.Cancel();
-        _authCts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
-        RefreshUi();
-        try
-        {
-            var account = await _state.AuthService.SignInWithBrowserAsync(
-                msg => Dispatcher.UIThread.Post(() =>
-                {
-                    _state.StatusBanner = msg;
-                    _state.AppendLog($"[OAuth] {msg}");
-                    RefreshUi();
-                }),
-                _authCts.Token);
-            _state.Settings.SelectedAccountUuid = account.Uuid;
-            _state.SaveSettings();
-            _state.StatusBanner = $"Authenticated as {account.Username} (Java Edition Verified).";
-        }
-        catch (Exception ex)
-        {
-            _state.StatusBanner = $"Microsoft Sign-In not completed: {ex.Message}";
-            _state.AppendLog($"[OAuth] {ex.Message}");
-        }
-        finally
-        {
-            _authCts = null;
-            RefreshUi();
-        }
-    }
-
-    // =====================================================================
-    // STYLED WIDGET HELPERS
-    // =====================================================================
-    private Border BuildStatTile(LauncherThemePalette theme, string label, string value, string sub)
-    {
-        var st = new StackPanel { Spacing = 4 };
-        st.Children.Add(new TextBlock { Text = label, FontSize = 10.5, FontWeight = FontWeight.Bold, Foreground = BrushOf(theme.AccentCyan) });
-        st.Children.Add(new TextBlock { Text = value, FontSize = 16, FontWeight = FontWeight.Bold, Foreground = BrushOf(theme.TextPrimary) });
-        st.Children.Add(new TextBlock { Text = sub, FontSize = 11, Foreground = BrushOf(theme.TextSecondary) });
-        var b = WrapSurfaceCard(theme, st);
-        b.Margin = new Thickness(4);
-        return b;
-    }
-
-    private static Border BuildStateBadge(LauncherThemePalette theme, VersionInstallState state)
-    {
-        string color = state switch
-        {
-            VersionInstallState.Installed or VersionInstallState.Running => theme.Success,
-            VersionInstallState.Installing or VersionInstallState.Launching or VersionInstallState.UpdateAvailable => theme.AccentCyan,
-            VersionInstallState.RepairRequired => theme.Danger,
-            _ => theme.Warning
-        };
-        return new Border
-        {
-            Background = BrushOf("#22" + color.TrimStart('#')),
-            BorderBrush = BrushOf(color),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(5),
-            Padding = new Thickness(8, 2),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = new TextBlock
-            {
-                Text = state.ToDisplayBadge(),
-                FontSize = 10.5,
-                FontWeight = FontWeight.Bold,
-                Foreground = BrushOf(color)
-            }
-        };
-    }
-
-    private static Border WrapSurfaceCard(LauncherThemePalette theme, Control child, bool accentBorder = false) =>
-        new()
-        {
-            Background = BrushOf(theme.BgSurface),
-            BorderBrush = BrushOf(accentBorder ? theme.AccentPrimary : "#24FFFFFF"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(16, 14),
-            Child = child
-        };
-
-    private static StackPanel PageHeader(LauncherThemePalette theme, string title, string subtitle) =>
-        new()
-        {
-            Spacing = 4,
-            Children =
-            {
-                new TextBlock { Text = title, FontSize = 22, FontWeight = FontWeight.Bold, Foreground = BrushOf(theme.TextPrimary) },
-                new TextBlock { Text = subtitle, FontSize = 12.5, Foreground = BrushOf(theme.TextSecondary), TextWrapping = TextWrapping.Wrap }
-            }
-        };
-
-    private static TextBlock SectionHeader(LauncherThemePalette theme, string text) =>
-        new() { Text = text, FontSize = 15, FontWeight = FontWeight.Bold, Foreground = BrushOf(theme.TextPrimary) };
-
-    private static TextBlock LabelText(LauncherThemePalette theme, string text) =>
-        new() { Text = text, FontSize = 12.5, FontWeight = FontWeight.SemiBold, Foreground = BrushOf(theme.TextPrimary), VerticalAlignment = VerticalAlignment.Center };
-
-    private static TextBlock BodyText(LauncherThemePalette theme, string text) =>
-        new() { Text = text, FontSize = 12.5, Foreground = BrushOf(theme.TextSecondary), TextWrapping = TextWrapping.Wrap };
-
-    private Button CreatePrimaryButton(string label, Action onClick)
-    {
-        var theme = _state.ActiveTheme;
-        var btn = new Button
-        {
-            Content = label,
-            Background = BrushOf(theme.AccentPrimary),
-            Foreground = Brushes.White,
+            Text = ru ? "Журнал запуска (секреты и токены скрыты)" : "Live Scrubbed Console",
+            Foreground = BrushOf(t.TextPrimary),
             FontWeight = FontWeight.Bold,
-            FontSize = 12.5,
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(14, 8),
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
-        btn.Click += (_, _) => onClick();
-        return btn;
-    }
-
-    private Button CreateSecondaryButton(string label, Action onClick)
-    {
-        var theme = _state.ActiveTheme;
-        var btn = new Button
+            FontSize = 14
+        });
+        string joined;
+        lock (_state.LiveConsoleLines)
+            joined = string.Join(Environment.NewLine, _state.LiveConsoleLines.TakeLast(35));
+        logStack.Children.Add(new TextBlock
         {
-            Content = label,
-            Background = BrushOf(theme.BgSecondary),
-            BorderBrush = BrushOf("#33FFFFFF"),
-            BorderThickness = new Thickness(1),
-            Foreground = BrushOf(theme.TextPrimary),
-            FontWeight = FontWeight.SemiBold,
-            FontSize = 12,
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(12, 7),
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
-        btn.Click += (_, _) => onClick();
-        return btn;
+            Text = joined,
+            Foreground = BrushOf(t.TextSecondary),
+            FontFamily = new FontFamily("Consolas, Monospace"),
+            FontSize = 11.5,
+            TextWrapping = TextWrapping.Wrap
+        });
+        logCard.Child = logStack;
+        stack.Children.Add(logCard);
+
+        return stack;
     }
 
-    private Button CreateChromeButton(string glyph, Action onClick, bool isDanger = false)
+    private Control BuildAboutPage(LauncherThemePalette t, bool ru)
     {
-        var theme = _state.ActiveTheme;
-        var btn = new Button
+        var card = CreateSurfaceCard(t);
+        var s = new StackPanel { Spacing = 10 };
+        s.Children.Add(new TextBlock
         {
-            Content = glyph,
-            Width = 30,
-            Height = 28,
-            Padding = new Thickness(0),
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Background = BrushOf(isDanger ? "#33FF5B79" : theme.BgSurface),
-            Foreground = BrushOf(isDanger ? theme.Danger : theme.TextPrimary),
-            CornerRadius = new CornerRadius(6)
-        };
-        btn.Click += (_, _) => onClick();
-        return btn;
+            Text = "AXSESCLIENT v2.0.0 • OBSIDIAN AURORA",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 22,
+            FontWeight = FontWeight.Black
+        });
+        s.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? "Нативный лаунчер и игровой клиент нового поколения для Windows 10/11 x64.\n" +
+                  "• Поддержка Minecraft 1.16.5, 1.21.4 и 1.21.11 (отдельные оптимизированные Fabric-моды)\n" +
+                  "• 93 рабочие функции: КиллАура, Таргет HUD, ТриггерБот, Авто-спринт, Кейстрокс и кастомный HUD\n" +
+                  "• Честное выделение ОЗУ (-Xmx) на базе физической памяти ПК + Автоматическая установка Java 8 и Java 21"
+                : "Next-generation native Windows x64 Launcher & Fabric Client for Minecraft 1.16.5, 1.21.4 & 1.21.11.\n" +
+                  "• 93 real modules including KillAura, animated Target HUD, TriggerBot, Keystrokes & HUD Editor\n" +
+                  "• Hardware-calibrated JVM RAM allocation (-Xmx) & zero-touch Java 8 / Java 21 auto-installer",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 13,
+            LineHeight = 21,
+            TextWrapping = TextWrapping.Wrap
+        });
+        card.Child = s;
+        return card;
     }
 
-    private static Control WrapMargin(Control c)
+    private static string GetPageTitle(LauncherPage page, bool ru) => page switch
     {
-        c.Margin = new Thickness(3);
-        return c;
-    }
+        LauncherPage.Dashboard => ru ? "Панель управления" : "Dashboard",
+        LauncherPage.Play => ru ? "Параметры запуска и ОЗУ" : "Launch & Memory",
+        LauncherPage.Modules => ru ? "Модули клиента (93)" : "Client Modules (93)",
+        LauncherPage.Versions => ru ? "Версии Minecraft" : "Minecraft Versions",
+        LauncherPage.Accounts => ru ? "Аккаунты игроков" : "Accounts",
+        LauncherPage.Profiles => ru ? "Профили сборок" : "Launch Profiles",
+        LauncherPage.Appearance => ru ? "Темы оформления" : "Themes & Style",
+        LauncherPage.Settings => ru ? "Настройки и Авто-Java" : "Settings & Auto-Java",
+        LauncherPage.Downloads => ru ? "Менеджер загрузок" : "Downloads",
+        LauncherPage.Diagnostics => ru ? "Диагностика и консоль" : "Diagnostics",
+        LauncherPage.About => ru ? "О проекте AXSESCLIENT" : "About AXSESCLIENT",
+        _ => "AXSESCLIENT"
+    };
 
-    private static IBrush BrushOf(string hex) => new SolidColorBrush(Color.Parse(hex));
+    private static Border CreateSurfaceCard(LauncherThemePalette t) => new()
+    {
+        Background = BrushOf(t.BgSecondary, 0.94),
+        BorderBrush = BrushOf("#1EFFFFFF"),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(16),
+        Padding = new Thickness(20, 18)
+    };
+
+    private static Border CreatePillBadge(string text, string fgHex, string bgHex) => new()
+    {
+        Background = BrushOf(bgHex, 0.85),
+        BorderBrush = BrushOf(fgHex, 0.45),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(999),
+        Padding = new Thickness(10, 3.5),
+        VerticalAlignment = VerticalAlignment.Center,
+        Child = new TextBlock
+        {
+            Text = text,
+            Foreground = BrushOf(fgHex),
+            FontSize = 11,
+            FontWeight = FontWeight.Bold
+        }
+    };
+
+    private static Button CreatePrimaryButton(string text, LauncherThemePalette t, double fontSize = 13, double padH = 18, double padV = 10) => new()
+    {
+        Content = text,
+        Background = AuroraGradient(t, 1.0),
+        Foreground = Brushes.White,
+        BorderBrush = BrushOf(t.AccentCyan, 0.65),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(11),
+        Padding = new Thickness(padH, padV),
+        FontSize = fontSize,
+        FontWeight = FontWeight.ExtraBold,
+        Cursor = new Cursor(StandardCursorType.Hand)
+    };
+
+    private static Button CreateGhostButton(string text, LauncherThemePalette t) => new()
+    {
+        Content = text,
+        Background = BrushOf(t.BgSurface, 0.80),
+        Foreground = BrushOf(t.TextPrimary),
+        BorderBrush = BrushOf("#26FFFFFF"),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(10),
+        Padding = new Thickness(13, 7),
+        FontSize = 12,
+        FontWeight = FontWeight.SemiBold,
+        Cursor = new Cursor(StandardCursorType.Hand)
+    };
+
+    private static LinearGradientBrush AuroraGradient(LauncherThemePalette t, double opacity) => new()
+    {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+        Opacity = opacity,
+        GradientStops =
+        [
+            new GradientStop(Color.Parse(t.AccentPrimary), 0.0),
+            new GradientStop(Color.Parse(t.AccentSecondary), 0.55),
+            new GradientStop(Color.Parse(t.AccentCyan), 1.0)
+        ]
+    };
+
+    private static SolidColorBrush BrushOf(string hex, double opacity = 1.0) =>
+        new(Color.Parse(hex), opacity);
 }

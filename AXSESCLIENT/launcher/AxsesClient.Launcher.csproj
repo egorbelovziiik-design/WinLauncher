@@ -6,10 +6,10 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AXSESCLIENT</AssemblyName>
     <RootNamespace>AxsesClient.Launcher</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Product>AXSESCLIENT</Product>
     <Company>AXSESCLIENT Engineering</Company>
-    <Description>AXSESCLIENT (GENESIS X) — Next-Gen Minecraft Utility, HUD, Visual &amp; PvP Training Client Launcher</Description>
+    <Description>AXSESCLIENT v2.0 (OBSIDIAN AURORA) — Modern Minecraft 1.16.5 / 1.21.4 / 1.21.11 Client &amp; Launcher</Description>
     <ApplicationIcon>..\assets\branding\axsesclient.ico</ApplicationIcon>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>

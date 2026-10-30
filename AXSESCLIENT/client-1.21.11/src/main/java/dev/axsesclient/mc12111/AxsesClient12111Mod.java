@@ -55,7 +55,9 @@ public final class AxsesClient12111Mod implements ClientModInitializer {
                 }
             } else if (selfTestTick == 18) {
                 ClickGuiScreen12111 gui = (ClickGuiScreen12111) mc.screen;
-                gui.mouseClicked(new MouseButtonEvent(365.0, 16.0, new MouseButtonInfo(0, 0)), false);
+                if (core.getModuleManager().getById("kill_aura") == null || core.getModuleManager().getById("target_hud") == null) {
+                    throw new IllegalStateException("KillAura or TargetHUD missing in 1.21.11");
+                }
                 core.getThemeManager().setActiveTheme("axses-neon");
                 core.getModuleManager().getById("fullbright").setEnabled(true, core.getMinecraftAdapter());
                 core.onClientTick();

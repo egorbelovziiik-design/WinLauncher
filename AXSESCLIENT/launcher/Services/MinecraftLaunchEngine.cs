@@ -156,13 +156,21 @@ public sealed class MinecraftLaunchEngine
             Directory.CreateDirectory(assetsDir);
 
             // Stage 01: Check / Provision Java Runtime
-            ReportStage(spec, onStage, 1, 9, $"Checking Java {spec.RequiredJavaMajor} Runtime...", 0.05);
+            ReportStage(spec, onStage, 1, 9, $"Проверка / авто-установка Java {spec.RequiredJavaMajor}...", 0.02);
             string? javaOverride = spec.RequiredJavaMajor == 8 ? settings.Java8Path : settings.Java21Path;
             var javaRt = await _javaLocator.EnsureJavaRuntimeAsync(
                 spec.RequiredJavaMajor,
                 javaOverride,
-                (msg, p) => onLog?.Invoke($"[Java] {msg}"),
+                (msg, p) =>
+                {
+                    ReportStage(spec, onStage, 1, 9, msg, 0.02 + p * 0.10);
+                    onLog?.Invoke($"[Java] {msg}");
+                },
                 ct).ConfigureAwait(false);
+            if (spec.RequiredJavaMajor == 8 && string.IsNullOrWhiteSpace(settings.Java8Path))
+                settings.Java8Path = javaRt.ExecutablePath;
+            else if (spec.RequiredJavaMajor >= 21 && string.IsNullOrWhiteSpace(settings.Java21Path))
+                settings.Java21Path = javaRt.ExecutablePath;
             onLog?.Invoke($"[Stage 1] Verified Java {javaRt.MajorVersion} ({javaRt.RawVersion}) at {javaRt.ExecutablePath}");
 
             // Stage 02: Fetch Mojang Version Manifest & Version JSON
@@ -295,10 +303,22 @@ public sealed class MinecraftLaunchEngine
         DeployBundledModJar(spec, instDir, onGameLog);
         SyncInstanceClientConfig(instDir, settings.ActiveThemeId, settings.Language, settings.ReducedMotion, launcherModules);
 
-        // Stage 12: Build Complete JVM + Game Launch Command
-        onStage?.Invoke(new LaunchStageProgress(12, 13, "Constructing JVM classpath & KnotClient arguments...", 0.92));
+        // Stage 12: Ensure Java Runtime & Build Complete JVM + Game Launch Command
+        onStage?.Invoke(new LaunchStageProgress(12, 13, $"Проверка / авто-установка Java {spec.RequiredJavaMajor}...", 0.88));
         string? javaOverride = spec.RequiredJavaMajor == 8 ? settings.Java8Path : settings.Java21Path;
-        var javaRt = await _javaLocator.EnsureJavaRuntimeAsync(spec.RequiredJavaMajor, javaOverride, null, ct).ConfigureAwait(false);
+        var javaRt = await _javaLocator.EnsureJavaRuntimeAsync(
+            spec.RequiredJavaMajor,
+            javaOverride,
+            (msg, p) => onStage?.Invoke(new LaunchStageProgress(12, 13, msg, 0.88 + p * 0.06)),
+            ct).ConfigureAwait(false);
+
+        if (spec.RequiredJavaMajor == 8 && string.IsNullOrWhiteSpace(settings.Java8Path))
+            settings.Java8Path = javaRt.ExecutablePath;
+        else if (spec.RequiredJavaMajor >= 21 && string.IsNullOrWhiteSpace(settings.Java21Path))
+            settings.Java21Path = javaRt.ExecutablePath;
+
+        if (settings.AllocatedRamMb >= 1024)
+            profile.RamMb = settings.AllocatedRamMb;
 
         var args = BuildLaunchArguments(spec, profile, activeAccount, instDir);
 
@@ -311,10 +331,16 @@ public sealed class MinecraftLaunchEngine
             RedirectStandardError = true,
             CreateNoWindow = true
         };
+        // Prevent external Windows env vars (_JAVA_OPTIONS=-Xmx512M, etc.) from overriding real RAM allocation
+        psi.Environment.Remove("_JAVA_OPTIONS");
+        psi.Environment.Remove("JAVA_TOOL_OPTIONS");
+        psi.Environment.Remove("JDK_JAVA_OPTIONS");
+
         foreach (string a in args)
             psi.ArgumentList.Add(a);
 
         string safePreview = SecureTokenVault.ScrubSecrets($"{psi.FileName} {string.Join(' ', args.Take(12))} ...");
+        onGameLog?.Invoke($"[AXSES-RAM] Выделено ОЗУ JVM: {profile.RamMb} МБ (-Xmx{profile.RamMb}M) | Java {javaRt.MajorVersion} ({javaRt.RawVersion})");
         onGameLog?.Invoke($"[Launch] Spawning JVM: {safePreview}");
 
         // Stage 13: Start Process & Attach Secret-Scrubbed Log Monitors
@@ -387,7 +413,7 @@ public sealed class MinecraftLaunchEngine
         SecureTokenVault.RegisterSensitiveToken(rawAccessToken);
 
         int ramMb = Math.Clamp(profile.RamMb, 1024, 32768);
-        int minRamMb = Math.Min(1024, ramMb / 2);
+        int minRamMb = Math.Clamp(ramMb / 2, 512, 4096);
 
         var jvmArgs = new List<string>
         {
@@ -395,7 +421,7 @@ public sealed class MinecraftLaunchEngine
             $"-Xmx{ramMb}M",
             $"-Djava.library.path={nativesDir}",
             "-Dminecraft.launcher.brand=AXSESCLIENT",
-            "-Dminecraft.launcher.version=1.0.0",
+            "-Dminecraft.launcher.version=2.0.0",
             "-DFabricMcEmu=net.minecraft.client.main.Main"
         };
 
@@ -405,7 +431,12 @@ public sealed class MinecraftLaunchEngine
         if (!string.IsNullOrWhiteSpace(profile.CustomJvmArgs))
         {
             foreach (string token in profile.CustomJvmArgs.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (token.StartsWith("-Xmx", StringComparison.OrdinalIgnoreCase) ||
+                    token.StartsWith("-Xms", StringComparison.OrdinalIgnoreCase))
+                    continue;
                 jvmArgs.Add(token);
+            }
         }
 
         jvmArgs.Add("-cp");

@@ -62,6 +62,7 @@ public static class Program
             ResolutionHeight = 720,
             CustomJvmArgs = "-XX:+UseG1GC -Daxsesclient.selftest=true"
         };
+        controller.SetAllocatedRamMb(2048);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
         var proc = await controller.LaunchEngine.LaunchMinecraftAsync(
@@ -95,8 +96,8 @@ public static class Program
         try
         {
             var controller = new LauncherStateController(tempRoot);
-            if (controller.Modules.Count != 90)
-                throw new InvalidOperationException($"Expected 90 modules, found {controller.Modules.Count}");
+            if (controller.Modules.Count != 93)
+                throw new InvalidOperationException($"Expected 93 modules, found {controller.Modules.Count}");
             if (controller.Themes.Count != 8)
                 throw new InvalidOperationException($"Expected 8 themes, found {controller.Themes.Count}");
             if (controller.Versions.Count != 3)

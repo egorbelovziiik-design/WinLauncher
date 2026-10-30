@@ -51,7 +51,9 @@ public final class AxsesClient1165Mod implements ClientModInitializer {
                     throw new IllegalStateException("Right Shift did not open ClickGuiScreen1165");
                 }
             } else if (selfTestTick == 18) {
-                core.getClickGuiController().mouseClicked(core.getMinecraftAdapter(), 365, 16, 0);
+                if (core.getModuleManager().getById("kill_aura") == null || core.getModuleManager().getById("target_hud") == null) {
+                    throw new IllegalStateException("KillAura or TargetHUD missing in 1.16.5");
+                }
                 core.getThemeManager().setActiveTheme("axses-purple");
                 core.getModuleManager().getById("fullbright").setEnabled(true, core.getMinecraftAdapter());
                 core.onClientTick();

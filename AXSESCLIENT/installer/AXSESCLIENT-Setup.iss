@@ -1,8 +1,8 @@
-; AXSESCLIENT (Codename: GENESIS X) v1.0.0 — Official Windows 10/11 x64 Installer
+; AXSESCLIENT (Codename: OBSIDIAN AURORA) v2.0.0 — Official Windows 10/11 x64 Installer
 ; Built with Inno Setup 6. Preserves all user worlds, screenshots, and configs on upgrade/uninstall.
 
 #define MyAppName "AXSESCLIENT"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "AXSESCLIENT Engineering"
 #define MyAppURL "https://github.com/egorbelovziiik-design/WinLauncher"
 #define MyAppExeName "AXSESCLIENT.exe"
@@ -11,7 +11,7 @@
 AppId={{8D7E4A92-5C21-4F18-9A63-1B0E2F7C9100}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} {#MyAppVersion} (GENESIS X)
+AppVerName={#MyAppName} {#MyAppVersion} (OBSIDIAN AURORA)
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -32,6 +32,7 @@ OutputDir=..\..\AXSESCLIENT-RELEASE
 OutputBaseFilename=AXSESCLIENT-Setup
 
 [Languages]
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]

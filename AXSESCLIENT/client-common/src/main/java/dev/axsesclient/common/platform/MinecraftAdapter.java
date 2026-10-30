@@ -88,4 +88,29 @@ public interface MinecraftAdapter {
     void openVanillaResourcePacks();
     void closeScreen();
     void quitGame();
+
+    default boolean isAnyScreenOpen() {
+        return isClickGuiOpen() || isHudEditorOpen();
+    }
+
+    default TargetEntityInfo getCrosshairTarget() {
+        return null;
+    }
+
+    default List<TargetEntityInfo> getNearbyTargets(
+            double range,
+            boolean includePlayers,
+            boolean includeHostiles,
+            boolean includePassives,
+            boolean includeInvisible
+    ) {
+        return java.util.Collections.emptyList();
+    }
+
+    default boolean attackEntityById(int entityId, boolean swingHand) {
+        return false;
+    }
+
+    default void setPlayerRotation(float yaw, float pitch) {
+    }
 }

@@ -129,7 +129,7 @@ jobs:
             cat /tmp/mc1165.log
             exit 1
           fi
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.16.5.json
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 93' staged-jars/selftest-1.16.5.json
           echo "::notice title=MC 1.16.5 Production JAR E2E::$(jq -c . staged-jars/selftest-1.16.5.json)"
 
       - name: 7. Real E2E Launch — Minecraft 1.21.4 + AXSESCLIENT-1.21.4.jar on Java 21
@@ -149,7 +149,7 @@ jobs:
             echo "::error title=MC 1.21.4 E2E Crash::$msg"
             touch /tmp/e2e_failed
           else
-            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.4.json
+            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 93' staged-jars/selftest-1.21.4.json
             echo "::notice title=MC 1.21.4 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.4.json)"
           fi
 
@@ -170,7 +170,7 @@ jobs:
             echo "::error title=MC 1.21.11 E2E Crash::$msg"
             touch /tmp/e2e_failed
           else
-            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.11.json
+            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 93' staged-jars/selftest-1.21.11.json
             echo "::notice title=MC 1.21.11 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.11.json)"
           fi
           if [ -f /tmp/e2e_failed ]; then exit 1; fi
@@ -402,7 +402,7 @@ jobs:
           path: AXSESCLIENT-RELEASE/**
 
   publish-github-release:
-    name: Publish Verified Assets to GitHub Release (axsesclient-v1.0.0)
+    name: Publish Verified Assets to GitHub Release (axsesclient-v2.0.0)
     if: ${{ always() && (contains(github.event.head_commit.message, '[publish-release]') || inputs.publish_only_run_id != '' || needs.windows-launcher-and-installer.result == 'success') }}
     needs: [windows-launcher-and-installer]
     runs-on: ubuntu-latest
@@ -415,7 +415,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          SOURCE_RUN_ID: ${{ inputs.publish_only_run_id != '' && inputs.publish_only_run_id || (contains(github.event.head_commit.message, '[publish-release]') && '41138065290' || github.run_id) }}
+          SOURCE_RUN_ID: ${{ inputs.publish_only_run_id != '' && inputs.publish_only_run_id || github.run_id }}
         run: |
           set -euo pipefail
           exec > >(tee pub_rel.log) 2>&1
@@ -424,7 +424,7 @@ jobs:
           gh run download "$SOURCE_RUN_ID" -R "$REPO" -n axsesclient-release-bundle -D dist-bundle
           BUNDLE_DIR="$(dirname "$(find dist-bundle -name 'AXSESCLIENT.exe' | head -n 1)")"
           cp AXSESCLIENT/documentation/*.md "$BUNDLE_DIR/"
-          ZIP_OUT="$GITHUB_WORKSPACE/AXSESCLIENT-v1.0.0-Full-Bundle.zip"
+          ZIP_OUT="$GITHUB_WORKSPACE/AXSESCLIENT-v2.0.0-Full-Bundle.zip"
           (
             cd "$BUNDLE_DIR"
             zip -r "$ZIP_OUT" \
@@ -436,13 +436,13 @@ jobs:
               SHA256SUMS.txt \
               README.md CHANGELOG.md BUILD_REPORT.md DESIGN_RESEARCH.md LICENSES.md
           )
-          if ! gh release view axsesclient-v1.0.0 -R "$REPO" >/dev/null 2>&1; then
-            gh release create axsesclient-v1.0.0 -R "$REPO" \
+          if ! gh release view axsesclient-v2.0.0 -R "$REPO" >/dev/null 2>&1; then
+            gh release create axsesclient-v2.0.0 -R "$REPO" \
               --target arena/b5b3cc60-winlauncher \
-              --title "AXSESCLIENT v1.0.0 (GENESIS X) — Windows x64 + Fabric 1.16.5 / 1.21.4 / 1.21.11" \
-              --notes-file AXSESCLIENT/documentation/BUILD_REPORT.md
+              --title "AXSESCLIENT v2.0.0 (OBSIDIAN AURORA) — Windows x64 + Fabric 1.16.5 / 1.21.4 / 1.21.11" \
+              --notes-file AXSESCLIENT/documentation/CHANGELOG.md
           fi
-          gh release upload axsesclient-v1.0.0 -R "$REPO" --clobber \
+          gh release upload axsesclient-v2.0.0 -R "$REPO" --clobber \
             "$BUNDLE_DIR/AXSESCLIENT-Setup.exe" \
             "$BUNDLE_DIR/AXSESCLIENT.exe" \
             "$BUNDLE_DIR/AXSESCLIENT-1.16.5.jar" \
@@ -450,5 +450,5 @@ jobs:
             "$BUNDLE_DIR/AXSESCLIENT-1.21.11.jar" \
             "$BUNDLE_DIR/SHA256SUMS.txt" \
             "$ZIP_OUT"
-          echo "::notice title=GitHub Release Published::https://github.com/$REPO/releases/tag/axsesclient-v1.0.0"
+          echo "::notice title=GitHub Release Published::https://github.com/$REPO/releases/tag/axsesclient-v2.0.0"
 

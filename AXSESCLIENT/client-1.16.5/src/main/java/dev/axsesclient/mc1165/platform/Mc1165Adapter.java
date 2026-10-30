@@ -3,6 +3,7 @@ package dev.axsesclient.mc1165.platform;
 import dev.axsesclient.common.platform.ItemInfo;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.StatusEffectInfo;
+import dev.axsesclient.common.platform.TargetEntityInfo;
 import dev.axsesclient.mc1165.gui.AxsesMainMenuScreen1165;
 import dev.axsesclient.mc1165.gui.ClickGuiScreen1165;
 import dev.axsesclient.mc1165.gui.HudEditorScreen1165;
@@ -25,8 +26,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
@@ -452,6 +459,110 @@ public final class Mc1165Adapter implements MinecraftAdapter {
     public void quitGame() {
         Minecraft mc = Minecraft.getInstance();
         if (mc != null) mc.stop();
+    }
+
+    @Override
+    public boolean isAnyScreenOpen() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc != null && mc.screen != null;
+    }
+
+    @Override
+    public TargetEntityInfo getCrosshairTarget() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.player == null || !(mc.crosshairPickEntity instanceof LivingEntity)) {
+            return null;
+        }
+        LivingEntity le = (LivingEntity) mc.crosshairPickEntity;
+        if (le == mc.player || !le.isAlive() || le.isSpectator() || le instanceof ArmorStand) {
+            return null;
+        }
+        return toTargetInfo(mc, le);
+    }
+
+    @Override
+    public List<TargetEntityInfo> getNearbyTargets(
+            double range,
+            boolean includePlayers,
+            boolean includeHostiles,
+            boolean includePassives,
+            boolean includeInvisible
+    ) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) {
+            return Collections.emptyList();
+        }
+        List<TargetEntityInfo> result = new ArrayList<TargetEntityInfo>();
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (!(e instanceof LivingEntity) || e == mc.player || !e.isAlive() || e.isSpectator() || e instanceof ArmorStand) {
+                continue;
+            }
+            if (!includeInvisible && e.isInvisible()) {
+                continue;
+            }
+            float dist = mc.player.distanceTo(e);
+            if (dist > range) {
+                continue;
+            }
+            LivingEntity le = (LivingEntity) e;
+            boolean isPl = le instanceof Player;
+            boolean isHost = !isPl && (le instanceof Enemy);
+            boolean isPass = !isPl && !isHost;
+            if ((isPl && !includePlayers) || (isHost && !includeHostiles) || (isPass && !includePassives)) {
+                continue;
+            }
+            result.add(toTargetInfo(mc, le));
+        }
+        return result;
+    }
+
+    @Override
+    public boolean attackEntityById(int entityId, boolean swingHand) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null || mc.gameMode == null) {
+            return false;
+        }
+        Entity target = mc.level.getEntity(entityId);
+        if (target == null || !target.isAlive() || target == mc.player) {
+            return false;
+        }
+        mc.gameMode.attack(mc.player, target);
+        if (swingHand) {
+            mc.player.swing(InteractionHand.MAIN_HAND);
+        }
+        return true;
+    }
+
+    @Override
+    public void setPlayerRotation(float yaw, float pitch) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.player != null) {
+            mc.player.yRot = yaw;
+            mc.player.xRot = pitch;
+        }
+    }
+
+    private static TargetEntityInfo toTargetInfo(Minecraft mc, LivingEntity le) {
+        boolean isPl = le instanceof Player;
+        boolean isHost = !isPl && (le instanceof Enemy);
+        boolean isPass = !isPl && !isHost;
+        return new TargetEntityInfo(
+                le.getId(),
+                le.getName().getString(),
+                isPl,
+                isHost,
+                isPass,
+                le.getHealth(),
+                le.getMaxHealth(),
+                le.getAbsorptionAmount(),
+                mc.player.distanceTo(le),
+                le.hurtTime,
+                le.getArmorValue(),
+                le.getX(),
+                le.getY(),
+                le.getZ(),
+                le.getEyeY()
+        );
     }
 
     private static String formatName(String raw) {

@@ -369,10 +369,10 @@ public final class VisualModulesRegistry {
                 return qualityBadge.isEnabled() ? ("Ping: " + ms + "ms (" + q + ")") : ("Ping: " + ms + "ms");
             }
         });
-        hm.register(new HudElement("ping_display", "Ping Display", pingMod, 0.985f, 0.02f, 125f, 20f));
+        hm.register(new HudElement("ping_display", "Ping Display", pingMod, 0.985f, 0.20f, 128f, 20f));
 
         // 15. Memory Display
-        Module memMod = mm.register(new Module("memory_display", "Memory Display", "Displays JVM heap usage and percentage", ModuleCategory.HUD) {
+        Module memMod = mm.register(new Module("memory_display", "Memory Display", "Displays JVM heap usage and percentage", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
             private final BooleanSetting showMb = addSetting(new BooleanSetting("show_mb", "Show Megabytes", "Include MB values alongside %", true));
 
             @Override
@@ -381,11 +381,11 @@ public final class VisualModulesRegistry {
                 long max = Math.max(1L, profiler.getMaxMemoryMb());
                 long pct = (used * 100L) / max;
                 return showMb.isEnabled()
-                        ? ("RAM " + pct + "% (" + used + "/" + max + "MB)")
-                        : ("RAM " + pct + "%");
+                        ? ("RAM: " + used + " / " + max + " MB (" + pct + "%)")
+                        : ("RAM: " + pct + "%");
             }
         });
-        hm.register(new HudElement("memory_display", "Memory Display", memMod, 0.985f, 0.08f, 152f, 20f));
+        hm.register(new HudElement("memory_display", "Memory Display", memMod, 0.985f, 0.14f, 168f, 20f));
 
         // 16. Session Timer
         Module sessionTimerMod = mm.register(new Module("session_timer", "Session Timer", "Tracks total elapsed client session playtime", ModuleCategory.HUD) {

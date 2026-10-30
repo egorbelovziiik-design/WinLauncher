@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.axsesclient.common.platform.MinecraftAdapter;
+import dev.axsesclient.common.platform.TargetEntityInfo;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -100,9 +101,51 @@ public final class ClientRuntimeState {
     private float freeLookYaw = 0.0f;
     private float freeLookPitch = 0.0f;
 
+    // Active Combat Target (shared by KillAura, TriggerBot, Crosshair, and Target HUD)
+    private volatile TargetEntityInfo activeTarget = null;
+    private volatile long lastTargetTimestampMs = 0L;
+    private float animatedTargetHpFrac = 1.0f;
+    private float damageTrailHpFrac = 1.0f;
+    private int lastTrackedEntityId = -1;
+
     public ClientRuntimeState(Path clientRootDir) {
         this.clientRootDir = clientRootDir;
         loadWaypointsAndNotes();
+    }
+
+    public void lockTarget(TargetEntityInfo target) {
+        if (target == null) return;
+        this.activeTarget = target;
+        this.lastTargetTimestampMs = System.currentTimeMillis();
+        if (target.getEntityId() != this.lastTrackedEntityId) {
+            this.lastTrackedEntityId = target.getEntityId();
+            this.animatedTargetHpFrac = target.getHealthFraction();
+            this.damageTrailHpFrac = target.getHealthFraction();
+        }
+    }
+
+    public TargetEntityInfo getActiveTarget(long lingerDurationMs) {
+        TargetEntityInfo t = this.activeTarget;
+        if (t == null) return null;
+        if (System.currentTimeMillis() - this.lastTargetTimestampMs > lingerDurationMs) {
+            return null;
+        }
+        return t;
+    }
+
+    public float updateAndGetAnimatedHpFrac(float targetFrac, float dt) {
+        float speed = Math.min(1.0f, dt * 14.0f);
+        animatedTargetHpFrac += (targetFrac - animatedTargetHpFrac) * speed;
+        if (damageTrailHpFrac < animatedTargetHpFrac) {
+            damageTrailHpFrac = animatedTargetHpFrac;
+        } else {
+            damageTrailHpFrac += (targetFrac - damageTrailHpFrac) * Math.min(1.0f, dt * 3.8f);
+        }
+        return Math.max(0.0f, Math.min(1.0f, animatedTargetHpFrac));
+    }
+
+    public float getDamageTrailHpFrac() {
+        return Math.max(0.0f, Math.min(1.0f, damageTrailHpFrac));
     }
 
     public void updateTick(MinecraftAdapter mc) {
@@ -142,6 +185,23 @@ public final class ClientRuntimeState {
                 }
             }
             wasOnGround = onGround;
+
+            TargetEntityInfo xhair = mc.getCrosshairTarget();
+            if (xhair != null) {
+                lockTarget(xhair);
+            } else {
+                TargetEntityInfo existing = this.activeTarget;
+                if (existing != null && (System.currentTimeMillis() - this.lastTargetTimestampMs) <= 3500L) {
+                    List<TargetEntityInfo> near = mc.getNearbyTargets(10.0, true, true, true, true);
+                    for (int i = 0; i < near.size(); i++) {
+                        TargetEntityInfo cand = near.get(i);
+                        if (cand.getEntityId() == existing.getEntityId()) {
+                            this.activeTarget = cand;
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 

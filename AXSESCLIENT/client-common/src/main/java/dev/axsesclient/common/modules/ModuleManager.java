@@ -1,5 +1,6 @@
 package dev.axsesclient.common.modules;
 
+import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.notifications.NotificationManager;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
@@ -23,6 +24,7 @@ public final class ModuleManager {
 
     private final SettingManager settingManager;
     private final NotificationManager notificationManager;
+    private LocalizationManager localizationManager;
     private final Map<String, Module> modulesById = new LinkedHashMap<String, Module>();
     private final List<String> searchHistory = new ArrayList<String>();
     private SortOrder sortOrder = SortOrder.DEFAULT;
@@ -30,6 +32,10 @@ public final class ModuleManager {
     public ModuleManager(SettingManager settingManager, NotificationManager notificationManager) {
         this.settingManager = settingManager;
         this.notificationManager = notificationManager;
+    }
+
+    public void setLocalizationManager(LocalizationManager localizationManager) {
+        this.localizationManager = localizationManager;
     }
 
     public synchronized <M extends Module> M register(M module) {
@@ -86,6 +92,11 @@ public final class ModuleManager {
                         || m.getDescription().toLowerCase(Locale.ROOT).contains(q)
                         || m.getId().toLowerCase(Locale.ROOT).contains(q)
                         || m.getCategory().getDefaultTitle().toLowerCase(Locale.ROOT).contains(q);
+                if (!matches && localizationManager != null) {
+                    String locName = localizationManager.moduleName(m.getId(), m.getName()).toLowerCase(Locale.ROOT);
+                    String locDesc = localizationManager.moduleDesc(m.getId(), m.getDescription()).toLowerCase(Locale.ROOT);
+                    matches = locName.contains(q) || locDesc.contains(q);
+                }
                 if (!matches) {
                     for (Setting<?> s : m.getSettings()) {
                         if (s.getName().toLowerCase(Locale.ROOT).contains(q)

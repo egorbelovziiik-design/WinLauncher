@@ -15,11 +15,27 @@ public final class HudElement {
         RIGHT
     }
 
+    public interface CustomHudPainter {
+        boolean paint(
+                RenderAdapter r,
+                MinecraftAdapter mc,
+                ThemeManager themeManager,
+                FontManager fontManager,
+                float px,
+                float py,
+                float sw,
+                float sh,
+                float opacity,
+                boolean editorMode,
+                boolean selected
+        );
+    }
+
     private final String id;
     private final String title;
     private final Module boundModule;
+    private CustomHudPainter customPainter;
 
-    // Normalized position [0.0 .. 1.0] relative to canvas width/height so resolution changes scale properly
     private float defaultNormX;
     private float defaultNormY;
     private float defaultWidth;
@@ -30,7 +46,7 @@ public final class HudElement {
     private float width;
     private float height;
     private float scale = 1.0f;
-    private float opacity = 0.88f;
+    private float opacity = 0.90f;
     private boolean showBackground = true;
     private boolean showShadow = true;
     private boolean showOutline = true;
@@ -44,9 +60,14 @@ public final class HudElement {
         this.boundModule = boundModule;
         this.defaultNormX = clamp01(normX);
         this.defaultNormY = clamp01(normY);
-        this.defaultWidth = Math.max(44.0f, width);
-        this.defaultHeight = Math.max(18.0f, height);
+        this.defaultWidth = Math.max(48.0f, width);
+        this.defaultHeight = Math.max(20.0f, height);
         resetLayout();
+    }
+
+    public HudElement withCustomPainter(CustomHudPainter painter) {
+        this.customPainter = painter;
+        return this;
     }
 
     public void resetLayout() {
@@ -55,7 +76,7 @@ public final class HudElement {
         this.width = defaultWidth;
         this.height = defaultHeight;
         this.scale = 1.0f;
-        this.opacity = 0.88f;
+        this.opacity = 0.90f;
         this.showBackground = true;
         this.showShadow = true;
         this.showOutline = true;
@@ -111,60 +132,80 @@ public final class HudElement {
         if (!editorMode && !isVisibleInGame()) {
             return;
         }
+
+        float px = getPixelX(canvasW);
+        float py = getPixelY(canvasH);
+        float sw = getScaledWidth();
+        float sh = getScaledHeight();
+
+        if (customPainter != null) {
+            boolean drew = customPainter.paint(r, mc, themeManager, fontManager, px, py, sw, sh, opacity, editorMode, selected);
+            if (drew && editorMode && !locked) {
+                int gripCol = selected ? themeManager.filterColor(themeManager.getActiveTheme().getAccentColor()) : 0xFF929BB1;
+                r.fillRect(px + sw - 5.0f, py + sh - 5.0f, 4.0f, 4.0f, gripCol);
+            }
+            return;
+        }
+
         String text = boundModule != null ? boundModule.getHudBadgeText(mc) : null;
         if ((text == null || text.isEmpty()) && editorMode) {
-            text = title + " [Preview]";
+            text = title;
         }
         if (text == null || text.isEmpty()) {
             return;
         }
 
         AxsesTheme t = themeManager.getActiveTheme();
-        float px = getPixelX(canvasW);
-        float py = getPixelY(canvasH);
-        float sw = getScaledWidth();
-        float sh = getScaledHeight();
-        float rad = Math.min(t.getCornerRadius(), sh * 0.45f);
+        float tw = fontManager.width(r, text, 1.0f);
+        float th = fontManager.lineHeight(r, 1.0f);
+
+        // Auto-fit pill width so text never clips or overflows
+        float drawW = Math.max(sw, tw + 18.0f);
+        float drawH = Math.max(sh, 20.0f);
+        float drawX = px;
+        if (drawX + drawW > canvasW - 4.0f) {
+            drawX = Math.max(4.0f, canvasW - 4.0f - drawW);
+        }
+        float rad = Math.min(5.0f, drawH * 0.35f);
 
         if (showShadow && t.getShadowIntensity() > 0.02f) {
-            r.drawShadow(px, py, sw, sh, rad, t.getShadowIntensity() * 0.55f * opacity, 0x000000);
+            r.drawShadow(drawX, py, drawW, drawH, rad, t.getShadowIntensity() * 0.55f * opacity, 0x000000);
         }
         if (showBackground) {
-            int bg = AxsesTheme.withAlpha(themeManager.filterColor(t.getSurfaceColor()), opacity);
-            r.fillRoundedRect(px, py, sw, sh, rad, bg);
+            int bg = AxsesTheme.withAlpha(themeManager.filterColor(t.getBackgroundColor()), Math.min(0.94f, opacity + 0.04f));
+            r.fillRoundedRect(drawX, py, drawW, drawH, rad, bg);
+            // Modern glowing left accent bar
+            int barCol = AxsesTheme.withAlpha(themeManager.filterColor(t.getAccentColor()), Math.max(0.75f, opacity));
+            r.fillRect(drawX + 2.0f, py + 4.0f, 2.0f, Math.max(4.0f, drawH - 8.0f), barCol);
         }
         if (showOutline || editorMode) {
             int outCol = selected
                     ? themeManager.filterColor(t.getAccentColor())
                     : (locked && editorMode
                         ? themeManager.filterColor(t.getWarningColor())
-                        : AxsesTheme.withAlpha(themeManager.filterColor(t.getPrimaryColor()), opacity * 0.65f));
-            r.drawRoundedOutline(px, py, sw, sh, rad, selected ? 1.5f : 1.0f, outCol);
+                        : AxsesTheme.withAlpha(themeManager.filterColor(t.getPrimaryColor()), opacity * 0.48f));
+            r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.0f, outCol);
         }
 
-        float textScale = 0.90f * scale;
-        float tw = fontManager.width(r, text, textScale);
-        float th = fontManager.lineHeight(r, textScale);
         float tx;
         switch (alignment) {
             case CENTER:
-                tx = px + (sw - tw) * 0.5f;
+                tx = drawX + (drawW - tw) * 0.5f;
                 break;
             case RIGHT:
-                tx = px + sw - tw - 6.0f * scale;
+                tx = drawX + drawW - tw - 7.0f;
                 break;
             default:
-                tx = px + 6.0f * scale;
+                tx = drawX + 8.0f;
                 break;
         }
-        float ty = py + (sh - th) * 0.5f + 1.0f;
-        int txtCol = AxsesTheme.withAlpha(t.getTextColor(), Math.max(0.45f, opacity));
-        fontManager.draw(r, text, tx, ty, txtCol, textScale);
+        float ty = py + (drawH - th) * 0.5f + 1.0f;
+        int txtCol = AxsesTheme.withAlpha(t.getTextColor(), Math.max(0.70f, opacity));
+        fontManager.draw(r, text, tx, ty, txtCol, 1.0f);
 
         if (editorMode && !locked) {
-            // Bottom-right resize grip indicator
             int gripCol = selected ? themeManager.filterColor(t.getAccentColor()) : t.getMutedColor();
-            r.fillRect(px + sw - 5.0f, py + sh - 5.0f, 4.0f, 4.0f, gripCol);
+            r.fillRect(drawX + drawW - 5.0f, py + drawH - 5.0f, 4.0f, 4.0f, gripCol);
         }
     }
 
@@ -176,13 +217,13 @@ public final class HudElement {
     public float getNormY() { return normY; }
     public void setNormY(float normY) { if (!locked) this.normY = clamp01(normY); }
     public float getWidth() { return width; }
-    public void setWidth(float width) { if (!locked) this.width = Math.max(44.0f, Math.min(420.0f, width)); }
+    public void setWidth(float width) { if (!locked) this.width = Math.max(48.0f, Math.min(420.0f, width)); }
     public float getHeight() { return height; }
-    public void setHeight(float height) { if (!locked) this.height = Math.max(16.0f, Math.min(220.0f, height)); }
+    public void setHeight(float height) { if (!locked) this.height = Math.max(18.0f, Math.min(220.0f, height)); }
     public float getScale() { return scale; }
-    public void setScale(float scale) { this.scale = Math.max(0.5f, Math.min(2.5f, scale)); }
+    public void setScale(float scale) { this.scale = Math.max(0.6f, Math.min(2.2f, scale)); }
     public float getOpacity() { return opacity; }
-    public void setOpacity(float opacity) { this.opacity = Math.max(0.20f, Math.min(1.0f, opacity)); }
+    public void setOpacity(float opacity) { this.opacity = Math.max(0.25f, Math.min(1.0f, opacity)); }
     public boolean isShowBackground() { return showBackground; }
     public void setShowBackground(boolean showBackground) { this.showBackground = showBackground; }
     public boolean isShowShadow() { return showShadow; }
@@ -224,7 +265,7 @@ public final class HudElement {
 
     public void fromJson(JsonObject o) {
         if (o == null) return;
-        this.locked = false; // unlock temporarily to restore coordinates
+        this.locked = false;
         if (o.has("normX")) setNormX(o.get("normX").getAsFloat());
         if (o.has("normY")) setNormY(o.get("normY").getAsFloat());
         if (o.has("width")) setWidth(o.get("width").getAsFloat());

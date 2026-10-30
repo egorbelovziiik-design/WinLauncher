@@ -48,18 +48,19 @@ public final class AxsesMainMenuController {
         r.fillRoundedRect(sw - waveX - 180, sh - 2.5f, 180, 2.5f, 1.2f, core.getThemeManager().filterColor(t.getPrimaryColor()));
 
         float cx = sw * 0.5f;
-        float panelW = 230.0f;
-        float panelH = 228.0f;
+        float panelW = 268.0f;
+        float panelH = 244.0f;
         float panelX = cx - panelW * 0.5f;
         float panelY = Math.max(18.0f, (sh - panelH) * 0.5f);
 
-        r.drawShadow(panelX, panelY, panelW, panelH, t.getCornerRadius() + 4, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(panelX, panelY, panelW, panelH, t.getCornerRadius() + 4, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.94f));
-        r.drawRoundedOutline(panelX, panelY, panelW, panelH, t.getCornerRadius() + 4, 1.5f, core.getThemeManager().filterColor(t.getPrimaryColor()));
+        r.drawShadow(panelX, panelY, panelW, panelH, 10f, t.getShadowIntensity(), 0x000000);
+        r.fillRoundedRect(panelX, panelY, panelW, panelH, 10f, 0xF00B0F1A);
+        r.fillRoundedRect(panelX + 18f, panelY, panelW - 36f, 2f, 1f, core.getThemeManager().filterColor(t.getAccentColor()));
+        r.drawRoundedOutline(panelX, panelY, panelW, panelH, 10f, 1.0f, AxsesTheme.withAlpha(core.getThemeManager().filterColor(t.getPrimaryColor()), 0.55f));
 
-        // AXSESCLIENT GENESIS X Emblem & Header
-        core.getFontManager().drawCentered(r, "AXSESCLIENT", cx, panelY + 14f, core.getThemeManager().filterColor(t.getPrimaryColor()), 1.35f);
-        core.getFontManager().drawCentered(r, "GENESIS X · v1.0.0", cx, panelY + 30f, t.getAccentColor(), 0.78f);
+        // AXSESCLIENT OBSIDIAN AURORA Emblem & Header
+        core.getFontManager().drawCentered(r, "AXSESCLIENT", cx, panelY + 14f, 0xFFF8FAFC, 1.0f);
+        core.getFontManager().drawCentered(r, "OBSIDIAN AURORA · v2.0", cx, panelY + 28f, t.getAccentColor(), 1.0f);
 
         String[] labels = {
                 core.getLocalizationManager().tr("menu.singleplayer"),
@@ -70,32 +71,33 @@ public final class AxsesMainMenuController {
                 core.getLocalizationManager().tr("menu.quit")
         };
 
-        float btnW = 190.0f;
-        float btnH = 22.0f;
+        float btnW = 228.0f;
+        float btnH = 24.0f;
         float btnX = cx - btnW * 0.5f;
         float startY = panelY + 48.0f;
 
         for (int i = 0; i < BUTTON_IDS.length; i++) {
-            float by = startY + i * 27.5f;
+            float by = startY + i * 30.0f;
             boolean hov = !showAccountsModal && isInside(mouseX, mouseY, btnX, by, btnW, btnH);
             float hovAnim = core.getAnimationManager().smoothHover("menu:" + BUTTON_IDS[i], hov);
             boolean primary = i == 0 || i == 3;
-            int baseBg = primary ? core.getThemeManager().filterColor(t.getPrimaryColor()) : t.getElevatedColor();
-            int fill = AxsesTheme.withAlpha(baseBg, primary ? (0.78f + 0.22f * hovAnim) : (0.88f + 0.12f * hovAnim));
+            int baseBg = primary ? core.getThemeManager().filterColor(t.getPrimaryColor()) : 0xFF141B2D;
+            int fill = AxsesTheme.withAlpha(baseBg, primary ? (0.82f + 0.18f * hovAnim) : (0.90f + 0.10f * hovAnim));
             float inset = hovAnim * -2.0f;
-            r.fillRoundedRect(btnX + inset, by, btnW - inset * 2f, btnH, t.getCornerRadius() * 0.6f, fill);
-            r.drawRoundedOutline(btnX + inset, by, btnW - inset * 2f, btnH, t.getCornerRadius() * 0.6f, 1.0f,
-                    hov ? t.getAccentColor() : AxsesTheme.withAlpha(t.getMutedColor(), 0.30f));
-            core.getFontManager().drawCentered(r, labels[i], cx, by + 7.0f, t.getTextColor(), 0.85f);
+            r.fillRoundedRect(btnX + inset, by, btnW - inset * 2f, btnH, 6f, fill);
+            r.drawRoundedOutline(btnX + inset, by, btnW - inset * 2f, btnH, 6f, 1.0f,
+                    hov ? t.getAccentColor() : AxsesTheme.withAlpha(0xFFFFFFFF, primary ? 0.35f : 0.12f));
+            core.getFontManager().drawCentered(r, labels[i], cx, by + 8.0f, 0xFFF8FAFC, 1.0f);
         }
 
         // Footer version & account strip
         String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21";
         String user = mc != null ? mc.getPlayerName() : "Player";
-        core.getFontManager().draw(r, "AXSESCLIENT MAIN MENU · Minecraft " + mcVer + " (Fabric)", 8f, sh - 14f, t.getMutedColor(), 0.78f);
-        String rightTag = "Account: " + user + " · Theme: " + t.getName();
-        float rw = core.getFontManager().width(r, rightTag, 0.78f);
-        core.getFontManager().draw(r, rightTag, sw - rw - 8f, sh - 14f, t.getAccentColor(), 0.78f);
+        long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
+        core.getFontManager().draw(r, "AXSES v2.0 · MC " + mcVer + " · RAM " + maxMb + " MB", 8f, sh - 14f, 0xFF94A3B8, 1.0f);
+        String rightTag = user + " · " + t.getName();
+        float rw = core.getFontManager().width(r, rightTag, 1.0f);
+        core.getFontManager().draw(r, rightTag, sw - rw - 8f, sh - 14f, t.getAccentColor(), 1.0f);
 
         // Accounts session modal
         if (showAccountsModal) {
@@ -143,14 +145,14 @@ public final class AxsesMainMenuController {
             return true;
         }
 
-        float panelH = 228.0f;
+        float panelH = 244.0f;
         float panelY = Math.max(18.0f, (sh - panelH) * 0.5f);
-        float btnW = 190.0f, btnH = 22.0f;
+        float btnW = 228.0f, btnH = 24.0f;
         float btnX = cx - btnW * 0.5f;
         float startY = panelY + 48.0f;
 
         for (int i = 0; i < BUTTON_IDS.length; i++) {
-            float by = startY + i * 27.5f;
+            float by = startY + i * 30.0f;
             if (isInside((float) mouseX, (float) mouseY, btnX, by, btnW, btnH)) {
                 switch (i) {
                     case 0: mc.openVanillaSingleplayer(); break;

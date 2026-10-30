@@ -8,273 +8,453 @@ namespace AxsesClient.Launcher.Services;
 
 public sealed class LauncherStateController
 {
+    private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
+
     public LauncherSettings Settings { get; private set; }
-    public List<SupportedVersionSpec> Versions { get; } = SupportedVersionSpec.CreateDefaults();
-    public List<LaunchProfile> Profiles { get; } = [];
-    public List<LauncherThemePalette> Themes { get; } = LauncherThemePalette.CreateOfficialThemes();
-    public List<ModuleCatalogItem> Modules { get; } = ModuleCatalogItem.CreateAll90Modules();
-    public List<DownloadTaskItem> DownloadTasks { get; } = [];
-    public List<string> Logs { get; } = [];
+    public List<SupportedVersionSpec> Versions { get; }
+    public List<LaunchProfile> Profiles { get; private set; }
+    public IReadOnlyList<MinecraftAccountRecord> Accounts => AuthService.Accounts;
+    public List<ModuleCatalogItem> Modules { get; private set; }
+    public List<LauncherThemePalette> Themes { get; }
+    public List<DownloadTaskItem> Downloads { get; } = [];
+    public List<string> LiveConsoleLines { get; } = [];
     public List<DiagnosticCheckItem> LastDiagnostics { get; private set; } = [];
 
-    public MicrosoftAuthService AuthService { get; }
     public JavaRuntimeLocator JavaLocator { get; }
+    public MicrosoftAuthService AuthService { get; }
     public MinecraftLaunchEngine LaunchEngine { get; }
-    public DiagnosticsService DiagnosticsService { get; }
-    public AutoUpdaterService UpdaterService { get; }
+    public DiagnosticsService Diagnostics { get; }
+    public AutoUpdaterService Updater { get; }
 
-    public LauncherPage CurrentPage { get; set; } = LauncherPage.Dashboard;
-    public string StatusBanner { get; set; } = "AXSESCLIENT v1.0.0 (GENESIS X) Ready";
-    public double ActiveOperationProgress { get; set; }
-    public bool IsBusy { get; set; }
+    public SystemMemorySnapshot MemorySnapshot { get; private set; }
+    public DetectedJavaRuntime? DetectedJava8 { get; private set; }
+    public DetectedJavaRuntime? DetectedJava21 { get; private set; }
+    public bool IsJavaProvisioning { get; private set; }
 
     public event Action? StateChanged;
+    public event Action<string>? ConsoleLineAdded;
+    public event Action<string, double>? ProgressUpdated;
 
-    private readonly string _settingsPath;
-    private readonly string _profilesPath;
+    public string CurrentStatusText { get; private set; } = "Готов к запуску";
+    public double CurrentProgress { get; private set; }
+    public bool IsBusy { get; private set; }
+    public bool IsRu => !string.Equals(Settings.Language, "en_US", StringComparison.OrdinalIgnoreCase);
 
-    public LauncherStateController(string? customDataRoot = null)
+    public LauncherStateController(string? customDataDir = null)
     {
-        string root = string.IsNullOrWhiteSpace(customDataRoot)
-            ? LauncherSettings.GetDefaultDataDir()
-            : Path.GetFullPath(customDataRoot);
-        Directory.CreateDirectory(root);
+        MemorySnapshot = SystemMemoryDetector.Query();
+        string dataRoot = customDataDir ?? LauncherSettings.GetDefaultDataDir();
+        Directory.CreateDirectory(dataRoot);
+        Directory.CreateDirectory(Path.Combine(dataRoot, "profiles"));
+        Directory.CreateDirectory(Path.Combine(dataRoot, "configs"));
+        Directory.CreateDirectory(Path.Combine(dataRoot, "logs"));
 
-        _settingsPath = Path.Combine(root, "launcher-settings.json");
-        _profilesPath = Path.Combine(root, "profiles.json");
+        Settings = LoadJsonOrDefault(Path.Combine(dataRoot, "launcher-settings.json"), () => new LauncherSettings { RootDataDir = dataRoot });
+        Settings.RootDataDir = dataRoot;
+        if (Settings.AllocatedRamMb < 1024)
+            Settings.AllocatedRamMb = MemorySnapshot.OptimalDefaultAllocationMb;
+        Settings.AllocatedRamMb = Math.Clamp(Settings.AllocatedRamMb, 1024, Math.Max(2048, MemorySnapshot.MaxRecommendedAllocationMb));
 
-        Settings = LoadSettings(root);
-        Settings.RootDataDir = root;
+        Versions = SupportedVersionSpec.CreateDefaults();
+        Themes = LauncherThemePalette.CreateOfficialThemes();
+        Profiles = LoadJsonOrDefault(Path.Combine(dataRoot, "profiles", "profiles.json"), CreateDefaultProfiles);
 
-        AuthService = new MicrosoftAuthService(root);
-        JavaLocator = new JavaRuntimeLocator(root);
-        LaunchEngine = new MinecraftLaunchEngine(root, JavaLocator, AuthService);
-        DiagnosticsService = new DiagnosticsService(JavaLocator, LaunchEngine);
-        UpdaterService = new AutoUpdaterService(AppContext.BaseDirectory);
+        var defaultCatalog = ModuleCatalogItem.CreateAll93Modules();
+        var loadedModules = LoadJsonOrDefault(Path.Combine(dataRoot, "configs", "launcher-modules.json"), () => defaultCatalog);
+        Modules = MergeModuleCatalog(defaultCatalog, loadedModules);
 
-        LoadProfiles();
-        RefreshAllVersions();
-        LoadModulesFromSelectedInstance();
-        AppendLog($"AXSESCLIENT Launcher v1.0.0 initialized at {root}");
+        JavaLocator = new JavaRuntimeLocator(dataRoot);
+        AuthService = new MicrosoftAuthService(dataRoot);
+        if (AuthService.Accounts.Count == 0)
+        {
+            var local = AuthService.CreateLocalSandboxAccount("AxsesPlayer");
+            Settings.SelectedAccountUuid = local.Uuid;
+        }
+
+        if (string.IsNullOrWhiteSpace(Settings.SelectedProfileId) || Profiles.All(p => p.Id != Settings.SelectedProfileId))
+            Settings.SelectedProfileId = Profiles[0].Id;
+
+        foreach (var p in Profiles)
+        {
+            if (p.RamMb < 1024)
+                p.RamMb = Settings.AllocatedRamMb;
+        }
+        SelectedProfile.RamMb = Settings.AllocatedRamMb;
+
+        if (string.IsNullOrWhiteSpace(Settings.SelectedAccountUuid) || AuthService.Accounts.All(a => a.Uuid != Settings.SelectedAccountUuid))
+            Settings.SelectedAccountUuid = AuthService.Accounts[0].Uuid;
+
+        LaunchEngine = new MinecraftLaunchEngine(dataRoot, JavaLocator, AuthService);
+        Diagnostics = new DiagnosticsService(JavaLocator, LaunchEngine);
+        Updater = new AutoUpdaterService(AppContext.BaseDirectory);
+
+        foreach (var v in Versions)
+            LaunchEngine.RefreshVersionState(v);
+
+        RefreshJavaStatus();
+
+        AppendConsole($"[AXSES v2.0] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count}");
+        SaveAllState();
+
+        // Automatically download & install missing Java 8 & Java 21 on Windows when AutoInstallJava is active
+        if (Settings.AutoInstallJava && RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
+            customDataDir is null && (DetectedJava8 is null || DetectedJava21 is null))
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(800).ConfigureAwait(false);
+                await AutoInstallMissingJavaSilentOrInteractiveAsync(interactiveError: false).ConfigureAwait(false);
+            });
+        }
     }
 
-    public SupportedVersionSpec SelectedVersionSpec =>
-        Versions.FirstOrDefault(v => v.MinecraftVersion == Settings.SelectedVersion) ?? Versions[1];
+    private static List<ModuleCatalogItem> MergeModuleCatalog(List<ModuleCatalogItem> canonical, List<ModuleCatalogItem> saved)
+    {
+        var savedById = saved
+            .GroupBy(m => m.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-    public LaunchProfile SelectedProfile =>
-        Profiles.FirstOrDefault(p => p.Id == Settings.SelectedProfileId) ?? Profiles[0];
-
-    public MinecraftAccountRecord? SelectedAccount =>
-        AuthService.Accounts.FirstOrDefault(a => a.Uuid == Settings.SelectedAccountUuid)
-        ?? AuthService.Accounts.FirstOrDefault();
+        foreach (var item in canonical)
+        {
+            if (savedById.TryGetValue(item.Id, out var prev))
+            {
+                item.Enabled = prev.Enabled;
+                item.Favorite = prev.Favorite;
+            }
+        }
+        return canonical;
+    }
 
     public LauncherThemePalette ActiveTheme =>
         Themes.FirstOrDefault(t => t.Id == Settings.ActiveThemeId) ?? Themes[0];
 
-    public void SelectVersion(string mcVersion)
+    public SupportedVersionSpec SelectedVersionSpec =>
+        Versions.FirstOrDefault(v => v.MinecraftVersion == Settings.SelectedVersion) ?? Versions[^1];
+
+    public LaunchProfile SelectedProfile =>
+        Profiles.FirstOrDefault(p => p.Id == Settings.SelectedProfileId) ?? Profiles[0];
+
+    public MinecraftAccountRecord SelectedAccount =>
+        AuthService.Accounts.FirstOrDefault(a => a.Uuid == Settings.SelectedAccountUuid) ?? AuthService.Accounts[0];
+
+    public void RefreshMemorySnapshot()
     {
-        Settings.SelectedVersion = mcVersion;
-        SelectedProfile.MinecraftVersion = mcVersion;
-        SaveSettings();
-        SaveProfiles();
-        LoadModulesFromSelectedInstance();
+        MemorySnapshot = SystemMemoryDetector.Query();
+    }
+
+    public void SetAllocatedRamMb(int ramMb)
+    {
+        RefreshMemorySnapshot();
+        int maxAllowed = Math.Max(2048, MemorySnapshot.MaxRecommendedAllocationMb);
+        int clamped = Math.Clamp((ramMb / 128) * 128, 1024, maxAllowed);
+        Settings.AllocatedRamMb = clamped;
+        SelectedProfile.RamMb = clamped;
+        SaveAllState();
         NotifyChanged();
     }
 
-    public void SetActiveTheme(string themeId)
+    public void RefreshJavaStatus()
     {
-        if (Themes.All(t => t.Id != themeId)) return;
-        Settings.ActiveThemeId = themeId;
-        SaveSettings();
-        SyncModulesAndThemeToSelectedInstance();
-        AppendLog($"Applied theme '{ActiveTheme.Name}' across Launcher & Client.");
-        NotifyChanged();
-    }
-
-    public LaunchProfile CreateProfile(string name, string mcVersion, int ramMb)
-    {
-        var profile = new LaunchProfile
-        {
-            Name = string.IsNullOrWhiteSpace(name) ? $"Profile {Profiles.Count + 1}" : name.Trim(),
-            MinecraftVersion = mcVersion,
-            RamMb = Math.Clamp(ramMb, 1024, 32768),
-            ThemeId = Settings.ActiveThemeId
-        };
-        Profiles.Add(profile);
-        Settings.SelectedProfileId = profile.Id;
-        Settings.SelectedVersion = profile.MinecraftVersion;
-        SaveProfiles();
-        SaveSettings();
-        AppendLog($"Created launch profile '{profile.Name}' ({profile.MinecraftVersion}, {profile.RamMb} MB).");
-        NotifyChanged();
-        return profile;
-    }
-
-    public void DeleteProfile(string id)
-    {
-        if (Profiles.Count <= 1) return;
-        Profiles.RemoveAll(p => p.Id == id);
-        if (Settings.SelectedProfileId == id)
-            Settings.SelectedProfileId = Profiles[0].Id;
-        SaveProfiles();
-        SaveSettings();
-        NotifyChanged();
-    }
-
-    public void RefreshAllVersions()
-    {
-        foreach (var v in Versions)
-            LaunchEngine.RefreshVersionState(v);
-        NotifyChanged();
-    }
-
-    public void LoadModulesFromSelectedInstance()
-    {
-        string cfgPath = Path.Combine(LaunchEngine.GetInstanceDir(SelectedVersionSpec.MinecraftVersion), "axsesclient", "configs", "default.json");
-        if (!File.Exists(cfgPath)) return;
-
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(cfgPath));
-            if (doc.RootElement.TryGetProperty("modules", out var modsObj) && modsObj.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var m in Modules)
-                {
-                    if (modsObj.TryGetProperty(m.Id, out var entry))
-                    {
-                        if (entry.TryGetProperty("enabled", out var en) && en.ValueKind is JsonValueKind.True or JsonValueKind.False)
-                            m.Enabled = en.GetBoolean();
-                        if (entry.TryGetProperty("favorite", out var fav) && fav.ValueKind is JsonValueKind.True or JsonValueKind.False)
-                            m.Favorite = fav.GetBoolean();
-                    }
-                }
-            }
+            var runtimes = JavaLocator.ScanSystemRuntimes(Settings.Java8Path, Settings.Java21Path);
+            DetectedJava8 = JavaLocator.FindMatchingRuntime(8, Settings.Java8Path)
+                            ?? runtimes.FirstOrDefault(r => r.MajorVersion == 8);
+            DetectedJava21 = JavaLocator.FindMatchingRuntime(21, Settings.Java21Path)
+                             ?? runtimes.FirstOrDefault(r => r.MajorVersion >= 21);
+
+            if (DetectedJava8 is not null && string.IsNullOrWhiteSpace(Settings.Java8Path))
+                Settings.Java8Path = DetectedJava8.ExecutablePath;
+            if (DetectedJava21 is not null && string.IsNullOrWhiteSpace(Settings.Java21Path))
+                Settings.Java21Path = DetectedJava21.ExecutablePath;
         }
         catch
         {
-            AppendLog($"Recovered safely from malformed config at {cfgPath}");
+        }
+    }
+
+    public async Task AutoInstallMissingJavaSilentOrInteractiveAsync(bool interactiveError = true)
+    {
+        if (IsJavaProvisioning) return;
+        IsJavaProvisioning = true;
+        NotifyChanged();
+        try
+        {
+            RefreshJavaStatus();
+            if (DetectedJava8 is null)
+            {
+                AppendConsole("[Java Auto] Автоматическая установка Java 8 (для Minecraft 1.16.5)...");
+                var j8 = await JavaLocator.EnsureJavaRuntimeAsync(8, Settings.Java8Path, UpdateProgress).ConfigureAwait(false);
+                Settings.Java8Path = j8.ExecutablePath;
+                DetectedJava8 = j8;
+                AppendConsole($"[Java Auto] Java 8 готова: {j8.RawVersion} ({j8.ExecutablePath})");
+            }
+            if (DetectedJava21 is null)
+            {
+                AppendConsole("[Java Auto] Автоматическая установка Java 21 (для Minecraft 1.21.4 / 1.21.11)...");
+                var j21 = await JavaLocator.EnsureJavaRuntimeAsync(21, Settings.Java21Path, UpdateProgress).ConfigureAwait(false);
+                Settings.Java21Path = j21.ExecutablePath;
+                DetectedJava21 = j21;
+                AppendConsole($"[Java Auto] Java 21 готова: {j21.RawVersion} ({j21.ExecutablePath})");
+            }
+            SaveAllState();
+            UpdateProgress(IsRu ? "Java 8 и Java 21 установлены и готовы к запуску!" : "Java 8 & Java 21 ready!", 1.0);
+        }
+        catch (Exception ex)
+        {
+            AppendConsole($"[Java Auto] {ex.Message}");
+            if (interactiveError)
+                UpdateProgress($"Авто-Java: {ex.Message}", 0);
+        }
+        finally
+        {
+            IsJavaProvisioning = false;
+            RefreshJavaStatus();
+            NotifyChanged();
+        }
+    }
+
+    public void SelectVersion(string mcVersion)
+    {
+        if (Versions.Any(v => v.MinecraftVersion == mcVersion))
+        {
+            Settings.SelectedVersion = mcVersion;
+            SelectedProfile.MinecraftVersion = mcVersion;
+            SaveAllState();
+            NotifyChanged();
+        }
+    }
+
+    public void SetTheme(string themeId) => SetActiveTheme(themeId);
+
+    public void SetActiveTheme(string themeId)
+    {
+        if (Themes.Any(t => t.Id == themeId))
+        {
+            Settings.ActiveThemeId = themeId;
+            SelectedProfile.ThemeId = themeId;
+            SaveAllState();
+            NotifyChanged();
         }
     }
 
     public void SyncModulesAndThemeToSelectedInstance()
     {
         string instDir = LaunchEngine.GetInstanceDir(SelectedVersionSpec.MinecraftVersion);
-        MinecraftLaunchEngine.SyncInstanceClientConfig(
-            instDir, Settings.ActiveThemeId, Settings.Language, Settings.ReducedMotion, Modules);
+        MinecraftLaunchEngine.SyncInstanceClientConfig(instDir, Settings.ActiveThemeId, Settings.Language, Settings.ReducedMotion, Modules);
+        SaveAllState();
     }
 
-    public void OpenDirectoryInExplorer(string directoryPath)
+    public async Task<List<DiagnosticCheckItem>> RunDiagnosticsAsync(CancellationToken ct = default)
     {
-        Directory.CreateDirectory(directoryPath);
+        LastDiagnostics = await Diagnostics.RunFullDiagnosticsAsync(Settings, Versions, ct).ConfigureAwait(false);
+        RefreshJavaStatus();
+        RefreshMemorySnapshot();
+        NotifyChanged();
+        return LastDiagnostics;
+    }
+
+    public void ToggleLanguage()
+    {
+        Settings.Language = IsRu ? "en_US" : "ru_RU";
+        SaveAllState();
+        NotifyChanged();
+    }
+
+    public void SaveAllState()
+    {
+        SaveJson(Path.Combine(Settings.RootDataDir, "launcher-settings.json"), Settings);
+        SaveJson(Path.Combine(Settings.RootDataDir, "profiles", "profiles.json"), Profiles);
+        SaveJson(Path.Combine(Settings.RootDataDir, "configs", "launcher-modules.json"), Modules);
+    }
+
+    public async Task InstallOrPlaySelectedAsync(CancellationToken ct = default)
+    {
+        var spec = SelectedVersionSpec;
+        if (IsBusy || spec.State == VersionInstallState.Running)
+            return;
+
+        IsBusy = true;
+        NotifyChanged();
         try
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{directoryPath}\"") { UseShellExecute = true });
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                Process.Start("open", directoryPath);
-            else
-                Process.Start("xdg-open", directoryPath);
+            SelectedProfile.RamMb = Settings.AllocatedRamMb;
+            SaveAllState();
+
+            if (spec.State is VersionInstallState.NotInstalled or VersionInstallState.RepairRequired or VersionInstallState.UpdateAvailable)
+            {
+                AppendConsole($"[Установка] Подготовка {spec.DisplayTitle} + Fabric {spec.FabricLoaderVersion}...");
+                await LaunchEngine.InstallOrRepairVersionAsync(
+                    spec,
+                    Settings,
+                    forceRepair: spec.State == VersionInstallState.RepairRequired,
+                    onStage: st => UpdateProgress(st.StageName, st.OverallProgress),
+                    onDownloadItem: RecordDownloadItem,
+                    onLog: AppendConsole,
+                    ct: ct);
+                RefreshJavaStatus();
+                SaveAllState();
+            }
+
+            AppendConsole($"[Запуск] Старт {spec.DisplayTitle} • Профиль '{SelectedProfile.Name}' • ОЗУ: {Settings.AllocatedRamMb} МБ • Аккаунт '{SelectedAccount.Username}'...");
+            await LaunchEngine.LaunchMinecraftAsync(
+                spec,
+                SelectedProfile,
+                SelectedAccount,
+                Settings,
+                Modules,
+                onStage: st => UpdateProgress(st.StageName, st.OverallProgress),
+                onGameLog: AppendConsole,
+                onExited: code =>
+                {
+                    UpdateProgress(
+                        IsRu ? $"Minecraft {spec.MinecraftVersion} завершён (код {code})" : $"Minecraft {spec.MinecraftVersion} exited (code {code})",
+                        0);
+                    NotifyChanged();
+                },
+                ct: ct);
+
+            RefreshJavaStatus();
+            SaveAllState();
+            UpdateProgress(IsRu ? $"В игре: {spec.DisplayTitle} ({Settings.AllocatedRamMb} МБ ОЗУ)" : $"Running {spec.DisplayTitle}", 1.0);
         }
         catch (Exception ex)
         {
-            AppendLog($"Folder path: {directoryPath} ({ex.Message})");
+            AppendConsole($"[ОШИБКА] {ex.Message}");
+            AppendFileLog($"Launch/Install error: {ex}");
+            UpdateProgress($"Ошибка: {ex.Message}", 0);
         }
-    }
-
-    public async Task RunDiagnosticsAsync(CancellationToken ct = default)
-    {
-        StatusBanner = "Running system & installation diagnostics...";
-        NotifyChanged();
-        LastDiagnostics = await DiagnosticsService.RunFullDiagnosticsAsync(Settings, Versions, ct).ConfigureAwait(false);
-        int passed = LastDiagnostics.Count(d => d.Passed);
-        StatusBanner = $"Diagnostics complete: {passed}/{LastDiagnostics.Count} checks passed.";
-        AppendLog(StatusBanner);
-        NotifyChanged();
-    }
-
-    public void AppendLog(string message)
-    {
-        string line = $"[{DateTime.Now:HH:mm:ss}] {SecureTokenVault.ScrubSecrets(message)}";
-        lock (Logs)
+        finally
         {
-            Logs.Add(line);
-            if (Logs.Count > 600)
-                Logs.RemoveRange(0, Logs.Count - 600);
+            IsBusy = false;
+            NotifyChanged();
         }
     }
 
-    public void TrackDownloadTask(DownloadTaskItem item)
+    public async Task RepairVersionAsync(SupportedVersionSpec spec, CancellationToken ct = default)
     {
-        lock (DownloadTasks)
+        if (IsBusy) return;
+        IsBusy = true;
+        NotifyChanged();
+        try
         {
-            DownloadTasks.Insert(0, item);
-            if (DownloadTasks.Count > 150)
-                DownloadTasks.RemoveRange(150, DownloadTasks.Count - 150);
+            AppendConsole($"[Починка] Полная SHA-1 проверка файлов {spec.DisplayTitle}...");
+            await LaunchEngine.InstallOrRepairVersionAsync(
+                spec,
+                Settings,
+                forceRepair: true,
+                onStage: st => UpdateProgress(st.StageName, st.OverallProgress),
+                onDownloadItem: RecordDownloadItem,
+                onLog: AppendConsole,
+                ct: ct);
+            RefreshJavaStatus();
+            SaveAllState();
+            UpdateProgress(IsRu ? $"{spec.DisplayTitle} проверен и готов" : $"{spec.DisplayTitle} verified & ready", 1.0);
         }
+        catch (Exception ex)
+        {
+            AppendConsole($"[Ошибка починки] {ex.Message}");
+            UpdateProgress($"Ошибка починки: {ex.Message}", 0);
+        }
+        finally
+        {
+            IsBusy = false;
+            NotifyChanged();
+        }
+    }
+
+    public void OpenInstanceFolder(SupportedVersionSpec spec)
+    {
+        string dir = LaunchEngine.GetInstanceDir(spec.MinecraftVersion);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            AppendConsole($"[Папка] {dir} ({ex.Message})");
+        }
+    }
+
+    public void AppendConsole(string line)
+    {
+        string scrubbed = SecureTokenVault.ScrubSecrets(line);
+        string stamped = $"[{DateTime.Now:HH:mm:ss}] {scrubbed}";
+        lock (LiveConsoleLines)
+        {
+            LiveConsoleLines.Add(stamped);
+            if (LiveConsoleLines.Count > 500)
+                LiveConsoleLines.RemoveAt(0);
+        }
+        ConsoleLineAdded?.Invoke(stamped);
+    }
+
+    private void AppendFileLog(string text)
+    {
+        try
+        {
+            string logPath = Path.Combine(Settings.RootDataDir, "logs", "launcher.log");
+            File.AppendAllText(logPath, $"[{DateTime.UtcNow:O}] {SecureTokenVault.ScrubSecrets(text)}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
+    private void UpdateProgress(string text, double progress)
+    {
+        CurrentStatusText = text;
+        CurrentProgress = Math.Clamp(progress, 0.0, 1.0);
+        ProgressUpdated?.Invoke(CurrentStatusText, CurrentProgress);
         NotifyChanged();
     }
 
-    public void SaveSettings()
+    private void RecordDownloadItem(DownloadTaskItem item)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_settingsPath)!);
-        string tmp = _settingsPath + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true }));
-        File.Move(tmp, _settingsPath, overwrite: true);
-    }
-
-    public void SaveProfiles()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(_profilesPath)!);
-        string tmp = _profilesPath + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(Profiles, new JsonSerializerOptions { WriteIndented = true }));
-        File.Move(tmp, _profilesPath, overwrite: true);
+        lock (Downloads)
+        {
+            Downloads.Insert(0, item);
+            if (Downloads.Count > 120)
+                Downloads.RemoveAt(Downloads.Count - 1);
+        }
     }
 
     public void NotifyChanged() => StateChanged?.Invoke();
 
-    private LauncherSettings LoadSettings(string root)
+    private static List<LaunchProfile> CreateDefaultProfiles() =>
+    [
+        new() { Name = "PvP & Combat (1.21.11)", MinecraftVersion = "1.21.11", RamMb = 4096, ClientConfigPreset = "competitive", ThemeId = "axses-dark" },
+        new() { Name = "Modern Survival (1.21.4)", MinecraftVersion = "1.21.4", RamMb = 4096, ClientConfigPreset = "default", ThemeId = "axses-cyber" },
+        new() { Name = "Classic 1.16.5 PvP", MinecraftVersion = "1.16.5", RamMb = 3072, ClientConfigPreset = "competitive", ThemeId = "axses-purple" }
+    ];
+
+    private static T LoadJsonOrDefault<T>(string path, Func<T> fallback)
     {
         try
         {
-            if (File.Exists(_settingsPath))
+            if (File.Exists(path))
             {
-                var loaded = JsonSerializer.Deserialize<LauncherSettings>(File.ReadAllText(_settingsPath));
+                var loaded = JsonSerializer.Deserialize<T>(File.ReadAllText(path));
                 if (loaded is not null) return loaded;
             }
         }
         catch
         {
-            // Safe fallback on corrupt settings file
+            try
+            {
+                if (File.Exists(path))
+                    File.Copy(path, path + $".corrupt-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}.bak", true);
+            }
+            catch { }
         }
-        return new LauncherSettings { RootDataDir = root };
+        return fallback();
     }
 
-    private void LoadProfiles()
+    private static void SaveJson<T>(string path, T value)
     {
-        Profiles.Clear();
-        try
-        {
-            if (File.Exists(_profilesPath))
-            {
-                var list = JsonSerializer.Deserialize<List<LaunchProfile>>(File.ReadAllText(_profilesPath));
-                if (list is { Count: > 0 })
-                    Profiles.AddRange(list);
-            }
-        }
-        catch { }
-
-        if (Profiles.Count == 0)
-        {
-            Profiles.Add(new LaunchProfile { Name = "Competitive 1.21.4", MinecraftVersion = "1.21.4", RamMb = 4096 });
-            Profiles.Add(new LaunchProfile { Name = "Flagship 1.21.11", MinecraftVersion = "1.21.11", RamMb = 4096 });
-            Profiles.Add(new LaunchProfile { Name = "Classic 1.16.5", MinecraftVersion = "1.16.5", RamMb = 3072 });
-            SaveProfiles();
-        }
-
-        if (string.IsNullOrWhiteSpace(Settings.SelectedProfileId) || Profiles.All(p => p.Id != Settings.SelectedProfileId))
-        {
-            Settings.SelectedProfileId = Profiles[0].Id;
-            SaveSettings();
-        }
+        string? dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        string tmp = path + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(value, JsonOpts));
+        File.Move(tmp, path, overwrite: true);
     }
 }

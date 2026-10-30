@@ -31,8 +31,8 @@ import java.nio.file.Path;
 
 public final class AxsesCore {
     public static final String PRODUCT_NAME = "AXSESCLIENT";
-    public static final String CODENAME = "GENESIS X";
-    public static final String VERSION = "1.0.0";
+    public static final String CODENAME = "OBSIDIAN AURORA";
+    public static final String VERSION = "2.0.0";
 
     private static volatile AxsesCore instance;
 
@@ -78,17 +78,21 @@ public final class AxsesCore {
         this.renderManager = new RenderManager(this.themeManager, this.fontManager);
         this.hudManager = new HudManager();
         this.moduleManager = new ModuleManager(this.settingManager, this.notificationManager);
+        this.moduleManager.setLocalizationManager(this.localizationManager);
         this.keybindManager = new KeybindManager(this.moduleManager);
         this.compatibilityEngine = new CompatibilityEngine();
         this.runtimeState = new ClientRuntimeState(this.clientRootDir);
 
-        // Register all 90 modules & GUI features across 5 modular domain registries
+        // Register all 93 modules & GUI features across 5 modular domain registries
         VisualModulesRegistry.registerAll(
                 moduleManager, hudManager, runtimeState, performanceProfiler,
                 inputAdapter, themeManager, fontManager, renderManager
         );
         MovementPlayerModulesRegistry.registerAll(moduleManager, hudManager, runtimeState, inputAdapter);
-        CombatTrainingModulesRegistry.registerAll(moduleManager, hudManager, runtimeState, themeManager, fontManager, notificationManager);
+        CombatTrainingModulesRegistry.registerAll(
+                moduleManager, hudManager, runtimeState, themeManager,
+                fontManager, notificationManager, localizationManager
+        );
         WorldUtilityModulesRegistry.registerAll(moduleManager, hudManager, runtimeState, notificationManager);
         this.configManager = new ConfigManager(
                 this.clientRootDir,

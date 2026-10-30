@@ -20,22 +20,34 @@ public interface RenderAdapter {
         if (width <= 0f || height <= 0f || ((argb >>> 24) & 0xFF) == 0) {
             return;
         }
-        float r = Math.max(0f, Math.min(radius, Math.min(width, height) * 0.5f));
-        if (r < 1.5f) {
-            fillRect(x, y, width, height, argb);
+        int ix1 = Math.round(x);
+        int iy1 = Math.round(y);
+        int ix2 = Math.max(ix1 + 1, Math.round(x + width));
+        int iy2 = Math.max(iy1 + 1, Math.round(y + height));
+        int iw = ix2 - ix1;
+        int ih = iy2 - iy1;
+        int ir = Math.max(0, Math.min(Math.round(radius), Math.min(iw, ih) / 2));
+
+        if (ir <= 1) {
+            fillRect(ix1, iy1, iw, ih, argb);
             return;
         }
-        int steps = Math.min(8, Math.max(2, Math.round(r)));
-        // Center body
-        fillRect(x, y + r, width, height - 2f * r, argb);
-        // Top and bottom rounded caps via horizontal scan bands
-        for (int i = 0; i < steps; i++) {
-            float dy = ((i + 0.5f) / steps) * r;
-            float chord = (float) Math.sqrt(Math.max(0f, r * r - (r - dy) * (r - dy)));
-            float inset = r - chord;
-            float bandH = r / steps + 0.35f;
-            fillRect(x + inset, y + (i * r / steps), Math.max(0f, width - 2f * inset), bandH, argb);
-            fillRect(x + inset, y + height - ((i + 1) * r / steps), Math.max(0f, width - 2f * inset), bandH, argb);
+
+        // Exact integer scanlines: zero overlapping rows -> zero dark stripes on translucent glass!
+        if (ih > 2 * ir) {
+            fillRect(ix1, iy1 + ir, iw, ih - 2 * ir, argb);
+        }
+        for (int row = 0; row < ir; row++) {
+            float dy = ir - (row + 0.5f);
+            int inset = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dy * dy))));
+            int spanW = iw - inset * 2;
+            if (spanW > 0) {
+                fillRect(ix1 + inset, iy1 + row, spanW, 1, argb);
+                int bottomY = iy2 - 1 - row;
+                if (bottomY != iy1 + row) {
+                    fillRect(ix1 + inset, bottomY, spanW, 1, argb);
+                }
+            }
         }
     }
 
@@ -43,34 +55,37 @@ public interface RenderAdapter {
         if (width <= 0f || height <= 0f || thickness <= 0f || ((argb >>> 24) & 0xFF) == 0) {
             return;
         }
-        float t = Math.max(1f, thickness);
-        float r = Math.max(0f, Math.min(radius, Math.min(width, height) * 0.5f));
-        float inset = Math.min(r * 0.6f, 4f);
-        // Top & bottom edges
-        fillRect(x + inset, y, Math.max(0f, width - 2f * inset), t, argb);
-        fillRect(x + inset, y + height - t, Math.max(0f, width - 2f * inset), t, argb);
-        // Left & right edges
-        fillRect(x, y + inset, t, Math.max(0f, height - 2f * inset), argb);
-        fillRect(x + width - t, y + inset, t, Math.max(0f, height - 2f * inset), argb);
-        // Corner chamfers
-        if (inset >= 1.5f) {
-            fillRect(x + inset * 0.5f, y + inset * 0.5f, t, t, argb);
-            fillRect(x + width - inset * 0.5f - t, y + inset * 0.5f, t, t, argb);
-            fillRect(x + inset * 0.5f, y + height - inset * 0.5f - t, t, t, argb);
-            fillRect(x + width - inset * 0.5f - t, y + height - inset * 0.5f - t, t, t, argb);
+        int ix1 = Math.round(x);
+        int iy1 = Math.round(y);
+        int ix2 = Math.max(ix1 + 2, Math.round(x + width));
+        int iy2 = Math.max(iy1 + 2, Math.round(y + height));
+        int iw = ix2 - ix1;
+        int ih = iy2 - iy1;
+        int t = Math.max(1, Math.round(thickness));
+        int inset = radius >= 4f ? 2 : (radius >= 2f ? 1 : 0);
+
+        // Non-overlapping top, bottom, left, right border segments + crisp corner pixels
+        fillRect(ix1 + inset, iy1, Math.max(1, iw - inset * 2), t, argb);
+        fillRect(ix1 + inset, iy2 - t, Math.max(1, iw - inset * 2), t, argb);
+        fillRect(ix1, iy1 + inset, t, Math.max(1, ih - inset * 2), argb);
+        fillRect(ix2 - t, iy1 + inset, t, Math.max(1, ih - inset * 2), argb);
+        if (inset == 2) {
+            fillRect(ix1 + 1, iy1 + 1, 1, 1, argb);
+            fillRect(ix2 - 2, iy1 + 1, 1, 1, argb);
+            fillRect(ix1 + 1, iy2 - 2, 1, 1, argb);
+            fillRect(ix2 - 2, iy2 - 2, 1, 1, argb);
         }
     }
 
     default void drawShadow(float x, float y, float width, float height, float radius, float intensity, int baseRgb) {
-        if (intensity <= 0.01f || width <= 0f || height <= 0f) {
+        if (intensity <= 0.02f || width <= 0f || height <= 0f) {
             return;
         }
-        int layers = 4;
-        for (int i = layers; i >= 1; i--) {
-            float spread = i * 2.0f;
-            int alpha = Math.max(0, Math.min(90, Math.round(26f * intensity * (layers - i + 1) / layers)));
+        // Subtle 2px drop shadow behind card (only drawn outside card bounds on right/bottom or soft halo)
+        int alpha = Math.max(0, Math.min(72, Math.round(48f * intensity)));
+        if (alpha > 0) {
             int color = (alpha << 24) | (baseRgb & 0x00FFFFFF);
-            fillRoundedRect(x - spread, y - spread + 1.5f, width + spread * 2f, height + spread * 2f, radius + spread, color);
+            fillRoundedRect(x + 1, y + 2, width, height, radius, color);
         }
     }
 

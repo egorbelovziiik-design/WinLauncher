@@ -4,9 +4,9 @@ import dev.axsesclient.common.platform.RenderAdapter;
 
 public final class FontManager {
     public enum FontScale {
-        SMALL(0.90f),
+        SMALL(1.00f),
         NORMAL(1.00f),
-        LARGE(1.15f);
+        LARGE(1.00f);
 
         private final float factor;
 
@@ -40,26 +40,40 @@ public final class FontManager {
         this.textShadow = textShadow;
     }
 
+    /**
+     * Snaps standard UI text to crisp 1:1 native pixel grid so Cyrillic & Latin bitmap glyphs
+     * never lose strokes from non-integer OpenGL nearest-neighbor resampling.
+     */
+    private static float normalizeCrispScale(float requestedScale) {
+        if (requestedScale <= 1.15f) {
+            return 1.0f;
+        }
+        return requestedScale >= 1.75f ? 2.0f : requestedScale;
+    }
+
     public void draw(RenderAdapter r, String text, float x, float y, int argb, float relativeScale) {
         if (text == null || text.isEmpty()) {
             return;
         }
-        r.drawText(text, x, y, argb, textShadow, relativeScale * fontScale.getFactor());
+        float s = normalizeCrispScale(relativeScale * fontScale.getFactor());
+        r.drawText(text, Math.round(x), Math.round(y), argb, textShadow, s);
     }
 
     public void drawCentered(RenderAdapter r, String text, float centerX, float y, int argb, float relativeScale) {
         float w = width(r, text, relativeScale);
-        draw(r, text, centerX - w * 0.5f, y, argb, relativeScale);
+        draw(r, text, Math.round(centerX - w * 0.5f), Math.round(y), argb, relativeScale);
     }
 
     public float width(RenderAdapter r, String text, float relativeScale) {
         if (text == null || text.isEmpty()) {
             return 0.0f;
         }
-        return r.getTextWidth(text, relativeScale * fontScale.getFactor());
+        float s = normalizeCrispScale(relativeScale * fontScale.getFactor());
+        return r.getTextWidth(text, s);
     }
 
     public float lineHeight(RenderAdapter r, float relativeScale) {
-        return r.getFontHeight(relativeScale * fontScale.getFactor());
+        float s = normalizeCrispScale(relativeScale * fontScale.getFactor());
+        return r.getFontHeight(s);
     }
 }

@@ -201,6 +201,38 @@ public sealed class LauncherAndUpdaterTests
         }
     }
 
+    [Fact]
+    public void SystemMemoryAndRamAllocation_PersistsAndOverridesConflictingJvmFlags()
+    {
+        string temp = CreateTempDir();
+        try
+        {
+            var mem = SystemMemoryDetector.Query();
+            Assert.True(mem.TotalPhysicalMb >= 1024);
+            Assert.True(mem.AvailablePhysicalMb > 0);
+
+            var controller = new LauncherStateController(temp);
+            Assert.Equal(93, controller.Modules.Count);
+            Assert.Contains(controller.Modules, m => m.Id == "kill_aura");
+            Assert.Contains(controller.Modules, m => m.Id == "target_hud");
+            Assert.Contains(controller.Modules, m => m.Id == "trigger_bot");
+
+            int targetRam = Math.Min(6144, mem.MaxRecommendedAllocationMb);
+            controller.SetAllocatedRamMb(targetRam);
+            Assert.Equal(targetRam, controller.Settings.AllocatedRamMb);
+            Assert.Equal(targetRam, controller.SelectedProfile.RamMb);
+
+            // Reload controller from disk to prove persistence
+            var reloaded = new LauncherStateController(temp);
+            Assert.Equal(targetRam, reloaded.Settings.AllocatedRamMb);
+            Assert.Equal(targetRam, reloaded.SelectedProfile.RamMb);
+        }
+        finally
+        {
+            Directory.Delete(temp, recursive: true);
+        }
+    }
+
     [AvaloniaFact]
     public void AvaloniaMainWindow_RendersAll11PagesAndCapturesScreenshots()
     {
