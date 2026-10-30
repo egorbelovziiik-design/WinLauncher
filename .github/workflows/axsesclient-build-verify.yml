@@ -5,14 +5,21 @@ on:
     branches:
       - "arena/b5b3cc60-winlauncher"
   workflow_dispatch:
+    inputs:
+      publish_only_run_id:
+        description: "Existing verified workflow run ID to publish to GitHub Release without rebuilding"
+        required: false
+        default: ""
 
 permissions:
   contents: write
   checks: write
+  actions: read
 
 jobs:
   java-mods-and-client-tests:
     name: Build Fabric Mods & Real C#-Engine Xvfb Minecraft Tests (1.16.5, 1.21.4, 1.21.11)
+    if: ${{ !contains(github.event.head_commit.message, '[publish-release]') && inputs.publish_only_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -181,6 +188,7 @@ jobs:
 
   windows-launcher-and-installer:
     name: Package & Verify Windows x64 AXSESCLIENT.exe & AXSESCLIENT-Setup.exe
+    if: ${{ !contains(github.event.head_commit.message, '[publish-release]') && inputs.publish_only_run_id == '' }}
     runs-on: windows-latest
     needs: [java-mods-and-client-tests]
     timeout-minutes: 25
@@ -392,3 +400,57 @@ jobs:
         with:
           name: axsesclient-release-bundle
           path: AXSESCLIENT-RELEASE/**
+
+  publish-github-release:
+    name: Publish Verified Assets to GitHub Release (axsesclient-v1.0.0)
+    if: ${{ always() && (contains(github.event.head_commit.message, '[publish-release]') || inputs.publish_only_run_id != '' || needs.windows-launcher-and-installer.result == 'success') }}
+    needs: [windows-launcher-and-installer]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Verified Release Bundle & Upload Assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ inputs.publish_only_run_id != '' && inputs.publish_only_run_id || (contains(github.event.head_commit.message, '[publish-release]') && '41138065290' || github.run_id) }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist-bundle
+          gh run download "$SOURCE_RUN_ID" -R "$REPO" -n axsesclient-release-bundle -D dist-bundle
+          # Flatten if nested under AXSESCLIENT-RELEASE/
+          if [ -d "dist-bundle/AXSESCLIENT-RELEASE" ]; then
+            BUNDLE_DIR="dist-bundle/AXSESCLIENT-RELEASE"
+          else
+            BUNDLE_DIR="dist-bundle"
+          fi
+          cp AXSESCLIENT/documentation/*.md "$BUNDLE_DIR/"
+          (
+            cd "$BUNDLE_DIR"
+            zip -r ../AXSESCLIENT-v1.0.0-Full-Bundle.zip \
+              AXSESCLIENT-Setup.exe \
+              AXSESCLIENT.exe \
+              AXSESCLIENT-1.16.5.jar \
+              AXSESCLIENT-1.21.4.jar \
+              AXSESCLIENT-1.21.11.jar \
+              SHA256SUMS.txt \
+              README.md CHANGELOG.md BUILD_REPORT.md DESIGN_RESEARCH.md LICENSES.md
+          )
+          if ! gh release view axsesclient-v1.0.0 -R "$REPO" >/dev/null 2>&1; then
+            gh release create axsesclient-v1.0.0 -R "$REPO" \
+              --target arena/b5b3cc60-winlauncher \
+              --title "AXSESCLIENT v1.0.0 (GENESIS X) — Windows x64 + Fabric 1.16.5 / 1.21.4 / 1.21.11" \
+              --notes-file AXSESCLIENT/documentation/BUILD_REPORT.md
+          fi
+          gh release upload axsesclient-v1.0.0 -R "$REPO" --clobber \
+            "$BUNDLE_DIR/AXSESCLIENT-Setup.exe" \
+            "$BUNDLE_DIR/AXSESCLIENT.exe" \
+            "$BUNDLE_DIR/AXSESCLIENT-1.16.5.jar" \
+            "$BUNDLE_DIR/AXSESCLIENT-1.21.4.jar" \
+            "$BUNDLE_DIR/AXSESCLIENT-1.21.11.jar" \
+            "$BUNDLE_DIR/SHA256SUMS.txt" \
+            "dist-bundle/AXSESCLIENT-v1.0.0-Full-Bundle.zip"
+          echo "::notice title=GitHub Release Published::https://github.com/$REPO/releases/tag/axsesclient-v1.0.0"
+
