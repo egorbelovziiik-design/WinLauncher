@@ -4,8 +4,70 @@
   python main.py --selftest headless logic/asset self-check (used by CI and the Windows build smoke test)
   python main.py --smoke    build the whole game world headless, simulate a few
                             seconds of gameplay, then exit (integration smoke)
+  python main.py --guitest  REAL run loop with the software renderer: menu ->
+                            new game -> fire/kill/save/load -> screenshots must
+                            not be blank. Runs against the built EXE in CI.
 """
-import sys
+import os, sys
+
+
+class _Tee:
+    """Write to several streams, never raise (windowed EXE has no console)."""
+
+    def __init__(self, *streams):
+        self._streams = [s for s in streams if s is not None]
+
+    def write(self, data):
+        for s in self._streams:
+            try:
+                s.write(data)
+            except Exception:
+                pass
+        return len(data)
+
+    def flush(self):
+        for s in self._streams:
+            try:
+                s.flush()
+            except Exception:
+                pass
+
+    def isatty(self):
+        return False
+
+    @property
+    def encoding(self):
+        return "utf-8"
+
+
+def _bootstrap():
+    """Diagnostics from the very first instruction: mirror stdout/stderr
+    into <user data>/startup.log and arm faulthandler. A windowed frozen
+    EXE gives NO visible error output otherwise, and any early hang (even
+    inside `import ursina`) now leaves a stack dump in the log."""
+    fh = None
+    try:
+        if sys.platform.startswith("win"):
+            base = os.environ.get("APPDATA") or os.path.expanduser("~")
+        else:
+            base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+        d = os.path.join(base, "DeadWorldApocalypse")
+        os.makedirs(d, exist_ok=True)
+        fh = open(os.path.join(d, "startup.log"), "w", encoding="utf-8", buffering=1)
+    except Exception:
+        fh = None
+    sys.stdout = _Tee(getattr(sys, "stdout", None), fh)
+    sys.stderr = _Tee(getattr(sys, "stderr", None), fh)
+    if fh is not None:
+        try:
+            import faulthandler
+            faulthandler.enable(file=fh, all_threads=True)
+            # watchdog: if anything hangs, dump all thread stacks every 90s
+            faulthandler.dump_traceback_later(90, repeat=True, file=fh)
+        except Exception:
+            pass
+    print(f"[boot] main entered argv={sys.argv} frozen={getattr(sys, 'frozen', False)} "
+          f"exe={sys.executable} cwd={os.getcwd()}", flush=True)
 
 
 def selftest():
@@ -85,9 +147,15 @@ def smoke():
 
 
 if __name__ == "__main__":
+    _bootstrap()
     if "--selftest" in sys.argv:
         sys.exit(selftest())
     if "--smoke" in sys.argv:
         sys.exit(smoke())
+    print("[boot] importing game.app (engine import)...", flush=True)
     from game.app import run_game
+    print("[boot] engine imported", flush=True)
+    if "--guitest" in sys.argv:
+        run_game(guitest=True)   # exits via os._exit from inside the test driver
+        sys.exit(0)
     run_game()

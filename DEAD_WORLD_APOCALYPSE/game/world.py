@@ -199,9 +199,15 @@ class World:
 
     # -------------------------------------------------------------- build
     def build(self, progress=None):
+        for label, frac in self.build_steps():
+            if progress:
+                progress(label, frac)
+
+    def build_steps(self, lo=0.42, hi=0.72):
+        """Generator: yields (label, frac) between build chunks so the
+        loading screen keeps rendering real frames during world build."""
         g = self.game
         T = g.tex
-        prog = progress or (lambda *a: None)
         # ground
         ground = Entity(model="plane", scale=(WORLD_SIZE + 60, 1, WORLD_SIZE + 60),
                         texture=T("grass.png"), texture_scale=(110, 110), color=color.rgb(150, 160, 140))
@@ -238,8 +244,9 @@ class World:
             ("Границы района...", lambda: (self._border(), self._loot_points_init())),
         ]
         for i, (label, fn) in enumerate(steps):
-            prog(label, 0.42 + 0.30 * i / len(steps))
+            yield (label, lo + (hi - lo) * i / len(steps))
             fn()
+        yield ("Мир построен", hi)
 
     def _building(self, name, x, z, yaw_deg, loot=None, sign=None):
         info = self.manifest["buildings"].get(name) or self.manifest["environment"].get(name)

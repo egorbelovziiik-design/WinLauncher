@@ -40,6 +40,45 @@ jobs:
       - name: Build EXE (PyInstaller)
         run: python -m PyInstaller --noconfirm --clean build/DeadWorldApocalypse.spec
 
+      - name: Verify built EXE (graphical guitest - real run loop, anti white-screen)
+        shell: pwsh
+        timeout-minutes: 12
+        run: |
+          cd dist/DeadWorldApocalypse
+          function Run-GuiTest($onscreen) {
+            Remove-Item guitest_result.txt -ErrorAction SilentlyContinue
+            if ($onscreen) { $env:DW_GUITEST_ONSCREEN = "1" } else { Remove-Item Env:DW_GUITEST_ONSCREEN -ErrorAction SilentlyContinue }
+            $p = Start-Process -PassThru -NoNewWindow -FilePath .\DeadWorldApocalypse.exe -ArgumentList "--guitest"
+            if (-not $p.WaitForExit(300000)) { Write-Host "guitest timed out after 300s - killing"; $p.Kill(); return $false }
+            Write-Host "exe exit code: $($p.ExitCode)"
+            return (Test-Path guitest_result.txt)
+          }
+          $ok = Run-GuiTest $true
+          $mode = "onscreen"
+          if (-not $ok) { Write-Host "onscreen guitest unavailable/failed - retrying offscreen"; $ok = Run-GuiTest $false; $mode = "offscreen" }
+          $c = ""
+          if (Test-Path guitest_result.txt) {
+            $c = (Get-Content guitest_result.txt -Raw).Trim()
+            Write-Host $c
+            Write-Host "::warning title=GUITEST ${mode}::$c"
+          }
+          New-Item -ItemType Directory -Force ../../guitest_evidence | Out-Null
+          Copy-Item guitest_menu.png, guitest_game.png ../../guitest_evidence/ -ErrorAction SilentlyContinue
+          $logp = Join-Path $env:APPDATA "DeadWorldApocalypse\startup.log"
+          if (Test-Path $logp) { Copy-Item $logp ../../guitest_evidence/ -ErrorAction SilentlyContinue; Write-Host "--- startup.log (tail) ---"; Get-Content $logp -Tail 30 }
+          Remove-Item guitest_result.txt, guitest_menu.png, guitest_game.png -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "guitest_result.txt missing - EXE graphical startup failed or hung" }
+          if ($c -notmatch "GUITEST_OK") { throw "EXE guitest failed: $c" }
+          Write-Host "EXE guitest PASSED ($mode)"
+
+      - name: Upload guitest evidence (screenshots + startup.log)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guitest-evidence
+          path: DEAD_WORLD_APOCALYPSE/guitest_evidence/
+          if-no-files-found: ignore
+
       - name: Package release folder
         shell: pwsh
         run: |
@@ -79,11 +118,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag = "deadworld-v0.1.1"
+          $tag = "deadworld-v0.1.2"
           $zip = "DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE.zip"
           gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.1 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
+            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.2 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
           }
           gh release upload $tag $zip --clobber
           Write-Host "Release updated: $tag"

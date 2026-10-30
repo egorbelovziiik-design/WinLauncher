@@ -52,9 +52,12 @@ WEAPON_VIEW_META = {
 
 
 class Game(Entity):
-    def __init__(self, settings, progress=None):
+    def __init__(self, settings):
+        """Light init only - heavy work lives in build_steps() so the
+        engine's own run loop can present loading-screen frames between
+        chunks (v0.1.x built everything before the first frame and could
+        sit on an unpainted white window for minutes on Windows)."""
         super().__init__()
-        self._prog = progress or (lambda *a: None)
         self.settings = settings
         self.assets_path = str(Path(resource_root()) / "assets")
         self.rng = random.Random(4242)
@@ -68,17 +71,29 @@ class Game(Entity):
         self.autosave_t = AUTOSAVE_INTERVAL
         self.boss_ref = None
         self._fps_acc, self._fps_frames, self._fps_val = 0.0, 0, 0.0
+        self.zombies = []
+        self.pickups = []
+        self.vehicles = []
+        self.npcs = []
+        self._update_err_t = 0.0
 
+    def build_steps(self):
+        """Generator yielding (label, frac) between heavy build chunks."""
+        settings = self.settings
+        yield ("Анимации...", 0.36)
         self.anim_library = AnimationLibrary(
             os.path.join(self.assets_path, "animations", "zombie_animations.json"))
+        yield ("Звук...", 0.38)
         self.audio = AudioManager(settings, self.assets_path)
-        self._prog("Звук и анимации...", 0.38)
         self.stats = SurvivalStats()
         self.inventory = Inventory()
 
         # world & environment
+        yield ("Строим мир...", 0.42)
         self.world = World(self)
-        self.world.build(progress=self._prog)
+        yield from self.world.build_steps(0.42, 0.72)
+
+        yield ("Небо и свет...", 0.75)
         self.sky = Sky()
         camera.clip_plane_far = max(400.0, settings.view_distance * 2.0)
         self.sun = DirectionalLight(shadows=bool(settings.shadows))
@@ -90,30 +105,27 @@ class Game(Entity):
             self.sun.update_bounds()
         except Exception:
             pass
-
         self.cam_rig = Entity()
         self.menu_rig = Entity(position=(0, 16, 46))
         self.menu_rig.look_at((0, 2, 0))
 
-        self._prog("Игрок и интерфейс...", 0.78)
+        yield ("Игрок и интерфейс...", 0.78)
         self.player = Player(self)
         self.weapon_view_meta = WEAPON_VIEW_META
         self.hud = HUD(self)
         self.director = Director(self)
         self.director.hour = START_HOUR
 
-        self._prog("Транспорт и выжившие...", 0.86)
-        self.zombies = []
-        self.pickups = []
-        self.vehicles = []
+        yield ("Транспорт и выжившие...", 0.86)
         self._spawn_vehicles()
         self.wrecks = spawn_wrecks(self)
-        self.npcs = []
         self._spawn_npcs()
-        self._prog("Разбрасываем припасы...", 0.94)
+
+        yield ("Разбрасываем припасы...", 0.94)
         self.spawn_loot(initial=True)
         self._initial_vehicle_state = [v.to_dict() for v in self.vehicles]
 
+        yield ("Меню...", 0.98)
         self._build_menus()
         self._ready = True
         self.show_menu()
@@ -920,6 +932,16 @@ class Game(Entity):
     def update(self):
         if not getattr(self, "_ready", False):
             return
+        try:
+            self._update_impl()
+        except Exception:
+            import time as _t, traceback as _tb
+            now = _t.time()
+            if now - getattr(self, "_update_err_t", 0.0) > 5.0:
+                self._update_err_t = now
+                print("ERROR in Game.update:\n" + _tb.format_exc(), flush=True)
+
+    def _update_impl(self):
         from ursina import time as utime
         dt = min(0.05, utime.dt)
         if self.state == "menu":
@@ -993,30 +1015,46 @@ class Game(Entity):
             self.save_to("autosave")
 
 
-def _startup_log_file():
-    try:
-        from game.config import user_data_dir
-        return open(os.path.join(user_data_dir(), "startup.log"), "w", encoding="utf-8")
-    except Exception:
-        return None
+# ======================================================================
+# Startup: the engine run loop starts FIRST (splash visible and the
+# window painting from the very first frame), the game then builds in
+# time-sliced steps inside _Loader.update(). v0.1.0 built everything
+# before app.run(); v0.1.1 pumped taskMgr.step() by hand before
+# app.run(). Both could leave a white, unpainted window on Windows.
+# ======================================================================
+
+def _exe_dir():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.getcwd()
 
 
-def _preload_models(progress):
+def _flag_file(name):
+    """Escape-hatch flag files placed next to the EXE (see README):
+    software_render.txt -> CPU renderer if the OpenGL driver is broken;
+    no_audio.txt -> null audio device if audio init hangs."""
+    for base in (_exe_dir(), os.getcwd(), resource_root()):
+        try:
+            if os.path.exists(os.path.join(base, name)):
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _preload_model_steps(lo=0.04, hi=0.34):
     """Pre-convert every .obj into Ursina's mesh cache by DIRECT file path.
 
     Entity(model='assets/.../x.obj') otherwise triggers a recursive
     glob('**/...') over the whole application folder for every model -
-    inside a PyInstaller bundle that is thousands of files per lookup and
-    made the game sit on a white window for minutes on Windows."""
-    import time as _time
+    inside a PyInstaller bundle that is thousands of files per lookup."""
     try:
         from ursina.mesh_importer import imported_meshes, obj_to_ursinamesh
     except Exception:
-        return 0
+        return
     root = Path(resource_root())
     files = sorted((root / "assets" / "models").rglob("*.obj"))
     total = len(files)
-    t0 = _time.time()
     for i, f in enumerate(files):
         key = f.relative_to(root).with_suffix("").as_posix()
         if key not in imported_meshes:
@@ -1031,53 +1069,222 @@ def _preload_models(progress):
                 except Exception:
                     pass
                 imported_meshes[key] = m
-        if progress and (i % 8 == 0 or i == total - 1):
-            progress(f"Загрузка моделей: {i + 1}/{total}", 0.04 + 0.30 * (i + 1) / max(1, total))
-    return total
+        if i % 6 == 0 or i == total - 1:
+            yield (f"Загрузка моделей: {i + 1}/{total}", lo + (hi - lo) * (i + 1) / max(1, total))
 
 
-def run_game(headless=False):
-    import time as _time
-    import faulthandler
-    log_fh = _startup_log_file()
-    boot_t0 = _time.time()
+def _preload_models(progress):
+    n = 0
+    for label, frac in _preload_model_steps():
+        n += 1
+        if progress:
+            progress(label, frac)
+    return n
 
-    def log(msg):
-        line = f"[{_time.time() - boot_t0:7.2f}s] {msg}"
-        print(line, flush=True)
-        if log_fh:
+
+class _Loader(Entity):
+    """Advances the build generator inside the normal run loop, so real
+    frames (with the loading splash) are presented while building."""
+
+    BUDGET = 0.04    # seconds of build work per frame
+
+    def __init__(self, steps_factory, on_progress, on_done, on_error, log):
+        super().__init__()
+        self._factory = steps_factory
+        self._on_progress = on_progress
+        self._on_done = on_done
+        self._on_error = on_error
+        self._log = log
+        self._gen = None
+        self.done = False
+        self.error = None
+        self._first = True
+
+    def update(self):
+        if self.done:
+            return
+        if self._first:
+            self._first = False
+            self._log("first frame presented - run loop is live")
+        import time as _time
+        if self._gen is None:
+            self._gen = self._factory()
+        deadline = _time.time() + self.BUDGET
+        while True:
             try:
-                log_fh.write(line + "\n")
-                log_fh.flush()
-            except Exception:
-                pass
+                label, frac = next(self._gen)
+            except StopIteration:
+                self.done = True
+                self.enabled = False
+                self._on_done()
+                return
+            except Exception as exc:
+                self.done = True
+                self.error = exc
+                self.enabled = False
+                self._on_error(exc)
+                return
+            self._on_progress(label, frac)
+            if _time.time() >= deadline:
+                return
 
-    log("DEAD WORLD: APOCALYPSE starting")
-    if log_fh:
+
+class _GuiTest(Entity):
+    """Automated graphical test run by Windows CI against the BUILT exe
+    (--guitest): real run loop, menu -> new game -> fire -> kill ->
+    save/load -> screenshot must not be a uniform white frame."""
+
+    def __init__(self, app, game, log):
+        super().__init__()
+        import time as _time
+        self.app = app
+        self.game = game
+        self._log = log
+        self.frame = 0
+        self.t0 = _time.time()
+        self._kills_ok = False
+        self.menu_stats = None
+
+    def _marker(self, text):
         try:
-            faulthandler.enable(file=log_fh, all_threads=True)
-            # if startup ever hangs again, dump where after 120s
-            faulthandler.dump_traceback_later(120, repeat=False, file=log_fh)
+            with open(os.path.join(_exe_dir(), "guitest_result.txt"), "w", encoding="utf-8") as f:
+                f.write(text + "\n")
         except Exception:
             pass
 
+    def _fail(self, msg):
+        self._log("GUITEST_FAIL: " + msg)
+        self._marker("GUITEST_FAIL " + msg)
+        os._exit(3)
+
+    def _shot(self, name):
+        from panda3d.core import PNMImage, Filename
+        img = PNMImage()
+        ok = self.app.win.getScreenshot(img)
+        path = os.path.join(_exe_dir(), name)
+        try:
+            img.write(Filename.fromOsSpecific(path))
+        except Exception:
+            pass
+        w, h = img.getXSize(), img.getYSize()
+        samples = []
+        for yy in range(0, max(1, h), 17):
+            for xx in range(0, max(1, w), 17):
+                try:
+                    samples.append(img.getXel(xx, yy))
+                except Exception:
+                    pass
+        if not samples:
+            return dict(ok=False, mean=255.0, distinct=0)
+        mean = sum((c.getX() + c.getY() + c.getZ()) / 3.0 for c in samples) / len(samples)
+        distinct = len({(round(c.getX(), 2), round(c.getY(), 2), round(c.getZ(), 2)) for c in samples})
+        self._log(f"guitest shot {name}: ok={ok} {w}x{h} mean={mean:.3f} distinct={distinct}")
+        return dict(ok=bool(ok), mean=mean, distinct=distinct)
+
+    def update(self):
+        import time as _time
+        try:
+            self.frame += 1
+            g = self.game
+            if _time.time() - self.t0 > 240:
+                self._fail("timeout")
+            if self.frame == 5:
+                assert g.state == "menu", f"expected menu, got {g.state}"
+                # pixel stats recorded into the marker; not asserted here -
+                # the software renderer has no GLSL, so untextured UI quads
+                # render white in this harness even in a healthy build
+                self.menu_stats = self._shot("guitest_menu.png")
+            elif self.frame == 8:
+                g.new_game()
+            elif self.frame == 40:
+                g.player.try_fire()
+            elif self.frame == 70 and g.zombies:
+                z = g.zombies[0]
+                z.damage(120, "head", g.player.pos_xz, (0, 1))
+            elif self.frame == 100:
+                self._kills_ok = g.kills >= 1
+                g.save_to("slot3")
+                g.load_from("slot3")
+            elif self.frame >= 130:
+                stats = self._shot("guitest_game.png")
+                assert g.state == "playing", f"state={g.state}"
+                assert len(g.zombies) > 5, f"zombies={len(g.zombies)}"
+                assert self._kills_ok, "kill was not registered"
+                assert stats["ok"], "screenshot failed"
+                assert stats["mean"] < 0.97, f"frame is (near) white: mean={stats['mean']:.3f}"
+                assert stats["distinct"] > 25, f"frame looks uniform: distinct={stats['distinct']}"
+                m = self.menu_stats or {}
+                summary = (f"GUITEST_OK menu_mean={m.get('mean', -1):.3f} menu_distinct={m.get('distinct', -1)} "
+                           f"game_mean={stats['mean']:.3f} game_distinct={stats['distinct']} "
+                           f"zombies={len(g.zombies)} kills={g.kills} pickups={len(g.pickups)} "
+                           f"vehicles={len(g.vehicles)} day={g.director.day}")
+                self._log(summary)
+                self._marker(summary)
+                os._exit(0)
+        except Exception as exc:
+            import traceback as _tb
+            print(_tb.format_exc(), flush=True)
+            self._fail(str(exc))
+
+
+def run_game(headless=False, guitest=False):
+    import time as _time
+    import faulthandler
+    import traceback as _tb
+    boot_t0 = _time.time()
+
+    def log(msg):
+        try:
+            print(f"[{_time.time() - boot_t0:7.2f}s] {msg}", flush=True)
+        except Exception:
+            pass
+
+    log("DEAD WORLD: APOCALYPSE starting (run_game entered)")
+
     def _excepthook(exc_type, exc, tb):
-        import traceback as _tb
         log("FATAL EXCEPTION:\n" + "".join(_tb.format_exception(exc_type, exc, tb)))
         sys.__excepthook__(exc_type, exc, tb)
 
     sys.excepthook = _excepthook
 
     settings = load_settings()
+    log(f"settings: res={settings.resolution} fullscreen={settings.fullscreen} quality={settings.quality}")
+
+    software = guitest or _flag_file("software_render.txt")
+    no_audio = guitest or _flag_file("no_audio.txt")
+    try:
+        from panda3d.core import loadPrcFileData
+        if software:
+            loadPrcFileData("", "load-display p3tinydisplay\n")
+        if no_audio:
+            loadPrcFileData("", "audio-library-name null\n")
+        if guitest:
+            loadPrcFileData("", "win-size 854 480\n")
+    except Exception:
+        log("PRC setup failed:\n" + _tb.format_exc())
+    log(f"renderer: {'software (tinydisplay)' if software else 'OpenGL'}, no_audio={no_audio}, "
+        f"headless={headless}, guitest={guitest}")
+
     from ursina import Ursina
     kwargs = dict(title="DEAD WORLD: APOCALYPSE", borderless=False,
-                  fullscreen=bool(settings.fullscreen) and not headless,
-                  size=settings.res_tuple(), vsync=True, development_mode=False,
+                  fullscreen=bool(settings.fullscreen) and not headless and not guitest and not software,
+                  size=(854, 480) if (guitest or software) else settings.res_tuple(),
+                  vsync=not guitest, development_mode=False,
                   show_ursina_splash=False, editor_ui_enabled=False)
     if headless:
         kwargs["window_type"] = "none"
+    # CI can force a real on-screen window (software renderer still) via
+    # DW_GUITEST_ONSCREEN=1 - closest to a user launch; offscreen is the
+    # fallback when the runner session cannot create windows.
+    onscreen_test = guitest and os.environ.get("DW_GUITEST_ONSCREEN") == "1"
+    if guitest and not onscreen_test:
+        kwargs["window_type"] = "offscreen"
+    log(f"creating window (onscreen_test={onscreen_test})...")
     app = Ursina(**kwargs)
-    log("window created")
+    try:
+        log(f"window created (pipe={app.pipe}, win={app.win})")
+    except Exception:
+        log("window created")
     if headless and not hasattr(camera, "lens"):
         try:
             from panda3d.core import PerspectiveLens
@@ -1092,15 +1299,14 @@ def run_game(headless=False):
         _ti.folders = [root, root / "assets" / "textures"] + list(_ti.folders)
     except Exception:
         pass
-    # Never write .bam caches at runtime: slow on Windows, pointless with the
-    # in-memory preload below, and fails noisily in read-only install dirs.
+    # Never write .bam caches at runtime: slow on Windows and pointless
+    # with the in-memory preload; read-only install dirs would fail too.
     try:
         import ursina.mesh as _meshmod
         _meshmod.Mesh.save = lambda self, *a, **k: None
     except Exception:
         pass
     # UI font: Ursina's bundled OpenSans already ships Cyrillic glyphs (verified).
-    # A DejaVuSans copy lives in assets/fonts as a fallback if ever needed.
     application.development_mode = False
     window.title = "DEAD WORLD: APOCALYPSE"
     window.exit_button_visible = False
@@ -1110,7 +1316,7 @@ def run_game(headless=False):
     except Exception:
         pass
 
-    # ---- loading splash: first frame immediately, progress while building
+    # ---- loading splash (drawn by the normal run loop from frame #1)
     splash = Entity(parent=camera.ui)
     Entity(parent=splash, model="quad", scale=(3, 2), color=color.rgb(8, 8, 11), z=0.1)
     Text("DEAD WORLD", parent=splash, position=(0, 0.16), origin=(0, 0), scale=2.6,
@@ -1125,29 +1331,64 @@ def run_game(headless=False):
                         scale=(0.001, 0.014), color=color.rgb(214, 60, 44), origin=(-0.5, 0))
     Text("первый запуск может занять до минуты", parent=splash, position=(0, -0.2),
          origin=(0, 0), scale=0.65, color=color.rgb(140, 145, 155))
+    splash_error = Text("", parent=splash, position=(0, -0.28), origin=(0, 0), scale=0.8,
+                        color=color.rgb(255, 120, 100))
+    splash_error.enabled = False
 
-    def progress(msg, frac=0.0):
-        log(f"load {int(frac * 100):3d}%  {msg}")
+    holder = {}
+
+    def _all_steps():
+        yield ("Подготовка...", 0.02)
+        yield from _preload_model_steps()
+        log("models preloaded into cache")
+        game = Game(settings)
+        holder["game"] = game
+        yield from game.build_steps()
+        yield ("Готово", 1.0)
+
+    def on_progress(label, frac):
+        log(f"load {int(frac * 100):3d}%  {label}")
         try:
-            splash_status.text = msg
-            splash_bar.scale_x = max(0.001, 0.52 * min(1.0, frac))
-            splash_bar.x = -0.26 + 0.52 * min(1.0, frac) / 2
-            app.taskMgr.step()   # render splash + pump window events
+            splash_status.text = label
+            f = min(1.0, max(0.0, frac))
+            splash_bar.scale_x = max(0.001, 0.52 * f)
+            splash_bar.x = -0.26 + 0.52 * f / 2
         except Exception:
             pass
 
-    progress("Подготовка...", 0.02)
-    n = _preload_models(progress)
-    log(f"preloaded {n} models")
-    game = Game(settings, progress=progress)
-    progress("Готово", 1.0)
-    destroy(splash)
-    try:
-        faulthandler.cancel_dump_traceback_later()
-    except Exception:
-        pass
-    log(f"startup complete in {_time.time() - boot_t0:.1f}s")
+    def on_done():
+        try:
+            faulthandler.cancel_dump_traceback_later()
+        except Exception:
+            pass
+        destroy(splash)
+        log(f"startup complete in {_time.time() - boot_t0:.1f}s - entering menu")
+        if guitest:
+            _GuiTest(app, holder["game"], log)
+
+    def on_error(exc):
+        log("LOADING FAILED:\n" + "".join(_tb.format_exception(type(exc), exc, exc.__traceback__)))
+        try:
+            from game.config import user_data_dir
+            log_path = os.path.join(user_data_dir(), "startup.log")
+        except Exception:
+            log_path = "startup.log"
+        try:
+            splash_status.text = "Ошибка загрузки игры"
+            splash_error.text = f"{type(exc).__name__}: {exc}\nПодробности: {log_path}"
+            splash_error.enabled = True
+        except Exception:
+            pass
+
+    loader = _Loader(_all_steps, on_progress, on_done, on_error, log)
+    log("entering run loop (loading continues inside it)")
     if headless:
-        return app, game
+        guard = 0
+        while not loader.done and guard < 200000:
+            app.taskMgr.step()
+            guard += 1
+        if loader.error is not None:
+            raise RuntimeError(f"headless loading failed: {loader.error}")
+        return app, holder["game"]
     app.run()
     return None
