@@ -287,7 +287,6 @@ public sealed class LauncherStateController
                 await LaunchEngine.InstallOrRepairVersionAsync(
                     spec,
                     Settings,
-                    forceRepair: spec.State == VersionInstallState.RepairRequired,
                     onStage: st => UpdateProgress(st.StageName, st.OverallProgress),
                     onDownloadItem: RecordDownloadItem,
                     onLog: AppendConsole,
@@ -342,7 +341,6 @@ public sealed class LauncherStateController
             await LaunchEngine.InstallOrRepairVersionAsync(
                 spec,
                 Settings,
-                forceRepair: true,
                 onStage: st => UpdateProgress(st.StageName, st.OverallProgress),
                 onDownloadItem: RecordDownloadItem,
                 onLog: AppendConsole,
