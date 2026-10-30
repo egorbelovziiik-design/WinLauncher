@@ -22,9 +22,8 @@ public sealed class MainWindow : Window
     private readonly Border _topBarBorder = new();
     private readonly Border _footerBarBorder = new();
     private readonly ScrollViewer _pageScroller = new();
-    private readonly StackPanel _navStack = new() { Spacing = 4 };
-    private readonly TextBlock _footerStatusText = new() { FontSize = 12.5, FontWeight = FontWeight.Medium };
-    private readonly ProgressBar _footerProgress = new() { Height = 6, Minimum = 0, Maximum = 1, CornerRadius = new CornerRadius(3) };
+    private readonly TextBlock _footerStatusText = new() { FontSize = 12.5, FontWeight = FontWeight.Medium, VerticalAlignment = VerticalAlignment.Center };
+    private readonly ProgressBar _footerProgress = new() { Height = 6, Minimum = 0, Maximum = 1, CornerRadius = new CornerRadius(3), VerticalAlignment = VerticalAlignment.Center };
 
     public MainWindow() : this(new LauncherStateController()) { }
 
@@ -83,6 +82,12 @@ public sealed class MainWindow : Window
         outerGrid.Children.Add(_pageScroller);
 
         // Sleek Live Progress & Telemetry Footer
+        var footerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,280"), VerticalAlignment = VerticalAlignment.Center };
+        footerGrid.Children.Add(_footerStatusText);
+        Grid.SetColumn(_footerProgress, 1);
+        footerGrid.Children.Add(_footerProgress);
+        _footerBarBorder.Child = footerGrid;
+
         Grid.SetColumn(_footerBarBorder, 1);
         Grid.SetRow(_footerBarBorder, 2);
         outerGrid.Children.Add(_footerBarBorder);
@@ -208,7 +213,7 @@ public sealed class MainWindow : Window
         dock.Children.Add(sysCard);
 
         // Navigation Items
-        _navStack.Children.Clear();
+        var navStack = new StackPanel { Spacing = 4 };
         (LauncherPage Page, string Icon, string LabelRu, string LabelEn)[] items =
         [
             (LauncherPage.Dashboard, "◈", "Главная", "Dashboard"),
@@ -263,14 +268,14 @@ public sealed class MainWindow : Window
             };
             var targetPage = item.Page;
             navBtn.Click += (_, _) => NavigateTo(targetPage);
-            _navStack.Children.Add(navBtn);
+            navStack.Children.Add(navBtn);
         }
 
         dock.Children.Add(new ScrollViewer
         {
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Content = _navStack
+            Content = navStack
         });
         _sidebarBorder.Child = dock;
     }
@@ -337,15 +342,6 @@ public sealed class MainWindow : Window
         _footerProgress.Foreground = AuroraGradient(t, 1.0);
         _footerProgress.Background = BrushOf(t.BgSurface);
         _footerProgress.Value = _state.CurrentProgress;
-
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,280"), VerticalAlignment = VerticalAlignment.Center };
-        _footerStatusText.VerticalAlignment = VerticalAlignment.Center;
-        grid.Children.Add(_footerStatusText);
-
-        _footerProgress.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(_footerProgress, 1);
-        grid.Children.Add(_footerProgress);
-        _footerBarBorder.Child = grid;
     }
 
     private Control BuildDashboardPage(LauncherThemePalette t, bool ru)
