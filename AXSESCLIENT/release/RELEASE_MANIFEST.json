@@ -1,0 +1,44 @@
+{
+  "product": "AXSESCLIENT",
+  "codename": "GENESIS X",
+  "version": "1.0.0",
+  "releaseDirectory": "/home/user/WinLauncher/AXSESCLIENT-RELEASE",
+  "verifiedCiRunId": 41138065290,
+  "deliverables": {
+    "launcherExecutable": {
+      "path": "/home/user/WinLauncher/AXSESCLIENT-RELEASE/AXSESCLIENT.exe",
+      "sizeBytes": 45560586,
+      "sha256": "3d4a5c4036b270b174b0af0f098f90eb884536ce5948c95847bc4053fe743292"
+    },
+    "windowsInstaller": {
+      "path": "/home/user/WinLauncher/AXSESCLIENT-RELEASE/AXSESCLIENT-Setup.exe",
+      "sizeBytes": 41551379,
+      "sha256": "366f8b058b98d9f506a2deb8edb1610d9f750e5dcb5b4ff57607eb6b54b8603a"
+    },
+    "mod1165": {
+      "path": "/home/user/WinLauncher/AXSESCLIENT-RELEASE/AXSESCLIENT-1.16.5.jar",
+      "sizeBytes": 348634,
+      "sha256": "c7828ab63f69005477901d1e5727191e77a1a5f08154f59350a64affa19990cd",
+      "javaBytecodeMajor": 52
+    },
+    "mod1214": {
+      "path": "/home/user/WinLauncher/AXSESCLIENT-RELEASE/AXSESCLIENT-1.21.4.jar",
+      "sizeBytes": 354812,
+      "sha256": "0dddd8ce61b10d55e7c18accb7cfe52cdad20a64f8bfc5382d7211118187bbcc",
+      "javaBytecodeMajor": 65
+    },
+    "mod12111": {
+      "path": "/home/user/WinLauncher/AXSESCLIENT-RELEASE/AXSESCLIENT-1.21.11.jar",
+      "sizeBytes": 356133,
+      "sha256": "be945e263988633270d45a86558d3758b0e0e95a73597d1e589917c97aab121b",
+      "javaBytecodeMajor": 65
+    },
+    "documentation": [
+      "/home/user/WinLauncher/AXSESCLIENT-RELEASE/README.md",
+      "/home/user/WinLauncher/AXSESCLIENT-RELEASE/CHANGELOG.md",
+      "/home/user/WinLauncher/AXSESCLIENT-RELEASE/BUILD_REPORT.md",
+      "/home/user/WinLauncher/AXSESCLIENT-RELEASE/DESIGN_RESEARCH.md",
+      "/home/user/WinLauncher/AXSESCLIENT-RELEASE/LICENSES.md"
+    ]
+  }
+}

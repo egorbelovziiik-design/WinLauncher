@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "minecraftVersion": "1.21.11",
+  "javaRuntime": "21.0.13",
+  "modulesRegistered": 90,
+  "themesRegistered": 8,
+  "activeTheme": "axses-neon",
+  "effectiveGamma": 12.0,
+  "mixinAudit": "PASS"
+}

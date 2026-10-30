@@ -1,0 +1,70 @@
+{
+  "status": "PASS",
+  "executable": "D:\\a\\WinLauncher\\WinLauncher\\AXSESCLIENT-RELEASE\\AXSESCLIENT.exe",
+  "os": "Microsoft Windows 10.0.26100",
+  "modulesCount": 90,
+  "themesCount": 8,
+  "supportedVersions": [
+    "1.16.5",
+    "1.21.4",
+    "1.21.11"
+  ],
+  "dpapiPrefix": "dpapi",
+  "tokenScrubVerified": true,
+  "diagnosticsChecks": [
+    {
+      "Category": "System",
+      "Name": "Operating System \u0026 Architecture",
+      "Passed": true,
+      "Detail": "Microsoft Windows 10.0.26100 (X64, 4 threads)"
+    },
+    {
+      "Category": "System",
+      "Name": "Available System Memory",
+      "Passed": true,
+      "Detail": "16,378 MB detected (.NET 8.0.33)"
+    },
+    {
+      "Category": "Java",
+      "Name": "Java 8 Runtime (for Minecraft 1.16.5)",
+      "Passed": false,
+      "Detail": "Not yet installed (Auto-provisioned on 1.16.5 install)"
+    },
+    {
+      "Category": "Java",
+      "Name": "Java 21 Runtime (for Minecraft 1.21.4 \u0026 1.21.11)",
+      "Passed": false,
+      "Detail": "Not yet installed (Auto-provisioned on 1.21.x install)"
+    },
+    {
+      "Category": "Network",
+      "Name": "Mojang Piston Meta",
+      "Passed": true,
+      "Detail": "HTTP 200 (344 ms)"
+    },
+    {
+      "Category": "Network",
+      "Name": "Fabric Meta API",
+      "Passed": true,
+      "Detail": "HTTP 200 (201 ms)"
+    },
+    {
+      "Category": "Client JARs",
+      "Name": "Minecraft 1.16.5",
+      "Passed": true,
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.16.5.jar verified (340 KB)"
+    },
+    {
+      "Category": "Client JARs",
+      "Name": "Minecraft 1.21.4",
+      "Passed": true,
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.4.jar verified (346 KB)"
+    },
+    {
+      "Category": "Client JARs",
+      "Name": "Minecraft 1.21.11",
+      "Passed": true,
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.11.jar verified (347 KB)"
+    }
+  ]
+}
