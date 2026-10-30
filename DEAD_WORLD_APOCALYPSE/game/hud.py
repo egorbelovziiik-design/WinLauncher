@@ -6,7 +6,7 @@ from ursina import Entity, Text, Button, camera, color, held_keys
 
 from game.data import ITEMS, WEAPONS
 
-BAR_BG = color.rgba(10, 10, 12, 170)
+BAR_BG = color.rgba32(10, 10, 12, 170)
 
 
 def _bar(parent, x, y, w, h, col, label):
@@ -15,7 +15,7 @@ def _bar(parent, x, y, w, h, col, label):
                   color=col, origin=(-0.5, 0))
     fill.x = x - w / 2
     txt = Text(label, parent=parent, position=(x - w / 2 + 0.004, y + h * 0.62), scale=0.72,
-               color=color.rgb(230, 230, 225))
+               color=color.rgb32(230, 230, 225))
     return {"bg": bg, "fill": fill, "w": w, "txt": txt, "x": x}
 
 
@@ -31,87 +31,87 @@ class HUD:
         self.root = Entity(parent=camera.ui)
         ui = self.root
         self.bars = {
-            "health":  _bar(ui, -0.72, -0.40, 0.30, 0.030, color.rgb(196, 44, 40), "ЗДОРОВЬЕ"),
-            "stamina": _bar(ui, -0.72, -0.445, 0.30, 0.022, color.rgb(80, 180, 90), "ВЫНОСЛИВОСТЬ"),
-            "hunger":  _bar(ui, -0.72, -0.482, 0.145, 0.018, color.rgb(220, 150, 60), "ГОЛОД"),
-            "thirst":  _bar(ui, -0.565, -0.482, 0.145, 0.018, color.rgb(70, 150, 220), "ЖАЖДА"),
+            "health":  _bar(ui, -0.72, -0.40, 0.30, 0.030, color.rgb32(196, 44, 40), "ЗДОРОВЬЕ"),
+            "stamina": _bar(ui, -0.72, -0.445, 0.30, 0.022, color.rgb32(80, 180, 90), "ВЫНОСЛИВОСТЬ"),
+            "hunger":  _bar(ui, -0.72, -0.482, 0.145, 0.018, color.rgb32(220, 150, 60), "ГОЛОД"),
+            "thirst":  _bar(ui, -0.565, -0.482, 0.145, 0.018, color.rgb32(70, 150, 220), "ЖАЖДА"),
         }
         self.warn_text = Text("", parent=ui, position=(-0.87, -0.315), scale=0.85,
-                              color=color.rgb(255, 90, 70))
+                              color=color.rgb32(255, 90, 70))
         self.temp_text = Text("", parent=ui, position=(-0.87, -0.345), scale=0.75,
-                              color=color.rgb(200, 205, 215))
+                              color=color.rgb32(200, 205, 215))
         # crosshair
         self.cross = []
         for dx, dy, sx, sy in [(0, 0.018, 0.0022, 0.014), (0, -0.018, 0.0022, 0.014),
                                (0.016, 0, 0.013, 0.0022), (-0.016, 0, 0.013, 0.0022)]:
             self.cross.append(Entity(parent=ui, model="quad", position=(dx, dy),
-                                     scale=(sx, sy), color=color.rgba(240, 240, 235, 200)))
+                                     scale=(sx, sy), color=color.rgba32(240, 240, 235, 200)))
         self.hitmarker = Text("✕", parent=ui, position=(0, 0), origin=(0, 0), scale=1.1,
-                              color=color.rgb(255, 80, 60))
+                              color=color.rgb32(255, 80, 60))
         self.hitmarker.enabled = False
         self.hit_t = 0.0
         # weapon / ammo
         self.weapon_text = Text("", parent=ui, position=(0.86, -0.36), origin=(1, 0), scale=1.0,
-                                color=color.rgb(240, 238, 230))
+                                color=color.rgb32(240, 238, 230))
         self.ammo_text = Text("", parent=ui, position=(0.86, -0.405), origin=(1, 0), scale=1.5,
-                              color=color.rgb(250, 246, 235))
+                              color=color.rgb32(250, 246, 235))
         # hotbar
         self.hotbar_cells = []
         self.hotbar_labels = []
         for i in range(6):
             x = -0.165 + i * 0.066
             cell = Entity(parent=ui, model="quad", position=(x, -0.452), scale=(0.06, 0.06),
-                          color=color.rgba(16, 16, 20, 190))
+                          color=color.rgba32(16, 16, 20, 190))
             num = Text(str(i + 1), parent=ui, position=(x - 0.026, -0.425), scale=0.62,
-                       color=color.rgb(180, 180, 175))
+                       color=color.rgb32(180, 180, 175))
             lab = Text("", parent=ui, position=(x, -0.462), origin=(0, 0), scale=0.55,
-                       color=color.rgb(235, 232, 220))
+                       color=color.rgb32(235, 232, 220))
             self.hotbar_cells.append(cell)
             self.hotbar_labels.append(lab)
         self.hotbar_sel = Entity(parent=ui, model="quad", position=(-0.165, -0.452, 0.01),
-                                 scale=(0.066, 0.066), color=color.rgba(255, 200, 80, 90))
+                                 scale=(0.066, 0.066), color=color.rgba32(255, 200, 80, 90))
         # objective + clock
         self.objective_text = Text("", parent=ui, position=(-0.87, 0.462), scale=0.9,
-                                   color=color.rgb(255, 214, 130))
+                                   color=color.rgb32(255, 214, 130))
         self.clock_text = Text("", parent=ui, position=(-0.87, 0.425), scale=0.85,
-                               color=color.rgb(205, 212, 225))
+                               color=color.rgb32(205, 212, 225))
         self.kill_text = Text("", parent=ui, position=(-0.87, 0.395), scale=0.8,
-                              color=color.rgb(190, 195, 205))
+                              color=color.rgb32(190, 195, 205))
         # prompt + notifications
         self.prompt = Text("", parent=ui, position=(0, -0.16), origin=(0, 0), scale=1.0,
-                           color=color.rgb(255, 240, 200))
+                           color=color.rgb32(255, 240, 200))
         self.notify_big = Text("", parent=ui, position=(0, 0.24), origin=(0, 0), scale=1.7,
-                               color=color.rgb(255, 120, 90))
+                               color=color.rgb32(255, 120, 90))
         self.notify_text = Text("", parent=ui, position=(0, 0.155), origin=(0, 0), scale=1.0,
-                                color=color.rgb(240, 240, 230))
+                                color=color.rgb32(240, 240, 230))
         self.notify_t = 0.0
         self.notify_big_t = 0.0
         # damage vignette + low-hp pulse
         self.vignette = Entity(parent=ui, model="quad", scale=(2.2, 1.3), position=(0, 0, 0.05),
-                               color=color.rgba(160, 0, 0, 0))
+                               color=color.rgba32(160, 0, 0, 0))
         self.vignette_alpha = 0.0
         # minimap
         self.map_bg = Entity(parent=ui, model="quad", position=(0.755, 0.355), scale=(0.21, 0.21),
-                             color=color.rgba(12, 16, 12, 205))
+                             color=color.rgba32(12, 16, 12, 205))
         self.map_player = Entity(parent=ui, model="quad", position=(0.755, 0.355, -0.02),
-                                 scale=(0.012, 0.012), color=color.rgb(255, 255, 255), rotation_z=45)
+                                 scale=(0.012, 0.012), color=color.rgb32(255, 255, 255), rotation_z=45)
         self.map_dots = []
         for _ in range(46):
             d = Entity(parent=ui, model="quad", scale=(0.008, 0.008), position=(0.755, 0.355, -0.02),
-                       color=color.rgb(255, 60, 50), enabled=False)
+                       color=color.rgb32(255, 60, 50), enabled=False)
             self.map_dots.append(d)
         self.map_label = Text("КАРТА", parent=ui, position=(0.755, 0.475), origin=(0, 0), scale=0.65,
-                              color=color.rgb(190, 200, 190))
+                              color=color.rgb32(190, 200, 190))
         # vehicle dash
         self.vehicle_text = Text("", parent=ui, position=(0.86, -0.30), origin=(1, 0), scale=0.95,
-                                 color=color.rgb(170, 220, 255))
+                                 color=color.rgb32(170, 220, 255))
         # boss bar
-        self.boss_bar = _bar(ui, 0.0, 0.40, 0.5, 0.026, color.rgb(160, 30, 160), "ГИГАНТ")
+        self.boss_bar = _bar(ui, 0.0, 0.40, 0.5, 0.026, color.rgb32(160, 30, 160), "ГИГАНТ")
         for part in self.boss_bar.values():
             if hasattr(part, "enabled"):
                 part.enabled = False
         self.fps_text = Text("", parent=ui, position=(0.87, 0.47), origin=(1, 0), scale=0.65,
-                             color=color.rgb(160, 170, 160))
+                             color=color.rgb32(160, 170, 160))
         self.show_fps = False
         # inventory screen
         self.inv_root = Entity(parent=camera.ui, enabled=False)
@@ -124,11 +124,11 @@ class HUD:
     # ---------------------------------------------------------------- inventory
     def _build_inventory(self):
         r = self.inv_root
-        Entity(parent=r, model="quad", scale=(0.86, 0.78), color=color.rgba(14, 15, 18, 240))
+        Entity(parent=r, model="quad", scale=(0.86, 0.78), color=color.rgba32(14, 15, 18, 240))
         Text("ИНВЕНТАРЬ", parent=r, position=(0, 0.345), origin=(0, 0), scale=1.4,
-             color=color.rgb(255, 214, 130))
+             color=color.rgb32(255, 214, 130))
         self.inv_info = Text("", parent=r, position=(-0.4, 0.30), scale=0.8,
-                             color=color.rgb(205, 210, 215))
+                             color=color.rgb32(205, 210, 215))
         self.inv_cells = []
         self.inv_labels = []
         for row in range(4):
@@ -136,33 +136,33 @@ class HUD:
                 x = -0.375 + coln * 0.15
                 y = 0.22 - row * 0.13
                 b = Button(parent=r, text=" ", model="quad", position=(x, y), scale=(0.14, 0.11),
-                           color=color.rgba(34, 36, 42, 255))
+                           color=color.rgba32(34, 36, 42, 255))
                 if b.text_entity:
                     b.text_entity.scale = 0.62
-                    b.text_entity.color = color.rgb(235, 232, 220)
+                    b.text_entity.color = color.rgb32(235, 232, 220)
                 idx = row * 6 + coln
                 b.on_click = (lambda i=idx: self.game.on_inventory_click(i))
                 self.inv_cells.append(b)
         self.inv_ammo = Text("", parent=r, position=(-0.4, -0.30), scale=0.8,
-                             color=color.rgb(205, 210, 215))
+                             color=color.rgb32(205, 210, 215))
         hint = ("ЛКМ — использовать / экипировать    SHIFT+ЛКМ — выбросить\n"
                 "Оружие автоматически попадает на панель быстрого доступа (1–6)")
         Text(hint, parent=r, position=(0, -0.355), origin=(0, 0), scale=0.68,
-             color=color.rgb(160, 165, 175))
+             color=color.rgb32(160, 165, 175))
         sort_b = Button(parent=r, text="Сортировать", position=(0.30, 0.30), scale=(0.17, 0.045),
-                        color=color.rgb(52, 56, 66))
+                        color=color.rgb32(52, 56, 66))
         sort_b.text_entity.scale = 0.8
         sort_b.on_click = self.game.on_inventory_sort
         close_b = Button(parent=r, text="Закрыть (Tab)", position=(0.30, -0.30), scale=(0.17, 0.045),
-                         color=color.rgb(52, 56, 66))
+                         color=color.rgb32(52, 56, 66))
         close_b.text_entity.scale = 0.8
         close_b.on_click = self.game.close_inventory
 
     def _build_help(self):
         r = self.help_root
-        Entity(parent=r, model="quad", scale=(0.8, 0.85), color=color.rgba(12, 13, 16, 242))
+        Entity(parent=r, model="quad", scale=(0.8, 0.85), color=color.rgba32(12, 13, 16, 242))
         Text("УПРАВЛЕНИЕ", parent=r, position=(0, 0.37), origin=(0, 0), scale=1.3,
-             color=color.rgb(255, 214, 130))
+             color=color.rgb32(255, 214, 130))
         lines = [
             "WASD — движение, мышь — обзор",
             "SHIFT — спринт (шум привлекает зомби!)",
@@ -182,22 +182,22 @@ class HUD:
             "Ночью холодно и темно. Держитесь света фонарей.",
         ]
         Text("\n".join(lines), parent=r, position=(-0.36, 0.31), scale=0.78,
-             color=color.rgb(225, 228, 232))
+             color=color.rgb32(225, 228, 232))
 
     # ---------------------------------------------------------------- runtime
     def notify(self, msg, bad=False, big=False):
         if big:
             self.notify_big.text = msg
-            self.notify_big.color = color.rgb(255, 110, 80) if bad else color.rgb(255, 214, 130)
+            self.notify_big.color = color.rgb32(255, 110, 80) if bad else color.rgb32(255, 214, 130)
             self.notify_big_t = 3.2
         else:
             self.notify_text.text = msg
-            self.notify_text.color = color.rgb(255, 130, 100) if bad else color.rgb(240, 240, 230)
+            self.notify_text.color = color.rgb32(255, 130, 100) if bad else color.rgb32(240, 240, 230)
             self.notify_t = 3.4
 
     def show_hitmarker(self, kill=False):
         self.hitmarker.enabled = True
-        self.hitmarker.color = color.rgb(255, 60, 40) if kill else color.rgb(255, 220, 120)
+        self.hitmarker.color = color.rgb32(255, 60, 40) if kill else color.rgb32(255, 220, 120)
         self.hit_t = 0.16
 
     def hurt_flash(self, amount=0.45):
@@ -210,10 +210,10 @@ class HUD:
                 name = ITEMS[s["id"]]["name"]
                 cnt = f"\nx{s['count']}" if s["count"] > 1 else ""
                 cell.text = name + cnt
-                cell.color = color.rgba(44, 48, 58, 255)
+                cell.color = color.rgba32(44, 48, 58, 255)
             else:
                 cell.text = ""
-                cell.color = color.rgba(26, 27, 32, 255)
+                cell.color = color.rgba32(26, 27, 32, 255)
         self.inv_info.text = f"Вес: {inv.total_weight():.1f} / {inv.max_weight:.0f} кг"
         am = inv.ammo
         self.inv_ammo.text = (f"9мм: {am['ammo_9mm']}    5.56: {am['ammo_rifle']}    "
@@ -255,7 +255,7 @@ class HUD:
                 mag = game.inventory.mags.get(wid, 0)
                 reserve = game.inventory.ammo.get(w["ammo"], 0)
                 self.ammo_text.text = f"{mag} / {reserve}"
-                self.ammo_text.color = color.rgb(255, 90, 70) if mag == 0 else color.rgb(250, 246, 235)
+                self.ammo_text.color = color.rgb32(255, 90, 70) if mag == 0 else color.rgb32(250, 246, 235)
             else:
                 self.ammo_text.text = "—"
         else:
@@ -289,7 +289,7 @@ class HUD:
         pulse = 0.22 + 0.1 * math.sin(game.time_played * 4.2) if st.health < 32 else 0.0
         self.vignette_alpha = max(0.0, self.vignette_alpha - dt * 1.4)
         a = int(255 * min(0.8, max(self.vignette_alpha, pulse)))
-        self.vignette.color = color.rgba(160, 0, 0, a)
+        self.vignette.color = color.rgba32(160, 0, 0, a)
 
         # minimap
         p = game.player_pos()
@@ -322,16 +322,16 @@ class HUD:
 
         for z in game.zombies:
             if not z.dead:
-                place(z.root.x, z.root.z, color.rgb(255, 60, 50),
+                place(z.root.x, z.root.z, color.rgb32(255, 60, 50),
                       0.013 if z.cfg.get("boss") else 0.008)
         for v in game.vehicles:
             if v.drivable:
-                place(v.body.x, v.body.z, color.rgb(90, 170, 255), 0.01)
+                place(v.body.x, v.body.z, color.rgb32(90, 170, 255), 0.01)
         for npc in game.npcs:
-            place(npc.root.x, npc.root.z, color.rgb(110, 255, 140), 0.009)
+            place(npc.root.x, npc.root.z, color.rgb32(110, 255, 140), 0.009)
         mark = game.objective_marker()
         if mark:
-            place(mark[0], mark[1], color.rgb(255, 214, 90), 0.012)
+            place(mark[0], mark[1], color.rgb32(255, 214, 90), 0.012)
         for k in range(di, len(dots)):
             dots[k].enabled = False
 

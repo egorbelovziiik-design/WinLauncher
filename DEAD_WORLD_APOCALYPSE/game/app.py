@@ -95,12 +95,18 @@ class Game(Entity):
 
         yield ("Небо и свет...", 0.75)
         self.sky = Sky()
+        if getattr(self, "_no_glsl", False):
+            try:
+                self.sky.shader = None   # fixed-function sky on GLSL-less renderers
+            except Exception:
+                pass
         camera.clip_plane_far = max(400.0, settings.view_distance * 2.0)
-        self.sun = DirectionalLight(shadows=bool(settings.shadows))
+        self.sun = DirectionalLight(
+            shadows=bool(settings.shadows) and not getattr(self, "_no_glsl", False))
         self.sun.shadow_map_resolution = (2048, 2048) if settings.quality == "high" else (1024, 1024)
         self.sun.look_at(Entity(position=(0, -1, 0.35)))
         self.ambient = AmbientLight()
-        self.ambient.color = color.rgba(140, 150, 170, 255)
+        self.ambient.color = color.rgba32(140, 150, 170, 255)
         try:
             self.sun.update_bounds()
         except Exception:
@@ -181,9 +187,9 @@ class Game(Entity):
     # ------------------------------------------------------------------ menus / screens
     def _btn(self, parent, text, y, cb, x=0.0, w=0.34, h=0.052, col=None, scale=0.95):
         b = Button(parent=parent, text=text, position=(x, y), scale=(w, h),
-                   color=col or color.rgb(46, 28, 26))
+                   color=col or color.rgb32(46, 28, 26))
         b.text_entity.scale = scale
-        b.text_entity.color = color.rgb(245, 238, 226)
+        b.text_entity.color = color.rgb32(245, 238, 226)
         b.on_click = lambda: (self.audio.play("ui_click", 0.7), cb())
         return b
 
@@ -192,13 +198,13 @@ class Game(Entity):
         # ---- main menu
         self.menu_root = Entity(parent=ui)
         Entity(parent=self.menu_root, model="quad", scale=(2.4, 1.4), position=(0, 0, 0.2),
-               color=color.rgba(6, 4, 5, 168))
+               color=color.rgba32(6, 4, 5, 168))
         Text("DEAD WORLD", parent=self.menu_root, position=(0, 0.34), origin=(0, 0), scale=3.2,
-             color=color.rgb(214, 40, 34))
+             color=color.rgb32(214, 40, 34))
         Text("A P O C A L Y P S E", parent=self.menu_root, position=(0, 0.255), origin=(0, 0), scale=1.5,
-             color=color.rgb(232, 224, 206))
+             color=color.rgb32(232, 224, 206))
         Text("зомби-выживание в открытом мире", parent=self.menu_root, position=(0, 0.20),
-             origin=(0, 0), scale=0.9, color=color.rgb(170, 168, 160))
+             origin=(0, 0), scale=0.9, color=color.rgb32(170, 168, 160))
         self._btn(self.menu_root, "НОВАЯ ИГРА", 0.10, self.new_game)
         self.menu_continue = self._btn(self.menu_root, "ПРОДОЛЖИТЬ", 0.035, self.continue_game)
         self._btn(self.menu_root, "ЗАГРУЗИТЬ ИГРУ", -0.03, lambda: self.show_load("menu"))
@@ -208,14 +214,14 @@ class Game(Entity):
         from game import __version__
         Text(f"v{__version__} • Ursina/Panda3D • модели: Blender 4.2 (процедурно)",
              parent=self.menu_root, position=(0, -0.44), origin=(0, 0), scale=0.68,
-             color=color.rgb(140, 140, 135))
+             color=color.rgb32(140, 140, 135))
 
         # ---- pause
         self.pause_root = Entity(parent=ui, enabled=False)
         Entity(parent=self.pause_root, model="quad", scale=(2.4, 1.4), position=(0, 0, 0.2),
-               color=color.rgba(5, 5, 8, 175))
+               color=color.rgba32(5, 5, 8, 175))
         Text("ПАУЗА", parent=self.pause_root, position=(0, 0.30), origin=(0, 0), scale=2.0,
-             color=color.rgb(240, 236, 226))
+             color=color.rgb32(240, 236, 226))
         self._btn(self.pause_root, "ПРОДОЛЖИТЬ", 0.19, self.resume)
         self._btn(self.pause_root, "СОХРАНИТЬ (Слот 1)", 0.125, lambda: self.save_to("slot1", notify=True))
         self._btn(self.pause_root, "ЗАГРУЗИТЬ", 0.06, lambda: self.show_load("paused"))
@@ -226,9 +232,9 @@ class Game(Entity):
         # ---- load screen
         self.load_root = Entity(parent=ui, enabled=False)
         Entity(parent=self.load_root, model="quad", scale=(0.95, 0.8), position=(0, 0, 0.15),
-               color=color.rgba(12, 12, 16, 245))
+               color=color.rgba32(12, 12, 16, 245))
         Text("ЗАГРУЗКА ИГРЫ", parent=self.load_root, position=(0, 0.32), origin=(0, 0), scale=1.5,
-             color=color.rgb(255, 214, 130))
+             color=color.rgb32(255, 214, 130))
         self.load_buttons = []
         for i in range(4):
             b = self._btn(self.load_root, "—", 0.22 - i * 0.085, lambda: None, w=0.8, h=0.068, scale=0.8)
@@ -239,11 +245,11 @@ class Game(Entity):
         # ---- death screen
         self.death_root = Entity(parent=ui, enabled=False)
         Entity(parent=self.death_root, model="quad", scale=(2.4, 1.4), position=(0, 0, 0.2),
-               color=color.rgba(24, 2, 2, 200))
+               color=color.rgba32(24, 2, 2, 200))
         Text("ВЫ МЕРТВЫ", parent=self.death_root, position=(0, 0.26), origin=(0, 0), scale=3.0,
-             color=color.rgb(214, 40, 34))
+             color=color.rgb32(214, 40, 34))
         self.death_stats = Text("", parent=self.death_root, position=(0, 0.12), origin=(0, 0),
-                                scale=1.0, color=color.rgb(235, 230, 220))
+                                scale=1.0, color=color.rgb32(235, 230, 220))
         self._btn(self.death_root, "НОВАЯ ИГРА", -0.02, self.new_game)
         self._btn(self.death_root, "ЗАГРУЗИТЬ", -0.085, lambda: self.show_load("dead"))
         self._btn(self.death_root, "В ГЛАВНОЕ МЕНЮ", -0.15, self.to_main_menu)
@@ -251,9 +257,9 @@ class Game(Entity):
         # ---- settings screen
         self.settings_root = Entity(parent=ui, enabled=False)
         Entity(parent=self.settings_root, model="quad", scale=(1.05, 0.9), position=(0, 0, 0.15),
-               color=color.rgba(12, 13, 17, 248))
+               color=color.rgba32(12, 13, 17, 248))
         Text("НАСТРОЙКИ", parent=self.settings_root, position=(0, 0.385), origin=(0, 0), scale=1.6,
-             color=color.rgb(255, 214, 130))
+             color=color.rgb32(255, 214, 130))
         self.set_buttons = {}
         rows = [
             ("resolution", "Разрешение (перезапуск)"), ("fullscreen", "Полноэкранный режим"),
@@ -266,11 +272,11 @@ class Game(Entity):
         for i, (key, label) in enumerate(rows):
             y = 0.31 - i * 0.052
             Text(label, parent=self.settings_root, position=(-0.47, y), scale=0.75,
-                 color=color.rgb(220, 224, 230))
+                 color=color.rgb32(220, 224, 230))
             minus = self._btn(self.settings_root, "−", y, (lambda k=key: self.setting_step(k, -1)),
                               x=0.13, w=0.045, h=0.04, scale=1.0)
             val = Text("", parent=self.settings_root, position=(0.30, y), origin=(0, 0), scale=0.8,
-                       color=color.rgb(255, 230, 170))
+                       color=color.rgb32(255, 230, 170))
             plus = self._btn(self.settings_root, "+", y, (lambda k=key: self.setting_step(k, 1)),
                              x=0.47, w=0.045, h=0.04, scale=1.0)
             self.set_buttons[key] = val
@@ -278,7 +284,7 @@ class Game(Entity):
         Text("Управление: WASD движение • мышь обзор • ЛКМ огонь • ПКМ прицел • E действие\n"
              "R перезарядка • Tab инвентарь • Shift спринт • Ctrl пригнуться • L фонарь • F1 справка",
              parent=self.settings_root, position=(0, -0.435), origin=(0, 0), scale=0.62,
-             color=color.rgb(150, 155, 165))
+             color=color.rgb32(150, 155, 165))
 
     # ------------------------------------------------------------------ screen flow
     @staticmethod
@@ -303,7 +309,7 @@ class Game(Entity):
         self.hud.help_root.enabled = False
         self.menu_root.enabled = True
         has = save_system.has_continue()
-        self.menu_continue.color = color.rgb(46, 28, 26) if has else color.rgb(30, 30, 34)
+        self.menu_continue.color = color.rgb32(46, 28, 26) if has else color.rgb32(30, 30, 34)
         camera.parent = self.menu_rig
         camera.position = (0, 0, 0)
         camera.rotation = (0, 0, 0)
@@ -376,11 +382,11 @@ class Game(Entity):
             if info:
                 b.text = (f"{names[slot]} — день {info['day']}, убийств: {info['kills']}, "
                           f"HP {info['hp']} ({info['saved_at']})")
-                b.color = color.rgb(46, 28, 26)
+                b.color = color.rgb32(46, 28, 26)
                 b.on_click = (lambda s=slot: (self.audio.play("ui_click", 0.7), self.load_from(s)))
             else:
                 b.text = f"{names[slot]} — пусто"
-                b.color = color.rgb(30, 30, 34)
+                b.color = color.rgb32(30, 30, 34)
                 b.on_click = lambda: None
 
     def load_back(self):
@@ -861,8 +867,8 @@ class Game(Entity):
 
     # ------------------------------------------------------------------ environment
     def apply_environment(self, sky_rgb, fog_rgb, sun_rgb, sun_i, amb_i, fog_density, hour):
-        self.sky.color = color.rgb(int(sky_rgb[0]), int(sky_rgb[1]), int(sky_rgb[2]))
-        scene.fog_color = color.rgb(int(fog_rgb[0]), int(fog_rgb[1]), int(fog_rgb[2]))
+        self.sky.color = color.rgb32(int(sky_rgb[0]), int(sky_rgb[1]), int(sky_rgb[2]))
+        scene.fog_color = color.rgb32(int(fog_rgb[0]), int(fog_rgb[1]), int(fog_rgb[2]))
         scene.fog_density = float(fog_density)
         # sun path: east (morning) -> west (evening); dim blue "moon" at night
         ang = (hour - 6.0) / 12.0 * math.pi
@@ -1157,6 +1163,14 @@ class _GuiTest(Entity):
         self._marker("GUITEST_FAIL " + msg)
         os._exit(3)
 
+    def _renderer_tag(self):
+        try:
+            gsg = self.app.win.gsg
+            return (f"pipe={self.app.pipe.getType()} vendor={gsg.getDriverVendor()!r} "
+                    f"version={gsg.getDriverVersion()!r} glsl={bool(gsg.getSupportsGlsl())}")
+        except Exception as e:
+            return f"unknown({e})"
+
     def _shot(self, name):
         from panda3d.core import PNMImage, Filename
         img = PNMImage()
@@ -1207,6 +1221,9 @@ class _GuiTest(Entity):
                 g.load_from("slot3")
             elif self.frame >= 130:
                 stats = self._shot("guitest_game.png")
+                m = self.menu_stats or {}
+                assert m.get("mean", 1.0) < 0.95 and m.get("distinct", 0) > 10, \
+                    f"MENU FRAME IS BLANK/WHITE: menu stats={m} (color-scale regression?)"
                 assert g.state == "playing", f"state={g.state}"
                 assert len(g.zombies) > 5, f"zombies={len(g.zombies)}"
                 assert self._kills_ok, "kill was not registered"
@@ -1214,7 +1231,7 @@ class _GuiTest(Entity):
                 assert stats["mean"] < 0.97, f"frame is (near) white: mean={stats['mean']:.3f}"
                 assert stats["distinct"] > 25, f"frame looks uniform: distinct={stats['distinct']}"
                 m = self.menu_stats or {}
-                summary = (f"GUITEST_OK menu_mean={m.get('mean', -1):.3f} menu_distinct={m.get('distinct', -1)} "
+                summary = (f"GUITEST_OK renderer={self._renderer_tag()} menu_mean={m.get('mean', -1):.3f} menu_distinct={m.get('distinct', -1)} "
                            f"game_mean={stats['mean']:.3f} game_distinct={stats['distinct']} "
                            f"zombies={len(g.zombies)} kills={g.kills} pickups={len(g.pickups)} "
                            f"vehicles={len(g.vehicles)} day={g.director.day}")
@@ -1250,7 +1267,8 @@ def run_game(headless=False, guitest=False):
     settings = load_settings()
     log(f"settings: res={settings.resolution} fullscreen={settings.fullscreen} quality={settings.quality}")
 
-    software = guitest or _flag_file("software_render.txt")
+    gl_test = guitest and os.environ.get("DW_GUITEST_GL") == "1"
+    software = (guitest and not gl_test) or _flag_file("software_render.txt")
     no_audio = guitest or _flag_file("no_audio.txt")
     try:
         from panda3d.core import loadPrcFileData
@@ -1276,15 +1294,22 @@ def run_game(headless=False, guitest=False):
     # CI can force a real on-screen window (software renderer still) via
     # DW_GUITEST_ONSCREEN=1 - closest to a user launch; offscreen is the
     # fallback when the runner session cannot create windows.
-    onscreen_test = guitest and os.environ.get("DW_GUITEST_ONSCREEN") == "1"
+    onscreen_test = gl_test or (guitest and os.environ.get("DW_GUITEST_ONSCREEN") == "1")
     if guitest and not onscreen_test:
         kwargs["window_type"] = "offscreen"
     log(f"creating window (onscreen_test={onscreen_test})...")
     app = Ursina(**kwargs)
+    no_glsl = False
     try:
-        log(f"window created (pipe={app.pipe}, win={app.win})")
+        _gsg = app.win.gsg
+        _glsl = bool(_gsg.getSupportsGlsl())
+        no_glsl = not _glsl
+        log(f"window created pipe={app.pipe.getType()} vendor={_gsg.getDriverVendor()!r} "
+            f"version={_gsg.getDriverVersion()!r} glsl={_glsl}")
+        if no_glsl:
+            log("GLSL unsupported on this renderer - compat mode: shadows off, sky fixed-function")
     except Exception:
-        log("window created")
+        log("window created (renderer caps unavailable):\n" + _tb.format_exc())
     if headless and not hasattr(camera, "lens"):
         try:
             from panda3d.core import PerspectiveLens
@@ -1308,31 +1333,34 @@ def run_game(headless=False, guitest=False):
         pass
     # UI font: Ursina's bundled OpenSans already ships Cyrillic glyphs (verified).
     application.development_mode = False
-    window.title = "DEAD WORLD: APOCALYPSE"
+    from game import __version__ as _ver
+    window.title = f"DEAD WORLD: APOCALYPSE v{_ver}"
     window.exit_button_visible = False
     window.fps_counter_enabled = False
     try:
-        window.clear_color = color.rgb(8, 8, 11)
+        window.clear_color = color.rgb32(8, 8, 11)
     except Exception:
         pass
 
     # ---- loading splash (drawn by the normal run loop from frame #1)
     splash = Entity(parent=camera.ui)
-    Entity(parent=splash, model="quad", scale=(3, 2), color=color.rgb(8, 8, 11), z=0.1)
+    Entity(parent=splash, model="quad", scale=(3, 2), color=color.rgb32(8, 8, 11), z=0.1)
     Text("DEAD WORLD", parent=splash, position=(0, 0.16), origin=(0, 0), scale=2.6,
-         color=color.rgb(214, 40, 34))
+         color=color.rgb32(214, 40, 34))
     Text("APOCALYPSE", parent=splash, position=(0, 0.085), origin=(0, 0), scale=1.3,
-         color=color.rgb(232, 224, 206))
+         color=color.rgb32(232, 224, 206))
     splash_status = Text("Загрузка...", parent=splash, position=(0, -0.06), origin=(0, 0),
-                         scale=0.95, color=color.rgb(205, 210, 215))
+                         scale=0.95, color=color.rgb32(205, 210, 215))
     Entity(parent=splash, model="quad", position=(0, -0.13), scale=(0.52, 0.02),
-           color=color.rgb(34, 34, 40))
+           color=color.rgb32(34, 34, 40))
     splash_bar = Entity(parent=splash, model="quad", position=(-0.26, -0.13, -0.01),
-                        scale=(0.001, 0.014), color=color.rgb(214, 60, 44), origin=(-0.5, 0))
+                        scale=(0.001, 0.014), color=color.rgb32(214, 60, 44), origin=(-0.5, 0))
     Text("первый запуск может занять до минуты", parent=splash, position=(0, -0.2),
-         origin=(0, 0), scale=0.65, color=color.rgb(140, 145, 155))
+         origin=(0, 0), scale=0.65, color=color.rgb32(140, 145, 155))
+    Text(f"v{_ver}", parent=splash, position=(0.42, -0.44), origin=(0, 0), scale=0.7,
+         color=color.rgb32(150, 155, 165))
     splash_error = Text("", parent=splash, position=(0, -0.28), origin=(0, 0), scale=0.8,
-                        color=color.rgb(255, 120, 100))
+                        color=color.rgb32(255, 120, 100))
     splash_error.enabled = False
 
     holder = {}
@@ -1342,6 +1370,7 @@ def run_game(headless=False, guitest=False):
         yield from _preload_model_steps()
         log("models preloaded into cache")
         game = Game(settings)
+        game._no_glsl = no_glsl
         holder["game"] = game
         yield from game.build_steps()
         yield ("Готово", 1.0)

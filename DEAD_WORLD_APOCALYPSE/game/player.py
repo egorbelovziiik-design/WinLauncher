@@ -36,7 +36,7 @@ class Player:
 
         # flashlight
         self.flashlight = SpotLight(parent=self.head, position=(0.15, -0.1, 0.2))
-        self.flashlight.color = color.rgb(255, 240, 205)
+        self.flashlight.color = color.rgb32(255, 240, 205)
         try:
             self.flashlight._light.setAttenuation((0.4, 0.08, 0.02))
             lens = self.flashlight._light.get_lens()
@@ -59,19 +59,19 @@ class Player:
         self.recoil = 0.0
         self.aiming = False
         self.muzzle = Entity(parent=camera, model="quad", scale=0.22,
-                             color=color.rgba(255, 255, 255, 0), billboard=True,
+                             color=color.rgba32(255, 255, 255, 0), billboard=True,
                              double_sided=True, enabled=False)
         self.muzzle.texture = game.tex("muzzle_flash.png")
         self.muzzle_t = 0.0
         # tracers pool
         self.tracers = []
         for _ in range(10):
-            t = Entity(model="cube", color=color.rgba(255, 230, 160, 160), enabled=False, unlit=True)
+            t = Entity(model="cube", color=color.rgba32(255, 230, 160, 160), enabled=False, unlit=True)
             self.tracers.append({"e": t, "ttl": 0.0})
         # blood decals pool
         self.blood = []
         for _ in range(36):
-            b = Entity(model="quad", rotation_x=90, y=0.045, color=color.rgba(255, 255, 255, 235),
+            b = Entity(model="quad", rotation_x=90, y=0.045, color=color.rgba32(255, 255, 255, 235),
                        enabled=False)
             b.texture = game.tex("blood_splat.png")
             self.blood.append(b)

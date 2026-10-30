@@ -45,17 +45,20 @@ jobs:
         timeout-minutes: 12
         run: |
           cd dist/DeadWorldApocalypse
-          function Run-GuiTest($onscreen) {
+          function Run-GuiTest($mode) {
             Remove-Item guitest_result.txt -ErrorAction SilentlyContinue
-            if ($onscreen) { $env:DW_GUITEST_ONSCREEN = "1" } else { Remove-Item Env:DW_GUITEST_ONSCREEN -ErrorAction SilentlyContinue }
+            Remove-Item Env:DW_GUITEST_ONSCREEN -ErrorAction SilentlyContinue
+            Remove-Item Env:DW_GUITEST_GL -ErrorAction SilentlyContinue
+            if ($mode -eq "onscreen") { $env:DW_GUITEST_ONSCREEN = "1" }
+            if ($mode -eq "gl") { $env:DW_GUITEST_GL = "1" }
             $p = Start-Process -PassThru -NoNewWindow -FilePath .\DeadWorldApocalypse.exe -ArgumentList "--guitest"
             if (-not $p.WaitForExit(300000)) { Write-Host "guitest timed out after 300s - killing"; $p.Kill(); return $false }
             Write-Host "exe exit code: $($p.ExitCode)"
             return (Test-Path guitest_result.txt)
           }
-          $ok = Run-GuiTest $true
+          $ok = Run-GuiTest "onscreen"
           $mode = "onscreen"
-          if (-not $ok) { Write-Host "onscreen guitest unavailable/failed - retrying offscreen"; $ok = Run-GuiTest $false; $mode = "offscreen" }
+          if (-not $ok) { Write-Host "onscreen guitest unavailable/failed - retrying offscreen"; $ok = Run-GuiTest "offscreen"; $mode = "offscreen" }
           $c = ""
           if (Test-Path guitest_result.txt) {
             $c = (Get-Content guitest_result.txt -Raw).Trim()
@@ -63,13 +66,28 @@ jobs:
             Write-Host "::warning title=GUITEST ${mode}::$c"
           }
           New-Item -ItemType Directory -Force ../../guitest_evidence | Out-Null
-          Copy-Item guitest_menu.png, guitest_game.png ../../guitest_evidence/ -ErrorAction SilentlyContinue
+          Copy-Item guitest_menu.png ../../guitest_evidence/tiny_menu.png -ErrorAction SilentlyContinue
+          Copy-Item guitest_game.png ../../guitest_evidence/tiny_game.png -ErrorAction SilentlyContinue
+          # second pass: the REAL OpenGL pipe of the frozen EXE (renderer = whatever
+          # this Windows box provides; catches missing pandagl / broken GL paths).
+          # Non-blocking for the release, but reported as a visible annotation.
+          $glok = Run-GuiTest "gl"
+          $cgl = ""
+          if (Test-Path guitest_result.txt) {
+            $cgl = (Get-Content guitest_result.txt -Raw).Trim()
+            Write-Host $cgl
+            Write-Host "::warning title=GUITEST gl::$cgl"
+          } else {
+            Write-Host "::error title=GUITEST gl::no marker file - OpenGL run failed or hung (startup.log in evidence)"
+          }
+          Copy-Item guitest_menu.png ../../guitest_evidence/gl_menu.png -ErrorAction SilentlyContinue
+          Copy-Item guitest_game.png ../../guitest_evidence/gl_game.png -ErrorAction SilentlyContinue
           $logp = Join-Path $env:APPDATA "DeadWorldApocalypse\startup.log"
-          if (Test-Path $logp) { Copy-Item $logp ../../guitest_evidence/ -ErrorAction SilentlyContinue; Write-Host "--- startup.log (tail) ---"; Get-Content $logp -Tail 30 }
+          if (Test-Path $logp) { Copy-Item $logp ../../guitest_evidence/ -ErrorAction SilentlyContinue; Write-Host "--- startup.log (tail, gl run) ---"; Get-Content $logp -Tail 30 }
           Remove-Item guitest_result.txt, guitest_menu.png, guitest_game.png -ErrorAction SilentlyContinue
           if (-not $ok) { throw "guitest_result.txt missing - EXE graphical startup failed or hung" }
           if ($c -notmatch "GUITEST_OK") { throw "EXE guitest failed: $c" }
-          Write-Host "EXE guitest PASSED ($mode)"
+          Write-Host "EXE guitest PASSED ($mode); OpenGL pass: $glok"
 
       - name: Upload guitest evidence (screenshots + startup.log)
         if: always()
@@ -85,6 +103,7 @@ jobs:
           New-Item -ItemType Directory -Force DEAD_WORLD_APOCALYPSE_RELEASE | Out-Null
           Copy-Item -Recurse dist/DeadWorldApocalypse DEAD_WORLD_APOCALYPSE_RELEASE/DeadWorldApocalypse
           Copy-Item README.md DEAD_WORLD_APOCALYPSE_RELEASE/
+          Copy-Item get_log.bat DEAD_WORLD_APOCALYPSE_RELEASE/DeadWorldApocalypse/
           Copy-Item docs/BUILD.md DEAD_WORLD_APOCALYPSE_RELEASE/
           Get-ChildItem DEAD_WORLD_APOCALYPSE_RELEASE/DeadWorldApocalypse | Select-Object -First 20
 
@@ -118,11 +137,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $tag = "deadworld-v0.1.2"
+          $tag = "deadworld-v0.1.3"
           $zip = "DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE.zip"
           gh release view $tag 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.2 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
+            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.3 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
           }
           gh release upload $tag $zip --clobber
           Write-Host "Release updated: $tag"

@@ -67,7 +67,7 @@ class Director:
         n = self.game.settings.particle_count()
         for _ in range(n):
             e = Entity(model="cube", scale=(0.014, 0.55, 0.014),
-                       color=color.rgba(170, 195, 225, 150), enabled=False, unlit=True)
+                       color=color.rgba32(170, 195, 225, 150), enabled=False, unlit=True)
             self.rain_drops.append(e)
 
     # ------------------------------------------------------------------ noise

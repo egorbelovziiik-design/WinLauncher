@@ -80,7 +80,7 @@ class Pickup:
         self.taken = False
         # soft glow marker so loot is readable at night
         self.glow = Entity(parent=self.entity, model="circle", scale=0.5,
-                           color=color.rgba(255, 220, 120, 60), billboard=True, y=0.1)
+                           color=color.rgba32(255, 220, 120, 60), billboard=True, y=0.1)
 
     def update(self, dt):
         if self.taken:
@@ -210,7 +210,7 @@ class World:
         T = g.tex
         # ground
         ground = Entity(model="plane", scale=(WORLD_SIZE + 60, 1, WORLD_SIZE + 60),
-                        texture=T("grass.png"), texture_scale=(110, 110), color=color.rgb(150, 160, 140))
+                        texture=T("grass.png"), texture_scale=(110, 110), color=color.rgb32(150, 160, 140))
         self.ground = ground
         # roads
         road_specs = []
@@ -223,14 +223,14 @@ class World:
         for (x, z, w, d) in road_specs:
             Entity(model="plane", position=(x, 0.02, z), scale=(w, 1, d),
                    texture=T("asphalt.png"), texture_scale=(max(2, w // 9), max(2, d // 9)),
-                   color=color.rgb(120, 120, 125))
+                   color=color.rgb32(120, 120, 125))
         # plaza at spawn
         Entity(model="plane", position=(0, 0.03, 14), scale=(26, 1, 26),
                texture=T("concrete.png"), texture_scale=(8, 8))
         # dirt patches in forest / industrial
         for (x, z, s) in [(-112, 42, 90), (100, 62, 80), (40, -118, 70)]:
             Entity(model="plane", position=(x, 0.015, z), scale=(s, 1, s),
-                   texture=T("dirt.png"), texture_scale=(24, 24), color=color.rgb(140, 128, 108))
+                   texture=T("dirt.png"), texture_scale=(24, 24), color=color.rgb32(140, 128, 108))
 
         steps = [
             ("Строим город...", self._place_buildings),
@@ -306,8 +306,8 @@ class World:
         """A small house with real interior: walls, roof, breakable door, loot."""
         x, z = pos
         Wd, D, H, t = 8.0, 7.0, 3.1, 0.25
-        wall_c = color.rgb(150, 132, 110)
-        roof_c = color.rgb(96, 58, 44)
+        wall_c = color.rgb32(150, 132, 110)
+        roof_c = color.rgb32(96, 58, 44)
 
         def wall(w, h, d, px, py, pz, tex="brick.png"):
             e = Entity(model="cube", scale=(w, h, d), position=(px, py, pz),
@@ -325,11 +325,11 @@ class World:
         roof = Entity(model="cube", scale=(Wd + 0.7, 0.18, D + 0.7), position=(x, H + 0.09, z),
                       color=roof_c)
         floor = Entity(model="cube", scale=(Wd, 0.06, D), position=(x, 0.03, z),
-                       texture=self.game.tex("wood.png"), color=color.rgb(130, 110, 88))
+                       texture=self.game.tex("wood.png"), color=color.rgb32(130, 110, 88))
         # window holes faked with dark quads
         for dx in (-2.4, 2.4):
             Entity(model="quad", scale=(1.1, 1.0), position=(x + dx, 1.7, z - D / 2 - 0.14),
-                   color=color.rgb(24, 30, 38), double_sided=True)
+                   color=color.rgb32(24, 30, 38), double_sided=True)
         # colliders
         self.add_blocker(x, z - D / 2, Wd, t + 0.15, H)
         self.add_blocker(x - 0.6 - seg / 2, z + D / 2, seg, t + 0.15, H)
@@ -340,7 +340,7 @@ class World:
         pivot = Entity(position=(x - 0.6, 0, z + D / 2))
         panel = Entity(parent=pivot, model="cube", scale=(1.15, 2.25, 0.08),
                        position=(0.58, 1.13, 0), texture=self.game.tex("wood.png"),
-                       color=color.rgb(110, 78, 50))
+                       color=color.rgb32(110, 78, 50))
         aabb = self.add_blocker(x, z + D / 2, 1.25, 0.35, 2.4)
         door = Door(self, pivot, panel, aabb)
         door.base_yaw = 0.0
@@ -397,7 +397,7 @@ class World:
             Entity(model="assets/models/environment/street_lamp.obj", position=(x, 0, z), rotation_y=ry)
             self.obstacles.append((x, z, 0.18))
             glow = Entity(model="sphere", scale=0.55, position=(x + (0 if ry == 0 else 1.05), 4.72,
-                          z + (1.05 if ry == 0 else 0)), color=color.rgba(255, 214, 140, 120), enabled=False)
+                          z + (1.05 if ry == 0 else 0)), color=color.rgba32(255, 214, 140, 120), enabled=False)
             self.lamps.append(glow)
         # containers / crates / barrels clusters
         clusters = [(90, 60), (104, 44), (-90, 74), (30, -12), (-30, -70), (76, -58),
