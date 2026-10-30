@@ -1,0 +1,4 @@
+# Runtime (game) dependencies. Dev/asset-generation extras: bpy, numpy (see docs/BUILD.md)
+ursina==7.0.0
+panda3d==1.10.16
+pillow>=10
