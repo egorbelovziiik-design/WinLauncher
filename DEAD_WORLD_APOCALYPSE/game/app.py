@@ -508,6 +508,8 @@ class Game(Entity):
                                  f"Время выживания: {int(self.time_played // 60)} мин")
         self.death_root.enabled = True
         self.hud.root.enabled = False
+        self.hud.inv_root.enabled = False
+        self.hud.help_root.enabled = False
         self._set_cursor(False)
 
     # ------------------------------------------------------------------ save / load
@@ -932,6 +934,24 @@ class Game(Entity):
             self.hud.fps_text.text = (f"{self._fps_val:.0f} FPS • зомби: {alive}" if self.hud.show_fps else "")
 
         self.time_played += dt
+        if self.state == "inventory":
+            # The world keeps living while you rummage (zombies can still
+            # get you), but the character takes no movement/weapon input.
+            self.director.update(dt)
+            self.world.update(dt)
+            for z in list(self.zombies):
+                z.update(dt)
+            for npc in self.npcs:
+                npc.update(dt)
+            self.stats.update(dt, ambient_temp_c=self.director.ambient_temp,
+                              wet=self.director.weather in ("rain", "storm"))
+            if self.stats.dead:
+                self.die("Вы не пережили этот мир.")
+                return
+            found = self.find_interactable()
+            self.hud.prompt.text = self.interact_prompt(found)
+            self.hud.update(dt, self)
+            return
         self.player.update(dt)
         if self.stats.dead and self.state == "playing":
             cause = ("Инфекция превратила вас в одного из них." if self.stats.infection >= 100
