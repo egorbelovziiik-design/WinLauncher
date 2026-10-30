@@ -232,20 +232,27 @@ jobs:
 
       - name: 3. Execute Compiled AXSESCLIENT.exe Self-Test on Windows x64
         run: |
-          New-Item -ItemType Directory -Force -Path AXSESCLIENT-RELEASE/mods | Out-Null
-          Copy-Item AXSESCLIENT-RELEASE/AXSESCLIENT-*.jar AXSESCLIENT-RELEASE/mods/ -Force
-          .\AXSESCLIENT-RELEASE\AXSESCLIENT.exe --selftest AXSESCLIENT-RELEASE\selftest-launcher-win64.json
-          if ($LASTEXITCODE -ne 0) {
-            $err = Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json -Raw
-            Write-Output "::error title=AXSESCLIENT.exe selftest failed::$err"
-            exit 1
+          try {
+            New-Item -ItemType Directory -Force -Path AXSESCLIENT-RELEASE/mods | Out-Null
+            Copy-Item AXSESCLIENT-RELEASE/AXSESCLIENT-*.jar AXSESCLIENT-RELEASE/mods/ -Force
+            $exePath = (Resolve-Path "AXSESCLIENT-RELEASE\AXSESCLIENT.exe").Path
+            $outJson = Join-Path (Resolve-Path "AXSESCLIENT-RELEASE").Path "selftest-launcher-win64.json"
+            $proc = Start-Process -FilePath $exePath -ArgumentList @("--selftest", $outJson) -Wait -PassThru
+            if ($proc.ExitCode -ne 0 -or -not (Test-Path $outJson)) {
+              $err = if (Test-Path $outJson) { Get-Content $outJson -Raw } else { "ExitCode=$($proc.ExitCode), report missing" }
+              Write-Output "::error title=AXSESCLIENT.exe selftest failed::$err"
+              exit 1
+            }
+            $json = Get-Content $outJson -Raw | ConvertFrom-Json
+            if ($json.status -ne "PASS" -or $json.dpapiPrefix -ne "dpapi") {
+              throw "Windows DPAPI or self-test check failed: $(Get-Content $outJson -Raw)"
+            }
+            Remove-Item AXSESCLIENT-RELEASE/mods -Recurse -Force
+            Write-Output "::notice title=AXSESCLIENT.exe Windows x64::Verified PASS (DPAPI=$($json.dpapiPrefix), modules=$($json.modulesCount), themes=$($json.themesCount))"
+          } catch {
+            Write-Output "::error title=Step 3 Exception::$($_.Exception.Message)"
+            throw
           }
-          $json = Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json | ConvertFrom-Json
-          if ($json.status -ne "PASS" -or $json.dpapiPrefix -ne "dpapi") {
-            throw "Windows DPAPI or self-test check failed"
-          }
-          Remove-Item AXSESCLIENT-RELEASE/mods -Recurse -Force
-          Write-Output "::notice title=AXSESCLIENT.exe Windows x64::Verified PASS (DPAPI vault active)"
 
       - name: 4. Build AXSESCLIENT-Setup.exe with Inno Setup 6
         run: |
@@ -263,79 +270,122 @@ jobs:
 
       - name: 5. Verify Silent Install, Installed Launch, & User-World-Preserving Uninstall
         run: |
-          $userSaveDir = Join-Path $env:APPDATA "AXSESCLIENT\instances\1.21.4\saves\ProtectedUserWorld"
-          New-Item -ItemType Directory -Force -Path $userSaveDir | Out-Null
-          Set-Content -Path (Join-Path $userSaveDir "level.dat") -Value "USER_WORLD_DATA_DO_NOT_DELETE"
+          try {
+            $userSaveDir = Join-Path $env:APPDATA "AXSESCLIENT\instances\1.21.4\saves\ProtectedUserWorld"
+            New-Item -ItemType Directory -Force -Path $userSaveDir | Out-Null
+            Set-Content -Path (Join-Path $userSaveDir "level.dat") -Value "USER_WORLD_DATA_DO_NOT_DELETE"
 
-          $installTarget = Join-Path $env:RUNNER_TEMP "AxsesInstalledTest"
-          Start-Process -FilePath ".\AXSESCLIENT-RELEASE\AXSESCLIENT-Setup.exe" `
-            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=`"$installTarget`"" `
-            -Wait -NoNewWindow
+            $installTarget = Join-Path $env:RUNNER_TEMP "AxsesInstalledTest"
+            $setupExe = (Resolve-Path "AXSESCLIENT-RELEASE\AXSESCLIENT-Setup.exe").Path
+            $setupProc = Start-Process -FilePath $setupExe `
+              -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=`"$installTarget`"") `
+              -Wait -PassThru
+            if ($setupProc.ExitCode -ne 0) { throw "Setup exited with code $($setupProc.ExitCode)" }
 
-          if (-not (Test-Path "$installTarget\AXSESCLIENT.exe")) { throw "Installed AXSESCLIENT.exe missing!" }
-          if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.16.5.jar")) { throw "Installed 1.16.5 JAR missing!" }
-          if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.21.4.jar")) { throw "Installed 1.21.4 JAR missing!" }
-          if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.21.11.jar")) { throw "Installed 1.21.11 JAR missing!" }
+            if (-not (Test-Path "$installTarget\AXSESCLIENT.exe")) { throw "Installed AXSESCLIENT.exe missing!" }
+            if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.16.5.jar")) { throw "Installed 1.16.5 JAR missing!" }
+            if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.21.4.jar")) { throw "Installed 1.21.4 JAR missing!" }
+            if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.21.11.jar")) { throw "Installed 1.21.11 JAR missing!" }
 
-          & "$installTarget\AXSESCLIENT.exe" --selftest "$env:RUNNER_TEMP\installed-selftest.json"
-          $instJson = Get-Content "$env:RUNNER_TEMP\installed-selftest.json" | ConvertFrom-Json
-          if ($instJson.status -ne "PASS") { throw "Installed AXSESCLIENT.exe self-test failed!" }
+            $instReport = Join-Path $env:RUNNER_TEMP "installed-selftest.json"
+            $instProc = Start-Process -FilePath "$installTarget\AXSESCLIENT.exe" `
+              -ArgumentList @("--selftest", $instReport) -Wait -PassThru
+            if ($instProc.ExitCode -ne 0 -or -not (Test-Path $instReport)) {
+              throw "Installed AXSESCLIENT.exe self-test failed (code $($instProc.ExitCode))"
+            }
+            $instJson = Get-Content $instReport -Raw | ConvertFrom-Json
+            if ($instJson.status -ne "PASS") { throw "Installed AXSESCLIENT.exe self-test status != PASS" }
 
-          Start-Process -FilePath "$installTarget\unins000.exe" `
-            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" `
-            -Wait -NoNewWindow
+            Start-Process -FilePath "$installTarget\unins000.exe" `
+              -ArgumentList @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART") `
+              -Wait | Out-Null
 
-          if (-not (Test-Path (Join-Path $userSaveDir "level.dat"))) {
-            throw "CRITICAL: Uninstaller deleted user world save!"
+            for ($i = 0; $i -lt 30; $i++) {
+              if (-not (Test-Path "$installTarget\AXSESCLIENT.exe")) { break }
+              Start-Sleep -Milliseconds 500
+            }
+            if (Test-Path "$installTarget\AXSESCLIENT.exe") {
+              throw "Uninstaller did not remove installed AXSESCLIENT.exe within 15s"
+            }
+
+            if (-not (Test-Path (Join-Path $userSaveDir "level.dat"))) {
+              throw "CRITICAL: Uninstaller deleted user world save!"
+            }
+            Write-Output "::notice title=AXSESCLIENT-Setup.exe::Verified silent install, installed launch & world-safe uninstall PASS"
+          } catch {
+            Write-Output "::error title=Step 5 Installer Verification Failed::$($_.Exception.Message)"
+            throw
           }
-          Write-Output "::notice title=AXSESCLIENT-Setup.exe::Verified install, launch & world-safe uninstall PASS"
 
       - name: 6. Generate SHA256SUMS & Publish Release Blobs via GitHub API
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          $relDir = "AXSESCLIENT-RELEASE"
-          $deliverables = @(
-            "AXSESCLIENT.exe",
-            "AXSESCLIENT-1.16.5.jar",
-            "AXSESCLIENT-1.21.4.jar",
-            "AXSESCLIENT-1.21.11.jar",
-            "AXSESCLIENT-Setup.exe",
-            "selftest-1.16.5.json",
-            "selftest-1.21.4.json",
-            "selftest-1.21.11.json",
-            "selftest-launcher-win64.json",
-            "screenshots/launcher-dashboard.png",
-            "screenshots/launcher-versions.png",
-            "screenshots/launcher-modules.png",
-            "screenshots/launcher-appearance.png"
-          )
-
-          $sums = @()
-          foreach ($f in @("AXSESCLIENT.exe", "AXSESCLIENT-1.16.5.jar", "AXSESCLIENT-1.21.4.jar", "AXSESCLIENT-1.21.11.jar", "AXSESCLIENT-Setup.exe")) {
-            $p = Join-Path $relDir $f
-            $h = (Get-FileHash $p -Algorithm SHA256).Hash.ToLowerInvariant()
-            $len = (Get-Item $p).Length
-            $sums += "$h  $f  ($len bytes)"
-          }
-          $sums | Set-Content -Path (Join-Path $relDir "SHA256SUMS.txt") -Encoding UTF8
-          $deliverables += "SHA256SUMS.txt"
-
-          $blobMap = @{}
-          foreach ($relPath in $deliverables) {
-            $full = Join-Path $relDir $relPath
-            if (Test-Path $full) {
-              $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($full))
-              $payloadPath = Join-Path $env:RUNNER_TEMP "blob_payload.json"
-              @{ content = $b64; encoding = "base64" } | ConvertTo-Json -Compress | Set-Content -Path $payloadPath -Encoding UTF8
-              $sha = gh api "repos/$env:REPO/git/blobs" --method POST --input $payloadPath --jq '.sha'
-              $blobMap[$relPath] = $sha.Trim()
-              Write-Host "Uploaded blob $relPath -> $sha"
+          try {
+            $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+            $relDir = "AXSESCLIENT-RELEASE"
+            $deliverables = @(
+              "AXSESCLIENT.exe",
+              "AXSESCLIENT-1.16.5.jar",
+              "AXSESCLIENT-1.21.4.jar",
+              "AXSESCLIENT-1.21.11.jar",
+              "AXSESCLIENT-Setup.exe",
+              "selftest-1.16.5.json",
+              "selftest-1.21.4.json",
+              "selftest-1.21.11.json",
+              "selftest-launcher-win64.json"
+            )
+            Get-ChildItem -Path (Join-Path $relDir "screenshots") -Filter "*.png" | ForEach-Object {
+              $deliverables += "screenshots/$($_.Name)"
             }
+
+            $sums = @()
+            foreach ($f in @("AXSESCLIENT.exe", "AXSESCLIENT-1.16.5.jar", "AXSESCLIENT-1.21.4.jar", "AXSESCLIENT-1.21.11.jar", "AXSESCLIENT-Setup.exe")) {
+              $p = Join-Path $relDir $f
+              $h = (Get-FileHash $p -Algorithm SHA256).Hash.ToLowerInvariant()
+              $len = (Get-Item $p).Length
+              $sums += "$h  $f  ($len bytes)"
+            }
+            [System.IO.File]::WriteAllLines((Join-Path $relDir "SHA256SUMS.txt"), $sums, $utf8NoBom)
+            $deliverables += "SHA256SUMS.txt"
+
+            $chunkSize = 20 * 1024 * 1024
+            $blobMap = [ordered]@{}
+            foreach ($relPath in $deliverables) {
+              $full = Join-Path $relDir $relPath
+              if (Test-Path $full) {
+                $bytes = [System.IO.File]::ReadAllBytes($full)
+                $partShas = @()
+                $offset = 0
+                if ($bytes.Length -eq 0) {
+                  $payloadPath = Join-Path $env:RUNNER_TEMP "blob_payload.json"
+                  [System.IO.File]::WriteAllText($payloadPath, '{"content":"","encoding":"base64"}', $utf8NoBom)
+                  $sha = (gh api "repos/$env:REPO/git/blobs" --method POST --input $payloadPath --jq '.sha').Trim()
+                  $partShas += $sha
+                } else {
+                  while ($offset -lt $bytes.Length) {
+                    $take = [Math]::Min($chunkSize, $bytes.Length - $offset)
+                    $b64 = [Convert]::ToBase64String($bytes, $offset, $take)
+                    $payloadPath = Join-Path $env:RUNNER_TEMP "blob_payload.json"
+                    $jsonPayload = '{"content":"' + $b64 + '","encoding":"base64"}'
+                    [System.IO.File]::WriteAllText($payloadPath, $jsonPayload, $utf8NoBom)
+                    $sha = (gh api "repos/$env:REPO/git/blobs" --method POST --input $payloadPath --jq '.sha').Trim()
+                    if ([string]::IsNullOrWhiteSpace($sha)) { throw "Empty blob SHA returned for $relPath at offset $offset" }
+                    $partShas += $sha
+                    $offset += $take
+                  }
+                }
+                $blobMap[$relPath] = $partShas
+                Write-Host "Uploaded $relPath ($($bytes.Length) bytes) -> $($partShas -join ',')"
+              }
+            }
+            $manifestJson = ($blobMap | ConvertTo-Json -Compress -Depth 4)
+            Write-Output "::notice title=RELEASE_BLOBS::$manifestJson"
+          } catch {
+            Write-Output "::error title=Step 6 Blob Publish Failed::$($_.Exception.Message)"
+            throw
           }
-          $manifestJson = ($blobMap | ConvertTo-Json -Compress)
-          Write-Output "::notice title=RELEASE_BLOBS::$manifestJson"
 
       - name: Upload Complete AXSESCLIENT Release Bundle Artifact
         uses: actions/upload-artifact@v4
