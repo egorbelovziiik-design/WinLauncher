@@ -133,13 +133,18 @@ jobs:
           if ! xvfb-run -a -s "-screen 0 1280x720x24" \
             dotnet run --no-build -c Release --project AXSESCLIENT/launcher -- \
             --e2e-launch 1.21.4 /tmp/axses-e2e staged-jars/selftest-1.21.4.json > /tmp/mc1214.log 2>&1; then
-            msg=$(tail -n 55 /tmp/mc1214.log | tr '\n' ' ' | sed 's/%/%25/g')
-            echo "::error title=MC 1.21.4 E2E failed::$msg"
-            cat /tmp/mc1214.log
-            exit 1
+            crash=$(ls /tmp/axses-e2e/instances/1.21.4/crash-reports/*.txt 2>/dev/null | head -n 1)
+            if [ -n "$crash" ]; then
+              msg=$(head -n 45 "$crash" | tr '\n' ' ' | sed 's/%/%25/g')
+            else
+              msg=$(grep -E "Exception|Error|Mixin|Caused by" /tmp/mc1214.log | tail -n 30 | tr '\n' ' ' | sed 's/%/%25/g')
+            fi
+            echo "::error title=MC 1.21.4 E2E Crash::$msg"
+            touch /tmp/e2e_failed
+          else
+            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.4.json
+            echo "::notice title=MC 1.21.4 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.4.json)"
           fi
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.4.json
-          echo "::notice title=MC 1.21.4 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.4.json)"
 
       - name: 8. Real E2E Launch — Minecraft 1.21.11 + AXSESCLIENT-1.21.11.jar on Java 21
         env:
@@ -149,13 +154,19 @@ jobs:
           if ! xvfb-run -a -s "-screen 0 1280x720x24" \
             dotnet run --no-build -c Release --project AXSESCLIENT/launcher -- \
             --e2e-launch 1.21.11 /tmp/axses-e2e staged-jars/selftest-1.21.11.json > /tmp/mc12111.log 2>&1; then
-            msg=$(tail -n 55 /tmp/mc12111.log | tr '\n' ' ' | sed 's/%/%25/g')
-            echo "::error title=MC 1.21.11 E2E failed::$msg"
-            cat /tmp/mc12111.log
-            exit 1
+            crash=$(ls /tmp/axses-e2e/instances/1.21.11/crash-reports/*.txt 2>/dev/null | head -n 1)
+            if [ -n "$crash" ]; then
+              msg=$(head -n 45 "$crash" | tr '\n' ' ' | sed 's/%/%25/g')
+            else
+              msg=$(grep -E "Exception|Error|Mixin|Caused by" /tmp/mc12111.log | tail -n 30 | tr '\n' ' ' | sed 's/%/%25/g')
+            fi
+            echo "::error title=MC 1.21.11 E2E Crash::$msg"
+            touch /tmp/e2e_failed
+          else
+            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.11.json
+            echo "::notice title=MC 1.21.11 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.11.json)"
           fi
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.11.json
-          echo "::notice title=MC 1.21.11 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.11.json)"
+          if [ -f /tmp/e2e_failed ]; then exit 1; fi
 
       - name: Stage Verified Mod JARs & E2E Reports
         run: |
