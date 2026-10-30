@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "survivor_toolkit",
+  "version": "${version}",
+  "name": "Survivor Toolkit",
+  "description": "Client-side survival utilities with conservative, explicit server permissions.",
+  "authors": ["Survivor Toolkit contributors"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.survivortoolkit.client.SurvivorToolkitClient"] },
+  "mixins": ["survivor_toolkit.client.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "=1.21.11",
+    "java": ">=21",
+    "fabric-api": ">=0.141.1+1.21.11"
+  }
+}

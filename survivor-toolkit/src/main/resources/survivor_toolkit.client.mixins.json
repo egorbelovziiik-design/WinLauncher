@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.survivortoolkit.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["CameraMixin", "KeyboardInputMixin", "MinecraftClientMixin", "MouseMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

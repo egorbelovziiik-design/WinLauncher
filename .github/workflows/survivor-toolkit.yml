@@ -1,0 +1,79 @@
+name: Survivor Toolkit (Fabric 1.21.11)
+
+on:
+  push:
+    branches: [arena/2bba5611-winlauncher]
+    paths:
+      - 'survivor-toolkit/**'
+      - '.github/workflows/survivor-toolkit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  checks: write
+
+concurrency:
+  group: survivor-toolkit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build and run unit tests
+        id: build
+        continue-on-error: true
+        working-directory: survivor-toolkit
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon clean build 2>&1 | tee build-output.log
+      - name: Launch Minecraft client smoke test
+        id: smoke
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        working-directory: survivor-toolkit
+        shell: bash
+        run: |
+          set -o pipefail
+          command -v xvfb-run
+          timeout 300s xvfb-run -a ./gradlew --no-daemon -Psmoke runClient 2>&1 | tee smoke-output.log
+          grep -q '^PASS:' run/survivor-smoke-result.txt
+      - name: Publish concise diagnostics as a GitHub check
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const dir = 'survivor-toolkit/';
+            const read = p => fs.existsSync(dir + p) ? fs.readFileSync(dir + p, 'utf8') : '(no output)';
+            const build = '${{ steps.build.outcome }}';
+            const smoke = '${{ steps.smoke.outcome }}';
+            let text = `Build: ${build}\nClient smoke: ${smoke}\n\n--- build output (tail) ---\n${read('build-output.log').slice(-34000)}\n\n--- smoke output (tail) ---\n${read('smoke-output.log').slice(-20000)}\n\n--- smoke result ---\n${read('run/survivor-smoke-result.txt')}`;
+            await github.rest.checks.create({owner: context.repo.owner, repo: context.repo.repo,
+              name: 'Survivor Toolkit diagnostics', head_sha: context.sha, status: 'completed',
+              conclusion: build === 'success' && smoke === 'success' ? 'success' : 'failure',
+              output: {title: 'Build and client smoke results', summary: text.slice(-64000)}});
+      - name: Save installable JAR to this branch
+        if: steps.build.outcome == 'success'
+        shell: bash
+        run: |
+          mkdir -p survivor-toolkit/release
+          cp survivor-toolkit/build/libs/survivor-toolkit-1.0.0.jar survivor-toolkit/release/survivor-toolkit-1.0.0.jar
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f survivor-toolkit/release/survivor-toolkit-1.0.0.jar
+          if ! git diff --cached --quiet; then
+            git commit -m 'ci: publish Survivor Toolkit jar [skip ci]'
+            git push origin HEAD:refs/heads/${{ github.ref_name }}
+          fi
+      - name: Fail if a check failed
+        if: always() && (steps.build.outcome != 'success' || steps.smoke.outcome != 'success')
+        run: exit 1
