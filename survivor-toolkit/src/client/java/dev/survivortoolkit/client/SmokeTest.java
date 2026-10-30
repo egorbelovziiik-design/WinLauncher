@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.input.MouseInput;
 import org.lwjgl.glfw.GLFW;
@@ -15,13 +16,21 @@ import java.nio.file.Path;
 
 /** Opt-in CI-only screen smoke test. It does not create worlds or connect to servers. */
 final class SmokeTest {
-    private static int stage, wait;
+    private static int stage, wait, startupWait;
     private SmokeTest() {}
     static void register() {
+        SurvivorToolkitClient.LOGGER.info("SURVIVOR_SMOKE_REGISTERED");
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (stage == 99) return;
             // A fresh profile can start on the accessibility onboarding screen instead of the title screen.
-            if (stage == 0 && (client.currentScreen == null || client.getOverlay() != null)) return;
+            if (stage == 0 && (client.currentScreen == null || client.getOverlay() != null)) {
+                ++startupWait;
+                if (startupWait == 1 || startupWait % 200 == 0)
+                    SurvivorToolkitClient.LOGGER.info("SURVIVOR_SMOKE_WAIT: screen={}, overlay={}", client.currentScreen, client.getOverlay());
+                if (startupWait > 1800) finish(client, "FAIL: initial screen did not load; screen="
+                        + client.currentScreen + ", overlay=" + client.getOverlay());
+                return;
+            }
             if (++wait % 4 != 0) return; // allow several rendered frames between transitions
             try { runStage(client); }
             catch (Throwable e) {
@@ -39,8 +48,13 @@ final class SmokeTest {
                 Click click = new Click(auction.getX() + 3, auction.getY() + 3, new MouseInput(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
                 require(screen.mouseClicked(click, false), "left click on tab");
                 screen.mouseReleased(click);
-                require(screen.children().stream().noneMatch(x -> x instanceof TextFieldWidget),
-                        "auction fields should be locked outside a world");
+                for (int i = 0; i < 12 && screen.children().stream().noneMatch(x -> x instanceof TextFieldWidget); i++)
+                    screen.mouseScrolled(screen.width / 2.0, screen.height / 2.0, 0, -1);
+                TextFieldWidget field = (TextFieldWidget) screen.children().stream().filter(x -> x instanceof TextFieldWidget).findFirst().orElseThrow();
+                Click focus = new Click(field.getX() + 4, field.getY() + 4, new MouseInput(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+                screen.mouseClicked(focus, false); screen.mouseReleased(focus);
+                screen.charTyped(new CharInput('x', 0));
+                require(field.getText().contains("x"), "text field focus and typing");
                 for (int button : new int[]{GLFW.GLFW_MOUSE_BUTTON_RIGHT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE}) {
                     Click other = new Click(2, 2, new MouseInput(button, 0));
                     screen.mouseClicked(other, false); screen.mouseReleased(other);
@@ -57,8 +71,8 @@ final class SmokeTest {
                 ToolkitScreen screen = (ToolkitScreen) client.currentScreen;
                 require(screen.keyPressed(new KeyInput(GLFW.GLFW_KEY_ESCAPE, 0, 0)), "Escape was not handled");
                 require(!(client.currentScreen instanceof ToolkitScreen), "Escape failed to close");
-                SurvivorToolkitClient.LOGGER.info("SURVIVOR_SMOKE_PASS: client initialized, GUI rendered, tabs, mouse and close keys");
-                finish(client, "PASS: client initialized; GUI rendered; tab, mouse, Right Shift and Escape callbacks passed");
+                SurvivorToolkitClient.LOGGER.info("SURVIVOR_SMOKE_PASS: client initialized, GUI rendered, tabs, mouse, text and close keys");
+                finish(client, "PASS: client initialized; GUI rendered; tab, mouse, text, Right Shift and Escape callbacks passed");
             }
             default -> throw new IllegalStateException("unexpected smoke stage");
         }
