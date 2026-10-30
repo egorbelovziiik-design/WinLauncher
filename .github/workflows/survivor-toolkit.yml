@@ -52,7 +52,7 @@ jobs:
           grep -q '^PASS:' run/survivor-smoke-result.txt
       - name: Run client game test in an isolated singleplayer world
         id: gametest
-        if: steps.build.outcome == 'success' && steps.smoke.outcome == 'success'
+        if: steps.build.outcome == 'success'
         continue-on-error: true
         working-directory: survivor-toolkit
         shell: bash
@@ -71,8 +71,19 @@ jobs:
             const build = '${{ steps.build.outcome }}';
             const smoke = '${{ steps.smoke.outcome }}';
             const gametest = '${{ steps.gametest.outcome }}';
+            const testDir = dir + 'build/test-results/test';
+            const suites = fs.existsSync(testDir) ? fs.readdirSync(testDir).filter(p => p.endsWith('.xml')) : [];
+            const totals = {tests: 0, failures: 0, errors: 0, skipped: 0};
+            for (const file of suites) {
+              const tag = fs.readFileSync(testDir + '/' + file, 'utf8').match(/<testsuite\b[^>]*>/)?.[0] || '';
+              for (const key of Object.keys(totals)) {
+                const value = tag.match(new RegExp('\\b' + key + '="(\\d+)"'));
+                if (value) totals[key] += Number(value[1]);
+              }
+            }
             const text = [
-              `Build: ${build}`, `Client smoke: ${smoke}`, `Game test: ${gametest}`,
+              `Build: ${build}`, `JUnit: ${suites.length ? JSON.stringify(totals) : 'no results'}`,
+              `Client smoke: ${smoke}`, `Game test: ${gametest}`,
               '', '--- build output (tail) ---', read('build-output.log').slice(-18000),
               '', '--- smoke output (tail) ---', read('smoke-output.log').slice(-15000),
               '', '--- smoke result ---', read('run/survivor-smoke-result.txt'),

@@ -12,7 +12,10 @@ import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.input.MouseInput;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.mob.WardenEntity;
 import net.minecraft.item.Items;
 import net.minecraft.util.hit.BlockHitResult;
@@ -35,6 +38,14 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
             testFreecamAndLan(context, world);
         }
         context.waitFor(client -> client.world == null);
+        try (TestSingleplayerContext exitWorld = context.worldBuilder().create()) {
+            exitWorld.getClientWorld().waitForChunksDownload();
+            context.waitFor(client -> client.player != null && client.player.isOnGround());
+            context.waitTicks(10);
+            context.getInput().pressKey(SurvivorToolkitClient.FREECAM_KEY);
+            context.waitFor(client -> SurvivorToolkitClient.FREECAM.active());
+        }
+        context.waitFor(client -> client.world == null);
         require(!context.computeOnClient(client -> SurvivorToolkitClient.FREECAM.active()), "camera remained active after leaving world");
         System.out.println("SURVIVOR_TOOLKIT_GAME_TEST_PASS");
     }
@@ -52,8 +63,7 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
         context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
         context.waitForScreen(null);
 
-        // The calculator is intentionally locked without a world, so test its
-        // text input only here, inside the disposable private test world.
+        // Exercise the calculator's actual widgets in the disposable private world.
         context.runOnClient(client -> SurvivorToolkitClient.config().auctionEnabled = true);
         context.getInput().pressKey(SurvivorToolkitClient.MENU_KEY);
         context.waitForScreen(ToolkitScreen.class);
@@ -81,6 +91,32 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
         require(context.computeOnClient(client -> client.currentScreen instanceof InventoryScreen), "menu key replaced the inventory screen");
         context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
         context.waitForScreen(null);
+
+        context.runOnClient(client -> {
+            SurvivorToolkitClient.MENU_KEY.setBoundKey(InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_P, 0, 0)));
+            KeyBinding.updateKeysByCode();
+        });
+        context.getInput().pressKey(GLFW.GLFW_KEY_RIGHT_SHIFT);
+        context.waitTicks(2);
+        require(context.computeOnClient(client -> client.currentScreen == null), "old menu key still opened the screen after rebinding");
+        context.getInput().pressKey(GLFW.GLFW_KEY_P);
+        context.waitForScreen(ToolkitScreen.class);
+        context.getInput().pressKey(GLFW.GLFW_KEY_P);
+        context.waitForScreen(null);
+        context.runOnClient(client -> {
+            SurvivorToolkitClient.MENU_KEY.setBoundKey(SurvivorToolkitClient.MENU_KEY.getDefaultKey());
+            KeyBinding.updateKeysByCode();
+        });
+
+        context.getInput().resizeWindow(640, 360);
+        context.getInput().pressKey(SurvivorToolkitClient.MENU_KEY);
+        context.waitForScreen(ToolkitScreen.class);
+        context.getInput().resizeWindow(1000, 500);
+        context.waitTicks(2);
+        require(context.computeOnClient(client -> client.currentScreen instanceof ToolkitScreen), "resizing closed the menu");
+        context.getInput().pressKey(GLFW.GLFW_KEY_ESCAPE);
+        context.waitForScreen(null);
+        context.getInput().resizeWindow(854, 480);
     }
 
     private void testWarden(ClientGameTestContext context, TestSingleplayerContext world) {
@@ -132,6 +168,16 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
         context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
         require(context.computeOnClient(client -> client.player.getMainHandStack().getCount() == count), "use consumed an item during freecam");
 
+        world.getServer().runCommand("kill @p");
+        context.waitFor(client -> client.player != null && !client.player.isAlive());
+        context.waitFor(client -> !SurvivorToolkitClient.FREECAM.active());
+        context.waitTicks(25); // vanilla death-screen button has a short delay
+        // Standard client respawn, exclusively inside the test world.
+        context.runOnClient(client -> { client.player.requestRespawn(); client.setScreen(null); });
+        context.waitFor(client -> client.player != null && client.player.isAlive() && client.player.isOnGround(), 400);
+        context.waitTicks(10);
+        context.getInput().pressKey(SurvivorToolkitClient.FREECAM_KEY);
+        context.waitFor(client -> SurvivorToolkitClient.FREECAM.active());
         world.getServer().runOnServer(server -> {
             if (!server.openToLan(null, false, 0)) throw new AssertionError("failed to open test world to LAN");
         });
