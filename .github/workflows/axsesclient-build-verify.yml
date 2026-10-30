@@ -418,18 +418,16 @@ jobs:
           SOURCE_RUN_ID: ${{ inputs.publish_only_run_id != '' && inputs.publish_only_run_id || (contains(github.event.head_commit.message, '[publish-release]') && '41138065290' || github.run_id) }}
         run: |
           set -euo pipefail
+          exec > >(tee pub_rel.log) 2>&1
+          trap 'echo "::error title=Release Publish Error::$(tail -n 25 pub_rel.log | tr "\n" " ")"' ERR
           mkdir -p dist-bundle
           gh run download "$SOURCE_RUN_ID" -R "$REPO" -n axsesclient-release-bundle -D dist-bundle
-          # Flatten if nested under AXSESCLIENT-RELEASE/
-          if [ -d "dist-bundle/AXSESCLIENT-RELEASE" ]; then
-            BUNDLE_DIR="dist-bundle/AXSESCLIENT-RELEASE"
-          else
-            BUNDLE_DIR="dist-bundle"
-          fi
+          BUNDLE_DIR="$(dirname "$(find dist-bundle -name 'AXSESCLIENT.exe' | head -n 1)")"
           cp AXSESCLIENT/documentation/*.md "$BUNDLE_DIR/"
+          ZIP_OUT="$GITHUB_WORKSPACE/AXSESCLIENT-v1.0.0-Full-Bundle.zip"
           (
             cd "$BUNDLE_DIR"
-            zip -r ../AXSESCLIENT-v1.0.0-Full-Bundle.zip \
+            zip -r "$ZIP_OUT" \
               AXSESCLIENT-Setup.exe \
               AXSESCLIENT.exe \
               AXSESCLIENT-1.16.5.jar \
@@ -451,6 +449,6 @@ jobs:
             "$BUNDLE_DIR/AXSESCLIENT-1.21.4.jar" \
             "$BUNDLE_DIR/AXSESCLIENT-1.21.11.jar" \
             "$BUNDLE_DIR/SHA256SUMS.txt" \
-            "dist-bundle/AXSESCLIENT-v1.0.0-Full-Bundle.zip"
+            "$ZIP_OUT"
           echo "::notice title=GitHub Release Published::https://github.com/$REPO/releases/tag/axsesclient-v1.0.0"
 
