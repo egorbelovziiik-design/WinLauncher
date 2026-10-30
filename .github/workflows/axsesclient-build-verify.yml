@@ -108,7 +108,7 @@ jobs:
           cp AXSESCLIENT/client-1.16.5/build/libs/AXSESCLIENT-1.16.5.jar AXSESCLIENT-RELEASE/
           cp AXSESCLIENT/client-1.21.4/build/libs/AXSESCLIENT-1.21.4.jar AXSESCLIENT-RELEASE/
           cp AXSESCLIENT/client-1.21.11/build/libs/AXSESCLIENT-1.21.11.jar AXSESCLIENT-RELEASE/
-          if ! dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release > /tmp/dotnet.log 2>&1; then
+          if ! dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release --blame-hang-timeout 45s > /tmp/dotnet.log 2>&1; then
             msg=$(tail -n 55 /tmp/dotnet.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=dotnet test failed::$msg"
             cat /tmp/dotnet.log

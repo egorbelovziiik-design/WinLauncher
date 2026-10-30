@@ -663,9 +663,12 @@ public sealed class MainWindow : Window
         var toggle = new CheckBox { IsChecked = mod.Enabled, VerticalAlignment = VerticalAlignment.Center };
         toggle.IsCheckedChanged += (_, _) =>
         {
-            mod.Enabled = toggle.IsChecked == true;
+            bool next = toggle.IsChecked == true;
+            if (next == mod.Enabled) return;
+            mod.Enabled = next;
+            border.Background = mod.Enabled ? AuroraGradient(t, 0.16) : BrushOf(t.BgPrimary, 0.72);
+            border.BorderBrush = BrushOf(mod.Enabled ? t.AccentPrimary : "#20FFFFFF", mod.Enabled ? 0.65 : 1.0);
             _state.SyncModulesAndThemeToSelectedInstance();
-            RebuildDynamicRegions();
         };
         Grid.SetColumn(toggle, 1);
         top.Children.Add(toggle);
@@ -811,17 +814,23 @@ public sealed class MainWindow : Window
         var filterCard = CreateSurfaceCard(t);
         var filterStack = new StackPanel { Spacing = 10 };
 
+        var grid = new UniformGrid { Columns = 2 };
+
         var searchBox = new TextBox
         {
-            Text = _moduleSearch,
             Watermark = ru
                 ? "🔎 Поиск по 93 модулям (например: КиллАура, Таргет HUD, Авто-спринт, FPS)..."
                 : "🔎 Search 93 modules (e.g. KillAura, Target HUD, Toggle Sprint, FPS)..."
         };
+        if (!string.IsNullOrEmpty(_moduleSearch))
+            searchBox.Text = _moduleSearch;
+
         searchBox.TextChanged += (_, _) =>
         {
-            _moduleSearch = searchBox.Text ?? "";
-            RebuildDynamicRegions();
+            string next = searchBox.Text ?? "";
+            if (next == _moduleSearch) return;
+            _moduleSearch = next;
+            PopulateModuleGrid(grid, t, ru);
         };
         filterStack.Children.Add(searchBox);
 
@@ -858,6 +867,7 @@ public sealed class MainWindow : Window
             string key = c.Key;
             btn.Click += (_, _) =>
             {
+                if (_moduleCategoryFilter == key) return;
                 _moduleCategoryFilter = key;
                 RebuildDynamicRegions();
             };
@@ -867,6 +877,14 @@ public sealed class MainWindow : Window
         filterCard.Child = filterStack;
         root.Children.Add(filterCard);
 
+        PopulateModuleGrid(grid, t, ru);
+        root.Children.Add(grid);
+        return root;
+    }
+
+    private void PopulateModuleGrid(UniformGrid grid, LauncherThemePalette t, bool ru)
+    {
+        grid.Children.Clear();
         var filtered = _state.Modules.Where(m =>
         {
             if (_moduleCategoryFilter != "ALL" && !string.Equals(m.Category, _moduleCategoryFilter, StringComparison.OrdinalIgnoreCase))
@@ -878,14 +896,9 @@ public sealed class MainWindow : Window
                    || m.Description.Contains(q, StringComparison.OrdinalIgnoreCase)
                    || m.DescriptionRu.Contains(q, StringComparison.OrdinalIgnoreCase)
                    || m.Id.Contains(q, StringComparison.OrdinalIgnoreCase);
-        }).ToList();
-
-        var grid = new UniformGrid { Columns = 2 };
+        });
         foreach (var mod in filtered)
             grid.Children.Add(BuildCompactModuleTile(mod, t, ru));
-
-        root.Children.Add(grid);
-        return root;
     }
 
     private Control BuildAccountsPage(LauncherThemePalette t, bool ru)
