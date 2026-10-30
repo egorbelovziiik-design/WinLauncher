@@ -301,13 +301,17 @@ public final class Mc12111Adapter implements MinecraftAdapter {
     @Override
     public boolean toggleChunkBorders() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc != null && mc.debugRenderer != null) {
+        if (mc != null) {
             try {
-                Method m = mc.debugRenderer.getClass().getMethod("switchRenderChunkborder");
-                Object res = m.invoke(mc.debugRenderer);
-                if (res instanceof Boolean b) {
-                    chunkBordersVisible = b;
-                    return chunkBordersVisible;
+                Class<?> entriesCls = Class.forName("net.minecraft.client.gui.components.debug.DebugScreenEntries");
+                Object chunkBordersId = entriesCls.getField("CHUNK_BORDERS").get(null);
+                Object debugEntries = mc.getClass().getField("debugEntries").get(mc);
+                for (Method m : debugEntries.getClass().getMethods()) {
+                    if (m.getName().contains("toggle") && m.getParameterCount() == 1) {
+                        m.invoke(debugEntries, chunkBordersId);
+                        chunkBordersVisible = !chunkBordersVisible;
+                        return chunkBordersVisible;
+                    }
                 }
             } catch (Exception ignored) {
             }
