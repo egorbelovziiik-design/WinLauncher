@@ -204,12 +204,9 @@ public sealed class MinecraftLaunchEngine
             await DownloadAndVerifyFileAsync(assetUrl, assetIndexPath, assetSha1, $"{assetId}.json", "Asset Index", onDownloadItem, ct).ConfigureAwait(false);
 
             var assetDownloads = ParseAssetObjectDownloads(await File.ReadAllTextAsync(assetIndexPath, ct).ConfigureAwait(false), assetsDir);
-            if (Environment.GetEnvironmentVariable("AXSES_FAST_CI_ASSETS") != "1")
-            {
-                await DownloadBatchAsync(assetDownloads, Math.Clamp(settings.ConcurrentDownloads, 4, 24), "Assets",
-                    p => ReportStage(spec, onStage, 6, 9, $"Downloading {assetDownloads.Count} assets ({(int)(p * 100)}%)...", 0.60 + p * 0.25),
-                    null, ct).ConfigureAwait(false);
-            }
+            await DownloadBatchAsync(assetDownloads, Math.Clamp(settings.ConcurrentDownloads, 8, 24), "Assets",
+                p => ReportStage(spec, onStage, 6, 9, $"Downloading {assetDownloads.Count} assets ({(int)(p * 100)}%)...", 0.60 + p * 0.25),
+                null, ct).ConfigureAwait(false);
 
             // Stage 07: Extract Native Libraries
             ReportStage(spec, onStage, 7, 9, "Extracting LWJGL native libraries...", 0.88);
@@ -689,12 +686,16 @@ public sealed class MinecraftLaunchEngine
 
     private static List<ResolvedLibrary> ParseAssetObjectDownloads(string assetIndexJson, string assetsDir)
     {
+        bool skipAudioForFastCi = Environment.GetEnvironmentVariable("AXSES_FAST_CI_ASSETS") == "1";
         var results = new Dictionary<string, ResolvedLibrary>(StringComparer.OrdinalIgnoreCase);
         using var doc = JsonDocument.Parse(assetIndexJson);
         if (!doc.RootElement.TryGetProperty("objects", out var objects)) return [];
 
         foreach (var prop in objects.EnumerateObject())
         {
+            if (skipAudioForFastCi && prop.Name.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             string hash = prop.Value.GetProperty("hash").GetString()!;
             string prefix = hash[..2];
             string url = $"{MojangResourcesBaseUrl}/{prefix}/{hash}";
