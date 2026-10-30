@@ -19,13 +19,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Temurin Java 8 & Java 21
+      - name: Set up Temurin Java 8, Java 21 & Java 25
         uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: |
             8
             21
+            25
 
       - name: Set up Gradle 9.8.2
         uses: gradle/actions/setup-gradle@v4
@@ -53,7 +54,7 @@ jobs:
         working-directory: AXSESCLIENT/client-1.16.5
         run: |
           set -o pipefail
-          if ! gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}" > /tmp/step.log 2>&1; then
+          if ! gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/step.log 2>&1; then
             msg=$(tail -n 55 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=build 1.16.5 failed::$msg"
             cat /tmp/step.log
@@ -67,7 +68,7 @@ jobs:
         working-directory: AXSESCLIENT/client-1.21.4
         run: |
           set -o pipefail
-          if ! gradle remapJar --no-daemon > /tmp/step.log 2>&1; then
+          if ! gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/step.log 2>&1; then
             msg=$(tail -n 55 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=build 1.21.4 failed::$msg"
             cat /tmp/step.log
@@ -79,7 +80,7 @@ jobs:
         working-directory: AXSESCLIENT/client-1.21.11
         run: |
           set -o pipefail
-          if ! gradle remapJar --no-daemon > /tmp/step.log 2>&1; then
+          if ! gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/step.log 2>&1; then
             msg=$(tail -n 55 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=build 1.21.11 failed::$msg"
             cat /tmp/step.log
@@ -96,7 +97,7 @@ jobs:
           printf "pauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
           if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
             gradle runClient --no-daemon -PaxsesSelftest=true \
-            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}" > /tmp/mc1165.log 2>&1; then
+            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/mc1165.log 2>&1; then
             msg=$(tail -n 55 /tmp/mc1165.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=MC 1.16.5 Xvfb failed::$msg"
             cat /tmp/mc1165.log
@@ -114,7 +115,8 @@ jobs:
           mkdir -p run
           printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
           if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true > /tmp/mc1214.log 2>&1; then
+            gradle runClient --no-daemon -PaxsesSelftest=true \
+            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/mc1214.log 2>&1; then
             msg=$(tail -n 55 /tmp/mc1214.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=MC 1.21.4 Xvfb failed::$msg"
             cat /tmp/mc1214.log
@@ -132,7 +134,8 @@ jobs:
           mkdir -p run
           printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
           if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true > /tmp/mc12111.log 2>&1; then
+            gradle runClient --no-daemon -PaxsesSelftest=true \
+            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/mc12111.log 2>&1; then
             msg=$(tail -n 55 /tmp/mc12111.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=MC 1.21.11 Xvfb failed::$msg"
             cat /tmp/mc12111.log

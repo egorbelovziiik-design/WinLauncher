@@ -53,6 +53,12 @@ remapJar {
     archiveFileName = "AXSESCLIENT-1.21.11.jar"
 }
 
+tasks.matching { it.name == "runClient" }.configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 if (project.hasProperty('axsesSelftest')) {
     loom {
         runs {
