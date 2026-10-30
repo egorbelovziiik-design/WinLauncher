@@ -1,6 +1,7 @@
 package dev.axsesclient.mc1214.mixin;
 
 import dev.axsesclient.common.AxsesCore;
+import dev.axsesclient.mc1214.AxsesClient1214Mod;
 import dev.axsesclient.mc1214.gui.AxsesMainMenuScreen1214;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -19,6 +20,11 @@ public abstract class MinecraftClientMixin {
             return new AxsesMainMenuScreen1214();
         }
         return incoming;
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void axses$onClientTick(CallbackInfo ci) {
+        AxsesClient1214Mod.handleTick((Minecraft) (Object) this);
     }
 
     @Inject(method = "close", at = @At("HEAD"))

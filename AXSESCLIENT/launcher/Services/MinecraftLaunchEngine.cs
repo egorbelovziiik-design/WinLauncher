@@ -204,9 +204,12 @@ public sealed class MinecraftLaunchEngine
             await DownloadAndVerifyFileAsync(assetUrl, assetIndexPath, assetSha1, $"{assetId}.json", "Asset Index", onDownloadItem, ct).ConfigureAwait(false);
 
             var assetDownloads = ParseAssetObjectDownloads(await File.ReadAllTextAsync(assetIndexPath, ct).ConfigureAwait(false), assetsDir);
-            await DownloadBatchAsync(assetDownloads, Math.Clamp(settings.ConcurrentDownloads, 4, 24), "Assets",
-                p => ReportStage(spec, onStage, 6, 9, $"Downloading {assetDownloads.Count} assets ({(int)(p * 100)}%)...", 0.60 + p * 0.25),
-                null, ct).ConfigureAwait(false);
+            if (Environment.GetEnvironmentVariable("AXSES_FAST_CI_ASSETS") != "1")
+            {
+                await DownloadBatchAsync(assetDownloads, Math.Clamp(settings.ConcurrentDownloads, 4, 24), "Assets",
+                    p => ReportStage(spec, onStage, 6, 9, $"Downloading {assetDownloads.Count} assets ({(int)(p * 100)}%)...", 0.60 + p * 0.25),
+                    null, ct).ConfigureAwait(false);
+            }
 
             // Stage 07: Extract Native Libraries
             ReportStage(spec, onStage, 7, 9, "Extracting LWJGL native libraries...", 0.88);
@@ -571,13 +574,20 @@ public sealed class MinecraftLaunchEngine
                     if (dls.TryGetProperty("artifact", out var art) && !byKey.ContainsKey(groupArtifactKey))
                     {
                         string p = art.TryGetProperty("path", out var pEl) ? (pEl.GetString() ?? relPath) : relPath;
+                        if (RuntimeInformation.OSArchitecture == Architecture.X64 &&
+                            (p.Contains("-arm64.jar", StringComparison.OrdinalIgnoreCase) ||
+                             p.Contains("-aarch64.jar", StringComparison.OrdinalIgnoreCase) ||
+                             p.Contains("-x86.jar", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue;
+                        }
                         string url = art.GetProperty("url").GetString() ?? "";
                         string? sha1 = art.TryGetProperty("sha1", out var sEl) ? sEl.GetString() : null;
-                        bool hasEmbeddedNatives = p.Contains("-natives-", StringComparison.OrdinalIgnoreCase);
                         string local = Path.Combine(librariesDir, p.Replace('/', Path.DirectorySeparatorChar));
                         if (!string.IsNullOrEmpty(url))
                         {
-                            byKey[groupArtifactKey] = new ResolvedLibrary(groupArtifactKey, url, local, sha1, hasEmbeddedNatives, false);
+                            // LWJGL 3.3+ (1.19+) loads natives directly from classpath JARs; only 1.16.5 classifiers need flat extraction
+                            byKey[groupArtifactKey] = new ResolvedLibrary(groupArtifactKey, url, local, sha1, false, false);
                         }
                     }
 

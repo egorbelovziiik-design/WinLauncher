@@ -21,12 +21,6 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-
-    include(fabricApi.module("fabric-api-base", project.fabric_api_version))
-    include(fabricApi.module("fabric-lifecycle-events-v1", project.fabric_api_version))
-    include(fabricApi.module("fabric-key-binding-api-v1", project.fabric_api_version))
-    include(fabricApi.module("fabric-rendering-v1", project.fabric_api_version))
 }
 
 processResources {
@@ -51,20 +45,4 @@ java {
 
 remapJar {
     archiveFileName = "AXSESCLIENT-1.21.11.jar"
-}
-
-tasks.matching { it.name == "runClient" }.configureEach {
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-if (project.hasProperty('axsesSelftest')) {
-    loom {
-        runs {
-            client {
-                vmArg "-Daxsesclient.selftest=true"
-            }
-        }
-    }
 }

@@ -13,33 +13,31 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 
 public final class AxsesClient1165Mod implements ClientModInitializer {
-    private int selfTestTick = 0;
-    private boolean selfTestCompleted = false;
+    private static final boolean SELF_TEST = Boolean.getBoolean("axsesclient.selftest");
+    private static int selfTestTick = 0;
+    private static boolean selfTestCompleted = false;
 
     @Override
     public void onInitializeClient() {
         Path gameDir = FabricLoader.getInstance().getGameDir();
-        Mc1165Adapter mcAdapter = new Mc1165Adapter();
-        Mc1165InputAdapter inputAdapter = new Mc1165InputAdapter();
-        final AxsesCore core = new AxsesCore(gameDir, mcAdapter, inputAdapter);
-
-        final boolean selfTest = Boolean.getBoolean("axsesclient.selftest");
-
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            core.onClientTick();
-            if (selfTest && !selfTestCompleted && client != null && client.screen != null) {
-                runSelfTestStep(client, core);
-            }
-        });
+        new AxsesCore(gameDir, new Mc1165Adapter(), new Mc1165InputAdapter());
     }
 
-    private void runSelfTestStep(Minecraft mc, AxsesCore core) {
+    public static void handleTick(Minecraft client) {
+        AxsesCore core = AxsesCore.getInstance();
+        if (core == null) return;
+        core.onClientTick();
+        if (SELF_TEST && !selfTestCompleted && client != null && client.screen != null && client.getOverlay() == null) {
+            runSelfTestStep(client, core);
+        }
+    }
+
+    private static void runSelfTestStep(Minecraft mc, AxsesCore core) {
         selfTestTick++;
         try {
             if (selfTestTick == 5) {
@@ -48,24 +46,21 @@ public final class AxsesClient1165Mod implements ClientModInitializer {
                     mc.setScreen(new AxsesMainMenuScreen1165());
                 }
             } else if (selfTestTick == 12) {
-                // Verify Right Shift opens ClickGUI from Main Menu / In-Game
                 core.onInGameKeyPress(KeyCodes.KEY_RIGHT_SHIFT);
                 if (!(mc.screen instanceof ClickGuiScreen1165)) {
                     throw new IllegalStateException("Right Shift did not open ClickGuiScreen1165");
                 }
             } else if (selfTestTick == 18) {
-                // Exercise ClickGUI search, category clicks, theme switch, and config save
                 core.getClickGuiController().mouseClicked(core.getMinecraftAdapter(), 365, 16, 0);
                 core.getThemeManager().setActiveTheme("axses-purple");
                 core.getModuleManager().getById("fullbright").setEnabled(true, core.getMinecraftAdapter());
+                core.onClientTick();
                 core.getConfigManager().save("selftest_1165");
-                // Close via Right Shift
                 core.getClickGuiController().keyPressed(core.getMinecraftAdapter(), KeyCodes.KEY_RIGHT_SHIFT);
                 if (mc.screen instanceof ClickGuiScreen1165) {
                     throw new IllegalStateException("Right Shift did not close ClickGuiScreen1165");
                 }
             } else if (selfTestTick == 22) {
-                // Re-open via Right Shift, then close via Escape
                 core.onInGameKeyPress(KeyCodes.KEY_RIGHT_SHIFT);
                 if (!(mc.screen instanceof ClickGuiScreen1165)) {
                     throw new IllegalStateException("Second Right Shift open failed");
@@ -75,7 +70,6 @@ public final class AxsesClient1165Mod implements ClientModInitializer {
                 if (mc.screen instanceof ClickGuiScreen1165) {
                     throw new IllegalStateException("Escape did not close ClickGuiScreen1165");
                 }
-                // Open HUD Editor & test drag/preset
                 mc.setScreen(new HudEditorScreen1165());
             } else if (selfTestTick == 30) {
                 if (!(mc.screen instanceof HudEditorScreen1165)) {
@@ -87,10 +81,11 @@ public final class AxsesClient1165Mod implements ClientModInitializer {
                 JsonObject report = new JsonObject();
                 report.addProperty("status", "PASS");
                 report.addProperty("minecraftVersion", "1.16.5");
+                report.addProperty("javaRuntime", System.getProperty("java.version"));
                 report.addProperty("modulesRegistered", Integer.valueOf(core.getModuleManager().getAll().size()));
                 report.addProperty("themesRegistered", Integer.valueOf(core.getThemeManager().getAllThemes().size()));
                 report.addProperty("activeTheme", core.getThemeManager().getActiveThemeId());
-                report.addProperty("fullbrightPersisted", Boolean.valueOf(core.getModuleManager().getById("fullbright").isEnabled()));
+                report.addProperty("effectiveGamma", Double.valueOf(mc.options.gamma));
                 report.addProperty("mixinAudit", "PASS");
                 Path out = core.getClientRootDir().resolve("selftest-1.16.5.json");
                 Files.write(out, new GsonBuilder().setPrettyPrinting().create().toJson(report).getBytes(StandardCharsets.UTF_8));

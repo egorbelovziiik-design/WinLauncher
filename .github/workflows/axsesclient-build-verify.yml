@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   java-mods-and-client-tests:
-    name: Build & Xvfb-Test Fabric Mods (1.16.5, 1.21.4, 1.21.11)
+    name: Build Fabric Mods & Real C#-Engine Xvfb Minecraft Tests (1.16.5, 1.21.4, 1.21.11)
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -27,6 +27,11 @@ jobs:
             8
             21
             25
+
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
 
       - name: Set up Gradle 9.8.2
         uses: gradle/actions/setup-gradle@v4
@@ -88,72 +93,74 @@ jobs:
           fi
           echo "::notice title=AXSESCLIENT-1.21.11.jar::Built & verified Java 21 bytecode (v65)"
 
-      - name: 5. Real Minecraft 1.16.5 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
-        working-directory: AXSESCLIENT/client-1.16.5
+      - name: 5. Run xUnit + Avalonia Headless Skia Tests (11 Pages) & Build Launcher Engine
+        env:
+          AXSES_SCREENSHOT_OUT: /tmp/axses-screenshots
+        run: |
+          mkdir -p AXSESCLIENT-RELEASE staged-jars
+          cp AXSESCLIENT/client-1.16.5/build/libs/AXSESCLIENT-1.16.5.jar AXSESCLIENT-RELEASE/
+          cp AXSESCLIENT/client-1.21.4/build/libs/AXSESCLIENT-1.21.4.jar AXSESCLIENT-RELEASE/
+          cp AXSESCLIENT/client-1.21.11/build/libs/AXSESCLIENT-1.21.11.jar AXSESCLIENT-RELEASE/
+          if ! dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release > /tmp/dotnet.log 2>&1; then
+            msg=$(tail -n 55 /tmp/dotnet.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=dotnet test failed::$msg"
+            cat /tmp/dotnet.log
+            exit 1
+          fi
+          echo "::notice title=Avalonia xUnit Suite::PASSED ($(ls /tmp/axses-screenshots/*.png | wc -l) screenshots rendered)"
+
+      - name: 6. Real E2E Launch — Minecraft 1.16.5 + AXSESCLIENT-1.16.5.jar on Java 8
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
+          AXSES_FAST_CI_ASSETS: "1"
         run: |
-          mkdir -p run
-          printf "pauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
-          if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true \
-            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/mc1165.log 2>&1; then
+          if ! xvfb-run -a -s "-screen 0 1280x720x24" \
+            dotnet run --no-build -c Release --project AXSESCLIENT/launcher -- \
+            --e2e-launch 1.16.5 /tmp/axses-e2e staged-jars/selftest-1.16.5.json > /tmp/mc1165.log 2>&1; then
             msg=$(tail -n 55 /tmp/mc1165.log | tr '\n' ' ' | sed 's/%/%25/g')
-            echo "::error title=MC 1.16.5 Xvfb failed::$msg"
+            echo "::error title=MC 1.16.5 E2E failed::$msg"
             cat /tmp/mc1165.log
             exit 1
           fi
-          jq -c . run/axsesclient/selftest-1.16.5.json
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.16.5.json
-          echo "::notice title=MC 1.16.5 Real Client Test::$(jq -c . run/axsesclient/selftest-1.16.5.json)"
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.16.5.json
+          echo "::notice title=MC 1.16.5 Production JAR E2E::$(jq -c . staged-jars/selftest-1.16.5.json)"
 
-      - name: 6. Real Minecraft 1.21.4 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
-        working-directory: AXSESCLIENT/client-1.21.4
+      - name: 7. Real E2E Launch — Minecraft 1.21.4 + AXSESCLIENT-1.21.4.jar on Java 21
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
+          AXSES_FAST_CI_ASSETS: "1"
         run: |
-          mkdir -p run
-          printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
-          if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true \
-            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/mc1214.log 2>&1; then
+          if ! xvfb-run -a -s "-screen 0 1280x720x24" \
+            dotnet run --no-build -c Release --project AXSESCLIENT/launcher -- \
+            --e2e-launch 1.21.4 /tmp/axses-e2e staged-jars/selftest-1.21.4.json > /tmp/mc1214.log 2>&1; then
             msg=$(tail -n 55 /tmp/mc1214.log | tr '\n' ' ' | sed 's/%/%25/g')
-            echo "::error title=MC 1.21.4 Xvfb failed::$msg"
+            echo "::error title=MC 1.21.4 E2E failed::$msg"
             cat /tmp/mc1214.log
             exit 1
           fi
-          jq -c . run/axsesclient/selftest-1.21.4.json
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.21.4.json
-          echo "::notice title=MC 1.21.4 Real Client Test::$(jq -c . run/axsesclient/selftest-1.21.4.json)"
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.4.json
+          echo "::notice title=MC 1.21.4 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.4.json)"
 
-      - name: 7. Real Minecraft 1.21.11 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
-        working-directory: AXSESCLIENT/client-1.21.11
+      - name: 8. Real E2E Launch — Minecraft 1.21.11 + AXSESCLIENT-1.21.11.jar on Java 21
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
+          AXSES_FAST_CI_ASSETS: "1"
         run: |
-          mkdir -p run
-          printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
-          if ! timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
-            gradle runClient --no-daemon -PaxsesSelftest=true \
-            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/mc12111.log 2>&1; then
+          if ! xvfb-run -a -s "-screen 0 1280x720x24" \
+            dotnet run --no-build -c Release --project AXSESCLIENT/launcher -- \
+            --e2e-launch 1.21.11 /tmp/axses-e2e staged-jars/selftest-1.21.11.json > /tmp/mc12111.log 2>&1; then
             msg=$(tail -n 55 /tmp/mc12111.log | tr '\n' ' ' | sed 's/%/%25/g')
-            echo "::error title=MC 1.21.11 Xvfb failed::$msg"
+            echo "::error title=MC 1.21.11 E2E failed::$msg"
             cat /tmp/mc12111.log
             exit 1
           fi
-          jq -c . run/axsesclient/selftest-1.21.11.json
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.21.11.json
-          echo "::notice title=MC 1.21.11 Real Client Test::$(jq -c . run/axsesclient/selftest-1.21.11.json)"
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' staged-jars/selftest-1.21.11.json
+          echo "::notice title=MC 1.21.11 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.11.json)"
 
-      - name: Stage Verified Mod JARs & Client Test Reports
+      - name: Stage Verified Mod JARs & E2E Reports
         run: |
-          mkdir -p staged-jars
-          cp AXSESCLIENT/client-1.16.5/build/libs/AXSESCLIENT-1.16.5.jar staged-jars/
-          cp AXSESCLIENT/client-1.21.4/build/libs/AXSESCLIENT-1.21.4.jar staged-jars/
-          cp AXSESCLIENT/client-1.21.11/build/libs/AXSESCLIENT-1.21.11.jar staged-jars/
-          cp AXSESCLIENT/client-1.16.5/run/axsesclient/selftest-1.16.5.json staged-jars/
-          cp AXSESCLIENT/client-1.21.4/run/axsesclient/selftest-1.21.4.json staged-jars/
-          cp AXSESCLIENT/client-1.21.11/run/axsesclient/selftest-1.21.11.json staged-jars/
+          cp AXSESCLIENT-RELEASE/AXSESCLIENT-*.jar staged-jars/
+          ls -lh staged-jars/
 
       - name: Upload Verified Mod JARs
         uses: actions/upload-artifact@v4
@@ -161,37 +168,10 @@ jobs:
           name: verified-mod-jars
           path: staged-jars/*
 
-  dotnet-parallel-check:
-    name: Build & Test C#/.NET 8 Avalonia Launcher + Headless Screenshots
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up .NET 8 SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Run xUnit + Avalonia Headless Skia Tests (11 Pages)
-        env:
-          AXSES_SCREENSHOT_OUT: /tmp/axses-screenshots
-        run: |
-          set -o pipefail
-          if ! dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release --logger "console;verbosity=normal" > /tmp/dotnet.log 2>&1; then
-            msg=$(tail -n 55 /tmp/dotnet.log | tr '\n' ' ' | sed 's/%/%25/g')
-            echo "::error title=dotnet test failed::$msg"
-            cat /tmp/dotnet.log
-            exit 1
-          fi
-          ls -lh /tmp/axses-screenshots
-          echo "::notice title=Avalonia xUnit Suite::PASSED ($(ls /tmp/axses-screenshots/*.png | wc -l) screenshots rendered)"
-
   windows-launcher-and-installer:
     name: Package & Verify Windows x64 AXSESCLIENT.exe & AXSESCLIENT-Setup.exe
     runs-on: windows-latest
-    needs: [java-mods-and-client-tests, dotnet-parallel-check]
+    needs: [java-mods-and-client-tests]
     timeout-minutes: 25
     steps:
       - name: Checkout Repository

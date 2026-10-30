@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
@@ -22,27 +21,26 @@ import net.minecraft.client.input.MouseButtonInfo;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 
 public final class AxsesClient12111Mod implements ClientModInitializer {
-    private int selfTestTick = 0;
-    private boolean selfTestCompleted = false;
+    private static final boolean SELF_TEST = Boolean.getBoolean("axsesclient.selftest");
+    private static int selfTestTick = 0;
+    private static boolean selfTestCompleted = false;
 
     @Override
     public void onInitializeClient() {
         Path gameDir = FabricLoader.getInstance().getGameDir();
-        Mc12111Adapter mcAdapter = new Mc12111Adapter();
-        Mc12111InputAdapter inputAdapter = new Mc12111InputAdapter();
-        final AxsesCore core = new AxsesCore(gameDir, mcAdapter, inputAdapter);
-
-        final boolean selfTest = Boolean.getBoolean("axsesclient.selftest");
-
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            core.onClientTick();
-            if (selfTest && !selfTestCompleted && client != null && client.screen != null && client.getOverlay() == null) {
-                runSelfTestStep(client, core);
-            }
-        });
+        new AxsesCore(gameDir, new Mc12111Adapter(), new Mc12111InputAdapter());
     }
 
-    private void runSelfTestStep(Minecraft mc, AxsesCore core) {
+    public static void handleTick(Minecraft client) {
+        AxsesCore core = AxsesCore.getInstance();
+        if (core == null) return;
+        core.onClientTick();
+        if (SELF_TEST && !selfTestCompleted && client != null && client.screen != null && client.getOverlay() == null) {
+            runSelfTestStep(client, core);
+        }
+    }
+
+    private static void runSelfTestStep(Minecraft mc, AxsesCore core) {
         selfTestTick++;
         try {
             if (selfTestTick == 5) {
@@ -92,6 +90,7 @@ public final class AxsesClient12111Mod implements ClientModInitializer {
                 JsonObject report = new JsonObject();
                 report.addProperty("status", "PASS");
                 report.addProperty("minecraftVersion", "1.21.11");
+                report.addProperty("javaRuntime", System.getProperty("java.version"));
                 report.addProperty("modulesRegistered", core.getModuleManager().getAll().size());
                 report.addProperty("themesRegistered", core.getThemeManager().getAllThemes().size());
                 report.addProperty("activeTheme", core.getThemeManager().getActiveThemeId());

@@ -16,6 +16,14 @@ public static class Program
             return RunExecutableSelfTestAsync(outPath).GetAwaiter().GetResult();
         }
 
+        if (args.Length >= 4 && string.Equals(args[0], "--e2e-launch", StringComparison.OrdinalIgnoreCase))
+        {
+            string mcVersion = args[1];
+            string dataRoot = args[2];
+            string outReport = args[3];
+            return RunRealMinecraftE2ELaunchAsync(mcVersion, dataRoot, outReport).GetAwaiter().GetResult();
+        }
+
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         return 0;
     }
@@ -25,6 +33,61 @@ public static class Program
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
+
+    private static async Task<int> RunRealMinecraftE2ELaunchAsync(string mcVersion, string dataRoot, string outReportPath)
+    {
+        var controller = new LauncherStateController(dataRoot);
+        string? j8Home = Environment.GetEnvironmentVariable("JAVA_HOME_8_X64");
+        string? j21Home = Environment.GetEnvironmentVariable("JAVA_HOME_21_X64");
+        if (!string.IsNullOrWhiteSpace(j8Home))
+            controller.Settings.Java8Path = Path.Combine(j8Home, "bin", OperatingSystem.IsWindows() ? "java.exe" : "java");
+        if (!string.IsNullOrWhiteSpace(j21Home))
+            controller.Settings.Java21Path = Path.Combine(j21Home, "bin", OperatingSystem.IsWindows() ? "java.exe" : "java");
+
+        var account = controller.AuthService.CreateLocalSandboxAccount("AxsesCiRunner");
+        var spec = controller.Versions.First(v => v.MinecraftVersion == mcVersion);
+
+        string instDir = controller.LaunchEngine.GetInstanceDir(mcVersion);
+        Directory.CreateDirectory(instDir);
+        await File.WriteAllTextAsync(
+            Path.Combine(instDir, "options.txt"),
+            "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n");
+
+        var profile = new LaunchProfile
+        {
+            Name = $"E2E {mcVersion}",
+            MinecraftVersion = mcVersion,
+            RamMb = 2048,
+            ResolutionWidth = 1280,
+            ResolutionHeight = 720,
+            CustomJvmArgs = "-XX:+UseG1GC -Daxsesclient.selftest=true"
+        };
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(4));
+        var proc = await controller.LaunchEngine.LaunchMinecraftAsync(
+            spec,
+            profile,
+            account,
+            controller.Settings,
+            controller.Modules,
+            stage => Console.WriteLine($"[Stage {stage.StageNumber}/{stage.TotalStages}] {stage.StageName}"),
+            log => Console.WriteLine(log),
+            null,
+            cts.Token);
+
+        await proc.WaitForExitAsync(cts.Token);
+        string generatedReport = Path.Combine(instDir, "axsesclient", $"selftest-{mcVersion}.json");
+        if (!File.Exists(generatedReport))
+        {
+            Console.Error.WriteLine($"Expected self-test report missing: {generatedReport} (exit code {proc.ExitCode})");
+            return 1;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outReportPath))!);
+        File.Copy(generatedReport, outReportPath, overwrite: true);
+        Console.WriteLine(await File.ReadAllTextAsync(outReportPath, cts.Token));
+        return 0;
+    }
 
     private static async Task<int> RunExecutableSelfTestAsync(string reportOutputPath)
     {
@@ -39,7 +102,6 @@ public static class Program
             if (controller.Versions.Count != 3)
                 throw new InvalidOperationException($"Expected 3 versions, found {controller.Versions.Count}");
 
-            // Verify DPAPI / AES-GCM encryption & secret scrubbing
             string encrypted = SecureTokenVault.Encrypt("super_secret_oauth_token_12345", Path.Combine(tempRoot, "vault"));
             string decrypted = SecureTokenVault.Decrypt(encrypted, Path.Combine(tempRoot, "vault"));
             if (decrypted != "super_secret_oauth_token_12345")
@@ -49,12 +111,10 @@ public static class Program
             if (scrubbed.Contains("super_secret_oauth_token_12345", StringComparison.Ordinal))
                 throw new InvalidOperationException("SecureTokenVault failed to redact token from logs.");
 
-            // Verify Theme & Module config sync
             controller.SetActiveTheme("axses-purple");
             controller.SelectVersion("1.21.11");
             controller.SyncModulesAndThemeToSelectedInstance();
 
-            // Run live diagnostics (system, Java, Mojang/Fabric HTTP endpoints, bundled mod JARs)
             await controller.RunDiagnosticsAsync().ConfigureAwait(false);
 
             var report = new
