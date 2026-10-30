@@ -34,9 +34,13 @@ public final class ToolkitScreen extends Screen {
     private long transitionStarted = System.currentTimeMillis();
     private String item = "", total = "", count = "1", reference = "0", result = "", error = "";
     private boolean bargain;
+    private boolean awaitingOpeningKeyRelease;
 
-    public ToolkitScreen() {
+    public ToolkitScreen() { this(false); }
+
+    public ToolkitScreen(boolean openingKeyHeld) {
         super(Text.literal("Survivor Toolkit"));
+        awaitingOpeningKeyRelease = openingKeyHeld;
         reference = SurvivorToolkitClient.config().priceReference;
     }
 
@@ -271,13 +275,28 @@ public final class ToolkitScreen extends Screen {
     @Override public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) { /* custom overlay */ }
     @Override public boolean shouldPause() { return false; }
     @Override public boolean keyPressed(KeyInput input) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE || SurvivorToolkitClient.MENU_KEY.matchesKey(input)) { close(); return true; }
+        if (input.key() == GLFW.GLFW_KEY_ESCAPE) { close(); return true; }
+        if (SurvivorToolkitClient.MENU_KEY.matchesKey(input)) {
+            if (!awaitingOpeningKeyRelease) close();
+            return true;
+        }
         return super.keyPressed(input);
+    }
+    @Override public boolean keyReleased(KeyInput input) {
+        if (SurvivorToolkitClient.MENU_KEY.matchesKey(input)) awaitingOpeningKeyRelease = false;
+        return super.keyReleased(input);
     }
     @Override public boolean mouseClicked(Click click, boolean doubled) {
         if (super.mouseClicked(click, doubled)) return true;
-        if (SurvivorToolkitClient.MENU_KEY.matchesMouse(click)) { close(); return true; }
+        if (SurvivorToolkitClient.MENU_KEY.matchesMouse(click)) {
+            if (!awaitingOpeningKeyRelease) close();
+            return true;
+        }
         return false;
+    }
+    @Override public boolean mouseReleased(Click click) {
+        if (SurvivorToolkitClient.MENU_KEY.matchesMouse(click)) awaitingOpeningKeyRelease = false;
+        return super.mouseReleased(click);
     }
     @Override public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (mouseX >= contentX && mouseX <= px + pw && mouseY >= bodyTop && mouseY <= bodyBottom && maxScroll > 0) {

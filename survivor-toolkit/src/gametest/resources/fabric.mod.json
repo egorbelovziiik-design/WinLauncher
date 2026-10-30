@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "survivor_toolkit_gametest",
+  "version": "1.0.0",
+  "name": "Survivor Toolkit client game tests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": ["dev.survivortoolkit.gametest.SurvivorToolkitGameTest"]
+  },
+  "depends": {
+    "survivor_toolkit": "*",
+    "fabric-client-gametest-api-v1": "*"
+  }
+}

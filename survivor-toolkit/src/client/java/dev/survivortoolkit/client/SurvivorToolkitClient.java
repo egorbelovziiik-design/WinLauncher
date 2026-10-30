@@ -53,7 +53,7 @@ public final class SurvivorToolkitClient implements ClientModInitializer {
         FREECAM.tick(client);
         if (menuPressed && client.currentScreen == null && client.world != null) {
             FREECAM.stop(client);
-            client.setScreen(new ToolkitScreen());
+            client.setScreen(new ToolkitScreen(MENU_KEY.isPressed()));
         } else if (freecamPressed && client.currentScreen == null) {
             FREECAM.toggle(client);
         }

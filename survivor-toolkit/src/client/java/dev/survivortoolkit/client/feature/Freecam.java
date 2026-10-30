@@ -34,7 +34,8 @@ public final class Freecam {
             message(client, "survivor_toolkit.freecam.local_only"); return;
         }
         ClientPlayerEntity player = client.player;
-        if (player.hasVehicle() || player.isUsingItem() || !player.isOnGround() || player.getVelocity().horizontalLengthSquared() > 0.0025) {
+        if (player.hasVehicle() || player.isUsingItem() || client.options.attackKey.isPressed() || client.options.useKey.isPressed()
+                || !player.isOnGround() || player.getVelocity().horizontalLengthSquared() > 0.0025) {
             message(client, "survivor_toolkit.freecam.stand_still"); return;
         }
         originalPlayer = player;
@@ -50,6 +51,10 @@ public final class Freecam {
     public void stop(MinecraftClient client) {
         if (!active) return;
         drainVanillaKeys(client);
+        if (client.options != null) {
+            client.options.attackKey.setPressed(false);
+            client.options.useKey.setPressed(false);
+        }
         active = false;
         originalPlayer = null;
         originalWorld = null;

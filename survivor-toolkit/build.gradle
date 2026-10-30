@@ -21,6 +21,19 @@ loom {
     }
 }
 
+// Game tests are a separate, client-only test mod and are not shipped in the JAR.
+// They create an integrated world; no Minecraft server EULA is accepted here.
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'survivor_toolkit_gametest'
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = false
+    }
+}
+loom.runs.clientGameTest.vmArg '-Dfabric.client.gametest.modid=survivor_toolkit_gametest'
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
