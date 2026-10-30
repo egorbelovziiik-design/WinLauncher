@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>AXSESCLIENT</AssemblyName>
+    <RootNamespace>AxsesClient.Launcher</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>AXSESCLIENT</Product>
+    <Company>AXSESCLIENT Engineering</Company>
+    <Description>AXSESCLIENT (GENESIS X) — Next-Gen Minecraft Utility, HUD, Visual &amp; PvP Training Client Launcher</Description>
+    <ApplicationIcon>..\assets\branding\axsesclient.ico</ApplicationIcon>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.5" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\updater\AxsesClient.Updater.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="..\assets\branding\icon-128.png" Link="Assets\icon-128.png" />
+    <AvaloniaResource Include="..\assets\branding\splash.png" Link="Assets\splash.png" />
+  </ItemGroup>
+</Project>

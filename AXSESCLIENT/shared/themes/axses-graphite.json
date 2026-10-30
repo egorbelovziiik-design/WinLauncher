@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-graphite",
+  "name": "AXSES GRAPHITE",
+  "builtIn": true,
+  "backgroundColor": "#101216",
+  "surfaceColor": "#181B21",
+  "elevatedColor": "#232831",
+  "primaryColor": "#7C93FF",
+  "secondaryColor": "#5A6FD6",
+  "accentColor": "#5EEAD4",
+  "textColor": "#F3F4F6",
+  "mutedColor": "#9CA3AF",
+  "successColor": "#34D399",
+  "warningColor": "#FBBF24",
+  "errorColor": "#F87171",
+  "opacity": 0.96,
+  "animationSpeed": 1.0,
+  "cornerRadius": 8,
+  "shadowIntensity": 0.6
+}

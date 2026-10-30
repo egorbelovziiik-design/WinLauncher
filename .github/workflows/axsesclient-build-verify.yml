@@ -1,0 +1,223 @@
+name: AXSESCLIENT Build & End-to-End Verification
+
+on:
+  push:
+    branches:
+      - "arena/b5b3cc60-winlauncher"
+  workflow_dispatch:
+
+jobs:
+  java-mods-and-client-tests:
+    name: Build & Xvfb-Test Fabric Mods (1.16.5, 1.21.4, 1.21.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin Java 8 & Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: |
+            8
+            21
+
+      - name: Set up Gradle 8.12.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.12.1"
+
+      - name: Install Xvfb, Mesa Software OpenGL & ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri mesa-utils libopenal1 imagemagick x11-utils
+
+      - name: 1. Build & Run JUnit 5 Suite on client-common
+        working-directory: AXSESCLIENT/client-common
+        run: gradle test build --info --no-daemon
+
+      - name: 2. Build AXSESCLIENT-1.16.5.jar & Verify Java 8 Bytecode (Major 52)
+        working-directory: AXSESCLIENT/client-1.16.5
+        run: |
+          gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}"
+          ls -lh build/libs/AXSESCLIENT-1.16.5.jar
+          unzip -p build/libs/AXSESCLIENT-1.16.5.jar dev/axsesclient/mc1165/AxsesClient1165Mod.class > /tmp/Mod1165.class
+          javap -verbose /tmp/Mod1165.class | grep "major version: 52"
+
+      - name: 3. Build AXSESCLIENT-1.21.4.jar
+        working-directory: AXSESCLIENT/client-1.21.4
+        run: |
+          gradle remapJar --no-daemon
+          ls -lh build/libs/AXSESCLIENT-1.21.4.jar
+
+      - name: 4. Build AXSESCLIENT-1.21.11.jar
+        working-directory: AXSESCLIENT/client-1.21.11
+        run: |
+          gradle remapJar --no-daemon
+          ls -lh build/libs/AXSESCLIENT-1.21.11.jar
+
+      - name: 5. Real Minecraft 1.16.5 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
+        working-directory: AXSESCLIENT/client-1.16.5
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          mkdir -p run
+          printf "pauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
+          timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
+            gradle runClient --no-daemon -PaxsesSelftest=true \
+            -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64}"
+          cat run/axsesclient/selftest-1.16.5.json
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.16.5.json
+
+      - name: 6. Real Minecraft 1.21.4 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
+        working-directory: AXSESCLIENT/client-1.21.4
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          mkdir -p run
+          printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
+          timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
+            gradle runClient --no-daemon -PaxsesSelftest=true
+          cat run/axsesclient/selftest-1.21.4.json
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.21.4.json
+
+      - name: 7. Real Minecraft 1.21.11 Xvfb Launch, Mixin Audit & ClickGUI/HUD Self-Test
+        working-directory: AXSESCLIENT/client-1.21.11
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          mkdir -p run
+          printf "onboardAccessibility:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n" > run/options.txt
+          timeout 240 xvfb-run -a -s "-screen 0 1280x720x24" \
+            gradle runClient --no-daemon -PaxsesSelftest=true
+          cat run/axsesclient/selftest-1.21.11.json
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 90' run/axsesclient/selftest-1.21.11.json
+
+      - name: Stage Verified Mod JARs & Client Test Reports
+        run: |
+          mkdir -p staged-jars
+          cp AXSESCLIENT/client-1.16.5/build/libs/AXSESCLIENT-1.16.5.jar staged-jars/
+          cp AXSESCLIENT/client-1.21.4/build/libs/AXSESCLIENT-1.21.4.jar staged-jars/
+          cp AXSESCLIENT/client-1.21.11/build/libs/AXSESCLIENT-1.21.11.jar staged-jars/
+          cp AXSESCLIENT/client-1.16.5/run/axsesclient/selftest-1.16.5.json staged-jars/
+          cp AXSESCLIENT/client-1.21.4/run/axsesclient/selftest-1.21.4.json staged-jars/
+          cp AXSESCLIENT/client-1.21.11/run/axsesclient/selftest-1.21.11.json staged-jars/
+
+      - name: Upload Verified Mod JARs
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-mod-jars
+          path: staged-jars/*
+
+  windows-launcher-and-installer:
+    name: Build & Test Windows Launcher (AXSESCLIENT.exe) & Installer (AXSESCLIENT-Setup.exe)
+    runs-on: windows-latest
+    needs: java-mods-and-client-tests
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Verified Mod JARs into AXSESCLIENT-RELEASE
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-mod-jars
+          path: AXSESCLIENT-RELEASE
+
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: 1. Run xUnit & Avalonia Headless UI Test Suite (+ Capture 11 Page Screenshots)
+        env:
+          AXSES_SCREENSHOT_OUT: ${{ github.workspace }}/AXSESCLIENT-RELEASE/screenshots
+        run: |
+          dotnet test AXSESCLIENT/AXSESCLIENT.sln -c Release --logger "console;verbosity=normal"
+          Get-ChildItem AXSESCLIENT-RELEASE/screenshots
+
+      - name: 2. Publish Self-Contained Windows x64 AXSESCLIENT.exe
+        run: |
+          dotnet publish AXSESCLIENT/launcher/AxsesClient.Launcher.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=none `
+            -p:DebugSymbols=false `
+            -p:SatelliteResourceLanguages=en `
+            -o AXSESCLIENT-RELEASE/win-publish
+          Copy-Item AXSESCLIENT-RELEASE/win-publish/AXSESCLIENT.exe AXSESCLIENT-RELEASE/AXSESCLIENT.exe -Force
+          Remove-Item AXSESCLIENT-RELEASE/win-publish -Recurse -Force
+          Get-Item AXSESCLIENT-RELEASE/AXSESCLIENT.exe | Select-Object Name, Length
+
+      - name: 3. Execute Compiled AXSESCLIENT.exe Self-Test on Windows x64
+        run: |
+          mkdir -Force AXSESCLIENT-RELEASE/mods
+          Copy-Item AXSESCLIENT-RELEASE/AXSESCLIENT-*.jar AXSESCLIENT-RELEASE/mods/ -Force
+          .\AXSESCLIENT-RELEASE\AXSESCLIENT.exe --selftest AXSESCLIENT-RELEASE\selftest-launcher-win64.json
+          Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json
+          $json = Get-Content AXSESCLIENT-RELEASE\selftest-launcher-win64.json | ConvertFrom-Json
+          if ($json.status -ne "PASS" -or $json.dpapiPrefix -ne "dpapi") {
+            throw "Windows Launcher executable self-test failed!"
+          }
+          Remove-Item AXSESCLIENT-RELEASE/mods -Recurse -Force
+
+      - name: 4. Build AXSESCLIENT-Setup.exe with Inno Setup 6
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "AXSESCLIENT\installer\AXSESCLIENT-Setup.iss"
+          Get-Item AXSESCLIENT-RELEASE/AXSESCLIENT-Setup.exe | Select-Object Name, Length
+
+      - name: 5. Verify Silent Install, Installed Launch, & User-World-Preserving Uninstall
+        run: |
+          $userSaveDir = Join-Path $env:APPDATA "AXSESCLIENT\instances\1.21.4\saves\ProtectedUserWorld"
+          New-Item -ItemType Directory -Force -Path $userSaveDir | Out-Null
+          Set-Content -Path (Join-Path $userSaveDir "level.dat") -Value "USER_WORLD_DATA_DO_NOT_DELETE"
+
+          $installTarget = Join-Path $env:RUNNER_TEMP "AxsesInstalledTest"
+          Start-Process -FilePath ".\AXSESCLIENT-RELEASE\AXSESCLIENT-Setup.exe" `
+            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DIR=`"$installTarget`"" `
+            -Wait -NoNewWindow
+
+          if (-not (Test-Path "$installTarget\AXSESCLIENT.exe")) { throw "Installed AXSESCLIENT.exe missing!" }
+          if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.16.5.jar")) { throw "Installed 1.16.5 JAR missing!" }
+          if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.21.4.jar")) { throw "Installed 1.21.4 JAR missing!" }
+          if (-not (Test-Path "$installTarget\mods\AXSESCLIENT-1.21.11.jar")) { throw "Installed 1.21.11 JAR missing!" }
+
+          & "$installTarget\AXSESCLIENT.exe" --selftest "$env:RUNNER_TEMP\installed-selftest.json"
+          $instJson = Get-Content "$env:RUNNER_TEMP\installed-selftest.json" | ConvertFrom-Json
+          if ($instJson.status -ne "PASS") { throw "Installed AXSESCLIENT.exe self-test failed!" }
+
+          Start-Process -FilePath "$installTarget\unins000.exe" `
+            -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" `
+            -Wait -NoNewWindow
+
+          if (-not (Test-Path (Join-Path $userSaveDir "level.dat"))) {
+            throw "CRITICAL: Uninstaller deleted user world save!"
+          }
+          Write-Host "Verified: Installer, installed AXSESCLIENT.exe, and world-preserving uninstaller all PASSED."
+
+      - name: 6. Generate SHA-256 Checksums
+        working-directory: AXSESCLIENT-RELEASE
+        run: |
+          $files = @("AXSESCLIENT.exe", "AXSESCLIENT-1.16.5.jar", "AXSESCLIENT-1.21.4.jar", "AXSESCLIENT-1.21.11.jar", "AXSESCLIENT-Setup.exe")
+          $lines = foreach ($f in $files) {
+            $h = (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant()
+            $len = (Get-Item $f).Length
+            "$h  $f  ($len bytes)"
+          }
+          $lines | Set-Content -Path "SHA256SUMS.txt" -Encoding UTF8
+          Get-Content "SHA256SUMS.txt"
+
+      - name: Upload Complete AXSESCLIENT Release Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: axsesclient-release-bundle
+          path: AXSESCLIENT-RELEASE/**

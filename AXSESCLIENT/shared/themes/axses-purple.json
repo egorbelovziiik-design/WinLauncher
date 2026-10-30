@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-purple",
+  "name": "AXSES PURPLE",
+  "builtIn": true,
+  "backgroundColor": "#0B0716",
+  "surfaceColor": "#150E28",
+  "elevatedColor": "#21163D",
+  "primaryColor": "#B36BFF",
+  "secondaryColor": "#7E42FF",
+  "accentColor": "#E580FF",
+  "textColor": "#FAF7FF",
+  "mutedColor": "#A596C7",
+  "successColor": "#39DFA2",
+  "warningColor": "#FFC16A",
+  "errorColor": "#FF5B79",
+  "opacity": 0.94,
+  "animationSpeed": 1.0,
+  "cornerRadius": 12,
+  "shadowIntensity": 0.8
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AXSESCLIENT Configuration Profile Schema v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "profileName",
+    "activeThemeId",
+    "guiScale",
+    "modules",
+    "hudElements"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "profileName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "activeThemeId": {
+      "type": "string"
+    },
+    "guiScale": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2.0
+    },
+    "guiX": {
+      "type": "number"
+    },
+    "guiY": {
+      "type": "number"
+    },
+    "openGuiKey": {
+      "type": "integer"
+    },
+    "reducedMotion": {
+      "type": "boolean"
+    },
+    "animationSpeed": {
+      "type": "number",
+      "minimum": 0.25,
+      "maximum": 3.0
+    },
+    "animationIntensity": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "colorBlindMode": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "PROTANOPIA",
+        "DEUTERANOPIA",
+        "TRITANOPIA"
+      ]
+    },
+    "fontScale": {
+      "type": "string",
+      "enum": [
+        "SMALL",
+        "NORMAL",
+        "LARGE"
+      ]
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "en_US",
+        "ru_RU"
+      ]
+    },
+    "modules": {
+      "type": "object"
+    },
+    "hudElements": {
+      "type": "object"
+    }
+  }
+}

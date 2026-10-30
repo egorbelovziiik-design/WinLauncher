@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-neon",
+  "name": "AXSES NEON",
+  "builtIn": true,
+  "backgroundColor": "#080612",
+  "surfaceColor": "#120D24",
+  "elevatedColor": "#1C1436",
+  "primaryColor": "#FF3CAC",
+  "secondaryColor": "#784BA0",
+  "accentColor": "#00F5D4",
+  "textColor": "#FFF7FD",
+  "mutedColor": "#B39CC8",
+  "successColor": "#00F5D4",
+  "warningColor": "#FEE440",
+  "errorColor": "#FF4D6D",
+  "opacity": 0.92,
+  "animationSpeed": 1.2,
+  "cornerRadius": 12,
+  "shadowIntensity": 0.9
+}

@@ -1,0 +1,73 @@
+plugins {
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir '../client-common/src/main/java'
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // Bundle essential lightweight Fabric API client event modules via Jar-in-Jar
+    // so AXSESCLIENT-1.16.5.jar loads cleanly both standalone and alongside full Fabric API
+    include(fabricApi.module("fabric-api-base", project.fabric_api_version))
+    include(fabricApi.module("fabric-lifecycle-events-v1", project.fabric_api_version))
+    include(fabricApi.module("fabric-key-binding-api-v1", project.fabric_api_version))
+    include(fabricApi.module("fabric-rendering-v1", project.fabric_api_version))
+}
+
+processResources {
+    inputs.property "version", project.version
+    from("../assets/branding/icon-128.png") {
+        into "assets/axsesclient"
+        rename { "icon.png" }
+    }
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = 8
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+remapJar {
+    archiveFileName = "AXSESCLIENT-1.16.5.jar"
+}
+
+tasks.matching { it.name == "runClient" }.configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+if (project.hasProperty('axsesSelftest')) {
+    loom {
+        runs {
+            client {
+                vmArg "-Daxsesclient.selftest=true"
+            }
+        }
+    }
+}

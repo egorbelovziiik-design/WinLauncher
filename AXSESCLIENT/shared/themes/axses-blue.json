@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-blue",
+  "name": "AXSES BLUE",
+  "builtIn": true,
+  "backgroundColor": "#060B16",
+  "surfaceColor": "#0D1629",
+  "elevatedColor": "#16233E",
+  "primaryColor": "#3B82F6",
+  "secondaryColor": "#2563EB",
+  "accentColor": "#38BDF8",
+  "textColor": "#F4F8FF",
+  "mutedColor": "#8EA4C8",
+  "successColor": "#34D399",
+  "warningColor": "#FBBF24",
+  "errorColor": "#FB7185",
+  "opacity": 0.94,
+  "animationSpeed": 1.0,
+  "cornerRadius": 10,
+  "shadowIntensity": 0.7
+}

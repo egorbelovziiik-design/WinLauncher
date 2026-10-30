@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "product": "AXSESCLIENT",
+  "codename": "GENESIS X",
+  "productVersion": "1.0.0",
+  "supportedVersions": [
+    {
+      "minecraftVersion": "1.16.5",
+      "displayName": "Minecraft 1.16.5 (Nether Update)",
+      "requiredJavaMajor": 8,
+      "recommendedJavaMajor": 17,
+      "fabricLoaderVersion": "0.20.1",
+      "fabricApiVersion": "0.42.0+1.16",
+      "fabricApiModId": "fabric",
+      "mappings": "Mojang Official (Intermediary Runtime)",
+      "clientJarFile": "AXSESCLIENT-1.16.5.jar",
+      "mainClass": "net.fabricmc.loader.impl.launch.knot.KnotClient",
+      "minRamMb": 2048,
+      "recommendedRamMb": 4096
+    },
+    {
+      "minecraftVersion": "1.21.4",
+      "displayName": "Minecraft 1.21.4 (The Garden Awakens)",
+      "requiredJavaMajor": 21,
+      "recommendedJavaMajor": 21,
+      "fabricLoaderVersion": "0.20.1",
+      "fabricApiVersion": "0.119.4+1.21.4",
+      "fabricApiModId": "fabric-api",
+      "mappings": "Mojang Official (Intermediary Runtime)",
+      "clientJarFile": "AXSESCLIENT-1.21.4.jar",
+      "mainClass": "net.fabricmc.loader.impl.launch.knot.KnotClient",
+      "minRamMb": 3072,
+      "recommendedRamMb": 4096
+    },
+    {
+      "minecraftVersion": "1.21.11",
+      "displayName": "Minecraft 1.21.11 (Mounts of Mayhem)",
+      "requiredJavaMajor": 21,
+      "recommendedJavaMajor": 21,
+      "fabricLoaderVersion": "0.20.1",
+      "fabricApiVersion": "0.141.6+1.21.11",
+      "fabricApiModId": "fabric-api",
+      "mappings": "Mojang Official (Intermediary Runtime)",
+      "clientJarFile": "AXSESCLIENT-1.21.11.jar",
+      "mainClass": "net.fabricmc.loader.impl.launch.knot.KnotClient",
+      "minRamMb": 3072,
+      "recommendedRamMb": 4096
+    }
+  ]
+}

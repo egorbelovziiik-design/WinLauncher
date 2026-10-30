@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.axsesclient.mc1165.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "KeyboardHandlerMixin",
+    "MouseHandlerMixin",
+    "MinecraftClientMixin",
+    "GameRendererMixin",
+    "GuiMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

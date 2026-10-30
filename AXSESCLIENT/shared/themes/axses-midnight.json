@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-midnight",
+  "name": "AXSES MIDNIGHT",
+  "builtIn": true,
+  "backgroundColor": "#04050A",
+  "surfaceColor": "#0A0D18",
+  "elevatedColor": "#12172A",
+  "primaryColor": "#6366F1",
+  "secondaryColor": "#4338CA",
+  "accentColor": "#818CF8",
+  "textColor": "#EEF2FF",
+  "mutedColor": "#7E88AC",
+  "successColor": "#39DFA2",
+  "warningColor": "#FFC16A",
+  "errorColor": "#FF5B79",
+  "opacity": 0.96,
+  "animationSpeed": 0.95,
+  "cornerRadius": 10,
+  "shadowIntensity": 0.85
+}

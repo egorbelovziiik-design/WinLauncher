@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AXSESCLIENT Theme Schema v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "backgroundColor",
+    "surfaceColor",
+    "primaryColor",
+    "secondaryColor",
+    "accentColor",
+    "textColor",
+    "opacity",
+    "animationSpeed",
+    "cornerRadius",
+    "shadowIntensity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]{2,48}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 48
+    },
+    "opacity": {
+      "type": "number",
+      "minimum": 0.35,
+      "maximum": 1.0
+    },
+    "animationSpeed": {
+      "type": "number",
+      "minimum": 0.25,
+      "maximum": 3.0
+    },
+    "cornerRadius": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 28
+    },
+    "shadowIntensity": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    }
+  }
+}

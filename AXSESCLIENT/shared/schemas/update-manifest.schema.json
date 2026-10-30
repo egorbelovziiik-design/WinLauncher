@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AXSESCLIENT Signed Update Manifest Schema v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "productVersion",
+    "publishedAt",
+    "artifacts",
+    "signatureAlgorithm",
+    "signatureBase64"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "productVersion": {
+      "type": "string"
+    },
+    "publishedAt": {
+      "type": "string"
+    },
+    "releaseNotes": {
+      "type": "string"
+    },
+    "signatureAlgorithm": {
+      "type": "string",
+      "enum": [
+        "RSA-SHA256"
+      ]
+    },
+    "signatureBase64": {
+      "type": "string"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "relativeTarget",
+          "url",
+          "sha256",
+          "sizeBytes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "relativeTarget": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

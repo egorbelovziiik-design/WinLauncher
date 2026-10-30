@@ -1,0 +1,12 @@
+{
+  "latestVersion": "1.0.0",
+  "codename": "GENESIS X",
+  "publishedAt": "2026-10-30T00:00:00Z",
+  "changelog": [
+    "Initial flagship release of AXSESCLIENT v1.0.0 (GENESIS X).",
+    "Native C# / .NET 8 / Avalonia UI 11 Windows Launcher (AXSESCLIENT.exe) with 13-stage direct JVM launch engine.",
+    "Separate native Fabric client mods for Minecraft 1.16.5, 1.21.4, and 1.21.11.",
+    "90 modules & GUI features, AXSES NEO-DARK 8-theme engine, HUD Editor, and Config Manager."
+  ],
+  "artifacts": []
+}

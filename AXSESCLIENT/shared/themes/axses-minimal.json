@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-minimal",
+  "name": "AXSES MINIMAL",
+  "builtIn": true,
+  "backgroundColor": "#0C0D10",
+  "surfaceColor": "#14161B",
+  "elevatedColor": "#1E2028",
+  "primaryColor": "#E2E8F0",
+  "secondaryColor": "#94A3B8",
+  "accentColor": "#38BDF8",
+  "textColor": "#F8FAFC",
+  "mutedColor": "#8B95A5",
+  "successColor": "#4ADE80",
+  "warningColor": "#FACC15",
+  "errorColor": "#F87171",
+  "opacity": 0.95,
+  "animationSpeed": 1.0,
+  "cornerRadius": 8,
+  "shadowIntensity": 0.45
+}

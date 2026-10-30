@@ -1,0 +1,93 @@
+{
+  "name": "AXSES NEO-DARK",
+  "product": "AXSESCLIENT",
+  "codename": "GENESIS X",
+  "version": "1.0.0",
+  "colors": {
+    "background": "#070911",
+    "surface": "#10131D",
+    "elevated": "#191D2B",
+    "primary": "#9060FF",
+    "secondary": "#536FFF",
+    "accent": "#00D9FF",
+    "text": "#F7F8FF",
+    "muted": "#929BB1",
+    "success": "#39DFA2",
+    "warning": "#FFC16A",
+    "error": "#FF5B79",
+    "border": "#262D42",
+    "borderActive": "#9060FF",
+    "overlay": "#070911CC"
+  },
+  "spacing": {
+    "xxs": 2,
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32,
+    "xxxl": 48
+  },
+  "typography": {
+    "fontFamilyPrimary": "Segoe UI, Inter, sans-serif",
+    "fontFamilyMono": "Cascadia Code, Consolas, monospace",
+    "sizes": {
+      "caption": 11,
+      "body": 13,
+      "subtitle": 15,
+      "title": 18,
+      "heading": 24,
+      "hero": 32
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "scales": {
+      "small": 0.9,
+      "normal": 1.0,
+      "large": 1.15
+    }
+  },
+  "radius": {
+    "xs": 4,
+    "sm": 6,
+    "md": 10,
+    "lg": 14,
+    "xl": 20,
+    "pill": 999
+  },
+  "shadows": {
+    "sm": "0 2 8 0 #00000066",
+    "md": "0 6 18 0 #00000088",
+    "lg": "0 12 32 0 #000000AA",
+    "glowPrimary": "0 0 18 0 #9060FF55",
+    "glowAccent": "0 0 16 0 #00D9FF44"
+  },
+  "transitions": {
+    "instantMs": 0,
+    "fastMs": 120,
+    "normalMs": 200,
+    "slowMs": 320,
+    "pageMs": 260
+  },
+  "animations": {
+    "defaultSpeed": 1.0,
+    "minSpeed": 0.25,
+    "maxSpeed": 3.0,
+    "defaultIntensity": 1.0,
+    "reducedMotion": false,
+    "defaultEasing": "EASE_OUT_CUBIC"
+  },
+  "opacity": {
+    "disabled": 0.42,
+    "muted": 0.68,
+    "surface": 0.94,
+    "hudDefault": 0.86,
+    "modalBackdrop": 0.78,
+    "solid": 1.0
+  }
+}

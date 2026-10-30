@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "axsesclient",
+  "version": "${version}",
+  "name": "AXSESCLIENT GENESIS X",
+  "description": "Next-generation AXSES NEO-DARK Minecraft client ecosystem for 1.16.5 with ClickGUI, HUD Editor, Theme Engine, and 90 legitimate QoL & Training features.",
+  "authors": [
+    "AXSESCLIENT Engineering"
+  ],
+  "license": "MIT",
+  "icon": "assets/axsesclient/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.axsesclient.mc1165.AxsesClient1165Mod"
+    ]
+  },
+  "mixins": [
+    "axsesclient.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "1.16.5",
+    "java": ">=8"
+  }
+}

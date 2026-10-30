@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-cyber",
+  "name": "AXSES CYBER",
+  "builtIn": true,
+  "backgroundColor": "#050A0E",
+  "surfaceColor": "#0B141C",
+  "elevatedColor": "#12212E",
+  "primaryColor": "#00E5FF",
+  "secondaryColor": "#00FFA3",
+  "accentColor": "#FFE600",
+  "textColor": "#F0FCFF",
+  "mutedColor": "#7FA6B8",
+  "successColor": "#00FFA3",
+  "warningColor": "#FFE600",
+  "errorColor": "#FF3366",
+  "opacity": 0.92,
+  "animationSpeed": 1.15,
+  "cornerRadius": 6,
+  "shadowIntensity": 0.85
+}

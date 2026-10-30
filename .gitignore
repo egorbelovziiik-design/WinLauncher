@@ -21,3 +21,14 @@ release-artifacts/
 site/dist/
 site/.vite/
 .vite/
+
+# AXSESCLIENT build intermediates (release deliverables live in AXSESCLIENT-RELEASE/)
+.gradle/
+AXSESCLIENT/**/.gradle/
+AXSESCLIENT/**/build/
+AXSESCLIENT/**/bin/
+AXSESCLIENT/**/obj/
+AXSESCLIENT/**/run/
+AXSESCLIENT-RELEASE/*.exe
+AXSESCLIENT-RELEASE/*.jar
+

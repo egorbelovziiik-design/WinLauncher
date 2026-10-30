@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "axses-dark",
+  "name": "AXSES DARK",
+  "builtIn": true,
+  "backgroundColor": "#070911",
+  "surfaceColor": "#10131D",
+  "elevatedColor": "#191D2B",
+  "primaryColor": "#9060FF",
+  "secondaryColor": "#536FFF",
+  "accentColor": "#00D9FF",
+  "textColor": "#F7F8FF",
+  "mutedColor": "#929BB1",
+  "successColor": "#39DFA2",
+  "warningColor": "#FFC16A",
+  "errorColor": "#FF5B79",
+  "opacity": 0.94,
+  "animationSpeed": 1.0,
+  "cornerRadius": 10,
+  "shadowIntensity": 0.75
+}

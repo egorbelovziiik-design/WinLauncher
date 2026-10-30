@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "axsesclient",
+  "version": "${version}",
+  "name": "AXSESCLIENT",
+  "description": "AXSESCLIENT (GENESIS X) — Next-Gen Utility, HUD, Visual & PvP Training Client for Minecraft 1.21.4.",
+  "authors": [
+    "AXSESCLIENT Engineering"
+  ],
+  "contact": {
+    "homepage": "https://github.com/egorbelovziiik-design/WinLauncher"
+  },
+  "license": "MIT",
+  "icon": "assets/axsesclient/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.axsesclient.mc1214.AxsesClient1214Mod"
+    ]
+  },
+  "mixins": [
+    "axsesclient.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
+  }
+}
