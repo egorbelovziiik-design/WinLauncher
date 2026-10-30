@@ -485,7 +485,7 @@ public final class ClickGuiController {
                 rowY += 24.0f;
             } else if (s instanceof ColorSetting) {
                 ColorSetting cs = (ColorSetting) s;
-                core.getFontManager().draw(r, cs.getName() + " (" + cs.toHexRgb() + ")", sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, cs.getName() + " (" + cs.toHex() + ")", sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 r.fillRoundedRect(sx + sw - 46.0f, rowY + 2.0f, 44.0f, 16.0f, 4.0f, cs.getArgb());
                 r.drawRoundedOutline(sx + sw - 46.0f, rowY + 2.0f, 44.0f, 16.0f, 4.0f, 1.0f, t.getTextColor());
                 rowY += 24.0f;
@@ -590,13 +590,16 @@ public final class ClickGuiController {
         long usedMb = core.getPerformanceProfiler().getUsedMemoryMb();
         long maxMb = core.getPerformanceProfiler().getMaxMemoryMb();
 
+        int totalMods = core.getModuleManager().getAll().size();
+        int compatMods = totalMods - rep.getRestrictedModules().size();
+
         String[] lines = {
                 "Minecraft: " + rep.getMinecraftVersion() + "  |  Java: " + rep.getJavaVersion(),
                 "Fabric Loader: " + rep.getFabricLoaderVersion(),
                 (ru ? "Выделенная ОЗУ JVM (-Xmx): " : "Allocated JVM Heap (-Xmx): ") + usedMb + " / " + maxMb + " MB",
-                (ru ? "Совместимых модулей: " : "Compatible Modules: ") + rep.getCompatibleModulesCount() + " / " + core.getModuleManager().getAll().size(),
-                (ru ? "Запуск клиента: " : "Client Startup: ") + String.format(Locale.ROOT, "%.1f ms", Double.valueOf(core.getPerformanceProfiler().getStartupDurationMs()))
-                        + "  |  GUI Render: " + String.format(Locale.ROOT, "%.2f ms", Double.valueOf(core.getPerformanceProfiler().getLastClickGuiRenderMs()))
+                (ru ? "Совместимых модулей: " : "Compatible Modules: ") + compatMods + " / " + totalMods,
+                (ru ? "Запуск клиента: " : "Client Startup: ") + core.getPerformanceProfiler().getStartupDurationMs() + " ms"
+                        + "  |  GUI Render: " + String.format(Locale.ROOT, "%.2f ms", Float.valueOf(core.getPerformanceProfiler().getAverageClickGuiCostUs() / 1000.0f))
         };
         float ly = y + 22.0f;
         for (String line : lines) {
