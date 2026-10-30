@@ -34,7 +34,9 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
             context.waitFor(client -> client.player != null && client.player.isOnGround());
             require(context.computeOnClient(WorldPolicy::privateLocal), "private world was not recognized");
             testMenu(context);
+            System.out.println("SURVIVOR_GAME_TEST: menu, rebinding and resize passed");
             testWarden(context, world);
+            System.out.println("SURVIVOR_GAME_TEST: Warden visibility and wall passed");
             testFreecamAndLan(context, world);
         }
         context.waitFor(client -> client.world == null);
@@ -47,6 +49,7 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
         }
         context.waitFor(client -> client.world == null);
         require(!context.computeOnClient(client -> SurvivorToolkitClient.FREECAM.active()), "camera remained active after leaving world");
+        System.out.println("SURVIVOR_GAME_TEST: exit stopped freecam");
         System.out.println("SURVIVOR_TOOLKIT_GAME_TEST_PASS");
     }
 
@@ -168,9 +171,11 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
         context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
         require(context.computeOnClient(client -> client.player.getMainHandStack().getCount() == count), "use consumed an item during freecam");
 
+        System.out.println("SURVIVOR_GAME_TEST: freecam movement and actions passed");
         world.getServer().runCommand("kill @p");
         context.waitFor(client -> client.player != null && !client.player.isAlive());
         context.waitFor(client -> !SurvivorToolkitClient.FREECAM.active());
+        System.out.println("SURVIVOR_GAME_TEST: death stopped freecam");
         context.waitTicks(25); // vanilla death-screen button has a short delay
         // Standard client respawn, exclusively inside the test world.
         context.runOnClient(client -> { client.player.requestRespawn(); client.setScreen(null); });
@@ -187,6 +192,7 @@ public final class SurvivorToolkitGameTest implements FabricClientGameTest {
         context.getInput().pressKey(SurvivorToolkitClient.FREECAM_KEY);
         context.waitTicks(5);
         require(!context.computeOnClient(client -> SurvivorToolkitClient.FREECAM.active()), "freecam enabled in a LAN world");
+        System.out.println("SURVIVOR_GAME_TEST: LAN restrictions passed");
     }
 
     private static void require(boolean condition, String message) {

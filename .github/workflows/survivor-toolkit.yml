@@ -60,6 +60,16 @@ jobs:
           set -euo pipefail
           timeout 600s xvfb-run -a ./gradlew --no-daemon runClientGameTest 2>&1 | tee gametest-output.log
           grep -q 'SURVIVOR_TOOLKIT_GAME_TEST_PASS' gametest-output.log
+      - name: Smoke-test the remapped installable JAR
+        id: production
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        working-directory: survivor-toolkit
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 300s ./gradlew --no-daemon runProductionSmoke 2>&1 | tee production-output.log
+          grep -q '^PASS:' build/run/productionSmoke/survivor-smoke-result.txt
       - name: Publish concise diagnostics as a GitHub check
         if: always()
         uses: actions/github-script@v7
@@ -68,9 +78,14 @@ jobs:
             const fs = require('fs');
             const dir = 'survivor-toolkit/';
             const read = p => fs.existsSync(dir + p) ? fs.readFileSync(dir + p, 'utf8') : '(no output)';
+            const compact = p => read(p).split('\n')
+              .filter(line => !line.includes('World loading finished:'))
+              .map(line => line.length > 2400 ? line.slice(0, 2400) + ' …[truncated]' : line)
+              .join('\n');
             const build = '${{ steps.build.outcome }}';
             const smoke = '${{ steps.smoke.outcome }}';
             const gametest = '${{ steps.gametest.outcome }}';
+            const production = '${{ steps.production.outcome }}';
             const testDir = dir + 'build/test-results/test';
             const suites = fs.existsSync(testDir) ? fs.readdirSync(testDir).filter(p => p.endsWith('.xml')) : [];
             const totals = {tests: 0, failures: 0, errors: 0, skipped: 0};
@@ -83,18 +98,20 @@ jobs:
             }
             const text = [
               `Build: ${build}`, `JUnit: ${suites.length ? JSON.stringify(totals) : 'no results'}`,
-              `Client smoke: ${smoke}`, `Game test: ${gametest}`,
-              '', '--- build output (tail) ---', read('build-output.log').slice(-18000),
-              '', '--- smoke output (tail) ---', read('smoke-output.log').slice(-15000),
+              `Client smoke: ${smoke}`, `Game test: ${gametest}`, `Production JAR smoke: ${production}`,
+              '', '--- build output (tail) ---', read('build-output.log').slice(-14000),
+              '', '--- smoke output (tail) ---', compact('smoke-output.log').slice(-10000),
               '', '--- smoke result ---', read('run/survivor-smoke-result.txt'),
-              '', '--- game test output (tail) ---', read('gametest-output.log').slice(-26000)
+              '', '--- game test output (tail) ---', compact('gametest-output.log').slice(-18000),
+              '', '--- production output (tail) ---', compact('production-output.log').slice(-14000),
+              '', '--- production smoke result ---', read('build/run/productionSmoke/survivor-smoke-result.txt')
             ].join('\n');
             await github.rest.checks.create({owner: context.repo.owner, repo: context.repo.repo,
               name: 'Survivor Toolkit diagnostics', head_sha: context.sha, status: 'completed',
-              conclusion: build === 'success' && smoke === 'success' && gametest === 'success' ? 'success' : 'failure',
-              output: {title: 'Build, smoke and client game-test results', summary: text.slice(-64000)}});
+              conclusion: build === 'success' && smoke === 'success' && gametest === 'success' && production === 'success' ? 'success' : 'failure',
+              output: {title: 'Build, development and production client tests', summary: text.slice(-64000)}});
       - name: Save installable JAR to this branch
-        if: steps.build.outcome == 'success' && steps.smoke.outcome == 'success' && steps.gametest.outcome == 'success'
+        if: steps.build.outcome == 'success' && steps.smoke.outcome == 'success' && steps.gametest.outcome == 'success' && steps.production.outcome == 'success'
         shell: bash
         run: |
           mkdir -p survivor-toolkit/release
@@ -107,5 +124,5 @@ jobs:
             git push origin HEAD:refs/heads/${{ github.ref_name }}
           fi
       - name: Fail if a check failed
-        if: always() && (steps.build.outcome != 'success' || steps.smoke.outcome != 'success' || steps.gametest.outcome != 'success')
+        if: always() && (steps.build.outcome != 'success' || steps.smoke.outcome != 'success' || steps.gametest.outcome != 'success' || steps.production.outcome != 'success')
         run: exit 1

@@ -39,8 +39,17 @@ dependencies {
     mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    // Used only by the opt-in production-JAR smoke test.
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// Run the *remapped installable jar*, rather than development classes, in a
+// separate directory. Fabric Loom uses Xvfb automatically on Linux CI.
+tasks.register('runProductionSmoke', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    jvmArgs.add('-Dsurvivortoolkit.smoke=true')
+    runDir.set(layout.buildDirectory.dir('run/productionSmoke'))
 }
 
 processResources {
