@@ -1,0 +1,216 @@
+{
+ "scale": 1.52,
+ "parts": {
+  "pelvis": {
+   "parent": "ROOT",
+   "bone": "hips",
+   "rest_offset": [
+    0.0,
+    1.5048,
+    -0.0
+   ],
+   "color": [
+    0.16,
+    0.15,
+    0.14
+   ]
+  },
+  "torso": {
+   "parent": "pelvis",
+   "bone": "spine",
+   "rest_offset": [
+    0.0,
+    0.2128,
+    -0.0
+   ],
+   "color": [
+    0.22,
+    0.18,
+    0.16
+   ]
+  },
+  "head": {
+   "parent": "torso",
+   "bone": "head",
+   "rest_offset": [
+    0.0,
+    0.684,
+    -0.0
+   ],
+   "color": [
+    0.42,
+    0.38,
+    0.32
+   ]
+  },
+  "upper_arm.L": {
+   "parent": "torso",
+   "bone": "upperarm.L",
+   "rest_offset": [
+    0.304,
+    0.5168,
+    -0.0
+   ],
+   "color": [
+    0.22,
+    0.18,
+    0.16
+   ]
+  },
+  "forearm.L": {
+   "parent": "upper_arm.L",
+   "bone": "forearm.L",
+   "rest_offset": [
+    0.0532,
+    -0.3952,
+    -0.0
+   ],
+   "color": [
+    0.42,
+    0.38,
+    0.32
+   ]
+  },
+  "hand.L": {
+   "parent": "forearm.L",
+   "bone": "hand.L",
+   "rest_offset": [
+    0.0228,
+    -0.3648,
+    -0.0
+   ],
+   "color": [
+    0.42,
+    0.38,
+    0.32
+   ]
+  },
+  "upper_arm.R": {
+   "parent": "torso",
+   "bone": "upperarm.R",
+   "rest_offset": [
+    -0.304,
+    0.5168,
+    -0.0
+   ],
+   "color": [
+    0.22,
+    0.18,
+    0.16
+   ]
+  },
+  "forearm.R": {
+   "parent": "upper_arm.R",
+   "bone": "forearm.R",
+   "rest_offset": [
+    -0.0532,
+    -0.3952,
+    -0.0
+   ],
+   "color": [
+    0.42,
+    0.38,
+    0.32
+   ]
+  },
+  "hand.R": {
+   "parent": "forearm.R",
+   "bone": "hand.R",
+   "rest_offset": [
+    -0.0228,
+    -0.3648,
+    -0.0
+   ],
+   "color": [
+    0.42,
+    0.38,
+    0.32
+   ]
+  },
+  "thigh.L": {
+   "parent": "pelvis",
+   "bone": "thigh.L",
+   "rest_offset": [
+    0.152,
+    -0.0456,
+    -0.0
+   ],
+   "color": [
+    0.16,
+    0.15,
+    0.14
+   ]
+  },
+  "shin.L": {
+   "parent": "thigh.L",
+   "bone": "shin.L",
+   "rest_offset": [
+    0.0076,
+    -0.608,
+    0.0152
+   ],
+   "color": [
+    0.16,
+    0.15,
+    0.14
+   ]
+  },
+  "foot.L": {
+   "parent": "shin.L",
+   "bone": "foot.L",
+   "rest_offset": [
+    0.0076,
+    -0.6688,
+    -0.0152
+   ],
+   "color": [
+    0.1,
+    0.09,
+    0.09
+   ]
+  },
+  "thigh.R": {
+   "parent": "pelvis",
+   "bone": "thigh.R",
+   "rest_offset": [
+    -0.152,
+    -0.0456,
+    -0.0
+   ],
+   "color": [
+    0.16,
+    0.15,
+    0.14
+   ]
+  },
+  "shin.R": {
+   "parent": "thigh.R",
+   "bone": "shin.R",
+   "rest_offset": [
+    -0.0076,
+    -0.608,
+    0.0152
+   ],
+   "color": [
+    0.16,
+    0.15,
+    0.14
+   ]
+  },
+  "foot.R": {
+   "parent": "shin.R",
+   "bone": "foot.R",
+   "rest_offset": [
+    -0.0076,
+    -0.6688,
+    -0.0152
+   ],
+   "color": [
+    0.1,
+    0.09,
+    0.09
+   ]
+  }
+ },
+ "height": 2.782
+}

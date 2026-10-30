@@ -21,3 +21,13 @@ release-artifacts/
 site/dist/
 site/.vite/
 .vite/
+
+# DEAD WORLD: APOCALYPSE (generated / build artifacts)
+DEAD_WORLD_APOCALYPSE/assets/**/*.blend
+DEAD_WORLD_APOCALYPSE/models_compressed/
+DEAD_WORLD_APOCALYPSE/dist/
+DEAD_WORLD_APOCALYPSE/build/DeadWorldApocalypse/
+DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE/
+DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE.zip
+DEAD_WORLD_APOCALYPSE/selftest_result.txt
+__pycache__/

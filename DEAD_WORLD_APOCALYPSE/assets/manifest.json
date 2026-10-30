@@ -1,0 +1,2018 @@
+{
+ "generator": "Blender 4.2.23 LTS bpy, dw_lib/dw_props",
+ "zombies": {
+  "zombie_walker": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 282,
+     "polys": 272,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 756,
+     "polys": 790,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_walker/zombie_walker.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2360
+  },
+  "zombie_slow": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 292,
+     "polys": 284,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 756,
+     "polys": 790,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_slow/zombie_slow.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2372
+  },
+  "zombie_runner": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 282,
+     "polys": 272,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 756,
+     "polys": 790,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_runner/zombie_runner.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2360
+  },
+  "zombie_crawler": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 282,
+     "polys": 272,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 756,
+     "polys": 790,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 8,
+     "polys": 6,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 8,
+     "polys": 6,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_crawler/zombie_crawler.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2048
+  },
+  "zombie_soldier": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 600,
+     "polys": 586,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 884,
+     "polys": 918,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_soldier/zombie_soldier.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2802
+  },
+  "zombie_police": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 282,
+     "polys": 272,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 896,
+     "polys": 914,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_police/zombie_police.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2484
+  },
+  "zombie_doctor": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 394,
+     "polys": 380,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 756,
+     "polys": 790,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_doctor/zombie_doctor.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2468
+  },
+  "zombie_firefighter": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 282,
+     "polys": 272,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 888,
+     "polys": 920,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_firefighter/zombie_firefighter.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2490
+  },
+  "zombie_screamer": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 282,
+     "polys": 272,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 756,
+     "polys": 790,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_screamer/zombie_screamer.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2360
+  },
+  "zombie_mutant": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 330,
+     "polys": 304,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 780,
+     "polys": 806,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 384,
+     "polys": 356,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 384,
+     "polys": 356,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_mutant/zombie_mutant.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.995,
+   "total_polys": 2472
+  },
+  "zombie_boss": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 340,
+     "polys": 316,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 780,
+     "polys": 806,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 384,
+     "polys": 356,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 384,
+     "polys": 356,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/zombies/zombie_boss/zombie_boss.glb",
+   "skeleton": "skeleton.json",
+   "height": 2.782,
+   "total_polys": 2484
+  }
+ },
+ "characters": {
+  "hero": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 250,
+     "polys": 232,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 642,
+     "polys": 672,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/characters/hero/hero.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2202
+  },
+  "survivor_m": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 170,
+     "polys": 164,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 642,
+     "polys": 672,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/characters/survivor_m/survivor_m.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2134
+  },
+  "survivor_f": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 170,
+     "polys": 164,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 642,
+     "polys": 672,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/characters/survivor_f/survivor_f.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.757,
+   "total_polys": 2134
+  },
+  "bandit": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 170,
+     "polys": 164,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 698,
+     "polys": 726,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/characters/bandit/bandit.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2188
+  },
+  "soldier_npc": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 488,
+     "polys": 478,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 770,
+     "polys": 800,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/characters/soldier_npc/soldier_npc.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2576
+  },
+  "trader": {
+   "parts": {
+    "pelvis": {
+     "verts": 206,
+     "polys": 206,
+     "file": "pelvis.obj"
+    },
+    "torso": {
+     "verts": 255,
+     "polys": 238,
+     "file": "torso.obj"
+    },
+    "head": {
+     "verts": 702,
+     "polys": 706,
+     "file": "head.obj"
+    },
+    "upper_arm.L": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_L.obj"
+    },
+    "forearm.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_L.obj"
+    },
+    "hand.L": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_L.obj"
+    },
+    "upper_arm.R": {
+     "verts": 40,
+     "polys": 24,
+     "file": "upper_arm_R.obj"
+    },
+    "forearm.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "forearm_R.obj"
+    },
+    "hand.R": {
+     "verts": 336,
+     "polys": 324,
+     "file": "hand_R.obj"
+    },
+    "thigh.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_L.obj"
+    },
+    "shin.L": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_L.obj"
+    },
+    "foot.L": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_L.obj"
+    },
+    "thigh.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "thigh_R.obj"
+    },
+    "shin.R": {
+     "verts": 20,
+     "polys": 12,
+     "file": "shin_R.obj"
+    },
+    "foot.R": {
+     "verts": 168,
+     "polys": 162,
+     "file": "foot_R.obj"
+    }
+   },
+   "glb": "/home/user/WinLauncher/DEAD_WORLD_APOCALYPSE/assets/models/characters/trader/trader.glb",
+   "skeleton": "skeleton.json",
+   "height": 1.83,
+   "total_polys": 2242
+  }
+ },
+ "weapons": {
+  "pistol": {
+   "file": "pistol.obj",
+   "verts": 416,
+   "polys": 380
+  },
+  "revolver": {
+   "file": "revolver.obj",
+   "verts": 188,
+   "polys": 158
+  },
+  "rifle": {
+   "file": "rifle.obj",
+   "verts": 616,
+   "polys": 558
+  },
+  "shotgun": {
+   "file": "shotgun.obj",
+   "verts": 412,
+   "polys": 328
+  },
+  "sniper": {
+   "file": "sniper.obj",
+   "verts": 472,
+   "polys": 386
+  },
+  "knife": {
+   "file": "knife.obj",
+   "verts": 178,
+   "polys": 170
+  },
+  "machete": {
+   "file": "machete.obj",
+   "verts": 206,
+   "polys": 206
+  },
+  "axe": {
+   "file": "axe.obj",
+   "verts": 230,
+   "polys": 220
+  },
+  "bat": {
+   "file": "bat.obj",
+   "verts": 122,
+   "polys": 79
+  },
+  "crossbow": {
+   "file": "crossbow.obj",
+   "verts": 604,
+   "polys": 548
+  }
+ },
+ "vehicles": {
+  "sedan": {
+   "body": "body.obj",
+   "wheel": "wheel.obj",
+   "meta": {
+    "wheel_radius": 0.31,
+    "wheel_offsets": [
+     [
+      -0.78,
+      0.31,
+      1.395
+     ],
+     [
+      0.78,
+      0.31,
+      1.395
+     ],
+     [
+      -0.78,
+      0.31,
+      -1.395
+     ],
+     [
+      0.78,
+      0.31,
+      -1.395
+     ]
+    ],
+    "length": 4.5,
+    "width": 1.8,
+    "height": 1.37,
+    "seat_offset": [
+     -0.42,
+     0.95,
+     -0.15
+    ]
+   },
+   "body_stats": {
+    "verts": 672,
+    "polys": 648
+   },
+   "wheel_stats": {
+    "verts": 96,
+    "polys": 62
+   }
+  },
+  "suv": {
+   "body": "body.obj",
+   "wheel": "wheel.obj",
+   "meta": {
+    "wheel_radius": 0.34,
+    "wheel_offsets": [
+     [
+      -0.83,
+      0.34,
+      1.426
+     ],
+     [
+      0.83,
+      0.34,
+      1.426
+     ],
+     [
+      -0.83,
+      0.34,
+      -1.426
+     ],
+     [
+      0.83,
+      0.34,
+      -1.426
+     ]
+    ],
+    "length": 4.6,
+    "width": 1.9,
+    "height": 1.6600000000000001,
+    "seat_offset": [
+     -0.42,
+     0.95,
+     -0.3
+    ]
+   },
+   "body_stats": {
+    "verts": 728,
+    "polys": 702
+   },
+   "wheel_stats": {
+    "verts": 96,
+    "polys": 62
+   }
+  },
+  "pickup": {
+   "body": "body.obj",
+   "wheel": "wheel.obj",
+   "meta": {
+    "wheel_radius": 0.34,
+    "wheel_offsets": [
+     [
+      -0.855,
+      0.34,
+      1.55
+     ],
+     [
+      0.855,
+      0.34,
+      1.55
+     ],
+     [
+      -0.855,
+      0.34,
+      -1.55
+     ],
+     [
+      0.855,
+      0.34,
+      -1.55
+     ]
+    ],
+    "length": 5.0,
+    "width": 1.95,
+    "height": 1.6,
+    "seat_offset": [
+     -0.42,
+     0.95,
+     0.65
+    ]
+   },
+   "body_stats": {
+    "verts": 896,
+    "polys": 864
+   },
+   "wheel_stats": {
+    "verts": 96,
+    "polys": 62
+   }
+  },
+  "military": {
+   "body": "body.obj",
+   "wheel": "wheel.obj",
+   "meta": {
+    "wheel_radius": 0.34,
+    "wheel_offsets": [
+     [
+      -0.9049999999999999,
+      0.34,
+      1.5190000000000001
+     ],
+     [
+      0.9049999999999999,
+      0.34,
+      1.5190000000000001
+     ],
+     [
+      -0.9049999999999999,
+      0.34,
+      -1.5190000000000001
+     ],
+     [
+      0.9049999999999999,
+      0.34,
+      -1.5190000000000001
+     ]
+    ],
+    "length": 4.9,
+    "width": 2.05,
+    "height": 1.67,
+    "seat_offset": [
+     -0.42,
+     0.95,
+     -0.1
+    ]
+   },
+   "body_stats": {
+    "verts": 824,
+    "polys": 758
+   },
+   "wheel_stats": {
+    "verts": 96,
+    "polys": 62
+   }
+  },
+  "wrecked_car": {
+   "body": "body.obj",
+   "wheel": "wheel.obj",
+   "meta": {
+    "wheel_radius": 0.31,
+    "wheel_offsets": [
+     [
+      -0.77,
+      0.31,
+      1.364
+     ],
+     [
+      0.77,
+      0.31,
+      1.364
+     ],
+     [
+      -0.77,
+      0.31,
+      -1.364
+     ],
+     [
+      0.77,
+      0.31,
+      -1.364
+     ]
+    ],
+    "length": 4.4,
+    "width": 1.78,
+    "height": 1.37,
+    "seat_offset": [
+     -0.42,
+     0.95,
+     -0.1
+    ]
+   },
+   "body_stats": {
+    "verts": 1008,
+    "polys": 972
+   },
+   "wheel_stats": {
+    "verts": 96,
+    "polys": 62
+   }
+  }
+ },
+ "buildings": {
+  "house": {
+   "file": "house.obj",
+   "verts": 480,
+   "polys": 444,
+   "size_xyz_engine": [
+    8.5,
+    5.48,
+    7.59
+   ]
+  },
+  "house2": {
+   "file": "house2.obj",
+   "verts": 560,
+   "polys": 504,
+   "size_xyz_engine": [
+    9.5,
+    8.48,
+    8.59
+   ]
+  },
+  "apartment": {
+   "file": "apartment.obj",
+   "verts": 928,
+   "polys": 756,
+   "size_xyz_engine": [
+    16.3,
+    15.9,
+    11.7
+   ]
+  },
+  "apartment2": {
+   "file": "apartment2.obj",
+   "verts": 736,
+   "polys": 612,
+   "size_xyz_engine": [
+    13.3,
+    12.4,
+    10.7
+   ]
+  },
+  "shop": {
+   "file": "shop.obj",
+   "verts": 440,
+   "polys": 402,
+   "size_xyz_engine": [
+    12.3,
+    5.5,
+    9.7
+   ]
+  },
+  "hospital": {
+   "file": "hospital.obj",
+   "verts": 920,
+   "polys": 762,
+   "size_xyz_engine": [
+    20.3,
+    12.9,
+    13.7
+   ]
+  },
+  "police": {
+   "file": "police.obj",
+   "verts": 568,
+   "polys": 498,
+   "size_xyz_engine": [
+    14.3,
+    8.4,
+    10.7
+   ]
+  },
+  "warehouse": {
+   "file": "warehouse.obj",
+   "verts": 384,
+   "polys": 348,
+   "size_xyz_engine": [
+    18.3,
+    6.9,
+    12.7
+   ]
+  },
+  "factory": {
+   "file": "factory.obj",
+   "verts": 600,
+   "polys": 500,
+   "size_xyz_engine": [
+    22.3,
+    14.6,
+    14.7
+   ]
+  },
+  "ruined": {
+   "file": "ruined.obj",
+   "verts": 974,
+   "polys": 1126,
+   "size_xyz_engine": [
+    13.3,
+    12.38,
+    12.16
+   ]
+  },
+  "ruined2": {
+   "file": "ruined2.obj",
+   "verts": 910,
+   "polys": 1102,
+   "size_xyz_engine": [
+    9.52,
+    9.37,
+    10.33
+   ]
+  },
+  "village_house": {
+   "file": "village_house.obj",
+   "verts": 464,
+   "polys": 432,
+   "size_xyz_engine": [
+    7.5,
+    4.98,
+    6.59
+   ]
+  }
+ },
+ "environment": {
+  "tree": {
+   "file": "tree.obj",
+   "verts": 304,
+   "polys": 514,
+   "size_xyz_engine": [
+    4.75,
+    6.67,
+    4.11
+   ]
+  },
+  "tree2": {
+   "file": "tree2.obj",
+   "verts": 304,
+   "polys": 514,
+   "size_xyz_engine": [
+    4.83,
+    6.64,
+    4.16
+   ]
+  },
+  "dead_tree": {
+   "file": "dead_tree.obj",
+   "verts": 52,
+   "polys": 34,
+   "size_xyz_engine": [
+    2.28,
+    4.68,
+    2.44
+   ]
+  },
+  "pine": {
+   "file": "pine.obj",
+   "verts": 96,
+   "polys": 58,
+   "size_xyz_engine": [
+    2.85,
+    6.55,
+    3.0
+   ]
+  },
+  "pine2": {
+   "file": "pine2.obj",
+   "verts": 96,
+   "polys": 58,
+   "size_xyz_engine": [
+    2.85,
+    6.55,
+    3.0
+   ]
+  },
+  "rock": {
+   "file": "rock.obj",
+   "verts": 42,
+   "polys": 80,
+   "size_xyz_engine": [
+    2.32,
+    1.5,
+    1.48
+   ]
+  },
+  "rock2": {
+   "file": "rock2.obj",
+   "verts": 42,
+   "polys": 80,
+   "size_xyz_engine": [
+    2.07,
+    1.41,
+    1.98
+   ]
+  },
+  "fence": {
+   "file": "fence.obj",
+   "verts": 336,
+   "polys": 324,
+   "size_xyz_engine": [
+    3.0,
+    1.25,
+    0.09
+   ]
+  },
+  "barricade": {
+   "file": "barricade.obj",
+   "verts": 380,
+   "polys": 330,
+   "size_xyz_engine": [
+    3.18,
+    1.3,
+    0.79
+   ]
+  },
+  "street_lamp": {
+   "file": "street_lamp.obj",
+   "verts": 168,
+   "polys": 142,
+   "size_xyz_engine": [
+    0.27,
+    4.89,
+    1.44
+   ]
+  },
+  "container": {
+   "file": "container.obj",
+   "verts": 272,
+   "polys": 216,
+   "size_xyz_engine": [
+    6.05,
+    2.6,
+    2.46
+   ]
+  },
+  "crate": {
+   "file": "crate.obj",
+   "verts": 104,
+   "polys": 90,
+   "size_xyz_engine": [
+    0.65,
+    0.64,
+    0.65
+   ]
+  },
+  "barrel": {
+   "file": "barrel.obj",
+   "verts": 128,
+   "polys": 72,
+   "size_xyz_engine": [
+    0.6,
+    0.88,
+    0.6
+   ]
+  },
+  "sandbag_wall": {
+   "file": "sandbag_wall.obj",
+   "verts": 1008,
+   "polys": 1120,
+   "size_xyz_engine": [
+    2.93,
+    0.77,
+    0.37
+   ]
+  },
+  "military_tent": {
+   "file": "military_tent.obj",
+   "verts": 188,
+   "polys": 176,
+   "size_xyz_engine": [
+    3.3,
+    1.7,
+    2.33
+   ]
+  },
+  "gas_station": {
+   "file": "gas_station.obj",
+   "verts": 512,
+   "polys": 456,
+   "size_xyz_engine": [
+    11.97,
+    6.95,
+    10.98
+   ]
+  }
+ },
+ "props": {
+  "medkit": {
+   "file": "medkit.obj",
+   "verts": 184,
+   "polys": 174
+  },
+  "ammo_box": {
+   "file": "ammo_box.obj",
+   "verts": 168,
+   "polys": 144
+  },
+  "food_can": {
+   "file": "food_can.obj",
+   "verts": 84,
+   "polys": 48
+  },
+  "water_bottle": {
+   "file": "water_bottle.obj",
+   "verts": 68,
+   "polys": 40
+  },
+  "bandage": {
+   "file": "bandage.obj",
+   "verts": 32,
+   "polys": 20
+  },
+  "fuel_canister": {
+   "file": "fuel_canister.obj",
+   "verts": 168,
+   "polys": 144
+  },
+  "backpack": {
+   "file": "backpack.obj",
+   "verts": 148,
+   "polys": 132
+  }
+ }
+}

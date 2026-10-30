@@ -1,0 +1,89 @@
+name: "DEAD WORLD: Windows EXE"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "arena/73c930f5-winlauncher"
+      - main
+    paths:
+      - "DEAD_WORLD_APOCALYPSE/**"
+      - ".github/workflows/dead-world-windows.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: DEAD_WORLD_APOCALYPSE
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller pytest
+
+      - name: Unit tests (logic + assets)
+        run: python -B -m pytest tests/ -q
+
+      - name: Source self-test
+        run: python main.py --selftest
+
+      - name: Build EXE (PyInstaller)
+        run: python -m PyInstaller --noconfirm --clean build/DeadWorldApocalypse.spec
+
+      - name: Package release folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force DEAD_WORLD_APOCALYPSE_RELEASE | Out-Null
+          Copy-Item -Recurse dist/DeadWorldApocalypse DEAD_WORLD_APOCALYPSE_RELEASE/DeadWorldApocalypse
+          Copy-Item README.md DEAD_WORLD_APOCALYPSE_RELEASE/
+          Copy-Item docs/BUILD.md DEAD_WORLD_APOCALYPSE_RELEASE/
+          Get-ChildItem DEAD_WORLD_APOCALYPSE_RELEASE/DeadWorldApocalypse | Select-Object -First 20
+
+      - name: Verify built EXE (self-test marker file)
+        shell: pwsh
+        run: |
+          cd DEAD_WORLD_APOCALYPSE_RELEASE/DeadWorldApocalypse
+          Start-Process -Wait -NoNewWindow -FilePath .\DeadWorldApocalypse.exe -ArgumentList "--selftest"
+          if (-not (Test-Path selftest_result.txt)) { throw "selftest_result.txt not created - EXE failed to run" }
+          $content = Get-Content selftest_result.txt -Raw
+          Write-Host $content
+          if ($content -notmatch "SELFTEST_OK") { throw "EXE self-test failed" }
+          Write-Host "EXE self-test PASSED"
+
+      - name: Zip release
+        shell: pwsh
+        run: |
+          cd DEAD_WORLD_APOCALYPSE_RELEASE
+          Compress-Archive -Path * -DestinationPath ../DEAD_WORLD_APOCALYPSE_RELEASE.zip -Force
+          Get-Item ../DEAD_WORLD_APOCALYPSE_RELEASE.zip | Select-Object Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEAD_WORLD_APOCALYPSE_RELEASE
+          path: DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE.zip
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "deadworld-v0.1.0"
+          $zip = "DEAD_WORLD_APOCALYPSE/DEAD_WORLD_APOCALYPSE_RELEASE.zip"
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title "DEAD WORLD: APOCALYPSE v0.1.0 (Windows)" --notes "Windows x64 build. Распакуйте ZIP целиком и запустите DeadWorldApocalypse.exe из папки DeadWorldApocalypse (не вынимайте EXE из папки - рядом ресурсы игры). Управление и описание - в README внутри архива."
+          }
+          gh release upload $tag $zip --clobber
+          Write-Host "Release updated: $tag"
