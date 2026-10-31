@@ -1,52 +1,52 @@
 {
-  "latestVersion": "2.0.0",
+  "latestVersion": "2.5.0",
   "codename": "OBSIDIAN AURORA",
-  "publishedAt": "2026-10-31T23:59:00Z",
+  "publishedAt": "2026-10-31T23:59:59Z",
   "changelog": [
-    "AXSESCLIENT v2.0.0 (OBSIDIAN AURORA) — полный редизайн лаунчера и внутриигрового GUI.",
-    "Исправлен баг обрезки ClickGUI (GuiGraphics.enableScissor) на Minecraft 1.21.4 и 1.21.11 + убраны полосы на HUD.",
-    "Добавлены рабочие КиллАура (KillAura), анимированный Таргет HUD (Target HUD) и ТриггерБот (TriggerBot) — всего 93 синхронизированных модуля.",
-    "Честное выделение ОЗУ (-Xmx) на базе физической памяти ПК (GlobalMemoryStatusEx) со сбросом системных лимитов _JAVA_OPTIONS.",
-    "Полностью автоматическая установка Java 8 (для 1.16.5) и Java 21 (для 1.21.4 / 1.21.11) с резервными зеркалами."
+    "AXSESCLIENT v2.5.0 — беспаливная КиллАура (FunTime / ReallyWorld / HolyWorld), полноценный ESP, плавные переключатели без лагов, отзывчивый скролл мышью и Русский язык в Настройках.",
+    "В Настройках (ClickGUI и Лаунчер) добавлен быстрый переключатель Русский / English с авто-синхронизацией языка самого Minecraft (lang:ru_ru).",
+    "Полностью устранены фризы при включении функций (фоновое сохранение конфигов + фикс дельты анимаций при открытом ClickGUI в мире) и добавлен перетаскиваемый скроллбар.",
+    "Добавлены рабочие ESP Подсветка (2D/3D боксы, полоска ХП, никнеймы, предмет в руке, стрелки радара), ESP Предметов и Трейсеры — всего 96 модулей.",
+    "КиллАура v2.5: профили FunTime / ReallyWorld / HolyWorld / SpookyTime / Legit, Mouse GCD Fix, S-кривая на частоте рендера, мульти-хитбокс, умные криты + W-Tap сброс спринта, пауза при еде и 3D кольцо цели."
   ],
   "artifacts": [
     {
       "id": "launcher-win-x64",
       "fileName": "AXSESCLIENT.exe",
-      "version": "2.0.0",
-      "sha256": "99a9c1891980befa00ebbcdfe6223a74486b6e8b3c9986017442bd0d7f3bb1b6",
-      "sizeBytes": 45572873
+      "version": "2.5.0",
+      "sha256": "4b3cac5207539c56695a3f55fb7c8aee1769743c1e55e5afe0e0fc9b7fa60f7f",
+      "sizeBytes": 45572876
     },
     {
       "id": "installer-win-x64",
       "fileName": "AXSESCLIENT-Setup.exe",
-      "version": "2.0.0",
-      "sha256": "c6258a23c81ec163a0d879a8d6451045d7de9d11ca9e21f23b632f5907c93d9d",
-      "sizeBytes": 41632560
+      "version": "2.5.0",
+      "sha256": "fe247da24478868439586dda22a29d18b0084317662869d58c3bf7bc2593e474",
+      "sizeBytes": 41703068
     },
     {
       "id": "mod-1.16.5",
       "fileName": "AXSESCLIENT-1.16.5.jar",
-      "version": "2.0.0",
+      "version": "2.5.0",
       "minecraftVersion": "1.16.5",
-      "sha256": "f39708180d24b20bcda9501e37b3c5154fc6ca8e2fdc75dd12551a33bc4dd1db",
-      "sizeBytes": 382460
+      "sha256": "7e349fa924ffec5fa5f743dc734e18313ef391f5008d6f733be4778741b73d22",
+      "sizeBytes": 416496
     },
     {
       "id": "mod-1.21.4",
       "fileName": "AXSESCLIENT-1.21.4.jar",
-      "version": "2.0.0",
+      "version": "2.5.0",
       "minecraftVersion": "1.21.4",
-      "sha256": "7021cb14883d1f9f5884277a27eede7867682461f926e53f35d4b640b610a614",
-      "sizeBytes": 388658
+      "sha256": "09d4aa3d0ac2f0c0016bda3bceabe5716bc73a223d04e7544195d35ea1470dee",
+      "sizeBytes": 423249
     },
     {
       "id": "mod-1.21.11",
       "fileName": "AXSESCLIENT-1.21.11.jar",
-      "version": "2.0.0",
+      "version": "2.5.0",
       "minecraftVersion": "1.21.11",
-      "sha256": "35c0380aff80c2ca2a4e0b6958bac0440aca4c0908ea3aa6ab81ebcfa2059a5e",
-      "sizeBytes": 389926
+      "sha256": "12e4f1f1b9a6698e7a1ae7e8b96bcc77b0e8971457c048f188b6e807b17a50a4",
+      "sizeBytes": 424706
     }
   ]
 }
