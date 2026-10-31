@@ -634,6 +634,10 @@ public final class HelperUi {
         canvas.drawText(value, x, y, color, false, 0.85f);
     }
 
+    void label(UiCanvas canvas, String value, float x, float y) {
+        label(canvas, value, x, y, muted());
+    }
+
     void value(UiCanvas canvas, String value, float x, float y) {
         canvas.drawText(value, x, y, text(), true, 0.95f);
     }

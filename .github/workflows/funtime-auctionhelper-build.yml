@@ -15,6 +15,7 @@ on:
 permissions:
   contents: read
   actions: read
+  checks: write
 
 concurrency:
   group: funtime-auction-helper-${{ github.ref }}
@@ -30,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Temurin JDK 8 and 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
@@ -43,49 +44,66 @@ jobs:
           gradle-version: "9.8.2"
 
       - name: 1. Core (version independent) JUnit 5 suite
-        working-directory: FunTimeAuctionHelper/client-common
         run: |
-          set -o pipefail
-          if ! gradle test --no-daemon > /tmp/core.log 2>&1; then
-            echo "::error title=core tests failed::$(tail -n 40 /tmp/core.log | tr '\n' ' ' | sed 's/%/%25/g')"
-            cat /tmp/core.log
-            exit 1
+          set +e
+          gradle test --no-daemon > /tmp/core.log 2>&1
+          code=$?
+          grep -E "^[^ ]*error:|error: " /tmp/core.log | head -n 10 | sed 's/^/::error title=core-compile::/'
+          if [ $code -ne 0 ]; then
+            echo "core" > /tmp/failed.core
+            echo "::error title=core tests failed::$(tail -n 30 /tmp/core.log | tr '\n' ' ' | sed 's/%/%25/g')"
+          else
+            grep -E "tests completed|BUILD SUCCESSFUL" /tmp/core.log | tail -n 2
           fi
-          grep -E "tests? completed|BUILD SUCCESSFUL" /tmp/core.log | tail -n 3
-          echo "::notice title=Core JUnit 5::PASSED"
 
       - name: 2. Build FunTimeAuctionHelper-1.16.5.jar
         working-directory: FunTimeAuctionHelper/client-1.16.5
         run: |
-          set -o pipefail
-          if ! gradle remapJar --no-daemon > /tmp/v1165.log 2>&1; then
-            echo "::error title=1.16.5 build failed::$(tail -n 45 /tmp/v1165.log | tr '\n' ' ' | sed 's/%/%25/g')"
-            cat /tmp/v1165.log
-            exit 1
+          set +e
+          gradle remapJar --no-daemon > /tmp/v1165.log 2>&1
+          code=$?
+          grep -E "error: " /tmp/v1165.log | head -n 10 | sed 's/^/::error title=build-1.16.5::/'
+          if [ $code -ne 0 ]; then
+            echo "1.16.5" > /tmp/failed.1.16.5
+            echo "::error title=build 1.16.5 failed::$(tail -n 40 /tmp/v1165.log | tr '\n' ' ' | sed 's/%/%25/g')"
+          else
+            ls -l build/libs
           fi
-          ls -l build/libs
-
       - name: 3. Build FunTimeAuctionHelper-1.21.4.jar
         working-directory: FunTimeAuctionHelper/client-1.21.4
         run: |
-          set -o pipefail
-          if ! gradle remapJar --no-daemon > /tmp/v1214.log 2>&1; then
-            echo "::error title=1.21.4 build failed::$(tail -n 45 /tmp/v1214.log | tr '\n' ' ' | sed 's/%/%25/g')"
-            cat /tmp/v1214.log
-            exit 1
+          set +e
+          gradle remapJar --no-daemon > /tmp/v1214.log 2>&1
+          code=$?
+          grep -E "error: " /tmp/v1214.log | head -n 10 | sed 's/^/::error title=build-1.21.4::/'
+          if [ $code -ne 0 ]; then
+            echo "1.21.4" > /tmp/failed.1.21.4
+            echo "::error title=build 1.21.4 failed::$(tail -n 40 /tmp/v1214.log | tr '\n' ' ' | sed 's/%/%25/g')"
+          else
+            ls -l build/libs
           fi
-          ls -l build/libs
-
       - name: 4. Build FunTimeAuctionHelper-1.21.11.jar
         working-directory: FunTimeAuctionHelper/client-1.21.11
         run: |
-          set -o pipefail
-          if ! gradle remapJar --no-daemon > /tmp/v12111.log 2>&1; then
-            echo "::error title=1.21.11 build failed::$(tail -n 45 /tmp/v12111.log | tr '\n' ' ' | sed 's/%/%25/g')"
-            cat /tmp/v12111.log
-            exit 1
+          set +e
+          gradle remapJar --no-daemon > /tmp/v12111.log 2>&1
+          code=$?
+          grep -E "error: " /tmp/v12111.log | head -n 10 | sed 's/^/::error title=build-1.21.11::/'
+          if [ $code -ne 0 ]; then
+            echo "1.21.11" > /tmp/failed.1.21.11
+            echo "::error title=build 1.21.11 failed::$(tail -n 40 /tmp/v12111.log | tr '\n' ' ' | sed 's/%/%25/g')"
+          else
+            ls -l build/libs
           fi
-          ls -l build/libs
+      - name: 4b. Fail if any build stage failed
+        run: |
+          status=0
+          for f in /tmp/failed.*; do
+            [ -e "$f" ] || continue
+            echo "::error title=failed stage::$(cat "$f")"
+            status=1
+          done
+          exit $status
 
       - name: 5. Inspect the produced JARs
         run: |
@@ -107,6 +125,19 @@ jobs:
             echo "$v: $(stat -c%s "$jar") bytes, $classes classes"
           done
           ls -l staged
+
+      - name: Publish full build log (diagnostics, only on failure)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          cat /tmp/core.log /tmp/v1165.log /tmp/v1214.log /tmp/v12111.log > /tmp/all.log 2>/dev/null
+          if [ ! -s /tmp/all.log ]; then echo "no logs captured"; exit 0; fi
+          jq -Rs --arg sha "${{ github.sha }}" '{name:"build-log", head_sha:$sha, status:"completed", conclusion:"neutral", output:{title:"Full build log", summary:"Compile output for the last failing run", text:.}}' /tmp/all.log > /tmp/payload.json
+          curl -sS -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/check-runs" -d @/tmp/payload.json | head -c 400
+          echo
 
       - name: Upload JARs and test reports
         uses: actions/upload-artifact@v4
