@@ -1175,6 +1175,16 @@ public final class BossEventManager {
     /** Conservatively reject a site whose construction volume intersects any WG region.
      * If WorldGuard is present but its region data/API is unavailable, fail closed. */
     private RegionCheck checkWorldGuardRegions(World world, int x, int y, int z) {
+        return checkWorldGuardVolume(world, x, y, z, SITE_RADIUS, 4, 13);
+    }
+
+    /** A teleport also refuses physical regions; unavailable WorldGuard fails closed. */
+    boolean isRtpSiteOutsideWorldGuard(Location location) {
+        if (location == null || location.getWorld() == null) return false;
+        return checkWorldGuardVolume(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), 0, 1, 1) == RegionCheck.CLEAR;
+    }
+
+    private RegionCheck checkWorldGuardVolume(World world, int x, int y, int z, int radius, int below, int above) {
         if (Bukkit.getPluginManager().getPlugin("WorldGuard") == null) return RegionCheck.CLEAR;
         if (!Bukkit.getPluginManager().isPluginEnabled("WorldGuard")) return RegionCheck.UNAVAILABLE;
         try {
@@ -1194,8 +1204,8 @@ public final class BossEventManager {
             Class<?> cuboidType = Class.forName("com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion");
             Class<?> vectorType = Class.forName("com.sk89q.worldedit.math.BlockVector3");
             Method at = vectorType.getMethod("at", int.class, int.class, int.class);
-            Object min = at.invoke(null, x - SITE_RADIUS, y - 4, z - SITE_RADIUS);
-            Object max = at.invoke(null, x + SITE_RADIUS, y + 13, z + SITE_RADIUS);
+            Object min = at.invoke(null, x - radius, y - below, z - radius);
+            Object max = at.invoke(null, x + radius, y + above, z + radius);
             Object footprint = cuboidType.getConstructor(String.class, vectorType, vectorType)
                     .newInstance("kg_event_probe", min, max);
             // Use WorldGuard's spatial index rather than walking every region
@@ -1208,7 +1218,7 @@ public final class BossEventManager {
         } catch (Throwable error) {
             if (!warnedWorldGuard) {
                 warnedWorldGuard = true;
-                plugin.getLogger().warning("[Events] WorldGuard regions could not be checked; refusing event placement: " + error.getClass().getSimpleName());
+                plugin.getLogger().warning("[Protection] WorldGuard regions could not be checked; refusing placement/teleport: " + error.getClass().getSimpleName());
             }
             return RegionCheck.UNAVAILABLE;
         }

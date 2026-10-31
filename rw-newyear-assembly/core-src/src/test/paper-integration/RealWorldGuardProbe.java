@@ -43,7 +43,7 @@ public final class RealWorldGuardProbe extends JavaPlugin {
         },30L);
     }
 
-    private void check(List<int[]> chunks) {
+    private void check(List<int[]> chunks) throws Exception {
         RegionManager manager=WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
         if (manager==null) throw new AssertionError("real WG region manager unavailable");
         // Only a corner of the footprint overlaps; checking the center alone
@@ -51,6 +51,9 @@ public final class RealWorldGuardProbe extends JavaPlugin {
         String id="kg_real_wg_probe";
         manager.addRegion(new ProtectedCuboidRegion(id,BlockVector3.at(X+9,Y-2,Z+9),BlockVector3.at(X+13,Y+5,Z+13)));
         Location center=new Location(world,X,Y,Z);
+        Location rtpProtected=new Location(world,X+9,Y,Z+9);
+        if (rtpSafe(rtpProtected)) throw new AssertionError("RTP accepted a physical WG region");
+        if (!rtpSafe(center)) throw new AssertionError("RTP rejected an unprotected point outside the region");
         if (events.spawnBossEvent("camp",center)!=null) throw new AssertionError("real WG corner region was ignored");
         world.getBlockAt(X+9,Y,Z+9).setType(Material.CHEST,false);
         ((Chest)world.getBlockAt(X+9,Y,Z+9).getState()).getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,4));
@@ -59,18 +62,25 @@ public final class RealWorldGuardProbe extends JavaPlugin {
                 || ((Chest)world.getBlockAt(X+9,Y,Z+9).getState()).getBlockInventory().getItem(0).getAmount()!=4)
             throw new AssertionError("protected chest changed");
         manager.removeRegion(id);
+        if (!rtpSafe(rtpProtected)) throw new AssertionError("RTP rejected the same point after region removal");
         world.getBlockAt(X+9,Y,Z+9).setType(Material.AIR,false);
         BossEventManager.ActiveBossEvent event=events.spawnBossEvent("camp",center);
         if (event==null) throw new AssertionError("real WG rejected a clear site");
         events.endEvent(event.instanceId,false);
         Bukkit.getPluginManager().disablePlugin(Bukkit.getPluginManager().getPlugin("WorldGuard"));
         if (events.spawnBossEvent("camp",center)!=null) throw new AssertionError("disabled real WG did not fail closed");
+        if (rtpSafe(center)) throw new AssertionError("RTP did not fail closed with disabled WG");
         for (int[] pos:chunks) {
             if (world.getPluginChunkTickets(pos[0],pos[1]).contains(core)) throw new AssertionError("event ticket leaked");
             world.removePluginChunkTicket(pos[0],pos[1],this);
         }
-        getLogger().info("KG-REAL-WG PASS: WorldGuard 7.0.13 and WorldEdit 7.3.10; corner overlap protected; clear site allowed; disabled WG fail-closed");
+        getLogger().info("KG-REAL-WG PASS: WorldGuard 7.0.13 and WorldEdit 7.3.10; corner overlap and RTP point protected; clear site allowed; disabled WG fail-closed");
         Bukkit.shutdown();
+    }
+
+    private boolean rtpSafe(Location at) throws Exception {
+        Method method=BossEventManager.class.getDeclaredMethod("isRtpSiteOutsideWorldGuard",Location.class);
+        method.setAccessible(true);return (Boolean)method.invoke(events,at);
     }
 
     private void load(List<int[]> chunks,int i,Runnable ready) throws Exception {

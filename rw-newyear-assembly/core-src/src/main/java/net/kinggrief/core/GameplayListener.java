@@ -590,6 +590,7 @@ public final class GameplayListener implements Listener {
         Player p = e.getPlayer();
         e.setQuitMessage(null);
         killStreaks.remove(p.getUniqueId());
+        npcClickCd.remove(p.getUniqueId());
         boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
         plugin.getModeration().handleQuitDuringCheck(p);
         DataStore.ActiveWagerDuel quitDuel = plugin.getStore().finishWagerDuel(p.getName());
@@ -620,6 +621,13 @@ public final class GameplayListener implements Listener {
     public void onChunkLoad(ChunkLoadEvent e) {
         plugin.getSpawnEngine().onSpawnChunkLoad(e.getChunk());
         plugin.getBossEvents().purgeOrphanEventEntitiesInChunk(e.getChunk());
+    }
+
+    @EventHandler
+    public void onEntitiesLoaded(org.bukkit.event.world.EntitiesLoadEvent e) {
+        // Older persistent NPCs can load after ChunkLoadEvent; reconcile again
+        // only after the entity slice is actually present.
+        plugin.getSpawnEngine().onSpawnChunkLoad(e.getChunk());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -3232,65 +3240,47 @@ public final class GameplayListener implements Listener {
         else p.getInventory().setItemInMainHand(null);
     }
 
-    // ================= КЛИКИ ПО 24 АНИМИРОВАННЫМ NPC В СВОИХ СКИНАХ (0 ВАНИЛЬНЫХ ЖИТЕЛЕЙ!) =================
-    @EventHandler(priority = EventPriority.LOWEST)
+    // Clicks go through the one canonical Interaction hitbox, never through
+    // the display parts. Respect earlier protection-plugin cancellations.
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onNpcRightClick(PlayerInteractEntityEvent e) {
-        Entity target = e.getRightClicked();
-        final int giftIdx = plugin.getSpawnEngine().getGiftIndexByEntity(target);
-        if (giftIdx >= 0) {
-            e.setCancelled(true);
-            handleSantaGiftClick(e.getPlayer(), giftIdx);
-            return;
-        }
-        final SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(target);
-        if (nd != null) {
-            e.setCancelled(true);
-            final Player p = e.getPlayer();
-            long now = System.currentTimeMillis();
-            Long last = npcClickCd.get(p.getUniqueId());
-            if (last != null && now - last.longValue() < 250L) return;
-            npcClickCd.put(p.getUniqueId(), Long.valueOf(now));
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (p.isOnline()) triggerNpcAction(p, nd);
-                }
-            }.runTask(plugin);
-            return;
-        }
-        if (target instanceof AbstractVillager && plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())) {
-            e.setCancelled(true);
-        }
+        handleNpcInteraction(e);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onNpcInteractAt(PlayerInteractAtEntityEvent e) {
+        handleNpcInteraction(e);
+    }
+
+    private void handleNpcInteraction(PlayerInteractEntityEvent e) {
         Entity target = e.getRightClicked();
-        final int giftIdx = plugin.getSpawnEngine().getGiftIndexByEntity(target);
-        if (giftIdx >= 0) {
-            e.setCancelled(true);
-            handleSantaGiftClick(e.getPlayer(), giftIdx);
-            return;
-        }
         final SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(target);
         if (nd != null) {
             e.setCancelled(true);
-            final Player p = e.getPlayer();
-            long now = System.currentTimeMillis();
-            Long last = npcClickCd.get(p.getUniqueId());
-            if (last != null && now - last.longValue() < 250L) return;
-            npcClickCd.put(p.getUniqueId(), Long.valueOf(now));
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (p.isOnline()) triggerNpcAction(p, nd);
-                }
-            }.runTask(plugin);
+            if (e.getHand() == EquipmentSlot.HAND) queueNpcAction(e.getPlayer(), nd);
             return;
         }
-        if (target instanceof AbstractVillager && plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())) {
-            e.setCancelled(true);
-        }
+        if (target instanceof AbstractVillager && plugin.getSpawnEngine().isInSpawnWorld(target.getLocation())) e.setCancelled(true);
+    }
+
+    private boolean canUseNpc(Player p, SpawnEngine.NpcDef nd) {
+        if (p == null || nd == null || !p.isOnline() || p.isDead() || p.getGameMode() == GameMode.SPECTATOR
+                || !plugin.getStore().isAuthenticated(p) || plugin.getModeration().isFrozenOrAscending(p)
+                || plugin.getStore().isQuickFrozen(p) || !plugin.getSpawnEngine().isInSpawnWorld(p.getLocation())) return false;
+        Location loc = p.getLocation();
+        double dx = loc.getX() - nd.x, dy = loc.getY() - nd.y, dz = loc.getZ() - nd.z;
+        return dx * dx + dy * dy + dz * dz <= 36.0;
+    }
+
+    private void queueNpcAction(final Player p, final SpawnEngine.NpcDef nd) {
+        if (!canUseNpc(p, nd)) return;
+        long now = System.currentTimeMillis();
+        Long last = npcClickCd.get(p.getUniqueId());
+        if (last != null && now - last.longValue() < 250L) return;
+        npcClickCd.put(p.getUniqueId(), Long.valueOf(now));
+        new BukkitRunnable() {
+            @Override public void run() { if (canUseNpc(p, nd)) triggerNpcAction(p, nd); }
+        }.runTask(plugin);
     }
 
     private void handleSantaGiftClick(Player p, int giftIdx) {
@@ -3326,7 +3316,7 @@ public final class GameplayListener implements Listener {
     }
 
     private void triggerNpcAction(Player p, SpawnEngine.NpcDef nd) {
-        if (!plugin.getStore().isAuthenticated(p)) return;
+        if (!canUseNpc(p, nd)) return;
         ColorUtil.sound(p, "entity.experience_orb.pickup", 0.9f, 1.2f);
         String act = nd.commandOrAction;
         if ("gui:rtp".equals(act)) plugin.getGuis().openRtpMenu(p);
@@ -3347,6 +3337,7 @@ public final class GameplayListener implements Listener {
         else if ("gui:clans".equals(act)) plugin.getGuis().openClanMenu(p);
         else if ("gui:jobs".equals(act)) plugin.getGuis().openJobsMenu(p);
         else if ("gui:events".equals(act)) plugin.getGuis().openEventsMenu(p);
+        else if ("gui:expeditions".equals(act)) plugin.getExpeditions().open(p);
         else if ("gui:djamshut".equals(act)) plugin.getGuis().openDjamshutMenu(p);
         else if ("gui:warps".equals(act)) plugin.getGuis().openWarpsMenu(p);
         else if ("gui:titles".equals(act)) plugin.getGuis().openTitlesMenu(p);
@@ -3676,7 +3667,7 @@ public final class GameplayListener implements Listener {
         SpawnEngine.NpcDef nd = plugin.getSpawnEngine().getNpcByEntity(e.getEntity());
         if (nd != null) {
             e.setCancelled(true);
-            if (e.getDamager() instanceof Player) triggerNpcAction((Player) e.getDamager(), nd);
+            if (e.getDamager() instanceof Player) queueNpcAction((Player) e.getDamager(), nd);
             return;
         }
         if (e.getEntity().getScoreboardTags().contains("kg_holo")) {
@@ -4452,6 +4443,7 @@ public final class GameplayListener implements Listener {
     // ================= ИНВЕНТАРЬ И ЧАТ REALLYWORLD =================
     @EventHandler
     public void onInvClick(InventoryClickEvent e) {
+        if (e.isCancelled()) return; // respect an earlier plugin's refusal
         // Trade previews are handled by SafeTradeManager. In particular, do not
         // apply the custom anvil/book action to the virtual preview items.
         if (e.getView().getTopInventory().getHolder() instanceof SafeTradeManager.TradeHolder) return;
@@ -4498,6 +4490,27 @@ public final class GameplayListener implements Listener {
             }
         }
         plugin.getGuis().handleInventoryClick(e);
+    }
+
+    @EventHandler
+    public void onInventoryDrag(org.bukkit.event.inventory.InventoryDragEvent e) {
+        org.bukkit.inventory.Inventory top = e.getView().getTopInventory();
+        if (top == null) return;
+        boolean touchesTop = false;
+        for (Integer raw : e.getRawSlots()) if (raw.intValue() < top.getSize()) { touchesTop = true; break; }
+        if (!touchesTop) return;
+        if (e.getWhoClicked() instanceof Player && plugin.getModeration().isFrozenOrAscending((Player) e.getWhoClicked())) {
+            e.setCancelled(true); return;
+        }
+        if (top.getType() != InventoryType.CRAFTING && "menu_star".equals(ItemFactory.getCustomId(e.getOldCursor()))) {
+            e.setCancelled(true); return;
+        }
+        if (top.getHolder() instanceof GuiManager.KgMenuHolder) {
+            String type = ((GuiManager.KgMenuHolder) top.getHolder()).menuType;
+            // Trash and clan storage are intentionally real player storage.
+            // The brewer accepts potion clicks/shift-clicks, not unrestricted drag.
+            if (!"trash".equals(type) && !"clan_storage".equals(type)) e.setCancelled(true);
+        }
     }
 
     @EventHandler

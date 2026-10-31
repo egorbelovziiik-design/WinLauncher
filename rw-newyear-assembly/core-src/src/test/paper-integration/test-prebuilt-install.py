@@ -24,7 +24,7 @@ def args_parser():
     p.add_argument("--java", default="java")
     p.add_argument("--javac", default="javac")
     p.add_argument("--core", type=Path, default=ROOT / "KingGriefCore.jar")
-    p.add_argument("--template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v70-template.zip")
+    p.add_argument("--template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v71-template.zip")
     p.add_argument("--old-core", type=Path, default=ROOT.parent / "kinggrief/public/KingGriefCore-v6.7.1.jar")
     p.add_argument("--old-template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v66-template.zip")
     p.add_argument("--only-symlink", action="store_true", help="run only the linked-world refusal test")
@@ -133,18 +133,18 @@ def main():
             linked_target.mkdir()
             (linked_target / "user-data.txt").write_text("keep linked data\n", encoding="utf-8")
             (server / "spawn_world").symlink_to(linked_target, target_is_directory=True)
-            shutil.copy2(args.template, data / "spawn-v70-template.zip")
+            shutil.copy2(args.template, data / "spawn-v71-template.zip")
             before = fingerprint(linked_target)
             run_server(args, server, "symlink")
             if not (server / "spawn_world").is_symlink() or fingerprint(linked_target) != before:
                 raise AssertionError("linked world changed during a refused install")
             print("PREBUILT SYMLINK RESULT: PASS", flush=True)
             return
-        (data / "spawn-v70-template.zip").write_bytes(b"intentionally corrupted template")
+        (data / "spawn-v71-template.zip").write_bytes(b"intentionally corrupted template")
         run_server(args, server, "corrupt-fresh")
         if (server / "spawn_world").exists():
             raise AssertionError("corrupted template created a world on a fresh server")
-        (data / "spawn-v70-template.zip").unlink()
+        (data / "spawn-v71-template.zip").unlink()
         # An actual older Core and v66 template exercise migration, not only a
         # synthetic old marker. The new version must honour its separate marker.
         shutil.copy2(args.old_core, server / "plugins/KingGriefCore.jar")
@@ -153,7 +153,7 @@ def main():
         if not (data / ".spawn-v66-template-installed").is_file():
             raise AssertionError("old v66 install marker missing")
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
-        shutil.copy2(args.template, data / "spawn-v70-template.zip")
+        shutil.copy2(args.template, data / "spawn-v71-template.zip")
         shutil.copy2(preload_jar, server / "plugins/KgSpawnPreloadProbe.jar")
         run_server(args, server, "installed")
         (server / "plugins/KgSpawnPreloadProbe.jar").unlink()
@@ -165,13 +165,13 @@ def main():
         shutil.copytree(backup, server / "spawn_world")
         run_server(args, server, "restored")
         (data / ".spawn-v70-template-installed").unlink()
-        (data / "spawn-v70-template.zip").write_bytes(b"intentionally corrupted template")
+        (data / "spawn-v71-template.zip").write_bytes(b"intentionally corrupted template")
         old_files = fingerprint(server / "spawn_world")
         run_server(args, server, "corrupt")
         if fingerprint(server / "spawn_world") != old_files or len(list(server.glob("spawn_world_backup_*"))) != 1:
             raise AssertionError("rejected template changed or moved the existing world")
         # Linked worlds can point outside the server; never follow or replace them.
-        shutil.copy2(args.template, data / "spawn-v70-template.zip")
+        shutil.copy2(args.template, data / "spawn-v71-template.zip")
         linked_target = server / "spawn_world_linked_test_target"
         (server / "spawn_world").rename(linked_target)
         (server / "spawn_world").symlink_to(linked_target.name, target_is_directory=True)

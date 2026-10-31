@@ -30,7 +30,7 @@ import java.util.zip.ZipInputStream;
  * a template and keeps the old, non-destructive startup behavior.
  */
 final class PreparedSpawnInstaller {
-    static final String TEMPLATE_FILE = "spawn-v70-template.zip";
+    static final String TEMPLATE_FILE = "spawn-v71-template.zip";
     static final String DONE_FILE = ".spawn-v70-template-installed";
     private static final String PREBUILT_MARKER = ".kinggrief_prebuilt_v70";
     private static final String SPAWN_MARKER = ".spawn_v70_village_ok";
@@ -178,7 +178,7 @@ final class PreparedSpawnInstaller {
         byte[] bytes = Files.readAllBytes(template);
         if (bytes.length != length) throw new IOException("Template changed while being read");
         String expected;
-        try (InputStream stream = plugin.getResource("spawn_v70_template.sha256")) {
+        try (InputStream stream = plugin.getResource("spawn_v71_template.sha256")) {
             if (stream == null) throw new IOException("Missing template checksum in Core");
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             int b;

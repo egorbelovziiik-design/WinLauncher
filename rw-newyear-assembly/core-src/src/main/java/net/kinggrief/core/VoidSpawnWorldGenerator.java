@@ -117,9 +117,9 @@ public final class VoidSpawnWorldGenerator extends ChunkGenerator {
                 return w;
             }
         }
-        World fallback = Bukkit.createWorld(new WorldCreator("world"));
-        if (fallback != null) silenceCommandSpam(fallback);
-        return fallback;
+        // RTP must not synchronously create or generate a new world on command.
+        // A missing survival world is reported to the player instead.
+        return null;
     }
 
     public static World getNetherWorld() {

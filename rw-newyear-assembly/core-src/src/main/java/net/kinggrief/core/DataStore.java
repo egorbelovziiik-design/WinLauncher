@@ -245,6 +245,8 @@ public final class DataStore {
                     lot.createdAt = as.getLong(k + ".time", System.currentTimeMillis());
                     lot.item = it;
                     auction.add(lot);
+                    // Older/corrupt counters must never reuse an existing lot ID.
+                    if (lotId >= nextLotId) nextLotId = lotId == Integer.MAX_VALUE ? Integer.MAX_VALUE : lotId + 1;
                 } catch (Throwable ignored) {}
             }
         }
@@ -359,6 +361,10 @@ public final class DataStore {
 
     /** Main-thread read access for the order manager; callers must not mutate. */
     synchronized <T> T inspect(CheckedMutation<T> reader) throws Exception { return reader.apply(yml); }
+
+    /** Main-thread buffered progress; durable economy claims must use transact. */
+    synchronized <T> T buffered(CheckedMutation<T> mutation) throws Exception { return mutation.apply(yml); }
+    synchronized boolean saveBuffered() { return saveInternal(false); }
 
     private String key(String name) {
         return name == null ? "unknown" : name.toLowerCase(Locale.ROOT);
@@ -793,12 +799,12 @@ public final class DataStore {
     }
 
     public void addSnowflakes(String name, int delta) {
-        yml.set("players." + key(name) + ".snowflakes", Math.max(0, getSnowflakes(name) + delta));
+        yml.set("players." + key(name) + ".snowflakes", boundedIntegerSum(getSnowflakes(name), delta));
     }
 
     public boolean takeSnowflakes(String name, int amt) {
         int cur = getSnowflakes(name);
-        if (cur < amt) return false;
+        if (amt < 0 || cur < amt) return false;
         yml.set("players." + key(name) + ".snowflakes", cur - amt);
         return true;
     }
@@ -901,19 +907,56 @@ public final class DataStore {
         return yml.getDouble("players." + key(name) + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
     }
 
+    private static int boundedIntegerSum(int current, int delta) {
+        return (int) Math.max(0L, Math.min((long) Integer.MAX_VALUE, (long) current + (long) delta));
+    }
+
     public void setCoins(String name, double val) {
+        if (!Double.isFinite(val)) {
+            plugin.getLogger().warning("[Economy] Refused non-finite balance for " + name);
+            return;
+        }
         yml.set("players." + key(name) + ".coins", Math.max(0.0, val));
     }
 
     public void addCoins(String name, double delta) {
-        setCoins(name, getCoins(name) + delta);
+        double cur = getCoins(name), next = cur + delta;
+        if (!Double.isFinite(cur) || !Double.isFinite(delta) || !Double.isFinite(next)) {
+            plugin.getLogger().warning("[Economy] Refused invalid coin update for " + name);
+            return;
+        }
+        setCoins(name, next);
     }
 
     public boolean takeCoins(String name, double amount) {
         double cur = getCoins(name);
-        if (cur < amount) return false;
-        setCoins(name, cur - amount);
+        if (!Double.isFinite(cur) || cur < 0 || !Double.isFinite(amount) || amount < 0 || cur < amount) return false;
+        double next = cur - amount;
+        if (amount > 0 && next >= cur) return false; // too small to represent at this balance
+        setCoins(name, next);
         return true;
+    }
+
+    /** Persist both sides together; never acknowledge a partial /pay transfer. */
+    public synchronized boolean transferCoins(final String from, final String to, final double amount) {
+        if (from == null || to == null || key(from).equals(key(to)) || !Double.isFinite(amount) || amount <= 0) return false;
+        final double source = getCoins(from), destination = getCoins(to);
+        final double remaining = source - amount, credited = destination + amount;
+        if (!Double.isFinite(source) || !Double.isFinite(destination) || source < 0 || destination < 0
+                || source < amount || !Double.isFinite(credited) || remaining >= source || credited <= destination) return false;
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set("players." + key(from) + ".coins", remaining);
+                    data.set("players." + key(to) + ".coins", credited);
+                    return null;
+                }
+            });
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Economy] Transfer was not committed: " + error.getMessage());
+            return false;
+        }
     }
 
     public List<Map.Entry<String, Double>> getBalTop(int limit) {
@@ -957,7 +1000,7 @@ public final class DataStore {
 
     public void addRelics(String name, int amount) {
         int cur = getRelicsByName(name);
-        int next = Math.max(0, cur + amount);
+        int next = boundedIntegerSum(cur, amount);
         yml.set("players." + key(name) + ".relics", next);
         Player on = Bukkit.getPlayerExact(name);
         if (on != null) writePlayerPoints(on.getUniqueId(), next);
@@ -1105,8 +1148,28 @@ public final class DataStore {
 
     public void addCaseKeys(String name, String caseId, int delta) {
         String c = caseId.toLowerCase(Locale.ROOT);
-        int next = Math.max(0, getCaseKeys(name, c) + delta);
+        int next = boundedIntegerSum(getCaseKeys(name, c), delta);
         yml.set("players." + key(name) + ".cases." + c, next);
+    }
+
+    /** Durable case key debit/refund; no prize is attempted if the debit cannot be saved. */
+    synchronized boolean changeCaseKeyDurably(final String name, final String caseId, final int delta) {
+        if (name == null || caseId == null || (delta != -1 && delta != 1)) return false;
+        final String path = "players." + key(name) + ".cases." + caseId.toLowerCase(Locale.ROOT);
+        int current = yml.getInt(path, 0);
+        if ((delta < 0 && current <= 0) || (delta > 0 && current == Integer.MAX_VALUE)) return false;
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set(path, boundedIntegerSum(data.getInt(path, 0), delta));
+                    return null;
+                }
+            });
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Cases] Key update was not committed for " + name + ": " + error.getMessage());
+            return false;
+        }
     }
 
     // ================= CLANS =================
@@ -1502,6 +1565,9 @@ public final class DataStore {
     }
 
     public synchronized AuctionLot addAuctionLot(String seller, ItemStack item, double price) {
+        if (seller == null || seller.isEmpty() || item == null || item.getType().isAir() || item.getAmount() <= 0
+                || !Double.isFinite(price) || price <= 0 || nextLotId <= 0 || nextLotId == Integer.MAX_VALUE) return null;
+        final int previousNext = nextLotId;
         AuctionLot lot = new AuctionLot();
         lot.id = nextLotId++;
         lot.seller = seller;
@@ -1509,8 +1575,49 @@ public final class DataStore {
         lot.item = item.clone();
         lot.createdAt = System.currentTimeMillis();
         auction.add(0, lot);
-        save();
-        return lot;
+        try {
+            transact(new CheckedMutation<Void>() { @Override public Void apply(YamlConfiguration data) { return null; } });
+            return lot;
+        } catch (Exception error) {
+            auction.remove(lot);
+            nextLotId = previousNext;
+            plugin.getLogger().warning("[Auction] Listing was not committed: " + error.getMessage());
+            return null;
+        }
+    }
+
+    public synchronized AuctionLot findAuctionLot(int id) {
+        for (AuctionLot lot : auction) if (lot.id == id) return lot;
+        return null;
+    }
+
+    /** Commit buyer, seller and lot removal together; caller delivers the item afterwards. */
+    public synchronized AuctionLot purchaseAuctionLot(int id, final String buyer) {
+        int index = -1;
+        for (int i = 0; i < auction.size(); i++) if (auction.get(i).id == id) { index = i; break; }
+        if (index < 0 || buyer == null) return null;
+        final AuctionLot lot = auction.get(index);
+        if (lot.seller == null || key(buyer).equals(key(lot.seller)) || lot.item == null || lot.item.getType().isAir()
+                || !Double.isFinite(lot.price) || lot.price <= 0) return null;
+        final double source = getCoins(buyer), destination = getCoins(lot.seller);
+        final double remaining = source - lot.price, credited = destination + lot.price;
+        if (!Double.isFinite(source) || !Double.isFinite(destination) || source < 0 || destination < 0
+                || source < lot.price || !Double.isFinite(credited) || remaining >= source || credited <= destination) return null;
+        auction.remove(index);
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set("players." + key(buyer) + ".coins", remaining);
+                    data.set("players." + key(lot.seller) + ".coins", credited);
+                    return null;
+                }
+            });
+            return lot;
+        } catch (Exception error) {
+            auction.add(index, lot);
+            plugin.getLogger().warning("[Auction] Purchase was not committed: " + error.getMessage());
+            return null;
+        }
     }
 
     public synchronized AuctionLot removeAuctionLot(int id) {
@@ -1885,7 +1992,7 @@ public final class DataStore {
 
     public synchronized void syncServerPromo(String code, int maxUses, double coins, int relics,
                                              String caseId, int caseQty, String rankId) {
-        if (code == null || code.trim().isEmpty()) return;
+        if (code == null || code.trim().isEmpty() || !Double.isFinite(coins) || coins < 0) return;
         String c = code.trim().toUpperCase(Locale.ROOT);
         String p = "serverPromos." + c;
         yml.set(p + ".maxUses", maxUses);

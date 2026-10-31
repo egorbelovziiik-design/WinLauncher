@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 7.0.0
+version: 7.1.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.0.0: зимний спавн, 100 рун, мега-гепль и способности шаров."
+description: "KINGGRIEF v7.1.0: модели NPC, экспедиции, оптимизация и улучшения."
 
 
 commands:
@@ -47,6 +47,10 @@ commands:
     description: Top-5 Rich & Killers Leaderboard (/top)
   gifts:
     description: Santa Secret Spawn Gifts 10/10 (/gifts)
+  expeditions:
+    aliases: [expedition]
+    description: Five daily expeditions, daily and weekly bonuses
+    usage: /expeditions [claim <ore|harvest|hunt|fish|walk|bonus|weekly>]
   fps:
     aliases: [opt, optimize]
     description: Client FPS Booster Toggle (+40..80 FPS)

@@ -60,6 +60,8 @@ public final class KingGriefCore extends JavaPlugin {
     private OwnerGiveawayManager ownerGiveaway;
     private CuratorManager curatorManager;
     private WinterItemsManager winterItems;
+    private RtpManager rtpManager;
+    private ExpeditionManager expeditions;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -82,6 +84,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.lp = new LpManager(this);
         this.bossEvents = new BossEventManager(this);
         this.spawnEngine = new SpawnEngine(this);
+        this.rtpManager = new RtpManager(this);
+        Bukkit.getPluginManager().registerEvents(this.rtpManager, this);
         this.guis = new GuiManager(this);
         this.hud = new HudManager(this);
         this.moderation = new ModerationManager(this);
@@ -122,6 +126,14 @@ public final class KingGriefCore extends JavaPlugin {
 
         this.gameplayListener = new GameplayListener(this);
         Bukkit.getPluginManager().registerEvents(this.gameplayListener, this);
+        this.expeditions = new ExpeditionManager(this);
+        Bukkit.getPluginManager().registerEvents(this.expeditions, this);
+        this.expeditions.start();
+        PluginCommand expeditionCommand = getCommand("expeditions");
+        if (expeditionCommand != null) {
+            expeditionCommand.setExecutor(this.expeditions);
+            expeditionCommand.setTabCompleter(this.expeditions);
+        }
         this.winterItems = new WinterItemsManager(this);
         Bukkit.getPluginManager().registerEvents(this.winterItems, this);
         PluginCommand artifactsCommand = getCommand("artifacts");
@@ -181,7 +193,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.0.0 — WINTER VILLAGE, RUNES & MEGA GAPPLE");
+        getLogger().info(" KINGGRIEF CORE v7.1.0 — DISPLAY NPC, ASYNC RTP & EXPEDITIONS");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -202,6 +214,8 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
         if (this.bossEvents != null) this.bossEvents.shutdown();
+        if (this.rtpManager != null) this.rtpManager.shutdown();
+        if (this.expeditions != null) this.expeditions.shutdown();
         if (this.spawnEngine != null) this.spawnEngine.shutdown();
         if (this.store != null) this.store.save();
     }
@@ -215,6 +229,8 @@ public final class KingGriefCore extends JavaPlugin {
     public SpawnEngine getSpawnEngine() { return spawnEngine; }
     public GuiManager getGuis() { return guis; }
     public WinterItemsManager getWinterItems() { return winterItems; }
+    RtpManager getRtpManager() { return rtpManager; }
+    public ExpeditionManager getExpeditions() { return expeditions; }
     public HudManager getHud() { return hud; }
     public ModerationManager getModeration() { return moderation; }
     public AntiLagDdosManager getAntiLagDdos() { return antiLagDdos; }
@@ -429,7 +445,7 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("bounty".equals(c) && args.length == 2) {
             return onlineNames(args[1]);
         } else if ("rtp".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("close", "medium", "high", "near", "nether"), args[0]);
+            return filterPrefix(Arrays.asList("close", "medium", "high", "near", "nether", "cancel"), args[0]);
         } else if ("kit".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList(
                     "start", "newyear", "dragon", "pegas", "cobra", "dracula", "bunny", "rabbit",
@@ -873,7 +889,7 @@ public final class KingGriefCore extends JavaPlugin {
                 String target = args[1];
                 double amt;
                 try { amt = Double.parseDouble(args[2]); } catch (Exception ex) { amt = -1; }
-                if (amt < 5000 || target.equalsIgnoreCase(p.getName())) {
+                if (!Double.isFinite(amt) || amt < 5000 || target.equalsIgnoreCase(p.getName())) {
                     p.sendMessage(ColorUtil.c("&eИспользование: &f/bounty add <ник> <сумма от 5000$>"));
                     return true;
                 }
@@ -1009,11 +1025,14 @@ public final class KingGriefCore extends JavaPlugin {
                 double price;
                 try { price = Double.parseDouble(args[1]); } catch (Exception ex) { price = -1; }
                 ItemStack hand = p.getInventory().getItemInMainHand();
-                if (price <= 0 || hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
+                if (!Double.isFinite(price) || price <= 0 || hand == null || hand.getType() == Material.AIR || "menu_star".equals(ItemFactory.getCustomId(hand))) {
                     p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку и введите: &f/ah sell <цена>"));
                     return true;
                 }
-                store.addAuctionLot(p.getName(), hand, price);
+                if (store.addAuctionLot(p.getName(), hand, price) == null) {
+                    p.sendMessage(ColorUtil.c("&cЛот не сохранён; предмет остался в руке."));
+                    return true;
+                }
                 p.getInventory().setItemInMainHand(null);
                 p.sendMessage(ColorUtil.c("&#00E676⚖ Предмет выставлен на Аукцион за &a" + ColorUtil.fmtMoney(price) + "$&7!"));
                 return true;
@@ -1027,7 +1046,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length < 1) { guis.openCasinoMenu(p); return true; }
             double bet;
             try { bet = Double.parseDouble(args[0]); } catch (Exception ex) { bet = -1; }
-            if (bet < 1000) {
+            if (!Double.isFinite(bet) || !Double.isFinite(bet * 2.0) || bet < 1000) {
                 p.sendMessage(ColorUtil.c("&eМинимальная ставка Монетки: &a1 000$ &7(/cf <сумма>)"));
                 return true;
             }
@@ -1085,7 +1104,11 @@ public final class KingGriefCore extends JavaPlugin {
             }
             double bet = 0.0;
             if (args.length >= 2) {
-                try { bet = Math.max(0.0, Double.parseDouble(args[1])); } catch (Exception ex) { bet = 0.0; }
+                try { bet = Double.parseDouble(args[1]); } catch (Exception ex) { bet = -1.0; }
+                if (!Double.isFinite(bet) || !Double.isFinite(bet * 2.0) || bet < 0) {
+                    p.sendMessage(ColorUtil.c("&cУкажите корректную конечную ставку."));
+                    return true;
+                }
                 if (bet > 0.0 && bet < 100.0) {
                     p.sendMessage(ColorUtil.c("&cМинимальная ставка на дуэль — 100$ (или 0 для обычной дуэли)!"));
                     return true;
@@ -1116,13 +1139,13 @@ public final class KingGriefCore extends JavaPlugin {
             Player rec = Bukkit.getPlayer(args[0]);
             double amt;
             try { amt = Double.parseDouble(args[1]); } catch (Exception ex) { amt = -1; }
-            if (rec == null || rec.equals(p) || amt < 10) {
+            if (rec == null || rec.equals(p) || !Double.isFinite(amt) || amt < 10) {
                 p.sendMessage(ColorUtil.c("&cУкажите игрока онлайн и сумму от 10$!"));
                 return true;
             }
-            if (!store.takeCoins(p.getName(), amt)) { p.sendMessage(ColorUtil.c("&cНедостаточно монет!")); return true; }
-            store.addCoins(rec.getName(), amt);
-            store.save();
+            if (!store.transferCoins(p.getName(), rec.getName(), amt)) {
+                p.sendMessage(ColorUtil.c("&cПеревод не выполнен: проверьте баланс и сохранение данных.")); return true;
+            }
             p.sendMessage(ColorUtil.c("&#00E676✔ Вы перевели &a" + ColorUtil.fmtMoney(amt) + "$ &7игроку &f" + rec.getName()));
             rec.sendMessage(ColorUtil.c("&#00E676💰 Игрок &f" + p.getName() + " &7перевёл вам &a+" + ColorUtil.fmtMoney(amt) + "$&7!"));
             return true;
@@ -1847,7 +1870,7 @@ public final class KingGriefCore extends JavaPlugin {
         String target = args[1];
         double amt;
         try { amt = Double.parseDouble(args[2]); } catch (Exception ex) { amt = -1; }
-        if (amt < 0) {
+        if (!Double.isFinite(amt) || amt < 0) {
             s.sendMessage(ColorUtil.c("&cУкажите корректную сумму Монет!"));
             return true;
         }
@@ -2230,7 +2253,10 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length < 2) { p.sendMessage(ColorUtil.c("&eИспользование: &f/clan deposit <сумма>")); return; }
             double amt;
             try { amt = Double.parseDouble(args[1]); } catch (Exception ex) { amt = -1; }
-            if (amt < 100) { p.sendMessage(ColorUtil.c("&cМинимальный взнос в казну: 100$!")); return; }
+            if (!Double.isFinite(amt) || amt < 100 || !Double.isFinite(my.bank) || my.bank < 0
+                    || !Double.isFinite(my.bank + amt) || my.bank + amt <= my.bank) {
+                p.sendMessage(ColorUtil.c("&cНекорректная сумма или баланс казны (минимум 100$).")); return;
+            }
             if (!store.takeCoins(p.getName(), amt)) { p.sendMessage(ColorUtil.c("&cНедостаточно монет на балансе!")); return; }
             my.bank += amt;
             store.save();
@@ -2241,7 +2267,12 @@ public final class KingGriefCore extends JavaPlugin {
             if (myRole < 3 || args.length < 2) { p.sendMessage(ColorUtil.c("&eСнимать из казны могут Лидер/Зам: &f/clan withdraw <сумма>")); return; }
             double amt;
             try { amt = Double.parseDouble(args[1]); } catch (Exception ex) { amt = -1; }
-            if (amt <= 0 || my.bank < amt) { p.sendMessage(ColorUtil.c("&cНедостаточно средств в казне клана!")); return; }
+            double personal = store.getCoins(p.getName());
+            if (!Double.isFinite(amt) || amt <= 0 || !Double.isFinite(my.bank) || my.bank < amt
+                    || !Double.isFinite(personal) || personal < 0 || !Double.isFinite(personal + amt)
+                    || personal + amt <= personal || my.bank - amt >= my.bank) {
+                p.sendMessage(ColorUtil.c("&cНедостаточно средств или некорректная сумма!")); return;
+            }
             my.bank -= amt;
             store.addCoins(p.getName(), amt);
             store.save();
@@ -2434,7 +2465,9 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("givemoney".equals(sub) && args.length >= 3) {
-            store.addCoins(args[1], Double.parseDouble(args[2]));
+            double amount = Double.parseDouble(args[2]);
+            if (!Double.isFinite(amount)) { s.sendMessage(ColorUtil.c("&cУкажите конечную сумму.")); return true; }
+            store.addCoins(args[1], amount);
             store.save();
             s.sendMessage(ColorUtil.c("&#00E676✔ Начислены Монеты игроку " + args[1]));
             return true;

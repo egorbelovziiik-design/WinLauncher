@@ -1,0 +1,5 @@
+name: KgSpawnInstallProbe
+version: 1.0
+main: net.kinggrief.core.test.SpawnV70UpgradeProbe
+api-version: '1.20'
+depend: [KingGriefCore]

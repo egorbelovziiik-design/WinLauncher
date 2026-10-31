@@ -231,7 +231,7 @@ def main():
         shutil.copy2(args.vanilla, server / "cache" / cache_name)
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
         if args.prebuilt:
-            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v70-template.zip")
+            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v71-template.zip")
             probe_config = server / "plugins/KgProbe/config.yml"
             probe_config.parent.mkdir(parents=True, exist_ok=True)
             probe_config.write_text("expect-untouched: true\n" if args.existing_unknown else "expect-prebuilt: true\n", encoding="utf-8")

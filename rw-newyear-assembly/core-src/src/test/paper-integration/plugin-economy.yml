@@ -1,0 +1,5 @@
+name: KgEconomyProbe
+version: 1.0
+main: net.kinggrief.probe.EconomyProbe
+api-version: '1.20'
+depend: [KingGriefCore]

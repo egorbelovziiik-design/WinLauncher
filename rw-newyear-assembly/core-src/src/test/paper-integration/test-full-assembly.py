@@ -10,7 +10,7 @@ ROOT=HERE.parents[3]
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',required=True,type=Path);p.add_argument('--vanilla',required=True,type=Path)
- p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.0.0.zip')
+ p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.1.0.zip')
  p.add_argument('--node-modules',required=True,type=Path);p.add_argument('--java',default='java');p.add_argument('--node',default='node')
  p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
  if not a.accept_eula:p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')
@@ -19,7 +19,15 @@ def main():
   server=Path(tmp)/'server';server.mkdir()
   with ZipFile(a.assembly) as z:
    if z.testzip() is not None:raise RuntimeError('Corrupt assembly')
-   for name in z.namelist():
+   names=z.namelist()
+   if 'plugins/KingGriefCore/spawn-v71-template.zip' not in names or any(n in names for n in ('plugins/KingGriefCore/spawn-v70-template.zip','plugins/KingGriefCore/spawn-v66-template.zip')):
+    raise RuntimeError('Incorrect spawn template in new assembly')
+   import io
+   with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore/spawn-v71-template.zip'))) as template:
+    if 'data/chunks.dat' in template.namelist():raise RuntimeError('Template contains forced chunk tickets')
+   with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore.jar'))) as core:
+    if 'version: 7.1.0' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
+   for name in names:
     if name.startswith('/') or '..' in Path(name).parts:raise RuntimeError('Unsafe assembly path')
    z.extractall(server)
   bridge=(server/'plugins/KingGriefBridge/config.yml').read_text()
@@ -59,7 +67,7 @@ def main():
    if '[SpawnInstall] Prepared v70 spawn installed and initialized' not in text:raise RuntimeError('Prepared spawn was not installed')
    if 'Error occurred while enabling' in text or 'Exception in server tick loop' in text:raise RuntimeError('Plugin or server startup error')
    if not (server/'plugins/KingGriefCore/.spawn-v70-template-installed').is_file():raise RuntimeError('Missing v70 install marker')
-   success=True;print('FULL ASSEMBLY SMOKE: PASS 5 plugins enabled, v70 spawn installed, real protocol client entered',flush=True)
+   success=True;print('FULL ASSEMBLY SMOKE: PASS 5 plugins enabled, v71 template installed, real protocol client entered',flush=True)
   finally:
    if proc.poll() is None:
     try:proc.stdin.write('stop\n');proc.stdin.flush();proc.wait(timeout=60)

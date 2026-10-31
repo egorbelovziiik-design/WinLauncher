@@ -151,10 +151,10 @@ export default async function AdminSettingsPage() {
           <code className="mx-1 rounded bg-black/40 px-1 font-mono text-[0.64rem] text-white/70">minecraft-plugin/</code>.
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <a href="/KingGriefCore-v7.0.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm">
-            <Download size={13} /> Скачать ядро KingGriefCore.jar (v7.0.0)
+          <a href="/KingGriefCore-v7.1.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm">
+            <Download size={13} /> Скачать ядро KingGriefCore.jar (v7.1.0)
           </a>
-          <a href="/KingGriefCore-7.0.0-update.zip" download className="btn btn-ghost btn-sm">
+          <a href="/KingGriefCore-7.1.0-update.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Патч и инструкция установки (.zip)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
@@ -175,8 +175,11 @@ export default async function AdminSettingsPage() {
           <a href="/kinggrief-mega-rp-v70.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Мега-РП v70 — новые предметы (.zip)
           </a>
-          <a href="/rw-newyear-full-assembly-v7.0.0.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Вся сборка v7.0.0 (.zip)
+          <a href="/rw-newyear-full-assembly-v7.1.0.zip" download className="btn btn-ghost btn-sm">
+            <Download size={13} /> Вся сборка v7.1.0 (.zip)
+          </a>
+          <a href="/kinggrief-spawn-v71.zip" download="spawn-v71-template.zip" className="btn btn-ghost btn-sm" title="Тот же готовый зимний спавн без старых принудительно загруженных чанков; перед установкой прочитайте инструкцию">
+            <Download size={13} /> Шаблон спавна v71 (.zip)
           </a>
           <a href="/kinggrief-admin-panel.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Сайт + Админ-панель v5.9 (.zip)

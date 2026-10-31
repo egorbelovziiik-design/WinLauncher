@@ -437,7 +437,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn("net/kinggrief/common/ResourcePackSettings.class", jar.namelist())
                 self.assertFalse(any(path.startswith("org/bukkit/") for path in jar.namelist()), "test fixtures leaked into JAR")
 
-        assembly = HERE.parent / "rw-newyear-full-assembly-v7.0.0.zip"
+        assembly = HERE.parent / "rw-newyear-full-assembly-v7.1.0.zip"
         self.assertEqual(assembly.read_bytes(), (public / assembly.name).read_bytes())
         with zipfile.ZipFile(assembly) as z:
             self.assertIsNone(z.testzip())
@@ -461,21 +461,22 @@ class DistributionTests(unittest.TestCase):
         import hashlib
         import io
         repo = HERE.parent.parent
-        template = HERE.parent / "server/plugins/KingGriefCore/spawn-v70-template.zip"
+        template = HERE.parent / "server/plugins/KingGriefCore/spawn-v71-template.zip"
         data = template.read_bytes()
         digest = hashlib.sha256(data).hexdigest()
-        expected = (HERE.parent / "core-src/src/main/resources/spawn_v70_template.sha256").read_text(encoding="ascii").strip()
+        expected = (HERE.parent / "core-src/src/main/resources/spawn_v71_template.sha256").read_text(encoding="ascii").strip()
         self.assertEqual(digest, expected)
-        self.assertEqual((repo / "kinggrief/public/kinggrief-spawn-v70.zip").read_bytes(), data)
+        self.assertEqual((repo / "kinggrief/public/kinggrief-spawn-v71.zip").read_bytes(), data)
         with zipfile.ZipFile(HERE.parent / "server/plugins/KingGriefCore.jar") as jar:
-            self.assertEqual(jar.read("spawn_v70_template.sha256").decode("ascii").strip(), digest)
+            self.assertEqual(jar.read("spawn_v71_template.sha256").decode("ascii").strip(), digest)
             self.assertIn("net/kinggrief/core/PreparedSpawnInstaller.class", jar.namelist())
-        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.0.0.zip") as assembly:
-            self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v70-template.zip"), data)
+        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.1.0.zip") as assembly:
+            self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v71-template.zip"), data)
             self.assertFalse(any(name.startswith("spawn_world/") for name in assembly.namelist()))
         with zipfile.ZipFile(io.BytesIO(data)) as world:
             self.assertIsNone(world.testzip())
             names = world.namelist()
+            self.assertNotIn("data/chunks.dat", names, "new template must not pin hundreds of chunks")
             self.assertEqual(len(names), len(set(names)))
             self.assertTrue({"level.dat", ".spawn_v70_village_ok", ".kinggrief_prebuilt_v70"}.issubset(names))
             self.assertTrue(any(name.startswith("region/") and name.endswith(".mca") for name in names))
@@ -494,7 +495,7 @@ class DistributionTests(unittest.TestCase):
             server = root / "server"
             data = server / "plugins/KingGriefCore"
             data.mkdir(parents=True)
-            template = data / "spawn-v70-template.zip"
+            template = data / "spawn-v71-template.zip"
             template.write_bytes(b"corrupted")
             output = root / "assembly.zip"
             public = root / "public.zip"

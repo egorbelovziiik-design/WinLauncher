@@ -28,6 +28,8 @@ public final class GuiManager {
         public final String menuType;
         public final String extra;
         public final int page;
+        // Immutable-to-the-client snapshot: a changing list must not change what a displayed slot buys.
+        private final Map<Integer, Integer> auctionSlots = new java.util.HashMap<Integer, Integer>();
 
         public KgMenuHolder(String menuType, String extra, int page) {
             this.menuType = menuType;
@@ -197,6 +199,8 @@ public final class GuiManager {
                 "&7Добавь друзей в тиму без клана: &f/tm <ник>",
                 "&7Божья Аура лечит всю тиму + защита от урона!",
                 "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
+        inv.setItem(51, ItemFactory.glowIcon(Material.WRITABLE_BOOK, "&#80D8FF&l🧭 ЭКСПЕДИЦИИ (/expeditions)",
+                "&75 ежедневных заданий и бонусы дня/недели.", "&7Валюта зачисляется после получения награды."));
         inv.setItem(50, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 100 ЗИМНИХ РУН (/artifacts)",
                 "&720 комбинаций эффектов, каждая в 5 уровнях.", "&7Одноразовые; ПКМ в правой руке."));
         inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.4.0",
@@ -1507,11 +1511,13 @@ public final class GuiManager {
     public void openAuctionMenu(Player p, int page) {
         List<DataStore.AuctionLot> lots = plugin.getStore().getAuctionLots();
         int pg = Math.max(0, page);
-        Inventory inv = Bukkit.createInventory(new KgMenuHolder("ah", "", pg), 54,
+        KgMenuHolder holder = new KgMenuHolder("ah", "", pg);
+        Inventory inv = Bukkit.createInventory(holder, 54,
                 ColorUtil.c("&#FFAB40&l⚖ АУКЦИОН ИГРОКОВ (Стр. " + (pg + 1) + ")"));
         int start = pg * 45;
         for (int i = 0; i < 45 && (start + i) < lots.size(); i++) {
             DataStore.AuctionLot lot = lots.get(start + i);
+            holder.auctionSlots.put(Integer.valueOf(i), Integer.valueOf(lot.id));
             ItemStack disp = lot.item.clone();
             ItemMeta m = disp.getItemMeta();
             if (m != null) {
@@ -1526,6 +1532,8 @@ public final class GuiManager {
             inv.setItem(i, disp);
         }
         for (int s = 45; s < 54; s++) inv.setItem(s, ItemFactory.icon(Material.BLACK_STAINED_GLASS_PANE, " "));
+        if (pg > 0) inv.setItem(45, ItemFactory.icon(Material.ARROW, "&e« Предыдущая страница"));
+        if (start + 45 < lots.size()) inv.setItem(53, ItemFactory.icon(Material.ARROW, "&eСледующая страница »"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню &8(/ah sell <цена>)"));
         p.openInventory(inv);
     }
@@ -1868,6 +1876,7 @@ public final class GuiManager {
             else if (slot == 43) openSwordsMenu(p);
             else if (slot == 46) openTeammatesMenu(p);
             else if (slot == 50) plugin.getWinterItems().open(p, 0);
+            else if (slot == 51) plugin.getExpeditions().open(p);
             else if (slot == 52) openCoinShopCat(p, "pvp");
             else if (slot == 47 && plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) plugin.getCurator().openMainCuratorGui(p, "");
             else if (slot == 48 && plugin.getLp().hasLpAccess(p)) { p.closeInventory(); plugin.getOwnerGiveaway().openRazdachaMainGui(p); }
@@ -2199,22 +2208,33 @@ public final class GuiManager {
             }
         } else if ("ah".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
-            List<DataStore.AuctionLot> lots = plugin.getStore().getAuctionLots();
-            int idx = h.page * 45 + slot;
-            if (idx >= 0 && idx < lots.size()) {
-                DataStore.AuctionLot lot = lots.get(idx);
-                if (!plugin.getStore().takeCoins(p.getName(), lot.price)) {
-                    p.sendMessage(ColorUtil.c("&cНедостаточно монет!"));
-                    return;
-                }
-                DataStore.AuctionLot removed = plugin.getStore().removeAuctionLot(lot.id);
-                if (removed != null) {
-                    plugin.getStore().addCoins(removed.seller, removed.price);
-                    p.getInventory().addItem(removed.item);
-                    p.sendMessage(ColorUtil.c("&#00E676✔ Вы купили лот #" + removed.id + " за " + ColorUtil.fmtMoney(removed.price) + "$!"));
-                    openAuctionMenu(p, h.page);
-                }
+            if (slot == 45 && h.page > 0) { openAuctionMenu(p, h.page - 1); return; }
+            if (slot == 53 && (h.page + 1) * 45 < plugin.getStore().getAuctionLots().size()) { openAuctionMenu(p, h.page + 1); return; }
+            Integer displayedId = h.auctionSlots.get(Integer.valueOf(slot));
+            if (displayedId == null) return;
+            DataStore.AuctionLot lot = plugin.getStore().findAuctionLot(displayedId.intValue());
+            if (lot == null) {
+                p.sendMessage(ColorUtil.c("&eЛот уже недоступен. Список обновлён."));
+                openAuctionMenu(p, h.page);
+                return;
             }
+            if (!InventoryCapacity.canFit(p, lot.item)) {
+                p.sendMessage(ColorUtil.c("&cОсвободите место для этого лота в инвентаре."));
+                return;
+            }
+            DataStore.AuctionLot removed = plugin.getStore().purchaseAuctionLot(lot.id, p.getName());
+            if (removed == null) {
+                p.sendMessage(ColorUtil.c("&cПокупка не выполнена: проверьте баланс, свой лот и сохранение данных."));
+                return;
+            }
+            Map<Integer, ItemStack> leftovers = p.getInventory().addItem(removed.item.clone());
+            if (!leftovers.isEmpty()) {
+                // Preflight and commit run in the same main-thread click, but do not silently destroy a remainder.
+                for (ItemStack left : leftovers.values()) p.getWorld().dropItemNaturally(p.getLocation(), left);
+                plugin.getLogger().warning("[Auction] Unexpected inventory remainder for " + p.getName() + " after lot #" + removed.id);
+            }
+            p.sendMessage(ColorUtil.c("&#00E676✔ Вы купили лот #" + removed.id + " за " + ColorUtil.fmtMoney(removed.price) + "$!"));
+            openAuctionMenu(p, h.page);
         } else if ("jobs".equals(type)) {
             String job = slot == 10 ? "miner" : slot == 12 ? "lumber" : slot == 14 ? "hunter" : slot == 16 ? "killer" : null;
             if (job != null) {

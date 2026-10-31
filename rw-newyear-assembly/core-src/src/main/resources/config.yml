@@ -1,4 +1,4 @@
-# KINGGRIEF CORE v7.0.0 — WINTER VILLAGE, RUNES AND MEGA GAPPLE
+# KINGGRIEF CORE v7.1.0 — DISPLAY NPC, EXPEDITIONS AND ASYNC RTP
 server-ip: "kinggrief.pickme.cloud"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
@@ -22,3 +22,8 @@ crown-event:
   lobby-seconds: 45
   match-seconds: 300
   goal-seconds: 90
+
+# Безопасный асинхронный поиск /rtp. Одновременно не более двух поисков.
+rtp:
+  allow-chunk-generation: true  # false: уже созданные чанки можно загружать с диска, новые не генерируются
+  min-free-heap-mb: 256         # порог JVM heap перед генерацией; не предел памяти контейнера
