@@ -64,6 +64,7 @@ public final class KingGriefCore extends JavaPlugin {
     private ExpeditionManager expeditions;
     private ClanAllianceManager clanAlliances;
     private DisplayPetManager displayPets;
+    private WinterTreeManager winterTree;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -85,6 +86,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.store = new DataStore(this);
         this.ranks = new RankManager(this.store);
         this.clanAlliances = new ClanAllianceManager(this);
+        this.winterTree = new WinterTreeManager(this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -123,7 +125,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -438,7 +440,9 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("pet".equals(c) && args.length == 1) {
+        if ("tree".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("status", "donate", "claim", "top"), args[0]);
+        } else if ("pet".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("penguin", "deer", "dragon", "off"), args[0]);
         } else if ("cases".equals(c)) {
             if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take"), args[0]);
@@ -708,6 +712,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }
+        if ("tree".equals(c)) { winterTree.command(p, args); return true; }
         if ("crown".equals(c)) return crownEvents.handleCommand(p, args);
         if ("trade".equals(c)) return safeTrades.handleCommand(p, args);
         if ("buyorder".equals(c)) return buyOrders.handleCommand(p, args);

@@ -93,6 +93,7 @@ public final class GuiManager {
             {"immortal",    "&#E040FB[🌟 БЕССМЕРТНЫЙ]", "220", "Элитный титул сервера"},
             {"parkour_pro", "&#40C4FF[🏃 ПАРКУРИСТ]",   "-1",  "Выдаётся за прохождение /warp parkour!"},
             {"boss_slayer", "&#00E676[🔥 ГРОЗА БОССОВ]","-1",  "Выдаётся за Топ-1 урон по Боссу!"},
+            {"tree_friend", "&#80D8FF[❄ ДРУГ ЁЛКИ]",   "-1",  "За участие в украшении зимней ёлки!"},
             {"ludoman",     "&#FFEA00[🎰 ЛУДОМАН]",     "110", "Легенда Гранд-Казино 777"},
             {"rw_legend",   "&#FACC15[👑 ЛЕГЕНДА РВ]",  "300", "Максимальный статус ReallyWorld"}
     };
@@ -1397,7 +1398,7 @@ public final class GuiManager {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("titles", "", 0), 45,
                 ColorUtil.c("&#FFD740&l✨ КОЛЛЕКЦИЯ ТИТУЛОВ СЕРВЕРА"));
         decorateFrame(inv);
-        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24};
+        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25};
         for (int i = 0; i < TITLES_CATALOG.length && i < slots.length; i++) {
             String[] t = TITLES_CATALOG[i];
             String tid = t[0], disp = t[1], desc = t[3];
