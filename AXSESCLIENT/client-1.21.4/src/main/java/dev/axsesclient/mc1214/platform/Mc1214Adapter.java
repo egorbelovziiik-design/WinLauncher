@@ -39,9 +39,11 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 public final class Mc1214Adapter implements MinecraftAdapter {
@@ -547,7 +549,7 @@ public final class Mc1214Adapter implements MinecraftAdapter {
         AABB b = le.getBoundingBox();
         ItemStack held = le.getMainHandItem();
         String heldName = (held != null && !held.isEmpty()) ? held.getHoverName().getString() : "";
-        boolean los = mc.player.canSee(le);
+        boolean los = hasClearLineOfSight(mc, ix, (iy + le.getEyeY() + dy) * 0.5, iz, le.getEyeY() + dy);
         return new TargetEntityInfo(
                 le.getId(),
                 le.getName().getString(),
@@ -574,6 +576,15 @@ public final class Mc1214Adapter implements MinecraftAdapter {
                 los,
                 heldName
         );
+    }
+
+    private static boolean hasClearLineOfSight(Minecraft mc, double tx, double chestY, double tz, double eyeY) {
+        if (mc.level == null || mc.player == null) return true;
+        Vec3 from = mc.player.getEyePosition();
+        HitResult eyeHit = mc.level.clip(new ClipContext(from, new Vec3(tx, eyeY, tz), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player));
+        if (eyeHit.getType() == HitResult.Type.MISS) return true;
+        HitResult chestHit = mc.level.clip(new ClipContext(from, new Vec3(tx, chestY, tz), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player));
+        return chestHit.getType() == HitResult.Type.MISS;
     }
 
     private static String formatName(String raw) {
