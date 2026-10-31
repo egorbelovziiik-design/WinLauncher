@@ -47,8 +47,17 @@ remapJar {
 }
 
 // In-game self test: `gradle runClient -PftahSelftest=true`
+// Minecraft 1.16.5 must run on a Java 8 runtime, so the run task uses a Java 8 launcher
+// while the build itself runs on the newer JDK required by Loom.
 tasks.matching { it.name == 'runClient' }.configureEach {
     if (project.hasProperty('ftahSelftest')) {
         jvmArgs "-Dfuntimeauctionhelper.selftest=" + project.property('ftahSelftest')
+    }
+    try {
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(8)
+        }
+    } catch (Exception ignored) {
+        // fall back to the build JVM when no Java 8 toolchain is available
     }
 }

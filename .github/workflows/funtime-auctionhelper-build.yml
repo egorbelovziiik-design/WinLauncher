@@ -30,13 +30,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Temurin JDK 8 and 21
+      - name: Set up Temurin JDK 8, 21 and 25 (Loom 1.19 requires a JDK 25 runtime)
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
             8
             21
+            25
 
       - name: Set up Gradle 9.8.2
         uses: gradle/actions/setup-gradle@v4
@@ -44,9 +45,10 @@ jobs:
           gradle-version: "9.8.2"
 
       - name: 1. Core (version independent) JUnit 5 suite
+        working-directory: FunTimeAuctionHelper/client-common
         run: |
           set +e
-          gradle test --no-daemon > /tmp/core.log 2>&1
+          gradle test --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/core.log 2>&1
           code=$?
           grep -E "^[^ ]*error:|error: " /tmp/core.log | head -n 10 | sed 's/^/::error title=core-compile::/'
           if [ $code -ne 0 ]; then
@@ -60,7 +62,7 @@ jobs:
         working-directory: FunTimeAuctionHelper/client-1.16.5
         run: |
           set +e
-          gradle remapJar --no-daemon > /tmp/v1165.log 2>&1
+          gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/v1165.log 2>&1
           code=$?
           grep -E "error: " /tmp/v1165.log | head -n 10 | sed 's/^/::error title=build-1.16.5::/'
           if [ $code -ne 0 ]; then
@@ -73,7 +75,7 @@ jobs:
         working-directory: FunTimeAuctionHelper/client-1.21.4
         run: |
           set +e
-          gradle remapJar --no-daemon > /tmp/v1214.log 2>&1
+          gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/v1214.log 2>&1
           code=$?
           grep -E "error: " /tmp/v1214.log | head -n 10 | sed 's/^/::error title=build-1.21.4::/'
           if [ $code -ne 0 ]; then
@@ -86,7 +88,7 @@ jobs:
         working-directory: FunTimeAuctionHelper/client-1.21.11
         run: |
           set +e
-          gradle remapJar --no-daemon > /tmp/v12111.log 2>&1
+          gradle remapJar --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/v12111.log 2>&1
           code=$?
           grep -E "error: " /tmp/v12111.log | head -n 10 | sed 's/^/::error title=build-1.21.11::/'
           if [ $code -ne 0 ]; then
@@ -169,11 +171,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Temurin JDK ${{ matrix.java }}
-        uses: actions/setup-java@v4
+      - name: Set up Temurin JDKs
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: ${{ matrix.java }}
+          java-version: |
+            8
+            21
+            25
 
       - name: Set up Gradle 9.8.2
         uses: gradle/actions/setup-gradle@v4
