@@ -11,6 +11,10 @@ public final class KeyCodes {
     public static final int KEY_LEFT = 263;
     public static final int KEY_DOWN = 264;
     public static final int KEY_UP = 265;
+    public static final int KEY_PAGE_UP = 266;
+    public static final int KEY_PAGE_DOWN = 267;
+    public static final int KEY_HOME = 268;
+    public static final int KEY_END = 269;
     public static final int KEY_F2 = 291;
     public static final int KEY_F3 = 292;
     public static final int KEY_F5 = 294;

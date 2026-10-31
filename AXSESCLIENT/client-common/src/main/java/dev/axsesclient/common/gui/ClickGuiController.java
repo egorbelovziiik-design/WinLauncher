@@ -1,6 +1,7 @@
 package dev.axsesclient.common.gui;
 
 import dev.axsesclient.common.AxsesCore;
+import dev.axsesclient.common.animation.AnimationManager;
 import dev.axsesclient.common.compat.CompatibilityEngine;
 import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.modules.Module;
@@ -41,6 +42,11 @@ public final class ClickGuiController {
     private float targetScrollY = 0.0f;
     private float currentScrollY = 0.0f;
     private float maxScrollY = 0.0f;
+    private float lastListY = 60.0f;
+    private float lastListH = 260.0f;
+
+    private boolean draggingScrollbar = false;
+    private float scrollbarDragGrabOffset = 0.0f;
 
     private KeybindSetting listeningKeybind = null;
     private NumberSetting draggingSlider = null;
@@ -63,11 +69,12 @@ public final class ClickGuiController {
     }
 
     public void onOpen() {
-        core.getAnimationManager().channel("clickgui:open", 0.0f, 0.18f).setImmediate(0.0f);
-        core.getAnimationManager().channel("clickgui:open", 0.0f, 0.18f).setTarget(1.0f);
+        core.getAnimationManager().channel("clickgui:open", 0.0f, 0.16f).setImmediate(0.0f);
+        core.getAnimationManager().channel("clickgui:open", 0.0f, 0.16f).setTarget(1.0f);
         listeningKeybind = null;
         draggingSlider = null;
         draggingWindow = false;
+        draggingScrollbar = false;
     }
 
     public void onClose(MinecraftAdapter mc) {
@@ -78,13 +85,14 @@ public final class ClickGuiController {
         draggingSlider = null;
         editingStringSetting = null;
         draggingWindow = false;
-        core.getConfigManager().saveActive();
+        draggingScrollbar = false;
+        core.getConfigManager().saveActiveAsync();
     }
 
     private float[] computeWindowBounds(float screenW, float screenH) {
         float scalePref = Math.max(0.80f, Math.min(1.25f, core.getConfigManager().getGuiScale()));
-        float targetW = Math.round(616.0f * scalePref);
-        float targetH = Math.round(366.0f * scalePref);
+        float targetW = Math.round(624.0f * scalePref);
+        float targetH = Math.round(372.0f * scalePref);
         float winW = Math.max(430.0f, Math.min(targetW, screenW - 20.0f));
         float winH = Math.max(260.0f, Math.min(targetH, screenH - 20.0f));
         float cx = screenW * 0.5f + core.getConfigManager().getGuiOffsetX();
@@ -97,7 +105,7 @@ public final class ClickGuiController {
     public void render(RenderAdapter r, MinecraftAdapter mc, int rawMouseX, int rawMouseY, float partialTick) {
         long startNs = System.nanoTime();
         float dt = core.getAnimationManager().beginFrame();
-        float openAnim = core.getAnimationManager().animate("clickgui:open", 1.0f, 0.18f);
+        float openAnim = core.getAnimationManager().animate("clickgui:open", 1.0f, 0.16f);
         AxsesTheme t = core.getThemeManager().getActiveTheme();
         LocalizationManager i18n = core.getLocalizationManager();
 
@@ -114,7 +122,7 @@ public final class ClickGuiController {
         float winW = bounds[2];
         float winH = bounds[3];
         if (!core.getAnimationManager().isReducedMotion()) {
-            wy = Math.round(wy + (1.0f - openAnim) * 10.0f);
+            wy = Math.round(wy + (1.0f - openAnim) * 8.0f);
         }
 
         float mx = rawMouseX;
@@ -131,7 +139,6 @@ public final class ClickGuiController {
 
         // Top Aurora Header Bar (height 42)
         r.fillRoundedRect(wx + 2, wy + 2, winW - 4, 40, 6.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
-        // Dual-tone glowing top accent strip
         float halfBar = (winW - 16.0f) * 0.5f;
         r.fillRect(wx + 8, wy + 2, halfBar, 2.0f, primaryCol);
         r.fillRect(wx + 8 + halfBar, wy + 2, halfBar, 2.0f, accentCol);
@@ -147,28 +154,39 @@ public final class ClickGuiController {
         String langLabel = i18n.isRussian() ? "RU" : "EN";
         float rightCursor = wx + winW - 10.0f;
 
-        float langW = 28.0f;
+        float langW = 30.0f;
         rightCursor -= langW;
+        lastLangX = rightCursor;
+        lastLangW = langW;
         drawHeaderPill(r, rightCursor, wy + 10, langW, 22, langLabel, false, true, mx, my);
 
         float hudW = Math.max(40.0f, core.getFontManager().width(r, i18n.tr("gui.hud_editor"), 1.0f) + 14.0f);
         rightCursor -= (hudW + 4.0f);
+        lastHudX = rightCursor;
+        lastHudW = hudW;
         drawHeaderPill(r, rightCursor, wy + 10, hudW, 22, i18n.tr("gui.hud_editor"), false, false, mx, my);
 
         float diagW = Math.max(42.0f, core.getFontManager().width(r, i18n.tr("gui.diag"), 1.0f) + 14.0f);
         rightCursor -= (diagW + 4.0f);
+        lastDiagX = rightCursor;
+        lastDiagW = diagW;
         drawHeaderPill(r, rightCursor, wy + 10, diagW, 22, i18n.tr("gui.diag"), activeView == TopView.COMPATIBILITY, false, mx, my);
 
         float cfgW = Math.max(52.0f, core.getFontManager().width(r, i18n.tr("gui.configs"), 1.0f) + 14.0f);
         rightCursor -= (cfgW + 4.0f);
+        lastCfgX = rightCursor;
+        lastCfgW = cfgW;
         drawHeaderPill(r, rightCursor, wy + 10, cfgW, 22, i18n.tr("gui.configs"), activeView == TopView.CONFIGS, false, mx, my);
 
         float thmW = Math.max(46.0f, core.getFontManager().width(r, i18n.tr("gui.themes"), 1.0f) + 14.0f);
         rightCursor -= (thmW + 4.0f);
+        lastThmX = rightCursor;
+        lastThmW = thmW;
         drawHeaderPill(r, rightCursor, wy + 10, thmW, 22, i18n.tr("gui.themes"), activeView == TopView.THEMES, false, mx, my);
 
         float favW = 26.0f;
         rightCursor -= (favW + 4.0f);
+        lastFavX = rightCursor;
         drawHeaderPill(r, rightCursor, wy + 10, favW, 22, "★", activeView == TopView.FAVORITES, false, mx, my);
 
         // Responsive Search Box between Brand & Tabs
@@ -193,7 +211,7 @@ public final class ClickGuiController {
         // Left Sidebar Navigation Rail
         float sideX = wx + 8.0f;
         float sideY = wy + 48.0f;
-        float sideW = 132.0f;
+        float sideW = 136.0f;
         float sideH = winH - 56.0f;
         r.fillRoundedRect(sideX, sideY, sideW, sideH, 6.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
         r.drawRoundedOutline(sideX, sideY, sideW, sideH, 6.0f, 1.0f, AxsesTheme.withAlpha(t.getMutedColor(), 0.18f));
@@ -217,7 +235,7 @@ public final class ClickGuiController {
 
             String catTitle = i18n.tr(cat.getTranslationKey());
             float textY = cy + (catRowH - 2.0f - 8.0f) * 0.5f;
-            core.getFontManager().draw(r, catTitle, sideX + 14.0f, textY, sel ? t.getTextColor() : t.getMutedColor(), 1.0f);
+            core.getFontManager().draw(r, catTitle, sideX + 13.0f, textY, sel ? t.getTextColor() : t.getMutedColor(), 1.0f);
 
             List<Module> inCat = core.getModuleManager().getByCategory(cat);
             int enCount = 0;
@@ -226,7 +244,7 @@ public final class ClickGuiController {
             }
             String cnt = enCount > 0 ? (enCount + "/" + inCat.size()) : String.valueOf(inCat.size());
             float cntW = core.getFontManager().width(r, cnt, 1.0f);
-            core.getFontManager().draw(r, cnt, sideX + sideW - 11.0f - cntW, textY,
+            core.getFontManager().draw(r, cnt, sideX + sideW - 10.0f - cntW, textY,
                     enCount > 0 ? accentCol : AxsesTheme.withAlpha(t.getMutedColor(), 0.70f), 1.0f);
 
             cy += catRowH;
@@ -283,6 +301,12 @@ public final class ClickGuiController {
         core.getPerformanceProfiler().recordClickGuiRenderNanos(System.nanoTime() - startNs);
     }
 
+    private boolean showLanguageBanner() {
+        return activeView == TopView.MODULES
+                && selectedCategory == ModuleCategory.SETTINGS
+                && searchQuery.isEmpty();
+    }
+
     private void renderModulesPane(
             RenderAdapter r,
             MinecraftAdapter mc,
@@ -309,18 +333,30 @@ public final class ClickGuiController {
                 chipX += cw + 4.0f;
             }
             topOffset = 21.0f;
+        } else if (showLanguageBanner()) {
+            // Prominent Language Selector Card pinned at top of Settings (Настройки)
+            float banW = w - 10.0f;
+            float banH = 40.0f;
+            r.fillRoundedRect(x, y, banW, banH, 6.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.96f));
+            r.drawRoundedOutline(x, y, banW, banH, 6.0f, 1.0f, AxsesTheme.withAlpha(accentCol, 0.78f));
+            r.fillRect(x + 2.0f, y + 6.0f, 2.5f, banH - 12.0f, accentCol);
+
+            float maxLblW = Math.max(80.0f, banW - 196.0f);
+            core.getFontManager().draw(r, trimToWidth(r, "🌐 " + i18n.tr("gui.lang_card_title"), maxLblW),
+                    x + 12.0f, y + 7.0f, t.getTextColor(), 1.0f);
+            core.getFontManager().draw(r, trimToWidth(r, i18n.tr("gui.lang_card_desc"), maxLblW),
+                    x + 12.0f, y + 22.0f, t.getMutedColor(), 1.0f);
+
+            boolean isRu = i18n.isRussian();
+            drawSmallButton(r, x + banW - 176.0f, y + 10.0f, 82.0f, 20.0f, isRu ? "Русский ✓" : "Русский", isRu, mx, my);
+            drawSmallButton(r, x + banW - 88.0f, y + 10.0f, 80.0f, 20.0f, !isRu ? "English ✓" : "English", !isRu, mx, my);
+            topOffset = 46.0f;
         }
 
         float listY = y + topOffset;
         float listH = h - topOffset;
-        currentScrollY = core.getAnimationManager().smoothScroll("clickgui:modules", targetScrollY);
-
-        // Exact 1:1 GUI-space scissor (pose is identity, so 100% consistent across 1.16.5, 1.21.4, and 1.21.11!)
-        int scX = Math.max(0, Math.round(x));
-        int scY = Math.max(0, Math.round(listY));
-        int scW = Math.max(1, Math.round(w));
-        int scH = Math.max(1, Math.round(listH));
-        r.pushScissor(scX, scY, scW, scH);
+        lastListY = listY;
+        lastListH = listH;
 
         List<Module> modules = core.getModuleManager().query(
                 selectedCategory,
@@ -328,16 +364,42 @@ public final class ClickGuiController {
                 searchQuery
         );
 
+        // Compute exact content height BEFORE clamping scroll so expanding drawers never lags behind by 1 frame
+        float totalContentHeight = 0.0f;
+        for (int i = 0; i < modules.size(); i++) {
+            Module m = modules.get(i);
+            float cardH = 38.0f + ((expandedModule == m) ? (10.0f + countSettingsHeight(m)) : 0.0f);
+            totalContentHeight += cardH + 6.0f;
+        }
+        maxScrollY = Math.max(0.0f, totalContentHeight - listH + 4.0f);
+        if (targetScrollY > maxScrollY) {
+            targetScrollY = maxScrollY;
+        }
+        if (targetScrollY < 0.0f) {
+            targetScrollY = 0.0f;
+        }
+
+        if (draggingScrollbar) {
+            currentScrollY = targetScrollY;
+            core.getAnimationManager().channel("clickgui:modules", targetScrollY, 0.14f).setImmediate(targetScrollY);
+        } else {
+            currentScrollY = core.getAnimationManager().smoothScroll("clickgui:modules", targetScrollY);
+        }
+
+        int scX = Math.max(0, Math.round(x));
+        int scY = Math.max(0, Math.round(listY));
+        int scW = Math.max(1, Math.round(w));
+        int scH = Math.max(1, Math.round(listH));
+        r.pushScissor(scX, scY, scW, scH);
+
         if (modules.isEmpty()) {
             core.getFontManager().drawCentered(r, i18n.tr("gui.no_results"), x + w * 0.5f, listY + listH * 0.45f, t.getMutedColor(), 1.0f);
-            maxScrollY = 0.0f;
             r.popScissor();
             return;
         }
 
-        float cardW = w - 8.0f;
+        float cardW = w - 10.0f;
         float cursorY = listY - currentScrollY;
-        float totalContentHeight = 0.0f;
 
         for (int i = 0; i < modules.size(); i++) {
             Module m = modules.get(i);
@@ -350,19 +412,25 @@ public final class ClickGuiController {
                 float hovAnim = core.getAnimationManager().smoothHover("mod:" + m.getId(), cardHov);
                 float toggleAnim = core.getAnimationManager().smoothToggle("tog:" + m.getId(), m.isEnabled());
 
-                // Card background & border
-                int cardBg = m.isEnabled() ? t.getElevatedColor() : t.getSurfaceColor();
-                r.fillRoundedRect(x, cursorY, cardW, cardH, 6.0f, AxsesTheme.withAlpha(cardBg, 0.96f));
+                // Smoothly interpolated card background, border & glow bar (zero visual snap!)
+                int offBg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f);
+                int onBg = AxsesTheme.withAlpha(t.getElevatedColor(), 0.98f);
+                int cardBg = AnimationManager.lerpColor(offBg, onBg, toggleAnim);
+                r.fillRoundedRect(x, cursorY, cardW, cardH, 6.0f, cardBg);
+
                 if (hovAnim > 0.02f) {
-                    r.fillRoundedRect(x, cursorY, cardW, baseCardH, 6.0f, AxsesTheme.withAlpha(primaryCol, 0.08f * hovAnim));
+                    r.fillRoundedRect(x, cursorY, cardW, baseCardH, 6.0f, AxsesTheme.withAlpha(primaryCol, 0.09f * hovAnim));
                 }
-                int borderCol = m.isEnabled()
-                        ? AxsesTheme.withAlpha(primaryCol, 0.85f)
-                        : AxsesTheme.withAlpha(t.getMutedColor(), 0.22f + 0.25f * hovAnim);
+
+                int offBorder = AxsesTheme.withAlpha(t.getMutedColor(), 0.22f + 0.25f * hovAnim);
+                int onBorder = AxsesTheme.withAlpha(primaryCol, 0.88f);
+                int borderCol = AnimationManager.lerpColor(offBorder, onBorder, toggleAnim);
                 r.drawRoundedOutline(x, cursorY, cardW, cardH, 6.0f, 1.0f, borderCol);
 
-                if (m.isEnabled()) {
-                    r.fillRect(x + 2.0f, cursorY + 6.0f, 2.5f, baseCardH - 12.0f, accentCol);
+                if (toggleAnim > 0.02f) {
+                    float barH = (baseCardH - 12.0f) * toggleAnim;
+                    float barY = cursorY + (baseCardH - barH) * 0.5f;
+                    r.fillRect(x + 2.0f, barY, 2.5f, barH, AxsesTheme.withAlpha(accentCol, toggleAnim));
                 }
 
                 String incomp = m.getIncompatibilityReason(mc);
@@ -407,23 +475,19 @@ public final class ClickGuiController {
             }
 
             cursorY += cardH + 6.0f;
-            totalContentHeight += cardH + 6.0f;
-        }
-
-        maxScrollY = Math.max(0.0f, totalContentHeight - listH + 4.0f);
-        if (targetScrollY > maxScrollY) {
-            targetScrollY = maxScrollY;
         }
 
         r.popScissor();
 
-        // Sleek Scrollbar Track & Thumb
+        // Interactive Clickable & Draggable Scrollbar Track & Thumb
         if (maxScrollY > 1.0f) {
-            float barX = x + w - 4.0f;
-            r.fillRoundedRect(barX, listY, 3.0f, listH, 1.5f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.80f));
-            float thumbH = Math.max(22.0f, listH * (listH / (listH + maxScrollY)));
-            float thumbY = listY + (listH - thumbH) * (currentScrollY / maxScrollY);
-            r.fillRoundedRect(barX, thumbY, 3.0f, thumbH, 1.5f, accentCol);
+            float barX = x + w - 5.0f;
+            boolean barHov = draggingScrollbar || isInside(mx, my, barX - 4.0f, listY, 10.0f, listH);
+            r.fillRoundedRect(barX, listY, 4.0f, listH, 2.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.88f));
+            float thumbH = Math.max(24.0f, listH * (listH / (listH + maxScrollY)));
+            float ratio = Math.max(0.0f, Math.min(1.0f, currentScrollY / maxScrollY));
+            float thumbY = listY + (listH - thumbH) * ratio;
+            r.fillRoundedRect(barX, thumbY, 4.0f, thumbH, 2.0f, barHov ? accentCol : primaryCol);
         }
     }
 
@@ -443,12 +507,14 @@ public final class ClickGuiController {
 
     private void renderModuleSettings(RenderAdapter r, Module m, float sx, float sy, float sw, float mx, float my) {
         AxsesTheme t = core.getThemeManager().getActiveTheme();
+        LocalizationManager i18n = core.getLocalizationManager();
         float rowY = sy;
 
         for (Setting<?> s : m.getSettings()) {
+            String title = i18n.settingName(s.getId(), s.getName());
             if (s instanceof BooleanSetting) {
                 BooleanSetting bs = (BooleanSetting) s;
-                core.getFontManager().draw(r, bs.getName(), sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 float anim = core.getAnimationManager().smoothToggle("set:" + m.getId() + ":" + bs.getId(), bs.isEnabled());
                 core.getRenderManager().drawToggleSwitch(r, sx + sw - 28.0f, rowY + 2.0f, 26.0f, 14.0f, anim);
                 rowY += 24.0f;
@@ -457,24 +523,25 @@ public final class ClickGuiController {
                 String valStr = ns.getStep() >= 1.0
                         ? String.valueOf(ns.getInt())
                         : String.format(Locale.ROOT, "%.2f", Double.valueOf(ns.getDouble()));
-                core.getFontManager().draw(r, ns.getName() + ": " + valStr, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title + ": " + valStr, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 core.getRenderManager().drawSlider(r, sx + sw - 120.0f, rowY + 4.0f, 118.0f, 12.0f, ns.getNormalized());
                 rowY += 24.0f;
             } else if (s instanceof ModeSetting) {
                 ModeSetting ms = (ModeSetting) s;
-                core.getFontManager().draw(r, ms.getName(), sx, rowY + 4.0f, t.getTextColor(), 1.0f);
-                float pillW = Math.min(130.0f, Math.max(76.0f, core.getFontManager().width(r, ms.getValue(), 1.0f) + 18.0f));
-                drawSmallButton(r, sx + sw - pillW, rowY + 1.0f, pillW, 18.0f, ms.getValue(), false, mx, my);
+                core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                String optLabel = i18n.optionName(ms.getValue());
+                float pillW = Math.min(144.0f, Math.max(80.0f, core.getFontManager().width(r, optLabel, 1.0f) + 18.0f));
+                drawSmallButton(r, sx + sw - pillW, rowY + 1.0f, pillW, 18.0f, optLabel, false, mx, my);
                 rowY += 24.0f;
             } else if (s instanceof KeybindSetting) {
                 KeybindSetting ks = (KeybindSetting) s;
-                core.getFontManager().draw(r, ks.getName(), sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 String lbl = (listeningKeybind == ks) ? "[...]" : ("[" + ks.getFormattedKey() + "]");
                 drawSmallButton(r, sx + sw - 74.0f, rowY + 1.0f, 74.0f, 18.0f, lbl, listeningKeybind == ks, mx, my);
                 rowY += 24.0f;
             } else if (s instanceof StringSetting) {
                 StringSetting ss = (StringSetting) s;
-                core.getFontManager().draw(r, ss.getName(), sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 float boxW = Math.min(160.0f, sw * 0.52f);
                 float bx = sx + sw - boxW;
                 r.fillRoundedRect(bx, rowY + 1.0f, boxW, 18.0f, 4.0f, t.getBackgroundColor());
@@ -485,7 +552,7 @@ public final class ClickGuiController {
                 rowY += 24.0f;
             } else if (s instanceof ColorSetting) {
                 ColorSetting cs = (ColorSetting) s;
-                core.getFontManager().draw(r, cs.getName() + " (" + cs.toHex() + ")", sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title + " (" + cs.toHex() + ")", sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 r.fillRoundedRect(sx + sw - 46.0f, rowY + 2.0f, 44.0f, 16.0f, 4.0f, cs.getArgb());
                 r.drawRoundedOutline(sx + sw - 46.0f, rowY + 2.0f, 44.0f, 16.0f, 4.0f, 1.0f, t.getTextColor());
                 rowY += 24.0f;
@@ -500,15 +567,16 @@ public final class ClickGuiController {
                 }
             } else if (s instanceof MultiSelectSetting) {
                 MultiSelectSetting mss = (MultiSelectSetting) s;
-                core.getFontManager().draw(r, mss.getName(), sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
                 float cx = sx + 110.0f;
                 for (String opt : mss.getOptions()) {
                     boolean on = mss.isSelected(opt);
-                    float ow = core.getFontManager().width(r, opt, 1.0f) + 12.0f;
+                    String dispOpt = i18n.optionName(opt);
+                    float ow = core.getFontManager().width(r, dispOpt, 1.0f) + 12.0f;
                     if (cx + ow <= sx + sw) {
                         r.fillRoundedRect(cx, rowY + 1.0f, ow, 18.0f, 4.0f,
                                 on ? core.getThemeManager().filterColor(t.getPrimaryColor()) : t.getBackgroundColor());
-                        core.getFontManager().drawCentered(r, opt, cx + ow * 0.5f, rowY + 5.0f, t.getTextColor(), 1.0f);
+                        core.getFontManager().drawCentered(r, dispOpt, cx + ow * 0.5f, rowY + 5.0f, t.getTextColor(), 1.0f);
                         cx += ow + 4.0f;
                     }
                 }
@@ -516,8 +584,8 @@ public final class ClickGuiController {
             }
         }
 
-        String rst = core.getLocalizationManager().tr("gui.reset_all");
-        float rw = Math.max(88.0f, core.getFontManager().width(r, rst, 1.0f) + 16.0f);
+        String rst = i18n.tr("gui.reset_all");
+        float rw = Math.max(96.0f, core.getFontManager().width(r, rst, 1.0f) + 16.0f);
         drawSmallButton(r, sx + sw - rw, rowY + 2.0f, rw, 18.0f, rst, false, mx, my);
     }
 
@@ -604,7 +672,7 @@ public final class ClickGuiController {
         float ly = y + 22.0f;
         for (String line : lines) {
             r.fillRoundedRect(x, ly, w, 24.0f, 5.0f, t.getSurfaceColor());
-            core.getFontManager().draw(r, trimToWidth(r, line, w - 16.0f), x + 8.0f, ly + 8.0f, t.getTextColor(), 1.0f);
+            core.getFontManager().draw(r, trimToWidth(r, line, w - 16.0f), x, ly + 8.0f, t.getTextColor(), 1.0f);
             ly += 28.0f;
         }
     }
@@ -620,22 +688,6 @@ public final class ClickGuiController {
         float mx = (float) rawX;
         float my = (float) rawY;
 
-        LocalizationManager i18n = core.getLocalizationManager();
-
-        // Top right buttons mirror render() coordinates
-        float rightCursor = wx + winW - 10.0f;
-        float langW = 28.0f;
-        rightCursor -= langW;
-        if (isInside(mx, my, rightCursor, wy + 10, langW, 22)) {
-            i18n.toggleLocale();
-            core.getConfigManager().saveActive();
-            return true;
-        }
-
-        float hudW = Math.max(40.0f, Math.round(i18n.tr("gui.hud_editor").length() * 5.8f) + 14.0f);
-        // Use exact conservative hit regions matching header buttons
-        // Let's compute exact rightCursor using approximate char width or check sequentially:
-        // Since mouseClicked doesn't receive RenderAdapter, check header strip cleanly!
         if (isInside(mx, my, wx + 2, wy + 2, winW - 4, 40)) {
             return handleHeaderClick(mc, wx, wy, winW, mx, my, rawX, rawY);
         }
@@ -645,7 +697,7 @@ public final class ClickGuiController {
         // Left Sidebar Clicks
         float sideX = wx + 8.0f;
         float sideY = wy + 48.0f;
-        float sideW = 132.0f;
+        float sideW = 136.0f;
         float sideH = winH - 56.0f;
 
         ModuleCategory[] cats = ModuleCategory.values();
@@ -688,12 +740,16 @@ public final class ClickGuiController {
         return false;
     }
 
-    private float lastSearchX, lastSearchW, lastFavX, lastThmX, lastThmW, lastCfgX, lastCfgW, lastDiagX, lastDiagW, lastHudX, lastHudW, lastLangX;
+    private float lastSearchX, lastSearchW, lastFavX, lastThmX, lastThmW, lastCfgX, lastCfgW, lastDiagX, lastDiagW, lastHudX, lastHudW, lastLangX, lastLangW = 30.0f;
 
     private boolean handleHeaderClick(MinecraftAdapter mc, float wx, float wy, float winW, float mx, float my, double rawX, double rawY) {
-        if (lastLangX > 0 && isInside(mx, my, lastLangX, wy + 10, 28, 22)) {
+        float fallbackLangX = lastLangX > 0 ? lastLangX : (wx + winW - 40.0f);
+        if (isInside(mx, my, fallbackLangX, wy + 10, lastLangW, 22)) {
             core.getLocalizationManager().toggleLocale();
-            core.getConfigManager().saveActive();
+            core.getConfigManager().saveActiveAsync();
+            core.getNotificationManager().push("AXSES",
+                    core.getLocalizationManager().isRussian() ? "Язык: Русский" : "Language: English",
+                    NotificationManager.Severity.INFO);
             return true;
         }
         if (lastHudX > 0 && isInside(mx, my, lastHudX, wy + 10, lastHudW, 22)) {
@@ -748,7 +804,7 @@ public final class ClickGuiController {
             if (isInside(mx, my, cx, cy, cardW, cardH)) {
                 AxsesTheme chosen = list.get(i);
                 core.getThemeManager().setActiveTheme(chosen.getId());
-                core.getConfigManager().saveActive();
+                core.getConfigManager().saveActiveAsync();
                 core.getNotificationManager().push("AXSES", chosen.getName(), NotificationManager.Severity.SUCCESS);
                 return true;
             }
@@ -757,6 +813,7 @@ public final class ClickGuiController {
         if (isInside(mx, my, x, btnY, 108.0f, 19.0f)) {
             AxsesTheme created = core.getThemeManager().createCustomTheme("Custom " + (list.size() + 1), core.getThemeManager().getActiveThemeId());
             core.getThemeManager().setActiveTheme(created.getId());
+            core.getConfigManager().saveActiveAsync();
             return true;
         }
         if (isInside(mx, my, x + 114.0f, btnY, 108.0f, 19.0f) && mc != null && mc.getGameDir() != null) {
@@ -770,6 +827,7 @@ public final class ClickGuiController {
         }
         if (isInside(mx, my, x + 228.0f, btnY, 108.0f, 19.0f)) {
             core.getThemeManager().resetThemes();
+            core.getConfigManager().saveActiveAsync();
             return true;
         }
         return false;
@@ -812,7 +870,7 @@ public final class ClickGuiController {
         if (isInside(mx, my, x + 318.0f, btnY, 98.0f, 19.0f)) {
             core.getModuleManager().resetAll(mc);
             core.getHudManager().resetAll();
-            core.getConfigManager().saveActive();
+            core.getConfigManager().saveActiveAsync();
             return true;
         }
         return false;
@@ -833,16 +891,47 @@ public final class ClickGuiController {
                 chipX += cw + 4.0f;
             }
             topOffset = 21.0f;
+        } else if (showLanguageBanner()) {
+            float banW = w - 10.0f;
+            if (isInside(mx, my, x + banW - 176.0f, y + 8.0f, 84.0f, 24.0f)) {
+                core.getLocalizationManager().setActiveLocale("ru_RU");
+                core.getConfigManager().saveActiveAsync();
+                core.getNotificationManager().push("AXSES", "Русский язык активирован", NotificationManager.Severity.SUCCESS);
+                return true;
+            }
+            if (isInside(mx, my, x + banW - 88.0f, y + 8.0f, 82.0f, 24.0f)) {
+                core.getLocalizationManager().setActiveLocale("en_US");
+                core.getConfigManager().saveActiveAsync();
+                core.getNotificationManager().push("AXSES", "English language active", NotificationManager.Severity.SUCCESS);
+                return true;
+            }
+            topOffset = 46.0f;
         }
 
         float listY = y + topOffset;
         float listH = h - topOffset;
-        if (!isInside(mx, my, x, listY, w, listH)) {
+        if (!isInside(mx, my, x, listY, w + 4.0f, listH)) {
             return false;
         }
 
+        // Scrollbar click / drag support on right edge
+        if (maxScrollY > 1.0f && mx >= x + w - 9.0f) {
+            draggingScrollbar = true;
+            float thumbH = Math.max(24.0f, listH * (listH / (listH + maxScrollY)));
+            float ratio = Math.max(0.0f, Math.min(1.0f, currentScrollY / maxScrollY));
+            float thumbY = listY + (listH - thumbH) * ratio;
+            if (my >= thumbY && my <= thumbY + thumbH) {
+                scrollbarDragGrabOffset = my - thumbY;
+            } else {
+                scrollbarDragGrabOffset = thumbH * 0.5f;
+                float norm = (my - listY - scrollbarDragGrabOffset) / Math.max(1.0f, listH - thumbH);
+                targetScrollY = Math.max(0.0f, Math.min(maxScrollY, norm * maxScrollY));
+            }
+            return true;
+        }
+
         List<Module> modules = core.getModuleManager().query(selectedCategory, activeView == TopView.FAVORITES, searchQuery);
-        float cardW = w - 8.0f;
+        float cardW = w - 10.0f;
         float cursorY = listY - currentScrollY;
 
         for (Module m : modules) {
@@ -853,6 +942,7 @@ public final class ClickGuiController {
             if (isInside(mx, my, x, cursorY, cardW, baseCardH)) {
                 if (isInside(mx, my, x + 4.0f, cursorY + 4.0f, 18.0f, 28.0f)) {
                     m.toggleFavorite();
+                    core.getConfigManager().saveActiveAsync();
                     return true;
                 }
                 if (isInside(mx, my, x + cardW - 110.0f, cursorY + 10.0f, 44.0f, 18.0f)) {
@@ -864,11 +954,16 @@ public final class ClickGuiController {
                     return true;
                 }
                 core.getModuleManager().toggleModuleWithFeedback(m, mc);
+                core.getConfigManager().saveActiveAsync();
                 return true;
             }
 
             if (expanded && isInside(mx, my, x, cursorY + baseCardH, cardW, cardH - baseCardH)) {
-                return handleModuleSettingsClick(mc, m, x + 12.0f, cursorY + baseCardH + 6.0f, cardW - 24.0f, mx, my);
+                boolean handled = handleModuleSettingsClick(mc, m, x + 12.0f, cursorY + baseCardH + 6.0f, cardW - 24.0f, mx, my);
+                if (handled) {
+                    core.getConfigManager().saveActiveAsync();
+                }
+                return handled;
             }
             cursorY += cardH + 6.0f;
         }
@@ -876,6 +971,7 @@ public final class ClickGuiController {
     }
 
     private boolean handleModuleSettingsClick(MinecraftAdapter mc, Module m, float sx, float sy, float sw, float mx, float my) {
+        LocalizationManager i18n = core.getLocalizationManager();
         float rowY = sy;
         for (Setting<?> s : m.getSettings()) {
             if (s instanceof BooleanSetting) {
@@ -937,7 +1033,8 @@ public final class ClickGuiController {
                 MultiSelectSetting mss = (MultiSelectSetting) s;
                 float cx = sx + 110.0f;
                 for (String opt : mss.getOptions()) {
-                    float ow = opt.length() * 6.0f + 12.0f;
+                    String dispOpt = i18n.optionName(opt);
+                    float ow = dispOpt.length() * 6.0f + 12.0f;
                     if (isInside(mx, my, cx, rowY, ow, 20.0f)) {
                         mss.toggleOption(opt);
                         return true;
@@ -947,7 +1044,7 @@ public final class ClickGuiController {
                 rowY += 32.0f;
             }
         }
-        if (isInside(mx, my, sx + sw - 110.0f, rowY, 110.0f, 20.0f)) {
+        if (isInside(mx, my, sx + sw - 120.0f, rowY, 120.0f, 20.0f)) {
             m.resetSettings(mc);
             return true;
         }
@@ -955,6 +1052,13 @@ public final class ClickGuiController {
     }
 
     public boolean mouseDragged(MinecraftAdapter mc, double rawX, double rawY, int button) {
+        if (draggingScrollbar && maxScrollY > 1.0f) {
+            float thumbH = Math.max(24.0f, lastListH * (lastListH / (lastListH + maxScrollY)));
+            float norm = ((float) rawY - lastListY - scrollbarDragGrabOffset) / Math.max(1.0f, lastListH - thumbH);
+            targetScrollY = Math.max(0.0f, Math.min(maxScrollY, norm * maxScrollY));
+            currentScrollY = targetScrollY;
+            return true;
+        }
         if (draggingWindow) {
             core.getConfigManager().setGuiOffsetX(dragStartOffsetX + ((float) rawX - dragStartMouseX));
             core.getConfigManager().setGuiOffsetY(dragStartOffsetY + ((float) rawY - dragStartMouseY));
@@ -972,14 +1076,23 @@ public final class ClickGuiController {
     }
 
     public boolean mouseReleased(double rawX, double rawY, int button) {
+        if (draggingWindow || draggingSlider != null || draggingColorChannel >= 0) {
+            core.getConfigManager().saveActiveAsync();
+        }
         draggingWindow = false;
         draggingSlider = null;
         draggingColorChannel = -1;
+        draggingScrollbar = false;
         return false;
     }
 
     public boolean mouseScrolled(double verticalAmount) {
-        targetScrollY = Math.max(0.0f, Math.min(maxScrollY, targetScrollY - (float) verticalAmount * 26.0f));
+        if (Math.abs(verticalAmount) < 1.0e-5) {
+            return false;
+        }
+        float step = 46.0f;
+        float next = targetScrollY - (float) verticalAmount * step;
+        targetScrollY = Math.max(0.0f, Math.min(Math.max(0.0f, maxScrollY), next));
         return true;
     }
 
@@ -990,9 +1103,11 @@ public final class ClickGuiController {
             } else if (keyCode == KeyCodes.KEY_DELETE || keyCode == KeyCodes.KEY_BACKSPACE) {
                 listeningKeybind.remove();
                 listeningKeybind = null;
+                core.getConfigManager().saveActiveAsync();
             } else {
                 listeningKeybind.assign(keyCode);
                 listeningKeybind = null;
+                core.getConfigManager().saveActiveAsync();
             }
             return true;
         }
@@ -1000,6 +1115,7 @@ public final class ClickGuiController {
         if (editingStringSetting != null) {
             if (keyCode == KeyCodes.KEY_ENTER || keyCode == KeyCodes.KEY_ESCAPE) {
                 editingStringSetting = null;
+                core.getConfigManager().saveActiveAsync();
                 return true;
             }
             if (keyCode == KeyCodes.KEY_BACKSPACE) {
@@ -1028,6 +1144,28 @@ public final class ClickGuiController {
                 }
                 return true;
             }
+        }
+
+        // Keyboard scroll navigation
+        if (keyCode == KeyCodes.KEY_DOWN) {
+            return mouseScrolled(-1.0);
+        }
+        if (keyCode == KeyCodes.KEY_UP) {
+            return mouseScrolled(1.0);
+        }
+        if (keyCode == KeyCodes.KEY_PAGE_DOWN) {
+            return mouseScrolled(-4.5);
+        }
+        if (keyCode == KeyCodes.KEY_PAGE_UP) {
+            return mouseScrolled(4.5);
+        }
+        if (keyCode == KeyCodes.KEY_HOME) {
+            targetScrollY = 0.0f;
+            return true;
+        }
+        if (keyCode == KeyCodes.KEY_END) {
+            targetScrollY = maxScrollY;
+            return true;
         }
 
         if (keyCode == KeyCodes.KEY_ESCAPE || keyCode == core.getKeybindManager().getOpenGuiBind().getKeyCode()) {
@@ -1062,15 +1200,6 @@ public final class ClickGuiController {
     }
 
     private void drawHeaderPill(RenderAdapter r, float x, float y, float w, float h, String text, boolean active, boolean accentOutline, float mx, float my) {
-        // Cache exact rendered header button positions for 100% pixel-accurate click hit-testing
-        LocalizationManager i18n = core.getLocalizationManager();
-        if (text.equals("RU") || text.equals("EN")) { lastLangX = x; }
-        else if (text.equals(i18n.tr("gui.hud_editor"))) { lastHudX = x; lastHudW = w; }
-        else if (text.equals(i18n.tr("gui.diag"))) { lastDiagX = x; lastDiagW = w; }
-        else if (text.equals(i18n.tr("gui.configs"))) { lastCfgX = x; lastCfgW = w; }
-        else if (text.equals(i18n.tr("gui.themes"))) { lastThmX = x; lastThmW = w; }
-        else if (text.equals("★")) { lastFavX = x; lastSearchX = x - Math.max(96.0f, x - (x - 200.0f)); }
-
         AxsesTheme t = core.getThemeManager().getActiveTheme();
         boolean hov = isInside(mx, my, x, y, w, h);
         int bg = active

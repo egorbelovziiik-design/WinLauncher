@@ -113,4 +113,39 @@ public interface MinecraftAdapter {
 
     default void setPlayerRotation(float yaw, float pitch) {
     }
+
+    default boolean isUsingItem() {
+        return false;
+    }
+
+    default float getFallDistance() {
+        return 0.0f;
+    }
+
+    default boolean isInLiquid() {
+        return false;
+    }
+
+    default double getPlayerEyeHeight() {
+        return 1.62;
+    }
+
+    default List<TargetEntityInfo> getEspEntities(
+            double range,
+            boolean includePlayers,
+            boolean includeHostiles,
+            boolean includePassives,
+            boolean includeItems,
+            boolean includeInvisible
+    ) {
+        return getNearbyTargets(range, includePlayers, includeHostiles, includePassives, includeInvisible);
+    }
+
+    /**
+     * Projects a 3D world point (wx, wy, wz) into 2D GUI screen space [screenX, screenY, cameraDepth].
+     * Returns null or depth <= 0 when behind the camera.
+     */
+    default float[] projectWorldToScreen(double worldX, double worldY, double worldZ) {
+        return null;
+    }
 }

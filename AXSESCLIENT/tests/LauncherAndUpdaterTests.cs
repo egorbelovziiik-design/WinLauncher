@@ -212,10 +212,21 @@ public sealed class LauncherAndUpdaterTests
             Assert.True(mem.AvailablePhysicalMb > 0);
 
             var controller = new LauncherStateController(temp);
-            Assert.Equal(93, controller.Modules.Count);
+            Assert.Equal(96, controller.Modules.Count);
             Assert.Contains(controller.Modules, m => m.Id == "kill_aura");
+            Assert.Contains(controller.Modules, m => m.Id == "entity_esp");
+            Assert.Contains(controller.Modules, m => m.Id == "item_esp");
+            Assert.Contains(controller.Modules, m => m.Id == "tracers");
             Assert.Contains(controller.Modules, m => m.Id == "target_hud");
             Assert.Contains(controller.Modules, m => m.Id == "trigger_bot");
+
+            // Verify Russian / English language switcher syncs both default.json & Minecraft options.txt
+            controller.SetLanguage("ru_RU");
+            string instDir = controller.LaunchEngine.GetInstanceDir(controller.SelectedVersionSpec.MinecraftVersion);
+            Assert.Contains("lang:ru_ru", File.ReadAllText(Path.Combine(instDir, "options.txt")));
+            controller.SetLanguage("en_US");
+            Assert.Contains("lang:en_us", File.ReadAllText(Path.Combine(instDir, "options.txt")));
+            controller.SetLanguage("ru_RU");
 
             int targetRam = Math.Min(6144, mem.MaxRecommendedAllocationMb);
             controller.SetAllocatedRamMb(targetRam);

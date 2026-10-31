@@ -21,6 +21,7 @@ import dev.axsesclient.common.theme.AxsesTheme;
 import dev.axsesclient.common.theme.ThemeManager;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class CombatTrainingModulesRegistry {
     private CombatTrainingModulesRegistry() {
@@ -35,58 +36,169 @@ public final class CombatTrainingModulesRegistry {
             final NotificationManager notifications,
             final LocalizationManager i18n
     ) {
-        // NEW FLAGSHIP 01: KillAura (КиллАура)
-        Module killAura = mm.register(new Module("kill_aura", "KillAura", "Smart 1.9+ cooldown combat aura with target priority, filters, and smooth rotations", ModuleCategory.COMBAT_TRAINING, false, KeyCodes.KEY_R, false) {
-            private final NumberSetting range = addSetting(new NumberSetting("range", "Range", "Attack reach radius in blocks", 4.2, 2.5, 6.0, 0.1));
-            private final ModeSetting attackMode = addSetting(new ModeSetting("attack_mode", "Timing Mode", "Weapon recharge vs fixed CPS", "1.9+ Cooldown", "1.9+ Cooldown", "CPS Timer"));
+        // NEW FLAGSHIP 01: KillAura (КиллАура) — Stealth Humanized PvP & Server Profiles
+        Module killAura = mm.register(new Module("kill_aura", "KillAura", "Stealth humanized 1.9+ combat aura with FunTime/ReallyWorld/HolyWorld profiles, GCD rotations & smart crits", ModuleCategory.COMBAT_TRAINING, false, KeyCodes.KEY_R, false) {
+            private final ModeSetting serverProfile = addSetting(new ModeSetting(
+                    "server_profile", "Server Profile", "Pre-tuned stealth combat kinematics for popular servers",
+                    "Universal", "Universal", "FunTime", "ReallyWorld", "HolyWorld", "SpookyTime", "Legit Ghost"
+            ));
+            private final NumberSetting range = addSetting(new NumberSetting("range", "Range", "Attack reach radius in blocks", 4.2, 2.5, 6.0, 0.05));
+            private final NumberSetting fov = addSetting(new NumberSetting("fov", "FOV Cone", "Maximum target angle around crosshair", 360.0, 30.0, 360.0, 5.0));
+            private final ModeSetting attackMode = addSetting(new ModeSetting("attack_mode", "Timing Mode", "Weapon recharge vs humanized smart timing", "1.9+ Smart", "1.9+ Smart", "1.9+ Cooldown", "CPS Timer"));
             private final NumberSetting cps = addSetting(new NumberSetting("cps", "CPS Speed", "Clicks per second in CPS Timer mode", 11.0, 4.0, 18.0, 1.0));
-            private final ModeSetting priority = addSetting(new ModeSetting("priority", "Priority", "Target selection priority", "Distance", "Distance", "Lowest HP", "Angle"));
-            private final ModeSetting rotations = addSetting(new ModeSetting("rotations", "Rotations", "Camera aim assist behavior", "Silent", "Silent", "Smooth", "Snap"));
+            private final ModeSetting priority = addSetting(new ModeSetting("priority", "Priority", "Target selection priority", "Distance", "Distance", "Lowest HP", "Angle", "Least Armor"));
+            private final ModeSetting rotations = addSetting(new ModeSetting("rotations", "Rotations", "Camera aim interpolation curve", "Smooth S-Curve", "Smooth S-Curve", "FunTime Human", "Multipoint Clamp", "Snap", "Off"));
+            private final NumberSetting turnSpeed = addSetting(new NumberSetting("turn_speed", "Turn Speed", "Maximum smooth camera degrees per second", 220.0, 60.0, 420.0, 10.0));
+            private final ModeSetting aimPoint = addSetting(new ModeSetting("aim_point", "Aim Point", "Hitbox zone to track on target", "Nearest Hitbox", "Nearest Hitbox", "Chest", "Eyes", "Dynamic"));
+            private final ModeSetting critMode = addSetting(new ModeSetting("crit_mode", "Criticals", "Wait for falling apex to land 1.5x critical hits", "Smart Fall", "Smart Fall", "Always Swing", "Only Crits"));
+            private final BooleanSetting sprintReset = addSetting(new BooleanSetting("sprint_reset", "W-Tap Sprint Reset", "Reset sprint before falling hits so 1.9+ criticals register cleanly", true));
+            private final BooleanSetting gcdFix = addSetting(new BooleanSetting("gcd_fix", "Mouse GCD Fix", "Quantize head rotations to exact vanilla mouse sensitivity steps", true));
+            private final BooleanSetting humanJitter = addSetting(new BooleanSetting("human_jitter", "Human Micro-Jitter", "Organic hand micro-drift and cooldown reaction variance", true));
+            private final BooleanSetting checkWalls = addSetting(new BooleanSetting("check_walls", "Check Walls (LoS)", "Do not swing at targets hidden behind solid blocks", true));
+            private final BooleanSetting strictRaycast = addSetting(new BooleanSetting("strict_raycast", "Strict Hitbox Ray", "Only swing when look vector intersects target bounding box", false));
+            private final BooleanSetting pauseEating = addSetting(new BooleanSetting("pause_eating", "Pause While Eating", "Pause attacks while eating golden apples, drinking potions, or shielding", true));
             private final BooleanSetting targetPlayers = addSetting(new BooleanSetting("players", "Target Players", "Attack nearby players", true));
             private final BooleanSetting targetHostiles = addSetting(new BooleanSetting("hostiles", "Target Monsters", "Attack hostile mobs", true));
             private final BooleanSetting targetAnimals = addSetting(new BooleanSetting("animals", "Target Animals", "Attack passive/neutral mobs", false));
+            private final BooleanSetting targetInvisible = addSetting(new BooleanSetting("invisible", "Target Invisible", "Include invisible entities", false));
             private final BooleanSetting pauseInGui = addSetting(new BooleanSetting("pause_gui", "Pause In Menus", "Do not attack while inventory or GUI is open", true));
             private final BooleanSetting disableOnDeath = addSetting(new BooleanSetting("disable_death", "Disable On Death", "Automatically turn off KillAura on death", true));
+            private final BooleanSetting targetRing = addSetting(new BooleanSetting("target_ring", "3D Target Ring", "Render animated 3D Aurora ring around locked target", true));
             private final BooleanSetting showLockBadge = addSetting(new BooleanSetting("lock_badge", "Crosshair Indicator", "Show locked target badge under crosshair", true));
 
             private long lastSwingMs = 0L;
+            private long nextJitterDelayMs = 95L;
+            private float nextCooldownThreshold = 0.91f;
+            private boolean restoreSprintNextTick = false;
             private TargetEntityInfo lockedNow = null;
 
             @Override
             public void onDisable(MinecraftAdapter mc) {
                 lockedNow = null;
+                restoreSprintNextTick = false;
+            }
+
+            private double effectiveRange() {
+                String prof = serverProfile.getValue();
+                double r = range.getDouble();
+                if ("FunTime".equalsIgnoreCase(prof)) return Math.min(r, 3.15);
+                if ("HolyWorld".equalsIgnoreCase(prof)) return Math.min(r, 3.05);
+                if ("ReallyWorld".equalsIgnoreCase(prof)) return Math.min(r, 3.30);
+                if ("SpookyTime".equalsIgnoreCase(prof)) return Math.min(r, 3.35);
+                if ("Legit Ghost".equalsIgnoreCase(prof)) return Math.min(r, 3.05);
+                return r;
+            }
+
+            private double effectiveFov() {
+                String prof = serverProfile.getValue();
+                double f = fov.getDouble();
+                if ("Legit Ghost".equalsIgnoreCase(prof)) return Math.min(f, 115.0);
+                if ("FunTime".equalsIgnoreCase(prof) && f >= 355.0) return 190.0;
+                if ("HolyWorld".equalsIgnoreCase(prof) && f >= 355.0) return 170.0;
+                return f;
+            }
+
+            private boolean effectiveStrictRay() {
+                if (strictRaycast.isEnabled()) return true;
+                String prof = serverProfile.getValue();
+                return "FunTime".equalsIgnoreCase(prof)
+                        || "HolyWorld".equalsIgnoreCase(prof)
+                        || "Legit Ghost".equalsIgnoreCase(prof);
+            }
+
+            private void stepAimTowards(MinecraftAdapter mc, TargetEntityInfo target, float dtSeconds) {
+                String rotMode = rotations.getValue();
+                if ("Off".equalsIgnoreCase(rotMode)) {
+                    return;
+                }
+                String prof = serverProfile.getValue();
+                String aimZone = aimPoint.getValue();
+                if ("FunTime".equalsIgnoreCase(prof) || "HolyWorld".equalsIgnoreCase(prof)) {
+                    aimZone = "Nearest Hitbox";
+                }
+                boolean useJitter = humanJitter.isEnabled() || !"Universal".equalsIgnoreCase(prof);
+                float[] desired = computeAimAngles(mc, target, aimZone, useJitter);
+
+                float curYaw = mc.getPlayerYaw();
+                float curPitch = mc.getPlayerPitch();
+                float dyaw = wrapDegrees(desired[0] - curYaw);
+                float dpitch = desired[1] - curPitch;
+
+                if (!"Snap".equalsIgnoreCase(rotMode)) {
+                    float baseDegPerSec = turnSpeed.getFloat();
+                    if ("Legit Ghost".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 150.0f);
+                    else if ("FunTime".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 215.0f);
+                    else if ("HolyWorld".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 195.0f);
+
+                    float distDeg = (float) Math.hypot(dyaw, dpitch);
+                    // S-curve speed factor: accelerates smoothly on medium error, decelerates softly near center
+                    float sCurve = Math.max(0.22f, Math.min(1.18f, distDeg / 28.0f));
+                    float maxStep = Math.max(1.2f, baseDegPerSec * sCurve * Math.max(0.004f, Math.min(0.06f, dtSeconds)));
+                    if (distDeg > maxStep && distDeg > 0.001f) {
+                        float scale = maxStep / distDeg;
+                        dyaw *= scale;
+                        dpitch *= scale;
+                    }
+                }
+
+                if (gcdFix.isEnabled() || !"Universal".equalsIgnoreCase(prof)) {
+                    float gcd = computeMouseGcd(mc.getMouseSensitivity());
+                    if (gcd > 0.0001f) {
+                        dyaw = Math.round(dyaw / gcd) * gcd;
+                        dpitch = Math.round(dpitch / gcd) * gcd;
+                    }
+                }
+
+                if (Math.abs(dyaw) > 0.0005f || Math.abs(dpitch) > 0.0005f) {
+                    mc.setPlayerRotation(curYaw + dyaw, clampPitch(curPitch + dpitch));
+                }
             }
 
             @Override
             public void onTick(MinecraftAdapter mc) {
                 if (mc == null || !mc.isInWorld()) {
                     lockedNow = null;
+                    restoreSprintNextTick = false;
                     return;
+                }
+                if (restoreSprintNextTick) {
+                    restoreSprintNextTick = false;
+                    if (!mc.isUsingItem() && !mc.isSneaking()) {
+                        mc.setSprinting(true);
+                    }
                 }
                 if (disableOnDeath.isEnabled() && mc.getHealth() <= 0.0f) {
                     lockedNow = null;
                     setEnabled(false, mc);
-                    notifications.push("KillAura", i18n.isRussian() ? "Отключена после смерти" : "Auto-disabled on death", NotificationManager.Severity.WARNING);
+                    notifications.push(i18n.translateModuleName("kill_aura", "KillAura"),
+                            i18n.isRussian() ? "Отключена после смерти" : "Auto-disabled on death",
+                            NotificationManager.Severity.WARNING);
                     return;
                 }
                 if (pauseInGui.isEnabled() && mc.isAnyScreenOpen()) {
                     lockedNow = null;
                     return;
                 }
+                if (pauseEating.isEnabled() && mc.isUsingItem()) {
+                    return;
+                }
 
+                double effRange = effectiveRange();
                 List<TargetEntityInfo> candidates = mc.getNearbyTargets(
-                        range.getDouble(),
+                        effRange + 0.35,
                         targetPlayers.isEnabled(),
                         targetHostiles.isEnabled(),
                         targetAnimals.isEnabled(),
-                        false
+                        targetInvisible.isEnabled()
                 );
                 if (candidates == null || candidates.isEmpty()) {
                     lockedNow = null;
                     return;
                 }
 
-                TargetEntityInfo best = selectBest(mc, candidates, priority.getValue());
+                double maxFovHalf = effectiveFov() * 0.5;
+                boolean walls = checkWalls.isEnabled() || !"Universal".equalsIgnoreCase(serverProfile.getValue());
+                TargetEntityInfo best = selectBestFiltered(mc, candidates, priority.getValue(), effRange, maxFovHalf, walls);
                 if (best == null) {
                     lockedNow = null;
                     return;
@@ -95,34 +207,59 @@ public final class CombatTrainingModulesRegistry {
                 lockedNow = best;
                 state.lockTarget(best);
 
-                String rotMode = rotations.getValue();
-                if (!"Silent".equalsIgnoreCase(rotMode)) {
-                    float[] angles = computeLookAngles(mc, best);
-                    if ("Snap".equalsIgnoreCase(rotMode)) {
-                        mc.setPlayerRotation(angles[0], angles[1]);
-                    } else {
-                        float curYaw = mc.getPlayerYaw();
-                        float curPitch = mc.getPlayerPitch();
-                        float dyaw = wrapDegrees(angles[0] - curYaw);
-                        float dpitch = angles[1] - curPitch;
-                        mc.setPlayerRotation(curYaw + dyaw * 0.42f, clampPitch(curPitch + dpitch * 0.42f));
-                    }
+                // Tick-level rotation fallback (render-level smooth interpolation also runs at full FPS)
+                stepAimTowards(mc, best, 0.05f);
+
+                // Strict ray-AABB hitbox verification for Grim / FunTime / HolyWorld / Legit modes
+                if (effectiveStrictRay() && !doesLookIntersectBox(mc, best, effRange + 0.15, 0.14)) {
+                    return;
+                }
+
+                // Smart Criticals check: if rising in a jump, wait for peak apex so hit is a 1.5x critical
+                String cMode = critMode.getValue();
+                boolean airborne = !mc.isOnGround() && !mc.isInLiquid();
+                boolean fallingReady = airborne && mc.getFallDistance() > 0.055f;
+                if ("Only Crits".equalsIgnoreCase(cMode) && !fallingReady && !mc.isInLiquid()) {
+                    return;
+                }
+                if (("Smart Fall".equalsIgnoreCase(cMode) || !"Universal".equalsIgnoreCase(serverProfile.getValue()))
+                        && airborne && mc.getFallDistance() <= 0.045f) {
+                    return;
                 }
 
                 long now = System.currentTimeMillis();
                 boolean ready;
-                if ("CPS Timer".equalsIgnoreCase(attackMode.getValue())) {
-                    long delay = Math.max(55L, Math.round(1000.0 / Math.max(1.0, cps.getDouble())));
+                String tMode = attackMode.getValue();
+                if ("CPS Timer".equalsIgnoreCase(tMode)) {
+                    double jitterCps = humanJitter.isEnabled()
+                            ? (ThreadLocalRandom.current().nextDouble(-0.85, 0.85))
+                            : 0.0;
+                    long delay = Math.max(52L, Math.round(1000.0 / Math.max(1.0, cps.getDouble() + jitterCps)));
                     ready = (now - lastSwingMs) >= delay;
                 } else {
-                    ready = mc.getAttackCooldownProgress() >= 0.91f && (now - lastSwingMs) >= 95L;
+                    float reqCd = "1.9+ Smart".equalsIgnoreCase(tMode) ? nextCooldownThreshold : 0.91f;
+                    ready = mc.getAttackCooldownProgress() >= reqCd && (now - lastSwingMs) >= nextJitterDelayMs;
                 }
 
                 if (ready) {
+                    // Vanilla W-Tap Sprint Reset before falling hit -> guarantees 1.9+ critical strike registration!
+                    boolean wasSprinting = mc.isSprinting();
+                    if (sprintReset.isEnabled() && fallingReady && wasSprinting) {
+                        mc.setSprinting(false);
+                        restoreSprintNextTick = true;
+                    }
+
                     float cd = mc.getAttackCooldownProgress();
-                    boolean crit = !mc.isOnGround() && cd >= 0.90f;
+                    boolean crit = fallingReady && cd >= 0.89f;
                     if (mc.attackEntityById(best.getEntityId(), true)) {
                         lastSwingMs = now;
+                        if (humanJitter.isEnabled() || !"Universal".equalsIgnoreCase(serverProfile.getValue())) {
+                            nextCooldownThreshold = 0.895f + ThreadLocalRandom.current().nextFloat() * 0.065f;
+                            nextJitterDelayMs = 88L + ThreadLocalRandom.current().nextLong(0L, 46L);
+                        } else {
+                            nextCooldownThreshold = 0.91f;
+                            nextJitterDelayMs = 95L;
+                        }
                         state.recordAttack(cd, true, crit);
                     }
                 }
@@ -130,47 +267,116 @@ public final class CombatTrainingModulesRegistry {
 
             @Override
             public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
-                if (!showLockBadge.isEnabled() || lockedNow == null || mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) {
+                if (lockedNow == null || mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) {
                     return;
                 }
+                if (!(pauseInGui.isEnabled() && mc.isAnyScreenOpen()) && !(pauseEating.isEnabled() && mc.isUsingItem())) {
+                    stepAimTowards(mc, lockedNow, dt);
+                }
+
                 AxsesTheme t = themes.getActiveTheme();
-                String label = "⚡ " + lockedNow.getName() + String.format(Locale.ROOT, " · %.1fm", Float.valueOf(lockedNow.getDistance()));
-                float tw = fonts.width(r, label, 1.0f);
-                float bw = tw + 14.0f;
-                float bx = (r.getScaledWidth() - bw) * 0.5f;
-                float by = r.getScaledHeight() * 0.5f + 16.0f;
-                r.fillRoundedRect(bx, by, bw, 16.0f, 4.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.86f));
-                r.drawRoundedOutline(bx, by, bw, 16.0f, 4.0f, 1.0f, themes.filterColor(t.getAccentColor()));
-                fonts.draw(r, label, bx + 7.0f, by + 4.0f, t.getTextColor(), 1.0f);
+
+                // 3D Projected Aurora Target Ring around locked entity
+                if (targetRing.isEnabled()) {
+                    double nowSec = (System.currentTimeMillis() % 4000L) / 1000.0;
+                    double wave = 0.5 + 0.5 * Math.sin(nowSec * Math.PI);
+                    double entH = Math.max(0.8, lockedNow.getBoxHeight());
+                    double ringY = lockedNow.getMinY() + entH * (0.12 + 0.72 * wave);
+                    double radius = Math.max(0.48, lockedNow.getBoxWidth() * 0.68);
+                    boolean hurt = lockedNow.getHurtTime() > 0;
+                    int ringCol = hurt
+                            ? AxsesTheme.withAlpha(t.getErrorColor(), 0.90f)
+                            : AxsesTheme.withAlpha(themes.filterColor(t.getAccentColor()), 0.84f);
+                    int glowCol = AxsesTheme.withAlpha(themes.filterColor(t.getPrimaryColor()), 0.35f);
+
+                    int segs = 24;
+                    float prevX = 0f, prevY = 0f;
+                    boolean hasPrev = false;
+                    for (int i = 0; i <= segs; i++) {
+                        double ang = (Math.PI * 2.0 * i) / segs + nowSec * 1.4;
+                        double wx = lockedNow.getX() + Math.cos(ang) * radius;
+                        double wz = lockedNow.getZ() + Math.sin(ang) * radius;
+                        float[] proj = mc.projectWorldToScreen(wx, ringY, wz);
+                        if (proj != null && proj[2] > 0.1f) {
+                            if (hasPrev) {
+                                r.drawLine(prevX, prevY + 1.5f, proj[0], proj[1] + 1.5f, 2.4f, glowCol);
+                                r.drawLine(prevX, prevY, proj[0], proj[1], 1.4f, ringCol);
+                            }
+                            prevX = proj[0];
+                            prevY = proj[1];
+                            hasPrev = true;
+                        } else {
+                            hasPrev = false;
+                        }
+                    }
+                }
+
+                if (showLockBadge.isEnabled()) {
+                    String profTag = "Universal".equalsIgnoreCase(serverProfile.getValue()) ? "" : (" [" + serverProfile.getValue() + "]");
+                    String unit = i18n.isRussian() ? "м" : "m";
+                    String label = "⚡ " + lockedNow.getName()
+                            + String.format(Locale.ROOT, " · %.1f%s", Float.valueOf(lockedNow.getDistance()), unit)
+                            + profTag;
+                    float tw = fonts.width(r, label, 1.0f);
+                    float bw = tw + 14.0f;
+                    float bx = (r.getScaledWidth() - bw) * 0.5f;
+                    float by = r.getScaledHeight() * 0.5f + 16.0f;
+                    r.fillRoundedRect(bx, by, bw, 16.0f, 4.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.88f));
+                    r.drawRoundedOutline(bx, by, bw, 16.0f, 4.0f, 1.0f, themes.filterColor(t.getAccentColor()));
+                    fonts.draw(r, label, bx + 7.0f, by + 4.0f, t.getTextColor(), 1.0f);
+                }
             }
         });
         killAura.setFavorite(true);
 
-        // NEW FLAGSHIP 02: TriggerBot (ТриггерБот)
-        mm.register(new Module("trigger_bot", "TriggerBot", "Automatically strikes crosshair target at optimal weapon recharge", ModuleCategory.COMBAT_TRAINING, false, KeyCodes.KEY_NONE, false) {
+        // NEW FLAGSHIP 02: TriggerBot (ТриггерБот) — Smart Crits & Humanized Reaction
+        mm.register(new Module("trigger_bot", "TriggerBot", "Automatically strikes crosshair target at optimal weapon recharge with smart crits", ModuleCategory.COMBAT_TRAINING, false, KeyCodes.KEY_NONE, false) {
             private final NumberSetting minCooldown = addSetting(new NumberSetting("min_cd", "Min Recharge %", "Minimum weapon cooldown % to swing", 92.0, 50.0, 100.0, 2.0));
+            private final BooleanSetting smartCrits = addSetting(new BooleanSetting("smart_crits", "Smart Criticals", "Wait for falling apex and reset sprint when jumping", true));
+            private final BooleanSetting humanDelay = addSetting(new BooleanSetting("human_delay", "Reaction Jitter", "Add realistic 15-50ms reaction variance", true));
+            private final BooleanSetting pauseEating = addSetting(new BooleanSetting("pause_eating", "Pause While Eating", "Do not attack while using food, potions, or shield", true));
             private final BooleanSetting players = addSetting(new BooleanSetting("players", "Players", "Attack players in crosshair", true));
             private final BooleanSetting hostiles = addSetting(new BooleanSetting("hostiles", "Monsters", "Attack monsters in crosshair", true));
             private final BooleanSetting animals = addSetting(new BooleanSetting("animals", "Animals", "Attack animals in crosshair", false));
             private long lastStrikeMs = 0L;
+            private long nextDelayMs = 100L;
+            private boolean restoreSprint = false;
 
             @Override
             public void onTick(MinecraftAdapter mc) {
                 if (mc == null || !mc.isInWorld() || mc.isAnyScreenOpen()) return;
+                if (restoreSprint) {
+                    restoreSprint = false;
+                    if (!mc.isUsingItem() && !mc.isSneaking()) mc.setSprinting(true);
+                }
+                if (pauseEating.isEnabled() && mc.isUsingItem()) return;
                 TargetEntityInfo xhair = mc.getCrosshairTarget();
                 if (xhair == null) return;
                 if (xhair.isPlayer() && !players.isEnabled()) return;
                 if (xhair.isHostile() && !hostiles.isEnabled()) return;
                 if (xhair.isPassive() && !animals.isEnabled()) return;
 
+                boolean airborne = !mc.isOnGround() && !mc.isInLiquid();
+                boolean fallingReady = airborne && mc.getFallDistance() > 0.055f;
+                if (smartCrits.isEnabled() && airborne && !fallingReady) {
+                    return;
+                }
+
                 float req = minCooldown.getFloat() / 100.0f;
                 long now = System.currentTimeMillis();
-                if (mc.getAttackCooldownProgress() >= req && (now - lastStrikeMs) >= 100L) {
+                if (mc.getAttackCooldownProgress() >= req && (now - lastStrikeMs) >= nextDelayMs) {
+                    if (smartCrits.isEnabled() && fallingReady && mc.isSprinting()) {
+                        mc.setSprinting(false);
+                        restoreSprint = true;
+                    }
                     float cd = mc.getAttackCooldownProgress();
                     if (mc.attackEntityById(xhair.getEntityId(), true)) {
                         lastStrikeMs = now;
+                        nextDelayMs = humanDelay.isEnabled()
+                                ? (92L + ThreadLocalRandom.current().nextLong(0L, 48L))
+                                : 100L;
                         state.lockTarget(xhair);
-                        state.recordAttack(cd, true, !mc.isOnGround() && cd >= 0.90f);
+                        state.recordAttack(cd, true, fallingReady && cd >= 0.90f);
                     }
                 }
             }
@@ -577,19 +783,102 @@ public final class CombatTrainingModulesRegistry {
         hm.register(new HudElement("training_results", "Training Results", resultsMod, 0.985f, 0.68f, 205f, 20f));
     }
 
-    private static TargetEntityInfo selectBest(MinecraftAdapter mc, List<TargetEntityInfo> list, String priorityMode) {
+    public static float computeMouseGcd(double sensitivity) {
+        double s = Math.max(0.02, Math.min(1.0, sensitivity));
+        double f = s * 0.6 + 0.2;
+        return (float) (f * f * f * 1.2);
+    }
+
+    public static boolean doesLookIntersectBox(MinecraftAdapter mc, TargetEntityInfo target, double maxDist, double inflate) {
+        double ox = mc.getPlayerX();
+        double oy = mc.getPlayerY() + mc.getPlayerEyeHeight();
+        double oz = mc.getPlayerZ();
+
+        double yawRad = Math.toRadians(mc.getPlayerYaw());
+        double pitchRad = Math.toRadians(mc.getPlayerPitch());
+        double dx = -Math.sin(yawRad) * Math.cos(pitchRad);
+        double dy = -Math.sin(pitchRad);
+        double dz = Math.cos(yawRad) * Math.cos(pitchRad);
+
+        double minX = target.getMinX() - inflate, maxX = target.getMaxX() + inflate;
+        double minY = target.getMinY() - inflate, maxY = target.getMaxY() + inflate;
+        double minZ = target.getMinZ() - inflate, maxZ = target.getMaxZ() + inflate;
+
+        double tMin = 0.0;
+        double tMax = maxDist;
+
+        double[] orig = { ox, oy, oz };
+        double[] dir = { dx, dy, dz };
+        double[] bMin = { minX, minY, minZ };
+        double[] bMax = { maxX, maxY, maxZ };
+
+        for (int axis = 0; axis < 3; axis++) {
+            if (Math.abs(dir[axis]) < 1.0e-7) {
+                if (orig[axis] < bMin[axis] || orig[axis] > bMax[axis]) {
+                    return false;
+                }
+            } else {
+                double inv = 1.0 / dir[axis];
+                double t1 = (bMin[axis] - orig[axis]) * inv;
+                double t2 = (bMax[axis] - orig[axis]) * inv;
+                if (t1 > t2) {
+                    double tmp = t1;
+                    t1 = t2;
+                    t2 = tmp;
+                }
+                if (t1 > tMin) tMin = t1;
+                if (t2 < tMax) tMax = t2;
+                if (tMin > tMax) return false;
+            }
+        }
+        return tMax >= 0.0 && tMin <= maxDist;
+    }
+
+    private static TargetEntityInfo selectBestFiltered(
+            MinecraftAdapter mc,
+            List<TargetEntityInfo> list,
+            String priorityMode,
+            double maxRange,
+            double maxFovHalf,
+            boolean requireLoS
+    ) {
+        double ex = mc.getPlayerX();
+        double ey = mc.getPlayerY() + mc.getPlayerEyeHeight();
+        double ez = mc.getPlayerZ();
+
         TargetEntityInfo best = null;
         double bestScore = Double.MAX_VALUE;
         for (int i = 0; i < list.size(); i++) {
             TargetEntityInfo cand = list.get(i);
+            if (requireLoS && !cand.hasLineOfSight()) {
+                continue;
+            }
+            double cx = clampDouble(ex, cand.getMinX(), cand.getMaxX());
+            double cy = clampDouble(ey, cand.getMinY(), cand.getMaxY());
+            double cz = clampDouble(ez, cand.getMinZ(), cand.getMaxZ());
+            double boxDist = Math.sqrt((ex - cx) * (ex - cx) + (ey - cy) * (ey - cy) + (ez - cz) * (ez - cz));
+            double effDist = Math.min(cand.getDistance(), boxDist);
+            if (effDist > maxRange) {
+                continue;
+            }
+
+            float[] ang = computeAimAngles(mc, cand, "Nearest Hitbox", false);
+            double yawErr = Math.abs(wrapDegrees(ang[0] - mc.getPlayerYaw()));
+            double pitchErr = Math.abs(ang[1] - mc.getPlayerPitch());
+            double coneErr = Math.hypot(yawErr, pitchErr * 0.75);
+            if (maxFovHalf < 179.5 && coneErr > maxFovHalf) {
+                continue;
+            }
+
             double score;
             if ("Lowest HP".equalsIgnoreCase(priorityMode)) {
-                score = cand.getHealth() + cand.getAbsorption() * 0.5f + cand.getDistance() * 0.15f;
+                score = cand.getHealth() + cand.getAbsorption() * 0.5f + effDist * 0.20;
             } else if ("Angle".equalsIgnoreCase(priorityMode)) {
-                float[] ang = computeLookAngles(mc, cand);
-                score = Math.abs(wrapDegrees(ang[0] - mc.getPlayerYaw())) + Math.abs(ang[1] - mc.getPlayerPitch()) * 0.5;
+                score = coneErr + effDist * 0.35;
+            } else if ("Least Armor".equalsIgnoreCase(priorityMode)) {
+                score = cand.getArmorValue() * 1.5 + cand.getHealth() * 0.25 + effDist * 0.25;
             } else {
-                score = cand.getDistance();
+                score = effDist;
             }
             if (score < bestScore) {
                 bestScore = score;
@@ -599,14 +888,54 @@ public final class CombatTrainingModulesRegistry {
         return best;
     }
 
-    private static float[] computeLookAngles(MinecraftAdapter mc, TargetEntityInfo target) {
-        double dx = target.getX() - mc.getPlayerX();
-        double dy = target.getEyeY() - (mc.getPlayerY() + 1.62);
-        double dz = target.getZ() - mc.getPlayerZ();
+    private static float[] computeAimAngles(MinecraftAdapter mc, TargetEntityInfo target, String aimZone, boolean jitter) {
+        double ex = mc.getPlayerX();
+        double ey = mc.getPlayerY() + mc.getPlayerEyeHeight();
+        double ez = mc.getPlayerZ();
+
+        double tx, ty, tz;
+        double h = Math.max(0.5, target.getBoxHeight());
+        if ("Nearest Hitbox".equalsIgnoreCase(aimZone)) {
+            double padX = Math.min(0.12, target.getBoxWidth() * 0.22);
+            tx = clampDouble(ex, target.getMinX() + padX, target.getMaxX() - padX);
+            ty = clampDouble(ey, target.getMinY() + h * 0.14, target.getMaxY() - h * 0.10);
+            tz = clampDouble(ez, target.getMinZ() + padX, target.getMaxZ() - padX);
+        } else if ("Eyes".equalsIgnoreCase(aimZone)) {
+            tx = target.getX();
+            ty = target.getEyeY() - 0.06;
+            tz = target.getZ();
+        } else if ("Dynamic".equalsIgnoreCase(aimZone)) {
+            double phase = target.getHurtTime() > 0 ? 0.56 : 0.76;
+            tx = target.getX();
+            ty = target.getMinY() + h * phase;
+            tz = target.getZ();
+        } else {
+            tx = target.getX();
+            ty = target.getMinY() + h * 0.65;
+            tz = target.getZ();
+        }
+
+        if (jitter) {
+            double t = (System.currentTimeMillis() % 10000L) / 1000.0;
+            tx += Math.sin(t * 5.3 + target.getEntityId()) * 0.026;
+            ty += Math.cos(t * 4.1 + target.getEntityId() * 0.7) * 0.022;
+            tz += Math.cos(t * 5.9 + target.getEntityId() * 1.3) * 0.026;
+        }
+
+        double dx = tx - ex;
+        double dy = ty - ey;
+        double dz = tz - ez;
         double horiz = Math.hypot(dx, dz);
         float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
         float pitch = (float) (-Math.toDegrees(Math.atan2(dy, Math.max(0.001, horiz))));
         return new float[] { wrapDegrees(yaw), clampPitch(pitch) };
+    }
+
+    private static double clampDouble(double v, double lo, double hi) {
+        if (lo > hi) {
+            return (lo + hi) * 0.5;
+        }
+        return Math.max(lo, Math.min(hi, v));
     }
 
     private static float wrapDegrees(float deg) {

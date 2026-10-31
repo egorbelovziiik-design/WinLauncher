@@ -99,10 +99,13 @@ public interface RenderAdapter {
             float top = Math.min(y1, y2);
             fillRect(x1 - thickness * 0.5f, top, thickness, Math.abs(dy), argb);
         } else {
-            int steps = Math.max(2, Math.round(Math.max(Math.abs(dx), Math.abs(dy))));
+            float dist = (float) Math.hypot(dx, dy);
+            float stepSize = Math.max(1.25f, thickness * 0.9f);
+            int steps = Math.max(2, Math.min(140, Math.round(dist / stepSize)));
+            float dotSize = Math.max(thickness, dist / steps + 0.35f);
             for (int i = 0; i <= steps; i++) {
                 float t = (float) i / (float) steps;
-                fillRect(x1 + dx * t - thickness * 0.5f, y1 + dy * t - thickness * 0.5f, thickness, thickness, argb);
+                fillRect(x1 + dx * t - dotSize * 0.5f, y1 + dy * t - dotSize * 0.5f, dotSize, dotSize, argb);
             }
         }
     }

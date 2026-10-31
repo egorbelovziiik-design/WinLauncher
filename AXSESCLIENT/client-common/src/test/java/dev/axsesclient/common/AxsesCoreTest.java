@@ -3,6 +3,8 @@ package dev.axsesclient.common;
 import dev.axsesclient.common.compat.CompatibilityEngine;
 import dev.axsesclient.common.hud.HudElement;
 import dev.axsesclient.common.modules.Module;
+import dev.axsesclient.common.modules.ModuleCategory;
+import dev.axsesclient.common.modules.impl.CombatTrainingModulesRegistry;
 import dev.axsesclient.common.platform.InputAdapter;
 import dev.axsesclient.common.platform.ItemInfo;
 import dev.axsesclient.common.platform.KeyCodes;
@@ -48,6 +50,9 @@ public class AxsesCoreTest {
         int drawCalls = 0;
         float attackCooldown = 0.96f;
         int lastAttackedEntityId = -1;
+        float yaw = 90.0f;
+        float pitch = 0.0f;
+        boolean usingItem = false;
         List<TargetEntityInfo> mockTargets = Collections.emptyList();
 
         MockPlatform(Path gameDir) {
@@ -71,8 +76,10 @@ public class AxsesCoreTest {
         @Override public double getPrevPlayerX() { return 128.2; }
         @Override public double getPrevPlayerY() { return 64.0; }
         @Override public double getPrevPlayerZ() { return -256.0; }
-        @Override public float getPlayerYaw() { return 90.0f; }
-        @Override public float getPlayerPitch() { return 0.0f; }
+        @Override public float getPlayerYaw() { return yaw; }
+        @Override public float getPlayerPitch() { return pitch; }
+        @Override public void setPlayerRotation(float y, float p) { this.yaw = y; this.pitch = p; }
+        @Override public boolean isUsingItem() { return usingItem; }
         @Override public boolean isOnGround() { return true; }
         @Override public boolean isSprinting() { return sprinting; }
         @Override public void setSprinting(boolean s) { this.sprinting = s; }
@@ -149,6 +156,12 @@ public class AxsesCoreTest {
         @Override public List<TargetEntityInfo> getNearbyTargets(double range, boolean p, boolean h, boolean a, boolean inv) {
             return mockTargets;
         }
+        @Override public List<TargetEntityInfo> getEspEntities(double range, boolean p, boolean h, boolean a, boolean items, boolean inv) {
+            return mockTargets;
+        }
+        @Override public float[] projectWorldToScreen(double wx, double wy, double wz) {
+            return new float[] { 480.0f + (float) (wx - 128.5) * 32.0f, 270.0f - (float) (wy - 64.8) * 32.0f, 3.5f };
+        }
         @Override public boolean attackEntityById(int entityId, boolean swingHand) {
             lastAttackedEntityId = entityId;
             return true;
@@ -156,20 +169,26 @@ public class AxsesCoreTest {
     }
 
     @Test
-    public void registersAll93RealModulesKillAuraAndTargetHudWork(@TempDir Path tempDir) {
+    public void registersAll96RealModulesKillAuraEspAndTargetHudWork(@TempDir Path tempDir) {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);
 
-        assertEquals(93, core.getModuleManager().getAll().size(), "Must register all 93 modules & GUI features");
+        assertEquals(96, core.getModuleManager().getAll().size(), "Must register all 96 modules & GUI features");
         assertEquals(8, core.getThemeManager().getAllThemes().size(), "Must register all 8 built-in themes");
 
-        // Verify Russian search finds KillAura & Target HUD
+        // Verify Russian search finds KillAura, ESP & Target HUD
         assertFalse(core.getModuleManager().query(null, false, "киллаура").isEmpty(), "Russian search must find KillAura");
+        assertFalse(core.getModuleManager().query(null, false, "esp").isEmpty(), "Search must find Entity ESP");
+        assertFalse(core.getModuleManager().query(null, false, "подсветка").isEmpty(), "Russian search must find ESP Подсветка");
         assertFalse(core.getModuleManager().query(null, false, "таргет").isEmpty(), "Russian search must find Target HUD");
 
-        // Verify KillAura locks onto nearby hostile & feeds Target HUD
+        // Verify Russian setting & option localization
+        assertEquals("Профиль обхода", core.getLocalizationManager().settingName("server_profile", "Server Profile"));
+        assertEquals("Полоска здоровья", core.getLocalizationManager().settingName("health_bar", "Health Bar"));
+
+        // Verify KillAura locks onto nearby hostile, rotates with GCD quantization & feeds Target HUD
         platform.mockTargets = Collections.singletonList(
-                new TargetEntityInfo(42, "Zombie", false, true, false, 14.0f, 20.0f, 0.0f, 3.4f, 4, 2, 130.0, 64.0, -256.0, 65.6)
+                new TargetEntityInfo(42, "Zombie", false, true, false, 14.0f, 20.0f, 0.0f, 3.0f, 4, 2, 130.0, 64.0, -256.0, 65.6)
         );
         Module ka = core.getModuleManager().getById("kill_aura");
         assertNotNull(ka);
@@ -178,13 +197,38 @@ public class AxsesCoreTest {
         assertEquals(42, platform.lastAttackedEntityId, "KillAura must attack valid hostile in range");
         assertNotNull(core.getRuntimeState().getActiveTarget(3000L), "KillAura must populate active Target HUD target");
 
-        // Tick & render all default-enabled modules + ClickGUI + HUD Editor + Main Menu
+        // Verify GCD step & Ray-AABB math + eating pause
+        float gcd = CombatTrainingModulesRegistry.computeMouseGcd(0.5);
+        assertEquals(0.15f, gcd, 0.001f);
+        platform.yaw = -90.0f;
+        platform.pitch = 0.0f;
+        assertTrue(CombatTrainingModulesRegistry.doesLookIntersectBox(platform, platform.mockTargets.get(0), 4.0, 0.12));
+
+        platform.lastAttackedEntityId = -1;
+        platform.usingItem = true;
+        core.onClientTick();
+        assertEquals(-1, platform.lastAttackedEntityId, "KillAura must pause while eating/shielding");
+        platform.usingItem = false;
+
+        // Enable Entity ESP, Item ESP, and Tracers and verify real draw calls
+        core.getModuleManager().getById("entity_esp").setEnabled(true, platform);
+        core.getModuleManager().getById("tracers").setEnabled(true, platform);
+        int beforeEspDraws = platform.drawCalls;
         core.onHudRender(platform);
+        assertTrue(platform.drawCalls > beforeEspDraws + 15, "Entity ESP & Tracers must project and draw boxes/bars/lines");
+
+        // Verify ClickGUI Settings Language Banner + smooth mouse scrolling without beginFrame() freeze
         core.getClickGuiController().onOpen();
+        core.getClickGuiController().setSelectedCategory(ModuleCategory.RENDER);
+        core.getClickGuiController().render(platform, platform, 300, 200, 0.5f);
+        assertTrue(core.getClickGuiController().mouseScrolled(-2.0));
+        core.getClickGuiController().setSelectedCategory(ModuleCategory.SETTINGS);
         core.getClickGuiController().render(platform, platform, 300, 200, 0.5f);
         core.getHudEditorController().render(platform, platform, 300, 200, 0.5f);
         core.getMainMenuController().render(platform, platform, 300, 200, 0.5f);
-        assertTrue(platform.drawCalls > 100, "UI controllers must emit real render primitives");
+        core.getConfigManager().saveActiveAsync();
+        core.shutdown();
+        assertTrue(platform.drawCalls > 150, "UI controllers must emit real render primitives");
     }
 
     @Test

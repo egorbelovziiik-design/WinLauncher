@@ -301,7 +301,7 @@ public sealed class MinecraftLaunchEngine
         onStage?.Invoke(new LaunchStageProgress(11, 13, "Syncing AXSESCLIENT configuration & theme...", 0.86));
         string instDir = GetInstanceDir(spec.MinecraftVersion);
         DeployBundledModJar(spec, instDir, onGameLog);
-        SyncInstanceClientConfig(instDir, settings.ActiveThemeId, settings.Language, settings.ReducedMotion, launcherModules);
+        SyncInstanceClientConfig(instDir, settings.ActiveThemeId, settings.Language, settings.ReducedMotion, launcherModules, settings.SyncGameLanguage);
 
         // Stage 12: Ensure Java Runtime & Build Complete JVM + Game Launch Command
         onStage?.Invoke(new LaunchStageProgress(12, 13, $"Проверка / авто-установка Java {spec.RequiredJavaMajor}...", 0.88));
@@ -497,7 +497,8 @@ public sealed class MinecraftLaunchEngine
         string activeThemeId,
         string language,
         bool reducedMotion,
-        IReadOnlyList<ModuleCatalogItem> modules)
+        IReadOnlyList<ModuleCatalogItem> modules,
+        bool syncMinecraftLanguage = true)
     {
         string cfgDir = Path.Combine(instanceDir, "axsesclient", "configs");
         Directory.CreateDirectory(cfgDir);
@@ -534,7 +535,8 @@ public sealed class MinecraftLaunchEngine
         {
             if (!modulesDict.TryGetValue(item.Id, out var mObj))
             {
-                mObj = new Dictionary<string, object?> { ["keybind"] = 0, ["settings"] = new Dictionary<string, object?>() };
+                // Preserve module default keybinds (e.g. KillAura [R], Zoom [C], FreeLook [V]) on first sync
+                mObj = new Dictionary<string, object?> { ["settings"] = new Dictionary<string, object?>() };
                 modulesDict[item.Id] = mObj;
             }
             mObj["enabled"] = item.Enabled;
@@ -542,7 +544,7 @@ public sealed class MinecraftLaunchEngine
         }
 
         rootDict["schemaVersion"] = 1;
-        rootDict["clientVersion"] = "1.0.0";
+        rootDict["clientVersion"] = "2.5.0";
         rootDict["theme"] = activeThemeId;
         rootDict["language"] = language;
         rootDict["reducedMotion"] = reducedMotion;
@@ -551,6 +553,44 @@ public sealed class MinecraftLaunchEngine
         string tmp = defaultJsonPath + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(rootDict, new JsonSerializerOptions { WriteIndented = true }));
         File.Move(tmp, defaultJsonPath, overwrite: true);
+
+        if (syncMinecraftLanguage)
+        {
+            try
+            {
+                Directory.CreateDirectory(instanceDir);
+                string optionsPath = Path.Combine(instanceDir, "options.txt");
+                string mcLang = !string.IsNullOrWhiteSpace(language) && language.StartsWith("en", StringComparison.OrdinalIgnoreCase)
+                    ? "en_us"
+                    : "ru_ru";
+                if (!File.Exists(optionsPath))
+                {
+                    File.WriteAllText(optionsPath, $"lang:{mcLang}{Environment.NewLine}", Encoding.UTF8);
+                }
+                else
+                {
+                    var lines = File.ReadAllLines(optionsPath, Encoding.UTF8).ToList();
+                    bool found = false;
+                    for (int i = 0; i < lines.Count; i++)
+                    {
+                        if (lines[i].StartsWith("lang:", StringComparison.OrdinalIgnoreCase))
+                        {
+                            lines[i] = $"lang:{mcLang}";
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) lines.Insert(0, $"lang:{mcLang}");
+                    string optTmp = optionsPath + ".tmp";
+                    File.WriteAllLines(optTmp, lines, Encoding.UTF8);
+                    File.Move(optTmp, optionsPath, overwrite: true);
+                }
+            }
+            catch
+            {
+                // Non-fatal if options.txt is locked by running game
+            }
+        }
     }
 
     public sealed record ResolvedLibrary(

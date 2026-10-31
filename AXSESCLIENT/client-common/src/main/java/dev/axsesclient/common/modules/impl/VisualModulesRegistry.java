@@ -3,6 +3,7 @@ package dev.axsesclient.common.modules.impl;
 import dev.axsesclient.common.animation.AnimatedFloat;
 import dev.axsesclient.common.hud.HudElement;
 import dev.axsesclient.common.hud.HudManager;
+import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.modules.Module;
 import dev.axsesclient.common.modules.ModuleCategory;
 import dev.axsesclient.common.modules.ModuleManager;
@@ -13,6 +14,7 @@ import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
 import dev.axsesclient.common.platform.StatusEffectInfo;
+import dev.axsesclient.common.platform.TargetEntityInfo;
 import dev.axsesclient.common.render.FontManager;
 import dev.axsesclient.common.render.RenderManager;
 import dev.axsesclient.common.settings.BooleanSetting;
@@ -40,7 +42,8 @@ public final class VisualModulesRegistry {
             final InputAdapter input,
             final ThemeManager themes,
             final FontManager fonts,
-            final RenderManager renderManager
+            final RenderManager renderManager,
+            final LocalizationManager i18n
     ) {
         // 01. FullBright
         mm.register(new Module("fullbright", "FullBright", "Elevates ambient gamma / lightmap brightness in dark environments", ModuleCategory.RENDER) {
@@ -631,5 +634,313 @@ public final class VisualModulesRegistry {
             }
         });
         hm.register(new HudElement("session_information", "Session Info", sessionInfoMod, 0.015f, 0.37f, 180f, 20f));
+
+        // 31. Entity ESP (ESP Подсветка) — Projected 2D/Corner/3D Boxes, Health Bars, Nametags & Offscreen Radar
+        Module entityEsp = mm.register(new Module("entity_esp", "Entity ESP", "Highlights players and mobs with projected 2D/3D boxes, health bars, nametags & radar arrows", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final ModeSetting boxStyle = addSetting(new ModeSetting("box_style", "Box Style", "ESP frame visual style", "Corners", "Corners", "2D Box", "3D Box", "None"));
+            private final NumberSetting range = addSetting(new NumberSetting("range", "Render Range", "Maximum ESP distance in blocks", 72.0, 16.0, 160.0, 4.0));
+            private final BooleanSetting fillBox = addSetting(new BooleanSetting("fill_box", "Box Fill Tint", "Subtle translucent inner glow inside ESP box", true));
+            private final BooleanSetting healthBar = addSetting(new BooleanSetting("health_bar", "Health Bar", "Vertical color-graded HP bar beside entity", true));
+            private final BooleanSetting nametags = addSetting(new BooleanSetting("nametags", "Nametags", "Show player name, exact HP, and distance tag above box", true));
+            private final BooleanSetting showHeld = addSetting(new BooleanSetting("held_item", "Held Item Tag", "Display held weapon or item below ESP box", true));
+            private final BooleanSetting offscreenArrows = addSetting(new BooleanSetting("offscreen_arrows", "Offscreen Arrows", "Directional radar pointers for players behind camera", true));
+            private final BooleanSetting players = addSetting(new BooleanSetting("players", "Players", "Highlight players", true));
+            private final BooleanSetting hostiles = addSetting(new BooleanSetting("hostiles", "Monsters", "Highlight hostile monsters", true));
+            private final BooleanSetting animals = addSetting(new BooleanSetting("animals", "Animals", "Highlight passive animals", false));
+            private final BooleanSetting invisible = addSetting(new BooleanSetting("invisible", "Show Invisible", "Reveal invisible entities", true));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) {
+                    return;
+                }
+                List<TargetEntityInfo> list = mc.getEspEntities(
+                        range.getDouble(),
+                        players.isEnabled(),
+                        hostiles.isEnabled(),
+                        animals.isEnabled(),
+                        false,
+                        invisible.isEnabled()
+                );
+                if (list == null || list.isEmpty()) {
+                    return;
+                }
+                AxsesTheme t = themes.getActiveTheme();
+                int sw = r.getScaledWidth();
+                int sh = r.getScaledHeight();
+
+                for (int i = 0; i < list.size(); i++) {
+                    TargetEntityInfo ent = list.get(i);
+                    boolean hurt = ent.getHurtTime() > 0;
+                    int baseCol;
+                    if (hurt) {
+                        baseCol = t.getErrorColor();
+                    } else if (ent.isPlayer()) {
+                        baseCol = themes.filterColor(t.getAccentColor());
+                    } else if (ent.isHostile()) {
+                        baseCol = t.getWarningColor();
+                    } else {
+                        baseCol = t.getSuccessColor();
+                    }
+
+                    // Project 8 AABB corners
+                    double[][] corners = buildAabbCorners(ent);
+                    float[][] proj = new float[8][];
+                    float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+                    float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+                    int validCount = 0;
+                    for (int c = 0; c < 8; c++) {
+                        float[] p = mc.projectWorldToScreen(corners[c][0], corners[c][1], corners[c][2]);
+                        proj[c] = p;
+                        if (p != null && p[2] > 0.1f) {
+                            validCount++;
+                            if (p[0] < minX) minX = p[0];
+                            if (p[1] < minY) minY = p[1];
+                            if (p[0] > maxX) maxX = p[0];
+                            if (p[1] > maxY) maxY = p[1];
+                        }
+                    }
+
+                    boolean onScreen = validCount >= 2
+                            && maxX >= -20f && minX <= sw + 20f
+                            && maxY >= -20f && minY <= sh + 20f;
+
+                    if (!onScreen) {
+                        if (offscreenArrows.isEnabled() && ent.isPlayer()) {
+                            drawOffscreenPointer(r, mc, ent, sw, sh, baseCol);
+                        }
+                        continue;
+                    }
+
+                    float bx = Math.max(-40f, minX);
+                    float by = Math.max(-40f, minY);
+                    float bw = Math.max(8f, Math.min(sw + 40f, maxX) - bx);
+                    float bh = Math.max(12f, Math.min(sh + 40f, maxY) - by);
+                    if (bw > sw * 1.35f || bh > sh * 1.35f) {
+                        continue;
+                    }
+
+                    if (fillBox.isEnabled() && !"None".equalsIgnoreCase(boxStyle.getValue())) {
+                        r.fillRect(bx, by, bw, bh, AxsesTheme.withAlpha(baseCol, hurt ? 0.24f : 0.11f));
+                    }
+
+                    String style = boxStyle.getValue();
+                    if ("2D Box".equalsIgnoreCase(style)) {
+                        r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, 0f, 1f, 0xAA05060A);
+                        r.drawRoundedOutline(bx, by, bw, bh, 0f, 1f, AxsesTheme.withAlpha(baseCol, 0.92f));
+                    } else if ("Corners".equalsIgnoreCase(style)) {
+                        drawCornerBrackets(r, bx, by, bw, bh, AxsesTheme.withAlpha(baseCol, 0.95f));
+                    } else if ("3D Box".equalsIgnoreCase(style) && validCount == 8) {
+                        draw3dWireframe(r, proj, AxsesTheme.withAlpha(baseCol, 0.88f));
+                    }
+
+                    // Vertical Side Health Bar
+                    if (healthBar.isEnabled()) {
+                        float frac = ent.getHealthFraction();
+                        float barX = bx - 4.5f;
+                        r.fillRect(barX - 0.5f, by - 0.5f, 3.0f, bh + 1.0f, 0xCC06070C);
+                        int hpCol = frac > 0.55f ? t.getSuccessColor() : (frac > 0.25f ? t.getWarningColor() : t.getErrorColor());
+                        float fillH = Math.max(1.0f, bh * frac);
+                        r.fillRect(barX, by + (bh - fillH), 2.0f, fillH, hpCol);
+                        if (ent.getAbsorption() > 0.1f) {
+                            float absH = Math.min(bh, bh * (ent.getAbsorption() / 20.0f));
+                            r.fillRect(barX, by + (bh - absH), 2.0f, absH, 0xFFFFD166);
+                        }
+                    }
+
+                    // Top Nametag Pill (Name · HP · Distance)
+                    if (nametags.isEnabled()) {
+                        float hpTotal = ent.getHealth() + ent.getAbsorption();
+                        String unit = (i18n != null && i18n.isRussian()) ? "м" : "m";
+                        String tag = ent.getName()
+                                + String.format(Locale.ROOT, " · %.1f❤ · %.0f%s", Float.valueOf(hpTotal), Float.valueOf(ent.getDistance()), unit);
+                        float scale = 0.85f;
+                        float tw = fonts.width(r, tag, scale);
+                        float pw = tw + 8.0f;
+                        float ph = 12.0f;
+                        float px = bx + (bw - pw) * 0.5f;
+                        float py = by - ph - 3.0f;
+                        r.fillRoundedRect(px, py, pw, ph, 3.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.86f));
+                        r.drawRoundedOutline(px, py, pw, ph, 3.0f, 1.0f, AxsesTheme.withAlpha(baseCol, 0.65f));
+                        fonts.draw(r, tag, px + 4.0f, py + 2.5f, t.getTextColor(), scale);
+                    }
+
+                    // Bottom Held Item Tag
+                    if (showHeld.isEnabled() && !ent.getHeldItemName().isEmpty()) {
+                        float scale = 0.78f;
+                        String itemTxt = ent.getHeldItemName();
+                        float iw = fonts.width(r, itemTxt, scale);
+                        float ix = bx + (bw - (iw + 6.0f)) * 0.5f;
+                        float iy = by + bh + 2.0f;
+                        r.fillRoundedRect(ix, iy, iw + 6.0f, 10.5f, 2.5f, 0xB8080910);
+                        fonts.draw(r, itemTxt, ix + 3.0f, iy + 2.0f, t.getMutedColor(), scale);
+                    }
+                }
+            }
+        });
+        entityEsp.setFavorite(true);
+
+        // 32. Item ESP (ESP Предметов) — Dropped Loot Highlights & Stack Tags
+        mm.register(new Module("item_esp", "Item ESP", "Highlights dropped items on the ground with stack count and distance labels", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting range = addSetting(new NumberSetting("range", "Render Range", "Maximum item ESP distance in blocks", 48.0, 12.0, 128.0, 4.0));
+            private final BooleanSetting showBox = addSetting(new BooleanSetting("show_box", "Item Box", "Draw projected frame around dropped items", true));
+            private final BooleanSetting showDistance = addSetting(new BooleanSetting("show_distance", "Show Distance", "Include distance in meters on item label", true));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) {
+                    return;
+                }
+                List<TargetEntityInfo> items = mc.getEspEntities(range.getDouble(), false, false, false, true, false);
+                if (items == null || items.isEmpty()) {
+                    return;
+                }
+                AxsesTheme t = themes.getActiveTheme();
+                int accent = themes.filterColor(t.getPrimaryColor());
+                int sw = r.getScaledWidth();
+                int sh = r.getScaledHeight();
+
+                for (int i = 0; i < items.size(); i++) {
+                    TargetEntityInfo it = items.get(i);
+                    float[] center = mc.projectWorldToScreen(it.getX(), it.getY() + 0.20, it.getZ());
+                    if (center == null || center[2] <= 0.1f) continue;
+                    if (center[0] < -20f || center[0] > sw + 20f || center[1] < -20f || center[1] > sh + 20f) continue;
+
+                    if (showBox.isEnabled()) {
+                        float sz = Math.max(5.0f, Math.min(18.0f, 36.0f / Math.max(1.0f, center[2])));
+                        float bx = center[0] - sz * 0.5f;
+                        float by = center[1] - sz * 0.5f;
+                        r.fillRect(bx, by, sz, sz, AxsesTheme.withAlpha(accent, 0.18f));
+                        r.drawRoundedOutline(bx, by, sz, sz, 2.0f, 1.0f, AxsesTheme.withAlpha(accent, 0.90f));
+                    }
+
+                    String unit = (i18n != null && i18n.isRussian()) ? "м" : "m";
+                    String txt = showDistance.isEnabled()
+                            ? (it.getName() + String.format(Locale.ROOT, " [%.0f%s]", Float.valueOf(it.getDistance()), unit))
+                            : it.getName();
+                    float scale = 0.80f;
+                    float tw = fonts.width(r, txt, scale);
+                    float px = center[0] - (tw + 6.0f) * 0.5f;
+                    float py = center[1] - 15.0f;
+                    r.fillRoundedRect(px, py, tw + 6.0f, 11.0f, 2.5f, 0xCC090A12);
+                    fonts.draw(r, txt, px + 3.0f, py + 2.0f, 0xFFF4F6FF, scale);
+                }
+            }
+        });
+
+        // 33. Tracers (Трейсеры) — Directional Screen Lines to Players & Mobs
+        mm.register(new Module("tracers", "Tracers", "Draws clean directional lines toward nearby players and targets", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final ModeSetting origin = addSetting(new ModeSetting("origin", "Line Origin", "Screen anchor where tracer lines start", "Bottom", "Bottom", "Crosshair"));
+            private final ModeSetting colorMode = addSetting(new ModeSetting("color_mode", "Color Mode", "Color by proximity danger or active theme", "Distance", "Distance", "Theme"));
+            private final NumberSetting range = addSetting(new NumberSetting("range", "Range", "Maximum tracer distance in blocks", 80.0, 16.0, 160.0, 4.0));
+            private final BooleanSetting players = addSetting(new BooleanSetting("players", "Players", "Draw tracers to players", true));
+            private final BooleanSetting hostiles = addSetting(new BooleanSetting("hostiles", "Monsters", "Draw tracers to monsters", false));
+            private final BooleanSetting animals = addSetting(new BooleanSetting("animals", "Animals", "Draw tracers to animals", false));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) {
+                    return;
+                }
+                List<TargetEntityInfo> list = mc.getEspEntities(
+                        range.getDouble(), players.isEnabled(), hostiles.isEnabled(), animals.isEnabled(), false, true
+                );
+                if (list == null || list.isEmpty()) {
+                    return;
+                }
+                AxsesTheme t = themes.getActiveTheme();
+                float sx = r.getScaledWidth() * 0.5f;
+                float sy = "Crosshair".equalsIgnoreCase(origin.getValue())
+                        ? (r.getScaledHeight() * 0.5f)
+                        : (r.getScaledHeight() - 28.0f);
+
+                for (int i = 0; i < list.size(); i++) {
+                    TargetEntityInfo ent = list.get(i);
+                    float[] p = mc.projectWorldToScreen(ent.getX(), ent.getMinY() + ent.getBoxHeight() * 0.5, ent.getZ());
+                    if (p == null || p[2] <= 0.1f) continue;
+
+                    int col;
+                    if ("Distance".equalsIgnoreCase(colorMode.getValue())) {
+                        float d = ent.getDistance();
+                        col = d < 10.0f ? t.getErrorColor() : (d < 26.0f ? t.getWarningColor() : themes.filterColor(t.getAccentColor()));
+                    } else {
+                        col = ent.isPlayer() ? themes.filterColor(t.getAccentColor()) : themes.filterColor(t.getPrimaryColor());
+                    }
+                    r.drawLine(sx, sy, p[0], p[1], 1.2f, AxsesTheme.withAlpha(col, 0.78f));
+                }
+            }
+        });
+    }
+
+    private static double[][] buildAabbCorners(TargetEntityInfo e) {
+        double x0 = e.getMinX(), y0 = e.getMinY(), z0 = e.getMinZ();
+        double x1 = e.getMaxX(), y1 = e.getMaxY(), z1 = e.getMaxZ();
+        return new double[][] {
+                { x0, y0, z0 }, { x1, y0, z0 }, { x1, y0, z1 }, { x0, y0, z1 },
+                { x0, y1, z0 }, { x1, y1, z0 }, { x1, y1, z1 }, { x0, y1, z1 }
+        };
+    }
+
+    private static void drawCornerBrackets(RenderAdapter r, float x, float y, float w, float h, int col) {
+        float cw = Math.max(3.0f, Math.min(10.0f, w * 0.28f));
+        float ch = Math.max(3.0f, Math.min(10.0f, h * 0.24f));
+        int outline = 0xB005060A;
+        // Shadow backing
+        r.fillRect(x - 1f, y - 1f, cw + 2f, 2.5f, outline);
+        r.fillRect(x - 1f, y - 1f, 2.5f, ch + 2f, outline);
+        r.fillRect(x + w - cw - 1f, y - 1f, cw + 2f, 2.5f, outline);
+        r.fillRect(x + w - 1.5f, y - 1f, 2.5f, ch + 2f, outline);
+        r.fillRect(x - 1f, y + h - 1.5f, cw + 2f, 2.5f, outline);
+        r.fillRect(x - 1f, y + h - ch - 1f, 2.5f, ch + 2f, outline);
+        r.fillRect(x + w - cw - 1f, y + h - 1.5f, cw + 2f, 2.5f, outline);
+        r.fillRect(x + w - 1.5f, y + h - ch - 1f, 2.5f, ch + 2f, outline);
+
+        // Crisp colored corners
+        r.fillRect(x, y, cw, 1.5f, col);
+        r.fillRect(x, y, 1.5f, ch, col);
+        r.fillRect(x + w - cw, y, cw, 1.5f, col);
+        r.fillRect(x + w - 1.5f, y, 1.5f, ch, col);
+        r.fillRect(x, y + h - 1.5f, cw, 1.5f, col);
+        r.fillRect(x, y + h - ch, 1.5f, ch, col);
+        r.fillRect(x + w - cw, y + h - 1.5f, cw, 1.5f, col);
+        r.fillRect(x + w - 1.5f, y + h - ch, 1.5f, ch, col);
+    }
+
+    private static void draw3dWireframe(RenderAdapter r, float[][] p, int col) {
+        int[][] edges = {
+                {0, 1}, {1, 2}, {2, 3}, {3, 0},
+                {4, 5}, {5, 6}, {6, 7}, {7, 4},
+                {0, 4}, {1, 5}, {2, 6}, {3, 7}
+        };
+        for (int i = 0; i < edges.length; i++) {
+            float[] a = p[edges[i][0]];
+            float[] b = p[edges[i][1]];
+            r.drawLine(a[0], a[1], b[0], b[1], 1.2f, col);
+        }
+    }
+
+    private static void drawOffscreenPointer(RenderAdapter r, MinecraftAdapter mc, TargetEntityInfo ent, int sw, int sh, int col) {
+        double dx = ent.getX() - mc.getPlayerX();
+        double dz = ent.getZ() - mc.getPlayerZ();
+        double targetYaw = Math.toDegrees(Math.atan2(dz, dx)) - 90.0;
+        double relDeg = (targetYaw - mc.getPlayerYaw()) % 360.0;
+        if (relDeg >= 180.0) relDeg -= 360.0;
+        if (relDeg < -180.0) relDeg += 360.0;
+
+        double rad = Math.toRadians(relDeg - 90.0);
+        float radius = Math.min(sw, sh) * 0.22f;
+        float cx = sw * 0.5f + (float) Math.cos(rad) * radius;
+        float cy = sh * 0.5f + (float) Math.sin(rad) * radius;
+
+        float tipX = cx + (float) Math.cos(rad) * 7.0f;
+        float tipY = cy + (float) Math.sin(rad) * 7.0f;
+        float leftX = cx + (float) Math.cos(rad + 2.45) * 6.0f;
+        float leftY = cy + (float) Math.sin(rad + 2.45) * 6.0f;
+        float rightX = cx + (float) Math.cos(rad - 2.45) * 6.0f;
+        float rightY = cy + (float) Math.sin(rad - 2.45) * 6.0f;
+
+        r.drawLine(tipX, tipY, leftX, leftY, 2.0f, col);
+        r.drawLine(tipX, tipY, rightX, rightY, 2.0f, col);
+        r.drawLine(leftX, leftY, rightX, rightY, 1.5f, AxsesTheme.withAlpha(col, 0.65f));
     }
 }

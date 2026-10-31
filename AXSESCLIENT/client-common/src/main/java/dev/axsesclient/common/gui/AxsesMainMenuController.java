@@ -60,7 +60,18 @@ public final class AxsesMainMenuController {
 
         // AXSESCLIENT OBSIDIAN AURORA Emblem & Header
         core.getFontManager().drawCentered(r, "AXSESCLIENT", cx, panelY + 14f, 0xFFF8FAFC, 1.0f);
-        core.getFontManager().drawCentered(r, "OBSIDIAN AURORA · v2.0", cx, panelY + 28f, t.getAccentColor(), 1.0f);
+        core.getFontManager().drawCentered(r, "OBSIDIAN AURORA · v2.5", cx, panelY + 28f, t.getAccentColor(), 1.0f);
+
+        // Quick RU / EN Language Pill in top-right corner of Main Menu
+        boolean isRu = core.getLocalizationManager().isRussian();
+        String langPill = isRu ? "🌐 Язык: Русский" : "🌐 Lang: English";
+        float lw = Math.max(94f, core.getFontManager().width(r, langPill, 1.0f) + 16f);
+        float lx = sw - lw - 8f;
+        float ly = 8f;
+        boolean lHov = isInside(mouseX, mouseY, lx, ly, lw, 20f);
+        r.fillRoundedRect(lx, ly, lw, 20f, 5f, lHov ? t.getElevatedColor() : 0xDC0B0F1A);
+        r.drawRoundedOutline(lx, ly, lw, 20f, 5f, 1f, core.getThemeManager().filterColor(t.getAccentColor()));
+        core.getFontManager().drawCentered(r, langPill, lx + lw * 0.5f, ly + 6f, 0xFFF8FAFC, 1.0f);
 
         String[] labels = {
                 core.getLocalizationManager().tr("menu.singleplayer"),
@@ -94,7 +105,7 @@ public final class AxsesMainMenuController {
         String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21";
         String user = mc != null ? mc.getPlayerName() : "Player";
         long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
-        core.getFontManager().draw(r, "AXSES v2.0 · MC " + mcVer + " · RAM " + maxMb + " MB", 8f, sh - 14f, 0xFF94A3B8, 1.0f);
+        core.getFontManager().draw(r, "AXSES v2.5 · MC " + mcVer + " · RAM " + maxMb + " MB", 8f, sh - 14f, 0xFF94A3B8, 1.0f);
         String rightTag = user + " · " + t.getName();
         float rw = core.getFontManager().width(r, rightTag, 1.0f);
         core.getFontManager().draw(r, rightTag, sw - rw - 8f, sh - 14f, t.getAccentColor(), 1.0f);
@@ -129,6 +140,15 @@ public final class AxsesMainMenuController {
         int sw = mc.getScaledWidth();
         int sh = mc.getScaledHeight();
         float cx = sw * 0.5f;
+
+        if (!showAccountsModal && isInside((float) mouseX, (float) mouseY, sw - 126f, 8f, 118f, 22f)) {
+            core.getLocalizationManager().toggleLocale();
+            core.getConfigManager().saveActiveAsync();
+            core.getNotificationManager().push("AXSES",
+                    core.getLocalizationManager().isRussian() ? "Язык: Русский" : "Language: English",
+                    NotificationManager.Severity.SUCCESS);
+            return true;
+        }
 
         if (showAccountsModal) {
             float my0 = (sh - 128f) * 0.5f;

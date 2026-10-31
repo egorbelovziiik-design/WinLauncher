@@ -83,10 +83,10 @@ public final class AxsesCore {
         this.compatibilityEngine = new CompatibilityEngine();
         this.runtimeState = new ClientRuntimeState(this.clientRootDir);
 
-        // Register all 93 modules & GUI features across 5 modular domain registries
+        // Register all 96 modules & GUI features across 5 modular domain registries
         VisualModulesRegistry.registerAll(
                 moduleManager, hudManager, runtimeState, performanceProfiler,
-                inputAdapter, themeManager, fontManager, renderManager
+                inputAdapter, themeManager, fontManager, renderManager, localizationManager
         );
         MovementPlayerModulesRegistry.registerAll(moduleManager, hudManager, runtimeState, inputAdapter);
         CombatTrainingModulesRegistry.registerAll(
@@ -176,7 +176,7 @@ public final class AxsesCore {
     }
 
     public void shutdown() {
-        configManager.saveActive();
+        configManager.flushPendingSave();
         runtimeState.saveWaypointsAndNotes();
     }
 

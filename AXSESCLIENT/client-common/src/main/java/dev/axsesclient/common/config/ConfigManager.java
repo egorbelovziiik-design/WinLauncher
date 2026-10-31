@@ -28,6 +28,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 public final class ConfigManager {
     public static final int CURRENT_SCHEMA_VERSION = 1;
@@ -51,6 +56,15 @@ public final class ConfigManager {
     private float guiOffsetX = 0.0f;
     private float guiOffsetY = 0.0f;
     private String lastCorruptBackupName = null;
+    private final ScheduledExecutorService asyncWriter = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(r, "Axses-Async-Config");
+            t.setDaemon(true);
+            return t;
+        }
+    });
+    private ScheduledFuture<?> pendingSaveTask = null;
 
     public ConfigManager(
             Path clientRootDir,
@@ -140,6 +154,31 @@ public final class ConfigManager {
 
     public synchronized boolean saveActive() {
         return save(activeProfile);
+    }
+
+    /**
+     * Non-blocking debounced background save so toggling modules or dragging sliders
+     * never causes render-thread disk I/O lag spikes on Windows.
+     */
+    public synchronized void saveActiveAsync() {
+        if (pendingSaveTask != null && !pendingSaveTask.isDone()) {
+            pendingSaveTask.cancel(false);
+        }
+        final String profileSnapshot = this.activeProfile;
+        pendingSaveTask = asyncWriter.schedule(new Runnable() {
+            @Override
+            public void run() {
+                save(profileSnapshot);
+            }
+        }, 220L, TimeUnit.MILLISECONDS);
+    }
+
+    public synchronized void flushPendingSave() {
+        if (pendingSaveTask != null && !pendingSaveTask.isDone()) {
+            pendingSaveTask.cancel(false);
+            pendingSaveTask = null;
+        }
+        save(activeProfile);
     }
 
     public synchronized boolean load(String profileName, MinecraftAdapter mc) {

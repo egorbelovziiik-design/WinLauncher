@@ -127,7 +127,7 @@ public final class HudEditorController {
         }
         if (hit((float) mx, (float) my, barX + 340f, 9f, 54f, 18f)) { hm.resetAll(); return true; }
         if (hit((float) mx, (float) my, barX + 398f, 9f, 114f, 18f)) {
-            core.getConfigManager().saveActive();
+            core.getConfigManager().saveActiveAsync();
             mc.openClickGui();
             return true;
         }
@@ -227,7 +227,7 @@ public final class HudEditorController {
 
     public boolean keyPressed(MinecraftAdapter mc, int keyCode) {
         if (keyCode == KeyCodes.KEY_ESCAPE || keyCode == core.getKeybindManager().getOpenGuiBind().getKeyCode()) {
-            core.getConfigManager().saveActive();
+            core.getConfigManager().saveActiveAsync();
             mc.closeScreen();
             return true;
         }

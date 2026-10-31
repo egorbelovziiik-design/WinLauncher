@@ -6,18 +6,20 @@ import java.util.Map;
 public final class LocalizationManager {
     private String activeLocale = "ru_RU";
     private final Map<String, Map<String, String>> dictionaries = new HashMap<String, Map<String, String>>();
+    private final Map<String, String> ruSettings = new HashMap<String, String>();
+    private final Map<String, String> ruOptions = new HashMap<String, String>();
 
     public LocalizationManager() {
         Map<String, String> en = new HashMap<String, String>();
         en.put("gui.title", "AXSESCLIENT");
-        en.put("gui.subtitle", "AURORA v2.0");
-        en.put("gui.search_placeholder", "Search modules (e.g. KillAura, Target, Zoom)...");
+        en.put("gui.subtitle", "AURORA v2.5");
+        en.put("gui.search_placeholder", "Search 96 modules (e.g. KillAura, ESP, Target, Zoom)...");
         en.put("gui.favorites", "Favorites");
         en.put("gui.hud_editor", "HUD Editor");
         en.put("gui.themes", "Themes");
         en.put("gui.configs", "Configs");
         en.put("gui.diag", "System");
-        en.put("gui.reset_all", "Reset All");
+        en.put("gui.reset_all", "Reset Module");
         en.put("gui.sort_default", "Order: Default");
         en.put("gui.sort_az", "Order: A-Z");
         en.put("gui.sort_enabled", "Order: Active");
@@ -26,19 +28,23 @@ public final class LocalizationManager {
         en.put("gui.no_bind", "—");
         en.put("gui.no_results", "No matching modules found");
         en.put("gui.settings_hint", "Right-click or click arrow to expand settings");
+        en.put("gui.lang_card_title", "Interface Language / Язык клиента");
+        en.put("gui.lang_card_desc", "Instant switch between Russian and English across all menus & HUD");
+        en.put("notif.module_enabled", "Enabled");
+        en.put("notif.module_disabled", "Disabled");
         en.put("cat.combat_training", "Combat");
         en.put("cat.movement", "Movement");
-        en.put("cat.render", "Visuals");
+        en.put("cat.render", "Visuals & ESP");
         en.put("cat.player", "Player");
         en.put("cat.world", "World");
         en.put("cat.utility", "Utility");
         en.put("cat.hud", "HUD");
-        en.put("cat.settings", "Client");
+        en.put("cat.settings", "Settings");
         en.put("menu.singleplayer", "SINGLEPLAYER");
         en.put("menu.multiplayer", "MULTIPLAYER");
-        en.put("menu.settings", "OPTIONS");
+        en.put("menu.settings", "GAME OPTIONS");
         en.put("menu.axses_gui", "AXSES CLICKGUI");
-        en.put("menu.accounts", "ACCOUNTS");
+        en.put("menu.accounts", "PROFILE & THEMES");
         en.put("menu.quit", "QUIT GAME");
         en.put("target.player", "PLAYER");
         en.put("target.mob", "MOB");
@@ -49,14 +55,14 @@ public final class LocalizationManager {
 
         Map<String, String> ru = new HashMap<String, String>();
         ru.put("gui.title", "AXSESCLIENT");
-        ru.put("gui.subtitle", "AURORA v2.0");
-        ru.put("gui.search_placeholder", "Поиск модулей (КиллАура, Таргет, Зум)...");
+        ru.put("gui.subtitle", "AURORA v2.5");
+        ru.put("gui.search_placeholder", "Поиск по 96 модулям (КиллАура, ESP, Таргет, Зум)...");
         ru.put("gui.favorites", "Избранное");
         ru.put("gui.hud_editor", "HUD");
         ru.put("gui.themes", "Темы");
         ru.put("gui.configs", "Конфиги");
         ru.put("gui.diag", "Инфо");
-        ru.put("gui.reset_all", "Сбросить всё");
+        ru.put("gui.reset_all", "Сбросить модуль");
         ru.put("gui.sort_default", "Сорт: Стандарт");
         ru.put("gui.sort_az", "Сорт: А-Я");
         ru.put("gui.sort_enabled", "Сорт: Активные");
@@ -65,14 +71,18 @@ public final class LocalizationManager {
         ru.put("gui.no_bind", "—");
         ru.put("gui.no_results", "Модули по запросу не найдены");
         ru.put("gui.settings_hint", "ПКМ по карточке или стрелка — настройки модуля");
+        ru.put("gui.lang_card_title", "Язык интерфейса / Language");
+        ru.put("gui.lang_card_desc", "Мгновенное переключение всего клиента на Русский или Английский язык");
+        ru.put("notif.module_enabled", "Включён");
+        ru.put("notif.module_disabled", "Выключен");
         ru.put("cat.combat_training", "Бой");
         ru.put("cat.movement", "Движение");
-        ru.put("cat.render", "Визуал");
+        ru.put("cat.render", "Визуал и ESP");
         ru.put("cat.player", "Игрок");
         ru.put("cat.world", "Мир");
         ru.put("cat.utility", "Утилиты");
         ru.put("cat.hud", "HUD");
-        ru.put("cat.settings", "Клиент");
+        ru.put("cat.settings", "Настройки");
         ru.put("menu.singleplayer", "ОДИНОЧНАЯ ИГРА");
         ru.put("menu.multiplayer", "СЕТЕВАЯ ИГРА");
         ru.put("menu.settings", "НАСТРОЙКИ ИГРЫ");
@@ -85,10 +95,14 @@ public final class LocalizationManager {
         ru.put("target.even", "РАВНЫЙ БОЙ");
         ru.put("target.danger", "ОПАСНО");
 
-        // All 93 modules — clean Russian titles & descriptions
-        putMod(ru, "kill_aura", "КиллАура (KillAura)", "Автоматическая атака целей в радиусе с умным кулдауном 1.9+ и фильтрами");
+        // All 96 modules — clean Russian titles & descriptions
+        putMod(ru, "kill_aura", "КиллАура (KillAura)", "Беспаливная 1.9+ аура с профилями FunTime / ReallyWorld / HolyWorld, GCD и умными критами");
         putMod(ru, "target_hud", "Таргет HUD (Target HUD)", "Современная карточка цели: ХП с анимацией урона, дистанция и статус боя");
-        putMod(ru, "trigger_bot", "ТриггерБот (TriggerBot)", "Автоматический удар по цели в прицеле при полной перезарядке оружия");
+        putMod(ru, "trigger_bot", "ТриггерБот (TriggerBot)", "Умный авто-удар по цели в прицеле с таймингом критов и паузой при еде");
+
+        putMod(ru, "entity_esp", "ESP Подсветка (Entity ESP)", "2D/3D боксы игроков и мобов, полоска ХП, никнеймы, предмет в руке и радар-стрелки");
+        putMod(ru, "item_esp", "ESP Предметов (Item ESP)", "Подсветка лута и предметов на земле с названием, количеством и дистанцией");
+        putMod(ru, "tracers", "Трейсеры (Tracers)", "Плавные линии-указатели к ближайшим игрокам и мобам с цветовой индикацией");
 
         putMod(ru, "attack_cooldown_indicator", "Индикатор перезарядки", "Полоска готовности удара 1.9+ прямо под прицелом");
         putMod(ru, "custom_hitmarker", "Хитмаркер ударов", "Визуальная отметка на прицеле при попадании и крите");
@@ -168,7 +182,7 @@ public final class LocalizationManager {
         putMod(ru, "coordinate_clipboard", "Копировать координаты", "Мгновенное копирование X/Y/Z в буфер обмена");
         putMod(ru, "local_world_info_panel", "Погода и фаза луны", "Отображение погоды, игровых суток и фазы луны");
 
-        putMod(ru, "gui_scale_manager", "Масштаб интерфейса", "Настройка размера окна AXSES ClickGUI");
+        putMod(ru, "gui_scale_manager", "Масштаб интерфейса", "Настройка размера окна AXSES ClickGUI (0.75x - 1.50x)");
         putMod(ru, "theme_preview", "Выбор темы", "Быстрое переключение 8 фирменных тем оформления");
         putMod(ru, "module_search_history", "История поиска", "Быстрые теги последних поисковых запросов в меню");
         putMod(ru, "favorites_manager", "Управление избранным", "Закрепление любимых модулей в верхней вкладке");
@@ -179,13 +193,98 @@ public final class LocalizationManager {
         putMod(ru, "animation_settings", "Плавность анимаций", "Скорость и интенсивность переходов в меню и HUD");
         putMod(ru, "accessibility_settings", "Чёткость и контраст", "Повышенная чёткость рамок и теней текста");
         putMod(ru, "color_blindness_presets", "Цветокоррекция", "Фильтры восприятия цветов для дальтоников");
-        putMod(ru, "font_size_settings", "Чёткий шрифт", "Калибровка рендеринга пиксельного и кириллического текста");
+        putMod(ru, "font_size_settings", "Язык и шрифт (Русский / EN)", "Переключение языка интерфейса (Русский / English) и размера шрифта");
         putMod(ru, "reduced_motion_mode", "Без анимаций", "Мгновенное открытие окон без плавных сдвигов");
         putMod(ru, "interface_reset", "Сброс интерфейса", "Возврат позиции окна, темы и HUD к заводским");
         putMod(ru, "config_backup_manager", "Резервные копии", "Создание и восстановление бэкапов конфигурации");
         putMod(ru, "module_compatibility_viewer", "Диагностика клиента", "Проверка совместимости версии MC, Java и модов");
 
         dictionaries.put("ru_RU", ru);
+        initSettingAndOptionTranslations();
+    }
+
+    private void initSettingAndOptionTranslations() {
+        // Common & Combat / ESP / HUD setting titles in Russian
+        ruSettings.put("language", "Язык интерфейса");
+        ruSettings.put("server_profile", "Профиль обхода");
+        ruSettings.put("range", "Дистанция");
+        ruSettings.put("fov", "Угол обзора FOV");
+        ruSettings.put("attack_mode", "Режим тайминга");
+        ruSettings.put("cps", "Скорость CPS");
+        ruSettings.put("priority", "Приоритет цели");
+        ruSettings.put("rotations", "Наводка камеры");
+        ruSettings.put("turn_speed", "Скорость поворота");
+        ruSettings.put("aim_point", "Точка хитбокса");
+        ruSettings.put("crit_mode", "Режим критов");
+        ruSettings.put("sprint_reset", "Сброс спринта (W-Tap)");
+        ruSettings.put("gcd_fix", "Фикс мыши GCD");
+        ruSettings.put("human_jitter", "Живой микро-джиттер");
+        ruSettings.put("check_walls", "Не бить сквозь стены");
+        ruSettings.put("strict_raycast", "Строгий луч хитбокса");
+        ruSettings.put("pause_eating", "Пауза при еде и щите");
+        ruSettings.put("players", "Игроки");
+        ruSettings.put("hostiles", "Монстры");
+        ruSettings.put("animals", "Животные");
+        ruSettings.put("invisible", "Невидимые цели");
+        ruSettings.put("pause_gui", "Пауза в инвентаре");
+        ruSettings.put("disable_death", "Выкл. после смерти");
+        ruSettings.put("target_ring", "3D Кольцо цели");
+        ruSettings.put("lock_badge", "Индикатор под прицелом");
+        ruSettings.put("min_cd", "Мин. заряд удара %");
+        ruSettings.put("smart_crits", "Умные криты в прыжке");
+        ruSettings.put("human_delay", "Разброс реакции");
+        ruSettings.put("linger_sec", "Время удержания (сек)");
+        ruSettings.put("preview_gui", "Превью в ClickGUI");
+        ruSettings.put("pvp_badge", "Статус преимущества");
+        ruSettings.put("box_style", "Стиль бокса");
+        ruSettings.put("fill_box", "Заливка бокса");
+        ruSettings.put("health_bar", "Полоска здоровья");
+        ruSettings.put("nametags", "Никнеймы и ХП");
+        ruSettings.put("held_item", "Предмет в руке");
+        ruSettings.put("offscreen_arrows", "Стрелки вне экрана");
+        ruSettings.put("show_box", "Рамка предмета");
+        ruSettings.put("show_distance", "Показывать дистанцию");
+        ruSettings.put("origin", "Начало линий");
+        ruSettings.put("color_mode", "Режим цвета");
+        ruSettings.put("strength", "Яркость");
+        ruSettings.put("mode", "Режим");
+        ruSettings.put("scale", "Масштаб меню");
+        ruSettings.put("speed", "Скорость анимации");
+        ruSettings.put("width", "Ширина");
+        ruSettings.put("hide_full", "Скрывать при 100%");
+        ruSettings.put("preview_id", "Превью темы");
+        ruSettings.put("fav_first", "Избранные сверху");
+        ruSettings.put("alert_conflicts", "Предупреждать о дублях");
+
+        // Dropdown / Mode values in Russian
+        ruOptions.put("Universal", "Универсальный");
+        ruOptions.put("Legit Ghost", "Легит (Скрытный)");
+        ruOptions.put("1.9+ Smart", "1.9+ Умный");
+        ruOptions.put("1.9+ Cooldown", "1.9+ Кулдаун");
+        ruOptions.put("CPS Timer", "Таймер CPS");
+        ruOptions.put("Distance", "По дистанции");
+        ruOptions.put("Lowest HP", "Меньше ХП");
+        ruOptions.put("Angle", "По углу прицела");
+        ruOptions.put("Least Armor", "Слабая броня");
+        ruOptions.put("Smooth S-Curve", "Плавная S-кривая");
+        ruOptions.put("FunTime Human", "Живая FunTime");
+        ruOptions.put("Multipoint Clamp", "Мульти-хитбокс");
+        ruOptions.put("Snap", "Резкая");
+        ruOptions.put("Off", "Выкл");
+        ruOptions.put("Nearest Hitbox", "Ближняя точка");
+        ruOptions.put("Chest", "Корпус");
+        ruOptions.put("Eyes", "Голова");
+        ruOptions.put("Dynamic", "Динамическая");
+        ruOptions.put("Smart Fall", "Умное падение");
+        ruOptions.put("Always Swing", "Всегда бить");
+        ruOptions.put("Only Crits", "Только криты");
+        ruOptions.put("Corners", "Уголки");
+        ruOptions.put("2D Box", "2D Рамка");
+        ruOptions.put("3D Box", "3D Бокс");
+        ruOptions.put("None", "Нет");
+        ruOptions.put("Bottom", "Снизу экрана");
+        ruOptions.put("Crosshair", "От прицела");
+        ruOptions.put("Theme", "По теме");
     }
 
     private static void putMod(Map<String, String> dict, String id, String name, String desc) {
@@ -220,6 +319,10 @@ public final class LocalizationManager {
         return fallbackName;
     }
 
+    public String translateModuleName(String id, String fallbackName) {
+        return moduleName(id, fallbackName);
+    }
+
     public String moduleDesc(String id, String fallbackDesc) {
         Map<String, String> dict = dictionaries.get(activeLocale);
         String key = "mod." + id + ".desc";
@@ -227,6 +330,26 @@ public final class LocalizationManager {
             return dict.get(key);
         }
         return fallbackDesc;
+    }
+
+    public String settingName(String settingId, String fallbackName) {
+        if (isRussian() && settingId != null) {
+            String tr = ruSettings.get(settingId);
+            if (tr != null) {
+                return tr;
+            }
+        }
+        return fallbackName;
+    }
+
+    public String optionName(String rawValue) {
+        if (isRussian() && rawValue != null) {
+            String tr = ruOptions.get(rawValue);
+            if (tr != null) {
+                return tr;
+            }
+        }
+        return rawValue;
     }
 
     public String tr(String key) {

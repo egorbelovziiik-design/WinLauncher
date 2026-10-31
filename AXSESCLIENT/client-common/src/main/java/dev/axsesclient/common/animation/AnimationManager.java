@@ -16,13 +16,29 @@ public final class AnimationManager {
     public float beginFrame() {
         long now = System.nanoTime();
         long diff = now - lastFrameNanos;
+        // If called multiple times within the same OpenGL render frame (e.g. HUD + ClickGUI),
+        // preserve the real frame delta instead of collapsing dt to microseconds!
+        if (diff >= 0L && diff < 2_500_000L) {
+            return deltaSeconds;
+        }
         lastFrameNanos = now;
         if (diff <= 0L) {
-            deltaSeconds = 0.0005f;
+            deltaSeconds = 1.0f / 60.0f;
         } else {
             deltaSeconds = Math.min(0.10f, diff / 1_000_000_000.0f);
         }
         return deltaSeconds;
+    }
+
+    public static int lerpColor(int fromArgb, int toArgb, float t) {
+        float k = Math.max(0.0f, Math.min(1.0f, t));
+        int a1 = (fromArgb >>> 24) & 0xFF, r1 = (fromArgb >>> 16) & 0xFF, g1 = (fromArgb >>> 8) & 0xFF, b1 = fromArgb & 0xFF;
+        int a2 = (toArgb >>> 24) & 0xFF, r2 = (toArgb >>> 16) & 0xFF, g2 = (toArgb >>> 8) & 0xFF, b2 = toArgb & 0xFF;
+        int a = Math.round(a1 + (a2 - a1) * k);
+        int r = Math.round(r1 + (r2 - r1) * k);
+        int g = Math.round(g1 + (g2 - g1) * k);
+        int b = Math.round(b1 + (b2 - b1) * k);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     public float beginFrameExplicit(float explicitDeltaSeconds) {

@@ -192,18 +192,24 @@ public final class ModuleManager {
     }
 
     public void toggleModuleWithFeedback(Module module, MinecraftAdapter mc) {
+        String displayTitle = localizationManager != null
+                ? localizationManager.moduleName(module.getId(), module.getName())
+                : module.getName();
         String reason = module.getIncompatibilityReason(mc);
         if (!module.isEnabled() && reason != null) {
-            notificationManager.push(module.getName(), reason, NotificationManager.Severity.WARNING);
+            notificationManager.push(displayTitle, reason, NotificationManager.Severity.WARNING);
             return;
         }
         boolean next = !module.isEnabled();
         if (module.setEnabled(next, mc) && notificationManager.isModuleToggleAlerts()) {
+            String statusText = localizationManager != null
+                    ? localizationManager.tr(next ? "notif.module_enabled" : "notif.module_disabled")
+                    : (next ? "Enabled" : "Disabled");
             notificationManager.push(
-                    module.getName(),
-                    next ? "Enabled" : "Disabled",
+                    displayTitle,
+                    statusText,
                     next ? NotificationManager.Severity.SUCCESS : NotificationManager.Severity.INFO,
-                    1800L
+                    1600L
             );
         }
     }

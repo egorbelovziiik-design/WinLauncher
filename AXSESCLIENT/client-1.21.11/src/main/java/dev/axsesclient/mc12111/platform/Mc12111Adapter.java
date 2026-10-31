@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
+import net.minecraft.client.Camera;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -36,12 +37,15 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public final class Mc12111Adapter implements MinecraftAdapter {
     private boolean chunkBordersVisible = false;
@@ -395,7 +399,8 @@ public final class Mc12111Adapter implements MinecraftAdapter {
         if (le == mc.player || !le.isAlive() || le.isSpectator() || le instanceof ArmorStand) {
             return null;
         }
-        return toTargetInfo(mc, le);
+        float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        return toTargetInfo(mc, le, pt);
     }
 
     @Override
@@ -406,20 +411,54 @@ public final class Mc12111Adapter implements MinecraftAdapter {
             boolean includePassives,
             boolean includeInvisible
     ) {
+        return getEspEntities(range, includePlayers, includeHostiles, includePassives, false, includeInvisible);
+    }
+
+    @Override
+    public List<TargetEntityInfo> getEspEntities(
+            double range,
+            boolean includePlayers,
+            boolean includeHostiles,
+            boolean includePassives,
+            boolean includeItems,
+            boolean includeInvisible
+    ) {
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.level == null || mc.player == null) {
             return Collections.emptyList();
         }
+        float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         List<TargetEntityInfo> result = new ArrayList<>();
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (!(e instanceof LivingEntity le) || le == mc.player || !le.isAlive() || le.isSpectator() || le instanceof ArmorStand) {
+            if (e == mc.player || !e.isAlive() || e.isSpectator() || e instanceof ArmorStand) {
+                continue;
+            }
+            float dist = mc.player.distanceTo(e);
+            if (dist > range) {
+                continue;
+            }
+            if (includeItems && e instanceof ItemEntity ie) {
+                ItemStack st = ie.getItem();
+                if (st == null || st.isEmpty()) continue;
+                double ix = ie.xo + (ie.getX() - ie.xo) * pt;
+                double iy = ie.yo + (ie.getY() - ie.yo) * pt;
+                double iz = ie.zo + (ie.getZ() - ie.zo) * pt;
+                double dx = ix - ie.getX(), dy = iy - ie.getY(), dz = iz - ie.getZ();
+                AABB b = ie.getBoundingBox();
+                String label = st.getHoverName().getString() + (st.getCount() > 1 ? " x" + st.getCount() : "");
+                result.add(new TargetEntityInfo(
+                        ie.getId(), label, false, false, false, true,
+                        1.0f, 1.0f, 0.0f, dist, 0, 0,
+                        ix, iy, iz, iy + 0.25,
+                        b.minX + dx, b.minY + dy, b.minZ + dz, b.maxX + dx, b.maxY + dy, b.maxZ + dz,
+                        true, ""
+                ));
+                continue;
+            }
+            if (!(e instanceof LivingEntity le)) {
                 continue;
             }
             if (!includeInvisible && le.isInvisible()) {
-                continue;
-            }
-            float dist = mc.player.distanceTo(le);
-            if (dist > range) {
                 continue;
             }
             boolean isPl = le instanceof Player;
@@ -428,7 +467,7 @@ public final class Mc12111Adapter implements MinecraftAdapter {
             if ((isPl && !includePlayers) || (isHost && !includeHostiles) || (isPass && !includePassives)) {
                 continue;
             }
-            result.add(toTargetInfo(mc, le));
+            result.add(toTargetInfo(mc, le, pt));
         }
         return result;
     }
@@ -459,26 +498,108 @@ public final class Mc12111Adapter implements MinecraftAdapter {
         }
     }
 
-    private static TargetEntityInfo toTargetInfo(Minecraft mc, LivingEntity le) {
+    @Override
+    public boolean isUsingItem() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc != null && mc.player != null && mc.player.isUsingItem();
+    }
+
+    @Override
+    public float getFallDistance() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc != null && mc.player != null ? (float) mc.player.fallDistance : 0.0f;
+    }
+
+    @Override
+    public boolean isInLiquid() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc != null && mc.player != null && (mc.player.isInWater() || mc.player.isInLava());
+    }
+
+    @Override
+    public double getPlayerEyeHeight() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc != null && mc.player != null ? (mc.player.getEyeY() - mc.player.getY()) : 1.62;
+    }
+
+    @Override
+    public float[] projectWorldToScreen(double worldX, double worldY, double worldZ) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.gameRenderer == null || mc.getWindow() == null) return null;
+        Camera cam = mc.gameRenderer.getMainCamera();
+        if (cam == null) return null;
+        Vec3 cp = cam.getPosition();
+        double dx = worldX - cp.x;
+        double dy = worldY - cp.y;
+        double dz = worldZ - cp.z;
+
+        double yawRad = Math.toRadians(cam.getYRot());
+        double pitchRad = Math.toRadians(cam.getXRot());
+        double sinY = Math.sin(yawRad), cosY = Math.cos(yawRad);
+        double sinP = Math.sin(pitchRad), cosP = Math.cos(pitchRad);
+
+        double fx = -sinY * cosP, fy = -sinP, fz = cosY * cosP;
+        double rx = -cosY, ry = 0.0, rz = -sinY;
+        double ux = -sinY * sinP, uy = cosP, uz = cosY * sinP;
+
+        double zCam = dx * fx + dy * fy + dz * fz;
+        if (zCam <= 0.05) {
+            return new float[] { 0.0f, 0.0f, (float) zCam };
+        }
+        double xCam = dx * rx + dy * ry + dz * rz;
+        double yCam = dx * ux + dy * uy + dz * uz;
+
+        int sw = mc.getWindow().getGuiScaledWidth();
+        int sh = Math.max(1, mc.getWindow().getGuiScaledHeight());
+        double aspect = (double) sw / (double) sh;
+        double fovDeg = getBaseFov();
+        if (mc.player != null && mc.player.isSprinting()) fovDeg *= 1.08;
+        double tanHalf = Math.tan(Math.toRadians(Math.max(20.0, Math.min(150.0, fovDeg)) * 0.5));
+
+        double ndcX = xCam / (zCam * tanHalf * aspect);
+        double ndcY = yCam / (zCam * tanHalf);
+        float sx = (float) ((0.5 + 0.5 * ndcX) * sw);
+        float sy = (float) ((0.5 - 0.5 * ndcY) * sh);
+        return new float[] { sx, sy, (float) zCam };
+    }
+
+    private static TargetEntityInfo toTargetInfo(Minecraft mc, LivingEntity le, float pt) {
         boolean isPl = le instanceof Player;
         boolean isHost = !isPl && (le instanceof Enemy);
         boolean isPass = !isPl && !isHost;
+        double ix = le.xo + (le.getX() - le.xo) * pt;
+        double iy = le.yo + (le.getY() - le.yo) * pt;
+        double iz = le.zo + (le.getZ() - le.zo) * pt;
+        double dx = ix - le.getX(), dy = iy - le.getY(), dz = iz - le.getZ();
+        AABB b = le.getBoundingBox();
+        ItemStack held = le.getMainHandItem();
+        String heldName = (held != null && !held.isEmpty()) ? held.getHoverName().getString() : "";
+        boolean los = mc.player.canSee(le);
         return new TargetEntityInfo(
                 le.getId(),
                 le.getName().getString(),
                 isPl,
                 isHost,
                 isPass,
+                false,
                 le.getHealth(),
                 le.getMaxHealth(),
                 le.getAbsorptionAmount(),
                 mc.player.distanceTo(le),
                 le.hurtTime,
                 le.getArmorValue(),
-                le.getX(),
-                le.getY(),
-                le.getZ(),
-                le.getEyeY()
+                ix,
+                iy,
+                iz,
+                le.getEyeY() + dy,
+                b.minX + dx,
+                b.minY + dy,
+                b.minZ + dz,
+                b.maxX + dx,
+                b.maxY + dy,
+                b.maxZ + dz,
+                los,
+                heldName
         );
     }
 

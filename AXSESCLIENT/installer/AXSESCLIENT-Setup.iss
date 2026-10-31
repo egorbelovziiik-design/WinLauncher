@@ -1,8 +1,8 @@
-; AXSESCLIENT (Codename: OBSIDIAN AURORA) v2.0.0 — Official Windows 10/11 x64 Installer
+; AXSESCLIENT (Codename: OBSIDIAN AURORA) v2.5.0 — Official Windows 10/11 x64 Installer
 ; Built with Inno Setup 6. Preserves all user worlds, screenshots, and configs on upgrade/uninstall.
 
 #define MyAppName "AXSESCLIENT"
-#define MyAppVersion "2.0.0"
+#define MyAppVersion "2.5.0"
 #define MyAppPublisher "AXSESCLIENT Engineering"
 #define MyAppURL "https://github.com/egorbelovziiik-design/WinLauncher"
 #define MyAppExeName "AXSESCLIENT.exe"

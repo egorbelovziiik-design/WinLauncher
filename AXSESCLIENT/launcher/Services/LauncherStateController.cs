@@ -59,7 +59,7 @@ public sealed class LauncherStateController
         Themes = LauncherThemePalette.CreateOfficialThemes();
         Profiles = LoadJsonOrDefault(Path.Combine(dataRoot, "profiles", "profiles.json"), CreateDefaultProfiles);
 
-        var defaultCatalog = ModuleCatalogItem.CreateAll93Modules();
+        var defaultCatalog = ModuleCatalogItem.CreateAll96Modules();
         var loadedModules = LoadJsonOrDefault(Path.Combine(dataRoot, "configs", "launcher-modules.json"), () => defaultCatalog);
         Modules = MergeModuleCatalog(defaultCatalog, loadedModules);
 
@@ -93,7 +93,7 @@ public sealed class LauncherStateController
 
         RefreshJavaStatus();
 
-        AppendConsole($"[AXSES v2.0] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count}");
+        AppendConsole($"[AXSES v2.5] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count}");
         SaveAllState();
 
         // Automatically download & install missing Java 8 & Java 21 on Windows when AutoInstallJava is active
@@ -238,11 +238,32 @@ public sealed class LauncherStateController
         }
     }
 
+    private int _syncEpoch;
+
     public void SyncModulesAndThemeToSelectedInstance()
     {
         string instDir = LaunchEngine.GetInstanceDir(SelectedVersionSpec.MinecraftVersion);
-        MinecraftLaunchEngine.SyncInstanceClientConfig(instDir, Settings.ActiveThemeId, Settings.Language, Settings.ReducedMotion, Modules);
+        MinecraftLaunchEngine.SyncInstanceClientConfig(
+            instDir, Settings.ActiveThemeId, Settings.Language, Settings.ReducedMotion, Modules, Settings.SyncGameLanguage);
         SaveAllState();
+    }
+
+    public void SyncModulesAndThemeToSelectedInstanceAsync()
+    {
+        int epoch = Interlocked.Increment(ref _syncEpoch);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(160).ConfigureAwait(false);
+            if (epoch != Volatile.Read(ref _syncEpoch)) return;
+            try
+            {
+                SyncModulesAndThemeToSelectedInstance();
+            }
+            catch
+            {
+                // Ignore transient file contention during rapid toggles
+            }
+        });
     }
 
     public async Task<List<DiagnosticCheckItem>> RunDiagnosticsAsync(CancellationToken ct = default)
@@ -254,11 +275,26 @@ public sealed class LauncherStateController
         return LastDiagnostics;
     }
 
-    public void ToggleLanguage()
+    public void SetLanguage(string localeCode)
     {
-        Settings.Language = IsRu ? "en_US" : "ru_RU";
+        string normalized = string.Equals(localeCode, "en_US", StringComparison.OrdinalIgnoreCase) ? "en_US" : "ru_RU";
+        Settings.Language = normalized;
+        foreach (var v in Versions)
+        {
+            string dir = LaunchEngine.GetInstanceDir(v.MinecraftVersion);
+            if (Directory.Exists(dir) || v.MinecraftVersion == SelectedVersionSpec.MinecraftVersion)
+            {
+                MinecraftLaunchEngine.SyncInstanceClientConfig(
+                    dir, Settings.ActiveThemeId, Settings.Language, Settings.ReducedMotion, Modules, Settings.SyncGameLanguage);
+            }
+        }
         SaveAllState();
         NotifyChanged();
+    }
+
+    public void ToggleLanguage()
+    {
+        SetLanguage(IsRu ? "en_US" : "ru_RU");
     }
 
     public void SaveAllState()

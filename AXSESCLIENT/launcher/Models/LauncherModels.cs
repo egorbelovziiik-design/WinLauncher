@@ -178,14 +178,18 @@ public sealed class ModuleCatalogItem
     public string DisplayName(bool ru) => ru && !string.IsNullOrWhiteSpace(NameRu) ? NameRu : Name;
     public string DisplayDescription(bool ru) => ru && !string.IsNullOrWhiteSpace(DescriptionRu) ? DescriptionRu : Description;
 
-    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll93Modules();
+    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll96Modules();
+    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll96Modules();
 
-    public static List<ModuleCatalogItem> CreateAll93Modules() =>
+    public static List<ModuleCatalogItem> CreateAll96Modules() =>
     [
-        // Flagship Combat & Target HUD (01-03)
-        new() { Id = "kill_aura", Name = "KillAura", NameRu = "КиллАура", Category = "Combat", Description = "Smart auto-attack with 1.9+ cooldown, target priority, filters & smooth aim.", DescriptionRu = "Умная авто-атака целей в радиусе с КД 1.9+, фильтрами и плавной наводкой.", Enabled = false, Favorite = true },
+        // Flagship Combat, ESP & Target HUD (01-06)
+        new() { Id = "kill_aura", Name = "KillAura", NameRu = "КиллАура", Category = "Combat", Description = "Stealth 1.9+ combat aura with FunTime/ReallyWorld/HolyWorld profiles, GCD rotations & smart crits.", DescriptionRu = "Беспаливная 1.9+ аура с обходами под FunTime / ReallyWorld / HolyWorld, GCD-наводкой и умными критами.", Enabled = false, Favorite = true },
+        new() { Id = "entity_esp", Name = "Entity ESP", NameRu = "ESP Подсветка", Category = "Render", Description = "Projected 2D/Corner/3D boxes, side HP bar, nametags, held item & offscreen radar arrows.", DescriptionRu = "2D/3D боксы игроков и мобов, полоска ХП, никнеймы, предмет в руке и стрелки радара.", Enabled = false, Favorite = true },
         new() { Id = "target_hud", Name = "Target HUD", NameRu = "Таргет HUD", Category = "Combat", Description = "Animated target card with HP bar, damage trail, armor, distance & hurt flash.", DescriptionRu = "Современная карточка цели с анимацией ХП, бронёй, дистанцией и вспышкой урона.", Enabled = true, Favorite = true },
-        new() { Id = "trigger_bot", Name = "TriggerBot", NameRu = "ТриггерБот", Category = "Combat", Description = "Automatically strikes valid entities directly under your crosshair.", DescriptionRu = "Автоматический удар при наведении прицела на цель с учётом кулдауна.", Enabled = false, Favorite = true },
+        new() { Id = "trigger_bot", Name = "TriggerBot", NameRu = "ТриггерБот", Category = "Combat", Description = "Smart crosshair strike at optimal weapon recharge with jump crits & eating pause.", DescriptionRu = "Умный авто-удар по цели в прицеле с таймингом критов и паузой при еде.", Enabled = false, Favorite = true },
+        new() { Id = "item_esp", Name = "Item ESP", NameRu = "ESP Предметов", Category = "Render", Description = "Highlights dropped loot items on the ground with stack count and distance.", DescriptionRu = "Подсветка выброшенных предметов на земле с названием, количеством и дистанцией.", Enabled = false },
+        new() { Id = "tracers", Name = "Tracers", NameRu = "Трейсеры", Category = "Render", Description = "Draws clean directional screen lines toward nearby players and targets.", DescriptionRu = "Линии-указатели от прицела или низа экрана к ближайшим игрокам и целям.", Enabled = false },
 
         // Visual & HUD (04-33)
         new() { Id = "fullbright", Name = "FullBright", NameRu = "Яркость (FullBright)", Category = "Render", Description = "Uniform gamma & ambient brightness control for dark caves.", DescriptionRu = "Полное освещение тёмных пещер и ночного мира без потери FPS.", Enabled = true },
@@ -304,6 +308,7 @@ public sealed class LauncherSettings
     public string CloseBehavior { get; set; } = "Keep Launcher Open";
     public bool ReducedMotion { get; set; }
     public string Language { get; set; } = "ru_RU";
+    public bool SyncGameLanguage { get; set; } = true;
     public string ActiveThemeId { get; set; } = "axses-dark";
     public bool AutoCheckUpdates { get; set; } = true;
     public string UpdateManifestUrl { get; set; } = "https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/main/AXSESCLIENT/shared/update-manifest.json";

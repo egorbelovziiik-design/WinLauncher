@@ -1,7 +1,9 @@
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -30,7 +32,7 @@ public sealed class MainWindow : Window
     public MainWindow(LauncherStateController state)
     {
         _state = state;
-        Title = "AXSESCLIENT v2.0 • OBSIDIAN AURORA";
+        Title = "AXSESCLIENT v2.5 • OBSIDIAN AURORA";
         Width = 1220;
         Height = 780;
         MinWidth = 1000;
@@ -74,9 +76,21 @@ public sealed class MainWindow : Window
         Grid.SetRow(_topBarBorder, 0);
         outerGrid.Children.Add(_topBarBorder);
 
-        // Main Scrollable Workspace
+        // Main Scrollable Workspace — Smooth responsive mouse-wheel scrolling across all pages
         _pageScroller.Padding = new Thickness(26, 20, 26, 24);
         _pageScroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+        _pageScroller.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+        _pageScroller.AllowAutoHide = false;
+        _pageScroller.AddHandler(InputElement.PointerWheelChangedEvent, (_, e) =>
+        {
+            if (Math.Abs(e.Delta.Y) > 0.001)
+            {
+                double maxY = Math.Max(0.0, _pageScroller.Extent.Height - _pageScroller.Viewport.Height);
+                double nextY = Math.Clamp(_pageScroller.Offset.Y - e.Delta.Y * 88.0, 0.0, maxY);
+                _pageScroller.Offset = new Vector(_pageScroller.Offset.X, nextY);
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
         Grid.SetColumn(_pageScroller, 1);
         Grid.SetRow(_pageScroller, 1);
         outerGrid.Children.Add(_pageScroller);
@@ -171,7 +185,7 @@ public sealed class MainWindow : Window
         });
         brandTextStack.Children.Add(new TextBlock
         {
-            Text = "v2.0 • OBSIDIAN AURORA",
+            Text = "v2.5 • OBSIDIAN AURORA",
             Foreground = BrushOf(t.AccentCyan),
             FontWeight = FontWeight.SemiBold,
             FontSize = 10.5
@@ -218,7 +232,7 @@ public sealed class MainWindow : Window
         [
             (LauncherPage.Dashboard, "◈", "Главная", "Dashboard"),
             (LauncherPage.Play, "▶", "Запуск и ОЗУ", "Play & RAM"),
-            (LauncherPage.Modules, "✦", "Модули (93)", "Modules (93)"),
+            (LauncherPage.Modules, "✦", "Модули (96)", "Modules (96)"),
             (LauncherPage.Versions, "❖", "Версии игры", "Versions"),
             (LauncherPage.Accounts, "◉", "Аккаунты", "Accounts"),
             (LauncherPage.Profiles, "▤", "Профили", "Profiles"),
@@ -452,14 +466,14 @@ public sealed class MainWindow : Window
             FontWeight = FontWeight.Bold,
             VerticalAlignment = VerticalAlignment.Center
         });
-        var allModsBtn = CreateGhostButton(ru ? "Открыть все 93 модуля →" : "All 93 Modules →", t);
+        var allModsBtn = CreateGhostButton(ru ? "Открыть все 96 модулей →" : "All 96 Modules →", t);
         allModsBtn.Click += (_, _) => NavigateTo(LauncherPage.Modules);
         Grid.SetColumn(allModsBtn, 1);
         qHeader.Children.Add(allModsBtn);
         quickStack.Children.Add(qHeader);
 
         var featuredGrid = new UniformGrid { Columns = 3 };
-        string[] featuredIds = ["kill_aura", "target_hud", "trigger_bot", "toggle_sprint", "fullbright", "memory_display"];
+        string[] featuredIds = ["kill_aura", "entity_esp", "target_hud", "trigger_bot", "toggle_sprint", "fullbright"];
         foreach (string fid in featuredIds)
         {
             var mod = _state.Modules.FirstOrDefault(m => m.Id == fid);
@@ -643,12 +657,17 @@ public sealed class MainWindow : Window
     {
         var border = new Border
         {
-            Background = mod.Enabled ? AuroraGradient(t, 0.16) : BrushOf(t.BgPrimary, 0.72),
-            BorderBrush = BrushOf(mod.Enabled ? t.AccentPrimary : "#20FFFFFF", mod.Enabled ? 0.65 : 1.0),
+            Background = mod.Enabled ? AuroraGradient(t, 0.18) : BrushOf(t.BgPrimary, 0.74),
+            BorderBrush = BrushOf(mod.Enabled ? t.AccentPrimary : "#20FFFFFF", mod.Enabled ? 0.72 : 1.0),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(12, 10),
-            Margin = new Thickness(4)
+            Margin = new Thickness(4),
+            Transitions =
+            [
+                new BrushTransition { Property = Border.BackgroundProperty, Duration = TimeSpan.FromMilliseconds(180) },
+                new BrushTransition { Property = Border.BorderBrushProperty, Duration = TimeSpan.FromMilliseconds(180) }
+            ]
         };
         var stack = new StackPanel { Spacing = 5 };
         var top = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
@@ -660,15 +679,21 @@ public sealed class MainWindow : Window
             FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center
         });
-        var toggle = new CheckBox { IsChecked = mod.Enabled, VerticalAlignment = VerticalAlignment.Center };
+        var toggle = new ToggleSwitch
+        {
+            IsChecked = mod.Enabled,
+            OnContent = "",
+            OffContent = "",
+            VerticalAlignment = VerticalAlignment.Center
+        };
         toggle.IsCheckedChanged += (_, _) =>
         {
             bool next = toggle.IsChecked == true;
             if (next == mod.Enabled) return;
             mod.Enabled = next;
-            border.Background = mod.Enabled ? AuroraGradient(t, 0.16) : BrushOf(t.BgPrimary, 0.72);
-            border.BorderBrush = BrushOf(mod.Enabled ? t.AccentPrimary : "#20FFFFFF", mod.Enabled ? 0.65 : 1.0);
-            _state.SyncModulesAndThemeToSelectedInstance();
+            border.Background = mod.Enabled ? AuroraGradient(t, 0.18) : BrushOf(t.BgPrimary, 0.74);
+            border.BorderBrush = BrushOf(mod.Enabled ? t.AccentPrimary : "#20FFFFFF", mod.Enabled ? 0.72 : 1.0);
+            _state.SyncModulesAndThemeToSelectedInstanceAsync();
         };
         Grid.SetColumn(toggle, 1);
         top.Children.Add(toggle);
@@ -819,8 +844,8 @@ public sealed class MainWindow : Window
         var searchBox = new TextBox
         {
             Watermark = ru
-                ? "🔎 Поиск по 93 модулям (например: КиллАура, Таргет HUD, Авто-спринт, FPS)..."
-                : "🔎 Search 93 modules (e.g. KillAura, Target HUD, Toggle Sprint, FPS)..."
+                ? "🔎 Поиск по 96 модулям (КиллАура, ESP, Таргет HUD, Трейсеры, Авто-спринт)..."
+                : "🔎 Search 96 modules (e.g. KillAura, Entity ESP, Target HUD, Tracers, Sprint)..."
         };
         if (!string.IsNullOrEmpty(_moduleSearch))
             searchBox.Text = _moduleSearch;
@@ -837,7 +862,7 @@ public sealed class MainWindow : Window
         var catRow = new WrapPanel { Orientation = Orientation.Horizontal };
         (string Key, string Ru, string En)[] cats =
         [
-            ("ALL", "Все (93)", "All (93)"),
+            ("ALL", "Все (96)", "All (96)"),
             ("Combat", "Бой (Combat)", "Combat"),
             ("HUD", "HUD Виджеты", "HUD"),
             ("Render", "Визуал", "Render"),
@@ -1103,6 +1128,58 @@ public sealed class MainWindow : Window
     private Control BuildSettingsPage(LauncherThemePalette t, bool ru)
     {
         var stack = new StackPanel { Spacing = 16 };
+
+        // 1. Language Card (Русский / English) for Launcher + In-Game ClickGUI + Minecraft
+        var langCard = CreateSurfaceCard(t);
+        var lStack = new StackPanel { Spacing = 10 };
+        lStack.Children.Add(new TextBlock
+        {
+            Text = ru ? "🌐 Язык интерфейса и игры (Language)" : "🌐 Interface & Minecraft Language",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 15,
+            FontWeight = FontWeight.Bold
+        });
+        lStack.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? "Выберите язык лаунчера, внутриигрового меню ClickGUI и самого клиента Minecraft:"
+                : "Choose the active language for AXSES Launcher, in-game ClickGUI/HUD, and Minecraft:",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap
+        });
+        var langBtns = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var ruBtn = ru
+            ? CreatePrimaryButton("✓ Русский (RU)", t, 12.5, 18, 8)
+            : CreateGhostButton("Русский (RU)", t);
+        ruBtn.Click += (_, _) => _state.SetLanguage("ru_RU");
+
+        var enBtn = !ru
+            ? CreatePrimaryButton("✓ English (EN)", t, 12.5, 18, 8)
+            : CreateGhostButton("English (EN)", t);
+        enBtn.Click += (_, _) => _state.SetLanguage("en_US");
+
+        langBtns.Children.Add(ruBtn);
+        langBtns.Children.Add(enBtn);
+        lStack.Children.Add(langBtns);
+
+        var syncMcLangChk = new CheckBox
+        {
+            Content = ru
+                ? "Автоматически включать выбранный язык (Русский ru_ru / English en_us) в настройках самого Minecraft"
+                : "Automatically apply selected language (ru_ru / en_us) to Minecraft options.txt",
+            IsChecked = _state.Settings.SyncGameLanguage,
+            Foreground = BrushOf(t.TextPrimary)
+        };
+        syncMcLangChk.IsCheckedChanged += (_, _) =>
+        {
+            _state.Settings.SyncGameLanguage = syncMcLangChk.IsChecked == true;
+            _state.SyncModulesAndThemeToSelectedInstanceAsync();
+        };
+        lStack.Children.Add(syncMcLangChk);
+        langCard.Child = lStack;
+        stack.Children.Add(langCard);
+
         stack.Children.Add(BuildInteractiveRamCard(t, ru));
         stack.Children.Add(BuildAutoJavaCard(t, ru));
 
@@ -1247,7 +1324,7 @@ public sealed class MainWindow : Window
         var s = new StackPanel { Spacing = 10 };
         s.Children.Add(new TextBlock
         {
-            Text = "AXSESCLIENT v2.0.0 • OBSIDIAN AURORA",
+            Text = "AXSESCLIENT v2.5.0 • OBSIDIAN AURORA",
             Foreground = BrushOf(t.TextPrimary),
             FontSize = 22,
             FontWeight = FontWeight.Black
@@ -1257,10 +1334,12 @@ public sealed class MainWindow : Window
             Text = ru
                 ? "Нативный лаунчер и игровой клиент нового поколения для Windows 10/11 x64.\n" +
                   "• Поддержка Minecraft 1.16.5, 1.21.4 и 1.21.11 (отдельные оптимизированные Fabric-моды)\n" +
-                  "• 93 рабочие функции: КиллАура, Таргет HUD, ТриггерБот, Авто-спринт, Кейстрокс и кастомный HUD\n" +
+                  "• 96 рабочих функций: беспаливная КиллАура (FunTime / ReallyWorld / HolyWorld), ESP Подсветка, Таргет HUD, Трейсеры, ТриггерБот\n" +
+                  "• Плавное переключение модулей без фризов, отзывчивый скролл мышью и полный Русский язык в настройках\n" +
                   "• Честное выделение ОЗУ (-Xmx) на базе физической памяти ПК + Автоматическая установка Java 8 и Java 21"
                 : "Next-generation native Windows x64 Launcher & Fabric Client for Minecraft 1.16.5, 1.21.4 & 1.21.11.\n" +
-                  "• 93 real modules including KillAura, animated Target HUD, TriggerBot, Keystrokes & HUD Editor\n" +
+                  "• 96 real modules: stealth KillAura (FunTime / ReallyWorld / HolyWorld), Entity ESP, Item ESP, Tracers, Target HUD & TriggerBot\n" +
+                  "• Zero-lag async module toggles, smooth mouse scrolling & full Russian / English language settings\n" +
                   "• Hardware-calibrated JVM RAM allocation (-Xmx) & zero-touch Java 8 / Java 21 auto-installer",
             Foreground = BrushOf(t.TextSecondary),
             FontSize = 13,
@@ -1275,7 +1354,7 @@ public sealed class MainWindow : Window
     {
         LauncherPage.Dashboard => ru ? "Панель управления" : "Dashboard",
         LauncherPage.Play => ru ? "Параметры запуска и ОЗУ" : "Launch & Memory",
-        LauncherPage.Modules => ru ? "Модули клиента (93)" : "Client Modules (93)",
+        LauncherPage.Modules => ru ? "Модули клиента (96)" : "Client Modules (96)",
         LauncherPage.Versions => ru ? "Версии Minecraft" : "Minecraft Versions",
         LauncherPage.Accounts => ru ? "Аккаунты игроков" : "Accounts",
         LauncherPage.Profiles => ru ? "Профили сборок" : "Launch Profiles",
