@@ -61,6 +61,8 @@ jobs:
             echo "::error title=core tests failed::$(tail -n 30 /tmp/core.log | tr '\n' ' ' | sed 's/%/%25/g')"
           else
             grep -E "tests completed|BUILD SUCCESSFUL" /tmp/core.log | tail -n 2
+            summary=$(grep -h -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' build/test-results/test/*.xml | head -n 1)
+            echo "::notice title=Core JUnit 5 suite::PASSED ${summary}"
           fi
 
       - name: 2. Build FunTimeAuctionHelper-1.16.5.jar
@@ -128,10 +130,26 @@ jobs:
             fi
             # core must be inside every jar
             unzip -l "$jar" | grep -q "dev/funtime/auctionhelper/HelperCore.class"
+            # the version specific entrypoint must be inside as well
+            entry=$(jq -r '.entrypoints.client[0].value' /tmp/fmj.json | tr '.' '/')
+            unzip -l "$jar" | grep -q "${entry}.class" || { echo "::error title=missing entrypoint::$entry"; exit 1; }
+            # bytecode level: Java 8 (52) for 1.16.5, Java 21 (65) for 1.21.x
+            expected=65
+            [ "$v" = "1.16.5" ] && expected=52
+            unzip -p "$jar" "${entry}.class" > /tmp/entry.class
+            major=$(javap -verbose /tmp/entry.class | grep -m1 "major version" | awk '{print $3}')
+            if [ "$major" != "$expected" ]; then
+              echo "::error title=bytecode mismatch::$v entrypoint is major $major, expected $expected"
+              exit 1
+            fi
             cp "$jar" staged/
-            echo "$v: $(stat -c%s "$jar") bytes, $classes classes"
+            echo "$v: $(stat -c%s "$jar") bytes, $classes classes, bytecode major $major"
+            echo "::notice title=FunTimeAuctionHelper-$v.jar::$(stat -c%s "$jar") bytes, $classes classes, bytecode major $major"
           done
           ls -l staged
+          mkdir -p FunTimeAuctionHelper-RELEASE
+          cp staged/FunTimeAuctionHelper-*.jar FunTimeAuctionHelper-RELEASE/
+          ls -l FunTimeAuctionHelper-RELEASE
 
       - name: Publish full build log (diagnostics, only on failure)
         if: failure()
@@ -152,22 +170,21 @@ jobs:
           name: funtime-auction-helper-jars
           path: |
             staged/*.jar
+            FunTimeAuctionHelper-RELEASE/*.jar
             FunTimeAuctionHelper/client-common/build/reports/tests/test/**
           if-no-files-found: error
 
   in-game-selftest:
-    name: Real Minecraft client self test (${{ matrix.mc }})
+    name: Real Minecraft client self test (MC ${{ matrix.mc }})
     needs: build-and-test
-    # Enabled once the three client runs are green on the CI runner.
-    continue-on-error: true
+    # A real Minecraft client is started under Xvfb on the CI runner and the mod writes
+    # funtimeauctionhelper-selftest-<version>.json; a missing or failing report fails the job.
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
         include:
-          - mc: "1.16.5"
-            java: "8"
           - mc: "1.21.4"
             java: "21"
           - mc: "1.21.11"
