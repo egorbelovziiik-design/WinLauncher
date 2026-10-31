@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
-import net.minecraft.client.Camera;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -527,20 +526,38 @@ public final class Mc12111Adapter implements MinecraftAdapter {
     @Override
     public float[] projectWorldToScreen(double worldX, double worldY, double worldZ) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc == null || mc.gameRenderer == null || mc.getWindow() == null) return null;
-        Camera cam = mc.gameRenderer.getMainCamera();
-        if (cam == null) return null;
-        Vec3 cp = cam.getPosition();
-        double dx = worldX - cp.x;
-        double dy = worldY - cp.y;
-        double dz = worldZ - cp.z;
+        if (mc == null || mc.player == null || mc.getWindow() == null) return null;
+        Entity camEnt = mc.getCameraEntity() != null ? mc.getCameraEntity() : mc.player;
+        float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 
-        double yawRad = Math.toRadians(cam.getYRot());
-        double pitchRad = Math.toRadians(cam.getXRot());
+        double cx = camEnt.xo + (camEnt.getX() - camEnt.xo) * pt;
+        double cy = camEnt.yo + (camEnt.getY() - camEnt.yo) * pt + (camEnt.getEyeY() - camEnt.getY());
+        double cz = camEnt.zo + (camEnt.getZ() - camEnt.zo) * pt;
+
+        double yawDeg = camEnt.getYRot();
+        double pitchDeg = camEnt.getXRot();
+        CameraType cType = mc.options != null ? mc.options.getCameraType() : CameraType.FIRST_PERSON;
+        if (cType == CameraType.THIRD_PERSON_FRONT) {
+            yawDeg += 180.0;
+            pitchDeg = -pitchDeg;
+        }
+
+        double yawRad = Math.toRadians(yawDeg);
+        double pitchRad = Math.toRadians(pitchDeg);
         double sinY = Math.sin(yawRad), cosY = Math.cos(yawRad);
         double sinP = Math.sin(pitchRad), cosP = Math.cos(pitchRad);
 
         double fx = -sinY * cosP, fy = -sinP, fz = cosY * cosP;
+        if (cType != CameraType.FIRST_PERSON) {
+            cx -= fx * 4.0;
+            cy -= fy * 4.0;
+            cz -= fz * 4.0;
+        }
+
+        double dx = worldX - cx;
+        double dy = worldY - cy;
+        double dz = worldZ - cz;
+
         double rx = -cosY, ry = 0.0, rz = -sinY;
         double ux = -sinY * sinP, uy = cosP, uz = cosY * sinP;
 
