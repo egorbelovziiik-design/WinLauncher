@@ -1,0 +1,181 @@
+name: FunTime Auction Helper - Build & Verify
+
+on:
+  push:
+    branches:
+      - "arena/9916b374-winlauncher"
+    paths:
+      - "FunTimeAuctionHelper/**"
+      - ".github/workflows/funtime-auctionhelper-build.yml"
+  pull_request:
+    paths:
+      - "FunTimeAuctionHelper/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: funtime-auction-helper-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Core unit tests + 3 Fabric JARs (1.16.5 / 1.21.4 / 1.21.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK 8 and 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            8
+            21
+
+      - name: Set up Gradle 9.8.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.8.2"
+
+      - name: 1. Core (version independent) JUnit 5 suite
+        working-directory: FunTimeAuctionHelper/client-common
+        run: |
+          set -o pipefail
+          if ! gradle test --no-daemon > /tmp/core.log 2>&1; then
+            echo "::error title=core tests failed::$(tail -n 40 /tmp/core.log | tr '\n' ' ' | sed 's/%/%25/g')"
+            cat /tmp/core.log
+            exit 1
+          fi
+          grep -E "tests? completed|BUILD SUCCESSFUL" /tmp/core.log | tail -n 3
+          echo "::notice title=Core JUnit 5::PASSED"
+
+      - name: 2. Build FunTimeAuctionHelper-1.16.5.jar
+        working-directory: FunTimeAuctionHelper/client-1.16.5
+        run: |
+          set -o pipefail
+          if ! gradle remapJar --no-daemon > /tmp/v1165.log 2>&1; then
+            echo "::error title=1.16.5 build failed::$(tail -n 45 /tmp/v1165.log | tr '\n' ' ' | sed 's/%/%25/g')"
+            cat /tmp/v1165.log
+            exit 1
+          fi
+          ls -l build/libs
+
+      - name: 3. Build FunTimeAuctionHelper-1.21.4.jar
+        working-directory: FunTimeAuctionHelper/client-1.21.4
+        run: |
+          set -o pipefail
+          if ! gradle remapJar --no-daemon > /tmp/v1214.log 2>&1; then
+            echo "::error title=1.21.4 build failed::$(tail -n 45 /tmp/v1214.log | tr '\n' ' ' | sed 's/%/%25/g')"
+            cat /tmp/v1214.log
+            exit 1
+          fi
+          ls -l build/libs
+
+      - name: 4. Build FunTimeAuctionHelper-1.21.11.jar
+        working-directory: FunTimeAuctionHelper/client-1.21.11
+        run: |
+          set -o pipefail
+          if ! gradle remapJar --no-daemon > /tmp/v12111.log 2>&1; then
+            echo "::error title=1.21.11 build failed::$(tail -n 45 /tmp/v12111.log | tr '\n' ' ' | sed 's/%/%25/g')"
+            cat /tmp/v12111.log
+            exit 1
+          fi
+          ls -l build/libs
+
+      - name: 5. Inspect the produced JARs
+        run: |
+          set -euo pipefail
+          mkdir -p staged
+          for v in 1.16.5 1.21.4 1.21.11; do
+            jar="FunTimeAuctionHelper/client-$v/build/libs/FunTimeAuctionHelper-$v.jar"
+            test -f "$jar" || { echo "::error title=missing jar::$jar"; exit 1; }
+            unzip -p "$jar" fabric.mod.json > /tmp/fmj.json
+            jq -e '.id == "funtimeauctionhelper" and .environment == "client"' /tmp/fmj.json > /dev/null
+            classes=$(unzip -l "$jar" | grep -c "dev/funtime/auctionhelper" || true)
+            if [ "$classes" -lt 40 ]; then
+              echo "::error title=jar too small::$v contains only $classes classes"
+              exit 1
+            fi
+            # core must be inside every jar
+            unzip -l "$jar" | grep -q "dev/funtime/auctionhelper/HelperCore.class"
+            cp "$jar" staged/
+            echo "$v: $(stat -c%s "$jar") bytes, $classes classes"
+          done
+          ls -l staged
+
+      - name: Upload JARs and test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: funtime-auction-helper-jars
+          path: |
+            staged/*.jar
+            FunTimeAuctionHelper/client-common/build/reports/tests/test/**
+          if-no-files-found: error
+
+  in-game-selftest:
+    name: Real Minecraft client self test (${{ matrix.mc }})
+    needs: build-and-test
+    # Enabled once the three client runs are green on the CI runner.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mc: "1.16.5"
+            java: "8"
+          - mc: "1.21.4"
+            java: "21"
+          - mc: "1.21.11"
+            java: "21"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Set up Gradle 9.8.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.8.2"
+
+      - name: Install Xvfb and software OpenGL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils jq libopenal1
+
+      - name: Run the mod inside a real Minecraft client
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "3.3"
+        working-directory: FunTimeAuctionHelper/client-${{ matrix.mc }}
+        run: |
+          set -o pipefail
+          timeout 900 xvfb-run -a -s "-screen 0 1280x720x24" \
+            gradle runClient --no-daemon -PftahSelftest=true > /tmp/runclient.log 2>&1 || true
+          report="run/funtimeauctionhelper-selftest-${{ matrix.mc }}.json"
+          if [ ! -f "$report" ]; then
+            echo "::error title=no self test report::$(grep -E 'Exception|Error|Caused by' /tmp/runclient.log | tail -n 25 | tr '\n' ' ' | sed 's/%/%25/g')"
+            tail -n 60 /tmp/runclient.log
+            exit 1
+          fi
+          cat "$report"
+          jq -e '.status == "PASS"' "$report"
+          echo "::notice title=MC ${{ matrix.mc }} in-game self test::$(jq -c '{status, checksPassed, details}' "$report")"
+
+      - name: Upload self test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-${{ matrix.mc }}
+          path: FunTimeAuctionHelper/client-${{ matrix.mc }}/run/funtimeauctionhelper-selftest-*.json
+          if-no-files-found: warn

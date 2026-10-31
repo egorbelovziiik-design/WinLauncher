@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "funtimeauctionhelper",
+  "version": "${version}",
+  "name": "FunTime Auction Helper Ultra Pro",
+  "description": "Auction analysis, price history, filters, strategies and a premium GUI for FunTime. Reads only what the server already shows you; automated trading only through a documented server API.",
+  "authors": [
+    "FunTime Auction Helper"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/funtimeauctionhelper/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.funtime.auctionhelper.mc12111.FunTimeAuctionHelper12111Mod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

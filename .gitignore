@@ -21,3 +21,11 @@ release-artifacts/
 site/dist/
 site/.vite/
 .vite/
+
+# FunTime Auction Helper (Fabric mod)
+FunTimeAuctionHelper/*/build/
+FunTimeAuctionHelper/*/run/
+FunTimeAuctionHelper/*/.gradle/
+FunTimeAuctionHelper/.gradle/
+FunTimeAuctionHelper/client-*/run/funtimeauctionhelper-selftest-*.json
+staged/

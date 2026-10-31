@@ -1,0 +1,42 @@
+// Pure-Java core of FunTime Auction Helper.
+//
+// This module has NO Minecraft dependency: it can be compiled and unit-tested on its own.
+// The three Minecraft modules (client-1.16.5, client-1.21.4, client-1.21.11) add this
+// source tree to their own source set, so the exact same core code is shipped in every JAR.
+plugins {
+    id 'java-library'
+}
+
+group = project.maven_group
+version = project.mod_version
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Gson is provided by Minecraft / Fabric Loader at runtime, it is only needed
+    // here so the standalone core build and the JUnit suite can compile.
+    compileOnly 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+    it.options.release = 8
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = false
+    }
+}
