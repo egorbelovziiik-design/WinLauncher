@@ -123,7 +123,8 @@ public final class Platform1165 implements MinecraftAdapter {
         if (mc.player == null) {
             return slots;
         }
-        net.minecraft.world.entity.player.Inventory inventory = mc.player.getInventory();
+        // 1.16.5 exposes the player inventory as a public field, not through a getter.
+        net.minecraft.world.entity.player.Inventory inventory = mc.player.inventory;
         for (int i = 0; i < 36; i++) {
             ItemStack stack = inventory.getItem(i);
             if (stack == null || stack.isEmpty()) {

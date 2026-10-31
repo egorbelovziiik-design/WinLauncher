@@ -37,6 +37,22 @@ import org.junit.jupiter.api.io.TempDir;
 class CoreSafetyTest {
     private static final long NOW = 1_750_000_000_000L;
 
+
+    /** A verified balance provider: automated buying refuses to run without one. */
+    private static void withKnownBalance(TradeEngine engine, final double balance) {
+        engine.setBalanceProvider(new TradeEngine.BalanceProvider() {
+            @Override
+            public boolean isKnown() {
+                return true;
+            }
+
+            @Override
+            public double getBalance() {
+                return balance;
+            }
+        });
+    }
+
     private AuctionListing listing(String id, int quantity, double total) {
         return new AuctionListing(id, id.replace("minecraft:", ""), quantity, total, NOW, "selftest",
                 Arrays.asList("Цена: " + total), 0);
@@ -98,6 +114,7 @@ class CoreSafetyTest {
         NotificationService notifications = new NotificationService(config);
         TradeHistoryStore history = new TradeHistoryStore(null);
         TradeEngine engine = new TradeEngine(config, automation, history, notifications, NOW);
+        withKnownBalance(engine, 100_000d);
         TradeResult queued = engine.requestAutomatedBuy(listing("minecraft:diamond", 64, 1000d), NOW);
         assertEquals(TradeRecord.Result.PENDING, queued.getResult());
         assertEquals(1, engine.getPendingCount());
@@ -147,6 +164,7 @@ class CoreSafetyTest {
         automation.setMaster(true, "test");
         TradeEngine engine = new TradeEngine(config, automation, new TradeHistoryStore(null),
                 new NotificationService(config), NOW);
+        withKnownBalance(engine, 100_000d);
         TradeResult queued = engine.requestAutomatedBuy(listing("minecraft:diamond", 1, 1000d), NOW);
         TradeResult executed = engine.execute(queued.getRequestId(), false, NOW);
         assertEquals(TradeRecord.Result.STALE, executed.getResult());
@@ -164,6 +182,7 @@ class CoreSafetyTest {
         automation.setMaster(true, "test");
         TradeHistoryStore history = new TradeHistoryStore(null);
         TradeEngine engine = new TradeEngine(config, automation, history, new NotificationService(config), NOW);
+        withKnownBalance(engine, 100_000d);
         TradeResult queued = engine.requestAutomatedBuy(listing("minecraft:diamond", 1, 100d), NOW);
         TradeResult executed = engine.execute(queued.getRequestId(), false, NOW);
         assertEquals(TradeRecord.Result.UNVERIFIED, executed.getResult());
@@ -171,6 +190,25 @@ class CoreSafetyTest {
         TradeResult retry = engine.requestAutomatedBuy(listing("minecraft:diamond", 1, 100d), NOW);
         assertEquals(TradeRecord.Result.UNVERIFIED, retry.getResult());
         assertTrue(retry.getMessage().toLowerCase().contains("unverified"));
+    }
+
+    @Test
+    void automatedBuyNeedsAKnownBalance() {
+        HelperConfig config = HelperConfig.createDefault();
+        config.automation.masterEnabled = true;
+        AutomationState automation = new AutomationState(new FakeIntegration(true));
+        automation.setMode(AutomationState.Mode.AUTHORIZED_AUTOMATION, "test");
+        automation.setMaster(true, "test");
+        automation.setAutoBuy(true, "test");
+        TradeEngine engine = new TradeEngine(config, automation, new TradeHistoryStore(null),
+                new NotificationService(config), NOW);
+        // No balance provider at all: the server does not expose the balance.
+        TradeResult result = engine.requestAutomatedBuy(listing("minecraft:diamond", 1, 100d), NOW);
+        assertEquals(TradeRecord.Result.REJECTED, result.getResult());
+        assertTrue(result.getMessage().contains("Balance is unknown"), result.getMessage());
+        // A manual confirmation is still allowed: the player sees the price and decides.
+        TradeResult manual = engine.requestManualBuy(listing("minecraft:diamond", 1, 100d), NOW);
+        assertEquals(TradeRecord.Result.PENDING, manual.getResult(), manual.getMessage());
     }
 
     @Test
@@ -185,6 +223,7 @@ class CoreSafetyTest {
         automation.setAutoBuy(true, "test");
         TradeHistoryStore history = new TradeHistoryStore(null);
         TradeEngine engine = new TradeEngine(config, automation, history, new NotificationService(config), NOW);
+        withKnownBalance(engine, 100_000d);
         TradeResult first = engine.requestAutomatedBuy(listing("minecraft:gold_ingot", 1, 100d), NOW);
         assertEquals(TradeRecord.Result.PENDING, first.getResult());
         assertNotNull(engine.execute(first.getRequestId(), false, NOW));

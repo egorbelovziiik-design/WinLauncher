@@ -65,18 +65,15 @@ public final class Numbers {
                 }
                 continue;
             }
-            if (c == 'k' || c == 'm' || c == 'b' || c == 'к' || c == 'м' || c == 'т') {
-                String suffix;
-                if (c == 'm' || c == 'м') {
-                    suffix = "m";
-                } else if (c == 'b') {
-                    suffix = "b";
-                } else if (c == 'т') {
-                    suffix = "kk";
-                } else {
-                    suffix = "k";
+            if (isSuffixLetter(c)) {
+                // "2к" = 2000, "2кк" = 2 000 000, "2ккк" = 2 000 000 000, "2м" = 2 000 000,
+                // "2b" = 2 000 000 000. The run length matters, so consume the whole run here.
+                int run = 0;
+                while (i + run < text.length() && text.charAt(i + run) == c) {
+                    run++;
                 }
-                multiplier = multiplierFor(suffix);
+                i += run - 1;
+                multiplier = multiplierForSuffix(c, run);
                 dropRest = true;
                 continue;
             }
@@ -93,6 +90,24 @@ public final class Numbers {
         } catch (NumberFormatException error) {
             return Double.NaN;
         }
+    }
+
+    private static boolean isSuffixLetter(char c) {
+        return c == 'k' || c == 'm' || c == 'b' || c == '\u043A' || c == '\u043C' || c == '\u0442'
+                || c == '\u041A' || c == '\u041C' || c == '\u0422';
+    }
+
+    /** Russian/English shorthand: k = thousand, m = million, b = billion; repeats multiply. */
+    private static double multiplierForSuffix(char c, int run) {
+        int steps = run < 1 ? 1 : run;
+        if (c == 'm' || c == '\u043C' || c == '\u041C') {
+            return Math.pow(1000d, 2 + (steps - 1));
+        }
+        if (c == 'b') {
+            return Math.pow(1000d, 3 + (steps - 1));
+        }
+        // k, к, т -> 1000^run
+        return Math.pow(1000d, steps);
     }
 
     private static double multiplierFor(String suffix) {

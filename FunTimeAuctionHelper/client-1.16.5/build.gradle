@@ -38,8 +38,8 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.toVersion("8")
+    targetCompatibility = JavaVersion.toVersion("8")
 }
 
 remapJar {

@@ -51,6 +51,11 @@ jobs:
           gradle test --no-daemon -Porg.gradle.java.installations.paths="${JAVA_HOME_8_X64},${JAVA_HOME_21_X64},${JAVA_HOME_25_X64}" > /tmp/core.log 2>&1
           code=$?
           grep -E "^[^ ]*error:|error: " /tmp/core.log | head -n 10 | sed 's/^/::error title=core-compile::/'
+          # Surface the real assertion messages of failing tests in the diagnostics check run.
+          if [ -d build/test-results/test ]; then
+            grep -h -A3 "<failure" build/test-results/test/*.xml 2>/dev/null | head -n 80 >> /tmp/core.log || true
+            grep -h -o "tests=\"[0-9]*\" skipped=\"[0-9]*\" failures=\"[0-9]*\" errors=\"[0-9]*\"" build/test-results/test/*.xml 2>/dev/null | tail -n 3 >> /tmp/core.log || true
+          fi
           if [ $code -ne 0 ]; then
             echo "core" > /tmp/failed.core
             echo "::error title=core tests failed::$(tail -n 30 /tmp/core.log | tr '\n' ' ' | sed 's/%/%25/g')"
