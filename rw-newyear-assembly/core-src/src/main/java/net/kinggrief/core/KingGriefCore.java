@@ -194,7 +194,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.3.0 — ICE WALLS & SAFE WORLDS");
+        getLogger().info(" KINGGRIEF CORE v7.4.0 — PARKOUR & WINTER STATUES");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -212,7 +212,10 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.crownEvents != null) this.crownEvents.shutdown();
         if (this.curatorManager != null) this.curatorManager.shutdown();
         if (this.antiLagDdos != null) this.antiLagDdos.shutdown();
-        if (this.gameplayListener != null) this.gameplayListener.cleanupAllTempBlocks();
+        if (this.gameplayListener != null) {
+            this.gameplayListener.endAllParkour();
+            this.gameplayListener.cleanupAllTempBlocks();
+        }
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
         if (this.bossEvents != null) this.bossEvents.shutdown();
@@ -714,7 +717,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             store.setBack(p, previous);
-            store.setParkourCp(p, null);
+            gameplayListener.endParkour(p);
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
             p.sendMessage(ColorUtil.c(spawnEngine.isInSpawnWorld(destination)
                     ? "&#80D8FF❄ Вы в отдельном мире Яркого Зимнего Спавна! Вход в мир выживания: &#00E676/rtp"
@@ -854,7 +857,7 @@ public final class KingGriefCore extends JavaPlugin {
         if ("parkour".equals(c)) {
             if (spawnEngine.getWarpLocation("parkour") == null) { p.sendMessage(ColorUtil.c("&cПаркур недоступен, пока готовый спавн не установлен.")); return true; }
             if (args.length > 0 && ("leave".equalsIgnoreCase(args[0]) || "reset".equalsIgnoreCase(args[0]))) {
-                store.setParkourCp(p, null);
+                gameplayListener.endParkour(p);
                 p.teleport(spawnEngine.getWarpLocation("parkour"));
                 p.sendMessage(ColorUtil.c("&#FF9100🏃 Чекпоинт паркура сброшен. Вы на старте!"));
             } else if (args.length > 0 && "cp".equalsIgnoreCase(args[0])) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="utf-8"><title>Установка сборки KINGGRIEF 7.3.0</title>
+<html lang="ru"><head><meta charset="utf-8"><title>Установка сборки KINGGRIEF 7.4.0</title>
 <style>
 body{font-family:system-ui,sans-serif;background:#0b1120;color:#e2e8f0;max-width:1050px;margin:24px auto;padding:0 20px;line-height:1.5}
 h1,h2{color:#38bdf8} .card{background:#111827;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:20px}
@@ -7,13 +7,13 @@ table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px 
 .btn{display:inline-block;background:#10b981;color:#052e16;font-weight:700;padding:6px 12px;border-radius:8px;text-decoration:none}
 code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 </style></head><body>
-<h1>❄️ Новогодняя сборка KINGGRIEF 7.3.0</h1>
+<h1>❄️ Новогодняя сборка KINGGRIEF 7.4.0</h1>
 <div class="card">
 <h2>⚡ Установка и обновление</h2>
 <ol>
 <li><b>Новый сервер:</b> распакуйте полную сборку в новую пустую папку. Установите Paper 1.21.4 и Java 21 отдельно, прочитайте и подтвердите Minecraft EULA. Команды запуска — в <code>README_УСТАНОВКА.md</code>.</li>
-<li><b>Существующий сервер:</b> полностью остановите его и сохраните внешнюю копию миров, данных игроков, папки Core и конфигов; не распаковывайте полную сборку поверх него. Установите единственный <code>KingGriefCore.jar</code> из патча 7.3.0. Каждый из уже установленных KingАЧ и KingClear замените на одну копию соответствующего JAR из патча (v8.3.1 и v1.0.2). Если ранее запросили перестройку и она не нужна, до остановки выполните <code>/rebuildspawn cancel</code>. Следуйте инструкции в патче; <code>/reload</code> не используйте.</li>
-<li><b>Готовый спавн:</b> встроенный шаблон устанавливается автоматически. Старый и неизвестный мир спавна сохраняется, а карта v73 создаётся отдельно; прежние пользовательские постройки автоматически не переносятся. После авторизации используйте <code>/kgspawn</code> (при конфликте <code>/kinggriefcore:kgspawn</code>); запись <code>/setspawn</code> не удаляется, но пока её старый мир не загружен, обычный <code>/spawn</code> ведёт на новый спавн.</li>
+<li><b>Существующий сервер:</b> полностью остановите его и сохраните внешнюю копию миров, данных игроков, папки Core и конфигов; не распаковывайте полную сборку поверх него. Установите единственный <code>KingGriefCore.jar</code> из патча 7.4.0. Каждый из уже установленных KingАЧ и KingClear замените на одну копию соответствующего JAR из патча (v8.3.1 и v1.0.2). Если ранее запросили перестройку и она не нужна, до остановки выполните <code>/rebuildspawn cancel</code>. Следуйте инструкции в патче; <code>/reload</code> не используйте.</li>
+<li><b>Готовый спавн:</b> встроенный шаблон устанавливается автоматически. Старый и неизвестный мир спавна сохраняется, а карта v74 создаётся отдельно; прежние пользовательские постройки автоматически не переносятся. После авторизации используйте <code>/kgspawn</code> (при конфликте <code>/kinggriefcore:kgspawn</code>); запись <code>/setspawn</code> не удаляется, но пока её старый мир не загружен, обычный <code>/spawn</code> ведёт на новый спавн.</li>
 <li><b>50 новых предметов:</b> откройте <code>/artifacts</code> — всего 150 предметов. Для новых иконок включите ресурспак v72; при обновлении проверьте URL и SHA-1 в настройках сервера и Core/Hub. Каталог: <code>АРТЕФАКТЫ_7.2.0.md</code>.</li>
 <li><b>Мост сайта и доп. плагины:</b> в публичной сборке у Bridge стоит <code>CHANGE_ME</code>; задайте собственный новый секрет на сервере и сайте. В архиве есть собственные JAR KingGrief, но папка настроек стороннего плагина не означает, что он установлен. Дополнительные плагины ставьте только по необходимости после проверки версий, конфликтов и бэкапа.</li>
 </ol>
@@ -39,7 +39,7 @@ code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 <tr><td><b>CMILib1.5.9.6.jar</b></td><td>Библиотека для работ Jobs</td><td><a class='btn' href='https://github.com/Zrips/CMILib/releases/download/1.5.9.6/CMILib1.5.9.6.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>Jobs5.2.6.3.jar</b></td><td>Работы /jobs (Шахтёр, Лесоруб, Охотник, Фермер)</td><td><a class='btn' href='https://github.com/Zrips/Jobs/releases/download/v5.2.6.3/Jobs5.2.6.3.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>AuthMe-6.0.1-Paper.jar</b></td><td>Авторизация /reg и /login</td><td><a class='btn' href='https://github.com/AuthMe/AuthMeReloaded/releases/download/6.0.1/AuthMe-6.0.1-Paper.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>FastAsyncWorldEdit-Paper-2.16.1.jar</b></td><td>Редактирование схем; для готового спавна v73 не требуется</td><td><a class='btn' href='https://github.com/IntellectualSites/FastAsyncWorldEdit/releases/download/2.16.1/FastAsyncWorldEdit-Paper-2.16.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>FastAsyncWorldEdit-Paper-2.16.1.jar</b></td><td>Редактирование схем; для готового спавна v74 не требуется</td><td><a class='btn' href='https://github.com/IntellectualSites/FastAsyncWorldEdit/releases/download/2.16.1/FastAsyncWorldEdit-Paper-2.16.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>ViaVersion-5.12.1.jar</b></td><td>Вход некоторых новых клиентов; совместимость проверяйте отдельно</td><td><a class='btn' href='https://github.com/ViaVersion/ViaVersion/releases/download/5.12.1/ViaVersion-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>ViaBackwards-5.12.1.jar</b></td><td>Вход некоторых старых клиентов; совместимость всех предметов и моделей не гарантируется</td><td><a class='btn' href='https://github.com/ViaVersion/ViaBackwards/releases/download/5.12.1/ViaBackwards-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 </tbody></table>

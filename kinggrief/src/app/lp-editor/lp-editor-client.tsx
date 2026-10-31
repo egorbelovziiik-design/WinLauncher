@@ -292,10 +292,10 @@ export function LpEditorClient() {
             ← В магазин KINGGRIEF
           </Link>
           <a
-            href="/rw-newyear-full-assembly-v7.3.0.zip"
+            href="/rw-newyear-full-assembly-v7.4.0.zip"
             className="px-3.5 py-2 rounded-lg bg-sky-500/20 border border-sky-400/40 hover:bg-sky-500/30 text-xs font-bold text-sky-300 transition"
           >
-            ⬇ Скачать сборку KINGGRIEF v7.3.0
+            ⬇ Скачать сборку KINGGRIEF v7.4.0
           </a>
           <button
             onClick={copyCommand}

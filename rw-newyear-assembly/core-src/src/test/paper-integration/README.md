@@ -6,7 +6,7 @@ packet, inventory/menu packets, asynchronous chat delegation and the delivered
 message's colour/style, rank hierarchy, kits, TNT prices/purchases/effects and
 cancelled/filtered explosions, new events and scoped entity cleanup, plus fresh
 spawn installation and the removal of the old synchronous rebuild path.
-With `--prebuilt /path/to/spawn-v73-template.zip`, it additionally checks that
+With `--prebuilt /path/to/spawn-v74-template.zip`, it additionally checks that
 an actual pre-generated world is loaded directly, rather than rebuilt at startup.
 It does **not** render a Minecraft client or verify visuals.
 
@@ -31,13 +31,19 @@ It checks the prepared map, arrival, four ice walls, solid gate floors and
 full-collision two-block guardrails, NPC models, 11 warps, saved `/spawn` and
 `/kgspawn`, plus preservation of old worlds. Pass `--kingac` and `--kingclear`
 to exercise their real plugins, the menu-star clear/undo and XRay world selection.
-`test-spawn-upgrade-v73.py` boots the actual 7.2.2 Core, edits a chest and a
+`test-spawn-upgrade-v74.py` boots the actual 7.3.0 Core, edits a chest and a
 force-loaded chunk, saves a custom spawn, and then upgrades both the primary and
 isolated paths; it verifies old world files remain byte-identical and reads a
 copy of the old chest on Paper. An unloaded saved-spawn world is preserved in
 `data.yml` but its location is not resolved until that world is loaded.
-`blender-models/test_spawn_v73.py` checks the geometry and walking routes to all
-four guarded gateways; the generator additionally checks every warp and NPC.
+`blender-models/test_spawn_v74.py` checks 32 platforms, checkpoint plates,
+headroom, connected statue arms/star, protected buildings and walking routes to
+the start and all four guarded gateways; the generator checks every warp and NPC.
+`test-parkour.py` additionally requires `mineflayer@4` and drives a real
+protocol player using prismarine physics: it jumps between all 32 platforms,
+falls off the start and a checkpoint and verifies both returns, stage order,
+flight restoration, the reward and cooldown. Synthetic interaction events in
+the probe separately check cancellation and out-of-order/incorrect plates.
 `test-spawn-compatibility.py` additionally tests standalone, disabled-Core and
 incompatible-Core fallback behavior. These are not rendered client tests.
 

@@ -82,14 +82,24 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         ok(player.getLocation().distanceSquared(arrival) < 5, "arrival is near the village entrance");
         ok(arrival.clone().add(0, -1, 0).getBlock().getType().isSolid(), "arrival has a solid floor");
         ok(arrival.getBlock().isPassable() && arrival.clone().add(0, 1, 0).getBlock().isPassable(), "arrival has headroom");
-        ok(prepared.getBlockAt(0, 130, 0).getType() == Material.SPRUCE_WOOD
-                && prepared.getBlockAt(2, 135, 0).getType() == Material.OCHRE_FROGLIGHT
-                && prepared.getBlockAt(3, 135, 0).getType() == Material.WHITE_CONCRETE
-                && prepared.getBlockAt(13, 101, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(13, 111, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(13, 121, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(13, 130, 0).getType() == Material.DARK_OAK_PLANKS,
-                "larger Christmas tree and three taller figures exist in the actual world");
+        ok(prepared.getBlockAt(0, 140, 0).getType() == Material.SPRUCE_WOOD
+                && prepared.getBlockAt(2, 146, 0).getType() == Material.OCHRE_FROGLIGHT
+                && prepared.getBlockAt(3, 146, 0).getType() == Material.WHITE_CONCRETE
+                && prepared.getBlockAt(16, 101, 1).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(14, 115, 1).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(12, 129, 1).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(12, 142, 0).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(19, 113, -1).getType() == Material.BLACK_CONCRETE
+                && prepared.getBlockAt(17, 127, -1).getType() == Material.BLACK_CONCRETE
+                && prepared.getBlockAt(15, 141, -1).getType() == Material.BLACK_CONCRETE,
+                "larger tree, visible faces, proportioned figures and hand touching star exist in the actual world");
+        for (int[] point : new int[][] {{39,101,-29},{12,105,-43},{-18,109,-40},{-39,113,-18},{-41,117,9}}) {
+            Material plate = prepared.getBlockAt(point[0], point[1]+1, point[2]).getType();
+            ok(plate == (point[0] == -41 ? Material.HEAVY_WEIGHTED_PRESSURE_PLATE : Material.LIGHT_WEIGHTED_PRESSURE_PLATE)
+                    && prepared.getBlockAt(point[0],point[1],point[2]).getType().isSolid()
+                    && prepared.getBlockAt(point[0],point[1]+2,point[2]).isPassable(),
+                    "parkour start/checkpoint/finish pad exists and has headroom at " + point[0] + "," + point[2]);
+        }
         for (int[] point : new int[][] {{118,24},{-118,24},{24,118},{24,-118}}) {
             Material wall = prepared.getBlockAt(point[0], 120, point[1]).getType();
             ok(wall == Material.PACKED_ICE || wall == Material.BLUE_ICE,

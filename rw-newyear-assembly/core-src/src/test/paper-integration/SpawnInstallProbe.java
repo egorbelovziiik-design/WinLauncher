@@ -60,7 +60,7 @@ public final class SpawnInstallProbe extends JavaPlugin {
         List<Path> backups = backups();
         if (backups.size() != 1) throw new AssertionError("expected exactly one old-world backup, got " + backups.size());
         boolean prebuilt = Files.isRegularFile(world.resolve(".kinggrief_prebuilt_v70"))
-                && Files.isRegularFile(world.resolve(".kinggrief_prebuilt_v73"));
+                && Files.isRegularFile(world.resolve(".kinggrief_prebuilt_v74"));
         if (("installed".equals(mode) || "repeat".equals(mode)) && !prebuilt)
             throw new AssertionError("prebuilt marker missing");
         if ("installed".equals(mode)) {

@@ -551,8 +551,16 @@ public final class SpawnEngine {
                 + "&fЗаходите вчетвером (&e4/4&f) — двери закроются сами!\n"
                 + "&7Союзники клана: &#00E676/clan &8• &7Защита лута: &#FFD7408 сек"));
 
-        staticHoloDefs.add(new StaticHoloDef("holo_parkour", 39.0, 104.0, -29.0,
-                "&#40C4FF&l🏃 НЕБЕСНЫЙ ПАРКУР (32 ОСТРОВА)\n&fВстань на золотую плиту для старта! Приз: &a+25 000$ &f+ &b15❖ &f+ &b15❄!"));
+        staticHoloDefs.add(new StaticHoloDef("holo_parkour", 39.0, 104.5, -29.0,
+                "&#40C4FF&l🏃 НЕБЕСНЫЙ ПАРКУР · 32 ПЛОЩАДКИ\n&fСтарт: встань на золотые плиты. Пройди 3 чекпоинта по порядку!\n&fПриз: &a+25 000$ &f+ &b15❖ &f+ &b15❄ &7(раз в 15 минут)"));
+        staticHoloDefs.add(new StaticHoloDef("holo_parkour_cp1", 12.0, 108.5, -43.0,
+                "&#FFD740&l✦ ЧЕКПОИНТ 1/3\n&fВстань на золотые плиты"));
+        staticHoloDefs.add(new StaticHoloDef("holo_parkour_cp2", -18.0, 112.5, -40.0,
+                "&#FFD740&l✦ ЧЕКПОИНТ 2/3\n&fВстань на золотые плиты"));
+        staticHoloDefs.add(new StaticHoloDef("holo_parkour_cp3", -39.0, 116.5, -18.0,
+                "&#FFD740&l✦ ЧЕКПОИНТ 3/3\n&fВстань на золотые плиты"));
+        staticHoloDefs.add(new StaticHoloDef("holo_parkour_finish", -41.0, 120.5, 9.0,
+                "&#00E676&l★ ФИНИШ\n&fВстань на плиты после трёх чекпоинтов"));
 
         staticHoloDefs.add(new StaticHoloDef("holo_casino", -62.0, 103.2, 68.5, "&#FFD740&l🎰 ГРАНД-КАЗИНО 777 (/warp casino)"));
         staticHoloDefs.add(new StaticHoloDef("holo_bafs", 62.0, 103.2, 68.5, "&#E040FB&l🔮 БАФОВАР И ЧАРОДЕЙ (/warp bafs)"));
@@ -1289,11 +1297,17 @@ public final class SpawnEngine {
                         p.setGliding(false);
                     }
                 }
-                if (p.getLocation().getY() < cp.getY() - 3.6 && cp.getY() >= 105.0) {
+                // At the start the plaza is only two blocks below the plate: a
+                // simple four-block fall threshold would never return the player.
+                // On-ground handles that shallow fall; in mid-air allow a normal
+                // jump and only return after a genuine drop. There is no minimum Y.
+                double drop = cp.getY() - p.getLocation().getY();
+                if (drop > 3.6 || (drop > 1.25 && p.isOnGround())) {
                     p.setFallDistance(0f);
-                    p.teleport(cp);
-                    ColorUtil.sound(p, "entity.enderman.teleport", 0.7f, 1.35f);
-                    ColorUtil.actionBar(p, "&#40C4FF🏃 Возврат на чекпоинт! Выйти из паркура: &f/parkour leave");
+                    if (p.teleport(cp)) {
+                        ColorUtil.sound(p, "entity.enderman.teleport", 0.7f, 1.35f);
+                        ColorUtil.actionBar(p, "&#40C4FF🏃 Возврат на чекпоинт! Выйти из паркура: &f/parkour leave");
+                    }
                 }
             }
         }

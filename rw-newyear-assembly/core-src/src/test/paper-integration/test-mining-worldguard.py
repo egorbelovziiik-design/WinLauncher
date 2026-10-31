@@ -11,7 +11,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',type=Path,required=True);p.add_argument('--vanilla',type=Path,required=True)
  p.add_argument('--api-classpath',required=True);p.add_argument('--node-modules',type=Path,required=True)
- p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar');p.add_argument('--template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v73-template.zip')
+ p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar');p.add_argument('--template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v74-template.zip')
  p.add_argument('--java',default='java');p.add_argument('--javac',default='javac');p.add_argument('--node',default='node');p.add_argument('--accept-eula',action='store_true')
  p.add_argument('--worldguard',type=Path,required=True);p.add_argument('--worldedit',type=Path,required=True)
  a=p.parse_args()
@@ -19,7 +19,7 @@ def main():
  cache=harness.validate_paper_and_vanilla(a.paper,a.vanilla);port=harness.available_port()
  with tempfile.TemporaryDirectory(prefix='kinggrief-wg-mining-test-') as tmp:
   root=Path(tmp);server=root/'server';data=server/'plugins/KingGriefCore';data.mkdir(parents=True);(server/'cache').mkdir()
-  shutil.copy2(a.vanilla,server/'cache'/cache);shutil.copy2(a.core,server/'plugins/KingGriefCore.jar');shutil.copy2(a.template,data/'spawn-v73-template.zip')
+  shutil.copy2(a.vanilla,server/'cache'/cache);shutil.copy2(a.core,server/'plugins/KingGriefCore.jar');shutil.copy2(a.template,data/'spawn-v74-template.zip')
   shutil.copy2(a.worldguard,server/'plugins/WorldGuard.jar');shutil.copy2(a.worldedit,server/'plugins/WorldEdit.jar')
   (data/'config.yml').write_text('enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n',encoding='utf8')
   (server/'eula.txt').write_text('eula=true\n',encoding='utf8')

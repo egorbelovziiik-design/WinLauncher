@@ -41,11 +41,11 @@ def build(name, source_dir, args):
             if name == "KingGriefCore":
                 # An embedded, verified template avoids the old synchronous
                 # block-by-block fallback when a fresh server has only the JAR.
-                template = (ROOT / "server/plugins/KingGriefCore/spawn-v73-template.zip").read_bytes()
-                expected = (resources / "spawn_v73_template.sha256").read_text(encoding="ascii").strip()
+                template = (ROOT / "server/plugins/KingGriefCore/spawn-v74-template.zip").read_bytes()
+                expected = (resources / "spawn_v74_template.sha256").read_text(encoding="ascii").strip()
                 if hashlib.sha256(template).hexdigest() != expected:
                     raise ValueError("Embedded spawn template does not match Core checksum")
-                entries.append(("spawn_v73_template.zip", template))
+                entries.append(("spawn_v74_template.zip", template))
             for path, data in sorted(entries):
                 if path.startswith(("org/bukkit/", "java/")):
                     raise ValueError(f"Compile dependency leaked into output: {path}")

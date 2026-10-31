@@ -20,9 +20,9 @@ import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_OUTPUT = ROOT / "server/plugins/KingGriefCore/spawn-v73-template.zip"
+DEFAULT_OUTPUT = ROOT / "server/plugins/KingGriefCore/spawn-v74-template.zip"
 DEFAULT_BUILDER = ROOT.parent / "kinggrief/public/KingGriefCore-v7.0.0.jar"
-DEFAULT_GEOMETRY = ROOT / "core-src/src/main/resources/spawn_v73.dat"
+DEFAULT_GEOMETRY = ROOT / "core-src/src/main/resources/spawn_v74.dat"
 
 
 def arguments():
@@ -62,7 +62,7 @@ def generate_world(args, server):
     (server / "plugins/KingGriefCore").mkdir(parents=True)
     (server / "cache").mkdir()
     shutil.copy2(args.vanilla, server / "cache" / cache_name)
-    # Core 7.3 deliberately never builds hundreds of thousands of blocks on a
+    # Core 7.4 deliberately never builds hundreds of thousands of blocks on a
     # production tick. Use the historical 7.0 builder ONLY inside this isolated
     # server, replacing its RLE resource without mutating the historical JAR.
     with zipfile.ZipFile(args.core) as source, zipfile.ZipFile(server / "plugins/KingGriefCore.jar", "w") as builder:
@@ -149,7 +149,7 @@ def archive_world(world, output):
             continue
         paths.append((rel.as_posix(), path.read_bytes()))
     paths.append((".kinggrief_prebuilt_v70", b"KINGGRIEF Royal Winter compatibility marker\n"))
-    paths.append((".kinggrief_prebuilt_v73", b"KINGGRIEF Tall Glacial Winter spawn v73; Paper 1.21.4\n"))
+    paths.append((".kinggrief_prebuilt_v74", b"KINGGRIEF Parkour Winter spawn v74; Paper 1.21.4\n"))
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="kinggrief-spawn-archive-", dir=output.parent) as temp:
         staged = Path(temp) / output.name
@@ -173,7 +173,7 @@ def main():
         world = generate_world(args, Path(temp) / "server")
         digest = archive_world(world, args.output)
     if args.update_checksum:
-        resource = ROOT / "core-src/src/main/resources/spawn_v73_template.sha256"
+        resource = ROOT / "core-src/src/main/resources/spawn_v74_template.sha256"
         resource.write_text(digest + "\n", encoding="ascii")
         print("Updated", resource, "— rebuild Core before distributing this template.", flush=True)
 

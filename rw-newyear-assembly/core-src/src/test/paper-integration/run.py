@@ -214,7 +214,7 @@ def main():
         shutil.copy2(args.vanilla, server / "cache" / cache_name)
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
         if args.prebuilt:
-            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v73-template.zip")
+            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v74-template.zip")
         if args.prebuilt or args.existing_unknown:
             probe_config = server / "plugins/KgProbe/config.yml"
             probe_config.parent.mkdir(parents=True, exist_ok=True)

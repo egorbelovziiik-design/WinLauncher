@@ -96,10 +96,10 @@ public final class SpawnRebuildProbe extends JavaPlugin {
         throw new AssertionError("unknown mode " + mode);
     }
     private void queueTest() throws Exception {
-        ok(!Files.exists(data.resolve("spawn-v73-template.zip")),"test uses embedded template, not external copy");
+        ok(!Files.exists(data.resolve("spawn-v74-template.zip")),"test uses embedded template, not external copy");
         ok(Files.isRegularFile(data.resolve(".spawn-v70-template-installed")),"standalone Core installed prepared spawn");
         ok(Files.isRegularFile(spawn.getWorldFolder().toPath().resolve(".kinggrief_prebuilt_v70")),"legacy marker present");
-        ok(Files.isRegularFile(spawn.getWorldFolder().toPath().resolve(".kinggrief_prebuilt_v73")),"current v73 marker present");
+        ok(Files.isRegularFile(spawn.getWorldFolder().toPath().resolve(".kinggrief_prebuilt_v74")),"current v74 marker present");
         writeChest(spawn,Material.DIAMOND); Files.write(spawn.getWorldFolder().toPath().resolve("user-data.txt"),"original user file\n".getBytes(StandardCharsets.UTF_8));
         Files.createDirectories(probeData);Files.write(probeData.resolve("uid.txt"),spawn.getUID().toString().getBytes(StandardCharsets.UTF_8));
         long start=System.nanoTime();

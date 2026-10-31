@@ -119,8 +119,22 @@ public final class GameplayListener implements Listener {
     private final Map<UUID, Integer> pendingSpawnerToolGuards = new HashMap<UUID, Integer>();
     private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSpawnerRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
-    private final Map<UUID, Long> parkourPlateCd = new HashMap<UUID, Long>();
-    private final Map<UUID, Long> parkourRunStartMs = new HashMap<UUID, Long>();
+    private static final class ParkourRun {
+        final long startedAt;
+        final GameMode startingMode;
+        final boolean flightWasAllowed, wasFlying, flightRestricted;
+        int stage;
+        long lastWarning;
+        ParkourRun(Player player, long startedAt) {
+            this.startedAt = startedAt;
+            this.startingMode = player.getGameMode();
+            this.flightRestricted = startingMode == GameMode.SURVIVAL || startingMode == GameMode.ADVENTURE;
+            this.flightWasAllowed = player.getAllowFlight();
+            this.wasFlying = player.isFlying();
+        }
+    }
+    private final ParkourCourse parkourCourse;
+    private final Map<UUID, ParkourRun> parkourRuns = new HashMap<UUID, ParkourRun>();
     private final Map<UUID, Long> npcClickCd = new HashMap<UUID, Long>();
     private final Map<String, Long> itemCooldowns = new HashMap<String, Long>();
     private final Set<String> activeTempBlocks = new HashSet<String>();
@@ -137,6 +151,7 @@ public final class GameplayListener implements Listener {
 
     public GameplayListener(KingGriefCore plugin) {
         this.plugin = plugin;
+        this.parkourCourse = ParkourCourse.load(plugin);
         startChatQuizLoop();
         startCustomTntAndPassiveRelicLoops();
     }
@@ -599,6 +614,7 @@ public final class GameplayListener implements Listener {
         e.setQuitMessage(null);
         killStreaks.remove(p.getUniqueId());
         npcClickCd.remove(p.getUniqueId());
+        endParkour(p);
         boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
         plugin.getModeration().handleQuitDuringCheck(p);
         DataStore.ActiveWagerDuel quitDuel = plugin.getStore().finishWagerDuel(p.getName());
@@ -2210,63 +2226,111 @@ public final class GameplayListener implements Listener {
         if (plugin.getBossEvents().collectAirshipPart(e.getPlayer(), e.getClickedBlock())) e.setCancelled(true);
     }
 
+    /** Clear only this player's transient run and restore flight we disabled. */
+    void endParkour(Player player) {
+        ParkourRun run = parkourRuns.remove(player.getUniqueId());
+        plugin.getStore().setParkourCp(player, null);
+        if (run == null || !run.flightRestricted || player.getGameMode() != run.startingMode) return;
+        if (player.isFlying() && !run.flightWasAllowed) player.setFlying(false);
+        player.setAllowFlight(run.flightWasAllowed);
+        if (run.flightWasAllowed && run.wasFlying && !player.isDead()) player.setFlying(true);
+    }
+
+    void endAllParkour() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (parkourRuns.containsKey(player.getUniqueId())) endParkour(player);
+        }
+    }
+
+    /** /parkour cp and safety returns keep the run; other successful teleports leave it. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onParkourTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
+        Player player = event.getPlayer();
+        if (!parkourRuns.containsKey(player.getUniqueId()) || event.getTo() == null) return;
+        Location checkpoint = plugin.getStore().getParkourCp(player), destination = event.getTo();
+        if (checkpoint == null || checkpoint.getWorld() == null || !checkpoint.getWorld().equals(destination.getWorld())
+                || Math.abs(checkpoint.getX() - destination.getX()) > 0.1
+                || Math.abs(checkpoint.getY() - destination.getY()) > 0.1
+                || Math.abs(checkpoint.getZ() - destination.getZ()) > 0.1) endParkour(player);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onParkourPlate(PlayerInteractEvent event) {
+        Block plate = event.getClickedBlock();
+        Player player = event.getPlayer();
+        if (parkourCourse == null || event.getAction() != Action.PHYSICAL || plate == null
+                || event.useInteractedBlock() == org.bukkit.event.Event.Result.DENY
+                || !plugin.getStore().isAuthenticated(player)
+                || !plugin.getSpawnEngine().isInSpawnWorld(plate.getLocation())) return;
+        int stage = parkourCourse.findStage(plate);
+        if (stage < 0) return; // other pressure plates, including high ones, are not the course
+        long now = System.currentTimeMillis();
+        ParkourRun run = parkourRuns.get(player.getUniqueId());
+        if (stage == 0) {
+            // Re-entering the starting plate after a fall must not restart the timer.
+            if (run != null) return;
+            run = new ParkourRun(player, now);
+            parkourRuns.put(player.getUniqueId(), run);
+            plugin.getStore().setParkourCp(player, parkourCourse.stage(0).returnLocation(player));
+            if (run.flightRestricted) {
+                if (player.isFlying()) player.setFlying(false);
+                if (player.getAllowFlight()) player.setAllowFlight(false);
+            }
+            if (player.isGliding()) player.setGliding(false);
+            ColorUtil.sound(player, "entity.experience_orb.pickup", 1f, 1.35f);
+            player.sendMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fСтарт: &e32 площадки&f и &e3 золотых чекпоинта&f! Выйти: &f/parkour leave"));
+            return;
+        }
+        if (run == null) return; // the finish can never grant an unstarted run
+        if (stage != run.stage + 1) {
+            if (stage > run.stage + 1 && now - run.lastWarning >= 2000L) {
+                run.lastWarning = now;
+                player.sendMessage(ColorUtil.c("&#FF9100🏃 Сначала пройдите чекпоинт №" + (run.stage + 1) + " по порядку!"));
+            }
+            return;
+        }
+        if (stage < 4) {
+            run.stage = stage;
+            plugin.getStore().setParkourCp(player, parkourCourse.stage(stage).returnLocation(player));
+            ColorUtil.sound(player, "entity.experience_orb.pickup", 1f, 1.35f);
+            String elapsed = String.format(java.util.Locale.US, "%.1fс", Double.valueOf((now - run.startedAt) / 1000.0));
+            player.sendMessage(ColorUtil.c("&#40C4FF🏃 Чекпоинт " + stage + "/3 сохранён &8(" + elapsed
+                    + ")&f! При падении вы вернётесь сюда. &7/parkour leave"));
+            if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
+            return;
+        }
+        if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
+        String time = String.format(java.util.Locale.US, "%.1f сек.", Double.valueOf((now - run.startedAt) / 1000.0));
+        endParkour(player);
+        long ready = plugin.getStore().getParkourRewardReadyAt(player.getName());
+        if (now >= ready) {
+            plugin.getStore().setParkourRewardReadyAt(player.getName(), now + 900_000L);
+            plugin.getStore().addCoins(player.getName(), 25000);
+            plugin.getStore().addRelics(player.getName(), 15);
+            plugin.getStore().addSnowflakes(player.getName(), 15);
+            plugin.getStore().unlockTitle(player.getName(), "parkour_pro");
+            plugin.getStore().save();
+            ColorUtil.spawnFirework(player.getLocation());
+            Bukkit.broadcastMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fИгрок &#00E676" + player.getName()
+                    + " &fпрошёл Небесный Паркур (32 площадки) за &#FFD740" + time
+                    + " &fи получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
+        } else {
+            player.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы прошли паркур за &#FFD740" + time
+                    + "&#40C4FF! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
+        }
+        Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+        if (arrival != null) player.teleport(arrival);
+    }
+
     // ================= КЛИКИ ПО ШАЛКЕР-КЕЙСАМ, КАЗИНО, ПАРКУРУ И КАСТОМНЫМ ВЕЩАМ РВ =================
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         Player p = e.getPlayer();
         if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
 
-        // 1. Нажимные плиты Небесного Паркура v5.8 (32 острова: Старт Y=102, Чекпоинты #1/#2/#3, Финиш Y=130!)
-        if (e.getAction() == Action.PHYSICAL && e.getClickedBlock() != null
-                && plugin.getSpawnEngine().isInSpawnWorld(e.getClickedBlock().getLocation())) {
-            Block pb = e.getClickedBlock();
-            if (pb.getY() >= 101) {
-                long now = System.currentTimeMillis();
-                Long last = parkourPlateCd.get(p.getUniqueId());
-                if (last != null && now - last.longValue() < 1500L) return;
-                parkourPlateCd.put(p.getUniqueId(), Long.valueOf(now));
-                if (pb.getType() == Material.LIGHT_WEIGHTED_PRESSURE_PLATE) {
-                    Location cpLoc = pb.getLocation().add(0.5, 0.2, 0.5);
-                    cpLoc.setYaw(p.getLocation().getYaw());
-                    plugin.getStore().setParkourCp(p, cpLoc);
-                    if (p.isFlying()) p.setFlying(false);
-                    if (p.getGameMode() == GameMode.SURVIVAL) p.setAllowFlight(false);
-                    ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.35f);
-                    if (pb.getY() <= 104) {
-                        parkourRunStartMs.put(p.getUniqueId(), Long.valueOf(now));
-                        p.sendMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fСтарт забега на &e32 острова&f! Полёт отключён. Выйти: &f/parkour leave"));
-                    } else {
-                        Long stMs = parkourRunStartMs.get(p.getUniqueId());
-                        String elapsed = stMs != null ? (" &8(" + String.format(java.util.Locale.US, "%.1fс", Double.valueOf((now - stMs.longValue()) / 1000.0)) + ")") : "";
-                        p.sendMessage(ColorUtil.c("&#40C4FF🏃 Чекпоинт сохранён!" + elapsed + " &7При падении вы вернётесь сюда автоматически!"));
-                        if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
-                    }
-                } else if (pb.getType() == Material.HEAVY_WEIGHTED_PRESSURE_PLATE && pb.getY() >= 126) {
-                    if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
-                    plugin.getStore().setParkourCp(p, null);
-                    Long stMs = parkourRunStartMs.remove(p.getUniqueId());
-                    String timeStr = stMs != null ? String.format(java.util.Locale.US, "%.1f сек.", Double.valueOf((now - stMs.longValue()) / 1000.0)) : "рекордное время";
-                    long ready = plugin.getStore().getParkourRewardReadyAt(p.getName());
-                    if (now >= ready) {
-                        plugin.getStore().setParkourRewardReadyAt(p.getName(), now + 900_000L);
-                        plugin.getStore().addCoins(p.getName(), 25000);
-                        plugin.getStore().addRelics(p.getName(), 15);
-                        plugin.getStore().addSnowflakes(p.getName(), 15);
-                        plugin.getStore().unlockTitle(p.getName(), "parkour_pro");
-                        plugin.getStore().save();
-                        ColorUtil.spawnFirework(p.getLocation());
-                        Bukkit.broadcastMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fИгрок &#00E676" + p.getName()
-                                + " &fпрошёл Небесный Паркур (32 острова) за &#FFD740" + timeStr
-                                + " &fи получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
-                    } else {
-                        p.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы прошли паркур за &#FFD740" + timeStr + "&#40C4FF! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
-                    }
-                    Location arrival = plugin.getSpawnEngine().getSpawnArrival();
-                    if (arrival != null) p.teleport(arrival);
-                }
-            }
-            return;
-        }
+        // The course is handled separately after other protection listeners have
+        // had a chance to cancel a physical plate interaction.
+        if (e.getAction() == Action.PHYSICAL) return;
 
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
 

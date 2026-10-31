@@ -164,7 +164,7 @@ def main():
     p.add_argument('--api-classpath', required=True); p.add_argument('--node-modules', required=True, type=Path)
     p.add_argument('--core', type=Path, default=ROOT/'KingGriefCore.jar')
     p.add_argument('--kingac', type=Path); p.add_argument('--kingclear', type=Path)
-    p.add_argument('--template', type=Path, default=ROOT/'server/plugins/KingGriefCore/spawn-v73-template.zip')
+    p.add_argument('--template', type=Path, default=ROOT/'server/plugins/KingGriefCore/spawn-v74-template.zip')
     p.add_argument('--old-template', type=Path, default=ROOT/'server/plugins/KingGriefCore/spawn-v71-template.zip')
     p.add_argument('--java', default='java'); p.add_argument('--javac', default='javac'); p.add_argument('--node', default='node')
     scenarios = ('fresh', 'legacy', 'legacy-repeat', 'stale-done', 'collision', 'command-conflict', 'main', 'damaged', 'damaged-selected', 'incomplete', 'symlink', 'preexisting-good', 'old-prepared', 'old-selected', 'old-main', 'selected-conflict')

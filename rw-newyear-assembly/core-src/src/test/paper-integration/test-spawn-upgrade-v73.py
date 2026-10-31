@@ -11,7 +11,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',required=True,type=Path);p.add_argument('--vanilla',required=True,type=Path)
  p.add_argument('--api-classpath',required=True);p.add_argument('--java',default='java');p.add_argument('--javac',default='javac')
- p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar')
+ p.add_argument('--core',type=Path,default=ROOT.parent/'kinggrief/public/KingGriefCore-v7.3.0.jar')
  p.add_argument('--old-core',type=Path,default=ROOT.parent/'kinggrief/public/KingGriefCore-v7.2.2.jar')
  p.add_argument('--old-template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v71-template.zip')
  p.add_argument('--accept-eula',action='store_true');a=p.parse_args()

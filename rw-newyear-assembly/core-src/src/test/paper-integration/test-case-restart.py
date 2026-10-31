@@ -44,12 +44,12 @@ def boot(a,server,port,mode):
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--paper',type=Path,required=True);p.add_argument('--vanilla',type=Path,required=True)
  p.add_argument('--api-classpath',required=True);p.add_argument('--node-modules',type=Path,required=True);p.add_argument('--java',default='java');p.add_argument('--javac',default='javac');p.add_argument('--node',default='node');p.add_argument('--accept-eula',action='store_true')
- p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar');p.add_argument('--template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v73-template.zip');a=p.parse_args()
+ p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar');p.add_argument('--template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v74-template.zip');a=p.parse_args()
  if not a.accept_eula:p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')
  cache=h.validate_paper_and_vanilla(a.paper,a.vanilla);port=h.available_port()
  with tempfile.TemporaryDirectory(prefix='kg-case-restart-') as tmp:
   root=Path(tmp);server=root/'server';data=server/'plugins/KingGriefCore';data.mkdir(parents=True);(server/'cache').mkdir()
-  shutil.copy2(a.vanilla,server/'cache'/cache);shutil.copy2(a.core,server/'plugins/KingGriefCore.jar');shutil.copy2(a.template,data/'spawn-v73-template.zip')
+  shutil.copy2(a.vanilla,server/'cache'/cache);shutil.copy2(a.core,server/'plugins/KingGriefCore.jar');shutil.copy2(a.template,data/'spawn-v74-template.zip')
   (server/'eula.txt').write_text('eula=true\n');(data/'config.yml').write_text('enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n')
   (server/'server.properties').write_text(f'online-mode=false\nserver-ip=127.0.0.1\nserver-port={port}\nview-distance=2\nsimulation-distance=3\nallow-nether=false\nspawn-protection=0\nlevel-type=minecraft:flat\ngenerate-structures=false\nmax-players=1\n')
   classes=root/'classes';classes.mkdir();subprocess.run([a.javac,'-encoding','UTF-8','-classpath',str(a.core.resolve())+os.pathsep+a.api_classpath,'-d',str(classes),str(HERE/'CaseRestartProbe.java')],check=True)
