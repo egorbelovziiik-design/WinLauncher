@@ -154,7 +154,26 @@ jobs:
           cp staged/FunTimeAuctionHelper-*.jar FunTimeAuctionHelper-RELEASE/
           ls -l FunTimeAuctionHelper-RELEASE
 
-      - name: 6. Commit the verified JARs into FunTimeAuctionHelper-RELEASE
+      - name: 6. Publish the GitHub Release with the three verified JARs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/9916b374-winlauncher'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag=funtime-auction-helper-v1.0.0
+          if ! gh release view "$tag" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            gh release create "$tag" --repo "${{ github.repository }}" \
+              --title "FunTime Auction Helper Ultra Pro 1.0.0 (Fabric 1.16.5 / 1.21.4 / 1.21.11)" \
+              --notes-file FunTimeAuctionHelper-RELEASE/RELEASE_NOTES.md \
+              --target "${GITHUB_SHA}"
+          fi
+          gh release upload "$tag" --repo "${{ github.repository }}" --clobber \
+            FunTimeAuctionHelper-RELEASE/FunTimeAuctionHelper-1.16.5.jar \
+            FunTimeAuctionHelper-RELEASE/FunTimeAuctionHelper-1.21.4.jar \
+            FunTimeAuctionHelper-RELEASE/FunTimeAuctionHelper-1.21.11.jar
+          gh release view "$tag" --repo "${{ github.repository }}" --json url,assets -q '.url, (.assets[] | "\(.name) \(.size) bytes")'
+
+      - name: 6b. Commit the verified JARs into FunTimeAuctionHelper-RELEASE
         if: github.event_name == 'push' && github.ref == 'refs/heads/arena/9916b374-winlauncher'
         run: |
           set -euo pipefail
