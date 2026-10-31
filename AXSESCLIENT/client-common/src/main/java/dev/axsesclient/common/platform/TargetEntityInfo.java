@@ -132,6 +132,6 @@ public final class TargetEntityInfo {
     public double getMaxZ() { return maxZ; }
     public double getBoxWidth() { return Math.max(0.1, maxX - minX); }
     public double getBoxHeight() { return Math.max(0.1, maxY - minY); }
-    public boolean hasLineOfSight() { return lineOfSight; } }
+    public boolean hasLineOfSight() { return lineOfSight; }
     public String getHeldItemName() { return heldItemName; }
 }
