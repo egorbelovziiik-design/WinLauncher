@@ -2228,6 +2228,7 @@ public final class GameplayListener implements Listener {
 
     /** Clear only this player's transient run and restore flight we disabled. */
     void endParkour(Player player) {
+        if (plugin.getParkourRecords() != null) plugin.getParkourRecords().end(player);
         ParkourRun run = parkourRuns.remove(player.getUniqueId());
         plugin.getStore().setParkourCp(player, null);
         if (run == null || !run.flightRestricted || player.getGameMode() != run.startingMode) return;
@@ -2270,6 +2271,7 @@ public final class GameplayListener implements Listener {
             // Re-entering the starting plate after a fall must not restart the timer.
             if (run != null) return;
             run = new ParkourRun(player, now);
+            if (plugin.getParkourRecords() != null) plugin.getParkourRecords().begin(player);
             parkourRuns.put(player.getUniqueId(), run);
             plugin.getStore().setParkourCp(player, parkourCourse.stage(0).returnLocation(player));
             if (run.flightRestricted) {
@@ -2301,6 +2303,7 @@ public final class GameplayListener implements Listener {
         }
         if (plugin.getOwnerGiveaway() != null) plugin.getOwnerGiveaway().notifyParkourProgress();
         String time = String.format(java.util.Locale.US, "%.1f сек.", Double.valueOf((now - run.startedAt) / 1000.0));
+        if (plugin.getParkourRecords() != null) plugin.getParkourRecords().finish(player);
         endParkour(player);
         long ready = plugin.getStore().getParkourRewardReadyAt(player.getName());
         if (now >= ready) {

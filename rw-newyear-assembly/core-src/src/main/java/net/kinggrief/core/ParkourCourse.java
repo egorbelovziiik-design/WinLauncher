@@ -19,10 +19,15 @@ final class ParkourCourse {
     private static final String[] STAGE_KINDS = {"start", "checkpoint", "checkpoint", "checkpoint", "finish"};
 
     static final class Pad {
-        final int x, y, z;
+        final int x, y, z, half;
         final String kind;
-        Pad(int x, int y, int z, String kind) {
-            this.x = x; this.y = y; this.z = z; this.kind = kind;
+        Pad(int x, int y, int z, int half, String kind) {
+            this.x = x; this.y = y; this.z = z; this.half = half; this.kind = kind;
+        }
+        boolean isNearSurface(Location loc) {
+            return Math.abs(loc.getX() - (x + .5)) <= half + .6
+                    && Math.abs(loc.getZ() - (z + .5)) <= half + .6
+                    && Math.abs(loc.getY() - (y + 1.0)) <= .35;
         }
         Location returnLocation(Player player) {
             Location facing = player.getLocation();
@@ -39,8 +44,11 @@ final class ParkourCourse {
     }
 
     private final Pad[] stages;
-    private ParkourCourse(Pad[] stages) { this.stages = stages; }
+    private final Pad[] route;
+    private ParkourCourse(Pad[] stages, Pad[] route) { this.stages = stages; this.route = route; }
     Pad stage(int number) { return stages[number]; }
+    Pad route(int number) { return route[number]; }
+    int routeSize() { return route.length; }
     int findStage(Block plate) {
         for (int i = 0; i < stages.length; i++) if (stages[i].containsPlate(plate)) return i;
         return -1;
@@ -50,6 +58,7 @@ final class ParkourCourse {
         try (InputStream input = plugin.getResource("parkour_v74.csv")) {
             if (input == null) throw new IOException("missing parkour_v74.csv");
             List<Pad> selected = new ArrayList<Pad>();
+            List<Pad> route = new ArrayList<Pad>();
             int row = 0;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.US_ASCII))) {
                 String line;
@@ -67,16 +76,17 @@ final class ParkourCourse {
                     if (isStage) {
                         if (half != 2 || !STAGE_KINDS[selected.size()].equals(kind))
                             throw new IOException("invalid parkour checkpoint " + row);
-                        selected.add(new Pad(x, y, z, kind));
+                        selected.add(new Pad(x, y, z, half, kind));
                     } else if (half != 1 || !"step".equals(kind)) {
                         throw new IOException("invalid parkour platform " + row);
                     }
+                    route.add(new Pad(x, y, z, half, kind));
                     row++;
                 }
             }
             if (row != 32 || selected.size() != STAGE_INDEXES.length)
                 throw new IOException("incomplete parkour layout");
-            return new ParkourCourse(selected.toArray(new Pad[selected.size()]));
+            return new ParkourCourse(selected.toArray(new Pad[selected.size()]), route.toArray(new Pad[route.size()]));
         } catch (IOException | IllegalArgumentException error) {
             // A missing/broken layout must never turn arbitrary pressure plates
             // into checkpoints or free rewards.

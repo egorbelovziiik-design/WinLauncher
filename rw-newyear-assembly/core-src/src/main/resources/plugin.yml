@@ -65,7 +65,7 @@ commands:
   pvp:
     description: Gladiator PvP Arena
   parkour:
-    description: 40-Step Possible Sky Parkour
+    description: Sky parkour, rankings and private ghost replay
   wheel:
     description: Fortune Wheel 2026 (/wheel)
   top:
