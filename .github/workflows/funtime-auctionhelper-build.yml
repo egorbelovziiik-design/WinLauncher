@@ -133,7 +133,7 @@ jobs:
             # core must be inside every jar
             unzip -l "$jar" | grep -q "dev/funtime/auctionhelper/HelperCore.class"
             # the version specific entrypoint must be inside as well
-            entry=$(jq -r '.entrypoints.client[0].value' /tmp/fmj.json | tr '.' '/')
+            entry=$(jq -r '.entrypoints.client[0] | if type == "object" then .value else . end' /tmp/fmj.json | tr '.' '/')
             unzip -l "$jar" | grep -q "${entry}.class" || { echo "::error title=missing entrypoint::$entry"; exit 1; }
             # bytecode level: Java 8 (52) for 1.16.5, Java 21 (65) for 1.21.x
             expected=65
