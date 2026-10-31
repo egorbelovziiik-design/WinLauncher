@@ -65,7 +65,8 @@ public final class KingGriefCore extends JavaPlugin {
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
-        if (VoidSpawnWorldGenerator.SPAWN_WORLD_NAME.equalsIgnoreCase(worldName)) {
+        if (spawnEngine != null && spawnEngine.isSpawnActive()
+                && VoidSpawnWorldGenerator.getSpawnWorldName().equalsIgnoreCase(worldName)) {
             return new VoidSpawnWorldGenerator();
         }
         return null;
@@ -193,7 +194,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.2.1 — SAFER SHOP, SPAWN & PROMO");
+        getLogger().info(" KINGGRIEF CORE v7.2.2 — PREPARED SPAWN & SAFE WORLDS");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -699,8 +700,10 @@ public final class KingGriefCore extends JavaPlugin {
         if ("buyorder".equals(c)) return buyOrders.handleCommand(p, args);
 
         // ================= NAVIGATION & SEPARATE WORLDS (/rtp ONLY TO SURVIVAL WORLD!) =================
-        if ("spawn".equals(c)) {
-            Location destination = spawnEngine.getSpawnArrival();
+        if ("spawn".equals(c) || "kgspawn".equals(c)) {
+            // /spawn respects the owner's saved point; /kgspawn opens the built-in village.
+            Location destination = "kgspawn".equals(c)
+                    ? spawnEngine.getPreparedSpawnArrival() : spawnEngine.getSpawnArrival();
             if (destination == null) {
                 p.sendMessage(ColorUtil.c("&cТочка спавна сейчас недоступна. Сообщите администрации или повторите позже."));
                 return true;
@@ -713,9 +716,9 @@ public final class KingGriefCore extends JavaPlugin {
             store.setBack(p, previous);
             store.setParkourCp(p, null);
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c(spawnEngine.isSpawnActive()
+            p.sendMessage(ColorUtil.c(spawnEngine.isInSpawnWorld(destination)
                     ? "&#80D8FF❄ Вы в отдельном мире Яркого Зимнего Спавна! Вход в мир выживания: &#00E676/rtp"
-                    : "&#80D8FF❄ Вы телепортированы на точку спавна мира."));
+                    : "&#80D8FF❄ Вы телепортированы на сохранённую точку. Готовый спавн: &f/kgspawn"));
             return true;
         }
         if ("rtp".equals(c)) {

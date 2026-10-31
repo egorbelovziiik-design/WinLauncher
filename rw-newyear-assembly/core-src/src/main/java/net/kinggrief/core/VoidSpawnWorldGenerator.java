@@ -18,6 +18,15 @@ import java.util.Random;
 public final class VoidSpawnWorldGenerator extends ChunkGenerator {
 
     public static final String SPAWN_WORLD_NAME = "spawn_world";
+    private static volatile String activeSpawnWorldName = SPAWN_WORLD_NAME;
+
+    public static String getSpawnWorldName() { return activeSpawnWorldName; }
+    static void setSpawnWorldName(String name) {
+        if (name == null || !(SPAWN_WORLD_NAME.equals(name)
+                || name.matches("kinggrief_spawn(?:_[2-9]|_[1-9][0-9]{1,3})?")))
+            throw new IllegalArgumentException("Invalid prepared spawn world name");
+        activeSpawnWorldName = name;
+    }
 
     @Override
     public ChunkData generateChunkData(World world, Random random, int chunkX, int chunkZ, BiomeGrid biome) {
@@ -71,9 +80,9 @@ public final class VoidSpawnWorldGenerator extends ChunkGenerator {
     }
 
     public static World getOrCreateSpawnWorld() {
-        World w = Bukkit.getWorld(SPAWN_WORLD_NAME);
+        World w = Bukkit.getWorld(getSpawnWorldName());
         if (w == null) {
-            WorldCreator wc = new WorldCreator(SPAWN_WORLD_NAME);
+            WorldCreator wc = new WorldCreator(getSpawnWorldName());
             wc.environment(World.Environment.NORMAL);
             wc.type(WorldType.FLAT);
             wc.generator(new VoidSpawnWorldGenerator());
@@ -112,7 +121,7 @@ public final class VoidSpawnWorldGenerator extends ChunkGenerator {
     public static World getSurvivalWorld() {
         for (World w : Bukkit.getWorlds()) {
             if (w.getEnvironment() == World.Environment.NORMAL
-                    && !w.getName().equalsIgnoreCase(SPAWN_WORLD_NAME)) {
+                    && !w.getName().equalsIgnoreCase(getSpawnWorldName())) {
                 silenceCommandSpam(w);
                 return w;
             }

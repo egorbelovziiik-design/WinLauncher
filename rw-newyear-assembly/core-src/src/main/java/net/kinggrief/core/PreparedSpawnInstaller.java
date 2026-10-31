@@ -34,6 +34,10 @@ import java.util.zip.ZipInputStream;
 final class PreparedSpawnInstaller {
     static final String TEMPLATE_FILE = "spawn-v71-template.zip";
     static final String DONE_FILE = ".spawn-v70-template-installed";
+    private static final String FALLBACK_DONE_FILE = ".spawn-v722-template-installed";
+    private static final String ACTIVE_FILE = ".spawn-v722-active-world";
+    private static final String OWNER_FILE = ".kinggrief_spawn_owner";
+    private static String activeOwnerToken;
     static final String PENDING_FILE = ".spawn-v72-rebuild-pending";
     private static final String JOURNAL_FILE = ".spawn-v72-swap-journal";
     private static final String EMBEDDED_TEMPLATE = "spawn_v71_template.zip";
@@ -51,7 +55,7 @@ final class PreparedSpawnInstaller {
     /** Validate the prepared world off-thread, then ask for a full restart.
      * Never clear millions of blocks or generate hundreds of chunks in a tick. */
     static void requestRebuild(final KingGriefCore plugin, final CommandSender sender) {
-        World world = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        World world = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
         if (world != null && !Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(world)) {
             sender.sendMessage(ColorUtil.c("&cspawn_world является основным миром; автоматически заменять его нельзя."));
             return;
@@ -119,12 +123,14 @@ final class PreparedSpawnInstaller {
 
     static Result initialize(KingGriefCore plugin, SpawnEngine engine) {
         try {
+            loadActiveSelection(plugin);
             if (recoverInterruptedSwap(plugin)) {
                 plugin.getLogger().severe("[SpawnInstall] Interrupted swap recovered. Server stopping; inspect the backup and restart once more.");
                 return Result.STOP_SERVER;
             }
+            selectIsolatedWorldIfNeeded(plugin);
         } catch (Exception error) {
-            plugin.getLogger().severe("[SpawnInstall] Could not safely recover interrupted swap: " + error.getMessage());
+            plugin.getLogger().severe("[SpawnInstall] Could not safely select/recover the spawn world: " + error.getMessage());
             return Result.STOP_SERVER;
         }
         Swap swap;
@@ -167,6 +173,123 @@ final class PreparedSpawnInstaller {
         return Result.STOP_SERVER;
     }
 
+    /** Restore the selected isolated world before consulting the swap journal. */
+    private static void loadActiveSelection(KingGriefCore plugin) throws IOException {
+        VoidSpawnWorldGenerator.setSpawnWorldName(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        activeOwnerToken = null;
+        Path selection = plugin.getDataFolder().toPath().resolve(ACTIVE_FILE);
+        if (!Files.exists(selection, LinkOption.NOFOLLOW_LINKS)) return;
+        if (!Files.isRegularFile(selection, LinkOption.NOFOLLOW_LINKS) || Files.size(selection) > 160)
+            throw new IOException("Unsafe active spawn selection");
+        String[] parts = new String(Files.readAllBytes(selection), StandardCharsets.US_ASCII).split("\n", -1);
+        if (parts.length != 4 || !"v1".equals(parts[0]) || !isFallbackName(parts[1])
+                || !isOwnerToken(parts[2]) || !parts[3].isEmpty())
+            throw new IOException("Invalid active spawn selection; existing worlds were not changed");
+        VoidSpawnWorldGenerator.setSpawnWorldName(parts[1]);
+        activeOwnerToken = parts[2];
+    }
+
+    private static boolean isFallbackName(String name) {
+        return name != null && name.matches("kinggrief_spawn(?:_[2-9]|_[1-9][0-9]{1,3})?");
+    }
+
+    private static boolean isOwnerToken(String token) {
+        return token != null && token.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+    }
+
+    /** An old unknown/empty/linked world is never loaded, decorated or renamed. */
+    private static void selectIsolatedWorldIfNeeded(KingGriefCore plugin) throws IOException {
+        Path data = plugin.getDataFolder().toPath();
+        // An operator queued an explicit rebuild: honor its original destination.
+        if (Files.exists(data.resolve(PENDING_FILE), LinkOption.NOFOLLOW_LINKS)) return;
+        Path container = Bukkit.getWorldContainer().getCanonicalFile().toPath();
+        String previousName = VoidSpawnWorldGenerator.getSpawnWorldName();
+        Path previous = container.resolve(previousName);
+        if (activeOwnerToken != null) {
+            if (!Files.exists(previous, LinkOption.NOFOLLOW_LINKS)) return;
+            verifyFallbackOwnership(previous);
+            if (looksLikePreparedWorld(previous)) return;
+        } else {
+            boolean occupied = Files.exists(previous, LinkOption.NOFOLLOW_LINKS) || Bukkit.getWorld(previousName) != null;
+            if (!occupied || looksLikePreparedWorld(previous)) return;
+        }
+        for (int i = 1; i <= 9999; i++) {
+            String name = "kinggrief_spawn" + (i == 1 ? "" : "_" + i);
+            Path target = container.resolve(name);
+            if (Files.exists(target, LinkOption.NOFOLLOW_LINKS) || Bukkit.getWorld(name) != null) continue;
+            String token = UUID.randomUUID().toString();
+            Path selection = data.resolve(ACTIVE_FILE);
+            String value = "v1\n" + name + "\n" + token + "\n";
+            if (activeOwnerToken == null) writeAtomicMarker(data, selection, value);
+            else replaceActiveSelection(data, selection, "v1\n" + previousName + "\n" + activeOwnerToken + "\n", value);
+            VoidSpawnWorldGenerator.setSpawnWorldName(name);
+            activeOwnerToken = token;
+            plugin.getLogger().warning("[SpawnInstall] Existing " + previousName + " was preserved unchanged. "
+                    + "Installing the prepared spawn separately as " + name + "; use /kgspawn.");
+            return;
+        }
+        throw new IOException("No free isolated spawn world name; no existing world was changed");
+    }
+
+    private static void replaceActiveSelection(Path data, Path marker, String expected, String replacement) throws IOException {
+        if (!Files.isRegularFile(marker, LinkOption.NOFOLLOW_LINKS) || Files.size(marker) > 160
+                || !expected.equals(new String(Files.readAllBytes(marker), StandardCharsets.US_ASCII)))
+            throw new IOException("Active selection changed while choosing a safe spawn world");
+        Path temp = Files.createTempFile(data, ".spawn-marker-", ".tmp");
+        try {
+            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(temp,
+                    java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(replacement.getBytes(StandardCharsets.US_ASCII));
+                while (buffer.hasRemaining()) channel.write(buffer);
+                channel.force(true);
+            }
+            Files.move(temp, marker, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } finally { Files.deleteIfExists(temp); }
+    }
+
+    /** Cheap disk-header checks: a marker alone does not prove spawn chunks exist. */
+    private static boolean looksLikePreparedWorld(Path world) {
+        try {
+            Path regionDir = world.resolve("region");
+            Path region = regionDir.resolve("r.0.0.mca");
+            if (!Files.isDirectory(world, LinkOption.NOFOLLOW_LINKS)
+                    || !Files.isRegularFile(world.resolve(SPAWN_MARKER), LinkOption.NOFOLLOW_LINKS)
+                    || !Files.isRegularFile(world.resolve("level.dat"), LinkOption.NOFOLLOW_LINKS)
+                    || !Files.isDirectory(regionDir, LinkOption.NOFOLLOW_LINKS)
+                    || !Files.isRegularFile(region, LinkOption.NOFOLLOW_LINKS)) return false;
+            long size = Files.size(region);
+            if (size < 8192) return false;
+            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(region, java.nio.file.StandardOpenOption.READ)) {
+                for (int index : new int[]{0, 96}) {
+                    java.nio.ByteBuffer entry = java.nio.ByteBuffer.allocate(4);
+                    channel.position(index * 4L);
+                    while (entry.hasRemaining()) if (channel.read(entry) <= 0) return false;
+                    entry.flip();
+                    int location = entry.getInt();
+                    long offset = (location >>> 8) & 0xFFFFFFL;
+                    int sectors = location & 0xFF;
+                    if (offset < 2 || sectors == 0 || (offset + sectors) * 4096L > size) return false;
+                }
+            }
+            return true;
+        } catch (IOException | SecurityException ignored) {
+            return false;
+        }
+    }
+
+    private static Path doneMarker(Path data) {
+        return data.resolve(activeOwnerToken == null ? DONE_FILE : FALLBACK_DONE_FILE);
+    }
+
+    private static void verifyFallbackOwnership(Path world) throws IOException {
+        if (activeOwnerToken == null) return;
+        Path owner = world.resolve(OWNER_FILE);
+        if (!Files.isDirectory(world, LinkOption.NOFOLLOW_LINKS)
+                || !Files.isRegularFile(owner, LinkOption.NOFOLLOW_LINKS) || Files.size(owner) > 80
+                || !activeOwnerToken.equals(new String(Files.readAllBytes(owner), StandardCharsets.US_ASCII).trim()))
+            throw new IOException("Selected spawn path is not the previously installed world: " + world);
+    }
+
     private static Swap installIfRequested(KingGriefCore plugin) throws IOException {
         Path data = plugin.getDataFolder().toPath();
         Path template = data.resolve(TEMPLATE_FILE);
@@ -175,12 +298,13 @@ final class PreparedSpawnInstaller {
         if (requested) validatePending(pending);
 
         Path container = Bukkit.getWorldContainer().getCanonicalFile().toPath();
-        Path target = container.resolve(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
-        Path done = data.resolve(DONE_FILE);
+        Path target = container.resolve(VoidSpawnWorldGenerator.getSpawnWorldName());
+        Path done = doneMarker(data);
         Path journal = data.resolve(JOURNAL_FILE);
         if (Files.isSymbolicLink(target)) throw new IOException("spawn_world is a symbolic link");
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS) && !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS))
             throw new IOException("spawn_world is not a directory");
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) verifyFallbackOwnership(target);
         boolean hadDone = Files.exists(done, LinkOption.NOFOLLOW_LINKS);
         if (hadDone) {
             validateDone(done);
@@ -205,7 +329,11 @@ final class PreparedSpawnInstaller {
         boolean oldMoved = false, newMoved = false, journalWritten = false;
         try {
             extractVerifiedTemplate(bytes, stage);
-            World loaded = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+            if (activeOwnerToken != null) {
+                Files.write(stage.resolve(OWNER_FILE), (activeOwnerToken + "\n").getBytes(StandardCharsets.US_ASCII),
+                        java.nio.file.StandardOpenOption.CREATE_NEW, java.nio.file.StandardOpenOption.WRITE);
+            }
+            World loaded = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
             if (loaded != null) {
                 if (!loaded.getWorldFolder().getCanonicalFile().toPath().equals(target))
                     throw new IOException("Loaded spawn world is not in the expected directory");
@@ -413,8 +541,11 @@ final class PreparedSpawnInstaller {
 
     private static void writeSwapJournal(Path data, Path journal, Path stage, Path backup,
                                          boolean hadDone, boolean requested) throws IOException {
-        String value = "v1\n" + stage.getFileName() + "\n" + (backup == null ? "-" : backup.getFileName())
-                + "\n" + (hadDone ? "1" : "0") + "\n" + (requested ? "1" : "0") + "\n";
+        // Bind recovery to the exact selected world and ownership token.
+        String value = "v2\n" + stage.getFileName() + "\n" + (backup == null ? "-" : backup.getFileName())
+                + "\n" + (hadDone ? "1" : "0") + "\n" + (requested ? "1" : "0")
+                + "\n" + VoidSpawnWorldGenerator.getSpawnWorldName() + "\n"
+                + (activeOwnerToken == null ? "-" : activeOwnerToken) + "\n";
         writeAtomicMarker(data, journal, value);
     }
 
@@ -426,26 +557,37 @@ final class PreparedSpawnInstaller {
         if (!Files.isRegularFile(journal, LinkOption.NOFOLLOW_LINKS) || Files.size(journal) > 512)
             throw new IOException("Unsafe swap journal");
         String[] parts = new String(Files.readAllBytes(journal), StandardCharsets.US_ASCII).split("\n", -1);
-        if (parts.length != 6 || !"v1".equals(parts[0]) || !parts[1].matches("\\.kinggrief-spawn-staged-[A-Za-z0-9_-]+")
+        boolean legacy = parts.length == 6 && "v1".equals(parts[0]) && parts[5].isEmpty();
+        boolean current = parts.length == 8 && "v2".equals(parts[0]) && parts[7].isEmpty();
+        if ((!legacy && !current) || !parts[1].matches("\\.kinggrief-spawn-staged-[A-Za-z0-9_-]+")
                 || !("-".equals(parts[2]) || parts[2].matches("spawn_world_backup_[0-9]+_[a-f0-9]{8}"))
                 || !("0".equals(parts[3]) || "1".equals(parts[3]))
-                || !("0".equals(parts[4]) || "1".equals(parts[4])) || !parts[5].isEmpty())
+                || !("0".equals(parts[4]) || "1".equals(parts[4])))
             throw new IOException("Invalid swap journal; manual recovery required");
+        String journalWorld = legacy ? VoidSpawnWorldGenerator.SPAWN_WORLD_NAME : parts[5];
+        String journalToken = legacy ? "-" : parts[6];
+        if (!VoidSpawnWorldGenerator.getSpawnWorldName().equals(journalWorld)
+                || !(activeOwnerToken == null ? "-".equals(journalToken) : activeOwnerToken.equals(journalToken)))
+            throw new IOException("Swap journal and active world selection differ; refusing to move any world");
         boolean hadDone = "1".equals(parts[3]), requested = "1".equals(parts[4]);
         Path container = Bukkit.getWorldContainer().getCanonicalFile().toPath();
-        Path target = container.resolve(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        Path target = container.resolve(VoidSpawnWorldGenerator.getSpawnWorldName());
         Path stage = container.resolve(parts[1]);
         Path backup = "-".equals(parts[2]) ? null : container.resolve(parts[2]);
         if (Files.isSymbolicLink(target) || Files.isSymbolicLink(stage) || (backup != null && Files.isSymbolicLink(backup)))
             throw new IOException("A recovery path is a symbolic link");
-        World loaded = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        boolean targetExists = Files.exists(target, LinkOption.NOFOLLOW_LINKS);
+        boolean stageExists = Files.exists(stage, LinkOption.NOFOLLOW_LINKS);
+        if (targetExists) verifyFallbackOwnership(target);
+        if (stageExists) verifyFallbackOwnership(stage);
+        if (backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS)) verifyFallbackOwnership(backup);
+        World loaded = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
         if (loaded != null) {
-            if ((!Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(loaded))
+            if (!loaded.getWorldFolder().getCanonicalFile().toPath().equals(target)
+                    || (!Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(loaded))
                     || !loaded.getPlayers().isEmpty() || !Bukkit.unloadWorld(loaded, false))
                 throw new IOException("Could not unload spawn_world for recovery");
         }
-        boolean targetExists = Files.exists(target, LinkOption.NOFOLLOW_LINKS);
-        boolean stageExists = Files.exists(stage, LinkOption.NOFOLLOW_LINKS);
         if (backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS)) {
             validateExistingWorld(backup);
             if (targetExists) {
@@ -467,7 +609,7 @@ final class PreparedSpawnInstaller {
             Files.move(target, failed);
             plugin.getLogger().warning("[SpawnInstall] Interrupted fresh world quarantined at: " + failed);
         }
-        Path done = data.resolve(DONE_FILE);
+        Path done = doneMarker(data);
         if (hadDone) {
             if (Files.exists(done, LinkOption.NOFOLLOW_LINKS)) validateDone(done);
             else writeDoneMarker(data, done);
@@ -482,7 +624,9 @@ final class PreparedSpawnInstaller {
 
     private static boolean rollbackAfterLoad(KingGriefCore plugin, Swap swap) {
         try {
-            World world = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+            if (Files.exists(swap.target, LinkOption.NOFOLLOW_LINKS)) verifyFallbackOwnership(swap.target);
+            if (swap.backup != null && Files.exists(swap.backup, LinkOption.NOFOLLOW_LINKS)) verifyFallbackOwnership(swap.backup);
+            World world = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
             if (world != null && (!world.getPlayers().isEmpty() || !Bukkit.unloadWorld(world, false)))
                 throw new IOException("Could not unload the failed replacement");
             if (Files.exists(swap.target, LinkOption.NOFOLLOW_LINKS)) {

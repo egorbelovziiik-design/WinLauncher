@@ -385,7 +385,7 @@ public final class BossEventManager {
         World world = null;
         for (World candidate : Bukkit.getWorlds()) {
             if (candidate.getEnvironment() == World.Environment.NORMAL
-                    && !VoidSpawnWorldGenerator.SPAWN_WORLD_NAME.equalsIgnoreCase(candidate.getName())) {
+                    && !VoidSpawnWorldGenerator.getSpawnWorldName().equalsIgnoreCase(candidate.getName())) {
                 world = candidate;
                 break;
             }

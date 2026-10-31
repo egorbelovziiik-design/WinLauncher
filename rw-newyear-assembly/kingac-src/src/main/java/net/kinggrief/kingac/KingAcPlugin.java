@@ -472,7 +472,48 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
                 + "&7Сайт сервера: &#FFD740https://kinggrief.vercel.app");
     }
 
+    private Plugin cachedSpawnCore;
+    private Method cachedSpawnEngineGetter;
+    private Class<?> cachedSpawnEngineClass;
+    private Method cachedSpawnWorldCheck;
+    private boolean spawnBridgeWarningLogged;
+
     // ================= ROLE & KINGGRIEFCORE INTEGRATION =================
+    /** Respect Core's active spawn identity, including a safely isolated fallback. */
+    private boolean isManagedSpawn(Location location) {
+        if (location == null || location.getWorld() == null) return false;
+        Plugin core = Bukkit.getPluginManager().getPlugin("KingGriefCore");
+        if (core == null) {
+            cachedSpawnCore = null; cachedSpawnEngineGetter = null;
+            cachedSpawnEngineClass = null; cachedSpawnWorldCheck = null;
+            return "spawn_world".equalsIgnoreCase(location.getWorld().getName());
+        }
+        try {
+            if (!core.isEnabled()) throw new IllegalStateException("Core is disabled");
+            if (cachedSpawnCore != core || cachedSpawnEngineGetter == null) {
+                cachedSpawnCore = core;
+                cachedSpawnEngineGetter = core.getClass().getMethod("getSpawnEngine");
+                cachedSpawnEngineClass = null; cachedSpawnWorldCheck = null;
+            }
+            Object engine = cachedSpawnEngineGetter.invoke(core);
+            if (engine == null) throw new IllegalStateException("Core spawn engine is unavailable");
+            if (cachedSpawnEngineClass != engine.getClass() || cachedSpawnWorldCheck == null) {
+                cachedSpawnEngineClass = engine.getClass();
+                cachedSpawnWorldCheck = cachedSpawnEngineClass.getMethod("isInSpawnWorld", Location.class);
+            }
+            boolean result = Boolean.TRUE.equals(cachedSpawnWorldCheck.invoke(engine, location));
+            spawnBridgeWarningLogged = false;
+            return result;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException error) {
+            if (!spawnBridgeWarningLogged) {
+                getLogger().warning("[Spawn] Cannot check Core's active spawn world; XRay checks remain enabled. " + error.getMessage());
+                spawnBridgeWarningLogged = true;
+            }
+            return false;
+        }
+    }
+
+
     private String getKingGriefRankId(Player p) {
         if (p == null) return "";
         try {
@@ -2488,7 +2529,7 @@ public final class KingAcPlugin extends JavaPlugin implements Listener, CommandE
         Player p = e.getPlayer();
         if (isExempt(p)) return;
         Block b = e.getBlock();
-        if ("spawn_world".equalsIgnoreCase(b.getWorld().getName())) return;
+        if (isManagedSpawn(b.getLocation())) return;
 
         Material m = b.getType();
         PlayerAcData d = data(p);

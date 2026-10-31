@@ -92,6 +92,7 @@ public final class KingClearPlugin extends JavaPlugin implements CommandExecutor
     private int pvpTagSeconds = 15;
     private int undoSeconds = 30;
     private boolean keepSpawnMenuStar = true;
+    private boolean spawnBridgeWarningLogged;
     private int cooldownSeconds = 2;
 
     @Override
@@ -184,20 +185,37 @@ public final class KingClearPlugin extends JavaPlugin implements CommandExecutor
         return p.hasPermission("kingclear.others") || p.isOp();
     }
 
+    private boolean isActiveSpawn(Player p) {
+        Plugin core = Bukkit.getPluginManager().getPlugin("KingGriefCore");
+        if (core == null) return "spawn_world".equalsIgnoreCase(p.getWorld().getName());
+        try {
+            if (!core.isEnabled()) throw new IllegalStateException("Core is disabled");
+            Object engine = core.getClass().getMethod("getSpawnEngine").invoke(core);
+            if (engine == null) throw new IllegalStateException("Core spawn engine is unavailable");
+            boolean result = Boolean.TRUE.equals(engine.getClass().getMethod("isInSpawnWorld", org.bukkit.Location.class)
+                    .invoke(engine, p.getLocation()));
+            spawnBridgeWarningLogged = false;
+            return result;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException error) {
+            if (!spawnBridgeWarningLogged) {
+                getLogger().warning("[Spawn] Cannot resolve Core's active spawn; menu stars will be preserved: " + error.getMessage());
+                spawnBridgeWarningLogged = true;
+            }
+            return true;
+        }
+    }
+
     private boolean isProtectedSpawnMenuStar(Player p, ItemStack it) {
-        if (!keepSpawnMenuStar || it == null || it.getType() != Material.NETHER_STAR || !it.hasItemMeta()) {
-            return false;
-        }
-        if (!"spawn_world".equalsIgnoreCase(p.getWorld().getName())) {
-            return false;
-        }
+        if (!keepSpawnMenuStar || it == null || it.getType() != Material.NETHER_STAR || !it.hasItemMeta()) return false;
+        if (!isActiveSpawn(p)) return false;
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return false;
         try {
+            String cid = meta.getPersistentDataContainer().get(new NamespacedKey("kinggrief", "custom_id"), PersistentDataType.STRING);
+            if ("menu_star".equalsIgnoreCase(cid)) return true;
             Plugin kg = Bukkit.getPluginManager().getPlugin("KingGriefCore");
             if (kg != null) {
-                NamespacedKey key = new NamespacedKey(kg, "kg_id");
-                String cid = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+                cid = meta.getPersistentDataContainer().get(new NamespacedKey(kg, "kg_id"), PersistentDataType.STRING);
                 if ("menu_star".equalsIgnoreCase(cid)) return true;
             }
         } catch (Throwable ignored) {}

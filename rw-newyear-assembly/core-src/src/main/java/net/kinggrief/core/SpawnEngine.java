@@ -123,7 +123,7 @@ public final class SpawnEngine {
 
         public boolean contains(Location l) {
             if (l == null || l.getWorld() == null) return false;
-            if (!l.getWorld().getName().equalsIgnoreCase(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME)) return false;
+            if (!l.getWorld().getName().equalsIgnoreCase(VoidSpawnWorldGenerator.getSpawnWorldName())) return false;
             int bx = l.getBlockX(), by = l.getBlockY(), bz = l.getBlockZ();
             return bx >= minX && bx <= maxX && by >= 99 && by <= 104 && bz >= minZ && bz <= maxZ;
         }
@@ -263,8 +263,8 @@ public final class SpawnEngine {
 
     // ================= BUILD / REBUILD IN SEPARATE VOID WORLD "spawn_world" =================
     public boolean initializeSpawnWorldAndBuild(boolean forceRebuild) {
-        File worldFolder = new File(Bukkit.getWorldContainer(), VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
-        boolean existedBefore = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME) != null
+        File worldFolder = new File(Bukkit.getWorldContainer(), VoidSpawnWorldGenerator.getSpawnWorldName());
+        boolean existedBefore = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName()) != null
                 || worldFolder.exists() || java.nio.file.Files.isSymbolicLink(worldFolder.toPath());
         if (forceRebuild) {
             plugin.getLogger().warning("[SpawnEngine] Immediate block-by-block rebuild is disabled. Use /rebuildspawn confirm and restart.");
@@ -277,12 +277,12 @@ public final class SpawnEngine {
         File marker = new File(worldFolder, ".spawn_v70_village_ok");
         if (!java.nio.file.Files.isRegularFile(marker.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
             // An old, unknown or custom world is never loaded, decorated, cleared or rebuilt by the prepared-spawn engine.
-            plugin.getLogger().warning("[SpawnEngine] Existing unmarked/old spawn_world preserved. Back it up and schedule /rebuildspawn confirm if desired.");
+            plugin.getLogger().warning("[SpawnEngine] Existing unmarked spawn world preserved; no blocks were rebuilt.");
             return false;
         }
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         if (sw == null) {
-            plugin.getLogger().severe("[SpawnEngine] Could not load spawn_world; no build attempted.");
+            plugin.getLogger().severe("[SpawnEngine] Could not load prepared spawn; no build attempted.");
             return false;
         }
         lockSpawnWorldRules(sw);
@@ -311,13 +311,13 @@ public final class SpawnEngine {
         new BukkitRunnable() {
             @Override
             public void run() {
-                enforceStrictSingletonsOnSpawn(VoidSpawnWorldGenerator.getOrCreateSpawnWorld());
+                enforceStrictSingletonsOnSpawn(Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName()));
             }
         }.runTaskLater(plugin, 20L);
         new BukkitRunnable() {
             @Override
             public void run() {
-                enforceStrictSingletonsOnSpawn(VoidSpawnWorldGenerator.getOrCreateSpawnWorld());
+                enforceStrictSingletonsOnSpawn(Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName()));
             }
         }.runTaskLater(plugin, 60L);
         return true;
@@ -456,7 +456,7 @@ public final class SpawnEngine {
     // ================= CHUNK-SAFE NON-PERSISTENT ENTITY SPAWNING (ZERO DUPLICATES!) =================
     public void onSpawnChunkLoad(Chunk c) {
         final World sw = c.getWorld();
-        if (!VoidSpawnWorldGenerator.SPAWN_WORLD_NAME.equalsIgnoreCase(sw.getName())) return;
+        if (!VoidSpawnWorldGenerator.getSpawnWorldName().equalsIgnoreCase(sw.getName())) return;
         // Chunk entity slices may arrive after ChunkLoadEvent. Coalesce a burst of
         // loads into one sweep, and never spawn synchronously inside the event.
         if (pendingSpawnSweep != null) return;
@@ -864,7 +864,7 @@ public final class SpawnEngine {
         // players are in the world. No skeletal mobs or armor-stand animation.
         npcAnimTask = new BukkitRunnable() {
             @Override public void run() {
-                World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+                World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
                 if (sw != null && !sw.getPlayers().isEmpty()) animateNpcs(sw);
             }
         };
@@ -881,7 +881,7 @@ public final class SpawnEngine {
                 measuredTps = measuredTps * 0.8 + instantTps * 0.2;
 
                 tickCounter++;
-                World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+                World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
                 if (sw == null || !spawnActive) return;
 
                 mineRefillCountdown--;
@@ -1080,7 +1080,7 @@ public final class SpawnEngine {
         activeCaseDisplays.clear();
         spinningCases.clear();
         try {
-            World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+            World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
             if (sw != null) {
                 for (UUID uid : validSpawnEntities) {
                     Entity e = Bukkit.getEntity(uid);
@@ -1352,8 +1352,14 @@ public final class SpawnEngine {
             List<World> worlds = Bukkit.getWorlds();
             return worlds.isEmpty() ? null : loadedVanillaSpawn(worlds.get(0));
         }
+        return getPreparedSpawnArrival();
+    }
+
+    /** The built-in village, independent of an owner's saved /setspawn point. */
+    public Location getPreparedSpawnArrival() {
+        if (!spawnActive) return null;
         // Never recreate a world synchronously if another plugin unloaded it.
-        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
         return sw == null ? null : new Location(sw, 0.5, 100.0, 52.5, 180.0f, 0.0f);
     }
 
@@ -1399,7 +1405,7 @@ public final class SpawnEngine {
             if ("spawn".equals(w) || "спавн".equals(w)) return getSpawnArrival();
             return plugin.getStore() != null ? plugin.getStore().getCustomWarpLocation(w) : null;
         }
-        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
         if (sw == null) {
             if ("spawn".equals(w) || "спавн".equals(w)) return getSpawnArrival();
             return plugin.getStore() != null ? plugin.getStore().getCustomWarpLocation(w) : null;
@@ -1425,7 +1431,7 @@ public final class SpawnEngine {
 
     public boolean isInSpawnWorld(Location loc) {
         return spawnActive && loc != null && loc.getWorld() != null
-                && loc.getWorld().getName().equalsIgnoreCase(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+                && loc.getWorld().getName().equalsIgnoreCase(VoidSpawnWorldGenerator.getSpawnWorldName());
     }
 
     public boolean isInsideAutoMine(Location loc) {
