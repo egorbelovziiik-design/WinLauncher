@@ -9,6 +9,8 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  pet:
+    description: Select a cosmetic display-model pet
   lp:
     description: OWNER-Only LuckPerms System & Web LP Editor
   luckperms:

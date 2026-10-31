@@ -63,6 +63,7 @@ public final class KingGriefCore extends JavaPlugin {
     private RtpManager rtpManager;
     private ExpeditionManager expeditions;
     private ClanAllianceManager clanAlliances;
+    private DisplayPetManager displayPets;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -84,6 +85,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.store = new DataStore(this);
         this.ranks = new RankManager(this.store);
         this.clanAlliances = new ClanAllianceManager(this);
+        this.displayPets = new DisplayPetManager(this);
+        Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
         this.bossEvents = new BossEventManager(this);
         this.spawnEngine = new SpawnEngine(this);
@@ -120,7 +123,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -175,6 +178,7 @@ public final class KingGriefCore extends JavaPlugin {
             return;
         }
         this.bossEvents.start();
+        this.displayPets.start();
         this.crownEvents.start();
         this.hud.start();
         this.moderation.start();
@@ -220,6 +224,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
+        if (this.displayPets != null) this.displayPets.shutdown();
         if (this.bossEvents != null) this.bossEvents.shutdown();
         if (this.rtpManager != null) this.rtpManager.shutdown();
         if (this.expeditions != null) this.expeditions.shutdown();
@@ -433,7 +438,9 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("cases".equals(c)) {
+        if ("pet".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("penguin", "deer", "dragon", "off"), args[0]);
+        } else if ("cases".equals(c)) {
             if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take"), args[0]);
             if (args.length == 2 && hasEconomyAdmin(sender)) return onlineNames(args[1]);
             if (args.length == 3 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList(ALL_CASE_IDS), args[2]);
@@ -700,6 +707,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
+        if ("pet".equals(c)) { displayPets.command(p, args); return true; }
         if ("crown".equals(c)) return crownEvents.handleCommand(p, args);
         if ("trade".equals(c)) return safeTrades.handleCommand(p, args);
         if ("buyorder".equals(c)) return buyOrders.handleCommand(p, args);
