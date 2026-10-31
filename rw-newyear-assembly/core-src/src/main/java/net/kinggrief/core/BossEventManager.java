@@ -107,6 +107,8 @@ public final class BossEventManager {
         public int unlockTotalSec = 180;
         public int secondsLeft;
         public final Map<String, Double> damageMap = new HashMap<String, Double>();
+        // Keep each participant's identity even when they go offline before the boss dies.
+        public final Map<String, UUID> damageOwners = new HashMap<String, UUID>();
         public final Map<Location, BlockState> savedBlocks = new LinkedHashMap<Location, BlockState>();
         // Last block data actually written by this event. A different current block
         // may belong to another plugin/player and must never be overwritten on cleanup.
@@ -2364,11 +2366,16 @@ public final class BossEventManager {
     }
 
     public void recordBossDamage(LivingEntity boss, Player attacker, double dmg) {
-        if (boss == null || attacker == null) return;
+        if (boss == null || attacker == null || !Double.isFinite(dmg) || dmg <= 0.0) return;
         ActiveBossEvent ev = findByBoss(boss);
-        if (ev == null) return;
+        if (ev == null || ev.bossDefeated || !plugin.getStore().isAuthenticated(attacker)) return;
+        // Only accepted damage is recorded; overkill cannot exceed remaining health.
+        double accepted = Math.min(dmg, Math.max(0.0, boss.getHealth()));
+        if (accepted <= 0.0) return;
         Double prev = ev.damageMap.get(attacker.getName());
-        ev.damageMap.put(attacker.getName(), Double.valueOf((prev != null ? prev.doubleValue() : 0.0) + dmg));
+        double total = (prev != null ? prev.doubleValue() : 0.0) + accepted;
+        ev.damageMap.put(attacker.getName(), Double.valueOf(Math.min(ev.template.maxHp, total)));
+        ev.damageOwners.put(attacker.getName(), attacker.getUniqueId());
     }
 
     public boolean handleBossDeath(LivingEntity deadEntity, Player killer) {
@@ -2418,46 +2425,103 @@ public final class BossEventManager {
         return null;
     }
 
+    private static final class BossPayout {
+        final String name; final UUID uuid; final double damage, coins;
+        final int relics, snow, beforeRelics; final boolean winner;
+        BossPayout(String name, UUID uuid, double damage, double coins, int relics, int snow, int beforeRelics, boolean winner) {
+            this.name=name; this.uuid=uuid; this.damage=damage; this.coins=coins; this.relics=relics;
+            this.snow=snow; this.beforeRelics=beforeRelics; this.winner=winner;
+        }
+    }
+
     private void onBossSlain(ActiveBossEvent ev, Player killer) {
         if (ev.bossDefeated) return;
         ev.bossDefeated = true;
         ev.secondsLeft = 180;
 
-        List<Map.Entry<String, Double>> top = new ArrayList<Map.Entry<String, Double>>(ev.damageMap.entrySet());
-        Collections.sort(top, new Comparator<Map.Entry<String, Double>>() {
-            @Override
-            public int compare(Map.Entry<String, Double> a, Map.Entry<String, Double> b) {
-                return Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue());
-            }
-        });
-        if (top.isEmpty() && killer != null) {
-            top.add(new HashMap.SimpleEntry<String, Double>(killer.getName(), Double.valueOf(ev.template.maxHp)));
+        List<Map.Entry<String, Double>> top = new ArrayList<Map.Entry<String, Double>>();
+        double threshold = Math.max(2.0, ev.template.maxHp * 0.02);
+        for (Map.Entry<String, Double> entry : ev.damageMap.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().matches("[A-Za-z0-9_]{1,16}")
+                    && entry.getValue() != null && Double.isFinite(entry.getValue())
+                    && entry.getValue().doubleValue() >= threshold) top.add(entry);
         }
-
+        Collections.sort(top, (a, b) -> {
+            int compare = Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue());
+            return compare != 0 ? compare : a.getKey().compareToIgnoreCase(b.getKey());
+        });
+        final List<BossPayout> payouts = new ArrayList<BossPayout>();
+        for (int i = 0; i < top.size(); i++) {
+            String name = top.get(i).getKey();
+            double mult = i == 0 ? 1.0 : i == 1 ? 0.6 : i == 2 ? 0.35 : 0.12;
+            double coins = Math.round(ev.template.coinReward * mult);
+            int relics = Math.max(i < 3 ? 5 : 3, (int) Math.round(ev.template.relicReward * mult));
+            int snow = i == 0 ? 15 : i < 3 ? 8 : 3;
+            UUID uuid = ev.damageOwners.get(name);
+            int currentRelics = plugin.getStore().getAwardRelics(name, uuid);
+            payouts.add(new BossPayout(name, uuid, top.get(i).getValue().doubleValue(), coins, relics, snow,
+                    currentRelics, i == 0));
+        }
+        boolean paid = true;
+        if (!payouts.isEmpty()) {
+            try {
+                plugin.getStore().transact(data -> {
+                    for (BossPayout reward : payouts) {
+                        String path = "players." + reward.name.toLowerCase(Locale.ROOT);
+                        double coins = data.getDouble(path + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0));
+                        if (!Double.isFinite(coins) || coins < 0 || !Double.isFinite(coins + reward.coins)
+                                || coins + reward.coins <= coins) throw new java.io.IOException("invalid balance for " + reward.name);
+                        data.set(path + ".coins", coins + reward.coins);
+                        int snow = data.getInt(path + ".snowflakes", 0);
+                        if (snow < 0 || (long)snow + reward.snow > Integer.MAX_VALUE
+                                || reward.beforeRelics < 0 || (long)reward.beforeRelics + reward.relics > Integer.MAX_VALUE)
+                            throw new java.io.IOException("reward balance overflow for " + reward.name);
+                        data.set(path + ".snowflakes", snow + reward.snow);
+                        data.set(path + ".relics", reward.beforeRelics + reward.relics);
+                        if (reward.winner) {
+                            data.set(path + ".titles.boss_slayer", true);
+                            int keys = data.getInt(path + ".cases.legendary", 0);
+                            if (keys < 0 || keys == Integer.MAX_VALUE) throw new java.io.IOException("key balance overflow for " + reward.name);
+                            data.set(path + ".cases.legendary", keys + 1);
+                        }
+                    }
+                    return null;
+                });
+            } catch (Exception failure) {
+                paid = false;
+                plugin.getLogger().severe("[BossReward] No local rewards committed for " + ev.instanceId + ": " + failure.getMessage());
+                for (BossPayout reward : payouts) plugin.getLogger().warning("[BossReward] Unpaid: " + reward.name
+                        + " coins=" + reward.coins + " relics=" + reward.relics + " snow=" + reward.snow + (reward.winner ? " winner-key/title" : ""));
+            }
+            // Local data is already committed here. A later PlayerPoints error must never trigger a second payout.
+            if (paid) for (BossPayout reward : payouts) {
+                try { plugin.getStore().syncAwardRelics(reward.name, reward.uuid); }
+                catch (Exception | LinkageError failure) {
+                    plugin.getLogger().warning("[BossReward] Local reward committed; PlayerPoints sync failed for "
+                            + reward.name + ": " + failure.getMessage());
+                }
+            }
+        }
         Bukkit.broadcastMessage("");
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l╔══════════════════════════════════════════╗"));
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l║  🏆 &fБосс " + ev.template.displayName + " &#00E676&lПОВЕРЖЕН!"));
-        for (int i = 0; i < Math.min(3, top.size()); i++) {
-            String pName = top.get(i).getKey();
-            double dmg = top.get(i).getValue().doubleValue();
-            double mult = (i == 0) ? 1.0 : (i == 1 ? 0.6 : 0.35);
-            double coins = Math.round(ev.template.coinReward * mult);
-            int relics = Math.max(5, (int) Math.round(ev.template.relicReward * mult));
-            int snow = (i == 0) ? 15 : 8;
-            plugin.getStore().addCoins(pName, coins);
-            plugin.getStore().addRelics(pName, relics);
-            plugin.getStore().addSnowflakes(pName, snow);
-            if (i == 0) {
-                plugin.getStore().unlockTitle(pName, "boss_slayer");
-                plugin.getStore().addCaseKeys(pName, "legendary", 1);
+        if (paid) {
+            for (int i = 0; i < payouts.size(); i++) {
+                BossPayout reward = payouts.get(i);
+                String line = "&#FFD740#" + (i + 1) + " &f" + reward.name + " &7(" + (int)reward.damage
+                        + " урона) &8→ &a+" + ColorUtil.fmtMoney(reward.coins) + "$ &b+" + reward.relics + "❖ &7+" + reward.snow + "❄";
+                if (i < 3) Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l║  " + line));
+                else {
+                    Player participant = Bukkit.getPlayerExact(reward.name);
+                    if (participant != null) participant.sendMessage(ColorUtil.c("&#00E676[Босс] За ваш вклад: " + line));
+                }
             }
-            Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l║  &#FFD740#" + (i + 1) + " &f" + pName
-                    + " &7(" + (int) dmg + " урона) &8→ &a+" + ColorUtil.fmtMoney(coins) + "$ &b+" + relics + "❖"));
-        }
+            if (payouts.size() > 3) Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l║  &7Награду за участие получили ещё " + (payouts.size() - 3) + " игроков."));
+            if (payouts.isEmpty()) Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l║  &7Недостаточно подтверждённого урона для наград."));
+        } else Bukkit.broadcastMessage(ColorUtil.c("&#FF5252║  Не удалось сохранить награды: сообщите администрации."));
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l║  🔓 &fМифический Сундук открыт на 3 минуты!"));
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676&l╚══════════════════════════════════════════╝"));
         Bukkit.broadcastMessage("");
-        plugin.getStore().save();
 
         Block b = ev.center.getBlock();
         if (!eventStillOwnsBlock(ev, b)) {

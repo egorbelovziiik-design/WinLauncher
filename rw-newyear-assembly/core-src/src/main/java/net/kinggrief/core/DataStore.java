@@ -1110,6 +1110,24 @@ public final class DataStore {
         return yml.getInt("players." + key(name) + ".relics", 50);
     }
 
+    /** Effective local/external balance for a boss award, including an offline participant. */
+    int getAwardRelics(String name, UUID id) {
+        int local = Math.max(0, yml.getInt("players." + key(name) + ".relics", 50));
+        int external = id == null ? -1 : readPlayerPoints(id);
+        return Math.max(local, external);
+    }
+
+    /** Local balance has already committed; synchronize PlayerPoints without a second award. */
+    void syncAwardRelics(String name, UUID id) {
+        if (id == null) return;
+        org.bukkit.plugin.Plugin points = Bukkit.getPluginManager().getPlugin("PlayerPoints");
+        if (points == null) return;
+        int target = Math.max(0, yml.getInt("players." + key(name) + ".relics", 50));
+        int external = points.isEnabled() ? readPlayerPoints(id) : -1;
+        if (external < 0 || (external < target && !setPlayerPointsChecked(points, id, target)))
+            plugin.getLogger().warning("[BossReward] PlayerPoints did not confirm the local relic award for " + name + "; local balance remains recorded.");
+    }
+
     public void addRelics(String name, int amount) {
         int cur = getRelicsByName(name);
         int next = boundedIntegerSum(cur, amount);
