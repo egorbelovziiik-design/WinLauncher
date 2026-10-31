@@ -116,6 +116,7 @@ public final class TargetEntityInfo {
     public float getMaxHealth() { return maxHealth; }
     public float getAbsorption() { return absorption; }
     public float getHealthRatio() { return Math.max(0.0f, Math.min(1.0f, health / maxHealth)); }
+    public float getHealthFraction() { return getHealthRatio(); }
     public float getDistance() { return distance; }
     public int getHurtTime() { return hurtTime; }
     public int getArmorValue() { return armorValue; }
@@ -129,6 +130,8 @@ public final class TargetEntityInfo {
     public double getMaxX() { return maxX; }
     public double getMaxY() { return maxY; }
     public double getMaxZ() { return maxZ; }
-    public boolean hasLineOfSight() { return lineOfSight; }
+    public double getBoxWidth() { return Math.max(0.1, maxX - minX); }
+    public double getBoxHeight() { return Math.max(0.1, maxY - minY); }
+    public boolean hasLineOfSight() { return lineOfSight; } }
     public String getHeldItemName() { return heldItemName; }
 }
