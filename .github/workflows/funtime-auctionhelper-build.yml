@@ -117,6 +117,8 @@ jobs:
       - name: 5. Inspect the produced JARs
         run: |
           set -euo pipefail
+          set -x
+          trap 'code=$?; echo "::error title=jar inspection failed::line $LINENO exited with $code"' ERR
           mkdir -p staged
           for v in 1.16.5 1.21.4 1.21.11; do
             jar="FunTimeAuctionHelper/client-$v/build/libs/FunTimeAuctionHelper-$v.jar"
@@ -137,7 +139,8 @@ jobs:
             expected=65
             [ "$v" = "1.16.5" ] && expected=52
             unzip -p "$jar" "${entry}.class" > /tmp/entry.class
-            major=$(javap -verbose /tmp/entry.class | grep -m1 "major version" | awk '{print $3}')
+            javap -verbose /tmp/entry.class > /tmp/javap.txt 2>&1 || true
+            major=$(grep -m1 "major version" /tmp/javap.txt | awk '{print $3}' || true)
             if [ "$major" != "$expected" ]; then
               echo "::error title=bytecode mismatch::$v entrypoint is major $major, expected $expected"
               exit 1
