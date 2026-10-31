@@ -29,7 +29,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -85,7 +84,6 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         }catch(Exception error){fail(error);}
     }
     private void initial(){
-        DataStore store=core.getStore();
         World arena=Bukkit.getWorld("spawn_world");arena.setPVP(true);
         a.teleport(new Location(arena,75.5,94,10.5));b.teleport(new Location(arena,77.5,94,10.5));
         a.setGameMode(GameMode.SURVIVAL);b.setGameMode(GameMode.SURVIVAL);
@@ -114,9 +112,10 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         b.performCommand("clan allypvp RedTest");
         ok(store.isTeammatePvpAllowed(a.getName(),b.getName()),"both sides can consent to PvP");
         b.setNoDamageTicks(0);b.damage(4,a);
-        getLogger().info("KG-BATCH DEBUG health="+b.getHealth()+" invuln="+b.isInvulnerable()+" world="+b.getWorld().getName()+" pvp="+b.getWorld().getPVP()+" gamemode="+b.getGameMode()+" attacker="+a.getWorld().getName());
         ok(b.getHealth()<20,"real allied hit is accepted after mutual consent");
         b.setHealth(20);
+        // The PvP probe deliberately created a combat tag; clear it before the offline-boss scenario.
+        core.getHud().clearCombat(a.getUniqueId());core.getHud().clearCombat(b.getUniqueId());
         ok(a.performCommand("cosmetic trail snow")&&a.performCommand("cosmetic login stars"),"cosmetic commands registered");
         String cosmetics="cosmetics."+a.getUniqueId();
         ok("snow".equals(yaml().getString(cosmetics+".trail"))&&"stars".equals(yaml().getString(cosmetics+".login")),"cosmetic settings are saved");
@@ -209,10 +208,12 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         cancelHit=true;boss.damage(40,a);cancelHit=false;
         ok(!ev.damageMap.containsKey(a.getName()),"cancelled boss hit never counts");
         boss.setNoDamageTicks(0);boss.damage(80,b);
+        boss.setNoDamageTicks(0);boss.damage(80,b);
+        boss.setNoDamageTicks(0);boss.damage(200,a);
         boss.setNoDamageTicks(0);boss.damage(200,a);
         ok(ev.damageMap.containsKey(a.getName())&&ev.damageMap.containsKey(b.getName()),"accepted real damage records both players");
         double aDamage=ev.damageMap.get(a.getName());
-        ok(aDamage>ev.damageMap.get(b.getName())&&ev.damageMap.get(b.getName())>=16,"real contributors meet damage threshold");
+        ok(aDamage>ev.damageMap.get(b.getName())&&ev.damageMap.get(b.getName())>24,"real contributors meet damage threshold and expected ranking");
         ev.damageMap.put("OfflineThree",24.0);ev.damageOwners.put("OfflineThree",UUID.randomUUID());
         ev.damageMap.put("OfflineFour",20.0);ev.damageOwners.put("OfflineFour",UUID.randomUUID());
         ev.damageMap.put("TinyDamage",1.0);ev.damageOwners.put("TinyDamage",UUID.randomUUID());
