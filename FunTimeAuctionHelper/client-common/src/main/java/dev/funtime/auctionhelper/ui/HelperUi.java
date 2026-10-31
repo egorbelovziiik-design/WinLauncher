@@ -68,6 +68,8 @@ public final class HelperUi {
     private float dropY;
     private float dropW;
     private String[] dropOptions = new String[0];
+    /** Canvas of the frame currently being drawn; widgets use it instead of a parameter. */
+    private UiCanvas activeCanvas;
     private float timeSeconds;
     private float openAnimation;
     private String[] quickActions = new String[0];
@@ -166,7 +168,7 @@ public final class HelperUi {
 
     void addScroll(float delta, float contentHeight, float viewHeight) {
         float max = Math.max(0f, contentHeight - viewHeight);
-        float value = Numbers.clamp(scrollY() + delta, -max, 0f);
+        float value = (float) Numbers.clamp(scrollY() + delta, -max, 0f);
         scroll.put(page, Float.valueOf(value));
     }
 
@@ -241,6 +243,7 @@ public final class HelperUi {
     }
 
     public void render(UiCanvas canvas, int mx, int my, float dt) {
+        activeCanvas = canvas;
         this.mouseX = mx;
         this.mouseY = my;
         hitboxes.clear();
@@ -510,7 +513,7 @@ public final class HelperUi {
         if (rect == null) {
             return;
         }
-        float t = Numbers.clamp((mx - rect[0]) / Math.max(1f, rect[2]), 0d, 1d);
+        float t = (float) Numbers.clamp((mx - rect[0]) / Math.max(1f, rect[2]), 0d, 1d);
         pages.onSlider(id, t);
     }
 
@@ -675,6 +678,10 @@ public final class HelperUi {
     }
 
     boolean button(String id, String text, float x, float y, float w, float h, int color, boolean outlineOnly) {
+        UiCanvas canvas = activeCanvas;
+        if (canvas == null) {
+            return false;
+        }
         float[] rect = new float[]{x, y, w, h};
         register(id, rect);
         boolean isHover = contains(rect, mouseX, mouseY);
@@ -779,6 +786,10 @@ public final class HelperUi {
     }
 
     void chip(String id, String caption, float x, float y, float w, float h, int color) {
+        UiCanvas canvas = activeCanvas;
+        if (canvas == null) {
+            return;
+        }
         float[] rect = new float[]{x, y, w, h};
         register(id, rect);
         boolean isHover = contains(rect, mouseX, mouseY);

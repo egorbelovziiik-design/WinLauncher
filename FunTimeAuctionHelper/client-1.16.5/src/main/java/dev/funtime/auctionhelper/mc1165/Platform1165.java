@@ -11,7 +11,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -108,7 +108,7 @@ public final class Platform1165 implements MinecraftAdapter {
                 slots.add(new SlotSnapshot(i, "minecraft:air", "", 0, Collections.<String>emptyList()));
                 continue;
             }
-            String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+            String itemId = Registry.ITEM.getKey(stack.getItem()).toString();
             // Reflective: the tooltip signature differs between Minecraft versions.
             List<String> lore = dev.funtime.auctionhelper.util.TooltipReader.readLines(stack, mc.player, mc.level);
             slots.add(new SlotSnapshot(i, itemId, stack.getHoverName().getString(), stack.getCount(), lore));
@@ -129,7 +129,7 @@ public final class Platform1165 implements MinecraftAdapter {
             if (stack == null || stack.isEmpty()) {
                 continue;
             }
-            slots.add(new SlotSnapshot(i, BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(),
+            slots.add(new SlotSnapshot(i, Registry.ITEM.getKey(stack.getItem()).toString(),
                     stack.getHoverName().getString(), stack.getCount(), Collections.<String>emptyList()));
         }
         return slots;
