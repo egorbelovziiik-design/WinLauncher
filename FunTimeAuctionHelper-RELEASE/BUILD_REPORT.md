@@ -8,7 +8,7 @@ estimated or copied from a template; the numbers are the ones the build printed.
 | Repository | `egorbelovziiik-design/WinLauncher` |
 | Branch | `arena/9916b374-winlauncher` |
 | Workflow | `FunTime Auction Helper - Build & Verify` (`.github/workflows/funtime-auctionhelper-build.yml`) |
-| Green run | run **41196264602** (all jobs `success`) |
+| Green run | run **41196632960** (all jobs `success`, commit `9fdfe0a`); the JARs in this folder were built by that run |
 | Toolchain | Gradle 9.8.2, Fabric Loom 1.19.3, Fabric Loader 0.20.1, Temurin JDK 8/21/25, official Mojang mappings |
 | Runner | `ubuntu-latest` (Ubuntu 24.04 image), Xvfb + Mesa software OpenGL for the client runs |
 
@@ -72,8 +72,11 @@ Every JAR passed these automated assertions:
 * the version specific entrypoint class named by `fabric.mod.json` is inside the archive;
 * `javap -verbose` reports the expected bytecode major version (52 / 65 / 65).
 
-The JARs in this folder are copies of the artifacts from that green run, committed by the
-workflow step "6. Commit the verified JARs into FunTimeAuctionHelper-RELEASE".
+The JARs in this folder were produced by that green run and committed by the workflow step
+"6. Commit the verified JARs into FunTimeAuctionHelper-RELEASE". They were additionally
+re-checked outside CI: every archive opens without a corrupt entry, contains 105 / 102 / 102
+entries, 97 / 94 / 94 mod classes, `fabric.mod.json` with `id = funtimeauctionhelper`,
+`environment = client`, `version = 1.0.0` and the expected client entrypoint.
 
 ## 4. Real Minecraft client runs
 
