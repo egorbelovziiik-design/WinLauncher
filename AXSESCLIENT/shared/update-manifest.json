@@ -1,52 +1,52 @@
 {
-  "latestVersion": "1.0.0",
-  "codename": "GENESIS X",
-  "publishedAt": "2026-10-31T00:00:00Z",
+  "latestVersion": "2.0.0",
+  "codename": "OBSIDIAN AURORA",
+  "publishedAt": "2026-10-31T23:59:00Z",
   "changelog": [
-    "Initial flagship release of AXSESCLIENT v1.0.0 (GENESIS X).",
-    "Native C# / .NET 8 / Avalonia UI 11 Windows x64 Launcher (AXSESCLIENT.exe) with 13-stage direct JVM launch engine.",
-    "Separate native Fabric client mods for Minecraft 1.16.5 (Java 8), 1.21.4 (Java 21), and 1.21.11 (Java 21) with zero external Fabric API runtime requirement.",
-    "90 verified modules & GUI features, AXSES NEO-DARK 8-theme engine, HUD Editor, and corruption-safe Config Manager.",
-    "Windows x64 Inno Setup 6 installer (AXSESCLIENT-Setup.exe) preserving user worlds, screenshots, and configs."
+    "AXSESCLIENT v2.0.0 (OBSIDIAN AURORA) — полный редизайн лаунчера и внутриигрового GUI.",
+    "Исправлен баг обрезки ClickGUI (GuiGraphics.enableScissor) на Minecraft 1.21.4 и 1.21.11 + убраны полосы на HUD.",
+    "Добавлены рабочие КиллАура (KillAura), анимированный Таргет HUD (Target HUD) и ТриггерБот (TriggerBot) — всего 93 синхронизированных модуля.",
+    "Честное выделение ОЗУ (-Xmx) на базе физической памяти ПК (GlobalMemoryStatusEx) со сбросом системных лимитов _JAVA_OPTIONS.",
+    "Полностью автоматическая установка Java 8 (для 1.16.5) и Java 21 (для 1.21.4 / 1.21.11) с резервными зеркалами."
   ],
   "artifacts": [
     {
       "id": "launcher-win-x64",
       "fileName": "AXSESCLIENT.exe",
-      "version": "1.0.0",
-      "sha256": "3d4a5c4036b270b174b0af0f098f90eb884536ce5948c95847bc4053fe743292",
-      "sizeBytes": 45560586
+      "version": "2.0.0",
+      "sha256": "99a9c1891980befa00ebbcdfe6223a74486b6e8b3c9986017442bd0d7f3bb1b6",
+      "sizeBytes": 45572873
     },
     {
       "id": "installer-win-x64",
       "fileName": "AXSESCLIENT-Setup.exe",
-      "version": "1.0.0",
-      "sha256": "366f8b058b98d9f506a2deb8edb1610d9f750e5dcb5b4ff57607eb6b54b8603a",
-      "sizeBytes": 41551379
+      "version": "2.0.0",
+      "sha256": "c6258a23c81ec163a0d879a8d6451045d7de9d11ca9e21f23b632f5907c93d9d",
+      "sizeBytes": 41632560
     },
     {
       "id": "mod-1.16.5",
       "fileName": "AXSESCLIENT-1.16.5.jar",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "minecraftVersion": "1.16.5",
-      "sha256": "c7828ab63f69005477901d1e5727191e77a1a5f08154f59350a64affa19990cd",
-      "sizeBytes": 348634
+      "sha256": "f39708180d24b20bcda9501e37b3c5154fc6ca8e2fdc75dd12551a33bc4dd1db",
+      "sizeBytes": 382460
     },
     {
       "id": "mod-1.21.4",
       "fileName": "AXSESCLIENT-1.21.4.jar",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "minecraftVersion": "1.21.4",
-      "sha256": "0dddd8ce61b10d55e7c18accb7cfe52cdad20a64f8bfc5382d7211118187bbcc",
-      "sizeBytes": 354812
+      "sha256": "7021cb14883d1f9f5884277a27eede7867682461f926e53f35d4b640b610a614",
+      "sizeBytes": 388658
     },
     {
       "id": "mod-1.21.11",
       "fileName": "AXSESCLIENT-1.21.11.jar",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "minecraftVersion": "1.21.11",
-      "sha256": "be945e263988633270d45a86558d3758b0e0e95a73597d1e589917c97aab121b",
-      "sizeBytes": 356133
+      "sha256": "35c0380aff80c2ca2a4e0b6958bac0440aca4c0908ea3aa6ab81ebcfa2059a5e",
+      "sizeBytes": 389926
     }
   ]
 }
