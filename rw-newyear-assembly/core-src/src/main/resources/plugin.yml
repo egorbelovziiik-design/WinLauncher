@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 6.7.1
+version: 7.0.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
-softdepend: [LuckPerms, WorldGuard, WorldEdit]
+softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v6.7.1: безопасный поиск событий, дирижабль, корона, заказы и обмен."
+description: "KINGGRIEF v7.0.0: зимний спавн, 100 рун, мега-гепль и способности шаров."
 
 
 commands:
@@ -255,6 +255,9 @@ commands:
   rebuildspawn:
     description: Back up and rebuild spawn_world; use /rebuildspawn confirm
   kgadmin: {}
+  artifacts:
+    aliases: [runes, runy]
+    description: 100 winter runes, 20 effect families in five tiers (/artifacts)
   shars:
     aliases: [orbs, shary]
     description: Orbs Square Menu 4x4 - 12 Custom 3D Orbs with REAL buffs in off-hand (/shars)

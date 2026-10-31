@@ -20,7 +20,7 @@ public final class ExistingSpawnProbe extends JavaPlugin {
                 File dir = spawn != null ? spawn.getWorldFolder() : new File(Bukkit.getWorldContainer(), "spawn_world");
                 String sentinel = new String(Files.readAllBytes(new File(dir, "kg-user-data.txt").toPath()), StandardCharsets.UTF_8);
                 if (!"user data must remain".equals(sentinel)) throw new AssertionError("user file changed");
-                if (new File(dir, ".spawn_v66_royal_ok").exists()) throw new AssertionError("unknown world auto-rebuilt");
+                if (new File(dir, ".spawn_v70_village_ok").exists()) throw new AssertionError("unknown world auto-rebuilt");
                 if (expectUntouched && new File(dir, "level.dat").exists()) throw new AssertionError("incomplete world was modified");
                 if (spawn != null && spawn.getBlockAt(0, 100, 52).getType() != Material.AIR) throw new AssertionError("new spawn built in unknown folder");
                 getLogger().info("KG-PROBE PASS: non-empty unknown spawn directory preserved without level.dat");

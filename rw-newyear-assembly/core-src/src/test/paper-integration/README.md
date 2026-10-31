@@ -6,7 +6,7 @@ packet, inventory/menu packets, asynchronous chat delegation and the delivered
 message's colour/style, rank hierarchy, kits, TNT prices/purchases/effects and
 cancelled/filtered explosions, new events and scoped entity cleanup, plus fresh
 spawn creation, fail-closed backups and a chest restored from a ZIP backup.
-With `--prebuilt /path/to/spawn-v66-template.zip`, it additionally checks that
+With `--prebuilt /path/to/spawn-v70-template.zip`, it additionally checks that
 an actual pre-generated world is loaded directly, rather than rebuilt at startup.
 It does **not** render a Minecraft client or verify visuals.
 
@@ -81,6 +81,23 @@ identity and impact. `--arrows-only` runs the projectile tests; `--boss-only`,
 `--crossbows-only`, `--throws-only`, `--protect-only` and `--abilities-only`
 select subsets. It needs
 the same `--node-modules` as `run.py`; it is not a visual Minecraft-client test.
+
+`test-full-assembly.py` extracts the actual v7 ZIP into a disposable Paper
+server, disables the KingConnect cloud in that isolated test, requires a
+placeholder bridge credential, and verifies that the five bundled plugins
+enable, the prepared spawn installs and a protocol client can enter while
+declining the optional pack. It does not test live payment delivery, network
+SSO, other unbundled plugins or a visual game client.
+
+`test-winter.py` exercises all 100 runes with actual use-item packets, each
+orb's active offhand burst and the shared cooldown, the mega apple's accepted
+and cancelled consume event, and catalogue purchase/inventory capacity. The
+`--mock-player-points` option supplies a deliberately small PlayerPoints API
+double to verify accepted, rejected, altered and throwing writes, a read
+failure, and compensation when durable YAML saving is refused. This is **not**
+a real PlayerPoints integration, a guarantee across process/power failure,
+or a visual Minecraft-client test. The runner also checks the three stacked
+sculptures and their hand touching the star in the prepared world.
 
 `test-new-features.py` exercises the airship's protected, non-repeatable scrap,
 expiry and terrain restoration; opt-in crown scoring, accepted/cancelled damage

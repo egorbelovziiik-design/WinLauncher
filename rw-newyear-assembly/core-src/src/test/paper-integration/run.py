@@ -145,7 +145,7 @@ def launch_and_check(args, server, port):
             return False
         if args.prebuilt and not args.existing_unknown:
             startup_log = "".join(output)
-            if "Prepared v66 spawn installed and initialized" not in startup_log or "Building the v6.6 Royal Winter Spawn" in startup_log:
+            if "Prepared v70 spawn installed and initialized" not in startup_log or "Building the v7.0 Winter Village Spawn" in startup_log:
                 print("SERVER ASSERTIONS: prepared world was not loaded directly")
                 return False
             print("SERVER ASSERTIONS: prepared world loaded directly, no startup block rebuild")
@@ -231,7 +231,7 @@ def main():
         shutil.copy2(args.vanilla, server / "cache" / cache_name)
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
         if args.prebuilt:
-            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v66-template.zip")
+            shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v70-template.zip")
             probe_config = server / "plugins/KgProbe/config.yml"
             probe_config.parent.mkdir(parents=True, exist_ok=True)
             probe_config.write_text("expect-untouched: true\n" if args.existing_unknown else "expect-prebuilt: true\n", encoding="utf-8")

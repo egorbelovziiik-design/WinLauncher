@@ -6,17 +6,18 @@ Hub plugin are intentionally not bundled. Symbolic links are rejected.
 """
 from pathlib import Path
 import hashlib
+import re
 import shutil
 import zipfile
 import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.0.0.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
-TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v66-template.zip"
-PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v66.zip"
-CHECKSUM = ROOT / "core-src/src/main/resources/spawn_v66_template.sha256"
+TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v70-template.zip"
+PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v70.zip"
+CHECKSUM = ROOT / "core-src/src/main/resources/spawn_v70_template.sha256"
 CORE = SERVER / "plugins/KingGriefCore.jar"
 
 
@@ -33,7 +34,7 @@ def verify_spawn_template():
     if len(expected) != 64 or digest != expected:
         raise RuntimeError("Spawn template does not match Core's recorded SHA-256")
     with zipfile.ZipFile(CORE) as jar:
-        if jar.read("spawn_v66_template.sha256").decode("ascii").strip() != digest:
+        if jar.read("spawn_v70_template.sha256").decode("ascii").strip() != digest:
             raise RuntimeError("Built Core JAR does not match the spawn template; rebuild Core")
         if "net/kinggrief/core/PreparedSpawnInstaller.class" not in jar.namelist():
             raise RuntimeError("Built Core cannot install the prepared spawn")
@@ -43,7 +44,7 @@ def verify_spawn_template():
         names = world.namelist()
         if len(names) != len(set(names)):
             raise RuntimeError("Duplicate prebuilt spawn paths")
-        required = {"level.dat", ".spawn_v66_royal_ok", ".kinggrief_prebuilt_v66"}
+        required = {"level.dat", ".spawn_v70_village_ok", ".kinggrief_prebuilt_v70"}
         if not required.issubset(names) or not any(n.startswith("region/") and n.endswith(".mca") for n in names):
             raise RuntimeError("Prebuilt spawn is missing required world files")
         if any(n.startswith(("entities/", "playerdata/", "stats/", "advancements/"))
@@ -52,8 +53,27 @@ def verify_spawn_template():
     return template
 
 
+def verify_distribution_hygiene():
+    # The public download must never package the operator's credentials or runtime data.
+    bridge = SERVER / "plugins/KingGriefBridge/config.yml"
+    if bridge.is_symlink() or not bridge.is_file():
+        raise RuntimeError("Missing regular KingGriefBridge example config")
+    config = bridge.read_text(encoding="utf-8")
+    if not re.search(r"(?m)^secret:\s*[\"']?CHANGE_ME[\"']?\s*$", config):
+        raise RuntimeError("Bridge credential must be CHANGE_ME in the public assembly")
+    runtime = ("world", "world_nether", "world_the_end", "logs", "cache", "libraries", "versions",
+               "plugins/.paper-remapped", "plugins/KingGriefCore/data.yml", "plugins/KingGriefCore/safe-trades",
+               "plugins/KingGriefCore/buy-orders", "ops.json", "whitelist.json", "usercache.json",
+               "banned-players.json", "banned-ips.json", "eula.txt", "server.jar", "paper.jar")
+    for name in runtime:
+        path = SERVER / name
+        if path.exists() or path.is_symlink():
+            raise RuntimeError(f"Refusing to package runtime or player data: {name}")
+
+
 def main():
     template = verify_spawn_template()
+    verify_distribution_hygiene()
     paths = sorted(SERVER.rglob("*"), key=lambda p: p.relative_to(SERVER).as_posix())
     files = []
     for path in paths:

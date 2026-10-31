@@ -100,7 +100,7 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
     if (getConfig().getBoolean("expect-luckperms") && !Bukkit.getPluginManager().isPluginEnabled("LuckPerms"))
      throw new AssertionError("LuckPerms did not load");
     ResourcePackSettings.Pack rp=ResourcePackSettings.resolve(core.getConfig().getString("resourcepack-url"),core.getConfig().getString("resourcepack-sha1"));
-    if(!rp.upgraded || !rp.url.endsWith("v66.zip")) throw new AssertionError("old config not upgraded");
+    if(!rp.upgraded || !rp.url.endsWith("v70.zip")) throw new AssertionError("old config not upgraded");
     checkMigrated(p.getInventory().getItem(5),"join inventory");
     checkMigrated(p.getEnderChest().getItem(0),"join ender chest");
     ItemStack fresh=ItemFactory.totemSanty(3);
@@ -139,7 +139,7 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
       Runnable finish=() -> {
        try {
         testSpawnPreservation(core,p);
-        getLogger().info("KG-PROBE PASS: migration, v66 pack wire, main-thread chat, rank hierarchy, kits, TNT shop/effects, events, safe spawn/backup/restore" + (getConfig().getBoolean("expect-luckperms") ? (getConfig().getBoolean("mock-lp") ? ", mock LP hierarchy/sync" : ", real LuckPerms hierarchy/sync") : "") + (getConfig().getBoolean("mock-wg") ? ", mock WG regions" : ""));
+        getLogger().info("KG-PROBE PASS: migration, v70 pack wire, main-thread chat, rank hierarchy, kits, TNT shop/effects, events, safe spawn/backup/restore" + (getConfig().getBoolean("expect-luckperms") ? (getConfig().getBoolean("mock-lp") ? ", mock LP hierarchy/sync" : ", real LuckPerms hierarchy/sync") : "") + (getConfig().getBoolean("mock-wg") ? ", mock WG regions" : ""));
        } catch (Throwable t) { getLogger().severe("KG-PROBE FAIL: "+t); t.printStackTrace(); }
       };
       Runnable afterChat=() -> {
@@ -325,9 +325,9 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
  }
  private void testSpawnPreservation(KingGriefCore core, Player p) throws Exception {
   World spawn=Bukkit.getWorld("spawn_world");
-  if(spawn==null || !new File(spawn.getWorldFolder(),".spawn_v66_royal_ok").isFile()) throw new AssertionError("fresh spawn not generated");
-  if (getConfig().getBoolean("expect-prebuilt") && (!new File(spawn.getWorldFolder(), ".kinggrief_prebuilt_v66").isFile()
-      || !new File(core.getDataFolder(), ".spawn-v66-template-installed").isFile()))
+  if(spawn==null || !new File(spawn.getWorldFolder(),".spawn_v70_village_ok").isFile()) throw new AssertionError("fresh spawn not generated");
+  if (getConfig().getBoolean("expect-prebuilt") && (!new File(spawn.getWorldFolder(), ".kinggrief_prebuilt_v70").isFile()
+      || !new File(core.getDataFolder(), ".spawn-v70-template-installed").isFile()))
    throw new AssertionError("prepared spawn was not installed on first startup");
   Location arrival=core.getSpawnEngine().getSpawnArrival();
   if (arrival.getWorld()!=spawn || !arrival.getBlock().isPassable()

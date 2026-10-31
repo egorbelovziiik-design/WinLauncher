@@ -30,10 +30,10 @@ import java.util.zip.ZipInputStream;
  * a template and keeps the old, non-destructive startup behavior.
  */
 final class PreparedSpawnInstaller {
-    static final String TEMPLATE_FILE = "spawn-v66-template.zip";
-    static final String DONE_FILE = ".spawn-v66-template-installed";
-    private static final String PREBUILT_MARKER = ".kinggrief_prebuilt_v66";
-    private static final String SPAWN_MARKER = ".spawn_v66_royal_ok";
+    static final String TEMPLATE_FILE = "spawn-v70-template.zip";
+    static final String DONE_FILE = ".spawn-v70-template-installed";
+    private static final String PREBUILT_MARKER = ".kinggrief_prebuilt_v70";
+    private static final String SPAWN_MARKER = ".spawn_v70_village_ok";
     private static final int MAX_TEMPLATE_BYTES = 64 * 1024 * 1024;
     private static final long MAX_EXTRACTED_BYTES = 256L * 1024L * 1024L;
     private static final int MAX_ENTRIES = 512;
@@ -65,7 +65,7 @@ final class PreparedSpawnInstaller {
             plugin.getLogger().severe("[SpawnInstall] New spawn initialization failed: " + e.getMessage());
         }
         if (initialized) {
-            plugin.getLogger().info("[SpawnInstall] Prepared v66 spawn installed and initialized; no rebuild command needed.");
+            plugin.getLogger().info("[SpawnInstall] Prepared v70 spawn installed and initialized; no rebuild command needed.");
             if (swap.backup != null) {
                 plugin.getLogger().info("[SpawnInstall] Previous spawn saved intact at: " + swap.backup);
             }
@@ -97,7 +97,7 @@ final class PreparedSpawnInstaller {
                 throw new IOException("Install marker is not a regular file");
             if (Files.size(done) > 32) throw new IOException("Invalid install marker size");
             String value = new String(Files.readAllBytes(done), StandardCharsets.UTF_8).trim();
-            if (!"v66".equals(value)) throw new IOException("Unrecognized install marker; refusing to overwrite it");
+            if (!"v70".equals(value)) throw new IOException("Unrecognized install marker; refusing to overwrite it");
             if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) return null;
             // The world was deliberately removed: install the template again.
             Files.delete(done);
@@ -178,7 +178,7 @@ final class PreparedSpawnInstaller {
         byte[] bytes = Files.readAllBytes(template);
         if (bytes.length != length) throw new IOException("Template changed while being read");
         String expected;
-        try (InputStream stream = plugin.getResource("spawn_v66_template.sha256")) {
+        try (InputStream stream = plugin.getResource("spawn_v70_template.sha256")) {
             if (stream == null) throw new IOException("Missing template checksum in Core");
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             int b;
@@ -269,9 +269,9 @@ final class PreparedSpawnInstaller {
     }
 
     private static void writeDoneMarker(Path data, Path done) throws IOException {
-        Path temp = Files.createTempFile(data, ".spawn-v66-install-", ".tmp");
+        Path temp = Files.createTempFile(data, ".spawn-v70-install-", ".tmp");
         try {
-            Files.write(temp, "v66\n".getBytes(StandardCharsets.US_ASCII));
+            Files.write(temp, "v70\n".getBytes(StandardCharsets.US_ASCII));
             Files.move(temp, done);
         } finally {
             Files.deleteIfExists(temp);

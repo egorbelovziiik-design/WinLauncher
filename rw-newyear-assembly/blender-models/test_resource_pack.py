@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the generated pack against KingGriefCore without a running server.
 
-Run after build_rp_v66.py: python3 test_resource_pack.py
+Run after build_rp_v70.py: python3 test_resource_pack.py
 Pillow is required only for the pixel-visibility test.
 """
 from __future__ import annotations
@@ -14,17 +14,17 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PACK = HERE.parent / "kinggrief-mega-rp-v66.zip"
+PACK = HERE.parent / "kinggrief-mega-rp-v70.zip"
 V65_PACK = HERE.parent / "kinggrief-mega-rp-v65.zip"
 RANK_PACK = HERE.parent.parent / "kinggrief-ranks-pack/kinggrief-ranks-pack-v66.zip"
 V64_PACK = HERE.parent / "kinggrief-mega-rp-v64.zip"
 JAVA_DIR = HERE.parent / "core-src/src/main/java/net/kinggrief/core"
-MAPPING = json.loads((HERE / "item-model-map-v66.json").read_text(encoding="utf-8"))
+MAPPING = json.loads((HERE / "item-model-map-v70.json").read_text(encoding="utf-8"))
 FALLBACKS = json.loads((HERE / "vanilla-item-fallbacks.json").read_text(encoding="utf-8"))
 
 
 def sphere_names():
-    source = ast.parse((HERE / "build_rp_v66.py").read_text(encoding="utf-8"))
+    source = ast.parse((HERE / "build_rp_v70.py").read_text(encoding="utf-8"))
     assignments = [n for n in source.body if isinstance(n, ast.Assign)
                    and any(isinstance(t, ast.Name) and t.id == "ITEMS_SPECS" for t in n.targets)]
     specs = ast.literal_eval(assignments[0].value)
@@ -157,6 +157,12 @@ def declared_models() -> set[tuple[str, int, str]]:
     assert ids and '"scroll_" + id, "scroll_" + id, 1400 + idx' in text
     for index, scroll in enumerate(re.findall(r'"([a-z_]+)"', ids.group(1))):
         found.add(("PAPER", 1400 + index, f"scroll_{scroll}"))
+
+    # v7 runes are a bounded 20x5 catalogue with stable IDs and model values.
+    winter = (JAVA_DIR / "WinterItemsManager.java").read_text(encoding="utf-8")
+    assert '"winter_rune_%03d"' in winter and '3000 + number' in winter
+    for number in range(1, 101):
+        found.add(("AMETHYST_SHARD", 3000 + number, f"winter_rune_{number:03d}"))
 
     # Other classes currently create menu icons without model IDs. Flag future
     # explicit models here so they cannot silently go missing from the pack.
@@ -373,6 +379,9 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual((public / V64_PACK.name).read_bytes(), V64_PACK.read_bytes())
         self.assertEqual(hashlib.sha1(V65_PACK.read_bytes()).hexdigest(), "fc61175f0692ab85486898160dce223097aa4382")
         self.assertEqual((public / V65_PACK.name).read_bytes(), V65_PACK.read_bytes())
+        old_v66 = HERE.parent / "kinggrief-mega-rp-v66.zip"
+        self.assertEqual(hashlib.sha1(old_v66.read_bytes()).hexdigest(), "63461884bd573de19a043f11b5982a34536e47d9")
+        self.assertEqual((public / old_v66.name).read_bytes(), old_v66.read_bytes())
         self.assertEqual((public / RANK_PACK.name).read_bytes(), RANK_PACK.read_bytes())
         props = (HERE.parent / "server/server.properties").read_text(encoding="utf-8")
         config = (HERE.parent / "server/plugins/KingGriefCore/config.yml").read_text(encoding="utf-8")
@@ -428,7 +437,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn("net/kinggrief/common/ResourcePackSettings.class", jar.namelist())
                 self.assertFalse(any(path.startswith("org/bukkit/") for path in jar.namelist()), "test fixtures leaked into JAR")
 
-        assembly = HERE.parent / "rw-newyear-full-assembly.zip"
+        assembly = HERE.parent / "rw-newyear-full-assembly-v7.0.0.zip"
         self.assertEqual(assembly.read_bytes(), (public / assembly.name).read_bytes())
         with zipfile.ZipFile(assembly) as z:
             self.assertIsNone(z.testzip())
@@ -439,6 +448,8 @@ class DistributionTests(unittest.TestCase):
             self.assertEqual(z.read("server.properties").decode("utf-8"), props)
             self.assertEqual(z.read("plugins/KingGriefCore/config.yml").decode("utf-8"), config)
             self.assertEqual(z.read("plugins/KingGriefCore.jar"), core_jar)
+            self.assertRegex(z.read("plugins/KingGriefBridge/config.yml").decode("utf-8"), r'(?m)^secret:\s*["\']?CHANGE_ME["\']?\s*$')
+            self.assertIn("push-resourcepack-on-join: false", z.read("plugins/KingGriefCore/config.yml").decode("utf-8"))
             self.assertNotIn("plugins/KingHub.jar", z.namelist())
             self.assertFalse(any(name.startswith("spawn_world/") for name in z.namelist()),
                              "archive must not overwrite an existing world during extraction")
@@ -450,23 +461,23 @@ class DistributionTests(unittest.TestCase):
         import hashlib
         import io
         repo = HERE.parent.parent
-        template = HERE.parent / "server/plugins/KingGriefCore/spawn-v66-template.zip"
+        template = HERE.parent / "server/plugins/KingGriefCore/spawn-v70-template.zip"
         data = template.read_bytes()
         digest = hashlib.sha256(data).hexdigest()
-        expected = (HERE.parent / "core-src/src/main/resources/spawn_v66_template.sha256").read_text(encoding="ascii").strip()
+        expected = (HERE.parent / "core-src/src/main/resources/spawn_v70_template.sha256").read_text(encoding="ascii").strip()
         self.assertEqual(digest, expected)
-        self.assertEqual((repo / "kinggrief/public/kinggrief-spawn-v66.zip").read_bytes(), data)
+        self.assertEqual((repo / "kinggrief/public/kinggrief-spawn-v70.zip").read_bytes(), data)
         with zipfile.ZipFile(HERE.parent / "server/plugins/KingGriefCore.jar") as jar:
-            self.assertEqual(jar.read("spawn_v66_template.sha256").decode("ascii").strip(), digest)
+            self.assertEqual(jar.read("spawn_v70_template.sha256").decode("ascii").strip(), digest)
             self.assertIn("net/kinggrief/core/PreparedSpawnInstaller.class", jar.namelist())
-        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly.zip") as assembly:
-            self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v66-template.zip"), data)
+        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.0.0.zip") as assembly:
+            self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v70-template.zip"), data)
             self.assertFalse(any(name.startswith("spawn_world/") for name in assembly.namelist()))
         with zipfile.ZipFile(io.BytesIO(data)) as world:
             self.assertIsNone(world.testzip())
             names = world.namelist()
             self.assertEqual(len(names), len(set(names)))
-            self.assertTrue({"level.dat", ".spawn_v66_royal_ok", ".kinggrief_prebuilt_v66"}.issubset(names))
+            self.assertTrue({"level.dat", ".spawn_v70_village_ok", ".kinggrief_prebuilt_v70"}.issubset(names))
             self.assertTrue(any(name.startswith("region/") and name.endswith(".mca") for name in names))
             self.assertFalse(any(name.startswith(("entities/", "playerdata/", "stats/", "advancements/"))
                                  or name in {"uid.dat", "session.lock", "level.dat_old"} for name in names))
@@ -483,7 +494,7 @@ class DistributionTests(unittest.TestCase):
             server = root / "server"
             data = server / "plugins/KingGriefCore"
             data.mkdir(parents=True)
-            template = data / "spawn-v66-template.zip"
+            template = data / "spawn-v70-template.zip"
             template.write_bytes(b"corrupted")
             output = root / "assembly.zip"
             public = root / "public.zip"
@@ -499,6 +510,28 @@ class DistributionTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "Do not place spawn_world"):
                     builder.main()
                 self.assertEqual(output.read_bytes(), b"old assembly")
+
+    def test_distribution_refuses_credentials_and_runtime_data(self):
+        import importlib.util
+        import tempfile
+        from unittest.mock import patch
+        spec = importlib.util.spec_from_file_location("kinggrief_assembly_hygiene", HERE.parent / "build-assembly.py")
+        builder = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(builder)
+        with tempfile.TemporaryDirectory() as temp:
+            server = Path(temp) / "server"
+            config = server / "plugins/KingGriefBridge/config.yml"
+            config.parent.mkdir(parents=True)
+            config.write_text('secret: "CHANGE_ME"\n', encoding="utf8")
+            with patch.object(builder, "SERVER", server):
+                builder.verify_distribution_hygiene()
+                config.write_text('secret: "a-test-value"\n', encoding="utf8")
+                with self.assertRaisesRegex(RuntimeError, "credential"):
+                    builder.verify_distribution_hygiene()
+                config.write_text('secret: "CHANGE_ME"\n', encoding="utf8")
+                (server / "world").mkdir()
+                with self.assertRaisesRegex(RuntimeError, "runtime or player data"):
+                    builder.verify_distribution_hygiene()
 
     def test_source_does_not_force_the_old_item_or_pack_models(self):
         color = (JAVA_DIR / "ColorUtil.java").read_text(encoding="utf-8")

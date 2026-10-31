@@ -283,8 +283,9 @@ public final class SpawnEngine {
             }
         }
 
-        File marker = new File(sw.getWorldFolder(), ".spawn_v66_royal_ok");
-        boolean hasKnownOldSpawn = new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok").exists()
+        File marker = new File(sw.getWorldFolder(), ".spawn_v70_village_ok");
+        boolean hasKnownOldSpawn = new File(sw.getWorldFolder(), ".spawn_v66_royal_ok").exists()
+                || new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok").exists()
                 || new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
                 || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
                 || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
@@ -335,8 +336,8 @@ public final class SpawnEngine {
             return false;
         }
         if (forceRebuild || (!existedBefore && !marker.exists())) {
-            plugin.getLogger().info("[SpawnEngine] Building the v6.6 Royal Winter Spawn...");
-            if (!buildFromRleResource(sw, "/spawn_v66.dat")) {
+            plugin.getLogger().info("[SpawnEngine] Building the v7.0 Winter Village Spawn...");
+            if (!buildFromRleResource(sw, "/spawn_v70.dat")) {
                 plugin.getLogger().severe("[SpawnEngine] Build failed; marker not created. Restore the backup if this was a rebuild.");
                 return false;
             }
@@ -351,7 +352,7 @@ public final class SpawnEngine {
             }
         } else {
             if (!marker.exists() && hasKnownOldSpawn) {
-                plugin.getLogger().info("[SpawnEngine] Existing spawn preserved; /rebuildspawn confirm backs it up and installs v6.6.");
+                plugin.getLogger().info("[SpawnEngine] Existing spawn preserved; /rebuildspawn confirm backs it up and installs v7.0.");
             }
             placeShulkerPedestalBlocks(sw);
             placeSantaGiftBlocks(sw);

@@ -44,12 +44,12 @@ public final class SpawnInstallProbe extends JavaPlugin {
     private void check(String mode) throws Exception {
         World spawn = Bukkit.getWorld("spawn_world");
         Path coreData = Bukkit.getWorldContainer().toPath().resolve("plugins/KingGriefCore");
-        Path done = coreData.resolve(".spawn-v66-template-installed");
+        Path done = coreData.resolve(".spawn-v70-template-installed");
         Path oldUid = getDataFolder().toPath().resolve("old-uid.txt");
         if (spawn == null) throw new AssertionError("spawn world is not loaded");
         Path world = spawn.getWorldFolder().toPath();
         if ("seed".equals(mode)) {
-            if (Files.exists(world.resolve(".kinggrief_prebuilt_v66"))) throw new AssertionError("seed should not be prebuilt");
+            if (Files.exists(world.resolve(".kinggrief_prebuilt_v70"))) throw new AssertionError("seed should not be prebuilt");
             writeChest(spawn, Material.DIAMOND);
             assertChest(spawn, Material.DIAMOND);
             Files.write(world.resolve("user-data.txt"), "old world data\n".getBytes(StandardCharsets.UTF_8));
@@ -59,7 +59,7 @@ public final class SpawnInstallProbe extends JavaPlugin {
         }
         List<Path> backups = backups();
         if (backups.size() != 1) throw new AssertionError("expected exactly one old-world backup, got " + backups.size());
-        boolean prebuilt = Files.isRegularFile(world.resolve(".kinggrief_prebuilt_v66"));
+        boolean prebuilt = Files.isRegularFile(world.resolve(".kinggrief_prebuilt_v70"));
         if (("installed".equals(mode) || "repeat".equals(mode)) && !prebuilt)
             throw new AssertionError("prebuilt marker missing");
         if ("installed".equals(mode)) {

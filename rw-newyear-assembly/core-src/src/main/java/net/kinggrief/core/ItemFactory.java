@@ -36,6 +36,11 @@ public final class ItemFactory {
             if (lore != null && !lore.isEmpty()) {
                 List<String> cl = new ArrayList<String>(lore.size());
                 for (String s : lore) cl.add(ColorUtil.c(s));
+                if (customId != null && customId.startsWith("shar_")) {
+                    cl.add(ColorUtil.c(""));
+                    cl.add(ColorUtil.c("&#80D8FF◼ Приём: присядь и нажми ПКМ пустой правой рукой."));
+                    cl.add(ColorUtil.c("&7Своя краткая способность; общий КТ шаров 60 сек."));
+                }
                 m.setLore(cl);
             }
             if (glow) {
@@ -95,6 +100,19 @@ public final class ItemFactory {
                         "&#00E676▸ Нажми ПКМ, чтобы открыть главное меню!"
                 ),
                 true, "menu_star", null, 0);
+    }
+
+    /** A real edible enchanted golden apple; the accepted consume event adds
+     * its bonus after vanilla has applied the normal enchanted-apple effects. */
+    public static ItemStack megaGapple(int amount) {
+        return make(Material.ENCHANTED_GOLDEN_APPLE, Math.max(1, Math.min(amount, 64)),
+                "&#FFD740&l🍎 МЕГА-ГЕПЛЬ ЗИМЫ",
+                Arrays.asList("&7Нужно съесть, как зачарованное золотое яблоко.",
+                        "&7Обычные эффекты чарки + &fРегенерация III на 12 сек.",
+                        "&7и &fПоглощение V на 30 сек.&7 после еды.",
+                        "&7Общий КТ чарки: &f50 сек. &7• Мега-гепль: &f120 сек.",
+                        "&8КТ действуют до перезапуска сервера; OWNER/TECH.ADMIN без КТ."),
+                true, "mega_gapple", "mega_gapple", 3101);
     }
 
     // ================= 8 BLENDER 3D АНИМИРОВАННЫХ ШАРОВ (ЛЕВАЯ РУКА) =================

@@ -132,6 +132,9 @@ public final class ModelMigrationTest {
         upgraded(V64_URL + "?v=64", "");
         upgraded("https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip", "fc61175f0692ab85486898160dce223097aa4382");
         upgraded("https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip?v=65", "");
+        upgraded("https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip", "63461884bd573de19a043f11b5982a34536e47d9");
+        upgraded("https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip?v=66", "");
+        unchanged("https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip", "customhash");
         unchanged("https://kinggrief.vercel.app/kinggrief-mega-rp-v65.zip", "customhash");
         unchanged(OLD_URL, "aabbcc"); // unknown checksum may describe a custom pack
         unchanged(V64_URL, OLD_SHA);

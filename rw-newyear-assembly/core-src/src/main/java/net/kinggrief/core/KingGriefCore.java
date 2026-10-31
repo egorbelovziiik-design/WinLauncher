@@ -59,6 +59,7 @@ public final class KingGriefCore extends JavaPlugin {
     private AntiLagDdosManager antiLagDdos;
     private OwnerGiveawayManager ownerGiveaway;
     private CuratorManager curatorManager;
+    private WinterItemsManager winterItems;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -121,6 +122,13 @@ public final class KingGriefCore extends JavaPlugin {
 
         this.gameplayListener = new GameplayListener(this);
         Bukkit.getPluginManager().registerEvents(this.gameplayListener, this);
+        this.winterItems = new WinterItemsManager(this);
+        Bukkit.getPluginManager().registerEvents(this.winterItems, this);
+        PluginCommand artifactsCommand = getCommand("artifacts");
+        if (artifactsCommand != null) {
+            artifactsCommand.setExecutor(this.winterItems);
+            artifactsCommand.setTabCompleter(this.winterItems);
+        }
 
         this.antiLagDdos = new AntiLagDdosManager(this);
         Bukkit.getPluginManager().registerEvents(this.antiLagDdos, this);
@@ -173,7 +181,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v6.7.1 — SAFE EVENTS, CROWN, BUY ORDERS & TRADES");
+        getLogger().info(" KINGGRIEF CORE v7.0.0 — WINTER VILLAGE, RUNES & MEGA GAPPLE");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -206,6 +214,7 @@ public final class KingGriefCore extends JavaPlugin {
     public BuyOrderManager getBuyOrders() { return buyOrders; }
     public SpawnEngine getSpawnEngine() { return spawnEngine; }
     public GuiManager getGuis() { return guis; }
+    public WinterItemsManager getWinterItems() { return winterItems; }
     public HudManager getHud() { return hud; }
     public ModerationManager getModeration() { return moderation; }
     public AntiLagDdosManager getAntiLagDdos() { return antiLagDdos; }
@@ -553,7 +562,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             boolean rebuilt = spawnEngine.initializeSpawnWorldAndBuild(true);
-            sender.sendMessage(ColorUtil.c(rebuilt ? "&#00E676✔ Спавн v6.6 перестроен; резервная копия в plugins/KingGriefCore/backups."
+            sender.sendMessage(ColorUtil.c(rebuilt ? "&#00E676✔ Спавн v7.0 перестроен; резервная копия в plugins/KingGriefCore/backups."
                     : "&cПерестройка не выполнена. Проверьте, что игроков нет в spawn_world, и посмотрите журнал."));
             return true;
         }

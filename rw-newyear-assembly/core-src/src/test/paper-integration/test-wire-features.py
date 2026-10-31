@@ -24,7 +24,7 @@ def main():
     p.add_argument('--api-classpath', required=True)
     p.add_argument('--node-modules', type=Path, required=True)
     p.add_argument('--core', type=Path, default=ROOT / 'KingGriefCore.jar')
-    p.add_argument('--template', type=Path, default=ROOT / 'server/plugins/KingGriefCore/spawn-v66-template.zip')
+    p.add_argument('--template', type=Path, default=ROOT / 'server/plugins/KingGriefCore/spawn-v70-template.zip')
     p.add_argument('--java', default='java')
     p.add_argument('--javac', default='javac')
     p.add_argument('--node', default='node')
@@ -48,7 +48,7 @@ def main():
         (server / 'cache').mkdir()
         shutil.copy2(args.vanilla, server / 'cache' / cache_name)
         shutil.copy2(args.core, server / 'plugins/KingGriefCore.jar')
-        shutil.copy2(args.template, data / 'spawn-v66-template.zip')
+        shutil.copy2(args.template, data / 'spawn-v70-template.zip')
         (data / 'config.yml').write_text('enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n', encoding='utf8')
         probe_config = server / 'plugins/KgWireFeaturesProbe/config.yml'
         probe_config.parent.mkdir(parents=True, exist_ok=True)

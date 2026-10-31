@@ -1,0 +1,4 @@
+name: PlayerPoints
+main: net.kinggrief.probe.mockpoints.MockPlayerPoints
+version: 'test-only'
+api-version: '1.21'

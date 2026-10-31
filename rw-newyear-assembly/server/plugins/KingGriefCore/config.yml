@@ -1,10 +1,11 @@
-# KINGGRIEF CORE v6.7.1 — EVENT SEARCH, BUY ORDERS AND RECOVERABLE TRADES
+# KINGGRIEF CORE v7.0.0 — WINTER VILLAGE, RUNES AND MEGA GAPPLE
 server-ip: "kinggrief.pickme.cloud"
 enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
-push-resourcepack-on-join: true
-resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip"
-resourcepack-sha1: "63461884bd573de19a043f11b5982a34536e47d9"
+# Paper отправляет ресурспак через server.properties; повторный запрос ядра отключён.
+push-resourcepack-on-join: false
+resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v70.zip"
+resourcepack-sha1: "8286228d4a1e0a95f56ad5fd265f12d1a57827be"
 starting-coins: 5000.0
 starting-relics: 50
 

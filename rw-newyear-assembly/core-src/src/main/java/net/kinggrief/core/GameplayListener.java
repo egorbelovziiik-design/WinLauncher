@@ -79,6 +79,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -2138,11 +2139,18 @@ public final class GameplayListener implements Listener {
                     String cdKey = p.getUniqueId() + (hm == Material.ENCHANTED_GOLDEN_APPLE ? ":cd_charka" : ":cd_gapple");
                     Long readyAt = itemCooldowns.get(cdKey);
                     long nowMs = System.currentTimeMillis();
+                    if ("mega_gapple".equals(ItemFactory.getCustomId(hand))) {
+                        Long megaReady = itemCooldowns.get(p.getUniqueId() + ":cd_mega_gapple");
+                        if (megaReady != null && megaReady.longValue() > nowMs
+                                && (readyAt == null || megaReady.longValue() > readyAt.longValue())) readyAt = megaReady;
+                    }
                     if (readyAt != null && nowMs < readyAt.longValue()) {
                         long remSec = Math.max(1L, (readyAt.longValue() - nowMs + 999L) / 1000L);
                         int remTicks = (int) Math.max(2L, (readyAt.longValue() - nowMs) / 50L);
                         e.setCancelled(true);
-                        try { p.setCooldown(hm, remTicks); } catch (Throwable ignored) {}
+                        if (!"mega_gapple".equals(ItemFactory.getCustomId(hand))) {
+                            try { p.setCooldown(hm, remTicks); } catch (Throwable ignored) {}
+                        }
                         String appleName = hm == Material.ENCHANTED_GOLDEN_APPLE ? "&#FF9100Чарка" : "&#FFD740Гепл";
                         ColorUtil.actionBar(p, "&#FF5252⏳ " + appleName + " &fна КТ: подождите ещё &#FFD740" + remSec + " сек.&f!");
                         return;
@@ -4187,15 +4195,23 @@ public final class GameplayListener implements Listener {
         if (m != Material.ENCHANTED_GOLDEN_APPLE && m != Material.GOLDEN_APPLE) return;
 
         Player p = e.getPlayer();
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isFrozenOrAscending(p)
+                || plugin.getStore().isQuickFrozen(p) || p.getGameMode() == GameMode.SPECTATOR) {
+            e.setCancelled(true); return;
+        }
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
-        if (isOwner) {
-            try { p.setCooldown(m, 0); } catch (Throwable ignored) {}
+        if (isOwner) return;
+
+        boolean mega = "mega_gapple".equals(ItemFactory.getCustomId(item)) && m == Material.ENCHANTED_GOLDEN_APPLE;
+        long now = System.currentTimeMillis();
+        Long megaReady = mega ? itemCooldowns.get(p.getUniqueId() + ":cd_mega_gapple") : null;
+        if (megaReady != null && now < megaReady.longValue()) {
+            e.setCancelled(true);
+            p.sendMessage(ColorUtil.c("&cМега-гепль на КТ ещё &e" + ((megaReady.longValue() - now + 999L) / 1000L) + " сек."));
             return;
         }
-
         boolean isCharka = (m == Material.ENCHANTED_GOLDEN_APPLE);
         String cdKey = p.getUniqueId() + (isCharka ? ":cd_charka" : ":cd_gapple");
-        long now = System.currentTimeMillis();
         Long readyAt = itemCooldowns.get(cdKey);
         if (readyAt != null && now < readyAt.longValue()) {
             long remSec = Math.max(1L, (readyAt.longValue() - now + 999L) / 1000L);
@@ -4207,20 +4223,48 @@ public final class GameplayListener implements Listener {
             return;
         }
 
-        final int cdSec = isCharka ? 50 : 20;
-        itemCooldowns.put(cdKey, Long.valueOf(now + cdSec * 1000L));
-        // Schedule 1 tick later so Minecraft doesn't overwrite our setCooldown after completing consume!
+        // State is committed only at MONITOR for an accepted consume event.
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onAcceptedGoldenAppleConsume(final PlayerItemConsumeEvent e) {
+        ItemStack item = e.getItem();
+        if (item == null) return;
+        final Material material = item.getType();
+        if (material != Material.ENCHANTED_GOLDEN_APPLE && material != Material.GOLDEN_APPLE) return;
+        final Player p = e.getPlayer();
+        final boolean mega = material == Material.ENCHANTED_GOLDEN_APPLE
+                && "mega_gapple".equals(ItemFactory.getCustomId(item));
+        final boolean owner = plugin.getRanks().isOwnerLevel(p);
+        final int cdSec = material == Material.ENCHANTED_GOLDEN_APPLE ? 50 : 20;
+        if (!owner) {
+            long now = System.currentTimeMillis();
+            itemCooldowns.put(p.getUniqueId() + (material == Material.ENCHANTED_GOLDEN_APPLE ? ":cd_charka" : ":cd_gapple"), Long.valueOf(now + cdSec * 1000L));
+            if (mega) itemCooldowns.put(p.getUniqueId() + ":cd_mega_gapple", Long.valueOf(now + 120_000L));
+        }
         Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
-            @Override
-            public void run() {
-                if (p.isOnline()) {
-                    try { p.setCooldown(m, cdSec * 20); } catch (Throwable ignored) {}
+            @Override public void run() {
+                if (!p.isOnline() || p.isDead()) return;
+                try { p.setCooldown(material, owner ? 0 : cdSec * 20); } catch (Throwable ignored) {}
+                if (mega) {
+                    // Vanilla apple effects are applied after the event, so do
+                    // this one tick later. Preserve still stronger effects.
+                    applyMegaAppleEffect(p, "regeneration", "REGENERATION", 240, 2);
+                    applyMegaAppleEffect(p, "absorption", "ABSORPTION", 600, 4);
+                    ColorUtil.sound(p, "entity.player.levelup", 0.8f, 1.2f);
+                    ColorUtil.actionBar(p, "&#FFD740🍎 Мега-гепль: Регенерация III и Поглощение V!");
                 }
             }
         }, 1L);
-        ColorUtil.actionBar(p, isCharka
-                ? "&#FF9100🍎 Чарка съедена! КТ на чарку: &f50 сек."
-                : "&#FFD740🍏 Гепл съеден! КТ на гепл: &f20 сек.");
+    }
+
+    private void applyMegaAppleEffect(Player p, String key, String legacy, int duration, int amplifier) {
+        PotionEffectType type = ColorUtil.potType(key, legacy);
+        if (type == null) return;
+        org.bukkit.potion.PotionEffect current = p.getPotionEffect(type);
+        if (current != null && (current.getAmplifier() > amplifier
+                || (current.getAmplifier() == amplifier && (current.getDuration() < 0 || current.getDuration() >= duration)))) return;
+        p.addPotionEffect(new org.bukkit.potion.PotionEffect(type, duration, amplifier, false, false, true));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

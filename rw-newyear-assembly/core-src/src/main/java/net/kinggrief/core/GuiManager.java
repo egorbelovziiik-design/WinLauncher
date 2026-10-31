@@ -197,6 +197,8 @@ public final class GuiManager {
                 "&7Добавь друзей в тиму без клана: &f/tm <ник>",
                 "&7Божья Аура лечит всю тиму + защита от урона!",
                 "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
+        inv.setItem(50, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 100 ЗИМНИХ РУН (/artifacts)",
+                "&720 комбинаций эффектов, каждая в 5 уровнях.", "&7Одноразовые; ПКМ в правой руке."));
         inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.4.0",
                 "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
                 "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.4.0"));
@@ -1865,6 +1867,7 @@ public final class GuiManager {
             else if (slot == 42) openFreebieMenu(p);
             else if (slot == 43) openSwordsMenu(p);
             else if (slot == 46) openTeammatesMenu(p);
+            else if (slot == 50) plugin.getWinterItems().open(p, 0);
             else if (slot == 52) openCoinShopCat(p, "pvp");
             else if (slot == 47 && plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) plugin.getCurator().openMainCuratorGui(p, "");
             else if (slot == 48 && plugin.getLp().hasLpAccess(p)) { p.closeInventory(); plugin.getOwnerGiveaway().openRazdachaMainGui(p); }
@@ -1980,6 +1983,7 @@ public final class GuiManager {
             if (slot == 39) { openMannequinMenu(p); return; }
             handleRelicItemTagPurchase(p, clicked, "orbs");
         } else if ("mega".equals(type)) {
+            if (slot == 25) { plugin.getWinterItems().open(p, 0); return; }
             if (slot == 48) { openOrbsMenu(p); return; }
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openMannequinMenu(p); return; }
@@ -2744,6 +2748,8 @@ public final class GuiManager {
         inv.setItem(21, shopTag(ItemFactory.megaShield(1),120));
         inv.setItem(22, shopTag(ItemFactory.megaHeal(4),  320));
         inv.setItem(23, shopTag(ItemFactory.megaBuff(4),  500));
+        inv.setItem(24, shopTag(ItemFactory.megaGapple(1),  180));
+        inv.setItem(25, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 100 зимних рун", "&720 семейств по 5 уровней — /artifacts"));
         // Ряд 3: НОВЫЕ ТОТЕМЫ С ЗАРЯДАМИ
         inv.setItem(28, shopTag(ItemFactory.totemLedyanoy(3),      300));
         inv.setItem(29, shopTag(ItemFactory.totemVoskresheniya(5), 620));

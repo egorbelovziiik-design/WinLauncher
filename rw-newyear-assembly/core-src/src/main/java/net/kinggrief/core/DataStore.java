@@ -970,13 +970,66 @@ public final class DataStore {
         if (on != null) writePlayerPoints(on.getUniqueId(), next);
     }
 
-    public boolean takeRelics(Player p, int amount) {
-        int cur = getRelics(p);
-        if (cur < amount) return false;
-        int next = cur - amount;
-        yml.set("players." + key(p.getName()) + ".relics", next);
-        writePlayerPoints(p.getUniqueId(), next);
-        return true;
+    /**
+     * Debit a shop purchase only after both the PlayerPoints result (if present)
+     * and the durable local balance agree. PlayerPoints is not part of our YAML
+     * transaction: on failure we attempt a best-effort compensation and report
+     * uncertainty rather than silently handing out an unpaid item.
+     */
+    public synchronized boolean takeRelics(Player p, int amount) {
+        if (p == null || amount < 0) return false;
+        if (amount == 0) return true;
+        final String path = "players." + key(p.getName()) + ".relics";
+        final int localBefore = yml.getInt(path, 50);
+        org.bukkit.plugin.Plugin points = Bukkit.getPluginManager().getPlugin("PlayerPoints");
+        int pointsBefore = -1;
+        if (points != null) {
+            if (!points.isEnabled() || (pointsBefore = readPlayerPoints(p.getUniqueId())) < 0) {
+                plugin.getLogger().warning("[Relics] PlayerPoints unavailable for " + p.getName() + "; purchase refused.");
+                return false;
+            }
+        }
+        // Preserve the established migration rule for existing accounts.
+        int current = points == null ? localBefore : Math.max(localBefore, pointsBefore);
+        if (current < amount) return false;
+        final int next = current - amount;
+        if (points != null && !setPlayerPointsChecked(points, p.getUniqueId(), next)) {
+            compensatePlayerPoints(points, p, pointsBefore);
+            plugin.getLogger().warning("[Relics] PlayerPoints rejected or changed the debit for " + p.getName() + "; no item was issued.");
+            return false;
+        }
+        try {
+            // Commit the local balance before the caller issues an item.
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set(path, Integer.valueOf(next)); return null;
+                }
+            });
+            return true;
+        } catch (Exception failed) {
+            if (points != null) compensatePlayerPoints(points, p, pointsBefore);
+            plugin.getLogger().severe("[Relics] Could not save the debit for " + p.getName() + "; purchase refused: " + failed.getMessage());
+            return false;
+        }
+    }
+
+    private boolean setPlayerPointsChecked(org.bukkit.plugin.Plugin points, UUID uuid, int amount) {
+        try {
+            Object api = points.getClass().getMethod("getAPI").invoke(points);
+            Object result = api.getClass().getMethod("set", UUID.class, int.class).invoke(api, uuid, Integer.valueOf(amount));
+            return Boolean.TRUE.equals(result) && readPlayerPoints(uuid) == amount;
+        } catch (Throwable error) {
+            plugin.getLogger().warning("[Relics] PlayerPoints debit failed: " + error.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    private void compensatePlayerPoints(org.bukkit.plugin.Plugin points, Player player, int before) {
+        if (readPlayerPoints(player.getUniqueId()) == before) return;
+        if (!setPlayerPointsChecked(points, player.getUniqueId(), before)) {
+            plugin.getLogger().severe("[Relics] Could not verify PlayerPoints compensation for " + player.getName()
+                    + "; inspect that account (expected " + before + ") before further purchases.");
+        }
     }
 
     private int readPlayerPoints(UUID uuid) {

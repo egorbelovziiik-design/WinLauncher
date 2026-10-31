@@ -20,7 +20,7 @@ import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_OUTPUT = ROOT / "server/plugins/KingGriefCore/spawn-v66-template.zip"
+DEFAULT_OUTPUT = ROOT / "server/plugins/KingGriefCore/spawn-v70-template.zip"
 
 
 def arguments():
@@ -112,8 +112,8 @@ def generate_world(args, server):
         print("\n".join(output[-150:]), file=sys.stderr)
         raise
     world = server / "spawn_world"
-    if not (world / ".spawn_v66_royal_ok").is_file() or not (world / "level.dat").is_file():
-        raise RuntimeError("Generated world lacks its v66 marker or level.dat")
+    if not (world / ".spawn_v70_village_ok").is_file() or not (world / "level.dat").is_file():
+        raise RuntimeError("Generated world lacks its v70 marker or level.dat")
     if not list((world / "region").glob("r.*.mca")):
         raise RuntimeError("Generated world has no saved region chunks")
     return world
@@ -134,7 +134,7 @@ def archive_world(world, output):
         if rel.parts[0] in excluded_roots or rel.as_posix() in excluded_files:
             continue
         paths.append((rel.as_posix(), path.read_bytes()))
-    paths.append((".kinggrief_prebuilt_v66", b"KINGGRIEF Royal Winter spawn v66; Paper 1.21.4\n"))
+    paths.append((".kinggrief_prebuilt_v70", b"KINGGRIEF Royal Winter spawn v70; Paper 1.21.4\n"))
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="kinggrief-spawn-archive-", dir=output.parent) as temp:
         staged = Path(temp) / output.name
@@ -158,7 +158,7 @@ def main():
         world = generate_world(args, Path(temp) / "server")
         digest = archive_world(world, args.output)
     if args.update_checksum:
-        resource = ROOT / "core-src/src/main/resources/spawn_v66_template.sha256"
+        resource = ROOT / "core-src/src/main/resources/spawn_v70_template.sha256"
         resource.write_text(digest + "\n", encoding="ascii")
         print("Updated", resource, "— rebuild Core before distributing this template.", flush=True)
 

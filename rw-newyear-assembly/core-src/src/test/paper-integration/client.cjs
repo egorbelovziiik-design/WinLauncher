@@ -1,6 +1,6 @@
 const mc = require('minecraft-protocol');
-const wanted = 'https://kinggrief.vercel.app/kinggrief-mega-rp-v66.zip';
-const expectedHash = '63461884bd573de19a043f11b5982a34536e47d9';
+const wanted = 'https://kinggrief.vercel.app/kinggrief-mega-rp-v70.zip';
+const expectedHash = '8286228d4a1e0a95f56ad5fd265f12d1a57827be';
 const c = mc.createClient({host:'127.0.0.1', port:Number(process.argv[2]), username:'ProbeTester', version:'1.21.4', auth:'offline'});
 let gotPack = false, gotWindow = false, gotChat = false;
 c.on('packet', (data,meta) => {
