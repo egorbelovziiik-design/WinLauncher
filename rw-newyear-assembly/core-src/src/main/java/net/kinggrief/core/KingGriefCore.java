@@ -62,6 +62,7 @@ public final class KingGriefCore extends JavaPlugin {
     private WinterItemsManager winterItems;
     private RtpManager rtpManager;
     private ExpeditionManager expeditions;
+    private ClanAllianceManager clanAlliances;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -82,6 +83,7 @@ public final class KingGriefCore extends JavaPlugin {
 
         this.store = new DataStore(this);
         this.ranks = new RankManager(this.store);
+        this.clanAlliances = new ClanAllianceManager(this);
         this.lp = new LpManager(this);
         this.bossEvents = new BossEventManager(this);
         this.spawnEngine = new SpawnEngine(this);
@@ -488,7 +490,7 @@ public final class KingGriefCore extends JavaPlugin {
                         "help", "menu", "create", "disband", "invite", "accept", "deny",
                         "leave", "kick", "promote", "demote", "leader", "sethome", "home",
                         "delhome", "pvp", "money", "deposit", "withdraw", "storage",
-                        "upgrade", "ally", "neutral", "color", "rename", "coords", "glow",
+                        "upgrade", "ally", "allyaccept", "allydeny", "allypvp", "neutral", "color", "rename", "coords", "glow",
                         "chat", "info", "list", "top"
                 ), args[0]);
             }
@@ -2016,7 +2018,8 @@ public final class KingGriefCore extends JavaPlugin {
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan money &8| &f/clan deposit <сумма> &8| &f/clan withdraw <сумма>"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan upgrade &7— Прокачать уровень клана (до 10 ур.)"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan pvp &7— Вкл/Выкл урон по своим соклановцам"));
-        p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan ally <тег> &8| &f/clan neutral <тег> &7— Союзы между кланами"));
+        p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan ally <тег> &8| &f/clan allyaccept <тег> &7— Предложить / принять союз"));
+        p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan allypvp <тег> &8| &f/clan neutral <тег> &7— PvP по согласию / расторгнуть"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan color <цвет> &8| &f/clan rename <тег> &7— Цвет и смена тега"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan coords &8| &f/clan glow &7— Координаты и подсветка своих"));
         p.sendMessage(ColorUtil.c("&#B388FF║ &f/clan info [тег] &8| &f/clan top &8| &f/cc <текст> &7— Инфо, ТОП и Чат"));
@@ -2333,25 +2336,8 @@ public final class KingGriefCore extends JavaPlugin {
                     + " УРОВНЯ&#FFD740! Мест: &a" + my.getMaxMembers() + " &8│ &7Сейф: &b" + my.getStorageSize() + " слотов!"));
             return;
         }
-        if ("ally".equals(sub)) {
-            if (myRole < 3 || args.length < 2) { p.sendMessage(ColorUtil.c("&eИспользование (Лидер/Зам): &f/clan ally <тегКлана>")); return; }
-            DataStore.Clan other = store.getClanById(args[1].toLowerCase(Locale.ROOT));
-            if (other == null || other.id.equals(my.id)) { p.sendMessage(ColorUtil.c("&cКлан не найден!")); return; }
-            my.allies.add(other.id);
-            other.allies.add(my.id);
-            store.save();
-            broadcastToClan(my, ColorUtil.c(my.color + "[КЛАН] &#00E676🤝 Заключён союз с кланом [" + other.tag + "]! Огонь по союзникам отключён."));
-            broadcastToClan(other, ColorUtil.c(other.color + "[КЛАН] &#00E676🤝 Клан [" + my.tag + "] заключил с вами союз!"));
-            return;
-        }
-        if ("neutral".equals(sub) || "unally".equals(sub)) {
-            if (myRole < 3 || args.length < 2) { p.sendMessage(ColorUtil.c("&eИспользование: &f/clan neutral <тегКлана>")); return; }
-            DataStore.Clan other = store.getClanById(args[1].toLowerCase(Locale.ROOT));
-            if (other == null) { p.sendMessage(ColorUtil.c("&cКлан не найден!")); return; }
-            my.allies.remove(other.id);
-            other.allies.remove(my.id);
-            store.save();
-            broadcastToClan(my, ColorUtil.c("&eСоюз с кланом [" + other.tag + "] расторгнут."));
+        if (clanAlliances.handles(sub)) {
+            clanAlliances.handle(p, my, myRole, sub, args);
             return;
         }
         if ("color".equals(sub)) {

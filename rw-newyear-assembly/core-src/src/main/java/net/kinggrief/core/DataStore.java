@@ -37,6 +37,8 @@ public final class DataStore {
         public final Set<String> members = new HashSet<String>();
         public final Map<String, Integer> roles = new HashMap<String, Integer>(); // 0=Новичок, 1=Проверенный, 2=Модератор, 3=Зам.Лидера, 4=Лидер
         public final Set<String> allies = new HashSet<String>();
+        // Both clans must opt in independently for friendly fire between allies.
+        public final Set<String> allyPvp = new HashSet<String>();
         public double bank = 0.0;
         public int kills = 0;
         public boolean friendlyFire = false;
@@ -180,6 +182,9 @@ public final class DataStore {
                 for (String al : cs.getStringList(cid + ".allies")) {
                     c.allies.add(al.toLowerCase(Locale.ROOT));
                 }
+                for (String al : cs.getStringList(cid + ".allyPvp")) {
+                    c.allyPvp.add(al.toLowerCase(Locale.ROOT));
+                }
                 ConfigurationSection roleSec = cs.getConfigurationSection(cid + ".roles");
                 if (roleSec != null) {
                     for (String rk : roleSec.getKeys(false)) {
@@ -268,6 +273,7 @@ public final class DataStore {
             yml.set(p + ".ff", c.friendlyFire);
             yml.set(p + ".home", writeLoc(c.home));
             yml.set(p + ".allies", new ArrayList<String>(c.allies));
+            yml.set(p + ".allyPvp", new ArrayList<String>(c.allyPvp));
             yml.set(p + ".members", new ArrayList<String>(c.members));
             for (Map.Entry<String, Integer> re : c.roles.entrySet()) {
                 yml.set(p + ".roles." + re.getKey(), re.getValue());
@@ -1390,7 +1396,7 @@ public final class DataStore {
     public void disbandClan(Clan c) {
         if (c == null) return;
         for (String m : c.members) playerClan.remove(m);
-        for (Clan other : clans.values()) other.allies.remove(c.id);
+        for (Clan other : clans.values()) { other.allies.remove(c.id); other.allyPvp.remove(c.id); }
         clans.remove(c.id);
         save();
     }
@@ -2436,6 +2442,9 @@ public final class DataStore {
         Clan c2 = getClanOf(nameB);
         if (c1 != null && c2 != null && c1.equals(c2)) {
             return c1.friendlyFire;
+        }
+        if (c1 != null && c2 != null && (c1.allies.contains(c2.id) || c2.allies.contains(c1.id))) {
+            return c1.allyPvp.contains(c2.id) && c2.allyPvp.contains(c1.id);
         }
         return false;
     }

@@ -3996,9 +3996,10 @@ public final class GameplayListener implements Listener {
                         ColorUtil.actionBar(attacker, "&#B388FF🛡 Соклановец! Огонь по своим отключён (/clan pvp).");
                         return;
                     }
-                    if (c1.allies.contains(c2.id)) {
+                    if ((c1.allies.contains(c2.id) || c2.allies.contains(c1.id))
+                            && !plugin.getStore().isTeammatePvpAllowed(attacker.getName(), victim.getName())) {
                         e.setCancelled(true);
-                        ColorUtil.actionBar(attacker, "&#69F0AE🤝 Игрок из союзного клана [" + c2.tag + "]!");
+                        ColorUtil.actionBar(attacker, "&#69F0AE🤝 Игрок из союзного клана [" + c2.tag + "]! PvP требует согласия обоих кланов.");
                         return;
                     }
                 }
