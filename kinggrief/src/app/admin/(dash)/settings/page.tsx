@@ -151,10 +151,10 @@ export default async function AdminSettingsPage() {
           <code className="mx-1 rounded bg-black/40 px-1 font-mono text-[0.64rem] text-white/70">minecraft-plugin/</code>.
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <a href="/KingGriefCore-v7.2.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm">
-            <Download size={13} /> Скачать ядро KingGriefCore.jar (v7.2.0)
+          <a href="/KingGriefCore-v7.2.1.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm">
+            <Download size={13} /> Скачать ядро KingGriefCore.jar (v7.2.1)
           </a>
-          <a href="/KingGriefCore-7.2.0-update.zip" download className="btn btn-ghost btn-sm">
+          <a href="/KingGriefCore-7.2.1-update.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Патч и инструкция установки (.zip)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-gold btn-sm">
@@ -175,8 +175,8 @@ export default async function AdminSettingsPage() {
           <a href="/kinggrief-mega-rp-v72.zip" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Мега-РП v72 — 150 артефактов (.zip)
           </a>
-          <a href="/rw-newyear-full-assembly-v7.2.0.zip" download className="btn btn-ghost btn-sm">
-            <Download size={13} /> Вся сборка v7.2.0 (.zip)
+          <a href="/rw-newyear-full-assembly-v7.2.1.zip" download className="btn btn-ghost btn-sm">
+            <Download size={13} /> Вся сборка v7.2.1 (.zip)
           </a>
           <a href="/KingGrief-50-artifacts-7.2.0.md" download className="btn btn-ghost btn-sm">
             <Download size={13} /> Список 50 новых артефактов

@@ -442,6 +442,10 @@ class DistributionTests(unittest.TestCase):
             self.assertIn("plugins/update/", instruction)
             self.assertNotIn("{{CORE_SHA256}}", instruction)
         # Older versioned downloads must remain byte-for-byte available.
+        for name, digest in (("KingGriefCore-v7.2.0.jar", "fb80806c1b79f9f0555d07d4f99902c5086330e89868b0f9b587af3dc0142a6c"),
+                             ("KingGriefCore-7.2.0-update.zip", "4117db91dcef810272ef82d4274fd8757e041c0f7e272a7d2686ef00c077935a"),
+                             ("rw-newyear-full-assembly-v7.2.0.zip", "f638f6907d87585fa4e9048667d0930e3cbdcf837feeea3357f6ecd96b8137b7")):
+            self.assertEqual(hashlib.sha256((public / name).read_bytes()).hexdigest(), digest)
         previous = HERE.parent / "KingGriefCore-6.7.0-update.zip"
         self.assertEqual(previous.read_bytes(), (public / previous.name).read_bytes())
         self.assertEqual(hashlib.sha256(previous.read_bytes()).hexdigest(),
@@ -461,7 +465,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn("net/kinggrief/common/ResourcePackSettings.class", jar.namelist())
                 self.assertFalse(any(path.startswith("org/bukkit/") for path in jar.namelist()), "test fixtures leaked into JAR")
 
-        assembly = HERE.parent / "rw-newyear-full-assembly-v7.2.0.zip"
+        assembly = HERE.parent / "rw-newyear-full-assembly-v7.2.1.zip"
         self.assertEqual(assembly.read_bytes(), (public / assembly.name).read_bytes())
         with zipfile.ZipFile(assembly) as z:
             self.assertIsNone(z.testzip())
@@ -481,6 +485,18 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn("plugins/LuckPerms/yaml-storage/groups/" + rank + ".yml", z.namelist())
                 self.assertIn(rank + ":", z.read("plugins/TAB/groups.yml").decode("utf-8"))
 
+    def test_installation_guide_matches_the_distribution(self):
+        server = HERE.parent / "server"
+        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.2.1.zip") as assembly:
+            guide = assembly.read("УСТАНОВКА_И_ПЛАГИНЫ.html").decode("utf-8")
+            self.assertEqual(guide, (server / "УСТАНОВКА_И_ПЛАГИНЫ.html").read_text(encoding="utf-8"))
+            self.assertIn("7.2.1", guide)
+            self.assertIn("автоматически не заменяется", guide)
+            self.assertIn("не распаковывайте полную сборку поверх", guide)
+            self.assertIn("справочные ссылки", guide)
+            self.assertNotIn("spawn-v66-template.zip", guide)
+            self.assertEqual(assembly.read("download-plugins.sh"), (server / "download-plugins.sh").read_bytes())
+
     def test_prebuilt_spawn_distribution(self):
         import hashlib
         import io
@@ -495,7 +511,7 @@ class DistributionTests(unittest.TestCase):
             self.assertEqual(jar.read("spawn_v71_template.sha256").decode("ascii").strip(), digest)
             self.assertEqual(hashlib.sha256(jar.read("spawn_v71_template.zip")).hexdigest(), digest)
             self.assertIn("net/kinggrief/core/PreparedSpawnInstaller.class", jar.namelist())
-        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.2.0.zip") as assembly:
+        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.2.1.zip") as assembly:
             self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v71-template.zip"), data)
             self.assertFalse(any(name.startswith("spawn_world/") for name in assembly.namelist()))
         with zipfile.ZipFile(io.BytesIO(data)) as world:

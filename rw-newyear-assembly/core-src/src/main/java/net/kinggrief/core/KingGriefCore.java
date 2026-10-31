@@ -193,7 +193,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.2.0 — SAFER SHOP, SPAWN & PROMO");
+        getLogger().info(" KINGGRIEF CORE v7.2.1 — SAFER SHOP, SPAWN & PROMO");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -201,6 +201,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.gameplayListener != null) this.gameplayListener.rollbackPendingSpawnerBreaks();
         if (this.ownerGiveaway != null) {
             this.ownerGiveaway.kickAllForShutdownTechWorks();
             this.ownerGiveaway.shutdown();

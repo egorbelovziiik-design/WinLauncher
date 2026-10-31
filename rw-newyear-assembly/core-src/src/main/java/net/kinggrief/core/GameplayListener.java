@@ -115,6 +115,9 @@ public final class GameplayListener implements Listener {
     private final KingGriefCore plugin;
     private final Random rng = new Random();
     private final Set<UUID> drillGuard = new HashSet<UUID>();
+    // A one-use spawner pick must survive vanilla's durability step until its break is confirmed.
+    private final Map<UUID, Integer> pendingSpawnerToolGuards = new HashMap<UUID, Integer>();
+    private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSpawnerRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
     private final Map<UUID, Long> parkourPlateCd = new HashMap<UUID, Long>();
     private final Map<UUID, Long> parkourRunStartMs = new HashMap<UUID, Long>();
@@ -1147,46 +1150,105 @@ public final class GameplayListener implements Listener {
         if ((event.isCancelled() || !event.canBuild()) && target.getType() == replacement) previous.update(true, false);
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void protectPendingSpawnerPick(PlayerItemDamageEvent event) {
+        if (pendingSpawnerToolGuards.containsKey(event.getPlayer().getUniqueId())
+                && "pick_spawner".equals(ItemFactory.getCustomId(event.getItem()))) {
+            // The pick is consumed by the transaction, not by vanilla's random durability roll.
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean matchesSpawnerPick(ItemStack candidate, ItemStack required) {
+        if (candidate == null || !"pick_spawner".equals(ItemFactory.getCustomId(candidate))) return false;
+        if (candidate.isSimilar(required)) return true;
+        // Another plugin may change only durability despite the guard; all other metadata must match.
+        ItemStack left = candidate.clone(), right = required.clone();
+        ItemMeta leftMeta = left.getItemMeta(), rightMeta = right.getItemMeta();
+        if (!(leftMeta instanceof Damageable) || !(rightMeta instanceof Damageable)) return false;
+        ((Damageable) leftMeta).setDamage(0);
+        ((Damageable) rightMeta).setDamage(0);
+        left.setItemMeta(leftMeta); right.setItemMeta(rightMeta);
+        return left.isSimilar(right);
+    }
+
+    private void restoreUnpaidSpawner(org.bukkit.block.BlockState saved, Block block, Player player, String reason) {
+        // The transaction did not consume a tool: restore the complete spawner state rather than lose it.
+        if (block.getType().isAir() && saved.update(true, false)) {
+            if (player.isOnline()) player.sendMessage(ColorUtil.c("&cКирка недоступна: спавнер восстановлен на месте."));
+        } else {
+            plugin.getLogger().warning("[Mining] Could not restore spawner for " + player.getName() + " (" + reason + ").");
+        }
+    }
+
+    public void rollbackPendingSpawnerBreaks() {
+        // Scheduled confirmations are cancelled on plugin shutdown; return any unpaid spawners first.
+        for (Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState> entry : pendingSpawnerRollbacks.entrySet()) {
+            BlockBreakEvent event = entry.getKey();
+            if (!event.isCancelled() && !event.isDropItems() && event.getBlock().getType().isAir())
+                restoreUnpaidSpawner(entry.getValue(), event.getBlock(), event.getPlayer(), "plugin shutdown");
+        }
+        pendingSpawnerRollbacks.clear();
+        pendingSpawnerToolGuards.clear();
+    }
+
     private void scheduleSpawnerBreak(final BlockBreakEvent event, final Player player, final Block block, ItemStack tool) {
+        final org.bukkit.block.BlockState savedState = block.getState();
         EntityType type = EntityType.PIG;
-        if (block.getState() instanceof CreatureSpawner) {
-            EntityType configured = ((CreatureSpawner) block.getState()).getSpawnedType();
+        if (savedState instanceof CreatureSpawner) {
+            EntityType configured = ((CreatureSpawner) savedState).getSpawnedType();
             if (configured != null) type = configured;
         }
         final EntityType spawned = type;
         final ItemStack requiredTool = tool.clone();
+        final UUID playerId = player.getUniqueId();
+        Integer guards = pendingSpawnerToolGuards.get(playerId);
+        pendingSpawnerToolGuards.put(playerId, Integer.valueOf(guards == null ? 1 : guards.intValue() + 1));
+        pendingSpawnerRollbacks.put(event, savedState);
         event.setDropItems(false); event.setExpToDrop(0);
         Bukkit.getScheduler().runTask(plugin, new Runnable() {
             @Override public void run() {
-                if (event.isCancelled() || event.isDropItems() || !block.getType().isAir()) return;
-                if (!player.isOnline()) {
-                    plugin.getLogger().warning("[Mining] Spawner reward withheld because " + player.getName() + " disconnected before tool consumption.");
-                    return;
+                try {
+                    if (event.isCancelled() || event.isDropItems() || !block.getType().isAir()) return;
+                    if (!player.isOnline()) {
+                        restoreUnpaidSpawner(savedState, block, player, "player disconnected");
+                        return;
+                    }
+                    int slot = -1;
+                    ItemStack[] contents = player.getInventory().getStorageContents();
+                    for (int i = 0; i < contents.length; i++) {
+                        if (matchesSpawnerPick(contents[i], requiredTool)) { slot = i; break; }
+                    }
+                    boolean offHand = slot < 0 && matchesSpawnerPick(player.getInventory().getItemInOffHand(), requiredTool);
+                    if (slot < 0 && !offHand) {
+                        restoreUnpaidSpawner(savedState, block, player, "tool moved or removed");
+                        return;
+                    }
+                    ItemStack held = offHand ? player.getInventory().getItemInOffHand() : player.getInventory().getItem(slot);
+                    if (held.getAmount() > 1) {
+                        held.setAmount(held.getAmount() - 1);
+                        if (offHand) player.getInventory().setItemInOffHand(held);
+                        else player.getInventory().setItem(slot, held);
+                    } else if (offHand) player.getInventory().setItemInOffHand(null);
+                    else player.getInventory().setItem(slot, null);
+                    ItemStack drop = ItemFactory.make(Material.SPAWNER, 1,
+                            "&#FFD740&l🔥 Рассадник Мобов [" + spawned.name() + "]",
+                            Arrays.asList("&7Добыт киркой Божье Прикосновение РВ!", "&7Поставь на базе для спавна мобов."),
+                            true, "saved_spawner", null, 0);
+                    ItemMeta meta = drop.getItemMeta();
+                    if (meta != null) {
+                        meta.getPersistentDataContainer().set(SPAWNER_TYPE_KEY, PersistentDataType.STRING, spawned.name());
+                        drop.setItemMeta(meta);
+                    }
+                    block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), drop);
+                    ColorUtil.sound(player, "entity.item.break", 1f, 0.9f);
+                    player.sendMessage(ColorUtil.c("&#00E676✨ Вы успешно добыли спавнер [" + spawned.name() + "] Божьим Прикосновением!"));
+                } finally {
+                    pendingSpawnerRollbacks.remove(event);
+                    Integer remaining = pendingSpawnerToolGuards.get(playerId);
+                    if (remaining == null || remaining.intValue() <= 1) pendingSpawnerToolGuards.remove(playerId);
+                    else pendingSpawnerToolGuards.put(playerId, Integer.valueOf(remaining.intValue() - 1));
                 }
-                int slot = -1;
-                ItemStack[] contents = player.getInventory().getStorageContents();
-                for (int i = 0; i < contents.length; i++) {
-                    if (contents[i] != null && contents[i].isSimilar(requiredTool)) { slot = i; break; }
-                }
-                if (slot < 0) {
-                    player.sendMessage(ColorUtil.c("&cКирка перемещена до подтверждения добычи; награда не выдана."));
-                    return;
-                }
-                ItemStack held = player.getInventory().getItem(slot);
-                if (held.getAmount() > 1) held.setAmount(held.getAmount() - 1);
-                else player.getInventory().setItem(slot, null);
-                ItemStack drop = ItemFactory.make(Material.SPAWNER, 1,
-                        "&#FFD740&l🔥 Рассадник Мобов [" + spawned.name() + "]",
-                        Arrays.asList("&7Добыт киркой Божье Прикосновение РВ!", "&7Поставь на базе для спавна мобов."),
-                        true, "saved_spawner", null, 0);
-                ItemMeta meta = drop.getItemMeta();
-                if (meta != null) {
-                    meta.getPersistentDataContainer().set(SPAWNER_TYPE_KEY, PersistentDataType.STRING, spawned.name());
-                    drop.setItemMeta(meta);
-                }
-                block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), drop);
-                ColorUtil.sound(player, "entity.item.break", 1f, 0.9f);
-                player.sendMessage(ColorUtil.c("&#00E676✨ Вы успешно добыли спавнер [" + spawned.name() + "] Божьим Прикосновением!"));
             }
         });
     }

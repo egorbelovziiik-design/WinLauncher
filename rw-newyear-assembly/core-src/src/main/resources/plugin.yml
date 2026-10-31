@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 7.2.0
+version: 7.2.1
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.2.0: 50 новых артефактов, безопасный спавн и экономика."
+description: "KINGGRIEF v7.2.1: 50 новых артефактов, безопасный спавн и экономика."
 
 
 commands:

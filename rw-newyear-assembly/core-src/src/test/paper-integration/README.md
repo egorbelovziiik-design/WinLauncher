@@ -47,6 +47,9 @@ uses two clients across a full restart, injects storage failures and checks escr
 refunds, stale GUI slots and pagination. `test-mining-safety.py` uses real
 `Player.breakBlock` calls and a late cancellable protection listener to test central
 and neighbouring blocks, frost placement, full inventories, spawners and auto-mine.
+The spawner cases also cover deterministic vanilla wear, a near-broken old pick,
+external durability changes, offhand moves, missing tools, disconnect and plugin
+shutdown before confirmation. They are not a power-loss test.
 `test-mining-worldguard.py --worldguard /path/to/WorldGuard.jar --worldedit
 /path/to/WorldEdit.jar` separately uses the real plugins to check protected central
 and neighbouring blocks and frost placement. Neither test guarantees compatibility

@@ -13,7 +13,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.2.0.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.2.1.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
 TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v71-template.zip"
 PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v71.zip"

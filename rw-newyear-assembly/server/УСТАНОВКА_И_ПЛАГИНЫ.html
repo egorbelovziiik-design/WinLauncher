@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="utf-8"><title>Новогодняя Фулл Сборка KINGGRIEF (Копия ReallyWorld)</title>
+<html lang="ru"><head><meta charset="utf-8"><title>Установка сборки KINGGRIEF 7.2.1</title>
 <style>
 body{font-family:system-ui,sans-serif;background:#0b1120;color:#e2e8f0;max-width:1050px;margin:24px auto;padding:0 20px;line-height:1.5}
 h1,h2{color:#38bdf8} .card{background:#111827;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:20px}
@@ -7,27 +7,27 @@ table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px 
 .btn{display:inline-block;background:#10b981;color:#052e16;font-weight:700;padding:6px 12px;border-radius:8px;text-decoration:none}
 code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 </style></head><body>
-<h1>❄️ Фулл Новогодняя Сборка KINGGRIEF · 100% Бесплатная Копия ReallyWorld</h1>
+<h1>❄️ Новогодняя сборка KINGGRIEF 7.2.1</h1>
 <div class="card">
-<h2>⚡ Быстрая установка за 3 шага</h2>
+<h2>⚡ Установка и обновление</h2>
 <ol>
-<li><b>Плагины (.jar):</b> Если вы на ПК — дважды кликните <code>СКАЧАТЬ_ВСЕ_ПЛАГИНЫ_WINDOWS.bat</code> (или на Linux <code>bash download-plugins.sh</code>) — скрипт сам скачает все 20 бесплатных официальных <code>.jar</code> плагинов в папку <code>plugins/</code>! Либо скачайте нужные <code>.jar</code> кнопками ниже. <i>(Плагин автодоната <code>KingGriefBridge.jar</code> уже лежит внутри <code>plugins/</code>!)</i></li>
-<li><b>Загрузка на хостинг:</b> На новом сервере распакуйте содержимое сборки в корень сервера с Paper 1.21.4 и Java 21. Для обновления существующего сервера сначала остановите его и сохраните резервные копии; не перезаписывайте свои конфиги и миры.</li>
-<li><b>Шары и тотемы v6.6.4:</b> эффекты шаров работают в левой руке, регенерация лечит, здоровье не удваивается; тотемы учитывают использованную руку и расход заряда.</li>
-<li><b>Исправление ивентов v6.6.4:</b> чанки для поиска места загружаются без ожидания на основном потоке. На существующем сервере замените только KingGriefCore.jar, оставьте одну копию и выполните полный перезапуск; миры и конфиги не трогайте.</li>
-<li><b>Core 6.7.1: исправлен поиск безопасного места для ивентов; сохранены возможности 6.7.0:</b> дирижабль со сбором деталей, PvP-охота за короной, подтверждаемый обмен и заказы с резервом монет. Подробности и резервное копирование — в <code>README_УСТАНОВКА.md</code>.</li>
-<li><b>Готовый спавн (прежний v66):</b> последняя запрошенная переработка стен и деталей пока не выполнена. <code>plugins/KingGriefCore.jar</code> и <code>plugins/KingGriefCore/spawn-v66-template.zip</code> уже входят в сборку. При первом запуске они автоматически устанавливают готовый <code>spawn_world</code> — команды WorldEdit и <code>/rebuildspawn</code> не нужны. Если старый <code>spawn_world</code> существует, плагин переносит его в резервную папку <code>spawn_world_backup_…</code>. На следующих запусках ваши изменения не перезаписываются. Подробности и условия безопасности — в <code>README_УСТАНОВКА.md</code>.</li>
+<li><b>Новый сервер:</b> распакуйте полную сборку в новую пустую папку. Установите Paper 1.21.4 и Java 21 отдельно, прочитайте и подтвердите Minecraft EULA. Команды запуска — в <code>README_УСТАНОВКА.md</code>.</li>
+<li><b>Существующий сервер:</b> заранее сохраните внешнюю копию миров, данных игроков, папки Core и конфигов. Полностью остановите сервер; не распаковывайте полную сборку поверх него. Установите единственный <code>KingGriefCore.jar</code> из патча 7.2.1 и следуйте инструкции в патче; <code>/reload</code> не используйте.</li>
+<li><b>Готовый спавн:</b> при первом запуске нового сервера Core устанавливает встроенный проверенный шаблон v71, а не перестраивает карту по блокам. Существующий <code>spawn_world</code> автоматически не заменяется. Если нужна замена, отдельно сделайте бэкап и следуйте инструкции <code>/rebuildspawn confirm</code> в README.</li>
+<li><b>50 новых предметов:</b> откройте <code>/artifacts</code> — всего 150 предметов. Для новых иконок включите ресурспак v72; при обновлении проверьте URL и SHA-1 в настройках сервера и Core/Hub. Каталог: <code>АРТЕФАКТЫ_7.2.0.md</code>.</li>
+<li><b>Мост сайта и доп. плагины:</b> в публичной сборке у Bridge стоит <code>CHANGE_ME</code>; задайте собственный новый секрет на сервере и сайте. В архиве есть собственные JAR KingGrief, но папка настроек стороннего плагина не означает, что он установлен. Дополнительные плагины ставьте только по необходимости после проверки версий, конфликтов и бэкапа.</li>
 </ol>
 </div>
 <div class="card">
-<h2>📦 Список всех 100% бесплатных официальных плагинов сборки</h2>
+<h2>📦 Дополнительные плагины (не обязательны)</h2>
+<p>Ниже приведены справочные ссылки на сторонние проекты, а не список установленных или проверенных плагинов. Доступность ссылок и совместимость с Paper 1.21.4 нужно проверять отдельно. Скрипты загрузки тоже не проверялись этим выпуском: не запускайте их на действующем сервере без проверки и не устанавливайте всё сразу — возможны дубли NPC, команд, авторизации и экономики.</p>
 <table><thead><tr><th>Плагин</th><th>За что отвечает в сборке</th><th>Скачать</th></tr></thead><tbody>
-<tr><td><b>DecentHolograms-2.10.2.jar</b></td><td>Все 36 голограмм на спавне с реальными ценами с сайта</td><td><a class='btn' href='https://github.com/DecentSoftware-eu/DecentHolograms/releases/download/2.10.2/DecentHolograms-2.10.2.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>FancyNpcs-2.4.4.jar</b></td><td>100% бесплатные живые NPC (все 16 NPC на спавне без платного Citizens!)</td><td><a class='btn' href='https://github.com/FancyMcPlugins/FancyNpcs/releases/download/v2.4.4/FancyNpcs-2.4.4.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>CommandPanels-4.2.5.jar</b></td><td>Все 10 меню (/donate, /shop, /nyshop, /gifts, /rtp, /buyer, /kits, /kp, /media, /setupserver)</td><td><a class='btn' href='https://github.com/rockyhawk64/CommandPanels/releases/download/4.2.5/CommandPanels-4.2.5.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>DecentHolograms-2.10.2.jar</b></td><td>Дополнительные голограммы; не нужны для встроенных моделей Core</td><td><a class='btn' href='https://github.com/DecentSoftware-eu/DecentHolograms/releases/download/2.10.2/DecentHolograms-2.10.2.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>FancyNpcs-2.4.4.jar</b></td><td>Дополнительные NPC; подготовленный спавн уже имеет 28 отдельных display-моделей Core</td><td><a class='btn' href='https://github.com/FancyMcPlugins/FancyNpcs/releases/download/v2.4.4/FancyNpcs-2.4.4.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>CommandPanels-4.2.5.jar</b></td><td>Дополнительные меню; проверьте конфликты со встроенными командами Core</td><td><a class='btn' href='https://github.com/rockyhawk64/CommandPanels/releases/download/4.2.5/CommandPanels-4.2.5.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>TAB.v6.2.1.jar</b></td><td>Зимний ТАБ, Скорборд и анимированные префиксы OWNER, CURATOR, KING, OPKA, КП, ДКП</td><td><a class='btn' href='https://github.com/NEZNAMY/TAB/releases/download/6.2.1/TAB.v6.2.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>PlaceholderAPI-2.12.3.jar</b></td><td>Плейсхолдеры баланса, онлайна, риликов и статистики</td><td><a class='btn' href='https://github.com/PlaceholderAPI/PlaceholderAPI/releases/download/2.12.3/PlaceholderAPI-2.12.3.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>EssentialsX-2.22.0.jar</b></td><td>Экономика, дома /sethome для 40 привилегий, 28 китов и команды</td><td><a class='btn' href='https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsX-2.22.0.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>EssentialsX-2.22.0.jar</b></td><td>Дополнительные команды и экономика; настройте конфликты с Core отдельно</td><td><a class='btn' href='https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsX-2.22.0.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>EssentialsXChat-2.22.0.jar</b></td><td>Форматирование чата для всех привилегий</td><td><a class='btn' href='https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsXChat-2.22.0.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>EssentialsXSpawn-2.22.0.jar</b></td><td>Команда /spawn и /setspawn</td><td><a class='btn' href='https://github.com/EssentialsX/Essentials/releases/download/2.22.0/EssentialsXSpawn-2.22.0.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>Vault.jar</b></td><td>Связка экономики и привилегий</td><td><a class='btn' href='https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
@@ -39,8 +39,8 @@ code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 <tr><td><b>CMILib1.5.9.6.jar</b></td><td>Библиотека для работ Jobs</td><td><a class='btn' href='https://github.com/Zrips/CMILib/releases/download/1.5.9.6/CMILib1.5.9.6.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>Jobs5.2.6.3.jar</b></td><td>Работы /jobs (Шахтёр, Лесоруб, Охотник, Фермер)</td><td><a class='btn' href='https://github.com/Zrips/Jobs/releases/download/v5.2.6.3/Jobs5.2.6.3.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 <tr><td><b>AuthMe-6.0.1-Paper.jar</b></td><td>Авторизация /reg и /login</td><td><a class='btn' href='https://github.com/AuthMe/AuthMeReloaded/releases/download/6.0.1/AuthMe-6.0.1-Paper.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>FastAsyncWorldEdit-Paper-2.16.1.jar</b></td><td>Дополнительное редактирование схем; для установки готового спавна v66 не требуется</td><td><a class='btn' href='https://github.com/IntellectualSites/FastAsyncWorldEdit/releases/download/2.16.1/FastAsyncWorldEdit-Paper-2.16.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>ViaVersion-5.12.1.jar</b></td><td>Поддержка входа с новых версий до 1.21.11</td><td><a class='btn' href='https://github.com/ViaVersion/ViaVersion/releases/download/5.12.1/ViaVersion-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
-<tr><td><b>ViaBackwards-5.12.1.jar</b></td><td>Поддержка входа со старых версий 1.16.5+</td><td><a class='btn' href='https://github.com/ViaVersion/ViaBackwards/releases/download/5.12.1/ViaBackwards-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>FastAsyncWorldEdit-Paper-2.16.1.jar</b></td><td>Редактирование схем; для готового спавна v71 не требуется</td><td><a class='btn' href='https://github.com/IntellectualSites/FastAsyncWorldEdit/releases/download/2.16.1/FastAsyncWorldEdit-Paper-2.16.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>ViaVersion-5.12.1.jar</b></td><td>Вход некоторых новых клиентов; совместимость проверяйте отдельно</td><td><a class='btn' href='https://github.com/ViaVersion/ViaVersion/releases/download/5.12.1/ViaVersion-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
+<tr><td><b>ViaBackwards-5.12.1.jar</b></td><td>Вход некоторых старых клиентов; совместимость всех предметов и моделей не гарантируется</td><td><a class='btn' href='https://github.com/ViaVersion/ViaBackwards/releases/download/5.12.1/ViaBackwards-5.12.1.jar'>⬇ Скачать .jar (Бесплатно)</a></td></tr>
 </tbody></table>
 </div></body></html>

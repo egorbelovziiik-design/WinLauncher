@@ -10,7 +10,7 @@ ROOT=HERE.parents[3]
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',required=True,type=Path);p.add_argument('--vanilla',required=True,type=Path)
- p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.2.0.zip')
+ p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.2.1.zip')
  p.add_argument('--node-modules',required=True,type=Path);p.add_argument('--java',default='java');p.add_argument('--node',default='node')
  p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
  if not a.accept_eula:p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')
@@ -26,7 +26,7 @@ def main():
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore/spawn-v71-template.zip'))) as template:
     if 'data/chunks.dat' in template.namelist():raise RuntimeError('Template contains forced chunk tickets')
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore.jar'))) as core:
-    if 'version: 7.2.0' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
+    if 'version: 7.2.1' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
    for name in names:
     if name.startswith('/') or '..' in Path(name).parts:raise RuntimeError('Unsafe assembly path')
    z.extractall(server)
