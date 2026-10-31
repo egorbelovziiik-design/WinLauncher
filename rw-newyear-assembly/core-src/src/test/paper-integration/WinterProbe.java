@@ -71,10 +71,10 @@ public final class WinterProbe extends JavaPlugin implements Listener {
  private PotionEffect effect(String key){return player.getPotionEffect(ColorUtil.potType(key,key.toUpperCase(Locale.ROOT)));}
  private void begin(){
   World spawn=Bukkit.getWorld("spawn_world");
-  ok(spawn!=null && spawn.getBlockAt(2,121,0).getType()==Material.OCHRE_FROGLIGHT && spawn.getBlockAt(3,121,0).getType()==Material.WHITE_CONCRETE,
+  ok(spawn!=null && spawn.getBlockAt(2,135,0).getType()==Material.OCHRE_FROGLIGHT && spawn.getBlockAt(3,135,0).getType()==Material.WHITE_CONCRETE,
      "new tree star meets top person's raised hand");
-  ok(spawn.getBlockAt(9,101,1).getType()==Material.DARK_OAK_PLANKS && spawn.getBlockAt(9,107,1).getType()==Material.DARK_OAK_PLANKS
-       && spawn.getBlockAt(9,113,1).getType()==Material.DARK_OAK_PLANKS, "three stacked figures present at all three heights");
+  ok(spawn.getBlockAt(13,101,1).getType()==Material.DARK_OAK_PLANKS && spawn.getBlockAt(13,111,1).getType()==Material.DARK_OAK_PLANKS
+       && spawn.getBlockAt(13,121,1).getType()==Material.DARK_OAK_PLANKS, "three stacked figures present at all three heights");
   World w=Bukkit.getWorlds().get(0); w.getBlockAt(5,69,5).setType(Material.STONE,false);
   player.teleport(new Location(w,5.5,70,5.5));clean();
   Set<String> ids=new HashSet<String>();Set<Integer> models=new HashSet<Integer>();

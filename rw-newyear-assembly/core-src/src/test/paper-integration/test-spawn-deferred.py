@@ -31,7 +31,7 @@ def run(args, server, mode, recovery=False):
     if proc.returncode != 0 or expected not in log or "KG-REBUILD FAIL" in log or "The server has stopped responding!" in log:
         print("\n--- SERVER LOG TAIL ---\n" + "\n".join(log.splitlines()[-180:]), file=sys.stderr)
         raise RuntimeError(f"Paper rebuild test failed: {mode}")
-    if mode == "queue" and ("Prepared v70 spawn installed and initialized" not in log or "Building the v7.0 Winter Village Spawn" in log):
+    if mode == "queue" and ("Prepared v73 spawn installed and initialized" not in log or "Building the v7.0 Winter Village Spawn" in log):
         raise AssertionError("fresh standalone Core did not use embedded prepared world")
     for line in log.splitlines():
         if "KG-REBUILD " in line or "Interrupted swap recovered" in line:
@@ -120,7 +120,7 @@ def main():
         (target / "custom-data.txt").write_text("custom user file\n", encoding="utf-8")
         original_uid = bytes.fromhex("00112233445566778899aabbccddeeff")
         (target / "uid.dat").write_bytes(original_uid)
-        shutil.copy2(args.template, data / "spawn-v71-template.zip")
+        shutil.copy2(args.template, data / "spawn-v73-template.zip")
         run(args, server, "custom-preserve")
         if (target / "uid.dat").read_bytes() != original_uid or (target / ".spawn_v70_village_ok").exists():
             raise AssertionError("custom world changed during ordinary startup or request")

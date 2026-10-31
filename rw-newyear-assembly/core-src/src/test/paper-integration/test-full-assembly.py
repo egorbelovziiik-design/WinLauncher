@@ -10,7 +10,7 @@ ROOT=HERE.parents[3]
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',required=True,type=Path);p.add_argument('--vanilla',required=True,type=Path)
- p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.2.2.zip')
+ p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.3.0.zip')
  p.add_argument('--node-modules',required=True,type=Path);p.add_argument('--java',default='java');p.add_argument('--node',default='node')
  p.add_argument('--api-classpath',required=True);p.add_argument('--javac',default='javac')
  p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
@@ -21,13 +21,14 @@ def main():
   with ZipFile(a.assembly) as z:
    if z.testzip() is not None:raise RuntimeError('Corrupt assembly')
    names=z.namelist()
-   if 'plugins/KingGriefCore/spawn-v71-template.zip' not in names or any(n in names for n in ('plugins/KingGriefCore/spawn-v70-template.zip','plugins/KingGriefCore/spawn-v66-template.zip')):
+   if 'plugins/KingGriefCore/spawn-v73-template.zip' not in names or any(n in names for n in ('plugins/KingGriefCore/spawn-v71-template.zip','plugins/KingGriefCore/spawn-v70-template.zip','plugins/KingGriefCore/spawn-v66-template.zip')):
     raise RuntimeError('Incorrect spawn template in new assembly')
    import io
-   with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore/spawn-v71-template.zip'))) as template:
+   with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore/spawn-v73-template.zip'))) as template:
     if 'data/chunks.dat' in template.namelist():raise RuntimeError('Template contains forced chunk tickets')
+    if '.kinggrief_prebuilt_v73' not in template.namelist():raise RuntimeError('Missing v73 marker')
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore.jar'))) as core:
-    if 'version: 7.2.2' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
+    if 'version: 7.3.0' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
    for plugin, version in (('KingAC','8.3.1'),('KingClear','1.0.2')):
     with ZipFile(io.BytesIO(z.read('plugins/'+plugin+'.jar'))) as jar:
      if ('version: '+version) not in jar.read('plugin.yml').decode(): raise RuntimeError('Incorrect '+plugin+' version')
@@ -78,7 +79,7 @@ def main():
    for plugin in ('KingGriefCore','KingAC','KingConnect','KingClear','KingGriefBridge'):
     if not re.search(r'Enabling '+plugin+r' v',text):raise RuntimeError(plugin+' was not enabled')
    if 'KG-SPAWN-AVAILABLE RESULT PASS' not in text:raise RuntimeError('Prepared-world probe did not pass')
-   if '[SpawnInstall] Prepared v70 spawn installed and initialized' not in text:raise RuntimeError('Prepared spawn was not installed')
+   if '[SpawnInstall] Prepared v73 spawn installed and initialized' not in text:raise RuntimeError('Prepared spawn was not installed')
    if 'Error occurred while enabling' in text or 'Exception in server tick loop' in text:raise RuntimeError('Plugin or server startup error')
    if not (server/'plugins/KingGriefCore/.spawn-v70-template-installed').is_file():raise RuntimeError('Missing v70 install marker')
    success=True;print('FULL ASSEMBLY SMOKE: PASS 5 plugins, real player in prepared world, tree, floor, NPC and 11 warps',flush=True)

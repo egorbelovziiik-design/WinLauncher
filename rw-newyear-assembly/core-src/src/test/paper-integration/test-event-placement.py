@@ -23,7 +23,7 @@ def main():
     p.add_argument('--vanilla', type=Path, required=True)
     p.add_argument('--api-classpath', required=True)
     p.add_argument('--core', type=Path, default=ROOT / 'KingGriefCore.jar')
-    p.add_argument('--template', type=Path, default=ROOT / 'server/plugins/KingGriefCore/spawn-v71-template.zip')
+    p.add_argument('--template', type=Path, default=ROOT / 'server/plugins/KingGriefCore/spawn-v73-template.zip')
     p.add_argument('--java', default='java')
     p.add_argument('--javac', default='javac')
     p.add_argument('--natural', action='store_true', help='run unforced manual and automatic searches in a generated normal world')
@@ -55,7 +55,7 @@ def main():
         (server / 'cache').mkdir()
         shutil.copy2(args.vanilla, server / 'cache' / cache_name)
         shutil.copy2(args.core, server / 'plugins/KingGriefCore.jar')
-        shutil.copy2(args.template, data / 'spawn-v71-template.zip')
+        shutil.copy2(args.template, data / 'spawn-v73-template.zip')
         (data / 'config.yml').write_text('enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n', encoding='utf8')
         (server / 'eula.txt').write_text('eula=true\n', encoding='utf8')
         world_type = 'normal' if args.natural else 'flat'

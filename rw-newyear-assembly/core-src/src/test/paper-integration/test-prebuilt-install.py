@@ -24,7 +24,7 @@ def args_parser():
     p.add_argument("--java", default="java")
     p.add_argument("--javac", default="javac")
     p.add_argument("--core", type=Path, default=ROOT / "KingGriefCore.jar")
-    p.add_argument("--template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v71-template.zip")
+    p.add_argument("--template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v73-template.zip")
     p.add_argument("--old-core", type=Path, default=ROOT.parent / "kinggrief/public/KingGriefCore-v6.7.1.jar")
     p.add_argument("--old-template", type=Path, default=ROOT / "server/plugins/KingGriefCore/spawn-v66-template.zip")
     p.add_argument("--only-symlink", action="store_true", help="run only the linked-world refusal test")
@@ -92,11 +92,11 @@ def run_server(args, server, mode):
     if mode == "installed":
         if "KG-PRELOAD: old spawn loaded and changed in memory" not in log:
             raise AssertionError("existing world was not preloaded by the test plugin")
-        if "Prepared v70 spawn installed and initialized" not in log or "Previous spawn saved intact" not in log:
+        if "Prepared v73 spawn installed and initialized" not in log or "Previous spawn saved intact" not in log:
             raise AssertionError("prepared spawn was not installed over the existing world")
         if "Building the v7.0 Winter Village Spawn" in log:
             raise AssertionError("prepared world was unexpectedly regenerated")
-    if mode == "repeat" and ("Prepared v70 spawn installed and initialized" in log or "Building the v7.0 Winter Village Spawn" in log):
+    if mode == "repeat" and ("Prepared v73 spawn installed and initialized" in log or "Building the v7.0 Winter Village Spawn" in log):
         raise AssertionError(f"{mode} startup unexpectedly replaced or rebuilt the world")
     print(success_line, flush=True)
 
@@ -134,18 +134,18 @@ def main():
             (linked_target / "user-data.txt").write_text("keep linked data\n", encoding="utf-8")
             (server / "spawn_world").symlink_to(linked_target, target_is_directory=True)
             (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
-            shutil.copy2(args.template, data / "spawn-v71-template.zip")
+            shutil.copy2(args.template, data / "spawn-v73-template.zip")
             before = fingerprint(linked_target)
             run_server(args, server, "symlink")
             if not (server / "spawn_world").is_symlink() or fingerprint(linked_target) != before:
                 raise AssertionError("linked world changed during a refused install")
             print("PREBUILT SYMLINK RESULT: PASS", flush=True)
             return
-        (data / "spawn-v71-template.zip").write_bytes(b"intentionally corrupted template")
+        (data / "spawn-v73-template.zip").write_bytes(b"intentionally corrupted template")
         run_server(args, server, "corrupt-fresh")
         if (server / "spawn_world").exists():
             raise AssertionError("corrupted template created a world on a fresh server")
-        (data / "spawn-v71-template.zip").unlink()
+        (data / "spawn-v73-template.zip").unlink()
         # An actual older Core and v66 template exercise migration, not only a
         # synthetic old marker. The new version must honour its separate marker.
         shutil.copy2(args.old_core, server / "plugins/KingGriefCore.jar")
@@ -154,7 +154,7 @@ def main():
         if not (data / ".spawn-v66-template-installed").is_file():
             raise AssertionError("old v66 install marker missing")
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
-        shutil.copy2(args.template, data / "spawn-v71-template.zip")
+        shutil.copy2(args.template, data / "spawn-v73-template.zip")
         shutil.copy2(preload_jar, server / "plugins/KgSpawnPreloadProbe.jar")
         # 7.2 never replaces an existing world merely because a template exists.
         (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
@@ -172,13 +172,13 @@ def main():
         (server / "plugins/KgSpawnPreloadProbe.jar").unlink()
         (data / ".spawn-v70-template-installed").unlink()
         (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
-        (data / "spawn-v71-template.zip").write_bytes(b"intentionally corrupted template")
+        (data / "spawn-v73-template.zip").write_bytes(b"intentionally corrupted template")
         old_files = fingerprint(server / "spawn_world")
         run_server(args, server, "corrupt")
         if fingerprint(server / "spawn_world") != old_files or len(list(server.glob("spawn_world_backup_*"))) != 1:
             raise AssertionError("rejected template changed or moved the existing world")
         # Linked worlds can point outside the server; never follow or replace them.
-        shutil.copy2(args.template, data / "spawn-v71-template.zip")
+        shutil.copy2(args.template, data / "spawn-v73-template.zip")
         selected = server / "kinggrief_spawn"
         linked_target = server / "kinggrief_spawn_linked_test_target"
         selected_before = fingerprint(selected)

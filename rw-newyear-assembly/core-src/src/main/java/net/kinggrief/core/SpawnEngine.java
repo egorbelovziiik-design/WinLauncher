@@ -205,14 +205,15 @@ public final class SpawnEngine {
         casePedestals.add(new CasePedestal("djamshut",  "&#FFAB40&l⛏ КЕЙС ДЖАМШУТА",     "&7Бульдозер 3×3 и Божье Прикосн.",25,  24, 103, -63, Material.BROWN_SHULKER_BOX));
         casePedestals.add(new CasePedestal("summer",    "&#80D8FF&l❄ НОВОГОДНИЙ КЕЙС",    "&7Зимние 3D артефакты и подарки!",39,  30, 103, -58, Material.WHITE_SHULKER_BOX));
 
-        String sSanta  = "fb8f9a667dc8c53f9d4fb8ca428dc0bf97c46f76ca4e22e307d5771856c5015b";
-        String sMaiden = "79b0b10d5d4e21a2a28ce331ad7c45e0ba2ef01b86d42dcbb0a82ef8f86bd8d8";
-        String sKing   = "2340c0e03dd24a11b15a8b33c2a7e9e32ab205232b00a9e7794e7682ba8c92ab";
-        String sKnight = "79f1790d319c16c73b0df15f6c3c6bf992978d4cb4b756a8146d3d2f2b7ad69e";
-        String sMage   = "e8a9c63f0e58966b4c806a5fc6a26f73774c8f6be2a8f7b8e144b912437f5be6";
-        String sMiner  = "8b1e214450d341bb9998d6822f1cf9ea0aa6cc90bf578bb6d090f2e1010537bf";
-        String sPirate = "a75e3f60d7e3c3c94871aa4d960f9c92a29d7f55551a8899622857ff79a5cf22";
-        String sDealer = "5d9b9585722959d782b770f15f63bc64a6c27dc0b50e6cf74a98817b8a0156ab";
+        // CC0 head catalogue: https://github.com/TheSilentPro/heads (verified Mojang textures).
+        String sSanta  = "14e424b1676feec3a3f8ebade9e7d6a6f71f7756a869f36f7df0fc182d436e";
+        String sMaiden = "bca614e14e5035f11a3ad5ebe69c2d912e60839f43a8a2517ea057f18f7db093";
+        String sKing   = "7e1b346249aef655f81a8bd58cc4b35f139d1e86b6217b11b8e981445cb5118d";
+        String sKnight = "b4f32011d6b260442d99397d70356c1fcaeb064c144f138d13568e6ec648";
+        String sMage   = "16c0de7dd65387482c3ab5d3cb4eaa921a6aeeddf38e3df20e04fd961faef43";
+        String sMiner  = "4f99dc32ad4edad52985efd7e3aeb42b436540713736742f6d9a3b91c35ef871";
+        String sPirate = "bfd4308763ffd5e2631c74d0be2ff49a90bac49053618c28882e75c4dcce22ac";
+        String sDealer = "e04568737bc3890b8624d97b1d2736419633b9116fc9c5273355a30a7797875f";
 
         // 27 existing plaza NPCs plus the expedition guide near the entrance.
         npcDefs.add(new NpcDef("rtp",        "&#00E676&l🧭 МАСТЕР РТП",          "&fВход в мир выживания (/rtp)",         -8.0, 100.0,  42.0, -35f, sKnight, Color.fromRGB(16, 185, 129), new ItemStack(Material.COMPASS), ItemFactory.sharApollona(), null, "gui:rtp"));
@@ -803,7 +804,7 @@ public final class SpawnEngine {
                 String shortName = "KGS_" + textureHash.substring(0, 10);
                 PlayerProfile prof = Bukkit.createPlayerProfile(UUID.nameUUIDFromBytes(textureHash.getBytes("UTF-8")), shortName);
                 PlayerTextures tex = prof.getTextures();
-                tex.setSkin(new URL("http://textures.minecraft.net/texture/" + textureHash));
+                tex.setSkin(new URL("https://textures.minecraft.net/texture/" + textureHash));
                 prof.setTextures(tex);
                 sm.setOwnerProfile(prof);
             } catch (Throwable ignored) {}

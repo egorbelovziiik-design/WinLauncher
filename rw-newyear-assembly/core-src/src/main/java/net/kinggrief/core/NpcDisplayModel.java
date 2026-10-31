@@ -81,7 +81,9 @@ final class NpcDisplayModel {
             block(world, base, def, sessionTag, valid, "hand_left", Material.SMOOTH_SANDSTONE, -.34f, .68f, 0, .17f, .15f, .22f, false);
             block(world, base, def, sessionTag, valid, "sleeve_right", coat, .34f, .83f, 0, .17f, .50f, .22f, true);
             block(world, base, def, sessionTag, valid, "hand_right", Material.SMOOTH_SANDSTONE, .34f, .68f, 0, .17f, .15f, .22f, true);
-            item(world, base, def, sessionTag, valid, "head", head, 0, 1.57f, 0, .54f, false);
+            // A player-head item is half a block wide at FIXED transform. The old
+            // .54 scale made the face tiny and left a gap above the shoulders.
+            item(world, base, def, sessionTag, valid, "head", head, 0, 1.59f, 0, 1.0f, false);
             // A narrow crown / winter hat gives the models a distinct silhouette.
             if ("santa".equals(def.id) || "donate".equals(def.id) || "cases_npc".equals(def.id) || "top_npc".equals(def.id)) {
                 block(world, base, def, sessionTag, valid, "hat", trim, 0, 1.83f, 0, .47f, .09f, .47f, false);

@@ -20,14 +20,17 @@ import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_OUTPUT = ROOT / "server/plugins/KingGriefCore/spawn-v71-template.zip"
+DEFAULT_OUTPUT = ROOT / "server/plugins/KingGriefCore/spawn-v73-template.zip"
+DEFAULT_BUILDER = ROOT.parent / "kinggrief/public/KingGriefCore-v7.0.0.jar"
+DEFAULT_GEOMETRY = ROOT / "core-src/src/main/resources/spawn_v73.dat"
 
 
 def arguments():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--paper", type=Path, required=True, help="Paper 1.21.4 paperclip JAR")
     p.add_argument("--vanilla", type=Path, required=True, help="matching Mojang server JAR")
-    p.add_argument("--core", type=Path, default=ROOT / "KingGriefCore.jar")
+    p.add_argument("--core", type=Path, default=DEFAULT_BUILDER, help="legacy v7.0.0 builder JAR, used only on the disposable build server")
+    p.add_argument("--geometry", type=Path, default=DEFAULT_GEOMETRY, help="new verified RLE blueprint; substituted only in a temporary builder JAR")
     p.add_argument("--java", default="java", help="Java 21 executable")
     p.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     p.add_argument("--update-checksum", action="store_true", help="write the template SHA-256 into Core's resources before rebuilding the JAR")
@@ -59,7 +62,15 @@ def generate_world(args, server):
     (server / "plugins/KingGriefCore").mkdir(parents=True)
     (server / "cache").mkdir()
     shutil.copy2(args.vanilla, server / "cache" / cache_name)
-    shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
+    # Core 7.3 deliberately never builds hundreds of thousands of blocks on a
+    # production tick. Use the historical 7.0 builder ONLY inside this isolated
+    # server, replacing its RLE resource without mutating the historical JAR.
+    with zipfile.ZipFile(args.core) as source, zipfile.ZipFile(server / "plugins/KingGriefCore.jar", "w") as builder:
+        metadata = source.read("plugin.yml").decode("utf-8")
+        if "version: 7.0.0" not in metadata or source.namelist().count("spawn_v70.dat") != 1:
+            raise ValueError("A genuine 7.0.0 legacy Core builder is required")
+        for entry in source.infolist():
+            builder.writestr(entry, args.geometry.read_bytes() if entry.filename == "spawn_v70.dat" else source.read(entry))
     (server / "eula.txt").write_text("eula=true\n", encoding="utf-8")
     (server / "plugins/KingGriefCore/config.yml").write_text(
         "enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\n"
@@ -67,8 +78,11 @@ def generate_world(args, server):
     (server / "server.properties").write_text(
         f"online-mode=false\nserver-ip=127.0.0.1\nserver-port={available_port()}\n"
         "view-distance=2\nsimulation-distance=3\nallow-nether=false\n"
-        "spawn-protection=0\nlevel-type=minecraft:flat\ngenerate-structures=false\n"
+        "spawn-protection=0\nlevel-type=minecraft:flat\ngenerate-structures=false\nmax-tick-time=-1\n"
         "max-players=1\nresource-pack=\nresource-pack-sha1=\n", encoding="utf-8")
+    # Long legacy synchronous construction is acceptable only on this throwaway
+    # server; production uses the prebuilt template instead.
+    (server / "spigot.yml").write_text("settings:\n  timeout-time: 1200\n", encoding="utf-8")
     process = subprocess.Popen([args.java, "-Xms512M", "-Xmx1536M", "-jar", str(args.paper.resolve()), "nogui"],
                                cwd=server, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -134,7 +148,8 @@ def archive_world(world, output):
         if rel.parts[0] in excluded_roots or rel.as_posix() in excluded_files:
             continue
         paths.append((rel.as_posix(), path.read_bytes()))
-    paths.append((".kinggrief_prebuilt_v70", b"KINGGRIEF Royal Winter spawn v70; Paper 1.21.4\n"))
+    paths.append((".kinggrief_prebuilt_v70", b"KINGGRIEF Royal Winter compatibility marker\n"))
+    paths.append((".kinggrief_prebuilt_v73", b"KINGGRIEF Tall Glacial Winter spawn v73; Paper 1.21.4\n"))
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="kinggrief-spawn-archive-", dir=output.parent) as temp:
         staged = Path(temp) / output.name
@@ -158,7 +173,7 @@ def main():
         world = generate_world(args, Path(temp) / "server")
         digest = archive_world(world, args.output)
     if args.update_checksum:
-        resource = ROOT / "core-src/src/main/resources/spawn_v71_template.sha256"
+        resource = ROOT / "core-src/src/main/resources/spawn_v73_template.sha256"
         resource.write_text(digest + "\n", encoding="ascii")
         print("Updated", resource, "— rebuild Core before distributing this template.", flush=True)
 

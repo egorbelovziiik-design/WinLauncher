@@ -22,7 +22,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.UUID;
 
 /** Verifies the actual prepared world with a connected Minecraft protocol player. */
@@ -34,10 +37,32 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         if (ran) return;
         ran = true;
         Player player = event.getPlayer();
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            try { check(player); getLogger().info("KG-SPAWN-AVAILABLE RESULT PASS checks=" + checks); }
-            catch (Throwable failure) { getLogger().severe("KG-SPAWN-AVAILABLE RESULT FAIL " + failure); failure.printStackTrace(); }
-        }, 40L);
+        Bukkit.getScheduler().runTaskLater(this, () -> prepareChunks(player), 40L);
+    }
+    private void prepareChunks(Player player) {
+        final int[][] chunks = {{0,0},{7,1},{-8,1},{1,7},{1,-8}};
+        try {
+            KingGriefCore core = (KingGriefCore) Bukkit.getPluginManager().getPlugin("KingGriefCore");
+            World world = core.getSpawnEngine().getPreparedSpawnArrival().getWorld();
+            Method async = World.class.getMethod("getChunkAtAsync", int.class, int.class, boolean.class);
+            List<CompletableFuture<?>> requests = new ArrayList<CompletableFuture<?>>();
+            for (int[] c : chunks) requests.add((CompletableFuture<?>) async.invoke(world, c[0], c[1], true));
+            CompletableFuture.allOf(requests.toArray(new CompletableFuture<?>[0])).whenComplete((ignored, error) ->
+                Bukkit.getScheduler().runTask(this, () -> {
+                    try {
+                        if (error != null) throw new RuntimeException("asynchronous wall fixture loading", error);
+                        for (int[] c : chunks) world.addPluginChunkTicket(c[0], c[1], this);
+                        check(player);
+                        getLogger().info("KG-SPAWN-AVAILABLE RESULT PASS checks=" + checks);
+                    } catch (Throwable failure) {
+                        getLogger().severe("KG-SPAWN-AVAILABLE RESULT FAIL " + failure); failure.printStackTrace();
+                    } finally {
+                        for (int[] c : chunks) world.removePluginChunkTicket(c[0], c[1], this);
+                    }
+                }));
+        } catch (Throwable failure) {
+            getLogger().severe("KG-SPAWN-AVAILABLE RESULT FAIL " + failure); failure.printStackTrace();
+        }
     }
     private void ok(boolean value, String description) {
         if (!value) throw new AssertionError(description);
@@ -57,12 +82,19 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         ok(player.getLocation().distanceSquared(arrival) < 5, "arrival is near the village entrance");
         ok(arrival.clone().add(0, -1, 0).getBlock().getType().isSolid(), "arrival has a solid floor");
         ok(arrival.getBlock().isPassable() && arrival.clone().add(0, 1, 0).getBlock().isPassable(), "arrival has headroom");
-        ok(prepared.getBlockAt(2, 121, 0).getType() == Material.OCHRE_FROGLIGHT
-                && prepared.getBlockAt(3, 121, 0).getType() == Material.WHITE_CONCRETE
-                && prepared.getBlockAt(9, 101, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(9, 107, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(9, 113, 1).getType() == Material.DARK_OAK_PLANKS,
-                "Christmas tree and three figures exist in the actual world");
+        ok(prepared.getBlockAt(0, 130, 0).getType() == Material.SPRUCE_WOOD
+                && prepared.getBlockAt(2, 135, 0).getType() == Material.OCHRE_FROGLIGHT
+                && prepared.getBlockAt(3, 135, 0).getType() == Material.WHITE_CONCRETE
+                && prepared.getBlockAt(13, 101, 1).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(13, 111, 1).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(13, 121, 1).getType() == Material.DARK_OAK_PLANKS
+                && prepared.getBlockAt(13, 130, 0).getType() == Material.DARK_OAK_PLANKS,
+                "larger Christmas tree and three taller figures exist in the actual world");
+        for (int[] point : new int[][] {{118,24},{-118,24},{24,118},{24,-118}}) {
+            Material wall = prepared.getBlockAt(point[0], 120, point[1]).getType();
+            ok(wall == Material.PACKED_ICE || wall == Material.BLUE_ICE,
+                    "tall glacial wall present at " + point[0] + "," + point[1]);
+        }
         engine.enforceStrictSingletonsOnSpawn(prepared);
         int hitboxes = 0, parts = 0;
         for (Entity e : prepared.getEntities()) {

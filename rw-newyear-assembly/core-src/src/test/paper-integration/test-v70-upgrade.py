@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install a real v70 spawn, then upgrade to v71 while preserving user edits and force-loads."""
+"""Historical regression: install a real v70 spawn, then upgrade with the original v71 Core while preserving edits and force-loads."""
 import argparse, importlib.util, shutil, tempfile
 from pathlib import Path
 HERE=Path(__file__).resolve().parent
@@ -11,7 +11,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',type=Path,required=True);p.add_argument('--vanilla',type=Path,required=True);p.add_argument('--api-classpath',required=True)
  p.add_argument('--java',default='java');p.add_argument('--javac',default='javac');p.add_argument('--accept-eula',action='store_true')
- p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar');p.add_argument('--old-core',type=Path,default=ROOT.parent/'kinggrief/public/KingGriefCore-v7.0.0.jar')
+ p.add_argument('--core',type=Path,default=ROOT.parent/'kinggrief/public/KingGriefCore-v7.1.0.jar');p.add_argument('--old-core',type=Path,default=ROOT.parent/'kinggrief/public/KingGriefCore-v7.0.0.jar')
  p.add_argument('--template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v71-template.zip')
  p.add_argument('--old-template',type=Path,default=ROOT/'server/plugins/KingGriefCore/spawn-v70-template.zip')
  a=p.parse_args()

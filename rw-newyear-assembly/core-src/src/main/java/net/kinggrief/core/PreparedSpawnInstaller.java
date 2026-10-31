@@ -32,7 +32,7 @@ import java.util.zip.ZipInputStream;
  * a template and keeps the old, non-destructive startup behavior.
  */
 final class PreparedSpawnInstaller {
-    static final String TEMPLATE_FILE = "spawn-v71-template.zip";
+    static final String TEMPLATE_FILE = "spawn-v73-template.zip";
     static final String DONE_FILE = ".spawn-v70-template-installed";
     private static final String FALLBACK_DONE_FILE = ".spawn-v722-template-installed";
     private static final String ACTIVE_FILE = ".spawn-v722-active-world";
@@ -40,9 +40,10 @@ final class PreparedSpawnInstaller {
     private static String activeOwnerToken;
     static final String PENDING_FILE = ".spawn-v72-rebuild-pending";
     private static final String JOURNAL_FILE = ".spawn-v72-swap-journal";
-    private static final String EMBEDDED_TEMPLATE = "spawn_v71_template.zip";
+    private static final String EMBEDDED_TEMPLATE = "spawn_v73_template.zip";
     private static final java.util.concurrent.atomic.AtomicBoolean REQUEST_BUSY = new java.util.concurrent.atomic.AtomicBoolean();
     private static final String PREBUILT_MARKER = ".kinggrief_prebuilt_v70";
+    private static final String CURRENT_TEMPLATE_MARKER = ".kinggrief_prebuilt_v73";
     private static final String SPAWN_MARKER = ".spawn_v70_village_ok";
     private static final int MAX_TEMPLATE_BYTES = 64 * 1024 * 1024;
     private static final long MAX_EXTRACTED_BYTES = 256L * 1024L * 1024L;
@@ -158,7 +159,7 @@ final class PreparedSpawnInstaller {
             try {
                 if (swap.pending != null) Files.delete(swap.pending);
                 Files.delete(swap.journal);
-                plugin.getLogger().info("[SpawnInstall] Prepared v70 spawn installed and initialized; no rebuild command needed.");
+                plugin.getLogger().info("[SpawnInstall] Prepared v73 spawn installed and initialized; no rebuild command needed.");
                 if (swap.backup != null) plugin.getLogger().info("[SpawnInstall] Previous spawn saved intact at: " + swap.backup);
                 return Result.READY;
             } catch (IOException error) {
@@ -208,11 +209,15 @@ final class PreparedSpawnInstaller {
         if (activeOwnerToken != null) {
             if (!Files.exists(previous, LinkOption.NOFOLLOW_LINKS)) return;
             verifyFallbackOwnership(previous);
-            if (looksLikePreparedWorld(previous)) return;
+            if (looksLikePreparedWorld(previous) && isCurrentPreparedWorld(previous)) return;
         } else {
             boolean occupied = Files.exists(previous, LinkOption.NOFOLLOW_LINKS) || Bukkit.getWorld(previousName) != null;
-            if (!occupied || looksLikePreparedWorld(previous)) return;
+            if (!occupied || (looksLikePreparedWorld(previous) && isCurrentPreparedWorld(previous))) return;
         }
+        // An old prepared map may contain administrator changes. Never rebuild it
+        // in place merely because Core was updated: activate a fresh, isolated
+        // v73 map and leave the previous world at its original path. The owner
+        // can inspect or restore it; changes are not silently merged.
         for (int i = 1; i <= 9999; i++) {
             String name = "kinggrief_spawn" + (i == 1 ? "" : "_" + i);
             Path target = container.resolve(name);
@@ -245,6 +250,19 @@ final class PreparedSpawnInstaller {
             }
             Files.move(temp, marker, java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
         } finally { Files.deleteIfExists(temp); }
+    }
+
+    private static boolean isCurrentPreparedWorld(Path world) {
+        // Keep old/unmarked worlds intact even if they happen to contain legacy
+        // markers. Only our current checked template carries this regular file.
+        Path marker = world.resolve(CURRENT_TEMPLATE_MARKER);
+        try {
+            return Files.isRegularFile(marker, LinkOption.NOFOLLOW_LINKS) && Files.size(marker) <= 128
+                    && "KINGGRIEF Tall Glacial Winter spawn v73; Paper 1.21.4".equals(
+                            new String(Files.readAllBytes(marker), StandardCharsets.US_ASCII).trim());
+        } catch (IOException | SecurityException ignored) {
+            return false;
+        }
     }
 
     /** Cheap disk-header checks: a marker alone does not prove spawn chunks exist. */
@@ -419,7 +437,7 @@ final class PreparedSpawnInstaller {
         }
         if (bytes.length == 0) throw new IOException("Empty spawn template");
         String expected;
-        try (InputStream stream = plugin.getResource("spawn_v71_template.sha256")) {
+        try (InputStream stream = plugin.getResource("spawn_v73_template.sha256")) {
             if (stream == null) throw new IOException("Missing template checksum in Core");
             ByteArrayOutputStream out = new ByteArrayOutputStream(); int b;
             while ((b = stream.read()) != -1) {
@@ -478,13 +496,16 @@ final class PreparedSpawnInstaller {
                 zip.closeEntry(); // validates entry CRC
             }
         }
-        if (!hasRegion || !names.contains("level.dat") || !names.contains(SPAWN_MARKER) || !names.contains(PREBUILT_MARKER))
-            throw new IOException("Template is missing required world files");
+        if (!hasRegion || !names.contains("level.dat") || !names.contains(SPAWN_MARKER)
+                || !names.contains(PREBUILT_MARKER) || !names.contains(CURRENT_TEMPLATE_MARKER)
+                || !isCurrentPreparedWorld(stage))
+            throw new IOException("Template is missing required v73 world files or its marker");
     }
 
     private static boolean allowedTemplatePath(String name) {
         if (name.equals("level.dat") || name.equals("paper-world.yml")
-                || name.equals(SPAWN_MARKER) || name.equals(PREBUILT_MARKER)) return true;
+                || name.equals(SPAWN_MARKER) || name.equals(PREBUILT_MARKER)
+                || name.equals(CURRENT_TEMPLATE_MARKER)) return true;
         return name.matches("data/[a-zA-Z0-9_-]+\\.dat")
                 || name.matches("(region|poi)/r\\.-?[0-9]+\\.-?[0-9]+\\.mca");
     }

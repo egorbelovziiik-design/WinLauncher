@@ -96,6 +96,7 @@ public final class NpcProbe extends JavaPlugin implements Listener {
             Map<String, UUID> holos = field(engine, "npcHoloMap");
             Set<UUID> valid = field(engine, "validSpawnEntities");
             Set<Material> coats = new HashSet<Material>();
+            Set<String> skins = new HashSet<String>();
             int heads = 0, parts = 0;
             ok(models.size() == 28 && hits.size() == 28 && holos.size() == 28, "one model, hitbox and hologram per definition");
             for (SpawnEngine.NpcDef d : defs) {
@@ -112,7 +113,17 @@ public final class NpcProbe extends JavaPlugin implements Listener {
                     if (e instanceof ItemDisplay && e.getScoreboardTags().contains("kg_part_head")) {
                         ItemStack head = ((ItemDisplay)e).getItemStack();
                         SkullMeta meta = (SkullMeta) head.getItemMeta();
-                        if (head.getType() == Material.PLAYER_HEAD && meta.getOwnerProfile() != null && meta.getOwnerProfile().getTextures().getSkin() != null) heads++;
+                        if (head.getType() == Material.PLAYER_HEAD && meta.getOwnerProfile() != null && meta.getOwnerProfile().getTextures().getSkin() != null) {
+                            String skin = meta.getOwnerProfile().getTextures().getSkin().toExternalForm();
+                            ok(skin.equals("https://textures.minecraft.net/texture/" + d.skinHash), "NPC profile has the expected static texture: " + d.id);
+                            float width = field(part, "width");
+                            float height = field(part, "y");
+                            ok(Math.abs(width - 1.0f) < .001f && Math.abs(height - 1.59f) < .001f,
+                                    "head is full sized and aligned with shoulders: " + d.id);
+                            ok(((ItemDisplay)e).getItemDisplayTransform() == ItemDisplay.ItemDisplayTransform.FIXED,
+                                    "head keeps the fixed item-display context: " + d.id);
+                            skins.add(skin); heads++;
+                        }
                     }
                 }
                 Entity h = Bukkit.getEntity(hits.get(d.id));
@@ -120,7 +131,9 @@ public final class NpcProbe extends JavaPlugin implements Listener {
                 ok(h instanceof Interaction && engine.getNpcByEntity(h) == d, "canonical interactive hitbox: " + d.id);
                 ok(t instanceof TextDisplay && engine.getNpcByEntity(t) == null, "hologram is not a mob/stand or hitbox: " + d.id);
             }
-            ok(heads == 28 && coats.size() >= 6 && parts > 300, "distinct outfits, profile heads and individual model parts");
+            ok(heads == 28 && skins.size() == 8 && coats.size() >= 6 && parts > 300, "distinct outfits, eight textured profile heads and individual model parts");
+            ok(skins.contains("https://textures.minecraft.net/texture/bca614e14e5035f11a3ad5ebe69c2d912e60839f43a8a2517ea057f18f7db093"),
+                    "Snow Maiden uses the verified blonde winter skin, not the missing legacy texture");
             // An untrusted/obsolete tagged interaction is not a canonical NPC.
             Interaction fake = (Interaction) world.spawnEntity(player.getLocation(), EntityType.INTERACTION);
             fake.addScoreboardTag("kg_npc"); fake.addScoreboardTag("kg_npc_rtp");

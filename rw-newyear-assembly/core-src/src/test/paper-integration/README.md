@@ -6,7 +6,7 @@ packet, inventory/menu packets, asynchronous chat delegation and the delivered
 message's colour/style, rank hierarchy, kits, TNT prices/purchases/effects and
 cancelled/filtered explosions, new events and scoped entity cleanup, plus fresh
 spawn installation and the removal of the old synchronous rebuild path.
-With `--prebuilt /path/to/spawn-v71-template.zip`, it additionally checks that
+With `--prebuilt /path/to/spawn-v73-template.zip`, it additionally checks that
 an actual pre-generated world is loaded directly, rather than rebuilt at startup.
 It does **not** render a Minecraft client or verify visuals.
 
