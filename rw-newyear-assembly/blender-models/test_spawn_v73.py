@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Structural regression on the v73 RLE blueprint, not a visual client test."""
 import gzip
+import os
 import struct
 from collections import deque
 from pathlib import Path
@@ -9,7 +10,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def load(version):
-    data = gzip.decompress((ROOT / f'core-src/src/main/resources/spawn_{version}.dat').read_bytes())
+    path = Path(os.environ['KINGGRIEF_V73_TEST_FILE']) if version == 'v73' and 'KINGGRIEF_V73_TEST_FILE' in os.environ else ROOT / f'core-src/src/main/resources/spawn_{version}.dat'
+    data = gzip.decompress(path.read_bytes())
     w, h, length, ox, oy, oz = struct.unpack_from('>hhhhhh', data, 0)
     pos = 12
     n, = struct.unpack_from('>H', data, pos); pos += 2
@@ -51,13 +53,19 @@ for y in (100,110,120,130):
     for x,z in ((118,0),(-118,0),(0,118),(0,-118)):
         assert block(x,y,z) == 'AIR', ('blocked gate', x,y,z,block(x,y,z))
 # Sampling representative palace/functional architecture guards against ice
-# walls overwriting important existing interior volumes.
+# walls overwriting important existing interior volumes. A bridge may fill only
+# previously empty cells within its explicit footprint, never replace a block.
+def bridge(x,z):
+    return (104<=x<=123 and -3<=z<=3) or (-123<=x<=-106 and -3<=z<=3) or \
+           (22<=x<=26 and 80<=z<=99) or (0<=x<=26 and 95<=z<=99) or \
+           (-3<=x<=3 and 95<=z<=123) or (-3<=x<=3 and -123<=z<=-89)
 for x1,x2,z1,z2,y1,y2 in [(-21,21,65,91,96,128),(-102,-69,-13,21,95,105),
                             (59,109,-3,43,95,105),(-45,45,-92,-45,95,106)]:
     for x in range(x1,x2+1,3):
         for z in range(z1,z2+1,3):
             for y in range(y1,y2+1,3):
-                assert block(x,y,z) == old(x,y,z), ('existing structure changed', x,y,z, old(x,y,z), block(x,y,z))
+                before,after=old(x,y,z),block(x,y,z)
+                assert before==after or (before=='AIR' and bridge(x,z) and after in {'SNOW_BLOCK','PACKED_ICE','BLUE_ICE','LIGHT_BLUE_STAINED_GLASS'}), ('existing structure changed', x,y,z,before,after)
 # Footpath to guide remains clear and walkable in the new blueprint.
 non_solid = {'AIR','LIGHT_WEIGHTED_PRESSURE_PLATE','HEAVY_WEIGHTED_PRESSURE_PLATE','RED_CARPET',
              'WHITE_CARPET','YELLOW_CARPET','CYAN_CARPET','LEVER','END_ROD','COBWEB'}
@@ -66,8 +74,9 @@ for x in range(-14,-11):
     for z in range(51,54):
         assert block(x,99,z) not in non_solid
         assert all(block(x,y,z) == 'AIR' for y in range(100,104))
-visited={(0,100,52)}; q=deque(visited); goal=(-13,100,52)
-while q and goal not in visited:
+visited={(0,100,52)}; q=deque(visited)
+goals={(-13,100,52), (118,100,0), (-118,100,0), (0,100,118), (0,100,-118)}
+while q and not goals.issubset(visited):
     x,y,z=q.popleft()
     for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)):
         nx,nz=x+dx,z+dz
@@ -78,5 +87,9 @@ while q and goal not in visited:
             if dy==1 and block(x,y+2,z) not in non_solid: continue
             if dy==-1 and block(nx,y+1,nz) not in non_solid: continue
             visited.add(p); q.append(p)
-assert goal in visited
-print('SPAWN V73 BLUEPRINT: PASS larger tree/figures, four tall ice walls & gates, protected structures, route to guide')
+assert goals.issubset(visited), ('unreachable guide or gate', goals-visited)
+for x,z in ((118,0),(-118,0),(0,118),(0,-118)):
+    assert block(x,99,z)=='SNOW_BLOCK' and block(x,100,z)=='AIR' and block(x,101,z)=='AIR'
+for x,z in ((123,0),(-123,0),(0,123),(0,-123)):
+    assert block(x,100,z)==block(x,101,z)=='LIGHT_BLUE_STAINED_GLASS', ('unguarded bridge end',x,z)
+print('SPAWN V73 BLUEPRINT: PASS larger tree/figures, four walls, guarded and reachable gates, protected structures, route to guide')

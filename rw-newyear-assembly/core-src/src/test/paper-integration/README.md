@@ -27,9 +27,17 @@ python3 src/test/paper-integration/run.py \
 
 `test-spawn-availability.py` connects a protocol player to fresh, existing,
 main-world, damaged, symbolic-link, naming-conflict and repeat-restart fixtures.
-It checks the prepared map, arrival, NPC models, 11 warps, saved `/spawn` and
+It checks the prepared map, arrival, four ice walls, solid gate floors and
+full-collision two-block guardrails, NPC models, 11 warps, saved `/spawn` and
 `/kgspawn`, plus preservation of old worlds. Pass `--kingac` and `--kingclear`
 to exercise their real plugins, the menu-star clear/undo and XRay world selection.
+`test-spawn-upgrade-v73.py` boots the actual 7.2.2 Core, edits a chest and a
+force-loaded chunk, saves a custom spawn, and then upgrades both the primary and
+isolated paths; it verifies old world files remain byte-identical and reads a
+copy of the old chest on Paper. An unloaded saved-spawn world is preserved in
+`data.yml` but its location is not resolved until that world is loaded.
+`blender-models/test_spawn_v73.py` checks the geometry and walking routes to all
+four guarded gateways; the generator additionally checks every warp and NPC.
 `test-spawn-compatibility.py` additionally tests standalone, disabled-Core and
 incompatible-Core fallback behavior. These are not rendered client tests.
 

@@ -13,11 +13,11 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.2.2.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.3.0.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
-TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v71-template.zip"
-PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v71.zip"
-CHECKSUM = ROOT / "core-src/src/main/resources/spawn_v71_template.sha256"
+TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v73-template.zip"
+PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v73.zip"
+CHECKSUM = ROOT / "core-src/src/main/resources/spawn_v73_template.sha256"
 CORE = SERVER / "plugins/KingGriefCore.jar"
 
 
@@ -35,9 +35,11 @@ def verify_spawn_template():
     if len(expected) != 64 or digest != expected:
         raise RuntimeError("Spawn template does not match Core's recorded SHA-256")
     with zipfile.ZipFile(CORE) as jar:
-        if jar.read("spawn_v71_template.sha256").decode("ascii").strip() != digest:
+        if not re.search(r"(?m)^version:\s*7\.3\.0\s*$", jar.read("plugin.yml").decode("utf-8")):
+            raise RuntimeError("Assembly needs KingGriefCore 7.3.0")
+        if jar.read("spawn_v73_template.sha256").decode("ascii").strip() != digest:
             raise RuntimeError("Built Core JAR does not match the spawn template; rebuild Core")
-        if hashlib.sha256(jar.read("spawn_v71_template.zip")).hexdigest() != digest:
+        if hashlib.sha256(jar.read("spawn_v73_template.zip")).hexdigest() != digest:
             raise RuntimeError("Embedded Core template does not match the distributed template")
         if "net/kinggrief/core/PreparedSpawnInstaller.class" not in jar.namelist():
             raise RuntimeError("Built Core cannot install the prepared spawn")
@@ -47,7 +49,7 @@ def verify_spawn_template():
         names = world.namelist()
         if len(names) != len(set(names)):
             raise RuntimeError("Duplicate prebuilt spawn paths")
-        required = {"level.dat", ".spawn_v70_village_ok", ".kinggrief_prebuilt_v70"}
+        required = {"level.dat", ".spawn_v70_village_ok", ".kinggrief_prebuilt_v70", ".kinggrief_prebuilt_v73"}
         if not required.issubset(names) or not any(n.startswith("region/") and n.endswith(".mca") for n in names):
             raise RuntimeError("Prebuilt spawn is missing required world files")
         if "data/chunks.dat" in names:
@@ -93,8 +95,8 @@ def main():
         if not path.is_file():
             raise RuntimeError(f"Not a regular file: {path}")
         # Historical templates stay in the repository/download history, but
-        # new assemblies ship only the clean non-pinned v71 template.
-        if path.relative_to(SERVER).as_posix() in {"plugins/KingGriefCore/spawn-v66-template.zip", "plugins/KingGriefCore/spawn-v70-template.zip"}:
+        # new assemblies ship only the clean non-pinned v73 template.
+        if path.relative_to(SERVER).as_posix() in {"plugins/KingGriefCore/spawn-v66-template.zip", "plugins/KingGriefCore/spawn-v70-template.zip", "plugins/KingGriefCore/spawn-v71-template.zip"}:
             continue
         files.append(path)
     # Do not truncate the existing downloadable ZIP if preflight/archiving fails.

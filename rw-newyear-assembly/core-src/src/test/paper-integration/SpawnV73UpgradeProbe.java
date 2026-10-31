@@ -23,12 +23,16 @@ public final class SpawnV73UpgradeProbe extends JavaPlugin {
         Location arrival=(Location)engine.getClass().getMethod("getPreparedSpawnArrival").invoke(engine);
         if(arrival==null || arrival.getWorld()==null) throw new AssertionError("No active prepared spawn");
         World active=arrival.getWorld(); Path base=Bukkit.getWorldContainer().toPath();
+        Object store=core.getClass().getMethod("getStore").invoke(core);
         Path state=getDataFolder().toPath(); Files.createDirectories(state);
         if(mode.equals("v722seed")) {
             if(Files.exists(active.getWorldFolder().toPath().resolve(".kinggrief_prebuilt_v73"))) throw new AssertionError("expected old template");
             active.getBlockAt(50,101,50).setType(Material.CHEST,false);
             ((Chest)active.getBlockAt(50,101,50).getState()).getBlockInventory().setItem(0,new ItemStack(Material.EMERALD,7));
             active.setChunkForceLoaded(2,2,true);
+            Location custom=new Location(active, 12.5, 101, 22.5, 0, 0);
+            store.getClass().getMethod("setCustomSpawnLoc", Location.class).invoke(store, custom);
+            Files.write(state.resolve("saved-spawn.txt"), (active.getName()+";12.5;101.0;22.5;0.0;0.0").getBytes(StandardCharsets.UTF_8));
             Files.write(active.getWorldFolder().toPath().resolve("owner-edit.txt"),"keep the old world\n".getBytes(StandardCharsets.UTF_8));
             Files.write(state.resolve("old-name.txt"),active.getName().getBytes(StandardCharsets.UTF_8));
             Files.write(state.resolve("old-uuid.txt"),active.getUID().toString().getBytes(StandardCharsets.UTF_8));
@@ -40,6 +44,12 @@ public final class SpawnV73UpgradeProbe extends JavaPlugin {
         if(active.getName().equals(oldName) || !Files.isRegularFile(active.getWorldFolder().toPath().resolve(".kinggrief_prebuilt_v73")))
             throw new AssertionError("new separate v73 spawn is not active");
         if(Bukkit.getWorld(oldName)!=null) throw new AssertionError("old spawn was unnecessarily loaded");
+        String saved=new String(Files.readAllBytes(state.resolve("saved-spawn.txt")),StandardCharsets.UTF_8);
+        org.bukkit.configuration.file.YamlConfiguration data=org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(base.resolve("plugins/KingGriefCore/data.yml").toFile());
+        if(!saved.equals(data.getString("customSpawnArrival")))throw new AssertionError("saved /setspawn was discarded");
+        if(store.getClass().getMethod("getCustomSpawnLoc").invoke(store)!=null)throw new AssertionError("unloaded old world should not resolve until loaded");
+        Location resolved=(Location)engine.getClass().getMethod("getSpawnArrival").invoke(engine);
+        if(resolved==null || resolved.getWorld()!=active)throw new AssertionError("unloaded saved spawn must fall back to active village");
         if(!"keep the old world\n".equals(new String(Files.readAllBytes(old.resolve("owner-edit.txt")),StandardCharsets.UTF_8)))
             throw new AssertionError("old user file disappeared");
         if(active.getBlockAt(118,120,24).getType()!=Material.PACKED_ICE && active.getBlockAt(118,120,24).getType()!=Material.BLUE_ICE)

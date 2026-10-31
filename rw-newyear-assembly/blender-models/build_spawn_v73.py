@@ -1111,6 +1111,46 @@ assert len(pavilions) == 3, f"Could not reserve three clear pavilions: {pavilion
 assert wall_built > 0, "At least some safe glacier wall segments must remain"
 print(f"    New open pavilions: {pavilions}; protected wall segments skipped={wall_skipped}, kept={wall_built}")
 
+# Bridge each new gate to an existing island. The original spawn is deliberately
+# a group of floating islands: empty gaps in the walls alone would lead players
+# straight into the void. Only empty blocks are filled, never an existing build.
+# The south approach bends around the palace rather than cutting through it.
+print("    Connecting the four gateways with guarded ice bridges...")
+before_bridges = bytes(grid)
+bridge_floor = {}
+def bridge_rect(x1, x2, z1, z2, y=99):
+    for x in range(min(x1,x2), max(x1,x2)+1):
+        for z in range(min(z1,z2), max(z1,z2)+1):
+            bridge_floor[(x,z)] = max(y, bridge_floor.get((x,z), y))
+bridge_rect(104,123,-3,3)              # eastern island
+bridge_rect(-123,-106,-3,3)           # western mine island
+bridge_rect(22,26,80,99)              # east of the palace, avoiding its walls
+bridge_rect(0,26,95,99)               # around the rear of the palace
+bridge_rect(-3,3,95,123)              # southern gateway
+for z in range(-123,-88):             # north case terrace is two blocks higher
+    y = 101 if z >= -92 else (100 if z >= -95 else 99)
+    bridge_rect(-3,3,z,z,y)
+for (x,z), y in bridge_floor.items():
+    # Never replace even a decorative block, including buried foundations.
+    for by, mat in ((y, 'SNOW_BLOCK'), (y-1, 'PACKED_ICE'), (y-2, 'BLUE_ICE')):
+        if g(x, by, z) == P['AIR']:
+            s(x, by, z, P[mat])
+# Guard the open sides and outer ends, but not joins to adjacent solid ground.
+# Two-block-high glass has full-block collision even when generated without
+# physics; default unconnected fence posts would leave dangerous gaps.
+# Each bridge is seven blocks wide (five clear blocks between railings).
+bridge_rails = 0
+for (x,z), y in bridge_floor.items():
+    if g(x,y+1,z) != P['AIR'] or g(x,y+2,z) != P['AIR']:
+        continue
+    border = any((x+dx,z+dz) not in bridge_floor and g(x+dx,y,z+dz) == P['AIR']
+                 for dx,dz in ((1,0),(-1,0),(0,1),(0,-1)))
+    if border:
+        s(x,y+1,z,P['LIGHT_BLUE_STAINED_GLASS'])
+        s(x,y+2,z,P['LIGHT_BLUE_STAINED_GLASS']); bridge_rails += 1
+assert bridge_rails > 100, "Safety rails for the four bridges were not placed"
+assert all(old == 0 or old == new for old,new in zip(before_bridges,grid)), "A bridge replaced an existing block"
+
 for _, wx, wy, wz in WARP_SPOTS:
     if g(wx, wy - 1, wz) == P["AIR"]:
         s(wx, wy - 1, wz, P["SMOOTH_QUARTZ"])
@@ -1171,6 +1211,10 @@ print(f"    All {len(NPC_SPOTS)} NPC plazas 100% reachable on foot!")
 for x, z in pavilions:
     assert (x, 100, z) in visited, f"Pavilion {(x, z)} is unreachable"
 print("    All three new pavilions reachable on foot!")
+for x,z in ((118,0),(-118,0),(0,118),(0,-118)):
+    assert (x,100,z) in visited, f"Gate {(x,z)} is not reachable safely"
+    assert g(x,99,z) != P["AIR"] and g(x,100,z) == P["AIR"] and g(x,101,z) == P["AIR"]
+print("    All four guarded gateways reachable safely on foot!")
 print(f"    Parkour steps: {len(PARKOUR_STEPS)} | Start={PARKOUR_STEPS[0]} | Finish={PARKOUR_STEPS[-1]}")
 
 # Confirm ZERO GREEN_CONCRETE / LIME_CONCRETE anywhere in the map!

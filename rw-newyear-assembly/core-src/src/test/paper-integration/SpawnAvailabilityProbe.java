@@ -40,7 +40,7 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         Bukkit.getScheduler().runTaskLater(this, () -> prepareChunks(player), 40L);
     }
     private void prepareChunks(Player player) {
-        final int[][] chunks = {{0,0},{7,1},{-8,1},{1,7},{1,-8}};
+        final int[][] chunks = {{0,0},{7,1},{-8,1},{1,7},{1,-8},{7,0},{-8,0},{0,7},{0,-8}};
         try {
             KingGriefCore core = (KingGriefCore) Bukkit.getPluginManager().getPlugin("KingGriefCore");
             World world = core.getSpawnEngine().getPreparedSpawnArrival().getWorld();
@@ -94,6 +94,16 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
             Material wall = prepared.getBlockAt(point[0], 120, point[1]).getType();
             ok(wall == Material.PACKED_ICE || wall == Material.BLUE_ICE,
                     "tall glacial wall present at " + point[0] + "," + point[1]);
+        }
+        for (int[] p : new int[][] {{118,0,123,0},{-118,0,-123,0},{0,118,0,123},{0,-118,0,-123}}) {
+            org.bukkit.block.Block gateFloor = prepared.getBlockAt(p[0],99,p[1]);
+            org.bukkit.block.Block rail = prepared.getBlockAt(p[2],100,p[3]);
+            org.bukkit.block.Block railUpper = prepared.getBlockAt(p[2],101,p[3]);
+            ok(gateFloor.getType() == Material.SNOW_BLOCK && prepared.getBlockAt(p[0],100,p[1]).isPassable()
+                    && prepared.getBlockAt(p[0],101,p[1]).isPassable(), "gate has a solid, open approach at " + p[0] + "," + p[1]);
+            ok(rail.getType() == Material.LIGHT_BLUE_STAINED_GLASS && !rail.isPassable()
+                    && railUpper.getType() == Material.LIGHT_BLUE_STAINED_GLASS && !railUpper.isPassable(),
+                    "bridge end has a two-block collision guard at " + p[2] + "," + p[3]);
         }
         engine.enforceStrictSingletonsOnSpawn(prepared);
         int hitboxes = 0, parts = 0;

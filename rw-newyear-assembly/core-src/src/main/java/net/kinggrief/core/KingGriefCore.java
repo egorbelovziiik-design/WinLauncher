@@ -194,7 +194,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.2.2 — PREPARED SPAWN & SAFE WORLDS");
+        getLogger().info(" KINGGRIEF CORE v7.3.0 — ICE WALLS & SAFE WORLDS");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");

@@ -35,7 +35,7 @@ def main():
     for f in mockclasses.rglob('*.class'):z.write(f,f.relative_to(mockclasses).as_posix())
     z.write(HERE/'plugin-mock-points.yml','plugin.yml')
   proc=subprocess.Popen([a.java,'-Xms512M','-Xmx1536M','-jar',str(a.paper.resolve()),'nogui'],cwd=server,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
-  output=[];messages=queue.Queue()
+  output=[];messages=queue.Queue();client_error=None
   def read():
    for line in proc.stdout:output.append(line);messages.put(line)
   threading.Thread(target=read,daemon=True).start();client=None;success=False
@@ -65,11 +65,18 @@ def main():
    if not success:raise RuntimeError('NPC test failed/timed out')
   finally:
    if client and client.poll() is None:
-    try:print(client.communicate(input='done\n',timeout=10)[0],end='')
-    except subprocess.TimeoutExpired:client.kill();client.wait()
+    try:
+     client_log=client.communicate(input='done\n',timeout=10)[0];print(client_log,end='')
+     if client.returncode != 0 or 'NPC_CLIENT_TEXTURES PASS' not in client_log: client_error='Client did not receive valid NPC texture profiles'
+    except subprocess.TimeoutExpired:
+     client.kill();client.wait();client_error='NPC client did not finish'
+   elif client:
+    client_log=client.communicate()[0];print(client_log,end='')
+    if client.returncode != 0 or 'NPC_CLIENT_TEXTURES PASS' not in client_log: client_error='NPC client exited without validating texture profiles'
    if proc.poll() is None:
     try:proc.stdin.write('stop\n');proc.stdin.flush();proc.wait(timeout=60)
     except (BrokenPipeError,subprocess.TimeoutExpired):proc.kill();proc.wait()
    if not success:print('\n--- SERVER LOG TAIL ---\n'+''.join(output[-180:]),file=sys.stderr)
+  if client_error: raise RuntimeError(client_error)
  print('NPC INTEGRATION: PASS',flush=True)
 if __name__=='__main__':main()

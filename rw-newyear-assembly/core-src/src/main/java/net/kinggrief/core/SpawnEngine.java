@@ -473,7 +473,7 @@ public final class SpawnEngine {
         if (!staticHoloDefs.isEmpty()) return;
 
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
-                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v7.2.1 &#80D8FF&l❄\n"
+                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v7.3.0 &#80D8FF&l❄\n"
                 + "&#FF1744&lМОДЕЛИ NPC &8• &#FFD740&l150 АРТЕФАКТОВ &8• &#00E676&lЭКСПЕДИЦИИ &8• &#E040FB&lЗИМНИЕ НАГРАДЫ\n"
                 + "&fВыживание: &#00E676&l/rtp &8│ &fЭкспедиции: &#80D8FF&l/expeditions &8│ &fРуны: &#FFD740&l/artifacts &8│ &fВарпы: &#38BDF8&l/warps"));
 
