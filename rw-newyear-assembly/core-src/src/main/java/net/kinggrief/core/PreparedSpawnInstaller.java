@@ -57,7 +57,7 @@ final class PreparedSpawnInstaller {
     static void requestRebuild(final KingGriefCore plugin, final CommandSender sender) {
         World world = Bukkit.getWorld(VoidSpawnWorldGenerator.getSpawnWorldName());
         if (world != null && !Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(world)) {
-            sender.sendMessage(ColorUtil.c("&cspawn_world является основным миром; автоматически заменять его нельзя."));
+            sender.sendMessage(ColorUtil.c("&cАктивный спавн является основным миром; автоматически заменять его нельзя."));
             return;
         }
         if (!REQUEST_BUSY.compareAndSet(false, true)) {
@@ -301,9 +301,9 @@ final class PreparedSpawnInstaller {
         Path target = container.resolve(VoidSpawnWorldGenerator.getSpawnWorldName());
         Path done = doneMarker(data);
         Path journal = data.resolve(JOURNAL_FILE);
-        if (Files.isSymbolicLink(target)) throw new IOException("spawn_world is a symbolic link");
+        if (Files.isSymbolicLink(target)) throw new IOException("Selected spawn is a symbolic link: " + target);
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS) && !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS))
-            throw new IOException("spawn_world is not a directory");
+            throw new IOException("Selected spawn is not a directory: " + target);
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) verifyFallbackOwnership(target);
         boolean hadDone = Files.exists(done, LinkOption.NOFOLLOW_LINKS);
         if (hadDone) {
@@ -338,8 +338,8 @@ final class PreparedSpawnInstaller {
                 if (!loaded.getWorldFolder().getCanonicalFile().toPath().equals(target))
                     throw new IOException("Loaded spawn world is not in the expected directory");
                 if (!Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(loaded))
-                    throw new IOException("spawn_world is the main server world and cannot safely be replaced automatically");
-                if (!loaded.getPlayers().isEmpty()) throw new IOException("Players are still in spawn_world");
+                    throw new IOException("Selected spawn is the main server world and cannot safely be replaced automatically");
+                if (!loaded.getPlayers().isEmpty()) throw new IOException("Players are still in the selected spawn world");
             }
             if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
                 validateExistingWorld(target);
@@ -586,7 +586,7 @@ final class PreparedSpawnInstaller {
             if (!loaded.getWorldFolder().getCanonicalFile().toPath().equals(target)
                     || (!Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(loaded))
                     || !loaded.getPlayers().isEmpty() || !Bukkit.unloadWorld(loaded, false))
-                throw new IOException("Could not unload spawn_world for recovery");
+                throw new IOException("Could not unload the selected spawn for recovery");
         }
         if (backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS)) {
             validateExistingWorld(backup);

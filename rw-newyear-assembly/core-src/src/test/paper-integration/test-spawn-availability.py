@@ -123,6 +123,9 @@ def scenario(args, cache, name):
             print('SPAWN OWNER CONFLICT: PASS (server stopped without changing the other world)', flush=True)
             return
         build_probe(args, root, server)
+        if name == 'command-conflict':
+            helper.build_test_plugin(args, root, HERE/'SpawnConflictProbe.java', HERE/'plugin-spawn-conflict.yml',
+                                     server/'plugins/KgSpawnConflict.jar')
         expected = 'spawn_world' if name in ('fresh', 'preexisting-good') else ('kinggrief_spawn_2' if name == 'collision' else 'kinggrief_spawn')
         run_server(args, server, expected, name)
         if name == 'legacy-repeat':
@@ -158,7 +161,7 @@ def main():
     p.add_argument('--kingac', type=Path); p.add_argument('--kingclear', type=Path)
     p.add_argument('--template', type=Path, default=ROOT/'server/plugins/KingGriefCore/spawn-v71-template.zip')
     p.add_argument('--java', default='java'); p.add_argument('--javac', default='javac'); p.add_argument('--node', default='node')
-    scenarios = ('fresh', 'legacy', 'legacy-repeat', 'stale-done', 'collision', 'main', 'damaged', 'damaged-selected', 'incomplete', 'symlink', 'preexisting-good', 'selected-conflict')
+    scenarios = ('fresh', 'legacy', 'legacy-repeat', 'stale-done', 'collision', 'command-conflict', 'main', 'damaged', 'damaged-selected', 'incomplete', 'symlink', 'preexisting-good', 'selected-conflict')
     p.add_argument('--scenario', choices=('all',) + scenarios, default='all')
     p.add_argument('--accept-eula', action='store_true'); args = p.parse_args()
     if not args.accept_eula: p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')

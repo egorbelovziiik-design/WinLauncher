@@ -1,0 +1,8 @@
+name: KgSpawnConflict
+version: 1.0
+main: net.kinggrief.probe.SpawnConflictProbe
+api-version: '1.20'
+loadbefore: [KingGriefCore]
+commands:
+  spawn:
+    description: Test conflict for the ordinary spawn command

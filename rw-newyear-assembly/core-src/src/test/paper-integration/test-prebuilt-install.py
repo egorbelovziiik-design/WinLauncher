@@ -76,7 +76,7 @@ def run_server(args, server, mode):
         raise RuntimeError(f"Paper timed out during {mode}")
     log = result.stdout
     if mode in ("corrupt", "corrupt-fresh", "symlink"):
-        expected = "spawn_world is a symbolic link" if mode == "symlink" else "Template checksum mismatch"
+        expected = "Selected spawn is a symbolic link" if mode == "symlink" else "Template checksum mismatch"
         if (result.returncode != 0 or expected not in log
                 or "Server is stopping after a failed spawn install" not in log):
             print("\n--- SERVER LOG TAIL ---\n" + "\n".join(log.splitlines()[-150:]), file=sys.stderr)

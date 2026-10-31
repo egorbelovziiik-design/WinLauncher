@@ -77,6 +77,14 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         }
         checkAc(player, prepared, survival);
         checkClear(player, arrival, survival);
+        Plugin conflict = Bukkit.getPluginManager().getPlugin("KgSpawnConflict");
+        if (conflict != null) {
+            ok(player.teleport(survival.getSpawnLocation()), "conflict fixture player can reach survival");
+            ok(player.performCommand("spawn") && conflict.getClass().getField("called").getBoolean(conflict)
+                    && player.getWorld().equals(survival), "another plugin owns unqualified /spawn");
+            ok(player.performCommand("kinggriefcore:kgspawn") && player.getWorld().equals(prepared),
+                    "namespaced /kgspawn reaches the village despite the command conflict");
+        }
         Location original = player.getLocation().clone();
         Location custom = survival.getSpawnLocation();
         core.getStore().setCustomSpawnLoc(custom);
