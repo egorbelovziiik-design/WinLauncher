@@ -211,7 +211,9 @@ public final class HelperConfig {
          */
         public boolean verified = false;
         public String screenTitlePattern = "";
-        public String pricePattern = "(?i)(?:цена|price)\\s*[:\\-]?\\s*([0-9][0-9\\s.,]*(?:[кКkKmMкк]|kk)?)";
+        // Note: the number class must not contain \\s, otherwise the match runs into the next
+        // lore line and swallows its first letter (e.g. "К" of "Кол-во"), turning 1 250 into 1 250 000.
+        public String pricePattern = "(?i)(?:цена|price)\\s*[:\\-]?\\s*([0-9][0-9 .,\u00A0]*(?:[кКkKmMbB]+|kk|KK)?)";
         public String quantityPattern = "(?i)(?:кол-?во|количество|amount|x)\\s*[:\\-]?\\s*(\\d{1,5})";
         public String itemNamePattern = "";
         public String serverNamePattern = "";

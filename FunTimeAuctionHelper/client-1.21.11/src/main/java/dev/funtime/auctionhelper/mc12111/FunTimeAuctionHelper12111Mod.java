@@ -83,8 +83,55 @@ public final class FunTimeAuctionHelper12111Mod implements ClientModInitializer 
         }
     }
 
+    /** Cached GLFW handle of the game window (the accessor name differs between versions). */
+    private static long cachedWindowHandle = -1L;
+
+    private static long windowHandle(com.mojang.blaze3d.platform.Window window) {
+        if (cachedWindowHandle != -1L || window == null) {
+            return cachedWindowHandle;
+        }
+        // 1.21.4 exposes getWindow(); 1.21.11 renamed it, so resolve the handle reflectively
+        // instead of hard coding a name that does not exist in every supported version.
+        String[] candidates = {"getWindow", "handle", "getHandle", "window"};
+        for (int i = 0; i < candidates.length; i++) {
+            try {
+                java.lang.reflect.Method method = window.getClass().getMethod(candidates[i]);
+                if (method.getParameterCount() == 0) {
+                    Object value = method.invoke(window);
+                    if (value instanceof Long) {
+                        cachedWindowHandle = ((Long) value).longValue();
+                        return cachedWindowHandle;
+                    }
+                }
+            } catch (Throwable ignored) {
+                // try the next candidate
+            }
+        }
+        java.lang.reflect.Method[] methods = window.getClass().getMethods();
+        for (int i = 0; i < methods.length; i++) {
+            java.lang.reflect.Method method = methods[i];
+            if (method.getParameterCount() != 0) {
+                continue;
+            }
+            Class<?> type = method.getReturnType();
+            if (type != long.class && type != Long.class) {
+                continue;
+            }
+            try {
+                Object value = method.invoke(window);
+                if (value instanceof Long) {
+                    cachedWindowHandle = ((Long) value).longValue();
+                    return cachedWindowHandle;
+                }
+            } catch (Throwable ignored) {
+                // keep looking
+            }
+        }
+        return cachedWindowHandle;
+    }
+
     private void pollKeys(Minecraft client) {
-        long window = client.getWindow().getWindow();
+        long window = windowHandle(client.getWindow());
         HelperConfig config = core.getConfig();
         boolean open = GLFW.glfwGetKey(window, config.ui.openKeyCode) == GLFW.GLFW_PRESS;
         boolean emergency = GLFW.glfwGetKey(window, config.ui.emergencyKeyCode) == GLFW.GLFW_PRESS;

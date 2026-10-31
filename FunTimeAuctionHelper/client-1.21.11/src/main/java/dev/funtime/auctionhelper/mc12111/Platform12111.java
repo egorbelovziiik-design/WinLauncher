@@ -62,7 +62,27 @@ public final class Platform12111 implements MinecraftAdapter {
 
     @Override
     public String getPlayerName() {
-        return mc.player == null ? "" : mc.player.getGameProfile().getName();
+        if (mc.player == null) {
+            return "";
+        }
+        com.mojang.authlib.GameProfile profile = mc.player.getGameProfile();
+        if (profile == null) {
+            return "";
+        }
+        // GameProfile accessors changed name in 1.21.11 (getName -> name), so try both.
+        String[] candidates = {"getName", "name"};
+        for (int i = 0; i < candidates.length; i++) {
+            try {
+                java.lang.reflect.Method method = profile.getClass().getMethod(candidates[i]);
+                Object value = method.invoke(profile);
+                if (value instanceof String) {
+                    return (String) value;
+                }
+            } catch (Throwable ignored) {
+                // try the next candidate
+            }
+        }
+        return "";
     }
 
     @Override

@@ -162,6 +162,7 @@ class CoreSafetyTest {
         AutomationState automation = new AutomationState(integration);
         automation.setMode(AutomationState.Mode.AUTHORIZED_AUTOMATION, "test");
         automation.setMaster(true, "test");
+        automation.setAutoBuy(true, "test");
         TradeEngine engine = new TradeEngine(config, automation, new TradeHistoryStore(null),
                 new NotificationService(config), NOW);
         withKnownBalance(engine, 100_000d);
@@ -180,6 +181,7 @@ class CoreSafetyTest {
         AutomationState automation = new AutomationState(integration);
         automation.setMode(AutomationState.Mode.AUTHORIZED_AUTOMATION, "test");
         automation.setMaster(true, "test");
+        automation.setAutoBuy(true, "test");
         TradeHistoryStore history = new TradeHistoryStore(null);
         TradeEngine engine = new TradeEngine(config, automation, history, new NotificationService(config), NOW);
         withKnownBalance(engine, 100_000d);
