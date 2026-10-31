@@ -9,6 +9,21 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  kgstatus:
+    description: Show a lightweight server status
+  calendar:
+    description: Show approximate built-in event times
+  sortinv:
+    aliases: [isort]
+    description: Sort storage slots without merging items
+  compare:
+    description: Compare the items in your two hands
+  way:
+    description: Show direction to a warp
+  deathpoint:
+    description: Show your last death point or a private particle marker
+  minestats:
+    description: Show your informational mining statistics
   tree:
     description: Help decorate the shared winter tree
   pet:

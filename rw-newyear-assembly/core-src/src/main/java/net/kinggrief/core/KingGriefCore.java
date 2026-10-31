@@ -65,6 +65,7 @@ public final class KingGriefCore extends JavaPlugin {
     private ClanAllianceManager clanAlliances;
     private DisplayPetManager displayPets;
     private WinterTreeManager winterTree;
+    private UtilityFeaturesManager utilities;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -87,6 +88,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.ranks = new RankManager(this.store);
         this.clanAlliances = new ClanAllianceManager(this);
         this.winterTree = new WinterTreeManager(this);
+        this.utilities = new UtilityFeaturesManager(this);
+        Bukkit.getPluginManager().registerEvents(this.utilities, this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -125,7 +128,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -180,6 +183,7 @@ public final class KingGriefCore extends JavaPlugin {
             return;
         }
         this.bossEvents.start();
+        this.utilities.start();
         this.displayPets.start();
         this.crownEvents.start();
         this.hud.start();
@@ -226,6 +230,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
+        if (this.utilities != null) this.utilities.shutdown();
         if (this.displayPets != null) this.displayPets.shutdown();
         if (this.bossEvents != null) this.bossEvents.shutdown();
         if (this.rtpManager != null) this.rtpManager.shutdown();
@@ -440,7 +445,13 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("tree".equals(c) && args.length == 1) {
+        if ("rg".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("borders", "add", "remove"), args[0]);
+        } else if ("way".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("spawn", "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top"), args[0]);
+        } else if ("deathpoint".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("status", "beacon", "off"), args[0]);
+        } else if ("tree".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("status", "donate", "claim", "top"), args[0]);
         } else if ("pet".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("penguin", "deer", "dragon", "off"), args[0]);
@@ -713,6 +724,14 @@ public final class KingGriefCore extends JavaPlugin {
 
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }
         if ("tree".equals(c)) { winterTree.command(p, args); return true; }
+        if ("kgstatus".equals(c)) { utilities.status(p); return true; }
+        if ("calendar".equals(c)) { utilities.calendar(p); return true; }
+        if ("sortinv".equals(c)) { utilities.sort(p); return true; }
+        if ("compare".equals(c)) { utilities.compare(p); return true; }
+        if ("way".equals(c)) { utilities.way(p, args); return true; }
+        if ("deathpoint".equals(c)) { utilities.deathPoint(p, args); return true; }
+        if ("minestats".equals(c)) { utilities.miningStats(p); return true; }
+        if ("kgspawn".equals(c) && args.length == 1 && "status".equalsIgnoreCase(args[0])) { utilities.spawnStatus(p); return true; }
         if ("crown".equals(c)) return crownEvents.handleCommand(p, args);
         if ("trade".equals(c)) return safeTrades.handleCommand(p, args);
         if ("buyorder".equals(c)) return buyOrders.handleCommand(p, args);
@@ -2403,6 +2422,10 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private void handleRgCmd(Player p, String[] args) {
+        if (args.length == 1 && "borders".equalsIgnoreCase(args[0])) {
+            utilities.borders(p);
+            return;
+        }
         DataStore.Claim cl = store.getClaimAt(p.getLocation());
         if (cl == null) {
             p.sendMessage(ColorUtil.c("&eВы стоите вне региона! Поставьте Рудный Приват в выживании (/rtp)."));

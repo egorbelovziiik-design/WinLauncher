@@ -48,6 +48,9 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST) public void protect(EntityDamageByEntityEvent e){
         if(cancelHit&&e.getEntity().getScoreboardTags().contains("kg_event_boss"))e.setCancelled(true);
     }
+    @EventHandler(priority=EventPriority.MONITOR) public void observe(EntityDamageByEntityEvent e){
+        if(e.getEntity() instanceof Player) getLogger().info("KG-BATCH DAMAGE cancelled="+e.isCancelled()+" final="+e.getFinalDamage()+" world="+e.getEntity().getWorld().getName());
+    }
     private void later(long ticks,Runnable task){Bukkit.getScheduler().runTaskLater(this,()->{try{task.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean condition,String message){if(!condition)throw new AssertionError(message);checks++;getLogger().info("KG-BATCH PASS "+message);}
     private void fail(Throwable error){if(done)return;done=true;getLogger().severe("KG-BATCH RESULT FAIL "+error);error.printStackTrace();}
@@ -96,6 +99,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         b.performCommand("clan allypvp RedTest");
         ok(store.isTeammatePvpAllowed(a.getName(),b.getName()),"both sides can consent to PvP");
         b.setNoDamageTicks(0);b.damage(4,a);
+        getLogger().info("KG-BATCH DEBUG health="+b.getHealth()+" invuln="+b.isInvulnerable()+" world="+b.getWorld().getName()+" pvp="+b.getWorld().getPVP()+" gamemode="+b.getGameMode()+" attacker="+a.getWorld().getName());
         ok(b.getHealth()<20,"real allied hit is accepted after mutual consent");
         b.setHealth(20);
         tree();
