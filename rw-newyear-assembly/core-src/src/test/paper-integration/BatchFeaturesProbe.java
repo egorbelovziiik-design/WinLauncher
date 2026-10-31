@@ -6,6 +6,8 @@ import net.kinggrief.core.KingGriefCore;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
@@ -16,7 +18,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.reflect.Field;
@@ -32,7 +38,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;
     private Player a,b;
     private World world;
-    private boolean running, done, cancelHit;
+    private boolean running, done, cancelHit, cancelMine;
     private int checks;
     private final int[][] chunks={{25,25},{25,26},{26,25},{26,26}};
     @Override public void onEnable(){
@@ -47,6 +53,9 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGHEST) public void protect(EntityDamageByEntityEvent e){
         if(cancelHit&&e.getEntity().getScoreboardTags().contains("kg_event_boss"))e.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void protectMine(BlockBreakEvent e){
+        if(cancelMine)e.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.MONITOR) public void observe(EntityDamageByEntityEvent e){
         if(e.getEntity() instanceof Player) getLogger().info("KG-BATCH DAMAGE cancelled="+e.isCancelled()+" final="+e.getFinalDamage()+" world="+e.getEntity().getWorld().getName());
@@ -77,10 +86,16 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     }
     private void initial(){
         DataStore store=core.getStore();
-        a.teleport(new Location(world,418,75,418));b.teleport(new Location(world,420,75,418));
+        World arena=Bukkit.getWorld("spawn_world");arena.setPVP(true);
+        a.teleport(new Location(arena,75.5,94,10.5));b.teleport(new Location(arena,77.5,94,10.5));
         a.setGameMode(GameMode.SURVIVAL);b.setGameMode(GameMode.SURVIVAL);
-        a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
         a.getInventory().clear();b.getInventory().clear();
+        // Same-world movement and initial login invulnerability settle on real ticks.
+        later(40,()->clanChecks());
+    }
+    private void clanChecks(){
+        DataStore store=core.getStore();
+        ok(!b.isInvulnerable(),"initial player invulnerability has expired");
         DataStore.Clan red=store.createClan(a.getName(),"RedTest"), blue=store.createClan(b.getName(),"BlueTest");
         ok(red!=null&&blue!=null,"test clans created");
         b.performCommand("clan allyaccept RedTest");
@@ -102,9 +117,48 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         getLogger().info("KG-BATCH DEBUG health="+b.getHealth()+" invuln="+b.isInvulnerable()+" world="+b.getWorld().getName()+" pvp="+b.getWorld().getPVP()+" gamemode="+b.getGameMode()+" attacker="+a.getWorld().getName());
         ok(b.getHealth()<20,"real allied hit is accepted after mutual consent");
         b.setHealth(20);
-        tree();
-        a.performCommand("pet penguin");
-        later(15,()->petChecks());
+        ok(a.performCommand("cosmetic trail snow")&&a.performCommand("cosmetic login stars"),"cosmetic commands registered");
+        String cosmetics="cosmetics."+a.getUniqueId();
+        ok("snow".equals(yaml().getString(cosmetics+".trail"))&&"stars".equals(yaml().getString(cosmetics+".login")),"cosmetic settings are saved");
+        withBlockedSave(()->a.performCommand("cosmetic trail hearts"));
+        ok("snow".equals(yaml().getString(cosmetics+".trail")),"failed cosmetic update keeps the previous choice");
+        ok(a.performCommand("wintershow"),"non-destructive spawn light show is registered");
+        a.teleport(new Location(world,418,75,418));b.teleport(new Location(world,420,75,418));
+        a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
+        later(20,()->utility());
+    }
+    private void utility(){
+        a.getInventory().clear();
+        ItemStack held=new ItemStack(Material.DIAMOND_PICKAXE);
+        ItemStack special=new ItemStack(Material.DIAMOND,7);
+        ItemMeta meta=special.getItemMeta();meta.setDisplayName("§bUnique metadata");
+        meta.setLore(java.util.Arrays.asList("§dKeep me"));
+        meta.getPersistentDataContainer().set(new NamespacedKey(this,"unique"),PersistentDataType.STRING,"value");special.setItemMeta(meta);
+        a.getInventory().setItem(0,held);a.getInventory().setItem(12,special);a.getInventory().setItem(20,new ItemStack(Material.STONE,32));
+        a.getInventory().setItemInOffHand(new ItemStack(Material.IRON_PICKAXE));
+        ok(a.performCommand("sortinv"),"sort command registered");
+        ok(held.equals(a.getInventory().getItem(0))&&a.getInventory().getItemInOffHand().getType()==Material.IRON_PICKAXE,"sorting preserves hotbar and offhand");
+        ok(special.equals(a.getInventory().getItem(9))&&a.getInventory().getItem(10).getType()==Material.STONE,"sorting preserves custom lore, PDC and amounts");
+        a.openInventory(Bukkit.createInventory(null,9));
+        ItemStack[] before=a.getInventory().getStorageContents().clone();a.performCommand("sortinv");
+        ok(java.util.Arrays.equals(before,a.getInventory().getStorageContents()),"sorting refuses an open container");
+        a.closeInventory();
+        ok(a.performCommand("compare")&&a.performCommand("calendar")&&a.performCommand("kgstatus")
+                &&a.performCommand("kgspawn status")&&a.performCommand("way mine")&&a.performCommand("deathpoint off"),"diagnostic and navigation commands are available");
+        DataStore.Claim claim=core.getStore().createClaim(a.getName(),a.getLocation(),4);
+        Material blockBefore=a.getLocation().getBlock().getType();
+        ok(a.performCommand("rg borders")&&a.getLocation().getBlock().getType()==blockBefore,"private border preview does not change blocks");
+        core.getStore().removeClaim(claim);
+        org.bukkit.block.Block block=world.getBlockAt(418,65,417);block.setType(Material.DIAMOND_ORE,false);
+        cancelMine=true;a.breakBlock(block);cancelMine=false;
+        ok(block.getType()==Material.DIAMOND_ORE,"cancelled mining leaves ore intact");
+        a.breakBlock(block);
+        ok(block.getType()!=Material.DIAMOND_ORE,"accepted real mining breaks ore");
+        later(4,()->{
+            ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"only accepted mining is counted");
+            ok(a.performCommand("minestats"),"mining statistics command registered");
+            tree();a.performCommand("pet penguin");later(15,()->petChecks());
+        });
     }
     private void tree(){
         DataStore store=core.getStore();
@@ -203,6 +257,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(red!=null&&blue!=null&&red.allies.contains(blue.id)&&blue.allies.contains(red.id),"alliance survives restart");
         ok(store.isTeammatePvpAllowed(a.getName(),b.getName()),"mutual PvP consent survives restart");
         ok(yaml().getInt("winterTree.total")==31,"tree progress survives restart");
+        ok("snow".equals(yaml().getString("cosmetics."+a.getUniqueId()+".trail")),"cosmetic selection survives restart");
+        ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"buffered mining statistics survive clean restart");
         double before=store.getCoins(a.getName());a.performCommand("tree claim");
         ok(store.getCoins(a.getName())==before,"claimed tree milestone remains claimed after restart");
         later(20,()->{

@@ -9,6 +9,10 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  cosmetic:
+    description: Choose a cosmetic trail or login effect
+  wintershow:
+    description: Start a non-destructive spawn particle show
   kgstatus:
     description: Show a lightweight server status
   calendar:

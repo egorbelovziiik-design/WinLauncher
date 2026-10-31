@@ -66,6 +66,7 @@ public final class KingGriefCore extends JavaPlugin {
     private DisplayPetManager displayPets;
     private WinterTreeManager winterTree;
     private UtilityFeaturesManager utilities;
+    private CosmeticEffectsManager cosmetics;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -90,6 +91,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.winterTree = new WinterTreeManager(this);
         this.utilities = new UtilityFeaturesManager(this);
         Bukkit.getPluginManager().registerEvents(this.utilities, this);
+        this.cosmetics = new CosmeticEffectsManager(this);
+        Bukkit.getPluginManager().registerEvents(this.cosmetics, this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -128,7 +131,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -184,6 +187,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         this.bossEvents.start();
         this.utilities.start();
+        this.cosmetics.start();
         this.displayPets.start();
         this.crownEvents.start();
         this.hud.start();
@@ -231,6 +235,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
         if (this.utilities != null) this.utilities.shutdown();
+        if (this.cosmetics != null) this.cosmetics.shutdown();
         if (this.displayPets != null) this.displayPets.shutdown();
         if (this.bossEvents != null) this.bossEvents.shutdown();
         if (this.rtpManager != null) this.rtpManager.shutdown();
@@ -445,7 +450,10 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("rg".equals(c) && args.length == 1) {
+        if ("cosmetic".equals(c)) {
+            if (args.length == 1) return filterPrefix(Arrays.asList("trail", "login"), args[0]);
+            if (args.length == 2) return filterPrefix(Arrays.asList("snow", "hearts", "stars", "off"), args[1]);
+        } else if ("rg".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("borders", "add", "remove"), args[0]);
         } else if ("way".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("spawn", "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top"), args[0]);
@@ -683,6 +691,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             store.registerPassword(p, args[0]);
+            cosmetics.onAuthenticated(p);
             ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
             p.sendTitle(ColorUtil.c("&#00E676&l✔ ДОБРО ПОЖАЛОВАТЬ!"), ColorUtil.c("&fПриятной игры на KINGGRIEF v6.4.0!"), 5, 40, 10);
             p.sendMessage(ColorUtil.c("&#00E676✔ Регистрация успешна! Вам выдан Новогодний Кейс (/cases) и стартовый баланс!"));
@@ -703,6 +712,7 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             store.setAuthenticated(p, true);
+            cosmetics.onAuthenticated(p);
             ColorUtil.sound(p, "entity.player.levelup", 1f, 1.25f);
             p.sendTitle(ColorUtil.c("&#00E676&l✔ ВХОД ВЫПОЛНЕН"), ColorUtil.c("&fС возвращением, " + p.getName() + "!"), 5, 35, 10);
             return true;
@@ -722,6 +732,8 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
+        if ("cosmetic".equals(c)) { cosmetics.command(p, args); return true; }
+        if ("wintershow".equals(c)) { cosmetics.winterShow(p); return true; }
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }
         if ("tree".equals(c)) { winterTree.command(p, args); return true; }
         if ("kgstatus".equals(c)) { utilities.status(p); return true; }
