@@ -30,6 +30,7 @@ def main():
     p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar')
     p.add_argument('--kingac',type=Path);p.add_argument('--kingclear',type=Path)
     p.add_argument('--java',default='java');p.add_argument('--javac',default='javac');p.add_argument('--node',default='node')
+    p.add_argument('--clean',action='store_true',help='run a clean ranked route and test the private ghost')
     p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
     if not a.accept_eula:p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')
     cache=h.cache_name(a.paper,a.vanilla);port=h.free_port()
@@ -40,6 +41,8 @@ def main():
         if a.kingac:shutil.copy2(a.kingac,server/'plugins/KingAC.jar')
         if a.kingclear:shutil.copy2(a.kingclear,server/'plugins/KingClear.jar')
         (server/'eula.txt').write_text('eula=true\n',encoding='utf8')
+        (server/'plugins/KgParkourProbe').mkdir()
+        (server/'plugins/KgParkourProbe/config.yml').write_text('clean: '+('true' if a.clean else 'false')+'\n',encoding='utf8')
         (data/'config.yml').write_text('enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n',encoding='utf8')
         (server/'server.properties').write_text(
             f'online-mode=false\nserver-ip=127.0.0.1\nserver-port={port}\nview-distance=6\nsimulation-distance=5\n'
@@ -66,7 +69,7 @@ def main():
                 if 'Done (' in line and 'For help' in line:started=True;break
                 if 'Error occurred while enabling KingGriefCore' in line:break
             if not started:raise RuntimeError('Paper did not start')
-            env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve())
+            env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve());env['KG_PARKOUR_CLEAN']='1' if a.clean else '0'
             client=subprocess.run([a.node,str(HERE/'parkour-client.cjs'),str(port)],env=env,
                                   stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=245)
             print(client.stdout,flush=True)
@@ -78,7 +81,7 @@ def main():
             for line in log.splitlines():
                 if 'KG-PARKOUR ' in line:print(line,flush=True)
             success=True
-            print('PARKOUR PAPER INTEGRATION: PASS event edge cases, start/checkpoint fall rescue, 31 physical jumps and rewards',flush=True)
+            print('PARKOUR PAPER INTEGRATION: PASS event edge cases, 31 physical jumps, rewards and '+('clean ranked run/ghost' if a.clean else 'fall rescue'),flush=True)
         finally:
             if proc.poll() is None:
                 try:proc.stdin.write('stop\n');proc.stdin.flush();proc.wait(timeout=60)

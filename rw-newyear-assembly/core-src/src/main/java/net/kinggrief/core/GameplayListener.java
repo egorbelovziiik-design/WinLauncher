@@ -2306,20 +2306,16 @@ public final class GameplayListener implements Listener {
         if (plugin.getParkourRecords() != null) plugin.getParkourRecords().finish(player);
         endParkour(player);
         long ready = plugin.getStore().getParkourRewardReadyAt(player.getName());
-        if (now >= ready) {
-            plugin.getStore().setParkourRewardReadyAt(player.getName(), now + 900_000L);
-            plugin.getStore().addCoins(player.getName(), 25000);
-            plugin.getStore().addRelics(player.getName(), 15);
-            plugin.getStore().addSnowflakes(player.getName(), 15);
-            plugin.getStore().unlockTitle(player.getName(), "parkour_pro");
-            plugin.getStore().save();
+        if (now >= ready && plugin.getStore().awardParkour(player, now)) {
             ColorUtil.spawnFirework(player.getLocation());
             Bukkit.broadcastMessage(ColorUtil.c("&#40C4FF&l🏃 [ПАРКУР] &fИгрок &#00E676" + player.getName()
                     + " &fпрошёл Небесный Паркур (32 площадки) за &#FFD740" + time
                     + " &fи получил &a+25 000$&f, &b+15❖&f, &b+15❄ &fи титул &b[Паркурист]&f!"));
-        } else {
+        } else if (now < ready) {
             player.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы прошли паркур за &#FFD740" + time
                     + "&#40C4FF! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
+        } else {
+            player.sendMessage(ColorUtil.c("&cНе удалось сохранить награду паркура; монеты и таймер не изменены. Сообщите администрации."));
         }
         Location arrival = plugin.getSpawnEngine().getSpawnArrival();
         if (arrival != null) player.teleport(arrival);

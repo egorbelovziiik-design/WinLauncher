@@ -124,6 +124,11 @@ public final class ParkourProbe extends JavaPlugin implements Listener {
         ok(store.getCoins(name)==coins+25000.0 && store.getRelics(name)==relics+15
                 && store.getSnowflakes(name)==snow+15 && store.getParkourRewardReadyAt(name)==rewardAt,
                 "second finish inside cooldown does not duplicate a reward");
+        ok(recordedTime(p)==0L,"synthetic pressure-plate interactions cannot enter the ranked top");
+        store.setParkourRewardReadyAt(name,0L);store.save();
+        withBlockedSave(()->{press(p,plate(0),false,false);press(p,plate(1),false,false);press(p,plate(2),false,false);press(p,plate(3),false,false);press(p,plate(4),false,false);});
+        ok(store.getCoins(name)==coins+25000.0&&store.getRelics(name)==relics+15&&store.getSnowflakes(name)==snow+15
+                &&store.getParkourRewardReadyAt(name)==0L,"failed reward save rolls back every local balance and cooldown");
         store.setCoins(name,coins);store.setRelics(name,relics);store.addSnowflakes(name,snow-store.getSnowflakes(name));
         store.setParkourRewardReadyAt(name,0L);
         baseCoins=coins;baseRelics=relics;baseSnow=snow;
@@ -150,6 +155,35 @@ public final class ParkourProbe extends JavaPlugin implements Listener {
             }
         }
     }
+    private void withBlockedSave(Runnable action) {
+        java.nio.file.Path data=core.getDataFolder().toPath().resolve("data.yml"),backup=data.resolveSibling("test-data-saved.yml");
+        try {java.nio.file.Files.move(data,backup);java.nio.file.Files.createSymbolicLink(data,backup.getFileName());action.run();}
+        catch(Exception error){throw new RuntimeException(error);}
+        finally {try {if(java.nio.file.Files.isSymbolicLink(data))java.nio.file.Files.delete(data);
+            if(java.nio.file.Files.exists(backup))java.nio.file.Files.move(backup,data);
+        }catch(Exception error){throw new RuntimeException(error);}}
+    }
+    private long recordedTime(Player p) {
+        try {
+            java.lang.reflect.Field field=DataStore.class.getDeclaredField("yml");field.setAccessible(true);
+            org.bukkit.configuration.file.YamlConfiguration data=(org.bukkit.configuration.file.YamlConfiguration)field.get(core.getStore());
+            return data.getLong("parkour.records."+p.getUniqueId()+".all",0L);
+        } catch(Exception error) { throw new RuntimeException(error); }
+    }
+    private void checkGhost(Player p) {
+        try {
+            java.nio.file.Path replay=core.getDataFolder().toPath().resolve("parkour-replays").resolve(p.getUniqueId()+".gz");
+            ok(java.nio.file.Files.isRegularFile(replay),"bounded compressed replay was saved asynchronously");
+            java.util.List<org.bukkit.entity.Entity> ghost=new java.util.ArrayList<org.bukkit.entity.Entity>();
+            for(org.bukkit.entity.Entity entity:world.getEntities())if(entity.getScoreboardTags().contains("kg_parkour_ghost"))ghost.add(entity);
+            ok(ghost.size()==6,"six-part translucent display ghost appears for the viewer");
+            for(org.bukkit.entity.Entity entity:ghost)ok(entity instanceof org.bukkit.entity.BlockDisplay&&!entity.isPersistent()
+                    &&!entity.isVisibleByDefault()&&p.canSee(entity),"ghost part is private and non-persistent");
+            p.performCommand("parkour ghost off");
+            for(org.bukkit.entity.Entity entity:ghost)ok(!entity.isValid(),"turning ghost off removes the display");
+            done=true;p.sendMessage("KG_PARKOUR_REAL_FINISH_OK");getLogger().info("KG-PARKOUR RESULT PASS checks="+checks);
+        }catch(Throwable failure){fail(failure);}
+    }
     private void checkRealFinish(Player p) {
         if(done) return;
         try {
@@ -159,8 +193,19 @@ public final class ParkourProbe extends JavaPlugin implements Listener {
                     "real player completed run and received cooldown");
             ok(store.getCoins(p.getName())==baseCoins+25000.0 && store.getRelics(p.getName())==baseRelics+15
                     && store.getSnowflakes(p.getName())==baseSnow+15,"real player received complete reward");
-            done=true; p.sendMessage("KG_PARKOUR_REAL_FINISH_OK");
-            getLogger().info("KG-PARKOUR RESULT PASS checks="+checks);
+            if(getConfig().getBoolean("clean",false)) {
+                ok(recordedTime(p)>=12000L,"clean physical route produces a ranked time");
+                ok(p.performCommand("parkour top day")&&p.performCommand("parkour top week")&&p.performCommand("parkour top all"),
+                        "daily, weekly and all-time top commands are registered");
+                ok(p.performCommand("parkour ghost me"),"personal ghost can be selected");
+                p.sendMessage("KG_PARKOUR_CLEAN_FINISHED");
+                p.teleport(new Location(world,39.5,103.0,-28.5,0f,0f));
+                Bukkit.getScheduler().runTaskLater(this,()->checkGhost(p),80L);
+            } else {
+                ok(recordedTime(p)==0L,"falls and checkpoint returns do not enter the ranked top");
+                done=true; p.sendMessage("KG_PARKOUR_REAL_FINISH_OK");
+                getLogger().info("KG-PARKOUR RESULT PASS checks="+checks);
+            }
         } catch(Throwable failure) { fail(failure); }
     }
 }

@@ -50,7 +50,7 @@ import java.util.zip.GZIPOutputStream;
 final class ParkourRecordsManager implements Listener {
     private static final int MAX_FRAMES=3600; // 2-tick samples, at most six minutes at 20 TPS
     private static final long MIN_TIME_MS=12_000L, MAX_TIME_MS=360_000L;
-    private static final int MAGIC=0x4b475031; // KGP1
+    private static final int MAGIC=0x4b475032; // KGP2 includes its associated best time
     private static final class Frame {
         final float x,y,z,yaw;
         Frame(float x,float y,float z,float yaw){this.x=x;this.y=y;this.z=z;this.yaw=yaw;}
@@ -84,10 +84,13 @@ final class ParkourRecordsManager implements Listener {
         String selected;
         try{selected=plugin.getStore().inspect(data->data.getString("parkour.settings."+player.getUniqueId()+".ghost","off"));}
         catch(Exception error){selected="off";}
-        UUID reference=null;
-        if("me".equals(selected))reference=player.getUniqueId();
-        else if("top".equals(selected)){List<Score> scores=scores("all");if(!scores.isEmpty())reference=scores.get(0).uuid;}
-        if(reference!=null)loadReplay(player,run,reference);
+        Score reference=null;
+        if("me".equals(selected)||"top".equals(selected)){
+            List<Score> all=scores("all");
+            if("top".equals(selected)&&!all.isEmpty())reference=all.get(0);
+            else if("me".equals(selected))for(Score score:all)if(score.uuid.equals(player.getUniqueId())){reference=score;break;}
+        }
+        if(reference!=null)loadReplay(player,run,reference.uuid,reference.millis);
     }
     void end(Player player){Run run=active.remove(player.getUniqueId());if(run!=null)run.removeGhost();}
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
@@ -121,7 +124,7 @@ final class ParkourRecordsManager implements Listener {
                 return best;
             });
             player.sendMessage(ColorUtil.c("&#80D8FF🏁 Результат принят в топ: &f"+format(elapsed)+(improved?" &aличный рекорд!":"")));
-            if(improved&&run.frames.size()>=20)saveReplay(player.getUniqueId(),new ArrayList<Frame>(run.frames));
+            if(improved&&run.frames.size()>=20)saveReplay(player.getUniqueId(),elapsed,new ArrayList<Frame>(run.frames));
         }catch(Exception error){plugin.getLogger().warning("[Parkour] Record not saved: "+error.getMessage());player.sendMessage(ColorUtil.c("&cНе удалось сохранить результат в топ."));}
     }
     void top(Player player,String[] args){
@@ -206,7 +209,7 @@ final class ParkourRecordsManager implements Listener {
         if(Files.isSymbolicLink(dir))throw new IOException("symbolic replay directory");
         Files.createDirectories(dir);return dir;
     }
-    private void saveReplay(UUID uuid,List<Frame> frames){
+    private void saveReplay(UUID uuid,long elapsed,List<Frame> frames){
         try{io.execute(()->{
             Path temp=null;
             try{
@@ -214,7 +217,7 @@ final class ParkourRecordsManager implements Listener {
                 if(Files.isSymbolicLink(target))throw new IOException("symbolic replay file");
                 temp=Files.createTempFile(dir,".replay-",".tmp");
                 try(DataOutputStream out=new DataOutputStream(new GZIPOutputStream(new BufferedOutputStream(Files.newOutputStream(temp))))){
-                    out.writeInt(MAGIC);out.writeInt(frames.size());
+                    out.writeInt(MAGIC);out.writeLong(elapsed);out.writeInt(frames.size());
                     for(Frame frame:frames){out.writeFloat(frame.x);out.writeFloat(frame.y);out.writeFloat(frame.z);out.writeFloat(frame.yaw);}
                 }
                 Files.move(temp,target,StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);temp=null;
@@ -222,7 +225,7 @@ final class ParkourRecordsManager implements Listener {
             finally{if(temp!=null)try{Files.deleteIfExists(temp);}catch(IOException ignored){}}
         });}catch(java.util.concurrent.RejectedExecutionException error){plugin.getLogger().warning("[Parkour] Replay queue full; time was saved without a recording.");}
     }
-    private void loadReplay(Player player,Run run,UUID owner){
+    private void loadReplay(Player player,Run run,UUID owner,long expectedTime){
         UUID viewer=player.getUniqueId(),token=run.token;
         try{io.execute(()->{
             List<Frame> frames=null;
@@ -230,7 +233,8 @@ final class ParkourRecordsManager implements Listener {
                 Path file=replayDir().resolve(owner+".gz");
                 if(Files.isSymbolicLink(file)||!Files.isRegularFile(file,LinkOption.NOFOLLOW_LINKS)||Files.size(file)>512_000L)return;
                 try(DataInputStream input=new DataInputStream(new GZIPInputStream(new BufferedInputStream(Files.newInputStream(file,StandardOpenOption.READ,LinkOption.NOFOLLOW_LINKS))))){
-                    if(input.readInt()!=MAGIC)throw new IOException("invalid replay magic");int count=input.readInt();
+                    if(input.readInt()!=MAGIC||input.readLong()!=expectedTime)throw new IOException("replay does not match the current record");
+                    int count=input.readInt();
                     if(count<20||count>MAX_FRAMES)throw new IOException("invalid replay size");
                     frames=new ArrayList<Frame>(count);
                     for(int i=0;i<count;i++){

@@ -844,6 +844,37 @@ public final class DataStore {
         return p == null ? null : parkourCheckpoints.get(p.getUniqueId());
     }
 
+    /** Commit the cooldown, title and all local parkour balances together. */
+    synchronized boolean awardParkour(Player player, long now) {
+        if (player == null || getParkourRewardReadyAt(player.getName()) > now) return false;
+        String name = player.getName(), base = "players." + key(name);
+        double coins = getCoins(name);
+        int snow = getSnowflakes(name), relics = getAwardRelics(name, player.getUniqueId());
+        if (!Double.isFinite(coins) || coins < 0 || !Double.isFinite(coins + 25000.0)
+                || coins + 25000.0 <= coins || snow < 0 || (long)snow + 15 > Integer.MAX_VALUE
+                || relics < 0 || (long)relics + 15 > Integer.MAX_VALUE || now > Long.MAX_VALUE - 900_000L) return false;
+        try {
+            transact(data -> {
+                if (data.getLong(base + ".pkReady", 0L) > now) throw new IOException("parkour reward is on cooldown");
+                data.set(base + ".pkReady", now + 900_000L);
+                data.set(base + ".coins", coins + 25000.0);
+                data.set(base + ".relics", relics + 15);
+                data.set(base + ".snowflakes", snow + 15);
+                data.set(base + ".titles.parkour_pro", true);
+                return null;
+            });
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Parkour] Reward not committed for " + name + ": " + error.getMessage());
+            return false;
+        }
+        // PlayerPoints is an independent external store; a later failure must not award twice.
+        try { syncAwardRelics(name, player.getUniqueId()); }
+        catch (Exception | LinkageError error) {
+            plugin.getLogger().warning("[Parkour] Local reward committed, PlayerPoints sync failed for " + name + ": " + error.getMessage());
+        }
+        return true;
+    }
+
     public long getParkourRewardReadyAt(String name) {
         return yml.getLong("players." + key(name) + ".pkReady", 0L);
     }
@@ -1131,7 +1162,7 @@ public final class DataStore {
         int target = Math.max(0, yml.getInt("players." + key(name) + ".relics", 50));
         int external = points.isEnabled() ? readPlayerPoints(id) : -1;
         if (external < 0 || (external < target && !setPlayerPointsChecked(points, id, target)))
-            plugin.getLogger().warning("[BossReward] PlayerPoints did not confirm the local relic award for " + name + "; local balance remains recorded.");
+            plugin.getLogger().warning("[Rewards] PlayerPoints did not confirm the local relic award for " + name + "; local balance remains recorded.");
     }
 
     public void addRelics(String name, int amount) {

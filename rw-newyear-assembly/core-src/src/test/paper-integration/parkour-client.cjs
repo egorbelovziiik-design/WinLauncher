@@ -11,10 +11,12 @@ const pads = fs.readFileSync(layoutPath, 'ascii').split('\n').filter(s => s && !
   return {i:+i,x:+x,y:+y,z:+z,half:+half,kind}
 })
 const bot = mineflayer.createBot({host:'127.0.0.1',port:Number(process.argv[2]),username:'ParkourRunner',version:'1.21.4',auth:'offline'})
-let ready=false, finished=false, ended=false
+let ready=false, finished=false, routeFinished=false, ended=false
+const clean = process.env.KG_PARKOUR_CLEAN === '1'
 bot.on('messagestr', msg => {
   if (msg.includes('KG_PARKOUR_PROBE_READY')) ready=true
   if (msg.includes('KG_PARKOUR_REAL_FINISH_OK')) finished=true
+  if (msg.includes('KG_PARKOUR_CLEAN_FINISHED')) routeFinished=true
   if (/ПАРКУР|Чекпоинт|KG_PARKOUR/.test(msg)) console.log('PARKOUR_CHAT',msg)
 })
 bot.on('kicked', reason => {console.error('PARKOUR_KICKED',JSON.stringify(reason));ended=true})
@@ -101,7 +103,7 @@ async function jump (from,to) {
       clear();await bot.waitForTicks(4)
       if(atPad(to)) { console.log('PARKOUR_JUMP_PASS',from.i+'->'+to.i,pos().toString());return }
     }
-    if(finished && to.i===31) { clear();console.log('PARKOUR_JUMP_PASS',from.i+'->'+to.i,'finish');return }
+    if((finished || routeFinished) && to.i===31) { clear();console.log('PARKOUR_JUMP_PASS',from.i+'->'+to.i,'finish');return }
     await tick()
   }
   clear(); throw new Error('jump '+from.i+'->'+to.i+' failed, jumped='+jumped+' air='+airborne+' at '+pos().toString())
@@ -109,10 +111,10 @@ async function jump (from,to) {
 async function main () {
   await once(bot,'spawn')
   await wait(() => ready,600,'probe setup')
-  await earlyFall()
+  if(!clean) await earlyFall()
   for(let i=0;i<pads.length-1;i++) {
     await jump(pads[i],pads[i+1])
-    if(i+1===8) await checkpointFall(pads[8])
+    if(!clean && i+1===8) await checkpointFall(pads[8])
   }
   await wait(() => finished,100,'actual prize confirmation')
   console.log('PARKOUR_CLIENT_RESULT PASS (start and checkpoint falls, 31 real jumps)')
