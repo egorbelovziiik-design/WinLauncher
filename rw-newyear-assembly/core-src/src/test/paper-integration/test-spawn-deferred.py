@@ -57,10 +57,10 @@ def server_setup(args, root, cache, main_spawn=False):
     return server, data
 
 
-def journal_fixture(server, data, template, after_swap):
+def journal_fixture(server, data, template, after_swap, fallback=False):
     stage_name = ".kinggrief-spawn-staged-7200001"
     backup_name = "spawn_world_backup_1234567890123_deadbeef"
-    target, stage, backup = (server / "spawn_world", server / stage_name, server / backup_name)
+    target, stage, backup = (server / ("kinggrief_spawn" if fallback else "spawn_world"), server / stage_name, server / backup_name)
     if stage.exists() or backup.exists():
         raise AssertionError("fixture collision")
     stage.mkdir()
@@ -68,7 +68,14 @@ def journal_fixture(server, data, template, after_swap):
         z.extractall(stage)
     shutil.copy2(target / "uid.dat", stage / "uid.dat")
     (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
-    (data / ".spawn-v72-swap-journal").write_text(f"v1\n{stage_name}\n{backup_name}\n1\n1\n", encoding="ascii")
+    if fallback:
+        selection=(data / ".spawn-v722-active-world").read_text(encoding="ascii").splitlines()
+        if selection[1] != "kinggrief_spawn": raise AssertionError("unexpected fallback selection")
+        shutil.copy2(target / ".kinggrief_spawn_owner", stage / ".kinggrief_spawn_owner")
+        journal=f"v2\n{stage_name}\n{backup_name}\n1\n1\n{selection[1]}\n{selection[2]}\n"
+    else:
+        journal=f"v1\n{stage_name}\n{backup_name}\n1\n1\n"
+    (data / ".spawn-v72-swap-journal").write_text(journal, encoding="ascii")
     if after_swap:
         target.rename(backup)
         stage.rename(target)
@@ -119,7 +126,25 @@ def main():
             raise AssertionError("custom world changed during ordinary startup or request")
         run(args, server, "custom-installed")
         if (target / "uid.dat").read_bytes() != original_uid:
-            raise AssertionError("explicit replacement did not preserve existing world UUID")
+            raise AssertionError("the original custom world was altered")
+        probe=server / "plugins/KgSpawnRebuildProbe.jar"; disabled=root / "probe-disabled.jar"
+        probe.rename(disabled)
+        journal_fixture(server, data, args.template, after_swap=True, fallback=True)
+        run(args, server, "fallback-interrupted-after-swap", recovery=True)
+        disabled.rename(probe); run(args, server, "custom-recovered")
+        probe.rename(disabled)
+        stage, backup = journal_fixture(server, data, args.template, after_swap=False, fallback=True)
+        # A changed selection must never redirect a rollback onto a different world.
+        selection=data / ".spawn-v722-active-world"; original_selection=selection.read_text(encoding="ascii")
+        parts=original_selection.splitlines(); parts[2]="11111111-2222-3333-4444-555555555555"
+        selection.write_text("\n".join(parts)+"\n",encoding="ascii")
+        proc=subprocess.run([args.java,"-Xms512M","-Xmx1536M","-jar",str(args.paper.resolve()),"nogui"],cwd=server,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=360)
+        if "Swap journal and active world selection differ" not in proc.stdout or not stage.is_dir() or backup.exists():
+            raise AssertionError("mismatched selection was not refused safely")
+        selection.write_text(original_selection,encoding="ascii")
+        run(args, server, "fallback-interrupted-before-swap", recovery=True)
+        if stage.exists() or backup.exists(): raise AssertionError("fallback recovery left stage/backup")
+        disabled.rename(probe); run(args, server, "custom-recovered")
     with tempfile.TemporaryDirectory(prefix="kinggrief-main-spawn-") as tmp:
         root = Path(tmp)
         server, data = server_setup(args, root, cache, main_spawn=True)

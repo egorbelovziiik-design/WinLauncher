@@ -13,7 +13,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.2.1.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.2.2.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
 TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v71-template.zip"
 PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v71.zip"
@@ -24,8 +24,9 @@ CORE = SERVER / "plugins/KingGriefCore.jar"
 def verify_spawn_template():
     # Never put world files at server root: extracting over an existing server
     # must not replace its world before Core can back it up safely.
-    if (SERVER / "spawn_world").exists() or (SERVER / "spawn_world").is_symlink():
-        raise RuntimeError("Do not place spawn_world/ directly in the assembly; use the checked template")
+    for name in ("spawn_world", "kinggrief_spawn", "kinggrief_spawn_2"):
+        if (SERVER / name).exists() or (SERVER / name).is_symlink():
+            raise RuntimeError("Do not package a runtime world; use the checked template")
     if TEMPLATE.is_symlink() or not TEMPLATE.is_file():
         raise RuntimeError("Missing regular prebuilt spawn template")
     template = TEMPLATE.read_bytes()
@@ -58,6 +59,10 @@ def verify_spawn_template():
 
 
 def verify_distribution_hygiene():
+    for name, version in (("KingAC", "8.3.1"), ("KingClear", "1.0.2")):
+        with zipfile.ZipFile(SERVER / "plugins" / f"{name}.jar") as jar:
+            if jar.testzip() is not None or not re.search(r"(?m)^version:\s*" + re.escape(version) + r"\s*$", jar.read("plugin.yml").decode("utf-8")):
+                raise RuntimeError(f"Bundled {name} must be version {version}")
     # The public download must never package the operator's credentials or runtime data.
     bridge = SERVER / "plugins/KingGriefBridge/config.yml"
     if bridge.is_symlink() or not bridge.is_file():

@@ -25,6 +25,14 @@ python3 src/test/paper-integration/run.py \
   --node-modules /path/to/node_modules --accept-eula
 ```
 
+`test-spawn-availability.py` connects a protocol player to fresh, existing,
+main-world, damaged, symbolic-link, naming-conflict and repeat-restart fixtures.
+It checks the prepared map, arrival, NPC models, 11 warps, saved `/spawn` and
+`/kgspawn`, plus preservation of old worlds. Pass `--kingac` and `--kingclear`
+to exercise their real plugins, the menu-star clear/undo and XRay world selection.
+`test-spawn-compatibility.py` additionally tests standalone, disabled-Core and
+incompatible-Core fallback behavior. These are not rendered client tests.
+
 `test-prebuilt-install.py` runs a separate, multi-start Paper test. It checks
 replacement of a previously loaded spawn, restoration of an old chest and a
 block changed immediately before unload from the backup, preservation of the old world
@@ -107,8 +115,9 @@ the same `--node-modules` as `run.py`; it is not a visual Minecraft-client test.
 `test-full-assembly.py` extracts the actual v7 ZIP into a disposable Paper
 server, disables the KingConnect cloud in that isolated test, requires a
 placeholder bridge credential, and verifies that the five bundled plugins
-enable, the prepared spawn installs and a protocol client can enter while
-declining the optional pack. It does not test live payment delivery, network
+enable, the prepared spawn installs and an authenticated protocol client can
+enter while declining the optional pack. A probe checks the actual spawn blocks,
+NPCs, 11 warps, clear, anti-XRay and navigation commands. It does not test live payment delivery, network
 SSO, other unbundled plugins or a visual game client.
 
 `test-winter.py` exercises all 100 runes with actual use-item packets, each

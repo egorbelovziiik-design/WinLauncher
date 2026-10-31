@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 mkdir -p plugins
-echo '=== KINGGRIEF v7.2.1: необязательные дополнительные плагины ==='
+echo '=== KINGGRIEF v7.2.2: необязательные дополнительные плагины ==='
 echo 'Перед установкой проверьте совместимость, ссылки и конфликты с Core; сделайте резервную копию.'
 echo 'В Core уже есть собственные системы, в том числе 28 display-NPC подготовленного спавна.'
 echo " -> PlaceholderAPI-2.12.3.jar..." && curl -fSL "https://github.com/PlaceholderAPI/PlaceholderAPI/releases/download/2.12.3/PlaceholderAPI-2.12.3.jar" -o "plugins/PlaceholderAPI-2.12.3.jar"

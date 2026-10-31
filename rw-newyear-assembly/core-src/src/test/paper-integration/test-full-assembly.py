@@ -10,8 +10,9 @@ ROOT=HERE.parents[3]
 def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',required=True,type=Path);p.add_argument('--vanilla',required=True,type=Path)
- p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.2.1.zip')
+ p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.2.2.zip')
  p.add_argument('--node-modules',required=True,type=Path);p.add_argument('--java',default='java');p.add_argument('--node',default='node')
+ p.add_argument('--api-classpath',required=True);p.add_argument('--javac',default='javac')
  p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
  if not a.accept_eula:p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')
  cache=harness.validate_paper_and_vanilla(a.paper,a.vanilla);port=harness.available_port()
@@ -26,10 +27,22 @@ def main():
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore/spawn-v71-template.zip'))) as template:
     if 'data/chunks.dat' in template.namelist():raise RuntimeError('Template contains forced chunk tickets')
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore.jar'))) as core:
-    if 'version: 7.2.1' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
+    if 'version: 7.2.2' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
+   for plugin, version in (('KingAC','8.3.1'),('KingClear','1.0.2')):
+    with ZipFile(io.BytesIO(z.read('plugins/'+plugin+'.jar'))) as jar:
+     if ('version: '+version) not in jar.read('plugin.yml').decode(): raise RuntimeError('Incorrect '+plugin+' version')
    for name in names:
     if name.startswith('/') or '..' in Path(name).parts:raise RuntimeError('Unsafe assembly path')
    z.extractall(server)
+  # Include a probe which verifies final world, blocks, models, commands and bridges.
+  classes=Path(tmp)/'classes';classes.mkdir()
+  cp=str(server/'plugins/KingGriefCore.jar')+os.pathsep+a.api_classpath
+  subprocess.run([a.javac,'-encoding','UTF-8','-classpath',cp,'-d',str(classes),str(HERE/'SpawnAvailabilityProbe.java')],check=True)
+  with ZipFile(server/'plugins/KgSpawnAvailabilityProbe.jar','w') as probe:
+   for path in classes.rglob('*.class'):probe.write(path,path.relative_to(classes).as_posix())
+   probe.write(HERE/'plugin-spawn-availability.yml','plugin.yml')
+  cfg=server/'plugins/KgSpawnAvailabilityProbe';cfg.mkdir()
+  (cfg/'config.yml').write_text('expected-world: spawn_world\n',encoding='utf8')
   bridge=(server/'plugins/KingGriefBridge/config.yml').read_text()
   if not re.search(r'^secret:\s*["\']?CHANGE_ME["\']?\s*$',bridge,re.M):
    raise RuntimeError('Refusing to run smoke test with a non-placeholder bridge credential')
@@ -60,14 +73,15 @@ def main():
    env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve())
    client=subprocess.run([a.node,str(HERE/'full-client.cjs'),str(port)],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,env=env,timeout=75)
    print(client.stdout.strip(),flush=True)
-   if client.returncode or 'FULL_CLIENT_POSITION' not in client.stdout:raise RuntimeError('Protocol client could not enter the full assembly')
+   if client.returncode or 'FULL_CLIENT_PREPARED_SPAWN_POSITION' not in client.stdout:raise RuntimeError('Protocol client could not enter the full assembly')
    text=''.join(output)
    for plugin in ('KingGriefCore','KingAC','KingConnect','KingClear','KingGriefBridge'):
     if not re.search(r'Enabling '+plugin+r' v',text):raise RuntimeError(plugin+' was not enabled')
+   if 'KG-SPAWN-AVAILABLE RESULT PASS' not in text:raise RuntimeError('Prepared-world probe did not pass')
    if '[SpawnInstall] Prepared v70 spawn installed and initialized' not in text:raise RuntimeError('Prepared spawn was not installed')
    if 'Error occurred while enabling' in text or 'Exception in server tick loop' in text:raise RuntimeError('Plugin or server startup error')
    if not (server/'plugins/KingGriefCore/.spawn-v70-template-installed').is_file():raise RuntimeError('Missing v70 install marker')
-   success=True;print('FULL ASSEMBLY SMOKE: PASS 5 plugins enabled, v71 template installed, real protocol client entered',flush=True)
+   success=True;print('FULL ASSEMBLY SMOKE: PASS 5 plugins, real player in prepared world, tree, floor, NPC and 11 warps',flush=True)
   finally:
    if proc.poll() is None:
     try:proc.stdin.write('stop\n');proc.stdin.flush();proc.wait(timeout=60)

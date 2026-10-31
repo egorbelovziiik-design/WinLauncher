@@ -1,0 +1,4 @@
+name: KingGriefCore
+version: 0.0-test-only
+main: net.kinggrief.probe.BrokenCoreProbe
+api-version: '1.20'

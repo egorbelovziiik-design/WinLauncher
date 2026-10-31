@@ -1,0 +1,5 @@
+name: KgClearCompatibilityProbe
+version: 1.0
+main: net.kinggrief.probe.ClearCompatibilityProbe
+api-version: '1.20'
+depend: [KingClear, KingAC]

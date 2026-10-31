@@ -96,7 +96,7 @@ def run_server(args, server, mode):
             raise AssertionError("prepared spawn was not installed over the existing world")
         if "Building the v7.0 Winter Village Spawn" in log:
             raise AssertionError("prepared world was unexpectedly regenerated")
-    if mode in ("repeat", "restored") and ("Prepared v70 spawn installed and initialized" in log or "Building the v7.0 Winter Village Spawn" in log):
+    if mode == "repeat" and ("Prepared v70 spawn installed and initialized" in log or "Building the v7.0 Winter Village Spawn" in log):
         raise AssertionError(f"{mode} startup unexpectedly replaced or rebuilt the world")
     print(success_line, flush=True)
 
@@ -133,6 +133,7 @@ def main():
             linked_target.mkdir()
             (linked_target / "user-data.txt").write_text("keep linked data\n", encoding="utf-8")
             (server / "spawn_world").symlink_to(linked_target, target_is_directory=True)
+            (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
             shutil.copy2(args.template, data / "spawn-v71-template.zip")
             before = fingerprint(linked_target)
             run_server(args, server, "symlink")
@@ -178,12 +179,14 @@ def main():
             raise AssertionError("rejected template changed or moved the existing world")
         # Linked worlds can point outside the server; never follow or replace them.
         shutil.copy2(args.template, data / "spawn-v71-template.zip")
-        linked_target = server / "spawn_world_linked_test_target"
-        (server / "spawn_world").rename(linked_target)
-        (server / "spawn_world").symlink_to(linked_target.name, target_is_directory=True)
+        selected = server / "kinggrief_spawn"
+        linked_target = server / "kinggrief_spawn_linked_test_target"
+        selected_before = fingerprint(selected)
+        selected.rename(linked_target)
+        selected.symlink_to(linked_target.name, target_is_directory=True)
         run_server(args, server, "symlink")
-        if not (server / "spawn_world").is_symlink() or fingerprint(linked_target) != old_files:
-            raise AssertionError("linked world changed during a refused install")
+        if not selected.is_symlink() or fingerprint(linked_target) != selected_before or fingerprint(server / "spawn_world") != old_files:
+            raise AssertionError("linked or original world changed during a refused install")
     print("PREBUILT INSTALLATION RESULT: PASS", flush=True)
 
 

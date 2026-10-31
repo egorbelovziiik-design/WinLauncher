@@ -1,0 +1,6 @@
+name: KgSpawnAvailabilityProbe
+version: 1.0
+main: net.kinggrief.probe.SpawnAvailabilityProbe
+api-version: '1.20'
+depend: [KingGriefCore]
+softdepend: [KingAC, KingClear]

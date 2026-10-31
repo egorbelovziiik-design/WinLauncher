@@ -21,7 +21,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.lang.reflect.Field;
 import java.util.Map;
 
-/** The only world is an unmarked spawn_world; no world or distant border chunk may be generated. */
+/** Simulate an unavailable prepared spawn without generating terrain. */
 public final class RtpNoWorldProbe extends JavaPlugin implements Listener {
     private boolean ran;
     @Override public void onEnable(){Bukkit.getPluginManager().registerEvents(this,this);}
@@ -30,7 +30,14 @@ public final class RtpNoWorldProbe extends JavaPlugin implements Listener {
             try{
                 KingGriefCore core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");
                 if(Bukkit.getWorld("world")!=null)throw new AssertionError("unexpected pre-existing world");
-                if(core.getSpawnEngine().isSpawnActive())throw new AssertionError("unmarked main world activated as prepared spawn");
+                World main=Bukkit.getWorld("spawn_world"), prepared=Bukkit.getWorld("kinggrief_spawn");
+                if(main==null || prepared==null || !core.getSpawnEngine().isSpawnActive() || main.equals(prepared))
+                    throw new AssertionError("main world and prepared fallback were not safely separated");
+                if(!p.teleport(main.getSpawnLocation()))throw new AssertionError("could not move player to main-world fixture");
+                Field active=SpawnEngine.class.getDeclaredField("spawnActive");active.setAccessible(true);active.setBoolean(core.getSpawnEngine(),false);
+                if(!Bukkit.unloadWorld(prepared,false))throw new AssertionError("could not unload prepared fallback fixture");
+                java.lang.reflect.Method select=VoidSpawnWorldGenerator.class.getDeclaredMethod("setSpawnWorldName",String.class);
+                select.setAccessible(true);select.invoke(null,"spawn_world");
                 core.getSpawnEngine().performRtp(p,"close");
                 Field f=KingGriefCore.class.getDeclaredField("rtpManager");f.setAccessible(true);Object manager=f.get(core);
                 Field jobs=manager.getClass().getDeclaredField("jobs");jobs.setAccessible(true);

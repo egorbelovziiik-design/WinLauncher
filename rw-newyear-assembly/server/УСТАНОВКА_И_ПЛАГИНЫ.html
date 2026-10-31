@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="utf-8"><title>Установка сборки KINGGRIEF 7.2.1</title>
+<html lang="ru"><head><meta charset="utf-8"><title>Установка сборки KINGGRIEF 7.2.2</title>
 <style>
 body{font-family:system-ui,sans-serif;background:#0b1120;color:#e2e8f0;max-width:1050px;margin:24px auto;padding:0 20px;line-height:1.5}
 h1,h2{color:#38bdf8} .card{background:#111827;border:1px solid #1e293b;border-radius:14px;padding:20px;margin-bottom:20px}
@@ -7,13 +7,13 @@ table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px 
 .btn{display:inline-block;background:#10b981;color:#052e16;font-weight:700;padding:6px 12px;border-radius:8px;text-decoration:none}
 code{background:#1e293b;color:#fde047;padding:2px 6px;border-radius:5px}
 </style></head><body>
-<h1>❄️ Новогодняя сборка KINGGRIEF 7.2.1</h1>
+<h1>❄️ Новогодняя сборка KINGGRIEF 7.2.2</h1>
 <div class="card">
 <h2>⚡ Установка и обновление</h2>
 <ol>
 <li><b>Новый сервер:</b> распакуйте полную сборку в новую пустую папку. Установите Paper 1.21.4 и Java 21 отдельно, прочитайте и подтвердите Minecraft EULA. Команды запуска — в <code>README_УСТАНОВКА.md</code>.</li>
-<li><b>Существующий сервер:</b> заранее сохраните внешнюю копию миров, данных игроков, папки Core и конфигов. Полностью остановите сервер; не распаковывайте полную сборку поверх него. Установите единственный <code>KingGriefCore.jar</code> из патча 7.2.1 и следуйте инструкции в патче; <code>/reload</code> не используйте.</li>
-<li><b>Готовый спавн:</b> при первом запуске нового сервера Core устанавливает встроенный проверенный шаблон v71, а не перестраивает карту по блокам. Существующий <code>spawn_world</code> автоматически не заменяется. Если нужна замена, отдельно сделайте бэкап и следуйте инструкции <code>/rebuildspawn confirm</code> в README.</li>
+<li><b>Существующий сервер:</b> полностью остановите его и сохраните внешнюю копию миров, данных игроков, папки Core и конфигов; не распаковывайте полную сборку поверх него. Установите единственный <code>KingGriefCore.jar</code> из патча 7.2.2. Каждый из уже установленных KingАЧ и KingClear замените на одну копию соответствующего JAR из патча (v8.3.1 и v1.0.2). Следуйте инструкции в патче; <code>/reload</code> не используйте.</li>
+<li><b>Готовый спавн:</b> встроенный шаблон устанавливается автоматически. Неизвестный <code>spawn_world</code> сохраняется, а карта создаётся отдельно. После авторизации используйте <code>/kgspawn</code> (при конфликте <code>/kinggriefcore:kgspawn</code>); ваш сохранённый <code>/setspawn</code> не сбрасывается.</li>
 <li><b>50 новых предметов:</b> откройте <code>/artifacts</code> — всего 150 предметов. Для новых иконок включите ресурспак v72; при обновлении проверьте URL и SHA-1 в настройках сервера и Core/Hub. Каталог: <code>АРТЕФАКТЫ_7.2.0.md</code>.</li>
 <li><b>Мост сайта и доп. плагины:</b> в публичной сборке у Bridge стоит <code>CHANGE_ME</code>; задайте собственный новый секрет на сервере и сайте. В архиве есть собственные JAR KingGrief, но папка настроек стороннего плагина не означает, что он установлен. Дополнительные плагины ставьте только по необходимости после проверки версий, конфликтов и бэкапа.</li>
 </ol>

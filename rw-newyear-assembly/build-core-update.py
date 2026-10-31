@@ -14,6 +14,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT.parent / "kinggrief" / "public"
 CORE = ROOT / "KingGriefCore.jar"
+AC = ROOT / "KingAC.jar"
+CLEAR = ROOT / "KingClear.jar"
 
 
 def add_file(archive, name, data):
@@ -35,6 +37,18 @@ def main():
         raise ValueError("Server and patch Core JAR differ")
     if (PUBLIC / f"KingGriefCore-v{version}.jar").read_bytes() != core:
         raise ValueError("Public versioned Core JAR differs")
+    companions = []
+    for path, expected in ((AC, "8.3.1"), (CLEAR, "1.0.2")):
+        content = path.read_bytes()
+        with zipfile.ZipFile(path) as jar:
+            metadata = jar.read("plugin.yml").decode("utf8")
+            if jar.testzip() is not None or not re.search(r"(?m)^version:\s*" + re.escape(expected) + r"\s*$", metadata):
+                raise ValueError(f"{path.name} must be version {expected}")
+        if (ROOT / "server/plugins" / path.name).read_bytes() != content:
+            raise ValueError(f"Server and patch {path.name} differ")
+        if (PUBLIC / f"{path.stem}-v{expected}.jar").read_bytes() != content:
+            raise ValueError(f"Public versioned {path.name} differs")
+        companions.append((path.name, content, hashlib.sha256(content).hexdigest()))
     instructions_path = ROOT / f"ОБНОВЛЕНИЕ_{version}.md"
     instructions = instructions_path.read_text(encoding="utf8")
     if f"KingGriefCore {version}" not in instructions:
@@ -44,6 +58,12 @@ def main():
                                    f"   `{digest}`", instructions)
     if count != 1:
         raise ValueError("Patch instructions need exactly one Core SHA-256 line")
+    for name, content, companion_digest in companions:
+        label = name.removesuffix(".jar")
+        placeholder = "{{" + label.upper() + "_SHA256}}"
+        pattern = r"(?m)^   SHA-256 " + re.escape(label) + r": `(?:" + re.escape(placeholder) + r"|[0-9a-f]{64})`$"
+        instructions, count = re.subn(pattern, f"   SHA-256 {label}: `{companion_digest}`", instructions)
+        if count != 1: raise ValueError(f"Patch instructions need one {label} SHA-256 line")
     instructions_path.write_text(instructions, encoding="utf8")
     instructions = instructions.encode("utf8")
     destination = ROOT / f"KingGriefCore-{version}-update.zip"
@@ -52,14 +72,17 @@ def main():
         with zipfile.ZipFile(staged, "w") as archive:
             add_file(archive, "ПРОЧИТАЙ_СНАЧАЛА.md", instructions)
             add_file(archive, "KingGriefCore.jar", core)
+            for name, content, _ in companions: add_file(archive, name, content)
         with zipfile.ZipFile(staged) as archive:
-            if archive.testzip() is not None or archive.read("KingGriefCore.jar") != core:
+            if (archive.testzip() is not None or archive.read("KingGriefCore.jar") != core
+                    or any(archive.read(name) != content for name, content, _ in companions)):
                 raise ValueError("Failed to validate the staged hotfix")
         staged.replace(destination)
     PUBLIC.mkdir(parents=True, exist_ok=True)
     shutil.copy2(destination, PUBLIC / destination.name)
     print(f"{destination.name}: {destination.stat().st_size} bytes, SHA-256 {hashlib.sha256(destination.read_bytes()).hexdigest()}")
     print(f"KingGriefCore.jar: SHA-256 {digest}")
+    for name, _, companion_digest in companions: print(f"{name}: SHA-256 {companion_digest}")
 
 
 if __name__ == "__main__":

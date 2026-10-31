@@ -29,30 +29,49 @@ public final class SpawnRebuildProbe extends JavaPlugin {
     private void begin() throws Exception {
         String mode=getConfig().getString("mode","");
         data=Bukkit.getWorldContainer().toPath().resolve("plugins/KingGriefCore");pending=data.resolve(".spawn-v72-rebuild-pending");journal=data.resolve(".spawn-v72-swap-journal");probeData=getDataFolder().toPath();
-        spawn=Bukkit.getWorld("spawn_world");
         Object core=Bukkit.getPluginManager().getPlugin("KingGriefCore");
         Object engine=core.getClass().getMethod("getSpawnEngine").invoke(core);
         boolean active=((Boolean)engine.getClass().getMethod("isSpawnActive").invoke(engine)).booleanValue();
+        org.bukkit.Location selected=(org.bukkit.Location)engine.getClass().getMethod("getPreparedSpawnArrival").invoke(engine);
+        spawn=selected==null?null:selected.getWorld();
         if("custom-preserve".equals(mode)) {
             Path original=Bukkit.getWorldContainer().toPath().resolve("spawn_world");
-            ok(!active && spawn==null,"unmarked custom world is neither loaded nor claimed as the prepared spawn");
+            ok(active && spawn!=null && spawn.getName().equals("kinggrief_spawn") && Bukkit.getWorld("spawn_world")==null,
+                    "unmarked custom world remains untouched and prepared spawn is separate");
             ok("custom user file\n".equals(new String(Files.readAllBytes(original.resolve("custom-data.txt")),StandardCharsets.UTF_8)),"existing custom file remains untouched");
             ok(backups().isEmpty() && !Files.exists(pending),"external template did not replace existing custom world on ordinary startup");
+            writeChest(spawn,Material.DIAMOND);
+            Files.createDirectories(probeData);Files.write(probeData.resolve("uid.txt"),spawn.getUID().toString().getBytes(StandardCharsets.UTF_8));
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"rebuildspawn confirm");
             waitPending(0,()->{ok(Files.isRegularFile(original.resolve("custom-data.txt")),"queue preserves custom world until restart");finish(mode);});
             return;
         }
         if(spawn==null)throw new AssertionError("spawn world not loaded");
-        if("custom-installed".equals(mode)) {
+        if("custom-installed".equals(mode) || "custom-recovered".equals(mode)) {
+            Path original=Bukkit.getWorldContainer().toPath().resolve("spawn_world");
             List<Path> copies=backups();
-            ok(active && copies.size()==1,"explicit request installs prepared spawn and retains custom-world backup");
-            ok("custom user file\n".equals(new String(Files.readAllBytes(copies.get(0).resolve("custom-data.txt")),StandardCharsets.UTF_8)),"backup retains custom-world data");
-            ok(!Files.exists(pending) && !Files.exists(journal),"explicit replacement completed cleanly");finish(mode);return;
+            ok(active && spawn.getName().equals("kinggrief_spawn") && Bukkit.getWorld("spawn_world")==null,
+                    "prepared fallback is active without loading the original custom world");
+            ok("custom user file\n".equals(new String(Files.readAllBytes(original.resolve("custom-data.txt")),StandardCharsets.UTF_8)),"original custom world remains untouched");
+            ok(new String(Files.readAllBytes(probeData.resolve("uid.txt")),StandardCharsets.UTF_8).equals(spawn.getUID().toString()),"fallback world UUID retained");
+            if("custom-installed".equals(mode)) {
+                ok(copies.size()==1,"explicit rebuild retains one fallback-world backup");
+                verifyBackupChest(copies.get(0));
+                writeChest(spawn,Material.GOLD_INGOT);
+                Files.write(spawn.getWorldFolder().toPath().resolve("after-rebuild.txt"),"preserve fallback edit\n".getBytes(StandardCharsets.UTF_8));
+            } else {
+                checkChest(spawn,Material.GOLD_INGOT);
+                ok("preserve fallback edit\n".equals(new String(Files.readAllBytes(spawn.getWorldFolder().toPath().resolve("after-rebuild.txt")),StandardCharsets.UTF_8)),"recovery retained fallback edits");
+            }
+            ok(!Files.exists(pending) && !Files.exists(journal),"replacement/recovery completed cleanly");finish(mode);return;
         }
         if("main-world".equals(mode)) {
-            ok(!active,"unmarked main world is not treated as managed spawn");
+            ok(active && spawn.getName().equals("kinggrief_spawn"),"unmarked main world remains separate from managed spawn");
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"rebuildspawn confirm");
-            ok(!Files.exists(pending),"main server world cannot be scheduled for replacement");finish(mode);return;
+            waitPending(0,()->{ok(Files.exists(pending),"rebuild request targets fallback");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"rebuildspawn cancel");
+                ok(!Files.exists(pending),"fallback rebuild can be cancelled");finish(mode);});
+            return;
         }
         if("queue".equals(mode)) { queueTest(); return; }
         if("installed".equals(mode)) {
