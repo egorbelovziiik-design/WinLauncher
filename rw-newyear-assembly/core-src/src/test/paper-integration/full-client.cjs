@@ -4,7 +4,7 @@ let position = false, packCount = 0;
 client.on('add_resource_pack', packet => {
   packCount++;
   console.log('FULL_CLIENT_DECLINED_PACK', packet.url);
-  if (packet.url !== 'https://kinggrief.vercel.app/kinggrief-mega-rp-v70.zip' || packet.hash !== '8286228d4a1e0a95f56ad5fd265f12d1a57827be' || packet.forced) {
+  if (packet.url !== 'https://kinggrief.vercel.app/kinggrief-mega-rp-v72.zip' || packet.hash !== '1729e4f29ad7fded64ab2f23c8b27f783936cd3d' || packet.forced) {
     console.error('FULL_CLIENT_UNEXPECTED_PACK'); process.exit(1);
   }
   // A normal Minecraft client responds to the optional configuration-phase pack.

@@ -42,20 +42,27 @@ final class NpcDisplayModel {
 
     private static final class Part {
         final UUID id;
+        final String name;
         final float x, y, z, width, height, depth;
         // The right sleeve, hand and held item rotate together around the shoulder.
         final boolean arm, item;
-        Part(UUID id, float x, float y, float z, float width, float height, float depth, boolean arm, boolean item) {
-            this.id = id; this.x = x; this.y = y; this.z = z;
+        Part(UUID id, String name, float x, float y, float z, float width, float height, float depth, boolean arm, boolean item) {
+            this.id = id; this.name = name; this.x = x; this.y = y; this.z = z;
             this.width = width; this.height = height; this.depth = depth;
             this.arm = arm; this.item = item;
         }
     }
 
     private final List<Part> parts = new ArrayList<Part>();
-    private float yaw, swing;
+    private float yaw, swing, walkSwing;
+    private final boolean moderationModel;
 
     NpcDisplayModel(World world, SpawnEngine.NpcDef def, ItemStack head, String sessionTag, Set<UUID> valid) {
+        this(world, def, head, sessionTag, valid, false);
+    }
+
+    NpcDisplayModel(World world, SpawnEngine.NpcDef def, ItemStack head, String sessionTag, Set<UUID> valid, boolean moderationModel) {
+        this.moderationModel = moderationModel;
         this.yaw = def.yaw;
         Location base = new Location(world, def.x, def.y, def.z, 0f, 0f);
         Material coat = nearest(def.armorColor);
@@ -112,9 +119,14 @@ final class NpcDisplayModel {
         display.setDisplayWidth(1.5f);
         display.setDisplayHeight(2.1f);
         display.setInterpolationDuration(4);
-        display.addScoreboardTag("kg_npc");
-        display.addScoreboardTag("kg_npc_model_part");
-        display.addScoreboardTag("kg_npc_" + def.id);
+        if (moderationModel) {
+            display.addScoreboardTag("kg_mod_anim");
+            display.addScoreboardTag("kg_santa_model_part");
+        } else {
+            display.addScoreboardTag("kg_npc");
+            display.addScoreboardTag("kg_npc_model_part");
+            display.addScoreboardTag("kg_npc_" + def.id);
+        }
         display.addScoreboardTag("kg_part_" + part);
         display.addScoreboardTag(tag);
         valid.add(display.getUniqueId());
@@ -124,7 +136,7 @@ final class NpcDisplayModel {
                        String name, Material material, float x, float y, float z, float width, float height, float depth, boolean arm) {
         BlockDisplay d = (BlockDisplay) w.spawnEntity(base, EntityType.BLOCK_DISPLAY);
         // Register before later setters: a failed spawn must also clean this part.
-        parts.add(new Part(d.getUniqueId(), x, y, z, width, height, depth, arm, false));
+        parts.add(new Part(d.getUniqueId(), name, x, y, z, width, height, depth, arm, false));
         decorate(d, def, tag, name, valid);
         d.setBlock(Bukkit.createBlockData(material));
     }
@@ -132,7 +144,7 @@ final class NpcDisplayModel {
     private void item(World w, Location base, SpawnEngine.NpcDef def, String tag, Set<UUID> valid,
                       String name, ItemStack stack, float x, float y, float z, float size, boolean arm) {
         ItemDisplay d = (ItemDisplay) w.spawnEntity(base, EntityType.ITEM_DISPLAY);
-        parts.add(new Part(d.getUniqueId(), x, y, z, size, size, size, arm, true));
+        parts.add(new Part(d.getUniqueId(), name, x, y, z, size, size, size, arm, true));
         decorate(d, def, tag, name, valid);
         d.setItemStack(stack.clone());
         d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
@@ -159,6 +171,27 @@ final class NpcDisplayModel {
     float yaw() { return yaw; }
     float swing() { return swing; }
 
+    List<Entity> entities() {
+        List<Entity> result = new ArrayList<Entity>();
+        for (Part part : parts) {
+            Entity entity = Bukkit.getEntity(part.id);
+            if (entity != null) result.add(entity);
+        }
+        return result;
+    }
+
+    /** Used for short-lived moderation actors; spawn NPCs remain fixed in place. */
+    boolean move(Location location, float walk, float armSwing) {
+        Location base = location.clone();
+        base.setYaw(0f); base.setPitch(0f);
+        for (Entity entity : entities()) {
+            if (!entity.teleport(base)) return false;
+        }
+        walkSwing = walk;
+        pose(location.getYaw(), armSwing, true);
+        return isComplete();
+    }
+
     /** No teleport or living-entity animation packets; transforms interpolate client-side. */
     void pose(float newYaw, float newSwing, boolean force) {
         if (!force && Math.abs(newYaw - yaw) < .35f && Math.abs(newSwing - swing) < .015f) return;
@@ -170,6 +203,9 @@ final class NpcDisplayModel {
             Matrix4f m = new Matrix4f().rotateY((float) Math.toRadians(-newYaw));
             if (part.arm) {
                 m.translate(part.x, 1.33f, 0).rotateX(newSwing).translate(-part.x, -1.33f, 0);
+            } else if (walkSwing != 0f && (part.name.startsWith("leg_") || part.name.startsWith("boot_"))) {
+                float legAngle = part.name.endsWith("left") ? walkSwing : -walkSwing;
+                m.translate(part.x, .72f, 0).rotateX(legAngle).translate(-part.x, -.72f, 0);
             }
             if (part.item) {
                 m.translate(part.x, part.y, part.z).scale(part.width, part.height, part.depth);

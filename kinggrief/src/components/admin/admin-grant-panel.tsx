@@ -519,11 +519,11 @@ export function AdminGrantPanel({
           <button type="button" onClick={pollStatus} className="btn btn-ghost btn-sm" title="Обновить статус очереди">
             <RefreshCw size={12} /> Статус
           </button>
-          <a href="/KingGriefCore-v7.1.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm" title="Скачать KingGriefCore v7.1.0: модели NPC, экспедиции, асинхронная РТП и улучшения экономики">
-            <Download size={12} /> Ядро v7.1.0 (.jar)
+          <a href="/KingGriefCore-v7.2.0.jar" download="KingGriefCore.jar" className="btn btn-primary btn-sm" title="Скачать KingGriefCore v7.2.0: 50 новых артефактов, безопасные покупки и перестройка спавна">
+            <Download size={12} /> Ядро v7.2.0 (.jar)
           </a>
-          <a href="/kinggrief-mega-rp-v70.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v70: модели шаров, кирок, брони, тотемов и новых предметов">
-            <Download size={12} /> Мега-РП v70 (.zip)
+          <a href="/kinggrief-mega-rp-v72.zip" download className="btn btn-gold btn-sm" title="Скачать Мега-Ресурспак v72: модели шаров, кирок, брони, тотемов и новых предметов">
+            <Download size={12} /> Мега-РП v72 (.zip)
           </a>
           <a href="/KingGriefBridge.jar" download className="btn btn-ghost btn-sm" title="Скачать плагин моста KingGriefBridge.jar">
             <Download size={12} /> Мост (.jar)

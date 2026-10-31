@@ -2,6 +2,8 @@ package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,6 +34,10 @@ import java.util.zip.ZipInputStream;
 final class PreparedSpawnInstaller {
     static final String TEMPLATE_FILE = "spawn-v71-template.zip";
     static final String DONE_FILE = ".spawn-v70-template-installed";
+    static final String PENDING_FILE = ".spawn-v72-rebuild-pending";
+    private static final String JOURNAL_FILE = ".spawn-v72-swap-journal";
+    private static final String EMBEDDED_TEMPLATE = "spawn_v71_template.zip";
+    private static final java.util.concurrent.atomic.AtomicBoolean REQUEST_BUSY = new java.util.concurrent.atomic.AtomicBoolean();
     private static final String PREBUILT_MARKER = ".kinggrief_prebuilt_v70";
     private static final String SPAWN_MARKER = ".spawn_v70_village_ok";
     private static final int MAX_TEMPLATE_BYTES = 64 * 1024 * 1024;
@@ -42,7 +48,85 @@ final class PreparedSpawnInstaller {
 
     enum Result { READY, NOT_READY, STOP_SERVER }
 
+    /** Validate the prepared world off-thread, then ask for a full restart.
+     * Never clear millions of blocks or generate hundreds of chunks in a tick. */
+    static void requestRebuild(final KingGriefCore plugin, final CommandSender sender) {
+        World world = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        if (world != null && !Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(world)) {
+            sender.sendMessage(ColorUtil.c("&cspawn_world является основным миром; автоматически заменять его нельзя."));
+            return;
+        }
+        if (!REQUEST_BUSY.compareAndSet(false, true)) {
+            sender.sendMessage(ColorUtil.c("&eПроверка шаблона уже выполняется. Дождитесь результата."));
+            return;
+        }
+        sender.sendMessage(ColorUtil.c("&eПроверяю готовый спавн без перестройки блоков. Дождитесь подтверждения."));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+            @Override public void run() {
+                String message;
+                Path stage = null;
+                try {
+                    Path data = plugin.getDataFolder().toPath();
+                    Path pending = data.resolve(PENDING_FILE);
+                    if (Files.exists(pending, LinkOption.NOFOLLOW_LINKS)) {
+                        validatePending(pending);
+                        message = "&eПерестройка уже запланирована. Остановите и запустите сервер заново.";
+                    } else {
+                        byte[] bytes = readPreferredTemplate(plugin, data.resolve(TEMPLATE_FILE));
+                        stage = Files.createTempDirectory(data, ".spawn-check-");
+                        extractVerifiedTemplate(bytes, stage);
+                        if (!plugin.isEnabled()) throw new IOException("Plugin is stopping");
+                        writeAtomicMarker(data, pending, "v71\n");
+                        message = "&aПерестройка запланирована. Полностью перезапустите сервер: прежний мир будет сохранён в spawn_world_backup_*.";
+                    }
+                } catch (Exception error) {
+                    plugin.getLogger().warning("[SpawnInstall] Rebuild request refused: " + error.getMessage());
+                    message = "&cПерестройка не запланирована. Проверьте шаблон и журнал сервера.";
+                } finally {
+                    deleteStagingDirectory(stage);
+                    REQUEST_BUSY.set(false);
+                }
+                final String reply = message;
+                plugin.getLogger().info("[SpawnInstall] " + org.bukkit.ChatColor.stripColor(ColorUtil.c(reply)));
+                if (plugin.isEnabled()) Bukkit.getScheduler().runTask(plugin, new Runnable() {
+                    @Override public void run() {
+                        if (!(sender instanceof Player) || ((Player)sender).isOnline()) sender.sendMessage(ColorUtil.c(reply));
+                    }
+                });
+            }
+        });
+    }
+
+    static void cancelRebuild(KingGriefCore plugin, CommandSender sender) {
+        if (REQUEST_BUSY.get()) {
+            sender.sendMessage(ColorUtil.c("&eПроверка ещё идёт; повторите отмену после её завершения."));
+            return;
+        }
+        Path pending = plugin.getDataFolder().toPath().resolve(PENDING_FILE);
+        try {
+            if (!Files.exists(pending, LinkOption.NOFOLLOW_LINKS)) {
+                sender.sendMessage(ColorUtil.c("&eПерестройка не запланирована."));
+                return;
+            }
+            validatePending(pending);
+            Files.delete(pending);
+            sender.sendMessage(ColorUtil.c("&aЗапланированная перестройка отменена; мир не изменён."));
+        } catch (IOException error) {
+            plugin.getLogger().warning("[SpawnInstall] Could not cancel rebuild safely: " + error.getMessage());
+            sender.sendMessage(ColorUtil.c("&cНе удалось безопасно отменить перестройку; проверьте журнал."));
+        }
+    }
+
     static Result initialize(KingGriefCore plugin, SpawnEngine engine) {
+        try {
+            if (recoverInterruptedSwap(plugin)) {
+                plugin.getLogger().severe("[SpawnInstall] Interrupted swap recovered. Server stopping; inspect the backup and restart once more.");
+                return Result.STOP_SERVER;
+            }
+        } catch (Exception error) {
+            plugin.getLogger().severe("[SpawnInstall] Could not safely recover interrupted swap: " + error.getMessage());
+            return Result.STOP_SERVER;
+        }
         Swap swap;
         try {
             swap = installIfRequested(plugin);
@@ -65,11 +149,15 @@ final class PreparedSpawnInstaller {
             plugin.getLogger().severe("[SpawnInstall] New spawn initialization failed: " + e.getMessage());
         }
         if (initialized) {
-            plugin.getLogger().info("[SpawnInstall] Prepared v70 spawn installed and initialized; no rebuild command needed.");
-            if (swap.backup != null) {
-                plugin.getLogger().info("[SpawnInstall] Previous spawn saved intact at: " + swap.backup);
+            try {
+                if (swap.pending != null) Files.delete(swap.pending);
+                Files.delete(swap.journal);
+                plugin.getLogger().info("[SpawnInstall] Prepared v70 spawn installed and initialized; no rebuild command needed.");
+                if (swap.backup != null) plugin.getLogger().info("[SpawnInstall] Previous spawn saved intact at: " + swap.backup);
+                return Result.READY;
+            } catch (IOException error) {
+                plugin.getLogger().severe("[SpawnInstall] Could not complete swap metadata: " + error.getMessage());
             }
-            return Result.READY;
         }
 
         // The old directory is kept until successful load. On failure, quarantine
@@ -82,74 +170,75 @@ final class PreparedSpawnInstaller {
     private static Swap installIfRequested(KingGriefCore plugin) throws IOException {
         Path data = plugin.getDataFolder().toPath();
         Path template = data.resolve(TEMPLATE_FILE);
-        if (!Files.exists(template, LinkOption.NOFOLLOW_LINKS)) return null;
-        if (!Files.isRegularFile(template, LinkOption.NOFOLLOW_LINKS))
-            throw new IOException("Template is not a regular file: " + template);
+        Path pending = data.resolve(PENDING_FILE);
+        boolean requested = Files.exists(pending, LinkOption.NOFOLLOW_LINKS);
+        if (requested) validatePending(pending);
 
         Path container = Bukkit.getWorldContainer().getCanonicalFile().toPath();
         Path target = container.resolve(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
         Path done = data.resolve(DONE_FILE);
+        Path journal = data.resolve(JOURNAL_FILE);
         if (Files.isSymbolicLink(target)) throw new IOException("spawn_world is a symbolic link");
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS) && !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS))
             throw new IOException("spawn_world is not a directory");
-        if (Files.exists(done, LinkOption.NOFOLLOW_LINKS)) {
-            if (!Files.isRegularFile(done, LinkOption.NOFOLLOW_LINKS))
-                throw new IOException("Install marker is not a regular file");
-            if (Files.size(done) > 32) throw new IOException("Invalid install marker size");
-            String value = new String(Files.readAllBytes(done), StandardCharsets.UTF_8).trim();
-            if (!"v70".equals(value)) throw new IOException("Unrecognized install marker; refusing to overwrite it");
-            if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) return null;
-            // The world was deliberately removed: install the template again.
-            Files.delete(done);
+        boolean hadDone = Files.exists(done, LinkOption.NOFOLLOW_LINKS);
+        if (hadDone) {
+            validateDone(done);
+            if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS) && !requested) return null;
+            if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                Files.delete(done);
+                hadDone = false;
+            }
         }
-
-        byte[] bytes = readVerifiedTemplate(plugin, template);
-        if (Files.isRegularFile(target.resolve(PREBUILT_MARKER), LinkOption.NOFOLLOW_LINKS)
-                && Files.isRegularFile(target.resolve(SPAWN_MARKER), LinkOption.NOFOLLOW_LINKS)
-                && Files.isRegularFile(target.resolve("level.dat"), LinkOption.NOFOLLOW_LINKS)) {
-            writeDoneMarker(data, done);
+        // Neither a newly bundled JAR nor an external template is permission to
+        // replace an existing world. Only an explicit queued request may do so.
+        if (!requested && Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            if (!hadDone && Files.isRegularFile(target.resolve(PREBUILT_MARKER), LinkOption.NOFOLLOW_LINKS)
+                    && Files.isRegularFile(target.resolve(SPAWN_MARKER), LinkOption.NOFOLLOW_LINKS)
+                    && Files.isRegularFile(target.resolve("level.dat"), LinkOption.NOFOLLOW_LINKS)) writeDoneMarker(data, done);
             return null;
         }
+        byte[] bytes = readPreferredTemplate(plugin, template);
 
         Path stage = Files.createTempDirectory(container, ".kinggrief-spawn-staged-");
         Path backup = null;
-        boolean oldMoved = false;
-        boolean newMoved = false;
+        boolean oldMoved = false, newMoved = false, journalWritten = false;
         try {
             extractVerifiedTemplate(bytes, stage);
             World loaded = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
             if (loaded != null) {
                 if (!loaded.getWorldFolder().getCanonicalFile().toPath().equals(target))
                     throw new IOException("Loaded spawn world is not in the expected directory");
-                if (Bukkit.getWorlds().get(0).equals(loaded))
+                if (!Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(loaded))
                     throw new IOException("spawn_world is the main server world and cannot safely be replaced automatically");
-                if (!loaded.getPlayers().isEmpty())
-                    throw new IOException("Players are still in spawn_world");
+                if (!loaded.getPlayers().isEmpty()) throw new IOException("Players are still in spawn_world");
             }
-            if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) validateExistingWorld(target);
-            else if (loaded != null) throw new IOException("Loaded spawn world folder is missing");
-
-            // Saving during unload flushes Paper's asynchronous chunk writes.
-            if (loaded != null && !Bukkit.unloadWorld(loaded, true))
-                throw new IOException("Could not unload and save the existing spawn world");
             if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
                 validateExistingWorld(target);
-                // Preserve the existing Bukkit world UUID so player locations and
-                // third-party warps referring to this world continue to resolve.
+                backup = uniqueSibling(container, "spawn_world_backup_");
+            } else if (loaded != null) throw new IOException("Loaded spawn world folder is missing");
+
+            // Journal is forced before the first destructive rename. If power is
+            // lost, the next boot restores the original before it can serve players.
+            writeSwapJournal(data, journal, stage, backup, hadDone, requested);
+            journalWritten = true;
+            if (loaded != null && !Bukkit.unloadWorld(loaded, true))
+                throw new IOException("Could not unload and save the existing spawn world");
+            if (backup != null) {
+                validateExistingWorld(target);
                 Path worldId = target.resolve("uid.dat");
                 if (Files.exists(worldId, LinkOption.NOFOLLOW_LINKS)) {
                     if (!Files.isRegularFile(worldId, LinkOption.NOFOLLOW_LINKS) || Files.size(worldId) != 16)
                         throw new IOException("Existing spawn has an invalid uid.dat");
                     Files.copy(worldId, stage.resolve("uid.dat"));
                 }
-                backup = uniqueSibling(container, "spawn_world_backup_");
                 Files.move(target, backup);
                 oldMoved = true;
             }
             Files.move(stage, target);
             newMoved = true;
-            writeDoneMarker(data, done);
-            return new Swap(target, done, backup);
+            if (!hadDone) writeDoneMarker(data, done);
+            return new Swap(target, done, backup, journal, requested ? pending : null, hadDone);
         } catch (Exception failure) {
             try {
                 if (newMoved && Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
@@ -157,13 +246,21 @@ final class PreparedSpawnInstaller {
                     newMoved = false;
                 }
                 if (oldMoved) {
-                    if (Files.exists(target, LinkOption.NOFOLLOW_LINKS))
-                        throw new IOException("Target appeared during rollback");
+                    if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Target appeared during rollback");
                     Files.move(backup, target);
                 }
+                if (!hadDone && Files.exists(done, LinkOption.NOFOLLOW_LINKS)) {
+                    validateDone(done); Files.delete(done);
+                }
+                // Do not silently retry a failed operator-requested replacement
+                // on the next boot after the original has been restored.
+                if (requested && Files.exists(pending, LinkOption.NOFOLLOW_LINKS)) {
+                    validatePending(pending); Files.delete(pending);
+                }
+                if (journalWritten) Files.delete(journal);
             } catch (Exception rollbackFailure) {
-                throw new UnsafeStateException("Could not restore spawn after installation failure. "
-                        + "Original backup: " + backup + "; error: " + rollbackFailure.getMessage());
+                throw new UnsafeStateException("Could not restore spawn after installation failure. Original backup: "
+                        + backup + "; journal retained; error: " + rollbackFailure.getMessage());
             }
             if (failure instanceof IOException) throw (IOException) failure;
             throw new IOException(failure);
@@ -172,16 +269,31 @@ final class PreparedSpawnInstaller {
         }
     }
 
-    private static byte[] readVerifiedTemplate(KingGriefCore plugin, Path template) throws IOException {
-        long length = Files.size(template);
-        if (length <= 0 || length > MAX_TEMPLATE_BYTES) throw new IOException("Invalid template size");
-        byte[] bytes = Files.readAllBytes(template);
-        if (bytes.length != length) throw new IOException("Template changed while being read");
+    private static byte[] readPreferredTemplate(KingGriefCore plugin, Path template) throws IOException {
+        byte[] bytes;
+        if (Files.exists(template, LinkOption.NOFOLLOW_LINKS)) {
+            if (!Files.isRegularFile(template, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Template is not a regular file");
+            long length = Files.size(template);
+            if (length <= 0 || length > MAX_TEMPLATE_BYTES) throw new IOException("Invalid template size");
+            bytes = Files.readAllBytes(template);
+            if (bytes.length != length) throw new IOException("Template changed while being read");
+        } else {
+            try (InputStream in = plugin.getResource(EMBEDDED_TEMPLATE)) {
+                if (in == null) throw new IOException("Embedded spawn template is missing");
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                byte[] buffer = new byte[65536]; int n;
+                while ((n = in.read(buffer)) != -1) {
+                    if ((long)out.size() + n > MAX_TEMPLATE_BYTES) throw new IOException("Embedded template is too large");
+                    out.write(buffer, 0, n);
+                }
+                bytes = out.toByteArray();
+            }
+        }
+        if (bytes.length == 0) throw new IOException("Empty spawn template");
         String expected;
         try (InputStream stream = plugin.getResource("spawn_v71_template.sha256")) {
             if (stream == null) throw new IOException("Missing template checksum in Core");
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            int b;
+            ByteArrayOutputStream out = new ByteArrayOutputStream(); int b;
             while ((b = stream.read()) != -1) {
                 if (out.size() >= 128) throw new IOException("Invalid template checksum resource");
                 out.write(b);
@@ -268,14 +380,104 @@ final class PreparedSpawnInstaller {
         });
     }
 
-    private static void writeDoneMarker(Path data, Path done) throws IOException {
-        Path temp = Files.createTempFile(data, ".spawn-v70-install-", ".tmp");
+    private static void validateDone(Path done) throws IOException {
+        if (!Files.isRegularFile(done, LinkOption.NOFOLLOW_LINKS) || Files.size(done) > 32
+                || !"v70".equals(new String(Files.readAllBytes(done), StandardCharsets.US_ASCII).trim()))
+            throw new IOException("Invalid install marker");
+    }
+
+    private static void validatePending(Path pending) throws IOException {
+        if (!Files.isRegularFile(pending, LinkOption.NOFOLLOW_LINKS) || Files.size(pending) > 32
+                || !"v71".equals(new String(Files.readAllBytes(pending), StandardCharsets.US_ASCII).trim()))
+            throw new IOException("Invalid rebuild request");
+    }
+
+    private static void writeAtomicMarker(Path data, Path marker, String text) throws IOException {
+        if (Files.exists(marker, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Marker already exists: " + marker);
+        Path temp = Files.createTempFile(data, ".spawn-marker-", ".tmp");
         try {
-            Files.write(temp, "v70\n".getBytes(StandardCharsets.US_ASCII));
-            Files.move(temp, done);
-        } finally {
-            Files.deleteIfExists(temp);
+            byte[] bytes = text.getBytes(StandardCharsets.US_ASCII);
+            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(temp,
+                    java.nio.file.StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) channel.write(buffer);
+                channel.force(true);
+            }
+            Files.move(temp, marker, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        } finally { Files.deleteIfExists(temp); }
+    }
+
+    private static void writeDoneMarker(Path data, Path done) throws IOException {
+        writeAtomicMarker(data, done, "v70\n");
+    }
+
+    private static void writeSwapJournal(Path data, Path journal, Path stage, Path backup,
+                                         boolean hadDone, boolean requested) throws IOException {
+        String value = "v1\n" + stage.getFileName() + "\n" + (backup == null ? "-" : backup.getFileName())
+                + "\n" + (hadDone ? "1" : "0") + "\n" + (requested ? "1" : "0") + "\n";
+        writeAtomicMarker(data, journal, value);
+    }
+
+    /** On an interrupted rename, restore the original without guessing at ambiguous files. */
+    private static boolean recoverInterruptedSwap(KingGriefCore plugin) throws IOException {
+        Path data = plugin.getDataFolder().toPath();
+        Path journal = data.resolve(JOURNAL_FILE);
+        if (!Files.exists(journal, LinkOption.NOFOLLOW_LINKS)) return false;
+        if (!Files.isRegularFile(journal, LinkOption.NOFOLLOW_LINKS) || Files.size(journal) > 512)
+            throw new IOException("Unsafe swap journal");
+        String[] parts = new String(Files.readAllBytes(journal), StandardCharsets.US_ASCII).split("\n", -1);
+        if (parts.length != 6 || !"v1".equals(parts[0]) || !parts[1].matches("\\.kinggrief-spawn-staged-[A-Za-z0-9_-]+")
+                || !("-".equals(parts[2]) || parts[2].matches("spawn_world_backup_[0-9]+_[a-f0-9]{8}"))
+                || !("0".equals(parts[3]) || "1".equals(parts[3]))
+                || !("0".equals(parts[4]) || "1".equals(parts[4])) || !parts[5].isEmpty())
+            throw new IOException("Invalid swap journal; manual recovery required");
+        boolean hadDone = "1".equals(parts[3]), requested = "1".equals(parts[4]);
+        Path container = Bukkit.getWorldContainer().getCanonicalFile().toPath();
+        Path target = container.resolve(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        Path stage = container.resolve(parts[1]);
+        Path backup = "-".equals(parts[2]) ? null : container.resolve(parts[2]);
+        if (Files.isSymbolicLink(target) || Files.isSymbolicLink(stage) || (backup != null && Files.isSymbolicLink(backup)))
+            throw new IOException("A recovery path is a symbolic link");
+        World loaded = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        if (loaded != null) {
+            if ((!Bukkit.getWorlds().isEmpty() && Bukkit.getWorlds().get(0).equals(loaded))
+                    || !loaded.getPlayers().isEmpty() || !Bukkit.unloadWorld(loaded, false))
+                throw new IOException("Could not unload spawn_world for recovery");
         }
+        boolean targetExists = Files.exists(target, LinkOption.NOFOLLOW_LINKS);
+        boolean stageExists = Files.exists(stage, LinkOption.NOFOLLOW_LINKS);
+        if (backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS)) {
+            validateExistingWorld(backup);
+            if (targetExists) {
+                if (!Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Unsafe replacement path");
+                Path failed = uniqueSibling(container, "spawn_world_failed_");
+                Files.move(target, failed);
+                plugin.getLogger().warning("[SpawnInstall] Interrupted replacement quarantined at: " + failed);
+            }
+            Files.move(backup, target);
+        } else if (backup != null) {
+            // Backup absent + stage present means the original was never moved.
+            // Any other state is ambiguous (including a crash during rollback).
+            if (!targetExists || !stageExists) throw new IOException("Original backup missing; manual recovery required: " + backup);
+            validateExistingWorld(target);
+        } else if (targetExists) {
+            if (stageExists || !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS))
+                throw new IOException("Unexpected target during fresh install recovery");
+            Path failed = uniqueSibling(container, "spawn_world_failed_");
+            Files.move(target, failed);
+            plugin.getLogger().warning("[SpawnInstall] Interrupted fresh world quarantined at: " + failed);
+        }
+        Path done = data.resolve(DONE_FILE);
+        if (hadDone) {
+            if (Files.exists(done, LinkOption.NOFOLLOW_LINKS)) validateDone(done);
+            else writeDoneMarker(data, done);
+        } else if (Files.exists(done, LinkOption.NOFOLLOW_LINKS)) { validateDone(done); Files.delete(done); }
+        Path pending = data.resolve(PENDING_FILE);
+        if (requested && Files.exists(pending, LinkOption.NOFOLLOW_LINKS)) { validatePending(pending); Files.delete(pending); }
+        Files.delete(journal);
+        if (stageExists) deleteStagingDirectory(stage);
+        plugin.getLogger().warning("[SpawnInstall] Original world restored after an interrupted swap.");
+        return true;
     }
 
     private static boolean rollbackAfterLoad(KingGriefCore plugin, Swap swap) {
@@ -289,12 +491,18 @@ final class PreparedSpawnInstaller {
                 plugin.getLogger().warning("[SpawnInstall] Failed replacement saved at: " + failed);
             }
             if (swap.backup != null) Files.move(swap.backup, swap.target);
-            Files.deleteIfExists(swap.done);
+            if (!swap.hadDone && Files.exists(swap.done, LinkOption.NOFOLLOW_LINKS)) {
+                validateDone(swap.done); Files.delete(swap.done);
+            }
+            if (swap.pending != null && Files.exists(swap.pending, LinkOption.NOFOLLOW_LINKS)) {
+                validatePending(swap.pending); Files.delete(swap.pending);
+            }
+            Files.delete(swap.journal);
             plugin.getLogger().severe("[SpawnInstall] Prepared spawn failed to initialize; the previous world was restored.");
             return true;
         } catch (Exception e) {
             plugin.getLogger().severe("[SpawnInstall] Automatic rollback failed. Previous world backup: "
-                    + swap.backup + "; error: " + e.getMessage());
+                    + swap.backup + "; journal retained; error: " + e.getMessage());
             return false;
         }
     }
@@ -328,10 +536,16 @@ final class PreparedSpawnInstaller {
         final Path target;
         final Path done;
         final Path backup;
-        Swap(Path target, Path done, Path backup) {
+        final Path journal;
+        final Path pending;
+        final boolean hadDone;
+        Swap(Path target, Path done, Path backup, Path journal, Path pending, boolean hadDone) {
             this.target = target;
             this.done = done;
             this.backup = backup;
+            this.journal = journal;
+            this.pending = pending;
+            this.hadDone = hadDone;
         }
     }
 

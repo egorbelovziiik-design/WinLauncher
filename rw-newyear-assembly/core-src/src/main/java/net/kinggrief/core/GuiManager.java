@@ -1,6 +1,7 @@
 package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -30,6 +31,7 @@ public final class GuiManager {
         public final int page;
         // Immutable-to-the-client snapshot: a changing list must not change what a displayed slot buys.
         private final Map<Integer, Integer> auctionSlots = new java.util.HashMap<Integer, Integer>();
+        private final Map<Integer, Integer> coinflipSlots = new java.util.HashMap<Integer, Integer>();
 
         public KgMenuHolder(String menuType, String extra, int page) {
             this.menuType = menuType;
@@ -201,8 +203,8 @@ public final class GuiManager {
                 "&7Командный чат: &f/tc <текст>", "", "&#00E676▸ Открыть меню тиммейтов"));
         inv.setItem(51, ItemFactory.glowIcon(Material.WRITABLE_BOOK, "&#80D8FF&l🧭 ЭКСПЕДИЦИИ (/expeditions)",
                 "&75 ежедневных заданий и бонусы дня/недели.", "&7Валюта зачисляется после получения награды."));
-        inv.setItem(50, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 100 ЗИМНИХ РУН (/artifacts)",
-                "&720 комбинаций эффектов, каждая в 5 уровнях.", "&7Одноразовые; ПКМ в правой руке."));
+        inv.setItem(50, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 150 АРТЕФАКТОВ (/artifacts)",
+                "&7100 рун и 50 новых артефактов с особыми действиями.", "&7Одноразовые; ПКМ в правой руке."));
         inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.4.0",
                 "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
                 "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.4.0"));
@@ -1176,8 +1178,13 @@ public final class GuiManager {
     }
 
     // ================= 7. ГРАНД-КАЗИНО 777 (/casino) =================
-    public void openCasinoMenu(Player p) {
-        Inventory inv = Bukkit.createInventory(new KgMenuHolder("casino", "", 0), 45,
+    public void openCasinoMenu(Player p) { openCasinoMenu(p, 0); }
+
+    private void openCasinoMenu(Player p, int requestedPage) {
+        List<DataStore.CoinflipRoom> cfs = plugin.getStore().getCoinflips();
+        int page = Math.max(0, Math.min(requestedPage, Math.max(0, (cfs.size() - 1) / 5)));
+        KgMenuHolder holder = new KgMenuHolder("casino", "", page);
+        Inventory inv = Bukkit.createInventory(holder, 45,
                 ColorUtil.c("&#FFD740&l🎰 ГРАНД-КАЗИНО REALLYWORLD 777"));
         decorateFrame(inv);
         inv.setItem(4, ItemFactory.glowIcon(Material.NETHER_STAR, "&#FFD740&l🏆 СЕРВЕРНЫЙ ДЖЕКПОТ: &a" + ColorUtil.fmtMoney(casinoJackpotPool) + "$",
@@ -1198,16 +1205,18 @@ public final class GuiManager {
                 "&7Покрути за &b25 Риликов &7— выиграй до &b150 Риликов &7или Шар!"));
 
         // Coinflip PvP rooms
-        List<DataStore.CoinflipRoom> cfs = plugin.getStore().getCoinflips();
         inv.setItem(28, ItemFactory.glowIcon(Material.SUNFLOWER, "&#FFD740&l🪙 Создать Монетку PvP (10 000$)",
                 "&7Или введи любую сумму: &f/cf <ставка>"));
-        for (int i = 0; i < Math.min(5, cfs.size()); i++) {
-            DataStore.CoinflipRoom cf = cfs.get(i);
+        if (page > 0) inv.setItem(29, ItemFactory.icon(Material.ARROW, "&e« Предыдущие игры"));
+        if ((page + 1) * 5 < cfs.size()) inv.setItem(35, ItemFactory.icon(Material.ARROW, "&eСледующие игры »"));
+        for (int i = 0; i < 5 && page * 5 + i < cfs.size(); i++) {
+            DataStore.CoinflipRoom cf = cfs.get(page * 5 + i);
+            holder.coinflipSlots.put(Integer.valueOf(30 + i), Integer.valueOf(cf.id));
             inv.setItem(30 + i, ItemFactory.glowIcon(Material.GOLD_NUGGET,
                     "&#FFEA00🪙 Игра #" + cf.id + " от &f" + cf.creator,
                     "&7Ставка: &a" + ColorUtil.fmtMoney(cf.bet) + "$",
                     "&7Банк победителя: &a" + ColorUtil.fmtMoney(cf.bet * 2) + "$",
-                    "", "&#00E676▸ Нажми, чтобы сыграть 50/50!"));
+                    "", cf.creator.equalsIgnoreCase(p.getName()) ? "&e▸ Нажми для отмены и возврата ставки" : "&#00E676▸ Нажми, чтобы сыграть 50/50!"));
         }
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
@@ -1863,7 +1872,12 @@ public final class GuiManager {
             else if (slot == 28) openTalismansMenu(p);
             else if (slot == 29) openJobsMenu(p);
             else if (slot == 30) openBpMenu(p);
-            else if (slot == 31) { p.closeInventory(); p.teleport(plugin.getSpawnEngine().getSpawnArrival()); }
+            else if (slot == 31) {
+                p.closeInventory();
+                Location destination = plugin.getSpawnEngine().getSpawnArrival();
+                if (destination == null) p.sendMessage(ColorUtil.c("&cТочка спавна сейчас недоступна."));
+                else if (!p.teleport(destination)) p.sendMessage(ColorUtil.c("&cТелепортация на спавн отменена."));
+            }
             else if (slot == 32) openTitlesMenu(p);
             else if (slot == 33) openPlaytimeMenu(p);
             else if (slot == 34) openArmorsMenu(p);
@@ -1956,8 +1970,10 @@ public final class GuiManager {
                     : slot == 22 ? "bafs" : slot == 23 ? "top" : slot == 31 ? "spawn" : null;
             if (w != null) {
                 p.closeInventory();
+                Location destination = "spawn".equals(w) ? plugin.getSpawnEngine().getSpawnArrival() : plugin.getSpawnEngine().getWarpLocation(w);
+                if (destination == null) { p.sendMessage(ColorUtil.c("&cВарп недоступен, пока готовый спавн не установлен.")); return; }
                 plugin.getStore().setBack(p, p.getLocation());
-                p.teleport("spawn".equals(w) ? plugin.getSpawnEngine().getSpawnArrival() : plugin.getSpawnEngine().getWarpLocation(w));
+                p.teleport(destination);
                 ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
             }
         } else if ("kits".equals(type)) {
@@ -2143,7 +2159,7 @@ public final class GuiManager {
             handleSnowflakeExchange(p, slot);
         } else if ("casino".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }
-            handleCasinoClick(p, slot);
+            handleCasinoClick(p, slot, h);
         } else if ("events".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 36 || slot == 37 || slot == 38 || slot == 41 || slot == 42 || slot == 43
@@ -2189,7 +2205,9 @@ public final class GuiManager {
                     if (cp.caseId.equals(caseId)) {
                         p.closeInventory();
                         if (e.getClick() == ClickType.RIGHT) {
-                            p.teleport(plugin.getSpawnEngine().getWarpLocation("cases"));
+                            Location destination = plugin.getSpawnEngine().getWarpLocation("cases");
+                            if (destination != null) p.teleport(destination);
+                            else p.sendMessage(ColorUtil.c("&cВарп кейсов недоступен, пока готовый спавн не установлен."));
                         } else {
                             plugin.getSpawnEngine().openShulkerCaseAnimated(p, cp);
                         }
@@ -2290,6 +2308,38 @@ public final class GuiManager {
         }
     }
 
+    /** Never charge for a prize that cannot fit in the player's storage. */
+    private boolean requireShopSpace(Player p, ItemStack... items) {
+        if (InventoryCapacity.canFit(p, items)) return true;
+        ColorUtil.sound(p, "entity.villager.no", 1f, 0.9f);
+        p.sendMessage(ColorUtil.c("&cНедостаточно места в инвентаре. Освободите место: валюта не списана."));
+        return false;
+    }
+
+    /** A third-party callback can change inventory after preflight; never silently discard a remainder. */
+    private void deliverShopItems(Player p, ItemStack... items) {
+        for (ItemStack remainder : p.getInventory().addItem(items).values()) {
+            p.getWorld().dropItemNaturally(p.getLocation(), remainder);
+            plugin.getLogger().warning("[Shop] Inventory changed after payment for " + p.getName() + "; remainder dropped at player.");
+            p.sendMessage(ColorUtil.c("&eИнвентарь изменился во время покупки: остаток предметов лежит рядом."));
+        }
+    }
+
+    private ItemStack cleanShopReward(ItemStack clicked) {
+        ItemStack give = clicked.clone();
+        ItemMeta meta = give.getItemMeta();
+        if (meta != null) {
+            if (meta.hasLore() && meta.getLore() != null && meta.getLore().size() >= 3) {
+                List<String> lore = new ArrayList<String>(meta.getLore());
+                for (int i = 0; i < 3 && !lore.isEmpty(); i++) lore.remove(lore.size() - 1);
+                meta.setLore(lore.isEmpty() ? null : lore);
+            }
+            meta.getPersistentDataContainer().remove(SHOP_PRICE_KEY);
+            give.setItemMeta(meta);
+        }
+        return give;
+    }
+
     private void handleRelicPurchase(Player p, int slot) {
         ItemStack reward = null;
         int cost = 0;
@@ -2328,13 +2378,13 @@ public final class GuiManager {
             case 53: reward = ItemFactory.grapplingHook(); cost = 95; break;
             default: return;
         }
+        if (!requireShopSpace(p, reward)) return;
         if (!plugin.getStore().takeRelics(p, cost)) {
             ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
             p.sendMessage(ColorUtil.c("&#FF1744✖ Недостаточно Риликов! Нужно: &b" + cost + " ❖ &7(Сайт: kinggrief.vercel.app)"));
             return;
         }
-        plugin.getStore().save();
-        p.getInventory().addItem(reward);
+        deliverShopItems(p, reward);
         ColorUtil.sound(p, "entity.player.levelup", 1f, 1.25f);
         p.sendMessage(ColorUtil.c("&#00E676✔ Вы приобрели " + reward.getItemMeta().getDisplayName() + " &#00E676за &b" + cost + " Риликов ❖&7!"));
         openRelicShop(p);
@@ -2365,13 +2415,13 @@ public final class GuiManager {
             else if (slot == 15) { reward = ItemFactory.pickDjamshut(); cost = 350000; }
         }
         if (reward == null) return;
-        if (!plugin.getStore().takeCoins(p.getName(), cost)) {
+        if (!requireShopSpace(p, reward)) return;
+        if (!plugin.getStore().takeCoinsDurably(p.getName(), cost)) {
             ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
             p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cost) + "$"));
             return;
         }
-        plugin.getStore().save();
-        p.getInventory().addItem(reward);
+        deliverShopItems(p, reward);
         ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.2f);
         p.sendMessage(ColorUtil.c("&#00E676✔ Куплено за &a" + ColorUtil.fmtMoney(cost) + "$&7!"));
     }
@@ -2379,22 +2429,24 @@ public final class GuiManager {
     private void handleSnowflakeExchange(Player p, int slot) {
         int cost = slot == 11 ? 10 : slot == 12 ? 18 : slot == 13 ? 35 : slot == 14 ? 75 : slot == 15 ? 110 : 0;
         if (cost <= 0) return;
-        if (!plugin.getStore().takeSnowflakes(p.getName(), cost)) {
-            p.sendMessage(ColorUtil.c("&cНедостаточно Снежинок ❄! Фармите на /warp mine и /warp farm."));
+        ItemStack reward = slot == 11 ? ItemFactory.nyMandarin(8)
+                : slot == 12 ? ItemFactory.potionChampagne(2)
+                : slot == 14 ? ItemFactory.talStuzhi()
+                : slot == 15 ? ItemFactory.sharSanty() : null;
+        if (reward != null && !requireShopSpace(p, reward)) return;
+        boolean committed = slot == 13 ? plugin.getStore().exchangeSnowflakesForRelics(p, cost, 50)
+                : plugin.getStore().takeSnowflakesDurably(p.getName(), cost);
+        if (!committed) {
+            p.sendMessage(ColorUtil.c("&cОбмен не выполнен: проверьте баланс и сохранение данных."));
             return;
         }
-        if (slot == 11) p.getInventory().addItem(ItemFactory.nyMandarin(8));
-        else if (slot == 12) p.getInventory().addItem(ItemFactory.potionChampagne(2));
-        else if (slot == 13) plugin.getStore().addRelics(p.getName(), 50);
-        else if (slot == 14) p.getInventory().addItem(ItemFactory.talStuzhi());
-        else if (slot == 15) p.getInventory().addItem(ItemFactory.sharSanty());
-        plugin.getStore().save();
+        if (reward != null) deliverShopItems(p, reward);
         ColorUtil.sound(p, "entity.player.levelup", 1f, 1.3f);
         p.sendMessage(ColorUtil.c("&#80D8FF❄ Обмен у Джамшута выполнен успешно!"));
         openDjamshutMenu(p);
     }
 
-    private void handleCasinoClick(Player p, int slot) {
+    private void handleCasinoClick(Player p, int slot, KgMenuHolder holder) {
         if (slot == 10) { runAnimatedSlots(p, 5000.0); return; }
         if (slot == 11) { runAnimatedSlots(p, 25000.0); return; }
         if (slot == 13 || slot == 14 || slot == 15) {
@@ -2419,13 +2471,14 @@ public final class GuiManager {
             return;
         }
         if (slot == 16) {
+            if (!requireShopSpace(p, ItemFactory.sharApollona())) return;
             if (!plugin.getStore().takeRelics(p, 25)) {
                 p.sendMessage(ColorUtil.c("&cНужно 25 Риликов ❖ для прокрутки Колеса!"));
                 return;
             }
             int r = rng.nextInt(100);
             if (r < 8) {
-                p.getInventory().addItem(ItemFactory.sharApollona());
+                deliverShopItems(p, ItemFactory.sharApollona());
                 p.sendMessage(ColorUtil.c("&#FFD740🎡 СУПЕРПРИЗ КОЛЕСА! Вы выбили Шар Аполлона!"));
             } else if (r < 45) {
                 int won = 40 + rng.nextInt(80);
@@ -2440,41 +2493,33 @@ public final class GuiManager {
             return;
         }
         if (slot == 28) {
-            if (!plugin.getStore().takeCoins(p.getName(), 10000.0)) {
-                p.sendMessage(ColorUtil.c("&cНужно 10 000$ для создания Монетки!"));
+            if (plugin.getStore().createCoinflip(p.getName(), 10000.0) == null) {
+                p.sendMessage(ColorUtil.c("&cИгра не создана: проверьте баланс, лимит игр и журнал сохранения."));
                 return;
             }
-            plugin.getStore().createCoinflip(p.getName(), 10000.0);
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740🪙 [Монетка] &f" + p.getName() + " &7создал игру на &a10 000$&7! Принять: &f/casino"));
-            openCasinoMenu(p);
+            openCasinoMenu(p, holder.page);
             return;
         }
-        if (slot >= 30 && slot <= 34) {
-            List<DataStore.CoinflipRoom> cfs = plugin.getStore().getCoinflips();
-            int idx = slot - 30;
-            if (idx < cfs.size()) {
-                DataStore.CoinflipRoom target = cfs.get(idx);
-                if (target.creator.equalsIgnoreCase(p.getName())) {
-                    p.sendMessage(ColorUtil.c("&eНельзя играть против самого себя!"));
-                    return;
-                }
-                if (!plugin.getStore().takeCoins(p.getName(), target.bet)) {
-                    p.sendMessage(ColorUtil.c("&cНедостаточно монет для принятия ставки!"));
-                    return;
-                }
-                DataStore.CoinflipRoom taken = plugin.getStore().takeCoinflip(target.id);
-                if (taken == null) {
-                    plugin.getStore().addCoins(p.getName(), target.bet);
-                    return;
-                }
-                String winner = rng.nextBoolean() ? p.getName() : taken.creator;
-                double pot = taken.bet * 2.0;
-                plugin.getStore().addCoins(winner, pot);
-                plugin.getStore().save();
-                Bukkit.broadcastMessage(ColorUtil.c("&#FFD740🪙 [Монетка] &f" + winner + " &aпобедил в игре 50/50 и забрал &e" + ColorUtil.fmtMoney(pot) + "$&a!"));
-                openCasinoMenu(p);
-            }
+        if (slot == 29 && holder.page > 0) { openCasinoMenu(p, holder.page - 1); return; }
+        if (slot == 35 && (holder.page + 1) * 5 < plugin.getStore().getCoinflips().size()) {
+            openCasinoMenu(p, holder.page + 1); return;
         }
+        Integer id = holder.coinflipSlots.get(Integer.valueOf(slot));
+        if (id == null) return;
+        DataStore.CoinflipSettlement result = plugin.getStore().settleCoinflip(id.intValue(), p.getName(), rng.nextBoolean());
+        if (result.outcome == DataStore.CoinflipOutcome.CANCELLED) {
+            p.sendMessage(ColorUtil.c("&#00E676✔ Игра отменена, ставка возвращена на баланс."));
+        } else if (result.outcome == DataStore.CoinflipOutcome.WON) {
+            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740🪙 [Монетка] &f" + result.winner + " &aпобедил в игре 50/50 и забрал &e" + ColorUtil.fmtMoney(result.room.bet * 2.0) + "$&a!"));
+        } else if (result.outcome == DataStore.CoinflipOutcome.INSUFFICIENT) {
+            p.sendMessage(ColorUtil.c("&cНедостаточно монет для принятия ставки."));
+        } else if (result.outcome == DataStore.CoinflipOutcome.NOT_FOUND) {
+            p.sendMessage(ColorUtil.c("&eЭта игра уже завершена или отменена. Список обновлён."));
+        } else {
+            p.sendMessage(ColorUtil.c("&cНе удалось сохранить результат. Ставки не изменены; проверьте журнал."));
+        }
+        openCasinoMenu(p, holder.page);
     }
 
     private void handleTitleClick(Player p, ItemStack clicked) {
@@ -2769,7 +2814,7 @@ public final class GuiManager {
         inv.setItem(22, shopTag(ItemFactory.megaHeal(4),  320));
         inv.setItem(23, shopTag(ItemFactory.megaBuff(4),  500));
         inv.setItem(24, shopTag(ItemFactory.megaGapple(1),  180));
-        inv.setItem(25, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 100 зимних рун", "&720 семейств по 5 уровней — /artifacts"));
+        inv.setItem(25, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#80D8FF&l✦ 150 зимних артефактов", "&7100 рун и 50 новых артефактов — /artifacts"));
         // Ряд 3: НОВЫЕ ТОТЕМЫ С ЗАРЯДАМИ
         inv.setItem(28, shopTag(ItemFactory.totemLedyanoy(3),      300));
         inv.setItem(29, shopTag(ItemFactory.totemVoskresheniya(5), 620));
@@ -2883,6 +2928,10 @@ public final class GuiManager {
             }
             if (slot == 36 + c + 1) {
                 int cost = ColorUtil.parseInt(set[2], 0);
+                ItemStack[] fullSet = new ItemStack[5];
+                for (int piece = 0; piece < 4; piece++) fullSet[piece] = ItemFactory.armorPiece(set[0], piece);
+                fullSet[4] = mannequinElytra(set[3], set[0]);
+                if (!requireShopSpace(p, fullSet)) return;
                 if (cost <= 0) {
                     if (!plugin.getRanks().isOwnerLevel(p)) {
                         ColorUtil.sound(p, "entity.villager.no", 1f, 0.8f);
@@ -2930,45 +2979,28 @@ public final class GuiManager {
     }
 
     private void handleRelicItemTagPurchase(Player p, ItemStack clicked, String reopenMenu) {
-        ItemMeta m = clicked.getItemMeta();
-        if (m == null) return;
-        Integer costObj = m.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
-        if (costObj == null || costObj.intValue() <= 0) return;
-        int cost = costObj.intValue();
+        ItemMeta meta = clicked.getItemMeta();
+        if (meta == null) return;
+        Integer costObject = meta.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
+        if (costObject == null || costObject.intValue() <= 0) return;
+        int cost = costObject.intValue();
+        String cid = ItemFactory.getCustomId(clicked);
+        boolean armor = cid != null && cid.startsWith("armorset_");
+        ItemStack[] rewards;
+        if (armor) {
+            String sid = cid.substring(9);
+            rewards = new ItemStack[4];
+            for (int i = 0; i < rewards.length; i++) rewards[i] = ItemFactory.armorPiece(sid, i);
+        } else rewards = new ItemStack[]{cleanShopReward(clicked)};
+        if (!requireShopSpace(p, rewards)) return;
         if (!plugin.getStore().takeRelics(p, cost)) {
             ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-            p.sendMessage(ColorUtil.c("&cНедостаточно Риликов! Нужно: " + cost + " ❖ (kinggrief.vercel.app)"));
+            p.sendMessage(ColorUtil.c("&cПокупка не выполнена: проверьте баланс Риликов и сохранение данных."));
             return;
         }
-        plugin.getStore().save();
-        String cid = ItemFactory.getCustomId(clicked);
-        if (cid != null && cid.startsWith("armorset_")) {
-            String sid = cid.substring(9);
-            for (int s = 0; s < 4; s++) {
-                for (ItemStack rem : p.getInventory().addItem(ItemFactory.armorPiece(sid, s)).values()) {
-                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
-                }
-            }
-            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.25f);
-            p.sendMessage(ColorUtil.c("&#00E676✔ Вы приобрели полный 3D сет брони за &b" + cost + " ❖&7!"));
-        } else {
-            ItemStack give = clicked.clone();
-            ItemMeta gm = give.getItemMeta();
-            if (gm != null) {
-                if (gm.hasLore() && gm.getLore().size() >= 3) {
-                    List<String> l = new ArrayList<String>(gm.getLore());
-                    for (int k = 0; k < 3 && !l.isEmpty(); k++) l.remove(l.size() - 1);
-                    gm.setLore(l.isEmpty() ? null : l);
-                }
-                gm.getPersistentDataContainer().remove(SHOP_PRICE_KEY);
-                give.setItemMeta(gm);
-            }
-            for (ItemStack rem : p.getInventory().addItem(give).values()) {
-                p.getWorld().dropItemNaturally(p.getLocation(), rem);
-            }
-            ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.25f);
-            p.sendMessage(ColorUtil.c("&#00E676✔ Вы приобрели предмет за &b" + cost + " ❖&7!"));
-        }
+        deliverShopItems(p, rewards);
+        ColorUtil.sound(p, armor ? "entity.player.levelup" : "entity.experience_orb.pickup", 1f, 1.25f);
+        p.sendMessage(ColorUtil.c("&#00E676✔ Приобретено " + (armor ? "4 предмета брони" : "предмет") + " за &b" + cost + " ❖&7!"));
         if ("talismans".equals(reopenMenu)) openTalismansMenu(p);
         else if ("orbs".equals(reopenMenu)) openOrbsMenu(p);
         else if ("mega".equals(reopenMenu)) openMegaShop(p);
@@ -2979,36 +3011,23 @@ public final class GuiManager {
     }
 
     private void handleCategoryCoinPurchase(Player p, ItemStack clicked, String cat) {
-        ItemMeta m = clicked.getItemMeta();
-        if (m == null) return;
-        Integer costObj = m.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
-        if (costObj == null || costObj.intValue() <= 0) return;
-        int cost = costObj.intValue();
+        ItemMeta meta = clicked.getItemMeta();
+        if (meta == null) return;
+        Integer costObject = meta.getPersistentDataContainer().get(SHOP_PRICE_KEY, org.bukkit.persistence.PersistentDataType.INTEGER);
+        if (costObject == null || costObject.intValue() <= 0) return;
+        int cost = costObject.intValue();
         if (clicked.getType() == Material.TNT) {
             handleRelicItemTagPurchase(p, clicked, "raid");
             return;
         }
-        if (!plugin.getStore().takeCoins(p.getName(), cost)) {
+        ItemStack give = cleanShopReward(clicked);
+        if (!requireShopSpace(p, give)) return;
+        if (!plugin.getStore().takeCoinsDurably(p.getName(), cost)) {
             ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-            p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cost) + "$"));
+            p.sendMessage(ColorUtil.c("&cПокупка не выполнена: проверьте баланс монет и сохранение данных."));
             return;
         }
-        plugin.getStore().save();
-        // Rebuild clean item copy without shop price lore
-        ItemStack give = clicked.clone();
-        ItemMeta gm = give.getItemMeta();
-        if (gm != null) {
-            if (gm.hasLore() && gm.getLore().size() >= 3) {
-                List<String> l = new ArrayList<String>(gm.getLore());
-                for (int k = 0; k < 3 && !l.isEmpty(); k++) l.remove(l.size() - 1);
-                gm.setLore(l.isEmpty() ? null : l);
-            }
-            gm.getPersistentDataContainer().remove(SHOP_PRICE_KEY);
-            give.setItemMeta(gm);
-        }
-        for (ItemStack rem : p.getInventory().addItem(give).values()) {
-            p.getWorld().dropItemNaturally(p.getLocation(), rem);
-        }
+        deliverShopItems(p, give);
         ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.25f);
         p.sendMessage(ColorUtil.c("&#00E676✔ Покупка успешна за &a" + ColorUtil.fmtMoney(cost) + "$&7!"));
         openCoinShopCat(p, cat);

@@ -34,10 +34,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +45,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.zip.GZIPInputStream;
 
 public final class SpawnEngine {
 
@@ -270,6 +266,20 @@ public final class SpawnEngine {
         File worldFolder = new File(Bukkit.getWorldContainer(), VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
         boolean existedBefore = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME) != null
                 || worldFolder.exists() || java.nio.file.Files.isSymbolicLink(worldFolder.toPath());
+        if (forceRebuild) {
+            plugin.getLogger().warning("[SpawnEngine] Immediate block-by-block rebuild is disabled. Use /rebuildspawn confirm and restart.");
+            return false;
+        }
+        if (!existedBefore) {
+            plugin.getLogger().severe("[SpawnEngine] No prepared spawn world is available; refusing synchronous block generation.");
+            return false;
+        }
+        File marker = new File(worldFolder, ".spawn_v70_village_ok");
+        if (!java.nio.file.Files.isRegularFile(marker.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            // An old, unknown or custom world is never loaded, decorated, cleared or rebuilt by the prepared-spawn engine.
+            plugin.getLogger().warning("[SpawnEngine] Existing unmarked/old spawn_world preserved. Back it up and schedule /rebuildspawn confirm if desired.");
+            return false;
+        }
         World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         if (sw == null) {
             plugin.getLogger().severe("[SpawnEngine] Could not load spawn_world; no build attempted.");
@@ -279,7 +289,6 @@ public final class SpawnEngine {
         // Do not synchronously generate/pin hundreds of chunks at every startup.
         // Existing administrator force-loads are deliberately preserved.
 
-        File marker = new File(sw.getWorldFolder(), ".spawn_v70_village_ok");
         // Old releases force-loaded this whole square and persisted those tickets.
         // They may now be administrator-owned; report rather than remove them.
         int forced = 0;
@@ -287,79 +296,8 @@ public final class SpawnEngine {
             if (sw.isChunkForceLoaded(cx, cz)) forced++;
         if (forced >= 128) plugin.getLogger().warning("[SpawnEngine] " + forced + " spawn chunks remain force-loaded; "
                 + "review old /forceload tickets manually. Core 7.1 no longer creates or removes them.");
-        boolean hasKnownOldSpawn = new File(sw.getWorldFolder(), ".spawn_v66_royal_ok").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v59_aurora_ok").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v58_grand_palace_ok").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v57_zero_freeze_ok").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v57_smooth_ok").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v56_ny_ok").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v5_built").exists()
-                || new File(sw.getWorldFolder(), ".spawn_v5_colorful_ok").exists();
-        if (forceRebuild) {
-            if (!sw.getPlayers().isEmpty()) {
-                plugin.getLogger().warning("[SpawnEngine] Rebuild refused: move all players out of spawn_world first.");
-                return false;
-            }
-            // World.save() can schedule asynchronous chunk I/O on Paper. Unload
-            // with saving first, so the ZIP is a consistent, fully flushed snapshot.
-            File snapshotFolder = sw.getWorldFolder();
-            try {
-                // Reject links and unreadable paths before unloading. Minecraft
-                // itself may refuse to reload a world containing forbidden links.
-                addBackupFiles(snapshotFolder, snapshotFolder, null);
-            } catch (java.io.IOException ex) {
-                plugin.getLogger().severe("[SpawnEngine] Backup preflight failed; rebuild cancelled: " + ex.getMessage());
-                return false;
-            }
-            if (!Bukkit.unloadWorld(sw, true)) {
-                plugin.getLogger().severe("[SpawnEngine] Cannot unload and flush spawn_world; rebuild cancelled.");
-                return false;
-            }
-            boolean backupOk = backupSpawnWorld(snapshotFolder);
-            try {
-                sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-            } catch (RuntimeException ex) {
-                plugin.getLogger().severe("[SpawnEngine] Cannot reload spawn_world; rebuild cancelled: " + ex.getMessage());
-                return false;
-            }
-            if (sw == null) {
-                plugin.getLogger().severe("[SpawnEngine] Cannot reload spawn_world; rebuild cancelled.");
-                return false;
-            }
-            lockSpawnWorldRules(sw);
-            if (!backupOk) return false;
-            if (marker.exists() && !marker.delete()) {
-                plugin.getLogger().severe("[SpawnEngine] Cannot remove build marker; rebuild cancelled.");
-                return false;
-            }
-            clearPreviousSpawnArea(sw);
-        } else if (existedBefore && !marker.exists() && !hasKnownOldSpawn) {
-            // Unknown/custom world: do not build, decorate, clear entities or refill its blocks.
-            plugin.getLogger().warning("[SpawnEngine] Existing unmarked spawn_world preserved. Back it up and use /rebuildspawn confirm to replace it.");
-            return false;
-        }
-        if (forceRebuild || (!existedBefore && !marker.exists())) {
-            plugin.getLogger().info("[SpawnEngine] Building the v7.0 Winter Village Spawn...");
-            if (!buildFromRleResource(sw, "/spawn_v70.dat")) {
-                plugin.getLogger().severe("[SpawnEngine] Build failed; marker not created. Restore the backup if this was a rebuild.");
-                return false;
-            }
-            placeShulkerPedestalBlocks(sw);
-            placeSantaGiftBlocks(sw);
-            refillAutoMine(sw, false);
-            try {
-                if (!marker.exists() && !marker.createNewFile()) throw new java.io.IOException("Cannot create marker");
-            } catch (Exception e) {
-                plugin.getLogger().severe("[SpawnEngine] Could not create build marker: " + e.getMessage());
-                return false;
-            }
-        } else {
-            if (!marker.exists() && hasKnownOldSpawn) {
-                plugin.getLogger().info("[SpawnEngine] Existing spawn preserved; /rebuildspawn confirm backs it up and installs v7.0.");
-            }
-            placeShulkerPedestalBlocks(sw);
-            placeSantaGiftBlocks(sw);
-        }
+        placeShulkerPedestalBlocks(sw);
+        placeSantaGiftBlocks(sw);
 
         // Reconcile only loaded chunks. Later chunk loads perform the same scoped cleanup.
         purgeAllSpawnEntities(sw);
@@ -385,56 +323,6 @@ public final class SpawnEngine {
         return true;
     }
 
-    /** Save a recoverable copy of the world before any destructive rebuild. */
-    private boolean backupSpawnWorld(File worldFolder) {
-        File backup = null;
-        try {
-            File dir = new File(plugin.getDataFolder(), "backups");
-            if (!dir.exists() && !dir.mkdirs()) throw new java.io.IOException("Cannot create backup directory");
-            backup = new File(dir, "spawn_world-before-" + System.currentTimeMillis() + ".zip");
-            try (java.util.zip.ZipOutputStream out = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(backup))) {
-                addBackupFiles(worldFolder, worldFolder, out);
-            }
-            try (java.util.zip.ZipFile check = new java.util.zip.ZipFile(backup)) {
-                if (check.getEntry("level.dat") == null) throw new java.io.IOException("Backup is missing level.dat");
-            }
-            plugin.getLogger().info("[SpawnEngine] Backup saved: " + backup.getAbsolutePath());
-            return true;
-        } catch (Exception ex) {
-            if (backup != null) backup.delete();
-            plugin.getLogger().severe("[SpawnEngine] Backup failed, rebuild cancelled: " + ex.getMessage());
-            return false;
-        }
-    }
-
-    private void addBackupFiles(File root, File file, java.util.zip.ZipOutputStream out) throws java.io.IOException {
-        // Fail closed on links, including dangling links: silently skipping even one
-        // path could produce an apparently valid but unrecoverable backup.
-        File parent = file.getParentFile();
-        File withoutLinks = parent == null ? file.getAbsoluteFile() : new File(parent.getCanonicalFile(), file.getName());
-        if (java.nio.file.Files.isSymbolicLink(file.toPath()) || !file.getCanonicalFile().equals(withoutLinks))
-            throw new java.io.IOException("Unsupported symbolic link in world: " + file);
-        if (file.equals(new File(root, "session.lock")) && file.isFile()) return;
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            if (children == null) throw new java.io.IOException("Cannot read " + file);
-            for (File child : children) addBackupFiles(root, child, out);
-        } else if (file.isFile()) {
-            if (!file.canRead()) throw new java.io.IOException("Cannot read " + file);
-            if (out == null) return; // preflight before the world is unloaded
-            String entry = file.getAbsolutePath().substring(root.getAbsolutePath().length() + 1).replace(File.separatorChar, '/');
-            out.putNextEntry(new java.util.zip.ZipEntry(entry));
-            try (java.io.FileInputStream in = new java.io.FileInputStream(file)) {
-                byte[] buffer = new byte[65536];
-                int n;
-                while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
-            }
-            out.closeEntry();
-        } else {
-            throw new java.io.IOException("Cannot back up non-regular path: " + file);
-        }
-    }
-
     private void lockSpawnWorldRules(World sw) {
         try {
             sw.setTime(6000L);
@@ -448,25 +336,6 @@ public final class SpawnEngine {
             sw.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, Boolean.FALSE);
             sw.setGameRule(GameRule.DISABLE_RAIDS, Boolean.TRUE);
         } catch (Throwable ignored) {}
-    }
-
-    private void clearPreviousSpawnArea(World sw) {
-        purgeAllSpawnEntities(sw);
-        for (int cx = -9; cx <= 9; cx++) {
-            for (int cz = -9; cz <= 9; cz++) {
-                sw.getChunkAt(cx, cz).load(true);
-            }
-        }
-        for (int x = -126; x <= 126; x++) {
-            for (int z = -126; z <= 126; z++) {
-                for (int y = 64; y <= 195; y++) {
-                    Block b = sw.getBlockAt(x, y, z);
-                    if (b.getType() != Material.AIR) {
-                        b.setType(Material.AIR, false);
-                    }
-                }
-            }
-        }
     }
 
     /** Remove only Core-owned entities in loaded chunks, never load or generate chunks here. */
@@ -517,77 +386,6 @@ public final class SpawnEngine {
     private boolean isSpawnOwnedEntity(Set<String> tags) {
         return tags.contains("kg_npc") || tags.contains("kg_holo") || tags.contains("kg_top_holo")
                 || tags.contains("kg_dps_dummy") || tags.contains("kg_farm_mob") || tags.contains("kg_case_float");
-    }
-
-    private boolean buildFromRleResource(World sw, String resourcePath) {
-        InputStream raw = plugin.getClass().getResourceAsStream(resourcePath);
-        if (raw == null) {
-            plugin.getLogger().severe("[SpawnEngine] Missing resource " + resourcePath + "!");
-            return false;
-        }
-        for (int cx = -9; cx <= 9; cx++) {
-            for (int cz = -9; cz <= 9; cz++) {
-                sw.getChunkAt(cx, cz).load(true);
-            }
-        }
-
-        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new GZIPInputStream(raw)))) {
-            int w = in.readShort();
-            int h = in.readShort();
-            int l = in.readShort();
-            int ox = in.readShort();
-            in.readShort();
-            int oz = in.readShort();
-            int palLen = in.readUnsignedShort();
-            if (w != 251 || h != 132 || l != 251 || ox != 125 || oz != 125 || palLen < 1 || palLen > 255)
-                throw new java.io.IOException("Invalid spawn dimensions/palette");
-
-            BlockData[] palData = new BlockData[palLen];
-            for (int i = 0; i < palLen; i++) {
-                int slen = in.readUnsignedShort();
-                byte[] sb = new byte[slen];
-                in.readFully(sb);
-                String matName = new String(sb, "UTF-8");
-                Material m = Material.matchMaterial(matName);
-                if (m == null) m = Material.SMOOTH_QUARTZ;
-                BlockData created = m.createBlockData();
-                if (created instanceof org.bukkit.block.data.type.Leaves) {
-                    ((org.bukkit.block.data.type.Leaves) created).setPersistent(true);
-                }
-                palData[i] = created;
-            }
-
-            long idx = 0L;
-            int placed = 0;
-            while (true) {
-                int val = in.readUnsignedByte();
-                int count = in.readUnsignedShort();
-                if (val == 0 && count == 0) break;
-                if (count == 0 || val >= palLen || idx + count > (long) w * h * l)
-                    throw new java.io.IOException("Invalid spawn RLE run");
-                if (val == 0) {
-                    idx += count;
-                    continue;
-                }
-                BlockData bd = palData[val];
-                for (int k = 0; k < count; k++) {
-                    int lx = (int) (idx / (h * l));
-                    int rem = (int) (idx % (h * l));
-                    int ly = rem / l;
-                    int lz = rem % l;
-                    sw.getBlockAt(lx - ox, ly + 64, lz - oz).setBlockData(bd, false);
-                    idx++;
-                    placed++;
-                }
-            }
-            if (idx != (long) w * h * l) throw new java.io.IOException("Incomplete spawn RLE");
-            sw.setSpawnLocation(0, 100, 52);
-            plugin.getLogger().info("[SpawnEngine] Spawn built (" + placed + " blocks).");
-            return true;
-        } catch (Exception e) {
-            plugin.getLogger().warning("[SpawnEngine] Error decoding " + resourcePath + ": " + e.getMessage());
-            return false;
-        }
     }
 
     private void placeShulkerPedestalBlocks(World sw) {
@@ -674,8 +472,8 @@ public final class SpawnEngine {
         if (!staticHoloDefs.isEmpty()) return;
 
         staticHoloDefs.add(new StaticHoloDef("holo_main", 0.5, 104.2, 46.0,
-                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v7.1.0 &#80D8FF&l❄\n"
-                + "&#FF1744&lМОДЕЛИ NPC &8• &#FFD740&l100 РУН &8• &#00E676&lЭКСПЕДИЦИИ &8• &#E040FB&lЗИМНИЕ НАГРАДЫ\n"
+                "&#80D8FF&l❄ &#FFD740&lKINGGRIEF NEW YEAR v7.2.0 &#80D8FF&l❄\n"
+                + "&#FF1744&lМОДЕЛИ NPC &8• &#FFD740&l150 АРТЕФАКТОВ &8• &#00E676&lЭКСПЕДИЦИИ &8• &#E040FB&lЗИМНИЕ НАГРАДЫ\n"
                 + "&fВыживание: &#00E676&l/rtp &8│ &fЭкспедиции: &#80D8FF&l/expeditions &8│ &fРуны: &#FFD740&l/artifacts &8│ &fВарпы: &#38BDF8&l/warps"));
 
         // ================= ГОЛОГРАММЫ СЛЕВА И СПРАВА НА СПАВНЕ (ПРИВИЛЕГИИ + КЕЙСЫ) =================
@@ -1475,8 +1273,8 @@ public final class SpawnEngine {
             Location cp = plugin.getStore().getParkourCp(p);
             if (p.getLocation().getY() < 62.0) {
                 p.setFallDistance(0f);
-                p.teleport(cp != null ? cp : getSpawnArrival());
-                ColorUtil.sound(p, "entity.enderman.teleport", 0.8f, 1.2f);
+                Location destination = cp != null ? cp : getSpawnArrival();
+                if (destination != null && p.teleport(destination)) ColorUtil.sound(p, "entity.enderman.teleport", 0.8f, 1.2f);
                 continue;
             }
             // Smart Parkour Safety: block fly cheating & auto-return on fall onto plaza!
@@ -1544,16 +1342,68 @@ public final class SpawnEngine {
     }
 
     // ================= ZONE HELPERS (v5.7 100% BFS-VERIFIED CLEAN WARPS!) =================
+    public boolean isSpawnActive() { return spawnActive; }
+
+    /** Returns null if there is no currently safe, loaded fallback spawn. */
     public Location getSpawnArrival() {
         Location override = plugin.getStore() != null ? plugin.getStore().getCustomSpawnLoc() : null;
         if (override != null && override.getWorld() != null) return override;
-        World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-        return new Location(sw, 0.5, 100.0, 52.5, 180.0f, 0.0f);
+        if (!spawnActive) {
+            List<World> worlds = Bukkit.getWorlds();
+            return worlds.isEmpty() ? null : loadedVanillaSpawn(worlds.get(0));
+        }
+        // Never recreate a world synchronously if another plugin unloaded it.
+        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        return sw == null ? null : new Location(sw, 0.5, 100.0, 52.5, 180.0f, 0.0f);
+    }
+
+    /**
+     * Paper may generate the border-center chunk in getSpawnLocation() when a
+     * moved border excludes the saved spawn. Read the saved coordinates first,
+     * and never request a destination that would require a synchronous load.
+     * If the version-specific lookup fails, the loaded border center provides
+     * a conservative fallback; otherwise the caller should refuse to teleport.
+     */
+    private Location loadedVanillaSpawn(World world) {
+        org.bukkit.WorldBorder border = world.getWorldBorder();
+        Location center = border.getCenter();
+        boolean centerLoaded = world.isChunkLoaded(center.getBlockX() >> 4, center.getBlockZ() >> 4);
+        boolean safeToRead = false;
+        try {
+            Object handle = world.getClass().getMethod("getHandle").invoke(world);
+            Class<?> level = Class.forName("net.minecraft.world.level.Level");
+            Object data = level.getMethod("getLevelData").invoke(handle);
+            Class<?> levelData = Class.forName("net.minecraft.world.level.storage.LevelData");
+            Object pos = levelData.getMethod("getSpawnPos").invoke(data);
+            Class<?> vector = Class.forName("net.minecraft.core.Vec3i");
+            int x = ((Number) vector.getMethod("getX").invoke(pos)).intValue();
+            int y = ((Number) vector.getMethod("getY").invoke(pos)).intValue();
+            int z = ((Number) vector.getMethod("getZ").invoke(pos)).intValue();
+            Location saved = new Location(world, x, y, z);
+            // One block of margin avoids ambiguity between Bukkit's point
+            // border test and Minecraft's block-based test at the edge.
+            boolean wellInside = border.isInside(saved.clone().add(-1, 0, -1))
+                    && border.isInside(saved.clone().add(1, 0, 1));
+            safeToRead = wellInside ? world.isChunkLoaded(x >> 4, z >> 4) : centerLoaded;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+            safeToRead = centerLoaded;
+        }
+        if (!safeToRead) return null;
+        Location spawn = world.getSpawnLocation();
+        return world.isChunkLoaded(spawn.getBlockX() >> 4, spawn.getBlockZ() >> 4) ? spawn : null;
     }
 
     public Location getWarpLocation(String warpName) {
-        World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
         String w = warpName == null ? "" : warpName.toLowerCase(Locale.ROOT);
+        if (!spawnActive) {
+            if ("spawn".equals(w) || "спавн".equals(w)) return getSpawnArrival();
+            return plugin.getStore() != null ? plugin.getStore().getCustomWarpLocation(w) : null;
+        }
+        World sw = Bukkit.getWorld(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
+        if (sw == null) {
+            if ("spawn".equals(w) || "спавн".equals(w)) return getSpawnArrival();
+            return plugin.getStore() != null ? plugin.getStore().getCustomWarpLocation(w) : null;
+        }
         if ("mine".equals(w) || "шахта".equals(w)) return new Location(sw, -68.5, 100.0, 4.5, 90.0f, 10.0f);
         if ("farm".equals(w) || "фарм".equals(w)) return new Location(sw, -80.0, 100.0, -34.5, 180.0f, 0.0f);
         if ("casino".equals(w) || "казино".equals(w)) return new Location(sw, -59.5, 100.0, 68.5, 90.0f, 0.0f);
@@ -1574,7 +1424,7 @@ public final class SpawnEngine {
     }
 
     public boolean isInSpawnWorld(Location loc) {
-        return loc != null && loc.getWorld() != null
+        return spawnActive && loc != null && loc.getWorld() != null
                 && loc.getWorld().getName().equalsIgnoreCase(VoidSpawnWorldGenerator.SPAWN_WORLD_NAME);
     }
 

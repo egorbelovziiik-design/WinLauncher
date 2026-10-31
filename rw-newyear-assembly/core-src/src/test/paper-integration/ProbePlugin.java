@@ -3,14 +3,11 @@ package net.kinggrief.probe;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipEntry;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -100,7 +97,7 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
     if (getConfig().getBoolean("expect-luckperms") && !Bukkit.getPluginManager().isPluginEnabled("LuckPerms"))
      throw new AssertionError("LuckPerms did not load");
     ResourcePackSettings.Pack rp=ResourcePackSettings.resolve(core.getConfig().getString("resourcepack-url"),core.getConfig().getString("resourcepack-sha1"));
-    if(!rp.upgraded || !rp.url.endsWith("v70.zip")) throw new AssertionError("old config not upgraded");
+    if(!rp.upgraded || !rp.url.endsWith("v72.zip")) throw new AssertionError("old config not upgraded");
     checkMigrated(p.getInventory().getItem(5),"join inventory");
     checkMigrated(p.getEnderChest().getItem(0),"join ender chest");
     ItemStack fresh=ItemFactory.totemSanty(3);
@@ -139,7 +136,7 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
       Runnable finish=() -> {
        try {
         testSpawnPreservation(core,p);
-        getLogger().info("KG-PROBE PASS: migration, v70 pack wire, main-thread chat, rank hierarchy, kits, TNT shop/effects, events, safe spawn/backup/restore" + (getConfig().getBoolean("expect-luckperms") ? (getConfig().getBoolean("mock-lp") ? ", mock LP hierarchy/sync" : ", real LuckPerms hierarchy/sync") : "") + (getConfig().getBoolean("mock-wg") ? ", mock WG regions" : ""));
+        getLogger().info("KG-PROBE PASS: migration, v72 pack wire, main-thread chat, rank hierarchy, kits, TNT shop/effects, events, safe spawn/backup/restore" + (getConfig().getBoolean("expect-luckperms") ? (getConfig().getBoolean("mock-lp") ? ", mock LP hierarchy/sync" : ", real LuckPerms hierarchy/sync") : "") + (getConfig().getBoolean("mock-wg") ? ", mock WG regions" : ""));
        } catch (Throwable t) { getLogger().severe("KG-PROBE FAIL: "+t); t.printStackTrace(); }
       };
       Runnable afterChat=() -> {
@@ -349,28 +346,12 @@ public final class ProbePlugin extends JavaPlugin implements Listener {
    chest=spawn.getBlockAt(50,101,50);
    if(!(chest.getState() instanceof Chest) || ((Chest)chest.getState()).getBlockInventory().getItem(0)==null) throw new AssertionError("failed backup damaged world");
   } finally { Files.delete(link); }
-  if(!core.getSpawnEngine().initializeSpawnWorldAndBuild(true)) throw new AssertionError("safe backup and rebuild failed");
-  File[] copies=new File(core.getDataFolder(),"backups").listFiles((dir,name)->name.endsWith(".zip"));
-  if(copies==null || copies.length!=1) throw new AssertionError("expected one verified backup");
-  Path restored=new File(Bukkit.getWorldContainer(),"kg_restore_probe").toPath().toAbsolutePath().normalize(); Files.createDirectories(restored);
-  try(ZipFile zip=new ZipFile(copies[0])) {
-   ZipEntry level=zip.getEntry("level.dat"), region=zip.getEntry("region/r.0.0.mca");
-   if(level==null || level.getSize()<64 || region==null || region.getSize()<64) throw new AssertionError("backup missing world data");
-   java.util.Enumeration<? extends ZipEntry> entries=zip.entries();
-   while(entries.hasMoreElements()) {
-    ZipEntry entry=entries.nextElement(); Path dest=restored.resolve(entry.getName()).normalize();
-    if(!dest.startsWith(restored)) throw new AssertionError("bad backup entry");
-    Files.createDirectories(dest.getParent());
-    try(InputStream in=zip.getInputStream(entry)) { Files.copy(in,dest); }
-   }
-  }
-  Files.deleteIfExists(restored.resolve("uid.dat"));
-  World copy=Bukkit.createWorld(new WorldCreator("kg_restore_probe").generator(new VoidSpawnWorldGenerator()));
-  if(copy==null) throw new AssertionError("backup did not load");
-  Block saved=copy.getBlockAt(50,101,50);
-  if(!(saved.getState() instanceof Chest) || ((Chest)saved.getState()).getBlockInventory().getItem(0)==null
-     || ((Chest)saved.getState()).getBlockInventory().getItem(0).getAmount()!=7) throw new AssertionError("backup restore lost chest contents");
-  Bukkit.unloadWorld(copy,false);
+  if(core.getSpawnEngine().initializeSpawnWorldAndBuild(true)) throw new AssertionError("unsafe immediate rebuild must remain disabled");
+  if(chest.getType()!=Material.CHEST || ((Chest)chest.getState()).getBlockInventory().getItem(0).getAmount()!=7)
+   throw new AssertionError("disabled immediate rebuild damaged user data");
+  // Queue/cancel, backup and recovery are exercised across real full server
+  // restarts by test-spawn-deferred.py rather than inside one server tick.
+
  }
  private static void check(Inventory inv,int slot,Material type,int cmd,String id){
   ItemStack item=inv.getItem(slot); ItemMeta meta=item.getItemMeta();

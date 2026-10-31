@@ -1,0 +1,5 @@
+name: KgCoinflipProbe
+version: 1.0
+main: net.kinggrief.probe.CoinflipProbe
+api-version: '1.20'
+depend: [KingGriefCore]

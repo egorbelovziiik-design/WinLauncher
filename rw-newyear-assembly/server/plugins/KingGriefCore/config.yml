@@ -4,8 +4,8 @@ enable-builtin-auth: true
 enable-builtin-tab-and-scoreboard: true
 # Paper отправляет ресурспак через server.properties; повторный запрос ядра отключён.
 push-resourcepack-on-join: false
-resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v70.zip"
-resourcepack-sha1: "8286228d4a1e0a95f56ad5fd265f12d1a57827be"
+resourcepack-url: "https://kinggrief.vercel.app/kinggrief-mega-rp-v72.zip"
+resourcepack-sha1: "1729e4f29ad7fded64ab2f23c8b27f783936cd3d"
 starting-coins: 5000.0
 starting-relics: 50
 

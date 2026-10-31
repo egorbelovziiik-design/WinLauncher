@@ -24,6 +24,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Zombie;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.EntityEquipment;
@@ -115,6 +116,22 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     private final Map<UUID, BukkitRunnable> activeMuteAnimTasks = new HashMap<UUID, BukkitRunnable>();
     private final Map<UUID, List<Entity>> activeMuteAnimEntities = new HashMap<UUID, List<Entity>>();
     private final Map<UUID, BukkitRunnable> activeBanAnimTasks = new HashMap<UUID, BukkitRunnable>();
+    // Pending actions must survive early exit and orderly server shutdown.
+    private final Map<UUID, Runnable> pendingBanActions = new HashMap<UUID, Runnable>();
+    private final Map<UUID, String> pendingBanIps = new HashMap<UUID, String>();
+    private final Map<UUID, BanPlayerState> banPlayerStates = new HashMap<UUID, BanPlayerState>();
+    private static final class BanPlayerState {
+        final float walkSpeed, flySpeed;
+        final PotionEffect invisibility, resistance;
+        int elapsedTicks;
+        boolean appliedInvisibility, appliedResistance;
+        BanPlayerState(Player p) {
+            walkSpeed = p.getWalkSpeed(); flySpeed = p.getFlySpeed();
+            invisibility = p.getPotionEffect(PotionEffectType.INVISIBILITY);
+            PotionEffectType resistType = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
+            resistance = resistType == null ? null : p.getPotionEffect(resistType);
+        }
+    }
     private final Map<UUID, List<Entity>> activeBanAnimEntities = new HashMap<UUID, List<Entity>>();
     private final Map<UUID, Map<Block, BlockData>> activeBanAnimPortals = new HashMap<UUID, Map<Block, BlockData>>();
     // v6.3.0: задачи анимаций РАЗБАНА теперь тоже отслеживаются (иначе порталы утекают при /reload)!
@@ -178,6 +195,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         for (UUID uid : new ArrayList<UUID>(activeBanAnimTasks.keySet())) {
             cleanupSantaBanAnimationFor(uid);
         }
+        // Shutdown ends the animation early; do not silently lose the ban.
+        for (UUID uid : new ArrayList<UUID>(pendingBanActions.keySet())) completePendingBan(uid);
         // v6.3.0: гасим анимации РАЗБАНА (задачи + возврат блоков портала) — раньше они утекали!
         for (BukkitRunnable ub : new ArrayList<BukkitRunnable>(activeUnbanAnimTasks)) {
             try { ub.cancel(); } catch (Throwable ignored) {}
@@ -198,13 +217,6 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             restorePortalBlocks(pe.getValue());
         }
         activeBanAnimPortals.clear();
-        // v6.3.0: никому не оставляем «замороженную» скорость ходьбы после выключения!
-        for (Player on : Bukkit.getOnlinePlayers()) {
-            try {
-                if (on.getWalkSpeed() < 0.05f) on.setWalkSpeed(0.2f);
-                if (on.getFlySpeed() < 0.02f) on.setFlySpeed(0.1f);
-            } catch (Throwable ignored) {}
-        }
         ascendingBanPlayers.clear();
     }
 
@@ -349,18 +361,17 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     }
 
     public void handleQuitDuringCheck(Player quitting) {
-        ascendingBanPlayers.remove(quitting.getUniqueId());
+        UUID quittingId = quitting.getUniqueId();
+        if (pendingBanActions.containsKey(quittingId)) {
+            cleanupSantaBanAnimationFor(quittingId);
+            completePendingBan(quittingId);
+        }
+        ascendingBanPlayers.remove(quittingId);
         cleanupMuteAnimationFor(quitting.getUniqueId());
         // v6.3.0: кляп убираем (на входе повесим заново, если мут ещё идёт) — иначе в мире остаётся мусор!
         clearMuteGag(quitting.getUniqueId());
-        // v6.3.0: КРИТИЧНО — возвращаем скорость ходьбы/полёта ДО сохранения player.dat,
-        // иначе игрок, вышедший во время бан-анимации, заходил бы навсегда «замороженным» (walkSpeed=0)!
-        try {
-            quitting.setWalkSpeed(0.2f);
-            quitting.setFlySpeed(0.1f);
-            quitting.removePotionEffect(PotionEffectType.INVISIBILITY);
-            ColorUtil.removePot(quitting, "resistance", "DAMAGE_RESISTANCE");
-        } catch (Throwable ignored) {}
+        // Ban-specific cleanup above restores the player's prior speed/effects
+        // before Paper writes player.dat. Ordinary quits must not reset them.
         // Save shift if quitting moderator was on /sw
         Long shiftStart = activeStaffShifts.remove(quitting.getUniqueId());
         if (shiftStart != null) {
@@ -926,12 +937,12 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         final List<Entity> spawned = new ArrayList<Entity>();
         activeMuteAnimEntities.put(victimId, spawned);
 
-        final Skeleton santa;
+        final SantaModel santa;
         final TextDisplay speechBubble;
         try {
-            // ЖИВАЯ 3D-МОДЕЛЬ Деда Мороза (скелет-база со скином, а не стойка!)
+            // Самостоятельная display-модель: не моб и не стойка.
             santa = spawnSantaModel(w, spawnPos, "tape");
-            spawned.add(santa);
+            spawned.addAll(santa.entities());
 
             speechBubble = w.spawn(spawnPos.clone().add(0.0, 2.38, 0.0), TextDisplay.class, new org.bukkit.util.Consumer<TextDisplay>() {
                 @Override
@@ -1272,7 +1283,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
      * «Умный шаг» живой модели: идёт к цели со скоростью speed блоков/тик, стоит НА земле,
      * плавно доворачивается, покачивается. Возвращает новую позицию модели.
      */
-    private Location walkModelTo(Skeleton model, Location target, double speed, int tick, boolean faceTarget) {
+    private Location walkModelTo(SantaModel model, Location target, double speed, int tick, boolean faceTarget) {
         World w = model.getWorld();
         Location cur = model.getLocation();
         Vector flat = target.toVector().subtract(cur.toVector()).setY(0.0);
@@ -1292,7 +1303,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         step.setYaw(yawLerp(cur.getYaw(), want, 0.38));
         step.setPitch(0.0f);
-        try { model.teleport(step); } catch (Throwable ignored) {}
+        try { model.walk(step, tick); } catch (Throwable ignored) {}
         return step;
     }
 
@@ -1373,16 +1384,25 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     public void playSantaBagBanAnimation(final Player victim, final String staffName, final String timeLabel, final String kickScreen, final Runnable banAction) {
         if (victim == null || !victim.isOnline() || victim.getWorld() == null) return;
         final UUID victimId = victim.getUniqueId();
+        // An interrupted prior animation must finish its pending action once.
         cleanupSantaBanAnimationFor(victimId);
+        completePendingBan(victimId);
+        if (banAction != null) pendingBanActions.put(victimId, banAction);
 
         final World w = victim.getWorld();
         final Location startLoc = victim.getLocation().clone();
 
+        BanPlayerState state = new BanPlayerState(victim);
+        banPlayerStates.put(victimId, state);
         ascendingBanPlayers.add(victimId);
         try { victim.leaveVehicle(); } catch (Throwable ignored) {}
         try { victim.setWalkSpeed(0.0f); victim.setFlySpeed(0.0f); } catch (Throwable ignored) {}
+        if (state.invisibility != null) victim.removePotionEffect(PotionEffectType.INVISIBILITY);
         ColorUtil.addPot(victim, "resistance", "DAMAGE_RESISTANCE", 460, 9);
-        // невидимость даётся ТОЛЬКО в момент посадки в мешок — до этого все видят игрока!
+        PotionEffectType resistanceType = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
+        PotionEffect currentResistance = resistanceType == null ? null : victim.getPotionEffect(resistanceType);
+        state.appliedResistance = currentResistance != null && currentResistance.getAmplifier() == 9;
+        // Until seating, the player is visible; saved effects are restored on cleanup.
 
         Vector fwd0 = startLoc.getDirection().setY(0.0);
         if (fwd0.lengthSquared() < 0.001) fwd0 = new Vector(0.0, 0.0, 1.0);
@@ -1398,11 +1418,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         // НОВОГОДНИЙ портал строится СРАЗУ — никаких пауз посреди анимации!
         final Location portalCenter = buildNewYearPortal(w, startLoc, approachDir, victimId);
 
-        final Skeleton santa;
+        final SantaModel santa;
         final TextDisplay bubble;
         try {
             santa = spawnSantaModel(w, santaSpawn, "staff");
-            ents.add(santa);
+            ents.addAll(santa.entities());
             // v6.3.0: Дед Мороз ГОВОРИТ — пузырь с репликами над головой (как в кино)!
             bubble = w.spawn(santaSpawn.clone().add(0.0, 2.45, 0.0), TextDisplay.class, new org.bukkit.util.Consumer<TextDisplay>() {
                 @Override
@@ -1419,7 +1439,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             ents.add(bubble);
         } catch (Throwable ex) {
             cleanupSantaBanAnimationFor(victimId);
-            if (banAction != null) { try { banAction.run(); } catch (Throwable ignored) {} }
+            completePendingBan(victimId);
             try { victim.kickPlayer(kickScreen); } catch (Throwable ignored) {}
             return;
         }
@@ -1445,6 +1465,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             public void run() {
                 try {
                     ticks++;
+                    state.elapsedTicks = ticks;
                     if (!victim.isOnline() || ticks > 300 || (phase < 3 && !santa.isValid())) {
                         finishUp(true);
                         return;
@@ -1492,7 +1513,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                             Location sk = sack.getLocation();
                             sk.setYaw(sk.getYaw() + 6.0f);
                             sk.setY(santa.getLocation().getY() + 0.35 + Math.sin(phaseTick * 0.3) * 0.05);
-                            try { sack.teleport(sk); } catch (Throwable ignored) {}
+                            try { moveSack(sack, sk); } catch (Throwable ignored) {}
                         }
                         Location face = victim.getLocation();
                         Location stand = santa.getLocation();
@@ -1526,7 +1547,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                                 sl.setY(step.getY() + 0.32 + Math.sin(phaseTick * 0.25) * 0.06);
                                 sl.setYaw(step.getYaw());
                                 sl.setPitch(10.0f);
-                                try { sack.teleport(sl); } catch (Throwable ignored) {}
+                                try { moveSack(sack, sl); } catch (Throwable ignored) {}
                             }
                             if (ticks % 10 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
                             stepFx(w, step, ticks, false);
@@ -1568,14 +1589,23 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 w.spawnParticle(Particle.SNOWFLAKE, vl.clone().add(0.0, 1.0, 0.0), 28, 0.5, 0.7, 0.5, 0.03);
                 try { victim.leaveVehicle(); } catch (Throwable ignored) {}
                 // СРАЗУ КЛАДЁМ В МЕШОК — мешок-модель надевается на игрока, голова торчит!
+                boolean seated = false;
                 try {
                     sack = spawnSackModel(w, vl, victim);
                     ents.add(sack);
-                } catch (Throwable ignored) {}
-                ColorUtil.addPot(victim, "invisibility", "INVISIBILITY", 420, 0);
-                if (sack != null) {
-                    try { sack.addPassenger(victim); } catch (Throwable ignored) {}
+                    seated = sack.addPassenger(victim);
+                } catch (Throwable error) {
+                    plugin.getLogger().warning("[Moderation] Could not seat player in sack: " + error.getClass().getSimpleName());
                 }
+                if (!seated) {
+                    if (sack != null) { try { sack.remove(); } catch (Throwable ignored) {} }
+                    sack = null;
+                    plugin.getLogger().warning("[Moderation] Sack seating was refused; player remains visible until the animation ends.");
+                    return;
+                }
+                // Never hide the target until a real passenger mount succeeds.
+                ColorUtil.addPot(victim, "invisibility", "INVISIBILITY", 420, 0);
+                state.appliedInvisibility = victim.hasPotionEffect(PotionEffectType.INVISIBILITY);
                 w.playSound(vl, "minecraft:block.wool.place", 1.4f, 0.8f);
                 w.playSound(vl, "minecraft:entity.player.burp", 1.2f, 0.7f);
                 w.spawnParticle(Particle.POOF, vl.clone().add(0.0, 0.9, 0.0), 26, 0.4, 0.5, 0.4, 0.04);
@@ -1612,7 +1642,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 Location fx = portalCenter != null ? portalCenter.clone() : santa.getLocation().clone();
                 try { santa.teleport(fx); } catch (Throwable ignored) {}
                 if (sack != null && sack.isValid()) {
-                    try { sack.teleport(fx.clone().add(0.0, 0.15, 0.0)); } catch (Throwable ignored) {}
+                    try { moveSack(sack, fx.clone().add(0.0, 0.15, 0.0)); } catch (Throwable ignored) {}
                 }
                 w.spawnParticle(Particle.FIREWORK, fx.clone().add(0.0, 1.2, 0.0), 70, 0.5, 1.0, 0.5, 0.35);
                 w.spawnParticle(Particle.PORTAL, fx.clone().add(0.0, 1.0, 0.0), 90, 0.45, 1.0, 0.45, 0.45);
@@ -1642,7 +1672,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 try { cleanupSantaBanAnimationFor(victimId); } catch (Throwable ignored) {}
                 if (kickNow) {
                     // БАН вступает в силу ТОЛЬКО ПОСЛЕ завершения анимации!
-                    if (banAction != null) { try { banAction.run(); } catch (Throwable ignored) {} }
+                    completePendingBan(victimId);
                     if (victim.isOnline()) { try { victim.kickPlayer(kickScreen); } catch (Throwable ignored) {} }
                 }
                 try { cancel(); } catch (Throwable ignored) {}
@@ -1650,7 +1680,56 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         };
 
         activeBanAnimTasks.put(victimId, task);
-        task.runTaskTimer(plugin, 0L, 1L);
+        try {
+            task.runTaskTimer(plugin, 0L, 1L);
+        } catch (RuntimeException error) {
+            cleanupSantaBanAnimationFor(victimId);
+            completePendingBan(victimId);
+            if (victim.isOnline()) victim.kickPlayer(kickScreen);
+        }
+    }
+
+    private void completePendingBan(UUID victimId) {
+        pendingBanIps.remove(victimId);
+        Runnable action = pendingBanActions.remove(victimId);
+        if (action == null) return;
+        try { action.run(); }
+        catch (Throwable error) { plugin.getLogger().severe("[Moderation] Pending ban failed: " + error); }
+    }
+
+    /** Paper must be asked explicitly to keep passengers when moving their sack. */
+    private static final class PassengerTeleport {
+        static final Method METHOD;
+        static final Object FLAGS;
+        static {
+            Method method = null;
+            Object flags = null;
+            try {
+                Class<?> flagType = Class.forName("io.papermc.paper.entity.TeleportFlag");
+                Class<?> stateType = Class.forName("io.papermc.paper.entity.TeleportFlag$EntityState");
+                Object retain = stateType.getField("RETAIN_PASSENGERS").get(null);
+                flags = Array.newInstance(flagType, 1);
+                Array.set(flags, 0, retain);
+                method = Entity.class.getMethod("teleport", Location.class,
+                        org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.class, flags.getClass());
+            } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+                flags = null;
+            }
+            METHOD = method;
+            FLAGS = flags;
+        }
+    }
+
+    private boolean moveSack(ArmorStand sack, Location destination) {
+        if (sack == null || !sack.isValid()) return false;
+        if (sack.getPassengers().isEmpty()) return sack.teleport(destination);
+        if (PassengerTeleport.METHOD == null || PassengerTeleport.FLAGS == null) return false;
+        try {
+            return Boolean.TRUE.equals(PassengerTeleport.METHOD.invoke(sack, destination,
+                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN, PassengerTeleport.FLAGS));
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            return false;
+        }
     }
 
     /** v6.3.0: МЕШОК-МОДЕЛЬ — компактное кожаное тело-мешок + голова нарушителя торчит сверху! */
@@ -1679,10 +1758,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(82, 48, 22)));
                     eq.setHelmet(victim != null ? victimHeadItem(victim)
                             : dyedLeather(Material.LEATHER_HELMET, Color.fromRGB(96, 56, 26)));
-                    eq.setChestplateDropChance(0.0f);
-                    eq.setLeggingsDropChance(0.0f);
-                    eq.setBootsDropChance(0.0f);
-                    eq.setHelmetDropChance(0.0f);
+                    // An armor stand is not a Mob: Paper rejects Mob equipment
+                    // drop-chance setters here. The invulnerable temporary sack
+                    // is explicitly removed without dropping equipment.
                 }
             }
         });
@@ -1783,11 +1861,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         final Location spawnLoc = findModelSpawnSpot(w, victim.getLocation(), fwd, 5.0);
         final List<Entity> ents = new ArrayList<Entity>();
         activeMuteAnimEntities.put(victimId, ents);
-        final Skeleton santa;
+        final SantaModel santa;
         final TextDisplay bubble;
         try {
             santa = spawnSantaModel(w, spawnLoc, "tape");
-            ents.add(santa);
+            ents.addAll(santa.entities());
             bubble = w.spawn(spawnLoc.clone().add(0.0, 2.38, 0.0), TextDisplay.class, new org.bukkit.util.Consumer<TextDisplay>() {
                 @Override
                 public void accept(TextDisplay td) {
@@ -1928,13 +2006,13 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         santaStart.setY(groundYAt(w, santaStart.getX(), santaStart.getY(), santaStart.getZ()));
         santaStart.setYaw(yawFacing(santaStart, goal));
         santaStart.setPitch(0.0f);
-        final Skeleton santa;
+        final SantaModel santa;
         final ArmorStand sack;
         final TextDisplay bubble;
         final List<Entity> ents = new ArrayList<Entity>();
         try {
             santa = spawnSantaModel(w, santaStart, "staff");
-            ents.add(santa);
+            ents.addAll(santa.entities());
             sack = spawnSackModel(w, santaStart.clone().add(0.0, 0.35, 0.0), onlineVictim);
             ents.add(sack);
             // v6.3.0: Дед Мороз ГОВОРИТ и на разбане!
@@ -1984,7 +2062,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                             sl.setY(step.getY() + 0.32 + Math.sin(ticks * 0.25) * 0.06);
                             sl.setYaw(step.getYaw());
                             sl.setPitch(10.0f);
-                            try { sack.teleport(sl); } catch (Throwable ignored) {}
+                            try { moveSack(sack, sl); } catch (Throwable ignored) {}
                         }
                         if (ticks % 10 == 0) { try { santa.swingMainHand(); } catch (Throwable ignored) {} }
                         stepFx(w, step, ticks, true);
@@ -1998,7 +2076,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                             Location gl = goal.clone();
                             gl.setY(groundYAt(w, gl.getX(), gl.getY(), gl.getZ()));
                             gl.setYaw(gl.getYaw() + 90.0f);
-                            try { sack.teleport(gl); } catch (Throwable ignored) {}
+                            try { moveSack(sack, gl); } catch (Throwable ignored) {}
                             w.playSound(gl, "minecraft:block.wool.place", 0.9f, 0.9f);
                         }
                         if (ticks == 36 || ticks == 44 || ticks == 52) {
@@ -2135,13 +2213,35 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             }
         }
         ascendingBanPlayers.remove(victimId);
+        BanPlayerState state = banPlayerStates.remove(victimId);
         Player v = Bukkit.getPlayer(victimId);
-        if (v != null && v.isOnline()) {
+        if (state != null && v != null && v.isOnline()) {
             try { v.leaveVehicle(); } catch (Throwable ignored) {}
-            try { v.setWalkSpeed(0.2f); v.setFlySpeed(0.1f); } catch (Throwable ignored) {}
-            try { v.removePotionEffect(PotionEffectType.INVISIBILITY); } catch (Throwable ignored) {}
-            try { ColorUtil.removePot(v, "resistance", "DAMAGE_RESISTANCE"); } catch (Throwable ignored) {}
+            try { v.setWalkSpeed(state.walkSpeed); v.setFlySpeed(state.flySpeed); } catch (Throwable ignored) {}
+            PotionEffectType resist = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
+            try {
+                if (state.appliedInvisibility) v.removePotionEffect(PotionEffectType.INVISIBILITY);
+                PotionEffect active = resist == null ? null : v.getPotionEffect(resist);
+                if (state.appliedResistance && active != null && active.getAmplifier() == 9) v.removePotionEffect(resist);
+                restorePreviousEffect(v, state.invisibility, state.elapsedTicks);
+                restorePreviousEffect(v, state.resistance, state.elapsedTicks);
+            } catch (Throwable ignored) {}
         }
+    }
+
+    private static void restorePreviousEffect(Player player, PotionEffect previous, int elapsedTicks) {
+        if (previous == null) return;
+        int duration = previous.getDuration();
+        if (duration >= 0) {
+            duration = Math.max(0, duration - Math.max(0, elapsedTicks));
+            if (duration == 0) return;
+        }
+        PotionEffect now = player.getPotionEffect(previous.getType());
+        if (now != null && (now.getAmplifier() > previous.getAmplifier()
+                || (now.getAmplifier() == previous.getAmplifier()
+                    && (now.getDuration() < 0 || (duration >= 0 && now.getDuration() >= duration))))) return;
+        player.addPotionEffect(new PotionEffect(previous.getType(), duration, previous.getAmplifier(),
+                previous.isAmbient(), previous.hasParticles(), previous.hasIcon()));
     }
 
     private float yawFacing(Location from, Location to) {
@@ -2199,51 +2299,44 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         return head;
     }
 
-    /**
-     * v6.1: ЕДИНАЯ ЖИВАЯ 3D-МОДЕЛЬ ДЕДА МОРОЗА (анимированный персонаж вместо стойки!) —
-     * настоящий скин- head, красная шуба из крашеной кожи, посох/скотч/мешок в руках.
-     * Используется и в мут-анимации, и в бан-анимации с мешком!
-     */
-    private Skeleton spawnSantaModel(World w, Location loc, final String handMode) {
-        return w.spawn(loc, Skeleton.class, new org.bukkit.util.Consumer<Skeleton>() {
-            @Override
-            public void accept(Skeleton zo) {
-                zo.setPersistent(false);
-                zo.addScoreboardTag("kg_mod_anim");
-                zo.setSilent(true);
-                zo.setInvulnerable(true);
-                zo.setGravity(false);
-                zo.setCanPickupItems(false);
-                zo.setRemoveWhenFarAway(false);
-                try { zo.setAI(false); } catch (Throwable ignored) {}
-                try { zo.setCollidable(false); } catch (Throwable ignored) {}
-                try { zo.setVisualFire(false); } catch (Throwable ignored) {}
-                zo.setCustomName(ColorUtil.c("&#FF1744&l🎅 ДЕД МОРОЗ"));
-                zo.setCustomNameVisible(true);
-                EntityEquipment eq = zo.getEquipment();
-                if (eq != null) {
-                    eq.setHelmet(getSantaHeadItem());
-                    eq.setChestplate(dyedLeather(Material.LEATHER_CHESTPLATE, Color.fromRGB(212, 24, 36)));
-                    eq.setLeggings(dyedLeather(Material.LEATHER_LEGGINGS, Color.fromRGB(190, 20, 32)));
-                    eq.setBoots(dyedLeather(Material.LEATHER_BOOTS, Color.fromRGB(28, 28, 32)));
-                    if ("tape".equals(handMode)) {
-                        eq.setItemInMainHand(namedItem(Material.IRON_BLOCK, "&#CFD8DC&l🧻 Серебристый скотч"));
-                        eq.setItemInOffHand(namedItem(Material.SHEARS, "&#FFD740&l✂ Ножницы Деда Мороза"));
-                    } else if ("bag".equals(handMode)) {
-                        eq.setItemInMainHand(getSackItem());
-                        eq.setItemInOffHand(namedItem(Material.IRON_BLOCK, "&#CFD8DC&l🧻 Скотч"));
-                    } else {
-                        eq.setItemInMainHand(namedItem(Material.BLAZE_ROD, "&#FFD740&l✨ Волшебный Посох"));
-                    }
-                    eq.setHelmetDropChance(0.0f);
-                    eq.setChestplateDropChance(0.0f);
-                    eq.setLeggingsDropChance(0.0f);
-                    eq.setBootsDropChance(0.0f);
-                    eq.setItemInMainHandDropChance(0.0f);
-                    eq.setItemInOffHandDropChance(0.0f);
-                }
-            }
-        });
+    /** A temporary, articulated display sculpture: never a mob or armor stand. */
+    private final class SantaModel {
+        private final NpcDisplayModel model;
+        private Location location;
+        private float armSwing, walkSwing;
+        SantaModel(World world, Location at, String handMode) {
+            ItemStack main = "tape".equals(handMode) ? namedItem(Material.IRON_BLOCK, "&#CFD8DC&lСкотч")
+                    : "bag".equals(handMode) ? getSackItem() : namedItem(Material.BLAZE_ROD, "&#FFD740&lПосох");
+            ItemStack off = "tape".equals(handMode) ? namedItem(Material.SHEARS, "&#FFD740&lНожницы") : null;
+            SpawnEngine.NpcDef definition = new SpawnEngine.NpcDef("santa", "", "", at.getX(), at.getY(), at.getZ(),
+                    at.getYaw(), SANTA_SKIN_HASH, Color.fromRGB(212, 24, 36), main, off, null, "");
+            location = at.clone();
+            model = new NpcDisplayModel(world, definition, getSantaHeadItem(), "kg_santa_actor", new HashSet<UUID>(), true);
+        }
+        List<Entity> entities() { return model.entities(); }
+        boolean isValid() { return model.isComplete(); }
+        Location getLocation() { return location.clone(); }
+        World getWorld() { return location.getWorld(); }
+        boolean teleport(Location destination) {
+            if (destination == null || !isValid() || !destination.getWorld().equals(getWorld())) return false;
+            armSwing *= .65f;
+            if (Math.abs(armSwing) < .02f) armSwing = 0f;
+            if (!model.move(destination, walkSwing, armSwing)) return false;
+            location = destination.clone();
+            return true;
+        }
+        void walk(Location destination, int tick) {
+            walkSwing = (float) (Math.sin(tick * .45) * .48);
+            teleport(destination);
+        }
+        void swingMainHand() {
+            armSwing = -.85f;
+            model.pose(location.getYaw(), armSwing, true);
+        }
+    }
+
+    private SantaModel spawnSantaModel(World world, Location location, String handMode) {
+        return new SantaModel(world, location, handMode);
     }
 
     public boolean handleTimedBanWithAscension(CommandSender sender, String[] args) {
@@ -2257,6 +2350,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         String targetName = args[0];
         if (!canPunishTarget(sender, targetName)) return true;
+        Player alreadyAnimating = Bukkit.getPlayerExact(targetName);
+        if (alreadyAnimating != null && pendingBanActions.containsKey(alreadyAnimating.getUniqueId())) {
+            sender.sendMessage(ColorUtil.c("&eБан-анимация этого игрока уже идёт; дождитесь окончания."));
+            return true;
+        }
 
         long durMs;
         String reason;
@@ -2374,6 +2472,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.c("&eИспользование: &f/unban <игрок>"));
             return true;
         }
+        Player pendingTarget = Bukkit.getPlayerExact(args[0]);
+        if (pendingTarget != null && pendingBanActions.remove(pendingTarget.getUniqueId()) != null) {
+            pendingBanIps.remove(pendingTarget.getUniqueId());
+            cleanupSantaBanAnimationFor(pendingTarget.getUniqueId());
+        }
         plugin.getStore().unban(args[0]);
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Модератор &f" + sender.getName() + " &#00E676разбанил игрока &f" + args[0] + "&#00E676."));
         // v6.1.4: АНИМАЦИЯ РАЗБАНА — Дед Мороз выносит мешок из портала и развязывает его!
@@ -2384,11 +2487,26 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         } else if (sender instanceof Player) {
             unbanLoc = ((Player) sender).getLocation();
         } else {
-            World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-            unbanLoc = sw != null ? sw.getSpawnLocation() : null;
+            unbanLoc = loadedSpawnForConsoleAnimation();
         }
         if (unbanLoc != null) playSantaUnbanAnimation(unbanLoc, args[0], sender.getName(), unbOnline);
         return true;
+    }
+
+    /** Console/offline unbans must not load terrain just to play an unseen animation. */
+    private Location loadedSpawnForConsoleAnimation() {
+        if (!plugin.getSpawnEngine().isSpawnActive()) return null;
+        Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+        if (arrival == null || arrival.getWorld() == null) return null;
+        // The portal is built seven blocks away and up to three blocks wide.
+        // Check the whole footprint, not only the arrival's own chunk.
+        World world = arrival.getWorld();
+        for (int cx = (arrival.getBlockX() - 12) >> 4; cx <= (arrival.getBlockX() + 12) >> 4; cx++) {
+            for (int cz = (arrival.getBlockZ() - 12) >> 4; cz <= (arrival.getBlockZ() + 12) >> 4; cz++) {
+                if (!world.isChunkLoaded(cx, cz)) return null;
+            }
+        }
+        return arrival;
     }
 
     // ================= v5.9: МУТ ПО IP (/muteip, /unmuteip), БАН ПО IP (/banip, /unbanip), ТВИНКИ (/dupeip), ВАРНЫ (/warn), ИСТОРИЯ (/history) =================
@@ -2484,6 +2602,11 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         String rawTarget = args[0];
         if (!DataStore.looksLikeIp(rawTarget) && !canPunishTarget(sender, rawTarget)) return true;
+        Player alreadyAnimating = DataStore.looksLikeIp(rawTarget) ? null : Bukkit.getPlayerExact(rawTarget);
+        if (alreadyAnimating != null && pendingBanActions.containsKey(alreadyAnimating.getUniqueId())) {
+            sender.sendMessage(ColorUtil.c("&eБан-анимация этого игрока уже идёт; дождитесь окончания."));
+            return true;
+        }
 
         final String ip = plugin.getStore().resolveIpForTarget(rawTarget);
         if (ip.isEmpty()) {
@@ -2528,18 +2651,25 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             }
         };
 
-        // Kick ALL online accounts sharing this IP (with sky animation on main target if online!)
-        final String finalReason = reason;
+        // The named online target gets the animation; the IP block is already
+        // active. Other accounts on the IP are kicked immediately. An offline
+        // named target (or a literal IP) has no animation, so the deferred
+        // action must run here rather than being silently lost.
         Player primaryOnline = DataStore.looksLikeIp(rawTarget) ? null : Bukkit.getPlayerExact(rawTarget);
+        boolean animationStarted = primaryOnline != null && primaryOnline.isOnline();
+        if (animationStarted) {
+            executeBanSkyAnimationOnly(primaryOnline, staffName, timeLabel,
+                    buildIpBanKickScreen(staffName, timeLabel, reason, targetLabel), deferredBan);
+            if (pendingBanActions.containsKey(primaryOnline.getUniqueId()))
+                pendingBanIps.put(primaryOnline.getUniqueId(), ip);
+        }
         for (Player on : new ArrayList<Player>(Bukkit.getOnlinePlayers())) {
+            if (primaryOnline != null && on.equals(primaryOnline)) continue;
             if (!ip.equalsIgnoreCase(plugin.getStore().getPlayerIp(on))) continue;
             if (plugin.getRanks().isOwnerLevel(on)) continue;
-            if (primaryOnline != null && on.equals(primaryOnline)) {
-                executeBanSkyAnimationOnly(on, staffName, timeLabel, buildIpBanKickScreen(staffName, timeLabel, finalReason, targetLabel), deferredBan);
-            } else {
-                on.kickPlayer(buildIpBanKickScreen(staffName, timeLabel, finalReason, targetLabel));
-            }
+            on.kickPlayer(buildIpBanKickScreen(staffName, timeLabel, reason, targetLabel));
         }
+        if (!animationStarted) deferredBan.run();
         return true;
     }
 
@@ -2561,6 +2691,22 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.c("&eИспользование: &f/unbanip <игрок | IP>"));
             return true;
         }
+        if (!DataStore.looksLikeIp(args[0])) {
+            Player pendingTarget = Bukkit.getPlayerExact(args[0]);
+            if (pendingTarget != null && pendingBanActions.remove(pendingTarget.getUniqueId()) != null) {
+                pendingBanIps.remove(pendingTarget.getUniqueId());
+                cleanupSantaBanAnimationFor(pendingTarget.getUniqueId());
+            }
+        } else {
+            // Removing an IP block during its animation must not let the
+            // deferred name action silently re-ban the target afterward.
+            for (Map.Entry<UUID, String> entry : new ArrayList<Map.Entry<UUID, String>>(pendingBanIps.entrySet())) {
+                if (!args[0].equalsIgnoreCase(entry.getValue())) continue;
+                pendingBanIps.remove(entry.getKey());
+                pendingBanActions.remove(entry.getKey());
+                cleanupSantaBanAnimationFor(entry.getKey());
+            }
+        }
         boolean removedIp = plugin.getStore().unbanIp(args[0]);
         if (!DataStore.looksLikeIp(args[0])) plugin.getStore().unban(args[0]);
         if (!removedIp) {
@@ -2576,8 +2722,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         } else if (sender instanceof Player) {
             unbanIpLoc = ((Player) sender).getLocation();
         } else {
-            World sw2 = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-            unbanIpLoc = sw2 != null ? sw2.getSpawnLocation() : null;
+            unbanIpLoc = loadedSpawnForConsoleAnimation();
         }
         if (unbanIpLoc != null) playSantaUnbanAnimation(unbanIpLoc, args[0], sender.getName(), unbIpOnline);
         return true;
@@ -2822,7 +2967,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 SpekReturnState st = spekReturns.remove(p.getUniqueId());
                 if (st == null) {
                     p.setGameMode(GameMode.SURVIVAL);
-                    p.teleport(plugin.getSpawnEngine().getSpawnArrival());
+                    Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+                    if (arrival != null) p.teleport(arrival);
+                    else p.sendMessage(ColorUtil.c("&eСпавн недоступен: вы остались на текущем месте."));
                 } else {
                     p.teleport(st.prevLoc);
                     p.setGameMode(st.prevMode);

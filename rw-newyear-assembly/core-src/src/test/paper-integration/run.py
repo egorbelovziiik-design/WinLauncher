@@ -94,23 +94,6 @@ def build_mock_plugin(args, root, short_name, plugin_name):
 
 
 def launch_and_check(args, server, port):
-    if args.existing_unknown and args.prebuilt:
-        # A requested install over an incomplete world must stop the server
-        # without loading it or creating a level.dat/backup.
-        result = subprocess.run([args.java, "-Xms512M", "-Xmx1536M", "-jar", str(args.paper.resolve()), "nogui"],
-                                cwd=server, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, text=True, timeout=360)
-        world = server / "spawn_world"
-        good = (result.returncode == 0 and "Prepared spawn NOT installed" in result.stdout
-                and "Server is stopping after a failed spawn install" in result.stdout
-                and sorted(p.name for p in world.iterdir()) == ["kg-user-data.txt"]
-                and (world / "kg-user-data.txt").read_text(encoding="utf-8") == "user data must remain"
-                and not list(server.glob("spawn_world_backup_*")))
-        if not good:
-            print("\n--- SERVER LOG TAIL ---\n" + "\n".join(result.stdout.splitlines()[-150:]), file=sys.stderr)
-        else:
-            print("SERVER ASSERTIONS: incomplete old spawn left untouched; server stopped safely")
-        return good
     process = subprocess.Popen([args.java, "-Xms512M", "-Xmx1536M", "-jar", str(args.paper.resolve()), "nogui"],
                                cwd=server, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True, bufsize=1)
@@ -232,6 +215,7 @@ def main():
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
         if args.prebuilt:
             shutil.copy2(args.prebuilt, server / "plugins/KingGriefCore/spawn-v71-template.zip")
+        if args.prebuilt or args.existing_unknown:
             probe_config = server / "plugins/KgProbe/config.yml"
             probe_config.parent.mkdir(parents=True, exist_ok=True)
             probe_config.write_text("expect-untouched: true\n" if args.existing_unknown else "expect-prebuilt: true\n", encoding="utf-8")

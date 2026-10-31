@@ -155,6 +155,8 @@ def main():
         shutil.copy2(args.core, server / "plugins/KingGriefCore.jar")
         shutil.copy2(args.template, data / "spawn-v71-template.zip")
         shutil.copy2(preload_jar, server / "plugins/KgSpawnPreloadProbe.jar")
+        # 7.2 never replaces an existing world merely because a template exists.
+        (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
         run_server(args, server, "installed")
         (server / "plugins/KgSpawnPreloadProbe.jar").unlink()
         run_server(args, server, "repeat")
@@ -163,8 +165,12 @@ def main():
         backup = next(server.glob("spawn_world_backup_*"))
         (server / "spawn_world").rename(server / "spawn_world_new_after_install")
         shutil.copytree(backup, server / "spawn_world")
+        # Deliberately load the restored legacy world; 7.2 leaves it to the operator.
+        shutil.copy2(preload_jar, server / "plugins/KgSpawnPreloadProbe.jar")
         run_server(args, server, "restored")
+        (server / "plugins/KgSpawnPreloadProbe.jar").unlink()
         (data / ".spawn-v70-template-installed").unlink()
+        (data / ".spawn-v72-rebuild-pending").write_text("v71\n", encoding="ascii")
         (data / "spawn-v71-template.zip").write_bytes(b"intentionally corrupted template")
         old_files = fingerprint(server / "spawn_world")
         run_server(args, server, "corrupt")

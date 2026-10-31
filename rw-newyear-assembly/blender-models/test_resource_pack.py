@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the generated pack against KingGriefCore without a running server.
 
-Run after build_rp_v70.py: python3 test_resource_pack.py
+Run after build_rp_v72.py: python3 test_resource_pack.py
 Pillow is required only for the pixel-visibility test.
 """
 from __future__ import annotations
@@ -14,12 +14,13 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PACK = HERE.parent / "kinggrief-mega-rp-v70.zip"
+PACK = HERE.parent / "kinggrief-mega-rp-v72.zip"
+V70_PACK = HERE.parent / "kinggrief-mega-rp-v70.zip"
 V65_PACK = HERE.parent / "kinggrief-mega-rp-v65.zip"
 RANK_PACK = HERE.parent.parent / "kinggrief-ranks-pack/kinggrief-ranks-pack-v66.zip"
 V64_PACK = HERE.parent / "kinggrief-mega-rp-v64.zip"
 JAVA_DIR = HERE.parent / "core-src/src/main/java/net/kinggrief/core"
-MAPPING = json.loads((HERE / "item-model-map-v70.json").read_text(encoding="utf-8"))
+MAPPING = json.loads((HERE / "item-model-map-v72.json").read_text(encoding="utf-8"))
 FALLBACKS = json.loads((HERE / "vanilla-item-fallbacks.json").read_text(encoding="utf-8"))
 
 
@@ -158,10 +159,10 @@ def declared_models() -> set[tuple[str, int, str]]:
     for index, scroll in enumerate(re.findall(r'"([a-z_]+)"', ids.group(1))):
         found.add(("PAPER", 1400 + index, f"scroll_{scroll}"))
 
-    # v7 runes are a bounded 20x5 catalogue with stable IDs and model values.
+    # Original runes and new artifacts have stable, continuous IDs and model values.
     winter = (JAVA_DIR / "WinterItemsManager.java").read_text(encoding="utf-8")
     assert '"winter_rune_%03d"' in winter and '3000 + number' in winter
-    for number in range(1, 101):
+    for number in range(1, 151):
         found.add(("AMETHYST_SHARD", 3000 + number, f"winter_rune_{number:03d}"))
 
     # Other classes currently create menu icons without model IDs. Flag future
@@ -222,6 +223,25 @@ class ResourcePackTests(unittest.TestCase):
             if name.endswith((".json", ".mcmeta")):
                 with self.subTest(path=name):
                     self.load(name)
+
+    def test_legacy_collection_is_preserved_and_new_textures_are_distinct(self):
+        import hashlib
+        with zipfile.ZipFile(V70_PACK) as old:
+            expected_changed = {"pack.mcmeta", "assets/minecraft/models/item/amethyst_shard.json",
+                                "assets/minecraft/items/amethyst_shard.json"}
+            for path in old.namelist():
+                if path.endswith("/") or path in expected_changed:
+                    continue
+                self.assertEqual(old.read(path), self.z.read(path), path)
+            self.assertEqual(hashlib.sha1(V70_PACK.read_bytes()).hexdigest(), "8286228d4a1e0a95f56ad5fd265f12d1a57827be")
+        digests = {hashlib.sha256(self.z.read(f"assets/kinggrief/textures/item/winter_rune_{n:03d}.png")).digest()
+                   for n in range(101, 151)}
+        self.assertEqual(len(digests), 50, "every new artifact has an original texture")
+        legacy = self.load("assets/minecraft/models/item/amethyst_shard.json")["overrides"]
+        self.assertEqual(legacy[-1], {"predicate": {"custom_model_data": 3151},
+                                      "model": "kinggrief:item/vanilla_amethyst_shard"})
+        fallback = self.load("assets/kinggrief/models/item/vanilla_amethyst_shard.json")
+        self.assertEqual(fallback["textures"]["layer0"], "minecraft:item/amethyst_shard")
 
     def test_mapping_matches_core_itemfactory(self):
         mapped = {(material, int(cmd), item) for material, entries in MAPPING.items() for cmd, item in entries}
@@ -379,6 +399,8 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual((public / V64_PACK.name).read_bytes(), V64_PACK.read_bytes())
         self.assertEqual(hashlib.sha1(V65_PACK.read_bytes()).hexdigest(), "fc61175f0692ab85486898160dce223097aa4382")
         self.assertEqual((public / V65_PACK.name).read_bytes(), V65_PACK.read_bytes())
+        self.assertEqual(hashlib.sha1(V70_PACK.read_bytes()).hexdigest(), "8286228d4a1e0a95f56ad5fd265f12d1a57827be")
+        self.assertEqual((public / V70_PACK.name).read_bytes(), V70_PACK.read_bytes())
         old_v66 = HERE.parent / "kinggrief-mega-rp-v66.zip"
         self.assertEqual(hashlib.sha1(old_v66.read_bytes()).hexdigest(), "63461884bd573de19a043f11b5982a34536e47d9")
         self.assertEqual((public / old_v66.name).read_bytes(), old_v66.read_bytes())
@@ -406,6 +428,8 @@ class DistributionTests(unittest.TestCase):
                      HERE.parent / "server/plugins/KingGriefCore.jar"):
             self.assertEqual(file.read_bytes(), core_jar)
         self.assertEqual((public / "KingHub.jar").read_bytes(), (HERE.parent / "KingHub.jar").read_bytes())
+        self.assertEqual((public / "KingHub-v1.2.3.jar").read_bytes(), (public / "KingHub.jar").read_bytes())
+        self.assertEqual((public / "KingHub-v1.2.2.jar").read_bytes(), (HERE.parent / "KingHub-v1.2.2.jar").read_bytes())
         update = HERE.parent / f"KingGriefCore-{core_version}-update.zip"
         self.assertEqual(update.read_bytes(), (public / update.name).read_bytes())
         with zipfile.ZipFile(update) as patch:
@@ -429,7 +453,7 @@ class DistributionTests(unittest.TestCase):
         with zipfile.ZipFile(hotfix) as patch:
             self.assertEqual(patch.read("KingGriefCore.jar"), (public / "KingGriefCore-v6.6.4.jar").read_bytes())
         for name, version, default in (("KingGriefCore.jar", core_version, core_default),
-                                       ("KingHub.jar", "1.2.2", hub_default)):
+                                       ("KingHub.jar", "1.2.3", hub_default)):
             with zipfile.ZipFile(public / name) as jar:
                 self.assertIsNone(jar.testzip())
                 self.assertIn(f"version: {version}", jar.read("plugin.yml").decode("utf-8"))
@@ -437,7 +461,7 @@ class DistributionTests(unittest.TestCase):
                 self.assertIn("net/kinggrief/common/ResourcePackSettings.class", jar.namelist())
                 self.assertFalse(any(path.startswith("org/bukkit/") for path in jar.namelist()), "test fixtures leaked into JAR")
 
-        assembly = HERE.parent / "rw-newyear-full-assembly-v7.1.0.zip"
+        assembly = HERE.parent / "rw-newyear-full-assembly-v7.2.0.zip"
         self.assertEqual(assembly.read_bytes(), (public / assembly.name).read_bytes())
         with zipfile.ZipFile(assembly) as z:
             self.assertIsNone(z.testzip())
@@ -469,8 +493,9 @@ class DistributionTests(unittest.TestCase):
         self.assertEqual((repo / "kinggrief/public/kinggrief-spawn-v71.zip").read_bytes(), data)
         with zipfile.ZipFile(HERE.parent / "server/plugins/KingGriefCore.jar") as jar:
             self.assertEqual(jar.read("spawn_v71_template.sha256").decode("ascii").strip(), digest)
+            self.assertEqual(hashlib.sha256(jar.read("spawn_v71_template.zip")).hexdigest(), digest)
             self.assertIn("net/kinggrief/core/PreparedSpawnInstaller.class", jar.namelist())
-        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.1.0.zip") as assembly:
+        with zipfile.ZipFile(HERE.parent / "rw-newyear-full-assembly-v7.2.0.zip") as assembly:
             self.assertEqual(assembly.read("plugins/KingGriefCore/spawn-v71-template.zip"), data)
             self.assertFalse(any(name.startswith("spawn_world/") for name in assembly.namelist()))
         with zipfile.ZipFile(io.BytesIO(data)) as world:

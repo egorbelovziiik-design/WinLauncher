@@ -172,7 +172,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         }
 
         startHubTasks();
-        getLogger().info("KingHub v1.2.2 enabled! New Year Map ready in '" + hubWorld.getName()
+        getLogger().info("KingHub v1.2.3 enabled! New Year Map ready in '" + hubWorld.getName()
                 + "', Target Grief1=" + griefHost + ":" + griefPort);
     }
 

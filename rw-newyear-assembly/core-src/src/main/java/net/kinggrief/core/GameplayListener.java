@@ -534,8 +534,10 @@ public final class GameplayListener implements Listener {
         }
 
         // First join or if standing in spawn_world -> ensure clean arrival on spawn_world
-        if (!p.hasPlayedBefore() || plugin.getSpawnEngine().isInSpawnWorld(p.getLocation())) {
-            p.teleport(plugin.getSpawnEngine().getSpawnArrival());
+        if (plugin.getSpawnEngine().isSpawnActive()
+                && (!p.hasPlayedBefore() || plugin.getSpawnEngine().isInSpawnWorld(p.getLocation()))) {
+            Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+            if (arrival != null) p.teleport(arrival);
         }
 
         // Only known official old URL/hash pairs are upgraded; custom packs
@@ -574,7 +576,10 @@ public final class GameplayListener implements Listener {
             if (plugin.getStore().trySessionAutoLogin(p)) {
                 p.sendMessage(ColorUtil.c("&#00E676✔ Автоматический вход по сессии выполнен! Приятной игры!"));
             } else {
-                p.teleport(plugin.getSpawnEngine().getSpawnArrival());
+                if (plugin.getSpawnEngine().isSpawnActive()) {
+                    Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+                    if (arrival != null) p.teleport(arrival);
+                }
                 boolean reg = plugin.getStore().isRegistered(p.getName());
                 p.sendTitle(ColorUtil.c("&#80D8FF&l❄ KINGGRIEF v6.4.0 ❄"),
                         ColorUtil.c(reg ? "&eВведите: &f/login <пароль>" : "&aВведите: &f/register <пароль> <повтор>"), 10, 120, 10);
@@ -662,7 +667,10 @@ public final class GameplayListener implements Listener {
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent e) {
-        e.setRespawnLocation(plugin.getSpawnEngine().getSpawnArrival());
+        if (plugin.getSpawnEngine().isSpawnActive()) {
+            Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+            if (arrival != null) e.setRespawnLocation(arrival);
+        }
     }
 
     // ================= ЗАЩИТА ДО АВТОРИЗАЦИИ И ЗАМОРОЗКА НА ПРОВЕРКЕ /check ИЛИ /freeze =================
@@ -719,7 +727,9 @@ public final class GameplayListener implements Listener {
         if (plugin.getSpawnEngine().isInSpawnWorld(loc)) {
             // Разрешено копать руду ТОЛЬКО внутри ямы Авто-Шахты (/warp mine)
             if (plugin.getSpawnEngine().isInsideAutoMine(loc)) {
-                handleAutoMineBreak(e, p, b);
+                // Secondary breaks only ask every protection listener for permission.
+                if (drillGuard.contains(p.getUniqueId())) return;
+                scheduleAutoMineBreak(e, p, b);
                 return;
             }
             // Во всех остальных точках спавна ломать может СТРОГО ТОЛЬКО OWNER в CREATIVE!
@@ -770,41 +780,32 @@ public final class GameplayListener implements Listener {
         ItemStack tool = p.getInventory().getItemInMainHand();
         String toolId = ItemFactory.getCustomId(tool);
 
-        // 4. Божье Прикосновение (добыча Спавнера!)
+        // Secondary synthetic events still pass through the checks above, but must not recurse into tools/rewards.
+        if (drillGuard.contains(p.getUniqueId())) return;
+
+        // A later protection plugin may cancel this central break. Do not consume the tool
+        // or grant rewards until vanilla has actually removed the block.
         if (b.getType() == Material.SPAWNER && "pick_spawner".equals(toolId)) {
-            EntityType spawned = EntityType.PIG;
-            if (b.getState() instanceof CreatureSpawner) {
-                CreatureSpawner cs = (CreatureSpawner) b.getState();
-                if (cs.getSpawnedType() != null) spawned = cs.getSpawnedType();
-            }
-            e.setExpToDrop(0);
-            ItemStack drop = ItemFactory.make(Material.SPAWNER, 1,
-                    "&#FFD740&l🔥 Рассадник Мобов [" + spawned.name() + "]",
-                    Arrays.asList("&7Добыт киркой Божье Прикосновение РВ!", "&7Поставь на базе для спавна мобов."),
-                    true, "saved_spawner", null, 0);
-            ItemMeta dm = drop.getItemMeta();
-            if (dm != null) {
-                dm.getPersistentDataContainer().set(SPAWNER_TYPE_KEY, PersistentDataType.STRING, spawned.name());
-                drop.setItemMeta(dm);
-            }
-            b.getWorld().dropItemNaturally(loc.add(0.5, 0.5, 0.5), drop);
-            p.getInventory().setItemInMainHand(null);
-            ColorUtil.sound(p, "entity.item.break", 1f, 0.9f);
-            p.sendMessage(ColorUtil.c("&#00E676✨ Вы успешно добыли спавнер [" + spawned.name() + "] Божьим Прикосновением!"));
+            scheduleSpawnerBreak(e, p, b, tool);
             return;
         }
-
-        // 5. СИСТЕМА 12 КАСТОМНЫХ 3D КИРОК И МОЛОТОВ v5.8 (Кирка Крушителя 3×3, Молот OWNER 10×10, Бур 5×5, Жильная, Мидас, Гефест и др.)!
-        if (toolId != null && !drillGuard.contains(p.getUniqueId())) {
-            drillGuard.add(p.getUniqueId());
-            try {
-                if (handleCustomPickaxeBreak(e, p, b, tool, toolId)) {
-                    plugin.getStore().addMined(p.getName());
-                    return;
+        if (isCustomMiningTool(toolId, b.getType())) {
+            final Material original = b.getType();
+            final ItemStack originalTool = tool.clone();
+            final String originalId = toolId;
+            e.setDropItems(false);
+            e.setExpToDrop(0);
+            Bukkit.getScheduler().runTask(plugin, new Runnable() {
+                @Override public void run() {
+                    if (e.isCancelled() || e.isDropItems() || !b.getType().isAir()) return;
+                    drillGuard.add(p.getUniqueId());
+                    try {
+                        if (handleCustomPickaxeBreak(p, b, originalTool, originalId, original))
+                            plugin.getStore().addMined(p.getName());
+                    } finally { drillGuard.remove(p.getUniqueId()); }
                 }
-            } finally {
-                drillGuard.remove(p.getUniqueId());
-            }
+            });
+            return;
         }
 
         // v6.4.0: зачарование «Авто-Плавка» (свиток) работает на ЛЮБОЙ кирке и везде, кроме авто-шахты.
@@ -915,19 +916,30 @@ public final class GameplayListener implements Listener {
         return 5.0 * mult;
     }
 
-    private void handleAutoMineBreak(BlockBreakEvent e, Player p, Block b) {
-        Material m = b.getType();
-        if (m == Material.COBBLESTONE || m == Material.BEDROCK) {
-            e.setCancelled(true);
+    private void scheduleAutoMineBreak(final BlockBreakEvent event, final Player player, final Block center) {
+        final Material original = center.getType();
+        // Never turn containers/tile entities into generic mine rewards.
+        if (center.getState() instanceof org.bukkit.block.TileState) return;
+        if (original == Material.COBBLESTONE || original == Material.BEDROCK) {
+            event.setCancelled(true);
             return;
         }
-        e.setDropItems(false);
-        e.setExpToDrop(0);
-        ItemStack tool = p.getInventory().getItemInMainHand();
-        String tid = ItemFactory.getCustomId(tool);
+        final String toolId = ItemFactory.getCustomId(player.getInventory().getItemInMainHand());
+        event.setDropItems(false);
+        event.setExpToDrop(0);
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override public void run() {
+                if (event.isCancelled() || event.isDropItems() || !center.getType().isAir()) return;
+                drillGuard.add(player.getUniqueId());
+                try { handleAutoMineBreak(player, center, original, toolId); }
+                finally { drillGuard.remove(player.getUniqueId()); }
+            }
+        });
+    }
+
+    private void handleAutoMineBreak(Player p, Block b, Material m, String tid) {
         int bonusMult = autoMineBonus(tid);
         Material base = autoMineBaseOre(m);
-
         Map<Material, Integer> tally = new HashMap<Material, Integer>();
         double[] acc = new double[2]; // acc[0] = монеты за добуренные блоки, acc[1] = опыт
 
@@ -948,7 +960,7 @@ public final class GameplayListener implements Listener {
         // 2) v6.4.0: БУРЕНИЕ В АВТО-ШАХТЕ (3×3, туннель 5×5, куб 3×3×3, молот OWNER, жила до 32)
         int extra = 0;
         if (tid != null && !p.isSneaking()) {
-            if ("pick_vein".equals(tid)) extra = drillAutoMineVein(p, b, bonusMult, tally, acc);
+            if ("pick_vein".equals(tid)) extra = drillAutoMineVein(p, b, m, bonusMult, tally, acc);
             else extra = drillAutoMineArea(p, b, tid, bonusMult, tally, acc);
         }
         coins += acc[0];
@@ -1030,15 +1042,20 @@ public final class GameplayListener implements Listener {
                     else { dx = a; dy = bOff; dz = 0; }
                     if (dx == 0 && dy == 0 && dz == 0) continue;
                     Block t = w.getBlockAt(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
+                    if (!w.isChunkLoaded(t.getX() >> 4, t.getZ() >> 4)) continue;
                     Material tm = t.getType();
+                    if (t.getState() instanceof org.bukkit.block.TileState) continue;
                     if (tm == Material.AIR || tm == Material.CAVE_AIR || tm == Material.COBBLESTONE
                             || tm == Material.BEDROCK || tm == Material.BARRIER) continue;
                     if (!plugin.getSpawnEngine().isInsideAutoMine(t.getLocation())) continue;
+                    BlockBreakEvent allowed = breakDrillBlock(p, t, tm);
+                    if (allowed == null) continue;
                     Material tb = autoMineBaseOre(tm);
-                    addLootBundled(tally, autoMineDrop(tb, dropMult));
-                    acc[0] += autoMineCoins(tb, mult) * 0.5;
+                    if (allowed.isDropItems()) {
+                        addLootBundled(tally, autoMineDrop(tb, dropMult));
+                        acc[0] += autoMineCoins(tb, mult) * 0.5;
+                    }
                     acc[1] += 2;
-                    t.setType(Material.AIR, false);
                     count++;
                 }
             }
@@ -1051,9 +1068,8 @@ public final class GameplayListener implements Listener {
     }
 
     /** v6.4.0: Жильная кирка в Авто-Шахте вынимает ВСЮ жилу руды (до 32 блоков) прямо из ямы. */
-    private int drillAutoMineVein(Player p, Block center, int mult,
+    private int drillAutoMineVein(Player p, Block center, Material target, int mult,
                                   Map<Material, Integer> tally, double[] acc) {
-        Material target = center.getType();
         String tn = target.name();
         if (!tn.endsWith("_ORE") && target != Material.ANCIENT_DEBRIS) return 0;
         World w = center.getWorld();
@@ -1067,11 +1083,14 @@ public final class GameplayListener implements Listener {
             if (!cur.equals(center)) {
                 if (cur.getType() != target) continue;
                 if (!plugin.getSpawnEngine().isInsideAutoMine(cur.getLocation())) continue;
+                BlockBreakEvent allowed = breakDrillBlock(p, cur, target);
+                if (allowed == null) continue;
                 Material tb = autoMineBaseOre(target);
-                addLootBundled(tally, autoMineDrop(tb, mult));
-                acc[0] += autoMineCoins(tb, mult) * 0.5;
+                if (allowed.isDropItems()) {
+                    addLootBundled(tally, autoMineDrop(tb, mult));
+                    acc[0] += autoMineCoins(tb, mult) * 0.5;
+                }
                 acc[1] += 3;
-                cur.setType(Material.AIR, false);
                 count++;
             }
             for (int dx = -1; dx <= 1; dx++) {
@@ -1079,6 +1098,7 @@ public final class GameplayListener implements Listener {
                     for (int dz = -1; dz <= 1; dz++) {
                         if (dx == 0 && dy == 0 && dz == 0) continue;
                         Block nb = cur.getRelative(dx, dy, dz);
+                        if (!w.isChunkLoaded(nb.getX() >> 4, nb.getZ() >> 4)) continue;
                         String nk = blockKey(nb);
                         if (!seen.contains(nk) && nb.getType() == target) {
                             seen.add(nk);
@@ -1092,8 +1112,89 @@ public final class GameplayListener implements Listener {
         return count;
     }
 
+    private boolean isCustomMiningTool(String id, Material block) {
+        if (id == null) return false;
+        if ("pick_vein".equals(id)) return block.name().endsWith("_ORE")
+                || block == Material.ANCIENT_DEBRIS || block == Material.GILDED_BLACKSTONE;
+        return "pick_midas".equals(id) || "pick_molten".equals(id) || "hammer_owner".equals(id)
+                || "pick_tunnel".equals(id) || "pick_meteor".equals(id) || "pick_krush".equals(id)
+                || "pick_djamshut".equals(id) || "pick_frost".equals(id) || "pick_magnet".equals(id);
+    }
+
+    /** Fire every protection plugin for each neighbour; only mutate unchanged, approved blocks. */
+    private BlockBreakEvent breakDrillBlock(Player player, Block target, Material expected) {
+        BlockBreakEvent event = new BlockBreakEvent(target, player);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled() || target.getType() != expected) return null;
+        target.setType(Material.AIR, false);
+        if (event.getExpToDrop() > 0) {
+            org.bukkit.entity.ExperienceOrb orb = target.getWorld().spawn(target.getLocation().add(0.5, 0.5, 0.5), org.bukkit.entity.ExperienceOrb.class);
+            orb.setExperience(event.getExpToDrop());
+        }
+        return event;
+    }
+
+    /** Liquid-to-solid changes are placements, not an unchecked bypass of region plugins. */
+    private void tryFrostPlacement(Player player, Block against, Block target, ItemStack tool, Material replacement) {
+        if (activeTempBlocks.contains(blockKey(target)) || plugin.getBossEvents().isProtectedEventStructureBlock(target, false)) return;
+        DataStore.Claim claim = plugin.getStore().getClaimAt(target.getLocation());
+        if (claim != null && (!claim.canAccess(player.getName()) || claim.isCenter(target.getLocation()))
+                && !plugin.getRanks().isOwnerLevel(player)) return;
+        org.bukkit.block.BlockState previous = target.getState();
+        target.setType(replacement, false);
+        BlockPlaceEvent event = new BlockPlaceEvent(target, previous, against, tool, player, true, EquipmentSlot.HAND);
+        Bukkit.getPluginManager().callEvent(event);
+        if ((event.isCancelled() || !event.canBuild()) && target.getType() == replacement) previous.update(true, false);
+    }
+
+    private void scheduleSpawnerBreak(final BlockBreakEvent event, final Player player, final Block block, ItemStack tool) {
+        EntityType type = EntityType.PIG;
+        if (block.getState() instanceof CreatureSpawner) {
+            EntityType configured = ((CreatureSpawner) block.getState()).getSpawnedType();
+            if (configured != null) type = configured;
+        }
+        final EntityType spawned = type;
+        final ItemStack requiredTool = tool.clone();
+        event.setDropItems(false); event.setExpToDrop(0);
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override public void run() {
+                if (event.isCancelled() || event.isDropItems() || !block.getType().isAir()) return;
+                if (!player.isOnline()) {
+                    plugin.getLogger().warning("[Mining] Spawner reward withheld because " + player.getName() + " disconnected before tool consumption.");
+                    return;
+                }
+                int slot = -1;
+                ItemStack[] contents = player.getInventory().getStorageContents();
+                for (int i = 0; i < contents.length; i++) {
+                    if (contents[i] != null && contents[i].isSimilar(requiredTool)) { slot = i; break; }
+                }
+                if (slot < 0) {
+                    player.sendMessage(ColorUtil.c("&cКирка перемещена до подтверждения добычи; награда не выдана."));
+                    return;
+                }
+                ItemStack held = player.getInventory().getItem(slot);
+                if (held.getAmount() > 1) held.setAmount(held.getAmount() - 1);
+                else player.getInventory().setItem(slot, null);
+                ItemStack drop = ItemFactory.make(Material.SPAWNER, 1,
+                        "&#FFD740&l🔥 Рассадник Мобов [" + spawned.name() + "]",
+                        Arrays.asList("&7Добыт киркой Божье Прикосновение РВ!", "&7Поставь на базе для спавна мобов."),
+                        true, "saved_spawner", null, 0);
+                ItemMeta meta = drop.getItemMeta();
+                if (meta != null) {
+                    meta.getPersistentDataContainer().set(SPAWNER_TYPE_KEY, PersistentDataType.STRING, spawned.name());
+                    drop.setItemMeta(meta);
+                }
+                block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), drop);
+                ColorUtil.sound(player, "entity.item.break", 1f, 0.9f);
+                player.sendMessage(ColorUtil.c("&#00E676✨ Вы успешно добыли спавнер [" + spawned.name() + "] Божьим Прикосновением!"));
+            }
+        });
+    }
+
     private boolean canDrillBreakBlock(Player p, Block t) {
+        if (!t.getWorld().isChunkLoaded(t.getX() >> 4, t.getZ() >> 4)) return false;
         Material m = t.getType();
+        if (t.getState() instanceof org.bukkit.block.TileState) return false;
         if (m == Material.AIR || m == Material.BEDROCK || m == Material.BARRIER || m == Material.END_PORTAL_FRAME
                 || m == Material.END_PORTAL || m == Material.NETHER_PORTAL || m == Material.WATER || m == Material.LAVA
                 || m == Material.SPAWNER || m == Material.CHEST || m == Material.TRAPPED_CHEST || m == Material.BARREL
@@ -1166,7 +1267,7 @@ public final class GameplayListener implements Listener {
                 int batch = Math.min(maxStack, rem);
                 rem -= batch;
                 ItemStack stack = new ItemStack(mat, batch);
-                if (telekinesis) {
+                if (telekinesis && p.isOnline()) {
                     for (ItemStack left : p.getInventory().addItem(stack).values()) {
                         if (w != null) w.dropItemNaturally(p.getLocation(), left);
                     }
@@ -1177,21 +1278,32 @@ public final class GameplayListener implements Listener {
         }
     }
 
+    private void giveMiningDrop(Player player, Block block, ItemStack stack) {
+        if (stack == null || block == null) return;
+        if (!player.isOnline()) {
+            block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), stack);
+            return;
+        }
+        for (ItemStack overflow : player.getInventory().addItem(stack).values()) {
+            // Full inventories must not silently destroy the mined drop.
+            block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), overflow);
+        }
+    }
+
     /**
      * Полная обработка ВСЕХ 12 кастомных 3D кирок и молотов!
      * Shift (приседание) временно включает точный режим 1×1, чтобы не сломать лишний блок на базе!
      */
-    private boolean handleCustomPickaxeBreak(BlockBreakEvent e, Player p, Block center, ItemStack tool, String toolId) {
+    private boolean handleCustomPickaxeBreak(Player p, Block center, ItemStack tool, String toolId, Material original) {
         // #10 Золотая Кирка Мидаса (+Монеты и Золото с камня/руды!)
         if ("pick_midas".equals(toolId)) {
-            e.setDropItems(false);
-            ItemStack mainDrop = smeltedDropForBlock(center.getType(), 1, 2);
-            if (mainDrop != null) p.getInventory().addItem(mainDrop);
+            ItemStack mainDrop = smeltedDropForBlock(original, 1, 2);
+            giveMiningDrop(p, center, mainDrop);
             int reward = 15 + rng.nextInt(121);
             if (rng.nextInt(100) < 4) reward += 800;
             plugin.getStore().addCoins(p.getName(), reward);
             if (rng.nextInt(100) < 16) {
-                p.getInventory().addItem(new ItemStack(Material.GOLD_INGOT, 1));
+                giveMiningDrop(p, center, new ItemStack(Material.GOLD_INGOT, 1));
             }
             p.giveExp(3);
             ColorUtil.actionBar(p, "&#FFD740🪙 Дар Мидаса: &a+" + reward + "$ Монет!");
@@ -1200,13 +1312,8 @@ public final class GameplayListener implements Listener {
 
         // #7 Вулканическая Кирка Гефеста (Двойная плавка 1×1 с гарантированным ×2 слитков!)
         if ("pick_molten".equals(toolId)) {
-            e.setDropItems(false);
-            ItemStack drop = smeltedDropForBlock(center.getType(), 2, 2);
-            if (drop != null) {
-                for (ItemStack rem : p.getInventory().addItem(drop).values()) {
-                    center.getWorld().dropItemNaturally(center.getLocation().add(0.5, 0.5, 0.5), rem);
-                }
-            }
+            ItemStack drop = smeltedDropForBlock(original, 2, 2);
+            giveMiningDrop(p, center, drop);
             center.getWorld().spawnParticle(Particle.FLAME, center.getLocation().add(0.5, 0.5, 0.5), 8, 0.25, 0.25, 0.25, 0.02);
             p.giveExp(4);
             return true;
@@ -1214,12 +1321,11 @@ public final class GameplayListener implements Listener {
 
         // #5 Изумрудная Жильная Кирка (VeinMiner — вся жила руды до 32 блоков сразу!)
         if ("pick_vein".equals(toolId)) {
-            String mn = center.getType().name();
-            if (!mn.endsWith("_ORE") && center.getType() != Material.ANCIENT_DEBRIS && center.getType() != Material.GILDED_BLACKSTONE) {
+            String mn = original.name();
+            if (!mn.endsWith("_ORE") && original != Material.ANCIENT_DEBRIS && original != Material.GILDED_BLACKSTONE) {
                 return false;
             }
-            e.setDropItems(false);
-            Material targetMat = center.getType();
+            Material targetMat = original;
             Map<Material, Integer> tally = new HashMap<Material, Integer>();
             Queue<Block> q = new ArrayDeque<Block>();
             Set<String> seen = new HashSet<String>();
@@ -1228,15 +1334,21 @@ public final class GameplayListener implements Listener {
             int broken = 0;
             while (!q.isEmpty() && broken < 32) {
                 Block cur = q.poll();
-                if (!cur.equals(center) && !canDrillBreakBlock(p, cur)) continue;
-                addLootBundled(tally, smeltedDropForBlock(cur.getType(), 1, 2));
-                if (!cur.equals(center)) cur.setType(Material.AIR, false);
+                if (cur.equals(center)) {
+                    addLootBundled(tally, smeltedDropForBlock(original, 1, 2));
+                } else {
+                    if (!canDrillBreakBlock(p, cur)) continue;
+                    BlockBreakEvent allowed = breakDrillBlock(p, cur, targetMat);
+                    if (allowed == null) continue;
+                    if (allowed.isDropItems()) addLootBundled(tally, smeltedDropForBlock(targetMat, 1, 2));
+                }
                 broken++;
                 for (int dx = -1; dx <= 1; dx++) {
                     for (int dy = -1; dy <= 1; dy++) {
                         for (int dz = -1; dz <= 1; dz++) {
                             if (dx == 0 && dy == 0 && dz == 0) continue;
                             Block nb = cur.getRelative(dx, dy, dz);
+                            if (!center.getWorld().isChunkLoaded(nb.getX() >> 4, nb.getZ() >> 4)) continue;
                             String nk = blockKey(nb);
                             if (!seen.contains(nk) && nb.getType() == targetMat) {
                                 seen.add(nk);
@@ -1265,13 +1377,11 @@ public final class GameplayListener implements Listener {
         }
         // Shift = точный режим 1×1 (кроме авто-плавки на центральном блоке!)
         if (p.isSneaking()) {
-            e.setDropItems(false);
-            ItemStack single = smeltedDropForBlock(center.getType(), isOwnerHammer10x10 ? 2 : 1, 2);
-            if (single != null) p.getInventory().addItem(single);
+            ItemStack single = smeltedDropForBlock(original, isOwnerHammer10x10 ? 2 : 1, 2);
+            giveMiningDrop(p, center, single);
             return true;
         }
 
-        e.setDropItems(false);
         World w = center.getWorld();
         int minOff, maxOff;
         if (isOwnerHammer10x10) {
@@ -1313,14 +1423,18 @@ public final class GameplayListener implements Listener {
                         dx = a; dy = bOff; dz = 0;
                     }
                     Block t = w.getBlockAt(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
-                    Material m = t.getType();
+                    if (!t.equals(center) && !w.isChunkLoaded(t.getX() >> 4, t.getZ() >> 4)) continue;
+                    Material m = t.equals(center) ? original : t.getType();
                     if (m == Material.OBSIDIAN && !isOwnerHammer10x10) continue;
                     if (!t.equals(center) && !canDrillBreakBlock(p, t)) continue;
                     if (t.equals(center) && (m == Material.BEDROCK || m == Material.SPAWNER)) continue;
 
-                    addLootBundled(tally, smeltedDropForBlock(m, smeltMult, fortuneBonus));
-                    if (!t.equals(center)) {
-                        t.setType(Material.AIR, false);
+                    if (t.equals(center)) {
+                        addLootBundled(tally, smeltedDropForBlock(m, smeltMult, fortuneBonus));
+                    } else {
+                        BlockBreakEvent allowed = breakDrillBlock(p, t, m);
+                        if (allowed == null) continue;
+                        if (allowed.isDropItems()) addLootBundled(tally, smeltedDropForBlock(m, smeltMult, fortuneBonus));
                     }
                     brokenCount++;
 
@@ -1337,8 +1451,9 @@ public final class GameplayListener implements Listener {
                 for (int dy = -2; dy <= 2; dy++) {
                     for (int dz = -2; dz <= 2; dz++) {
                         Block lb = w.getBlockAt(center.getX() + dx, center.getY() + dy, center.getZ() + dz);
-                        if (lb.getType() == Material.LAVA) lb.setType(Material.OBSIDIAN, false);
-                        else if (lb.getType() == Material.WATER) lb.setType(Material.PACKED_ICE, false);
+                        if (!w.isChunkLoaded(lb.getX() >> 4, lb.getZ() >> 4)) continue;
+                        if (lb.getType() == Material.LAVA) tryFrostPlacement(p, center, lb, tool, Material.OBSIDIAN);
+                        else if (lb.getType() == Material.WATER) tryFrostPlacement(p, center, lb, tool, Material.PACKED_ICE);
                     }
                 }
             }
@@ -2084,7 +2199,8 @@ public final class GameplayListener implements Listener {
                     } else {
                         p.sendMessage(ColorUtil.c("&#40C4FF🏃 Вы прошли паркур за &#FFD740" + timeStr + "&#40C4FF! Повторная награда через " + ColorUtil.fmtTime((ready - now) / 1000L)));
                     }
-                    p.teleport(plugin.getSpawnEngine().getSpawnArrival());
+                    Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+                    if (arrival != null) p.teleport(arrival);
                 }
             }
             return;
@@ -2205,6 +2321,10 @@ public final class GameplayListener implements Listener {
             }
         } else if ("orb_recall".equals(cid)) {
             e.setCancelled(true);
+            if (plugin.getSpawnEngine().getSpawnArrival() == null) {
+                p.sendMessage(ColorUtil.c("&cТочка спавна сейчас недоступна; сфера не потрачена."));
+                return;
+            }
             boolean isOwnerUser = plugin.getRanks().isOwnerLevel(p);
             if (!isOwnerUser && !checkAndSetCd(p, "orb_recall", 25)) return;
             consumeOne(p, hand);
@@ -2236,8 +2356,12 @@ public final class GameplayListener implements Listener {
                         return;
                     }
                     cancel();
+                    Location arrival = plugin.getSpawnEngine().getSpawnArrival();
+                    if (arrival == null || !p.teleport(arrival)) {
+                        p.sendMessage(ColorUtil.c("&cЭвакуация не удалась: спавн недоступен или телепортация отменена."));
+                        return;
+                    }
                     plugin.getHud().clearCombat(p.getUniqueId());
-                    p.teleport(plugin.getSpawnEngine().getSpawnArrival());
                     ColorUtil.sound(p, "entity.enderman.teleport", 1.0f, 1.25f);
                     p.sendTitle(ColorUtil.c("&#00E5FF&l🌀 ЭВАКУАЦИЯ!"), ColorUtil.c("&fВы спасены Сферой Эвакуации (10 сек)!"), 5, 40, 10);
                 }

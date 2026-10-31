@@ -1,0 +1,5 @@
+name: KgShopPromoProbe
+version: 1.0
+main: net.kinggrief.probe.ShopPromoProbe
+api-version: '1.20'
+depend: [KingGriefCore]

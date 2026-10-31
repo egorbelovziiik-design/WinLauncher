@@ -193,7 +193,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.1.0 — DISPLAY NPC, ASYNC RTP & EXPEDITIONS");
+        getLogger().info(" KINGGRIEF CORE v7.2.0 — SAFER SHOP, SPAWN & PROMO");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -573,13 +573,15 @@ public final class KingGriefCore extends JavaPlugin {
                 sender.sendMessage(ColorUtil.c("&cДоступно только OWNER и Консоли!"));
                 return true;
             }
-            if (args.length != 1 || !"confirm".equalsIgnoreCase(args[0])) {
-                sender.sendMessage(ColorUtil.c("&eСпавн будет заменён! Выведите игроков из spawn_world и дополнительно сохраните мир. Подтвердите: &f/rebuildspawn confirm"));
+            if (args.length == 1 && "cancel".equalsIgnoreCase(args[0])) {
+                PreparedSpawnInstaller.cancelRebuild(this, sender);
                 return true;
             }
-            boolean rebuilt = spawnEngine.initializeSpawnWorldAndBuild(true);
-            sender.sendMessage(ColorUtil.c(rebuilt ? "&#00E676✔ Спавн v7.0 перестроен; резервная копия в plugins/KingGriefCore/backups."
-                    : "&cПерестройка не выполнена. Проверьте, что игроков нет в spawn_world, и посмотрите журнал."));
+            if (args.length != 1 || !"confirm".equalsIgnoreCase(args[0])) {
+                sender.sendMessage(ColorUtil.c("&eСпавн заменится при полном перезапуске. Сделайте внешний бэкап: &f/rebuildspawn confirm &7(отмена: /rebuildspawn cancel)"));
+                return true;
+            }
+            PreparedSpawnInstaller.requestRebuild(this, sender);
             return true;
         }
         if ("promoadmin".equals(c)) {
@@ -697,11 +699,22 @@ public final class KingGriefCore extends JavaPlugin {
 
         // ================= NAVIGATION & SEPARATE WORLDS (/rtp ONLY TO SURVIVAL WORLD!) =================
         if ("spawn".equals(c)) {
-            store.setBack(p, p.getLocation());
+            Location destination = spawnEngine.getSpawnArrival();
+            if (destination == null) {
+                p.sendMessage(ColorUtil.c("&cТочка спавна сейчас недоступна. Сообщите администрации или повторите позже."));
+                return true;
+            }
+            Location previous = p.getLocation();
+            if (!p.teleport(destination)) {
+                p.sendMessage(ColorUtil.c("&cТелепортация на спавн отменена."));
+                return true;
+            }
+            store.setBack(p, previous);
             store.setParkourCp(p, null);
-            p.teleport(spawnEngine.getSpawnArrival());
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
-            p.sendMessage(ColorUtil.c("&#80D8FF❄ Вы в отдельном мире Яркого Зимнего Спавна! Вход в мир выживания: &#00E676/rtp"));
+            p.sendMessage(ColorUtil.c(spawnEngine.isSpawnActive()
+                    ? "&#80D8FF❄ Вы в отдельном мире Яркого Зимнего Спавна! Вход в мир выживания: &#00E676/rtp"
+                    : "&#80D8FF❄ Вы телепортированы на точку спавна мира."));
             return true;
         }
         if ("rtp".equals(c)) {
@@ -776,8 +789,10 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("mine".equals(c) || "farm".equals(c) || "pvp".equals(c)) {
+            Location destination = spawnEngine.getWarpLocation(c);
+            if (destination == null) { p.sendMessage(ColorUtil.c("&cЭтот варп недоступен, пока готовый спавн не установлен.")); return true; }
             store.setBack(p, p.getLocation());
-            p.teleport(spawnEngine.getWarpLocation(c));
+            p.teleport(destination);
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.15f);
             return true;
         }
@@ -833,6 +848,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("parkour".equals(c)) {
+            if (spawnEngine.getWarpLocation("parkour") == null) { p.sendMessage(ColorUtil.c("&cПаркур недоступен, пока готовый спавн не установлен.")); return true; }
             if (args.length > 0 && ("leave".equalsIgnoreCase(args[0]) || "reset".equalsIgnoreCase(args[0]))) {
                 store.setParkourCp(p, null);
                 p.teleport(spawnEngine.getWarpLocation("parkour"));
@@ -1050,11 +1066,10 @@ public final class KingGriefCore extends JavaPlugin {
                 p.sendMessage(ColorUtil.c("&eМинимальная ставка Монетки: &a1 000$ &7(/cf <сумма>)"));
                 return true;
             }
-            if (!store.takeCoins(p.getName(), bet)) {
-                p.sendMessage(ColorUtil.c("&cНедостаточно монет!"));
+            if (store.createCoinflip(p.getName(), bet) == null) {
+                p.sendMessage(ColorUtil.c("&cИгра не создана: проверьте баланс, лимит (4 игры на игрока) и журнал сохранения."));
                 return true;
             }
-            store.createCoinflip(p.getName(), bet);
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740🪙 [Монетка] &f" + p.getName() + " &7создал игру на &a"
                     + ColorUtil.fmtMoney(bet) + "$&7! Принять: &f/casino"));
             return true;
@@ -1073,6 +1088,10 @@ public final class KingGriefCore extends JavaPlugin {
                 }
                 if (store.getActiveWagerDuel(p.getName()) != null || store.getActiveWagerDuel(ch.getName()) != null) {
                     p.sendMessage(ColorUtil.c("&cОдин из игроков уже участвует в активной дуэли!"));
+                    return true;
+                }
+                if (!spawnEngine.isSpawnActive()) {
+                    p.sendMessage(ColorUtil.c("&cАрена дуэлей недоступна, пока готовый спавн не установлен."));
                     return true;
                 }
                 double bet = Math.max(0.0, dr.bet);
@@ -1177,71 +1196,78 @@ public final class KingGriefCore extends JavaPlugin {
         if ("promo".equals(c)) {
             if (args.length < 1) { guis.openFreebieMenu(p); return true; }
             String code = args[0].trim().toUpperCase(Locale.ROOT);
+            if (!code.matches("[A-Z0-9_-]{1,32}")) {
+                p.sendMessage(ColorUtil.c("&cПромокод может содержать только латинские буквы, цифры, - и _."));
+                return true;
+            }
             if (store.hasUsedPromo(p.getName(), code)) {
                 p.sendMessage(ColorUtil.c("&cВы уже активировали промокод " + code + "!"));
                 return true;
             }
-
-            // 1. Check Cloud/Website & Admin-Created Server Promo Codes FIRST!
-            DataStore.ServerPromo sp = store.getServerPromo(code);
-            if (sp != null) {
-                if (sp.maxUses > 0 && sp.usedCount >= sp.maxUses) {
-                    p.sendMessage(ColorUtil.c("&cЛимит активаций этого промокода исчерпан (" + sp.maxUses + "/" + sp.maxUses + ")!"));
+            DataStore.ServerPromo serverPromo = store.getServerPromo(code);
+            double coins = 0;
+            int relics = 0, snow = 0, keys = 0;
+            String caseId = "", rankUpgrade = null;
+            List<ItemStack> items = new ArrayList<ItemStack>();
+            if (serverPromo != null) {
+                if (serverPromo.maxUses > 0 && serverPromo.usedCount >= serverPromo.maxUses) {
+                    p.sendMessage(ColorUtil.c("&cЛимит активаций этого промокода исчерпан!"));
                     return true;
                 }
-                List<String> granted = new ArrayList<String>();
-                if (sp.coins > 0) {
-                    store.addCoins(p.getName(), sp.coins);
-                    granted.add("&a+" + ColorUtil.fmtMoney(sp.coins) + "$");
-                }
-                if (sp.relics > 0) {
-                    store.addRelics(p.getName(), sp.relics);
-                    granted.add("&b+" + sp.relics + " Риликов ❖");
-                }
-                if (sp.caseId != null && !sp.caseId.isEmpty() && sp.caseQty > 0) {
-                    store.addCaseKeys(p.getName(), sp.caseId, sp.caseQty);
-                    granted.add("&#FF4081+" + sp.caseQty + " Кейс [" + sp.caseId.toUpperCase(Locale.ROOT) + "]");
-                }
-                if (sp.rankId != null && !sp.rankId.isEmpty()) {
-                    RankManager.RankDef targetRank = ranks.byId(sp.rankId);
-                    if (targetRank.weight > ranks.getRank(p).weight) {
-                        ranks.setRank(p.getName(), targetRank.id, true);
+                coins = serverPromo.coins; relics = serverPromo.relics;
+                caseId = serverPromo.caseId == null ? "" : serverPromo.caseId.toLowerCase(Locale.ROOT);
+                keys = serverPromo.caseQty;
+                if (serverPromo.rankId != null && !serverPromo.rankId.isEmpty()) {
+                    if (!ranks.exists(serverPromo.rankId)) {
+                        p.sendMessage(ColorUtil.c("&cУ промокода неизвестная привилегия. Сообщите администрации."));
+                        return true;
                     }
-                    granted.add("&#FFD740Привилегия " + targetRank.id.toUpperCase(Locale.ROOT));
+                    RankManager.RankDef targetRank = ranks.byId(serverPromo.rankId);
+                    if (targetRank.weight > ranks.getRank(p).weight) rankUpgrade = targetRank.id;
                 }
-                store.incrementServerPromoUsed(code);
-                store.markUsedPromo(p.getName(), code);
-                store.save();
-                hud.updatePlayerHud(p);
-                ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
-                p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод с сайта &f" + code + " &#00E676активирован! Награда: " + String.join("&7, ", granted)));
-                return true;
-            }
-
-            // 2. Built-in Festive & FT×RW Promo Codes
-            if ("NEWYEAR2026".equals(code)) {
-                store.addCoins(p.getName(), 25000); store.addRelics(p.getName(), 25); store.addCaseKeys(p.getName(), "summer", 1);
+            } else if ("NEWYEAR2026".equals(code)) {
+                coins = 25000; relics = 25; caseId = "summer"; keys = 1;
             } else if ("REALLYWORLD".equals(code)) {
-                store.addCoins(p.getName(), 30000); store.addRelics(p.getName(), 30); store.addSnowflakes(p.getName(), 10);
+                coins = 30000; relics = 30; snow = 10;
             } else if ("KINGGRIEF".equals(code)) {
-                store.addCoins(p.getName(), 20000); store.addRelics(p.getName(), 20); p.getInventory().addItem(ItemFactory.potionKiller(1));
+                coins = 20000; relics = 20; items.add(ItemFactory.potionKiller(1));
             } else if ("FTRW".equals(code) || "FTRW2026".equals(code)) {
-                store.addCoins(p.getName(), 25000); p.getInventory().addItem(ItemFactory.plast(4), ItemFactory.trapka(2));
+                coins = 25000; items.add(ItemFactory.plast(4)); items.add(ItemFactory.trapka(2));
             } else if ("SANTA".equals(code)) {
-                store.addCoins(p.getName(), 15000); p.getInventory().addItem(ItemFactory.nyMandarin(8), ItemFactory.potionChampagne(1));
-            } else if ("RILIK".equals(code)) {
-                store.addRelics(p.getName(), 35);
-            } else if ("FREE".equals(code)) {
-                store.addCoins(p.getName(), 15000); store.addCaseKeys(p.getName(), "money", 1);
-            } else {
-                p.sendMessage(ColorUtil.c("&cНеизвестный промокод! Создайте на сайте &fkinggrief.vercel.app &cили посмотрите в &f/free"));
+                coins = 15000; items.add(ItemFactory.nyMandarin(8)); items.add(ItemFactory.potionChampagne(1));
+            } else if ("RILIK".equals(code)) relics = 35;
+            else if ("FREE".equals(code)) { coins = 15000; caseId = "money"; keys = 1; }
+            else {
+                p.sendMessage(ColorUtil.c("&cНеизвестный промокод! Посмотрите доступные коды в &f/free"));
                 return true;
             }
-            store.markUsedPromo(p.getName(), code);
-            store.save();
+            ItemStack[] prizes = items.toArray(new ItemStack[items.size()]);
+            if (prizes.length > 0 && !InventoryCapacity.canFit(p, prizes)) {
+                p.sendMessage(ColorUtil.c("&cОсвободите место для наград: промокод ещё не использован."));
+                return true;
+            }
+            DataStore.PromoClaim result = store.claimPromoReward(p, code, coins, relics, snow, caseId, keys, rankUpgrade, serverPromo);
+            if (result != DataStore.PromoClaim.CLAIMED) {
+                String message = result == DataStore.PromoClaim.USED ? "&cЭтот промокод уже использован."
+                        : result == DataStore.PromoClaim.EXHAUSTED ? "&cЛимит промокода исчерпан."
+                        : "&cПромокод не применён: проверьте данные и сохранение, сообщите администрации.";
+                p.sendMessage(ColorUtil.c(message));
+                return true;
+            }
+            if (rankUpgrade != null) {
+                try { ranks.setRank(p.getName(), rankUpgrade, true); }
+                catch (RuntimeException error) {
+                    getLogger().severe("[Promo] Local rank was saved for " + p.getName() + "; check LuckPerms sync: " + error);
+                }
+            }
+            if (prizes.length > 0) for (ItemStack left : p.getInventory().addItem(prizes).values()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), left);
+                getLogger().warning("[Promo] Inventory changed during claim for " + p.getName() + "; remainder dropped nearby.");
+                p.sendMessage(ColorUtil.c("&eИнвентарь изменился во время выдачи: остаток лежит рядом."));
+            }
             hud.updatePlayerHud(p);
             ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
-            p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод &f" + code + " &#00E676активирован! Награда выдана!"));
+            p.sendMessage(ColorUtil.c("&#00E676🎁 Промокод &f" + code + " &#00E676активирован! Награда выдана."));
             return true;
         }
         if ("clan".equals(c)) {
@@ -2432,13 +2458,15 @@ public final class KingGriefCore extends JavaPlugin {
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("rebuildspawn".equals(sub)) {
-            if (args.length != 2 || !"confirm".equalsIgnoreCase(args[1])) {
-                s.sendMessage(ColorUtil.c("&eВыведите игроков и сохраните мир. Подтверждение: &f/kgadmin rebuildspawn confirm"));
+            if (args.length == 2 && "cancel".equalsIgnoreCase(args[1])) {
+                PreparedSpawnInstaller.cancelRebuild(this, s);
                 return true;
             }
-            boolean rebuilt = spawnEngine.initializeSpawnWorldAndBuild(true);
-            s.sendMessage(ColorUtil.c(rebuilt ? "&#00E676✔ Спавн v6.6 перестроен; копия в plugins/KingGriefCore/backups."
-                    : "&cПерестройка отменена. Проверьте журнал и отсутствие игроков в spawn_world."));
+            if (args.length != 2 || !"confirm".equalsIgnoreCase(args[1])) {
+                s.sendMessage(ColorUtil.c("&eМир заменится после полного перезапуска; сделайте внешний бэкап. &f/kgadmin rebuildspawn confirm &7(отмена: cancel)"));
+                return true;
+            }
+            PreparedSpawnInstaller.requestRebuild(this, s);
             return true;
         }
         if ("startboss".equals(sub)) {

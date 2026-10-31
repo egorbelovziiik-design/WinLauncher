@@ -5,8 +5,8 @@ checks item-model migration, old-pack migration and the actual resource-pack
 packet, inventory/menu packets, asynchronous chat delegation and the delivered
 message's colour/style, rank hierarchy, kits, TNT prices/purchases/effects and
 cancelled/filtered explosions, new events and scoped entity cleanup, plus fresh
-spawn creation, fail-closed backups and a chest restored from a ZIP backup.
-With `--prebuilt /path/to/spawn-v70-template.zip`, it additionally checks that
+spawn installation and the removal of the old synchronous rebuild path.
+With `--prebuilt /path/to/spawn-v71-template.zip`, it additionally checks that
 an actual pre-generated world is loaded directly, rather than rebuilt at startup.
 It does **not** render a Minecraft client or verify visuals.
 
@@ -34,6 +34,25 @@ symbolic link. `--only-symlink` runs just the linked-world case. It accepts the 
 `--vanilla`, `--api-classpath`, `--core`, `--java`, `--javac` and
 `--accept-eula` options; no network/client is needed. Pass `--prebuilt` with
 `--existing-unknown` to verify that an incomplete old world is not replaced.
+
+`test-spawn-deferred.py` tests the embedded template, asynchronous queue/cancel,
+restart-only replacement, UUID and chest preservation, an unmarked custom world,
+main-world refusal, and simulated interrupted swaps before/after the rename. The
+recovery test manipulates isolated fixture files; it is not a power-loss test.
+
+`test-shop-promo.py` uses two protocol clients and real window clicks to check
+full inventories, failed YAML saves, promo limits and replay. `--mock-player-points`
+adds a PlayerPoints test double, not the real external plugin. `test-coinflip-restart.py`
+uses two clients across a full restart, injects storage failures and checks escrow,
+refunds, stale GUI slots and pagination. `test-mining-safety.py` uses real
+`Player.breakBlock` calls and a late cancellable protection listener to test central
+and neighbouring blocks, frost placement, full inventories, spawners and auto-mine.
+`test-mining-worldguard.py --worldguard /path/to/WorldGuard.jar --worldedit
+/path/to/WorldEdit.jar` separately uses the real plugins to check protected central
+and neighbouring blocks and frost placement. Neither test guarantees compatibility
+with every protection plugin. `test-rtp-noworld.py` also moves the world border
+far beyond the saved spawn and verifies that fallback navigation and recall do not
+load its distant center or consume an item when no safe fallback is loaded.
 
 `test-event-search.py` runs a dedicated Paper regression for the event search.
 It rejects an unloaded forced site without loading it, holds one asynchronous
@@ -98,6 +117,14 @@ failure, and compensation when durable YAML saving is refused. This is **not**
 a real PlayerPoints integration, a guarantee across process/power failure,
 or a visual Minecraft-client test. The runner also checks the three stacked
 sculptures and their hand touching the star in the prepared world.
+
+`test-new-artifacts.py` uses a protocol client to exercise all 50 new items,
+then checks the immediate utilities, plugin-cancelled healing/food/potions,
+protected interaction, inventory merging, six-page catalog and console giving.
+`test-moderation.py` checks the display-model mute, online name/IP ban ordering,
+transport as sack passenger, offline/literal IP and unban, portal restoration,
+duplicate/cancelled animation, client disconnect and orderly plugin disable.
+These tests exercise server-side state and packets, not a rendered Minecraft client.
 
 `test-new-features.py` exercises the airship's protected, non-repeatable scrap,
 expiry and terrain restoration; opt-in crown scoring, accepted/cancelled damage

@@ -13,7 +13,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.1.0.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.2.0.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
 TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v71-template.zip"
 PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v71.zip"
@@ -36,6 +36,8 @@ def verify_spawn_template():
     with zipfile.ZipFile(CORE) as jar:
         if jar.read("spawn_v71_template.sha256").decode("ascii").strip() != digest:
             raise RuntimeError("Built Core JAR does not match the spawn template; rebuild Core")
+        if hashlib.sha256(jar.read("spawn_v71_template.zip")).hexdigest() != digest:
+            raise RuntimeError("Embedded Core template does not match the distributed template")
         if "net/kinggrief/core/PreparedSpawnInstaller.class" not in jar.namelist():
             raise RuntimeError("Built Core cannot install the prepared spawn")
     with zipfile.ZipFile(TEMPLATE) as world:
@@ -101,6 +103,7 @@ def main():
                 archive.writestr(info, path.read_bytes(), compresslevel=9)
         staged.replace(ASSEMBLY)
     shutil.copy2(ASSEMBLY, PUBLIC)
+    shutil.copy2(SERVER / "АРТЕФАКТЫ_7.2.0.md", ROOT.parent / "kinggrief/public/KingGrief-50-artifacts-7.2.0.md")
     with tempfile.NamedTemporaryFile(prefix="kinggrief-spawn-publish-", dir=PUBLIC_TEMPLATE.parent, delete=False) as staged:
         staged_path = Path(staged.name)
         try:

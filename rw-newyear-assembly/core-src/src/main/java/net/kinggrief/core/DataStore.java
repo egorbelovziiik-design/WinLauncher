@@ -129,8 +129,6 @@ public final class DataStore {
     private final List<AuctionLot> auction = new ArrayList<AuctionLot>();
     private int nextLotId = 1;
 
-    private final List<CoinflipRoom> coinflips = new ArrayList<CoinflipRoom>();
-    private int nextCfId = 1;
     private final Map<UUID, DuelRequest> duelRequests = new HashMap<UUID, DuelRequest>();
     private final Map<UUID, Location> parkourCheckpoints = new HashMap<UUID, Location>();
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<UUID, PermissionAttachment>();
@@ -809,6 +807,25 @@ public final class DataStore {
         return true;
     }
 
+    /** Persist a snowflake debit before issuing an item. */
+    public synchronized boolean takeSnowflakesDurably(final String name, final int amount) {
+        if (name == null || amount <= 0) return false;
+        final int before = getSnowflakes(name);
+        if (before < amount) return false;
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set("players." + key(name) + ".snowflakes", Integer.valueOf(before - amount));
+                    return null;
+                }
+            });
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Economy] Snowflake debit was not committed for " + name + ": " + error.getMessage());
+            return false;
+        }
+    }
+
     // ================= PARKOUR & CASINO COINFLIP & DUELS =================
     public void setParkourCp(Player p, Location loc) {
         if (p != null) {
@@ -829,27 +846,103 @@ public final class DataStore {
         yml.set("players." + key(name) + ".pkReady", ts);
     }
 
+    /** Persist the escrow and balance together; room IDs are stable across restarts and GUI refreshes. */
     public synchronized List<CoinflipRoom> getCoinflips() {
-        return new ArrayList<CoinflipRoom>(coinflips);
-    }
-
-    public synchronized CoinflipRoom createCoinflip(String creator, double bet) {
-        CoinflipRoom r = new CoinflipRoom();
-        r.id = nextCfId++;
-        r.creator = creator;
-        r.bet = bet;
-        r.createdAt = System.currentTimeMillis();
-        coinflips.add(0, r);
-        return r;
-    }
-
-    public synchronized CoinflipRoom takeCoinflip(int id) {
-        for (int i = 0; i < coinflips.size(); i++) {
-            if (coinflips.get(i).id == id) {
-                return coinflips.remove(i);
-            }
+        List<CoinflipRoom> result = new ArrayList<CoinflipRoom>();
+        ConfigurationSection rooms = yml.getConfigurationSection("casino.coinflips.rooms");
+        if (rooms == null) return result;
+        for (String entry : rooms.getKeys(false)) {
+            try {
+                int id = Integer.parseInt(entry);
+                String creator = rooms.getString(entry + ".creator", "");
+                double bet = rooms.getDouble(entry + ".bet", 0.0);
+                if (id <= 0 || creator == null || creator.isEmpty() || !Double.isFinite(bet)
+                        || !Double.isFinite(bet * 2.0) || bet < 1000.0) continue;
+                CoinflipRoom room = new CoinflipRoom();
+                room.id = id; room.creator = creator; room.bet = bet;
+                room.createdAt = rooms.getLong(entry + ".createdAt", 0L);
+                result.add(room);
+            } catch (NumberFormatException ignored) { }
         }
-        return null;
+        Collections.sort(result, new Comparator<CoinflipRoom>() {
+            @Override public int compare(CoinflipRoom a, CoinflipRoom b) { return Integer.compare(b.id, a.id); }
+        });
+        return result;
+    }
+
+    public synchronized CoinflipRoom createCoinflip(final String creator, final double bet) {
+        if (creator == null || creator.isEmpty() || !Double.isFinite(bet) || !Double.isFinite(bet * 2.0) || bet < 1000.0) return null;
+        List<CoinflipRoom> rooms = getCoinflips();
+        int own = 0;
+        for (CoinflipRoom room : rooms) if (room.creator.equalsIgnoreCase(creator)) own++;
+        if (rooms.size() >= 256 || own >= 4) return null;
+        final double balance = getCoins(creator);
+        if (!Double.isFinite(balance) || balance < bet || !(balance - bet < balance)) return null;
+        final int id = yml.getInt("casino.coinflips.nextId", 1);
+        if (id <= 0 || id == Integer.MAX_VALUE || yml.contains("casino.coinflips.rooms." + id)) return null;
+        final long createdAt = System.currentTimeMillis();
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    String path = "casino.coinflips.rooms." + id;
+                    data.set("players." + key(creator) + ".coins", Double.valueOf(balance - bet));
+                    data.set(path + ".creator", creator); data.set(path + ".bet", Double.valueOf(bet));
+                    data.set(path + ".createdAt", Long.valueOf(createdAt));
+                    data.set("casino.coinflips.nextId", Integer.valueOf(id + 1));
+                    return null;
+                }
+            });
+            CoinflipRoom room = new CoinflipRoom(); room.id=id; room.creator=creator; room.bet=bet; room.createdAt=createdAt;
+            return room;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Coinflip] Escrow was not committed for " + creator + ": " + error.getMessage());
+            return null;
+        }
+    }
+
+    public enum CoinflipOutcome { WON, CANCELLED, NOT_FOUND, INSUFFICIENT, COMMIT_FAILED }
+    public static final class CoinflipSettlement {
+        public final CoinflipOutcome outcome; public final CoinflipRoom room; public final String winner;
+        CoinflipSettlement(CoinflipOutcome outcome, CoinflipRoom room, String winner) {
+            this.outcome=outcome; this.room=room; this.winner=winner;
+        }
+    }
+
+    /** Resolve/refund in one durable mutation, so a restart cannot lose or pay the escrow twice. */
+    public synchronized CoinflipSettlement settleCoinflip(final int id, final String acceptor, boolean creatorWins) {
+        CoinflipRoom found = null;
+        for (CoinflipRoom room : getCoinflips()) if (room.id == id) { found=room; break; }
+        if (found == null || acceptor == null || acceptor.isEmpty()) return new CoinflipSettlement(CoinflipOutcome.NOT_FOUND, null, null);
+        final CoinflipRoom room = found;
+        final boolean cancel = room.creator.equalsIgnoreCase(acceptor);
+        final double acceptorBalance = getCoins(acceptor);
+        final double creatorBalance = getCoins(room.creator);
+        if (!Double.isFinite(acceptorBalance) || !Double.isFinite(creatorBalance)
+                || (!cancel && acceptorBalance < room.bet)) return new CoinflipSettlement(CoinflipOutcome.INSUFFICIENT, room, null);
+        final String winner = cancel ? room.creator : (creatorWins ? room.creator : acceptor);
+        final double creatorAfter = cancel ? creatorBalance + room.bet
+                : (creatorWins ? creatorBalance + room.bet * 2.0 : creatorBalance);
+        final double acceptorAfter = cancel ? creatorAfter
+                : (creatorWins ? acceptorBalance - room.bet : acceptorBalance + room.bet);
+        if (!Double.isFinite(creatorAfter) || !Double.isFinite(acceptorAfter)
+                || (cancel && !(creatorAfter > creatorBalance))
+                || (!cancel && creatorWins && (!(creatorAfter > creatorBalance) || !(acceptorAfter < acceptorBalance)))
+                || (!cancel && !creatorWins && !(acceptorAfter > acceptorBalance)))
+            return new CoinflipSettlement(CoinflipOutcome.COMMIT_FAILED, room, null);
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set("players." + key(room.creator) + ".coins", Double.valueOf(creatorAfter));
+                    if (!cancel) data.set("players." + key(acceptor) + ".coins", Double.valueOf(acceptorAfter));
+                    data.set("casino.coinflips.rooms." + id, null);
+                    return null;
+                }
+            });
+            return new CoinflipSettlement(cancel ? CoinflipOutcome.CANCELLED : CoinflipOutcome.WON, room, winner);
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Coinflip] Settlement was not committed for room " + id + ": " + error.getMessage());
+            return new CoinflipSettlement(CoinflipOutcome.COMMIT_FAILED, room, null);
+        }
     }
 
     public void putDuelRequest(Player challenger, Player target, double bet) {
@@ -935,6 +1028,25 @@ public final class DataStore {
         if (amount > 0 && next >= cur) return false; // too small to represent at this balance
         setCoins(name, next);
         return true;
+    }
+
+    /** Persist the debit before delivering a shop item. */
+    public synchronized boolean takeCoinsDurably(final String name, final double amount) {
+        if (name == null || !Double.isFinite(amount) || amount <= 0) return false;
+        final double before = getCoins(name), after = before - amount;
+        if (!Double.isFinite(before) || before < amount || before < 0 || !Double.isFinite(after) || after >= before) return false;
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set("players." + key(name) + ".coins", Double.valueOf(after));
+                    return null;
+                }
+            });
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Economy] Coin debit was not committed for " + name + ": " + error.getMessage());
+            return false;
+        }
     }
 
     /** Persist both sides together; never acknowledge a partial /pay transfer. */
@@ -1052,6 +1164,45 @@ public final class DataStore {
         } catch (Exception failed) {
             if (points != null) compensatePlayerPoints(points, p, pointsBefore);
             plugin.getLogger().severe("[Relics] Could not save the debit for " + p.getName() + "; purchase refused: " + failed.getMessage());
+            return false;
+        }
+    }
+
+    /** Exchange two local balances together; compensate PlayerPoints if its separate store rejects the commit. */
+    public synchronized boolean exchangeSnowflakesForRelics(Player player, final int snowCost, final int reward) {
+        if (player == null || snowCost <= 0 || reward <= 0) return false;
+        final String name = player.getName();
+        final String snowPath = "players." + key(name) + ".snowflakes";
+        final String relicPath = "players." + key(name) + ".relics";
+        final int snowBefore = getSnowflakes(name), localBefore = yml.getInt(relicPath, 50);
+        if (snowBefore < snowCost || localBefore < 0) return false;
+        org.bukkit.plugin.Plugin points = Bukkit.getPluginManager().getPlugin("PlayerPoints");
+        int pointsBefore = -1;
+        if (points != null && (!points.isEnabled() || (pointsBefore = readPlayerPoints(player.getUniqueId())) < 0)) return false;
+        int effective = points == null ? localBefore : Math.max(localBefore, pointsBefore);
+        if ((long) effective + reward > Integer.MAX_VALUE) return false;
+        final int nextRelics = effective + reward;
+        if (points != null && !setPlayerPointsChecked(points, player.getUniqueId(), nextRelics)) {
+            compensatePlayerPoints(points, player, pointsBefore);
+            return false;
+        }
+        // A PlayerPoints event can invoke another plugin before returning.
+        if (getSnowflakes(name) != snowBefore || yml.getInt(relicPath, 50) != localBefore) {
+            if (points != null) compensatePlayerPoints(points, player, pointsBefore);
+            return false;
+        }
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    data.set(snowPath, Integer.valueOf(snowBefore - snowCost));
+                    data.set(relicPath, Integer.valueOf(nextRelics));
+                    return null;
+                }
+            });
+            return true;
+        } catch (Exception error) {
+            if (points != null) compensatePlayerPoints(points, player, pointsBefore);
+            plugin.getLogger().warning("[Economy] Snowflake exchange not committed for " + name + ": " + error.getMessage());
             return false;
         }
     }
@@ -1992,7 +2143,9 @@ public final class DataStore {
 
     public synchronized void syncServerPromo(String code, int maxUses, double coins, int relics,
                                              String caseId, int caseQty, String rankId) {
-        if (code == null || code.trim().isEmpty() || !Double.isFinite(coins) || coins < 0) return;
+        if (code == null || !code.trim().matches("[A-Za-z0-9_-]{1,32}") || !Double.isFinite(coins)
+                || coins < 0 || maxUses < 0 || relics < 0 || caseQty < 0
+                || (caseId != null && !caseId.isEmpty() && !caseId.matches("[A-Za-z0-9_]{1,32}"))) return;
         String c = code.trim().toUpperCase(Locale.ROOT);
         String p = "serverPromos." + c;
         yml.set(p + ".maxUses", maxUses);
@@ -2039,6 +2192,76 @@ public final class DataStore {
             }
         }
         return list;
+    }
+
+    enum PromoClaim { CLAIMED, USED, EXHAUSTED, FAILED }
+
+    /** Local economy, the usage counter and the player's claim marker commit as one file update. */
+    synchronized PromoClaim claimPromoReward(final Player player, final String code, final double coins,
+                                               final int relics, final int snow, final String caseId,
+                                               final int caseQty, final String rankUpgrade, final ServerPromo expected) {
+        if (player == null || code == null || !code.matches("[A-Z0-9_-]{1,32}")
+                || !Double.isFinite(coins) || coins < 0 || relics < 0 || snow < 0 || caseQty < 0
+                || (caseQty > 0 && (caseId == null || !caseId.matches("[a-z0-9_]{1,32}")))) return PromoClaim.FAILED;
+        final String name = player.getName(), root = "players." + key(name);
+        if (hasUsedPromo(name, code)) return PromoClaim.USED;
+        if (expected != null && (!samePromo(expected, getServerPromo(code)))) return PromoClaim.FAILED;
+        if (expected != null && (expected.usedCount < 0 || expected.usedCount == Integer.MAX_VALUE
+                || (expected.maxUses > 0 && expected.usedCount >= expected.maxUses))) return PromoClaim.EXHAUSTED;
+        final double beforeCoins = getCoins(name), afterCoins = beforeCoins + coins;
+        final int beforeSnow = getSnowflakes(name), beforeKeys = caseQty == 0 ? 0 : getCaseKeys(name, caseId);
+        final int localBefore = yml.getInt(root + ".relics", 50);
+        if (!Double.isFinite(beforeCoins) || beforeCoins < 0 || !Double.isFinite(afterCoins)
+                || (coins > 0 && afterCoins <= beforeCoins) || beforeSnow < 0 || localBefore < 0 || beforeKeys < 0
+                || (long)beforeSnow + snow > Integer.MAX_VALUE || (long)beforeKeys + caseQty > Integer.MAX_VALUE)
+            return PromoClaim.FAILED;
+        org.bukkit.plugin.Plugin points = relics > 0 ? Bukkit.getPluginManager().getPlugin("PlayerPoints") : null;
+        int pointsBefore = -1;
+        if (points != null && (!points.isEnabled() || (pointsBefore = readPlayerPoints(player.getUniqueId())) < 0)) return PromoClaim.FAILED;
+        int effective = points == null ? localBefore : Math.max(localBefore, pointsBefore);
+        if ((long)effective + relics > Integer.MAX_VALUE) return PromoClaim.FAILED;
+        final int afterRelics = effective + relics;
+        if (points != null && !setPlayerPointsChecked(points, player.getUniqueId(), afterRelics)) {
+            compensatePlayerPoints(points, player, pointsBefore);
+            return PromoClaim.FAILED;
+        }
+        // External PlayerPoints events may run arbitrary plugin code. Recheck all
+        // prerequisites before committing the local claim marker and rewards.
+        if (hasUsedPromo(name, code) || getCoins(name) != beforeCoins || getSnowflakes(name) != beforeSnow
+                || yml.getInt(root + ".relics", 50) != localBefore
+                || (caseQty > 0 && getCaseKeys(name, caseId) != beforeKeys)
+                || (expected != null && !samePromo(expected, getServerPromo(code)))) {
+            if (points != null) compensatePlayerPoints(points, player, pointsBefore);
+            return PromoClaim.FAILED;
+        }
+        try {
+            transact(new CheckedMutation<Void>() {
+                @Override public Void apply(YamlConfiguration data) {
+                    if (coins > 0) data.set(root + ".coins", Double.valueOf(afterCoins));
+                    if (relics > 0) data.set(root + ".relics", Integer.valueOf(afterRelics));
+                    if (snow > 0) data.set(root + ".snowflakes", Integer.valueOf(beforeSnow + snow));
+                    if (caseQty > 0) data.set(root + ".cases." + caseId, Integer.valueOf(beforeKeys + caseQty));
+                    if (rankUpgrade != null) {
+                        data.set(root + ".rank", rankUpgrade);
+                        data.set(root + ".lpPrefix", "");
+                    }
+                    data.set(root + ".promos." + code.toLowerCase(Locale.ROOT), Boolean.TRUE);
+                    if (expected != null) data.set("serverPromos." + code + ".usedCount", Integer.valueOf(expected.usedCount + 1));
+                    return null;
+                }
+            });
+            return PromoClaim.CLAIMED;
+        } catch (Exception error) {
+            if (points != null) compensatePlayerPoints(points, player, pointsBefore);
+            plugin.getLogger().warning("[Promo] Claim was not committed for " + name + ": " + error.getMessage());
+            return PromoClaim.FAILED;
+        }
+    }
+
+    private boolean samePromo(ServerPromo a, ServerPromo b) {
+        return b != null && a.code.equals(b.code) && a.maxUses == b.maxUses && a.usedCount == b.usedCount
+                && Double.compare(a.coins, b.coins) == 0 && a.relics == b.relics && a.caseQty == b.caseQty
+                && java.util.Objects.equals(a.caseId, b.caseId) && java.util.Objects.equals(a.rankId, b.rankId);
     }
 
     public synchronized void incrementServerPromoUsed(String code) {

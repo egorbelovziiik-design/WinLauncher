@@ -6,6 +6,7 @@ No API or test-fixture classes are packaged. Paper 1.21.4 + Java 21 is the
 supported runtime; compilation alone does not replace an integration test.
 """
 import argparse
+import hashlib
 import os
 from pathlib import Path
 import shutil
@@ -37,6 +38,14 @@ def build(name, source_dir, args):
             resources = source_dir / "src/main/resources"
             entries = [(p.relative_to(classes).as_posix(), p.read_bytes()) for p in classes.rglob("*.class")]
             entries += [(p.relative_to(resources).as_posix(), p.read_bytes()) for p in resources.rglob("*") if p.is_file()]
+            if name == "KingGriefCore":
+                # An embedded, verified template avoids the old synchronous
+                # block-by-block fallback when a fresh server has only the JAR.
+                template = (ROOT / "server/plugins/KingGriefCore/spawn-v71-template.zip").read_bytes()
+                expected = (resources / "spawn_v71_template.sha256").read_text(encoding="ascii").strip()
+                if hashlib.sha256(template).hexdigest() != expected:
+                    raise ValueError("Embedded spawn template does not match Core checksum")
+                entries.append(("spawn_v71_template.zip", template))
             for path, data in sorted(entries):
                 if path.startswith(("org/bukkit/", "java/")):
                     raise ValueError(f"Compile dependency leaked into output: {path}")
@@ -54,10 +63,14 @@ def main():
     version_line = next(line for line in (ROOT / "core-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
                         if line.startswith("version:"))
     core_version = version_line.split(":", 1)[1].strip().strip("'\"")
+    hub_version_line = next(line for line in (ROOT / "kinghub-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
+                            if line.startswith("version:"))
+    hub_version = hub_version_line.split(":", 1)[1].strip().strip("'\"")
     copies = {core: [ROOT / "plugins/KingGriefCore.jar", ROOT / "server/plugins/KingGriefCore.jar",
                      ROOT.parent / "kinggrief/public/KingGriefCore.jar",
                      ROOT.parent / "kinggrief/public" / f"KingGriefCore-v{core_version}.jar"],
-              hub: [ROOT.parent / "kinggrief/public/KingHub.jar"]}
+              hub: [ROOT.parent / "kinggrief/public/KingHub.jar", ROOT / f"KingHub-v{hub_version}.jar",
+                    ROOT.parent / "kinggrief/public" / f"KingHub-v{hub_version}.jar"]}
     for source, dests in copies.items():
         for destination in dests:
             destination.parent.mkdir(parents=True, exist_ok=True)

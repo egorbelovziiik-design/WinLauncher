@@ -78,7 +78,7 @@ public final class WinterProbe extends JavaPlugin implements Listener {
   World w=Bukkit.getWorlds().get(0); w.getBlockAt(5,69,5).setType(Material.STONE,false);
   player.teleport(new Location(w,5.5,70,5.5));clean();
   Set<String> ids=new HashSet<String>();Set<Integer> models=new HashSet<Integer>();
-  ok(WinterItemsManager.itemCount()==100,"exactly 100 registered items");
+  ok(WinterItemsManager.itemCount()==150,"150 registered items, including 100 original runes");
   for(int n=1;n<=100;n++){
    ItemStack it=WinterItemsManager.makeRune(n,2);ItemMeta m=it.getItemMeta();
    ids.add(ItemFactory.getCustomId(it));models.add(m.getCustomModelData());
@@ -138,7 +138,7 @@ public final class WinterProbe extends JavaPlugin implements Listener {
    ok(before-core.getStore().getRelics(player)==WinterItemsManager.price(1),"rune purchase charges the fixed server-side price");
    boolean found=false;for(ItemStack it:player.getInventory().getStorageContents())if("winter_rune_001".equals(ItemFactory.getCustomId(it)))found=true;
    ok(found,"purchased rune was delivered");
-   core.getWinterItems().open(player,3);click(40); // page 4 index 27 is empty, may not charge
+   core.getWinterItems().open(player,5);click(40); // page 6 index 27 is empty, may not charge
    ok(core.getStore().getRelics(player)==before-WinterItemsManager.price(1),"empty catalogue slot cannot charge");
    core.getWinterItems().open(player,0);
    if (Bukkit.getPluginManager().getPlugin("PlayerPoints") != null) {
