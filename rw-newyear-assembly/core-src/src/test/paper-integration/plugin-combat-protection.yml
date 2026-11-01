@@ -1,0 +1,5 @@
+name: KgCombatProtectionProbe
+version: '1.0'
+main: net.kinggrief.probe.CombatProtectionProbe
+api-version: '1.20'
+depend: [KingGriefCore]
