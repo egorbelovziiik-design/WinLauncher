@@ -17,9 +17,62 @@ permissions:
   actions: read
 
 jobs:
+  render-ingame-screenshots:
+    name: Render Authentic In-Game Client Screenshots (ClickGUI, ESP, Target HUD, Main Menu)
+    if: ${{ contains(github.event.head_commit.message, '[screenshots-only]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin Java 8 & Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: |
+            8
+            25
+
+      - name: Set up Gradle 9.8.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.8.2"
+
+      - name: Render Real AxsesCore In-Game Screenshots & Publish Git Blobs
+        working-directory: AXSESCLIENT/client-common
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          AXSES_INGAME_SCREENSHOT_OUT: ${{ github.workspace }}/ingame-shots
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core jq
+          if ! gradle test --tests dev.axsesclient.common.ClientScreenshotGeneratorTest --no-daemon > /tmp/shot.log 2>&1; then
+            msg=$(tail -n 45 /tmp/shot.log | tr '\n' ' ' | sed 's/%/%25/g')
+            echo "::error title=screenshot test failed::$msg"
+            cat /tmp/shot.log
+            exit 1
+          fi
+          python3 - <<'PY'
+          import base64, glob, json, os, subprocess
+          repo = os.environ["REPO"]
+          out = {}
+          for p in sorted(glob.glob(os.path.join(os.environ["AXSES_INGAME_SCREENSHOT_OUT"], "*.png"))):
+              name = os.path.basename(p)
+              b64 = base64.b64encode(open(p, "rb").read()).decode()
+              payload = json.dumps({"content": b64, "encoding": "base64"})
+              sha = subprocess.check_output(
+                  ["gh", "api", f"repos/{repo}/git/blobs", "--method", "POST", "--input", "-", "--jq", ".sha"],
+                  input=payload.encode()
+              ).decode().strip()
+              out[name] = sha
+          print(f"::notice title=INGAME_BLOBS::{json.dumps(out)}")
+          PY
+
   java-mods-and-client-tests:
     name: Build Fabric Mods & Real C#-Engine Xvfb Minecraft Tests (1.16.5, 1.21.4, 1.21.11)
-    if: ${{ !contains(github.event.head_commit.message, '[publish-release]') && inputs.publish_only_run_id == '' }}
+    if: ${{ !contains(github.event.head_commit.message, '[publish-release]') && !contains(github.event.head_commit.message, '[screenshots-only]') && inputs.publish_only_run_id == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -188,7 +241,7 @@ jobs:
 
   windows-launcher-and-installer:
     name: Package & Verify Windows x64 AXSESCLIENT.exe & AXSESCLIENT-Setup.exe
-    if: ${{ !contains(github.event.head_commit.message, '[publish-release]') && inputs.publish_only_run_id == '' }}
+    if: ${{ !contains(github.event.head_commit.message, '[publish-release]') && !contains(github.event.head_commit.message, '[screenshots-only]') && inputs.publish_only_run_id == '' }}
     runs-on: windows-latest
     needs: [java-mods-and-client-tests]
     timeout-minutes: 25
