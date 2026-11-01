@@ -227,11 +227,37 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         a.performCommand("rg role OrbEnemy container");
         ok(claim.canOpenContainers(b.getName())&&!claim.canAccess(b.getName()),"container role grants contents access but not build permission");
         b.teleport(new Location(arena,76.5,94,10.5));int deniedBefore=deniedChestAttempts,attemptsBefore=chestAttempts;
+        later(10,()->{
         getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
         later(25,()->{
             ok(chestAttempts>attemptsBefore&&deniedChestAttempts==deniedBefore
                     &&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"container role opens the outside half of a protected double chest");
-            b.closeInventory();
+            withBlockedSave(()->a.performCommand("rg remove OrbEnemy"));
+            ok(claim.canOpenContainers(b.getName())&&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,
+                    "failed revocation preserves the open container and role");
+            a.performCommand("rg remove OrbEnemy");
+            InventoryClickEvent denied=new InventoryClickEvent(b.getOpenInventory(),InventoryType.SlotType.CONTAINER,0,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+            Bukkit.getPluginManager().callEvent(denied);
+            ok(denied.isCancelled(),"clicks in an open chest are denied immediately after role revocation");
+            ItemStack cursor=new ItemStack(Material.STONE);
+            org.bukkit.event.inventory.InventoryDragEvent drag=new org.bukkit.event.inventory.InventoryDragEvent(
+                    b.getOpenInventory(),null,cursor,false,java.util.Collections.singletonMap(1,cursor));
+            Bukkit.getPluginManager().callEvent(drag);
+            ok(drag.isCancelled(),"dragging into an open chest is denied immediately after revocation");
+            later(2,()->{
+                ok(b.getOpenInventory().getTopInventory().getType()!=InventoryType.CHEST,"revoked player has the physical chest closed");
+                a.performCommand("rg role OrbEnemy container");
+                getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
+                later(25,()->{
+                    ok(b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"regaining the role allows the chest to open again");
+                    b.closeInventory();claimCrossBoundary(claim,second,next);
+                });
+            });
+        });
+        });
+    }
+    private void claimCrossBoundary(DataStore.Claim claim,org.bukkit.block.Block second,Runnable next){
+            DataStore store=core.getStore();World arena=second.getWorld();
             DataStore.Claim other=store.createClaim("OtherOwner",second.getLocation(),0);
             int beforeDenied=deniedChestAttempts;
             getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
@@ -263,7 +289,6 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
                     watchChest=false;store.save();claimRoleBuild(next);
                 });
             });
-        });
     }
     private void claimRoleBuild(Runnable next){
         DataStore store=core.getStore();org.bukkit.block.Block target=world.getBlockAt(419,65,418);target.setType(Material.STONE,false);

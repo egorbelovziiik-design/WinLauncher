@@ -1,9 +1,14 @@
 package net.kinggrief.core;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.BlockFace;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Chest;
 import org.bukkit.entity.Player;
@@ -12,7 +17,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Instant;
@@ -20,10 +28,13 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /** Protects container clicks in Core claims, including both halves of a double chest.
  * This does not replace WorldGuard or protect against every non-player transport. */
@@ -33,11 +44,13 @@ final class ClaimContainerGuard implements Listener {
     private static final DateTimeFormatter DATE=DateTimeFormatter.ofPattern("dd.MM HH:mm 'UTC'").withZone(ZoneOffset.UTC);
     private final KingGriefCore plugin;
     private final Map<String,Long> last=new HashMap<String,Long>();
+    private final Set<UUID> closing=new HashSet<UUID>();
     private BukkitRunnable ticker;
     private boolean dirty;
     ClaimContainerGuard(KingGriefCore plugin){this.plugin=plugin;}
     void start(){ticker=new BukkitRunnable(){@Override public void run(){if(dirty)flush();prune();}};ticker.runTaskTimer(plugin,1200L,1200L);}
-    void shutdown(){if(ticker!=null)ticker.cancel();if(dirty)flush();last.clear();}
+    void shutdown(){if(ticker!=null)ticker.cancel();if(dirty)flush();last.clear();closing.clear();}
+    @EventHandler public void quit(PlayerQuitEvent event){closing.remove(event.getPlayer().getUniqueId());}
     private void flush(){if(plugin.getStore().saveBuffered())dirty=false;}
     private void prune(){long cutoff=System.nanoTime()-RATE_NANOS;last.values().removeIf(value->value<cutoff);}
 
@@ -65,6 +78,64 @@ final class ClaimContainerGuard implements Listener {
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void enforceAfterOtherListeners(PlayerInteractEvent event){enforce(event,false);}
+
+    /** Access is rechecked while a physical container is open, not just on its initial click. */
+    @EventHandler(priority=EventPriority.LOWEST)
+    public void onInventoryClickEarly(InventoryClickEvent event){onInventoryClick(event);}
+    @EventHandler(priority=EventPriority.LOWEST)
+    public void onInventoryDragEarly(InventoryDragEvent event){onInventoryDrag(event);}
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void onInventoryClick(InventoryClickEvent event){
+        if(!(event.getWhoClicked() instanceof Player))return;
+        Player player=(Player)event.getWhoClicked();Inventory top=event.getView().getTopInventory();
+        if(!canUseOpenInventory(player,top)){event.setCancelled(true);closeLater(player,top);}
+    }
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void onInventoryDrag(InventoryDragEvent event){
+        if(!(event.getWhoClicked() instanceof Player))return;
+        Player player=(Player)event.getWhoClicked();Inventory top=event.getView().getTopInventory();
+        if(!canUseOpenInventory(player,top)){event.setCancelled(true);closeLater(player,top);}
+    }
+    void accessChanged(String name){
+        if(name==null)return;
+        for(Player player:Bukkit.getOnlinePlayers())if(player.getName().equalsIgnoreCase(name)){
+            Inventory top=player.getOpenInventory().getTopInventory();
+            if(!canUseOpenInventory(player,top))closeLater(player,top);
+        }
+    }
+    private boolean canUseOpenInventory(Player player,Inventory inventory){
+        if(plugin.getRanks().isOwnerLevel(player))return true;
+        List<Location> locations=new ArrayList<Location>(2);
+        if(inventory instanceof DoubleChestInventory){
+            DoubleChestInventory pair=(DoubleChestInventory)inventory;
+            if(!addHolderLocation(pair.getLeftSide().getHolder(),locations)||!addHolderLocation(pair.getRightSide().getHolder(),locations))return false;
+        }else{
+            InventoryHolder holder=inventory.getHolder();
+            if(!(holder instanceof BlockState))return true; // virtual GUIs and the player's own ender chest
+            if(!addHolderLocation(holder,locations))return false;
+        }
+        for(Location location:locations){
+            if(location.getWorld()==null||!location.getWorld().isChunkLoaded(location.getBlockX()>>4,location.getBlockZ()>>4))return false;
+            DataStore.Claim claim=plugin.getStore().getClaimAt(location);
+            if(claim!=null&&!claim.canOpenContainers(player.getName()))return false;
+        }
+        return true;
+    }
+    private static boolean addHolderLocation(InventoryHolder holder,List<Location> locations){
+        if(!(holder instanceof BlockState))return false;
+        Location location=((BlockState)holder).getLocation();
+        if(location==null||location.getWorld()==null)return false;
+        locations.add(location);return true;
+    }
+    private void closeLater(Player player,Inventory top){
+        if(!closing.add(player.getUniqueId()))return;
+        Bukkit.getScheduler().runTask(plugin,()->{
+            closing.remove(player.getUniqueId());
+            if(player.isOnline()&&player.getOpenInventory().getTopInventory()==top&&!canUseOpenInventory(player,top)){
+                player.closeInventory();player.sendMessage(ColorUtil.c("&cДоступ к контейнеру изменён; окно закрыто."));
+            }
+        });
+    }
     private static boolean container(Block block){
         if(block.getType()==Material.ENDER_CHEST)return true;
         return block.getState() instanceof InventoryHolder;

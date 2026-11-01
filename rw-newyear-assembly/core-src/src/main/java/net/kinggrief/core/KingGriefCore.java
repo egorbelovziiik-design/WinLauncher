@@ -2528,6 +2528,7 @@ public final class KingGriefCore extends JavaPlugin {
             DataStore.ClaimRoleResult result = store.setClaimRole(cl, args[1], role);
             switch (result) {
                 case CHANGED:
+                    claimContainers.accessChanged(args[1]);
                     String description = role == DataStore.ClaimRole.BUILDER ? "строительство и контейнеры"
                             : role == DataStore.ClaimRole.CONTAINER ? "открытие контейнеров и доступ к их вещам, без строительства"
                             : "доступ отозван";
