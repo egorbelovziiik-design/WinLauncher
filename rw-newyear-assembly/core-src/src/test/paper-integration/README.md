@@ -71,7 +71,11 @@ refunds, stale GUI slots and pagination. `test-mining-safety.py` uses real
 and neighbouring blocks, frost placement, full inventories, spawners and auto-mine.
 The spawner cases also cover deterministic vanilla wear, a near-broken old pick,
 external durability changes, offhand moves, missing tools, disconnect and plugin
-shutdown before confirmation. They are not a power-loss test.
+shutdown before confirmation. The auto-smelt checks cover late cancellation, an
+earlier drop restriction and later restoration, survival/creative modes, a full
+inventory, an inter-world teleport, a simulated chunk-unload event and orderly
+plugin shutdown (31 checks in total). They do not cover power loss, unexpected
+forced unload without an event, or delivery exceptions.
 `test-mining-worldguard.py --worldguard /path/to/WorldGuard.jar --worldedit
 /path/to/WorldEdit.jar` separately uses the real plugins to check protected central
 and neighbouring blocks and frost placement. Neither test guarantees compatibility
