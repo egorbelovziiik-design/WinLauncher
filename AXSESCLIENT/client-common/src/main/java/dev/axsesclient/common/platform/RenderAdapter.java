@@ -90,22 +90,54 @@ public interface RenderAdapter {
     }
 
     default void drawLine(float x1, float y1, float x2, float y2, float thickness, int argb) {
+        if (thickness <= 0f || ((argb >>> 24) & 0xFF) == 0) {
+            return;
+        }
+        // 2D Liang-Barsky viewport clip so off-screen projected 3D points never stretch step size
+        float minX = -24.0f;
+        float minY = -24.0f;
+        float maxX = getScaledWidth() + 24.0f;
+        float maxY = getScaledHeight() + 24.0f;
         float dx = x2 - x1;
         float dy = y2 - y1;
-        if (Math.abs(dy) < 0.5f) {
-            float left = Math.min(x1, x2);
-            fillRect(left, y1 - thickness * 0.5f, Math.abs(dx), thickness, argb);
-        } else if (Math.abs(dx) < 0.5f) {
-            float top = Math.min(y1, y2);
-            fillRect(x1 - thickness * 0.5f, top, thickness, Math.abs(dy), argb);
+        float t0 = 0.0f;
+        float t1 = 1.0f;
+        float[] p = { -dx, dx, -dy, dy };
+        float[] q = { x1 - minX, maxX - x1, y1 - minY, maxY - y1 };
+        for (int k = 0; k < 4; k++) {
+            if (Math.abs(p[k]) < 1e-5f) {
+                if (q[k] < 0f) return;
+            } else {
+                float r = q[k] / p[k];
+                if (p[k] < 0f) {
+                    if (r > t1) return;
+                    if (r > t0) t0 = r;
+                } else {
+                    if (r < t0) return;
+                    if (r < t1) t1 = r;
+                }
+            }
+        }
+        float cx1 = x1 + t0 * dx;
+        float cy1 = y1 + t0 * dy;
+        float cx2 = x1 + t1 * dx;
+        float cy2 = y1 + t1 * dy;
+        float cdx = cx2 - cx1;
+        float cdy = cy2 - cy1;
+
+        if (Math.abs(cdy) < 0.5f) {
+            float left = Math.min(cx1, cx2);
+            fillRect(left, cy1 - thickness * 0.5f, Math.max(1.0f, Math.abs(cdx)), thickness, argb);
+        } else if (Math.abs(cdx) < 0.5f) {
+            float top = Math.min(cy1, cy2);
+            fillRect(cx1 - thickness * 0.5f, top, thickness, Math.max(1.0f, Math.abs(cdy)), argb);
         } else {
-            float dist = (float) Math.hypot(dx, dy);
-            float stepSize = Math.max(1.25f, thickness * 0.9f);
-            int steps = Math.max(2, Math.min(140, Math.round(dist / stepSize)));
-            float dotSize = Math.max(thickness, dist / steps + 0.35f);
+            float dist = (float) Math.hypot(cdx, cdy);
+            float stepSize = Math.max(0.95f, thickness * 0.72f);
+            int steps = Math.max(2, Math.min(900, Math.round(dist / stepSize)));
             for (int i = 0; i <= steps; i++) {
                 float t = (float) i / (float) steps;
-                fillRect(x1 + dx * t - dotSize * 0.5f, y1 + dy * t - dotSize * 0.5f, dotSize, dotSize, argb);
+                fillRect(cx1 + cdx * t - thickness * 0.5f, cy1 + cdy * t - thickness * 0.5f, thickness, thickness, argb);
             }
         }
     }

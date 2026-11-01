@@ -403,15 +403,15 @@ public class ClientScreenshotGeneratorTest {
             TargetEntityInfo mainEnemy = new TargetEntityInfo(
                     101, "DiamondPlayer", true, false, false, false,
                     14.5f, 20.0f, 2.0f, 3.1f, 4, 18,
-                    -0.38, 64.0, 3.25, 65.62,
-                    -0.68, 64.0, 2.95, -0.08, 65.8, 3.55,
+                    0.55, 64.0, 3.35, 65.62,
+                    0.25, 64.0, 3.05, 0.85, 65.8, 3.65,
                     true, "Незеритовый меч"
             );
             TargetEntityInfo secondEnemy = new TargetEntityInfo(
                     102, "HolyWarrior", true, false, false, false,
                     19.0f, 20.0f, 0.0f, 7.6f, 0, 20,
-                    2.85, 64.0, 7.2, 65.62,
-                    2.55, 64.0, 6.9, 3.15, 65.8, 7.5,
+                    3.05, 64.0, 7.4, 65.62,
+                    2.75, 64.0, 7.1, 3.35, 65.8, 7.7,
                     true, "Золотое яблоко x8"
             );
             TargetEntityInfo behindEnemy = new TargetEntityInfo(
@@ -424,8 +424,8 @@ public class ClientScreenshotGeneratorTest {
             TargetEntityInfo droppedGapple = new TargetEntityInfo(
                     201, "Золотое яблоко x12", false, false, false, true,
                     1.0f, 1.0f, 0.0f, 5.2f, 0, 0,
-                    -2.75, 64.0, 4.6, 64.25,
-                    -2.90, 64.0, 4.45, -2.60, 64.3, 4.75,
+                    -2.15, 64.0, 4.9, 64.25,
+                    -2.30, 64.0, 4.75, -2.00, 64.3, 5.05,
                     true, ""
             );
 
@@ -450,14 +450,14 @@ public class ClientScreenshotGeneratorTest {
             core.getAnimationManager().setReducedMotion(true);
             dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
             if (thud != null) {
-                thud.setNormX(0.68f);
+                thud.setNormX(0.61f);
                 thud.setNormY(0.49f);
             }
 
             // Simulate a curved arena dash + jump so Breadcrumbs & JumpCircles spawn live 3D geometry in view
             double[][] pathSteps = new double[][] {
-                    { -1.85, 5.4 }, { -1.55, 4.7 }, { -1.20, 4.1 }, { -0.80, 3.5 },
-                    { -0.45, 2.9 }, { 1.45, 4.3 }
+                    { 2.10, 5.8 }, { 1.75, 5.2 }, { 1.35, 4.7 }, { 0.95, 4.2 },
+                    { 0.50, 3.8 }, { -0.10, 3.5 }, { 1.65, 4.4 }
             };
             p.onGround = true;
             for (int step = 0; step < pathSteps.length; step++) {
@@ -602,6 +602,11 @@ public class ClientScreenshotGeneratorTest {
             p.hudEditorOpen = true;
 
             p.paintStylizedWorldBackdrop(false);
+            dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
+            if (thud != null) {
+                core.getHudEditorController().mouseClicked(p, thud.getPixelX(p.scaledW) + 12f, thud.getPixelY(p.scaledH) + 12f, 0);
+                core.getHudEditorController().mouseReleased();
+            }
             core.getHudEditorController().render(p, p, 390, 285, 1.0f);
 
             File out6 = outDir.resolve("ingame-hud-editor.png").toFile();

@@ -19,6 +19,7 @@ public final class HudEditorController {
     private float dragOffsetY = 0f;
     private boolean showVerticalCenterGuide = false;
     private boolean showHorizontalCenterGuide = false;
+    private boolean showDisabledWidgets = false;
 
     public HudEditorController(AxsesCore core) {
         this.core = core;
@@ -68,21 +69,27 @@ public final class HudEditorController {
 
         r.pushTransform(canvasOffsetX, canvasOffsetY, 1.0f);
         for (HudElement el : hm.getAll()) {
-            el.renderWidget(r, mc, core.getThemeManager(), core.getFontManager(), canvasW, canvasH, true, el == selectedElement);
+            if (!showDisabledWidgets && el.getBoundModule() != null && !el.getBoundModule().isEnabled()) {
+                continue;
+            }
+            el.renderWidget(r, mc, core.getThemeManager(), core.getFontManager(), canvasW, canvasH, showDisabledWidgets, el == selectedElement);
         }
         r.popTransform();
 
-        // Top HUD Editor Toolbar
-        float barW = Math.min(sw - 16f, 520f);
+        // Top HUD Editor Toolbar (positioned cleanly below top Watermark bar)
+        boolean ru = core.getLocalizationManager().isRussian();
+        float barW = Math.min(sw - 16f, 548f);
         float barX = (sw - barW) * 0.5f;
-        r.fillRoundedRect(barX, 6f, barW, 24f, 6f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
-        r.drawRoundedOutline(barX, 6f, barW, 24f, 6f, 1.0f, t.getPrimaryColor());
-        core.getFontManager().draw(r, "AXSES HUD EDITOR", barX + 10f, 14f, t.getAccentColor(), 0.80f);
-        drawToolBtn(r, barX + 118f, 9f, 52f, 18f, hm.isGridSnapping() ? "Grid:ON" : "Grid:OFF", mouseX, mouseY);
-        drawToolBtn(r, barX + 174f, 9f, 96f, 18f, rp.getLabel().split(" ")[0], mouseX, mouseY);
-        drawToolBtn(r, barX + 274f, 9f, 62f, 18f, "Preset", mouseX, mouseY);
-        drawToolBtn(r, barX + 340f, 9f, 54f, 18f, "Reset", mouseX, mouseY);
-        drawToolBtn(r, barX + 398f, 9f, 114f, 18f, "Save & ClickGUI", mouseX, mouseY);
+        float barY = 30f;
+        r.fillRoundedRect(barX, barY, barW, 24f, 6f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
+        r.drawRoundedOutline(barX, barY, barW, 24f, 6f, 1.0f, t.getPrimaryColor());
+        core.getFontManager().draw(r, ru ? "РЕДАКТОР HUD 3.0" : "AXSES HUD EDITOR", barX + 10f, barY + 8f, t.getAccentColor(), 0.80f);
+        drawToolBtn(r, barX + 118f, barY + 3f, 60f, 18f, hm.isGridSnapping() ? (ru ? "Сетка:ВКЛ" : "Grid:ON") : (ru ? "Сетка:ВЫКЛ" : "Grid:OFF"), mouseX, mouseY);
+        drawToolBtn(r, barX + 182f, barY + 3f, 82f, 18f, showDisabledWidgets ? (ru ? "Вид:Все" : "Show:All") : (ru ? "Вид:Актив" : "Show:Active"), mouseX, mouseY);
+        drawToolBtn(r, barX + 268f, barY + 3f, 70f, 18f, rp.getLabel().split(" ")[0], mouseX, mouseY);
+        drawToolBtn(r, barX + 342f, barY + 3f, 58f, 18f, ru ? "Пресет" : "Preset", mouseX, mouseY);
+        drawToolBtn(r, barX + 404f, barY + 3f, 52f, 18f, ru ? "Сброс" : "Reset", mouseX, mouseY);
+        drawToolBtn(r, barX + 460f, barY + 3f, 80f, 18f, ru ? "Сохранить" : "Save & GUI", mouseX, mouseY);
 
         // Selected Widget Inspector Dock at Bottom
         if (selectedElement != null) {
@@ -114,19 +121,21 @@ public final class HudEditorController {
         int sw = mc != null ? mc.getScaledWidth() : 854;
         int sh = mc != null ? mc.getScaledHeight() : 480;
 
-        float barW = Math.min(sw - 16f, 520f);
+        float barW = Math.min(sw - 16f, 548f);
         float barX = (sw - barW) * 0.5f;
-        if (hit((float) mx, (float) my, barX + 118f, 9f, 52f, 18f)) { hm.setGridSnapping(!hm.isGridSnapping()); return true; }
-        if (hit((float) mx, (float) my, barX + 174f, 9f, 96f, 18f)) { hm.cycleResolutionPreview(); return true; }
-        if (hit((float) mx, (float) my, barX + 274f, 9f, 62f, 18f)) {
+        float barY = 30f;
+        if (hit((float) mx, (float) my, barX + 118f, barY + 3f, 60f, 18f)) { hm.setGridSnapping(!hm.isGridSnapping()); return true; }
+        if (hit((float) mx, (float) my, barX + 182f, barY + 3f, 82f, 18f)) { showDisabledWidgets = !showDisabledWidgets; return true; }
+        if (hit((float) mx, (float) my, barX + 268f, barY + 3f, 70f, 18f)) { hm.cycleResolutionPreview(); return true; }
+        if (hit((float) mx, (float) my, barX + 342f, barY + 3f, 58f, 18f)) {
             String p = presetCycle[presetIdx % presetCycle.length];
             presetIdx++;
             hm.applyPreset(p, mc);
             core.getNotificationManager().push("HUD Preset", p, NotificationManager.Severity.SUCCESS);
             return true;
         }
-        if (hit((float) mx, (float) my, barX + 340f, 9f, 54f, 18f)) { hm.resetAll(); return true; }
-        if (hit((float) mx, (float) my, barX + 398f, 9f, 114f, 18f)) {
+        if (hit((float) mx, (float) my, barX + 404f, barY + 3f, 52f, 18f)) { hm.resetAll(); return true; }
+        if (hit((float) mx, (float) my, barX + 460f, barY + 3f, 80f, 18f)) {
             core.getConfigManager().saveActiveAsync();
             mc.openClickGui();
             return true;
@@ -155,6 +164,9 @@ public final class HudEditorController {
         List<HudElement> all = hm.getAll();
         for (int i = all.size() - 1; i >= 0; i--) {
             HudElement el = all.get(i);
+            if (!showDisabledWidgets && el.getBoundModule() != null && !el.getBoundModule().isEnabled()) {
+                continue;
+            }
             float px = el.getPixelX(sw);
             float py = el.getPixelY(sh);
             float ew = el.getScaledWidth();

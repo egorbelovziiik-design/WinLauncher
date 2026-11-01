@@ -1287,17 +1287,22 @@ public final class VisualModulesRegistry {
                 int n = nodes.size();
                 float[] prev = null;
                 int idx = 0;
+                double[] prevWorld = null;
                 for (double[] pt : nodes) {
                     float[] proj = mc.projectWorldToScreen(pt[0], pt[1], pt[2]);
-                    if (proj != null && proj[2] > 0.1f) {
-                        if (prev != null) {
+                    boolean continuous = prevWorld != null
+                            && ((pt[0] - prevWorld[0]) * (pt[0] - prevWorld[0]) + (pt[2] - prevWorld[2]) * (pt[2] - prevWorld[2])) <= 6.25;
+                    if (proj != null && proj[2] > 0.85f) {
+                        if (prev != null && continuous) {
                             float frac = (float) idx / (float) Math.max(1, n - 1);
-                            int col = AxsesTheme.withAlpha(themes.getAuroraWaveColor(idx * 0.25f), 0.18f + 0.72f * frac);
-                            r.drawLine(prev[0], prev[1], proj[0], proj[1], 1.8f + frac * 1.2f, col);
+                            int col = AxsesTheme.withAlpha(themes.getAuroraWaveColor(idx * 0.25f), 0.22f + 0.72f * frac);
+                            r.drawLine(prev[0], prev[1], proj[0], proj[1], 1.6f + frac * 1.0f, col);
                         }
                         prev = proj;
+                        prevWorld = pt;
                     } else {
                         prev = null;
+                        prevWorld = pt;
                     }
                     idx++;
                 }
