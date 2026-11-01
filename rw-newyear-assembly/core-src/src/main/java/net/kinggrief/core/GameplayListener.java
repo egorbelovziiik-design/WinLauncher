@@ -455,7 +455,7 @@ public final class GameplayListener implements Listener {
                     Map<Material, Integer> tally = new HashMap<Material, Integer>();
                     addLootBundled(tally, drop);
                     Location spot = block.getLocation().add(0.5, 0.5, 0.5);
-                    deliverBundledLoot(player, spot, tally, true);
+                    deliverBundledLoot(player, spot, tally, true, true);
                     block.getWorld().spawnParticle(Particle.FLAME, spot, 6 * level, 0.25, 0.25, 0.25, 0.02);
                     if (player.isOnline()) ColorUtil.actionBar(player, "&#FFD740🔥 Авто-Плавка " + ItemFactory.romanLevel(level) + ": руда сразу в слитках ×" + (1 + level));
                     plugin.getStore().addMined(player.getName());
@@ -1034,7 +1034,7 @@ public final class GameplayListener implements Listener {
         coins += acc[0];
 
         Location dropSpot = b.getLocation().add(0.5, 0.5, 0.5);
-        deliverBundledLoot(p, dropSpot, tally, true);
+        deliverBundledLoot(p, dropSpot, tally, true, true);
         int exp = Math.min(500, 4 * bonusMult + (int) acc[1]);
         if (exp > 0) p.giveExp(exp);
         plugin.getStore().addCoins(p.getName(), coins);
@@ -1412,7 +1412,7 @@ public final class GameplayListener implements Listener {
         tally.put(drop.getType(), Integer.valueOf((prev == null ? 0 : prev.intValue()) + drop.getAmount()));
     }
 
-    private void deliverBundledLoot(Player p, Location dropSpot, Map<Material, Integer> tally, boolean telekinesis) {
+    private void deliverBundledLoot(Player p, Location dropSpot, Map<Material, Integer> tally, boolean telekinesis, boolean mined) {
         World w = dropSpot.getWorld();
         for (Map.Entry<Material, Integer> en : tally.entrySet()) {
             Material mat = en.getKey();
@@ -1422,15 +1422,18 @@ public final class GameplayListener implements Listener {
                 int batch = Math.min(maxStack, rem);
                 rem -= batch;
                 ItemStack stack = new ItemStack(mat, batch);
-                if (telekinesis && p.isOnline()) {
-                    for (ItemStack left : p.getInventory().addItem(stack).values()) {
+                if (telekinesis && p != null && p.isOnline()) {
+                    Map<Integer, ItemStack> leftItems = mined ? plugin.getAutoBuyer().giveMined(p, stack) : p.getInventory().addItem(stack);
+                    for (ItemStack left : leftItems.values()) {
                         Location playerSpot = p.getLocation();
                         World playerWorld = playerSpot.getWorld();
-                        if (playerWorld != null) playerWorld.dropItemNaturally(playerSpot, left);
-                        else if (w != null) w.dropItemNaturally(dropSpot, left);
+                        org.bukkit.entity.Item dropped = playerWorld != null ? playerWorld.dropItemNaturally(playerSpot, left)
+                                : w != null ? w.dropItemNaturally(dropSpot, left) : null;
+                        if (mined && dropped != null) plugin.getAutoBuyer().trackOverflow(p, dropped);
                     }
                 } else if (w != null) {
-                    w.dropItemNaturally(dropSpot, stack);
+                    org.bukkit.entity.Item dropped = w.dropItemNaturally(dropSpot, stack);
+                    if (mined && p != null) plugin.getAutoBuyer().trackOverflow(p, dropped);
                 }
             }
         }
@@ -1442,9 +1445,10 @@ public final class GameplayListener implements Listener {
             block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), stack);
             return;
         }
-        for (ItemStack overflow : player.getInventory().addItem(stack).values()) {
+        for (ItemStack overflow : plugin.getAutoBuyer().giveMined(player, stack).values()) {
             // Full inventories must not silently destroy the mined drop.
-            block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), overflow);
+            org.bukkit.entity.Item dropped = block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), overflow);
+            plugin.getAutoBuyer().trackOverflow(player, dropped);
         }
     }
 
@@ -1516,7 +1520,7 @@ public final class GameplayListener implements Listener {
                     }
                 }
             }
-            deliverBundledLoot(p, center.getLocation().add(0.5, 0.5, 0.5), tally, true);
+            deliverBundledLoot(p, center.getLocation().add(0.5, 0.5, 0.5), tally, true, true);
             p.giveExp(broken * 4);
             ColorUtil.sound(p, "entity.experience_orb.pickup", 0.9f, 1.35f);
             ColorUtil.actionBar(p, "&#00E676💎 Жилоискатель добыл всю жилу: &f" + broken + " шт.!");
@@ -1624,7 +1628,7 @@ public final class GameplayListener implements Listener {
             w.spawnParticle(Particle.ELECTRIC_SPARK, center.getLocation().add(0.5, 0.5, 0.5), 18, 0.9, 0.9, 0.9, 0.08);
         }
 
-        deliverBundledLoot(p, center.getLocation().add(0.5, 0.5, 0.5), tally, telekinesis);
+        deliverBundledLoot(p, center.getLocation().add(0.5, 0.5, 0.5), tally, telekinesis, true);
         p.giveExp(Math.min(40, brokenCount));
         return true;
     }
@@ -2148,7 +2152,7 @@ public final class GameplayListener implements Listener {
                     }
                 }
             }
-            deliverBundledLoot(srcPlayer, c, mined, srcPlayer != null && srcPlayer.isOnline());
+            deliverBundledLoot(srcPlayer, c, mined, srcPlayer != null && srcPlayer.isOnline(), false);
             if (srcPlayer != null && srcPlayer.isOnline()) {
                 srcPlayer.giveExp(25 + oresFound * 5);
                 srcPlayer.sendMessage(ColorUtil.c("&#FB923C&l⛏ [БУРОВОЙ ТНТ] &fШахта &e9×9×9 &fвыкопана! Найдено и переплавлено руд: &#00E676" + oresFound + " шт.&f!"));

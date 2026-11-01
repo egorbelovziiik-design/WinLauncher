@@ -9,6 +9,9 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  autosell:
+    description: Opt-in sale of newly mined resources
+    usage: /autosell [on|off|status|prices]
   trainstats:
     description: Show or clear temporary combat-training statistics
     usage: /trainstats [reset]

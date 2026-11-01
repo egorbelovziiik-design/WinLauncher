@@ -79,6 +79,7 @@ public final class KingGriefCore extends JavaPlugin {
     private MemoryGameManager memoryGame;
     private TrainingStatsManager trainingStats;
     private EventCalendarManager eventCalendar;
+    private AutoBuyerManager autoBuyer;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -127,6 +128,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.guis = new GuiManager(this);
         this.hud = new HudManager(this);
         this.moderation = new ModerationManager(this);
+        this.autoBuyer = new AutoBuyerManager(this);
+        Bukkit.getPluginManager().registerEvents(this.autoBuyer, this);
         this.winterFishing = new WinterFishingManager(this);
         Bukkit.getPluginManager().registerEvents(this.winterFishing, this);
         this.buildContest = new BuildContestManager(this);
@@ -164,7 +167,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "ah", "achievements"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "ah", "achievements", "autosell"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -225,6 +228,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.gameVotes.start();
         this.winterTree.start();
         this.winterFishing.start();
+        this.autoBuyer.start();
         this.buildContest.start();
         this.frostForge.start();
         this.memoryGame.start();
@@ -287,6 +291,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.eventCalendar != null) this.eventCalendar.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.winterFishing != null) this.winterFishing.shutdown();
+        if (this.autoBuyer != null) this.autoBuyer.shutdown();
         if (this.buildContest != null) this.buildContest.shutdown();
         if (this.frostForge != null) this.frostForge.shutdown();
         if (this.memoryGame != null) this.memoryGame.shutdown();
@@ -305,6 +310,7 @@ public final class KingGriefCore extends JavaPlugin {
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
     AchievementManager getAchievements() { return achievements; }
     WinterFishingManager getWinterFishing() { return winterFishing; }
+    AutoBuyerManager getAutoBuyer() { return autoBuyer; }
     FrostForgeManager getFrostForge() { return frostForge; }
     MemoryGameManager getMemoryGame() { return memoryGame; }
     TrainingStatsManager getTrainingStats() { return trainingStats; }
@@ -517,7 +523,9 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("calendar".equals(c)) {
+        if ("autosell".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("on", "off", "status", "prices"), args[0]);
+        } else if ("calendar".equals(c)) {
             if(args.length==1)return filterPrefix(hasEconomyAdmin(sender)
                     ?Arrays.asList("menu","list","add","remove","prune"):Arrays.asList("menu","list"),args[0]);
             if(args.length==2&&"add".equalsIgnoreCase(args[0])&&hasEconomyAdmin(sender))
@@ -851,6 +859,7 @@ public final class KingGriefCore extends JavaPlugin {
 
         if ("achievements".equals(c)) { achievements.command(p, args); return true; }
         if ("winterfish".equals(c)) { winterFishing.command(p, args); return true; }
+        if ("autosell".equals(c)) { autoBuyer.command(p, args); return true; }
         if ("frostforge".equals(c)) { frostForge.command(p, args); return true; }
         if ("snowmemory".equals(c)) { memoryGame.command(p, args); return true; }
         if ("trainstats".equals(c)) { trainingStats.command(p, args); return true; }
