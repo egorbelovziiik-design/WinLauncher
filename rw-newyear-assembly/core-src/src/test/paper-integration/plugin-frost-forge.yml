@@ -1,0 +1,5 @@
+name: KgFrostForgeProbe
+version: '1.0'
+main: net.kinggrief.probe.FrostForgeProbe
+api-version: '1.20'
+depend: [KingGriefCore]
