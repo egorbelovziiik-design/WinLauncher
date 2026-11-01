@@ -59,7 +59,7 @@ jobs:
           test -n "$API_CP"
           echo "KG_TEST_DIR=$KG" >> "$GITHUB_ENV"
           echo "KG_API_CP=$API_CP" >> "$GITHUB_ENV"
-          npm install --prefix "$KG/node" --no-fund --no-audit minecraft-protocol@1.62.0
+          npm install --prefix "$KG/node" --no-fund --no-audit minecraft-protocol@1.62.0 mineflayer@4.31.0
       - name: Compile Core and KingConnect with Java 21
         run: python rw-newyear-assembly/build-core-hub.py --core-only --include-connect --api-classpath "$KG_API_CP"
       - name: Exercise ${{ matrix.group }} against isolated Paper servers
