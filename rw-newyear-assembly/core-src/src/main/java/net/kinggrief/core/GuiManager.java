@@ -632,7 +632,7 @@ public final class GuiManager {
         inv.setItem(32, shopTag(ItemFactory.maceKrush(),       380));
         inv.setItem(33, shopTag(ItemFactory.tridentPoseidon(), 320));
         inv.setItem(40, ItemFactory.glowIcon(Material.CRAFTING_TABLE, "&#80D8FF&l⚒ Полярная кузница (/frostforge)",
-                "&7Соберите клинок из трёх созданных деталей.", "&7Рецепты используют обычный верстак."));
+                "&7Лезвие + гарда + одно из трёх сердец.", "&7Выберите способность; рецепты используют обычный верстак."));
 
         inv.setItem(48, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 3D Кирок и Молот (/picks)",
                 "&7Перейти в Кузницу Кирок и Молотов!"));

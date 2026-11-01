@@ -1,6 +1,7 @@
 package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -37,11 +38,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** A three-component craft using vanilla crafting transactions, with no world edits. */
+/** Interchangeable, exact components crafted in a vanilla workbench; no world edits. */
 final class FrostForgeManager implements Listener {
     private static final String SWORD_ID="assembled_frost_sword";
+    private static final String AURORA_ID="assembled_aurora_sword";
+    private static final String TEMPEST_ID="assembled_tempest_sword";
     private static final long COOLDOWN_NS=12_000_000_000L;
-    private static final int EFFECT_TICKS=60, MAX_COOLDOWNS=4096;
+    private static final int MAX_COOLDOWNS=4096;
+    private enum Variant {
+        FROST(SWORD_ID,"slowness","SLOW",60,false,Particle.SNOWFLAKE,"Ледяное касание"),
+        AURORA(AURORA_ID,"speed","SPEED",80,true,Particle.END_ROD,"Шаг сияния"),
+        TEMPEST(TEMPEST_ID,"weakness","WEAKNESS",60,false,Particle.ELECTRIC_SPARK,"Порыв бури");
+        final String id,modern,legacy,label; final int duration; final boolean self; final Particle particle;
+        Variant(String id,String modern,String legacy,int duration,boolean self,Particle particle,String label){
+            this.id=id;this.modern=modern;this.legacy=legacy;this.duration=duration;this.self=self;this.particle=particle;this.label=label;
+        }
+        static Variant of(String id){for(Variant value:values())if(value.id.equals(id))return value;return null;}
+    }
     private static final class Spec {
         final NamespacedKey key;final ItemStack result;final Material[] materials;final ItemStack[] exact;
         Spec(NamespacedKey key,ItemStack result,Material[] materials,ItemStack[] exact){this.key=key;this.result=result;this.materials=materials;this.exact=exact;}
@@ -52,12 +65,14 @@ final class FrostForgeManager implements Listener {
         @Override public Inventory getInventory(){return inventory;}
     }
     private final KingGriefCore plugin;
+    private final PvpRegionGuard regionGuard;
     private final Map<NamespacedKey,Spec> specs=new LinkedHashMap<NamespacedKey,Spec>();
     private final List<NamespacedKey> registered=new ArrayList<NamespacedKey>();
     private final Map<UUID,Long> cooldowns=new LinkedHashMap<UUID,Long>();
     private final Set<UUID> pendingHits=new HashSet<UUID>();
+    private final Set<UUID> reservedCooldownSlots=new HashSet<UUID>();
     private boolean enabled;
-    FrostForgeManager(KingGriefCore plugin){this.plugin=plugin;}
+    FrostForgeManager(KingGriefCore plugin){this.plugin=plugin;this.regionGuard=new PvpRegionGuard(plugin);}
     private ItemStack part(Material material,String id,String title,String... description){
         return ItemFactory.make(material,1,title,Arrays.asList(description),false,id,null,0);
     }
@@ -68,6 +83,11 @@ final class FrostForgeManager implements Listener {
                 "&7Часть оружия. Сохраните для сборки в верстаке.");
         ItemStack core=part(Material.HEART_OF_THE_SEA,"frost_forge_core","&#00E5FF◆ Сердце полярной кузницы",
                 "&7Часть оружия. Сохраните для сборки в верстаке.");
+        // Keep the original three components byte-compatible with earlier prototypes.
+        ItemStack aurora=part(Material.PRISMARINE_CRYSTALS,"frost_forge_aurora_core","&#FFD740✦ Сердце сияния",
+                "&7Выбор сердца меняет способность собранного клинка.");
+        ItemStack tempest=part(Material.ECHO_SHARD,"frost_forge_tempest_core","&#B388FF✦ Сердце бури",
+                "&7Выбор сердца меняет способность собранного клинка.");
         ItemStack sword=ItemFactory.make(Material.NETHERITE_SWORD,1,"&#80D8FF&l❄ СОБРАННЫЙ КЛИНОК СЕВЕРА",
                 Arrays.asList("&7Собран из трёх деталей в верстаке.","&bЛедяное касание: &7Медлительность I на 3 секунды",
                         "&7при разрешённом ударе; перезарядка &f12 секунд&7.","&8Боссы и безопасная зона спавна исключены."),
@@ -77,10 +97,29 @@ final class FrostForgeManager implements Listener {
         org.bukkit.enchantments.Enchantment sharp=ColorUtil.ench("sharpness","DAMAGE_ALL"),unbreaking=ColorUtil.ench("unbreaking","DURABILITY");
         if(sharp==null||unbreaking==null)throw new IllegalStateException("Required sword enchantments unavailable");
         meta.addEnchant(sharp,3,false);meta.addEnchant(unbreaking,2,false);meta.removeItemFlags(ItemFlag.HIDE_ATTRIBUTES);sword.setItemMeta(meta);
+        ItemStack auroraSword=variantSword(AURORA_ID,"&#FFD740&l✦ КЛИНОК СИЯНИЯ", "sword_zeus",1832,
+                "&eШаг сияния: &7Скорость I себе на 4 секунды");
+        ItemStack tempestSword=variantSword(TEMPEST_ID,"&#B388FF&l✦ КЛИНОК БУРИ", "sword_phantom",1836,
+                "&dПорыв бури: &7Слабость I цели на 3 секунды");
         addSpec("frost_forge_blade",blade,new Material[]{Material.NETHERITE_INGOT,Material.DIAMOND,Material.BLUE_ICE},null);
         addSpec("frost_forge_guard",guard,new Material[]{Material.GOLD_INGOT,Material.IRON_INGOT,Material.AMETHYST_SHARD},null);
         addSpec("frost_forge_core",core,new Material[]{Material.HEART_OF_THE_SEA,Material.PRISMARINE_CRYSTALS,Material.PACKED_ICE},null);
+        addSpec("frost_forge_aurora_core",aurora,new Material[]{Material.HEART_OF_THE_SEA,Material.AMETHYST_SHARD,Material.GLOWSTONE_DUST},null);
+        addSpec("frost_forge_tempest_core",tempest,new Material[]{Material.HEART_OF_THE_SEA,Material.ECHO_SHARD,Material.BLAZE_POWDER},null);
         addSpec("frost_forge_sword",sword,null,new ItemStack[]{blade,guard,core});
+        addSpec("frost_forge_aurora_sword",auroraSword,null,new ItemStack[]{blade,guard,aurora});
+        addSpec("frost_forge_tempest_sword",tempestSword,null,new ItemStack[]{blade,guard,tempest});
+    }
+    private ItemStack variantSword(String id,String title,String model,int modelData,String effect){
+        ItemStack sword=ItemFactory.make(Material.NETHERITE_SWORD,1,title,
+                Arrays.asList("&7Лезвие + гарда + выбранное сердце.",effect,
+                        "&7при разрешённом ударе по живой цели.","&7Общий КТ клинков кузницы: &f12 секунд&7.",
+                        "&8Боссы, манекены и безопасная зона исключены."),false,id,model,modelData);
+        ItemMeta meta=sword.getItemMeta();
+        org.bukkit.enchantments.Enchantment sharp=ColorUtil.ench("sharpness","DAMAGE_ALL"),unbreaking=ColorUtil.ench("unbreaking","DURABILITY");
+        if(meta==null||sharp==null||unbreaking==null)throw new IllegalStateException("Required sword metadata unavailable");
+        meta.addEnchant(sharp,3,false);meta.addEnchant(unbreaking,2,false);meta.removeItemFlags(ItemFlag.HIDE_ATTRIBUTES);sword.setItemMeta(meta);
+        return sword;
     }
     private void addSpec(String key,ItemStack result,Material[] materials,ItemStack[] exact){
         NamespacedKey id=new NamespacedKey(plugin,key);specs.put(id,new Spec(id,result,materials,exact));
@@ -103,7 +142,7 @@ final class FrostForgeManager implements Listener {
         }
     }
     void shutdown(){
-        enabled=false;pendingHits.clear();cooldowns.clear();
+        enabled=false;pendingHits.clear();reservedCooldownSlots.clear();cooldowns.clear();regionGuard.invalidate();
         for(NamespacedKey key:registered)Bukkit.removeRecipe(key);registered.clear();
     }
     private void discover(Player player){
@@ -150,10 +189,46 @@ final class FrostForgeManager implements Listener {
     private boolean safeArea(org.bukkit.Location location){
         return !plugin.getSpawnEngine().isInSpawnWorld(location)||plugin.getSpawnEngine().isInsidePvpZone(location);
     }
-    private boolean validVictim(LivingEntity victim){
-        if(!safeArea(victim.getLocation()))return false;
-        if(victim instanceof Player){Player player=(Player)victim;
-            return !plugin.getStore().isQuickFrozen(player)&&!plugin.getModeration().isFrozenOrAscending(player);}
+    private boolean validTarget(Player attacker,LivingEntity victim){
+        if(!allowed(attacker)||attacker.getGameMode()==GameMode.SPECTATOR||victim==null||victim.isDead()||!victim.isValid()
+                ||attacker.getWorld()!=victim.getWorld()||!safeArea(attacker.getLocation())||!safeArea(victim.getLocation()))return false;
+        if(!(victim instanceof Player)) {
+            // Conservative for mobs: use WG build/block-place and PvP flags as
+            // an extra guard after the accepted damage event, not as a claim to
+            // understand every plugin's entity-protection rules.
+            return regionGuard.canPlace(attacker,victim.getLocation());
+        }
+        Player target=(Player)victim;
+        if(target.equals(attacker)||!allowed(target)||target.getGameMode()==GameMode.SPECTATOR||!attacker.getWorld().getPVP())return false;
+        DataStore store=plugin.getStore();
+        DataStore.ActiveWagerDuel duel=store.getActiveWagerDuel(attacker.getName());
+        boolean inDuel=duel!=null&&(duel.playerA.equalsIgnoreCase(target.getName())||duel.playerB.equalsIgnoreCase(target.getName()));
+        if(!inDuel&&!plugin.getSpawnEngine().isInsideAnyKabinka(target.getLocation())){
+            if(store.isDirectTeammate(attacker.getName(),target.getName())&&!store.isTeammatePvpAllowed(attacker.getName(),target.getName()))return false;
+            DataStore.Clan left=store.getClanOf(attacker.getName()),right=store.getClanOf(target.getName());
+            if(left!=null&&right!=null){
+                if(left.equals(right)&&!left.friendlyFire)return false;
+                if(!left.equals(right)&&(left.allies.contains(right.id)||right.allies.contains(left.id))
+                        &&!store.isTeammatePvpAllowed(attacker.getName(),target.getName()))return false;
+            }
+        }
+        return regionGuard.canAffect(attacker,target);
+    }
+    private boolean reserveHit(UUID id,long now){
+        if(pendingHits.contains(id))return false;
+        // Insertion order is successful activation order: prune expired entries
+        // without evicting a live cooldown just to make room for a new player.
+        java.util.Iterator<Map.Entry<UUID,Long>> iterator=cooldowns.entrySet().iterator();
+        while(iterator.hasNext()){
+            Map.Entry<UUID,Long> oldest=iterator.next();
+            if(now-oldest.getValue().longValue()<COOLDOWN_NS)break;
+            iterator.remove();
+        }
+        Long last=cooldowns.get(id);
+        if(last!=null&&now-last.longValue()<COOLDOWN_NS)return false;
+        boolean needsSlot=last==null;
+        if(needsSlot&&cooldowns.size()+reservedCooldownSlots.size()>=MAX_COOLDOWNS)return false;
+        pendingHits.add(id);if(needsSlot)reservedCooldownSlots.add(id);
         return true;
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
@@ -161,47 +236,65 @@ final class FrostForgeManager implements Listener {
         if(!enabled||!(event.getDamager() instanceof Player)||!(event.getEntity() instanceof LivingEntity)||event.getFinalDamage()<=0)return;
         Player attacker=(Player)event.getDamager();LivingEntity victim=(LivingEntity)event.getEntity();
         ItemStack hand=attacker.getInventory().getItemInMainHand();
-        if(!allowed(attacker)||hand.getType()!=Material.NETHERITE_SWORD||!SWORD_ID.equals(ItemFactory.getCustomId(hand))
-                ||victim.getScoreboardTags().contains("kg_dps_dummy")||victim.getScoreboardTags().contains("kg_event_boss")
-                ||victim.getScoreboardTags().contains("kg_holo")||!safeArea(attacker.getLocation())||!validVictim(victim))return;
-        UUID id=attacker.getUniqueId();long now=System.nanoTime();Long last=cooldowns.get(id);
-        if(last!=null&&now-last.longValue()<COOLDOWN_NS)return;
-        if(!pendingHits.add(id))return;
-        // Recheck cancellation after all listeners; never mutate a damage event at MONITOR.
-        Bukkit.getScheduler().runTask(plugin,()->{
-            pendingHits.remove(id);
-            if(!enabled||event.isCancelled()||event.getFinalDamage()<=0||!allowed(attacker)||victim.isDead()||!victim.isValid()
-                    ||attacker.getWorld()!=victim.getWorld()||attacker.getLocation().distanceSquared(victim.getLocation())>64.0
-                    ||!safeArea(attacker.getLocation())||!validVictim(victim))return;
-            PotionEffectType slow=ColorUtil.potType("slowness","SLOW");if(slow==null)return;
-            PotionEffect previous=victim.getPotionEffect(slow);
-            if(previous!=null&&(previous.getAmplifier()>0||previous.getAmplifier()==0&&previous.getDuration()>=EFFECT_TICKS))return;
-            victim.addPotionEffect(new PotionEffect(slow,EFFECT_TICKS,0,false,true,true));
-            // Paper may return true even when another plugin cancelled the potion event.
-            PotionEffect applied=victim.getPotionEffect(slow);
-            if(applied==null||applied.getAmplifier()!=0||applied.getDuration()<EFFECT_TICKS)return;
-            cooldowns.remove(id);cooldowns.put(id,System.nanoTime());
-            while(cooldowns.size()>MAX_COOLDOWNS)cooldowns.remove(cooldowns.keySet().iterator().next());
-            attacker.spawnParticle(Particle.SNOWFLAKE,victim.getLocation().add(0,1,0),8,.25,.35,.25,0);
-            ColorUtil.actionBar(attacker,"&#80D8FF❄ Ледяное касание &8• &fперезарядка 12 сек.");
-        });
+        Variant variant=hand.getType()==Material.NETHERITE_SWORD?Variant.of(ItemFactory.getCustomId(hand)):null;
+        if(variant==null||victim.getScoreboardTags().contains("kg_dps_dummy")||victim.getScoreboardTags().contains("kg_event_boss")
+                ||victim.getScoreboardTags().contains("kg_holo")||!validTarget(attacker,victim))return;
+        UUID id=attacker.getUniqueId();
+        if(!reserveHit(id,System.nanoTime()))return;
+        // Keep the reservation through potion callbacks as well: another plugin
+        // can synchronously cause a nested hit while an effect is being applied.
+        try{
+            Bukkit.getScheduler().runTask(plugin,()->{
+                try{
+                    if(!enabled||event.isCancelled()||event.getFinalDamage()<=0||!validTarget(attacker,victim)
+                            ||attacker.getLocation().distanceSquared(victim.getLocation())>64.0)return;
+                    PotionEffectType type=ColorUtil.potType(variant.modern,variant.legacy);if(type==null)return;
+                    LivingEntity recipient=variant.self?attacker:victim;
+                    PotionEffect previous=recipient.getPotionEffect(type);
+                    if(previous!=null&&(previous.getAmplifier()>0||previous.getAmplifier()==0&&previous.getDuration()>=variant.duration))return;
+                    recipient.addPotionEffect(new PotionEffect(type,variant.duration,0,false,true,true));
+                    // Paper may return true even when another plugin cancelled the potion event.
+                    PotionEffect applied=recipient.getPotionEffect(type);
+                    if(applied==null||applied.getAmplifier()!=0||applied.getDuration()<variant.duration)return;
+                    cooldowns.remove(id);cooldowns.put(id,System.nanoTime());
+                    attacker.spawnParticle(variant.particle,recipient.getLocation().add(0,1,0),8,.25,.35,.25,0);
+                    ColorUtil.actionBar(attacker,"&#80D8FF✦ "+variant.label+" &8• &fобщая перезарядка 12 сек.");
+                }finally{
+                    pendingHits.remove(id);reservedCooldownSlots.remove(id);
+                }
+            });
+        }catch(RuntimeException error){
+            pendingHits.remove(id);reservedCooldownSlots.remove(id);
+            plugin.getLogger().warning("[FrostForge] Could not schedule ability: "+error.getClass().getSimpleName());
+        }
     }
     void command(Player player,String[] args){
-        if(args.length!=0){player.sendMessage(ColorUtil.c("&e/frostforge &7— рецепты трёх деталей и клинка."));return;}
+        if(args.length!=0){player.sendMessage(ColorUtil.c("&e/frostforge &7— детали и три варианта клинка."));return;}
         open(player);
     }
     void open(Player player){
         if(!enabled||!allowed(player)){player.sendMessage(ColorUtil.c("&cКузница недоступна: войдите в аккаунт и повторите позже."));return;}
+        if(!empty(player.getItemOnCursor())){player.sendMessage(ColorUtil.c("&eСначала положите предмет с курсора в инвентарь."));return;}
         ForgeHolder holder=new ForgeHolder(player.getUniqueId());Inventory inventory=Bukkit.createInventory(holder,27,ColorUtil.c("&#80D8FF&l⚒ ПОЛЯРНАЯ КУЗНИЦА"));holder.inventory=inventory;
         ItemStack frame=ItemFactory.icon(Material.LIGHT_BLUE_STAINED_GLASS_PANE," ");
         for(int i=0;i<27;i++)if(i<9||i>=18||i%9==0||i%9==8)inventory.setItem(i,frame);
         inventory.setItem(4,ItemFactory.glowIcon(Material.CRAFTING_TABLE,"&#80D8FFРецепты в верстаке",
-                "&7Каждая деталь: три обычных предмета в любом порядке.","&7Предметы с именами, чарами и другими данными не расходуются.","&7Затем совместите три неизменённые детали."));
+                "&7Каждая деталь: три обычных предмета в любом порядке.","&7Предметы с именами, чарами и другими данными не расходуются.",
+                "&7Лезвие + гарда + выбранное сердце = свой клинок.","&7Детали должны быть неизменёнными."));
         inventory.setItem(10,ItemFactory.icon(Material.PRISMARINE_SHARD,"&#80D8FFЛезвие", "&7Незеритовый слиток + алмаз + синий лёд"));
         inventory.setItem(12,ItemFactory.icon(Material.AMETHYST_SHARD,"&#B39DDBГарда", "&7Золотой слиток + железный слиток + осколок аметиста"));
         inventory.setItem(14,ItemFactory.icon(Material.HEART_OF_THE_SEA,"&#00E5FFСердце", "&7Сердце моря + призмариновый кристалл + плотный лёд"));
         inventory.setItem(16,ItemFactory.glowIcon(Material.NETHERITE_SWORD,"&#80D8FFСобранный клинок севера",
-                "&7Лезвие + гарда + сердце в верстаке.","&7Острота III, Прочность II; замедление I на 3 сек.","&7КТ способности 12 сек.; боссы и безопасный спавн исключены.","&8Иконки этого меню — подсказки, не выдача предметов."));
+                "&7Лезвие + гарда + полярное сердце.","&7Острота III, Прочность II; медлительность I на 3 сек.",
+                "&7У клинков кузницы общий КТ 12 сек.","&8Иконки меню — подсказки, не выдача предметов."));
+        inventory.setItem(20,ItemFactory.icon(Material.PRISMARINE_CRYSTALS,"&#FFD740Сердце сияния",
+                "&7Сердце моря + аметистовый осколок + светопыль"));
+        inventory.setItem(21,ItemFactory.glowIcon(Material.NETHERITE_SWORD,"&#FFD740Клинок сияния",
+                "&7Лезвие + гарда + сердце сияния.","&7Острота III, Прочность II; скорость I себе на 4 сек.","&7Общий КТ клинков 12 сек."));
+        inventory.setItem(23,ItemFactory.icon(Material.ECHO_SHARD,"&#B388FFСердце бури",
+                "&7Сердце моря + осколок эха + огненный порошок"));
+        inventory.setItem(24,ItemFactory.glowIcon(Material.NETHERITE_SWORD,"&#B388FFКлинок бури",
+                "&7Лезвие + гарда + сердце бури.","&7Острота III, Прочность II; слабость I цели на 3 сек.","&7Общий КТ клинков 12 сек."));
         inventory.setItem(26,ItemFactory.icon(Material.BARRIER,"&cЗакрыть"));player.openInventory(inventory);
     }
     @EventHandler(priority=EventPriority.HIGHEST)

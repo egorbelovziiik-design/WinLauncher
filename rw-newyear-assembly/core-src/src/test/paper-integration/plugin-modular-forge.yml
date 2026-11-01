@@ -1,0 +1,5 @@
+name: KgModularForgeProbe
+version: '1.0'
+main: net.kinggrief.probe.ModularForgeProbe
+api-version: '1.21'
+depend: [KingGriefCore, WorldGuard, WorldEdit]

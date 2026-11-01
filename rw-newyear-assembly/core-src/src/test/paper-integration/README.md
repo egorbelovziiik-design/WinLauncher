@@ -229,6 +229,22 @@ the daily allowance, cumulative achievements, spawn, claim and inventory
 (4 + 9 checks). The old JAR must have the experimental `/tree` feature; it is
 not the published 7.4.0 release. Neither test models third-party authentication.
 
+`test-modular-forge.py` requires separately supplied WorldGuard and WorldEdit
+JARs and a previous **experimental** Core with the original frost forge via
+`--worldguard`, `--worldedit` and `--core-old`. It starts disposable Paper three
+times: real workbench clicks create old components, the new JAR is installed,
+then real clicks craft the old and new variants, followed by restart and real
+network combat. The 10 + 45 + 29 checks include occupied cursor, hotbar and
+shift-craft safety, modified ingredients, a full inventory, cooldown sharing,
+recursive potion callbacks, simultaneous cooldown-slot reservation, late damage
+and potion cancellation, authentication/freeze, team changes, event bosses,
+actual WorldGuard PvP-deny and block-place-deny regions, disabled WorldGuard,
+and a safe spawn. The slot-capacity fixture and one pair of simultaneous damage
+events are synthetic. The pack links are checked as ZIP/JSON/PNG data, not in a
+rendered client. The upgrade starts from a previous prototype, not the released
+7.4.0; no power failure or general third-party protection compatibility is proven.
+`test-frost-forge.py` also exercises the original craft and hit behavior.
+
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,
 menu item/drag protection, real page/close clicks, grouped reminder packets and
