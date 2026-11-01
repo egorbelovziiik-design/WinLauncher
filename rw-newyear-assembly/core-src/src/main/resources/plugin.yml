@@ -9,6 +9,9 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  frostforge:
+    description: Recipes for the assembled northern blade
+    usage: /frostforge
   buildcontest:
     description: Voluntary contest for existing Core claims
     usage: /buildcontest

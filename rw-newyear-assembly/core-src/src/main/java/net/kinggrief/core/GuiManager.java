@@ -620,12 +620,14 @@ public final class GuiManager {
         inv.setItem(24, shopTag(ItemFactory.swordMidas(),   470));
 
         // Row 3: Mythic Heavy Arsenal
-        inv.setItem(33, shopTag(ItemFactory.swordSever(),    430));
+        inv.setItem(31, shopTag(ItemFactory.swordSever(),    430));
         inv.setItem(34, shopTag(ItemFactory.swordZima(),     460));
         inv.setItem(29, shopTag(ItemFactory.scytheReaper(),    480));
         inv.setItem(30, shopTag(ItemFactory.axeThor(),         470));
         inv.setItem(32, shopTag(ItemFactory.maceKrush(),       380));
         inv.setItem(33, shopTag(ItemFactory.tridentPoseidon(), 320));
+        inv.setItem(40, ItemFactory.glowIcon(Material.CRAFTING_TABLE, "&#80D8FF&l⚒ Полярная кузница (/frostforge)",
+                "&7Соберите клинок из трёх созданных деталей.", "&7Рецепты используют обычный верстак."));
 
         inv.setItem(48, ItemFactory.glowIcon(Material.NETHERITE_PICKAXE, "&#FF5722&l⛏ 12 3D Кирок и Молот (/picks)",
                 "&7Перейти в Кузницу Кирок и Молотов!"));
@@ -2057,6 +2059,12 @@ public final class GuiManager {
             }
             handleRelicItemTagPurchase(p, clicked, "picks");
         } else if ("swords".equals(type)) {
+            if (slot == 40) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) plugin.getFrostForge().open(p);
+                });
+                return;
+            }
             if (slot == 48) { openPickaxesMenu(p); return; }
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 50) { openArmorsMenu(p); return; }

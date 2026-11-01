@@ -75,6 +75,7 @@ public final class KingGriefCore extends JavaPlugin {
     private AchievementManager achievements;
     private WinterFishingManager winterFishing;
     private BuildContestManager buildContest;
+    private FrostForgeManager frostForge;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -124,6 +125,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.winterFishing = new WinterFishingManager(this);
         Bukkit.getPluginManager().registerEvents(this.winterFishing, this);
         this.buildContest = new BuildContestManager(this);
+        this.frostForge = new FrostForgeManager(this);
+        Bukkit.getPluginManager().registerEvents(this.frostForge, this);
         this.crownEvents = new CrownEventManager(this);
         Bukkit.getPluginManager().registerEvents(this.crownEvents, this);
         this.safeTrades = new SafeTradeManager(this);
@@ -213,6 +216,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.winterTree.start();
         this.winterFishing.start();
         this.buildContest.start();
+        this.frostForge.start();
         this.cosmetics.start();
         this.parkourRecords.start();
         this.displayPets.start();
@@ -268,6 +272,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.winterFishing != null) this.winterFishing.shutdown();
         if (this.buildContest != null) this.buildContest.shutdown();
+        if (this.frostForge != null) this.frostForge.shutdown();
         if (this.parkourRecords != null) this.parkourRecords.shutdown();
         if (this.cosmetics != null) this.cosmetics.shutdown();
         if (this.displayPets != null) this.displayPets.shutdown();
@@ -282,6 +287,7 @@ public final class KingGriefCore extends JavaPlugin {
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
     AchievementManager getAchievements() { return achievements; }
     WinterFishingManager getWinterFishing() { return winterFishing; }
+    FrostForgeManager getFrostForge() { return frostForge; }
     UtilityFeaturesManager getUtilities() { return utilities; }
     ClaimContainerGuard getClaimContainers() { return claimContainers; }
     public DataStore getStore() { return store; }
@@ -811,6 +817,7 @@ public final class KingGriefCore extends JavaPlugin {
 
         if ("achievements".equals(c)) { achievements.command(p, args); return true; }
         if ("winterfish".equals(c)) { winterFishing.command(p, args); return true; }
+        if ("frostforge".equals(c)) { frostForge.command(p, args); return true; }
         if ("cosmetic".equals(c)) { cosmetics.command(p, args); return true; }
         if ("wintershow".equals(c)) { cosmetics.winterShow(p); return true; }
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }
