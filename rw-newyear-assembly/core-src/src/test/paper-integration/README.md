@@ -74,8 +74,17 @@ external durability changes, offhand moves, missing tools, disconnect and plugin
 shutdown before confirmation. The auto-smelt checks cover late cancellation, an
 earlier drop restriction and later restoration, survival/creative modes, a full
 inventory, an inter-world teleport, a simulated chunk-unload event and orderly
-plugin shutdown (31 checks in total). They do not cover power loss, unexpected
-forced unload without an event, or delivery exceptions.
+plugin shutdown; ordinary profession pay and mining statistics are also checked
+after a late cancellation (33 checks total). They do not cover power loss,
+unexpected forced unload without an event, or delivery exceptions.
+
+`test-claim-break.py` tests real center-block breaks against late cancellation,
+a foreign player, early drop restrictions, simulated YAML-save and item-spawn
+failures, a synthetic chunk-unload event, ordinary and drop-restored removal,
+plugin disable before confirmation and orderly restart (9 + 2 checks). Claim
+world blocks, dropped items and Core YAML are separate stores; these tests do not
+prove crash-atomic item return, interrupted placement, every plugin interaction,
+or arbitrary forced unload.
 `test-mining-worldguard.py --worldguard /path/to/WorldGuard.jar --worldedit
 /path/to/WorldEdit.jar` separately uses the real plugins to check protected central
 and neighbouring blocks and frost placement. Neither test guarantees compatibility

@@ -121,6 +121,17 @@ public final class GameplayListener implements Listener {
     private final Map<UUID, Integer> pendingSpawnerToolGuards = new HashMap<UUID, Integer>();
     private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSpawnerRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
     private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSmeltRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
+    private static final class PendingClaimBreak {
+        final BlockBreakEvent event;
+        final org.bukkit.block.BlockState original;
+        final DataStore.Claim claim;
+        org.bukkit.event.block.BlockDropItemEvent vanillaDrops;
+        PendingClaimBreak(BlockBreakEvent event, org.bukkit.block.BlockState original, DataStore.Claim claim) {
+            this.event=event; this.original=original; this.claim=claim;
+        }
+    }
+    private final Map<Block, PendingClaimBreak> pendingClaimBreaks = new HashMap<Block, PendingClaimBreak>();
+    private long lastClaimRemovalAttempt;
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
     private static final class PendingPvpHit {
         final Player attacker, victim;
@@ -832,10 +843,23 @@ public final class GameplayListener implements Listener {
                     p.sendMessage(ColorUtil.c("&#FF1744🛡 Это центральный блок чужого привата (&f" + cl.owner + "&#FF1744)!"));
                     return;
                 }
-                plugin.getStore().removeClaim(cl);
+                if (!e.isDropItems() || pendingClaimBreaks.containsKey(b)) {
+                    e.setCancelled(true);
+                    p.sendMessage(ColorUtil.c("&cСейчас нельзя безопасно снять приват: дроп запрещён или блок уже обрабатывается."));
+                    return;
+                }
+                long now = System.nanoTime();
+                if (pendingClaimBreaks.size() >= 4 || (lastClaimRemovalAttempt != 0 && now - lastClaimRemovalAttempt < 200_000_000L)) {
+                    e.setCancelled(true);
+                    p.sendMessage(ColorUtil.c("&eПодождите немного перед снятием привата."));
+                    return;
+                }
+                lastClaimRemovalAttempt = now;
+                final PendingClaimBreak pending = new PendingClaimBreak(e, b.getState(), cl);
+                pendingClaimBreaks.put(b, pending);
                 e.setDropItems(false);
-                b.getWorld().dropItemNaturally(loc, ItemFactory.claimBlock(b.getType(), cl.radius, "&a🛡 Рудный Приват"));
-                p.sendMessage(ColorUtil.c("&#FFD740🛡 Вы сняли свой приват! Блок возвращён."));
+                e.setExpToDrop(0);
+                Bukkit.getScheduler().runTask(plugin, () -> confirmClaimBreak(pending));
                 return;
             }
             if (!cl.canAccess(p.getName()) && !plugin.getRanks().isOwnerLevel(p)) {
@@ -879,14 +903,97 @@ public final class GameplayListener implements Listener {
         // v6.4.0: зачарование «Авто-Плавка» (свиток) работает на ЛЮБОЙ кирке и везде, кроме авто-шахты.
         if (applySmeltEnchant(e, p, b, tool)) return;
 
-        // Job payouts
-        plugin.getStore().addMined(p.getName());
-        String job = plugin.getStore().getJob(p.getName());
-        if ("miner".equals(job) && (b.getType().name().contains("ORE") || b.getType() == Material.STONE)) {
-            plugin.getStore().addCoins(p.getName(), 12.0);
-        } else if ("lumber".equals(job) && b.getType().name().contains("_LOG")) {
-            plugin.getStore().addCoins(p.getName(), 14.0);
+        // A later listener can still deny an otherwise ordinary break. Only
+        // count it and pay the selected profession after the block is gone.
+        final Material brokenType = b.getType();
+        final String job = plugin.getStore().getJob(p.getName());
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override public void run() {
+                if (e.isCancelled() || !b.getWorld().isChunkLoaded(b.getX() >> 4, b.getZ() >> 4) || !b.getType().isAir()) return;
+                plugin.getStore().addMined(p.getName());
+                if ("miner".equals(job) && (brokenType.name().contains("ORE") || brokenType == Material.STONE)) {
+                    plugin.getStore().addCoins(p.getName(), 12.0);
+                } else if ("lumber".equals(job) && brokenType.name().contains("_LOG")) {
+                    plugin.getStore().addCoins(p.getName(), 14.0);
+                }
+            }
+        });
+    }
+
+    /** A later plugin may restore vanilla drops after we suppressed the claim center's ore drop. */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPendingClaimDrops(org.bukkit.event.block.BlockDropItemEvent event) {
+        PendingClaimBreak pending = pendingClaimBreaks.get(event.getBlock());
+        if (pending == null || !pending.event.getPlayer().getUniqueId().equals(event.getPlayer().getUniqueId())) return;
+        pending.vanillaDrops = event;
+        event.setCancelled(true);
+    }
+
+    private void confirmClaimBreak(PendingClaimBreak pending) {
+        Block block = pending.event.getBlock();
+        if (pendingClaimBreaks.get(block) != pending) return;
+        org.bukkit.entity.Item returned = null;
+        try {
+            if (pending.event.isCancelled()) return;
+            if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+                plugin.getLogger().warning("[Claims] Pending center reached an unloaded chunk at " + block.getLocation());
+                return;
+            }
+            if (!block.getType().isAir()) return;
+            if (pending.event.isDropItems() && (pending.vanillaDrops == null || !pending.vanillaDrops.isCancelled())) {
+                // An incompatible plugin overrode suppression; keep the claim rather than silently delete it.
+                restorePendingClaim(pending, "vanilla drop override");
+                return;
+            }
+            ItemStack claimItem = ItemFactory.claimBlock(pending.original.getType(), pending.claim.radius, "&a🛡 Рудный Приват");
+            // Stage the item unpickable before committing removal; a cancelled ItemSpawnEvent
+            // or failed durable write can then restore the center without releasing the item.
+            returned = block.getWorld().dropItemNaturally(block.getLocation(), claimItem, item -> item.setPickupDelay(32767));
+            if (!returned.isValid() || returned.getPickupDelay() != 32767 || !claimItem.equals(returned.getItemStack())) {
+                if (returned.isValid()) returned.remove();
+                restorePendingClaim(pending, "claim item spawn rejected or altered");
+                return;
+            }
+            if (!plugin.getStore().removeClaimDurably(pending.claim)) {
+                returned.remove();
+                restorePendingClaim(pending, "claim data save failed");
+                return;
+            }
+            returned.setPickupDelay(10);
+            Player player = pending.event.getPlayer();
+            if (player.isOnline()) player.sendMessage(ColorUtil.c("&#FFD740🛡 Вы сняли свой приват! Блок возвращён."));
+        } catch (RuntimeException error) {
+            // If removal did not commit, discard any staged item and keep protection.
+            if (plugin.getStore().getClaimAt(block.getLocation()) == pending.claim) {
+                if (returned != null && returned.isValid()) returned.remove();
+                restorePendingClaim(pending, "claim confirmation exception");
+            }
+            plugin.getLogger().warning("[Claims] Could not complete center removal at " + block.getLocation() + ": " + error.getClass().getSimpleName());
+        } finally {
+            pendingClaimBreaks.remove(block, pending);
         }
+    }
+
+    private void restorePendingClaim(PendingClaimBreak pending, String reason) {
+        if (pending.event.isCancelled()) return;
+        Block block = pending.event.getBlock();
+        try {
+            if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+                plugin.getLogger().warning("[Claims] Cannot restore an unloaded claim center at " + block.getLocation());
+            } else if (block.getType().isAir()) {
+                if (!pending.original.update(true, false)) plugin.getLogger().warning("[Claims] Cannot restore claim center at " + block.getLocation() + " (" + reason + ")");
+            } else if (block.getBlockData().equals(pending.original.getBlockData())) {
+                // Shutdown/unload can happen inside the break event, before vanilla removes the block.
+                pending.event.setCancelled(true);
+            } else plugin.getLogger().warning("[Claims] Claim center changed before restoration at " + block.getLocation() + " (" + reason + ")");
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Claims] Claim center restore failed (" + reason + "): " + error.getClass().getSimpleName());
+        }
+    }
+
+    public void rollbackPendingClaimBreaks() {
+        for (PendingClaimBreak pending : new ArrayList<PendingClaimBreak>(pendingClaimBreaks.values())) restorePendingClaim(pending, "plugin shutdown");
+        pendingClaimBreaks.clear();
     }
 
     // Мгновенный раскол Обсидиана 9-й киркой «Обсидиановый Крушитель» (pick_obsidian)!
@@ -3430,6 +3537,15 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTemporaryChunkUnload(org.bukkit.event.world.ChunkUnloadEvent event) {
         org.bukkit.Chunk chunk = event.getChunk();
+        if (!pendingClaimBreaks.isEmpty()) {
+            for (PendingClaimBreak pending : new ArrayList<PendingClaimBreak>(pendingClaimBreaks.values())) {
+                Block block = pending.event.getBlock();
+                if (block.getWorld().equals(chunk.getWorld()) && (block.getX() >> 4) == chunk.getX() && (block.getZ() >> 4) == chunk.getZ()) {
+                    restorePendingClaim(pending, "chunk unload");
+                    pendingClaimBreaks.remove(block, pending);
+                }
+            }
+        }
         if (!pendingSmeltRollbacks.isEmpty()) {
             for (Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState> entry : new ArrayList<Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState>>(pendingSmeltRollbacks.entrySet())) {
                 Block block = entry.getKey().getBlock();

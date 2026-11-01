@@ -267,7 +267,22 @@ public final class MiningSafetyProbe extends JavaPlugin implements Listener {
             cancelCentral=false;int events=neighbourEvents;p.breakBlock(central);later(4,()->{
                 ok(central.getType().isAir() && free.getType().isAir(),"auto-mine still drills allowed ore");
                 ok(neighbourEvents>events && protectedNeighbour.getType()==Material.IRON_ORE,"auto-mine fires external protection event for neighbours");
-                disconnectedTool();
+                ordinaryMining();
+            });
+        });
+    }
+    private void ordinaryMining(){
+        World world=Bukkit.getWorlds().get(0);p.teleport(new Location(world,98.5,161,30.5,0f,90f));
+        p.getInventory().clear();p.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_PICKAXE));
+        protectedNeighbour=null;central=world.getBlockAt(98,160,30);central.setType(Material.IRON_ORE,false);
+        core.getStore().setJob(p.getName(),"miner");int mined=core.getStore().getMinedBlocks(p.getName());double coins=core.getStore().getCoins(p.getName());
+        cancelCentral=true;boolean broken=p.breakBlock(central);later(5,()->{
+            ok(!broken&&central.getType()==Material.IRON_ORE&&core.getStore().getMinedBlocks(p.getName())==mined
+                    &&core.getStore().getCoins(p.getName())==coins,"late cancellation of normal mining grants no statistics or miner salary");
+            cancelCentral=false;boolean allowed=p.breakBlock(central);later(5,()->{
+                ok(allowed&&central.getType().isAir()&&core.getStore().getMinedBlocks(p.getName())==mined+1
+                        &&core.getStore().getCoins(p.getName())==coins+12.0,"accepted ordinary ore break grants one statistic and one miner salary");
+                core.getStore().setJob(p.getName(),"none");disconnectedTool();
             });
         });
     }

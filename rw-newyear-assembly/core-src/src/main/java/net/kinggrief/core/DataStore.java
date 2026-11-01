@@ -1802,11 +1802,27 @@ public final class DataStore {
         }
     }
 
-    public void removeClaim(Claim cl) {
-        claims.remove(cl);
-        // Audit entries belong to this Core claim and are discarded when it is removed.
-        if (cl != null && cl.id != null && cl.id.matches("rg_[0-9]+_[0-9]+")) yml.set("claimAudit." + cl.id, null);
-        save();
+    /** Retained for plugin compatibility; callers needing confirmation should use removeClaimDurably. */
+    public void removeClaim(Claim cl) { removeClaimDurably(cl); }
+
+    /** Commit removal of a live claim before releasing its center-block item. */
+    public synchronized boolean removeClaimDurably(Claim cl) {
+        if (cl == null) return false;
+        final int index = claims.indexOf(cl);
+        if (index < 0) return false;
+        claims.remove(index);
+        try {
+            transact(data -> {
+                // Audit entries belong to this Core claim and are discarded with it.
+                if (cl.id != null && cl.id.matches("rg_[0-9]+_[0-9]+")) data.set("claimAudit." + cl.id, null);
+                return null;
+            });
+            return true;
+        } catch (Exception error) {
+            claims.add(Math.min(index, claims.size()), cl);
+            plugin.getLogger().warning("[Claims] Removal was not committed: " + error.getMessage());
+            return false;
+        }
     }
 
     // ================= AUCTION HOUSE =================
