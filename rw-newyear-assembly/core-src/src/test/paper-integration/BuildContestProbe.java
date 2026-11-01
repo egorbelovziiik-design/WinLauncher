@@ -86,7 +86,6 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
     }catch(Exception error){throw new RuntimeException(error);}}
     private void openVoting(){
         console("voting 60");ok("voting".equals(phase()),"administrator starts voting");
-        String round=yaml().getString("buildContest.round");
         c.performCommand("buildcontest vote "+UUID.randomUUID()+" 1");vote(a,1);vote(b,2);
         ok(pending()==0,"stale round and self-votes are rejected");
         vote(b,1);vote(a,2);vote(c,1);vote(c,1);
