@@ -158,8 +158,12 @@ netherite estimate, the five-second raw-DPS window, rate limiting, authorization
 reset and restart. The possible-critical branch uses a synthetic damage event,
 a real on-ground=false packet and fixture-supplied fall distance. It also checks
 server-accepted PvP, projectile-mob and event-tagged boss damage indicators,
-including a later PvP damage modifier and cancellation. These are not visual
-client tests or a full combat simulation.
+including a later PvP damage modifier and cancellation. The two network clients
+also receive the correct ordinary PvP action bars for accepted melee/arrow hits,
+not cancelled ones. A cancelled Midas hit cannot grant its money or absorption,
+while an accepted hit does. Those PvP events are fixture-triggered; this is not
+a visual client test or a full combat simulation. Other old custom melee effects
+still need an audit for late cancellation by third-party protection.
 
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,
