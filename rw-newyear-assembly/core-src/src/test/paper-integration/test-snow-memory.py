@@ -3,10 +3,12 @@
 
 Requires Java 21, a matching Paper/Mojang pair and minecraft-protocol@1.62.0.
 Pass --accept-eula only after reviewing the Minecraft EULA. No production data
-is read or modified. A real protocol client plays eight complete rounds.
+is read or modified. A real protocol client plays twelve complete rounds.
 """
 import argparse
+import json
 import os
+import re
 from pathlib import Path
 import queue
 import shutil
@@ -34,7 +36,7 @@ def run_phase(args, server, port, phase):
             messages.put(line)
     reader = threading.Thread(target=read, daemon=True)
     reader.start()
-    client, success = None, False
+    client, success, client_output = None, False, ''
     try:
         deadline = time.monotonic() + 360
         while time.monotonic() < deadline:
@@ -71,7 +73,9 @@ def run_phase(args, server, port, phase):
         if not success: raise RuntimeError(f'phase {phase} assertions failed or timed out')
     finally:
         if client and client.poll() is None:
-            try: print(client.communicate(input='done\n', timeout=10)[0], end='')
+            try:
+                client_output = client.communicate(input='done\n', timeout=10)[0]
+                print(client_output, end='')
             except subprocess.TimeoutExpired:
                 client.kill(); client.wait()
         if proc.poll() is None:
@@ -82,6 +86,13 @@ def run_phase(args, server, port, phase):
         reader.join(timeout=10)
         if not success:
             print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)
+    report_match = re.search(r'MEMORY_NETWORK (\{[^\n]+\})', client_output)
+    if not report_match:
+        raise RuntimeError('network client did not report GUI telemetry')
+    report = json.loads(report_match.group(1))
+    if report['opens'] < 1 or report['ownerUpdates'] < 5 or report['observerOpens'] != 0:
+        raise RuntimeError(f'unexpected GUI visibility/updates: {report}')
+    print('MEMORY NETWORK PRIVACY: PASS', report, flush=True)
     watchdog = any('The server has not responded for 10 seconds' in line for line in output)
     if proc.returncode != 0 or client.returncode != 0 or watchdog:
         print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)

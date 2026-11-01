@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Drives all eight rounds through real protocol clicks; reads the generated pattern only as test fixture. */
+/** Drives all twelve rounds through real protocol clicks; reads the generated pattern only as test fixture. */
 public final class MemoryGameProbe extends JavaPlugin implements Listener {
     private static final int[] TILES={10,11,12,19,20,21,28,29,30};
     private KingGriefCore core;private Player a,b;private World world;private boolean started,done;
@@ -122,7 +122,7 @@ public final class MemoryGameProbe extends JavaPlugin implements Listener {
                 ok("INPUT".equals(phase())&&index()==step+1,"real input accepted in round "+round+" step "+(step+1));sendAnswer(round,seq,step+1);
             }else{
                 ok(score()==round&&savedScore()==round,"completed round "+round+" updates the buffered personal record");
-                if(round<8)runRound(round+1);else afterEight();
+                if(round==8)afterEight();else if(round<12)runRound(round+1);else afterTwelve();
             }
         });
     }
@@ -130,6 +130,10 @@ public final class MemoryGameProbe extends JavaPlugin implements Listener {
         ok(core.getStore().hasUnlockedTitle(a.getName(),"memory_master"),"eight real rounds unlock the cosmetic title");
         ok(dirty(),"new record is buffered for periodic save");
         block();flush();ok(dirty()&&savedScore()==8,"failed save keeps the in-memory record for retry");restore();flush();ok(!dirty()&&savedScore()==8,"record save retries after storage recovers");
+        runRound(9);
+    }
+    private void afterTwelve(){
+        ok("ENDED".equals(phase())&&score()==12&&savedScore()==12,"all twelve real rounds finish at the score limit");
         a.damage(1.0);later(5,()->{
             ok(session()==null&&a.getOpenInventory().getTopInventory().getType()==InventoryType.CRAFTING,"damage closes the game instead of protecting the player");
             core.getGuis().openTitlesMenu(a);Inventory titles=a.getOpenInventory().getTopInventory();
@@ -148,13 +152,13 @@ public final class MemoryGameProbe extends JavaPlugin implements Listener {
         if(backup!=null&&Files.exists(backup))Files.move(backup,blocked);blocked=null;backup=null;
     }catch(Exception error){getLogger().severe("Could not restore disposable test file: "+error);}}
     private void restart(){
-        ok(session()==null&&savedScore()==8,"record survives server restart without restoring an active session");
+        ok(session()==null&&savedScore()==12,"record survives server restart without restoring an active session");
         ok(core.getStore().hasUnlockedTitle(a.getName(),"memory_master")&&core.getStore().getActiveTitleDisplay(a.getName()).contains("ЛЕДЯНОЙ РАЗУМ"),
                 "unlocked and selected title survives restart");
         a.performCommand("snowmemory top");a.performCommand("snowmemory");ok(session()!=null,"fresh game starts after restart");
         awaitInput(0,()->{
             BukkitRunnable timeout=(BukkitRunnable)field(session(),"task");timeout.run();
-            ok("ENDED".equals(phase())&&score()==0&&savedScore()==8,"input timeout ends game without reducing the previous best");
+            ok("ENDED".equals(phase())&&score()==0&&savedScore()==12,"input timeout ends game without reducing the previous best");
             a.performCommand("snowmemory stop");ok(session()==null,"stop command removes session and closes the game");finish();
         });
     }

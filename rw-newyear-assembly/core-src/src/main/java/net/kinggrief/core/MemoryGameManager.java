@@ -146,6 +146,9 @@ final class MemoryGameManager implements Listener {
         s.phase=Phase.ENDED;status(s,message);Player p=viewer(s);
         if(p!=null){send(p,message+" &7Результат: &f"+s.score+"/"+MAX_ROUNDS+(s.recordsAvailable?"&7. Новые рекорды сохраняются автоматически.":"&c. Запись рекорда недоступна."));
             send(p,"&7Чтобы сыграть снова, закройте окно и введите &f/snowmemory&7.");}
+        // Finished windows cannot reserve all session slots indefinitely.
+        s.task=new BukkitRunnable(){@Override public void run(){Player viewer=viewer(s);stop(s);if(viewer!=null)viewer.closeInventory();}};
+        s.task.runTaskLater(plugin,600L);
     }
     private void answer(Session s,int tile){
         Player p=viewer(s);if(p==null){stop(s);return;}
