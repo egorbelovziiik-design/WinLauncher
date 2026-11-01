@@ -161,18 +161,53 @@ public final class TemporaryBlockCrashProbe extends JavaPlugin implements Listen
         NamespacedKey missingEntry = new NamespacedKey(core, "tmprecovery_b_0_160_0");
         missingData.set(missingEntry, PersistentDataType.STRING, "minecraft:air|minecraft:obsidian");
         Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(missingIndexChunk, false));
-        later(45, () -> {
-            ok(!has(b(224, 160, 0)) && b(224, 160, 0).getType() == Material.AIR,
-                    "incremental recovery clears the capped chunk without changing different blocks");
-            ok(corrupt.getType() == Material.NETHERITE_BLOCK && has(corrupt),
-                    "invalid original data is left for inspection without deleting a block");
-            ok(missingIndex.getType() == Material.AIR && !missingData.has(missingEntry),
-                    "chunk-load scan repairs a missing index and recovers its orphan record");
-            data.remove(entry); data.remove(count);
-            ok(b(5, 160, 5).getType() == Material.NETHERITE_BLOCK && b(197, 160, 197).getType() == Material.COBWEB,
-                    "live fixtures remain present before saved-chunk crash");
-            ready();
+        Chunk directChunk = world.getChunkAt(17, 0); directChunk.setForceLoaded(true);
+        Block direct = b(272, 160, 0); direct.setType(Material.NETHERITE_BLOCK, false);
+        PersistentDataContainer directData = directChunk.getPersistentDataContainer();
+        directData.set(new NamespacedKey(core, "tmprecovery_b_0_160_0"), PersistentDataType.STRING,
+                "minecraft:air|minecraft:netherite_block");
+        ok(!player.breakBlock(direct) && direct.getType() == Material.NETHERITE_BLOCK,
+                "a missing index cannot expose a recorded block before startup scanning");
+        ok(world.loadChunk(40, 0, true), "unload fixture chunk is loaded");
+        Block unloadedBlock = b(640, 160, 0); unloadedBlock.setType(Material.AIR, false);
+        ok(record(unloadedBlock, Material.AIR, Material.OBSIDIAN), "unload fixture has an orphan record");
+        unloadedBlock.setType(Material.OBSIDIAN, false);
+        // Paper may retain a transient ticket for several ticks after a sync
+        // load, so an immediate unloadChunk return value is not sufficient.
+        world.unloadChunk(40, 0, true);
+        awaitUnloaded(0, () -> {
+            // A one-tick getChunkAt load can immediately unload again before
+            // the worker runs. Keep it loaded, as a nearby player would.
+            ok(world.loadChunk(40, 0, true), "reloaded fixture remains loaded for recovery");
+            ok(b(640, 160, 0).getType() == Material.OBSIDIAN, "actual reload begins with saved temporary block");
+            later(45, () -> {
+                ok(!has(b(224, 160, 0)) && b(224, 160, 0).getType() == Material.AIR,
+                        "incremental recovery clears the capped chunk without changing different blocks");
+                ok(corrupt.getType() == Material.NETHERITE_BLOCK && has(corrupt),
+                        "invalid original data is left for inspection without deleting a block");
+                ok(missingIndex.getType() == Material.AIR && !missingData.has(missingEntry),
+                        "chunk-load scan repairs a missing index and recovers its orphan record");
+                ok(direct.getType() == Material.AIR && !has(direct), "directly detected orphan is recovered");
+                Material reloadType = b(640, 160, 0).getType();
+                boolean reloadRecord = has(b(640, 160, 0));
+                ok(reloadType == Material.AIR && !reloadRecord,
+                        "actual chunk reload queues and recovers an orphan record (type=" + reloadType + ", record=" + reloadRecord + ")");
+                data.remove(entry); data.remove(count);
+                ok(b(5, 160, 5).getType() == Material.NETHERITE_BLOCK && b(197, 160, 197).getType() == Material.COBWEB,
+                        "live fixtures remain present before saved-chunk crash");
+                ready();
+            });
         });
+    }
+
+    private void awaitUnloaded(int attempts, Throwing after) throws Exception {
+        if (!world.isChunkLoaded(40, 0)) {
+            ok(true, "fixture chunk is actually unloaded with saving");
+            after.run();
+            return;
+        }
+        if (attempts >= 60) throw new AssertionError("fixture chunk was not unloaded within 30 seconds");
+        later(10, () -> awaitUnloaded(attempts + 1, after));
     }
 
     private void initialRestartChecks() throws Exception {

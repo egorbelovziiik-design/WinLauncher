@@ -196,6 +196,20 @@ Other protection plugins, mob secondary effects, actual chunk unloading, crash
 recovery of temporary blocks and a graphical client are **not** covered. A
 third-party plugin can also cancel both a swap and its rollback.
 
+`test-temp-block-crash.py` separately starts disposable Paper three times and
+sends two real SIGKILLs **after `save-all flush`**. It verifies that both chunk
+records and temporary blocks reached the saved world, then checks incremental
+recovery, exact air/negative heights, different-block preservation and a new
+identical block after a later save. It also tests late cancellation, a synthetic
+orphan, mining/piston protection, 512-record capacity, malformed data, a
+synthetic chunk-load callback that repairs a missing index, and a real unload
+and reload held open by the fixture (29 + 8 + 5 checks). This does not prove
+chunk-write atomicity or fsync, power-loss behaviour, arbitrary other plugins
+or sustained performance. An identical replacement made before recovery cannot
+be distinguished from the original temporary block.
+Core must be present for its protection to work; old versions cannot recover
+these records, and pre-existing blocks without records are not repaired.
+
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,
 menu item/drag protection, real page/close clicks, grouped reminder packets and

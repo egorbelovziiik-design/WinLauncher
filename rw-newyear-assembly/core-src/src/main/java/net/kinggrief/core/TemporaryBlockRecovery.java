@@ -154,7 +154,12 @@ final class TemporaryBlockRecovery {
         if (!loaded(block)) return false;
         try {
             PersistentDataContainer data = block.getChunk().getPersistentDataContainer();
-            if (!data.has(countKey) || !data.has(blockKey(block))) return false;
+            if (!data.has(countKey)) {
+                // A damaged/missing index must not expose a recorded valuable
+                // block while the incremental startup scan is still pending.
+                if (data.isEmpty() || !data.has(blockKey(block))) return false;
+                syncCount(data);
+            } else if (!data.has(blockKey(block))) return false;
             enqueue(block.getChunk());
             return true;
         } catch (RuntimeException | LinkageError error) {
