@@ -179,7 +179,7 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
             boss.addScoreboardTag("kg_event_boss");ordinaryTarget=boss;ordinaryFinal=-1;ordinaryCancelled=true;boss.damage(6.0,a);
             ok(!ordinaryCancelled&&ordinaryFinal>0&&boss.getHealth()<20&&indicatorAt(boss.getLocation(),ordinaryFinal),
                     "boss indicator converts accepted damage to hearts");
-            clearIndicators(boss.getLocation());boss.remove();ordinaryTarget=null;finish();
+            clearIndicators(boss.getLocation());boss.remove();ordinaryTarget=null;later(8,this::finish);
         });
     }
     private void restart(){

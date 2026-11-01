@@ -92,6 +92,8 @@ def run_phase(args, server, port, phase):
     report = json.loads(report_match.group(1))
     if phase == 1 and any(count < 1 for count in report['trainingBars']):
         raise RuntimeError(f'players did not receive training action bars: {report}')
+    if phase == 1 and (len(report['pvpBars']) != 1 or '4.0' not in report['pvpBars'][0] or '6.0' not in report['pvpBars'][0]):
+        raise RuntimeError(f'PvP action bar ignored final damage or a late cancellation: {report}')
     print('TRAINING NETWORK: PASS', report, flush=True)
     watchdog = any('The server has not responded for 10 seconds' in line for line in output)
     if proc.returncode != 0 or client.returncode != 0 or watchdog:

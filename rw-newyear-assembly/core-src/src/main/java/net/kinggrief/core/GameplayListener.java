@@ -86,7 +86,9 @@ import org.bukkit.util.Vector;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -119,6 +121,9 @@ public final class GameplayListener implements Listener {
     private final Map<UUID, Integer> pendingSpawnerToolGuards = new HashMap<UUID, Integer>();
     private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSpawnerRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
+    // Events are removed at MONITOR even when another plugin cancels them.
+    private final Set<EntityDamageByEntityEvent> pendingPvpBanners =
+            Collections.newSetFromMap(new IdentityHashMap<EntityDamageByEntityEvent, Boolean>());
     private static final class ParkourRun {
         final long startedAt;
         final GameMode startingMode;
@@ -4178,12 +4183,7 @@ public final class GameplayListener implements Listener {
                 customBannerShown = true;
             }
 
-            if (!customBannerShown) {
-                double remHp = Math.max(0.0, victim.getHealth() - e.getFinalDamage());
-                ColorUtil.actionBar(attacker, "&#FF5252⚔ " + victim.getName() + ": &#FF1744"
-                        + String.format(java.util.Locale.US, "%.1f", Double.valueOf(remHp / 2.0)) + " ❤ &8(-"
-                        + String.format(java.util.Locale.US, "%.1f", Double.valueOf(e.getFinalDamage() / 2.0)) + "❤)");
-            }
+            if (!customBannerShown) pendingPvpBanners.add(e);
             // Кастомные Луки, Стрелы и Трезубец Посейдона!
             if (e.getDamager() instanceof Projectile) {
                 applyProjectileDamageBonuses(e);
@@ -4254,6 +4254,25 @@ public final class GameplayListener implements Listener {
                 Bukkit.getScheduler().runTask(plugin, () -> explodeArrow(impact, shooter));
             }
         }
+    }
+
+    /** The ordinary PvP damage bar uses the final accepted event, after projectile
+     * bonuses and protection plugins have had a chance to change or cancel it. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPvpDamageBanner(EntityDamageByEntityEvent e) {
+        boolean pending = pendingPvpBanners.remove(e);
+        if (!pending || e.isCancelled() || !(e.getEntity() instanceof Player)) return;
+        Player attacker = null;
+        if (e.getDamager() instanceof Player) attacker = (Player) e.getDamager();
+        else if (e.getDamager() instanceof Projectile && ((Projectile) e.getDamager()).getShooter() instanceof Player)
+            attacker = (Player) ((Projectile) e.getDamager()).getShooter();
+        if (attacker == null || !attacker.isOnline() || !Double.isFinite(e.getFinalDamage())) return;
+        Player victim = (Player) e.getEntity();
+        double damage = Math.max(0.0, e.getFinalDamage());
+        double remaining = Math.max(0.0, victim.getHealth() - damage);
+        ColorUtil.actionBar(attacker, "&#FF5252⚔ " + victim.getName() + ": &#FF1744"
+                + String.format(java.util.Locale.US, "%.1f", Double.valueOf(remaining / 2.0)) + " ❤ &8(-"
+                + String.format(java.util.Locale.US, "%.1f", Double.valueOf(damage / 2.0)) + "❤)");
     }
 
     /** Damage modifiers must be applied before MONITOR; harmless if the event is

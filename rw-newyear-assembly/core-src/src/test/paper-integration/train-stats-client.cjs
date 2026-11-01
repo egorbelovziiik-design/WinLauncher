@@ -1,10 +1,10 @@
 const mc=require('minecraft-protocol');
 const port=Number(process.argv[2]);
 const clients=['TrainTester','TrainOther'].map(username=>mc.createClient({host:'127.0.0.1',port,username,version:'1.21.4',auth:'offline'}));
-let trainingBars=[0,0];
+let trainingBars=[0,0],pvpBars=[];
 clients.forEach((client,i)=>{
  client.on('position',p=>client.write('teleport_confirm',{teleportId:p.teleportId}));
- client.on('action_bar',p=>{if(JSON.stringify(p.text).includes('DPS 5'))trainingBars[i]++;});
+ client.on('action_bar',p=>{const text=JSON.stringify(p.text);if(text.includes('DPS 5'))trainingBars[i]++;if(i===0&&text.includes('TrainOther'))pvpBars.push(text);});
  client.on('error',e=>console.error('CLIENT_ERROR',String(e)));
  client.on('end',reason=>console.log('CLIENT_END',String(reason)));
 });
@@ -16,7 +16,7 @@ let input='';process.stdin.on('data',data=>{
    console.log('TRAIN_ATTACK',who,id,count||1);
   }else if(cmd==='AIR'){
    clients[0].write('flying',{flags:{onGround:false,hasHorizontalCollision:false}});console.log('TRAIN_AIR');
-  }else if(cmd==='REPORT')console.log('TRAIN_NETWORK',JSON.stringify({trainingBars}));
+  }else if(cmd==='REPORT')console.log('TRAIN_NETWORK',JSON.stringify({trainingBars,pvpBars}));
   else if(cmd==='done'){for(const c of clients)c.end('test complete');setTimeout(()=>process.exit(0),300);}
  }
 });
