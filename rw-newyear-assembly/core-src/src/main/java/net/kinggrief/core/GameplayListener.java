@@ -174,6 +174,7 @@ public final class GameplayListener implements Listener {
     private final Map<UUID, Long> npcClickCd = new HashMap<UUID, Long>();
     private final Map<String, Long> itemCooldowns = new HashMap<String, Long>();
     private final Set<String> activeTempBlocks = new HashSet<String>();
+    private final TemporaryBlockRecovery tempRecovery;
     private final Map<Block, org.bukkit.block.data.BlockData> allSavedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
     private final Map<Block, org.bukkit.block.data.BlockData> expectedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
     private final Map<String, Set<Block>> tempBlocksByChunk = new HashMap<String, Set<Block>>();
@@ -192,8 +193,15 @@ public final class GameplayListener implements Listener {
         this.plugin = plugin;
         this.pvpRegionGuard = new PvpRegionGuard(plugin);
         this.parkourCourse = ParkourCourse.load(plugin);
+        this.tempRecovery = new TemporaryBlockRecovery(plugin, block -> activeTempBlocks.contains(blockKey(block))
+                || pendingTempPlacements.contains(block));
+        this.tempRecovery.start();
         startChatQuizLoop();
         startCustomTntAndPassiveRelicLoops();
+    }
+
+    private boolean isTemporaryProtected(Block block) {
+        return activeTempBlocks.contains(blockKey(block)) || tempRecovery.hasRecord(block);
     }
 
     private void startCustomTntAndPassiveRelicLoops() {
@@ -714,6 +722,7 @@ public final class GameplayListener implements Listener {
     public void onChunkLoad(ChunkLoadEvent e) {
         plugin.getSpawnEngine().onSpawnChunkLoad(e.getChunk());
         plugin.getBossEvents().purgeOrphanEventEntitiesInChunk(e.getChunk());
+        tempRecovery.onChunkLoad(e.getChunk());
     }
 
     @EventHandler
@@ -805,7 +814,7 @@ public final class GameplayListener implements Listener {
             return;
         }
         Block b = e.getBlock();
-        if (activeTempBlocks.contains(blockKey(b))) {
+        if (isTemporaryProtected(b)) {
             e.setCancelled(true);
             ColorUtil.actionBar(p, "&#A855F7⛓ Временный блок Пласта / Трапки нерушим!");
             return;
@@ -1026,7 +1035,7 @@ public final class GameplayListener implements Listener {
             return;
         }
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return;
-        if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) return;
+        if (isTemporaryProtected(b) || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) return;
         DataStore.Claim cl = plugin.getStore().getClaimAt(b.getLocation());
         if (cl != null && (!cl.canAccess(p.getName()) || cl.isCenter(b.getLocation()))
                 && !plugin.getRanks().isOwnerLevel(p)) {
@@ -1326,7 +1335,7 @@ public final class GameplayListener implements Listener {
 
     /** Liquid-to-solid changes are placements, not an unchecked bypass of region plugins. */
     private void tryFrostPlacement(Player player, Block against, Block target, ItemStack tool, Material replacement) {
-        if (activeTempBlocks.contains(blockKey(target)) || plugin.getBossEvents().isProtectedEventStructureBlock(target, false)) return;
+        if (isTemporaryProtected(target) || plugin.getBossEvents().isProtectedEventStructureBlock(target, false)) return;
         DataStore.Claim claim = plugin.getStore().getClaimAt(target.getLocation());
         if (claim != null && (!claim.canAccess(player.getName()) || claim.isCenter(target.getLocation()))
                 && !plugin.getRanks().isOwnerLevel(player)) return;
@@ -1478,7 +1487,7 @@ public final class GameplayListener implements Listener {
                 || m == Material.ENDER_CHEST || m.name().endsWith("SHULKER_BOX")) {
             return false;
         }
-        if (activeTempBlocks.contains(blockKey(t)) || plugin.getBossEvents().isLockedEventChest(t)
+        if (isTemporaryProtected(t) || plugin.getBossEvents().isLockedEventChest(t)
                 || plugin.getBossEvents().isProtectedEventStructureBlock(t, true)) {
             return false;
         }
@@ -1764,6 +1773,7 @@ public final class GameplayListener implements Listener {
         // These exact temporary blocks were already checked individually for
         // spawn, claims and event structures. Other plugins still receive the event.
         if (pendingTempPlacements.contains(b)) return;
+        if (isTemporaryProtected(b)) { e.setCancelled(true); return; }
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) {
             if (!plugin.getRanks().canModifySpawn(p)) {
                 e.setCancelled(true);
@@ -2054,7 +2064,7 @@ public final class GameplayListener implements Listener {
         java.util.Iterator<Block> bit = e.blockList().iterator();
         while (bit.hasNext()) {
             Block b = bit.next();
-            if (activeTempBlocks.contains(blockKey(b))
+            if (isTemporaryProtected(b)
                     || plugin.getBossEvents().isLockedEventChest(b)
                     || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) {
                 bit.remove();
@@ -2089,7 +2099,7 @@ public final class GameplayListener implements Listener {
                 || m == Material.END_PORTAL || m == Material.NETHER_PORTAL || m == Material.COMMAND_BLOCK) {
             return true;
         }
-        if (activeTempBlocks.contains(blockKey(b))
+        if (isTemporaryProtected(b)
                 || plugin.getBossEvents().isLockedEventChest(b)
                 || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) {
             return true;
@@ -2370,7 +2380,7 @@ public final class GameplayListener implements Listener {
         java.util.Iterator<Block> bit = e.blockList().iterator();
         while (bit.hasNext()) {
             Block b = bit.next();
-            if (activeTempBlocks.contains(blockKey(b)) || plugin.getBossEvents().isLockedEventChest(b)
+            if (isTemporaryProtected(b) || plugin.getBossEvents().isLockedEventChest(b)
                     || plugin.getBossEvents().isProtectedEventStructureBlock(b, false)) bit.remove();
         }
     }
@@ -2434,7 +2444,7 @@ public final class GameplayListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEventPistonExtend(org.bukkit.event.block.BlockPistonExtendEvent e) {
         for (Block block : e.getBlocks()) {
-            if (activeTempBlocks.contains(blockKey(block)) || activeTempBlocks.contains(blockKey(block.getRelative(e.getDirection())))
+            if (isTemporaryProtected(block) || isTemporaryProtected(block.getRelative(e.getDirection()))
                     || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
                     || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection()), false)) {
                 e.setCancelled(true); return;
@@ -2444,7 +2454,7 @@ public final class GameplayListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEventPistonRetract(org.bukkit.event.block.BlockPistonRetractEvent e) {
         for (Block block : e.getBlocks()) {
-            if (activeTempBlocks.contains(blockKey(block)) || activeTempBlocks.contains(blockKey(block.getRelative(e.getDirection().getOppositeFace())))
+            if (isTemporaryProtected(block) || isTemporaryProtected(block.getRelative(e.getDirection().getOppositeFace()))
                     || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
                     || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection().getOppositeFace()), false)) {
                 e.setCancelled(true); return;
@@ -3536,7 +3546,7 @@ public final class GameplayListener implements Listener {
     private boolean isReplaceableForTemp(Block b) {
         if (!b.getWorld().isChunkLoaded(b.getX() >> 4, b.getZ() >> 4)
                 || b.getY() < b.getWorld().getMinHeight() || b.getY() >= b.getWorld().getMaxHeight()
-                || activeTempBlocks.contains(blockKey(b)) || pendingTempPlacements.contains(b)) return false;
+                || isTemporaryProtected(b) || pendingTempPlacements.contains(b)) return false;
         Material material = b.getType();
         // Never replace plants, fluids, redstone, signs or other non-solid blocks:
         // block data alone cannot restore inventories, text or other tile data.
@@ -3557,27 +3567,55 @@ public final class GameplayListener implements Listener {
         if (!pvpRegionGuard.canPlace(actor, location)) return false;
 
         org.bukkit.block.BlockState previous = block.getState();
-        block.setType(material, false);
-        org.bukkit.block.data.BlockData expected = block.getBlockData().clone();
-        BlockPlaceEvent event = new BlockPlaceEvent(block, previous, block.getRelative(org.bukkit.block.BlockFace.DOWN),
-                new ItemStack(material), actor, true, EquipmentSlot.HAND);
-        pendingTempPlacements.add(block);
-        try { Bukkit.getPluginManager().callEvent(event); }
-        finally { pendingTempPlacements.remove(block); }
-        if (event.isCancelled() || !event.canBuild()) {
-            if (block.getBlockData().equals(expected)) previous.update(true, false);
-            return false;
-        }
-        // A listener may have changed the block itself; don't claim or overwrite it.
-        if (!block.getBlockData().equals(expected)) return false;
         org.bukkit.block.data.BlockData original = previous.getBlockData().clone();
-        saved.put(block, original);
-        allSavedTempBlocks.put(block, original);
-        expectedTempBlocks.put(block, expected);
-        tempBlocksByChunk.computeIfAbsent(tempChunkKey(block.getWorld(), block.getX() >> 4, block.getZ() >> 4),
-                key -> new HashSet<Block>()).add(block);
-        activeTempBlocks.add(blockKey(block));
-        return true;
+        org.bukkit.block.data.BlockData expected = material.createBlockData();
+        // The record is part of this chunk and is written before changing the
+        // block in memory. A chunk save is still not a durable transaction.
+        if (!tempRecovery.record(block, original, expected)) return false;
+        boolean accepted = false;
+        try {
+            block.setType(material, false);
+            if (!block.getBlockData().equals(expected)) return false;
+            BlockPlaceEvent event = new BlockPlaceEvent(block, previous, block.getRelative(org.bukkit.block.BlockFace.DOWN),
+                    new ItemStack(material), actor, true, EquipmentSlot.HAND);
+            pendingTempPlacements.add(block);
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled() || !event.canBuild() || !block.getBlockData().equals(expected)) return false;
+            saved.put(block, original);
+            allSavedTempBlocks.put(block, original);
+            expectedTempBlocks.put(block, expected);
+            tempBlocksByChunk.computeIfAbsent(tempChunkKey(block.getWorld(), block.getX() >> 4, block.getZ() >> 4),
+                    key -> new HashSet<Block>()).add(block);
+            activeTempBlocks.add(blockKey(block));
+            accepted = true;
+            return true;
+        } catch (RuntimeException | LinkageError error) {
+            plugin.getLogger().warning("Temporary block placement failed: " + error.getClass().getSimpleName());
+            return false;
+        } finally {
+            pendingTempPlacements.remove(block);
+            if (!accepted) {
+                saved.remove(block);
+                allSavedTempBlocks.remove(block);
+                expectedTempBlocks.remove(block);
+                activeTempBlocks.remove(blockKey(block));
+                String chunkKey = tempChunkKey(block.getWorld(), block.getX() >> 4, block.getZ() >> 4);
+                Set<Block> blocks = tempBlocksByChunk.get(chunkKey);
+                if (blocks != null) {
+                    blocks.remove(block);
+                    if (blocks.isEmpty()) tempBlocksByChunk.remove(chunkKey);
+                }
+                boolean safeToForget = false;
+                try {
+                    if (!block.getBlockData().equals(expected)) safeToForget = true;
+                    else safeToForget = previous.update(true, false) && block.getBlockData().equals(original);
+                } catch (RuntimeException | LinkageError error) {
+                    plugin.getLogger().warning("Temporary block rollback failed: " + error.getClass().getSimpleName());
+                }
+                if (safeToForget) tempRecovery.forget(block);
+                else tempRecovery.retry(block);
+            }
+        }
     }
 
     private String tempChunkKey(World world, int x, int z) { return world.getUID() + ":" + x + ":" + z; }
@@ -3604,9 +3642,14 @@ public final class GameplayListener implements Listener {
                 plugin.getLogger().warning("Temporary block could not be restored in unloaded chunk at " + block.getLocation());
                 return;
             }
-            if (block.getBlockData().equals(expected)) block.setBlockData(original, false);
+            if (block.getBlockData().equals(expected)) {
+                block.setBlockData(original, false);
+                if (block.getBlockData().equals(expected)) { tempRecovery.retry(block); return; }
+            }
+            tempRecovery.forget(block);
         } catch (RuntimeException | LinkageError error) {
-            // One broken block must not prevent all remaining cleanup on disable.
+            // Leave its chunk record for recovery and keep cleaning other blocks.
+            tempRecovery.retry(block);
             plugin.getLogger().warning("Temporary block cleanup failed at " + block.getX() + "," + block.getY() + "," + block.getZ()
                     + ": " + error.getClass().getSimpleName());
         }
