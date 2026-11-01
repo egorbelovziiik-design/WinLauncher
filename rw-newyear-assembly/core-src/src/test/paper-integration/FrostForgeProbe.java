@@ -59,7 +59,7 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
         world=Bukkit.getWorld("world");world.getChunkAtAsync(16,16,true).whenComplete((chunk,error)->Bukkit.getScheduler().runTask(this,()->{
             try{
                 if(error!=null||chunk==null)throw new AssertionError("async chunk load",error);
-                world.addPluginChunkTicket(16,16,this);
+                world.addPluginChunkTicket(16,16,this);world.setGameRule(org.bukkit.GameRule.NATURAL_REGENERATION,false);
                 world.getBlockAt(256,80,256).setType(Material.STONE,false);world.getBlockAt(258,80,256).setType(Material.STONE,false);
                 a.teleport(new Location(world,256.5,81,256.5,-90,0));b.teleport(new Location(world,258.5,81,256.5,90,0));
                 a.setGameMode(GameMode.SURVIVAL);b.setGameMode(GameMode.SURVIVAL);
@@ -229,7 +229,7 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
             ok(b.getHealth()<before&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"copied custom ID on a non-sword does not activate the ability");
             a.getInventory().setItemInMainHand(sword);double hp=b.getHealth();cancelDamage=true;
             attack(()->{
-                cancelDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"a cancelled real hit applies no damage, effect or cooldown");
+                cancelDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"a cancelled real hit applies no damage, effect or cooldown (hp "+hp+"→"+b.getHealth()+", effect="+b.hasPotionEffect(slow)+", cooldowns="+cooldownSize()+")");
                 lateDamage=true;attack(()->{
                     lateDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"late cancellation is rechecked before the effect");
                     potionCase();
@@ -269,7 +269,7 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
     }
     private void spawnSafety(){
         cooldowns().clear();b.removePotionEffect(slow);
-        World spawn=core.getSpawnEngine().getSpawnArrival().getWorld();
+        World spawn=core.getSpawnEngine().getSpawnArrival().getWorld();spawn.setGameRule(org.bukkit.GameRule.NATURAL_REGENERATION,false);
         a.teleport(new Location(spawn,0.5,300,0.5,-90,0));b.teleport(new Location(spawn,2.3,300,0.5,90,0));
         a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
         later(40,()->{
