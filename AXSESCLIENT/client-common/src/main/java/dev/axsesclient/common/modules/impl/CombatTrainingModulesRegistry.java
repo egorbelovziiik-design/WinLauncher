@@ -276,34 +276,41 @@ public final class CombatTrainingModulesRegistry {
 
                 AxsesTheme t = themes.getActiveTheme();
 
-                // 3D Projected Aurora Target Ring around locked entity
+                // 3D Projected Dual-Ring Aurora Jello Wave + Energy Curtain around locked entity
                 if (targetRing.isEnabled()) {
                     double nowSec = (System.currentTimeMillis() % 4000L) / 1000.0;
-                    double wave = 0.5 + 0.5 * Math.sin(nowSec * Math.PI);
+                    double phase = nowSec * Math.PI;
+                    double wave = 0.5 + 0.5 * Math.sin(phase);
+                    double echoWave = 0.5 + 0.5 * Math.sin(phase - 0.55);
                     double entH = Math.max(0.8, lockedNow.getBoxHeight());
-                    double ringY = lockedNow.getMinY() + entH * (0.12 + 0.72 * wave);
-                    double radius = Math.max(0.48, lockedNow.getBoxWidth() * 0.68);
+                    double ringY = lockedNow.getMinY() + entH * (0.10 + 0.76 * wave);
+                    double echoY = lockedNow.getMinY() + entH * (0.10 + 0.76 * echoWave);
+                    double radius = Math.max(0.50, lockedNow.getBoxWidth() * 0.72);
                     boolean hurt = lockedNow.getHurtTime() > 0;
-                    int ringCol = hurt
-                            ? AxsesTheme.withAlpha(t.getErrorColor(), 0.90f)
-                            : AxsesTheme.withAlpha(themes.filterColor(t.getAccentColor()), 0.84f);
-                    int glowCol = AxsesTheme.withAlpha(themes.filterColor(t.getPrimaryColor()), 0.35f);
 
-                    int segs = 24;
-                    float prevX = 0f, prevY = 0f;
+                    int segs = 28;
+                    float prevX = 0f, prevY = 0f, prevEx = 0f, prevEy = 0f;
                     boolean hasPrev = false;
                     for (int i = 0; i <= segs; i++) {
-                        double ang = (Math.PI * 2.0 * i) / segs + nowSec * 1.4;
+                        double ang = (Math.PI * 2.0 * i) / segs + nowSec * 1.6;
                         double wx = lockedNow.getX() + Math.cos(ang) * radius;
                         double wz = lockedNow.getZ() + Math.sin(ang) * radius;
                         float[] proj = mc.projectWorldToScreen(wx, ringY, wz);
-                        if (proj != null && proj[2] > 0.1f) {
+                        float[] echo = mc.projectWorldToScreen(wx, echoY, wz);
+                        if (proj != null && echo != null && proj[2] > 0.1f && echo[2] > 0.1f) {
+                            int waveCol = hurt ? t.getErrorColor() : themes.getAuroraWaveColor(i * 0.24f);
+                            if (i % 2 == 0) {
+                                r.drawLine(proj[0], proj[1], echo[0], echo[1], 1.2f, AxsesTheme.withAlpha(waveCol, 0.26f));
+                            }
                             if (hasPrev) {
-                                r.drawLine(prevX, prevY + 1.5f, proj[0], proj[1] + 1.5f, 2.4f, glowCol);
-                                r.drawLine(prevX, prevY, proj[0], proj[1], 1.4f, ringCol);
+                                r.drawLine(prevEx, prevEy, echo[0], echo[1], 1.5f, AxsesTheme.withAlpha(waveCol, 0.42f));
+                                r.drawLine(prevX, prevY + 1.2f, proj[0], proj[1] + 1.2f, 2.8f, AxsesTheme.withAlpha(waveCol, 0.30f));
+                                r.drawLine(prevX, prevY, proj[0], proj[1], 1.9f, AxsesTheme.withAlpha(waveCol, 0.95f));
                             }
                             prevX = proj[0];
                             prevY = proj[1];
+                            prevEx = echo[0];
+                            prevEy = echo[1];
                             hasPrev = true;
                         } else {
                             hasPrev = false;
@@ -312,18 +319,22 @@ public final class CombatTrainingModulesRegistry {
                 }
 
                 if (showLockBadge.isEnabled()) {
-                    String profTag = "Universal".equalsIgnoreCase(serverProfile.getValue()) ? "" : (" [" + serverProfile.getValue() + "]");
+                    String profTag = "Universal".equalsIgnoreCase(serverProfile.getValue()) ? "" : (" · " + serverProfile.getValue());
                     String unit = i18n.isRussian() ? "м" : "m";
                     String label = "⚡ " + lockedNow.getName()
                             + String.format(Locale.ROOT, " · %.1f%s", Float.valueOf(lockedNow.getDistance()), unit)
                             + profTag;
-                    float tw = fonts.width(r, label, 1.0f);
+                    float tw = fonts.width(r, label, 0.92f);
                     float bw = tw + 14.0f;
                     float bx = (r.getScaledWidth() - bw) * 0.5f;
-                    float by = r.getScaledHeight() * 0.5f + 16.0f;
-                    r.fillRoundedRect(bx, by, bw, 16.0f, 4.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.88f));
-                    r.drawRoundedOutline(bx, by, bw, 16.0f, 4.0f, 1.0f, themes.filterColor(t.getAccentColor()));
-                    fonts.draw(r, label, bx + 7.0f, by + 4.0f, t.getTextColor(), 1.0f);
+                    float by = r.getScaledHeight() * 0.5f + 22.0f;
+                    int prim = themes.filterColor(t.getPrimaryColor());
+                    int acc = themes.filterColor(t.getAccentColor());
+                    r.drawShadow(bx, by, bw, 16.0f, 4.5f, 0.55f, 0x000000);
+                    r.fillRoundedRect(bx, by, bw, 16.0f, 4.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f));
+                    RenderManager.fillHorizontalGradient(r, bx + 4.0f, by + 1.0f, bw - 8.0f, 1.4f, prim, acc);
+                    r.drawRoundedOutline(bx, by, bw, 16.0f, 4.5f, 1.0f, AxsesTheme.withAlpha(acc, 0.80f));
+                    fonts.draw(r, label, bx + 7.0f, by + 4.2f, 0xFFF8FAFF, 0.92f);
                 }
             }
         });
@@ -402,7 +413,7 @@ public final class CombatTrainingModulesRegistry {
         Module registeredTargetHud = mm.getById("target_hud");
         registeredTargetHud.setFavorite(true);
 
-        HudElement targetHudElement = new HudElement("target_hud", "Target HUD", registeredTargetHud, 0.60f, 0.58f, 198f, 54f)
+        HudElement targetHudElement = new HudElement("target_hud", "Target HUD", registeredTargetHud, 0.66f, 0.56f, 218f, 62f)
                 .withCustomPainter(new HudElement.CustomHudPainter() {
                     private long lastFrameMs = System.currentTimeMillis();
 
@@ -439,7 +450,7 @@ public final class CombatTrainingModulesRegistry {
                                     2.0f,
                                     3.2f,
                                     (now / 900L) % 4L == 0L ? 6 : 0,
-                                    16,
+                                    18,
                                     0.0, 64.0, 0.0, 65.6
                             );
                             preview = true;
@@ -449,62 +460,71 @@ public final class CombatTrainingModulesRegistry {
                         }
 
                         AxsesTheme t = themeManager.getActiveTheme();
-                        float cardW = Math.max(194.0f, sw);
-                        float cardH = Math.max(54.0f, sh);
+                        float cardW = Math.max(214.0f, sw);
+                        float cardH = Math.max(60.0f, sh);
                         float drawX = Math.min(px, Math.max(4.0f, r.getScaledWidth() - cardW - 4.0f));
                         float drawY = Math.min(py, Math.max(4.0f, r.getScaledHeight() - cardH - 4.0f));
 
                         boolean hurt = target.getHurtTime() > 0;
                         float hurtRatio = Math.min(1.0f, target.getHurtTime() / 10.0f);
+                        int prim = themeManager.filterColor(t.getPrimaryColor());
+                        int acc = themeManager.filterColor(t.getAccentColor());
 
-                        // Outer drop shadow + deep Obsidian glass card
-                        r.drawShadow(drawX, drawY, cardW, cardH, 7.0f, 0.70f * opacity, 0x000000);
-                        int bgCol = AxsesTheme.withAlpha(t.getBackgroundColor(), Math.min(0.95f, opacity + 0.05f));
-                        r.fillRoundedRect(drawX, drawY, cardW, cardH, 7.0f, bgCol);
+                        // Outer drop shadow + Hyperion frosted glass card
+                        r.drawShadow(drawX, drawY, cardW, cardH, 8.0f, 0.78f * opacity, 0x000000);
+                        int bgCol = AxsesTheme.withAlpha(t.getBackgroundColor(), Math.min(0.96f, opacity + 0.04f));
+                        r.fillRoundedRect(drawX, drawY, cardW, cardH, 8.0f, bgCol);
+                        r.fillGradientVertical(drawX + 1.0f, drawY + 1.0f, cardW - 2.0f, cardH * 0.45f,
+                                AxsesTheme.withAlpha(t.getSurfaceColor(), 0.50f), 0x00000000);
 
-                        // Top glowing Aurora bar
-                        int topBarCol = hurt
-                                ? t.getErrorColor()
-                                : themeManager.filterColor(t.getPrimaryColor());
-                        r.fillRect(drawX + 6.0f, drawY + 1.0f, cardW - 12.0f, 2.0f, AxsesTheme.withAlpha(topBarCol, opacity));
+                        // Top dual-stop horizontal Aurora beam
+                        int beamL = hurt ? t.getErrorColor() : prim;
+                        int beamR = hurt ? 0xFFFF8FA3 : acc;
+                        RenderManager.fillHorizontalGradient(r, drawX + 7.0f, drawY + 1.0f, cardW - 14.0f, 2.0f,
+                                AxsesTheme.withAlpha(beamL, opacity), AxsesTheme.withAlpha(beamR, opacity));
 
                         int borderCol = selected
-                                ? themeManager.filterColor(t.getAccentColor())
-                                : (hurt ? t.getErrorColor() : AxsesTheme.withAlpha(themeManager.filterColor(t.getPrimaryColor()), 0.72f * opacity));
-                        r.drawRoundedOutline(drawX, drawY, cardW, cardH, 7.0f, 1.0f, borderCol);
+                                ? acc
+                                : (hurt ? t.getErrorColor() : AxsesTheme.withAlpha(prim, 0.78f * opacity));
+                        r.drawRoundedOutline(drawX, drawY, cardW, cardH, 8.0f, 1.0f, borderCol);
 
-                        // Left stylized 3D-inspired entity avatar emblem (36x36)
+                        // Left sculpted 3D avatar emblem (42x42)
                         float avX = drawX + 8.0f;
-                        float avY = drawY + 9.0f;
-                        float avS = 36.0f;
-                        int avBase = target.isPlayer() ? themeManager.filterColor(t.getPrimaryColor()) : themeManager.filterColor(t.getAccentColor());
+                        float avY = drawY + 10.0f;
+                        float avS = 42.0f;
+                        int avBase = target.isPlayer() ? prim : acc;
                         if (hurt) {
-                            avBase = RenderManager.blendArgb(avBase, t.getErrorColor(), 0.72f * hurtRatio);
+                            avBase = RenderManager.blendArgb(avBase, t.getErrorColor(), 0.75f * hurtRatio);
                         }
-                        r.fillRoundedRect(avX, avY, avS, avS, 6.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.96f));
-                        r.fillRoundedRect(avX + 3.0f, avY + 3.0f, avS - 6.0f, avS - 6.0f, 4.0f, AxsesTheme.withAlpha(avBase, 0.32f));
-                        // Pixel-crisp geometric head & visor icon inside avatar box
-                        r.fillRect(avX + 9.0f, avY + 7.0f, 18.0f, 16.0f, AxsesTheme.withAlpha(avBase, 0.92f));
-                        r.fillRect(avX + 12.0f, avY + 12.0f, 4.0f, 3.0f, 0xFFF7F8FF);
-                        r.fillRect(avX + 20.0f, avY + 12.0f, 4.0f, 3.0f, 0xFFF7F8FF);
-                        r.fillRect(avX + 11.0f, avY + 25.0f, 14.0f, 5.0f, AxsesTheme.withAlpha(avBase, 0.65f));
-                        r.drawRoundedOutline(avX, avY, avS, avS, 6.0f, 1.0f, AxsesTheme.withAlpha(avBase, 0.85f));
+                        r.fillRoundedRect(avX, avY, avS, avS, 7.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.96f));
+                        r.fillRoundedRect(avX + 3.0f, avY + 3.0f, avS - 6.0f, avS - 6.0f, 5.0f, AxsesTheme.withAlpha(avBase, 0.28f));
+                        // Geometric 3D visor helmet icon
+                        r.fillRoundedRect(avX + 10.0f, avY + 7.0f, 22.0f, 19.0f, 3.0f, AxsesTheme.withAlpha(avBase, 0.94f));
+                        r.fillRect(avX + 13.0f, avY + 13.0f, 5.0f, 3.5f, 0xFFFFFFFF);
+                        r.fillRect(avX + 24.0f, avY + 13.0f, 5.0f, 3.5f, 0xFFFFFFFF);
+                        r.fillRoundedRect(avX + 12.0f, avY + 28.0f, 18.0f, 7.0f, 2.0f, AxsesTheme.withAlpha(avBase, 0.62f));
+                        r.drawRoundedOutline(avX, avY, avS, avS, 7.0f, 1.0f, AxsesTheme.withAlpha(hurt ? t.getErrorColor() : acc, 0.85f));
 
-                        // Row 1: Target Name + Distance tag
+                        // Row 1: Target Name + Rounded Distance Pill
                         float infoX = avX + avS + 8.0f;
                         float infoW = cardW - (infoX - drawX) - 8.0f;
                         String distUnit = i18n.isRussian() ? "м" : "m";
                         String distStr = preview ? "DEMO" : String.format(Locale.ROOT, "%.1f%s", Float.valueOf(target.getDistance()), distUnit);
-                        float distW = fontManager.width(r, distStr, 1.0f);
+                        float distW = fontManager.width(r, distStr, 0.88f) + 9.0f;
+                        float distX = drawX + cardW - distW - 8.0f;
+                        r.fillRoundedRect(distX, drawY + 8.0f, distW, 13.0f, 3.5f, AxsesTheme.withAlpha(acc, 0.18f));
+                        r.drawRoundedOutline(distX, drawY + 8.0f, distW, 13.0f, 3.5f, 1.0f, AxsesTheme.withAlpha(acc, 0.65f));
+                        fontManager.drawCentered(r, distStr, distX + distW * 0.5f, drawY + 10.5f, acc, 0.88f);
 
-                        String cleanName = trimText(r, fontManager, target.getName(), Math.max(40.0f, infoW - distW - 8.0f));
-                        fontManager.draw(r, cleanName, infoX, drawY + 8.0f, t.getTextColor(), 1.0f);
-                        fontManager.draw(r, distStr, drawX + cardW - distW - 8.0f, drawY + 8.0f, themeManager.filterColor(t.getAccentColor()), 1.0f);
+                        String cleanName = trimText(r, fontManager, target.getName(), Math.max(44.0f, infoW - distW - 6.0f));
+                        fontManager.draw(r, cleanName, infoX, drawY + 9.5f, 0xFFFFFFFF, 1.0f);
 
-                        // Row 2: HP numbers + Combat Advantage Status
+                        // Row 2: HP + Held Weapon / Armor + PvP Advantage Badge
                         float hpVal = target.getHealth() + target.getAbsorption();
-                        String hpText = String.format(Locale.ROOT, "%.1f / %.0f HP", Float.valueOf(hpVal), Float.valueOf(target.getMaxHealth()));
-                        fontManager.draw(r, hpText, infoX, drawY + 21.0f, t.getMutedColor(), 1.0f);
+                        String subInfo = !target.getHeldItemName().isEmpty()
+                                ? trimText(r, fontManager, target.getHeldItemName(), 82.0f)
+                                : String.format(Locale.ROOT, "%.1f / %.0f ❤", Float.valueOf(hpVal), Float.valueOf(target.getMaxHealth()));
+                        fontManager.draw(r, subInfo, infoX, drawY + 24.0f, t.getMutedColor(), 0.86f);
 
                         if (targetHudPvpBadgeRef.isEnabled() && mc != null) {
                             float myHp = mc.isInWorld() ? mc.getHealth() : 20.0f;
@@ -521,35 +541,43 @@ public final class CombatTrainingModulesRegistry {
                                 statusCol = t.getWarningColor();
                             }
                             String badge = i18n.tr(statusKey);
-                            float bw = fontManager.width(r, badge, 1.0f);
-                            if (infoX + fontManager.width(r, hpText, 1.0f) + 8.0f + bw <= drawX + cardW - 6.0f) {
-                                fontManager.draw(r, badge, drawX + cardW - bw - 8.0f, drawY + 21.0f, statusCol, 1.0f);
+                            float bw = fontManager.width(r, badge, 0.80f) + 8.0f;
+                            float bx = drawX + cardW - bw - 8.0f;
+                            if (bx > infoX + fontManager.width(r, subInfo, 0.86f) + 4.0f) {
+                                r.fillRoundedRect(bx, drawY + 22.5f, bw, 11.5f, 3.0f, AxsesTheme.withAlpha(statusCol, 0.16f));
+                                fontManager.drawCentered(r, badge, bx + bw * 0.5f, drawY + 24.5f, statusCol, 0.80f);
                             }
                         }
 
-                        // Row 3: Dual-Layer Smooth Health Bar + Damage Trail
+                        // Row 3: Dual-Layer Aurora Gradient Health Bar + Damage Trail + Leading Spark + HP Readout
                         float barX = infoX;
-                        float barY = drawY + 36.0f;
+                        float barY = drawY + 39.0f;
                         float barW = infoW;
-                        float barH = 9.0f;
+                        float barH = 12.0f;
                         float targetFrac = target.getHealthFraction();
                         float animFrac = preview ? targetFrac : state.updateAndGetAnimatedHpFrac(targetFrac, dt);
                         float trailFrac = preview ? Math.min(1.0f, targetFrac + 0.12f) : state.getDamageTrailHpFrac();
 
-                        r.fillRoundedRect(barX, barY, barW, barH, 4.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.95f));
+                        r.fillRoundedRect(barX, barY, barW, barH, 4.5f, 0xEE080B16);
+                        r.drawRoundedOutline(barX, barY, barW, barH, 4.5f, 1.0f, 0x26FFFFFF);
                         if (trailFrac > animFrac + 0.005f) {
-                            r.fillRoundedRect(barX, barY, Math.max(4.0f, barW * trailFrac), barH, 4.0f, AxsesTheme.withAlpha(t.getErrorColor(), 0.65f));
+                            r.fillRoundedRect(barX + 1.0f, barY + 1.0f, Math.max(4.0f, (barW - 2.0f) * trailFrac), barH - 2.0f, 3.5f,
+                                    AxsesTheme.withAlpha(t.getErrorColor(), 0.68f));
                         }
-                        int hpFillCol = animFrac > 0.55f
-                                ? themeManager.filterColor(t.getSuccessColor())
-                                : (animFrac > 0.25f ? t.getWarningColor() : t.getErrorColor());
                         if (animFrac > 0.005f) {
-                            r.fillRoundedRect(barX, barY, Math.max(4.0f, barW * animFrac), barH, 4.0f, hpFillCol);
+                            float fw = Math.max(5.0f, (barW - 2.0f) * animFrac);
+                            int cLeft = animFrac > 0.30f ? prim : t.getErrorColor();
+                            int cRight = animFrac > 0.55f ? acc : (animFrac > 0.25f ? t.getWarningColor() : 0xFFFF8FA3);
+                            RenderManager.fillHorizontalGradient(r, barX + 1.0f, barY + 1.0f, fw, barH - 2.0f, cLeft, cRight);
+                            // Leading glow spark
+                            r.fillRect(barX + fw - 1.0f, barY + 1.0f, 2.0f, barH - 2.0f, 0xE6FFFFFF);
                         }
                         if (target.getAbsorption() > 0.1f) {
                             float absFrac = Math.min(1.0f, target.getAbsorption() / 20.0f);
-                            r.fillRoundedRect(barX, barY + barH - 2.0f, Math.max(4.0f, barW * absFrac), 2.0f, 1.0f, 0xFFFFD166);
+                            r.fillRoundedRect(barX + 1.0f, barY + barH - 2.5f, Math.max(4.0f, (barW - 2.0f) * absFrac), 2.0f, 1.0f, 0xFFFFD166);
                         }
+                        String hpBadge = String.format(Locale.ROOT, "%.1f ❤ (%d%%)", Float.valueOf(hpVal), Integer.valueOf(Math.round(targetFrac * 100f)));
+                        fontManager.drawCentered(r, hpBadge, barX + barW * 0.5f, barY + 2.5f, 0xFFFFFFFF, 0.82f);
                         return true;
                     }
                 });

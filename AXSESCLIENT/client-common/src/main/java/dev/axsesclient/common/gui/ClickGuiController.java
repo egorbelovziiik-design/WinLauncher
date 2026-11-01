@@ -11,6 +11,7 @@ import dev.axsesclient.common.notifications.NotificationManager;
 import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
+import dev.axsesclient.common.render.RenderManager;
 import dev.axsesclient.common.settings.BooleanSetting;
 import dev.axsesclient.common.settings.ColorSetting;
 import dev.axsesclient.common.settings.KeybindSetting;
@@ -91,8 +92,8 @@ public final class ClickGuiController {
 
     private float[] computeWindowBounds(float screenW, float screenH) {
         float scalePref = Math.max(0.80f, Math.min(1.25f, core.getConfigManager().getGuiScale()));
-        float targetW = Math.round(624.0f * scalePref);
-        float targetH = Math.round(372.0f * scalePref);
+        float targetW = Math.round(668.0f * scalePref);
+        float targetH = Math.round(396.0f * scalePref);
         float winW = Math.max(430.0f, Math.min(targetW, screenW - 20.0f));
         float winH = Math.max(260.0f, Math.min(targetH, screenH - 20.0f));
         float cx = screenW * 0.5f + core.getConfigManager().getGuiOffsetX();
@@ -112,9 +113,9 @@ public final class ClickGuiController {
         int sw = r.getScaledWidth();
         int sh = r.getScaledHeight();
 
-        // Deep Obsidian screen dim backdrop
-        int backdropAlpha = Math.round(150.0f * core.getRenderManager().getBlurBackdropStrength() * openAnim);
-        r.fillRect(0, 0, sw, sh, (backdropAlpha << 24) | 0x04060D);
+        // Deep Hyperion Obsidian dim backdrop + subtle top/bottom aurora vignette
+        int backdropAlpha = Math.round(158.0f * core.getRenderManager().getBlurBackdropStrength() * openAnim);
+        r.fillRect(0, 0, sw, sh, (backdropAlpha << 24) | 0x04060E);
 
         float[] bounds = computeWindowBounds(sw, sh);
         float wx = bounds[0];
@@ -132,23 +133,23 @@ public final class ClickGuiController {
         int primaryCol = core.getThemeManager().filterColor(t.getPrimaryColor());
         int accentCol = core.getThemeManager().filterColor(t.getAccentColor());
 
-        // Outer window shell (1:1 crisp GUI coordinates — zero matrix distortion!)
-        r.drawShadow(wx, wy, winW, winH, 8.0f, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(wx, wy, winW, winH, 8.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.97f));
-        r.drawRoundedOutline(wx, wy, winW, winH, 8.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.85f));
+        // Soft ambient Aurora outer glow halo + outer window shell
+        r.fillRoundedRect(wx - 4.0f, wy - 4.0f, winW + 8.0f, winH + 8.0f, 12.0f, AxsesTheme.withAlpha(primaryCol, 0.12f * openAnim));
+        r.fillRoundedRect(wx - 2.0f, wy - 2.0f, winW + 4.0f, winH + 4.0f, 10.0f, AxsesTheme.withAlpha(accentCol, 0.14f * openAnim));
+        r.drawShadow(wx, wy, winW, winH, 9.0f, t.getShadowIntensity(), 0x000000);
+        r.fillRoundedRect(wx, wy, winW, winH, 9.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.97f));
+        r.drawRoundedOutline(wx, wy, winW, winH, 9.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.88f));
 
-        // Top Aurora Header Bar (height 42)
-        r.fillRoundedRect(wx + 2, wy + 2, winW - 4, 40, 6.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
-        float halfBar = (winW - 16.0f) * 0.5f;
-        r.fillRect(wx + 8, wy + 2, halfBar, 2.0f, primaryCol);
-        r.fillRect(wx + 8 + halfBar, wy + 2, halfBar, 2.0f, accentCol);
+        // Top Hyperion Aurora Header Bar (height 42)
+        r.fillRoundedRect(wx + 2, wy + 2, winW - 4, 40, 7.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
+        RenderManager.fillHorizontalGradient(r, wx + 8, wy + 2, winW - 16.0f, 2.2f, primaryCol, accentCol);
 
         // Brand emblem + title
-        r.fillRoundedRect(wx + 12, wy + 10, 22, 22, 5.0f, AxsesTheme.withAlpha(primaryCol, 0.25f));
-        r.drawRoundedOutline(wx + 12, wy + 10, 22, 22, 5.0f, 1.0f, accentCol);
-        core.getFontManager().drawCentered(r, "A", wx + 23, wy + 17, accentCol, 1.0f);
-        core.getFontManager().draw(r, "AXSES", wx + 40, wy + 11, t.getTextColor(), 1.0f);
-        core.getFontManager().draw(r, "AURORA", wx + 40, wy + 22, accentCol, 1.0f);
+        r.fillRoundedRect(wx + 11, wy + 10, 24, 22, 5.5f, AxsesTheme.withAlpha(primaryCol, 0.30f));
+        r.drawRoundedOutline(wx + 11, wy + 10, 24, 22, 5.5f, 1.0f, accentCol);
+        core.getFontManager().drawCentered(r, "AX", wx + 23, wy + 17, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "AXSES 3.0", wx + 40, wy + 11, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "HYPERION", wx + 40, wy + 22, accentCol, 0.88f);
 
         // Right-aligned Top Action Tabs
         String langLabel = i18n.isRussian() ? "RU" : "EN";
@@ -190,22 +191,22 @@ public final class ClickGuiController {
         drawHeaderPill(r, rightCursor, wy + 10, favW, 22, "★", activeView == TopView.FAVORITES, false, mx, my);
 
         // Responsive Search Box between Brand & Tabs
-        float sx = wx + 92.0f;
+        float sx = wx + 98.0f;
         float sy = wy + 10.0f;
         float searchW = Math.max(96.0f, rightCursor - sx - 8.0f);
         lastSearchX = sx;
         lastSearchW = searchW;
         float shBox = 22.0f;
-        r.fillRoundedRect(sx, sy, searchW, shBox, 5.0f, t.getBackgroundColor());
-        r.drawRoundedOutline(sx, sy, searchW, shBox, 5.0f, 1.0f,
-                searchFocused ? accentCol : AxsesTheme.withAlpha(t.getMutedColor(), 0.38f));
+        r.fillRoundedRect(sx, sy, searchW, shBox, 5.5f, t.getBackgroundColor());
+        r.drawRoundedOutline(sx, sy, searchW, shBox, 5.5f, 1.0f,
+                searchFocused ? accentCol : AxsesTheme.withAlpha(primaryCol, 0.36f));
         String searchDisp = searchQuery.isEmpty() && !searchFocused
                 ? i18n.tr("gui.search_placeholder")
                 : (searchQuery + (searchFocused && (System.currentTimeMillis() / 500L) % 2L == 0L ? "|" : ""));
         core.getFontManager().draw(r, trimToWidth(r, searchDisp, searchW - 22.0f), sx + 8.0f, sy + 7.0f,
-                searchQuery.isEmpty() && !searchFocused ? t.getMutedColor() : t.getTextColor(), 1.0f);
+                searchQuery.isEmpty() && !searchFocused ? t.getMutedColor() : t.getTextColor(), 0.96f);
         if (!searchQuery.isEmpty()) {
-            core.getFontManager().draw(r, "×", sx + searchW - 12.0f, sy + 7.0f, t.getMutedColor(), 1.0f);
+            core.getFontManager().draw(r, "×", sx + searchW - 12.0f, sy + 7.0f, accentCol, 1.0f);
         }
 
         // Left Sidebar Navigation Rail
@@ -213,12 +214,13 @@ public final class ClickGuiController {
         float sideY = wy + 48.0f;
         float sideW = 136.0f;
         float sideH = winH - 56.0f;
-        r.fillRoundedRect(sideX, sideY, sideW, sideH, 6.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
-        r.drawRoundedOutline(sideX, sideY, sideW, sideH, 6.0f, 1.0f, AxsesTheme.withAlpha(t.getMutedColor(), 0.18f));
+        r.fillRoundedRect(sideX, sideY, sideW, sideH, 7.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
+        r.drawRoundedOutline(sideX, sideY, sideW, sideH, 7.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.24f));
 
+        String[] catIcons = { "⚔ ", "⚡ ", "✦ ", "◈ ", "◉ ", "⚙ ", "▣ ", "☰ " };
         ModuleCategory[] cats = ModuleCategory.values();
         float cy = sideY + 6.0f;
-        float catRowH = Math.min(27.0f, (sideH - 54.0f) / cats.length);
+        float catRowH = Math.min(28.0f, (sideH - 54.0f) / cats.length);
         for (int i = 0; i < cats.length; i++) {
             ModuleCategory cat = cats[i];
             boolean sel = (activeView == TopView.MODULES && selectedCategory == cat && searchQuery.isEmpty());
@@ -226,16 +228,18 @@ public final class ClickGuiController {
             float hovAnim = core.getAnimationManager().smoothHover("cat:" + cat.name(), hov);
 
             if (sel) {
-                r.fillRoundedRect(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.0f, AxsesTheme.withAlpha(primaryCol, 0.28f));
-                r.drawRoundedOutline(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.65f));
-                r.fillRect(sideX + 7.0f, cy + 5.0f, 2.0f, Math.max(6.0f, catRowH - 12.0f), accentCol);
+                RenderManager.fillHorizontalGradient(r, sideX + 6.0f, cy + 1.0f, sideW - 12.0f, catRowH - 4.0f,
+                        AxsesTheme.withAlpha(primaryCol, 0.36f), AxsesTheme.withAlpha(accentCol, 0.18f));
+                r.drawRoundedOutline(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.5f, 1.0f, AxsesTheme.withAlpha(accentCol, 0.72f));
+                r.fillGradientVertical(sideX + 7.0f, cy + 5.0f, 2.5f, Math.max(6.0f, catRowH - 12.0f), primaryCol, accentCol);
             } else if (hovAnim > 0.02f) {
-                r.fillRoundedRect(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.85f * hovAnim));
+                r.fillRoundedRect(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.5f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.85f * hovAnim));
             }
 
-            String catTitle = i18n.tr(cat.getTranslationKey());
+            String glyph = i < catIcons.length ? catIcons[i] : "• ";
+            String catTitle = glyph + i18n.tr(cat.getTranslationKey());
             float textY = cy + (catRowH - 2.0f - 8.0f) * 0.5f;
-            core.getFontManager().draw(r, catTitle, sideX + 13.0f, textY, sel ? t.getTextColor() : t.getMutedColor(), 1.0f);
+            core.getFontManager().draw(r, catTitle, sideX + 12.0f, textY, sel ? 0xFFFFFFFF : t.getMutedColor(), 0.96f);
 
             List<Module> inCat = core.getModuleManager().getByCategory(cat);
             int enCount = 0;
@@ -412,25 +416,31 @@ public final class ClickGuiController {
                 float hovAnim = core.getAnimationManager().smoothHover("mod:" + m.getId(), cardHov);
                 float toggleAnim = core.getAnimationManager().smoothToggle("tog:" + m.getId(), m.isEnabled());
 
-                // Smoothly interpolated card background, border & glow bar (zero visual snap!)
+                // Smoothly interpolated Hyperion Glass card background, gradient wash & glow bar
                 int offBg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f);
                 int onBg = AxsesTheme.withAlpha(t.getElevatedColor(), 0.98f);
                 int cardBg = AnimationManager.lerpColor(offBg, onBg, toggleAnim);
-                r.fillRoundedRect(x, cursorY, cardW, cardH, 6.0f, cardBg);
+                r.fillRoundedRect(x, cursorY, cardW, cardH, 6.5f, cardBg);
 
+                if (toggleAnim > 0.02f) {
+                    RenderManager.fillHorizontalGradient(r, x + 2.0f, cursorY + 1.0f, cardW * 0.62f, baseCardH - 2.0f,
+                            AxsesTheme.withAlpha(primaryCol, 0.22f * toggleAnim), 0x00000000);
+                }
                 if (hovAnim > 0.02f) {
-                    r.fillRoundedRect(x, cursorY, cardW, baseCardH, 6.0f, AxsesTheme.withAlpha(primaryCol, 0.09f * hovAnim));
+                    r.fillRoundedRect(x, cursorY, cardW, baseCardH, 6.5f, AxsesTheme.withAlpha(primaryCol, 0.09f * hovAnim));
                 }
 
                 int offBorder = AxsesTheme.withAlpha(t.getMutedColor(), 0.22f + 0.25f * hovAnim);
-                int onBorder = AxsesTheme.withAlpha(primaryCol, 0.88f);
+                int onBorder = AxsesTheme.withAlpha(accentCol, 0.85f);
                 int borderCol = AnimationManager.lerpColor(offBorder, onBorder, toggleAnim);
-                r.drawRoundedOutline(x, cursorY, cardW, cardH, 6.0f, 1.0f, borderCol);
+                r.drawRoundedOutline(x, cursorY, cardW, cardH, 6.5f, 1.0f, borderCol);
 
                 if (toggleAnim > 0.02f) {
-                    float barH = (baseCardH - 12.0f) * toggleAnim;
+                    float barH = (baseCardH - 10.0f) * toggleAnim;
                     float barY = cursorY + (baseCardH - barH) * 0.5f;
-                    r.fillRect(x + 2.0f, barY, 2.5f, barH, AxsesTheme.withAlpha(accentCol, toggleAnim));
+                    r.fillGradientVertical(x + 2.0f, barY, 2.8f, barH,
+                            AxsesTheme.withAlpha(primaryCol, toggleAnim),
+                            AxsesTheme.withAlpha(accentCol, toggleAnim));
                 }
 
                 String incomp = m.getIncompatibilityReason(mc);
@@ -523,15 +533,21 @@ public final class ClickGuiController {
                 String valStr = ns.getStep() >= 1.0
                         ? String.valueOf(ns.getInt())
                         : String.format(Locale.ROOT, "%.2f", Double.valueOf(ns.getDouble()));
-                core.getFontManager().draw(r, title + ": " + valStr, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
+                float vw = core.getFontManager().width(r, valStr, 0.90f) + 10.0f;
+                float vx = sx + sw - 126.0f - vw;
+                int acc = core.getThemeManager().filterColor(t.getAccentColor());
+                r.fillRoundedRect(vx, rowY + 1.5f, vw, 15.0f, 3.5f, AxsesTheme.withAlpha(acc, 0.16f));
+                r.drawRoundedOutline(vx, rowY + 1.5f, vw, 15.0f, 3.5f, 1.0f, AxsesTheme.withAlpha(acc, 0.55f));
+                core.getFontManager().drawCentered(r, valStr, vx + vw * 0.5f, rowY + 5.0f, acc, 0.90f);
                 core.getRenderManager().drawSlider(r, sx + sw - 120.0f, rowY + 4.0f, 118.0f, 12.0f, ns.getNormalized());
                 rowY += 24.0f;
             } else if (s instanceof ModeSetting) {
                 ModeSetting ms = (ModeSetting) s;
                 core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
-                String optLabel = i18n.optionName(ms.getValue());
-                float pillW = Math.min(144.0f, Math.max(80.0f, core.getFontManager().width(r, optLabel, 1.0f) + 18.0f));
-                drawSmallButton(r, sx + sw - pillW, rowY + 1.0f, pillW, 18.0f, optLabel, false, mx, my);
+                String optLabel = "◂ " + i18n.optionName(ms.getValue()) + " ▸";
+                float pillW = Math.min(156.0f, Math.max(88.0f, core.getFontManager().width(r, optLabel, 0.96f) + 16.0f));
+                drawSmallButton(r, sx + sw - pillW, rowY + 1.0f, pillW, 18.0f, optLabel, true, mx, my);
                 rowY += 24.0f;
             } else if (s instanceof KeybindSetting) {
                 KeybindSetting ks = (KeybindSetting) s;

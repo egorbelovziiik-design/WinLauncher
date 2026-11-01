@@ -12,8 +12,8 @@ public final class LocalizationManager {
     public LocalizationManager() {
         Map<String, String> en = new HashMap<String, String>();
         en.put("gui.title", "AXSESCLIENT");
-        en.put("gui.subtitle", "AURORA v2.5");
-        en.put("gui.search_placeholder", "Search 96 modules (e.g. KillAura, ESP, Target, Zoom)...");
+        en.put("gui.subtitle", "HYPERION v3.0");
+        en.put("gui.search_placeholder", "Search 102 modules (e.g. KillAura, ESP, Target, ChinaHat)...");
         en.put("gui.favorites", "Favorites");
         en.put("gui.hud_editor", "HUD Editor");
         en.put("gui.themes", "Themes");
@@ -55,8 +55,8 @@ public final class LocalizationManager {
 
         Map<String, String> ru = new HashMap<String, String>();
         ru.put("gui.title", "AXSESCLIENT");
-        ru.put("gui.subtitle", "AURORA v2.5");
-        ru.put("gui.search_placeholder", "Поиск по 96 модулям (КиллАура, ESP, Таргет, Зум)...");
+        ru.put("gui.subtitle", "HYPERION v3.0");
+        ru.put("gui.search_placeholder", "Поиск по 102 модулям (КиллАура, ESP, Таргет, Шляпа, Круги)...");
         ru.put("gui.favorites", "Избранное");
         ru.put("gui.hud_editor", "HUD");
         ru.put("gui.themes", "Темы");
@@ -100,9 +100,15 @@ public final class LocalizationManager {
         putMod(ru, "target_hud", "Таргет HUD (Target HUD)", "Современная карточка цели: ХП с анимацией урона, дистанция и статус боя");
         putMod(ru, "trigger_bot", "ТриггерБот (TriggerBot)", "Умный авто-удар по цели в прицеле с таймингом критов и паузой при еде");
 
-        putMod(ru, "entity_esp", "ESP Подсветка (Entity ESP)", "2D/3D боксы игроков и мобов, полоска ХП, никнеймы, предмет в руке и радар-стрелки");
+        putMod(ru, "entity_esp", "ESP Подсветка (Entity ESP)", "Градиентные 2D/3D боксы игроков и мобов, ХП, никнеймы, предмет в руке и стрелки");
         putMod(ru, "item_esp", "ESP Предметов (Item ESP)", "Подсветка лута и предметов на земле с названием, количеством и дистанцией");
         putMod(ru, "tracers", "Трейсеры (Tracers)", "Плавные линии-указатели к ближайшим игрокам и мобам с цветовой индикацией");
+        putMod(ru, "watermark_hud", "Ватермарка AXSES (Watermark)", "Стеклянная панель бренда: ник, FPS, пинг, сервер и скорость движения");
+        putMod(ru, "module_list", "Список модулей (ArrayList)", "Каскадный список активных функций с неоновой волной Aurora и режимами");
+        putMod(ru, "china_hat", "Коническая шляпа (China Hat)", "Объёмный 3D неоновый нимб Aurora над головой цели и игрока");
+        putMod(ru, "jump_circles", "Круги прыжка (Jump Circles)", "Расходящиеся градиентные 3D-кольца на земле в точке отрыва");
+        putMod(ru, "breadcrumbs", "Шлейф движения (Breadcrumbs)", "Плавный светящийся 3D-след за траекторией вашего бега");
+        putMod(ru, "hit_particles", "Партиклы ударов (Hit FX)", "Неоновые искры и всплывающий индикатор урона при попадании по цели");
 
         putMod(ru, "attack_cooldown_indicator", "Индикатор перезарядки", "Полоска готовности удара 1.9+ прямо под прицелом");
         putMod(ru, "custom_hitmarker", "Хитмаркер ударов", "Визуальная отметка на прицеле при попадании и крите");
@@ -183,7 +189,7 @@ public final class LocalizationManager {
         putMod(ru, "local_world_info_panel", "Погода и фаза луны", "Отображение погоды, игровых суток и фазы луны");
 
         putMod(ru, "gui_scale_manager", "Масштаб интерфейса", "Настройка размера окна AXSES ClickGUI (0.75x - 1.50x)");
-        putMod(ru, "theme_preview", "Выбор темы", "Быстрое переключение 8 фирменных тем оформления");
+        putMod(ru, "theme_preview", "Выбор темы", "Быстрое переключение 12 фирменных тем оформления");
         putMod(ru, "module_search_history", "История поиска", "Быстрые теги последних поисковых запросов в меню");
         putMod(ru, "favorites_manager", "Управление избранным", "Закрепление любимых модулей в верхней вкладке");
         putMod(ru, "keyboard_shortcut_editor", "Горячие клавиши", "Настройка клавиш открытия ClickGUI и редактора HUD");
@@ -255,9 +261,23 @@ public final class LocalizationManager {
         ruSettings.put("preview_id", "Превью темы");
         ruSettings.put("fav_first", "Избранные сверху");
         ruSettings.put("alert_conflicts", "Предупреждать о дублях");
+        ruSettings.put("show_server", "Показывать сервер");
+        ruSettings.put("show_ping", "Показывать пинг");
+        ruSettings.put("show_bps", "Скорость движения");
+        ruSettings.put("show_modes", "Теги режимов");
+        ruSettings.put("hide_hud_mods", "Скрывать виджеты HUD");
+        ruSettings.put("wave_speed", "Скорость волны");
+        ruSettings.put("hat_radius", "Радиус шляпы");
+        ruSettings.put("hat_target", "На активной цели");
+        ruSettings.put("hat_self", "На себе (от 3-го лица)");
+        ruSettings.put("circle_radius", "Радиус кольца");
+        ruSettings.put("trail_length", "Длина шлейфа");
+        ruSettings.put("show_space", "Полоска Пробела");
+        ruSettings.put("show_cps", "Показывать КПС");
 
         // Dropdown / Mode values in Russian
         ruOptions.put("Universal", "Универсальный");
+        ruOptions.put("Aurora", "Аврора (Неон)");
         ruOptions.put("Legit Ghost", "Легит (Скрытный)");
         ruOptions.put("1.9+ Smart", "1.9+ Умный");
         ruOptions.put("1.9+ Cooldown", "1.9+ Кулдаун");

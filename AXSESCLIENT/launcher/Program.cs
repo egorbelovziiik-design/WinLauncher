@@ -96,10 +96,10 @@ public static class Program
         try
         {
             var controller = new LauncherStateController(tempRoot);
-            if (controller.Modules.Count != 96)
-                throw new InvalidOperationException($"Expected 96 modules, found {controller.Modules.Count}");
-            if (controller.Themes.Count != 8)
-                throw new InvalidOperationException($"Expected 8 themes, found {controller.Themes.Count}");
+            if (controller.Modules.Count != 102)
+                throw new InvalidOperationException($"Expected 102 modules, found {controller.Modules.Count}");
+            if (controller.Themes.Count != 12)
+                throw new InvalidOperationException($"Expected 12 themes, found {controller.Themes.Count}");
             if (controller.Versions.Count != 3)
                 throw new InvalidOperationException($"Expected 3 versions, found {controller.Versions.Count}");
 

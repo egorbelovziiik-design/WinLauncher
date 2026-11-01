@@ -5,16 +5,20 @@ import dev.axsesclient.common.notifications.NotificationManager;
 import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
+import dev.axsesclient.common.render.RenderManager;
 import dev.axsesclient.common.theme.AxsesTheme;
 
 public final class AxsesMainMenuController {
     private static final String[] BUTTON_IDS = {
             "singleplayer", "multiplayer", "settings", "axses_gui", "accounts", "quit"
     };
+    private static final String[] BUTTON_ICONS = {
+            "▶ ", "⚡ ", "⚙ ", "✦ ", "◈ ", "✕ "
+    };
 
     private final AxsesCore core;
     private boolean showAccountsModal = false;
-    private float bgPhase = 0.0f;
+    private float bgPhase = 1.25f;
 
     public AxsesMainMenuController(AxsesCore core) {
         this.core = core;
@@ -29,50 +33,122 @@ public final class AxsesMainMenuController {
         AxsesTheme t = core.getThemeManager().getActiveTheme();
         int sw = r.getScaledWidth();
         int sh = r.getScaledHeight();
-
-        // Animated Neo-Dark gradient + drifting geometric aurora bands
-        r.fillGradientVertical(0, 0, sw, sh, t.getBackgroundColor(), t.getSurfaceColor());
-        int gridSpacing = 28;
-        int shift = Math.round((bgPhase * 14.0f) % gridSpacing);
-        int gridCol = AxsesTheme.withAlpha(core.getThemeManager().filterColor(t.getPrimaryColor()), 0.07f);
-        for (int gx = shift; gx < sw; gx += gridSpacing) {
-            r.fillRect(gx, 0, 1, sh, gridCol);
-        }
-        for (int gy = shift; gy < sh; gy += gridSpacing) {
-            r.fillRect(0, gy, sw, 1, gridCol);
-        }
-
-        // Subtle animated top & bottom accent beams
-        float waveX = (float) ((Math.sin(bgPhase) * 0.5 + 0.5) * (sw - 180));
-        r.fillRoundedRect(waveX, 0, 180, 2.5f, 1.2f, core.getThemeManager().filterColor(t.getAccentColor()));
-        r.fillRoundedRect(sw - waveX - 180, sh - 2.5f, 180, 2.5f, 1.2f, core.getThemeManager().filterColor(t.getPrimaryColor()));
-
-        float cx = sw * 0.5f;
-        float panelW = 268.0f;
-        float panelH = 244.0f;
-        float panelX = cx - panelW * 0.5f;
-        float panelY = Math.max(18.0f, (sh - panelH) * 0.5f);
-
-        r.drawShadow(panelX, panelY, panelW, panelH, 10f, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(panelX, panelY, panelW, panelH, 10f, 0xF00B0F1A);
-        r.fillRoundedRect(panelX + 18f, panelY, panelW - 36f, 2f, 1f, core.getThemeManager().filterColor(t.getAccentColor()));
-        r.drawRoundedOutline(panelX, panelY, panelW, panelH, 10f, 1.0f, AxsesTheme.withAlpha(core.getThemeManager().filterColor(t.getPrimaryColor()), 0.55f));
-
-        // AXSESCLIENT OBSIDIAN AURORA Emblem & Header
-        core.getFontManager().drawCentered(r, "AXSESCLIENT", cx, panelY + 14f, 0xFFF8FAFC, 1.0f);
-        core.getFontManager().drawCentered(r, "OBSIDIAN AURORA · v2.5", cx, panelY + 28f, t.getAccentColor(), 1.0f);
-
-        // Quick RU / EN Language Pill in top-right corner of Main Menu
+        int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
+        int acc = core.getThemeManager().filterColor(t.getAccentColor());
         boolean isRu = core.getLocalizationManager().isRussian();
-        String langPill = isRu ? "🌐 Язык: Русский" : "🌐 Lang: English";
-        float lw = Math.max(94f, core.getFontManager().width(r, langPill, 1.0f) + 16f);
-        float lx = sw - lw - 8f;
-        float ly = 8f;
-        boolean lHov = isInside(mouseX, mouseY, lx, ly, lw, 20f);
-        r.fillRoundedRect(lx, ly, lw, 20f, 5f, lHov ? t.getElevatedColor() : 0xDC0B0F1A);
-        r.drawRoundedOutline(lx, ly, lw, 20f, 5f, 1f, core.getThemeManager().filterColor(t.getAccentColor()));
-        core.getFontManager().drawCentered(r, langPill, lx + lw * 0.5f, ly + 6f, 0xFFF8FAFC, 1.0f);
 
+        // 1. Deep Cosmic Obsidian Sky + Horizon Floor
+        float horizonY = sh * 0.68f;
+        r.fillGradientVertical(0, 0, sw, horizonY, t.getBackgroundColor(), t.getSurfaceColor());
+        r.fillGradientVertical(0, horizonY, sw, sh - horizonY, t.getSurfaceColor(), t.getBackgroundColor());
+
+        // 2. Animated Multi-Ribbon Aurora Borealis Curtains in Sky
+        int bands = 42;
+        float bandW = (float) sw / (float) bands;
+        for (int i = 0; i < bands; i++) {
+            double xNorm = (double) i / (double) bands;
+            double wave1 = Math.sin(xNorm * 5.2 + bgPhase * 1.1) * 26.0 + Math.cos(xNorm * 9.0 - bgPhase * 0.7) * 12.0;
+            double wave2 = Math.cos(xNorm * 4.4 - bgPhase * 0.9) * 22.0;
+            float ay1 = (float) (sh * 0.16 + wave1);
+            float ah1 = (float) (54.0 + 24.0 * Math.sin(xNorm * 3.1 + bgPhase));
+            int col1 = RenderManager.blendArgb(prim, acc, (float) xNorm);
+            r.fillGradientVertical(i * bandW, ay1, bandW + 1.0f, ah1,
+                    AxsesTheme.withAlpha(col1, 0.22f), 0x00000000);
+
+            float ay2 = (float) (sh * 0.28 + wave2);
+            r.fillGradientVertical(i * bandW, ay2, bandW + 1.0f, 38.0f,
+                    AxsesTheme.withAlpha(acc, 0.14f), 0x00000000);
+        }
+
+        // 3. Subtle Twinkling Starfield Dots
+        for (int s = 0; s < 36; s++) {
+            float sx = ((s * 173 + 41) % 997) / 997.0f * sw;
+            float sy = ((s * 311 + 19) % 613) / 613.0f * (horizonY - 20.0f);
+            float pulse = (float) (0.35 + 0.65 * Math.abs(Math.sin(bgPhase * 1.5 + s)));
+            float sz = (s % 5 == 0) ? 2.0f : 1.2f;
+            r.fillRect(sx, sy, sz, sz, AxsesTheme.withAlpha(0xFFFFFFFF, 0.45f * pulse));
+        }
+
+        // 4. Perspective Cyber-Horizon Grid below Command Deck
+        r.fillRect(0, horizonY, sw, 1.2f, AxsesTheme.withAlpha(acc, 0.32f));
+        for (int row = 1; row <= 6; row++) {
+            float gy = horizonY + (sh - horizonY) * (float) Math.pow(row / 6.0, 1.65);
+            r.fillRect(0, gy, sw, 1.0f, AxsesTheme.withAlpha(prim, 0.10f));
+        }
+        for (int col = -8; col <= 8; col++) {
+            float topX = sw * 0.5f + col * 24.0f;
+            float botX = sw * 0.5f + col * 92.0f;
+            r.drawLine(topX, horizonY, botX, sh, 1.0f, AxsesTheme.withAlpha(prim, 0.10f));
+        }
+
+        // 5. Top Status & Quick Switcher Pills
+        String engineTag = isRu ? "⚡ HYPERION v3.0 · 102 МОДУЛЯ · 12 ТЕМ" : "⚡ HYPERION v3.0 · 102 MODULES · 12 THEMES";
+        float ew = core.getFontManager().width(r, engineTag, 0.88f) + 16.0f;
+        r.fillRoundedRect(10f, 10f, ew, 20f, 5.5f, 0xDC080B16);
+        r.drawRoundedOutline(10f, 10f, ew, 20f, 5.5f, 1.0f, AxsesTheme.withAlpha(prim, 0.65f));
+        core.getFontManager().draw(r, engineTag, 18f, 16f, acc, 0.88f);
+
+        String langPill = isRu ? "🌐 Язык: Русский" : "🌐 Lang: English";
+        float lw = Math.max(98f, core.getFontManager().width(r, langPill, 0.92f) + 16f);
+        float lx = sw - lw - 10f;
+        float ly = 10f;
+        boolean lHov = isInside(mouseX, mouseY, lx, ly, lw, 20f);
+        r.fillRoundedRect(lx, ly, lw, 20f, 5.5f, lHov ? t.getElevatedColor() : 0xDC080B16);
+        r.drawRoundedOutline(lx, ly, lw, 20f, 5.5f, 1f, acc);
+        core.getFontManager().drawCentered(r, langPill, lx + lw * 0.5f, ly + 6f, 0xFFFFFFFF, 0.92f);
+
+        String themePill = "🎨 " + t.getName();
+        float tw = Math.max(96f, core.getFontManager().width(r, themePill, 0.88f) + 16f);
+        float tx = lx - tw - 6f;
+        boolean tHov = isInside(mouseX, mouseY, tx, ly, tw, 20f);
+        r.fillRoundedRect(tx, ly, tw, 20f, 5.5f, tHov ? t.getElevatedColor() : 0xDC080B16);
+        r.drawRoundedOutline(tx, ly, tw, 20f, 5.5f, 1f, AxsesTheme.withAlpha(prim, 0.72f));
+        core.getFontManager().drawCentered(r, themePill, tx + tw * 0.5f, ly + 6f, t.getTextColor(), 0.88f);
+
+        // 6. Central Sculpted Dual-Column Glass Command Deck (456 x 248)
+        float cx = sw * 0.5f;
+        float panelW = Math.min(460.0f, sw - 28.0f);
+        float panelH = 248.0f;
+        float panelX = cx - panelW * 0.5f;
+        float panelY = Math.max(36.0f, (sh - panelH) * 0.5f);
+
+        r.fillRoundedRect(panelX - 3f, panelY - 3f, panelW + 6f, panelH + 6f, 13f, AxsesTheme.withAlpha(prim, 0.14f));
+        r.drawShadow(panelX, panelY, panelW, panelH, 11f, t.getShadowIntensity(), 0x000000);
+        r.fillRoundedRect(panelX, panelY, panelW, panelH, 11f, 0xF2080B16);
+        RenderManager.fillHorizontalGradient(r, panelX + 14f, panelY + 1.0f, panelW - 28f, 2.2f, prim, acc);
+        r.drawRoundedOutline(panelX, panelY, panelW, panelH, 11f, 1.0f, AxsesTheme.withAlpha(prim, 0.72f));
+
+        // Left Column: Brand Hero & Active Session Telemetry (width 184)
+        float leftX = panelX + 14.0f;
+        float leftW = 180.0f;
+        r.fillRoundedRect(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 8.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.92f));
+        r.drawRoundedOutline(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 8.0f, 1.0f, 0x22FFFFFF);
+
+        // Glowing AX Crest
+        float crestX = leftX + (leftW - 44.0f) * 0.5f;
+        float crestY = panelY + 28.0f;
+        r.fillRoundedRect(crestX - 2f, crestY - 2f, 48f, 48f, 12f, AxsesTheme.withAlpha(acc, 0.18f));
+        r.fillRoundedRect(crestX, crestY, 44f, 44f, 10f, AxsesTheme.withAlpha(prim, 0.34f));
+        r.drawRoundedOutline(crestX, crestY, 44f, 44f, 10f, 1.2f, acc);
+        core.getFontManager().drawCentered(r, "AX", crestX + 22f, crestY + 17f, 0xFFFFFFFF, 1.25f);
+
+        core.getFontManager().drawCentered(r, "AXSESCLIENT 3.0", leftX + leftW * 0.5f, crestY + 54f, 0xFFFFFFFF, 1.0f);
+        core.getFontManager().drawCentered(r, "HYPERION AURORA", leftX + leftW * 0.5f, crestY + 67f, acc, 0.88f);
+
+        String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21.11";
+        String user = mc != null ? mc.getPlayerName() : "Player";
+        float cardY = crestY + 86.0f;
+        r.fillRoundedRect(leftX + 10f, cardY, leftW - 20f, 48f, 6.0f, 0xCC060812);
+        r.drawRoundedOutline(leftX + 10f, cardY, leftW - 20f, 48f, 6.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.45f));
+        core.getFontManager().drawCentered(r, "👤 " + user, leftX + leftW * 0.5f, cardY + 8f, 0xFFFFFFFF, 0.94f);
+        core.getFontManager().drawCentered(r, "MC " + mcVer + " · Fabric 0.20.1", leftX + leftW * 0.5f, cardY + 22f, t.getMutedColor(), 0.82f);
+        core.getFontManager().drawCentered(r, isRu ? "FunTime · RW · HolyWorld" : "FunTime · RW · HolyWorld",
+                leftX + leftW * 0.5f, cardY + 34f, t.getSuccessColor(), 0.80f);
+
+        String hint = isRu ? "Правый Shift — меню ClickGUI" : "Right Shift — Open ClickGUI";
+        core.getFontManager().drawCentered(r, hint, leftX + leftW * 0.5f, panelY + panelH - 28f, t.getMutedColor(), 0.80f);
+
+        // Right Column: 6 Sculpted Action Buttons
         String[] labels = {
                 core.getLocalizationManager().tr("menu.singleplayer"),
                 core.getLocalizationManager().tr("menu.multiplayer"),
@@ -82,48 +158,61 @@ public final class AxsesMainMenuController {
                 core.getLocalizationManager().tr("menu.quit")
         };
 
-        float btnW = 228.0f;
-        float btnH = 24.0f;
-        float btnX = cx - btnW * 0.5f;
-        float startY = panelY + 48.0f;
+        float btnX = leftX + leftW + 14.0f;
+        float btnW = (panelX + panelW - 14.0f) - btnX;
+        float btnH = 30.0f;
+        float startY = panelY + 16.0f;
 
         for (int i = 0; i < BUTTON_IDS.length; i++) {
-            float by = startY + i * 30.0f;
+            float by = startY + i * 37.0f;
             boolean hov = !showAccountsModal && isInside(mouseX, mouseY, btnX, by, btnW, btnH);
             float hovAnim = core.getAnimationManager().smoothHover("menu:" + BUTTON_IDS[i], hov);
-            boolean primary = i == 0 || i == 3;
-            int baseBg = primary ? core.getThemeManager().filterColor(t.getPrimaryColor()) : 0xFF141B2D;
-            int fill = AxsesTheme.withAlpha(baseBg, primary ? (0.82f + 0.18f * hovAnim) : (0.90f + 0.10f * hovAnim));
+            boolean primary = (i == 0 || i == 1 || i == 3);
             float inset = hovAnim * -2.0f;
-            r.fillRoundedRect(btnX + inset, by, btnW - inset * 2f, btnH, 6f, fill);
-            r.drawRoundedOutline(btnX + inset, by, btnW - inset * 2f, btnH, 6f, 1.0f,
-                    hov ? t.getAccentColor() : AxsesTheme.withAlpha(0xFFFFFFFF, primary ? 0.35f : 0.12f));
-            core.getFontManager().drawCentered(r, labels[i], cx, by + 8.0f, 0xFFF8FAFC, 1.0f);
+            float dx = btnX + inset;
+            float dw = btnW - inset * 2.0f;
+
+            if (primary) {
+                int cL = AxsesTheme.withAlpha(prim, 0.78f + 0.20f * hovAnim);
+                int cR = AxsesTheme.withAlpha(i == 3 ? acc : RenderManager.blendArgb(prim, acc, 0.55f), 0.78f + 0.20f * hovAnim);
+                r.fillRoundedRect(dx, by, dw, btnH, 6.5f, cL);
+                RenderManager.fillHorizontalGradient(r, dx + 2f, by + 1f, dw - 4f, btnH - 2f, cL, cR);
+                r.drawRoundedOutline(dx, by, dw, btnH, 6.5f, 1.0f, hov ? 0xFFFFFFFF : acc);
+            } else {
+                int bg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.92f + 0.08f * hovAnim);
+                r.fillRoundedRect(dx, by, dw, btnH, 6.5f, bg);
+                r.drawRoundedOutline(dx, by, dw, btnH, 6.5f, 1.0f,
+                        hov ? acc : AxsesTheme.withAlpha(prim, 0.35f));
+            }
+            core.getFontManager().drawCentered(r, BUTTON_ICONS[i] + labels[i], dx + dw * 0.5f, by + 10.5f, 0xFFFFFFFF, 0.96f);
         }
 
-        // Footer version & account strip
-        String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21";
-        String user = mc != null ? mc.getPlayerName() : "Player";
+        // Footer version & memory strip
         long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
-        core.getFontManager().draw(r, "AXSES v2.5 · MC " + mcVer + " · RAM " + maxMb + " MB", 8f, sh - 14f, 0xFF94A3B8, 1.0f);
+        core.getFontManager().draw(r, "AXSESCLIENT v3.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
         String rightTag = user + " · " + t.getName();
-        float rw = core.getFontManager().width(r, rightTag, 1.0f);
-        core.getFontManager().draw(r, rightTag, sw - rw - 8f, sh - 14f, t.getAccentColor(), 1.0f);
+        float rw = core.getFontManager().width(r, rightTag, 0.88f);
+        core.getFontManager().draw(r, rightTag, sw - rw - 10f, sh - 14f, acc, 0.88f);
 
-        // Accounts session modal
+        // Accounts & Themes Modal
         if (showAccountsModal) {
-            r.fillRect(0, 0, sw, sh, 0xAA070911);
-            float mw = 260f, mh = 128f;
+            r.fillRect(0, 0, sw, sh, 0xB4050710);
+            float mw = 276f, mh = 136f;
             float mx0 = cx - mw * 0.5f, my0 = (sh - mh) * 0.5f;
             r.fillRoundedRect(mx0, my0, mw, mh, 10f, t.getSurfaceColor());
-            r.drawRoundedOutline(mx0, my0, mw, mh, 10f, 1.5f, t.getAccentColor());
-            core.getFontManager().drawCentered(r, "ACTIVE MINECRAFT ACCOUNT", cx, my0 + 12f, t.getAccentColor(), 0.90f);
-            core.getFontManager().drawCentered(r, "Session Profile: " + user, cx, my0 + 34f, t.getTextColor(), 0.88f);
-            core.getFontManager().drawCentered(r, "Microsoft OAuth Managed via AXSES Launcher", cx, my0 + 52f, t.getMutedColor(), 0.75f);
-            core.getFontManager().drawCentered(r, "Cycle Theme", cx - 54f, my0 + 92f, t.getTextColor(), 0.80f);
-            r.drawRoundedOutline(cx - 104f, my0 + 84f, 100f, 22f, 5f, 1f, t.getPrimaryColor());
-            core.getFontManager().drawCentered(r, "Close", cx + 54f, my0 + 92f, t.getTextColor(), 0.80f);
-            r.drawRoundedOutline(cx + 4f, my0 + 84f, 100f, 22f, 5f, 1f, t.getAccentColor());
+            RenderManager.fillHorizontalGradient(r, mx0 + 8f, my0 + 1f, mw - 16f, 2f, prim, acc);
+            r.drawRoundedOutline(mx0, my0, mw, mh, 10f, 1.2f, acc);
+            core.getFontManager().drawCentered(r, isRu ? "АККАУНТ И ТЕМЫ ОФОРМЛЕНИЯ" : "ACTIVE PROFILE & THEMES", cx, my0 + 14f, acc, 0.92f);
+            core.getFontManager().drawCentered(r, (isRu ? "Профиль: " : "Profile: ") + user, cx, my0 + 36f, 0xFFFFFFFF, 0.92f);
+            core.getFontManager().drawCentered(r, (isRu ? "Активная тема: " : "Active Theme: ") + t.getName(), cx, my0 + 54f, t.getMutedColor(), 0.86f);
+
+            r.fillRoundedRect(cx - 112f, my0 + 88f, 106f, 24f, 5.5f, AxsesTheme.withAlpha(prim, 0.35f));
+            r.drawRoundedOutline(cx - 112f, my0 + 88f, 106f, 24f, 5.5f, 1f, prim);
+            core.getFontManager().drawCentered(r, isRu ? "Сменить тему" : "Next Theme", cx - 59f, my0 + 96f, 0xFFFFFFFF, 0.86f);
+
+            r.fillRoundedRect(cx + 6f, my0 + 88f, 106f, 24f, 5.5f, AxsesTheme.withAlpha(acc, 0.25f));
+            r.drawRoundedOutline(cx + 6f, my0 + 88f, 106f, 24f, 5.5f, 1f, acc);
+            core.getFontManager().drawCentered(r, isRu ? "Закрыть" : "Close", cx + 59f, my0 + 96f, 0xFFFFFFFF, 0.86f);
         }
 
         core.getRenderManager().renderNotifications(
@@ -141,38 +230,48 @@ public final class AxsesMainMenuController {
         int sh = mc.getScaledHeight();
         float cx = sw * 0.5f;
 
-        if (!showAccountsModal && isInside((float) mouseX, (float) mouseY, sw - 126f, 8f, 118f, 22f)) {
-            core.getLocalizationManager().toggleLocale();
-            core.getConfigManager().saveActiveAsync();
-            core.getNotificationManager().push("AXSES",
-                    core.getLocalizationManager().isRussian() ? "Язык: Русский" : "Language: English",
-                    NotificationManager.Severity.SUCCESS);
-            return true;
+        if (!showAccountsModal) {
+            if (isInside((float) mouseX, (float) mouseY, sw - 128f, 10f, 118f, 22f)) {
+                core.getLocalizationManager().toggleLocale();
+                core.getConfigManager().saveActiveAsync();
+                core.getNotificationManager().push("AXSES",
+                        core.getLocalizationManager().isRussian() ? "Язык: Русский" : "Language: English",
+                        NotificationManager.Severity.SUCCESS);
+                return true;
+            }
+            if (isInside((float) mouseX, (float) mouseY, sw - 252f, 10f, 118f, 22f)) {
+                core.getThemeManager().cycleNextTheme();
+                core.getConfigManager().saveActiveAsync();
+                core.getNotificationManager().push("AXSES",
+                        core.getThemeManager().getActiveTheme().getName(),
+                        NotificationManager.Severity.INFO);
+                return true;
+            }
         }
 
         if (showAccountsModal) {
-            float my0 = (sh - 128f) * 0.5f;
-            if (isInside((float) mouseX, (float) mouseY, cx - 104f, my0 + 84f, 100f, 22f)) {
+            float my0 = (sh - 136f) * 0.5f;
+            if (isInside((float) mouseX, (float) mouseY, cx - 112f, my0 + 88f, 106f, 24f)) {
                 core.getThemeManager().cycleNextTheme();
-                core.getNotificationManager().push("Theme Switched", core.getThemeManager().getActiveTheme().getName(), NotificationManager.Severity.INFO);
-                return true;
-            }
-            if (isInside((float) mouseX, (float) mouseY, cx + 4f, my0 + 84f, 100f, 22f)) {
-                showAccountsModal = false;
+                core.getConfigManager().saveActiveAsync();
+                core.getNotificationManager().push("AXSES", core.getThemeManager().getActiveTheme().getName(), NotificationManager.Severity.INFO);
                 return true;
             }
             showAccountsModal = false;
             return true;
         }
 
-        float panelH = 244.0f;
-        float panelY = Math.max(18.0f, (sh - panelH) * 0.5f);
-        float btnW = 228.0f, btnH = 24.0f;
-        float btnX = cx - btnW * 0.5f;
-        float startY = panelY + 48.0f;
+        float panelW = Math.min(460.0f, sw - 28.0f);
+        float panelH = 248.0f;
+        float panelX = cx - panelW * 0.5f;
+        float panelY = Math.max(36.0f, (sh - panelH) * 0.5f);
+        float btnX = panelX + 14.0f + 180.0f + 14.0f;
+        float btnW = (panelX + panelW - 14.0f) - btnX;
+        float btnH = 30.0f;
+        float startY = panelY + 16.0f;
 
         for (int i = 0; i < BUTTON_IDS.length; i++) {
-            float by = startY + i * 30.0f;
+            float by = startY + i * 37.0f;
             if (isInside((float) mouseX, (float) mouseY, btnX, by, btnW, btnH)) {
                 switch (i) {
                     case 0: mc.openVanillaSingleplayer(); break;

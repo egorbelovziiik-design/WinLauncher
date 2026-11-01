@@ -103,17 +103,20 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-utils libopenal1 jq
 
-      - name: 1. Build & Run JUnit 5 Suite on client-common
+      - name: 1. Build & Run JUnit 5 Suite on client-common (+ Render 6 In-Game Screenshots)
         working-directory: AXSESCLIENT/client-common
+        env:
+          AXSES_INGAME_SCREENSHOT_OUT: /tmp/ingame-screenshots
         run: |
           set -o pipefail
+          mkdir -p /tmp/ingame-screenshots
           if ! gradle test build --no-daemon > /tmp/step.log 2>&1; then
             msg=$(tail -n 45 /tmp/step.log | tr '\n' ' ' | sed 's/%/%25/g')
             echo "::error title=client-common failed::$msg"
             cat /tmp/step.log
             exit 1
           fi
-          echo "::notice title=client-common JUnit 5::PASSED"
+          echo "::notice title=client-common JUnit 5::PASSED ($(ls /tmp/ingame-screenshots/*.png | wc -l) in-game screenshots rendered)"
 
       - name: 2. Build AXSESCLIENT-1.16.5.jar & Verify Java 8 Bytecode (Major 52)
         working-directory: AXSESCLIENT/client-1.16.5
@@ -182,7 +185,7 @@ jobs:
             cat /tmp/mc1165.log
             exit 1
           fi
-          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 96' staged-jars/selftest-1.16.5.json
+          jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 102' staged-jars/selftest-1.16.5.json
           echo "::notice title=MC 1.16.5 Production JAR E2E::$(jq -c . staged-jars/selftest-1.16.5.json)"
 
       - name: 7. Real E2E Launch — Minecraft 1.21.4 + AXSESCLIENT-1.21.4.jar on Java 21
@@ -202,7 +205,7 @@ jobs:
             echo "::error title=MC 1.21.4 E2E Crash::$msg"
             touch /tmp/e2e_failed
           else
-            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 96' staged-jars/selftest-1.21.4.json
+            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 102' staged-jars/selftest-1.21.4.json
             echo "::notice title=MC 1.21.4 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.4.json)"
           fi
 
@@ -223,21 +226,23 @@ jobs:
             echo "::error title=MC 1.21.11 E2E Crash::$msg"
             touch /tmp/e2e_failed
           else
-            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 96' staged-jars/selftest-1.21.11.json
+            jq -e '.status == "PASS" and .mixinAudit == "PASS" and .modulesRegistered == 102' staged-jars/selftest-1.21.11.json
             echo "::notice title=MC 1.21.11 Production JAR E2E::$(jq -c . staged-jars/selftest-1.21.11.json)"
           fi
           if [ -f /tmp/e2e_failed ]; then exit 1; fi
 
-      - name: Stage Verified Mod JARs & E2E Reports
+      - name: Stage Verified Mod JARs, E2E Reports & In-Game Screenshots
         run: |
+          mkdir -p staged-jars/screenshots
           cp AXSESCLIENT-RELEASE/AXSESCLIENT-*.jar staged-jars/
-          ls -lh staged-jars/
+          cp /tmp/ingame-screenshots/*.png staged-jars/screenshots/
+          ls -lh staged-jars/ staged-jars/screenshots/
 
       - name: Upload Verified Mod JARs
         uses: actions/upload-artifact@v4
         with:
           name: verified-mod-jars
-          path: staged-jars/*
+          path: staged-jars/**
 
   windows-launcher-and-installer:
     name: Package & Verify Windows x64 AXSESCLIENT.exe & AXSESCLIENT-Setup.exe
@@ -455,7 +460,7 @@ jobs:
           path: AXSESCLIENT-RELEASE/**
 
   publish-github-release:
-    name: Publish Verified Assets to GitHub Release (axsesclient-v2.5.0)
+    name: Publish Verified Assets to GitHub Release (axsesclient-v3.0.0)
     if: ${{ always() && (contains(github.event.head_commit.message, '[publish-release]') || inputs.publish_only_run_id != '' || needs.windows-launcher-and-installer.result == 'success') }}
     needs: [windows-launcher-and-installer]
     runs-on: ubuntu-latest
@@ -477,7 +482,7 @@ jobs:
           gh run download "$SOURCE_RUN_ID" -R "$REPO" -n axsesclient-release-bundle -D dist-bundle
           BUNDLE_DIR="$(dirname "$(find dist-bundle -name 'AXSESCLIENT.exe' | head -n 1)")"
           cp AXSESCLIENT/documentation/*.md "$BUNDLE_DIR/"
-          ZIP_OUT="$GITHUB_WORKSPACE/AXSESCLIENT-v2.5.0-Full-Bundle.zip"
+          ZIP_OUT="$GITHUB_WORKSPACE/AXSESCLIENT-v3.0.0-Full-Bundle.zip"
           (
             cd "$BUNDLE_DIR"
             zip -r "$ZIP_OUT" \
@@ -489,13 +494,13 @@ jobs:
               SHA256SUMS.txt \
               README.md CHANGELOG.md BUILD_REPORT.md DESIGN_RESEARCH.md LICENSES.md
           )
-          if ! gh release view axsesclient-v2.5.0 -R "$REPO" >/dev/null 2>&1; then
-            gh release create axsesclient-v2.5.0 -R "$REPO" \
+          if ! gh release view axsesclient-v3.0.0 -R "$REPO" >/dev/null 2>&1; then
+            gh release create axsesclient-v3.0.0 -R "$REPO" \
               --target arena/b5b3cc60-winlauncher \
-              --title "AXSESCLIENT v2.5.0 (OBSIDIAN AURORA) — Stealth KillAura, ESP, Smooth UI & RU/EN" \
+              --title "AXSESCLIENT v3.0.0 (HYPERION AURORA) — 102 Modules, 12 Themes, 3D Visuals & RU/EN" \
               --notes-file AXSESCLIENT/documentation/CHANGELOG.md
           fi
-          gh release upload axsesclient-v2.5.0 -R "$REPO" --clobber \
+          gh release upload axsesclient-v3.0.0 -R "$REPO" --clobber \
             "$BUNDLE_DIR/AXSESCLIENT-Setup.exe" \
             "$BUNDLE_DIR/AXSESCLIENT.exe" \
             "$BUNDLE_DIR/AXSESCLIENT-1.16.5.jar" \
@@ -503,5 +508,5 @@ jobs:
             "$BUNDLE_DIR/AXSESCLIENT-1.21.11.jar" \
             "$BUNDLE_DIR/SHA256SUMS.txt" \
             "$ZIP_OUT"
-          echo "::notice title=GitHub Release Published::https://github.com/$REPO/releases/tag/axsesclient-v2.5.0"
+          echo "::notice title=GitHub Release Published::https://github.com/$REPO/releases/tag/axsesclient-v3.0.0"
 

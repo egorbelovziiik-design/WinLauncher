@@ -22,11 +22,16 @@ import dev.axsesclient.common.settings.ColorSetting;
 import dev.axsesclient.common.settings.KeybindSetting;
 import dev.axsesclient.common.settings.ModeSetting;
 import dev.axsesclient.common.settings.NumberSetting;
+import dev.axsesclient.common.settings.Setting;
 import dev.axsesclient.common.settings.StringSetting;
 import dev.axsesclient.common.theme.AxsesTheme;
 import dev.axsesclient.common.theme.ThemeManager;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
@@ -35,8 +40,8 @@ public final class VisualModulesRegistry {
     }
 
     public static void registerAll(
-            ModuleManager mm,
-            HudManager hm,
+            final ModuleManager mm,
+            final HudManager hm,
             final ClientRuntimeState state,
             final PerformanceProfiler profiler,
             final InputAdapter input,
@@ -188,12 +193,13 @@ public final class VisualModulesRegistry {
             public String getHudBadgeText(MinecraftAdapter mc) {
                 int fps = mc == null ? 60 : mc.getFps();
                 if (showFrameTime.isEnabled()) {
-                    return String.format(Locale.ROOT, "FPS %d (%.1fms)", Integer.valueOf(fps), Float.valueOf(profiler.getAverageFrameTimeMs()));
+                    String unit = (i18n != null && i18n.isRussian()) ? "мс" : "ms";
+                    return String.format(Locale.ROOT, "FPS: %d (%.1f%s)", Integer.valueOf(fps), Float.valueOf(profiler.getAverageFrameTimeMs()), unit);
                 }
-                return "FPS " + fps;
+                return "FPS: " + fps;
             }
         });
-        hm.register(new HudElement("fps_counter", "FPS Counter", fpsMod, 0.015f, 0.02f, 118f, 20f));
+        hm.register(new HudElement("fps_counter", "FPS Counter", fpsMod, 0.012f, 0.130f, 126f, 21f));
 
         // 06. Coordinates HUD
         Module coordsMod = mm.register(new Module("coordinates_hud", "Coordinates HUD", "Shows X, Y, Z coordinates with configurable precision", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
@@ -204,7 +210,7 @@ public final class VisualModulesRegistry {
             public String getHudBadgeText(MinecraftAdapter mc) {
                 if (mc == null || !mc.isInWorld()) return "XYZ: 0, 64, 0";
                 int d = decimals.getInt();
-                String fmt = d == 0 ? "XYZ %.0f, %.0f, %.0f" : (d == 1 ? "XYZ %.1f, %.1f, %.1f" : "XYZ %.2f, %.2f, %.2f");
+                String fmt = d == 0 ? "XYZ: %.0f, %.0f, %.0f" : (d == 1 ? "XYZ: %.1f, %.1f, %.1f" : "XYZ: %.2f, %.2f, %.2f");
                 String base = String.format(Locale.ROOT, fmt, Double.valueOf(mc.getPlayerX()), Double.valueOf(mc.getPlayerY()), Double.valueOf(mc.getPlayerZ()));
                 if (showNether.isEnabled()) {
                     boolean isNether = mc.getDimensionId().contains("nether");
@@ -214,7 +220,7 @@ public final class VisualModulesRegistry {
                 return base;
             }
         });
-        hm.register(new HudElement("coordinates_hud", "Coordinates", coordsMod, 0.015f, 0.075f, 156f, 20f));
+        hm.register(new HudElement("coordinates_hud", "Coordinates", coordsMod, 0.012f, 0.078f, 158f, 21f));
 
         // 07. Armor HUD
         Module armorMod = mm.register(new Module("armor_hud", "Armor HUD", "Displays equipped armor durability percentages", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
@@ -222,10 +228,12 @@ public final class VisualModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                if (mc == null || !mc.isInWorld()) return "Armor: 100% | 100% | 100% | 100%";
+                boolean ru = i18n != null && i18n.isRussian();
+                String prefix = ru ? "Броня: " : "Armor: ";
+                if (mc == null || !mc.isInWorld()) return prefix + "100% · 100% · 100% · 100%";
                 List<ItemInfo> armor = mc.getArmorItems();
-                if (armor == null || armor.isEmpty()) return "Armor: Empty";
-                StringBuilder sb = new StringBuilder("Armor ");
+                if (armor == null || armor.isEmpty()) return prefix + (ru ? "Пусто" : "Empty");
+                StringBuilder sb = new StringBuilder(prefix);
                 int nonEmpty = 0;
                 for (ItemInfo item : armor) {
                     if (item != null && !item.isEmpty()) {
@@ -241,14 +249,17 @@ public final class VisualModulesRegistry {
                         nonEmpty++;
                     }
                 }
-                return nonEmpty == 0 ? "Armor: None" : sb.toString();
+                return nonEmpty == 0 ? prefix + (ru ? "Нет" : "None") : sb.toString();
             }
         });
-        hm.register(new HudElement("armor_hud", "Armor HUD", armorMod, 0.50f, 0.88f, 165f, 20f));
+        hm.register(new HudElement("armor_hud", "Armor HUD", armorMod, 0.50f, 0.885f, 174f, 21f));
 
-        // 08. Potion HUD
-        Module potionMod = mm.register(new Module("potion_hud", "Potion HUD", "Lists active status effects and countdown timers", ModuleCategory.HUD) {
-            private final BooleanSetting showAmplifier = addSetting(new BooleanSetting("show_amp", "Show Amplifier", "Show Roman numeral potency", true));
+        // 08. Potion HUD — Multi-Row Frosted Status Card
+        final BooleanSetting potionShowAmp = new BooleanSetting("show_amp", "Show Amplifier", "Show Roman numeral potency", true);
+        Module potionMod = mm.register(new Module("potion_hud", "Potion HUD", "Lists active status effects and countdown timers", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(potionShowAmp);
+            }
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
@@ -256,49 +267,162 @@ public final class VisualModulesRegistry {
                 List<StatusEffectInfo> fx = mc.getActiveEffects();
                 if (fx == null || fx.isEmpty()) return null;
                 StatusEffectInfo top = fx.get(0);
-                String amp = showAmplifier.isEnabled() ? " " + top.getRomanAmplifier() : "";
+                String amp = potionShowAmp.isEnabled() ? " " + top.getRomanAmplifier() : "";
                 String suffix = fx.size() > 1 ? " (+" + (fx.size() - 1) + ")" : "";
                 return top.getName() + amp + " " + top.getFormattedDuration() + suffix;
             }
         });
-        hm.register(new HudElement("potion_hud", "Potion HUD", potionMod, 0.985f, 0.14f, 150f, 20f));
+        hm.register(new HudElement("potion_hud", "Potion HUD", potionMod, 0.988f, 0.78f, 156f, 48f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        List<StatusEffectInfo> fx = (mc != null && mc.isInWorld()) ? mc.getActiveEffects() : null;
+                        boolean demo = (fx == null || fx.isEmpty()) && editorMode;
+                        if ((fx == null || fx.isEmpty()) && !demo) {
+                            return false;
+                        }
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        boolean ru = i18n != null && i18n.isRussian();
+                        int count = demo ? 2 : Math.min(4, fx.size());
+                        float cardW = Math.max(152.0f, sw);
+                        float cardH = 18.0f + count * 15.0f;
+                        float drawX = Math.min(px, Math.max(4.0f, r.getScaledWidth() - cardW - 4.0f));
+                        float drawY = Math.min(py, Math.max(4.0f, r.getScaledHeight() - cardH - 4.0f));
 
-        // 09. Keystrokes
+                        int prim = themeManager.filterColor(t.getPrimaryColor());
+                        int acc = themeManager.filterColor(t.getAccentColor());
+                        r.drawShadow(drawX, drawY, cardW, cardH, 6.0f, 0.60f * opacity, 0x000000);
+                        r.fillRoundedRect(drawX, drawY, cardW, cardH, 6.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.94f * opacity));
+                        RenderManager.fillHorizontalGradient(r, drawX + 5.0f, drawY + 1.0f, cardW - 10.0f, 1.5f, prim, acc);
+                        r.drawRoundedOutline(drawX, drawY, cardW, cardH, 6.0f, 1.0f,
+                                selected ? acc : AxsesTheme.withAlpha(prim, 0.55f * opacity));
+
+                        String hdr = ru ? "✦ Активные эффекты" : "✦ Active Effects";
+                        fontManager.draw(r, hdr, drawX + 7.0f, drawY + 4.5f, acc, 0.85f);
+
+                        for (int i = 0; i < count; i++) {
+                            float ry = drawY + 17.5f + i * 14.5f;
+                            String name;
+                            String dur;
+                            int dotCol;
+                            if (demo) {
+                                name = i == 0 ? (ru ? "Скорость II" : "Speed II") : (ru ? "Сила II" : "Strength II");
+                                dur = i == 0 ? "01:22" : "00:54";
+                                dotCol = i == 0 ? 0xFF33EBFF : 0xFFFF5B79;
+                            } else {
+                                StatusEffectInfo ef = fx.get(i);
+                                name = ef.getName();
+                                dur = ef.getFormattedDuration();
+                                dotCol = 0xFF000000 | (ef.getColorRgb() & 0xFFFFFF);
+                            }
+                            r.fillRoundedRect(drawX + 7.0f, ry + 2.0f, 4.0f, 7.0f, 1.5f, dotCol);
+                            fontManager.draw(r, name, drawX + 14.5f, ry + 1.5f, t.getTextColor(), 0.88f);
+                            float dw = fontManager.width(r, dur, 0.86f);
+                            fontManager.draw(r, dur, drawX + cardW - dw - 7.0f, ry + 1.5f, t.getMutedColor(), 0.86f);
+                        }
+                        return true;
+                    }
+                }));
+
+        // 09. Keystrokes — Sculpted 2D WASD + LMB/RMB + Spacebar Visual Grid!
+        final BooleanSetting ksShowCps = new BooleanSetting("show_cps", "Include CPS", "Show LMB/RMB CPS buttons below WASD", true);
+        final BooleanSetting ksShowSpace = new BooleanSetting("show_space", "Spacebar Strip", "Show Spacebar indicator bar at bottom", true);
         Module keystrokesMod = mm.register(new Module("keystrokes", "Keystrokes", "Visualizes live W/A/S/D, Space, and mouse button inputs", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
-            private final BooleanSetting showCps = addSetting(new BooleanSetting("show_cps", "Include CPS", "Show LMB/RMB CPS inside Keystrokes", true));
+            {
+                addSetting(ksShowCps);
+                addSetting(ksShowSpace);
+            }
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                boolean w = input != null && input.isKeyDown(KeyCodes.KEY_W);
-                boolean a = input != null && input.isKeyDown(KeyCodes.KEY_A);
-                boolean s = input != null && input.isKeyDown(KeyCodes.KEY_S);
-                boolean d = input != null && input.isKeyDown(KeyCodes.KEY_D);
-                String keys = (w ? "[W]" : " W ") + (a ? "[A]" : " A ") + (s ? "[S]" : " S ") + (d ? "[D]" : " D ");
-                if (showCps.isEnabled()) {
-                    keys += " | " + state.getLeftCps() + "/" + state.getRightCps() + " CPS";
-                }
-                return keys;
+                return "WASD + CPS";
             }
         });
-        hm.register(new HudElement("keystrokes", "Keystrokes", keystrokesMod, 0.015f, 0.19f, 162f, 22f));
+        hm.register(new HudElement("keystrokes", "Keystrokes", keystrokesMod, 0.012f, 0.245f, 104f, 88f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        boolean ru = i18n != null && i18n.isRussian();
+                        boolean w = input != null && input.isKeyDown(KeyCodes.KEY_W);
+                        boolean a = input != null && input.isKeyDown(KeyCodes.KEY_A);
+                        boolean s = input != null && input.isKeyDown(KeyCodes.KEY_S);
+                        boolean d = input != null && input.isKeyDown(KeyCodes.KEY_D);
+                        boolean sp = input != null && input.isKeyDown(KeyCodes.KEY_SPACE);
+                        boolean lmb = input != null && input.isMouseButtonDown(0);
+                        boolean rmb = input != null && input.isMouseButtonDown(1);
+
+                        float keyW = 32.0f;
+                        float keyH = 22.0f;
+                        float gap = 3.0f;
+                        // Row 1: [ W ] centered
+                        paintKeyCap(r, themeManager, fontManager, t, px + keyW + gap, py, keyW, keyH, "W", null, w, opacity, selected);
+                        // Row 2: [ A ] [ S ] [ D ]
+                        float r2y = py + keyH + gap;
+                        paintKeyCap(r, themeManager, fontManager, t, px, r2y, keyW, keyH, "A", null, a, opacity, selected);
+                        paintKeyCap(r, themeManager, fontManager, t, px + keyW + gap, r2y, keyW, keyH, "S", null, s, opacity, selected);
+                        paintKeyCap(r, themeManager, fontManager, t, px + (keyW + gap) * 2f, r2y, keyW, keyH, "D", null, d, opacity, selected);
+
+                        float curY = r2y + keyH + gap;
+                        float fullW = keyW * 3f + gap * 2f;
+                        if (ksShowCps.isEnabled()) {
+                            float mbW = (fullW - gap) * 0.5f;
+                            String lLbl = (ru ? "ЛКМ " : "LMB ") + state.getLeftCps();
+                            String rLbl = (ru ? "ПКМ " : "RMB ") + state.getRightCps();
+                            paintKeyCap(r, themeManager, fontManager, t, px, curY, mbW, 19.0f, lLbl, null, lmb, opacity, selected);
+                            paintKeyCap(r, themeManager, fontManager, t, px + mbW + gap, curY, mbW, 19.0f, rLbl, null, rmb, opacity, selected);
+                            curY += 19.0f + gap;
+                        }
+                        if (ksShowSpace.isEnabled()) {
+                            paintKeyCap(r, themeManager, fontManager, t, px, curY, fullW, 12.0f, "━━━━━", null, sp, opacity, selected);
+                        }
+                        return true;
+                    }
+                }));
 
         // 10. CPS Counter
-        Module cpsMod = mm.register(new Module("cps_counter", "CPS Counter", "Real-time 1-second sliding window clicks-per-second counter", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+        Module cpsMod = mm.register(new Module("cps_counter", "CPS Counter", "Real-time 1-second sliding window clicks-per-second counter", ModuleCategory.HUD, false, KeyCodes.KEY_NONE, false) {
             private final BooleanSetting showRight = addSetting(new BooleanSetting("show_right", "Show Right CPS", "Display RMB CPS alongside LMB", true));
             private final BooleanSetting showPeak = addSetting(new BooleanSetting("show_peak", "Show Session Peak", "Append session peak CPS", false));
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
+                String pfx = ru ? "КПС: " : "CPS: ";
                 String txt = showRight.isEnabled()
-                        ? ("CPS " + state.getLeftCps() + " | " + state.getRightCps())
-                        : ("CPS " + state.getLeftCps());
+                        ? (pfx + state.getLeftCps() + " | " + state.getRightCps())
+                        : (pfx + state.getLeftCps());
                 if (showPeak.isEnabled()) {
                     txt += " (Max " + state.getPeakLeftCps() + ")";
                 }
                 return txt;
             }
         });
-        hm.register(new HudElement("cps_counter", "CPS Counter", cpsMod, 0.015f, 0.13f, 110f, 20f));
+        hm.register(new HudElement("cps_counter", "CPS Counter", cpsMod, 0.012f, 0.182f, 114f, 21f));
 
         // 11. Custom FOV
         mm.register(new Module("custom_fov", "Custom FOV", "Overrides base camera field of view cleanly", ModuleCategory.RENDER) {
@@ -380,15 +504,18 @@ public final class VisualModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
                 long used = profiler.getUsedMemoryMb();
                 long max = Math.max(1L, profiler.getMaxMemoryMb());
                 long pct = (used * 100L) / max;
+                String lbl = ru ? "ОЗУ: " : "RAM: ";
+                String mb = ru ? " МБ (" : " MB (";
                 return showMb.isEnabled()
-                        ? ("RAM: " + used + " / " + max + " MB (" + pct + "%)")
-                        : ("RAM: " + pct + "%");
+                        ? (lbl + used + " / " + max + mb + pct + "%)")
+                        : (lbl + pct + "%");
             }
         });
-        hm.register(new HudElement("memory_display", "Memory Display", memMod, 0.985f, 0.14f, 168f, 20f));
+        hm.register(new HudElement("memory_display", "Memory Display", memMod, 0.988f, 0.942f, 168f, 21f));
 
         // 16. Session Timer
         Module sessionTimerMod = mm.register(new Module("session_timer", "Session Timer", "Tracks total elapsed client session playtime", ModuleCategory.HUD) {
@@ -870,6 +997,461 @@ public final class VisualModulesRegistry {
                 }
             }
         });
+
+        // 34. Watermark HUD (Ватермарка AXSES) — Luxury Segmented Hyperion Aurora Brand Bar
+        final BooleanSetting wmServer = new BooleanSetting("show_server", "Show Server", "Include active server or world in watermark", true);
+        final BooleanSetting wmPing = new BooleanSetting("show_ping", "Show Ping", "Include network latency ms", true);
+        final BooleanSetting wmBps = new BooleanSetting("show_bps", "Show Speed", "Include live horizontal blocks/sec", true);
+        Module watermarkMod = mm.register(new Module("watermark_hud", "Watermark HUD", "Signature Hyperion Aurora top-left glass brand bar with live telemetry", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(wmServer);
+                addSetting(wmPing);
+                addSetting(wmBps);
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                return "AXSES v3.0";
+            }
+        });
+        watermarkMod.setFavorite(true);
+        hm.register(new HudElement("watermark_hud", "Watermark", watermarkMod, 0.012f, 0.018f, 292f, 24f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        boolean ru = i18n != null && i18n.isRussian();
+                        String user = (mc != null && mc.getPlayerName() != null) ? mc.getPlayerName() : "Player";
+                        int fps = mc != null ? mc.getFps() : 360;
+
+                        StringBuilder seg = new StringBuilder();
+                        seg.append(user).append("  │  ").append(fps).append(" FPS");
+                        if (wmPing.isEnabled() && mc != null && mc.isInWorld() && !mc.isSingleplayer()) {
+                            seg.append("  │  ").append(mc.getPingMs()).append(ru ? " мс" : "ms");
+                        }
+                        if (wmBps.isEnabled() && mc != null && mc.isInWorld()) {
+                            double dx = mc.getPlayerX() - mc.getPrevPlayerX();
+                            double dz = mc.getPlayerZ() - mc.getPrevPlayerZ();
+                            double bps = Math.hypot(dx, dz) * 20.0;
+                            seg.append(String.format(Locale.ROOT, ru ? "  │  %.1f б/с" : "  │  %.1f bps", Double.valueOf(bps)));
+                        }
+                        if (wmServer.isEnabled() && mc != null && mc.isInWorld()) {
+                            String srv = mc.getWorldOrServerName();
+                            if (srv != null && !srv.isEmpty()) {
+                                seg.append("  │  ").append(srv);
+                            }
+                        }
+
+                        String brand = "AXSES 3.0";
+                        String tail = seg.toString();
+                        float brandW = fontManager.width(r, brand, 1.0f);
+                        float tailW = fontManager.width(r, tail, 0.94f);
+                        float barH = 24.0f;
+                        float barW = 30.0f + brandW + 14.0f + tailW + 12.0f;
+
+                        int prim = themeManager.filterColor(t.getPrimaryColor());
+                        int acc = themeManager.filterColor(t.getAccentColor());
+
+                        r.drawShadow(px, py, barW, barH, 7.0f, 0.72f * opacity, 0x000000);
+                        r.fillRoundedRect(px, py, barW, barH, 7.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.95f * opacity));
+                        RenderManager.fillHorizontalGradient(r, px + 6.0f, py + 1.0f, barW - 12.0f, 1.8f, prim, acc);
+                        r.drawRoundedOutline(px, py, barW, barH, 7.0f, 1.0f,
+                                selected ? acc : AxsesTheme.withAlpha(prim, 0.65f * opacity));
+
+                        // Glowing AX emblem badge on left
+                        r.fillRoundedRect(px + 4.0f, py + 4.0f, 20.0f, 16.0f, 4.5f, AxsesTheme.withAlpha(prim, 0.32f));
+                        r.drawRoundedOutline(px + 4.0f, py + 4.0f, 20.0f, 16.0f, 4.5f, 1.0f, acc);
+                        fontManager.drawCentered(r, "AX", px + 14.0f, py + 8.0f, 0xFFFFFFFF, 0.92f);
+
+                        fontManager.draw(r, brand, px + 28.5f, py + 8.0f, acc, 1.0f);
+                        float divX = px + 28.5f + brandW + 6.5f;
+                        r.fillGradientVertical(divX, py + 5.5f, 1.2f, barH - 11.0f, prim, acc);
+                        fontManager.draw(r, tail, divX + 6.5f, py + 8.2f, t.getTextColor(), 0.94f);
+                        return true;
+                    }
+                }));
+
+        // 35. Module ArrayList (Список модулей) — Cascading Right-Aligned Aurora Wave List
+        final BooleanSetting alShowModes = new BooleanSetting("show_modes", "Show Mode Tags", "Append active profile or mode tag to module row", true);
+        final BooleanSetting alHideHud = new BooleanSetting("hide_hud_mods", "Hide HUD Widgets", "Only list active gameplay, visual & movement modules", true);
+        Module arrayListMod = mm.register(new Module("module_list", "Module ArrayList", "Cascading right-aligned list of active modules with synchronized Aurora wave glow", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(alShowModes);
+                addSetting(alHideHud);
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                return "ArrayList";
+            }
+        });
+        arrayListMod.setFavorite(true);
+        hm.register(new HudElement("module_list", "Module List", arrayListMod, 0.988f, 0.018f, 164f, 110f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        boolean ru = i18n != null && i18n.isRussian();
+                        final List<String[]> rows = new ArrayList<String[]>();
+
+                        for (Module m : mm.getAll()) {
+                            if (!m.isEnabled()) continue;
+                            ModuleCategory cat = m.getCategory();
+                            if (cat == ModuleCategory.SETTINGS) continue;
+                            if (alHideHud.isEnabled() && cat == ModuleCategory.HUD && !"target_hud".equals(m.getId())) continue;
+
+                            String rawTitle = (i18n != null) ? i18n.moduleName(m.getId(), m.getName()) : m.getName();
+                            int paren = rawTitle.indexOf(" (");
+                            String cleanTitle = paren > 2 ? rawTitle.substring(0, paren) : rawTitle;
+
+                            String modeSuffix = "";
+                            if (alShowModes.isEnabled()) {
+                                for (Setting<?> st : m.getSettings()) {
+                                    if (st instanceof ModeSetting) {
+                                        String v = ((ModeSetting) st).getValue();
+                                        if (i18n != null) v = i18n.optionName(v);
+                                        modeSuffix = v;
+                                        break;
+                                    }
+                                }
+                            }
+                            rows.add(new String[] { cleanTitle, modeSuffix });
+                        }
+
+                        if (rows.isEmpty() && editorMode) {
+                            rows.add(new String[] { ru ? "КиллАура" : "KillAura", "FunTime" });
+                            rows.add(new String[] { ru ? "ESP Подсветка" : "Entity ESP", ru ? "Уголки" : "Corners" });
+                            rows.add(new String[] { ru ? "Коническая шляпа" : "China Hat", "" });
+                        }
+                        if (rows.isEmpty()) {
+                            return false;
+                        }
+
+                        final RenderAdapter rr = r;
+                        final FontManager fm = fontManager;
+                        Collections.sort(rows, new Comparator<String[]>() {
+                            @Override
+                            public int compare(String[] a, String[] b) {
+                                String sa = a[1].isEmpty() ? a[0] : (a[0] + " · " + a[1]);
+                                String sb = b[1].isEmpty() ? b[0] : (b[0] + " · " + b[1]);
+                                return Float.compare(fm.width(rr, sb, 0.92f), fm.width(rr, sa, 0.92f));
+                            }
+                        });
+
+                        int maxRows = Math.min(12, rows.size());
+                        float rightEdge = r.getScaledWidth() - 6.0f;
+                        if (editorMode) {
+                            rightEdge = Math.min(r.getScaledWidth() - 6.0f, px + sw);
+                        }
+                        float rowH = 16.5f;
+                        float curY = py;
+
+                        for (int i = 0; i < maxRows; i++) {
+                            String name = rows.get(i)[0];
+                            String tag = rows.get(i)[1];
+                            float nw = fontManager.width(r, name, 0.92f);
+                            float tw = tag.isEmpty() ? 0f : fontManager.width(r, " · " + tag, 0.90f);
+                            float pillW = nw + tw + 14.0f;
+                            float rx = rightEdge - pillW;
+
+                            int waveCol = themeManager.getAuroraWaveColor(i * 0.45f);
+                            r.fillRoundedRect(rx, curY, pillW, rowH - 1.0f, 3.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.90f * opacity));
+                            // Right neon Aurora ribbon + soft inner glow
+                            r.fillRect(rightEdge - 2.5f, curY + 1.0f, 2.5f, rowH - 3.0f, waveCol);
+                            r.fillRect(rightEdge - 6.0f, curY + 1.0f, 3.5f, rowH - 3.0f, AxsesTheme.withAlpha(waveCol, 0.18f));
+                            if (i == 0) {
+                                r.fillRect(rx + 2.0f, curY, pillW - 4.0f, 1.0f, AxsesTheme.withAlpha(waveCol, 0.70f));
+                            }
+
+                            fontManager.draw(r, name, rx + 5.5f, curY + 4.0f, 0xFFF8FAFF, 0.92f);
+                            if (!tag.isEmpty()) {
+                                fontManager.draw(r, " · " + tag, rx + 5.5f + nw, curY + 4.0f, AxsesTheme.withAlpha(waveCol, 0.95f), 0.90f);
+                            }
+                            curY += rowH;
+                        }
+                        return true;
+                    }
+                }));
+
+        // 36. China Hat (Коническая шляпа) — 3D Projected Translucent Aurora Cone Halo
+        Module chinaHat = mm.register(new Module("china_hat", "China Hat", "Projects a rotating 3D translucent Aurora cone halo above active target & third-person player", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting radius = addSetting(new NumberSetting("hat_radius", "Cone Radius", "Halo brim radius in blocks", 0.64, 0.35, 1.10, 0.05));
+            private final BooleanSetting onTarget = addSetting(new BooleanSetting("hat_target", "Show On Target", "Render Aurora cone above active combat target", true));
+            private final BooleanSetting onSelf = addSetting(new BooleanSetting("hat_self", "Show On Self (F5)", "Render Aurora cone above yourself in 3rd-person view", true));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) return;
+                if (onSelf.isEnabled() && mc.getPerspective() != 0) {
+                    draw3dChinaHat(r, mc, themes, mc.getPlayerX(), mc.getPlayerY() + 1.84, mc.getPlayerZ(), radius.getDouble());
+                }
+                if (onTarget.isEnabled()) {
+                    TargetEntityInfo tgt = state.getActiveTarget(3500L);
+                    if (tgt != null) {
+                        draw3dChinaHat(r, mc, themes, tgt.getX(), tgt.getMaxY() + 0.04, tgt.getZ(), radius.getDouble());
+                    }
+                }
+            }
+        });
+        chinaHat.setFavorite(true);
+
+        // 37. Jump Circles (Круги прыжка) — Expanding Dual-Gradient 3D Floor Rings
+        Module jumpCircles = mm.register(new Module("jump_circles", "Jump Circles", "Spawns expanding dual-gradient 3D Aurora energy rings on the ground whenever you jump", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting maxRadius = addSetting(new NumberSetting("circle_radius", "Max Radius", "Expanded ring radius in blocks", 1.80, 0.80, 3.20, 0.10));
+            private final LinkedList<double[]> rings = new LinkedList<double[]>();
+            private boolean wasOnGround = true;
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                if (mc == null || !mc.isInWorld()) return;
+                boolean ground = mc.isOnGround();
+                if (wasOnGround && !ground) {
+                    rings.addLast(new double[] { mc.getPlayerX(), mc.getPlayerY() + 0.04, mc.getPlayerZ(), (double) System.currentTimeMillis() });
+                    while (rings.size() > 10) rings.removeFirst();
+                }
+                wasOnGround = ground;
+            }
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen() || rings.isEmpty()) return;
+                long now = System.currentTimeMillis();
+                double lifeMs = 1650.0;
+                while (!rings.isEmpty() && (now - rings.getFirst()[3]) > lifeMs) {
+                    rings.removeFirst();
+                }
+                for (double[] c : rings) {
+                    float prog = (float) Math.max(0.0, Math.min(1.0, (now - c[3]) / lifeMs));
+                    float ease = 1.0f - (1.0f - prog) * (1.0f - prog);
+                    double rad = 0.22 + (maxRadius.getDouble() - 0.22) * ease;
+                    float alpha = (1.0f - prog) * 0.90f;
+                    draw3dGroundCircle(r, mc, themes, c[0], c[1], c[2], rad, alpha);
+                    if (rad > 0.45) {
+                        draw3dGroundCircle(r, mc, themes, c[0], c[1], c[2], rad * 0.72, alpha * 0.55f);
+                    }
+                }
+            }
+        });
+        jumpCircles.setFavorite(true);
+
+        // 38. Breadcrumbs (Шлейф движения) — Glowing Fading 3D Footstep Ribbon
+        mm.register(new Module("breadcrumbs", "Breadcrumbs", "Renders a smooth fading 3D Aurora energy ribbon along your movement trajectory", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting maxPoints = addSetting(new NumberSetting("trail_length", "Trail Points", "Maximum stored trail nodes", 36.0, 12.0, 72.0, 4.0));
+            private final LinkedList<double[]> nodes = new LinkedList<double[]>();
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                if (mc == null || !mc.isInWorld()) return;
+                double px = mc.getPlayerX(), py = mc.getPlayerY() + 0.08, pz = mc.getPlayerZ();
+                if (nodes.isEmpty()) {
+                    nodes.addLast(new double[] { px, py, pz });
+                } else {
+                    double[] last = nodes.getLast();
+                    double d2 = (px - last[0]) * (px - last[0]) + (py - last[1]) * (py - last[1]) + (pz - last[2]) * (pz - last[2]);
+                    if (d2 >= 0.025) {
+                        nodes.addLast(new double[] { px, py, pz });
+                    }
+                }
+                while (nodes.size() > maxPoints.getInt()) {
+                    nodes.removeFirst();
+                }
+            }
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen() || nodes.size() < 2) return;
+                int n = nodes.size();
+                float[] prev = null;
+                int idx = 0;
+                for (double[] pt : nodes) {
+                    float[] proj = mc.projectWorldToScreen(pt[0], pt[1], pt[2]);
+                    if (proj != null && proj[2] > 0.1f) {
+                        if (prev != null) {
+                            float frac = (float) idx / (float) Math.max(1, n - 1);
+                            int col = AxsesTheme.withAlpha(themes.getAuroraWaveColor(idx * 0.25f), 0.18f + 0.72f * frac);
+                            r.drawLine(prev[0], prev[1], proj[0], proj[1], 1.8f + frac * 1.2f, col);
+                        }
+                        prev = proj;
+                    } else {
+                        prev = null;
+                    }
+                    idx++;
+                }
+            }
+        });
+
+        // 39. Hit Particles (Партиклы ударов) — 3D Starburst Sparks & Floating Damage Tag
+        mm.register(new Module("hit_particles", "Hit Particles", "Emits glowing 3D Aurora sparks and floating hit badges around struck targets", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final LinkedList<double[]> sparks = new LinkedList<double[]>();
+            private int lastSeenHits = -1;
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) return;
+                TargetEntityInfo tgt = state.getActiveTarget(2500L);
+                int hitsNow = state.getTotalHits();
+                if (lastSeenHits < 0) lastSeenHits = hitsNow;
+
+                if (tgt != null && (hitsNow > lastSeenHits || (sparks.isEmpty() && tgt.getHurtTime() > 0))) {
+                    lastSeenHits = hitsNow;
+                    long now = System.currentTimeMillis();
+                    for (int i = 0; i < 10; i++) {
+                        double ang = (Math.PI * 2.0 * i) / 10.0;
+                        double vx = Math.cos(ang) * 0.65;
+                        double vy = 0.35 + (i % 3) * 0.22;
+                        double vz = Math.sin(ang) * 0.65;
+                        sparks.addLast(new double[] {
+                                tgt.getX(), tgt.getMinY() + tgt.getBoxHeight() * 0.62, tgt.getZ(),
+                                vx, vy, vz, (double) now, (double) i
+                        });
+                    }
+                    while (sparks.size() > 30) sparks.removeFirst();
+                }
+
+                long now = System.currentTimeMillis();
+                while (!sparks.isEmpty() && (now - sparks.getFirst()[6]) > 950.0) {
+                    sparks.removeFirst();
+                }
+
+                for (double[] sp : sparks) {
+                    float age = (float) ((now - sp[6]) / 950.0);
+                    if (age < 0f || age > 1f) continue;
+                    double wx = sp[0] + sp[3] * age;
+                    double wy = sp[1] + sp[4] * age - 0.55 * age * age;
+                    double wz = sp[2] + sp[5] * age;
+                    float[] pr = mc.projectWorldToScreen(wx, wy, wz);
+                    if (pr != null && pr[2] > 0.1f) {
+                        int col = AxsesTheme.withAlpha(themes.getAuroraWaveColor((float) sp[7] * 0.6f), 1.0f - age);
+                        float sz = Math.max(2.0f, 4.8f * (1.0f - age * 0.5f));
+                        r.fillRoundedRect(pr[0] - sz, pr[1] - sz, sz * 2f, sz * 2f, sz, AxsesTheme.withAlpha(col, (1.0f - age) * 0.32f));
+                        r.fillRoundedRect(pr[0] - sz * 0.5f, pr[1] - sz * 0.5f, sz, sz, sz * 0.5f, col);
+                    }
+                }
+            }
+        });
+    }
+
+    private static void paintKeyCap(
+            RenderAdapter r,
+            ThemeManager tm,
+            FontManager fm,
+            AxsesTheme t,
+            float x,
+            float y,
+            float w,
+            float h,
+            String label,
+            String sub,
+            boolean pressed,
+            float opacity,
+            boolean selected
+    ) {
+        int prim = tm.filterColor(t.getPrimaryColor());
+        int acc = tm.filterColor(t.getAccentColor());
+        if (pressed) {
+            r.fillRoundedRect(x - 1.0f, y - 1.0f, w + 2.0f, h + 2.0f, 5.0f, AxsesTheme.withAlpha(acc, 0.25f * opacity));
+            r.fillRoundedRect(x, y, w, h, 4.5f, AxsesTheme.withAlpha(RenderManager.blendArgb(prim, acc, 0.42f), 0.90f * opacity));
+            r.drawRoundedOutline(x, y, w, h, 4.5f, 1.0f, acc);
+            fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFFFFFFF, 0.92f);
+        } else {
+            r.fillRoundedRect(x, y, w, h, 4.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.90f * opacity));
+            r.fillRect(x + 4.0f, y + 1.0f, w - 8.0f, 1.0f, 0x16FFFFFF);
+            r.drawRoundedOutline(x, y, w, h, 4.5f, 1.0f,
+                    selected ? acc : AxsesTheme.withAlpha(prim, 0.42f * opacity));
+            fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, t.getTextColor(), 0.90f);
+        }
+    }
+
+    private static void draw3dChinaHat(
+            RenderAdapter r,
+            MinecraftAdapter mc,
+            ThemeManager tm,
+            double cx,
+            double baseY,
+            double cz,
+            double radius
+    ) {
+        float[] apex = mc.projectWorldToScreen(cx, baseY + 0.30, cz);
+        if (apex == null || apex[2] <= 0.1f) return;
+
+        int segs = 28;
+        double rot = (System.currentTimeMillis() % 5000L) / 5000.0 * Math.PI * 2.0;
+        float prevX = 0f, prevY = 0f;
+        boolean hasPrev = false;
+        for (int i = 0; i <= segs; i++) {
+            double ang = (Math.PI * 2.0 * i) / segs + rot;
+            double bx = cx + Math.cos(ang) * radius;
+            double bz = cz + Math.sin(ang) * radius;
+            float[] brim = mc.projectWorldToScreen(bx, baseY, bz);
+            if (brim != null && brim[2] > 0.1f) {
+                int col = tm.getAuroraWaveColor(i * 0.22f);
+                if (i < segs) {
+                    r.drawLine(apex[0], apex[1], brim[0], brim[1], 1.4f, AxsesTheme.withAlpha(col, 0.36f));
+                }
+                if (hasPrev) {
+                    r.drawLine(prevX, prevY, brim[0], brim[1], 2.0f, AxsesTheme.withAlpha(col, 0.92f));
+                }
+                prevX = brim[0];
+                prevY = brim[1];
+                hasPrev = true;
+            } else {
+                hasPrev = false;
+            }
+        }
+    }
+
+    private static void draw3dGroundCircle(
+            RenderAdapter r,
+            MinecraftAdapter mc,
+            ThemeManager tm,
+            double cx,
+            double y,
+            double cz,
+            double radius,
+            float alpha
+    ) {
+        int segs = 28;
+        float prevX = 0f, prevY = 0f;
+        boolean hasPrev = false;
+        for (int i = 0; i <= segs; i++) {
+            double ang = (Math.PI * 2.0 * i) / segs;
+            float[] pr = mc.projectWorldToScreen(cx + Math.cos(ang) * radius, y, cz + Math.sin(ang) * radius);
+            if (pr != null && pr[2] > 0.1f) {
+                if (hasPrev) {
+                    int col = AxsesTheme.withAlpha(tm.getAuroraWaveColor(i * 0.25f), alpha);
+                    r.drawLine(prevX, prevY, pr[0], pr[1], 2.0f, col);
+                }
+                prevX = pr[0];
+                prevY = pr[1];
+                hasPrev = true;
+            } else {
+                hasPrev = false;
+            }
+        }
     }
 
     private static double[][] buildAabbCorners(TargetEntityInfo e) {
@@ -882,10 +1464,21 @@ public final class VisualModulesRegistry {
     }
 
     private static void drawCornerBrackets(RenderAdapter r, float x, float y, float w, float h, int col) {
-        float cw = Math.max(3.0f, Math.min(10.0f, w * 0.28f));
-        float ch = Math.max(3.0f, Math.min(10.0f, h * 0.24f));
-        int outline = 0xB005060A;
-        // Shadow backing
+        float cw = Math.max(3.5f, Math.min(11.0f, w * 0.28f));
+        float ch = Math.max(3.5f, Math.min(11.0f, h * 0.24f));
+        int outline = 0xC804050A;
+        int glow = AxsesTheme.withAlpha(col, 0.24f);
+        // Subtle neon aura behind corner brackets
+        r.fillRect(x - 1.5f, y - 1.5f, cw + 3f, 3.5f, glow);
+        r.fillRect(x - 1.5f, y - 1.5f, 3.5f, ch + 3f, glow);
+        r.fillRect(x + w - cw - 1.5f, y - 1.5f, cw + 3f, 3.5f, glow);
+        r.fillRect(x + w - 2.0f, y - 1.5f, 3.5f, ch + 3f, glow);
+        r.fillRect(x - 1.5f, y + h - 2.0f, cw + 3f, 3.5f, glow);
+        r.fillRect(x - 1.5f, y + h - ch - 1.5f, 3.5f, ch + 3f, glow);
+        r.fillRect(x + w - cw - 1.5f, y + h - 2.0f, cw + 3f, 3.5f, glow);
+        r.fillRect(x + w - 2.0f, y + h - ch - 1.5f, 3.5f, ch + 3f, glow);
+
+        // Dark contrast shadow backing
         r.fillRect(x - 1f, y - 1f, cw + 2f, 2.5f, outline);
         r.fillRect(x - 1f, y - 1f, 2.5f, ch + 2f, outline);
         r.fillRect(x + w - cw - 1f, y - 1f, cw + 2f, 2.5f, outline);
@@ -895,15 +1488,20 @@ public final class VisualModulesRegistry {
         r.fillRect(x + w - cw - 1f, y + h - 1.5f, cw + 2f, 2.5f, outline);
         r.fillRect(x + w - 1.5f, y + h - ch - 1f, 2.5f, ch + 2f, outline);
 
-        // Crisp colored corners
-        r.fillRect(x, y, cw, 1.5f, col);
-        r.fillRect(x, y, 1.5f, ch, col);
-        r.fillRect(x + w - cw, y, cw, 1.5f, col);
-        r.fillRect(x + w - 1.5f, y, 1.5f, ch, col);
-        r.fillRect(x, y + h - 1.5f, cw, 1.5f, col);
-        r.fillRect(x, y + h - ch, 1.5f, ch, col);
-        r.fillRect(x + w - cw, y + h - 1.5f, cw, 1.5f, col);
-        r.fillRect(x + w - 1.5f, y + h - ch, 1.5f, ch, col);
+        // Crisp colored corners + bright white corner tips
+        r.fillRect(x, y, cw, 1.6f, col);
+        r.fillRect(x, y, 1.6f, ch, col);
+        r.fillRect(x + w - cw, y, cw, 1.6f, col);
+        r.fillRect(x + w - 1.6f, y, 1.6f, ch, col);
+        r.fillRect(x, y + h - 1.6f, cw, 1.6f, col);
+        r.fillRect(x, y + h - ch, 1.6f, ch, col);
+        r.fillRect(x + w - cw, y + h - 1.6f, cw, 1.6f, col);
+        r.fillRect(x + w - 1.6f, y + h - ch, 1.6f, ch, col);
+
+        r.fillRect(x, y, 2.0f, 2.0f, 0xCCFFFFFF);
+        r.fillRect(x + w - 2.0f, y, 2.0f, 2.0f, 0xCCFFFFFF);
+        r.fillRect(x, y + h - 2.0f, 2.0f, 2.0f, 0xCCFFFFFF);
+        r.fillRect(x + w - 2.0f, y + h - 2.0f, 2.0f, 2.0f, 0xCCFFFFFF);
     }
 
     private static void draw3dWireframe(RenderAdapter r, float[][] p, int col) {

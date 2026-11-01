@@ -5,6 +5,7 @@ import dev.axsesclient.common.modules.Module;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
 import dev.axsesclient.common.render.FontManager;
+import dev.axsesclient.common.render.RenderManager;
 import dev.axsesclient.common.theme.AxsesTheme;
 import dev.axsesclient.common.theme.ThemeManager;
 
@@ -159,31 +160,38 @@ public final class HudElement {
         float tw = fontManager.width(r, text, 1.0f);
         float th = fontManager.lineHeight(r, 1.0f);
 
-        // Auto-fit pill width so text never clips or overflows
-        float drawW = Math.max(sw, tw + 18.0f);
-        float drawH = Math.max(sh, 20.0f);
+        // Auto-fit Hyperion Glass capsule width so text never clips or overflows
+        float drawW = Math.max(sw, tw + 20.0f);
+        float drawH = Math.max(sh, 21.0f);
         float drawX = px;
         if (drawX + drawW > canvasW - 4.0f) {
             drawX = Math.max(4.0f, canvasW - 4.0f - drawW);
         }
-        float rad = Math.min(5.0f, drawH * 0.35f);
+        float rad = Math.min(6.0f, drawH * 0.36f);
+
+        int prim = themeManager.filterColor(t.getPrimaryColor());
+        int acc = themeManager.filterColor(t.getAccentColor());
 
         if (showShadow && t.getShadowIntensity() > 0.02f) {
-            r.drawShadow(drawX, py, drawW, drawH, rad, t.getShadowIntensity() * 0.55f * opacity, 0x000000);
+            r.drawShadow(drawX, py, drawW, drawH, rad, t.getShadowIntensity() * 0.62f * opacity, 0x000000);
         }
         if (showBackground) {
-            int bg = AxsesTheme.withAlpha(themeManager.filterColor(t.getBackgroundColor()), Math.min(0.94f, opacity + 0.04f));
-            r.fillRoundedRect(drawX, py, drawW, drawH, rad, bg);
-            // Modern glowing left accent bar
-            int barCol = AxsesTheme.withAlpha(themeManager.filterColor(t.getAccentColor()), Math.max(0.75f, opacity));
-            r.fillRect(drawX + 2.0f, py + 4.0f, 2.0f, Math.max(4.0f, drawH - 8.0f), barCol);
+            int bgTop = AxsesTheme.withAlpha(themeManager.filterColor(t.getSurfaceColor()), Math.min(0.95f, opacity + 0.04f));
+            int bgBot = AxsesTheme.withAlpha(themeManager.filterColor(t.getBackgroundColor()), Math.min(0.96f, opacity + 0.05f));
+            r.fillRoundedRect(drawX, py, drawW, drawH, rad, bgBot);
+            r.fillGradientVertical(drawX + 1.0f, py + 1.0f, drawW - 2.0f, drawH * 0.5f, AxsesTheme.withAlpha(bgTop, 0.55f), 0x00000000);
+            // Specular top glass sheen + vertical Aurora gradient accent ribbon
+            r.fillRect(drawX + rad, py + 1.0f, Math.max(4.0f, drawW - rad * 2.0f), 1.0f, 0x1AFFFFFF);
+            r.fillGradientVertical(drawX + 2.5f, py + 4.0f, 2.5f, Math.max(4.0f, drawH - 8.0f),
+                    AxsesTheme.withAlpha(prim, Math.max(0.85f, opacity)),
+                    AxsesTheme.withAlpha(acc, Math.max(0.85f, opacity)));
         }
         if (showOutline || editorMode) {
             int outCol = selected
-                    ? themeManager.filterColor(t.getAccentColor())
+                    ? acc
                     : (locked && editorMode
                         ? themeManager.filterColor(t.getWarningColor())
-                        : AxsesTheme.withAlpha(themeManager.filterColor(t.getPrimaryColor()), opacity * 0.48f));
+                        : AxsesTheme.withAlpha(prim, opacity * 0.55f));
             r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.0f, outCol);
         }
 
@@ -193,15 +201,32 @@ public final class HudElement {
                 tx = drawX + (drawW - tw) * 0.5f;
                 break;
             case RIGHT:
-                tx = drawX + drawW - tw - 7.0f;
+                tx = drawX + drawW - tw - 7.5f;
                 break;
             default:
-                tx = drawX + 8.0f;
+                tx = drawX + 9.5f;
                 break;
         }
         float ty = py + (drawH - th) * 0.5f + 1.0f;
-        int txtCol = AxsesTheme.withAlpha(t.getTextColor(), Math.max(0.70f, opacity));
-        fontManager.draw(r, text, tx, ty, txtCol, 1.0f);
+        int txtCol = AxsesTheme.withAlpha(t.getTextColor(), Math.max(0.80f, opacity));
+
+        // Color-split prefix ("FPS ", "XYZ ", "Броня: ", etc.) in glowing Accent Cyan!
+        int splitIdx = text.indexOf(": ");
+        if (splitIdx < 0) {
+            int sp = text.indexOf(' ');
+            if (sp >= 2 && sp <= 7 && !text.startsWith("[") && !text.startsWith("«")) {
+                splitIdx = sp - 1;
+            }
+        }
+        if (splitIdx > 0 && splitIdx < text.length() - 2 && alignment == TextAlignment.LEFT) {
+            String head = text.substring(0, splitIdx + 1);
+            String tail = text.substring(splitIdx + 1);
+            fontManager.draw(r, head, tx, ty, AxsesTheme.withAlpha(acc, Math.max(0.88f, opacity)), 1.0f);
+            float hw = fontManager.width(r, head, 1.0f);
+            fontManager.draw(r, tail, tx + hw, ty, txtCol, 1.0f);
+        } else {
+            fontManager.draw(r, text, tx, ty, txtCol, 1.0f);
+        }
 
         if (editorMode && !locked) {
             int gripCol = selected ? themeManager.filterColor(t.getAccentColor()) : t.getMutedColor();

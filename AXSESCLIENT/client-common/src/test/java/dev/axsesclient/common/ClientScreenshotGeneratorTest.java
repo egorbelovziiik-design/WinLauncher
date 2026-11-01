@@ -195,18 +195,28 @@ public class ClientScreenshotGeneratorTest {
         }
 
         void paintStylizedWorldBackdrop(boolean drawEntities) {
-            // Twilight PvP arena sky + horizon glow
-            fillGradientVertical(0, 0, scaledW, scaledH * 0.54f, 0xFF0A0F1F, 0xFF1A2542);
-            fillGradientVertical(0, scaledH * 0.54f, scaledW, scaledH * 0.46f, 0xFF16231F, 0xFF0D1514);
+            // Hyperion Aurora twilight PvP arena sky + starfield + horizon glow
+            fillGradientVertical(0, 0, scaledW, scaledH * 0.54f, 0xFF060916, 0xFF171E3E);
+            fillGradientVertical(0, scaledH * 0.34f, scaledW, scaledH * 0.20f, 0x00000000, 0x356A40E8);
+            fillGradientVertical(0, scaledH * 0.54f, scaledW, scaledH * 0.46f, 0xFF101929, 0xFF070C17);
 
-            // Perspective arena floor grid lines
+            // Subtle twinkling stars in upper sky
+            for (int i = 0; i < 42; i++) {
+                float sx = ((i * 73 + 19) % 950) + 5f;
+                float sy = ((i * 41 + 11) % 210) + 6f;
+                fillRect(sx, sy, (i % 4 == 0) ? 1.5f : 1.0f, (i % 4 == 0) ? 1.5f : 1.0f, (i % 3 == 0) ? 0x6600F5D4 : 0x55FFFFFF);
+            }
+
+            // Perspective cyber-arena floor grid lines
             float horizonY = scaledH * 0.54f;
-            g.setColor(new Color(120, 180, 160, 26));
+            fillRect(0, horizonY - 0.5f, scaledW, 1.0f, 0x6600F5D4);
+            g.setColor(new Color(0, 245, 212, 26));
             for (int row = 1; row <= 12; row++) {
                 float t = (float) Math.pow(row / 12.0, 1.8);
                 int gy = Math.round(horizonY + t * (scaledH - horizonY));
                 g.drawLine(0, gy, scaledW, gy);
             }
+            g.setColor(new Color(168, 85, 247, 28));
             for (int col = -10; col <= 10; col++) {
                 int xTop = Math.round(scaledW * 0.5f + col * 18f);
                 int xBot = Math.round(scaledW * 0.5f + col * 95f);
@@ -218,7 +228,7 @@ public class ClientScreenshotGeneratorTest {
                     if (e.isItemEntity()) {
                         float[] c = projectWorldToScreen(e.getX(), e.getY() + 0.18, e.getZ());
                         if (c != null && c[2] > 0.2f) {
-                            fillRoundedRect(c[0] - 5, c[1] - 5, 10, 10, 3, 0xFFFFCA28);
+                            fillRoundedRect(c[0] - 5, c[1] - 5, 10, 10, 3, 0xFFFFD166);
                         }
                         continue;
                     }
@@ -230,35 +240,37 @@ public class ClientScreenshotGeneratorTest {
                         float cx = (top[0] + bot[0]) * 0.5f;
                         // Stylized 3D player armor silhouette inside hitbox
                         float headS = w * 0.62f;
-                        fillRoundedRect(cx - headS * 0.5f, top[1] + 2f, headS, headS, 2f, e.getHurtTime() > 0 ? 0xFFE15566 : 0xFF38BDF8);
-                        fillRoundedRect(cx - w * 0.42f, top[1] + headS + 3f, w * 0.84f, h * 0.42f, 2f, e.getHurtTime() > 0 ? 0xFFB8334A : 0xFF334155);
+                        fillRoundedRect(cx - headS * 0.5f, top[1] + 2f, headS, headS, 2f, e.getHurtTime() > 0 ? 0xFFFF4D6D : 0xFF38BDF8);
+                        fillRoundedRect(cx - w * 0.42f, top[1] + headS + 3f, w * 0.84f, h * 0.42f, 2f, e.getHurtTime() > 0 ? 0xFFC92A4E : 0xFF334155);
                         fillRoundedRect(cx - w * 0.36f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1f, 0xFF1E293B);
                         fillRoundedRect(cx + w * 0.04f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1f, 0xFF1E293B);
                     }
                 }
 
-                // Subtle vanilla-style hotbar at bottom center
-                float hbW = 182f, hbH = 22f;
+                // Hyperion glass hotbar at bottom center
+                float hbW = 184f, hbH = 22f;
                 float hbX = (scaledW - hbW) * 0.5f, hbY = scaledH - 25f;
-                fillRoundedRect(hbX, hbY, hbW, hbH, 4f, 0xCC0D111C);
-                drawRoundedOutline(hbX, hbY, hbW, hbH, 4f, 1f, 0x669060FF);
+                fillRoundedRect(hbX, hbY, hbW, hbH, 5f, 0xD80A0E1E);
+                drawRoundedOutline(hbX, hbY, hbW, hbH, 5f, 1f, 0x77A855F7);
                 for (int slot = 0; slot < 9; slot++) {
-                    float sx = hbX + 2f + slot * 20f;
+                    float sx = hbX + 3f + slot * 20f;
                     if (slot == 0) {
-                        fillRoundedRect(sx, hbY + 2f, 18f, 18f, 3f, 0x559060FF);
-                        drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 3f, 1f, 0xFF00D9FF);
+                        fillRoundedRect(sx, hbY + 2f, 18f, 18f, 3.5f, 0x55A855F7);
+                        drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 3.5f, 1f, 0xFF00F5D4);
                     } else {
-                        drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 2f, 1f, 0x26FFFFFF);
+                        drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 2.5f, 1f, 0x26FFFFFF);
                     }
                 }
             }
         }
 
+        boolean onGround = true;
+
         @Override public String getMinecraftVersion() { return "1.21.11"; }
         @Override public String getJavaVersion() { return "21.0.13"; }
         @Override public String getFabricLoaderVersion() { return "0.20.1"; }
         @Override public String getFabricApiVersion() { return "0.141.6+1.21.11"; }
-        @Override public List<String> getLoadedMods() { return Collections.singletonList("axsesclient@2.5.0"); }
+        @Override public List<String> getLoadedMods() { return Collections.singletonList("axsesclient@3.0.0"); }
         @Override public Path getGameDir() { return gameDir; }
         @Override public boolean isInWorld() { return inWorld; }
         @Override public boolean isSingleplayer() { return false; }
@@ -270,11 +282,11 @@ public class ClientScreenshotGeneratorTest {
         @Override public double getPlayerZ() { return playerZ; }
         @Override public double getPrevPlayerX() { return playerX; }
         @Override public double getPrevPlayerY() { return playerY; }
-        @Override public double getPrevPlayerZ() { return playerZ - 0.24; }
+        @Override public double getPrevPlayerZ() { return playerZ - 0.28; }
         @Override public float getPlayerYaw() { return yaw; }
         @Override public float getPlayerPitch() { return pitch; }
         @Override public void setPlayerRotation(float y, float p) { this.yaw = y; this.pitch = p; }
-        @Override public boolean isOnGround() { return true; }
+        @Override public boolean isOnGround() { return onGround; }
         @Override public boolean isSprinting() { return true; }
         @Override public void setSprinting(boolean s) {}
         @Override public boolean isSneaking() { return false; }
@@ -381,24 +393,25 @@ public class ClientScreenshotGeneratorTest {
                 : tempDir.resolve("screenshots");
         Files.createDirectories(outDir);
 
-        // 1. IN-GAME PVP SCENE: Entity ESP + Item ESP + Tracers + KillAura 3D Ring + Target HUD + Keystrokes
+        // 1. IN-GAME PVP SCENE: Entity ESP + China Hat + Jump Circles + Breadcrumbs + Hit Particles + KillAura Dual Ring + Hyperion Target HUD + Watermark + ArrayList + 2D Keystrokes
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s1"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s1"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-hyperion");
 
             TargetEntityInfo mainEnemy = new TargetEntityInfo(
                     101, "DiamondPlayer", true, false, false, false,
                     14.5f, 20.0f, 2.0f, 3.1f, 4, 18,
-                    -0.35, 64.0, 3.1, 65.62,
-                    -0.65, 64.0, 2.8, -0.05, 65.8, 3.4,
+                    -0.38, 64.0, 3.25, 65.62,
+                    -0.68, 64.0, 2.95, -0.08, 65.8, 3.55,
                     true, "Незеритовый меч"
             );
             TargetEntityInfo secondEnemy = new TargetEntityInfo(
                     102, "HolyWarrior", true, false, false, false,
                     19.0f, 20.0f, 0.0f, 7.6f, 0, 20,
-                    2.9, 64.0, 7.0, 65.62,
-                    2.6, 64.0, 6.7, 3.2, 65.8, 7.3,
+                    2.85, 64.0, 7.2, 65.62,
+                    2.55, 64.0, 6.9, 3.15, 65.8, 7.5,
                     true, "Золотое яблоко x8"
             );
             TargetEntityInfo behindEnemy = new TargetEntityInfo(
@@ -411,8 +424,8 @@ public class ClientScreenshotGeneratorTest {
             TargetEntityInfo droppedGapple = new TargetEntityInfo(
                     201, "Золотое яблоко x12", false, false, false, true,
                     1.0f, 1.0f, 0.0f, 5.2f, 0, 0,
-                    -2.7, 64.0, 4.5, 64.25,
-                    -2.85, 64.0, 4.35, -2.55, 64.3, 4.65,
+                    -2.75, 64.0, 4.6, 64.25,
+                    -2.90, 64.0, 4.45, -2.60, 64.3, 4.75,
                     true, ""
             );
 
@@ -426,22 +439,51 @@ public class ClientScreenshotGeneratorTest {
             }
             ka.setEnabled(true, p);
             core.getModuleManager().getById("entity_esp").setEnabled(true, p);
+            core.getModuleManager().getById("china_hat").setEnabled(true, p);
+            core.getModuleManager().getById("jump_circles").setEnabled(true, p);
+            core.getModuleManager().getById("breadcrumbs").setEnabled(true, p);
+            core.getModuleManager().getById("hit_particles").setEnabled(true, p);
             core.getModuleManager().getById("item_esp").setEnabled(true, p);
             core.getModuleManager().getById("tracers").setEnabled(true, p);
+            core.getModuleManager().getById("potion_hud").setEnabled(true, p);
 
             core.getAnimationManager().setReducedMotion(true);
-            dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("hud_target");
+            dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
             if (thud != null) {
-                thud.setNormX(0.62f);
-                thud.setNormY(0.56f);
+                thud.setNormX(0.68f);
+                thud.setNormY(0.49f);
             }
-            core.onInGameMouseClick(0);
-            core.onInGameMouseClick(0);
+
+            // Simulate a curved arena dash + jump so Breadcrumbs & JumpCircles spawn live 3D geometry in view
+            double[][] pathSteps = new double[][] {
+                    { -1.85, 5.4 }, { -1.55, 4.7 }, { -1.20, 4.1 }, { -0.80, 3.5 },
+                    { -0.45, 2.9 }, { 1.45, 4.3 }
+            };
+            p.onGround = true;
+            for (int step = 0; step < pathSteps.length; step++) {
+                p.playerX = pathSteps[step][0];
+                p.playerZ = pathSteps[step][1];
+                if (step == pathSteps.length - 1) {
+                    p.onGround = false; // triggers live JumpCircle at (1.45, 64.04, 4.3)!
+                }
+                core.onClientTick();
+            }
+            Thread.sleep(240);
+            p.playerX = 0.0;
+            p.playerY = 64.0;
+            p.playerZ = 0.0;
+            p.onGround = true;
+
+            for (int click = 0; click < 8; click++) {
+                core.onInGameMouseClick(0);
+            }
+            core.onInGameMouseClick(1);
+            core.onInGameMouseClick(1);
             core.onClientTick();
 
-            //Restore camera facing forward so all 3 entities + Target HUD compose cleanly
+            // Restore camera facing forward so all 3D effects + entities + Target HUD compose cleanly
             p.yaw = 0.0f;
-            p.pitch = 4.0f;
+            p.pitch = 5.0f;
             p.paintStylizedWorldBackdrop(true);
             core.onHudRender(p);
 
@@ -456,6 +498,7 @@ public class ClientScreenshotGeneratorTest {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s2"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s2"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-hyperion");
             p.clickGuiOpen = true;
 
             Module ka = core.getModuleManager().getById("kill_aura");
@@ -481,24 +524,27 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out2.exists() && out2.length() > 10000);
         }
 
-        // 3. CLICKGUI — VISUALS & ESP TAB WITH ENTITY ESP EXPANDED
+        // 3. CLICKGUI — VISUALS & ESP TAB WITH ENTITY ESP, CHINA HAT & JUMP CIRCLES
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s3"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s3"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-hyperion");
             p.clickGuiOpen = true;
 
             Module esp = core.getModuleManager().getById("entity_esp");
             esp.setEnabled(true, p);
-            core.getModuleManager().getById("item_esp").setEnabled(true, p);
-            core.getModuleManager().getById("tracers").setEnabled(true, p);
+            core.getModuleManager().getById("china_hat").setEnabled(true, p);
+            core.getModuleManager().getById("jump_circles").setEnabled(true, p);
+            core.getModuleManager().getById("breadcrumbs").setEnabled(true, p);
+            core.getModuleManager().getById("hit_particles").setEnabled(true, p);
 
             p.paintStylizedWorldBackdrop(false);
             core.getAnimationManager().setReducedMotion(true);
             core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.RENDER);
-            core.getClickGuiController().setSearchQuery("ESP ");
-            setExpandedModule(core, esp);
+            core.getClickGuiController().setSearchQuery("3D");
+            setExpandedModule(core, core.getModuleManager().getById("china_hat"));
             core.getClickGuiController().render(p, p, 20, 20, 1.0f);
 
             File out3 = outDir.resolve("ingame-clickgui-esp.png").toFile();
@@ -512,6 +558,7 @@ public class ClientScreenshotGeneratorTest {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s4"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s4"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-hyperion");
             p.clickGuiOpen = true;
 
             p.paintStylizedWorldBackdrop(false);
@@ -526,13 +573,13 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out4.exists() && out4.length() > 10000);
         }
 
-        // 5. CUSTOM MAIN MENU (OBSIDIAN AURORA v2.5 RU)
+        // 5. CUSTOM MAIN MENU (HYPERION AURORA v3.0 RU)
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s5"));
             p.inWorld = false;
             AxsesCore core = new AxsesCore(tempDir.resolve("s5"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-purple");
+            core.getThemeManager().setActiveTheme("axses-hyperion");
 
             core.getMainMenuController().render(p, p, 480, 290, 1.0f);
 
@@ -542,11 +589,16 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out5.exists() && out5.length() > 10000);
         }
 
-        // 6. HUD EDITOR (DRAGGABLE WIDGETS + SNAP GRID)
+        // 6. HUD EDITOR (DRAGGABLE WIDGETS + SNAP GRID + 2D KEYSTROKES + WATERMARK + ARRAYLIST)
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s6"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s6"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getModuleManager().getById("kill_aura").setEnabled(true, p);
+            core.getModuleManager().getById("entity_esp").setEnabled(true, p);
+            core.getModuleManager().getById("china_hat").setEnabled(true, p);
+            core.getModuleManager().getById("potion_hud").setEnabled(true, p);
             p.hudEditorOpen = true;
 
             p.paintStylizedWorldBackdrop(false);

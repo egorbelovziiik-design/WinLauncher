@@ -35,8 +35,8 @@ public final class ThemeManager {
 
     private void registerBuiltInThemes() {
         registerBuiltIn(new AxsesTheme("axses-dark", "AXSES DARK", true,
-                0xFF070911, 0xFF10131D, 0xFF191D2B, 0xFF9060FF, 0xFF536FFF, 0xFF00D9FF,
-                0xFFF7F8FF, 0xFF929BB1, 0xFF39DFA2, 0xFFFFC16A, 0xFFFF5B79, 0.94f, 1.0f, 10, 0.75f));
+                0xFF060812, 0xFF0E1222, 0xFF171D35, 0xFF9B5CFF, 0xFF5E6BFF, 0xFF00E5FF,
+                0xFFF8FAFF, 0xFF96A1BE, 0xFF34E89E, 0xFFFFC857, 0xFFFF4D6D, 0.95f, 1.0f, 10, 0.82f));
         registerBuiltIn(new AxsesTheme("axses-purple", "AXSES PURPLE", true,
                 0xFF0B0716, 0xFF150E28, 0xFF21163D, 0xFFB36BFF, 0xFF7E42FF, 0xFFE580FF,
                 0xFFFAF7FF, 0xFFA596C7, 0xFF39DFA2, 0xFFFFC16A, 0xFFFF5B79, 0.94f, 1.0f, 12, 0.80f));
@@ -58,6 +58,32 @@ public final class ThemeManager {
         registerBuiltIn(new AxsesTheme("axses-neon", "AXSES NEON", true,
                 0xFF080612, 0xFF120D24, 0xFF1C1436, 0xFFFF3CAC, 0xFF784BA0, 0xFF00F5D4,
                 0xFFFFF7FD, 0xFFB39CC8, 0xFF00F5D4, 0xFFFEE440, 0xFFFF4D6D, 0.92f, 1.2f, 12, 0.90f));
+        registerBuiltIn(new AxsesTheme("axses-hyperion", "HYPERION AURORA", true,
+                0xFF050712, 0xFF0C1024, 0xFF151C3B, 0xFFA855F7, 0xFF6366F1, 0xFF00F5D4,
+                0xFFFDFEFF, 0xFF9FB0D6, 0xFF00F5D4, 0xFFFFD166, 0xFFFF4D6D, 0.95f, 1.15f, 10, 0.88f));
+        registerBuiltIn(new AxsesTheme("axses-crimson", "CRIMSON ECLIPSE", true,
+                0xFF0B0508, 0xFF160A10, 0xFF24101B, 0xFFFF2A5F, 0xFFB5179E, 0xFFFF8FA3,
+                0xFFFFF5F7, 0xFFC896A7, 0xFF34D399, 0xFFFBBF24, 0xFFFF2A5F, 0.95f, 1.10f, 10, 0.85f));
+        registerBuiltIn(new AxsesTheme("axses-sakura", "SAKURA GLOW", true,
+                0xFF0C0710, 0xFF170E1F, 0xFF241630, 0xFFFF70A6, 0xFFC77DFF, 0xFFBDE0FE,
+                0xFFFFFAFD, 0xFFC8B2D6, 0xFF52B788, 0xFFFFD166, 0xFFFF5D8F, 0.94f, 1.05f, 12, 0.80f));
+        registerBuiltIn(new AxsesTheme("axses-gold", "IMPERIAL GOLD", true,
+                0xFF090805, 0xFF14110B, 0xFF211C12, 0xFFF59E0B, 0xFFD97706, 0xFFFDE68A,
+                0xFFFFFBEB, 0xFFB8AD93, 0xFF34D399, 0xFFFBBF24, 0xFFFB7185, 0.95f, 1.05f, 10, 0.80f));
+    }
+
+    public int getAuroraWaveColor(float phaseOffset) {
+        AxsesTheme t = getActiveTheme();
+        double sec = (System.currentTimeMillis() % 6000L) / 6000.0 * Math.PI * 2.0;
+        float w = (float) (0.5 + 0.5 * Math.sin(sec + phaseOffset));
+        int c1 = filterColor(t.getPrimaryColor());
+        int c2 = filterColor(t.getAccentColor());
+        int r1 = (c1 >> 16) & 0xFF, g1 = (c1 >> 8) & 0xFF, b1 = c1 & 0xFF;
+        int r2 = (c2 >> 16) & 0xFF, g2 = (c2 >> 8) & 0xFF, b2 = c2 & 0xFF;
+        int r = Math.round(r1 + (r2 - r1) * w);
+        int g = Math.round(g1 + (g2 - g1) * w);
+        int b = Math.round(b1 + (b2 - b1) * w);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     private void registerBuiltIn(AxsesTheme theme) {

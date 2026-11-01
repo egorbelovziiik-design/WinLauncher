@@ -2,6 +2,7 @@ package dev.axsesclient.common.modules.impl;
 
 import dev.axsesclient.common.hud.HudElement;
 import dev.axsesclient.common.hud.HudManager;
+import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.modules.Module;
 import dev.axsesclient.common.modules.ModuleCategory;
 import dev.axsesclient.common.modules.ModuleManager;
@@ -21,7 +22,8 @@ public final class MovementPlayerModulesRegistry {
             ModuleManager mm,
             HudManager hm,
             final ClientRuntimeState state,
-            final InputAdapter input
+            final InputAdapter input,
+            final LocalizationManager i18n
     ) {
         // 31. Toggle Sprint
         final Module toggleSprint = mm.register(new Module("toggle_sprint", "Toggle Sprint", "Accessibility latch keeping forward sprint active without holding key", ModuleCategory.MOVEMENT, true, KeyCodes.KEY_NONE, false) {
@@ -114,15 +116,17 @@ public final class MovementPlayerModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
                 boolean sprinting = mc != null && mc.isInWorld() && mc.isSprinting();
                 if (toggleSprint.isEnabled()) {
-                    return sprinting ? "[Sprint: Toggled · Active]" : "[Sprint: Toggled]";
+                    if (ru) return sprinting ? "Спринт: Активен ⚡" : "Спринт: Авто";
+                    return sprinting ? "Sprint: Active ⚡" : "Sprint: Latched";
                 }
-                if (sprinting) return "[Sprinting]";
-                return hideIdle.isEnabled() ? null : "[Sprint: Ready]";
+                if (sprinting) return ru ? "Спринт: Бег ⚡" : "Sprint: Running ⚡";
+                return hideIdle.isEnabled() ? null : (ru ? "Спринт: Готов" : "Sprint: Ready");
             }
         });
-        hm.register(new HudElement("sprint_indicator", "Sprint Indicator", sprintInd, 0.015f, 0.92f, 145f, 20f));
+        hm.register(new HudElement("sprint_indicator", "Sprint Indicator", sprintInd, 0.012f, 0.942f, 136f, 21f));
 
         // 37. Sneak Indicator
         Module sneakInd = mm.register(new Module("sneak_indicator", "Sneak Indicator", "Displays active sneak latch or held crouch indicator", ModuleCategory.HUD) {
