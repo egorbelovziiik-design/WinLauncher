@@ -78,6 +78,7 @@ public final class KingGriefCore extends JavaPlugin {
     private FrostForgeManager frostForge;
     private MemoryGameManager memoryGame;
     private TrainingStatsManager trainingStats;
+    private EventCalendarManager eventCalendar;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -102,6 +103,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.winterTree = new WinterTreeManager(this);
         this.utilities = new UtilityFeaturesManager(this);
         Bukkit.getPluginManager().registerEvents(this.utilities, this);
+        this.eventCalendar = new EventCalendarManager(this);
+        Bukkit.getPluginManager().registerEvents(this.eventCalendar, this);
         this.cosmetics = new CosmeticEffectsManager(this);
         Bukkit.getPluginManager().registerEvents(this.cosmetics, this);
         this.parkourRecords = new ParkourRecordsManager(this);
@@ -217,6 +220,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         this.bossEvents.start();
         this.utilities.start();
+        this.eventCalendar.start();
         this.claimContainers.start();
         this.gameVotes.start();
         this.winterTree.start();
@@ -277,6 +281,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.claimContainers != null) this.claimContainers.shutdown();
         if (this.gameVotes != null) this.gameVotes.shutdown();
         if (this.utilities != null) this.utilities.shutdown();
+        if (this.eventCalendar != null) this.eventCalendar.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.winterFishing != null) this.winterFishing.shutdown();
         if (this.buildContest != null) this.buildContest.shutdown();
@@ -300,6 +305,7 @@ public final class KingGriefCore extends JavaPlugin {
     FrostForgeManager getFrostForge() { return frostForge; }
     MemoryGameManager getMemoryGame() { return memoryGame; }
     TrainingStatsManager getTrainingStats() { return trainingStats; }
+    EventCalendarManager getEventCalendar() { return eventCalendar; }
     UtilityFeaturesManager getUtilities() { return utilities; }
     ClaimContainerGuard getClaimContainers() { return claimContainers; }
     public DataStore getStore() { return store; }
@@ -508,7 +514,12 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("ah".equals(c)) {
+        if ("calendar".equals(c)) {
+            if(args.length==1)return filterPrefix(hasEconomyAdmin(sender)
+                    ?Arrays.asList("menu","list","add","remove","prune"):Arrays.asList("menu","list"),args[0]);
+            if(args.length==2&&"add".equalsIgnoreCase(args[0])&&hasEconomyAdmin(sender))
+                return filterPrefix(Arrays.asList("parkour","duel","memory","boss","build","fish","forge"),args[1]);
+        } else if ("ah".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "clear"), args[0]);
             if (args.length == 2 && "sort".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("new", "cheap", "expensive"), args[1]);
             if (args.length == 2 && "price".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("off"), args[1]);
@@ -685,6 +696,10 @@ public final class KingGriefCore extends JavaPlugin {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
 
         // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
+        if ("calendar".equals(c)) {
+            eventCalendar.command(sender, args, hasEconomyAdmin(sender));
+            return true;
+        }
         if ("gamevote".equals(c)) {
             gameVotes.command(sender, args, hasEconomyAdmin(sender));
             return true;
@@ -841,7 +856,6 @@ public final class KingGriefCore extends JavaPlugin {
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }
         if ("tree".equals(c)) { winterTree.command(p, args); return true; }
         if ("kgstatus".equals(c)) { utilities.status(p); return true; }
-        if ("calendar".equals(c)) { utilities.calendar(p); return true; }
         if ("sortinv".equals(c)) { utilities.sort(p); return true; }
         if ("compare".equals(c)) { utilities.compare(p); return true; }
         if ("way".equals(c)) { utilities.way(p, args); return true; }

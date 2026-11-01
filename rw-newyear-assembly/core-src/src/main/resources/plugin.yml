@@ -42,7 +42,8 @@ commands:
   kgstatus:
     description: Show a lightweight server status
   calendar:
-    description: Show approximate built-in event times
+    description: View scheduled event announcements and built-in event status
+    usage: /calendar [menu|list|add|remove|prune]
   sortinv:
     aliases: [isort]
     description: Sort storage slots without merging items
