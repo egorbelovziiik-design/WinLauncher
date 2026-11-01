@@ -175,7 +175,9 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
             clearIndicators(b.getLocation());b.setHealth(20);b.setNoDamageTicks(0);lateCancel=true;ordinaryCancelled=false;b.damage(4.0,pvpSource);lateCancel=false;
             ok(ordinaryCancelled&&b.getHealth()==20&&clearIndicators(b.getLocation())==0,"late-cancelled PvP arrow produces no floating indicator");
             pvpArrow.remove();
-            a.getInventory().setItemInMainHand(ItemFactory.swordMidas());a.removePotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION);
+            ItemStack midasSword=ItemFactory.swordMidas();
+            ok(midasSword.getItemMeta().getLore().toString().contains("+60$..+200$"),"Midas item description matches its existing reward range");
+            a.getInventory().setItemInMainHand(midasSword);a.removePotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION);
             double midasBefore=core.getStore().getCoins(a.getName());b.setHealth(20);b.setNoDamageTicks(0);lateCancel=true;ordinaryCancelled=false;b.damage(2.0,a);lateCancel=false;
             ok(ordinaryCancelled&&core.getStore().getCoins(a.getName())==midasBefore&&!a.hasPotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION),
                     "late-cancelled Midas hit grants neither coins nor absorption");
