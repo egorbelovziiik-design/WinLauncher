@@ -61,6 +61,9 @@ def run_phase(args, server, port, phase):
                 if proc.poll() is not None or client.poll() is not None: break
                 continue
             if 'KG-BATCH ' in line: print(line.strip(), flush=True)
+            if 'KG-BATCH REQUEST ' in line:
+                request=line.split('KG-BATCH REQUEST ',1)[1].strip()
+                client.stdin.write(request+'\n');client.stdin.flush()
             if 'KG-BATCH RESULT PASS' in line:
                 success = True
                 break

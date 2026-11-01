@@ -9,12 +9,17 @@ for (const c of clients) {
   c.on('end', reason => console.log('CLIENT_END', String(reason)));
   c.on('position', packet => c.write('teleport_confirm', {teleportId: packet.teleportId}));
 }
-let input = '';
+let input = '', interactionSequence = 10;
 process.stdin.on('data', data => {
   input += data;
   const lines = input.split('\n'); input = lines.pop();
   for (const line of lines) {
-    if (line === 'throw' || line === 'throw-off') {
+    if (line.startsWith('BLOCK ')) {
+      const [,who,x,y,z] = line.trim().split(/\s+/)
+      const client = clients[who === 'A' ? 0 : 1]
+      client.write('block_place', {hand:0,location:{x:Number(x),y:Number(y),z:Number(z)},direction:1,
+        cursorX:0.5,cursorY:1,cursorZ:0.5,insideBlock:false,worldBorderHit:false,sequence:interactionSequence++})
+    } else if (line === 'throw' || line === 'throw-off') {
       clients[0].write('use_item', {hand: line === 'throw-off' ? 1 : 0, sequence: 3, rotation: {x: -90, y: 0}});
     } else if (line === 'shoot' || line === 'shoot-off' || line === 'shoot-down' || line === 'crossbow') {
       const shooter = clients[0];

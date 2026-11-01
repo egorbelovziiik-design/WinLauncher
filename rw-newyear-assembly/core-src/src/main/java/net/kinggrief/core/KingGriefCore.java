@@ -70,6 +70,7 @@ public final class KingGriefCore extends JavaPlugin {
     private ParkourRecordsManager parkourRecords;
     private AuctionSearchManager auctionSearch;
     private CoreBackupManager coreBackups;
+    private ClaimContainerGuard claimContainers;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -101,6 +102,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.auctionSearch = new AuctionSearchManager(this);
         Bukkit.getPluginManager().registerEvents(this.auctionSearch, this);
         this.coreBackups = new CoreBackupManager(this);
+        this.claimContainers = new ClaimContainerGuard(this);
+        Bukkit.getPluginManager().registerEvents(this.claimContainers, this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -195,6 +198,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         this.bossEvents.start();
         this.utilities.start();
+        this.claimContainers.start();
         this.winterTree.start();
         this.cosmetics.start();
         this.parkourRecords.start();
@@ -245,6 +249,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
         if (this.coreBackups != null) this.coreBackups.shutdown();
+        if (this.claimContainers != null) this.claimContainers.shutdown();
         if (this.utilities != null) this.utilities.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.parkourRecords != null) this.parkourRecords.shutdown();
@@ -260,6 +265,7 @@ public final class KingGriefCore extends JavaPlugin {
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
     UtilityFeaturesManager getUtilities() { return utilities; }
+    ClaimContainerGuard getClaimContainers() { return claimContainers; }
     public DataStore getStore() { return store; }
     public RankManager getRanks() { return ranks; }
     public LpManager getLp() { return lp; }
@@ -474,7 +480,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length == 1) return filterPrefix(Arrays.asList("trail", "login"), args[0]);
             if (args.length == 2) return filterPrefix(Arrays.asList("snow", "hearts", "stars", "off"), args[1]);
         } else if ("rg".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("borders", "add", "remove"), args[0]);
+            return filterPrefix(Arrays.asList("borders", "log", "add", "remove"), args[0]);
         } else if ("way".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("spawn", "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top"), args[0]);
         } else if ("deathpoint".equals(c) && args.length == 1) {
@@ -2469,6 +2475,10 @@ public final class KingGriefCore extends JavaPlugin {
         DataStore.Claim cl = store.getClaimAt(p.getLocation());
         if (cl == null) {
             p.sendMessage(ColorUtil.c("&eВы стоите вне региона! Поставьте Рудный Приват в выживании (/rtp)."));
+            return;
+        }
+        if (args.length >= 1 && "log".equalsIgnoreCase(args[0])) {
+            claimContainers.log(p, cl, args);
             return;
         }
         if (args.length >= 2 && "add".equalsIgnoreCase(args[0]) && cl.owner.equalsIgnoreCase(p.getName())) {

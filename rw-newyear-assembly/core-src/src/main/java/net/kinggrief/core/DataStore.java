@@ -1762,6 +1762,8 @@ public final class DataStore {
 
     public void removeClaim(Claim cl) {
         claims.remove(cl);
+        // Audit entries belong to this Core claim and are discarded when it is removed.
+        if (cl != null && cl.id != null && cl.id.matches("rg_[0-9]+_[0-9]+")) yml.set("claimAudit." + cl.id, null);
         save();
     }
 

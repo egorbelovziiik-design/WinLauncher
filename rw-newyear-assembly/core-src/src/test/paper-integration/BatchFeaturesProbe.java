@@ -20,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -42,8 +43,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;
     private Player a,b;
     private World world;
-    private boolean running, done, cancelHit, cancelMine;
-    private int checks;
+    private boolean running, done, cancelHit, cancelMine,watchChest;
+    private int checks, chestAttempts, deniedChestAttempts;
     private final int[][] chunks={{25,25},{25,26},{26,25},{26,26}};
     @Override public void onEnable(){
         saveDefaultConfig();
@@ -63,6 +64,12 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     }
     @EventHandler(priority=EventPriority.MONITOR) public void observe(EntityDamageByEntityEvent e){
         if(e.getEntity() instanceof Player) getLogger().info("KG-BATCH DAMAGE cancelled="+e.isCancelled()+" final="+e.getFinalDamage()+" world="+e.getEntity().getWorld().getName());
+    }
+    @EventHandler(priority=EventPriority.MONITOR) public void observeChest(PlayerInteractEvent e){
+        if(watchChest&&e.getPlayer().equals(b)&&e.getClickedBlock()!=null&&e.getClickedBlock().getType()==Material.CHEST
+                &&e.getAction()==org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK){
+            chestAttempts++;if(e.useInteractedBlock()==org.bukkit.event.Event.Result.DENY)deniedChestAttempts++;
+        }
     }
     private void later(long ticks,Runnable task){Bukkit.getScheduler().runTaskLater(this,()->{try{task.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean condition,String message){if(!condition)throw new AssertionError(message);checks++;getLogger().info("KG-BATCH PASS "+message);}
@@ -127,9 +134,56 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         withBlockedSave(()->a.performCommand("cosmetic trail hearts"));
         ok("snow".equals(yaml().getString(cosmetics+".trail")),"failed cosmetic update keeps the previous choice");
         ok(a.performCommand("wintershow"),"non-destructive spawn light show is registered");
-        a.teleport(new Location(world,418,75,418));b.teleport(new Location(world,420,75,418));
-        a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
-        later(20,()->utility());
+        claimChecks(()->{
+            a.teleport(new Location(world,418,75,418));b.teleport(new Location(world,420,75,418));
+            a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
+            later(20,()->utility());
+        });
+    }
+    private void claimChecks(Runnable next){
+        World arena=Bukkit.getWorld("spawn_world");
+        for(int x=74;x<=77;x++)for(int z=9;z<=12;z++){
+            arena.getBlockAt(x,93,z).setType(Material.STONE,false);
+            for(int y=94;y<=96;y++)arena.getBlockAt(x,y,z).setType(Material.AIR,false);
+        }
+        org.bukkit.block.Block first=arena.getBlockAt(75,94,12),second=arena.getBlockAt(76,94,12);
+        first.setType(Material.CHEST,false);second.setType(Material.CHEST,false);
+        org.bukkit.block.data.type.Chest left=(org.bukkit.block.data.type.Chest)first.getBlockData();
+        org.bukkit.block.data.type.Chest right=(org.bukkit.block.data.type.Chest)second.getBlockData();
+        left.setFacing(org.bukkit.block.BlockFace.NORTH);left.setType(org.bukkit.block.data.type.Chest.Type.LEFT);
+        right.setFacing(org.bukkit.block.BlockFace.NORTH);right.setType(org.bukkit.block.data.type.Chest.Type.RIGHT);
+        first.setBlockData(left,false);second.setBlockData(right,false);
+        org.bukkit.inventory.Inventory combined=((org.bukkit.block.Chest)first.getState()).getInventory();
+        ok(combined.getSize()==54,"double-chest fixture is a real combined inventory");
+        combined.setItem(0,new ItemStack(Material.DIAMOND));
+        DataStore.Claim claim=core.getStore().createClaim(a.getName(),first.getLocation(),0);
+        ok(claim!=null&&core.getStore().getClaimAt(second.getLocation())==null,"only one chest half is in the built-in claim");
+        a.teleport(new Location(arena,75.5,94,10.5));b.teleport(new Location(arena,76.5,94,10.5));
+        watchChest=true;
+        later(15,()->{
+            getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
+            later(25,()->{
+                ok(chestAttempts>0&&deniedChestAttempts>0&&b.getOpenInventory().getTopInventory().getType()!=InventoryType.CHEST,
+                        "real second client cannot open the outside half of a protected double chest");
+                ok(yaml().getStringList("claimAudit."+claim.id+".entries").size()==1,"blocked chest attempt is logged once");
+                getLogger().info("KG-BATCH REQUEST BLOCK A 76 94 12");
+                later(25,()->{
+                    ok(a.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST
+                            &&a.getOpenInventory().getTopInventory().contains(Material.DIAMOND),"real owner can still open and see the combined chest");
+                    a.closeInventory();claim.members.add(b.getName().toLowerCase(java.util.Locale.ROOT));core.getStore().save();
+                    int deniedBefore=deniedChestAttempts,attemptsBefore=chestAttempts;
+                    getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
+                    later(25,()->{
+                        ok(chestAttempts>attemptsBefore&&deniedChestAttempts==deniedBefore
+                                &&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"added member can open the combined chest");
+                        b.closeInventory();claim.members.remove(b.getName().toLowerCase(java.util.Locale.ROOT));
+                        a.teleport(new Location(arena,75.5,95,12.5));b.teleport(new Location(arena,75.7,95,12.5));
+                        ok(a.performCommand("rg log")&&b.performCommand("rg log"),"claim audit command handles owner and non-owner access");
+                        watchChest=false;core.getStore().save();next.run();
+                    });
+                });
+            });
+        });
     }
     private void utility(){
         a.getInventory().clear();
@@ -370,6 +424,10 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(yaml().getInt("winterTree.total")==31,"tree progress survives restart");
         ok("snow".equals(yaml().getString("cosmetics."+a.getUniqueId()+".trail")),"cosmetic selection survives restart");
         ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"buffered mining statistics survive clean restart");
+        DataStore.Claim protectedChest=store.getClaimAt(new Location(Bukkit.getWorld("spawn_world"),75,94,12));
+        ok(protectedChest!=null&&yaml().getStringList("claimAudit."+protectedChest.id+".entries").size()==1,"blocked chest attempt survives restart");
+        store.removeClaim(protectedChest);
+        ok(yaml().getStringList("claimAudit."+protectedChest.id+".entries").isEmpty(),"removing a claim removes only its own audit records");
         try{ok(backupArchives(core.getDataFolder().toPath().resolve("backups")).size()==1,"private Core backup survives restart");}
         catch(Exception error){throw new RuntimeException(error);}
         java.util.List<Integer> favorites=yaml().getIntegerList("auctionPreferences."+a.getUniqueId()+".favorites");

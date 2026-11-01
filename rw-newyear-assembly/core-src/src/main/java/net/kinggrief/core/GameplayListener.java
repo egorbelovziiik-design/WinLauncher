@@ -2330,6 +2330,7 @@ public final class GameplayListener implements Listener {
         // The course is handled separately after other protection listeners have
         // had a chance to cancel a physical plate interaction.
         if (e.getAction() == Action.PHYSICAL) return;
+        if (plugin.getClaimContainers() != null && plugin.getClaimContainers().enforce(e, true)) return;
 
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
 
