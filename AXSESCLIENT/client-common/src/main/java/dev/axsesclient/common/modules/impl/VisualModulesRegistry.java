@@ -325,7 +325,7 @@ public final class VisualModulesRegistry {
                                 StatusEffectInfo ef = fx.get(i);
                                 name = ef.getName();
                                 dur = ef.getFormattedDuration();
-                                dotCol = 0xFF000000 | (ef.getColorRgb() & 0xFFFFFF);
+                                dotCol = ef.getColor() != 0 ? (0xFF000000 | (ef.getColor() & 0xFFFFFF)) : tm.getAuroraWaveColor(i * 0.25f);
                             }
                             r.fillRoundedRect(drawX + 7.0f, ry + 2.0f, 4.0f, 7.0f, 1.5f, dotCol);
                             fontManager.draw(r, name, drawX + 14.5f, ry + 1.5f, t.getTextColor(), 0.88f);
