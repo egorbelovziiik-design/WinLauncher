@@ -566,8 +566,18 @@ public final class KingGriefCore extends JavaPlugin {
             return filterPrefix(Arrays.asList("spawn", "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top"), args[0]);
         } else if ("deathpoint".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("status", "beacon", "off"), args[0]);
-        } else if ("tree".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("status", "donate", "claim", "top"), args[0]);
+        } else if ("tree".equals(c)) {
+            if (args.length == 1) return filterPrefix(hasEconomyAdmin(sender)
+                    ? Arrays.asList("status", "donate", "claim", "top", "history", "season")
+                    : Arrays.asList("status", "donate", "claim", "top", "history"), args[0]);
+            if (args.length == 2 && ("claim".equalsIgnoreCase(args[0]) || "top".equalsIgnoreCase(args[0])))
+                return filterPrefix(winterTree.seasonIds(), args[1]);
+            if (args.length == 2 && "season".equalsIgnoreCase(args[0]) && hasEconomyAdmin(sender))
+                return filterPrefix(Arrays.asList("start", "prune"), args[1]);
+            if (args.length == 3 && "season".equalsIgnoreCase(args[0]) && "prune".equalsIgnoreCase(args[1]) && hasEconomyAdmin(sender))
+                return filterPrefix(winterTree.seasonIds(), args[2]);
+            if (args.length == 4 && "season".equalsIgnoreCase(args[0]) && hasEconomyAdmin(sender))
+                return filterPrefix(Arrays.asList("confirm"), args[3]);
         } else if ("pet".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("penguin", "deer", "dragon", "off"), args[0]);
         } else if ("cases".equals(c)) {
@@ -721,6 +731,10 @@ public final class KingGriefCore extends JavaPlugin {
             buildContest.command(sender, args, hasEconomyAdmin(sender));
             return true;
         }
+        if ("tree".equals(c)) {
+            winterTree.command(sender, args, hasEconomyAdmin(sender));
+            return true;
+        }
         if ("kgbackup".equals(c)) {
             if (sender instanceof Player && !store.isAuthenticated((Player) sender)) {
                 sender.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));return true;
@@ -868,7 +882,6 @@ public final class KingGriefCore extends JavaPlugin {
         if ("cosmetic".equals(c)) { cosmetics.command(p, args); return true; }
         if ("wintershow".equals(c)) { cosmetics.winterShow(p); return true; }
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }
-        if ("tree".equals(c)) { winterTree.command(p, args); return true; }
         if ("kgstatus".equals(c)) { utilities.status(p); return true; }
         if ("sortinv".equals(c)) { utilities.sort(p); return true; }
         if ("compare".equals(c)) { utilities.compare(p); return true; }

@@ -1,156 +1,255 @@
 package net.kinggrief.core;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.entity.Player;
-
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
-/** A shared, persistent decoration goal. It does not modify the spawn or its blocks. */
+/** Shared decoration goal and bounded seasons; never modifies spawn blocks. */
 final class WinterTreeManager {
-    private static final int[] GOALS = {30, 100, 300};
-    private static final int[] COINS = {5000, 15000, 35000};
-    private static final int DAILY_LIMIT = 10;
     private final KingGriefCore plugin;
     private int visualStage;
     private BukkitRunnable ticker;
-    WinterTreeManager(KingGriefCore plugin) { this.plugin=plugin; }
+
+    private static final class Row {
+        final TreeSeasonStore.View view;
+        final int pending;
+        Row(TreeSeasonStore.View view, int pending) { this.view = view; this.pending = pending; }
+    }
+
+    WinterTreeManager(KingGriefCore plugin) { this.plugin = plugin; }
     void start() {
-        try {visualStage=plugin.getStore().inspect(data->stage(Math.max(0,data.getInt("winterTree.total",0))));}
-        catch(Exception error){visualStage=0;}
-        ticker=new BukkitRunnable(){int step;
-            @Override public void run(){
-                if(visualStage<=0)return;
-                Location spawn=plugin.getSpawnEngine().getPreparedSpawnArrival();
-                if(spawn==null||spawn.getWorld()==null)return;
-                int viewers=0;
-                for(Player player:spawn.getWorld().getPlayers()){
-                    Location at=player.getLocation();
-                    if(Math.abs(at.getX())>64||Math.abs(at.getZ())>64||++viewers>32)continue;
-                    for(int tier=0;tier<visualStage;tier++){
-                        double radius=tier==0?11.8:tier==1?8.7:5.4;
-                        double y=tier==0?111.5:tier==1?124.5:137.5;
-                        Particle.DustOptions color=new Particle.DustOptions(tier==0?Color.fromRGB(255,208,64):tier==1?Color.fromRGB(125,220,255):Color.fromRGB(255,100,155),.7f);
-                        for(int i=0;i<8;i++){
-                            double angle=(i+step*.25)*Math.PI/4;
-                            player.spawnParticle(Particle.DUST,Math.cos(angle)*radius,y,Math.sin(angle)*radius,1,0,0,0,0,color);
+        try { visualStage = plugin.getStore().inspect(data -> TreeSeasonStore.stage(TreeSeasonStore.current(data))); }
+        catch (Exception error) { visualStage = 0; }
+        ticker = new BukkitRunnable() { int step;
+            @Override public void run() {
+                if (visualStage <= 0) return;
+                Location spawn = plugin.getSpawnEngine().getPreparedSpawnArrival();
+                if (spawn == null || spawn.getWorld() == null) return;
+                int viewers = 0;
+                for (Player player : spawn.getWorld().getPlayers()) {
+                    Location at = player.getLocation();
+                    if (Math.abs(at.getX()) > 64 || Math.abs(at.getZ()) > 64 || ++viewers > 32) continue;
+                    for (int tier = 0; tier < visualStage; tier++) {
+                        double radius = tier == 0 ? 11.8 : tier == 1 ? 8.7 : 5.4;
+                        double y = tier == 0 ? 111.5 : tier == 1 ? 124.5 : 137.5;
+                        Particle.DustOptions color = new Particle.DustOptions(tier == 0 ? Color.fromRGB(255, 208, 64)
+                                : tier == 1 ? Color.fromRGB(125, 220, 255) : Color.fromRGB(255, 100, 155), .7f);
+                        for (int i = 0; i < 8; i++) {
+                            double angle = (i + step * .25) * Math.PI / 4;
+                            player.spawnParticle(Particle.DUST, Math.cos(angle) * radius, y, Math.sin(angle) * radius, 1, 0, 0, 0, 0, color);
                         }
                     }
                 }
                 step++;
             }
-        };ticker.runTaskTimer(plugin,40L,20L);
+        };
+        ticker.runTaskTimer(plugin, 40L, 20L);
     }
-    void shutdown(){if(ticker!=null)ticker.cancel();}
+    void shutdown() { if (ticker != null) ticker.cancel(); }
 
-    void command(Player p, String[] args) {
-        String sub=args.length==0 ? "status" : args[0].toLowerCase(Locale.ROOT);
-        if ("status".equals(sub)) status(p);
-        else if ("donate".equals(sub)) donate(p,args);
-        else if ("claim".equals(sub)) claim(p);
-        else if ("top".equals(sub)) top(p);
-        else p.sendMessage(ColorUtil.c("&e/tree <status|donate [1-10]|claim|top>"));
+    void command(CommandSender sender, String[] args, boolean admin) {
+        Player player = sender instanceof Player ? (Player) sender : null;
+        if (player != null && (!player.isOnline() || !plugin.getStore().isAuthenticated(player))) {
+            send(sender, "&cСначала войдите в аккаунт."); return;
+        }
+        if (player != null && (plugin.getStore().isQuickFrozen(player) || plugin.getModeration().isFrozenOrAscending(player))) {
+            send(sender, "&cКоманда ёлки недоступна во время заморозки или проверки."); return;
+        }
+        String sub = args.length == 0 ? "status" : args[0].toLowerCase(Locale.ROOT);
+        if ("season".equals(sub)) { seasonAdmin(sender, args, admin); return; }
+        if ("status".equals(sub) && args.length <= 1) { status(sender, player); return; }
+        if ("history".equals(sub) && args.length == 1) { history(sender, player); return; }
+        if ("top".equals(sub) && args.length <= 2) { top(sender, args.length == 2 ? args[1] : null); return; }
+        if (player == null) { send(sender, "&eДля игроков: /tree donate, /tree claim. Для консоли: /tree history или /tree season."); return; }
+        if ("donate".equals(sub)) { donate(player, args); return; }
+        if ("claim".equals(sub) && args.length <= 2) { claim(player, args.length == 2 ? args[1] : null); return; }
+        send(sender, "&e/tree <status|donate [1-10]|claim [сезон]|top [сезон]|history>");
     }
-    private void status(Player p) {
-        String name=p.getName().toLowerCase(Locale.ROOT), today=day();
+    private static void send(CommandSender sender, String text) { sender.sendMessage(ColorUtil.c(text)); }
+    private static String name(Player player) { return player.getName().toLowerCase(Locale.ROOT); }
+    private static String day() { return LocalDate.now(ZoneOffset.UTC).toString(); }
+
+    private void status(CommandSender sender, Player player) {
+        final String today = day();
         try {
-            int[] v=plugin.getStore().inspect(data -> {
-                int total=Math.max(0,data.getInt("winterTree.total",0));
-                int mine=Math.max(0,data.getInt("winterTree.donors."+name+".total",0));
-                String path="winterTree.donors."+name;
-                int daily=today.equals(data.getString(path+".day"))?Math.max(0,data.getInt(path+".daily",0)):0;
-                return new int[]{total,mine,daily};
+            Object[] snapshot = plugin.getStore().inspect(data -> {
+                TreeSeasonStore.View view = TreeSeasonStore.current(data);
+                TreeSeasonStore.Donor donor = player == null ? null : TreeSeasonStore.donor(data, view, name(player));
+                int used = player == null ? 0 : TreeSeasonStore.daily(data, view, name(player), today);
+                return new Object[]{view, donor, Integer.valueOf(used)};
             });
-            int stage=stage(v[0]), next=stage<GOALS.length?GOALS[stage]:GOALS[GOALS.length-1];
-            p.sendMessage(ColorUtil.c("&#80D8FF❄ Общая ёлка: &f"+v[0]+"/"+next+" ❄ &8| &eэтап "+stage+"/3"));
-            p.sendMessage(ColorUtil.c("&7Ваш вклад: &f"+v[1]+" ❄ &8| &7сегодня: &f"+v[2]+"/"+DAILY_LIMIT+" (UTC)"));
-            p.sendMessage(ColorUtil.c("&e/tree donate [1-10] &8• &e/tree claim &8• &e/tree top"));
-        } catch (Exception error) {p.sendMessage(ColorUtil.c("&cНе удалось прочитать состояние ёлки."));}
+            TreeSeasonStore.View view = (TreeSeasonStore.View) snapshot[0];
+            int stage = TreeSeasonStore.stage(view);
+            int next = stage < view.goals.length ? view.goals[stage] : view.goals[view.goals.length - 1];
+            send(sender, "&#80D8FF❄ Ёлка · сезон &f" + view.id + "&7: &f" + view.total + "/" + next + " ❄ &8| &eэтап " + stage + "/3");
+            if (player != null) {
+                TreeSeasonStore.Donor donor = (TreeSeasonStore.Donor) snapshot[1];
+                send(sender, "&7Ваш вклад: &f" + donor.total + " ❄ &8| &7сегодня: &f" + snapshot[2] + "/" + TreeSeasonStore.DAILY_LIMIT + " (UTC)");
+            }
+            send(sender, "&e/tree donate [1-10] &8• &e/tree claim &8• &e/tree history &8• &e/tree top");
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Tree] Status unavailable: " + error.getClass().getSimpleName());
+            send(sender, "&cНе удалось прочитать состояние ёлки.");
+        }
     }
-    private void donate(Player p,String[] args) {
-        int requested=1;
-        if(args.length>2){p.sendMessage(ColorUtil.c("&e/tree donate [1-10]"));return;}
-        if(args.length==2) try {requested=Integer.parseInt(args[1]);} catch(NumberFormatException ignored){requested=0;}
-        if(requested<1||requested>DAILY_LIMIT){p.sendMessage(ColorUtil.c("&cКоличество — от 1 до "+DAILY_LIMIT+" снежинок."));return;}
-        final int amount=requested;
-        final String name=p.getName().toLowerCase(Locale.ROOT), today=day();
+    private void donate(Player player, String[] args) {
+        int requested = 1;
+        if (args.length > 2) { send(player, "&e/tree donate [1-10]"); return; }
+        if (args.length == 2) try { requested = Integer.parseInt(args[1]); }
+        catch (NumberFormatException error) { requested = 0; }
+        if (requested < 1 || requested > TreeSeasonStore.DAILY_LIMIT) {
+            send(player, "&cКоличество — от 1 до " + TreeSeasonStore.DAILY_LIMIT + " снежинок."); return;
+        }
+        final int amount = requested; final String name = name(player), today = day();
         try {
-            int[] result=plugin.getStore().transact(data -> {
-                String path="winterTree.donors."+name, balance="players."+name+".snowflakes";
-                int total=data.getInt("winterTree.total",0), previous=data.getInt(path+".total",0);
-                int daily=today.equals(data.getString(path+".day"))?data.getInt(path+".daily",0):0;
-                int snow=data.getInt(balance,0);
-                if(total<0||total>=GOALS[GOALS.length-1]) throw new IllegalArgumentException("Цель уже достигнута.");
-                if(daily<0||daily+amount>DAILY_LIMIT)throw new IllegalArgumentException("Сегодняшний лимит: "+DAILY_LIMIT+" снежинок (UTC).");
-                if(amount>GOALS[GOALS.length-1]-total)throw new IllegalArgumentException("До цели осталось "+(GOALS[GOALS.length-1]-total)+" снежинок.");
-                if(snow<amount)throw new IllegalArgumentException("Недостаточно снежинок.");
-                if(previous<0 || (long)previous+amount>Integer.MAX_VALUE)throw new IOException("invalid donor balance");
-                data.set(balance,snow-amount);
-                if(previous==0) data.set(path+".joinedAt",total);
-                data.set(path+".day",today); data.set(path+".daily",daily+amount);
-                data.set(path+".total",previous+amount); data.set("winterTree.total",total+amount);
-                return new int[]{total,total+amount};
-            });
-            p.sendMessage(ColorUtil.c("&#80D8FFСпасибо! В ёлку внесено &f"+amount+" ❄&7. Прогресс: &f"+result[1]+"/300"));
-            int before=stage(result[0]), after=stage(result[1]);
-            visualStage=after;
-            if(after>before)Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Игроки украсили ёлку! Достигнут этап &f"+after+"/3&7. Участникам: &e/tree claim"));
-        } catch(IllegalArgumentException rejected){p.sendMessage(ColorUtil.c("&c"+rejected.getMessage()));}
-        catch(Exception error){plugin.getLogger().warning("[Tree] Donation not committed: "+error.getMessage());p.sendMessage(ColorUtil.c("&cНе удалось сохранить взнос. Снежинки не списаны."));}
+            int[] result = plugin.getStore().transact(data -> TreeSeasonStore.donate(data, name, amount, today));
+            send(player, "&#80D8FFСпасибо! В ёлку внесено &f" + amount + " ❄&7. Прогресс: &f" + result[1] + "/300");
+            int before = stage(result[0]), after = stage(result[1]); visualStage = after;
+            if (after > before) Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Игроки украсили ёлку! Достигнут этап &f" + after + "/3&7. Участникам: &e/tree claim"));
+        } catch (IllegalArgumentException rejected) { send(player, "&c" + rejected.getMessage()); }
+        catch (Exception error) {
+            plugin.getLogger().warning("[Tree] Donation not committed: " + error.getMessage());
+            send(player, "&cНе удалось сохранить взнос. Снежинки не списаны.");
+        }
     }
-    private void claim(Player p) {
-        final String name=p.getName().toLowerCase(Locale.ROOT);
+    private void claim(Player player, String rawId) {
         try {
-            int[] result=plugin.getStore().transact(data -> {
-                int total=data.getInt("winterTree.total",0), contribution=data.getInt("winterTree.donors."+name+".total",0);
-                int joinedAt=data.getInt("winterTree.donors."+name+".joinedAt",0);
-                if(contribution<=0)throw new IllegalArgumentException("Сначала внесите хотя бы одну снежинку: /tree donate");
-                int earned=0, count=0;boolean last=false;
-                for(int i=0;i<GOALS.length;i++) if(joinedAt<GOALS[i]&&total>=GOALS[i]&&!data.getBoolean("winterTree.donors."+name+".claimed."+(i+1),false)) {
-                    earned+=COINS[i];count++;if(i==GOALS.length-1)last=true;
+            String id = rawId == null ? null : TreeSeasonStore.normalizeId(rawId);
+            TreeSeasonStore.Payment result = plugin.getStore().transact(data -> TreeSeasonStore.claim(data, name(player), id,
+                    plugin.getConfig().getDouble("starting-coins", 2500.0)));
+            String extra = result.key ? " &8• &dключ legendary" : "";
+            if (result.title) extra += " &8• &bтитул Друга ёлки";
+            send(player, "&#00E676Награда ёлки" + (id == null ? "" : " за сезон &f" + id) + ": &f+"
+                    + ColorUtil.fmtMoney(result.coins) + " монет" + extra + "&7. Этапов: " + result.stages);
+        } catch (IllegalArgumentException rejected) { send(player, "&e" + rejected.getMessage()); }
+        catch (Exception error) {
+            plugin.getLogger().warning("[Tree] Claim not committed: " + error.getMessage());
+            send(player, "&cНе удалось сохранить награду. Попробуйте позже.");
+        }
+    }
+    private void history(CommandSender sender, Player player) {
+        try {
+            List<Row> rows = plugin.getStore().inspect(data -> {
+                List<Row> result = new ArrayList<Row>();
+                TreeSeasonStore.View current = TreeSeasonStore.current(data);
+                int pending = player == null ? 0 : TreeSeasonStore.pending(current, TreeSeasonStore.donor(data, current, name(player)));
+                result.add(new Row(current, pending));
+                List<Row> archived = new ArrayList<Row>();
+                for (String id : TreeSeasonStore.archiveIds(data)) {
+                    TreeSeasonStore.View view = TreeSeasonStore.resolve(data, id);
+                    int due = player == null ? 0 : TreeSeasonStore.pending(view, TreeSeasonStore.donor(data, view, name(player)));
+                    archived.add(new Row(view, due));
                 }
-                if(count==0)throw new IllegalArgumentException("Новых наград пока нет.");
-                String base="players."+name;
-                double coins=data.getDouble(base+".coins",plugin.getConfig().getDouble("starting-coins",2500.0));
-                if(!Double.isFinite(coins)||coins<0||!Double.isFinite(coins+earned)||coins+earned<=coins)throw new IOException("invalid coin balance");
-                int keys=data.getInt(base+".cases.legendary",0);
-                if(last&&(keys<0||keys==Integer.MAX_VALUE))throw new IOException("invalid key balance");
-                data.set(base+".coins",coins+earned);
-                if(last){data.set(base+".cases.legendary",keys+1);data.set(base+".titles.tree_friend",true);}
-                for(int i=0;i<GOALS.length;i++)if(joinedAt<GOALS[i]&&total>=GOALS[i])data.set("winterTree.donors."+name+".claimed."+(i+1),true);
-                return new int[]{earned,count,last?1:0};
+                archived.sort(Comparator.<Row>comparingLong(row -> row.view.closedAt).reversed().thenComparing(row -> row.view.id));
+                result.addAll(archived);
+                return result;
             });
-            p.sendMessage(ColorUtil.c("&#00E676Награда ёлки: &f+"+ColorUtil.fmtMoney(result[0])+" монет"+(result[2]>0?" &8• &dключ legendary &8• &bтитул Друга ёлки":"")+"&7. Этапов: "+result[1]));
-        } catch(IllegalArgumentException rejected){p.sendMessage(ColorUtil.c("&e"+rejected.getMessage()));}
-        catch(Exception error){plugin.getLogger().warning("[Tree] Claim not committed: "+error.getMessage());p.sendMessage(ColorUtil.c("&cНе удалось сохранить награду. Попробуйте позже."));}
+            send(sender, "&#80D8FF✦ Сезоны общей ёлки &8(архив: " + Math.max(0, rows.size() - 1) + "/" + TreeSeasonStore.MAX_ARCHIVES + "):");
+            for (Row row : rows) {
+                String line = "&f" + row.view.id + " &8— &b" + row.view.total + "/" + row.view.goals[row.view.goals.length - 1]
+                        + " ❄ &8· &7этап " + TreeSeasonStore.stage(row.view) + "/3"
+                        + (row.view.archived ? " &8[архив]" : " &a[активен]")
+                        + (player == null ? "" : " &8· &eнаград: " + row.pending);
+                if (player == null) { send(sender, line); continue; }
+                TextComponent message = new TextComponent(ColorUtil.c(line + "  "));
+                TextComponent claim = new TextComponent(ColorUtil.c("&a[Награды] "));
+                claim.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tree claim " + row.view.id));
+                claim.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Получить доступные награды сезона").create()));
+                TextComponent top = new TextComponent(ColorUtil.c("&b[Топ]"));
+                top.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tree top " + row.view.id));
+                top.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Посмотреть участников сезона").create()));
+                message.addExtra(claim); message.addExtra(top); player.spigot().sendMessage(message);
+            }
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Tree] History unavailable: " + error.getMessage());
+            send(sender, "&cНе удалось прочитать историю сезонов; данные не изменены.");
+        }
     }
-    private void top(Player p) {
+    private void top(CommandSender sender, String rawId) {
         try {
-            List<String[]> entries=plugin.getStore().inspect(data -> {
-                List<String[]> out=new ArrayList<String[]>();
-                ConfigurationSection section=data.getConfigurationSection("winterTree.donors");
-                if(section!=null)for(String name:section.getKeys(false)){
-                    int value=section.getInt(name+".total",0);
-                    if(value>0&&name.matches("[a-z0-9_]{1,16}"))out.add(new String[]{name,Integer.toString(value)});
+            final String requested = rawId == null ? null : TreeSeasonStore.normalizeId(rawId);
+            Object[] result = plugin.getStore().inspect(data -> {
+                TreeSeasonStore.View view = TreeSeasonStore.resolve(data, requested);
+                List<String[]> entries = new ArrayList<String[]>();
+                ConfigurationSection section = data.getConfigurationSection(view.root + ".donors");
+                if (section != null) for (String donor : section.getKeys(false)) {
+                    if (!donor.matches("[a-z0-9_]{1,16}")) continue;
+                    TreeSeasonStore.Donor value = TreeSeasonStore.donor(data, view, donor);
+                    if (value.total > 0) entries.add(new String[]{donor, Integer.toString(value.total)});
                 }
-                return out;
+                return new Object[]{view, entries};
             });
-            entries.sort(Comparator.<String[]>comparingInt(e->Integer.parseInt(e[1])).reversed().thenComparing(e->e[0]));
-            p.sendMessage(ColorUtil.c("&#80D8FF✦ Топ помощников зимней ёлки:"));
-            for(int i=0;i<Math.min(10,entries.size());i++)p.sendMessage(ColorUtil.c("&7"+(i+1)+". &f"+entries.get(i)[0]+" &8— &b"+entries.get(i)[1]+" ❄"));
-            if(entries.isEmpty())p.sendMessage(ColorUtil.c("&7Пока нет взносов."));
-        } catch(Exception error){p.sendMessage(ColorUtil.c("&cНе удалось прочитать топ."));}
+            TreeSeasonStore.View view = (TreeSeasonStore.View) result[0];
+            @SuppressWarnings("unchecked") List<String[]> entries = (List<String[]>) result[1];
+            entries.sort(Comparator.<String[]>comparingInt(entry -> Integer.parseInt(entry[1])).reversed().thenComparing(entry -> entry[0]));
+            send(sender, "&#80D8FF✦ Топ помощников ёлки · &f" + view.id + "&7:");
+            for (int i = 0; i < Math.min(10, entries.size()); i++) {
+                send(sender, "&7" + (i + 1) + ". &f" + entries.get(i)[0] + " &8— &b" + entries.get(i)[1] + " ❄");
+            }
+            if (entries.isEmpty()) send(sender, "&7Пока нет взносов.");
+        } catch (IllegalArgumentException rejected) { send(sender, "&e" + rejected.getMessage()); }
+        catch (Exception error) { send(sender, "&cНе удалось прочитать топ."); }
     }
-    private static int stage(int total){int stage=0;for(int goal:GOALS)if(total>=goal)stage++;return stage;}
-    private static String day(){return LocalDate.now(ZoneOffset.UTC).toString();}
+    private void seasonAdmin(CommandSender sender, String[] args, boolean admin) {
+        if (!admin) { send(sender, "&cУправлять сезонами могут OWNER, ТЕХ.АДМИН и консоль."); return; }
+        if (args.length != 4 || !"confirm".equalsIgnoreCase(args[3])) {
+            send(sender, "&e/tree season start <название> confirm &7— новый сезон с сохранением старых наград.");
+            send(sender, "&e/tree season prune <архив> confirm &7— удалить только полностью оплаченный архив.");
+            return;
+        }
+        String action = args[1].toLowerCase(Locale.ROOT);
+        try {
+            String id = TreeSeasonStore.normalizeId(args[2]);
+            if ("start".equals(action)) {
+                TreeSeasonStore.Rotation result = plugin.getStore().transact(data -> TreeSeasonStore.rotate(data, id, day(), System.currentTimeMillis()));
+                visualStage = 0;
+                plugin.getLogger().info("[Tree] " + sender.getName() + " started season " + result.next + " after " + result.previous);
+                Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF✦ Новый сезон ёлки: &f" + result.next
+                        + "&7! Старые награды: &e/tree history&7. Новый вклад: &e/tree donate"));
+                if (!result.archived) send(sender, "&7Пустой сезон не занял место в архиве.");
+                return;
+            }
+            if ("prune".equals(action)) {
+                int donors = plugin.getStore().transact(data -> TreeSeasonStore.prune(data, id));
+                plugin.getLogger().info("[Tree] " + sender.getName() + " pruned settled season " + id + " (" + donors + " donors)");
+                send(sender, "&aПолностью оплаченный архив &f" + id + " &aудалён; накопленные достижения сохранены.");
+                return;
+            }
+            send(sender, "&eДоступны /tree season start и /tree season prune.");
+        } catch (IllegalArgumentException rejected) { send(sender, "&e" + rejected.getMessage()); }
+        catch (Exception error) {
+            plugin.getLogger().warning("[Tree] Season change not committed: " + error.getMessage());
+            send(sender, "&cНе удалось сохранить изменение сезона; прежние данные не изменены.");
+        }
+    }
+    List<String> seasonIds() {
+        try {
+            return plugin.getStore().inspect(data -> {
+                List<String> ids = new ArrayList<String>();
+                ids.add(TreeSeasonStore.currentId(data));
+                ids.addAll(TreeSeasonStore.archiveIds(data));
+                return ids;
+            });
+        } catch (Exception error) { return new ArrayList<String>(); }
+    }
+    private static int stage(int total) {
+        int stage = 0;
+        for (int goal : TreeSeasonStore.GOALS) if (total >= goal) stage++;
+        return stage;
+    }
 }

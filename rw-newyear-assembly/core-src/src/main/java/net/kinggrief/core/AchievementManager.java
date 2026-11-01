@@ -64,7 +64,8 @@ final class AchievementManager implements Listener {
     private static Snapshot snapshot(YamlConfiguration data,Player player){
         Snapshot snap=new Snapshot();UUID id=player.getUniqueId();String name=player.getName().toLowerCase(Locale.ROOT);
         int ore=Math.max(0,data.getInt("utility.mining."+id+".total",0));
-        int donated=Math.max(0,data.getInt("winterTree.donors."+name+".total",0));
+        // A season rollover archives donors, but does not erase their lifetime badge progress.
+        int donated=TreeSeasonStore.lifetimeProgress(data,name);
         long parkour=data.getLong("parkour.records."+id+".all",0L);
         for(Badge badge:Badge.values()){
             int value;

@@ -210,6 +210,18 @@ be distinguished from the original temporary block.
 Core must be present for its protection to work; old versions cannot recover
 these records, and pre-existing blocks without records are not repaired.
 
+`test-tree-season.py` uses three real protocol clients over three Paper starts.
+It exercises legacy migration and daily counts, OWNER/TECH.ADMIN/console and
+OP-only denial, authentication/freeze, an actual private chat-button claim,
+an offline donor returning after restart, three-stage reward snapshots,
+idempotency, safe pruning and archive/ID limits. It injects YAML write failures
+and malformed state, checks the tree trunk, a separate block/claim and player
+inventory, then sends SIGKILL immediately after completed durable transactions
+before the last restart (31 + 25 + 14 checks). Other contributors and the next UTC date are simulated
+by fixture data. The kill is not during a file write and does not model power
+loss, external authentication or sustained load. Names are not UUID identities;
+this is neither an anti-alt mechanism nor a rendered-client visual test.
+
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,
 menu item/drag protection, real page/close clicks, grouped reminder packets and

@@ -60,7 +60,8 @@ commands:
     description: Show your informational mining totals and ore types
     usage: /minestats [page]
   tree:
-    description: Help decorate the shared winter tree
+    description: Help decorate the shared winter tree, claim rewards and view seasons
+    usage: /tree [status|donate|claim|top|history|season]
   pet:
     description: Select a cosmetic display-model pet
   lp:
