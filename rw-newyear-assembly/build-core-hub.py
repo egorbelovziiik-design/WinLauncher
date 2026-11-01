@@ -60,9 +60,11 @@ def main():
     parser.add_argument("--api-classpath", required=True, help="Spigot API and compile dependencies, separated by the platform classpath separator")
     parser.add_argument("--javac", default="javac")
     parser.add_argument("--core-only", action="store_true", help="do not rebuild or overwrite Hub copies")
+    parser.add_argument("--include-connect", action="store_true", help="also compile the secure KingConnect defaults")
     args = parser.parse_args()
     core = build("KingGriefCore", ROOT / "core-src", args)
     hub = None if args.core_only else build("KingHub", ROOT / "kinghub-src", args)
+    connect = build("KingConnect", ROOT / "connect-src", args) if args.include_connect else None
     version_line = next(line for line in (ROOT / "core-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
                         if line.startswith("version:"))
     core_version = version_line.split(":", 1)[1].strip().strip("'\"")
@@ -75,6 +77,13 @@ def main():
         hub_version = hub_version_line.split(":", 1)[1].strip().strip("'\"")
         copies[hub] = [ROOT.parent / "kinggrief/public/KingHub.jar", ROOT / f"KingHub-v{hub_version}.jar",
                        ROOT.parent / "kinggrief/public" / f"KingHub-v{hub_version}.jar"]
+    if connect is not None:
+        connect_version_line = next(line for line in (ROOT / "connect-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
+                                    if line.startswith("version:"))
+        connect_version = connect_version_line.split(":", 1)[1].strip().strip("'\"")
+        copies[connect] = [ROOT / "plugins/KingConnect.jar", ROOT / "server/plugins/KingConnect.jar",
+                           ROOT.parent / "kinggrief/public/KingConnect.jar",
+                           ROOT.parent / "kinggrief/public" / f"KingConnect-v{connect_version}.jar"]
     for source, dests in copies.items():
         for destination in dests:
             destination.parent.mkdir(parents=True, exist_ok=True)

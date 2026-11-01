@@ -130,7 +130,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     private String thisServerId = "grief1";
     private String thisServerName = "&#80D8FF&l❄ ГРИФ #1";
     private String mode = "auto";
-    private String secretKey = "KingGrief-Network-Secret-2026";
+    private volatile String secretKey = "CHANGE_ME";
     private String hubServerId = "hub";
     private boolean requireSsoFromHub = false;
     private int combatBlockSeconds = 30;
@@ -142,7 +142,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     private boolean hubProtectWorld = true;
     private boolean hubStandaloneAuth = true;
 
-    private boolean cloudSyncEnabled = true;
+    private volatile boolean cloudSyncEnabled = false;
     private String cloudSyncUrl = "https://kinggrief.vercel.app/api/minecraft/network";
     private int cloudSyncIntervalSec = 4;
     private boolean cloudSyncRanks = true;
@@ -382,12 +382,19 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     // 2. CONFIGURATION & NETWORK TOPOLOGY
     // =========================================================================
 
+    private boolean isNetworkSecretConfigured() {
+        String key = secretKey;
+        return key != null && !key.trim().isEmpty() && !"CHANGE_ME".equalsIgnoreCase(key.trim())
+                && !"KingGrief-Network-Secret-2026".equals(key.trim());
+    }
+
     public void reloadNetworkConfig() {
         reloadConfig();
+        String previousSecret = this.secretKey;
         this.thisServerId = getConfig().getString("this-server-id", "grief1").trim().toLowerCase(Locale.ROOT);
         this.thisServerName = getConfig().getString("this-server-name", "&#80D8FF&l❄ ГРИФ #1");
         this.mode = getConfig().getString("mode", "auto").trim().toLowerCase(Locale.ROOT);
-        this.secretKey = getConfig().getString("secret-key", "KingGrief-Network-Secret-2026").trim();
+        this.secretKey = getConfig().getString("secret-key", "CHANGE_ME").trim();
         this.hubServerId = getConfig().getString("hub-server", "hub").trim().toLowerCase(Locale.ROOT);
         this.requireSsoFromHub = getConfig().getBoolean("require-sso-from-hub", false);
         this.combatBlockSeconds = Math.max(0, getConfig().getInt("combat-block-seconds", 30));
@@ -399,12 +406,23 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         this.hubProtectWorld = getConfig().getBoolean("hub-mode.protect-world", true);
         this.hubStandaloneAuth = getConfig().getBoolean("hub-mode.standalone-auth", true);
 
-        this.cloudSyncEnabled = getConfig().getBoolean("cloud-sync.enabled", true);
+        this.cloudSyncEnabled = getConfig().getBoolean("cloud-sync.enabled", false);
         this.cloudSyncUrl = getConfig().getString("cloud-sync.url", "https://kinggrief.vercel.app/api/minecraft/network").trim();
         this.cloudSyncIntervalSec = Math.max(2, getConfig().getInt("cloud-sync.interval-seconds", 4));
         this.cloudSyncRanks = getConfig().getBoolean("cloud-sync.sync-ranks", true);
         this.cloudSyncBans = getConfig().getBoolean("cloud-sync.sync-bans", true);
         this.pingIntervalSec = Math.max(3, getConfig().getInt("ping-interval-seconds", 5));
+        if (!previousSecret.equals(this.secretKey) || !isNetworkSecretConfigured()) {
+            cloudSsoCache.clear();
+            cloudRankCache.clear();
+            cloudBanCache.clear();
+            verifiedSsoPlayers.clear();
+            lastCloudOk = false;
+        }
+        if (!isNetworkSecretConfigured()) {
+            this.cloudSyncEnabled = false;
+            getLogger().warning("KingConnect: задайте собственный secret-key; публичный пример и CHANGE_ME запрещены. Межсерверный SSO и облачная синхронизация выключены.");
+        }
 
         servers.clear();
         ConfigurationSection sec = getConfig().getConfigurationSection("servers");
@@ -471,21 +489,24 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (!cloudSyncEnabled || cloudSyncUrl.isEmpty()) return;
+                if (!cloudSyncEnabled || !isNetworkSecretConfigured() || cloudSyncUrl.isEmpty()) return;
                 scanLocalBansAndRanksForSync();
                 final String payload = buildCloudSyncPayload();
+                final String requestSecret = secretKey;
                 Bukkit.getScheduler().runTaskAsynchronously(KingConnectPlugin.this, new Runnable() {
                     @Override
                     public void run() {
-                        String resp = CloudSyncClient.postSync(cloudSyncUrl, secretKey, payload, 2800);
+                        if (!cloudSyncEnabled || !requestSecret.equals(secretKey)) return;
+                        String resp = CloudSyncClient.postSync(cloudSyncUrl, requestSecret, payload, 2800);
                         if (resp == null || !resp.startsWith("OK\t")) {
                             lastCloudOk = false;
                             return;
                         }
-                        lastCloudOk = true;
                         Bukkit.getScheduler().runTask(KingConnectPlugin.this, new Runnable() {
                             @Override
                             public void run() {
+                                if (!cloudSyncEnabled || !isNetworkSecretConfigured() || !requestSecret.equals(secretKey)) return;
+                                lastCloudOk = true;
                                 applyCloudSyncResponse(resp);
                             }
                         });
@@ -590,6 +611,19 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
             transferCooldowns.put(p.getUniqueId(), now);
         }
 
+        if (!isNetworkSecretConfigured()) {
+            // Preserve the old local /hub-to-spawn fallback, but never issue a
+            // signed transfer or proxy message with a public placeholder key.
+            if (!shouldUseProxyFor(target) && target.id.equalsIgnoreCase(hubServerId)
+                    && ServerPinger.isLoopbackHost(target.host)
+                    && Bukkit.getPluginManager().getPlugin("KingGriefCore") != null) {
+                p.performCommand("spawn");
+                p.sendMessage(c("&8[KingConnect] Локальный спавн. Для сети задайте собственный secret-key."));
+            } else {
+                p.sendMessage(c("&#FF5252Сеть KingConnect отключена: администратор должен задать собственный secret-key."));
+            }
+            return;
+        }
         p.closeInventory();
         String rankId = detectPlayerRank(p);
         String ipHash = sha256Hex(getPlayerIp(p) + "|" + secretKey).substring(0, 24);
@@ -759,6 +793,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     }
 
     private void sendProxyBusPacket(String type, String sender, String target, String dest, String message) {
+        if (!isNetworkSecretConfigured()) return;
         Player carrier = Bukkit.getOnlinePlayers().isEmpty() ? null : Bukkit.getOnlinePlayers().iterator().next();
         if (carrier == null) return;
         try {
@@ -821,6 +856,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
                 String signedToken = msgin.readUTF();
                 handleVerifiedTokenString(signedToken, null);
             } else if (SUBCHANNEL_BUS.equals(sub)) {
+                if (!isNetworkSecretConfigured()) return;
                 short len = in.readShort();
                 byte[] msgBytes = new byte[len];
                 in.readFully(msgBytes);
@@ -887,7 +923,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
         // 3) Check Cloud SSO cache immediately (works before KingGriefCore's NORMAL onJoin!)
         String expectedIpHash = sha256Hex(getPlayerIp(p) + "|" + secretKey).substring(0, 24);
         CloudSsoEntry sso = cloudSsoCache.remove(lowerNick);
-        if (sso != null && (sso.ipHash.isEmpty() || sso.ipHash.equals(expectedIpHash))) {
+        if (isNetworkSecretConfigured() && sso != null && (sso.ipHash.isEmpty() || sso.ipHash.equals(expectedIpHash))) {
             verifiedSsoPlayers.add(p.getUniqueId());
             markAuthenticatedEverywhere(p, sso.rank, sso.fromServer, false);
         }
@@ -940,7 +976,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     }
 
     private void handleVerifiedTokenString(String fullToken, Player targetPlayerOrNull) {
-        if (fullToken == null) return;
+        if (!isNetworkSecretConfigured() || fullToken == null) return;
         int lastPipe = fullToken.lastIndexOf('|');
         if (lastPipe <= 0) return;
         String rawData = fullToken.substring(0, lastPipe);
@@ -1775,17 +1811,20 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     }
 
     private void triggerImmediateAsyncCloudPush() {
-        if (!cloudSyncEnabled || cloudSyncUrl.isEmpty()) return;
+        if (!cloudSyncEnabled || !isNetworkSecretConfigured() || cloudSyncUrl.isEmpty()) return;
         final String payload = buildCloudSyncPayload();
+        final String requestSecret = secretKey;
         Bukkit.getScheduler().runTaskAsynchronously(this, new Runnable() {
             @Override
             public void run() {
-                final String resp = CloudSyncClient.postSync(cloudSyncUrl, secretKey, payload, 2500);
+                if (!cloudSyncEnabled || !requestSecret.equals(secretKey)) return;
+                final String resp = CloudSyncClient.postSync(cloudSyncUrl, requestSecret, payload, 2500);
                 if (resp != null && resp.startsWith("OK\t")) {
-                    lastCloudOk = true;
                     Bukkit.getScheduler().runTask(KingConnectPlugin.this, new Runnable() {
                         @Override
                         public void run() {
+                            if (!cloudSyncEnabled || !isNetworkSecretConfigured() || !requestSecret.equals(secretKey)) return;
+                            lastCloudOk = true;
                             applyCloudSyncResponse(resp);
                         }
                     });
@@ -1795,6 +1834,7 @@ public final class KingConnectPlugin extends JavaPlugin implements Listener, Com
     }
 
     private void applyCloudSyncResponse(String text) {
+        if (!cloudSyncEnabled || !isNetworkSecretConfigured()) return;
         String[] lines = text.split("\n");
         Set<String> seenBans = new HashSet<String>();
         for (int i = 1; i < lines.length; i++) {

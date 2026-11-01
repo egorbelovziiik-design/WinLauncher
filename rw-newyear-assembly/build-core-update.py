@@ -16,6 +16,8 @@ PUBLIC = ROOT.parent / "kinggrief" / "public"
 CORE = ROOT / "KingGriefCore.jar"
 AC = ROOT / "KingAC.jar"
 CLEAR = ROOT / "KingClear.jar"
+BRIDGE = ROOT / "plugins/KingGriefBridge.jar"
+CONNECT = ROOT / "KingConnect.jar"
 
 
 def add_file(archive, name, data):
@@ -38,7 +40,7 @@ def main():
     if (PUBLIC / f"KingGriefCore-v{version}.jar").read_bytes() != core:
         raise ValueError("Public versioned Core JAR differs")
     companions = []
-    for path, expected in ((AC, "8.3.1"), (CLEAR, "1.0.2")):
+    for path, expected in ((AC, "8.3.1"), (CLEAR, "1.0.2"), (BRIDGE, "1.4.1"), (CONNECT, "2.3.1")):
         content = path.read_bytes()
         with zipfile.ZipFile(path) as jar:
             metadata = jar.read("plugin.yml").decode("utf8")

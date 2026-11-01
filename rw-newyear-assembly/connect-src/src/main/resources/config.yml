@@ -19,8 +19,9 @@ this-server-name: "&#80D8FF&l❄ ГРИФ #1"
 mode: "auto"
 
 # Единый секретный ключ связки (ОДИНАКОВЫЙ на всех ваших серверах!).
-# Защищает авто-вход без повторного /login (HMAC-SHA256) и облачную синхронизацию.
-secret-key: "KingGrief-Network-Secret-2026"
+# Замените CHANGE_ME на случайный непубличный ключ (рекомендуется не менее 32 символов).
+# Пока ключ не задан, межсерверный SSO и синхронизация отключены.
+secret-key: "CHANGE_ME"
 
 # ID главного сервера Хаба / Лобби для команды /hub (/lobby)
 hub-server: "hub"
@@ -59,7 +60,7 @@ hub-mode:
 # Синхронизирует живой онлайн, привилегии, авто-баны KingАЧ, /gsc, /galert и /send
 # =====================================================================
 cloud-sync:
-  enabled: true
+  enabled: false
   url: "https://kinggrief.vercel.app/api/minecraft/network"
   interval-seconds: 4
   sync-ranks: true

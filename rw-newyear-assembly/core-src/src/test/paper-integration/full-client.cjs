@@ -1,6 +1,14 @@
 const mc = require('minecraft-protocol');
 const client = mc.createClient({host:'127.0.0.1',port:Number(process.argv[2]),username:'FullTester',version:'1.21.4',auth:'offline'});
-let position = false, prepared = false, packCount = 0;
+let position = false, prepared = false, packCount = 0, treeStatus = false;
+const expectTree = process.env.KG_EXPECT_TREE === '1';
+client.on('system_chat', packet => {
+  const text = JSON.stringify(packet.content);
+  if (expectTree && text.includes('Ёлка') && text.includes('сезон')) {
+    treeStatus = true;
+    console.log('FULL_CLIENT_TREE_STATUS');
+  }
+});
 client.on('add_resource_pack', packet => {
   packCount++;
   console.log('FULL_CLIENT_DECLINED_PACK', packet.url);
@@ -21,7 +29,13 @@ client.on('position', packet => {
     position = true;
     console.log('FULL_CLIENT_POSITION');
     setTimeout(() => client.write('chat_command', {command:'register smoke123 smoke123'}), 300);
-    setTimeout(() => { client.end('smoke complete'); if (packCount !== 1) console.error('FULL_CLIENT_PACK_COUNT', packCount); process.exit(packCount === 1 && prepared ? 0 : 1); }, 8000);
+    if (expectTree) setTimeout(() => client.write('chat_command', {command:'kgtree status'}), 2200);
+    setTimeout(() => {
+      client.end('smoke complete');
+      if (packCount !== 1) console.error('FULL_CLIENT_PACK_COUNT', packCount);
+      if (expectTree && !treeStatus) console.error('FULL_CLIENT_TREE_STATUS_MISSING');
+      process.exit(packCount === 1 && prepared && (!expectTree || treeStatus) ? 0 : 1);
+    }, 8000);
   }
 });
 client.on('error', error => {console.error('FULL_CLIENT_ERROR',String(error));process.exit(1);});

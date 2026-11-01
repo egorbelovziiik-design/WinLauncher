@@ -1,0 +1,5 @@
+name: KgConnectSecurityProbe
+version: '1.0'
+main: net.kinggrief.probe.ConnectSecurityProbe
+api-version: '1.21'
+depend: [KingConnect]

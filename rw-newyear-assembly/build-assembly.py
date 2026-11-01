@@ -86,6 +86,14 @@ def verify_distribution_hygiene():
         raise RuntimeError("KingConnect example key must be CHANGE_ME")
     if not re.search(r"(?m)^cloud-sync:\s*\n\s*enabled:\s*false\s*$", connect_config):
         raise RuntimeError("KingConnect cloud sync must be disabled in a fresh assembly")
+    with zipfile.ZipFile(SERVER / "plugins/KingConnect.jar") as connect_jar:
+        if connect_jar.testzip() is not None:
+            raise RuntimeError("Corrupt KingConnect JAR")
+        if not re.search(r"(?m)^version:\s*2\.3\.1\s*$", connect_jar.read("plugin.yml").decode("utf8")):
+            raise RuntimeError("Assembly needs KingConnect 2.3.1")
+        embedded = connect_jar.read("config.yml").decode("utf8")
+        if not re.search(r"(?m)^secret-key:\s*[\"']?CHANGE_ME[\"']?\s*$", embedded) or not re.search(r"(?m)^cloud-sync:\s*\n\s*enabled:\s*false\s*$", embedded):
+            raise RuntimeError("KingConnect embedded defaults must also be safe")
     runtime = ("world", "world_nether", "world_the_end", "logs", "cache", "libraries", "versions",
                "plugins/.paper-remapped", "plugins/KingGriefCore/data.yml", "plugins/KingGriefCore/safe-trades",
                "plugins/KingGriefCore/buy-orders", "ops.json", "whitelist.json", "usercache.json",

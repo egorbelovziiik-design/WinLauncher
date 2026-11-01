@@ -50,9 +50,11 @@ def main():
    raise RuntimeError('Refusing to run smoke test with a non-placeholder bridge credential')
   # Never contact a real KingConnect cloud or real servers from a test instance.
   with ZipFile(server/'plugins/KingConnect.jar') as z: connect=z.read('config.yml').decode()
-  connect,n=re.subn(r'(cloud-sync:\s*\n\s*enabled:)\s*true',r'\1 false',connect,count=1)
+  connect,n=re.subn(r'(cloud-sync:\s*\n\s*enabled:)\s*(?:true|false)',r'\1 false',connect,count=1)
   if n!=1:raise RuntimeError('Cannot isolate cloud-sync in the test config')
-  conffile=server/'plugins/KingConnect/config.yml';conffile.parent.mkdir(parents=True);conffile.write_text(connect)
+  connect,n=re.subn(r'(?m)^secret-key:.*$', 'secret-key: "CHANGE_ME"', connect, count=1)
+  if n!=1:raise RuntimeError('Cannot isolate the KingConnect key in the test config')
+  conffile=server/'plugins/KingConnect/config.yml';conffile.parent.mkdir(parents=True,exist_ok=True);conffile.write_text(connect)
   (server/'cache').mkdir();shutil.copy2(a.vanilla,server/'cache'/cache)
   (server/'eula.txt').write_text('eula=true\n')
   with (server/'server.properties').open('a') as f:
@@ -72,10 +74,10 @@ def main():
     if 'Done (' in line and 'For help' in line:print('SERVER STARTED:',line.strip(),flush=True);started=True;break
     if 'Error occurred while enabling' in line:break
    if not started:raise RuntimeError('Paper did not start')
-   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve())
+   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve());env['KG_EXPECT_TREE']='1' if a.core_version=='7.5.0' else '0'
    client=subprocess.run([a.node,str(HERE/'full-client.cjs'),str(port)],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,env=env,timeout=75)
    print(client.stdout.strip(),flush=True)
-   if client.returncode or 'FULL_CLIENT_PREPARED_SPAWN_POSITION' not in client.stdout:raise RuntimeError('Protocol client could not enter the full assembly')
+   if client.returncode or 'FULL_CLIENT_PREPARED_SPAWN_POSITION' not in client.stdout:raise RuntimeError('Protocol client could not enter the full assembly or use /kgtree')
    text=''.join(output)
    for plugin in ('KingGriefCore','KingAC','KingConnect','KingClear','KingGriefBridge'):
     if not re.search(r'Enabling '+plugin+r' v',text):raise RuntimeError(plugin+' was not enabled')

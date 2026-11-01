@@ -1,22 +1,26 @@
-name: KingGrief Paper verification
+name: KingGrief 7.5 Paper release checks
 
 on:
   push:
     branches: [arena/3eb24343-winlauncher]
     paths:
       - '.github/workflows/kinggrief-paper.yml'
-      - 'rw-newyear-assembly/core-src/**'
-      - 'rw-newyear-assembly/common-src/**'
-      - 'rw-newyear-assembly/build-core-hub.py'
+      - 'rw-newyear-assembly/**'
+      - 'kinggrief/minecraft-plugin/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  paper:
+  verify:
+    name: Paper / ${{ matrix.group }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [release, gameplay, economy, protection]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -56,16 +60,86 @@ jobs:
           echo "KG_TEST_DIR=$KG" >> "$GITHUB_ENV"
           echo "KG_API_CP=$API_CP" >> "$GITHUB_ENV"
           npm install --prefix "$KG/node" --no-fund --no-audit minecraft-protocol@1.62.0
-      - name: Compile Core
-        run: python rw-newyear-assembly/build-core-hub.py --core-only --api-classpath "$KG_API_CP"
-      - name: Test command conflict and seasonal data
+      - name: Compile Core and KingConnect with Java 21
+        run: python rw-newyear-assembly/build-core-hub.py --core-only --include-connect --api-classpath "$KG_API_CP"
+      - name: Exercise ${{ matrix.group }} against isolated Paper servers
+        run: bash rw-newyear-assembly/run-v75-checks.sh '${{ matrix.group }}'
+      - name: Save test summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kg-report-${{ matrix.group }}
+          path: ${{ runner.temp }}/kinggrief-paper/report-${{ matrix.group }}.txt
+          if-no-files-found: error
+          retention-days: 7
+      - name: Save the exact tested distribution
+        if: matrix.group == 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kg-verified-distribution
+          path: ${{ runner.temp }}/kinggrief-paper/distribution.tar
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-branch-artifacts:
+    name: Save verified artifacts to this branch
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/arena/3eb24343-winlauncher'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: kg-verified-distribution
+          path: ${{ runner.temp }}/kg-output
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kg-report-*
+          path: ${{ runner.temp }}/kg-output/reports
+          merge-multiple: true
+      - name: Verify and save only release artifacts
+        shell: bash
         run: |
-          python rw-newyear-assembly/core-src/src/test/paper-integration/test-tree-season.py \
-            --paper "$KG_TEST_DIR/paper.jar" --vanilla "$KG_TEST_DIR/vanilla.jar" \
-            --api-classpath "$KG_API_CP" --node-modules "$KG_TEST_DIR/node/node_modules" --accept-eula
-      - name: Test upgrade from the published Core
-        run: |
-          python rw-newyear-assembly/core-src/src/test/paper-integration/test-release-upgrade.py \
-            --paper "$KG_TEST_DIR/paper.jar" --vanilla "$KG_TEST_DIR/vanilla.jar" \
-            --api-classpath "$KG_API_CP" --node-modules "$KG_TEST_DIR/node/node_modules" \
-            --core-old kinggrief/public/KingGriefCore-v7.4.0.jar --accept-eula
+          set -euo pipefail
+          tar -xf "$RUNNER_TEMP/kg-output/distribution.tar" -C "$GITHUB_WORKSPACE"
+          python rw-newyear-assembly/core-src/src/test/test-distribution-v75.py
+          python - "$RUNNER_TEMP/kg-output/reports" <<'PY'
+          import hashlib, os, pathlib, sys
+          reports = pathlib.Path(sys.argv[1])
+          expected = ['release','gameplay','economy','protection']
+          for group in expected:
+              if not (reports / ('report-' + group + '.txt')).is_file():
+                  raise RuntimeError('Missing test report ' + group)
+          core = pathlib.Path('rw-newyear-assembly/KingGriefCore.jar').read_bytes()
+          full = pathlib.Path('rw-newyear-assembly/rw-newyear-full-assembly-v7.5.0.zip').read_bytes()
+          patch = pathlib.Path('rw-newyear-assembly/KingGriefCore-7.5.0-update.zip').read_bytes()
+          text = '# Проверки KingGrief 7.5.0\n\n'
+          text += 'Изолированные серверы Paper 1.21.4 build 232, Java 21 и протокольные клиенты; реальные игровые миры не использовались. '
+          text += 'Проверки не являются графическим тестом клиента или гарантией защиты от сбоя питания.\n\n'
+          text += '- SHA-256 Core: `' + hashlib.sha256(core).hexdigest() + '`\n'
+          text += '- SHA-256 полной сборки: `' + hashlib.sha256(full).hexdigest() + '`\n'
+          text += '- SHA-256 архива обновления: `' + hashlib.sha256(patch).hexdigest() + '`\n'
+          text += '- GitHub Actions: https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'] + '\n\n'
+          text += '```\n' + ''.join((reports / ('report-' + group + '.txt')).read_text() for group in expected) + '```\n'
+          pathlib.Path('rw-newyear-assembly/ПРОВЕРКИ_7.5.0.md').write_text(text, encoding='utf8')
+          PY
+          git diff --check
+          git add rw-newyear-assembly/KingGriefCore.jar rw-newyear-assembly/plugins/KingGriefCore.jar \
+            rw-newyear-assembly/server/plugins/KingGriefCore.jar kinggrief/public/KingGriefCore.jar \
+            kinggrief/public/KingGriefCore-v7.5.0.jar rw-newyear-assembly/KingConnect.jar \
+            rw-newyear-assembly/plugins/KingConnect.jar rw-newyear-assembly/server/plugins/KingConnect.jar \
+            kinggrief/public/KingConnect.jar kinggrief/public/KingConnect-v2.3.1.jar \
+            rw-newyear-assembly/KingGriefCore-7.5.0-update.zip \
+            kinggrief/public/KingGriefCore-7.5.0-update.zip rw-newyear-assembly/rw-newyear-full-assembly-v7.5.0.zip \
+            kinggrief/public/rw-newyear-full-assembly-v7.5.0.zip rw-newyear-assembly/ОБНОВЛЕНИЕ_7.5.0.md \
+            rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.5.0.md rw-newyear-assembly/ПРОВЕРКИ_7.5.0.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save tested KingGrief 7.5.0 artifacts [skip ci]'
+            git push origin HEAD:refs/heads/arena/3eb24343-winlauncher
+          fi
