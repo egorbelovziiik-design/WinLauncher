@@ -35,7 +35,7 @@ import java.util.Map;
 public final class CalendarProbe extends JavaPlugin implements Listener {
     private static final String ROOT="eventCalendar.entries";
     private KingGriefCore core;private Player a,b;private boolean running,done,watch;private int checks,teleports;
-    private String keepA,keepB;private long base;private double coinsA,coinsB;
+    private String keepA;private long base;private double coinsA,coinsB;
     @Override public void onEnable(){saveDefaultConfig();core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent event){
         if("CalendarTester".equals(event.getPlayer().getName()))a=event.getPlayer();if("CalendarOther".equals(event.getPlayer().getName()))b=event.getPlayer();
@@ -72,10 +72,13 @@ public final class CalendarProbe extends JavaPlugin implements Listener {
         ok(keys().isEmpty(),"ordinary player cannot change the calendar");
         console("add unknown "+at(base+3_600_000L));console("add boss invalid");console("add boss "+at(base-10_000L));console("add boss "+at(base+91L*86_400_000L));
         ok(keys().isEmpty(),"invalid kind, date, past and excessive future are rejected");
+        core.getStore().setSavedRank(a.getName(),"techadmin");a.performCommand("calendar add forge "+at(base+3_600_000L));
+        ok(keys().size()==1&&"forge".equals(yaml().getString(ROOT+"."+keys().get(0)+".kind")),"TECH.ADMIN can schedule without an OP bypass");
+        console("remove "+keys().get(0)+" confirm");core.getStore().setSavedRank(a.getName(),savedRank);
         long first=(base+3_600_000L)/1000*1000;String offset=OffsetDateTime.ofInstant(Instant.ofEpochMilli(first),ZoneOffset.ofHours(3)).toString();
         console("add parkour "+offset);console("add memory "+at(base+7_200_000L));console("add boss "+at(base+10_800_000L));
         List<String> created=keys();ok(created.size()==3&&created.stream().distinct().count()==3,"console adds three distinct durable announcements");
-        keepA=created.get(0);keepB=created.get(1);String remove=created.get(2);
+        keepA=created.get(0);String remove=created.get(2);
         ok(yaml().getLong(ROOT+"."+keepA+".at")==first,"explicit UTC offset is normalized without changing the instant");
         withBlockedSave(()->console("add duel "+at(base+4_000_000L)));
         ok(keys().size()==3,"failed add rolls back the in-memory calendar");
@@ -143,6 +146,8 @@ public final class CalendarProbe extends JavaPlugin implements Listener {
         List<String> entries=keys();ok(entries.size()==2,"future announcements survive full server restart");
         boolean parkour=false,memory=false;for(String id:entries){String kind=yaml().getString(ROOT+"."+id+".kind");parkour|="parkour".equals(kind);memory|="memory".equals(kind);}
         ok(parkour&&memory,"restart retains the kinds and excludes deleted and temporary announcements");
-        a.performCommand("calendar");ok(calendarOpen(),"calendar GUI reopens after restart");a.closeInventory();finish();
+        a.performCommand("calendar");ok(calendarOpen(),"calendar GUI reopens after restart");
+        // Leave the window open long enough for the network client to observe it.
+        later(8,()->{a.closeInventory();later(3,this::finish);});
     }
 }

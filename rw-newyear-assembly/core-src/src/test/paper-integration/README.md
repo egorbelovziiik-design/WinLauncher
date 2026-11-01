@@ -152,6 +152,22 @@ transport as sack passenger, offline/literal IP and unban, portal restoration,
 duplicate/cancelled animation, client disconnect and orderly plugin disable.
 These tests exercise server-side state and packets, not a rendered Minecraft client.
 
+`test-train-stats.py` uses two protocol players against the prepared spawn's
+existing training dummies. It checks per-player hit samples, the documented
+netherite estimate, the five-second raw-DPS window, rate limiting, authorization,
+reset and restart. The possible-critical branch uses a synthetic damage event,
+a real on-ground=false packet and fixture-supplied fall distance. It also checks
+server-accepted PvP, projectile-mob and event-tagged boss damage indicators,
+including a later PvP damage modifier and cancellation. These are not visual
+client tests or a full combat simulation.
+
+`test-calendar.py` checks the announcement calendar with two protocol players:
+permissions, time-zone normalization, entry limits, failed writes, confirmation,
+menu item/drag protection, real page/close clicks, grouped reminder packets and
+restart. Test-only times drive the reminder stages; this does not simulate a
+clock jump, host crash or automatic event execution. The calendar announces
+rather than starting activities.
+
 `test-new-features.py` exercises the airship's protected, non-repeatable scrap,
 expiry and terrain restoration; opt-in crown scoring, accepted/cancelled damage
 and rewards; trade confirmation, PDC/lore, inventory capacity and drag/hotbar

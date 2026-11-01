@@ -9,7 +9,6 @@ import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Pig;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
@@ -41,8 +40,9 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
     }
     private void later(long ticks,Runnable runnable){Bukkit.getScheduler().runTaskLater(this,()->{try{runnable.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean value,String text){if(!value)throw new AssertionError(text);checks++;getLogger().info("KG-TRAIN PASS "+text);}
-    private void fail(Throwable error){if(done)return;done=true;getLogger().severe("KG-TRAIN RESULT FAIL "+error);error.printStackTrace();}
-    private void finish(){done=true;getLogger().info("KG-TRAIN REQUEST REPORT");getLogger().info("KG-TRAIN RESULT PASS "+checks+" checks");}
+    private void clearCombat(){if(core!=null){if(a!=null)core.getHud().clearCombat(a.getUniqueId());if(b!=null)core.getHud().clearCombat(b.getUniqueId());}}
+    private void fail(Throwable error){if(done)return;done=true;clearCombat();getLogger().severe("KG-TRAIN RESULT FAIL "+error);error.printStackTrace();}
+    private void finish(){done=true;clearCombat();getLogger().info("KG-TRAIN REQUEST REPORT");getLogger().info("KG-TRAIN RESULT PASS "+checks+" checks");}
     private void request(String command){getLogger().info("KG-TRAIN REQUEST "+command);}
     private Object field(Object object,String name){try{Field f=object.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(object);}catch(Exception error){throw new RuntimeException(error);}}
     private Object manager(){return field(core,"trainingStats");}
@@ -166,8 +166,13 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
             ok(ordinaryCancelled&&b.getHealth()==20&&clearIndicators(b.getLocation())==0,"late-cancelled PvP damage has no floating indicator");
             Location pigLocation=new Location(spawn,82.5,94,10.5);Pig pig=spawn.spawn(pigLocation,Pig.class,p->{p.setAI(false);p.setGravity(false);});
             Arrow arrow=spawn.spawn(pigLocation.clone().add(0,1,0),Arrow.class);arrow.setShooter(a);ordinaryTarget=pig;ordinaryFinal=-1;ordinaryCancelled=true;
-            pig.damage(6.0,arrow);
-            ok(!ordinaryCancelled&&ordinaryFinal>0&&pig.getHealth()<20&&indicatorAt(pig.getLocation(),ordinaryFinal),
+            // LivingEntity.damage(amount, arrow) is generic on Paper; an explicit
+            // source is needed to exercise the actual projectile event pipeline.
+            org.bukkit.damage.DamageSource source=org.bukkit.damage.DamageSource.builder(org.bukkit.damage.DamageType.ARROW)
+                    .withDirectEntity(arrow).withCausingEntity(a).build();
+            pig.damage(6.0,source);
+            boolean pigIndicator=indicatorAt(pig.getLocation(),ordinaryFinal);
+            ok(!ordinaryCancelled&&ordinaryFinal>0&&pig.getHealth()<10&&pigIndicator,
                     "projectile indicator converts accepted mob damage to hearts");
             clearIndicators(pig.getLocation());pig.remove();arrow.remove();
             Location bossLocation=new Location(spawn,88.5,94,10.5);Zombie boss=spawn.spawn(bossLocation,Zombie.class,z->{z.setAI(false);z.setGravity(false);});
