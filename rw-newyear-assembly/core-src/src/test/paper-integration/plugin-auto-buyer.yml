@@ -1,0 +1,5 @@
+name: KgAutoBuyerProbe
+version: '1.0'
+main: net.kinggrief.probe.AutoBuyerProbe
+api-version: '1.20'
+depend: [KingGriefCore]

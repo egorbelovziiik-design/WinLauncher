@@ -113,7 +113,7 @@ final class AutoBuyerManager implements Listener {
         if (args.length > 1) { usage(p); return; }
         if ("status".equals(sub)) {
             p.sendMessage(ColorUtil.c("&#80D8FFАвтоскупка добычи: " + (enabled(p) ? "&aВКЛЮЧЕНА" : "&cВЫКЛЮЧЕНА")));
-            p.sendMessage(ColorUtil.c("&7Продаются только новые обычные ресурсы добычи, попавшие в инвентарь; старые вещи не сканируются."));
+            p.sendMessage(ColorUtil.c("&7Учитываются только новые обычные ресурсы добычи, попавшие в инвентарь; старый запас сохраняется."));
             p.sendMessage(ColorUtil.c("&7Если инвентарь изменился, очередь переполнена или запись не удалась, ресурсы остаются у вас."));
             usage(p); return;
         }
@@ -173,8 +173,12 @@ final class AutoBuyerManager implements Listener {
     private static boolean empty(ItemStack stack) { return stack == null || stack.getType().isAir() || stack.getAmount() <= 0; }
     private static ItemStack[] snapshot(Player p) {
         ItemStack[] contents=p.getInventory().getStorageContents();
-        ItemStack[] out=new ItemStack[contents.length];
+        // Minecraft can merge a normal pickup into the offhand before storage.
+        // Include it in the exact before/after check rather than selling old items.
+        ItemStack[] out=new ItemStack[contents.length+1];
         for (int i=0;i<contents.length;i++) out[i]=empty(contents[i])?null:contents[i].clone();
+        ItemStack offhand=p.getInventory().getItemInOffHand();
+        out[contents.length]=empty(offhand)?null:offhand.clone();
         return out;
     }
     private static boolean same(ItemStack[] a, ItemStack[] b) {
@@ -369,7 +373,8 @@ final class AutoBuyerManager implements Listener {
                 ItemStack before=sale.before[slot], after=sale.after[slot];
                 if (empty(before) && empty(after)) continue;
                 if (!empty(before) && !empty(after) && before.equals(after)) continue;
-                sale.player.getInventory().setItem(slot,after);
+                int inventorySlot=slot==sale.after.length-1 ? 40 : slot;
+                sale.player.getInventory().setItem(inventorySlot,after);
             }
             try { sale.player.saveData(); }
             catch (RuntimeException error) { plugin.getLogger().warning("[AutoBuyer] Player save failed after credit for "+sale.player.getName()+": "+error.getMessage()); }
