@@ -29,8 +29,9 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
     private KingGriefCore core;
     private Player a, b;
     private World world;
-    private boolean started, finished, cancelHit, observedCancel;
-    private double observedFinal;
+    private boolean started, finished, cancelHit, observedCancel, triggerNested, processingNested;
+    private boolean nestedCancelled;
+    private double observedFinal, nestedFinal;
     private int checks;
 
     @Override public void onEnable() {
@@ -49,14 +50,21 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void thirdPartyProtection(EntityDamageByEntityEvent e) {
-        if (e.getEntity().equals(b) && cancelHit) e.setCancelled(true);
+        if (!e.getEntity().equals(b)) return;
+        if (triggerNested && !processingNested) {
+            triggerNested = false;
+            processingNested = true;
+            b.setNoDamageTicks(0); b.setLastDamage(0); b.damage(4.0, a);
+            processingNested = false;
+            e.setCancelled(true);
+        } else if (cancelHit && !processingNested) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void observe(EntityDamageByEntityEvent e) {
         if (e.getEntity().equals(b)) {
-            observedCancel = e.isCancelled();
-            observedFinal = e.getFinalDamage();
+            if (processingNested) { nestedCancelled = e.isCancelled(); nestedFinal = e.getFinalDamage(); }
+            else { observedCancel = e.isCancelled(); observedFinal = e.getFinalDamage(); }
         }
     }
 
@@ -135,6 +143,13 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
                 ? ((Damageable) chest.getItemMeta()).getDamage() : -1;
     }
 
+    private void setArmor(Player player, String set) {
+        player.getInventory().setHelmet(ItemFactory.customArmorPiece(set, "helmet"));
+        player.getInventory().setChestplate(ItemFactory.customArmorPiece(set, "chestplate"));
+        player.getInventory().setLeggings(ItemFactory.customArmorPiece(set, "leggings"));
+        player.getInventory().setBoots(ItemFactory.customArmorPiece(set, "boots"));
+    }
+
     private void begin() {
         world = core.getSpawnEngine().getSpawnArrival().getWorld();
         ok(core.getSpawnEngine().isSpawnActive(), "prepared spawn is active");
@@ -178,6 +193,10 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
                 () -> a.getHealth() > 10);
         check("Dracula talisman", () -> {a.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));a.getInventory().setItemInOffHand(ItemFactory.talDraculy());},
                 () -> a.getHealth() > 10);
+        check("vampire elytra", () -> {a.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));a.getInventory().setChestplate(ItemFactory.elytraVampire());},
+                () -> a.getHealth() > 10);
+        check("Dracula armor set", () -> {a.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));setArmor(a,"dracula");},
+                () -> a.getHealth() > 10);
         check("reaper scythe", () -> a.getInventory().setItemInMainHand(ItemFactory.scytheReaper()),
                 () -> a.getHealth() > 10 || b.hasPotionEffect(PotionEffectType.WITHER),
                 () -> a.getHealth() > 10 && b.hasPotionEffect(PotionEffectType.WITHER));
@@ -188,13 +207,38 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
                 () -> a.getFreezeTicks() > 0 && a.hasPotionEffect(PotionEffectType.SLOWNESS));
         check("phoenix elytra retaliation", () -> {a.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));b.getInventory().setChestplate(ItemFactory.elytraPhoenix());},
                 () -> a.getFireTicks() > 0);
+        check("frost armor retaliation", () -> {a.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));setArmor(b,"frost");},
+                () -> a.getFreezeTicks() > 0);
         check("armor oxidation", () -> {a.getInventory().setItemInMainHand(ItemFactory.swordKrush());b.getInventory().setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));},
                 () -> armorDamage() > 0);
+        check("owner blade", () -> {a.getInventory().setItemInMainHand(ItemFactory.swordOwner());b.getInventory().setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));},
+                () -> a.getHealth() > 10 || armorDamage() > 0,
+                () -> a.getHealth() > 10 && armorDamage() >= 2);
         reset(); a.getInventory().setItemInMainHand(ItemFactory.maceKrush());a.setFallDistance(2.0f);
         hit(true);
         ok(observedCancel && a.getFallDistance() == 2.0f, "mace late cancellation does not consume fall distance");
         hit(false);
         ok(!observedCancel && a.getFallDistance() == 0.0f && observedFinal > 4.0, "accepted mace consumes fall distance and adds damage");
+
+        reset();a.getInventory().setItemInMainHand(ItemFactory.axeThor());hit(false);
+        ok(!observedCancel && observedFinal >= 9 && b.hasPotionEffect(PotionEffectType.SLOWNESS), "accepted Thor proc starts cooldown");
+        b.removePotionEffect(PotionEffectType.SLOWNESS);b.setCooldown(Material.SHIELD,0);b.setHealth(20);hit(true);
+        ok(observedCancel && !b.hasPotionEffect(PotionEffectType.SLOWNESS) && b.getCooldown(Material.SHIELD)==0,
+                "blocked hit during cooldown does not cause secondary effects");
+        hit(false);
+        ok(!observedCancel && Math.abs(observedFinal-4.0)<1e-9 && !b.hasPotionEffect(PotionEffectType.SLOWNESS)
+                && b.getCooldown(Material.SHIELD)>0, "existing Thor cooldown suppresses bonus but keeps normal shield break");
+
+        reset();a.getInventory().setItemInMainHand(ItemFactory.axeThor());
+        nestedFinal=-1;nestedCancelled=true;triggerNested=true;hit(false);
+        ok(observedCancel && !nestedCancelled && Math.abs(nestedFinal-4.0)<1e-9
+                && !b.hasPotionEffect(PotionEffectType.SLOWNESS), "nested accepted hit cannot steal a pending proc");
+        b.setHealth(20);hit(false);
+        ok(!observedCancel && observedFinal>=9 && b.hasPotionEffect(PotionEffectType.SLOWNESS),
+                "cancelling the outer hit releases its reserved proc");
+        ok(((Map<?,?>)field(field(core,"gameplayListener"),"pendingPvpHits")).isEmpty()
+                && ((Map<?,?>)field(field(core,"gameplayListener"),"pendingPvpCooldowns")).isEmpty(),
+                "accepted, cancelled and nested events leave no pending PvP state");
         finished = true;
         core.getHud().clearCombat(a.getUniqueId());core.getHud().clearCombat(b.getUniqueId());
         getLogger().info("KG-COMBAT RESULT PASS " + checks + " checks");
