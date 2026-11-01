@@ -96,7 +96,8 @@ public final class GuiManager {
             {"tree_friend", "&#80D8FF[❄ ДРУГ ЁЛКИ]",   "-1",  "За участие в украшении зимней ёлки!"},
             {"ludoman",     "&#FFEA00[🎰 ЛУДОМАН]",     "110", "Легенда Гранд-Казино 777"},
             {"rw_legend",   "&#FACC15[👑 ЛЕГЕНДА РВ]",  "300", "Максимальный статус ReallyWorld"},
-            {"king_achiever", "&#80D8FF[✦ ИСКАТЕЛЬ]", "-1", "За четыре основных достижения: /achievements"}
+            {"king_achiever", "&#80D8FF[✦ ИСКАТЕЛЬ]", "-1", "За четыре основных достижения: /achievements"},
+            {"winter_fisher", "&#81D4FA[🎣 РЫБАК СЕВЕРА]", "-1", "За 25 зимних бонусов: /winterfish"}
     };
 
     private static final String[] COMMON_GROUP_PERMS = new String[]{
@@ -199,6 +200,8 @@ public final class GuiManager {
                 "&7Катана Сакуры, Меч Зевса, Фламберг Феникса,",
                 "&7Астральный Меч Бездны, Экскалибур Мидаса!"));
 
+        inv.setItem(45, ItemFactory.glowIcon(Material.FISHING_ROD, "&#80D8FF&l🎣 Зимняя рыбалка (/winterfish)",
+                "&7Ловите рыбу в выживании и получайте снежные бонусы.", "&7Ванильный улов не заменяется."));
         inv.setItem(46, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#00E676&l🤝 Тиммейты и Пати (/tm)",
                 "&7Добавь друзей в тиму без клана: &f/tm <ник>",
                 "&7Божья Аура лечит всю тиму + защита от урона!",
@@ -1401,7 +1404,7 @@ public final class GuiManager {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("titles", "", 0), 45,
                 ColorUtil.c("&#FFD740&l✨ КОЛЛЕКЦИЯ ТИТУЛОВ СЕРВЕРА"));
         decorateFrame(inv);
-        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28};
+        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28,29};
         for (int i = 0; i < TITLES_CATALOG.length && i < slots.length; i++) {
             String[] t = TITLES_CATALOG[i];
             String tid = t[0], disp = t[1], desc = t[3];
@@ -1899,6 +1902,9 @@ public final class GuiManager {
             else if (slot == 41) openBountyMenu(p);
             else if (slot == 42) openFreebieMenu(p);
             else if (slot == 43) openSwordsMenu(p);
+            else if (slot == 45) Bukkit.getScheduler().runTask(plugin, () -> {
+                if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) plugin.getWinterFishing().open(p);
+            });
             else if (slot == 46) openTeammatesMenu(p);
             else if (slot == 50) plugin.getWinterItems().open(p, 0);
             else if (slot == 51) plugin.getExpeditions().open(p);

@@ -9,6 +9,10 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  winterfish:
+    aliases: [winterfishing]
+    description: Winter fishing bonuses and personal statistics
+    usage: /winterfish
   achievements:
     aliases: [achieve]
     description: View persistent achievement badges and cosmetic rewards
