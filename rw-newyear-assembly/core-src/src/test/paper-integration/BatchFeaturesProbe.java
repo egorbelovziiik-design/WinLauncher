@@ -257,7 +257,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
             ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"only accepted mining is counted");
             ok(yaml().getInt("utility.mining."+a.getUniqueId()+".ores.diamond_ore")==1,"mining statistics record the exact ore type");
             ok(a.performCommand("minestats")&&a.performCommand("minestats 2")&&a.performCommand("minestats -1"),"mining statistics pages and invalid-page guard are registered");
-            auction();tree();backupChecks(()->{a.performCommand("pet penguin");later(15,()->petChecks());});
+            auction();tree();achievementOwnerCheck(()->backupChecks(()->{a.performCommand("pet penguin");later(15,()->petChecks());}));
         });
     }
     private Inventory auctionInventory(){return a.getOpenInventory().getTopInventory();}
@@ -373,6 +373,19 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
             data.set(player+".coins",coins);data.set(player+".snowflakes",snow);data.set(player+".cases.legendary",keys);
             data.set(player+".titles.tree_friend",oldTitle);stage.setInt(manager,1);store.save();
         }catch(Exception error){throw new RuntimeException(error);}
+    }
+    private void achievementOwnerCheck(Runnable next){
+        a.performCommand("achievements");Inventory menu=a.getOpenInventory().getTopInventory();
+        ok(menu.getSize()==45&&menu.getItem(10).getType()==Material.IRON_PICKAXE
+                &&menu.getItem(28).getType()==Material.SPRUCE_SAPLING,"achievement menu presents primary and seasonal goals");
+        b.openInventory(menu);
+        InventoryClickEvent foreign=new InventoryClickEvent(b.getOpenInventory(),InventoryType.SlotType.CONTAINER,28,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(foreign);
+        ok(foreign.isCancelled(),"another viewer cannot move an achievement menu item");
+        later(2,()->{
+            ok(!yaml().getBoolean("achievements."+b.getUniqueId()+".claimed.tree_1"),"another viewer cannot claim someone else's achievement menu");
+            b.closeInventory();a.closeInventory();next.run();
+        });
     }
     private void backupChecks(Runnable next){
         Path folder=core.getDataFolder().toPath().resolve("backups"), outside=core.getDataFolder().toPath().resolveSibling("kg-backup-outside-fixture");
@@ -497,7 +510,45 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
             ok(ev.bossDefeated&&core.getStore().getCoins(a.getName())==coins,"failed boss payout leaves local balances unchanged");
             events.handleBossDeath(boss,a);
             ok(core.getStore().getCoins(a.getName())==coins,"unpaid boss cannot silently pay again after failure");
-            events.endEvent(ev.instanceId,false);finish();
+            events.endEvent(ev.instanceId,false);achievementChecks();
+        });
+    }
+    private void achievementChecks(){
+        DataStore store=core.getStore();String path="achievements."+a.getUniqueId()+".claimed.";
+        core.getConfig().set("enable-builtin-auth",true);store.setAuthenticated(a,false);
+        a.performCommand("achievements claim");
+        ok(!yaml().getBoolean(path+"tree_1"),"unauthenticated players cannot claim achievements");
+        core.getConfig().set("enable-builtin-auth",false);
+        a.performCommand("achievements");
+        InventoryClickEvent swap=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,28,ClickType.NUMBER_KEY,InventoryAction.HOTBAR_SWAP,0);
+        Bukkit.getPluginManager().callEvent(swap);
+        ok(swap.isCancelled()&&!yaml().getBoolean(path+"tree_1"),"hotbar swapping cannot claim or take achievement icons");
+        InventoryClickEvent click=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,28,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(click);ok(click.isCancelled(),"normal achievement menu clicks cannot move icons");
+        later(2,()->{
+            ok(yaml().getBoolean(path+"tree_1")&&!yaml().getBoolean(path+"tree_10")&&!yaml().getBoolean(path+"boss"),"clicking a seasonal badge claims only that badge");
+            double coins=store.getCoins(a.getName());int snow=store.getSnowflakes(a.getName());
+            a.performCommand("achievements claim");
+            ok(yaml().getBoolean(path+"tree_10")&&yaml().getBoolean(path+"boss")
+                    &&!yaml().getBoolean(path+"ore_25")&&!store.hasUnlockedTitle(a.getName(),"king_achiever"),"claim-all skips unfinished goals and seasonal badges do not grant the core title");
+            String ore="utility.mining."+a.getUniqueId()+".total",record="parkour.records."+a.getUniqueId()+".all";
+            int originalOre=yaml().getInt(ore);Object originalRecord=yaml().get(record);
+            yaml().set(ore,250);yaml().set(record,42_000L);
+            withBlockedSave(()->a.performCommand("achievements claim"));
+            ok(!yaml().getBoolean(path+"ore_25")&&!yaml().getBoolean(path+"parkour")
+                    &&!store.hasUnlockedTitle(a.getName(),"king_achiever")&&store.getCoins(a.getName())==coins,
+                    "failed achievement save rolls back every badge and title");
+            a.performCommand("achievements claim");a.performCommand("achievements claim");
+            ok(yaml().getBoolean(path+"ore_25")&&yaml().getBoolean(path+"ore_250")&&yaml().getBoolean(path+"parkour")
+                    &&store.hasUnlockedTitle(a.getName(),"king_achiever")&&store.getCoins(a.getName())==coins
+                    &&store.getSnowflakes(a.getName())==snow,"eligible achievements and cosmetic title are durable and idempotent");
+            yaml().set(ore,originalOre);yaml().set(record,originalRecord);store.save();
+            a.performCommand("titles");Inventory titles=a.getOpenInventory().getTopInventory();
+            ok(titles.getItem(28)!=null&&titles.getItem(28).getType()==Material.NAME_TAG,"achievement title appears unlocked in the titles menu");
+            InventoryClickEvent equip=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,28,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+            Bukkit.getPluginManager().callEvent(equip);
+            ok(equip.isCancelled()&&store.getActiveTitleDisplay(a.getName()).contains("ИСКАТЕЛЬ"),"achievement title can be equipped without taking the icon");
+            a.closeInventory();finish();
         });
     }
     private void restartChecks(){
@@ -520,6 +571,12 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         java.util.List<Integer> favorites=yaml().getIntegerList("auctionPreferences."+a.getUniqueId()+".favorites");
         ok(favorites.size()==1&&store.findAuctionLot(favorites.get(0))!=null,"favorite lot survives restart");
         ok(yaml().getStringList("auctionHistory.emerald_plain").size()==1,"auction sale history survives restart");
+        ok(yaml().getBoolean("achievements."+a.getUniqueId()+".claimed.ore_250")
+                &&yaml().getBoolean("achievements."+a.getUniqueId()+".claimed.parkour")
+                &&store.hasUnlockedTitle(a.getName(),"king_achiever"),"achievement badges and cosmetic title survive restart");
+        a.performCommand("achievements");
+        ok(a.getOpenInventory().getTopInventory().getItem(34).getType()==Material.NAME_TAG,"achievement menu restores unlocked title state");
+        a.closeInventory();
         a.performCommand("ah favorites");
         ok(a.getOpenInventory().getTopInventory().getItem(0)!=null
                 &&a.getOpenInventory().getTopInventory().getItem(0).getType()==Material.DIAMOND_SWORD
