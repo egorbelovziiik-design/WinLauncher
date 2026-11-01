@@ -175,6 +175,17 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
             a.performCommand("gamevote parkour");b.performCommand("gamevote duel");expireVote();a.performCommand("gamevote status");
             ok(String.valueOf(voteField("lastResult")).startsWith("ничья"),"a tie is announced without selecting a winner");
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");
+            a.performCommand("gamevote memory");b.performCommand("gamevote memory");expireVote();a.performCommand("gamevote status");
+            ok(String.valueOf(voteField("lastResult")).startsWith("Ледяная память")&&core.getStore().getCoins(a.getName())==beforeA,
+                    "the new memory option can win without charging the voters");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");
+            a.performCommand("gamevote memory");Object memory=((java.util.Map<?,?>)voteField("votes")).get(a.getUniqueId());
+            a.performCommand("gamevote parkour");b.performCommand("gamevote duel");
+            @SuppressWarnings({"unchecked","rawtypes"}) java.util.Map rawVotes=(java.util.Map)voteField("votes");
+            rawVotes.put(java.util.UUID.randomUUID(),memory);expireVote();a.performCommand("gamevote status");
+            ok(String.valueOf(voteField("lastResult")).startsWith("ничья")&&String.valueOf(voteField("lastResult")).contains("1:1:1"),
+                    "three equally popular activities produce no winner");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote cancel");
             ok(((Long)voteField("deadline"))==0L&&((java.util.Map<?,?>)voteField("votes")).isEmpty(),"administrator can cancel the poll safely");
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");a.performCommand("gamevote parkour");

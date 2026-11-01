@@ -91,7 +91,7 @@ final class MemoryGameManager implements Listener {
         Session s=new Session(p.getUniqueId());s.inventory=Bukkit.createInventory(s,45,ColorUtil.c("&#80D8FF&l❄ ЛЕДЯНАЯ ПАМЯТЬ"));
         decorate(s);sessions.put(s.player,s);p.openInventory(s.inventory);
         if(p.getOpenInventory().getTopInventory().getHolder()!=s){stop(s);send(p,"&cОкно игры не открылось.");return;}
-        lastStart.put(s.player,Long.valueOf(now));send(p,"&7Игра не защищает от урона и не телепортирует. Запомните подсвеченные плитки.");
+        lastStart.put(s.player,Long.valueOf(now));send(p,"&7Игра не защищает от урона и не телепортирует. Ник и лучший результат видны в /snowmemory top.");
         beginRound(s);
     }
     private void decorate(Session s){

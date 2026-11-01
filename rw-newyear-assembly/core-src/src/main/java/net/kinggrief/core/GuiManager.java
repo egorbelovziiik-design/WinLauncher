@@ -1337,7 +1337,7 @@ public final class GuiManager {
         }
 
         inv.setItem(30, ItemFactory.glowIcon(Material.LIGHT_BLUE_STAINED_GLASS, "&#80D8FF&l❄ Ледяная память (/snowmemory)",
-                "&7Повторяйте подсвеченные плитки до 12 раундов.", "&7Без телепорта и денежных ставок."));
+                "&7Повторяйте подсвеченные плитки до 12 раундов.", "&7Ник и рекорд видны в /snowmemory top.", "&7Без телепорта и денежных ставок."));
         inv.setItem(32, ItemFactory.glowIcon(Material.BRICKS, "&#FFCC80&l🏗 Конкурс построек (/buildcontest)",
                 "&7Добровольная подача своего привата и голосование.", "&7Блоки и приваты не изменяются."));
         // СТРОГО ТОЛЬКО ДЛЯ АДМИНОВ И ВЫШЕ (D.ADMIN+, ДКП, OPKA, D.OWNER, КП, CURATOR, TECH.ADMIN, OWNER)!

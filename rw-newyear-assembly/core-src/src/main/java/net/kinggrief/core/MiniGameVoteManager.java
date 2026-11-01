@@ -18,7 +18,8 @@ import java.util.concurrent.TimeUnit;
 /** A voluntary, temporary vote between already available activities; never teleports players. */
 final class MiniGameVoteManager {
     private enum Choice {
-        PARKOUR("parkour","Паркур","/warp parkour"), DUEL("duel","Дуэли","/duel <ник> 0");
+        PARKOUR("parkour","Паркур","/warp parkour"), DUEL("duel","Дуэли","/duel <ник> 0"),
+        MEMORY("memory","Ледяная память","/snowmemory");
         final String id,label,join;
         Choice(String id,String label,String join){this.id=id;this.label=label;this.join=join;}
         static Choice parse(String id){for(Choice c:values())if(c.id.equalsIgnoreCase(id))return c;return null;}
@@ -45,7 +46,7 @@ final class MiniGameVoteManager {
             if(deadline!=0){sender.sendMessage(ColorUtil.c("&eГолосование уже идёт: /gamevote"));return;}
             votes.clear();lastResult=null;deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(seconds);
             Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF&l✦ ГОЛОСОВАНИЕ ЗА ИГРУ &7("+seconds+" сек.)"));
-            Bukkit.broadcastMessage(ColorUtil.c("&e/gamevote parkour &8— &fПаркур &8| &e/gamevote duel &8— &fДуэли"));
+            Bukkit.broadcastMessage(ColorUtil.c("&e/gamevote parkour &8— &fПаркур &8| &e/gamevote duel &8— &fДуэли &8| &e/gamevote memory &8— &fЛедяная память"));
             Bukkit.broadcastMessage(ColorUtil.c("&7Голос можно изменить. Победитель объявляется без автоматического телепорта или запуска матча."));
             return;
         }
@@ -58,7 +59,7 @@ final class MiniGameVoteManager {
         }
         if("status".equals(sub)&&args.length<=1){status(sender);return;}
         Choice choice=Choice.parse(sub);
-        if(choice==null||args.length!=1){sender.sendMessage(ColorUtil.c("&e/gamevote [parkour|duel] &7— голосование; &e/gamevote &7— состояние."));return;}
+        if(choice==null||args.length!=1){sender.sendMessage(ColorUtil.c("&e/gamevote [parkour|duel|memory] &7— голосование; &e/gamevote &7— состояние."));return;}
         if(!(sender instanceof Player)){sender.sendMessage(ColorUtil.c("&cГолосовать могут только игроки."));return;}
         Player player=(Player)sender;
         if(deadline==0){player.sendMessage(ColorUtil.c("&eСейчас голосование не идёт."));return;}
@@ -69,7 +70,7 @@ final class MiniGameVoteManager {
     private void status(CommandSender sender){
         if(deadline==0){sender.sendMessage(ColorUtil.c("&7Сейчас голосование не идёт."+(lastResult==null?"":" Последний результат: &f"+lastResult)));return;}
         long seconds=Math.max(0,TimeUnit.NANOSECONDS.toSeconds(Math.max(0,deadline-System.nanoTime())+999_999_999L));
-        sender.sendMessage(ColorUtil.c("&#80D8FFГолосование за игру &8• &f"+seconds+" сек. &8| &7Паркур: &f"+count(Choice.PARKOUR)+" &8| &7Дуэли: &f"+count(Choice.DUEL)));
+        sender.sendMessage(ColorUtil.c("&#80D8FFГолосование за игру &8• &f"+seconds+" сек. &8| &7Паркур: &f"+count(Choice.PARKOUR)+" &8| &7Дуэли: &f"+count(Choice.DUEL)+" &8| &7Память: &f"+count(Choice.MEMORY)));
         if(sender instanceof Player){
             Player p=(Player)sender;
             for(Choice choice:Choice.values()){
@@ -83,12 +84,14 @@ final class MiniGameVoteManager {
     private int count(Choice choice){int n=0;for(Choice vote:votes.values())if(vote==choice)n++;return n;}
     private void finishIfDue(){if(deadline!=0&&System.nanoTime()-deadline>=0)finish();}
     private void finish(){
-        int parkour=count(Choice.PARKOUR),duel=count(Choice.DUEL);deadline=0;votes.clear();
-        if(parkour==0&&duel==0){lastResult="нет голосов";Bukkit.broadcastMessage(ColorUtil.c("&eГолосование завершено: голосов не было."));return;}
-        if(parkour==duel){lastResult="ничья ("+parkour+":"+duel+")";Bukkit.broadcastMessage(ColorUtil.c("&eГолосование завершено вничью: &f"+parkour+":"+duel+"&e. Игра автоматически не запускается."));return;}
-        Choice winner=parkour>duel?Choice.PARKOUR:Choice.DUEL;
-        lastResult=winner.label+" ("+parkour+":"+duel+")";
-        Bukkit.broadcastMessage(ColorUtil.c("&#00E676Победило голосование за &f"+winner.label+" &8("+parkour+":"+duel+")&7. Для участия: &e"+winner.join));
+        int parkour=count(Choice.PARKOUR),duel=count(Choice.DUEL),memory=count(Choice.MEMORY);deadline=0;votes.clear();
+        int max=Math.max(parkour,Math.max(duel,memory));String result=parkour+":"+duel+":"+memory;
+        if(max==0){lastResult="нет голосов";Bukkit.broadcastMessage(ColorUtil.c("&eГолосование завершено: голосов не было."));return;}
+        int leaders=(parkour==max?1:0)+(duel==max?1:0)+(memory==max?1:0);
+        if(leaders>1){lastResult="ничья ("+result+")";Bukkit.broadcastMessage(ColorUtil.c("&eГолосование завершено вничью: &f"+result+" &7(паркур:дуэли:память)&e. Игра автоматически не запускается."));return;}
+        Choice winner=parkour==max?Choice.PARKOUR:duel==max?Choice.DUEL:Choice.MEMORY;
+        lastResult=winner.label+" ("+result+")";
+        Bukkit.broadcastMessage(ColorUtil.c("&#00E676Победило голосование за &f"+winner.label+" &8("+result+"; паркур:дуэли:память)&7. Для участия: &e"+winner.join));
         Bukkit.broadcastMessage(ColorUtil.c("&7Матч автоматически не запускается; телепорта и списания монет нет."));
     }
 }

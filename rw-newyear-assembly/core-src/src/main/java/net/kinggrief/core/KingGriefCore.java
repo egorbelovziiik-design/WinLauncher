@@ -517,8 +517,8 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("snowmemory".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("top", "stop"), args[0]);
         } else if ("gamevote".equals(c) && args.length == 1) {
-            return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "start", "cancel")
-                    :Arrays.asList("status", "parkour", "duel"), args[0]);
+            return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "memory", "start", "cancel")
+                    :Arrays.asList("status", "parkour", "duel", "memory"), args[0]);
         } else if ("parkour".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("top", "ghost", "cp", "leave"), args[0]);
             if (args.length == 2 && "top".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("day", "week", "all"), args[1]);

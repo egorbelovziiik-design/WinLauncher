@@ -28,7 +28,7 @@ commands:
     usage: /achievements [claim]
   gamevote:
     description: Vote between currently available activities (no automatic teleport)
-    usage: /gamevote [parkour|duel|start|cancel]
+    usage: /gamevote [parkour|duel|memory|start|cancel]
   kgbackup:
     description: Create or list a private Core data-only backup (not a world backup)
     usage: /kgbackup <create|list>
