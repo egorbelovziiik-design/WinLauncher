@@ -41,8 +41,8 @@ import java.util.UUID;
 /** Craft each piece through real protocol clicks, then hit a real protocol player. */
 public final class FrostForgeProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;private Player a,b;private World world;private CraftingInventory work;
-    private ItemStack blade,guard,heart,sword;private boolean running,done,cancelDamage,lateDamage,cancelPotion;
-    private int checks,craftEvents;private boolean lastCraftCancelled;
+    private ItemStack blade,guard,heart,sword;private boolean running,done,cancelDamage,lateDamage,cancelPotion,cancelCraft;
+    private int checks,craftEvents,observedHits;private boolean lastCraftCancelled,lastHitCancelled;
     private final PotionEffectType slow=ColorUtil.potType("slowness","SLOW");
     @Override public void onEnable(){saveDefaultConfig();core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent event){
@@ -83,6 +83,12 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
         core.getGuis().openSwordsMenu(a);Inventory swords=a.getOpenInventory().getTopInventory();
         ok("sword_sever".equals(ItemFactory.getCustomId(swords.getItem(31)))&&"trident_poseidon".equals(ItemFactory.getCustomId(swords.getItem(33))),
                 "northern sword and trident are both visible in the arsenal");
+        core.getStore().setRelics(a.getName(),1000);
+        InventoryClickEvent purchase=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,31,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(purchase);
+        boolean gotSword=false;for(ItemStack item:a.getInventory().getStorageContents())if("sword_sever".equals(ItemFactory.getCustomId(item)))gotSword=true;
+        ok(purchase.isCancelled()&&core.getStore().getRelics(a)==570&&gotSword,"restored northern sword slot sells the correct item for its existing price");
+        swords=a.getOpenInventory().getTopInventory();
         ok(swords.getItem(40).getType()==Material.CRAFTING_TABLE,"arsenal links to the forge");
         InventoryClickEvent open=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,40,ClickType.LEFT,InventoryAction.PICKUP_ALL);
         Bukkit.getPluginManager().callEvent(open);
@@ -100,6 +106,8 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
     private boolean empty(ItemStack item){return item==null||item.getType().isAir()||item.getAmount()<=0;}
     private int occupied(){int count=0;for(ItemStack item:work.getMatrix())if(!empty(item))count++;return count;}
     private void click(String kind,Runnable check){later(5,()->{request(kind);later(10,check);});}
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void protectCraft(CraftItemEvent event){if(cancelCraft&&event.getWhoClicked().equals(a))event.setCancelled(true);}
     @EventHandler(priority=EventPriority.MONITOR)
     public void observeCraft(CraftItemEvent event){if(event.getWhoClicked().equals(a)){craftEvents++;lastCraftCancelled=event.isCancelled();}}
     private void invalidInput(){
@@ -121,7 +129,19 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
             core.getConfig().set("enable-builtin-auth",true);core.getStore().setAuthenticated(a,false);
             click("CLICK",()->{
                 ok(occupied()==3&&empty(a.getItemOnCursor()),"unauthenticated player cannot consume crafting inputs");
-                core.getConfig().set("enable-builtin-auth",false);bladeCraft();
+                core.getConfig().set("enable-builtin-auth",false);protectionCraft();
+            });
+        });
+    }
+    private void protectionCraft(){
+        cancelCraft=true;int before=craftEvents;grid(item(Material.NETHERITE_INGOT),item(Material.DIAMOND),item(Material.BLUE_ICE));
+        click("CLICK",()->{
+            cancelCraft=false;ok(craftEvents>before&&lastCraftCancelled&&occupied()==3&&empty(a.getItemOnCursor()),
+                    "another plugin can cancel crafting without consuming inputs");
+            core.getStore().toggleQuickFreeze(a.getUniqueId());
+            click("CLICK",()->{
+                core.getStore().clearQuickFreeze(a.getUniqueId());
+                ok(occupied()==3&&empty(a.getItemOnCursor()),"frozen player cannot consume crafting inputs");bladeCraft();
             });
         });
     }
@@ -169,33 +189,51 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
         grid(item(Material.GOLD_INGOT),item(Material.IRON_INGOT),item(Material.AMETHYST_SHARD));
         click("SHIFT",()->{
             ok(occupied()==3&&empty(a.getItemOnCursor()),"shift-craft with a full inventory does not consume ingredients");
-            work.setMatrix(new ItemStack[9]);a.closeInventory();a.getInventory().clear();a.getInventory().setHeldItemSlot(0);a.getInventory().setItemInMainHand(sword);
-            finish();
+            a.getInventory().clear();
+            grid(new ItemStack(Material.GOLD_INGOT,2),new ItemStack(Material.IRON_INGOT,2),new ItemStack(Material.AMETHYST_SHARD,2));
+            click("SHIFT",()->{
+                int count=0;for(ItemStack item:a.getInventory().getStorageContents())
+                    if("frost_forge_guard".equals(ItemFactory.getCustomId(item)))count+=item.getAmount();
+                ok(occupied()==0&&count==2,"shift-craft makes exactly two parts from two sets of ingredients");
+                work.setMatrix(new ItemStack[9]);a.closeInventory();a.getInventory().clear();a.getInventory().setHeldItemSlot(0);a.getInventory().setItemInMainHand(sword);
+                finish();
+            });
         });
     }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void damageProtection(EntityDamageByEntityEvent event){if(cancelDamage&&event.getDamager().equals(a)&&event.getEntity().equals(b))event.setCancelled(true);}
     @EventHandler(priority=EventPriority.MONITOR)
-    public void lateDamageProtection(EntityDamageByEntityEvent event){if(lateDamage&&event.getDamager().equals(a)&&event.getEntity().equals(b))event.setCancelled(true);}
+    public void lateDamageProtection(EntityDamageByEntityEvent event){
+        if(event.getDamager().equals(a)&&event.getEntity().equals(b)){
+            if(lateDamage)event.setCancelled(true);observedHits++;lastHitCancelled=event.isCancelled();
+        }
+    }
     @EventHandler(priority=EventPriority.HIGHEST)
     public void potionProtection(EntityPotionEffectEvent event){
         if(cancelPotion&&event.getEntity().equals(b)&&event.getNewEffect()!=null&&event.getNewEffect().getType().equals(slow))event.setCancelled(true);
     }
-    private int cooldownSize(){try{
+    @SuppressWarnings("unchecked")
+    private Map<UUID,Long> cooldowns(){try{
         Field field=KingGriefCore.class.getDeclaredField("frostForge");field.setAccessible(true);Object manager=field.get(core);
-        Field cooldowns=manager.getClass().getDeclaredField("cooldowns");cooldowns.setAccessible(true);return ((Map<?,?>)cooldowns.get(manager)).size();
+        Field cooldowns=manager.getClass().getDeclaredField("cooldowns");cooldowns.setAccessible(true);return (Map<UUID,Long>)cooldowns.get(manager);
     }catch(Exception error){throw new RuntimeException(error);}}
+    private int cooldownSize(){return cooldowns().size();}
     private void attack(Runnable check){b.setNoDamageTicks(0);request("ATTACK "+b.getEntityId());later(10,check);}
     private void restartChecks(){
         sword=a.getInventory().getItemInMainHand();
         ok("assembled_frost_sword".equals(ItemFactory.getCustomId(sword)),"assembled sword survives restart in the player's inventory");
         b.setMaxHealth(200);b.setHealth(200);b.setNoDamageTicks(0);b.setMaximumNoDamageTicks(0);b.setInvulnerable(false);b.removePotionEffect(slow);
-        double hp=b.getHealth();cancelDamage=true;
+        ItemStack spoof=ItemFactory.make(Material.STICK,1,"test",java.util.Collections.<String>emptyList(),false,"assembled_frost_sword",null,0);
+        a.getInventory().setItemInMainHand(spoof);double before=b.getHealth();
         attack(()->{
-            cancelDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"a cancelled real hit applies no damage, effect or cooldown");
-            lateDamage=true;attack(()->{
-                lateDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"late cancellation is rechecked before the effect");
-                potionCase();
+            ok(b.getHealth()<before&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"copied custom ID on a non-sword does not activate the ability");
+            a.getInventory().setItemInMainHand(sword);double hp=b.getHealth();cancelDamage=true;
+            attack(()->{
+                cancelDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"a cancelled real hit applies no damage, effect or cooldown");
+                lateDamage=true;attack(()->{
+                    lateDamage=false;ok(b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,"late cancellation is rechecked before the effect");
+                    potionCase();
+                });
             });
         });
     }
@@ -206,7 +244,11 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
             b.addPotionEffect(new PotionEffect(slow,200,2,false,true,true));attack(()->{
                 PotionEffect stronger=b.getPotionEffect(slow);
                 ok(stronger!=null&&stronger.getAmplifier()==2&&cooldownSize()==0,"stronger existing slowness is not overwritten");
-                b.removePotionEffect(slow);acceptedHit();
+                b.removePotionEffect(slow);core.getStore().toggleQuickFreeze(b.getUniqueId());
+                attack(()->{
+                    core.getStore().clearQuickFreeze(b.getUniqueId());
+                    ok(!b.hasPotionEffect(slow)&&cooldownSize()==0,"moderation-frozen target receives no forge effect");acceptedHit();
+                });
             });
         });
     }
@@ -217,6 +259,26 @@ public final class FrostForgeProbe extends JavaPlugin implements Listener {
                     "real allowed sword hit applies three-second slowness and starts cooldown");
             b.removePotionEffect(slow);attack(()->{
                 ok(!b.hasPotionEffect(slow)&&cooldownSize()==1,"another hit during cooldown does not reapply slowness");
+                cooldowns().put(a.getUniqueId(),System.nanoTime()-13_000_000_000L);
+                attack(()->{
+                    ok(b.hasPotionEffect(slow)&&cooldownSize()==1,"a new real hit works after cooldown expiry");
+                    spawnSafety();
+                });
+            });
+        });
+    }
+    private void spawnSafety(){
+        cooldowns().clear();b.removePotionEffect(slow);
+        World spawn=core.getSpawnEngine().getSpawnArrival().getWorld();
+        a.teleport(new Location(spawn,0.5,300,0.5,-90,0));b.teleport(new Location(spawn,2.3,300,0.5,90,0));
+        a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
+        later(40,()->{
+            ok(core.getSpawnEngine().isInSpawnWorld(a.getLocation())&&!core.getSpawnEngine().isInsidePvpZone(a.getLocation()),
+                    "test players are in the protected spawn rather than the PvP arena");
+            b.setInvulnerable(false);double hp=b.getHealth();int before=observedHits;
+            attack(()->{
+                ok(observedHits>before&&lastHitCancelled&&b.getHealth()==hp&&!b.hasPotionEffect(slow)&&cooldownSize()==0,
+                        "real hit is blocked in protected spawn without an effect or cooldown");
                 finish();
             });
         });
