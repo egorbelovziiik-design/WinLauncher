@@ -444,6 +444,8 @@ public final class GameplayListener implements Listener {
         }
         allSavedTempBlocks.clear();
         activeTempBlocks.clear();
+        pendingPvpBanners.clear();
+        pendingMidasHits.clear();
     }
 
     public void tagPvp30(Player... players) {
