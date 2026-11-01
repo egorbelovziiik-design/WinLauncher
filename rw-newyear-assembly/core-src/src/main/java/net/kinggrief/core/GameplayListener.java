@@ -4196,13 +4196,10 @@ public final class GameplayListener implements Listener {
                 victim.getWorld().spawnParticle(Particle.SNOWFLAKE, attacker.getLocation().add(0, 1.0, 0), 20, 0.4, 0.6, 0.4, 0.03);
                 ColorUtil.actionBar(victim, "&#80D8FF🧊 Талисман Мороза заморозил атакующего!");
             }
-            spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
         } else if (e.getEntity() instanceof LivingEntity) {
             // v6.1: 3D-ЛУКИ И 3D-СТРЕЛЫ ТЕПЕРЬ РАБОТАЮТ И ПО МОБАМ (фармилка, боссы, выживание)!
-            LivingEntity mobVictim = (LivingEntity) e.getEntity();
             if (e.getDamager() instanceof Projectile) {
                 applyProjectileDamageBonuses(e);
-                spawnDamageIndicator(mobVictim.getLocation(), e.getFinalDamage());
             }
         }
     }
@@ -4239,6 +4236,10 @@ public final class GameplayListener implements Listener {
         }
         if (victim.getScoreboardTags().contains("kg_event_boss")) {
             plugin.getBossEvents().recordBossDamage(victim, attacker, e.getFinalDamage());
+            spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
+        } else if (victim instanceof Player || e.getDamager() instanceof Projectile) {
+            // A later protection plugin may cancel a HIGH-priority hit or change its damage.
+            // Show the final accepted amount only, once, after all ordinary modifiers.
             spawnDamageIndicator(victim.getLocation(), e.getFinalDamage());
         }
         if (e.getDamager() instanceof Projectile) {

@@ -7,8 +7,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Pig;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -29,6 +33,7 @@ import java.util.UUID;
 public final class TrainingStatsProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;private Player a,b;private World spawn;private ArmorStand first,second;
     private boolean running,done,cancelHits;private int checks,seenA,seenB;private double rawA,rawB;
+    private Entity ordinaryTarget;private boolean lateCancel,lateModify;private double ordinaryFinal;private boolean ordinaryCancelled;
     @Override public void onEnable(){saveDefaultConfig();core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent event){
         if("TrainTester".equals(event.getPlayer().getName()))a=event.getPlayer();if("TrainOther".equals(event.getPlayer().getName()))b=event.getPlayer();
@@ -63,8 +68,13 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
     }
     @EventHandler(priority=EventPriority.LOWEST)
     public void protect(EntityDamageByEntityEvent event){if(cancelHits&&event.getEntity().getScoreboardTags().contains("kg_dps_dummy"))event.setCancelled(true);}
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void laterProtection(EntityDamageByEntityEvent event){
+        if(event.getEntity().equals(ordinaryTarget)){if(lateCancel)event.setCancelled(true);else if(lateModify)event.setDamage(8.0);}
+    }
     @EventHandler(priority=EventPriority.MONITOR)
     public void observe(EntityDamageByEntityEvent event){
+        if(event.getEntity().equals(ordinaryTarget)){ordinaryFinal=event.getFinalDamage();ordinaryCancelled=event.isCancelled();}
         if(!event.getEntity().getScoreboardTags().contains("kg_dps_dummy"))return;
         if(event.getDamager().equals(a)){seenA++;rawA=event.getDamage();}
         if(event.getDamager().equals(b)){seenB++;rawB=event.getDamage();}
@@ -129,9 +139,43 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
                 ok(dps(s)==0.0&&integer(s,"hits")>=2,"five-second DPS expires while the session totals remain");
                 a.performCommand("trainstats");a.performCommand("trainstats reset");
                 ok(session(a)==null&&session(b)!=null,"reset clears only the requesting player's temporary session");
-                finish();
+                damageIndicators();
             });
         });});
+    }
+    private boolean indicatorAt(Location location,double damage){
+        String expected="-"+String.format(Locale.ROOT,"%.1f",damage/2.0)+" ❤";
+        for(Entity entity:location.getWorld().getNearbyEntities(location,3,3,3))
+            if(entity.getScoreboardTags().contains("kg_holo")&&entity.getCustomName()!=null
+                    &&org.bukkit.ChatColor.stripColor(entity.getCustomName()).equals(expected))return true;
+        return false;
+    }
+    private int clearIndicators(Location location){
+        int count=0;for(Entity entity:location.getWorld().getNearbyEntities(location,3,3,3))
+            if(entity.getScoreboardTags().contains("kg_holo")){entity.remove();count++;}return count;
+    }
+    private void damageIndicators(){
+        a.teleport(new Location(spawn,75.5,94,10.5));b.teleport(new Location(spawn,77.5,94,10.5));
+        a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
+        b.getInventory().clear();b.setHealth(20);spawn.setPVP(true);
+        later(40,()->{
+            ordinaryTarget=b;lateModify=true;ordinaryFinal=-1;ordinaryCancelled=true;b.setNoDamageTicks(0);b.damage(6.0,a);lateModify=false;
+            ok(!ordinaryCancelled&&Math.abs(ordinaryFinal-8.0)<1e-9&&b.getHealth()<20&&indicatorAt(b.getLocation(),ordinaryFinal),
+                    "PvP indicator uses final accepted damage in hearts after a later modifier");
+            clearIndicators(b.getLocation());b.setHealth(20);b.setNoDamageTicks(0);lateCancel=true;ordinaryFinal=-1;ordinaryCancelled=false;b.damage(6.0,a);lateCancel=false;
+            ok(ordinaryCancelled&&b.getHealth()==20&&clearIndicators(b.getLocation())==0,"late-cancelled PvP damage has no floating indicator");
+            Location pigLocation=new Location(spawn,82.5,94,10.5);Pig pig=spawn.spawn(pigLocation,Pig.class,p->{p.setAI(false);p.setGravity(false);});
+            Arrow arrow=spawn.spawn(pigLocation.clone().add(0,1,0),Arrow.class);arrow.setShooter(a);ordinaryTarget=pig;ordinaryFinal=-1;ordinaryCancelled=true;
+            pig.damage(6.0,arrow);
+            ok(!ordinaryCancelled&&ordinaryFinal>0&&pig.getHealth()<20&&indicatorAt(pig.getLocation(),ordinaryFinal),
+                    "projectile indicator converts accepted mob damage to hearts");
+            clearIndicators(pig.getLocation());pig.remove();arrow.remove();
+            Location bossLocation=new Location(spawn,88.5,94,10.5);Zombie boss=spawn.spawn(bossLocation,Zombie.class,z->{z.setAI(false);z.setGravity(false);});
+            boss.addScoreboardTag("kg_event_boss");ordinaryTarget=boss;ordinaryFinal=-1;ordinaryCancelled=true;boss.damage(6.0,a);
+            ok(!ordinaryCancelled&&ordinaryFinal>0&&boss.getHealth()<20&&indicatorAt(boss.getLocation(),ordinaryFinal),
+                    "boss indicator converts accepted damage to hearts");
+            clearIndicators(boss.getLocation());boss.remove();ordinaryTarget=null;finish();
+        });
     }
     private void restart(){
         ok(session(a)==null&&session(b)==null,"training sessions do not survive a server restart");
