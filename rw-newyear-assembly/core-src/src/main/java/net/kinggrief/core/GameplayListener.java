@@ -114,6 +114,7 @@ public final class GameplayListener implements Listener {
     private static final NamespacedKey PROJ_TAG_KEY = new NamespacedKey("kinggrief", "proj_type");
     private static final NamespacedKey PROJ_ARROW_KEY = new NamespacedKey("kinggrief", "arrow_type");
     private final KingGriefCore plugin;
+    private final PvpRegionGuard pvpRegionGuard;
     private final Random rng = new Random();
     private final Set<UUID> drillGuard = new HashSet<UUID>();
     // A one-use spawner pick must survive vanilla's durability step until its break is confirmed.
@@ -164,6 +165,7 @@ public final class GameplayListener implements Listener {
 
     public GameplayListener(KingGriefCore plugin) {
         this.plugin = plugin;
+        this.pvpRegionGuard = new PvpRegionGuard(plugin);
         this.parkourCourse = ParkourCourse.load(plugin);
         startChatQuizLoop();
         startCustomTntAndPassiveRelicLoops();
@@ -2603,7 +2605,9 @@ public final class GameplayListener implements Listener {
                 && !plugin.getStore().isTeammatePvpAllowed(caster.getName(), other.getName())) {
             return false;
         }
-        return true;
+        // Area effects do not emit a damage event for each bystander. Consult
+        // WorldGuard explicitly when present instead of bypassing its regions.
+        return pvpRegionGuard.canAffect(caster, other);
     }
 
     private void cleanseAndBlessBozhyaAuraTarget(Player target) {

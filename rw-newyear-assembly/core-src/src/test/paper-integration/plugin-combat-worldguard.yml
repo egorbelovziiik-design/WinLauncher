@@ -1,0 +1,5 @@
+name: KgCombatWorldGuardProbe
+version: '1.0'
+main: net.kinggrief.probe.CombatWorldGuardProbe
+api-version: '1.20'
+depend: [KingGriefCore, WorldGuard, WorldEdit]
