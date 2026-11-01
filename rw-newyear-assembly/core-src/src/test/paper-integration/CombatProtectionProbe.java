@@ -84,6 +84,10 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
     private void fail(Throwable error) {
         if (finished) return;
         finished = true;
+        for (Player player : new Player[]{a, b, c}) if (player != null) {
+            core.getHud().clearCombat(player.getUniqueId());
+            core.getStore().clearQuickFreeze(player.getUniqueId());
+        }
         getLogger().severe("KG-COMBAT RESULT FAIL " + error);
         error.printStackTrace();
     }
