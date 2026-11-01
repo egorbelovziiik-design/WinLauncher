@@ -314,6 +314,14 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ItemStack hand=a.getInventory().getItemInMainHand();a.getInventory().setItemInMainHand(new ItemStack(Material.EMERALD));
         ok(a.performCommand("ah history"),"auction price history command is registered");
         a.getInventory().setItemInMainHand(hand);a.closeInventory();
+        ItemStack custom=net.kinggrief.core.ItemFactory.make(Material.EMERALD,3,"&aTest",java.util.Collections.emptyList(),false,"history_test",null,0);
+        for(int i=0;i<22;i++){
+            DataStore.AuctionLot lot=store.addAuctionLot(seller,custom,30+i);
+            if(lot==null||store.purchaseAuctionLot(lot.id,"HistoryBuyer")==null)throw new AssertionError("history bounded fixture sale");
+        }
+        java.util.List<String> special=yaml().getStringList("auctionHistory.emerald_custom_history_test");
+        ok(special.size()==20&&special.get(0).endsWith("|51.0|3")&&special.get(19).endsWith("|32.0|3")
+                &&yaml().getStringList("auctionHistory.emerald_plain").size()==1,"custom IDs and stack sizes have bounded, separate histories");
     }
     private void tree(){
         DataStore store=core.getStore();
