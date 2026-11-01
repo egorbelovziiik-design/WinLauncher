@@ -212,15 +212,22 @@ these records, and pre-existing blocks without records are not repaired.
 
 `test-tree-season.py` uses three real protocol clients over three Paper starts.
 It exercises legacy migration and daily counts, OWNER/TECH.ADMIN/console and
-OP-only denial, authentication/freeze, an actual private chat-button claim,
+OP-only denial, synthetic command-block denial and RCON authorization,
+authentication/freeze, an actual private chat-button claim,
 an offline donor returning after restart, three-stage reward snapshots,
 idempotency, safe pruning and archive/ID limits. It injects YAML write failures
 and malformed state, checks the tree trunk, a separate block/claim and player
 inventory, then sends SIGKILL immediately after completed durable transactions
-before the last restart (31 + 25 + 14 checks). Other contributors and the next UTC date are simulated
+before the last restart (33 + 25 + 14 checks). Other contributors and the next UTC date are simulated
 by fixture data. The kill is not during a file write and does not model power
 loss, external authentication or sustained load. Names are not UUID identities;
 this is neither an anti-alt mechanism nor a rendered-client visual test.
+`test-tree-upgrade.py --core-old /path/to/old-prototype.jar` additionally starts
+the previous pre-season Core, creates real legacy donations and an unclaimed
+reward, stops it, replaces the JAR, and checks migration, claim idempotency,
+the daily allowance, cumulative achievements, spawn, claim and inventory
+(4 + 9 checks). The old JAR must have the experimental `/tree` feature; it is
+not the published 7.4.0 release. Neither test models third-party authentication.
 
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,

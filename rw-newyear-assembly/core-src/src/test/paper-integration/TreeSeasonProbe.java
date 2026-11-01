@@ -6,6 +6,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.command.BlockCommandSender;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.RemoteConsoleCommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -48,6 +51,14 @@ public final class TreeSeasonProbe extends JavaPlugin implements Listener {
     private String archived(String id){return ROOT+".history."+id;}
     private String player(Player p){return "players."+name(p);}
     private void console(String args){Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"tree "+args);}
+    private CommandSender syntheticSender(Class<? extends CommandSender> type){
+        return (CommandSender)java.lang.reflect.Proxy.newProxyInstance(type.getClassLoader(),new Class<?>[]{type},(proxy,method,args)->{
+            String n=method.getName();if("getName".equals(n))return "probe";if("getServer".equals(n))return Bukkit.getServer();
+            if("isOp".equals(n)||"hasPermission".equals(n)||"isPermissionSet".equals(n))return true;
+            Class<?> result=method.getReturnType();if(result==boolean.class)return false;if(result==int.class)return 0;if(result==long.class)return 0L;return null;
+        });
+    }
+    private boolean treeAdmin(CommandSender sender){try{java.lang.reflect.Method m=core.getClass().getDeclaredMethod("hasTreeSeasonAdmin",CommandSender.class);m.setAccessible(true);return (Boolean)m.invoke(core,sender);}catch(Exception error){throw new RuntimeException(error);}}
     private int archiveCount(){ConfigurationSection s=data().getConfigurationSection(ROOT+".history");return s==null?0:s.getKeys(false).size();}
     private int visual(){return ((Number)field(field(core,"winterTree"),"visualStage")).intValue();}
     private Location marker(){World w=Bukkit.getWorld("world");return new Location(w,160,100,160);}
@@ -82,6 +93,9 @@ public final class TreeSeasonProbe extends JavaPlugin implements Listener {
         ok("legacy".equals(current())&&archiveCount()==0,"ordinary players and unconfirmed administrative commands cannot rotate");
         b.setOp(true);try{b.performCommand("tree season start op_bypass confirm");}finally{b.setOp(false);}
         ok("legacy".equals(current()),"OP alone cannot administer seasons without an OWNER-level rank");
+        CommandSender block=syntheticSender(BlockCommandSender.class);Bukkit.dispatchCommand(block,"tree season start block_bypass confirm");
+        ok("legacy".equals(current())&&!treeAdmin(block),"synthetic command-block sender cannot administer seasons");
+        ok(treeAdmin(syntheticSender(RemoteConsoleCommandSender.class)),"RCON console is explicitly recognized by the authorization predicate");
         String oldRank=core.getStore().getSavedRank(a.getName());core.getStore().setSavedRank(a.getName(),"techadmin");
         ok(!a.isOp(),"TECH.ADMIN test runs without granting OP");
         core.getConfig().set("enable-builtin-auth",true);core.getStore().setAuthenticated(a,false);a.performCommand("tree season start unauth confirm");

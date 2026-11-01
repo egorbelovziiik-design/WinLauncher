@@ -14,7 +14,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.command.RemoteConsoleCommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.ChunkGenerator;
@@ -347,6 +349,13 @@ public final class KingGriefCore extends JavaPlugin {
         return isStrictOwnerOrConsole(s);
     }
 
+    private boolean hasTreeSeasonAdmin(CommandSender sender) {
+        // Command blocks and other non-player senders are not automatically a
+        // console. Allow local/RCON console or an owner-level player only.
+        return sender instanceof ConsoleCommandSender || sender instanceof RemoteConsoleCommandSender
+                || (sender instanceof Player && ranks.isOwnerLevel((Player) sender));
+    }
+
     public static final String SITE_URL = "https://kinggrief.vercel.app";
     public static final String DISCORD_URL = "https://discord.gg/7Cugj4X3eU";
     private int siteAdRotationIdx = 0;
@@ -567,16 +576,16 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("deathpoint".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("status", "beacon", "off"), args[0]);
         } else if ("tree".equals(c)) {
-            if (args.length == 1) return filterPrefix(hasEconomyAdmin(sender)
+            if (args.length == 1) return filterPrefix(hasTreeSeasonAdmin(sender)
                     ? Arrays.asList("status", "donate", "claim", "top", "history", "season")
                     : Arrays.asList("status", "donate", "claim", "top", "history"), args[0]);
             if (args.length == 2 && ("claim".equalsIgnoreCase(args[0]) || "top".equalsIgnoreCase(args[0])))
                 return filterPrefix(winterTree.seasonIds(), args[1]);
-            if (args.length == 2 && "season".equalsIgnoreCase(args[0]) && hasEconomyAdmin(sender))
+            if (args.length == 2 && "season".equalsIgnoreCase(args[0]) && hasTreeSeasonAdmin(sender))
                 return filterPrefix(Arrays.asList("start", "prune"), args[1]);
-            if (args.length == 3 && "season".equalsIgnoreCase(args[0]) && "prune".equalsIgnoreCase(args[1]) && hasEconomyAdmin(sender))
+            if (args.length == 3 && "season".equalsIgnoreCase(args[0]) && "prune".equalsIgnoreCase(args[1]) && hasTreeSeasonAdmin(sender))
                 return filterPrefix(winterTree.seasonIds(), args[2]);
-            if (args.length == 4 && "season".equalsIgnoreCase(args[0]) && hasEconomyAdmin(sender))
+            if (args.length == 4 && "season".equalsIgnoreCase(args[0]) && hasTreeSeasonAdmin(sender))
                 return filterPrefix(Arrays.asList("confirm"), args[3]);
         } else if ("pet".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("penguin", "deer", "dragon", "off"), args[0]);
@@ -732,7 +741,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("tree".equals(c)) {
-            winterTree.command(sender, args, hasEconomyAdmin(sender));
+            winterTree.command(sender, args, hasTreeSeasonAdmin(sender));
             return true;
         }
         if ("kgbackup".equals(c)) {
