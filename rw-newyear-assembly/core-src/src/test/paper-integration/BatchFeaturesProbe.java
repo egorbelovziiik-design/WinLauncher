@@ -21,6 +21,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -43,8 +44,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;
     private Player a,b;
     private World world;
-    private boolean running, done, cancelHit, cancelMine,watchChest;
-    private int checks, chestAttempts, deniedChestAttempts;
+    private boolean running, done, cancelHit, cancelMine,watchChest,watchVote;
+    private int checks, chestAttempts, deniedChestAttempts,voteTeleports;
     private final int[][] chunks={{25,25},{25,26},{26,25},{26,26}};
     @Override public void onEnable(){
         saveDefaultConfig();
@@ -70,6 +71,9 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
                 &&e.getAction()==org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK){
             chestAttempts++;if(e.useInteractedBlock()==org.bukkit.event.Event.Result.DENY)deniedChestAttempts++;
         }
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true) public void observeVoteTeleport(PlayerTeleportEvent event){
+        if(watchVote&&(event.getPlayer().equals(a)||event.getPlayer().equals(b)))voteTeleports++;
     }
     private void later(long ticks,Runnable task){Bukkit.getScheduler().runTaskLater(this,()->{try{task.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean condition,String message){if(!condition)throw new AssertionError(message);checks++;getLogger().info("KG-BATCH PASS "+message);}
@@ -134,10 +138,42 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         withBlockedSave(()->a.performCommand("cosmetic trail hearts"));
         ok("snow".equals(yaml().getString(cosmetics+".trail")),"failed cosmetic update keeps the previous choice");
         ok(a.performCommand("wintershow"),"non-destructive spawn light show is registered");
-        claimChecks(()->{
+        gameVoteChecks(()->claimChecks(()->{
             a.teleport(new Location(world,418,75,418));b.teleport(new Location(world,420,75,418));
             a.setAllowFlight(true);a.setFlying(true);b.setAllowFlight(true);b.setFlying(true);
             later(20,()->utility());
+        }));
+    }
+    private Object voteManager(){try{Field f=KingGriefCore.class.getDeclaredField("gameVotes");f.setAccessible(true);return f.get(core);}catch(Exception e){throw new RuntimeException(e);}}
+    private Object voteField(String name){try{Object manager=voteManager();Field f=manager.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(manager);}catch(Exception e){throw new RuntimeException(e);}}
+    private void expireVote(){try{Object manager=voteManager();Field f=manager.getClass().getDeclaredField("deadline");f.setAccessible(true);f.setLong(manager,System.nanoTime()-1);}catch(Exception e){throw new RuntimeException(e);}}
+    private void gameVoteChecks(Runnable next){
+        double beforeA=core.getStore().getCoins(a.getName()),beforeB=core.getStore().getCoins(b.getName());
+        watchVote=true;a.performCommand("gamevote start 60");
+        ok(((Long)voteField("deadline"))==0L,"ordinary player cannot start a game vote");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 1");
+        ok(((Long)voteField("deadline"))==0L,"invalid vote duration is rejected");
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");
+        a.performCommand("gamevote parkour");a.performCommand("gamevote duel");b.performCommand("gamevote duel");
+        java.util.Map<?,?> votes=(java.util.Map<?,?>)voteField("votes");
+        ok(votes.size()==2&&votes.values().stream().allMatch(v->"DUEL".equals(v.toString())),"each player has one changeable vote");
+        expireVote();
+        later(25,()->{
+            ok(((Long)voteField("deadline"))==0L&&((java.util.Map<?,?>)voteField("votes")).isEmpty()
+                    &&String.valueOf(voteField("lastResult")).startsWith("Дуэли"),"timer closes the vote and announces the selected activity");
+            ok(core.getStore().getCoins(a.getName())==beforeA&&core.getStore().getCoins(b.getName())==beforeB&&voteTeleports==0,
+                    "game vote neither charges nor teleports participants");
+            watchVote=false;
+            b.performCommand("gamevote parkour");
+            ok(((java.util.Map<?,?>)voteField("votes")).isEmpty(),"votes after closing are rejected");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");
+            a.performCommand("gamevote parkour");b.performCommand("gamevote duel");expireVote();a.performCommand("gamevote status");
+            ok(String.valueOf(voteField("lastResult")).startsWith("ничья"),"a tie is announced without selecting a winner");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote cancel");
+            ok(((Long)voteField("deadline"))==0L&&((java.util.Map<?,?>)voteField("votes")).isEmpty(),"administrator can cancel the poll safely");
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 60");a.performCommand("gamevote parkour");
+            next.run();
         });
     }
     private void claimChecks(Runnable next){
@@ -420,6 +456,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         DataStore store=core.getStore();
         World treeWorld=core.getSpawnEngine().getPreparedSpawnArrival().getWorld();
         a.teleport(new Location(treeWorld,0.5,100,0.5));
+        ok(((Long)voteField("deadline"))==0L&&((java.util.Map<?,?>)voteField("votes")).isEmpty(),"unfinished vote does not survive a server restart");
         DataStore.Clan red=store.getClanOf(a.getName()), blue=store.getClanOf(b.getName());
         ok(red!=null&&blue!=null&&red.allies.contains(blue.id)&&blue.allies.contains(red.id),"alliance survives restart");
         ok(store.isTeammatePvpAllowed(a.getName(),b.getName()),"mutual PvP consent survives restart");

@@ -71,6 +71,7 @@ public final class KingGriefCore extends JavaPlugin {
     private AuctionSearchManager auctionSearch;
     private CoreBackupManager coreBackups;
     private ClaimContainerGuard claimContainers;
+    private MiniGameVoteManager gameVotes;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -104,6 +105,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.coreBackups = new CoreBackupManager(this);
         this.claimContainers = new ClaimContainerGuard(this);
         Bukkit.getPluginManager().registerEvents(this.claimContainers, this);
+        this.gameVotes = new MiniGameVoteManager(this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -142,7 +144,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -199,6 +201,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.bossEvents.start();
         this.utilities.start();
         this.claimContainers.start();
+        this.gameVotes.start();
         this.winterTree.start();
         this.cosmetics.start();
         this.parkourRecords.start();
@@ -250,6 +253,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.hud != null) this.hud.shutdown();
         if (this.coreBackups != null) this.coreBackups.shutdown();
         if (this.claimContainers != null) this.claimContainers.shutdown();
+        if (this.gameVotes != null) this.gameVotes.shutdown();
         if (this.utilities != null) this.utilities.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.parkourRecords != null) this.parkourRecords.shutdown();
@@ -472,7 +476,10 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("parkour".equals(c)) {
+        if ("gamevote".equals(c) && args.length == 1) {
+            return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "start", "cancel")
+                    :Arrays.asList("status", "parkour", "duel"), args[0]);
+        } else if ("parkour".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("top", "ghost", "cp", "leave"), args[0]);
             if (args.length == 2 && "top".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("day", "week", "all"), args[1]);
             if (args.length == 2 && "ghost".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("me", "top", "off"), args[1]);
@@ -628,6 +635,10 @@ public final class KingGriefCore extends JavaPlugin {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
 
         // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
+        if ("gamevote".equals(c)) {
+            gameVotes.command(sender, args, hasEconomyAdmin(sender));
+            return true;
+        }
         if ("kgbackup".equals(c)) {
             if (!hasEconomyAdmin(sender)) sender.sendMessage(ColorUtil.c("&cДоступно только OWNER, ТЕХ.АДМИНУ и консоли."));
             else coreBackups.command(sender, args);
