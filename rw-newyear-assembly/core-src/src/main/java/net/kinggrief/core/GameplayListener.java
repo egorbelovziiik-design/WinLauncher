@@ -3358,12 +3358,18 @@ public final class GameplayListener implements Listener {
             if (chunkBlocks.isEmpty()) tempBlocksByChunk.remove(chunkKey);
         }
         if (original == null || expected == null) return;
-        // Do not load a chunk synchronously. ChunkUnloadEvent handles normal unloads.
-        if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
-            plugin.getLogger().warning("Temporary block could not be restored in unloaded chunk at " + block.getLocation());
-            return;
+        try {
+            // Do not load a chunk synchronously. ChunkUnloadEvent handles normal unloads.
+            if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+                plugin.getLogger().warning("Temporary block could not be restored in unloaded chunk at " + block.getLocation());
+                return;
+            }
+            if (block.getBlockData().equals(expected)) block.setBlockData(original, false);
+        } catch (RuntimeException | LinkageError error) {
+            // One broken block must not prevent all remaining cleanup on disable.
+            plugin.getLogger().warning("Temporary block cleanup failed at " + block.getX() + "," + block.getY() + "," + block.getZ()
+                    + ": " + error.getClass().getSimpleName());
         }
-        if (block.getBlockData().equals(expected)) block.setBlockData(original, false);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

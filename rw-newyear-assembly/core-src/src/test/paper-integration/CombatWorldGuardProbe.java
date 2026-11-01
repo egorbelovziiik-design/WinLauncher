@@ -28,7 +28,7 @@ import org.bukkit.util.Vector;
 public final class CombatWorldGuardProbe extends JavaPlugin implements Listener {
     private KingGriefCore core; private Player a,b,c,observedTarget;
     private World world; private RegionManager manager; private ProtectedCuboidRegion protectedArea;
-    private boolean started,finished,observedCancelled,cancelProjectile,cancelPlacement; private int checks;
+    private boolean started,finished,observedCancelled,cancelProjectile,cancelPlacement; private int checks,placementAllowance;
     private Player denyTeleport;
 
     @Override public void onEnable(){
@@ -50,7 +50,7 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         if(event.getPlayer().equals(denyTeleport)&&event.getCause()==org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN)event.setCancelled(true);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
-    public void protectPlacement(org.bukkit.event.block.BlockPlaceEvent event){if(cancelPlacement)event.setCancelled(true);}
+    public void protectPlacement(org.bukkit.event.block.BlockPlaceEvent event){if(cancelPlacement&&placementAllowance--<=0)event.setCancelled(true);}
     private void later(long ticks,Runnable work){Bukkit.getScheduler().runTaskLater(this,()->{try{work.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean condition,String text){if(!condition)throw new AssertionError(text);checks++;getLogger().info("KG-WGPVP PASS "+text);}
     private void cleanup(){for(Player p:new Player[]{a,b,c})if(p!=null)core.getHud().clearCombat(p.getUniqueId());}
@@ -189,6 +189,10 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         ok(a.getInventory().getItemInMainHand().getAmount()==2
                 &&!((java.util.Map<?,?>)field(field(core,"gameplayListener"),"itemCooldowns")).containsKey(a.getUniqueId()+":dezorient"),
                 "quick-frozen caster does not consume a PvP item or start cooldown");
+        a.getInventory().setItemInMainHand(ItemFactory.trapka(2));
+        placementAllowance=4;cancelPlacement=true;useHeld();cancelPlacement=false;
+        ok(a.getInventory().getItemInMainHand().getAmount()==2&&temporaryCount()==0,
+                "fewer than five allowed trap blocks roll back without consuming the item");
         for(org.bukkit.inventory.ItemStack item:new org.bukkit.inventory.ItemStack[]{ItemFactory.plast(2),ItemFactory.trapka(2),ItemFactory.iceDome(2)}){
             String id=ItemFactory.getCustomId(item);a.getInventory().setItemInMainHand(item);
             cancelPlacement=true;useHeld();cancelPlacement=false;
@@ -242,6 +246,9 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
                 "disabling WorldGuard invalidates the cached API objects");
         clear(b);clear(c);hit(b);
         ok(!observedCancelled&&b.getHealth()<20&&c.getFireTicks()==0,"installed but disabled WorldGuard fails closed for secondary player effects");
+        org.bukkit.block.Block block=world.getBlockAt(74,97,10);block.setType(org.bukkit.Material.AIR,false);
+        ok(!place(block,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&block.getType().isAir(),
+                "installed but disabled WorldGuard fails closed for temporary placement");
         finished=true;cleanup();getLogger().info("KG-WGPVP RESULT PASS "+checks+" checks");
     }
 }

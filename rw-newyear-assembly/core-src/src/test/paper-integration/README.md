@@ -170,7 +170,7 @@ reservations, recursive hits, ordinary armor and quick freeze. It does not
 prove compatibility with every protection plugin or simulate all combat cases.
 
 `test-combat-worldguard.py` requires **real**, separately supplied compatible
-WorldGuard and WorldEdit JARs (`--worldguard ... --worldedit ...`). Its 45 checks
+WorldGuard and WorldEdit JARs (`--worldguard ... --worldedit ...`). Its 49 checks
 use WorldGuard 7.0.13/WorldEdit 7.3.10, three protocol players, synthetic damage,
 projectile/interaction/placement events and a synthetic chunk-unload callback.
 They cover region and global PvP flags, build/block-place flags, fail-closed
