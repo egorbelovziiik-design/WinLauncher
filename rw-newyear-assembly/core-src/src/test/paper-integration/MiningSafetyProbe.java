@@ -31,11 +31,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 /** Real Player.breakBlock calls with a later external protection listener. */
 public final class MiningSafetyProbe extends JavaPlugin implements Listener {
     private Player p;private KingGriefCore core;private Block central,protectedNeighbour,protectedLiquid;
-    private boolean cancelCentral,started,finished,forceExternalWear;private int neighbourEvents,liquidEvents,spawnerDamageEvents,spawnerDamageCancelled,checks,errors;
+    private boolean cancelCentral,started,finished,forceExternalWear,noDropsEarly,restoreDropsLate;private int neighbourEvents,liquidEvents,spawnerDamageEvents,spawnerDamageCancelled,checks,errors;
     @Override public void onEnable(){Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent e){if(!started && Bukkit.getOnlinePlayers().size()>=2){started=true;later(40,this::begin);}}
+    @EventHandler(priority=EventPriority.LOW,ignoreCancelled=true) public void suppressDrops(BlockBreakEvent event){
+        if(noDropsEarly && event.getBlock().equals(central))event.setDropItems(false);
+    }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void protect(BlockBreakEvent event){
         if(cancelCentral && event.getBlock().equals(central))event.setCancelled(true);
+        if(restoreDropsLate && event.getBlock().equals(central))event.setDropItems(true);
         if(protectedNeighbour!=null && event.getBlock().equals(protectedNeighbour)){neighbourEvents++;event.setCancelled(true);}
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void protectLiquid(BlockPlaceEvent event){
@@ -179,6 +183,78 @@ public final class MiningSafetyProbe extends JavaPlugin implements Listener {
             ok(restored!=null && restored.getSpawnedType()==EntityType.ZOMBIE && restored.getDelay()>=300 && restored.getDelay()<=317
                     && drops(central.getLocation(),Material.SPAWNER)+inventory(Material.SPAWNER)==before,
                     "missing tool restores spawner with its mob and delay without paying a reward");
+            smeltCancellation(world);
+        });
+    }
+    private void smeltCancellation(World world){
+        p.teleport(new Location(world,126.5,161,30.5,0f,90f));p.getInventory().clear();
+        ItemStack pick=new ItemStack(Material.DIAMOND_PICKAXE);ItemFactory.applyScrollToTool(pick,"smelt");p.getInventory().setItemInMainHand(pick);
+        central=world.getBlockAt(126,160,30);central.setType(Material.COPPER_ORE,false);protectedNeighbour=null;
+        int items=inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT),mined=core.getStore().getMinedBlocks(p.getName());
+        core.getStore().toggleQuickFreeze(p.getUniqueId());boolean frozenBreak=p.breakBlock(central);core.getStore().clearQuickFreeze(p.getUniqueId());
+        ok(!frozenBreak&&central.getType()==Material.COPPER_ORE&&inventory(Material.COPPER_INGOT)==0,
+                "quick-frozen player cannot mine or trigger smelting");
+        cancelCentral=true;p.breakBlock(central);later(4,()->{
+            ok(central.getType()==Material.COPPER_ORE&&inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT)==items
+                    &&core.getStore().getMinedBlocks(p.getName())==mined,"late-cancelled smelt break grants no items or mining progress");
+            cancelCentral=false;p.breakBlock(central);later(4,()->{
+                ok(central.getType().isAir()&&inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT)==items+4
+                        &&core.getStore().getMinedBlocks(p.getName())==mined+1,"accepted smelt delivers the expected copper once");
+                smeltDropPolicies(world);
+            });
+        });
+    }
+    private void smeltDropPolicies(World world){
+        p.teleport(new Location(world,138.5,161,30.5,0f,90f));p.getInventory().clear();
+        ItemStack pick=new ItemStack(Material.DIAMOND_PICKAXE);ItemFactory.applyScrollToTool(pick,"smelt");p.getInventory().setItemInMainHand(pick);
+        central=world.getBlockAt(138,160,30);central.setType(Material.COPPER_ORE,false);
+        int beforeIngots=inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT);
+        int beforeRaw=inventory(Material.RAW_COPPER)+drops(central.getLocation(),Material.RAW_COPPER);
+        noDropsEarly=true;p.breakBlock(central);noDropsEarly=false;later(4,()->{
+            ok(central.getType().isAir()&&inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT)==beforeIngots
+                    &&inventory(Material.RAW_COPPER)+drops(central.getLocation(),Material.RAW_COPPER)==beforeRaw,
+                    "earlier no-drops protection is respected by smelt enchantment");
+            p.teleport(new Location(world,150.5,161,30.5,0f,90f));central=world.getBlockAt(150,160,30);central.setType(Material.COPPER_ORE,false);
+            int ingots=inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT);
+            int raw=inventory(Material.RAW_COPPER)+drops(central.getLocation(),Material.RAW_COPPER);
+            restoreDropsLate=true;p.breakBlock(central);restoreDropsLate=false;later(4,()->{
+                ok(central.getType().isAir()&&inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT)==ingots
+                        &&inventory(Material.RAW_COPPER)+drops(central.getLocation(),Material.RAW_COPPER)>raw,
+                        "later drop re-enabling uses vanilla drops without custom duplicates");
+                smeltFullInventory(world);
+            });
+        });
+    }
+    private void smeltFullInventory(World world){
+        p.teleport(new Location(world,162.5,161,30.5,0f,90f));fill();
+        ItemStack pick=new ItemStack(Material.DIAMOND_PICKAXE);ItemFactory.applyScrollToTool(pick,"smelt");p.getInventory().setItemInMainHand(pick);
+        central=world.getBlockAt(162,160,30);central.setType(Material.COPPER_ORE,false);
+        int before=drops(central.getLocation(),Material.COPPER_INGOT);p.breakBlock(central);later(4,()->{
+            ok(central.getType().isAir()&&drops(central.getLocation(),Material.COPPER_INGOT)==before+4,
+                    "smelt drops overflow safely when inventory is full");
+            smeltCrossWorldOverflow(world);
+        });
+    }
+    private void smeltCrossWorldOverflow(World world){
+        p.teleport(new Location(world,186.5,161,30.5,0f,90f));fill();
+        ItemStack pick=new ItemStack(Material.DIAMOND_PICKAXE);ItemFactory.applyScrollToTool(pick,"smelt");p.getInventory().setItemInMainHand(pick);
+        central=world.getBlockAt(186,160,30);central.setType(Material.COPPER_ORE,false);
+        Location destination=core.getSpawnEngine().getSpawnArrival().clone();int before=drops(destination,Material.COPPER_INGOT);
+        p.breakBlock(central);p.teleport(destination);later(4,()->{
+            ok(central.getType().isAir()&&drops(destination,Material.COPPER_INGOT)==before+4,
+                    "teleporting across worlds before confirmation drops overflow in the player's new world");
+            smeltChunkUnload(world);
+        });
+    }
+    private void smeltChunkUnload(World world){
+        p.teleport(new Location(world,174.5,161,30.5,0f,90f));p.getInventory().clear();
+        ItemStack pick=new ItemStack(Material.DIAMOND_PICKAXE);ItemFactory.applyScrollToTool(pick,"smelt");p.getInventory().setItemInMainHand(pick);
+        central=world.getBlockAt(174,160,30);central.setType(Material.COPPER_ORE,false);
+        int before=inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT);
+        p.breakBlock(central);Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.ChunkUnloadEvent(central.getChunk()));
+        later(4,()->{
+            ok(central.getType()==Material.COPPER_ORE&&inventory(Material.COPPER_INGOT)+drops(central.getLocation(),Material.COPPER_INGOT)==before,
+                    "chunk-unload callback restores an unconfirmed smelt block without a reward");
             autoMine();
         });
     }
@@ -215,12 +291,20 @@ public final class MiningSafetyProbe extends JavaPlugin implements Listener {
         p.getInventory().setItemInMainHand(wornSpawnerPick(3));central=world.getBlockAt(114,160,30);central.setType(Material.SPAWNER,false);
         CreatureSpawner saved=(CreatureSpawner)central.getState();saved.setSpawnedType(EntityType.SPIDER);saved.update(true,false);
         int before=drops(central.getLocation(),Material.SPAWNER)+inventory(Material.SPAWNER);
-        p.breakBlock(central);Bukkit.getPluginManager().disablePlugin(core);later(4,()->{
+        ItemStack savedPick=p.getInventory().getItemInMainHand().clone();p.breakBlock(central);
+        p.getInventory().setItemInOffHand(savedPick);
+        ItemStack smelt=new ItemStack(Material.DIAMOND_PICKAXE);ItemFactory.applyScrollToTool(smelt,"smelt");p.getInventory().setItemInMainHand(smelt);
+        Block smeltBlock=world.getBlockAt(115,160,30);smeltBlock.setType(Material.COPPER_ORE,false);
+        int copperBefore=inventory(Material.COPPER_INGOT)+drops(smeltBlock.getLocation(),Material.COPPER_INGOT);
+        p.breakBlock(smeltBlock);Bukkit.getPluginManager().disablePlugin(core);later(4,()->{
             CreatureSpawner restored=central.getType()==Material.SPAWNER?(CreatureSpawner)central.getState():null;
             ok(!core.isEnabled() && restored!=null && restored.getSpawnedType()==EntityType.SPIDER
                     && drops(central.getLocation(),Material.SPAWNER)+inventory(Material.SPAWNER)==before
-                    && "pick_spawner".equals(ItemFactory.getCustomId(p.getInventory().getItemInMainHand())),
+                    && "pick_spawner".equals(ItemFactory.getCustomId(p.getInventory().getItemInOffHand())),
                     "plugin shutdown before confirmation restores spawner and preserves the pick");
+            ok(smeltBlock.getType()==Material.COPPER_ORE
+                    && inventory(Material.COPPER_INGOT)+drops(smeltBlock.getLocation(),Material.COPPER_INGOT)==copperBefore,
+                    "plugin shutdown restores an unconfirmed smelt block without granting drops");
             finish();
         });
     }

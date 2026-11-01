@@ -261,7 +261,10 @@ public final class KingGriefCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (this.gameplayListener != null) this.gameplayListener.rollbackPendingSpawnerBreaks();
+        if (this.gameplayListener != null) {
+            this.gameplayListener.rollbackPendingSpawnerBreaks();
+            this.gameplayListener.rollbackPendingSmeltBreaks();
+        }
         if (this.ownerGiveaway != null) {
             this.ownerGiveaway.kickAllForShutdownTechWorks();
             this.ownerGiveaway.shutdown();

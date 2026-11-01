@@ -120,6 +120,7 @@ public final class GameplayListener implements Listener {
     // A one-use spawner pick must survive vanilla's durability step until its break is confirmed.
     private final Map<UUID, Integer> pendingSpawnerToolGuards = new HashMap<UUID, Integer>();
     private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSpawnerRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
+    private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSmeltRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
     private static final class PendingPvpHit {
         final Player attacker, victim;
@@ -428,22 +429,39 @@ public final class GameplayListener implements Listener {
      * v6.4.0: «Авто-Плавка» из свитка работает на ЛЮБОЙ кирке (даже ванильной) и ВЕЗДЕ:
      * в мире выживания, в Незере, в Энде и на всех варпах. Возвращает true, если дроп заменён.
      */
-    private boolean applySmeltEnchant(BlockBreakEvent e, Player p, Block b, ItemStack tool) {
-        int lvl = ItemFactory.getToolEnchant(tool, "smelt");
-        if (lvl <= 0) return false;
-        Material m = b.getType();
-        String mn = m.name();
-        if (!mn.endsWith("_ORE") && m != Material.ANCIENT_DEBRIS && m != Material.GILDED_BLACKSTONE) return false;
-        if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) return false; // в авто-шахте своя экономика
-        ItemStack drop = smeltedDropForBlock(m, 1 + lvl, 1 + lvl);
+    private boolean applySmeltEnchant(final BlockBreakEvent event, final Player player, final Block block, ItemStack tool) {
+        final int level = ItemFactory.getToolEnchant(tool, "smelt");
+        if (level < 1 || level > 3 || !event.isDropItems() || player.getGameMode() == GameMode.CREATIVE
+                || player.getGameMode() == GameMode.SPECTATOR) return false;
+        Material material = block.getType();
+        String name = material.name();
+        if (!name.endsWith("_ORE") && material != Material.ANCIENT_DEBRIS && material != Material.GILDED_BLACKSTONE) return false;
+        if (plugin.getSpawnEngine().isInSpawnWorld(block.getLocation())) return false; // авто-шахта выдаёт свою награду
+        final ItemStack drop = smeltedDropForBlock(material, 1 + level, 1 + level);
         if (drop == null) return false;
-        e.setDropItems(false);
-        Map<Material, Integer> tally = new HashMap<Material, Integer>();
-        addLootBundled(tally, drop);
-        deliverBundledLoot(p, b.getLocation().add(0.5, 0.5, 0.5), tally, true);
-        b.getWorld().spawnParticle(Particle.FLAME, b.getLocation().add(0.5, 0.5, 0.5), 6 * lvl, 0.25, 0.25, 0.25, 0.02);
-        ColorUtil.actionBar(p, "&#FFD740🔥 Авто-Плавка " + ItemFactory.romanLevel(lvl) + ": руда сразу в слитках ×" + (1 + lvl));
-        plugin.getStore().addMined(p.getName());
+        final org.bukkit.block.BlockState original = block.getState();
+        pendingSmeltRollbacks.put(event, original);
+        event.setDropItems(false);
+        Bukkit.getScheduler().runTask(plugin, new Runnable() {
+            @Override public void run() {
+                if (!pendingSmeltRollbacks.containsKey(event)) return; // restored on shutdown/chunk unload
+                try {
+                    if (event.isCancelled() || event.isDropItems()) return;
+                    if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+                        plugin.getLogger().warning("[Mining] Smelt confirmation reached an unloaded chunk at " + block.getLocation());
+                        return;
+                    }
+                    if (!block.getType().isAir()) return;
+                    Map<Material, Integer> tally = new HashMap<Material, Integer>();
+                    addLootBundled(tally, drop);
+                    Location spot = block.getLocation().add(0.5, 0.5, 0.5);
+                    deliverBundledLoot(player, spot, tally, true);
+                    block.getWorld().spawnParticle(Particle.FLAME, spot, 6 * level, 0.25, 0.25, 0.25, 0.02);
+                    if (player.isOnline()) ColorUtil.actionBar(player, "&#FFD740🔥 Авто-Плавка " + ItemFactory.romanLevel(level) + ": руда сразу в слитках ×" + (1 + level));
+                    plugin.getStore().addMined(player.getName());
+                } finally { pendingSmeltRollbacks.remove(event); }
+            }
+        });
         return true;
     }
 
@@ -760,7 +778,8 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent e) {
         Player p = e.getPlayer();
-        if (!plugin.getStore().isAuthenticated(p) || plugin.getModeration().isFrozenOrAscending(p)) {
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getStore().isQuickFrozen(p)
+                || plugin.getModeration().isFrozenOrAscending(p)) {
             e.setCancelled(true);
             return;
         }
@@ -1227,6 +1246,34 @@ public final class GameplayListener implements Listener {
         }
     }
 
+    private void restorePendingSmelt(BlockBreakEvent event, org.bukkit.block.BlockState original, String reason) {
+        if (event.isCancelled() || event.isDropItems()) return;
+        Block block = event.getBlock();
+        try {
+            if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+                plugin.getLogger().warning("[Mining] Cannot restore pending smelt in an unloaded chunk: " + block.getLocation());
+                return;
+            }
+            if (block.getType().isAir()) {
+                if (!original.update(true, false)) plugin.getLogger().warning("[Mining] Could not restore pending smelt at " + block.getLocation() + " (" + reason + ").");
+            } else if (block.getBlockData().equals(original.getBlockData())) {
+                // If shutdown/unload happens inside the break event, stop the pending break.
+                event.setCancelled(true);
+            } else {
+                plugin.getLogger().warning("[Mining] Pending smelt block changed before rollback at " + block.getLocation() + " (" + reason + ").");
+            }
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Mining] Pending smelt rollback failed (" + reason + "): " + error.getClass().getSimpleName());
+        }
+    }
+
+    public void rollbackPendingSmeltBreaks() {
+        for (Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState> entry : new ArrayList<Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState>>(pendingSmeltRollbacks.entrySet())) {
+            restorePendingSmelt(entry.getKey(), entry.getValue(), "plugin shutdown");
+        }
+        pendingSmeltRollbacks.clear();
+    }
+
     public void rollbackPendingSpawnerBreaks() {
         // Scheduled confirmations are cancelled on plugin shutdown; return any unpaid spawners first.
         for (Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState> entry : pendingSpawnerRollbacks.entrySet()) {
@@ -1377,7 +1424,10 @@ public final class GameplayListener implements Listener {
                 ItemStack stack = new ItemStack(mat, batch);
                 if (telekinesis && p.isOnline()) {
                     for (ItemStack left : p.getInventory().addItem(stack).values()) {
-                        if (w != null) w.dropItemNaturally(p.getLocation(), left);
+                        Location playerSpot = p.getLocation();
+                        World playerWorld = playerSpot.getWorld();
+                        if (playerWorld != null) playerWorld.dropItemNaturally(playerSpot, left);
+                        else if (w != null) w.dropItemNaturally(dropSpot, left);
                     }
                 } else if (w != null) {
                     w.dropItemNaturally(dropSpot, stack);
@@ -1582,7 +1632,8 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent e) {
         Player p = e.getPlayer();
-        if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getStore().isQuickFrozen(p)
+                || plugin.getModeration().isFrozenOrAscending(p)) { e.setCancelled(true); return; }
         Block b = e.getBlockPlaced();
         // These exact temporary blocks were already checked individually for
         // spawn, claims and event structures. Other plugins still receive the event.
@@ -3375,6 +3426,15 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTemporaryChunkUnload(org.bukkit.event.world.ChunkUnloadEvent event) {
         org.bukkit.Chunk chunk = event.getChunk();
+        if (!pendingSmeltRollbacks.isEmpty()) {
+            for (Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState> entry : new ArrayList<Map.Entry<BlockBreakEvent, org.bukkit.block.BlockState>>(pendingSmeltRollbacks.entrySet())) {
+                Block block = entry.getKey().getBlock();
+                if (block.getWorld().equals(chunk.getWorld()) && (block.getX() >> 4) == chunk.getX() && (block.getZ() >> 4) == chunk.getZ()) {
+                    restorePendingSmelt(entry.getKey(), entry.getValue(), "chunk unload");
+                    pendingSmeltRollbacks.remove(entry.getKey());
+                }
+            }
+        }
         Set<Block> blocks = tempBlocksByChunk.get(tempChunkKey(chunk.getWorld(), chunk.getX(), chunk.getZ()));
         if (blocks == null) return;
         for (Block block : new ArrayList<Block>(blocks)) restoreTemporaryBlock(block);
