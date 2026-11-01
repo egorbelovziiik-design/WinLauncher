@@ -189,6 +189,8 @@ commands:
     aliases: [c]
   rg:
     aliases: [region, ps]
+    description: Built-in claim info, borders, blocked container audit and roles
+    usage: /rg [borders|log|roles|role|add|remove]
   sethome: {}
   home: {}
   delhome: {}

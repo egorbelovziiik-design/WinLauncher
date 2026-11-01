@@ -55,7 +55,7 @@ final class ClaimContainerGuard implements Listener {
         Map<String,DataStore.Claim> denied=new LinkedHashMap<String,DataStore.Claim>();
         for(Block part:parts){
             DataStore.Claim claim=plugin.getStore().getClaimAt(part.getLocation());
-            if(claim!=null&&!claim.canAccess(player.getName()))denied.put(claim.id,claim);
+            if(claim!=null&&!claim.canOpenContainers(player.getName()))denied.put(claim.id,claim);
         }
         if(denied.isEmpty())return false;
         event.setUseInteractedBlock(Event.Result.DENY);event.setUseItemInHand(Event.Result.DENY);

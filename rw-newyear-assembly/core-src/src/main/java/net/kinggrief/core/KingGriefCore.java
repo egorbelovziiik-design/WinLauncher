@@ -496,8 +496,10 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("cosmetic".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("trail", "login"), args[0]);
             if (args.length == 2) return filterPrefix(Arrays.asList("snow", "hearts", "stars", "off"), args[1]);
-        } else if ("rg".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("borders", "log", "add", "remove"), args[0]);
+        } else if ("rg".equals(c)) {
+            if (args.length == 1) return filterPrefix(Arrays.asList("borders", "log", "roles", "role", "add", "remove"), args[0]);
+            if (args.length == 2 && ("role".equalsIgnoreCase(args[0]) || "add".equalsIgnoreCase(args[0]) || "remove".equalsIgnoreCase(args[0]))) return onlineNames(args[1]);
+            if (args.length == 3 && "role".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("builder", "container", "none"), args[2]);
         } else if ("way".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("spawn", "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top"), args[0]);
         } else if ("deathpoint".equals(c) && args.length == 1) {
@@ -2506,19 +2508,60 @@ public final class KingGriefCore extends JavaPlugin {
             claimContainers.log(p, cl, args);
             return;
         }
-        if (args.length >= 2 && "add".equalsIgnoreCase(args[0]) && cl.owner.equalsIgnoreCase(p.getName())) {
-            cl.members.add(args[1].toLowerCase(Locale.ROOT));
-            store.save();
-            p.sendMessage(ColorUtil.c("&#00E676🛡 Игрок &f" + args[1] + " &#00E676добавлен в ваш приват!"));
+        if (args.length >= 1 && "roles".equalsIgnoreCase(args[0])) {
+            handleClaimRoles(p, cl, args);
             return;
         }
-        if (args.length >= 2 && "remove".equalsIgnoreCase(args[0]) && cl.owner.equalsIgnoreCase(p.getName())) {
-            cl.members.remove(args[1].toLowerCase(Locale.ROOT));
-            store.save();
-            p.sendMessage(ColorUtil.c("&eИгрок удалён из привата."));
+        if (args.length >= 1 && ("role".equalsIgnoreCase(args[0]) || "add".equalsIgnoreCase(args[0]) || "remove".equalsIgnoreCase(args[0]))) {
+            if (!cl.owner.equalsIgnoreCase(p.getName()) && !ranks.isOwnerLevel(p)) {
+                p.sendMessage(ColorUtil.c("&cМенять роли может владелец привата, OWNER или ТЕХ.АДМИН.")); return;
+            }
+            boolean explicit = "role".equalsIgnoreCase(args[0]);
+            if ((explicit && args.length != 3) || (!explicit && args.length != 2)) {
+                p.sendMessage(ColorUtil.c("&e/rg role <ник> <builder|container|none> &8• &e/rg add|remove <ник>")); return;
+            }
+            String value = explicit ? args[2].toLowerCase(Locale.ROOT) : ("add".equalsIgnoreCase(args[0]) ? "builder" : "none");
+            DataStore.ClaimRole role = "builder".equals(value) ? DataStore.ClaimRole.BUILDER
+                    : "container".equals(value) ? DataStore.ClaimRole.CONTAINER
+                    : "none".equals(value) ? DataStore.ClaimRole.NONE : null;
+            if (role == null) { p.sendMessage(ColorUtil.c("&eРоль: builder, container или none.")); return; }
+            DataStore.ClaimRoleResult result = store.setClaimRole(cl, args[1], role);
+            switch (result) {
+                case CHANGED:
+                    String description = role == DataStore.ClaimRole.BUILDER ? "строительство и контейнеры"
+                            : role == DataStore.ClaimRole.CONTAINER ? "открытие контейнеров и доступ к их вещам, без строительства"
+                            : "доступ отозван";
+                    p.sendMessage(ColorUtil.c("&#00E676Роль &f" + args[1] + "&a: " + description + ".")); break;
+                case UNCHANGED: p.sendMessage(ColorUtil.c("&eЭта роль уже установлена.")); break;
+                case INVALID: p.sendMessage(ColorUtil.c("&cУкажите корректный ник другого игрока (1–16 символов).")); break;
+                case LIMIT: p.sendMessage(ColorUtil.c("&cВ одном привате не более 128 участников с ролями.")); break;
+                case NOT_FOUND: p.sendMessage(ColorUtil.c("&cПриват больше недоступен.")); break;
+                default: p.sendMessage(ColorUtil.c("&cНе удалось сохранить роль. Права остались прежними.")); break;
+            }
             return;
         }
-        p.sendMessage(ColorUtil.c("&#00E676🛡 Регион владельца: &f" + cl.owner + " &8| &7Участники: &f" + cl.members));
+        p.sendMessage(ColorUtil.c("&#00E676🛡 Встроенный приват владельца: &f" + cl.owner
+                + " &8| &7Строителей: &f" + cl.members.size() + " &8| &7Доступ к контейнерам: &f" + cl.containerMembers.size()));
+        p.sendMessage(ColorUtil.c("&7Роли: &f/rg roles &8• &f/rg role <ник> <builder|container|none>"));
+    }
+
+    private void handleClaimRoles(Player p, DataStore.Claim cl, String[] args) {
+        if (!cl.owner.equalsIgnoreCase(p.getName()) && !ranks.isOwnerLevel(p)) {
+            p.sendMessage(ColorUtil.c("&cСписок ролей доступен владельцу, OWNER и ТЕХ.АДМИНУ.")); return;
+        }
+        int requested = 1;
+        if (args.length == 2) try { requested = Integer.parseInt(args[1]); } catch (NumberFormatException badPage) { requested = 0; }
+        if (args.length > 2 || requested < 1) { p.sendMessage(ColorUtil.c("&e/rg roles [страница]")); return; }
+        List<String> entries = new ArrayList<String>();
+        for (String name : cl.members) if (name.matches("[a-z0-9_]{1,16}")) entries.add("&f" + name + " &8— &abuilder");
+        for (String name : cl.containerMembers) if (name.matches("[a-z0-9_]{1,16}")) entries.add("&f" + name + " &8— &econtainer");
+        entries.sort(String.CASE_INSENSITIVE_ORDER);
+        int pages = Math.max(1, (entries.size() + 7) / 8), page = Math.min(requested, pages);
+        p.sendMessage(ColorUtil.c("&#80D8FFРоли привата " + cl.owner + " &8(" + page + "/" + pages + ")&7:"));
+        for (int i = (page - 1) * 8; i < Math.min(entries.size(), page * 8); i++) p.sendMessage(ColorUtil.c(" &8• " + entries.get(i)));
+        if (entries.isEmpty()) p.sendMessage(ColorUtil.c(" &8• &7Участников нет."));
+        if (page < pages) p.sendMessage(ColorUtil.c("&7Далее: &f/rg roles " + (page + 1)));
+        p.sendMessage(ColorUtil.c("&8container разрешает забирать вещи; это не защита от воронок и других плагинов."));
     }
 
     private void handleModeration(Player staff, String c, String[] args) {

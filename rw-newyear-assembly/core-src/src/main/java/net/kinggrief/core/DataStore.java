@@ -75,7 +75,9 @@ public final class DataStore {
         public String owner;
         public String world;
         public int cx, cy, cz, radius;
+        // Legacy members retain their existing build and container access.
         public final Set<String> members = new HashSet<String>();
+        public final Set<String> containerMembers = new HashSet<String>();
 
         public boolean contains(Location loc) {
             if (loc == null || loc.getWorld() == null) return false;
@@ -94,7 +96,12 @@ public final class DataStore {
             if (playerName == null) return false;
             return owner.equalsIgnoreCase(playerName) || members.contains(playerName.toLowerCase(Locale.ROOT));
         }
+        public boolean canOpenContainers(String playerName) {
+            return playerName != null && (canAccess(playerName) || containerMembers.contains(playerName.toLowerCase(Locale.ROOT)));
+        }
     }
+
+    public enum ClaimRole { BUILDER, CONTAINER, NONE }
 
     public static final class AuctionLot {
         public int id;
@@ -226,6 +233,11 @@ public final class DataStore {
                 cl.cz = rs.getInt(rid + ".z");
                 cl.radius = rs.getInt(rid + ".r", 10);
                 for (String m : rs.getStringList(rid + ".members")) cl.members.add(m.toLowerCase(Locale.ROOT));
+                for (String m : rs.getStringList(rid + ".containerMembers")) {
+                    if (m.matches("[A-Za-z0-9_]{1,16}")) cl.containerMembers.add(m.toLowerCase(Locale.ROOT));
+                }
+                // A legacy builder always keeps its full access if both lists contain the name.
+                cl.containerMembers.removeAll(cl.members);
                 claims.add(cl);
             }
         }
@@ -297,6 +309,7 @@ public final class DataStore {
             yml.set(p + ".z", cl.cz);
             yml.set(p + ".r", cl.radius);
             yml.set(p + ".members", new ArrayList<String>(cl.members));
+            yml.set(p + ".containerMembers", new ArrayList<String>(cl.containerMembers));
         }
         yml.set("auctionNextId", nextLotId);
         yml.set("auction", null);
@@ -1758,6 +1771,35 @@ public final class DataStore {
         claims.add(cl);
         save();
         return cl;
+    }
+
+    public enum ClaimRoleResult { CHANGED, UNCHANGED, INVALID, LIMIT, NOT_FOUND, SAVE_FAILED }
+
+    /** Save role changes before acknowledging them; on failure restore the live ACL. */
+    public synchronized ClaimRoleResult setClaimRole(Claim claim, String playerName, ClaimRole role) {
+        if (claim == null || !claims.contains(claim)) return ClaimRoleResult.NOT_FOUND;
+        if (role == null || playerName == null || !playerName.matches("[A-Za-z0-9_]{1,16}")
+                || claim.owner == null || claim.owner.equalsIgnoreCase(playerName)) return ClaimRoleResult.INVALID;
+        String name = playerName.toLowerCase(Locale.ROOT);
+        boolean builder = claim.members.contains(name), container = claim.containerMembers.contains(name);
+        if (role == ClaimRole.BUILDER && builder && !container
+                || role == ClaimRole.CONTAINER && container && !builder
+                || role == ClaimRole.NONE && !builder && !container) return ClaimRoleResult.UNCHANGED;
+        if (role != ClaimRole.NONE && !builder && !container && claim.members.size() + claim.containerMembers.size() >= 128)
+            return ClaimRoleResult.LIMIT;
+        Set<String> oldBuilders = new HashSet<String>(claim.members), oldContainers = new HashSet<String>(claim.containerMembers);
+        claim.members.remove(name); claim.containerMembers.remove(name);
+        if (role == ClaimRole.BUILDER) claim.members.add(name);
+        else if (role == ClaimRole.CONTAINER) claim.containerMembers.add(name);
+        try {
+            transact(data -> null);
+            return ClaimRoleResult.CHANGED;
+        } catch (Exception error) {
+            claim.members.clear(); claim.members.addAll(oldBuilders);
+            claim.containerMembers.clear(); claim.containerMembers.addAll(oldContainers);
+            plugin.getLogger().warning("[Claims] Role update not committed: " + error.getMessage());
+            return ClaimRoleResult.SAVE_FAILED;
+        }
     }
 
     public void removeClaim(Claim cl) {
