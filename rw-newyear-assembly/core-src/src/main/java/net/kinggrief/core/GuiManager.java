@@ -2250,6 +2250,7 @@ public final class GuiManager {
             if (slot == 31) { openMainMenu(p); return; }
             handlePlaytimeReward(p, clicked);
         } else if ("buyer".equals(type)) {
+            if (e.getClick() != ClickType.LEFT) return;
             if (slot == 40) { openMainMenu(p); return; }
             handleBuyerSell(p, slot, clicked.getType());
         } else if ("cases".equals(type)) {
@@ -2652,16 +2653,18 @@ public final class GuiManager {
         };
         int[] prices = new int[]{25, 70, 110, 350, 420, 2200, 35, 18, 22, 40, 95, 15, 15, 15};
         double earned = 0.0;
-        int count = 0;
+        long count = 0;
+        java.util.List<Integer> soldSlots = new java.util.ArrayList<Integer>();
         ItemStack[] contents = p.getInventory().getContents();
         for (int s = 0; s < contents.length; s++) {
             ItemStack it = contents[s];
-            if (it == null || it.hasItemMeta()) continue;
+            if (it == null || it.hasItemMeta() || it.getAmount() <= 0) continue;
             for (int m = 0; m < mats.length; m++) {
                 if (mats[m] == it.getType() && (slot == 4 || mats[m] == targetMat)) {
-                    earned += it.getAmount() * prices[m] * mult;
+                    earned += (double) it.getAmount() * prices[m] * mult;
                     count += it.getAmount();
-                    p.getInventory().setItem(s, null);
+                    soldSlots.add(Integer.valueOf(s));
+                    break;
                 }
             }
         }
@@ -2669,13 +2672,23 @@ public final class GuiManager {
             p.sendMessage(ColorUtil.c("&eВ инвентаре нет подходящих ресурсов для продажи!"));
             return;
         }
-        plugin.getStore().addCoins(p.getName(), earned);
-        plugin.getStore().addBuyerSold(p.getName(), earned);
-        plugin.getStore().save();
+        // Do not remove resources if the durable credit cannot be saved.
+        // Player inventories and data.yml are separate stores; a process crash
+        // between this commit and the next player-data save can still duplicate.
+        if (!plugin.getStore().commitBuyerSale(p.getName(), earned)) {
+            p.sendMessage(ColorUtil.c("&cПродажа не сохранена. Предметы остались у вас; сообщите администрации."));
+            return;
+        }
+        for (Integer s : soldSlots) p.getInventory().setItem(s.intValue(), null);
         ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.3f);
         p.sendMessage(ColorUtil.c("&#00E676💰 Скупщик купил &f" + count + " шт. &#00E676за &a+" + ColorUtil.fmtMoney(earned)
                 + "$ &8(Множитель Скупщика: &#00E676×" + String.format(Locale.US, "%.2f", Double.valueOf(plugin.getStore().getBuyerMultiplier(p.getName()))) + "&8)&7!"));
-        openBuyerMenu(p);
+        Inventory previous = p.getOpenInventory().getTopInventory();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            ItemStack cursor = p.getItemOnCursor();
+            if (p.isOnline() && p.getOpenInventory().getTopInventory() == previous
+                    && (cursor == null || cursor.getType().isAir())) openBuyerMenu(p);
+        });
     }
 
     private void handleBafovarClick(Player p, int slot) {

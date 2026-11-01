@@ -2192,6 +2192,28 @@ public final class DataStore {
         yml.set("players." + key(name) + ".buyerSold", getBuyerSoldTotal(name) + Math.max(0.0, delta));
     }
 
+    /** Commit the manual buyer credit and progression together before taking items. */
+    synchronized boolean commitBuyerSale(String name, double earned) {
+        if (name == null || !Double.isFinite(earned) || earned <= 0) return false;
+        double beforeCoins = getCoins(name), beforeSold = getBuyerSoldTotal(name);
+        double afterCoins = beforeCoins + earned, afterSold = beforeSold + earned;
+        if (!Double.isFinite(beforeCoins) || beforeCoins < 0 || !Double.isFinite(beforeSold) || beforeSold < 0
+                || !Double.isFinite(afterCoins) || afterCoins <= beforeCoins
+                || !Double.isFinite(afterSold) || afterSold <= beforeSold) return false;
+        String base = "players." + key(name);
+        try {
+            transact(data -> {
+                data.set(base + ".coins", afterCoins);
+                data.set(base + ".buyerSold", afterSold);
+                return null;
+            });
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Buyer] Sale was not committed for " + name + ": " + error.getMessage());
+            return false;
+        }
+    }
+
     public double getBuyerMultiplier(String name) {
         double sold = getBuyerSoldTotal(name);
         // Up to x2.00 multiplier (+0.10x per 25,000$ sold!)
