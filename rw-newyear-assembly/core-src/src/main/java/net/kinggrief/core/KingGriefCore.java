@@ -190,6 +190,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         this.bossEvents.start();
         this.utilities.start();
+        this.winterTree.start();
         this.cosmetics.start();
         this.parkourRecords.start();
         this.displayPets.start();
@@ -239,6 +240,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
         if (this.utilities != null) this.utilities.shutdown();
+        if (this.winterTree != null) this.winterTree.shutdown();
         if (this.parkourRecords != null) this.parkourRecords.shutdown();
         if (this.cosmetics != null) this.cosmetics.shutdown();
         if (this.displayPets != null) this.displayPets.shutdown();

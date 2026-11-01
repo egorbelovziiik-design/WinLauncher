@@ -1,7 +1,11 @@
 package net.kinggrief.core;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
@@ -18,7 +22,36 @@ final class WinterTreeManager {
     private static final int[] COINS = {5000, 15000, 35000};
     private static final int DAILY_LIMIT = 10;
     private final KingGriefCore plugin;
+    private int visualStage;
+    private BukkitRunnable ticker;
     WinterTreeManager(KingGriefCore plugin) { this.plugin=plugin; }
+    void start() {
+        try {visualStage=plugin.getStore().inspect(data->stage(Math.max(0,data.getInt("winterTree.total",0))));}
+        catch(Exception error){visualStage=0;}
+        ticker=new BukkitRunnable(){int step;
+            @Override public void run(){
+                if(visualStage<=0)return;
+                Location spawn=plugin.getSpawnEngine().getPreparedSpawnArrival();
+                if(spawn==null||spawn.getWorld()==null)return;
+                int viewers=0;
+                for(Player player:spawn.getWorld().getPlayers()){
+                    Location at=player.getLocation();
+                    if(Math.abs(at.getX())>64||Math.abs(at.getZ())>64||++viewers>32)continue;
+                    for(int tier=0;tier<visualStage;tier++){
+                        double radius=tier==0?11.8:tier==1?8.7:5.4;
+                        double y=tier==0?111.5:tier==1?124.5:137.5;
+                        Particle.DustOptions color=new Particle.DustOptions(tier==0?Color.fromRGB(255,208,64):tier==1?Color.fromRGB(125,220,255):Color.fromRGB(255,100,155),.7f);
+                        for(int i=0;i<8;i++){
+                            double angle=(i+step*.25)*Math.PI/4;
+                            player.spawnParticle(Particle.DUST,Math.cos(angle)*radius,y,Math.sin(angle)*radius,1,0,0,0,0,color);
+                        }
+                    }
+                }
+                step++;
+            }
+        };ticker.runTaskTimer(plugin,40L,20L);
+    }
+    void shutdown(){if(ticker!=null)ticker.cancel();}
 
     void command(Player p, String[] args) {
         String sub=args.length==0 ? "status" : args[0].toLowerCase(Locale.ROOT);
@@ -70,6 +103,7 @@ final class WinterTreeManager {
             });
             p.sendMessage(ColorUtil.c("&#80D8FFСпасибо! В ёлку внесено &f"+amount+" ❄&7. Прогресс: &f"+result[1]+"/300"));
             int before=stage(result[0]), after=stage(result[1]);
+            visualStage=after;
             if(after>before)Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Игроки украсили ёлку! Достигнут этап &f"+after+"/3&7. Участникам: &e/tree claim"));
         } catch(IllegalArgumentException rejected){p.sendMessage(ColorUtil.c("&c"+rejected.getMessage()));}
         catch(Exception error){plugin.getLogger().warning("[Tree] Donation not committed: "+error.getMessage());p.sendMessage(ColorUtil.c("&cНе удалось сохранить взнос. Снежинки не списаны."));}
