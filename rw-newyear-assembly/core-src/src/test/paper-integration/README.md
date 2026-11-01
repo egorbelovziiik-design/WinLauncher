@@ -168,6 +168,13 @@ restart. Test-only times drive the reminder stages; this does not simulate a
 clock jump, host crash or automatic event execution. The calendar announces
 rather than starting activities.
 
+`test-buyer-sale.py` checks manual `/buyer` sales using actual inventory clicks:
+failed durable writes, the existing price multipliers, metadata preservation,
+rate limits, unrepresentable balances, isolated inventories and orderly restart. It also sends
+SIGKILL **after** the sale and the player-data save, then verifies that sale on
+restart. It does not cover a crash between the balance commit and player-data
+save, failed/disabled `saveData`, power loss or autoselling mining drops.
+
 `test-new-features.py` exercises the airship's protected, non-repeatable scrap,
 expiry and terrain restoration; opt-in crown scoring, accepted/cancelled damage
 and rewards; trade confirmation, PDC/lore, inventory capacity and drag/hotbar
