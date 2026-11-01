@@ -72,6 +72,17 @@ public final class BuyerSaleProbe extends JavaPlugin implements Listener {
         ok(carrying.isCancelled()&&a.getItemOnCursor().getType()==Material.EMERALD&&a.getInventory().getItem(0).getAmount()==5
                 &&core.getStore().getCoins(a.getName())==initialCoins,"a click with an occupied cursor cannot trigger a sale");
         a.setItemOnCursor(null);
+        core.getConfig().set("enable-builtin-auth",true);core.getStore().setAuthenticated(a,false);
+        InventoryClickEvent unauth=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,13,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(unauth);
+        ok(unauth.isCancelled()&&a.getInventory().getItem(0).getAmount()==5&&core.getStore().getCoins(a.getName())==initialCoins,
+                "losing authentication with the GUI open prevents a sale");
+        core.getConfig().set("enable-builtin-auth",false);core.getStore().toggleQuickFreeze(a.getUniqueId());
+        InventoryClickEvent frozen=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,13,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(frozen);
+        ok(frozen.isCancelled()&&a.getInventory().getItem(0).getAmount()==5&&core.getStore().getCoins(a.getName())==initialCoins,
+                "quick-frozen player cannot sell through an already open GUI");
+        core.getStore().clearQuickFreeze(a.getUniqueId());
         later(6,()->{
             block();request("CLICK 13");later(14,()->{
                 restore();

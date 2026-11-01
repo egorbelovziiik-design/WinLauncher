@@ -169,7 +169,7 @@ clock jump, host crash or automatic event execution. The calendar announces
 rather than starting activities.
 
 `test-buyer-sale.py` checks manual `/buyer` sales using actual inventory clicks:
-failed durable writes, the existing price multipliers, metadata preservation,
+failed durable writes, the existing price multipliers, metadata/cursor preservation,
 rate limits, unrepresentable balances, isolated inventories and orderly restart. It also sends
 SIGKILL **after** the sale and the player-data save, then verifies that sale on
 restart. It does not cover a crash between the balance commit and player-data

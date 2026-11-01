@@ -2646,6 +2646,12 @@ public final class GuiManager {
     }
 
     private void handleBuyerSell(Player p, int slot, Material targetMat) {
+        if (!p.isOnline() || p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR
+                || !plugin.getStore().isAuthenticated(p) || plugin.getStore().isQuickFrozen(p)
+                || plugin.getModeration().isFrozenOrAscending(p)) {
+            p.sendMessage(ColorUtil.c("&cПродажа сейчас недоступна: войдите в аккаунт и завершите проверку."));
+            return;
+        }
         ItemStack cursor = p.getItemOnCursor();
         if (cursor != null && !cursor.getType().isAir()) {
             p.sendMessage(ColorUtil.c("&eПеред продажей положите предмет с курсора в инвентарь."));
