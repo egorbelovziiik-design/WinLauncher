@@ -153,6 +153,8 @@ public final class GameplayListener implements Listener {
     private final Map<String, Long> itemCooldowns = new HashMap<String, Long>();
     private final Set<String> activeTempBlocks = new HashSet<String>();
     private final Map<Block, org.bukkit.block.data.BlockData> allSavedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
+    private final Map<Block, org.bukkit.block.data.BlockData> expectedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
+    private final Set<Block> pendingTempPlacements = new HashSet<Block>();
     private final Map<UUID, Integer> killStreaks = new HashMap<UUID, Integer>();
     private final Map<UUID, PrimedTntEntry> activeCustomTnts = new HashMap<UUID, PrimedTntEntry>();
     private final Set<UUID> detonatedTntIds = new HashSet<UUID>();
@@ -445,13 +447,11 @@ public final class GameplayListener implements Listener {
     }
 
     public void cleanupAllTempBlocks() {
-        for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : allSavedTempBlocks.entrySet()) {
-            try {
-                en.getKey().setBlockData(en.getValue(), false);
-            } catch (Throwable ignored) {}
-        }
+        for (Block block : new ArrayList<Block>(allSavedTempBlocks.keySet())) restoreTemporaryBlock(block);
         allSavedTempBlocks.clear();
+        expectedTempBlocks.clear();
         activeTempBlocks.clear();
+        pendingTempPlacements.clear();
         pendingPvpHits.clear();
         pendingPvpCooldowns.clear();
     }
@@ -1583,6 +1583,9 @@ public final class GameplayListener implements Listener {
         if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
         Block b = e.getBlockPlaced();
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) {
+            // Temporary PvP structures still pass every other placement listener;
+            // only their own checked blocks may use the designated PvP area.
+            if (pendingTempPlacements.contains(b) && plugin.getSpawnEngine().isInsidePvpZone(b.getLocation())) return;
             if (!plugin.getRanks().canModifySpawn(p)) {
                 e.setCancelled(true);
                 ColorUtil.actionBar(p, "&#FF1744🛡 Строить на спавне могут OWNER и TECH.ADMIN! Выживание: &#00E676/rtp");
@@ -2189,7 +2192,8 @@ public final class GameplayListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEventPistonExtend(org.bukkit.event.block.BlockPistonExtendEvent e) {
         for (Block block : e.getBlocks()) {
-            if (plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
+            if (activeTempBlocks.contains(blockKey(block)) || activeTempBlocks.contains(blockKey(block.getRelative(e.getDirection())))
+                    || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
                     || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection()), false)) {
                 e.setCancelled(true); return;
             }
@@ -2198,7 +2202,8 @@ public final class GameplayListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEventPistonRetract(org.bukkit.event.block.BlockPistonRetractEvent e) {
         for (Block block : e.getBlocks()) {
-            if (plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
+            if (activeTempBlocks.contains(blockKey(block)) || activeTempBlocks.contains(blockKey(block.getRelative(e.getDirection().getOppositeFace())))
+                    || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
                     || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection().getOppositeFace()), false)) {
                 e.setCancelled(true); return;
             }
@@ -2650,8 +2655,12 @@ public final class GameplayListener implements Listener {
         }
         if ("plast".equals(cid)) {
             if (!checkAndSetCd(p, "plast", 10)) return;
+            if (!spawnTemporaryPlast(p)) {
+                itemCooldowns.remove(p.getUniqueId() + ":plast");
+                p.sendMessage(ColorUtil.c("&cНедостаточно безопасного места для Пласта; предмет сохранён."));
+                return;
+            }
             consumeOne(p, hand);
-            spawnTemporaryPlast(p);
             for (Entity en : p.getNearbyEntities(7, 5, 7)) {
                 if (en instanceof Player && isEnemyTarget(p, (Player) en)) {
                     tagPvp30(p, (Player) en);
@@ -2659,8 +2668,12 @@ public final class GameplayListener implements Listener {
             }
         } else if ("trapka".equals(cid)) {
             if (!checkAndSetCd(p, "trapka", 20)) return;
+            if (!spawnTemporaryTrapka(p)) {
+                itemCooldowns.remove(p.getUniqueId() + ":trapka");
+                p.sendMessage(ColorUtil.c("&cНедостаточно безопасного места для Трапки; предмет сохранён."));
+                return;
+            }
             consumeOne(p, hand);
-            spawnTemporaryTrapka(p);
         } else if ("dezorient".equals(cid)) {
             if (!checkAndSetCd(p, "dezorient", 20)) return;
             consumeOne(p, hand);
@@ -2926,8 +2939,12 @@ public final class GameplayListener implements Listener {
                 return;
             }
             if (!checkAndSetCd(p, "ice_dome", 28)) return;
+            if (!spawnTemporaryIceDome(p)) {
+                itemCooldowns.remove(p.getUniqueId() + ":ice_dome");
+                p.sendMessage(ColorUtil.c("&cНедостаточно безопасного места для Купола; предмет сохранён."));
+                return;
+            }
             consumeOne(p, hand);
-            spawnTemporaryIceDome(p);
         } else if ("vampire_pulse".equals(cid)) {
             if (!checkAndSetCd(p, "vampire_pulse", 24)) return;
             consumeOne(p, hand);
@@ -3024,10 +3041,10 @@ public final class GameplayListener implements Listener {
         }
     }
 
-    private void spawnTemporaryIceDome(Player p) {
+    private boolean spawnTemporaryIceDome(Player p) {
         Location pl = p.getLocation();
         World w = pl.getWorld();
-        if (w == null) return;
+        if (w == null) return false;
         int cx = pl.getBlockX(), cy = pl.getBlockY(), cz = pl.getBlockZ();
         final Map<Block, org.bukkit.block.data.BlockData> saved = new HashMap<Block, org.bukkit.block.data.BlockData>();
         for (int dx = -3; dx <= 3; dx++) {
@@ -3038,17 +3055,14 @@ public final class GameplayListener implements Listener {
                             || (dy >= 0 && distSq >= 6.2 && distSq <= 12.6);
                     if (!domeShell) continue;
                     Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                    if (isReplaceableForTemp(b)) {
-                        saved.put(b, b.getBlockData().clone());
-                        activeTempBlocks.add(blockKey(b));
-                        Material m = (dy >= 1 && ((Math.abs(dx) + Math.abs(dz)) % 2 == 1))
-                                ? Material.LIGHT_BLUE_STAINED_GLASS
-                                : Material.BLUE_ICE;
-                        b.setType(m, false);
-                    }
+                    Material m = (dy >= 1 && ((Math.abs(dx) + Math.abs(dz)) % 2 == 1))
+                            ? Material.LIGHT_BLUE_STAINED_GLASS
+                            : Material.BLUE_ICE;
+                    placeTemporaryBlock(p, b, m, saved);
                 }
             }
         }
+        if (!enoughTemporaryBlocks(saved)) return false;
         p.setFireTicks(0);
         for (Entity en : p.getNearbyEntities(4, 3, 4)) {
             if (en instanceof Player && isTeammateTarget(p, (Player) en)) {
@@ -3058,16 +3072,9 @@ public final class GameplayListener implements Listener {
         }
         ColorUtil.sound(p, "block.glass.place", 1.0f, 0.85f);
         p.getWorld().spawnParticle(Particle.SNOWFLAKE, pl.clone().add(0, 1.2, 0), 80, 2.2, 1.4, 2.2, 0.04);
-        p.sendMessage(ColorUtil.c("&#40C4FF🧊 Защитный Ледяной Купол 7×7 установлен на &e12 секунд&#40C4FF!"));
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : saved.entrySet()) {
-                    activeTempBlocks.remove(blockKey(en.getKey()));
-                    en.getKey().setBlockData(en.getValue(), false);
-                }
-            }
-        }.runTaskLater(plugin, 240L);
+        p.sendMessage(ColorUtil.c("&#40C4FF🧊 Ледяной Купол: установлено блоков &f" + saved.size() + "&#40C4FF на &e12 секунд. Препятствия и регионы пропущены."));
+        scheduleRestore(saved, 240L);
+        return true;
     }
 
     @EventHandler
@@ -3139,7 +3146,7 @@ public final class GameplayListener implements Listener {
         else data.remove(PROJ_TAG_KEY);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onProjectileHit(ProjectileHitEvent e) {
         String ptype = e.getEntity().getPersistentDataContainer().get(PROJ_TAG_KEY, PersistentDataType.STRING);
         String atype = e.getEntity().getPersistentDataContainer().get(PROJ_ARROW_KEY, PersistentDataType.STRING);
@@ -3168,22 +3175,42 @@ public final class GameplayListener implements Listener {
                 shooter.sendMessage(ColorUtil.c("&#FF1744✖ Сфера Рокировки не действует в мирной зоне спавна!"));
                 return;
             }
+            // Check the original positions BEFORE moving either player. In particular,
+            // WorldGuard and quick-freeze must not be bypassed by the teleport itself.
+            if (!plugin.getStore().isAuthenticated(shooter) || !plugin.getStore().isAuthenticated(hit)
+                    || plugin.getStore().isQuickFrozen(shooter) || plugin.getStore().isQuickFrozen(hit)
+                    || plugin.getModeration().isFrozenOrAscending(shooter) || plugin.getModeration().isFrozenOrAscending(hit)
+                    || !shooter.getWorld().equals(hit.getWorld())) return;
+            boolean teammates = isTeammateTarget(shooter, hit);
+            boolean enemies = !teammates && isEnemyTarget(shooter, hit);
+            if ((!teammates && !enemies) || (teammates && !pvpRegionGuard.canAffect(shooter, hit))) {
+                shooter.sendMessage(ColorUtil.c("&#FF1744✖ Рокировка в этой зоне или с этим игроком запрещена."));
+                return;
+            }
             Location locA = shooter.getLocation().clone();
             Location locB = hit.getLocation().clone();
-            shooter.teleport(locB);
-            hit.teleport(locA);
+            if (!shooter.teleport(locB)) return;
+            if (!hit.teleport(locA)) {
+                // Teleports are individually cancellable, not an atomic transaction.
+                // Best-effort rollback prevents a half-swap when another plugin refuses the target.
+                if (!shooter.teleport(locA)) {
+                    plugin.getLogger().warning("Swap rollback cancelled for " + shooter.getName());
+                    shooter.sendMessage(ColorUtil.c("&#FF1744✖ Рокировка отменена, но другой плагин запретил возврат. Обратитесь к администрации."));
+                }
+                return;
+            }
             shooter.getWorld().spawnParticle(Particle.PORTAL, locB.clone().add(0, 1, 0), 45, 0.5, 0.8, 0.5, 0.2);
             hit.getWorld().spawnParticle(Particle.PORTAL, locA.clone().add(0, 1, 0), 45, 0.5, 0.8, 0.5, 0.2);
             ColorUtil.sound(shooter, "entity.enderman.teleport", 1.0f, 1.25f);
             ColorUtil.sound(hit, "entity.enderman.teleport", 1.0f, 0.85f);
-            if (isTeammateTarget(shooter, hit)) {
+            if (teammates) {
                 ColorUtil.addPot(shooter, "absorption", "ABSORPTION", 200, 1);
                 ColorUtil.addPot(shooter, "resistance", "DAMAGE_RESISTANCE", 80, 1);
                 ColorUtil.addPot(hit, "absorption", "ABSORPTION", 200, 1);
                 ColorUtil.addPot(hit, "resistance", "DAMAGE_RESISTANCE", 80, 1);
                 shooter.sendMessage(ColorUtil.c("&#00E676🌀 Вы спасли тиммейта &f" + hit.getName() + " &#00E676Сферой Рокировки! (+4💛 и Сопр II обоим)"));
                 hit.sendMessage(ColorUtil.c("&#00E676🌀 Тиммейт &f" + shooter.getName() + " &#00E676поменялся с вами местами и спас вас!"));
-            } else if (isEnemyTarget(shooter, hit)) {
+            } else if (enemies) {
                 tagPvp30(shooter, hit);
                 ColorUtil.addPot(hit, "slowness", "SLOW", 80, 1);
                 ColorUtil.addPot(hit, "weakness", "WEAKNESS", 80, 0);
@@ -3194,36 +3221,19 @@ public final class GameplayListener implements Listener {
             Location center = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0, 1, 0)
                     : (e.getHitEntity() != null ? e.getHitEntity().getLocation() : e.getEntity().getLocation());
             if (plugin.getSpawnEngine().isInSpawnWorld(center) && !plugin.getSpawnEngine().isInsidePvpZone(center)) return;
-            if (e.getEntity().getShooter() instanceof Player) {
-                Player shooter = (Player) e.getEntity().getShooter();
-                for (Entity en : center.getWorld().getNearbyEntities(center, 3.5, 3.0, 3.5)) {
-                    if (en instanceof Player && isEnemyTarget(shooter, (Player) en)) {
-                        tagPvp30(shooter, (Player) en);
-                    }
-                }
+            if (!(e.getEntity().getShooter() instanceof Player)) return;
+            Player shooter = (Player) e.getEntity().getShooter();
+            for (Entity en : center.getWorld().getNearbyEntities(center, 3.5, 3.0, 3.5)) {
+                if (en instanceof Player && isEnemyTarget(shooter, (Player) en)) tagPvp30(shooter, (Player) en);
             }
-            final java.util.List<Block> placed = new java.util.ArrayList<Block>();
+            final Map<Block, org.bukkit.block.data.BlockData> saved = new HashMap<Block, org.bukkit.block.data.BlockData>();
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
                     Block b = center.getWorld().getBlockAt(center.getBlockX() + dx, center.getBlockY(), center.getBlockZ() + dz);
-                    if (b.getType() == Material.AIR && !activeTempBlocks.contains(blockKey(b))) {
-                        activeTempBlocks.add(blockKey(b));
-                        allSavedTempBlocks.put(b, b.getBlockData().clone());
-                        b.setType(Material.COBWEB, false);
-                        placed.add(b);
-                    }
+                    placeTemporaryBlock(shooter, b, Material.COBWEB, saved);
                 }
             }
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    for (Block b : placed) {
-                        activeTempBlocks.remove(blockKey(b));
-                        allSavedTempBlocks.remove(b);
-                        if (b.getType() == Material.COBWEB) b.setType(Material.AIR, false);
-                    }
-                }
-            }.runTaskLater(plugin, 160L);
+            scheduleRestore(saved, 160L);
         }
         // v6.1: 3D-СТРЕЛЫ РАБОТАЮТ ПРИ ПОПАДАНИИ В БЛОК (настоящие эффекты в точке удара!)
         Location hitLoc = e.getHitBlock() != null ? e.getHitBlock().getLocation().add(0.5, 1.0, 0.5)
@@ -3275,15 +3285,78 @@ public final class GameplayListener implements Listener {
     }
 
     private boolean isReplaceableForTemp(Block b) {
-        Material m = b.getType();
-        if (activeTempBlocks.contains(blockKey(b))) return false;
-        if (m == Material.BEDROCK || m == Material.SPAWNER || m == Material.END_PORTAL_FRAME
-                || m == Material.CHEST || m == Material.ENDER_CHEST || m.name().endsWith("SHULKER_BOX")) return false;
-        return m == Material.AIR || m == Material.CAVE_AIR || m == Material.WATER || m == Material.LAVA
-                || m == Material.SHORT_GRASS || m == Material.TALL_GRASS || m == Material.SNOW || !m.isSolid();
+        if (!b.getWorld().isChunkLoaded(b.getX() >> 4, b.getZ() >> 4)
+                || b.getY() < b.getWorld().getMinHeight() || b.getY() >= b.getWorld().getMaxHeight()
+                || activeTempBlocks.contains(blockKey(b)) || pendingTempPlacements.contains(b)) return false;
+        Material material = b.getType();
+        // Never replace plants, fluids, redstone, signs or other non-solid blocks:
+        // block data alone cannot restore inventories, text or other tile data.
+        return material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR;
     }
 
-    private void spawnTemporaryPlast(Player p) {
+    private boolean placeTemporaryBlock(Player actor, Block block, Material material,
+                                        Map<Block, org.bukkit.block.data.BlockData> saved) {
+        if (actor == null || !actor.isOnline() || !actor.getWorld().equals(block.getWorld())
+                || !plugin.getStore().isAuthenticated(actor) || plugin.getStore().isQuickFrozen(actor)
+                || plugin.getModeration().isFrozenOrAscending(actor) || !isReplaceableForTemp(block)
+                || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)) return false;
+        Location location = block.getLocation();
+        if (plugin.getSpawnEngine().isInSpawnWorld(location) && !plugin.getSpawnEngine().isInsidePvpZone(location)) return false;
+        DataStore.Claim claim = plugin.getStore().getClaimAt(location);
+        if (claim != null && (!claim.canAccess(actor.getName()) || claim.isCenter(location))
+                && !plugin.getRanks().isOwnerLevel(actor)) return false;
+        if (!pvpRegionGuard.canPlace(actor, location)) return false;
+
+        org.bukkit.block.BlockState previous = block.getState();
+        block.setType(material, false);
+        org.bukkit.block.data.BlockData expected = block.getBlockData().clone();
+        BlockPlaceEvent event = new BlockPlaceEvent(block, previous, block.getRelative(org.bukkit.block.BlockFace.DOWN),
+                new ItemStack(material), actor, true, EquipmentSlot.HAND);
+        pendingTempPlacements.add(block);
+        try { Bukkit.getPluginManager().callEvent(event); }
+        finally { pendingTempPlacements.remove(block); }
+        if (event.isCancelled() || !event.canBuild()) {
+            if (block.getBlockData().equals(expected)) previous.update(true, false);
+            return false;
+        }
+        // A listener may have changed the block itself; don't claim or overwrite it.
+        if (!block.getBlockData().equals(expected)) return false;
+        org.bukkit.block.data.BlockData original = previous.getBlockData().clone();
+        saved.put(block, original);
+        allSavedTempBlocks.put(block, original);
+        expectedTempBlocks.put(block, expected);
+        activeTempBlocks.add(blockKey(block));
+        return true;
+    }
+
+    private void restoreTemporaryBlock(Block block) { restoreTemporaryBlock(block, null); }
+
+    private void restoreTemporaryBlock(Block block, org.bukkit.block.data.BlockData token) {
+        // An earlier structure may have been cleaned on chunk unload and the
+        // same coordinate reused. Its old timer must not remove the new block.
+        if (token != null && allSavedTempBlocks.get(block) != token) return;
+        org.bukkit.block.data.BlockData original = allSavedTempBlocks.remove(block);
+        org.bukkit.block.data.BlockData expected = expectedTempBlocks.remove(block);
+        activeTempBlocks.remove(blockKey(block));
+        if (original == null || expected == null) return;
+        // Do not load a chunk synchronously. ChunkUnloadEvent handles normal unloads.
+        if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+            plugin.getLogger().warning("Temporary block could not be restored in unloaded chunk at " + block.getLocation());
+            return;
+        }
+        if (block.getBlockData().equals(expected)) block.setBlockData(original, false);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onTemporaryChunkUnload(org.bukkit.event.world.ChunkUnloadEvent event) {
+        org.bukkit.Chunk chunk = event.getChunk();
+        for (Block block : new ArrayList<Block>(allSavedTempBlocks.keySet())) {
+            if (block.getWorld().equals(chunk.getWorld()) && (block.getX() >> 4) == chunk.getX()
+                    && (block.getZ() >> 4) == chunk.getZ()) restoreTemporaryBlock(block);
+        }
+    }
+
+    private boolean spawnTemporaryPlast(Player p) {
         String skin = plugin.getStore().getSelectedPlastSkin(p.getName());
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if ("owner".equalsIgnoreCase(skin) && !isOwner) skin = "classic";
@@ -3321,12 +3394,8 @@ public final class GameplayListener implements Listener {
                     boolean windowCell = Math.abs(dx) <= 1 && Math.abs(dz) <= 1 && !(dx == 0 && dz == 0);
                     for (int dy = 0; dy > -2; dy--) {
                         Block b = w.getBlockAt(cx + dx, baseY + dy, cz + dz);
-                        if (isReplaceableForTemp(b)) {
-                            saved.put(b, b.getBlockData().clone());
-                            activeTempBlocks.add(blockKey(b));
-                            Material chosen = windowCell ? glassMat : (((dx + dz + dy) % 2 == 0) ? mainMat : accentMat);
-                            b.setType(chosen, false);
-                        }
+                        Material chosen = windowCell ? glassMat : (((dx + dz + dy) % 2 == 0) ? mainMat : accentMat);
+                        placeTemporaryBlock(p, b, chosen, saved);
                     }
                 }
             }
@@ -3346,17 +3415,14 @@ public final class GameplayListener implements Listener {
                         int bx = alongX ? cx + (stepX > 0 ? thick : -thick) : cx + spread;
                         int bz = alongX ? cz + spread : cz + (stepZ > 0 ? thick : -thick);
                         Block b = w.getBlockAt(bx, cy + dy, bz);
-                        if (isReplaceableForTemp(b)) {
-                            saved.put(b, b.getBlockData().clone());
-                            activeTempBlocks.add(blockKey(b));
-                            Material chosen = viewport ? glassMat : (((spread + dy + thick) % 2 == 0) ? mainMat : accentMat);
-                            b.setType(chosen, false);
-                        }
+                        Material chosen = viewport ? glassMat : (((spread + dy + thick) % 2 == 0) ? mainMat : accentMat);
+                        placeTemporaryBlock(p, b, chosen, saved);
                     }
                 }
             }
         }
 
+        if (!enoughTemporaryBlocks(saved)) return false;
         // Apply Plast Skin tactical buffs/debuffs!
         if ("magma".equalsIgnoreCase(skin)) {
             ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 160, 0);
@@ -3387,11 +3453,12 @@ public final class GameplayListener implements Listener {
         }
 
         ColorUtil.sound(p, "block.anvil.land", 0.85f, 1.2f);
-        p.sendMessage(ColorUtil.c("&#A855F7🧱 Пласт 5×5×2 установлен на &e12 сек. &8(Скин: &d" + skin.toUpperCase() + "&8)"));
+        p.sendMessage(ColorUtil.c("&#A855F7🧱 Пласт: блоков &f" + saved.size() + "&#A855F7 на &e12 сек. &8(Скин: &d" + skin.toUpperCase() + "&8); препятствия и регионы пропущены."));
         scheduleRestore(saved, 240L);
+        return true;
     }
 
-    private void spawnTemporaryTrapka(Player p) {
+    private boolean spawnTemporaryTrapka(Player p) {
         String skin = plugin.getStore().getSelectedTrapSkin(p.getName());
         boolean isOwner = plugin.getRanks().isOwnerLevel(p);
         if ("owner".equalsIgnoreCase(skin) && !isOwner) skin = "classic";
@@ -3433,9 +3500,7 @@ public final class GameplayListener implements Listener {
                 for (int dz = -2; dz <= 2; dz++) {
                     boolean shell = Math.abs(dx) == 2 || Math.abs(dz) == 2 || dy == -1 || dy == 3;
                     Block b = w.getBlockAt(cx + dx, cy + dy, cz + dz);
-                    if (shell && isReplaceableForTemp(b)) {
-                        saved.put(b, b.getBlockData().clone());
-                        activeTempBlocks.add(blockKey(b));
+                    if (shell) {
                         // 3x3 armored stained-glass windows on all 4 side walls + 3x3 roof skylight!
                         boolean sideWindow = (dy >= 0 && dy <= 2)
                                 && ((Math.abs(dx) == 2 && Math.abs(dz) <= 1) || (Math.abs(dz) == 2 && Math.abs(dx) <= 1));
@@ -3449,12 +3514,13 @@ public final class GameplayListener implements Listener {
                         } else {
                             chosen = ((dx + dy + dz) % 2 == 0) ? mainMat : accentMat;
                         }
-                        b.setType(chosen, false);
+                        placeTemporaryBlock(p, b, chosen, saved);
                     }
                 }
             }
         }
 
+        if (!enoughTemporaryBlocks(saved)) return false;
         if ("owner".equalsIgnoreCase(skin)) {
             ColorUtil.addPot(p, "regeneration", "REGENERATION", 160, 1);
             ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 140, 1);
@@ -3499,20 +3565,27 @@ public final class GameplayListener implements Listener {
         }
 
         ColorUtil.sound(p, "block.iron_door.close", 1f, 0.7f);
-        p.sendMessage(ColorUtil.c("&#FF1744⛓ Трапка 5×5×5 [Броне-Стекло] активирована на &e15 сек. &8(Скин: &d" + skin.toUpperCase() + "&8, врагов: &f" + trappedEnemies + "&8)"));
+        p.sendMessage(ColorUtil.c("&#FF1744⛓ Трапка: блоков &f" + saved.size() + "&#FF1744 на &e15 сек. &8(Скин: &d" + skin.toUpperCase() + "&8, врагов: &f" + trappedEnemies + "&8); препятствия и регионы пропущены."));
         scheduleRestore(saved, 300L);
+        return true;
+    }
+
+    private boolean enoughTemporaryBlocks(Map<Block, org.bukkit.block.data.BlockData> saved) {
+        if (saved.size() >= 5) return true;
+        for (Map.Entry<Block, org.bukkit.block.data.BlockData> entry : saved.entrySet()) {
+            restoreTemporaryBlock(entry.getKey(), entry.getValue());
+        }
+        saved.clear();
+        return false;
     }
 
     private void scheduleRestore(final Map<Block, org.bukkit.block.data.BlockData> saved, long delayTicks) {
-        allSavedTempBlocks.putAll(saved);
+        if (saved.isEmpty()) return;
         new BukkitRunnable() {
             @Override
             public void run() {
-                for (Map.Entry<Block, org.bukkit.block.data.BlockData> en : saved.entrySet()) {
-                    Block b = en.getKey();
-                    activeTempBlocks.remove(blockKey(b));
-                    allSavedTempBlocks.remove(b);
-                    b.setBlockData(en.getValue(), false);
+                for (Map.Entry<Block, org.bukkit.block.data.BlockData> entry : saved.entrySet()) {
+                    restoreTemporaryBlock(entry.getKey(), entry.getValue());
                 }
             }
         }.runTaskLater(plugin, delayTicks);

@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
 final class PvpRegionGuard {
     private final KingGriefCore plugin;
     private Plugin cachedPlugin, failedPlugin;
-    private Object query, worldGuardPlugin, flags;
+    private Object query, worldGuardPlugin, flags, placeFlags;
     private Method wrapPlayer, adaptLocation, testBuild, queryState;
     private long retryAfterNanos;
     private boolean warned;
@@ -26,6 +26,7 @@ final class PvpRegionGuard {
         query = null;
         worldGuardPlugin = null;
         flags = null;
+        placeFlags = null;
         wrapPlayer = null;
         adaptLocation = null;
         testBuild = null;
@@ -71,6 +72,42 @@ final class PvpRegionGuard {
         }
     }
 
+    /** Check each temporary PvP block independently, including build/block-place
+     * and PvP flags. The normal BlockPlaceEvent is also sent to other plugins. */
+    boolean canPlace(Player actor, Location target) {
+        Plugin worldGuard = Bukkit.getPluginManager().getPlugin("WorldGuard");
+        if (worldGuard == null) {
+            if (cachedPlugin != null || failedPlugin != null) invalidate();
+            return true;
+        }
+        if (!worldGuard.isEnabled()) {
+            warnOnce("WorldGuard is installed but disabled");
+            return false;
+        }
+        long now = System.nanoTime();
+        if (worldGuard == failedPlugin && now - retryAfterNanos < 0L) return false;
+        try {
+            if (cachedPlugin != worldGuard || query == null) initialize(worldGuard);
+            Object localPlayer = wrapPlayer.invoke(worldGuardPlugin, actor);
+            Object from = adaptLocation.invoke(null, actor.getLocation());
+            Object to = adaptLocation.invoke(null, target);
+            if (localPlayer == null || from == null || to == null) throw new IllegalStateException("WorldGuard player/location unavailable");
+            boolean buildAllows = ((Boolean) testBuild.invoke(query, to, localPlayer, placeFlags)).booleanValue();
+            Object fromState = queryState.invoke(query, from, localPlayer, flags);
+            Object toState = queryState.invoke(query, to, localPlayer, flags);
+            warned = false;
+            failedPlugin = null;
+            return buildAllows && !isDeny(fromState) && !isDeny(toState);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException error) {
+            cachedPlugin = null;
+            query = null;
+            failedPlugin = worldGuard;
+            retryAfterNanos = now + 30_000_000_000L;
+            warnOnce("WorldGuard placement query failed: " + error.getClass().getSimpleName());
+            return false;
+        }
+    }
+
     private static boolean isDeny(Object state) { return state != null && "DENY".equals(state.toString()); }
 
     private void initialize(Plugin worldGuard) throws ReflectiveOperationException {
@@ -92,6 +129,8 @@ final class PvpRegionGuard {
         Class<?> flagsType = Class.forName("com.sk89q.worldguard.protection.flags.Flags", true, loader);
         Object flagArray = Array.newInstance(stateFlag, 1);
         Array.set(flagArray, 0, flagsType.getField("PVP").get(null));
+        Object placeFlagArray = Array.newInstance(stateFlag, 1);
+        Array.set(placeFlagArray, 0, flagsType.getField("BLOCK_PLACE").get(null));
         Class<?> arrayType = flagArray.getClass();
 
         // Assign only after all lookups succeed, so a partial API cannot grant effects.
@@ -103,6 +142,7 @@ final class PvpRegionGuard {
         this.query = regionQuery;
         this.worldGuardPlugin = wrappedPlugin;
         this.flags = flagArray;
+        this.placeFlags = placeFlagArray;
         this.wrapPlayer = wrap;
         this.adaptLocation = adapt;
         this.testBuild = build;
@@ -113,6 +153,6 @@ final class PvpRegionGuard {
     private void warnOnce(String message) {
         if (warned) return;
         warned = true;
-        plugin.getLogger().warning("[PvP] " + message + "; secondary player effects are disabled for safety.");
+        plugin.getLogger().warning("[PvP] " + message + "; secondary player effects and temporary blocks are disabled for safety.");
     }
 }

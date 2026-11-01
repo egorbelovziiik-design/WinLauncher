@@ -28,7 +28,8 @@ import org.bukkit.util.Vector;
 public final class CombatWorldGuardProbe extends JavaPlugin implements Listener {
     private KingGriefCore core; private Player a,b,c,observedTarget;
     private World world; private RegionManager manager; private ProtectedCuboidRegion protectedArea;
-    private boolean started,finished,observedCancelled; private int checks;
+    private boolean started,finished,observedCancelled,cancelProjectile,cancelPlacement; private int checks;
+    private Player denyTeleport;
 
     @Override public void onEnable(){
         core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");
@@ -42,6 +43,14 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void observe(EntityDamageByEntityEvent event){if(event.getEntity().equals(observedTarget))observedCancelled=event.isCancelled();}
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void protectProjectile(org.bukkit.event.entity.ProjectileHitEvent event){if(cancelProjectile)event.setCancelled(true);}
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void protectTeleport(org.bukkit.event.player.PlayerTeleportEvent event){
+        if(event.getPlayer().equals(denyTeleport)&&event.getCause()==org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN)event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void protectPlacement(org.bukkit.event.block.BlockPlaceEvent event){if(cancelPlacement)event.setCancelled(true);}
     private void later(long ticks,Runnable work){Bukkit.getScheduler().runTaskLater(this,()->{try{work.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean condition,String text){if(!condition)throw new AssertionError(text);checks++;getLogger().info("KG-WGPVP PASS "+text);}
     private void cleanup(){for(Player p:new Player[]{a,b,c})if(p!=null)core.getHud().clearCombat(p.getUniqueId());}
@@ -51,9 +60,21 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         p.setNoDamageTicks(0);p.setLastDamage(0);p.setHealth(20);
     }
     private void hit(Player target){target.setNoDamageTicks(0);target.setLastDamage(0);observedTarget=target;observedCancelled=true;target.damage(4,a);observedTarget=null;}
+    private void orb(String tag,Player target){
+        org.bukkit.entity.Snowball projectile=world.spawn(a.getEyeLocation(),org.bukkit.entity.Snowball.class);
+        projectile.setShooter(a);projectile.getPersistentDataContainer().set(new org.bukkit.NamespacedKey("kinggrief","proj_type"),org.bukkit.persistence.PersistentDataType.STRING,tag);
+        Bukkit.getPluginManager().callEvent(new org.bukkit.event.entity.ProjectileHitEvent(projectile,target));projectile.remove();
+    }
+    private boolean unchanged(Player player,Location before){return player.getWorld().equals(before.getWorld())&&player.getLocation().distanceSquared(before)<0.001;}
     private Object field(Object owner,String name){try{java.lang.reflect.Field f=owner.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(owner);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}}
     private Object guard(){return field(field(core,"gameplayListener"),"pvpRegionGuard");}
     private boolean mayTarget(Player attacker,Player target){try{Object listener=field(core,"gameplayListener");java.lang.reflect.Method method=listener.getClass().getDeclaredMethod("isEnemyTarget",Player.class,Player.class);method.setAccessible(true);return (Boolean)method.invoke(listener,attacker,target);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}}
+    private boolean place(org.bukkit.block.Block block,org.bukkit.Material material,java.util.Map<org.bukkit.block.Block,org.bukkit.block.data.BlockData> saved){
+        try{Object listener=field(core,"gameplayListener");java.lang.reflect.Method method=listener.getClass().getDeclaredMethod("placeTemporaryBlock",Player.class,org.bukkit.block.Block.class,org.bukkit.Material.class,java.util.Map.class);method.setAccessible(true);return (Boolean)method.invoke(listener,a,block,material,saved);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}
+    }
+    private void restore(org.bukkit.block.Block block,org.bukkit.block.data.BlockData token){
+        try{Object listener=field(core,"gameplayListener");java.lang.reflect.Method method=listener.getClass().getDeclaredMethod("restoreTemporaryBlock",org.bukkit.block.Block.class,org.bukkit.block.data.BlockData.class);method.setAccessible(true);method.invoke(listener,block,token);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}
+    }
     private void begin(){
         world=core.getSpawnEngine().getSpawnArrival().getWorld();world.setPVP(true);
         for(Player p:new Player[]{a,b,c}){p.getInventory().clear();p.setGameMode(GameMode.SURVIVAL);}
@@ -62,7 +83,7 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
             manager=WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
             ok(manager!=null,"real WorldGuard region manager is available");
             protectedArea=new ProtectedCuboidRegion("kg_test_deny",BlockVector3.at(79,90,8),BlockVector3.at(81,99,13));
-            protectedArea.setFlag(Flags.PVP,StateFlag.State.DENY);manager.addRegion(protectedArea);
+            protectedArea.setFlag(Flags.PVP,StateFlag.State.DENY);protectedArea.setFlag(Flags.BLOCK_PLACE,StateFlag.State.ALLOW);manager.addRegion(protectedArea);
             later(60,this::denyRegion);
         });
     }
@@ -78,7 +99,15 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordFrost());hit(c);
         ok(observedCancelled&&c.getHealth()==20&&c.getFreezeTicks()==0&&!c.hasPotionEffect(PotionEffectType.SLOWNESS),
                 "WorldGuard itself cancels a protected direct hit before frost effects");
-        protectedArea.setFlag(Flags.PVP,null);
+        Location from=a.getLocation().clone(),to=c.getLocation().clone();
+        orb("swap_orb",c);
+        ok(unchanged(a,from)&&unchanged(c,to),"swap orb cannot move a player inside a WorldGuard pvp-deny region");
+        clear(c);orb("frost_ball",c);
+        ok(c.getFreezeTicks()==0&&!c.hasPotionEffect(PotionEffectType.SLOWNESS),"frost projectile spares a protected player");
+        org.bukkit.block.Block protectedBlock=world.getBlockAt(80,97,10);protectedBlock.setType(org.bukkit.Material.AIR,false);
+        ok(!place(protectedBlock,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&protectedBlock.getType().isAir(),
+                "temporary web cannot be placed in WorldGuard pvp-deny region");
+        protectedArea.setFlag(Flags.PVP,null);protectedArea.setFlag(Flags.BLOCK_PLACE,null);
         later(60,this::buildOnlyRegion);
     }
     private void buildOnlyRegion(){
@@ -90,6 +119,59 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
     private void allowRegion(){
         clear(b);clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordPhoenix());hit(b);
         ok(!observedCancelled&&c.getFireTicks()>0,"explicit WorldGuard pvp-allow permits splash again");
+        Location from=a.getLocation().clone(),to=c.getLocation().clone();
+        cancelProjectile=true;orb("swap_orb",c);cancelProjectile=false;
+        ok(unchanged(a,from)&&unchanged(c,to),"late-cancelled projectile cannot swap players");
+        denyTeleport=a;orb("swap_orb",c);denyTeleport=null;
+        ok(unchanged(a,from)&&unchanged(c,to),"cancelled first teleport leaves both players in place");
+        denyTeleport=c;orb("swap_orb",c);denyTeleport=null;
+        ok(unchanged(a,from)&&unchanged(c,to),"cancelled second teleport rolls the first player back");
+        orb("swap_orb",c);
+        ok(unchanged(a,to)&&unchanged(c,from),"allowed swap orb moves both players");
+        a.teleport(from);c.teleport(to);
+        org.bukkit.block.Block protectedBlock=world.getBlockAt(80,97,10);
+        ok(!place(protectedBlock,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&protectedBlock.getType().isAir(),
+                "unowned WorldGuard build region denies temporary placement even when PvP is allowed");
+        temporaryChecks();
+        protectedArea.setFlag(Flags.BLOCK_PLACE,StateFlag.State.ALLOW);
+        later(60,this::allowPlacement);
+    }
+    private void temporaryChecks(){
+        org.bukkit.block.Block block=world.getBlockAt(74,97,10);block.setType(org.bukkit.Material.AIR,false);
+        java.util.Map<org.bukkit.block.Block,org.bukkit.block.data.BlockData> saved=new java.util.HashMap<>();
+        cancelPlacement=true;boolean cancelled=place(block,org.bukkit.Material.COBWEB,saved);cancelPlacement=false;
+        ok(!cancelled&&block.getType().isAir()&&saved.isEmpty(),"late BlockPlaceEvent cancellation rolls temporary placement back");
+        block.setType(org.bukkit.Material.OAK_SIGN,false);
+        org.bukkit.block.Sign sign=(org.bukkit.block.Sign)block.getState();sign.setLine(0,"KEEP THIS TEXT");sign.update(true,false);
+        ok(!place(block,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&block.getType()==org.bukkit.Material.OAK_SIGN
+                &&"KEEP THIS TEXT".equals(((org.bukkit.block.Sign)block.getState()).getLine(0)),"temporary blocks never replace a sign or its data");
+        block.setType(org.bukkit.Material.WATER,false);
+        ok(!place(block,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&block.getType()==org.bukkit.Material.WATER,
+                "temporary blocks never replace fluids");
+        block.setType(org.bukkit.Material.AIR,false);
+        ok(place(block,org.bukkit.Material.COBWEB,saved),"ordinary loaded PvP air accepts a temporary block");
+        org.bukkit.event.block.BlockPistonExtendEvent piston=new org.bukkit.event.block.BlockPistonExtendEvent(
+                world.getBlockAt(73,97,10),java.util.List.of(block),org.bukkit.block.BlockFace.EAST);
+        Bukkit.getPluginManager().callEvent(piston);
+        ok(piston.isCancelled(),"a piston cannot move an active temporary block");
+        org.bukkit.block.data.BlockData oldToken=saved.get(block);
+        Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.ChunkUnloadEvent(block.getChunk()));
+        ok(block.getType().isAir(),"chunk-unload callback restores temporary air before unload");
+        java.util.Map<org.bukkit.block.Block,org.bukkit.block.data.BlockData> newer=new java.util.HashMap<>();
+        ok(place(block,org.bukkit.Material.COBWEB,newer),"same position can be reused after cleanup");
+        restore(block,oldToken);
+        ok(block.getType()==org.bukkit.Material.COBWEB,"an old restoration token cannot remove a newer temporary block");
+        block.setType(org.bukkit.Material.DIAMOND_BLOCK,false);restore(block,newer.get(block));
+        ok(block.getType()==org.bukkit.Material.DIAMOND_BLOCK,"cleanup leaves a block changed by another plugin untouched");
+        block.setType(org.bukkit.Material.AIR,false);
+    }
+    private void allowPlacement(){
+        org.bukkit.block.Block block=world.getBlockAt(80,97,10);
+        java.util.Map<org.bukkit.block.Block,org.bukkit.block.data.BlockData> saved=new java.util.HashMap<>();
+        ok(place(block,org.bukkit.Material.COBWEB,saved)&&block.getType()==org.bukkit.Material.COBWEB,
+                "explicit WorldGuard block-place and pvp allow permit a temporary block");
+        restore(block,saved.get(block));
+        ok(block.getType().isAir(),"allowed temporary block restores to air");
         ProtectedCuboidRegion origin=new ProtectedCuboidRegion("kg_origin_deny",BlockVector3.at(75,90,8),BlockVector3.at(75,99,13));
         origin.setFlag(Flags.PVP,StateFlag.State.DENY);manager.addRegion(origin);
         later(60,this::originDeny);
