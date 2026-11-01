@@ -108,9 +108,11 @@ final class ClaimContainerGuard implements Listener {
         List<Location> locations=new ArrayList<Location>(2);
         if(inventory instanceof DoubleChestInventory){
             DoubleChestInventory pair=(DoubleChestInventory)inventory;
-            if(!addHolderLocation(pair.getLeftSide().getHolder(),locations)||!addHolderLocation(pair.getRightSide().getHolder(),locations))return false;
+            Location left=pair.getLeftSide().getLocation(),right=pair.getRightSide().getLocation();
+            if(left==null||right==null)return false;
+            locations.add(left);locations.add(right);
         }else{
-            InventoryHolder holder=inventory.getHolder();
+            InventoryHolder holder=holderWithoutSnapshot(inventory);
             if(!(holder instanceof BlockState))return true; // virtual GUIs and the player's own ender chest
             if(!addHolderLocation(holder,locations))return false;
         }
@@ -120,6 +122,10 @@ final class ClaimContainerGuard implements Listener {
             if(claim!=null&&!claim.canOpenContainers(player.getName()))return false;
         }
         return true;
+    }
+    private static InventoryHolder holderWithoutSnapshot(Inventory inventory){
+        // Paper avoids cloning a potentially huge container on every inventory click.
+        try{return inventory.getHolder(false);}catch(NoSuchMethodError|AbstractMethodError unavailable){return inventory.getHolder();}
     }
     private static boolean addHolderLocation(InventoryHolder holder,List<Location> locations){
         if(!(holder instanceof BlockState))return false;

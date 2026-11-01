@@ -232,6 +232,9 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         later(25,()->{
             ok(chestAttempts>attemptsBefore&&deniedChestAttempts==deniedBefore
                     &&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"container role opens the outside half of a protected double chest");
+            InventoryClickEvent allowed=new InventoryClickEvent(b.getOpenInventory(),InventoryType.SlotType.CONTAINER,0,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+            Bukkit.getPluginManager().callEvent(allowed);
+            ok(!allowed.isCancelled(),"container role may interact with the open chest inventory");
             withBlockedSave(()->a.performCommand("rg remove OrbEnemy"));
             ok(claim.canOpenContainers(b.getName())&&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,
                     "failed revocation preserves the open container and role");
@@ -250,7 +253,13 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
                 getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
                 later(25,()->{
                     ok(b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"regaining the role allows the chest to open again");
-                    b.closeInventory();claimCrossBoundary(claim,second,next);
+                    b.closeInventory();Inventory unrelated=Bukkit.createInventory(null,9);unrelated.setItem(0,new ItemStack(Material.EMERALD));b.openInventory(unrelated);
+                    a.performCommand("rg remove OrbEnemy");
+                    later(2,()->{
+                        ok(b.getOpenInventory().getTopInventory()==unrelated&&unrelated.getItem(0).getType()==Material.EMERALD,
+                                "revocation does not close or change an unrelated virtual inventory");
+                        a.performCommand("rg role OrbEnemy container");b.closeInventory();claimCrossBoundary(claim,second,next);
+                    });
                 });
             });
         });
