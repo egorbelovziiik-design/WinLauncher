@@ -180,13 +180,61 @@ final class UtilityFeaturesManager implements Listener {
         }
     }
     private static int increment(int value){return value>=Integer.MAX_VALUE?Integer.MAX_VALUE:Math.max(0,value)+1;}
-    void miningStats(Player p){
+    private static final class OreStat {
+        final Material material;final int count;
+        OreStat(Material material,int count){this.material=material;this.count=count;}
+    }
+    void miningStats(Player p,String[] args){
+        int requested=1;
+        if(args.length>1){p.sendMessage(ColorUtil.c("&e/minestats [страница]"));return;}
+        if(args.length==1)try{requested=Integer.parseInt(args[0]);}catch(NumberFormatException error){requested=0;}
+        if(requested<1){p.sendMessage(ColorUtil.c("&e/minestats [номер страницы от 1]"));return;}
+        final int pageRequested=requested;
         try{
             String path="utility.mining."+p.getUniqueId(),today=LocalDate.now(ZoneOffset.UTC).toString();
-            int[] stats=plugin.getStore().inspect(data->new int[]{data.getInt(path+".total",0),today.equals(data.getString(path+".date"))?data.getInt(path+".today",0):0});
-            p.sendMessage(ColorUtil.c("&#80D8FFДобыто руды: &f"+stats[0]+" &8| &7сегодня (UTC): &f"+stats[1]));
-            p.sendMessage(ColorUtil.c("&8Счётчик информационный: учитывает и ранее поставленную игроками руду."));
+            plugin.getStore().inspect(data->{
+                int total=Math.max(0,data.getInt(path+".total",0));
+                int daily=today.equals(data.getString(path+".date"))?Math.max(0,data.getInt(path+".today",0)):0;
+                List<OreStat> ores=new ArrayList<OreStat>();
+                org.bukkit.configuration.ConfigurationSection section=data.getConfigurationSection(path+".ores");
+                if(section!=null)for(String name:section.getKeys(false)){
+                    Material material=Material.matchMaterial(name);int count=section.getInt(name,0);
+                    if(material!=null&&ore(material)&&count>0)ores.add(new OreStat(material,count));
+                }
+                ores.sort(Comparator.comparingInt((OreStat stat)->stat.count).reversed().thenComparing(stat->stat.material.name()));
+                int pages=Math.max(1,(ores.size()+7)/8),page=Math.min(pageRequested,pages);
+                p.sendMessage(ColorUtil.c("&#80D8FFДобыто руды: &f"+total+" &8| &7сегодня (UTC): &f"+daily));
+                p.sendMessage(ColorUtil.c("&7Виды руды &8("+page+"/"+pages+")&7:"));
+                for(int i=(page-1)*8;i<Math.min(ores.size(),page*8);i++){
+                    OreStat stat=ores.get(i);p.sendMessage(ColorUtil.c(" &8• &f"+oreName(stat.material)+" &8— &b"+stat.count));
+                }
+                if(ores.isEmpty())p.sendMessage(ColorUtil.c(" &8• &7Пока нет записей."));
+                if(page<pages)p.sendMessage(ColorUtil.c("&7Следующая страница: &f/minestats "+(page+1)));
+                p.sendMessage(ColorUtil.c("&8Счётчик информационный: учитывает и ранее поставленную игроками руду."));
+                return null;
+            });
         }catch(Exception error){p.sendMessage(ColorUtil.c("&cНе удалось прочитать статистику."));}
+    }
+    private static String oreName(Material material){
+        String raw=material.name();boolean deep=raw.startsWith("DEEPSLATE_");
+        String base=deep?raw.substring("DEEPSLATE_".length()):raw;
+        String translated;
+        switch(base){
+            case "COAL_ORE":translated="угольная руда";break;
+            case "COPPER_ORE":translated="медная руда";break;
+            case "IRON_ORE":translated="железная руда";break;
+            case "GOLD_ORE":translated="золотая руда";break;
+            case "REDSTONE_ORE":translated="редстоуновая руда";break;
+            case "LAPIS_ORE":translated="лазуритовая руда";break;
+            case "DIAMOND_ORE":translated="алмазная руда";break;
+            case "EMERALD_ORE":translated="изумрудная руда";break;
+            case "NETHER_GOLD_ORE":translated="золото Незера";break;
+            case "NETHER_QUARTZ_ORE":translated="кварцевая руда";break;
+            case "ANCIENT_DEBRIS":translated="древние обломки";break;
+            case "GILDED_BLACKSTONE":translated="золочёный чернит";break;
+            default:translated=base.toLowerCase(Locale.ROOT).replace('_',' ');
+        }
+        return deep?"глубинная "+translated:translated;
     }
     @EventHandler(priority=EventPriority.MONITOR)
     public void death(PlayerDeathEvent e){

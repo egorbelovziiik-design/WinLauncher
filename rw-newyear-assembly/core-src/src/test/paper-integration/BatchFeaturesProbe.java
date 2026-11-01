@@ -160,7 +160,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(block.getType()!=Material.DIAMOND_ORE,"accepted real mining breaks ore");
         later(4,()->{
             ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"only accepted mining is counted");
-            ok(a.performCommand("minestats"),"mining statistics command registered");
+            ok(yaml().getInt("utility.mining."+a.getUniqueId()+".ores.diamond_ore")==1,"mining statistics record the exact ore type");
+            ok(a.performCommand("minestats")&&a.performCommand("minestats 2")&&a.performCommand("minestats -1"),"mining statistics pages and invalid-page guard are registered");
             auction();tree();a.performCommand("pet penguin");later(15,()->petChecks());
         });
     }

@@ -27,7 +27,8 @@ commands:
   deathpoint:
     description: Show your last death point or a private particle marker
   minestats:
-    description: Show your informational mining statistics
+    description: Show your informational mining totals and ore types
+    usage: /minestats [page]
   tree:
     description: Help decorate the shared winter tree
   pet:

@@ -758,7 +758,7 @@ public final class KingGriefCore extends JavaPlugin {
         if ("compare".equals(c)) { utilities.compare(p); return true; }
         if ("way".equals(c)) { utilities.way(p, args); return true; }
         if ("deathpoint".equals(c)) { utilities.deathPoint(p, args); return true; }
-        if ("minestats".equals(c)) { utilities.miningStats(p); return true; }
+        if ("minestats".equals(c)) { utilities.miningStats(p, args); return true; }
         if ("kgspawn".equals(c) && args.length == 1 && "status".equalsIgnoreCase(args[0])) { utilities.spawnStatus(p); return true; }
         if ("crown".equals(c)) return crownEvents.handleCommand(p, args);
         if ("trade".equals(c)) return safeTrades.handleCommand(p, args);
