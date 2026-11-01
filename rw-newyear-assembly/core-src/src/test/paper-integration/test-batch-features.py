@@ -51,6 +51,7 @@ def run_phase(args, server, port, phase):
         if proc.poll() is not None: raise RuntimeError('Paper exited during startup')
         env = os.environ.copy()
         env['NODE_PATH'] = str(args.node_modules.resolve())
+        env['KG_BATCH_PHASE'] = str(phase)
         client = subprocess.Popen([args.node, str(HERE / 'orb-client.cjs'), str(port)],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT, text=True, env=env)

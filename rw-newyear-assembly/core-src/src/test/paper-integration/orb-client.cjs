@@ -4,6 +4,11 @@ const port = Number(process.argv[2]);
 const clients = ['OrbTester', 'OrbEnemy'].map(username => mc.createClient({
   host: '127.0.0.1', port, username, version: '1.21.4', auth: 'offline'
 }));
+let treeParticles = 0;
+clients[0].on('world_particles', packet => {
+  const radius=Math.hypot(packet.x,packet.z)
+  if (Math.abs(packet.y-111.5)<0.01 && Math.abs(radius-11.8)<0.02) treeParticles++
+});
 for (const c of clients) {
   c.on('error', e => console.error('CLIENT_ERROR', String(e)));
   c.on('end', reason => console.log('CLIENT_END', String(reason)));
@@ -27,8 +32,10 @@ process.stdin.on('data', data => {
       setTimeout(() => shooter.write('block_dig', {status: 5, location: {x: 0, y: 0, z: 0}, face: 0, sequence: 2}), 1400);
       if (line === 'crossbow') setTimeout(() => shooter.write('use_item', {hand: 0, sequence: 4, rotation: {x: -90, y: 0}}), 1900);
     } else if (line === 'done') {
+      const treeOk=process.env.KG_BATCH_PHASE!=='2' || (treeParticles>=8 && treeParticles<=200)
+      if(process.env.KG_BATCH_PHASE==='2') console.log('TREE_PARTICLE_NETWORK_'+(treeOk?'PASS':'FAIL'),treeParticles)
       for (const c of clients) c.end('test complete');
-      setTimeout(() => process.exit(0), 300);
+      setTimeout(() => process.exit(treeOk?0:1), 300);
     }
   }
 });

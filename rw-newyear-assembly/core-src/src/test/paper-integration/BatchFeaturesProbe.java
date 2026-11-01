@@ -418,6 +418,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     }
     private void restartChecks(){
         DataStore store=core.getStore();
+        World treeWorld=core.getSpawnEngine().getPreparedSpawnArrival().getWorld();
+        a.teleport(new Location(treeWorld,0.5,100,0.5));
         DataStore.Clan red=store.getClanOf(a.getName()), blue=store.getClanOf(b.getName());
         ok(red!=null&&blue!=null&&red.allies.contains(blue.id)&&blue.allies.contains(red.id),"alliance survives restart");
         ok(store.isTeammatePvpAllowed(a.getName(),b.getName()),"mutual PvP consent survives restart");
