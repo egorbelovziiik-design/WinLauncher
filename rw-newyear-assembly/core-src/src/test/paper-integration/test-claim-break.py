@@ -53,7 +53,7 @@ def run_phase(args, server, port, phase):
         env = os.environ.copy()
         env['NODE_PATH'] = str(args.node_modules.resolve())
         env['KG_BUYER_PHASE'] = str(phase)
-        client = subprocess.Popen([args.node, str(HERE / 'economy-client.cjs'), str(port)],
+        client = subprocess.Popen([args.node, str(HERE / 'claim-break-client.cjs'), str(port)],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT, text=True, env=env)
         deadline = time.monotonic() + 300
@@ -87,7 +87,12 @@ def run_phase(args, server, port, phase):
         if not success:
             print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)
     watchdog = any('The server has not responded for 10 seconds' in line for line in output)
-    watchdog = any('The server has not responded for 10 seconds' in line for line in output)
+    match = re.search(r'CLAIM_NETWORK (\{[^\n]+\})', client_output)
+    if not match:
+        raise RuntimeError('network clients did not report placement telemetry')
+    report = json.loads(match.group(1))
+    if phase == 1 and report['placements'] != 6:
+        raise RuntimeError(f'placement packets were not exercised: {report}')
     if proc.returncode != 0 or client.returncode != 0 or watchdog:
         print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)
         raise RuntimeError(f'Paper exit={proc.returncode}, client exit={client.returncode}, watchdog={watchdog}')

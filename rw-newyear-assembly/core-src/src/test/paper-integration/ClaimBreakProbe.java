@@ -28,7 +28,7 @@ import java.nio.file.Path;
 /** Checks the built-in claim center with real breakBlock calls and late listeners. */
 public final class ClaimBreakProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;private Player a,b;private World world;private Block center;
-    private boolean started,done,cancelBreak,suppressEarly,restoreLate,cancelClaimSpawn;private int checks;
+    private boolean started,done,cancelBreak,suppressEarly,restoreLate,cancelClaimSpawn,cancelPlace,failAfterCreate,changePlacedBlock;private int checks,placeEvents;
     private Path data,backup;
     @Override public void onEnable(){saveDefaultConfig();core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent e){
@@ -38,6 +38,14 @@ public final class ClaimBreakProbe extends JavaPlugin implements Listener {
     @EventHandler(priority=EventPriority.LOW,ignoreCancelled=true) public void early(BlockBreakEvent e){if(suppressEarly&&e.getBlock().equals(center))e.setDropItems(false);}
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void protection(BlockBreakEvent e){
         if(e.getBlock().equals(center)){if(cancelBreak)e.setCancelled(true);if(restoreLate)e.setDropItems(true);}
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void protectPlacement(org.bukkit.event.block.BlockPlaceEvent e){
+        if(center!=null&&e.getBlockPlaced().equals(center)){
+            placeEvents++;
+            if(failAfterCreate)blockSave();
+            if(changePlacedBlock)e.getBlockPlaced().setType(Material.STONE,false);
+            if(cancelPlace)e.setCancelled(true);
+        }
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true) public void refuseItem(ItemSpawnEvent e){
         if(cancelClaimSpawn&&ItemFactory.getCustomId(e.getEntity().getItemStack())!=null
@@ -106,8 +114,67 @@ public final class ClaimBreakProbe extends JavaPlugin implements Listener {
         setup(230);restoreLate=true;a.breakBlock(center);a.teleport(new Location(world,234.5,161,50.5));later(8,()->{
             restoreLate=false;ok(center.getType().isAir()&&core.getStore().getClaimAt(center.getLocation())==null&&claimItems(center.getLocation())==1
                     &&ordinaryDiamonds(center.getLocation())==0,"late vanilla-drop restoration still returns one claim item without a normal diamond");
-            clearItems(center.getLocation());shutdownPending();
+            clearItems(center.getLocation());cancelledPlacement();
         });
+    }
+    private void preparePlace(int x){
+        world.getBlockAt(x,159,50).setType(Material.STONE,false);center=world.getBlockAt(x,160,50);center.setType(Material.AIR,false);
+        a.getInventory().clear();a.getInventory().setHeldItemSlot(0);a.getInventory().setItemInMainHand(ItemFactory.claimBlock(Material.DIAMOND_ORE,7,"test claim"));
+        a.setGameMode(GameMode.SURVIVAL);a.teleport(new Location(world,x+2.5,160,50.5,90,0));
+    }
+    private void placePacket(int x){getLogger().info("KG-CLAIM REQUEST PLACE "+x+" 159 50");}
+    private void cancelledPlacement(){
+        preparePlace(290);cancelPlace=true;int events=placeEvents;later(8,()->{placePacket(290);later(30,()->{
+            cancelPlace=false;ItemStack hand=a.getInventory().getItemInMainHand();
+            DataStore.Claim observed=core.getStore().getClaimAt(center.getLocation());
+            ok(placeEvents>events&&center.getType().isAir()&&observed==null&&"claim_7".equals(ItemFactory.getCustomId(hand)),
+                    "a real placement cancelled by a later plugin leaves no phantom claim and keeps the item (events="+(placeEvents-events)+", block="+center.getType()+", claim="+(observed==null?"none":observed.id)+", hand="+ItemFactory.getCustomId(hand)+")");
+            failedRollback();
+        });});
+    }
+    private void failedRollback(){
+        preparePlace(300);cancelPlace=true;failAfterCreate=true;later(8,()->{placePacket(300);later(30,()->{
+            cancelPlace=false;failAfterCreate=false;DataStore.Claim saved=core.getStore().getClaimAt(center.getLocation());
+            ok(center.getType().isAir()&&saved!=null&&"claim_7".equals(ItemFactory.getCustomId(a.getInventory().getItemInMainHand())),
+                    "if rollback cannot be saved, protection remains live and the cancelled item is retained");
+            restore();later(110,()->{
+                ok(core.getStore().getClaimAt(center.getLocation())==null,"cancelled placement rollback retries after storage becomes writable");
+                failedPlacement();
+            });
+        });});
+    }
+    private void failedPlacement(){
+        preparePlace(350);blockSave();later(8,()->{placePacket(350);later(30,()->{
+            restore();ItemStack hand=a.getInventory().getItemInMainHand();
+            ok(center.getType().isAir()&&core.getStore().getClaimAt(center.getLocation())==null&&"claim_7".equals(ItemFactory.getCustomId(hand)),
+                    "failed claim creation leaves the placement and item untouched");
+            changedPlacement();
+        });});
+    }
+    private void changedPlacement(){
+        preparePlace(380);changePlacedBlock=true;later(8,()->{placePacket(380);later(30,()->{
+            changePlacedBlock=false;DataStore.Claim placed=core.getStore().getClaimAt(center.getLocation());
+            ok(center.getType()==Material.STONE&&placed!=null&&a.getInventory().getItemInMainHand().getType().isAir(),
+                    "an accepted placement changed by another plugin retains the paid protection");
+            ok(core.getStore().removeClaimDurably(placed),"changed-center fixture is cleaned up durably");
+            successfulPlacement();
+        });});
+    }
+    private void successfulPlacement(){
+        preparePlace(320);later(8,()->{placePacket(320);later(30,()->{
+            DataStore.Claim placed=core.getStore().getClaimAt(center.getLocation());
+            ok(center.getType()==Material.DIAMOND_ORE&&placed!=null&&placed.owner.equalsIgnoreCase(a.getName())
+                    &&a.getInventory().getItemInMainHand().getType().isAir(),"successful network placement creates the claim and consumes its item");
+            overlapPlacement();
+        });});
+    }
+    private void overlapPlacement(){
+        preparePlace(325);later(8,()->{placePacket(325);later(30,()->{
+            DataStore.Claim existing=core.getStore().getClaimAt(center.getLocation());
+            ok(center.getType().isAir()&&existing!=null&&existing.cx==320&&"claim_7".equals(ItemFactory.getCustomId(a.getInventory().getItemInMainHand())),
+                    "overlapping network placement is rejected without consuming another claim item");
+            shutdownPending();
+        });});
     }
     private void shutdownPending(){
         setup(260);DataStore.Claim old=core.getStore().getClaimAt(center.getLocation());a.breakBlock(center);
@@ -120,6 +187,8 @@ public final class ClaimBreakProbe extends JavaPlugin implements Listener {
         Block retained=world.getBlockAt(260,160,50),removed=world.getBlockAt(200,160,50),second=world.getBlockAt(230,160,50);
         ok(retained.getType()==Material.DIAMOND_ORE&&core.getStore().getClaimAt(retained.getLocation())!=null,"retained claim and its center survive orderly restart");
         ok(removed.getType().isAir()&&core.getStore().getClaimAt(removed.getLocation())==null&&second.getType().isAir()
-                &&core.getStore().getClaimAt(second.getLocation())==null,"successfully removed claims stay removed after restart");finish();
+                &&core.getStore().getClaimAt(second.getLocation())==null,"successfully removed claims stay removed after restart");
+        Block placed=world.getBlockAt(320,160,50);ok(placed.getType()==Material.DIAMOND_ORE&&core.getStore().getClaimAt(placed.getLocation())!=null,
+                "network-placed claim and its center survive orderly restart");finish();
     }
 }

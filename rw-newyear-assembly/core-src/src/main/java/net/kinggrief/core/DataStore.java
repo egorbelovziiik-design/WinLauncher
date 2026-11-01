@@ -1773,6 +1773,30 @@ public final class DataStore {
         return cl;
     }
 
+    /** Persist a new live claim before allowing its placement to complete. */
+    public synchronized Claim createClaimDurably(String owner, Location loc, int radius) {
+        if (owner == null || !owner.matches("[A-Za-z0-9_]{1,16}") || loc == null || loc.getWorld() == null
+                || radius <= 0 || radius > 128 || overlapsAnyClaim(loc.getWorld().getName(), loc.getBlockX(), loc.getBlockZ(), radius)) return null;
+        Claim cl = new Claim();
+        long millis = System.currentTimeMillis(); int suffix = claims.size() + 1;
+        boolean duplicate;
+        do {
+            cl.id = "rg_" + millis + "_" + suffix++;
+            duplicate = false;
+            for (Claim existing : claims) if (cl.id.equals(existing.id)) { duplicate = true; break; }
+        } while (duplicate);
+        cl.owner=owner; cl.world=loc.getWorld().getName(); cl.cx=loc.getBlockX(); cl.cy=loc.getBlockY(); cl.cz=loc.getBlockZ(); cl.radius=radius;
+        claims.add(cl);
+        try {
+            transact(data -> null); // saveInternal includes the live claims list
+            return cl;
+        } catch (Exception error) {
+            claims.remove(cl);
+            plugin.getLogger().warning("[Claims] Creation was not committed: " + error.getMessage());
+            return null;
+        }
+    }
+
     public enum ClaimRoleResult { CHANGED, UNCHANGED, INVALID, LIMIT, NOT_FOUND, SAVE_FAILED }
 
     /** Save role changes before acknowledging them; on failure restore the live ACL. */

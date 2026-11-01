@@ -269,6 +269,7 @@ public final class KingGriefCore extends JavaPlugin {
             this.gameplayListener.rollbackPendingSpawnerBreaks();
             this.gameplayListener.rollbackPendingSmeltBreaks();
             this.gameplayListener.rollbackPendingClaimBreaks();
+            this.gameplayListener.finishPendingClaimPlacements();
         }
         if (this.ownerGiveaway != null) {
             this.ownerGiveaway.kickAllForShutdownTechWorks();

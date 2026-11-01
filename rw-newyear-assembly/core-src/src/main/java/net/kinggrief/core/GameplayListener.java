@@ -131,7 +131,17 @@ public final class GameplayListener implements Listener {
         }
     }
     private final Map<Block, PendingClaimBreak> pendingClaimBreaks = new HashMap<Block, PendingClaimBreak>();
-    private long lastClaimRemovalAttempt;
+    private static final class PendingClaimPlacement {
+        final BlockPlaceEvent event;
+        final DataStore.Claim claim;
+        final org.bukkit.block.data.BlockData placed;
+        boolean retrying, rollbackRequired, notified;
+        PendingClaimPlacement(BlockPlaceEvent event, DataStore.Claim claim) {
+            this.event=event; this.claim=claim; placed=event.getBlockPlaced().getBlockData().clone();
+        }
+    }
+    private final Map<Block, PendingClaimPlacement> pendingClaimPlacements = new HashMap<Block, PendingClaimPlacement>();
+    private long lastClaimRemovalAttempt, lastClaimPlacementAttempt;
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
     private static final class PendingPvpHit {
         final Player attacker, victim;
@@ -834,6 +844,11 @@ public final class GameplayListener implements Listener {
             return;
         }
 
+        // A newly placed center is reserved until the placement event settles.
+        if (pendingClaimPlacements.containsKey(b)) {
+            e.setCancelled(true);
+            return;
+        }
         // 3. Проверка приватов в мире выживания
         DataStore.Claim cl = plugin.getStore().getClaimAt(loc);
         if (cl != null) {
@@ -1802,7 +1817,7 @@ public final class GameplayListener implements Listener {
         if (cid != null && cid.startsWith("claim_")) {
             // v6.3.3: безопасный парсинг радиуса — битый предмет не роняет обработку клика.
             int rad = ColorUtil.parseInt(cid.substring(6), -1);
-            if (rad <= 0) {
+            if (rad <= 0 || rad > 128) {
                 e.setCancelled(true);
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Этот рудный приват повреждён — возьми новый в /shop."));
                 return;
@@ -1818,10 +1833,23 @@ public final class GameplayListener implements Listener {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Рядом уже есть другой приват!"));
                 return;
             }
-            plugin.getStore().createClaim(p.getName(), b.getLocation(), rad);
-            int sz = rad * 2 + 1;
-            ColorUtil.sound(p, "block.beacon.activate", 1f, 1.2f);
-            p.sendMessage(ColorUtil.c("&#00E676🛡 Территория &e" + sz + "×" + sz + " &#00E676успешно запривачена! (/rg info, /rg add <ник>)"));
+            if (!e.canBuild()) { e.setCancelled(true); return; }
+            long now = System.nanoTime();
+            if (pendingClaimPlacements.size() >= 4 || (lastClaimPlacementAttempt != 0 && now - lastClaimPlacementAttempt < 200_000_000L)) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&eПодождите немного перед установкой привата."));
+                return;
+            }
+            lastClaimPlacementAttempt = now;
+            DataStore.Claim created = plugin.getStore().createClaimDurably(p.getName(), b.getLocation(), rad);
+            if (created == null) {
+                e.setCancelled(true);
+                p.sendMessage(ColorUtil.c("&cПриват не сохранён: блок не установлен и предмет не израсходован."));
+                return;
+            }
+            final PendingClaimPlacement pending = new PendingClaimPlacement(e, created);
+            pendingClaimPlacements.put(b, pending);
+            Bukkit.getScheduler().runTask(plugin, () -> confirmClaimPlacement(pending, false));
         }
     }
 
@@ -1915,6 +1943,56 @@ public final class GameplayListener implements Listener {
                 if (consumed) spawnCustomPrimedTnt(spLoc, tntType, null, vel);
             }
         }.runTask(plugin);
+    }
+
+    private void confirmClaimPlacement(PendingClaimPlacement pending, boolean stopping) {
+        Block block = pending.event.getBlockPlaced();
+        if (pendingClaimPlacements.get(block) != pending) return;
+        if (pending.event.isCancelled() || !pending.event.canBuild()) pending.rollbackRequired = true;
+        if (!pending.rollbackRequired) {
+            if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
+                // Never force-load a chunk. Keep the already-saved protection if its block cannot be checked.
+                plugin.getLogger().warning("[Claims] Cannot verify a placed center in unloaded chunk at " + block.getLocation());
+            } else if (!block.getBlockData().equals(pending.placed)) {
+                // The item may already have been consumed. Preserve protection rather
+                // than deleting the paid claim when another plugin changes its block.
+                plugin.getLogger().warning("[Claims] Placed center changed unexpectedly; protection retained at " + block.getLocation());
+                Player player = pending.event.getPlayer();
+                if (player.isOnline()) player.sendMessage(ColorUtil.c("&eЦентр привата изменён другим плагином. Защита сохранена; сообщите администрации."));
+            }
+        }
+        if (pending.rollbackRequired) {
+            if (!plugin.getStore().getClaimsOf(pending.claim.owner).contains(pending.claim)
+                    || plugin.getStore().removeClaimDurably(pending.claim)) {
+                pendingClaimPlacements.remove(block, pending);
+                return;
+            }
+            // Keep the conservative live protection and retry a failed rollback at
+            // a bounded rate; never silently report an uncommitted rollback.
+            plugin.getLogger().warning("[Claims] Cancelled placement remains protected until rollback can be saved at " + block.getLocation());
+            Player player = pending.event.getPlayer();
+            if (player.isOnline() && !pending.notified) {
+                pending.notified = true;
+                player.sendMessage(ColorUtil.c("&cНе удалось отменить временный приват: сообщите администрации."));
+            }
+            if (!stopping && !pending.retrying && plugin.isEnabled()) {
+                pending.retrying = true;
+                Bukkit.getScheduler().runTaskLater(plugin, () -> { pending.retrying = false; confirmClaimPlacement(pending, false); }, 100L);
+            }
+            return;
+        }
+        pendingClaimPlacements.remove(block, pending);
+        Player player = pending.event.getPlayer();
+        if (player.isOnline()) {
+            int size = pending.claim.radius * 2 + 1;
+            ColorUtil.sound(player, "block.beacon.activate", 1f, 1.2f);
+            player.sendMessage(ColorUtil.c("&#00E676🛡 Территория &e" + size + "×" + size + " &#00E676успешно запривачена! (/rg info, /rg add <ник>)"));
+        }
+    }
+
+    public void finishPendingClaimPlacements() {
+        for (PendingClaimPlacement pending : new ArrayList<PendingClaimPlacement>(pendingClaimPlacements.values())) confirmClaimPlacement(pending, true);
+        pendingClaimPlacements.clear();
     }
 
     @EventHandler public void onBucketEmpty(PlayerBucketEmptyEvent e) {
@@ -3537,6 +3615,14 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTemporaryChunkUnload(org.bukkit.event.world.ChunkUnloadEvent event) {
         org.bukkit.Chunk chunk = event.getChunk();
+        if (!pendingClaimPlacements.isEmpty()) {
+            for (PendingClaimPlacement pending : new ArrayList<PendingClaimPlacement>(pendingClaimPlacements.values())) {
+                Block block = pending.event.getBlockPlaced();
+                if (block.getWorld().equals(chunk.getWorld()) && (block.getX() >> 4) == chunk.getX() && (block.getZ() >> 4) == chunk.getZ()) {
+                    confirmClaimPlacement(pending, false);
+                }
+            }
+        }
         if (!pendingClaimBreaks.isEmpty()) {
             for (PendingClaimBreak pending : new ArrayList<PendingClaimBreak>(pendingClaimBreaks.values())) {
                 Block block = pending.event.getBlock();
