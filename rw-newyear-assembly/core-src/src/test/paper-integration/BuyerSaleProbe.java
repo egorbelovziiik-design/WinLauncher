@@ -66,6 +66,12 @@ public final class BuyerSaleProbe extends JavaPlugin implements Listener {
         denied.setCancelled(true);Bukkit.getPluginManager().callEvent(denied);
         ok(a.getInventory().getItem(0).getAmount()==5&&core.getStore().getCoins(a.getName())==initialCoins,
                 "an earlier cancelled GUI click does not sell anything");
+        a.setItemOnCursor(new ItemStack(Material.EMERALD));
+        InventoryClickEvent carrying=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,13,ClickType.LEFT,InventoryAction.SWAP_WITH_CURSOR);
+        Bukkit.getPluginManager().callEvent(carrying);
+        ok(carrying.isCancelled()&&a.getItemOnCursor().getType()==Material.EMERALD&&a.getInventory().getItem(0).getAmount()==5
+                &&core.getStore().getCoins(a.getName())==initialCoins,"a click with an occupied cursor cannot trigger a sale");
+        a.setItemOnCursor(null);
         later(6,()->{
             block();request("CLICK 13");later(14,()->{
                 restore();

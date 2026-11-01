@@ -2646,6 +2646,11 @@ public final class GuiManager {
     }
 
     private void handleBuyerSell(Player p, int slot, Material targetMat) {
+        ItemStack cursor = p.getItemOnCursor();
+        if (cursor != null && !cursor.getType().isAir()) {
+            p.sendMessage(ColorUtil.c("&eПеред продажей положите предмет с курсора в инвентарь."));
+            return;
+        }
         double lvlMult = plugin.getStore().getBuyerMultiplier(p.getName());
         double rankMult = 1.0 + plugin.getRanks().getRank(p).tier * 0.12;
         double mult = lvlMult * rankMult;
@@ -2707,8 +2712,8 @@ public final class GuiManager {
         Inventory previous = p.getOpenInventory().getTopInventory();
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline() || p.getOpenInventory().getTopInventory() != previous) return;
-            ItemStack cursor = p.getItemOnCursor();
-            if (cursor == null || cursor.getType().isAir()) openBuyerMenu(p);
+            ItemStack heldCursor = p.getItemOnCursor();
+            if (heldCursor == null || heldCursor.getType().isAir()) openBuyerMenu(p);
         });
     }
 
