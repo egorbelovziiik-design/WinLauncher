@@ -78,13 +78,15 @@ plugin shutdown; ordinary profession pay and mining statistics are also checked
 after a late cancellation (33 checks total). They do not cover power loss,
 unexpected forced unload without an event, or delivery exceptions.
 
-`test-claim-break.py` tests real center-block breaks against late cancellation,
-a foreign player, early drop restrictions, simulated YAML-save and item-spawn
-failures, a synthetic chunk-unload event, ordinary and drop-restored removal,
-plugin disable before confirmation and orderly restart (9 + 2 checks). Claim
-world blocks, dropped items and Core YAML are separate stores; these tests do not
-prove crash-atomic item return, interrupted placement, every plugin interaction,
-or arbitrary forced unload.
+`test-claim-break.py` tests real center-block breaks and six network placement
+packets against late cancellation, a foreign player, drop restrictions, injected
+YAML-save and item-spawn failures, retry after a failed placement rollback,
+changed-center and overlapping placements, synthetic chunk unload, plugin disable
+and orderly restart (17 + 3 checks). Claim world blocks, dropped items and Core
+YAML are separate stores. A crash between provisional creation and rollback can
+leave a phantom claim; removal and item return are not crash-atomic. The test
+does not prove safety under power loss, arbitrary forced unload, all plugin
+interactions, or sustained disk load.
 `test-mining-worldguard.py --worldguard /path/to/WorldGuard.jar --worldedit
 /path/to/WorldEdit.jar` separately uses the real plugins to check protected central
 and neighbouring blocks and frost placement. Neither test guarantees compatibility
