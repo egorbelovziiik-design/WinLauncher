@@ -169,7 +169,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "ah", "achievements", "autosell"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "kgtree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "calendar", "ah", "achievements", "autosell"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -259,7 +259,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         getLogger().info("============================================================");
-        getLogger().info(" KINGGRIEF CORE v7.4.0 — PARKOUR & WINTER STATUES");
+        getLogger().info(" KINGGRIEF CORE v" + getDescription().getVersion() + " — WINTER ACTIVITIES");
         getLogger().info(" Real Leaf Tree | 3-Floor Palace | 32-Island Sky Parkour    ");
         getLogger().info(" Anti-DDoS Lightning | New TNT & Events | /razdacha | /txt  ");
         getLogger().info("============================================================");
@@ -537,9 +537,9 @@ public final class KingGriefCore extends JavaPlugin {
         if ("autosell".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("on", "off", "status", "prices"), args[0]);
         } else if ("calendar".equals(c)) {
-            if(args.length==1)return filterPrefix(hasEconomyAdmin(sender)
+            if(args.length==1)return filterPrefix(hasTreeSeasonAdmin(sender)
                     ?Arrays.asList("menu","list","add","remove","prune"):Arrays.asList("menu","list"),args[0]);
-            if(args.length==2&&"add".equalsIgnoreCase(args[0])&&hasEconomyAdmin(sender))
+            if(args.length==2&&"add".equalsIgnoreCase(args[0])&&hasTreeSeasonAdmin(sender))
                 return filterPrefix(Arrays.asList("parkour","duel","memory","boss","build","fish","forge"),args[1]);
         } else if ("ah".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "clear"), args[0]);
@@ -548,17 +548,17 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("achievements".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("claim"), args[0]);
         } else if ("buildcontest".equals(c)) {
-            if(args.length==1)return filterPrefix(hasEconomyAdmin(sender)
+            if(args.length==1)return filterPrefix(hasTreeSeasonAdmin(sender)
                     ?Arrays.asList("status","list","enter","withdraw","start","voting","finish","cancel")
                     :Arrays.asList("status","list","enter","withdraw"),args[0]);
-            if(args.length==2&&("enter".equalsIgnoreCase(args[0])||("cancel".equalsIgnoreCase(args[0])&&hasEconomyAdmin(sender))))
+            if(args.length==2&&("enter".equalsIgnoreCase(args[0])||("cancel".equalsIgnoreCase(args[0])&&hasTreeSeasonAdmin(sender))))
                 return filterPrefix(Arrays.asList("confirm"),args[1]);
         } else if ("trainstats".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("reset"), args[0]);
         } else if ("snowmemory".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("top", "stop"), args[0]);
         } else if ("gamevote".equals(c) && args.length == 1) {
-            return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "memory", "start", "cancel")
+            return filterPrefix(hasTreeSeasonAdmin(sender)?Arrays.asList("status", "parkour", "duel", "memory", "start", "cancel")
                     :Arrays.asList("status", "parkour", "duel", "memory"), args[0]);
         } else if ("parkour".equals(c)) {
             if (args.length == 1) return filterPrefix(Arrays.asList("top", "ghost", "cp", "leave"), args[0]);
@@ -575,7 +575,7 @@ public final class KingGriefCore extends JavaPlugin {
             return filterPrefix(Arrays.asList("spawn", "pvp", "kabinki", "train", "mine", "farm", "casino", "wheel", "bafs", "parkour", "cases", "top"), args[0]);
         } else if ("deathpoint".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("status", "beacon", "off"), args[0]);
-        } else if ("tree".equals(c)) {
+        } else if ("kgtree".equals(c)) {
             if (args.length == 1) return filterPrefix(hasTreeSeasonAdmin(sender)
                     ? Arrays.asList("status", "donate", "claim", "top", "history", "season")
                     : Arrays.asList("status", "donate", "claim", "top", "history"), args[0]);
@@ -729,18 +729,18 @@ public final class KingGriefCore extends JavaPlugin {
 
         // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
         if ("calendar".equals(c)) {
-            eventCalendar.command(sender, args, hasEconomyAdmin(sender));
+            eventCalendar.command(sender, args, hasTreeSeasonAdmin(sender));
             return true;
         }
         if ("gamevote".equals(c)) {
-            gameVotes.command(sender, args, hasEconomyAdmin(sender));
+            gameVotes.command(sender, args, hasTreeSeasonAdmin(sender));
             return true;
         }
         if ("buildcontest".equals(c)) {
-            buildContest.command(sender, args, hasEconomyAdmin(sender));
+            buildContest.command(sender, args, hasTreeSeasonAdmin(sender));
             return true;
         }
-        if ("tree".equals(c)) {
+        if ("kgtree".equals(c)) {
             winterTree.command(sender, args, hasTreeSeasonAdmin(sender));
             return true;
         }
@@ -748,7 +748,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (sender instanceof Player && !store.isAuthenticated((Player) sender)) {
                 sender.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));return true;
             }
-            if (!hasEconomyAdmin(sender)) sender.sendMessage(ColorUtil.c("&cДоступно только OWNER, ТЕХ.АДМИНУ и консоли."));
+            if (!hasTreeSeasonAdmin(sender)) sender.sendMessage(ColorUtil.c("&cДоступно только OWNER, ТЕХ.АДМИНУ и консоли."));
             else coreBackups.command(sender, args);
             return true;
         }

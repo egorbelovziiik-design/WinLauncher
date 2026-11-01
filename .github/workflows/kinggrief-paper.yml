@@ -1,0 +1,71 @@
+name: KingGrief Paper verification
+
+on:
+  push:
+    branches: [arena/3eb24343-winlauncher]
+    paths:
+      - '.github/workflows/kinggrief-paper.yml'
+      - 'rw-newyear-assembly/core-src/**'
+      - 'rw-newyear-assembly/common-src/**'
+      - 'rw-newyear-assembly/build-core-hub.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare verified Paper 1.21.4 and protocol clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          KG="$RUNNER_TEMP/kinggrief-paper"
+          mkdir -p "$KG/runtime/cache" "$KG/node"
+          curl --fail --location --retry 3 --user-agent 'KingGrief-CI/7.5 (https://github.com/egorbelovziiik-design/WinLauncher)' \
+            'https://fill-data.papermc.io/v1/objects/5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc/paper-1.21.4-232.jar' -o "$KG/paper.jar"
+          echo '5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc  '"$KG/paper.jar" | sha256sum -c -
+          python - "$KG/paper.jar" "$KG" <<'PY'
+          import pathlib, sys, zipfile
+          from urllib.parse import urlparse
+          paper, target = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+          with zipfile.ZipFile(paper) as archive:
+              sha, url, name = archive.read('META-INF/download-context').decode().strip().split('\t')
+          if len(sha) != 64 or urlparse(url).scheme != 'https' or pathlib.Path(name).name != name:
+              raise ValueError('Invalid Paper download context')
+          (target / 'vanilla-url.txt').write_text(url)
+          (target / 'vanilla-sha.txt').write_text(sha)
+          (target / 'vanilla-name.txt').write_text(name)
+          PY
+          curl --fail --location --retry 3 "$(cat "$KG/vanilla-url.txt")" -o "$KG/vanilla.jar"
+          echo "$(cat "$KG/vanilla-sha.txt")  $KG/vanilla.jar" | sha256sum -c -
+          cp "$KG/vanilla.jar" "$KG/runtime/cache/$(cat "$KG/vanilla-name.txt")"
+          (cd "$KG/runtime" && java -Dpaperclip.patchonly=true -jar "$KG/paper.jar")
+          API_CP="$(find "$KG/runtime/libraries" "$KG/runtime/versions" -name '*.jar' -type f | sort | paste -sd ':' -)"
+          test -n "$API_CP"
+          echo "KG_TEST_DIR=$KG" >> "$GITHUB_ENV"
+          echo "KG_API_CP=$API_CP" >> "$GITHUB_ENV"
+          npm install --prefix "$KG/node" --no-fund --no-audit minecraft-protocol@1.62.0
+      - name: Compile Core
+        run: python rw-newyear-assembly/build-core-hub.py --core-only --api-classpath "$KG_API_CP"
+      - name: Test command conflict and seasonal data
+        run: |
+          python rw-newyear-assembly/core-src/src/test/paper-integration/test-tree-season.py \
+            --paper "$KG_TEST_DIR/paper.jar" --vanilla "$KG_TEST_DIR/vanilla.jar" \
+            --api-classpath "$KG_API_CP" --node-modules "$KG_TEST_DIR/node/node_modules" --accept-eula
+      - name: Test upgrade from the published Core
+        run: |
+          python rw-newyear-assembly/core-src/src/test/paper-integration/test-release-upgrade.py \
+            --paper "$KG_TEST_DIR/paper.jar" --vanilla "$KG_TEST_DIR/vanilla.jar" \
+            --api-classpath "$KG_API_CP" --node-modules "$KG_TEST_DIR/node/node_modules" \
+            --core-old kinggrief/public/KingGriefCore-v7.4.0.jar --accept-eula

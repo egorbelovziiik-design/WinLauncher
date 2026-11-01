@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 7.4.0
+version: 7.5.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.4.0: новый паркур, пропорциональные статуи и безопасный спавн."
+description: "KINGGRIEF v7.5.0: зимние функции, сезоны ёлки и безопасный спавн."
 
 
 commands:
@@ -59,9 +59,10 @@ commands:
   minestats:
     description: Show your informational mining totals and ore types
     usage: /minestats [page]
-  tree:
+  kgtree:
+    aliases: [tree]
     description: Help decorate the shared winter tree, claim rewards and view seasons
-    usage: /tree [status|donate|claim|top|history|season]
+    usage: /kgtree [status|donate|claim|top|history|season]
   pet:
     description: Select a cosmetic display-model pet
   lp:

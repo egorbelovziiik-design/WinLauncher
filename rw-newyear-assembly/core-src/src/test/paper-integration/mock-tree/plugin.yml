@@ -1,0 +1,8 @@
+name: KgForeignTree
+version: '1.0'
+main: net.kinggrief.probe.ForeignTreePlugin
+api-version: '1.21'
+load: STARTUP
+commands:
+  tree:
+    description: Unrelated tree generator used to test a command collision

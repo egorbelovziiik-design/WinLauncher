@@ -75,10 +75,10 @@ final class WinterTreeManager {
         if ("status".equals(sub) && args.length <= 1) { status(sender, player); return; }
         if ("history".equals(sub) && args.length == 1) { history(sender, player); return; }
         if ("top".equals(sub) && args.length <= 2) { top(sender, args.length == 2 ? args[1] : null); return; }
-        if (player == null) { send(sender, "&eДля игроков: /tree donate, /tree claim. Для консоли: /tree history или /tree season."); return; }
+        if (player == null) { send(sender, "&eДля игроков: /kgtree donate, /kgtree claim. Для консоли: /kgtree history или /kgtree season."); return; }
         if ("donate".equals(sub)) { donate(player, args); return; }
         if ("claim".equals(sub) && args.length <= 2) { claim(player, args.length == 2 ? args[1] : null); return; }
-        send(sender, "&e/tree <status|donate [1-10]|claim [сезон]|top [сезон]|history>");
+        send(sender, "&e/kgtree <status|donate [1-10]|claim [сезон]|top [сезон]|history>");
     }
     private static void send(CommandSender sender, String text) { sender.sendMessage(ColorUtil.c(text)); }
     private static String name(Player player) { return player.getName().toLowerCase(Locale.ROOT); }
@@ -101,7 +101,7 @@ final class WinterTreeManager {
                 TreeSeasonStore.Donor donor = (TreeSeasonStore.Donor) snapshot[1];
                 send(sender, "&7Ваш вклад: &f" + donor.total + " ❄ &8| &7сегодня: &f" + snapshot[2] + "/" + TreeSeasonStore.DAILY_LIMIT + " (UTC)");
             }
-            send(sender, "&e/tree donate [1-10] &8• &e/tree claim &8• &e/tree history &8• &e/tree top");
+            send(sender, "&e/kgtree donate [1-10] &8• &e/kgtree claim &8• &e/kgtree history &8• &e/kgtree top");
         } catch (Exception error) {
             plugin.getLogger().warning("[Tree] Status unavailable: " + error.getClass().getSimpleName());
             send(sender, "&cНе удалось прочитать состояние ёлки.");
@@ -109,7 +109,7 @@ final class WinterTreeManager {
     }
     private void donate(Player player, String[] args) {
         int requested = 1;
-        if (args.length > 2) { send(player, "&e/tree donate [1-10]"); return; }
+        if (args.length > 2) { send(player, "&e/kgtree donate [1-10]"); return; }
         if (args.length == 2) try { requested = Integer.parseInt(args[1]); }
         catch (NumberFormatException error) { requested = 0; }
         if (requested < 1 || requested > TreeSeasonStore.DAILY_LIMIT) {
@@ -120,7 +120,7 @@ final class WinterTreeManager {
             int[] result = plugin.getStore().transact(data -> TreeSeasonStore.donate(data, name, amount, today));
             send(player, "&#80D8FFСпасибо! В ёлку внесено &f" + amount + " ❄&7. Прогресс: &f" + result[1] + "/300");
             int before = stage(result[0]), after = stage(result[1]); visualStage = after;
-            if (after > before) Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Игроки украсили ёлку! Достигнут этап &f" + after + "/3&7. Участникам: &e/tree claim"));
+            if (after > before) Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Игроки украсили ёлку! Достигнут этап &f" + after + "/3&7. Участникам: &e/kgtree claim"));
         } catch (IllegalArgumentException rejected) { send(player, "&c" + rejected.getMessage()); }
         catch (Exception error) {
             plugin.getLogger().warning("[Tree] Donation not committed: " + error.getMessage());
@@ -168,10 +168,10 @@ final class WinterTreeManager {
                 if (player == null) { send(sender, line); continue; }
                 TextComponent message = new TextComponent(ColorUtil.c(line + "  "));
                 TextComponent claim = new TextComponent(ColorUtil.c("&a[Награды] "));
-                claim.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tree claim " + row.view.id));
+                claim.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/kgtree claim " + row.view.id));
                 claim.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Получить доступные награды сезона").create()));
                 TextComponent top = new TextComponent(ColorUtil.c("&b[Топ]"));
-                top.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tree top " + row.view.id));
+                top.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/kgtree top " + row.view.id));
                 top.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder("Посмотреть участников сезона").create()));
                 message.addExtra(claim); message.addExtra(top); player.spigot().sendMessage(message);
             }
@@ -208,8 +208,8 @@ final class WinterTreeManager {
     private void seasonAdmin(CommandSender sender, String[] args, boolean admin) {
         if (!admin) { send(sender, "&cУправлять сезонами могут OWNER, ТЕХ.АДМИН и консоль."); return; }
         if (args.length != 4 || !"confirm".equalsIgnoreCase(args[3])) {
-            send(sender, "&e/tree season start <название> confirm &7— новый сезон с сохранением старых наград.");
-            send(sender, "&e/tree season prune <архив> confirm &7— удалить только полностью оплаченный архив.");
+            send(sender, "&e/kgtree season start <название> confirm &7— новый сезон с сохранением старых наград.");
+            send(sender, "&e/kgtree season prune <архив> confirm &7— удалить только полностью оплаченный архив.");
             return;
         }
         String action = args[1].toLowerCase(Locale.ROOT);
@@ -220,7 +220,7 @@ final class WinterTreeManager {
                 visualStage = 0;
                 plugin.getLogger().info("[Tree] " + sender.getName() + " started season " + result.next + " after " + result.previous);
                 Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF✦ Новый сезон ёлки: &f" + result.next
-                        + "&7! Старые награды: &e/tree history&7. Новый вклад: &e/tree donate"));
+                        + "&7! Старые награды: &e/kgtree history&7. Новый вклад: &e/kgtree donate"));
                 if (!result.archived) send(sender, "&7Пустой сезон не занял место в архиве.");
                 return;
             }
@@ -230,7 +230,7 @@ final class WinterTreeManager {
                 send(sender, "&aПолностью оплаченный архив &f" + id + " &aудалён; накопленные достижения сохранены.");
                 return;
             }
-            send(sender, "&eДоступны /tree season start и /tree season prune.");
+            send(sender, "&eДоступны /kgtree season start и /kgtree season prune.");
         } catch (IllegalArgumentException rejected) { send(sender, "&e" + rejected.getMessage()); }
         catch (Exception error) {
             plugin.getLogger().warning("[Tree] Season change not committed: " + error.getMessage());

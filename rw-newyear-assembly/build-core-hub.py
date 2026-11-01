@@ -29,7 +29,9 @@ def build(name, source_dir, args):
         classes.mkdir()
         sources = sorted((source_dir / "src/main/java").rglob("*.java"))
         sources += sorted((ROOT / "common-src/src/main/java").rglob("*.java"))
-        command = [args.javac, "-encoding", "UTF-8", "-source", "8", "-target", "8",
+        # Paper 1.21.4 and its API require Java 21. Do not silently compile the
+        # newer API against a Java 8 target or depend on a compiler wrapper.
+        command = [args.javac, "-encoding", "UTF-8", "--release", "21",
                    "-classpath", args.api_classpath, "-d", str(classes)] + list(map(str, sources))
         subprocess.run(command, check=True)
         output = ROOT / f"{name}.jar"
@@ -57,20 +59,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api-classpath", required=True, help="Spigot API and compile dependencies, separated by the platform classpath separator")
     parser.add_argument("--javac", default="javac")
+    parser.add_argument("--core-only", action="store_true", help="do not rebuild or overwrite Hub copies")
     args = parser.parse_args()
     core = build("KingGriefCore", ROOT / "core-src", args)
-    hub = build("KingHub", ROOT / "kinghub-src", args)
+    hub = None if args.core_only else build("KingHub", ROOT / "kinghub-src", args)
     version_line = next(line for line in (ROOT / "core-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
                         if line.startswith("version:"))
     core_version = version_line.split(":", 1)[1].strip().strip("'\"")
-    hub_version_line = next(line for line in (ROOT / "kinghub-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
-                            if line.startswith("version:"))
-    hub_version = hub_version_line.split(":", 1)[1].strip().strip("'\"")
     copies = {core: [ROOT / "plugins/KingGriefCore.jar", ROOT / "server/plugins/KingGriefCore.jar",
                      ROOT.parent / "kinggrief/public/KingGriefCore.jar",
-                     ROOT.parent / "kinggrief/public" / f"KingGriefCore-v{core_version}.jar"],
-              hub: [ROOT.parent / "kinggrief/public/KingHub.jar", ROOT / f"KingHub-v{hub_version}.jar",
-                    ROOT.parent / "kinggrief/public" / f"KingHub-v{hub_version}.jar"]}
+                     ROOT.parent / "kinggrief/public" / f"KingGriefCore-v{core_version}.jar"]}
+    if hub is not None:
+        hub_version_line = next(line for line in (ROOT / "kinghub-src/src/main/resources/plugin.yml").read_text(encoding="utf-8").splitlines()
+                                if line.startswith("version:"))
+        hub_version = hub_version_line.split(":", 1)[1].strip().strip("'\"")
+        copies[hub] = [ROOT.parent / "kinggrief/public/KingHub.jar", ROOT / f"KingHub-v{hub_version}.jar",
+                       ROOT.parent / "kinggrief/public" / f"KingHub-v{hub_version}.jar"]
     for source, dests in copies.items():
         for destination in dests:
             destination.parent.mkdir(parents=True, exist_ok=True)

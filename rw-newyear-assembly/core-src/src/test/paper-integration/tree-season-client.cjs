@@ -11,10 +11,10 @@ clients.forEach((client,index) => {
   client.on('packet', (data,meta) => {
     if (process.env.KG_TREE_PHASE !== '1' || meta.name !== 'system_chat') return;
     const text = JSON.stringify(data.content);
-    if (!text.includes('/tree claim legacy')) return;
+    if (!text.includes('/kgtree claim legacy')) return;
     if (index === 0 && !clicked) {
       clicked++;
-      client.write('chat_command',{command:'tree claim legacy'});
+      client.write('chat_command',{command:'kgtree claim legacy'});
       console.log('TREE_HISTORY_CLICKED');
     } else if (index !== 0) observerCopies++;
   });

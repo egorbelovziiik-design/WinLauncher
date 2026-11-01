@@ -13,7 +13,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.4.0.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.5.0.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
 TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v74-template.zip"
 PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v74.zip"
@@ -35,8 +35,8 @@ def verify_spawn_template():
     if len(expected) != 64 or digest != expected:
         raise RuntimeError("Spawn template does not match Core's recorded SHA-256")
     with zipfile.ZipFile(CORE) as jar:
-        if not re.search(r"(?m)^version:\s*7\.4\.0\s*$", jar.read("plugin.yml").decode("utf-8")):
-            raise RuntimeError("Assembly needs KingGriefCore 7.4.0")
+        if not re.search(r"(?m)^version:\s*7\.5\.0\s*$", jar.read("plugin.yml").decode("utf-8")):
+            raise RuntimeError("Assembly needs KingGriefCore 7.5.0")
         if jar.read("spawn_v74_template.sha256").decode("ascii").strip() != digest:
             raise RuntimeError("Built Core JAR does not match the spawn template; rebuild Core")
         if hashlib.sha256(jar.read("spawn_v74_template.zip")).hexdigest() != digest:
@@ -72,6 +72,20 @@ def verify_distribution_hygiene():
     config = bridge.read_text(encoding="utf-8")
     if not re.search(r"(?m)^secret:\s*[\"']?CHANGE_ME[\"']?\s*$", config):
         raise RuntimeError("Bridge credential must be CHANGE_ME in the public assembly")
+    # The first run also uses the JAR's embedded defaults if its data folder is
+    # missing. Reject a stale example credential there as well.
+    with zipfile.ZipFile(SERVER / "plugins/KingGriefBridge.jar") as bridge_jar:
+        embedded = bridge_jar.read("config.yml").decode("utf-8")
+        if bridge_jar.testzip() or not re.search(r"(?m)^secret:\s*[\"']?CHANGE_ME[\"']?\s*$", embedded):
+            raise RuntimeError("Embedded Bridge credential must be CHANGE_ME")
+    connect = SERVER / "plugins/KingConnect/config.yml"
+    if connect.is_symlink() or not connect.is_file():
+        raise RuntimeError("Missing KingConnect example configuration")
+    connect_config = connect.read_text(encoding="utf-8")
+    if not re.search(r"(?m)^secret-key:\s*[\"']?CHANGE_ME[\"']?\s*$", connect_config):
+        raise RuntimeError("KingConnect example key must be CHANGE_ME")
+    if not re.search(r"(?m)^cloud-sync:\s*\n\s*enabled:\s*false\s*$", connect_config):
+        raise RuntimeError("KingConnect cloud sync must be disabled in a fresh assembly")
     runtime = ("world", "world_nether", "world_the_end", "logs", "cache", "libraries", "versions",
                "plugins/.paper-remapped", "plugins/KingGriefCore/data.yml", "plugins/KingGriefCore/safe-trades",
                "plugins/KingGriefCore/buy-orders", "ops.json", "whitelist.json", "usercache.json",

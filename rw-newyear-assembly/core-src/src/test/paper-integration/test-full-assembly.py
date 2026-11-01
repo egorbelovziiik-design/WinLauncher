@@ -11,6 +11,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__)
  p.add_argument('--paper',required=True,type=Path);p.add_argument('--vanilla',required=True,type=Path)
  p.add_argument('--assembly',type=Path,default=ROOT/'rw-newyear-full-assembly-v7.4.0.zip')
+ p.add_argument('--core-version',default='7.4.0',help='expected Core version inside the assembly')
  p.add_argument('--node-modules',required=True,type=Path);p.add_argument('--java',default='java');p.add_argument('--node',default='node')
  p.add_argument('--api-classpath',required=True);p.add_argument('--javac',default='javac')
  p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
@@ -28,7 +29,7 @@ def main():
     if 'data/chunks.dat' in template.namelist():raise RuntimeError('Template contains forced chunk tickets')
     if '.kinggrief_prebuilt_v74' not in template.namelist():raise RuntimeError('Missing v74 marker')
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore.jar'))) as core:
-    if 'version: 7.4.0' not in core.read('plugin.yml').decode():raise RuntimeError('Incorrect Core version')
+    if not re.search(r'(?m)^version:\s*'+re.escape(a.core_version)+r'\s*$',core.read('plugin.yml').decode()):raise RuntimeError('Incorrect Core version')
    for plugin, version in (('KingAC','8.3.1'),('KingClear','1.0.2')):
     with ZipFile(io.BytesIO(z.read('plugins/'+plugin+'.jar'))) as jar:
      if ('version: '+version) not in jar.read('plugin.yml').decode(): raise RuntimeError('Incorrect '+plugin+' version')

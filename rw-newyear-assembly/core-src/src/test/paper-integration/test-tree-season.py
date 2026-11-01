@@ -134,6 +134,14 @@ def main():
             f'online-mode=false\nserver-ip=127.0.0.1\nserver-port={port}\n'
             'view-distance=2\nsimulation-distance=3\nallow-nether=false\nspawn-protection=0\n'
             'level-type=minecraft:flat\ngenerate-structures=false\nmax-players=3\n',encoding='utf8')
+        # Load an independent /tree command before Core. The public /kgtree
+        # command and clickable history must keep working without taking it over.
+        collision=root/'foreign-tree-classes';collision.mkdir()
+        subprocess.run([args.javac,'-encoding','UTF-8','-classpath',args.api_classpath,'-d',str(collision),
+                        str(HERE/'mock-tree/ForeignTreePlugin.java')],check=True)
+        with ZipFile(server/'plugins/KgForeignTree.jar','w',ZIP_DEFLATED) as z:
+            for path in sorted(collision.rglob('*.class')): z.write(path,path.relative_to(collision).as_posix())
+            z.write(HERE/'mock-tree/plugin.yml','plugin.yml')
         classes=root/'classes';classes.mkdir()
         cp=str(args.core.resolve())+os.pathsep+args.api_classpath
         subprocess.run([args.javac,'-encoding','UTF-8','-classpath',cp,'-d',str(classes),str(HERE/'TreeSeasonProbe.java')],check=True)
