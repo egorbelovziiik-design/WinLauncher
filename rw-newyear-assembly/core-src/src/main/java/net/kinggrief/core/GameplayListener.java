@@ -4141,8 +4141,9 @@ public final class GameplayListener implements Listener {
             hit.effects.add(() -> {
                 ItemStack[] armor = victim.getInventory().getArmorContents();
                 for (ItemStack arm : armor) {
-                    if (arm != null && arm.hasItemMeta() && arm.getItemMeta() instanceof Damageable) {
-                        ItemMeta meta = arm.getItemMeta();
+                    if (arm == null || arm.getType().isAir()) continue;
+                    ItemMeta meta = arm.getItemMeta();
+                    if (meta instanceof Damageable) {
                         Damageable durability = (Damageable) meta;
                         durability.setDamage(durability.getDamage() + shred);
                         arm.setItemMeta(meta);

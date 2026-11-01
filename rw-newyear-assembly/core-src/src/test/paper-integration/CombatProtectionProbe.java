@@ -139,7 +139,8 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
         boolean effectPresent = allEffects.getAsBoolean();
         ok(!observedCancel && b.getHealth() < 20 && effectPresent, label + ": accepted hit applies its effect"
                 + " (cancelled=" + observedCancel + ", hp=" + b.getHealth() + ", damage=" + observedFinal
-                + ", effect=" + effectPresent + ", chestDamage=" + armorDamage() + ")");
+                + ", effect=" + effectPresent + ", chestDamage=" + armorDamage() + ", attackerHp=" + a.getHealth()
+                + ", attackerDead=" + a.isDead() + ", targetDead=" + b.isDead() + ", weapon=" + ItemFactory.getCustomId(a.getInventory().getItemInMainHand()) + ")");
     }
 
     private int armorDamage() {
