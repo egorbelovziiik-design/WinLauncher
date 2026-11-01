@@ -162,8 +162,24 @@ including a later PvP damage modifier and cancellation. The two network clients
 also receive the correct ordinary PvP action bars for accepted melee/arrow hits,
 not cancelled ones. A cancelled Midas hit cannot grant its money or absorption,
 while an accepted hit does. Those PvP events are fixture-triggered; this is not
-a visual client test or a full combat simulation. Other old custom melee effects
-still need an audit for late cancellation by third-party protection.
+a visual client test or a full combat simulation.
+
+`test-combat-protection.py` adds three protocol players and tests 60
+fixture-triggered melee events with a late-cancelling listener, cooldown
+reservations, recursive hits, ordinary armor and quick freeze. It does not
+prove compatibility with every protection plugin or simulate all combat cases.
+
+`test-combat-worldguard.py` requires **real**, separately supplied compatible
+WorldGuard and WorldEdit JARs (`--worldguard ... --worldedit ...`). Its 45 checks
+use WorldGuard 7.0.13/WorldEdit 7.3.10, three protocol players, synthetic damage,
+projectile/interaction/placement events and a synthetic chunk-unload callback.
+They cover region and global PvP flags, build/block-place flags, fail-closed
+behaviour when WG is disabled, swap cancellation/rollback, one built-in claim,
+temporary structures, preserved signs and fluids, piston cancellation,
+replacement-aware cleanup and item preservation when placement is denied.
+Other protection plugins, mob secondary effects, actual chunk unloading, crash
+recovery of temporary blocks and a graphical client are **not** covered. A
+third-party plugin can also cancel both a swap and its rollback.
 
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,

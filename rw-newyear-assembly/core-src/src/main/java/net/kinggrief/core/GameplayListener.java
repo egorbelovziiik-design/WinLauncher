@@ -154,6 +154,7 @@ public final class GameplayListener implements Listener {
     private final Set<String> activeTempBlocks = new HashSet<String>();
     private final Map<Block, org.bukkit.block.data.BlockData> allSavedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
     private final Map<Block, org.bukkit.block.data.BlockData> expectedTempBlocks = new HashMap<Block, org.bukkit.block.data.BlockData>();
+    private final Map<String, Set<Block>> tempBlocksByChunk = new HashMap<String, Set<Block>>();
     private final Set<Block> pendingTempPlacements = new HashSet<Block>();
     private final Map<UUID, Integer> killStreaks = new HashMap<UUID, Integer>();
     private final Map<UUID, PrimedTntEntry> activeCustomTnts = new HashMap<UUID, PrimedTntEntry>();
@@ -450,6 +451,7 @@ public final class GameplayListener implements Listener {
         for (Block block : new ArrayList<Block>(allSavedTempBlocks.keySet())) restoreTemporaryBlock(block);
         allSavedTempBlocks.clear();
         expectedTempBlocks.clear();
+        tempBlocksByChunk.clear();
         activeTempBlocks.clear();
         pendingTempPlacements.clear();
         pendingPvpHits.clear();
@@ -1582,10 +1584,10 @@ public final class GameplayListener implements Listener {
         Player p = e.getPlayer();
         if (!plugin.getStore().isAuthenticated(p)) { e.setCancelled(true); return; }
         Block b = e.getBlockPlaced();
+        // These exact temporary blocks were already checked individually for
+        // spawn, claims and event structures. Other plugins still receive the event.
+        if (pendingTempPlacements.contains(b)) return;
         if (plugin.getSpawnEngine().isInSpawnWorld(b.getLocation())) {
-            // Temporary PvP structures still pass every other placement listener;
-            // only their own checked blocks may use the designated PvP area.
-            if (pendingTempPlacements.contains(b) && plugin.getSpawnEngine().isInsidePvpZone(b.getLocation())) return;
             if (!plugin.getRanks().canModifySpawn(p)) {
                 e.setCancelled(true);
                 ColorUtil.actionBar(p, "&#FF1744🛡 Строить на спавне могут OWNER и TECH.ADMIN! Выживание: &#00E676/rtp");
@@ -2648,6 +2650,12 @@ public final class GameplayListener implements Listener {
     }
 
     private void handleFtConsumable(final Player p, ItemStack hand, String cid) {
+        if (!p.isOnline() || p.isDead() || p.getGameMode() == GameMode.SPECTATOR
+                || !plugin.getStore().isAuthenticated(p) || plugin.getStore().isQuickFrozen(p)
+                || plugin.getModeration().isFrozenOrAscending(p)) {
+            p.sendMessage(ColorUtil.c("&cСейчас нельзя использовать расходник; предмет сохранён."));
+            return;
+        }
         if (plugin.getSpawnEngine().isInSpawnWorld(p.getLocation())
                 && !plugin.getSpawnEngine().isInsidePvpZone(p.getLocation())) {
             p.sendMessage(ColorUtil.c("&#FF1744✖ Расходники FT можно использовать в мире выживания (&a/rtp&#FF1744) или на &e/warp pvp&#FF1744!"));
@@ -3177,7 +3185,8 @@ public final class GameplayListener implements Listener {
             }
             // Check the original positions BEFORE moving either player. In particular,
             // WorldGuard and quick-freeze must not be bypassed by the teleport itself.
-            if (!plugin.getStore().isAuthenticated(shooter) || !plugin.getStore().isAuthenticated(hit)
+            if (shooter.isDead() || hit.isDead() || shooter.getGameMode() == GameMode.SPECTATOR || hit.getGameMode() == GameMode.SPECTATOR
+                    || !plugin.getStore().isAuthenticated(shooter) || !plugin.getStore().isAuthenticated(hit)
                     || plugin.getStore().isQuickFrozen(shooter) || plugin.getStore().isQuickFrozen(hit)
                     || plugin.getModeration().isFrozenOrAscending(shooter) || plugin.getModeration().isFrozenOrAscending(hit)
                     || !shooter.getWorld().equals(hit.getWorld())) return;
@@ -3325,9 +3334,13 @@ public final class GameplayListener implements Listener {
         saved.put(block, original);
         allSavedTempBlocks.put(block, original);
         expectedTempBlocks.put(block, expected);
+        tempBlocksByChunk.computeIfAbsent(tempChunkKey(block.getWorld(), block.getX() >> 4, block.getZ() >> 4),
+                key -> new HashSet<Block>()).add(block);
         activeTempBlocks.add(blockKey(block));
         return true;
     }
+
+    private String tempChunkKey(World world, int x, int z) { return world.getUID() + ":" + x + ":" + z; }
 
     private void restoreTemporaryBlock(Block block) { restoreTemporaryBlock(block, null); }
 
@@ -3338,6 +3351,12 @@ public final class GameplayListener implements Listener {
         org.bukkit.block.data.BlockData original = allSavedTempBlocks.remove(block);
         org.bukkit.block.data.BlockData expected = expectedTempBlocks.remove(block);
         activeTempBlocks.remove(blockKey(block));
+        String chunkKey = tempChunkKey(block.getWorld(), block.getX() >> 4, block.getZ() >> 4);
+        Set<Block> chunkBlocks = tempBlocksByChunk.get(chunkKey);
+        if (chunkBlocks != null) {
+            chunkBlocks.remove(block);
+            if (chunkBlocks.isEmpty()) tempBlocksByChunk.remove(chunkKey);
+        }
         if (original == null || expected == null) return;
         // Do not load a chunk synchronously. ChunkUnloadEvent handles normal unloads.
         if (!block.getWorld().isChunkLoaded(block.getX() >> 4, block.getZ() >> 4)) {
@@ -3350,10 +3369,9 @@ public final class GameplayListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTemporaryChunkUnload(org.bukkit.event.world.ChunkUnloadEvent event) {
         org.bukkit.Chunk chunk = event.getChunk();
-        for (Block block : new ArrayList<Block>(allSavedTempBlocks.keySet())) {
-            if (block.getWorld().equals(chunk.getWorld()) && (block.getX() >> 4) == chunk.getX()
-                    && (block.getZ() >> 4) == chunk.getZ()) restoreTemporaryBlock(block);
-        }
+        Set<Block> blocks = tempBlocksByChunk.get(tempChunkKey(chunk.getWorld(), chunk.getX(), chunk.getZ()));
+        if (blocks == null) return;
+        for (Block block : new ArrayList<Block>(blocks)) restoreTemporaryBlock(block);
     }
 
     private boolean spawnTemporaryPlast(Player p) {

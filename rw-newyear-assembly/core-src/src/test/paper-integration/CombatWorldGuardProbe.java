@@ -66,6 +66,10 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         Bukkit.getPluginManager().callEvent(new org.bukkit.event.entity.ProjectileHitEvent(projectile,target));projectile.remove();
     }
     private boolean unchanged(Player player,Location before){return player.getWorld().equals(before.getWorld())&&player.getLocation().distanceSquared(before)<0.001;}
+    private void useHeld(){Bukkit.getPluginManager().callEvent(new org.bukkit.event.player.PlayerInteractEvent(a,
+            org.bukkit.event.block.Action.RIGHT_CLICK_AIR,a.getInventory().getItemInMainHand(),null,org.bukkit.block.BlockFace.SELF,org.bukkit.inventory.EquipmentSlot.HAND));}
+    private int temporaryCount(){return ((java.util.Map<?,?>)field(field(core,"gameplayListener"),"allSavedTempBlocks")).size();}
+    private void cleanTemporary(){((net.kinggrief.core.GameplayListener)field(core,"gameplayListener")).cleanupAllTempBlocks();}
     private Object field(Object owner,String name){try{java.lang.reflect.Field f=owner.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(owner);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}}
     private Object guard(){return field(field(core,"gameplayListener"),"pvpRegionGuard");}
     private boolean mayTarget(Player attacker,Player target){try{Object listener=field(core,"gameplayListener");java.lang.reflect.Method method=listener.getClass().getDeclaredMethod("isEnemyTarget",Player.class,Player.class);method.setAccessible(true);return (Boolean)method.invoke(listener,attacker,target);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}}
@@ -126,6 +130,8 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         ok(unchanged(a,from)&&unchanged(c,to),"cancelled first teleport leaves both players in place");
         denyTeleport=c;orb("swap_orb",c);denyTeleport=null;
         ok(unchanged(a,from)&&unchanged(c,to),"cancelled second teleport rolls the first player back");
+        core.getStore().toggleQuickFreeze(c.getUniqueId());orb("swap_orb",c);core.getStore().clearQuickFreeze(c.getUniqueId());
+        ok(unchanged(a,from)&&unchanged(c,to),"quick-frozen target cannot be moved by a swap orb");
         orb("swap_orb",c);
         ok(unchanged(a,to)&&unchanged(c,from),"allowed swap orb moves both players");
         a.teleport(from);c.teleport(to);
@@ -133,6 +139,7 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         ok(!place(protectedBlock,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&protectedBlock.getType().isAir(),
                 "unowned WorldGuard build region denies temporary placement even when PvP is allowed");
         temporaryChecks();
+        useTemporaryItems();
         protectedArea.setFlag(Flags.BLOCK_PLACE,StateFlag.State.ALLOW);
         later(60,this::allowPlacement);
     }
@@ -164,6 +171,44 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         block.setType(org.bukkit.Material.DIAMOND_BLOCK,false);restore(block,newer.get(block));
         ok(block.getType()==org.bukkit.Material.DIAMOND_BLOCK,"cleanup leaves a block changed by another plugin untouched");
         block.setType(org.bukkit.Material.AIR,false);
+        org.bukkit.block.Block claimCenter=world.getBlockAt(72,97,10),claimEdge=world.getBlockAt(73,97,10);
+        claimCenter.setType(org.bukkit.Material.AIR,false);claimEdge.setType(org.bukkit.Material.AIR,false);
+        net.kinggrief.core.DataStore.Claim claim=core.getStore().createClaim(b.getName(),claimCenter.getLocation(),1);
+        ok(!place(claimEdge,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&claimEdge.getType().isAir(),
+                "built-in claim blocks temporary placement by a nonmember");
+        claim.members.add(a.getName().toLowerCase(java.util.Locale.ROOT));
+        java.util.Map<org.bukkit.block.Block,org.bukkit.block.data.BlockData> member=new java.util.HashMap<>();
+        ok(place(claimEdge,org.bukkit.Material.COBWEB,member),"claim builder may place a temporary block at the edge");
+        ok(!place(claimCenter,org.bukkit.Material.COBWEB,new java.util.HashMap<>())&&claimCenter.getType().isAir(),
+                "claim centre remains protected even for a builder");
+        restore(claimEdge,member.get(claimEdge));core.getStore().removeClaim(claim);
+    }
+    private void useTemporaryItems(){
+        a.getInventory().setItemInMainHand(ItemFactory.dezorient(2));
+        core.getStore().toggleQuickFreeze(a.getUniqueId());useHeld();core.getStore().clearQuickFreeze(a.getUniqueId());
+        ok(a.getInventory().getItemInMainHand().getAmount()==2
+                &&!((java.util.Map<?,?>)field(field(core,"gameplayListener"),"itemCooldowns")).containsKey(a.getUniqueId()+":dezorient"),
+                "quick-frozen caster does not consume a PvP item or start cooldown");
+        for(org.bukkit.inventory.ItemStack item:new org.bukkit.inventory.ItemStack[]{ItemFactory.plast(2),ItemFactory.trapka(2),ItemFactory.iceDome(2)}){
+            String id=ItemFactory.getCustomId(item);a.getInventory().setItemInMainHand(item);
+            cancelPlacement=true;useHeld();cancelPlacement=false;
+            ok(a.getInventory().getItemInMainHand().getAmount()==2&&temporaryCount()==0,
+                    id+" is not consumed and leaves no blocks when placement is denied");
+            useHeld();
+            ok(a.getInventory().getItemInMainHand().getAmount()==1&&temporaryCount()>=5,
+                    id+" works after denial without a stale cooldown");
+            cleanTemporary();
+            ok(temporaryCount()==0&&((java.util.Map<?,?>)field(field(core,"gameplayListener"),"tempBlocksByChunk")).isEmpty(),
+                    id+" clears tracked blocks and chunk index on cleanup");
+        }
+        clear(b);clear(c);
+        org.bukkit.block.Block protectedCell=world.getBlockAt(79,94,10),outside=world.getBlockAt(78,94,10);
+        protectedCell.setType(org.bukkit.Material.AIR,false);outside.setType(org.bukkit.Material.AIR,false);
+        orb("web_grenade",c);
+        ok(protectedCell.getType().isAir()&&outside.getType()==org.bukkit.Material.COBWEB,
+                "web grenade skips the protected region while working outside it");
+        cleanTemporary();
+        ok(outside.getType().isAir(),"web grenade cleanup restores its temporary block");
     }
     private void allowPlacement(){
         org.bukkit.block.Block block=world.getBlockAt(80,97,10);
