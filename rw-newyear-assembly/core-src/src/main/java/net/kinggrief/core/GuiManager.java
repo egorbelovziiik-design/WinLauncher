@@ -98,7 +98,8 @@ public final class GuiManager {
             {"rw_legend",   "&#FACC15[👑 ЛЕГЕНДА РВ]",  "300", "Максимальный статус ReallyWorld"},
             {"king_achiever", "&#80D8FF[✦ ИСКАТЕЛЬ]", "-1", "За четыре основных достижения: /achievements"},
             {"winter_fisher", "&#81D4FA[🎣 РЫБАК СЕВЕРА]", "-1", "За 25 зимних бонусов: /winterfish"},
-            {"build_master", "&#FFCC80[🏗 МАСТЕР СТРОЙКИ]", "-1", "Победителю конкурса /buildcontest"}
+            {"build_master", "&#FFCC80[🏗 МАСТЕР СТРОЙКИ]", "-1", "Победителю конкурса /buildcontest"},
+            {"memory_master", "&#80D8FF[❄ ЛЕДЯНОЙ РАЗУМ]", "-1", "За 8 раундов /snowmemory"}
     };
 
     private static final String[] COMMON_GROUP_PERMS = new String[]{
@@ -1335,6 +1336,8 @@ public final class GuiManager {
             }
         }
 
+        inv.setItem(30, ItemFactory.glowIcon(Material.LIGHT_BLUE_STAINED_GLASS, "&#80D8FF&l❄ Ледяная память (/snowmemory)",
+                "&7Повторяйте подсвеченные плитки до 12 раундов.", "&7Без телепорта и денежных ставок."));
         inv.setItem(32, ItemFactory.glowIcon(Material.BRICKS, "&#FFCC80&l🏗 Конкурс построек (/buildcontest)",
                 "&7Добровольная подача своего привата и голосование.", "&7Блоки и приваты не изменяются."));
         // СТРОГО ТОЛЬКО ДЛЯ АДМИНОВ И ВЫШЕ (D.ADMIN+, ДКП, OPKA, D.OWNER, КП, CURATOR, TECH.ADMIN, OWNER)!
@@ -1409,7 +1412,7 @@ public final class GuiManager {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("titles", "", 0), 45,
                 ColorUtil.c("&#FFD740&l✨ КОЛЛЕКЦИЯ ТИТУЛОВ СЕРВЕРА"));
         decorateFrame(inv);
-        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28,29,30};
+        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28,29,30,31};
         for (int i = 0; i < TITLES_CATALOG.length && i < slots.length; i++) {
             String[] t = TITLES_CATALOG[i];
             String tid = t[0], disp = t[1], desc = t[3];
@@ -2193,6 +2196,12 @@ public final class GuiManager {
             handleCasinoClick(p, slot, h);
         } else if ("events".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 30) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) plugin.getMemoryGame().open(p);
+                });
+                return;
+            }
             if (slot == 32) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) {

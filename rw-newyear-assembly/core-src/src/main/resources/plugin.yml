@@ -9,6 +9,9 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  snowmemory:
+    description: Play the winter tile memory game
+    usage: /snowmemory [top|stop]
   frostforge:
     description: Recipes for the assembled northern blade
     usage: /frostforge
