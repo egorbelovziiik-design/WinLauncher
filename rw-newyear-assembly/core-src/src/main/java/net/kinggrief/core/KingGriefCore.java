@@ -69,6 +69,7 @@ public final class KingGriefCore extends JavaPlugin {
     private CosmeticEffectsManager cosmetics;
     private ParkourRecordsManager parkourRecords;
     private AuctionSearchManager auctionSearch;
+    private CoreBackupManager coreBackups;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -99,6 +100,7 @@ public final class KingGriefCore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(this.parkourRecords, this);
         this.auctionSearch = new AuctionSearchManager(this);
         Bukkit.getPluginManager().registerEvents(this.auctionSearch, this);
+        this.coreBackups = new CoreBackupManager(this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -242,6 +244,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if (this.moderation != null) this.moderation.shutdown();
         if (this.hud != null) this.hud.shutdown();
+        if (this.coreBackups != null) this.coreBackups.shutdown();
         if (this.utilities != null) this.utilities.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.parkourRecords != null) this.parkourRecords.shutdown();
@@ -256,6 +259,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
+    UtilityFeaturesManager getUtilities() { return utilities; }
     public DataStore getStore() { return store; }
     public RankManager getRanks() { return ranks; }
     public LpManager getLp() { return lp; }
@@ -618,6 +622,11 @@ public final class KingGriefCore extends JavaPlugin {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
 
         // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
+        if ("kgbackup".equals(c)) {
+            if (!hasEconomyAdmin(sender)) sender.sendMessage(ColorUtil.c("&cДоступно только OWNER, ТЕХ.АДМИНУ и консоли."));
+            else coreBackups.command(sender, args);
+            return true;
+        }
         if ("kgadmin".equals(c)) {
             return handleKgAdmin(sender, args);
         }

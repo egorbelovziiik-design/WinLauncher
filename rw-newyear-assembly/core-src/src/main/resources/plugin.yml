@@ -9,6 +9,9 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  kgbackup:
+    description: Create or list a private Core data-only backup (not a world backup)
+    usage: /kgbackup <create|list>
   cosmetic:
     description: Choose a cosmetic trail or login effect
   wintershow:

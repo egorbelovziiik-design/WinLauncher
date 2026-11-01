@@ -162,7 +162,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
             ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"only accepted mining is counted");
             ok(yaml().getInt("utility.mining."+a.getUniqueId()+".ores.diamond_ore")==1,"mining statistics record the exact ore type");
             ok(a.performCommand("minestats")&&a.performCommand("minestats 2")&&a.performCommand("minestats -1"),"mining statistics pages and invalid-page guard are registered");
-            auction();tree();a.performCommand("pet penguin");later(15,()->petChecks());
+            auction();tree();backupChecks(()->{a.performCommand("pet penguin");later(15,()->petChecks());});
         });
     }
     private Inventory auctionInventory(){return a.getOpenInventory().getTopInventory();}
@@ -235,6 +235,62 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         b.performCommand("tree claim");
         ok(store.getCoins(b.getName())==2500.0,"late contributor cannot claim a past milestone");
         a.performCommand("tree top");
+    }
+    private void backupChecks(Runnable next){
+        Path folder=core.getDataFolder().toPath().resolve("backups"), outside=core.getDataFolder().toPath().resolveSibling("kg-backup-outside-fixture");
+        try{
+            a.performCommand("kgbackup create");
+            ok(!Files.exists(folder),"ordinary players cannot create Core backups");
+            Files.createDirectory(outside);Files.createSymbolicLink(folder,outside);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"kgbackup create");
+            try(java.util.stream.Stream<Path> files=Files.list(outside)){
+                ok(Files.isSymbolicLink(folder)&&files.findAny().isEmpty(),"backup refuses a symlinked destination without changing it");
+            }
+            Files.delete(folder);
+            withBlockedSave(()->Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"kgbackup create"));
+            ok(backupArchives(folder).isEmpty(),"failed data checkpoint creates no archive");
+            double atSnapshot=core.getStore().getCoins(a.getName());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"kgbackup create");
+            core.getStore().setCoins(a.getName(),atSnapshot+7);core.getStore().save();
+            waitBackup(folder,atSnapshot,0,next);
+        }catch(Exception error){throw new RuntimeException(error);}
+    }
+    private java.util.List<Path> backupArchives(Path folder) throws Exception {
+        java.util.List<Path> paths=new java.util.ArrayList<Path>();
+        if(!Files.exists(folder))return paths;
+        try(java.nio.file.DirectoryStream<Path> stream=Files.newDirectoryStream(folder,"kgcore-*.zip")){for(Path path:stream)paths.add(path);}
+        return paths;
+    }
+    private void waitBackup(Path folder,double atSnapshot,int attempt,Runnable next){
+        later(10,()->{
+            java.util.List<Path> archives;
+            try{archives=backupArchives(folder);}catch(Exception error){throw new RuntimeException(error);}
+            if(archives.isEmpty()&&attempt<20){waitBackup(folder,atSnapshot,attempt+1,next);return;}
+            ok(archives.size()==1,"asynchronous Core backup was published exactly once");
+            try(java.util.zip.ZipFile zip=new java.util.zip.ZipFile(archives.get(0).toFile())){
+                byte[] bytes=zip.getInputStream(zip.getEntry("data.yml")).readAllBytes();
+                String manifest=new String(zip.getInputStream(zip.getEntry("MANIFEST.txt")).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+                String readme=new String(zip.getInputStream(zip.getEntry("README.txt")).readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+                String digest=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+                YamlConfiguration snapshot=new YamlConfiguration();snapshot.loadFromString(new String(bytes,java.nio.charset.StandardCharsets.UTF_8));
+                ok(manifest.contains(digest)&&zip.size()==3,"archive manifest matches the saved data and exact scope");
+                ok(readme.contains("NOT INCLUDED")&&readme.contains("worlds")&&readme.contains("inventories"),"archive explicitly excludes worlds and inventories");
+                ok(snapshot.getDouble("players."+a.getName().toLowerCase(java.util.Locale.ROOT)+".coins")==atSnapshot
+                        &&core.getStore().getCoins(a.getName())==atSnapshot+7,"backup retains its point-in-time data while the live file changes");
+                ok(snapshot.getIntegerList("auctionPreferences."+a.getUniqueId()+".favorites").size()==1,"backup includes saved Core auction preferences");
+                try{java.util.Set<java.nio.file.attribute.PosixFilePermission> perms=Files.getPosixFilePermissions(archives.get(0));
+                    ok(!perms.contains(java.nio.file.attribute.PosixFilePermission.GROUP_READ)&&!perms.contains(java.nio.file.attribute.PosixFilePermission.OTHERS_READ),"archive is private on POSIX filesystems");}
+                catch(UnsupportedOperationException ignored){}
+            }catch(Exception error){throw new RuntimeException(error);}
+            core.getStore().setCoins(a.getName(),atSnapshot);core.getStore().save();
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"kgbackup list");
+            later(10,()->{
+                try(java.util.stream.Stream<Path> entries=Files.list(folder)){
+                    ok(entries.noneMatch(path->path.getFileName().toString().startsWith(".kgbackup-")),"temporary backup links and partial files are cleaned up");
+                }catch(Exception error){throw new RuntimeException(error);}
+                next.run();
+            });
+        });
     }
     private long displays(){return a.getWorld().getEntities().stream().filter(e->e.getScoreboardTags().contains("kg_cosmetic_pet")).count();}
     private void petChecks(){
@@ -314,6 +370,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(yaml().getInt("winterTree.total")==31,"tree progress survives restart");
         ok("snow".equals(yaml().getString("cosmetics."+a.getUniqueId()+".trail")),"cosmetic selection survives restart");
         ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"buffered mining statistics survive clean restart");
+        try{ok(backupArchives(core.getDataFolder().toPath().resolve("backups")).size()==1,"private Core backup survives restart");}
+        catch(Exception error){throw new RuntimeException(error);}
         java.util.List<Integer> favorites=yaml().getIntegerList("auctionPreferences."+a.getUniqueId()+".favorites");
         ok(favorites.size()==1&&store.findAuctionLot(favorites.get(0))!=null,"favorite lot survives restart");
         a.performCommand("ah favorites");

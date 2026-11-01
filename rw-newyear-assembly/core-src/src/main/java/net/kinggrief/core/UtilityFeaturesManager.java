@@ -56,6 +56,7 @@ final class UtilityFeaturesManager implements Listener {
         }};ticker.runTaskTimer(plugin,20L,20L);
     }
     void shutdown(){if(ticker!=null)ticker.cancel();processPending();beams.clear();if(dirty)flush();}
+    boolean checkpointForBackup(){processPending();boolean saved=plugin.getStore().saveBuffered();if(saved)dirty=false;return saved;}
     @EventHandler public void quit(PlayerQuitEvent e){beams.remove(e.getPlayer().getUniqueId());}
 
     void status(Player p){

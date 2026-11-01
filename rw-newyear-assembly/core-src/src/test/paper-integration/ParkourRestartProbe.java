@@ -52,6 +52,8 @@ public final class ParkourRestartProbe extends JavaPlugin implements Listener {
         String packetSignal="KG_GHOST_IDS="+ids+" MARKER="+marker.getEntityId();
         owner.sendMessage(packetSignal);observer.sendMessage(packetSignal);
         marker.remove();owner.performCommand("parkour ghost off");ok(ghosts().isEmpty(),"disabling replay cleans every model part");
-        done=true;getLogger().info("KG-GHOST RESULT PASS "+checks+" checks");
+        // Allow the server's outbound packets (including the ID signal) to flush
+        // before the harness tells both protocol clients to disconnect.
+        later(20,()->{done=true;getLogger().info("KG-GHOST RESULT PASS "+checks+" checks");});
     }
 }
