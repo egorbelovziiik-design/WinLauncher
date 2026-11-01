@@ -27,7 +27,7 @@ import java.util.function.BooleanSupplier;
 /** Tests late protection cancellation and accepted PvP side effects on disposable Paper. */
 public final class CombatProtectionProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;
-    private Player a, b;
+    private Player a, b, c;
     private World world;
     private boolean started, finished, cancelHit, observedCancel, triggerNested, processingNested;
     private boolean nestedCancelled;
@@ -42,7 +42,8 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
     @EventHandler public void onJoin(PlayerJoinEvent e) {
         if ("FightTester".equals(e.getPlayer().getName())) a = e.getPlayer();
         if ("FightTarget".equals(e.getPlayer().getName())) b = e.getPlayer();
-        if (a != null && b != null && !started) {
+        if ("FightOther".equals(e.getPlayer().getName())) c = e.getPlayer();
+        if (a != null && b != null && c != null && !started) {
             started = true;
             later(30, this::begin);
         }
@@ -99,7 +100,7 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
 
     private void reset() {
         clearCooldowns();
-        for (Player player : new Player[]{a, b}) {
+        for (Player player : new Player[]{a, b, c}) {
             for (PotionEffect effect : player.getActivePotionEffects()) player.removePotionEffect(effect.getType());
             player.getInventory().clear();
             player.setGameMode(GameMode.SURVIVAL);
@@ -114,6 +115,7 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
         }
         a.teleport(new Location(world, 75.5, 94, 10.5, 0, 0));
         b.teleport(new Location(world, 77.5, 94, 10.5, 0, 0));
+        c.teleport(new Location(world, 79.0, 94, 10.5, 0, 0));
         a.setHealth(10);
     }
 
@@ -134,7 +136,10 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
         hit(true);
         ok(observedCancel && b.getHealth() == 20 && !anyEffect.getAsBoolean(), label + ": late cancellation produces no effect");
         hit(false);
-        ok(!observedCancel && b.getHealth() < 20 && allEffects.getAsBoolean(), label + ": accepted hit applies its effect");
+        boolean effectPresent = allEffects.getAsBoolean();
+        ok(!observedCancel && b.getHealth() < 20 && effectPresent, label + ": accepted hit applies its effect"
+                + " (cancelled=" + observedCancel + ", hp=" + b.getHealth() + ", damage=" + observedFinal
+                + ", effect=" + effectPresent + ", chestDamage=" + armorDamage() + ")");
     }
 
     private int armorDamage() {
@@ -156,6 +161,7 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
         world.setPVP(true);
         a.teleport(new Location(world, 75.5, 94, 10.5, 0, 0));
         b.teleport(new Location(world, 77.5, 94, 10.5, 0, 0));
+        c.teleport(new Location(world, 79.0, 94, 10.5, 0, 0));
         later(50, this::runCases);
     }
 
@@ -239,8 +245,26 @@ public final class CombatProtectionProbe extends JavaPlugin implements Listener 
         ok(((Map<?,?>)field(field(core,"gameplayListener"),"pendingPvpHits")).isEmpty()
                 && ((Map<?,?>)field(field(core,"gameplayListener"),"pendingPvpCooldowns")).isEmpty(),
                 "accepted, cancelled and nested events leave no pending PvP state");
+        reset();a.getInventory().setItemInMainHand(ItemFactory.swordFrost());
+        core.getStore().toggleQuickFreeze(a.getUniqueId());hit(false);
+        ok(observedCancel && b.getHealth()==20 && b.getFreezeTicks()==0, "quick-frozen attacker cannot hurt or debuff another player");
+        core.getStore().clearQuickFreeze(a.getUniqueId());core.getStore().toggleQuickFreeze(b.getUniqueId());hit(false);
+        ok(observedCancel && b.getHealth()==20 && b.getFreezeTicks()==0, "quick-frozen target cannot be hurt or debuffed");
+        core.getStore().clearQuickFreeze(b.getUniqueId());hit(false);
+        ok(!observedCancel && b.getFreezeTicks()>0, "hit abilities resume when both players are unfrozen");
+        reset();a.getInventory().setItemInMainHand(ItemFactory.swordPhoenix());core.getStore().toggleQuickFreeze(c.getUniqueId());
+        hit(false);
+        ok(!observedCancel && b.getFireTicks()>0 && c.getFireTicks()==0, "phoenix splash spares a quick-frozen bystander");
+        core.getStore().clearQuickFreeze(c.getUniqueId());b.setHealth(20);hit(false);
+        ok(!observedCancel && c.getFireTicks()>0, "phoenix splash resumes for an unfrozen nearby enemy");
+        reset();a.getInventory().setItemInMainHand(ItemFactory.swordZima());core.getStore().toggleQuickFreeze(c.getUniqueId());
+        hit(false);
+        ok(!observedCancel && b.hasPotionEffect(PotionEffectType.SLOWNESS) && !c.hasPotionEffect(PotionEffectType.SLOWNESS)
+                && c.getVelocity().lengthSquared()<0.001, "winter splash spares a quick-frozen bystander");
+        core.getStore().clearQuickFreeze(c.getUniqueId());b.setHealth(20);hit(false);
+        ok(!observedCancel && c.hasPotionEffect(PotionEffectType.SLOWNESS), "winter splash resumes for an unfrozen nearby enemy");
         finished = true;
-        core.getHud().clearCombat(a.getUniqueId());core.getHud().clearCombat(b.getUniqueId());
+        core.getHud().clearCombat(a.getUniqueId());core.getHud().clearCombat(b.getUniqueId());core.getHud().clearCombat(c.getUniqueId());
         getLogger().info("KG-COMBAT RESULT PASS " + checks + " checks");
     }
 }

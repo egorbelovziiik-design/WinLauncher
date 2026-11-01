@@ -2,7 +2,7 @@
 """Test custom PvP effects against late cancellation on a disposable Paper server.
 
 Requires Java 21, matching Paper/Mojang jars, and minecraft-protocol@1.62.0.
-Pass --accept-eula only after reviewing the Minecraft EULA. The two players use
+Pass --accept-eula only after reviewing the Minecraft EULA. The three players use
 real network sessions, while damage events are triggered by the test plugin.
 """
 import argparse

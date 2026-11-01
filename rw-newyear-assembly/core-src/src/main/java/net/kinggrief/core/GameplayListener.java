@@ -2591,6 +2591,9 @@ public final class GameplayListener implements Listener {
     private boolean isEnemyTarget(Player caster, Player other) {
         if (caster == null || other == null || other.equals(caster) || caster.getGameMode() == GameMode.SPECTATOR
                 || other.getGameMode() == GameMode.SPECTATOR || caster.isDead() || other.isDead()) return false;
+        if (!plugin.getStore().isAuthenticated(caster) || plugin.getStore().isQuickFrozen(caster)
+                || plugin.getStore().isQuickFrozen(other) || plugin.getModeration().isFrozenOrAscending(caster)
+                || plugin.getModeration().isFrozenOrAscending(other)) return false;
         if (!caster.getWorld().equals(other.getWorld()) || !caster.getWorld().getPVP()) return false;
         if (plugin.getSpawnEngine().isInSpawnWorld(caster.getLocation())
                 && !plugin.getSpawnEngine().isInsidePvpZone(caster.getLocation())) return false;
@@ -3948,11 +3951,13 @@ public final class GameplayListener implements Listener {
             attacker = (Player) ((Projectile) e.getDamager()).getShooter();
         }
         if (attacker == null) return;
-        if (!plugin.getStore().isAuthenticated(attacker) || plugin.getModeration().isFrozenOrAscending(attacker)) {
+        if (!plugin.getStore().isAuthenticated(attacker) || plugin.getModeration().isFrozenOrAscending(attacker)
+                || plugin.getStore().isQuickFrozen(attacker)) {
             e.setCancelled(true);
             return;
         }
-        if (e.getEntity() instanceof Player && plugin.getModeration().isFrozenOrAscending((Player) e.getEntity())) {
+        if (e.getEntity() instanceof Player && (plugin.getModeration().isFrozenOrAscending((Player) e.getEntity())
+                || plugin.getStore().isQuickFrozen((Player) e.getEntity()))) {
             e.setCancelled(true);
             ColorUtil.actionBar(attacker, "&#FFD740🔍 Этот игрок находится на проверке модерации!");
             return;

@@ -1,7 +1,7 @@
-// Two protocol players for server-triggered combat scenarios.
+// Three protocol players for server-triggered combat scenarios.
 const mc = require('minecraft-protocol');
 const port = Number(process.argv[2]);
-const clients = ['FightTester', 'FightTarget'].map(username => mc.createClient({
+const clients = ['FightTester', 'FightTarget', 'FightOther'].map(username => mc.createClient({
   host: '127.0.0.1', port, username, version: '1.21.4', auth: 'offline'
 }));
 for (const client of clients) {
