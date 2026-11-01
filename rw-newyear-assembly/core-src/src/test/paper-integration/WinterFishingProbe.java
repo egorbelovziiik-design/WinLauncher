@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -76,9 +77,11 @@ public final class WinterFishingProbe extends JavaPlugin implements Listener {
             world.getBlockAt(416,64,z).setType(Material.STONE,false);
             for(int y=65;y<=69;y++)world.getBlockAt(416,y,z).setType(Material.AIR,false);
         }
-        a.teleport(new Location(world,416.5,65,419.5,-90,0));b.teleport(new Location(world,416.5,65,420.5,-90,0));
+        world.getBlockAt(430,64,430).setType(Material.STONE,false);
+        for(int y=65;y<=69;y++)world.getBlockAt(430,y,430).setType(Material.AIR,false);
+        a.teleport(new Location(world,416.5,65,419.5,-90,0));b.teleport(new Location(world,430.5,65,430.5,-90,0));
         a.setGameMode(GameMode.SURVIVAL);b.setGameMode(GameMode.SURVIVAL);
-        a.getInventory().clear();a.getInventory().setHeldItemSlot(0);a.getInventory().setItemInMainHand(new ItemStack(Material.FISHING_ROD));
+        a.getInventory().clear();b.getInventory().clear();a.getInventory().setHeldItemSlot(0);a.getInventory().setItemInMainHand(new ItemStack(Material.FISHING_ROD));
         realMode=true;later(40,this::cast);
         later(400,()->{if(realMode)throw new AssertionError("real fishing timed out after "+attempts+" casts");});
     }
@@ -114,8 +117,9 @@ public final class WinterFishingProbe extends JavaPlugin implements Listener {
         DataStore store=core.getStore();int amount=store.getSnowflakes(a.getName());
         ok(amount==1||amount==2||amount==5,"real protocol rod catch earns one bounded winter bonus");
         ok(yaml().getInt(root(a)+".total")==1&&yaml().getInt(root(a)+".daily")==1,"real catch updates personal totals");
-        boolean itemExists=a.getInventory().contains(realType)||Bukkit.getEntity(realItem) instanceof Item;
-        ok(itemExists,"real vanilla fish remains in inventory or as its normal item entity");
+        boolean itemExists=a.getInventory().contains(realType)||b.getInventory().contains(realType)||Bukkit.getEntity(realItem) instanceof Item;
+        if(!itemExists)getLogger().warning("Fish missing from both inventories and original item entity: "+realType+" id="+realItem);
+        ok(itemExists,"real vanilla fish remains in an inventory or as its normal item entity");
         invalidCases();
     }
     private FishHook hook(UUID id){
@@ -147,10 +151,34 @@ public final class WinterFishingProbe extends JavaPlugin implements Listener {
         cancelFish=true;synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);cancelFish=false;
         core.getConfig().set("enable-builtin-auth",true);store.setAuthenticated(a,false);
         synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);
+        Inventory beforeAuth=a.getOpenInventory().getTopInventory();a.performCommand("winterfish");
+        ok(a.getOpenInventory().getTopInventory()==beforeAuth,"unauthenticated player cannot open the fishing menu");
         core.getConfig().set("enable-builtin-auth",false);
+        a.setGameMode(GameMode.CREATIVE);synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);a.setGameMode(GameMode.SURVIVAL);
+        store.toggleQuickFreeze(a.getUniqueId());synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);store.clearQuickFreeze(a.getUniqueId());
         later(30,()->{
             ok(store.getSnowflakes(a.getName())==snow&&yaml().getInt(root(a)+".total")==total,
-                    "cancelled, unauthenticated, junk and caught-entity events pay nothing");
+                    "cancelled, unauthenticated, creative, frozen, junk and caught-entity events pay nothing");
+            queueCase();
+        });
+    }
+    private Object fishingManager(){try{
+        Field field=KingGriefCore.class.getDeclaredField("winterFishing");field.setAccessible(true);return field.get(core);
+    }catch(Exception error){throw new RuntimeException(error);}}
+    private void queueCase(){
+        int snow=core.getStore().getSnowflakes(a.getName()),total=yaml().getInt(root(a)+".total");
+        Item shared=world.dropItem(new Location(world,419.5,67,419.5),new ItemStack(Material.COD));
+        try{
+            Object manager=fishingManager();java.lang.reflect.Method caught=manager.getClass().getDeclaredMethod("caught",PlayerFishEvent.class);caught.setAccessible(true);
+            for(int i=0;i<513;i++){
+                PlayerFishEvent event=new PlayerFishEvent(a,shared,hook(UUID.randomUUID()),EquipmentSlot.HAND,PlayerFishEvent.State.CAUGHT_FISH);
+                caught.invoke(manager,event);event.setCancelled(true);
+            }
+        }catch(Exception error){throw new RuntimeException(error);}finally{shared.remove();}
+        ok(pendingSize()==512,"pending fishing queue is bounded at 512 catches");
+        later(30,()->{
+            ok(pendingSize()==0&&core.getStore().getSnowflakes(a.getName())==snow&&yaml().getInt(root(a)+".total")==total,
+                    "cancelled queued catches drain without a payout");
             failureCase();
         });
     }
@@ -190,8 +218,25 @@ public final class WinterFishingProbe extends JavaPlugin implements Listener {
             ok(menu.getSize()==27&&menu.getItem(20).getType()==Material.NAME_TAG,"fishing menu presents saved title and statistics");
             InventoryClickEvent take=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,11,ClickType.NUMBER_KEY,InventoryAction.HOTBAR_SWAP,0);
             Bukkit.getPluginManager().callEvent(take);ok(take.isCancelled(),"fishing menu icons cannot be taken");
-            a.performCommand("titles");ok(a.getOpenInventory().getTopInventory().getItem(29).getType()==Material.NAME_TAG,"fishing title is available in the titles menu");a.closeInventory();
-            cooldownCase();
+            Map<Integer,ItemStack> slots=new java.util.HashMap<Integer,ItemStack>();slots.put(11,new ItemStack(Material.DIRT));
+            InventoryDragEvent drag=new InventoryDragEvent(a.getOpenInventory(),new ItemStack(Material.DIRT),new ItemStack(Material.DIRT),false,slots);
+            Bukkit.getPluginManager().callEvent(drag);ok(drag.isCancelled(),"dragging items into the fishing menu is blocked");
+            a.performCommand("titles");ok(a.getOpenInventory().getTopInventory().getItem(29).getType()==Material.NAME_TAG,"fishing title is available in the titles menu");
+            a.performCommand("menu");
+            Inventory main=a.getOpenInventory().getTopInventory();
+            ok(main.getItem(45).getType()==Material.FISHING_ROD,"main menu exposes winter fishing");
+            InventoryClickEvent open=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,45,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+            Bukkit.getPluginManager().callEvent(open);
+            later(2,()->{
+                Inventory opened=a.getOpenInventory().getTopInventory();
+                ok(open.isCancelled()&&opened.getSize()==27&&opened.getItem(4).getType()==Material.FISHING_ROD,"main menu opens the fishing menu on the next tick");
+                InventoryClickEvent close=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,26,ClickType.LEFT,InventoryAction.PICKUP_ALL);
+                Bukkit.getPluginManager().callEvent(close);
+                later(2,()->{
+                    ok(close.isCancelled()&&a.getOpenInventory().getTopInventory()!=opened,"close button safely closes the fishing menu");
+                    cooldownCase();
+                });
+            });
         });
     }
     private void cooldownCase(){
@@ -212,14 +257,38 @@ public final class WinterFishingProbe extends JavaPlugin implements Listener {
             synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);
             later(30,()->{
                 ok(core.getStore().getSnowflakes(a.getName())==snow&&yaml().getInt(root(a)+".total")==total,"backward server clock cannot reset the reward limit");
-                yaml().set(root(a)+".day",day());yaml().set(root(a)+".daily",12);core.getStore().save();finish();
+                overflowCase(snow,total);
             });
         });
+    }
+    private void overflowCase(int originalSnow,int total){
+        yaml().set(root(a)+".day",day());yaml().set(root(a)+".daily",0);yaml().set(root(a)+".last",0L);
+        yaml().set("players."+a.getName().toLowerCase(java.util.Locale.ROOT)+".snowflakes",Integer.MAX_VALUE-2);
+        synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);
+        later(30,()->{
+            ok(core.getStore().getSnowflakes(a.getName())==Integer.MAX_VALUE-2&&yaml().getInt(root(a)+".total")==total,
+                    "near-overflow balance is left untouched");
+            yaml().set("players."+a.getName().toLowerCase(java.util.Locale.ROOT)+".snowflakes",originalSnow);
+            yaml().set(root(a)+".daily",12);core.getStore().save();shutdownQueueCase();
+        });
+    }
+    private void shutdownQueueCase(){
+        int before=core.getStore().getSnowflakes(b.getName()),total=yaml().getInt(root(b)+".total");
+        yaml().set(root(b)+".last",0L);
+        synthetic(b,UUID.randomUUID(),Material.SALMON,PlayerFishEvent.State.CAUGHT_FISH);
+        try{
+            Object manager=fishingManager();java.lang.reflect.Method shutdown=manager.getClass().getDeclaredMethod("shutdown");shutdown.setAccessible(true);shutdown.invoke(manager);
+        }catch(Exception error){throw new RuntimeException(error);}
+        int delta=core.getStore().getSnowflakes(b.getName())-before;
+        ok(pendingSize()==0&&yaml().getInt(root(b)+".total")==total+1&&(delta==1||delta==2||delta==5),
+                "clean shutdown flushes a pending catch atomically");
+        finish();
     }
     private void restartChecks(){
         DataStore store=core.getStore();
         ok(yaml().getInt(root(a)+".total")==25&&yaml().getInt(root(a)+".daily")==12
-                &&store.hasUnlockedTitle(a.getName(),"winter_fisher"),"fishing total, limit and title survive restart");
+                &&yaml().getInt(root(b)+".total")==2&&store.hasUnlockedTitle(a.getName(),"winter_fisher"),
+                "fishing totals, shutdown-flushed reward, limit and title survive restart");
         int snow=store.getSnowflakes(a.getName());
         synthetic(a,UUID.randomUUID(),Material.COD,PlayerFishEvent.State.CAUGHT_FISH);
         later(30,()->{ok(store.getSnowflakes(a.getName())==snow&&yaml().getInt(root(a)+".total")==25,"daily limit is enforced after restart");finish();});
