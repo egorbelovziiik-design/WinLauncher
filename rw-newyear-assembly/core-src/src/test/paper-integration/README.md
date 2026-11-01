@@ -198,7 +198,18 @@ metadata/cursor preservation, rate limits, unrepresentable balances, isolated
 inventories and orderly restart. It also sends
 SIGKILL **after** the sale and the player-data save, then verifies that sale on
 restart. It does not cover a crash between the balance commit and player-data
-save, failed/disabled `saveData`, power loss or autoselling mining drops.
+save, failed/disabled `saveData` or power loss.
+
+`test-auto-buyer.py` uses two real protocol clients, including an actual mining
+packet and a buyer-GUI toggle, across orderly restart and SIGKILL after the
+player-data save. It checks opt-in, vanilla ore pickup, warp-mine and smelted
+loot, old and metadata-bearing items, the offhand, multiple players, manual-sale
+overlap, late cancellation, inventory mutation, partial/full pickup, genuine
+item merging, freezing, authentication, invalid balances and a failed durable
+write. Most later batches are flushed explicitly for deterministic edge cases;
+one uses the periodic worker. The test does not prove atomicity between Core
+YAML and `player.dat`, the gap before `saveData`, disabled saves, power failure,
+other plugins' nonstandard mining paths, or performance under sustained load.
 
 `test-new-features.py` exercises the airship's protected, non-repeatable scrap,
 expiry and terrain restoration; opt-in crown scoring, accepted/cancelled damage

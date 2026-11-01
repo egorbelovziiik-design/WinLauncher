@@ -1487,6 +1487,12 @@ public final class GuiManager {
             inv.setItem(slots[i], ItemFactory.icon(mats[i], "&fПродать " + mats[i].name(),
                     "&7Цена за 1 шт.: &a" + unit + "$", "&e▸ ЛКМ — Продать все стаки из инвентаря"));
         }
+        boolean auto = plugin.getAutoBuyer().enabled(p);
+        inv.setItem(31, ItemFactory.icon(auto ? Material.LIME_DYE : Material.GRAY_DYE,
+                "&#80D8FFАвтоскупка добычи: " + (auto ? "&aВКЛ" : "&cВЫКЛ"),
+                "&7Только новые обычные ресурсы добычи,", "&7после попадания в ваш инвентарь.",
+                "&7При изменении слотов или ошибке записи", "&7ресурсы остаются у вас.",
+                "&eЛКМ — переключить &8• &f/autosell prices"));
         inv.setItem(40, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
@@ -2256,6 +2262,21 @@ public final class GuiManager {
         } else if ("buyer".equals(type)) {
             if (e.getClick() != ClickType.LEFT) return;
             if (slot == 40) { openMainMenu(p); return; }
+            if (slot == 31) {
+                ItemStack cursor = p.getItemOnCursor();
+                if (cursor != null && !cursor.getType().isAir()) {
+                    p.sendMessage(ColorUtil.c("&eСначала положите предмет с курсора в инвентарь."));
+                    return;
+                }
+                plugin.getAutoBuyer().command(p, new String[]{plugin.getAutoBuyer().enabled(p) ? "off" : "on"});
+                Inventory previous = p.getOpenInventory().getTopInventory();
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (!p.isOnline() || p.getOpenInventory().getTopInventory() != previous) return;
+                    ItemStack held = p.getItemOnCursor();
+                    if (held == null || held.getType().isAir()) openBuyerMenu(p);
+                });
+                return;
+            }
             handleBuyerSell(p, slot, clicked.getType());
         } else if ("cases".equals(type)) {
             if (slot == 40) { openMainMenu(p); return; }

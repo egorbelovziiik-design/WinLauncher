@@ -34,8 +34,8 @@ public final class AutoBuyerProbe extends JavaPlugin implements Listener {
     private Player a,b;
     private World world;
     private Block protectedBlock;
-    private boolean cancelBreak, namedDrop, networkMine, started, done;
-    private int checks;
+    private boolean cancelBreak, namedDrop, enlargeDrop, networkMine, started, done;
+    private int checks, mergeEvents;
     private Path data, backup;
     private double failedSold, changeSold, offSold, aSold, bSold;
     private Object manager;
@@ -53,6 +53,13 @@ public final class AutoBuyerProbe extends JavaPlugin implements Listener {
         if(namedDrop && event.getBlock().equals(protectedBlock))for(Item item:event.getItems()){
             ItemStack stack=item.getItemStack();ItemMeta meta=stack.getItemMeta();meta.setDisplayName("protected mining reward");stack.setItemMeta(meta);item.setItemStack(stack);
         }
+        if(enlargeDrop && event.getBlock().equals(protectedBlock))for(Item item:event.getItems()){
+            ItemStack stack=item.getItemStack();stack.setAmount(5);item.setItemStack(stack);
+        }
+    }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true) public void observeMerge(org.bukkit.event.entity.ItemMergeEvent event){
+        if(protectedBlock!=null&&event.getEntity().getWorld().equals(protectedBlock.getWorld())
+                &&event.getEntity().getLocation().distanceSquared(protectedBlock.getLocation())<25)mergeEvents++;
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true) public void prepareNetworkPickup(BlockDropItemEvent event){
         if(!networkMine || !event.getBlock().equals(protectedBlock))return;
@@ -118,8 +125,10 @@ public final class AutoBuyerProbe extends JavaPlugin implements Listener {
                 ok(count(a,Material.COPPER_INGOT,false)==0&&sold(a)>old,"periodic worker sells newly smelted copper in survival world");
                 ok(count(a,Material.DIAMOND,false)==4&&count(a,Material.DIAMOND,true)==3&&a.getInventory().getItemInOffHand().getAmount()==2,
                         "periodic sale preserves old plain, named and offhand diamonds");
-                pauseWorker();clearToggleLimit();b.performCommand("autosell on");ok(enabled(b),"second player can opt in independently");
-                warpMine();
+                pauseWorker();clearToggleLimit();b.performCommand("buyer");
+                later(8,()->{getLogger().info("KG-AUTO REQUEST CLICK_B 31");later(10,()->{
+                    ok(enabled(b),"second player can opt in independently via the real buyer GUI click");b.closeInventory();warpMine();
+                });});
             });
         });
     }
@@ -201,7 +210,21 @@ public final class AutoBuyerProbe extends JavaPlugin implements Listener {
             String path="players."+a.getName().toLowerCase(Locale.ROOT)+".coins";yaml().set(path,Double.MAX_VALUE);flush();
             ok(count(a,Material.COPPER_INGOT,false)==4&&sold(a)==before&&core.getStore().getCoins(a.getName())==Double.MAX_VALUE,
                     "an unrepresentable balance blocks the batch without taking resources");
-            yaml().set(path,coins);a.getInventory().remove(Material.COPPER_INGOT);bothPlayers();
+            yaml().set(path,coins);a.getInventory().remove(Material.COPPER_INGOT);repeatedMining();
+        });
+    }
+    private void repeatedMining(){
+        pick(a,smelter());Block first=ore(a,88,Material.COPPER_ORE);double before=sold(a),mult=factor(a);a.breakBlock(first);
+        later(4,()->{
+            ItemStack tool=a.getInventory().getItemInMainHand();ItemMeta meta=tool.getItemMeta();
+            ((org.bukkit.inventory.meta.Damageable)meta).setDamage(37);tool.setItemMeta(meta);a.getInventory().setItemInMainHand(tool);
+            Block second=ore(a,89,Material.COPPER_ORE);a.breakBlock(second);
+            later(4,()->{
+                ok(count(a,Material.COPPER_INGOT,false)==8,"two smelted blocks are delivered before one batch");flush();
+                ok(count(a,Material.COPPER_INGOT,false)==0&&near(sold(a),before+8*25*mult),
+                        "tool durability changes do not discard earlier mining rewards in the batch");
+                bothPlayers();
+            });
         });
     }
     private void bothPlayers(){
@@ -213,7 +236,18 @@ public final class AutoBuyerProbe extends JavaPlugin implements Listener {
             flush();ok(near(sold(a),aSold+4*25*am)&&near(sold(b),bSold+iron*70*bm)&&count(a,Material.COPPER_INGOT,false)==0&&count(b,Material.IRON_INGOT,false)==0,
                     "one batched commit credits both players at their prices/multipliers and removes their own rewards");
             ok(count(a,Material.DIAMOND,false)==4&&count(b,Material.DIAMOND,false)==6,"batch still preserves both players' old diamonds");
-            metadata();
+            manualOverlap();
+        });
+    }
+    private void manualOverlap(){
+        pick(a,smelter());protectedBlock=ore(a,105,Material.IRON_ORE);double before=sold(a),mult=factor(a);a.breakBlock(protectedBlock);
+        later(5,()->{
+            int iron=count(a,Material.IRON_INGOT,false);if(iron<2)throw new AssertionError("manual overlap fixture missing iron");
+            a.performCommand("buyer");
+            org.bukkit.event.inventory.InventoryClickEvent click=new org.bukkit.event.inventory.InventoryClickEvent(a.getOpenInventory(),org.bukkit.event.inventory.InventoryType.SlotType.CONTAINER,11,org.bukkit.event.inventory.ClickType.LEFT,org.bukkit.event.inventory.InventoryAction.PICKUP_ALL);
+            Bukkit.getPluginManager().callEvent(click);a.closeInventory();
+            ok(count(a,Material.IRON_INGOT,false)==0&&near(sold(a),before+iron*70*mult),"manual buyer can sell an already queued mining reward");
+            flush();ok(near(sold(a),before+iron*70*mult),"automatic batch detects manual sale and does not pay twice");metadata();
         });
     }
     private void metadata(){
@@ -232,7 +266,38 @@ public final class AutoBuyerProbe extends JavaPlugin implements Listener {
         a.teleport(new Location(world,140.5,161,20.5));
         later(30,()->{
             flush();ok(count(b,Material.DIAMOND,false)==7&&sold(b)==before,"another player picking up the drop keeps it instead of triggering its owner's autosell");
-            fullInventory();
+            partialPickup();
+        });
+    }
+    private void partialPickup(){
+        a.getInventory().clear();for(int i=0;i<36;i++)a.getInventory().setItem(i,new ItemStack(Material.DIRT,64));
+        a.getInventory().setItem(0,new ItemStack(Material.DIAMOND,63));a.getInventory().setItemInOffHand(new ItemStack(Material.DIRT,64));
+        pick(a,new ItemStack(Material.DIAMOND_PICKAXE));protectedBlock=ore(a,130,Material.DIAMOND_ORE);enlargeDrop=true;
+        double before=sold(a),mult=factor(a);a.breakBlock(protectedBlock);enlargeDrop=false;
+        Item item=firstDrop(protectedBlock.getLocation(),Material.DIAMOND);if(item==null)throw new AssertionError("partial pickup drop missing");
+        item.setPickupDelay(5);item.teleport(a.getLocation().add(0,0.15,0));item.setVelocity(new org.bukkit.util.Vector());
+        later(20,()->{
+            ok(count(a,Material.DIAMOND,false)==64&&ground(protectedBlock.getLocation(),Material.DIAMOND)==4,"a nearly full inventory picks up exactly one of five diamonds");
+            flush();ok(count(a,Material.DIAMOND,false)==63&&ground(protectedBlock.getLocation(),Material.DIAMOND)==4&&near(sold(a),before+350*mult),
+                    "partial pickup sells only the one received, leaving four on the ground");
+            if(item.isValid())item.remove();mergedDrop();
+        });
+    }
+    private void mergedDrop(){
+        a.getInventory().clear();a.getInventory().setItemInOffHand(null);a.getInventory().setItem(0,new ItemStack(Material.DIAMOND,4));
+        pick(a,new ItemStack(Material.DIAMOND_PICKAXE));protectedBlock=ore(a,140,Material.DIAMOND_ORE);double before=sold(a);int merges=mergeEvents;
+        a.breakBlock(protectedBlock);Item fresh=firstDrop(protectedBlock.getLocation(),Material.DIAMOND);if(fresh==null)throw new AssertionError("merge fixture missing fresh drop");
+        fresh.setPickupDelay(120);fresh.setVelocity(new org.bukkit.util.Vector());fresh.setGravity(false);
+        Item old=world.dropItem(fresh.getLocation(),new ItemStack(Material.DIAMOND,5));old.setPickupDelay(120);old.setVelocity(new org.bukkit.util.Vector());old.setGravity(false);
+        a.teleport(new Location(world,143.5,160,20.5));
+        later(65,()->{
+            Item merged=firstDrop(protectedBlock.getLocation(),Material.DIAMOND);
+            ok(mergeEvents>merges&&merged!=null&&merged.getItemStack().getAmount()==6,"fresh and old ground resources really merge (events="+(mergeEvents-merges)+", fresh="+fresh.isValid()+", old="+old.isValid()+", amount="+(merged==null?0:merged.getItemStack().getAmount())+", owners="+fresh.getOwner()+"/"+old.getOwner()+")");
+            a.teleport(new Location(world,140.5,160,20.5));merged.teleport(a.getLocation().add(0,0.15,0));merged.setVelocity(new org.bukkit.util.Vector());merged.setPickupDelay(1);
+            later(20,()->{
+                flush();ok(count(a,Material.DIAMOND,false)==10&&sold(a)==before,"merged items with ambiguous origin are kept instead of selling old resources");
+                fullInventory();
+            });
         });
     }
     private void fullInventory(){

@@ -96,8 +96,8 @@ def run_phase(args, server, port, phase):
     if not report_match:
         raise RuntimeError('network clients did not report telemetry')
     report = json.loads(report_match.group(1))
-    if phase == 1 and report['digs'] != 1:
-        raise RuntimeError(f'network mining was not exercised: {report}')
+    if phase == 1 and (report['digs'] != 1 or report['clicks'] != 1):
+        raise RuntimeError(f'network mining or GUI toggle was not exercised: {report}')
     if phase == 3:
         if proc.returncode != -9 or client.returncode != 0 or watchdog:
             raise RuntimeError(f'crash phase exit={proc.returncode}, client={client.returncode}, watchdog={watchdog}')

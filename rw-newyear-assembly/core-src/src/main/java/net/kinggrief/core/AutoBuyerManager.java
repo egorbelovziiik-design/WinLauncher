@@ -27,8 +27,8 @@ import java.util.UUID;
 
 /**
  * Opt-in, best-effort sale of freshly mined, ordinary resources. Items are first
- * delivered normally. We only sell a bounded observed inventory increase, and
- * abandon that batch if the storage inventory changes between observations.
+ * delivered normally. We only sell a bounded observed increase in exact storage
+ * or offhand slots, and abandon the batch if saleable slots change unexpectedly.
  * No item is removed unless the entire money/progress batch was saved.
  *
  * Player data and Core data are separate stores: a crash between the credit and
@@ -103,7 +103,7 @@ final class AutoBuyerManager implements Listener {
                 && plugin.getStore().isAuthenticated(p) && !plugin.getStore().isQuickFrozen(p)
                 && !plugin.getModeration().isFrozenOrAscending(p);
     }
-    private boolean enabled(Player p) {
+    boolean enabled(Player p) {
         if (p == null) return false;
         try { return plugin.getStore().inspect(data -> data.getBoolean("autoBuyer." + p.getUniqueId() + ".enabled", false)); }
         catch (Exception error) { return false; }
@@ -114,7 +114,7 @@ final class AutoBuyerManager implements Listener {
         if ("status".equals(sub)) {
             p.sendMessage(ColorUtil.c("&#80D8FFАвтоскупка добычи: " + (enabled(p) ? "&aВКЛЮЧЕНА" : "&cВЫКЛЮЧЕНА")));
             p.sendMessage(ColorUtil.c("&7Учитываются только новые обычные ресурсы добычи, попавшие в инвентарь; старый запас сохраняется."));
-            p.sendMessage(ColorUtil.c("&7Если инвентарь изменился, очередь переполнена или запись не удалась, ресурсы остаются у вас."));
+            p.sendMessage(ColorUtil.c("&7Если слоты ресурсов изменились, очередь переполнена или запись не удалась, ресурсы остаются у вас."));
             usage(p); return;
         }
         if ("prices".equals(sub)) {
@@ -184,18 +184,20 @@ final class AutoBuyerManager implements Listener {
     private static boolean same(ItemStack[] a, ItemStack[] b) {
         if (a.length != b.length) return false;
         for (int i=0;i<a.length;i++) {
-            if (empty(a[i]) && empty(b[i])) continue;
+            // Unrelated tools can wear on each break. Ignore their changes, but
+            // never ignore the appearance/disappearance of a saleable stack.
+            if (!plain(a[i]) && !plain(b[i])) continue;
             if (empty(a[i]) || empty(b[i]) || !a[i].equals(b[i])) return false;
         }
         return true;
     }
-    /** All slots must be unchanged except additions of exactly this ordinary resource. */
+    /** Saleable slots must be unchanged except additions of this ordinary resource. */
     private static boolean onlyAddition(ItemStack[] before, ItemStack[] after, Material type, int amount) {
         if (before.length != after.length || amount <= 0) return false;
         long added=0;
         for (int i=0;i<before.length;i++) {
             ItemStack a=before[i], b=after[i];
-            if (empty(a) && empty(b)) continue;
+            if (!plain(a) && !plain(b)) continue;
             if (empty(a) && plain(b) && b.getType()==type) { added+=b.getAmount(); continue; }
             if (!empty(a) && !empty(b) && a.equals(b)) continue;
             if (plain(a) && plain(b) && a.getType()==type && a.isSimilar(b) && b.getAmount()>=a.getAmount()) {
