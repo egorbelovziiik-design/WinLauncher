@@ -124,6 +124,8 @@ public final class GameplayListener implements Listener {
     // Events are removed at MONITOR even when another plugin cancels them.
     private final Set<EntityDamageByEntityEvent> pendingPvpBanners =
             Collections.newSetFromMap(new IdentityHashMap<EntityDamageByEntityEvent, Boolean>());
+    private final Set<EntityDamageByEntityEvent> pendingMidasHits =
+            Collections.newSetFromMap(new IdentityHashMap<EntityDamageByEntityEvent, Boolean>());
     private static final class ParkourRun {
         final long startedAt;
         final GameMode startingMode;
@@ -4176,10 +4178,8 @@ public final class GameplayListener implements Listener {
                 zl.getWorld().spawnParticle(Particle.SNOWFLAKE, zl.clone().add(0, 1.0, 0), 40, 1.0, 0.7, 1.0, 0.05);
                 zl.getWorld().playSound(zl, "minecraft:block.glass.break", 0.9f, 0.8f);
             } else if ("sword_midas".equals(weaponId)) {
-                int goldHit = 60 + rng.nextInt(141);
-                plugin.getStore().addCoins(attacker.getName(), goldHit);
-                ColorUtil.addPot(attacker, "absorption", "ABSORPTION", 100, 1);
-                ColorUtil.actionBar(attacker, "&#FFD740👑 ЭКСКАЛИБУР МИДАСА: &a+" + goldHit + "$ &8| &eЗолотые Сердца!");
+                // Reward only after higher-priority protection has accepted the hit.
+                pendingMidasHits.add(e);
                 customBannerShown = true;
             }
 
@@ -4256,17 +4256,25 @@ public final class GameplayListener implements Listener {
         }
     }
 
-    /** The ordinary PvP damage bar uses the final accepted event, after projectile
-     * bonuses and protection plugins have had a chance to change or cancel it. */
+    /** Finalise ordinary feedback and Midas rewards only on accepted PvP hits.
+     * Both sets are drained on cancelled events too. */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPvpDamageBanner(EntityDamageByEntityEvent e) {
         boolean pending = pendingPvpBanners.remove(e);
-        if (!pending || e.isCancelled() || !(e.getEntity() instanceof Player)) return;
+        boolean midas = pendingMidasHits.remove(e);
+        if ((!pending && !midas) || e.isCancelled() || !(e.getEntity() instanceof Player)) return;
         Player attacker = null;
         if (e.getDamager() instanceof Player) attacker = (Player) e.getDamager();
         else if (e.getDamager() instanceof Projectile && ((Projectile) e.getDamager()).getShooter() instanceof Player)
             attacker = (Player) ((Projectile) e.getDamager()).getShooter();
         if (attacker == null || !attacker.isOnline() || !Double.isFinite(e.getFinalDamage())) return;
+        if (midas) {
+            int goldHit = 60 + rng.nextInt(141);
+            plugin.getStore().addCoins(attacker.getName(), goldHit);
+            ColorUtil.addPot(attacker, "absorption", "ABSORPTION", 100, 1);
+            ColorUtil.actionBar(attacker, "&#FFD740👑 ЭКСКАЛИБУР МИДАСА: &a+" + goldHit + "$ &8| &eЗолотые Сердца!");
+            return;
+        }
         Player victim = (Player) e.getEntity();
         double damage = Math.max(0.0, e.getFinalDamage());
         double remaining = Math.max(0.0, victim.getHealth() - damage);

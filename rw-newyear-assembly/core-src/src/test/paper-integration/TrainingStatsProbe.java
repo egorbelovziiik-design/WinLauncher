@@ -1,6 +1,7 @@
 package net.kinggrief.probe;
 
 import net.kinggrief.core.KingGriefCore;
+import net.kinggrief.core.ItemFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -164,6 +165,25 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
                     "PvP indicator uses final accepted damage in hearts after a later modifier");
             clearIndicators(b.getLocation());b.setHealth(20);b.setNoDamageTicks(0);lateCancel=true;ordinaryFinal=-1;ordinaryCancelled=false;b.damage(6.0,a);lateCancel=false;
             ok(ordinaryCancelled&&b.getHealth()==20&&clearIndicators(b.getLocation())==0,"late-cancelled PvP damage has no floating indicator");
+            Arrow pvpArrow=spawn.spawn(b.getLocation().clone().add(0,1,0),Arrow.class);pvpArrow.setShooter(a);
+            pvpArrow.getPersistentDataContainer().set(new org.bukkit.NamespacedKey("kinggrief","arrow_type"),org.bukkit.persistence.PersistentDataType.STRING,"arrow_lightning");
+            org.bukkit.damage.DamageSource pvpSource=org.bukkit.damage.DamageSource.builder(org.bukkit.damage.DamageType.ARROW)
+                    .withDirectEntity(pvpArrow).withCausingEntity(a).build();
+            b.setNoDamageTicks(0);ordinaryFinal=-1;ordinaryCancelled=true;b.damage(4.0,pvpSource);
+            ok(!ordinaryCancelled&&Math.abs(ordinaryFinal-10.0)<1e-9&&b.getHealth()==10&&indicatorAt(b.getLocation(),10),
+                    "accepted PvP arrow applies its bonus before the final indicator");
+            clearIndicators(b.getLocation());b.setHealth(20);b.setNoDamageTicks(0);lateCancel=true;ordinaryCancelled=false;b.damage(4.0,pvpSource);lateCancel=false;
+            ok(ordinaryCancelled&&b.getHealth()==20&&clearIndicators(b.getLocation())==0,"late-cancelled PvP arrow produces no floating indicator");
+            pvpArrow.remove();
+            a.getInventory().setItemInMainHand(ItemFactory.swordMidas());a.removePotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION);
+            double midasBefore=core.getStore().getCoins(a.getName());b.setHealth(20);b.setNoDamageTicks(0);lateCancel=true;ordinaryCancelled=false;b.damage(2.0,a);lateCancel=false;
+            ok(ordinaryCancelled&&core.getStore().getCoins(a.getName())==midasBefore&&!a.hasPotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION),
+                    "late-cancelled Midas hit grants neither coins nor absorption");
+            b.setNoDamageTicks(0);ordinaryCancelled=true;b.damage(2.0,a);
+            double midasGain=core.getStore().getCoins(a.getName())-midasBefore;
+            ok(!ordinaryCancelled&&midasGain>=60&&midasGain<=200&&a.hasPotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION),
+                    "accepted Midas hit grants a reward within the existing range and absorption");
+            clearIndicators(b.getLocation());a.removePotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION);a.getInventory().setItemInMainHand(new ItemStack(Material.DIAMOND_SWORD));
             Location pigLocation=new Location(spawn,82.5,94,10.5);Pig pig=spawn.spawn(pigLocation,Pig.class,p->{p.setAI(false);p.setGravity(false);});
             Arrow arrow=spawn.spawn(pigLocation.clone().add(0,1,0),Arrow.class);arrow.setShooter(a);ordinaryTarget=pig;ordinaryFinal=-1;ordinaryCancelled=true;
             // LivingEntity.damage(amount, arrow) is generic on Paper; an explicit
