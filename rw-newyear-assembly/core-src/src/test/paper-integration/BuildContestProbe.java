@@ -28,7 +28,7 @@ import java.util.UUID;
 /** Disposable Paper: three protocol players and actual Core claims. */
 public final class BuildContestProbe extends JavaPlugin implements Listener {
     private KingGriefCore core;private Player a,b,c;private World world;private DataStore.Claim ca,cb;
-    private boolean running,done;private int checks;private Path blockedData,blockedBackup;
+    private boolean running,done;private int checks;private String previousRound;private Path blockedData,blockedBackup;
     @Override public void onEnable(){saveDefaultConfig();core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent event){
         Player p=event.getPlayer();if("PlayerA".equals(p.getName()))a=p;if("PlayerB".equals(p.getName()))b=p;if("PlayerC".equals(p.getName()))c=p;
@@ -69,7 +69,10 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
         a.performCommand("buildcontest enter confirm");ok(!yaml().contains(entry(a)),"unauthenticated player cannot enter");core.getConfig().set("enable-builtin-auth",false);
         b.teleport(loc(512));b.performCommand("buildcontest enter confirm");
         ok(!yaml().contains(entry(b)),"a trusted builder cannot submit someone else's claim");b.teleport(loc(526));
+        blockSave();a.performCommand("buildcontest enter confirm");
+        ok(!yaml().contains(entry(a))&&ca.members.contains("playerb"),"failed submission save publishes nothing and leaves claim roles intact");restoreSave();
         a.performCommand("buildcontest enter confirm");ok(yaml().contains(entry(a)),"owner submits own claim voluntarily");
+        a.performCommand("buildcontest enter confirm");ok(yaml().getInt("buildContest.sequence")==1,"duplicate submissions do not consume another entry number");
         console("voting 60");ok("entries".equals(phase()),"voting requires two valid claims");
         c.performCommand("buildcontest enter confirm");ok(!yaml().contains(entry(c)),"player outside a claim cannot enter");
         b.performCommand("buildcontest enter confirm");ok(yaml().contains(entry(b)),"second owner submits another claim");
@@ -124,6 +127,10 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
         ok(ca!=null&&cb!=null&&"voting".equals(phase())&&yaml().contains(entry(a))&&yaml().contains(entry(b)),"claims and active contest survive restart");
         ok(value(a).equals(b.getUniqueId().toString())&&value(b).equals(a.getUniqueId().toString())&&value(c).equals(b.getUniqueId().toString()),
                 "saved votes and the changed vote survive restart");
+        previousRound=yaml().getString("buildContest.round");
+        blockSave();console("finish");
+        ok("voting".equals(phase())&&!core.getStore().hasUnlockedTitle(b.getName(),"build_master"),
+                "failed result commit keeps voting active and grants no title");restoreSave();
         console("finish");
         ok("closed".equals(phase())&&yaml().getString("buildContest.result","").contains(b.getName())
                 &&core.getStore().hasUnlockedTitle(b.getName(),"build_master")&&!core.getStore().hasUnlockedTitle(a.getName(),"build_master"),
@@ -134,7 +141,9 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
     }
     private void enterBoth(){a.performCommand("buildcontest enter confirm");b.performCommand("buildcontest enter confirm");}
     private void tieCase(){
-        console("start 60");enterBoth();console("voting 60");vote(a,2);vote(b,1);
+        console("start 60");enterBoth();console("voting 60");
+        c.performCommand("buildcontest vote "+previousRound+" 1");ok(pending()==0,"a button from a previous round cannot vote in a new round");
+        vote(a,2);vote(b,1);
         later(30,()->{
             console("finish");ok("closed".equals(phase())&&yaml().getString("buildContest.result","").contains("ничья")
                     &&!core.getStore().hasUnlockedTitle(a.getName(),"build_master"),"tie has no new winner or title");

@@ -45,7 +45,7 @@ final class BuildContestManager {
     private final KingGriefCore plugin;
     private final Map<UUID,Vote> pending=new LinkedHashMap<UUID,Vote>();
     private BukkitRunnable ticker;
-    private long lastWarning;
+    private long lastWarning,lastVoteFailureNotice;
     BuildContestManager(KingGriefCore plugin){this.plugin=plugin;}
     void start(){ticker=new BukkitRunnable(){@Override public void run(){if(flush())finishIfDue();}};ticker.runTaskTimer(plugin,20L,20L);}
     void shutdown(){if(ticker!=null)ticker.cancel();flush();}
@@ -117,7 +117,12 @@ final class BuildContestManager {
         send(sender,"&e/buildcontest &8| &e/buildcontest list [страница] &8| &e/buildcontest enter confirm &8| &e/buildcontest withdraw");
         send(sender,"&7Для голоса нажмите кнопку у участника в списке. Победитель получает только косметический титул.");
     }
-    private static void send(CommandSender sender,String message){sender.sendMessage(ColorUtil.c(message));}
+    private void send(CommandSender sender,String message){
+        try{sender.sendMessage(ColorUtil.c(message));}catch(RuntimeException error){warn("notification",error);}
+    }
+    private void announce(String message){
+        try{Bukkit.broadcastMessage(ColorUtil.c(message));}catch(RuntimeException error){warn("broadcast",error);}
+    }
     private static int minutes(String[] args){
         if(args.length!=2)return 0;try{int value=Integer.parseInt(args[1]);return value>=1&&value<=MAX_MINUTES?value:0;}
         catch(NumberFormatException ignored){return 0;}
@@ -131,7 +136,7 @@ final class BuildContestManager {
             final String round=UUID.randomUUID().toString();final long deadline=System.currentTimeMillis()+duration*60_000L;
             plugin.getStore().transact(data->{data.set(ROOT+".round",round);data.set(ROOT+".phase","entries");data.set(ROOT+".deadline",deadline);
                 data.set(ROOT+".sequence",0);data.set(ROOT+".entries",null);data.set(ROOT+".votes",null);return null;});
-            Bukkit.broadcastMessage(ColorUtil.c("&#80D8FF✦ Конкурс построек: приём заявок открыт на &f"+duration+" мин. &8| &e/buildcontest"));
+            announce("&#80D8FF✦ Конкурс построек: приём заявок открыт на &f"+duration+" мин. &8| &e/buildcontest");
         }catch(Exception error){send(sender,"&cНе удалось сохранить новый конкурс. Изменения не применены.");warn("start",error);}
     }
     private void startVoting(CommandSender sender,String[] args){
@@ -142,7 +147,7 @@ final class BuildContestManager {
             final String round=current.round;final long deadline=System.currentTimeMillis()+duration*60_000L;
             plugin.getStore().transact(data->{State live=read(data);if(!"entries".equals(live.phase)||!round.equals(live.round))throw new IllegalStateException("round changed");
                 data.set(ROOT+".phase","voting");data.set(ROOT+".deadline",deadline);return null;});
-            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Голосование за постройки открыто на &f"+duration+" мин. &8| &e/buildcontest list"));
+            announce("&#FFD740✦ Голосование за постройки открыто на &f"+duration+" мин. &8| &e/buildcontest list");
         }catch(Exception error){send(sender,"&cНе удалось сохранить начало голосования.");warn("voting",error);}
     }
     private void enter(Player player){
@@ -213,6 +218,12 @@ final class BuildContestManager {
             });
         }catch(Exception error){
             // Keep accepted votes in the bounded queue; a failed save must not close the round.
+            long now=System.nanoTime();
+            if(lastVoteFailureNotice==0||now-lastVoteFailureNotice>=30_000_000_000L){
+                lastVoteFailureNotice=now;
+                for(Vote vote:batch){Player player=Bukkit.getPlayer(vote.voter);if(player!=null&&player.isOnline())
+                    send(player,"&cГолос ещё не сохранён: очередь повторит запись. При аварийной остановке он может потеряться.");}
+            }
             warn("vote batch",error);return false;
         }
         for(Vote vote:batch)pending.remove(vote.voter,vote);
