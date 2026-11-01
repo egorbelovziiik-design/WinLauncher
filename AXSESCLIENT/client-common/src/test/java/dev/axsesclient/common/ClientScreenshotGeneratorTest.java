@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import javax.imageio.ImageIO;
@@ -48,7 +49,7 @@ public class ClientScreenshotGeneratorTest {
         final int scaleFactor = 2;
         final BufferedImage image;
         final Graphics2D g;
-        final Deque<Shape> clipStack = new ArrayDeque<Shape>();
+        final Deque<Shape> clipStack = new LinkedList<Shape>();
         final Deque<AffineTransform> txStack = new ArrayDeque<AffineTransform>();
         final Font baseFont = new Font(Font.SANS_SERIF, Font.BOLD, 9);
 
@@ -463,8 +464,8 @@ public class ClientScreenshotGeneratorTest {
             core.getModuleManager().getById("trigger_bot").setEnabled(true, p);
 
             p.paintStylizedWorldBackdrop(false);
-            core.getClickGuiController().onOpen();
             core.getAnimationManager().setReducedMotion(true);
+            core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.COMBAT_TRAINING);
             setExpandedModule(core, ka);
             core.getClickGuiController().render(p, p, 420, 145, 1.0f);
@@ -488,10 +489,9 @@ public class ClientScreenshotGeneratorTest {
             core.getModuleManager().getById("tracers").setEnabled(true, p);
 
             p.paintStylizedWorldBackdrop(false);
-            core.getClickGuiController().onOpen();
             core.getAnimationManager().setReducedMotion(true);
+            core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.RENDER);
-            // Scroll down to Entity ESP at bottom of Visuals or search "ESP" so Entity ESP, Item ESP & Tracers are right at top!
             core.getClickGuiController().setSearchQuery("ESP");
             setExpandedModule(core, esp);
             core.getClickGuiController().render(p, p, 420, 160, 1.0f);
@@ -510,8 +510,8 @@ public class ClientScreenshotGeneratorTest {
             p.clickGuiOpen = true;
 
             p.paintStylizedWorldBackdrop(false);
-            core.getClickGuiController().onOpen();
             core.getAnimationManager().setReducedMotion(true);
+            core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.SETTINGS);
             core.getClickGuiController().render(p, p, 535, 102, 1.0f);
 
@@ -535,6 +535,23 @@ public class ClientScreenshotGeneratorTest {
             ImageIO.write(p.image, "PNG", out5);
             p.dispose();
             assertTrue(out5.exists() && out5.length() > 10000);
+        }
+
+        // 6. HUD EDITOR (DRAGGABLE WIDGETS + SNAP GRID)
+        {
+            AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s6"));
+            AxsesCore core = new AxsesCore(tempDir.resolve("s6"), p, p);
+            core.getLocalizationManager().setActiveLocale("ru_RU");
+            p.hudEditorOpen = true;
+
+            p.paintStylizedWorldBackdrop(false);
+            core.getHudEditorController().onOpen();
+            core.getHudEditorController().render(p, p, 390, 285, 1.0f);
+
+            File out6 = outDir.resolve("ingame-hud-editor.png").toFile();
+            ImageIO.write(p.image, "PNG", out6);
+            p.dispose();
+            assertTrue(out6.exists() && out6.length() > 10000);
         }
     }
 }
