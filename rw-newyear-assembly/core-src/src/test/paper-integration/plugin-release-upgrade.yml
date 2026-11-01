@@ -1,0 +1,5 @@
+name: KgReleaseUpgradeProbe
+version: '1.0'
+main: net.kinggrief.probe.ReleaseUpgradeProbe
+api-version: '1.21'
+depend: [KingGriefCore]

@@ -19,6 +19,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -145,7 +146,9 @@ public final class ModularForgeProbe extends JavaPlugin implements Listener {
         a.getInventory().setItem(3,null);a.getInventory().setItem(4,null);a.getInventory().setItem(5,null);
         workbench();grid(blade,guard,legacyHeart);
         later(3,()->{ok("assembled_frost_sword".equals(id(work.getResult())),"old components preview the original sword after the JAR upgrade");
-            click("CLICK",()->{frost=cursor("assembled_frost_sword");ok(occupied()==0,"assembling old fragments consumes exactly three items");store(frost.clone());auroraCore();});});
+            click("CLICK",()->{frost=cursor("assembled_frost_sword");ok(occupied()==0,"assembling old fragments consumes exactly three items");
+                ok(frost.getEnchantmentLevel(Enchantment.SHARPNESS)==3&&frost.getEnchantmentLevel(Enchantment.UNBREAKING)==2,"original sword enchantments remain unchanged");
+                store(frost.clone());auroraCore();});});
     }
     private void auroraCore(){
         grid(named(Material.HEART_OF_THE_SEA),item(Material.AMETHYST_SHARD,1),item(Material.GLOWSTONE_DUST,1));
@@ -173,9 +176,11 @@ public final class ModularForgeProbe extends JavaPlugin implements Listener {
         grid(bladeA,guardA,modified);
         later(3,()->{ok(empty(work.getResult()),"altered custom heart cannot substitute for an exact component");grid(bladeA,guardA,heartA);
             later(3,()->{ok("assembled_aurora_sword".equals(id(work.getResult())),"aurora heart selects the aurora sword");
-                click("CLICK",()->{aurora=cursor("assembled_aurora_sword");ok(occupied()==0&&aurora.getItemMeta().getCustomModelData()==1832,"aurora uses the existing visible 1832 model and consumes three parts");store(aurora.clone());
+                click("CLICK",()->{aurora=cursor("assembled_aurora_sword");ok(occupied()==0&&aurora.getItemMeta().getCustomModelData()==1832,"aurora uses the existing visible 1832 model and consumes three parts");
+                    ok(aurora.getEnchantmentLevel(Enchantment.SHARPNESS)==6&&aurora.getEnchantmentLevel(Enchantment.UNBREAKING)==5,"aurora carries the intended powerful enchantments");store(aurora.clone());
                     grid(bladeT,guardT,tempestHeart);later(3,()->{ok("assembled_tempest_sword".equals(id(work.getResult())),"tempest heart selects the tempest sword");
-                        click("CLICK",()->{tempest=cursor("assembled_tempest_sword");ok(occupied()==0&&tempest.getItemMeta().getCustomModelData()==1836,"tempest uses the existing visible 1836 model and consumes three parts");store(tempest.clone());fullInventory();});
+                        click("CLICK",()->{tempest=cursor("assembled_tempest_sword");ok(occupied()==0&&tempest.getItemMeta().getCustomModelData()==1836,"tempest uses the existing visible 1836 model and consumes three parts");
+                            ok(tempest.getEnchantmentLevel(Enchantment.SHARPNESS)==6&&tempest.getEnchantmentLevel(Enchantment.UNBREAKING)==5,"tempest carries the intended powerful enchantments");store(tempest.clone());fullInventory();});
                     });
                 });
             });
@@ -210,15 +215,24 @@ public final class ModularForgeProbe extends JavaPlugin implements Listener {
     private void combat(){
         frost=find("assembled_frost_sword");aurora=find("assembled_aurora_sword");tempest=find("assembled_tempest_sword");
         ok(aurora.getItemMeta().getCustomModelData()==1832&&tempest.getItemMeta().getCustomModelData()==1836,"both modular swords and model metadata survive restart");
-        untouched();b.setMaxHealth(200);b.setHealth(200);b.setNoDamageTicks(0);b.setMaximumNoDamageTicks(0);b.setInvulnerable(false);clearEffects();hold(aurora);
+        ok(aurora.getEnchantmentLevel(Enchantment.SHARPNESS)==6&&aurora.getEnchantmentLevel(Enchantment.UNBREAKING)==5
+                &&tempest.getEnchantmentLevel(Enchantment.SHARPNESS)==6&&tempest.getEnchantmentLevel(Enchantment.UNBREAKING)==5,
+                "above-vanilla enchantments on both new swords survive restart");
+        untouched();b.setMaxHealth(1000);b.setHealth(1000);b.setNoDamageTicks(0);b.setMaximumNoDamageTicks(0);b.setInvulnerable(false);clearEffects();hold(aurora);
         double hp=b.getHealth();cancelSpeed=true;attack(()->{
             cancelSpeed=false;ok(b.getHealth()<hp&&!a.hasPotionEffect(speed)&&cooldowns().isEmpty(),"cancelled self-speed application does not consume cooldown");
             a.addPotionEffect(new PotionEffect(speed,200,2,false,true,true));attack(()->{
                 PotionEffect current=a.getPotionEffect(speed);ok(current!=null&&current.getAmplifier()==2&&cooldowns().isEmpty(),"stronger existing speed is never downgraded or charged");
-                a.removePotionEffect(speed);attack(()->{
-                    PotionEffect applied=a.getPotionEffect(speed);ok(applied!=null&&applied.getAmplifier()==0&&applied.getDuration()>0&&cooldowns().size()==1,"real aurora hit grants speed to the attacker");
-                    hold(tempest);attack(()->{
-                        ok(!b.hasPotionEffect(weak)&&cooldowns().size()==1,"switching hearts cannot bypass the shared cooldown");nestedCheck();
+                a.removePotionEffect(speed);a.addPotionEffect(new PotionEffect(speed,200,1,false,true,true));attack(()->{
+                    PotionEffect longer=a.getPotionEffect(speed);ok(longer!=null&&longer.getAmplifier()==1&&longer.getDuration()>120&&cooldowns().isEmpty(),"longer same-level speed is never shortened or charged");
+                    a.removePotionEffect(speed);a.addPotionEffect(new PotionEffect(speed,200,0,false,true,true));attack(()->{
+                        PotionEffect upgraded=a.getPotionEffect(speed);ok(upgraded!=null&&upgraded.getAmplifier()==1&&cooldowns().size()==1,"speed I can be upgraded by a real aurora hit");
+                        clearEffects();attack(()->{
+                            PotionEffect applied=a.getPotionEffect(speed);ok(applied!=null&&applied.getAmplifier()==1&&applied.getDuration()>80&&cooldowns().size()==1,"real aurora hit grants speed II to the attacker");
+                            hold(tempest);attack(()->{
+                                ok(!b.hasPotionEffect(weak)&&cooldowns().size()==1,"switching hearts cannot bypass the shared cooldown");nestedCheck();
+                            });
+                        });
                     });
                 });
             });
@@ -241,10 +255,16 @@ public final class ModularForgeProbe extends JavaPlugin implements Listener {
                     core.getStore().clearQuickFreeze(b.getUniqueId());ok(!b.hasPotionEffect(weak)&&cooldowns().isEmpty(),"moderation-frozen target is not affected");
                     b.addPotionEffect(new PotionEffect(weak,200,2,false,true,true));attack(()->{
                         PotionEffect current=b.getPotionEffect(weak);ok(current!=null&&current.getAmplifier()==2&&cooldowns().isEmpty(),"stronger existing weakness is never downgraded or charged");
-                        b.removePotionEffect(weak);attack(()->{
-                            PotionEffect applied=b.getPotionEffect(weak);ok(applied!=null&&applied.getAmplifier()==0&&applied.getDuration()>0&&cooldowns().size()==1,"real tempest hit applies weakness to the target");
-                            hold(frost);attack(()->{ok(!b.hasPotionEffect(slow)&&cooldowns().size()==1,"tempest cooldown also blocks frost when switching weapons");
-                                cooldowns().clear();attack(()->{ok(b.hasPotionEffect(slow)&&cooldowns().size()==1,"original frost effect still works after clearing the shared cooldown");extraSafety();});
+                        b.removePotionEffect(weak);b.addPotionEffect(new PotionEffect(weak,200,1,false,true,true));attack(()->{
+                            PotionEffect longer=b.getPotionEffect(weak);ok(longer!=null&&longer.getAmplifier()==1&&longer.getDuration()>100&&cooldowns().isEmpty(),"longer same-level weakness is never shortened or charged");
+                            b.removePotionEffect(weak);b.addPotionEffect(new PotionEffect(weak,200,0,false,true,true));attack(()->{
+                                PotionEffect upgraded=b.getPotionEffect(weak);ok(upgraded!=null&&upgraded.getAmplifier()==1&&cooldowns().size()==1,"weakness I can be upgraded by a real tempest hit");
+                                clearEffects();attack(()->{
+                                    PotionEffect applied=b.getPotionEffect(weak);ok(applied!=null&&applied.getAmplifier()==1&&applied.getDuration()>60&&cooldowns().size()==1,"real tempest hit applies weakness II to the target");
+                                    hold(frost);attack(()->{ok(!b.hasPotionEffect(slow)&&cooldowns().size()==1,"tempest cooldown also blocks frost when switching weapons");
+                                        cooldowns().clear();attack(()->{ok(b.hasPotionEffect(slow)&&cooldowns().size()==1,"original frost effect still works after clearing the shared cooldown");extraSafety();});
+                                    });
+                                });
                             });
                         });
                     });

@@ -46,12 +46,12 @@ final class FrostForgeManager implements Listener {
     private static final long COOLDOWN_NS=12_000_000_000L;
     private static final int MAX_COOLDOWNS=4096;
     private enum Variant {
-        FROST(SWORD_ID,"slowness","SLOW",60,false,Particle.SNOWFLAKE,"Ледяное касание"),
-        AURORA(AURORA_ID,"speed","SPEED",80,true,Particle.END_ROD,"Шаг сияния"),
-        TEMPEST(TEMPEST_ID,"weakness","WEAKNESS",60,false,Particle.ELECTRIC_SPARK,"Порыв бури");
-        final String id,modern,legacy,label; final int duration; final boolean self; final Particle particle;
-        Variant(String id,String modern,String legacy,int duration,boolean self,Particle particle,String label){
-            this.id=id;this.modern=modern;this.legacy=legacy;this.duration=duration;this.self=self;this.particle=particle;this.label=label;
+        FROST(SWORD_ID,"slowness","SLOW",60,0,false,Particle.SNOWFLAKE,"Ледяное касание"),
+        AURORA(AURORA_ID,"speed","SPEED",120,1,true,Particle.END_ROD,"Шаг сияния"),
+        TEMPEST(TEMPEST_ID,"weakness","WEAKNESS",100,1,false,Particle.ELECTRIC_SPARK,"Порыв бури");
+        final String id,modern,legacy,label; final int duration,amplifier; final boolean self; final Particle particle;
+        Variant(String id,String modern,String legacy,int duration,int amplifier,boolean self,Particle particle,String label){
+            this.id=id;this.modern=modern;this.legacy=legacy;this.duration=duration;this.amplifier=amplifier;this.self=self;this.particle=particle;this.label=label;
         }
         static Variant of(String id){for(Variant value:values())if(value.id.equals(id))return value;return null;}
     }
@@ -98,9 +98,9 @@ final class FrostForgeManager implements Listener {
         if(sharp==null||unbreaking==null)throw new IllegalStateException("Required sword enchantments unavailable");
         meta.addEnchant(sharp,3,false);meta.addEnchant(unbreaking,2,false);meta.removeItemFlags(ItemFlag.HIDE_ATTRIBUTES);sword.setItemMeta(meta);
         ItemStack auroraSword=variantSword(AURORA_ID,"&#FFD740&l✦ КЛИНОК СИЯНИЯ", "sword_zeus",1832,
-                "&eШаг сияния: &7Скорость I себе на 4 секунды");
+                "&eШаг сияния: &7Скорость II себе на 6 секунд");
         ItemStack tempestSword=variantSword(TEMPEST_ID,"&#B388FF&l✦ КЛИНОК БУРИ", "sword_phantom",1836,
-                "&dПорыв бури: &7Слабость I цели на 3 секунды");
+                "&dПорыв бури: &7Слабость II цели на 5 секунд");
         addSpec("frost_forge_blade",blade,new Material[]{Material.NETHERITE_INGOT,Material.DIAMOND,Material.BLUE_ICE},null);
         addSpec("frost_forge_guard",guard,new Material[]{Material.GOLD_INGOT,Material.IRON_INGOT,Material.AMETHYST_SHARD},null);
         addSpec("frost_forge_core",core,new Material[]{Material.HEART_OF_THE_SEA,Material.PRISMARINE_CRYSTALS,Material.PACKED_ICE},null);
@@ -112,13 +112,14 @@ final class FrostForgeManager implements Listener {
     }
     private ItemStack variantSword(String id,String title,String model,int modelData,String effect){
         ItemStack sword=ItemFactory.make(Material.NETHERITE_SWORD,1,title,
-                Arrays.asList("&7Лезвие + гарда + выбранное сердце.",effect,
+                Arrays.asList("&7Лезвие + гарда + выбранное сердце.","&7Острота VI · Прочность V",effect,
                         "&7при разрешённом ударе по живой цели.","&7Общий КТ клинков кузницы: &f12 секунд&7.",
                         "&8Боссы, манекены и безопасная зона исключены."),false,id,model,modelData);
         ItemMeta meta=sword.getItemMeta();
         org.bukkit.enchantments.Enchantment sharp=ColorUtil.ench("sharpness","DAMAGE_ALL"),unbreaking=ColorUtil.ench("unbreaking","DURABILITY");
         if(meta==null||sharp==null||unbreaking==null)throw new IllegalStateException("Required sword metadata unavailable");
-        meta.addEnchant(sharp,3,false);meta.addEnchant(unbreaking,2,false);meta.removeItemFlags(ItemFlag.HIDE_ATTRIBUTES);sword.setItemMeta(meta);
+        // Match the server's high-powered custom weapons while preserving the old frost sword unchanged.
+        meta.addEnchant(sharp,6,true);meta.addEnchant(unbreaking,5,true);meta.removeItemFlags(ItemFlag.HIDE_ATTRIBUTES);sword.setItemMeta(meta);
         return sword;
     }
     private void addSpec(String key,ItemStack result,Material[] materials,ItemStack[] exact){
@@ -251,11 +252,12 @@ final class FrostForgeManager implements Listener {
                     PotionEffectType type=ColorUtil.potType(variant.modern,variant.legacy);if(type==null)return;
                     LivingEntity recipient=variant.self?attacker:victim;
                     PotionEffect previous=recipient.getPotionEffect(type);
-                    if(previous!=null&&(previous.getAmplifier()>0||previous.getAmplifier()==0&&previous.getDuration()>=variant.duration))return;
-                    recipient.addPotionEffect(new PotionEffect(type,variant.duration,0,false,true,true));
+                    if(previous!=null&&(previous.getAmplifier()>variant.amplifier
+                            ||previous.getAmplifier()==variant.amplifier&&previous.getDuration()>=variant.duration))return;
+                    recipient.addPotionEffect(new PotionEffect(type,variant.duration,variant.amplifier,false,true,true));
                     // Paper may return true even when another plugin cancelled the potion event.
                     PotionEffect applied=recipient.getPotionEffect(type);
-                    if(applied==null||applied.getAmplifier()!=0||applied.getDuration()<variant.duration)return;
+                    if(applied==null||applied.getAmplifier()!=variant.amplifier||applied.getDuration()<variant.duration)return;
                     cooldowns.remove(id);cooldowns.put(id,System.nanoTime());
                     attacker.spawnParticle(variant.particle,recipient.getLocation().add(0,1,0),8,.25,.35,.25,0);
                     ColorUtil.actionBar(attacker,"&#80D8FF✦ "+variant.label+" &8• &fобщая перезарядка 12 сек.");
@@ -290,11 +292,11 @@ final class FrostForgeManager implements Listener {
         inventory.setItem(20,ItemFactory.icon(Material.PRISMARINE_CRYSTALS,"&#FFD740Сердце сияния",
                 "&7Сердце моря + аметистовый осколок + светопыль"));
         inventory.setItem(21,ItemFactory.glowIcon(Material.NETHERITE_SWORD,"&#FFD740Клинок сияния",
-                "&7Лезвие + гарда + сердце сияния.","&7Острота III, Прочность II; скорость I себе на 4 сек.","&7Общий КТ клинков 12 сек."));
+                "&7Лезвие + гарда + сердце сияния.","&7Острота VI, Прочность V; скорость II себе на 6 сек.","&7Общий КТ клинков 12 сек."));
         inventory.setItem(23,ItemFactory.icon(Material.ECHO_SHARD,"&#B388FFСердце бури",
                 "&7Сердце моря + осколок эха + огненный порошок"));
         inventory.setItem(24,ItemFactory.glowIcon(Material.NETHERITE_SWORD,"&#B388FFКлинок бури",
-                "&7Лезвие + гарда + сердце бури.","&7Острота III, Прочность II; слабость I цели на 3 сек.","&7Общий КТ клинков 12 сек."));
+                "&7Лезвие + гарда + сердце бури.","&7Острота VI, Прочность V; слабость II цели на 5 сек.","&7Общий КТ клинков 12 сек."));
         inventory.setItem(26,ItemFactory.icon(Material.BARRIER,"&cЗакрыть"));player.openInventory(inventory);
     }
     @EventHandler(priority=EventPriority.HIGHEST)

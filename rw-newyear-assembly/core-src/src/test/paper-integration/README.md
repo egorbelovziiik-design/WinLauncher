@@ -234,7 +234,7 @@ JARs and a previous **experimental** Core with the original frost forge via
 `--worldguard`, `--worldedit` and `--core-old`. It starts disposable Paper three
 times: real workbench clicks create old components, the new JAR is installed,
 then real clicks craft the old and new variants, followed by restart and real
-network combat. The 10 + 45 + 29 checks include occupied cursor, hotbar and
+network combat. The 10 + 48 + 34 checks include occupied cursor, hotbar and
 shift-craft safety, modified ingredients, a full inventory, cooldown sharing,
 recursive potion callbacks, simultaneous cooldown-slot reservation, late damage
 and potion cancellation, authentication/freeze, team changes, event bosses,
@@ -244,6 +244,19 @@ events are synthetic. The pack links are checked as ZIP/JSON/PNG data, not in a
 rendered client. The upgrade starts from a previous prototype, not the released
 7.4.0; no power failure or general third-party protection compatibility is proven.
 `test-frost-forge.py` also exercises the original craft and hit behavior.
+
+`test-release-upgrade.py --core-old /path/to/KingGriefCore-v7.4.0.jar --core
+/path/to/new-prototype.jar` checks the exact official 7.4.0 JAR by SHA-256,
+then runs three disposable Paper starts: the released Core seeds representative
+data, the prototype reads and saves it, then the prototype starts again.
+Three protocol clients connect; the old auction lot is created with the real
+command and most fixture values are seeded through the old Core's APIs. The
+14 + 15 + 13 checks cover online/offline balances and keys, rank and kit timer,
+ban/mute, inventory/offhand/ender and item metadata, claim and builder, clan
+bank/storage, auction, home/warp, a modified spawn chest and a separate-world
+chest, unknown root YAML, new claim role and forge registration. It does not
+exercise every data field or upgrade state, PlayerPoints, LuckPerms, external
+authentication/protection, power loss, a graphical client or real player data.
 
 `test-calendar.py` checks the announcement calendar with two protocol players:
 permissions, time-zone normalization, entry limits, failed writes, confirmation,
