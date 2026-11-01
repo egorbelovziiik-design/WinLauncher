@@ -73,6 +73,22 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
         ok(!yaml().contains(entry(a))&&ca.members.contains("playerb"),"failed submission save publishes nothing and leaves claim roles intact");restoreSave();
         a.performCommand("buildcontest enter confirm");ok(yaml().contains(entry(a)),"owner submits own claim voluntarily");
         a.performCommand("buildcontest enter confirm");ok(yaml().getInt("buildContest.sequence")==1,"duplicate submissions do not consume another entry number");
+        a.performCommand("buildcontest withdraw");ok(yaml().contains(entry(a)),"submission changes are rate-limited");
+        later(25,()->{
+            // Simulate an active round saved before reserved entry numbers existed.
+            yaml().set("buildContest.issued."+a.getUniqueId(),null);core.getStore().save();
+            a.performCommand("buildcontest withdraw");
+            ok(!yaml().contains(entry(a))&&yaml().getInt("buildContest.issued."+a.getUniqueId())==1,
+                    "withdrawal hides coordinates but preserves the original number in an older round");
+            later(25,()->{
+                a.performCommand("buildcontest enter confirm");
+                ok(yaml().getInt(entry(a)+".number")==1&&yaml().getInt("buildContest.sequence")==1,
+                        "re-entry reuses the reserved number rather than exhausting the contest");
+                afterReentry();
+            });
+        });
+    }
+    private void afterReentry(){
         console("voting 60");ok("entries".equals(phase()),"voting requires two valid claims");
         c.performCommand("buildcontest enter confirm");ok(!yaml().contains(entry(c)),"player outside a claim cannot enter");
         b.performCommand("buildcontest enter confirm");ok(yaml().contains(entry(b)),"second owner submits another claim");
@@ -138,7 +154,7 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
                 "unique winner is calculated and cosmetic title is saved atomically");
         core.getGuis().openTitlesMenu(b);ok(b.getOpenInventory().getTopInventory().getItem(30).getType()==Material.NAME_TAG,"winner can see the title in /titles");b.closeInventory();
         b.performCommand("buildcontest withdraw");ok(!yaml().contains(entry(b))&&"closed".equals(phase()),"entrant can remove public coordinates after contest closes");
-        tieCase();
+        later(25,this::tieCase);
     }
     private void enterBoth(){a.performCommand("buildcontest enter confirm");b.performCommand("buildcontest enter confirm");}
     private void tieCase(){
@@ -166,7 +182,7 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
         console("start 60");b.performCommand("buildcontest enter confirm");console("cancel");
         ok("entries".equals(phase()),"cancellation requires explicit confirmation");
         console("cancel confirm");ok("closed".equals(phase())&&yaml().getString("buildContest.result","").contains("отменён"),"confirmed cancellation closes without a winner");
-        autoCloseCase();
+        later(25,this::autoCloseCase);
     }
     private void autoCloseCase(){
         ca=core.getStore().createClaim(a.getName(),loc(512),5);

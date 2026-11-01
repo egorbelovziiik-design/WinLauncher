@@ -31,6 +31,7 @@ final class BuildContestManager {
     private static final class State {
         String phase,round,result;long deadline;int sequence;
         final List<Entry> entries=new ArrayList<Entry>();
+        final Map<UUID,Integer> issued=new LinkedHashMap<UUID,Integer>();
         final Map<UUID,UUID> votes=new LinkedHashMap<UUID,UUID>();
         Entry entry(UUID id){for(Entry e:entries)if(e.owner.equals(id))return e;return null;}
         Entry entry(int number){for(Entry e:entries)if(e.number==number)return e;return null;}
@@ -44,6 +45,7 @@ final class BuildContestManager {
     }
     private final KingGriefCore plugin;
     private final Map<UUID,Vote> pending=new LinkedHashMap<UUID,Vote>();
+    private final Map<UUID,Long> lastEntryChange=new LinkedHashMap<UUID,Long>();
     private BukkitRunnable ticker;
     private long lastWarning,lastVoteFailureNotice;
     BuildContestManager(KingGriefCore plugin){this.plugin=plugin;}
@@ -55,6 +57,14 @@ final class BuildContestManager {
     private static State read(YamlConfiguration data){
         State state=new State();state.phase=data.getString(ROOT+".phase","idle");state.round=data.getString(ROOT+".round","");
         state.deadline=data.getLong(ROOT+".deadline",0);state.sequence=data.getInt(ROOT+".sequence",0);state.result=data.getString(ROOT+".result","");
+        java.util.Set<Integer> usedNumbers=new java.util.HashSet<Integer>();
+        ConfigurationSection issued=data.getConfigurationSection(ROOT+".issued");
+        if(issued!=null){
+            int seen=0;for(String key:issued.getKeys(false)){
+                if(++seen>MAX_ENTRIES)break;UUID owner=uuid(key);int number=issued.getInt(key,0);
+                if(owner!=null&&number>=1&&number<=MAX_ENTRIES&&number<=state.sequence&&usedNumbers.add(number))state.issued.put(owner,number);
+            }
+        }
         ConfigurationSection entries=data.getConfigurationSection(ROOT+".entries");
         if(entries!=null){
             int seen=0;for(String key:entries.getKeys(false)){
@@ -63,7 +73,11 @@ final class BuildContestManager {
                 e.world=entries.getString(key+".world","");e.number=entries.getInt(key+".number",0);e.x=entries.getInt(key+".x");
                 e.y=entries.getInt(key+".y");e.z=entries.getInt(key+".z");e.radius=entries.getInt(key+".radius",-1);
                 if(!e.name.matches("[A-Za-z0-9_]{1,16}")||e.claim.length()==0||e.claim.length()>100||e.world.length()==0||e.world.length()>128
-                        ||e.number<1||e.number>MAX_ENTRIES||e.radius<0||e.radius>4096)continue;
+                        ||e.number<1||e.number>MAX_ENTRIES||e.number>state.sequence||e.radius<0||e.radius>4096)continue;
+                Integer reserved=state.issued.get(owner);
+                if(reserved!=null&&reserved.intValue()!=e.number)continue;
+                // Active contests created before issued-numbers were introduced are upgraded lazily.
+                if(reserved==null){if(!usedNumbers.add(e.number))continue;state.issued.put(owner,e.number);}
                 state.entries.add(e);
             }
         }
@@ -88,6 +102,17 @@ final class BuildContestManager {
     }
     private int validEntries(State state){int count=0;for(Entry entry:state.entries)if(valid(entry))count++;return count;}
     private static boolean running(State state){return "entries".equals(state.phase)||"voting".equals(state.phase);}
+    private boolean mayChangeEntry(Player player){
+        Long previous=lastEntryChange.get(player.getUniqueId());
+        if(previous!=null&&System.nanoTime()-previous.longValue()<1_000_000_000L){
+            send(player,"&eПодождите секунду перед следующим изменением заявки.");return false;
+        }
+        return true;
+    }
+    private void markEntryChange(UUID player){
+        lastEntryChange.remove(player);lastEntryChange.put(player,System.nanoTime());
+        while(lastEntryChange.size()>4096)lastEntryChange.remove(lastEntryChange.keySet().iterator().next());
+    }
     void command(CommandSender sender,String[] args,boolean admin){
         if(sender instanceof Player&&!plugin.getStore().isAuthenticated((Player)sender)){send(sender,"&cСначала войдите в аккаунт.");return;}
         String sub=args.length==0?"status":args[0].toLowerCase(Locale.ROOT);
@@ -135,7 +160,7 @@ final class BuildContestManager {
             if(!pending.isEmpty()){send(sender,"&cЕсть несохранённые голоса; сначала повторите операцию после их обработки.");return;}
             final String round=UUID.randomUUID().toString();final long deadline=System.currentTimeMillis()+duration*60_000L;
             plugin.getStore().transact(data->{data.set(ROOT+".round",round);data.set(ROOT+".phase","entries");data.set(ROOT+".deadline",deadline);
-                data.set(ROOT+".sequence",0);data.set(ROOT+".entries",null);data.set(ROOT+".votes",null);return null;});
+                data.set(ROOT+".sequence",0);data.set(ROOT+".entries",null);data.set(ROOT+".issued",null);data.set(ROOT+".votes",null);return null;});
             announce("&#80D8FF✦ Конкурс построек: приём заявок открыт на &f"+duration+" мин. &8| &e/buildcontest");
         }catch(Exception error){send(sender,"&cНе удалось сохранить новый конкурс. Изменения не применены.");warn("start",error);}
     }
@@ -156,15 +181,20 @@ final class BuildContestManager {
         try{
             State current=state();long now=System.currentTimeMillis();
             if(!"entries".equals(current.phase)||now>=current.deadline){send(player,"&cПриём заявок закрыт.");return;}
-            if(current.entry(player.getUniqueId())!=null){send(player,"&eВы уже участвуете. До голосования заявку можно отозвать: /buildcontest withdraw");return;}
-            if(current.sequence>=MAX_ENTRIES||current.entries.size()>=MAX_ENTRIES){send(player,"&cЛимит заявок этого конкурса достигнут.");return;}
-            final String round=current.round;final int number=current.sequence+1;final UUID owner=player.getUniqueId();
-            plugin.getStore().transact(data->{State live=read(data);
+            final UUID owner=player.getUniqueId();
+            if(current.entry(owner)!=null){send(player,"&eВы уже участвуете. До голосования заявку можно отозвать: /buildcontest withdraw");return;}
+            Integer reserved=current.issued.get(owner);final boolean first=reserved==null;
+            if(current.entries.size()>=MAX_ENTRIES||(first&&current.sequence>=MAX_ENTRIES)){send(player,"&cЛимит участников этого конкурса достигнут.");return;}
+            if(!mayChangeEntry(player))return;
+            final String round=current.round;final int number=first?current.sequence+1:reserved.intValue();
+            plugin.getStore().transact(data->{State live=read(data);Integer existing=live.issued.get(owner);
+                boolean consistent=first?existing==null&&live.sequence+1==number:existing!=null&&existing.intValue()==number;
                 if(!"entries".equals(live.phase)||!round.equals(live.round)||System.currentTimeMillis()>=live.deadline
-                        ||live.entry(owner)!=null||live.sequence+1!=number)throw new IllegalStateException("entry phase changed");
+                        ||live.entry(owner)!=null||!consistent)throw new IllegalStateException("entry phase changed");
                 String root=p(owner);data.set(root+".name",player.getName());data.set(root+".claim",claim.id);data.set(root+".world",claim.world);
                 data.set(root+".x",claim.cx);data.set(root+".y",claim.cy);data.set(root+".z",claim.cz);data.set(root+".radius",claim.radius);
-                data.set(root+".number",number);data.set(ROOT+".sequence",number);return null;});
+                data.set(root+".number",number);data.set(ROOT+".issued."+owner,number);if(first)data.set(ROOT+".sequence",number);return null;});
+            markEntryChange(owner);
             send(player,"&#00E676Заявка №"+number+" сохранена. Мир и координаты привата опубликованы в /buildcontest list.");
         }catch(Exception error){send(player,"&cЗаявка не сохранена; приват не изменён.");warn("entry",error);}
     }
@@ -174,9 +204,12 @@ final class BuildContestManager {
             if((!"entries".equals(current.phase)&&!"closed".equals(current.phase))||current.entry(owner)==null){
                 send(player,"&cОтозвать заявку можно до голосования или после завершения конкурса.");return;
             }
+            if(!mayChangeEntry(player))return;
             final String round=current.round,phase=current.phase;
-            plugin.getStore().transact(data->{State live=read(data);if(!phase.equals(live.phase)||!round.equals(live.round)||live.entry(owner)==null)
-                throw new IllegalStateException("entry changed");data.set(p(owner),null);return null;});
+            plugin.getStore().transact(data->{State live=read(data);Entry entry=live.entry(owner);
+                if(!phase.equals(live.phase)||!round.equals(live.round)||entry==null)throw new IllegalStateException("entry changed");
+                data.set(ROOT+".issued."+owner,entry.number);data.set(p(owner),null);return null;});
+            markEntryChange(owner);
             send(player,"&#00E676Заявка отозвана; приват и постройка не изменены.");
         }catch(Exception error){send(player,"&cЗаявку не удалось отозвать.");warn("withdraw",error);}
     }
