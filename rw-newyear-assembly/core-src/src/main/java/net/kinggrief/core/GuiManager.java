@@ -97,7 +97,8 @@ public final class GuiManager {
             {"ludoman",     "&#FFEA00[🎰 ЛУДОМАН]",     "110", "Легенда Гранд-Казино 777"},
             {"rw_legend",   "&#FACC15[👑 ЛЕГЕНДА РВ]",  "300", "Максимальный статус ReallyWorld"},
             {"king_achiever", "&#80D8FF[✦ ИСКАТЕЛЬ]", "-1", "За четыре основных достижения: /achievements"},
-            {"winter_fisher", "&#81D4FA[🎣 РЫБАК СЕВЕРА]", "-1", "За 25 зимних бонусов: /winterfish"}
+            {"winter_fisher", "&#81D4FA[🎣 РЫБАК СЕВЕРА]", "-1", "За 25 зимних бонусов: /winterfish"},
+            {"build_master", "&#FFCC80[🏗 МАСТЕР СТРОЙКИ]", "-1", "Победителю конкурса /buildcontest"}
     };
 
     private static final String[] COMMON_GROUP_PERMS = new String[]{
@@ -1332,6 +1333,8 @@ public final class GuiManager {
             }
         }
 
+        inv.setItem(32, ItemFactory.glowIcon(Material.BRICKS, "&#FFCC80&l🏗 Конкурс построек (/buildcontest)",
+                "&7Добровольная подача своего привата и голосование.", "&7Блоки и приваты не изменяются."));
         // СТРОГО ТОЛЬКО ДЛЯ АДМИНОВ И ВЫШЕ (D.ADMIN+, ДКП, OPKA, D.OWNER, КП, CURATOR, TECH.ADMIN, OWNER)!
         if (plugin.getBossEvents().canAdminSpawnEvents(p)) {
             inv.setItem(36, ItemFactory.glowIcon(Material.BLAZE_SPAWN_EGG, "&#FF1744&l👹 [АДМИН+] Призвать Босса",
@@ -1404,7 +1407,7 @@ public final class GuiManager {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("titles", "", 0), 45,
                 ColorUtil.c("&#FFD740&l✨ КОЛЛЕКЦИЯ ТИТУЛОВ СЕРВЕРА"));
         decorateFrame(inv);
-        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28,29};
+        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28,29,30};
         for (int i = 0; i < TITLES_CATALOG.length && i < slots.length; i++) {
             String[] t = TITLES_CATALOG[i];
             String tid = t[0], disp = t[1], desc = t[3];
@@ -2182,6 +2185,14 @@ public final class GuiManager {
             handleCasinoClick(p, slot, h);
         } else if ("events".equals(type)) {
             if (slot == 49) { openMainMenu(p); return; }
+            if (slot == 32) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) {
+                        p.closeInventory();p.performCommand("buildcontest");
+                    }
+                });
+                return;
+            }
             if (slot == 36 || slot == 37 || slot == 38 || slot == 41 || slot == 42 || slot == 43
                     || slot == 46 || slot == 47 || slot == 48 || slot == 50) {
                 if (!plugin.getBossEvents().canAdminSpawnEvents(p)) {

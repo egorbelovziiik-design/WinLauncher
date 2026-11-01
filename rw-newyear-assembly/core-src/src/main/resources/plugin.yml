@@ -9,6 +9,9 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  buildcontest:
+    description: Voluntary contest for existing Core claims
+    usage: /buildcontest
   winterfish:
     aliases: [winterfishing]
     description: Winter fishing bonuses and personal statistics

@@ -74,6 +74,7 @@ public final class KingGriefCore extends JavaPlugin {
     private MiniGameVoteManager gameVotes;
     private AchievementManager achievements;
     private WinterFishingManager winterFishing;
+    private BuildContestManager buildContest;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -122,6 +123,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.moderation = new ModerationManager(this);
         this.winterFishing = new WinterFishingManager(this);
         Bukkit.getPluginManager().registerEvents(this.winterFishing, this);
+        this.buildContest = new BuildContestManager(this);
         this.crownEvents = new CrownEventManager(this);
         Bukkit.getPluginManager().registerEvents(this.crownEvents, this);
         this.safeTrades = new SafeTradeManager(this);
@@ -150,7 +152,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "ah", "achievements"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "ah", "achievements"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -210,6 +212,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.gameVotes.start();
         this.winterTree.start();
         this.winterFishing.start();
+        this.buildContest.start();
         this.cosmetics.start();
         this.parkourRecords.start();
         this.displayPets.start();
@@ -264,6 +267,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.utilities != null) this.utilities.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
         if (this.winterFishing != null) this.winterFishing.shutdown();
+        if (this.buildContest != null) this.buildContest.shutdown();
         if (this.parkourRecords != null) this.parkourRecords.shutdown();
         if (this.cosmetics != null) this.cosmetics.shutdown();
         if (this.displayPets != null) this.displayPets.shutdown();
@@ -492,6 +496,12 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length == 2 && "price".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("off"), args[1]);
         } else if ("achievements".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("claim"), args[0]);
+        } else if ("buildcontest".equals(c)) {
+            if(args.length==1)return filterPrefix(hasEconomyAdmin(sender)
+                    ?Arrays.asList("status","list","enter","withdraw","start","voting","finish","cancel")
+                    :Arrays.asList("status","list","enter","withdraw"),args[0]);
+            if(args.length==2&&("enter".equalsIgnoreCase(args[0])||("cancel".equalsIgnoreCase(args[0])&&hasEconomyAdmin(sender))))
+                return filterPrefix(Arrays.asList("confirm"),args[1]);
         } else if ("gamevote".equals(c) && args.length == 1) {
             return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "start", "cancel")
                     :Arrays.asList("status", "parkour", "duel"), args[0]);
@@ -655,6 +665,10 @@ public final class KingGriefCore extends JavaPlugin {
         // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
         if ("gamevote".equals(c)) {
             gameVotes.command(sender, args, hasEconomyAdmin(sender));
+            return true;
+        }
+        if ("buildcontest".equals(c)) {
+            buildContest.command(sender, args, hasEconomyAdmin(sender));
             return true;
         }
         if ("kgbackup".equals(c)) {
