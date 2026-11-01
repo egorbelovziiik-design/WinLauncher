@@ -330,6 +330,34 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         b.performCommand("tree claim");
         ok(store.getCoins(b.getName())==2500.0,"late contributor cannot claim a past milestone");
         a.performCommand("tree top");
+        treeLaterMilestones();
+    }
+    private void treeLaterMilestones(){
+        DataStore store=core.getStore();YamlConfiguration data=yaml();String player="players."+b.getName().toLowerCase(java.util.Locale.ROOT);
+        int snow=store.getSnowflakes(b.getName()),keys=store.getCaseKeys(b.getName(),"legendary");double coins=store.getCoins(b.getName());
+        Object oldTitle=data.get(player+".titles.tree_friend");
+        try{
+            Field f=KingGriefCore.class.getDeclaredField("winterTree");f.setAccessible(true);Object manager=f.get(core);
+            Field stage=manager.getClass().getDeclaredField("visualStage");stage.setAccessible(true);
+            data.set("winterTree.total",99);b.performCommand("tree donate 1");
+            ok(data.getInt("winterTree.total")==100&&stage.getInt(manager)==2,"second tree milestone updates the visual stage");
+            b.performCommand("tree claim");ok(store.getCoins(b.getName())==coins+15000,"eligible donor receives only the second milestone");
+            data.set("winterTree.total",299);b.performCommand("tree donate 1");
+            ok(data.getInt("winterTree.total")==300&&stage.getInt(manager)==3,"final tree milestone updates the visual stage");
+            withBlockedSave(()->b.performCommand("tree claim"));
+            ok(store.getCoins(b.getName())==coins+15000&&store.getCaseKeys(b.getName(),"legendary")==keys,
+                    "failed final milestone commit does not partially pay");
+            b.performCommand("tree claim");b.performCommand("tree claim");
+            ok(store.getCoins(b.getName())==coins+50000&&store.getCaseKeys(b.getName(),"legendary")==keys+1
+                    &&yaml().getBoolean(player+".titles.tree_friend"),"final milestone pays coins, key and title exactly once");
+            // Restore the first-milestone fixture for the subsequent restart checks.
+            data=yaml();data.set("winterTree.total",31);data.set("winterTree.donors."+b.getName().toLowerCase(java.util.Locale.ROOT)+".total",1);
+            data.set("winterTree.donors."+b.getName().toLowerCase(java.util.Locale.ROOT)+".daily",1);
+            data.set("winterTree.donors."+b.getName().toLowerCase(java.util.Locale.ROOT)+".claimed.2",null);
+            data.set("winterTree.donors."+b.getName().toLowerCase(java.util.Locale.ROOT)+".claimed.3",null);
+            data.set(player+".coins",coins);data.set(player+".snowflakes",snow);data.set(player+".cases.legendary",keys);
+            data.set(player+".titles.tree_friend",oldTitle);stage.setInt(manager,1);store.save();
+        }catch(Exception error){throw new RuntimeException(error);}
     }
     private void backupChecks(Runnable next){
         Path folder=core.getDataFolder().toPath().resolve("backups"), outside=core.getDataFolder().toPath().resolveSibling("kg-backup-outside-fixture");
