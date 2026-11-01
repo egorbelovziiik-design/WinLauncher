@@ -303,10 +303,17 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(store.findAuctionLot(emerald.id)!=null&&store.getCoins(a.getName())==before,"hotbar swap cannot accidentally purchase a lot");
         DataStore.AuctionLot newer=store.addAuctionLot(seller,new ItemStack(Material.GOLD_INGOT),1);
         ok(newer!=null&&auctionInventory().getItem(0).getType()==Material.EMERALD,"open screen retains its displayed item after listings change");
+        withBlockedSave(()->auctionClick(0,ClickType.LEFT));
+        ok(store.findAuctionLot(emerald.id)!=null&&store.getCoins(a.getName())==before
+                &&yaml().getStringList("auctionHistory.emerald_plain").isEmpty(),"failed purchase records no sale and keeps money and lot");
         auctionClick(0,ClickType.LEFT);
         ok(store.findAuctionLot(emerald.id)==null&&store.findAuctionLot(newer.id)!=null
                 &&store.getCoins(a.getName())==before-25&&a.getInventory().contains(Material.EMERALD),"buy targets displayed lot ID, not newly sorted position");
-        a.closeInventory();
+        java.util.List<String> history=yaml().getStringList("auctionHistory.emerald_plain");
+        ok(history.size()==1&&history.get(0).endsWith("|25.0|1"),"successful purchase atomically records price and quantity");
+        ItemStack hand=a.getInventory().getItemInMainHand();a.getInventory().setItemInMainHand(new ItemStack(Material.EMERALD));
+        ok(a.performCommand("ah history"),"auction price history command is registered");
+        a.getInventory().setItemInMainHand(hand);a.closeInventory();
     }
     private void tree(){
         DataStore store=core.getStore();
@@ -504,6 +511,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         catch(Exception error){throw new RuntimeException(error);}
         java.util.List<Integer> favorites=yaml().getIntegerList("auctionPreferences."+a.getUniqueId()+".favorites");
         ok(favorites.size()==1&&store.findAuctionLot(favorites.get(0))!=null,"favorite lot survives restart");
+        ok(yaml().getStringList("auctionHistory.emerald_plain").size()==1,"auction sale history survives restart");
         a.performCommand("ah favorites");
         ok(a.getOpenInventory().getTopInventory().getItem(0)!=null
                 &&a.getOpenInventory().getTopInventory().getItem(0).getType()==Material.DIAMOND_SWORD

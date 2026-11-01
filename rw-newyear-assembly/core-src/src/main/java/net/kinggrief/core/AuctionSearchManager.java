@@ -1,6 +1,8 @@
 package net.kinggrief.core;
 
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -20,7 +22,8 @@ import java.util.UUID;
 
 /** Personal read-only filters. Purchases still use the stable ID displayed in the GUI. */
 final class AuctionSearchManager implements Listener {
-    private static final int MAX_FAVORITES=128;
+    private static final int MAX_FAVORITES=128,MAX_HISTORY_GROUPS=512,MAX_HISTORY_SALES=20;
+    private static final java.time.format.DateTimeFormatter SALE_DATE=java.time.format.DateTimeFormatter.ofPattern("dd.MM HH:mm 'UTC'").withZone(java.time.ZoneOffset.UTC);
     private static final class Preferences {
         String text="";double max=0;int sort=0;boolean onlyFavorites=false;
         final Set<Integer> favorites=new LinkedHashSet<Integer>();
@@ -85,10 +88,68 @@ final class AuctionSearchManager implements Listener {
             player.sendMessage(ColorUtil.c(exists?"&7Лот #"+id+" удалён из избранного.":"&#FFD740Лот #"+id+" добавлен в избранное."));return true;
         }catch(Exception error){player.sendMessage(ColorUtil.c("&cНе удалось сохранить избранное."));return false;}
     }
+    private static String historyKey(ItemStack item){
+        String key=item.getType().name().toLowerCase(Locale.ROOT),id=ItemFactory.getCustomId(item);
+        return key+(id!=null&&id.matches("[a-z0-9_]{1,48}")?"_custom_"+id:"_plain");
+    }
+    /** Included in the same YAML transaction as a successful lot purchase. */
+    static void recordSale(YamlConfiguration data,ItemStack item,double price){
+        if(item==null||item.getType().isAir()||item.getAmount()<=0||!Double.isFinite(price)||price<=0)return;
+        try{
+            String group=historyKey(item),path="auctionHistory."+group;
+            ConfigurationSection section=data.getConfigurationSection("auctionHistory");
+            if(!data.isList(path)&&section!=null&&section.getKeys(false).size()>=MAX_HISTORY_GROUPS)return;
+            List<String> samples=new ArrayList<String>(data.getStringList(path));
+            samples.add(0,System.currentTimeMillis()+"|"+Double.toString(price)+"|"+item.getAmount());
+            if(samples.size()>MAX_HISTORY_SALES)samples=new ArrayList<String>(samples.subList(0,MAX_HISTORY_SALES));
+            data.set(path,samples);
+        }catch(RuntimeException ignored){/* An optional history problem must not block a purchase. */}
+    }
+    private static final class Sale {
+        final long at;final double price;final int amount;
+        Sale(long at,double price,int amount){this.at=at;this.price=price;this.amount=amount;}
+    }
+    void history(Player player,String[] args){
+        if(args.length!=1){player.sendMessage(ColorUtil.c("&eВозьмите предмет в руку: /ah history"));return;}
+        ItemStack item=player.getInventory().getItemInMainHand();
+        if(item==null||item.getType().isAir()||item.getAmount()<=0){player.sendMessage(ColorUtil.c("&eВозьмите предмет в основную руку: /ah history"));return;}
+        try{
+            String group=historyKey(item);
+            List<String> rows=plugin.getStore().inspect(data->data.getStringList("auctionHistory."+group));
+            List<Sale> sales=new ArrayList<Sale>();
+            for(String row:rows){
+                String[] fields=row.split("\\|",-1);if(fields.length!=3)continue;
+                try{long at=Long.parseLong(fields[0]);double price=Double.parseDouble(fields[1]);int amount=Integer.parseInt(fields[2]);
+                    if(at>0&&Double.isFinite(price)&&price>0&&amount>0)sales.add(new Sale(at,price,amount));
+                }catch(NumberFormatException ignored){}
+                if(sales.size()>=MAX_HISTORY_SALES)break;
+            }
+            player.sendMessage(ColorUtil.c("&#FFD740История продаж: &f"+item.getType().name()+" &8("+sales.size()+" последних сделок)"));
+            if(sales.isEmpty())player.sendMessage(ColorUtil.c("&7Пока нет записей. История начинается после включения функции."));
+            else {
+                List<Double> units=new ArrayList<Double>();for(Sale sale:sales)units.add(sale.price/sale.amount);
+                units.sort(Double::compare);int middle=units.size()/2;
+                double median=units.size()%2==0?units.get(middle-1)/2+units.get(middle)/2:units.get(middle);
+                player.sendMessage(ColorUtil.c("&7За штуку: &fмин. "+unitPrice(units.get(0))+" &8| &fмедиана "+unitPrice(median)+" &8| &fмакс. "+unitPrice(units.get(units.size()-1))));
+                for(int i=0;i<Math.min(5,sales.size());i++){
+                    Sale sale=sales.get(i);
+                    try{player.sendMessage(ColorUtil.c(" &8• &7"+SALE_DATE.format(java.time.Instant.ofEpochMilli(sale.at))+" &f"+sale.amount+" шт. &8— &a"+unitPrice(sale.price)+" за лот"));}
+                    catch(java.time.DateTimeException ignored){}
+                }
+            }
+            player.sendMessage(ColorUtil.c("&8Для обычных предметов группы общие по материалу; чары и имена не различаются. Цены могут быть намеренно изменены игроками."));
+        }catch(Exception error){player.sendMessage(ColorUtil.c("&cНе удалось прочитать историю продаж."));}
+    }
+    private static String unitPrice(double value){
+        if(value<.01)return "<0.01$";
+        return (value<1000?String.format(Locale.US,"%.2f",value):ColorUtil.fmtMoney(value))+"$";
+    }
     /** Returns true only when this is a search/filter subcommand. */
     boolean command(Player player,String[] args){
         if(args.length==0)return false;
-        String sub=args[0].toLowerCase(Locale.ROOT);Preferences p=get(player);
+        String sub=args[0].toLowerCase(Locale.ROOT);
+        if("history".equals(sub)){history(player,args);return true;}
+        Preferences p=get(player);
         if("search".equals(sub)){
             if(args.length<2){player.sendMessage(ColorUtil.c("&e/ah search <материал или название>"));return true;}
             String query=String.join(" ",java.util.Arrays.copyOfRange(args,1,args.length)).trim().toLowerCase(Locale.ROOT);

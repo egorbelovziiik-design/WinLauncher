@@ -1551,6 +1551,7 @@ public final class GuiManager {
         inv.setItem(48, ItemFactory.icon(Material.COMPASS, "&bФильтры и поиск", "&7" + search.filters(p), "&f/ah search <название>", "&f/ah price <максимум|off>", "&f/ah sort <new|cheap|expensive>"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню &8(/ah sell <цена>)"));
         inv.setItem(50, ItemFactory.icon(Material.BARRIER, "&cСбросить фильтры", "&7Избранные лоты сохранятся."));
+        inv.setItem(51, ItemFactory.icon(Material.CLOCK, "&bИстория продаж", "&7Возьмите предмет в основную руку.", "&f/ah history", "&8Записываются новые успешные сделки."));
         p.openInventory(inv);
     }
 
@@ -2241,6 +2242,7 @@ public final class GuiManager {
             if (slot == 46) { search.cycleSort(p); openAuctionMenu(p, 0); return; }
             if (slot == 47) { search.toggleOnly(p); openAuctionMenu(p, 0); return; }
             if (slot == 50) { search.clear(p); openAuctionMenu(p, 0); return; }
+            if (slot == 51) { search.history(p, new String[]{"history"}); return; }
             Integer displayedId = h.auctionSlots.get(Integer.valueOf(slot));
             if (displayedId == null) return;
             DataStore.AuctionLot lot = plugin.getStore().findAuctionLot(displayedId.intValue());

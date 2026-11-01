@@ -144,7 +144,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "ah"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -476,7 +476,11 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
-        if ("gamevote".equals(c) && args.length == 1) {
+        if ("ah".equals(c)) {
+            if (args.length == 1) return filterPrefix(Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "clear"), args[0]);
+            if (args.length == 2 && "sort".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("new", "cheap", "expensive"), args[1]);
+            if (args.length == 2 && "price".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("off"), args[1]);
+        } else if ("gamevote".equals(c) && args.length == 1) {
             return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "start", "cancel")
                     :Arrays.asList("status", "parkour", "duel"), args[0]);
         } else if ("parkour".equals(c)) {

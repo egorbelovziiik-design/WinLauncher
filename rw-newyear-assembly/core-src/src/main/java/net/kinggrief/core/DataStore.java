@@ -1817,6 +1817,7 @@ public final class DataStore {
                 @Override public Void apply(YamlConfiguration data) {
                     data.set("players." + key(buyer) + ".coins", remaining);
                     data.set("players." + key(lot.seller) + ".coins", credited);
+                    AuctionSearchManager.recordSale(data, lot.item, lot.price);
                     return null;
                 }
             });
