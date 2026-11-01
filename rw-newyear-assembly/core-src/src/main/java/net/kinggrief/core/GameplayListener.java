@@ -3602,7 +3602,8 @@ public final class GameplayListener implements Listener {
         } else if ("action:top".equals(act)) {
             p.performCommand("top");
         } else if ("action:train_hint".equals(act)) {
-            p.sendMessage(ColorUtil.c("&#FF5252🥊 Бейте Незеритовые Манекены рядом для точного замера урона, критов и баффов!"));
+            p.sendMessage(ColorUtil.c("&#FF5252🥊 Бейте манекены рядом. Последний удар и DPS за 5 секунд: &f/trainstats&7."));
+            p.sendMessage(ColorUtil.c("&7Расчёт для незерита — модель обычного урона, без щитов и способностей."));
         }
     }
 
@@ -3946,14 +3947,19 @@ public final class GameplayListener implements Listener {
             e.setCancelled(true);
             if (e.getDamager() instanceof Player) {
                 Player hitter = (Player) e.getDamager();
-                boolean isCrit = hitter.getFallDistance() > 0.0f && !hitter.isOnGround() && !hitter.isSwimming();
-                double rawDmg = e.getDamage() * (isCrit ? 1.5 : 1.0);
-                double netDmg = Math.max(0.5, rawDmg * 0.42); // Simulated Netherite Prot IV reduction
-                ColorUtil.sound(hitter, isCrit ? "entity.player.attack.crit" : "entity.player.attack.strong", 0.9f, 1.15f);
-                ColorUtil.actionBar(hitter, (isCrit ? "&#FFD740&l⚡ КРИТ! " : "&#FF5252⚔ Удар: ")
-                        + "&fЧистый: &#FF8A80" + String.format("%.1f", Double.valueOf(rawDmg)) + " ❤ &8│ "
-                        + "&fПо Незериту: &#00E676" + String.format("%.1f", Double.valueOf(netDmg)) + " ❤");
-                spawnDamageIndicator(e.getEntity().getLocation(), netDmg);
+                // Bukkit's event damage already contains the server's attack/critical calculation.
+                // Falling is only a heuristic for a possible critical, not a second multiplier.
+                boolean possibleCrit = hitter.getFallDistance() > 0.0f && !hitter.isOnGround()
+                        && !hitter.isSwimming() && !hitter.isSprinting() && !hitter.isInsideVehicle();
+                TrainingStatsManager.Snapshot sample = plugin.getTrainingStats().record(hitter, e.getDamage(), possibleCrit);
+                if (sample != null) {
+                    ColorUtil.sound(hitter, possibleCrit ? "entity.player.attack.crit" : "entity.player.attack.strong", 0.9f, 1.15f);
+                    ColorUtil.actionBar(hitter, (possibleCrit ? "&#FFD740⚡ Возможен крит &8│ " : "&#FF5252⚔ ")
+                            + "&fУдар: &#FF8A80" + TrainingStatsManager.fmt(sample.raw) + " HP &8│ "
+                            + "&fНезерит ≈ &#00E676" + TrainingStatsManager.fmt(sample.simulated) + " HP &8│ "
+                            + "&fDPS 5с: &b" + TrainingStatsManager.fmt(sample.dps));
+                    spawnDamageIndicator(e.getEntity().getLocation(), sample.simulated);
+                }
             }
             return;
         }
@@ -4370,7 +4376,7 @@ public final class GameplayListener implements Listener {
     }
 
     private void spawnDamageIndicator(Location base, double dmg) {
-        if (dmg < 0.5 || base.getWorld() == null) return;
+        if (!Double.isFinite(dmg) || dmg < 0.5 || base.getWorld() == null) return;
         Location hl = base.clone().add((rng.nextDouble() - 0.5) * 0.7, 1.4, (rng.nextDouble() - 0.5) * 0.7);
         final ArmorStand st = (ArmorStand) base.getWorld().spawnEntity(hl, EntityType.ARMOR_STAND);
         st.setPersistent(false);
@@ -4378,7 +4384,7 @@ public final class GameplayListener implements Listener {
         st.setMarker(true);
         st.setGravity(false);
         st.setSmall(true);
-        st.setCustomName(ColorUtil.c("&#FF1744-" + String.format("%.1f", Double.valueOf(dmg)) + " ❤"));
+        st.setCustomName(ColorUtil.c("&#FF1744-" + TrainingStatsManager.fmt(dmg / 2.0) + " ❤")); // 2 HP = one heart
         st.setCustomNameVisible(true);
         st.addScoreboardTag("kg_holo");
         new BukkitRunnable() {

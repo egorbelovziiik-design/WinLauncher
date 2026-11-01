@@ -9,6 +9,9 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  trainstats:
+    description: Show or clear temporary combat-training statistics
+    usage: /trainstats [reset]
   snowmemory:
     description: Play the winter tile memory game
     usage: /snowmemory [top|stop]
