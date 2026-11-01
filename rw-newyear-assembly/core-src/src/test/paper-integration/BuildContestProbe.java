@@ -91,11 +91,12 @@ public final class BuildContestProbe extends JavaPlugin implements Listener {
         console("voting 60");ok("voting".equals(phase()),"administrator starts voting");
         c.performCommand("buildcontest vote "+UUID.randomUUID()+" 1");vote(a,1);vote(b,2);
         ok(pending()==0,"stale round and self-votes are rejected");
-        vote(b,1);vote(a,2);vote(c,1);vote(c,1);
-        ok(pending()==3,"one pending vote per account is retained");
+        vote(b,1);vote(a,2);
+        ok(pending()==2,"one pending vote per account is retained");
+        c.performCommand("buildcontest list"); // PlayerC follows the received RUN_COMMAND packet.
         later(30,()->{
             ok(value(a).equals(b.getUniqueId().toString())&&value(b).equals(a.getUniqueId().toString())
-                    &&value(c).equals(a.getUniqueId().toString()),"three real accounts' votes are saved in one batch");
+                    &&value(c).equals(a.getUniqueId().toString()),"three accounts' votes, including a network button click, are saved");
             vote(c,1);ok(pending()==0,"repeating an already saved vote is idempotent");
             failureCase();
         });

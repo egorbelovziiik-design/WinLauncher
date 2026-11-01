@@ -9,6 +9,16 @@ for (const client of clients) {
   client.on('error', e => console.error('CLIENT_ERROR', String(e)));
   client.on('end', reason => console.log('CLIENT_END', String(reason)));
 }
+// Follow the actual RUN_COMMAND component received by PlayerC in the first round.
+let clicked=false;
+clients[2].on('packet',(data,meta)=>{
+  if(clicked||process.env.KG_CONTEST_PHASE!=='1'||meta.name!=='system_chat')return;
+  const match=JSON.stringify(data.content).match(/\/buildcontest vote ([a-f0-9-]+) 1/);
+  if(match){
+    clicked=true;clients[2].write('chat_command',{command:`buildcontest vote ${match[1]} 1`});
+    console.log('CONTEST_CLICKABLE_SENT');
+  }
+});
 let buffer='';
 process.stdin.on('data', data => {
   buffer+=data;const lines=buffer.split('\n');buffer=lines.pop();

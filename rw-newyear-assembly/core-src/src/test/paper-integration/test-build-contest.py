@@ -28,6 +28,7 @@ def run_phase(args, server, port, phase):
                             cwd=server, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1)
     output, messages = [], queue.Queue()
+    client_output = ''
     def read():
         for line in proc.stdout:
             output.append(line)
@@ -71,7 +72,9 @@ def run_phase(args, server, port, phase):
         if not success: raise RuntimeError(f'phase {phase} assertions failed or timed out')
     finally:
         if client and client.poll() is None:
-            try: print(client.communicate(input='done\n', timeout=10)[0], end='')
+            try:
+                client_output = client.communicate(input='done\n', timeout=10)[0]
+                print(client_output, end='')
             except subprocess.TimeoutExpired:
                 client.kill(); client.wait()
         if proc.poll() is None:
@@ -82,6 +85,8 @@ def run_phase(args, server, port, phase):
         reader.join(timeout=10)
         if not success:
             print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)
+    if phase == 1 and 'CONTEST_CLICKABLE_SENT' not in client_output:
+        raise RuntimeError('PlayerC did not receive and follow the clickable vote command')
     watchdog = any('The server has not responded for 10 seconds' in line for line in output)
     if proc.returncode != 0 or client.returncode != 0 or watchdog:
         print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)
