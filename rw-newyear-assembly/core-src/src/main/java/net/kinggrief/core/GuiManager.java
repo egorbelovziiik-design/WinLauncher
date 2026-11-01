@@ -110,11 +110,15 @@ public final class GuiManager {
 
     private final KingGriefCore plugin;
     private final Random rng = new Random();
+    private final Map<java.util.UUID, Long> buyerAttempts = new java.util.HashMap<java.util.UUID, Long>();
+    private long lastBuyerAttempt;
     private double casinoJackpotPool = 150000.0;
 
     public GuiManager(KingGriefCore plugin) {
         this.plugin = plugin;
     }
+
+    void onPlayerQuit(java.util.UUID player) { buyerAttempts.remove(player); }
 
     private void decorateFrame(Inventory inv) {
         ItemStack blue = ItemFactory.icon(Material.LIGHT_BLUE_STAINED_GLASS_PANE, " ");
@@ -2672,6 +2676,16 @@ public final class GuiManager {
             p.sendMessage(ColorUtil.c("&eВ инвентаре нет подходящих ресурсов для продажи!"));
             return;
         }
+        // Bound synchronous disk commits even if many users spam the menu.
+        long now = System.nanoTime();
+        Long previousAttempt = buyerAttempts.get(p.getUniqueId());
+        if ((previousAttempt != null && now - previousAttempt.longValue() < 500_000_000L)
+                || (lastBuyerAttempt != 0 && now - lastBuyerAttempt < 200_000_000L)) {
+            p.sendMessage(ColorUtil.c("&eПодождите немного перед следующей продажей."));
+            return;
+        }
+        buyerAttempts.put(p.getUniqueId(), Long.valueOf(now));
+        lastBuyerAttempt = now;
         // Do not remove resources if the durable credit cannot be saved.
         // Player inventories and data.yml are separate stores; a process crash
         // between this commit and the next player-data save can still duplicate.
@@ -2680,14 +2694,21 @@ public final class GuiManager {
             return;
         }
         for (Integer s : soldSlots) p.getInventory().setItem(s.intValue(), null);
+        try {
+            // Narrow (but cannot eliminate) the crash window between separate stores.
+            // Paper's saveData has no success result and may have saving disabled.
+            p.saveData();
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Buyer] Player data save failed after committed sale for " + p.getName() + ": " + error.getMessage());
+        }
         ColorUtil.sound(p, "entity.experience_orb.pickup", 1f, 1.3f);
         p.sendMessage(ColorUtil.c("&#00E676💰 Скупщик купил &f" + count + " шт. &#00E676за &a+" + ColorUtil.fmtMoney(earned)
                 + "$ &8(Множитель Скупщика: &#00E676×" + String.format(Locale.US, "%.2f", Double.valueOf(plugin.getStore().getBuyerMultiplier(p.getName()))) + "&8)&7!"));
         Inventory previous = p.getOpenInventory().getTopInventory();
         Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!p.isOnline() || p.getOpenInventory().getTopInventory() != previous) return;
             ItemStack cursor = p.getItemOnCursor();
-            if (p.isOnline() && p.getOpenInventory().getTopInventory() == previous
-                    && (cursor == null || cursor.getType().isAir())) openBuyerMenu(p);
+            if (cursor == null || cursor.getType().isAir()) openBuyerMenu(p);
         });
     }
 

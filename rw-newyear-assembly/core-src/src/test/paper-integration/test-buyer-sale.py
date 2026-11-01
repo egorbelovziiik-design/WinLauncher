@@ -66,6 +66,11 @@ def run_phase(args, server, port, phase):
             if 'KG-BUYER REQUEST ' in line:
                 request=line.split('KG-BUYER REQUEST ',1)[1].strip()
                 client.stdin.write(request+'\n');client.stdin.flush()
+            if phase == 3 and 'KG-BUYER CRASH_READY' in line:
+                # Abrupt process loss after credit, item removal and saveData.
+                # This deliberately does not test the narrower gap between them.
+                proc.kill(); proc.wait(timeout=20); success = True
+                break
             if 'KG-BUYER RESULT PASS' in line:
                 success = True
                 break
@@ -86,6 +91,12 @@ def run_phase(args, server, port, phase):
         reader.join(timeout=10)
         if not success:
             print('\n--- SERVER LOG TAIL ---\n' + ''.join(output[-200:]), file=sys.stderr)
+    watchdog = any('The server has not responded for 10 seconds' in line for line in output)
+    if phase == 3:
+        if proc.returncode != -9 or client.returncode != 0 or watchdog or 'BUYER_CLICK 13' not in client_output:
+            raise RuntimeError(f'crash phase exit={proc.returncode}, client={client.returncode}, watchdog={watchdog}')
+        print('BUYER SIGKILL AFTER SALE: PASS', flush=True)
+        return
     report_match = re.search(r'BUYER_NETWORK (\{[^\n]+\})', client_output)
     if not report_match:
         raise RuntimeError('network clients did not report buyer telemetry')
@@ -143,7 +154,9 @@ def main():
             z.write(HERE / 'plugin-buyer-sale.yml', 'plugin.yml')
         run_phase(args, server, port, 1)
         run_phase(args, server, port, 2)
-    print('BUYER AND RESTART INTEGRATION: PASS', flush=True)
+        run_phase(args, server, port, 3)
+        run_phase(args, server, port, 4)
+    print('BUYER, RESTART AND SIGKILL INTEGRATION: PASS', flush=True)
 
 
 if __name__ == '__main__':

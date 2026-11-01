@@ -614,6 +614,7 @@ public final class GameplayListener implements Listener {
         e.setQuitMessage(null);
         killStreaks.remove(p.getUniqueId());
         npcClickCd.remove(p.getUniqueId());
+        plugin.getGuis().onPlayerQuit(p.getUniqueId());
         endParkour(p);
         boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
         plugin.getModeration().handleQuitDuringCheck(p);
