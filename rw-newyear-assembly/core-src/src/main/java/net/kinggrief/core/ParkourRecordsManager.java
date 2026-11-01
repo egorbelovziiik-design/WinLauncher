@@ -93,10 +93,15 @@ final class ParkourRecordsManager implements Listener {
         if(reference!=null)loadReplay(player,run,reference.uuid,reference.millis);
     }
     void end(Player player){Run run=active.remove(player.getUniqueId());if(run!=null)run.removeGhost();}
+    // Teleport has its own Bukkit HandlerList; a PlayerMoveEvent handler does
+    // not receive it even though PlayerTeleportEvent subclasses PlayerMoveEvent.
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void teleport(PlayerTeleportEvent event){
+        Run run=active.get(event.getPlayer().getUniqueId());if(run!=null)run.valid=false;
+    }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void movement(PlayerMoveEvent event){
         Player p=event.getPlayer();Run run=active.get(p.getUniqueId());if(run==null||event.getTo()==null)return;
-        if(event instanceof PlayerTeleportEvent){run.valid=false;return;}
         Location from=event.getFrom(),to=event.getTo();
         if(to.getWorld()!=run.world||from.getWorld()!=to.getWorld()||from.distanceSquared(to)>16.0
                 ||p.getGameMode()!=GameMode.SURVIVAL||p.isFlying()||p.isGliding()||p.isInsideVehicle())run.valid=false;

@@ -100,12 +100,13 @@ public final class ParkourProbe extends JavaPlugin implements Listener {
         press(p,plate(3),false,false);
         ok(cpIs(store,p,1),"third checkpoint cannot bypass second checkpoint");
         Location checkpoint=store.getParkourCp(p).clone();
+        PlayerTeleportEvent denied = new PlayerTeleportEvent(p,p.getLocation(),core.getSpawnEngine().getPreparedSpawnArrival(),PlayerTeleportEvent.TeleportCause.PLUGIN);
+        denied.setCancelled(true); Bukkit.getPluginManager().callEvent(denied);
+        ok(cpIs(store,p,1)&&rankedRunValid(p),"cancelled teleport does not discard progress or invalidate the ranked run");
         ok(p.performCommand("parkour cp") && cpIs(store,p,1)
                 && p.getWorld().equals(world) && p.getLocation().distanceSquared(checkpoint)<.01,
                 "checkpoint command teleports without ending the run");
-        PlayerTeleportEvent denied = new PlayerTeleportEvent(p,p.getLocation(),core.getSpawnEngine().getPreparedSpawnArrival(),PlayerTeleportEvent.TeleportCause.PLUGIN);
-        denied.setCancelled(true); Bukkit.getPluginManager().callEvent(denied);
-        ok(cpIs(store,p,1),"cancelled teleport does not discard progress");
+        ok(!rankedRunValid(p),"successful checkpoint teleport invalidates the ranked run");
         p.teleport(core.getSpawnEngine().getPreparedSpawnArrival());
         ok(store.getParkourCp(p)==null && p.getAllowFlight(),"successful teleport away ends run and restores flight");
 
@@ -162,6 +163,14 @@ public final class ParkourProbe extends JavaPlugin implements Listener {
         finally {try {if(java.nio.file.Files.isSymbolicLink(data))java.nio.file.Files.delete(data);
             if(java.nio.file.Files.exists(backup))java.nio.file.Files.move(backup,data);
         }catch(Exception error){throw new RuntimeException(error);}}
+    }
+    private boolean rankedRunValid(Player p) {
+        try{
+            java.lang.reflect.Field manager=KingGriefCore.class.getDeclaredField("parkourRecords");manager.setAccessible(true);
+            Object records=manager.get(core);java.lang.reflect.Field active=records.getClass().getDeclaredField("active");active.setAccessible(true);
+            Object run=((java.util.Map<?,?>)active.get(records)).get(p.getUniqueId());
+            if(run==null)return false;java.lang.reflect.Field valid=run.getClass().getDeclaredField("valid");valid.setAccessible(true);return valid.getBoolean(run);
+        }catch(Exception error){throw new RuntimeException(error);}
     }
     private long recordedTime(Player p) {
         try {
