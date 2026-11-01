@@ -211,20 +211,69 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
                 later(25,()->{
                     ok(a.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST
                             &&a.getOpenInventory().getTopInventory().contains(Material.DIAMOND),"real owner can still open and see the combined chest");
-                    a.closeInventory();claim.members.add(b.getName().toLowerCase(java.util.Locale.ROOT));core.getStore().save();
-                    int deniedBefore=deniedChestAttempts,attemptsBefore=chestAttempts;
-                    getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
-                    later(25,()->{
-                        ok(chestAttempts>attemptsBefore&&deniedChestAttempts==deniedBefore
-                                &&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"added member can open the combined chest");
-                        b.closeInventory();claim.members.remove(b.getName().toLowerCase(java.util.Locale.ROOT));
-                        a.teleport(new Location(arena,75.5,95,12.5));b.teleport(new Location(arena,75.7,95,12.5));
-                        ok(a.performCommand("rg log")&&b.performCommand("rg log"),"claim audit command handles owner and non-owner access");
-                        watchChest=false;core.getStore().save();next.run();
-                    });
+                    a.closeInventory();claimRoleNetwork(claim,second,next);
                 });
             });
         });
+    }
+    private void claimRoleNetwork(DataStore.Claim claim,org.bukkit.block.Block second,Runnable next){
+        DataStore store=core.getStore();World arena=second.getWorld();
+        a.teleport(new Location(arena,75.5,95,12.5));b.teleport(new Location(arena,75.7,95,12.5));
+        b.performCommand("rg role OrbEnemy builder");
+        ok(!claim.canAccess(b.getName())&&!claim.canOpenContainers(b.getName()),"non-owner cannot grant a claim role");
+        withBlockedSave(()->a.performCommand("rg role OrbEnemy container"));
+        ok(!claim.canOpenContainers(b.getName())&&yaml().getStringList("claims."+claim.id+".containerMembers").isEmpty(),
+                "failed role grant leaves live and stored access unchanged");
+        a.performCommand("rg role OrbEnemy container");
+        ok(claim.canOpenContainers(b.getName())&&!claim.canAccess(b.getName()),"container role grants contents access but not build permission");
+        b.teleport(new Location(arena,76.5,94,10.5));int deniedBefore=deniedChestAttempts,attemptsBefore=chestAttempts;
+        getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
+        later(25,()->{
+            ok(chestAttempts>attemptsBefore&&deniedChestAttempts==deniedBefore
+                    &&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"container role opens the outside half of a protected double chest");
+            b.closeInventory();
+            DataStore.Claim other=store.createClaim("OtherOwner",second.getLocation(),0);
+            int beforeDenied=deniedChestAttempts;
+            getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
+            later(25,()->{
+                ok(deniedChestAttempts>beforeDenied&&b.getOpenInventory().getTopInventory().getType()!=InventoryType.CHEST,
+                        "a second claim can deny a double chest even when the first grants container access");
+                ok(store.setClaimRole(other,b.getName(),DataStore.ClaimRole.CONTAINER)==DataStore.ClaimRoleResult.CHANGED,
+                        "second claim owner can independently grant container access");
+                int deniedAgain=deniedChestAttempts,attemptedAgain=chestAttempts;
+                getLogger().info("KG-BATCH REQUEST BLOCK B 76 94 12");
+                later(25,()->{
+                    ok(chestAttempts>attemptedAgain&&deniedChestAttempts==deniedAgain
+                            &&b.getOpenInventory().getTopInventory().getType()==InventoryType.CHEST,"double chest opens only after both claims allow it");
+                    b.closeInventory();store.removeClaim(other);
+                    a.performCommand("rg add OrbEnemy");
+                    ok(claim.canAccess(b.getName())&&!claim.containerMembers.contains(b.getName().toLowerCase(java.util.Locale.ROOT)),"legacy add promotes a container member to builder");
+                    a.performCommand("rg role OrbEnemy container");
+                    withBlockedSave(()->a.performCommand("rg remove OrbEnemy"));
+                    ok(claim.canOpenContainers(b.getName())&&!claim.canAccess(b.getName()),"failed role removal restores the live container role");
+                    a.performCommand("rg remove OrbEnemy");
+                    ok(!claim.canOpenContainers(b.getName())&&!claim.canAccess(b.getName()),"legacy remove revokes the container role");
+                    for(int i=0;i<128;i++)claim.containerMembers.add("test"+i);
+                    ok(store.setClaimRole(claim,"Overflow",DataStore.ClaimRole.CONTAINER)==DataStore.ClaimRoleResult.LIMIT,"new claim roles are bounded to 128 players");
+                    claim.containerMembers.clear();
+                    a.performCommand("rg role SavedChest container");a.performCommand("rg add SavedBuilder");
+                    a.teleport(new Location(arena,75.5,95,12.5));b.teleport(new Location(arena,75.7,95,12.5));
+                    ok(a.performCommand("rg roles")&&b.performCommand("rg roles"),"role list handles owner and non-owner requests");
+                    ok(a.performCommand("rg log")&&b.performCommand("rg log"),"claim audit command handles owner and non-owner access");
+                    watchChest=false;store.save();claimRoleBuild(next);
+                });
+            });
+        });
+    }
+    private void claimRoleBuild(Runnable next){
+        DataStore store=core.getStore();org.bukkit.block.Block target=world.getBlockAt(419,65,418);target.setType(Material.STONE,false);
+        DataStore.Claim claim=store.createClaim(a.getName(),new Location(world,418,65,418),3);
+        a.teleport(new Location(world,418.5,75,418.5));b.teleport(new Location(world,419.5,75,418.5));
+        a.performCommand("rg role OrbEnemy container");b.breakBlock(target);
+        ok(target.getType()==Material.STONE,"container-only member cannot break blocks in survival");
+        a.performCommand("rg role OrbEnemy builder");b.breakBlock(target);
+        ok(target.getType()==Material.AIR,"builder can break an allowed block in survival");
+        store.removeClaim(claim);next.run();
     }
     private void utility(){
         a.getInventory().clear();
@@ -564,6 +613,8 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"buffered mining statistics survive clean restart");
         DataStore.Claim protectedChest=store.getClaimAt(new Location(Bukkit.getWorld("spawn_world"),75,94,12));
         ok(protectedChest!=null&&yaml().getStringList("claimAudit."+protectedChest.id+".entries").size()==1,"blocked chest attempt survives restart");
+        ok(protectedChest.canOpenContainers("SavedChest")&&!protectedChest.canAccess("SavedChest")
+                &&protectedChest.canAccess("SavedBuilder"),"container and legacy builder roles survive restart separately");
         store.removeClaim(protectedChest);
         ok(yaml().getStringList("claimAudit."+protectedChest.id+".entries").isEmpty(),"removing a claim removes only its own audit records");
         try{ok(backupArchives(core.getDataFolder().toPath().resolve("backups")).size()==1,"private Core backup survives restart");}
