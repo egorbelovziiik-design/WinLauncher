@@ -72,6 +72,7 @@ public final class KingGriefCore extends JavaPlugin {
     private CoreBackupManager coreBackups;
     private ClaimContainerGuard claimContainers;
     private MiniGameVoteManager gameVotes;
+    private AchievementManager achievements;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -106,6 +107,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.claimContainers = new ClaimContainerGuard(this);
         Bukkit.getPluginManager().registerEvents(this.claimContainers, this);
         this.gameVotes = new MiniGameVoteManager(this);
+        this.achievements = new AchievementManager(this);
+        Bukkit.getPluginManager().registerEvents(this.achievements, this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -144,7 +147,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "ah"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "tree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "ah", "achievements"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -268,6 +271,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
+    AchievementManager getAchievements() { return achievements; }
     UtilityFeaturesManager getUtilities() { return utilities; }
     ClaimContainerGuard getClaimContainers() { return claimContainers; }
     public DataStore getStore() { return store; }
@@ -480,6 +484,8 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length == 1) return filterPrefix(Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "clear"), args[0]);
             if (args.length == 2 && "sort".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("new", "cheap", "expensive"), args[1]);
             if (args.length == 2 && "price".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("off"), args[1]);
+        } else if ("achievements".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("claim"), args[0]);
         } else if ("gamevote".equals(c) && args.length == 1) {
             return filterPrefix(hasEconomyAdmin(sender)?Arrays.asList("status", "parkour", "duel", "start", "cancel")
                     :Arrays.asList("status", "parkour", "duel"), args[0]);
@@ -781,6 +787,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
 
+        if ("achievements".equals(c)) { achievements.command(p, args); return true; }
         if ("cosmetic".equals(c)) { cosmetics.command(p, args); return true; }
         if ("wintershow".equals(c)) { cosmetics.winterShow(p); return true; }
         if ("pet".equals(c)) { displayPets.command(p, args); return true; }

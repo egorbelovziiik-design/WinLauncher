@@ -9,6 +9,10 @@ description: "KINGGRIEF v7.4.0: новый паркур, пропорциона�
 
 
 commands:
+  achievements:
+    aliases: [achieve]
+    description: View persistent achievement badges and cosmetic rewards
+    usage: /achievements [claim]
   gamevote:
     description: Vote between currently available activities (no automatic teleport)
     usage: /gamevote [parkour|duel|start|cancel]

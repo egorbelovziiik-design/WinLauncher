@@ -49,7 +49,7 @@ import java.util.zip.GZIPOutputStream;
  * Validation is deliberately conservative and is not a replacement for an anti-cheat. */
 final class ParkourRecordsManager implements Listener {
     private static final int MAX_FRAMES=3600; // 2-tick samples, at most six minutes at 20 TPS
-    private static final long MIN_TIME_MS=12_000L, MAX_TIME_MS=360_000L;
+    static final long MIN_TIME_MS=12_000L, MAX_TIME_MS=360_000L;
     private static final int MAGIC=0x4b475032; // KGP2 includes its associated best time
     private static final class Frame {
         final float x,y,z,yaw;

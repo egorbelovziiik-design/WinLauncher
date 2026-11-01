@@ -95,7 +95,8 @@ public final class GuiManager {
             {"boss_slayer", "&#00E676[🔥 ГРОЗА БОССОВ]","-1",  "Выдаётся за Топ-1 урон по Боссу!"},
             {"tree_friend", "&#80D8FF[❄ ДРУГ ЁЛКИ]",   "-1",  "За участие в украшении зимней ёлки!"},
             {"ludoman",     "&#FFEA00[🎰 ЛУДОМАН]",     "110", "Легенда Гранд-Казино 777"},
-            {"rw_legend",   "&#FACC15[👑 ЛЕГЕНДА РВ]",  "300", "Максимальный статус ReallyWorld"}
+            {"rw_legend",   "&#FACC15[👑 ЛЕГЕНДА РВ]",  "300", "Максимальный статус ReallyWorld"},
+            {"king_achiever", "&#80D8FF[✦ ИСКАТЕЛЬ]", "-1", "За четыре основных достижения: /achievements"}
     };
 
     private static final String[] COMMON_GROUP_PERMS = new String[]{
@@ -209,6 +210,8 @@ public final class GuiManager {
         inv.setItem(52, ItemFactory.glowIcon(Material.BEACON, "&#FFD740&l☀ Новые Артефакты Тимы v6.4.0",
                 "&7Божья Аура (Хил Тимы!), Тотем Спасения,",
                 "&7Сфера Рокировки, Ледяной Купол, ЭМИ, Гарпун!", "", "&#FFD740▸ Открыть PvP-Магазин v6.4.0"));
+        inv.setItem(53, ItemFactory.glowIcon(Material.BOOK, "&#FFD740&l✦ Достижения (/achievements)",
+                "&7Личные значки за добычу, паркур и босса.", "&7Закрепите основные достижения и откройте титул!"));
 
         if (plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) {
             inv.setItem(47, ItemFactory.glowIcon(Material.EMERALD, "&#86EFAC&l👑 Панель Куратора (/curator)",
@@ -1398,7 +1401,7 @@ public final class GuiManager {
         Inventory inv = Bukkit.createInventory(new KgMenuHolder("titles", "", 0), 45,
                 ColorUtil.c("&#FFD740&l✨ КОЛЛЕКЦИЯ ТИТУЛОВ СЕРВЕРА"));
         decorateFrame(inv);
-        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25};
+        int[] slots = new int[]{10,11,12,13,14,15,19,20,21,22,23,24,25,28};
         for (int i = 0; i < TITLES_CATALOG.length && i < slots.length; i++) {
             String[] t = TITLES_CATALOG[i];
             String tid = t[0], disp = t[1], desc = t[3];
@@ -1900,6 +1903,9 @@ public final class GuiManager {
             else if (slot == 50) plugin.getWinterItems().open(p, 0);
             else if (slot == 51) plugin.getExpeditions().open(p);
             else if (slot == 52) openCoinShopCat(p, "pvp");
+            else if (slot == 53) Bukkit.getScheduler().runTask(plugin, () -> {
+                if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) plugin.getAchievements().open(p);
+            });
             else if (slot == 47 && plugin.getCurator() != null && plugin.getCurator().hasCuratorAccess(p)) plugin.getCurator().openMainCuratorGui(p, "");
             else if (slot == 48 && plugin.getLp().hasLpAccess(p)) { p.closeInventory(); plugin.getOwnerGiveaway().openRazdachaMainGui(p); }
             else if (slot == 49 && plugin.getLp().hasLpAccess(p)) openLpGroupsGui(p, 0);
