@@ -20,12 +20,29 @@ final class PvpRegionGuard {
 
     PvpRegionGuard(KingGriefCore plugin) { this.plugin = plugin; }
 
+    void invalidate() {
+        cachedPlugin = null;
+        failedPlugin = null;
+        query = null;
+        worldGuardPlugin = null;
+        flags = null;
+        wrapPlayer = null;
+        adaptLocation = null;
+        testBuild = null;
+        queryState = null;
+        retryAfterNanos = 0L;
+        warned = false;
+    }
+
     /** Called on the server thread. If WorldGuard is absent this makes no claim
      * about other protection plugins. If it is installed but unavailable or its
      * API fails, skip the secondary effect rather than bypass its regions. */
     boolean canAffect(Player attacker, Player target) {
         Plugin worldGuard = Bukkit.getPluginManager().getPlugin("WorldGuard");
-        if (worldGuard == null) return true;
+        if (worldGuard == null) {
+            if (cachedPlugin != null || failedPlugin != null) invalidate();
+            return true;
+        }
         if (!worldGuard.isEnabled()) {
             warnOnce("WorldGuard is installed but disabled");
             return false;

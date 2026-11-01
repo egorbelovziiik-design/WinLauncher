@@ -660,6 +660,16 @@ public final class GameplayListener implements Listener {
     }
 
     @EventHandler
+    public void onProtectionPluginDisable(org.bukkit.event.server.PluginDisableEvent e) {
+        if ("WorldGuard".equalsIgnoreCase(e.getPlugin().getName())) pvpRegionGuard.invalidate();
+    }
+
+    @EventHandler
+    public void onProtectionPluginEnable(org.bukkit.event.server.PluginEnableEvent e) {
+        if ("WorldGuard".equalsIgnoreCase(e.getPlugin().getName())) pvpRegionGuard.invalidate();
+    }
+
+    @EventHandler
     public void onChunkLoad(ChunkLoadEvent e) {
         plugin.getSpawnEngine().onSpawnChunkLoad(e.getChunk());
         plugin.getBossEvents().purgeOrphanEventEntitiesInChunk(e.getChunk());

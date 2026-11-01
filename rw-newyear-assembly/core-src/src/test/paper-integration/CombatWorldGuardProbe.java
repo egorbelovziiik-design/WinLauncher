@@ -51,6 +51,9 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         p.setNoDamageTicks(0);p.setLastDamage(0);p.setHealth(20);
     }
     private void hit(Player target){target.setNoDamageTicks(0);target.setLastDamage(0);observedTarget=target;observedCancelled=true;target.damage(4,a);observedTarget=null;}
+    private Object field(Object owner,String name){try{java.lang.reflect.Field f=owner.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(owner);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}}
+    private Object guard(){return field(field(core,"gameplayListener"),"pvpRegionGuard");}
+    private boolean mayTarget(Player attacker,Player target){try{Object listener=field(core,"gameplayListener");java.lang.reflect.Method method=listener.getClass().getDeclaredMethod("isEnemyTarget",Player.class,Player.class);method.setAccessible(true);return (Boolean)method.invoke(listener,attacker,target);}catch(ReflectiveOperationException e){throw new RuntimeException(e);}}
     private void begin(){
         world=core.getSpawnEngine().getSpawnArrival().getWorld();world.setPVP(true);
         for(Player p:new Player[]{a,b,c}){p.getInventory().clear();p.setGameMode(GameMode.SURVIVAL);}
@@ -67,18 +70,37 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         clear(b);clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordPhoenix());hit(b);
         ok(!observedCancelled&&b.getHealth()<20&&b.getFireTicks()>0&&c.getFireTicks()==0,
                 "accepted primary Phoenix hit spares a WorldGuard pvp-deny bystander");
+        ok(field(guard(),"cachedPlugin")==Bukkit.getPluginManager().getPlugin("WorldGuard"),
+                "WorldGuard API bridge initializes only when needed");
         clear(b);clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordZima());hit(b);
         ok(!observedCancelled&&b.hasPotionEffect(PotionEffectType.SLOWNESS)&&!c.hasPotionEffect(PotionEffectType.SLOWNESS)
                 &&c.getVelocity().lengthSquared()<0.001,"winter splash spares the protected bystander");
         clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordFrost());hit(c);
         ok(observedCancelled&&c.getHealth()==20&&c.getFreezeTicks()==0&&!c.hasPotionEffect(PotionEffectType.SLOWNESS),
                 "WorldGuard itself cancels a protected direct hit before frost effects");
+        protectedArea.setFlag(Flags.PVP,null);
+        later(60,this::buildOnlyRegion);
+    }
+    private void buildOnlyRegion(){
+        clear(b);clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordPhoenix());hit(b);
+        ok(!observedCancelled&&c.getFireTicks()==0,"protected build region without an explicit PvP flag spares a nonmember");
         protectedArea.setFlag(Flags.PVP,StateFlag.State.ALLOW);
         later(60,this::allowRegion);
     }
     private void allowRegion(){
         clear(b);clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordPhoenix());hit(b);
         ok(!observedCancelled&&c.getFireTicks()>0,"explicit WorldGuard pvp-allow permits splash again");
+        ProtectedCuboidRegion origin=new ProtectedCuboidRegion("kg_origin_deny",BlockVector3.at(75,90,8),BlockVector3.at(75,99,13));
+        origin.setFlag(Flags.PVP,StateFlag.State.DENY);manager.addRegion(origin);
+        later(60,this::originDeny);
+    }
+    private void originDeny(){
+        ok(!mayTarget(a,c),"pvp-deny at the caster also blocks a secondary player target");
+        manager.removeRegion("kg_origin_deny");
+        later(60,this::afterOriginDeny);
+    }
+    private void afterOriginDeny(){
+        ok(mayTarget(a,c),"removing caster denial restores allowed targeting");
         manager.removeRegion("kg_test_deny");
         GlobalProtectedRegion global=new GlobalProtectedRegion("__global__");global.setFlag(Flags.PVP,StateFlag.State.DENY);manager.addRegion(global);
         ProtectedCuboidRegion allowed=new ProtectedCuboidRegion("kg_primary_allow",BlockVector3.at(74,90,8),BlockVector3.at(77,99,13));
@@ -89,6 +111,8 @@ public final class CombatWorldGuardProbe extends JavaPlugin implements Listener 
         clear(b);clear(c);a.getInventory().setItemInMainHand(ItemFactory.swordPhoenix());hit(b);
         ok(!observedCancelled&&b.getHealth()<20&&c.getFireTicks()==0,"global WorldGuard pvp-deny protects bystander outside the allowed primary region");
         Bukkit.getPluginManager().disablePlugin(Bukkit.getPluginManager().getPlugin("WorldGuard"));
+        ok(field(guard(),"cachedPlugin")==null&&field(guard(),"query")==null,
+                "disabling WorldGuard invalidates the cached API objects");
         clear(b);clear(c);hit(b);
         ok(!observedCancelled&&b.getHealth()<20&&c.getFireTicks()==0,"installed but disabled WorldGuard fails closed for secondary player effects");
         finished=true;cleanup();getLogger().info("KG-WGPVP RESULT PASS "+checks+" checks");
