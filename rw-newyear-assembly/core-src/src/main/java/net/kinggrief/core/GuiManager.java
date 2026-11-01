@@ -1519,8 +1519,9 @@ public final class GuiManager {
     }
 
     public void openAuctionMenu(Player p, int page) {
-        List<DataStore.AuctionLot> lots = plugin.getStore().getAuctionLots();
-        int pg = Math.max(0, page);
+        AuctionSearchManager search = plugin.getAuctionSearch();
+        List<DataStore.AuctionLot> lots = search.results(p);
+        int pg = Math.max(0, Math.min(page, Math.max(0, (lots.size() - 1) / 45)));
         KgMenuHolder holder = new KgMenuHolder("ah", "", pg);
         Inventory inv = Bukkit.createInventory(holder, 54,
                 ColorUtil.c("&#FFAB40&l⚖ АУКЦИОН ИГРОКОВ (Стр. " + (pg + 1) + ")"));
@@ -1535,7 +1536,8 @@ public final class GuiManager {
                 l.add("");
                 l.add(ColorUtil.c("&7Продавец: &f" + lot.seller));
                 l.add(ColorUtil.c("&7Цена: &a" + ColorUtil.fmtMoney(lot.price) + "$"));
-                l.add(ColorUtil.c("&#00E676▸ Нажмите для покупки! (ID #" + lot.id + ")"));
+                l.add(ColorUtil.c("&#00E676▸ ЛКМ/ПКМ: купить (ID #" + lot.id + ")"));
+                l.add(ColorUtil.c(search.favorite(p, lot.id) ? "&#FFD740★ Shift-клик: убрать из избранного" : "&7☆ Shift-клик: добавить в избранное"));
                 m.setLore(l);
                 disp.setItemMeta(m);
             }
@@ -1544,7 +1546,11 @@ public final class GuiManager {
         for (int s = 45; s < 54; s++) inv.setItem(s, ItemFactory.icon(Material.BLACK_STAINED_GLASS_PANE, " "));
         if (pg > 0) inv.setItem(45, ItemFactory.icon(Material.ARROW, "&e« Предыдущая страница"));
         if (start + 45 < lots.size()) inv.setItem(53, ItemFactory.icon(Material.ARROW, "&eСледующая страница »"));
+        inv.setItem(46, ItemFactory.icon(Material.HOPPER, "&eСортировка", "&7" + search.sortLabel(p), "&eНажмите для смены"));
+        inv.setItem(47, ItemFactory.icon(Material.NETHER_STAR, "&#FFD740Избранное: " + (search.favoritesOnly(p) ? "&aвкл" : "&7выкл"), "&7Shift-клик по лоту добавляет или удаляет его."));
+        inv.setItem(48, ItemFactory.icon(Material.COMPASS, "&bФильтры и поиск", "&7" + search.filters(p), "&f/ah search <название>", "&f/ah price <максимум|off>", "&f/ah sort <new|cheap|expensive>"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню &8(/ah sell <цена>)"));
+        inv.setItem(50, ItemFactory.icon(Material.BARRIER, "&cСбросить фильтры", "&7Избранные лоты сохранятся."));
         p.openInventory(inv);
     }
 
@@ -2226,14 +2232,25 @@ public final class GuiManager {
                 p.sendMessage(ColorUtil.c("&#FFD740👑 Покупка и моментальная авто-выдача на сайте: &#FF4081https://kinggrief.vercel.app"));
             }
         } else if ("ah".equals(type)) {
+            ClickType click = e.getClick();
+            if (click != ClickType.LEFT && click != ClickType.RIGHT && click != ClickType.SHIFT_LEFT && click != ClickType.SHIFT_RIGHT) return;
+            AuctionSearchManager search = plugin.getAuctionSearch();
             if (slot == 49) { openMainMenu(p); return; }
             if (slot == 45 && h.page > 0) { openAuctionMenu(p, h.page - 1); return; }
-            if (slot == 53 && (h.page + 1) * 45 < plugin.getStore().getAuctionLots().size()) { openAuctionMenu(p, h.page + 1); return; }
+            if (slot == 53 && (h.page + 1) * 45 < search.results(p).size()) { openAuctionMenu(p, h.page + 1); return; }
+            if (slot == 46) { search.cycleSort(p); openAuctionMenu(p, 0); return; }
+            if (slot == 47) { search.toggleOnly(p); openAuctionMenu(p, 0); return; }
+            if (slot == 50) { search.clear(p); openAuctionMenu(p, 0); return; }
             Integer displayedId = h.auctionSlots.get(Integer.valueOf(slot));
             if (displayedId == null) return;
             DataStore.AuctionLot lot = plugin.getStore().findAuctionLot(displayedId.intValue());
             if (lot == null) {
                 p.sendMessage(ColorUtil.c("&eЛот уже недоступен. Список обновлён."));
+                openAuctionMenu(p, h.page);
+                return;
+            }
+            if (click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT) {
+                search.toggleFavorite(p, lot.id);
                 openAuctionMenu(p, h.page);
                 return;
             }

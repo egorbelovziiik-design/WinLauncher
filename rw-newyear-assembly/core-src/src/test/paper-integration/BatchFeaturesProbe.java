@@ -20,6 +20,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -156,8 +161,56 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         later(4,()->{
             ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"only accepted mining is counted");
             ok(a.performCommand("minestats"),"mining statistics command registered");
-            tree();a.performCommand("pet penguin");later(15,()->petChecks());
+            auction();tree();a.performCommand("pet penguin");later(15,()->petChecks());
         });
+    }
+    private Inventory auctionInventory(){return a.getOpenInventory().getTopInventory();}
+    private void auctionClick(int slot,ClickType type){
+        InventoryClickEvent event=new InventoryClickEvent(a.getOpenInventory(),InventoryType.SlotType.CONTAINER,slot,type,InventoryAction.PICKUP_ALL);
+        Bukkit.getPluginManager().callEvent(event);
+        ok(event.isCancelled(),"auction click is contained by the menu");
+    }
+    private void auction(){
+        DataStore store=core.getStore();String seller="MarketTrader";
+        ItemStack named=new ItemStack(Material.DIAMOND_SWORD);ItemMeta meta=named.getItemMeta();meta.setDisplayName("§bFrozen Blade");named.setItemMeta(meta);
+        DataStore.AuctionLot sword=store.addAuctionLot(seller,named,200);
+        DataStore.AuctionLot emerald=store.addAuctionLot(seller,new ItemStack(Material.EMERALD),25);
+        DataStore.AuctionLot stone=store.addAuctionLot(seller,new ItemStack(Material.STONE),75);
+        ok(sword!=null&&emerald!=null&&stone!=null,"auction fixture lots were created");
+        for(int i=0;i<46;i++)if(store.addAuctionLot(seller,new ItemStack(Material.DIRT),500+i)==null)throw new AssertionError("auction pagination fixture");
+        a.performCommand("ah clear");
+        ok(auctionInventory().getItem(53).getType()==Material.ARROW,"unfiltered auction has a second page");
+        auctionClick(53,ClickType.LEFT);
+        ok(((net.kinggrief.core.GuiManager.KgMenuHolder)auctionInventory().getHolder()).page==1,"pagination opens the next page");
+        a.performCommand("ah sort cheap");
+        ok(auctionInventory().getItem(0).getType()==Material.EMERALD&&auctionInventory().getItem(1).getType()==Material.STONE
+                &&auctionInventory().getItem(2).getType()==Material.DIAMOND_SWORD,"price sorting is deterministic and correct");
+        a.performCommand("ah search Frozen");
+        ok(auctionInventory().getItem(0).getType()==Material.DIAMOND_SWORD&&auctionInventory().getItem(1)==null
+                &&auctionInventory().getItem(53).getType()!=Material.ARROW,"display-name search and filtered pagination work");
+        a.performCommand("ah price 100");
+        ok(auctionInventory().getItem(0)==null,"maximum price combines with text search");
+        a.performCommand("ah price NaN");a.performCommand("ah search Frozen");
+        ok(auctionInventory().getItem(0)==null,"invalid numeric filter does not overwrite the active limit");
+        a.performCommand("ah price off");
+        double before=store.getCoins(a.getName());
+        auctionClick(0,ClickType.SHIFT_LEFT);
+        ok(store.findAuctionLot(sword.id)!=null&&store.getCoins(a.getName())==before,"shift-click favorites without buying or charging");
+        String path="auctionPreferences."+a.getUniqueId()+".favorites";
+        ok(yaml().getIntegerList(path).contains(sword.id),"favorite listing is persisted");
+        withBlockedSave(()->a.performCommand("ah favorite "+emerald.id));
+        ok(!yaml().getIntegerList(path).contains(emerald.id)&&yaml().getIntegerList(path).contains(sword.id),"failed favorite save leaves old choice intact");
+        b.performCommand("ah favorites");
+        ok(b.getOpenInventory().getTopInventory().getItem(0)==null,"favorites are private to each player");b.closeInventory();
+        a.performCommand("ah clear");a.performCommand("ah sort cheap");
+        auctionClick(0,ClickType.NUMBER_KEY);
+        ok(store.findAuctionLot(emerald.id)!=null&&store.getCoins(a.getName())==before,"hotbar swap cannot accidentally purchase a lot");
+        DataStore.AuctionLot newer=store.addAuctionLot(seller,new ItemStack(Material.GOLD_INGOT),1);
+        ok(newer!=null&&auctionInventory().getItem(0).getType()==Material.EMERALD,"open screen retains its displayed item after listings change");
+        auctionClick(0,ClickType.LEFT);
+        ok(store.findAuctionLot(emerald.id)==null&&store.findAuctionLot(newer.id)!=null
+                &&store.getCoins(a.getName())==before-25&&a.getInventory().contains(Material.EMERALD),"buy targets displayed lot ID, not newly sorted position");
+        a.closeInventory();
     }
     private void tree(){
         DataStore store=core.getStore();
@@ -260,6 +313,13 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(yaml().getInt("winterTree.total")==31,"tree progress survives restart");
         ok("snow".equals(yaml().getString("cosmetics."+a.getUniqueId()+".trail")),"cosmetic selection survives restart");
         ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"buffered mining statistics survive clean restart");
+        java.util.List<Integer> favorites=yaml().getIntegerList("auctionPreferences."+a.getUniqueId()+".favorites");
+        ok(favorites.size()==1&&store.findAuctionLot(favorites.get(0))!=null,"favorite lot survives restart");
+        a.performCommand("ah favorites");
+        ok(a.getOpenInventory().getTopInventory().getItem(0)!=null
+                &&a.getOpenInventory().getTopInventory().getItem(0).getType()==Material.DIAMOND_SWORD
+                &&a.getOpenInventory().getTopInventory().getItem(1)==null,"restored favorites filter shows only the saved listing");
+        a.closeInventory();
         double before=store.getCoins(a.getName());a.performCommand("tree claim");
         ok(store.getCoins(a.getName())==before,"claimed tree milestone remains claimed after restart");
         later(20,()->{

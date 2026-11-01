@@ -18,7 +18,7 @@ import java.util.List;
 
 /** Second boot of the real clean-run test: verify disk replay and viewer isolation. */
 public final class ParkourRestartProbe extends JavaPlugin implements Listener {
-    private KingGriefCore core; private Player owner,observer; private World world;
+    private KingGriefCore core; private Player owner,observer; private World world;private BlockDisplay marker;
     private boolean running,done;private int checks;
     @Override public void onEnable(){core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent e){
@@ -35,6 +35,9 @@ public final class ParkourRestartProbe extends JavaPlugin implements Listener {
         ok(owner.performCommand("parkour ghost me"),"personal replay selected after restart");
         observer.teleport(new Location(world,38.5,103,-26.5));observer.setGameMode(GameMode.SPECTATOR);
         owner.teleport(new Location(world,39.5,103,-28.5));owner.setGameMode(GameMode.SURVIVAL);
+        marker=world.spawn(new Location(world,40.5,103,-29.5),BlockDisplay.class,display->{
+            display.setBlock(org.bukkit.Material.GLASS.createBlockData());display.setPersistent(false);
+        });
         later(100,()->view());
     }
     private long recordedTime(){try{java.lang.reflect.Field f=DataStore.class.getDeclaredField("yml");f.setAccessible(true);
@@ -45,7 +48,10 @@ public final class ParkourRestartProbe extends JavaPlugin implements Listener {
         List<Entity> list=ghosts();ok(list.size()==6,"saved compressed recording replays after restart");
         for(Entity e:list){ok(e instanceof BlockDisplay&&!e.isPersistent()&&!e.isVisibleByDefault()&&owner.canSee(e),"owner can see private non-persistent ghost part");
             ok(!observer.canSee(e),"second real client cannot see ghost part");}
-        owner.performCommand("parkour ghost off");ok(ghosts().isEmpty(),"disabling replay cleans every model part");
+        StringBuilder ids=new StringBuilder();for(Entity e:list){if(ids.length()>0)ids.append(',');ids.append(e.getEntityId());}
+        String packetSignal="KG_GHOST_IDS="+ids+" MARKER="+marker.getEntityId();
+        owner.sendMessage(packetSignal);observer.sendMessage(packetSignal);
+        marker.remove();owner.performCommand("parkour ghost off");ok(ghosts().isEmpty(),"disabling replay cleans every model part");
         done=true;getLogger().info("KG-GHOST RESULT PASS "+checks+" checks");
     }
 }

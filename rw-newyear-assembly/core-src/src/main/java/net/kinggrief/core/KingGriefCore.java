@@ -68,6 +68,7 @@ public final class KingGriefCore extends JavaPlugin {
     private UtilityFeaturesManager utilities;
     private CosmeticEffectsManager cosmetics;
     private ParkourRecordsManager parkourRecords;
+    private AuctionSearchManager auctionSearch;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -96,6 +97,8 @@ public final class KingGriefCore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(this.cosmetics, this);
         this.parkourRecords = new ParkourRecordsManager(this);
         Bukkit.getPluginManager().registerEvents(this.parkourRecords, this);
+        this.auctionSearch = new AuctionSearchManager(this);
+        Bukkit.getPluginManager().registerEvents(this.auctionSearch, this);
         this.displayPets = new DisplayPetManager(this);
         Bukkit.getPluginManager().registerEvents(this.displayPets, this);
         this.lp = new LpManager(this);
@@ -252,6 +255,7 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
+    AuctionSearchManager getAuctionSearch() { return auctionSearch; }
     public DataStore getStore() { return store; }
     public RankManager getRanks() { return ranks; }
     public LpManager getLp() { return lp; }
@@ -1104,6 +1108,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("ah".equals(c)) {
+            if (auctionSearch.command(p, args)) return true;
             if (args.length >= 2 && "sell".equalsIgnoreCase(args[0])) {
                 double price;
                 try { price = Double.parseDouble(args[1]); } catch (Exception ex) { price = -1; }
