@@ -25,12 +25,13 @@ integration() {
 case "$GROUP" in
   release)
     run_logged package-update python "$ROOT/rw-newyear-assembly/build-core-update.py"
-    cp "$ROOT/rw-newyear-assembly/ОБНОВЛЕНИЕ_7.5.0.md" "$ROOT/rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.5.0.md"
+    cp "$ROOT/rw-newyear-assembly/ОБНОВЛЕНИЕ_7.5.1.md" "$ROOT/rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.5.1.md"
     run_logged package-server python "$ROOT/rw-newyear-assembly/build-assembly.py"
-    run_logged verify-distribution python "$ROOT/rw-newyear-assembly/core-src/src/test/test-distribution-v75.py"
+    run_logged verify-distribution python "$ROOT/rw-newyear-assembly/core-src/src/test/test-distribution-v751.py"
     integration test-tree-season
+    integration test-tree-admin-donations
     integration test-release-upgrade --core-old "$ROOT/kinggrief/public/KingGriefCore-v7.4.0.jar"
-    integration test-full-assembly --assembly "$ROOT/rw-newyear-assembly/rw-newyear-full-assembly-v7.5.0.zip" --core-version 7.5.0
+    integration test-full-assembly --assembly "$ROOT/rw-newyear-assembly/rw-newyear-full-assembly-v7.5.1.zip" --core-version 7.5.1
     ;;
   gameplay)
     integration test-batch-features
@@ -77,16 +78,16 @@ if [[ "$GROUP" == release ]]; then
     rw-newyear-assembly/plugins/KingGriefCore.jar \
     rw-newyear-assembly/server/plugins/KingGriefCore.jar \
     kinggrief/public/KingGriefCore.jar \
-    kinggrief/public/KingGriefCore-v7.5.0.jar \
+    kinggrief/public/KingGriefCore-v7.5.1.jar \
     rw-newyear-assembly/KingConnect.jar \
     rw-newyear-assembly/plugins/KingConnect.jar \
     rw-newyear-assembly/server/plugins/KingConnect.jar \
     kinggrief/public/KingConnect.jar \
     kinggrief/public/KingConnect-v2.3.1.jar \
-    rw-newyear-assembly/KingGriefCore-7.5.0-update.zip \
-    kinggrief/public/KingGriefCore-7.5.0-update.zip \
-    rw-newyear-assembly/rw-newyear-full-assembly-v7.5.0.zip \
-    kinggrief/public/rw-newyear-full-assembly-v7.5.0.zip \
-    rw-newyear-assembly/ОБНОВЛЕНИЕ_7.5.0.md \
-    rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.5.0.md
+    rw-newyear-assembly/KingGriefCore-7.5.1-update.zip \
+    kinggrief/public/KingGriefCore-7.5.1-update.zip \
+    rw-newyear-assembly/rw-newyear-full-assembly-v7.5.1.zip \
+    kinggrief/public/rw-newyear-full-assembly-v7.5.1.zip \
+    rw-newyear-assembly/ОБНОВЛЕНИЕ_7.5.1.md \
+    rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.5.1.md
 fi

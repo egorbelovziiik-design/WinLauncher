@@ -199,7 +199,7 @@ final class TreeSeasonStore {
             data.set(DAILY + ".day", today);
         }
     }
-    static int[] donate(YamlConfiguration data, String name, int amount, String today) throws IOException {
+    static int[] donate(YamlConfiguration data, String name, int amount, String today, boolean unlimitedDaily) throws IOException {
         View view = current(data);
         Donor donor = donor(data, view, name);
         int daily = daily(data, view, name, today);
@@ -208,7 +208,8 @@ final class TreeSeasonStore {
         String balance = "players." + name + ".snowflakes";
         int snow = number(data, balance, 0, 0, Integer.MAX_VALUE);
         if (view.total >= view.goals[view.goals.length - 1]) throw new IllegalArgumentException("Цель уже достигнута.");
-        if (amount < 1 || amount > DAILY_LIMIT || daily + amount > DAILY_LIMIT) {
+        if (amount < 1) throw new IllegalArgumentException("Укажите положительное количество снежинок.");
+        if (!unlimitedDaily && (amount > DAILY_LIMIT || (long) daily + amount > DAILY_LIMIT)) {
             throw new IllegalArgumentException("Сегодняшний лимит: " + DAILY_LIMIT + " снежинок (UTC).");
         }
         if (amount > view.goals[view.goals.length - 1] - view.total) {
@@ -218,10 +219,14 @@ final class TreeSeasonStore {
         String path = view.root + ".donors." + name;
         data.set(balance, snow - amount);
         if (donor.total == 0) data.set(path + ".joinedAt", view.total);
-        data.set(path + ".day", today); data.set(path + ".daily", daily + amount);
+        // These fields track the regular-player allowance used, not the
+        // administrator's actual total. Saturation keeps 7.5.0 readers valid
+        // and prevents a same-day rank downgrade from resetting the limit.
+        int quotaUsed = (int) Math.min((long) DAILY_LIMIT, (long) daily + amount);
+        data.set(path + ".day", today); data.set(path + ".daily", quotaUsed);
         data.set(path + ".total", donor.total + amount); data.set(view.root + ".total", view.total + amount);
         prepareLedger(data, today);
-        data.set(DAILY + ".used." + name, daily + amount);
+        data.set(DAILY + ".used." + name, quotaUsed);
         return new int[]{view.total, view.total + amount};
     }
     static Payment claim(YamlConfiguration data, String name, String requested, double startingCoins) throws IOException {

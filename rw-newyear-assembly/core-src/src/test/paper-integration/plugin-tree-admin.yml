@@ -1,0 +1,5 @@
+name: KgTreeAdminDonationProbe
+version: '1.0'
+main: net.kinggrief.probe.TreeAdminDonationProbe
+api-version: '1.21'
+depend: [KingGriefCore]

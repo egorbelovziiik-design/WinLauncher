@@ -72,19 +72,19 @@ final class WinterTreeManager {
         }
         String sub = args.length == 0 ? "status" : args[0].toLowerCase(Locale.ROOT);
         if ("season".equals(sub)) { seasonAdmin(sender, args, admin); return; }
-        if ("status".equals(sub) && args.length <= 1) { status(sender, player); return; }
+        if ("status".equals(sub) && args.length <= 1) { status(sender, player, admin); return; }
         if ("history".equals(sub) && args.length == 1) { history(sender, player); return; }
         if ("top".equals(sub) && args.length <= 2) { top(sender, args.length == 2 ? args[1] : null); return; }
         if (player == null) { send(sender, "&eДля игроков: /kgtree donate, /kgtree claim. Для консоли: /kgtree history или /kgtree season."); return; }
-        if ("donate".equals(sub)) { donate(player, args); return; }
+        if ("donate".equals(sub)) { donate(player, args, admin); return; }
         if ("claim".equals(sub) && args.length <= 2) { claim(player, args.length == 2 ? args[1] : null); return; }
-        send(sender, "&e/kgtree <status|donate [1-10]|claim [сезон]|top [сезон]|history>");
+        send(sender, "&e/kgtree <status|donate [количество]|claim [сезон]|top [сезон]|history>");
     }
     private static void send(CommandSender sender, String text) { sender.sendMessage(ColorUtil.c(text)); }
     private static String name(Player player) { return player.getName().toLowerCase(Locale.ROOT); }
     private static String day() { return LocalDate.now(ZoneOffset.UTC).toString(); }
 
-    private void status(CommandSender sender, Player player) {
+    private void status(CommandSender sender, Player player, boolean unlimitedDaily) {
         final String today = day();
         try {
             Object[] snapshot = plugin.getStore().inspect(data -> {
@@ -99,25 +99,27 @@ final class WinterTreeManager {
             send(sender, "&#80D8FF❄ Ёлка · сезон &f" + view.id + "&7: &f" + view.total + "/" + next + " ❄ &8| &eэтап " + stage + "/3");
             if (player != null) {
                 TreeSeasonStore.Donor donor = (TreeSeasonStore.Donor) snapshot[1];
-                send(sender, "&7Ваш вклад: &f" + donor.total + " ❄ &8| &7сегодня: &f" + snapshot[2] + "/" + TreeSeasonStore.DAILY_LIMIT + " (UTC)");
+                String quota = unlimitedDaily ? "&bбез суточного лимита" : "&f" + snapshot[2] + "/" + TreeSeasonStore.DAILY_LIMIT + " (UTC)";
+                send(sender, "&7Ваш вклад: &f" + donor.total + " ❄ &8| &7сегодня: " + quota);
             }
-            send(sender, "&e/kgtree donate [1-10] &8• &e/kgtree claim &8• &e/kgtree history &8• &e/kgtree top");
+            send(sender, "&e/kgtree donate [количество] &8• &e/kgtree claim &8• &e/kgtree history &8• &e/kgtree top");
         } catch (Exception error) {
             plugin.getLogger().warning("[Tree] Status unavailable: " + error.getClass().getSimpleName());
             send(sender, "&cНе удалось прочитать состояние ёлки.");
         }
     }
-    private void donate(Player player, String[] args) {
+    private void donate(Player player, String[] args, boolean unlimitedDaily) {
         int requested = 1;
-        if (args.length > 2) { send(player, "&e/kgtree donate [1-10]"); return; }
+        if (args.length > 2) { send(player, "&e/kgtree donate [количество]"); return; }
         if (args.length == 2) try { requested = Integer.parseInt(args[1]); }
         catch (NumberFormatException error) { requested = 0; }
-        if (requested < 1 || requested > TreeSeasonStore.DAILY_LIMIT) {
+        if (requested < 1) { send(player, "&cУкажите положительное целое количество снежинок."); return; }
+        if (!unlimitedDaily && requested > TreeSeasonStore.DAILY_LIMIT) {
             send(player, "&cКоличество — от 1 до " + TreeSeasonStore.DAILY_LIMIT + " снежинок."); return;
         }
         final int amount = requested; final String name = name(player), today = day();
         try {
-            int[] result = plugin.getStore().transact(data -> TreeSeasonStore.donate(data, name, amount, today));
+            int[] result = plugin.getStore().transact(data -> TreeSeasonStore.donate(data, name, amount, today, unlimitedDaily));
             send(player, "&#80D8FFСпасибо! В ёлку внесено &f" + amount + " ❄&7. Прогресс: &f" + result[1] + "/300");
             int before = stage(result[0]), after = stage(result[1]); visualStage = after;
             if (after > before) Bukkit.broadcastMessage(ColorUtil.c("&#FFD740✦ Игроки украсили ёлку! Достигнут этап &f" + after + "/3&7. Участникам: &e/kgtree claim"));
