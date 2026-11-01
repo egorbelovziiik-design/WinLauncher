@@ -545,7 +545,6 @@ public class ClientScreenshotGeneratorTest {
             p.hudEditorOpen = true;
 
             p.paintStylizedWorldBackdrop(false);
-            core.getHudEditorController().onOpen();
             core.getHudEditorController().render(p, p, 390, 285, 1.0f);
 
             File out6 = outDir.resolve("ingame-hud-editor.png").toFile();
