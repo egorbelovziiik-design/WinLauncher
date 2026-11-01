@@ -411,8 +411,8 @@ public class ClientScreenshotGeneratorTest {
             TargetEntityInfo droppedGapple = new TargetEntityInfo(
                     201, "Золотое яблоко x12", false, false, false, true,
                     1.0f, 1.0f, 0.0f, 5.2f, 0, 0,
-                    -1.9, 64.0, 4.8, 64.25,
-                    -2.05, 64.0, 4.65, -1.75, 64.3, 4.95,
+                    -2.7, 64.0, 4.5, 64.25,
+                    -2.85, 64.0, 4.35, -2.55, 64.3, 4.65,
                     true, ""
             );
 
@@ -430,6 +430,11 @@ public class ClientScreenshotGeneratorTest {
             core.getModuleManager().getById("tracers").setEnabled(true, p);
 
             core.getAnimationManager().setReducedMotion(true);
+            dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("hud_target");
+            if (thud != null) {
+                thud.setNormX(0.62f);
+                thud.setNormY(0.56f);
+            }
             core.onInGameMouseClick(0);
             core.onInGameMouseClick(0);
             core.onClientTick();
@@ -468,7 +473,7 @@ public class ClientScreenshotGeneratorTest {
             core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.COMBAT_TRAINING);
             setExpandedModule(core, ka);
-            core.getClickGuiController().render(p, p, 420, 145, 1.0f);
+            core.getClickGuiController().render(p, p, 20, 20, 1.0f);
 
             File out2 = outDir.resolve("ingame-clickgui-killaura.png").toFile();
             ImageIO.write(p.image, "PNG", out2);
@@ -492,9 +497,9 @@ public class ClientScreenshotGeneratorTest {
             core.getAnimationManager().setReducedMotion(true);
             core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.RENDER);
-            core.getClickGuiController().setSearchQuery("ESP");
+            core.getClickGuiController().setSearchQuery("ESP ");
             setExpandedModule(core, esp);
-            core.getClickGuiController().render(p, p, 420, 160, 1.0f);
+            core.getClickGuiController().render(p, p, 20, 20, 1.0f);
 
             File out3 = outDir.resolve("ingame-clickgui-esp.png").toFile();
             ImageIO.write(p.image, "PNG", out3);
