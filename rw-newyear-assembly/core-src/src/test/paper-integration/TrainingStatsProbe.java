@@ -85,7 +85,8 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
             ok(estimated<0.5||indicator,"damage indicator converts health points to hearts");
             ok(first.isValid()&&!first.isDead()&&core.getStore().getCoins(a.getName())==balance,"training leaves the dummy alive and pays no money");
             int old=seenB;attack("B",second,1,()->{
-                ok(seenB>old&&session(b)!=null&&integer(session(b),"hits")==1&&integer(session(a),"hits")==1,"second network player has independent measurements");
+                ok(seenB>old&&session(b)!=null&&integer(session(b),"hits")==1&&integer(session(a),"hits")==1
+                        &&Math.abs(number(session(b),"lastRaw")-rawB)<1e-9,"second network player has independent measurements");
                 rateLimit();
             });
         });
@@ -111,17 +112,26 @@ public final class TrainingStatsProbe extends JavaPlugin implements Listener {
         });
     }
     private void syntheticCrit(){
-        a.teleport(first.getLocation().clone().add(-1.8,2.0,0));a.setAllowFlight(true);a.setFlying(true);a.setFallDistance(1.0f);
-        EntityDamageByEntityEvent event=new EntityDamageByEntityEvent(a,first,EntityDamageEvent.DamageCause.ENTITY_ATTACK,10.0);
-        Bukkit.getPluginManager().callEvent(event);Object s=session(a);
-        ok(event.isCancelled()&&Math.abs(number(s,"lastRaw")-10.0)<1e-9,"synthetic ten-HP attack is not multiplied a second time");
-        ok(((Deque<?>)field(s,"recent")).size()<=51,"rolling sample queue is bounded");
-        later(110,()->{
-            ok(dps(s)==0.0&&integer(s,"hits")>=2,"five-second DPS expires while the session totals remain");
-            a.performCommand("trainstats");a.performCommand("trainstats reset");
-            ok(session(a)==null&&session(b)!=null,"reset clears only the requesting player's temporary session");
-            finish();
-        });
+        a.teleport(first.getLocation().clone().add(-1.8,2.0,0));a.setAllowFlight(true);a.setFlying(true);
+        // Teleport retains the previous on-ground state. The real client clears it,
+        // then the fixture supplies fall distance before firing the synthetic event.
+        later(8,()->{request("AIR");later(5,()->{
+            a.setFallDistance(1.0f);
+            boolean possible=a.getFallDistance()>0.0f&&!a.isOnGround()&&!a.isSwimming()&&!a.isSprinting()&&!a.isInsideVehicle();
+            ok(possible,"synthetic fixture meets the possible-critical heuristic (onGround="+a.isOnGround()+")");
+            int previousCrits=integer(session(a),"possibleCrits");
+            EntityDamageByEntityEvent event=new EntityDamageByEntityEvent(a,first,EntityDamageEvent.DamageCause.ENTITY_ATTACK,10.0);
+            Bukkit.getPluginManager().callEvent(event);Object s=session(a);
+            ok(event.isCancelled()&&integer(s,"possibleCrits")==previousCrits+1&&Math.abs(number(s,"lastRaw")-10.0)<1e-9,
+                    "possible-critical ten-HP event is not multiplied a second time");
+            ok(((Deque<?>)field(s,"recent")).size()<=51,"rolling sample queue is bounded");
+            later(110,()->{
+                ok(dps(s)==0.0&&integer(s,"hits")>=2,"five-second DPS expires while the session totals remain");
+                a.performCommand("trainstats");a.performCommand("trainstats reset");
+                ok(session(a)==null&&session(b)!=null,"reset clears only the requesting player's temporary session");
+                finish();
+            });
+        });});
     }
     private void restart(){
         ok(session(a)==null&&session(b)==null,"training sessions do not survive a server restart");

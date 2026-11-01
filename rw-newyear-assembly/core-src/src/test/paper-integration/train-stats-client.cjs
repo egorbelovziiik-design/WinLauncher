@@ -14,6 +14,8 @@ let input='';process.stdin.on('data',data=>{
   if(cmd==='ATTACK'){
    const client=clients[who==='B'?1:0];for(let i=0;i<(Number(count)||1);i++)client.write('use_entity',{target:Number(id),mouse:1,sneaking:false});
    console.log('TRAIN_ATTACK',who,id,count||1);
+  }else if(cmd==='AIR'){
+   clients[0].write('flying',{flags:{onGround:false,hasHorizontalCollision:false}});console.log('TRAIN_AIR');
   }else if(cmd==='REPORT')console.log('TRAIN_NETWORK',JSON.stringify({trainingBars}));
   else if(cmd==='done'){for(const c of clients)c.end('test complete');setTimeout(()=>process.exit(0),300);}
  }
