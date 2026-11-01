@@ -1,0 +1,5 @@
+name: KgTrainStatsProbe
+version: '1.0'
+main: net.kinggrief.probe.TrainingStatsProbe
+api-version: '1.20'
+depend: [KingGriefCore]
