@@ -86,7 +86,6 @@ import org.bukkit.util.Vector;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.HashSet;
@@ -121,11 +120,18 @@ public final class GameplayListener implements Listener {
     private final Map<UUID, Integer> pendingSpawnerToolGuards = new HashMap<UUID, Integer>();
     private final Map<BlockBreakEvent, org.bukkit.block.BlockState> pendingSpawnerRollbacks = new HashMap<BlockBreakEvent, org.bukkit.block.BlockState>();
     private final Set<UUID> scrollBlastGuard = new HashSet<UUID>();
-    // Events are removed at MONITOR even when another plugin cancels them.
-    private final Set<EntityDamageByEntityEvent> pendingPvpBanners =
-            Collections.newSetFromMap(new IdentityHashMap<EntityDamageByEntityEvent, Boolean>());
-    private final Set<EntityDamageByEntityEvent> pendingMidasHits =
-            Collections.newSetFromMap(new IdentityHashMap<EntityDamageByEntityEvent, Boolean>());
+    private static final class PendingPvpHit {
+        final Player attacker, victim;
+        final List<Runnable> effects = new ArrayList<Runnable>();
+        final Map<String, Long> cooldowns = new HashMap<String, Long>();
+        boolean showDamageBar = true;
+        PendingPvpHit(Player attacker, Player victim) { this.attacker = attacker; this.victim = victim; }
+    }
+    // These maps live only for the synchronous event; MONITOR drains them even
+    // when another plugin cancels. Reservations prevent nested hits sharing a proc.
+    private final Map<EntityDamageByEntityEvent, PendingPvpHit> pendingPvpHits =
+            new IdentityHashMap<EntityDamageByEntityEvent, PendingPvpHit>();
+    private final Map<String, PendingPvpHit> pendingPvpCooldowns = new HashMap<String, PendingPvpHit>();
     private static final class ParkourRun {
         final long startedAt;
         final GameMode startingMode;
@@ -444,8 +450,8 @@ public final class GameplayListener implements Listener {
         }
         allSavedTempBlocks.clear();
         activeTempBlocks.clear();
-        pendingPvpBanners.clear();
-        pendingMidasHits.clear();
+        pendingPvpHits.clear();
+        pendingPvpCooldowns.clear();
     }
 
     public void tagPvp30(Player... players) {
@@ -4021,189 +4027,233 @@ public final class GameplayListener implements Listener {
                 }
             }
 
-            String weaponId = ItemFactory.getCustomId(attacker.getInventory().getItemInMainHand());
-            String offId = ItemFactory.getCustomId(attacker.getInventory().getItemInOffHand());
-            String atkChest = ItemFactory.getCustomId(attacker.getInventory().getChestplate());
-            String vicChest = ItemFactory.getCustomId(victim.getInventory().getChestplate());
-            String atkArmorSet = HudManager.detectFullCustomArmorSet(attacker);
-            String vicArmorSet = HudManager.detectFullCustomArmorSet(victim);
-
-            // Вампиризм (Меч Дракулы / Меч OWNER / Коса Смерти Жнеца / Талисман Дракулы / Сет Дракулы / Элитры Вампира)
-            if ("sword_dracula".equals(weaponId) || "sword_owner".equals(weaponId) || "scythe_reaper".equals(weaponId)
-                    || "tal_draculy".equals(offId) || "elytra_vampire".equals(atkChest)
-                    || "dracula".equals(atkArmorSet)) {
-                double heal = Math.min(5.0, e.getFinalDamage() * 0.25);
-                attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + heal));
-            }
-            // Коса Смерти Жнеца (scythe_reaper): Казнь (+35% урона по целям < 16 HP) + Иссушение II!
-            if ("scythe_reaper".equals(weaponId)) {
-                ColorUtil.addPot(victim, "wither", "WITHER", 80, 1);
-                victim.getWorld().spawnParticle(Particle.SOUL, victim.getLocation().add(0, 1.1, 0), 10, 0.35, 0.4, 0.35, 0.03);
-                if (victim.getHealth() <= 16.0) {
-                    e.setDamage(e.getDamage() * 1.35);
-                    ColorUtil.actionBar(attacker, "&#E11D48⚔ ЖАТВА ДУШ: Казнь +35% урона!");
-                }
-            }
-            // Громовая Секира Тора (axe_thor): Слом Щита + Цепная Молния (КД 7 сек)!
-            if ("axe_thor".equals(weaponId)) {
-                victim.setCooldown(Material.SHIELD, 100);
-                String thorKey = attacker.getUniqueId() + ":thor_bolt";
-                long nowMs = System.currentTimeMillis();
-                Long boltReady = itemCooldowns.get(thorKey);
-                if (boltReady == null || nowMs >= boltReady.longValue()) {
-                    itemCooldowns.put(thorKey, Long.valueOf(nowMs + 7000L));
-                    victim.getWorld().strikeLightningEffect(victim.getLocation());
-                    e.setDamage(e.getDamage() + 5.0);
-                    ColorUtil.addPot(victim, "slowness", "SLOW", 40, 1);
-                    ColorUtil.actionBar(attacker, "&#38BDF8🪓 СЕКИРА ТОРА: Удар Грома (+5⚡ урона + Слом Щита)!");
-                }
-            }
-            // Сет Фантома: +18% крита в прыжке!
-            if ("phantom".equals(atkArmorSet) && attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {
-                e.setDamage(e.getDamage() * 1.18);
-            }
-            // Булава Крушителя: удар с воздуха!
-            if ("mace_krush".equals(weaponId) && attacker.getFallDistance() > 1.5f) {
-                double extra = Math.min(12.0, attacker.getFallDistance() * 1.6);
-                e.setDamage(e.getDamage() + extra);
-                victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation().add(0, 1, 0), 3, 0.5, 0.4, 0.5, 0.02);
-                attacker.setFallDistance(0f);
-            }
-            // Ответка сетов брони и элитр
-            if ("elytra_phoenix".equals(vicChest)) attacker.setFireTicks(80);
-            if ("frost".equals(vicArmorSet)) attacker.setFreezeTicks(110);
-            if (("elytra_thunder".equals(atkChest) || "zeus".equals(vicArmorSet)) && rng.nextInt(100) < 20) {
-                Player targetBolt = "zeus".equals(vicArmorSet) ? attacker : victim;
-                targetBolt.getWorld().strikeLightningEffect(targetBolt.getLocation());
-                e.setDamage(e.getDamage() + 3.0);
-            }
-            // Окисление брони (Меч Крушителя и Меч OWNER — сбалансировано с учётом Закалки брони ×2!)
-            if ("sword_krush".equals(weaponId) || "sword_owner".equals(weaponId)) {
-                int shred = "sword_owner".equals(weaponId) ? 2 : 1;
-                for (ItemStack arm : victim.getInventory().getArmorContents()) {
-                    if (arm != null && arm.hasItemMeta() && arm.getItemMeta() instanceof Damageable) {
-                        ItemMeta m = arm.getItemMeta();
-                        Damageable d = (Damageable) m;
-                        d.setDamage(d.getDamage() + shred);
-                        arm.setItemMeta(m);
-                    }
-                }
-            }
-            // ================= v5.9: 9 НОВЫХ КАСТОМНЫХ 3D МЕЧЕЙ (СПОСОБНОСТИ В ПВП) =================
-            boolean customBannerShown = false;
-            if ("sword_frost".equals(weaponId)) {
-                victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 160));
-                ColorUtil.addPot(victim, "slowness", "SLOW", 80, 2);
-                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1.1, 0), 12, 0.35, 0.4, 0.35, 0.03);
-            } else if ("sword_zeus".equals(weaponId)) {
-                String zKey = attacker.getUniqueId() + ":sword_zeus";
-                long nowMs = System.currentTimeMillis();
-                Long zReady = itemCooldowns.get(zKey);
-                if (zReady == null || nowMs >= zReady.longValue()) {
-                    itemCooldowns.put(zKey, Long.valueOf(nowMs + 5000L));
-                    victim.getWorld().strikeLightningEffect(victim.getLocation());
-                    e.setDamage(e.getDamage() + 4.0);
-                    victim.setCooldown(Material.SHIELD, 80);
-                    ColorUtil.actionBar(attacker, "&#FACC15⚡ МЕЧ ЗЕВСА: Удар Молнии Олимпа (+4⚡ урона + Слом Щита)!");
-                    customBannerShown = true;
-                }
-            } else if ("sword_katana".equals(weaponId)) {
-                ColorUtil.addPot(attacker, "speed", "SPEED", 60, 2);
-                if (attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {
-                    e.setDamage(e.getDamage() * 1.25);
-                    victim.getWorld().spawnParticle(Particle.CRIT, victim.getLocation().add(0, 1.1, 0), 18, 0.35, 0.4, 0.35, 0.15);
-                    ColorUtil.actionBar(attacker, "&#F472B6🌸 КАТАНА САКУРЫ: Идеальный Крит +25% + Скорость III!");
-                    customBannerShown = true;
-                }
-            } else if ("sword_wither".equals(weaponId)) {
-                ColorUtil.addPot(victim, "wither", "WITHER", 80, 2); // Иссушение III на 4 сек!
-                victim.getWorld().spawnParticle(Particle.SOUL, victim.getLocation().add(0, 1.1, 0), 10, 0.35, 0.4, 0.35, 0.03);
-            } else if ("sword_venom".equals(weaponId)) {
-                ColorUtil.addPot(victim, "poison", "POISON", 80, 2);
-                ColorUtil.addPot(victim, "weakness", "WEAKNESS", 80, 0);
-            } else if ("sword_phantom".equals(weaponId)) {
-                Vector atkDir = attacker.getLocation().getDirection().setY(0).normalize();
-                Vector vicDir = victim.getLocation().getDirection().setY(0).normalize();
-                if (atkDir.dot(vicDir) > 0.35) {
-                    e.setDamage(e.getDamage() * 1.30);
-                    String phKey = attacker.getUniqueId() + ":sword_phantom";
-                    long nowMs = System.currentTimeMillis();
-                    Long phReady = itemCooldowns.get(phKey);
-                    if (phReady == null || nowMs >= phReady.longValue()) {
-                        itemCooldowns.put(phKey, Long.valueOf(nowMs + 6000L));
-                        ColorUtil.addPot(victim, "blindness", "BLINDNESS", 45, 0);
-                    }
-                    ColorUtil.actionBar(attacker, "&#818CF8👻 РАПИРА ТЕНЕЙ: Удар в Спину +30% урона!");
-                    customBannerShown = true;
-                }
-            } else if ("sword_phoenix".equals(weaponId)) {
-                victim.setFireTicks(140);
-                ColorUtil.addPot(attacker, "regeneration", "REGENERATION", 80, 1);
-                victim.getWorld().spawnParticle(Particle.FLAME, victim.getLocation().add(0, 1.0, 0), 16, 0.6, 0.4, 0.6, 0.04);
-                for (Entity near : victim.getNearbyEntities(2.8, 2.0, 2.8)) {
-                    if (near instanceof Player && isEnemyTarget(attacker, (Player) near) && !near.equals(victim)) {
-                        near.setFireTicks(80);
-                    }
-                }
-            } else if ("sword_void".equals(weaponId)) {
-                String vdKey = attacker.getUniqueId() + ":sword_void";
-                long nowMs = System.currentTimeMillis();
-                Long vdReady = itemCooldowns.get(vdKey);
-                if (vdReady == null || nowMs >= vdReady.longValue()) {
-                    itemCooldowns.put(vdKey, Long.valueOf(nowMs + 5000L));
-                    if (victim.isGliding()) victim.setGliding(false);
-                    Vector pull = attacker.getLocation().toVector().subtract(victim.getLocation().toVector());
-                    if (pull.lengthSquared() > 0.25) {
-                        victim.setVelocity(pull.normalize().multiply(0.75).setY(0.22));
-                    }
-                    ColorUtil.actionBar(attacker, "&#38BDF8🌌 МЕЧ БЕЗДНЫ: Враг притянут + Анти-Элитры!");
-                    customBannerShown = true;
-                }
-            } else if ("sword_sever".equals(weaponId)) {
-                // v6.2: Клинок Севера — заморозка цели!
-                victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 200));
-                ColorUtil.addPot(victim, "slowness", "SLOW", 100, 3);
-                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1.1, 0), 18, 0.4, 0.6, 0.4, 0.03);
-                victim.getWorld().playSound(victim.getLocation(), "minecraft:block.glass.place", 0.7f, 1.4f);
-            } else if ("sword_zima".equals(weaponId)) {
-                // v6.2: Молот Зимы — ледяная нова вокруг цели!
-                Location zl = victim.getLocation();
-                for (Entity en : zl.getWorld().getNearbyEntities(zl, 3.0, 2.5, 3.0)) {
-                    if (!(en instanceof LivingEntity) || en.equals(attacker)) continue;
-                    if (en instanceof Player && !isEnemyTarget(attacker, (Player) en)) continue;
-                    LivingEntity le = (LivingEntity) en;
-                    Vector push = le.getLocation().toVector().subtract(zl.toVector()).setY(0.0);
-                    if (push.lengthSquared() < 0.01) push = new Vector(0.0, 0.0, 1.0);
-                    le.setVelocity(push.normalize().multiply(0.9).setY(0.45));
-                    ColorUtil.addPot(le, "slowness", "SLOW", 100, 2);
-                }
-                zl.getWorld().spawnParticle(Particle.SNOWFLAKE, zl.clone().add(0, 1.0, 0), 40, 1.0, 0.7, 1.0, 0.05);
-                zl.getWorld().playSound(zl, "minecraft:block.glass.break", 0.9f, 0.8f);
-            } else if ("sword_midas".equals(weaponId)) {
-                // Reward only after higher-priority protection has accepted the hit.
-                pendingMidasHits.add(e);
-                customBannerShown = true;
-            }
-
-            if (!customBannerShown) pendingPvpBanners.add(e);
-            // Кастомные Луки, Стрелы и Трезубец Посейдона!
-            if (e.getDamager() instanceof Projectile) {
-                applyProjectileDamageBonuses(e);
-            }
-            // v6.2: Талисман Мороза — атакующий враг замерзает!
-            if (ItemFactory.getCustomId(victim.getInventory().getItemInOffHand()) != null
-                    && "tal_moroza".equals(ItemFactory.getCustomId(victim.getInventory().getItemInOffHand()))
-                    && checkAndSetCd(victim, "tal_moroza", 4)) {
-                attacker.setFreezeTicks(120);
-                ColorUtil.addPot(attacker, "slowness", "SLOW", 60, 2);
-                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, attacker.getLocation().add(0, 1.0, 0), 20, 0.4, 0.6, 0.4, 0.03);
-                ColorUtil.actionBar(victim, "&#80D8FF🧊 Талисман Мороза заморозил атакующего!");
+            PendingPvpHit pending = new PendingPvpHit(attacker, victim);
+            pendingPvpHits.put(e, pending);
+            try {
+                preparePvpHit(e, pending);
+                if (e.getDamager() instanceof Projectile) applyProjectileDamageBonuses(e);
+            } catch (RuntimeException error) {
+                // Do not apply a partially prepared ability if preparation failed.
+                e.setCancelled(true);
+                plugin.getLogger().log(java.util.logging.Level.WARNING, "[PvP] Failed to prepare hit; cancelled for safety", error);
+                return;
             }
         } else if (e.getEntity() instanceof LivingEntity) {
             // v6.1: 3D-ЛУКИ И 3D-СТРЕЛЫ ТЕПЕРЬ РАБОТАЮТ И ПО МОБАМ (фармилка, боссы, выживание)!
             if (e.getDamager() instanceof Projectile) {
                 applyProjectileDamageBonuses(e);
             }
+        }
+    }
+
+    /** Reserve an ability only while this synchronous event is being checked.
+     * A nested hit cannot reuse the proc; a cancelled hit releases it without
+     * consuming the cooldown. */
+    private boolean reservePvpCooldown(PendingPvpHit hit, Player player, String ability, long durationMs) {
+        String key = player.getUniqueId() + ":" + ability;
+        long now = System.currentTimeMillis();
+        Long ready = itemCooldowns.get(key);
+        if ((ready != null && now < ready.longValue()) || pendingPvpCooldowns.containsKey(key)) return false;
+        pendingPvpCooldowns.put(key, hit);
+        hit.cooldowns.put(key, Long.valueOf(durationMs));
+        return true;
+    }
+
+    private void releasePvpCooldowns(PendingPvpHit hit, boolean accepted) {
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, Long> entry : hit.cooldowns.entrySet()) {
+            String key = entry.getKey();
+            if (pendingPvpCooldowns.get(key) != hit) continue;
+            pendingPvpCooldowns.remove(key);
+            if (accepted) {
+                long until = now + entry.getValue().longValue();
+                Long existing = itemCooldowns.get(key);
+                if (existing == null || existing.longValue() < until) itemCooldowns.put(key, Long.valueOf(until));
+            }
+        }
+    }
+
+    /** Damage modifiers must run before protection's HIGHEST handlers. Effects
+     * that mutate players, the world, cooldowns or money are deferred until the
+     * event reaches MONITOR without cancellation. */
+    private void preparePvpHit(EntityDamageByEntityEvent e, PendingPvpHit hit) {
+        Player attacker = hit.attacker, victim = hit.victim;
+        String weaponId = ItemFactory.getCustomId(attacker.getInventory().getItemInMainHand());
+        String offId = ItemFactory.getCustomId(attacker.getInventory().getItemInOffHand());
+        String atkChest = ItemFactory.getCustomId(attacker.getInventory().getChestplate());
+        String vicChest = ItemFactory.getCustomId(victim.getInventory().getChestplate());
+        String atkArmorSet = HudManager.detectFullCustomArmorSet(attacker);
+        String vicArmorSet = HudManager.detectFullCustomArmorSet(victim);
+
+        if ("sword_dracula".equals(weaponId) || "sword_owner".equals(weaponId) || "scythe_reaper".equals(weaponId)
+                || "tal_draculy".equals(offId) || "elytra_vampire".equals(atkChest) || "dracula".equals(atkArmorSet)) {
+            hit.effects.add(() -> {
+                double heal = Math.min(5.0, Math.max(0.0, e.getFinalDamage() * 0.25));
+                if (heal > 0.0) attacker.setHealth(Math.min(attacker.getMaxHealth(), attacker.getHealth() + heal));
+            });
+        }
+        if ("scythe_reaper".equals(weaponId)) {
+            hit.effects.add(() -> {
+                ColorUtil.addPot(victim, "wither", "WITHER", 80, 1);
+                victim.getWorld().spawnParticle(Particle.SOUL, victim.getLocation().add(0, 1.1, 0), 10, 0.35, 0.4, 0.35, 0.03);
+            });
+            if (victim.getHealth() <= 16.0) {
+                e.setDamage(e.getDamage() * 1.35);
+                hit.effects.add(() -> ColorUtil.actionBar(attacker, "&#E11D48⚔ ЖАТВА ДУШ: Казнь +35% урона!"));
+            }
+        }
+        if ("axe_thor".equals(weaponId)) {
+            hit.effects.add(() -> victim.setCooldown(Material.SHIELD, 100));
+            if (reservePvpCooldown(hit, attacker, "thor_bolt", 7000L)) {
+                e.setDamage(e.getDamage() + 5.0);
+                hit.effects.add(() -> {
+                    victim.getWorld().strikeLightningEffect(victim.getLocation());
+                    ColorUtil.addPot(victim, "slowness", "SLOW", 40, 1);
+                    ColorUtil.actionBar(attacker, "&#38BDF8🪓 СЕКИРА ТОРА: Удар Грома (+5⚡ урона + Слом Щита)!");
+                });
+            }
+        }
+        if ("phantom".equals(atkArmorSet) && attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {
+            e.setDamage(e.getDamage() * 1.18);
+        }
+        if ("mace_krush".equals(weaponId) && attacker.getFallDistance() > 1.5f) {
+            double extra = Math.min(12.0, attacker.getFallDistance() * 1.6);
+            e.setDamage(e.getDamage() + extra);
+            hit.effects.add(() -> {
+                victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation().add(0, 1, 0), 3, 0.5, 0.4, 0.5, 0.02);
+                attacker.setFallDistance(0f);
+            });
+        }
+        if ("elytra_phoenix".equals(vicChest)) hit.effects.add(() -> attacker.setFireTicks(80));
+        if ("frost".equals(vicArmorSet)) hit.effects.add(() -> attacker.setFreezeTicks(110));
+        if (("elytra_thunder".equals(atkChest) || "zeus".equals(vicArmorSet)) && rng.nextInt(100) < 20) {
+            Player targetBolt = "zeus".equals(vicArmorSet) ? attacker : victim;
+            e.setDamage(e.getDamage() + 3.0);
+            hit.effects.add(() -> targetBolt.getWorld().strikeLightningEffect(targetBolt.getLocation()));
+        }
+        if ("sword_krush".equals(weaponId) || "sword_owner".equals(weaponId)) {
+            int shred = "sword_owner".equals(weaponId) ? 2 : 1;
+            hit.effects.add(() -> {
+                ItemStack[] armor = victim.getInventory().getArmorContents();
+                for (ItemStack arm : armor) {
+                    if (arm != null && arm.hasItemMeta() && arm.getItemMeta() instanceof Damageable) {
+                        ItemMeta meta = arm.getItemMeta();
+                        Damageable durability = (Damageable) meta;
+                        durability.setDamage(durability.getDamage() + shred);
+                        arm.setItemMeta(meta);
+                    }
+                }
+                victim.getInventory().setArmorContents(armor);
+            });
+        }
+
+        if ("sword_frost".equals(weaponId)) {
+            hit.effects.add(() -> {
+                victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 160));
+                ColorUtil.addPot(victim, "slowness", "SLOW", 80, 2);
+                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1.1, 0), 12, 0.35, 0.4, 0.35, 0.03);
+            });
+        } else if ("sword_zeus".equals(weaponId)) {
+            if (reservePvpCooldown(hit, attacker, "sword_zeus", 5000L)) {
+                e.setDamage(e.getDamage() + 4.0);
+                hit.showDamageBar = false;
+                hit.effects.add(() -> {
+                    victim.getWorld().strikeLightningEffect(victim.getLocation());
+                    victim.setCooldown(Material.SHIELD, 80);
+                    ColorUtil.actionBar(attacker, "&#FACC15⚡ МЕЧ ЗЕВСА: Удар Молнии Олимпа (+4⚡ урона + Слом Щита)!");
+                });
+            }
+        } else if ("sword_katana".equals(weaponId)) {
+            hit.effects.add(() -> ColorUtil.addPot(attacker, "speed", "SPEED", 60, 2));
+            if (attacker.getFallDistance() > 0.05f && !attacker.isOnGround()) {
+                e.setDamage(e.getDamage() * 1.25);
+                hit.showDamageBar = false;
+                hit.effects.add(() -> {
+                    victim.getWorld().spawnParticle(Particle.CRIT, victim.getLocation().add(0, 1.1, 0), 18, 0.35, 0.4, 0.35, 0.15);
+                    ColorUtil.actionBar(attacker, "&#F472B6🌸 КАТАНА САКУРЫ: Идеальный Крит +25% + Скорость III!");
+                });
+            }
+        } else if ("sword_wither".equals(weaponId)) {
+            hit.effects.add(() -> {
+                ColorUtil.addPot(victim, "wither", "WITHER", 80, 2);
+                victim.getWorld().spawnParticle(Particle.SOUL, victim.getLocation().add(0, 1.1, 0), 10, 0.35, 0.4, 0.35, 0.03);
+            });
+        } else if ("sword_venom".equals(weaponId)) {
+            hit.effects.add(() -> {
+                ColorUtil.addPot(victim, "poison", "POISON", 80, 2);
+                ColorUtil.addPot(victim, "weakness", "WEAKNESS", 80, 0);
+            });
+        } else if ("sword_phantom".equals(weaponId)) {
+            Vector atkDir = attacker.getLocation().getDirection().setY(0).normalize();
+            Vector vicDir = victim.getLocation().getDirection().setY(0).normalize();
+            if (atkDir.dot(vicDir) > 0.35) {
+                e.setDamage(e.getDamage() * 1.30);
+                if (reservePvpCooldown(hit, attacker, "sword_phantom", 6000L)) {
+                    hit.effects.add(() -> ColorUtil.addPot(victim, "blindness", "BLINDNESS", 45, 0));
+                }
+                hit.showDamageBar = false;
+                hit.effects.add(() -> ColorUtil.actionBar(attacker, "&#818CF8👻 РАПИРА ТЕНЕЙ: Удар в Спину +30% урона!"));
+            }
+        } else if ("sword_phoenix".equals(weaponId)) {
+            hit.effects.add(() -> {
+                victim.setFireTicks(140);
+                ColorUtil.addPot(attacker, "regeneration", "REGENERATION", 80, 1);
+                victim.getWorld().spawnParticle(Particle.FLAME, victim.getLocation().add(0, 1.0, 0), 16, 0.6, 0.4, 0.6, 0.04);
+                for (Entity near : victim.getNearbyEntities(2.8, 2.0, 2.8)) {
+                    if (near instanceof Player && isEnemyTarget(attacker, (Player) near) && !near.equals(victim)) near.setFireTicks(80);
+                }
+            });
+        } else if ("sword_void".equals(weaponId)) {
+            if (reservePvpCooldown(hit, attacker, "sword_void", 5000L)) {
+                hit.showDamageBar = false;
+                hit.effects.add(() -> {
+                    if (victim.isGliding()) victim.setGliding(false);
+                    Vector pull = attacker.getLocation().toVector().subtract(victim.getLocation().toVector());
+                    if (pull.lengthSquared() > 0.25) victim.setVelocity(pull.normalize().multiply(0.75).setY(0.22));
+                    ColorUtil.actionBar(attacker, "&#38BDF8🌌 МЕЧ БЕЗДНЫ: Враг притянут + Анти-Элитры!");
+                });
+            }
+        } else if ("sword_sever".equals(weaponId)) {
+            hit.effects.add(() -> {
+                victim.setFreezeTicks(Math.max(victim.getFreezeTicks(), 200));
+                ColorUtil.addPot(victim, "slowness", "SLOW", 100, 3);
+                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1.1, 0), 18, 0.4, 0.6, 0.4, 0.03);
+                victim.getWorld().playSound(victim.getLocation(), "minecraft:block.glass.place", 0.7f, 1.4f);
+            });
+        } else if ("sword_zima".equals(weaponId)) {
+            hit.effects.add(() -> {
+                Location center = victim.getLocation();
+                for (Entity en : center.getWorld().getNearbyEntities(center, 3.0, 2.5, 3.0)) {
+                    if (!(en instanceof LivingEntity) || en.equals(attacker)) continue;
+                    if (en instanceof Player && !isEnemyTarget(attacker, (Player) en)) continue;
+                    LivingEntity living = (LivingEntity) en;
+                    Vector push = living.getLocation().toVector().subtract(center.toVector()).setY(0.0);
+                    if (push.lengthSquared() < 0.01) push = new Vector(0.0, 0.0, 1.0);
+                    living.setVelocity(push.normalize().multiply(0.9).setY(0.45));
+                    ColorUtil.addPot(living, "slowness", "SLOW", 100, 2);
+                }
+                center.getWorld().spawnParticle(Particle.SNOWFLAKE, center.clone().add(0, 1.0, 0), 40, 1.0, 0.7, 1.0, 0.05);
+                center.getWorld().playSound(center, "minecraft:block.glass.break", 0.9f, 0.8f);
+            });
+        } else if ("sword_midas".equals(weaponId)) {
+            hit.showDamageBar = false;
+            hit.effects.add(() -> {
+                int goldHit = 60 + rng.nextInt(141);
+                plugin.getStore().addCoins(attacker.getName(), goldHit);
+                ColorUtil.addPot(attacker, "absorption", "ABSORPTION", 100, 1);
+                ColorUtil.actionBar(attacker, "&#FFD740👑 ЭКСКАЛИБУР МИДАСА: &a+" + goldHit + "$ &8| &eЗолотые Сердца!");
+            });
+        }
+
+        String victimOffId = ItemFactory.getCustomId(victim.getInventory().getItemInOffHand());
+        if ("tal_moroza".equals(victimOffId)
+                && (plugin.getRanks().isOwnerLevel(victim) || reservePvpCooldown(hit, victim, "tal_moroza", 4000L))) {
+            hit.effects.add(() -> {
+                attacker.setFreezeTicks(120);
+                ColorUtil.addPot(attacker, "slowness", "SLOW", 60, 2);
+                victim.getWorld().spawnParticle(Particle.SNOWFLAKE, attacker.getLocation().add(0, 1.0, 0), 20, 0.4, 0.6, 0.4, 0.03);
+                ColorUtil.actionBar(victim, "&#80D8FF🧊 Талисман Мороза заморозил атакующего!");
+            });
         }
     }
 
@@ -4258,26 +4308,25 @@ public final class GameplayListener implements Listener {
         }
     }
 
-    /** Finalise ordinary feedback and Midas rewards only on accepted PvP hits.
-     * Both sets are drained on cancelled events too. */
+    /** Apply the prepared PvP effects only after ordinary protection handlers.
+     * Reservation and context are removed even for a cancelled hit. */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPvpDamageBanner(EntityDamageByEntityEvent e) {
-        boolean pending = pendingPvpBanners.remove(e);
-        boolean midas = pendingMidasHits.remove(e);
-        if ((!pending && !midas) || e.isCancelled() || !(e.getEntity() instanceof Player)) return;
-        Player attacker = null;
-        if (e.getDamager() instanceof Player) attacker = (Player) e.getDamager();
-        else if (e.getDamager() instanceof Projectile && ((Projectile) e.getDamager()).getShooter() instanceof Player)
-            attacker = (Player) ((Projectile) e.getDamager()).getShooter();
-        if (attacker == null || !attacker.isOnline() || !Double.isFinite(e.getFinalDamage())) return;
-        if (midas) {
-            int goldHit = 60 + rng.nextInt(141);
-            plugin.getStore().addCoins(attacker.getName(), goldHit);
-            ColorUtil.addPot(attacker, "absorption", "ABSORPTION", 100, 1);
-            ColorUtil.actionBar(attacker, "&#FFD740👑 ЭКСКАЛИБУР МИДАСА: &a+" + goldHit + "$ &8| &eЗолотые Сердца!");
-            return;
+        PendingPvpHit hit = pendingPvpHits.remove(e);
+        if (hit == null) return;
+        Player attacker = hit.attacker, victim = hit.victim;
+        boolean accepted = !e.isCancelled() && e.getEntity().equals(victim)
+                && attacker.isOnline() && victim.isOnline() && !attacker.isDead() && !victim.isDead()
+                && attacker.getWorld().equals(victim.getWorld()) && Double.isFinite(e.getFinalDamage());
+        releasePvpCooldowns(hit, accepted);
+        if (!accepted) return;
+        for (Runnable effect : hit.effects) {
+            try { effect.run(); }
+            catch (RuntimeException error) {
+                plugin.getLogger().log(java.util.logging.Level.WARNING, "[PvP] Could not apply accepted hit effect", error);
+            }
         }
-        Player victim = (Player) e.getEntity();
+        if (!hit.showDamageBar) return;
         double damage = Math.max(0.0, e.getFinalDamage());
         double remaining = Math.max(0.0, victim.getHealth() - damage);
         ColorUtil.actionBar(attacker, "&#FF5252⚔ " + victim.getName() + ": &#FF1744"
