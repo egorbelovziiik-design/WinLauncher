@@ -640,6 +640,9 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("kgbackup".equals(c)) {
+            if (sender instanceof Player && !store.isAuthenticated((Player) sender)) {
+                sender.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));return true;
+            }
             if (!hasEconomyAdmin(sender)) sender.sendMessage(ColorUtil.c("&cДоступно только OWNER, ТЕХ.АДМИНУ и консоли."));
             else coreBackups.command(sender, args);
             return true;

@@ -149,6 +149,11 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
     private void expireVote(){try{Object manager=voteManager();Field f=manager.getClass().getDeclaredField("deadline");f.setAccessible(true);f.setLong(manager,System.nanoTime()-1);}catch(Exception e){throw new RuntimeException(e);}}
     private void gameVoteChecks(Runnable next){
         double beforeA=core.getStore().getCoins(a.getName()),beforeB=core.getStore().getCoins(b.getName());
+        String previousRank=core.getStore().getSavedRank(a.getName());
+        core.getConfig().set("enable-builtin-auth",true);core.getStore().setSavedRank(a.getName(),"owner");core.getStore().setAuthenticated(a,false);
+        a.performCommand("gamevote start 60");a.performCommand("kgbackup create");
+        ok(((Long)voteField("deadline"))==0L&&!Files.exists(core.getDataFolder().toPath().resolve("backups")),"unauthenticated owner cannot start a vote or backup");
+        core.getStore().setSavedRank(a.getName(),previousRank);core.getConfig().set("enable-builtin-auth",false);
         watchVote=true;a.performCommand("gamevote start 60");
         ok(((Long)voteField("deadline"))==0L,"ordinary player cannot start a game vote");
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"gamevote start 1");

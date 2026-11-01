@@ -33,6 +33,9 @@ final class MiniGameVoteManager {
     void start(){ticker=new BukkitRunnable(){@Override public void run(){finishIfDue();}};ticker.runTaskTimer(plugin,20L,20L);}
     void shutdown(){if(ticker!=null)ticker.cancel();votes.clear();deadline=0;}
     void command(CommandSender sender,String[] args,boolean admin){
+        if(sender instanceof Player&&!plugin.getStore().isAuthenticated((Player)sender)){
+            sender.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));return;
+        }
         finishIfDue();String sub=args.length==0?"status":args[0].toLowerCase(Locale.ROOT);
         if("start".equals(sub)){
             if(!admin){sender.sendMessage(ColorUtil.c("&cНачать голосование могут OWNER, ТЕХ.АДМИН и консоль."));return;}
@@ -58,7 +61,6 @@ final class MiniGameVoteManager {
         if(choice==null||args.length!=1){sender.sendMessage(ColorUtil.c("&e/gamevote [parkour|duel] &7— голосование; &e/gamevote &7— состояние."));return;}
         if(!(sender instanceof Player)){sender.sendMessage(ColorUtil.c("&cГолосовать могут только игроки."));return;}
         Player player=(Player)sender;
-        if(!plugin.getStore().isAuthenticated(player)){player.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));return;}
         if(deadline==0){player.sendMessage(ColorUtil.c("&eСейчас голосование не идёт."));return;}
         if(!votes.containsKey(player.getUniqueId())&&votes.size()>=MAX_VOTERS){player.sendMessage(ColorUtil.c("&cДостигнут лимит голосов."));return;}
         Choice before=votes.put(player.getUniqueId(),choice);
