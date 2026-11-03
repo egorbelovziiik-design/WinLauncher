@@ -77,6 +77,7 @@ public final class KingGriefCore extends JavaPlugin {
     private ClaimContainerGuard claimContainers;
     private MiniGameVoteManager gameVotes;
     private AchievementManager achievements;
+    private ProgressRewards progressRewards;
     private WinterFishingManager winterFishing;
     private BuildContestManager buildContest;
     private FrostForgeManager frostForge;
@@ -103,6 +104,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
 
         this.store = new DataStore(this);
+        this.progressRewards = new ProgressRewards(this);
         this.ranks = new RankManager(this.store);
         this.clanAlliances = new ClanAllianceManager(this);
         this.winterTree = new WinterTreeManager(this);
@@ -176,7 +178,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "kgtree", "elka", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "calendar", "ah", "achievements", "autosell"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "kgtree", "elka", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "calendar", "ah", "achievements", "autosell", "daily", "bp"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -322,6 +324,7 @@ public final class KingGriefCore extends JavaPlugin {
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
     AchievementManager getAchievements() { return achievements; }
+    ProgressRewards getProgressRewards() { return progressRewards; }
     WinterFishingManager getWinterFishing() { return winterFishing; }
     AutoBuyerManager getAutoBuyer() { return autoBuyer; }
     FrostForgeManager getFrostForge() { return frostForge; }
@@ -560,7 +563,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length == 2 && "sort".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("new", "cheap", "expensive"), args[1]);
             if (args.length == 2 && "price".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("off"), args[1]);
         } else if ("achievements".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("claim"), args[0]);
+            return filterPrefix(Arrays.asList("status", "claim"), args[0]);
         } else if ("buildcontest".equals(c)) {
             if(args.length==1)return filterPrefix(hasTreeSeasonAdmin(sender)
                     ?Arrays.asList("status","list","enter","withdraw","start","voting","finish","cancel")
@@ -604,7 +607,7 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("pet".equals(c)) {
             if (args.length == 1) return filterPrefix(DisplayPetManager.choices(), args[0]);
             if (args.length == 2 && "view".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("all", "mine", "none"), args[1]);
-        } else if ("playtime".equals(c) && args.length == 1) {
+        } else if (("playtime".equals(c) || "daily".equals(c) || "bp".equals(c)) && args.length == 1) {
             return filterPrefix(Arrays.asList("status", "claim"), args[0]);
         } else if ("cases".equals(c)) {
             if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take"), args[0]);
@@ -1252,7 +1255,13 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("jobs".equals(c)) { guis.openJobsMenu(p); return true; }
-        if ("bp".equals(c)) { guis.openBpMenu(p); return true; }
+        if ("bp".equals(c)) {
+            if (args.length == 0) guis.openBpMenu(p);
+            else if (args.length == 1 && "status".equalsIgnoreCase(args[0])) progressRewards.showBpStatus(p);
+            else if (args.length == 1 && "claim".equalsIgnoreCase(args[0])) progressRewards.claimBpAndNotify(p, 0);
+            else p.sendMessage(ColorUtil.c("&e/bp &7или &e/bp status &7или &e/bp claim"));
+            return true;
+        }
         if ("quests".equals(c)) { guis.openDjamshutMenu(p); return true; }
         if ("titles".equals(c)) { guis.openTitlesMenu(p); return true; }
         if ("playtime".equals(c)) {
@@ -1417,22 +1426,7 @@ public final class KingGriefCore extends JavaPlugin {
             }
             return true;
         }
-        if ("daily".equals(c)) {
-            long now = System.currentTimeMillis();
-            long ready = store.getDailyReadyAt(p.getName());
-            if (now < ready) {
-                p.sendMessage(ColorUtil.c("&#FFD740🎅 Подарок уже получен! Следующий через &f" + ColorUtil.fmtTime((ready - now) / 1000L)));
-                return true;
-            }
-            store.setDailyReadyAt(p.getName(), now + 86400_000L);
-            store.addCoins(p.getName(), 20000);
-            store.addRelics(p.getName(), 15);
-            store.addSnowflakes(p.getName(), 5);
-            store.save();
-            ColorUtil.spawnFirework(p.getLocation());
-            p.sendMessage(ColorUtil.c("&#80D8FF🎅 Дедушка Мороз подарил вам &a+20 000$&f, &b+15 Риликов ❖ &fи &b+5 Снежинок ❄&f!"));
-            return true;
-        }
+        if ("daily".equals(c)) { progressRewards.dailyCommand(p, args); return true; }
         if ("promo".equals(c)) {
             if (args.length < 1) { guis.openFreebieMenu(p); return true; }
             String code = args[0].trim().toUpperCase(Locale.ROOT);

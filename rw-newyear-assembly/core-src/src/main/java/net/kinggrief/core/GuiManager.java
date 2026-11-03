@@ -1179,8 +1179,18 @@ public final class GuiManager {
                             used ? "&7✔ Уже активирован вами" : "&#00E676▸ Нажми ЛКМ для активации в 1 клик!"),
                     !used, "promo_" + code, null, 0));
         }
+        String dailyState = "&7Статус: &f/daily status";
+        String streakState = "&7Серия: &f/daily status";
+        try {
+            long now=System.currentTimeMillis();
+            ProgressRewards.DailyStatus status=plugin.getProgressRewards().dailyStatus(p,now);
+            long left=Math.max(0L,status.readyAt-now);
+            dailyState=left==0?"&#00E676Подарок доступен":"&7Ожидание: &f"+ColorUtil.fmtTime(left/1000L+(left%1000L==0?0:1));
+            streakState="&7Серия: &f"+status.streak+(status.bonusCoins>0?" &8| &eбонус следующего: +"+status.bonusCoins+"$ и "+status.bonusSnow+"❄":"");
+        } catch(Exception ignored) { /* command reports read errors */ }
         inv.setItem(13, ItemFactory.glowIcon(Material.SNOWBALL, "&#80D8FF&l🎅 Ежедневный Подарок Деда Мороза",
-                "&7Каждые 24 часа: &a+20 000$&7, &b+15❖ &7и &b+5❄&7!", "", "&#00E676▸ Нажми, чтобы забрать!"));
+                "&7Каждые 24 часа: &a+20 000$&7, &b+15❖ &7и &b+5❄&7!",
+                dailyState,streakState,"&8Серия сохраняется при интервале до 48 часов.","", "&#00E676▸ Нажми, чтобы забрать!"));
         inv.setItem(31, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
@@ -1633,27 +1643,35 @@ public final class GuiManager {
         inv.setItem(10, ItemFactory.glowIcon(Material.DIAMOND_PICKAXE, "&#38BDF8⛏ Шахтёр" + ("miner".equals(cur) ? " &a[АКТИВНА]" : ""), "&7Плата за добычу камня и руды!"));
         inv.setItem(12, ItemFactory.glowIcon(Material.IRON_AXE, "&#AEEA00🪓 Дровосек" + ("lumber".equals(cur) ? " &a[АКТИВНА]" : ""), "&7Плата за рубку любого дерева!"));
         inv.setItem(14, ItemFactory.glowIcon(Material.BOW, "&#FF9100🏹 Охотник" + ("hunter".equals(cur) ? " &a[АКТИВНА]" : ""), "&7Плата за убийство мобов!"));
-        inv.setItem(16, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744⚔ Гладиатор" + ("killer".equals(cur) ? " &a[АКТИВНА]" : ""), "&7Премия за PvP-победы!"));
+        inv.setItem(16, ItemFactory.glowIcon(Material.NETHERITE_SWORD, "&#FF1744⚔ Гладиатор" + ("killer".equals(cur) ? " &a[АКТИВНА]" : ""),
+                "&7Премия +100$ за победу в PvP.", "&8Общий КД 10 минут между премиями."));
         p.openInventory(inv);
     }
 
     public void openBpMenu(Player p) {
-        Inventory inv = Bukkit.createInventory(new KgMenuHolder("bp", "", 0), 36,
+        Inventory inv = Bukkit.createInventory(new KgMenuHolder("bp", "", 0), 54,
                 ColorUtil.c("&#80D8FF&l🎄 НОВОГОДНИЙ БОЕВОЙ ПРОПУСК"));
         decorateFrame(inv);
-        int score = plugin.getStore().getMinedBlocks(p.getName()) / 20 + plugin.getStore().getKills(p.getName()) * 5;
-        for (int lv = 1; lv <= 7; lv++) {
-            int req = lv * 10;
+        long score = ProgressRewards.bpScore(plugin.getStore(), p.getName());
+        inv.setItem(4, ItemFactory.glowIcon(Material.BOOK, "&#80D8FF&lПРОГРЕСС БОЕВОГО ПРОПУСКА",
+                "&7Очков: &f" + score, "&720 разрушенных блоков = 1 очко.", "&71 PvP-победа = 5 очков.",
+                "&8Старые полученные уровни не сбрасываются."));
+        for (int lv = 1; lv <= ProgressRewards.BP_LEVELS; lv++) {
+            long req = ProgressRewards.bpRequired(lv);
             boolean done = plugin.getStore().hasClaimedBp(p.getName(), lv);
             boolean ready = score >= req;
-            inv.setItem(9 + lv, ItemFactory.make(done ? Material.MINECART : Material.CHEST_MINECART, lv,
+            inv.setItem(ProgressRewards.bpSlot(lv), ItemFactory.make(done ? Material.MINECART : Material.CHEST_MINECART, 1,
                     "&#FFD740Уровень БП #" + lv,
                     Arrays.asList("&7Очков прогресса: &f" + score + " / " + req,
                             "&7Награда: &a+" + (lv * 15000) + "$ &7+ &b" + (lv * 15) + "❖ &7+ &b" + (lv * 5) + "❄", "",
-                            done ? "&7✔ Получено" : (ready ? "&#00E676▸ Забрать награду!" : "&cКопи очки шахтой и PvP!")),
+                            done ? "&7✔ Получено" : (ready ? "&#00E676▸ Забрать награду!" : "&cКопи очки добычей и PvP!")),
                     ready && !done, "bp_" + lv, null, 0));
         }
-        inv.setItem(31, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
+        inv.setItem(38, ItemFactory.glowIcon(Material.HOPPER, "&#00E676&lЗАБРАТЬ ВСЕ ГОТОВЫЕ УРОВНИ",
+                "&7Все доступные награды одним действием.", "&7Команда: &f/bp claim"));
+        inv.setItem(40, ItemFactory.icon(Material.COMPASS, "&#80D8FFСтатус: /bp status",
+                "&7Откройте информацию об очках в чате."));
+        inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
     }
 
@@ -2035,7 +2053,14 @@ public final class GuiManager {
             handleBafovarClick(p, slot);
         } else if ("freebie".equals(type)) {
             if (slot == 31) { openMainMenu(p); return; }
-            if (slot == 13) { p.closeInventory(); p.performCommand("daily"); return; }
+            if (slot == 13) {
+                if (e.getClick() != ClickType.LEFT && e.getClick() != ClickType.RIGHT) return;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (!p.isOnline() || p.getOpenInventory().getTopInventory().getHolder() != h) return;
+                    p.closeInventory(); p.performCommand("daily");
+                });
+                return;
+            }
             String cid = ItemFactory.getCustomId(clicked);
             if (cid != null && cid.startsWith("promo_")) {
                 p.performCommand("promo " + cid.substring(6));
@@ -2403,18 +2428,16 @@ public final class GuiManager {
                 openJobsMenu(p);
             }
         } else if ("bp".equals(type)) {
-            if (slot == 31) { openMainMenu(p); return; }
-            int lv = slot - 9;
-            int score = plugin.getStore().getMinedBlocks(p.getName()) / 20 + plugin.getStore().getKills(p.getName()) * 5;
-            if (lv >= 1 && lv <= 7 && score >= lv * 10 && !plugin.getStore().hasClaimedBp(p.getName(), lv)) {
-                plugin.getStore().setClaimedBp(p.getName(), lv);
-                plugin.getStore().addCoins(p.getName(), lv * 15000);
-                plugin.getStore().addRelics(p.getName(), lv * 15);
-                plugin.getStore().addSnowflakes(p.getName(), lv * 5);
-                plugin.getStore().save();
-                ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-                openBpMenu(p);
-            }
+            if (e.getClick() != ClickType.LEFT && e.getClick() != ClickType.RIGHT) return;
+            final int level = ProgressRewards.bpLevelAt(slot);
+            if (level < 1 && slot != 38 && slot != 40 && slot != 49) return;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!p.isOnline() || p.getOpenInventory().getTopInventory().getHolder() != h) return;
+                if (slot == 49) { openMainMenu(p); return; }
+                if (slot == 40) { plugin.getProgressRewards().showBpStatus(p); return; }
+                plugin.getProgressRewards().claimBpAndNotify(p, slot == 38 ? 0 : level);
+                if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) openBpMenu(p);
+            });
         } else if ("clans".equals(type)) {
             if (slot == 49 || slot == 31) { openMainMenu(p); return; }
             DataStore.Clan my = plugin.getStore().getClanOf(p.getName());

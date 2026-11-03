@@ -1,5 +1,5 @@
 name: KingGriefCore
-version: 7.10.0
+version: 7.11.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
@@ -31,7 +31,7 @@ commands:
   achievements:
     aliases: [achieve]
     description: View persistent achievement badges and cosmetic rewards
-    usage: /achievements [claim]
+    usage: /achievements [status|claim]
   gamevote:
     description: Vote between currently available activities (no automatic teleport)
     usage: /gamevote [parkour|duel|memory|start|cancel]
@@ -182,6 +182,8 @@ commands:
     aliases: [job]
   bp:
     aliases: [battlepass]
+    description: Battle pass, progress and available tier rewards
+    usage: /bp [status|claim]
   quests:
     aliases: [djamshut, snow]
   titles:
@@ -212,7 +214,9 @@ commands:
     aliases: [balance]
   pay: {}
   baltop: {}
-  daily: {}
+  daily:
+    description: Claim a daily gift or check its cooldown and streak
+    usage: /daily [status|claim]
   promo:
     aliases: [promocode]
   promoadmin: {}

@@ -1260,15 +1260,28 @@ public final class DataStore {
         return Math.max(local, external);
     }
 
-    /** Local balance has already committed; synchronize PlayerPoints without a second award. */
-    void syncAwardRelics(String name, UUID id) {
-        if (id == null) return;
+    /** Read both sides before new rewards when PlayerPoints is installed. A failed read is not a zero balance. */
+    int getVerifiedAwardRelics(String name, UUID id) {
+        long local = yml.getLong("players." + key(name) + ".relics", 50L);
+        if (local < 0L || local > Integer.MAX_VALUE) return -1;
         org.bukkit.plugin.Plugin points = Bukkit.getPluginManager().getPlugin("PlayerPoints");
-        if (points == null) return;
+        if (points == null) return (int) local;
+        if (id == null || !points.isEnabled()) return -1;
+        int external = readPlayerPoints(id);
+        return external < 0 ? -1 : Math.max((int) local, external);
+    }
+
+    /** Local balance has already committed; synchronize PlayerPoints without a second award. */
+    boolean syncAwardRelics(String name, UUID id) {
+        if (id == null) return false;
+        org.bukkit.plugin.Plugin points = Bukkit.getPluginManager().getPlugin("PlayerPoints");
+        if (points == null) return true;
         int target = Math.max(0, yml.getInt("players." + key(name) + ".relics", 50));
         int external = points.isEnabled() ? readPlayerPoints(id) : -1;
-        if (external < 0 || (external < target && !setPlayerPointsChecked(points, id, target)))
+        boolean confirmed = external >= target || (external >= 0 && setPlayerPointsChecked(points, id, target));
+        if (!confirmed)
             plugin.getLogger().warning("[Rewards] PlayerPoints did not confirm the local relic award for " + name + "; local balance remains recorded.");
+        return confirmed;
     }
 
     public void addRelics(String name, int amount) {
@@ -1411,19 +1424,46 @@ public final class DataStore {
     }
 
     // ================= STATS, JOBS, PROMOS, BP & KITS =================
-    public int getKills(String name) { return yml.getInt("players." + key(name) + ".kills", 0); }
-    public int getDeaths(String name) { return yml.getInt("players." + key(name) + ".deaths", 0); }
-    public int getMinedBlocks(String name) { return yml.getInt("players." + key(name) + ".mined", 0); }
-    public void addKill(String name) {
-        yml.set("players." + key(name) + ".kills", getKills(name) + 1);
-        Clan c = getClanOf(name);
-        if (c != null) c.kills++;
+    private int progressCounter(String name, String field) {
+        return (int) Math.max(0L, Math.min((long) Integer.MAX_VALUE,
+                yml.getLong("players." + key(name) + "." + field, 0L)));
     }
-    public void addDeath(String name) { yml.set("players." + key(name) + ".deaths", getDeaths(name) + 1); }
-    public void addMined(String name) { yml.set("players." + key(name) + ".mined", getMinedBlocks(name) + 1); }
+    public int getKills(String name) { return progressCounter(name, "kills"); }
+    public int getDeaths(String name) { return progressCounter(name, "deaths"); }
+    public int getMinedBlocks(String name) { return progressCounter(name, "mined"); }
+    public void addKill(String name) {
+        yml.set("players." + key(name) + ".kills", boundedIntegerSum(getKills(name), 1));
+        Clan c = getClanOf(name);
+        if (c != null) c.kills = boundedIntegerSum(c.kills, 1);
+    }
+    public void addDeath(String name) { yml.set("players." + key(name) + ".deaths", boundedIntegerSum(getDeaths(name), 1)); }
+    public void addMined(String name) { yml.set("players." + key(name) + ".mined", boundedIntegerSum(getMinedBlocks(name), 1)); }
 
     public String getJob(String name) { return yml.getString("players." + key(name) + ".job", "none"); }
     public void setJob(String name, String job) { yml.set("players." + key(name) + ".job", job); }
+
+    /** Small gladiator premium, once per ten minutes across all opponents, stored with its cooldown. */
+    synchronized boolean awardGladiator(Player player, long now) {
+        if (player == null || !"killer".equals(getJob(player.getName())) || now <= 0L || now > Long.MAX_VALUE - 600_000L) return false;
+        String root = "players." + key(player.getName());
+        long ready = yml.getLong(root + ".gladiatorReady", 0L);
+        double coins = getCoins(player.getName()), after = coins + 100.0;
+        if (ready < 0L || ready > now || !Double.isFinite(coins) || coins < 0 || !Double.isFinite(after) || after <= coins) return false;
+        try {
+            transact(data -> {
+                if (!"killer".equals(data.getString(root + ".job", "none")) || data.getLong(root + ".gladiatorReady", 0L) != ready
+                        || Double.compare(data.getDouble(root + ".coins", plugin.getConfig().getDouble("starting-coins", 2500.0)), coins) != 0)
+                    throw new IOException("gladiator state changed");
+                data.set(root + ".coins", after);
+                data.set(root + ".gladiatorReady", now + 600_000L);
+                return null;
+            });
+            return true;
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Jobs] Gladiator premium was not committed for " + player.getName() + ": " + error.getMessage());
+            return false;
+        }
+    }
 
     public boolean hasClaimedBp(String name, int level) {
         return yml.getBoolean("players." + key(name) + ".bp." + level, false);

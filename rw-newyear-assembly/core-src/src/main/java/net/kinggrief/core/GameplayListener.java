@@ -4921,12 +4921,16 @@ public final class GameplayListener implements Listener {
                 c = 50.0;
                 ColorUtil.actionBar(killer, "&#FFD740⭐ Талисман Звезды: +25% монет!");
             }
+            // The farm branch used to return before the selected hunter job could pay.
+            if (dead instanceof Monster && "hunter".equals(plugin.getStore().getJob(killer.getName()))) {
+                c += "tal_zvezdy".equals(ItemFactory.getCustomId(killer.getInventory().getItemInOffHand())) ? 38.0 : 30.0;
+            }
             plugin.getStore().addCoins(killer.getName(), c);
             if (rng.nextInt(100) < 35) {
                 plugin.getStore().addSnowflakes(killer.getName(), 1);
-                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+40$ &8| &#80D8FF+1 Снежинка ❄!");
+                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+" + ColorUtil.fmtMoney(c) + "$ &8| &#80D8FF+1 Снежинка ❄!");
             } else {
-                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+40$ &7(+12 XP)");
+                ColorUtil.actionBar(killer, "&#AEEA00🧟 Фармилка: &a+" + ColorUtil.fmtMoney(c) + "$ &7(+12 XP)");
             }
             return;
         }
@@ -5152,8 +5156,14 @@ public final class GameplayListener implements Listener {
             plugin.getStore().addKill(killer.getName());
             DataStore.Clan kClan = plugin.getStore().getClanOf(killer.getName());
             double clanBonus = kClan != null ? kClan.level * 40.0 : 0.0;
-            if (kClan != null) kClan.kills++;
+            // addKill already increments the clan total; do not count a single victory twice.
             plugin.getStore().addCoins(killer.getName(), 200.0 + clanBonus);
+            if (killer.isOnline() && !killer.isDead() && killer.getGameMode() != org.bukkit.GameMode.SPECTATOR
+                    && plugin.getStore().isAuthenticated(killer) && !plugin.getStore().isQuickFrozen(killer)
+                    && !plugin.getModeration().isFrozenOrAscending(killer)
+                    && plugin.getStore().awardGladiator(killer, System.currentTimeMillis())) {
+                killer.sendMessage(ColorUtil.c("&#FF9100⚔ Гладиатор: &a+100$ &7(премия не чаще раза в 10 минут)."));
+            }
 
             if (deadPrevStreak >= 3) {
                 double shutBonus = deadPrevStreak * 1000.0;

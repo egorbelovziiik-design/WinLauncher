@@ -1,0 +1,5 @@
+name: KgV711Probe
+version: '1.0'
+main: net.kinggrief.probe.V711Probe
+api-version: '1.21'
+depend: [KingGriefCore, PlayerPoints]
