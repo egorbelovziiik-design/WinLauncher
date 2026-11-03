@@ -1,0 +1,5 @@
+name: KgGlobalFixProbe
+main: net.kinggrief.probe.GlobalFixProbe
+version: '1.0.0'
+api-version: '1.21'
+depend: [KingGriefCore]

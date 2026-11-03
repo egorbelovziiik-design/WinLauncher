@@ -1,0 +1,5 @@
+name: KgSpawnInstallProbe
+main: net.kinggrief.core.test.PreserveV77Probe
+version: '1.0.0'
+api-version: '1.21'
+depend: [KingGriefCore]

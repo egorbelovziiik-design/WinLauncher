@@ -54,6 +54,7 @@ public final class KingGriefCore extends JavaPlugin {
     private SafeTradeManager safeTrades;
     private BuyOrderManager buyOrders;
     private SpawnEngine spawnEngine;
+    private LegacySpawnGuard legacySpawnGuard;
     private GuiManager guis;
     private HudManager hud;
     private ModerationManager moderation;
@@ -128,6 +129,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.lp = new LpManager(this);
         this.bossEvents = new BossEventManager(this);
         this.spawnEngine = new SpawnEngine(this);
+        this.legacySpawnGuard = new LegacySpawnGuard(this);
+        Bukkit.getPluginManager().registerEvents(this.legacySpawnGuard, this);
         this.rtpManager = new RtpManager(this);
         Bukkit.getPluginManager().registerEvents(this.rtpManager, this);
         this.guis = new GuiManager(this);
@@ -326,6 +329,7 @@ public final class KingGriefCore extends JavaPlugin {
     EventCalendarManager getEventCalendar() { return eventCalendar; }
     UtilityFeaturesManager getUtilities() { return utilities; }
     ClaimContainerGuard getClaimContainers() { return claimContainers; }
+    LegacySpawnGuard getLegacySpawnGuard() { return legacySpawnGuard; }
     public DataStore getStore() { return store; }
     public RankManager getRanks() { return ranks; }
     public LpManager getLp() { return lp; }
@@ -345,7 +349,7 @@ public final class KingGriefCore extends JavaPlugin {
     public CuratorManager getCurator() { return curatorManager; }
 
     private boolean isStrictOwnerOrConsole(CommandSender s) {
-        if (!(s instanceof Player)) return true;
+        if (!(s instanceof Player)) return CommandSenderPolicy.isConsole(s);
         Player p = (Player) s;
         return ranks.isOwnerLevel(p);
     }
@@ -358,7 +362,7 @@ public final class KingGriefCore extends JavaPlugin {
     private boolean hasTreeSeasonAdmin(CommandSender sender) {
         // Command blocks and other non-player senders are not automatically a
         // console. Allow local/RCON console or an owner-level player only.
-        return sender instanceof ConsoleCommandSender || sender instanceof RemoteConsoleCommandSender
+        return CommandSenderPolicy.isConsole(sender)
                 || (sender instanceof Player && ranks.isOwnerLevel((Player) sender));
     }
 
@@ -641,7 +645,7 @@ public final class KingGriefCore extends JavaPlugin {
         } else if ("crown".equals(c)) {
             if (args.length == 1) {
                 List<String> choices = new ArrayList<String>(Arrays.asList("join", "leave", "status"));
-                if (!(sender instanceof Player) || bossEvents.canAdminSpawnEvents((Player)sender)) {
+                if (CommandSenderPolicy.isConsole(sender) || (sender instanceof Player && bossEvents.canAdminSpawnEvents((Player)sender))) {
                     choices.add("start"); choices.add("stop");
                 }
                 return filterPrefix(choices, args[0]);
@@ -735,6 +739,12 @@ public final class KingGriefCore extends JavaPlugin {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
+        // These branches include gamemode, kits, events and money operations.
+        // Do not treat command blocks, entities or /execute proxies as console.
+        if (!(sender instanceof Player) && !CommandSenderPolicy.isConsole(sender)) {
+            sender.sendMessage("Эта команда доступна игроку или консоли сервера, но не командному блоку.");
+            return true;
+        }
 
         // ================= CONSOLE + ADMIN COMMANDS: /kgadmin, /cases give, /p give, /money give, /promoadmin =================
         if ("calendar".equals(c)) {

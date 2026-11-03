@@ -145,7 +145,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
     }
 
     public boolean hasCuratorAccess(CommandSender sender) {
-        if (!(sender instanceof Player)) return true;
+        if (!(sender instanceof Player)) return CommandSenderPolicy.isConsole(sender);
         Player p = (Player) sender;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         if (r == null) return false;
@@ -159,7 +159,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
     }
 
     private boolean isOwnerSender(CommandSender s) {
-        if (!(s instanceof Player)) return true;
+        if (!(s instanceof Player)) return CommandSenderPolicy.isConsole(s);
         RankManager.RankDef r = plugin.getRanks().getRank((Player) s);
         return r != null && plugin.getRanks().isOwnerLevel(r.id);
     }

@@ -1927,7 +1927,7 @@ public final class DataStore {
         mute(name, durationMs, reason, "Консоль");
     }
     public void mute(String name, long durationMs, String reason, String staff) {
-        long until = durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs;
+        long until = safePunishmentUntil(durationMs);
         yml.set("mutes." + key(name) + ".until", until);
         yml.set("mutes." + key(name) + ".reason", reason);
         yml.set("mutes." + key(name) + ".staff", staff);
@@ -1949,11 +1949,15 @@ public final class DataStore {
         return yml.getString("mutes." + key(name) + ".staff", "Модерация");
     }
 
+    private static long safePunishmentUntil(long durationMs) {
+        long now = System.currentTimeMillis();
+        return durationMs <= 0 || durationMs > Long.MAX_VALUE - now ? Long.MAX_VALUE : now + durationMs;
+    }
     public void ban(String name, long durationMs, String reason) {
         ban(name, durationMs, reason, "Консоль");
     }
     public void ban(String name, long durationMs, String reason, String staff) {
-        yml.set("bans." + key(name) + ".until", durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs);
+        yml.set("bans." + key(name) + ".until", safePunishmentUntil(durationMs));
         yml.set("bans." + key(name) + ".reason", reason);
         yml.set("bans." + key(name) + ".staff", staff);
         save();
@@ -1982,7 +1986,7 @@ public final class DataStore {
     public void muteIp(String ip, String targetLabel, long durationMs, String reason, String staff) {
         if (ip == null || ip.isEmpty()) return;
         String ik = "ipmutes." + ipKey(ip);
-        long until = durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs;
+        long until = safePunishmentUntil(durationMs);
         yml.set(ik + ".ip", ip);
         yml.set(ik + ".target", targetLabel == null ? ip : targetLabel);
         yml.set(ik + ".until", Long.valueOf(until));
@@ -2024,7 +2028,7 @@ public final class DataStore {
     public void banIp(String ip, String targetLabel, long durationMs, String reason, String staff) {
         if (ip == null || ip.isEmpty()) return;
         String ik = "ipbans." + ipKey(ip);
-        long until = durationMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durationMs;
+        long until = safePunishmentUntil(durationMs);
         yml.set(ik + ".ip", ip);
         yml.set(ik + ".target", targetLabel == null ? ip : targetLabel);
         yml.set(ik + ".until", Long.valueOf(until));
@@ -2068,7 +2072,7 @@ public final class DataStore {
         return yml.getString("ipbans." + ipKey(ip) + ".target", ip);
     }
 
-    private String findPunishedIp(String rootNode, String nick) {
+    String findPunishedIp(String rootNode, String nick) {
         if (nick == null || nick.isEmpty()) return "";
         ConfigurationSection sec = yml.getConfigurationSection(rootNode);
         if (sec == null) return "";

@@ -52,7 +52,12 @@ public final class ShopPromoProbe extends JavaPlugin implements Listener {
         if(buyer==null || other==null)throw new IllegalStateException("protocol players missing");
         buyer.setGameMode(GameMode.SURVIVAL);buyer.getInventory().clear();store.setCoins(buyer.getName(),1_000_000);store.setRelics(buyer.getName(),2_000);store.addSnowflakes(buyer.getName(),500);store.save();
         data=core.getDataFolder().toPath().resolve("data.yml");saved=data.resolveSibling("shop-probe-saved.yml");
-        full();buyer.performCommand("rshop");click(10, this::afterRelicFull);
+        full();buyer.performCommand("bafovar");click(10, this::afterBafovarFull);
+    }
+    private void afterBafovarFull() {
+        ok(store.getCoins(buyer.getName())==1_000_000 && quantity(Material.POTION)==0,
+                "full inventory refuses Bafovar potion without taking coins");
+        buyer.performCommand("rshop");click(10, this::afterRelicFull);
     }
     private void afterRelicFull() {
         ok(store.getRelics(buyer)==2000,"full inventory rejects relic shop without charge");
@@ -91,6 +96,19 @@ public final class ShopPromoProbe extends JavaPlugin implements Listener {
     }
     private void afterCoinSuccess() {
         ok(store.getCoins(buyer.getName())==835_000 && quantity(Material.GOLDEN_PICKAXE)==1,"black-market purchase charges once and gives item");
+        buyer.getInventory().clear();buyer.performCommand("bafovar");
+        try { link(); } catch(Exception e) { throw new RuntimeException(e); }
+        click(10,this::afterFailedBafovarSave);
+    }
+    private void afterFailedBafovarSave() {
+        restore();
+        ok(store.getCoins(buyer.getName())==835_000 && quantity(Material.POTION)==0,
+                "failed Bafovar save gives no potion and rolls back the payment");
+        buyer.performCommand("bafovar");click(10,this::afterBafovarSuccess);
+    }
+    private void afterBafovarSuccess() {
+        ok(store.getCoins(buyer.getName())==821_000 && quantity(Material.POTION)==1,
+                "Bafovar delivers exactly one potion and charges exactly once");
         buyer.getInventory().clear();buyer.performCommand("quests");
         try { link(); } catch(Exception e) { throw new RuntimeException(e); }
         click(11,this::afterFailedSnowSave);

@@ -2762,13 +2762,13 @@ public final class GuiManager {
         else if (slot == 20) { pot = ItemFactory.potionVampire(1); cost = 18000; }
 
         if (pot != null) {
-            if (!plugin.getStore().takeCoins(p.getName(), cost)) {
-                p.sendMessage(ColorUtil.c("&cНедостаточно монет! Нужно: " + ColorUtil.fmtMoney(cost) + "$"));
+            if (!requireShopSpace(p, pot)) return;
+            if (!plugin.getStore().takeCoinsDurably(p.getName(), cost)) {
+                p.sendMessage(ColorUtil.c("&cПокупка не сохранена: проверьте баланс (нужно " + ColorUtil.fmtMoney(cost) + "$) и журнал сервера. Валюта не списана."));
                 ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
                 return;
             }
-            plugin.getStore().save();
-            p.getInventory().addItem(pot);
+            deliverShopItems(p, pot);
             ColorUtil.sound(p, "block.brewing_stand.brew", 1f, 1.2f);
             p.sendMessage(ColorUtil.c("&#00E676🧪 Бафовар сварил для вас зелье за &a" + ColorUtil.fmtMoney(cost) + "$&7!"));
             openBafovarMenu(p);

@@ -108,7 +108,7 @@ public final class OwnerGiveawayManager implements Listener, CommandExecutor, Ta
     }
 
     public boolean isOwnerSender(CommandSender s) {
-        if (!(s instanceof Player)) return true;
+        if (!(s instanceof Player)) return CommandSenderPolicy.isConsole(s);
         Player p = (Player) s;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         return r != null && plugin.getRanks().isOwnerLevel(r.id);

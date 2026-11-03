@@ -542,6 +542,12 @@ public final class GameplayListener implements Listener {
         if (!ip.isEmpty()) {
             plugin.getStore().recordPlayerIp(p.getName(), ip);
         }
+        // A failed disk commit leaves the journal in place. Do not let the
+        // player bypass an interrupted animation while it is retried.
+        if (plugin.getModeration().hasPendingBan(p.getName())) {
+            e.disallow(PlayerLoginEvent.Result.KICK_BANNED, ColorUtil.c("&cБлокировка ожидает сохранения. Обратитесь к администрации."));
+            return;
+        }
         // v6.2.1: БАН ПО НИКУ действует на ВСЕХ (даже OWNER-ранг) — иначе бан невозможно выдать!
         boolean isOwnerRank = plugin.getRanks().isOwnerLevelByName(p.getName());
         String ban = plugin.getStore().getActiveBanReason(p.getName());
@@ -2616,6 +2622,7 @@ public final class GameplayListener implements Listener {
         // had a chance to cancel a physical plate interaction.
         if (e.getAction() == Action.PHYSICAL) return;
         if (plugin.getClaimContainers() != null && plugin.getClaimContainers().enforce(e, true)) return;
+        if (plugin.getLegacySpawnGuard() != null && plugin.getLegacySpawnGuard().enforceInteraction(e, true)) return;
 
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;
 

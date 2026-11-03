@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 7.7.0
+version: 7.8.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.7.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
+description: "KINGGRIEF v7.8.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
 
 
 commands:

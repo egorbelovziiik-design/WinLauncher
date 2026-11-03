@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Chest;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,6 +20,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -36,7 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** Protects container clicks in Core claims, including both halves of a double chest.
+/** Protects container clicks and direct hopper transfers across Core claim boundaries.
  * This does not replace WorldGuard or protect against every non-player transport. */
 final class ClaimContainerGuard implements Listener {
     private static final int MAX_LOG=50,MAX_RATE_KEYS=4096;
@@ -96,6 +99,56 @@ final class ClaimContainerGuard implements Listener {
         Player player=(Player)event.getWhoClicked();Inventory top=event.getView().getTopInventory();
         if(!canUseOpenInventory(player,top)){event.setCancelled(true);closeLater(player,top);}
     }
+    /**
+     * Hoppers have no trustworthy player owner. Permit automation completely
+     * inside one claim (and completely outside all claims), but not across a
+     * claim boundary. Inspect both halves of double chests. Never load chunks.
+     * Other plugins that mutate inventories without Bukkit events remain outside
+     * this guard; a hopper minecart already inside a claim is not owner-aware.
+     */
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void onInventoryMove(InventoryMoveItemEvent event){
+        List<Location> positions=new ArrayList<Location>(4);
+        addInventoryLocations(event.getSource(),positions);
+        addInventoryLocations(event.getDestination(),positions);
+        if(crossesClaimBoundary(positions))event.setCancelled(true);
+    }
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void onInventoryPickup(InventoryPickupItemEvent event){
+        List<Location> positions=new ArrayList<Location>(3);
+        addInventoryLocations(event.getInventory(),positions);
+        positions.add(event.getItem().getLocation());
+        if(crossesClaimBoundary(positions))event.setCancelled(true);
+    }
+    private static void addInventoryLocations(Inventory inventory,List<Location> positions){
+        if(inventory instanceof DoubleChestInventory){
+            DoubleChestInventory pair=(DoubleChestInventory)inventory;
+            positions.add(pair.getLeftSide().getLocation());
+            positions.add(pair.getRightSide().getLocation());
+            return;
+        }
+        InventoryHolder holder=holderWithoutSnapshot(inventory);
+        if(holder instanceof BlockState)positions.add(((BlockState)holder).getLocation());
+        else if(holder instanceof Entity)positions.add(((Entity)holder).getLocation());
+        else positions.add(null); // do not assume the origin of a virtual inventory
+    }
+    private boolean crossesClaimBoundary(List<Location> positions){
+        String protectedId=null;
+        boolean outsideOrUnknown=false;
+        for(Location location:positions){
+            if(location==null||location.getWorld()==null
+                    ||!location.getWorld().isChunkLoaded(location.getBlockX()>>4,location.getBlockZ()>>4)){
+                outsideOrUnknown=true;
+                continue;
+            }
+            DataStore.Claim claim=plugin.getStore().getClaimAt(location);
+            if(claim==null){outsideOrUnknown=true;continue;}
+            if(protectedId==null)protectedId=claim.id;
+            else if(!protectedId.equals(claim.id))return true;
+        }
+        return protectedId!=null&&outsideOrUnknown;
+    }
+
     void accessChanged(String name){
         if(name==null)return;
         for(Player player:Bukkit.getOnlinePlayers())if(player.getName().equalsIgnoreCase(name)){
@@ -200,7 +253,7 @@ final class ClaimContainerGuard implements Listener {
             }
             if(entries.isEmpty())player.sendMessage(ColorUtil.c(" &8• &7Записей пока нет."));
             if(page<pages)player.sendMessage(ColorUtil.c("&7Следующая страница: &f/rg log "+(page+1)));
-            player.sendMessage(ColorUtil.c("&8Записываются только заблокированные попытки контейнеров встроенного привата; журнал не отслеживает WorldGuard и воронки."));
+            player.sendMessage(ColorUtil.c("&8Записываются только заблокированные попытки контейнеров встроенного привата; журнал не отслеживает WorldGuard и автоматические переносы."));
             return null;
         });}catch(Exception error){player.sendMessage(ColorUtil.c("&cНе удалось прочитать журнал."));}
     }

@@ -60,7 +60,8 @@ public final class CrownEventManager implements Listener {
     public boolean handleCommand(CommandSender sender, String[] args) {
         String sub = args.length == 0 ? "status" : args[0].toLowerCase(java.util.Locale.ROOT);
         if ("start".equals(sub) || "stop".equals(sub)) {
-            if (sender instanceof Player && !plugin.getBossEvents().canAdminSpawnEvents((Player)sender)) {
+            if (!CommandSenderPolicy.isConsole(sender)
+                    && (!(sender instanceof Player) || !plugin.getBossEvents().canAdminSpawnEvents((Player)sender))) {
                 sender.sendMessage(ColorUtil.c("&cУправлять ивентом могут только администраторы."));
                 return true;
             }

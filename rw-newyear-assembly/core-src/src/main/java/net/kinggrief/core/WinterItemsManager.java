@@ -399,7 +399,7 @@ public final class WinterItemsManager implements Listener, CommandExecutor, TabC
     }
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length > 0 && "give".equalsIgnoreCase(args[0])) {
-            if (!(sender instanceof ConsoleCommandSender) && (!(sender instanceof Player) || !plugin.getRanks().isOwnerLevel((Player) sender))) {
+            if (!CommandSenderPolicy.isConsole(sender) && (!(sender instanceof Player) || !plugin.getRanks().isOwnerLevel((Player) sender))) {
                 sender.sendMessage(ColorUtil.c("&cВыдача доступна только OWNER, TECH.ADMIN и консоли.")); return true;
             }
             if (args.length < 3 || args.length > 4) {

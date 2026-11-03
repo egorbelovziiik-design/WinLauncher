@@ -35,7 +35,7 @@ public final class LpManager implements CommandExecutor, TabCompleter {
     }
 
     public boolean hasLpAccess(CommandSender s) {
-        if (s instanceof ConsoleCommandSender) return true;
+        if (CommandSenderPolicy.isConsole(s)) return true;
         if (!(s instanceof Player)) return false;
         Player p = (Player) s;
         RankManager.RankDef r = plugin.getRanks().getRank(p);

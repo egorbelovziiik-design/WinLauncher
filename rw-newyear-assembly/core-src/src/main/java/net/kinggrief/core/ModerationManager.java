@@ -18,6 +18,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -98,6 +99,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     }
 
     private final KingGriefCore plugin;
+    private final PendingBanJournal banJournal;
     // Active /check sessions keyed by suspect UUID
     // v6.3.2: читается/пишется из АСИНХРОННОГО потока чата (/check) -> только потокобезопасная карта!
     private final Map<UUID, CheckSession> activeChecks = new java.util.concurrent.ConcurrentHashMap<UUID, CheckSession>();
@@ -134,6 +136,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     }
     private final Map<UUID, List<Entity>> activeBanAnimEntities = new HashMap<UUID, List<Entity>>();
     private final Map<UUID, Map<Block, BlockData>> activeBanAnimPortals = new HashMap<UUID, Map<Block, BlockData>>();
+    // Portals are visual entities, never temporary world blocks: block entities
+    // such as chests/signs and edits by other plugins are not overwritten.
+    private final Map<UUID, List<Entity>> activePortalDisplays = new HashMap<UUID, List<Entity>>();
     // v6.3.0: задачи анимаций РАЗБАНА теперь тоже отслеживаются (иначе порталы утекают при /reload)!
     private final List<BukkitRunnable> activeUnbanAnimTasks = new ArrayList<BukkitRunnable>();
     // v6.3.0: ПОСТОЯННЫЙ кляп 🤐 — висит на игроке ВЕСЬ срок мута, а не 6 секунд анимации!
@@ -146,9 +151,19 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
 
     public ModerationManager(KingGriefCore plugin) {
         this.plugin = plugin;
+        this.banJournal = new PendingBanJournal(plugin.getStore());
     }
 
     public void start() {
+        // On a hard stop the animation cannot resume. Finish its saved name
+        // ban before accepting players, or stop instead of silently losing it.
+        try {
+            for (PendingBanJournal.Entry entry : banJournal.all()) completeJournalBan(entry);
+        } catch (Exception error) {
+            plugin.getLogger().severe("[Moderation] Cannot recover pending bans; stopping to protect moderation data: " + error);
+            Bukkit.shutdown();
+            throw new IllegalStateException("Cannot recover pending bans", error);
+        }
         checkTickTask = new BukkitRunnable() {
             int tickSec = 0;
 
@@ -156,6 +171,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             public void run() {
                 tickSec++;
                 tickActiveChecks(tickSec);
+                if (tickSec % 10 == 0) retryInterruptedBans();
                 // v6.3.0: раз в секунду синхронизируем постоянные кляпы 🤐 (мут истёк / игрок зашёл)!
                 syncMuteGags();
             }
@@ -169,6 +185,45 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             }
         };
         muteGagTask.runTaskTimer(plugin, 25L, 5L);
+    }
+
+    private boolean completeJournalBan(PendingBanJournal.Entry entry) throws Exception {
+        if (!banJournal.complete(entry)) return false;
+        String timeLabel = formatDurationRu(entry.duration);
+        String kind = entry.ipBan() ? "[БАН ПО IP]" : "[БАН]";
+        Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔨 " + kind + " &fМодератор &#FFD740" + entry.staff
+                + " &fзаблокировал игрока &c" + entry.name + " &fна &#FF8A80" + timeLabel + "&f. Причина: &e" + entry.reason));
+        return true;
+    }
+
+    private void finishJournalBan(PendingBanJournal.Entry entry) {
+        try { completeJournalBan(entry); }
+        catch (Exception error) {
+            // Keep the on-disk intent. A later retry/restart will finish it;
+            // login also fails closed until it is completed or cancelled.
+            plugin.getLogger().severe("[Moderation] Pending ban for " + entry.name + " could not be committed; it will be retried: " + error);
+        }
+    }
+
+    private void retryInterruptedBans() {
+        try {
+            for (PendingBanJournal.Entry entry : banJournal.all()) {
+                Player player = Bukkit.getPlayerExact(entry.name);
+                if (player != null && pendingBanActions.containsKey(player.getUniqueId())) continue;
+                if (completeJournalBan(entry) && player != null && player.isOnline())
+                    player.kickPlayer(buildBanKickScreen(entry.staff, formatDurationRu(entry.duration), entry.reason));
+            }
+        } catch (Exception error) {
+            plugin.getLogger().severe("[Moderation] Pending-ban retry failed: " + error);
+        }
+    }
+
+    boolean hasPendingBan(String name) {
+        try { return banJournal.has(name); }
+        catch (Exception error) {
+            plugin.getLogger().severe("[Moderation] Cannot read pending ban journal: " + error);
+            return true;
+        }
     }
 
     public void shutdown() {
@@ -213,27 +268,22 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         muteGags.clear();
         // v6.3.0: страховка — возвращаем ВСЕ блоки всех порталов, если какая-то анимация не доиграла!
-        for (Map.Entry<UUID, Map<Block, BlockData>> pe : new ArrayList<Map.Entry<UUID, Map<Block, BlockData>>>(activeBanAnimPortals.entrySet())) {
-            restorePortalBlocks(pe.getValue());
-        }
+        for (UUID id : new ArrayList<UUID>(activePortalDisplays.keySet())) removePortalDisplays(id);
         activeBanAnimPortals.clear();
         ascendingBanPlayers.clear();
     }
 
-    /** v6.3.0: общий возврат блоков портала (используется и в бан-, и в разбан-анимации, и при выключении). */
-    private void restorePortalBlocks(Map<Block, BlockData> saved) {
-        if (saved == null || saved.isEmpty()) return;
-        for (Map.Entry<Block, BlockData> pe : saved.entrySet()) {
-            try {
-                Block blk = pe.getKey();
-                blk.setBlockData(pe.getValue(), false);
-                blk.getWorld().spawnParticle(Particle.POOF, blk.getLocation().add(0.5, 0.5, 0.5), 2, 0.2, 0.2, 0.2, 0.01);
-            } catch (Throwable ignored) {}
+    /** Block displays are non-persistent; removing them never edits terrain. */
+    private void removePortalDisplays(UUID id) {
+        List<Entity> displays = activePortalDisplays.remove(id);
+        if (displays == null) return;
+        for (Entity display : displays) if (display != null) {
+            try { display.remove(); } catch (Throwable ignored) {}
         }
     }
 
     public boolean isStaff(CommandSender s) {
-        if (!(s instanceof Player)) return true;
+        if (!(s instanceof Player)) return CommandSenderPolicy.isConsole(s);
         Player p = (Player) s;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         return r != null && ("owner".equalsIgnoreCase(r.id) || r.tier >= 4 || r.weight >= 200 || p.hasPermission("kinggrief.staff"));
@@ -257,7 +307,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     }
 
     private boolean canPunishTarget(CommandSender sender, String targetName) {
-        if (!(sender instanceof Player)) return true;
+        if (!(sender instanceof Player)) return CommandSenderPolicy.isConsole(sender);
         Player staff = (Player) sender;
         RankManager.RankDef myRank = plugin.getRanks().getRank(staff);
         // v6.2.1: TECH.ADMIN наказывает наравне с OWNER!
@@ -1770,6 +1820,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     private Location buildNewYearPortal(World w, Location startLoc, Vector approachDir, UUID victimId) {
         try {
             Location base = startLoc.clone().add(approachDir.clone().multiply(-7.0));
+            if (!w.isChunkLoaded(base.getBlockX() >> 4, base.getBlockZ() >> 4)) return null;
             int gy = base.getBlockY();
             for (int yy = base.getBlockY() + 4; yy >= base.getBlockY() - 14; yy--) {
                 Block under = w.getBlockAt(base.getBlockX(), yy, base.getBlockZ());
@@ -1781,10 +1832,13 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             base.setY(gy);
             boolean alongX = Math.abs(approachDir.getX()) >= Math.abs(approachDir.getZ());
             Map<Block, BlockData> saved = activeBanAnimPortals.get(victimId);
+            List<Entity> displays = new ArrayList<Entity>();
+            activePortalDisplays.put(victimId, displays);
             for (int fw = -2; fw <= 3; fw++) {
                 for (int fh = 0; fh <= 4; fh++) {
                     int bx = base.getBlockX() + (alongX ? 0 : fw);
                     int bz = base.getBlockZ() + (alongX ? fw : 0);
+                    if (!w.isChunkLoaded(bx >> 4, bz >> 4)) continue;
                     Block blk = w.getBlockAt(bx, base.getBlockY() + fh, bz);
                     boolean pillar = (fw == -1 || fw == 2);
                     boolean inner = (fw == 0 || fw == 1) && fh >= 1 && fh <= 3;
@@ -1804,10 +1858,16 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     } else {
                         continue;
                     }
-                    if (saved != null && !saved.containsKey(blk)) {
-                        saved.put(blk, blk.getBlockData().clone());
-                    }
-                    blk.setType(m, false);
+                    if (saved != null && !saved.containsKey(blk)) saved.put(blk, blk.getBlockData().clone());
+                    final Material visual = m;
+                    BlockDisplay part = w.spawn(blk.getLocation(), BlockDisplay.class, display -> {
+                        display.setPersistent(false);
+                        display.setInvulnerable(true);
+                        display.addScoreboardTag("kg_mod_anim");
+                        display.addScoreboardTag("kg_mod_portal");
+                        display.setBlock(visual.createBlockData());
+                    });
+                    displays.add(part);
                 }
             }
             Location center = alongX
@@ -2031,7 +2091,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             ents.add(bubble);
         } catch (Throwable ex) {
             for (Entity en : ents) { try { en.remove(); } catch (Throwable ignored) {} }
-            restorePortalBlocks(activeBanAnimPortals.remove(animKey));
+            activeBanAnimPortals.remove(animKey);
+            removePortalDisplays(animKey);
             return;
         }
         w.spawnParticle(Particle.PORTAL, santaStart.clone().add(0.0, 1.0, 0.0), 50, 0.5, 1.0, 0.5, 0.3);
@@ -2178,7 +2239,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     w.playSound(portalCenter, "minecraft:block.glass.break", 0.9f, 0.8f);
                     w.playSound(portalCenter, "minecraft:block.bell.use", 0.7f, 0.7f);
                 }
-                restorePortalBlocks(saved);
+                removePortalDisplays(animKey);
                 activeUnbanAnimTasks.remove(this);
                 try { cancel(); } catch (Throwable ignored) {}
             }
@@ -2202,16 +2263,8 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 }
             }
         }
-        Map<Block, BlockData> portal = activeBanAnimPortals.remove(victimId);
-        if (portal != null) {
-            for (Map.Entry<Block, BlockData> pe : portal.entrySet()) {
-                try {
-                    Block blk = pe.getKey();
-                    blk.setBlockData(pe.getValue(), false);
-                    blk.getWorld().spawnParticle(Particle.POOF, blk.getLocation().add(0.5, 0.5, 0.5), 3, 0.2, 0.2, 0.2, 0.01);
-                } catch (Throwable ignored) {}
-            }
-        }
+        activeBanAnimPortals.remove(victimId);
+        removePortalDisplays(victimId);
         ascendingBanPlayers.remove(victimId);
         BanPlayerState state = banPlayerStates.remove(victimId);
         Player v = Bukkit.getPlayer(victimId);
@@ -2349,6 +2402,10 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             return true;
         }
         String targetName = args[0];
+        if (!PendingBanJournal.validName(targetName)) {
+            sender.sendMessage(ColorUtil.c("&cУкажите корректный ник игрока (1–16 символов)."));
+            return true;
+        }
         if (!canPunishTarget(sender, targetName)) return true;
         Player alreadyAnimating = Bukkit.getPlayerExact(targetName);
         if (alreadyAnimating != null && pendingBanActions.containsKey(alreadyAnimating.getUniqueId())) {
@@ -2372,40 +2429,40 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             reason = "Нарушение правил сервера";
         }
         String staffName = sender instanceof Player ? sender.getName() : "Консоль";
-        plugin.getStore().appendPunishHistory(targetName, "&#FF1744[БАН]", staffName, formatDurationRu(durMs), reason);
-        executeBanWithSkyAnimation(staffName, sender instanceof Player, targetName, durMs, reason);
+        if (!executeBanWithSkyAnimation(staffName, sender instanceof Player, targetName, durMs, reason))
+            sender.sendMessage(ColorUtil.c("&cБан не начат: проверьте журнал сервера и сохранение данных."));
         return true;
     }
 
-    public void executeBanWithSkyAnimation(final String staffName, boolean countForStaff, final String targetName, final long durMs, final String reason) {
+    public boolean executeBanWithSkyAnimation(final String staffName, boolean countForStaff, final String targetName, final long durMs, final String reason) {
+        final PendingBanJournal.Entry entry;
+        try { entry = banJournal.queue(targetName, "", durMs, reason, staffName, countForStaff); }
+        catch (Exception error) {
+            plugin.getLogger().severe("[Moderation] Ban was not started for " + targetName + ": " + error);
+            return false;
+        }
         final String timeLabel = formatDurationRu(durMs);
-        // v6.1.1: бан ВСТУПАЕТ В СИЛУ ТОЛЬКО ПОСЛЕ анимации — во время анимации игрок ещё играет!
-        final Runnable banAction = new Runnable() {
-            @Override
-            public void run() {
-                plugin.getStore().ban(targetName, durMs, reason, staffName);
-                if (countForStaff) {
-                    plugin.getStore().addStaffBan(staffName);
-                }
-                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔨 [БАН] &fМодератор &#FFD740" + staffName
-                        + " &fзабанил игрока &c" + targetName + " &fна &#FF8A80" + timeLabel + "&f. Причина: &e" + reason));
-            }
-        };
-
+        final Runnable banAction = () -> finishJournalBan(entry);
         final Player victim = Bukkit.getPlayerExact(targetName);
         if (victim == null || !victim.isOnline()) {
-            banAction.run(); // оффлайн — анимации нет, бан сразу
-            return;
+            banAction.run(); // offline: there is no animation
+            return true;
         }
 
-        // Remove active check if any
         CheckSession cs = activeChecks.remove(victim.getUniqueId());
         if (cs != null) {
             try { cs.bossBar.removeAll(); } catch (Throwable ignored) {}
         }
-
-        // 2. v6.1: БАН-АНИМАЦИЯ «МЕШОК ДЕДА МОРОЗА» — приходит, хватает, кладёт в мешок и уносит в портал!
-        playSantaBagBanAnimation(victim, staffName, timeLabel, buildBanKickScreen(staffName, timeLabel, reason), banAction);
+        try {
+            playSantaBagBanAnimation(victim, staffName, timeLabel, buildBanKickScreen(staffName, timeLabel, reason), banAction);
+        } catch (Throwable error) {
+            plugin.getLogger().severe("[Moderation] Could not start ban animation: " + error);
+            cleanupSantaBanAnimationFor(victim.getUniqueId());
+            if (pendingBanActions.containsKey(victim.getUniqueId())) completePendingBan(victim.getUniqueId());
+            else banAction.run();
+            if (victim.isOnline()) victim.kickPlayer(buildBanKickScreen(staffName, timeLabel, reason));
+        }
+        return true;
     }
 
     private void spawnBanFireworkBurst(Location loc) {
@@ -2472,12 +2529,17 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.c("&eИспользование: &f/unban <игрок>"));
             return true;
         }
+        try { banJournal.cancelName(args[0]); }
+        catch (Exception error) {
+            sender.sendMessage(ColorUtil.c("&cРазбан не сохранён; бан и ожидающая анимация не отменены. Проверьте журнал сервера."));
+            plugin.getLogger().severe("[Moderation] Unban failed: " + error);
+            return true;
+        }
         Player pendingTarget = Bukkit.getPlayerExact(args[0]);
         if (pendingTarget != null && pendingBanActions.remove(pendingTarget.getUniqueId()) != null) {
             pendingBanIps.remove(pendingTarget.getUniqueId());
             cleanupSantaBanAnimationFor(pendingTarget.getUniqueId());
         }
-        plugin.getStore().unban(args[0]);
         Bukkit.broadcastMessage(ColorUtil.c("&#00E676🔓 Модератор &f" + sender.getName() + " &#00E676разбанил игрока &f" + args[0] + "&#00E676."));
         // v6.1.4: АНИМАЦИЯ РАЗБАНА — Дед Мороз выносит мешок из портала и развязывает его!
         Player unbOnline = Bukkit.getPlayerExact(args[0]);
@@ -2601,6 +2663,10 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             return true;
         }
         String rawTarget = args[0];
+        if (!DataStore.looksLikeIp(rawTarget) && !PendingBanJournal.validName(rawTarget)) {
+            sender.sendMessage(ColorUtil.c("&cУкажите корректный ник или IP."));
+            return true;
+        }
         if (!DataStore.looksLikeIp(rawTarget) && !canPunishTarget(sender, rawTarget)) return true;
         Player alreadyAnimating = DataStore.looksLikeIp(rawTarget) ? null : Bukkit.getPlayerExact(rawTarget);
         if (alreadyAnimating != null && pendingBanActions.containsKey(alreadyAnimating.getUniqueId())) {
@@ -2636,32 +2702,39 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         final long finalDurMs = durMs;
         final String finalReasonMsg = reason;
 
-        // v6.1.1: IP-блок сразу (твинки не rejoins), а бан по нику иbroadcast — ТОЛЬКО после анимации!
-        plugin.getStore().banIp(ip, targetLabel, durMs, reason, staffName);
-        final Runnable deferredBan = new Runnable() {
-            @Override
-            public void run() {
-                if (!DataStore.looksLikeIp(rawTarget)) {
-                    plugin.getStore().ban(rawTarget, finalDurMs, finalReasonMsg, staffName);
-                    plugin.getStore().appendPunishHistory(rawTarget, "&#FF1744[БАН-IP]", staffName, timeLabel, finalReasonMsg);
-                }
-                if (sender instanceof Player) plugin.getStore().addStaffBan(staffName);
-                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔨 [БАН ПО IP] &fМодератор &#FFD740" + staffName
-                        + " &fзаблокировал по IP &c" + targetLabel + " &fна &#FF8A80" + timeLabel + "&f. Причина: &e" + finalReasonMsg));
-            }
+        // Record the immediate IP block and the delayed name-ban intent in a
+        // single durable update before starting the animation.
+        final PendingBanJournal.Entry entry;
+        try {
+            if (DataStore.looksLikeIp(rawTarget)) {
+                banJournal.banLiteralIp(ip, targetLabel, finalDurMs, finalReasonMsg, staffName, sender instanceof Player);
+                entry = null;
+            } else entry = banJournal.queue(rawTarget, ip, finalDurMs, finalReasonMsg, staffName, sender instanceof Player);
+        } catch (Exception error) {
+            plugin.getLogger().severe("[Moderation] IP ban was not started: " + error);
+            sender.sendMessage(ColorUtil.c("&cIP-бан не начат: проверьте журнал сервера и сохранение данных."));
+            return true;
+        }
+        final Runnable deferredBan = () -> {
+            if (entry != null) finishJournalBan(entry);
+            else Bukkit.broadcastMessage(ColorUtil.c("&#FF1744&l🔨 [БАН ПО IP] &fМодератор &#FFD740" + staffName
+                    + " &fзаблокировал по IP &c" + targetLabel + " &fна &#FF8A80" + timeLabel + "&f. Причина: &e" + finalReasonMsg));
         };
-
-        // The named online target gets the animation; the IP block is already
-        // active. Other accounts on the IP are kicked immediately. An offline
-        // named target (or a literal IP) has no animation, so the deferred
-        // action must run here rather than being silently lost.
-        Player primaryOnline = DataStore.looksLikeIp(rawTarget) ? null : Bukkit.getPlayerExact(rawTarget);
+        Player primaryOnline = entry == null ? null : Bukkit.getPlayerExact(rawTarget);
         boolean animationStarted = primaryOnline != null && primaryOnline.isOnline();
         if (animationStarted) {
-            executeBanSkyAnimationOnly(primaryOnline, staffName, timeLabel,
-                    buildIpBanKickScreen(staffName, timeLabel, reason, targetLabel), deferredBan);
-            if (pendingBanActions.containsKey(primaryOnline.getUniqueId()))
-                pendingBanIps.put(primaryOnline.getUniqueId(), ip);
+            try {
+                executeBanSkyAnimationOnly(primaryOnline, staffName, timeLabel,
+                        buildIpBanKickScreen(staffName, timeLabel, reason, targetLabel), deferredBan);
+                if (pendingBanActions.containsKey(primaryOnline.getUniqueId()))
+                    pendingBanIps.put(primaryOnline.getUniqueId(), ip);
+            } catch (Throwable error) {
+                plugin.getLogger().severe("[Moderation] Could not start IP-ban animation: " + error);
+                cleanupSantaBanAnimationFor(primaryOnline.getUniqueId());
+                if (pendingBanActions.containsKey(primaryOnline.getUniqueId())) completePendingBan(primaryOnline.getUniqueId());
+                else deferredBan.run();
+                if (primaryOnline.isOnline()) primaryOnline.kickPlayer(buildIpBanKickScreen(staffName,timeLabel,reason,targetLabel));
+            }
         }
         for (Player on : new ArrayList<Player>(Bukkit.getOnlinePlayers())) {
             if (primaryOnline != null && on.equals(primaryOnline)) continue;
@@ -2691,24 +2764,22 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(ColorUtil.c("&eИспользование: &f/unbanip <игрок | IP>"));
             return true;
         }
-        if (!DataStore.looksLikeIp(args[0])) {
-            Player pendingTarget = Bukkit.getPlayerExact(args[0]);
-            if (pendingTarget != null && pendingBanActions.remove(pendingTarget.getUniqueId()) != null) {
-                pendingBanIps.remove(pendingTarget.getUniqueId());
-                cleanupSantaBanAnimationFor(pendingTarget.getUniqueId());
-            }
-        } else {
-            // Removing an IP block during its animation must not let the
-            // deferred name action silently re-ban the target afterward.
-            for (Map.Entry<UUID, String> entry : new ArrayList<Map.Entry<UUID, String>>(pendingBanIps.entrySet())) {
-                if (!args[0].equalsIgnoreCase(entry.getValue())) continue;
-                pendingBanIps.remove(entry.getKey());
-                pendingBanActions.remove(entry.getKey());
-                cleanupSantaBanAnimationFor(entry.getKey());
-            }
+        PendingBanJournal.Cancellation cancellation;
+        try { cancellation = banJournal.cancelIp(args[0]); }
+        catch (Exception error) {
+            sender.sendMessage(ColorUtil.c("&cРазбан IP не сохранён; блокировка и ожидающие действия не отменены."));
+            plugin.getLogger().severe("[Moderation] IP unban failed: " + error);
+            return true;
         }
-        boolean removedIp = plugin.getStore().unbanIp(args[0]);
-        if (!DataStore.looksLikeIp(args[0])) plugin.getStore().unban(args[0]);
+        for (String name : cancellation.names) {
+            Player pendingTarget = Bukkit.getPlayerExact(name);
+            if (pendingTarget == null) continue;
+            UUID id = pendingTarget.getUniqueId();
+            pendingBanActions.remove(id);
+            pendingBanIps.remove(id);
+            cleanupSantaBanAnimationFor(id);
+        }
+        boolean removedIp = cancellation.hadIp;
         if (!removedIp) {
             sender.sendMessage(ColorUtil.c("&eАктивный IP-бан для &f" + args[0] + " &eне найден (обычный бан также снят)."));
             return true;
@@ -3149,22 +3220,15 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         }
         if (val <= 0) return 0L;
         String unit = s.substring(numEnd).trim();
-        if (unit.isEmpty() || unit.startsWith("m") || unit.startsWith("м")) {
-            return val * 60_000L;
-        }
-        if (unit.startsWith("s") || unit.startsWith("с")) {
-            return val * 1_000L;
-        }
-        if (unit.startsWith("h") || unit.startsWith("ч")) {
-            return val * 3_600_000L;
-        }
-        if (unit.startsWith("d") || unit.startsWith("д")) {
-            return val * 86_400_000L;
-        }
-        if (unit.startsWith("w") || unit.startsWith("н")) {
-            return val * 7L * 86_400_000L;
-        }
-        return Long.MIN_VALUE;
+        long multiplier;
+        if (unit.isEmpty() || unit.startsWith("m") || unit.startsWith("м")) multiplier = 60_000L;
+        else if (unit.startsWith("s") || unit.startsWith("с")) multiplier = 1_000L;
+        else if (unit.startsWith("h") || unit.startsWith("ч")) multiplier = 3_600_000L;
+        else if (unit.startsWith("d") || unit.startsWith("д")) multiplier = 86_400_000L;
+        else if (unit.startsWith("w") || unit.startsWith("н")) multiplier = 7L * 86_400_000L;
+        else return Long.MIN_VALUE;
+        try { return Math.multiplyExact(val, multiplier); }
+        catch (ArithmeticException overflow) { return Long.MIN_VALUE; }
     }
 
     public static String formatDurationRu(long durMs) {

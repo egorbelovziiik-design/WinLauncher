@@ -8,6 +8,8 @@ import net.kinggrief.core.KingGriefCore;
 import net.kinggrief.core.ColorUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Display;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -55,7 +57,44 @@ public final class ModerationProbe extends JavaPlugin implements Listener {
         command("unban domep444543");
         ok(core.getStore().getActiveBanReason("domep444543")==null,"plain console unban removes the offline ban");
         // Avoid overlap with the console-unban animation before testing another portal.
-        later(125,this::mute);
+        later(125,this::portalChest);
+    }
+    private void portalChest() throws Exception {
+        Location playerStart=player.getLocation().clone();
+        org.bukkit.util.Vector direction=playerStart.getDirection().setY(0);
+        if(direction.lengthSquared()<.001)direction=new org.bukkit.util.Vector(0,0,1);
+        Location base=playerStart.clone().add(direction.normalize().multiply(-7));
+        command("ban CaseTester 1h locate_portal");
+        Map<Block,BlockData> first=portalSnapshot(player.getUniqueId());
+        Block selected=null;
+        for(Block block:first.keySet()) if(block.getType().isAir()
+                && (block.getX()!=base.getBlockX() || block.getZ()!=base.getBlockZ())) { selected=block; break; }
+        if(selected==null)throw new AssertionError("no air cell in portal fixture");
+        final Block protectedChest=selected;
+        command("unban CaseTester");
+        protectedChest.setType(Material.CHEST,false);
+        org.bukkit.block.Chest chest=(org.bukkit.block.Chest)protectedChest.getState();
+        chest.getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,17));
+        command("ban CaseTester 1h preserve_chest");
+        Map<Block,BlockData> overlay=portalSnapshot(player.getUniqueId());
+        ok(overlay.containsKey(protectedChest) && protectedChest.getType()==Material.CHEST
+                && ((org.bukkit.block.Chest)protectedChest.getState()).getBlockInventory().getItem(0).getAmount()==17,
+                "ban portal overlays a real chest without replacing it or losing contents");
+        long displays=player.getWorld().getEntities().stream().filter(e->e.getScoreboardTags().contains("kg_mod_portal") && e instanceof org.bukkit.entity.BlockDisplay && !e.isPersistent()).count();
+        ok(displays>10,"portal is built from non-persistent visual block displays");
+        command("unban CaseTester");
+        ok(protectedChest.getType()==Material.CHEST
+                && ((org.bukkit.block.Chest)protectedChest.getState()).getBlockInventory().getItem(0).getAmount()==17,
+                "unban portal also leaves the chest and its inventory untouched");
+        later(130,()->{
+            ok(protectedChest.getType()==Material.CHEST
+                    && ((org.bukkit.block.Chest)protectedChest.getState()).getBlockInventory().getItem(0).getAmount()==17,
+                    "completed portal animations preserve the original chest contents");
+            long remaining=player.getWorld().getEntities().stream().filter(e->e.getScoreboardTags().contains("kg_mod_portal")).count();
+            ok(remaining==0,"completed portal animations remove their visual entities");
+            protectedChest.setType(Material.AIR,false);
+            mute();
+        });
     }
     private void mute(){
         command("mute CaseTester 1h fixture");

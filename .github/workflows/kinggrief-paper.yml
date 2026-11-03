@@ -1,4 +1,4 @@
-name: KingGrief 7.7.0 Paper release checks
+name: KingGrief 7.8.0 Paper release checks
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   template:
-    name: Build and validate prepared v7.7 spawn
+    name: Validate the unchanged v7.7 prepared spawn
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -30,29 +30,14 @@ jobs:
           git diff --exit-code -- rw-newyear-assembly/core-src/src/main/resources/spawn_v77.dat rw-newyear-assembly/core-src/src/main/resources/elka_v77.csv
           python rw-newyear-assembly/blender-models/test_spawn_v77.py
           python rw-newyear-assembly/blender-models/test_elka_v77.py
-      - name: Download verified Paper and Mojang server
+      - name: Preserve the exact published v77 template
         shell: bash
         run: |
           set -euo pipefail
           KG="$RUNNER_TEMP/kinggrief-template"
           mkdir -p "$KG"
-          curl --fail --location --retry 3 --user-agent 'KingGrief-CI/7.7.0' \
-            'https://fill-data.papermc.io/v1/objects/5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc/paper-1.21.4-232.jar' -o "$KG/paper.jar"
-          echo '5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc  '"$KG/paper.jar" | sha256sum -c -
-          python - "$KG/paper.jar" "$KG" <<'PY'
-          import pathlib, sys, zipfile
-          from urllib.parse import urlparse
-          paper, target = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-          with zipfile.ZipFile(paper) as archive:
-              sha, url, name = archive.read('META-INF/download-context').decode().strip().split('\t')
-          if len(sha) != 64 or urlparse(url).scheme != 'https' or pathlib.Path(name).name != name:
-              raise ValueError('Invalid Paper download context')
-          (target/'vanilla-url').write_text(url)
-          (target/'vanilla-sha').write_text(sha)
-          PY
-          curl --fail --location --retry 3 "$(cat "$KG/vanilla-url")" -o "$KG/vanilla.jar"
-          echo "$(cat "$KG/vanilla-sha")  $KG/vanilla.jar" | sha256sum -c -
-          python rw-newyear-assembly/build-spawn-template.py --paper "$KG/paper.jar" --vanilla "$KG/vanilla.jar" --accept-eula --update-checksum
+          echo 'dacec177a987bfd74b80e63faa2e18f446e4577f9d6a071badd382061b705118  rw-newyear-assembly/server/plugins/KingGriefCore/spawn-v77-template.zip' | sha256sum -c -
+          test "$(cat rw-newyear-assembly/core-src/src/main/resources/spawn_v77_template.sha256)" = 'dacec177a987bfd74b80e63faa2e18f446e4577f9d6a071badd382061b705118'
           tar -cf "$KG/template.tar" rw-newyear-assembly/server/plugins/KingGriefCore/spawn-v77-template.zip rw-newyear-assembly/core-src/src/main/resources/spawn_v77_template.sha256
       - uses: actions/upload-artifact@v4
         with:
@@ -91,7 +76,7 @@ jobs:
           set -euo pipefail
           KG="$RUNNER_TEMP/kinggrief-paper"
           mkdir -p "$KG/runtime/cache" "$KG/node"
-          curl --fail --location --retry 3 --user-agent 'KingGrief-CI/7.7.0 (https://github.com/egorbelovziiik-design/WinLauncher)' \
+          curl --fail --location --retry 3 --user-agent 'KingGrief-CI/7.8.0 (https://github.com/egorbelovziiik-design/WinLauncher)' \
             'https://fill-data.papermc.io/v1/objects/5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc/paper-1.21.4-232.jar' -o "$KG/paper.jar"
           echo '5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc  '"$KG/paper.jar" | sha256sum -c -
           python - "$KG/paper.jar" "$KG" <<'PY'
@@ -118,7 +103,7 @@ jobs:
       - name: Compile Core and KingConnect with Java 21
         run: python rw-newyear-assembly/build-core-hub.py --core-only --include-connect --api-classpath "$KG_API_CP"
       - name: Exercise ${{ matrix.group }} against isolated Paper servers
-        run: bash rw-newyear-assembly/run-v77-checks.sh '${{ matrix.group }}'
+        run: bash rw-newyear-assembly/run-v78-checks.sh '${{ matrix.group }}'
       - name: Save test summary
         uses: actions/upload-artifact@v4
         with:
@@ -161,7 +146,7 @@ jobs:
         run: |
           set -euo pipefail
           tar -xf "$RUNNER_TEMP/kg-output/distribution.tar" -C "$GITHUB_WORKSPACE"
-          python rw-newyear-assembly/core-src/src/test/test-distribution-v770.py
+          python rw-newyear-assembly/core-src/src/test/test-distribution-v780.py
           python - "$RUNNER_TEMP/kg-output/reports" <<'PY'
           import hashlib, os, pathlib, sys
           reports = pathlib.Path(sys.argv[1])
@@ -170,9 +155,9 @@ jobs:
               if not (reports / ('report-' + group + '.txt')).is_file():
                   raise RuntimeError('Missing test report ' + group)
           core = pathlib.Path('rw-newyear-assembly/KingGriefCore.jar').read_bytes()
-          full = pathlib.Path('rw-newyear-assembly/rw-newyear-full-assembly-v7.7.0.zip').read_bytes()
-          patch = pathlib.Path('rw-newyear-assembly/KingGriefCore-7.7.0-update.zip').read_bytes()
-          text = '# Проверки KingGrief 7.7.0\n\n'
+          full = pathlib.Path('rw-newyear-assembly/rw-newyear-full-assembly-v7.8.0.zip').read_bytes()
+          patch = pathlib.Path('rw-newyear-assembly/KingGriefCore-7.8.0-update.zip').read_bytes()
+          text = '# Проверки KingGrief 7.8.0\n\n'
           text += 'Изолированные серверы Paper 1.21.4 build 232, Java 21 и протокольные клиенты; реальные игровые миры не использовались. '
           text += 'Проверки не являются графическим тестом клиента или гарантией защиты от сбоя питания.\n\n'
           text += '- SHA-256 Core: `' + hashlib.sha256(core).hexdigest() + '`\n'
@@ -180,7 +165,7 @@ jobs:
           text += '- SHA-256 архива обновления: `' + hashlib.sha256(patch).hexdigest() + '`\n'
           text += '- GitHub Actions: https://github.com/' + os.environ['GITHUB_REPOSITORY'] + '/actions/runs/' + os.environ['GITHUB_RUN_ID'] + '\n\n'
           text += '```\n' + ''.join((reports / ('report-' + group + '.txt')).read_text() for group in expected) + '```\n'
-          pathlib.Path('rw-newyear-assembly/ПРОВЕРКИ_7.7.0.md').write_text(text, encoding='utf8')
+          pathlib.Path('rw-newyear-assembly/ПРОВЕРКИ_7.8.0.md').write_text(text, encoding='utf8')
           PY
           git diff --check
           git add rw-newyear-assembly/server/plugins/KingGriefCore/spawn-v77-template.zip \
@@ -188,16 +173,16 @@ jobs:
             kinggrief/public/kinggrief-spawn-v77.zip \
             rw-newyear-assembly/KingGriefCore.jar rw-newyear-assembly/plugins/KingGriefCore.jar \
             rw-newyear-assembly/server/plugins/KingGriefCore.jar kinggrief/public/KingGriefCore.jar \
-            kinggrief/public/KingGriefCore-v7.7.0.jar rw-newyear-assembly/KingConnect.jar \
+            kinggrief/public/KingGriefCore-v7.8.0.jar rw-newyear-assembly/KingConnect.jar \
             rw-newyear-assembly/plugins/KingConnect.jar rw-newyear-assembly/server/plugins/KingConnect.jar \
             kinggrief/public/KingConnect.jar kinggrief/public/KingConnect-v2.3.1.jar \
-            rw-newyear-assembly/KingGriefCore-7.7.0-update.zip \
-            kinggrief/public/KingGriefCore-7.7.0-update.zip rw-newyear-assembly/rw-newyear-full-assembly-v7.7.0.zip \
-            kinggrief/public/rw-newyear-full-assembly-v7.7.0.zip rw-newyear-assembly/ОБНОВЛЕНИЕ_7.7.0.md \
-            rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.7.0.md rw-newyear-assembly/ПРОВЕРКИ_7.7.0.md
+            rw-newyear-assembly/KingGriefCore-7.8.0-update.zip \
+            kinggrief/public/KingGriefCore-7.8.0-update.zip rw-newyear-assembly/rw-newyear-full-assembly-v7.8.0.zip \
+            kinggrief/public/rw-newyear-full-assembly-v7.8.0.zip rw-newyear-assembly/ОБНОВЛЕНИЕ_7.8.0.md \
+            rw-newyear-assembly/server/ОБНОВЛЕНИЕ_7.8.0.md rw-newyear-assembly/ПРОВЕРКИ_7.8.0.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if ! git diff --cached --quiet; then
-            git commit -m 'Save tested KingGrief 7.7.0 artifacts [skip ci]'
+            git commit -m 'Save tested KingGrief 7.8.0 artifacts [skip ci]'
             git push origin HEAD:refs/heads/arena/3eb24343-winlauncher
           fi
