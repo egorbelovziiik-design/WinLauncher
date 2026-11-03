@@ -60,7 +60,7 @@ public final class ElkaProbe extends JavaPlugin implements Listener {
     private void run(){
         ok(core.getDescription().getVersion().equals("7.6.0"),"new Core version loaded");
         World w=core.getSpawnEngine().getPreparedSpawnArrival().getWorld();
-        ok(displays().size()==162&&displays().stream().allMatch(e->e.isValid()&&!e.isPersistent()),"all 162 nonpersistent display parts are loaded");
+        ok(displays().size()==163&&displays().stream().allMatch(e->e.isValid()&&!e.isPersistent()),"all 163 nonpersistent display parts are loaded");
         ok(w.getBlockAt(0,130,0).getType()==Material.SPRUCE_WOOD&&w.getBlockAt(0,140,0).getType().isAir(),"separate trunk and clear scalable tree envelope");
         rank(owner,"owner");rank(admin,"admin");rank(ordinary,"default");owner.setOp(false);admin.setOp(false);ordinary.setOp(true);
         if(getConfig().getInt("phase")==2){

@@ -66,6 +66,10 @@ for name,cx,cz,color,ribbon in [
     part(name,ribbon,cx+.15,h+t,cz-.18,.60,.32,.36)
     part(name,ribbon,cx-.15,h+t,cz-.18,.30,.26,.36)
 
+# A rendered trunk scales too; at the smallest size it fully covers the narrow
+# fixed collision trunk. The latter remains unchanged in the physical world.
+part('tree','SPRUCE_WOOD',0,0,0,1.5,44.5,1.5)
+
 out=ROOT/'core-src/src/main/resources/elka_v76.csv'
 with out.open('w',newline='',encoding='ascii') as f:
     f.write('# group,material,x,y,z,width,height,depth; dimensions are at level 0\n')

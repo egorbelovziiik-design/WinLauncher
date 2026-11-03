@@ -97,7 +97,7 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
                 "tree foundation, visible faces, proportioned figures and reaching hand exist in the actual world");
         if (scalable) {
             long treeParts=prepared.getEntities().stream().filter(e -> e instanceof BlockDisplay && e.getScoreboardTags().contains("kg_spawn_tree_v76")).count();
-            ok(treeParts==162,"scalable tree and decorative presents are spawned in the actual world");
+            ok(treeParts==163,"scalable tree and decorative presents are spawned in the actual world");
         }
         for (int[] point : new int[][] {{39,101,-29},{12,105,-43},{-18,109,-40},{-39,113,-18},{-41,117,9}}) {
             Material plate = prepared.getBlockAt(point[0], point[1]+1, point[2]).getType();

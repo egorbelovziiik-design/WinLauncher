@@ -161,3 +161,4 @@ gift_south,GOLD_BLOCK,-1.05,2.05,12.45,2.1,0.1,0.3
 gift_south,GOLD_BLOCK,-0.75,2.15,12.42,0.6,0.32,0.36
 gift_south,GOLD_BLOCK,0.15,2.15,12.42,0.6,0.32,0.36
 gift_south,GOLD_BLOCK,-0.15,2.15,12.42,0.3,0.26,0.36
+tree,SPRUCE_WOOD,0,0,0,1.5,44.5,1.5
