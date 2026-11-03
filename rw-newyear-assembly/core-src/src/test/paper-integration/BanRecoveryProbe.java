@@ -70,7 +70,8 @@ public final class BanRecoveryProbe extends JavaPlugin implements Listener {
                 later(3,()->{
                     command((phase==2?"unban CrashVictim":"unbanip IpVictim"));
                     ok(core.getStore().getActiveBanReason(name)==null,"console unban removes recovered ban");
-                    request(phase==2?"CrashVictim":"IpVictim");
+                    // The real anti-bot throttle is per nick even on loopback.
+                    later(60,()->request(phase==2?"CrashVictim":"IpVictim"));
                 });
             }catch(Throwable error){fail(error);}
         }

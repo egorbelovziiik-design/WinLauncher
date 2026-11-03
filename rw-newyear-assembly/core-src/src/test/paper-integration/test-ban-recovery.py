@@ -25,7 +25,7 @@ def phase(a,server,port,number):
   if not started:raise RuntimeError('Paper startup failed')
   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve())
   client=subprocess.Popen([a.node,str(HERE/'ban-recovery-client.cjs'),str(port)],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,env=env)
-  deadline=time.monotonic()+300
+  deadline=time.monotonic()+180
   while time.monotonic()<deadline:
    try:line=messages.get(timeout=1)
    except queue.Empty:
