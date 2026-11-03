@@ -22,12 +22,15 @@ def main():
   with ZipFile(a.assembly) as z:
    if z.testzip() is not None:raise RuntimeError('Corrupt assembly')
    names=z.namelist()
-   if 'plugins/KingGriefCore/spawn-v74-template.zip' not in names or any(n in names for n in ('plugins/KingGriefCore/spawn-v73-template.zip','plugins/KingGriefCore/spawn-v71-template.zip','plugins/KingGriefCore/spawn-v70-template.zip','plugins/KingGriefCore/spawn-v66-template.zip')):
+   template_version='v76' if a.core_version == '7.6.0' else 'v74'
+   template_path=f'plugins/KingGriefCore/spawn-{template_version}-template.zip'
+   historical=[f'plugins/KingGriefCore/spawn-{v}-template.zip' for v in ('v66','v70','v71','v73','v74','v76') if v != template_version]
+   if template_path not in names or any(n in names for n in historical):
     raise RuntimeError('Incorrect spawn template in new assembly')
    import io
-   with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore/spawn-v74-template.zip'))) as template:
+   with ZipFile(io.BytesIO(z.read(template_path))) as template:
     if 'data/chunks.dat' in template.namelist():raise RuntimeError('Template contains forced chunk tickets')
-    if '.kinggrief_prebuilt_v74' not in template.namelist():raise RuntimeError('Missing v74 marker')
+    if f'.kinggrief_prebuilt_{template_version}' not in template.namelist():raise RuntimeError('Missing current template marker')
    with ZipFile(io.BytesIO(z.read('plugins/KingGriefCore.jar'))) as core:
     if not re.search(r'(?m)^version:\s*'+re.escape(a.core_version)+r'\s*$',core.read('plugin.yml').decode()):raise RuntimeError('Incorrect Core version')
    for plugin, version in (('KingAC','8.3.1'),('KingClear','1.0.2')):
@@ -82,7 +85,7 @@ def main():
    for plugin in ('KingGriefCore','KingAC','KingConnect','KingClear','KingGriefBridge'):
     if not re.search(r'Enabling '+plugin+r' v',text):raise RuntimeError(plugin+' was not enabled')
    if 'KG-SPAWN-AVAILABLE RESULT PASS' not in text:raise RuntimeError('Prepared-world probe did not pass')
-   if '[SpawnInstall] Prepared v74 spawn installed and initialized' not in text:raise RuntimeError('Prepared spawn was not installed')
+   if f'[SpawnInstall] Prepared {template_version} spawn installed and initialized' not in text:raise RuntimeError('Prepared spawn was not installed')
    if 'Error occurred while enabling' in text or 'Exception in server tick loop' in text:raise RuntimeError('Plugin or server startup error')
    if not (server/'plugins/KingGriefCore/.spawn-v70-template-installed').is_file():raise RuntimeError('Missing v70 install marker')
    success=True;print('FULL ASSEMBLY SMOKE: PASS 5 plugins, real player in prepared world, tree, floor, NPC and 11 warps',flush=True)

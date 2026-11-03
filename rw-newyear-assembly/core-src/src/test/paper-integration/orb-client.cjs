@@ -7,7 +7,7 @@ const clients = ['OrbTester', 'OrbEnemy'].map(username => mc.createClient({
 let treeParticles = 0;
 clients[0].on('world_particles', packet => {
   const radius=Math.hypot(packet.x,packet.z)
-  if (Math.abs(packet.y-111.5)<0.01 && Math.abs(radius-11.8)<0.02) treeParticles++
+  if (Math.abs(packet.y-111.5)<0.01 && (Math.abs(radius-8.0)<0.02 || Math.abs(radius-11.8)<0.02)) treeParticles++
 });
 for (const c of clients) {
   c.on('error', e => console.error('CLIENT_ERROR', String(e)));

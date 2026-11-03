@@ -48,7 +48,7 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
             List<CompletableFuture<?>> requests = new ArrayList<CompletableFuture<?>>();
             for (int[] c : chunks) requests.add((CompletableFuture<?>) async.invoke(world, c[0], c[1], true));
             CompletableFuture.allOf(requests.toArray(new CompletableFuture<?>[0])).whenComplete((ignored, error) ->
-                Bukkit.getScheduler().runTask(this, () -> {
+                Bukkit.getScheduler().runTaskLater(this, () -> {
                     try {
                         if (error != null) throw new RuntimeException("asynchronous wall fixture loading", error);
                         for (int[] c : chunks) world.addPluginChunkTicket(c[0], c[1], this);
@@ -59,7 +59,7 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
                     } finally {
                         for (int[] c : chunks) world.removePluginChunkTicket(c[0], c[1], this);
                     }
-                }));
+                }, 20L));
         } catch (Throwable failure) {
             getLogger().severe("KG-SPAWN-AVAILABLE RESULT FAIL " + failure); failure.printStackTrace();
         }
@@ -82,8 +82,10 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         ok(player.getLocation().distanceSquared(arrival) < 5, "arrival is near the village entrance");
         ok(arrival.clone().add(0, -1, 0).getBlock().getType().isSolid(), "arrival has a solid floor");
         ok(arrival.getBlock().isPassable() && arrival.clone().add(0, 1, 0).getBlock().isPassable(), "arrival has headroom");
-        ok(prepared.getBlockAt(0, 140, 0).getType() == Material.SPRUCE_WOOD
-                && prepared.getBlockAt(2, 146, 0).getType() == Material.OCHRE_FROGLIGHT
+        boolean scalable = core.getDescription().getVersion().equals("7.6.0");
+        ok((scalable ? prepared.getBlockAt(0,130,0).getType() == Material.SPRUCE_WOOD && prepared.getBlockAt(0,140,0).getType().isAir()
+                && prepared.getBlockAt(2,146,0).getType().isAir()
+                : prepared.getBlockAt(0,140,0).getType() == Material.SPRUCE_WOOD && prepared.getBlockAt(2,146,0).getType() == Material.OCHRE_FROGLIGHT)
                 && prepared.getBlockAt(3, 146, 0).getType() == Material.WHITE_CONCRETE
                 && prepared.getBlockAt(16, 101, 1).getType() == Material.DARK_OAK_PLANKS
                 && prepared.getBlockAt(14, 115, 1).getType() == Material.DARK_OAK_PLANKS
@@ -92,7 +94,11 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
                 && prepared.getBlockAt(19, 113, -1).getType() == Material.BLACK_CONCRETE
                 && prepared.getBlockAt(17, 127, -1).getType() == Material.BLACK_CONCRETE
                 && prepared.getBlockAt(15, 141, -1).getType() == Material.BLACK_CONCRETE,
-                "larger tree, visible faces, proportioned figures and hand touching star exist in the actual world");
+                "tree foundation, visible faces, proportioned figures and reaching hand exist in the actual world");
+        if (scalable) {
+            long treeParts=prepared.getEntities().stream().filter(e -> e instanceof BlockDisplay && e.getScoreboardTags().contains("kg_spawn_tree_v76")).count();
+            ok(treeParts==162,"scalable tree and decorative presents are spawned in the actual world");
+        }
         for (int[] point : new int[][] {{39,101,-29},{12,105,-43},{-18,109,-40},{-39,113,-18},{-41,117,9}}) {
             Material plate = prepared.getBlockAt(point[0], point[1]+1, point[2]).getType();
             ok(plate == (point[0] == -41 ? Material.HEAVY_WEIGHTED_PRESSURE_PLATE : Material.LIGHT_WEIGHTED_PRESSURE_PLATE)

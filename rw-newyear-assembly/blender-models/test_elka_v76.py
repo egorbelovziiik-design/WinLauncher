@@ -25,8 +25,15 @@ def gap(a,b):
     # A gap in any dimension separates the boxes. Negative means overlap.
     return max(b[0]-a[3],a[0]-b[3],b[1]-a[4],a[1]-b[4],b[2]-a[5],a[2]-b[5])
 
-# Include all 0.01 intermediate factors: resize animations are a continuous
-# homothety about the same point, so the gap constraints hold between levels.
+# NPC and warp locations are live entities, not voxels in the blueprint. The
+# conservative body boxes also protect the Santa-gift hunt spot nearest the model.
+points=[(-8,42),(8,42),(0,36),(-13,34),(13,34),(-16,25),(16,25),(-16,14),(16,14),
+        (-14,-15),(14,-15),(-8,19),(8,19),(25,12),(25,5),(-25,9),(-25,-1),
+        (-23,28),(23,28),(-34,-26),(62,-3),(0,-53),(-66,4),(-78,-34),(-66,68),
+        (66,68),(35,-24),(0,24)]
+# Model-to-model clearance scales linearly (a homothety). Model-to-world
+# clearance is checked separately below with swept intervals.
+
 for n in range(70,131):
     scale=n/100
     scaled=[(p,bounds(p,scale)) for p in rows]
@@ -35,6 +42,9 @@ for n in range(70,131):
             assert gap(a,b)>=.5, ('models touch',n,p,q,gap(a,b))
     for p,b in scaled:
         x1,y1,z1,x2,y2,z2=b
+        for x,z in points:
+            other=(x-.75,100,z-.75,x+.75,104,z+.75)
+            assert gap(b,other)>=.5, ('model near NPC/warp/hunt gift',n,p,x,z)
         for x in range(math.floor(x1+1e-6),math.ceil(x2-1e-6)):
             for y in range(math.floor(y1+1e-6),math.ceil(y2-1e-6)):
                 for z in range(math.floor(z1+1e-6),math.ceil(z2-1e-6)):
@@ -47,4 +57,17 @@ for n in range(70,131):
         # Course and model remain in disjoint zones (with empty breathing room).
         for i,x,y,z,half,kind in layout:
             assert x2 < x-half-1 or x1 > x+half+2 or z2 < z-half-1 or z1 > z+half+2 or y2 < y-1 or y1 > y+4, (n,p,i)
-print(f'ELKA V76: PASS ({len(rows)} parts, 61 factors; tree/presents separated, no world or parkour collisions)')
+# Swept AABB for each 1%-wide interval encloses every intermediate frame,
+# not just the sampled end points. No chunk/region/foreign block may be hit.
+for n in range(70,130):
+    for p in rows:
+        a,b=bounds(p,n/100),bounds(p,(n+1)/100)
+        x1,y1,z1=(min(a[i],b[i]) for i in range(3))
+        x2,y2,z2=(max(a[i],b[i]) for i in range(3,6))
+        for x in range(math.floor(x1+1e-6),math.ceil(x2-1e-6)):
+            for y in range(math.floor(y1+1e-6),math.ceil(y2-1e-6)):
+                for z in range(math.floor(z1+1e-6),math.ceil(z2-1e-6)):
+                    mat=block(x,y,z)
+                    if mat=='AIR' or (p[0]=='tree' and x==z==0 and 100<=y<=130 and mat=='SPRUCE_WOOD'):continue
+                    raise AssertionError(('swept model hits world',n,p,(x,y,z),mat))
+print(f'ELKA V76: PASS ({len(rows)} parts, 61 factors and 60 continuous intervals; presents, NPCs, parkour and world are clear)')
