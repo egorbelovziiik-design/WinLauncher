@@ -193,7 +193,9 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         });
     }
     private void claimChecks(Runnable next){
-        World arena=Bukkit.getWorld("spawn_world");
+        // Claim ownership is meaningful in survival: the active spawn intentionally
+        // denies physical storage even if a player creates a claim inside it.
+        World arena=world;
         for(int x=74;x<=77;x++)for(int z=9;z<=12;z++){
             arena.getBlockAt(x,93,z).setType(Material.STONE,false);
             for(int y=94;y<=96;y++)arena.getBlockAt(x,y,z).setType(Material.AIR,false);
@@ -656,7 +658,7 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         ok(yaml().getInt("winterTree.total")==31,"tree progress survives restart");
         ok("snow".equals(yaml().getString("cosmetics."+a.getUniqueId()+".trail")),"cosmetic selection survives restart");
         ok(yaml().getInt("utility.mining."+a.getUniqueId()+".total")==1,"buffered mining statistics survive clean restart");
-        DataStore.Claim protectedChest=store.getClaimAt(new Location(Bukkit.getWorld("spawn_world"),75,94,12));
+        DataStore.Claim protectedChest=store.getClaimAt(new Location(world,75,94,12));
         ok(protectedChest!=null&&yaml().getStringList("claimAudit."+protectedChest.id+".entries").size()==1,"blocked chest attempt survives restart");
         ok(protectedChest.canOpenContainers("SavedChest")&&!protectedChest.canAccess("SavedChest")
                 &&protectedChest.canAccess("SavedBuilder"),"container and legacy builder roles survive restart separately");
