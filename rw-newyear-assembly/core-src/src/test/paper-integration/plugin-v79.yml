@@ -1,0 +1,5 @@
+name: KgV79Probe
+version: '1.0'
+main: net.kinggrief.probe.V79Probe
+api-version: '1.21'
+depend: [KingGriefCore, PlayerPoints]

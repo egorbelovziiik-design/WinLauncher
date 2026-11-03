@@ -146,6 +146,9 @@ public final class GuiManager {
                 "&7Рилики: &b" + st.getRelics(p) + " ❖ &8| &7Снежинки: &b" + st.getSnowflakes(p.getName()) + " ❄",
                 "&7Наиграно: &e" + ColorUtil.fmtTime(st.getPlaySeconds(p.getName()))));
 
+        inv.setItem(6, ItemFactory.icon(Material.FOX_SPAWN_EGG, "&#80D8FF&l✦ Питомцы (/pet)",
+                "&79 косметических моделей без боевых бонусов.", "&7Выбор сохраняется. Нажмите для меню."));
+
         inv.setItem(10, ItemFactory.glowIcon(Material.COMPASS, "&#00E676&l⚡ РТП в Мир Выживания (/rtp)",
                 "&7Единственный вход из мира спавна в", "&7обычный мир выживания, Дальний РТП и Ад!", "", "&#00E676▸ Нажми для выбора!"));
         inv.setItem(11, ItemFactory.glowIcon(Material.ENDER_PEARL, "&#80D8FF&l🧭 Все Варпы и Арены",
@@ -1889,7 +1892,10 @@ public final class GuiManager {
         String type = h.menuType;
 
         if ("main".equals(type)) {
-            if (slot == 10) openRtpMenu(p);
+            if (slot == 6) Bukkit.getScheduler().runTask(plugin, () -> {
+                if (p.isOnline() && p.getOpenInventory().getTopInventory().getHolder() == h) p.performCommand("pet");
+            });
+            else if (slot == 10) openRtpMenu(p);
             else if (slot == 11) openWarpsMenu(p);
             else if (slot == 12) openCoinShopHub(p);
             else if (slot == 13) openKitsMenu(p, 0);
@@ -1910,7 +1916,7 @@ public final class GuiManager {
                 p.closeInventory();
                 Location destination = plugin.getSpawnEngine().getSpawnArrival();
                 if (destination == null) p.sendMessage(ColorUtil.c("&cТочка спавна сейчас недоступна."));
-                else if (!p.teleport(destination)) p.sendMessage(ColorUtil.c("&cТелепортация на спавн отменена."));
+                else if (!plugin.teleportWithBack(p, destination)) p.sendMessage(ColorUtil.c("&cТелепортация на спавн отменена."));
             }
             else if (slot == 32) openTitlesMenu(p);
             else if (slot == 33) openPlaytimeMenu(p);
@@ -2012,8 +2018,7 @@ public final class GuiManager {
                 p.closeInventory();
                 Location destination = "spawn".equals(w) ? plugin.getSpawnEngine().getSpawnArrival() : plugin.getSpawnEngine().getWarpLocation(w);
                 if (destination == null) { p.sendMessage(ColorUtil.c("&cВарп недоступен, пока готовый спавн не установлен.")); return; }
-                plugin.getStore().setBack(p, p.getLocation());
-                p.teleport(destination);
+                if (!plugin.teleportWithBack(p, destination)) { p.sendMessage(ColorUtil.c("&cТелепортация на варп отменена.")); return; }
                 ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
             }
         } else if ("kits".equals(type)) {

@@ -131,6 +131,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.spawnEngine = new SpawnEngine(this);
         this.legacySpawnGuard = new LegacySpawnGuard(this);
         Bukkit.getPluginManager().registerEvents(this.legacySpawnGuard, this);
+        Bukkit.getPluginManager().registerEvents(new SpawnWorldGuard(this), this);
         this.rtpManager = new RtpManager(this);
         Bukkit.getPluginManager().registerEvents(this.rtpManager, this);
         this.guis = new GuiManager(this);
@@ -601,7 +602,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length == 4 && "season".equalsIgnoreCase(args[0]) && hasTreeSeasonAdmin(sender))
                 return filterPrefix(Arrays.asList("confirm"), args[3]);
         } else if ("pet".equals(c) && args.length == 1) {
-            return filterPrefix(Arrays.asList("penguin", "deer", "dragon", "off"), args[0]);
+            return filterPrefix(DisplayPetManager.choices(), args[0]);
         } else if ("cases".equals(c)) {
             if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take"), args[0]);
             if (args.length == 2 && hasEconomyAdmin(sender)) return onlineNames(args[1]);
@@ -934,12 +935,10 @@ public final class KingGriefCore extends JavaPlugin {
                 p.sendMessage(ColorUtil.c("&cТочка спавна сейчас недоступна. Сообщите администрации или повторите позже."));
                 return true;
             }
-            Location previous = p.getLocation();
-            if (!p.teleport(destination)) {
+            if (!teleportWithBack(p, destination)) {
                 p.sendMessage(ColorUtil.c("&cТелепортация на спавн отменена."));
                 return true;
             }
-            store.setBack(p, previous);
             gameplayListener.endParkour(p);
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.1f);
             p.sendMessage(ColorUtil.c(spawnEngine.isInSpawnWorld(destination)
@@ -1012,8 +1011,7 @@ public final class KingGriefCore extends JavaPlugin {
                 }
                 return true;
             }
-            store.setBack(p, p.getLocation());
-            p.teleport(wl);
+            if (!teleportWithBack(p, wl)) { p.sendMessage(ColorUtil.c("&cТелепортация на варп отменена.")); return true; }
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.15f);
             p.sendMessage(ColorUtil.c("&#80D8FF🧭 Вы телепортированы на &f/warp " + args[0].toLowerCase(Locale.ROOT) + "&#80D8FF!"));
             return true;
@@ -1021,8 +1019,7 @@ public final class KingGriefCore extends JavaPlugin {
         if ("mine".equals(c) || "farm".equals(c) || "pvp".equals(c)) {
             Location destination = spawnEngine.getWarpLocation(c);
             if (destination == null) { p.sendMessage(ColorUtil.c("&cЭтот варп недоступен, пока готовый спавн не установлен.")); return true; }
-            store.setBack(p, p.getLocation());
-            p.teleport(destination);
+            if (!teleportWithBack(p, destination)) { p.sendMessage(ColorUtil.c("&cТелепортация на варп отменена.")); return true; }
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.15f);
             return true;
         }
@@ -1079,15 +1076,19 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length > 0 && "ghost".equalsIgnoreCase(args[0])) { parkourRecords.ghost(p, args); return true; }
             if (spawnEngine.getWarpLocation("parkour") == null) { p.sendMessage(ColorUtil.c("&cПаркур недоступен, пока готовый спавн не установлен.")); return true; }
             if (args.length > 0 && ("leave".equalsIgnoreCase(args[0]) || "reset".equalsIgnoreCase(args[0]))) {
+                if (!p.teleport(spawnEngine.getWarpLocation("parkour"))) {
+                    p.sendMessage(ColorUtil.c("&cТелепортация отменена; чекпоинт сохранён.")); return true;
+                }
                 gameplayListener.endParkour(p);
-                p.teleport(spawnEngine.getWarpLocation("parkour"));
                 p.sendMessage(ColorUtil.c("&#FF9100🏃 Чекпоинт паркура сброшен. Вы на старте!"));
             } else if (args.length > 0 && "cp".equalsIgnoreCase(args[0])) {
                 Location cp = store.getParkourCp(p);
-                p.teleport(cp != null ? cp : spawnEngine.getWarpLocation("parkour"));
+                if (!p.teleport(cp != null ? cp : spawnEngine.getWarpLocation("parkour"))) {
+                    p.sendMessage(ColorUtil.c("&cТелепортация на чекпоинт отменена.")); return true;
+                }
                 p.sendMessage(ColorUtil.c("&#40C4FF🏃 Телепорт на чекпоинт паркура!"));
             } else {
-                p.teleport(spawnEngine.getWarpLocation("parkour"));
+                if (!p.teleport(spawnEngine.getWarpLocation("parkour"))) p.sendMessage(ColorUtil.c("&cТелепортация на паркур отменена."));
             }
             return true;
         }
@@ -1530,8 +1531,7 @@ public final class KingGriefCore extends JavaPlugin {
             String hn = args.length > 0 ? args[0].toLowerCase(Locale.ROOT) : "home";
             Location hl = store.getHomes(p.getName()).get(hn);
             if (hl == null) { p.sendMessage(ColorUtil.c("&cДом не найден! Список: /homes")); return true; }
-            store.setBack(p, p.getLocation());
-            p.teleport(hl);
+            if (!teleportWithBack(p, hl)) { p.sendMessage(ColorUtil.c("&cТелепортация домой отменена.")); return true; }
             p.sendMessage(ColorUtil.c("&#00E676🏠 Телепорт домой (&f" + hn + "&#00E676)!"));
             return true;
         }
@@ -1548,7 +1548,7 @@ public final class KingGriefCore extends JavaPlugin {
         if ("back".equals(c)) {
             Location b = store.getBack(p);
             if (b == null) { p.sendMessage(ColorUtil.c("&cНет сохранённой локации для возврата.")); return true; }
-            p.teleport(b);
+            if (!p.teleport(b)) { p.sendMessage(ColorUtil.c("&cВозврат отменён.")); return true; }
             p.sendMessage(ColorUtil.c("&#00E676↩ Возврат на предыдущее место!"));
             return true;
         }
@@ -1575,12 +1575,10 @@ public final class KingGriefCore extends JavaPlugin {
             UUID sid = store.popTpaSender(p, isHere);
             Player s = sid != null ? Bukkit.getPlayer(sid) : null;
             if (s == null) { p.sendMessage(ColorUtil.c("&cНет активных запросов телепортации!")); return true; }
-            if (isHere[0]) {
-                store.setBack(p, p.getLocation());
-                p.teleport(s.getLocation());
-            } else {
-                store.setBack(s, s.getLocation());
-                s.teleport(p.getLocation());
+            boolean moved = isHere[0] ? teleportWithBack(p, s.getLocation()) : teleportWithBack(s, p.getLocation());
+            if (!moved) {
+                p.sendMessage(ColorUtil.c("&cТелепортация отменена; отправьте запрос заново."));
+                s.sendMessage(ColorUtil.c("&cТелепортация отменена; отправьте запрос заново.")); return true;
             }
             p.sendMessage(ColorUtil.c("&#00E676✔ Запрос принят!"));
             s.sendMessage(ColorUtil.c("&#00E676✔ Телепортация выполнена!"));
@@ -1834,6 +1832,15 @@ public final class KingGriefCore extends JavaPlugin {
         }
     }
 
+    /** Record /back only after Paper and every teleport protection accepted the move. */
+    boolean teleportWithBack(Player player, Location destination) {
+        if (player == null || destination == null || destination.getWorld() == null) return false;
+        Location previous = player.getLocation();
+        if (!player.teleport(destination)) return false;
+        store.setBack(player, previous);
+        return true;
+    }
+
     private boolean handleStaffMlModerCommand(Player p, RankManager.RankDef myRank, String c, String[] args) {
         if ("tpall".equals(c)) {
             if (myRank.weight < 255) {
@@ -1843,8 +1850,7 @@ public final class KingGriefCore extends JavaPlugin {
             int cnt = 0;
             for (Player other : Bukkit.getOnlinePlayers()) {
                 if (other.equals(p)) continue;
-                store.setBack(other, other.getLocation());
-                other.teleport(p.getLocation());
+                if (!teleportWithBack(other, p.getLocation())) continue;
                 other.sendMessage(ColorUtil.c("&#FFD740⚡ Администратор &f" + p.getName() + " &#FFD740телепортировал всех игроков к себе!"));
                 cnt++;
             }
@@ -1879,8 +1885,7 @@ public final class KingGriefCore extends JavaPlugin {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Нельзя телепортировать к себе старшего по должности (&f" + t.getName() + "&#FF1744)!"));
                 return true;
             }
-            store.setBack(t, t.getLocation());
-            t.teleport(p.getLocation());
+            if (!teleportWithBack(t, p.getLocation())) { p.sendMessage(ColorUtil.c("&cТелепортация игрока отменена.")); return true; }
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.2f);
             p.sendMessage(ColorUtil.c("&#00E676✔ Вы телепортировали игрока &f" + t.getName() + " &#00E676к себе!"));
             t.sendMessage(ColorUtil.c("&#7DD3FC⚡ Модератор &f" + p.getName() + " &#7DD3FCтелепортировал вас к себе."));
@@ -1891,8 +1896,7 @@ public final class KingGriefCore extends JavaPlugin {
                 Player t = Bukkit.getPlayerExact(args[0]);
                 if (t == null) t = Bukkit.getPlayer(args[0]);
                 if (t == null) { p.sendMessage(ColorUtil.c("&cИгрок не найден!")); return true; }
-                store.setBack(p, p.getLocation());
-                p.teleport(t.getLocation());
+                if (!teleportWithBack(p, t.getLocation())) { p.sendMessage(ColorUtil.c("&cТелепортация отменена.")); return true; }
                 ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.2f);
                 p.sendMessage(ColorUtil.c("&#00E676✔ Телепортация к игроку &f" + t.getName() + " &#00E676выполнена!"));
                 return true;
@@ -1905,8 +1909,7 @@ public final class KingGriefCore extends JavaPlugin {
                 Player p1 = Bukkit.getPlayer(args[0]);
                 Player p2 = Bukkit.getPlayer(args[1]);
                 if (p1 == null || p2 == null) { p.sendMessage(ColorUtil.c("&cОдин из игроков не в сети!")); return true; }
-                store.setBack(p1, p1.getLocation());
-                p1.teleport(p2.getLocation());
+                if (!teleportWithBack(p1, p2.getLocation())) { p.sendMessage(ColorUtil.c("&cТелепортация игрока отменена.")); return true; }
                 p.sendMessage(ColorUtil.c("&#00E676✔ Игрок &f" + p1.getName() + " &#00E676телепортирован к &f" + p2.getName() + "&#00E676!"));
                 return true;
             }
@@ -1915,8 +1918,9 @@ public final class KingGriefCore extends JavaPlugin {
                     double x = Double.parseDouble(args[0]);
                     double y = Double.parseDouble(args[1]);
                     double z = Double.parseDouble(args[2]);
-                    store.setBack(p, p.getLocation());
-                    p.teleport(new Location(p.getWorld(), x, y, z, p.getLocation().getYaw(), p.getLocation().getPitch()));
+                    if (!teleportWithBack(p, new Location(p.getWorld(), x, y, z, p.getLocation().getYaw(), p.getLocation().getPitch()))) {
+                        p.sendMessage(ColorUtil.c("&cТелепортация отменена.")); return true;
+                    }
                     p.sendMessage(ColorUtil.c("&#00E676✔ Телепортация на координаты &f" + (int) x + ", " + (int) y + ", " + (int) z));
                 } catch (Exception ex) {
                     p.sendMessage(ColorUtil.c("&cУкажите корректные числа X Y Z!"));
@@ -1936,8 +1940,9 @@ public final class KingGriefCore extends JavaPlugin {
                 double y = Double.parseDouble(args[1]);
                 double z = Double.parseDouble(args[2]);
                 World w = args.length >= 4 && Bukkit.getWorld(args[3]) != null ? Bukkit.getWorld(args[3]) : p.getWorld();
-                store.setBack(p, p.getLocation());
-                p.teleport(new Location(w, x, y, z, p.getLocation().getYaw(), p.getLocation().getPitch()));
+                if (!teleportWithBack(p, new Location(w, x, y, z, p.getLocation().getYaw(), p.getLocation().getPitch()))) {
+                    p.sendMessage(ColorUtil.c("&cТелепортация отменена.")); return true;
+                }
                 p.sendMessage(ColorUtil.c("&#00E676✔ Телепортация на &f" + (int) x + ", " + (int) y + ", " + (int) z + " &7(" + w.getName() + ")"));
             } catch (Exception ex) {
                 p.sendMessage(ColorUtil.c("&cНекорректные координаты!"));
@@ -2489,8 +2494,7 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("home".equals(sub)) {
             if (my.home == null) { p.sendMessage(ColorUtil.c("&cБаза клана ещё не установлена (&f/clan sethome&c)!")); return; }
-            store.setBack(p, p.getLocation());
-            p.teleport(my.home);
+            if (!teleportWithBack(p, my.home)) { p.sendMessage(ColorUtil.c("&cТелепортация на базу отменена.")); return; }
             ColorUtil.sound(p, "entity.enderman.teleport", 1f, 1.15f);
             p.sendMessage(ColorUtil.c(my.color + "🛡 Вы телепортировались на базу клана [" + my.tag + "]!"));
             return;
@@ -3066,8 +3070,7 @@ public final class KingGriefCore extends JavaPlugin {
             Location dest = highest.getLocation().add(0.5, 1.0, 0.5);
             dest.setYaw(p.getLocation().getYaw());
             dest.setPitch(p.getLocation().getPitch());
-            store.setBack(p, p.getLocation());
-            p.teleport(dest);
+            if (!teleportWithBack(p, dest)) { p.sendMessage(ColorUtil.c("&cТелепортация отменена.")); return true; }
             p.sendMessage(ColorUtil.c("&#00E676⬆ Вы поднялись на самую высокую точку!"));
             return true;
         }
@@ -3084,8 +3087,7 @@ public final class KingGriefCore extends JavaPlugin {
             Location dest = rt.getHitBlock().getLocation().add(0.5, 1.05, 0.5);
             dest.setYaw(p.getLocation().getYaw());
             dest.setPitch(p.getLocation().getPitch());
-            store.setBack(p, p.getLocation());
-            p.teleport(dest);
+            if (!teleportWithBack(p, dest)) { p.sendMessage(ColorUtil.c("&cТелепортация отменена.")); return true; }
             ColorUtil.sound(p, "entity.enderman.teleport", 0.9f, 1.25f);
             return true;
         }

@@ -2718,6 +2718,11 @@ public final class GameplayListener implements Listener {
             p.sendMessage(ColorUtil.c("&#FF9100🍊 Вы съели Новогодний Мандарин (+4❤ и Скорость II)!"));
         } else if ("mystery_egg".equals(cid) && cb != null && cb.getType() == Material.SPAWNER) {
             e.setCancelled(true);
+            if ((plugin.getSpawnEngine().isInSpawnWorld(cb.getLocation())
+                    || (plugin.getLegacySpawnGuard() != null && plugin.getLegacySpawnGuard().isLegacy(cb.getWorld())))
+                    && !plugin.getRanks().canModifySpawn(p)) {
+                p.sendMessage(ColorUtil.c("&cСпавнер на спавне защищён; яйцо не потрачено.")); return;
+            }
             DataStore.Claim cl = plugin.getStore().getClaimAt(cb.getLocation());
             if (cl != null && !cl.canAccess(p.getName())) return;
             consumeOne(p, hand);
@@ -3985,22 +3990,21 @@ public final class GameplayListener implements Listener {
                     + "! Всего собрано: &#00E676" + found + "/10 &7(/gifts)"));
             return;
         }
-        plugin.getStore().markFoundSpawnGift(p.getName(), giftIdx);
-        plugin.getStore().addCoins(p.getName(), 3500);
-        plugin.getStore().addSnowflakes(p.getName(), 3);
+        DataStore.SpawnGiftOutcome outcome = plugin.getStore().awardSpawnGift(p, giftIdx);
+        if (outcome == DataStore.SpawnGiftOutcome.ALREADY) return;
+        if (outcome == DataStore.SpawnGiftOutcome.FAILED) {
+            p.sendMessage(ColorUtil.c("&cНе удалось сохранить подарок и награду. Ничего не выдано; повторите позже."));
+            return;
+        }
         int total = plugin.getStore().getFoundSpawnGiftCount(p.getName());
         ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.35f);
         p.sendMessage(ColorUtil.c("&#00E676🎁 Найден Секретный Подарок Санты #" + (giftIdx + 1)
                 + "! &a+3 500$ &fи &b+3 Снежинки ❄ &8(&e" + total + "/10&8)"));
-        if (total >= 10) {
-            plugin.getStore().addCoins(p.getName(), 25000);
-            plugin.getStore().addRelics(p.getName(), 25);
-            plugin.getStore().addCaseKeys(p.getName(), "donate", 1);
+        if (outcome == DataStore.SpawnGiftOutcome.COMPLETE) {
             ColorUtil.spawnFirework(p.getLocation());
             Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l🎅 [ПОДАРКИ САНТЫ] &fИгрок &#00E676" + p.getName()
                     + " &fнашёл ВСЕ 10/10 подарков на спавне и забрал &a+25 000$&f, &b+25❖ &fи &#FF1744Донат-Кейс&f!"));
         }
-        plugin.getStore().save();
         plugin.getHud().updatePlayerHud(p);
     }
 

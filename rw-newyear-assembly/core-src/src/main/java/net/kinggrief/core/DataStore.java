@@ -2469,6 +2469,50 @@ public final class DataStore {
         quickFrozenPlayers.remove(id);
     }
 
+    enum SpawnGiftOutcome { AWARDED, COMPLETE, ALREADY, FAILED }
+
+    /** One durable local transaction for the found flag and every local reward.
+     * PlayerPoints is external and can only be synchronized after this commit. */
+    synchronized SpawnGiftOutcome awardSpawnGift(Player player, int index) {
+        if (player == null || index < 0 || index >= 10) return SpawnGiftOutcome.FAILED;
+        String name = player.getName(), base = "players." + key(name);
+        if (hasFoundSpawnGift(name, index)) return SpawnGiftOutcome.ALREADY;
+        int previous = getFoundSpawnGiftCount(name);
+        boolean complete = previous == 9;
+        double beforeCoins = getCoins(name), afterCoins = beforeCoins + 3500.0 + (complete ? 25000.0 : 0.0);
+        int snow = getSnowflakes(name), relics = complete ? getAwardRelics(name, player.getUniqueId()) : 0;
+        int keys = complete ? getCaseKeys(name, "donate") : 0;
+        if (previous < 0 || previous > 9 || !Double.isFinite(beforeCoins) || beforeCoins < 0
+                || !Double.isFinite(afterCoins) || afterCoins <= beforeCoins || snow < 0
+                || (long) snow + 3 > Integer.MAX_VALUE
+                || (complete && (relics < 0 || (long) relics + 25 > Integer.MAX_VALUE
+                                || keys < 0 || keys == Integer.MAX_VALUE))) return SpawnGiftOutcome.FAILED;
+        try {
+            transact(data -> {
+                if (data.getBoolean(base + ".spawnGifts.g" + index, false)) throw new IOException("gift already claimed");
+                int currentCount = 0;
+                for (int i = 0; i < 10; i++) if (data.getBoolean(base + ".spawnGifts.g" + i, false)) currentCount++;
+                if (currentCount != previous) throw new IOException("gift progress changed");
+                data.set(base + ".spawnGifts.g" + index, true);
+                data.set(base + ".coins", afterCoins);
+                data.set(base + ".snowflakes", snow + 3);
+                if (complete) {
+                    data.set(base + ".relics", relics + 25);
+                    data.set(base + ".cases.donate", keys + 1);
+                }
+                return null;
+            });
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Gifts] Reward was not committed for " + name + ": " + error.getMessage());
+            return SpawnGiftOutcome.FAILED;
+        }
+        if (complete) try { syncAwardRelics(name, player.getUniqueId()); }
+        catch (Exception | LinkageError error) {
+            plugin.getLogger().warning("[Gifts] Local reward committed, PlayerPoints sync failed for " + name + ": " + error.getMessage());
+        }
+        return complete ? SpawnGiftOutcome.COMPLETE : SpawnGiftOutcome.AWARDED;
+    }
+
     public boolean hasFoundSpawnGift(String name, int giftIndex) {
         return yml.getBoolean("players." + key(name) + ".spawnGifts.g" + giftIndex, false);
     }

@@ -1,5 +1,5 @@
 name: KingGriefCore
-version: 7.8.0
+version: 7.9.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
@@ -67,7 +67,9 @@ commands:
     description: Help decorate the shared winter tree, claim rewards and view seasons
     usage: /kgtree [status|donate|claim|top|history|season]
   pet:
-    description: Select a cosmetic display-model pet
+    aliases: [pets]
+    description: Open the cosmetic pet menu or select a display-model pet
+    usage: /pet [menu|list|status|name|off]
   lp:
     description: OWNER-Only LuckPerms System & Web LP Editor
   luckperms:

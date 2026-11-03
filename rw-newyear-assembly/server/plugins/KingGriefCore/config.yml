@@ -28,3 +28,12 @@ crown-event:
 rtp:
   allow-chunk-generation: true  # false: уже созданные чанки можно загружать с диска, новые не генерируются
   min-free-heap-mb: 256         # порог JVM heap перед генерацией; не предел памяти контейнера
+
+# Косметические модели; ограничение действует на весь сервер (0–32).
+pets:
+  max-active: 16
+
+# Защита окружения спавна: поршни, сущности и таяние льда/снега.
+spawn-protection:
+  protect-environment: true
+  block-inventory-transport: true  # воронки и вагонетки на активном/распознанном старом спавне
