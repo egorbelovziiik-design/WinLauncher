@@ -2894,6 +2894,7 @@ public final class DataStore {
         if(!Double.isFinite(first) || !Double.isFinite(second) || first<bet || second<bet || first<0 || second<0
                 || (bet>0 && (!(first-bet<first) || !(second-bet<second)
                         || !(first-bet+bet>first-bet) || !(second-bet+bet>second-bet)
+                        || !Double.isFinite(first-bet+bet*2.0) || !Double.isFinite(second-bet+bet*2.0)
                         || !(first-bet+bet*2.0>first-bet) || !(second-bet+bet*2.0>second-bet)))) return null;
         try {
             transact(data->{

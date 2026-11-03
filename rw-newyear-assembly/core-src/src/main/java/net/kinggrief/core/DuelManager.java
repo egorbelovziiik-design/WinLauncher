@@ -295,8 +295,13 @@ final class DuelManager implements Listener, CommandExecutor, TabCompleter {
             if(!e.isCancelled() && dead.isDead()) settle(d,fair?opponent:null,fair?"победа в бою":"бой прерван");
         });
     }
+    // Bukkit gives PlayerTeleportEvent its own HandlerList; a PlayerMoveEvent
+    // listener alone does not observe plugin/command teleports.
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
-    public void onLeaveArena(PlayerMoveEvent e) {
+    public void onLeaveArena(PlayerMoveEvent e) { checkLeaving(e); }
+    @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
+    public void onLeaveArenaTeleport(org.bukkit.event.player.PlayerTeleportEvent e) { checkLeaving(e); }
+    private void checkLeaving(PlayerMoveEvent e) {
         Player p=e.getPlayer(); DataStore.ActiveWagerDuel d=plugin.getStore().getActiveWagerDuel(p.getName());
         if(d==null || e.getTo()==null || !inArena(d,e.getFrom()) || inArena(d,e.getTo())) return;
         Bukkit.getScheduler().runTask(plugin,()->{

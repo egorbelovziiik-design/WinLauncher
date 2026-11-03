@@ -537,5 +537,5 @@ public final class ExpeditionManager implements Listener, CommandExecutor, TabCo
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
     public void onPiston(BlockPistonExtendEvent e) { moveMarks(e.getBlocks(),e.getDirection(),e::isCancelled); }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true)
-    public void onPiston(BlockPistonRetractEvent e) { moveMarks(e.getBlocks(),e.getDirection().getOppositeFace(),e::isCancelled); }
+    public void onPiston(BlockPistonRetractEvent e) { moveMarks(e.getBlocks(),e.getDirection(),e::isCancelled); }
 }

@@ -24,7 +24,7 @@ import java.util.*;
 public final class V712Probe extends JavaPlugin implements Listener {
     private KingGriefCore core; private ExpeditionManager exp; private Player a,b,c; private World world;
     private Block ore,other; private int checks,errors,phase; private boolean started,finished;
-    private boolean denyBreak,denyPlace,denyPiston,denyFish,denyMove,denyMonster,denyTeleport;
+    private boolean denyBreak,denyPlace,denyPiston,denyFish,denyMove,denyMonster,denyTeleport,denyEscape;
     private static final Instant MONDAY=Instant.parse("2026-01-05T12:00:00Z");
     @Override public void onEnable() { phase=getConfig().getInt("phase",1); Bukkit.getPluginManager().registerEvents(this,this); }
     @EventHandler public void join(PlayerJoinEvent e) {
@@ -40,6 +40,7 @@ public final class V712Probe extends JavaPlugin implements Listener {
     @EventHandler(priority=EventPriority.MONITOR) public void lateMonster(EntityDeathEvent e) { if(denyMonster && e.getEntity() instanceof Monster) { denyMonster=false; e.setReviveHealth(10); e.setCancelled(true); } }
     @EventHandler(priority=EventPriority.HIGHEST) public void cancelledTeleport(PlayerTeleportEvent e) {
         if(denyTeleport && e.getPlayer().equals(b) && e.getTo()!=null && core.getSpawnEngine().isInsideAnyKabinka(e.getTo())) { denyTeleport=false; e.setCancelled(true); }
+        if(denyEscape && e.getPlayer().equals(a) && e.getFrom()!=null && core.getSpawnEngine().isInsideAnyKabinka(e.getFrom())) { denyEscape=false; e.setCancelled(true); }
     }
     private interface Checked { void run() throws Exception; }
     private interface Condition { boolean test() throws Exception; }
@@ -146,7 +147,23 @@ public final class V712Probe extends JavaPlugin implements Listener {
         later(15,()->{
             ok(dest.getType()==Material.DIAMOND_ORE && marked(dest) && !marked(source),"real redstone piston transfers mark after movement animation");
             a.breakBlock(dest);
-            later(4,()->{ ok(progress(5)==35,"real piston-moved placed ore grants no progress"); fishMoveMonster(); });
+            later(4,()->{ ok(progress(5)==35,"real piston-moved placed ore grants no progress"); realStickyPiston(); });
+        });
+    }
+    private void realStickyPiston() throws Exception {
+        Block piston=world.getBlockAt(172,70,161),head=world.getBlockAt(173,70,161),source=world.getBlockAt(174,70,161);
+        head.setType(Material.AIR,false);source.setType(Material.AIR,false);piston.setType(Material.STICKY_PISTON,false);
+        org.bukkit.block.data.Directional direction=(org.bukkit.block.data.Directional)piston.getBlockData();
+        direction.setFacing(BlockFace.EAST);piston.setBlockData(direction,false);
+        Block power=piston.getRelative(BlockFace.UP);power.setType(Material.REDSTONE_BLOCK,true);
+        later(12,()->{
+            ok(head.getType()==Material.PISTON_HEAD,"real sticky piston extended");
+            place(source);power.setType(Material.AIR,true);
+            later(15,()->{
+                ok(head.getType()==Material.DIAMOND_ORE && marked(head) && !marked(source),"real sticky retract moves the mark toward the piston");
+                a.breakBlock(head);
+                later(4,()->{ ok(progress(5)==35,"retracted placed ore grants no progress"); fishMoveMonster(); });
+            });
         });
     }
     private void fishMoveMonster() throws Exception {
@@ -218,6 +235,9 @@ public final class V712Probe extends JavaPlugin implements Listener {
         double av=core.getStore().getCoins(a.getName()),bv=core.getStore().getCoins(b.getName());
         a.performCommand("duel ExpTwo NaN");b.performCommand("duel accept");
         ok(active()==null && core.getStore().getCoins(a.getName())==av && core.getStore().getCoins(b.getName())==bv,"nonfinite duel bet is rejected");
+        core.getStore().setCoins(a.getName(),Double.MAX_VALUE);core.getStore().setCoins(b.getName(),Double.MAX_VALUE);
+        ok(core.getStore().startWagerDuel(a.getName(),b.getName(),8e307,1)==null && active()==null,"duel is refused when a future winner payout would overflow");
+        core.getStore().setCoins(a.getName(),av);core.getStore().setCoins(b.getName(),bv);
         a.performCommand("duel ExpTwo 1000");b.performCommand("duel decline");b.performCommand("duel accept");
         ok(active()==null && core.getStore().getCoins(a.getName())==av,"declined invite does not debit");
         denyTeleport=true;a.performCommand("duel ExpTwo 1000");b.performCommand("duel accept");
@@ -259,13 +279,19 @@ public final class V712Probe extends JavaPlugin implements Listener {
     private void startEscapeDuel(double av,double bv) throws Exception {
         a.performCommand("duel ExpTwo 1000");b.performCommand("duel accept");
         waitFor(()->active()!=null && !preparing(),()->{
-            a.teleport(new Location(world,160.5,70,160.5));
-            later(6,()->{
-                ok(active()==null && core.getStore().getCoins(a.getName())==av && core.getStore().getCoins(b.getName())==bv,
-                        "leaving a cabin resolves a draw and returns both stakes");
-                b.teleport(new Location(world,162.5,70,160.5));
-                core.getHud().clearCombat(a.getUniqueId());core.getHud().clearCombat(b.getUniqueId());
-                later(25,this::startWinDuel);
+            denyEscape=true;boolean moved=a.teleport(new Location(world,160.5,70,160.5));
+            later(5,()->{
+                ok(!moved && !denyEscape && active()!=null && core.getStore().getCoins(a.getName())==av-1000,
+                        "cancelled escape teleport does not refund or end the duel");
+                a.teleport(new Location(world,160.5,70,160.5));
+                later(6,()->{
+                    boolean refunded=active()==null && core.getStore().getCoins(a.getName())==av && core.getStore().getCoins(b.getName())==bv;
+                    ok(refunded,"leaving a cabin resolves a draw and returns both stakes");
+                    if(!refunded) throw new AssertionError("escape failed; do not test a stale duel");
+                    b.teleport(new Location(world,162.5,70,160.5));
+                    core.getHud().clearCombat(a.getUniqueId());core.getHud().clearCombat(b.getUniqueId());
+                    later(25,this::startWinDuel);
+                });
             });
         },100);
     }
