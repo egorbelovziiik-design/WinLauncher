@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Upgrade actual 7.9.0 to 7.11.0 without reinstalling the active v77 world."""
+"""Upgrade actual 7.9.0 to 7.12.0 without reinstalling the active v77 world."""
 import argparse,hashlib,importlib.util,shutil,tempfile
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[3]
@@ -18,6 +18,6 @@ def main():
   (server/'eula.txt').write_text('eula=true\n');(data/'config.yml').write_text('enable-builtin-auth: false\nenable-builtin-tab-and-scoreboard: false\npush-resourcepack-on-join: false\n')
   (server/'server.properties').write_text(f'online-mode=false\nserver-ip=127.0.0.1\nserver-port={h.free_port()}\nview-distance=2\nsimulation-distance=3\nallow-nether=false\nspawn-protection=0\nlevel-type=minecraft:flat\ngenerate-structures=false\n')
   h.build_test_plugin(a,root,HERE/'PreserveV77Probe.java',HERE/'plugin-preserve-v77.yml',server/'plugins/KgSpawnInstallProbe.jar')
-  h.run_server(a,server,'seed79');shutil.copy2(a.core,server/'plugins/KingGriefCore.jar');h.run_server(a,server,'verify711')
+  h.run_server(a,server,'seed79');shutil.copy2(a.core,server/'plugins/KingGriefCore.jar');h.run_server(a,server,'verify712')
  print('V79 PRESERVATION INTEGRATION: PASS (world, chest, force ticket, warp, coins, wheel, tree, pet, gift playtime, daily, pass and achievements)',flush=True)
 if __name__=='__main__':main()

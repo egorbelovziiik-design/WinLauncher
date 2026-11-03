@@ -19,6 +19,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -2705,21 +2706,21 @@ public final class DataStore {
     private final Map<String, Set<String>> friendInvites = new HashMap<String, Set<String>>();
     private final Map<String, Integer> activeKillstreaks = new HashMap<String, Integer>();
 
+    /** A persisted escrow is indexed in memory only after its durable commit. */
     public static final class ActiveWagerDuel {
-        public final String playerA;
-        public final String playerB;
+        public final String id, playerA, playerB;
         public final double betEach;
         public final long startedAtMs;
-
-        public ActiveWagerDuel(String playerA, String playerB, double betEach, long startedAtMs) {
-            this.playerA = playerA;
-            this.playerB = playerB;
-            this.betEach = betEach;
-            this.startedAtMs = startedAtMs;
+        public final int arena;
+        ActiveWagerDuel(String id, String playerA, String playerB, double betEach, long startedAtMs, int arena) {
+            this.id=id; this.playerA=playerA; this.playerB=playerB; this.betEach=betEach; this.startedAtMs=startedAtMs; this.arena=arena;
+        }
+        public String opponent(String name) {
+            return playerA.equalsIgnoreCase(name)?playerB:playerB.equalsIgnoreCase(name)?playerA:null;
         }
     }
-
     private final Map<String, ActiveWagerDuel> activeWagerDuels = new HashMap<String, ActiveWagerDuel>();
+    private boolean wagerRecoveryBlocked;
 
     public List<String> getTeammateKeys(String name) {
         List<String> raw = yml.getStringList("players." + key(name) + ".teammates");
@@ -2858,22 +2859,107 @@ public final class DataStore {
         return prev != null ? prev.intValue() : 0;
     }
 
-    public void startWagerDuel(String a, String b, double betEach) {
-        ActiveWagerDuel d = new ActiveWagerDuel(a, b, betEach, System.currentTimeMillis());
-        activeWagerDuels.put(key(a), d);
-        activeWagerDuels.put(key(b), d);
+    private static boolean validDuelName(String name) {
+        return name != null && name.matches("[A-Za-z0-9_]{1,16}");
     }
-
-    public ActiveWagerDuel getActiveWagerDuel(String name) {
-        return activeWagerDuels.get(key(name));
+    private static boolean validDuelBet(double bet) {
+        return Double.isFinite(bet) && (bet==0.0 || bet>=100.0) && Double.isFinite(bet*2.0);
     }
-
-    public ActiveWagerDuel finishWagerDuel(String name) {
-        ActiveWagerDuel d = activeWagerDuels.remove(key(name));
-        if (d != null) {
-            activeWagerDuels.remove(key(d.playerA));
-            activeWagerDuels.remove(key(d.playerB));
+    private boolean validDuel(ActiveWagerDuel d) {
+        if(d==null || !validDuelName(d.playerA) || !validDuelName(d.playerB) || d.playerA.equalsIgnoreCase(d.playerB)
+                || !validDuelBet(d.betEach) || d.arena<1 || d.arena>6 || d.startedAtMs<0) return false;
+        try { return UUID.fromString(d.id).toString().equals(d.id); } catch(Exception invalid) { return false; }
+    }
+    private String wagerPath(ActiveWagerDuel d) { return "wagerDuels.active."+d.id; }
+    private boolean recordMatches(YamlConfiguration data,ActiveWagerDuel d) {
+        String path=wagerPath(d);
+        return data.isConfigurationSection(path) && d.playerA.equals(data.getString(path+".a"))
+                && d.playerB.equals(data.getString(path+".b")) && Double.compare(d.betEach,data.getDouble(path+".bet",Double.NaN))==0
+                && d.arena==data.getInt(path+".arena",-1) && d.startedAtMs==data.getLong(path+".started",-1);
+    }
+    public boolean isWagerRecoveryBlocked() { return wagerRecoveryBlocked; }
+    public ActiveWagerDuel getActiveWagerDuel(String name) { return activeWagerDuels.get(key(name)); }
+    public boolean isDuelArenaReserved(int arena) {
+        for(ActiveWagerDuel d:activeWagerDuels.values()) if(d.arena==arena) return true;
+        return false;
+    }
+    public List<ActiveWagerDuel> getActiveWagerDuels() {
+        return new ArrayList<ActiveWagerDuel>(new LinkedHashSet<ActiveWagerDuel>(activeWagerDuels.values()));
+    }
+    /** Debit both players and register their bank in one checked YAML commit. */
+    public synchronized ActiveWagerDuel startWagerDuel(String a,String b,double bet,int arena) {
+        ActiveWagerDuel d=new ActiveWagerDuel(UUID.randomUUID().toString(),a,b,bet,System.currentTimeMillis(),arena);
+        if(wagerRecoveryBlocked || !validDuel(d) || getActiveWagerDuel(a)!=null || getActiveWagerDuel(b)!=null || isDuelArenaReserved(arena)) return null;
+        double first=getCoins(a),second=getCoins(b);
+        if(!Double.isFinite(first) || !Double.isFinite(second) || first<bet || second<bet || first<0 || second<0
+                || (bet>0 && (!(first-bet<first) || !(second-bet<second)
+                        || !(first-bet+bet>first-bet) || !(second-bet+bet>second-bet)
+                        || !(first-bet+bet*2.0>first-bet) || !(second-bet+bet*2.0>second-bet)))) return null;
+        try {
+            transact(data->{
+                String path=wagerPath(d);
+                if(data.contains(path)) throw new IOException("duplicate duel id");
+                data.set("players."+key(a)+".coins",first-bet); data.set("players."+key(b)+".coins",second-bet);
+                data.set(path+".a",a); data.set(path+".b",b); data.set(path+".bet",bet);
+                data.set(path+".started",d.startedAtMs); data.set(path+".arena",arena);
+                return null;
+            });
+        } catch(Exception error) {
+            plugin.getLogger().warning("[Duel] Escrow was not committed: "+error.getMessage()); return null;
         }
-        return d;
+        activeWagerDuels.put(key(a),d); activeWagerDuels.put(key(b),d); return d;
+    }
+    /** Winner=null refunds both. Markers, bank and stats share one durable commit. */
+    public synchronized boolean settleWagerDuel(ActiveWagerDuel d,String winner) {
+        if(!validDuel(d) || getActiveWagerDuel(d.playerA)!=d || getActiveWagerDuel(d.playerB)!=d
+                || (winner!=null && !winner.equalsIgnoreCase(d.playerA) && !winner.equalsIgnoreCase(d.playerB))) return false;
+        try {
+            transact(data->{
+                if(!recordMatches(data,d)) throw new IOException("escrow record changed or is missing");
+                String a="players."+key(d.playerA),b="players."+key(d.playerB);
+                double av=data.getDouble(a+".coins",plugin.getConfig().getDouble("starting-coins",2500.0));
+                double bv=data.getDouble(b+".coins",plugin.getConfig().getDouble("starting-coins",2500.0));
+                double addA=winner==null?d.betEach:winner.equalsIgnoreCase(d.playerA)?d.betEach*2.0:0.0;
+                double addB=winner==null?d.betEach:winner.equalsIgnoreCase(d.playerB)?d.betEach*2.0:0.0;
+                if(!Double.isFinite(av) || !Double.isFinite(bv) || av<0 || bv<0
+                        || !Double.isFinite(av+addA) || !Double.isFinite(bv+addB)
+                        || (addA>0 && av+addA<=av) || (addB>0 && bv+addB<=bv)) throw new IOException("invalid payout balance");
+                data.set(a+".coins",av+addA); data.set(b+".coins",bv+addB);
+                if(winner!=null) {
+                    String wp=winner.equalsIgnoreCase(d.playerA)?a:b, lp=winner.equalsIgnoreCase(d.playerA)?b:a;
+                    data.set(wp+".duelStats.wins",Math.min((long)Integer.MAX_VALUE,Math.min((long)Integer.MAX_VALUE,Math.max(0L,data.getLong(wp+".duelStats.wins",0L)))+1));
+                    data.set(lp+".duelStats.losses",Math.min((long)Integer.MAX_VALUE,Math.min((long)Integer.MAX_VALUE,Math.max(0L,data.getLong(lp+".duelStats.losses",0L)))+1));
+                }
+                data.set(wagerPath(d),null); return null;
+            });
+        } catch(Exception error) {
+            plugin.getLogger().severe("[Duel] Settlement was not committed; escrow "+d.id+" remains for recovery: "+error.getMessage()); return false;
+        }
+        activeWagerDuels.remove(key(d.playerA)); activeWagerDuels.remove(key(d.playerB)); return true;
+    }
+    public int getDuelStat(String name,String stat) {
+        if(!"wins".equals(stat) && !"losses".equals(stat)) return 0;
+        return (int)Math.max(0L,Math.min((long)Integer.MAX_VALUE,yml.getLong("players."+key(name)+".duelStats."+stat,0L)));
+    }
+    /** On a fresh start only: unfinished fights are ties, never guessed winners. */
+    public synchronized void recoverWagerDuels() {
+        String root="wagerDuels.active";
+        if(!yml.contains(root)) return;
+        org.bukkit.configuration.ConfigurationSection section=yml.getConfigurationSection(root);
+        if(section==null || section.getKeys(false).size()>6) { wagerRecoveryBlocked=true; plugin.getLogger().severe("[Duel] Invalid escrow section; inspect data.yml before starting duels."); return; }
+        List<ActiveWagerDuel> records=new ArrayList<ActiveWagerDuel>(); Set<String> players=new HashSet<String>(); Set<Integer> arenas=new HashSet<Integer>();
+        for(String id:section.getKeys(false)) {
+            String p=root+"."+id;
+            ActiveWagerDuel d=new ActiveWagerDuel(id,yml.getString(p+".a"),yml.getString(p+".b"),yml.getDouble(p+".bet",Double.NaN),yml.getLong(p+".started",-1),yml.getInt(p+".arena",-1));
+            if(!validDuel(d) || !recordMatches(yml,d) || !players.add(key(d.playerA)) || !players.add(key(d.playerB)) || !arenas.add(d.arena)) {
+                wagerRecoveryBlocked=true; plugin.getLogger().severe("[Duel] Invalid/overlapping escrow "+id+"; no automatic changes made. Inspect data.yml."); return;
+            }
+            records.add(d);
+        }
+        for(ActiveWagerDuel d:records) { activeWagerDuels.put(key(d.playerA),d); activeWagerDuels.put(key(d.playerB),d); }
+        for(ActiveWagerDuel d:records) {
+            if(settleWagerDuel(d,null)) plugin.getLogger().info("[Duel] Refunded interrupted duel "+d.id+" to both players.");
+            else plugin.getLogger().severe("[Duel] Interrupted duel "+d.id+" remains reserved; repair storage and restart to retry.");
+        }
     }
 }

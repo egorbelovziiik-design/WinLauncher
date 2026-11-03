@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Actual published 7.7–7.10 to 7.11: keep the existing world and player state. */
+/** Actual published 7.7–7.11 to 7.12: keep the existing world and player state. */
 public final class PreserveV77Probe extends JavaPlugin {
  @Override public void onEnable(){Bukkit.getScheduler().runTaskLater(this,()->{
   String mode=getConfig().getString("mode","");
@@ -24,8 +24,8 @@ public final class PreserveV77Probe extends JavaPlugin {
   if(arrival==null || arrival.getWorld()==null)throw new AssertionError("no active spawn");
   World active=arrival.getWorld();Object store=core.getClass().getMethod("getStore").invoke(core);
   Path state=getDataFolder().toPath();Files.createDirectories(state);
-  if(mode.equals("seed77") || mode.equals("seed78") || mode.equals("seed79") || mode.equals("seed710")){
-   String expected=mode.equals("seed77")?"7.7.0":mode.equals("seed78")?"7.8.0":mode.equals("seed79")?"7.9.0":"7.10.0";
+  if(mode.equals("seed77") || mode.equals("seed78") || mode.equals("seed79") || mode.equals("seed710") || mode.equals("seed711")){
+   String expected=mode.equals("seed77")?"7.7.0":mode.equals("seed78")?"7.8.0":mode.equals("seed79")?"7.9.0":mode.equals("seed710")?"7.10.0":"7.11.0";
    if(!core.getDescription().getVersion().equals(expected))throw new AssertionError("old Core mismatch");
    active.getBlockAt(50,115,50).setType(Material.CHEST,false);
    ((Chest)active.getBlockAt(50,115,50).getState()).getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,21));
@@ -43,13 +43,16 @@ public final class PreserveV77Probe extends JavaPlugin {
    yml.set("players.persistuser.mined",1234);yml.set("players.persistuser.kills",56);
    yml.set("players.persistuser.relics",314);yml.set("players.persistuser.snowflakes",271);
    yml.set("achievements.00000000-0000-4000-8000-000000000123.claimed.ore_25",true);
+   String exped="expeditions.00000000-0000-4000-8000-000000000123";
+   yml.set(exped+".day.date","2026-01-05");yml.set(exped+".day.progress.ore",27);yml.set(exped+".day.claimed.harvest",true);
+   yml.set(exped+".day.bonus",true);yml.set(exped+".week.date","2026-01-05");yml.set(exped+".week.claims",7);yml.set(exped+".week.bonus",true);
    store.getClass().getMethod("save").invoke(store);
    Files.writeString(state.resolve("world-name"),active.getName(),StandardCharsets.UTF_8);
    Files.writeString(state.resolve("world-uuid"),active.getUID().toString(),StandardCharsets.UTF_8);
    Files.writeString(active.getWorldFolder().toPath().resolve("owner-78-proof.txt"),"keep intact\n",StandardCharsets.UTF_8);
    return;
   }
-  if(!mode.equals("verify711") || !core.getDescription().getVersion().equals("7.11.0"))throw new AssertionError("new Core mismatch");
+  if(!mode.equals("verify712") || !core.getDescription().getVersion().equals("7.12.0"))throw new AssertionError("new Core mismatch");
   if(!active.getName().equals(Files.readString(state.resolve("world-name")))
           || !active.getUID().toString().equals(Files.readString(state.resolve("world-uuid"))))throw new AssertionError("active world changed");
   if(!Files.readString(active.getWorldFolder().toPath().resolve("owner-78-proof.txt")).equals("keep intact\n"))throw new AssertionError("world file changed");
@@ -69,5 +72,8 @@ public final class PreserveV77Probe extends JavaPlugin {
           || yml.getInt("players.persistuser.snowflakes")!=271
           || !yml.getBoolean("achievements.00000000-0000-4000-8000-000000000123.claimed.ore_25"))
    throw new AssertionError("legacy daily, pass, counters, currencies or achievements lost");
+  String exped="expeditions.00000000-0000-4000-8000-000000000123";
+  if(yml.getInt(exped+".day.progress.ore")!=27 || !yml.getBoolean(exped+".day.claimed.harvest") || !yml.getBoolean(exped+".day.bonus")
+          || yml.getInt(exped+".week.claims")!=7 || !yml.getBoolean(exped+".week.bonus"))throw new AssertionError("legacy expedition state lost");
  }
 }

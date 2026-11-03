@@ -1,0 +1,5 @@
+name: KgV712Probe
+version: '1.0'
+main: net.kinggrief.probe.V712Probe
+api-version: '1.21'
+depend: [KingGriefCore]

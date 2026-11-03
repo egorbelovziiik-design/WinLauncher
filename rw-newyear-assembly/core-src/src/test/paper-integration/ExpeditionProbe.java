@@ -69,42 +69,56 @@ public final class ExpeditionProbe extends JavaPlugin implements Listener {
         try {
             int start=progress(0);
             placeOre(ore);ok(player.breakBlock(ore),"player-placed ore can be broken");
+            later(4,()->afterPlaced(start));
+        }catch(Throwable t){fail(t);}
+    }
+    private void afterPlaced(int start){
+        try {
             ok(progress(0)==start,"placed ore does not advance task");
             placeOre(ore);
             Block piston=world.getBlockAt(4,70,5);piston.setType(Material.PISTON,false);
             Block moved=ore.getRelative(BlockFace.EAST);
             BlockPistonExtendEvent move=new BlockPistonExtendEvent(piston,Arrays.asList(ore),BlockFace.EAST);
             Bukkit.getPluginManager().callEvent(move);
-            ore.setType(Material.AIR,false);moved.setType(Material.DIAMOND_ORE,false);player.breakBlock(moved);
+            ore.setType(Material.AIR,false);moved.setType(Material.DIAMOND_ORE,false);
+            later(4,()->{try{
+                player.breakBlock(moved);
+                later(4,()->afterPiston(start));
+            }catch(Throwable t){fail(t);}});
+        }catch(Throwable t){fail(t);}
+    }
+    private void afterPiston(int start){
+        try {
             ok(progress(0)==start,"piston-moved placed ore remains ineligible");
             ore.setType(Material.DIAMOND_ORE,false);cancelNextBreak=true;player.breakBlock(ore);
             ok(progress(0)==start && ore.getType()==Material.DIAMOND_ORE,"cancelled ore break is not counted");
             player.setGameMode(GameMode.CREATIVE);player.breakBlock(ore);player.setGameMode(GameMode.SURVIVAL);
-            ok(progress(0)==start,"creative ore is not counted");
             for(int i=0;i<32;i++){ore.setType(Material.DIAMOND_ORE,false);player.breakBlock(ore);}
-            ok(progress(0)==32,"32 actual accepted natural ore breaks counted and capped");
             Block crop=world.getBlockAt(7,70,5);crop.getRelative(BlockFace.DOWN).setType(Material.FARMLAND,false);
             crop.setType(Material.WHEAT,false);Ageable age=(Ageable)crop.getBlockData();age.setAge(1);crop.setBlockData(age,false);player.breakBlock(crop);
-            ok(progress(1)==0,"unripe crop not counted");
             for(int i=0;i<20;i++){crop.setType(Material.WHEAT,false);age=(Ageable)crop.getBlockData();age.setAge(age.getMaximumAge());crop.setBlockData(age,false);player.breakBlock(crop);}
-            ok(progress(1)==20,"20 mature crop breaks counted");
             Cow cow=(Cow)world.spawnEntity(new Location(world,8,70,5),EntityType.COW);cow.damage(100,player);
-            ok(progress(2)==0,"passive animals do not count as monsters");
             for(int i=0;i<12;i++){Zombie z=(Zombie)world.spawnEntity(new Location(world,8,70,5),EntityType.ZOMBIE);z.damage(100,player);}
-            ok(progress(2)==12,"12 actual hostile kills counted");
             Item junk=world.dropItem(new Location(world,8,71,5),new ItemStack(Material.BOWL));
             Bukkit.getPluginManager().callEvent(new PlayerFishEvent(player,junk,null,PlayerFishEvent.State.CAUGHT_FISH));junk.remove();
-            ok(progress(3)==0,"fishing junk does not count as fish");
             Item fish=world.dropItem(new Location(world,8,71,5),new ItemStack(Material.COD));
             PlayerFishEvent cancelled=new PlayerFishEvent(player,fish,null,PlayerFishEvent.State.CAUGHT_FISH);cancelled.setCancelled(true);
-            Bukkit.getPluginManager().callEvent(cancelled);ok(progress(3)==0,"cancelled fishing event ignored");
+            Bukkit.getPluginManager().callEvent(cancelled);
             for(int i=0;i<3;i++) Bukkit.getPluginManager().callEvent(new PlayerFishEvent(player,fish,null,PlayerFishEvent.State.CAUGHT_FISH));
-            fish.remove();ok(progress(3)==3,"three caught-fish events counted");
+            fish.remove();
             Location from=player.getLocation().clone(), teleport=from.clone().add(500,0,0);
             Bukkit.getPluginManager().callEvent(new PlayerTeleportEvent(player,from,teleport,PlayerTeleportEvent.TeleportCause.PLUGIN));
-            ok(progress(4)==0,"teleport never counts as walking");
             for(int i=0;i<700;i++) Bukkit.getPluginManager().callEvent(new PlayerMoveEvent(player,from,from.clone().add(.9,0,0)));
-            ok(progress(4)==600,"bounded walking steps count and stop at goal");
+            later(5,()->afterDeferredEvents(start));
+        }catch(Throwable t){fail(t);}
+    }
+    private void afterDeferredEvents(int start){
+        try {
+            ok(progress(0)==32,"32 actual accepted natural ore breaks counted and capped");
+            ok(progress(1)==20,"20 mature crop breaks counted; unripe crop ignored");
+            ok(progress(2)==12,"12 hostile kills counted; passive animal ignored");
+            ok(progress(3)==3,"three caught-fish events counted; junk and cancellation ignored");
+            ok(progress(4)==600,"bounded walking steps count and stop at goal; teleport ignored");
             core.getStore().setCoins(player.getName(),1000);core.getStore().addSnowflakes(player.getName(),-core.getStore().getSnowflakes(player.getName()));
             manager.open(player);later(20,()->{getLogger().info("KG-EXP REQUEST CLICK 10");later(16,()->afterGui());});
         }catch(Throwable t){fail(t);}

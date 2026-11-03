@@ -683,18 +683,6 @@ public final class GameplayListener implements Listener {
         endParkour(p);
         boolean wasFrozen = plugin.getModeration().isFrozenOrAscending(p);
         plugin.getModeration().handleQuitDuringCheck(p);
-        DataStore.ActiveWagerDuel quitDuel = plugin.getStore().finishWagerDuel(p.getName());
-        if (quitDuel != null) {
-            String winnerName = quitDuel.playerA.equalsIgnoreCase(p.getName()) ? quitDuel.playerB : quitDuel.playerA;
-            double pot = quitDuel.betEach * 2.0;
-            if (pot > 0.0) {
-                plugin.getStore().addCoins(winnerName, pot);
-                plugin.getStore().save();
-            }
-            Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l⚔ [ДУЭЛЬ] &fИгрок &c" + p.getName()
-                    + " &fливнул с дуэли! Победа присуждена &#00E676" + winnerName
-                    + (pot > 0.0 ? " &8(&a+" + ColorUtil.fmtMoney(pot) + "$&8)" : "") + "&f!"));
-        }
         if (!wasFrozen && plugin.getHud().isInCombat(p) && !p.isDead()
                 && !plugin.getRanks().isOwnerLevel(p)) {
             p.setHealth(0.0);
@@ -5190,17 +5178,6 @@ public final class GameplayListener implements Listener {
                         + " &fликвидировал цель &c" + dead.getName() + " &fи забрал контракт &a+" + ColorUtil.fmtMoney(bounty) + "$&f!"));
             }
 
-            DataStore.ActiveWagerDuel finishedDuel = plugin.getStore().finishWagerDuel(dead.getName());
-            if (finishedDuel != null) {
-                String duelWinner = finishedDuel.playerA.equalsIgnoreCase(dead.getName()) ? finishedDuel.playerB : finishedDuel.playerA;
-                double pot = finishedDuel.betEach * 2.0;
-                if (pot > 0.0) {
-                    plugin.getStore().addCoins(duelWinner, pot);
-                }
-                Bukkit.broadcastMessage(ColorUtil.c("&#FFD740&l⚔ [ДУЭЛЬ] &fПобедитель дуэли: &#00E676&l" + duelWinner
-                        + " &7(повержен &c" + dead.getName() + "&7)"
-                        + (pot > 0.0 ? " &8— &fКуш: &a+" + ColorUtil.fmtMoney(pot) + "$!" : "!")));
-            }
             ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1);
             ItemMeta hm = head.getItemMeta();
             if (hm instanceof SkullMeta) {
@@ -5541,8 +5518,14 @@ public final class GameplayListener implements Listener {
             }
         }
 
-        // ПОЛНАЯ БЛОКИРОВКА ВСЕХ КОМАНД ВО ВРЕМЯ 30-СЕКУНДНОГО РЕЖИМА ПВП (кроме OWNER, состава с командами KingАЧ и жалоб /report)!
-        if (plugin.getHud().isInCombat(p) && !isOwner && !staffForAc
+        // Harmless duel status and a *mutual* draw request remain available;
+        // neither command teleports a player or grants a unilateral refund.
+        String[] combatWords = msg.split("\\s+");
+        boolean duelControl = ("duel".equals(baseCmd) || "duels".equals(baseCmd)) && combatWords.length == 2
+                && ("cancel".equals(combatWords[1]) || "status".equals(combatWords[1]) || "stats".equals(combatWords[1]))
+                && plugin.getStore().getActiveWagerDuel(p.getName()) != null;
+        // Otherwise retain the existing 30-second PvP command restrictions.
+        if (plugin.getHud().isInCombat(p) && !isOwner && !staffForAc && !duelControl
                 && !"report".equals(baseCmd) && !"rep".equals(baseCmd) && !"cheater".equals(baseCmd)
                 && !"жалоба".equals(baseCmd) && !"spek".equals(baseCmd)) {
             int left = plugin.getHud().getCombatSecondsLeft(p);

@@ -13,7 +13,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent
 SERVER = ROOT / "server"
-ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.11.0.zip"
+ASSEMBLY = ROOT / "rw-newyear-full-assembly-v7.12.0.zip"
 PUBLIC = ROOT.parent / "kinggrief/public" / ASSEMBLY.name
 TEMPLATE = SERVER / "plugins/KingGriefCore/spawn-v77-template.zip"
 PUBLIC_TEMPLATE = ROOT.parent / "kinggrief/public/kinggrief-spawn-v77.zip"
@@ -35,8 +35,8 @@ def verify_spawn_template():
     if len(expected) != 64 or digest != expected:
         raise RuntimeError("Spawn template does not match Core's recorded SHA-256")
     with zipfile.ZipFile(CORE) as jar:
-        if not re.search(r"(?m)^version:\s*7\.11\.0\s*$", jar.read("plugin.yml").decode("utf-8")):
-            raise RuntimeError("Assembly needs KingGriefCore 7.11.0")
+        if not re.search(r"(?m)^version:\s*7\.12\.0\s*$", jar.read("plugin.yml").decode("utf-8")):
+            raise RuntimeError("Assembly needs KingGriefCore 7.12.0")
         if jar.read("spawn_v77_template.sha256").decode("ascii").strip() != digest:
             raise RuntimeError("Built Core JAR does not match the spawn template; rebuild Core")
         if hashlib.sha256(jar.read("spawn_v77_template.zip")).hexdigest() != digest:
@@ -119,7 +119,7 @@ def main():
         # Old release instructions stay in the repository/download history;
         # the new assembly includes only its matching update instructions.
         # Historical spawn templates likewise stay outside the new assembly.
-        if path.relative_to(SERVER).as_posix() in {"ОБНОВЛЕНИЕ_7.5.0.md", "ОБНОВЛЕНИЕ_7.5.1.md", "ОБНОВЛЕНИЕ_7.6.0.md", "ОБНОВЛЕНИЕ_7.7.0.md", "ОБНОВЛЕНИЕ_7.8.0.md", "ОБНОВЛЕНИЕ_7.9.0.md", "ОБНОВЛЕНИЕ_7.10.0.md", "plugins/KingGriefCore/spawn-v76-template.zip", "plugins/KingGriefCore/spawn-v74-template.zip", "plugins/KingGriefCore/spawn-v66-template.zip", "plugins/KingGriefCore/spawn-v70-template.zip", "plugins/KingGriefCore/spawn-v71-template.zip", "plugins/KingGriefCore/spawn-v73-template.zip"}:
+        if path.relative_to(SERVER).as_posix() in {"ОБНОВЛЕНИЕ_7.5.0.md", "ОБНОВЛЕНИЕ_7.5.1.md", "ОБНОВЛЕНИЕ_7.6.0.md", "ОБНОВЛЕНИЕ_7.7.0.md", "ОБНОВЛЕНИЕ_7.8.0.md", "ОБНОВЛЕНИЕ_7.9.0.md", "ОБНОВЛЕНИЕ_7.10.0.md", "ОБНОВЛЕНИЕ_7.11.0.md", "plugins/KingGriefCore/spawn-v76-template.zip", "plugins/KingGriefCore/spawn-v74-template.zip", "plugins/KingGriefCore/spawn-v66-template.zip", "plugins/KingGriefCore/spawn-v70-template.zip", "plugins/KingGriefCore/spawn-v71-template.zip", "plugins/KingGriefCore/spawn-v73-template.zip"}:
             continue
         files.append(path)
     # Do not truncate the existing downloadable ZIP if preflight/archiving fails.

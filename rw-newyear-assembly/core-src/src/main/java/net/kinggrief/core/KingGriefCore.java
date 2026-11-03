@@ -85,6 +85,7 @@ public final class KingGriefCore extends JavaPlugin {
     private TrainingStatsManager trainingStats;
     private EventCalendarManager eventCalendar;
     private AutoBuyerManager autoBuyer;
+    private DuelManager duels;
 
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
@@ -187,6 +188,11 @@ public final class KingGriefCore extends JavaPlugin {
 
         this.gameplayListener = new GameplayListener(this);
         Bukkit.getPluginManager().registerEvents(this.gameplayListener, this);
+        this.duels = new DuelManager(this);
+        Bukkit.getPluginManager().registerEvents(this.duels, this);
+        this.duels.start();
+        PluginCommand duelCommand = getCommand("duel");
+        if (duelCommand != null) { duelCommand.setExecutor(this.duels); duelCommand.setTabCompleter(this.duels); }
         this.expeditions = new ExpeditionManager(this);
         Bukkit.getPluginManager().registerEvents(this.expeditions, this);
         this.expeditions.start();
@@ -277,6 +283,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.duels != null) this.duels.shutdown();
         if (this.gameplayListener != null) {
             this.gameplayListener.rollbackPendingSpawnerBreaks();
             this.gameplayListener.rollbackPendingSmeltBreaks();
@@ -1323,84 +1330,6 @@ public final class KingGriefCore extends JavaPlugin {
                     + ColorUtil.fmtMoney(bet) + "$&7! Принять: &f/casino"));
             return true;
         }
-        if ("duel".equals(c)) {
-            if (args.length >= 1 && "accept".equalsIgnoreCase(args[0])) {
-                DataStore.DuelRequest dr = store.popDuelRequest(p);
-                if (dr == null) {
-                    p.sendMessage(ColorUtil.c("&cУ вас нет активных вызовов на дуэль!"));
-                    return true;
-                }
-                Player ch = Bukkit.getPlayer(dr.challenger);
-                if (ch == null || !ch.isOnline()) {
-                    p.sendMessage(ColorUtil.c("&cСоперник вышел из игры."));
-                    return true;
-                }
-                if (store.getActiveWagerDuel(p.getName()) != null || store.getActiveWagerDuel(ch.getName()) != null) {
-                    p.sendMessage(ColorUtil.c("&cОдин из игроков уже участвует в активной дуэли!"));
-                    return true;
-                }
-                if (!spawnEngine.isSpawnActive()) {
-                    p.sendMessage(ColorUtil.c("&cАрена дуэлей недоступна, пока готовый спавн не установлен."));
-                    return true;
-                }
-                double bet = Math.max(0.0, dr.bet);
-                if (bet > 0.0) {
-                    if (store.getCoins(ch.getName()) < bet || store.getCoins(p.getName()) < bet) {
-                        p.sendMessage(ColorUtil.c("&cУ одного из дуэлянтов недостаточно монет для ставки &e" + ColorUtil.fmtMoney(bet) + "$&c!"));
-                        return true;
-                    }
-                    store.takeCoins(ch.getName(), bet);
-                    store.takeCoins(p.getName(), bet);
-                    store.save();
-                }
-                store.startWagerDuel(ch.getName(), p.getName(), bet);
-                World sw = VoidSpawnWorldGenerator.getOrCreateSpawnWorld();
-                ch.teleport(new Location(sw, 70.5, 100.0, -42.5, 0f, 0f));
-                p.teleport(new Location(sw, 71.5, 100.0, -40.5, 180f, 0f));
-                Bukkit.broadcastMessage(ColorUtil.c("&#FF1744⚔ Дуэль началась: &f" + ch.getName() + " &cvs &f" + p.getName()
-                        + (bet > 0.0 ? " &8[&#FFD740Банк: &a" + ColorUtil.fmtMoney(bet * 2.0) + "$&8]" : " &7в Кабинке #1") + "!"));
-                return true;
-            }
-            if (args.length < 1) {
-                p.sendMessage(ColorUtil.c("&eИспользование: &f/duel <ник> [ставка$] &7или &f/duel accept"));
-                return true;
-            }
-            Player target = Bukkit.getPlayer(args[0]);
-            if (target == null || target.equals(p)) {
-                p.sendMessage(ColorUtil.c("&cИгрок не найден!"));
-                return true;
-            }
-            double bet = 0.0;
-            if (args.length >= 2) {
-                try { bet = Double.parseDouble(args[1]); } catch (Exception ex) { bet = -1.0; }
-                if (!Double.isFinite(bet) || !Double.isFinite(bet * 2.0) || bet < 0) {
-                    p.sendMessage(ColorUtil.c("&cУкажите корректную конечную ставку."));
-                    return true;
-                }
-                if (bet > 0.0 && bet < 100.0) {
-                    p.sendMessage(ColorUtil.c("&cМинимальная ставка на дуэль — 100$ (или 0 для обычной дуэли)!"));
-                    return true;
-                }
-                if (bet > 0.0 && store.getCoins(p.getName()) < bet) {
-                    p.sendMessage(ColorUtil.c("&cУ вас недостаточно монет для ставки &e" + ColorUtil.fmtMoney(bet) + "$&c!"));
-                    return true;
-                }
-            }
-            store.putDuelRequest(p, target, bet);
-            p.sendMessage(ColorUtil.c("&#00E676⚔ Вызов на дуэль"
-                    + (bet > 0.0 ? " на ставку &a" + ColorUtil.fmtMoney(bet) + "$&#00E676" : "")
-                    + " отправлен игроку &f" + target.getName() + "&7!"));
-            TextComponent msg = new TextComponent(ColorUtil.c("&#FF1744⚔ Игрок &f" + p.getName() + " &#FF1744вызывает вас на дуэль"
-                    + (bet > 0.0 ? " на ставку &a" + ColorUtil.fmtMoney(bet) + "$ " : " в Кабинку! ")));
-            TextComponent btn = new TextComponent(ColorUtil.c("&#00E676&l[ ⚔ ПРИНЯТЬ ДУЭЛЬ ]"));
-            btn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel accept"));
-            btn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    new ComponentBuilder(ColorUtil.c("&aНажмите, чтобы принять дуэль!")).create()));
-            msg.addExtra(btn);
-            target.spigot().sendMessage(msg);
-            return true;
-        }
-
         // ================= PAY, BALTOP, DAILY & WEBSITE+SERVER PROMO CODES =================
         if ("pay".equals(c)) {
             if (args.length < 2) { p.sendMessage(ColorUtil.c("&eИспользование: &f/pay <ник> <сумма>")); return true; }

@@ -249,7 +249,7 @@ public final class SpawnEngine {
         npcDefs.add(new NpcDef("casino_npc", "&#FFD740&l🎰 КРУПЬЕ КАЗИНО 777",   "&fРулетка, Слоты и Монетка (/casino)", -66.0, 100.0,  68.5, -90f, sDealer, Color.fromRGB(234, 179, 8),  new ItemStack(Material.GOLD_INGOT), new ItemStack(Material.EMERALD), null, "gui:casino"));
         npcDefs.add(new NpcDef("baf_island", "&#E040FB&l🔮 ЧАРОДЕЙ И АЛХИМИК",   "&fЧарки 30 лвл и Зелья Бафовара!",      66.0, 100.0,  68.5,  90f, sMage,   Color.fromRGB(168, 85, 247), new ItemStack(Material.ENCHANTED_BOOK), ItemFactory.potionMedic(1), null, "gui:enchants"));
         npcDefs.add(new NpcDef("parkour_npc","&#40C4FF&l🏃 МАСТЕР ПАРКУРА",      "&f32 острова → Приз +25 000$ и 15❖!",  35.0, 100.0, -24.0, -90f, sKnight, Color.fromRGB(14, 165, 233), new ItemStack(Material.FEATHER), null, null, "warp:parkour"));
-        npcDefs.add(new NpcDef("expedition_npc", "&#80D8FF&l🧭 ПРОВОДНИК ЭКСПЕДИЦИЙ", "&f5 заданий и бонусы (/expeditions)", -12.5, 100.0, 52.5, -90f, sMiner, Color.fromRGB(30, 180, 180), new ItemStack(Material.MAP), new ItemStack(Material.COMPASS), null, "gui:expeditions"));
+        npcDefs.add(new NpcDef("expedition_npc", "&#80D8FF&l🧭 ПРОВОДНИК ЭКСПЕДИЦИЙ", "&f10 заданий и бонусы (/expeditions)", -12.5, 100.0, 52.5, -90f, sMiner, Color.fromRGB(30, 180, 180), new ItemStack(Material.MAP), new ItemStack(Material.COMPASS), null, "gui:expeditions"));
 
         // 6x 1v1 Kabinki + 2x 2v2 Kabinki on East Colosseum Wing (matching spawn_v5.dat!)
         int[] z1v1 = new int[]{-42, -35, -28, -21, -14, -7};
@@ -1470,6 +1470,9 @@ public final class SpawnEngine {
         }
         return false;
     }
+
+    /** Snapshot of existing cabins; callers must not change their geometry. */
+    List<KabinkaState> duelKabinki() { return new ArrayList<KabinkaState>(kabinki); }
 
     public boolean isInsideAnyKabinka(Location loc) {
         if (loc == null || !isInSpawnWorld(loc)) return false;
