@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -28,6 +29,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.List;
 import java.util.Map;
 
@@ -36,17 +40,31 @@ public final class CalendarProbe extends JavaPlugin implements Listener {
     private static final String ROOT="eventCalendar.entries";
     private KingGriefCore core;private Player a,b;private boolean running,done,watch;private int checks,teleports;
     private String keepA;private long base;private double coinsA,coinsB;
+    private final Set<Integer> networkClicks=new HashSet<Integer>();
     @Override public void onEnable(){saveDefaultConfig();core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");Bukkit.getPluginManager().registerEvents(this,this);}
     @EventHandler public void join(PlayerJoinEvent event){
         if("CalendarTester".equals(event.getPlayer().getName()))a=event.getPlayer();if("CalendarOther".equals(event.getPlayer().getName()))b=event.getPlayer();
         if(a!=null&&b!=null&&!running){running=true;later(40,this::begin);}
     }
     @EventHandler(priority=EventPriority.MONITOR,ignoreCancelled=true) public void teleport(PlayerTeleportEvent e){if(watch&&(e.getPlayer().equals(a)||e.getPlayer().equals(b)))teleports++;}
+    @EventHandler(priority=EventPriority.MONITOR) public void networkClick(InventoryClickEvent e){
+        if (e.getWhoClicked().equals(a) && e.getClick()==ClickType.LEFT && calendarOpen()
+                && e.getInventory().getHolder()==a.getOpenInventory().getTopInventory().getHolder())
+            networkClicks.add(e.getRawSlot());
+    }
     private void later(long ticks,Runnable runnable){Bukkit.getScheduler().runTaskLater(this,()->{try{runnable.run();}catch(Throwable error){fail(error);}},ticks);}
     private void ok(boolean condition,String message){if(!condition)throw new AssertionError(message);checks++;getLogger().info("KG-CALENDAR PASS "+message);}
     private void fail(Throwable error){if(done)return;done=true;getLogger().severe("KG-CALENDAR RESULT FAIL "+error);error.printStackTrace();}
     private void finish(){done=true;getLogger().info("KG-CALENDAR REQUEST REPORT");getLogger().info("KG-CALENDAR RESULT PASS "+checks+" checks");}
     private void request(String command){getLogger().info("KG-CALENDAR REQUEST "+command);}
+    // Wait for the real packet and resulting server view instead of assuming a
+    // four-tick flush between Paper and the separately scheduled Node process.
+    private void await(BooleanSupplier condition,String message,Runnable next){
+        new BukkitRunnable(){int ticks;@Override public void run(){try{
+            if(condition.getAsBoolean()){cancel();ok(true,message);next.run();}
+            else if(++ticks>100){cancel();fail(new AssertionError(message+" (timed out)"));}
+        }catch(Throwable error){try{cancel();}catch(Throwable ignored){}fail(error);}}}.runTaskTimer(this,1L,1L);
+    }
     private Object field(Object obj,String name){try{Field f=obj.getClass().getDeclaredField(name);f.setAccessible(true);return f.get(obj);}catch(Exception e){throw new RuntimeException(e);}}
     private Object manager(){return field(core,"eventCalendar");}
     private YamlConfiguration yaml(){return (YamlConfiguration)field(core.getStore(),"yml");}
@@ -114,14 +132,11 @@ public final class CalendarProbe extends JavaPlugin implements Listener {
             InventoryDragEvent drag=new InventoryDragEvent(a.getOpenInventory(),new ItemStack(Material.DIRT),new ItemStack(Material.DIRT),false,changes);
             Bukkit.getPluginManager().callEvent(drag);
             ok(swap.isCancelled()&&drag.isCancelled()&&a.getInventory().getItem(0).getAmount()==7,"hotbar swaps and drags cannot transfer menu icons or alter items");
-            request("CLICK 53");later(7,()->{
-                ok(calendarOpen()&&page()==1,"real network click opens page two");
-                request("CLICK 45");later(7,()->{
-                    ok(calendarOpen()&&page()==0,"real network click returns to page one");
-                    request("CLICK 10");later(5,()->{
+            request("CLICK 53");await(()->networkClicks.contains(53)&&calendarOpen()&&page()==1,"real network click opens page two",()->{
+                request("CLICK 45");await(()->networkClicks.contains(45)&&calendarOpen()&&page()==0,"real network click returns to page one",()->{
+                    request("CLICK 10");await(()->networkClicks.contains(10),"event selection reaches the server",()->{
                         ok(a.getInventory().getItem(0).getAmount()==7,"selecting an event does not give or remove items");
-                        request("CLICK 49");later(5,()->{
-                            ok(!calendarOpen(),"real network click closes the menu safely on the next tick");
+                        request("CLICK 49");await(()->networkClicks.contains(49)&&!calendarOpen(),"real network click closes the menu safely on the next tick",()->{
                             for(int i=0;i<28;i++)removeTemporary(i);save();reminders();
                         });
                     });
