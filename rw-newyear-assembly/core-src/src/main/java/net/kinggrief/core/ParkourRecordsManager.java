@@ -132,6 +132,15 @@ final class ParkourRecordsManager implements Listener {
             if(improved&&run.frames.size()>=20)saveReplay(player.getUniqueId(),elapsed,new ArrayList<Frame>(run.frames));
         }catch(Exception error){plugin.getLogger().warning("[Parkour] Record not saved: "+error.getMessage());player.sendMessage(ColorUtil.c("&cНе удалось сохранить результат в топ."));}
     }
+    /** Report a run without teleporting or changing checkpoint/reward state. */
+    void progress(Player player){
+        Run run=active.get(player.getUniqueId());
+        if(run==null||course==null){player.sendMessage(ColorUtil.c("&7Забег не начат. Встаньте на стартовую плиту: &f/parkour"));return;}
+        long elapsed=TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-run.started);
+        int passed=Math.min(course.routeSize(),Math.max(1,run.next));
+        player.sendMessage(ColorUtil.c("&#80D8FF🏃 Площадки: &f"+passed+"/"+course.routeSize()+" &8│ &7Время: &f"+format(elapsed)
+                +(run.valid?" &8│ &aТоп: забег активен":" &8│ &eТоп: начните заново без телепорта/полёта")));
+    }
     void top(Player player,String[] args){
         String period=args.length>1?args[1].toLowerCase(Locale.ROOT):"all";
         if(!"day".equals(period)&&!"week".equals(period)&&!"all".equals(period)){

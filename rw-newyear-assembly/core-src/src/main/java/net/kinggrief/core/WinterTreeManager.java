@@ -45,8 +45,9 @@ final class WinterTreeManager {
                     Location at = player.getLocation();
                     if (Math.abs(at.getX()) > 64 || Math.abs(at.getZ()) > 64 || ++viewers > 32) continue;
                     for (int tier = 0; tier < visualStage; tier++) {
-                        double radius = tier == 0 ? 11.8 : tier == 1 ? 8.7 : 5.4;
-                        double y = tier == 0 ? 111.5 : tier == 1 ? 124.5 : 137.5;
+                        double scale = plugin.getSpawnTreeScale();
+                        double radius = (tier == 0 ? 8.0 : tier == 1 ? 5.3 : 2.8) * scale;
+                        double y = 100 + (tier == 0 ? 11.5 : tier == 1 ? 24.5 : 37.5) * scale;
                         Particle.DustOptions color = new Particle.DustOptions(tier == 0 ? Color.fromRGB(255, 208, 64)
                                 : tier == 1 ? Color.fromRGB(125, 220, 255) : Color.fromRGB(255, 100, 155), .7f);
                         for (int i = 0; i < 8; i++) {

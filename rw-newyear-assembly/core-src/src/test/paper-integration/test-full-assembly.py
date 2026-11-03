@@ -74,7 +74,7 @@ def main():
     if 'Done (' in line and 'For help' in line:print('SERVER STARTED:',line.strip(),flush=True);started=True;break
     if 'Error occurred while enabling' in line:break
    if not started:raise RuntimeError('Paper did not start')
-   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve());env['KG_EXPECT_TREE']='1' if a.core_version in ('7.5.0','7.5.1') else '0'
+   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve());env['KG_EXPECT_TREE']='1' if a.core_version in ('7.5.0','7.5.1','7.6.0') else '0'
    client=subprocess.run([a.node,str(HERE/'full-client.cjs'),str(port)],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,env=env,timeout=75)
    print(client.stdout.strip(),flush=True)
    if client.returncode or 'FULL_CLIENT_PREPARED_SPAWN_POSITION' not in client.stdout:raise RuntimeError('Protocol client could not enter the full assembly or use /kgtree')

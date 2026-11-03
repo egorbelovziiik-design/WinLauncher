@@ -89,6 +89,9 @@ public final class ParkourProbe extends JavaPlugin implements Listener {
         p.setAllowFlight(true);
         press(p,plate(0),false,false);
         ok(cpIs(store,p,0) && !p.getAllowFlight(),"start captures flight and creates a safe start checkpoint");
+        Location beforeProgress=p.getLocation().clone();
+        ok(p.performCommand("parkour progress")&&p.getLocation().distanceSquared(beforeProgress)<.001&&cpIs(store,p,0)&&rankedRunValid(p),
+                "progress reports without teleporting or invalidating the run");
         press(p,plate(0),false,false);
         ok(cpIs(store,p,0),"standing on another start plate does not reset the run");
         press(p,plate(2),false,false); press(p,plate(4),false,false);

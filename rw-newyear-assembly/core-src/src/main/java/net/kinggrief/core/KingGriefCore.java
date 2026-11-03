@@ -67,6 +67,7 @@ public final class KingGriefCore extends JavaPlugin {
     private ClanAllianceManager clanAlliances;
     private DisplayPetManager displayPets;
     private WinterTreeManager winterTree;
+    private SpawnTreeModel spawnTreeModel;
     private UtilityFeaturesManager utilities;
     private CosmeticEffectsManager cosmetics;
     private ParkourRecordsManager parkourRecords;
@@ -104,6 +105,8 @@ public final class KingGriefCore extends JavaPlugin {
         this.ranks = new RankManager(this.store);
         this.clanAlliances = new ClanAllianceManager(this);
         this.winterTree = new WinterTreeManager(this);
+        this.spawnTreeModel = new SpawnTreeModel(this);
+        Bukkit.getPluginManager().registerEvents(this.spawnTreeModel, this);
         this.utilities = new UtilityFeaturesManager(this);
         Bukkit.getPluginManager().registerEvents(this.utilities, this);
         this.eventCalendar = new EventCalendarManager(this);
@@ -169,7 +172,7 @@ public final class KingGriefCore extends JavaPlugin {
                 pc.setTabCompleter(this.moderation);
             }
         }
-        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "kgtree", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "calendar", "ah", "achievements", "autosell"}) {
+        for (String tcCmd : new String[]{"cases", "p", "money", "shop", "bounty", "rtp", "kit", "warp", "gm", "tphere", "tp", "invsee", "ecsee", "freeze", "whois", "clan", "free", "events", "crown", "trade", "buyorder", "pet", "kgtree", "elka", "rg", "way", "deathpoint", "cosmetic", "parkour", "gamevote", "buildcontest", "calendar", "ah", "achievements", "autosell"}) {
             PluginCommand pc = getCommand(tcCmd);
             if (pc != null) {
                 pc.setTabCompleter(this);
@@ -228,6 +231,7 @@ public final class KingGriefCore extends JavaPlugin {
         this.eventCalendar.start();
         this.claimContainers.start();
         this.gameVotes.start();
+        this.spawnTreeModel.start();
         this.winterTree.start();
         this.winterFishing.start();
         this.autoBuyer.start();
@@ -294,6 +298,7 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.utilities != null) this.utilities.shutdown();
         if (this.eventCalendar != null) this.eventCalendar.shutdown();
         if (this.winterTree != null) this.winterTree.shutdown();
+        if (this.spawnTreeModel != null) this.spawnTreeModel.shutdown();
         if (this.winterFishing != null) this.winterFishing.shutdown();
         if (this.autoBuyer != null) this.autoBuyer.shutdown();
         if (this.buildContest != null) this.buildContest.shutdown();
@@ -332,6 +337,7 @@ public final class KingGriefCore extends JavaPlugin {
     public WinterItemsManager getWinterItems() { return winterItems; }
     RtpManager getRtpManager() { return rtpManager; }
     public ExpeditionManager getExpeditions() { return expeditions; }
+    float getSpawnTreeScale() { return spawnTreeModel == null ? 1.0f : spawnTreeModel.factor(); }
     public HudManager getHud() { return hud; }
     public ModerationManager getModeration() { return moderation; }
     public AntiLagDdosManager getAntiLagDdos() { return antiLagDdos; }
@@ -534,6 +540,7 @@ public final class KingGriefCore extends JavaPlugin {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
+        if ("elka".equals(c)) return spawnTreeModel.complete(sender, args);
         if ("autosell".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("on", "off", "status", "prices"), args[0]);
         } else if ("calendar".equals(c)) {
@@ -561,7 +568,7 @@ public final class KingGriefCore extends JavaPlugin {
             return filterPrefix(hasTreeSeasonAdmin(sender)?Arrays.asList("status", "parkour", "duel", "memory", "start", "cancel")
                     :Arrays.asList("status", "parkour", "duel", "memory"), args[0]);
         } else if ("parkour".equals(c)) {
-            if (args.length == 1) return filterPrefix(Arrays.asList("top", "ghost", "cp", "leave"), args[0]);
+            if (args.length == 1) return filterPrefix(Arrays.asList("progress", "top", "ghost", "cp", "leave"), args[0]);
             if (args.length == 2 && "top".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("day", "week", "all"), args[1]);
             if (args.length == 2 && "ghost".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("me", "top", "off"), args[1]);
         } else if ("cosmetic".equals(c)) {
@@ -738,6 +745,10 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("buildcontest".equals(c)) {
             buildContest.command(sender, args, hasTreeSeasonAdmin(sender));
+            return true;
+        }
+        if ("elka".equals(c)) {
+            spawnTreeModel.command(sender, args);
             return true;
         }
         if ("kgtree".equals(c)) {
@@ -1055,6 +1066,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("parkour".equals(c)) {
+            if (args.length > 0 && "progress".equalsIgnoreCase(args[0])) { parkourRecords.progress(p); return true; }
             if (args.length > 0 && "top".equalsIgnoreCase(args[0])) { parkourRecords.top(p, args); return true; }
             if (args.length > 0 && "ghost".equalsIgnoreCase(args[0])) { parkourRecords.ghost(p, args); return true; }
             if (spawnEngine.getWarpLocation("parkour") == null) { p.sendMessage(ColorUtil.c("&cПаркур недоступен, пока готовый спавн не установлен.")); return true; }
