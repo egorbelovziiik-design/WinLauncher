@@ -4037,7 +4037,7 @@ public final class GameplayListener implements Listener {
         } else if ("action:santa".equals(act)) {
             p.performCommand("daily");
         } else if ("action:wheel".equals(act)) {
-            plugin.getSpawnEngine().spinFortuneWheel(p, plugin.getStore().getSnowflakes(p.getName()) >= 5);
+            plugin.getSpawnEngine().fortuneWheelCommand(p, new String[0]);
         } else if ("action:top".equals(act)) {
             p.performCommand("top");
         } else if ("action:train_hint".equals(act)) {

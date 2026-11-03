@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 7.6.0
+version: 7.7.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.6.0: обновлённый спавн, паркур и масштабируемая ёлка с подарками."
+description: "KINGGRIEF v7.7.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
 
 
 commands:
@@ -60,7 +60,7 @@ commands:
     description: Show your informational mining totals and ore types
     usage: /minestats [page]
   elka:
-    description: Scale the spawn tree and decorative presents
+    description: Scale the spawn tree, figures and decorative presents
     usage: /elka [status|1|2|3|-1|-2|-3]
   kgtree:
     aliases: [tree]
@@ -104,7 +104,8 @@ commands:
     description: Sky parkour, progress, rankings and private ghost replay
     usage: /parkour [progress|cp|leave|top|ghost]
   wheel:
-    description: Fortune Wheel 2026 (/wheel)
+    description: Fortune Wheel with a 15-minute per-player cooldown
+    usage: /wheel [money|snow|status|claim]
   top:
     description: Top-5 Rich & Killers Leaderboard (/top)
   gifts:

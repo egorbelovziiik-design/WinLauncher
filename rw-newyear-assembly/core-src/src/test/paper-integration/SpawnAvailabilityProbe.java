@@ -82,22 +82,35 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         ok(player.getLocation().distanceSquared(arrival) < 5, "arrival is near the village entrance");
         ok(arrival.clone().add(0, -1, 0).getBlock().getType().isSolid(), "arrival has a solid floor");
         ok(arrival.getBlock().isPassable() && arrival.clone().add(0, 1, 0).getBlock().isPassable(), "arrival has headroom");
-        boolean scalable = core.getDescription().getVersion().equals("7.6.0");
-        ok((scalable ? prepared.getBlockAt(0,130,0).getType() == Material.SPRUCE_WOOD && prepared.getBlockAt(0,140,0).getType().isAir()
-                && prepared.getBlockAt(2,146,0).getType().isAir()
-                : prepared.getBlockAt(0,140,0).getType() == Material.SPRUCE_WOOD && prepared.getBlockAt(2,146,0).getType() == Material.OCHRE_FROGLIGHT)
-                && prepared.getBlockAt(3, 146, 0).getType() == Material.WHITE_CONCRETE
-                && prepared.getBlockAt(16, 101, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(14, 115, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(12, 129, 1).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(12, 142, 0).getType() == Material.DARK_OAK_PLANKS
-                && prepared.getBlockAt(19, 113, -1).getType() == Material.BLACK_CONCRETE
-                && prepared.getBlockAt(17, 127, -1).getType() == Material.BLACK_CONCRETE
-                && prepared.getBlockAt(15, 141, -1).getType() == Material.BLACK_CONCRETE,
-                "tree foundation, visible faces, proportioned figures and reaching hand exist in the actual world");
-        if (scalable) {
-            long treeParts=prepared.getEntities().stream().filter(e -> e instanceof BlockDisplay && e.getScoreboardTags().contains("kg_spawn_tree_v76")).count();
-            ok(treeParts==163,"scalable tree and decorative presents are spawned in the actual world");
+        boolean v77 = core.getDescription().getVersion().equals("7.7.0");
+        boolean v76 = core.getDescription().getVersion().equals("7.6.0");
+        if (v77) {
+            ok(prepared.getBlockAt(0,102,0).getType()==Material.SPRUCE_WOOD
+                    && prepared.getBlockAt(0,103,0).getType().isAir()
+                    && prepared.getBlockAt(16,101,1).getType().isAir()
+                    && prepared.getBlockAt(14,115,1).getType().isAir()
+                    && prepared.getBlockAt(12,129,1).getType().isAir()
+                    && prepared.getBlockAt(3,146,0).getType().isAir(),"no fixed statues or tall trunk in the actual prepared world");
+            for (String group : new String[]{"tree","gift_west","gift_north","gift_south","figure_base","person_1","person_2","person_3","hand_star"}) {
+                long parts=prepared.getChunkAt(0,0).getEntities().length==0?0:java.util.Arrays.stream(prepared.getChunkAt(0,0).getEntities())
+                        .filter(e -> e instanceof BlockDisplay && e.getScoreboardTags().contains("kg_elka_v77_"+group)).count();
+                ok(parts>0,"model group is present in the actual world: "+group);
+            }
+            long parts=java.util.Arrays.stream(prepared.getChunkAt(0,0).getEntities()).filter(e -> e instanceof BlockDisplay && e.getScoreboardTags().contains("kg_spawn_tree_v77")).count();
+            ok(parts==232,"exactly 232 scalable tree, people and gift displays in actual world");
+        } else {
+            ok((v76 ? prepared.getBlockAt(0,130,0).getType() == Material.SPRUCE_WOOD && prepared.getBlockAt(0,140,0).getType().isAir()
+                    && prepared.getBlockAt(2,146,0).getType().isAir()
+                    : prepared.getBlockAt(0,140,0).getType() == Material.SPRUCE_WOOD && prepared.getBlockAt(2,146,0).getType() == Material.OCHRE_FROGLIGHT)
+                    && prepared.getBlockAt(3,146,0).getType() == Material.WHITE_CONCRETE
+                    && prepared.getBlockAt(16,101,1).getType() == Material.DARK_OAK_PLANKS
+                    && prepared.getBlockAt(14,115,1).getType() == Material.DARK_OAK_PLANKS
+                    && prepared.getBlockAt(12,129,1).getType() == Material.DARK_OAK_PLANKS,
+                    "historical fixed figures and tree exist in the prepared world");
+            if (v76) {
+                long parts=prepared.getEntities().stream().filter(e -> e instanceof BlockDisplay && e.getScoreboardTags().contains("kg_spawn_tree_v76")).count();
+                ok(parts==163,"historical scalable tree and gifts are spawned");
+            }
         }
         for (int[] point : new int[][] {{39,101,-29},{12,105,-43},{-18,109,-40},{-39,113,-18},{-41,117,9}}) {
             Material plate = prepared.getBlockAt(point[0], point[1]+1, point[2]).getType();

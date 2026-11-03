@@ -299,7 +299,7 @@ public final class GuiManager {
         inv.setItem(20, ItemFactory.glowIcon(Material.TARGET, "&#FF5252&l🥊 /warp train — Манекены Урона",
                 "&73 манекена и временный DPS за 5 секунд.", "&f/trainstats &7— личная статистика; броня считается приблизительно."));
         inv.setItem(21, ItemFactory.glowIcon(Material.SUNFLOWER, "&#FF4081&l🎡 /warp wheel — Колесо Фортуны",
-                "&7Беспроигрышный прокрут за 5❄ или 15 000$!"));
+                "&7Беспроигрышный прокрут за 5❄ или 15 000$!", "&7Общий КД между прокрутами: &f15 минут&7."));
         inv.setItem(22, ItemFactory.glowIcon(Material.ENCHANTING_TABLE, "&#E040FB&l🔮 /warp bafs — Бафовар и Чары",
                 "&7Отдельный павильон чародея 30 лвл и Алхимика!"));
         inv.setItem(23, ItemFactory.glowIcon(Material.TOTEM_OF_UNDYING, "&#FFD740&l🏆 /warp top — Аллея Топеров",

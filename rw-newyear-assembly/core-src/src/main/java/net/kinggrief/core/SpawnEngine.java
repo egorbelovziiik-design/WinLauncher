@@ -158,6 +158,7 @@ public final class SpawnEngine {
 
     private final KingGriefCore plugin;
     private final Random rng = new Random();
+    private final FortuneWheelManager fortuneWheel;
     private final List<CasePedestal> casePedestals = new ArrayList<CasePedestal>();
     private final List<NpcDef> npcDefs = new ArrayList<NpcDef>();
     private final List<StaticHoloDef> staticHoloDefs = new ArrayList<StaticHoloDef>();
@@ -188,6 +189,7 @@ public final class SpawnEngine {
 
     public SpawnEngine(KingGriefCore plugin) {
         this.plugin = plugin;
+        this.fortuneWheel = new FortuneWheelManager(plugin);
         initDefinitions();
     }
 
@@ -218,7 +220,7 @@ public final class SpawnEngine {
         // 27 existing plaza NPCs plus the expedition guide near the entrance.
         npcDefs.add(new NpcDef("rtp",        "&#00E676&l🧭 МАСТЕР РТП",          "&fВход в мир выживания (/rtp)",         -8.0, 100.0,  42.0, -35f, sKnight, Color.fromRGB(16, 185, 129), new ItemStack(Material.COMPASS), ItemFactory.sharApollona(), null, "gui:rtp"));
         npcDefs.add(new NpcDef("donate",     "&#FFD740&l👑 ДОНАТ И ПРИВИЛЕГИИ",  "&fВсе 45 привилегий (/donate)",          8.0, 100.0,  42.0,  35f, sKing,   Color.fromRGB(250, 204, 21), new ItemStack(Material.NETHER_STAR), ItemFactory.sharSanty(), null, "gui:donate"));
-        npcDefs.add(new NpcDef("wheel_npc",  "&#FF4081&l🎡 КОЛЕСО ФОРТУНЫ",      "&fБеспроигрышный прокрут (/wheel)",      0.5, 100.0,  36.5,   0f, sMaiden, Color.fromRGB(244, 63, 94),  ItemFactory.snowflakeCoin(1), ItemFactory.sharSanty(), null, "action:wheel"));
+        npcDefs.add(new NpcDef("wheel_npc",  "&#FF4081&l🎡 КОЛЕСО ФОРТУНЫ",      "&f5❄ / 15 000$ · КД 15 мин",      0.5, 100.0,  36.5,   0f, sMaiden, Color.fromRGB(244, 63, 94),  ItemFactory.snowflakeCoin(1), ItemFactory.sharSanty(), null, "action:wheel"));
         npcDefs.add(new NpcDef("shop_main",  "&#38BDF8&l🛒 ГЛАВНЫЙ МАГАЗИН",     "&f8 категорий за Монеты (/shop)",      -13.0, 100.0,  34.0, -55f, sDealer, Color.fromRGB(56, 189, 248), new ItemStack(Material.EMERALD), new ItemStack(Material.GOLDEN_CARROT), null, "gui:shop"));
         npcDefs.add(new NpcDef("rshop",      "&#00E5FF&l❖ МАГАЗИН РИЛИКОВ",      "&f3D Шары, Элитры, Талисманы (/rshop)", 13.0, 100.0,  34.0,  55f, sMage,   Color.fromRGB(14, 165, 233), ItemFactory.swordKrush(), ItemFactory.sharTitana(), ItemFactory.elytraSanta(), "gui:rshop"));
         npcDefs.add(new NpcDef("bafovar",    "&#D946EF&l⚗ АЛХИМИК БАФОВАР",      "&fСмешивание 8 зелий — 5 000$ (/bafs)", -16.0, 100.0,  25.0, -70f, sMage,   Color.fromRGB(192, 38, 211), ItemFactory.potionKiller(1), new ItemStack(Material.BREWING_STAND), null, "gui:bafovar"));
@@ -1506,60 +1508,20 @@ public final class SpawnEngine {
         return plugin.getBossEvents() != null ? plugin.getBossEvents().getNextAutoSeconds() : 300;
     }
 
-    // ================= FORTUNE WHEEL 2026 (/wheel) =================
+    // /wheel and the spawn NPC enter the same durable per-player cooldown.
     public void spinFortuneWheel(Player p, boolean useSnowflakes) {
-        // Check every possible item outcome before rolling or charging, so a
-        // full inventory cannot lose a prize or be used to reroll for free.
-        if (!InventoryCapacity.canFit(p, ItemFactory.plast(4), ItemFactory.trapka(2))
-                || !InventoryCapacity.canFit(p, ItemFactory.nyMandarin(8), ItemFactory.potionKiller(1))
-                || !InventoryCapacity.canFit(p, ItemFactory.bozhyaAura(2), ItemFactory.dezorient(2))
-                || !InventoryCapacity.canFit(p, ItemFactory.sharSanty())) {
-            p.sendMessage(ColorUtil.c("&cОсвободите место для двух предметов колеса. Валюта не списана."));
-            return;
-        }
-        if (useSnowflakes) {
-            if (!plugin.getStore().takeSnowflakes(p.getName(), 5)) {
-                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-                p.sendMessage(ColorUtil.c("&#FF1744✖ Нужно &b5 Снежинок ❄ &c(или введите &f/wheel money &cза 15 000$)!"));
-                return;
-            }
-        } else {
-            if (!plugin.getStore().takeCoins(p.getName(), 15000)) {
-                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-                p.sendMessage(ColorUtil.c("&#FF1744✖ Нужно &a15 000$ Монет &c(или &b5 Снежинок ❄ &cдля &f/wheel&c)!"));
-                return;
-            }
-        }
-        int roll = rng.nextInt(100);
-        String prize;
-        if (roll < 22) {
-            plugin.getStore().addCoins(p.getName(), 30000);
-            prize = "&a+30 000$ Монет";
-        } else if (roll < 42) {
-            p.getInventory().addItem(ItemFactory.plast(4), ItemFactory.trapka(2));
-            prize = "&#A855F74× Пласт + 2× Трапка";
-        } else if (roll < 58) {
-            p.getInventory().addItem(ItemFactory.nyMandarin(8), ItemFactory.potionKiller(1));
-            prize = "&#FF91008× Новогодних Мандаринов + Зелье Киллера";
-        } else if (roll < 74) {
-            plugin.getStore().addRelics(p.getName(), 25);
-            prize = "&#00E5FF+25 Риликов ❖";
-        } else if (roll < 88) {
-            p.getInventory().addItem(ItemFactory.bozhyaAura(2), ItemFactory.dezorient(2));
-            prize = "&#FFD7402× Божья Аура + 2× Дезориентация";
-        } else if (roll < 97) {
-            plugin.getStore().addCaseKeys(p.getName(), "summer", 1);
-            prize = "&#80D8FFНовогодний Кейс (/cases)";
-        } else {
-            p.getInventory().addItem(ItemFactory.sharSanty());
-            prize = "&#FF1744&lДЖЕКПОТ! 3D ШАР САНТЫ!";
-            Bukkit.broadcastMessage(ColorUtil.c("&#FF4081&l🎡 [КОЛЕСО ФОРТУНЫ] &fИгрок &#FFD740" + p.getName() + " &fвыбил ДЖЕКПОТ — &#FF1744&l3D ШАР САНТЫ&f!"));
-        }
-        plugin.getStore().save();
-        plugin.getHud().updatePlayerHud(p);
-        ColorUtil.sound(p, "entity.player.levelup", 1.0f, 1.3f);
-        p.sendTitle(ColorUtil.c("&#FF4081&l🎡 КОЛЕСО ФОРТУНЫ"), ColorUtil.c("&fПриз: " + prize), 5, 45, 10);
-        p.sendMessage(ColorUtil.c("&#FF4081🎡 Вы прокрутили Колесо Фортуны и выиграли: " + prize + "&f!"));
+        fortuneWheel.spin(p,useSnowflakes);
+    }
+
+    public void fortuneWheelCommand(Player p,String[] args) {
+        if(args.length==0) {
+            boolean snow=plugin.getStore().getSnowflakes(p.getName())>=5 || plugin.getStore().getCoins(p.getName())<15000.0;
+            fortuneWheel.spin(p,snow);
+        } else if(args.length==1 && "money".equalsIgnoreCase(args[0])) fortuneWheel.spin(p,false);
+        else if(args.length==1 && "snow".equalsIgnoreCase(args[0])) fortuneWheel.spin(p,true);
+        else if(args.length==1 && "status".equalsIgnoreCase(args[0])) fortuneWheel.status(p);
+        else if(args.length==1 && "claim".equalsIgnoreCase(args[0])) fortuneWheel.claim(p);
+        else p.sendMessage(ColorUtil.c("&e/wheel [money|snow|status|claim]"));
     }
 
     // ================= SEPARATE WORLD TIERED RTP (/rtp + /rtp near) =================

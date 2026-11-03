@@ -66,7 +66,7 @@ public final class TreeSeasonProbe extends JavaPlugin implements Listener {
         Location loc=marker();DataStore.Claim claim=core.getStore().getClaimAt(loc);
         ok(loc.getBlock().getType()==Material.DIAMOND_BLOCK&&claim!=null&&claim.owner.equalsIgnoreCase("TreeHelper"),description);
         World spawn=Bukkit.getWorld("spawn_world");
-        ok(spawn!=null&&spawn.getBlockAt(0,130,0).getType()==Material.SPRUCE_WOOD,"spawn tree trunk is unchanged by season operations");
+        ok(spawn!=null&&spawn.getBlockAt(0,102,0).getType()==Material.SPRUCE_WOOD,"spawn tree trunk is unchanged by season operations");
         ok(a.getInventory().getItem(0)!=null&&a.getInventory().getItem(0).getType()==Material.DIAMOND&&a.getInventory().getItem(0).getAmount()==13,"kgtree commands do not move the participant's inventory");
     }
     private void withBlockedSave(Runnable action){

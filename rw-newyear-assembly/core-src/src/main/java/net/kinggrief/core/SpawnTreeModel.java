@@ -33,8 +33,13 @@ import org.joml.Matrix4f;
 /** Scalable, non-persistent decorative displays: never rewrites world blocks. */
 final class SpawnTreeModel implements Listener {
     private static final String KEY = "spawnTree.modelLevel";
-    private static final String TAG = "kg_spawn_tree_v76";
-    private static final int MIN_LEVEL = -3, MAX_LEVEL = 3;
+    private static final String TAG = "kg_spawn_tree_v77";
+    private static final String LEGACY_TAG = "kg_spawn_tree_v76";
+    private static final String PART_TAG_PREFIX = "kg_elka_v77_";
+    private static final int MIN_LEVEL = -3, MAX_LEVEL = 3, MAX_PARTS = 256;
+    private static final Set<String> GROUPS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+            "tree", "gift_west", "gift_north", "gift_south", "figure_base",
+            "person_1", "person_2", "person_3", "hand_star")));
     private static final Set<String> ADMIN_RANKS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
             "owner", "techadmin", "curator", "curator_discord", "curator_kp", "curator_media", "curator_dkp",
             "gladmin", "stadmin", "admin", "mladmin", "downer", "dadmin", "dmladmin")));
@@ -48,10 +53,11 @@ final class SpawnTreeModel implements Listener {
     private long lastChangeNanos;
 
     private static final class Part {
+        final String group;
         final BlockData block;
         final float x,y,z,width,height,depth;
-        Part(BlockData block,float x,float y,float z,float width,float height,float depth) {
-            this.block=block;this.x=x;this.y=y;this.z=z;this.width=width;this.height=height;this.depth=depth;
+        Part(String group,BlockData block,float x,float y,float z,float width,float height,float depth) {
+            this.group=group;this.block=block;this.x=x;this.y=y;this.z=z;this.width=width;this.height=height;this.depth=depth;
         }
         Matrix4f matrix(float factor) {
             return new Matrix4f().translate(x*factor,y*factor,z*factor)
@@ -79,22 +85,22 @@ final class SpawnTreeModel implements Listener {
         }
     }
     private void readParts() throws IOException {
-        InputStream stream=plugin.getResource("elka_v76.csv");
+        InputStream stream=plugin.getResource("elka_v77.csv");
         if(stream==null)throw new IOException("missing model resource");
         try(BufferedReader reader=new BufferedReader(new InputStreamReader(stream,StandardCharsets.US_ASCII))) {
             String line;
             while((line=reader.readLine())!=null) {
                 if(line.isEmpty()||line.startsWith("#"))continue;
                 String[] a=line.split(",",-1);
-                if(a.length!=8||parts.size()>=200)throw new IOException("invalid or excessive model parts");
-                if(!Arrays.asList("tree","gift_west","gift_north","gift_south").contains(a[0]))throw new IOException("invalid part group");
+                if(a.length!=8||parts.size()>=MAX_PARTS)throw new IOException("invalid or excessive model parts");
+                if(!GROUPS.contains(a[0]))throw new IOException("invalid part group");
                 Material material=Material.matchMaterial(a[1]);
                 if(material==null||!material.isBlock())throw new IOException("invalid block material " + a[1]);
                 float[] v=new float[6];
                 try { for(int i=0;i<6;i++){v[i]=Float.parseFloat(a[i+2]);if(!Float.isFinite(v[i])||Math.abs(v[i])>80)throw new NumberFormatException();} }
                 catch(NumberFormatException error){throw new IOException("invalid model dimension",error);}
                 if(v[3]<=0||v[4]<=0||v[5]<=0)throw new IOException("invalid model size");
-                parts.add(new Part(Bukkit.createBlockData(material),v[0],v[1],v[2],v[3],v[4],v[5]));
+                parts.add(new Part(a[0],Bukkit.createBlockData(material),v[0],v[1],v[2],v[3],v[4],v[5]));
             }
         }
         if(parts.isEmpty())throw new IOException("empty model");
@@ -107,15 +113,20 @@ final class SpawnTreeModel implements Listener {
     private void ensureModel() {
         if(!ready)return;
         World world=activeWorld();
-        if(world==null||!world.isChunkLoaded(0,0)) { clearReferences();return; }
+        if(world==null||!world.isChunkLoaded(0,0)) { removeDisplays();return; }
         if(world.equals(displayWorld)&&displays.size()==parts.size()) {
             boolean valid=true;
             for(BlockDisplay display:displays)if(!display.isValid()){valid=false;break;}
             if(valid)return;
         }
         removeDisplays();
-        // Only remove our own exact, versioned tag in this single loaded chunk.
-        for(Entity entity:world.getChunkAt(0,0).getEntities())if(entity.getScoreboardTags().contains(TAG))entity.remove();
+        // Only our own exact versioned display tags in this loaded anchor chunk.
+        // The old tag covers an interrupted in-process upgrade; unrelated
+        // entities and all other worlds/chunks are never touched.
+        for(Entity entity:world.getChunkAt(0,0).getEntities()) {
+            if(entity instanceof BlockDisplay && (entity.getScoreboardTags().contains(TAG)
+                    || entity.getScoreboardTags().contains(LEGACY_TAG))) entity.remove();
+        }
         try {
             displayWorld=world;
             Location anchor=new Location(world,0,100,0);
@@ -123,8 +134,9 @@ final class SpawnTreeModel implements Listener {
             for(Part part:parts) {
                 BlockDisplay display=world.spawn(anchor,BlockDisplay.class,d->{
                     d.setBlock(part.block);d.setPersistent(false);d.setGravity(false);d.setInvulnerable(true);d.setSilent(true);
-                    d.setBillboard(Display.Billboard.FIXED);d.setDisplayWidth(40f);d.setDisplayHeight(64f);d.setViewRange(1.5f);
-                    d.setInterpolationDuration(8);d.setTransformationMatrix(part.matrix(scale));d.addScoreboardTag(TAG);
+                    d.setBillboard(Display.Billboard.FIXED);d.setDisplayWidth(56f);d.setDisplayHeight(64f);d.setViewRange(1.5f);
+                    d.setInterpolationDuration(8);d.setTransformationMatrix(part.matrix(scale));
+                    d.addScoreboardTag(TAG);d.addScoreboardTag(PART_TAG_PREFIX+part.group);
                 });
                 displays.add(display);
             }
@@ -192,7 +204,7 @@ final class SpawnTreeModel implements Listener {
                 }
             } catch(RuntimeException error) { removeDisplays();plugin.getLogger().warning("[Elka] Recreating model after resize: "+error.getMessage()); }
         }
-        send(sender,"&aЁлка и подарки: уровень "+level+" ("+Math.round(factor()*100)+"%). Размер сохранён.");
+        send(sender,"&aЁлка, люди и подарки: уровень "+level+" ("+Math.round(factor()*100)+"%). Размер сохранён.");
     }
     private static void send(CommandSender sender,String message){sender.sendMessage(ColorUtil.c(message));}
 }

@@ -541,6 +541,8 @@ public final class KingGriefCore extends JavaPlugin {
         String c = cmd.getName().toLowerCase(Locale.ROOT);
         List<String> out = new ArrayList<String>();
         if ("elka".equals(c)) return spawnTreeModel.complete(sender, args);
+        if ("wheel".equals(c) && sender instanceof Player && args.length == 1)
+            return filterPrefix(Arrays.asList("money", "snow", "status", "claim"), args[0]);
         if ("autosell".equals(c) && args.length == 1) {
             return filterPrefix(Arrays.asList("on", "off", "status", "prices"), args[0]);
         } else if ("calendar".equals(c)) {
@@ -1015,11 +1017,7 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("wheel".equals(c)) {
-            boolean useSnow = !(args.length > 0 && "money".equalsIgnoreCase(args[0]));
-            if (useSnow && store.getSnowflakes(p.getName()) < 5 && store.getCoins(p.getName()) >= 15000 && args.length == 0) {
-                useSnow = false;
-            }
-            spawnEngine.spinFortuneWheel(p, useSnow);
+            spawnEngine.fortuneWheelCommand(p, args);
             return true;
         }
         if ("top".equals(c)) {
