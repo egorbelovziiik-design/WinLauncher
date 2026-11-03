@@ -682,10 +682,23 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         a.closeInventory();
         double before=store.getCoins(a.getName());a.performCommand("tree claim");
         ok(store.getCoins(a.getName())==before,"claimed tree milestone remains claimed after restart");
-        later(20,()->{
-            ok(displays()==14,"selected deer model returns after restart");
+        ok("deer".equals(yaml().getString("cosmeticPets."+a.getUniqueId())),"deer selection survives restart");
+        // Pet spawning is rate-limited and can retry five seconds after a chunk
+        // or entity spawn failure; don't assume it always settles in 20 ticks.
+        awaitRestoredPet(0);
+    }
+    private void awaitRestoredPet(int attempts){
+        long count=displays();
+        if(count==14){
+            ok(true,"selected deer model returns after restart");
             a.performCommand("pet off");later(10,()->{ok(displays()==0,"restored pet can be switched off");finish();});
-        });
+        }else if(attempts<30){
+            later(5,()->awaitRestoredPet(attempts+1));
+        }else{
+            throw new AssertionError("selected deer model returns after restart: parts="+count+", world="+a.getWorld().getName()
+                    +", loc="+a.getLocation()+", authenticated="+core.getStore().isAuthenticated(a)
+                    +", parkour="+core.getStore().getParkourCp(a)+", dead="+a.isDead()+", gameMode="+a.getGameMode());
+        }
     }
     private YamlConfiguration yaml(){try{Field f=DataStore.class.getDeclaredField("yml");f.setAccessible(true);return (YamlConfiguration)f.get(core.getStore());}catch(Exception e){throw new RuntimeException(e);}}
     private void withBlockedSave(Runnable action){
