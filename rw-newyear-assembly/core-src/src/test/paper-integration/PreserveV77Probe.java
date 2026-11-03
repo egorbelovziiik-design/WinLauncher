@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Published 7.7.0 or 7.8.0 to 7.9.0: the existing v77 world is not reinstalled. */
+/** Published 7.7.0, 7.8.0 or 7.9.0 to 7.10.0: the existing v77 world is not reinstalled. */
 public final class PreserveV77Probe extends JavaPlugin {
  @Override public void onEnable(){Bukkit.getScheduler().runTaskLater(this,()->{
   String mode=getConfig().getString("mode","");
@@ -24,8 +24,8 @@ public final class PreserveV77Probe extends JavaPlugin {
   if(arrival==null || arrival.getWorld()==null)throw new AssertionError("no active spawn");
   World active=arrival.getWorld();Object store=core.getClass().getMethod("getStore").invoke(core);
   Path state=getDataFolder().toPath();Files.createDirectories(state);
-  if(mode.equals("seed77") || mode.equals("seed78")){
-   if(!core.getDescription().getVersion().equals(mode.equals("seed77") ? "7.7.0" : "7.8.0"))throw new AssertionError("old Core mismatch");
+  if(mode.equals("seed77") || mode.equals("seed78") || mode.equals("seed79")){
+   if(!core.getDescription().getVersion().equals(mode.equals("seed77") ? "7.7.0" : mode.equals("seed78") ? "7.8.0" : "7.9.0"))throw new AssertionError("old Core mismatch");
    active.getBlockAt(50,115,50).setType(Material.CHEST,false);
    ((Chest)active.getBlockAt(50,115,50).getState()).getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,21));
    active.setChunkForceLoaded(2,2,true);
@@ -36,13 +36,14 @@ public final class PreserveV77Probe extends JavaPlugin {
    YamlConfiguration yml=(YamlConfiguration)field.get(store);yml.set("players.persistuser.fortuneWheel.readyAt",1999999999999L);
    yml.set("cosmeticPets.00000000-0000-4000-8000-000000000123","deer");
    yml.set("players.persistuser.spawnGifts.g0",true);
+   yml.set("players.persistuser.playSec",3600L);yml.set("players.persistuser.playRewards.pt_900",true);
    store.getClass().getMethod("save").invoke(store);
    Files.writeString(state.resolve("world-name"),active.getName(),StandardCharsets.UTF_8);
    Files.writeString(state.resolve("world-uuid"),active.getUID().toString(),StandardCharsets.UTF_8);
    Files.writeString(active.getWorldFolder().toPath().resolve("owner-78-proof.txt"),"keep intact\n",StandardCharsets.UTF_8);
    return;
   }
-  if(!mode.equals("verify79") || !core.getDescription().getVersion().equals("7.9.0"))throw new AssertionError("new Core mismatch");
+  if(!mode.equals("verify710") || !core.getDescription().getVersion().equals("7.10.0"))throw new AssertionError("new Core mismatch");
   if(!active.getName().equals(Files.readString(state.resolve("world-name")))
           || !active.getUID().toString().equals(Files.readString(state.resolve("world-uuid"))))throw new AssertionError("active world changed");
   if(!Files.readString(active.getWorldFolder().toPath().resolve("owner-78-proof.txt")).equals("keep intact\n"))throw new AssertionError("world file changed");
@@ -55,5 +56,6 @@ public final class PreserveV77Probe extends JavaPlugin {
   YamlConfiguration yml=YamlConfiguration.loadConfiguration(core.getDataFolder().toPath().resolve("data.yml").toFile());
   if(yml.getLong("players.persistuser.fortuneWheel.readyAt")!=1999999999999L || yml.getInt("spawnTree.modelLevel")!=2)throw new AssertionError("wheel cooldown or tree scale lost");
   if(!"deer".equals(yml.getString("cosmeticPets.00000000-0000-4000-8000-000000000123")) || !yml.getBoolean("players.persistuser.spawnGifts.g0"))throw new AssertionError("pet selection or gift progress lost");
+  if(yml.getLong("players.persistuser.playSec")!=3600L || !yml.getBoolean("players.persistuser.playRewards.pt_900"))throw new AssertionError("existing playtime or reward marker lost");
  }
 }

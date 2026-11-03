@@ -182,6 +182,94 @@ final class DisplayPetManager implements Listener {
         part(Material.DARK_OAK_PLANKS,.30f,.37f,0,.23f,.06f,.06f),
         part(Material.RED_CONCRETE,0,.43f,.01f,.37f,.07f,.34f)
     };
+    private static final Part[] CAT={
+        part(Material.LIGHT_GRAY_CONCRETE,0,.30f,0,.34f,.35f,.57f),
+        part(Material.LIGHT_GRAY_CONCRETE,0,.58f,.30f,.39f,.32f,.30f),
+        part(Material.LIGHT_GRAY_CONCRETE,-.15f,.85f,.29f,.10f,.18f,.10f),
+        part(Material.LIGHT_GRAY_CONCRETE,.15f,.85f,.29f,.10f,.18f,.10f),
+        part(Material.GREEN_CONCRETE,-.11f,.75f,.46f,.07f,.07f,.025f),
+        part(Material.GREEN_CONCRETE,.11f,.75f,.46f,.07f,.07f,.025f),
+        part(Material.WHITE_CONCRETE,0,.65f,.49f,.17f,.09f,.09f),
+        part(Material.PINK_CONCRETE,0,.69f,.54f,.05f,.04f,.02f),
+        part(Material.LIGHT_GRAY_CONCRETE,-.12f,.04f,.20f,.10f,.28f,.11f),
+        part(Material.LIGHT_GRAY_CONCRETE,.12f,.04f,.20f,.10f,.28f,.11f),
+        part(Material.LIGHT_GRAY_CONCRETE,-.12f,.04f,-.20f,.10f,.28f,.11f),
+        part(Material.LIGHT_GRAY_CONCRETE,.12f,.04f,-.20f,.10f,.28f,.11f),
+        part(Material.LIGHT_GRAY_CONCRETE,0,.43f,-.41f,.09f,.09f,.28f),
+        part(Material.LIGHT_GRAY_CONCRETE,0,.47f,-.56f,.09f,.22f,.09f)
+    };
+    private static final Part[] PANDA={
+        part(Material.WHITE_CONCRETE,0,.26f,0,.48f,.42f,.62f),
+        part(Material.WHITE_CONCRETE,0,.52f,.31f,.43f,.37f,.30f),
+        part(Material.BLACK_CONCRETE,-.15f,.79f,.26f,.13f,.13f,.12f),
+        part(Material.BLACK_CONCRETE,.15f,.79f,.26f,.13f,.13f,.12f),
+        part(Material.BLACK_CONCRETE,-.12f,.69f,.47f,.11f,.13f,.025f),
+        part(Material.BLACK_CONCRETE,.12f,.69f,.47f,.11f,.13f,.025f),
+        part(Material.WHITE_CONCRETE,-.12f,.74f,.49f,.04f,.04f,.02f),
+        part(Material.WHITE_CONCRETE,.12f,.74f,.49f,.04f,.04f,.02f),
+        part(Material.BLACK_CONCRETE,0,.57f,.49f,.10f,.08f,.06f),
+        part(Material.BLACK_CONCRETE,-.17f,.03f,.21f,.15f,.25f,.15f),
+        part(Material.BLACK_CONCRETE,.17f,.03f,.21f,.15f,.25f,.15f),
+        part(Material.BLACK_CONCRETE,-.17f,.03f,-.21f,.15f,.25f,.15f),
+        part(Material.BLACK_CONCRETE,.17f,.03f,-.21f,.15f,.25f,.15f),
+        part(Material.BLACK_CONCRETE,0,.30f,-.34f,.09f,.09f,.10f)
+    };
+    private static final Part[] BEE={
+        part(Material.YELLOW_CONCRETE,0,.38f,0,.44f,.38f,.58f),
+        part(Material.BLACK_CONCRETE,0,.38f,-.11f,.46f,.39f,.10f),
+        part(Material.BLACK_CONCRETE,0,.38f,.13f,.46f,.39f,.10f),
+        part(Material.YELLOW_CONCRETE,0,.48f,.33f,.34f,.27f,.20f),
+        part(Material.BLACK_CONCRETE,-.10f,.62f,.44f,.06f,.06f,.02f),
+        part(Material.BLACK_CONCRETE,.10f,.62f,.44f,.06f,.06f,.02f),
+        part(Material.BLACK_CONCRETE,-.11f,.75f,.31f,.04f,.15f,.04f),
+        part(Material.BLACK_CONCRETE,.11f,.75f,.31f,.04f,.15f,.04f),
+        new Part(Material.WHITE_STAINED_GLASS,-.27f,.75f,-.02f,.22f,.04f,.37f,-1),
+        new Part(Material.WHITE_STAINED_GLASS,.27f,.75f,-.02f,.22f,.04f,.37f,1),
+        part(Material.BLACK_CONCRETE,-.12f,.25f,0,.05f,.15f,.05f),
+        part(Material.BLACK_CONCRETE,.12f,.25f,0,.05f,.15f,.05f),
+        part(Material.BLACK_CONCRETE,0,.49f,-.36f,.05f,.05f,.12f)
+    };
+    private static final Part[] TURTLE={
+        part(Material.GREEN_CONCRETE,0,.22f,0,.47f,.25f,.62f),
+        part(Material.GREEN_TERRACOTTA,0,.38f,-.03f,.43f,.21f,.52f),
+        part(Material.LIME_CONCRETE,0,.58f,-.03f,.28f,.03f,.34f),
+        part(Material.GREEN_CONCRETE,0,.24f,.37f,.24f,.20f,.22f),
+        part(Material.BLACK_CONCRETE,-.08f,.37f,.49f,.04f,.04f,.02f),
+        part(Material.BLACK_CONCRETE,.08f,.37f,.49f,.04f,.04f,.02f),
+        part(Material.GREEN_CONCRETE,-.28f,.05f,.19f,.18f,.13f,.20f),
+        part(Material.GREEN_CONCRETE,.28f,.05f,.19f,.18f,.13f,.20f),
+        part(Material.GREEN_CONCRETE,-.28f,.05f,-.22f,.18f,.13f,.20f),
+        part(Material.GREEN_CONCRETE,.28f,.05f,-.22f,.18f,.13f,.20f),
+        part(Material.GREEN_CONCRETE,0,.24f,-.38f,.08f,.08f,.14f)
+    };
+    private static final Part[] FROG={
+        part(Material.LIME_CONCRETE,0,.14f,0,.47f,.30f,.45f),
+        part(Material.LIME_CONCRETE,0,.38f,.15f,.43f,.21f,.30f),
+        part(Material.LIME_CONCRETE,-.15f,.56f,.18f,.14f,.14f,.13f),
+        part(Material.LIME_CONCRETE,.15f,.56f,.18f,.14f,.14f,.13f),
+        part(Material.BLACK_CONCRETE,-.15f,.64f,.25f,.06f,.06f,.025f),
+        part(Material.BLACK_CONCRETE,.15f,.64f,.25f,.06f,.06f,.025f),
+        part(Material.WHITE_CONCRETE,0,.19f,.235f,.27f,.08f,.025f),
+        part(Material.GREEN_CONCRETE,-.27f,.03f,.11f,.15f,.18f,.13f),
+        part(Material.GREEN_CONCRETE,.27f,.03f,.11f,.15f,.18f,.13f),
+        part(Material.GREEN_CONCRETE,-.28f,.03f,-.17f,.20f,.13f,.18f),
+        part(Material.GREEN_CONCRETE,.28f,.03f,-.17f,.20f,.13f,.18f)
+    };
+    private static final Part[] ICE_GOLEM={
+        part(Material.LIGHT_BLUE_CONCRETE,0,.30f,0,.47f,.48f,.31f),
+        part(Material.SNOW_BLOCK,0,.76f,0,.35f,.32f,.32f),
+        part(Material.BLUE_CONCRETE,-.11f,.95f,.17f,.06f,.06f,.025f),
+        part(Material.BLUE_CONCRETE,.11f,.95f,.17f,.06f,.06f,.025f),
+        part(Material.CYAN_CONCRETE,0,.83f,.18f,.08f,.06f,.03f),
+        part(Material.LIGHT_BLUE_CONCRETE,-.32f,.32f,0,.17f,.42f,.17f),
+        part(Material.LIGHT_BLUE_CONCRETE,.32f,.32f,0,.17f,.42f,.17f),
+        part(Material.BLUE_ICE,-.32f,.26f,0,.19f,.09f,.19f),
+        part(Material.BLUE_ICE,.32f,.26f,0,.19f,.09f,.19f),
+        part(Material.LIGHT_BLUE_CONCRETE,-.13f,.04f,0,.16f,.29f,.18f),
+        part(Material.LIGHT_BLUE_CONCRETE,.13f,.04f,0,.16f,.29f,.18f),
+        part(Material.BLUE_ICE,0,.51f,.17f,.12f,.12f,.025f),
+        part(Material.WHITE_CONCRETE,0,.69f,.17f,.36f,.06f,.04f)
+    };
     private static final class Spec {
         final String id, name; final Material icon; final Part[] parts;
         Spec(String id,String name,Material icon,Part[] parts){this.id=id;this.name=name;this.icon=icon;this.parts=parts;}
@@ -195,9 +283,15 @@ final class DisplayPetManager implements Listener {
         new Spec("bunny","Зайчик",Material.RABBIT_SPAWN_EGG,BUNNY),
         new Spec("polar_bear","Белый медвежонок",Material.POLAR_BEAR_SPAWN_EGG,POLAR_BEAR),
         new Spec("owl","Сова",Material.ECHO_SHARD,OWL),
-        new Spec("snowman","Снеговичок",Material.CARVED_PUMPKIN,SNOWMAN)
+        new Spec("snowman","Снеговичок",Material.CARVED_PUMPKIN,SNOWMAN),
+        new Spec("cat","Котёнок",Material.CAT_SPAWN_EGG,CAT),
+        new Spec("panda","Панда",Material.PANDA_SPAWN_EGG,PANDA),
+        new Spec("bee","Пчёлка",Material.HONEYCOMB,BEE),
+        new Spec("turtle","Черепашка",Material.TURTLE_SCUTE,TURTLE),
+        new Spec("frog","Лягушонок",Material.FROG_SPAWN_EGG,FROG),
+        new Spec("ice_golem","Ледяной голем",Material.BLUE_ICE,ICE_GOLEM)
     };
-    private static final int[] SLOTS={10,11,12,13,14,15,16,19,20};
+    private static final int[] SLOTS={10,11,12,13,14,15,16,19,20,21,22,23,24,25,28};
     private static final class Pet {
         final String type; final World world; final Part[] model;
         final List<Entity> parts=new ArrayList<Entity>();
@@ -212,16 +306,18 @@ final class DisplayPetManager implements Listener {
     }
     private final KingGriefCore plugin;
     private final Map<UUID,String> selected=new HashMap<UUID,String>();
+    private final Map<UUID,String> viewModes=new HashMap<UUID,String>();
     // Insertion order permits lowering the cap without evicting every pet.
     private final Map<UUID,Pet> pets=new LinkedHashMap<UUID,Pet>();
     private final Map<UUID,Long> lastChoice=new HashMap<UUID,Long>();
+    private final Map<UUID,Long> lastView=new HashMap<UUID,Long>();
     private final Map<UUID,Long> retrySpawn=new HashMap<UUID,Long>();
     private BukkitRunnable ticker;
     private long tick;
     DisplayPetManager(KingGriefCore plugin){this.plugin=plugin;}
     static List<String> choices(){
         List<String> result=new ArrayList<String>();
-        result.add("menu");result.add("list");result.add("status");
+        result.add("menu");result.add("list");result.add("status");result.add("view");
         for(Spec spec:SPECS)result.add(spec.id);
         result.add("off");return result;
     }
@@ -237,11 +333,11 @@ final class DisplayPetManager implements Listener {
         for(UUID id:new ArrayList<UUID>(pets.keySet()))remove(id);
         for(Player p:Bukkit.getOnlinePlayers())
             if(p.getOpenInventory().getTopInventory().getHolder() instanceof PetMenu)p.closeInventory();
-        selected.clear();lastChoice.clear();retrySpawn.clear();
+        selected.clear();viewModes.clear();lastChoice.clear();lastView.clear();retrySpawn.clear();
     }
     @EventHandler public void onJoin(PlayerJoinEvent e){load(e.getPlayer());}
     @EventHandler public void onQuit(PlayerQuitEvent e){
-        UUID id=e.getPlayer().getUniqueId();remove(id);selected.remove(id);lastChoice.remove(id);retrySpawn.remove(id);
+        UUID id=e.getPlayer().getUniqueId();remove(id);selected.remove(id);viewModes.remove(id);lastChoice.remove(id);lastView.remove(id);retrySpawn.remove(id);
         // A reconnect creates a new Player instance; it must be shown displays again.
         for(Pet pet:pets.values())pet.viewers.remove(id);
     }
@@ -251,22 +347,38 @@ final class DisplayPetManager implements Listener {
         Pet pet=pets.get(e.getEntity().getUniqueId());
         if(pet!=null)hideViewer(pet,e.getPlayer());
     }
+    private static boolean validView(String mode){return "all".equals(mode)||"mine".equals(mode)||"none".equals(mode);}
     private void load(Player p){
-        try{String type=plugin.getStore().inspect(data->data.getString("cosmeticPets."+p.getUniqueId(),"off"));
-            selected.put(p.getUniqueId(),valid(type)?type:"off");}
-        catch(Exception error){selected.put(p.getUniqueId(),"off");plugin.getLogger().warning("[Pets] Could not read choice: "+error.getMessage());}
+        try{
+            String[] values=plugin.getStore().inspect(data->new String[]{
+                    data.getString("cosmeticPets."+p.getUniqueId(),"off"),
+                    data.getString("cosmeticPetView."+p.getUniqueId(),"all")});
+            selected.put(p.getUniqueId(),valid(values[0])?values[0]:"off");
+            viewModes.put(p.getUniqueId(),validView(values[1])?values[1]:"all");
+        }catch(Exception error){
+            selected.put(p.getUniqueId(),"off");viewModes.put(p.getUniqueId(),"none");
+            plugin.getLogger().warning("[Pets] Could not read choice: "+error.getMessage());
+        }
     }
     void command(Player p,String[] args){
         if(args.length==0||(args.length==1&&"menu".equalsIgnoreCase(args[0]))){openMenu(p);return;}
-        if(args.length!=1){p.sendMessage(ColorUtil.c("&e/pet [menu|list|status|имя|off]"));return;}
+        if(args.length==2&&"view".equalsIgnoreCase(args[0])){
+            setView(p,args[1].toLowerCase(Locale.ROOT));return;
+        }
+        if(args.length!=1){p.sendMessage(ColorUtil.c("&e/pet [menu|list|status|имя|off|view all/mine/none]"));return;}
         String type=args[0].toLowerCase(Locale.ROOT);
         if("list".equals(type)){
-            p.sendMessage(ColorUtil.c("&#80D8FFПитомцы: &fpenguin, deer, dragon, fox, wolf, bunny, polar_bear, owl, snowman &8| &e/pet off"));return;
+            p.sendMessage(ColorUtil.c("&#80D8FFПитомцы: &fpenguin, deer, dragon, fox, wolf, bunny, polar_bear, owl, snowman"));
+            p.sendMessage(ColorUtil.c("&fcat, panda, bee, turtle, frog, ice_golem &8| &e/pet off"));return;
+        }
+        if("view".equals(type)){
+            p.sendMessage(ColorUtil.c("&e/pet view <all|mine|none> &7— показывать всех, только своего или скрыть всех."));return;
         }
         if("status".equals(type)){
             String chosen=selected.getOrDefault(p.getUniqueId(),"off");Spec s=spec(chosen);
             p.sendMessage(ColorUtil.c(s==null?"&7Питомец выключен.":"&#80D8FFВыбран: &f"+s.name+" &8("+chosen+") &7— "+
-                    (pets.containsKey(p.getUniqueId())?"показан":"сейчас скрыт или ожидает свободного места")+". &e/pet"));return;
+                    (pets.containsKey(p.getUniqueId())?"создан":"сейчас скрыт или ожидает свободного места")+". &e/pet"));
+            p.sendMessage(ColorUtil.c("&7Видимость питомцев для вас: &f"+viewModes.getOrDefault(p.getUniqueId(),"all")+" &8(/pet view)"));return;
         }
         if("олень".equals(type)||"reindeer".equals(type))type="deer";
         if("пингвин".equals(type))type="penguin";
@@ -277,6 +389,12 @@ final class DisplayPetManager implements Listener {
         if("медведь".equals(type)||"bear".equals(type))type="polar_bear";
         if("сова".equals(type))type="owl";
         if("снеговик".equals(type))type="snowman";
+        if("кот".equals(type)||"котёнок".equals(type))type="cat";
+        if("панда".equals(type))type="panda";
+        if("пчела".equals(type))type="bee";
+        if("черепаха".equals(type))type="turtle";
+        if("лягушка".equals(type))type="frog";
+        if("голем".equals(type))type="ice_golem";
         if(!valid(type)){p.sendMessage(ColorUtil.c("&eНеизвестный питомец. Откройте &f/pet &eили &f/pet list"));return;}
         choose(p,type);
     }
@@ -296,6 +414,25 @@ final class DisplayPetManager implements Listener {
             p.sendMessage(ColorUtil.c(s==null?"&7Питомец скрыт.":"&#80D8FFВыбран питомец: &f"+s.name+"&7. Только косметика, без бонусов в бою."));return true;
         }catch(Exception error){p.sendMessage(ColorUtil.c("&cНе удалось сохранить выбор питомца; прежний выбор не изменён."));return false;}
     }
+    private boolean setView(Player p,String mode){
+        if(!validView(mode)){p.sendMessage(ColorUtil.c("&e/pet view <all|mine|none>"));return false;}
+        if(!plugin.getStore().isAuthenticated(p)){p.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));return false;}
+        UUID id=p.getUniqueId();
+        if(mode.equals(viewModes.getOrDefault(id,"all"))){p.sendMessage(ColorUtil.c("&7Этот режим видимости уже выбран."));return true;}
+        long now=System.nanoTime();Long last=lastView.get(id);
+        if(last!=null&&now-last.longValue()<250_000_000L){p.sendMessage(ColorUtil.c("&eПодождите немного перед сменой видимости."));return false;}
+        try{
+            plugin.getStore().transact(data->{data.set("cosmeticPetView."+id,mode);return null;});
+            viewModes.put(id,mode);lastView.put(id,now);
+            // Hiding is immediate; newly allowed displays are shown on the next update.
+            for(Map.Entry<UUID,Pet> entry:pets.entrySet()){
+                Player owner=Bukkit.getPlayer(entry.getKey());
+                if(owner==null||!canView(p,owner,entry.getValue()))hideViewer(entry.getValue(),p);
+            }
+            String label="all".equals(mode)?"все":"mine".equals(mode)?"только свой":"никого";
+            p.sendMessage(ColorUtil.c("&#80D8FFПитомцы для вас: &f"+label+"&7. Выбор сохранён."));return true;
+        }catch(Exception error){p.sendMessage(ColorUtil.c("&cНе удалось сохранить видимость; прежняя настройка не изменена."));return false;}
+    }
     private void openMenu(Player p){
         ItemStack cursor=p.getItemOnCursor();
         if(cursor!=null&&!cursor.getType().isAir()){p.sendMessage(ColorUtil.c("&eСначала положите предмет с курсора в инвентарь."));return;}
@@ -310,7 +447,10 @@ final class DisplayPetManager implements Listener {
             Spec s=SPECS[i];String status=s.id.equals(chosen)?"&a✓ Выбран":"&eНажмите, чтобы выбрать";
             menu.inventory.setItem(SLOTS[i],ItemFactory.icon(s.icon,"&#80D8FF"+s.name,"&7Команда: &f/pet "+s.id,status));
         }
-        menu.inventory.setItem(31,ItemFactory.icon(Material.BARRIER,"&cСкрыть питомца","&7Команда: &f/pet off"));
+        String view=viewModes.getOrDefault(p.getUniqueId(),"all");
+        menu.inventory.setItem(30,ItemFactory.icon(Material.ENDER_EYE,"&#80D8FFКого видеть: &f"+view,
+                "&7Нажмите: все → только свой → никто.","&7Команда: &f/pet view all/mine/none"));
+        menu.inventory.setItem(31,ItemFactory.icon(Material.BARRIER,"&cСкрыть своего питомца","&7Команда: &f/pet off"));
         p.openInventory(menu.inventory);
     }
     @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
@@ -322,6 +462,14 @@ final class DisplayPetManager implements Listener {
         Player p=(Player)event.getWhoClicked();PetMenu menu=(PetMenu)top.getHolder();
         if(!menu.owner.equals(p.getUniqueId())||event.getRawSlot()<0||event.getRawSlot()>=top.getSize())return;
         if(event.getClick()!=ClickType.LEFT&&event.getClick()!=ClickType.RIGHT)return;
+        if(event.getRawSlot()==30){
+            String current=viewModes.getOrDefault(p.getUniqueId(),"all");
+            String next="all".equals(current)?"mine":"mine".equals(current)?"none":"all";
+            if(setView(p,next))Bukkit.getScheduler().runTask(plugin,()->{
+                if(p.isOnline()&&p.getOpenInventory().getTopInventory()==top)openMenu(p);
+            });
+            return;
+        }
         String choice=null;
         if(event.getRawSlot()==31)choice="off";
         for(int i=0;i<SLOTS.length;i++)if(event.getRawSlot()==SLOTS[i])choice=SPECS[i].id;
@@ -401,9 +549,14 @@ final class DisplayPetManager implements Listener {
             ((BlockDisplay)entity).setTransformationMatrix(matrix);entity.teleport(base);
         }
     }
+    private boolean canView(Player viewer,Player owner,Pet pet){
+        String mode=viewModes.getOrDefault(viewer.getUniqueId(),"all");
+        return viewer.getWorld()==pet.world&&("all".equals(mode)||("mine".equals(mode)&&viewer.equals(owner)))
+                &&(viewer.equals(owner)||viewer.canSee(owner));
+    }
     private void syncViewers(Player owner,Pet pet){
         for(Player viewer:Bukkit.getOnlinePlayers()){
-            boolean can=viewer.getWorld()==pet.world&&(viewer.equals(owner)||viewer.canSee(owner));
+            boolean can=canView(viewer,owner,pet);
             if(can&&pet.viewers.add(viewer.getUniqueId()))for(Entity part:pet.parts)viewer.showEntity(plugin,part);
             else if(!can)hideViewer(pet,viewer);
         }

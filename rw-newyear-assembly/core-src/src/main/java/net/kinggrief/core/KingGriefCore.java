@@ -601,8 +601,11 @@ public final class KingGriefCore extends JavaPlugin {
                 return filterPrefix(winterTree.seasonIds(), args[2]);
             if (args.length == 4 && "season".equalsIgnoreCase(args[0]) && hasTreeSeasonAdmin(sender))
                 return filterPrefix(Arrays.asList("confirm"), args[3]);
-        } else if ("pet".equals(c) && args.length == 1) {
-            return filterPrefix(DisplayPetManager.choices(), args[0]);
+        } else if ("pet".equals(c)) {
+            if (args.length == 1) return filterPrefix(DisplayPetManager.choices(), args[0]);
+            if (args.length == 2 && "view".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("all", "mine", "none"), args[1]);
+        } else if ("playtime".equals(c) && args.length == 1) {
+            return filterPrefix(Arrays.asList("status", "claim"), args[0]);
         } else if ("cases".equals(c)) {
             if (args.length == 1 && hasEconomyAdmin(sender)) return filterPrefix(Arrays.asList("give", "set", "take"), args[0]);
             if (args.length == 2 && hasEconomyAdmin(sender)) return onlineNames(args[1]);
@@ -1252,7 +1255,13 @@ public final class KingGriefCore extends JavaPlugin {
         if ("bp".equals(c)) { guis.openBpMenu(p); return true; }
         if ("quests".equals(c)) { guis.openDjamshutMenu(p); return true; }
         if ("titles".equals(c)) { guis.openTitlesMenu(p); return true; }
-        if ("playtime".equals(c)) { guis.openPlaytimeMenu(p); return true; }
+        if ("playtime".equals(c)) {
+            if(args.length==0)guis.openPlaytimeMenu(p);
+            else if(args.length==1&&"status".equalsIgnoreCase(args[0]))guis.playtimeStatus(p);
+            else if(args.length==1&&"claim".equalsIgnoreCase(args[0]))guis.claimAllPlaytime(p,false);
+            else p.sendMessage(ColorUtil.c("&e/playtime [status|claim]"));
+            return true;
+        }
         if ("bm".equals(c)) { guis.openBlackMarket(p); return true; }
         if ("events".equals(c)) {
             if (args.length >= 2 && "start".equalsIgnoreCase(args[0])) {

@@ -25,6 +25,10 @@ import java.util.Random;
 
 public final class GuiManager {
 
+    private static final class BrewSelection {
+        final int source; final ItemStack item;
+        BrewSelection(int source,ItemStack item){this.source=source;this.item=item;}
+    }
     public static final class KgMenuHolder implements InventoryHolder {
         public final String menuType;
         public final String extra;
@@ -32,6 +36,9 @@ public final class GuiManager {
         // Immutable-to-the-client snapshot: a changing list must not change what a displayed slot buys.
         private final Map<Integer, Integer> auctionSlots = new java.util.HashMap<Integer, Integer>();
         private final Map<Integer, Integer> coinflipSlots = new java.util.HashMap<Integer, Integer>();
+        // Brewer icons are previews, never the player's items. Source slots and
+        // exact metadata are revalidated when the player confirms the recipe.
+        private final Map<Integer, BrewSelection> brewerSlots = new java.util.HashMap<Integer, BrewSelection>();
 
         public KgMenuHolder(String menuType, String extra, int page) {
             this.menuType = menuType;
@@ -109,6 +116,7 @@ public final class GuiManager {
     };
 
     private final KingGriefCore plugin;
+    private final BafovarEffects bafovarEffects;
     private final Random rng = new Random();
     private final Map<java.util.UUID, Long> buyerAttempts = new java.util.HashMap<java.util.UUID, Long>();
     private long lastBuyerAttempt;
@@ -116,6 +124,7 @@ public final class GuiManager {
 
     public GuiManager(KingGriefCore plugin) {
         this.plugin = plugin;
+        this.bafovarEffects = new BafovarEffects(plugin);
     }
 
     void onPlayerQuit(java.util.UUID player) { buyerAttempts.remove(player); }
@@ -147,7 +156,7 @@ public final class GuiManager {
                 "&7Наиграно: &e" + ColorUtil.fmtTime(st.getPlaySeconds(p.getName()))));
 
         inv.setItem(6, ItemFactory.icon(Material.FOX_SPAWN_EGG, "&#80D8FF&l✦ Питомцы (/pet)",
-                "&79 косметических моделей без боевых бонусов.", "&7Выбор сохраняется. Нажмите для меню."));
+                "&715 косметических моделей без боевых бонусов.", "&7Выбор и настройки видимости сохраняются."));
 
         inv.setItem(10, ItemFactory.glowIcon(Material.COMPASS, "&#00E676&l⚡ РТП в Мир Выживания (/rtp)",
                 "&7Единственный вход из мира спавна в", "&7обычный мир выживания, Дальний РТП и Ад!", "", "&#00E676▸ Нажми для выбора!"));
@@ -899,7 +908,7 @@ public final class GuiManager {
 
         inv.setItem(29, ItemFactory.glowIcon(Material.DRAGON_BREATH, "&#FF9100&l⚗ СВАРИТЬ КАСТОМНОЕ ЗЕЛЬЕ (МАКС 8 ЗЕЛЕК — 5 000$!)",
                 "&7Открой варочный котёл Бафовара:",
-                "&f• Положи от &e1 до 8 любых зелий &fиз инвентаря",
+                "&f• Выбери Shift-кликом от &e1 до 8 зелий &fиз инвентаря",
                 "&f• Бафовар смешает их все в &aОДИН мощный флакон&f!",
                 "", "&#FFEA00Стоимость варки: &a5 000$", "&#00E676▸ Нажми, чтобы открыть Котёл Варки!"));
 
@@ -936,10 +945,11 @@ public final class GuiManager {
         for (int i = 0; i < 45; i++) inv.setItem(i, (i % 2 == 0) ? black : orange);
         for (int s : BAFOVAR_SLOTS) inv.setItem(s, null);
 
-        inv.setItem(4, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FFD740&l⚗ Положи от 1 до 8 любых зелий в слоты!",
-                "&7Кликни по зельям в своём инвентаре или перетащи",
-                "&7их в &e8 пустых слотов &7выше!",
-                "&7Все эффекты объединятся в &a1 кастомное зелье&7!"));
+        inv.setItem(4, ItemFactory.glowIcon(Material.BREWING_STAND, "&#FFD740&l⚗ Выбери от 1 до 8 зелий с эффектами!",
+                "&7Shift-клик по зелью выбирает его в рецепт.",
+                "&7Предметы остаются в инвентаре до варки!",
+                "&7ЛКМ по выбранному флакону отменяет выбор.",
+                "&7До 8 зелий объединяются в &a1 флакон&7!"));
         inv.setItem(30, ItemFactory.glowIcon(Material.LIME_CONCRETE, "&#00E676&l✔ СВАРИТЬ ПИТЬЕВОЕ ЗЕЛЬЕ ЗА 5 000$",
                 "&7Объединяет все вложенные зелья (до 8 шт.)",
                 "&7в один питьевой флакон &eМикс Бафовара&7!",
@@ -1445,23 +1455,54 @@ public final class GuiManager {
         decorateFrame(inv);
         long sec = plugin.getStore().getPlaySeconds(p.getName());
         inv.setItem(4, ItemFactory.glowIcon(Material.CLOCK, "&#00E676&lВаше время в игре: &f" + ColorUtil.fmtTime(sec)));
-        int[][] tiers = new int[][]{
-                {900, 10000, 10}, {1800, 25000, 20}, {3600, 50000, 40},
-                {10800, 120000, 80}, {21600, 250000, 150}
-        };
-        int[] slots = new int[]{11, 12, 13, 14, 15};
-        for (int i = 0; i < tiers.length; i++) {
-            String rid = "pt_" + tiers[i][0];
-            boolean claimed = plugin.getStore().hasClaimedPlayReward(p.getName(), rid);
-            boolean ready = sec >= tiers[i][0];
+        int[] slots = new int[]{11, 12, 13, 14, 15, 20, 21, 22, 23, 24};
+        for (int i = 0; i < DataStore.PLAY_REWARDS.length; i++) {
+            DataStore.PlayReward reward=DataStore.PLAY_REWARDS[i];
+            String rid=reward.id();
+            boolean claimed=plugin.getStore().hasClaimedPlayReward(p.getName(),rid);
+            boolean ready=sec>=reward.seconds;
             inv.setItem(slots[i], ItemFactory.make(claimed ? Material.MINECART : Material.CHEST_MINECART, 1,
-                    "&#FFD740Награда за " + ColorUtil.fmtTime(tiers[i][0]),
-                    Arrays.asList("&7Приз: &a+" + ColorUtil.fmtMoney(tiers[i][1]) + "$ &7и &b+" + tiers[i][2] + " Риликов ❖", "",
+                    "&#FFD740Награда за " + ColorUtil.fmtTime(reward.seconds),
+                    Arrays.asList("&7Приз: &a+" + ColorUtil.fmtMoney(reward.coins) + "$ &7и &b+" + reward.relics + " Риликов ❖", "",
                             claimed ? "&7✔ Уже получено" : (ready ? "&#00E676▸ Нажми, чтобы забрать!" : "&cЕщё нужно поиграть!")),
                     ready && !claimed, rid, null, 0));
         }
+        inv.setItem(30, ItemFactory.glowIcon(Material.HOPPER, "&#00E676&lЗабрать все доступные награды",
+                "&7Один клик — все готовые уровни.","&7Команда: &f/playtime claim"));
         inv.setItem(31, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));
         p.openInventory(inv);
+    }
+
+    public void playtimeStatus(Player p) {
+        long seconds=plugin.getStore().getPlaySeconds(p.getName());int claimed=0,ready=0;long next=Long.MAX_VALUE;
+        for(DataStore.PlayReward reward:DataStore.PLAY_REWARDS){
+            if(plugin.getStore().hasClaimedPlayReward(p.getName(),reward.id()))claimed++;
+            else if(seconds>=reward.seconds)ready++;
+            else next=Math.min(next,reward.seconds-seconds);
+        }
+        p.sendMessage(ColorUtil.c("&#00E676⏰ Наиграно: &f"+ColorUtil.fmtTime(seconds)+" &8| &7получено: &f"+claimed+"/"+DataStore.PLAY_REWARDS.length+" &8| &7готово: &a"+ready));
+        if(next!=Long.MAX_VALUE)p.sendMessage(ColorUtil.c("&7До следующей награды: &e"+ColorUtil.fmtTime(next)+"&7. &f/playtime claim"));
+        else if(ready>0)p.sendMessage(ColorUtil.c("&7Все уровни открыты. Заберите доступные: &f/playtime claim"));
+        else p.sendMessage(ColorUtil.c("&7Все награды за онлайн уже получены."));
+    }
+    private boolean playtimeAvailable(Player p){
+        if(p.isOnline()&&!p.isDead()&&p.getGameMode()!=org.bukkit.GameMode.SPECTATOR
+                &&plugin.getStore().isAuthenticated(p)&&!plugin.getStore().isQuickFrozen(p)
+                &&!plugin.getModeration().isFrozenOrAscending(p))return true;
+        p.sendMessage(ColorUtil.c("&cПолучение наград сейчас недоступно: войдите в аккаунт и завершите проверку."));return false;
+    }
+    public void claimAllPlaytime(Player p,boolean refresh){
+        if(!playtimeAvailable(p))return;
+        DataStore.PlayRewardBatch result=plugin.getStore().claimAllPlayRewards(p);
+        if(result.outcome==DataStore.PlayRewardOutcome.NOT_READY){p.sendMessage(ColorUtil.c("&eСейчас нет доступных неполученных наград."));return;}
+        if(result.outcome!=DataStore.PlayRewardOutcome.AWARDED){p.sendMessage(ColorUtil.c("&cНаграды не сохранены. Ничего не начислено; проверьте журнал и повторите."));return;}
+        p.sendMessage(ColorUtil.c("&#00E676⏰ Получено наград: &f"+result.count+" &8| &a+"+ColorUtil.fmtMoney(result.coins)+"$ &8| &b+"+result.relics+" Риликов ❖"));
+        ColorUtil.sound(p,"entity.player.levelup",1f,1.2f);
+        if(refresh)refreshPlaytimeMenu(p);
+    }
+    private void refreshPlaytimeMenu(Player p){
+        Inventory old=p.getOpenInventory().getTopInventory();
+        Bukkit.getScheduler().runTask(plugin,()->{if(p.isOnline()&&p.getOpenInventory().getTopInventory()==old)openPlaytimeMenu(p);});
     }
 
     // ================= 11. СКУПЩИК, КЕЙСЫ, ДОНАТ, АУКЦИОН, РАБОТЫ, БП, КЛАНЫ, LP GUI =================
@@ -2263,6 +2304,7 @@ public final class GuiManager {
             handleTitleClick(p, clicked);
         } else if ("playtime".equals(type)) {
             if (slot == 31) { openMainMenu(p); return; }
+            if (slot == 30) { claimAllPlaytime(p,true); return; }
             handlePlaytimeReward(p, clicked);
         } else if ("buyer".equals(type)) {
             if (e.getClick() != ClickType.LEFT) return;
@@ -2651,24 +2693,21 @@ public final class GuiManager {
     }
 
     private void handlePlaytimeReward(Player p, ItemStack clicked) {
+        if(!playtimeAvailable(p))return;
         String rid = ItemFactory.getCustomId(clicked);
         if (rid == null || !rid.startsWith("pt_")) return;
-        int reqSec = ColorUtil.parseInt(rid.substring(3), -1);
-        if (reqSec <= 0) return; // v6.3.3: битый id предмета не выдаёт награду и не роняет клик
-        if (plugin.getStore().hasClaimedPlayReward(p.getName(), rid)) return;
-        if (plugin.getStore().getPlaySeconds(p.getName()) < reqSec) {
-            p.sendMessage(ColorUtil.c("&cВы ещё не наиграли нужное время!"));
-            return;
+        DataStore.PlayReward reward=null;
+        for (DataStore.PlayReward candidate:DataStore.PLAY_REWARDS) if (candidate.id().equals(rid)) { reward=candidate;break; }
+        if (reward==null) return;
+        DataStore.PlayRewardOutcome outcome=plugin.getStore().claimPlayReward(p,rid);
+        if (outcome==DataStore.PlayRewardOutcome.ALREADY) { p.sendMessage(ColorUtil.c("&7Эта награда уже получена."));return; }
+        if (outcome==DataStore.PlayRewardOutcome.NOT_READY) { p.sendMessage(ColorUtil.c("&cВы ещё не наиграли нужное время!"));return; }
+        if (outcome!=DataStore.PlayRewardOutcome.AWARDED) {
+            p.sendMessage(ColorUtil.c("&cНаграда не сохранена. Ничего не начислено; проверьте журнал и повторите."));return;
         }
-        plugin.getStore().setClaimedPlayReward(p.getName(), rid);
-        double coins = reqSec * 12.0;
-        int relics = Math.max(10, reqSec / 90);
-        plugin.getStore().addCoins(p.getName(), coins);
-        plugin.getStore().addRelics(p.getName(), relics);
-        plugin.getStore().save();
         ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-        p.sendMessage(ColorUtil.c("&#00E676⏰ Награда получена: &a+" + ColorUtil.fmtMoney(coins) + "$ &7и &b+" + relics + " Риликов ❖&7!"));
-        openPlaytimeMenu(p);
+        p.sendMessage(ColorUtil.c("&#00E676⏰ Награда получена: &a+" + ColorUtil.fmtMoney(reward.coins) + "$ &7и &b+" + reward.relics + " Риликов ❖&7!"));
+        refreshPlaytimeMenu(p);
     }
 
     private void handleBuyerSell(Player p, int slot, Material targetMat) {
@@ -2751,7 +2790,8 @@ public final class GuiManager {
 
     private void handleBafovarClick(Player p, int slot) {
         if (slot == 29) {
-            openBafovarBrewerMenu(p);
+            Inventory old=p.getOpenInventory().getTopInventory();
+            Bukkit.getScheduler().runTask(plugin,()->{if(p.isOnline()&&p.getOpenInventory().getTopInventory()==old)openBafovarBrewerMenu(p);});
             return;
         }
         ItemStack pot = null;
@@ -2779,81 +2819,79 @@ public final class GuiManager {
             openBafovarMenu(p);
             return;
         }
-        if (slot == 22) {
-            if (!plugin.getStore().takeCoins(p.getName(), 12000)) {
-                p.sendMessage(ColorUtil.c("&cНужно 12 000$ для пакета «Боевой Баф»!"));
-                return;
-            }
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 6000, 1);
-            ColorUtil.addPot(p, "speed", "SPEED", 6000, 1);
-            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 6000, 0);
-            ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 6000, 0);
-            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.2f);
-            p.sendMessage(ColorUtil.c("&#FF6D00⚔ Бафовар наложил на вас «Боевой Баф» на 5 минут!"));
-            return;
-        }
-        if (slot == 23) {
-            if (!plugin.getStore().takeCoins(p.getName(), 30000)) {
-                p.sendMessage(ColorUtil.c("&cНужно 30 000$ для пакета «Королевский Баф»!"));
-                return;
-            }
-            ColorUtil.addPot(p, "strength", "INCREASE_DAMAGE", 9600, 2);
-            ColorUtil.addPot(p, "speed", "SPEED", 9600, 2);
-            ColorUtil.addPot(p, "resistance", "DAMAGE_RESISTANCE", 9600, 0);
-            ColorUtil.addPot(p, "fire_resistance", "FIRE_RESISTANCE", 9600, 0);
-            ColorUtil.addPot(p, "absorption", "ABSORPTION", 9600, 2);
-            ColorUtil.sound(p, "ui.toast.challenge_complete", 1f, 1.2f);
-            p.sendMessage(ColorUtil.c("&#FFD740👑 Бафовар наложил «Королевский Баф» на 8 минут!"));
-            return;
-        }
-        if (slot == 24) {
-            if (!plugin.getStore().takeCoins(p.getName(), 8000)) {
-                p.sendMessage(ColorUtil.c("&cНужно 8 000$ для пакета «Шахтёрский Баф»!"));
-                return;
-            }
-            ColorUtil.addPot(p, "haste", "FAST_DIGGING", 12000, 2);
-            ColorUtil.addPot(p, "speed", "SPEED", 12000, 2);
-            ColorUtil.addPot(p, "night_vision", "NIGHT_VISION", 12000, 0);
-            ColorUtil.sound(p, "entity.player.levelup", 1f, 1.3f);
-            p.sendMessage(ColorUtil.c("&#00E5FF⛏ Бафовар наложил «Шахтёрский Баф» на 10 минут!"));
+        if (slot == 22 || slot == 23 || slot == 24) {
+            if (!bafovarAvailable(p)) return;
+            cost=slot==22?12000:slot==23?30000:8000;
+            org.bukkit.potion.PotionEffect[] effects;
+            if(slot==22) effects=new org.bukkit.potion.PotionEffect[]{
+                BafovarEffects.effect("strength","INCREASE_DAMAGE",6000,1),BafovarEffects.effect("speed","SPEED",6000,1),
+                BafovarEffects.effect("fire_resistance","FIRE_RESISTANCE",6000,0),BafovarEffects.effect("night_vision","NIGHT_VISION",6000,0)};
+            else if(slot==23) effects=new org.bukkit.potion.PotionEffect[]{
+                BafovarEffects.effect("strength","INCREASE_DAMAGE",9600,2),BafovarEffects.effect("speed","SPEED",9600,2),
+                BafovarEffects.effect("resistance","DAMAGE_RESISTANCE",9600,0),BafovarEffects.effect("fire_resistance","FIRE_RESISTANCE",9600,0),
+                BafovarEffects.effect("absorption","ABSORPTION",9600,2)};
+            else effects=new org.bukkit.potion.PotionEffect[]{
+                BafovarEffects.effect("haste","FAST_DIGGING",12000,2),BafovarEffects.effect("speed","SPEED",12000,2),
+                BafovarEffects.effect("night_vision","NIGHT_VISION",12000,0)};
+            if(!reportBafovarResult(p,bafovarEffects.apply(p,cost,effects),cost))return;
+            ColorUtil.sound(p,slot==23?"ui.toast.challenge_complete":"entity.player.levelup",1f,1.2f);
+            p.sendMessage(ColorUtil.c(slot==22?"&#FF6D00⚔ Бафовар наложил «Боевой Баф» на 5 минут!":
+                    slot==23?"&#FFD740👑 Бафовар наложил «Королевский Баф» на 8 минут!":
+                    "&#00E5FF⛏ Бафовар наложил «Шахтёрский Баф» на 10 минут!"));
             return;
         }
         if (slot == 30) {
-            if (!plugin.getStore().takeCoins(p.getName(), 5000)) {
-                p.sendMessage(ColorUtil.c("&cНужно 5 000$ для стакования зелий!"));
-                return;
+            if (!bafovarAvailable(p)) return;
+            ItemStack cursor=p.getItemOnCursor();
+            if(cursor!=null&&!cursor.getType().isAir()) { p.sendMessage(ColorUtil.c("&eСначала положите предмет с курсора в инвентарь."));return; }
+            ItemStack[] plan=planPotionStacks(p);
+            if(plan==null) { p.sendMessage(ColorUtil.c("&eНет одинаковых зелий для объединения; деньги не списаны."));return; }
+            if(!plugin.getStore().takeCoinsDurably(p.getName(),5000)) {
+                p.sendMessage(ColorUtil.c("&cНе удалось сохранить оплату (нужно 5 000$); зелья не изменены."));return;
             }
-            int merged = stackPlayerPotions(p);
-            if (merged <= 0) {
-                plugin.getStore().addCoins(p.getName(), 5000);
-                p.sendMessage(ColorUtil.c("&eВ инвентаре нет одинаковых одиночных зелий для объединения!"));
-                return;
-            }
-            plugin.getStore().save();
+            p.getInventory().setStorageContents(plan);
+            try { p.saveData(); } catch(RuntimeException error) { plugin.getLogger().warning("[Bafovar] Could not request player data save for "+p.getName()); }
             ColorUtil.sound(p, "block.brewing_stand.brew", 1f, 1.3f);
-            p.sendMessage(ColorUtil.c("&#00E676🧪 Бафовар успешно объединил ваши зелья в стаки (до 8 шт.)!"));
+            p.sendMessage(ColorUtil.c("&#00E676🧪 Бафовар объединил одинаковые зелья в стаки (до 8 шт.)!"));
             return;
         }
         if (slot == 32) {
-            if (!plugin.getStore().takeCoins(p.getName(), 2500)) {
-                p.sendMessage(ColorUtil.c("&cНужно 2 500$!"));
-                return;
-            }
-            String[][] bads = new String[][]{
-                    {"poison","POISON"}, {"wither","WITHER"}, {"blindness","BLINDNESS"},
-                    {"weakness","WEAKNESS"}, {"slowness","SLOW"}, {"mining_fatigue","SLOW_DIGGING"}
-            };
-            for (String[] b : bads) {
-                org.bukkit.potion.PotionEffectType t = ColorUtil.potType(b[0], b[1]);
-                if (t != null) p.removePotionEffect(t);
-            }
-            ColorUtil.sound(p, "entity.generic.drink", 1f, 1.2f);
-            p.sendMessage(ColorUtil.c("&#00E676🥛 Все негативные дебаффы сняты!"));
+            if (!bafovarAvailable(p)) return;
+            String[][] bads={{"poison","POISON"},{"wither","WITHER"},{"blindness","BLINDNESS"},
+                    {"weakness","WEAKNESS"},{"slowness","SLOW"},{"mining_fatigue","SLOW_DIGGING"}};
+            org.bukkit.potion.PotionEffectType[] types=new org.bukkit.potion.PotionEffectType[bads.length];
+            for(int i=0;i<bads.length;i++)types[i]=ColorUtil.potType(bads[i][0],bads[i][1]);
+            if(!reportBafovarResult(p,bafovarEffects.cleanse(p,2500,types),2500))return;
+            ColorUtil.sound(p,"entity.generic.drink",1f,1.2f);
+            p.sendMessage(ColorUtil.c("&#00E676🥛 Негативные эффекты сняты!"));
         }
     }
 
-    private int stackPlayerPotions(Player p) {
-        ItemStack[] inv = p.getInventory().getStorageContents();
+    private boolean bafovarAvailable(Player p) {
+        if(p.isOnline()&&!p.isDead()&&p.getGameMode()!=org.bukkit.GameMode.SPECTATOR
+                &&plugin.getStore().isAuthenticated(p)&&!plugin.getStore().isQuickFrozen(p)
+                &&!plugin.getModeration().isFrozenOrAscending(p))return true;
+        p.sendMessage(ColorUtil.c("&cБафовар сейчас недоступен: войдите в аккаунт и завершите проверку."));return false;
+    }
+    private boolean reportBafovarResult(Player p,BafovarEffects.Result result,int cost) {
+        if(result==BafovarEffects.Result.SUCCESS)return true;
+        String message;
+        switch(result){
+            case INSUFFICIENT: message="&cНедостаточно монет: нужно "+ColorUtil.fmtMoney(cost)+"$.";break;
+            case NOTHING: message="&eВсе эффекты уже действуют или снимать нечего; деньги не списаны.";break;
+            case CONFLICT: message="&eБолее сильный эффект скоро закончится. Дождитесь его окончания; деньги не списаны.";break;
+            case BLOCKED: message="&cДругой плагин отменил эффект; деньги не списаны.";break;
+            case SAVE_FAILED: message="&cНе удалось сохранить покупку; деньги не списаны.";break;
+            default: message="&cЭффект недоступен на сервере; деньги не списаны.";
+        }
+        p.sendMessage(ColorUtil.c(message));return false;
+    }
+
+    /** Plan on clones so a failed debit cannot change or consume player items. */
+    private ItemStack[] planPotionStacks(Player p) {
+        ItemStack[] original=p.getInventory().getStorageContents();
+        ItemStack[] inv=new ItemStack[original.length];
+        for(int i=0;i<original.length;i++)inv[i]=original[i]==null?null:original[i].clone();
         int merges = 0;
         for (int i = 0; i < inv.length; i++) {
             ItemStack a = inv[i];
@@ -2871,8 +2909,7 @@ public final class GuiManager {
                 merges++;
             }
         }
-        p.getInventory().setStorageContents(inv);
-        return merges;
+        return merges==0?null:inv;
     }
 
     public void repairAllItems(Player p) {
@@ -3297,110 +3334,130 @@ public final class GuiManager {
         return t == Material.POTION || t == Material.SPLASH_POTION || t == Material.LINGERING_POTION;
     }
 
-    private void handleBafovarBrewerClick(InventoryClickEvent e, Player p, Inventory top) {
-        int raw = e.getRawSlot();
-        // Clicking player's own inventory: allow normal pickup or quick-move of 1 potion into an open brew slot!
-        if (raw >= top.getSize()) {
-            if (e.isShiftClick()) {
-                e.setCancelled(true);
-                ItemStack cur = e.getCurrentItem();
-                if (!isPotionStack(cur)) {
-                    p.sendMessage(ColorUtil.c("&cВ котёл Бафовара можно класть только зелья (макс 8 шт.)!"));
-                    return;
-                }
-                for (int bs : BAFOVAR_SLOTS) {
-                    if (top.getItem(bs) == null || top.getItem(bs).getType() == Material.AIR) {
-                        ItemStack one = cur.clone();
-                        one.setAmount(1);
-                        top.setItem(bs, one);
-                        if (cur.getAmount() <= 1) e.setCurrentItem(null);
-                        else cur.setAmount(cur.getAmount() - 1);
-                        ColorUtil.sound(p, "item.bottle.fill", 0.8f, 1.2f);
-                        return;
-                    }
-                }
-                p.sendMessage(ColorUtil.c("&eВсе 8 слотов котла Бафовара уже заполнены!"));
-            }
-            return;
-        }
-        // Inside top brewer inventory: allow placing/taking ONLY in the 8 BAFOVAR_SLOTS
-        if (isBafovarSlot(raw)) {
-            ItemStack cursor = e.getCursor();
-            if (cursor != null && cursor.getType() != Material.AIR && !isPotionStack(cursor)) {
-                e.setCancelled(true);
-                p.sendMessage(ColorUtil.c("&cВ этот слот можно положить только зелье!"));
-            }
-            return;
-        }
-        e.setCancelled(true);
-        if (raw == 40) {
-            returnBrewerPotions(p, top);
-            openBafovarMenu(p);
-            return;
-        }
-        if (raw == 30 || raw == 32) {
-            boolean splash = (raw == 32);
-            List<org.bukkit.potion.PotionEffect> merged = new ArrayList<org.bukkit.potion.PotionEffect>();
-            List<String> labels = new ArrayList<String>();
-            int potCount = 0;
-            for (int bs : BAFOVAR_SLOTS) {
-                ItemStack inSlot = top.getItem(bs);
-                if (!isPotionStack(inSlot)) continue;
-                potCount++;
-                org.bukkit.inventory.meta.PotionMeta pm = (org.bukkit.inventory.meta.PotionMeta) inSlot.getItemMeta();
-                if (pm != null) {
-                    List<org.bukkit.potion.PotionEffect> allEffs = new ArrayList<org.bukkit.potion.PotionEffect>();
-                    if (pm.hasCustomEffects()) allEffs.addAll(pm.getCustomEffects());
-                    try {
-                        if (pm.getBasePotionType() != null && pm.getBasePotionType().getPotionEffects() != null) {
-                            allEffs.addAll(pm.getBasePotionType().getPotionEffects());
-                        }
-                    } catch (Throwable ignored) {}
-                    for (org.bukkit.potion.PotionEffect pe : allEffs) {
-                        merged.add(pe);
-                        labels.add("&e" + pe.getType().getKey().getKey() + " " + (pe.getAmplifier() + 1) + " &7(" + (pe.getDuration() / 20) + "с)");
-                    }
-                }
-            }
-            if (potCount <= 0 || merged.isEmpty()) {
-                p.sendMessage(ColorUtil.c("&cПоложите от 1 до 8 зелий с эффектами в пустые слоты котла!"));
-                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-                return;
-            }
-            if (!plugin.getStore().takeCoins(p.getName(), 5000)) {
-                p.sendMessage(ColorUtil.c("&cНедостаточно монет! Варка у Бафовара стоит 5 000$."));
-                ColorUtil.sound(p, "entity.villager.no", 1f, 1f);
-                return;
-            }
-            for (int bs : BAFOVAR_SLOTS) {
-                ItemStack inSlot = top.getItem(bs);
-                if (inSlot == null) continue;
-                if (inSlot.getAmount() > 1) {
-                    inSlot.setAmount(inSlot.getAmount() - 1);
-                    top.setItem(bs, inSlot);
-                } else {
-                    top.setItem(bs, null);
-                }
-            }
-            plugin.getStore().save();
-            ItemStack result = ItemFactory.bafovarCustomPotion(splash, merged, labels);
-            for (ItemStack rem : p.getInventory().addItem(result).values()) {
-                p.getWorld().dropItemNaturally(p.getLocation(), rem);
-            }
-            ColorUtil.sound(p, "block.brewing_stand.brew", 1f, 1.15f);
-            p.sendMessage(ColorUtil.c("&#FF9100⚗ Бафовар сварил для вас кастомное зелье из &e" + potCount + " зелек &#FF9100за &a5 000$&7!"));
-        }
+    private static final class BrewPlan {
+        final ItemStack[] remaining; final ItemStack result; final int count;
+        BrewPlan(ItemStack[] remaining,ItemStack result,int count){this.remaining=remaining;this.result=result;this.count=count;}
     }
 
+    private BrewPlan planBrew(Player p,Inventory top,KgMenuHolder holder,boolean splash) {
+        ItemStack[] source=p.getInventory().getStorageContents();
+        if(source.length!=36)return null;
+        ItemStack[] remaining=new ItemStack[source.length];
+        for(int i=0;i<source.length;i++)remaining[i]=source[i]==null?null:source[i].clone();
+        int[] used=new int[source.length];
+        List<org.bukkit.potion.PotionEffect> merged=new ArrayList<org.bukkit.potion.PotionEffect>();
+        List<String> labels=new ArrayList<String>();int count=0;
+        for(int bs:BAFOVAR_SLOTS){
+            BrewSelection selection=holder.brewerSlots.get(Integer.valueOf(bs));
+            ItemStack preview=top.getItem(bs);
+            if(selection==null){
+                if(preview!=null&&!preview.getType().isAir()){
+                    p.sendMessage(ColorUtil.c("&cРецепт изменён; закройте котёл и выберите зелья заново."));return null;
+                }
+                continue;
+            }
+            int slot=selection.source;
+            if(slot<0||slot>=source.length||!isPotionStack(selection.item)||preview==null||!preview.isSimilar(selection.item)
+                    ||!isPotionStack(source[slot])||!source[slot].isSimilar(selection.item)||++used[slot]>source[slot].getAmount()){
+                p.sendMessage(ColorUtil.c("&cЗелья в инвентаре изменились; снимите выбор и добавьте их заново. Ничего не списано."));return null;
+            }
+            count++;
+            org.bukkit.inventory.meta.PotionMeta meta=(org.bukkit.inventory.meta.PotionMeta)selection.item.getItemMeta();
+            if(meta!=null){
+                List<org.bukkit.potion.PotionEffect> effects=new ArrayList<org.bukkit.potion.PotionEffect>();
+                if(meta.hasCustomEffects())effects.addAll(meta.getCustomEffects());
+                try { if(meta.getBasePotionType()!=null)effects.addAll(meta.getBasePotionType().getPotionEffects()); }
+                catch(RuntimeException | LinkageError ignored) {}
+                for(org.bukkit.potion.PotionEffect effect:effects){
+                    merged.add(effect);
+                    labels.add("&e"+effect.getType().getKey().getKey()+" "+(effect.getAmplifier()+1)+" &7("+(effect.getDuration()/20)+"с)");
+                }
+            }
+        }
+        if(count==0||merged.isEmpty()){
+            p.sendMessage(ColorUtil.c("&cВыберите Shift-кликом от 1 до 8 зелий с эффектами."));return null;
+        }
+        for(int i=0;i<used.length;i++)if(used[i]>0){
+            int left=remaining[i].getAmount()-used[i];
+            if(left==0)remaining[i]=null;else remaining[i].setAmount(left);
+        }
+        ItemStack result=ItemFactory.bafovarCustomPotion(splash,merged,labels);
+        if(!InventoryCapacity.canFit(remaining,result)){
+            p.sendMessage(ColorUtil.c("&cПосле варки не хватит места для флакона. Освободите слот; ничего не списано."));return null;
+        }
+        return new BrewPlan(remaining,result,count);
+    }
+
+    private void handleBafovarBrewerClick(InventoryClickEvent e, Player p, Inventory top) {
+        KgMenuHolder holder=(KgMenuHolder)top.getHolder();int raw=e.getRawSlot();
+        // Collect-to-cursor scans both inventories even when the clicked slot
+        // is in the player's inventory; never let it collect preview clones.
+        if(e.getClick()==ClickType.DOUBLE_CLICK||e.getAction()==org.bukkit.event.inventory.InventoryAction.COLLECT_TO_CURSOR){e.setCancelled(true);return;}
+        if(raw>=top.getSize()){
+            if(!e.isShiftClick())return;
+            e.setCancelled(true);
+            if(!bafovarAvailable(p))return;
+            ItemStack cur=e.getCurrentItem();int source=e.getSlot();
+            if(e.getClickedInventory()==null||!e.getClickedInventory().equals(p.getInventory())||source<0||source>=36||!isPotionStack(cur)){
+                p.sendMessage(ColorUtil.c("&eВыберите Shift-кликом зелье из инвентаря."));return;
+            }
+            int selected=0;for(BrewSelection entry:holder.brewerSlots.values())if(entry.source==source)selected++;
+            if(selected>=cur.getAmount()){
+                p.sendMessage(ColorUtil.c("&eВсе зелья из этого слота уже выбраны."));return;
+            }
+            for(int bs:BAFOVAR_SLOTS)if(!holder.brewerSlots.containsKey(Integer.valueOf(bs))){
+                ItemStack one=cur.clone();one.setAmount(1);
+                holder.brewerSlots.put(Integer.valueOf(bs),new BrewSelection(source,one));top.setItem(bs,one);
+                ColorUtil.sound(p,"item.bottle.fill",.8f,1.2f);return;
+            }
+            p.sendMessage(ColorUtil.c("&eВ рецепте уже выбрано 8 зелий."));return;
+        }
+        // Every top item is a non-transferable preview, including number-key,
+        // offhand swap, shift-click, drag and double-click attempts.
+        e.setCancelled(true);
+        if(isBafovarSlot(raw)){
+            if((e.getClick()==ClickType.LEFT||e.getClick()==ClickType.RIGHT)&&holder.brewerSlots.remove(Integer.valueOf(raw))!=null){
+                top.setItem(raw,null);ColorUtil.sound(p,"ui.button.click",.6f,1f);
+            }
+            return;
+        }
+        if(raw==40){
+            returnBrewerPotions(p,top);
+            Bukkit.getScheduler().runTask(plugin,()->{if(p.isOnline()&&p.getOpenInventory().getTopInventory()==top)openBafovarMenu(p);});return;
+        }
+        if(raw!=30&&raw!=32)return;
+        if(!bafovarAvailable(p))return;
+        ItemStack cursor=p.getItemOnCursor();
+        if(cursor!=null&&!cursor.getType().isAir()){
+            p.sendMessage(ColorUtil.c("&eСначала положите предмет с курсора в инвентарь."));return;
+        }
+        BrewPlan plan=planBrew(p,top,holder,raw==32);
+        if(plan==null)return;
+        if(!plugin.getStore().takeCoinsDurably(p.getName(),5000)){
+            p.sendMessage(ColorUtil.c("&cНе удалось сохранить оплату (нужно 5 000$). Зелья не изменены."));return;
+        }
+        p.getInventory().setStorageContents(plan.remaining);
+        deliverShopItems(p,plan.result);
+        holder.brewerSlots.clear();for(int bs:BAFOVAR_SLOTS)top.setItem(bs,null);
+        try { p.saveData(); } catch(RuntimeException error) { plugin.getLogger().warning("[Bafovar] Could not request player data save for "+p.getName()); }
+        ColorUtil.sound(p,"block.brewing_stand.brew",1f,1.15f);
+        p.sendMessage(ColorUtil.c("&#FF9100⚗ Бафовар объединил &e"+plan.count+" зелек &#FF9100за &a5 000$&7!"));
+    }
+
+    /** The current brewer contains preview clones only. Keep the legacy public
+     * fallback for callers passing another inventory, but never return previews. */
     public void returnBrewerPotions(Player p, Inventory top) {
         if (top == null) return;
+        if(top.getHolder() instanceof KgMenuHolder && "baf_brew".equals(((KgMenuHolder)top.getHolder()).menuType)){
+            ((KgMenuHolder)top.getHolder()).brewerSlots.clear();
+            for(int bs:BAFOVAR_SLOTS)top.setItem(bs,null);
+            return;
+        }
         for (int bs : BAFOVAR_SLOTS) {
             ItemStack it = top.getItem(bs);
             if (it != null && it.getType() != Material.AIR) {
                 top.setItem(bs, null);
-                for (ItemStack rem : p.getInventory().addItem(it).values()) {
-                    p.getWorld().dropItemNaturally(p.getLocation(), rem);
-                }
+                for (ItemStack rem : p.getInventory().addItem(it).values()) p.getWorld().dropItemNaturally(p.getLocation(), rem);
             }
         }
     }

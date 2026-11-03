@@ -795,20 +795,113 @@ public final class DataStore {
     }
 
     public long getPlaySeconds(String name) {
-        return yml.getLong("players." + key(name) + ".playSec", 0L);
+        return Math.max(0L, yml.getLong("players." + key(name) + ".playSec", 0L));
     }
 
     public void addPlaySeconds(String name, long delta) {
-        yml.set("players." + key(name) + ".playSec", getPlaySeconds(name) + delta);
+        if (delta <= 0) return;
+        long current = getPlaySeconds(name);
+        yml.set("players." + key(name) + ".playSec", current > Long.MAX_VALUE - delta ? Long.MAX_VALUE : current + delta);
     }
 
     public boolean hasClaimedPlayReward(String name, String rewardId) {
         return yml.getBoolean("players." + key(name) + ".playRewards." + rewardId, false);
     }
 
-    public void setClaimedPlayReward(String name, String rewardId) {
+    /** Legacy API retained for binary compatibility; it only sets a marker. */
+    @Deprecated public void setClaimedPlayReward(String name, String rewardId) {
         yml.set("players." + key(name) + ".playRewards." + rewardId, Boolean.TRUE);
         save();
+    }
+
+    static final class PlayReward {
+        final int seconds, coins, relics;
+        PlayReward(int seconds, int coins, int relics) { this.seconds=seconds;this.coins=coins;this.relics=relics; }
+        String id() { return "pt_" + seconds; }
+    }
+    // The exact same catalogue drives both the display and the committed reward.
+    static final PlayReward[] PLAY_REWARDS = {
+        new PlayReward(900,10000,10), new PlayReward(1800,25000,20), new PlayReward(3600,50000,40),
+        new PlayReward(10800,120000,80), new PlayReward(21600,250000,150), new PlayReward(43200,400000,200),
+        new PlayReward(86400,700000,300), new PlayReward(259200,1250000,500),
+        new PlayReward(604800,2500000,1000), new PlayReward(1209600,5000000,2000)
+    };
+    enum PlayRewardOutcome { AWARDED, ALREADY, NOT_READY, FAILED }
+    static final class PlayRewardBatch {
+        final PlayRewardOutcome outcome; final int count, coins, relics;
+        PlayRewardBatch(PlayRewardOutcome outcome,int count,int coins,int relics){
+            this.outcome=outcome;this.count=count;this.coins=coins;this.relics=relics;
+        }
+    }
+
+    /** Flag, displayed coins and local relics commit as one YAML transaction.
+     * PlayerPoints is a separate store, synchronized only after this commit. */
+    synchronized PlayRewardOutcome claimPlayReward(Player player, String rewardId) {
+        if (player == null || rewardId == null) return PlayRewardOutcome.FAILED;
+        PlayReward found=null;
+        for (PlayReward reward:PLAY_REWARDS) if (reward.id().equals(rewardId)) { found=reward;break; }
+        if (found == null) return PlayRewardOutcome.FAILED;
+        final PlayReward reward=found;
+        final String name=player.getName(),base="players."+key(name);
+        if (hasClaimedPlayReward(name,rewardId)) return PlayRewardOutcome.ALREADY;
+        if (getPlaySeconds(name)<reward.seconds) return PlayRewardOutcome.NOT_READY;
+        double coins=getCoins(name),after=coins+reward.coins;
+        int relics=getAwardRelics(name,player.getUniqueId());
+        if (!Double.isFinite(coins)||coins<0||!Double.isFinite(after)||after<=coins
+                ||relics<0||(long)relics+reward.relics>Integer.MAX_VALUE) return PlayRewardOutcome.FAILED;
+        try {
+            transact(data->{
+                if (data.getBoolean(base+".playRewards."+rewardId,false)
+                        ||data.getLong(base+".playSec",0)<reward.seconds) throw new IOException("playtime changed");
+                data.set(base+".playRewards."+rewardId,true);
+                data.set(base+".coins",after);
+                data.set(base+".relics",relics+reward.relics);
+                return null;
+            });
+        } catch (Exception error) {
+            plugin.getLogger().warning("[Playtime] Reward was not committed for "+name+": "+error.getMessage());
+            return PlayRewardOutcome.FAILED;
+        }
+        try { syncAwardRelics(name,player.getUniqueId()); }
+        catch (Exception | LinkageError error) {
+            plugin.getLogger().warning("[Playtime] Local reward committed, PlayerPoints sync failed for "+name+": "+error.getMessage());
+        }
+        return PlayRewardOutcome.AWARDED;
+    }
+
+    /** Collect every eligible, unclaimed tier in one checked local commit. */
+    synchronized PlayRewardBatch claimAllPlayRewards(Player player) {
+        if(player==null)return new PlayRewardBatch(PlayRewardOutcome.FAILED,0,0,0);
+        final String name=player.getName(),base="players."+key(name);
+        long seconds=getPlaySeconds(name),sumCoins=0,sumRelics=0;
+        final List<PlayReward> rewards=new ArrayList<PlayReward>();
+        for(PlayReward reward:PLAY_REWARDS)if(seconds>=reward.seconds&&!hasClaimedPlayReward(name,reward.id())){
+            rewards.add(reward);sumCoins+=reward.coins;sumRelics+=reward.relics;
+        }
+        if(rewards.isEmpty())return new PlayRewardBatch(PlayRewardOutcome.NOT_READY,0,0,0);
+        if(sumCoins>Integer.MAX_VALUE||sumRelics>Integer.MAX_VALUE)return new PlayRewardBatch(PlayRewardOutcome.FAILED,0,0,0);
+        final int coinsAward=(int)sumCoins,relicsAward=(int)sumRelics;
+        double coins=getCoins(name),after=coins+coinsAward;
+        int relics=getAwardRelics(name,player.getUniqueId());
+        if(!Double.isFinite(coins)||coins<0||!Double.isFinite(after)||after<=coins
+                ||relics<0||(long)relics+relicsAward>Integer.MAX_VALUE)
+            return new PlayRewardBatch(PlayRewardOutcome.FAILED,0,0,0);
+        try{
+            transact(data->{
+                for(PlayReward reward:rewards){
+                    if(data.getBoolean(base+".playRewards."+reward.id(),false)||data.getLong(base+".playSec",0)<reward.seconds)
+                        throw new IOException("playtime changed");
+                    data.set(base+".playRewards."+reward.id(),true);
+                }
+                data.set(base+".coins",after);data.set(base+".relics",relics+relicsAward);return null;
+            });
+        }catch(Exception error){
+            plugin.getLogger().warning("[Playtime] Batch was not committed for "+name+": "+error.getMessage());
+            return new PlayRewardBatch(PlayRewardOutcome.FAILED,0,0,0);
+        }
+        try { syncAwardRelics(name,player.getUniqueId()); }
+        catch(Exception | LinkageError error){plugin.getLogger().warning("[Playtime] Local batch committed, PlayerPoints sync failed for "+name+": "+error.getMessage());}
+        return new PlayRewardBatch(PlayRewardOutcome.AWARDED,rewards.size(),coinsAward,relicsAward);
     }
 
     public int getSnowflakes(String name) {

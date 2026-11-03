@@ -10,9 +10,12 @@ final class InventoryCapacity {
     private InventoryCapacity() {}
 
     static boolean canFit(Player player, ItemStack... items) {
-        if (player == null || items == null) return false;
+        return player != null && canFit(player.getInventory().getStorageContents(), items);
+    }
+
+    static boolean canFit(ItemStack[] storage, ItemStack... items) {
+        if (storage == null || storage.length != 36 || items == null) return false;
         Inventory trial = Bukkit.createInventory(null, 36);
-        ItemStack[] storage = player.getInventory().getStorageContents();
         ItemStack[] copy = new ItemStack[36];
         for (int i = 0; i < copy.length && i < storage.length; i++) {
             if (storage[i] != null) copy[i] = storage[i].clone();

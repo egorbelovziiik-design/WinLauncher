@@ -71,7 +71,8 @@ public final class HudManager {
             public void run() {
                 animTick++;
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    plugin.getStore().addPlaySeconds(p.getName(), 1L);
+                    // Do not award online progress to accounts that have not logged in yet.
+                    if (plugin.getStore().isAuthenticated(p)) plugin.getStore().addPlaySeconds(p.getName(), 1L);
                     updateCombatBar(p);
                     if (!plugin.getStore().isFpsBoost(p)) {
                         applyFlightTrails(p);

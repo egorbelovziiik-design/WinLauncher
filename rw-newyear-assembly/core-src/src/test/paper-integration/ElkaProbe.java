@@ -114,7 +114,7 @@ public final class ElkaProbe extends JavaPlugin implements Listener {
         finally{try{if(Files.isSymbolicLink(file))Files.delete(file);if(Files.exists(backup))Files.move(backup,file);}catch(Exception e){throw new RuntimeException(e);}}
     }
     private void run(){
-        ok(core.getDescription().getVersion().equals("7.9.0"),"new Core version loaded");
+        ok(core.getDescription().getVersion().equals("7.10.0"),"new Core version loaded");
         World w=core.getSpawnEngine().getPreparedSpawnArrival().getWorld();
         ok(displays().size()==232&&displays().stream().allMatch(e->e.isValid()&&!e.isPersistent()),"all 232 nonpersistent display parts are loaded");
         ok(w.getBlockAt(0,102,0).getType()==Material.SPRUCE_WOOD&&w.getBlockAt(0,103,0).getType().isAir()

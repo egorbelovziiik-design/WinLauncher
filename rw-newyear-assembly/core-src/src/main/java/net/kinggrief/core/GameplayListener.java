@@ -5275,7 +5275,7 @@ public final class GameplayListener implements Listener {
         if (top.getHolder() instanceof GuiManager.KgMenuHolder) {
             String type = ((GuiManager.KgMenuHolder) top.getHolder()).menuType;
             // Trash and clan storage are intentionally real player storage.
-            // The brewer accepts potion clicks/shift-clicks, not unrestricted drag.
+            // Brewer icons are previews selected by shift-click, not storage.
             if (!"trash".equals(type) && !"clan_storage".equals(type)) e.setCancelled(true);
         }
     }
