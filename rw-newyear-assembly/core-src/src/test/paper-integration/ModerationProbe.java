@@ -198,6 +198,10 @@ public final class ModerationProbe extends JavaPlugin implements Listener {
                 && player.getPotionEffect(resistance).getAmplifier()==1,"cancelled animation restores prior speed and potion effects");
         later(125,()->{
             ok(player.isOnline() && core.getStore().getActiveBanReason("CaseTester")==null,"cancelled animation cannot re-ban the player later");
+            ok(Math.abs(player.getWalkSpeed()-.14f)<.001 && Math.abs(player.getFlySpeed()-.05f)<.001
+                    && player.hasPotionEffect(PotionEffectType.INVISIBILITY) && player.getPotionEffect(resistance)!=null
+                    && player.getPotionEffect(resistance).getAmplifier()==1,
+                    "unban portal leaves the player's restored speed and effects intact");
             command("banip CaseTester 1h ip_cancel_fixture");
             Map<Block,BlockData> ipPortal=portalSnapshot(player.getUniqueId());
             ok(core.getStore().getActiveIpBanReason(address)!=null,"IP block exists while IP-ban animation is pending");

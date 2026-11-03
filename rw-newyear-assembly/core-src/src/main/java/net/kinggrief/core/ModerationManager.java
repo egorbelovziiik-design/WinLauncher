@@ -125,6 +125,7 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
     private static final class BanPlayerState {
         final float walkSpeed, flySpeed;
         final PotionEffect invisibility, resistance;
+        final long startedAt;
         int elapsedTicks;
         boolean appliedInvisibility, appliedResistance;
         BanPlayerState(Player p) {
@@ -132,6 +133,42 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
             invisibility = p.getPotionEffect(PotionEffectType.INVISIBILITY);
             PotionEffectType resistType = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
             resistance = resistType == null ? null : p.getPotionEffect(resistType);
+            startedAt = System.currentTimeMillis();
+        }
+        BanPlayerState(float walk, float fly, long start, PotionEffect invisible, PotionEffect resist) {
+            walkSpeed=walk; flySpeed=fly; startedAt=start; invisibility=invisible; resistance=resist;
+        }
+        String encode() {
+            return "1|"+walkSpeed+"|"+flySpeed+"|"+startedAt+"|"+encodeEffect(invisibility)+"|"+encodeEffect(resistance)+"|"+appliedInvisibility+"|"+appliedResistance;
+        }
+        static String encodeEffect(PotionEffect effect) {
+            if (effect==null) return "none";
+            return effect.getDuration()+","+effect.getAmplifier()+","+effect.isAmbient()+","+effect.hasParticles()+","+effect.hasIcon();
+        }
+        static boolean strictBoolean(String text) {
+            if ("true".equals(text)) return true;
+            if ("false".equals(text)) return false;
+            throw new IllegalArgumentException("invalid boolean");
+        }
+        static PotionEffect decodeEffect(String text, PotionEffectType type) {
+            if ("none".equals(text)) return null;
+            String[] parts=text.split(",",-1);
+            if (parts.length!=5 || type==null) throw new IllegalArgumentException("invalid effect");
+            int duration=Integer.parseInt(parts[0]), amplifier=Integer.parseInt(parts[1]);
+            if (duration==0 || duration< -1 || amplifier<0 || amplifier>255) throw new IllegalArgumentException("invalid effect values");
+            return new PotionEffect(type,duration,amplifier,strictBoolean(parts[2]),strictBoolean(parts[3]),strictBoolean(parts[4]));
+        }
+        static BanPlayerState decode(String text) {
+            if (text==null || text.length()>512) throw new IllegalArgumentException("invalid animation state");
+            String[] parts=text.split("\\|",-1);
+            if (parts.length!=8 || !"1".equals(parts[0])) throw new IllegalArgumentException("unknown animation state");
+            float walk=Float.parseFloat(parts[1]),fly=Float.parseFloat(parts[2]); long start=Long.parseLong(parts[3]);
+            if (!Float.isFinite(walk) || !Float.isFinite(fly) || Math.abs(walk)>1 || Math.abs(fly)>1 || start<=0)
+                throw new IllegalArgumentException("invalid animation state values");
+            BanPlayerState state=new BanPlayerState(walk,fly,start,decodeEffect(parts[4],PotionEffectType.INVISIBILITY),
+                    decodeEffect(parts[5],ColorUtil.potType("resistance","DAMAGE_RESISTANCE")));
+            state.appliedInvisibility=strictBoolean(parts[6]); state.appliedResistance=strictBoolean(parts[7]);
+            return state;
         }
     }
     private final Map<UUID, List<Entity>> activeBanAnimEntities = new HashMap<UUID, List<Entity>>();
@@ -1442,16 +1479,33 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         final World w = victim.getWorld();
         final Location startLoc = victim.getLocation().clone();
 
+        // Snapshot and modified effects/speeds live in the same player.dat.
+        // If Paper saves during the animation and is then killed, the next
+        // eligible login can distinguish our state from someone else's effects.
         BanPlayerState state = new BanPlayerState(victim);
+        try {
+            victim.getPersistentDataContainer().set(banStateKey(), org.bukkit.persistence.PersistentDataType.STRING, state.encode());
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Moderation] Cannot record animation state; applying the queued ban without animation: " + error);
+            completePendingBan(victimId);
+            victim.kickPlayer(kickScreen);
+            return;
+        }
         banPlayerStates.put(victimId, state);
         ascendingBanPlayers.add(victimId);
-        try { victim.leaveVehicle(); } catch (Throwable ignored) {}
-        try { victim.setWalkSpeed(0.0f); victim.setFlySpeed(0.0f); } catch (Throwable ignored) {}
-        if (state.invisibility != null) victim.removePotionEffect(PotionEffectType.INVISIBILITY);
-        ColorUtil.addPot(victim, "resistance", "DAMAGE_RESISTANCE", 460, 9);
-        PotionEffectType resistanceType = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
-        PotionEffect currentResistance = resistanceType == null ? null : victim.getPotionEffect(resistanceType);
-        state.appliedResistance = currentResistance != null && currentResistance.getAmplifier() == 9;
+        try {
+            victim.leaveVehicle();
+            victim.setWalkSpeed(0.0f); victim.setFlySpeed(0.0f);
+            if (state.invisibility != null) victim.removePotionEffect(PotionEffectType.INVISIBILITY);
+            PotionEffectType resistanceType = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
+            if (resistanceType != null) victim.addPotionEffect(new PotionEffect(resistanceType,460,9,true,false,false));
+            PotionEffect currentResistance = resistanceType == null ? null : victim.getPotionEffect(resistanceType);
+            state.appliedResistance = isAnimationEffect(currentResistance,9,460);
+            victim.getPersistentDataContainer().set(banStateKey(),org.bukkit.persistence.PersistentDataType.STRING,state.encode());
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Moderation] Cannot start animation; applying the queued ban: " + error);
+            cleanupSantaBanAnimationFor(victimId); completePendingBan(victimId); victim.kickPlayer(kickScreen); return;
+        }
         // Until seating, the player is visible; saved effects are restored on cleanup.
 
         Vector fwd0 = startLoc.getDirection().setY(0.0);
@@ -1654,8 +1708,9 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                     return;
                 }
                 // Never hide the target until a real passenger mount succeeds.
-                ColorUtil.addPot(victim, "invisibility", "INVISIBILITY", 420, 0);
-                state.appliedInvisibility = victim.hasPotionEffect(PotionEffectType.INVISIBILITY);
+                victim.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,420,0,true,false,false));
+                state.appliedInvisibility = isAnimationEffect(victim.getPotionEffect(PotionEffectType.INVISIBILITY),0,420);
+                victim.getPersistentDataContainer().set(banStateKey(),org.bukkit.persistence.PersistentDataType.STRING,state.encode());
                 w.playSound(vl, "minecraft:block.wool.place", 1.4f, 0.8f);
                 w.playSound(vl, "minecraft:entity.player.burp", 1.2f, 0.7f);
                 w.spawnParticle(Particle.POOF, vl.clone().add(0.0, 0.9, 0.0), 26, 0.4, 0.5, 0.4, 0.04);
@@ -2218,9 +2273,6 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
                 if (onlineVictim != null && onlineVictim.isOnline()) {
                     onlineVictim.sendTitle(ColorUtil.c("&#00E676&l🔓 ВЫ СВОБОДНЫ!"),
                             ColorUtil.c("&fБан снял модератор &e" + staffName + "&f. С возвращением!"), 3, 50, 8);
-                    try { onlineVictim.removePotionEffect(PotionEffectType.INVISIBILITY); } catch (Throwable ignored) {}
-                    try { ColorUtil.removePot(onlineVictim, "resistance", "DAMAGE_RESISTANCE"); } catch (Throwable ignored) {}
-                    try { onlineVictim.setWalkSpeed(0.2f); onlineVictim.setFlySpeed(0.1f); } catch (Throwable ignored) {}
                 }
             }
 
@@ -2270,31 +2322,73 @@ public final class ModerationManager implements CommandExecutor, TabCompleter {
         Player v = Bukkit.getPlayer(victimId);
         if (state != null && v != null && v.isOnline()) {
             try { v.leaveVehicle(); } catch (Throwable ignored) {}
-            try { v.setWalkSpeed(state.walkSpeed); v.setFlySpeed(state.flySpeed); } catch (Throwable ignored) {}
-            PotionEffectType resist = ColorUtil.potType("resistance", "DAMAGE_RESISTANCE");
-            try {
-                if (state.appliedInvisibility) v.removePotionEffect(PotionEffectType.INVISIBILITY);
-                PotionEffect active = resist == null ? null : v.getPotionEffect(resist);
-                if (state.appliedResistance && active != null && active.getAmplifier() == 9) v.removePotionEffect(resist);
-                restorePreviousEffect(v, state.invisibility, state.elapsedTicks);
-                restorePreviousEffect(v, state.resistance, state.elapsedTicks);
-            } catch (Throwable ignored) {}
+            restoreBanPlayerState(v,state,state.elapsedTicks);
         }
     }
 
-    private static void restorePreviousEffect(Player player, PotionEffect previous, int elapsedTicks) {
-        if (previous == null) return;
+    private org.bukkit.NamespacedKey banStateKey() {
+        return new org.bukkit.NamespacedKey(plugin,"ban_animation_restore_v1");
+    }
+    private static boolean isAnimationEffect(PotionEffect effect,int amplifier,int maximumDuration) {
+        return effect!=null && effect.getAmplifier()==amplifier && effect.getDuration()>0
+                && effect.getDuration()<=maximumDuration && effect.isAmbient() && !effect.hasParticles() && !effect.hasIcon();
+    }
+
+    /** Recover only marked player.dat state, never wipe effects from ordinary joins. */
+    void restoreBanAnimationOnJoin(Player player) {
+        String encoded=player.getPersistentDataContainer().get(banStateKey(),org.bukkit.persistence.PersistentDataType.STRING);
+        if (encoded==null) return;
+        try {
+            BanPlayerState state=BanPlayerState.decode(encoded);
+            long elapsed=Math.max(0L,System.currentTimeMillis()-state.startedAt);
+            // Potion effects do not normally tick while offline. Cap recovery to
+            // the maximum animation length instead of aging across a long ban.
+            restoreBanPlayerState(player,state,(int)Math.min(300L,elapsed/50L));
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Moderation] Cannot decode saved animation state for " + player.getName() + "; leaving it for manual inspection: " + error);
+        }
+    }
+
+    private void restoreBanPlayerState(Player player,BanPlayerState state,int elapsedTicks) {
+        try {
+            // Do not override a speed another plugin changed during/after the animation.
+            if (player.getWalkSpeed()==0.0f) player.setWalkSpeed(state.walkSpeed);
+            if (player.getFlySpeed()==0.0f) player.setFlySpeed(state.flySpeed);
+            PotionEffectType resist=ColorUtil.potType("resistance","DAMAGE_RESISTANCE");
+            PotionEffect activeInvisibility=player.getPotionEffect(PotionEffectType.INVISIBILITY);
+            PotionEffect activeResistance=resist==null?null:player.getPotionEffect(resist);
+            if (state.appliedInvisibility && isAnimationEffect(activeInvisibility,0,420)) player.removePotionEffect(PotionEffectType.INVISIBILITY);
+            if (state.appliedResistance && resist!=null && isAnimationEffect(activeResistance,9,460)) player.removePotionEffect(resist);
+            if ((state.appliedInvisibility && isAnimationEffect(player.getPotionEffect(PotionEffectType.INVISIBILITY),0,420))
+                    || (state.appliedResistance && resist!=null && isAnimationEffect(player.getPotionEffect(resist),9,460)))
+                throw new IllegalStateException("temporary potion removal was cancelled");
+            // A different current effect belongs to someone else; leave it alone.
+            if (!player.hasPotionEffect(PotionEffectType.INVISIBILITY)
+                    && !restorePreviousEffect(player,state.invisibility,elapsedTicks))
+                throw new IllegalStateException("previous invisibility could not be restored");
+            if (resist!=null && !player.hasPotionEffect(resist)
+                    && !restorePreviousEffect(player,state.resistance,elapsedTicks))
+                throw new IllegalStateException("previous resistance could not be restored");
+            player.getPersistentDataContainer().remove(banStateKey());
+            // If a previous autosave captured the temporary state, persist the
+            // restored state as well. Player/world/YAML fsync is not guaranteed.
+            player.saveData();
+        } catch (RuntimeException error) {
+            plugin.getLogger().warning("[Moderation] Could not restore animation state for " + player.getName() + ": " + error);
+        }
+    }
+
+    private static boolean restorePreviousEffect(Player player, PotionEffect previous, int elapsedTicks) {
+        if (previous == null) return true;
         int duration = previous.getDuration();
         if (duration >= 0) {
             duration = Math.max(0, duration - Math.max(0, elapsedTicks));
-            if (duration == 0) return;
+            if (duration == 0) return true;
         }
-        PotionEffect now = player.getPotionEffect(previous.getType());
-        if (now != null && (now.getAmplifier() > previous.getAmplifier()
-                || (now.getAmplifier() == previous.getAmplifier()
-                    && (now.getDuration() < 0 || (duration >= 0 && now.getDuration() >= duration))))) return;
         player.addPotionEffect(new PotionEffect(previous.getType(), duration, previous.getAmplifier(),
                 previous.isAmbient(), previous.hasParticles(), previous.hasIcon()));
+        // addPotionEffect may report success despite an event being cancelled.
+        return player.getPotionEffect(previous.getType())!=null;
     }
 
     private float yawFacing(Location from, Location to) {

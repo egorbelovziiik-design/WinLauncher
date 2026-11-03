@@ -606,16 +606,9 @@ public final class GameplayListener implements Listener {
         LegacyItemModelMigration.repairInventory(p.getInventory());
         LegacyItemModelMigration.repairInventory(p.getEnderChest());
 
-        // v6.3.0: страховка от «замороженного» игрока — если скорость ходьбы/полёта осталась нулевой
-        // после сбоя/перезагрузки во время бан-анимации, возвращаем нормальную сразу на входе.
-        try {
-            if (p.getWalkSpeed() < 0.05f) p.setWalkSpeed(0.2f);
-            if (p.getFlySpeed() < 0.02f) p.setFlySpeed(0.1f);
-            if (!plugin.getModeration().isFrozenOrAscending(p)) {
-                p.removePotionEffect(org.bukkit.potion.PotionEffectType.INVISIBILITY);
-                ColorUtil.removePot(p, "resistance", "DAMAGE_RESISTANCE");
-            }
-        } catch (Throwable ignored) {}
+        // Only a marked interrupted ban animation may restore player state;
+        // never clear effects or reset custom speeds on an ordinary login.
+        plugin.getModeration().restoreBanAnimationOnJoin(p);
 
         // Give menu star in slot 8 if missing
         ItemStack s8 = p.getInventory().getItem(8);

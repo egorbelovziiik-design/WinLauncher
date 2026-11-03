@@ -109,11 +109,11 @@ public final class GlobalFixProbe extends JavaPlugin implements Listener {
         ok(store.getCoins(guest.getName())==1010,"real powered command block cannot grant coins");
         legacy=Bukkit.createWorld(new WorldCreator("legacy_spawn"));
         ok(legacy!=null && !core.getSpawnEngine().isInSpawnWorld(legacy.getSpawnLocation()),"old marked spawn loads without becoming the active gameplay spawn");
+        ok(guest.teleport(new Location(legacy,79.5,131,79.5)) && owner.teleport(new Location(legacy,79.5,131,80.5)),
+                "both players enter the loaded legacy world");
         Block oldBlock=legacy.getBlockAt(80,130,80);oldBlock.setType(Material.STONE,false);
         ok(!guest.breakBlock(oldBlock) && oldBlock.getType()==Material.STONE,"ordinary player cannot break blocks in the loaded old spawn");
         ok(owner.breakBlock(oldBlock) && oldBlock.getType()==Material.AIR,"OWNER in creative can edit the old spawn");
-        Block normal=world.getBlockAt(80,130,80);normal.setType(Material.STONE,false);
-        ok(guest.breakBlock(normal) && normal.getType()==Material.AIR,"ordinary unmarked world remains editable");
         Block chestBlock=legacy.getBlockAt(82,130,80);chestBlock.setType(Material.CHEST,false);
         org.bukkit.block.Chest chest=(org.bukkit.block.Chest)chestBlock.getState();
         chest.getBlockInventory().setItem(0,new ItemStack(Material.DIAMOND,11));
@@ -125,16 +125,25 @@ public final class GlobalFixProbe extends JavaPlugin implements Listener {
         PlayerInteractEvent click=new PlayerInteractEvent(guest,Action.RIGHT_CLICK_BLOCK,new ItemStack(Material.BONE_MEAL),chestBlock,BlockFace.UP,EquipmentSlot.HAND);
         Bukkit.getPluginManager().callEvent(click);
         ok(click.useInteractedBlock()==Event.Result.DENY && click.useItemInHand()==Event.Result.DENY,"container and block-changing item interaction denied in old spawn");
-        Block blast=legacy.getBlockAt(85,130,80);blast.setType(Material.DIAMOND_BLOCK,false);
+        Block controlBlast=world.getBlockAt(110,130,80);controlBlast.setType(Material.GLASS,false);
+        world.createExplosion(controlBlast.getLocation().add(.5,.5,.5),4F,false,true);
+        ok(controlBlast.getType()==Material.AIR,"the same destructive explosion breaks glass in an ordinary world");
+        Block blast=legacy.getBlockAt(110,130,80);blast.setType(Material.GLASS,false);
         legacy.createExplosion(blast.getLocation().add(.5,.5,.5),4F,false,true);
-        ok(blast.getType()==Material.DIAMOND_BLOCK,"explosion does not change old-spawn blocks");
+        ok(blast.getType()==Material.GLASS,"explosion does not change old-spawn blocks");
+        ok(guest.teleport(new Location(world,79.5,131,79.5)) && owner.teleport(new Location(world,79.5,131,80.5)),
+                "players leave the legacy world before unload");
+        Block normal=world.getBlockAt(80,130,80);normal.setType(Material.STONE,false);
+        ok(guest.breakBlock(normal) && normal.getType()==Material.AIR,"ordinary unmarked world remains editable");
         ok(Bukkit.unloadWorld(legacy,true),"old spawn unloads without player relocation");
         legacy=Bukkit.createWorld(new WorldCreator("legacy_spawn"));
         chest=(org.bukkit.block.Chest)legacy.getBlockAt(82,130,80).getState();
         ok(chest.getBlockInventory().getItem(0)!=null && chest.getBlockInventory().getItem(0).getAmount()==11,
                 "old chest contents survive unloading and reloading");
         Block reloaded=legacy.getBlockAt(80,130,80);reloaded.setType(Material.STONE,false);
+        ok(guest.teleport(new Location(legacy,79.5,131,79.5)),"player enters the reloaded old world");
         ok(!guest.breakBlock(reloaded),"old-spawn protection is restored when its world is reloaded");
+        ok(guest.teleport(new Location(world,79.5,131,79.5)),"player returns to ordinary world");
         beginHoppers();
     }
     private void hopperDirection(Block block,BlockFace face) {

@@ -10,6 +10,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,14 +63,14 @@ public final class BanRecoveryProbe extends JavaPlugin implements Listener {
     }
     @EventHandler(priority=EventPriority.MONITOR) public void login(PlayerLoginEvent event){
         String name=event.getPlayer().getName();
-        if((phase==2 && name.equals("CrashVictim")) || (phase==3 && joins==0 && name.equals("IpVictim"))){
+        if((phase==2 && joins==0 && name.equals("CrashVictim")) || (phase==3 && joins==0 && name.equals("IpVictim"))){
             try {
                 ok(event.getResult()==PlayerLoginEvent.Result.KICK_BANNED,"real login is refused by the recovered ban");
                 joins++;
                 later(3,()->{
                     command((phase==2?"unban CrashVictim":"unbanip IpVictim"));
                     ok(core.getStore().getActiveBanReason(name)==null,"console unban removes recovered ban");
-                    request("IpVictim");
+                    request(phase==2?"CrashVictim":"IpVictim");
                 });
             }catch(Throwable error){fail(error);}
         }
@@ -76,10 +78,28 @@ public final class BanRecoveryProbe extends JavaPlugin implements Listener {
     @EventHandler public void join(PlayerJoinEvent event){
         Player p=event.getPlayer();
         if(phase==1 && p.getName().equals("CrashVictim"))later(25,()->{
+            p.setWalkSpeed(.14f);p.setFlySpeed(.05f);
+            p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,2000,0,false,false,true));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,2000,1,false,false,true));
+            p.saveData();
             command("ban CrashVictim 1h crash_name");
             ok(p.isOnline() && core.getStore().getActiveBanReason("CrashVictim")==null,"online name ban waits for animation");
             ok(hasPending("CrashVictim") && "crash_name".equals(disk().getString(pending("CrashVictim")+".reason")),"pending name ban is committed before animation");
-            ok(active(p),"name-ban animation actually started before SIGKILL");finish();
+            ok(active(p),"name-ban animation actually started before SIGKILL");
+            later(60,()->{
+                ok(p.getWalkSpeed()==0f && p.getFlySpeed()==0f && p.getVehicle()!=null && p.hasPotionEffect(PotionEffectType.INVISIBILITY),
+                        "player is actually frozen and seated before the crash");
+                p.saveData(); // Emulate an autosave while the temporary state is active.
+                finish();
+            });
+        });
+        else if(phase==2 && p.getName().equals("CrashVictim"))later(15,()->{
+            PotionEffect inv=p.getPotionEffect(PotionEffectType.INVISIBILITY),res=p.getPotionEffect(PotionEffectType.RESISTANCE);
+            ok(Math.abs(p.getWalkSpeed()-.14f)<.001 && Math.abs(p.getFlySpeed()-.05f)<.001
+                    && inv!=null && inv.getAmplifier()==0 && inv.hasIcon() && !inv.isAmbient()
+                    && res!=null && res.getAmplifier()==1 && res.hasIcon() && !res.isAmbient(),
+                    "after crash and unban, prior player speeds and effects are restored from saved player state");
+            request("IpVictim");
         });
         else if(phase==2 && p.getName().equals("IpVictim"))later(25,()->{
             command("banip IpVictim 1h crash_ip");
@@ -91,10 +111,32 @@ public final class BanRecoveryProbe extends JavaPlugin implements Listener {
             command("ban IpVictim 1h cancelled_crash");
             ok(hasPending("IpVictim") && active(p),"new name-ban animation has a durable pending record");
             command("unban IpVictim");
-            ok(!hasPending("IpVictim") && !active(p) && p.isOnline(),"unban cancels both journal and animation before crash");finish();
+            ok(!hasPending("IpVictim") && !active(p) && p.isOnline(),"unban cancels both journal and animation before crash");
+            // A normal player can intentionally have slow speeds and these effects.
+            // They must not be wiped on an unrelated later login or unban portal.
+            p.setWalkSpeed(.03f);p.setFlySpeed(.01f);
+            p.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY,2000,2,false,false,true));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,2000,3,false,false,true));
+            later(85,()->{
+                ok(Math.abs(p.getWalkSpeed()-.03f)<.001 && Math.abs(p.getFlySpeed()-.01f)<.001
+                        && p.getPotionEffect(PotionEffectType.INVISIBILITY)!=null
+                        && p.getPotionEffect(PotionEffectType.INVISIBILITY).getAmplifier()==2
+                        && p.getPotionEffect(PotionEffectType.RESISTANCE)!=null
+                        && p.getPotionEffect(PotionEffectType.RESISTANCE).getAmplifier()==3,
+                        "unban portal does not clear unrelated effects or reset custom speed");
+                p.saveData();finish();
+            });
         });
         else if(phase==4 && p.getName().equals("IpVictim")){
-            if(joins++==0)later(25,()->failureTests(p));
+            if(joins++==0)later(25,()->{
+                ok(Math.abs(p.getWalkSpeed()-.03f)<.001 && Math.abs(p.getFlySpeed()-.01f)<.001
+                        && p.getPotionEffect(PotionEffectType.INVISIBILITY)!=null
+                        && p.getPotionEffect(PotionEffectType.INVISIBILITY).getAmplifier()==2
+                        && p.getPotionEffect(PotionEffectType.RESISTANCE)!=null
+                        && p.getPotionEffect(PotionEffectType.RESISTANCE).getAmplifier()==3,
+                        "ordinary restart and login preserve unrelated slow speeds and effects");
+                failureTests(p);
+            });
             else later(10,()->{ok(p.isOnline(),"player can reconnect after durable retry and unban");finish();});
         }
     }
