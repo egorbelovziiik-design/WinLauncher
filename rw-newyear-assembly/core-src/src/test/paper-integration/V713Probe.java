@@ -142,6 +142,7 @@ public final class V713Probe extends JavaPlugin implements Listener {
         BlockFromToEvent within=new BlockFromToEvent(world.getBlockAt(298,120,300),world.getBlockAt(299,120,300));
         within.getBlock().setType(Material.WATER,false);call(within);ok(!within.isCancelled(),"liquid within one claim remains allowed");
         outside.setType(Material.AIR,false);inside.setType(Material.AIR,false);
+        between.getBlock().setType(Material.AIR,false);within.getBlock().setType(Material.AIR,false);
         Block piston=world.getBlockAt(275,100,300),source=world.getBlockAt(280,100,300),destination=source.getRelative(BlockFace.WEST),wrong=source.getRelative(BlockFace.EAST);
         Set<String> temps=temporary();temps.add(key(destination));
         BlockPistonRetractEvent retract=new BlockPistonRetractEvent(piston,Collections.singletonList(source),BlockFace.WEST);call(retract);
@@ -216,9 +217,18 @@ public final class V713Probe extends JavaPlugin implements Listener {
         Block wall=world.getBlockAt(294,115,300);wall.setType(Material.AIR,true);wall.setType(Material.STONE,true);
         later(65,()->{
             ok(fluidBlocked&&dest.getType()!=Material.WATER,"real flowing water stops at the Core claim boundary (attempt="+fluidBlocked+", source="+source.getType()+", destination="+dest.getType()+")");
-            for(int x=297;x<=302;x++)for(int z=298;z<=302;z++)world.getBlockAt(x,118,z).setType(Material.STONE,false);
-            world.getBlockAt(299,119,300).setType(Material.AIR,false);world.getBlockAt(298,119,300).setType(Material.WATER,true);
-            later(55,()->{ok(world.getBlockAt(299,119,300).getType()==Material.WATER,"real water flow within one claim remains functional");realBucket();});
+            source.setType(Material.AIR,false);
+            for(int x=297;x<=300;x++)for(int z=299;z<=301;z++){
+                world.getBlockAt(x,118,z).setType(Material.STONE,false);
+                world.getBlockAt(x,119,z).setType(Material.STONE,false);
+            }
+            Block insideSource=world.getBlockAt(298,119,300),insideDest=world.getBlockAt(299,119,300);
+            insideSource.setType(Material.AIR,false);insideDest.setType(Material.AIR,false);insideSource.setType(Material.WATER,true);
+            Block insideWall=world.getBlockAt(297,119,300);insideWall.setType(Material.AIR,true);insideWall.setType(Material.STONE,true);
+            later(55,()->{
+                ok(insideDest.getType()==Material.WATER,"real water flow within one claim remains functional");
+                insideSource.setType(Material.AIR,false);insideDest.setType(Material.AIR,false);realBucket();
+            });
         });
     }
     private void realBucket(){
