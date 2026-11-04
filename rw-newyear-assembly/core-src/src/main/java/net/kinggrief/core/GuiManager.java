@@ -1617,6 +1617,7 @@ public final class GuiManager {
                 l.add(ColorUtil.c("&7Продавец: &f" + lot.seller));
                 l.add(ColorUtil.c("&7Цена: &a" + ColorUtil.fmtMoney(lot.price) + "$"));
                 l.add(ColorUtil.c("&#00E676▸ ЛКМ/ПКМ: купить (ID #" + lot.id + ")"));
+                l.add(ColorUtil.c("&7Если инвентарь полон: &f/ah pending"));
                 l.add(ColorUtil.c(search.favorite(p, lot.id) ? "&#FFD740★ Shift-клик: убрать из избранного" : "&7☆ Shift-клик: добавить в избранное"));
                 m.setLore(l);
                 disp.setItemMeta(m);
@@ -1632,6 +1633,7 @@ public final class GuiManager {
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню &8(/ah sell <цена>)"));
         inv.setItem(50, ItemFactory.icon(Material.BARRIER, "&cСбросить фильтры", "&7Избранные лоты сохранятся."));
         inv.setItem(51, ItemFactory.icon(Material.CLOCK, "&bИстория продаж", "&7Возьмите предмет в основную руку.", "&f/ah history", "&8Записываются новые успешные сделки."));
+        inv.setItem(52, ItemFactory.icon(Material.CHEST, "&eОжидающие покупки", "&7Посмотреть квитанции: &f/ah pending", "&7Получить: &f/ah claim [ID]"));
         p.openInventory(inv);
     }
 
@@ -2389,6 +2391,7 @@ public final class GuiManager {
             if (slot == 47) { search.toggleOnly(p); openAuctionMenu(p, 0); return; }
             if (slot == 50) { search.clear(p); openAuctionMenu(p, 0); return; }
             if (slot == 51) { search.history(p, new String[]{"history"}); return; }
+            if (slot == 52) { p.closeInventory(); p.performCommand("ah pending"); return; }
             Integer displayedId = h.auctionSlots.get(Integer.valueOf(slot));
             if (displayedId == null) return;
             DataStore.AuctionLot lot = plugin.getStore().findAuctionLot(displayedId.intValue());
@@ -2402,22 +2405,16 @@ public final class GuiManager {
                 openAuctionMenu(p, h.page);
                 return;
             }
-            if (!InventoryCapacity.canFit(p, lot.item)) {
-                p.sendMessage(ColorUtil.c("&cОсвободите место для этого лота в инвентаре."));
-                return;
+            if (!plugin.getAuctionDeliveries().eligible(p)) {
+                p.sendMessage(ColorUtil.c("&cАукцион сейчас недоступен: войдите и завершите проверку.")); return;
             }
-            DataStore.AuctionLot removed = plugin.getStore().purchaseAuctionLot(lot.id, p.getName());
+            DataStore.AuctionLot removed = plugin.getStore().purchaseAuctionLotWithReceipt(lot.id, p);
             if (removed == null) {
-                p.sendMessage(ColorUtil.c("&cПокупка не выполнена: проверьте баланс, свой лот и сохранение данных."));
+                p.sendMessage(ColorUtil.c("&cПокупка не выполнена: проверьте баланс, свой лот, лимит /ah pending и сохранение данных."));
                 return;
             }
-            Map<Integer, ItemStack> leftovers = p.getInventory().addItem(removed.item.clone());
-            if (!leftovers.isEmpty()) {
-                // Preflight and commit run in the same main-thread click, but do not silently destroy a remainder.
-                for (ItemStack left : leftovers.values()) p.getWorld().dropItemNaturally(p.getLocation(), left);
-                plugin.getLogger().warning("[Auction] Unexpected inventory remainder for " + p.getName() + " after lot #" + removed.id);
-            }
-            p.sendMessage(ColorUtil.c("&#00E676✔ Вы купили лот #" + removed.id + " за " + ColorUtil.fmtMoney(removed.price) + "$!"));
+            p.sendMessage(ColorUtil.c("&#00E676✔ Лот #" + removed.id + " куплен за " + ColorUtil.fmtMoney(removed.price) + "$; квитанция сохранена."));
+            plugin.getAuctionDeliveries().deliver(p, removed.id);
             openAuctionMenu(p, h.page);
         } else if ("jobs".equals(type)) {
             String job = slot == 10 ? "miner" : slot == 12 ? "lumber" : slot == 14 ? "hunter" : slot == 16 ? "killer" : null;

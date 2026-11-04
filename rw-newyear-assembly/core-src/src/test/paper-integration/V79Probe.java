@@ -84,7 +84,7 @@ public final class V79Probe extends JavaPlugin implements Listener {
         finally{try{if(Files.isSymbolicLink(data))Files.delete(data);if(Files.exists(backup))Files.move(backup,data);}catch(Exception e){throw new RuntimeException(e);}}
     }
     private void first(){
-        ok(core.getDescription().getVersion().equals("7.12.0"),"7.12.0 is actually loaded while running the 7.9 regression");
+        ok(core.getDescription().getVersion().equals("7.13.0"),"7.13.0 is actually loaded while running the 7.9 regression");
         a.setOp(false);b.setOp(false);store.setSavedRank(a.getName(),"default");store.setSavedRank(b.getName(),"default");
         a.getInventory().clear();b.getInventory().clear();
         cycle(0);

@@ -82,7 +82,7 @@ public final class SpawnAvailabilityProbe extends JavaPlugin implements Listener
         ok(player.getLocation().distanceSquared(arrival) < 5, "arrival is near the village entrance");
         ok(arrival.clone().add(0, -1, 0).getBlock().getType().isSolid(), "arrival has a solid floor");
         ok(arrival.getBlock().isPassable() && arrival.clone().add(0, 1, 0).getBlock().isPassable(), "arrival has headroom");
-        boolean v77 = (core.getDescription().getVersion().equals("7.7.0") || core.getDescription().getVersion().equals("7.8.0") || core.getDescription().getVersion().equals("7.9.0") || core.getDescription().getVersion().equals("7.10.0") || core.getDescription().getVersion().equals("7.11.0") || core.getDescription().getVersion().equals("7.12.0"));
+        boolean v77 = (core.getDescription().getVersion().equals("7.7.0") || core.getDescription().getVersion().equals("7.8.0") || core.getDescription().getVersion().equals("7.9.0") || core.getDescription().getVersion().equals("7.10.0") || core.getDescription().getVersion().equals("7.11.0") || core.getDescription().getVersion().equals("7.12.0") || core.getDescription().getVersion().equals("7.13.0"));
         boolean v76 = core.getDescription().getVersion().equals("7.6.0");
         if (v77) {
             ok(prepared.getBlockAt(0,102,0).getType()==Material.SPRUCE_WOOD

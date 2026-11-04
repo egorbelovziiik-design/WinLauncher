@@ -73,8 +73,10 @@ public final class KingGriefCore extends JavaPlugin {
     private CosmeticEffectsManager cosmetics;
     private ParkourRecordsManager parkourRecords;
     private AuctionSearchManager auctionSearch;
+    private AuctionDeliveryManager auctionDeliveries;
     private CoreBackupManager coreBackups;
     private ClaimContainerGuard claimContainers;
+    private ClaimMechanicsGuard claimMechanics;
     private MiniGameVoteManager gameVotes;
     private AchievementManager achievements;
     private ProgressRewards progressRewards;
@@ -121,9 +123,13 @@ public final class KingGriefCore extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(this.parkourRecords, this);
         this.auctionSearch = new AuctionSearchManager(this);
         Bukkit.getPluginManager().registerEvents(this.auctionSearch, this);
+        this.auctionDeliveries = new AuctionDeliveryManager(this);
+        Bukkit.getPluginManager().registerEvents(this.auctionDeliveries, this);
         this.coreBackups = new CoreBackupManager(this);
         this.claimContainers = new ClaimContainerGuard(this);
         Bukkit.getPluginManager().registerEvents(this.claimContainers, this);
+        this.claimMechanics = new ClaimMechanicsGuard(this);
+        Bukkit.getPluginManager().registerEvents(this.claimMechanics, this);
         this.gameVotes = new MiniGameVoteManager(this);
         this.achievements = new AchievementManager(this);
         Bukkit.getPluginManager().registerEvents(this.achievements, this);
@@ -330,6 +336,7 @@ public final class KingGriefCore extends JavaPlugin {
 
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
+    AuctionDeliveryManager getAuctionDeliveries() { return auctionDeliveries; }
     AchievementManager getAchievements() { return achievements; }
     ProgressRewards getProgressRewards() { return progressRewards; }
     WinterFishingManager getWinterFishing() { return winterFishing; }
@@ -340,6 +347,7 @@ public final class KingGriefCore extends JavaPlugin {
     EventCalendarManager getEventCalendar() { return eventCalendar; }
     UtilityFeaturesManager getUtilities() { return utilities; }
     ClaimContainerGuard getClaimContainers() { return claimContainers; }
+    ClaimMechanicsGuard getClaimMechanics() { return claimMechanics; }
     LegacySpawnGuard getLegacySpawnGuard() { return legacySpawnGuard; }
     public DataStore getStore() { return store; }
     public RankManager getRanks() { return ranks; }
@@ -566,7 +574,9 @@ public final class KingGriefCore extends JavaPlugin {
             if(args.length==2&&"add".equalsIgnoreCase(args[0])&&hasTreeSeasonAdmin(sender))
                 return filterPrefix(Arrays.asList("parkour","duel","memory","boss","build","fish","forge"),args[1]);
         } else if ("ah".equals(c)) {
-            if (args.length == 1) return filterPrefix(Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "clear"), args[0]);
+            if (args.length == 1) return filterPrefix(hasTreeSeasonAdmin(sender)
+                    ? Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "pending", "claim", "clear", "review", "resolve")
+                    : Arrays.asList("sell", "search", "price", "sort", "favorites", "favorite", "history", "pending", "claim", "clear"), args[0]);
             if (args.length == 2 && "sort".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("new", "cheap", "expensive"), args[1]);
             if (args.length == 2 && "price".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("off"), args[1]);
         } else if ("achievements".equals(c) && args.length == 1) {
@@ -592,7 +602,7 @@ public final class KingGriefCore extends JavaPlugin {
             if (args.length == 1) return filterPrefix(Arrays.asList("trail", "login"), args[0]);
             if (args.length == 2) return filterPrefix(Arrays.asList("snow", "hearts", "stars", "off"), args[1]);
         } else if ("rg".equals(c)) {
-            if (args.length == 1) return filterPrefix(Arrays.asList("borders", "log", "roles", "role", "add", "remove"), args[0]);
+            if (args.length == 1) return filterPrefix(Arrays.asList("status", "list", "borders", "log", "roles", "role", "add", "remove"), args[0]);
             if (args.length == 2 && ("role".equalsIgnoreCase(args[0]) || "add".equalsIgnoreCase(args[0]) || "remove".equalsIgnoreCase(args[0]))) return onlineNames(args[1]);
             if (args.length == 3 && "role".equalsIgnoreCase(args[0])) return filterPrefix(Arrays.asList("builder", "container", "none"), args[2]);
         } else if ("way".equals(c) && args.length == 1) {
@@ -779,6 +789,12 @@ public final class KingGriefCore extends JavaPlugin {
         }
         if ("kgtree".equals(c)) {
             winterTree.command(sender, args, hasTreeSeasonAdmin(sender));
+            return true;
+        }
+        if ("ah".equals(c) && args.length > 0 && ("review".equalsIgnoreCase(args[0]) || "resolve".equalsIgnoreCase(args[0]))) {
+            if (sender instanceof Player && !store.isAuthenticated((Player) sender)) sender.sendMessage(ColorUtil.c("&cСначала войдите в аккаунт."));
+            else if (!hasTreeSeasonAdmin(sender)) sender.sendMessage(ColorUtil.c("&cДоступно только OWNER, ТЕХ.АДМИНУ и консоли."));
+            else auctionDeliveries.admin(sender, args);
             return true;
         }
         if ("kgbackup".equals(c)) {
@@ -1292,8 +1308,15 @@ public final class KingGriefCore extends JavaPlugin {
             return true;
         }
         if ("ah".equals(c)) {
+            if (args.length > 0 && ("pending".equalsIgnoreCase(args[0]) || "claim".equalsIgnoreCase(args[0]))) {
+                if (!auctionDeliveries.eligible(p)) p.sendMessage(ColorUtil.c("&cДоставка сейчас недоступна: войдите и завершите проверку."));
+                else if ("pending".equalsIgnoreCase(args[0])) auctionDeliveries.pending(p, args);
+                else auctionDeliveries.claim(p, args);
+                return true;
+            }
             if (auctionSearch.command(p, args)) return true;
             if (args.length >= 2 && "sell".equalsIgnoreCase(args[0])) {
+                if (!auctionDeliveries.eligible(p)) { p.sendMessage(ColorUtil.c("&cАукцион сейчас недоступен: войдите и завершите проверку.")); return true; }
                 double price;
                 try { price = Double.parseDouble(args[1]); } catch (Exception ex) { price = -1; }
                 ItemStack hand = p.getInventory().getItemInMainHand();
@@ -1301,12 +1324,7 @@ public final class KingGriefCore extends JavaPlugin {
                     p.sendMessage(ColorUtil.c("&cВозьмите предмет в руку и введите: &f/ah sell <цена>"));
                     return true;
                 }
-                if (store.addAuctionLot(p.getName(), hand, price) == null) {
-                    p.sendMessage(ColorUtil.c("&cЛот не сохранён; предмет остался в руке."));
-                    return true;
-                }
-                p.getInventory().setItemInMainHand(null);
-                p.sendMessage(ColorUtil.c("&#00E676⚖ Предмет выставлен на Аукцион за &a" + ColorUtil.fmtMoney(price) + "$&7!"));
+                auctionDeliveries.sell(p, hand, price);
                 return true;
             }
             guis.openAuctionMenu(p, 0);
@@ -2547,13 +2565,31 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private void handleRgCmd(Player p, String[] args) {
+        if (args.length >= 1 && "list".equalsIgnoreCase(args[0])) {
+            handleClaimList(p, args);
+            return;
+        }
         if (args.length == 1 && "borders".equalsIgnoreCase(args[0])) {
             utilities.borders(p);
             return;
         }
         DataStore.Claim cl = store.getClaimAt(p.getLocation());
         if (cl == null) {
-            p.sendMessage(ColorUtil.c("&eВы стоите вне региона! Поставьте Рудный Приват в выживании (/rtp)."));
+            p.sendMessage(ColorUtil.c("&eЗдесь нет встроенного привата Core; другие плагины могут защищать эту территорию. Свои приваты: &f/rg list"));
+            return;
+        }
+        if (args.length >= 1 && "status".equalsIgnoreCase(args[0])) {
+            if (args.length != 1) { p.sendMessage(ColorUtil.c("&e/rg status")); return; }
+            String role = cl.owner.equalsIgnoreCase(p.getName()) ? "владелец"
+                    : cl.members.contains(p.getName().toLowerCase(Locale.ROOT)) ? "builder"
+                    : cl.containerMembers.contains(p.getName().toLowerCase(Locale.ROOT)) ? "container"
+                    : ranks.isOwnerLevel(p) ? "администратор (обход)" : "гость";
+            long size = 2L * cl.radius + 1L;
+            p.sendMessage(ColorUtil.c("&#00E676🛡 Приват: &f" + cl.owner + " &8| &7Ваша роль: &f" + role));
+            p.sendMessage(ColorUtil.c("&7Мир: &f" + cl.world + " &8| &7Центр: &f" + cl.cx + ", " + cl.cy + ", " + cl.cz
+                    + " &8| &7Размер: &f" + size + "×" + size));
+            p.sendMessage(ColorUtil.c("&7Ведра и постройки требуют builder; поршни, жидкости и воронки не пересекают границы встроенных приватов."));
+            p.sendMessage(ColorUtil.c("&8Это не проверка WorldGuard или защиты других плагинов; взрывы следуют правилам сервера."));
             return;
         }
         if (args.length >= 1 && "log".equalsIgnoreCase(args[0])) {
@@ -2598,6 +2634,27 @@ public final class KingGriefCore extends JavaPlugin {
         p.sendMessage(ColorUtil.c("&7Роли: &f/rg roles &8• &f/rg role <ник> <builder|container|none>"));
     }
 
+    /** The owner's list is available in any world and never loads a claim's chunk. */
+    private void handleClaimList(Player p, String[] args) {
+        int requested = 1;
+        if (args.length == 2) try { requested = Integer.parseInt(args[1]); } catch (NumberFormatException error) { requested = 0; }
+        if (args.length > 2 || requested < 1) { p.sendMessage(ColorUtil.c("&e/rg list [страница]")); return; }
+        List<DataStore.Claim> claims = store.getClaimsOf(p.getName());
+        claims.sort(java.util.Comparator.comparing((DataStore.Claim c) -> c.world == null ? "" : c.world.toLowerCase(Locale.ROOT))
+                .thenComparingInt(c -> c.cx).thenComparingInt(c -> c.cz).thenComparingInt(c -> c.cy));
+        int pages = Math.max(1, (claims.size() + 7) / 8), page = Math.min(requested, pages);
+        p.sendMessage(ColorUtil.c("&#80D8FFВаши встроенные приваты: &f" + claims.size() + " &8(" + page + "/" + pages + ")"));
+        for (int i = (page - 1) * 8; i < Math.min(claims.size(), page * 8); i++) {
+            DataStore.Claim claim = claims.get(i);
+            long size = 2L * claim.radius + 1L;
+            p.sendMessage(ColorUtil.c(" &8• &f" + claim.world + " &7(" + claim.cx + ", " + claim.cy + ", " + claim.cz
+                    + ") &8— &b" + size + "×" + size));
+        }
+        if (claims.isEmpty()) p.sendMessage(ColorUtil.c(" &8• &7У вас пока нет встроенных приватов."));
+        if (page < pages) p.sendMessage(ColorUtil.c("&7Далее: &f/rg list " + (page + 1)));
+        p.sendMessage(ColorUtil.c("&8Показаны только ваши приваты Core; список не включает WorldGuard."));
+    }
+
     private void handleClaimRoles(Player p, DataStore.Claim cl, String[] args) {
         if (!cl.owner.equalsIgnoreCase(p.getName()) && !ranks.isOwnerLevel(p)) {
             p.sendMessage(ColorUtil.c("&cСписок ролей доступен владельцу, OWNER и ТЕХ.АДМИНУ.")); return;
@@ -2614,7 +2671,7 @@ public final class KingGriefCore extends JavaPlugin {
         for (int i = (page - 1) * 8; i < Math.min(entries.size(), page * 8); i++) p.sendMessage(ColorUtil.c(" &8• " + entries.get(i)));
         if (entries.isEmpty()) p.sendMessage(ColorUtil.c(" &8• &7Участников нет."));
         if (page < pages) p.sendMessage(ColorUtil.c("&7Далее: &f/rg roles " + (page + 1)));
-        p.sendMessage(ColorUtil.c("&8container разрешает забирать вещи; это не защита от воронок и других плагинов."));
+        p.sendMessage(ColorUtil.c("&8container разрешает забирать вещи. Воронки внутри одного привата не различают владельцев; другие плагины могут обходить защиту."));
     }
 
     private void handleModeration(Player staff, String c, String[] args) {

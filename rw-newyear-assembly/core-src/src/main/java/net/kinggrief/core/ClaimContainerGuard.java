@@ -21,6 +21,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -82,6 +83,12 @@ final class ClaimContainerGuard implements Listener {
     @EventHandler(priority=EventPriority.HIGHEST)
     public void enforceAfterOtherListeners(PlayerInteractEvent event){enforce(event,false);}
 
+    /** Check programmatic opens as well as clicks; entity containers can move while open. */
+    @EventHandler(priority=EventPriority.HIGHEST,ignoreCancelled=true)
+    public void onInventoryOpen(InventoryOpenEvent event){
+        if(event.getPlayer() instanceof Player&&!canUseOpenInventory((Player)event.getPlayer(),event.getInventory()))
+            event.setCancelled(true);
+    }
     /** Access is rechecked while a physical container is open, not just on its initial click. */
     @EventHandler(priority=EventPriority.LOWEST)
     public void onInventoryClickEarly(InventoryClickEvent event){onInventoryClick(event);}
@@ -166,8 +173,13 @@ final class ClaimContainerGuard implements Listener {
             locations.add(left);locations.add(right);
         }else{
             InventoryHolder holder=holderWithoutSnapshot(inventory);
-            if(!(holder instanceof BlockState))return true; // virtual GUIs and the player's own ender chest
-            if(!addHolderLocation(holder,locations))return false;
+            if(holder instanceof BlockState){
+                if(!addHolderLocation(holder,locations))return false;
+            }else if(holder instanceof Entity&&!(holder instanceof Player)){
+                Location location=((Entity)holder).getLocation();
+                if(location==null)return false;
+                locations.add(location); // e.g. a chest boat or storage minecart
+            }else return true; // virtual GUIs and the player's own inventory/ender chest
         }
         for(Location location:locations){
             if(location.getWorld()==null||!location.getWorld().isChunkLoaded(location.getBlockX()>>4,location.getBlockZ()>>4))return false;

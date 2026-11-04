@@ -2428,22 +2428,26 @@ public final class GameplayListener implements Listener {
         if (plugin.getSpawnEngine().isInSpawnWorld(e.getBlock().getLocation())
                 || plugin.getBossEvents().isProtectedEventStructureBlock(e.getBlock(), false)) e.setCancelled(true);
     }
+    private boolean protectsPistonBlock(Block block) {
+        return isTemporaryProtected(block) || plugin.getBossEvents().isProtectedEventStructureBlock(block, false);
+    }
     @EventHandler(ignoreCancelled = true)
     public void onEventPistonExtend(org.bukkit.event.block.BlockPistonExtendEvent e) {
+        // The head may occupy/destroy a block even when the pushed list is empty.
+        if (protectsPistonBlock(e.getBlock().getRelative(e.getDirection()))) { e.setCancelled(true); return; }
         for (Block block : e.getBlocks()) {
-            if (isTemporaryProtected(block) || isTemporaryProtected(block.getRelative(e.getDirection()))
-                    || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
-                    || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection()), false)) {
+            if (protectsPistonBlock(block) || protectsPistonBlock(block.getRelative(e.getDirection()))) {
                 e.setCancelled(true); return;
             }
         }
     }
     @EventHandler(ignoreCancelled = true)
     public void onEventPistonRetract(org.bukkit.event.block.BlockPistonRetractEvent e) {
+        // On Paper getDirection() is already the direction of block movement,
+        // including a sticky retract. The head, however, is on the facing side.
+        if (protectsPistonBlock(e.getBlock().getRelative(e.getDirection().getOppositeFace()))) { e.setCancelled(true); return; }
         for (Block block : e.getBlocks()) {
-            if (isTemporaryProtected(block) || isTemporaryProtected(block.getRelative(e.getDirection().getOppositeFace()))
-                    || plugin.getBossEvents().isProtectedEventStructureBlock(block, false)
-                    || plugin.getBossEvents().isProtectedEventStructureBlock(block.getRelative(e.getDirection().getOppositeFace()), false)) {
+            if (protectsPistonBlock(block) || protectsPistonBlock(block.getRelative(e.getDirection()))) {
                 e.setCancelled(true); return;
             }
         }
@@ -2603,6 +2607,7 @@ public final class GameplayListener implements Listener {
         // had a chance to cancel a physical plate interaction.
         if (e.getAction() == Action.PHYSICAL) return;
         if (plugin.getClaimContainers() != null && plugin.getClaimContainers().enforce(e, true)) return;
+        if (plugin.getClaimMechanics() != null && plugin.getClaimMechanics().enforce(e, true)) return;
         if (plugin.getLegacySpawnGuard() != null && plugin.getLegacySpawnGuard().enforceInteraction(e, true)) return;
 
         if (e.getHand() == EquipmentSlot.OFF_HAND) return;

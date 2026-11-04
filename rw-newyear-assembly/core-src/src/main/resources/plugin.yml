@@ -1,11 +1,11 @@
 name: KingGriefCore
-version: 7.12.0
+version: 7.13.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.12.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
+description: "KINGGRIEF v7.13.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
 
 
 commands:
@@ -178,6 +178,8 @@ commands:
     description: Claim Privilege Kit (/kit <kit> [nick])
   ah:
     aliases: [auc, auction]
+    description: Auction listings, search and pending item deliveries
+    usage: /ah [sell|search|pending|claim]
   jobs:
     aliases: [job]
   bp:
@@ -226,8 +228,8 @@ commands:
     aliases: [c]
   rg:
     aliases: [region, ps]
-    description: Built-in claim info, borders, blocked container audit and roles
-    usage: /rg [borders|log|roles|role|add|remove]
+    description: Built-in claim status, list, borders, blocked container audit and roles
+    usage: /rg [status|list|borders|log|roles|role|add|remove]
   sethome: {}
   home: {}
   delhome: {}

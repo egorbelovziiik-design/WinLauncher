@@ -84,7 +84,7 @@ public final class DataStore {
             if (loc == null || loc.getWorld() == null) return false;
             if (!loc.getWorld().getName().equalsIgnoreCase(world)) return false;
             int bx = loc.getBlockX(), bz = loc.getBlockZ();
-            return Math.abs(bx - cx) <= radius && Math.abs(bz - cz) <= radius;
+            return radius >= 0 && Math.abs((long) bx - cx) <= radius && Math.abs((long) bz - cz) <= radius;
         }
 
         public boolean isCenter(Location loc) {
@@ -264,6 +264,22 @@ public final class DataStore {
                     // Older/corrupt counters must never reuse an existing lot ID.
                     if (lotId >= nextLotId) nextLotId = lotId == Integer.MAX_VALUE ? Integer.MAX_VALUE : lotId + 1;
                 } catch (Throwable ignored) {}
+            }
+        }
+        // Reserved or purchased IDs must not be reused after an upgrade or a
+        // stale counter. Malformed entries remain untouched for an admin.
+        ConfigurationSection pendingListings = yml.getConfigurationSection("auctionListings");
+        if (pendingListings != null) for (String owner : pendingListings.getKeys(false)) {
+            int reserved = pendingListings.getInt(owner + ".id", -1);
+            if (reserved >= nextLotId) nextLotId = reserved == Integer.MAX_VALUE ? Integer.MAX_VALUE : reserved + 1;
+        }
+        ConfigurationSection deliveries = yml.getConfigurationSection("auctionDeliveries");
+        if (deliveries != null) for (String owner : deliveries.getKeys(false)) {
+            ConfigurationSection entries = deliveries.getConfigurationSection(owner);
+            if (entries == null) continue;
+            for (String id : entries.getKeys(false)) {
+                int reserved = ColorUtil.parseInt(id, -1);
+                if (reserved >= nextLotId) nextLotId = reserved == Integer.MAX_VALUE ? Integer.MAX_VALUE : reserved + 1;
             }
         }
     }
@@ -1886,7 +1902,9 @@ public final class DataStore {
     public boolean overlapsAnyClaim(String world, int cx, int cz, int radius) {
         for (Claim c : claims) {
             if (!c.world.equalsIgnoreCase(world)) continue;
-            if (Math.abs(c.cx - cx) <= (c.radius + radius) && Math.abs(c.cz - cz) <= (c.radius + radius)) {
+            long combinedRadius = (long) c.radius + radius;
+            if (combinedRadius >= 0 && Math.abs((long) c.cx - cx) <= combinedRadius
+                    && Math.abs((long) c.cz - cz) <= combinedRadius) {
                 return true;
             }
         }
@@ -1988,6 +2006,47 @@ public final class DataStore {
         return new ArrayList<AuctionLot>(auction);
     }
 
+    /** Reserve a non-public listing before touching player.dat. A 'taking'
+     * journal after an interruption requires an administrator's review. */
+    synchronized AuctionLot beginAuctionListing(Player seller, ItemStack item, double price) {
+        if (seller == null || plugin.getAuctionDeliveries() == null || !plugin.getAuctionDeliveries().eligible(seller)
+                || item == null || item.getType().isAir() || item.getAmount() <= 0 || !Double.isFinite(price) || price <= 0
+                || nextLotId <= 0 || nextLotId == Integer.MAX_VALUE || findAuctionLot(nextLotId) != null) return null;
+        final int previousNext = nextLotId;
+        AuctionLot lot = new AuctionLot();
+        lot.id = nextLotId++; lot.seller = seller.getName(); lot.price = price;
+        lot.item = item.clone(); lot.createdAt = System.currentTimeMillis();
+        try {
+            transact(data -> { AuctionDeliveryManager.addListing(data, seller.getUniqueId(), lot); return null; });
+            return lot;
+        } catch (Exception error) {
+            nextLotId = previousNext;
+            plugin.getLogger().warning("[Auction] Listing reservation not committed: " + error.getMessage());
+            return null;
+        }
+    }
+
+    synchronized boolean finishAuctionListing(UUID player, int id) {
+        AuctionLot lot;
+        try { lot = inspect(data -> AuctionDeliveryManager.listing(data, player)); }
+        catch (Exception error) { plugin.getLogger().warning("[Auction] Invalid listing journal: " + error.getMessage()); return false; }
+        if (lot == null || lot.id != id || findAuctionLot(id) != null) return false;
+        auction.add(0, lot);
+        try {
+            transact(data -> {
+                AuctionLot latest = AuctionDeliveryManager.listing(data, player);
+                if (!AuctionDeliveryManager.sameListing(lot, latest)) throw new IOException("listing journal changed");
+                data.set(AuctionDeliveryManager.listingPath(player), null);
+                return null;
+            });
+            return true;
+        } catch (Exception error) {
+            auction.remove(lot);
+            plugin.getLogger().warning("[Auction] Listing could not be published: " + error.getMessage());
+            return false;
+        }
+    }
+
     public synchronized AuctionLot addAuctionLot(String seller, ItemStack item, double price) {
         if (seller == null || seller.isEmpty() || item == null || item.getType().isAir() || item.getAmount() <= 0
                 || !Double.isFinite(price) || price <= 0 || nextLotId <= 0 || nextLotId == Integer.MAX_VALUE) return null;
@@ -2015,8 +2074,18 @@ public final class DataStore {
         return null;
     }
 
-    /** Commit buyer, seller and lot removal together; caller delivers the item afterwards. */
-    public synchronized AuctionLot purchaseAuctionLot(int id, final String buyer) {
+    /** Compatibility API: callers of this legacy method are responsible for item delivery. */
+    public synchronized AuctionLot purchaseAuctionLot(int id, String buyer) {
+        return purchaseAuctionLotInternal(id, buyer, null);
+    }
+
+    /** GUI purchases also commit a durable receipt for the buyer in the same YAML transaction. */
+    synchronized AuctionLot purchaseAuctionLotWithReceipt(int id, Player buyer) {
+        if (buyer == null || plugin.getAuctionDeliveries() == null || !plugin.getAuctionDeliveries().eligible(buyer)) return null;
+        return purchaseAuctionLotInternal(id, buyer.getName(), buyer.getUniqueId());
+    }
+
+    private AuctionLot purchaseAuctionLotInternal(int id, final String buyer, final UUID buyerId) {
         int index = -1;
         for (int i = 0; i < auction.size(); i++) if (auction.get(i).id == id) { index = i; break; }
         if (index < 0 || buyer == null) return null;
@@ -2030,7 +2099,8 @@ public final class DataStore {
         auction.remove(index);
         try {
             transact(new CheckedMutation<Void>() {
-                @Override public Void apply(YamlConfiguration data) {
+                @Override public Void apply(YamlConfiguration data) throws Exception {
+                    if (buyerId != null) AuctionDeliveryManager.addReceipt(data, buyerId, lot);
                     data.set("players." + key(buyer) + ".coins", remaining);
                     data.set("players." + key(lot.seller) + ".coins", credited);
                     AuctionSearchManager.recordSale(data, lot.item, lot.price);
