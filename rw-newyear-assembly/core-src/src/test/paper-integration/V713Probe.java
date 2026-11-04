@@ -68,7 +68,7 @@ public final class V713Probe extends JavaPlugin implements Listener {
     private interface Work { void run() throws Exception; }
     private interface Condition { boolean test() throws Exception; }
     private void later(long ticks,Work work) { Bukkit.getScheduler().runTaskLater(this,()->{if(finished)return;try{work.run();}catch(Throwable t){fail(t);}},ticks); }
-    private void waitFor(Condition condition,Work work,int tries) { later(5,()->{if(condition.test())work.run();else if(tries>0)waitFor(condition,work,tries-1);else throw new AssertionError("timed out waiting for player connection");}); }
+    private void waitFor(Condition condition,Work work,int tries) { later(5,()->{if(condition.test())work.run();else if(tries>0)waitFor(condition,work,tries-1);else throw new AssertionError("timed out waiting for integration condition");}); }
     private void ok(boolean value,String label) { checks++;if(!value){errors++;getLogger().severe("KG-V713 FAIL: "+label);}else getLogger().info("KG-V713 PASS: "+label); }
     private void require(boolean value,String label){ok(value,label);if(!value)throw new IllegalStateException("fixture failed: "+label);}
     private void fail(Throwable t){errors++;getLogger().severe("KG-V713 EXCEPTION "+t);t.printStackTrace();finish();}
@@ -204,10 +204,18 @@ public final class V713Probe extends JavaPlugin implements Listener {
         });
     }
     private void realFluids(){
-        for(int x=292;x<=304;x++)for(int z=296;z<=304;z++)world.getBlockAt(x,114,z).setType(Material.STONE,false);
-        Block source=world.getBlockAt(295,115,300),dest=world.getBlockAt(296,115,300);dest.setType(Material.AIR,false);source.setType(Material.WATER,true);
+        // A bounded channel makes the boundary the only downhill route: vanilla
+        // water otherwise prefers the nearby open edge of a small test platform.
+        for(int x=294;x<=297;x++)for(int z=299;z<=301;z++){
+            world.getBlockAt(x,114,z).setType(Material.STONE,false);
+            world.getBlockAt(x,115,z).setType(Material.STONE,false);
+        }
+        Block source=world.getBlockAt(295,115,300),dest=world.getBlockAt(296,115,300);
+        source.setType(Material.AIR,false);dest.setType(Material.AIR,false);source.setType(Material.WATER,true);
+        // A real neighbor update schedules fluid processing on Paper.
+        Block wall=world.getBlockAt(294,115,300);wall.setType(Material.AIR,true);wall.setType(Material.STONE,true);
         later(65,()->{
-            ok(fluidBlocked&&dest.getType()!=Material.WATER,"real flowing water stops at the Core claim boundary");
+            ok(fluidBlocked&&dest.getType()!=Material.WATER,"real flowing water stops at the Core claim boundary (attempt="+fluidBlocked+", source="+source.getType()+", destination="+dest.getType()+")");
             for(int x=297;x<=302;x++)for(int z=298;z<=302;z++)world.getBlockAt(x,118,z).setType(Material.STONE,false);
             world.getBlockAt(299,119,300).setType(Material.AIR,false);world.getBlockAt(298,119,300).setType(Material.WATER,true);
             later(55,()->{ok(world.getBlockAt(299,119,300).getType()==Material.WATER,"real water flow within one claim remains functional");realBucket();});
@@ -260,17 +268,19 @@ public final class V713Probe extends JavaPlugin implements Listener {
     private void cartChecks()throws Exception{
         cart=(StorageMinecart)world.spawnEntity(new Location(world,299.5,104,302.5),EntityType.CHEST_MINECART);cart.setGravity(false);
         Inventory inv=cart.getInventory();inv.setItem(0,new ItemStack(Material.DIAMOND,3));
-        c.openInventory(inv);ok(c.getOpenInventory().getTopInventory()!=inv,"foreign player cannot open a chest minecart in a claim");
+        InventoryView denied=c.openInventory(inv);
+        ok(denied==null&&!inv.equals(c.getOpenInventory().getTopInventory()),"foreign player cannot open a chest minecart in a claim");
         require(store.setClaimRole(claim,c.getName(),DataStore.ClaimRole.CONTAINER)==DataStore.ClaimRoleResult.CHANGED,"container role saved");
         Block chest=world.getBlockAt(298,103,302);chest.setType(Material.CHEST,false);
         PlayerInteractEvent container=interact(c,chest,new ItemStack(Material.FLINT_AND_STEEL));
         ok(container.useInteractedBlock()!=Event.Result.DENY&&container.useItemInHand()==Event.Result.DENY,"container role opens storage but cannot use a held item on it");
-        c.openInventory(inv);ok(c.getOpenInventory().getTopInventory()==inv,"container role can open a chest minecart");
+        InventoryView opened=c.openInventory(inv);
+        require(opened!=null&&inv.equals(opened.getTopInventory()),"container role can open a chest minecart");
         require(store.setClaimRole(claim,c.getName(),DataStore.ClaimRole.NONE)==DataStore.ClaimRoleResult.CHANGED,"container role revoked");
         InventoryClickEvent click=new InventoryClickEvent(c.getOpenInventory(),InventoryType.SlotType.CONTAINER,0,ClickType.LEFT,InventoryAction.PICKUP_ALL);call(click);
         ok(click.isCancelled(),"open minecart access is rechecked after role revocation");
         later(3,()->{
-            ok(c.getOpenInventory().getTopInventory()!=inv&&inv.getItem(0).getAmount()==3,"revoked minecart view closes without changing its contents");
+            ok(!inv.equals(c.getOpenInventory().getTopInventory())&&inv.getItem(0).getAmount()==3,"revoked minecart view closes without changing its contents");
             store.setClaimRole(claim,c.getName(),DataStore.ClaimRole.CONTAINER);
             frame.remove();stand.remove();cart.remove();auctionChecks();
         });
@@ -325,9 +335,13 @@ public final class V713Probe extends JavaPlugin implements Listener {
         state.save(getDataFolder().toPath().resolve("state.yml").toFile());
         Location safe=core.getSpawnEngine().getSpawnArrival();require(safe!=null,"separate spawn available for saved-chunk test");
         a.teleport(safe);b.teleport(safe);c.teleport(safe);
-        world.save();boolean unloaded=world.unloadChunk(18,18,true);
-        ok(unloaded,"survival test chunk saved and unloaded before SIGKILL");
-        later(40,this::finish);
+        // This disposable flat world's spawn tickets and the explicit fixture
+        // load tickets can keep nearby chunks in memory after players leave.
+        world.save();world.setKeepSpawnInMemory(false);
+        for(int x=17;x<=19;x++)for(int z=18;z<=19;z++)world.unloadChunkRequest(x,z);
+        later(40,()->waitFor(()->world.unloadChunk(18,18,true),()->{
+            ok(true,"survival test chunk saved and unloaded before SIGKILL");later(40,this::finish);
+        },40));
     }
     private void restart()throws Exception{
         YamlConfiguration state=YamlConfiguration.loadConfiguration(getDataFolder().toPath().resolve("state.yml").toFile());
