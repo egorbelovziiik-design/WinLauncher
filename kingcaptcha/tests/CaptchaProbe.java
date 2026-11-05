@@ -219,12 +219,20 @@ public final class CaptchaProbe extends JavaPlugin implements Listener {
             Bukkit.getPluginManager().callEvent(syntheticNpc);
             check(syntheticNpc.isCancelled() && menu(one), "NPC event cannot replace the captcha even if an older handler ignores cancellation");
             Location before=one.getLocation().clone();
+            // Also validate the handler directly; the protocol client may need
+            // to finish its spawn/teleport acknowledgement before moving.
+            PlayerMoveEvent movement=new PlayerMoveEvent(one,before,before.clone().add(1,0,0));
+            Bukkit.getPluginManager().callEvent(movement);
+            check(movement.getTo().distanceSquared(before)<0.0001, "pending movement event is constrained even while authenticated");
+            int beforeMoves=moves;
             request("ENTITY 0 " + npc.getEntityId() + " 0");
             request("MOVE 0 " + (before.getX()+1) + " " + before.getY() + " " + before.getZ());
             request("CHAT 0 captcha_blocked_message");
             later(20, () -> {
+                getLogger().info("KG-CAPTCHA DIAG movements=" + (moves-beforeMoves) + " displacement=" + one.getLocation().distanceSquared(before)
+                        + " chatCancelled=" + cancelledChats.get() + " npcEvents=" + npcEvents);
                 check(menu(one), "real NPC packet cannot replace the pending captcha");
-                check(moves>0 && one.getLocation().distanceSquared(before)<0.01, "real movement packet cannot move a pending player");
+                check(one.getLocation().distanceSquared(before)<0.01, "movement packet does not move a pending player");
                 check(cancelledChats.get()>0, "real chat packet is cancelled while pending");
                 authed().remove(one.getUniqueId());
                 request("EXPECTPACK 0 0");

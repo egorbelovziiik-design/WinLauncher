@@ -61,12 +61,12 @@ process.stdin.on('data',data=>{
       const w=windows[i];if(w.id){clients[i].write('close_window',{windowId:w.id});w.ready=false;closes++;}
     }
     else if(command==='ENTITY'){
-      const id=Number(args[1]), action=Number(args[2]);entities++;
+      const id=Number(args[1]), action=Number(args[2]);entities++;console.log('CAPTCHA_CLIENT ENTITY',i,id,action);
       if(action===2)clients[i].write('use_entity',{target:id,mouse:2,x:0,y:1,z:0,hand:0,sneaking:false});
       else if(action===1)clients[i].write('use_entity',{target:id,mouse:1,sneaking:false});
       else clients[i].write('use_entity',{target:id,mouse:0,hand:0,sneaking:false});
     }
-    else if(command==='MOVE')clients[i].write('position',{x:Number(args[1]),y:Number(args[2]),z:Number(args[3]),flags:{onGround:true,hasHorizontalCollision:false}});
+    else if(command==='MOVE'){console.log('CAPTCHA_CLIENT MOVE',i,args.slice(1).join(' '));clients[i].write('position',{x:Number(args[1]),y:Number(args[2]),z:Number(args[3]),flags:{onGround:true,hasHorizontalCollision:false}});}
     else if(command==='CHAT')clients[i].chat(args.slice(1).join(' '));
     else if(command==='DISCONNECT'){clients[i].end('test disconnect');windows[i].ready=false;}
     else if(command==='RECONNECT')connect(i);
