@@ -905,8 +905,8 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         String label = lower.split("\\s+", 2)[0];
         boolean captchaCommand = label.equals("/captcha") || label.equals("/kingcaptcha:captcha");
         if (captchaCommand && Bukkit.getPluginManager().getPlugin("KingCaptcha") != null) return;
-        if (!captchaReady(p, false)) {
-            e.setCancelled(true); // KingCaptcha supplies the player-facing hint.
+        if (!captchaReady(p, true)) {
+            e.setCancelled(true);
             return;
         }
         if (!isAuthed(p)) {
@@ -1433,7 +1433,10 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                 }
             }
         }
-        if (!ready && notify) p.sendMessage(c("&#FFD740🛡 Сначала пройдите проверку &f/captcha &7(меню откроется автоматически)."));
+        if (!ready && notify) {
+            if (!captcha.isEnabled()) p.sendMessage(c("&#FF5252🛡 Проверка временно недоступна. Сообщите администрации."));
+            else p.sendMessage(c("&#FFD740🛡 Сначала пройдите проверку &f/captcha &7(меню откроется автоматически)."));
+        }
         return ready;
     }
 

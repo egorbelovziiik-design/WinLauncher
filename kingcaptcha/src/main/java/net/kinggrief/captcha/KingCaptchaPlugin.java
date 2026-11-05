@@ -420,8 +420,8 @@ public final class KingCaptchaPlugin extends JavaPlugin implements Listener {
         String input = event.getMessage().trim().toLowerCase(Locale.ROOT);
         String label = input.split("\\s+", 2)[0];
         if (label.equals("/captcha") || label.equals("/kingcaptcha:captcha")) return;
+        if (!event.isCancelled()) event.getPlayer().sendMessage(color(PREFIX + "&eСначала пройдите проверку в открывшемся меню."));
         event.setCancelled(true);
-        event.getPlayer().sendMessage(color(PREFIX + "&eСначала пройдите проверку в открывшемся меню."));
     }
 
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
