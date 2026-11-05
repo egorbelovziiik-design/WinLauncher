@@ -17,6 +17,8 @@ jobs:
   paper:
     name: Build and verify KingCaptcha 1.0 / KingHub 1.2.4
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -79,3 +81,22 @@ jobs:
           path: ${{ runner.temp }}/kingcaptcha-test/release/
           if-no-files-found: error
           retention-days: 7
+      - name: Save only verified hub release files to this branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/3eb24343-winlauncher'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python kingcaptcha/publish.py "$KG_TEST_DIR/release"
+          git diff --check
+          git add rw-newyear-assembly/KingCaptcha.jar rw-newyear-assembly/KingHub.jar \
+            rw-newyear-assembly/KingHub-v1.2.4.jar rw-newyear-assembly/KingHub-Captcha-1.0.0-update.zip \
+            rw-newyear-assembly/ОБНОВЛЕНИЕ_ХАБА_КАПЧА_1.0.0.md rw-newyear-assembly/ПРОВЕРКИ_ХАБА_КАПЧА_1.0.0.md \
+            kinggrief/public/KingCaptcha.jar kinggrief/public/KingCaptcha-v1.0.0.jar \
+            kinggrief/public/KingHub.jar kinggrief/public/KingHub-v1.2.4.jar \
+            kinggrief/public/KingHub-Captcha-1.0.0-update.zip kinggrief/public/KingHub-Captcha-1.0.0-README.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save tested KingCaptcha and KingHub artifacts [skip ci]'
+            git push origin HEAD:refs/heads/arena/3eb24343-winlauncher
+          fi
