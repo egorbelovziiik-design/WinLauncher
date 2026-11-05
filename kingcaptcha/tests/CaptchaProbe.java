@@ -215,12 +215,15 @@ public final class CaptchaProbe extends JavaPlugin implements Listener {
             Entity npc=one.getWorld().getEntities().stream().filter(e -> e instanceof Interaction
                     && e.getScoreboardTags().contains("khub_npc_grief1")).findFirst().orElse(null);
             check(npc!=null, "NPC hitbox exists before verification");
+            PlayerInteractEntityEvent syntheticNpc = new PlayerInteractEntityEvent(one,npc,EquipmentSlot.HAND);
+            Bukkit.getPluginManager().callEvent(syntheticNpc);
+            check(syntheticNpc.isCancelled() && menu(one), "NPC event cannot replace the captcha even if an older handler ignores cancellation");
             Location before=one.getLocation().clone();
             request("ENTITY 0 " + npc.getEntityId() + " 0");
             request("MOVE 0 " + (before.getX()+1) + " " + before.getY() + " " + before.getZ());
             request("CHAT 0 captcha_blocked_message");
             later(20, () -> {
-                check(npcEvents>0 && menu(one), "real NPC interaction cannot open selector while pending");
+                check(menu(one), "real NPC packet cannot replace the pending captcha");
                 check(moves>0 && one.getLocation().distanceSquared(before)<0.01, "real movement packet cannot move a pending player");
                 check(cancelledChats.get()>0, "real chat packet is cancelled while pending");
                 authed().remove(one.getUniqueId());
@@ -378,7 +381,13 @@ public final class CaptchaProbe extends JavaPlugin implements Listener {
         waitFor("timeout kick", () -> player("CaptchaLate")==null, 100, () -> {
             check(!sessions().containsKey(late.getUniqueId()), "expired challenge kicks and clears the session");
             request("EXPECTPACK 0 2"); // normal reconnect receives a second pack only after its second verification
-            pass();
+            Player sso=player("CaptchaSso");
+            int queued=ssoQueue().size();
+            Bukkit.getPluginManager().disablePlugin(captcha);
+            check(!captcha.isEnabled() && hub.isEnabled(), "disabling captcha does not disable the hub");
+            invoke(hub,"connectToGrief1",sso);
+            check(!transfers().containsKey(sso.getUniqueId()) && ssoQueue().size()==queued, "installed but disabled captcha fails closed at the transfer boundary");
+            later(10, this::pass);
         });
     }
 
