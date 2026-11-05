@@ -48,6 +48,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -107,6 +108,9 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     private final Map<UUID, Long> doubleJumpCooldowns = new ConcurrentHashMap<UUID, Long>();
     private final Set<UUID> awaitingGriefIpChat = ConcurrentHashMap.newKeySet();
     private final ConcurrentLinkedQueue<String> pendingSsoJson = new ConcurrentLinkedQueue<String>();
+    // KingCaptcha is optional. When present but disabled/broken, fail closed.
+    private volatile Method captchaVerifyMethod;
+    private boolean warnedCaptchaApi;
     private final Set<String> globalBannedNicks = Collections.synchronizedSet(new HashSet<String>());
 
     // Config state
@@ -172,7 +176,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         }
 
         startHubTasks();
-        getLogger().info("KingHub v1.2.3 enabled! New Year Map ready in '" + hubWorld.getName()
+        getLogger().info("KingHub v1.2.4 enabled! New Year Map ready in '" + hubWorld.getName()
                 + "', Target Grief1=" + griefHost + ":" + griefPort);
     }
 
@@ -349,6 +353,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     // =========================================================================
 
     public void openGriefSelectorGui(Player p) {
+        if (!captchaReady(p, true)) return;
         if (!isAuthed(p)) {
             p.sendMessage(c("&#FF1744🔐 Сначала войдите в аккаунт: &f/login <пароль> &7или &f/register <пароль> <повтор>"));
             playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 1.0f);
@@ -413,6 +418,8 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     }
 
     public void connectToGrief1(Player p) {
+        // This is the actual transfer boundary, not just a cancelled GUI event.
+        if (!captchaReady(p, true)) return;
         if (!isAuthed(p)) {
             p.sendMessage(c("&#FF1744🔐 Сначала войдите: &f/login <пароль> &7или &f/register <пароль> <повтор>"));
             return;
@@ -483,7 +490,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                 Bukkit.getScheduler().runTask(KingHubPlugin.this, new Runnable() {
                     @Override
                     public void run() {
-                        if (!p.isOnline()) return;
+                        if (!p.isOnline() || !captchaReady(p, false)) return;
                         if (!check.alive && !cloudAlive) {
                             transferCooldowns.remove(p.getUniqueId());
                             playSoundSafe(p, "ENTITY_VILLAGER_NO", 1.0f, 0.85f);
@@ -505,7 +512,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                             new BukkitRunnable() {
                                 @Override
                                 public void run() {
-                                    if (!p.isOnline()) return;
+                                    if (!p.isOnline() || !captchaReady(p, false)) return;
                                     try {
                                         p.transfer(check.resolvedHost, check.resolvedPort);
                                     } catch (Throwable ex) {
@@ -593,8 +600,11 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
                             if (!p.isOnline()) return;
                             if (verifyIncomingSsoToken(token, p)) {
                                 authedPlayers.add(p.getUniqueId());
-                                p.sendTitle(c("&#80D8FF&l❄ НОВОГОДНИЙ ХАБ"), c("&#00E676✔ Вы вернулись в Лобби!"), 5, 35, 10);
-                                playSoundSafe(p, "ENTITY_PLAYER_LEVELUP", 0.8f, 1.3f);
+                                // Do not cover an active captcha with the SSO title.
+                                if (captchaReady(p, false)) {
+                                    p.sendTitle(c("&#80D8FF&l❄ НОВОГОДНИЙ ХАБ"), c("&#00E676✔ Вы вернулись в Лобби!"), 5, 35, 10);
+                                    playSoundSafe(p, "ENTITY_PLAYER_LEVELUP", 0.8f, 1.3f);
+                                }
                             }
                         }
                     });
@@ -627,18 +637,22 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
 
         // Push Mega Resourcepack in Hub so textures & 3D items are already loaded before entering Grief #1!
         if (pushRpOnJoin && rpUrl != null && !rpUrl.isEmpty()) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (!p.isOnline()) return;
-                    try {
-                        byte[] sha = hexToBytes(rpSha1);
-                        if (sha != null) p.setResourcePack(rpUrl, sha);
-                        else p.setResourcePack(rpUrl);
-                    } catch (Throwable ignored) {}
-                }
-            }.runTaskLater(this, 18L);
+            Bukkit.getScheduler().runTaskLater(this, () -> sendPackAfterCaptcha(p, 310), 18L);
         }
+    }
+
+    private void sendPackAfterCaptcha(Player p, int retries) {
+        if (!p.isOnline()) return;
+        if (!captchaReady(p, false)) {
+            // Avoid covering the challenge with a resource-pack prompt.
+            if (retries > 0) Bukkit.getScheduler().runTaskLater(this, () -> sendPackAfterCaptcha(p, retries - 1), 20L);
+            return;
+        }
+        try {
+            byte[] sha = hexToBytes(rpSha1);
+            if (sha != null) p.setResourcePack(rpUrl, sha);
+            else p.setResourcePack(rpUrl);
+        } catch (Throwable ignored) {}
     }
 
     @EventHandler
@@ -778,6 +792,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     @EventHandler
     public void onMove(PlayerMoveEvent e) {
         Player p = e.getPlayer();
+        if (!captchaReady(p, false)) return;
         if (!isAuthed(p)) {
             if (e.getTo() != null && (e.getFrom().getX() != e.getTo().getX() || e.getFrom().getZ() != e.getTo().getZ())) {
                 Location back = e.getFrom();
@@ -807,6 +822,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     public void onDoubleJump(PlayerToggleFlightEvent e) {
         if (!doubleJumpEnabled) return;
         Player p = e.getPlayer();
+        if (!captchaReady(p, false)) { e.setCancelled(true); return; }
         if (p.getGameMode() == GameMode.CREATIVE || p.getGameMode() == GameMode.SPECTATOR) return;
         e.setCancelled(true);
         p.setAllowFlight(false);
@@ -851,7 +867,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
         if (e.toWeatherState()) e.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onChat(AsyncPlayerChatEvent e) {
         final Player p = e.getPlayer();
         if (!isAuthed(p)) {
@@ -886,6 +902,13 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     public void onPreprocess(PlayerCommandPreprocessEvent e) {
         Player p = e.getPlayer();
         String lower = e.getMessage().trim().toLowerCase(Locale.ROOT);
+        String label = lower.split("\\s+", 2)[0];
+        boolean captchaCommand = label.equals("/captcha") || label.equals("/kingcaptcha:captcha");
+        if (captchaCommand && Bukkit.getPluginManager().getPlugin("KingCaptcha") != null) return;
+        if (!captchaReady(p, false)) {
+            e.setCancelled(true); // KingCaptcha supplies the player-facing hint.
+            return;
+        }
         if (!isAuthed(p)) {
             if (!lower.startsWith("/login") && !lower.startsWith("/l ") && !lower.equals("/l")
                     && !lower.startsWith("/register") && !lower.startsWith("/reg")) {
@@ -903,6 +926,8 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         String cmd = command.getName().toLowerCase(Locale.ROOT);
         String alias = label.toLowerCase(Locale.ROOT);
+        // Also guard direct dispatch from other plugins, which skips preprocess.
+        if (sender instanceof Player && !captchaReady((Player) sender, true)) return true;
 
         if ("setgrief".equals(cmd)) {
             if (sender instanceof Player && !isAdmin((Player) sender)) {
@@ -1050,6 +1075,7 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
     }
 
     private void openAdminHubGui(Player p) {
+        if (!captchaReady(p, true)) return;
         Inventory inv = Bukkit.createInventory(null, 27, GUI_ADMIN_TITLE);
         ItemStack pane = makeItem(Material.GRAY_STAINED_GLASS_PANE, " ", null, false);
         for (int i = 0; i < 27; i++) inv.setItem(i, pane);
@@ -1386,6 +1412,29 @@ public final class KingHubPlugin extends JavaPlugin implements Listener, Command
             }
             c = c.getSuperclass();
         }
+    }
+
+    private boolean captchaReady(Player p, boolean notify) {
+        Plugin captcha = Bukkit.getPluginManager().getPlugin("KingCaptcha");
+        if (captcha == null) return true; // Compatible with hubs that do not install the optional plugin.
+        boolean ready = false;
+        if (captcha.isEnabled()) {
+            try {
+                Method method = captchaVerifyMethod;
+                if (method == null || method.getDeclaringClass() != captcha.getClass()) {
+                    method = captcha.getClass().getMethod("isVerified", UUID.class);
+                    captchaVerifyMethod = method;
+                }
+                ready = Boolean.TRUE.equals(method.invoke(captcha, p.getUniqueId()));
+            } catch (ReflectiveOperationException | RuntimeException ex) {
+                if (!warnedCaptchaApi) {
+                    warnedCaptchaApi = true;
+                    getLogger().warning("KingCaptcha API недоступен: переходы заблокированы. " + ex.getClass().getSimpleName());
+                }
+            }
+        }
+        if (!ready && notify) p.sendMessage(c("&#FFD740🛡 Сначала пройдите проверку &f/captcha &7(меню откроется автоматически)."));
+        return ready;
     }
 
     private boolean isAuthed(Player p) {

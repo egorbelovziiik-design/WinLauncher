@@ -1,0 +1,19 @@
+name: KingCaptcha
+prefix: KingCaptcha
+version: 1.0.0
+main: net.kinggrief.captcha.KingCaptchaPlugin
+api-version: '1.21'
+load: POSTWORLD
+author: KINGGRIEF
+description: Стильная проверка игроков в хабе KingGrief
+commands:
+  captcha:
+    description: Открыть проверку или посмотреть её состояние
+    usage: /captcha [status|reload]
+permissions:
+  kingcaptcha.admin:
+    description: Просмотр состояния и перезагрузка настроек капчи
+    default: op
+  kingcaptcha.bypass:
+    description: Пропуск проверки (выдавать только доверенным игрокам)
+    default: false

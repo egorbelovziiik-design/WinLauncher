@@ -1,0 +1,6 @@
+name: KgCaptchaProbe
+version: '1.0'
+main: net.kinggrief.captchatest.CaptchaProbe
+api-version: '1.21'
+depend: [KingHub]
+softdepend: [KingCaptcha]

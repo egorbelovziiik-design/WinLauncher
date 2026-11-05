@@ -1,0 +1,81 @@
+name: KingCaptcha and Hub Paper checks
+
+on:
+  push:
+    branches: [arena/3eb24343-winlauncher]
+    paths:
+      - '.github/workflows/kingcaptcha-paper.yml'
+      - 'kingcaptcha/**'
+      - 'rw-newyear-assembly/kinghub-src/**'
+      - 'rw-newyear-assembly/common-src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper:
+    name: Build and verify KingCaptcha 1.0 / KingHub 1.2.4
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare verified Paper 1.21.4, vanilla cache and protocol clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          KG="$RUNNER_TEMP/kingcaptcha-test"
+          mkdir -p "$KG/runtime/cache" "$KG/node" "$KG/release"
+          curl --fail --location --retry 3 --user-agent 'KingCaptcha-CI/1.0 (https://github.com/egorbelovziiik-design/WinLauncher)' \
+            'https://fill-data.papermc.io/v1/objects/5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc/paper-1.21.4-232.jar' -o "$KG/paper.jar"
+          echo '5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc  '"$KG/paper.jar" | sha256sum -c -
+          python - "$KG/paper.jar" "$KG" <<'PY'
+          import pathlib, sys, zipfile
+          from urllib.parse import urlparse
+          paper, target = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+          with zipfile.ZipFile(paper) as archive:
+              sha, url, name = archive.read('META-INF/download-context').decode().strip().split('\t')
+          if len(sha) != 64 or urlparse(url).scheme != 'https' or pathlib.Path(name).name != name:
+              raise ValueError('Invalid Paper download context')
+          (target / 'vanilla-url.txt').write_text(url)
+          (target / 'vanilla-sha.txt').write_text(sha)
+          (target / 'vanilla-name.txt').write_text(name)
+          PY
+          curl --fail --location --retry 3 "$(cat "$KG/vanilla-url.txt")" -o "$KG/vanilla.jar"
+          echo "$(cat "$KG/vanilla-sha.txt")  $KG/vanilla.jar" | sha256sum -c -
+          cp "$KG/vanilla.jar" "$KG/runtime/cache/$(cat "$KG/vanilla-name.txt")"
+          (cd "$KG/runtime" && java -Dpaperclip.patchonly=true -jar "$KG/paper.jar")
+          API_CP="$(find "$KG/runtime/libraries" "$KG/runtime/versions" -name '*.jar' -type f | sort | paste -sd ':' -)"
+          test -n "$API_CP"
+          echo "KG_TEST_DIR=$KG" >> "$GITHUB_ENV"
+          echo "KG_API_CP=$API_CP" >> "$GITHUB_ENV"
+          npm install --prefix "$KG/node" --no-fund --no-audit minecraft-protocol@1.62.0
+      - name: Build and check the exact release JARs and flat update ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python kingcaptcha/build.py --api-classpath "$KG_API_CP" --output-dir "$KG_TEST_DIR/release"
+          python kingcaptcha/tests/test_distribution.py "$KG_TEST_DIR/release" | tee "$KG_TEST_DIR/release/distribution-report.txt"
+      - name: Exercise Hub alone and Hub plus captcha with real protocol clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          python kingcaptcha/tests/test_paper.py \
+            --paper "$KG_TEST_DIR/paper.jar" --vanilla "$KG_TEST_DIR/vanilla.jar" \
+            --api-classpath "$KG_API_CP" --node-modules "$KG_TEST_DIR/node/node_modules" \
+            --captcha "$KG_TEST_DIR/release/KingCaptcha.jar" --hub "$KG_TEST_DIR/release/KingHub.jar" \
+            --accept-eula | tee "$KG_TEST_DIR/release/paper-report.txt"
+      - name: Save exact verified plugins and reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: kingcaptcha-verified
+          path: ${{ runner.temp }}/kingcaptcha-test/release/
+          if-no-files-found: error
+          retention-days: 7

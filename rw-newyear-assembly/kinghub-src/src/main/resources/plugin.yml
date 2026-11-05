@@ -1,9 +1,10 @@
 name: KingHub
 prefix: KingHub
-version: 1.2.3
+version: 1.2.4
 main: net.kinggrief.hub.KingHubPlugin
 api-version: '1.21'
 load: POSTWORLD
+softdepend: [KingCaptcha]
 author: KINGGRIEF
 description: Standalone New Year Hub Plugin #1 (Auto-Built Winter Map with Christmas Tree, Server Selector Compass -> 1 GRIEF, Right-Click NPC -> 1 GRIEF, Hub Auth & SSO Transfer to KingConnect)
 
