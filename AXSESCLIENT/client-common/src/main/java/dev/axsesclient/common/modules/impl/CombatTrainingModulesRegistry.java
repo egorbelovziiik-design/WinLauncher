@@ -848,7 +848,7 @@ public final class CombatTrainingModulesRegistry {
                 if (mc == null || !mc.isInWorld()) return 0;
                 int total = 0;
                 ItemInfo off = mc.getOffHandItem();
-                if (off != null && off.getId().toLowerCase(Locale.ROOT).contains("totem")) {
+                if (off != null && off.getItemId().toLowerCase(Locale.ROOT).contains("totem")) {
                     total += Math.max(1, off.getCount());
                     if (inOffhandOut != null && inOffhandOut.length > 0) inOffhandOut[0] = true;
                 }
@@ -856,7 +856,7 @@ public final class CombatTrainingModulesRegistry {
                 if (inv != null) {
                     for (int i = 0; i < inv.size(); i++) {
                         ItemInfo it = inv.get(i);
-                        if (it != null && it.getId().toLowerCase(Locale.ROOT).contains("totem")) {
+                        if (it != null && it.getItemId().toLowerCase(Locale.ROOT).contains("totem")) {
                             total += Math.max(1, it.getCount());
                         }
                     }
@@ -913,14 +913,14 @@ public final class CombatTrainingModulesRegistry {
                     for (int i = 0; i < inv.size(); i++) {
                         ItemInfo it = inv.get(i);
                         if (it == null) continue;
-                        String id = it.getId().toLowerCase(Locale.ROOT);
+                        String id = it.getItemId().toLowerCase(Locale.ROOT);
                         if (id.contains("golden_apple")) gapples += it.getCount();
                         else if (id.contains("ender_pearl")) pearls += it.getCount();
                     }
                 }
                 ItemInfo off = mc.getOffHandItem();
                 if (off != null) {
-                    String oid = off.getId().toLowerCase(Locale.ROOT);
+                    String oid = off.getItemId().toLowerCase(Locale.ROOT);
                     if (oid.contains("golden_apple")) gapples += off.getCount();
                     else if (oid.contains("ender_pearl")) pearls += off.getCount();
                 }

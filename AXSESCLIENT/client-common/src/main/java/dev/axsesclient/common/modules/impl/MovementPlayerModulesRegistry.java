@@ -283,7 +283,7 @@ public final class MovementPlayerModulesRegistry {
                 if (dead && !wasDead) {
                     wasDead = true;
                     String coords = String.format(Locale.ROOT, "%.0f %.0f %.0f (%s)",
-                            Double.valueOf(mc.getPlayerX()), Double.valueOf(mc.getPlayerY()), Double.valueOf(mc.getPlayerZ()), mc.getDimensionName());
+                            Double.valueOf(mc.getPlayerX()), Double.valueOf(mc.getPlayerY()), Double.valueOf(mc.getPlayerZ()), mc.getDimensionId());
                     if (copyCoords.isEnabled()) {
                         mc.setClipboard(coords);
                     }

@@ -79,7 +79,7 @@ public final class WorldUtilityModulesRegistry {
                         float bw = fonts.width(r, txt, 0.86f) + 14.0f;
                         float bx = proj[0] - bw * 0.5f;
                         float by = proj[1] - 20.0f;
-                        int col = themes != null ? themes.filterColor(wp.colorArgb) : wp.colorArgb;
+                        int col = themes != null ? themes.filterColor(wp.color) : wp.color;
                         r.drawLine(proj[0], proj[1] - 2.0f, proj[0], proj[1] + 8.0f, 1.4f, AxsesTheme.withAlpha(col, 0.65f));
                         r.fillRoundedRect(proj[0] - 3.0f, proj[1] - 3.0f, 6.0f, 6.0f, 3.0f, col);
                         r.fillRoundedRect(bx, by, bw, 16.0f, 8.0f, 0xDF060A18);
