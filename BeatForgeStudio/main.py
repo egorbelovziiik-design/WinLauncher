@@ -137,7 +137,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = _parse_args(list(sys.argv[1:] if argv is None else argv))
 
     if args.version:
-        print("BeatForge Studio 1.0.0")
+        # В оконной сборке stdout может отсутствовать
+        message = "BeatForge Studio 1.0.0"
+        for stream in (sys.stdout, sys.stderr):
+            if stream is not None:
+                stream.write(message + "\n")
+                break
         return 0
 
     if sys.version_info < MIN_PYTHON:

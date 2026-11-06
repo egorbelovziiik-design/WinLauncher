@@ -67,11 +67,14 @@ def init_logging(level: int = logging.INFO,
         return
 
     root.setLevel(level)
-    use_color = sys.stdout.isatty() and sys.platform != "win32"
-
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(_ColorFormatter(use_color))
-    root.addHandler(console)
+    # В оконной сборке (PyInstaller console=False) sys.stdout == None,
+    # поэтому консольный обработчик добавляем только если поток есть.
+    stream = sys.stdout or sys.stderr
+    if stream is not None:
+        use_color = getattr(stream, "isatty", lambda: False)() and sys.platform != "win32"
+        console = logging.StreamHandler(stream)
+        console.setFormatter(_ColorFormatter(use_color))
+        root.addHandler(console)
 
     if to_file:
         target = Path(log_file) if log_file else LOG_FILE

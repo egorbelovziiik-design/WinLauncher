@@ -1,0 +1,97 @@
+name: Build Windows EXE
+
+# Собирает BeatForgeStudio.exe на настоящем Windows-раннере.
+# Запуск: вручную (Actions → Build Windows EXE → Run workflow) или тегом v*.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Windows onefile
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: BeatForgeStudio/requirements.txt
+
+      - name: Install dependencies
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip wheel "setuptools<81"
+          # Playwright и whisper для сборки не нужны — это опциональные части.
+          python -m pip install -r requirements.txt
+          python -m pip install "pyinstaller>=6.6"
+          python -m pip list --format=columns | Select-String -Pattern "PyQt6|pyinstaller|numpy|scipy|librosa|soundfile"
+
+      - name: Smoke test (import + --version)
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python main.py --version
+          python -c "import ui.main_window, core.exporter, core.video_engine; print('imports ok')"
+
+      - name: Build EXE
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          pyinstaller build.spec --noconfirm --clean --log-level INFO
+
+      - name: Verify artifact
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          $exe = "dist/BeatForgeStudio.exe"
+          if (-not (Test-Path $exe)) { throw "EXE не собран" }
+          $size = (Get-Item $exe).Length / 1MB
+          "Размер: {0:N1} МБ" -f $size
+          # запуск собранного exe: --version должен вернуть 0 и напечатать версию
+          $out = & $exe --version
+          $code = $LASTEXITCODE
+          "stdout: $out"
+          "exit: $code"
+          if ($code -ne 0) { throw "exe завершился с кодом $code" }
+
+      - name: Package
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item dist/BeatForgeStudio.exe out/
+          Compress-Archive -Path out/BeatForgeStudio.exe -DestinationPath BeatForgeStudio-windows-x64.zip -Force
+          Get-ChildItem BeatForgeStudio-windows-x64.zip | Select-Object Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeatForgeStudio-windows-x64
+          path: |
+            BeatForgeStudio/dist/BeatForgeStudio.exe
+            BeatForgeStudio/BeatForgeStudio-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            BeatForgeStudio/dist/BeatForgeStudio.exe
+            BeatForgeStudio/BeatForgeStudio-windows-x64.zip
+          generate_release_notes: true
