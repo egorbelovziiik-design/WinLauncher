@@ -736,7 +736,7 @@ public class ClientScreenshotGeneratorTest {
             p.paintStylizedWorldBackdrop(true);
 
             // Render stylized open Minecraft Chat log & bottom ChatScreen input bar
-            float chatLogX = 8.0f, chatLogY = p.scaledH - 104.0f, chatLogW = 338.0f, chatLogH = 68.0f;
+            float chatLogX = 8.0f, chatLogY = p.scaledH - 104.0f, chatLogW = 382.0f, chatLogH = 68.0f;
             p.fillRoundedRect(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 0xCC050814);
             p.drawRoundedOutline(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 1.0f, 0x5538BDF8);
             core.getFontManager().draw(p, "[AXSES 4.0] КиллАура: активен профиль SnowGrim (3.00м + GCD)", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);

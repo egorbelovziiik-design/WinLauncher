@@ -390,12 +390,12 @@ public class AxsesCoreTest {
         // Click 'Stop' button inside Spotify HUD while Chat is open
         float spX = spotifyHud.getPixelX(platform.scaledW);
         float spY = spotifyHud.getPixelY(platform.scaledH);
-        assertTrue(core.onChatHudMousePress(spX + 145.0, spY + 40.0, 0), "Stop button on Spotify HUD must handle click in Chat");
+        assertTrue(core.onChatHudMousePress(spX + 165.0, spY + 41.0, 0), "Stop button on Spotify HUD must handle click in Chat");
         assertEquals(dev.axsesclient.common.media.MediaSessionBridge.PlaybackState.STOPPED,
                 dev.axsesclient.common.media.MediaSessionBridge.getInstance().getState());
 
         // Click 'Continue' button inside Spotify HUD while Chat is open
-        assertTrue(core.onChatHudMousePress(spX + 75.0, spY + 40.0, 0), "Continue button on Spotify HUD must resume playback in Chat");
+        assertTrue(core.onChatHudMousePress(spX + 80.0, spY + 41.0, 0), "Continue button on Spotify HUD must resume playback in Chat");
         assertTrue(dev.axsesclient.common.media.MediaSessionBridge.getInstance().isPlaying());
 
         // Drag FPS HUD widget directly inside Chat screen

@@ -506,7 +506,7 @@ public final class WorldUtilityModulesRegistry {
         });
         spotifyMusicMod.setFavorite(true);
 
-        HudElement spotifyHudEl = new HudElement("spotify_music_hud", "Spotify Music", spotifyMusicMod, 0.986f, 0.640f, 218f, 54f)
+        HudElement spotifyHudEl = new HudElement("spotify_music_hud", "Spotify Music", spotifyMusicMod, 0.986f, 0.635f, 238f, 55f)
                 .withCustomPainter(new HudElement.CustomHudPainter() {
                     @Override
                     public boolean paint(RenderAdapter r, MinecraftAdapter mc, ThemeManager tm, FontManager fm,
@@ -551,29 +551,30 @@ public final class WorldUtilityModulesRegistry {
                         int srcCol;
                         if (playing) {
                             srcBadge = bridge.isSpotifyProcessDetected()
-                                    ? (ru ? "● SPOTIFY · MC МУЗЫКА СТОП" : "● SPOTIFY · MC MUTED")
+                                    ? (ru ? "● SPOTIFY · MC СТОП" : "● SPOTIFY · MC MUTED")
                                     : (ru ? "● МУЗЫКА · MC СТОП" : "● MUSIC · MC MUTED");
                             srcCol = prim;
                         } else if (stopped) {
-                            srcBadge = ru ? "■ ОСТАНОВЛЕНО" : "■ STOPPED";
+                            srcBadge = ru ? "■ СТОП" : "■ STOPPED";
                             srcCol = 0xFFFF5D8F;
                         } else {
-                            srcBadge = ru ? "❚❚ НА ПАУЗЕ" : "❚❚ PAUSED";
+                            srcBadge = ru ? "❚❚ ПАУЗА · SPOTIFY" : "❚❚ PAUSED · SPOTIFY";
                             srcCol = 0xFFFFD166;
                         }
-                        fm.draw(r, srcBadge, px + 36.0f, py + 5.5f, srcCol, 0.72f);
-                        fm.drawRight(r, bridge.formatTimeCode(), px + sw - 7.0f, py + 5.5f, t.getMutedTextColor(), 0.70f);
+                        fm.draw(r, srcBadge, px + 36.0f, py + 5.0f, srcCol, 0.80f);
+                        String timeCode = bridge.formatTimeCode();
+                        fm.draw(r, timeCode, px + sw - 7.0f - fm.width(r, timeCode, 0.80f), py + 5.0f, t.getMutedColor(), 0.80f);
 
-                        // Track title & artist
-                        String fullTrack = bridge.getArtist() + " — " + bridge.getTrackTitle();
-                        if (fullTrack.length() > 28) {
-                            fullTrack = fullTrack.substring(0, 27) + "…";
+                        // Track title & artist (pixel-width clamped cleanly)
+                        String fullTrack = bridge.getArtist() + " - " + bridge.getTrackTitle();
+                        while (fullTrack.length() > 8 && fm.width(r, fullTrack, 0.84f) > sw - 44.0f) {
+                            fullTrack = fullTrack.substring(0, fullTrack.length() - 2) + "…";
                         }
-                        fm.draw(r, fullTrack, px + 36.0f, py + 15.0f, 0xFFF8FAFF, 0.84f);
+                        fm.draw(r, fullTrack, px + 36.0f, py + 15.5f, 0xFFF8FAFF, 0.84f);
 
                         // Smooth progress bar
                         float barX = px + 36.0f;
-                        float barY = py + 26.5f;
+                        float barY = py + 27.0f;
                         float barW = sw - 43.0f;
                         r.fillRoundedRect(barX, barY, barW, 3.2f, 1.6f, 0x36FFFFFF);
                         float fillW = Math.max(3.0f, barW * bridge.getProgressRatio());
@@ -583,16 +584,16 @@ public final class WorldUtilityModulesRegistry {
                         if (musicShowControlsRef.isEnabled()) {
                             float mx = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseX() : -999f;
                             float my = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseY() : -999f;
-                            float btnY = py + 33.5f;
-                            float btnH = 16.0f;
+                            float btnY = py + 34.0f;
+                            float btnH = 16.5f;
 
-                            drawTactileHudBtn(r, fm, px + 7.0f, btnY, 24.0f, btnH, "⏮", false, prim, mx, my);
+                            drawTactileHudBtn(r, fm, px + 7.0f, btnY, 24.0f, btnH, "<<", false, prim, mx, my);
                             String playLabel = playing
-                                    ? (ru ? "⏸ Пауза" : "⏸ Pause")
-                                    : (ru ? "▶ Продолжить" : "▶ Continue");
-                            drawTactileHudBtn(r, fm, px + 34.0f, btnY, 92.0f, btnH, playLabel, true, prim, mx, my);
-                            drawTactileHudBtn(r, fm, px + 129.0f, btnY, 56.0f, btnH, ru ? "⏹ Стоп" : "⏹ Stop", false, 0xFFFF4D6D, mx, my);
-                            drawTactileHudBtn(r, fm, px + 188.0f, btnY, 23.0f, btnH, "⏭", false, acc, mx, my);
+                                    ? (ru ? "|| Пауза" : "|| Pause")
+                                    : (ru ? "> Продолжить" : "> Continue");
+                            drawTactileHudBtn(r, fm, px + 35.0f, btnY, 104.0f, btnH, playLabel, true, prim, mx, my);
+                            drawTactileHudBtn(r, fm, px + 143.0f, btnY, 62.0f, btnH, ru ? "■ Стоп" : "■ Stop", false, 0xFFFF4D6D, mx, my);
+                            drawTactileHudBtn(r, fm, px + 209.0f, btnY, 22.0f, btnH, ">>", false, acc, mx, my);
                         }
                         return true;
                     }
@@ -601,18 +602,18 @@ public final class WorldUtilityModulesRegistry {
                     @Override
                     public boolean onMouseClick(MinecraftAdapter mc, float localX, float localY, float width, float height, int button) {
                         if (button != 0 || !musicShowControlsRef.isEnabled()) return false;
-                        if (localY < 32.0f || localY > 52.0f) return false;
+                        if (localY < 32.0f || localY > 53.0f) return false;
                         MediaSessionBridge bridge = MediaSessionBridge.getInstance();
                         boolean ru = i18n == null || i18n.isRussian();
                         if (localX >= 6.0f && localX <= 32.0f) {
                             bridge.previousTrack();
                             if (mc != null && musicAutoMuteMcRef.isEnabled()) mc.stopVanillaMusic();
                             if (notifications != null) {
-                                notifications.push("Spotify", (ru ? "⏮ Предыдущий: " : "⏮ Prev: ") + bridge.getTrackTitle(), NotificationManager.Severity.INFO);
+                                notifications.push("Spotify", (ru ? "Предыдущий: " : "Prev: ") + bridge.getTrackTitle(), NotificationManager.Severity.INFO);
                             }
                             return true;
                         }
-                        if (localX >= 33.0f && localX <= 127.0f) {
+                        if (localX >= 34.0f && localX <= 140.0f) {
                             MediaSessionBridge.PlaybackState st = bridge.togglePlayPause();
                             if (st == MediaSessionBridge.PlaybackState.PLAYING && mc != null && musicAutoMuteMcRef.isEnabled()) {
                                 mc.stopVanillaMusic();
@@ -620,24 +621,24 @@ public final class WorldUtilityModulesRegistry {
                             if (notifications != null) {
                                 notifications.push("Spotify",
                                         st == MediaSessionBridge.PlaybackState.PLAYING
-                                                ? (ru ? "▶ Продолжено (музыка MC остановлена)" : "▶ Resumed (MC music muted)")
-                                                : (ru ? "⏸ Пауза воспроизведения" : "⏸ Playback Paused"),
+                                                ? (ru ? "Продолжено (музыка MC остановлена)" : "Resumed (MC music muted)")
+                                                : (ru ? "Пауза воспроизведения" : "Playback Paused"),
                                         NotificationManager.Severity.SUCCESS);
                             }
                             return true;
                         }
-                        if (localX >= 128.0f && localX <= 186.0f) {
+                        if (localX >= 142.0f && localX <= 206.0f) {
                             bridge.stopMusic();
                             if (notifications != null) {
-                                notifications.push("Spotify", ru ? "⏹ Музыка полностью остановлена" : "⏹ Playback Stopped", NotificationManager.Severity.WARNING);
+                                notifications.push("Spotify", ru ? "Музыка полностью остановлена" : "Playback Stopped", NotificationManager.Severity.WARNING);
                             }
                             return true;
                         }
-                        if (localX >= 187.0f && localX <= 214.0f) {
+                        if (localX >= 208.0f && localX <= 234.0f) {
                             bridge.nextTrack();
                             if (mc != null && musicAutoMuteMcRef.isEnabled()) mc.stopVanillaMusic();
                             if (notifications != null) {
-                                notifications.push("Spotify", (ru ? "⏭ Следующий: " : "⏭ Next: ") + bridge.getTrackTitle(), NotificationManager.Severity.INFO);
+                                notifications.push("Spotify", (ru ? "Следующий: " : "Next: ") + bridge.getTrackTitle(), NotificationManager.Severity.INFO);
                             }
                             return true;
                         }
@@ -844,7 +845,7 @@ public final class WorldUtilityModulesRegistry {
         });
         baritoneMod.setFavorite(true);
 
-        HudElement baritoneHudEl = new HudElement("baritone_bot", "Baritone Autopilot", baritoneMod, 0.986f, 0.545f, 218f, 38f)
+        HudElement baritoneHudEl = new HudElement("baritone_bot", "Baritone Autopilot", baritoneMod, 0.986f, 0.540f, 238f, 38f)
                 .withCustomPainter(new HudElement.CustomHudPainter() {
                     @Override
                     public boolean paint(RenderAdapter r, MinecraftAdapter mc, ThemeManager tm, FontManager fm,
@@ -853,7 +854,6 @@ public final class WorldUtilityModulesRegistry {
                         AxsesTheme t = tm.getActiveTheme();
                         boolean ru = i18n == null || i18n.isRussian();
                         int acc = tm.filterColor(t.getAccentColor());
-                        int prim = tm.filterColor(t.getPrimaryColor());
                         boolean paused = baritonePausedState[0];
                         int statusCol = paused ? 0xFFFFD166 : 0xFF00F5D4;
 
@@ -873,38 +873,41 @@ public final class WorldUtilityModulesRegistry {
                         double dist = (mc != null && mc.isInWorld()) ? Math.hypot(gx - mc.getPlayerX(), gz - mc.getPlayerZ()) : 42.0;
                         boolean ext = mc != null && mc.isExternalBaritoneLoaded();
 
-                        String hdr = (paused ? "❚❚ " : "⚡ ") + (ru ? "БАРИТОН" : "BARITONE") + (ext ? " [API]" : " [AI]");
-                        fm.draw(r, hdr, px + 8.0f, py + 5.5f, statusCol, 0.78f);
-                        fm.draw(r, String.format(Locale.ROOT, "%s · %.0f%s", taskName, Double.valueOf(dist), ru ? "м" : "m"),
-                                px + 8.0f, py + 16.5f, 0xFFF8FAFF, 0.80f);
+                        String hdr = (paused ? "|| " : "⚡ ") + (ru ? "БАРИТОН" : "BARITONE") + (ext ? " [API]" : " [AI]");
+                        fm.draw(r, hdr, px + 8.0f, py + 6.0f, statusCol, 0.78f);
+                        String sub = String.format(Locale.ROOT, "%.0f%s · %s", Double.valueOf(dist), ru ? "м" : "m", taskName);
+                        while (sub.length() > 6 && fm.width(r, sub, 0.80f) > 124.0f) {
+                            sub = sub.substring(0, sub.length() - 2) + "…";
+                        }
+                        fm.draw(r, sub, px + 8.0f, py + 19.0f, 0xFFF8FAFF, 0.80f);
 
                         float mx = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseX() : -999f;
                         float my = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseY() : -999f;
-                        drawTactileHudBtn(r, fm, px + sw - 92.0f, py + 19.0f, 44.0f, 14.5f,
-                                paused ? (ru ? "▶ Пуск" : "▶ Go") : (ru ? "⏸ Пауза" : "⏸ Pause"), true, statusCol, mx, my);
-                        drawTactileHudBtn(r, fm, px + sw - 45.0f, py + 19.0f, 38.0f, 14.5f,
-                                ru ? "⏹ Стоп" : "⏹ Stop", false, 0xFFFF4D6D, mx, my);
+                        drawTactileHudBtn(r, fm, px + sw - 101.0f, py + 11.0f, 50.0f, 16.5f,
+                                paused ? (ru ? "> Пуск" : "> Go") : (ru ? "|| Пауза" : "|| Pause"), true, statusCol, mx, my);
+                        drawTactileHudBtn(r, fm, px + sw - 48.0f, py + 11.0f, 42.0f, 16.5f,
+                                ru ? "■ Стоп" : "■ Stop", false, 0xFFFF4D6D, mx, my);
                         return true;
                     }
                 })
                 .withInteractiveHandler(new HudElement.InteractiveHudHandler() {
                     @Override
                     public boolean onMouseClick(MinecraftAdapter mc, float localX, float localY, float width, float height, int button) {
-                        if (button != 0 || localY < 17.0f) return false;
+                        if (button != 0 || localY < 9.0f || localY > 30.0f) return false;
                         boolean ru = i18n == null || i18n.isRussian();
-                        if (localX >= width - 93.0f && localX <= width - 47.0f) {
+                        if (localX >= width - 102.0f && localX <= width - 50.0f) {
                             baritonePausedState[0] = !baritonePausedState[0];
                             if (mc != null && mc.isExternalBaritoneLoaded()) {
                                 mc.sendChatOrCommand(baritonePausedState[0] ? "#pause" : "#resume");
                             }
                             if (notifications != null) {
                                 notifications.push("Baritone",
-                                        baritonePausedState[0] ? (ru ? "Маршрут поставлен на паузу" : "Pathing paused") : (ru ? "Маршрут возобновлён" : "Pathing resumed"),
+                                        baritonePausedState[0] ? (ru ? "Маршрут на паузе" : "Pathing paused") : (ru ? "Маршрут продолжен" : "Pathing resumed"),
                                         NotificationManager.Severity.INFO);
                             }
                             return true;
                         }
-                        if (localX >= width - 46.0f && localX <= width - 5.0f) {
+                        if (localX >= width - 49.0f && localX <= width - 5.0f) {
                             baritoneMod.setEnabled(false, mc);
                             if (notifications != null) {
                                 notifications.push("Baritone", ru ? "Автопилот остановлен (#stop)" : "Autopilot stopped (#stop)", NotificationManager.Severity.WARNING);
