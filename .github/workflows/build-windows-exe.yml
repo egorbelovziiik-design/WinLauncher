@@ -83,24 +83,41 @@ jobs:
               if ($proc.ExitCode -ne 0) { throw "exe --version завершился с кодом $($proc.ExitCode)" }
           }
 
+      - name: Self-check собранного exe
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          # Главная проверка: тот же код, что падал с "No module named 'pydoc'".
+          # Запускается ВНУТРИ onefile-сборки, поэтому ловит недоложенные модули.
+          $out = Join-Path $env:TEMP "selfcheck.txt"
+          $err = Join-Path $env:TEMP "selfcheck.err.txt"
+          $p = Start-Process -FilePath "dist/BeatForgeStudio.exe" -ArgumentList "--self-check" `
+               -PassThru -NoNewWindow -RedirectStandardOutput $out -RedirectStandardError $err
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "self-check не завершился за 5 минут" }
+          Get-Content $out, $err -ErrorAction SilentlyContinue
+          "Код возврата self-check: $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "self-check провален (код $($p.ExitCode))" }
+
       - name: GUI smoke test (offscreen)
         working-directory: BeatForgeStudio
         shell: pwsh
         env:
           QT_QPA_PLATFORM: offscreen
-          QT_LOGGING_RULES: "qt.qpa.*=false"
         run: |
-          # запускаем собранный exe с --safe; если он падает на старте —
-          # процесс умрёт раньше 12 секунд
+          # окно должно подняться и не умереть; лог проверяем на ошибки импорта
+          $log = Join-Path $env:USERPROFILE ".beatforge_studio\beatforge_studio.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath "dist/BeatForgeStudio.exe" -ArgumentList "--safe" -PassThru
-          Start-Sleep -Seconds 12
-          if ($p.HasExited) {
-              $log = Join-Path $env:USERPROFILE ".beatforge_studio\beatforge_studio.log"
-              if (Test-Path $log) { Get-Content $log -Tail 40 }
-              throw "GUI-сборка завершилась сама (код $($p.ExitCode))"
-          }
-          "Приложение работает 12 с, память: {0:N0} МБ" -f ($p.WorkingSet64 / 1MB)
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "GUI завершился сам (код $($p.ExitCode))" }
+          "Окно работает 15 с, память: {0:N0} МБ" -f ($p.WorkingSet64 / 1MB)
           Stop-Process -Id $p.Id -Force
+
+          if (Test-Path $log) {
+              Get-Content $log -Tail 30
+              $bad = Select-String -Path $log -Pattern "ModuleNotFoundError|ImportError|Traceback"
+              if ($bad) { $bad; throw "В логе есть ошибки импорта" }
+          }
 
       - name: Package
         working-directory: BeatForgeStudio

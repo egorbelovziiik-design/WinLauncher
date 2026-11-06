@@ -41,7 +41,9 @@ for package in ("imageio_ffmpeg", "yt_dlp", "certifi", "librosa", "soundfile"):
     except Exception:
         pass
 
+# Модули stdlib, которые нужны scipy/numpy на этапе импорта
 hiddenimports = [
+    "pydoc", "pydoc_data", "doctest", "unittest", "unittest.mock",
     # Qt-плагины
     "PyQt6.QtCore", "PyQt6.QtGui", "PyQt6.QtWidgets", "PyQt6.QtNetwork",
     # поиск/загрузка
@@ -99,7 +101,9 @@ excludes = [
     "PyQt6.QtWebSockets", "PyQt6.Qt3DCore", "PyQt6.Qt3DRender",
     # научный стек: нужен только librosa/scipy (numpy остаётся)
     "sklearn", "pandas", "statsmodels", "sympy", "networkx", "h5py",
-    "pydoc_data", "lib2to3", "doctest", "pydoc",
+    # ВАЖНО: не исключать stdlib (pydoc, doctest, unittest, lib2to3)!
+    # scipy.signal → scipy._lib._docscrape делает «import pydoc» при загрузке,
+    # и с исключённым pydoc приложение падало в рантайме (ModuleNotFoundError).
 ]
 
 block_cipher = None

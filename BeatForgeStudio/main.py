@@ -19,6 +19,7 @@
     python main.py --project file.bfs
     python main.py --export-audio out.mp3
     python main.py --reset-config     # сбросить настройки к значениям по умолчанию
+    python main.py --self-check       # сквозная проверка сборки без GUI
 """
 
 from __future__ import annotations
@@ -56,6 +57,8 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         help="Безопасный режим: без анимаций и звукового устройства")
     parser.add_argument("--reset-config", action="store_true",
                         help="Сбросить настройки к значениям по умолчанию")
+    parser.add_argument("--self-check", action="store_true",
+                        help="Прогнать самопроверку (аудио, эффекты, FFmpeg, видео) и выйти")
     parser.add_argument("--debug", action="store_true", help="Подробный лог (DEBUG)")
     parser.add_argument("--version", action="store_true", help="Показать версию")
     return parser.parse_args(argv)
@@ -144,6 +147,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                 stream.write(message + "\n")
                 break
         return 0
+
+    if args.self_check:
+        # Без Qt и без GUI: проверяет ядро и внешние зависимости.
+        from utils.self_check import run_self_check
+
+        return run_self_check()
 
     if sys.version_info < MIN_PYTHON:
         sys.stderr.write(
