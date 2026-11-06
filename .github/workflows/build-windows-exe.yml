@@ -1,0 +1,177 @@
+name: Build Windows EXE
+
+# Собирает BeatForgeStudio.exe на настоящем Windows-раннере.
+# Запуск: вручную (Actions → Build Windows EXE → Run workflow) или тегом v*.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "arena/494dac3e-winlauncher"
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Windows onefile
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip wheel "setuptools<81"
+          # Playwright и whisper для сборки не нужны — это опциональные части.
+          python -m pip install -r requirements.txt
+          python -m pip install "pyinstaller>=6.6"
+          python -c "import PyQt6, numpy, scipy, librosa, soundfile, imageio_ffmpeg; print('deps ok')"
+
+      - name: Smoke test (import + --version)
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python main.py --version
+          python -c "import ui.main_window, core.exporter, core.video_engine; print('imports ok')"
+
+      - name: Build EXE
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          pyinstaller build.spec --noconfirm --clean --log-level INFO
+
+      - name: Verify artifact
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          $exe = "dist/BeatForgeStudio.exe"
+          if (-not (Test-Path $exe)) { throw "EXE не собран" }
+          $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          "Размер: $size МБ"
+          # отчёт «кто сколько весит» — чтобы понимать, куда уходит размер
+          python -m PyInstaller.utils.cliutils.archive_viewer -l $exe |
+            Select-String -Pattern "PYZ|numpy|scipy|llvmlite|Qt6|librosa" | Select-Object -First 25
+          if ($size -lt 20) { throw "Подозрительно маленький EXE: $size МБ" }
+
+          # содержимое архива: должны быть Qt и наш код
+          $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l $exe | Out-String
+          foreach ($needle in @("PyQt6", "core.", "ui.")) {
+              if ($listing -notmatch [regex]::Escape($needle)) { throw "В сборке нет $needle" }
+          }
+          "Архив содержит PyQt6, core, ui"
+
+          # запуск: windowed-приложение, поэтому ждём ExitCode через Start-Process
+          $proc = Start-Process -FilePath $exe -ArgumentList "--version" -PassThru
+          if (-not $proc.WaitForExit(120000)) {
+              $proc.Kill()
+              "Процесс не завершился за 2 минуты (GUI остаётся в памяти) — допустимо"
+          } else {
+              "Код возврата: $($proc.ExitCode)"
+              if ($proc.ExitCode -ne 0) { throw "exe --version завершился с кодом $($proc.ExitCode)" }
+          }
+
+      - name: Self-check собранного exe
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          # Главная проверка: тот же код, что падал с "No module named 'pydoc'".
+          # Запускается ВНУТРИ onefile-сборки, поэтому ловит недоложенные модули.
+          $out = Join-Path $env:TEMP "selfcheck.txt"
+          $err = Join-Path $env:TEMP "selfcheck.err.txt"
+          $p = Start-Process -FilePath "dist/BeatForgeStudio.exe" -ArgumentList "--self-check" `
+               -PassThru -NoNewWindow -RedirectStandardOutput $out -RedirectStandardError $err
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "self-check не завершился за 5 минут" }
+          Get-Content $out, $err -ErrorAction SilentlyContinue
+          "Код возврата self-check: $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "self-check провален (код $($p.ExitCode))" }
+
+      - name: GUI smoke test (offscreen)
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          # окно должно подняться и не умереть; лог проверяем на ошибки импорта
+          $log = Join-Path $env:USERPROFILE ".beatforge_studio\beatforge_studio.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath "dist/BeatForgeStudio.exe" -ArgumentList "--safe" -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "GUI завершился сам (код $($p.ExitCode))" }
+          "Окно работает 15 с, память: {0:N0} МБ" -f ($p.WorkingSet64 / 1MB)
+          Stop-Process -Id $p.Id -Force
+
+          if (Test-Path $log) {
+              Get-Content $log -Tail 30
+              $bad = Select-String -Path $log -Pattern "ModuleNotFoundError|ImportError|Traceback"
+              if ($bad) { $bad; throw "В логе есть ошибки импорта" }
+          }
+
+      - name: Package
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item dist/BeatForgeStudio.exe out/
+          Compress-Archive -Path out/BeatForgeStudio.exe -DestinationPath BeatForgeStudio-windows-x64.zip -Force
+          Get-ChildItem BeatForgeStudio-windows-x64.zip | Select-Object Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeatForgeStudio-windows-x64
+          path: |
+            BeatForgeStudio/dist/BeatForgeStudio.exe
+            BeatForgeStudio/BeatForgeStudio-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Checksum
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/BeatForgeStudio.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  BeatForgeStudio.exe" | Out-File -Encoding ascii dist/BeatForgeStudio.exe.sha256
+          Get-Content dist/BeatForgeStudio.exe.sha256
+
+      # Постоянная публичная ссылка на сборку с этой ветки
+      - name: Publish "latest" release
+        if: github.ref == 'refs/heads/arena/494dac3e-winlauncher'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: beatforge-windows-latest
+          name: BeatForge Studio — Windows (последняя сборка)
+          body: |
+            Сборка из ветки `arena/494dac3e-winlauncher`, коммит `${{ github.sha }}`.
+            Собрано на `windows-latest`, Python 3.11, PyInstaller onefile.
+
+            Скачать: `BeatForgeStudio.exe` (один файл, ничего устанавливать не нужно).
+            Контрольная сумма — в `BeatForgeStudio.exe.sha256`.
+          files: |
+            BeatForgeStudio/dist/BeatForgeStudio.exe
+            BeatForgeStudio/dist/BeatForgeStudio.exe.sha256
+            BeatForgeStudio/BeatForgeStudio-windows-x64.zip
+          prerelease: true
+          make_latest: false
+
+      - name: Attach to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            BeatForgeStudio/dist/BeatForgeStudio.exe
+            BeatForgeStudio/dist/BeatForgeStudio.exe.sha256
+            BeatForgeStudio/BeatForgeStudio-windows-x64.zip
+          generate_release_notes: true
