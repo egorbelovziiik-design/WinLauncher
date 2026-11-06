@@ -61,6 +61,9 @@ jobs:
           if (-not (Test-Path $exe)) { throw "EXE не собран" }
           $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
           "Размер: $size МБ"
+          # отчёт «кто сколько весит» — чтобы понимать, куда уходит размер
+          python -m PyInstaller.utils.cliutils.archive_viewer -l $exe |
+            Select-String -Pattern "PYZ|numpy|scipy|llvmlite|Qt6|librosa" | Select-Object -First 25
           if ($size -lt 20) { throw "Подозрительно маленький EXE: $size МБ" }
 
           # содержимое архива: должны быть Qt и наш код

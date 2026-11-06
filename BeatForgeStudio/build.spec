@@ -48,10 +48,9 @@ hiddenimports = [
     "yt_dlp.extractor", "yt_dlp.extractor.youtube", "yt_dlp.extractor.soundcloud",
     "yt_dlp.downloader", "yt_dlp.postprocessor",
     # видео/аудио
-    "imageio_ffmpeg", "soundfile", "sounddevice", "pydub", "librosa",
+    "imageio_ffmpeg", "soundfile", "sounddevice", "librosa",
     "scipy.signal", "scipy.io.wavfile", "numpy",
-    "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont", "cv2",
-    "moviepy", "moviepy.editor",
+    "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont",
     # публикация
     "googleapiclient.discovery", "googleapiclient.http", "googleapiclient.errors",
     "google_auth_oauthlib.flow", "google.oauth2.credentials",
@@ -84,6 +83,11 @@ excludes = [
     "tkinter", "matplotlib", "PyQt5", "PySide2", "PySide6",
     "IPython", "jupyter", "pytest", "sphinx", "tests",
     "numba", "llvmlite", "torch", "tensorflow",
+    # не используются в коде (проверено grep'ом), но весят десятки МБ
+    "cv2", "moviepy", "imageio",
+    # librosa тянет numba/llvmlite (сотни МБ); они нужны только для
+    # time-stretch и pitch-shift — оба места ловят ImportError и работают
+    # без них (скорость без сохранения тона, без pitch shift).
     # Qt-модули, которые приложение не использует (каждый ~10-40 МБ)
     "PyQt6.QtWebEngineCore", "PyQt6.QtWebEngineWidgets", "PyQt6.QtWebEngineQuick",
     "PyQt6.QtQuick", "PyQt6.QtQuick3D", "PyQt6.QtQml", "PyQt6.QtMultimedia",
