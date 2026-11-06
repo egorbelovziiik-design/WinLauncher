@@ -174,13 +174,40 @@ python main.py --project mix.bfs --export-audio out.mp3
 
 ## Сборка
 
+**Готовый Windows-бинарник** собирается в CI и лежит в релизе:
+
+* страница: <https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/beatforge-windows-latest>
+* прямая ссылка: <https://github.com/egorbelovziiik-design/WinLauncher/releases/download/beatforge-windows-latest/BeatForgeStudio.exe>
+
+Один файл ~190 МБ, установка не нужна: скачал → запустил. Рядом лежит
+`BeatForgeStudio.exe.sha256` для проверки целостности:
+
 ```
+certutil -hashfile BeatForgeStudio.exe SHA256
+```
+
+Workflow `.github/workflows/build-windows-exe.yml` запускается на `windows-latest`
+при пуше в ветку, вручную (Actions → Build Windows EXE) и на тег `v*` (тогда
+релиз публикуется с заметками). Перед публикацией он проверяет, что внутри
+архива есть PyQt6/`core`/`ui`, и держит собранное приложение запущенным 12 с —
+падение на старте ломает сборку.
+
+**Локально** (на своей Windows-машине):
+
+```
+pip install -r requirements.txt
 pyinstaller build.spec
 ```
 
 Получится один файл `dist/BeatForgeStudio[.exe]`. `assets/` упакован внутрь;
 FFmpeg берётся из `imageio-ffmpeg` (он уже в зависимостях). Настройки и кэш
 хранятся вне сборки и не теряются при обновлении.
+
+Из сборки исключены неиспользуемые части, чтобы не раздувать файл: QtWebEngine,
+QtQuick/QML, QtMultimedia, QtDesigner, QtSql, OpenCV, moviepy, numba/llvmlite.
+Поэтому скорость «с сохранением тональности» и pitch-shift (librosa) в exe
+недоступны — код это корректно обрабатывает; для полного набора запускайте
+из исходников.
 
 ---
 
