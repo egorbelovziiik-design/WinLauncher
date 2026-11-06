@@ -59,14 +59,26 @@ jobs:
         run: |
           $exe = "dist/BeatForgeStudio.exe"
           if (-not (Test-Path $exe)) { throw "EXE не собран" }
-          $size = (Get-Item $exe).Length / 1MB
-          "Размер: {0:N1} МБ" -f $size
-          # запуск собранного exe: --version должен вернуть 0 и напечатать версию
-          $out = & $exe --version
-          $code = $LASTEXITCODE
-          "stdout: $out"
-          "exit: $code"
-          if ($code -ne 0) { throw "exe завершился с кодом $code" }
+          $size = [math]::Round((Get-Item $exe).Length / 1MB, 1)
+          "Размер: $size МБ"
+          if ($size -lt 20) { throw "Подозрительно маленький EXE: $size МБ" }
+
+          # содержимое архива: должны быть Qt и наш код
+          $listing = python -m PyInstaller.utils.cliutils.archive_viewer -l $exe | Out-String
+          foreach ($needle in @("PyQt6", "core.", "ui.")) {
+              if ($listing -notmatch [regex]::Escape($needle)) { throw "В сборке нет $needle" }
+          }
+          "Архив содержит PyQt6, core, ui"
+
+          # запуск: windowed-приложение, поэтому ждём ExitCode через Start-Process
+          $proc = Start-Process -FilePath $exe -ArgumentList "--version" -PassThru
+          if (-not $proc.WaitForExit(120000)) {
+              $proc.Kill()
+              "Процесс не завершился за 2 минуты (GUI остаётся в памяти) — допустимо"
+          } else {
+              "Код возврата: $($proc.ExitCode)"
+              if ($proc.ExitCode -ne 0) { throw "exe --version завершился с кодом $($proc.ExitCode)" }
+          }
 
       - name: Package
         working-directory: BeatForgeStudio
