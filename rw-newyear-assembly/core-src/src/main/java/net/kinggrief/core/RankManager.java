@@ -329,6 +329,15 @@ public final class RankManager {
         return p != null && (getRank(p).weight >= 75 || p.hasPermission("kinggrief.gm"));
     }
 
+    /** Preserve legacy advanced modes for established high ranks; the new
+     * support role only gains the requested own Creative/Survival by default. */
+    public boolean canUseOwnExtendedGameModes(Player p) {
+        if (p == null) return false;
+        RankDef r = getRank(p);
+        return p.hasPermission("kinggrief.gm") || (!"techsupport".equals(r.id)
+                && (r.weight >= 178 || isMlModerOrHigher(p)));
+    }
+
     public boolean isStaffChatMember(Player p) {
         return p != null && (isRealStaffHelperOrHigher(p) || "techsupport".equals(getRank(p).id));
     }

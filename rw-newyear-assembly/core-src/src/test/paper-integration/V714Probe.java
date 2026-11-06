@@ -109,7 +109,7 @@ public final class V714Probe extends JavaPlugin implements Listener {
     }
     private void command(Player p, String command) { Bukkit.dispatchCommand(p, command); }
     private Set<String> visible(Player p) {
-        Set<String> commands = new HashSet<String>(Arrays.asList("gm", "gms", "gmc", "gamemode", "tp", "log", "curator", "staffchat", "sc"));
+        Set<String> commands = new HashSet<String>(Arrays.asList("gm", "gms", "gmc", "gmsp", "gamemode", "tp", "log", "curator", "staffchat", "sc"));
         Bukkit.getPluginManager().callEvent(new PlayerCommandSendEvent(p, commands));
         return commands;
     }
@@ -191,7 +191,11 @@ public final class V714Probe extends JavaPlugin implements Listener {
             ok(one.getGameMode() == GameMode.CREATIVE && visible(one).contains("gm"), "creative from IMPERATOR " + def.id);
             command(one, "gm 0"); ok(one.getGameMode() == GameMode.SURVIVAL, "survival from creative " + def.id);
         }
-        r.setRank(one.getName(), "techsupport", false);
+        r.setRank(one.getName(), "opka", false); one.setGameMode(GameMode.SURVIVAL);
+        command(one, "gm 3"); ok(one.getGameMode() == GameMode.SPECTATOR, "legacy OPKA advanced mode remains available");
+        r.setRank(one.getName(), "techsupport", false); one.setGameMode(GameMode.SURVIVAL);
+        command(one, "gm 3"); ok(one.getGameMode() == GameMode.SURVIVAL && !visible(one).contains("gmsp"), "new support does not gain spectator by weight");
+        command(one, "gm 2"); ok(one.getGameMode() == GameMode.SURVIVAL, "new support does not gain adventure by weight");
         ok(!core.getModeration().isStaff(one) && !core.getCurator().hasCuratorAccess(one), "tech support has no moderation or curator access");
         ok(visible(one).contains("log") && visible(one).contains("staffchat") && !visible(one).contains("tp"), "support sees log and staff chat, not moderator tp");
         ok(one.hasPermission("kinggrief.errorlog"), "support permission node attached");

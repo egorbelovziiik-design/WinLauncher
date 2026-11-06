@@ -5397,6 +5397,8 @@ public final class GameplayListener implements Listener {
                     && ("gm".equals(cmd) || "gms".equals(cmd) || "gamemode".equals(cmd)
                     || "gmc".equals(cmd) || "gmsp".equals(cmd))) {
                 it.remove();
+            } else if ("gmsp".equals(cmd) && !plugin.getRanks().canUseOwnExtendedGameModes(p)) {
+                it.remove();
             }
         }
         if (Bukkit.getPluginManager().getPlugin("KingClear") != null) {

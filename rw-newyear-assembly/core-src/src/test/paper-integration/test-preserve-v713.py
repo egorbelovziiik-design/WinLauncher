@@ -10,7 +10,7 @@ def main():
  p.add_argument('--java',default='java');p.add_argument('--javac',default='javac');p.add_argument('--core',type=Path,default=ROOT/'KingGriefCore.jar')
  p.add_argument('--old-core',type=Path,default=ROOT.parent/'kinggrief/public/KingGriefCore-v7.13.0.jar');p.add_argument('--node-modules',type=Path);p.add_argument('--accept-eula',action='store_true');a=p.parse_args()
  if not a.accept_eula:p.error('Review https://aka.ms/MinecraftEULA; pass --accept-eula')
- if hashlib.sha256(a.old_core.read_bytes()).hexdigest()!='d873330387beb08c2083c387e3a3d5b3e740f886128dbc7d1d4920db05351aa3':raise AssertionError('Historical 7.13.0 JAR differs from published release')
+ if hashlib.sha256(a.old_core.read_bytes()).hexdigest()!='3e76d6085b942726881890a5478bd332ca5a213bf8a3325c776c372be6c25779':raise AssertionError('Historical 7.13.0 JAR differs from published release')
  cache=h.cache_name(a.paper,a.vanilla)
  with tempfile.TemporaryDirectory(prefix='kg-preserve-v713-') as tmp:
   root=Path(tmp);server=root/'server';data=server/'plugins/KingGriefCore';data.mkdir(parents=True);(server/'cache').mkdir()

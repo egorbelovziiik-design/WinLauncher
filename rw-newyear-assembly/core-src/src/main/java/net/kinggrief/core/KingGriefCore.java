@@ -743,12 +743,12 @@ public final class KingGriefCore extends JavaPlugin {
             }
         } else if ("gm".equals(c)) {
             Player player = sender instanceof Player ? (Player) sender : null;
-            boolean advanced = player == null || ranks.getRank(player).weight >= 178
-                    || ranks.isMlModerOrHigher(player) || player.hasPermission("kinggrief.gm");
+            boolean advanced = player == null || ranks.canUseOwnExtendedGameModes(player);
             if (player != null && !advanced && !ranks.canUseOwnCreative(player)) return out;
             String label = alias.toLowerCase(Locale.ROOT);
             if (label.contains(":")) label = label.substring(label.lastIndexOf(':') + 1);
             boolean fixed = "gmc".equals(label) || "gmsp".equals(label);
+            if ("gmsp".equals(label) && !advanced) return out;
             if (fixed && args.length == 1) {
                 boolean canOther = player == null || ("gmsp".equals(label)
                         ? ranks.isMlModerOrHigher(player) : ranks.getRank(player).weight >= 255);
@@ -1750,7 +1750,7 @@ public final class KingGriefCore extends JavaPlugin {
             // Changing OWN gamemode
             boolean canSelfGm = ((gm == GameMode.CREATIVE || gm == GameMode.SURVIVAL)
                     && ranks.canUseOwnCreative(p))
-                    || myRank.weight >= 178 || ranks.isMlModerOrHigher(p) || p.hasPermission("kinggrief.gm");
+                    || ranks.canUseOwnExtendedGameModes(p);
             if (!canSelfGm) {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ У вашей привилегии нет доступа к /gm!"));
                 return true;
