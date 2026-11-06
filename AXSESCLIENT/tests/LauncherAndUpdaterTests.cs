@@ -213,7 +213,11 @@ public sealed class LauncherAndUpdaterTests
 
             var controller = new LauncherStateController(temp);
             Assert.Equal(108, controller.Modules.Count);
-            Assert.Equal(12, controller.Themes.Count);
+            Assert.Equal(14, controller.Themes.Count);
+            Assert.Contains(controller.Modules, m => m.Id == "radar_hud");
+            Assert.Contains(controller.Modules, m => m.Id == "totem_counter");
+            Assert.Contains(controller.Modules, m => m.Id == "gapple_tracker");
+            Assert.Contains(controller.Modules, m => m.Id == "damage_indicators");
             Assert.Contains(controller.Modules, m => m.Id == "kill_aura");
             Assert.Contains(controller.Modules, m => m.Id == "entity_esp");
             Assert.Contains(controller.Modules, m => m.Id == "china_hat");
