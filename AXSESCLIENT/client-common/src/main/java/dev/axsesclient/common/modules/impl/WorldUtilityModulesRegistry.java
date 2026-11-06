@@ -958,7 +958,7 @@ public final class WorldUtilityModulesRegistry {
             }
         });
         fpsOptimizerMod.setFavorite(true);
-        hm.register(new HudElement("fps_optimizer", "FPS Optimizer", fpsOptimizerMod, 0.195f, 0.078f, 178f, 20f));
+        hm.register(new HudElement("fps_optimizer", "FPS Optimizer", fpsOptimizerMod, 0.014f, 0.592f, 198f, 20f));
 
         // 112. Live Chat HUD Mover (Перемещение HUD в Чате 'T')
         Module chatMoverMod = mm.register(new Module("chat_hud_drag", "Chat HUD Mover", "Drag, snap, lock & click any HUD widget directly inside the in-game Chat screen (T)", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {

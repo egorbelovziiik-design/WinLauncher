@@ -476,8 +476,8 @@ public class ClientScreenshotGeneratorTest {
             core.getAnimationManager().setReducedMotion(true);
             dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
             if (thud != null) {
-                thud.setNormX(0.655f);
-                thud.setNormY(0.55f);
+                thud.setNormX(0.665f);
+                thud.setNormY(0.405f);
             }
 
             // Simulate a curved arena dash + jump so Breadcrumbs & JumpCircles spawn live 3D geometry in view
@@ -725,9 +725,9 @@ public class ClientScreenshotGeneratorTest {
             dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
             if (thud != null) {
                 float centeredX = (p.scaledW - thud.getScaledWidth()) * 0.5f;
-                core.getHudManager().moveElementWithSnapping(thud, centeredX, 206.0f, p.scaledW, p.scaledH);
+                core.getHudManager().moveElementWithSnapping(thud, centeredX, 112.0f, p.scaledW, p.scaledH);
                 p.scaledMouseX = centeredX + 40.0f;
-                p.scaledMouseY = 222.0f;
+                p.scaledMouseY = 128.0f;
                 core.onChatHudMousePress(p.scaledMouseX, p.scaledMouseY, 0);
             }
 
@@ -735,8 +735,8 @@ public class ClientScreenshotGeneratorTest {
             p.pitch = 5.0f;
             p.paintStylizedWorldBackdrop(true);
 
-            // Render stylized open Minecraft Chat log & bottom ChatScreen input bar
-            float chatLogX = 8.0f, chatLogY = p.scaledH - 104.0f, chatLogW = 382.0f, chatLogH = 68.0f;
+            // Render stylized open Minecraft Chat log & bottom ChatScreen input bar (cleanly above Sprint HUD)
+            float chatLogX = 8.0f, chatLogY = p.scaledH - 134.0f, chatLogW = 386.0f, chatLogH = 68.0f;
             p.fillRoundedRect(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 0xCC050814);
             p.drawRoundedOutline(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 1.0f, 0x5538BDF8);
             core.getFontManager().draw(p, "[AXSES 4.0] КиллАура: активен профиль SnowGrim (3.00м + GCD)", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);

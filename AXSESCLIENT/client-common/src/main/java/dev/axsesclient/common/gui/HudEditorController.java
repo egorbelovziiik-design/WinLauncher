@@ -76,11 +76,11 @@ public final class HudEditorController {
         }
         r.popTransform();
 
-        // Top HUD Editor Toolbar (positioned cleanly below top Watermark bar)
+        // Top HUD Editor Toolbar (positioned in the clear central corridor below top HUD rows)
         boolean ru = core.getLocalizationManager().isRussian();
         float barW = Math.min(sw - 16f, 548f);
         float barX = (sw - barW) * 0.5f;
-        float barY = 30f;
+        float barY = 64f;
         r.fillRoundedRect(barX, barY, barW, 24f, 6f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
         r.drawRoundedOutline(barX, barY, barW, 24f, 6f, 1.0f, t.getPrimaryColor());
         core.getFontManager().draw(r, ru ? "РЕДАКТОР HUD 4.0" : "AXSES HUD EDITOR", barX + 10f, barY + 8f, t.getAccentColor(), 0.80f);
@@ -123,7 +123,7 @@ public final class HudEditorController {
 
         float barW = Math.min(sw - 16f, 548f);
         float barX = (sw - barW) * 0.5f;
-        float barY = 30f;
+        float barY = 64f;
         if (hit((float) mx, (float) my, barX + 118f, barY + 3f, 60f, 18f)) { hm.setGridSnapping(!hm.isGridSnapping()); return true; }
         if (hit((float) mx, (float) my, barX + 182f, barY + 3f, 82f, 18f)) { showDisabledWidgets = !showDisabledWidgets; return true; }
         if (hit((float) mx, (float) my, barX + 268f, barY + 3f, 70f, 18f)) { hm.cycleResolutionPreview(); return true; }

@@ -269,15 +269,15 @@ public final class HudManager {
             }
         }
 
-        // Compact Top-Center Chat HUD Mover Banner
+        // Compact Top-Center Chat HUD Mover Banner (sits cleanly in the clear center corridor at y=64)
         if (chatOpen && chatHudMoverEnabled && chatTopBanner) {
             boolean ru = i18n == null || i18n.isRussian();
             String hint = ru
-                    ? "✦ ЧАТ-РЕЖИМ HUD: перетаскивайте любые виджеты ЛКМ · Кнопки Spotify и Баритона кликабельны"
-                    : "✦ CHAT HUD MODE: Drag any widget with LMB · Spotify & Baritone controls are clickable";
+                    ? "✦ ЧАТ HUD: двигайте виджеты ЛКМ · ПКМ блок · Кнопки Spotify активны"
+                    : "✦ CHAT HUD: Drag widgets LMB · RMB Lock · Spotify controls active";
             float bw = fontManager.width(r, hint, 0.82f) + 22.0f;
             float bx = (w - bw) * 0.5f;
-            float by = 30.0f;
+            float by = 64.0f;
             r.fillRoundedRect(bx, by, bw, 18.0f, 9.0f, 0xE4060A18);
             RenderManager.fillRoundedHorizontalGradient(r, bx + 10.0f, by + 1.0f, bw - 20.0f, 1.5f, 0.75f, prim, acc);
             r.drawRoundedOutline(bx, by, bw, 18.0f, 9.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.75f));
