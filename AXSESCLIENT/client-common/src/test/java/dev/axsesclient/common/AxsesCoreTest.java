@@ -173,16 +173,19 @@ public class AxsesCoreTest {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);
 
-        assertEquals(102, core.getModuleManager().getAll().size(), "Must register all 102 modules & GUI features");
-        assertEquals(12, core.getThemeManager().getAllThemes().size(), "Must register all 12 built-in themes");
+        assertEquals(108, core.getModuleManager().getAll().size(), "Must register all 108 modules & GUI features");
+        assertEquals(14, core.getThemeManager().getAllThemes().size(), "Must register all 14 built-in themes");
 
-        // Verify Russian search finds KillAura, ESP, Target HUD, China Hat & Jump Circles
+        // Verify Russian search finds KillAura, ESP, Target HUD, China Hat, Jump Circles, Radar & Totems
         assertFalse(core.getModuleManager().query(null, false, "киллаура").isEmpty(), "Russian search must find KillAura");
         assertFalse(core.getModuleManager().query(null, false, "esp").isEmpty(), "Search must find Entity ESP");
         assertFalse(core.getModuleManager().query(null, false, "подсветка").isEmpty(), "Russian search must find ESP Подсветка");
         assertFalse(core.getModuleManager().query(null, false, "таргет").isEmpty(), "Russian search must find Target HUD");
         assertFalse(core.getModuleManager().query(null, false, "шляпа").isEmpty(), "Russian search must find China Hat");
         assertFalse(core.getModuleManager().query(null, false, "круги").isEmpty(), "Russian search must find Jump Circles");
+        assertFalse(core.getModuleManager().query(null, false, "радар").isEmpty(), "Russian search must find 2D Radar");
+        assertFalse(core.getModuleManager().query(null, false, "тотем").isEmpty(), "Russian search must find Totem Counter");
+        assertFalse(core.getModuleManager().query(null, false, "геплы").isEmpty(), "Russian search must find Gapple Tracker");
 
         // Verify Russian setting & option localization
         assertEquals("Профиль обхода", core.getLocalizationManager().settingName("server_profile", "Server Profile"));
@@ -212,12 +215,16 @@ public class AxsesCoreTest {
         assertEquals(-1, platform.lastAttackedEntityId, "KillAura must pause while eating/shielding");
         platform.usingItem = false;
 
-        // Enable Entity ESP, Item ESP, and Tracers and verify real draw calls
+        // Enable Entity ESP, Tracers, 2D Radar, Totem Counter, Gapple Tracker & 3D Damage Indicators
         core.getModuleManager().getById("entity_esp").setEnabled(true, platform);
         core.getModuleManager().getById("tracers").setEnabled(true, platform);
+        core.getModuleManager().getById("radar_hud").setEnabled(true, platform);
+        core.getModuleManager().getById("totem_counter").setEnabled(true, platform);
+        core.getModuleManager().getById("gapple_tracker").setEnabled(true, platform);
+        core.getModuleManager().getById("damage_indicators").setEnabled(true, platform);
         int beforeEspDraws = platform.drawCalls;
         core.onHudRender(platform);
-        assertTrue(platform.drawCalls > beforeEspDraws + 15, "Entity ESP & Tracers must project and draw boxes/bars/lines");
+        assertTrue(platform.drawCalls > beforeEspDraws + 25, "Entity ESP, Radar, Totem/Gapple HUD & 3D Damage Indicators must emit real draw calls");
 
         // Verify ClickGUI Settings Language Banner + smooth mouse scrolling without beginFrame() freeze
         core.getClickGuiController().onOpen();

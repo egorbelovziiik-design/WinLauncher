@@ -212,7 +212,7 @@ public sealed class LauncherAndUpdaterTests
             Assert.True(mem.AvailablePhysicalMb > 0);
 
             var controller = new LauncherStateController(temp);
-            Assert.Equal(102, controller.Modules.Count);
+            Assert.Equal(108, controller.Modules.Count);
             Assert.Equal(12, controller.Themes.Count);
             Assert.Contains(controller.Modules, m => m.Id == "kill_aura");
             Assert.Contains(controller.Modules, m => m.Id == "entity_esp");

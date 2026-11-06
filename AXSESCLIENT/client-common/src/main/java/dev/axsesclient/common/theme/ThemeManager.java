@@ -23,7 +23,7 @@ public final class ThemeManager {
 
     private final Path themesDirectory;
     private final Map<String, AxsesTheme> themes = new LinkedHashMap<String, AxsesTheme>();
-    private String activeThemeId = "axses-dark";
+    private String activeThemeId = "axses-vision";
     private String previewThemeId = null;
     private ColorBlindMode colorBlindMode = ColorBlindMode.NONE;
 
@@ -34,6 +34,12 @@ public final class ThemeManager {
     }
 
     private void registerBuiltInThemes() {
+        registerBuiltIn(new AxsesTheme("axses-vision", "CELESTIAL VISION", true,
+                0xFF040714, 0xFF0B1126, 0xFF141E3E, 0xFF38BDF8, 0xFFA855F7, 0xFF00F5D4,
+                0xFFFDFEFF, 0xFFA5B8E2, 0xFF00F5D4, 0xFFFFD166, 0xFFFF4D79, 0.96f, 1.18f, 14, 0.90f));
+        registerBuiltIn(new AxsesTheme("axses-emerald", "EMERALD AURORA", true,
+                0xFF040B0A, 0xFF091714, 0xFF112621, 0xFF10B981, 0xFF059669, 0xFF38BDF8,
+                0xFFF2FFFB, 0xFF94C5B6, 0xFF34D399, 0xFFFBBF24, 0xFFFB7185, 0.95f, 1.12f, 13, 0.85f));
         registerBuiltIn(new AxsesTheme("axses-dark", "AXSES DARK", true,
                 0xFF060812, 0xFF0E1222, 0xFF171D35, 0xFF9B5CFF, 0xFF5E6BFF, 0xFF00E5FF,
                 0xFFF8FAFF, 0xFF96A1BE, 0xFF34E89E, 0xFFFFC857, 0xFFFF4D6D, 0.95f, 1.0f, 10, 0.82f));

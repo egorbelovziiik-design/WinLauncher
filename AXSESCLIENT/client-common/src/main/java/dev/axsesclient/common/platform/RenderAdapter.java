@@ -61,19 +61,65 @@ public interface RenderAdapter {
         int iy2 = Math.max(iy1 + 2, Math.round(y + height));
         int iw = ix2 - ix1;
         int ih = iy2 - iy1;
-        int t = Math.max(1, Math.round(thickness));
-        int inset = radius >= 4f ? 2 : (radius >= 2f ? 1 : 0);
+        int t = Math.max(1, Math.min(Math.round(thickness), Math.min(iw, ih) / 2));
+        int ir = Math.max(0, Math.min(Math.round(radius), Math.min(iw, ih) / 2));
 
-        // Non-overlapping top, bottom, left, right border segments + crisp corner pixels
-        fillRect(ix1 + inset, iy1, Math.max(1, iw - inset * 2), t, argb);
-        fillRect(ix1 + inset, iy2 - t, Math.max(1, iw - inset * 2), t, argb);
-        fillRect(ix1, iy1 + inset, t, Math.max(1, ih - inset * 2), argb);
-        fillRect(ix2 - t, iy1 + inset, t, Math.max(1, ih - inset * 2), argb);
-        if (inset == 2) {
-            fillRect(ix1 + 1, iy1 + 1, 1, 1, argb);
-            fillRect(ix2 - 2, iy1 + 1, 1, 1, argb);
-            fillRect(ix1 + 1, iy2 - 2, 1, 1, argb);
-            fillRect(ix2 - 2, iy2 - 2, 1, 1, argb);
+        if (ir <= 1) {
+            fillRect(ix1, iy1, iw, t, argb);
+            fillRect(ix1, iy2 - t, iw, t, argb);
+            if (ih > 2 * t) {
+                fillRect(ix1, iy1 + t, t, ih - 2 * t, argb);
+                fillRect(ix2 - t, iy1 + t, t, ih - 2 * t, argb);
+            }
+            return;
+        }
+
+        // Straight middle vertical walls (single rect each -> fast & zero overdraw)
+        if (ih > 2 * ir) {
+            fillRect(ix1, iy1 + ir, t, ih - 2 * ir, argb);
+            fillRect(ix2 - t, iy1 + ir, t, ih - 2 * ir, argb);
+        }
+
+        // Exact circular arc scanlines for top & bottom curved caps (zero overlapping rows)
+        float inR = Math.max(0.0f, ir - t);
+        for (int row = 0; row < ir; row++) {
+            float dy = ir - (row + 0.5f);
+            int outInset = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dy * dy))));
+            int botY = iy2 - 1 - row;
+
+            if (row < t) {
+                int spanW = iw - outInset * 2;
+                if (spanW > 0) {
+                    fillRect(ix1 + outInset, iy1 + row, spanW, 1, argb);
+                    if (botY != iy1 + row) {
+                        fillRect(ix1 + outInset, botY, spanW, 1, argb);
+                    }
+                }
+            } else {
+                int inInset;
+                if (dy >= inR || inR <= 0.0f) {
+                    inInset = ir;
+                } else {
+                    inInset = Math.max(outInset + t, ir - Math.round((float) Math.sqrt(Math.max(0f, inR * inR - dy * dy))));
+                }
+                int segW = Math.max(t, inInset - outInset);
+                if (outInset + segW * 2 >= iw) {
+                    int spanW = iw - outInset * 2;
+                    if (spanW > 0) {
+                        fillRect(ix1 + outInset, iy1 + row, spanW, 1, argb);
+                        if (botY != iy1 + row) {
+                            fillRect(ix1 + outInset, botY, spanW, 1, argb);
+                        }
+                    }
+                } else {
+                    fillRect(ix1 + outInset, iy1 + row, segW, 1, argb);
+                    fillRect(ix2 - outInset - segW, iy1 + row, segW, 1, argb);
+                    if (botY != iy1 + row) {
+                        fillRect(ix1 + outInset, botY, segW, 1, argb);
+                        fillRect(ix2 - outInset - segW, botY, segW, 1, argb);
+                    }
+                }
+            }
         }
     }
 
@@ -81,11 +127,14 @@ public interface RenderAdapter {
         if (intensity <= 0.02f || width <= 0f || height <= 0f) {
             return;
         }
-        // Subtle 2px drop shadow behind card (only drawn outside card bounds on right/bottom or soft halo)
-        int alpha = Math.max(0, Math.min(72, Math.round(48f * intensity)));
-        if (alpha > 0) {
-            int color = (alpha << 24) | (baseRgb & 0x00FFFFFF);
-            fillRoundedRect(x + 1, y + 2, width, height, radius, color);
+        int alpha1 = Math.max(0, Math.min(64, Math.round(44f * intensity)));
+        int alpha2 = Math.max(0, Math.min(36, Math.round(22f * intensity)));
+        int rgb = baseRgb & 0x00FFFFFF;
+        if (alpha2 > 0) {
+            fillRoundedRect(x - 2f, y + 1f, width + 4f, height + 3f, radius + 2f, (alpha2 << 24) | rgb);
+        }
+        if (alpha1 > 0) {
+            fillRoundedRect(x + 1f, y + 2f, width, height, radius, (alpha1 << 24) | rgb);
         }
     }
 

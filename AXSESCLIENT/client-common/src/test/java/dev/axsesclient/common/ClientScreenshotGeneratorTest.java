@@ -270,7 +270,7 @@ public class ClientScreenshotGeneratorTest {
         @Override public String getJavaVersion() { return "21.0.13"; }
         @Override public String getFabricLoaderVersion() { return "0.20.1"; }
         @Override public String getFabricApiVersion() { return "0.141.6+1.21.11"; }
-        @Override public List<String> getLoadedMods() { return Collections.singletonList("axsesclient@3.0.0"); }
+        @Override public List<String> getLoadedMods() { return Collections.singletonList("axsesclient@3.5.0"); }
         @Override public Path getGameDir() { return gameDir; }
         @Override public boolean isInWorld() { return inWorld; }
         @Override public boolean isSingleplayer() { return false; }
@@ -305,7 +305,13 @@ public class ClientScreenshotGeneratorTest {
         }
         @Override public ItemInfo getMainHandItem() { return new ItemInfo("minecraft:netherite_sword", "Незеритовый меч", 1, 32, 2031); }
         @Override public ItemInfo getOffHandItem() { return new ItemInfo("minecraft:totem_of_undying", "Тотем бессмертия", 1, 0, 0); }
-        @Override public List<ItemInfo> getInventoryItems() { return Collections.singletonList(new ItemInfo("minecraft:golden_apple", "Золотое яблоко", 16, 0, 0)); }
+        @Override public List<ItemInfo> getInventoryItems() {
+            return Arrays.asList(
+                    new ItemInfo("minecraft:golden_apple", "Золотое яблоко", 16, 0, 0),
+                    new ItemInfo("minecraft:ender_pearl", "Эндер-жемчуг", 8, 0, 0),
+                    new ItemInfo("minecraft:totem_of_undying", "Тотем бессмертия", 3, 0, 0)
+            );
+        }
         @Override public int getSelectedHotbarSlot() { return 0; }
         @Override public List<StatusEffectInfo> getActiveEffects() {
             return Arrays.asList(
@@ -393,16 +399,16 @@ public class ClientScreenshotGeneratorTest {
                 : tempDir.resolve("screenshots");
         Files.createDirectories(outDir);
 
-        // 1. IN-GAME PVP SCENE: Entity ESP + China Hat + Jump Circles + Breadcrumbs + Hit Particles + KillAura Dual Ring + Hyperion Target HUD + Watermark + ArrayList + 2D Keystrokes
+        // 1. IN-GAME PVP SCENE: Celestial Vision v3.5 — Entity ESP + 3D Soul Orbs + Dual Ring + 2D Radar + Totem/Gapple HUD + 3D Damage Indicators + Curved Target HUD
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s1"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s1"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getThemeManager().setActiveTheme("axses-vision");
 
             TargetEntityInfo mainEnemy = new TargetEntityInfo(
                     101, "DiamondPlayer", true, false, false, false,
-                    14.5f, 20.0f, 2.0f, 3.1f, 4, 18,
+                    14.5f, 20.0f, 2.0f, 3.1f, 6, 18,
                     0.55, 64.0, 3.35, 65.62,
                     0.25, 64.0, 3.05, 0.85, 65.8, 3.65,
                     true, "Незеритовый меч"
@@ -438,11 +444,19 @@ public class ClientScreenshotGeneratorTest {
                 if ("range".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(3.15));
             }
             ka.setEnabled(true, p);
-            core.getModuleManager().getById("entity_esp").setEnabled(true, p);
+            Module esp = core.getModuleManager().getById("entity_esp");
+            for (Setting<?> s : esp.getSettings()) {
+                if ("box_style".equals(s.getId())) ((ModeSetting) s).setValue("Vision Capsule");
+            }
+            esp.setEnabled(true, p);
             core.getModuleManager().getById("china_hat").setEnabled(true, p);
             core.getModuleManager().getById("jump_circles").setEnabled(true, p);
             core.getModuleManager().getById("breadcrumbs").setEnabled(true, p);
             core.getModuleManager().getById("hit_particles").setEnabled(true, p);
+            core.getModuleManager().getById("damage_indicators").setEnabled(true, p);
+            core.getModuleManager().getById("radar_hud").setEnabled(true, p);
+            core.getModuleManager().getById("totem_counter").setEnabled(true, p);
+            core.getModuleManager().getById("gapple_tracker").setEnabled(true, p);
             core.getModuleManager().getById("item_esp").setEnabled(true, p);
             core.getModuleManager().getById("tracers").setEnabled(true, p);
             core.getModuleManager().getById("potion_hud").setEnabled(true, p);
@@ -450,7 +464,7 @@ public class ClientScreenshotGeneratorTest {
             core.getAnimationManager().setReducedMotion(true);
             dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
             if (thud != null) {
-                thud.setNormX(0.61f);
+                thud.setNormX(0.60f);
                 thud.setNormY(0.49f);
             }
 
@@ -493,12 +507,12 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out1.exists() && out1.length() > 10000);
         }
 
-        // 2. CLICKGUI — COMBAT TAB WITH KILLAURA EXPANDED (FunTime / ReallyWorld / HolyWorld)
+        // 2. RIGHT-SHIFT CURVED CLICKGUI — COMBAT TAB WITH KILLAURA EXPANDED (CELESTIAL VISION)
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s2"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s2"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getThemeManager().setActiveTheme("axses-vision");
             p.clickGuiOpen = true;
 
             Module ka = core.getModuleManager().getById("kill_aura");
@@ -510,6 +524,8 @@ public class ClientScreenshotGeneratorTest {
             }
             ka.setEnabled(true, p);
             core.getModuleManager().getById("trigger_bot").setEnabled(true, p);
+            core.getModuleManager().getById("totem_counter").setEnabled(true, p);
+            core.getModuleManager().getById("gapple_tracker").setEnabled(true, p);
 
             p.paintStylizedWorldBackdrop(false);
             core.getAnimationManager().setReducedMotion(true);
@@ -524,27 +540,31 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out2.exists() && out2.length() > 10000);
         }
 
-        // 3. CLICKGUI — VISUALS & ESP TAB WITH ENTITY ESP, CHINA HAT & JUMP CIRCLES
+        // 3. RIGHT-SHIFT CURVED CLICKGUI — VISUALS & ESP TAB (EMERALD AURORA THEME)
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s3"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s3"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getThemeManager().setActiveTheme("axses-emerald");
             p.clickGuiOpen = true;
 
             Module esp = core.getModuleManager().getById("entity_esp");
+            for (Setting<?> s : esp.getSettings()) {
+                if ("box_style".equals(s.getId())) ((ModeSetting) s).setValue("Vision Capsule");
+            }
             esp.setEnabled(true, p);
             core.getModuleManager().getById("china_hat").setEnabled(true, p);
             core.getModuleManager().getById("jump_circles").setEnabled(true, p);
             core.getModuleManager().getById("breadcrumbs").setEnabled(true, p);
             core.getModuleManager().getById("hit_particles").setEnabled(true, p);
+            core.getModuleManager().getById("damage_indicators").setEnabled(true, p);
 
             p.paintStylizedWorldBackdrop(false);
             core.getAnimationManager().setReducedMotion(true);
             core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.RENDER);
-            core.getClickGuiController().setSearchQuery("3D");
-            setExpandedModule(core, core.getModuleManager().getById("china_hat"));
+            core.getClickGuiController().setSearchQuery("ESP");
+            setExpandedModule(core, esp);
             core.getClickGuiController().render(p, p, 20, 20, 1.0f);
 
             File out3 = outDir.resolve("ingame-clickgui-esp.png").toFile();
@@ -553,12 +573,12 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out3.exists() && out3.length() > 10000);
         }
 
-        // 4. CLICKGUI — SETTINGS TAB WITH RUSSIAN / ENGLISH LANGUAGE BANNER
+        // 4. RIGHT-SHIFT CURVED CLICKGUI — SETTINGS TAB + 14-THEME GALLERY
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s4"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s4"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getThemeManager().setActiveTheme("axses-vision");
             p.clickGuiOpen = true;
 
             p.paintStylizedWorldBackdrop(false);
@@ -573,13 +593,13 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out4.exists() && out4.length() > 10000);
         }
 
-        // 5. CUSTOM MAIN MENU (HYPERION AURORA v3.0 RU)
+        // 5. CUSTOM MAIN MENU (CELESTIAL VISION v3.5 RU)
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s5"));
             p.inWorld = false;
             AxsesCore core = new AxsesCore(tempDir.resolve("s5"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getThemeManager().setActiveTheme("axses-vision");
 
             core.getMainMenuController().render(p, p, 480, 290, 1.0f);
 
@@ -589,15 +609,18 @@ public class ClientScreenshotGeneratorTest {
             assertTrue(out5.exists() && out5.length() > 10000);
         }
 
-        // 6. HUD EDITOR (DRAGGABLE WIDGETS + SNAP GRID + 2D KEYSTROKES + WATERMARK + ARRAYLIST)
+        // 6. HUD EDITOR (DRAGGABLE CURVED VISION WIDGETS + 2D RADAR + TOTEMS + TARGET HUD + KEYSTROKES)
         {
             AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s6"));
             AxsesCore core = new AxsesCore(tempDir.resolve("s6"), p, p);
             core.getLocalizationManager().setActiveLocale("ru_RU");
-            core.getThemeManager().setActiveTheme("axses-hyperion");
+            core.getThemeManager().setActiveTheme("axses-vision");
             core.getModuleManager().getById("kill_aura").setEnabled(true, p);
             core.getModuleManager().getById("entity_esp").setEnabled(true, p);
             core.getModuleManager().getById("china_hat").setEnabled(true, p);
+            core.getModuleManager().getById("radar_hud").setEnabled(true, p);
+            core.getModuleManager().getById("totem_counter").setEnabled(true, p);
+            core.getModuleManager().getById("gapple_tracker").setEnabled(true, p);
             core.getModuleManager().getById("potion_hud").setEnabled(true, p);
             p.hudEditorOpen = true;
 
@@ -613,6 +636,34 @@ public class ClientScreenshotGeneratorTest {
             ImageIO.write(p.image, "PNG", out6);
             p.dispose();
             assertTrue(out6.exists() && out6.length() > 10000);
+        }
+
+        // 7. RIGHT-SHIFT CURVED CLICKGUI — 14-THEME GALLERY VIEW
+        {
+            AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s7"));
+            AxsesCore core = new AxsesCore(tempDir.resolve("s7"), p, p);
+            core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-vision");
+            p.clickGuiOpen = true;
+
+            p.paintStylizedWorldBackdrop(false);
+            core.getAnimationManager().setReducedMotion(true);
+            core.getClickGuiController().onOpen();
+            Field viewField = core.getClickGuiController().getClass().getDeclaredField("activeView");
+            viewField.setAccessible(true);
+            Object[] views = viewField.getType().getEnumConstants();
+            for (Object v : views) {
+                if ("THEMES".equals(v.toString())) {
+                    viewField.set(core.getClickGuiController(), v);
+                    break;
+                }
+            }
+            core.getClickGuiController().render(p, p, 240, 140, 1.0f);
+
+            File out7 = outDir.resolve("ingame-clickgui-themes.png").toFile();
+            ImageIO.write(p.image, "PNG", out7);
+            p.dispose();
+            assertTrue(out7.exists() && out7.length() > 10000);
         }
     }
 }

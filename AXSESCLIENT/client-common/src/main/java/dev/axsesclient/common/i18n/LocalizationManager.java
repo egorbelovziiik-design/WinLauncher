@@ -12,8 +12,8 @@ public final class LocalizationManager {
     public LocalizationManager() {
         Map<String, String> en = new HashMap<String, String>();
         en.put("gui.title", "AXSESCLIENT");
-        en.put("gui.subtitle", "HYPERION v3.0");
-        en.put("gui.search_placeholder", "Search 102 modules (e.g. KillAura, ESP, Target, ChinaHat)...");
+        en.put("gui.subtitle", "VISION v3.5");
+        en.put("gui.search_placeholder", "Search 108 modules (e.g. KillAura, ESP, Radar, Totems, Target)...");
         en.put("gui.favorites", "Favorites");
         en.put("gui.hud_editor", "HUD Editor");
         en.put("gui.themes", "Themes");
@@ -55,8 +55,8 @@ public final class LocalizationManager {
 
         Map<String, String> ru = new HashMap<String, String>();
         ru.put("gui.title", "AXSESCLIENT");
-        ru.put("gui.subtitle", "HYPERION v3.0");
-        ru.put("gui.search_placeholder", "Поиск по 102 модулям (КиллАура, ESP, Таргет, Шляпа, Круги)...");
+        ru.put("gui.subtitle", "VISION v3.5");
+        ru.put("gui.search_placeholder", "Поиск по 108 модулям (КиллАура, ESP, Радар, Тотемы, Таргет)...");
         ru.put("gui.favorites", "Избранное");
         ru.put("gui.hud_editor", "HUD");
         ru.put("gui.themes", "Темы");
@@ -189,7 +189,7 @@ public final class LocalizationManager {
         putMod(ru, "local_world_info_panel", "Погода и фаза луны", "Отображение погоды, игровых суток и фазы луны");
 
         putMod(ru, "gui_scale_manager", "Масштаб интерфейса", "Настройка размера окна AXSES ClickGUI (0.75x - 1.50x)");
-        putMod(ru, "theme_preview", "Выбор темы", "Быстрое переключение 12 фирменных тем оформления");
+        putMod(ru, "theme_preview", "Выбор темы", "Быстрое переключение 14 фирменных тем оформления");
         putMod(ru, "module_search_history", "История поиска", "Быстрые теги последних поисковых запросов в меню");
         putMod(ru, "favorites_manager", "Управление избранным", "Закрепление любимых модулей в верхней вкладке");
         putMod(ru, "keyboard_shortcut_editor", "Горячие клавиши", "Настройка клавиш открытия ClickGUI и редактора HUD");
@@ -204,6 +204,14 @@ public final class LocalizationManager {
         putMod(ru, "interface_reset", "Сброс интерфейса", "Возврат позиции окна, темы и HUD к заводским");
         putMod(ru, "config_backup_manager", "Резервные копии", "Создание и восстановление бэкапов конфигурации");
         putMod(ru, "module_compatibility_viewer", "Диагностика клиента", "Проверка совместимости версии MC, Java и модов");
+
+        // v3.5.0 Celestial Vision Flagship Additions (103..108)
+        putMod(ru, "totem_counter", "Счётчик тотемов", "Подсчёт тотемов бессмертия в инвентаре и левой руке с уведомлением о сносе");
+        putMod(ru, "gapple_tracker", "Геплы и перлы", "Онлайн-подсчёт золотых яблок, чарок и эндер-жемчуга в бою");
+        putMod(ru, "auto_respawn", "Страж смерти", "Автоматическое копирование координат смерти в буфер обмена и оповещение");
+        putMod(ru, "low_hp_alert", "Тревога низкого ХП", "Пульсирующая алая виньетка по краям экрана при критическом здоровье");
+        putMod(ru, "damage_indicators", "Индикатор урона 3D", "Всплывающие в 3D-мире цифры нанесённого урона и исцеления над игроками");
+        putMod(ru, "radar_hud", "Мини-Радар 2D", "Вращающийся тактический 2D-радар игроков и целей вокруг вас");
 
         dictionaries.put("ru_RU", ru);
         initSettingAndOptionTranslations();
@@ -274,9 +282,20 @@ public final class LocalizationManager {
         ruSettings.put("trail_length", "Длина шлейфа");
         ruSettings.put("show_space", "Полоска Пробела");
         ruSettings.put("show_cps", "Показывать КПС");
+        ruSettings.put("soul_orbs", "3D Сферы душ");
+        ruSettings.put("pop_toast", "Уведомлять о сносе");
+        ruSettings.put("show_pearls", "Показывать перлы");
+        ruSettings.put("copy_coords", "Копировать XYZ смерти");
+        ruSettings.put("threshold", "Порог ХП");
+        ruSettings.put("show_banner", "Баннер тревоги");
+        ruSettings.put("radar_range", "Дальность радара (м)");
+        ruSettings.put("radar_mobs", "Показывать мобов");
+        ruSettings.put("beacons_3d", "3D Маяки в мире");
+        ruSettings.put("beacon_3d", "3D Маяк смерти");
 
         // Dropdown / Mode values in Russian
         ruOptions.put("Universal", "Универсальный");
+        ruOptions.put("Vision Capsule", "Неон-капсула");
         ruOptions.put("Aurora", "Аврора (Неон)");
         ruOptions.put("Legit Ghost", "Легит (Скрытный)");
         ruOptions.put("1.9+ Smart", "1.9+ Умный");

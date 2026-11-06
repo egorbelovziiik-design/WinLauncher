@@ -81,66 +81,67 @@ public final class AxsesMainMenuController {
             r.drawLine(topX, horizonY, botX, sh, 1.0f, AxsesTheme.withAlpha(prim, 0.10f));
         }
 
-        // 5. Top Status & Quick Switcher Pills
-        String engineTag = isRu ? "⚡ HYPERION v3.0 · 102 МОДУЛЯ · 12 ТЕМ" : "⚡ HYPERION v3.0 · 102 MODULES · 12 THEMES";
-        float ew = core.getFontManager().width(r, engineTag, 0.88f) + 16.0f;
-        r.fillRoundedRect(10f, 10f, ew, 20f, 5.5f, 0xDC080B16);
-        r.drawRoundedOutline(10f, 10f, ew, 20f, 5.5f, 1.0f, AxsesTheme.withAlpha(prim, 0.65f));
-        core.getFontManager().draw(r, engineTag, 18f, 16f, acc, 0.88f);
+        // 5. Top Status & Quick Switcher Stadium Pills
+        String engineTag = isRu ? "⚡ VISION v3.5 · 108 МОДУЛЕЙ · 14 ТЕМ" : "⚡ VISION v3.5 · 108 MODULES · 14 THEMES";
+        float ew = core.getFontManager().width(r, engineTag, 0.88f) + 18.0f;
+        r.fillRoundedRect(10f, 10f, ew, 20f, 10.0f, 0xDC080B18);
+        r.drawRoundedOutline(10f, 10f, ew, 20f, 10.0f, 1.0f, AxsesTheme.withAlpha(prim, 0.72f));
+        core.getFontManager().draw(r, engineTag, 19f, 16f, acc, 0.88f);
 
-        String langPill = isRu ? "🌐 Язык: Русский" : "🌐 Lang: English";
-        float lw = Math.max(98f, core.getFontManager().width(r, langPill, 0.92f) + 16f);
+        String langPill = isRu ? "Язык: Русский" : "Lang: English";
+        float lw = Math.max(98f, core.getFontManager().width(r, langPill, 0.92f) + 18f);
         float lx = sw - lw - 10f;
         float ly = 10f;
         boolean lHov = isInside(mouseX, mouseY, lx, ly, lw, 20f);
-        r.fillRoundedRect(lx, ly, lw, 20f, 5.5f, lHov ? t.getElevatedColor() : 0xDC080B16);
-        r.drawRoundedOutline(lx, ly, lw, 20f, 5.5f, 1f, acc);
+        r.fillRoundedRect(lx, ly, lw, 20f, 10.0f, lHov ? t.getElevatedColor() : 0xDC080B18);
+        r.drawRoundedOutline(lx, ly, lw, 20f, 10.0f, 1f, acc);
         core.getFontManager().drawCentered(r, langPill, lx + lw * 0.5f, ly + 6f, 0xFFFFFFFF, 0.92f);
 
-        String themePill = "🎨 " + t.getName();
-        float tw = Math.max(96f, core.getFontManager().width(r, themePill, 0.88f) + 16f);
+        String themePill = t.getName();
+        float tw = Math.max(98f, core.getFontManager().width(r, themePill, 0.88f) + 18f);
         float tx = lx - tw - 6f;
         boolean tHov = isInside(mouseX, mouseY, tx, ly, tw, 20f);
-        r.fillRoundedRect(tx, ly, tw, 20f, 5.5f, tHov ? t.getElevatedColor() : 0xDC080B16);
-        r.drawRoundedOutline(tx, ly, tw, 20f, 5.5f, 1f, AxsesTheme.withAlpha(prim, 0.72f));
+        r.fillRoundedRect(tx, ly, tw, 20f, 10.0f, tHov ? t.getElevatedColor() : 0xDC080B18);
+        r.drawRoundedOutline(tx, ly, tw, 20f, 10.0f, 1f, AxsesTheme.withAlpha(prim, 0.72f));
         core.getFontManager().drawCentered(r, themePill, tx + tw * 0.5f, ly + 6f, t.getTextColor(), 0.88f);
 
-        // 6. Central Sculpted Dual-Column Glass Command Deck (456 x 248)
+        // 6. Central Curved Vision-Glass Dual-Column Command Deck (468 x 252, radius 20)
         float cx = sw * 0.5f;
-        float panelW = Math.min(460.0f, sw - 28.0f);
-        float panelH = 248.0f;
+        float panelW = Math.min(468.0f, sw - 28.0f);
+        float panelH = 252.0f;
         float panelX = cx - panelW * 0.5f;
         float panelY = Math.max(36.0f, (sh - panelH) * 0.5f);
 
-        r.fillRoundedRect(panelX - 3f, panelY - 3f, panelW + 6f, panelH + 6f, 13f, AxsesTheme.withAlpha(prim, 0.14f));
-        r.drawShadow(panelX, panelY, panelW, panelH, 11f, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(panelX, panelY, panelW, panelH, 11f, 0xF2080B16);
-        RenderManager.fillHorizontalGradient(r, panelX + 14f, panelY + 1.0f, panelW - 28f, 2.2f, prim, acc);
-        r.drawRoundedOutline(panelX, panelY, panelW, panelH, 11f, 1.0f, AxsesTheme.withAlpha(prim, 0.72f));
+        RenderManager.drawSoftGlow(r, panelX, panelY, panelW, panelH, 20.0f, 4, prim, 0.24f);
+        r.drawShadow(panelX, panelY, panelW, panelH, 20f, t.getShadowIntensity(), 0x000000);
+        r.fillRoundedRect(panelX, panelY, panelW, panelH, 20f, 0xF2060A18);
+        RenderManager.fillRoundedHorizontalGradient(r, panelX + 22f, panelY + 1.0f, panelW - 44f, 2.2f, 1.0f, prim, acc);
+        r.drawRoundedOutline(panelX, panelY, panelW, panelH, 20f, 1.5f, AxsesTheme.withAlpha(prim, 0.85f));
 
-        // Left Column: Brand Hero & Active Session Telemetry (width 184)
+        // Left Column: Brand Hero & Active Session Telemetry (width 182)
         float leftX = panelX + 14.0f;
-        float leftW = 180.0f;
-        r.fillRoundedRect(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 8.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.92f));
-        r.drawRoundedOutline(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 8.0f, 1.0f, 0x22FFFFFF);
+        float leftW = 182.0f;
+        r.fillRoundedRect(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.94f));
+        r.drawRoundedOutline(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, 1.0f, 0x28FFFFFF);
 
-        // Glowing AX Crest
-        float crestX = leftX + (leftW - 44.0f) * 0.5f;
+        // Glowing Curved AX Crest
+        float crestX = leftX + (leftW - 46.0f) * 0.5f;
         float crestY = panelY + 28.0f;
-        r.fillRoundedRect(crestX - 2f, crestY - 2f, 48f, 48f, 12f, AxsesTheme.withAlpha(acc, 0.18f));
-        r.fillRoundedRect(crestX, crestY, 44f, 44f, 10f, AxsesTheme.withAlpha(prim, 0.34f));
-        r.drawRoundedOutline(crestX, crestY, 44f, 44f, 10f, 1.2f, acc);
-        core.getFontManager().drawCentered(r, "AX", crestX + 22f, crestY + 17f, 0xFFFFFFFF, 1.25f);
+        r.fillRoundedRect(crestX - 2f, crestY - 2f, 50f, 50f, 16f, AxsesTheme.withAlpha(acc, 0.20f));
+        RenderManager.fillRoundedHorizontalGradient(r, crestX, crestY, 46f, 46f, 14f,
+                AxsesTheme.withAlpha(prim, 0.65f), AxsesTheme.withAlpha(acc, 0.45f));
+        r.drawRoundedOutline(crestX, crestY, 46f, 46f, 14f, 1.2f, acc);
+        core.getFontManager().drawCentered(r, "AX", crestX + 23f, crestY + 18f, 0xFFFFFFFF, 1.25f);
 
-        core.getFontManager().drawCentered(r, "AXSESCLIENT 3.0", leftX + leftW * 0.5f, crestY + 54f, 0xFFFFFFFF, 1.0f);
-        core.getFontManager().drawCentered(r, "HYPERION AURORA", leftX + leftW * 0.5f, crestY + 67f, acc, 0.88f);
+        core.getFontManager().drawCentered(r, "AXSESCLIENT 3.5", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
+        core.getFontManager().drawCentered(r, "CELESTIAL VISION", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
 
         String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21.11";
         String user = mc != null ? mc.getPlayerName() : "Player";
-        float cardY = crestY + 86.0f;
-        r.fillRoundedRect(leftX + 10f, cardY, leftW - 20f, 48f, 6.0f, 0xCC060812);
-        r.drawRoundedOutline(leftX + 10f, cardY, leftW - 20f, 48f, 6.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.45f));
-        core.getFontManager().drawCentered(r, "👤 " + user, leftX + leftW * 0.5f, cardY + 8f, 0xFFFFFFFF, 0.94f);
+        float cardY = crestY + 87.0f;
+        r.fillRoundedRect(leftX + 10f, cardY, leftW - 20f, 48f, 10.0f, 0xCC050814);
+        r.drawRoundedOutline(leftX + 10f, cardY, leftW - 20f, 48f, 10.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.50f));
+        core.getFontManager().drawCentered(r, user, leftX + leftW * 0.5f, cardY + 8f, 0xFFFFFFFF, 0.94f);
         core.getFontManager().drawCentered(r, "MC " + mcVer + " · Fabric 0.20.1", leftX + leftW * 0.5f, cardY + 22f, t.getMutedColor(), 0.82f);
         core.getFontManager().drawCentered(r, isRu ? "FunTime · RW · HolyWorld" : "FunTime · RW · HolyWorld",
                 leftX + leftW * 0.5f, cardY + 34f, t.getSuccessColor(), 0.80f);
@@ -164,32 +165,32 @@ public final class AxsesMainMenuController {
         float startY = panelY + 16.0f;
 
         for (int i = 0; i < BUTTON_IDS.length; i++) {
-            float by = startY + i * 37.0f;
+            float by = startY + i * 37.5f;
             boolean hov = !showAccountsModal && isInside(mouseX, mouseY, btnX, by, btnW, btnH);
             float hovAnim = core.getAnimationManager().smoothHover("menu:" + BUTTON_IDS[i], hov);
             boolean primary = (i == 0 || i == 1 || i == 3);
             float inset = hovAnim * -2.0f;
             float dx = btnX + inset;
             float dw = btnW - inset * 2.0f;
+            float btnRad = 13.0f;
 
             if (primary) {
-                int cL = AxsesTheme.withAlpha(prim, 0.78f + 0.20f * hovAnim);
-                int cR = AxsesTheme.withAlpha(i == 3 ? acc : RenderManager.blendArgb(prim, acc, 0.55f), 0.78f + 0.20f * hovAnim);
-                r.fillRoundedRect(dx, by, dw, btnH, 6.5f, cL);
-                RenderManager.fillHorizontalGradient(r, dx + 2f, by + 1f, dw - 4f, btnH - 2f, cL, cR);
-                r.drawRoundedOutline(dx, by, dw, btnH, 6.5f, 1.0f, hov ? 0xFFFFFFFF : acc);
+                int cL = AxsesTheme.withAlpha(prim, 0.82f + 0.18f * hovAnim);
+                int cR = AxsesTheme.withAlpha(i == 3 ? acc : RenderManager.blendArgb(prim, acc, 0.58f), 0.82f + 0.18f * hovAnim);
+                RenderManager.fillRoundedHorizontalGradient(r, dx, by, dw, btnH, btnRad, cL, cR);
+                r.drawRoundedOutline(dx, by, dw, btnH, btnRad, 1.0f, hov ? 0xFFFFFFFF : acc);
             } else {
                 int bg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.92f + 0.08f * hovAnim);
-                r.fillRoundedRect(dx, by, dw, btnH, 6.5f, bg);
-                r.drawRoundedOutline(dx, by, dw, btnH, 6.5f, 1.0f,
-                        hov ? acc : AxsesTheme.withAlpha(prim, 0.35f));
+                r.fillRoundedRect(dx, by, dw, btnH, btnRad, bg);
+                r.drawRoundedOutline(dx, by, dw, btnH, btnRad, 1.0f,
+                        hov ? acc : AxsesTheme.withAlpha(prim, 0.38f));
             }
             core.getFontManager().drawCentered(r, BUTTON_ICONS[i] + labels[i], dx + dw * 0.5f, by + 10.5f, 0xFFFFFFFF, 0.96f);
         }
 
         // Footer version & memory strip
         long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
-        core.getFontManager().draw(r, "AXSESCLIENT v3.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
+        core.getFontManager().draw(r, "AXSESCLIENT v3.5.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
         String rightTag = user + " · " + t.getName();
         float rw = core.getFontManager().width(r, rightTag, 0.88f);
         core.getFontManager().draw(r, rightTag, sw - rw - 10f, sh - 14f, acc, 0.88f);
@@ -261,17 +262,17 @@ public final class AxsesMainMenuController {
             return true;
         }
 
-        float panelW = Math.min(460.0f, sw - 28.0f);
-        float panelH = 248.0f;
+        float panelW = Math.min(468.0f, sw - 28.0f);
+        float panelH = 252.0f;
         float panelX = cx - panelW * 0.5f;
         float panelY = Math.max(36.0f, (sh - panelH) * 0.5f);
-        float btnX = panelX + 14.0f + 180.0f + 14.0f;
+        float btnX = panelX + 14.0f + 182.0f + 14.0f;
         float btnW = (panelX + panelW - 14.0f) - btnX;
         float btnH = 30.0f;
         float startY = panelY + 16.0f;
 
         for (int i = 0; i < BUTTON_IDS.length; i++) {
-            float by = startY + i * 37.0f;
+            float by = startY + i * 37.5f;
             if (isInside((float) mouseX, (float) mouseY, btnX, by, btnW, btnH)) {
                 switch (i) {
                     case 0: mc.openVanillaSingleplayer(); break;

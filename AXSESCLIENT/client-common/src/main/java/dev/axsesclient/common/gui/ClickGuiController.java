@@ -92,10 +92,10 @@ public final class ClickGuiController {
 
     private float[] computeWindowBounds(float screenW, float screenH) {
         float scalePref = Math.max(0.80f, Math.min(1.25f, core.getConfigManager().getGuiScale()));
-        float targetW = Math.round(668.0f * scalePref);
-        float targetH = Math.round(396.0f * scalePref);
-        float winW = Math.max(430.0f, Math.min(targetW, screenW - 20.0f));
-        float winH = Math.max(260.0f, Math.min(targetH, screenH - 20.0f));
+        float targetW = Math.round(686.0f * scalePref);
+        float targetH = Math.round(410.0f * scalePref);
+        float winW = Math.max(440.0f, Math.min(targetW, screenW - 20.0f));
+        float winH = Math.max(268.0f, Math.min(targetH, screenH - 20.0f));
         float cx = screenW * 0.5f + core.getConfigManager().getGuiOffsetX();
         float cy = screenH * 0.5f + core.getConfigManager().getGuiOffsetY();
         float wx = Math.round(Math.max(6.0f, Math.min(screenW - winW - 6.0f, cx - winW * 0.5f)));
@@ -113,9 +113,9 @@ public final class ClickGuiController {
         int sw = r.getScaledWidth();
         int sh = r.getScaledHeight();
 
-        // Deep Hyperion Obsidian dim backdrop + subtle top/bottom aurora vignette
-        int backdropAlpha = Math.round(158.0f * core.getRenderManager().getBlurBackdropStrength() * openAnim);
-        r.fillRect(0, 0, sw, sh, (backdropAlpha << 24) | 0x04060E);
+        // Deep Celestial Vision dim backdrop
+        int backdropAlpha = Math.round(162.0f * core.getRenderManager().getBlurBackdropStrength() * openAnim);
+        r.fillRect(0, 0, sw, sh, (backdropAlpha << 24) | 0x03050F);
 
         float[] bounds = computeWindowBounds(sw, sh);
         float wx = bounds[0];
@@ -132,114 +132,130 @@ public final class ClickGuiController {
 
         int primaryCol = core.getThemeManager().filterColor(t.getPrimaryColor());
         int accentCol = core.getThemeManager().filterColor(t.getAccentColor());
+        float winRad = 20.0f;
 
-        // Soft ambient Aurora outer glow halo + outer window shell
-        r.fillRoundedRect(wx - 4.0f, wy - 4.0f, winW + 8.0f, winH + 8.0f, 12.0f, AxsesTheme.withAlpha(primaryCol, 0.12f * openAnim));
-        r.fillRoundedRect(wx - 2.0f, wy - 2.0f, winW + 4.0f, winH + 4.0f, 10.0f, AxsesTheme.withAlpha(accentCol, 0.14f * openAnim));
-        r.drawShadow(wx, wy, winW, winH, 9.0f, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(wx, wy, winW, winH, 9.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.97f));
-        r.drawRoundedOutline(wx, wy, winW, winH, 9.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.88f));
+        // Multi-ring curved Celestial Vision glow halo + smoothly rounded 20px outer glass shell
+        RenderManager.drawSoftGlow(r, wx, wy, winW, winH, winRad, 4, primaryCol, 0.24f * openAnim);
+        r.fillRoundedRect(wx - 2.0f, wy - 2.0f, winW + 4.0f, winH + 4.0f, winRad + 2.0f, AxsesTheme.withAlpha(accentCol, 0.16f * openAnim));
+        r.drawShadow(wx, wy, winW, winH, winRad, t.getShadowIntensity(), 0x000000);
+        r.fillRoundedRect(wx, wy, winW, winH, winRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.97f));
 
-        // Top Hyperion Aurora Header Bar (height 42)
-        r.fillRoundedRect(wx + 2, wy + 2, winW - 4, 40, 7.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
-        RenderManager.fillHorizontalGradient(r, wx + 8, wy + 2, winW - 16.0f, 2.2f, primaryCol, accentCol);
+        // Subtle curved side glow rails accentuating the rounded left & right walls of the Right-Shift GUI
+        r.fillGradientVertical(wx + 2.0f, wy + 28.0f, 2.0f, winH - 56.0f,
+                AxsesTheme.withAlpha(primaryCol, 0.65f * openAnim), AxsesTheme.withAlpha(accentCol, 0.65f * openAnim));
+        r.fillGradientVertical(wx + winW - 4.0f, wy + 28.0f, 2.0f, winH - 56.0f,
+                AxsesTheme.withAlpha(accentCol, 0.65f * openAnim), AxsesTheme.withAlpha(primaryCol, 0.65f * openAnim));
+        r.fillRect(wx + winRad, wy + 1.0f, winW - winRad * 2.0f, 1.0f, 0x26FFFFFF);
+        r.drawRoundedOutline(wx, wy, winW, winH, winRad, 1.5f, AxsesTheme.withAlpha(primaryCol, 0.92f));
 
-        // Brand emblem + title
-        r.fillRoundedRect(wx + 11, wy + 10, 24, 22, 5.5f, AxsesTheme.withAlpha(primaryCol, 0.30f));
-        r.drawRoundedOutline(wx + 11, wy + 10, 24, 22, 5.5f, 1.0f, accentCol);
-        core.getFontManager().drawCentered(r, "AX", wx + 23, wy + 17, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "AXSES 3.0", wx + 40, wy + 11, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "HYPERION", wx + 40, wy + 22, accentCol, 0.88f);
+        // Floating Curved Top Header Capsule (inset cleanly inside rounded top corners)
+        float hdrX = wx + 10.0f;
+        float hdrY = wy + 8.0f;
+        float hdrW = winW - 20.0f;
+        float hdrH = 38.0f;
+        r.fillRoundedRect(hdrX, hdrY, hdrW, hdrH, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
+        RenderManager.fillRoundedHorizontalGradient(r, hdrX + 12.0f, hdrY + 1.0f, hdrW - 24.0f, 2.0f, 1.0f, primaryCol, accentCol);
+        r.drawRoundedOutline(hdrX, hdrY, hdrW, hdrH, 14.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.38f));
 
-        // Right-aligned Top Action Tabs
+        // Curved Brand Emblem + Title
+        RenderManager.fillRoundedHorizontalGradient(r, hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f,
+                AxsesTheme.withAlpha(primaryCol, 0.65f), AxsesTheme.withAlpha(accentCol, 0.55f));
+        r.drawRoundedOutline(hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f, 1.0f, accentCol);
+        core.getFontManager().drawCentered(r, "AX", hdrX + 21.0f, hdrY + 15.0f, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "AXSES 3.5", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "VISION", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.88f);
+
+        // Right-aligned Stadium-Pill Action Tabs
         String langLabel = i18n.isRussian() ? "RU" : "EN";
-        float rightCursor = wx + winW - 10.0f;
+        float rightCursor = hdrX + hdrW - 8.0f;
+        float pillY = hdrY + 8.0f;
+        float pillH = 22.0f;
 
-        float langW = 30.0f;
+        float langW = 32.0f;
         rightCursor -= langW;
         lastLangX = rightCursor;
         lastLangW = langW;
-        drawHeaderPill(r, rightCursor, wy + 10, langW, 22, langLabel, false, true, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, langW, pillH, langLabel, false, true, mx, my);
 
-        float hudW = Math.max(40.0f, core.getFontManager().width(r, i18n.tr("gui.hud_editor"), 1.0f) + 14.0f);
+        float hudW = Math.max(42.0f, core.getFontManager().width(r, i18n.tr("gui.hud_editor"), 1.0f) + 16.0f);
         rightCursor -= (hudW + 4.0f);
         lastHudX = rightCursor;
         lastHudW = hudW;
-        drawHeaderPill(r, rightCursor, wy + 10, hudW, 22, i18n.tr("gui.hud_editor"), false, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, hudW, pillH, i18n.tr("gui.hud_editor"), false, false, mx, my);
 
-        float diagW = Math.max(42.0f, core.getFontManager().width(r, i18n.tr("gui.diag"), 1.0f) + 14.0f);
+        float diagW = Math.max(44.0f, core.getFontManager().width(r, i18n.tr("gui.diag"), 1.0f) + 16.0f);
         rightCursor -= (diagW + 4.0f);
         lastDiagX = rightCursor;
         lastDiagW = diagW;
-        drawHeaderPill(r, rightCursor, wy + 10, diagW, 22, i18n.tr("gui.diag"), activeView == TopView.COMPATIBILITY, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, diagW, pillH, i18n.tr("gui.diag"), activeView == TopView.COMPATIBILITY, false, mx, my);
 
-        float cfgW = Math.max(52.0f, core.getFontManager().width(r, i18n.tr("gui.configs"), 1.0f) + 14.0f);
+        float cfgW = Math.max(54.0f, core.getFontManager().width(r, i18n.tr("gui.configs"), 1.0f) + 16.0f);
         rightCursor -= (cfgW + 4.0f);
         lastCfgX = rightCursor;
         lastCfgW = cfgW;
-        drawHeaderPill(r, rightCursor, wy + 10, cfgW, 22, i18n.tr("gui.configs"), activeView == TopView.CONFIGS, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, cfgW, pillH, i18n.tr("gui.configs"), activeView == TopView.CONFIGS, false, mx, my);
 
-        float thmW = Math.max(46.0f, core.getFontManager().width(r, i18n.tr("gui.themes"), 1.0f) + 14.0f);
+        float thmW = Math.max(48.0f, core.getFontManager().width(r, i18n.tr("gui.themes"), 1.0f) + 16.0f);
         rightCursor -= (thmW + 4.0f);
         lastThmX = rightCursor;
         lastThmW = thmW;
-        drawHeaderPill(r, rightCursor, wy + 10, thmW, 22, i18n.tr("gui.themes"), activeView == TopView.THEMES, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, thmW, pillH, i18n.tr("gui.themes"), activeView == TopView.THEMES, false, mx, my);
 
         float favW = 26.0f;
         rightCursor -= (favW + 4.0f);
         lastFavX = rightCursor;
-        drawHeaderPill(r, rightCursor, wy + 10, favW, 22, "★", activeView == TopView.FAVORITES, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, favW, pillH, "★", activeView == TopView.FAVORITES, false, mx, my);
 
-        // Responsive Search Box between Brand & Tabs
-        float sx = wx + 98.0f;
-        float sy = wy + 10.0f;
+        // Stadium-Pill Search Box between Brand & Tabs
+        float sx = hdrX + 98.0f;
+        float sy = pillY;
         float searchW = Math.max(96.0f, rightCursor - sx - 8.0f);
         lastSearchX = sx;
         lastSearchW = searchW;
-        float shBox = 22.0f;
-        r.fillRoundedRect(sx, sy, searchW, shBox, 5.5f, t.getBackgroundColor());
-        r.drawRoundedOutline(sx, sy, searchW, shBox, 5.5f, 1.0f,
-                searchFocused ? accentCol : AxsesTheme.withAlpha(primaryCol, 0.36f));
+        float shBox = pillH;
+        r.fillRoundedRect(sx, sy, searchW, shBox, 11.0f, t.getBackgroundColor());
+        r.drawRoundedOutline(sx, sy, searchW, shBox, 11.0f, 1.0f,
+                searchFocused ? accentCol : AxsesTheme.withAlpha(primaryCol, 0.42f));
         String searchDisp = searchQuery.isEmpty() && !searchFocused
                 ? i18n.tr("gui.search_placeholder")
                 : (searchQuery + (searchFocused && (System.currentTimeMillis() / 500L) % 2L == 0L ? "|" : ""));
-        core.getFontManager().draw(r, trimToWidth(r, searchDisp, searchW - 22.0f), sx + 8.0f, sy + 7.0f,
+        core.getFontManager().draw(r, trimToWidth(r, searchDisp, searchW - 24.0f), sx + 10.0f, sy + 7.0f,
                 searchQuery.isEmpty() && !searchFocused ? t.getMutedColor() : t.getTextColor(), 0.96f);
         if (!searchQuery.isEmpty()) {
-            core.getFontManager().draw(r, "×", sx + searchW - 12.0f, sy + 7.0f, accentCol, 1.0f);
+            core.getFontManager().draw(r, "×", sx + searchW - 13.0f, sy + 7.0f, accentCol, 1.0f);
         }
 
-        // Left Sidebar Navigation Rail
-        float sideX = wx + 8.0f;
-        float sideY = wy + 48.0f;
-        float sideW = 136.0f;
-        float sideH = winH - 56.0f;
-        r.fillRoundedRect(sideX, sideY, sideW, sideH, 7.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
-        r.drawRoundedOutline(sideX, sideY, sideW, sideH, 7.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.24f));
+        // Floating Curved Left Sidebar Dock
+        float sideX = wx + 10.0f;
+        float sideY = wy + 52.0f;
+        float sideW = 140.0f;
+        float sideH = winH - 62.0f;
+        r.fillRoundedRect(sideX, sideY, sideW, sideH, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
+        r.drawRoundedOutline(sideX, sideY, sideW, sideH, 14.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.30f));
 
         String[] catIcons = { "⚔ ", "⚡ ", "✦ ", "◈ ", "◉ ", "⚙ ", "▣ ", "☰ " };
         ModuleCategory[] cats = ModuleCategory.values();
-        float cy = sideY + 6.0f;
-        float catRowH = Math.min(28.0f, (sideH - 54.0f) / cats.length);
+        float cy = sideY + 7.0f;
+        float catRowH = Math.min(28.5f, (sideH - 56.0f) / cats.length);
         for (int i = 0; i < cats.length; i++) {
             ModuleCategory cat = cats[i];
             boolean sel = (activeView == TopView.MODULES && selectedCategory == cat && searchQuery.isEmpty());
-            boolean hov = isInside(mx, my, sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f);
+            boolean hov = isInside(mx, my, sideX + 6.0f, cy, sideW - 12.0f, catRowH - 2.0f);
             float hovAnim = core.getAnimationManager().smoothHover("cat:" + cat.name(), hov);
+            float rowRad = (catRowH - 2.0f) * 0.48f;
 
             if (sel) {
-                RenderManager.fillHorizontalGradient(r, sideX + 6.0f, cy + 1.0f, sideW - 12.0f, catRowH - 4.0f,
-                        AxsesTheme.withAlpha(primaryCol, 0.36f), AxsesTheme.withAlpha(accentCol, 0.18f));
-                r.drawRoundedOutline(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.5f, 1.0f, AxsesTheme.withAlpha(accentCol, 0.72f));
-                r.fillGradientVertical(sideX + 7.0f, cy + 5.0f, 2.5f, Math.max(6.0f, catRowH - 12.0f), primaryCol, accentCol);
+                RenderManager.fillRoundedHorizontalGradient(r, sideX + 6.0f, cy, sideW - 12.0f, catRowH - 2.0f, rowRad,
+                        AxsesTheme.withAlpha(primaryCol, 0.48f), AxsesTheme.withAlpha(accentCol, 0.24f));
+                r.drawRoundedOutline(sideX + 6.0f, cy, sideW - 12.0f, catRowH - 2.0f, rowRad, 1.0f, AxsesTheme.withAlpha(accentCol, 0.85f));
             } else if (hovAnim > 0.02f) {
-                r.fillRoundedRect(sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f, 5.5f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.85f * hovAnim));
+                r.fillRoundedRect(sideX + 6.0f, cy, sideW - 12.0f, catRowH - 2.0f, rowRad, AxsesTheme.withAlpha(t.getElevatedColor(), 0.85f * hovAnim));
             }
 
             String glyph = i < catIcons.length ? catIcons[i] : "• ";
             String catTitle = glyph + i18n.tr(cat.getTranslationKey());
             float textY = cy + (catRowH - 2.0f - 8.0f) * 0.5f;
-            core.getFontManager().draw(r, catTitle, sideX + 12.0f, textY, sel ? 0xFFFFFFFF : t.getMutedColor(), 0.96f);
+            core.getFontManager().draw(r, catTitle, sideX + 13.0f, textY, sel ? 0xFFFFFFFF : t.getMutedColor(), 0.95f);
 
             List<Module> inCat = core.getModuleManager().getByCategory(cat);
             int enCount = 0;
@@ -247,9 +263,9 @@ public final class ClickGuiController {
                 if (inCat.get(k).isEnabled()) enCount++;
             }
             String cnt = enCount > 0 ? (enCount + "/" + inCat.size()) : String.valueOf(inCat.size());
-            float cntW = core.getFontManager().width(r, cnt, 1.0f);
-            core.getFontManager().draw(r, cnt, sideX + sideW - 10.0f - cntW, textY,
-                    enCount > 0 ? accentCol : AxsesTheme.withAlpha(t.getMutedColor(), 0.70f), 1.0f);
+            float cntW = core.getFontManager().width(r, cnt, 0.90f);
+            core.getFontManager().draw(r, cnt, sideX + sideW - 12.0f - cntW, textY + 0.5f,
+                    enCount > 0 ? accentCol : AxsesTheme.withAlpha(t.getMutedColor(), 0.70f), 0.90f);
 
             cy += catRowH;
         }
@@ -270,7 +286,7 @@ public final class ClickGuiController {
         // Main Content Area
         float contentX = sideX + sideW + 8.0f;
         float contentY = sideY;
-        float contentW = (wx + winW - 8.0f) - contentX;
+        float contentW = (wx + winW - 10.0f) - contentX;
         float contentH = sideH;
 
         if (activeView == TopView.THEMES) {
@@ -338,23 +354,24 @@ public final class ClickGuiController {
             }
             topOffset = 21.0f;
         } else if (showLanguageBanner()) {
-            // Prominent Language Selector Card pinned at top of Settings (Настройки)
+            // Prominent Curved Language Selector Card pinned at top of Settings (Настройки)
             float banW = w - 10.0f;
-            float banH = 40.0f;
-            r.fillRoundedRect(x, y, banW, banH, 6.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.96f));
-            r.drawRoundedOutline(x, y, banW, banH, 6.0f, 1.0f, AxsesTheme.withAlpha(accentCol, 0.78f));
-            r.fillRect(x + 2.0f, y + 6.0f, 2.5f, banH - 12.0f, accentCol);
+            float banH = 42.0f;
+            r.fillRoundedRect(x, y, banW, banH, 12.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.96f));
+            RenderManager.fillRoundedHorizontalGradient(r, x + 1.0f, y + 1.0f, banW * 0.55f, banH - 2.0f, 11.0f,
+                    AxsesTheme.withAlpha(primaryCol, 0.22f), 0x00000000);
+            r.drawRoundedOutline(x, y, banW, banH, 12.0f, 1.0f, AxsesTheme.withAlpha(accentCol, 0.82f));
 
             float maxLblW = Math.max(80.0f, banW - 196.0f);
             core.getFontManager().draw(r, trimToWidth(r, "🌐 " + i18n.tr("gui.lang_card_title"), maxLblW),
-                    x + 12.0f, y + 7.0f, t.getTextColor(), 1.0f);
+                    x + 14.0f, y + 8.0f, t.getTextColor(), 1.0f);
             core.getFontManager().draw(r, trimToWidth(r, i18n.tr("gui.lang_card_desc"), maxLblW),
-                    x + 12.0f, y + 22.0f, t.getMutedColor(), 1.0f);
+                    x + 14.0f, y + 23.0f, t.getMutedColor(), 1.0f);
 
             boolean isRu = i18n.isRussian();
-            drawSmallButton(r, x + banW - 176.0f, y + 10.0f, 82.0f, 20.0f, isRu ? "Русский ✓" : "Русский", isRu, mx, my);
-            drawSmallButton(r, x + banW - 88.0f, y + 10.0f, 80.0f, 20.0f, !isRu ? "English ✓" : "English", !isRu, mx, my);
-            topOffset = 46.0f;
+            drawSmallButton(r, x + banW - 178.0f, y + 11.0f, 82.0f, 20.0f, isRu ? "Русский ✓" : "Русский", isRu, mx, my);
+            drawSmallButton(r, x + banW - 90.0f, y + 11.0f, 80.0f, 20.0f, !isRu ? "English ✓" : "English", !isRu, mx, my);
+            topOffset = 48.0f;
         }
 
         float listY = y + topOffset;
@@ -416,31 +433,30 @@ public final class ClickGuiController {
                 float hovAnim = core.getAnimationManager().smoothHover("mod:" + m.getId(), cardHov);
                 float toggleAnim = core.getAnimationManager().smoothToggle("tog:" + m.getId(), m.isEnabled());
 
-                // Smoothly interpolated Hyperion Glass card background, gradient wash & glow bar
+                // Smoothly curved Celestial Vision card background, rounded gradient wash & glowing pill bar
+                float cardRad = 11.5f;
                 int offBg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f);
                 int onBg = AxsesTheme.withAlpha(t.getElevatedColor(), 0.98f);
                 int cardBg = AnimationManager.lerpColor(offBg, onBg, toggleAnim);
-                r.fillRoundedRect(x, cursorY, cardW, cardH, 6.5f, cardBg);
+                r.fillRoundedRect(x, cursorY, cardW, cardH, cardRad, cardBg);
 
                 if (toggleAnim > 0.02f) {
-                    RenderManager.fillHorizontalGradient(r, x + 2.0f, cursorY + 1.0f, cardW * 0.62f, baseCardH - 2.0f,
-                            AxsesTheme.withAlpha(primaryCol, 0.22f * toggleAnim), 0x00000000);
+                    RenderManager.fillRoundedHorizontalGradient(r, x + 1.0f, cursorY + 1.0f, cardW - 2.0f, Math.min(cardH - 2.0f, baseCardH - 2.0f), cardRad - 1.0f,
+                            AxsesTheme.withAlpha(primaryCol, 0.26f * toggleAnim), AxsesTheme.withAlpha(accentCol, 0.08f * toggleAnim));
                 }
                 if (hovAnim > 0.02f) {
-                    r.fillRoundedRect(x, cursorY, cardW, baseCardH, 6.5f, AxsesTheme.withAlpha(primaryCol, 0.09f * hovAnim));
+                    r.fillRoundedRect(x, cursorY, cardW, Math.min(cardH, baseCardH), cardRad, AxsesTheme.withAlpha(primaryCol, 0.10f * hovAnim));
                 }
 
-                int offBorder = AxsesTheme.withAlpha(t.getMutedColor(), 0.22f + 0.25f * hovAnim);
-                int onBorder = AxsesTheme.withAlpha(accentCol, 0.85f);
+                int offBorder = AxsesTheme.withAlpha(t.getMutedColor(), 0.24f + 0.26f * hovAnim);
+                int onBorder = AxsesTheme.withAlpha(accentCol, 0.88f);
                 int borderCol = AnimationManager.lerpColor(offBorder, onBorder, toggleAnim);
-                r.drawRoundedOutline(x, cursorY, cardW, cardH, 6.5f, 1.0f, borderCol);
+                r.drawRoundedOutline(x, cursorY, cardW, cardH, cardRad, 1.0f, borderCol);
 
                 if (toggleAnim > 0.02f) {
-                    float barH = (baseCardH - 10.0f) * toggleAnim;
+                    float barH = Math.max(6.0f, (baseCardH - 16.0f) * toggleAnim);
                     float barY = cursorY + (baseCardH - barH) * 0.5f;
-                    r.fillGradientVertical(x + 2.0f, barY, 2.8f, barH,
-                            AxsesTheme.withAlpha(primaryCol, toggleAnim),
-                            AxsesTheme.withAlpha(accentCol, toggleAnim));
+                    r.fillRoundedRect(x + 4.5f, barY, 3.0f, barH, 1.5f, AxsesTheme.withAlpha(accentCol, toggleAnim));
                 }
 
                 String incomp = m.getIncompatibilityReason(mc);
@@ -452,13 +468,13 @@ public final class ClickGuiController {
 
                 // Favorite Star
                 int starCol = m.isFavorite() ? t.getWarningColor() : AxsesTheme.withAlpha(t.getMutedColor(), 0.70f);
-                core.getFontManager().draw(r, m.isFavorite() ? "★" : "☆", x + 9.0f, cursorY + 8.0f, starCol, 1.0f);
+                core.getFontManager().draw(r, m.isFavorite() ? "★" : "☆", x + 11.0f, cursorY + 8.0f, starCol, 1.0f);
 
                 // Module Name + Clean Truncated Subtitle
-                float maxTextW = Math.max(60.0f, cardW - 148.0f);
-                core.getFontManager().draw(r, trimToWidth(r, dispName, maxTextW), x + 23.0f, cursorY + 7.0f,
+                float maxTextW = Math.max(60.0f, cardW - 152.0f);
+                core.getFontManager().draw(r, trimToWidth(r, dispName, maxTextW), x + 25.0f, cursorY + 7.0f,
                         incomp != null ? t.getMutedColor() : t.getTextColor(), 1.0f);
-                core.getFontManager().draw(r, trimToWidth(r, dispDesc, maxTextW), x + 23.0f, cursorY + 21.0f,
+                core.getFontManager().draw(r, trimToWidth(r, dispDesc, maxTextW), x + 25.0f, cursorY + 21.0f,
                         incomp != null ? t.getWarningColor() : t.getMutedColor(), 1.0f);
 
                 // Keybind Pill ([R] or [—])
@@ -467,15 +483,15 @@ public final class ClickGuiController {
                 String kbLabel = kbListening
                         ? "[...]"
                         : ("NONE".equalsIgnoreCase(rawKey) ? ("[" + i18n.tr("gui.no_bind") + "]") : ("[" + rawKey + "]"));
-                drawSmallButton(r, x + cardW - 110.0f, cursorY + 10.0f, 44.0f, 18.0f, kbLabel, kbListening, mx, my);
+                drawSmallButton(r, x + cardW - 112.0f, cursorY + 10.0f, 44.0f, 18.0f, kbLabel, kbListening, mx, my);
 
                 // Settings Expand Button
                 if (!m.getSettings().isEmpty()) {
-                    drawSmallButton(r, x + cardW - 62.0f, cursorY + 10.0f, 20.0f, 18.0f, expanded ? "▾" : "▸", expanded, mx, my);
+                    drawSmallButton(r, x + cardW - 64.0f, cursorY + 10.0f, 20.0f, 18.0f, expanded ? "▾" : "▸", expanded, mx, my);
                 }
 
-                // Modern Animated Toggle Switch
-                core.getRenderManager().drawToggleSwitch(r, x + cardW - 36.0f, cursorY + 11.0f, 28.0f, 16.0f, toggleAnim);
+                // Modern Animated Stadium-Pill Toggle Switch
+                core.getRenderManager().drawToggleSwitch(r, x + cardW - 38.0f, cursorY + 11.0f, 28.0f, 16.0f, toggleAnim);
 
                 // Inline Settings Drawer
                 if (expanded) {
@@ -534,11 +550,11 @@ public final class ClickGuiController {
                         ? String.valueOf(ns.getInt())
                         : String.format(Locale.ROOT, "%.2f", Double.valueOf(ns.getDouble()));
                 core.getFontManager().draw(r, title, sx, rowY + 4.0f, t.getTextColor(), 1.0f);
-                float vw = core.getFontManager().width(r, valStr, 0.90f) + 10.0f;
+                float vw = core.getFontManager().width(r, valStr, 0.90f) + 12.0f;
                 float vx = sx + sw - 126.0f - vw;
                 int acc = core.getThemeManager().filterColor(t.getAccentColor());
-                r.fillRoundedRect(vx, rowY + 1.5f, vw, 15.0f, 3.5f, AxsesTheme.withAlpha(acc, 0.16f));
-                r.drawRoundedOutline(vx, rowY + 1.5f, vw, 15.0f, 3.5f, 1.0f, AxsesTheme.withAlpha(acc, 0.55f));
+                r.fillRoundedRect(vx, rowY + 1.5f, vw, 15.0f, 7.5f, AxsesTheme.withAlpha(acc, 0.16f));
+                r.drawRoundedOutline(vx, rowY + 1.5f, vw, 15.0f, 7.5f, 1.0f, AxsesTheme.withAlpha(acc, 0.65f));
                 core.getFontManager().drawCentered(r, valStr, vx + vw * 0.5f, rowY + 5.0f, acc, 0.90f);
                 core.getRenderManager().drawSlider(r, sx + sw - 120.0f, rowY + 4.0f, 118.0f, 12.0f, ns.getNormalized());
                 rowY += 24.0f;
@@ -609,23 +625,26 @@ public final class ClickGuiController {
         AxsesTheme active = core.getThemeManager().getActiveTheme();
         List<AxsesTheme> list = core.getThemeManager().getAllThemes();
         boolean ru = core.getLocalizationManager().isRussian();
-        core.getFontManager().draw(r, ru ? "Темы оформления AXSES AURORA (8 встроенных + свои)" : "AXSES AURORA Themes (8 Built-in + Custom)",
+        core.getFontManager().draw(r, ru ? "Темы оформления AXSES VISION (14 встроенных + свои)" : "AXSES VISION Themes (14 Built-in + Custom)",
                 x, y + 2.0f, active.getAccentColor(), 1.0f);
 
-        float cardW = (w - 10.0f) * 0.5f;
-        float cardH = 44.0f;
-        for (int i = 0; i < Math.min(8, list.size()); i++) {
+        int cols = 3;
+        float gapX = 8.0f;
+        float gapY = 6.0f;
+        float cardW = (w - gapX * (cols - 1)) / cols;
+        float cardH = 40.0f;
+        for (int i = 0; i < Math.min(15, list.size()); i++) {
             AxsesTheme th = list.get(i);
-            float cx = x + (i % 2) * (cardW + 10.0f);
-            float cy = y + 20.0f + (i / 2) * (cardH + 7.0f);
+            float cx = x + (i % cols) * (cardW + gapX);
+            float cy = y + 19.0f + (i / cols) * (cardH + gapY);
             boolean isSel = th.getId().equals(active.getId());
-            r.fillRoundedRect(cx, cy, cardW, cardH, 6.0f, th.getSurfaceColor());
-            r.drawRoundedOutline(cx, cy, cardW, cardH, 6.0f, 1.0f, isSel ? th.getAccentColor() : th.getPrimaryColor());
-            core.getFontManager().draw(r, th.getName() + (isSel ? " ✓" : ""), cx + 10.0f, cy + 8.0f, th.getTextColor(), 1.0f);
-            r.fillRoundedRect(cx + 10.0f, cy + 24.0f, 18.0f, 11.0f, 3.0f, th.getPrimaryColor());
-            r.fillRoundedRect(cx + 32.0f, cy + 24.0f, 18.0f, 11.0f, 3.0f, th.getSecondaryColor());
-            r.fillRoundedRect(cx + 54.0f, cy + 24.0f, 18.0f, 11.0f, 3.0f, th.getAccentColor());
-            r.fillRoundedRect(cx + 76.0f, cy + 24.0f, 18.0f, 11.0f, 3.0f, th.getSuccessColor());
+            r.fillRoundedRect(cx, cy, cardW, cardH, 10.0f, th.getSurfaceColor());
+            r.drawRoundedOutline(cx, cy, cardW, cardH, 10.0f, isSel ? 1.5f : 1.0f, isSel ? th.getAccentColor() : th.getPrimaryColor());
+            core.getFontManager().draw(r, trimToWidth(r, th.getName() + (isSel ? " ✓" : ""), cardW - 16.0f), cx + 9.0f, cy + 7.0f, th.getTextColor(), 0.92f);
+            r.fillRoundedRect(cx + 9.0f, cy + 22.0f, 18.0f, 10.0f, 5.0f, th.getPrimaryColor());
+            r.fillRoundedRect(cx + 31.0f, cy + 22.0f, 18.0f, 10.0f, 5.0f, th.getSecondaryColor());
+            r.fillRoundedRect(cx + 53.0f, cy + 22.0f, 18.0f, 10.0f, 5.0f, th.getAccentColor());
+            r.fillRoundedRect(cx + 75.0f, cy + 22.0f, 18.0f, 10.0f, 5.0f, th.getSuccessColor());
         }
 
         float btnY = y + h - 22.0f;
@@ -704,23 +723,23 @@ public final class ClickGuiController {
         float mx = (float) rawX;
         float my = (float) rawY;
 
-        if (isInside(mx, my, wx + 2, wy + 2, winW - 4, 40)) {
+        if (isInside(mx, my, wx + 8, wy + 6, winW - 16, 42)) {
             return handleHeaderClick(mc, wx, wy, winW, mx, my, rawX, rawY);
         }
 
         searchFocused = false;
 
         // Left Sidebar Clicks
-        float sideX = wx + 8.0f;
-        float sideY = wy + 48.0f;
-        float sideW = 136.0f;
-        float sideH = winH - 56.0f;
+        float sideX = wx + 10.0f;
+        float sideY = wy + 52.0f;
+        float sideW = 140.0f;
+        float sideH = winH - 62.0f;
 
         ModuleCategory[] cats = ModuleCategory.values();
-        float cy = sideY + 6.0f;
-        float catRowH = Math.min(27.0f, (sideH - 54.0f) / cats.length);
+        float cy = sideY + 7.0f;
+        float catRowH = Math.min(28.5f, (sideH - 56.0f) / cats.length);
         for (ModuleCategory cat : cats) {
-            if (isInside(mx, my, sideX + 5.0f, cy, sideW - 10.0f, catRowH - 2.0f)) {
+            if (isInside(mx, my, sideX + 6.0f, cy, sideW - 12.0f, catRowH - 2.0f)) {
                 selectedCategory = cat;
                 activeView = TopView.MODULES;
                 searchQuery = "";
@@ -741,7 +760,7 @@ public final class ClickGuiController {
 
         float contentX = sideX + sideW + 8.0f;
         float contentY = sideY;
-        float contentW = (wx + winW - 8.0f) - contentX;
+        float contentW = (wx + winW - 10.0f) - contentX;
         float contentH = sideH;
 
         if (activeView == TopView.THEMES) {
@@ -759,8 +778,9 @@ public final class ClickGuiController {
     private float lastSearchX, lastSearchW, lastFavX, lastThmX, lastThmW, lastCfgX, lastCfgW, lastDiagX, lastDiagW, lastHudX, lastHudW, lastLangX, lastLangW = 30.0f;
 
     private boolean handleHeaderClick(MinecraftAdapter mc, float wx, float wy, float winW, float mx, float my, double rawX, double rawY) {
-        float fallbackLangX = lastLangX > 0 ? lastLangX : (wx + winW - 40.0f);
-        if (isInside(mx, my, fallbackLangX, wy + 10, lastLangW, 22)) {
+        float pillY = wy + 16.0f;
+        float fallbackLangX = lastLangX > 0 ? lastLangX : (wx + winW - 48.0f);
+        if (isInside(mx, my, fallbackLangX, pillY, lastLangW, 22)) {
             core.getLocalizationManager().toggleLocale();
             core.getConfigManager().saveActiveAsync();
             core.getNotificationManager().push("AXSES",
@@ -768,29 +788,29 @@ public final class ClickGuiController {
                     NotificationManager.Severity.INFO);
             return true;
         }
-        if (lastHudX > 0 && isInside(mx, my, lastHudX, wy + 10, lastHudW, 22)) {
+        if (lastHudX > 0 && isInside(mx, my, lastHudX, pillY, lastHudW, 22)) {
             onClose(mc);
             mc.openHudEditor();
             return true;
         }
-        if (lastDiagX > 0 && isInside(mx, my, lastDiagX, wy + 10, lastDiagW, 22)) {
+        if (lastDiagX > 0 && isInside(mx, my, lastDiagX, pillY, lastDiagW, 22)) {
             activeView = (activeView == TopView.COMPATIBILITY) ? TopView.MODULES : TopView.COMPATIBILITY;
             return true;
         }
-        if (lastCfgX > 0 && isInside(mx, my, lastCfgX, wy + 10, lastCfgW, 22)) {
+        if (lastCfgX > 0 && isInside(mx, my, lastCfgX, pillY, lastCfgW, 22)) {
             activeView = (activeView == TopView.CONFIGS) ? TopView.MODULES : TopView.CONFIGS;
             return true;
         }
-        if (lastThmX > 0 && isInside(mx, my, lastThmX, wy + 10, lastThmW, 22)) {
+        if (lastThmX > 0 && isInside(mx, my, lastThmX, pillY, lastThmW, 22)) {
             activeView = (activeView == TopView.THEMES) ? TopView.MODULES : TopView.THEMES;
             return true;
         }
-        if (lastFavX > 0 && isInside(mx, my, lastFavX, wy + 10, 26, 22)) {
+        if (lastFavX > 0 && isInside(mx, my, lastFavX, pillY, 26, 22)) {
             activeView = (activeView == TopView.FAVORITES) ? TopView.MODULES : TopView.FAVORITES;
             targetScrollY = 0.0f;
             return true;
         }
-        if (lastSearchW > 0 && isInside(mx, my, lastSearchX, wy + 10, lastSearchW, 22)) {
+        if (lastSearchW > 0 && isInside(mx, my, lastSearchX, pillY, lastSearchW, 22)) {
             if (!searchQuery.isEmpty() && mx >= lastSearchX + lastSearchW - 18.0f) {
                 searchQuery = "";
                 return true;
@@ -812,11 +832,14 @@ public final class ClickGuiController {
 
     private boolean handleThemesClick(MinecraftAdapter mc, float x, float y, float w, float h, float mx, float my) {
         List<AxsesTheme> list = core.getThemeManager().getAllThemes();
-        float cardW = (w - 10.0f) * 0.5f;
-        float cardH = 44.0f;
-        for (int i = 0; i < Math.min(8, list.size()); i++) {
-            float cx = x + (i % 2) * (cardW + 10.0f);
-            float cy = y + 20.0f + (i / 2) * (cardH + 7.0f);
+        int cols = 3;
+        float gapX = 8.0f;
+        float gapY = 6.0f;
+        float cardW = (w - gapX * (cols - 1)) / cols;
+        float cardH = 40.0f;
+        for (int i = 0; i < Math.min(15, list.size()); i++) {
+            float cx = x + (i % cols) * (cardW + gapX);
+            float cy = y + 19.0f + (i / cols) * (cardH + gapY);
             if (isInside(mx, my, cx, cy, cardW, cardH)) {
                 AxsesTheme chosen = list.get(i);
                 core.getThemeManager().setActiveTheme(chosen.getId());
@@ -1218,26 +1241,33 @@ public final class ClickGuiController {
     private void drawHeaderPill(RenderAdapter r, float x, float y, float w, float h, String text, boolean active, boolean accentOutline, float mx, float my) {
         AxsesTheme t = core.getThemeManager().getActiveTheme();
         boolean hov = isInside(mx, my, x, y, w, h);
-        int bg = active
-                ? core.getThemeManager().filterColor(t.getPrimaryColor())
-                : (hov ? t.getElevatedColor() : t.getBackgroundColor());
-        r.fillRoundedRect(x, y, w, h, 5.0f, bg);
-        if (active || accentOutline || hov) {
-            r.drawRoundedOutline(x, y, w, h, 5.0f, 1.0f,
-                    accentOutline ? core.getThemeManager().filterColor(t.getAccentColor()) : core.getThemeManager().filterColor(t.getPrimaryColor()));
+        float rad = h * 0.48f;
+        int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
+        int acc = core.getThemeManager().filterColor(t.getAccentColor());
+        if (active) {
+            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, rad, prim, AxsesTheme.withAlpha(acc, 0.85f));
+        } else {
+            r.fillRoundedRect(x, y, w, h, rad, hov ? t.getElevatedColor() : t.getBackgroundColor());
         }
-        core.getFontManager().drawCentered(r, text, x + w * 0.5f, y + 7.0f, t.getTextColor(), 1.0f);
+        r.drawRoundedOutline(x, y, w, h, rad, 1.0f,
+                (active || accentOutline) ? acc : (hov ? prim : AxsesTheme.withAlpha(t.getMutedColor(), 0.28f)));
+        core.getFontManager().drawCentered(r, text, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFFFFFFF, 1.0f);
     }
 
     private void drawSmallButton(RenderAdapter r, float x, float y, float w, float h, String text, boolean active, float mx, float my) {
         AxsesTheme t = core.getThemeManager().getActiveTheme();
         boolean hov = isInside(mx, my, x, y, w, h);
-        int bg = active
-                ? core.getThemeManager().filterColor(t.getPrimaryColor())
-                : (hov ? core.getThemeManager().filterColor(t.getSecondaryColor()) : t.getElevatedColor());
-        r.fillRoundedRect(x, y, w, h, 4.0f, bg);
-        r.drawRoundedOutline(x, y, w, h, 4.0f, 1.0f, AxsesTheme.withAlpha(t.getMutedColor(), active || hov ? 0.65f : 0.25f));
-        core.getFontManager().drawCentered(r, text, x + w * 0.5f, y + (h - 8.0f) * 0.5f, t.getTextColor(), 1.0f);
+        float rad = h * 0.48f;
+        int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
+        int acc = core.getThemeManager().filterColor(t.getAccentColor());
+        if (active) {
+            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, rad, prim, AxsesTheme.withAlpha(acc, 0.88f));
+        } else {
+            r.fillRoundedRect(x, y, w, h, rad, hov ? core.getThemeManager().filterColor(t.getSecondaryColor()) : t.getElevatedColor());
+        }
+        r.drawRoundedOutline(x, y, w, h, rad, 1.0f,
+                active ? AxsesTheme.withAlpha(acc, 0.90f) : AxsesTheme.withAlpha(t.getMutedColor(), hov ? 0.65f : 0.30f));
+        core.getFontManager().drawCentered(r, text, x + w * 0.5f, y + (h - 8.0f) * 0.5f, active ? 0xFFFFFFFF : t.getTextColor(), 1.0f);
     }
 
     private String trimToWidth(RenderAdapter r, String s, float maxW) {

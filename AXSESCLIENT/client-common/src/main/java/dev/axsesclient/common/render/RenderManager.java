@@ -23,14 +23,68 @@ public final class RenderManager {
     public void setBlurBackdropStrength(float s) { this.blurBackdropStrength = Math.max(0f, Math.min(1f, s)); }
 
     public static void fillHorizontalGradient(RenderAdapter r, float x, float y, float w, float h, int leftArgb, int rightArgb) {
+        fillRoundedHorizontalGradient(r, x, y, w, h, 0.0f, leftArgb, rightArgb);
+    }
+
+    public static void fillRoundedHorizontalGradient(RenderAdapter r, float x, float y, float w, float h, float radius, int leftArgb, int rightArgb) {
         if (w <= 0f || h <= 0f) return;
-        int steps = Math.max(2, Math.min(20, Math.round(w / 8.0f)));
-        float segW = w / steps;
-        for (int i = 0; i < steps; i++) {
-            float t = steps == 1 ? 0f : (float) i / (float) (steps - 1);
-            float sx = x + i * segW;
-            float sw = (i == steps - 1) ? (x + w - sx) : (segW + 0.5f);
-            r.fillRect(sx, y, sw, h, blendArgb(leftArgb, rightArgb, t));
+        int ix1 = Math.round(x);
+        int iy1 = Math.round(y);
+        int ix2 = Math.max(ix1 + 1, Math.round(x + w));
+        int iy2 = Math.max(iy1 + 1, Math.round(y + h));
+        int iw = ix2 - ix1;
+        int ih = iy2 - iy1;
+        int ir = Math.max(0, Math.min(Math.round(radius), Math.min(iw, ih) / 2));
+
+        if (ir <= 1) {
+            int steps = Math.max(2, Math.min(28, Math.round(w / 6.0f)));
+            int prevColX = ix1;
+            for (int i = 0; i < steps; i++) {
+                float t = steps == 1 ? 0f : (float) i / (float) (steps - 1);
+                int nextColX = (i == steps - 1) ? ix2 : Math.round(ix1 + (iw * (i + 1)) / (float) steps);
+                if (nextColX > prevColX) {
+                    r.fillRect(prevColX, iy1, nextColX - prevColX, ih, blendArgb(leftArgb, rightArgb, t));
+                    prevColX = nextColX;
+                }
+            }
+            return;
+        }
+
+        // Exact 1px integer columns in curved end-caps + wider strips in straight center (zero overdraw!)
+        int col = ix1;
+        while (col < ix2) {
+            boolean inLeftArc = (col - ix1) < ir;
+            boolean inRightArc = (ix2 - 1 - col) < ir;
+            int stepW;
+            int insetY = 0;
+            if (inLeftArc) {
+                stepW = 1;
+                float dx = ir - ((col - ix1) + 0.5f);
+                insetY = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dx * dx))));
+            } else if (inRightArc) {
+                stepW = 1;
+                float dx = ir - ((ix2 - 1 - col) + 0.5f);
+                insetY = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dx * dx))));
+            } else {
+                int straightLimit = ix2 - ir;
+                stepW = Math.max(1, Math.min(6, straightLimit - col));
+            }
+            int spanH = ih - insetY * 2;
+            if (spanH > 0) {
+                float t = iw <= 1 ? 0f : (float) (col - ix1) / (float) (iw - 1);
+                r.fillRect(col, iy1 + insetY, stepW, spanH, blendArgb(leftArgb, rightArgb, t));
+            }
+            col += stepW;
+        }
+    }
+
+    public static void drawSoftGlow(RenderAdapter r, float x, float y, float w, float h, float radius, int layers, int rgb, float maxAlpha) {
+        if (layers <= 0 || maxAlpha <= 0.005f || w <= 0f || h <= 0f) return;
+        for (int i = layers; i >= 1; i--) {
+            float spread = i * 2.2f;
+            float falloff = (float) (layers + 1 - i) / (float) (layers + 1);
+            float alpha = maxAlpha * falloff * 0.48f;
+            r.fillRoundedRect(x - spread, y - spread, w + spread * 2f, h + spread * 2f, radius + spread, AxsesTheme.withAlpha(rgb, alpha));
         }
     }
 
@@ -62,16 +116,21 @@ public final class RenderManager {
         AxsesTheme t = themeManager.getActiveTheme();
         float k = Math.max(0f, Math.min(1f, animProgress));
         float rad = h * 0.5f;
-        int offCol = AxsesTheme.withAlpha(0xFF161C2E, 0.96f);
+        int offCol = AxsesTheme.withAlpha(0xFF12182A, 0.96f);
         int onPrimary = themeManager.filterColor(t.getPrimaryColor());
         int onAccent = themeManager.filterColor(t.getAccentColor());
-        int track = blendArgb(offCol, blendArgb(onPrimary, onAccent, 0.38f), k);
 
         if (k > 0.08f) {
-            r.fillRoundedRect(x - 1.5f, y - 1.5f, w + 3.0f, h + 3.0f, rad + 1.5f, AxsesTheme.withAlpha(onAccent, 0.22f * k));
+            r.fillRoundedRect(x - 1.5f, y - 1.5f, w + 3.0f, h + 3.0f, rad + 1.5f, AxsesTheme.withAlpha(onAccent, 0.24f * k));
         }
-        r.fillRoundedRect(x, y, w, h, rad, track);
-        r.drawRoundedOutline(x, y, w, h, rad, 1.0f, k > 0.5f ? AxsesTheme.withAlpha(onAccent, 0.85f) : 0x3394A3B8);
+        if (k > 0.05f) {
+            fillRoundedHorizontalGradient(r, x, y, w, h, rad,
+                    blendArgb(offCol, onPrimary, k),
+                    blendArgb(offCol, onAccent, k));
+        } else {
+            r.fillRoundedRect(x, y, w, h, rad, offCol);
+        }
+        r.drawRoundedOutline(x, y, w, h, rad, 1.0f, k > 0.45f ? AxsesTheme.withAlpha(onAccent, 0.90f) : 0x3D94A3B8);
 
         float knobSize = h - 4.0f;
         float knobX = x + 2.0f + (w - knobSize - 4.0f) * k;
@@ -84,21 +143,21 @@ public final class RenderManager {
     public void drawSlider(RenderAdapter r, float x, float y, float w, float h, float normalized) {
         AxsesTheme t = themeManager.getActiveTheme();
         float norm = Math.max(0.0f, Math.min(1.0f, normalized));
-        float trackH = Math.max(4.5f, h * 0.46f);
+        float trackH = Math.max(5.0f, h * 0.48f);
         float ty = y + (h - trackH) * 0.5f;
 
-        r.fillRoundedRect(x, ty, w, trackH, trackH * 0.5f, 0xEE080B16);
-        r.drawRoundedOutline(x, ty, w, trackH, trackH * 0.5f, 1.0f, 0x26FFFFFF);
+        r.fillRoundedRect(x, ty, w, trackH, trackH * 0.5f, 0xEE080C1A);
+        r.drawRoundedOutline(x, ty, w, trackH, trackH * 0.5f, 1.0f, 0x2AFFFFFF);
 
         float fillW = Math.max(trackH, w * norm);
         int c1 = themeManager.filterColor(t.getPrimaryColor());
         int c2 = themeManager.filterColor(t.getAccentColor());
-        fillHorizontalGradient(r, x + 1.0f, ty + 0.5f, Math.max(2.0f, fillW - 1.5f), Math.max(2.0f, trackH - 1.0f), c1, c2);
+        fillRoundedHorizontalGradient(r, x, ty, fillW, trackH, trackH * 0.5f, c1, c2);
 
-        float knobX = x + w * norm - 4.5f;
-        r.fillRoundedRect(knobX - 1.5f, y - 0.5f, 12.0f, h + 1.0f, 5.5f, AxsesTheme.withAlpha(c2, 0.28f));
-        r.fillRoundedRect(knobX, y + 1.0f, 9.0f, h - 2.0f, 4.5f, 0xFFFFFFFF);
-        r.fillRoundedRect(knobX + 2.5f, y + 3.5f, 4.0f, Math.max(2.0f, h - 7.0f), 2.0f, c1);
+        float knobX = x + w * norm - 5.0f;
+        r.fillRoundedRect(knobX - 1.5f, y - 0.5f, 13.0f, h + 1.0f, (h + 1.0f) * 0.5f, AxsesTheme.withAlpha(c2, 0.30f));
+        r.fillRoundedRect(knobX, y + 1.0f, 10.0f, h - 2.0f, (h - 2.0f) * 0.5f, 0xFFFFFFFF);
+        r.fillRoundedRect(knobX + 3.0f, y + 3.5f, 4.0f, Math.max(2.0f, h - 7.0f), 2.0f, c1);
     }
 
     public void renderNotifications(RenderAdapter r, NotificationManager nm, float deltaSeconds, float animSpeed, boolean reducedMotion) {

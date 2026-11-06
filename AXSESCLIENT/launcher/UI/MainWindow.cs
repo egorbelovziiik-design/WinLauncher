@@ -185,7 +185,7 @@ public sealed class MainWindow : Window
         });
         brandTextStack.Children.Add(new TextBlock
         {
-            Text = "v3.0 • HYPERION AURORA",
+            Text = "v3.5 • CELESTIAL VISION",
             Foreground = BrushOf(t.AccentCyan),
             FontWeight = FontWeight.SemiBold,
             FontSize = 10.5
@@ -232,7 +232,7 @@ public sealed class MainWindow : Window
         [
             (LauncherPage.Dashboard, "◈", "Главная", "Dashboard"),
             (LauncherPage.Play, "▶", "Запуск и ОЗУ", "Play & RAM"),
-            (LauncherPage.Modules, "✦", "Модули (102)", "Modules (102)"),
+            (LauncherPage.Modules, "✦", "Модули (108)", "Modules (108)"),
             (LauncherPage.Versions, "❖", "Версии игры", "Versions"),
             (LauncherPage.Accounts, "◉", "Аккаунты", "Accounts"),
             (LauncherPage.Profiles, "▤", "Профили", "Profiles"),
@@ -376,10 +376,10 @@ public sealed class MainWindow : Window
 
         var heroLeft = new StackPanel { Spacing = 10 };
         var chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        chipRow.Children.Add(CreatePillBadge("HYPERION AURORA v3.0", t.AccentPrimary, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge("CELESTIAL VISION v3.5", t.AccentPrimary, t.BgPrimary));
         chipRow.Children.Add(CreatePillBadge(spec.State.ToDisplayBadge(ru),
             spec.State == VersionInstallState.Installed ? t.Success : t.AccentCyan, t.BgPrimary));
-        chipRow.Children.Add(CreatePillBadge(ru ? "102 Модуля • 12 Тем • FunTime/RW/HW" : "102 Modules • 12 Themes", t.AccentCyan, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge(ru ? "108 Модулей • 14 Тем • FunTime/RW/HW" : "108 Modules • 14 Themes", t.AccentCyan, t.BgPrimary));
         heroLeft.Children.Add(chipRow);
 
         heroLeft.Children.Add(new TextBlock
@@ -466,14 +466,14 @@ public sealed class MainWindow : Window
             FontWeight = FontWeight.Bold,
             VerticalAlignment = VerticalAlignment.Center
         });
-        var allModsBtn = CreateGhostButton(ru ? "Открыть все 102 модуля →" : "All 102 Modules →", t);
+        var allModsBtn = CreateGhostButton(ru ? "Открыть все 108 модулей →" : "All 108 Modules →", t);
         allModsBtn.Click += (_, _) => NavigateTo(LauncherPage.Modules);
         Grid.SetColumn(allModsBtn, 1);
         qHeader.Children.Add(allModsBtn);
         quickStack.Children.Add(qHeader);
 
         var featuredGrid = new UniformGrid { Columns = 3 };
-        string[] featuredIds = ["kill_aura", "entity_esp", "target_hud", "china_hat", "jump_circles", "watermark_hud"];
+        string[] featuredIds = ["kill_aura", "entity_esp", "target_hud", "radar_hud", "totem_counter", "gapple_tracker"];
         foreach (string fid in featuredIds)
         {
             var mod = _state.Modules.FirstOrDefault(m => m.Id == fid);
@@ -844,8 +844,8 @@ public sealed class MainWindow : Window
         var searchBox = new TextBox
         {
             Watermark = ru
-                ? "🔎 Поиск по 102 модулям (КиллАура, ESP, Коническая шляпа, Круги прыжка, Таргет HUD)..."
-                : "🔎 Search 102 modules (e.g. KillAura, Entity ESP, China Hat, Jump Circles, Target HUD)..."
+                ? "🔎 Поиск по 108 модулям (КиллАура, ESP, Радар 2D, Тотемы, Геплы, Таргет HUD)..."
+                : "🔎 Search 108 modules (e.g. KillAura, Entity ESP, 2D Radar, Totems, Target HUD)..."
         };
         if (!string.IsNullOrEmpty(_moduleSearch))
             searchBox.Text = _moduleSearch;
@@ -862,7 +862,7 @@ public sealed class MainWindow : Window
         var catRow = new WrapPanel { Orientation = Orientation.Horizontal };
         (string Key, string Ru, string En)[] cats =
         [
-            ("ALL", "Все (102)", "All (102)"),
+            ("ALL", "Все (108)", "All (108)"),
             ("Combat", "Бой (Combat)", "Combat"),
             ("HUD", "HUD Виджеты", "HUD"),
             ("Render", "Визуал", "Render"),
@@ -1324,7 +1324,7 @@ public sealed class MainWindow : Window
         var s = new StackPanel { Spacing = 10 };
         s.Children.Add(new TextBlock
         {
-            Text = "AXSESCLIENT v3.0.0 • HYPERION AURORA",
+            Text = "AXSESCLIENT v3.5.0 • CELESTIAL VISION",
             Foreground = BrushOf(t.TextPrimary),
             FontSize = 22,
             FontWeight = FontWeight.Black
@@ -1334,12 +1334,12 @@ public sealed class MainWindow : Window
             Text = ru
                 ? "Нативный лаунчер и игровой клиент нового поколения для Windows 10/11 x64.\n" +
                   "• Поддержка Minecraft 1.16.5, 1.21.4 и 1.21.11 (отдельные оптимизированные Fabric-моды)\n" +
-                  "• 102 рабочие функции и 12 тем: беспаливная КиллАура (FunTime / ReallyWorld / HolyWorld), ESP Подсветка, Коническая шляпа, Круги прыжка, Ватермарка, Список модулей и Таргет HUD\n" +
-                  "• Плавное переключение модулей без фризов, 2D-клавиатура Кейстрокс и полный Русский язык\n" +
+                  "• 108 рабочих функций и 14 тем: скруглённое ClickGUI на Правый Shift, беспаливная КиллАура (FunTime / ReallyWorld / HolyWorld + 3D Сферы душ), ESP Неон-капсула, Мини-Радар 2D, Счётчик тотемов, Геплы и перлы, Индикатор урона 3D и Таргет HUD\n" +
+                  "• Мгновенное переключение модулей без фризов, 3D-маяки меток и полный Русский язык\n" +
                   "• Честное выделение ОЗУ (-Xmx) на базе физической памяти ПК + Автоматическая установка Java 8 и Java 21"
                 : "Next-generation native Windows x64 Launcher & Fabric Client for Minecraft 1.16.5, 1.21.4 & 1.21.11.\n" +
-                  "• 102 real modules & 12 themes: stealth KillAura (FunTime / ReallyWorld / HolyWorld), Entity ESP, China Hat, Jump Circles, Watermark, ArrayList & Hyperion Target HUD\n" +
-                  "• Zero-lag async module toggles, sculpted 2D Keystrokes & full Russian / English language settings\n" +
+                  "• 108 real modules & 14 themes: smoothly side-curved Right-Shift ClickGUI, stealth KillAura (FunTime / ReallyWorld / HolyWorld + 3D Soul Orbs), Vision Capsule ESP, 2D PvP Radar, Totem Counter, Gapple Tracker, 3D Damage Indicators & Target HUD\n" +
+                  "• Zero-lag async module toggles, 3D waypoint beacons & full Russian / English language settings\n" +
                   "• Hardware-calibrated JVM RAM allocation (-Xmx) & zero-touch Java 8 / Java 21 auto-installer",
             Foreground = BrushOf(t.TextSecondary),
             FontSize = 13,
@@ -1354,7 +1354,7 @@ public sealed class MainWindow : Window
     {
         LauncherPage.Dashboard => ru ? "Панель управления" : "Dashboard",
         LauncherPage.Play => ru ? "Параметры запуска и ОЗУ" : "Launch & Memory",
-        LauncherPage.Modules => ru ? "Модули клиента (102)" : "Client Modules (102)",
+        LauncherPage.Modules => ru ? "Модули клиента (108)" : "Client Modules (108)",
         LauncherPage.Versions => ru ? "Версии Minecraft" : "Minecraft Versions",
         LauncherPage.Accounts => ru ? "Аккаунты игроков" : "Accounts",
         LauncherPage.Profiles => ru ? "Профили сборок" : "Launch Profiles",
@@ -1369,9 +1369,9 @@ public sealed class MainWindow : Window
     private static Border CreateSurfaceCard(LauncherThemePalette t) => new()
     {
         Background = BrushOf(t.BgSecondary, 0.94),
-        BorderBrush = BrushOf("#1EFFFFFF"),
+        BorderBrush = BrushOf("#22FFFFFF"),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(16),
+        CornerRadius = new CornerRadius(20),
         Padding = new Thickness(20, 18)
     };
 
@@ -1399,7 +1399,7 @@ public sealed class MainWindow : Window
         Foreground = Brushes.White,
         BorderBrush = BrushOf(t.AccentCyan, 0.65),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(11),
+        CornerRadius = new CornerRadius(15),
         Padding = new Thickness(padH, padV),
         FontSize = fontSize,
         FontWeight = FontWeight.ExtraBold,
@@ -1411,10 +1411,10 @@ public sealed class MainWindow : Window
         Content = text,
         Background = BrushOf(t.BgSurface, 0.80),
         Foreground = BrushOf(t.TextPrimary),
-        BorderBrush = BrushOf("#26FFFFFF"),
+        BorderBrush = BrushOf("#28FFFFFF"),
         BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(10),
-        Padding = new Thickness(13, 7),
+        CornerRadius = new CornerRadius(14),
+        Padding = new Thickness(14, 7),
         FontSize = 12,
         FontWeight = FontWeight.SemiBold,
         Cursor = new Cursor(StandardCursorType.Hand)

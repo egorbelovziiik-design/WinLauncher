@@ -2,6 +2,7 @@ package dev.axsesclient.common.modules.impl;
 
 import dev.axsesclient.common.hud.HudElement;
 import dev.axsesclient.common.hud.HudManager;
+import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.modules.Module;
 import dev.axsesclient.common.modules.ModuleCategory;
 import dev.axsesclient.common.modules.ModuleManager;
@@ -9,11 +10,15 @@ import dev.axsesclient.common.notifications.NotificationManager;
 import dev.axsesclient.common.platform.ItemInfo;
 import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
+import dev.axsesclient.common.platform.RenderAdapter;
+import dev.axsesclient.common.render.FontManager;
 import dev.axsesclient.common.settings.BooleanSetting;
 import dev.axsesclient.common.settings.ColorSetting;
 import dev.axsesclient.common.settings.ModeSetting;
 import dev.axsesclient.common.settings.NumberSetting;
 import dev.axsesclient.common.settings.StringSetting;
+import dev.axsesclient.common.theme.AxsesTheme;
+import dev.axsesclient.common.theme.ThemeManager;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -29,11 +34,24 @@ public final class WorldUtilityModulesRegistry {
             final ClientRuntimeState state,
             final NotificationManager notifications
     ) {
-        // 55. Waypoints
-        Module waypointsMod = mm.register(new Module("waypoints", "Waypoints", "Creates and tracks local coordinates with live distance readout", ModuleCategory.WORLD) {
+        registerAll(mm, hm, state, notifications, null, null, null);
+    }
+
+    public static void registerAll(
+            ModuleManager mm,
+            HudManager hm,
+            final ClientRuntimeState state,
+            final NotificationManager notifications,
+            final LocalizationManager i18n,
+            final FontManager fonts,
+            final ThemeManager themes
+    ) {
+        // 55. Waypoints (with real 3D World Beacons!)
+        Module waypointsMod = mm.register(new Module("waypoints", "Waypoints", "Creates and tracks local coordinates with live 3D beacons & distance readout", ModuleCategory.WORLD) {
             private final StringSetting label = addSetting(new StringSetting("wp_name", "New Waypoint Label", "Label saved when enabling or marking", "Home Base", 24));
             private final ColorSetting color = addSetting(new ColorSetting("wp_color", "Marker Color", "Waypoint badge color", 0xFF00D9FF));
             private final BooleanSetting saveCurrentOnEnable = addSetting(new BooleanSetting("mark_on_enable", "Mark Position On Enable", "Bookmark current player coordinates when enabled", false));
+            private final BooleanSetting beacons3d = addSetting(new BooleanSetting("beacons_3d", "3D World Beacons", "Project floating waypoint beacons in 3D space", true));
 
             @Override
             public void onEnable(MinecraftAdapter mc) {
@@ -42,27 +60,54 @@ public final class WorldUtilityModulesRegistry {
                             label.getValue(), mc.getPlayerX(), mc.getPlayerY(), mc.getPlayerZ(),
                             mc.getDimensionId(), mc.getWorldOrServerName(), color.getArgb()
                     ));
-                    notifications.push("Waypoint Saved", label.getValue(), NotificationManager.Severity.SUCCESS);
+                    boolean ru = i18n != null && i18n.isRussian();
+                    notifications.push(ru ? "Метка сохранена" : "Waypoint Saved", label.getValue(), NotificationManager.Severity.SUCCESS);
+                }
+            }
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (!beacons3d.isEnabled() || mc == null || !mc.isInWorld() || mc.isClickGuiOpen() || fonts == null) return;
+                List<ClientRuntimeState.Waypoint> wps = state.getWaypoints();
+                boolean ru = i18n != null && i18n.isRussian();
+                for (int i = 0; i < wps.size(); i++) {
+                    ClientRuntimeState.Waypoint wp = wps.get(i);
+                    float[] proj = mc.projectWorldToScreen(wp.x, wp.y + 1.6, wp.z);
+                    if (proj != null && proj[2] > 0.2f) {
+                        double dist = Math.hypot(mc.getPlayerX() - wp.x, mc.getPlayerZ() - wp.z);
+                        String txt = String.format(Locale.ROOT, "◈ %s · %.0f%s", wp.name, Double.valueOf(dist), ru ? "м" : "m");
+                        float bw = fonts.width(r, txt, 0.86f) + 14.0f;
+                        float bx = proj[0] - bw * 0.5f;
+                        float by = proj[1] - 20.0f;
+                        int col = themes != null ? themes.filterColor(wp.colorArgb) : wp.colorArgb;
+                        r.drawLine(proj[0], proj[1] - 2.0f, proj[0], proj[1] + 8.0f, 1.4f, AxsesTheme.withAlpha(col, 0.65f));
+                        r.fillRoundedRect(proj[0] - 3.0f, proj[1] - 3.0f, 6.0f, 6.0f, 3.0f, col);
+                        r.fillRoundedRect(bx, by, bw, 16.0f, 8.0f, 0xDF060A18);
+                        r.drawRoundedOutline(bx, by, bw, 16.0f, 8.0f, 1.0f, col);
+                        fonts.drawCentered(r, txt, proj[0], by + 4.5f, 0xFFF8FAFF, 0.86f);
+                    }
                 }
             }
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
                 List<ClientRuntimeState.Waypoint> wps = state.getWaypoints();
-                if (wps.isEmpty()) return "Waypoints: 0 saved";
+                if (wps.isEmpty()) return ru ? "Метки: 0 сохр." : "Waypoints: 0 saved";
                 ClientRuntimeState.Waypoint top = wps.get(wps.size() - 1);
                 if (mc != null && mc.isInWorld()) {
                     double dist = Math.hypot(mc.getPlayerX() - top.x, mc.getPlayerZ() - top.z);
-                    return String.format(Locale.ROOT, "WP %s [%.0fm]", top.name, Double.valueOf(dist));
+                    return String.format(Locale.ROOT, ru ? "◈ %s [%.0fм]" : "◈ %s [%.0fm]", top.name, Double.valueOf(dist));
                 }
-                return String.format(Locale.ROOT, "WP %s (%.0f, %.0f, %.0f)", top.name, Double.valueOf(top.x), Double.valueOf(top.y), Double.valueOf(top.z));
+                return String.format(Locale.ROOT, "◈ %s (%.0f, %.0f, %.0f)", top.name, Double.valueOf(top.x), Double.valueOf(top.y), Double.valueOf(top.z));
             }
         });
         hm.register(new HudElement("waypoints", "Waypoints", waypointsMod, 0.015f, 0.67f, 152f, 20f));
 
-        // 56. Death Location
-        Module deathMod = mm.register(new Module("death_location", "Death Location", "Automatically logs last death coordinates and distance back", ModuleCategory.WORLD, true, KeyCodes.KEY_NONE, false) {
+        // 56. Death Location (with real 3D Death Beacon!)
+        Module deathMod = mm.register(new Module("death_location", "Death Location", "Automatically logs last death coordinates with 3D world beacon & distance", ModuleCategory.WORLD, true, KeyCodes.KEY_NONE, false) {
             private final BooleanSetting toastAlert = addSetting(new BooleanSetting("toast", "Show Notification", "Notify coordinates upon respawning", true));
+            private final BooleanSetting beacon3d = addSetting(new BooleanSetting("beacon_3d", "3D Death Beacon", "Render 3D skull beacon at last death position", true));
             private boolean wasDead = false;
 
             @Override
@@ -73,7 +118,8 @@ public final class WorldUtilityModulesRegistry {
                     wasDead = true;
                     state.recordDeath(mc.getPlayerX(), mc.getPlayerY(), mc.getPlayerZ(), mc.getDimensionId(), mc.getWorldOrServerName());
                     if (toastAlert.isEnabled()) {
-                        notifications.push("Death Recorded",
+                        boolean ru = i18n != null && i18n.isRussian();
+                        notifications.push(ru ? "Точка смерти записана" : "Death Recorded",
                                 String.format(Locale.ROOT, "XYZ %.0f, %.0f, %.0f", Double.valueOf(mc.getPlayerX()), Double.valueOf(mc.getPlayerY()), Double.valueOf(mc.getPlayerZ())),
                                 NotificationManager.Severity.WARNING);
                     }
@@ -83,10 +129,31 @@ public final class WorldUtilityModulesRegistry {
             }
 
             @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (!beacon3d.isEnabled() || mc == null || !mc.isInWorld() || mc.isClickGuiOpen() || fonts == null) return;
+                ClientRuntimeState.Waypoint d = state.getLastDeathWaypoint();
+                if (d == null) return;
+                float[] proj = mc.projectWorldToScreen(d.x, d.y + 1.5, d.z);
+                if (proj != null && proj[2] > 0.2f) {
+                    boolean ru = i18n != null && i18n.isRussian();
+                    double dist = Math.hypot(mc.getPlayerX() - d.x, mc.getPlayerZ() - d.z);
+                    String txt = String.format(Locale.ROOT, ru ? "☠ Смерть · %.0fм" : "☠ Death · %.0fm", Double.valueOf(dist));
+                    float bw = fonts.width(r, txt, 0.86f) + 14.0f;
+                    float bx = proj[0] - bw * 0.5f;
+                    float by = proj[1] - 20.0f;
+                    r.fillRoundedRect(bx, by, bw, 16.0f, 8.0f, 0xE0180612);
+                    r.drawRoundedOutline(bx, by, bw, 16.0f, 8.0f, 1.0f, 0xFFFF3864);
+                    fonts.drawCentered(r, txt, proj[0], by + 4.5f, 0xFFFF8FA3, 0.86f);
+                }
+            }
+
+            @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
                 ClientRuntimeState.Waypoint d = state.getLastDeathWaypoint();
                 if (d == null) return null;
-                return String.format(Locale.ROOT, "Last Death: %.0f, %.0f, %.0f", Double.valueOf(d.x), Double.valueOf(d.y), Double.valueOf(d.z));
+                boolean ru = i18n != null && i18n.isRussian();
+                return String.format(Locale.ROOT, ru ? "Смерть: %.0f, %.0f, %.0f" : "Last Death: %.0f, %.0f, %.0f",
+                        Double.valueOf(d.x), Double.valueOf(d.y), Double.valueOf(d.z));
             }
         });
         hm.register(new HudElement("death_location", "Death Location", deathMod, 0.015f, 0.73f, 165f, 20f));

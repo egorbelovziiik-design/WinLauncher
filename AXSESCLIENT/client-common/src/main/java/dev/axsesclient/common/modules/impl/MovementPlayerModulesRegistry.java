@@ -6,12 +6,18 @@ import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.modules.Module;
 import dev.axsesclient.common.modules.ModuleCategory;
 import dev.axsesclient.common.modules.ModuleManager;
+import dev.axsesclient.common.notifications.NotificationManager;
 import dev.axsesclient.common.platform.InputAdapter;
 import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
+import dev.axsesclient.common.platform.RenderAdapter;
+import dev.axsesclient.common.render.FontManager;
+import dev.axsesclient.common.render.RenderManager;
 import dev.axsesclient.common.settings.BooleanSetting;
 import dev.axsesclient.common.settings.ModeSetting;
 import dev.axsesclient.common.settings.NumberSetting;
+import dev.axsesclient.common.theme.AxsesTheme;
+import dev.axsesclient.common.theme.ThemeManager;
 import java.util.Locale;
 
 public final class MovementPlayerModulesRegistry {
@@ -24,6 +30,19 @@ public final class MovementPlayerModulesRegistry {
             final ClientRuntimeState state,
             final InputAdapter input,
             final LocalizationManager i18n
+    ) {
+        registerAll(mm, hm, state, input, i18n, null, null, null);
+    }
+
+    public static void registerAll(
+            ModuleManager mm,
+            HudManager hm,
+            final ClientRuntimeState state,
+            final InputAdapter input,
+            final LocalizationManager i18n,
+            final NotificationManager notifications,
+            final FontManager fonts,
+            final ThemeManager themes
     ) {
         // 31. Toggle Sprint
         final Module toggleSprint = mm.register(new Module("toggle_sprint", "Toggle Sprint", "Accessibility latch keeping forward sprint active without holding key", ModuleCategory.MOVEMENT, true, KeyCodes.KEY_NONE, false) {
@@ -134,10 +153,11 @@ public final class MovementPlayerModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
                 boolean sneaking = mc != null && mc.isInWorld() && mc.isSneaking();
-                if (toggleSneak.isEnabled()) return "[Sneak: Toggled]";
-                if (sneaking) return "[Sneaking]";
-                return showOnlyActive.isEnabled() ? null : "[Standing]";
+                if (toggleSneak.isEnabled()) return ru ? "Шифт: Зажат" : "Sneak: Latched";
+                if (sneaking) return ru ? "Присед" : "Sneaking";
+                return showOnlyActive.isEnabled() ? null : (ru ? "Стоя" : "Standing");
             }
         });
         hm.register(new HudElement("sneak_indicator", "Sneak Indicator", sneakInd, 0.015f, 0.86f, 126f, 20f));
@@ -148,18 +168,19 @@ public final class MovementPlayerModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
                 boolean w = input != null && input.isKeyDown(KeyCodes.KEY_W);
                 boolean s = input != null && input.isKeyDown(KeyCodes.KEY_S);
                 boolean a = input != null && input.isKeyDown(KeyCodes.KEY_A);
                 boolean d = input != null && input.isKeyDown(KeyCodes.KEY_D);
-                String mode = "Idle";
-                if (w && a) mode = "Forward-Left (45°)";
-                else if (w && d) mode = "Forward-Right (45°)";
-                else if (w) mode = "Forward (0°)";
-                else if (s) mode = "Backpedal (180°)";
-                else if (a) mode = "Strafe Left (-90°)";
-                else if (d) mode = "Strafe Right (+90°)";
-                return showStrafeLabel.isEnabled() ? ("Vector: " + mode) : mode;
+                String mode = ru ? "Стоп" : "Idle";
+                if (w && a) mode = ru ? "Вперёд-Влево (45°)" : "Forward-Left (45°)";
+                else if (w && d) mode = ru ? "Вперёд-Вправо (45°)" : "Forward-Right (45°)";
+                else if (w) mode = ru ? "Вперёд (0°)" : "Forward (0°)";
+                else if (s) mode = ru ? "Назад (180°)" : "Backpedal (180°)";
+                else if (a) mode = ru ? "Стрейф Влево (-90°)" : "Strafe Left (-90°)";
+                else if (d) mode = ru ? "Стрейф Вправо (+90°)" : "Strafe Right (+90°)";
+                return showStrafeLabel.isEnabled() ? ((ru ? "Вектор: " : "Vector: ") + mode) : mode;
             }
         });
         hm.register(new HudElement("direction_indicator", "Move Vector", dirInd, 0.015f, 0.49f, 148f, 20f));
@@ -170,6 +191,12 @@ public final class MovementPlayerModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
+                if (ru) {
+                    return showSprintRatio.isEnabled()
+                            ? ("Прыжки: " + state.getTotalJumps() + " (Спринт: " + state.getSprintJumps() + ")")
+                            : ("Прыжки: " + state.getTotalJumps());
+                }
                 return showSprintRatio.isEnabled()
                         ? ("Jumps: " + state.getTotalJumps() + " (Sprint: " + state.getSprintJumps() + ")")
                         : ("Jumps: " + state.getTotalJumps());
@@ -183,12 +210,18 @@ public final class MovementPlayerModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
+                boolean ru = i18n != null && i18n.isRussian();
                 double total = state.getWalkMeters() + state.getSprintMeters();
                 if ("Kilometers".equals(unit.getValue())) {
-                    return String.format(Locale.ROOT, "Dist %.2f km (Sprint %.2f km)", Double.valueOf(total / 1000.0), Double.valueOf(state.getSprintMeters() / 1000.0));
+                    return ru
+                            ? String.format(Locale.ROOT, "Путь %.2f км (Бег %.2f км)", Double.valueOf(total / 1000.0), Double.valueOf(state.getSprintMeters() / 1000.0))
+                            : String.format(Locale.ROOT, "Dist %.2f km (Sprint %.2f km)", Double.valueOf(total / 1000.0), Double.valueOf(state.getSprintMeters() / 1000.0));
                 }
-                return String.format(Locale.ROOT, "Dist %.0fm (Walk %.0fm · Sprint %.0fm)",
-                        Double.valueOf(total), Double.valueOf(state.getWalkMeters()), Double.valueOf(state.getSprintMeters()));
+                return ru
+                        ? String.format(Locale.ROOT, "Путь %.0fм (Шаг %.0fм · Бег %.0fм)",
+                                Double.valueOf(total), Double.valueOf(state.getWalkMeters()), Double.valueOf(state.getSprintMeters()))
+                        : String.format(Locale.ROOT, "Dist %.0fm (Walk %.0fm · Sprint %.0fm)",
+                                Double.valueOf(total), Double.valueOf(state.getWalkMeters()), Double.valueOf(state.getSprintMeters()));
             }
         });
         hm.register(new HudElement("movement_session_tracker", "Distance Tracker", moveTracker, 0.015f, 0.61f, 190f, 20f));
@@ -233,6 +266,70 @@ public final class MovementPlayerModulesRegistry {
 
             public float getEyeSmoothing() { return eyeSmoothing.getFloat(); }
             public boolean isSmoothPerspective() { return smoothPerspective.isEnabled(); }
+        });
+
+        // 105. Auto Death Guard / Respawn Tracker (Авто-Возрождение и координаты смерти)
+        mm.register(new Module("auto_respawn", "Auto Death Guard", "Automatically saves death coordinates to clipboard and alerts on death", ModuleCategory.PLAYER) {
+            private final BooleanSetting copyCoords = addSetting(new BooleanSetting("copy_coords", "Copy Death XYZ", "Copy exact death coordinates to clipboard", true));
+            private boolean wasDead = false;
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                if (mc == null || !mc.isInWorld()) {
+                    wasDead = false;
+                    return;
+                }
+                boolean dead = mc.getHealth() <= 0.0f;
+                if (dead && !wasDead) {
+                    wasDead = true;
+                    String coords = String.format(Locale.ROOT, "%.0f %.0f %.0f (%s)",
+                            Double.valueOf(mc.getPlayerX()), Double.valueOf(mc.getPlayerY()), Double.valueOf(mc.getPlayerZ()), mc.getDimensionName());
+                    if (copyCoords.isEnabled()) {
+                        mc.setClipboard(coords);
+                    }
+                    if (notifications != null) {
+                        boolean ru = i18n != null && i18n.isRussian();
+                        notifications.push(
+                                ru ? "Точка смерти сохранена" : "Death Coords Saved",
+                                coords,
+                                NotificationManager.Severity.WARNING
+                        );
+                    }
+                } else if (!dead) {
+                    wasDead = false;
+                }
+            }
+        });
+
+        // 106. Low HP Alert (Тревога низкого ХП) — Pulsing Crimson Vignette & Warning Pill
+        mm.register(new Module("low_hp_alert", "Low HP Alert", "Pulsing crimson edge vignette and warning pill when health drops critically low", ModuleCategory.PLAYER, true, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting threshold = addSetting(new NumberSetting("threshold", "HP Threshold", "Trigger alert at or below this HP (20 = 10 hearts)", 7.0, 2.0, 14.0, 1.0));
+            private final BooleanSetting showBanner = addSetting(new BooleanSetting("show_banner", "Warning Pill", "Show critical HP pill above hotbar", true));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) return;
+                float hp = mc.getHealth();
+                if (hp <= 0.0f || hp > threshold.getFloat()) return;
+
+                int sw = r.getScaledWidth();
+                int sh = r.getScaledHeight();
+                float pulse = (float) (0.45 + 0.55 * Math.abs(Math.sin((System.currentTimeMillis() % 1200L) / 1200.0 * Math.PI * 2.0)));
+                int edgeTop = AxsesTheme.withAlpha(0xFFFF3864, 0.24f * pulse);
+                r.fillGradientVertical(0, 0, sw, 26f, edgeTop, 0x00FF3864);
+                r.fillGradientVertical(0, sh - 26f, sw, 26f, 0x00FF3864, edgeTop);
+
+                if (showBanner.isEnabled() && fonts != null && themes != null) {
+                    boolean ru = i18n != null && i18n.isRussian();
+                    String msg = String.format(Locale.ROOT, ru ? "⚠ НИЗКОЕ ХП: %.1f ❤" : "⚠ LOW HP: %.1f ❤", Float.valueOf(hp));
+                    float bw = fonts.width(r, msg, 0.90f) + 18.0f;
+                    float bx = (sw - bw) * 0.5f;
+                    float by = sh - 66.0f;
+                    r.fillRoundedRect(bx, by, bw, 18.0f, 9.0f, 0xE01A0610);
+                    r.drawRoundedOutline(bx, by, bw, 18.0f, 9.0f, 1.2f, AxsesTheme.withAlpha(0xFFFF3864, 0.70f + 0.30f * pulse));
+                    fonts.drawCentered(r, msg, sw * 0.5f, by + 5.0f, 0xFFFF8FA3, 0.90f);
+                }
+            }
         });
     }
 }

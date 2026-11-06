@@ -153,7 +153,9 @@ public sealed class LauncherThemePalette
 
     public static List<LauncherThemePalette> CreateOfficialThemes() =>
     [
-        new() { Id = "axses-dark", Name = "HYPERION DARK", BgPrimary = "#050712", BgSecondary = "#0C1022", BgSurface = "#151C36", AccentPrimary = "#9B5CFF", AccentSecondary = "#5E6BFF", AccentCyan = "#00E5FF", TextPrimary = "#F8FAFF", TextSecondary = "#9FB0D6", Success = "#00F5D4", Warning = "#FFD166", Danger = "#FF4D6D" },
+        new() { Id = "axses-vision", Name = "CELESTIAL VISION", BgPrimary = "#040816", BgSecondary = "#091128", BgSurface = "#121D3D", AccentPrimary = "#38BDF8", AccentSecondary = "#A855F7", AccentCyan = "#00F5D4", TextPrimary = "#FAFDFD", TextSecondary = "#9DB4D8", Success = "#00F5D4", Warning = "#FFD166", Danger = "#FF4D6D" },
+        new() { Id = "axses-emerald", Name = "EMERALD AURORA", BgPrimary = "#040B09", BgSecondary = "#091713", BgSurface = "#102721", AccentPrimary = "#10B981", AccentSecondary = "#06B6D4", AccentCyan = "#34D399", TextPrimary = "#F0FDF4", TextSecondary = "#86EFAC", Success = "#34D399", Warning = "#FACC15", Danger = "#FB7185" },
+        new() { Id = "axses-dark", Name = "AXSES DARK", BgPrimary = "#050712", BgSecondary = "#0C1022", BgSurface = "#151C36", AccentPrimary = "#9B5CFF", AccentSecondary = "#5E6BFF", AccentCyan = "#00E5FF", TextPrimary = "#F8FAFF", TextSecondary = "#9FB0D6", Success = "#00F5D4", Warning = "#FFD166", Danger = "#FF4D6D" },
         new() { Id = "axses-purple", Name = "ROYAL VIOLET", BgPrimary = "#090612", BgSecondary = "#120C22", BgSurface = "#1B1333", AccentPrimary = "#A855F7", AccentSecondary = "#7C3AED", AccentCyan = "#EC4899", TextPrimary = "#FAF5FF", TextSecondary = "#A78BFA", Success = "#34D399", Warning = "#FBBF24", Danger = "#FB7185" },
         new() { Id = "axses-blue", Name = "SAPPHIRE PULSE", BgPrimary = "#050A14", BgSecondary = "#0B1325", BgSurface = "#131F3A", AccentPrimary = "#3B82F6", AccentSecondary = "#2563EB", AccentCyan = "#38BDF8", TextPrimary = "#F0F9FF", TextSecondary = "#93C5FD", Success = "#10B981", Warning = "#F59E0B", Danger = "#F43F5E" },
         new() { Id = "axses-cyber", Name = "CYBER MATRIX", BgPrimary = "#040A0E", BgSecondary = "#09141C", BgSurface = "#10212E", AccentPrimary = "#06B6D4", AccentSecondary = "#10B981", AccentCyan = "#8B5CF6", TextPrimary = "#ECFEFF", TextSecondary = "#67E8F9", Success = "#10B981", Warning = "#FACC15", Danger = "#FB7185" },
@@ -182,19 +184,26 @@ public sealed class ModuleCatalogItem
     public string DisplayName(bool ru) => ru && !string.IsNullOrWhiteSpace(NameRu) ? NameRu : Name;
     public string DisplayDescription(bool ru) => ru && !string.IsNullOrWhiteSpace(DescriptionRu) ? DescriptionRu : Description;
 
-    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll102Modules();
-    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll102Modules();
-    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll102Modules();
+    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll108Modules();
+    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll108Modules();
+    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll108Modules();
+    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll108Modules();
 
-    public static List<ModuleCatalogItem> CreateAll102Modules() =>
+    public static List<ModuleCatalogItem> CreateAll108Modules() =>
     [
-        // Flagship Combat, ESP & Hyperion Visuals (01-12)
-        new() { Id = "kill_aura", Name = "KillAura", NameRu = "КиллАура", Category = "Combat", Description = "Stealth 1.9+ combat aura with FunTime/ReallyWorld/HolyWorld profiles, GCD rotations & dual Jello rings.", DescriptionRu = "Беспаливная 1.9+ аура с обходами под FunTime / ReallyWorld / HolyWorld, GCD-наводкой и двойной 3D-волной.", Enabled = false, Favorite = true },
-        new() { Id = "entity_esp", Name = "Entity ESP", NameRu = "ESP Подсветка", Category = "Render", Description = "Aurora neon corner/2D/3D boxes, side HP bar, nametags, held item & offscreen radar arrows.", DescriptionRu = "Неоновые 2D/3D боксы игроков и мобов, полоска ХП, никнеймы, предмет в руке и стрелки радара.", Enabled = false, Favorite = true },
-        new() { Id = "target_hud", Name = "Target HUD", NameRu = "Таргет HUD", Category = "Combat", Description = "Hyperion glass target card with Aurora gradient HP bar, damage trail, weapon & PvP status.", DescriptionRu = "Стеклянная карточка цели Hyperion с градиентом ХП, оружием, дистанцией и статусом преимущества.", Enabled = true, Favorite = true },
+        // Flagship Combat, ESP & Celestial Vision v3.5 Modules (01-18)
+        new() { Id = "kill_aura", Name = "KillAura", NameRu = "КиллАура", Category = "Combat", Description = "Stealth 1.9+ combat aura with FunTime/ReallyWorld/HolyWorld profiles, GCD rotations, 3D Soul Orbs & dual Jello rings.", DescriptionRu = "Беспаливная 1.9+ аура с обходами FunTime / ReallyWorld / HolyWorld, GCD-наводкой, 3D-сферами душ и двойной волной.", Enabled = false, Favorite = true },
+        new() { Id = "entity_esp", Name = "Entity ESP", NameRu = "ESP Подсветка", Category = "Render", Description = "Vision Capsule / Corner / 2D / 3D boxes, HP & armor bars, stadium nametags & offscreen radar.", DescriptionRu = "Неоновые капсулы и 2D/3D боксы игроков, полоски ХП и брони, скруглённые никнеймы и стрелки радара.", Enabled = false, Favorite = true },
+        new() { Id = "target_hud", Name = "Target HUD", NameRu = "Таргет HUD", Category = "Combat", Description = "Curved Celestial Vision glass target card with gradient HP bar, damage trail, weapon & PvP status.", DescriptionRu = "Скруглённая стеклянная карточка цели Vision с градиентом ХП, оружием, дистанцией и статусом боя.", Enabled = true, Favorite = true },
+        new() { Id = "radar_hud", Name = "2D PvP Radar", NameRu = "Мини-Радар 2D", Category = "HUD", Description = "Live rotating curved 2D tactical radar displaying nearby players and locked targets.", DescriptionRu = "Вращающийся скруглённый 2D-радар ближайших игроков и целей вокруг вас в реальном времени.", Enabled = true, Favorite = true },
+        new() { Id = "totem_counter", Name = "Totem Counter", NameRu = "Счётчик тотемов", Category = "Combat", Description = "Tracks Totems of Undying in inventory & offhand with instant totem-pop alerts.", DescriptionRu = "Онлайн-подсчёт тотемов бессмертия в инвентаре и левой руке с оповещением о сносе.", Enabled = true, Favorite = true },
+        new() { Id = "gapple_tracker", Name = "Gapple & Pearl Tracker", NameRu = "Геплы и перлы", Category = "Combat", Description = "Live HUD counter for Golden Apples, Enchanted Gapples & Ender Pearls.", DescriptionRu = "Живой счётчик золотых яблок, чарок и эндер-жемчуга прямо во время боя.", Enabled = true, Favorite = true },
+        new() { Id = "damage_indicators", Name = "Damage Indicators 3D", NameRu = "Индикатор урона 3D", Category = "Render", Description = "Projects rising 3D floating damage and heal numbers above struck entities.", DescriptionRu = "Всплывающие в 3D-мире цифры нанесённого урона и исцеления над игроками.", Enabled = false, Favorite = true },
+        new() { Id = "low_hp_alert", Name = "Low HP Alert", NameRu = "Тревога низкого ХП", Category = "Player", Description = "Pulsing crimson edge vignette and warning pill when health drops critically low.", DescriptionRu = "Пульсирующая алая виньетка по краям экрана при критическом падении здоровья.", Enabled = true },
+        new() { Id = "auto_respawn", Name = "Auto Death Guard", NameRu = "Страж смерти", Category = "Player", Description = "Automatically copies exact death coordinates to clipboard and alerts upon death.", DescriptionRu = "Автоматическое сохранение и копирование координат смерти в буфер обмена.", Enabled = false },
         new() { Id = "china_hat", Name = "China Hat", NameRu = "Коническая шляпа", Category = "Render", Description = "Rotating 3D translucent Aurora cone halo above active target and third-person player.", DescriptionRu = "Объёмный 3D неоновый нимб Aurora над головой активной цели и самого игрока.", Enabled = false, Favorite = true },
         new() { Id = "jump_circles", Name = "Jump Circles", NameRu = "Круги прыжка", Category = "Render", Description = "Expanding dual-gradient 3D Aurora energy rings on the ground whenever you jump.", DescriptionRu = "Расходящиеся градиентные 3D-кольца на земле в точке каждого прыжка.", Enabled = false, Favorite = true },
-        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Signature top-left Hyperion glass brand bar with player, FPS, ping, speed & server.", DescriptionRu = "Фирменная верхняя стеклянная панель: бренд AXSES 3.0, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
+        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Curved Celestial Vision top-left glass brand capsule with player, FPS, ping, speed & server.", DescriptionRu = "Скруглённая верхняя стеклянная капсула: бренд AXSES 3.5, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
         new() { Id = "module_list", Name = "Module ArrayList", NameRu = "Список модулей", Category = "HUD", Description = "Cascading right-aligned list of active modules with synchronized Aurora wave glow.", DescriptionRu = "Каскадный список включённых функций справа с живой неоновой волной Aurora и режимами.", Enabled = true, Favorite = true },
         new() { Id = "breadcrumbs", Name = "Breadcrumbs", NameRu = "Шлейф движения", Category = "Render", Description = "Smooth fading 3D Aurora energy ribbon along your movement trajectory.", DescriptionRu = "Плавный светящийся 3D-шлейф за траекторией вашего бега.", Enabled = false },
         new() { Id = "hit_particles", Name = "Hit Particles", NameRu = "Партиклы ударов", Category = "Render", Description = "Glowing 3D Aurora sparks around struck targets on hit.", DescriptionRu = "Неоновые 3D-искры вокруг цели в момент точного удара.", Enabled = false },
@@ -320,7 +329,7 @@ public sealed class LauncherSettings
     public bool ReducedMotion { get; set; }
     public string Language { get; set; } = "ru_RU";
     public bool SyncGameLanguage { get; set; } = true;
-    public string ActiveThemeId { get; set; } = "axses-dark";
+    public string ActiveThemeId { get; set; } = "axses-vision";
     public bool AutoCheckUpdates { get; set; } = true;
     public string UpdateManifestUrl { get; set; } = "https://raw.githubusercontent.com/egorbelovziiik-design/WinLauncher/main/AXSESCLIENT/shared/update-manifest.json";
 

@@ -1,8 +1,8 @@
-; AXSESCLIENT (Codename: HYPERION AURORA) v3.0.0 — Official Windows 10/11 x64 Installer
+; AXSESCLIENT (Codename: CELESTIAL VISION) v3.5.0 — Official Windows 10/11 x64 Installer
 ; Built with Inno Setup 6. Preserves all user worlds, screenshots, and configs on upgrade/uninstall.
 
 #define MyAppName "AXSESCLIENT"
-#define MyAppVersion "3.0.0"
+#define MyAppVersion "3.5.0"
 #define MyAppPublisher "AXSESCLIENT Engineering"
 #define MyAppURL "https://github.com/egorbelovziiik-design/WinLauncher"
 #define MyAppExeName "AXSESCLIENT.exe"
@@ -11,7 +11,7 @@
 AppId={{8D7E4A92-5C21-4F18-9A63-1B0E2F7C9100}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} {#MyAppVersion} (HYPERION AURORA)
+AppVerName={#MyAppName} {#MyAppVersion} (CELESTIAL VISION)
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}

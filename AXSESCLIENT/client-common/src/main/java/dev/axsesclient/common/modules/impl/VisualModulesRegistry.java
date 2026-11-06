@@ -31,9 +31,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class VisualModulesRegistry {
     private VisualModulesRegistry() {
@@ -764,7 +766,7 @@ public final class VisualModulesRegistry {
 
         // 31. Entity ESP (ESP Подсветка) — Projected 2D/Corner/3D Boxes, Health Bars, Nametags & Offscreen Radar
         Module entityEsp = mm.register(new Module("entity_esp", "Entity ESP", "Highlights players and mobs with projected 2D/3D boxes, health bars, nametags & radar arrows", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
-            private final ModeSetting boxStyle = addSetting(new ModeSetting("box_style", "Box Style", "ESP frame visual style", "Corners", "Corners", "2D Box", "3D Box", "None"));
+            private final ModeSetting boxStyle = addSetting(new ModeSetting("box_style", "Box Style", "ESP frame visual style", "Corners", "Corners", "Vision Capsule", "2D Box", "3D Box", "None"));
             private final NumberSetting range = addSetting(new NumberSetting("range", "Render Range", "Maximum ESP distance in blocks", 72.0, 16.0, 160.0, 4.0));
             private final BooleanSetting fillBox = addSetting(new BooleanSetting("fill_box", "Box Fill Tint", "Subtle translucent inner glow inside ESP box", true));
             private final BooleanSetting healthBar = addSetting(new BooleanSetting("health_bar", "Health Bar", "Vertical color-graded HP bar beside entity", true));
@@ -847,12 +849,16 @@ public final class VisualModulesRegistry {
                         continue;
                     }
 
+                    float capRad = Math.min(8.0f, Math.min(bw, bh) * 0.25f);
                     if (fillBox.isEnabled() && !"None".equalsIgnoreCase(boxStyle.getValue())) {
-                        r.fillRect(bx, by, bw, bh, AxsesTheme.withAlpha(baseCol, hurt ? 0.24f : 0.11f));
+                        r.fillRoundedRect(bx, by, bw, bh, capRad, AxsesTheme.withAlpha(baseCol, hurt ? 0.24f : 0.12f));
                     }
 
                     String style = boxStyle.getValue();
-                    if ("2D Box".equalsIgnoreCase(style)) {
+                    if ("Vision Capsule".equalsIgnoreCase(style)) {
+                        r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, capRad + 1f, 1f, 0xAA05060A);
+                        r.drawRoundedOutline(bx, by, bw, bh, capRad, 1.4f, AxsesTheme.withAlpha(baseCol, 0.96f));
+                    } else if ("2D Box".equalsIgnoreCase(style)) {
                         r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, 0f, 1f, 0xAA05060A);
                         r.drawRoundedOutline(bx, by, bw, bh, 0f, 1f, AxsesTheme.withAlpha(baseCol, 0.92f));
                     } else if ("Corners".equalsIgnoreCase(style)) {
@@ -861,21 +867,28 @@ public final class VisualModulesRegistry {
                         draw3dWireframe(r, proj, AxsesTheme.withAlpha(baseCol, 0.88f));
                     }
 
-                    // Vertical Side Health Bar
+                    // Vertical Side Health Bar + Right Armor Bar
                     if (healthBar.isEnabled()) {
                         float frac = ent.getHealthFraction();
-                        float barX = bx - 4.5f;
-                        r.fillRect(barX - 0.5f, by - 0.5f, 3.0f, bh + 1.0f, 0xCC06070C);
+                        float barX = bx - 5.0f;
+                        r.fillRoundedRect(barX - 0.5f, by - 0.5f, 3.2f, bh + 1.0f, 1.5f, 0xCC06070C);
                         int hpCol = frac > 0.55f ? t.getSuccessColor() : (frac > 0.25f ? t.getWarningColor() : t.getErrorColor());
-                        float fillH = Math.max(1.0f, bh * frac);
-                        r.fillRect(barX, by + (bh - fillH), 2.0f, fillH, hpCol);
+                        float fillH = Math.max(1.5f, bh * frac);
+                        r.fillRoundedRect(barX, by + (bh - fillH), 2.2f, fillH, 1.0f, hpCol);
                         if (ent.getAbsorption() > 0.1f) {
                             float absH = Math.min(bh, bh * (ent.getAbsorption() / 20.0f));
-                            r.fillRect(barX, by + (bh - absH), 2.0f, absH, 0xFFFFD166);
+                            r.fillRoundedRect(barX, by + (bh - absH), 2.2f, absH, 1.0f, 0xFFFFD166);
+                        }
+                        if (ent.getArmorValue() > 0) {
+                            float armFrac = Math.min(1.0f, ent.getArmorValue() / 20.0f);
+                            float armX = bx + bw + 2.5f;
+                            float armH = Math.max(1.5f, bh * armFrac);
+                            r.fillRoundedRect(armX - 0.5f, by - 0.5f, 2.8f, bh + 1.0f, 1.4f, 0xAA06070C);
+                            r.fillRoundedRect(armX, by + (bh - armH), 1.8f, armH, 0.9f, themes.filterColor(t.getAccentColor()));
                         }
                     }
 
-                    // Top Nametag Pill (Name · HP · Distance)
+                    // Top Curved Stadium Nametag Pill (Name · HP · Distance)
                     if (nametags.isEnabled()) {
                         float hpTotal = ent.getHealth() + ent.getAbsorption();
                         String unit = (i18n != null && i18n.isRussian()) ? "м" : "m";
@@ -883,24 +896,25 @@ public final class VisualModulesRegistry {
                                 + String.format(Locale.ROOT, " · %.1f❤ · %.0f%s", Float.valueOf(hpTotal), Float.valueOf(ent.getDistance()), unit);
                         float scale = 0.85f;
                         float tw = fonts.width(r, tag, scale);
-                        float pw = tw + 8.0f;
-                        float ph = 12.0f;
+                        float pw = tw + 11.0f;
+                        float ph = 13.0f;
                         float px = bx + (bw - pw) * 0.5f;
-                        float py = by - ph - 3.0f;
-                        r.fillRoundedRect(px, py, pw, ph, 3.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.86f));
-                        r.drawRoundedOutline(px, py, pw, ph, 3.0f, 1.0f, AxsesTheme.withAlpha(baseCol, 0.65f));
-                        fonts.draw(r, tag, px + 4.0f, py + 2.5f, t.getTextColor(), scale);
+                        float py = by - ph - 3.5f;
+                        r.fillRoundedRect(px, py, pw, ph, 6.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f));
+                        r.drawRoundedOutline(px, py, pw, ph, 6.5f, 1.0f, AxsesTheme.withAlpha(baseCol, 0.78f));
+                        fonts.draw(r, tag, px + 5.5f, py + 3.0f, t.getTextColor(), scale);
                     }
 
-                    // Bottom Held Item Tag
+                    // Bottom Curved Held Item Tag
                     if (showHeld.isEnabled() && !ent.getHeldItemName().isEmpty()) {
                         float scale = 0.78f;
                         String itemTxt = ent.getHeldItemName();
                         float iw = fonts.width(r, itemTxt, scale);
-                        float ix = bx + (bw - (iw + 6.0f)) * 0.5f;
-                        float iy = by + bh + 2.0f;
-                        r.fillRoundedRect(ix, iy, iw + 6.0f, 10.5f, 2.5f, 0xB8080910);
-                        fonts.draw(r, itemTxt, ix + 3.0f, iy + 2.0f, t.getMutedColor(), scale);
+                        float ix = bx + (bw - (iw + 9.0f)) * 0.5f;
+                        float iy = by + bh + 2.5f;
+                        r.fillRoundedRect(ix, iy, iw + 9.0f, 11.0f, 5.5f, 0xCC060916);
+                        r.drawRoundedOutline(ix, iy, iw + 9.0f, 11.0f, 5.5f, 1.0f, 0x26FFFFFF);
+                        fonts.draw(r, itemTxt, ix + 4.5f, iy + 2.2f, t.getMutedColor(), scale);
                     }
                 }
             }
@@ -1011,7 +1025,7 @@ public final class VisualModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                return "AXSES v3.0";
+                return "AXSES v3.5";
             }
         });
         watermarkMod.setFavorite(true);
@@ -1054,31 +1068,35 @@ public final class VisualModulesRegistry {
                             }
                         }
 
-                        String brand = "AXSES 3.0";
+                        String brand = "AXSES 3.5";
                         String tail = seg.toString();
                         float brandW = fontManager.width(r, brand, 1.0f);
                         float tailW = fontManager.width(r, tail, 0.94f);
-                        float barH = 24.0f;
-                        float barW = 30.0f + brandW + 14.0f + tailW + 12.0f;
+                        float barH = 25.0f;
+                        float barRad = 12.0f;
+                        float barW = 32.0f + brandW + 14.0f + tailW + 14.0f;
 
                         int prim = themeManager.filterColor(t.getPrimaryColor());
                         int acc = themeManager.filterColor(t.getAccentColor());
 
-                        r.drawShadow(px, py, barW, barH, 7.0f, 0.72f * opacity, 0x000000);
-                        r.fillRoundedRect(px, py, barW, barH, 7.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.95f * opacity));
-                        RenderManager.fillHorizontalGradient(r, px + 6.0f, py + 1.0f, barW - 12.0f, 1.8f, prim, acc);
-                        r.drawRoundedOutline(px, py, barW, barH, 7.0f, 1.0f,
-                                selected ? acc : AxsesTheme.withAlpha(prim, 0.65f * opacity));
+                        RenderManager.drawSoftGlow(r, px, py, barW, barH, barRad, 3, prim, 0.22f * opacity);
+                        r.drawShadow(px, py, barW, barH, barRad, 0.72f * opacity, 0x000000);
+                        r.fillRoundedRect(px, py, barW, barH, barRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.95f * opacity));
+                        RenderManager.fillRoundedHorizontalGradient(r, px + 1.0f, py + 1.0f, barW - 2.0f, barH - 2.0f, barRad - 1.0f,
+                                AxsesTheme.withAlpha(prim, 0.16f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
+                        r.drawRoundedOutline(px, py, barW, barH, barRad, 1.1f,
+                                selected ? acc : AxsesTheme.withAlpha(prim, 0.80f * opacity));
 
-                        // Glowing AX emblem badge on left
-                        r.fillRoundedRect(px + 4.0f, py + 4.0f, 20.0f, 16.0f, 4.5f, AxsesTheme.withAlpha(prim, 0.32f));
-                        r.drawRoundedOutline(px + 4.0f, py + 4.0f, 20.0f, 16.0f, 4.5f, 1.0f, acc);
-                        fontManager.drawCentered(r, "AX", px + 14.0f, py + 8.0f, 0xFFFFFFFF, 0.92f);
+                        // Glowing curved AX stadium badge on left
+                        RenderManager.fillRoundedHorizontalGradient(r, px + 4.5f, py + 4.5f, 21.0f, 16.0f, 8.0f,
+                                AxsesTheme.withAlpha(prim, 0.65f * opacity), AxsesTheme.withAlpha(acc, 0.45f * opacity));
+                        r.drawRoundedOutline(px + 4.5f, py + 4.5f, 21.0f, 16.0f, 8.0f, 1.0f, acc);
+                        fontManager.drawCentered(r, "AX", px + 15.0f, py + 8.5f, 0xFFFFFFFF, 0.92f);
 
-                        fontManager.draw(r, brand, px + 28.5f, py + 8.0f, acc, 1.0f);
-                        float divX = px + 28.5f + brandW + 6.5f;
-                        r.fillGradientVertical(divX, py + 5.5f, 1.2f, barH - 11.0f, prim, acc);
-                        fontManager.draw(r, tail, divX + 6.5f, py + 8.2f, t.getTextColor(), 0.94f);
+                        fontManager.draw(r, brand, px + 30.0f, py + 8.5f, acc, 1.0f);
+                        float divX = px + 30.0f + brandW + 6.5f;
+                        r.fillGradientVertical(divX, py + 6.0f, 1.2f, barH - 12.0f, prim, acc);
+                        fontManager.draw(r, tail, divX + 6.5f, py + 8.7f, t.getTextColor(), 0.94f);
                         return true;
                     }
                 }));
@@ -1175,21 +1193,19 @@ public final class VisualModulesRegistry {
                             String tag = rows.get(i)[1];
                             float nw = fontManager.width(r, name, 0.92f);
                             float tw = tag.isEmpty() ? 0f : fontManager.width(r, " · " + tag, 0.90f);
-                            float pillW = nw + tw + 14.0f;
+                            float pillW = nw + tw + 18.0f;
                             float rx = rightEdge - pillW;
+                            float pRad = 7.5f;
 
                             int waveCol = themeManager.getAuroraWaveColor(i * 0.45f);
-                            r.fillRoundedRect(rx, curY, pillW, rowH - 1.0f, 3.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.90f * opacity));
-                            // Right neon Aurora ribbon + soft inner glow
-                            r.fillRect(rightEdge - 2.5f, curY + 1.0f, 2.5f, rowH - 3.0f, waveCol);
-                            r.fillRect(rightEdge - 6.0f, curY + 1.0f, 3.5f, rowH - 3.0f, AxsesTheme.withAlpha(waveCol, 0.18f));
-                            if (i == 0) {
-                                r.fillRect(rx + 2.0f, curY, pillW - 4.0f, 1.0f, AxsesTheme.withAlpha(waveCol, 0.70f));
-                            }
+                            r.fillRoundedRect(rx, curY, pillW, rowH - 1.0f, pRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f * opacity));
+                            r.drawRoundedOutline(rx, curY, pillW, rowH - 1.0f, pRad, 1.0f, AxsesTheme.withAlpha(waveCol, 0.42f * opacity));
+                            // Right curved Aurora glow dot
+                            r.fillRoundedRect(rightEdge - 6.0f, curY + 4.5f, 3.5f, rowH - 10.0f, 1.7f, waveCol);
 
-                            fontManager.draw(r, name, rx + 5.5f, curY + 4.0f, 0xFFF8FAFF, 0.92f);
+                            fontManager.draw(r, name, rx + 7.0f, curY + 4.0f, 0xFFF8FAFF, 0.92f);
                             if (!tag.isEmpty()) {
-                                fontManager.draw(r, " · " + tag, rx + 5.5f + nw, curY + 4.0f, AxsesTheme.withAlpha(waveCol, 0.95f), 0.90f);
+                                fontManager.draw(r, " · " + tag, rx + 7.0f + nw, curY + 4.0f, AxsesTheme.withAlpha(waveCol, 0.95f), 0.90f);
                             }
                             curY += rowH;
                         }
@@ -1358,6 +1374,177 @@ public final class VisualModulesRegistry {
                 }
             }
         });
+
+        // 107. 3D Damage Indicators (Индикатор урона 3D) — Floating World-Space HP Delta Popups
+        Module dmgIndicators = mm.register(new Module("damage_indicators", "Damage Indicators 3D", "Projects rising 3D floating damage & heal popups above nearby entities", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final Map<Integer, Float> lastHpMap = new HashMap<Integer, Float>();
+            private final LinkedList<double[]> popups = new LinkedList<double[]>();
+            private int lastHitCounter = -1;
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) return;
+                long now = System.currentTimeMillis();
+
+                List<TargetEntityInfo> near = mc.getEspEntities(42.0, true, true, false, false, false);
+                if (near != null) {
+                    for (int i = 0; i < near.size(); i++) {
+                        TargetEntityInfo e = near.get(i);
+                        float curHp = e.getHealth() + e.getAbsorption();
+                        Integer key = Integer.valueOf(e.getEntityId());
+                        Float prev = lastHpMap.get(key);
+                        if (prev != null && Math.abs(curHp - prev.floatValue()) >= 0.35f) {
+                            double delta = curHp - prev.floatValue();
+                            popups.addLast(new double[] {
+                                    e.getX(), e.getMaxY() + 0.15, e.getZ(), delta, (double) now
+                            });
+                            while (popups.size() > 16) popups.removeFirst();
+                        }
+                        lastHpMap.put(key, Float.valueOf(curHp));
+                    }
+                    if (lastHpMap.size() > 128) {
+                        lastHpMap.clear();
+                    }
+                }
+
+                // Also emit an instant feedback popup when active target is struck in training/demo
+                TargetEntityInfo locked = state.getActiveTarget(1600L);
+                int curHits = state.getTotalHits();
+                if (lastHitCounter < 0) lastHitCounter = curHits;
+                if (locked != null && (curHits > lastHitCounter || (popups.isEmpty() && locked.getHurtTime() > 4))) {
+                    lastHitCounter = curHits;
+                    popups.addLast(new double[] {
+                            locked.getX() + 0.18, locked.getMaxY() + 0.18, locked.getZ(), -3.6, (double) now
+                    });
+                }
+
+                while (!popups.isEmpty() && (now - popups.getFirst()[4]) > 1350.0) {
+                    popups.removeFirst();
+                }
+
+                AxsesTheme t = themes.getActiveTheme();
+                for (double[] p : popups) {
+                    float age = (float) ((now - p[4]) / 1350.0);
+                    if (age < 0f || age > 1f) continue;
+                    double wy = p[1] + age * 0.85;
+                    float[] sc = mc.projectWorldToScreen(p[0], wy, p[2]);
+                    if (sc != null && sc[2] > 0.2f) {
+                        boolean heal = p[3] > 0.0;
+                        String txt = String.format(Locale.ROOT, "%s%.1f ❤", heal ? "+" : "", Double.valueOf(p[3]));
+                        float alpha = 1.0f - age * age;
+                        int col = heal ? t.getSuccessColor() : 0xFFFF4D6D;
+                        float tw = fonts.width(r, txt, 0.90f);
+                        float pw = tw + 11.0f;
+                        float ph = 14.0f;
+                        float px = sc[0] - pw * 0.5f;
+                        float py = sc[1] - ph * 0.5f;
+                        r.fillRoundedRect(px, py, pw, ph, 7.0f, AxsesTheme.withAlpha(0xFF090612, 0.88f * alpha));
+                        r.drawRoundedOutline(px, py, pw, ph, 7.0f, 1.0f, AxsesTheme.withAlpha(col, 0.92f * alpha));
+                        fonts.drawCentered(r, txt, sc[0], py + 3.5f, AxsesTheme.withAlpha(0xFFFFFFFF, alpha), 0.90f);
+                    }
+                }
+            }
+        });
+        dmgIndicators.setFavorite(true);
+
+        // 108. 2D PvP Entity Radar HUD (Мини-Радар 2D) — Live Rotating Vision-Glass Tactical Radar
+        final NumberSetting radarRange = new NumberSetting("radar_range", "Radar Range (m)", "Detection radius in blocks", 48.0, 16.0, 120.0, 4.0);
+        final BooleanSetting radarMobs = new BooleanSetting("radar_mobs", "Show Monsters", "Show hostile mobs on radar alongside players", true);
+        Module radarMod = mm.register(new Module("radar_hud", "2D PvP Radar", "Rotating curved Vision-Glass 2D tactical radar showing nearby players and targets", ModuleCategory.HUD, false, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(radarRange);
+                addSetting(radarMobs);
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                return (i18n != null && i18n.isRussian()) ? "Радар 2D" : "2D Radar";
+            }
+        });
+        radarMod.setFavorite(true);
+        hm.register(new HudElement("radar_hud", "2D Radar", radarMod, 0.012f, 0.450f, 84f, 84f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        boolean ru = i18n != null && i18n.isRussian();
+                        float sz = Math.max(82.0f, Math.min(sw, sh));
+                        float rad = 18.0f;
+                        float cx = px + sz * 0.5f;
+                        float cy = py + sz * 0.5f;
+                        int prim = themeManager.filterColor(t.getPrimaryColor());
+                        int acc = themeManager.filterColor(t.getAccentColor());
+
+                        RenderManager.drawSoftGlow(r, px, py, sz, sz, rad, 3, prim, 0.20f * opacity);
+                        r.drawShadow(px, py, sz, sz, rad, 0.70f * opacity, 0x000000);
+                        r.fillRoundedRect(px, py, sz, sz, rad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.94f * opacity));
+                        RenderManager.fillRoundedHorizontalGradient(r, px + 1.0f, py + 1.0f, sz - 2.0f, sz - 2.0f, rad - 1.0f,
+                                AxsesTheme.withAlpha(prim, 0.14f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
+                        r.drawRoundedOutline(px, py, sz, sz, rad, 1.1f,
+                                selected ? acc : AxsesTheme.withAlpha(prim, 0.80f * opacity));
+
+                        // Inner radar rings + crosshair axes + FOV cone
+                        float innerR = sz * 0.36f;
+                        r.drawRoundedOutline(cx - innerR, cy - innerR, innerR * 2f, innerR * 2f, innerR, 1.0f, 0x20FFFFFF);
+                        r.drawRoundedOutline(cx - innerR * 0.52f, cy - innerR * 0.52f, innerR * 1.04f, innerR * 1.04f, innerR * 0.52f, 1.0f, 0x16FFFFFF);
+                        r.fillRect(px + 8f, cy - 0.5f, sz - 16f, 1.0f, 0x18FFFFFF);
+                        r.fillRect(cx - 0.5f, py + 8f, 1.0f, sz - 16f, 0x18FFFFFF);
+                        r.drawLine(cx, cy, cx - innerR * 0.58f, cy - innerR * 0.82f, 1.0f, AxsesTheme.withAlpha(acc, 0.32f));
+                        r.drawLine(cx, cy, cx + innerR * 0.58f, cy - innerR * 0.82f, 1.0f, AxsesTheme.withAlpha(acc, 0.32f));
+
+                        // Rotating North indicator
+                        float yawDeg = (mc != null && mc.isInWorld()) ? mc.getPlayerYaw() : 0.0f;
+                        double northAng = Math.toRadians(180.0 - yawDeg - 90.0);
+                        float nx = cx + (float) Math.cos(northAng) * (sz * 0.41f);
+                        float ny = cy + (float) Math.sin(northAng) * (sz * 0.41f);
+                        fontManager.drawCentered(r, ru ? "С" : "N", nx, ny - 3.5f, acc, 0.78f);
+
+                        // Plot live entities relative to player position & look yaw
+                        if (mc != null && mc.isInWorld()) {
+                            double maxR = Math.max(12.0, radarRange.getDouble());
+                            List<TargetEntityInfo> ents = mc.getEspEntities(maxR, true, radarMobs.isEnabled(), false, false, true);
+                            TargetEntityInfo locked = state.getActiveTarget(2000L);
+                            double yawRad = Math.toRadians(yawDeg);
+                            double cosY = Math.cos(yawRad);
+                            double sinY = Math.sin(yawRad);
+                            if (ents != null) {
+                                for (int i = 0; i < ents.size(); i++) {
+                                    TargetEntityInfo e = ents.get(i);
+                                    double dx = e.getX() - mc.getPlayerX();
+                                    double dz = e.getZ() - mc.getPlayerZ();
+                                    // Forward in MC yaw=0 is +Z; screen right in MC yaw=0 is -X
+                                    double relRight = -dx * cosY - dz * sinY;
+                                    double relFwd = -dx * sinY + dz * cosY;
+                                    float bx = cx + (float) (relRight / maxR) * innerR;
+                                    float by = cy - (float) (relFwd / maxR) * innerR;
+                                    bx = Math.max(px + 9f, Math.min(px + sz - 9f, bx));
+                                    by = Math.max(py + 9f, Math.min(py + sz - 9f, by));
+
+                                    boolean isLocked = locked != null && locked.getEntityId() == e.getEntityId();
+                                    int dotCol = isLocked ? t.getErrorColor() : (e.isPlayer() ? acc : t.getWarningColor());
+                                    r.fillRoundedRect(bx - 3.5f, by - 3.5f, 7.0f, 7.0f, 3.5f, AxsesTheme.withAlpha(dotCol, 0.32f));
+                                    r.fillRoundedRect(bx - 2.0f, by - 2.0f, 4.0f, 4.0f, 2.0f, dotCol);
+                                }
+                            }
+                        }
+
+                        // Center self dot
+                        r.fillRoundedRect(cx - 2.5f, cy - 2.5f, 5.0f, 5.0f, 2.5f, 0xFFFFFFFF);
+                        return true;
+                    }
+                }));
     }
 
     private static void paintKeyCap(
@@ -1377,16 +1564,17 @@ public final class VisualModulesRegistry {
     ) {
         int prim = tm.filterColor(t.getPrimaryColor());
         int acc = tm.filterColor(t.getAccentColor());
+        float kRad = Math.min(7.5f, h * 0.36f);
         if (pressed) {
-            r.fillRoundedRect(x - 1.0f, y - 1.0f, w + 2.0f, h + 2.0f, 5.0f, AxsesTheme.withAlpha(acc, 0.25f * opacity));
-            r.fillRoundedRect(x, y, w, h, 4.5f, AxsesTheme.withAlpha(RenderManager.blendArgb(prim, acc, 0.42f), 0.90f * opacity));
-            r.drawRoundedOutline(x, y, w, h, 4.5f, 1.0f, acc);
+            r.fillRoundedRect(x - 1.0f, y - 1.0f, w + 2.0f, h + 2.0f, kRad + 1.0f, AxsesTheme.withAlpha(acc, 0.26f * opacity));
+            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, kRad,
+                    AxsesTheme.withAlpha(prim, 0.90f * opacity), AxsesTheme.withAlpha(acc, 0.85f * opacity));
+            r.drawRoundedOutline(x, y, w, h, kRad, 1.0f, acc);
             fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFFFFFFF, 0.92f);
         } else {
-            r.fillRoundedRect(x, y, w, h, 4.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.90f * opacity));
-            r.fillRect(x + 4.0f, y + 1.0f, w - 8.0f, 1.0f, 0x16FFFFFF);
-            r.drawRoundedOutline(x, y, w, h, 4.5f, 1.0f,
-                    selected ? acc : AxsesTheme.withAlpha(prim, 0.42f * opacity));
+            r.fillRoundedRect(x, y, w, h, kRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f * opacity));
+            r.drawRoundedOutline(x, y, w, h, kRad, 1.0f,
+                    selected ? acc : AxsesTheme.withAlpha(prim, 0.48f * opacity));
             fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, t.getTextColor(), 0.90f);
         }
     }

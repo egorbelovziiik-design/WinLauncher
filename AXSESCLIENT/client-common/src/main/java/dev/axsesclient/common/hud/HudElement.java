@@ -160,14 +160,14 @@ public final class HudElement {
         float tw = fontManager.width(r, text, 1.0f);
         float th = fontManager.lineHeight(r, 1.0f);
 
-        // Auto-fit Hyperion Glass capsule width so text never clips or overflows
-        float drawW = Math.max(sw, tw + 20.0f);
+        // Auto-fit Celestial Vision stadium capsule width so text never clips or overflows
+        float drawW = Math.max(sw, tw + 22.0f);
         float drawH = Math.max(sh, 21.0f);
         float drawX = px;
         if (drawX + drawW > canvasW - 4.0f) {
             drawX = Math.max(4.0f, canvasW - 4.0f - drawW);
         }
-        float rad = Math.min(6.0f, drawH * 0.36f);
+        float rad = Math.min(10.0f, drawH * 0.48f);
 
         int prim = themeManager.filterColor(t.getPrimaryColor());
         int acc = themeManager.filterColor(t.getAccentColor());
@@ -176,22 +176,21 @@ public final class HudElement {
             r.drawShadow(drawX, py, drawW, drawH, rad, t.getShadowIntensity() * 0.62f * opacity, 0x000000);
         }
         if (showBackground) {
-            int bgTop = AxsesTheme.withAlpha(themeManager.filterColor(t.getSurfaceColor()), Math.min(0.95f, opacity + 0.04f));
             int bgBot = AxsesTheme.withAlpha(themeManager.filterColor(t.getBackgroundColor()), Math.min(0.96f, opacity + 0.05f));
             r.fillRoundedRect(drawX, py, drawW, drawH, rad, bgBot);
-            r.fillGradientVertical(drawX + 1.0f, py + 1.0f, drawW - 2.0f, drawH * 0.5f, AxsesTheme.withAlpha(bgTop, 0.55f), 0x00000000);
-            // Specular top glass sheen + vertical Aurora gradient accent ribbon
-            r.fillRect(drawX + rad, py + 1.0f, Math.max(4.0f, drawW - rad * 2.0f), 1.0f, 0x1AFFFFFF);
-            r.fillGradientVertical(drawX + 2.5f, py + 4.0f, 2.5f, Math.max(4.0f, drawH - 8.0f),
-                    AxsesTheme.withAlpha(prim, Math.max(0.85f, opacity)),
-                    AxsesTheme.withAlpha(acc, Math.max(0.85f, opacity)));
+            RenderManager.fillRoundedHorizontalGradient(r, drawX + 1.0f, py + 1.0f, drawW - 2.0f, drawH - 2.0f, Math.max(2.0f, rad - 1.0f),
+                    AxsesTheme.withAlpha(prim, 0.14f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
+            // Specular top glass sheen + rounded Aurora accent dot/pill on left
+            r.fillRect(drawX + rad, py + 1.0f, Math.max(4.0f, drawW - rad * 2.0f), 1.0f, 0x22FFFFFF);
+            r.fillRoundedRect(drawX + 4.5f, py + 5.0f, 3.0f, Math.max(5.0f, drawH - 10.0f), 1.5f,
+                    AxsesTheme.withAlpha(acc, Math.max(0.88f, opacity)));
         }
         if (showOutline || editorMode) {
             int outCol = selected
                     ? acc
                     : (locked && editorMode
                         ? themeManager.filterColor(t.getWarningColor())
-                        : AxsesTheme.withAlpha(prim, opacity * 0.55f));
+                        : AxsesTheme.withAlpha(prim, opacity * 0.62f));
             r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.0f, outCol);
         }
 
@@ -201,10 +200,10 @@ public final class HudElement {
                 tx = drawX + (drawW - tw) * 0.5f;
                 break;
             case RIGHT:
-                tx = drawX + drawW - tw - 7.5f;
+                tx = drawX + drawW - tw - 8.5f;
                 break;
             default:
-                tx = drawX + 9.5f;
+                tx = drawX + 11.0f;
                 break;
         }
         float ty = py + (drawH - th) * 0.5f + 1.0f;

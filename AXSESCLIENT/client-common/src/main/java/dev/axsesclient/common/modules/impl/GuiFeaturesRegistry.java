@@ -51,10 +51,11 @@ public final class GuiFeaturesRegistry {
         });
 
         // 76. Theme Preview
-        mm.register(new Module("theme_preview", "Theme Preview", "Live-previews built-in NEO-DARK color themes before applying", ModuleCategory.SETTINGS) {
-            private final ModeSetting previewId = addSetting(new ModeSetting("preview_id", "Preview Theme", "Theme to preview live", "axses-dark",
-                    "axses-dark", "axses-purple", "axses-blue", "axses-cyber",
-                    "axses-midnight", "axses-minimal", "axses-graphite", "axses-neon"));
+        mm.register(new Module("theme_preview", "Theme Preview", "Live-previews all 14 built-in Vision & Aurora color themes before applying", ModuleCategory.SETTINGS) {
+            private final ModeSetting previewId = addSetting(new ModeSetting("preview_id", "Preview Theme", "Theme to preview live", "axses-vision",
+                    "axses-vision", "axses-emerald", "axses-dark", "axses-purple", "axses-blue", "axses-cyber",
+                    "axses-midnight", "axses-minimal", "axses-graphite", "axses-neon",
+                    "axses-hyperion", "axses-crimson", "axses-sakura", "axses-gold"));
 
             @Override
             public void onTick(MinecraftAdapter mc) {

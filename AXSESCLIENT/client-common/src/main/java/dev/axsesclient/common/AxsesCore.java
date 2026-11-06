@@ -31,8 +31,8 @@ import java.nio.file.Path;
 
 public final class AxsesCore {
     public static final String PRODUCT_NAME = "AXSESCLIENT";
-    public static final String CODENAME = "HYPERION AURORA";
-    public static final String VERSION = "3.0.0";
+    public static final String CODENAME = "CELESTIAL VISION";
+    public static final String VERSION = "3.5.0";
 
     private static volatile AxsesCore instance;
 
@@ -83,17 +83,23 @@ public final class AxsesCore {
         this.compatibilityEngine = new CompatibilityEngine();
         this.runtimeState = new ClientRuntimeState(this.clientRootDir);
 
-        // Register all 102 modules & GUI features across 5 modular domain registries
+        // Register all 108 modules & GUI features across 5 modular domain registries
         VisualModulesRegistry.registerAll(
                 moduleManager, hudManager, runtimeState, performanceProfiler,
                 inputAdapter, themeManager, fontManager, renderManager, localizationManager
         );
-        MovementPlayerModulesRegistry.registerAll(moduleManager, hudManager, runtimeState, inputAdapter, localizationManager);
+        MovementPlayerModulesRegistry.registerAll(
+                moduleManager, hudManager, runtimeState, inputAdapter,
+                localizationManager, notificationManager, fontManager, themeManager
+        );
         CombatTrainingModulesRegistry.registerAll(
                 moduleManager, hudManager, runtimeState, themeManager,
                 fontManager, notificationManager, localizationManager
         );
-        WorldUtilityModulesRegistry.registerAll(moduleManager, hudManager, runtimeState, notificationManager);
+        WorldUtilityModulesRegistry.registerAll(
+                moduleManager, hudManager, runtimeState, notificationManager,
+                localizationManager, fontManager, themeManager
+        );
         this.configManager = new ConfigManager(
                 this.clientRootDir,
                 moduleManager,
