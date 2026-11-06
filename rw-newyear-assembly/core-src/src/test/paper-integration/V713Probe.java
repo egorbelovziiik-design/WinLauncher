@@ -97,7 +97,7 @@ public final class V713Probe extends JavaPlugin implements Listener {
     private void begin()throws Exception {
         core=(KingGriefCore)Bukkit.getPluginManager().getPlugin("KingGriefCore");store=core.getStore();world=Bukkit.getWorlds().get(0);
         aId=a.getUniqueId();bId=b.getUniqueId();cId=c.getUniqueId();
-        require(core.getDescription().getVersion().equals("7.13.0"),"Core 7.13 loaded");
+        require(core.getDescription().getVersion().equals("7.14.0"),"Core 7.14 loaded");
         if(phase==2){restart();return;}
         for(int x=17;x<=19;x++)for(int z=18;z<=19;z++)world.getChunkAt(x,z).load();
         for(Player p:new Player[]{a,b,c}){p.setGameMode(GameMode.SURVIVAL);p.getInventory().clear();p.setHealth(20);p.teleport(new Location(world,294.5,100,299.5));}

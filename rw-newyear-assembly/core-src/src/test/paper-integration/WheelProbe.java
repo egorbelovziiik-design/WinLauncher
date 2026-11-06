@@ -61,7 +61,7 @@ public final class WheelProbe extends JavaPlugin implements Listener {
         finally{try{if(Files.isSymbolicLink(f))Files.delete(f);if(Files.exists(backup))Files.move(backup,f);}catch(Exception e){throw new RuntimeException(e);}}
     }
     private void first(){
-        ok(core.getDescription().getVersion().equals("7.13.0"),"correct Core loaded");
+        ok(core.getDescription().getVersion().equals("7.14.0"),"correct Core loaded");
         a.getInventory().clear();b.getInventory().clear();fund(a,0,0);
         cmd(a,"snow");cmd(a,"money");cmd(a,"nonsense");
         ok(ready(a)==0&&core.getStore().getCoins(a.getName())==0&&core.getStore().getSnowflakes(a.getName())==0,"insufficient funds and invalid arguments do not charge or start cooldown");

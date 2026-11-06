@@ -22,7 +22,7 @@ def main():
   with ZipFile(a.assembly) as z:
    if z.testzip() is not None:raise RuntimeError('Corrupt assembly')
    names=z.namelist()
-   template_version={'7.13.0':'v77','7.12.0':'v77','7.11.0':'v77','7.10.0':'v77','7.9.0':'v77','7.8.0':'v77','7.7.0':'v77','7.6.0':'v76'}.get(a.core_version,'v74')
+   template_version={'7.14.0':'v77','7.13.0':'v77','7.12.0':'v77','7.11.0':'v77','7.10.0':'v77','7.9.0':'v77','7.8.0':'v77','7.7.0':'v77','7.6.0':'v76'}.get(a.core_version,'v74')
    template_path=f'plugins/KingGriefCore/spawn-{template_version}-template.zip'
    historical=[f'plugins/KingGriefCore/spawn-{v}-template.zip' for v in ('v66','v70','v71','v73','v74','v76','v77') if v != template_version]
    if template_path not in names or any(n in names for n in historical):
@@ -77,7 +77,7 @@ def main():
     if 'Done (' in line and 'For help' in line:print('SERVER STARTED:',line.strip(),flush=True);started=True;break
     if 'Error occurred while enabling' in line:break
    if not started:raise RuntimeError('Paper did not start')
-   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve());env['KG_EXPECT_TREE']='1' if a.core_version in ('7.5.0','7.5.1','7.6.0','7.7.0','7.8.0','7.9.0','7.10.0','7.11.0','7.12.0','7.13.0') else '0'
+   env=os.environ.copy();env['NODE_PATH']=str(a.node_modules.resolve());env['KG_EXPECT_TREE']='1' if a.core_version in ('7.5.0','7.5.1','7.6.0','7.7.0','7.8.0','7.9.0','7.10.0','7.11.0','7.12.0','7.13.0','7.14.0') else '0'
    client=subprocess.run([a.node,str(HERE/'full-client.cjs'),str(port)],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,env=env,timeout=75)
    print(client.stdout.strip(),flush=True)
    if client.returncode or 'FULL_CLIENT_PREPARED_SPAWN_POSITION' not in client.stdout:raise RuntimeError('Protocol client could not enter the full assembly or use /kgtree')

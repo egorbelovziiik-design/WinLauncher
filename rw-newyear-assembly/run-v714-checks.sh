@@ -39,6 +39,7 @@ case "$GROUP" in
     integration test-preserve-v710
     integration test-preserve-v711
     integration test-preserve-v712
+    integration test-preserve-v713
     integration test-full-assembly --assembly "$ROOT/rw-newyear-assembly/rw-newyear-full-assembly-v7.14.0.zip" --core-version 7.14.0
     ;;
   gameplay)

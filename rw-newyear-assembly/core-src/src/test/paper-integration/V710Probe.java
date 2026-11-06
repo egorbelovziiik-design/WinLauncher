@@ -82,7 +82,7 @@ public final class V710Probe extends JavaPlugin implements Listener {
     }
     private Inventory top(){return a.getOpenInventory().getTopInventory();}
     private void begin(){
-        ok(core.getDescription().getVersion().equals("7.13.0"),"new Core version loaded");
+        ok(core.getDescription().getVersion().equals("7.14.0"),"new Core version loaded");
         a.setGameMode(GameMode.SURVIVAL);b.setGameMode(GameMode.SURVIVAL);a.getInventory().clear();b.getInventory().clear();clearEffects();
         Location spawn=core.getSpawnEngine().getPreparedSpawnArrival();a.teleport(spawn);b.teleport(spawn.clone().add(2,0,0));
         store.setCoins(a.getName(),1_000_000);store.setRelics(a.getName(),100);

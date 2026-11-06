@@ -109,7 +109,7 @@ public final class V711Probe extends JavaPlugin implements Listener {
         catch (Exception error) { throw new RuntimeException(error); }
     }
     private void begin() {
-        ok(core.getDescription().getVersion().equals("7.13.0"), "new Core version is running");
+        ok(core.getDescription().getVersion().equals("7.14.0"), "new Core version is running");
         a.setGameMode(GameMode.SURVIVAL); b.setGameMode(GameMode.SURVIVAL);
         a.getInventory().clear(); b.getInventory().clear();
         store.setCoins(a.getName(), 1_000_000.0); store.setRelics(a.getName(), 100);
