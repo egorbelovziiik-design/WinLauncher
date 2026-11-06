@@ -1,13 +1,13 @@
-# AXSESCLIENT — GENESIS X (v1.0.0)
+# AXSESCLIENT — CELESTIAL VISION (v3.5.0)
 
-**Next-Generation Minecraft Utility, HUD, Visual & Fair-Play PvP Training Client + Native Windows Desktop Launcher**
+**Next-Generation Minecraft Utility, HUD, 3D Visuals & Combat Client + Native Windows Desktop Launcher**
 
 - **Product:** `AXSESCLIENT`
-- **Codename:** `GENESIS X`
-- **Version:** `1.0.0`
+- **Codename:** `CELESTIAL VISION`
+- **Version:** `3.5.0`
 - **Target Operating System:** Windows 10 / Windows 11 (x64)
 - **Supported Minecraft Versions:** `1.16.5` (Java 8 • Fabric `0.20.1`), `1.21.4` (Java 21 • Fabric `0.20.1`), `1.21.11` (Java 21 • Fabric `0.20.1`)
-- **Design System:** `AXSES NEO-DARK` (`#070911` • `#10131D` • `#191D2B` • `#9060FF` • `#536FFF` • `#00D9FF`)
+- **Design System:** `CELESTIAL VISION CURVED GLASS ENGINE` (`108` Modules • `14` Themes • `#040714` • `#38BDF8` • `#A855F7` • `#00F5D4`)
 
 ---
 
@@ -16,7 +16,7 @@
 | Deliverable | Description |
 |---|---|
 | `AXSESCLIENT-Setup.exe` | Official Windows 10/11 x64 installer (Inno Setup 6). Installs `AXSESCLIENT.exe`, all 3 version-specific Fabric client JARs, themes, schemas, and optional Desktop/Start Menu shortcuts while preserving existing user worlds and settings. |
-| `AXSESCLIENT.exe` | Self-contained C# / .NET 8 / Avalonia UI 11 Windows x64 Desktop Launcher with direct 13-stage JVM launch engine, Version Manager, Microsoft OAuth2 + PKCE vault, Auto-Updater, and 90-module pre-configurator. |
+| `AXSESCLIENT.exe` | Self-contained C# / .NET 8 / Avalonia UI 11 Windows x64 Desktop Launcher with direct 13-stage JVM launch engine, Version Manager, Microsoft OAuth2 + PKCE vault, Auto-Updater, and 102-module / 12-theme pre-configurator. |
 | `AXSESCLIENT-1.16.5.jar` | Native Fabric client mod for **Minecraft 1.16.5** (Java 8 bytecode `v52`, `PoseStack` + `GuiComponent` renderer). |
 | `AXSESCLIENT-1.21.4.jar` | Native Fabric client mod for **Minecraft 1.21.4** (Java 21 bytecode `v65`, `GuiGraphics` renderer + `OptionInstance` gamma pipeline). |
 | `AXSESCLIENT-1.21.11.jar` | Native Fabric client mod for **Minecraft 1.21.11** (Java 21 bytecode `v65`, JOML `Matrix3x2fStack` 2D pose stack + `MouseButtonEvent`/`KeyEvent` input records + `Identifier` APIs). |
