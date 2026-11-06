@@ -1,51 +1,52 @@
 {
-  "latestVersion": "3.5.0",
-  "codename": "CELESTIAL VISION",
-  "publishedAt": "2026-11-06T16:47:00Z",
+  "latestVersion": "4.0.0",
+  "codename": "APEX ARCHITECT",
+  "publishedAt": "2026-11-06T20:20:00Z",
   "changelog": [
-    "AXSESCLIENT v3.5.0 (CELESTIAL VISION) — полностью скруглённое по бокам и углам меню ClickGUI на Правый Shift (радиус 20px, парящие панели, капсульные контролы).",
-    "108 реальных модулей и 14 тем оформления (включая новые CELESTIAL VISION и EMERALD AURORA).",
-    "6 новых модулей: Мини-Радар 2D, Счётчик тотемов, Геплы и перлы, Индикатор урона 3D, Тревога низкого ХП и Страж смерти.",
-    "Улучшены все категории: КиллАура v3.5 с 3D Сферами душ и индикатором крита, ESP с режимом Неон-капсула и шкалой брони, 3D-маяки для меток и точки смерти, скруглённый Таргет HUD и Ватермарка AXSES 3.5."
+    "AXSESCLIENT v4.0.0 (APEX ARCHITECT) — 112 рабочих модулей, 14 тем оформления и встроенный в лаунчер Хаб популярных модов FPS + Baritone.",
+    "Перемещение HUD прямо в Чате (T): свободное перетаскивание любых виджетов ЛКМ с магнитной сеткой, блокировкой ПКМ и прямым кликом по кнопкам Spotify и Baritone.",
+    "Живой плеер Музыки и Spotify: асинхронное определение Spotify / медиасессии ОС, автоматическая остановка фоновой музыки Minecraft при воспроизведении и кнопки «Продолжить», «Пауза», «Стоп», «Пред./След.».",
+    "КиллАура v4: добавлены кинематические профили SnowGrim (СНГ), Grim AC, Matrix AC, Vulcan AC, Intave AC и Polar AC (Lissajous-связь осей + GCD-квантование мыши + коррекция стрейфа) вдобавок к FunTime / ReallyWorld / HolyWorld.",
+    "Хаб модов FPS и ИИ Baritone в лаунчере: установка в 1 клик Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris Shaders, ModernFix, Dynamic FPS, Mod Menu, Fabric API и Baritone (#mine / #goto + 3D маршрут)."
   ],
   "artifacts": [
     {
       "id": "launcher-win-x64",
       "fileName": "AXSESCLIENT.exe",
-      "version": "3.5.0",
-      "sha256": "c1e9b04be51e381202b7287bb906ae53fd793dfc7387987617900e778ceefe00",
-      "sizeBytes": 45576969
+      "version": "4.0.0",
+      "sha256": "16c55f609aa65449e288e21a755e95acfbffd9d49e9ba4b3be8987b6b0431bdf",
+      "sizeBytes": 45593352
     },
     {
       "id": "installer-win-x64",
       "fileName": "AXSESCLIENT-Setup.exe",
-      "version": "3.5.0",
-      "sha256": "41719940988b2abea1b693dada287c96152cd1402ecece40629940d6deaec8ab",
-      "sizeBytes": 41826880
+      "version": "4.0.0",
+      "sha256": "e14f2605533154817c9590b10f3acf5a8cad60232b0ec6abde3f4091191dd119",
+      "sizeBytes": 41931002
     },
     {
       "id": "mod-1.16.5",
       "fileName": "AXSESCLIENT-1.16.5.jar",
-      "version": "3.5.0",
+      "version": "4.0.0",
       "minecraftVersion": "1.16.5",
-      "sha256": "c46eb612c6ec5cb9babadce780e5ef942fa20b6f088dda0710b5153e33f76463",
-      "sizeBytes": 481493
+      "sha256": "feb5ca60137cbccfca31de844fef4eaf516ab07f1b4386c5da7ba5b59d443026",
+      "sizeBytes": 529405
     },
     {
       "id": "mod-1.21.4",
       "fileName": "AXSESCLIENT-1.21.4.jar",
-      "version": "3.5.0",
+      "version": "4.0.0",
       "minecraftVersion": "1.21.4",
-      "sha256": "88e6242f22d45bdd652173f8287a6efd4a21509034e0f165044405238ac8448e",
-      "sizeBytes": 488733
+      "sha256": "3831fca6ef79848435ee11f0a550b273629be6b6d020d0f6718c53a98020961f",
+      "sizeBytes": 537103
     },
     {
       "id": "mod-1.21.11",
       "fileName": "AXSESCLIENT-1.21.11.jar",
-      "version": "3.5.0",
+      "version": "4.0.0",
       "minecraftVersion": "1.21.11",
-      "sha256": "e04c9cb66694ef709ab3e122791c3ce3908aa3d8ddead46a4cc84849ab0ff777",
-      "sizeBytes": 490191
+      "sha256": "f72961a8dd8b0bbc39b8dc7b9587384d7970d7d8cbfce0997c7a35ffdeced19c",
+      "sizeBytes": 538635
     }
   ]
 }
