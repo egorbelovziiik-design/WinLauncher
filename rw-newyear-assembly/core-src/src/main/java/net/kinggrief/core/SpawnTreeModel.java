@@ -42,6 +42,8 @@ final class SpawnTreeModel implements Listener {
             "person_1", "person_2", "person_3", "hand_star")));
     private static final Set<String> ADMIN_RANKS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
             "owner", "techadmin", "curator", "curator_discord", "curator_kp", "curator_media", "curator_dkp",
+            "deputy_curator", "deputy_curator_discord", "deputy_curator_kp", "deputy_curator_media",
+            "deputy_curator_dkp", "curator_support", "deputy_curator_support",
             "gladmin", "stadmin", "admin", "mladmin", "downer", "dadmin", "dmladmin")));
     private final KingGriefCore plugin;
     private final List<Part> parts = new ArrayList<Part>();

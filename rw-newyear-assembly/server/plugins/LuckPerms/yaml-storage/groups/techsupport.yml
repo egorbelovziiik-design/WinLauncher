@@ -1,0 +1,7 @@
+name: techsupport
+permissions:
+- weight.199
+- kinggrief.errorlog
+prefixes:
+- '&b&l[ТЕХПОДДЕРЖКА] &f':
+    priority: 199

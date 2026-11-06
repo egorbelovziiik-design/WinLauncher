@@ -1,4 +1,4 @@
-# KINGGRIEF v6.6 — 45 рангов и актуальная иерархия
+# KINGGRIEF 7.14 — пример ручной настройки групп для НОВОГО сервера
 lp creategroup owner
 lp group owner setweight 300
 lp group owner meta setprefix 300 "&f &4"
@@ -134,3 +134,35 @@ lp group dragon meta setprefix 12 "&f &5"
 lp creategroup default
 lp group default setweight 5
 lp group default meta setprefix 5 "&f &7"
+
+# Новые роли. Партнёр не продаётся; techsupport и руководство получают /log.
+lp creategroup curator_support
+lp group curator_support setweight 288
+lp group curator_support meta setprefix 288 "&b&l[КУРАТОР ТЕХПОДДЕРЖКИ] &f"
+lp group curator_support permission set kinggrief.errorlog true
+lp creategroup deputy_curator_support
+lp group deputy_curator_support setweight 287
+lp group deputy_curator_support meta setprefix 287 "&b&l[ЗАМ ТЕХПОДДЕРЖКИ] &f"
+lp group deputy_curator_support permission set kinggrief.errorlog true
+lp creategroup deputy_curator_discord
+lp group deputy_curator_discord setweight 284
+lp group deputy_curator_discord meta setprefix 284 "&9&l[ЗАМ КУРАТОРА DISCORD] &f"
+lp creategroup deputy_curator_kp
+lp group deputy_curator_kp setweight 281
+lp group deputy_curator_kp meta setprefix 281 "&a&l[ЗАМ КУРАТОРА КП] &f"
+lp creategroup deputy_curator_media
+lp group deputy_curator_media setweight 279
+lp group deputy_curator_media meta setprefix 279 "&d&l[ЗАМ КУРАТОРА МЕДИА] &f"
+lp creategroup deputy_curator_dkp
+lp group deputy_curator_dkp setweight 277
+lp group deputy_curator_dkp meta setprefix 277 "&6&l[ЗАМ КУРАТОРА ДКП] &f"
+lp creategroup deputy_curator
+lp group deputy_curator setweight 274
+lp group deputy_curator meta setprefix 274 "&a&l[ЗАМ КУРАТОРА] &f"
+lp creategroup techsupport
+lp group techsupport setweight 199
+lp group techsupport meta setprefix 199 "&b&l[ТЕХПОДДЕРЖКА] &f"
+lp group techsupport permission set kinggrief.errorlog true
+lp creategroup partner
+lp group partner setweight 109
+lp group partner meta setprefix 109 "&d&l[ПАРТНЁР] &f"

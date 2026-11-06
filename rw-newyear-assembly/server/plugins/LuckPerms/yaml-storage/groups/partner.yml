@@ -1,0 +1,6 @@
+name: partner
+permissions:
+- weight.109
+prefixes:
+- '&d&l[ПАРТНЁР] &f':
+    priority: 109

@@ -1,3 +1,4 @@
+import { isNonSaleRank } from './sale-rules';
 import { applyPromo, createOrder, getOrder, getProduct, logEvent, recordPayment, registerPromoUse, setOrderPayment, updateOrderStatus, updatePaymentRecord } from './repo';
 import { markPaidAndQueue } from './delivery';
 import { cloudSaveTable, cloudSyncLocalDb, cloudUpsertOrder, isCloudEnabled } from './cloud-store';
@@ -23,7 +24,7 @@ export function priceCart(lines: CartLine[], promoCode?: string | null): PriceRe
   for (const line of lines) {
     const product = getProduct(line.productId);
     if (!product) return { ok: false, error: 'Товар не найден' };
-    if (!product.active) return { ok: false, error: `Товар «${product.name}» недоступен` };
+    if (!product.active || isNonSaleRank(product)) return { ok: false, error: `Товар «${product.name}» недоступен` };
     if (seen.has(product.id)) return { ok: false, error: 'Товар добавлен дважды' };
     seen.add(product.id);
 

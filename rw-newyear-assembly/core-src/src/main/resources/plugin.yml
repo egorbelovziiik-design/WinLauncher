@@ -1,14 +1,17 @@
 name: KingGriefCore
-version: 7.13.0
+version: 7.14.0
 main: net.kinggrief.core.KingGriefCore
 api-version: '1.20'
 load: POSTWORLD
 softdepend: [LuckPerms, WorldGuard, WorldEdit, PlayerPoints]
 author: KINGGRIEF
-description: "KINGGRIEF v7.13.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
+description: "KINGGRIEF v7.14.0: масштабируемые ёлка, фигуры и подарки; готовый спавн и паркур."
 
 
 commands:
+  log:
+    description: Restricted, privacy-safe server and player error journal
+    usage: /log [-p <page>|<player> [page]]
   autosell:
     description: Opt-in sale of newly mined resources
     usage: /autosell [on|off|status|prices]
@@ -459,5 +462,7 @@ commands:
     aliases: [fc, teamchat, friendchat]
     description: Private Teammate & Clan Chat (/tc <message>)
 
-
-
+permissions:
+  kinggrief.errorlog:
+    description: View the privacy-safe server error journal
+    default: false

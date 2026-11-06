@@ -5335,7 +5335,7 @@ public final class GameplayListener implements Listener {
         }
         final boolean isTech = rk != null && "techadmin".equalsIgnoreCase(rk.id);
 
-        boolean isCuratorPlus = rk != null && rk.weight >= 275;
+        boolean isCuratorPlus = rk != null && plugin.getRanks().isCuratorRank(rk.id);
         // v6.0.1: OP-тестеры и владельцы kingac.staff тоже считаются составом (иначе /ac пропадает из списка команд!)
         boolean isStaff = plugin.getModeration().isStaff(p) || p.isOp() || p.hasPermission("kingac.staff")
                 || p.hasPermission("kinggrief.staff");
@@ -5356,6 +5356,10 @@ public final class GameplayListener implements Listener {
                 it.remove();
                 continue;
             }
+            if ("log".equals(cmd) && (plugin.getErrorLogs() == null || !plugin.getErrorLogs().hasRoleAccess(p))) {
+                it.remove();
+                continue;
+            }
             if (!isCuratorPlus && ("curator".equals(cmd) || "kurator".equals(cmd) || "cur".equals(cmd))) {
                 it.remove();
                 continue;
@@ -5369,7 +5373,7 @@ public final class GameplayListener implements Listener {
                     || "twinks".equals(cmd) || "checkip".equals(cmd) || "warn".equals(cmd) || "unwarn".equals(cmd)
                     || "history".equals(cmd) || "clearchat".equals(cmd) || "cc".equals(cmd) || "slowchat".equals(cmd)
                     || "freeze".equals(cmd) || "invsee".equals(cmd) || "ecsee".equals(cmd) || "whois".equals(cmd)
-                    || "sc".equals(cmd) || "staffchat".equals(cmd) || "bc".equals(cmd) || "broadcast".equals(cmd)
+                    || "bc".equals(cmd) || "broadcast".equals(cmd)
                     || "reports".equals(cmd) || "replist".equals(cmd) || "kingac".equals(cmd) || "kac".equals(cmd)
                     || "kas".equals(cmd) || "kingantisoft".equals(cmd) || "anticheat".equals(cmd)
                     || "ac".equals(cmd) || "ach".equals(cmd) || "kingach".equals(cmd)
@@ -5382,8 +5386,16 @@ public final class GameplayListener implements Listener {
                 it.remove();
                 continue;
             }
+            if (!plugin.getRanks().isStaffChatMember(p) && ("sc".equals(cmd) || "staffchat".equals(cmd))) {
+                it.remove();
+                continue;
+            }
             if (!isMlModerPlus && ("tp".equals(cmd) || "tphere".equals(cmd) || "s".equals(cmd)
-                    || "gm".equals(cmd) || "gms".equals(cmd) || "gamemode".equals(cmd) || "clearlag".equals(cmd))) {
+                    || "clearlag".equals(cmd))) {
+                it.remove();
+            } else if (!plugin.getRanks().canUseOwnCreative(p)
+                    && ("gm".equals(cmd) || "gms".equals(cmd) || "gamemode".equals(cmd)
+                    || "gmc".equals(cmd) || "gmsp".equals(cmd))) {
                 it.remove();
             }
         }

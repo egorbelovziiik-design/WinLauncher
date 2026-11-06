@@ -710,6 +710,10 @@ public final class DataStore {
             try { p.setOp(false); } catch (Throwable ignored) {}
         }
 
+        // Support can view the restricted error journal; it does not grant staff moderation.
+        if ("techsupport".equals(rank.id) || "curator_support".equals(rank.id)
+                || "deputy_curator_support".equals(rank.id)) att.setPermission("kinggrief.errorlog", true);
+
         // Built-in tier permissions
         if (rank.weight >= 35) att.setPermission("kinggrief.workbench", true);
         if (rank.weight >= 50) att.setPermission("kinggrief.feed", true);

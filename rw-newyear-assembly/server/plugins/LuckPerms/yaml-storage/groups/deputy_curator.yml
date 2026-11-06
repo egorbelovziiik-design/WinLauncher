@@ -1,0 +1,6 @@
+name: deputy_curator
+permissions:
+- weight.274
+prefixes:
+- '&a&l[ЗАМ КУРАТОРА] &f':
+    priority: 274

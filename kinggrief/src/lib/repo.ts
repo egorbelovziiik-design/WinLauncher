@@ -1,3 +1,4 @@
+import { isNonSaleRank, withCreativeFeature } from './sale-rules';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { hashPassword, verifyPassword, getDb } from './db';
 import type {
@@ -76,7 +77,9 @@ export function listProducts(opts: { kind?: string; activeOnly?: boolean } = {})
   if (opts.activeOnly) where.push('active = 1');
   if (where.length) sql += ' WHERE ' + where.join(' AND ');
   sql += ' ORDER BY sort ASC, price ASC';
-  return (getDb().prepare(sql).all(...params) as Row[]).map(mapProduct);
+  const products = (getDb().prepare(sql).all(...params) as Row[]).map(mapProduct);
+  // Keep special roles manageable in admin, but never advertise them as products.
+  return opts.activeOnly ? products.filter((product) => !isNonSaleRank(product)).map(withCreativeFeature) : products;
 }
 
 export function getProduct(id: string): Product | null {

@@ -1592,6 +1592,7 @@ public final class GuiManager {
                     r.shortLabel + (isFreeDragon ? " &8— &#00E676БЕСПЛАТНО (/free dragon)" : " &8— &#FFD740" + r.priceRub + "₽"),
                     "&7Домов: &e" + r.maxHomes + " &8| &7Приватов: &e" + r.maxClaims,
                     "&7Личный богатый кит: &f/kit " + r.kitName,
+                    r.weight >= 75 ? "&bЛичный творческий режим: &f/gm 1 &7(назад: /gm 0)" : "&7Творческий режим: от IMPERATOR",
                     isFreeDragon ? "&#00E676▸ Нажми, чтобы получить DRAGON бесплатно!" : "&#00E676▸ Нажми для ссылки на покупку!"));
         }
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в меню"));

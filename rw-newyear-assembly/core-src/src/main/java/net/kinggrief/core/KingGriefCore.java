@@ -62,6 +62,7 @@ public final class KingGriefCore extends JavaPlugin {
     private AntiLagDdosManager antiLagDdos;
     private OwnerGiveawayManager ownerGiveaway;
     private CuratorManager curatorManager;
+    private ErrorLogManager errorLogs;
     private WinterItemsManager winterItems;
     private RtpManager rtpManager;
     private ExpeditionManager expeditions;
@@ -146,6 +147,10 @@ public final class KingGriefCore extends JavaPlugin {
         this.guis = new GuiManager(this);
         this.hud = new HudManager(this);
         this.moderation = new ModerationManager(this);
+        this.errorLogs = new ErrorLogManager(this);
+        this.errorLogs.start();
+        PluginCommand logCommand = getCommand("log");
+        if (logCommand != null) { logCommand.setExecutor(this.errorLogs); logCommand.setTabCompleter(this.errorLogs); }
         this.autoBuyer = new AutoBuyerManager(this);
         Bukkit.getPluginManager().registerEvents(this.autoBuyer, this);
         this.winterFishing = new WinterFishingManager(this);
@@ -332,8 +337,10 @@ public final class KingGriefCore extends JavaPlugin {
         if (this.expeditions != null) this.expeditions.shutdown();
         if (this.spawnEngine != null) this.spawnEngine.shutdown();
         if (this.store != null) this.store.save();
+        if (this.errorLogs != null) this.errorLogs.shutdown();
     }
 
+    ErrorLogManager getErrorLogs() { return errorLogs; }
     ParkourRecordsManager getParkourRecords() { return parkourRecords; }
     AuctionSearchManager getAuctionSearch() { return auctionSearch; }
     AuctionDeliveryManager getAuctionDeliveries() { return auctionDeliveries; }
@@ -735,8 +742,26 @@ public final class KingGriefCore extends JavaPlugin {
                 return filterPrefix(Arrays.asList("0", "5000", "15000", "50000", "100000", "500000"), args[1]);
             }
         } else if ("gm".equals(c)) {
-            if (args.length == 1) return filterPrefix(Arrays.asList("0", "1", "2", "3"), args[0]);
-            if (args.length == 2) return onlineNames(args[1]);
+            Player player = sender instanceof Player ? (Player) sender : null;
+            boolean advanced = player == null || ranks.getRank(player).weight >= 178
+                    || ranks.isMlModerOrHigher(player) || player.hasPermission("kinggrief.gm");
+            if (player != null && !advanced && !ranks.canUseOwnCreative(player)) return out;
+            String label = alias.toLowerCase(Locale.ROOT);
+            if (label.contains(":")) label = label.substring(label.lastIndexOf(':') + 1);
+            boolean fixed = "gmc".equals(label) || "gmsp".equals(label);
+            if (fixed && args.length == 1) {
+                boolean canOther = player == null || ("gmsp".equals(label)
+                        ? ranks.isMlModerOrHigher(player) : ranks.getRank(player).weight >= 255);
+                return canOther ? onlineNames(args[0]) : filterPrefix(Arrays.asList(player.getName()), args[0]);
+            }
+            if (args.length == 1) return filterPrefix(advanced
+                    ? Arrays.asList("0", "1", "2", "3") : Arrays.asList("0", "1"), args[0]);
+            if (args.length == 2) {
+                GameMode selected = parseGameModeArg(args[0]);
+                boolean canOther = player == null || (selected == GameMode.SURVIVAL || selected == GameMode.SPECTATOR
+                        ? ranks.isMlModerOrHigher(player) : ranks.getRank(player).weight >= 255);
+                return canOther ? onlineNames(args[1]) : filterPrefix(Arrays.asList(player.getName()), args[1]);
+            }
         } else if (("tphere".equals(c) || "tp".equals(c) || "invsee".equals(c) || "ecsee".equals(c)
                 || "freeze".equals(c) || "whois".equals(c) || "msg".equals(c) || "ignore".equals(c)
                 || "skull".equals(c) || "burn".equals(c) || "smite".equals(c) || "sudo".equals(c)) && args.length == 1) {
@@ -858,6 +883,10 @@ public final class KingGriefCore extends JavaPlugin {
                 return true;
             }
             GameMode gm = parseGameModeArg(args[0]);
+            if (gm == null) {
+                sender.sendMessage("Usage from console: /gm <0|1|2|3> <nickname>");
+                return true;
+            }
             applyGameModeToTarget(target, gm);
             sender.sendMessage("Set gamemode " + gm.name() + " for " + target.getName());
             return true;
@@ -1676,9 +1705,19 @@ public final class KingGriefCore extends JavaPlugin {
 
         // ================= /gm <0|1|2|3> [никнейм] (ВКЛЮЧАЯ ВЫКЛЮЧЕНИЕ /gm 0 ДРУГОМУ ИГРОКУ!) =================
         if ("gm".equals(c) || "gms".equals(c)) {
-            String modeRaw = "gms".equals(c) ? "0" : (args.length > 0 ? args[0] : "1");
-            String targetArg = "gms".equals(c) ? (args.length > 0 ? args[0] : null) : (args.length >= 2 ? args[1] : null);
+            String usedLabel = label.toLowerCase(Locale.ROOT);
+            if (usedLabel.contains(":")) usedLabel = usedLabel.substring(usedLabel.lastIndexOf(':') + 1);
+            boolean fixedAlias = "gms".equals(c) || "gmc".equals(usedLabel) || "gmsp".equals(usedLabel);
+            String modeRaw = "gms".equals(c) ? "0" : "gmc".equals(usedLabel) ? "1"
+                    : "gmsp".equals(usedLabel) ? "3" : (args.length > 0 ? args[0] : "1");
+            String targetArg = fixedAlias ? (args.length > 0 ? args[0] : null) : (args.length >= 2 ? args[1] : null);
             GameMode gm = parseGameModeArg(modeRaw);
+            if (gm == null) {
+                p.sendMessage(ColorUtil.c("&cИспользование: /gm <0|1|2|3> [ник]"));
+                return true;
+            }
+            // Explicitly naming oneself must have the same rights as omitting the target.
+            if (targetArg != null && targetArg.equalsIgnoreCase(p.getName())) targetArg = null;
 
             if (targetArg != null) {
                 // Changing ANOTHER player's gamemode (/gm 0 <nick>)!
@@ -1709,9 +1748,9 @@ public final class KingGriefCore extends JavaPlugin {
             }
 
             // Changing OWN gamemode
-            boolean canSelfGm = (gm == GameMode.SURVIVAL || gm == GameMode.SPECTATOR)
-                    ? (myRank.weight >= 178 || ranks.isMlModerOrHigher(p) || p.hasPermission("kinggrief.gm"))
-                    : (myRank.weight >= 178 || p.hasPermission("kinggrief.gm"));
+            boolean canSelfGm = ((gm == GameMode.CREATIVE || gm == GameMode.SURVIVAL)
+                    && ranks.canUseOwnCreative(p))
+                    || myRank.weight >= 178 || ranks.isMlModerOrHigher(p) || p.hasPermission("kinggrief.gm");
             if (!canSelfGm) {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ У вашей привилегии нет доступа к /gm!"));
                 return true;
@@ -1730,7 +1769,7 @@ public final class KingGriefCore extends JavaPlugin {
             return handleStaffMlModerCommand(p, myRank, c, args);
         }
         if ("staffchat".equals(c)) {
-            if (!ranks.isRealStaffHelperOrHigher(p)) {
+            if (!ranks.isStaffChatMember(p)) {
                 p.sendMessage(ColorUtil.c("&#FF1744✖ Чат персонала (/sc) доступен только Хелперам и Модерации!"));
                 return true;
             }
@@ -1742,7 +1781,7 @@ public final class KingGriefCore extends JavaPlugin {
             for (String a : args) sb.append(a).append(' ');
             String line = ColorUtil.c("&#38BDF8&l[STAFF] " + ranks.getAnimatedBadge(myRank, 0) + " &f" + p.getName() + " &8» &#E0F2FE" + sb.toString().trim());
             for (Player on : Bukkit.getOnlinePlayers()) {
-                if (ranks.isRealStaffHelperOrHigher(on)) on.sendMessage(line);
+                if (ranks.isStaffChatMember(on)) on.sendMessage(line);
             }
             Bukkit.getConsoleSender().sendMessage(line);
             return true;
@@ -1767,11 +1806,13 @@ public final class KingGriefCore extends JavaPlugin {
     }
 
     private GameMode parseGameModeArg(String raw) {
-        String m = raw == null ? "0" : raw.trim().toLowerCase(Locale.ROOT);
-        if ("0".equals(m) || m.startsWith("s") && !"sp".equals(m) && !m.startsWith("spec")) return GameMode.SURVIVAL;
-        if ("2".equals(m) || m.startsWith("a")) return GameMode.ADVENTURE;
-        if ("3".equals(m) || "sp".equals(m) || m.startsWith("spec")) return GameMode.SPECTATOR;
-        return GameMode.CREATIVE;
+        String m = raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT);
+        if (m.isEmpty()) return null;
+        if ("0".equals(m) || "survival".startsWith(m)) return GameMode.SURVIVAL;
+        if ("1".equals(m) || "creative".startsWith(m)) return GameMode.CREATIVE;
+        if ("2".equals(m) || "adventure".startsWith(m)) return GameMode.ADVENTURE;
+        if ("3".equals(m) || "spectator".startsWith(m)) return GameMode.SPECTATOR;
+        return null;
     }
 
     private void applyGameModeToTarget(Player target, GameMode gm) {

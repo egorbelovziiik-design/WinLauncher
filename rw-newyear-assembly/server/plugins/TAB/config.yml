@@ -16,7 +16,7 @@ tablist-name-formatting:
 scoreboard-teams:
   enabled: true
   sorting-types:
-    - "GROUPS:owner,techadmin,curator_discord,curator_kp,curator_media,curator_dkp,curator,gladmin,stadmin,admin,mladmin,glmoder,stmoder,moder,mlmoder,sthelper,helper,kp,downer,opka,dadmin,dmladmin,dglmoder,dstmoder,dmoder,dkp,dhelper,mediaplus,media,yt,twitch,tiktok,sponsor,king,imperator,god,tiger,vampire,rabbit,bunny,dracula,cobra,pegas,dragon,default"
+    - "GROUPS:owner,techadmin,curator_support,deputy_curator_support,curator_discord,deputy_curator_discord,curator_kp,deputy_curator_kp,curator_media,deputy_curator_media,curator_dkp,deputy_curator_dkp,curator,deputy_curator,gladmin,stadmin,admin,mladmin,glmoder,stmoder,moder,mlmoder,sthelper,helper,kp,techsupport,downer,opka,dadmin,dmladmin,dglmoder,dstmoder,dmoder,dkp,dhelper,partner,mediaplus,media,yt,twitch,tiktok,sponsor,king,imperator,god,tiger,vampire,rabbit,bunny,dracula,cobra,pegas,dragon,default"
     - "PLACEHOLDER_A_TO_Z:%player%"
 scoreboard:
   enabled: true

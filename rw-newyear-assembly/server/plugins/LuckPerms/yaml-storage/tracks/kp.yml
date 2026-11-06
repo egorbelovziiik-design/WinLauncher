@@ -1,5 +1,6 @@
 name: kp
 groups:
+- techsupport
 - kp
 - helper
 - sthelper
@@ -11,10 +12,17 @@ groups:
 - admin
 - stadmin
 - gladmin
+- deputy_curator
 - curator
+- deputy_curator_dkp
 - curator_dkp
+- deputy_curator_media
 - curator_media
+- deputy_curator_kp
 - curator_kp
+- deputy_curator_discord
 - curator_discord
+- deputy_curator_support
+- curator_support
 - techadmin
 - owner

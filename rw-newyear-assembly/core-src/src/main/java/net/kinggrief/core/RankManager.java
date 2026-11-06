@@ -84,16 +84,39 @@ public final class RankManager {
         ranks.put(low, new RankDef(low, weight, order, glyphIdx, chatPref, badgeOnly, chatColor, homes, claims, kit, tier, priceRub));
     }
 
+    // New roles use readable text badges instead of inventing glyphs absent
+    // from the already published resource pack. They also work without a pack.
+    private void addText(String id, int weight, int homes, int claims, String kit,
+                         int tier, String badge, String chatColor) {
+        String low = id.toLowerCase(Locale.ROOT);
+        RankDef def = new RankDef(low, weight, ranks.size() + 1, -1,
+                badge + " &f", badge, chatColor, homes, claims, kit, tier, 0);
+        def.hasCustomTextOverride = true;
+        ranks.put(low, def);
+    }
+
+    private static final Set<String> BUILTIN_TEXT_RANKS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
+            "curator_support", "deputy_curator_support", "deputy_curator_discord", "deputy_curator_kp",
+            "deputy_curator_media", "deputy_curator_dkp", "deputy_curator", "techsupport", "partner")));
+
     private void registerAll() {
         // НАСТОЯЩИЙ ПЕРСОНАЛ КП (КП ниже Хелпера, Мл.Модер между Ст.Хелпером и Модером, Мл.Админ и Админ выше Гл.Модера!)
         add(0,  "owner",     300, 500, 99, "owner",     7, 0,    "&#FF6B8B");
         add(1,  "techadmin", 290, 500, 99, "curator",   7, 0,    "&#7DD3FC");
-        // The four curators are ordered: Discord > KP > Media > DKP.
+        // Preserve all existing weights and their order; each deputy is directly
+        // below their curator. Support curator fits between TechAdmin and Discord.
+        addText("curator_support",         288, 500, 50, "curator", 6, "&b&l[КУРАТОР ТЕХПОДДЕРЖКИ]", "&#75DDF7");
+        addText("deputy_curator_support",  287, 500, 50, "curator", 6, "&b&l[ЗАМ ТЕХПОДДЕРЖКИ]", "&#9CEBFF");
         add(43, "curator_discord", 285, 500, 50, "curator", 6, 0, "&#B4C5FF");
+        addText("deputy_curator_discord",  284, 500, 50, "curator", 6, "&9&l[ЗАМ КУРАТОРА DISCORD]", "&#B4C5FF");
         add(44, "curator_kp",      282, 500, 50, "curator", 6, 0, "&#B2F5D0");
+        addText("deputy_curator_kp",       281, 500, 50, "curator", 6, "&a&l[ЗАМ КУРАТОРА КП]", "&#B2F5D0");
         add(45, "curator_media",   280, 500, 50, "curator", 6, 0, "&#FFD0ED");
+        addText("deputy_curator_media",    279, 500, 50, "curator", 6, "&d&l[ЗАМ КУРАТОРА МЕДИА]", "&#FFD0ED");
         add(46, "curator_dkp",     278, 500, 50, "curator", 6, 0, "&#FFE1AC");
+        addText("deputy_curator_dkp",      277, 500, 50, "curator", 6, "&6&l[ЗАМ КУРАТОРА ДКП]", "&#FFE1AC");
         add(2,  "curator",   275, 500, 50, "curator",   6, 0,    "&#86EFAC");
+        addText("deputy_curator",          274, 500, 50, "curator", 6, "&a&l[ЗАМ КУРАТОРА]", "&#86EFAC");
         add(47, "gladmin",   273, 150, 45, "admin",     6, 0, "&#FFBCC8");
         add(48, "stadmin",   271, 125, 42, "admin",     6, 0, "&#FFD0BA");
         add(42, "admin",     268, 100, 40, "admin",     6, 0,    "&#FCA5A5");
@@ -106,6 +129,9 @@ public final class RankManager {
         add(8,  "helper",    208,  10, 10, "kp",        6, 0,    "&#E0F2FE");
         add(3,  "kp",        200,  10, 10, "kp",        6, 0,    "&#6EE7B7");
 
+        // Technical support gets its own diagnostics role, not moderation/LP.
+        addText("techsupport", 199, 20, 20, "media", 3, "&b&l[ТЕХПОДДЕРЖКА]", "&#75DDF7");
+
         // ДОНАТ-ПЕРСОНАЛ (ДКП ниже Д.Модера!)
         add(9,  "downer",    190, 500, 99, "downer",    5, 1499, "&#FFE166");
         add(10, "opka",      178,  60, 50, "opka",      5, 999,  "&#E9A8FF");
@@ -116,6 +142,9 @@ public final class RankManager {
         add(16, "dmoder",    124,  24, 18, "dmoder",    4, 249,  "&#99F1DE");
         add(11, "dkp",       118,  22, 17, "dkp",       4, 229,  "&#FFD2A1");
         add(17, "dhelper",   112,  20, 16, "dhelper",   4, 219,  "&#B8F5E6");
+
+        // Partner is a special media-level role, not a paid product or case prize.
+        addText("partner", 109, 20, 20, "media", 3, "&d&l[ПАРТНЁР]", "&#F7A8FF");
 
         // МЕДИА
         add(18, "mediaplus", 108,  20, 20, "media",     3, 0,    "&#FDA4AF");
@@ -282,9 +311,26 @@ public final class RankManager {
     }
 
     public boolean isCuratorRank(String rankId) {
-        return "curator".equalsIgnoreCase(rankId) || "curator_discord".equalsIgnoreCase(rankId)
-                || "curator_kp".equalsIgnoreCase(rankId) || "curator_media".equalsIgnoreCase(rankId)
-                || "curator_dkp".equalsIgnoreCase(rankId);
+        if (rankId == null) return false;
+        switch (rankId.toLowerCase(Locale.ROOT)) {
+            case "curator": case "deputy_curator":
+            case "curator_discord": case "deputy_curator_discord":
+            case "curator_kp": case "deputy_curator_kp":
+            case "curator_media": case "deputy_curator_media":
+            case "curator_dkp": case "deputy_curator_dkp":
+            case "curator_support": case "deputy_curator_support":
+                return true;
+            default: return false;
+        }
+    }
+
+    /** Creative and survival for oneself, starting with the standard IMPERATOR weight. */
+    public boolean canUseOwnCreative(Player p) {
+        return p != null && (getRank(p).weight >= 75 || p.hasPermission("kinggrief.gm"));
+    }
+
+    public boolean isStaffChatMember(Player p) {
+        return p != null && (isRealStaffHelperOrHigher(p) || "techsupport".equals(getRank(p).id));
     }
 
     public boolean isOwnerLevel(Player p) {
@@ -389,6 +435,11 @@ public final class RankManager {
             if (r.glyphIndex >= 0 && r.glyphIndex < 49) {
                 char f0 = (char) (0xEA00 + r.glyphIndex * 8);
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " meta setprefix " + r.weight + " \"&f" + f0 + " &f\"");
+            } else if (BUILTIN_TEXT_RANKS.contains(r.id)) {
+                // Fixed built-in badges are safe to pass as one LP argument.
+                String prefix = r.chatPrefix.replace("\"", "").replace("\n", "").replace("\r", "");
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id
+                        + " meta setprefix " + r.weight + " \"" + prefix + "\"");
             }
             if (!"owner".equals(r.id)) {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "luckperms:luckperms group " + r.id + " permission unset *");

@@ -102,8 +102,8 @@ public final class LpManager implements CommandExecutor, TabCompleter {
             s.sendMessage(ColorUtil.c("&#00E676&l[LP] Ветки повышений (Tracks v6.4.0):"));
             s.sendMessage(ColorUtil.c(" &e• donate: &7default → dragon → pegas → cobra → dracula → bunny → rabbit → vampire → tiger → god → imperator → king → sponsor"));
             s.sendMessage(ColorUtil.c(" &6• dkp: &7dhelper → dkp → dmoder → dstmoder → dglmoder → dmladmin → dadmin → opka → downer"));
-            s.sendMessage(ColorUtil.c(" &a• kp: &7kp → helper → sthelper → mlmoder → moder → stmoder → glmoder → mladmin → admin → stadmin → gladmin → curator → curator_dkp → curator_media → curator_kp → curator_discord → techadmin → owner"));
-            s.sendMessage(ColorUtil.c(" &d• media: &7tiktok → twitch → yt → media → mediaplus"));
+            s.sendMessage(ColorUtil.c(" &a• kp: &7techsupport → kp → helper → … → gladmin → зам/кураторы → зам/куратор техподдержки → techadmin → owner"));
+            s.sendMessage(ColorUtil.c(" &d• media: &7tiktok → twitch → yt → media → mediaplus &8(Партнёр назначается отдельно)"));
             return true;
         }
         if ("creategroup".equals(sub)) {

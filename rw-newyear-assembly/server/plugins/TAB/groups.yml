@@ -1,4 +1,40 @@
-# KINGGRIEF v6.6 TAB Groups (45 рангов)
+# KINGGRIEF 7.14 TAB Groups — новые текстовые префиксы совместимы со старым ресурс-паком
+curator_support:
+  tabprefix: "&b&l[КУРАТОР ТЕХПОДДЕРЖКИ] &f"
+  tagprefix: "&b&l[КУРАТОР ТЕХПОДДЕРЖКИ] &f"
+
+deputy_curator_support:
+  tabprefix: "&b&l[ЗАМ ТЕХПОДДЕРЖКИ] &f"
+  tagprefix: "&b&l[ЗАМ ТЕХПОДДЕРЖКИ] &f"
+
+deputy_curator_discord:
+  tabprefix: "&9&l[ЗАМ КУРАТОРА DISCORD] &f"
+  tagprefix: "&9&l[ЗАМ КУРАТОРА DISCORD] &f"
+
+deputy_curator_kp:
+  tabprefix: "&a&l[ЗАМ КУРАТОРА КП] &f"
+  tagprefix: "&a&l[ЗАМ КУРАТОРА КП] &f"
+
+deputy_curator_media:
+  tabprefix: "&d&l[ЗАМ КУРАТОРА МЕДИА] &f"
+  tagprefix: "&d&l[ЗАМ КУРАТОРА МЕДИА] &f"
+
+deputy_curator_dkp:
+  tabprefix: "&6&l[ЗАМ КУРАТОРА ДКП] &f"
+  tagprefix: "&6&l[ЗАМ КУРАТОРА ДКП] &f"
+
+deputy_curator:
+  tabprefix: "&a&l[ЗАМ КУРАТОРА] &f"
+  tagprefix: "&a&l[ЗАМ КУРАТОРА] &f"
+
+techsupport:
+  tabprefix: "&b&l[ТЕХПОДДЕРЖКА] &f"
+  tagprefix: "&b&l[ТЕХПОДДЕРЖКА] &f"
+
+partner:
+  tabprefix: "&d&l[ПАРТНЁР] &f"
+  tagprefix: "&d&l[ПАРТНЁР] &f"
+
 owner:
   tabprefix: "&f &4"
   tagprefix: "&f &4"

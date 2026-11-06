@@ -1,0 +1,6 @@
+name: deputy_curator_kp
+permissions:
+- weight.281
+prefixes:
+- '&a&l[ЗАМ КУРАТОРА КП] &f':
+    priority: 281

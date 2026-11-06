@@ -48,11 +48,16 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         public final String page;     // "main", "kp", "media", "donate", "pick_player", "roster", "log"
         public final String targetNick;
         public final String rankId;
+        public final int pageIndex;
 
         public CuratorHolder(String page, String targetNick, String rankId) {
+            this(page, targetNick, rankId, 0);
+        }
+        public CuratorHolder(String page, String targetNick, String rankId, int pageIndex) {
             this.page = page;
             this.targetNick = targetNick == null ? "" : targetNick;
             this.rankId = rankId == null ? "" : rankId;
+            this.pageIndex = Math.max(0, pageIndex);
         }
 
         @Override
@@ -63,17 +68,21 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
 
     // 1. КП (Команда Проекта — ниже Куратора)
     public static final List<String> KP_RANKS = Collections.unmodifiableList(Arrays.asList(
-            "kp", "helper", "sthelper", "mlmoder", "moder", "stmoder", "glmoder", "mladmin", "admin", "stadmin", "gladmin",
-            "curator", "curator_dkp", "curator_media", "curator_kp", "curator_discord"
+            "techsupport", "kp", "helper", "sthelper", "mlmoder", "moder", "stmoder", "glmoder", "mladmin", "admin", "stadmin", "gladmin",
+            "deputy_curator", "curator", "deputy_curator_dkp", "curator_dkp", "deputy_curator_media", "curator_media",
+            "deputy_curator_kp", "curator_kp", "deputy_curator_discord", "curator_discord",
+            "deputy_curator_support", "curator_support"
     ));
 
     public static final List<String> CURATOR_RANKS = Collections.unmodifiableList(Arrays.asList(
-            "curator", "curator_dkp", "curator_media", "curator_kp", "curator_discord"
+            "deputy_curator", "curator", "deputy_curator_dkp", "curator_dkp", "deputy_curator_media", "curator_media",
+            "deputy_curator_kp", "curator_kp", "deputy_curator_discord", "curator_discord",
+            "deputy_curator_support", "curator_support"
     ));
 
     // 2. МЕДИА
     public static final List<String> MEDIA_RANKS = Collections.unmodifiableList(Arrays.asList(
-            "tiktok", "twitch", "yt", "media", "mediaplus"
+            "tiktok", "twitch", "yt", "media", "mediaplus", "partner"
     ));
 
     // 3. ДОНАТЫ + ДКП
@@ -101,6 +110,15 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         RANK_TITLES.put("curator_media", "&#FFD0EDКУРАТОР МЕДИА");
         RANK_TITLES.put("curator_kp", "&#A5EFC3КУРАТОР КП");
         RANK_TITLES.put("curator_discord", "&#B4C5FFКУРАТОР DISCORD");
+        RANK_TITLES.put("deputy_curator", "&#86EFACЗАМ КУРАТОРА");
+        RANK_TITLES.put("deputy_curator_dkp", "&#FFD29CЗАМ КУРАТОРА ДКП");
+        RANK_TITLES.put("deputy_curator_media", "&#FFD0EDЗАМ КУРАТОРА МЕДИА");
+        RANK_TITLES.put("deputy_curator_kp", "&#A5EFC3ЗАМ КУРАТОРА КП");
+        RANK_TITLES.put("deputy_curator_discord", "&#B4C5FFЗАМ КУРАТОРА DISCORD");
+        RANK_TITLES.put("curator_support", "&#75DDF7КУРАТОР ТЕХПОДДЕРЖКИ");
+        RANK_TITLES.put("deputy_curator_support", "&#9CEBFFЗАМ КУРАТОРА ТЕХПОДДЕРЖКИ");
+        RANK_TITLES.put("techsupport", "&#75DDF7ТЕХПОДДЕРЖКА");
+        RANK_TITLES.put("partner", "&#F7A8FFПАРТНЁР (НЕ ПРОДАЁТСЯ)");
 
         RANK_TITLES.put("tiktok",    "&#FF2E93TIKTOK");
         RANK_TITLES.put("twitch",    "&#A855F7TWITCH");
@@ -147,6 +165,8 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
     public boolean hasCuratorAccess(CommandSender sender) {
         if (!(sender instanceof Player)) return CommandSenderPolicy.isConsole(sender);
         Player p = (Player) sender;
+        if (!plugin.getStore().isAuthenticated(p) || plugin.getStore().isQuickFrozen(p)
+                || plugin.getModeration().isFrozenOrAscending(p)) return false;
         RankManager.RankDef r = plugin.getRanks().getRank(p);
         if (r == null) return false;
         return plugin.getRanks().isCuratorRank(r.id) || plugin.getRanks().isOwnerLevel(r.id);
@@ -458,15 +478,16 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
                 "&f• КП, Хелпер, Ст. Хелпер",
                 "&f• Мл. Модер, Модер, Ст. Модер, Гл. Модер",
                 "&f• Мл. Админ, Админ, Ст. и Гл. Админ",
-                "&f• Кураторы ДКП, Медиа, КП, Discord",
+                "&f• Кураторы и заместители, техподдержка",
+                "&7Несколько страниц, выдача по иерархии.",
                 "",
                 targetLine,
                 "&#00E676▸ Нажмите для выбора должности КП!"));
 
-        inv.setItem(13, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#EC4899&l🎬 ВЫДАТЬ РОЛЬ МЕДИА (5 ролей)",
+        inv.setItem(13, ItemFactory.glowIcon(Material.AMETHYST_SHARD, "&#EC4899&l🎬 ВЫДАТЬ РОЛЬ МЕДИА И ПАРТНЁРА",
                 "&7Назначение контент-мейкеров и стримеров:",
                 "&f• TikTok, Twitch, YouTube",
-                "&f• Media, Media+",
+                "&f• Media, Media+, Партнёр (не продаётся)",
                 "",
                 targetLine,
                 "&#EC4899▸ Нажмите для выбора роли МЕДИА!"));
@@ -501,6 +522,10 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
     }
 
     public void openCategoryGui(Player p, String cat, String targetNick) {
+        openCategoryGui(p, cat, targetNick, 0);
+    }
+
+    private void openCategoryGui(Player p, String cat, String targetNick, int requestedPage) {
         List<String> list;
         String catTitle;
         Material borderMat;
@@ -522,7 +547,9 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
             iconMat = Material.NETHERITE_INGOT;
         }
 
-        Inventory inv = Bukkit.createInventory(new CuratorHolder(cat, targetNick, ""), 54, ColorUtil.c(catTitle));
+        int pageIndex = Math.max(0, Math.min(requestedPage, Math.max(0, (list.size() - 1) / 21)));
+        Inventory inv = Bukkit.createInventory(new CuratorHolder(cat, targetNick, "", pageIndex), 54,
+                ColorUtil.c(catTitle + " &8• " + (pageIndex + 1) + "/" + ((list.size() + 20) / 21)));
         fillBorder(inv, borderMat, Material.BLACK_STAINED_GLASS_PANE);
 
         int[] slots = new int[]{
@@ -531,8 +558,8 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
                 28, 29, 30, 31, 32, 33, 34
         };
 
-        for (int i = 0; i < list.size() && i < slots.length; i++) {
-            String rid = list.get(i);
+        for (int i = 0; i < slots.length && pageIndex * slots.length + i < list.size(); i++) {
+            String rid = list.get(pageIndex * slots.length + i);
             RankManager.RankDef def = plugin.getRanks().byId(rid);
             String pretty = RANK_TITLES.getOrDefault(rid, "&#FFD740" + rid.toUpperCase(Locale.ROOT));
             Material m = pickMaterialForRank(rid, iconMat);
@@ -548,6 +575,8 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
                     actionHint));
         }
 
+        if (pageIndex > 0) inv.setItem(45, ItemFactory.icon(Material.ARROW, "&e« Предыдущая страница"));
+        if ((pageIndex + 1) * slots.length < list.size()) inv.setItem(53, ItemFactory.icon(Material.ARROW, "&eСледующая страница »"));
         inv.setItem(49, ItemFactory.icon(Material.ARROW, "&7« Назад в Панель Куратора"));
         p.openInventory(inv);
     }
@@ -644,7 +673,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
                 List<String> lore = new ArrayList<String>();
                 lore.add(ColorUtil.c("&7Должность: " + def.shortLabel + " &f(" + rid.toUpperCase(Locale.ROOT) + ")"));
                 lore.add(ColorUtil.c("&7Наиграно: &f" + ColorUtil.fmtTime(plugin.getStore().getPlaySeconds(nick))));
-                if (def.weight < 275 || isOwnerSender(p)) {
+                if (isOwnerSender(p) || def.weight < plugin.getRanks().getRank(p).weight) {
                     lore.add("");
                     lore.add(ColorUtil.c("&#FFD740▸ ЛКМ: Изменить роль игроку"));
                     lore.add(ColorUtil.c("&#FF5252▸ ПКМ: Снять роль до Игрока"));
@@ -693,7 +722,7 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         if (!(e.getWhoClicked() instanceof Player)) return;
         if (!(e.getInventory().getHolder() instanceof CuratorHolder)) return;
         e.setCancelled(true);
-        if (e.getClickedInventory() != e.getInventory()) return;
+        if (e.getClickedInventory() == null || !e.getClickedInventory().equals(e.getInventory())) return;
 
         Player p = (Player) e.getWhoClicked();
         if (!hasCuratorAccess(p)) {
@@ -728,7 +757,10 @@ public final class CuratorManager implements Listener, CommandExecutor, TabCompl
         if ("kp".equals(h.page) || "media".equals(h.page) || "donate".equals(h.page)) {
             if (slot == 49) { openMainCuratorGui(p, h.targetNick); return; }
             List<String> list = "kp".equals(h.page) ? KP_RANKS : "media".equals(h.page) ? MEDIA_RANKS : DONATE_RANKS;
-            int idx = slotToGridIndex(slot);
+            if (slot == 45 && h.pageIndex > 0) { openCategoryGui(p, h.page, h.targetNick, h.pageIndex - 1); return; }
+            if (slot == 53 && (h.pageIndex + 1) * 21 < list.size()) { openCategoryGui(p, h.page, h.targetNick, h.pageIndex + 1); return; }
+            int localIndex = slotToGridIndex(slot);
+            int idx = localIndex < 0 ? -1 : h.pageIndex * 21 + localIndex;
             if (idx >= 0 && idx < list.size()) {
                 String chosenRank = list.get(idx);
                 if (!h.targetNick.isEmpty()) {

@@ -1,0 +1,7 @@
+name: curator_support
+permissions:
+- weight.288
+- kinggrief.errorlog
+prefixes:
+- '&b&l[КУРАТОР ТЕХПОДДЕРЖКИ] &f':
+    priority: 288

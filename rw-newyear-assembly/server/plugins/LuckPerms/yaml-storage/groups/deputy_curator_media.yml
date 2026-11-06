@@ -1,0 +1,6 @@
+name: deputy_curator_media
+permissions:
+- weight.279
+prefixes:
+- '&d&l[ЗАМ КУРАТОРА МЕДИА] &f':
+    priority: 279

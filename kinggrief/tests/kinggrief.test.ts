@@ -94,6 +94,34 @@ describe('каталог и цены', () => {
   });
 });
 
+describe('специальные непродаваемые роли', () => {
+  it('не показывает и не продаёт partner даже при активном товаре в базе', () => {
+    const ids = ['rank-partner', 'offer-partner', 'legacy-offer'];
+    try {
+      repo.saveProduct({ id: ids[0], kind: 'rank', name: 'Партнёр', price: 500, active: true, meta: {} });
+      repo.saveProduct({ id: ids[1], kind: 'rank', name: 'Особый медиа', price: 500, active: true, meta: { rankId: 'PaRtNeR' } });
+      // Delivery falls back to a sanitized name for legacy products without rankId.
+      repo.saveProduct({ id: ids[2], kind: 'rank', name: 'Partner', price: 500, active: true, meta: {} });
+      expect(repo.listProducts({ kind: 'rank' }).some((p) => p.id === ids[0])).toBe(true); // admin
+      expect(repo.listProducts({ activeOnly: true }).some((p) => ids.includes(p.id))).toBe(false);
+      for (const id of ids) expect(service.priceCart([{ productId: id, quantity: 1 }]).ok).toBe(false);
+    } finally { for (const id of ids) repo.deleteProduct(id); }
+  });
+});
+
+describe('описание Creative в существующей базе', () => {
+  it('показывает /gm 1 от IMPERATOR и не меняет сохранённые данные', () => {
+    const original = repo.getProduct('rank-imperator')!;
+    try {
+      repo.saveProduct({ id: original.id, features: original.features.filter((text) => !text.includes('/gm 1')) });
+      expect(repo.getProduct(original.id)!.features.some((text) => text.includes('/gm 1'))).toBe(false);
+      const shown = repo.listProducts({ kind: 'rank', activeOnly: true });
+      expect(shown.find((p) => p.id === original.id)!.features.some((text) => text.includes('/gm 1'))).toBe(true);
+      expect(shown.find((p) => p.id === 'rank-god')!.features.some((text) => text.includes('/gm 1'))).toBe(false);
+    } finally { repo.saveProduct({ id: original.id, features: original.features }); }
+  });
+});
+
 describe('калькулятор риликов', () => {
   const config = pricing.parseRelicPricing(catalog.DEFAULT_SETTINGS.relic_pricing);
 

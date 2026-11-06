@@ -796,7 +796,9 @@ function buildProducts(): Product[] {
     color: r.color,
     icon: r.icon,
     badge: r.meta.top ? 'MAX' : i === 0 ? 'START' : null,
-    features: r.features,
+    features: Number(r.meta.tier) >= 10
+      ? [...r.features, 'Личный творческий режим: /gm 1 (вернуться: /gm 0)']
+      : r.features,
     meta: { ...r.meta, rankId: r.id },
     sort: i + 1,
     active: true,

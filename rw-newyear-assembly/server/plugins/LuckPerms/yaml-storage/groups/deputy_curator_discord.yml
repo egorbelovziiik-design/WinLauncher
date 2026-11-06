@@ -1,0 +1,6 @@
+name: deputy_curator_discord
+permissions:
+- weight.284
+prefixes:
+- '&9&l[ЗАМ КУРАТОРА DISCORD] &f':
+    priority: 284
