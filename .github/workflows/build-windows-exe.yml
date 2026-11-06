@@ -5,6 +5,8 @@ name: Build Windows EXE
 on:
   workflow_dispatch:
   push:
+    branches:
+      - "arena/494dac3e-winlauncher"
     tags:
       - "v*"
 
