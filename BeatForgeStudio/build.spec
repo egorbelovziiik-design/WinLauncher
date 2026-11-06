@@ -84,6 +84,18 @@ excludes = [
     "tkinter", "matplotlib", "PyQt5", "PySide2", "PySide6",
     "IPython", "jupyter", "pytest", "sphinx", "tests",
     "numba", "llvmlite", "torch", "tensorflow",
+    # Qt-модули, которые приложение не использует (каждый ~10-40 МБ)
+    "PyQt6.QtWebEngineCore", "PyQt6.QtWebEngineWidgets", "PyQt6.QtWebEngineQuick",
+    "PyQt6.QtQuick", "PyQt6.QtQuick3D", "PyQt6.QtQml", "PyQt6.QtMultimedia",
+    "PyQt6.QtMultimediaWidgets", "PyQt6.QtBluetooth", "PyQt6.QtNfc",
+    "PyQt6.QtDesigner", "PyQt6.QtHelp", "PyQt6.QtTest", "PyQt6.QtOpenGL",
+    "PyQt6.QtOpenGLWidgets", "PyQt6.QtSql", "PyQt6.QtPdf", "PyQt6.QtPdfWidgets",
+    "PyQt6.QtSpatialAudio", "PyQt6.QtPositioning", "PyQt6.QtSerialPort",
+    "PyQt6.QtRemoteObjects", "PyQt6.QtSensors", "PyQt6.QtWebChannel",
+    "PyQt6.QtWebSockets", "PyQt6.Qt3DCore", "PyQt6.Qt3DRender",
+    # научный стек: нужен только librosa/scipy (numpy остаётся)
+    "sklearn", "pandas", "statsmodels", "sympy", "networkx", "h5py",
+    "pydoc_data", "lib2to3", "doctest", "pydoc",
 ]
 
 block_cipher = None
@@ -109,10 +121,33 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)  # noqa: F821
 icon_path = ROOT / "assets" / "icon.ico"
 icon_arg = str(icon_path) if icon_path.exists() else None
 
+# --- Qt: оставляем только нужные платформенные плагины
+def _strip_qt_binaries(binaries):
+    """Убрать лишние Qt-плагины (wayland, vnc, eglfs…) и тяжёлые модули."""
+    drop_plugins = (
+        "platforms/qwayland", "platforms/qminimal", "platforms/qlinuxfb",
+        "platforms/qeglfs", "platforms/qvnc", "platforms/qdirectfb",
+        "platforms/qwebgl", "platformthemes", "wayland-", "qtwebengine",
+        "qtquick", "qml", "designer", "sqldrivers/qsql",
+    )
+    drop_modules = ("qt6quick", "qt6qml", "qt6webengine", "qt6designer",
+                    "qt6sql", "qt6test", "qt6bluetooth", "qt6multimedia")
+    result = []
+    for entry in binaries:
+        dest = entry[0].replace("\\", "/").lower()
+        name = dest.rsplit("/", 1)[-1]
+        if any(token in dest for token in drop_plugins):
+            continue
+        if name.startswith(drop_modules):
+            continue
+        result.append(entry)
+    return result
+
+
 exe = EXE(  # noqa: F821
     pyz,
     a.scripts,
-    a.binaries,
+    _strip_qt_binaries(a.binaries),
     a.zipfiles,
     a.datas,
     [],
