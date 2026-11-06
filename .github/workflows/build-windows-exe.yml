@@ -83,6 +83,25 @@ jobs:
               if ($proc.ExitCode -ne 0) { throw "exe --version завершился с кодом $($proc.ExitCode)" }
           }
 
+      - name: GUI smoke test (offscreen)
+        working-directory: BeatForgeStudio
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_LOGGING_RULES: "qt.qpa.*=false"
+        run: |
+          # запускаем собранный exe с --safe; если он падает на старте —
+          # процесс умрёт раньше 12 секунд
+          $p = Start-Process -FilePath "dist/BeatForgeStudio.exe" -ArgumentList "--safe" -PassThru
+          Start-Sleep -Seconds 12
+          if ($p.HasExited) {
+              $log = Join-Path $env:USERPROFILE ".beatforge_studio\beatforge_studio.log"
+              if (Test-Path $log) { Get-Content $log -Tail 40 }
+              throw "GUI-сборка завершилась сама (код $($p.ExitCode))"
+          }
+          "Приложение работает 12 с, память: {0:N0} МБ" -f ($p.WorkingSet64 / 1MB)
+          Stop-Process -Id $p.Id -Force
+
       - name: Package
         working-directory: BeatForgeStudio
         shell: pwsh
@@ -106,9 +125,9 @@ jobs:
         working-directory: BeatForgeStudio
         shell: pwsh
         run: |
-          (Get-FileHash dist/BeatForgeStudio.exe -Algorithm SHA256).Hash.ToLower() `
-            + "  BeatForgeStudio.exe" | Out-File -Encoding ascii BeatForgeStudio.exe.sha256
-          Get-Content BeatForgeStudio.exe.sha256
+          $hash = (Get-FileHash dist/BeatForgeStudio.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  BeatForgeStudio.exe" | Out-File -Encoding ascii dist/BeatForgeStudio.exe.sha256
+          Get-Content dist/BeatForgeStudio.exe.sha256
 
       # Постоянная публичная ссылка на сборку с этой ветки
       - name: Publish "latest" release
