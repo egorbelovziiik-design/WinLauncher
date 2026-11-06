@@ -32,7 +32,7 @@ import java.nio.file.Path;
 public final class AxsesCore {
     public static final String PRODUCT_NAME = "AXSESCLIENT";
     public static final String CODENAME = "CELESTIAL VISION";
-    public static final String VERSION = "3.5.0";
+    public static final String VERSION = "4.0.0";
 
     private static volatile AxsesCore instance;
 
@@ -150,7 +150,7 @@ public final class AxsesCore {
         long start = System.nanoTime();
         float dt = animationManager.beginFrame();
         if (!minecraftAdapter.isHudEditorOpen()) {
-            hudManager.renderInGameHud(renderer, minecraftAdapter, themeManager, fontManager);
+            hudManager.renderInGameHud(renderer, minecraftAdapter, themeManager, fontManager, localizationManager);
         }
         moduleManager.onRender(renderer, minecraftAdapter, dt);
         if (!minecraftAdapter.isClickGuiOpen()) {
@@ -167,6 +167,14 @@ public final class AxsesCore {
 
     public boolean onInGameKeyPress(int keyCode) {
         return keybindManager.handleInGameKeyPress(keyCode, minecraftAdapter);
+    }
+
+    public boolean onChatHudMousePress(double mx, double my, int button) {
+        return hudManager.onChatMousePress(minecraftAdapter, configManager, notificationManager, localizationManager, mx, my, button);
+    }
+
+    public void onChatHudMouseRelease(double mx, double my, int button) {
+        hudManager.onChatMouseRelease(configManager, button);
     }
 
     public void onInGameMouseClick(int button) {

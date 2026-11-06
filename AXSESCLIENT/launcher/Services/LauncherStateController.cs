@@ -15,6 +15,7 @@ public sealed class LauncherStateController
     public List<LaunchProfile> Profiles { get; private set; }
     public IReadOnlyList<MinecraftAccountRecord> Accounts => AuthService.Accounts;
     public List<ModuleCatalogItem> Modules { get; private set; }
+    public List<CuratedFabricModSpec> PopularMods { get; }
     public List<LauncherThemePalette> Themes { get; }
     public List<DownloadTaskItem> Downloads { get; } = [];
     public List<string> LiveConsoleLines { get; } = [];
@@ -23,6 +24,7 @@ public sealed class LauncherStateController
     public JavaRuntimeLocator JavaLocator { get; }
     public MicrosoftAuthService AuthService { get; }
     public MinecraftLaunchEngine LaunchEngine { get; }
+    public FabricModInstallerService ModInstaller { get; }
     public DiagnosticsService Diagnostics { get; }
     public AutoUpdaterService Updater { get; }
 
@@ -57,9 +59,10 @@ public sealed class LauncherStateController
 
         Versions = SupportedVersionSpec.CreateDefaults();
         Themes = LauncherThemePalette.CreateOfficialThemes();
+        PopularMods = CuratedFabricModSpec.CreatePopularCatalog();
         Profiles = LoadJsonOrDefault(Path.Combine(dataRoot, "profiles", "profiles.json"), CreateDefaultProfiles);
 
-        var defaultCatalog = ModuleCatalogItem.CreateAll96Modules();
+        var defaultCatalog = ModuleCatalogItem.CreateAll112Modules();
         var loadedModules = LoadJsonOrDefault(Path.Combine(dataRoot, "configs", "launcher-modules.json"), () => defaultCatalog);
         Modules = MergeModuleCatalog(defaultCatalog, loadedModules);
 
@@ -85,15 +88,17 @@ public sealed class LauncherStateController
             Settings.SelectedAccountUuid = AuthService.Accounts[0].Uuid;
 
         LaunchEngine = new MinecraftLaunchEngine(dataRoot, JavaLocator, AuthService);
+        ModInstaller = new FabricModInstallerService(LaunchEngine);
         Diagnostics = new DiagnosticsService(JavaLocator, LaunchEngine);
         Updater = new AutoUpdaterService(AppContext.BaseDirectory);
 
         foreach (var v in Versions)
             LaunchEngine.RefreshVersionState(v);
 
+        ModInstaller.RefreshCatalogState(SelectedVersionSpec.MinecraftVersion, PopularMods);
         RefreshJavaStatus();
 
-        AppendConsole($"[AXSES v2.5] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count}");
+        AppendConsole($"[AXSES v4.0] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count} • Хаб модов: {PopularMods.Count}");
         SaveAllState();
 
         // Automatically download & install missing Java 8 & Java 21 on Windows when AutoInstallJava is active
@@ -220,9 +225,99 @@ public sealed class LauncherStateController
         {
             Settings.SelectedVersion = mcVersion;
             SelectedProfile.MinecraftVersion = mcVersion;
+            ModInstaller.RefreshCatalogState(mcVersion, PopularMods);
             SaveAllState();
             NotifyChanged();
         }
+    }
+
+    public async Task InstallPopularModAsync(CuratedFabricModSpec mod)
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        CurrentStatusText = IsRu ? $"Установка мода {mod.Name}..." : $"Installing {mod.Name}...";
+        CurrentProgress = 0.25;
+        NotifyChanged();
+        try
+        {
+            bool ok = await ModInstaller.InstallModAsync(mod, SelectedVersionSpec.MinecraftVersion, AppendConsole).ConfigureAwait(false);
+            CurrentStatusText = ok
+                ? (IsRu ? $"✓ Мод {mod.Name} установлен в mods/ ({SelectedVersionSpec.MinecraftVersion})" : $"✓ {mod.Name} installed into mods/")
+                : (IsRu ? $"Билд {mod.Name} для {SelectedVersionSpec.MinecraftVersion} недоступен" : $"{mod.Name} build unavailable for {SelectedVersionSpec.MinecraftVersion}");
+            CurrentProgress = 1.0;
+        }
+        catch (Exception ex)
+        {
+            CurrentStatusText = IsRu ? $"Ошибка установки {mod.Name}: {ex.Message}" : $"Failed to install {mod.Name}: {ex.Message}";
+            AppendConsole($"[ModsHub] ERROR: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+            ModInstaller.RefreshCatalogState(SelectedVersionSpec.MinecraftVersion, PopularMods);
+            NotifyChanged();
+        }
+    }
+
+    public async Task InstallOptimizationBundleAsync()
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        NotifyChanged();
+        try
+        {
+            int count = await ModInstaller.InstallOptimizationAndBaritoneBundleAsync(
+                SelectedVersionSpec.MinecraftVersion,
+                PopularMods,
+                (txt, prog) =>
+                {
+                    CurrentStatusText = txt;
+                    CurrentProgress = prog;
+                    ProgressUpdated?.Invoke(txt, prog);
+                },
+                AppendConsole).ConfigureAwait(false);
+            CurrentStatusText = IsRu
+                ? $"✓ Установлено {count} модов (Sodium + Lithium + FerriteCore + Baritone)"
+                : $"✓ Installed {count} optimization & Baritone mods";
+            CurrentProgress = 1.0;
+        }
+        finally
+        {
+            IsBusy = false;
+            ModInstaller.RefreshCatalogState(SelectedVersionSpec.MinecraftVersion, PopularMods);
+            NotifyChanged();
+        }
+    }
+
+    public void TogglePopularMod(CuratedFabricModSpec mod)
+    {
+        if (ModInstaller.ToggleModEnabled(mod, SelectedVersionSpec.MinecraftVersion))
+        {
+            AppendConsole($"[ModsHub] {mod.Name}: {(mod.IsEnabled ? "ВКЛ" : "ВЫКЛ")} ({mod.InstalledFileName})");
+            NotifyChanged();
+        }
+    }
+
+    public void UninstallPopularMod(CuratedFabricModSpec mod)
+    {
+        if (ModInstaller.UninstallMod(mod, SelectedVersionSpec.MinecraftVersion))
+        {
+            AppendConsole($"[ModsHub] Удалён {mod.Name} из профиля {SelectedVersionSpec.MinecraftVersion}");
+            NotifyChanged();
+        }
+    }
+
+    public void OpenSelectedModsFolder()
+    {
+        string dir = ModInstaller.GetModsFolder(SelectedVersionSpec.MinecraftVersion);
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                Process.Start(new ProcessStartInfo("xdg-open", dir) { UseShellExecute = true });
+        }
+        catch { }
     }
 
     public void SetTheme(string themeId) => SetActiveTheme(themeId);

@@ -18,6 +18,7 @@ public sealed class MainWindow : Window
     private LauncherPage _currentPage = LauncherPage.Dashboard;
     private string _moduleSearch = "";
     private string _moduleCategoryFilter = "ALL";
+    private string _modHubCategoryFilter = "ALL";
 
     private readonly Border _rootShell = new();
     private readonly Border _sidebarBorder = new();
@@ -32,7 +33,7 @@ public sealed class MainWindow : Window
     public MainWindow(LauncherStateController state)
     {
         _state = state;
-        Title = "AXSESCLIENT v2.5 • OBSIDIAN AURORA";
+        Title = "AXSESCLIENT v4.0 • APEX ARCHITECT";
         Width = 1220;
         Height = 780;
         MinWidth = 1000;
@@ -126,6 +127,7 @@ public sealed class MainWindow : Window
         {
             LauncherPage.Dashboard => BuildDashboardPage(t, ru),
             LauncherPage.Play => BuildPlayPage(t, ru),
+            LauncherPage.ModsHub => BuildModsHubPage(t, ru),
             LauncherPage.Versions => BuildVersionsPage(t, ru),
             LauncherPage.Accounts => BuildAccountsPage(t, ru),
             LauncherPage.Profiles => BuildProfilesPage(t, ru),
@@ -185,7 +187,7 @@ public sealed class MainWindow : Window
         });
         brandTextStack.Children.Add(new TextBlock
         {
-            Text = "v3.5 • CELESTIAL VISION",
+            Text = "v4.0 • APEX ARCHITECT",
             Foreground = BrushOf(t.AccentCyan),
             FontWeight = FontWeight.SemiBold,
             FontSize = 10.5
@@ -232,7 +234,8 @@ public sealed class MainWindow : Window
         [
             (LauncherPage.Dashboard, "◈", "Главная", "Dashboard"),
             (LauncherPage.Play, "▶", "Запуск и ОЗУ", "Play & RAM"),
-            (LauncherPage.Modules, "✦", "Модули (108)", "Modules (108)"),
+            (LauncherPage.ModsHub, "🚀", "Моды и Baritone", "Mods & Baritone"),
+            (LauncherPage.Modules, "✦", "Модули (112)", "Modules (112)"),
             (LauncherPage.Versions, "❖", "Версии игры", "Versions"),
             (LauncherPage.Accounts, "◉", "Аккаунты", "Accounts"),
             (LauncherPage.Profiles, "▤", "Профили", "Profiles"),
@@ -376,10 +379,10 @@ public sealed class MainWindow : Window
 
         var heroLeft = new StackPanel { Spacing = 10 };
         var chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        chipRow.Children.Add(CreatePillBadge("CELESTIAL VISION v3.5", t.AccentPrimary, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge("APEX ARCHITECT v4.0", t.AccentPrimary, t.BgPrimary));
         chipRow.Children.Add(CreatePillBadge(spec.State.ToDisplayBadge(ru),
             spec.State == VersionInstallState.Installed ? t.Success : t.AccentCyan, t.BgPrimary));
-        chipRow.Children.Add(CreatePillBadge(ru ? "108 Модулей • 14 Тем • FunTime/RW/HW" : "108 Modules • 14 Themes", t.AccentCyan, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge(ru ? "112 Модулей • SnowGrim/Matrix • Spotify • Baritone" : "112 Modules • SnowGrim/Matrix • Baritone", t.AccentCyan, t.BgPrimary));
         heroLeft.Children.Add(chipRow);
 
         heroLeft.Children.Add(new TextBlock
@@ -466,14 +469,20 @@ public sealed class MainWindow : Window
             FontWeight = FontWeight.Bold,
             VerticalAlignment = VerticalAlignment.Center
         });
-        var allModsBtn = CreateGhostButton(ru ? "Открыть все 108 модулей →" : "All 108 Modules →", t);
+        var headerActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var modsHubQuickBtn = CreateGhostButton(ru ? "🚀 Моды FPS и Baritone" : "🚀 FPS Mods & Baritone", t);
+        modsHubQuickBtn.Click += (_, _) => NavigateTo(LauncherPage.ModsHub);
+        headerActions.Children.Add(modsHubQuickBtn);
+
+        var allModsBtn = CreateGhostButton(ru ? "Все 112 модулей →" : "All 112 Modules →", t);
         allModsBtn.Click += (_, _) => NavigateTo(LauncherPage.Modules);
-        Grid.SetColumn(allModsBtn, 1);
-        qHeader.Children.Add(allModsBtn);
+        headerActions.Children.Add(allModsBtn);
+        Grid.SetColumn(headerActions, 1);
+        qHeader.Children.Add(headerActions);
         quickStack.Children.Add(qHeader);
 
         var featuredGrid = new UniformGrid { Columns = 3 };
-        string[] featuredIds = ["kill_aura", "entity_esp", "target_hud", "radar_hud", "totem_counter", "gapple_tracker"];
+        string[] featuredIds = ["kill_aura", "spotify_music_hud", "baritone_bot", "chat_hud_drag", "fps_optimizer", "entity_esp"];
         foreach (string fid in featuredIds)
         {
             var mod = _state.Modules.FirstOrDefault(m => m.Id == fid);
@@ -844,8 +853,8 @@ public sealed class MainWindow : Window
         var searchBox = new TextBox
         {
             Watermark = ru
-                ? "🔎 Поиск по 108 модулям (КиллАура, ESP, Радар 2D, Тотемы, Геплы, Таргет HUD)..."
-                : "🔎 Search 108 modules (e.g. KillAura, Entity ESP, 2D Radar, Totems, Target HUD)..."
+                ? "🔎 Поиск по 112 модулям (КиллАура, SnowGrim, Spotify, Баритон, ESP, FPS)..."
+                : "🔎 Search 112 modules (e.g. KillAura, SnowGrim, Spotify, Baritone, ESP)..."
         };
         if (!string.IsNullOrEmpty(_moduleSearch))
             searchBox.Text = _moduleSearch;
@@ -862,7 +871,7 @@ public sealed class MainWindow : Window
         var catRow = new WrapPanel { Orientation = Orientation.Horizontal };
         (string Key, string Ru, string En)[] cats =
         [
-            ("ALL", "Все (108)", "All (108)"),
+            ("ALL", "Все (112)", "All (112)"),
             ("Combat", "Бой (Combat)", "Combat"),
             ("HUD", "HUD Виджеты", "HUD"),
             ("Render", "Визуал", "Render"),
@@ -1318,13 +1327,219 @@ public sealed class MainWindow : Window
         return stack;
     }
 
+    private Control BuildModsHubPage(LauncherThemePalette t, bool ru)
+    {
+        var spec = _state.SelectedVersionSpec;
+        _state.ModInstaller.RefreshCatalogState(spec.MinecraftVersion, _state.PopularMods);
+
+        var root = new StackPanel { Spacing = 16 };
+
+        // 1. Hero Banner: 1-Click FPS Optimization + Baritone Autopilot Bundle
+        var hero = new Border
+        {
+            Background = AuroraGradient(t, 0.24),
+            BorderBrush = BrushOf(t.AccentCyan, 0.55),
+            BorderThickness = new Thickness(1.2),
+            CornerRadius = new CornerRadius(20),
+            Padding = new Thickness(24, 20)
+        };
+        var heroGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var heroLeft = new StackPanel { Spacing = 8 };
+        var badgeRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        badgeRow.Children.Add(CreatePillBadge(ru ? $"СБОРКА MC {spec.MinecraftVersion}" : $"MC {spec.MinecraftVersion}", t.AccentCyan, t.BgPrimary));
+        badgeRow.Children.Add(CreatePillBadge("MODRINTH + BARITONE SHA-VERIFIED", t.Success, t.BgPrimary));
+        heroLeft.Children.Add(badgeRow);
+
+        heroLeft.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? "Популярные моды оптимизации FPS и ИИ Baritone"
+                : "Popular FPS Optimization Mods & Baritone AI Hub",
+            Foreground = BrushOf(t.TextPrimary),
+            FontSize = 22,
+            FontWeight = FontWeight.Black
+        });
+        heroLeft.Children.Add(new TextBlock
+        {
+            Text = ru
+                ? "Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris Shaders, ModernFix, Dynamic FPS и Baritone (#mine / #goto) — прямая установка проверенных JAR в папку mods/ выбранной версии."
+                : "One-click verified installation of Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris Shaders, ModernFix, Dynamic FPS & Baritone directly into your profile's mods/ directory.",
+            Foreground = BrushOf(t.TextSecondary),
+            FontSize = 12.8,
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 600
+        });
+        heroGrid.Children.Add(heroLeft);
+
+        var heroRight = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        var bundleBtn = CreatePrimaryButton(
+            ru ? "⚡ Установить пакет «Макс. FPS + Baritone»" : "⚡ Install Max FPS + Baritone Pack",
+            t, fontSize: 13.5, padH: 20, padV: 12);
+        bundleBtn.IsEnabled = !_state.IsBusy;
+        bundleBtn.Click += async (_, _) => await _state.InstallOptimizationBundleAsync();
+        heroRight.Children.Add(bundleBtn);
+
+        var openFolderBtn = CreateGhostButton(ru ? "📂 Открыть папку mods/" : "📂 Open mods/ Folder", t);
+        openFolderBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+        openFolderBtn.HorizontalContentAlignment = HorizontalAlignment.Center;
+        openFolderBtn.Click += (_, _) => _state.OpenSelectedModsFolder();
+        heroRight.Children.Add(openFolderBtn);
+
+        Grid.SetColumn(heroRight, 1);
+        heroGrid.Children.Add(heroRight);
+        hero.Child = heroGrid;
+        root.Children.Add(hero);
+
+        // 2. Version & Category Filter Bar
+        var filterCard = CreateSurfaceCard(t);
+        filterCard.Padding = new Thickness(16, 12);
+        var filterRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var catWrap = new WrapPanel { Orientation = Orientation.Horizontal };
+        (string Key, string Ru, string En)[] modCats =
+        [
+            ("ALL", $"Все моды ({_state.PopularMods.Count})", $"All Mods ({_state.PopularMods.Count})"),
+            ("FPS", "🚀 Оптимизация FPS", "🚀 FPS Boosters"),
+            ("AI", "🤖 Baritone и ИИ", "🤖 Baritone AI"),
+            ("Graphics", "✨ Шейдеры Iris", "✨ Shaders"),
+            ("QoL", "⚙ Удобство (QoL)", "⚙ Quality of Life")
+        ];
+        foreach (var mc in modCats)
+        {
+            bool active = _modHubCategoryFilter == mc.Key;
+            var cBtn = new Button
+            {
+                Content = ru ? mc.Ru : mc.En,
+                Background = active ? AuroraGradient(t, 0.88) : BrushOf(t.BgPrimary),
+                Foreground = BrushOf(active ? "#FFFFFF" : t.TextSecondary),
+                BorderBrush = BrushOf(active ? t.AccentCyan : "#28FFFFFF"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(13, 6.5),
+                Margin = new Thickness(0, 0, 8, 0),
+                FontSize = 12,
+                FontWeight = FontWeight.Bold,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            string key = mc.Key;
+            cBtn.Click += (_, _) =>
+            {
+                _modHubCategoryFilter = key;
+                RebuildDynamicRegions();
+            };
+            catWrap.Children.Add(cBtn);
+        }
+        filterRow.Children.Add(catWrap);
+
+        int installedTotal = _state.PopularMods.Count(m => m.IsInstalled);
+        var statBadge = CreatePillBadge(
+            ru ? $"Установлено: {installedTotal} / {_state.PopularMods.Count}" : $"Installed: {installedTotal} / {_state.PopularMods.Count}",
+            installedTotal > 0 ? t.Success : t.AccentPrimary,
+            t.BgPrimary);
+        Grid.SetColumn(statBadge, 1);
+        filterRow.Children.Add(statBadge);
+        filterCard.Child = filterRow;
+        root.Children.Add(filterCard);
+
+        // 3. Two-Column Rich Mod Cards Grid
+        var modsGrid = new UniformGrid { Columns = 2 };
+        var filteredMods = _state.PopularMods
+            .Where(m => _modHubCategoryFilter == "ALL" || string.Equals(m.Category, _modHubCategoryFilter, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var mod in filteredMods)
+        {
+            bool isBaritone = mod.Id == "baritone";
+            var card = new Border
+            {
+                Background = BrushOf(t.BgSecondary, 0.96),
+                BorderBrush = BrushOf(mod.IsInstalled ? t.Success : (isBaritone ? t.AccentCyan : "#24FFFFFF"), mod.IsInstalled || isBaritone ? 0.68 : 1.0),
+                BorderThickness = new Thickness(1.1),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(16, 14),
+                Margin = new Thickness(0, 0, 12, 12)
+            };
+
+            var stack = new StackPanel { Spacing = 8 };
+            var topRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+            var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+            titleRow.Children.Add(new TextBlock
+            {
+                Text = isBaritone ? $"🤖 {mod.Name}" : $"⚡ {mod.Name}",
+                Foreground = BrushOf(t.TextPrimary),
+                FontSize = 15,
+                FontWeight = FontWeight.ExtraBold
+            });
+            topRow.Children.Add(titleRow);
+
+            var boostPill = CreatePillBadge(
+                ru ? mod.BoostBadgeRu : mod.BoostBadgeEn,
+                isBaritone ? t.AccentCyan : t.Success,
+                t.BgPrimary);
+            Grid.SetColumn(boostPill, 1);
+            topRow.Children.Add(boostPill);
+            stack.Children.Add(topRow);
+
+            stack.Children.Add(new TextBlock
+            {
+                Text = ru ? mod.DescriptionRu : mod.DescriptionEn,
+                Foreground = BrushOf(t.TextSecondary),
+                FontSize = 12,
+                LineHeight = 17.5,
+                TextWrapping = TextWrapping.Wrap,
+                MinHeight = 36
+            });
+
+            var actionRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 4, 0, 0) };
+            actionRow.Children.Add(new TextBlock
+            {
+                Text = mod.IsInstalled
+                    ? (mod.IsEnabled
+                        ? (ru ? $"✓ Активен ({mod.InstalledFileName})" : $"✓ Enabled ({mod.InstalledFileName})")
+                        : (ru ? "⏸ Выключен (.disabled)" : "⏸ Disabled"))
+                    : (ru ? $"Совместимо с Fabric {spec.MinecraftVersion}" : $"Compatible with Fabric {spec.MinecraftVersion}"),
+                Foreground = BrushOf(mod.IsInstalled ? (mod.IsEnabled ? t.Success : t.Warning) : t.TextSecondary),
+                FontSize = 11.2,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var btnGroup = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            var captured = mod;
+            if (!mod.IsInstalled)
+            {
+                var installBtn = CreatePrimaryButton(ru ? "⬇ Установить" : "⬇ Install", t, fontSize: 11.8, padH: 14, padV: 6.5);
+                installBtn.IsEnabled = !_state.IsBusy;
+                installBtn.Click += async (_, _) => await _state.InstallPopularModAsync(captured);
+                btnGroup.Children.Add(installBtn);
+            }
+            else
+            {
+                var toggleBtn = CreateGhostButton(mod.IsEnabled ? (ru ? "Выключить" : "Disable") : (ru ? "Включить" : "Enable"), t);
+                toggleBtn.Click += (_, _) => _state.TogglePopularMod(captured);
+                btnGroup.Children.Add(toggleBtn);
+
+                var delBtn = CreateGhostButton("✕", t);
+                delBtn.Click += (_, _) => _state.UninstallPopularMod(captured);
+                btnGroup.Children.Add(delBtn);
+            }
+            Grid.SetColumn(btnGroup, 1);
+            actionRow.Children.Add(btnGroup);
+            stack.Children.Add(actionRow);
+
+            card.Child = stack;
+            modsGrid.Children.Add(card);
+        }
+
+        root.Children.Add(modsGrid);
+        return root;
+    }
+
     private Control BuildAboutPage(LauncherThemePalette t, bool ru)
     {
         var card = CreateSurfaceCard(t);
         var s = new StackPanel { Spacing = 10 };
         s.Children.Add(new TextBlock
         {
-            Text = "AXSESCLIENT v3.5.0 • CELESTIAL VISION",
+            Text = "AXSESCLIENT v4.0.0 • APEX ARCHITECT",
             Foreground = BrushOf(t.TextPrimary),
             FontSize = 22,
             FontWeight = FontWeight.Black
@@ -1332,14 +1547,14 @@ public sealed class MainWindow : Window
         s.Children.Add(new TextBlock
         {
             Text = ru
-                ? "Нативный лаунчер и игровой клиент нового поколения для Windows 10/11 x64.\n" +
+                ? "Нативный лаунчер, менеджер оптимизирующих модов и игровой клиент нового поколения для Windows 10/11 x64.\n" +
                   "• Поддержка Minecraft 1.16.5, 1.21.4 и 1.21.11 (отдельные оптимизированные Fabric-моды)\n" +
-                  "• 108 рабочих функций и 14 тем: скруглённое ClickGUI на Правый Shift, беспаливная КиллАура (FunTime / ReallyWorld / HolyWorld + 3D Сферы душ), ESP Неон-капсула, Мини-Радар 2D, Счётчик тотемов, Геплы и перлы, Индикатор урона 3D и Таргет HUD\n" +
-                  "• Мгновенное переключение модулей без фризов, 3D-маяки меток и полный Русский язык\n" +
-                  "• Честное выделение ОЗУ (-Xmx) на базе физической памяти ПК + Автоматическая установка Java 8 и Java 21"
-                : "Next-generation native Windows x64 Launcher & Fabric Client for Minecraft 1.16.5, 1.21.4 & 1.21.11.\n" +
-                  "• 108 real modules & 14 themes: smoothly side-curved Right-Shift ClickGUI, stealth KillAura (FunTime / ReallyWorld / HolyWorld + 3D Soul Orbs), Vision Capsule ESP, 2D PvP Radar, Totem Counter, Gapple Tracker, 3D Damage Indicators & Target HUD\n" +
-                  "• Zero-lag async module toggles, 3D waypoint beacons & full Russian / English language settings\n" +
+                  "• 112 рабочих функций и 14 тем: КиллАура v4 (обходы SnowGrim, Grim, Matrix, Vulcan, Intave, Polar + FunTime/RW/HW), перемещение любых HUD-виджетов прямо в Чате (T), живой плеер Spotify с авто-стопом музыки Minecraft и кнопками Продолжить / Пауза / Стоп\n" +
+                  "• Встроенный Хаб популярных модов (Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris, ModernFix, Dynamic FPS) + ИИ-автопилот Baritone (#mine / #goto + 3D маршрут)\n" +
+                  "• Честное выделение ОЗУ (-Xmx) + Автоматическая установка Java 8 и Java 21"
+                : "Next-generation native Windows x64 Launcher, Optimization Mod Hub & Fabric Client for Minecraft 1.16.5, 1.21.4 & 1.21.11.\n" +
+                  "• 112 real modules & 14 themes: KillAura v4 (SnowGrim, Grim, Matrix, Vulcan, Intave, Polar + FunTime/RW/HW), live HUD dragging inside Chat (T), Spotify player with auto-mute MC music & upgraded Continue/Pause/Stop buttons\n" +
+                  "• Built-in Optimization Mod Hub (Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris, ModernFix, Dynamic FPS) + Baritone AI Autopilot (#mine / #goto + 3D neon route)\n" +
                   "• Hardware-calibrated JVM RAM allocation (-Xmx) & zero-touch Java 8 / Java 21 auto-installer",
             Foreground = BrushOf(t.TextSecondary),
             FontSize = 13,
@@ -1354,7 +1569,8 @@ public sealed class MainWindow : Window
     {
         LauncherPage.Dashboard => ru ? "Панель управления" : "Dashboard",
         LauncherPage.Play => ru ? "Параметры запуска и ОЗУ" : "Launch & Memory",
-        LauncherPage.Modules => ru ? "Модули клиента (108)" : "Client Modules (108)",
+        LauncherPage.ModsHub => ru ? "Популярные моды FPS и Baritone" : "FPS Mods & Baritone Hub",
+        LauncherPage.Modules => ru ? "Модули клиента (112)" : "Client Modules (112)",
         LauncherPage.Versions => ru ? "Версии Minecraft" : "Minecraft Versions",
         LauncherPage.Accounts => ru ? "Аккаунты игроков" : "Accounts",
         LauncherPage.Profiles => ru ? "Профили сборок" : "Launch Profiles",

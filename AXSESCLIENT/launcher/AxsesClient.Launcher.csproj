@@ -6,10 +6,10 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AXSESCLIENT</AssemblyName>
     <RootNamespace>AxsesClient.Launcher</RootNamespace>
-    <Version>3.5.0</Version>
+    <Version>4.0.0</Version>
     <Product>AXSESCLIENT</Product>
     <Company>AXSESCLIENT Engineering</Company>
-    <Description>AXSESCLIENT v3.5 (CELESTIAL VISION) — Modern Minecraft 1.16.5 / 1.21.4 / 1.21.11 Client &amp; Launcher</Description>
+    <Description>AXSESCLIENT v4.0 (APEX ARCHITECT) — Modern Minecraft 1.16.5 / 1.21.4 / 1.21.11 Client, Mod Hub &amp; Launcher</Description>
     <ApplicationIcon>..\assets\branding\axsesclient.ico</ApplicationIcon>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>

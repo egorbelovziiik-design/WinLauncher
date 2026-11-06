@@ -82,7 +82,7 @@ public final class AxsesMainMenuController {
         }
 
         // 5. Top Status & Quick Switcher Stadium Pills
-        String engineTag = isRu ? "⚡ VISION v3.5 · 108 МОДУЛЕЙ · 14 ТЕМ" : "⚡ VISION v3.5 · 108 MODULES · 14 THEMES";
+        String engineTag = isRu ? "⚡ APEX v4.0 · 112 МОДУЛЕЙ · SNOWGRIM · SPOTIFY · BARITONE" : "⚡ APEX v4.0 · 112 MODULES · SNOWGRIM · SPOTIFY · BARITONE";
         float ew = core.getFontManager().width(r, engineTag, 0.88f) + 18.0f;
         r.fillRoundedRect(10f, 10f, ew, 20f, 10.0f, 0xDC080B18);
         r.drawRoundedOutline(10f, 10f, ew, 20f, 10.0f, 1.0f, AxsesTheme.withAlpha(prim, 0.72f));
@@ -133,8 +133,8 @@ public final class AxsesMainMenuController {
         r.drawRoundedOutline(crestX, crestY, 46f, 46f, 14f, 1.2f, acc);
         core.getFontManager().drawCentered(r, "AX", crestX + 23f, crestY + 18f, 0xFFFFFFFF, 1.25f);
 
-        core.getFontManager().drawCentered(r, "AXSESCLIENT 3.5", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
-        core.getFontManager().drawCentered(r, "CELESTIAL VISION", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
+        core.getFontManager().drawCentered(r, "AXSESCLIENT 4.0", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
+        core.getFontManager().drawCentered(r, "APEX ARCHITECT", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
 
         String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21.11";
         String user = mc != null ? mc.getPlayerName() : "Player";
@@ -143,13 +143,13 @@ public final class AxsesMainMenuController {
         r.drawRoundedOutline(leftX + 10f, cardY, leftW - 20f, 48f, 10.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.50f));
         core.getFontManager().drawCentered(r, user, leftX + leftW * 0.5f, cardY + 8f, 0xFFFFFFFF, 0.94f);
         core.getFontManager().drawCentered(r, "MC " + mcVer + " · Fabric 0.20.1", leftX + leftW * 0.5f, cardY + 22f, t.getMutedColor(), 0.82f);
-        core.getFontManager().drawCentered(r, isRu ? "FunTime · RW · HolyWorld" : "FunTime · RW · HolyWorld",
+        core.getFontManager().drawCentered(r, isRu ? "SnowGrim · Matrix · Baritone" : "SnowGrim · Matrix · Baritone",
                 leftX + leftW * 0.5f, cardY + 34f, t.getSuccessColor(), 0.80f);
 
-        String hint = isRu ? "Правый Shift — меню ClickGUI" : "Right Shift — Open ClickGUI";
-        core.getFontManager().drawCentered(r, hint, leftX + leftW * 0.5f, panelY + panelH - 28f, t.getMutedColor(), 0.80f);
+        String hint = isRu ? "Правый Shift — меню · Чат: двигать HUD" : "Right Shift — GUI · Chat: Drag HUD";
+        core.getFontManager().drawCentered(r, hint, leftX + leftW * 0.5f, panelY + panelH - 28f, t.getMutedColor(), 0.78f);
 
-        // Right Column: 6 Sculpted Action Buttons
+        // Right Column: 6 Sculpted 35-Year Tactile Action Buttons
         String[] labels = {
                 core.getLocalizationManager().tr("menu.singleplayer"),
                 core.getLocalizationManager().tr("menu.multiplayer"),
@@ -169,28 +169,30 @@ public final class AxsesMainMenuController {
             boolean hov = !showAccountsModal && isInside(mouseX, mouseY, btnX, by, btnW, btnH);
             float hovAnim = core.getAnimationManager().smoothHover("menu:" + BUTTON_IDS[i], hov);
             boolean primary = (i == 0 || i == 1 || i == 3);
-            float inset = hovAnim * -2.0f;
+            float inset = hovAnim * -2.2f;
             float dx = btnX + inset;
             float dw = btnW - inset * 2.0f;
             float btnRad = 13.0f;
 
             if (primary) {
-                int cL = AxsesTheme.withAlpha(prim, 0.82f + 0.18f * hovAnim);
-                int cR = AxsesTheme.withAlpha(i == 3 ? acc : RenderManager.blendArgb(prim, acc, 0.58f), 0.82f + 0.18f * hovAnim);
+                int cL = AxsesTheme.withAlpha(prim, 0.84f + 0.16f * hovAnim);
+                int cR = AxsesTheme.withAlpha(i == 3 ? acc : RenderManager.blendArgb(prim, acc, 0.58f), 0.84f + 0.16f * hovAnim);
                 RenderManager.fillRoundedHorizontalGradient(r, dx, by, dw, btnH, btnRad, cL, cR);
+                r.fillRect(dx + btnRad, by + 1.0f, dw - btnRad * 2.0f, 1.0f, hov ? 0x48FFFFFF : 0x26FFFFFF);
                 r.drawRoundedOutline(dx, by, dw, btnH, btnRad, 1.0f, hov ? 0xFFFFFFFF : acc);
             } else {
-                int bg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.92f + 0.08f * hovAnim);
+                int bg = AxsesTheme.withAlpha(t.getSurfaceColor(), 0.94f + 0.06f * hovAnim);
                 r.fillRoundedRect(dx, by, dw, btnH, btnRad, bg);
+                r.fillRect(dx + btnRad, by + 1.0f, dw - btnRad * 2.0f, 1.0f, hov ? 0x34FFFFFF : 0x16FFFFFF);
                 r.drawRoundedOutline(dx, by, dw, btnH, btnRad, 1.0f,
-                        hov ? acc : AxsesTheme.withAlpha(prim, 0.38f));
+                        hov ? acc : AxsesTheme.withAlpha(prim, 0.42f));
             }
             core.getFontManager().drawCentered(r, BUTTON_ICONS[i] + labels[i], dx + dw * 0.5f, by + 10.5f, 0xFFFFFFFF, 0.96f);
         }
 
         // Footer version & memory strip
         long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
-        core.getFontManager().draw(r, "AXSESCLIENT v3.5.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
+        core.getFontManager().draw(r, "AXSESCLIENT v4.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
         String rightTag = user + " · " + t.getName();
         float rw = core.getFontManager().width(r, rightTag, 0.88f);
         core.getFontManager().draw(r, rightTag, sw - rw - 10f, sh - 14f, acc, 0.88f);

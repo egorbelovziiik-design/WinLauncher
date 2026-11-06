@@ -37,19 +37,32 @@ public final class CombatTrainingModulesRegistry {
             final NotificationManager notifications,
             final LocalizationManager i18n
     ) {
-        // NEW FLAGSHIP 01: KillAura (КиллАура) — Stealth Humanized PvP & Server Profiles
-        Module killAura = mm.register(new Module("kill_aura", "KillAura", "Stealth humanized 1.9+ combat aura with FunTime/ReallyWorld/HolyWorld profiles, GCD rotations & smart crits", ModuleCategory.COMBAT_TRAINING, false, KeyCodes.KEY_R, false) {
+        // NEW FLAGSHIP 01: KillAura v4.0 (КиллАура) — 35-Year Kinematic Anti-Cheat Profiles (SnowGrim / Grim / Matrix / Vulcan / Intave / Polar / FunTime)
+        Module killAura = mm.register(new Module("kill_aura", "KillAura", "35-year kinematic 1.9+ combat aura with Matrix, Grim, SnowGrim, Vulcan, Intave, Polar & FunTime/RW/HW profiles", ModuleCategory.COMBAT_TRAINING, false, KeyCodes.KEY_R, false) {
             private final ModeSetting serverProfile = addSetting(new ModeSetting(
-                    "server_profile", "Server Profile", "Pre-tuned stealth combat kinematics for popular servers",
-                    "Universal", "Universal", "FunTime", "ReallyWorld", "HolyWorld", "SpookyTime", "Legit Ghost"
+                    "server_profile", "AC / Server Profile", "Pre-tuned kinematic & raycast profiles for popular anti-cheats and servers",
+                    "Universal",
+                    "Universal", "SnowGrim", "Grim", "Matrix",
+                    "FunTime", "ReallyWorld", "HolyWorld",
+                    "Vulcan", "Intave", "Polar", "SpookyTime", "Legit Ghost"
             ));
             private final NumberSetting range = addSetting(new NumberSetting("range", "Range", "Attack reach radius in blocks", 4.2, 2.5, 6.0, 0.05));
             private final NumberSetting fov = addSetting(new NumberSetting("fov", "FOV Cone", "Maximum target angle around crosshair", 360.0, 30.0, 360.0, 5.0));
             private final ModeSetting attackMode = addSetting(new ModeSetting("attack_mode", "Timing Mode", "Weapon recharge vs humanized smart timing", "1.9+ Smart", "1.9+ Smart", "1.9+ Cooldown", "CPS Timer"));
             private final NumberSetting cps = addSetting(new NumberSetting("cps", "CPS Speed", "Clicks per second in CPS Timer mode", 11.0, 4.0, 18.0, 1.0));
             private final ModeSetting priority = addSetting(new ModeSetting("priority", "Priority", "Target selection priority", "Distance", "Distance", "Lowest HP", "Angle", "Least Armor"));
-            private final ModeSetting rotations = addSetting(new ModeSetting("rotations", "Rotations", "Camera aim interpolation curve", "Smooth S-Curve", "Smooth S-Curve", "FunTime Human", "Multipoint Clamp", "Snap", "Off"));
+            private final ModeSetting rotations = addSetting(new ModeSetting(
+                    "rotations", "Rotations", "Kinematic camera aim interpolation curve",
+                    "Smooth S-Curve",
+                    "Smooth S-Curve", "SnowGrim Coupled", "Matrix Damped", "Grim Quantized", "Polar Min-Jerk", "FunTime Human", "Multipoint Clamp", "Snap", "Off"
+            ));
+            private final ModeSetting moveFix = addSetting(new ModeSetting(
+                    "move_fix", "Movement Fix", "Align yaw rotation phase with player movement vectors for Grim / SnowGrim",
+                    "Silent Strafe", "Silent Strafe", "Strict Grim 45", "Off"
+            ));
             private final NumberSetting turnSpeed = addSetting(new NumberSetting("turn_speed", "Turn Speed", "Maximum smooth camera degrees per second", 220.0, 60.0, 420.0, 10.0));
+            private final NumberSetting switchDelay = addSetting(new NumberSetting("switch_delay", "Switch Delay (ms)", "Humanized acquisition pause when switching between targets", 90.0, 0.0, 400.0, 10.0));
+            private final NumberSetting hitboxMargin = addSetting(new NumberSetting("hitbox_margin", "Hitbox Margin", "Inset safety margin inside target bounding box for strict ray checks", 0.08, 0.02, 0.24, 0.02));
             private final ModeSetting aimPoint = addSetting(new ModeSetting("aim_point", "Aim Point", "Hitbox zone to track on target", "Nearest Hitbox", "Nearest Hitbox", "Chest", "Eyes", "Dynamic"));
             private final ModeSetting critMode = addSetting(new ModeSetting("crit_mode", "Criticals", "Wait for falling apex to land 1.5x critical hits", "Smart Fall", "Smart Fall", "Always Swing", "Only Crits"));
             private final BooleanSetting sprintReset = addSetting(new BooleanSetting("sprint_reset", "W-Tap Sprint Reset", "Reset sprint before falling hits so 1.9+ criticals register cleanly", true));
@@ -73,21 +86,37 @@ public final class CombatTrainingModulesRegistry {
             private float nextCooldownThreshold = 0.91f;
             private boolean restoreSprintNextTick = false;
             private TargetEntityInfo lockedNow = null;
+            private int lastTargetId = -1;
+            private long targetSwitchedAtMs = 0L;
+            private float prevVelYaw = 0.0f;
+            private float prevVelPitch = 0.0f;
 
             @Override
             public void onDisable(MinecraftAdapter mc) {
                 lockedNow = null;
                 restoreSprintNextTick = false;
+                lastTargetId = -1;
+                prevVelYaw = 0.0f;
+                prevVelPitch = 0.0f;
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                String prof = serverProfile.getValue();
+                return "KillAura [" + prof + "]";
             }
 
             private double effectiveRange() {
                 String prof = serverProfile.getValue();
                 double r = range.getDouble();
+                if ("Grim".equalsIgnoreCase(prof) || "SnowGrim".equalsIgnoreCase(prof)) return Math.min(r, 3.00);
+                if ("Intave".equalsIgnoreCase(prof) || "Polar".equalsIgnoreCase(prof)) return Math.min(r, 3.04);
+                if ("HolyWorld".equalsIgnoreCase(prof) || "Legit Ghost".equalsIgnoreCase(prof)) return Math.min(r, 3.05);
+                if ("Matrix".equalsIgnoreCase(prof)) return Math.min(r, 3.12);
                 if ("FunTime".equalsIgnoreCase(prof)) return Math.min(r, 3.15);
-                if ("HolyWorld".equalsIgnoreCase(prof)) return Math.min(r, 3.05);
+                if ("Vulcan".equalsIgnoreCase(prof)) return Math.min(r, 3.24);
                 if ("ReallyWorld".equalsIgnoreCase(prof)) return Math.min(r, 3.30);
                 if ("SpookyTime".equalsIgnoreCase(prof)) return Math.min(r, 3.35);
-                if ("Legit Ghost".equalsIgnoreCase(prof)) return Math.min(r, 3.05);
                 return r;
             }
 
@@ -95,15 +124,24 @@ public final class CombatTrainingModulesRegistry {
                 String prof = serverProfile.getValue();
                 double f = fov.getDouble();
                 if ("Legit Ghost".equalsIgnoreCase(prof)) return Math.min(f, 115.0);
-                if ("FunTime".equalsIgnoreCase(prof) && f >= 355.0) return 190.0;
+                if ("Polar".equalsIgnoreCase(prof) && f >= 355.0) return 155.0;
+                if ("Intave".equalsIgnoreCase(prof) && f >= 355.0) return 165.0;
+                if ("SnowGrim".equalsIgnoreCase(prof) && f >= 355.0) return 175.0;
                 if ("HolyWorld".equalsIgnoreCase(prof) && f >= 355.0) return 170.0;
+                if ("Matrix".equalsIgnoreCase(prof) && f >= 355.0) return 185.0;
+                if ("FunTime".equalsIgnoreCase(prof) && f >= 355.0) return 190.0;
                 return f;
             }
 
             private boolean effectiveStrictRay() {
                 if (strictRaycast.isEnabled()) return true;
                 String prof = serverProfile.getValue();
-                return "FunTime".equalsIgnoreCase(prof)
+                return "Grim".equalsIgnoreCase(prof)
+                        || "SnowGrim".equalsIgnoreCase(prof)
+                        || "Matrix".equalsIgnoreCase(prof)
+                        || "Intave".equalsIgnoreCase(prof)
+                        || "Polar".equalsIgnoreCase(prof)
+                        || "FunTime".equalsIgnoreCase(prof)
                         || "HolyWorld".equalsIgnoreCase(prof)
                         || "Legit Ghost".equalsIgnoreCase(prof);
             }
@@ -115,7 +153,9 @@ public final class CombatTrainingModulesRegistry {
                 }
                 String prof = serverProfile.getValue();
                 String aimZone = aimPoint.getValue();
-                if ("FunTime".equalsIgnoreCase(prof) || "HolyWorld".equalsIgnoreCase(prof)) {
+                if ("Grim".equalsIgnoreCase(prof) || "SnowGrim".equalsIgnoreCase(prof)
+                        || "FunTime".equalsIgnoreCase(prof) || "HolyWorld".equalsIgnoreCase(prof)
+                        || "Intave".equalsIgnoreCase(prof) || "Polar".equalsIgnoreCase(prof)) {
                     aimZone = "Nearest Hitbox";
                 }
                 boolean useJitter = humanJitter.isEnabled() || !"Universal".equalsIgnoreCase(prof);
@@ -126,20 +166,64 @@ public final class CombatTrainingModulesRegistry {
                 float dyaw = wrapDegrees(desired[0] - curYaw);
                 float dpitch = desired[1] - curPitch;
 
+                if (!"Snap".equalsIgnoreCase(rotMode) && !"Universal".equalsIgnoreCase(prof)) {
+                    // Coupled Yaw-Pitch Lissajous wrist micro-coupling (prevents robotic deltaPitch == 0.0 on SnowGrim / Matrix / Polar)
+                    double tSec = (System.currentTimeMillis() % 12000L) / 1000.0;
+                    float coupledPitch = (float) (Math.sin(tSec * 6.7 + target.getEntityId()) * 0.16 + dyaw * 0.032);
+                    dpitch += coupledPitch;
+                }
+
                 if (!"Snap".equalsIgnoreCase(rotMode)) {
                     float baseDegPerSec = turnSpeed.getFloat();
-                    if ("Legit Ghost".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 150.0f);
-                    else if ("FunTime".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 215.0f);
+                    if ("Legit Ghost".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 148.0f);
+                    else if ("Polar".equalsIgnoreCase(prof) || "Intave".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 162.0f);
+                    else if ("Matrix".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 176.0f);
+                    else if ("SnowGrim".equalsIgnoreCase(prof) || "Grim".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 188.0f);
                     else if ("HolyWorld".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 195.0f);
+                    else if ("Vulcan".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 205.0f);
+                    else if ("FunTime".equalsIgnoreCase(prof)) baseDegPerSec = Math.min(baseDegPerSec, 215.0f);
 
+                    float dtClamped = Math.max(0.004f, Math.min(0.06f, dtSeconds));
                     float distDeg = (float) Math.hypot(dyaw, dpitch);
-                    // S-curve speed factor: accelerates smoothly on medium error, decelerates softly near center
-                    float sCurve = Math.max(0.22f, Math.min(1.18f, distDeg / 28.0f));
-                    float maxStep = Math.max(1.2f, baseDegPerSec * sCurve * Math.max(0.004f, Math.min(0.06f, dtSeconds)));
+
+                    // Minimum-jerk / S-curve velocity envelope
+                    float normErr = Math.max(0.0f, Math.min(1.0f, distDeg / 34.0f));
+                    float minJerk = normErr * normErr * (3.0f - 2.0f * normErr);
+                    float speedScale = ("Polar".equalsIgnoreCase(prof) || "Polar Min-Jerk".equalsIgnoreCase(rotMode))
+                            ? (0.20f + 0.98f * minJerk)
+                            : Math.max(0.22f, Math.min(1.16f, distDeg / 28.0f));
+
+                    float maxStep = Math.max(1.1f, baseDegPerSec * speedScale * dtClamped);
                     if (distDeg > maxStep && distDeg > 0.001f) {
                         float scale = maxStep / distDeg;
                         dyaw *= scale;
                         dpitch *= scale;
+                    }
+
+                    // Second-order wrist damping for Matrix / SnowGrim / Intave / Polar so angular acceleration never spikes
+                    if ("Matrix".equalsIgnoreCase(prof) || "SnowGrim".equalsIgnoreCase(prof)
+                            || "Intave".equalsIgnoreCase(prof) || "Polar".equalsIgnoreCase(prof)
+                            || "Matrix Damped".equalsIgnoreCase(rotMode) || "SnowGrim Coupled".equalsIgnoreCase(rotMode)) {
+                        float damp = 0.68f;
+                        dyaw = prevVelYaw * (1.0f - damp) + dyaw * damp;
+                        dpitch = prevVelPitch * (1.0f - damp) + dpitch * damp;
+                        prevVelYaw = dyaw;
+                        prevVelPitch = dpitch;
+                    }
+                }
+
+                // Movement-aligned phase damping for Grim / SnowGrim 45-degree strafe simulation
+                String mf = moveFix.getValue();
+                if ("Strict Grim 45".equalsIgnoreCase(mf) || ("Silent Strafe".equalsIgnoreCase(mf)
+                        && ("Grim".equalsIgnoreCase(prof) || "SnowGrim".equalsIgnoreCase(prof)))) {
+                    double vx = mc.getPlayerX() - mc.getPrevPlayerX();
+                    double vz = mc.getPlayerZ() - mc.getPrevPlayerZ();
+                    if (vx * vx + vz * vz > 0.0004) {
+                        float moveYaw = (float) (Math.toDegrees(Math.atan2(vz, vx)) - 90.0);
+                        float sectorDiff = wrapDegrees((curYaw + dyaw) - moveYaw);
+                        float nearest45 = Math.round(sectorDiff / 45.0f) * 45.0f;
+                        float nudge = wrapDegrees(nearest45 - sectorDiff) * 0.08f;
+                        dyaw += nudge;
                     }
                 }
 
@@ -209,11 +293,28 @@ public final class CombatTrainingModulesRegistry {
                 lockedNow = best;
                 state.lockTarget(best);
 
+                long nowMs = System.currentTimeMillis();
+                if (lastTargetId != -1 && lastTargetId != best.getEntityId()) {
+                    targetSwitchedAtMs = nowMs;
+                }
+                lastTargetId = best.getEntityId();
+
                 // Tick-level rotation fallback (render-level smooth interpolation also runs at full FPS)
                 stepAimTowards(mc, best, 0.05f);
 
-                // Strict ray-AABB hitbox verification for Grim / FunTime / HolyWorld / Legit modes
-                if (effectiveStrictRay() && !doesLookIntersectBox(mc, best, effRange + 0.15, 0.14)) {
+                // Humanized target-switch acquisition guard (Polar / Matrix / Intave / SnowGrim)
+                long swDelay = Math.round(switchDelay.getDouble());
+                if (swDelay > 0L && (nowMs - targetSwitchedAtMs) < swDelay) {
+                    return;
+                }
+
+                // Strict ray-AABB hitbox verification for Grim / SnowGrim / Matrix / Polar / FunTime / HolyWorld
+                String prof = serverProfile.getValue();
+                double boxExpand = ("Grim".equalsIgnoreCase(prof) || "SnowGrim".equalsIgnoreCase(prof)
+                        || "Polar".equalsIgnoreCase(prof) || "Intave".equalsIgnoreCase(prof))
+                        ? Math.max(0.0, 0.10 - hitboxMargin.getDouble())
+                        : 0.14;
+                if (effectiveStrictRay() && !doesLookIntersectBox(mc, best, effRange + 0.12, boxExpand)) {
                     return;
                 }
 

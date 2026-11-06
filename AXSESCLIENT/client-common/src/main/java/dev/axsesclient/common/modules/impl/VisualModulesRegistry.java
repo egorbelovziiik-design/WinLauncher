@@ -1025,7 +1025,7 @@ public final class VisualModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                return "AXSES v3.5";
+                return "AXSES v4.0";
             }
         });
         watermarkMod.setFavorite(true);
@@ -1068,7 +1068,7 @@ public final class VisualModulesRegistry {
                             }
                         }
 
-                        String brand = "AXSES 3.5";
+                        String brand = "AXSES 4.0";
                         String tail = seg.toString();
                         float brandW = fontManager.width(r, brand, 1.0f);
                         float tailW = fontManager.width(r, tail, 0.94f);

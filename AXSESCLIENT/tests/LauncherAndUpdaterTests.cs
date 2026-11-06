@@ -212,8 +212,35 @@ public sealed class LauncherAndUpdaterTests
             Assert.True(mem.AvailablePhysicalMb > 0);
 
             var controller = new LauncherStateController(temp);
-            Assert.Equal(108, controller.Modules.Count);
+            Assert.Equal(112, controller.Modules.Count);
             Assert.Equal(14, controller.Themes.Count);
+            Assert.Equal(12, controller.PopularMods.Count);
+            Assert.Contains(controller.PopularMods, m => m.Id == "baritone");
+            Assert.Contains(controller.PopularMods, m => m.Id == "sodium");
+            Assert.Contains(controller.PopularMods, m => m.Id == "lithium");
+            Assert.Contains(controller.PopularMods, m => m.Id == "ferritecore");
+            Assert.Contains(controller.Modules, m => m.Id == "spotify_music_hud");
+            Assert.Contains(controller.Modules, m => m.Id == "baritone_bot");
+            Assert.Contains(controller.Modules, m => m.Id == "fps_optimizer");
+            Assert.Contains(controller.Modules, m => m.Id == "chat_hud_drag");
+
+            // Verify FabricModInstallerService detects, toggles (.jar <-> .jar.disabled) and uninstalls mods cleanly
+            string modsDir = controller.ModInstaller.GetModsFolder("1.21.11");
+            File.WriteAllBytes(Path.Combine(modsDir, "sodium-fabric-0.6.5+mc1.21.11.jar"), [0x50, 0x4B, 0x03, 0x04]);
+            File.WriteAllBytes(Path.Combine(modsDir, "baritone-api-fabric-1.11.1.jar"), [0x50, 0x4B, 0x03, 0x04]);
+            controller.ModInstaller.RefreshCatalogState("1.21.11", controller.PopularMods);
+            var sodiumSpec = controller.PopularMods.First(m => m.Id == "sodium");
+            var baritoneSpec = controller.PopularMods.First(m => m.Id == "baritone");
+            Assert.True(sodiumSpec.IsInstalled && sodiumSpec.IsEnabled);
+            Assert.True(baritoneSpec.IsInstalled && baritoneSpec.IsEnabled);
+            controller.TogglePopularMod(sodiumSpec);
+            Assert.True(sodiumSpec.IsInstalled && !sodiumSpec.IsEnabled);
+            controller.TogglePopularMod(sodiumSpec);
+            Assert.True(sodiumSpec.IsInstalled && sodiumSpec.IsEnabled);
+            controller.UninstallPopularMod(sodiumSpec);
+            Assert.False(sodiumSpec.IsInstalled);
+            controller.UninstallPopularMod(baritoneSpec);
+            Assert.False(baritoneSpec.IsInstalled);
             Assert.Contains(controller.Modules, m => m.Id == "radar_hud");
             Assert.Contains(controller.Modules, m => m.Id == "totem_counter");
             Assert.Contains(controller.Modules, m => m.Id == "gapple_tracker");
@@ -261,6 +288,12 @@ public sealed class LauncherAndUpdaterTests
         {
             var controller = new LauncherStateController(temp);
             controller.AuthService.CreateLocalSandboxAccount("AxsesShowcase");
+            string showcaseModsDir = controller.ModInstaller.GetModsFolder(controller.SelectedVersionSpec.MinecraftVersion);
+            File.WriteAllBytes(Path.Combine(showcaseModsDir, "baritone-api-fabric-1.11.1.jar"), [0x50, 0x4B, 0x03, 0x04]);
+            File.WriteAllBytes(Path.Combine(showcaseModsDir, "sodium-fabric-0.6.5.jar"), [0x50, 0x4B, 0x03, 0x04]);
+            File.WriteAllBytes(Path.Combine(showcaseModsDir, "lithium-fabric-0.14.7.jar"), [0x50, 0x4B, 0x03, 0x04]);
+            File.WriteAllBytes(Path.Combine(showcaseModsDir, "ferritecore-7.1.1-fabric.jar"), [0x50, 0x4B, 0x03, 0x04]);
+            controller.ModInstaller.RefreshCatalogState(controller.SelectedVersionSpec.MinecraftVersion, controller.PopularMods);
             var window = new MainWindow(controller);
             window.Show();
 

@@ -3,6 +3,7 @@ package dev.axsesclient.common.modules.impl;
 import dev.axsesclient.common.hud.HudElement;
 import dev.axsesclient.common.hud.HudManager;
 import dev.axsesclient.common.i18n.LocalizationManager;
+import dev.axsesclient.common.media.MediaSessionBridge;
 import dev.axsesclient.common.modules.Module;
 import dev.axsesclient.common.modules.ModuleCategory;
 import dev.axsesclient.common.modules.ModuleManager;
@@ -11,7 +12,9 @@ import dev.axsesclient.common.platform.ItemInfo;
 import dev.axsesclient.common.platform.KeyCodes;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
+import dev.axsesclient.common.platform.TargetEntityInfo;
 import dev.axsesclient.common.render.FontManager;
+import dev.axsesclient.common.render.RenderManager;
 import dev.axsesclient.common.settings.BooleanSetting;
 import dev.axsesclient.common.settings.ColorSetting;
 import dev.axsesclient.common.settings.ModeSetting;
@@ -471,5 +474,544 @@ public final class WorldUtilityModulesRegistry {
             }
         });
         hm.register(new HudElement("local_world_info_panel", "Environment Panel", localWorldPanel, 0.50f, 0.44f, 178f, 20f));
+
+        // 109. Spotify & In-Game Music Player HUD (Музыка и Spotify Плеер) — Auto-mutes MC music + Interactive Play/Continue, Pause, Stop, Next, Prev
+        final BooleanSetting musicShowControlsRef = new BooleanSetting("show_controls", "Interactive Buttons", "Show clickable Prev / Continue-Pause / Stop / Next buttons on HUD & in Chat", true);
+        final ModeSetting musicStyleRef = new ModeSetting("eq_style", "Player Style", "Visual accent style for music equalizer & progress", "Spotify Emerald", "Spotify Emerald", "Aurora", "Theme");
+        final BooleanSetting musicAutoMuteMcRef = new BooleanSetting("auto_mute_mc", "Auto-Stop MC Music", "Automatically silence vanilla Minecraft background music when Spotify/Music plays", true);
+        final BooleanSetting musicSyncSpotifyRef = new BooleanSetting("sync_spotify", "Sync With Spotify", "Detect open Spotify desktop app track & control playback", true);
+
+        Module spotifyMusicMod = mm.register(new Module("spotify_music_hud", "Spotify & Music", "Interactive Spotify & in-game music controller with Play/Continue, Stop, Next/Prev & auto-mute MC music", ModuleCategory.UTILITY, true, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(musicAutoMuteMcRef);
+                addSetting(musicSyncSpotifyRef);
+                addSetting(musicStyleRef);
+                addSetting(musicShowControlsRef);
+            }
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                MediaSessionBridge bridge = MediaSessionBridge.getInstance();
+                bridge.tick(0.05f, musicSyncSpotifyRef.isEnabled());
+                if (mc != null && musicAutoMuteMcRef.isEnabled() && bridge.isPlaying()) {
+                    mc.stopVanillaMusic();
+                }
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                MediaSessionBridge b = MediaSessionBridge.getInstance();
+                return "♫ " + b.getArtist() + " — " + b.getTrackTitle();
+            }
+        });
+        spotifyMusicMod.setFavorite(true);
+
+        HudElement spotifyHudEl = new HudElement("spotify_music_hud", "Spotify Music", spotifyMusicMod, 0.986f, 0.640f, 218f, 54f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(RenderAdapter r, MinecraftAdapter mc, ThemeManager tm, FontManager fm,
+                                         float px, float py, float sw, float sh, float opacity, boolean editorMode, boolean selected) {
+                        if (fm == null || tm == null) return false;
+                        MediaSessionBridge bridge = MediaSessionBridge.getInstance();
+                        AxsesTheme t = tm.getActiveTheme();
+                        boolean ru = i18n == null || i18n.isRussian();
+                        boolean playing = bridge.isPlaying();
+                        boolean stopped = bridge.getState() == MediaSessionBridge.PlaybackState.STOPPED;
+
+                        int spotifyGreen = 0xFF1DB954;
+                        int prim = "Spotify Emerald".equalsIgnoreCase(musicStyleRef.getValue())
+                                ? spotifyGreen
+                                : tm.filterColor(t.getPrimaryColor());
+                        int acc = tm.filterColor(t.getAccentColor());
+
+                        float rad = 12.0f;
+                        r.drawShadow(px, py, sw, sh, rad, 0.56f * opacity, 0x000000);
+                        r.fillRoundedRect(px, py, sw, sh, rad, AxsesTheme.withAlpha(t.getBackgroundColor(), Math.min(0.96f, opacity + 0.04f)));
+                        RenderManager.fillRoundedHorizontalGradient(r, px + 10.0f, py + 1.0f, sw - 20.0f, 1.8f, 0.9f, prim, acc);
+                        r.drawRoundedOutline(px, py, sw, sh, rad, selected ? 1.4f : 1.0f,
+                                selected ? acc : AxsesTheme.withAlpha(prim, playing ? 0.85f : 0.48f));
+
+                        // Vinyl / Equalizer badge on top-left
+                        float discX = px + 7.0f;
+                        float discY = py + 6.0f;
+                        r.fillRoundedRect(discX, discY, 24.0f, 24.0f, 8.0f, AxsesTheme.withAlpha(prim, 0.20f));
+                        r.drawRoundedOutline(discX, discY, 24.0f, 24.0f, 8.0f, 1.0f, AxsesTheme.withAlpha(prim, 0.75f));
+                        double nowSec = (System.currentTimeMillis() % 4000L) / 1000.0;
+                        for (int b = 0; b < 4; b++) {
+                            float amp = playing
+                                    ? (float) (4.0 + 10.0 * Math.abs(Math.sin(nowSec * 5.2 + b * 1.15)))
+                                    : (stopped ? 2.5f : 5.0f);
+                            float bx = discX + 4.2f + b * 4.3f;
+                            float by = discY + 19.5f - amp;
+                            r.fillRoundedRect(bx, by, 2.8f, amp, 1.2f, playing ? prim : 0xFF94A3B8);
+                        }
+
+                        // Header status badge (Spotify Live + Auto-Mute MC indicator)
+                        String srcBadge;
+                        int srcCol;
+                        if (playing) {
+                            srcBadge = bridge.isSpotifyProcessDetected()
+                                    ? (ru ? "● SPOTIFY · MC МУЗЫКА СТОП" : "● SPOTIFY · MC MUTED")
+                                    : (ru ? "● МУЗЫКА · MC СТОП" : "● MUSIC · MC MUTED");
+                            srcCol = prim;
+                        } else if (stopped) {
+                            srcBadge = ru ? "■ ОСТАНОВЛЕНО" : "■ STOPPED";
+                            srcCol = 0xFFFF5D8F;
+                        } else {
+                            srcBadge = ru ? "❚❚ НА ПАУЗЕ" : "❚❚ PAUSED";
+                            srcCol = 0xFFFFD166;
+                        }
+                        fm.draw(r, srcBadge, px + 36.0f, py + 5.5f, srcCol, 0.72f);
+                        fm.drawRight(r, bridge.formatTimeCode(), px + sw - 7.0f, py + 5.5f, t.getMutedTextColor(), 0.70f);
+
+                        // Track title & artist
+                        String fullTrack = bridge.getArtist() + " — " + bridge.getTrackTitle();
+                        if (fullTrack.length() > 28) {
+                            fullTrack = fullTrack.substring(0, 27) + "…";
+                        }
+                        fm.draw(r, fullTrack, px + 36.0f, py + 15.0f, 0xFFF8FAFF, 0.84f);
+
+                        // Smooth progress bar
+                        float barX = px + 36.0f;
+                        float barY = py + 26.5f;
+                        float barW = sw - 43.0f;
+                        r.fillRoundedRect(barX, barY, barW, 3.2f, 1.6f, 0x36FFFFFF);
+                        float fillW = Math.max(3.0f, barW * bridge.getProgressRatio());
+                        RenderManager.fillRoundedHorizontalGradient(r, barX, barY, fillW, 3.2f, 1.6f, prim, acc);
+
+                        // Upgraded 35-Year Tactile Transport Controls: [⏮] [▶ Продолжить / ⏸ Пауза] [⏹ Стоп] [⏭]
+                        if (musicShowControlsRef.isEnabled()) {
+                            float mx = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseX() : -999f;
+                            float my = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseY() : -999f;
+                            float btnY = py + 33.5f;
+                            float btnH = 16.0f;
+
+                            drawTactileHudBtn(r, fm, px + 7.0f, btnY, 24.0f, btnH, "⏮", false, prim, mx, my);
+                            String playLabel = playing
+                                    ? (ru ? "⏸ Пауза" : "⏸ Pause")
+                                    : (ru ? "▶ Продолжить" : "▶ Continue");
+                            drawTactileHudBtn(r, fm, px + 34.0f, btnY, 92.0f, btnH, playLabel, true, prim, mx, my);
+                            drawTactileHudBtn(r, fm, px + 129.0f, btnY, 56.0f, btnH, ru ? "⏹ Стоп" : "⏹ Stop", false, 0xFFFF4D6D, mx, my);
+                            drawTactileHudBtn(r, fm, px + 188.0f, btnY, 23.0f, btnH, "⏭", false, acc, mx, my);
+                        }
+                        return true;
+                    }
+                })
+                .withInteractiveHandler(new HudElement.InteractiveHudHandler() {
+                    @Override
+                    public boolean onMouseClick(MinecraftAdapter mc, float localX, float localY, float width, float height, int button) {
+                        if (button != 0 || !musicShowControlsRef.isEnabled()) return false;
+                        if (localY < 32.0f || localY > 52.0f) return false;
+                        MediaSessionBridge bridge = MediaSessionBridge.getInstance();
+                        boolean ru = i18n == null || i18n.isRussian();
+                        if (localX >= 6.0f && localX <= 32.0f) {
+                            bridge.previousTrack();
+                            if (mc != null && musicAutoMuteMcRef.isEnabled()) mc.stopVanillaMusic();
+                            if (notifications != null) {
+                                notifications.push("Spotify", (ru ? "⏮ Предыдущий: " : "⏮ Prev: ") + bridge.getTrackTitle(), NotificationManager.Severity.INFO);
+                            }
+                            return true;
+                        }
+                        if (localX >= 33.0f && localX <= 127.0f) {
+                            MediaSessionBridge.PlaybackState st = bridge.togglePlayPause();
+                            if (st == MediaSessionBridge.PlaybackState.PLAYING && mc != null && musicAutoMuteMcRef.isEnabled()) {
+                                mc.stopVanillaMusic();
+                            }
+                            if (notifications != null) {
+                                notifications.push("Spotify",
+                                        st == MediaSessionBridge.PlaybackState.PLAYING
+                                                ? (ru ? "▶ Продолжено (музыка MC остановлена)" : "▶ Resumed (MC music muted)")
+                                                : (ru ? "⏸ Пауза воспроизведения" : "⏸ Playback Paused"),
+                                        NotificationManager.Severity.SUCCESS);
+                            }
+                            return true;
+                        }
+                        if (localX >= 128.0f && localX <= 186.0f) {
+                            bridge.stopMusic();
+                            if (notifications != null) {
+                                notifications.push("Spotify", ru ? "⏹ Музыка полностью остановлена" : "⏹ Playback Stopped", NotificationManager.Severity.WARNING);
+                            }
+                            return true;
+                        }
+                        if (localX >= 187.0f && localX <= 214.0f) {
+                            bridge.nextTrack();
+                            if (mc != null && musicAutoMuteMcRef.isEnabled()) mc.stopVanillaMusic();
+                            if (notifications != null) {
+                                notifications.push("Spotify", (ru ? "⏭ Следующий: " : "⏭ Next: ") + bridge.getTrackTitle(), NotificationManager.Severity.INFO);
+                            }
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+        hm.register(spotifyHudEl);
+
+        // 110. Baritone Autopilot & 3D Smart Navigator (Баритон Автопилот)
+        final ModeSetting baritoneTaskRef = new ModeSetting(
+                "task_mode", "Baritone Task", "Navigation or mining objective for Baritone Autopilot",
+                "Goto Waypoint", "Goto Waypoint", "Goto Coords", "Mine Diamonds", "Mine Ancient Debris", "Follow Nearest", "Patrol Loop"
+        );
+        final NumberSetting baritoneGoalXRef = new NumberSetting("goal_x", "Goal X", "Target X coordinate in Goto Coords mode", 180.0, -30000.0, 30000.0, 10.0);
+        final NumberSetting baritoneGoalZRef = new NumberSetting("goal_z", "Goal Z", "Target Z coordinate in Goto Coords mode", -120.0, -30000.0, 30000.0, 10.0);
+        final BooleanSetting baritoneBridgeRef = new BooleanSetting("baritone_bridge", "External Baritone Bridge", "Automatically send #goto / #mine / #stop commands when cabaletta/baritone mod is installed", true);
+        final BooleanSetting baritoneJumpRef = new BooleanSetting("auto_jump", "Smart Step & Jump", "Jump automatically over 1-block terrain steps while pathing", true);
+        final BooleanSetting baritoneSprintRef = new BooleanSetting("auto_sprint", "Sprint On Route", "Maintain sprint along clear path segments", true);
+        final BooleanSetting baritonePath3dRef = new BooleanSetting("path_3d", "3D Neon Route", "Render glowing 3D Baritone path line and destination beacon in world", true);
+        final boolean[] baritonePausedState = new boolean[] { false };
+
+        final Module baritoneMod = mm.register(new Module("baritone_bot", "Baritone Autopilot", "Integrated Baritone AI pathfinder, #mine/#goto bridge & 3D neon route visualizer", ModuleCategory.WORLD, false, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(baritoneTaskRef);
+                addSetting(baritoneGoalXRef);
+                addSetting(baritoneGoalZRef);
+                addSetting(baritoneBridgeRef);
+                addSetting(baritoneJumpRef);
+                addSetting(baritoneSprintRef);
+                addSetting(baritonePath3dRef);
+            }
+
+            private String lastDispatchedExternalTask = "";
+
+            private double[] resolveGoal(MinecraftAdapter mc) {
+                String mode = baritoneTaskRef.getValue();
+                if ("Goto Waypoint".equalsIgnoreCase(mode)) {
+                    List<ClientRuntimeState.Waypoint> wps = state.getWaypoints();
+                    if (!wps.isEmpty()) {
+                        ClientRuntimeState.Waypoint wp = wps.get(wps.size() - 1);
+                        return new double[] { wp.x, wp.y, wp.z };
+                    }
+                    ClientRuntimeState.Waypoint d = state.getLastDeathWaypoint();
+                    if (d != null) {
+                        return new double[] { d.x, d.y, d.z };
+                    }
+                } else if ("Follow Nearest".equalsIgnoreCase(mode) && mc != null) {
+                    List<TargetEntityInfo> near = mc.getNearbyTargets(48.0, true, false, false, false);
+                    if (near != null && !near.isEmpty()) {
+                        TargetEntityInfo t = near.get(0);
+                        return new double[] { t.getX(), t.getY(), t.getZ() };
+                    }
+                } else if ("Patrol Loop".equalsIgnoreCase(mode) && mc != null) {
+                    double ang = ((System.currentTimeMillis() % 24000L) / 24000.0) * Math.PI * 2.0;
+                    return new double[] { mc.getPlayerX() + Math.cos(ang) * 18.0, mc.getPlayerY(), mc.getPlayerZ() + Math.sin(ang) * 18.0 };
+                }
+                double py = mc != null ? mc.getPlayerY() : 64.0;
+                return new double[] { baritoneGoalXRef.getDouble(), py, baritoneGoalZRef.getDouble() };
+            }
+
+            @Override
+            public void onEnable(MinecraftAdapter mc) {
+                baritonePausedState[0] = false;
+                lastDispatchedExternalTask = "";
+                if (mc != null && baritoneBridgeRef.isEnabled() && mc.isExternalBaritoneLoaded()) {
+                    dispatchExternalCommand(mc);
+                }
+            }
+
+            @Override
+            public void onDisable(MinecraftAdapter mc) {
+                baritonePausedState[0] = false;
+                lastDispatchedExternalTask = "";
+                if (mc != null) {
+                    mc.setAutoWalkInput(false, false, false);
+                    if (baritoneBridgeRef.isEnabled() && mc.isExternalBaritoneLoaded()) {
+                        mc.sendChatOrCommand("#stop");
+                    }
+                }
+            }
+
+            private void dispatchExternalCommand(MinecraftAdapter mc) {
+                String mode = baritoneTaskRef.getValue();
+                double[] g = resolveGoal(mc);
+                String cmd;
+                if ("Mine Diamonds".equalsIgnoreCase(mode)) {
+                    cmd = "#mine diamond_ore deepslate_diamond_ore";
+                } else if ("Mine Ancient Debris".equalsIgnoreCase(mode)) {
+                    cmd = "#mine ancient_debris";
+                } else if ("Follow Nearest".equalsIgnoreCase(mode)) {
+                    cmd = "#follow players";
+                } else {
+                    cmd = String.format(Locale.ROOT, "#goto %d %d", Long.valueOf(Math.round(g[0])), Long.valueOf(Math.round(g[2])));
+                }
+                if (!cmd.equals(lastDispatchedExternalTask)) {
+                    lastDispatchedExternalTask = cmd;
+                    mc.sendChatOrCommand(cmd);
+                }
+            }
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                if (mc == null || !mc.isInWorld()) return;
+                if (baritonePausedState[0] || mc.isAnyScreenOpen()) {
+                    mc.setAutoWalkInput(false, false, false);
+                    return;
+                }
+                if (baritoneBridgeRef.isEnabled() && mc.isExternalBaritoneLoaded()) {
+                    dispatchExternalCommand(mc);
+                    return;
+                }
+                double[] g = resolveGoal(mc);
+                double dx = g[0] - mc.getPlayerX();
+                double dz = g[2] - mc.getPlayerZ();
+                double dist = Math.hypot(dx, dz);
+                if (dist <= 1.65) {
+                    mc.setAutoWalkInput(false, false, false);
+                    boolean ru = i18n == null || i18n.isRussian();
+                    if (notifications != null) {
+                        notifications.push("Baritone", ru ? "Точка маршрута достигнута!" : "Destination reached!", NotificationManager.Severity.SUCCESS);
+                    }
+                    setEnabled(false, mc);
+                    return;
+                }
+                float desiredYaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+                float curYaw = mc.getPlayerYaw();
+                float diff = ((desiredYaw - curYaw) % 360.0f);
+                if (diff >= 180.0f) diff -= 360.0f;
+                if (diff < -180.0f) diff += 360.0f;
+                float step = Math.max(-12.0f, Math.min(12.0f, diff * 0.35f));
+                mc.setPlayerRotation(curYaw + step, mc.getPlayerPitch());
+
+                double moved = Math.hypot(mc.getPlayerX() - mc.getPrevPlayerX(), mc.getPlayerZ() - mc.getPrevPlayerZ());
+                boolean needStepJump = baritoneJumpRef.isEnabled() && mc.isOnGround() && moved < 0.035 && dist > 2.5;
+                mc.setAutoWalkInput(true, needStepJump, baritoneSprintRef.isEnabled());
+            }
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (!baritonePath3dRef.isEnabled() || mc == null || !mc.isInWorld() || mc.isClickGuiOpen() || fonts == null) {
+                    return;
+                }
+                double[] g = resolveGoal(mc);
+                double px = mc.getPlayerX();
+                double py = mc.getPlayerY();
+                double pz = mc.getPlayerZ();
+                double dx = g[0] - px;
+                double dy = g[1] - py;
+                double dz = g[2] - pz;
+                double dist = Math.hypot(dx, dz);
+                int steps = Math.max(4, Math.min(18, (int) (dist / 2.2)));
+                int pathCol = baritonePausedState[0] ? 0xFFFFD166 : 0xFF00F5D4;
+
+                float prevSx = 0f, prevSy = 0f;
+                boolean hasPrev = false;
+                double maxDrawDist = Math.min(dist, 34.0);
+                double ux = dist > 0.01 ? (dx / dist) : 0.0;
+                double uz = dist > 0.01 ? (dz / dist) : 1.0;
+
+                for (int s = 1; s <= steps; s++) {
+                    double frac = (double) s / (double) steps;
+                    double dAlong = maxDrawDist * frac;
+                    double wx = px + ux * dAlong;
+                    double wy = py + 0.12 + dy * Math.min(1.0, dAlong / Math.max(1.0, dist));
+                    double wz = pz + uz * dAlong;
+                    float[] proj = mc.projectWorldToScreen(wx, wy, wz);
+                    if (proj != null && proj[2] > 0.2f) {
+                        if (hasPrev) {
+                            r.drawLine(prevSx, prevSy + 1.0f, proj[0], proj[1] + 1.0f, 3.2f, AxsesTheme.withAlpha(pathCol, 0.26f));
+                            r.drawLine(prevSx, prevSy, proj[0], proj[1], 1.8f, AxsesTheme.withAlpha(pathCol, 0.92f));
+                        }
+                        r.fillRoundedRect(proj[0] - 2.2f, proj[1] - 2.2f, 4.4f, 4.4f, 2.2f, pathCol);
+                        prevSx = proj[0];
+                        prevSy = proj[1];
+                        hasPrev = true;
+                    } else {
+                        hasPrev = false;
+                    }
+                }
+
+                // Destination 3D Goal Beacon
+                double bxWorld = px + ux * maxDrawDist;
+                double bzWorld = pz + uz * maxDrawDist;
+                float[] goalScreen = mc.projectWorldToScreen(bxWorld, py + 1.35, bzWorld);
+                if (goalScreen != null && goalScreen[2] > 0.2f) {
+                    boolean ru = i18n == null || i18n.isRussian();
+                    String tag = String.format(Locale.ROOT, ru ? "⚡ БАРИТОН ЦЕЛЬ · %.0fм" : "⚡ BARITONE GOAL · %.0fm", Double.valueOf(dist));
+                    float bw = fonts.width(r, tag, 0.84f) + 14.0f;
+                    float bx = goalScreen[0] - bw * 0.5f;
+                    float by = goalScreen[1] - 22.0f;
+                    r.drawLine(goalScreen[0], goalScreen[1] - 4.0f, goalScreen[0], goalScreen[1] + 14.0f, 1.8f, AxsesTheme.withAlpha(pathCol, 0.80f));
+                    r.fillRoundedRect(bx, by, bw, 16.0f, 8.0f, 0xE6050B18);
+                    r.drawRoundedOutline(bx, by, bw, 16.0f, 8.0f, 1.1f, pathCol);
+                    fonts.drawCentered(r, tag, goalScreen[0], by + 4.5f, 0xFFF8FAFF, 0.84f);
+                }
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                double[] g = resolveGoal(mc);
+                double dist = mc != null ? Math.hypot(g[0] - mc.getPlayerX(), g[2] - mc.getPlayerZ()) : 0.0;
+                return String.format(Locale.ROOT, "⚡ Baritone: %s [%.0fm]", baritoneTaskRef.getValue(), Double.valueOf(dist));
+            }
+        });
+        baritoneMod.setFavorite(true);
+
+        HudElement baritoneHudEl = new HudElement("baritone_bot", "Baritone Autopilot", baritoneMod, 0.986f, 0.545f, 218f, 38f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(RenderAdapter r, MinecraftAdapter mc, ThemeManager tm, FontManager fm,
+                                         float px, float py, float sw, float sh, float opacity, boolean editorMode, boolean selected) {
+                        if (fm == null || tm == null) return false;
+                        AxsesTheme t = tm.getActiveTheme();
+                        boolean ru = i18n == null || i18n.isRussian();
+                        int acc = tm.filterColor(t.getAccentColor());
+                        int prim = tm.filterColor(t.getPrimaryColor());
+                        boolean paused = baritonePausedState[0];
+                        int statusCol = paused ? 0xFFFFD166 : 0xFF00F5D4;
+
+                        r.drawShadow(px, py, sw, sh, 10.0f, 0.50f * opacity, 0x000000);
+                        r.fillRoundedRect(px, py, sw, sh, 10.0f, AxsesTheme.withAlpha(t.getBackgroundColor(), Math.min(0.96f, opacity + 0.04f)));
+                        r.drawRoundedOutline(px, py, sw, sh, 10.0f, selected ? 1.4f : 1.0f, selected ? acc : AxsesTheme.withAlpha(statusCol, 0.82f));
+
+                        String taskName = i18n != null ? i18n.optionName(baritoneTaskRef.getValue()) : baritoneTaskRef.getValue();
+                        double gx = baritoneGoalXRef.getDouble();
+                        double gz = baritoneGoalZRef.getDouble();
+                        List<ClientRuntimeState.Waypoint> wps = state.getWaypoints();
+                        if ("Goto Waypoint".equalsIgnoreCase(baritoneTaskRef.getValue()) && !wps.isEmpty()) {
+                            ClientRuntimeState.Waypoint wp = wps.get(wps.size() - 1);
+                            gx = wp.x;
+                            gz = wp.z;
+                        }
+                        double dist = (mc != null && mc.isInWorld()) ? Math.hypot(gx - mc.getPlayerX(), gz - mc.getPlayerZ()) : 42.0;
+                        boolean ext = mc != null && mc.isExternalBaritoneLoaded();
+
+                        String hdr = (paused ? "❚❚ " : "⚡ ") + (ru ? "БАРИТОН" : "BARITONE") + (ext ? " [API]" : " [AI]");
+                        fm.draw(r, hdr, px + 8.0f, py + 5.5f, statusCol, 0.78f);
+                        fm.draw(r, String.format(Locale.ROOT, "%s · %.0f%s", taskName, Double.valueOf(dist), ru ? "м" : "m"),
+                                px + 8.0f, py + 16.5f, 0xFFF8FAFF, 0.80f);
+
+                        float mx = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseX() : -999f;
+                        float my = (mc != null && (mc.isChatScreenOpen() || editorMode)) ? (float) mc.getScaledMouseY() : -999f;
+                        drawTactileHudBtn(r, fm, px + sw - 92.0f, py + 19.0f, 44.0f, 14.5f,
+                                paused ? (ru ? "▶ Пуск" : "▶ Go") : (ru ? "⏸ Пауза" : "⏸ Pause"), true, statusCol, mx, my);
+                        drawTactileHudBtn(r, fm, px + sw - 45.0f, py + 19.0f, 38.0f, 14.5f,
+                                ru ? "⏹ Стоп" : "⏹ Stop", false, 0xFFFF4D6D, mx, my);
+                        return true;
+                    }
+                })
+                .withInteractiveHandler(new HudElement.InteractiveHudHandler() {
+                    @Override
+                    public boolean onMouseClick(MinecraftAdapter mc, float localX, float localY, float width, float height, int button) {
+                        if (button != 0 || localY < 17.0f) return false;
+                        boolean ru = i18n == null || i18n.isRussian();
+                        if (localX >= width - 93.0f && localX <= width - 47.0f) {
+                            baritonePausedState[0] = !baritonePausedState[0];
+                            if (mc != null && mc.isExternalBaritoneLoaded()) {
+                                mc.sendChatOrCommand(baritonePausedState[0] ? "#pause" : "#resume");
+                            }
+                            if (notifications != null) {
+                                notifications.push("Baritone",
+                                        baritonePausedState[0] ? (ru ? "Маршрут поставлен на паузу" : "Pathing paused") : (ru ? "Маршрут возобновлён" : "Pathing resumed"),
+                                        NotificationManager.Severity.INFO);
+                            }
+                            return true;
+                        }
+                        if (localX >= width - 46.0f && localX <= width - 5.0f) {
+                            baritoneMod.setEnabled(false, mc);
+                            if (notifications != null) {
+                                notifications.push("Baritone", ru ? "Автопилот остановлен (#stop)" : "Autopilot stopped (#stop)", NotificationManager.Severity.WARNING);
+                            }
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+        hm.register(baritoneHudEl);
+
+        // 111. FPS & Chunk Optimizer (Турбо Оптимизация FPS + Детектор Sodium/Lithium/FerriteCore)
+        Module fpsOptimizerMod = mm.register(new Module("fps_optimizer", "FPS Optimizer", "Client-side frametime stabilizer, entity distance culler & Sodium/Lithium/FerriteCore stack monitor", ModuleCategory.UTILITY, true, KeyCodes.KEY_NONE, false) {
+            private final ModeSetting optMode = addSetting(new ModeSetting("opt_preset", "Optimization Mode", "Frametime & visual culling profile", "Ultra FPS", "Ultra FPS", "Balanced PvP", "Zero Stutter"));
+            private final NumberSetting cullRadius = addSetting(new NumberSetting("cull_dist", "Entity Cull Radius", "Soft distance threshold for distant overlay culling", 56.0, 24.0, 128.0, 8.0));
+            private final BooleanSetting showStack = addSetting(new BooleanSetting("show_mods", "Detect FPS Mods", "Display active Sodium / Lithium / FerriteCore / Iris stack on HUD", true));
+
+            private String detectLoadedBoosters(MinecraftAdapter mc) {
+                if (mc == null) return "Turbo";
+                List<String> mods = mc.getLoadedMods();
+                if (mods == null || mods.isEmpty()) return "Turbo";
+                StringBuilder sb = new StringBuilder();
+                String[] known = { "sodium", "lithium", "ferritecore", "immediatelyfast", "entityculling", "iris", "modernfix", "baritone" };
+                String[] labels = { "Sodium", "Lithium", "Ferrite", "ImmFast", "Culling", "Iris", "ModFix", "Baritone" };
+                int count = 0;
+                for (int k = 0; k < known.length; k++) {
+                    for (int m = 0; m < mods.size(); m++) {
+                        if (mods.get(m).toLowerCase(Locale.ROOT).startsWith(known[k])) {
+                            if (count > 0) sb.append('+');
+                            sb.append(labels[k]);
+                            count++;
+                            break;
+                        }
+                    }
+                    if (count >= 3) break;
+                }
+                return count > 0 ? sb.toString() : optMode.getValue();
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                int fps = mc != null ? Math.max(1, mc.getFps()) : 240;
+                float ms = 1000.0f / (float) fps;
+                boolean ru = i18n == null || i18n.isRussian();
+                String stack = showStack.isEnabled() ? detectLoadedBoosters(mc) : String.format(Locale.ROOT, "%.0fm", Double.valueOf(cullRadius.getDouble()));
+                return String.format(Locale.ROOT, ru ? "⚡ %d FPS · %.1fмс [%s]" : "⚡ %d FPS · %.1fms [%s]",
+                        Integer.valueOf(fps), Float.valueOf(ms), stack);
+            }
+        });
+        fpsOptimizerMod.setFavorite(true);
+        hm.register(new HudElement("fps_optimizer", "FPS Optimizer", fpsOptimizerMod, 0.195f, 0.078f, 178f, 20f));
+
+        // 112. Live Chat HUD Mover (Перемещение HUD в Чате 'T')
+        Module chatMoverMod = mm.register(new Module("chat_hud_drag", "Chat HUD Mover", "Drag, snap, lock & click any HUD widget directly inside the in-game Chat screen (T)", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+            private final BooleanSetting snapGuides = addSetting(new BooleanSetting("snap_guides", "Magnetic Snap Lines", "Show glowing center alignment guides while dragging in Chat", true));
+            private final BooleanSetting hoverFrames = addSetting(new BooleanSetting("hover_frames", "Hover Outlines", "Highlight HUD widgets when hovering with mouse in Chat", true));
+            private final BooleanSetting topBanner = addSetting(new BooleanSetting("top_banner", "Chat Mode Hint Bar", "Show compact Chat HUD instructions at top of screen", true));
+            private final BooleanSetting rmbLock = addSetting(new BooleanSetting("rmb_lock", "Right-Click Lock", "Toggle widget pin/lock with Right Click in Chat", true));
+
+            private void sync() {
+                hm.configureChatMover(isEnabled(), snapGuides.isEnabled(), hoverFrames.isEnabled(), topBanner.isEnabled(), rmbLock.isEnabled());
+            }
+
+            @Override
+            public void onEnable(MinecraftAdapter mc) {
+                sync();
+            }
+
+            @Override
+            public void onDisable(MinecraftAdapter mc) {
+                sync();
+            }
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                sync();
+            }
+        });
+        chatMoverMod.setFavorite(true);
+    }
+
+    private static void drawTactileHudBtn(
+            RenderAdapter r,
+            FontManager fm,
+            float x,
+            float y,
+            float w,
+            float h,
+            String label,
+            boolean primary,
+            int accentCol,
+            float mx,
+            float my
+    ) {
+        boolean hov = mx >= x && mx <= x + w && my >= y && my <= y + h;
+        float rad = Math.min(7.0f, h * 0.48f);
+        int fill = primary
+                ? AxsesTheme.withAlpha(accentCol, hov ? 0.44f : 0.28f)
+                : (hov ? 0x38FFFFFF : 0x1EFFFFFF);
+        int border = primary
+                ? AxsesTheme.withAlpha(accentCol, hov ? 1.0f : 0.82f)
+                : AxsesTheme.withAlpha(accentCol, hov ? 0.90f : 0.52f);
+        r.fillRoundedRect(x, y, w, h, rad, fill);
+        if (w > 10.0f) {
+            r.fillRect(x + rad, y + 1.0f, w - rad * 2.0f, 1.0f, hov ? 0x42FFFFFF : 0x22FFFFFF);
+        }
+        r.drawRoundedOutline(x, y, w, h, rad, 1.0f, border);
+        fm.drawCentered(r, label, x + w * 0.5f, y + (h - 7.0f) * 0.5f, 0xFFFFFFFF, 0.76f);
     }
 }

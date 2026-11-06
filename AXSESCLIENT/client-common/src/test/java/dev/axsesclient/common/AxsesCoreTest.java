@@ -38,6 +38,12 @@ public class AxsesCoreTest {
         boolean singleplayer = true;
         boolean clickGuiOpen = false;
         boolean hudEditorOpen = false;
+        boolean chatOpen = false;
+        double mouseX = 200.0;
+        double mouseY = 200.0;
+        int vanillaMusicStops = 0;
+        String lastSentCommand = "";
+        List<String> loadedMods = java.util.Arrays.asList("axsesclient@4.0.0", "sodium@0.6.5", "lithium@0.14.7", "ferritecore@7.1.1");
         double gamma = 1.0;
         double fov = 70.0;
         boolean bobbing = true;
@@ -63,7 +69,7 @@ public class AxsesCoreTest {
         @Override public String getJavaVersion() { return "21.0.5"; }
         @Override public String getFabricLoaderVersion() { return "0.20.1"; }
         @Override public String getFabricApiVersion() { return "0.141.6+1.21.11"; }
-        @Override public List<String> getLoadedMods() { return Collections.singletonList("axsesclient@1.0.0"); }
+        @Override public List<String> getLoadedMods() { return loadedMods; }
         @Override public Path getGameDir() { return gameDir; }
         @Override public boolean isInWorld() { return inWorld; }
         @Override public boolean isSingleplayer() { return singleplayer; }
@@ -127,6 +133,11 @@ public class AxsesCoreTest {
         @Override public double getGuiScale() { return 2.0; }
         @Override public boolean isClickGuiOpen() { return clickGuiOpen; }
         @Override public boolean isHudEditorOpen() { return hudEditorOpen; }
+        @Override public boolean isChatScreenOpen() { return chatOpen; }
+        @Override public double getScaledMouseX() { return mouseX; }
+        @Override public double getScaledMouseY() { return mouseY; }
+        @Override public void stopVanillaMusic() { vanillaMusicStops++; }
+        @Override public void sendChatOrCommand(String text) { lastSentCommand = text; }
         @Override public void openClickGui() { clickGuiOpen = true; hudEditorOpen = false; }
         @Override public void openHudEditor() { hudEditorOpen = true; clickGuiOpen = false; }
         @Override public void openCustomMainMenu() {}
@@ -173,11 +184,14 @@ public class AxsesCoreTest {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);
 
-        assertEquals(108, core.getModuleManager().getAll().size(), "Must register all 108 modules & GUI features");
+        assertEquals(112, core.getModuleManager().getAll().size(), "Must register all 112 modules & GUI features");
         assertEquals(14, core.getThemeManager().getAllThemes().size(), "Must register all 14 built-in themes");
 
-        // Verify Russian search finds KillAura, ESP, Target HUD, China Hat, Jump Circles, Radar & Totems
+        // Verify Russian search finds KillAura, ESP, Target HUD, Baritone, Spotify, FPS & Chat HUD Mover
         assertFalse(core.getModuleManager().query(null, false, "киллаура").isEmpty(), "Russian search must find KillAura");
+        assertFalse(core.getModuleManager().query(null, false, "баритон").isEmpty(), "Russian search must find Baritone");
+        assertFalse(core.getModuleManager().query(null, false, "spotify").isEmpty(), "Russian search must find Spotify Music");
+        assertFalse(core.getModuleManager().query(null, false, "чате").isEmpty(), "Russian search must find Chat HUD Mover");
         assertFalse(core.getModuleManager().query(null, false, "esp").isEmpty(), "Search must find Entity ESP");
         assertFalse(core.getModuleManager().query(null, false, "подсветка").isEmpty(), "Russian search must find ESP Подсветка");
         assertFalse(core.getModuleManager().query(null, false, "таргет").isEmpty(), "Russian search must find Target HUD");
@@ -361,5 +375,46 @@ public class AxsesCoreTest {
         // Resolution scaling keeps element inside bounds
         assertTrue(fps.getPixelX(640) >= 0f && fps.getPixelX(640) <= 640f);
         assertTrue(fps.getPixelX(1920) >= 0f && fps.getPixelX(1920) <= 1920f);
+
+        // Verify Live In-Chat ('T') HUD Dragging & Spotify Music Interactive Stop/Continue Buttons + Auto-Mute MC Music
+        platform.chatOpen = true;
+        HudElement spotifyHud = core.getHudManager().getById("spotify_music_hud");
+        assertNotNull(spotifyHud);
+
+        // Auto-stop vanilla MC music when Spotify/Music is playing
+        dev.axsesclient.common.media.MediaSessionBridge.getInstance().playContinue();
+        int stopsBefore = platform.vanillaMusicStops;
+        core.onClientTick();
+        assertTrue(platform.vanillaMusicStops > stopsBefore, "Vanilla MC music must be stopped when Spotify/Music is playing");
+
+        // Click 'Stop' button inside Spotify HUD while Chat is open
+        float spX = spotifyHud.getPixelX(platform.scaledW);
+        float spY = spotifyHud.getPixelY(platform.scaledH);
+        assertTrue(core.onChatHudMousePress(spX + 145.0, spY + 40.0, 0), "Stop button on Spotify HUD must handle click in Chat");
+        assertEquals(dev.axsesclient.common.media.MediaSessionBridge.PlaybackState.STOPPED,
+                dev.axsesclient.common.media.MediaSessionBridge.getInstance().getState());
+
+        // Click 'Continue' button inside Spotify HUD while Chat is open
+        assertTrue(core.onChatHudMousePress(spX + 75.0, spY + 40.0, 0), "Continue button on Spotify HUD must resume playback in Chat");
+        assertTrue(dev.axsesclient.common.media.MediaSessionBridge.getInstance().isPlaying());
+
+        // Drag FPS HUD widget directly inside Chat screen
+        float startFpsX = fps.getPixelX(platform.scaledW);
+        float startFpsY = fps.getPixelY(platform.scaledH);
+        assertTrue(core.onChatHudMousePress(startFpsX + 8.0, startFpsY + 8.0, 0), "Must grab unlocked HUD widget in Chat");
+        platform.mouseX = 420.0;
+        platform.mouseY = 180.0;
+        core.onHudRender(platform);
+        core.onChatHudMouseRelease(420.0, 180.0, 0);
+        assertTrue(Math.abs(fps.getPixelX(platform.scaledW) - startFpsX) > 50.0f, "Dragging in Chat must reposition HUD widget");
+
+        // Verify Baritone external bridge sends #goto / #stop when Baritone mod is loaded
+        platform.loadedMods = java.util.Arrays.asList("axsesclient@4.0.0", "baritone@1.11.1", "sodium@0.6.5");
+        Module baritone = core.getModuleManager().getById("baritone_bot");
+        assertNotNull(baritone);
+        baritone.setEnabled(true, platform);
+        assertTrue(platform.lastSentCommand.startsWith("#goto"), "Baritone module must bridge #goto when external Baritone is loaded");
+        baritone.setEnabled(false, platform);
+        assertEquals("#stop", platform.lastSentCommand, "Disabling Baritone must send #stop");
     }
 }

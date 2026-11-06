@@ -392,6 +392,64 @@ public final class Mc12111Adapter implements MinecraftAdapter {
     }
 
     @Override
+    public boolean isChatScreenOpen() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc != null && mc.screen instanceof net.minecraft.client.gui.screens.ChatScreen;
+    }
+
+    @Override
+    public double getScaledMouseX() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.getWindow() == null || mc.mouseHandler == null) return -1.0;
+        return mc.mouseHandler.xpos() * (double) mc.getWindow().getGuiScaledWidth() / Math.max(1.0, (double) mc.getWindow().getScreenWidth());
+    }
+
+    @Override
+    public double getScaledMouseY() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.getWindow() == null || mc.mouseHandler == null) return -1.0;
+        return mc.mouseHandler.ypos() * (double) mc.getWindow().getGuiScaledHeight() / Math.max(1.0, (double) mc.getWindow().getScreenHeight());
+    }
+
+    @Override
+    public void stopVanillaMusic() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.getMusicManager() != null) {
+            mc.getMusicManager().stopPlaying();
+        }
+    }
+
+    @Override
+    public void playUiClickSound(float pitch) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.getSoundManager() != null) {
+            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, pitch));
+        }
+    }
+
+    @Override
+    public void sendChatOrCommand(String text) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.player != null && mc.player.connection != null && text != null && !text.isEmpty()) {
+            if (text.startsWith("/")) {
+                mc.player.connection.sendCommand(text.substring(1));
+            } else {
+                mc.player.connection.sendChat(text);
+            }
+        }
+    }
+
+    @Override
+    public void setAutoWalkInput(boolean forward, boolean jump, boolean sprint) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.options != null) {
+            if (mc.options.keyUp != null) mc.options.keyUp.setDown(forward);
+            if (mc.options.keyJump != null) mc.options.keyJump.setDown(jump);
+            if (sprint && forward && mc.player != null) mc.player.setSprinting(true);
+        }
+    }
+
+    @Override
     public TargetEntityInfo getCrosshairTarget() {
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.player == null || !(mc.crosshairPickEntity instanceof LivingEntity le)) {

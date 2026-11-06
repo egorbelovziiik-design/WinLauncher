@@ -32,10 +32,22 @@ public final class HudElement {
         );
     }
 
+    public interface InteractiveHudHandler {
+        boolean onMouseClick(
+                MinecraftAdapter mc,
+                float localX,
+                float localY,
+                float width,
+                float height,
+                int button
+        );
+    }
+
     private final String id;
     private final String title;
     private final Module boundModule;
     private CustomHudPainter customPainter;
+    private InteractiveHudHandler interactiveHandler;
 
     private float defaultNormX;
     private float defaultNormY;
@@ -69,6 +81,15 @@ public final class HudElement {
     public HudElement withCustomPainter(CustomHudPainter painter) {
         this.customPainter = painter;
         return this;
+    }
+
+    public HudElement withInteractiveHandler(InteractiveHudHandler handler) {
+        this.interactiveHandler = handler;
+        return this;
+    }
+
+    public InteractiveHudHandler getInteractiveHandler() {
+        return interactiveHandler;
     }
 
     public void resetLayout() {

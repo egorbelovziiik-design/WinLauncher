@@ -56,6 +56,9 @@ public class ClientScreenshotGeneratorTest {
         boolean inWorld = true;
         boolean clickGuiOpen = false;
         boolean hudEditorOpen = false;
+        boolean chatScreenOpen = false;
+        double scaledMouseX = -1.0;
+        double scaledMouseY = -1.0;
         double playerX = 0.0, playerY = 64.0, playerZ = 0.0;
         float yaw = 0.0f;   // Looking towards +Z
         float pitch = 4.0f;
@@ -270,7 +273,9 @@ public class ClientScreenshotGeneratorTest {
         @Override public String getJavaVersion() { return "21.0.13"; }
         @Override public String getFabricLoaderVersion() { return "0.20.1"; }
         @Override public String getFabricApiVersion() { return "0.141.6+1.21.11"; }
-        @Override public List<String> getLoadedMods() { return Collections.singletonList("axsesclient@3.5.0"); }
+        @Override public List<String> getLoadedMods() {
+            return Arrays.asList("axsesclient@4.0.0", "sodium@0.6.5", "lithium@0.14.7", "ferritecore@7.1.1", "baritone@1.11.1");
+        }
         @Override public Path getGameDir() { return gameDir; }
         @Override public boolean isInWorld() { return inWorld; }
         @Override public boolean isSingleplayer() { return false; }
@@ -349,6 +354,9 @@ public class ClientScreenshotGeneratorTest {
         @Override public double getGuiScale() { return 2.0; }
         @Override public boolean isClickGuiOpen() { return clickGuiOpen; }
         @Override public boolean isHudEditorOpen() { return hudEditorOpen; }
+        @Override public boolean isChatScreenOpen() { return chatScreenOpen; }
+        @Override public double getScaledMouseX() { return scaledMouseX; }
+        @Override public double getScaledMouseY() { return scaledMouseY; }
         @Override public void openClickGui() { clickGuiOpen = true; }
         @Override public void openHudEditor() { hudEditorOpen = true; }
         @Override public void openCustomMainMenu() {}
@@ -521,10 +529,11 @@ public class ClientScreenshotGeneratorTest {
 
             Module ka = core.getModuleManager().getById("kill_aura");
             for (Setting<?> s : ka.getSettings()) {
-                if ("server_profile".equals(s.getId())) ((ModeSetting) s).setValue("FunTime");
-                if ("range".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(3.15));
-                if ("fov".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(190.0));
-                if ("rotations".equals(s.getId())) ((ModeSetting) s).setValue("FunTime Human");
+                if ("server_profile".equals(s.getId())) ((ModeSetting) s).setValue("SnowGrim");
+                if ("range".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(3.00));
+                if ("fov".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(175.0));
+                if ("rotations".equals(s.getId())) ((ModeSetting) s).setValue("SnowGrim Coupled");
+                if ("move_fix".equals(s.getId())) ((ModeSetting) s).setValue("Silent Strafe");
             }
             ka.setEnabled(true, p);
             core.getModuleManager().getById("trigger_bot").setEnabled(true, p);
@@ -668,6 +677,87 @@ public class ClientScreenshotGeneratorTest {
             ImageIO.write(p.image, "PNG", out7);
             p.dispose();
             assertTrue(out7.exists() && out7.length() > 10000);
+        }
+
+        // 8. IN-GAME CHAT HUD DRAGGING + SPOTIFY MUSIC PLAYER (CONTINUE / STOP) + BARITONE 3D AUTOPILOT ROUTE
+        {
+            AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s8"));
+            AxsesCore core = new AxsesCore(tempDir.resolve("s8"), p, p);
+            core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-vision");
+
+            // Configure Spotify MediaSessionBridge showcase state
+            dev.axsesclient.common.media.MediaSessionBridge.getInstance().setSimulatedSpotifyStateForShowcase(
+                    true,
+                    dev.axsesclient.common.media.MediaSessionBridge.PlaybackState.PAUSED,
+                    "Kordhell",
+                    "Murder In My Mind",
+                    64.0f,
+                    145
+            );
+
+            TargetEntityInfo rival = new TargetEntityInfo(
+                    109, "MatrixGuard", true, false, false, false,
+                    15.5f, 20.0f, 2.0f, 2.95f, 3, 19,
+                    -1.45, 64.0, 4.6, 65.62,
+                    -1.75, 64.0, 4.3, -1.15, 65.8, 4.9,
+                    true, "Незеритовый топор"
+            );
+            p.combatTargets = Collections.singletonList(rival);
+            p.espEntities = Collections.singletonList(rival);
+            core.getRuntimeState().lockTarget(rival);
+
+            // Set active Waypoint ahead at (-3.2, 64, 24.0) so Baritone 3D route & beacon project right down the arena
+            core.getRuntimeState().addOrReplaceWaypoint(new dev.axsesclient.common.modules.impl.ClientRuntimeState.Waypoint(
+                    "Алмазная шахта", -3.2, 64.0, 24.0, "minecraft:overworld", "mc.funtime.su", 0xFF00F5D4
+            ));
+            Module baritone = core.getModuleManager().getById("baritone_bot");
+            baritone.setEnabled(true, p);
+            core.getModuleManager().getById("spotify_music_hud").setEnabled(true, p);
+            core.getModuleManager().getById("fps_optimizer").setEnabled(true, p);
+            core.getModuleManager().getById("chat_hud_drag").setEnabled(true, p);
+            core.getModuleManager().getById("entity_esp").setEnabled(true, p);
+            core.getModuleManager().getById("radar_hud").setEnabled(true, p);
+            core.onClientTick();
+
+            // Open Chat screen ('T') and actively drag Target HUD onto the vertical magnetic center snap line via real onChatHudMousePress!
+            p.chatScreenOpen = true;
+            dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
+            if (thud != null) {
+                float centeredX = (p.scaledW - thud.getScaledWidth()) * 0.5f;
+                core.getHudManager().moveElementWithSnapping(thud, centeredX, 206.0f, p.scaledW, p.scaledH);
+                p.scaledMouseX = centeredX + 40.0f;
+                p.scaledMouseY = 222.0f;
+                core.onChatHudMousePress(p.scaledMouseX, p.scaledMouseY, 0);
+            }
+
+            p.yaw = 0.0f;
+            p.pitch = 5.0f;
+            p.paintStylizedWorldBackdrop(true);
+
+            // Render stylized open Minecraft Chat log & bottom ChatScreen input bar
+            float chatLogX = 8.0f, chatLogY = p.scaledH - 104.0f, chatLogW = 338.0f, chatLogH = 68.0f;
+            p.fillRoundedRect(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 0xCC050814);
+            p.drawRoundedOutline(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 1.0f, 0x5538BDF8);
+            core.getFontManager().draw(p, "[AXSES 4.0] КиллАура: активен профиль SnowGrim (3.00м + GCD)", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);
+            core.getFontManager().draw(p, "[Spotify] Синхронизация активна · Музыка Minecraft остановлена", chatLogX + 7f, chatLogY + 21f, 0xFF1DB954, 0.80f);
+            core.getFontManager().draw(p, "[Baritone] Построен 3D-маршрут к метке «Алмазная шахта» (24м)", chatLogX + 7f, chatLogY + 35f, 0xFF00F5D4, 0.80f);
+            core.getFontManager().draw(p, "[Чат HUD] Зажмите ЛКМ на любом виджете для перемещения!", chatLogX + 7f, chatLogY + 49f, 0xFFE2E8F0, 0.80f);
+
+            float inputY = p.scaledH - 20.0f;
+            p.fillRoundedRect(6.0f, inputY, p.scaledW - 12.0f, 15.0f, 5.0f, 0xEB040712);
+            p.drawRoundedOutline(6.0f, inputY, p.scaledW - 12.0f, 15.0f, 5.0f, 1.0f, 0xFF00F5D4);
+            core.getFontManager().draw(p, "> #mine diamond_ore deepslate_diamond_ore █", 12.0f, inputY + 4.0f, 0xFFF8FAFF, 0.84f);
+
+            core.onHudRender(p);
+
+            // Reset Spotify bridge back to playing for any subsequent callers
+            dev.axsesclient.common.media.MediaSessionBridge.getInstance().playContinue();
+
+            File out8 = outDir.resolve("ingame-chat-hud-music-baritone.png").toFile();
+            ImageIO.write(p.image, "PNG", out8);
+            p.dispose();
+            assertTrue(out8.exists() && out8.length() > 10000);
         }
     }
 }

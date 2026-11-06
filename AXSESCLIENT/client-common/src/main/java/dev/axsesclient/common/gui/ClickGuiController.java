@@ -162,8 +162,8 @@ public final class ClickGuiController {
                 AxsesTheme.withAlpha(primaryCol, 0.65f), AxsesTheme.withAlpha(accentCol, 0.55f));
         r.drawRoundedOutline(hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f, 1.0f, accentCol);
         core.getFontManager().drawCentered(r, "AX", hdrX + 21.0f, hdrY + 15.0f, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "AXSES 3.5", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "VISION", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.88f);
+        core.getFontManager().draw(r, "AXSES 4.0", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "APEX PRO", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.86f);
 
         // Right-aligned Stadium-Pill Action Tabs
         String langLabel = i18n.isRussian() ? "RU" : "EN";
@@ -1245,12 +1245,15 @@ public final class ClickGuiController {
         int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
         int acc = core.getThemeManager().filterColor(t.getAccentColor());
         if (active) {
-            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, rad, prim, AxsesTheme.withAlpha(acc, 0.85f));
+            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, rad, prim, AxsesTheme.withAlpha(acc, 0.90f));
         } else {
             r.fillRoundedRect(x, y, w, h, rad, hov ? t.getElevatedColor() : t.getBackgroundColor());
         }
+        if (w > 12.0f) {
+            r.fillRect(x + rad, y + 1.0f, w - rad * 2.0f, 1.0f, (active || hov) ? 0x38FFFFFF : 0x1AFFFFFF);
+        }
         r.drawRoundedOutline(x, y, w, h, rad, 1.0f,
-                (active || accentOutline) ? acc : (hov ? prim : AxsesTheme.withAlpha(t.getMutedColor(), 0.28f)));
+                (active || accentOutline) ? acc : (hov ? prim : AxsesTheme.withAlpha(t.getMutedColor(), 0.34f)));
         core.getFontManager().drawCentered(r, text, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFFFFFFF, 1.0f);
     }
 
@@ -1261,12 +1264,15 @@ public final class ClickGuiController {
         int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
         int acc = core.getThemeManager().filterColor(t.getAccentColor());
         if (active) {
-            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, rad, prim, AxsesTheme.withAlpha(acc, 0.88f));
+            RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, rad, prim, AxsesTheme.withAlpha(acc, 0.90f));
         } else {
             r.fillRoundedRect(x, y, w, h, rad, hov ? core.getThemeManager().filterColor(t.getSecondaryColor()) : t.getElevatedColor());
         }
+        if (w > 12.0f) {
+            r.fillRect(x + rad, y + 1.0f, w - rad * 2.0f, 1.0f, (active || hov) ? 0x36FFFFFF : 0x18FFFFFF);
+        }
         r.drawRoundedOutline(x, y, w, h, rad, 1.0f,
-                active ? AxsesTheme.withAlpha(acc, 0.90f) : AxsesTheme.withAlpha(t.getMutedColor(), hov ? 0.65f : 0.30f));
+                active ? AxsesTheme.withAlpha(acc, 0.92f) : AxsesTheme.withAlpha(hov ? acc : t.getMutedColor(), hov ? 0.78f : 0.34f));
         core.getFontManager().drawCentered(r, text, x + w * 0.5f, y + (h - 8.0f) * 0.5f, active ? 0xFFFFFFFF : t.getTextColor(), 1.0f);
     }
 

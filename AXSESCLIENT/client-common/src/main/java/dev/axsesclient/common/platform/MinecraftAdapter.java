@@ -148,4 +148,66 @@ public interface MinecraftAdapter {
     default float[] projectWorldToScreen(double worldX, double worldY, double worldZ) {
         return null;
     }
+
+    /**
+     * True when the vanilla in-game ChatScreen ('T' / '/') is currently open.
+     */
+    default boolean isChatScreenOpen() {
+        return false;
+    }
+
+    /**
+     * Current mouse cursor X in GUI-scaled coordinates.
+     */
+    default double getScaledMouseX() {
+        return -1.0;
+    }
+
+    /**
+     * Current mouse cursor Y in GUI-scaled coordinates.
+     */
+    default double getScaledMouseY() {
+        return -1.0;
+    }
+
+    /**
+     * Silences/stops vanilla Minecraft background music when external Spotify or in-game music is active.
+     */
+    default void stopVanillaMusic() {
+    }
+
+    /**
+     * Plays a subtle tactile UI click sound.
+     */
+    default void playUiClickSound(float pitch) {
+    }
+
+    /**
+     * Sends a chat message or Baritone command (e.g. "#goto 100 64 100", "#mine diamond_ore", "#stop").
+     */
+    default void sendChatOrCommand(String text) {
+    }
+
+    /**
+     * Drives movement keys for AXSES Smart Baritone Navigator when active in world.
+     */
+    default void setAutoWalkInput(boolean forward, boolean jump, boolean sprint) {
+    }
+
+    /**
+     * Checks whether external Baritone / Automatone Fabric mod is loaded in mods/.
+     */
+    default boolean isExternalBaritoneLoaded() {
+        List<String> loaded = getLoadedMods();
+        if (loaded == null) {
+            return false;
+        }
+        for (int i = 0; i < loaded.size(); i++) {
+            String m = loaded.get(i).toLowerCase(java.util.Locale.ROOT);
+            if (m.startsWith("baritone") || m.contains("baritone-api") || m.startsWith("automatone")) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

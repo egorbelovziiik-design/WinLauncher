@@ -12,8 +12,8 @@ public final class LocalizationManager {
     public LocalizationManager() {
         Map<String, String> en = new HashMap<String, String>();
         en.put("gui.title", "AXSESCLIENT");
-        en.put("gui.subtitle", "VISION v3.5");
-        en.put("gui.search_placeholder", "Search 108 modules (e.g. KillAura, ESP, Radar, Totems, Target)...");
+        en.put("gui.subtitle", "APEX v4.0");
+        en.put("gui.search_placeholder", "Search 112 modules (KillAura, SnowGrim, Baritone, Spotify, ESP, FPS)...");
         en.put("gui.favorites", "Favorites");
         en.put("gui.hud_editor", "HUD Editor");
         en.put("gui.themes", "Themes");
@@ -55,8 +55,8 @@ public final class LocalizationManager {
 
         Map<String, String> ru = new HashMap<String, String>();
         ru.put("gui.title", "AXSESCLIENT");
-        ru.put("gui.subtitle", "VISION v3.5");
-        ru.put("gui.search_placeholder", "Поиск по 108 модулям (КиллАура, ESP, Радар, Тотемы, Таргет)...");
+        ru.put("gui.subtitle", "APEX v4.0");
+        ru.put("gui.search_placeholder", "Поиск по 112 модулям (КиллАура, SnowGrim, Баритон, Spotify, ESP, FPS)...");
         ru.put("gui.favorites", "Избранное");
         ru.put("gui.hud_editor", "HUD");
         ru.put("gui.themes", "Темы");
@@ -95,10 +95,10 @@ public final class LocalizationManager {
         ru.put("target.even", "РАВНЫЙ БОЙ");
         ru.put("target.danger", "ОПАСНО");
 
-        // All 96 modules — clean Russian titles & descriptions
-        putMod(ru, "kill_aura", "КиллАура (KillAura)", "Беспаливная 1.9+ аура с профилями FunTime / ReallyWorld / HolyWorld, GCD и умными критами");
-        putMod(ru, "target_hud", "Таргет HUD (Target HUD)", "Современная карточка цели: ХП с анимацией урона, дистанция и статус боя");
-        putMod(ru, "trigger_bot", "ТриггерБот (TriggerBot)", "Умный авто-удар по цели в прицеле с таймингом критов и паузой при еде");
+        // All 112 modules — 35-year veteran polished Russian titles & descriptions
+        putMod(ru, "kill_aura", "КиллАура (KillAura v4)", "Кинематическая 1.9+ аура: обходы SnowGrim, Grim, Matrix, Vulcan, Intave, Polar и FunTime/RW/HW");
+        putMod(ru, "target_hud", "Таргет HUD (Target HUD)", "Премиум-карточка цели: плавное ХП, броня, дистанция, урон и анализ преимущества");
+        putMod(ru, "trigger_bot", "ТриггерБот (TriggerBot)", "Точный авто-удар по цели в прицеле с умным критом и паузой при еде/щите");
 
         putMod(ru, "entity_esp", "ESP Подсветка (Entity ESP)", "Градиентные 2D/3D боксы игроков и мобов, ХП, никнеймы, предмет в руке и стрелки");
         putMod(ru, "item_esp", "ESP Предметов (Item ESP)", "Подсветка лута и предметов на земле с названием, количеством и дистанцией");
@@ -213,6 +213,12 @@ public final class LocalizationManager {
         putMod(ru, "damage_indicators", "Индикатор урона 3D", "Всплывающие в 3D-мире цифры нанесённого урона и исцеления над игроками");
         putMod(ru, "radar_hud", "Мини-Радар 2D", "Вращающийся тактический 2D-радар игроков и целей вокруг вас");
 
+        // v4.0.0 APEX ARCHITECT Flagship Additions (109..112)
+        putMod(ru, "spotify_music_hud", "Музыка и Spotify Плеер", "Живая синхронизация со Spotify, авто-стоп музыки Minecraft и кнопки Продолжить / Пауза / Стоп");
+        putMod(ru, "baritone_bot", "Баритон Автопилот (Baritone)", "ИИ-навигатор с 3D-маршрутом, добычей ресурсов (#mine/#goto) и кнопками управления в чате");
+        putMod(ru, "fps_optimizer", "Турбо Оптимизация FPS", "Стабилизатор кадра, отсечение дальних объектов и мониторинг Sodium / Lithium / FerriteCore");
+        putMod(ru, "chat_hud_drag", "Перемещение HUD в Чате", "Свободное перетаскивание, магнитное выравнивание и клик по виджетам прямо в открытом чате (T)");
+
         dictionaries.put("ru_RU", ru);
         initSettingAndOptionTranslations();
     }
@@ -292,9 +298,52 @@ public final class LocalizationManager {
         ruSettings.put("radar_mobs", "Показывать мобов");
         ruSettings.put("beacons_3d", "3D Маяки в мире");
         ruSettings.put("beacon_3d", "3D Маяк смерти");
+        ruSettings.put("move_fix", "Коррекция стрейфа (Grim)");
+        ruSettings.put("switch_delay", "Задержка смены цели (мс)");
+        ruSettings.put("hitbox_margin", "Отступ края хитбокса");
+        ruSettings.put("auto_mute_mc", "Авто-стоп музыки MC");
+        ruSettings.put("sync_spotify", "Синхронизация Spotify");
+        ruSettings.put("eq_style", "Стиль эквалайзера");
+        ruSettings.put("show_controls", "Кнопки плеера на HUD");
+        ruSettings.put("task_mode", "Задача Баритона");
+        ruSettings.put("goal_x", "Цель X");
+        ruSettings.put("goal_z", "Цель Z");
+        ruSettings.put("baritone_bridge", "Мост к моду Baritone");
+        ruSettings.put("auto_jump", "Авто-прыжок на блоки");
+        ruSettings.put("auto_sprint", "Спринт на маршруте");
+        ruSettings.put("path_3d", "3D Неоновый маршрут");
+        ruSettings.put("opt_preset", "Профиль оптимизации");
+        ruSettings.put("cull_dist", "Дальность отсечения (м)");
+        ruSettings.put("show_mods", "Детектор FPS-модов");
+        ruSettings.put("snap_guides", "Магнитные линии центра");
+        ruSettings.put("hover_frames", "Подсветка при наведении");
+        ruSettings.put("top_banner", "Подсказка в чате");
+        ruSettings.put("rmb_lock", "Закрепление по ПКМ");
 
         // Dropdown / Mode values in Russian
         ruOptions.put("Universal", "Универсальный");
+        ruOptions.put("SnowGrim", "SnowGrim (СНГ)");
+        ruOptions.put("Grim", "Grim AC 3.0м");
+        ruOptions.put("Matrix", "Matrix AC");
+        ruOptions.put("Vulcan", "Vulcan AC");
+        ruOptions.put("Intave", "Intave AC");
+        ruOptions.put("Polar", "Polar ML");
+        ruOptions.put("SnowGrim Coupled", "SnowGrim (Связь осей)");
+        ruOptions.put("Matrix Damped", "Matrix (Пружина)");
+        ruOptions.put("Grim Quantized", "Grim (Точный GCD)");
+        ruOptions.put("Polar Min-Jerk", "Polar (Мин. рывок)");
+        ruOptions.put("Silent Strafe", "Мягкий стрейф");
+        ruOptions.put("Strict Grim 45", "Строгий Grim 45°");
+        ruOptions.put("Spotify Emerald", "Изумруд Spotify");
+        ruOptions.put("Goto Waypoint", "К метке (Waypoint)");
+        ruOptions.put("Goto Coords", "По координатам X/Z");
+        ruOptions.put("Mine Diamonds", "Добыча алмазов");
+        ruOptions.put("Mine Ancient Debris", "Добыча обломков");
+        ruOptions.put("Follow Nearest", "Следовать за игроком");
+        ruOptions.put("Patrol Loop", "Патруль по кругу");
+        ruOptions.put("Ultra FPS", "Ультра FPS");
+        ruOptions.put("Balanced PvP", "Баланс PvP");
+        ruOptions.put("Zero Stutter", "Без фризов");
         ruOptions.put("Vision Capsule", "Неон-капсула");
         ruOptions.put("Aurora", "Аврора (Неон)");
         ruOptions.put("Legit Ghost", "Легит (Скрытный)");

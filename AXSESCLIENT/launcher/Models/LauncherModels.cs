@@ -32,6 +32,7 @@ public enum LauncherPage
 {
     Dashboard,
     Play,
+    ModsHub,
     Versions,
     Accounts,
     Profiles,
@@ -41,6 +42,185 @@ public enum LauncherPage
     Downloads,
     Diagnostics,
     About
+}
+
+public sealed class CuratedFabricModSpec
+{
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public required string ModrinthSlug { get; init; }
+    public string FallbackModrinthSlug { get; init; } = "";
+    public required string Category { get; init; } // FPS | AI | Graphics | QoL
+    public required string BoostBadgeRu { get; init; }
+    public required string BoostBadgeEn { get; init; }
+    public required string DescriptionRu { get; init; }
+    public required string DescriptionEn { get; init; }
+    public required string[] FilePrefixes { get; init; }
+    public bool IncludedInRecommendedPack { get; init; }
+    public bool IsInstalled { get; set; }
+    public bool IsEnabled { get; set; }
+    public string InstalledFileName { get; set; } = "";
+
+    public static List<CuratedFabricModSpec> CreatePopularCatalog() =>
+    [
+        new()
+        {
+            Id = "baritone",
+            Name = "Baritone AI Autopilot",
+            ModrinthSlug = "baritone",
+            FallbackModrinthSlug = "automatone",
+            Category = "AI",
+            BoostBadgeRu = "ИИ Автопилот · #mine / #goto",
+            BoostBadgeEn = "AI Pathfinder · #mine / #goto",
+            DescriptionRu = "Легендарный ИИ-навигатор и авто-шахтёр (#mine diamond_ore, #goto, #follow, #farm). Полная связка с 3D-маршрутом AXSES v4.0!",
+            DescriptionEn = "Legendary A* pathfinder, auto-miner (#mine), builder & follower integrated directly with AXSES 3D neon route HUD.",
+            FilePrefixes = ["baritone", "automatone"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "sodium",
+            Name = "Sodium",
+            ModrinthSlug = "sodium",
+            Category = "FPS",
+            BoostBadgeRu = "+300% FPS · Рендер чанков",
+            BoostBadgeEn = "+300% FPS · Chunk Engine",
+            DescriptionRu = "Самый популярный оптимизатор рендера Minecraft. Увеличивает FPS в 2.5–4 раза и полностью убирает микрофризы при прогрузке чанков.",
+            DescriptionEn = "Modern OpenGL chunk rendering engine delivering massive 2.5x-4x FPS gains and eliminating frame stutters.",
+            FilePrefixes = ["sodium-fabric", "sodium-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "lithium",
+            Name = "Lithium",
+            ModrinthSlug = "lithium",
+            Category = "FPS",
+            BoostBadgeRu = "+45% Тики и Физика",
+            BoostBadgeEn = "+45% Physics & Tick",
+            DescriptionRu = "Глубокая оптимизация физики игроков, ИИ мобов, воронок и тиков мира без малейшего изменения ванильных механик.",
+            DescriptionEn = "General-purpose game physics, mob AI, and block-tick optimization without altering vanilla mechanics.",
+            FilePrefixes = ["lithium-fabric", "lithium-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "ferritecore",
+            Name = "FerriteCore",
+            ModrinthSlug = "ferrite-core",
+            Category = "FPS",
+            BoostBadgeRu = "-45% Потребление ОЗУ",
+            BoostBadgeEn = "-45% RAM Usage",
+            DescriptionRu = "Снижает потребление оперативной памяти (RAM) почти вдвое и избавляет от фризов сборщика мусора JVM.",
+            DescriptionEn = "Reduces Minecraft memory usage by ~45% through blockstate and model deduplication.",
+            FilePrefixes = ["ferritecore-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "immediatelyfast",
+            Name = "ImmediatelyFast",
+            ModrinthSlug = "immediatelyfast",
+            Category = "FPS",
+            BoostBadgeRu = "+90% FPS в PvP и HUD",
+            BoostBadgeEn = "+90% Entity & HUD FPS",
+            DescriptionRu = "Ускоряет отрисовку игроков, брони, текста, инвентаря и HUD в массовых PvP-сражениях.",
+            DescriptionEn = "Batches immediate-mode rendering for entities, block entities, HUD, text, and GUI screens.",
+            FilePrefixes = ["ImmediatelyFast-", "immediatelyfast-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "entityculling",
+            Name = "EntityCulling",
+            ModrinthSlug = "entityculling",
+            Category = "FPS",
+            BoostBadgeRu = "+65% FPS · Отсечение стен",
+            BoostBadgeEn = "+65% Occlusion Culling",
+            DescriptionRu = "Асинхронная трассировка видимости: пропускает рендер мобов, игроков и сундуков, скрытых за стенами и под землёй.",
+            DescriptionEn = "Uses async path-tracing to skip rendering entities and block-entities hidden behind solid walls.",
+            FilePrefixes = ["entityculling-fabric", "entityculling-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "iris",
+            Name = "Iris Shaders",
+            ModrinthSlug = "iris",
+            Category = "Graphics",
+            BoostBadgeRu = "Шейдеры + Sodium",
+            BoostBadgeEn = "Shaders + Sodium",
+            DescriptionRu = "Современный движок шейдеров (Complementary, BSL, Rethinking Voxels) с максимальным FPS в связке с Sodium.",
+            DescriptionEn = "Next-gen shader pack loader seamlessly paired with Sodium for high-FPS realistic lighting.",
+            FilePrefixes = ["iris-fabric", "iris-"],
+            IncludedInRecommendedPack = false
+        },
+        new()
+        {
+            Id = "modernfix",
+            Name = "ModernFix",
+            ModrinthSlug = "modernfix",
+            Category = "FPS",
+            BoostBadgeRu = "2x Быстрый запуск",
+            BoostBadgeEn = "2x Faster Launch",
+            DescriptionRu = "Ускоряет запуск игры и вход на серверы в 2 раза, динамически выгружает неиспользуемые модели из памяти.",
+            DescriptionEn = "All-in-one performance suite improving launch speed, world loading, and dynamic resource memory.",
+            FilePrefixes = ["modernfix-fabric", "modernfix-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "dynamicfps",
+            Name = "Dynamic FPS",
+            ModrinthSlug = "dynamic-fps",
+            Category = "QoL",
+            BoostBadgeRu = "Экономия GPU/CPU",
+            BoostBadgeEn = "Background GPU Saver",
+            DescriptionRu = "Снижает нагрузку на видеокарту и процессор, когда окно Minecraft свёрнуто (например, при переключении трека в Spotify).",
+            DescriptionEn = "Automatically throttles background rendering when Minecraft is unfocused or minimized.",
+            FilePrefixes = ["dynamic-fps-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "krypton",
+            Name = "Krypton Network",
+            ModrinthSlug = "krypton",
+            Category = "FPS",
+            BoostBadgeRu = "Сетевой стек · Пинг",
+            BoostBadgeEn = "Netty Stack Optimizer",
+            DescriptionRu = "Оптимизирует сетевой конвейер Minecraft (сжатие и шифрование пакетов Netty), снижая нагрузку на процессор на серверах.",
+            DescriptionEn = "Optimizes the Minecraft Netty networking pipeline, packet compression, and encryption.",
+            FilePrefixes = ["krypton-"],
+            IncludedInRecommendedPack = false
+        },
+        new()
+        {
+            Id = "modmenu",
+            Name = "Mod Menu",
+            ModrinthSlug = "modmenu",
+            Category = "QoL",
+            BoostBadgeRu = "Меню настроек модов",
+            BoostBadgeEn = "In-Game Mod List",
+            DescriptionRu = "Добавляет удобный экран просмотра и тонкой настройки всех установленных модов прямо в меню Minecraft.",
+            DescriptionEn = "Clean in-game screen for viewing and configuring all installed Fabric mods.",
+            FilePrefixes = ["modmenu-"],
+            IncludedInRecommendedPack = true
+        },
+        new()
+        {
+            Id = "fabric-api",
+            Name = "Fabric API",
+            ModrinthSlug = "fabric-api",
+            Category = "QoL",
+            BoostBadgeRu = "Базовое ядро модов",
+            BoostBadgeEn = "Core Mod Library",
+            DescriptionRu = "Официальная базовая библиотека совместимости, необходимая большинству популярных модов Fabric.",
+            DescriptionEn = "Essential official standard library required by most Fabric optimization and QoL mods.",
+            FilePrefixes = ["fabric-api-"],
+            IncludedInRecommendedPack = true
+        }
+    ];
 }
 
 public sealed class SupportedVersionSpec
@@ -184,15 +364,20 @@ public sealed class ModuleCatalogItem
     public string DisplayName(bool ru) => ru && !string.IsNullOrWhiteSpace(NameRu) ? NameRu : Name;
     public string DisplayDescription(bool ru) => ru && !string.IsNullOrWhiteSpace(DescriptionRu) ? DescriptionRu : Description;
 
-    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll108Modules();
-    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll108Modules();
-    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll108Modules();
-    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll108Modules();
+    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll112Modules();
+    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll112Modules();
+    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll112Modules();
+    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll112Modules();
+    public static List<ModuleCatalogItem> CreateAll108Modules() => CreateAll112Modules();
 
-    public static List<ModuleCatalogItem> CreateAll108Modules() =>
+    public static List<ModuleCatalogItem> CreateAll112Modules() =>
     [
-        // Flagship Combat, ESP & Celestial Vision v3.5 Modules (01-18)
-        new() { Id = "kill_aura", Name = "KillAura", NameRu = "КиллАура", Category = "Combat", Description = "Stealth 1.9+ combat aura with FunTime/ReallyWorld/HolyWorld profiles, GCD rotations, 3D Soul Orbs & dual Jello rings.", DescriptionRu = "Беспаливная 1.9+ аура с обходами FunTime / ReallyWorld / HolyWorld, GCD-наводкой, 3D-сферами душ и двойной волной.", Enabled = false, Favorite = true },
+        // Flagship Combat, ESP, Spotify, Baritone & APEX v4.0 Modules
+        new() { Id = "kill_aura", Name = "KillAura v4", NameRu = "КиллАура v4", Category = "Combat", Description = "35-year kinematic 1.9+ combat aura with SnowGrim, Grim, Matrix, Vulcan, Intave, Polar & FunTime/RW/HW profiles.", DescriptionRu = "Кинематическая 1.9+ аура: обходы SnowGrim, Grim, Matrix, Vulcan, Intave, Polar и FunTime / ReallyWorld / HolyWorld.", Enabled = false, Favorite = true },
+        new() { Id = "spotify_music_hud", Name = "Spotify & Music", NameRu = "Музыка и Spotify Плеер", Category = "Utility", Description = "Live Spotify sync, auto-stops vanilla MC music when Spotify plays, plus interactive Continue/Pause/Stop/Next buttons.", DescriptionRu = "Живая синхронизация со Spotify, авто-стоп музыки Minecraft и улучшенные кнопки Продолжить / Пауза / Стоп прямо на HUD и в чате.", Enabled = true, Favorite = true },
+        new() { Id = "baritone_bot", Name = "Baritone Autopilot", NameRu = "Баритон Автопилот", Category = "World", Description = "Integrated Baritone AI pathfinder (#mine/#goto bridge + standalone 3D neon route & goal beacon).", DescriptionRu = "ИИ-автопилот Baritone: добыча алмазов и обломков (#mine/#goto), 3D неоновый маршрут и кнопки Пауза/Стоп в чате.", Enabled = false, Favorite = true },
+        new() { Id = "fps_optimizer", Name = "FPS Optimizer", NameRu = "Турбо Оптимизация FPS", Category = "Utility", Description = "Client frametime stabilizer, entity distance culler & live Sodium/Lithium/FerriteCore stack monitor.", DescriptionRu = "Стабилизатор времени кадра, отсечение дальних объектов и мониторинг связки Sodium + Lithium + FerriteCore.", Enabled = true, Favorite = true },
+        new() { Id = "chat_hud_drag", Name = "Chat HUD Mover", NameRu = "Перемещение HUD в Чате", Category = "HUD", Description = "Drag, snap, lock & click any HUD widget directly inside the in-game Chat screen (T).", DescriptionRu = "Свободное перетаскивание любых виджетов с магнитной сеткой и клик по кнопкам Spotify прямо в открытом чате (T).", Enabled = true, Favorite = true },
         new() { Id = "entity_esp", Name = "Entity ESP", NameRu = "ESP Подсветка", Category = "Render", Description = "Vision Capsule / Corner / 2D / 3D boxes, HP & armor bars, stadium nametags & offscreen radar.", DescriptionRu = "Неоновые капсулы и 2D/3D боксы игроков, полоски ХП и брони, скруглённые никнеймы и стрелки радара.", Enabled = false, Favorite = true },
         new() { Id = "target_hud", Name = "Target HUD", NameRu = "Таргет HUD", Category = "Combat", Description = "Curved Celestial Vision glass target card with gradient HP bar, damage trail, weapon & PvP status.", DescriptionRu = "Скруглённая стеклянная карточка цели Vision с градиентом ХП, оружием, дистанцией и статусом боя.", Enabled = true, Favorite = true },
         new() { Id = "radar_hud", Name = "2D PvP Radar", NameRu = "Мини-Радар 2D", Category = "HUD", Description = "Live rotating curved 2D tactical radar displaying nearby players and locked targets.", DescriptionRu = "Вращающийся скруглённый 2D-радар ближайших игроков и целей вокруг вас в реальном времени.", Enabled = true, Favorite = true },
@@ -203,7 +388,7 @@ public sealed class ModuleCatalogItem
         new() { Id = "auto_respawn", Name = "Auto Death Guard", NameRu = "Страж смерти", Category = "Player", Description = "Automatically copies exact death coordinates to clipboard and alerts upon death.", DescriptionRu = "Автоматическое сохранение и копирование координат смерти в буфер обмена.", Enabled = false },
         new() { Id = "china_hat", Name = "China Hat", NameRu = "Коническая шляпа", Category = "Render", Description = "Rotating 3D translucent Aurora cone halo above active target and third-person player.", DescriptionRu = "Объёмный 3D неоновый нимб Aurora над головой активной цели и самого игрока.", Enabled = false, Favorite = true },
         new() { Id = "jump_circles", Name = "Jump Circles", NameRu = "Круги прыжка", Category = "Render", Description = "Expanding dual-gradient 3D Aurora energy rings on the ground whenever you jump.", DescriptionRu = "Расходящиеся градиентные 3D-кольца на земле в точке каждого прыжка.", Enabled = false, Favorite = true },
-        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Curved Celestial Vision top-left glass brand capsule with player, FPS, ping, speed & server.", DescriptionRu = "Скруглённая верхняя стеклянная капсула: бренд AXSES 3.5, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
+        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Curved APEX v4.0 top-left glass brand capsule with player, FPS, ping, speed & server.", DescriptionRu = "Скруглённая верхняя стеклянная капсула: бренд AXSES 4.0, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
         new() { Id = "module_list", Name = "Module ArrayList", NameRu = "Список модулей", Category = "HUD", Description = "Cascading right-aligned list of active modules with synchronized Aurora wave glow.", DescriptionRu = "Каскадный список включённых функций справа с живой неоновой волной Aurora и режимами.", Enabled = true, Favorite = true },
         new() { Id = "breadcrumbs", Name = "Breadcrumbs", NameRu = "Шлейф движения", Category = "Render", Description = "Smooth fading 3D Aurora energy ribbon along your movement trajectory.", DescriptionRu = "Плавный светящийся 3D-шлейф за траекторией вашего бега.", Enabled = false },
         new() { Id = "hit_particles", Name = "Hit Particles", NameRu = "Партиклы ударов", Category = "Render", Description = "Glowing 3D Aurora sparks around struck targets on hit.", DescriptionRu = "Неоновые 3D-искры вокруг цели в момент точного удара.", Enabled = false },

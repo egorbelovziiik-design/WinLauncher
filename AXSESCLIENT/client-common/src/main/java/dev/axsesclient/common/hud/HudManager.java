@@ -1,8 +1,13 @@
 package dev.axsesclient.common.hud;
 
+import dev.axsesclient.common.config.ConfigManager;
+import dev.axsesclient.common.i18n.LocalizationManager;
+import dev.axsesclient.common.notifications.NotificationManager;
 import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
 import dev.axsesclient.common.render.FontManager;
+import dev.axsesclient.common.render.RenderManager;
+import dev.axsesclient.common.theme.AxsesTheme;
 import dev.axsesclient.common.theme.ThemeManager;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +43,18 @@ public final class HudManager {
     private boolean edgeAndCenterSnapping = true;
     private ResolutionPreview resolutionPreview = ResolutionPreview.CURRENT;
 
+    // Live In-Chat ('T' / ChatScreen) HUD Dragging & Interactive Widget State
+    private boolean chatHudMoverEnabled = true;
+    private boolean chatSnapGuides = true;
+    private boolean chatHoverFrames = true;
+    private boolean chatTopBanner = true;
+    private boolean chatRightClickLock = true;
+    private HudElement chatDraggedElement = null;
+    private float chatDragOffsetX = 0.0f;
+    private float chatDragOffsetY = 0.0f;
+    private boolean chatVertCenterGuide = false;
+    private boolean chatHorizCenterGuide = false;
+
     public synchronized HudElement register(HudElement element) {
         elements.put(element.getId(), element);
         return element;
@@ -51,11 +68,220 @@ public final class HudManager {
         return Collections.unmodifiableList(new ArrayList<HudElement>(elements.values()));
     }
 
+    public void configureChatMover(boolean enabled, boolean snapGuides, boolean hoverFrames, boolean topBanner, boolean rightClickLock) {
+        this.chatHudMoverEnabled = enabled;
+        this.chatSnapGuides = snapGuides;
+        this.chatHoverFrames = hoverFrames;
+        this.chatTopBanner = topBanner;
+        this.chatRightClickLock = rightClickLock;
+        if (!enabled) {
+            this.chatDraggedElement = null;
+            this.chatVertCenterGuide = false;
+            this.chatHorizCenterGuide = false;
+        }
+    }
+
+    public boolean isChatHudMoverEnabled() {
+        return chatHudMoverEnabled;
+    }
+
+    public HudElement getChatDraggedElement() {
+        return chatDraggedElement;
+    }
+
+    public void setChatDragShowcaseState(HudElement target, boolean vertGuide, boolean horizGuide) {
+        this.chatDraggedElement = target;
+        this.chatVertCenterGuide = vertGuide;
+        this.chatHorizCenterGuide = horizGuide;
+    }
+
+    public boolean onChatMousePress(
+            MinecraftAdapter mc,
+            ConfigManager cfg,
+            NotificationManager notif,
+            LocalizationManager i18n,
+            double mx,
+            double my,
+            int button
+    ) {
+        if (mc == null || !mc.isChatScreenOpen()) {
+            return false;
+        }
+        float sw = Math.max(1.0f, (float) mc.getScaledWidth());
+        float sh = Math.max(1.0f, (float) mc.getScaledHeight());
+
+        // Never intercept clicks inside the bottom 22px vanilla Chat input strip
+        if (my >= sh - 22.0) {
+            return false;
+        }
+
+        List<HudElement> all = getAll();
+        for (int i = all.size() - 1; i >= 0; i--) {
+            HudElement el = all.get(i);
+            if (!el.isVisibleInGame()) {
+                continue;
+            }
+            float px = el.getPixelX(sw);
+            float py = el.getPixelY(sh);
+            float ew = el.getScaledWidth();
+            float eh = el.getScaledHeight();
+            if (mx >= px && mx <= px + ew && my >= py && my <= py + eh) {
+                // 1. Interactive buttons inside HUD cards (Spotify Play/Pause/Stop/Next/Prev, Baritone Stop/Pause)
+                if (el.getInteractiveHandler() != null) {
+                    boolean handledBtn = el.getInteractiveHandler().onMouseClick(
+                            mc, (float) (mx - px), (float) (my - py), ew, eh, button
+                    );
+                    if (handledBtn) {
+                        mc.playUiClickSound(1.08f);
+                        return true;
+                    }
+                }
+
+                // 2. Chat HUD Mover (Left-click drag / Right-click lock)
+                if (!chatHudMoverEnabled) {
+                    continue;
+                }
+                if (button == 1 && chatRightClickLock) {
+                    el.setLocked(!el.isLocked());
+                    mc.playUiClickSound(0.95f);
+                    if (notif != null) {
+                        boolean ru = i18n == null || i18n.isRussian();
+                        notif.push(
+                                el.getTitle(),
+                                el.isLocked() ? (ru ? "Виджет закреплён в чате" : "Pinned in Chat") : (ru ? "Виджет разблокирован" : "Unlocked in Chat"),
+                                NotificationManager.Severity.INFO
+                        );
+                    }
+                    if (cfg != null) {
+                        cfg.saveActiveAsync();
+                    }
+                    return true;
+                }
+                if (button == 0 && !el.isLocked()) {
+                    chatDraggedElement = el;
+                    chatDragOffsetX = (float) mx - px;
+                    chatDragOffsetY = (float) my - py;
+                    mc.playUiClickSound(1.02f);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void onChatMouseRelease(ConfigManager cfg, int button) {
+        if (button == 0 && chatDraggedElement != null) {
+            chatDraggedElement = null;
+            chatVertCenterGuide = false;
+            chatHorizCenterGuide = false;
+            if (cfg != null) {
+                cfg.saveActiveAsync();
+            }
+        }
+    }
+
     public void renderInGameHud(RenderAdapter r, MinecraftAdapter mc, ThemeManager themeManager, FontManager fontManager) {
+        renderInGameHud(r, mc, themeManager, fontManager, null);
+    }
+
+    public void renderInGameHud(
+            RenderAdapter r,
+            MinecraftAdapter mc,
+            ThemeManager themeManager,
+            FontManager fontManager,
+            LocalizationManager i18n
+    ) {
         float w = r.getScaledWidth();
         float h = r.getScaledHeight();
+        boolean chatOpen = mc != null && mc.isChatScreenOpen();
+        if (!chatOpen && chatDraggedElement != null) {
+            chatDraggedElement = null;
+            chatVertCenterGuide = false;
+            chatHorizCenterGuide = false;
+        }
+
+        float cmx = chatOpen ? (float) mc.getScaledMouseX() : -100.0f;
+        float cmy = chatOpen ? (float) mc.getScaledMouseY() : -100.0f;
+
+        if (chatOpen && chatHudMoverEnabled && chatDraggedElement != null && cmx >= 0.0f && cmy >= 0.0f) {
+            boolean[] guides = moveElementWithSnapping(
+                    chatDraggedElement,
+                    cmx - chatDragOffsetX,
+                    cmy - chatDragOffsetY,
+                    w,
+                    h
+            );
+            chatVertCenterGuide = guides[0];
+            chatHorizCenterGuide = guides[1];
+        }
+
+        AxsesTheme t = themeManager.getActiveTheme();
+        int prim = themeManager.filterColor(t.getPrimaryColor());
+        int acc = themeManager.filterColor(t.getAccentColor());
+
+        if (chatOpen && chatHudMoverEnabled && chatSnapGuides) {
+            if (chatVertCenterGuide) {
+                r.fillRect(w * 0.5f - 0.5f, 0.0f, 1.0f, h - 22.0f, AxsesTheme.withAlpha(acc, 0.78f));
+            }
+            if (chatHorizCenterGuide) {
+                r.fillRect(0.0f, h * 0.5f - 0.5f, w, 1.0f, AxsesTheme.withAlpha(acc, 0.78f));
+            }
+        }
+
+        HudElement hoveredInChat = null;
+        if (chatOpen && chatHudMoverEnabled && chatDraggedElement == null && cmx >= 0.0f && cmy >= 0.0f && cmy < h - 22.0f) {
+            List<HudElement> list = getAll();
+            for (int i = list.size() - 1; i >= 0; i--) {
+                HudElement el = list.get(i);
+                if (!el.isVisibleInGame()) continue;
+                float px = el.getPixelX(w);
+                float py = el.getPixelY(h);
+                if (cmx >= px && cmx <= px + el.getScaledWidth() && cmy >= py && cmy <= py + el.getScaledHeight()) {
+                    hoveredInChat = el;
+                    break;
+                }
+            }
+        }
+
         for (HudElement el : elements.values()) {
-            el.renderWidget(r, mc, themeManager, fontManager, w, h, false, false);
+            boolean activeSel = chatOpen && (el == chatDraggedElement || (chatHoverFrames && el == hoveredInChat));
+            el.renderWidget(r, mc, themeManager, fontManager, w, h, false, activeSel);
+            if (activeSel && el.isVisibleInGame()) {
+                float px = el.getPixelX(w);
+                float py = el.getPixelY(h);
+                float ew = el.getScaledWidth();
+                float eh = el.getScaledHeight();
+                int frameCol = (el == chatDraggedElement) ? acc : AxsesTheme.withAlpha(prim, 0.80f);
+                r.drawRoundedOutline(px - 2.0f, py - 2.0f, ew + 4.0f, eh + 4.0f, 10.0f, 1.2f, frameCol);
+                if (el == chatDraggedElement || el == hoveredInChat) {
+                    boolean ru = i18n == null || i18n.isRussian();
+                    String tag = el.isLocked()
+                            ? (ru ? "🔒 Закреплён (ПКМ)" : "🔒 Locked (RMB)")
+                            : (el == chatDraggedElement
+                                    ? (ru ? "✦ Перемещение · " + Math.round(px) + "," + Math.round(py) : "✦ Moving · " + Math.round(px) + "," + Math.round(py))
+                                    : (ru ? "✦ ЛКМ: двигать · ПКМ: замок" : "✦ LMB: Drag · RMB: Lock"));
+                    float tw = fontManager.width(r, tag, 0.78f) + 12.0f;
+                    float ty = py >= 16.0f ? (py - 14.0f) : (py + eh + 3.0f);
+                    r.fillRoundedRect(px, ty, tw, 12.5f, 6.0f, 0xE6050816);
+                    r.drawRoundedOutline(px, ty, tw, 12.5f, 6.0f, 1.0f, frameCol);
+                    fontManager.draw(r, tag, px + 6.0f, ty + 3.0f, 0xFFF8FAFF, 0.78f);
+                }
+            }
+        }
+
+        // Compact Top-Center Chat HUD Mover Banner
+        if (chatOpen && chatHudMoverEnabled && chatTopBanner) {
+            boolean ru = i18n == null || i18n.isRussian();
+            String hint = ru
+                    ? "✦ ЧАТ-РЕЖИМ HUD: перетаскивайте любые виджеты ЛКМ · Кнопки Spotify и Баритона кликабельны"
+                    : "✦ CHAT HUD MODE: Drag any widget with LMB · Spotify & Baritone controls are clickable";
+            float bw = fontManager.width(r, hint, 0.82f) + 22.0f;
+            float bx = (w - bw) * 0.5f;
+            float by = 30.0f;
+            r.fillRoundedRect(bx, by, bw, 18.0f, 9.0f, 0xE4060A18);
+            RenderManager.fillRoundedHorizontalGradient(r, bx + 10.0f, by + 1.0f, bw - 20.0f, 1.5f, 0.75f, prim, acc);
+            r.drawRoundedOutline(bx, by, bw, 18.0f, 9.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.75f));
+            fontManager.drawCentered(r, hint, w * 0.5f, by + 5.2f, 0xFFF8FAFF, 0.82f);
         }
     }
 

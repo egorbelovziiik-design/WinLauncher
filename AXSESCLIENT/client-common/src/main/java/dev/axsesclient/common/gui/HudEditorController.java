@@ -83,7 +83,7 @@ public final class HudEditorController {
         float barY = 30f;
         r.fillRoundedRect(barX, barY, barW, 24f, 6f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
         r.drawRoundedOutline(barX, barY, barW, 24f, 6f, 1.0f, t.getPrimaryColor());
-        core.getFontManager().draw(r, ru ? "РЕДАКТОР HUD 3.0" : "AXSES HUD EDITOR", barX + 10f, barY + 8f, t.getAccentColor(), 0.80f);
+        core.getFontManager().draw(r, ru ? "РЕДАКТОР HUD 4.0" : "AXSES HUD EDITOR", barX + 10f, barY + 8f, t.getAccentColor(), 0.80f);
         drawToolBtn(r, barX + 118f, barY + 3f, 60f, 18f, hm.isGridSnapping() ? (ru ? "Сетка:ВКЛ" : "Grid:ON") : (ru ? "Сетка:ВЫКЛ" : "Grid:OFF"), mouseX, mouseY);
         drawToolBtn(r, barX + 182f, barY + 3f, 82f, 18f, showDisabledWidgets ? (ru ? "Вид:Все" : "Show:All") : (ru ? "Вид:Актив" : "Show:Active"), mouseX, mouseY);
         drawToolBtn(r, barX + 268f, barY + 3f, 70f, 18f, rp.getLabel().split(" ")[0], mouseX, mouseY);
@@ -173,6 +173,10 @@ public final class HudEditorController {
             float eh = el.getScaledHeight();
             if (hit((float) mx, (float) my, px, py, ew, eh)) {
                 selectedElement = el;
+                if (el.getInteractiveHandler() != null && el.getInteractiveHandler().onMouseClick(mc, (float) (mx - px), (float) (my - py), ew, eh, button)) {
+                    mc.playUiClickSound(1.08f);
+                    return true;
+                }
                 if (button == 1 && el.getBoundModule() != null) {
                     el.getBoundModule().toggle(mc);
                     return true;
@@ -249,8 +253,15 @@ public final class HudEditorController {
     private void drawToolBtn(RenderAdapter r, float x, float y, float w, float h, String txt, int mx, int my) {
         AxsesTheme t = core.getThemeManager().getActiveTheme();
         boolean hov = hit(mx, my, x, y, w, h);
-        r.fillRoundedRect(x, y, w, h, 4f, hov ? core.getThemeManager().filterColor(t.getPrimaryColor()) : t.getElevatedColor());
-        core.getFontManager().drawCentered(r, txt, x + w * 0.5f, y + 5f, t.getTextColor(), 0.72f);
+        int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
+        int acc = core.getThemeManager().filterColor(t.getAccentColor());
+        float rad = Math.min(7.5f, h * 0.46f);
+        r.fillRoundedRect(x, y, w, h, rad, hov ? AxsesTheme.withAlpha(prim, 0.55f) : t.getElevatedColor());
+        if (w > 12f) {
+            r.fillRect(x + rad, y + 1.0f, w - rad * 2.0f, 1.0f, hov ? 0x3AFFFFFF : 0x1AFFFFFF);
+        }
+        r.drawRoundedOutline(x, y, w, h, rad, 1.0f, hov ? acc : AxsesTheme.withAlpha(prim, 0.42f));
+        core.getFontManager().drawCentered(r, txt, x + w * 0.5f, y + 5.2f, 0xFFFFFFFF, 0.74f);
     }
 
     private static boolean hit(float mx, float my, float x, float y, float w, float h) {
