@@ -691,7 +691,11 @@ public final class BatchFeaturesProbe extends JavaPlugin implements Listener {
         long count=displays();
         if(count==14){
             ok(true,"selected deer model returns after restart");
-            a.performCommand("pet off");later(10,()->{ok(displays()==0,"restored pet can be switched off");finish();});
+            // Keep the real protocol player near the tree long enough to span
+            // several one-second particle ticks after the cross-world teleport.
+            // Otherwise an immediately restored pet races the first tick and
+            // the network assertion intermittently observes zero packets.
+            a.performCommand("pet off");later(70,()->{ok(displays()==0,"restored pet can be switched off");finish();});
         }else if(attempts<30){
             later(5,()->awaitRestoredPet(attempts+1));
         }else{
