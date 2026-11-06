@@ -3,3 +3,7 @@ version: '1.0'
 main: net.kinggrief.probe.V714Probe
 api-version: '1.21'
 depend: [KingGriefCore]
+commands:
+  kgprobeexplode: {}
+  kgprobedispatch: {}
+  kgprobemismatch: {}

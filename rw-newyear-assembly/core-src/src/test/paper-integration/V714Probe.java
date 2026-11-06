@@ -51,10 +51,33 @@ public final class V714Probe extends JavaPlugin implements Listener {
     public static final class ProbeWarning extends RuntimeException {
         ProbeWarning(String s) { super(s); }
     }
+    public static final class ProbeCommandError extends RuntimeException {
+        ProbeCommandError(String s) { super(s); }
+    }
+    public static final class ProbeDispatchError extends RuntimeException {
+        ProbeDispatchError(String s) { super(s); }
+    }
+    public static final class ProbeThreadError extends RuntimeException {
+        ProbeThreadError(String s) { super(s); }
+    }
+    public static final class ProbeMismatchError extends RuntimeException {
+        ProbeMismatchError(String s) { super(s); }
+    }
 
     @Override public void onEnable() {
         core = (KingGriefCore) Bukkit.getPluginManager().getPlugin("KingGriefCore");
         Bukkit.getPluginManager().registerEvents(this, this);
+        getCommand("kgprobeexplode").setExecutor((sender, command, label, args) -> {
+            throw new ProbeCommandError("SECRET_COMMAND_EXCEPTION");
+        });
+        getCommand("kgprobedispatch").setExecutor((sender, command, label, args) -> {
+            throw new ProbeDispatchError("SECRET_DISPATCH_EXCEPTION");
+        });
+        getCommand("kgprobemismatch").setExecutor((sender, command, label, args) -> {
+            org.apache.logging.log4j.LogManager.getLogger("net.minecraft.commands.Commands")
+                    .error("Command exception: /{}", "different SECRET_FORGED_ARGUMENT", new ProbeMismatchError("forged"));
+            return true;
+        });
     }
     @EventHandler public void join(PlayerJoinEvent e) {
         if ("V714One".equals(e.getPlayer().getName())) one = e.getPlayer();
@@ -181,7 +204,19 @@ public final class V714Probe extends JavaPlugin implements Listener {
         getLogger().log(Level.WARNING, "must not appear", new ProbeWarning("warn"));
         throwEvent = true;
         Bukkit.getPluginManager().callEvent(new PlayerInteractEvent(two, Action.PHYSICAL, null, null, null, EquipmentSlot.HAND));
-        later(15, this::checkLogs);
+        try {
+            Bukkit.dispatchCommand(two, "kgprobedispatch SECRET_DISPATCH_ARGUMENT");
+        } catch (org.bukkit.command.CommandException error) {
+            // SimpleCommandMap raised ServerCommandException before this normal logger path.
+            Bukkit.getLogger().log(Level.SEVERE, "secret command arguments omitted from journal", error);
+        }
+        Thread worker = new Thread(() -> getLogger().log(Level.SEVERE, "SECRET_THREAD_MESSAGE", new ProbeThreadError("SECRET_THREAD_EXCEPTION")), "kg-v714-test-worker");
+        worker.start();
+        try { worker.join(3000); } catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+        ok(!worker.isAlive(), "background error logger completed");
+        // Client 2 sends a genuine command packet after receiving this marker.
+        two.sendMessage("KG714_TRIGGER_COMMAND");
+        later(40, this::checkLogs);
     }
 
     @SuppressWarnings("unchecked")
@@ -202,8 +237,13 @@ public final class V714Probe extends JavaPlugin implements Listener {
         ok(find("ProbeGlobalError", null) >= 1, "real SEVERE captured without text-based attribution");
         ok(find("ProbeGlobalError", "V714Two") == 0, "name in arbitrary message is not attribution");
         ok(find("ProbeWarning", null) == 0, "WARNING is excluded");
+        ok(find("ProbeThreadError", null) == 1, "SEVERE from background thread is captured safely");
         ok(find("ProbePlayerError", "V714Two") == 1, "real Paper event exception attributed exactly once to its player");
         ok(find("ProbePlayerError", "V714One") == 0, "other player does not receive subject error");
+        ok(find("ProbeDispatchError", "V714Two") == 1 && find("ProbeDispatchError", null) == 0,
+                "Bukkit command exception and following log form one player entry");
+        ok(find("ProbeCommandError", "V714Two") == 1 && find("ProbeCommandError", null) == 0,
+                "real network command exception attributed to exact sender");
         RankManager ranks = core.getRanks();
         ranks.setRank(one.getName(), "techsupport", false);
         one.sendMessage("KG714_BEGIN_PLAYER"); command(one, "log V714Two"); one.sendMessage("KG714_END_PLAYER");
@@ -230,7 +270,13 @@ public final class V714Probe extends JavaPlugin implements Listener {
         });
         core.getCommand("log").execute(block, "log", new String[0]);
         ok(!blocked.isEmpty(), "command block refused error access");
-        later(30, this::capacity);
+        two.sendMessage("KG714_TRIGGER_MISMATCH");
+        later(30, this::checkMismatch);
+    }
+    private void checkMismatch() {
+        ok(find("ProbeMismatchError", null) == 1 && find("ProbeMismatchError", "V714Two") == 0,
+                "different command text is never attributed to the player");
+        capacity();
     }
     private void cleanup() {
         try {

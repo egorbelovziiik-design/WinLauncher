@@ -5,7 +5,12 @@ const clients = names.map(username => mc.createClient({host:'127.0.0.1',port:Num
 const connected = [false, false], errors = [], messages = [];
 clients.forEach((c, i) => {
   c.on('position', p => { connected[i] = true; c.write('teleport_confirm', {teleportId:p.teleportId}); });
-  c.on('system_chat', p => { if (i === 0) messages.push(JSON.stringify(p.content)); });
+  c.on('system_chat', p => {
+    const text=JSON.stringify(p.content);
+    if (i === 0) messages.push(text);
+    if (i === 1 && text.includes('KG714_TRIGGER_COMMAND')) c.write('chat_command', {command:'kgprobeexplode SECRET_COMMAND_ARGUMENT'});
+    if (i === 1 && text.includes('KG714_TRIGGER_MISMATCH')) c.write('chat_command', {command:'kgprobemismatch SECRET_CORRECT_ARGUMENT'});
+  });
   c.on('error', e => { errors.push(names[i]+': '+String(e)); });
 });
 function section(name) {
@@ -21,14 +26,14 @@ process.stdin.on('data', chunk => {
     const denied=section('DENIED'), unauth=section('UNAUTH'), frozen=section('FROZEN'), page=section('PAGE');
     const report = {
       connected, errors,
-      playerExact: player.includes('ProbePlayerError') && player.includes('V714Two') && !player.includes('ProbeGlobalError'),
+      playerExact: player.includes('ProbePlayerError') && player.includes('ProbeCommandError') && player.includes('ProbeDispatchError') && player.includes('V714Two') && !player.includes('ProbeGlobalError'),
       serverErrors: server.includes('ProbeGlobalError') && server.includes('ProbePlayerError') && !server.includes('ProbeWarning'),
       noPrefixMatch: !wrong.includes('ProbePlayerError') && wrong.includes('нет'),
       denied: denied.includes('доступен') && !denied.includes('ProbeGlobalError'),
       unauth: unauth.includes('доступен') && !unauth.includes('ProbeGlobalError'),
       frozen: frozen.includes('доступен') && !frozen.includes('ProbeGlobalError'),
       pagination: page.includes('2/100'),
-      noSecrets: !messages.join('\n').match(/SECRET_(?:GLOBAL|PLAYER)_DO_NOT_SEND|PASSWORD_(?:GLOBAL|PLAYER)|TOKEN_(?:GLOBAL|PLAYER)|COOKIE_(?:GLOBAL|PLAYER)|192\.0\.2\.(?:22|99)/),
+      noSecrets: !messages.join('\n').match(/SECRET_(?:GLOBAL|PLAYER)_DO_NOT_SEND|SECRET_(?:COMMAND|DISPATCH|THREAD|FORGED|CORRECT)_[A-Z]+|PASSWORD_(?:GLOBAL|PLAYER)|TOKEN_(?:GLOBAL|PLAYER)|COOKIE_(?:GLOBAL|PLAYER)|192\.0\.2\.(?:22|99)/),
       sectionCounts: [player,server,wrong,denied,unauth,frozen,page].map(x=>x.length),
     };
     const ok=connected.every(Boolean) && errors.length===0 && report.playerExact && report.serverErrors && report.noPrefixMatch

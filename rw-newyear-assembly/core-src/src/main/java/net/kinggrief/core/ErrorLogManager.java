@@ -29,8 +29,14 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -61,6 +67,10 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
 
     private final KingGriefCore plugin;
     private final ArrayDeque<Entry> entries = new ArrayDeque<Entry>();
+    // Network commands normally bypass SimpleCommandMap/ServerCommandException.
+    // Keep only a keyed digest and safe nick until the next server tick.
+    private final byte[] commandKey = new byte[32];
+    private final ThreadLocal<CommandContext> commandContext = new ThreadLocal<CommandContext>();
     private LoggerContext context;
     private Configuration attachedConfiguration;
     private AbstractAppender appender;
@@ -77,6 +87,7 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
         volatile String source;
         volatile String kind;
         volatile String player;
+        boolean paired;
 
         Entry(long time, String severity, String source, String kind, Throwable thrown) {
             this.time = time;
@@ -90,7 +101,21 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
         }
     }
 
-    ErrorLogManager(KingGriefCore plugin) { this.plugin = plugin; }
+    private static final class CommandContext {
+        final String player;
+        final byte[] digest;
+        final long createdNanos;
+        CommandContext(String player, byte[] digest) {
+            this.player = player;
+            this.digest = digest;
+            this.createdNanos = System.nanoTime();
+        }
+    }
+
+    ErrorLogManager(KingGriefCore plugin) {
+        this.plugin = plugin;
+        new SecureRandom().nextBytes(commandKey);
+    }
 
     void start() {
         accepting = true;
@@ -107,6 +132,8 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
                         String source = safeSource(event.getLoggerName());
                         Entry entry = new Entry(event.getTimeMillis(), event.getLevel() == Level.FATAL ? "FATAL" : "ERROR",
                                 source, "сервер", event.getThrown());
+                        String commandPlayer = matchNetworkCommand(event);
+                        if (commandPlayer != null) { entry.player = commandPlayer; entry.kind = "команда"; }
                         add(entry);
                     } catch (Throwable ignored) { /* keep the server logger working */ }
                 }
@@ -138,6 +165,7 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
             }
         } catch (Throwable ignored) { }
         synchronized (entries) { entries.clear(); }
+        commandContext.remove();
         appender = null;
         attachedConfiguration = null;
         context = null;
@@ -162,9 +190,66 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
     private void add(Entry entry) {
         synchronized (entries) {
             if (!accepting) return;
+            // SimpleCommandMap reports the structured exception before its caller
+            // logs it; Paper events do the reverse. Pair only the same Throwable,
+            // same thread and a short interval, once per occurrence.
+            Throwable error = entry.original.get();
+            if (error != null) {
+                Iterator<Entry> it = entries.descendingIterator();
+                while (it.hasNext()) {
+                    Entry previous = it.next();
+                    if (!previous.paired && !"сервер".equals(previous.kind)
+                            && previous.original.get() == error && previous.threadId == entry.threadId
+                            && Math.abs(entry.time - previous.time) < 2000L) {
+                        previous.paired = true;
+                        return;
+                    }
+                }
+            }
             while (entries.size() >= CAPACITY) entries.removeFirst();
             entries.addLast(entry);
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
+        if (!accepting || !Bukkit.isPrimaryThread()) return;
+        try {
+            String nick = safeNick(event.getPlayer().getName());
+            String raw = event.getMessage();
+            if (nick == null || raw == null || !raw.startsWith("/") || raw.length() > 4096) return;
+            byte[] digest = commandDigest(raw.substring(1));
+            final CommandContext captured = new CommandContext(nick, digest);
+            commandContext.set(captured);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (commandContext.get() == captured) commandContext.remove();
+            });
+        } catch (Throwable ignored) { commandContext.remove(); }
+    }
+
+    private byte[] commandDigest(String command) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(commandKey, "HmacSHA256"));
+        return mac.doFinal(command.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Paper 1.21.4 logs network command failures after the preprocess event,
+     * without ServerCommandException. Verify the fixed logger/format AND digest;
+     * never retain or display the command text or its arguments. */
+    private String matchNetworkCommand(LogEvent event) {
+        try {
+            CommandContext recent = commandContext.get();
+            long age = recent == null ? -1L : System.nanoTime() - recent.createdNanos;
+            if (recent == null || age < 0L || age > 2_000_000_000L
+                    || !"net.minecraft.commands.Commands".equals(event.getLoggerName()) || event.getMessage() == null
+                    || !"Command exception: /{}".equals(event.getMessage().getFormat())) return null;
+            Object[] params = event.getMessage().getParameters();
+            if (params == null || params.length == 0 || !(params[0] instanceof String)) return null;
+            String loggedCommand = (String) params[0];
+            if (loggedCommand.length() > 4096 || !MessageDigest.isEqual(recent.digest, commandDigest(loggedCommand))) return null;
+            commandContext.remove();
+            return recent.player;
+        } catch (Throwable ignored) { return null; }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -202,12 +287,13 @@ final class ErrorLogManager implements Listener, CommandExecutor, TabCompleter {
                 Iterator<Entry> it = entries.descendingIterator();
                 while (it.hasNext()) {
                     Entry previous = it.next();
-                    if (cause != null && previous.original.get() == cause
-                            && previous.threadId == Thread.currentThread().getId()
+                    if (cause != null && !previous.paired && "сервер".equals(previous.kind)
+                            && previous.original.get() == cause && previous.threadId == Thread.currentThread().getId()
                             && Math.abs(System.currentTimeMillis() - previous.time) < 2000L) {
                         previous.player = foundPlayer;
                         previous.source = foundSource;
                         previous.kind = foundKind;
+                        previous.paired = true;
                         return;
                     }
                 }
