@@ -1,9 +1,9 @@
 {
   "status": "PASS",
   "minecraftVersion": "1.16.5",
-  "javaRuntime": "1.8.0_504",
-  "modulesRegistered": 102,
-  "themesRegistered": 12,
+  "javaRuntime": "1.8.0_512",
+  "modulesRegistered": 108,
+  "themesRegistered": 14,
   "activeTheme": "axses-purple",
   "effectiveGamma": 12.0,
   "mixinAudit": "PASS"

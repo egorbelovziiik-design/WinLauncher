@@ -1,28 +1,28 @@
-# AXSESCLIENT v3.0.0 — HYPERION AURORA
+# AXSESCLIENT v3.5.0 — CELESTIAL VISION
 
-**Нативный Windows 10/11 x64 лаунчер (`AXSESCLIENT.exe`) и Fabric-клиент для Minecraft `1.16.5`, `1.21.4` и `1.21.11` (102 реальных модуля • 12 тем • Русский / English).**
+**Нативный Windows 10/11 x64 лаунчер (`AXSESCLIENT.exe`) и Fabric-клиент для Minecraft `1.16.5`, `1.21.4` и `1.21.11` (Скруглённое ClickGUI на Правый Shift • 108 реальных модулей • 14 тем • Русский / English).**
 
-![AXSESCLIENT v3.0.0 Showcase](AXSESCLIENT-RELEASE/screenshots/axsesclient-v3.0-showcase.png)
+![AXSESCLIENT v3.5.0 Showcase](AXSESCLIENT-RELEASE/screenshots/axsesclient-v3.5-showcase.png)
 
-## Скачать готовый релиз (`axsesclient-v3.0.0`)
-🔗 **GitHub Release:** https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/axsesclient-v3.0.0
+## Скачать готовый релиз (`axsesclient-v3.5.0`)
+🔗 **GitHub Release:** https://github.com/egorbelovziiik-design/WinLauncher/releases/tag/axsesclient-v3.5.0
 
-| Файл | Назначение |
-|---|---|
-| `AXSESCLIENT-Setup.exe` | Официальный установщик Windows 10/11 x64 (Inno Setup 6, безопасное обновление без удаления миров и скриншотов) |
-| `AXSESCLIENT.exe` | Автономный нативный лаунчер C# / .NET 8 / Avalonia 11 (прямой запуск игры, честное выделение `-Xmx` ОЗУ, авто-установка Java 8 и Java 21) |
-| `AXSESCLIENT-1.16.5.jar` | Fabric-мод клиента для **Minecraft 1.16.5** (Java 8 bytecode `v52`) |
-| `AXSESCLIENT-1.21.4.jar` | Fabric-мод клиента для **Minecraft 1.21.4** (Java 21 bytecode `v65`) |
-| `AXSESCLIENT-1.21.11.jar` | Fabric-мод клиента для **Minecraft 1.21.11** (Java 21 bytecode `v65`) |
+| Файл | Размер | Назначение |
+|---|---|---|
+| `AXSESCLIENT-Setup.exe` | `41,826,880` байт | Официальный установщик Windows 10/11 x64 (Inno Setup 6, безопасное обновление без удаления миров и скриншотов) |
+| `AXSESCLIENT.exe` | `45,576,969` байт | Автономный нативный лаунчер C# / .NET 8 / Avalonia 11 (прямой запуск игры, честное выделение `-Xmx` ОЗУ, авто-установка Java 8 и Java 21) |
+| `AXSESCLIENT-1.16.5.jar` | `481,493` байт | Fabric-мод клиента для **Minecraft 1.16.5** (Java 8 bytecode `v52`) |
+| `AXSESCLIENT-1.21.4.jar` | `488,733` байт | Fabric-мод клиента для **Minecraft 1.21.4** (Java 21 bytecode `v65`) |
+| `AXSESCLIENT-1.21.11.jar` | `490,191` байт | Fabric-мод клиента для **Minecraft 1.21.11** (Java 21 bytecode `v65`) |
 
-## Ключевые возможности `v3.0.0 (HYPERION AURORA)`
-- **102 рабочих модуля и 12 встроенных тем** (`HYPERION AURORA`, `HYPERION DARK`, `CRIMSON ECLIPSE`, `SAKURA GLOW`, `IMPERIAL GOLD` и др.).
-- **Новые 3D-эффекты и HUD-виджеты**:
-  - **Коническая шляпа (`China Hat`)** — вращающийся полупрозрачный 3D-нимб Aurora над целью и игроком.
-  - **Круги прыжка (`Jump Circles`)** — расходящиеся двойные градиентные 3D-кольца на земле при прыжке.
-  - **Шлейф движения (`Breadcrumbs`)** и **Партиклы ударов (`Hit Particles`)**.
-  - **Ватермарка AXSES 3.0 (`Watermark HUD`)**, каскадный **Список модулей (`Module ArrayList`)** с живой волной Aurora, **2D Кейстрокс (`WASD + CPS + Пробел`)** и карточка **Активные эффекты**.
-- **Боевая система и ESP**:
-  - **КиллАура (`FunTime` / `ReallyWorld` / `HolyWorld` / `SpookyTime` / `Legit`)** с плавной S-кривой наводки, фиксом мыши GCD, умными критами, `W-Tap` и двойным 3D-кольцом Jello Wave.
-  - **ESP Подсветка (`Entity ESP`)**, **ESP Предметов (`Item ESP`)**, **Трейсеры (`Tracers`)** и обновлённый **Таргет HUD Hyperion**.
-- **Главное меню «Северное Сияние» (`Aurora Borealis`)**, **ClickGUI 3.0 (`Right Shift`)** и **Редактор HUD 3.0** с фильтром активных виджетов и привязкой по сетке.
+## Ключевые обновления `v3.5.0 (CELESTIAL VISION)`
+- **Скруглённое меню на Правый Shift (`AXSES 3.5 • VISION`, `686×410`, радиус `20px`)**:
+  - Настоящие круговые скругления углов и боков (`drawRoundedOutline` с попиксельными дугами без ступенчатых квадратных углов), светящиеся боковые неоновые грани, парящая шапка (`14px`) и боковая панель (`14px`), капсульные переключатели, ползунки и строка поиска.
+  - **14 встроенных тем оформления** в удобной 3-колоночной сетке, включая новые **`CELESTIAL VISION`** и **`EMERALD AURORA`**.
+- **108 рабочих модулей — улучшены все категории и добавлены 6 новых функций**:
+  - **Мини-Радар 2D (`2D PvP Radar`)** — вращающийся скруглённый радар ближайших игроков и целей с компасом `С` и конусом обзора.
+  - **Счётчик тотемов (`Totem Counter`)** и **Геплы и перлы (`Gapple & Pearl Tracker`)** — живой подсчёт расходников в инвентаре и левой руке с уведомлением о сносе тотема.
+  - **Индикатор урона 3D (`Damage Indicators 3D`)** — всплывающие в 3D-пространстве цифры урона и исцеления (`-3.6 ❤`).
+  - **Тревога низкого ХП (`Low HP Alert`)** и **Страж смерти (`Auto Death Guard`)**.
+  - **КиллАура v3.5 (`FunTime` / `ReallyWorld` / `HolyWorld`)** с вращающимися **3D Сферами душ**, двойным кольцом цели и индикатором крита **`⚡КРИТ`**.
+  - **ESP Подсветка v3.5** с новым режимом **`Неон-капсула`**, полосками здоровья и прочности брони, а также **3D-маяками меток и точки смерти**.

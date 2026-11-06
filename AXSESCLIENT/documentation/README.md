@@ -1,13 +1,13 @@
-# AXSESCLIENT — HYPERION AURORA (v3.0.0)
+# AXSESCLIENT — CELESTIAL VISION (v3.5.0)
 
 **Next-Generation Minecraft Utility, HUD, 3D Visuals & Combat Client + Native Windows Desktop Launcher**
 
 - **Product:** `AXSESCLIENT`
-- **Codename:** `HYPERION AURORA`
-- **Version:** `3.0.0`
+- **Codename:** `CELESTIAL VISION`
+- **Version:** `3.5.0`
 - **Target Operating System:** Windows 10 / Windows 11 (x64)
 - **Supported Minecraft Versions:** `1.16.5` (Java 8 • Fabric `0.20.1`), `1.21.4` (Java 21 • Fabric `0.20.1`), `1.21.11` (Java 21 • Fabric `0.20.1`)
-- **Design System:** `HYPERION GLASS ENGINE` (`102` Modules • `12` Themes • `#050712` • `#A855F7` • `#00F5D4`)
+- **Design System:** `CELESTIAL VISION CURVED GLASS ENGINE` (`108` Modules • `14` Themes • `#040714` • `#38BDF8` • `#A855F7` • `#00F5D4`)
 
 ---
 

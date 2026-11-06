@@ -2,8 +2,8 @@
   "status": "PASS",
   "minecraftVersion": "1.21.4",
   "javaRuntime": "21.0.13",
-  "modulesRegistered": 102,
-  "themesRegistered": 12,
+  "modulesRegistered": 108,
+  "themesRegistered": 14,
   "activeTheme": "axses-cyber",
   "effectiveGamma": 12.0,
   "mixinAudit": "PASS"
