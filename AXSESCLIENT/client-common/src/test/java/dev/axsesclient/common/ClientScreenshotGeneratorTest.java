@@ -460,12 +460,16 @@ public class ClientScreenshotGeneratorTest {
             core.getModuleManager().getById("item_esp").setEnabled(true, p);
             core.getModuleManager().getById("tracers").setEnabled(true, p);
             core.getModuleManager().getById("potion_hud").setEnabled(true, p);
+            core.getRuntimeState().addOrReplaceWaypoint(new dev.axsesclient.common.modules.impl.ClientRuntimeState.Waypoint(
+                    "Арена", 5.6, 64.0, 11.0, "minecraft:overworld", "mc.funtime.su", 0xFF00F5D4
+            ));
+            core.getModuleManager().getById("waypoints").setEnabled(true, p);
 
             core.getAnimationManager().setReducedMotion(true);
             dev.axsesclient.common.hud.HudElement thud = core.getHudManager().getById("target_hud");
             if (thud != null) {
-                thud.setNormX(0.60f);
-                thud.setNormY(0.49f);
+                thud.setNormX(0.655f);
+                thud.setNormY(0.55f);
             }
 
             // Simulate a curved arena dash + jump so Breadcrumbs & JumpCircles spawn live 3D geometry in view
