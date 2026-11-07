@@ -8,6 +8,9 @@ on:
       - "MADorigg/**"
       - ".github/workflows/build-madorigg.yml"
 
+permissions:
+  contents: write
+
 jobs:
   build-windows-exe:
     runs-on: windows-latest
@@ -50,11 +53,42 @@ jobs:
           main.py
 
       - name: Smoke-test metadata
-        working-directory: MADorigg
         shell: pwsh
+        working-directory: MADorigg
         run: |
           $f = Get-Item dist/MADorigg.exe
-          Write-Host "Built: $($f.FullName) — $([math]::Round($f.Length/1MB,1)) MB"
+          $mb = [math]::Round($f.Length/1MB,1)
+          Write-Host "Built: $($f.FullName) — $mb MB"
+
+      - name: Bundle exe for git transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p MADorigg/exe_parts
+          cp MADorigg/dist/MADorigg.exe MADorigg/exe_parts/MADorigg.exe
+          cd MADorigg/exe_parts
+          SIZE=$(wc -c < MADorigg.exe)
+          SHA=$(sha256sum MADorigg.exe | cut -d' ' -f1)
+          echo "size_bytes=$SIZE"  >  BUILD_INFO.txt
+          echo "sha256=$SHA"       >> BUILD_INFO.txt
+          echo "source_commit=${GITHUB_SHA}" >> BUILD_INFO.txt
+          echo "run_id=${GITHUB_RUN_ID}"     >> BUILD_INFO.txt
+          split -b 60M MADorigg.exe MADorigg.exe.part
+          rm MADorigg.exe
+          echo "Bundle: size=$SIZE sha=$SHA"
+          ls -la
+
+      - name: Publish bundle to branch madorigg-exe-artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r -q --cached . || true
+          git checkout --orphan exe-upload-tmp
+          git add -f MADorigg/exe_parts/
+          git commit -q -m "MADorigg.exe build ${GITHUB_SHA} (run ${GITHUB_RUN_ID})"
+          git push --force origin HEAD:refs/heads/madorigg-exe-artifacts
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
