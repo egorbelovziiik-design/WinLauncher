@@ -32,7 +32,7 @@ public sealed class FabricModInstallerService
             PooledConnectionLifetime = TimeSpan.FromMinutes(5)
         };
         var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(3) };
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("AXSESCLIENT-Launcher/4.0.0 (egorbelovziiik-design/WinLauncher)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("AXSESCLIENT-Launcher/5.0.0 (egorbelovziiik-design/WinLauncher)");
         return client;
     }
 

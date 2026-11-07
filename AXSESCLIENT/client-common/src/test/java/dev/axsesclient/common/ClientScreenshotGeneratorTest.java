@@ -63,14 +63,26 @@ public class ClientScreenshotGeneratorTest {
         float yaw = 0.0f;   // Looking towards +Z
         float pitch = 4.0f;
         double fov = 78.0;
+        int selectedSlot = 0;
+        boolean sneakingHeld = false;
+        boolean standingOverEdge = false;
+        double[] targetedBlockBox = null;
+        String targetedBlockId = "";
+        List<double[]> bedWarsBeds = Collections.emptyList();
+        List<double[]> incomingProjectiles = Collections.emptyList();
+        List<ItemInfo> customInventory = null;
+        ItemInfo customMainHand = null;
         List<TargetEntityInfo> espEntities = Collections.emptyList();
         List<TargetEntityInfo> combatTargets = Collections.emptyList();
+        int subPixelDepth = 0;
+        boolean subPixelScaled = false;
 
         AwtScenePlatform(Path gameDir) {
             this.gameDir = gameDir;
             this.image = new BufferedImage(scaledW * scaleFactor, scaledH * scaleFactor, BufferedImage.TYPE_INT_ARGB);
             this.g = image.createGraphics();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
             g.scale(scaleFactor, scaleFactor);
@@ -164,6 +176,35 @@ public class ClientScreenshotGeneratorTest {
         }
 
         @Override
+        public float beginHiDpiSubPixel() {
+            if (subPixelDepth > 0) {
+                subPixelDepth++;
+                return 1.0f;
+            }
+            subPixelDepth = 1;
+            if (scaleFactor > 1) {
+                txStack.push(g.getTransform());
+                g.scale(1.0 / scaleFactor, 1.0 / scaleFactor);
+                subPixelScaled = true;
+                return (float) scaleFactor;
+            }
+            subPixelScaled = false;
+            return 1.0f;
+        }
+
+        @Override
+        public void endHiDpiSubPixel() {
+            if (subPixelDepth <= 0) return;
+            subPixelDepth--;
+            if (subPixelDepth == 0 && subPixelScaled) {
+                subPixelScaled = false;
+                if (!txStack.isEmpty()) {
+                    g.setTransform(txStack.pop());
+                }
+            }
+        }
+
+        @Override
         public float[] projectWorldToScreen(double worldX, double worldY, double worldZ) {
             double cpX = playerX;
             double cpY = playerY + 1.62;
@@ -210,20 +251,18 @@ public class ClientScreenshotGeneratorTest {
                 fillRect(sx, sy, (i % 4 == 0) ? 1.5f : 1.0f, (i % 4 == 0) ? 1.5f : 1.0f, (i % 3 == 0) ? 0x6600F5D4 : 0x55FFFFFF);
             }
 
-            // Perspective cyber-arena floor grid lines
+            // Anti-aliased perspective cyber-arena floor grid lines
             float horizonY = scaledH * 0.54f;
-            fillRect(0, horizonY - 0.5f, scaledW, 1.0f, 0x6600F5D4);
-            g.setColor(new Color(0, 245, 212, 26));
+            drawLine(0f, horizonY - 0.5f, scaledW, horizonY - 0.5f, 1.1f, 0x6600F5D4);
             for (int row = 1; row <= 12; row++) {
                 float t = (float) Math.pow(row / 12.0, 1.8);
-                int gy = Math.round(horizonY + t * (scaledH - horizonY));
-                g.drawLine(0, gy, scaledW, gy);
+                float gy = horizonY + t * (scaledH - horizonY);
+                drawLine(0f, gy, scaledW, gy, 0.9f, 0x1E00F5D4);
             }
-            g.setColor(new Color(168, 85, 247, 28));
             for (int col = -10; col <= 10; col++) {
-                int xTop = Math.round(scaledW * 0.5f + col * 18f);
-                int xBot = Math.round(scaledW * 0.5f + col * 95f);
-                g.drawLine(xTop, Math.round(horizonY), xBot, scaledH);
+                float xTop = scaledW * 0.5f + col * 18f;
+                float xBot = scaledW * 0.5f + col * 95f;
+                drawLine(xTop, horizonY, xBot, scaledH, 0.9f, 0x22A855F7);
             }
 
             if (drawEntities) {
@@ -267,6 +306,134 @@ public class ClientScreenshotGeneratorTest {
             }
         }
 
+        void fill3dQuad(double x1, double y1, double z1,
+                        double x2, double y2, double z2,
+                        double x3, double y3, double z3,
+                        double x4, double y4, double z4,
+                        int fillArgb, int edgeArgb) {
+            float[] p1 = projectWorldToScreen(x1, y1, z1);
+            float[] p2 = projectWorldToScreen(x2, y2, z2);
+            float[] p3 = projectWorldToScreen(x3, y3, z3);
+            float[] p4 = projectWorldToScreen(x4, y4, z4);
+            if (p1 == null || p2 == null || p3 == null || p4 == null) return;
+            if (p1[2] <= 0.12f || p2[2] <= 0.12f || p3[2] <= 0.12f || p4[2] <= 0.12f) return;
+            java.awt.geom.Path2D.Float poly = new java.awt.geom.Path2D.Float();
+            poly.moveTo(p1[0], p1[1]);
+            poly.lineTo(p2[0], p2[1]);
+            poly.lineTo(p3[0], p3[1]);
+            poly.lineTo(p4[0], p4[1]);
+            poly.closePath();
+            g.setColor(toAwtColor(fillArgb));
+            g.fill(poly);
+            if (((edgeArgb >>> 24) & 0xFF) > 0) {
+                drawLine(p1[0], p1[1], p2[0], p2[1], 0.9f, edgeArgb);
+                drawLine(p2[0], p2[1], p3[0], p3[1], 0.9f, edgeArgb);
+                drawLine(p3[0], p3[1], p4[0], p4[1], 0.9f, edgeArgb);
+                drawLine(p4[0], p4[1], p1[0], p1[1], 0.9f, edgeArgb);
+            }
+        }
+
+        void draw3dBlockShaded(double bx, double by, double bz, double sx, double sy, double sz,
+                               int topCol, int sideCol, int frontCol, int edgeCol) {
+            double x0 = bx, y0 = by, z0 = bz;
+            double x1 = bx + sx, y1 = by + sy, z1 = bz + sz;
+            // Bottom / back-facing visible faces first, then top face
+            fill3dQuad(x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, frontCol, edgeCol);
+            fill3dQuad(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, frontCol, edgeCol);
+            fill3dQuad(x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, sideCol, edgeCol);
+            fill3dQuad(x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, sideCol, edgeCol);
+            fill3dQuad(x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, topCol, edgeCol);
+        }
+
+        void paintBedWarsSkyScene() {
+            // Deep cosmic BedWars void sky + nebula horizon
+            fillGradientVertical(0, 0, scaledW, scaledH * 0.56f, 0xFF040714, 0xFF141B3D);
+            fillGradientVertical(0, scaledH * 0.36f, scaledW, scaledH * 0.22f, 0x00000000, 0x3A7C3AED);
+            fillGradientVertical(0, scaledH * 0.56f, scaledW, scaledH * 0.44f, 0xFF0A1026, 0xFF03050E);
+
+            for (int i = 0; i < 56; i++) {
+                float sx = ((i * 67 + 23) % 948) + 6f;
+                float sy = ((i * 43 + 9) % 240) + 6f;
+                fillRoundedRect(sx, sy, (i % 3 == 0) ? 2.0f : 1.3f, (i % 3 == 0) ? 2.0f : 1.3f, 1.0f,
+                        (i % 4 == 0) ? 0x8800F5D4 : 0x66E2E8F0);
+            }
+
+            // Distant floating Diamond Generator mini-island on left (+X projects left at yaw=0)
+            draw3dBlockShaded(7.0, 62.0, 16.0, 4.0, 2.0, 4.0, 0xFF1E293B, 0xFF0F172A, 0xFF162033, 0x3338BDF8);
+            draw3dBlockShaded(8.5, 64.0, 17.5, 1.0, 1.6, 1.0, 0xFF38BDF8, 0xFF0284C7, 0xFF0369A1, 0xAA7DD3FC);
+
+            // Enemy Red Team Floating Sky-Island ahead (z = 12..19, x = -4.5..4.5, y = 61..64)
+            draw3dBlockShaded(-3.5, 61.0, 13.0, 7.0, 1.5, 5.5, 0xFF1E293B, 0xFF0F172A, 0xFF111827, 0x2894A3B8);
+            draw3dBlockShaded(-4.5, 62.5, 12.0, 9.0, 1.5, 7.0, 0xFF334155, 0xFF1E293B, 0xFF243247, 0x4464748B);
+            // Red Team Bed + End Stone protection mound on island
+            draw3dBlockShaded(-0.5, 64.0, 15.0, 2.0, 0.65, 1.0, 0xFFEF4444, 0xFFB91C1C, 0xFFDC2626, 0xFFFF8FA3);
+            draw3dBlockShaded(-1.0, 64.0, 16.2, 3.0, 1.2, 1.5, 0xFFE2E8B8, 0xFFC5CCA0, 0xFFD4DBAE, 0x55Fef08a);
+
+            // FastBridge Wool Bridge Blocks placed from z = 7 back toward player at z = 1 (painter's order back-to-front!)
+            for (int bz = 6; bz >= 1; bz--) {
+                boolean alt = (bz % 2 == 0);
+                int topC = alt ? 0xFF0EA5E9 : 0xFF22D3EE;
+                int sideC = alt ? 0xFF0369A1 : 0xFF0891B2;
+                int frontC = alt ? 0xFF0284C7 : 0xFF06B6D4;
+                draw3dBlockShaded(-0.5, 63.0, bz, 1.0, 1.0, 1.0, topC, sideC, frontC, 0x667DD3FC);
+            }
+
+            // Render 3D entities (players & generator drops)
+            for (TargetEntityInfo e : espEntities) {
+                if (e.isItemEntity()) {
+                    float[] c = projectWorldToScreen(e.getX(), e.getY() + 0.18, e.getZ());
+                    if (c != null && c[2] > 0.2f) {
+                        int itemCol = e.getName().contains("Изумруд") ? 0xFF10B981 : 0xFFFACC15;
+                        fillRoundedRect(c[0] - 4.5f, c[1] - 4.5f, 9f, 9f, 3.5f, itemCol);
+                        drawRoundedOutline(c[0] - 4.5f, c[1] - 4.5f, 9f, 9f, 3.5f, 1.0f, 0xFFFFFFFF);
+                    }
+                    continue;
+                }
+                if (e.getHeldItemName() != null && e.getHeldItemName().contains("[INVIS]")) {
+                    // Invisible player: only subtle floating TNT item visible until Invis Scanner highlights them!
+                    float[] hand = projectWorldToScreen(e.getX() + 0.18, (e.getMinY() + e.getMaxY()) * 0.52, e.getZ());
+                    if (hand != null && hand[2] > 0.2f) {
+                        fillRoundedRect(hand[0] - 4f, hand[1] - 4f, 8f, 8f, 2f, 0xFFEF4444);
+                    }
+                    continue;
+                }
+                float[] top = projectWorldToScreen(e.getX(), e.getMaxY(), e.getZ());
+                float[] bot = projectWorldToScreen(e.getX(), e.getMinY(), e.getZ());
+                if (top != null && bot != null && top[2] > 0.2f && bot[2] > 0.2f) {
+                    float h = Math.max(18f, bot[1] - top[1]);
+                    float w = h * 0.36f;
+                    float cx = (top[0] + bot[0]) * 0.5f;
+                    float headS = w * 0.62f;
+                    fillRoundedRect(cx - headS * 0.5f, top[1] + 2f, headS, headS, 2.5f, 0xFFF43F5E);
+                    fillRoundedRect(cx - w * 0.42f, top[1] + headS + 3f, w * 0.84f, h * 0.42f, 2.5f, 0xFF9F1239);
+                    fillRoundedRect(cx - w * 0.36f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1.5f, 0xFF1E293B);
+                    fillRoundedRect(cx + w * 0.04f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1.5f, 0xFF1E293B);
+                }
+            }
+
+            // Hyperion anti-aliased glass hotbar at bottom center (showing active Wool slot #2!)
+            float hbW = 184f, hbH = 22f;
+            float hbX = (scaledW - hbW) * 0.5f, hbY = scaledH - 25f;
+            fillRoundedRect(hbX, hbY, hbW, hbH, 6f, 0xDC080C1C);
+            drawGradientRoundedOutline(hbX, hbY, hbW, hbH, 6f, 1.2f, 0xFF00F5D4, 0xFFA855F7);
+            for (int slot = 0; slot < 9; slot++) {
+                float sx = hbX + 3f + slot * 20f;
+                if (slot == selectedSlot) {
+                    fillRoundedRect(sx, hbY + 2f, 18f, 18f, 4f, 0x5500F5D4);
+                    drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 4f, 1.2f, 0xFF00F5D4);
+                } else {
+                    drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 3f, 1.0f, 0x26FFFFFF);
+                }
+                if (slot == 0) {
+                    drawLine(sx + 4f, hbY + 15f, sx + 14f, hbY + 5f, 1.8f, 0xFF38BDF8);
+                } else if (slot == 1 || slot == 2) {
+                    fillRoundedRect(sx + 4f, hbY + 4f, 10f, 10f, 2.5f, 0xFF22D3EE);
+                } else if (slot == 3) {
+                    fillRoundedRect(sx + 5f, hbY + 5f, 8f, 8f, 4f, 0xFFFACC15);
+                }
+            }
+        }
+
         boolean onGround = true;
 
         @Override public String getMinecraftVersion() { return "1.21.11"; }
@@ -274,7 +441,7 @@ public class ClientScreenshotGeneratorTest {
         @Override public String getFabricLoaderVersion() { return "0.20.1"; }
         @Override public String getFabricApiVersion() { return "0.141.6+1.21.11"; }
         @Override public List<String> getLoadedMods() {
-            return Arrays.asList("axsesclient@4.0.0", "sodium@0.6.5", "lithium@0.14.7", "ferritecore@7.1.1", "baritone@1.11.1");
+            return Arrays.asList("axsesclient@5.0.0", "sodium@0.6.5", "lithium@0.14.7", "ferritecore@7.1.1", "baritone@1.11.1");
         }
         @Override public Path getGameDir() { return gameDir; }
         @Override public boolean isInWorld() { return inWorld; }
@@ -294,8 +461,8 @@ public class ClientScreenshotGeneratorTest {
         @Override public boolean isOnGround() { return onGround; }
         @Override public boolean isSprinting() { return true; }
         @Override public void setSprinting(boolean s) {}
-        @Override public boolean isSneaking() { return false; }
-        @Override public void setSneakingKeyHeld(boolean h) {}
+        @Override public boolean isSneaking() { return sneakingHeld; }
+        @Override public void setSneakingKeyHeld(boolean h) { this.sneakingHeld = h; }
         @Override public float getAttackCooldownProgress() { return 0.96f; }
         @Override public int getPingMs() { return 21; }
         @Override public float getHealth() { return 19.5f; }
@@ -308,16 +475,27 @@ public class ClientScreenshotGeneratorTest {
                     new ItemInfo("minecraft:netherite_boots", "Незеритовые ботинки", 1, 15, 481)
             );
         }
-        @Override public ItemInfo getMainHandItem() { return new ItemInfo("minecraft:netherite_sword", "Незеритовый меч", 1, 32, 2031); }
+        @Override public ItemInfo getMainHandItem() {
+            if (customMainHand != null) return customMainHand;
+            return new ItemInfo("minecraft:netherite_sword", "Незеритовый меч", 1, 32, 2031);
+        }
         @Override public ItemInfo getOffHandItem() { return new ItemInfo("minecraft:totem_of_undying", "Тотем бессмертия", 1, 0, 0); }
         @Override public List<ItemInfo> getInventoryItems() {
+            if (customInventory != null) return customInventory;
             return Arrays.asList(
                     new ItemInfo("minecraft:golden_apple", "Золотое яблоко", 16, 0, 0),
                     new ItemInfo("minecraft:ender_pearl", "Эндер-жемчуг", 8, 0, 0),
                     new ItemInfo("minecraft:totem_of_undying", "Тотем бессмертия", 3, 0, 0)
             );
         }
-        @Override public int getSelectedHotbarSlot() { return 0; }
+        @Override public int getSelectedHotbarSlot() { return selectedSlot; }
+        @Override public void selectHotbarSlot(int slot) { this.selectedSlot = slot; }
+        @Override public boolean isStandingOverEdge(double edgeInset) { return standingOverEdge; }
+        @Override public boolean placeBlockAtCrosshair() { return targetedBlockBox != null; }
+        @Override public double[] getTargetedBlockBox() { return targetedBlockBox; }
+        @Override public String getTargetedBlockId() { return targetedBlockId; }
+        @Override public List<double[]> scanBedWarsBeds(int radius) { return bedWarsBeds; }
+        @Override public List<double[]> getIncomingProjectiles(double range) { return incomingProjectiles; }
         @Override public List<StatusEffectInfo> getActiveEffects() {
             return Arrays.asList(
                     new StatusEffectInfo("speed", "Скорость II", 2, 1640, true, 0x33EBFF),
@@ -378,15 +556,17 @@ public class ClientScreenshotGeneratorTest {
             return combatTargets;
         }
         @Override public List<TargetEntityInfo> getEspEntities(double range, boolean p, boolean h, boolean a, boolean items, boolean inv) {
-            if (items) {
-                for (TargetEntityInfo e : espEntities) {
-                    if (e.isItemEntity()) return Collections.singletonList(e);
-                }
-                return Collections.emptyList();
-            }
             List<TargetEntityInfo> out = new java.util.ArrayList<TargetEntityInfo>();
             for (TargetEntityInfo e : espEntities) {
-                if (!e.isItemEntity()) out.add(e);
+                if (e.isItemEntity()) {
+                    if (items) out.add(e);
+                } else if (e.isPlayer()) {
+                    if (p) out.add(e);
+                } else if (e.isHostile()) {
+                    if (h) out.add(e);
+                } else if (a) {
+                    out.add(e);
+                }
             }
             return out;
         }
@@ -454,9 +634,10 @@ public class ClientScreenshotGeneratorTest {
             ka.setEnabled(true, p);
             Module esp = core.getModuleManager().getById("entity_esp");
             for (Setting<?> s : esp.getSettings()) {
-                if ("box_style".equals(s.getId())) ((ModeSetting) s).setValue("Vision Capsule");
+                if ("box_style".equals(s.getId())) ((ModeSetting) s).setValue("Hyperion Neon");
             }
             esp.setEnabled(true, p);
+            core.getModuleManager().getById("neon_halo_trails").setEnabled(true, p);
             core.getModuleManager().getById("china_hat").setEnabled(true, p);
             core.getModuleManager().getById("jump_circles").setEnabled(true, p);
             core.getModuleManager().getById("breadcrumbs").setEnabled(true, p);
@@ -739,7 +920,7 @@ public class ClientScreenshotGeneratorTest {
             float chatLogX = 8.0f, chatLogY = p.scaledH - 134.0f, chatLogW = 386.0f, chatLogH = 68.0f;
             p.fillRoundedRect(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 0xCC050814);
             p.drawRoundedOutline(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 1.0f, 0x5538BDF8);
-            core.getFontManager().draw(p, "[AXSES 4.0] КиллАура: активен профиль SnowGrim (3.00м + GCD)", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);
+            core.getFontManager().draw(p, "[AXSES 5.0] КиллАура: активен профиль SnowGrim + Hyperion Contours", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);
             core.getFontManager().draw(p, "[Spotify] Синхронизация активна · Музыка Minecraft остановлена", chatLogX + 7f, chatLogY + 21f, 0xFF1DB954, 0.80f);
             core.getFontManager().draw(p, "[Baritone] Построен 3D-маршрут к метке «Алмазная шахта» (24м)", chatLogX + 7f, chatLogY + 35f, 0xFF00F5D4, 0.80f);
             core.getFontManager().draw(p, "[Чат HUD] Зажмите ЛКМ на любом виджете для перемещения!", chatLogX + 7f, chatLogY + 49f, 0xFFE2E8F0, 0.80f);
@@ -758,6 +939,128 @@ public class ClientScreenshotGeneratorTest {
             ImageIO.write(p.image, "PNG", out8);
             p.dispose();
             assertTrue(out8.exists() && out8.length() > 10000);
+        }
+
+        // 9. IN-GAME BEDWARS SKY-ISLAND: FASTBRIDGE (NINJA/EAGLE) + HYPERION 3D BLOCK CONTOURS + BEDWARS ESP + FIREBALL ARC + INVIS SCANNER
+        {
+            AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s9"));
+            AxsesCore core = new AxsesCore(tempDir.resolve("s9"), p, p);
+            core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-vision");
+
+            p.selectedSlot = 1;
+            p.standingOverEdge = true;
+            p.customMainHand = new ItemInfo("minecraft:cyan_wool", "Бирюзовая шерсть", 48, 0, 0);
+            p.customInventory = Arrays.asList(
+                    new ItemInfo("minecraft:diamond_sword", "Алмазный меч", 1, 0, 1561),
+                    new ItemInfo("minecraft:cyan_wool", "Бирюзовая шерсть", 48, 0, 0),
+                    new ItemInfo("minecraft:cyan_wool", "Бирюзовая шерсть", 64, 0, 0),
+                    new ItemInfo("minecraft:golden_apple", "Золотое яблоко", 6, 0, 0),
+                    new ItemInfo("minecraft:shears", "Ножницы", 1, 0, 238),
+                    new ItemInfo("minecraft:diamond_pickaxe", "Алмазная кирка", 1, 0, 1561)
+            );
+            // Crosshair aimed at the leading bridge block (-0.5..0.5, 63..64, 6..7) on its +Z face -> ghost preview at z = 7..8!
+            p.targetedBlockBox = new double[] {
+                    -0.5, 63.0, 6.0,
+                    -0.5, 63.0, 6.0,
+                    0.5, 64.0, 7.0,
+                    0.0, 0.0, 1.0
+            };
+            p.targetedBlockId = "minecraft:cyan_wool";
+            p.bedWarsBeds = Collections.singletonList(new double[] { -0.5, 64.0, 15.0, 3.0, 0xFF3B5C });
+            p.incomingProjectiles = Collections.singletonList(new double[] {
+                    3.2, 66.6, 12.2, -0.22, -0.07, -0.46, 1.0, 501.0, 12.8
+            });
+
+            TargetEntityInfo rusher = new TargetEntityInfo(
+                    301, "BedBreakerPro", true, false, false, false,
+                    16.0f, 20.0f, 0.0f, 12.6f, 2, 15,
+                    -1.85, 64.0, 12.8, 65.62,
+                    -2.15, 64.0, 12.5, -1.55, 65.8, 13.1,
+                    true, "Алмазный меч"
+            );
+            TargetEntityInfo invisFlanker = new TargetEntityInfo(
+                    302, "GhostFlanker", true, false, false, false,
+                    20.0f, 20.0f, 0.0f, 9.4f, 0, 8,
+                    2.65, 64.0, 9.2, 65.62,
+                    2.35, 64.0, 8.9, 2.95, 65.8, 9.5,
+                    true, "Динамит [INVIS]"
+            );
+            TargetEntityInfo emeraldDrop = new TargetEntityInfo(
+                    401, "Изумруд x2", false, false, false, true,
+                    1.0f, 1.0f, 0.0f, 14.2f, 0, 0,
+                    2.4, 64.0, 14.2, 64.25,
+                    2.25, 64.0, 14.05, 2.55, 64.3, 14.35,
+                    true, ""
+            );
+            TargetEntityInfo goldDrop = new TargetEntityInfo(
+                    402, "Золотой слиток x6", false, false, false, true,
+                    1.0f, 1.0f, 0.0f, 13.8f, 0, 0,
+                    -3.1, 64.0, 13.8, 64.25,
+                    -3.25, 64.0, 13.65, -2.95, 64.3, 13.95,
+                    true, ""
+            );
+
+            p.combatTargets = Collections.singletonList(rusher);
+            p.espEntities = Arrays.asList(rusher, invisFlanker, emeraldDrop, goldDrop);
+            core.getRuntimeState().lockTarget(rusher);
+
+            Module fb9 = core.getModuleManager().getById("fast_bridge");
+            for (Setting<?> s : fb9.getSettings()) {
+                if ("place_delay".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(20.0));
+            }
+            fb9.setEnabled(true, p);
+            core.getModuleManager().getById("block_contour_pro").setEnabled(true, p);
+            core.getModuleManager().getById("bedwars_esp").setEnabled(true, p);
+            core.getModuleManager().getById("fireball_tnt_alert").setEnabled(true, p);
+            core.getModuleManager().getById("invis_armor_detector").setEnabled(true, p);
+            core.getModuleManager().getById("neon_halo_trails").setEnabled(true, p);
+            core.getModuleManager().getById("entity_esp").setEnabled(true, p);
+            core.getModuleManager().getById("radar_hud").setEnabled(true, p);
+
+            // Simulate several bridging ticks so FastBridge places blocks & builds real blocks/sec telemetry + trail ribbon
+            for (int t = 0; t < 5; t++) {
+                p.playerZ = t * 0.22;
+                core.onClientTick();
+                Thread.sleep(28L);
+            }
+            p.playerZ = 0.0;
+            p.yaw = 0.0f;
+            p.pitch = 8.5f;
+
+            p.paintBedWarsSkyScene();
+            core.onHudRender(p);
+
+            File out9 = outDir.resolve("ingame-bedwars-fastbridge-contours.png").toFile();
+            ImageIO.write(p.image, "PNG", out9);
+            p.dispose();
+            assertTrue(out9.exists() && out9.length() > 10000);
+        }
+
+        // 10. RIGHT-SHIFT HYPERION CLICKGUI — MOVEMENT TAB WITH FASTBRIDGE EXPANDED
+        {
+            AwtScenePlatform p = new AwtScenePlatform(tempDir.resolve("s10"));
+            AxsesCore core = new AxsesCore(tempDir.resolve("s10"), p, p);
+            core.getLocalizationManager().setActiveLocale("ru_RU");
+            core.getThemeManager().setActiveTheme("axses-vision");
+            p.clickGuiOpen = true;
+
+            Module fb = core.getModuleManager().getById("fast_bridge");
+            fb.setEnabled(true, p);
+            core.getModuleManager().getById("bridge_clutch").setEnabled(true, p);
+            core.getModuleManager().getById("toggle_sprint").setEnabled(true, p);
+
+            p.paintBedWarsSkyScene();
+            core.getAnimationManager().setReducedMotion(true);
+            core.getClickGuiController().onOpen();
+            core.getClickGuiController().setSelectedCategory(ModuleCategory.MOVEMENT);
+            setExpandedModule(core, fb);
+            core.getClickGuiController().render(p, p, 20, 20, 1.0f);
+
+            File out10 = outDir.resolve("ingame-clickgui-bedwars-contours.png").toFile();
+            ImageIO.write(p.image, "PNG", out10);
+            p.dispose();
+            assertTrue(out10.exists() && out10.length() > 10000);
         }
     }
 }

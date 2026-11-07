@@ -544,7 +544,7 @@ public sealed class MinecraftLaunchEngine
         }
 
         rootDict["schemaVersion"] = 1;
-        rootDict["clientVersion"] = "4.0.0";
+        rootDict["clientVersion"] = "5.0.0";
         rootDict["theme"] = activeThemeId;
         rootDict["language"] = language;
         rootDict["reducedMotion"] = reducedMotion;

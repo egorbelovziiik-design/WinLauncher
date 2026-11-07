@@ -72,7 +72,7 @@ public sealed class CuratedFabricModSpec
             Category = "AI",
             BoostBadgeRu = "ИИ Автопилот · #mine / #goto",
             BoostBadgeEn = "AI Pathfinder · #mine / #goto",
-            DescriptionRu = "Легендарный ИИ-навигатор и авто-шахтёр (#mine diamond_ore, #goto, #follow, #farm). Полная связка с 3D-маршрутом AXSES v4.0!",
+            DescriptionRu = "Легендарный ИИ-навигатор и авто-шахтёр (#mine diamond_ore, #goto, #follow, #farm). Полная связка с 3D-маршрутом AXSES v5.0!",
             DescriptionEn = "Legendary A* pathfinder, auto-miner (#mine), builder & follower integrated directly with AXSES 3D neon route HUD.",
             FilePrefixes = ["baritone", "automatone"],
             IncludedInRecommendedPack = true
@@ -364,15 +364,24 @@ public sealed class ModuleCatalogItem
     public string DisplayName(bool ru) => ru && !string.IsNullOrWhiteSpace(NameRu) ? NameRu : Name;
     public string DisplayDescription(bool ru) => ru && !string.IsNullOrWhiteSpace(DescriptionRu) ? DescriptionRu : Description;
 
-    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll112Modules();
-    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll112Modules();
-    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll112Modules();
-    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll112Modules();
-    public static List<ModuleCatalogItem> CreateAll108Modules() => CreateAll112Modules();
+    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll120Modules();
+    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll120Modules();
+    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll120Modules();
+    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll120Modules();
+    public static List<ModuleCatalogItem> CreateAll108Modules() => CreateAll120Modules();
+    public static List<ModuleCatalogItem> CreateAll112Modules() => CreateAll120Modules();
 
-    public static List<ModuleCatalogItem> CreateAll112Modules() =>
+    public static List<ModuleCatalogItem> CreateAll120Modules() =>
     [
-        // Flagship Combat, ESP, Spotify, Baritone & APEX v4.0 Modules
+        // Flagship BedWars, Anti-Aliased Contours, Combat, ESP, Spotify, Baritone & HYPERION v5.0 Modules
+        new() { Id = "fast_bridge", Name = "FastBridge", NameRu = "Бридж Фаст (BedWars)", Category = "Movement", Description = "Rapid BedWars bridging (Ninja/Eagle auto-sneak, GodBridge 45°/76.5° assist, auto wool refill & 3D ghost block contour).", DescriptionRu = "Быстрая простройка блоками в BedWars: авто-присед на краю (Ninja/Eagle), GodBridge-угол, авто-пополнение шерсти и 3D-контур.", Enabled = false, Favorite = true },
+        new() { Id = "block_contour_pro", Name = "Block Contour Pro", NameRu = "Неоновый Контур Блока", Category = "Render", Description = "Replaces vanilla jagged block outlines with smooth sub-pixel anti-aliased 3D neon contours and active face glow.", DescriptionRu = "Заменяет стандартную угловатую обводку на плавный сглаженный 3D-контур Hyperion с подсветкой активной грани.", Enabled = true, Favorite = true },
+        new() { Id = "bedwars_esp", Name = "BedWars Bed & Gen ESP", NameRu = "BedWars Кровати и Ресурсы", Category = "Render", Description = "Highlights BedWars beds with defence tier (Obsidian/Endstone/Wood/Wool) plus dropped Emeralds, Diamonds, Gold & Iron.", DescriptionRu = "3D-подсветка кроватей в BedWars с анализом защиты (обсидиан/эндняк/шерсть) и ресурсов генераторов (изумруды/алмазы).", Enabled = false, Favorite = true },
+        new() { Id = "fireball_tnt_alert", Name = "Fireball & TNT Alert", NameRu = "Траектория Фаерболов и ТНТ", Category = "Combat", Description = "Smooth anti-aliased 3D ballistic trajectory arc, blast radius ring & optional melee fireball auto-deflect.", DescriptionRu = "Плавная 3D-дуга полёта фаерболов, ТНТ и перлов, радиус взрыва и авто-отбитие фаерболов ударом.", Enabled = true, Favorite = true },
+        new() { Id = "auto_tool_weapon", Name = "Smart AutoTool & Sword", NameRu = "Авто-Инструмент и Меч", Category = "Player", Description = "Auto-selects Shears/Pickaxe/Axe for BedWars bed defences and snaps back to Sword on enemies.", DescriptionRu = "Авто-выбор ножниц, кирки или топора при ломании защиты кровати и мгновенный возврат на меч в PvP.", Enabled = false, Favorite = true },
+        new() { Id = "bridge_clutch", Name = "Bridge Clutch", NameRu = "Авто-Клатч Блоками", Category = "Movement", Description = "Anti-knockback void rescue: auto-switches to blocks and triggers wall/floor clutch placement when knocked off a bridge.", DescriptionRu = "Спасение при скидывании с моста: авто-выбор блоков и мгновенный клик под стенку при падении в бездну.", Enabled = false, Favorite = true },
+        new() { Id = "invis_armor_detector", Name = "Invis & Threat Scanner", NameRu = "Детектор Инвизок и Угроз", Category = "Render", Description = "Detects invisible BedWars rushers via armor/held items and warns of enemy Fireballs, TNT, Obsidian & Pearls.", DescriptionRu = "Обнаружение невидимых врагов (инвизок) с подсветкой хитбокса и индикация ТНТ, фаерболов и перлов в руках.", Enabled = true, Favorite = true },
+        new() { Id = "neon_halo_trails", Name = "Hyperion Ribbon & Halo", NameRu = "Неоновый Шлейф и Кибер-Нимб", Category = "Render", Description = "Smooth anti-aliased dual-ribbon 3D player trails and rotating crystalline halo contours above targets.", DescriptionRu = "Плавный двухслойный 3D неоновый шлейф за игроком и вращающийся кристаллический кибер-нимб над целью.", Enabled = false, Favorite = true },
         new() { Id = "kill_aura", Name = "KillAura v4", NameRu = "КиллАура v4", Category = "Combat", Description = "35-year kinematic 1.9+ combat aura with SnowGrim, Grim, Matrix, Vulcan, Intave, Polar & FunTime/RW/HW profiles.", DescriptionRu = "Кинематическая 1.9+ аура: обходы SnowGrim, Grim, Matrix, Vulcan, Intave, Polar и FunTime / ReallyWorld / HolyWorld.", Enabled = false, Favorite = true },
         new() { Id = "spotify_music_hud", Name = "Spotify & Music", NameRu = "Музыка и Spotify Плеер", Category = "Utility", Description = "Live Spotify sync, auto-stops vanilla MC music when Spotify plays, plus interactive Continue/Pause/Stop/Next buttons.", DescriptionRu = "Живая синхронизация со Spotify, авто-стоп музыки Minecraft и улучшенные кнопки Продолжить / Пауза / Стоп прямо на HUD и в чате.", Enabled = true, Favorite = true },
         new() { Id = "baritone_bot", Name = "Baritone Autopilot", NameRu = "Баритон Автопилот", Category = "World", Description = "Integrated Baritone AI pathfinder (#mine/#goto bridge + standalone 3D neon route & goal beacon).", DescriptionRu = "ИИ-автопилот Baritone: добыча алмазов и обломков (#mine/#goto), 3D неоновый маршрут и кнопки Пауза/Стоп в чате.", Enabled = false, Favorite = true },
@@ -388,7 +397,7 @@ public sealed class ModuleCatalogItem
         new() { Id = "auto_respawn", Name = "Auto Death Guard", NameRu = "Страж смерти", Category = "Player", Description = "Automatically copies exact death coordinates to clipboard and alerts upon death.", DescriptionRu = "Автоматическое сохранение и копирование координат смерти в буфер обмена.", Enabled = false },
         new() { Id = "china_hat", Name = "China Hat", NameRu = "Коническая шляпа", Category = "Render", Description = "Rotating 3D translucent Aurora cone halo above active target and third-person player.", DescriptionRu = "Объёмный 3D неоновый нимб Aurora над головой активной цели и самого игрока.", Enabled = false, Favorite = true },
         new() { Id = "jump_circles", Name = "Jump Circles", NameRu = "Круги прыжка", Category = "Render", Description = "Expanding dual-gradient 3D Aurora energy rings on the ground whenever you jump.", DescriptionRu = "Расходящиеся градиентные 3D-кольца на земле в точке каждого прыжка.", Enabled = false, Favorite = true },
-        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Curved APEX v4.0 top-left glass brand capsule with player, FPS, ping, speed & server.", DescriptionRu = "Скруглённая верхняя стеклянная капсула: бренд AXSES 4.0, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
+        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Anti-aliased HYPERION v5.0 top-left glass brand capsule with player, FPS, ping, speed & server.", DescriptionRu = "Сглаженная верхняя стеклянная капсула: бренд AXSES 5.0, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
         new() { Id = "module_list", Name = "Module ArrayList", NameRu = "Список модулей", Category = "HUD", Description = "Cascading right-aligned list of active modules with synchronized Aurora wave glow.", DescriptionRu = "Каскадный список включённых функций справа с живой неоновой волной Aurora и режимами.", Enabled = true, Favorite = true },
         new() { Id = "breadcrumbs", Name = "Breadcrumbs", NameRu = "Шлейф движения", Category = "Render", Description = "Smooth fading 3D Aurora energy ribbon along your movement trajectory.", DescriptionRu = "Плавный светящийся 3D-шлейф за траекторией вашего бега.", Enabled = false },
         new() { Id = "hit_particles", Name = "Hit Particles", NameRu = "Партиклы ударов", Category = "Render", Description = "Glowing 3D Aurora sparks around struck targets on hit.", DescriptionRu = "Неоновые 3D-искры вокруг цели в момент точного удара.", Enabled = false },

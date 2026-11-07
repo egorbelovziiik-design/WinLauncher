@@ -764,9 +764,9 @@ public final class VisualModulesRegistry {
         });
         hm.register(new HudElement("session_information", "Session Info", sessionInfoMod, 0.015f, 0.37f, 180f, 20f));
 
-        // 31. Entity ESP (ESP Подсветка) — Projected 2D/Corner/3D Boxes, Health Bars, Nametags & Offscreen Radar
-        Module entityEsp = mm.register(new Module("entity_esp", "Entity ESP", "Highlights players and mobs with projected 2D/3D boxes, health bars, nametags & radar arrows", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
-            private final ModeSetting boxStyle = addSetting(new ModeSetting("box_style", "Box Style", "ESP frame visual style", "Corners", "Corners", "Vision Capsule", "2D Box", "3D Box", "None"));
+        // 31. Entity ESP (ESP Подсветка) — Hyperion Anti-Aliased Dual-Glow Contours, 3D Prisms, Health Bars & Nametags
+        Module entityEsp = mm.register(new Module("entity_esp", "Entity ESP", "Highlights players and mobs with anti-aliased Hyperion neon contours, 3D prisms, health bars, nametags & radar arrows", ModuleCategory.RENDER, false, KeyCodes.KEY_NONE, false) {
+            private final ModeSetting boxStyle = addSetting(new ModeSetting("box_style", "Box Style", "ESP frame visual style", "Hyperion Neon", "Hyperion Neon", "Vision Capsule", "Corners", "3D Box", "2D Box", "None"));
             private final NumberSetting range = addSetting(new NumberSetting("range", "Render Range", "Maximum ESP distance in blocks", 72.0, 16.0, 160.0, 4.0));
             private final BooleanSetting fillBox = addSetting(new BooleanSetting("fill_box", "Box Fill Tint", "Subtle translucent inner glow inside ESP box", true));
             private final BooleanSetting healthBar = addSetting(new BooleanSetting("health_bar", "Health Bar", "Vertical color-graded HP bar beside entity", true));
@@ -849,42 +849,56 @@ public final class VisualModulesRegistry {
                         continue;
                     }
 
-                    float capRad = Math.min(8.0f, Math.min(bw, bh) * 0.25f);
+                    float capRad = Math.min(8.5f, Math.min(bw, bh) * 0.25f);
+                    int primCol = themes.filterColor(t.getPrimaryColor());
+                    int secCol = hurt ? t.getErrorColor() : primCol;
                     if (fillBox.isEnabled() && !"None".equalsIgnoreCase(boxStyle.getValue())) {
-                        r.fillRoundedRect(bx, by, bw, bh, capRad, AxsesTheme.withAlpha(baseCol, hurt ? 0.24f : 0.12f));
+                        r.fillGradientVertical(bx + 1f, by + 1f, Math.max(2f, bw - 2f), Math.max(2f, bh - 2f),
+                                AxsesTheme.withAlpha(secCol, hurt ? 0.28f : 0.16f),
+                                AxsesTheme.withAlpha(baseCol, hurt ? 0.18f : 0.06f));
                     }
 
                     String style = boxStyle.getValue();
-                    if ("Vision Capsule".equalsIgnoreCase(style)) {
-                        r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, capRad + 1f, 1f, 0xAA05060A);
-                        r.drawRoundedOutline(bx, by, bw, bh, capRad, 1.4f, AxsesTheme.withAlpha(baseCol, 0.96f));
+                    if ("Hyperion Neon".equalsIgnoreCase(style)) {
+                        RenderManager.drawHyperionContour(r, bx, by, bw, bh, capRad, 1.55f,
+                                AxsesTheme.withAlpha(secCol, 0.96f),
+                                AxsesTheme.withAlpha(baseCol, 0.98f),
+                                0.68f);
+                        drawCornerBrackets(r, bx - 1.5f, by - 1.5f, bw + 3.0f, bh + 3.0f, AxsesTheme.withAlpha(baseCol, 0.95f));
+                    } else if ("Vision Capsule".equalsIgnoreCase(style)) {
+                        RenderManager.drawHyperionContour(r, bx, by, bw, bh, capRad, 1.45f,
+                                AxsesTheme.withAlpha(secCol, 0.94f),
+                                AxsesTheme.withAlpha(baseCol, 0.96f),
+                                0.50f);
                     } else if ("2D Box".equalsIgnoreCase(style)) {
-                        r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, 0f, 1f, 0xAA05060A);
-                        r.drawRoundedOutline(bx, by, bw, bh, 0f, 1f, AxsesTheme.withAlpha(baseCol, 0.92f));
+                        r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, 2f, 1.1f, 0xBB04060E);
+                        r.drawGradientRoundedOutline(bx, by, bw, bh, 2f, 1.35f,
+                                AxsesTheme.withAlpha(secCol, 0.94f), AxsesTheme.withAlpha(baseCol, 0.94f));
                     } else if ("Corners".equalsIgnoreCase(style)) {
                         drawCornerBrackets(r, bx, by, bw, bh, AxsesTheme.withAlpha(baseCol, 0.95f));
                     } else if ("3D Box".equalsIgnoreCase(style) && validCount == 8) {
-                        draw3dWireframe(r, proj, AxsesTheme.withAlpha(baseCol, 0.88f));
+                        draw3dWireframe(r, proj, AxsesTheme.withAlpha(baseCol, 0.94f));
                     }
 
                     // Vertical Side Health Bar + Right Armor Bar
                     if (healthBar.isEnabled()) {
                         float frac = ent.getHealthFraction();
-                        float barX = bx - 5.0f;
-                        r.fillRoundedRect(barX - 0.5f, by - 0.5f, 3.2f, bh + 1.0f, 1.5f, 0xCC06070C);
-                        int hpCol = frac > 0.55f ? t.getSuccessColor() : (frac > 0.25f ? t.getWarningColor() : t.getErrorColor());
-                        float fillH = Math.max(1.5f, bh * frac);
-                        r.fillRoundedRect(barX, by + (bh - fillH), 2.2f, fillH, 1.0f, hpCol);
+                        float barX = bx - 5.5f;
+                        r.fillRoundedRect(barX - 0.8f, by - 0.8f, 3.8f, bh + 1.6f, 1.9f, 0xD8050710);
+                        int hpTop = frac > 0.55f ? 0xFF00F5D4 : (frac > 0.25f ? 0xFFFFD166 : 0xFFFF4D6D);
+                        int hpBot = frac > 0.55f ? t.getSuccessColor() : (frac > 0.25f ? 0xFFF77F00 : t.getErrorColor());
+                        float fillH = Math.max(2.0f, bh * frac);
+                        r.fillGradientVertical(barX, by + (bh - fillH), 2.2f, fillH, hpTop, hpBot);
                         if (ent.getAbsorption() > 0.1f) {
                             float absH = Math.min(bh, bh * (ent.getAbsorption() / 20.0f));
                             r.fillRoundedRect(barX, by + (bh - absH), 2.2f, absH, 1.0f, 0xFFFFD166);
                         }
                         if (ent.getArmorValue() > 0) {
                             float armFrac = Math.min(1.0f, ent.getArmorValue() / 20.0f);
-                            float armX = bx + bw + 2.5f;
-                            float armH = Math.max(1.5f, bh * armFrac);
-                            r.fillRoundedRect(armX - 0.5f, by - 0.5f, 2.8f, bh + 1.0f, 1.4f, 0xAA06070C);
-                            r.fillRoundedRect(armX, by + (bh - armH), 1.8f, armH, 0.9f, themes.filterColor(t.getAccentColor()));
+                            float armX = bx + bw + 2.8f;
+                            float armH = Math.max(2.0f, bh * armFrac);
+                            r.fillRoundedRect(armX - 0.7f, by - 0.7f, 3.4f, bh + 1.4f, 1.7f, 0xCC050710);
+                            r.fillGradientVertical(armX, by + (bh - armH), 2.0f, armH, primCol, themes.filterColor(t.getAccentColor()));
                         }
                     }
 
@@ -896,13 +910,14 @@ public final class VisualModulesRegistry {
                                 + String.format(Locale.ROOT, " · %.1f❤ · %.0f%s", Float.valueOf(hpTotal), Float.valueOf(ent.getDistance()), unit);
                         float scale = 0.85f;
                         float tw = fonts.width(r, tag, scale);
-                        float pw = tw + 11.0f;
-                        float ph = 13.0f;
+                        float pw = tw + 12.0f;
+                        float ph = 13.5f;
                         float px = bx + (bw - pw) * 0.5f;
-                        float py = by - ph - 3.5f;
-                        r.fillRoundedRect(px, py, pw, ph, 6.5f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f));
-                        r.drawRoundedOutline(px, py, pw, ph, 6.5f, 1.0f, AxsesTheme.withAlpha(baseCol, 0.78f));
-                        fonts.draw(r, tag, px + 5.5f, py + 3.0f, t.getTextColor(), scale);
+                        float py = by - ph - 4.0f;
+                        r.fillRoundedRect(px, py, pw, ph, 6.8f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.94f));
+                        r.drawGradientRoundedOutline(px, py, pw, ph, 6.8f, 1.2f,
+                                AxsesTheme.withAlpha(secCol, 0.88f), AxsesTheme.withAlpha(baseCol, 0.88f));
+                        fonts.draw(r, tag, px + 6.0f, py + 3.2f, 0xFFF8FAFF, scale);
                     }
 
                     // Bottom Curved Held Item Tag
@@ -1025,7 +1040,7 @@ public final class VisualModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                return "AXSES v4.0";
+                return "AXSES v5.0";
             }
         });
         watermarkMod.setFavorite(true);
@@ -1068,7 +1083,7 @@ public final class VisualModulesRegistry {
                             }
                         }
 
-                        String brand = "AXSES 4.0";
+                        String brand = "AXSES 5.0";
                         String tail = seg.toString();
                         float brandW = fontManager.width(r, brand, 1.0f);
                         float tailW = fontManager.width(r, tail, 0.94f);
@@ -1079,13 +1094,15 @@ public final class VisualModulesRegistry {
                         int prim = themeManager.filterColor(t.getPrimaryColor());
                         int acc = themeManager.filterColor(t.getAccentColor());
 
-                        RenderManager.drawSoftGlow(r, px, py, barW, barH, barRad, 3, prim, 0.22f * opacity);
-                        r.drawShadow(px, py, barW, barH, barRad, 0.72f * opacity, 0x000000);
+                        RenderManager.drawSoftGlow(r, px, py, barW, barH, barRad, 3, prim, 0.25f * opacity);
+                        r.drawShadow(px, py, barW, barH, barRad, 0.75f * opacity, 0x000000);
                         r.fillRoundedRect(px, py, barW, barH, barRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.95f * opacity));
                         RenderManager.fillRoundedHorizontalGradient(r, px + 1.0f, py + 1.0f, barW - 2.0f, barH - 2.0f, barRad - 1.0f,
-                                AxsesTheme.withAlpha(prim, 0.16f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
-                        r.drawRoundedOutline(px, py, barW, barH, barRad, 1.1f,
-                                selected ? acc : AxsesTheme.withAlpha(prim, 0.80f * opacity));
+                                AxsesTheme.withAlpha(prim, 0.18f * opacity), AxsesTheme.withAlpha(acc, 0.08f * opacity));
+                        RenderManager.drawHyperionContour(r, px, py, barW, barH, barRad, 1.3f,
+                                selected ? acc : AxsesTheme.withAlpha(prim, 0.90f * opacity),
+                                AxsesTheme.withAlpha(acc, 0.92f * opacity),
+                                0.45f * opacity);
 
                         // Glowing curved AX stadium badge on left
                         RenderManager.fillRoundedHorizontalGradient(r, px + 4.5f, py + 4.5f, 21.0f, 16.0f, 8.0f,
@@ -1591,7 +1608,7 @@ public final class VisualModulesRegistry {
         float[] apex = mc.projectWorldToScreen(cx, baseY + 0.30, cz);
         if (apex == null || apex[2] <= 0.1f) return;
 
-        int segs = 28;
+        int segs = 38;
         double rot = (System.currentTimeMillis() % 5000L) / 5000.0 * Math.PI * 2.0;
         float prevX = 0f, prevY = 0f;
         boolean hasPrev = false;
@@ -1601,12 +1618,13 @@ public final class VisualModulesRegistry {
             double bz = cz + Math.sin(ang) * radius;
             float[] brim = mc.projectWorldToScreen(bx, baseY, bz);
             if (brim != null && brim[2] > 0.1f) {
-                int col = tm.getAuroraWaveColor(i * 0.22f);
-                if (i < segs) {
-                    r.drawLine(apex[0], apex[1], brim[0], brim[1], 1.4f, AxsesTheme.withAlpha(col, 0.36f));
+                int col = tm.getAuroraWaveColor(i * 0.18f);
+                if (i < segs && (i % 2 == 0)) {
+                    r.drawLine(apex[0], apex[1], brim[0], brim[1], 1.15f, AxsesTheme.withAlpha(col, 0.42f));
                 }
                 if (hasPrev) {
-                    r.drawLine(prevX, prevY, brim[0], brim[1], 2.0f, AxsesTheme.withAlpha(col, 0.92f));
+                    r.drawNeonLine(prevX, prevY, brim[0], brim[1], 1.75f,
+                            AxsesTheme.withAlpha(col, 0.96f), AxsesTheme.withAlpha(col, 0.45f));
                 }
                 prevX = brim[0];
                 prevY = brim[1];
@@ -1627,7 +1645,7 @@ public final class VisualModulesRegistry {
             double radius,
             float alpha
     ) {
-        int segs = 28;
+        int segs = 42;
         float prevX = 0f, prevY = 0f;
         boolean hasPrev = false;
         for (int i = 0; i <= segs; i++) {
@@ -1635,8 +1653,8 @@ public final class VisualModulesRegistry {
             float[] pr = mc.projectWorldToScreen(cx + Math.cos(ang) * radius, y, cz + Math.sin(ang) * radius);
             if (pr != null && pr[2] > 0.1f) {
                 if (hasPrev) {
-                    int col = AxsesTheme.withAlpha(tm.getAuroraWaveColor(i * 0.25f), alpha);
-                    r.drawLine(prevX, prevY, pr[0], pr[1], 2.0f, col);
+                    int col = AxsesTheme.withAlpha(tm.getAuroraWaveColor(i * 0.18f), alpha);
+                    r.drawNeonLine(prevX, prevY, pr[0], pr[1], 1.75f, col, AxsesTheme.withAlpha(col, alpha * 0.42f));
                 }
                 prevX = pr[0];
                 prevY = pr[1];
@@ -1703,10 +1721,11 @@ public final class VisualModulesRegistry {
                 {4, 5}, {5, 6}, {6, 7}, {7, 4},
                 {0, 4}, {1, 5}, {2, 6}, {3, 7}
         };
+        int glow = AxsesTheme.withAlpha(col, 0.42f);
         for (int i = 0; i < edges.length; i++) {
             float[] a = p[edges[i][0]];
             float[] b = p[edges[i][1]];
-            r.drawLine(a[0], a[1], b[0], b[1], 1.2f, col);
+            r.drawNeonLine(a[0], a[1], b[0], b[1], 1.45f, col, glow);
         }
     }
 

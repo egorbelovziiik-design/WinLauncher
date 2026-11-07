@@ -59,6 +59,15 @@ public class AxsesCoreTest {
         float yaw = 90.0f;
         float pitch = 0.0f;
         boolean usingItem = false;
+        int selectedSlot = 0;
+        boolean overEdge = false;
+        int blocksPlaced = 0;
+        double[] targetedBlockBox = null;
+        String targetedBlockId = "";
+        List<double[]> bedWarsBeds = Collections.emptyList();
+        List<double[]> incomingProjectiles = Collections.emptyList();
+        List<ItemInfo> mockInventory = Collections.singletonList(new ItemInfo("minecraft:arrow", "Arrow", 32, 0, 0));
+        ItemInfo mockMainHand = new ItemInfo("minecraft:diamond_sword", "Diamond Sword", 1, 100, 1561);
         List<TargetEntityInfo> mockTargets = Collections.emptyList();
 
         MockPlatform(Path gameDir) {
@@ -96,10 +105,28 @@ public class AxsesCoreTest {
         @Override public float getHealth() { return 20.0f; }
         @Override public float getMaxHealth() { return 20.0f; }
         @Override public List<ItemInfo> getArmorItems() { return Collections.singletonList(new ItemInfo("minecraft:diamond_helmet", "Diamond Helmet", 1, 20, 363)); }
-        @Override public ItemInfo getMainHandItem() { return new ItemInfo("minecraft:diamond_sword", "Diamond Sword", 1, 100, 1561); }
+        @Override public ItemInfo getMainHandItem() { return mockMainHand; }
         @Override public ItemInfo getOffHandItem() { return ItemInfo.EMPTY; }
-        @Override public List<ItemInfo> getInventoryItems() { return Collections.singletonList(new ItemInfo("minecraft:arrow", "Arrow", 32, 0, 0)); }
-        @Override public int getSelectedHotbarSlot() { return 0; }
+        @Override public List<ItemInfo> getInventoryItems() { return mockInventory; }
+        @Override public int getSelectedHotbarSlot() { return selectedSlot; }
+        @Override public void selectHotbarSlot(int slot) {
+            this.selectedSlot = slot;
+            if (slot >= 0 && slot < mockInventory.size()) {
+                this.mockMainHand = mockInventory.get(slot);
+            }
+        }
+        @Override public boolean isStandingOverEdge(double edgeInset) { return overEdge; }
+        @Override public boolean placeBlockAtCrosshair() {
+            if (targetedBlockBox != null) {
+                blocksPlaced++;
+                return true;
+            }
+            return false;
+        }
+        @Override public double[] getTargetedBlockBox() { return targetedBlockBox; }
+        @Override public String getTargetedBlockId() { return targetedBlockId; }
+        @Override public List<double[]> scanBedWarsBeds(int radius) { return bedWarsBeds; }
+        @Override public List<double[]> getIncomingProjectiles(double range) { return incomingProjectiles; }
         @Override public List<StatusEffectInfo> getActiveEffects() { return Collections.singletonList(new StatusEffectInfo("speed", "Speed", 1, 600, true, 0x33EBFF)); }
         @Override public String getBiomeName() { return "Cherry Grove"; }
         @Override public String getBiomePrecipitation() { return "Rain"; }
@@ -184,10 +211,14 @@ public class AxsesCoreTest {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);
 
-        assertEquals(112, core.getModuleManager().getAll().size(), "Must register all 112 modules & GUI features");
+        assertEquals(120, core.getModuleManager().getAll().size(), "Must register all 120 modules & GUI features");
         assertEquals(14, core.getThemeManager().getAllThemes().size(), "Must register all 14 built-in themes");
 
-        // Verify Russian search finds KillAura, ESP, Target HUD, Baritone, Spotify, FPS & Chat HUD Mover
+        // Verify Russian search finds FastBridge, BedWars ESP, Contours, KillAura, Baritone, Spotify, FPS & Chat HUD Mover
+        assertFalse(core.getModuleManager().query(null, false, "бридж").isEmpty(), "Russian search must find FastBridge");
+        assertFalse(core.getModuleManager().query(null, false, "кроват").isEmpty(), "Russian search must find BedWars ESP");
+        assertFalse(core.getModuleManager().query(null, false, "контур").isEmpty(), "Russian search must find Block Contour Pro");
+        assertFalse(core.getModuleManager().query(null, false, "фаербол").isEmpty(), "Russian search must find Fireball & TNT Alert");
         assertFalse(core.getModuleManager().query(null, false, "киллаура").isEmpty(), "Russian search must find KillAura");
         assertFalse(core.getModuleManager().query(null, false, "баритон").isEmpty(), "Russian search must find Baritone");
         assertFalse(core.getModuleManager().query(null, false, "spotify").isEmpty(), "Russian search must find Spotify Music");
@@ -409,12 +440,51 @@ public class AxsesCoreTest {
         assertTrue(Math.abs(fps.getPixelX(platform.scaledW) - startFpsX) > 50.0f, "Dragging in Chat must reposition HUD widget");
 
         // Verify Baritone external bridge sends #goto / #stop when Baritone mod is loaded
-        platform.loadedMods = java.util.Arrays.asList("axsesclient@4.0.0", "baritone@1.11.1", "sodium@0.6.5");
+        platform.loadedMods = java.util.Arrays.asList("axsesclient@5.0.0", "baritone@1.11.1", "sodium@0.6.5");
         Module baritone = core.getModuleManager().getById("baritone_bot");
         assertNotNull(baritone);
         baritone.setEnabled(true, platform);
         assertTrue(platform.lastSentCommand.startsWith("#goto"), "Baritone module must bridge #goto when external Baritone is loaded");
         baritone.setEnabled(false, platform);
         assertEquals("#stop", platform.lastSentCommand, "Disabling Baritone must send #stop");
+
+        // Verify FastBridge (Ninja/Eagle): auto hotbar wool refill + edge auto-sneak + rapid block placement + release on disable
+        platform.chatOpen = false;
+        platform.selectedSlot = 0;
+        platform.mockMainHand = new ItemInfo("minecraft:diamond_sword", "Diamond Sword", 1, 0, 1561);
+        platform.mockInventory = java.util.Arrays.asList(
+                new ItemInfo("minecraft:diamond_sword", "Diamond Sword", 1, 0, 1561),
+                new ItemInfo("minecraft:shears", "Shears", 1, 0, 238),
+                new ItemInfo("minecraft:red_wool", "Red Wool", 48, 0, 0)
+        );
+        platform.overEdge = true;
+        platform.targetedBlockBox = new double[] { 128.0, 63.0, -256.0, 128.0, 63.0, -256.0, 129.0, 64.0, -255.0, 0.0, 0.0, 1.0 };
+        platform.targetedBlockId = "minecraft:red_wool";
+        Module fastBridge = core.getModuleManager().getById("fast_bridge");
+        assertNotNull(fastBridge);
+        fastBridge.setEnabled(true, platform);
+        core.onClientTick();
+        assertEquals(2, platform.selectedSlot, "FastBridge must auto-refill/switch hotbar to Red Wool slot");
+        assertTrue(platform.sneaking, "FastBridge Ninja/Eagle mode must hold sneak when standing over block edge");
+        assertTrue(platform.blocksPlaced >= 1, "FastBridge must rapidly place blocks at targeted bridge edge");
+        fastBridge.setEnabled(false, platform);
+        assertFalse(platform.sneaking, "Disabling FastBridge must cleanly release sneak key");
+
+        // Verify Fireball & TNT Alert auto-deflects incoming fireball within melee range
+        platform.lastAttackedEntityId = -1;
+        platform.incomingProjectiles = Collections.singletonList(new double[] { 129.5, 65.0, -255.0, -0.3, -0.1, -0.2, 1.0, 777.0, 2.4 });
+        Module fbAlert = core.getModuleManager().getById("fireball_tnt_alert");
+        assertNotNull(fbAlert);
+        fbAlert.setEnabled(true, platform);
+        core.onClientTick();
+        assertEquals(777, platform.lastAttackedEntityId, "Fireball Alert must auto-deflect incoming fireball within 3.25m");
+
+        // Verify Hyperion Contours, BedWars ESP & Block Contour Pro emit anti-aliased draw calls
+        platform.bedWarsBeds = Collections.singletonList(new double[] { 136.0, 64.0, -248.0, 4.0, 0xFF3B5C });
+        core.getModuleManager().getById("bedwars_esp").setEnabled(true, platform);
+        core.getModuleManager().getById("block_contour_pro").setEnabled(true, platform);
+        int beforeBedWarsDraws = platform.drawCalls;
+        core.onHudRender(platform);
+        assertTrue(platform.drawCalls > beforeBedWarsDraws + 40, "BedWars ESP, Fireball Trajectory & Block Contour Pro must emit anti-aliased draw calls");
     }
 }

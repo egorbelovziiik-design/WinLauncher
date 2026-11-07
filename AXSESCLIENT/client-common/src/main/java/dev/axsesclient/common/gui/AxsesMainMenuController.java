@@ -82,10 +82,12 @@ public final class AxsesMainMenuController {
         }
 
         // 5. Top Status & Quick Switcher Stadium Pills
-        String engineTag = isRu ? "⚡ APEX v4.0 · 112 МОДУЛЕЙ · SNOWGRIM · SPOTIFY · BARITONE" : "⚡ APEX v4.0 · 112 MODULES · SNOWGRIM · SPOTIFY · BARITONE";
+        String engineTag = isRu
+                ? "⚡ HYPERION v5.0 · 120 МОДУЛЕЙ · ФАСТБРИДЖ · BEDWARS · SNOWGRIM"
+                : "⚡ HYPERION v5.0 · 120 MODULES · FASTBRIDGE · BEDWARS · SNOWGRIM";
         float ew = core.getFontManager().width(r, engineTag, 0.88f) + 18.0f;
         r.fillRoundedRect(10f, 10f, ew, 20f, 10.0f, 0xDC080B18);
-        r.drawRoundedOutline(10f, 10f, ew, 20f, 10.0f, 1.0f, AxsesTheme.withAlpha(prim, 0.72f));
+        r.drawGradientRoundedOutline(10f, 10f, ew, 20f, 10.0f, 1.15f, prim, acc);
         core.getFontManager().draw(r, engineTag, 19f, 16f, acc, 0.88f);
 
         String langPill = isRu ? "Язык: Русский" : "Lang: English";
@@ -112,38 +114,40 @@ public final class AxsesMainMenuController {
         float panelX = cx - panelW * 0.5f;
         float panelY = Math.max(36.0f, (sh - panelH) * 0.5f);
 
-        RenderManager.drawSoftGlow(r, panelX, panelY, panelW, panelH, 20.0f, 4, prim, 0.24f);
+        RenderManager.drawSoftGlow(r, panelX, panelY, panelW, panelH, 20.0f, 4, prim, 0.26f);
         r.drawShadow(panelX, panelY, panelW, panelH, 20f, t.getShadowIntensity(), 0x000000);
         r.fillRoundedRect(panelX, panelY, panelW, panelH, 20f, 0xF2060A18);
         RenderManager.fillRoundedHorizontalGradient(r, panelX + 22f, panelY + 1.0f, panelW - 44f, 2.2f, 1.0f, prim, acc);
-        r.drawRoundedOutline(panelX, panelY, panelW, panelH, 20f, 1.5f, AxsesTheme.withAlpha(prim, 0.85f));
+        RenderManager.drawHyperionContour(r, panelX, panelY, panelW, panelH, 20f, 1.6f, prim, acc, 0.55f);
 
         // Left Column: Brand Hero & Active Session Telemetry (width 182)
         float leftX = panelX + 14.0f;
         float leftW = 182.0f;
         r.fillRoundedRect(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.94f));
-        r.drawRoundedOutline(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, 1.0f, 0x28FFFFFF);
+        r.drawGradientRoundedOutline(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, 1.1f,
+                AxsesTheme.withAlpha(prim, 0.35f), AxsesTheme.withAlpha(acc, 0.30f));
 
         // Glowing Curved AX Crest
         float crestX = leftX + (leftW - 46.0f) * 0.5f;
         float crestY = panelY + 28.0f;
-        r.fillRoundedRect(crestX - 2f, crestY - 2f, 50f, 50f, 16f, AxsesTheme.withAlpha(acc, 0.20f));
+        r.fillRoundedRect(crestX - 2f, crestY - 2f, 50f, 50f, 16f, AxsesTheme.withAlpha(acc, 0.22f));
         RenderManager.fillRoundedHorizontalGradient(r, crestX, crestY, 46f, 46f, 14f,
                 AxsesTheme.withAlpha(prim, 0.65f), AxsesTheme.withAlpha(acc, 0.45f));
-        r.drawRoundedOutline(crestX, crestY, 46f, 46f, 14f, 1.2f, acc);
+        r.drawGradientRoundedOutline(crestX, crestY, 46f, 46f, 14f, 1.3f, prim, acc);
         core.getFontManager().drawCentered(r, "AX", crestX + 23f, crestY + 18f, 0xFFFFFFFF, 1.25f);
 
-        core.getFontManager().drawCentered(r, "AXSESCLIENT 4.0", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
-        core.getFontManager().drawCentered(r, "APEX ARCHITECT", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
+        core.getFontManager().drawCentered(r, "AXSESCLIENT 5.0", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
+        core.getFontManager().drawCentered(r, "HYPERION APEX", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
 
         String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21.11";
         String user = mc != null ? mc.getPlayerName() : "Player";
         float cardY = crestY + 87.0f;
         r.fillRoundedRect(leftX + 10f, cardY, leftW - 20f, 48f, 10.0f, 0xCC050814);
-        r.drawRoundedOutline(leftX + 10f, cardY, leftW - 20f, 48f, 10.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.50f));
+        r.drawGradientRoundedOutline(leftX + 10f, cardY, leftW - 20f, 48f, 10.0f, 1.1f,
+                AxsesTheme.withAlpha(prim, 0.55f), AxsesTheme.withAlpha(acc, 0.55f));
         core.getFontManager().drawCentered(r, user, leftX + leftW * 0.5f, cardY + 8f, 0xFFFFFFFF, 0.94f);
         core.getFontManager().drawCentered(r, "MC " + mcVer + " · Fabric 0.20.1", leftX + leftW * 0.5f, cardY + 22f, t.getMutedColor(), 0.82f);
-        core.getFontManager().drawCentered(r, isRu ? "SnowGrim · Matrix · Baritone" : "SnowGrim · Matrix · Baritone",
+        core.getFontManager().drawCentered(r, isRu ? "ФастБридж · BedWars · SnowGrim" : "FastBridge · BedWars · SnowGrim",
                 leftX + leftW * 0.5f, cardY + 34f, t.getSuccessColor(), 0.80f);
 
         String hint1 = isRu ? "Правый Shift — меню GUI" : "Right Shift — ClickGUI";
@@ -194,7 +198,7 @@ public final class AxsesMainMenuController {
 
         // Footer version & memory strip
         long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
-        core.getFontManager().draw(r, "AXSESCLIENT v4.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
+        core.getFontManager().draw(r, "AXSESCLIENT v5.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
         String rightTag = user + " · " + t.getName();
         float rw = core.getFontManager().width(r, rightTag, 0.88f);
         core.getFontManager().draw(r, rightTag, sw - rw - 10f, sh - 14f, acc, 0.88f);

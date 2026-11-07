@@ -33,7 +33,7 @@ public sealed class MainWindow : Window
     public MainWindow(LauncherStateController state)
     {
         _state = state;
-        Title = "AXSESCLIENT v4.0 • APEX ARCHITECT";
+        Title = "AXSESCLIENT v5.0 • HYPERION APEX";
         Width = 1220;
         Height = 780;
         MinWidth = 1000;
@@ -187,7 +187,7 @@ public sealed class MainWindow : Window
         });
         brandTextStack.Children.Add(new TextBlock
         {
-            Text = "v4.0 • APEX ARCHITECT",
+            Text = "v5.0 • HYPERION APEX",
             Foreground = BrushOf(t.AccentCyan),
             FontWeight = FontWeight.SemiBold,
             FontSize = 10.5
@@ -235,7 +235,7 @@ public sealed class MainWindow : Window
             (LauncherPage.Dashboard, "◈", "Главная", "Dashboard"),
             (LauncherPage.Play, "▶", "Запуск и ОЗУ", "Play & RAM"),
             (LauncherPage.ModsHub, "🚀", "Моды и Baritone", "Mods & Baritone"),
-            (LauncherPage.Modules, "✦", "Модули (112)", "Modules (112)"),
+            (LauncherPage.Modules, "✦", "Модули (120)", "Modules (120)"),
             (LauncherPage.Versions, "❖", "Версии игры", "Versions"),
             (LauncherPage.Accounts, "◉", "Аккаунты", "Accounts"),
             (LauncherPage.Profiles, "▤", "Профили", "Profiles"),
@@ -379,10 +379,10 @@ public sealed class MainWindow : Window
 
         var heroLeft = new StackPanel { Spacing = 10 };
         var chipRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        chipRow.Children.Add(CreatePillBadge("APEX ARCHITECT v4.0", t.AccentPrimary, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge("HYPERION APEX v5.0", t.AccentPrimary, t.BgPrimary));
         chipRow.Children.Add(CreatePillBadge(spec.State.ToDisplayBadge(ru),
             spec.State == VersionInstallState.Installed ? t.Success : t.AccentCyan, t.BgPrimary));
-        chipRow.Children.Add(CreatePillBadge(ru ? "112 Модулей • SnowGrim/Matrix • Spotify • Baritone" : "112 Modules • SnowGrim/Matrix • Baritone", t.AccentCyan, t.BgPrimary));
+        chipRow.Children.Add(CreatePillBadge(ru ? "120 Модулей • Бридж Фаст • BedWars ESP • SDF Контуры" : "120 Modules • FastBridge • BedWars ESP • SDF Contours", t.AccentCyan, t.BgPrimary));
         heroLeft.Children.Add(chipRow);
 
         heroLeft.Children.Add(new TextBlock
@@ -474,7 +474,7 @@ public sealed class MainWindow : Window
         modsHubQuickBtn.Click += (_, _) => NavigateTo(LauncherPage.ModsHub);
         headerActions.Children.Add(modsHubQuickBtn);
 
-        var allModsBtn = CreateGhostButton(ru ? "Все 112 модулей →" : "All 112 Modules →", t);
+        var allModsBtn = CreateGhostButton(ru ? "Все 120 модулей →" : "All 120 Modules →", t);
         allModsBtn.Click += (_, _) => NavigateTo(LauncherPage.Modules);
         headerActions.Children.Add(allModsBtn);
         Grid.SetColumn(headerActions, 1);
@@ -853,8 +853,8 @@ public sealed class MainWindow : Window
         var searchBox = new TextBox
         {
             Watermark = ru
-                ? "🔎 Поиск по 112 модулям (КиллАура, SnowGrim, Spotify, Баритон, ESP, FPS)..."
-                : "🔎 Search 112 modules (e.g. KillAura, SnowGrim, Spotify, Baritone, ESP)..."
+                ? "🔎 Поиск по 120 модулям (Бридж Фаст, BedWars, Контуры, КиллАура, Spotify, Баритон)..."
+                : "🔎 Search 120 modules (FastBridge, BedWars ESP, Contours, KillAura, Spotify, Baritone)..."
         };
         if (!string.IsNullOrEmpty(_moduleSearch))
             searchBox.Text = _moduleSearch;
@@ -871,7 +871,7 @@ public sealed class MainWindow : Window
         var catRow = new WrapPanel { Orientation = Orientation.Horizontal };
         (string Key, string Ru, string En)[] cats =
         [
-            ("ALL", "Все (112)", "All (112)"),
+            ("ALL", "Все (120)", "All (120)"),
             ("Combat", "Бой (Combat)", "Combat"),
             ("HUD", "HUD Виджеты", "HUD"),
             ("Render", "Визуал", "Render"),
@@ -1539,7 +1539,7 @@ public sealed class MainWindow : Window
         var s = new StackPanel { Spacing = 10 };
         s.Children.Add(new TextBlock
         {
-            Text = "AXSESCLIENT v4.0.0 • APEX ARCHITECT",
+            Text = "AXSESCLIENT v5.0.0 • HYPERION APEX",
             Foreground = BrushOf(t.TextPrimary),
             FontSize = 22,
             FontWeight = FontWeight.Black
@@ -1549,11 +1549,11 @@ public sealed class MainWindow : Window
             Text = ru
                 ? "Нативный лаунчер, менеджер оптимизирующих модов и игровой клиент нового поколения для Windows 10/11 x64.\n" +
                   "• Поддержка Minecraft 1.16.5, 1.21.4 и 1.21.11 (отдельные оптимизированные Fabric-моды)\n" +
-                  "• 112 рабочих функций и 14 тем: КиллАура v4 (обходы SnowGrim, Grim, Matrix, Vulcan, Intave, Polar + FunTime/RW/HW), перемещение любых HUD-виджетов прямо в Чате (T), живой плеер Spotify с авто-стопом музыки Minecraft и кнопками Продолжить / Пауза / Стоп\n" +
+                  "• 120 рабочих функций и 14 тем: субпиксельные сглаженные контуры Hyperion SDF, BedWars-пакет (Бридж Фаст Ninja/Eagle/GodBridge, 3D Контур Блока, ESP Кроватей и Ресурсов, Траектория Фаерболов/ТНТ, Детектор Инвизок, Авто-Клатч, Авто-Инструмент), КиллАура v4 (SnowGrim/Grim/Matrix/Vulcan), перемещение HUD в Чате (T) и плеер Spotify\n" +
                   "• Встроенный Хаб популярных модов (Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris, ModernFix, Dynamic FPS) + ИИ-автопилот Baritone (#mine / #goto + 3D маршрут)\n" +
                   "• Честное выделение ОЗУ (-Xmx) + Автоматическая установка Java 8 и Java 21"
                 : "Next-generation native Windows x64 Launcher, Optimization Mod Hub & Fabric Client for Minecraft 1.16.5, 1.21.4 & 1.21.11.\n" +
-                  "• 112 real modules & 14 themes: KillAura v4 (SnowGrim, Grim, Matrix, Vulcan, Intave, Polar + FunTime/RW/HW), live HUD dragging inside Chat (T), Spotify player with auto-mute MC music & upgraded Continue/Pause/Stop buttons\n" +
+                  "• 120 real modules & 14 themes: Hyperion SDF anti-aliased contours, BedWars Suite (FastBridge Ninja/Eagle/GodBridge, 3D Block Contour Pro, BedWars Bed & Gen ESP, Fireball/TNT Ballistic Arc, Invis Scanner, Bridge Clutch, Smart AutoTool), KillAura v4 (SnowGrim/Grim/Matrix/Vulcan), Chat HUD dragging & Spotify player\n" +
                   "• Built-in Optimization Mod Hub (Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris, ModernFix, Dynamic FPS) + Baritone AI Autopilot (#mine / #goto + 3D neon route)\n" +
                   "• Hardware-calibrated JVM RAM allocation (-Xmx) & zero-touch Java 8 / Java 21 auto-installer",
             Foreground = BrushOf(t.TextSecondary),
@@ -1570,7 +1570,7 @@ public sealed class MainWindow : Window
         LauncherPage.Dashboard => ru ? "Панель управления" : "Dashboard",
         LauncherPage.Play => ru ? "Параметры запуска и ОЗУ" : "Launch & Memory",
         LauncherPage.ModsHub => ru ? "Популярные моды FPS и Baritone" : "FPS Mods & Baritone Hub",
-        LauncherPage.Modules => ru ? "Модули клиента (112)" : "Client Modules (112)",
+        LauncherPage.Modules => ru ? "Модули клиента (120)" : "Client Modules (120)",
         LauncherPage.Versions => ru ? "Версии Minecraft" : "Minecraft Versions",
         LauncherPage.Accounts => ru ? "Аккаунты игроков" : "Accounts",
         LauncherPage.Profiles => ru ? "Профили сборок" : "Launch Profiles",

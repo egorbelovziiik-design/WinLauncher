@@ -6,6 +6,8 @@ import net.minecraft.client.gui.GuiGraphics;
 
 public final class Mc12111RenderAdapter implements RenderAdapter {
     private final GuiGraphics graphics;
+    private int subPixelDepth = 0;
+    private boolean subPixelScaled = false;
 
     public Mc12111RenderAdapter(GuiGraphics graphics) {
         this.graphics = graphics;
@@ -92,5 +94,35 @@ public final class Mc12111RenderAdapter implements RenderAdapter {
     @Override
     public void popTransform() {
         graphics.pose().popMatrix();
+    }
+
+    @Override
+    public float beginHiDpiSubPixel() {
+        if (subPixelDepth > 0) {
+            subPixelDepth++;
+            return 1.0f;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        double gs = (mc != null && mc.getWindow() != null) ? mc.getWindow().getGuiScale() : 1.0;
+        float s = (float) Math.max(1.0, gs);
+        subPixelDepth = 1;
+        if (s > 1.05f) {
+            graphics.pose().pushMatrix();
+            graphics.pose().scale(1.0f / s, 1.0f / s);
+            subPixelScaled = true;
+            return s;
+        }
+        subPixelScaled = false;
+        return 1.0f;
+    }
+
+    @Override
+    public void endHiDpiSubPixel() {
+        if (subPixelDepth <= 0) return;
+        subPixelDepth--;
+        if (subPixelDepth == 0 && subPixelScaled) {
+            subPixelScaled = false;
+            graphics.pose().popMatrix();
+        }
     }
 }

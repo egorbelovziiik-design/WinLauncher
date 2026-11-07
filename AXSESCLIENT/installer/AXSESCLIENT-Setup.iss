@@ -1,8 +1,8 @@
-; AXSESCLIENT (Codename: APEX ARCHITECT) v4.0.0 — Official Windows 10/11 x64 Installer
+; AXSESCLIENT (Codename: HYPERION APEX) v5.0.0 — Official Windows 10/11 x64 Installer
 ; Built with Inno Setup 6. Preserves all user worlds, screenshots, and configs on upgrade/uninstall.
 
 #define MyAppName "AXSESCLIENT"
-#define MyAppVersion "4.0.0"
+#define MyAppVersion "5.0.0"
 #define MyAppPublisher "AXSESCLIENT Engineering"
 #define MyAppURL "https://github.com/egorbelovziiik-design/WinLauncher"
 #define MyAppExeName "AXSESCLIENT.exe"
@@ -11,7 +11,7 @@
 AppId={{8D7E4A92-5C21-4F18-9A63-1B0E2F7C9100}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} {#MyAppVersion} (APEX ARCHITECT)
+AppVerName={#MyAppName} {#MyAppVersion} (HYPERION APEX)
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}

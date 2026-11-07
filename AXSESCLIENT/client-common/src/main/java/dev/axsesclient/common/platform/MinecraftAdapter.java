@@ -210,4 +210,56 @@ public interface MinecraftAdapter {
         }
         return false;
     }
+
+    /**
+     * Selects a hotbar slot (0..8) on the client player.
+     */
+    default void selectHotbarSlot(int slot) {
+    }
+
+    /**
+     * True when the player is on or near a block edge with air directly beneath their support footprint
+     * (used by Ninja / Eagle FastBridge & SafeBridge).
+     */
+    default boolean isStandingOverEdge(double edgeInset) {
+        return false;
+    }
+
+    /**
+     * Attempts to place the currently held block against the targeted block face at the crosshair.
+     */
+    default boolean placeBlockAtCrosshair() {
+        return false;
+    }
+
+    /**
+     * Returns targeted block bounds & hit face normal:
+     * [bx, by, bz, minX, minY, minZ, maxX, maxY, maxZ, normalX, normalY, normalZ], or null if none.
+     */
+    default double[] getTargetedBlockBox() {
+        return null;
+    }
+
+    /**
+     * Registry identifier of the currently targeted block (e.g. "minecraft:white_wool", "minecraft:end_stone"), or "".
+     */
+    default String getTargetedBlockId() {
+        return "";
+    }
+
+    /**
+     * Scans nearby blocks for BedWars beds & defence layers.
+     * Each entry: [x, y, z, defenceTier (0=open,1=wool,2=wood,3=end_stone,4=obsidian), rgbColor].
+     */
+    default List<double[]> scanBedWarsBeds(int radius) {
+        return java.util.Collections.emptyList();
+    }
+
+    /**
+     * Returns incoming projectiles (Fireballs, Primed TNT, Arrows, Ender Pearls) within range.
+     * Each entry: [x, y, z, vx, vy, vz, typeId (1=Fireball,2=TNT,3=Arrow,4=Pearl), entityId, distance].
+     */
+    default List<double[]> getIncomingProjectiles(double range) {
+        return java.util.Collections.emptyList();
+    }
 }

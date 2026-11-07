@@ -81,35 +81,109 @@ public final class RenderManager {
     public static void drawSoftGlow(RenderAdapter r, float x, float y, float w, float h, float radius, int layers, int rgb, float maxAlpha) {
         if (layers <= 0 || maxAlpha <= 0.005f || w <= 0f || h <= 0f) return;
         for (int i = layers; i >= 1; i--) {
-            float spread = i * 2.2f;
+            float spread = i * 2.0f;
             float falloff = (float) (layers + 1 - i) / (float) (layers + 1);
-            float alpha = maxAlpha * falloff * 0.48f;
+            float alpha = maxAlpha * falloff * 0.50f;
             r.fillRoundedRect(x - spread, y - spread, w + spread * 2f, h + spread * 2f, radius + spread, AxsesTheme.withAlpha(rgb, alpha));
+        }
+    }
+
+    /**
+     * Signature Hyperion Pro anti-aliased contour: soft outer neon aura, dark contrast cushion,
+     * dual-tone gradient rounded stroke, and top inner glass specular highlight.
+     */
+    public static void drawHyperionContour(
+            RenderAdapter r, float x, float y, float w, float h, float radius,
+            float thickness, int primaryArgb, int accentArgb, float glowAlpha
+    ) {
+        if (w <= 0f || h <= 0f) return;
+        if (glowAlpha > 0.01f) {
+            r.drawGradientRoundedOutline(x - 1.6f, y - 1.6f, w + 3.2f, h + 3.2f, radius + 1.6f, thickness + 1.4f,
+                    AxsesTheme.withAlpha(primaryArgb, glowAlpha * 0.34f),
+                    AxsesTheme.withAlpha(accentArgb, glowAlpha * 0.34f));
+        }
+        r.drawRoundedOutline(x - 0.7f, y - 0.7f, w + 1.4f, h + 1.4f, radius + 0.7f, 1.0f, 0x9603050C);
+        r.drawGradientRoundedOutline(x, y, w, h, radius, thickness, primaryArgb, accentArgb);
+        if (w > radius * 2f + 6f) {
+            fillHorizontalGradient(r, x + radius + 1f, y + 1.0f, w - radius * 2f - 2f, 0.9f, 0x36FFFFFF, 0x10FFFFFF);
+        }
+    }
+
+    /**
+     * Projects and renders a smooth 12-edge anti-aliased 3D neon prism contour in world space.
+     */
+    public static void draw3dNeonPrism(
+            RenderAdapter r, MinecraftAdapter mc,
+            double minX, double minY, double minZ,
+            double maxX, double maxY, double maxZ,
+            float strokeWidth, int topColor, int bottomColor, boolean glow
+    ) {
+        if (mc == null) return;
+        double[][] pts = new double[][] {
+                {minX, minY, minZ}, {maxX, minY, minZ}, {maxX, minY, maxZ}, {minX, minY, maxZ},
+                {minX, maxY, minZ}, {maxX, maxY, minZ}, {maxX, maxY, maxZ}, {minX, maxY, maxZ}
+        };
+        float[][] sp = new float[8][];
+        for (int i = 0; i < 8; i++) {
+            sp[i] = mc.projectWorldToScreen(pts[i][0], pts[i][1], pts[i][2]);
+            if (sp[i] == null || sp[i][2] <= 0.08f) {
+                return;
+            }
+        }
+        int[][] bottomEdges = {{0, 1}, {1, 2}, {2, 3}, {3, 0}};
+        int[][] topEdges = {{4, 5}, {5, 6}, {6, 7}, {7, 4}};
+        int[][] pillars = {{0, 4}, {1, 5}, {2, 6}, {3, 7}};
+
+        int glowBot = AxsesTheme.withAlpha(bottomColor, 0.42f);
+        int glowTop = AxsesTheme.withAlpha(topColor, 0.42f);
+        int midCol = blendArgb(bottomColor, topColor, 0.5f);
+        int glowMid = AxsesTheme.withAlpha(midCol, 0.40f);
+
+        for (int i = 0; i < 4; i++) {
+            float[] a = sp[bottomEdges[i][0]], b = sp[bottomEdges[i][1]];
+            if (glow) r.drawNeonLine(a[0], a[1], b[0], b[1], strokeWidth, bottomColor, glowBot);
+            else r.drawLine(a[0], a[1], b[0], b[1], strokeWidth, bottomColor);
+        }
+        for (int i = 0; i < 4; i++) {
+            float[] a = sp[pillars[i][0]], b = sp[pillars[i][1]];
+            if (glow) r.drawNeonLine(a[0], a[1], b[0], b[1], strokeWidth, midCol, glowMid);
+            else r.drawLine(a[0], a[1], b[0], b[1], strokeWidth, midCol);
+        }
+        for (int i = 0; i < 4; i++) {
+            float[] a = sp[topEdges[i][0]], b = sp[topEdges[i][1]];
+            if (glow) r.drawNeonLine(a[0], a[1], b[0], b[1], strokeWidth, topColor, glowTop);
+            else r.drawLine(a[0], a[1], b[0], b[1], strokeWidth, topColor);
         }
     }
 
     public void drawCard(RenderAdapter r, float x, float y, float w, float h, boolean active, float hoverProgress) {
         AxsesTheme t = themeManager.getActiveTheme();
         float rad = t.getCornerRadius();
+        int prim = themeManager.filterColor(t.getPrimaryColor());
+        int acc = themeManager.filterColor(t.getAccentColor());
         if (t.getShadowIntensity() > 0.02f) {
-            r.drawShadow(x, y, w, h, rad, t.getShadowIntensity() * 0.65f, active ? themeManager.filterColor(t.getPrimaryColor()) : 0x000000);
+            r.drawShadow(x, y, w, h, rad, t.getShadowIntensity() * 0.70f, active ? prim : 0x000000);
         }
         int baseColor = active ? t.getElevatedColor() : t.getSurfaceColor();
         int fill = AxsesTheme.withAlpha(themeManager.filterColor(baseColor), t.getOpacity());
         r.fillRoundedRect(x, y, w, h, rad, fill);
 
         // Top glass sheen
-        r.fillRect(x + rad, y + 1.0f, Math.max(4f, w - rad * 2f), 1.0f, 0x16FFFFFF);
+        r.fillRect(x + rad, y + 1.0f, Math.max(4f, w - rad * 2f), 1.0f, 0x22FFFFFF);
 
         if (hoverProgress > 0.01f) {
-            int hoverTint = AxsesTheme.withAlpha(themeManager.filterColor(t.getPrimaryColor()), 0.12f * hoverProgress);
+            int hoverTint = AxsesTheme.withAlpha(prim, 0.14f * hoverProgress);
             r.fillRoundedRect(x, y, w, h, rad, hoverTint);
         }
 
-        int borderCol = active
-                ? themeManager.filterColor(t.getAccentColor())
-                : AxsesTheme.withAlpha(themeManager.filterColor(t.getMutedColor()), highContrastBorders ? 0.65f : 0.28f);
-        r.drawRoundedOutline(x, y, w, h, rad, active || highContrastBorders ? 1.5f : 1.0f, borderCol);
+        if (active) {
+            drawHyperionContour(r, x, y, w, h, rad, 1.35f,
+                    AxsesTheme.withAlpha(prim, 0.95f), AxsesTheme.withAlpha(acc, 0.98f), 0.45f);
+        } else {
+            int c1 = AxsesTheme.withAlpha(themeManager.filterColor(t.getMutedColor()), highContrastBorders ? 0.68f : 0.34f);
+            int c2 = AxsesTheme.withAlpha(prim, highContrastBorders ? 0.55f : 0.24f);
+            r.drawGradientRoundedOutline(x, y, w, h, rad, highContrastBorders ? 1.3f : 1.05f, c1, c2);
+        }
     }
 
     public void drawToggleSwitch(RenderAdapter r, float x, float y, float w, float h, float animProgress) {

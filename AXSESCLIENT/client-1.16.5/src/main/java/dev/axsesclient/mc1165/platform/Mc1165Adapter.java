@@ -24,10 +24,12 @@ import net.minecraft.client.gui.screens.packs.PackSelectionScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -37,7 +39,10 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
@@ -711,6 +716,9 @@ public final class Mc1165Adapter implements MinecraftAdapter {
         AABB b = le.getBoundingBox();
         ItemStack held = le.getMainHandItem();
         String heldName = (held != null && !held.isEmpty()) ? held.getHoverName().getString() : "";
+        if (le.isInvisible()) {
+            heldName = heldName.isEmpty() ? "[INVIS]" : (heldName + " [INVIS]");
+        }
         boolean los = mc.player.canSee(le);
         return new TargetEntityInfo(
                 le.getId(),
@@ -750,5 +758,156 @@ public final class Mc1165Adapter implements MinecraftAdapter {
             sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1));
         }
         return sb.toString();
+    }
+
+    @Override
+    public void selectHotbarSlot(int slot) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.player != null && slot >= 0 && slot <= 8) {
+            mc.player.inventory.selected = slot;
+        }
+    }
+
+    @Override
+    public boolean isStandingOverEdge(double edgeInset) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) return false;
+        double px = mc.player.getX();
+        double py = mc.player.getY();
+        double pz = mc.player.getZ();
+        int by = (int) Math.floor(py - 0.35);
+        BlockPos center = new BlockPos((int) Math.floor(px), by, (int) Math.floor(pz));
+        if (!mc.level.getBlockState(center).isAir()) {
+            return false;
+        }
+        double d = Math.max(0.06, Math.min(0.32, edgeInset));
+        BlockPos c1 = new BlockPos((int) Math.floor(px + d), by, (int) Math.floor(pz + d));
+        BlockPos c2 = new BlockPos((int) Math.floor(px - d), by, (int) Math.floor(pz + d));
+        BlockPos c3 = new BlockPos((int) Math.floor(px + d), by, (int) Math.floor(pz - d));
+        BlockPos c4 = new BlockPos((int) Math.floor(px - d), by, (int) Math.floor(pz - d));
+        return mc.level.getBlockState(c1).isAir()
+                || mc.level.getBlockState(c2).isAir()
+                || mc.level.getBlockState(c3).isAir()
+                || mc.level.getBlockState(c4).isAir();
+    }
+
+    @Override
+    public boolean placeBlockAtCrosshair() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null || mc.gameMode == null) return false;
+        if (!(mc.hitResult instanceof BlockHitResult)) return false;
+        BlockHitResult bhr = (BlockHitResult) mc.hitResult;
+        if (bhr.getType() != HitResult.Type.BLOCK || mc.level.getBlockState(bhr.getBlockPos()).isAir()) {
+            return false;
+        }
+        InteractionResult res = mc.gameMode.useItemOn(mc.player, mc.level, InteractionHand.MAIN_HAND, bhr);
+        if (res != null && res != InteractionResult.PASS && res != InteractionResult.FAIL) {
+            mc.player.swing(InteractionHand.MAIN_HAND);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public double[] getTargetedBlockBox() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || !(mc.hitResult instanceof BlockHitResult)) return null;
+        BlockHitResult bhr = (BlockHitResult) mc.hitResult;
+        if (bhr.getType() != HitResult.Type.BLOCK) return null;
+        BlockPos bp = bhr.getBlockPos();
+        if (mc.level.getBlockState(bp).isAir()) return null;
+        Direction dir = bhr.getDirection();
+        double bx = bp.getX(), by = bp.getY(), bz = bp.getZ();
+        return new double[] {
+                bx, by, bz,
+                bx, by, bz,
+                bx + 1.0, by + 1.0, bz + 1.0,
+                dir.getStepX(), dir.getStepY(), dir.getStepZ()
+        };
+    }
+
+    @Override
+    public String getTargetedBlockId() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || !(mc.hitResult instanceof BlockHitResult)) return "";
+        BlockHitResult bhr = (BlockHitResult) mc.hitResult;
+        if (bhr.getType() != HitResult.Type.BLOCK) return "";
+        BlockState st = mc.level.getBlockState(bhr.getBlockPos());
+        ResourceLocation key = Registry.BLOCK.getKey(st.getBlock());
+        return key != null ? key.toString() : "";
+    }
+
+    @Override
+    public List<double[]> scanBedWarsBeds(int radius) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) return Collections.emptyList();
+        int r = Math.max(8, Math.min(36, radius));
+        int px = (int) Math.floor(mc.player.getX());
+        int py = (int) Math.floor(mc.player.getY());
+        int pz = (int) Math.floor(mc.player.getZ());
+        List<double[]> out = new ArrayList<double[]>();
+        for (int dy = -8; dy <= 10; dy++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    BlockPos bp = new BlockPos(px + dx, py + dy, pz + dz);
+                    BlockState st = mc.level.getBlockState(bp);
+                    if (st.isAir()) continue;
+                    ResourceLocation key = Registry.BLOCK.getKey(st.getBlock());
+                    if (key == null) continue;
+                    String id = key.getPath();
+                    if (id.endsWith("_bed")) {
+                        BlockState above = mc.level.getBlockState(bp.above());
+                        ResourceLocation ak = Registry.BLOCK.getKey(above.getBlock());
+                        int tier = evalBedDefence(ak != null ? ak.getPath() : "");
+                        out.add(new double[] { bp.getX(), bp.getY(), bp.getZ(), tier, bedColorFromId(id) });
+                        if (out.size() >= 12) return out;
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public List<double[]> getIncomingProjectiles(double range) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) return Collections.emptyList();
+        List<double[]> out = new ArrayList<double[]>();
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (e == mc.player || !e.isAlive()) continue;
+            float dist = mc.player.distanceTo(e);
+            if (dist > range) continue;
+            ResourceLocation k = Registry.ENTITY_TYPE.getKey(e.getType());
+            if (k == null) continue;
+            String p = k.getPath();
+            int type = 0;
+            if (p.contains("fireball")) type = 1;
+            else if ("tnt".equals(p)) type = 2;
+            else if (p.contains("arrow")) type = 3;
+            else if (p.contains("ender_pearl")) type = 4;
+            if (type > 0) {
+                Vec3 v = e.getDeltaMovement();
+                out.add(new double[] { e.getX(), e.getY(), e.getZ(), v.x, v.y, v.z, type, e.getId(), dist });
+            }
+        }
+        return out;
+    }
+
+    private static int evalBedDefence(String abovePath) {
+        if (abovePath == null || abovePath.isEmpty() || "air".equals(abovePath)) return 0;
+        if (abovePath.contains("obsidian")) return 4;
+        if (abovePath.contains("end_stone")) return 3;
+        if (abovePath.contains("planks") || abovePath.contains("wood") || abovePath.contains("log")) return 2;
+        return 1;
+    }
+
+    private static int bedColorFromId(String id) {
+        if (id.startsWith("red_")) return 0xFF3B5C;
+        if (id.startsWith("blue_") || id.startsWith("light_blue_")) return 0x38BDF8;
+        if (id.startsWith("green_") || id.startsWith("lime_")) return 0x10B981;
+        if (id.startsWith("yellow_")) return 0xFACC15;
+        if (id.startsWith("cyan_")) return 0x00F5D4;
+        if (id.startsWith("pink_") || id.startsWith("magenta_") || id.startsWith("purple_")) return 0xEC4899;
+        return 0xF8FAFF;
     }
 }

@@ -145,8 +145,11 @@ public final class ClickGuiController {
                 AxsesTheme.withAlpha(primaryCol, 0.65f * openAnim), AxsesTheme.withAlpha(accentCol, 0.65f * openAnim));
         r.fillGradientVertical(wx + winW - 4.0f, wy + 28.0f, 2.0f, winH - 56.0f,
                 AxsesTheme.withAlpha(accentCol, 0.65f * openAnim), AxsesTheme.withAlpha(primaryCol, 0.65f * openAnim));
-        r.fillRect(wx + winRad, wy + 1.0f, winW - winRad * 2.0f, 1.0f, 0x26FFFFFF);
-        r.drawRoundedOutline(wx, wy, winW, winH, winRad, 1.5f, AxsesTheme.withAlpha(primaryCol, 0.92f));
+        r.fillRect(wx + winRad, wy + 1.0f, winW - winRad * 2.0f, 1.0f, 0x2AFFFFFF);
+        RenderManager.drawHyperionContour(r, wx, wy, winW, winH, winRad, 1.6f,
+                AxsesTheme.withAlpha(primaryCol, 0.95f * openAnim),
+                AxsesTheme.withAlpha(accentCol, 0.96f * openAnim),
+                0.55f * openAnim);
 
         // Floating Curved Top Header Capsule (inset cleanly inside rounded top corners)
         float hdrX = wx + 10.0f;
@@ -155,15 +158,16 @@ public final class ClickGuiController {
         float hdrH = 38.0f;
         r.fillRoundedRect(hdrX, hdrY, hdrW, hdrH, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
         RenderManager.fillRoundedHorizontalGradient(r, hdrX + 12.0f, hdrY + 1.0f, hdrW - 24.0f, 2.0f, 1.0f, primaryCol, accentCol);
-        r.drawRoundedOutline(hdrX, hdrY, hdrW, hdrH, 14.0f, 1.0f, AxsesTheme.withAlpha(primaryCol, 0.38f));
+        r.drawGradientRoundedOutline(hdrX, hdrY, hdrW, hdrH, 14.0f, 1.15f,
+                AxsesTheme.withAlpha(primaryCol, 0.50f), AxsesTheme.withAlpha(accentCol, 0.45f));
 
         // Curved Brand Emblem + Title
         RenderManager.fillRoundedHorizontalGradient(r, hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f,
                 AxsesTheme.withAlpha(primaryCol, 0.65f), AxsesTheme.withAlpha(accentCol, 0.55f));
-        r.drawRoundedOutline(hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f, 1.0f, accentCol);
+        r.drawGradientRoundedOutline(hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f, 1.15f, primaryCol, accentCol);
         core.getFontManager().drawCentered(r, "AX", hdrX + 21.0f, hdrY + 15.0f, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "AXSES 4.0", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "APEX PRO", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.86f);
+        core.getFontManager().draw(r, "AXSES 5.0", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "HYPERION", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.86f);
 
         // Right-aligned Stadium-Pill Action Tabs
         String langLabel = i18n.isRussian() ? "RU" : "EN";

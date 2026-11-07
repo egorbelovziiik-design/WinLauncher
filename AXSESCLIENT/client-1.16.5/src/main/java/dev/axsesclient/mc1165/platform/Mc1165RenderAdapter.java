@@ -15,6 +15,8 @@ public final class Mc1165RenderAdapter implements RenderAdapter {
 
     private static final GradientHelper GRADIENT = new GradientHelper();
     private PoseStack poseStack;
+    private int subPixelDepth = 0;
+    private boolean subPixelScaled = false;
 
     public Mc1165RenderAdapter(PoseStack poseStack) {
         this.poseStack = poseStack;
@@ -115,6 +117,39 @@ public final class Mc1165RenderAdapter implements RenderAdapter {
     public void popTransform() {
         if (poseStack != null) {
             poseStack.popPose();
+        }
+    }
+
+    @Override
+    public float beginHiDpiSubPixel() {
+        if (poseStack == null) return 1.0f;
+        if (subPixelDepth > 0) {
+            subPixelDepth++;
+            return 1.0f;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        double gs = (mc != null && mc.getWindow() != null) ? mc.getWindow().getGuiScale() : 1.0;
+        float s = (float) Math.max(1.0, gs);
+        subPixelDepth = 1;
+        if (s > 1.05f) {
+            poseStack.pushPose();
+            poseStack.scale(1.0f / s, 1.0f / s, 1.0f);
+            subPixelScaled = true;
+            return s;
+        }
+        subPixelScaled = false;
+        return 1.0f;
+    }
+
+    @Override
+    public void endHiDpiSubPixel() {
+        if (subPixelDepth <= 0) return;
+        subPixelDepth--;
+        if (subPixelDepth == 0 && subPixelScaled) {
+            subPixelScaled = false;
+            if (poseStack != null) {
+                poseStack.popPose();
+            }
         }
     }
 }

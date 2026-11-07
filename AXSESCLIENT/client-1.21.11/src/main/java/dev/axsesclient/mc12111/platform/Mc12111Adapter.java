@@ -25,11 +25,13 @@ import net.minecraft.client.gui.screens.packs.PackSelectionScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
@@ -44,7 +46,9 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -651,6 +655,9 @@ public final class Mc12111Adapter implements MinecraftAdapter {
         AABB b = le.getBoundingBox();
         ItemStack held = le.getMainHandItem();
         String heldName = (held != null && !held.isEmpty()) ? held.getHoverName().getString() : "";
+        if (le.isInvisible()) {
+            heldName = heldName.isEmpty() ? "[INVIS]" : (heldName + " [INVIS]");
+        }
         boolean los = hasClearLineOfSight(mc, ix, (iy + le.getEyeY() + dy) * 0.5, iz, le.getEyeY() + dy);
         return new TargetEntityInfo(
                 le.getId(),
@@ -699,5 +706,143 @@ public final class Mc12111Adapter implements MinecraftAdapter {
             sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1));
         }
         return sb.toString();
+    }
+
+    @Override
+    public void selectHotbarSlot(int slot) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.player != null && slot >= 0 && slot <= 8) {
+            mc.player.getInventory().setSelectedSlot(slot);
+        }
+    }
+
+    @Override
+    public boolean isStandingOverEdge(double edgeInset) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) return false;
+        double px = mc.player.getX();
+        double py = mc.player.getY();
+        double pz = mc.player.getZ();
+        int by = (int) Math.floor(py - 0.35);
+        BlockPos center = new BlockPos((int) Math.floor(px), by, (int) Math.floor(pz));
+        if (!mc.level.getBlockState(center).isAir()) {
+            return false;
+        }
+        double d = Math.max(0.06, Math.min(0.32, edgeInset));
+        return mc.level.getBlockState(new BlockPos((int) Math.floor(px + d), by, (int) Math.floor(pz + d))).isAir()
+                || mc.level.getBlockState(new BlockPos((int) Math.floor(px - d), by, (int) Math.floor(pz + d))).isAir()
+                || mc.level.getBlockState(new BlockPos((int) Math.floor(px + d), by, (int) Math.floor(pz - d))).isAir()
+                || mc.level.getBlockState(new BlockPos((int) Math.floor(px - d), by, (int) Math.floor(pz - d))).isAir();
+    }
+
+    @Override
+    public boolean placeBlockAtCrosshair() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null || mc.gameMode == null) return false;
+        if (!(mc.hitResult instanceof BlockHitResult bhr)) return false;
+        if (bhr.getType() != HitResult.Type.BLOCK || mc.level.getBlockState(bhr.getBlockPos()).isAir()) {
+            return false;
+        }
+        InteractionResult res = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, bhr);
+        if (res != null && res != InteractionResult.PASS && res != InteractionResult.FAIL) {
+            mc.player.swing(InteractionHand.MAIN_HAND);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public double[] getTargetedBlockBox() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || !(mc.hitResult instanceof BlockHitResult bhr)) return null;
+        if (bhr.getType() != HitResult.Type.BLOCK) return null;
+        BlockPos bp = bhr.getBlockPos();
+        if (mc.level.getBlockState(bp).isAir()) return null;
+        Direction dir = bhr.getDirection();
+        double bx = bp.getX(), by = bp.getY(), bz = bp.getZ();
+        return new double[] {
+                bx, by, bz,
+                bx, by, bz,
+                bx + 1.0, by + 1.0, bz + 1.0,
+                dir.getStepX(), dir.getStepY(), dir.getStepZ()
+        };
+    }
+
+    @Override
+    public String getTargetedBlockId() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || !(mc.hitResult instanceof BlockHitResult bhr)) return "";
+        if (bhr.getType() != HitResult.Type.BLOCK) return "";
+        BlockState st = mc.level.getBlockState(bhr.getBlockPos());
+        return BuiltInRegistries.BLOCK.getKey(st.getBlock()).toString();
+    }
+
+    @Override
+    public List<double[]> scanBedWarsBeds(int radius) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) return Collections.emptyList();
+        int r = Math.max(8, Math.min(36, radius));
+        int px = (int) Math.floor(mc.player.getX());
+        int py = (int) Math.floor(mc.player.getY());
+        int pz = (int) Math.floor(mc.player.getZ());
+        List<double[]> out = new ArrayList<>();
+        for (int dy = -8; dy <= 10; dy++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    BlockPos bp = new BlockPos(px + dx, py + dy, pz + dz);
+                    BlockState st = mc.level.getBlockState(bp);
+                    if (st.isAir()) continue;
+                    String id = BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath();
+                    if (id.endsWith("_bed")) {
+                        String abovePath = BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(bp.above()).getBlock()).getPath();
+                        int tier = evalBedDefence(abovePath);
+                        out.add(new double[] { bp.getX(), bp.getY(), bp.getZ(), tier, bedColorFromId(id) });
+                        if (out.size() >= 12) return out;
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public List<double[]> getIncomingProjectiles(double range) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.level == null || mc.player == null) return Collections.emptyList();
+        List<double[]> out = new ArrayList<>();
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (e == mc.player || !e.isAlive()) continue;
+            float dist = mc.player.distanceTo(e);
+            if (dist > range) continue;
+            String p = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath();
+            int type = 0;
+            if (p.contains("fireball")) type = 1;
+            else if ("tnt".equals(p)) type = 2;
+            else if (p.contains("arrow")) type = 3;
+            else if (p.contains("ender_pearl")) type = 4;
+            if (type > 0) {
+                Vec3 v = e.getDeltaMovement();
+                out.add(new double[] { e.getX(), e.getY(), e.getZ(), v.x, v.y, v.z, type, e.getId(), dist });
+            }
+        }
+        return out;
+    }
+
+    private static int evalBedDefence(String abovePath) {
+        if (abovePath == null || abovePath.isEmpty() || "air".equals(abovePath)) return 0;
+        if (abovePath.contains("obsidian")) return 4;
+        if (abovePath.contains("end_stone")) return 3;
+        if (abovePath.contains("planks") || abovePath.contains("wood") || abovePath.contains("log")) return 2;
+        return 1;
+    }
+
+    private static int bedColorFromId(String id) {
+        if (id.startsWith("red_")) return 0xFF3B5C;
+        if (id.startsWith("blue_") || id.startsWith("light_blue_")) return 0x38BDF8;
+        if (id.startsWith("green_") || id.startsWith("lime_")) return 0x10B981;
+        if (id.startsWith("yellow_")) return 0xFACC15;
+        if (id.startsWith("cyan_")) return 0x00F5D4;
+        if (id.startsWith("pink_") || id.startsWith("magenta_") || id.startsWith("purple_")) return 0xEC4899;
+        return 0xF8FAFF;
     }
 }

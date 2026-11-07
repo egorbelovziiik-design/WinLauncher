@@ -12,6 +12,7 @@ import dev.axsesclient.common.hud.HudManager;
 import dev.axsesclient.common.i18n.LocalizationManager;
 import dev.axsesclient.common.keybinds.KeybindManager;
 import dev.axsesclient.common.modules.ModuleManager;
+import dev.axsesclient.common.modules.impl.BedWarsAndContourModulesRegistry;
 import dev.axsesclient.common.modules.impl.ClientRuntimeState;
 import dev.axsesclient.common.modules.impl.CombatTrainingModulesRegistry;
 import dev.axsesclient.common.modules.impl.GuiFeaturesRegistry;
@@ -31,8 +32,8 @@ import java.nio.file.Path;
 
 public final class AxsesCore {
     public static final String PRODUCT_NAME = "AXSESCLIENT";
-    public static final String CODENAME = "CELESTIAL VISION";
-    public static final String VERSION = "4.0.0";
+    public static final String CODENAME = "HYPERION APEX";
+    public static final String VERSION = "5.0.0";
 
     private static volatile AxsesCore instance;
 
@@ -99,6 +100,10 @@ public final class AxsesCore {
         WorldUtilityModulesRegistry.registerAll(
                 moduleManager, hudManager, runtimeState, notificationManager,
                 localizationManager, fontManager, themeManager
+        );
+        BedWarsAndContourModulesRegistry.registerAll(
+                moduleManager, hudManager, runtimeState, inputAdapter,
+                themeManager, fontManager, localizationManager, notificationManager
         );
         this.configManager = new ConfigManager(
                 this.clientRootDir,

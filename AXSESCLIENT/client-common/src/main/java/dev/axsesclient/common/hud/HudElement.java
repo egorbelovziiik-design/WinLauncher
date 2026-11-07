@@ -207,12 +207,16 @@ public final class HudElement {
                     AxsesTheme.withAlpha(acc, Math.max(0.88f, opacity)));
         }
         if (showOutline || editorMode) {
-            int outCol = selected
-                    ? acc
-                    : (locked && editorMode
-                        ? themeManager.filterColor(t.getWarningColor())
-                        : AxsesTheme.withAlpha(prim, opacity * 0.62f));
-            r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.0f, outCol);
+            if (selected) {
+                RenderManager.drawHyperionContour(r, drawX, py, drawW, drawH, rad, 1.35f, prim, acc, 0.55f);
+            } else if (locked && editorMode) {
+                int warn = themeManager.filterColor(t.getWarningColor());
+                r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.2f, warn);
+            } else {
+                r.drawGradientRoundedOutline(drawX, py, drawW, drawH, rad, 1.15f,
+                        AxsesTheme.withAlpha(prim, opacity * 0.78f),
+                        AxsesTheme.withAlpha(acc, opacity * 0.68f));
+            }
         }
 
         float tx;

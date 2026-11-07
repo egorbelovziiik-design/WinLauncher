@@ -12,8 +12,8 @@ public final class LocalizationManager {
     public LocalizationManager() {
         Map<String, String> en = new HashMap<String, String>();
         en.put("gui.title", "AXSESCLIENT");
-        en.put("gui.subtitle", "APEX v4.0");
-        en.put("gui.search_placeholder", "Search 112 modules (KillAura, SnowGrim, Baritone, Spotify, ESP, FPS)...");
+        en.put("gui.subtitle", "HYPERION v5.0");
+        en.put("gui.search_placeholder", "Search 120 modules (FastBridge, KillAura, BedWars ESP, Contour, Spotify)...");
         en.put("gui.favorites", "Favorites");
         en.put("gui.hud_editor", "HUD Editor");
         en.put("gui.themes", "Themes");
@@ -55,8 +55,8 @@ public final class LocalizationManager {
 
         Map<String, String> ru = new HashMap<String, String>();
         ru.put("gui.title", "AXSESCLIENT");
-        ru.put("gui.subtitle", "APEX v4.0");
-        ru.put("gui.search_placeholder", "Поиск по 112 модулям (КиллАура, SnowGrim, Баритон, Spotify, ESP, FPS)...");
+        ru.put("gui.subtitle", "HYPERION v5.0");
+        ru.put("gui.search_placeholder", "Поиск по 120 модулям (ФастБридж, BedWars, КиллАура, SnowGrim, Контуры)...");
         ru.put("gui.favorites", "Избранное");
         ru.put("gui.hud_editor", "HUD");
         ru.put("gui.themes", "Темы");
@@ -219,6 +219,16 @@ public final class LocalizationManager {
         putMod(ru, "fps_optimizer", "Турбо Оптимизация FPS", "Стабилизатор кадра, отсечение дальних объектов и мониторинг Sodium / Lithium / FerriteCore");
         putMod(ru, "chat_hud_drag", "Перемещение HUD в Чате", "Свободное перетаскивание, магнитное выравнивание и клик по виджетам прямо в открытом чате (T)");
 
+        // v5.0.0 HYPERION APEX — BedWars & Next-Gen Contours Suite (113..120)
+        putMod(ru, "fast_bridge", "ФастБридж Pro (BedWars)", "Быстрая постройка мостов: Ниндзя Игл у края блока, ГодБридж 75.6°, авто-слот шерсти и 3D-контур блока");
+        putMod(ru, "block_contour_pro", "Неоновый Контур Блоков", "Плавная неоновая 3D-обводка выбранного блока со свечением грани установки вместо ванильной рамки");
+        putMod(ru, "bedwars_esp", "БедВарс ESP и Кровати", "3D-подсветка кроватей сквозь стены со сканером застройки (Обсидиан/Эндерняк/Шерсть) и HUD ресурсов");
+        putMod(ru, "fireball_tnt_alert", "Защита от Фаерболов и ТНТ", "3D-траектория полёта фаерболов/ТНТ/перлов, кольцо радиуса взрыва и авто-отбивание фаербола");
+        putMod(ru, "auto_tool_weapon", "Авто-Инструмент и Меч", "Автовыбор ножниц/кирки/топора при ломании кровати и мгновенный возврат на меч при наведении на врага");
+        putMod(ru, "bridge_clutch", "Клатчинг Блоками (Сейв)", "Экстренная подстановка блоков под себя при сбитии с моста в бездну на BedWars и SkyWars");
+        putMod(ru, "invis_armor_detector", "Детектор Инвизок и Угроз", "Яркий неоновый контур на невидимых игроках + теги опасных предметов в руках (ТНТ, Фаербол, Обсидиан, Перл)");
+        putMod(ru, "neon_halo_trails", "Неоновый Шлейф и Нимб", "Плавная сглаженная двойная 3D-лента за игроком и вращающийся кибер-нимб над целью");
+
         dictionaries.put("ru_RU", ru);
         initSettingAndOptionTranslations();
     }
@@ -319,8 +329,41 @@ public final class LocalizationManager {
         ruSettings.put("hover_frames", "Подсветка при наведении");
         ruSettings.put("top_banner", "Подсказка в чате");
         ruSettings.put("rmb_lock", "Закрепление по ПКМ");
+        ruSettings.put("bridge_mode", "Режим моста");
+        ruSettings.put("place_cps", "Скорость блоков (CPS)");
+        ruSettings.put("edge_offset", "Чувствительность края");
+        ruSettings.put("auto_blocks", "Авто-слот шерсти");
+        ruSettings.put("pitch_assist", "Стабилизация угла 76°");
+        ruSettings.put("preview_contour", "3D-контур след. блока");
+        ruSettings.put("contour_style", "Стиль 3D-контура");
+        ruSettings.put("line_width", "Толщина неона");
+        ruSettings.put("face_glow", "Подсветка грани блока");
+        ruSettings.put("scan_radius", "Радиус поиска кроватей");
+        ruSettings.put("show_beds", "3D-контур кроватей");
+        ruSettings.put("proximity_warn", "Тревога рейда базы");
+        ruSettings.put("detect_range", "Дальность радара");
+        ruSettings.put("trajectory_line", "3D-дуга траектории");
+        ruSettings.put("blast_ring", "Кольцо радиуса взрыва");
+        ruSettings.put("auto_deflect", "Авто-отбивание фаербола");
+        ruSettings.put("bedwars_tools", "Инструмент под кровать");
+        ruSettings.put("auto_sword", "Авто-меч на врага");
+        ruSettings.put("restore_slot", "Возвращать прежний слот");
+        ruSettings.put("trigger_fall", "Высота срабатывания (м)");
+        ruSettings.put("auto_block_slot", "Автовыбор блоков в падении");
+        ruSettings.put("threat_tags", "Теги ТНТ / Фаерболов");
+        ruSettings.put("trail_points", "Длина неоновой ленты");
+        ruSettings.put("target_halo", "Кибер-нимб над целью");
 
         // Dropdown / Mode values in Russian
+        ruOptions.put("Hyperion Neon", "Гиперион Неон");
+        ruOptions.put("Ninja Eagle", "Ниндзя Игл");
+        ruOptions.put("GodBridge 75.6", "ГодБридж 75.6°");
+        ruOptions.put("Breezily Fast", "Бризли Стрейф");
+        ruOptions.put("SafeBridge", "Безопасный мост");
+        ruOptions.put("Hyperion Dual", "Двойной Гиперион");
+        ruOptions.put("Chroma Pulse", "Хрома-волна");
+        ruOptions.put("BedWars Face", "Грань BedWars");
+        ruOptions.put("Cyber Corners", "Кибер-уголки 3D");
         ruOptions.put("Universal", "Универсальный");
         ruOptions.put("SnowGrim", "SnowGrim (СНГ)");
         ruOptions.put("Grim", "Grim AC 3.0м");
