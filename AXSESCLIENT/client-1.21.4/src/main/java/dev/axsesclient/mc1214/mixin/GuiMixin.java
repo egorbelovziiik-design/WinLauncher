@@ -29,7 +29,7 @@ public abstract class GuiMixin {
     private void axses$suppressVanillaHotbar(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         AxsesCore core = AxsesCore.getInstance();
         if (core != null) {
-            Module hb = core.getModuleManager().getById("custom_hotbar");
+            Module hb = core.getModuleManager().getById("glass_hotbar_dock");
             if (hb != null && hb.isEnabled()) {
                 ci.cancel();
             }

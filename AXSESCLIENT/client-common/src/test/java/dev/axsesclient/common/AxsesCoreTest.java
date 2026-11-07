@@ -489,7 +489,7 @@ public class AxsesCoreTest {
         assertTrue(platform.drawCalls > beforeBedWarsDraws + 40, "BedWars ESP, Fireball Trajectory & Block Contour Pro must emit anti-aliased draw calls");
 
         // Verify v6.0.0 CELESTIAL ULTRA modules (Custom Glass Hotbar, 3D Swing Animations, World Ambience 3D, Target Strafe 3D)
-        Module customHotbar = core.getModuleManager().getById("custom_hotbar");
+        Module customHotbar = core.getModuleManager().getById("glass_hotbar_dock");
         Module swingAnim = core.getModuleManager().getById("swing_animations");
         Module worldAmb = core.getModuleManager().getById("world_ambience");
         Module targetStrafe = core.getModuleManager().getById("target_strafe");

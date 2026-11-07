@@ -1674,7 +1674,7 @@ public final class VisualModulesRegistry {
         // 121. Custom Glass Hotbar & Liquid Status Dock (Кастомный Хотбар и ХП)
         final BooleanSetting hotbarShowStatus = new BooleanSetting("show_status_bars", "Liquid HP & Shield Bars", "Render custom glowing liquid Health and Armor bars above hotbar", true);
         final BooleanSetting hotbarShowOffhand = new BooleanSetting("show_offhand_dock", "Offhand Totem Capsule", "Render separate frosted offhand capsule on left", true);
-        Module customHotbarMod = mm.register(new Module("custom_hotbar", "Custom Glass Hotbar", "Replaces flat vanilla hotbar with a floating frosted glass 9-slot dock, spring neon selector & liquid HP/Shield bars", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+        Module customHotbarMod = mm.register(new Module("glass_hotbar_dock", "Custom Glass Hotbar", "Replaces flat vanilla hotbar with a floating frosted glass 9-slot dock, spring neon selector & liquid HP/Shield bars", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
             {
                 addSetting(hotbarShowStatus);
                 addSetting(hotbarShowOffhand);
@@ -1686,7 +1686,7 @@ public final class VisualModulesRegistry {
             }
         });
         customHotbarMod.setFavorite(true);
-        hm.register(new HudElement("custom_hotbar", "Custom Glass Hotbar", customHotbarMod, 0.50f, 0.992f, 198f, 41f)
+        hm.register(new HudElement("glass_hotbar_dock", "Custom Glass Hotbar", customHotbarMod, 0.50f, 0.992f, 198f, 41f)
                 .withCustomPainter(new HudElement.CustomHudPainter() {
                     private float smoothSlot = 0.0f;
 

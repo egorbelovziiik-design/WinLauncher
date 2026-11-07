@@ -28,7 +28,7 @@ public abstract class GuiMixin {
     private void axses$suppressVanillaHotbar(float partialTicks, PoseStack poseStack, CallbackInfo ci) {
         AxsesCore core = AxsesCore.getInstance();
         if (core != null) {
-            Module hb = core.getModuleManager().getById("custom_hotbar");
+            Module hb = core.getModuleManager().getById("glass_hotbar_dock");
             if (hb != null && hb.isEnabled()) {
                 ci.cancel();
             }
