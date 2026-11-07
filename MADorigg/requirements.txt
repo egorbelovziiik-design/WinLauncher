@@ -1,0 +1,5 @@
+# MADorigg runtime dependencies (Windows 10/11, Python 3.11+)
+pygame==2.5.2
+numpy==1.26.4
+pycaw==20240210
+comtypes==1.4.1
