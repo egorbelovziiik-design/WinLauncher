@@ -534,7 +534,7 @@ public final class BedWarsAndContourModulesRegistry {
                     }
                 }
 
-                boolean leftHeld = input != null && input.isMouseDown(0);
+                boolean leftHeld = input != null && input.isMouseButtonDown(0);
                 if (autoBedTool.isEnabled() && leftHeld) {
                     String blockId = mc.getTargetedBlockId().toLowerCase(Locale.ROOT);
                     if (!blockId.isEmpty() && !blockId.endsWith("air")) {

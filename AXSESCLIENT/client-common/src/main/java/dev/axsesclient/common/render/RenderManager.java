@@ -1,6 +1,7 @@
 package dev.axsesclient.common.render;
 
 import dev.axsesclient.common.notifications.NotificationManager;
+import dev.axsesclient.common.platform.MinecraftAdapter;
 import dev.axsesclient.common.platform.RenderAdapter;
 import dev.axsesclient.common.theme.AxsesTheme;
 import dev.axsesclient.common.theme.ThemeManager;
