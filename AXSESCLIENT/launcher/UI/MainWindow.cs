@@ -482,7 +482,7 @@ public sealed class MainWindow : Window
         quickStack.Children.Add(qHeader);
 
         var featuredGrid = new UniformGrid { Columns = 3 };
-        string[] featuredIds = ["kill_aura", "spotify_music_hud", "baritone_bot", "chat_hud_drag", "fps_optimizer", "entity_esp"];
+        string[] featuredIds = ["fast_bridge", "block_contour_pro", "bedwars_esp", "kill_aura", "spotify_music_hud", "baritone_bot"];
         foreach (string fid in featuredIds)
         {
             var mod = _state.Modules.FirstOrDefault(m => m.Id == fid);

@@ -921,9 +921,10 @@ public final class VisualModulesRegistry {
                     }
 
                     // Bottom Curved Held Item Tag
-                    if (showHeld.isEnabled() && !ent.getHeldItemName().isEmpty()) {
+                    String rawHeld = ent.getHeldItemName() != null ? ent.getHeldItemName().replace("[INVIS]", "").replace("[invis]", "").trim() : "";
+                    if (showHeld.isEnabled() && !rawHeld.isEmpty()) {
                         float scale = 0.78f;
-                        String itemTxt = ent.getHeldItemName();
+                        String itemTxt = rawHeld;
                         float iw = fonts.width(r, itemTxt, scale);
                         float ix = bx + (bw - (iw + 9.0f)) * 0.5f;
                         float iy = by + bh + 2.5f;
@@ -1413,7 +1414,7 @@ public final class VisualModulesRegistry {
                         if (prev != null && Math.abs(curHp - prev.floatValue()) >= 0.35f) {
                             double delta = curHp - prev.floatValue();
                             popups.addLast(new double[] {
-                                    e.getX(), e.getMaxY() + 0.15, e.getZ(), delta, (double) now
+                                    e.getX(), e.getMaxY() + 0.58, e.getZ(), delta, (double) now
                             });
                             while (popups.size() > 16) popups.removeFirst();
                         }
@@ -1431,7 +1432,7 @@ public final class VisualModulesRegistry {
                 if (locked != null && (curHits > lastHitCounter || (popups.isEmpty() && locked.getHurtTime() > 4))) {
                     lastHitCounter = curHits;
                     popups.addLast(new double[] {
-                            locked.getX() + 0.18, locked.getMaxY() + 0.18, locked.getZ(), -3.6, (double) now
+                            locked.getX() + 0.18, locked.getMaxY() + 0.62, locked.getZ(), -3.6, (double) now
                     });
                 }
 

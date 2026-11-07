@@ -245,7 +245,7 @@ public final class RenderManager {
         float cardW = 224.0f;
         float cardH = 40.0f;
         float baseRight = r.getScaledWidth() - 10.0f;
-        float currentBottom = r.getScaledHeight() - 14.0f;
+        float currentBottom = r.getScaledHeight() - 48.0f;
 
         for (int i = active.size() - 1; i >= 0; i--) {
             NotificationManager.NotificationEntry n = active.get(i);

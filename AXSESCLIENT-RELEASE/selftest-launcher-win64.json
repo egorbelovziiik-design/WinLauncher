@@ -2,7 +2,7 @@
   "status": "PASS",
   "executable": "D:\\a\\WinLauncher\\WinLauncher\\AXSESCLIENT-RELEASE\\AXSESCLIENT.exe",
   "os": "Microsoft Windows 10.0.26100",
-  "modulesCount": 112,
+  "modulesCount": 120,
   "themesCount": 14,
   "supportedVersions": [
     "1.16.5",
@@ -22,7 +22,7 @@
       "Category": "Memory",
       "Name": "Physical RAM \u0026 Allocated JVM Heap",
       "Passed": true,
-      "Detail": "PC Total: 16,378 MB \u2022 Free: 13,290 MB \u2022 Allocated JVM (-Xmx): 6,144 MB"
+      "Detail": "PC Total: 16,378 MB \u2022 Free: 13,156 MB \u2022 Allocated JVM (-Xmx): 6,144 MB"
     },
     {
       "Category": "Java",
@@ -40,31 +40,31 @@
       "Category": "Network",
       "Name": "Mojang Piston Meta",
       "Passed": true,
-      "Detail": "HTTP 200 (459 ms)"
+      "Detail": "HTTP 200 (305 ms)"
     },
     {
       "Category": "Network",
       "Name": "Fabric Meta API",
       "Passed": true,
-      "Detail": "HTTP 200 (50 ms)"
+      "Detail": "HTTP 200 (88 ms)"
     },
     {
       "Category": "Client JARs",
       "Name": "Minecraft 1.16.5",
       "Passed": true,
-      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.16.5.jar verified (516 KB)"
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.16.5.jar verified (562 KB)"
     },
     {
       "Category": "Client JARs",
       "Name": "Minecraft 1.21.4",
       "Passed": true,
-      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.4.jar verified (524 KB)"
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.4.jar verified (569 KB)"
     },
     {
       "Category": "Client JARs",
       "Name": "Minecraft 1.21.11",
       "Passed": true,
-      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.11.jar verified (526 KB)"
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.11.jar verified (570 KB)"
     }
   ]
 }

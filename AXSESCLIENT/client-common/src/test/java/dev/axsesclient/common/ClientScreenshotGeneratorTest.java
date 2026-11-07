@@ -957,7 +957,11 @@ public class ClientScreenshotGeneratorTest {
                     new ItemInfo("minecraft:cyan_wool", "Бирюзовая шерсть", 64, 0, 0),
                     new ItemInfo("minecraft:golden_apple", "Золотое яблоко", 6, 0, 0),
                     new ItemInfo("minecraft:shears", "Ножницы", 1, 0, 238),
-                    new ItemInfo("minecraft:diamond_pickaxe", "Алмазная кирка", 1, 0, 1561)
+                    new ItemInfo("minecraft:diamond_pickaxe", "Алмазная кирка", 1, 0, 1561),
+                    new ItemInfo("minecraft:iron_ingot", "Железный слиток", 44, 0, 0),
+                    new ItemInfo("minecraft:gold_ingot", "Золотой слиток", 14, 0, 0),
+                    new ItemInfo("minecraft:diamond", "Алмаз", 6, 0, 0),
+                    new ItemInfo("minecraft:emerald", "Изумруд", 4, 0, 0)
             );
             // Crosshair aimed at the leading bridge block (-0.5..0.5, 63..64, 6..7) on its +Z face -> ghost preview at z = 7..8!
             p.targetedBlockBox = new double[] {
@@ -969,7 +973,7 @@ public class ClientScreenshotGeneratorTest {
             p.targetedBlockId = "minecraft:cyan_wool";
             p.bedWarsBeds = Collections.singletonList(new double[] { -0.5, 64.0, 15.0, 3.0, 0xFF3B5C });
             p.incomingProjectiles = Collections.singletonList(new double[] {
-                    3.2, 66.6, 12.2, -0.22, -0.07, -0.46, 1.0, 501.0, 12.8
+                    4.9, 68.4, 11.4, -0.24, -0.24, -0.44, 1.0, 501.0, 12.8
             });
 
             TargetEntityInfo rusher = new TargetEntityInfo(
@@ -1007,7 +1011,7 @@ public class ClientScreenshotGeneratorTest {
 
             Module fb9 = core.getModuleManager().getById("fast_bridge");
             for (Setting<?> s : fb9.getSettings()) {
-                if ("place_delay".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(20.0));
+                if ("place_cps".equals(s.getId())) ((NumberSetting) s).setValue(Double.valueOf(22.0));
             }
             fb9.setEnabled(true, p);
             core.getModuleManager().getById("block_contour_pro").setEnabled(true, p);
@@ -1019,11 +1023,16 @@ public class ClientScreenshotGeneratorTest {
             core.getModuleManager().getById("radar_hud").setEnabled(true, p);
 
             // Simulate several bridging ticks at bridging pitch 75.6° so FastBridge places blocks & builds real blocks/sec telemetry + trail ribbon
+            dev.axsesclient.common.hud.HudElement thud9 = core.getHudManager().getById("target_hud");
+            if (thud9 != null) {
+                thud9.setNormX(0.695f);
+                thud9.setNormY(0.285f);
+            }
             p.pitch = 75.6f;
-            for (int t = 0; t < 5; t++) {
-                p.playerZ = t * 0.22;
+            for (int t = 0; t < 8; t++) {
+                p.playerZ = t * 0.18;
                 core.onClientTick();
-                Thread.sleep(28L);
+                Thread.sleep(50L);
             }
             p.playerZ = 0.0;
             p.yaw = 0.0f;
@@ -1056,6 +1065,7 @@ public class ClientScreenshotGeneratorTest {
             core.getClickGuiController().onOpen();
             core.getClickGuiController().setSelectedCategory(ModuleCategory.MOVEMENT);
             setExpandedModule(core, fb);
+            core.getClickGuiController().mouseScrolled(-2.2);
             core.getClickGuiController().render(p, p, 20, 20, 1.0f);
 
             File out10 = outDir.resolve("ingame-clickgui-bedwars-contours.png").toFile();

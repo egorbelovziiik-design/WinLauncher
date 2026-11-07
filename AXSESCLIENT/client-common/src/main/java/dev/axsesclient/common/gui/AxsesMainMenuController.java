@@ -42,22 +42,30 @@ public final class AxsesMainMenuController {
         r.fillGradientVertical(0, 0, sw, horizonY, t.getBackgroundColor(), t.getSurfaceColor());
         r.fillGradientVertical(0, horizonY, sw, sh - horizonY, t.getSurfaceColor(), t.getBackgroundColor());
 
-        // 2. Animated Multi-Ribbon Aurora Borealis Curtains in Sky
-        int bands = 42;
+        // 2. Smooth Sub-Pixel Multi-Ribbon Aurora Borealis Curtains in Sky
+        int bands = 192;
         float bandW = (float) sw / (float) bands;
+        float prevAx = 0f, prevAy = 0f;
         for (int i = 0; i < bands; i++) {
             double xNorm = (double) i / (double) bands;
-            double wave1 = Math.sin(xNorm * 5.2 + bgPhase * 1.1) * 26.0 + Math.cos(xNorm * 9.0 - bgPhase * 0.7) * 12.0;
-            double wave2 = Math.cos(xNorm * 4.4 - bgPhase * 0.9) * 22.0;
+            double wave1 = Math.sin(xNorm * 5.2 + bgPhase * 1.1) * 24.0 + Math.cos(xNorm * 9.0 - bgPhase * 0.7) * 10.0;
+            double wave2 = Math.cos(xNorm * 4.4 - bgPhase * 0.9) * 20.0;
+            float bx = i * bandW;
             float ay1 = (float) (sh * 0.16 + wave1);
-            float ah1 = (float) (54.0 + 24.0 * Math.sin(xNorm * 3.1 + bgPhase));
+            float ah1 = (float) (54.0 + 22.0 * Math.sin(xNorm * 3.1 + bgPhase));
             int col1 = RenderManager.blendArgb(prim, acc, (float) xNorm);
-            r.fillGradientVertical(i * bandW, ay1, bandW + 1.0f, ah1,
-                    AxsesTheme.withAlpha(col1, 0.22f), 0x00000000);
+            r.fillGradientVertical(bx, ay1, bandW + 0.8f, ah1,
+                    AxsesTheme.withAlpha(col1, 0.21f), 0x00000000);
 
             float ay2 = (float) (sh * 0.28 + wave2);
-            r.fillGradientVertical(i * bandW, ay2, bandW + 1.0f, 38.0f,
-                    AxsesTheme.withAlpha(acc, 0.14f), 0x00000000);
+            r.fillGradientVertical(bx, ay2, bandW + 0.8f, 36.0f,
+                    AxsesTheme.withAlpha(acc, 0.13f), 0x00000000);
+
+            if (i > 0) {
+                r.drawLine(prevAx, prevAy, bx + bandW * 0.5f, ay1, 1.3f, AxsesTheme.withAlpha(col1, 0.52f));
+            }
+            prevAx = bx + bandW * 0.5f;
+            prevAy = ay1;
         }
 
         // 3. Subtle Twinkling Starfield Dots
