@@ -6,10 +6,10 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AXSESCLIENT</AssemblyName>
     <RootNamespace>AxsesClient.Launcher</RootNamespace>
-    <Version>5.0.0</Version>
+    <Version>6.0.0</Version>
     <Product>AXSESCLIENT</Product>
     <Company>AXSESCLIENT Engineering</Company>
-    <Description>AXSESCLIENT v5.0 (HYPERION APEX) — Modern Minecraft 1.16.5 / 1.21.4 / 1.21.11 Client, BedWars Suite, Anti-Aliased Contours &amp; Launcher</Description>
+    <Description>AXSESCLIENT v6.0 (CELESTIAL ULTRA) — Next-Gen Glass HUD, 3D Volumetric Chams, BedWars Suite &amp; Launcher</Description>
     <ApplicationIcon>..\assets\branding\axsesclient.ico</ApplicationIcon>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>

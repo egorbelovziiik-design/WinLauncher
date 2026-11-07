@@ -178,63 +178,57 @@ public final class HudElement {
         }
 
         AxsesTheme t = themeManager.getActiveTheme();
-        float tw = fontManager.width(r, text, 1.0f);
-        float th = fontManager.lineHeight(r, 1.0f);
+        float tw = fontManager.width(r, text, 0.94f);
+        float th = fontManager.lineHeight(r, 0.94f);
 
-        // Auto-fit Celestial Vision stadium capsule width so text never clips or overflows
-        float drawW = Math.max(sw, tw + 22.0f);
-        float drawH = Math.max(sh, 21.0f);
+        // Sculpted Dynamic-Island Frosted Glass Capsule with Left Gradient Icon Gem
+        float gemW = 16.0f;
+        float drawW = Math.max(sw, tw + gemW + 19.0f);
+        float drawH = Math.max(sh, 22.0f);
         float drawX = px;
         if (drawX + drawW > canvasW - 4.0f) {
             drawX = Math.max(4.0f, canvasW - 4.0f - drawW);
         }
-        float rad = Math.min(10.0f, drawH * 0.48f);
+        float rad = Math.min(11.0f, drawH * 0.50f);
 
         int prim = themeManager.filterColor(t.getPrimaryColor());
         int acc = themeManager.filterColor(t.getAccentColor());
 
-        if (showShadow && t.getShadowIntensity() > 0.02f) {
-            r.drawShadow(drawX, py, drawW, drawH, rad, t.getShadowIntensity() * 0.62f * opacity, 0x000000);
-        }
         if (showBackground) {
-            int bgBot = AxsesTheme.withAlpha(themeManager.filterColor(t.getBackgroundColor()), Math.min(0.96f, opacity + 0.05f));
-            r.fillRoundedRect(drawX, py, drawW, drawH, rad, bgBot);
-            RenderManager.fillRoundedHorizontalGradient(r, drawX + 1.0f, py + 1.0f, drawW - 2.0f, drawH - 2.0f, Math.max(2.0f, rad - 1.0f),
-                    AxsesTheme.withAlpha(prim, 0.14f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
-            // Specular top glass sheen + rounded Aurora accent dot/pill on left
-            r.fillRect(drawX + rad, py + 1.0f, Math.max(4.0f, drawW - rad * 2.0f), 1.0f, 0x22FFFFFF);
-            r.fillRoundedRect(drawX + 4.5f, py + 5.0f, 3.0f, Math.max(5.0f, drawH - 10.0f), 1.5f,
-                    AxsesTheme.withAlpha(acc, Math.max(0.88f, opacity)));
-        }
-        if (showOutline || editorMode) {
-            if (selected) {
-                RenderManager.drawHyperionContour(r, drawX, py, drawW, drawH, rad, 1.35f, prim, acc, 0.55f);
-            } else if (locked && editorMode) {
-                int warn = themeManager.filterColor(t.getWarningColor());
-                r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.2f, warn);
-            } else {
-                r.drawGradientRoundedOutline(drawX, py, drawW, drawH, rad, 1.15f,
-                        AxsesTheme.withAlpha(prim, opacity * 0.78f),
-                        AxsesTheme.withAlpha(acc, opacity * 0.68f));
-            }
+            RenderManager.drawFrostedGlassPanel(r, drawX, py, drawW, drawH, rad, prim, acc, opacity, selected ? 1.15f : 0.72f);
+            // Left glowing gradient icon gem
+            float gx = drawX + 3.5f;
+            float gy = py + 3.2f;
+            float gh = drawH - 6.4f;
+            RenderManager.fillRoundedHorizontalGradient(r, gx, gy, gemW, gh, gh * 0.46f,
+                    AxsesTheme.withAlpha(prim, 0.95f), AxsesTheme.withAlpha(acc, 0.95f));
+            r.drawRoundedOutline(gx, gy, gemW, gh, gh * 0.46f, 0.9f, 0x55FFFFFF);
+            drawWidgetVectorGlyph(r, id, gx + gemW * 0.5f, gy + gh * 0.5f);
+        } else if (showOutline || editorMode) {
+            RenderManager.drawHyperionContour(r, drawX, py, drawW, drawH, rad, 1.25f, prim, acc, 0.45f);
         }
 
+        if (locked && editorMode) {
+            int warn = themeManager.filterColor(t.getWarningColor());
+            r.drawRoundedOutline(drawX, py, drawW, drawH, rad, 1.3f, warn);
+        }
+
+        float contentLeft = showBackground ? (drawX + gemW + 8.5f) : (drawX + 8.0f);
         float tx;
         switch (alignment) {
             case CENTER:
-                tx = drawX + (drawW - tw) * 0.5f;
+                tx = contentLeft + Math.max(0f, (drawW - (contentLeft - drawX) - 6f - tw) * 0.5f);
                 break;
             case RIGHT:
-                tx = drawX + drawW - tw - 8.5f;
+                tx = drawX + drawW - tw - 7.5f;
                 break;
             default:
-                tx = drawX + 11.0f;
+                tx = contentLeft;
                 break;
         }
-        float ty = py + (drawH - th) * 0.5f + 1.0f;
-        int txtCol = AxsesTheme.withAlpha(t.getTextColor(), Math.max(0.80f, opacity));
+        float ty = py + (drawH - th) * 0.5f + 0.8f;
+        int txtCol = AxsesTheme.withAlpha(0xFFF8FAFF, Math.max(0.88f, opacity));
 
-        // Color-split prefix ("FPS ", "XYZ ", "Броня: ", etc.) in glowing Accent Cyan!
         int splitIdx = text.indexOf(": ");
         if (splitIdx < 0) {
             int sp = text.indexOf(' ');
@@ -245,16 +239,55 @@ public final class HudElement {
         if (splitIdx > 0 && splitIdx < text.length() - 2 && alignment == TextAlignment.LEFT) {
             String head = text.substring(0, splitIdx + 1);
             String tail = text.substring(splitIdx + 1);
-            fontManager.draw(r, head, tx, ty, AxsesTheme.withAlpha(acc, Math.max(0.88f, opacity)), 1.0f);
-            float hw = fontManager.width(r, head, 1.0f);
-            fontManager.draw(r, tail, tx + hw, ty, txtCol, 1.0f);
+            int headCol = RenderManager.blendArgb(0xFFFFFFFF, acc, 0.68f);
+            fontManager.draw(r, head, tx, ty, AxsesTheme.withAlpha(headCol, Math.max(0.92f, opacity)), 0.94f);
+            float hw = fontManager.width(r, head, 0.94f);
+            fontManager.draw(r, tail, tx + hw, ty, txtCol, 0.94f);
         } else {
-            fontManager.draw(r, text, tx, ty, txtCol, 1.0f);
+            fontManager.draw(r, text, tx, ty, txtCol, 0.94f);
         }
 
         if (editorMode && !locked) {
             int gripCol = selected ? themeManager.filterColor(t.getAccentColor()) : t.getMutedColor();
-            r.fillRect(drawX + drawW - 5.0f, py + drawH - 5.0f, 4.0f, 4.0f, gripCol);
+            r.fillRoundedRect(drawX + drawW - 6.0f, py + drawH - 6.0f, 4.0f, 4.0f, 2.0f, gripCol);
+        }
+    }
+
+    private static void drawWidgetVectorGlyph(RenderAdapter r, String id, float cx, float cy) {
+        int w = 0xFFFFFFFF;
+        String k = id == null ? "" : id;
+        if (k.contains("fps") || k.contains("sprint") || k.contains("speed")) {
+            // Crisp lightning bolt vector
+            r.drawLine(cx + 1.2f, cy - 4.0f, cx - 2.2f, cy + 0.4f, 1.4f, w);
+            r.drawLine(cx - 2.2f, cy + 0.4f, cx + 1.2f, cy + 0.2f, 1.3f, w);
+            r.drawLine(cx + 1.2f, cy + 0.2f, cx - 1.2f, cy + 4.0f, 1.4f, w);
+        } else if (k.contains("coord") || k.contains("waypoint") || k.contains("compass") || k.contains("direction")) {
+            // Diamond reticle vector
+            r.drawLine(cx, cy - 3.8f, cx + 3.6f, cy, 1.3f, w);
+            r.drawLine(cx + 3.6f, cy, cx, cy + 3.8f, 1.3f, w);
+            r.drawLine(cx, cy + 3.8f, cx - 3.6f, cy, 1.3f, w);
+            r.drawLine(cx - 3.6f, cy, cx, cy - 3.8f, 1.3f, w);
+            r.fillRoundedRect(cx - 1.0f, cy - 1.0f, 2.0f, 2.0f, 1.0f, w);
+        } else if (k.contains("bridge")) {
+            // Isometric 3D step blocks vector
+            r.fillRoundedRect(cx - 3.8f, cy - 0.5f, 3.8f, 3.6f, 1.0f, w);
+            r.fillRoundedRect(cx + 0.2f, cy - 3.2f, 3.8f, 3.6f, 1.0f, 0xD8FFFFFF);
+        } else if (k.contains("totem") || k.contains("armor") || k.contains("durability")) {
+            // Shield crest vector
+            r.drawLine(cx - 3.2f, cy - 3.4f, cx + 3.2f, cy - 3.4f, 1.3f, w);
+            r.drawLine(cx + 3.2f, cy - 3.4f, cx + 2.6f, cy + 0.8f, 1.3f, w);
+            r.drawLine(cx + 2.6f, cy + 0.8f, cx, cy + 3.8f, 1.3f, w);
+            r.drawLine(cx, cy + 3.8f, cx - 2.6f, cy + 0.8f, 1.3f, w);
+            r.drawLine(cx - 2.6f, cy + 0.8f, cx - 3.2f, cy - 3.4f, 1.3f, w);
+        } else if (k.contains("gapple") || k.contains("bedwars") || k.contains("item")) {
+            // Hexagonal crystal gem
+            r.fillRoundedRect(cx - 3.0f, cy - 3.0f, 6.0f, 6.0f, 2.2f, w);
+            r.fillRoundedRect(cx - 1.3f, cy - 1.3f, 2.6f, 2.6f, 1.3f, 0xFF0B132B);
+        } else {
+            // Cyber pulse bars
+            r.fillRoundedRect(cx - 3.4f, cy - 1.2f, 1.6f, 3.8f, 0.8f, w);
+            r.fillRoundedRect(cx - 0.8f, cy - 3.4f, 1.6f, 6.8f, 0.8f, w);
+            r.fillRoundedRect(cx + 1.8f, cy - 2.0f, 1.6f, 4.6f, 0.8f, w);
         }
     }
 

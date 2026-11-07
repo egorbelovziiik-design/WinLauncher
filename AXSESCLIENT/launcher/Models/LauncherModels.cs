@@ -72,7 +72,7 @@ public sealed class CuratedFabricModSpec
             Category = "AI",
             BoostBadgeRu = "ИИ Автопилот · #mine / #goto",
             BoostBadgeEn = "AI Pathfinder · #mine / #goto",
-            DescriptionRu = "Легендарный ИИ-навигатор и авто-шахтёр (#mine diamond_ore, #goto, #follow, #farm). Полная связка с 3D-маршрутом AXSES v5.0!",
+            DescriptionRu = "Легендарный ИИ-навигатор и авто-шахтёр (#mine diamond_ore, #goto, #follow, #farm). Полная связка с 3D-маршрутом AXSES v6.0!",
             DescriptionEn = "Legendary A* pathfinder, auto-miner (#mine), builder & follower integrated directly with AXSES 3D neon route HUD.",
             FilePrefixes = ["baritone", "automatone"],
             IncludedInRecommendedPack = true
@@ -364,16 +364,21 @@ public sealed class ModuleCatalogItem
     public string DisplayName(bool ru) => ru && !string.IsNullOrWhiteSpace(NameRu) ? NameRu : Name;
     public string DisplayDescription(bool ru) => ru && !string.IsNullOrWhiteSpace(DescriptionRu) ? DescriptionRu : Description;
 
-    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll120Modules();
-    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll120Modules();
-    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll120Modules();
-    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll120Modules();
-    public static List<ModuleCatalogItem> CreateAll108Modules() => CreateAll120Modules();
-    public static List<ModuleCatalogItem> CreateAll112Modules() => CreateAll120Modules();
+    public static List<ModuleCatalogItem> CreateAll90Modules() => CreateAll124Modules();
+    public static List<ModuleCatalogItem> CreateAll93Modules() => CreateAll124Modules();
+    public static List<ModuleCatalogItem> CreateAll96Modules() => CreateAll124Modules();
+    public static List<ModuleCatalogItem> CreateAll102Modules() => CreateAll124Modules();
+    public static List<ModuleCatalogItem> CreateAll108Modules() => CreateAll124Modules();
+    public static List<ModuleCatalogItem> CreateAll112Modules() => CreateAll124Modules();
+    public static List<ModuleCatalogItem> CreateAll120Modules() => CreateAll124Modules();
 
-    public static List<ModuleCatalogItem> CreateAll120Modules() =>
+    public static List<ModuleCatalogItem> CreateAll124Modules() =>
     [
-        // Flagship BedWars, Anti-Aliased Contours, Combat, ESP, Spotify, Baritone & HYPERION v5.0 Modules
+        // Flagship v6.0 CELESTIAL ULTRA — Non-Vanilla Glass Hotbar, 3D ViewModel, 3D Chams, Target Strafe, BedWars, KillAura, Spotify & Baritone
+        new() { Id = "custom_hotbar", Name = "Custom Glass Hotbar", NameRu = "Кастомный Хотбар и ХП", Category = "HUD", Description = "Replaces flat vanilla hotbar with a floating frosted glass 9-slot dock, spring neon selector, offhand totem & liquid HP/Shield bars.", DescriptionRu = "Стеклянный 9-слотовый док вместо ванильного хотбара с пружинным селектором, капсулой тотема и жидкими полосками ХП/Брони.", Enabled = true, Favorite = true },
+        new() { Id = "swing_animations", Name = "3D Hand & Sword Animations", NameRu = "Анимации Рук и Меча 3D", Category = "Render", Description = "Custom first-person weapon swing styles (Celestial Smooth, Nursultan Spin, Blockhit), compact viewmodel scale & neon slash arc.", DescriptionRu = "Кастомные стили взмаха меча (Celestial, Nursultan, Blockhit), компактный масштаб рук и неоновая дуга удара.", Enabled = true, Favorite = true },
+        new() { Id = "world_ambience", Name = "World Ambience 3D", NameRu = "Атмосфера и Светлячки 3D", Category = "Render", Description = "Projects depth-sorted 3D floating neon fireflies around the player and atmospheric Aurora horizon glow.", DescriptionRu = "Парящие в 3D-мире неоновые сферы вокруг игрока и атмосферное северное сияние горизонта.", Enabled = true, Favorite = true },
+        new() { Id = "target_strafe", Name = "Target Strafe 3D", NameRu = "Таргет Стрейф 3D", Category = "Movement", Description = "Void-safe orbital strafe guidance around locked combat targets with 3D segmented plasma orbit ring.", DescriptionRu = "Безопасное круговое движение вокруг цели с защитой от бездны и 3D плазменным кольцом орбиты.", Enabled = false, Favorite = true },
         new() { Id = "fast_bridge", Name = "FastBridge", NameRu = "Бридж Фаст (BedWars)", Category = "Movement", Description = "Rapid BedWars bridging (Ninja/Eagle auto-sneak, GodBridge 45°/76.5° assist, auto wool refill & 3D ghost block contour).", DescriptionRu = "Быстрая простройка блоками в BedWars: авто-присед на краю (Ninja/Eagle), GodBridge-угол, авто-пополнение шерсти и 3D-контур.", Enabled = false, Favorite = true },
         new() { Id = "block_contour_pro", Name = "Block Contour Pro", NameRu = "Неоновый Контур Блока", Category = "Render", Description = "Replaces vanilla jagged block outlines with smooth sub-pixel anti-aliased 3D neon contours and active face glow.", DescriptionRu = "Заменяет стандартную угловатую обводку на плавный сглаженный 3D-контур Hyperion с подсветкой активной грани.", Enabled = true, Favorite = true },
         new() { Id = "bedwars_esp", Name = "BedWars Bed & Gen ESP", NameRu = "BedWars Кровати и Ресурсы", Category = "Render", Description = "Highlights BedWars beds with defence tier (Obsidian/Endstone/Wood/Wool) plus dropped Emeralds, Diamonds, Gold & Iron.", DescriptionRu = "3D-подсветка кроватей в BedWars с анализом защиты (обсидиан/эндняк/шерсть) и ресурсов генераторов (изумруды/алмазы).", Enabled = false, Favorite = true },
@@ -397,7 +402,7 @@ public sealed class ModuleCatalogItem
         new() { Id = "auto_respawn", Name = "Auto Death Guard", NameRu = "Страж смерти", Category = "Player", Description = "Automatically copies exact death coordinates to clipboard and alerts upon death.", DescriptionRu = "Автоматическое сохранение и копирование координат смерти в буфер обмена.", Enabled = false },
         new() { Id = "china_hat", Name = "China Hat", NameRu = "Коническая шляпа", Category = "Render", Description = "Rotating 3D translucent Aurora cone halo above active target and third-person player.", DescriptionRu = "Объёмный 3D неоновый нимб Aurora над головой активной цели и самого игрока.", Enabled = false, Favorite = true },
         new() { Id = "jump_circles", Name = "Jump Circles", NameRu = "Круги прыжка", Category = "Render", Description = "Expanding dual-gradient 3D Aurora energy rings on the ground whenever you jump.", DescriptionRu = "Расходящиеся градиентные 3D-кольца на земле в точке каждого прыжка.", Enabled = false, Favorite = true },
-        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Anti-aliased HYPERION v5.0 top-left glass brand capsule with player, FPS, ping, speed & server.", DescriptionRu = "Сглаженная верхняя стеклянная капсула: бренд AXSES 5.0, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
+        new() { Id = "watermark_hud", Name = "Watermark HUD", NameRu = "Ватермарка AXSES", Category = "HUD", Description = "Dynamic Island Pro v6.0 frosted glass capsule with gradient brand gem, player, FPS, ping, speed & server.", DescriptionRu = "Многосекционный стеклянный Dynamic Island v6.0: бренд AXSES 6.0, ник, FPS, пинг, скорость и сервер.", Enabled = true, Favorite = true },
         new() { Id = "module_list", Name = "Module ArrayList", NameRu = "Список модулей", Category = "HUD", Description = "Cascading right-aligned list of active modules with synchronized Aurora wave glow.", DescriptionRu = "Каскадный список включённых функций справа с живой неоновой волной Aurora и режимами.", Enabled = true, Favorite = true },
         new() { Id = "breadcrumbs", Name = "Breadcrumbs", NameRu = "Шлейф движения", Category = "Render", Description = "Smooth fading 3D Aurora energy ribbon along your movement trajectory.", DescriptionRu = "Плавный светящийся 3D-шлейф за траекторией вашего бега.", Enabled = false },
         new() { Id = "hit_particles", Name = "Hit Particles", NameRu = "Партиклы ударов", Category = "Render", Description = "Glowing 3D Aurora sparks around struck targets on hit.", DescriptionRu = "Неоновые 3D-искры вокруг цели в момент точного удара.", Enabled = false },

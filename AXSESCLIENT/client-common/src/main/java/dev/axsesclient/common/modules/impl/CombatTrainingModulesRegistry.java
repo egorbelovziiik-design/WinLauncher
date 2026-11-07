@@ -588,9 +588,9 @@ public final class CombatTrainingModulesRegistry {
                         }
 
                         AxsesTheme t = themeManager.getActiveTheme();
-                        float cardW = Math.max(222.0f, sw);
-                        float cardH = Math.max(64.0f, sh);
-                        float cardRad = 13.5f;
+                        float cardW = Math.max(234.0f, sw);
+                        float cardH = Math.max(66.0f, sh);
+                        float cardRad = 14.0f;
                         float drawX = Math.min(px, Math.max(4.0f, r.getScaledWidth() - cardW - 4.0f));
                         float drawY = Math.min(py, Math.max(4.0f, r.getScaledHeight() - cardH - 4.0f));
 
@@ -598,63 +598,75 @@ public final class CombatTrainingModulesRegistry {
                         float hurtRatio = Math.min(1.0f, target.getHurtTime() / 10.0f);
                         int prim = themeManager.filterColor(t.getPrimaryColor());
                         int acc = themeManager.filterColor(t.getAccentColor());
+                        int auraL = hurt ? t.getErrorColor() : prim;
+                        int auraR = hurt ? 0xFFFF8FA3 : acc;
 
-                        // Soft outer bloom + Curved Celestial Vision frosted glass card
-                        RenderManager.drawSoftGlow(r, drawX, drawY, cardW, cardH, cardRad, 3, hurt ? t.getErrorColor() : prim, 0.22f * opacity);
-                        r.drawShadow(drawX, drawY, cardW, cardH, cardRad, 0.78f * opacity, 0x000000);
-                        int bgCol = AxsesTheme.withAlpha(t.getBackgroundColor(), Math.min(0.96f, opacity + 0.04f));
-                        r.fillRoundedRect(drawX, drawY, cardW, cardH, cardRad, bgCol);
-                        RenderManager.fillRoundedHorizontalGradient(r, drawX + 1.0f, drawY + 1.0f, cardW - 2.0f, cardH - 2.0f, cardRad - 1.0f,
-                                AxsesTheme.withAlpha(prim, 0.16f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
+                        RenderManager.drawFrostedGlassPanel(r, drawX, drawY, cardW, cardH, cardRad, auraL, auraR,
+                                Math.min(0.97f, opacity + 0.03f), selected ? 1.25f : (hurt ? 1.15f : 0.88f));
 
-                        // Top curved dual-stop Aurora sheen
-                        int beamL = hurt ? t.getErrorColor() : prim;
-                        int beamR = hurt ? 0xFFFF8FA3 : acc;
-                        RenderManager.fillRoundedHorizontalGradient(r, drawX + 14.0f, drawY + 1.0f, cardW - 28.0f, 2.0f, 1.0f,
-                                AxsesTheme.withAlpha(beamL, opacity), AxsesTheme.withAlpha(beamR, opacity));
+                        // Top glowing dual-stop Aurora beam
+                        RenderManager.fillRoundedHorizontalGradient(r, drawX + 16.0f, drawY + 1.4f, cardW - 32.0f, 2.2f, 1.1f,
+                                AxsesTheme.withAlpha(auraL, opacity), AxsesTheme.withAlpha(auraR, opacity));
 
-                        int borderCol = selected
-                                ? acc
-                                : (hurt ? t.getErrorColor() : AxsesTheme.withAlpha(prim, 0.85f * opacity));
-                        r.drawRoundedOutline(drawX, drawY, cardW, cardH, cardRad, 1.2f, borderCol);
-
-                        // Left sculpted curved 3D avatar emblem (44x44, radius 11)
+                        // Left sculpted 3D Avatar Emblem (46x46) + Segmented Circular Neon HP Ring
                         float avX = drawX + 9.0f;
                         float avY = drawY + 10.0f;
-                        float avS = 44.0f;
+                        float avS = 46.0f;
                         int avBase = target.isPlayer() ? prim : acc;
                         if (hurt) {
-                            avBase = RenderManager.blendArgb(avBase, t.getErrorColor(), 0.75f * hurtRatio);
+                            avBase = RenderManager.blendArgb(avBase, t.getErrorColor(), 0.78f * hurtRatio);
                         }
-                        r.fillRoundedRect(avX, avY, avS, avS, 11.0f, AxsesTheme.withAlpha(t.getElevatedColor(), 0.96f));
-                        r.fillRoundedRect(avX + 3.0f, avY + 3.0f, avS - 6.0f, avS - 6.0f, 8.5f, AxsesTheme.withAlpha(avBase, 0.28f));
-                        // Geometric 3D visor helmet icon
-                        r.fillRoundedRect(avX + 11.0f, avY + 8.0f, 22.0f, 19.0f, 5.0f, AxsesTheme.withAlpha(avBase, 0.94f));
-                        r.fillRect(avX + 14.0f, avY + 14.0f, 5.0f, 3.5f, 0xFFFFFFFF);
-                        r.fillRect(avX + 25.0f, avY + 14.0f, 5.0f, 3.5f, 0xFFFFFFFF);
-                        r.fillRoundedRect(avX + 13.0f, avY + 29.0f, 18.0f, 7.0f, 3.0f, AxsesTheme.withAlpha(avBase, 0.62f));
-                        r.drawRoundedOutline(avX, avY, avS, avS, 11.0f, 1.0f, AxsesTheme.withAlpha(hurt ? t.getErrorColor() : acc, 0.88f));
+                        r.fillRoundedRect(avX, avY, avS, avS, 12.0f, 0xEE080D20);
+                        RenderManager.fillRoundedHorizontalGradient(r, avX + 2.5f, avY + 2.5f, avS - 5.0f, avS - 5.0f, 9.5f,
+                                AxsesTheme.withAlpha(avBase, 0.34f), AxsesTheme.withAlpha(auraR, 0.22f));
 
-                        // Row 1: Target Name + Stadium-Pill Distance Chip
-                        float infoX = avX + avS + 8.0f;
-                        float infoW = cardW - (infoX - drawX) - 9.0f;
+                        // Circular Neon HP Arc around avatar
+                        float targetFrac = target.getHealthFraction();
+                        float animFrac = preview ? targetFrac : state.updateAndGetAnimatedHpFrac(targetFrac, dt);
+                        float trailFrac = preview ? Math.min(1.0f, targetFrac + 0.12f) : state.getDamageTrailHpFrac();
+                        float acx = avX + avS * 0.5f;
+                        float acy = avY + avS * 0.5f;
+                        int arcSegs = 20;
+                        int litSegs = Math.max(1, Math.round(arcSegs * animFrac));
+                        for (int s = 0; s < litSegs; s++) {
+                            double a0 = -Math.PI * 0.5 + (Math.PI * 2.0 * s) / arcSegs;
+                            double a1 = -Math.PI * 0.5 + (Math.PI * 2.0 * (s + 0.78)) / arcSegs;
+                            float rArc = 19.2f;
+                            r.drawNeonLine(
+                                    acx + (float) Math.cos(a0) * rArc, acy + (float) Math.sin(a0) * rArc,
+                                    acx + (float) Math.cos(a1) * rArc, acy + (float) Math.sin(a1) * rArc,
+                                    1.6f, auraR, AxsesTheme.withAlpha(auraL, 0.45f));
+                        }
+
+                        // Sculpted 3D Cyber-Knight Visor inside Avatar
+                        r.fillRoundedRect(avX + 12.5f, avY + 9.5f, 21.0f, 18.0f, 5.5f, AxsesTheme.withAlpha(avBase, 0.96f));
+                        r.fillRoundedRect(avX + 14.5f, avY + 15.0f, 6.0f, 3.2f, 1.2f, 0xFFFFFFFF);
+                        r.fillRoundedRect(avX + 25.5f, avY + 15.0f, 6.0f, 3.2f, 1.2f, 0xFFFFFFFF);
+                        r.fillRoundedRect(avX + 14.0f, avY + 29.0f, 18.0f, 7.5f, 3.2f, AxsesTheme.withAlpha(auraR, 0.72f));
+                        r.drawRoundedOutline(avX, avY, avS, avS, 12.0f, 1.05f, AxsesTheme.withAlpha(auraR, 0.85f));
+
+                        // Row 1: Target Name + Glowing Distance Pill
+                        float infoX = avX + avS + 8.5f;
+                        float infoW = cardW - (infoX - drawX) - 9.5f;
                         String distUnit = i18n.isRussian() ? "м" : "m";
                         String distStr = preview ? "DEMO" : String.format(Locale.ROOT, "%.1f%s", Float.valueOf(target.getDistance()), distUnit);
-                        float distW = fontManager.width(r, distStr, 0.88f) + 11.0f;
+                        float distW = fontManager.width(r, distStr, 0.86f) + 11.5f;
                         float distX = drawX + cardW - distW - 9.0f;
-                        r.fillRoundedRect(distX, drawY + 8.5f, distW, 14.0f, 7.0f, AxsesTheme.withAlpha(acc, 0.18f));
-                        r.drawRoundedOutline(distX, drawY + 8.5f, distW, 14.0f, 7.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.72f));
-                        fontManager.drawCentered(r, distStr, distX + distW * 0.5f, drawY + 11.5f, acc, 0.88f);
+                        RenderManager.fillRoundedHorizontalGradient(r, distX, drawY + 8.5f, distW, 14.0f, 7.0f,
+                                AxsesTheme.withAlpha(prim, 0.42f), AxsesTheme.withAlpha(acc, 0.42f));
+                        r.drawRoundedOutline(distX, drawY + 8.5f, distW, 14.0f, 7.0f, 1.0f, AxsesTheme.withAlpha(acc, 0.85f));
+                        fontManager.drawCentered(r, distStr, distX + distW * 0.5f, drawY + 11.6f, 0xFFFFFFFF, 0.86f);
 
                         String cleanName = trimText(r, fontManager, target.getName(), Math.max(44.0f, infoW - distW - 6.0f));
                         fontManager.draw(r, cleanName, infoX, drawY + 10.0f, 0xFFFFFFFF, 1.0f);
 
-                        // Row 2: Held Weapon / Armor + Stadium-Pill PvP Advantage Badge
+                        // Row 2: Weapon / Armor + Glowing PvP Verdict Pill
                         float hpVal = target.getHealth() + target.getAbsorption();
-                        String subInfo = !target.getHeldItemName().isEmpty()
-                                ? trimText(r, fontManager, target.getHeldItemName(), 82.0f)
-                                : String.format(Locale.ROOT, "%.1f / %.0f ❤", Float.valueOf(hpVal), Float.valueOf(target.getMaxHealth()));
-                        fontManager.draw(r, subInfo, infoX, drawY + 25.0f, t.getMutedColor(), 0.86f);
+                        String rawWeapon = target.getHeldItemName() != null ? target.getHeldItemName().replace("[INVIS]", "").trim() : "";
+                        String subInfo = !rawWeapon.isEmpty()
+                                ? ("⚔ " + trimText(r, fontManager, rawWeapon, 78.0f))
+                                : String.format(Locale.ROOT, "🛡 %d · %.1f❤", Integer.valueOf(target.getArmorValue()), Float.valueOf(hpVal));
+                        fontManager.draw(r, subInfo, infoX, drawY + 25.0f, 0xFFCBD5E1, 0.84f);
 
                         if (targetHudPvpBadgeRef.isEnabled() && mc != null) {
                             float myHp = mc.isInWorld() ? mc.getHealth() : 20.0f;
@@ -671,43 +683,45 @@ public final class CombatTrainingModulesRegistry {
                                 statusCol = t.getWarningColor();
                             }
                             String badge = i18n.tr(statusKey);
-                            float bw = fontManager.width(r, badge, 0.80f) + 10.0f;
+                            float bw = fontManager.width(r, badge, 0.80f) + 10.5f;
                             float bx = drawX + cardW - bw - 9.0f;
-                            if (bx > infoX + fontManager.width(r, subInfo, 0.86f) + 4.0f) {
-                                r.fillRoundedRect(bx, drawY + 23.5f, bw, 12.0f, 6.0f, AxsesTheme.withAlpha(statusCol, 0.18f));
-                                r.drawRoundedOutline(bx, drawY + 23.5f, bw, 12.0f, 6.0f, 1.0f, AxsesTheme.withAlpha(statusCol, 0.55f));
-                                fontManager.drawCentered(r, badge, bx + bw * 0.5f, drawY + 25.5f, statusCol, 0.80f);
+                            if (bx > infoX + fontManager.width(r, subInfo, 0.84f) + 4.0f) {
+                                r.fillRoundedRect(bx, drawY + 23.5f, bw, 12.5f, 6.2f, AxsesTheme.withAlpha(statusCol, 0.24f));
+                                r.drawRoundedOutline(bx, drawY + 23.5f, bw, 12.5f, 6.2f, 1.0f, AxsesTheme.withAlpha(statusCol, 0.78f));
+                                fontManager.drawCentered(r, badge, bx + bw * 0.5f, drawY + 25.7f, statusCol, 0.80f);
                             }
                         }
 
-                        // Row 3: Curved Stadium Aurora Gradient Health Bar + Damage Trail + Leading Spark
+                        // Row 3: Liquid Neon Health Bar + Ruby Trail + White-Hot Spark Head
                         float barX = infoX;
-                        float barY = drawY + 40.5f;
+                        float barY = drawY + 41.0f;
                         float barW = infoW;
-                        float barH = 13.0f;
-                        float barRad = 6.5f;
-                        float targetFrac = target.getHealthFraction();
-                        float animFrac = preview ? targetFrac : state.updateAndGetAnimatedHpFrac(targetFrac, dt);
-                        float trailFrac = preview ? Math.min(1.0f, targetFrac + 0.12f) : state.getDamageTrailHpFrac();
+                        float barH = 14.5f;
+                        float barRad = 7.2f;
 
-                        r.fillRoundedRect(barX, barY, barW, barH, barRad, 0xEE070B18);
-                        r.drawRoundedOutline(barX, barY, barW, barH, barRad, 1.0f, 0x2AFFFFFF);
+                        r.fillRoundedRect(barX, barY, barW, barH, barRad, 0xF0060916);
+                        r.drawRoundedOutline(barX, barY, barW, barH, barRad, 1.0f, 0x33FFFFFF);
                         if (trailFrac > animFrac + 0.005f) {
-                            r.fillRoundedRect(barX + 1.0f, barY + 1.0f, Math.max(8.0f, (barW - 2.0f) * trailFrac), barH - 2.0f, barRad - 1.0f,
-                                    AxsesTheme.withAlpha(t.getErrorColor(), 0.68f));
+                            r.fillRoundedRect(barX + 1.2f, barY + 1.2f, Math.max(8.0f, (barW - 2.4f) * trailFrac), barH - 2.4f, barRad - 1.0f,
+                                    AxsesTheme.withAlpha(t.getErrorColor(), 0.72f));
                         }
                         if (animFrac > 0.005f) {
-                            float fw = Math.max(8.0f, (barW - 2.0f) * animFrac);
+                            float fw = Math.max(8.0f, (barW - 2.4f) * animFrac);
                             int cLeft = animFrac > 0.30f ? prim : t.getErrorColor();
                             int cRight = animFrac > 0.55f ? acc : (animFrac > 0.25f ? t.getWarningColor() : 0xFFFF8FA3);
-                            RenderManager.fillRoundedHorizontalGradient(r, barX + 1.0f, barY + 1.0f, fw, barH - 2.0f, barRad - 1.0f, cLeft, cRight);
+                            r.fillRoundedRect(barX, barY - 1.0f, fw + 2.4f, barH + 2.0f, barRad + 1.0f, AxsesTheme.withAlpha(cRight, 0.22f));
+                            RenderManager.fillRoundedHorizontalGradient(r, barX + 1.2f, barY + 1.2f, fw, barH - 2.4f, barRad - 1.0f, cLeft, cRight);
+                            // Top glass sheen + leading white spark
+                            r.fillRoundedRect(barX + 3.0f, barY + 2.0f, Math.max(4f, fw - 6.0f), 3.0f, 1.5f, 0x26FFFFFF);
+                            float sparkX = barX + 1.2f + fw - 3.5f;
+                            r.fillRoundedRect(sparkX, barY + 1.8f, 3.0f, barH - 3.6f, 1.5f, 0xEEFFFFFF);
                         }
                         if (target.getAbsorption() > 0.1f) {
                             float absFrac = Math.min(1.0f, target.getAbsorption() / 20.0f);
-                            r.fillRoundedRect(barX + 3.0f, barY + barH - 3.0f, Math.max(6.0f, (barW - 6.0f) * absFrac), 2.0f, 1.0f, 0xFFFFD166);
+                            r.fillRoundedRect(barX + 3.0f, barY + barH - 3.2f, Math.max(6.0f, (barW - 6.0f) * absFrac), 2.2f, 1.1f, 0xFFFFD166);
                         }
-                        String hpBadge = String.format(Locale.ROOT, "%.1f ❤ (%d%%)", Float.valueOf(hpVal), Integer.valueOf(Math.round(targetFrac * 100f)));
-                        fontManager.drawCentered(r, hpBadge, barX + barW * 0.5f, barY + 3.0f, 0xFFFFFFFF, 0.82f);
+                        String hpBadge = String.format(Locale.ROOT, "%.1f ❤  ·  %d%%", Float.valueOf(hpVal), Integer.valueOf(Math.round(targetFrac * 100f)));
+                        fontManager.drawCentered(r, hpBadge, barX + barW * 0.5f, barY + 3.6f, 0xFFFFFFFF, 0.82f);
                         return true;
                     }
                 });
@@ -1032,6 +1046,66 @@ public final class CombatTrainingModulesRegistry {
             }
         });
         hm.register(new HudElement("gapple_tracker", "Gapples", gappleTracker, 0.012f, 0.830f, 156f, 21f));
+
+        // 123. Target Strafe 3D (Таргет Стрейф 3D) — Void-Safe Orbit Guide & 3D Plasma Ring
+        Module targetStrafe = mm.register(new Module("target_strafe", "Target Strafe 3D", "Void-safe orbital strafe guidance around locked combat target with 3D segmented plasma ring", ModuleCategory.MOVEMENT, false, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting orbitRadius = addSetting(new NumberSetting("orbit_radius", "Orbit Radius (m)", "Desired strafe distance around target", 2.85, 1.4, 4.6, 0.05));
+            private final BooleanSetting voidFlip = addSetting(new BooleanSetting("void_flip", "Void Direction Flip", "Reverse orbit direction automatically near island edges", true));
+            private final BooleanSetting renderRing = addSetting(new BooleanSetting("render_ring", "3D Plasma Orbit Ring", "Render glowing 3D segmented orbit ring around target", true));
+            private int strafeDir = 1;
+            private long lastFlipMs = 0L;
+
+            @Override
+            public void onTick(MinecraftAdapter mc) {
+                if (mc == null || !mc.isInWorld() || mc.isAnyScreenOpen()) return;
+                if (voidFlip.isEnabled() && mc.isStandingOverEdge(0.22)) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastFlipMs > 320L) {
+                        strafeDir = -strafeDir;
+                        lastFlipMs = now;
+                    }
+                }
+            }
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (!renderRing.isEnabled() || mc == null || !mc.isInWorld() || mc.isClickGuiOpen()) return;
+                TargetEntityInfo tgt = state.getActiveTarget(2500L);
+                if (tgt == null) return;
+                double rad = orbitRadius.getDouble();
+                double cx = tgt.getX();
+                double cy = tgt.getMinY() + 0.05;
+                double cz = tgt.getZ();
+                int segs = 36;
+                double phase = ((System.currentTimeMillis() % 3200L) / 3200.0) * Math.PI * 2.0 * strafeDir;
+                float prevX = 0f, prevY = 0f;
+                boolean hasPrev = false;
+                for (int i = 0; i <= segs; i++) {
+                    double a = (Math.PI * 2.0 * i) / segs;
+                    float[] sc = mc.projectWorldToScreen(cx + Math.cos(a) * rad, cy, cz + Math.sin(a) * rad);
+                    if (sc != null && sc[2] > 0.1f) {
+                        if (hasPrev && (i % 2 == 1)) {
+                            int col = themes.getAuroraWaveColor(i * 0.22f);
+                            r.drawNeonLine(prevX, prevY, sc[0], sc[1], 2.1f,
+                                    AxsesTheme.withAlpha(col, 0.96f), AxsesTheme.withAlpha(col, 0.50f));
+                        }
+                        prevX = sc[0];
+                        prevY = sc[1];
+                        hasPrev = true;
+                    } else {
+                        hasPrev = false;
+                    }
+                }
+                // Orbit lead waypoint gem
+                float[] lead = mc.projectWorldToScreen(cx + Math.cos(phase) * rad, cy + 0.06, cz + Math.sin(phase) * rad);
+                if (lead != null && lead[2] > 0.1f) {
+                    int acc = themes.filterColor(themes.getActiveTheme().getAccentColor());
+                    r.fillRoundedRect(lead[0] - 5.5f, lead[1] - 5.5f, 11.0f, 11.0f, 5.5f, AxsesTheme.withAlpha(acc, 0.35f));
+                    r.fillRoundedRect(lead[0] - 2.6f, lead[1] - 2.6f, 5.2f, 5.2f, 2.6f, 0xFFFFFFFF);
+                }
+            }
+        });
+        targetStrafe.setFavorite(true);
     }
 
     public static float computeMouseGcd(double sensitivity) {

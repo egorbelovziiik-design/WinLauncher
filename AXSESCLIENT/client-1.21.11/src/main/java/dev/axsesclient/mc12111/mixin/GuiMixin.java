@@ -25,6 +25,17 @@ public abstract class GuiMixin {
         }
     }
 
+    @Inject(method = "renderItemHotbar", at = @At("HEAD"), cancellable = true, require = 0)
+    private void axses$suppressVanillaHotbar(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
+        AxsesCore core = AxsesCore.getInstance();
+        if (core != null) {
+            Module hb = core.getModuleManager().getById("custom_hotbar");
+            if (hb != null && hb.isEnabled()) {
+                ci.cancel();
+            }
+        }
+    }
+
     @Inject(method = "render", at = @At("TAIL"))
     private void axses$renderHud(GuiGraphics graphics, DeltaTracker deltaTracker, CallbackInfo ci) {
         Minecraft mc = Minecraft.getInstance();

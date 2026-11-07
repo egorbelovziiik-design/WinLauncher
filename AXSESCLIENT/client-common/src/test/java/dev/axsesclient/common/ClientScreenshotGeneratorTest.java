@@ -238,199 +238,334 @@ public class ClientScreenshotGeneratorTest {
             return new float[] { sx, sy, (float) zCam };
         }
 
+        @Override
+        public void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argb) {
+            if (((argb >>> 24) & 0xFF) == 0) return;
+            java.awt.geom.Path2D.Float poly = new java.awt.geom.Path2D.Float();
+            poly.moveTo(x1, y1);
+            poly.lineTo(x2, y2);
+            poly.lineTo(x3, y3);
+            poly.closePath();
+            g.setColor(toAwtColor(argb));
+            g.fill(poly);
+        }
+
+        @Override
+        public void fillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int argb) {
+            if (((argb >>> 24) & 0xFF) == 0) return;
+            java.awt.geom.Path2D.Float poly = new java.awt.geom.Path2D.Float();
+            poly.moveTo(x1, y1);
+            poly.lineTo(x2, y2);
+            poly.lineTo(x3, y3);
+            poly.lineTo(x4, y4);
+            poly.closePath();
+            g.setColor(toAwtColor(argb));
+            g.fill(poly);
+        }
+
+        static final class ShadedFace3D {
+            final double[] xs;
+            final double[] ys;
+            final double[] zs;
+            final int fillArgb;
+            final int edgeArgb;
+            final double camDepth;
+
+            ShadedFace3D(double[] xs, double[] ys, double[] zs, int fillArgb, int edgeArgb, double camDepth) {
+                this.xs = xs;
+                this.ys = ys;
+                this.zs = zs;
+                this.fillArgb = fillArgb;
+                this.edgeArgb = edgeArgb;
+                this.camDepth = camDepth;
+            }
+        }
+
+        void addShadedBox(java.util.List<ShadedFace3D> out,
+                          double bx, double by, double bz,
+                          double sx, double sy, double sz,
+                          int topCol, int sideCol, int frontCol, int edgeCol) {
+            double x0 = bx, y0 = by, z0 = bz;
+            double x1 = bx + sx, y1 = by + sy, z1 = bz + sz;
+            double camX = playerX;
+            double camY = playerY + 1.62;
+            double camZ = playerZ;
+
+            // Camera-facing backface culling so only outward faces visible from camera eye are emitted
+            if (camY > y1) {
+                emitFace(out, new double[]{x0, x1, x1, x0}, new double[]{y1, y1, y1, y1}, new double[]{z0, z0, z1, z1}, topCol, edgeCol);
+            } else if (camY < y0) {
+                emitFace(out, new double[]{x0, x1, x1, x0}, new double[]{y0, y0, y0, y0}, new double[]{z0, z0, z1, z1}, sideCol, edgeCol);
+            }
+            if (camZ < z0) {
+                emitFace(out, new double[]{x0, x1, x1, x0}, new double[]{y0, y0, y1, y1}, new double[]{z0, z0, z0, z0}, frontCol, edgeCol);
+            } else if (camZ > z1) {
+                emitFace(out, new double[]{x0, x1, x1, x0}, new double[]{y0, y0, y1, y1}, new double[]{z1, z1, z1, z1}, frontCol, edgeCol);
+            }
+            if (camX < x0) {
+                emitFace(out, new double[]{x0, x0, x0, x0}, new double[]{y0, y0, y1, y1}, new double[]{z0, z1, z1, z0}, sideCol, edgeCol);
+            } else if (camX > x1) {
+                emitFace(out, new double[]{x1, x1, x1, x1}, new double[]{y0, y0, y1, y1}, new double[]{z0, z1, z1, z0}, sideCol, edgeCol);
+            }
+        }
+
+        private void emitFace(java.util.List<ShadedFace3D> out, double[] xs, double[] ys, double[] zs, int fillCol, int edgeCol) {
+            double cx = (xs[0] + xs[1] + xs[2] + xs[3]) * 0.25 - playerX;
+            double cy = (ys[0] + ys[1] + ys[2] + ys[3]) * 0.25 - (playerY + 1.62);
+            double cz = (zs[0] + zs[1] + zs[2] + zs[3]) * 0.25 - playerZ;
+            double distSq = cx * cx + cy * cy + cz * cz;
+            out.add(new ShadedFace3D(xs, ys, zs, fillCol, edgeCol, distSq));
+        }
+
+        void flushShadedFaces(java.util.List<ShadedFace3D> faces) {
+            Collections.sort(faces, new java.util.Comparator<ShadedFace3D>() {
+                @Override
+                public int compare(ShadedFace3D a, ShadedFace3D b) {
+                    return Double.compare(b.camDepth, a.camDepth); // Painter's algorithm: far -> near
+                }
+            });
+            for (int i = 0; i < faces.size(); i++) {
+                ShadedFace3D f = faces.get(i);
+                float[] p0 = projectWorldToScreen(f.xs[0], f.ys[0], f.zs[0]);
+                float[] p1 = projectWorldToScreen(f.xs[1], f.ys[1], f.zs[1]);
+                float[] p2 = projectWorldToScreen(f.xs[2], f.ys[2], f.zs[2]);
+                float[] p3 = projectWorldToScreen(f.xs[3], f.ys[3], f.zs[3]);
+                if (p0 == null || p1 == null || p2 == null || p3 == null) continue;
+                if (p0[2] <= 0.14f || p1[2] <= 0.14f || p2[2] <= 0.14f || p3[2] <= 0.14f) continue;
+                fillQuad(p0[0], p0[1], p1[0], p1[1], p2[0], p2[1], p3[0], p3[1], f.fillArgb);
+                if (((f.edgeArgb >>> 24) & 0xFF) > 0) {
+                    drawLine(p0[0], p0[1], p1[0], p1[1], 0.85f, f.edgeArgb);
+                    drawLine(p1[0], p1[1], p2[0], p2[1], 0.85f, f.edgeArgb);
+                    drawLine(p2[0], p2[1], p3[0], p3[1], 0.85f, f.edgeArgb);
+                    drawLine(p3[0], p3[1], p0[0], p0[1], 0.85f, f.edgeArgb);
+                }
+            }
+        }
+
+        void paintCelestialShaderSkybox() {
+            // Multi-stop Celestial Shader Night Sky + Aurora Nebula + Glowing Crescent Moon
+            fillGradientVertical(0, 0, scaledW, scaledH * 0.56f, 0xFF040613, 0xFF131B3E);
+            fillGradientVertical(0, scaledH * 0.28f, scaledW, scaledH * 0.28f, 0x00000000, 0x426D28D9);
+            fillGradientVertical(0, scaledH * 0.56f, scaledW, scaledH * 0.44f, 0xFF0B132B, 0xFF040712);
+
+            // Flowing Aurora Borealis ribbons across upper sky
+            for (int b = 0; b < 96; b++) {
+                float x = b * (scaledW / 96.0f);
+                float w = (scaledW / 96.0f) + 1.0f;
+                float yWave = 52.0f + (float) Math.sin(b * 0.14 + 0.8) * 20.0f + (float) Math.cos(b * 0.07) * 11.0f;
+                int cTop = (b % 2 == 0) ? 0x2400F5D4 : 0x2238BDF8;
+                fillGradientVertical(x, yWave, w, 58.0f, cTop, 0x00000000);
+                fillGradientVertical(x, yWave + 22.0f, w, 46.0f, 0x1CA855F7, 0x00000000);
+            }
+
+            // Starfield with diamond twinkles
+            for (int i = 0; i < 64; i++) {
+                float sx = ((i * 73 + 19) % 948) + 6f;
+                float sy = ((i * 41 + 11) % 218) + 6f;
+                float sz = (i % 5 == 0) ? 2.2f : 1.3f;
+                fillRoundedRect(sx, sy, sz, sz, sz * 0.5f, (i % 3 == 0) ? 0x9900F5D4 : 0x88F8FAFC);
+            }
+
+            // Volumetric Glowing Moon with Multi-Ring Atmospheric Halo (upper-right sky)
+            float mx = scaledW * 0.76f;
+            float my = 76.0f;
+            fillRoundedRect(mx - 44f, my - 44f, 88f, 88f, 44f, 0x1038BDF8);
+            fillRoundedRect(mx - 28f, my - 28f, 56f, 56f, 28f, 0x227DD3FC);
+            fillRoundedRect(mx - 16f, my - 16f, 32f, 32f, 16f, 0xFFE0F2FE);
+            fillRoundedRect(mx - 10f, my - 19f, 26f, 26f, 13f, 0xFF0E1533); // Crescent shadow carve
+        }
+
+        void add3dArmoredPlayer(java.util.List<ShadedFace3D> faces, TargetEntityInfo e, boolean crimsonTeam) {
+            double cx = e.getX();
+            double y0 = e.getMinY();
+            double cz = e.getZ();
+            boolean hurt = e.getHurtTime() > 0;
+            int helmTop = hurt ? 0xFFFF4D6D : (crimsonTeam ? 0xFFF43F5E : 0xFF38BDF8);
+            int helmSide = hurt ? 0xFFC9184A : (crimsonTeam ? 0xFFBE123C : 0xFF0284C7);
+            int armorTop = hurt ? 0xFFE11D48 : (crimsonTeam ? 0xFF9F1239 : 0xFF334155);
+            int armorSide = hurt ? 0xFF9F1239 : (crimsonTeam ? 0xFF881337 : 0xFF1E293B);
+            int armorFront = hurt ? 0xFFBE123C : (crimsonTeam ? 0xFFBE123C : 0xFF27364F);
+            int trimEdge = hurt ? 0xAAFF8FA3 : (crimsonTeam ? 0x88FDA4AF : 0x8838BDF8);
+
+            // 3D Boots + Legs
+            addShadedBox(faces, cx - 0.24, y0, cz - 0.13, 0.21, 0.72, 0.26, armorTop, 0xFF0F172A, 0xFF1E293B, trimEdge);
+            addShadedBox(faces, cx + 0.03, y0, cz - 0.13, 0.21, 0.72, 0.26, armorTop, 0xFF0F172A, 0xFF1E293B, trimEdge);
+            // 3D Netherite/Diamond Chestplate Torso
+            addShadedBox(faces, cx - 0.26, y0 + 0.72, cz - 0.15, 0.52, 0.66, 0.30, armorTop, armorSide, armorFront, trimEdge);
+            // 3D Armored Pauldrons & Arms
+            addShadedBox(faces, cx - 0.46, y0 + 0.70, cz - 0.13, 0.19, 0.66, 0.26, helmTop, armorSide, armorFront, trimEdge);
+            addShadedBox(faces, cx + 0.27, y0 + 0.70, cz - 0.13, 0.19, 0.66, 0.26, helmTop, armorSide, armorFront, trimEdge);
+            // 3D Helmeted Head + Glowing Cyber Visor
+            addShadedBox(faces, cx - 0.22, y0 + 1.38, cz - 0.22, 0.44, 0.44, 0.44, helmTop, helmSide, helmSide, 0xAAFFFFFF);
+            addShadedBox(faces, cx - 0.16, y0 + 1.52, cz - 0.24, 0.32, 0.10, 0.04, 0xFF00F5D4, 0xFF00F5D4, 0xFFFFFFFF, 0x00000000);
+            // 3D Held Enchanted Sword extending forward toward player (-Z)
+            addShadedBox(faces, cx - 0.40, y0 + 0.84, cz - 0.68, 0.07, 0.10, 0.58, 0xFF67E8F9, 0xFF06B6D4, 0xFFA855F7, 0xCCFFFFFF);
+        }
+
+        void paintFirstPersonViewModel(boolean holdingBlock) {
+            // Left foreground: 3D Offhand Golden Totem of Undying with subtle golden aura
+            fillRoundedRect(108f, scaledH - 108f, 76f, 96f, 38f, 0x16FACC15);
+            // Totem wings & sculpted golden body
+            fillQuad(114f, scaledH - 64f, 178f, scaledH - 72f, 174f, scaledH - 52f, 118f, scaledH - 46f, 0xFFD97706);
+            fillQuad(132f, scaledH - 92f, 162f, scaledH - 95f, 168f, scaledH - 18f, 126f, scaledH - 14f, 0xFFFACC15);
+            fillQuad(136f, scaledH - 88f, 158f, scaledH - 90f, 161f, scaledH - 58f, 134f, scaledH - 55f, 0xFFFDE047);
+            // Glowing Emerald Totem Eyes
+            fillRoundedRect(139f, scaledH - 77f, 6.5f, 5.5f, 1.5f, 0xFF10B981);
+            fillRoundedRect(150f, scaledH - 78f, 6.5f, 5.5f, 1.5f, 0xFF10B981);
+            drawLine(132f, scaledH - 92f, 162f, scaledH - 95f, 1.2f, 0xAAFFFFFF);
+
+            if (holdingBlock) {
+                // Right foreground: 3D Isometric Shaded Cyan BedWars Wool Block in hand
+                float bx = scaledW - 168f;
+                float by = scaledH - 86f;
+                fillRoundedRect(bx - 16f, by - 14f, 116f, 96f, 36f, 0x1800F5D4);
+                fillQuad(bx + 42f, by - 8f, bx + 92f, by + 14f, bx + 44f, by + 38f, bx - 4f, by + 16f, 0xFF38BDF8); // Top
+                fillQuad(bx - 4f, by + 16f, bx + 44f, by + 38f, bx + 40f, by + 92f, bx - 6f, by + 68f, 0xFF0284C7); // Left
+                fillQuad(bx + 44f, by + 38f, bx + 92f, by + 14f, bx + 86f, by + 68f, bx + 40f, by + 92f, 0xFF0369A1); // Right
+                drawNeonLine(bx - 4f, by + 16f, bx + 42f, by - 8f, 1.4f, 0xCCFFFFFF, 0x6600F5D4);
+                drawNeonLine(bx + 42f, by - 8f, bx + 92f, by + 14f, 1.4f, 0xCCFFFFFF, 0x6600F5D4);
+            } else {
+                // Right foreground: Custom Celestial Smooth 3D Enchanted Netherite-Diamond Blade
+                float sx = scaledW - 192f;
+                float sy = scaledH - 22f;
+                // Enchantment aura glow around blade
+                drawNeonLine(sx + 56f, sy - 26f, sx - 28f, sy - 134f, 9.5f, 0x24A855F7, 0x1800F5D4);
+                // 3D Dual-bevel Enchanted Blade (left lit bevel + right violet-glint bevel)
+                fillQuad(sx + 48f, sy - 34f, sx - 26f, sy - 132f, sx - 32f, sy - 138f, sx + 38f, sy - 42f, 0xFF67E8F9);
+                fillQuad(sx + 58f, sy - 26f, sx - 18f, sy - 124f, sx - 32f, sy - 138f, sx + 48f, sy - 34f, 0xFF312E81);
+                // Glowing Enchantment Glint Core Vein
+                drawNeonLine(sx + 48f, sy - 34f, sx - 29f, sy - 135f, 1.9f, 0xFFFFFFFF, 0xAA00F5D4);
+                // Sculpted Crossguard + Pommel
+                fillQuad(sx + 24f, sy - 24f, sx + 74f, sy - 52f, sx + 80f, sy - 42f, sx + 30f, sy - 14f, 0xFFFBBF24);
+                drawNeonLine(sx + 26f, sy - 20f, sx + 76f, sy - 48f, 1.4f, 0xFFFFFFFF, 0x88FACC15);
+                fillQuad(sx + 52f, sy - 28f, sx + 64f, sy - 35f, sx + 88f, sy - 2f, sx + 74f, sy + 6f, 0xFF451A03);
+            }
+        }
+
         void paintStylizedWorldBackdrop(boolean drawEntities) {
-            // Hyperion Aurora twilight PvP arena sky + starfield + horizon glow
-            fillGradientVertical(0, 0, scaledW, scaledH * 0.54f, 0xFF060916, 0xFF171E3E);
-            fillGradientVertical(0, scaledH * 0.34f, scaledW, scaledH * 0.20f, 0x00000000, 0x356A40E8);
-            fillGradientVertical(0, scaledH * 0.54f, scaledW, scaledH * 0.46f, 0xFF101929, 0xFF070C17);
+            paintCelestialShaderSkybox();
 
-            // Subtle twinkling stars in upper sky
-            for (int i = 0; i < 42; i++) {
-                float sx = ((i * 73 + 19) % 950) + 5f;
-                float sy = ((i * 41 + 11) % 210) + 6f;
-                fillRect(sx, sy, (i % 4 == 0) ? 1.5f : 1.0f, (i % 4 == 0) ? 1.5f : 1.0f, (i % 3 == 0) ? 0x6600F5D4 : 0x55FFFFFF);
+            java.util.List<ShadedFace3D> faces = new java.util.ArrayList<ShadedFace3D>(512);
+
+            // 3D Shaded Cyber-Quartz & Dark-Prismarine PvP Colosseum Tiles (x = -7..6, z = 1..19)
+            for (int gz = 1; gz <= 18; gz += 2) {
+                for (int gx = -8; gx <= 6; gx += 2) {
+                    boolean checker = (((gx + 8) / 2 + gz / 2) % 2 == 0);
+                    boolean centerLane = Math.abs(gx + 1) <= 1;
+                    int topC = centerLane ? (checker ? 0xFF1E293B : 0xFF172554) : (checker ? 0xFF0F172A : 0xFF131C31);
+                    int sideC = 0xFF090D1A;
+                    int frontC = 0xFF0B1120;
+                    int seamC = centerLane ? 0x3800F5D4 : 0x226366F1;
+                    addShadedBox(faces, gx, 63.0, gz, 2.0, 1.0, 2.0, topC, sideC, frontC, seamC);
+                }
             }
 
-            // Anti-aliased perspective cyber-arena floor grid lines
-            float horizonY = scaledH * 0.54f;
-            drawLine(0f, horizonY - 0.5f, scaledW, horizonY - 0.5f, 1.1f, 0x6600F5D4);
-            for (int row = 1; row <= 12; row++) {
-                float t = (float) Math.pow(row / 12.0, 1.8);
-                float gy = horizonY + t * (scaledH - horizonY);
-                drawLine(0f, gy, scaledW, gy, 0.9f, 0x1E00F5D4);
+            // Ornate 3D Colosseum Pillars + Glowing Sea-Lantern Crystal Crowns along left & right flanks
+            double[] pillarXs = { -6.6, 5.4 };
+            double[] pillarZs = { 6.5, 12.5, 18.5 };
+            for (int px = 0; px < pillarXs.length; px++) {
+                for (int pz = 0; pz < pillarZs.length; pz++) {
+                    double bx = pillarXs[px];
+                    double bz = pillarZs[pz];
+                    addShadedBox(faces, bx - 0.2, 64.0, bz - 0.2, 1.6, 0.5, 1.6, 0xFF334155, 0xFF1E293B, 0xFF27364F, 0x4494A3B8);
+                    addShadedBox(faces, bx, 64.5, bz, 1.2, 3.6, 1.2, 0xFF1E293B, 0xFF0F172A, 0xFF172036, 0x3838BDF8);
+                    addShadedBox(faces, bx + 0.1, 68.1, bz + 0.1, 1.0, 0.9, 1.0, 0xFF67E8F9, 0xFF06B6D4, 0xFF22D3EE, 0xCCFFFFFF);
+                }
             }
-            for (int col = -10; col <= 10; col++) {
-                float xTop = scaledW * 0.5f + col * 18f;
-                float xBot = scaledW * 0.5f + col * 95f;
-                drawLine(xTop, horizonY, xBot, scaledH, 0.9f, 0x22A855F7);
+            // Distant Arena Sanctum Arch at z = 19.5
+            addShadedBox(faces, -3.5, 64.0, 19.2, 7.0, 0.8, 1.6, 0xFF1E293B, 0xFF0F172A, 0xFF1E293B, 0x44A855F7);
+
+            if (drawEntities) {
+                for (TargetEntityInfo e : espEntities) {
+                    if (!e.isItemEntity()) {
+                        add3dArmoredPlayer(faces, e, e.getEntityId() % 2 == 0);
+                    }
+                }
             }
+
+            flushShadedFaces(faces);
 
             if (drawEntities) {
                 for (TargetEntityInfo e : espEntities) {
                     if (e.isItemEntity()) {
                         float[] c = projectWorldToScreen(e.getX(), e.getY() + 0.18, e.getZ());
                         if (c != null && c[2] > 0.2f) {
-                            fillRoundedRect(c[0] - 5, c[1] - 5, 10, 10, 3, 0xFFFFD166);
+                            fillRoundedRect(c[0] - 6.5f, c[1] - 6.5f, 13f, 13f, 6.5f, 0x44FFD166);
+                            fillRoundedRect(c[0] - 4.2f, c[1] - 4.2f, 8.4f, 8.4f, 4.2f, 0xFFFACC15);
+                            drawRoundedOutline(c[0] - 4.2f, c[1] - 4.2f, 8.4f, 8.4f, 4.2f, 1.0f, 0xFFFFFFFF);
                         }
-                        continue;
-                    }
-                    float[] top = projectWorldToScreen(e.getX(), e.getMaxY(), e.getZ());
-                    float[] bot = projectWorldToScreen(e.getX(), e.getMinY(), e.getZ());
-                    if (top != null && bot != null && top[2] > 0.2f && bot[2] > 0.2f) {
-                        float h = Math.max(18f, bot[1] - top[1]);
-                        float w = h * 0.36f;
-                        float cx = (top[0] + bot[0]) * 0.5f;
-                        // Stylized 3D player armor silhouette inside hitbox
-                        float headS = w * 0.62f;
-                        fillRoundedRect(cx - headS * 0.5f, top[1] + 2f, headS, headS, 2f, e.getHurtTime() > 0 ? 0xFFFF4D6D : 0xFF38BDF8);
-                        fillRoundedRect(cx - w * 0.42f, top[1] + headS + 3f, w * 0.84f, h * 0.42f, 2f, e.getHurtTime() > 0 ? 0xFFC92A4E : 0xFF334155);
-                        fillRoundedRect(cx - w * 0.36f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1f, 0xFF1E293B);
-                        fillRoundedRect(cx + w * 0.04f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1f, 0xFF1E293B);
                     }
                 }
-
-                // Hyperion glass hotbar at bottom center
-                float hbW = 184f, hbH = 22f;
-                float hbX = (scaledW - hbW) * 0.5f, hbY = scaledH - 25f;
-                fillRoundedRect(hbX, hbY, hbW, hbH, 5f, 0xD80A0E1E);
-                drawRoundedOutline(hbX, hbY, hbW, hbH, 5f, 1f, 0x77A855F7);
-                for (int slot = 0; slot < 9; slot++) {
-                    float sx = hbX + 3f + slot * 20f;
-                    if (slot == 0) {
-                        fillRoundedRect(sx, hbY + 2f, 18f, 18f, 3.5f, 0x55A855F7);
-                        drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 3.5f, 1f, 0xFF00F5D4);
-                    } else {
-                        drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 2.5f, 1f, 0x26FFFFFF);
-                    }
-                }
+                paintFirstPersonViewModel(false);
             }
-        }
-
-        void fill3dQuad(double x1, double y1, double z1,
-                        double x2, double y2, double z2,
-                        double x3, double y3, double z3,
-                        double x4, double y4, double z4,
-                        int fillArgb, int edgeArgb) {
-            float[] p1 = projectWorldToScreen(x1, y1, z1);
-            float[] p2 = projectWorldToScreen(x2, y2, z2);
-            float[] p3 = projectWorldToScreen(x3, y3, z3);
-            float[] p4 = projectWorldToScreen(x4, y4, z4);
-            if (p1 == null || p2 == null || p3 == null || p4 == null) return;
-            if (p1[2] <= 0.12f || p2[2] <= 0.12f || p3[2] <= 0.12f || p4[2] <= 0.12f) return;
-            java.awt.geom.Path2D.Float poly = new java.awt.geom.Path2D.Float();
-            poly.moveTo(p1[0], p1[1]);
-            poly.lineTo(p2[0], p2[1]);
-            poly.lineTo(p3[0], p3[1]);
-            poly.lineTo(p4[0], p4[1]);
-            poly.closePath();
-            g.setColor(toAwtColor(fillArgb));
-            g.fill(poly);
-            if (((edgeArgb >>> 24) & 0xFF) > 0) {
-                drawLine(p1[0], p1[1], p2[0], p2[1], 0.9f, edgeArgb);
-                drawLine(p2[0], p2[1], p3[0], p3[1], 0.9f, edgeArgb);
-                drawLine(p3[0], p3[1], p4[0], p4[1], 0.9f, edgeArgb);
-                drawLine(p4[0], p4[1], p1[0], p1[1], 0.9f, edgeArgb);
-            }
-        }
-
-        void draw3dBlockShaded(double bx, double by, double bz, double sx, double sy, double sz,
-                               int topCol, int sideCol, int frontCol, int edgeCol) {
-            double x0 = bx, y0 = by, z0 = bz;
-            double x1 = bx + sx, y1 = by + sy, z1 = bz + sz;
-            // Bottom / back-facing visible faces first, then top face
-            fill3dQuad(x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, frontCol, edgeCol);
-            fill3dQuad(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, frontCol, edgeCol);
-            fill3dQuad(x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, sideCol, edgeCol);
-            fill3dQuad(x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, sideCol, edgeCol);
-            fill3dQuad(x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, topCol, edgeCol);
         }
 
         void paintBedWarsSkyScene() {
-            // Deep cosmic BedWars void sky + nebula horizon
-            fillGradientVertical(0, 0, scaledW, scaledH * 0.56f, 0xFF040714, 0xFF141B3D);
-            fillGradientVertical(0, scaledH * 0.36f, scaledW, scaledH * 0.22f, 0x00000000, 0x3A7C3AED);
-            fillGradientVertical(0, scaledH * 0.56f, scaledW, scaledH * 0.44f, 0xFF0A1026, 0xFF03050E);
+            paintCelestialShaderSkybox();
 
-            for (int i = 0; i < 56; i++) {
-                float sx = ((i * 67 + 23) % 948) + 6f;
-                float sy = ((i * 43 + 9) % 240) + 6f;
-                fillRoundedRect(sx, sy, (i % 3 == 0) ? 2.0f : 1.3f, (i % 3 == 0) ? 2.0f : 1.3f, 1.0f,
-                        (i % 4 == 0) ? 0x8800F5D4 : 0x66E2E8F0);
-            }
+            java.util.List<ShadedFace3D> faces = new java.util.ArrayList<ShadedFace3D>(512);
 
-            // Distant floating Diamond Generator mini-island on left (+X projects left at yaw=0)
-            draw3dBlockShaded(7.0, 62.0, 16.0, 4.0, 2.0, 4.0, 0xFF1E293B, 0xFF0F172A, 0xFF162033, 0x3338BDF8);
-            draw3dBlockShaded(8.5, 64.0, 17.5, 1.0, 1.6, 1.0, 0xFF38BDF8, 0xFF0284C7, 0xFF0369A1, 0xAA7DD3FC);
+            // Distant Floating Diamond Generator Island on left (+X projects left at yaw=0)
+            addShadedBox(faces, 6.8, 61.8, 15.5, 4.4, 2.2, 4.4, 0xFF1E293B, 0xFF0F172A, 0xFF162033, 0x4438BDF8);
+            addShadedBox(faces, 8.4, 64.6, 17.1, 1.1, 1.1, 1.1, 0xFF67E8F9, 0xFF0284C7, 0xFF0EA5E9, 0xEEFFFFFF);
 
-            // Enemy Red Team Floating Sky-Island ahead (z = 12..19, x = -4.5..4.5, y = 61..64)
-            draw3dBlockShaded(-3.5, 61.0, 13.0, 7.0, 1.5, 5.5, 0xFF1E293B, 0xFF0F172A, 0xFF111827, 0x2894A3B8);
-            draw3dBlockShaded(-4.5, 62.5, 12.0, 9.0, 1.5, 7.0, 0xFF334155, 0xFF1E293B, 0xFF243247, 0x4464748B);
-            // Red Team Bed + End Stone protection mound on island
-            draw3dBlockShaded(-0.5, 64.0, 15.0, 2.0, 0.65, 1.0, 0xFFEF4444, 0xFFB91C1C, 0xFFDC2626, 0xFFFF8FA3);
-            draw3dBlockShaded(-1.0, 64.0, 16.2, 3.0, 1.2, 1.5, 0xFFE2E8B8, 0xFFC5CCA0, 0xFFD4DBAE, 0x55Fef08a);
+            // Distant Floating Emerald Generator Island on right (-X projects right at yaw=0)
+            addShadedBox(faces, -11.2, 62.0, 16.5, 4.0, 2.0, 4.0, 0xFF1E293B, 0xFF0F172A, 0xFF162033, 0x4410B981);
+            addShadedBox(faces, -9.7, 64.5, 18.0, 1.0, 1.0, 1.0, 0xFF34D399, 0xFF059669, 0xFF10B981, 0xEEFFFFFF);
 
-            // FastBridge Wool Bridge Blocks placed from z = 7 back toward player at z = 1 (painter's order back-to-front!)
-            for (int bz = 6; bz >= 1; bz--) {
+            // Enemy Red Team Floating Fortress Sky-Island ahead (z = 12..19.5, x = -5..5)
+            addShadedBox(faces, -3.6, 60.6, 13.2, 7.2, 1.9, 5.6, 0xFF1E293B, 0xFF0B1120, 0xFF0F172A, 0x3394A3B8);
+            addShadedBox(faces, -4.8, 62.5, 12.0, 9.6, 1.5, 7.2, 0xFF334155, 0xFF1E293B, 0xFF243247, 0x5564748B);
+            // Castle Battlement Towers flanking the Red Bed
+            addShadedBox(faces, -4.5, 64.0, 16.8, 1.8, 3.6, 1.8, 0xFF475569, 0xFF1E293B, 0xFF334155, 0x5594A3B8);
+            addShadedBox(faces, 2.7, 64.0, 16.8, 1.8, 3.6, 1.8, 0xFF475569, 0xFF1E293B, 0xFF334155, 0x5594A3B8);
+            addShadedBox(faces, -4.3, 67.6, 17.0, 1.4, 0.8, 1.4, 0xFFEF4444, 0xFFB91C1C, 0xFFDC2626, 0xAAFDA4AF);
+            addShadedBox(faces, 2.9, 67.6, 17.0, 1.4, 0.8, 1.4, 0xFFEF4444, 0xFFB91C1C, 0xFFDC2626, 0xAAFDA4AF);
+
+            // Red Team Bed + End Stone Defense Mound
+            addShadedBox(faces, -0.5, 64.0, 15.0, 2.0, 0.65, 1.0, 0xFFEF4444, 0xFFB91C1C, 0xFFDC2626, 0xFFFF8FA3);
+            addShadedBox(faces, -1.2, 64.0, 16.2, 3.4, 1.3, 1.6, 0xFFE2E8B8, 0xFFB8C090, 0xFFD0D8A6, 0x66FEF08A);
+
+            // Incoming 3D Magma Fireball in sky
+            addShadedBox(faces, 4.65, 68.15, 11.15, 0.55, 0.55, 0.55, 0xFFFDE047, 0xFFEA580C, 0xFFF97316, 0xFFFFFFFF);
+
+            // FastBridge Cyan Wool Blocks placed from z = 1..6 (depth-sorted cleanly!)
+            for (int bz = 1; bz <= 6; bz++) {
                 boolean alt = (bz % 2 == 0);
-                int topC = alt ? 0xFF0EA5E9 : 0xFF22D3EE;
-                int sideC = alt ? 0xFF0369A1 : 0xFF0891B2;
-                int frontC = alt ? 0xFF0284C7 : 0xFF06B6D4;
-                draw3dBlockShaded(-0.5, 63.0, bz, 1.0, 1.0, 1.0, topC, sideC, frontC, 0x667DD3FC);
+                int topC = alt ? 0xFF38BDF8 : 0xFF22D3EE;
+                int sideC = alt ? 0xFF0284C7 : 0xFF0891B2;
+                int frontC = alt ? 0xFF0369A1 : 0xFF0E7490;
+                addShadedBox(faces, -0.5, 63.0, bz, 1.0, 1.0, 1.0, topC, sideC, frontC, 0x887DD3FC);
             }
 
-            // Render 3D entities (players & generator drops)
+            // 3D Armored BedWars Rushers
+            for (TargetEntityInfo e : espEntities) {
+                if (e.isItemEntity()) continue;
+                if (e.getHeldItemName() != null && e.getHeldItemName().contains("[INVIS]")) {
+                    // Invisible flanker: floating 3D TNT block in hand!
+                    addShadedBox(faces, e.getX() - 0.18, e.getMinY() + 0.90, e.getZ() - 0.35, 0.36, 0.36, 0.36,
+                            0xFFEF4444, 0xFFB91C1C, 0xFFF8FAFC, 0xCCFFFFFF);
+                    continue;
+                }
+                add3dArmoredPlayer(faces, e, true);
+            }
+
+            flushShadedFaces(faces);
+
+            // Generator resource drops + First-person Wool & Totem hands (when not in ClickGUI)
             for (TargetEntityInfo e : espEntities) {
                 if (e.isItemEntity()) {
                     float[] c = projectWorldToScreen(e.getX(), e.getY() + 0.18, e.getZ());
                     if (c != null && c[2] > 0.2f) {
                         int itemCol = e.getName().contains("Изумруд") ? 0xFF10B981 : 0xFFFACC15;
+                        fillRoundedRect(c[0] - 6.5f, c[1] - 6.5f, 13f, 13f, 6.5f, (itemCol & 0x00FFFFFF) | 0x44000000);
                         fillRoundedRect(c[0] - 4.5f, c[1] - 4.5f, 9f, 9f, 3.5f, itemCol);
                         drawRoundedOutline(c[0] - 4.5f, c[1] - 4.5f, 9f, 9f, 3.5f, 1.0f, 0xFFFFFFFF);
                     }
-                    continue;
-                }
-                if (e.getHeldItemName() != null && e.getHeldItemName().contains("[INVIS]")) {
-                    // Invisible player: only subtle floating TNT item visible until Invis Scanner highlights them!
-                    float[] hand = projectWorldToScreen(e.getX() + 0.18, (e.getMinY() + e.getMaxY()) * 0.52, e.getZ());
-                    if (hand != null && hand[2] > 0.2f) {
-                        fillRoundedRect(hand[0] - 4f, hand[1] - 4f, 8f, 8f, 2f, 0xFFEF4444);
-                    }
-                    continue;
-                }
-                float[] top = projectWorldToScreen(e.getX(), e.getMaxY(), e.getZ());
-                float[] bot = projectWorldToScreen(e.getX(), e.getMinY(), e.getZ());
-                if (top != null && bot != null && top[2] > 0.2f && bot[2] > 0.2f) {
-                    float h = Math.max(18f, bot[1] - top[1]);
-                    float w = h * 0.36f;
-                    float cx = (top[0] + bot[0]) * 0.5f;
-                    float headS = w * 0.62f;
-                    fillRoundedRect(cx - headS * 0.5f, top[1] + 2f, headS, headS, 2.5f, 0xFFF43F5E);
-                    fillRoundedRect(cx - w * 0.42f, top[1] + headS + 3f, w * 0.84f, h * 0.42f, 2.5f, 0xFF9F1239);
-                    fillRoundedRect(cx - w * 0.36f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1.5f, 0xFF1E293B);
-                    fillRoundedRect(cx + w * 0.04f, top[1] + headS + h * 0.46f, w * 0.32f, h * 0.34f, 1.5f, 0xFF1E293B);
                 }
             }
-
-            // Hyperion anti-aliased glass hotbar at bottom center (showing active Wool slot #2!)
-            float hbW = 184f, hbH = 22f;
-            float hbX = (scaledW - hbW) * 0.5f, hbY = scaledH - 25f;
-            fillRoundedRect(hbX, hbY, hbW, hbH, 6f, 0xDC080C1C);
-            drawGradientRoundedOutline(hbX, hbY, hbW, hbH, 6f, 1.2f, 0xFF00F5D4, 0xFFA855F7);
-            for (int slot = 0; slot < 9; slot++) {
-                float sx = hbX + 3f + slot * 20f;
-                if (slot == selectedSlot) {
-                    fillRoundedRect(sx, hbY + 2f, 18f, 18f, 4f, 0x5500F5D4);
-                    drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 4f, 1.2f, 0xFF00F5D4);
-                } else {
-                    drawRoundedOutline(sx, hbY + 2f, 18f, 18f, 3f, 1.0f, 0x26FFFFFF);
-                }
-                if (slot == 0) {
-                    drawLine(sx + 4f, hbY + 15f, sx + 14f, hbY + 5f, 1.8f, 0xFF38BDF8);
-                } else if (slot == 1 || slot == 2) {
-                    fillRoundedRect(sx + 4f, hbY + 4f, 10f, 10f, 2.5f, 0xFF22D3EE);
-                } else if (slot == 3) {
-                    fillRoundedRect(sx + 5f, hbY + 5f, 8f, 8f, 4f, 0xFFFACC15);
-                }
+            if (!clickGuiOpen) {
+                paintFirstPersonViewModel(true);
             }
         }
 
@@ -441,7 +576,7 @@ public class ClientScreenshotGeneratorTest {
         @Override public String getFabricLoaderVersion() { return "0.20.1"; }
         @Override public String getFabricApiVersion() { return "0.141.6+1.21.11"; }
         @Override public List<String> getLoadedMods() {
-            return Arrays.asList("axsesclient@5.0.0", "sodium@0.6.5", "lithium@0.14.7", "ferritecore@7.1.1", "baritone@1.11.1");
+            return Arrays.asList("axsesclient@6.0.0", "sodium@0.6.5", "lithium@0.14.7", "ferritecore@7.1.1", "baritone@1.11.1");
         }
         @Override public Path getGameDir() { return gameDir; }
         @Override public boolean isInWorld() { return inWorld; }
@@ -637,6 +772,7 @@ public class ClientScreenshotGeneratorTest {
                 if ("box_style".equals(s.getId())) ((ModeSetting) s).setValue("Hyperion Neon");
             }
             esp.setEnabled(true, p);
+            core.getModuleManager().getById("target_strafe").setEnabled(true, p);
             core.getModuleManager().getById("neon_halo_trails").setEnabled(true, p);
             core.getModuleManager().getById("china_hat").setEnabled(true, p);
             core.getModuleManager().getById("jump_circles").setEnabled(true, p);
@@ -916,19 +1052,19 @@ public class ClientScreenshotGeneratorTest {
             p.pitch = 5.0f;
             p.paintStylizedWorldBackdrop(true);
 
-            // Render stylized open Minecraft Chat log & bottom ChatScreen input bar (cleanly above Sprint HUD)
-            float chatLogX = 8.0f, chatLogY = p.scaledH - 134.0f, chatLogW = 386.0f, chatLogH = 68.0f;
-            p.fillRoundedRect(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 0xCC050814);
-            p.drawRoundedOutline(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 1.0f, 0x5538BDF8);
-            core.getFontManager().draw(p, "[AXSES 5.0] КиллАура: активен профиль SnowGrim + Hyperion Contours", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);
+            // Render stylized open Minecraft Chat log & bottom ChatScreen input bar (cleanly above Custom Glass Hotbar & Sprint HUD)
+            float chatLogX = 8.0f, chatLogY = p.scaledH - 148.0f, chatLogW = 360.0f, chatLogH = 66.0f;
+            p.fillRoundedRect(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 0xD8050814);
+            p.drawRoundedOutline(chatLogX, chatLogY, chatLogW, chatLogH, 8.0f, 1.0f, 0x6638BDF8);
+            core.getFontManager().draw(p, "[AXSES 6.0] Celestial Ultra: 3D Chams + Glass Hotbar активны", chatLogX + 7f, chatLogY + 7f, 0xFF38BDF8, 0.80f);
             core.getFontManager().draw(p, "[Spotify] Синхронизация активна · Музыка Minecraft остановлена", chatLogX + 7f, chatLogY + 21f, 0xFF1DB954, 0.80f);
             core.getFontManager().draw(p, "[Baritone] Построен 3D-маршрут к метке «Алмазная шахта» (24м)", chatLogX + 7f, chatLogY + 35f, 0xFF00F5D4, 0.80f);
             core.getFontManager().draw(p, "[Чат HUD] Зажмите ЛКМ на любом виджете для перемещения!", chatLogX + 7f, chatLogY + 49f, 0xFFE2E8F0, 0.80f);
 
-            float inputY = p.scaledH - 20.0f;
-            p.fillRoundedRect(6.0f, inputY, p.scaledW - 12.0f, 15.0f, 5.0f, 0xEB040712);
-            p.drawRoundedOutline(6.0f, inputY, p.scaledW - 12.0f, 15.0f, 5.0f, 1.0f, 0xFF00F5D4);
-            core.getFontManager().draw(p, "> #mine diamond_ore deepslate_diamond_ore █", 12.0f, inputY + 4.0f, 0xFFF8FAFF, 0.84f);
+            float inputY = p.scaledH - 64.0f;
+            p.fillRoundedRect(8.0f, inputY, 360.0f, 15.0f, 6.0f, 0xEB040712);
+            p.drawRoundedOutline(8.0f, inputY, 360.0f, 15.0f, 6.0f, 1.0f, 0xFF00F5D4);
+            core.getFontManager().draw(p, "> #mine diamond_ore deepslate_diamond_ore █", 14.0f, inputY + 4.0f, 0xFFF8FAFF, 0.84f);
 
             core.onHudRender(p);
 

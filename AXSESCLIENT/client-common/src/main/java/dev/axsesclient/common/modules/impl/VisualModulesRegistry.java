@@ -225,36 +225,95 @@ public final class VisualModulesRegistry {
         hm.register(new HudElement("coordinates_hud", "Coordinates", coordsMod, 0.012f, 0.078f, 158f, 21f));
 
         // 07. Armor HUD
-        Module armorMod = mm.register(new Module("armor_hud", "Armor HUD", "Displays equipped armor durability percentages", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+        Module armorMod = mm.register(new Module("armor_hud", "Armor HUD", "Sculpted 4-slot frosted glass equipment dock with vector armor icons and liquid durability bars", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
             private final BooleanSetting showPercent = addSetting(new BooleanSetting("show_percent", "Show Percentage", "Format remaining durability as %", true));
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                boolean ru = i18n != null && i18n.isRussian();
-                String prefix = ru ? "Броня: " : "Armor: ";
-                if (mc == null || !mc.isInWorld()) return prefix + "100% · 100% · 100% · 100%";
-                List<ItemInfo> armor = mc.getArmorItems();
-                if (armor == null || armor.isEmpty()) return prefix + (ru ? "Пусто" : "Empty");
-                StringBuilder sb = new StringBuilder(prefix);
-                int nonEmpty = 0;
-                for (ItemInfo item : armor) {
-                    if (item != null && !item.isEmpty()) {
-                        if (nonEmpty > 0) sb.append(" · ");
-                        if (item.isDamageable()) {
-                            int val = showPercent.isEnabled()
-                                    ? Math.round(item.getDurabilityRatio() * 100f)
-                                    : item.getRemainingDurability();
-                            sb.append(val).append(showPercent.isEnabled() ? "%" : "");
-                        } else {
-                            sb.append("OK");
-                        }
-                        nonEmpty++;
-                    }
-                }
-                return nonEmpty == 0 ? prefix + (ru ? "Нет" : "None") : sb.toString();
+                return (i18n != null && i18n.isRussian()) ? "Броня: 100%" : "Armor: 100%";
             }
         });
-        hm.register(new HudElement("armor_hud", "Armor HUD", armorMod, 0.50f, 0.885f, 174f, 21f));
+        hm.register(new HudElement("armor_hud", "Armor HUD", armorMod, 0.50f, 0.872f, 188f, 24f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        int prim = themeManager.filterColor(t.getPrimaryColor());
+                        int acc = themeManager.filterColor(t.getAccentColor());
+                        List<ItemInfo> armor = (mc != null && mc.isInWorld()) ? mc.getArmorItems() : null;
+                        boolean hasAny = false;
+                        float[] ratios = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
+                        boolean[] present = new boolean[] { true, true, true, true };
+                        if (armor != null && !armor.isEmpty()) {
+                            present = new boolean[] { false, false, false, false };
+                            // MC armor list is boots(0), leggings(1), chestplate(2), helmet(3); display Helmet -> Boots
+                            for (int i = 0; i < Math.min(4, armor.size()); i++) {
+                                ItemInfo it = armor.get(i);
+                                int uiIdx = 3 - i;
+                                if (uiIdx >= 0 && uiIdx < 4 && it != null && !it.isEmpty()) {
+                                    present[uiIdx] = true;
+                                    ratios[uiIdx] = it.isDamageable() ? Math.max(0.02f, Math.min(1.0f, it.getDurabilityRatio())) : 1.0f;
+                                    hasAny = true;
+                                }
+                            }
+                        } else if (editorMode || mc == null || !mc.isInWorld()) {
+                            hasAny = true;
+                        }
+                        if (!hasAny && !editorMode) {
+                            return false;
+                        }
+
+                        float dockW = Math.max(188.0f, sw);
+                        float dockH = Math.max(24.0f, sh);
+                        float drawX = Math.max(4.0f, Math.min(px, r.getScaledWidth() - dockW - 4.0f));
+                        RenderManager.drawFrostedGlassPanel(r, drawX, py, dockW, dockH, 10.5f, prim, acc, opacity * 0.94f, selected ? 1.1f : 0.68f);
+
+                        float slotGap = 3.5f;
+                        float slotW = (dockW - 8.0f - slotGap * 3.0f) / 4.0f;
+                        float slotH = dockH - 5.2f;
+                        for (int s = 0; s < 4; s++) {
+                            float sx = drawX + 4.0f + s * (slotW + slotGap);
+                            float sy = py + 2.6f;
+                            r.fillRoundedRect(sx, sy, slotW, slotH, 6.5f, 0xAA080D1F);
+                            if (!present[s]) {
+                                r.drawRoundedOutline(sx, sy, slotW, slotH, 6.5f, 0.9f, 0x22FFFFFF);
+                                continue;
+                            }
+                            float pct = ratios[s];
+                            int barCol = pct > 0.55f ? acc : (pct > 0.25f ? t.getWarningColor() : t.getErrorColor());
+                            r.drawRoundedOutline(sx, sy, slotW, slotH, 6.5f, 0.95f, AxsesTheme.withAlpha(barCol, 0.52f));
+
+                            // Vector armor silhouette (0=Helmet, 1=Chest, 2=Legs, 3=Boots)
+                            float icX = sx + 8.5f;
+                            float icY = sy + slotH * 0.44f;
+                            drawArmorPieceGlyph(r, s, icX, icY, prim, acc);
+
+                            // Percentage text
+                            String pStr = Math.round(pct * 100f) + "%";
+                            fontManager.draw(r, pStr, sx + 16.0f, sy + 3.2f, 0xFFF8FAFF, 0.80f);
+
+                            // Mini liquid durability bar
+                            float bx = sx + 4.0f;
+                            float by = sy + slotH - 4.2f;
+                            float bw = slotW - 8.0f;
+                            r.fillRoundedRect(bx, by, bw, 2.4f, 1.2f, 0xCC040712);
+                            RenderManager.fillRoundedHorizontalGradient(r, bx, by, Math.max(2.5f, bw * pct), 2.4f, 1.2f, prim, barCol);
+                        }
+                        return true;
+                    }
+                }));
 
         // 08. Potion HUD — Multi-Row Frosted Status Card
         final BooleanSetting potionShowAmp = new BooleanSetting("show_amp", "Show Amplifier", "Show Roman numeral potency", true);
@@ -849,88 +908,105 @@ public final class VisualModulesRegistry {
                         continue;
                     }
 
-                    float capRad = Math.min(8.5f, Math.min(bw, bh) * 0.25f);
+                    float capRad = Math.min(9.0f, Math.min(bw, bh) * 0.25f);
                     int primCol = themes.filterColor(t.getPrimaryColor());
                     int secCol = hurt ? t.getErrorColor() : primCol;
                     if (fillBox.isEnabled() && !"None".equalsIgnoreCase(boxStyle.getValue())) {
+                        // Cyber-Chams translucent dual-stop aura fill + animated horizontal laser scanline
+                        r.fillRoundedRect(bx - 2.5f, by - 2.5f, bw + 5.0f, bh + 5.0f, capRad + 2.5f,
+                                AxsesTheme.withAlpha(baseCol, hurt ? 0.16f : 0.08f));
                         r.fillGradientVertical(bx + 1f, by + 1f, Math.max(2f, bw - 2f), Math.max(2f, bh - 2f),
-                                AxsesTheme.withAlpha(secCol, hurt ? 0.28f : 0.16f),
-                                AxsesTheme.withAlpha(baseCol, hurt ? 0.18f : 0.06f));
+                                AxsesTheme.withAlpha(secCol, hurt ? 0.34f : 0.22f),
+                                AxsesTheme.withAlpha(baseCol, hurt ? 0.22f : 0.10f));
+                        if (bh > 16f && bw > 10f) {
+                            float phase = (float) (((System.currentTimeMillis() + ent.getEntityId() * 173L) % 2200L) / 2200.0);
+                            float scanNorm = phase < 0.5f ? (phase * 2.0f) : ((1.0f - phase) * 2.0f);
+                            float scanY = by + 3.0f + (bh - 6.0f) * scanNorm;
+                            r.fillRect(bx + 1.5f, Math.max(by + 1f, scanY - 3.5f), bw - 3.0f, 7.0f, AxsesTheme.withAlpha(baseCol, 0.11f));
+                            RenderManager.fillHorizontalGradient(r, bx + 1.5f, scanY, bw - 3.0f, 1.4f,
+                                    AxsesTheme.withAlpha(secCol, 0.78f), AxsesTheme.withAlpha(baseCol, 0.92f));
+                        }
                     }
 
                     String style = boxStyle.getValue();
                     if ("Hyperion Neon".equalsIgnoreCase(style)) {
+                        RenderManager.drawHyperionContour(r, bx, by, bw, bh, capRad, 1.65f,
+                                AxsesTheme.withAlpha(secCol, 0.98f),
+                                AxsesTheme.withAlpha(baseCol, 0.98f),
+                                0.85f);
+                        drawCornerBrackets(r, bx - 1.5f, by - 1.5f, bw + 3.0f, bh + 3.0f, AxsesTheme.withAlpha(baseCol, 0.98f));
+                    } else if ("Vision Capsule".equalsIgnoreCase(style)) {
                         RenderManager.drawHyperionContour(r, bx, by, bw, bh, capRad, 1.55f,
                                 AxsesTheme.withAlpha(secCol, 0.96f),
                                 AxsesTheme.withAlpha(baseCol, 0.98f),
-                                0.68f);
-                        drawCornerBrackets(r, bx - 1.5f, by - 1.5f, bw + 3.0f, bh + 3.0f, AxsesTheme.withAlpha(baseCol, 0.95f));
-                    } else if ("Vision Capsule".equalsIgnoreCase(style)) {
-                        RenderManager.drawHyperionContour(r, bx, by, bw, bh, capRad, 1.45f,
-                                AxsesTheme.withAlpha(secCol, 0.94f),
-                                AxsesTheme.withAlpha(baseCol, 0.96f),
-                                0.50f);
+                                0.65f);
                     } else if ("2D Box".equalsIgnoreCase(style)) {
                         r.drawRoundedOutline(bx - 1f, by - 1f, bw + 2f, bh + 2f, 2f, 1.1f, 0xBB04060E);
-                        r.drawGradientRoundedOutline(bx, by, bw, bh, 2f, 1.35f,
-                                AxsesTheme.withAlpha(secCol, 0.94f), AxsesTheme.withAlpha(baseCol, 0.94f));
+                        r.drawGradientRoundedOutline(bx, by, bw, bh, 2f, 1.45f,
+                                AxsesTheme.withAlpha(secCol, 0.96f), AxsesTheme.withAlpha(baseCol, 0.96f));
                     } else if ("Corners".equalsIgnoreCase(style)) {
-                        drawCornerBrackets(r, bx, by, bw, bh, AxsesTheme.withAlpha(baseCol, 0.95f));
+                        drawCornerBrackets(r, bx, by, bw, bh, AxsesTheme.withAlpha(baseCol, 0.98f));
                     } else if ("3D Box".equalsIgnoreCase(style) && validCount == 8) {
-                        draw3dWireframe(r, proj, AxsesTheme.withAlpha(baseCol, 0.94f));
+                        draw3dWireframe(r, proj, AxsesTheme.withAlpha(baseCol, 0.96f));
                     }
 
-                    // Vertical Side Health Bar + Right Armor Bar
+                    // Vertical Side Liquid Health Bar + Right Shield Bar
                     if (healthBar.isEnabled()) {
                         float frac = ent.getHealthFraction();
-                        float barX = bx - 5.5f;
-                        r.fillRoundedRect(barX - 0.8f, by - 0.8f, 3.8f, bh + 1.6f, 1.9f, 0xD8050710);
+                        float barX = bx - 6.2f;
+                        r.fillRoundedRect(barX - 1.0f, by - 0.8f, 4.4f, bh + 1.6f, 2.2f, 0xE6050712);
                         int hpTop = frac > 0.55f ? 0xFF00F5D4 : (frac > 0.25f ? 0xFFFFD166 : 0xFFFF4D6D);
                         int hpBot = frac > 0.55f ? t.getSuccessColor() : (frac > 0.25f ? 0xFFF77F00 : t.getErrorColor());
-                        float fillH = Math.max(2.0f, bh * frac);
-                        r.fillGradientVertical(barX, by + (bh - fillH), 2.2f, fillH, hpTop, hpBot);
+                        float fillH = Math.max(2.5f, bh * frac);
+                        r.fillRoundedRect(barX - 1.8f, by + (bh - fillH) - 1.0f, 6.0f, fillH + 2.0f, 3.0f, AxsesTheme.withAlpha(hpTop, 0.22f));
+                        r.fillGradientVertical(barX, by + (bh - fillH), 2.4f, fillH, hpTop, hpBot);
                         if (ent.getAbsorption() > 0.1f) {
                             float absH = Math.min(bh, bh * (ent.getAbsorption() / 20.0f));
-                            r.fillRoundedRect(barX, by + (bh - absH), 2.2f, absH, 1.0f, 0xFFFFD166);
+                            r.fillRoundedRect(barX, by + (bh - absH), 2.4f, absH, 1.2f, 0xFFFFD166);
                         }
                         if (ent.getArmorValue() > 0) {
                             float armFrac = Math.min(1.0f, ent.getArmorValue() / 20.0f);
-                            float armX = bx + bw + 2.8f;
-                            float armH = Math.max(2.0f, bh * armFrac);
-                            r.fillRoundedRect(armX - 0.7f, by - 0.7f, 3.4f, bh + 1.4f, 1.7f, 0xCC050710);
-                            r.fillGradientVertical(armX, by + (bh - armH), 2.0f, armH, primCol, themes.filterColor(t.getAccentColor()));
+                            float armX = bx + bw + 3.2f;
+                            float armH = Math.max(2.5f, bh * armFrac);
+                            r.fillRoundedRect(armX - 0.8f, by - 0.8f, 3.8f, bh + 1.6f, 1.9f, 0xDD050712);
+                            r.fillGradientVertical(armX, by + (bh - armH), 2.2f, armH, primCol, themes.filterColor(t.getAccentColor()));
                         }
                     }
 
-                    // Top Curved Stadium Nametag Pill (Name · HP · Distance)
+                    // Top Frosted Dynamic-Island Nametag Pill with Glowing HP Chip
                     if (nametags.isEnabled()) {
                         float hpTotal = ent.getHealth() + ent.getAbsorption();
                         String unit = (i18n != null && i18n.isRussian()) ? "м" : "m";
-                        String tag = ent.getName()
-                                + String.format(Locale.ROOT, " · %.1f❤ · %.0f%s", Float.valueOf(hpTotal), Float.valueOf(ent.getDistance()), unit);
-                        float scale = 0.85f;
-                        float tw = fonts.width(r, tag, scale);
-                        float pw = tw + 12.0f;
-                        float ph = 13.5f;
+                        String namePart = ent.getName() + String.format(Locale.ROOT, " · %.0f%s", Float.valueOf(ent.getDistance()), unit);
+                        String hpPart = String.format(Locale.ROOT, "%.1f❤", Float.valueOf(hpTotal));
+                        float scale = 0.86f;
+                        float nw = fonts.width(r, namePart, scale);
+                        float hw = fonts.width(r, hpPart, 0.82f) + 8.0f;
+                        float pw = nw + hw + 15.0f;
+                        float ph = 15.0f;
                         float px = bx + (bw - pw) * 0.5f;
-                        float py = by - ph - 4.0f;
-                        r.fillRoundedRect(px, py, pw, ph, 6.8f, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.94f));
-                        r.drawGradientRoundedOutline(px, py, pw, ph, 6.8f, 1.2f,
+                        float py = by - ph - 4.5f;
+                        RenderManager.drawFrostedGlassPanel(r, px, py, pw, ph, 7.5f, secCol, baseCol, 0.95f, 0.62f);
+                        fonts.draw(r, namePart, px + 6.0f, py + 3.8f, 0xFFF8FAFF, scale);
+                        float chipX = px + pw - hw - 3.5f;
+                        RenderManager.fillRoundedHorizontalGradient(r, chipX, py + 2.2f, hw, ph - 4.4f, 5.2f,
                                 AxsesTheme.withAlpha(secCol, 0.88f), AxsesTheme.withAlpha(baseCol, 0.88f));
-                        fonts.draw(r, tag, px + 6.0f, py + 3.2f, 0xFFF8FAFF, scale);
+                        fonts.drawCentered(r, hpPart, chipX + hw * 0.5f, py + 3.9f, 0xFFFFFFFF, 0.82f);
                     }
 
-                    // Bottom Curved Held Item Tag
+                    // Bottom Glowing Weapon Capsule
                     String rawHeld = ent.getHeldItemName() != null ? ent.getHeldItemName().replace("[INVIS]", "").replace("[invis]", "").trim() : "";
                     if (showHeld.isEnabled() && !rawHeld.isEmpty()) {
-                        float scale = 0.78f;
-                        String itemTxt = rawHeld;
+                        float scale = 0.80f;
+                        String itemTxt = "⚔ " + rawHeld;
                         float iw = fonts.width(r, itemTxt, scale);
-                        float ix = bx + (bw - (iw + 9.0f)) * 0.5f;
-                        float iy = by + bh + 2.5f;
-                        r.fillRoundedRect(ix, iy, iw + 9.0f, 11.0f, 5.5f, 0xCC060916);
-                        r.drawRoundedOutline(ix, iy, iw + 9.0f, 11.0f, 5.5f, 1.0f, 0x26FFFFFF);
-                        fonts.draw(r, itemTxt, ix + 4.5f, iy + 2.2f, t.getMutedColor(), scale);
+                        float cw = iw + 11.0f;
+                        float ix = bx + (bw - cw) * 0.5f;
+                        float iy = by + bh + 3.0f;
+                        r.fillRoundedRect(ix, iy, cw, 12.0f, 6.0f, 0xE6070B1A);
+                        r.drawGradientRoundedOutline(ix, iy, cw, 12.0f, 6.0f, 1.0f,
+                                AxsesTheme.withAlpha(secCol, 0.65f), AxsesTheme.withAlpha(baseCol, 0.65f));
+                        fonts.draw(r, itemTxt, ix + 5.5f, iy + 2.6f, 0xFFE2E8F0, scale);
                     }
                 }
             }
@@ -1041,7 +1117,7 @@ public final class VisualModulesRegistry {
 
             @Override
             public String getHudBadgeText(MinecraftAdapter mc) {
-                return "AXSES v5.0";
+                return "AXSES v6.0";
             }
         });
         watermarkMod.setFavorite(true);
@@ -1066,55 +1142,65 @@ public final class VisualModulesRegistry {
                         String user = (mc != null && mc.getPlayerName() != null) ? mc.getPlayerName() : "Player";
                         int fps = mc != null ? mc.getFps() : 360;
 
-                        StringBuilder seg = new StringBuilder();
-                        seg.append(user).append("  │  ").append(fps).append(" FPS");
+                        List<String> chips = new ArrayList<String>();
+                        chips.add("✦ " + user);
+                        chips.add("⚡ " + fps + " FPS");
                         if (wmPing.isEnabled() && mc != null && mc.isInWorld() && !mc.isSingleplayer()) {
-                            seg.append("  │  ").append(mc.getPingMs()).append(ru ? " мс" : "ms");
+                            chips.add(mc.getPingMs() + (ru ? " мс" : "ms"));
                         }
                         if (wmBps.isEnabled() && mc != null && mc.isInWorld()) {
                             double dx = mc.getPlayerX() - mc.getPrevPlayerX();
                             double dz = mc.getPlayerZ() - mc.getPrevPlayerZ();
                             double bps = Math.hypot(dx, dz) * 20.0;
-                            seg.append(String.format(Locale.ROOT, ru ? "  │  %.1f б/с" : "  │  %.1f bps", Double.valueOf(bps)));
+                            chips.add(String.format(Locale.ROOT, ru ? "%.1f б/с" : "%.1f bps", Double.valueOf(bps)));
                         }
                         if (wmServer.isEnabled() && mc != null && mc.isInWorld()) {
                             String srv = mc.getWorldOrServerName();
                             if (srv != null && !srv.isEmpty()) {
-                                seg.append("  │  ").append(srv);
+                                chips.add(srv);
                             }
                         }
 
-                        String brand = "AXSES 5.0";
-                        String tail = seg.toString();
-                        float brandW = fontManager.width(r, brand, 1.0f);
-                        float tailW = fontManager.width(r, tail, 0.94f);
-                        float barH = 25.0f;
-                        float barRad = 12.0f;
-                        float barW = 32.0f + brandW + 14.0f + tailW + 14.0f;
+                        String brand = "AXSES 6.0";
+                        float brandPillW = fontManager.width(r, brand, 0.96f) + 25.0f;
+                        float chipsTotalW = 0.0f;
+                        for (int i = 0; i < chips.size(); i++) {
+                            chipsTotalW += fontManager.width(r, chips.get(i), 0.88f) + 11.5f;
+                            if (i > 0) chipsTotalW += 3.5f;
+                        }
+                        float barH = 26.0f;
+                        float barRad = 13.0f;
+                        float barW = 8.0f + brandPillW + 5.5f + chipsTotalW;
 
                         int prim = themeManager.filterColor(t.getPrimaryColor());
                         int acc = themeManager.filterColor(t.getAccentColor());
 
-                        RenderManager.drawSoftGlow(r, px, py, barW, barH, barRad, 3, prim, 0.25f * opacity);
-                        r.drawShadow(px, py, barW, barH, barRad, 0.75f * opacity, 0x000000);
-                        r.fillRoundedRect(px, py, barW, barH, barRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.95f * opacity));
-                        RenderManager.fillRoundedHorizontalGradient(r, px + 1.0f, py + 1.0f, barW - 2.0f, barH - 2.0f, barRad - 1.0f,
-                                AxsesTheme.withAlpha(prim, 0.18f * opacity), AxsesTheme.withAlpha(acc, 0.08f * opacity));
-                        RenderManager.drawHyperionContour(r, px, py, barW, barH, barRad, 1.3f,
-                                selected ? acc : AxsesTheme.withAlpha(prim, 0.90f * opacity),
-                                AxsesTheme.withAlpha(acc, 0.92f * opacity),
-                                0.45f * opacity);
+                        RenderManager.drawFrostedGlassPanel(r, px, py, barW, barH, barRad, prim, acc, opacity * 0.96f, selected ? 1.25f : 0.88f);
 
-                        // Glowing curved AX stadium badge on left
-                        RenderManager.fillRoundedHorizontalGradient(r, px + 4.5f, py + 4.5f, 21.0f, 16.0f, 8.0f,
-                                AxsesTheme.withAlpha(prim, 0.65f * opacity), AxsesTheme.withAlpha(acc, 0.45f * opacity));
-                        r.drawRoundedOutline(px + 4.5f, py + 4.5f, 21.0f, 16.0f, 8.0f, 1.0f, acc);
-                        fontManager.drawCentered(r, "AX", px + 15.0f, py + 8.5f, 0xFFFFFFFF, 0.92f);
+                        // Vivid Gradient Brand Capsule [✦ AXSES 6.0]
+                        float bx = px + 4.0f;
+                        float by = py + 3.5f;
+                        float bh = barH - 7.0f;
+                        RenderManager.fillRoundedHorizontalGradient(r, bx, by, brandPillW, bh, bh * 0.5f,
+                                AxsesTheme.withAlpha(prim, 0.96f), AxsesTheme.withAlpha(acc, 0.96f));
+                        r.drawRoundedOutline(bx, by, brandPillW, bh, bh * 0.5f, 1.0f, 0x66FFFFFF);
+                        // Diamond star emblem
+                        float dcx = bx + 9.0f;
+                        float dcy = by + bh * 0.5f;
+                        r.fillQuad(dcx, dcy - 4.0f, dcx + 3.8f, dcy, dcx, dcy + 4.0f, dcx - 3.8f, dcy, 0xFFFFFFFF);
+                        fontManager.draw(r, brand, bx + 16.5f, by + 4.8f, 0xFFFFFFFF, 0.96f);
 
-                        fontManager.draw(r, brand, px + 30.0f, py + 8.5f, acc, 1.0f);
-                        float divX = px + 30.0f + brandW + 6.5f;
-                        r.fillGradientVertical(divX, py + 6.0f, 1.2f, barH - 12.0f, prim, acc);
-                        fontManager.draw(r, tail, divX + 6.5f, py + 8.7f, t.getTextColor(), 0.94f);
+                        // Sub-capsules inside the Dynamic Island
+                        float cx = bx + brandPillW + 4.5f;
+                        for (int i = 0; i < chips.size(); i++) {
+                            String ch = chips.get(i);
+                            float cw = fontManager.width(r, ch, 0.88f) + 11.5f;
+                            r.fillRoundedRect(cx, by, cw, bh, bh * 0.5f, 0xAA0A1024);
+                            r.drawRoundedOutline(cx, by, cw, bh, bh * 0.5f, 0.85f, i == 1 ? AxsesTheme.withAlpha(acc, 0.65f) : 0x26FFFFFF);
+                            int cText = i == 1 ? RenderManager.blendArgb(0xFFFFFFFF, acc, 0.55f) : 0xFFF1F5FF;
+                            fontManager.draw(r, ch, cx + 5.8f, by + 5.1f, cText, 0.88f);
+                            cx += cw + 3.5f;
+                        }
                         return true;
                     }
                 }));
@@ -1192,9 +1278,9 @@ public final class VisualModulesRegistry {
                         Collections.sort(rows, new Comparator<String[]>() {
                             @Override
                             public int compare(String[] a, String[] b) {
-                                String sa = a[1].isEmpty() ? a[0] : (a[0] + " · " + a[1]);
-                                String sb = b[1].isEmpty() ? b[0] : (b[0] + " · " + b[1]);
-                                return Float.compare(fm.width(rr, sb, 0.92f), fm.width(rr, sa, 0.92f));
+                                float wa = fm.width(rr, a[0], 0.92f) + (a[1].isEmpty() ? 0f : fm.width(rr, a[1], 0.82f) + 12f);
+                                float wb = fm.width(rr, b[0], 0.92f) + (b[1].isEmpty() ? 0f : fm.width(rr, b[1], 0.82f) + 12f);
+                                return Float.compare(wb, wa);
                             }
                         });
 
@@ -1203,27 +1289,40 @@ public final class VisualModulesRegistry {
                         if (editorMode) {
                             rightEdge = Math.min(r.getScaledWidth() - 6.0f, px + sw);
                         }
-                        float rowH = 16.5f;
+                        float rowH = 17.5f;
                         float curY = py;
 
                         for (int i = 0; i < maxRows; i++) {
                             String name = rows.get(i)[0];
                             String tag = rows.get(i)[1];
                             float nw = fontManager.width(r, name, 0.92f);
-                            float tw = tag.isEmpty() ? 0f : fontManager.width(r, " · " + tag, 0.90f);
-                            float pillW = nw + tw + 18.0f;
+                            float tagChipW = tag.isEmpty() ? 0f : (fontManager.width(r, tag, 0.80f) + 8.5f);
+                            float pillW = nw + (tagChipW > 0f ? tagChipW + 4.5f : 0f) + 16.5f;
                             float rx = rightEdge - pillW;
+                            float ph = rowH - 1.4f;
                             float pRad = 7.5f;
 
-                            int waveCol = themeManager.getAuroraWaveColor(i * 0.45f);
-                            r.fillRoundedRect(rx, curY, pillW, rowH - 1.0f, pRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f * opacity));
-                            r.drawRoundedOutline(rx, curY, pillW, rowH - 1.0f, pRad, 1.0f, AxsesTheme.withAlpha(waveCol, 0.42f * opacity));
-                            // Right curved Aurora glow dot
-                            r.fillRoundedRect(rightEdge - 6.0f, curY + 4.5f, 3.5f, rowH - 10.0f, 1.7f, waveCol);
+                            int waveCol = themeManager.getAuroraWaveColor(i * 0.42f);
+                            int nextCol = themeManager.getAuroraWaveColor((i + 1) * 0.42f);
+                            // Soft outer Aurora bloom behind each active module row
+                            r.fillRoundedRect(rx - 2.2f, curY - 1.2f, pillW + 4.4f, ph + 2.4f, pRad + 2.0f,
+                                    AxsesTheme.withAlpha(waveCol, 0.14f * opacity));
+                            r.fillRoundedRect(rx, curY, pillW, ph, pRad, AxsesTheme.withAlpha(0xFF070B1A, 0.94f * opacity));
+                            RenderManager.fillRoundedHorizontalGradient(r, rx + 0.8f, curY + 0.8f, pillW - 1.6f, ph - 1.6f, pRad - 0.8f,
+                                    AxsesTheme.withAlpha(waveCol, 0.15f * opacity), AxsesTheme.withAlpha(nextCol, 0.08f * opacity));
+                            r.drawGradientRoundedOutline(rx, curY, pillW, ph, pRad, 1.05f,
+                                    AxsesTheme.withAlpha(waveCol, 0.68f * opacity), AxsesTheme.withAlpha(nextCol, 0.85f * opacity));
 
-                            fontManager.draw(r, name, rx + 7.0f, curY + 4.0f, 0xFFF8FAFF, 0.92f);
-                            if (!tag.isEmpty()) {
-                                fontManager.draw(r, " · " + tag, rx + 7.0f + nw, curY + 4.0f, AxsesTheme.withAlpha(waveCol, 0.95f), 0.90f);
+                            // Connected glowing plasma spine along right edge
+                            r.fillRoundedRect(rightEdge - 4.2f, curY + 2.5f, 2.8f, ph - 5.0f, 1.4f, waveCol);
+
+                            fontManager.draw(r, name, rx + 6.5f, curY + 4.1f, 0xFFF8FAFF, 0.92f);
+                            if (tagChipW > 0f) {
+                                float cx = rx + 6.5f + nw + 4.0f;
+                                r.fillRoundedRect(cx, curY + 2.3f, tagChipW, ph - 4.6f, 5.2f, AxsesTheme.withAlpha(waveCol, 0.24f * opacity));
+                                r.drawRoundedOutline(cx, curY + 2.3f, tagChipW, ph - 4.6f, 5.2f, 0.85f, AxsesTheme.withAlpha(waveCol, 0.72f * opacity));
+                                fontManager.drawCentered(r, tag, cx + tagChipW * 0.5f, curY + 4.3f,
+                                        RenderManager.blendArgb(0xFFFFFFFF, waveCol, 0.55f), 0.80f);
                             }
                             curY += rowH;
                         }
@@ -1505,22 +1604,30 @@ public final class VisualModulesRegistry {
                         int prim = themeManager.filterColor(t.getPrimaryColor());
                         int acc = themeManager.filterColor(t.getAccentColor());
 
-                        RenderManager.drawSoftGlow(r, px, py, sz, sz, rad, 3, prim, 0.20f * opacity);
-                        r.drawShadow(px, py, sz, sz, rad, 0.70f * opacity, 0x000000);
-                        r.fillRoundedRect(px, py, sz, sz, rad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.94f * opacity));
-                        RenderManager.fillRoundedHorizontalGradient(r, px + 1.0f, py + 1.0f, sz - 2.0f, sz - 2.0f, rad - 1.0f,
-                                AxsesTheme.withAlpha(prim, 0.14f * opacity), AxsesTheme.withAlpha(acc, 0.06f * opacity));
-                        r.drawRoundedOutline(px, py, sz, sz, rad, 1.1f,
-                                selected ? acc : AxsesTheme.withAlpha(prim, 0.80f * opacity));
+                        RenderManager.drawFrostedGlassPanel(r, px, py, sz, sz, rad, prim, acc, opacity * 0.95f, selected ? 1.15f : 0.78f);
 
-                        // Inner radar rings + crosshair axes + FOV cone
-                        float innerR = sz * 0.36f;
-                        r.drawRoundedOutline(cx - innerR, cy - innerR, innerR * 2f, innerR * 2f, innerR, 1.0f, 0x20FFFFFF);
-                        r.drawRoundedOutline(cx - innerR * 0.52f, cy - innerR * 0.52f, innerR * 1.04f, innerR * 1.04f, innerR * 0.52f, 1.0f, 0x16FFFFFF);
-                        r.fillRect(px + 8f, cy - 0.5f, sz - 16f, 1.0f, 0x18FFFFFF);
-                        r.fillRect(cx - 0.5f, py + 8f, 1.0f, sz - 16f, 0x18FFFFFF);
-                        r.drawLine(cx, cy, cx - innerR * 0.58f, cy - innerR * 0.82f, 1.0f, AxsesTheme.withAlpha(acc, 0.32f));
-                        r.drawLine(cx, cy, cx + innerR * 0.58f, cy - innerR * 0.82f, 1.0f, AxsesTheme.withAlpha(acc, 0.32f));
+                        // Inner radar rings + crosshair axes + Rotating Translucent Sonar Sweep Wedge
+                        float innerR = sz * 0.37f;
+                        double sweepBase = ((System.currentTimeMillis() % 2800L) / 2800.0) * Math.PI * 2.0;
+                        for (int s = 0; s < 8; s++) {
+                            double a0 = sweepBase - s * 0.11;
+                            double a1 = sweepBase - (s + 1) * 0.11;
+                            float sx0 = cx + (float) Math.cos(a0) * innerR;
+                            float sy0 = cy + (float) Math.sin(a0) * innerR;
+                            float sx1 = cx + (float) Math.cos(a1) * innerR;
+                            float sy1 = cy + (float) Math.sin(a1) * innerR;
+                            float wAlpha = (8 - s) / 8.0f * 0.22f * opacity;
+                            r.fillTriangle(cx, cy, sx0, sy0, sx1, sy1, AxsesTheme.withAlpha(acc, wAlpha));
+                        }
+                        r.drawNeonLine(cx, cy, cx + (float) Math.cos(sweepBase) * innerR, cy + (float) Math.sin(sweepBase) * innerR,
+                                1.3f, AxsesTheme.withAlpha(0xFFFFFFFF, 0.88f * opacity), AxsesTheme.withAlpha(acc, 0.55f * opacity));
+
+                        r.drawRoundedOutline(cx - innerR, cy - innerR, innerR * 2f, innerR * 2f, innerR, 1.0f, 0x26FFFFFF);
+                        r.drawRoundedOutline(cx - innerR * 0.52f, cy - innerR * 0.52f, innerR * 1.04f, innerR * 1.04f, innerR * 0.52f, 1.0f, 0x1AFFFFFF);
+                        r.fillRect(px + 8f, cy - 0.5f, sz - 16f, 1.0f, 0x1AFFFFFF);
+                        r.fillRect(cx - 0.5f, py + 8f, 1.0f, sz - 16f, 0x1AFFFFFF);
+                        r.drawLine(cx, cy, cx - innerR * 0.58f, cy - innerR * 0.82f, 1.0f, AxsesTheme.withAlpha(acc, 0.36f));
+                        r.drawLine(cx, cy, cx + innerR * 0.58f, cy - innerR * 0.82f, 1.0f, AxsesTheme.withAlpha(acc, 0.36f));
 
                         // Rotating North indicator
                         float yawDeg = (mc != null && mc.isInWorld()) ? mc.getPlayerYaw() : 0.0f;
@@ -1542,7 +1649,6 @@ public final class VisualModulesRegistry {
                                     TargetEntityInfo e = ents.get(i);
                                     double dx = e.getX() - mc.getPlayerX();
                                     double dz = e.getZ() - mc.getPlayerZ();
-                                    // Forward in MC yaw=0 is +Z; screen right in MC yaw=0 is -X
                                     double relRight = -dx * cosY - dz * sinY;
                                     double relFwd = -dx * sinY + dz * cosY;
                                     float bx = cx + (float) (relRight / maxR) * innerR;
@@ -1552,17 +1658,229 @@ public final class VisualModulesRegistry {
 
                                     boolean isLocked = locked != null && locked.getEntityId() == e.getEntityId();
                                     int dotCol = isLocked ? t.getErrorColor() : (e.isPlayer() ? acc : t.getWarningColor());
-                                    r.fillRoundedRect(bx - 3.5f, by - 3.5f, 7.0f, 7.0f, 3.5f, AxsesTheme.withAlpha(dotCol, 0.32f));
-                                    r.fillRoundedRect(bx - 2.0f, by - 2.0f, 4.0f, 4.0f, 2.0f, dotCol);
+                                    r.fillRoundedRect(bx - 4.5f, by - 4.5f, 9.0f, 9.0f, 4.5f, AxsesTheme.withAlpha(dotCol, 0.28f));
+                                    r.fillRoundedRect(bx - 2.2f, by - 2.2f, 4.4f, 4.4f, 2.2f, dotCol);
                                 }
                             }
                         }
 
-                        // Center self dot
-                        r.fillRoundedRect(cx - 2.5f, cy - 2.5f, 5.0f, 5.0f, 2.5f, 0xFFFFFFFF);
+                        // Center self diamond + halo
+                        r.fillRoundedRect(cx - 4.0f, cy - 4.0f, 8.0f, 8.0f, 4.0f, AxsesTheme.withAlpha(0xFFFFFFFF, 0.25f));
+                        r.fillRoundedRect(cx - 2.4f, cy - 2.4f, 4.8f, 4.8f, 2.4f, 0xFFFFFFFF);
                         return true;
                     }
                 }));
+
+        // 121. Custom Glass Hotbar & Liquid Status Dock (Кастомный Хотбар и ХП)
+        final BooleanSetting hotbarShowStatus = new BooleanSetting("show_status_bars", "Liquid HP & Shield Bars", "Render custom glowing liquid Health and Armor bars above hotbar", true);
+        final BooleanSetting hotbarShowOffhand = new BooleanSetting("show_offhand_dock", "Offhand Totem Capsule", "Render separate frosted offhand capsule on left", true);
+        Module customHotbarMod = mm.register(new Module("custom_hotbar", "Custom Glass Hotbar", "Replaces flat vanilla hotbar with a floating frosted glass 9-slot dock, spring neon selector & liquid HP/Shield bars", ModuleCategory.HUD, true, KeyCodes.KEY_NONE, false) {
+            {
+                addSetting(hotbarShowStatus);
+                addSetting(hotbarShowOffhand);
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                return (i18n != null && i18n.isRussian()) ? "Хотбар: Стекло" : "Hotbar: Glass";
+            }
+        });
+        customHotbarMod.setFavorite(true);
+        hm.register(new HudElement("custom_hotbar", "Custom Glass Hotbar", customHotbarMod, 0.50f, 0.992f, 198f, 41f)
+                .withCustomPainter(new HudElement.CustomHudPainter() {
+                    private float smoothSlot = 0.0f;
+
+                    @Override
+                    public boolean paint(
+                            RenderAdapter r,
+                            MinecraftAdapter mc,
+                            ThemeManager themeManager,
+                            FontManager fontManager,
+                            float px,
+                            float py,
+                            float sw,
+                            float sh,
+                            float opacity,
+                            boolean editorMode,
+                            boolean selected
+                    ) {
+                        AxsesTheme t = themeManager.getActiveTheme();
+                        int prim = themeManager.filterColor(t.getPrimaryColor());
+                        int acc = themeManager.filterColor(t.getAccentColor());
+
+                        float dockW = Math.max(198.0f, sw);
+                        float dockH = 24.5f;
+                        float totalH = hotbarShowStatus.isEnabled() ? 40.5f : dockH;
+                        float baseX = Math.max(34.0f, Math.min(px, r.getScaledWidth() - dockW - 6.0f));
+                        float baseY = Math.min(py, r.getScaledHeight() - totalH - 2.5f);
+                        float dockY = baseY + (totalH - dockH);
+
+                        int selSlot = (mc != null && mc.isInWorld()) ? Math.max(0, Math.min(8, mc.getSelectedHotbarSlot())) : 0;
+                        smoothSlot += (selSlot - smoothSlot) * 0.34f;
+                        if (Math.abs(selSlot - smoothSlot) < 0.01f) smoothSlot = selSlot;
+
+                        // 1) Dual Liquid Neon Health & Armor Bars above dock
+                        if (hotbarShowStatus.isEnabled()) {
+                            float hp = (mc != null && mc.isInWorld()) ? mc.getHealth() : 20.0f;
+                            float maxHp = (mc != null && mc.isInWorld()) ? Math.max(1.0f, mc.getMaxHealth()) : 20.0f;
+                            float hpFrac = Math.max(0.0f, Math.min(1.0f, hp / maxHp));
+
+                            float armRatio = 0.96f;
+                            if (mc != null && mc.isInWorld()) {
+                                List<ItemInfo> arm = mc.getArmorItems();
+                                if (arm != null && !arm.isEmpty()) {
+                                    int eq = 0;
+                                    float sum = 0f;
+                                    for (ItemInfo it : arm) {
+                                        if (it != null && !it.isEmpty()) {
+                                            eq++;
+                                            sum += it.isDamageable() ? it.getDurabilityRatio() : 1.0f;
+                                        }
+                                    }
+                                    armRatio = eq == 0 ? 0.0f : (eq / 4.0f) * (sum / eq);
+                                }
+                            }
+
+                            float barW = (dockW - 6.0f) * 0.5f;
+                            float barH = 12.5f;
+                            float barY = baseY;
+
+                            // Left Liquid Ruby->Sakura Health Capsule
+                            RenderManager.drawFrostedGlassPanel(r, baseX, barY, barW, barH, 6.2f, 0xFFFF3366, 0xFFFF85A1, opacity * 0.94f, 0.58f);
+                            float hpFillW = Math.max(8.0f, (barW - 2.4f) * hpFrac);
+                            RenderManager.fillRoundedHorizontalGradient(r, baseX + 1.2f, barY + 1.2f, hpFillW, barH - 2.4f, 5.0f, 0xFFE11D48, 0xFFFF6B8B);
+                            String hpTxt = String.format(Locale.ROOT, "❤ %.1f", Float.valueOf(hp));
+                            fontManager.drawCentered(r, hpTxt, baseX + barW * 0.5f, barY + 2.6f, 0xFFFFFFFF, 0.80f);
+
+                            // Right Liquid Sapphire->Cyan Armor/Shield Capsule
+                            float rx = baseX + barW + 6.0f;
+                            RenderManager.drawFrostedGlassPanel(r, rx, barY, barW, barH, 6.2f, prim, acc, opacity * 0.94f, 0.58f);
+                            if (armRatio > 0.01f) {
+                                float armFillW = Math.max(8.0f, (barW - 2.4f) * Math.min(1.0f, armRatio));
+                                RenderManager.fillRoundedHorizontalGradient(r, rx + 1.2f, barY + 1.2f, armFillW, barH - 2.4f, 5.0f, prim, acc);
+                            }
+                            String shTxt = String.format(Locale.ROOT, "🛡 %d%%", Integer.valueOf(Math.round(armRatio * 100f)));
+                            fontManager.drawCentered(r, shTxt, rx + barW * 0.5f, barY + 2.6f, 0xFFFFFFFF, 0.80f);
+                        }
+
+                        // 2) Offhand Totem Frosted Capsule on Left
+                        if (hotbarShowOffhand.isEnabled()) {
+                            ItemInfo off = (mc != null && mc.isInWorld()) ? mc.getOffHandItem() : null;
+                            boolean hasOff = (off != null && !off.isEmpty()) || editorMode || mc == null || !mc.isInWorld();
+                            if (hasOff) {
+                                float ox = baseX - 28.5f;
+                                RenderManager.drawFrostedGlassPanel(r, ox, dockY, 24.5f, dockH, 8.5f, 0xFFF59E0B, 0xFFFDE047, opacity * 0.95f, 0.72f);
+                                String offId = (off != null && !off.isEmpty()) ? off.getItemId() : "minecraft:totem_of_undying";
+                                drawHotbarItemGlyph(r, offId, -1, ox + 12.2f, dockY + 11.8f, prim, acc);
+                            }
+                        }
+
+                        // 3) 9-Slot Floating Frosted Obsidian-Glass Hotbar Dock
+                        RenderManager.drawFrostedGlassPanel(r, baseX, dockY, dockW, dockH, 10.5f, prim, acc, opacity * 0.96f, selected ? 1.2f : 0.85f);
+
+                        float pad = 3.0f;
+                        float slotStep = (dockW - pad * 2.0f) / 9.0f;
+                        float slotW = slotStep - 1.6f;
+                        float slotH = dockH - 5.2f;
+
+                        // Spring-interpolated glowing active selector capsule
+                        float selX = baseX + pad + smoothSlot * slotStep + 0.8f;
+                        float selY = dockY + 2.6f;
+                        r.fillRoundedRect(selX - 1.8f, selY - 1.6f, slotW + 3.6f, slotH + 3.2f, 7.5f, AxsesTheme.withAlpha(acc, 0.30f));
+                        RenderManager.fillRoundedHorizontalGradient(r, selX, selY, slotW, slotH, 6.2f,
+                                AxsesTheme.withAlpha(prim, 0.72f), AxsesTheme.withAlpha(acc, 0.72f));
+                        r.drawRoundedOutline(selX, selY, slotW, slotH, 6.2f, 1.15f, 0xDDFFFFFF);
+
+                        List<ItemInfo> inv = (mc != null && mc.isInWorld()) ? mc.getInventoryItems() : null;
+                        String[] demoIds = {
+                                "minecraft:netherite_sword", "minecraft:cyan_wool", "minecraft:golden_apple",
+                                "minecraft:ender_pearl", "minecraft:bow", "minecraft:diamond_pickaxe",
+                                "minecraft:splash_potion", "minecraft:fire_charge", "minecraft:cooked_beef"
+                        };
+                        int[] demoCounts = { 1, 64, 12, 8, 1, 1, 1, 6, 32 };
+
+                        for (int s = 0; s < 9; s++) {
+                            float sx = baseX + pad + s * slotStep + 0.8f;
+                            float sy = dockY + 2.6f;
+                            if (s != selSlot) {
+                                r.fillRoundedRect(sx, sy, slotW, slotH, 5.8f, 0x68090E22);
+                            }
+
+                            ItemInfo item = (inv != null && s < inv.size()) ? inv.get(s) : null;
+                            String itemId = null;
+                            int count = 0;
+                            if (item != null && !item.isEmpty()) {
+                                itemId = item.getItemId();
+                                count = item.getCount();
+                            } else if (inv == null || inv.isEmpty()) {
+                                itemId = demoIds[s];
+                                count = demoCounts[s];
+                            }
+
+                            if (itemId != null) {
+                                drawHotbarItemGlyph(r, itemId, s, sx + slotW * 0.5f, sy + slotH * 0.48f, prim, acc);
+                                if (count > 1) {
+                                    String cStr = String.valueOf(count);
+                                    float cw = fontManager.width(r, cStr, 0.72f);
+                                    fontManager.draw(r, cStr, sx + slotW - cw - 1.8f, sy + slotH - 7.0f, 0xFFFFFFFF, 0.72f);
+                                }
+                            }
+                            // Micro slot index top-left
+                            fontManager.draw(r, String.valueOf(s + 1), sx + 2.0f, sy + 1.5f,
+                                    s == selSlot ? 0xFFFFFFFF : 0x7894A3B8, 0.64f);
+                        }
+                        return true;
+                    }
+                }));
+
+        // 122. World Ambience & 3D Neon Fireflies (Атмосфера и Неон-Частицы 3D)
+        Module ambienceMod = mm.register(new Module("world_ambience", "World Ambience 3D", "Projects depth-sorted 3D floating neon fireflies around the player and subtle Aurora horizon glow", ModuleCategory.RENDER, true, KeyCodes.KEY_NONE, false) {
+            private final NumberSetting orbCount = addSetting(new NumberSetting("orb_count", "Firefly Count", "Number of 3D floating neon orbs", 34.0, 10.0, 64.0, 2.0));
+            private final BooleanSetting horizonTint = addSetting(new BooleanSetting("horizon_glow", "Aurora Vignette", "Render subtle top/bottom theme atmosphere", true));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (mc == null || !mc.isInWorld()) return;
+                AxsesTheme t = themes.getActiveTheme();
+                int prim = themes.filterColor(t.getPrimaryColor());
+                int acc = themes.filterColor(t.getAccentColor());
+                float sw = r.getScaledWidth();
+                float sh = r.getScaledHeight();
+
+                if (horizonTint.isEnabled()) {
+                    r.fillGradientVertical(0f, 0f, sw, 36.0f, AxsesTheme.withAlpha(prim, 0.12f), 0x00000000);
+                    r.fillGradientVertical(0f, sh - 34.0f, sw, 34.0f, 0x00000000, AxsesTheme.withAlpha(acc, 0.10f));
+                }
+                if (mc.isClickGuiOpen()) return;
+
+                double px = mc.getPlayerX();
+                double py = mc.getPlayerY();
+                double pz = mc.getPlayerZ();
+                double time = (System.currentTimeMillis() % 60000L) / 1000.0;
+                int count = Math.max(8, Math.min(64, (int) Math.round(orbCount.getDouble())));
+
+                for (int i = 0; i < count; i++) {
+                    double seed = i * 2.399963229728653; // Golden angle distribution
+                    double dist = 2.6 + (i % 9) * 1.15;
+                    double ang = seed + time * (0.14 + (i % 5) * 0.03);
+                    double ox = px + Math.cos(ang) * dist;
+                    double oz = pz + Math.sin(ang) * dist;
+                    double oy = py + 0.45 + ((i * 0.37) % 2.8) + Math.sin(time * 1.4 + i) * 0.35;
+
+                    float[] sc = mc.projectWorldToScreen(ox, oy, oz);
+                    if (sc == null || sc[2] <= 0.15f) continue;
+                    if (sc[0] < -12f || sc[0] > sw + 12f || sc[1] < -12f || sc[1] > sh + 12f) continue;
+
+                    float pulse = 0.65f + 0.35f * (float) Math.sin(time * 2.6 + i * 1.3);
+                    float sz = Math.max(1.8f, Math.min(5.2f, (11.5f / (float) Math.max(2.0, dist)) * pulse));
+                    int col = themes.getAuroraWaveColor(i * 0.31f);
+                    r.fillRoundedRect(sc[0] - sz * 2.1f, sc[1] - sz * 2.1f, sz * 4.2f, sz * 4.2f, sz * 2.1f, AxsesTheme.withAlpha(col, 0.14f * pulse));
+                    r.fillRoundedRect(sc[0] - sz * 1.1f, sc[1] - sz * 1.1f, sz * 2.2f, sz * 2.2f, sz * 1.1f, AxsesTheme.withAlpha(col, 0.44f * pulse));
+                    r.fillRoundedRect(sc[0] - sz * 0.5f, sc[1] - sz * 0.5f, sz, sz, sz * 0.5f, AxsesTheme.withAlpha(0xFFFFFFFF, 0.86f * pulse));
+                }
+            }
+        });
+        ambienceMod.setFavorite(true);
     }
 
     private static void paintKeyCap(
@@ -1582,18 +1900,88 @@ public final class VisualModulesRegistry {
     ) {
         int prim = tm.filterColor(t.getPrimaryColor());
         int acc = tm.filterColor(t.getAccentColor());
-        float kRad = Math.min(7.5f, h * 0.36f);
+        float kRad = Math.min(8.0f, h * 0.38f);
         if (pressed) {
-            r.fillRoundedRect(x - 1.0f, y - 1.0f, w + 2.0f, h + 2.0f, kRad + 1.0f, AxsesTheme.withAlpha(acc, 0.26f * opacity));
+            r.fillRoundedRect(x - 2.4f, y - 2.2f, w + 4.8f, h + 4.4f, kRad + 2.2f, AxsesTheme.withAlpha(acc, 0.28f * opacity));
             RenderManager.fillRoundedHorizontalGradient(r, x, y, w, h, kRad,
-                    AxsesTheme.withAlpha(prim, 0.90f * opacity), AxsesTheme.withAlpha(acc, 0.85f * opacity));
-            r.drawRoundedOutline(x, y, w, h, kRad, 1.0f, acc);
-            fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFFFFFFF, 0.92f);
+                    AxsesTheme.withAlpha(prim, 0.95f * opacity), AxsesTheme.withAlpha(acc, 0.92f * opacity));
+            r.fillRoundedRect(x + 1.5f, y + 1.2f, Math.max(2f, w - 3.0f), h * 0.36f, Math.max(1f, kRad - 1.2f), 0x24FFFFFF);
+            r.drawRoundedOutline(x, y, w, h, kRad, 1.15f, 0xCCFFFFFF);
+            fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFFFFFFF, 0.94f);
         } else {
-            r.fillRoundedRect(x, y, w, h, kRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.92f * opacity));
-            r.drawRoundedOutline(x, y, w, h, kRad, 1.0f,
-                    selected ? acc : AxsesTheme.withAlpha(prim, 0.48f * opacity));
-            fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, t.getTextColor(), 0.90f);
+            RenderManager.drawFrostedGlassPanel(r, x, y, w, h, kRad, prim, acc, opacity * 0.92f, selected ? 0.9f : 0.42f);
+            fm.drawCentered(r, label, x + w * 0.5f, y + (h - 8.0f) * 0.5f, 0xFFF1F5FF, 0.90f);
+        }
+    }
+
+    private static void drawArmorPieceGlyph(RenderAdapter r, int slotType, float cx, float cy, int prim, int acc) {
+        int fill = RenderManager.blendArgb(prim, acc, 0.55f);
+        int rim = 0xE6FFFFFF;
+        if (slotType == 0) {
+            // Helmet dome + visor slit
+            r.fillRoundedRect(cx - 4.2f, cy - 3.8f, 8.4f, 7.2f, 3.2f, fill);
+            r.fillRect(cx - 2.6f, cy - 0.2f, 5.2f, 2.2f, 0xFF070C1E);
+            r.drawRoundedOutline(cx - 4.2f, cy - 3.8f, 8.4f, 7.2f, 3.2f, 0.85f, rim);
+        } else if (slotType == 1) {
+            // Chestplate shoulders + torso
+            r.fillRoundedRect(cx - 4.8f, cy - 3.8f, 9.6f, 4.0f, 1.8f, fill);
+            r.fillRoundedRect(cx - 3.2f, cy - 1.2f, 6.4f, 5.4f, 1.8f, acc);
+            r.drawRoundedOutline(cx - 3.2f, cy - 3.6f, 6.4f, 7.8f, 2.0f, 0.85f, rim);
+        } else if (slotType == 2) {
+            // Leggings waist + twin legs
+            r.fillRoundedRect(cx - 3.8f, cy - 4.0f, 7.6f, 2.8f, 1.2f, fill);
+            r.fillRoundedRect(cx - 3.8f, cy - 1.4f, 2.8f, 5.6f, 1.1f, acc);
+            r.fillRoundedRect(cx + 1.0f, cy - 1.4f, 2.8f, 5.6f, 1.1f, acc);
+        } else {
+            // Twin armored boots
+            r.fillRoundedRect(cx - 4.2f, cy - 2.8f, 3.2f, 6.2f, 1.2f, fill);
+            r.fillRoundedRect(cx - 4.8f, cy + 1.2f, 4.2f, 2.4f, 1.0f, rim);
+            r.fillRoundedRect(cx + 1.0f, cy - 2.8f, 3.2f, 6.2f, 1.2f, acc);
+            r.fillRoundedRect(cx + 0.6f, cy + 1.2f, 4.2f, 2.4f, 1.0f, rim);
+        }
+    }
+
+    private static void drawHotbarItemGlyph(RenderAdapter r, String itemId, int slotHint, float cx, float cy, int prim, int acc) {
+        String id = itemId == null ? "" : itemId.toLowerCase(Locale.ROOT);
+        if (id.contains("totem")) {
+            r.fillRoundedRect(cx - 5.2f, cy - 2.2f, 10.4f, 3.2f, 1.5f, 0xFFFBBF24);
+            r.fillRoundedRect(cx - 3.2f, cy - 5.2f, 6.4f, 10.2f, 2.6f, 0xFFFDE047);
+            r.fillRect(cx - 2.0f, cy - 3.2f, 1.5f, 1.5f, 0xFF10B981);
+            r.fillRect(cx + 0.6f, cy - 3.2f, 1.5f, 1.5f, 0xFF10B981);
+        } else if (id.contains("sword") || id.contains("axe") && !id.contains("pickaxe")) {
+            r.drawNeonLine(cx - 4.2f, cy + 4.2f, cx + 4.4f, cy - 4.4f, 2.2f, 0xFFE0F2FE, AxsesTheme.withAlpha(acc, 0.85f));
+            r.drawLine(cx - 4.8f, cy + 1.2f, cx - 1.2f, cy + 4.8f, 1.8f, 0xFFFBBF24);
+            r.drawLine(cx - 5.2f, cy + 5.2f, cx - 3.0f, cy + 3.0f, 1.8f, 0xFF92400E);
+        } else if (id.contains("wool") || id.contains("stone") || id.contains("planks") || id.contains("obsidian") || id.contains("block")) {
+            int topC = id.contains("obsidian") ? 0xFF7C3AED : 0xFF38BDF8;
+            int leftC = id.contains("obsidian") ? 0xFF4C1D95 : 0xFF0284C7;
+            int rightC = id.contains("obsidian") ? 0xFF2E1065 : 0xFF0369A1;
+            r.fillQuad(cx, cy - 5.2f, cx + 5.0f, cy - 2.4f, cx, cy + 0.4f, cx - 5.0f, cy - 2.4f, topC);
+            r.fillQuad(cx - 5.0f, cy - 2.4f, cx, cy + 0.4f, cx, cy + 5.4f, cx - 5.0f, cy + 2.6f, leftC);
+            r.fillQuad(cx, cy + 0.4f, cx + 5.0f, cy - 2.4f, cx + 5.0f, cy + 2.6f, cx, cy + 5.4f, rightC);
+        } else if (id.contains("apple")) {
+            r.fillRoundedRect(cx - 4.4f, cy - 3.6f, 8.8f, 8.4f, 4.2f, 0xFFFACC15);
+            r.fillRoundedRect(cx - 2.4f, cy - 2.2f, 3.0f, 2.6f, 1.3f, 0xFFFEF9C3);
+            r.fillRect(cx - 0.6f, cy - 5.4f, 1.6f, 2.2f, 0xFF22C55E);
+        } else if (id.contains("pearl") || id.contains("snowball") || id.contains("fire_charge")) {
+            int c = id.contains("fire") ? 0xFFF97316 : 0xFF14B8A6;
+            int inner = id.contains("fire") ? 0xFFFDE047 : 0xFF99F6E4;
+            r.fillRoundedRect(cx - 4.5f, cy - 4.5f, 9.0f, 9.0f, 4.5f, c);
+            r.fillRoundedRect(cx - 2.2f, cy - 2.5f, 3.6f, 3.6f, 1.8f, inner);
+        } else if (id.contains("bow")) {
+            r.drawLine(cx - 2.5f, cy - 4.8f, cx + 3.2f, cy, 1.6f, 0xFFD97706);
+            r.drawLine(cx + 3.2f, cy, cx - 2.5f, cy + 4.8f, 1.6f, 0xFFD97706);
+            r.drawLine(cx - 2.5f, cy - 4.8f, cx - 2.5f, cy + 4.8f, 1.0f, 0xFFE2E8F0);
+            r.drawLine(cx - 4.0f, cy, cx + 4.2f, cy, 1.2f, acc);
+        } else if (id.contains("pickaxe")) {
+            r.drawLine(cx - 4.2f, cy + 4.2f, cx + 2.4f, cy - 2.4f, 1.6f, 0xFF92400E);
+            r.drawLine(cx - 1.2f, cy - 4.6f, cx + 4.6f, cy + 1.2f, 2.2f, 0xFF38BDF8);
+        } else if (id.contains("potion")) {
+            r.fillRoundedRect(cx - 3.8f, cy - 1.6f, 7.6f, 6.8f, 3.4f, 0xFFEC4899);
+            r.fillRect(cx - 1.5f, cy - 4.6f, 3.0f, 3.2f, 0xFFE2E8F0);
+        } else {
+            r.fillRoundedRect(cx - 4.0f, cy - 3.2f, 8.0f, 6.4f, 2.8f, slotHint == 8 ? 0xFFEA580C : RenderManager.blendArgb(prim, acc, 0.5f));
+            r.drawRoundedOutline(cx - 4.0f, cy - 3.2f, 8.0f, 6.4f, 2.8f, 0.9f, 0xAAFFFFFF);
         }
     }
 
@@ -1606,7 +1994,7 @@ public final class VisualModulesRegistry {
             double cz,
             double radius
     ) {
-        float[] apex = mc.projectWorldToScreen(cx, baseY + 0.30, cz);
+        float[] apex = mc.projectWorldToScreen(cx, baseY + 0.34, cz);
         if (apex == null || apex[2] <= 0.1f) return;
 
         int segs = 38;
@@ -1620,12 +2008,14 @@ public final class VisualModulesRegistry {
             float[] brim = mc.projectWorldToScreen(bx, baseY, bz);
             if (brim != null && brim[2] > 0.1f) {
                 int col = tm.getAuroraWaveColor(i * 0.18f);
-                if (i < segs && (i % 2 == 0)) {
-                    r.drawLine(apex[0], apex[1], brim[0], brim[1], 1.15f, AxsesTheme.withAlpha(col, 0.42f));
-                }
                 if (hasPrev) {
-                    r.drawNeonLine(prevX, prevY, brim[0], brim[1], 1.75f,
-                            AxsesTheme.withAlpha(col, 0.96f), AxsesTheme.withAlpha(col, 0.45f));
+                    // Volumetric translucent Aurora cone facet + glowing neon brim
+                    r.fillTriangle(apex[0], apex[1], prevX, prevY, brim[0], brim[1], AxsesTheme.withAlpha(col, 0.24f));
+                    r.drawNeonLine(prevX, prevY, brim[0], brim[1], 1.95f,
+                            AxsesTheme.withAlpha(col, 0.98f), AxsesTheme.withAlpha(col, 0.55f));
+                }
+                if (i < segs && (i % 3 == 0)) {
+                    r.drawLine(apex[0], apex[1], brim[0], brim[1], 1.05f, AxsesTheme.withAlpha(0xFFFFFFFF, 0.34f));
                 }
                 prevX = brim[0];
                 prevY = brim[1];
@@ -1634,6 +2024,7 @@ public final class VisualModulesRegistry {
                 hasPrev = false;
             }
         }
+        r.fillRoundedRect(apex[0] - 2.5f, apex[1] - 2.5f, 5.0f, 5.0f, 2.5f, 0xCCFFFFFF);
     }
 
     private static void draw3dGroundCircle(

@@ -20,4 +20,14 @@ public abstract class GameRendererMixin {
             }
         }
     }
+    @Inject(method = "shouldRenderBlockOutline", at = @At("HEAD"), cancellable = true, require = 0)
+    private void axses$suppressVanillaBlockOutline(CallbackInfoReturnable<Boolean> cir) {
+        AxsesCore core = AxsesCore.getInstance();
+        if (core != null) {
+            dev.axsesclient.common.modules.Module bc = core.getModuleManager().getById("block_contour_pro");
+            if (bc != null && bc.isEnabled()) {
+                cir.setReturnValue(Boolean.FALSE);
+            }
+        }
+    }
 }

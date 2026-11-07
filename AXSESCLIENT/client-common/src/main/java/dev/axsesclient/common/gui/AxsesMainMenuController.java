@@ -91,29 +91,26 @@ public final class AxsesMainMenuController {
 
         // 5. Top Status & Quick Switcher Stadium Pills
         String engineTag = isRu
-                ? "⚡ HYPERION v5.0 · 120 МОДУЛЕЙ · ФАСТБРИДЖ · BEDWARS · SNOWGRIM"
-                : "⚡ HYPERION v5.0 · 120 MODULES · FASTBRIDGE · BEDWARS · SNOWGRIM";
+                ? "⚡ CELESTIAL ULTRA v6.0 · 124 МОДУЛЯ · 3D CHAMS · СТЕКЛЯННЫЙ ХОТБАР · SNOWGRIM"
+                : "⚡ CELESTIAL ULTRA v6.0 · 124 MODULES · 3D CHAMS · GLASS HOTBAR · SNOWGRIM";
         float ew = core.getFontManager().width(r, engineTag, 0.88f) + 18.0f;
-        r.fillRoundedRect(10f, 10f, ew, 20f, 10.0f, 0xDC080B18);
-        r.drawGradientRoundedOutline(10f, 10f, ew, 20f, 10.0f, 1.15f, prim, acc);
-        core.getFontManager().draw(r, engineTag, 19f, 16f, acc, 0.88f);
+        RenderManager.drawFrostedGlassPanel(r, 10f, 10f, ew, 21f, 10.5f, prim, acc, 0.94f, 0.65f);
+        core.getFontManager().draw(r, engineTag, 19f, 16.5f, 0xFFF8FAFF, 0.88f);
 
         String langPill = isRu ? "Язык: Русский" : "Lang: English";
         float lw = Math.max(98f, core.getFontManager().width(r, langPill, 0.92f) + 18f);
         float lx = sw - lw - 10f;
         float ly = 10f;
         boolean lHov = isInside(mouseX, mouseY, lx, ly, lw, 20f);
-        r.fillRoundedRect(lx, ly, lw, 20f, 10.0f, lHov ? t.getElevatedColor() : 0xDC080B18);
-        r.drawRoundedOutline(lx, ly, lw, 20f, 10.0f, 1f, acc);
-        core.getFontManager().drawCentered(r, langPill, lx + lw * 0.5f, ly + 6f, 0xFFFFFFFF, 0.92f);
+        RenderManager.drawFrostedGlassPanel(r, lx, ly, lw, 21f, 10.5f, prim, acc, lHov ? 0.98f : 0.92f, lHov ? 0.95f : 0.55f);
+        core.getFontManager().drawCentered(r, langPill, lx + lw * 0.5f, ly + 6.5f, 0xFFFFFFFF, 0.92f);
 
         String themePill = t.getName();
         float tw = Math.max(98f, core.getFontManager().width(r, themePill, 0.88f) + 18f);
         float tx = lx - tw - 6f;
         boolean tHov = isInside(mouseX, mouseY, tx, ly, tw, 20f);
-        r.fillRoundedRect(tx, ly, tw, 20f, 10.0f, tHov ? t.getElevatedColor() : 0xDC080B18);
-        r.drawRoundedOutline(tx, ly, tw, 20f, 10.0f, 1f, AxsesTheme.withAlpha(prim, 0.72f));
-        core.getFontManager().drawCentered(r, themePill, tx + tw * 0.5f, ly + 6f, t.getTextColor(), 0.88f);
+        RenderManager.drawFrostedGlassPanel(r, tx, ly, tw, 21f, 10.5f, prim, acc, tHov ? 0.98f : 0.92f, tHov ? 0.95f : 0.45f);
+        core.getFontManager().drawCentered(r, themePill, tx + tw * 0.5f, ly + 6.5f, t.getTextColor(), 0.88f);
 
         // 6. Central Curved Vision-Glass Dual-Column Command Deck (468 x 252, radius 20)
         float cx = sw * 0.5f;
@@ -122,30 +119,27 @@ public final class AxsesMainMenuController {
         float panelX = cx - panelW * 0.5f;
         float panelY = Math.max(36.0f, (sh - panelH) * 0.5f);
 
-        RenderManager.drawSoftGlow(r, panelX, panelY, panelW, panelH, 20.0f, 4, prim, 0.26f);
-        r.drawShadow(panelX, panelY, panelW, panelH, 20f, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(panelX, panelY, panelW, panelH, 20f, 0xF2060A18);
-        RenderManager.fillRoundedHorizontalGradient(r, panelX + 22f, panelY + 1.0f, panelW - 44f, 2.2f, 1.0f, prim, acc);
-        RenderManager.drawHyperionContour(r, panelX, panelY, panelW, panelH, 20f, 1.6f, prim, acc, 0.55f);
+        RenderManager.drawSoftGlow(r, panelX, panelY, panelW, panelH, 20.0f, 5, prim, 0.36f);
+        RenderManager.drawFrostedGlassPanel(r, panelX, panelY, panelW, panelH, 20f, prim, acc, 0.97f, 1.05f);
+        RenderManager.fillRoundedHorizontalGradient(r, panelX + 22f, panelY + 1.2f, panelW - 44f, 2.4f, 1.2f, prim, acc);
 
         // Left Column: Brand Hero & Active Session Telemetry (width 182)
         float leftX = panelX + 14.0f;
         float leftW = 182.0f;
-        r.fillRoundedRect(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.94f));
-        r.drawGradientRoundedOutline(leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, 1.1f,
-                AxsesTheme.withAlpha(prim, 0.35f), AxsesTheme.withAlpha(acc, 0.30f));
+        RenderManager.drawFrostedGlassPanel(r, leftX, panelY + 14.0f, leftW, panelH - 28.0f, 14.0f, prim, acc, 0.94f, 0.50f);
 
         // Glowing Curved AX Crest
         float crestX = leftX + (leftW - 46.0f) * 0.5f;
         float crestY = panelY + 28.0f;
-        r.fillRoundedRect(crestX - 2f, crestY - 2f, 50f, 50f, 16f, AxsesTheme.withAlpha(acc, 0.22f));
+        r.fillRoundedRect(crestX - 4f, crestY - 4f, 54f, 54f, 18f, AxsesTheme.withAlpha(acc, 0.25f));
         RenderManager.fillRoundedHorizontalGradient(r, crestX, crestY, 46f, 46f, 14f,
-                AxsesTheme.withAlpha(prim, 0.65f), AxsesTheme.withAlpha(acc, 0.45f));
-        r.drawGradientRoundedOutline(crestX, crestY, 46f, 46f, 14f, 1.3f, prim, acc);
-        core.getFontManager().drawCentered(r, "AX", crestX + 23f, crestY + 18f, 0xFFFFFFFF, 1.25f);
+                AxsesTheme.withAlpha(prim, 0.92f), AxsesTheme.withAlpha(acc, 0.88f));
+        r.drawRoundedOutline(crestX, crestY, 46f, 46f, 14f, 1.3f, 0x99FFFFFF);
+        r.fillQuad(crestX + 23f, crestY + 11f, crestX + 34f, crestY + 23f, crestX + 23f, crestY + 35f, crestX + 12f, crestY + 23f, 0xFFFFFFFF);
+        r.fillQuad(crestX + 23f, crestY + 16f, crestX + 29f, crestY + 23f, crestX + 23f, crestY + 30f, crestX + 17f, crestY + 23f, prim);
 
-        core.getFontManager().drawCentered(r, "AXSESCLIENT 5.0", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
-        core.getFontManager().drawCentered(r, "HYPERION APEX", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
+        core.getFontManager().drawCentered(r, "AXSESCLIENT 6.0", leftX + leftW * 0.5f, crestY + 56f, 0xFFFFFFFF, 1.0f);
+        core.getFontManager().drawCentered(r, "CELESTIAL ULTRA", leftX + leftW * 0.5f, crestY + 69f, acc, 0.88f);
 
         String mcVer = mc != null ? mc.getMinecraftVersion() : "1.21.11";
         String user = mc != null ? mc.getPlayerName() : "Player";
@@ -206,7 +200,7 @@ public final class AxsesMainMenuController {
 
         // Footer version & memory strip
         long maxMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
-        core.getFontManager().draw(r, "AXSESCLIENT v5.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
+        core.getFontManager().draw(r, "AXSESCLIENT v6.0.0 · MC " + mcVer + " · JVM " + maxMb + " MB", 10f, sh - 14f, 0xFF94A3B8, 0.88f);
         String rightTag = user + " · " + t.getName();
         float rw = core.getFontManager().width(r, rightTag, 0.88f);
         core.getFontManager().draw(r, rightTag, sw - rw - 10f, sh - 14f, acc, 0.88f);

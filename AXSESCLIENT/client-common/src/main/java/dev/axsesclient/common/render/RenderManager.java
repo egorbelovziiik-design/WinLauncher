@@ -29,69 +29,105 @@ public final class RenderManager {
 
     public static void fillRoundedHorizontalGradient(RenderAdapter r, float x, float y, float w, float h, float radius, int leftArgb, int rightArgb) {
         if (w <= 0f || h <= 0f) return;
-        int ix1 = Math.round(x);
-        int iy1 = Math.round(y);
-        int ix2 = Math.max(ix1 + 1, Math.round(x + w));
-        int iy2 = Math.max(iy1 + 1, Math.round(y + h));
-        int iw = ix2 - ix1;
-        int ih = iy2 - iy1;
-        int ir = Math.max(0, Math.min(Math.round(radius), Math.min(iw, ih) / 2));
+        float s = r.beginHiDpiSubPixel();
+        try {
+            int ix1 = Math.round(x * s);
+            int iy1 = Math.round(y * s);
+            int ix2 = Math.max(ix1 + 1, Math.round((x + w) * s));
+            int iy2 = Math.max(iy1 + 1, Math.round((y + h) * s));
+            int iw = ix2 - ix1;
+            int ih = iy2 - iy1;
+            int ir = Math.max(0, Math.min(Math.round(radius * s), Math.min(iw, ih) / 2));
 
-        if (ir <= 1) {
-            int steps = Math.max(2, Math.min(28, Math.round(w / 6.0f)));
-            int prevColX = ix1;
-            for (int i = 0; i < steps; i++) {
-                float t = steps == 1 ? 0f : (float) i / (float) (steps - 1);
-                int nextColX = (i == steps - 1) ? ix2 : Math.round(ix1 + (iw * (i + 1)) / (float) steps);
-                if (nextColX > prevColX) {
-                    r.fillRect(prevColX, iy1, nextColX - prevColX, ih, blendArgb(leftArgb, rightArgb, t));
-                    prevColX = nextColX;
+            if (ir <= 1) {
+                int steps = Math.max(2, Math.min(40, Math.round(iw / 6.0f)));
+                int prevColX = ix1;
+                for (int i = 0; i < steps; i++) {
+                    float t = steps == 1 ? 0f : (float) i / (float) (steps - 1);
+                    int nextColX = (i == steps - 1) ? ix2 : Math.round(ix1 + (iw * (i + 1)) / (float) steps);
+                    if (nextColX > prevColX) {
+                        r.fillRect(prevColX, iy1, nextColX - prevColX, ih, blendArgb(leftArgb, rightArgb, t));
+                        prevColX = nextColX;
+                    }
                 }
+                return;
             }
-            return;
-        }
 
-        // Exact 1px integer columns in curved end-caps + wider strips in straight center (zero overdraw!)
-        int col = ix1;
-        while (col < ix2) {
-            boolean inLeftArc = (col - ix1) < ir;
-            boolean inRightArc = (ix2 - 1 - col) < ir;
-            int stepW;
-            int insetY = 0;
-            if (inLeftArc) {
-                stepW = 1;
-                float dx = ir - ((col - ix1) + 0.5f);
-                insetY = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dx * dx))));
-            } else if (inRightArc) {
-                stepW = 1;
-                float dx = ir - ((ix2 - 1 - col) + 0.5f);
-                insetY = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dx * dx))));
-            } else {
-                int straightLimit = ix2 - ir;
-                stepW = Math.max(1, Math.min(6, straightLimit - col));
+            int col = ix1;
+            while (col < ix2) {
+                boolean inLeftArc = (col - ix1) < ir;
+                boolean inRightArc = (ix2 - 1 - col) < ir;
+                int stepW;
+                int insetY = 0;
+                if (inLeftArc) {
+                    stepW = 1;
+                    float dx = ir - ((col - ix1) + 0.5f);
+                    insetY = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dx * dx))));
+                } else if (inRightArc) {
+                    stepW = 1;
+                    float dx = ir - ((ix2 - 1 - col) + 0.5f);
+                    insetY = Math.max(0, ir - Math.round((float) Math.sqrt(Math.max(0f, ir * ir - dx * dx))));
+                } else {
+                    int straightLimit = ix2 - ir;
+                    stepW = Math.max(1, Math.min(6, straightLimit - col));
+                }
+                int spanH = ih - insetY * 2;
+                if (spanH > 0) {
+                    float t = iw <= 1 ? 0f : (float) (col - ix1) / (float) (iw - 1);
+                    r.fillRect(col, iy1 + insetY, stepW, spanH, blendArgb(leftArgb, rightArgb, t));
+                }
+                col += stepW;
             }
-            int spanH = ih - insetY * 2;
-            if (spanH > 0) {
-                float t = iw <= 1 ? 0f : (float) (col - ix1) / (float) (iw - 1);
-                r.fillRect(col, iy1 + insetY, stepW, spanH, blendArgb(leftArgb, rightArgb, t));
-            }
-            col += stepW;
+        } finally {
+            r.endHiDpiSubPixel();
         }
     }
 
     public static void drawSoftGlow(RenderAdapter r, float x, float y, float w, float h, float radius, int layers, int rgb, float maxAlpha) {
         if (layers <= 0 || maxAlpha <= 0.005f || w <= 0f || h <= 0f) return;
         for (int i = layers; i >= 1; i--) {
-            float spread = i * 2.0f;
-            float falloff = (float) (layers + 1 - i) / (float) (layers + 1);
-            float alpha = maxAlpha * falloff * 0.50f;
+            float spread = i * 2.2f;
+            float norm = (float) (layers + 1 - i) / (float) (layers + 1);
+            float alpha = maxAlpha * norm * norm * 0.58f;
             r.fillRoundedRect(x - spread, y - spread, w + spread * 2f, h + spread * 2f, radius + spread, AxsesTheme.withAlpha(rgb, alpha));
         }
     }
 
     /**
-     * Signature Hyperion Pro anti-aliased contour: soft outer neon aura, dark contrast cushion,
-     * dual-tone gradient rounded stroke, and top inner glass specular highlight.
+     * Multi-layer frosted glass surface with exponential dual-color neon outer bloom,
+     * deep obsidian-indigo core, subtle diagonal aurora sheen, and crisp dual-gradient contour.
+     */
+    public static void drawFrostedGlassPanel(
+            RenderAdapter r, float x, float y, float w, float h, float radius,
+            int primaryArgb, int accentArgb, float opacity, float glowStrength
+    ) {
+        if (w <= 0f || h <= 0f) return;
+        int midGlow = blendArgb(primaryArgb, accentArgb, 0.5f);
+        if (glowStrength > 0.01f) {
+            r.fillRoundedRect(x - 5.5f, y - 5.0f, w + 11.0f, h + 11.0f, radius + 5.5f, AxsesTheme.withAlpha(midGlow, 0.055f * glowStrength));
+            r.fillRoundedRect(x - 3.4f, y - 3.0f, w + 6.8f, h + 6.8f, radius + 3.4f, AxsesTheme.withAlpha(primaryArgb, 0.095f * glowStrength));
+            r.fillRoundedRect(x - 1.6f, y - 1.4f, w + 3.2f, h + 3.4f, radius + 1.6f, AxsesTheme.withAlpha(accentArgb, 0.16f * glowStrength));
+        }
+
+        // Deep obsidian frosted base
+        r.fillRoundedRect(x, y, w, h, radius, AxsesTheme.withAlpha(0xFF060917, Math.min(0.97f, opacity + 0.04f)));
+        // Dual-stop ambient glass tint
+        fillRoundedHorizontalGradient(r, x + 0.8f, y + 0.8f, Math.max(2f, w - 1.6f), Math.max(2f, h - 1.6f), Math.max(1f, radius - 0.8f),
+                AxsesTheme.withAlpha(primaryArgb, 0.19f * opacity),
+                AxsesTheme.withAlpha(accentArgb, 0.14f * opacity));
+        // Upper frosted specular reflection band
+        float sheenH = Math.max(3.0f, Math.min(11.0f, h * 0.40f));
+        r.fillRoundedRect(x + 1.5f, y + 1.2f, Math.max(2f, w - 3.0f), sheenH, Math.max(1f, radius - 1.2f), 0x14FFFFFF);
+
+        drawHyperionContour(r, x, y, w, h, radius, 1.3f,
+                AxsesTheme.withAlpha(primaryArgb, 0.94f * opacity),
+                AxsesTheme.withAlpha(accentArgb, 0.94f * opacity),
+                glowStrength * 0.60f);
+    }
+
+    /**
+     * Signature Hyperion Ultra anti-aliased contour: multi-layer outer neon aura, dark contrast cushion,
+     * dual-tone gradient rounded stroke, and top inner crystal highlight.
      */
     public static void drawHyperionContour(
             RenderAdapter r, float x, float y, float w, float h, float radius,
@@ -99,25 +135,37 @@ public final class RenderManager {
     ) {
         if (w <= 0f || h <= 0f) return;
         if (glowAlpha > 0.01f) {
-            r.drawGradientRoundedOutline(x - 1.6f, y - 1.6f, w + 3.2f, h + 3.2f, radius + 1.6f, thickness + 1.4f,
-                    AxsesTheme.withAlpha(primaryArgb, glowAlpha * 0.34f),
-                    AxsesTheme.withAlpha(accentArgb, glowAlpha * 0.34f));
+            r.drawGradientRoundedOutline(x - 2.4f, y - 2.4f, w + 4.8f, h + 4.8f, radius + 2.4f, thickness + 1.8f,
+                    AxsesTheme.withAlpha(primaryArgb, glowAlpha * 0.22f),
+                    AxsesTheme.withAlpha(accentArgb, glowAlpha * 0.22f));
+            r.drawGradientRoundedOutline(x - 1.1f, y - 1.1f, w + 2.2f, h + 2.2f, radius + 1.1f, thickness + 0.9f,
+                    AxsesTheme.withAlpha(primaryArgb, glowAlpha * 0.42f),
+                    AxsesTheme.withAlpha(accentArgb, glowAlpha * 0.42f));
         }
-        r.drawRoundedOutline(x - 0.7f, y - 0.7f, w + 1.4f, h + 1.4f, radius + 0.7f, 1.0f, 0x9603050C);
+        r.drawRoundedOutline(x - 0.6f, y - 0.6f, w + 1.2f, h + 1.2f, radius + 0.6f, 1.0f, 0xA802040B);
         r.drawGradientRoundedOutline(x, y, w, h, radius, thickness, primaryArgb, accentArgb);
         if (w > radius * 2f + 6f) {
-            fillHorizontalGradient(r, x + radius + 1f, y + 1.0f, w - radius * 2f - 2f, 0.9f, 0x36FFFFFF, 0x10FFFFFF);
+            fillHorizontalGradient(r, x + radius + 1f, y + 1.0f, w - radius * 2f - 2f, 1.0f, 0x46FFFFFF, 0x14FFFFFF);
         }
     }
 
     /**
-     * Projects and renders a smooth 12-edge anti-aliased 3D neon prism contour in world space.
+     * Projects and renders a volumetric 3D Chams prism (translucent glowing faces + smooth 12-edge neon contour).
      */
     public static void draw3dNeonPrism(
             RenderAdapter r, MinecraftAdapter mc,
             double minX, double minY, double minZ,
             double maxX, double maxY, double maxZ,
             float strokeWidth, int topColor, int bottomColor, boolean glow
+    ) {
+        draw3dVolumetricPrism(r, mc, minX, minY, minZ, maxX, maxY, maxZ, strokeWidth, topColor, bottomColor, glow ? 0.15f : 0.0f, glow);
+    }
+
+    public static void draw3dVolumetricPrism(
+            RenderAdapter r, MinecraftAdapter mc,
+            double minX, double minY, double minZ,
+            double maxX, double maxY, double maxZ,
+            float strokeWidth, int topColor, int bottomColor, float chamsAlpha, boolean glow
     ) {
         if (mc == null) return;
         double[][] pts = new double[][] {
@@ -131,14 +179,28 @@ public final class RenderManager {
                 return;
             }
         }
+
+        int midCol = blendArgb(bottomColor, topColor, 0.5f);
+        if (chamsAlpha > 0.005f) {
+            int sideFill = AxsesTheme.withAlpha(midCol, chamsAlpha * 0.72f);
+            int topFill = AxsesTheme.withAlpha(topColor, chamsAlpha);
+            int botFill = AxsesTheme.withAlpha(bottomColor, chamsAlpha * 0.55f);
+            // Bottom + 4 vertical faces + Top face
+            r.fillQuad(sp[0][0], sp[0][1], sp[1][0], sp[1][1], sp[2][0], sp[2][1], sp[3][0], sp[3][1], botFill);
+            r.fillQuad(sp[0][0], sp[0][1], sp[1][0], sp[1][1], sp[5][0], sp[5][1], sp[4][0], sp[4][1], sideFill);
+            r.fillQuad(sp[1][0], sp[1][1], sp[2][0], sp[2][1], sp[6][0], sp[6][1], sp[5][0], sp[5][1], sideFill);
+            r.fillQuad(sp[2][0], sp[2][1], sp[3][0], sp[3][1], sp[7][0], sp[7][1], sp[6][0], sp[6][1], sideFill);
+            r.fillQuad(sp[3][0], sp[3][1], sp[0][0], sp[0][1], sp[4][0], sp[4][1], sp[7][0], sp[7][1], sideFill);
+            r.fillQuad(sp[4][0], sp[4][1], sp[5][0], sp[5][1], sp[6][0], sp[6][1], sp[7][0], sp[7][1], topFill);
+        }
+
         int[][] bottomEdges = {{0, 1}, {1, 2}, {2, 3}, {3, 0}};
         int[][] topEdges = {{4, 5}, {5, 6}, {6, 7}, {7, 4}};
         int[][] pillars = {{0, 4}, {1, 5}, {2, 6}, {3, 7}};
 
-        int glowBot = AxsesTheme.withAlpha(bottomColor, 0.42f);
-        int glowTop = AxsesTheme.withAlpha(topColor, 0.42f);
-        int midCol = blendArgb(bottomColor, topColor, 0.5f);
-        int glowMid = AxsesTheme.withAlpha(midCol, 0.40f);
+        int glowBot = AxsesTheme.withAlpha(bottomColor, 0.48f);
+        int glowTop = AxsesTheme.withAlpha(topColor, 0.48f);
+        int glowMid = AxsesTheme.withAlpha(midCol, 0.45f);
 
         for (int i = 0; i < 4; i++) {
             float[] a = sp[bottomEdges[i][0]], b = sp[bottomEdges[i][1]];
@@ -162,41 +224,39 @@ public final class RenderManager {
         float rad = t.getCornerRadius();
         int prim = themeManager.filterColor(t.getPrimaryColor());
         int acc = themeManager.filterColor(t.getAccentColor());
-        if (t.getShadowIntensity() > 0.02f) {
-            r.drawShadow(x, y, w, h, rad, t.getShadowIntensity() * 0.70f, active ? prim : 0x000000);
+        if (active) {
+            drawFrostedGlassPanel(r, x, y, w, h, rad, prim, acc, t.getOpacity(), 0.72f + hoverProgress * 0.25f);
+            return;
         }
-        int baseColor = active ? t.getElevatedColor() : t.getSurfaceColor();
-        int fill = AxsesTheme.withAlpha(themeManager.filterColor(baseColor), t.getOpacity());
+        if (t.getShadowIntensity() > 0.02f) {
+            r.drawShadow(x, y, w, h, rad, t.getShadowIntensity() * 0.72f, 0x000000);
+        }
+        int fill = AxsesTheme.withAlpha(themeManager.filterColor(t.getSurfaceColor()), t.getOpacity());
         r.fillRoundedRect(x, y, w, h, rad, fill);
-
-        // Top glass sheen
-        r.fillRect(x + rad, y + 1.0f, Math.max(4f, w - rad * 2f), 1.0f, 0x22FFFFFF);
+        r.fillRoundedRect(x + 1.2f, y + 1.0f, Math.max(2f, w - 2.4f), Math.min(9f, h * 0.36f), Math.max(1f, rad - 1f), 0x10FFFFFF);
 
         if (hoverProgress > 0.01f) {
-            int hoverTint = AxsesTheme.withAlpha(prim, 0.14f * hoverProgress);
-            r.fillRoundedRect(x, y, w, h, rad, hoverTint);
+            fillRoundedHorizontalGradient(r, x + 1f, y + 1f, w - 2f, h - 2f, Math.max(1f, rad - 1f),
+                    AxsesTheme.withAlpha(prim, 0.16f * hoverProgress),
+                    AxsesTheme.withAlpha(acc, 0.12f * hoverProgress));
         }
 
-        if (active) {
-            drawHyperionContour(r, x, y, w, h, rad, 1.35f,
-                    AxsesTheme.withAlpha(prim, 0.95f), AxsesTheme.withAlpha(acc, 0.98f), 0.45f);
-        } else {
-            int c1 = AxsesTheme.withAlpha(themeManager.filterColor(t.getMutedColor()), highContrastBorders ? 0.68f : 0.34f);
-            int c2 = AxsesTheme.withAlpha(prim, highContrastBorders ? 0.55f : 0.24f);
-            r.drawGradientRoundedOutline(x, y, w, h, rad, highContrastBorders ? 1.3f : 1.05f, c1, c2);
-        }
+        int c1 = AxsesTheme.withAlpha(themeManager.filterColor(t.getMutedColor()), highContrastBorders ? 0.72f : 0.38f);
+        int c2 = AxsesTheme.withAlpha(prim, highContrastBorders ? 0.60f : 0.28f);
+        r.drawGradientRoundedOutline(x, y, w, h, rad, highContrastBorders ? 1.3f : 1.08f, c1, c2);
     }
 
     public void drawToggleSwitch(RenderAdapter r, float x, float y, float w, float h, float animProgress) {
         AxsesTheme t = themeManager.getActiveTheme();
         float k = Math.max(0f, Math.min(1f, animProgress));
         float rad = h * 0.5f;
-        int offCol = AxsesTheme.withAlpha(0xFF12182A, 0.96f);
+        int offCol = AxsesTheme.withAlpha(0xFF0E1428, 0.96f);
         int onPrimary = themeManager.filterColor(t.getPrimaryColor());
         int onAccent = themeManager.filterColor(t.getAccentColor());
 
         if (k > 0.08f) {
-            r.fillRoundedRect(x - 1.5f, y - 1.5f, w + 3.0f, h + 3.0f, rad + 1.5f, AxsesTheme.withAlpha(onAccent, 0.24f * k));
+            r.fillRoundedRect(x - 2.6f, y - 2.4f, w + 5.2f, h + 4.8f, rad + 2.5f, AxsesTheme.withAlpha(onAccent, 0.22f * k));
+            r.fillRoundedRect(x - 1.2f, y - 1.2f, w + 2.4f, h + 2.4f, rad + 1.2f, AxsesTheme.withAlpha(onPrimary, 0.32f * k));
         }
         if (k > 0.05f) {
             fillRoundedHorizontalGradient(r, x, y, w, h, rad,
@@ -205,34 +265,39 @@ public final class RenderManager {
         } else {
             r.fillRoundedRect(x, y, w, h, rad, offCol);
         }
-        r.drawRoundedOutline(x, y, w, h, rad, 1.0f, k > 0.45f ? AxsesTheme.withAlpha(onAccent, 0.90f) : 0x3D94A3B8);
+        r.drawRoundedOutline(x, y, w, h, rad, 1.1f, k > 0.45f ? AxsesTheme.withAlpha(0xFFFFFFFF, 0.55f) : 0x3D94A3B8);
 
-        float knobSize = h - 4.0f;
-        float knobX = x + 2.0f + (w - knobSize - 4.0f) * k;
-        r.fillRoundedRect(knobX, y + 2.0f, knobSize, knobSize, knobSize * 0.5f, 0xFFFFFFFF);
+        float knobSize = h - 3.6f;
+        float knobX = x + 1.8f + (w - knobSize - 3.6f) * k;
+        float knobY = y + 1.8f;
+        if (k > 0.25f) {
+            r.fillRoundedRect(knobX - 1.2f, knobY - 1.2f, knobSize + 2.4f, knobSize + 2.4f, (knobSize + 2.4f) * 0.5f, AxsesTheme.withAlpha(0xFFFFFFFF, 0.32f * k));
+        }
+        r.fillRoundedRect(knobX, knobY, knobSize, knobSize, knobSize * 0.5f, 0xFFFFFFFF);
         if (k > 0.45f) {
-            r.fillRect(knobX + knobSize * 0.5f - 1.0f, y + h * 0.5f - 1.0f, 2.0f, 2.0f, onPrimary);
+            r.fillRoundedRect(knobX + knobSize * 0.5f - 1.5f, y + h * 0.5f - 1.5f, 3.0f, 3.0f, 1.5f, onPrimary);
         }
     }
 
     public void drawSlider(RenderAdapter r, float x, float y, float w, float h, float normalized) {
         AxsesTheme t = themeManager.getActiveTheme();
         float norm = Math.max(0.0f, Math.min(1.0f, normalized));
-        float trackH = Math.max(5.0f, h * 0.48f);
+        float trackH = Math.max(5.5f, h * 0.50f);
         float ty = y + (h - trackH) * 0.5f;
 
-        r.fillRoundedRect(x, ty, w, trackH, trackH * 0.5f, 0xEE080C1A);
-        r.drawRoundedOutline(x, ty, w, trackH, trackH * 0.5f, 1.0f, 0x2AFFFFFF);
+        r.fillRoundedRect(x, ty, w, trackH, trackH * 0.5f, 0xEE060A18);
+        r.drawRoundedOutline(x, ty, w, trackH, trackH * 0.5f, 1.0f, 0x2E94A3B8);
 
         float fillW = Math.max(trackH, w * norm);
         int c1 = themeManager.filterColor(t.getPrimaryColor());
         int c2 = themeManager.filterColor(t.getAccentColor());
+        r.fillRoundedRect(x - 1.0f, ty - 1.0f, fillW + 2.0f, trackH + 2.0f, (trackH + 2.0f) * 0.5f, AxsesTheme.withAlpha(c2, 0.22f));
         fillRoundedHorizontalGradient(r, x, ty, fillW, trackH, trackH * 0.5f, c1, c2);
 
-        float knobX = x + w * norm - 5.0f;
-        r.fillRoundedRect(knobX - 1.5f, y - 0.5f, 13.0f, h + 1.0f, (h + 1.0f) * 0.5f, AxsesTheme.withAlpha(c2, 0.30f));
-        r.fillRoundedRect(knobX, y + 1.0f, 10.0f, h - 2.0f, (h - 2.0f) * 0.5f, 0xFFFFFFFF);
-        r.fillRoundedRect(knobX + 3.0f, y + 3.5f, 4.0f, Math.max(2.0f, h - 7.0f), 2.0f, c1);
+        float knobX = x + w * norm - 5.5f;
+        r.fillRoundedRect(knobX - 2.2f, y - 1.2f, 15.4f, h + 2.4f, (h + 2.4f) * 0.5f, AxsesTheme.withAlpha(c2, 0.34f));
+        r.fillRoundedRect(knobX, y + 0.8f, 11.0f, h - 1.6f, (h - 1.6f) * 0.5f, 0xFFFFFFFF);
+        r.fillRoundedRect(knobX + 3.2f, y + 3.2f, 4.6f, Math.max(2.4f, h - 6.4f), 2.3f, c1);
     }
 
     public void renderNotifications(RenderAdapter r, NotificationManager nm, float deltaSeconds, float animSpeed, boolean reducedMotion) {
@@ -242,15 +307,16 @@ public final class RenderManager {
         }
         AxsesTheme t = themeManager.getActiveTheme();
         long now = System.currentTimeMillis();
-        float cardW = 224.0f;
-        float cardH = 40.0f;
+        float cardW = 232.0f;
+        float cardH = 42.0f;
         float baseRight = r.getScaledWidth() - 10.0f;
-        float currentBottom = r.getScaledHeight() - 48.0f;
+        float currentBottom = r.getScaledHeight() - 50.0f;
+        int prim = themeManager.filterColor(t.getPrimaryColor());
 
         for (int i = active.size() - 1; i >= 0; i--) {
             NotificationManager.NotificationEntry n = active.get(i);
             float vis = Math.max(0.0f, Math.min(1.0f, n.updateVisibility(now, 0.0f, animSpeed, reducedMotion)));
-            float slideOffset = reducedMotion ? 0.0f : (1.0f - vis) * 44.0f;
+            float slideOffset = reducedMotion ? 0.0f : (1.0f - vis) * 48.0f;
             float x = baseRight - cardW + slideOffset;
             float y = currentBottom - cardH;
 
@@ -271,39 +337,36 @@ public final class RenderManager {
                     break;
                 default:
                     accent = themeManager.filterColor(t.getAccentColor());
-                    icon = "⚡";
+                    icon = "✦";
                     break;
             }
-            r.drawShadow(x, y, cardW, cardH, 7.0f, 0.65f * vis, 0x000000);
-            int bg = AxsesTheme.withAlpha(t.getBackgroundColor(), 0.96f * vis);
-            r.fillRoundedRect(x, y, cardW, cardH, 7.0f, bg);
-            fillHorizontalGradient(r, x + 6.0f, y + 1.0f, cardW - 12.0f, 1.5f,
-                    AxsesTheme.withAlpha(themeManager.filterColor(t.getPrimaryColor()), vis),
-                    AxsesTheme.withAlpha(accent, vis));
-            r.drawRoundedOutline(x, y, cardW, cardH, 7.0f, 1.0f, AxsesTheme.withAlpha(accent, 0.78f * vis));
+            drawFrostedGlassPanel(r, x, y, cardW, cardH, 10.5f, AxsesTheme.withAlpha(prim, vis), AxsesTheme.withAlpha(accent, vis), 0.94f * vis, 0.85f * vis);
 
-            // Left icon badge
-            r.fillRoundedRect(x + 8.0f, y + 9.0f, 20.0f, 20.0f, 5.0f, AxsesTheme.withAlpha(accent, 0.22f * vis));
-            fontManager.drawCentered(r, icon, x + 18.0f, y + 15.0f, AxsesTheme.withAlpha(accent, vis), 1.0f);
+            // Glowing gradient icon gem
+            fillRoundedHorizontalGradient(r, x + 8.0f, y + 9.0f, 22.0f, 22.0f, 7.0f,
+                    AxsesTheme.withAlpha(prim, 0.85f * vis), AxsesTheme.withAlpha(accent, 0.92f * vis));
+            fontManager.drawCentered(r, icon, x + 19.0f, y + 15.5f, AxsesTheme.withAlpha(0xFFFFFFFF, vis), 1.0f);
 
-            // Progress bar along bottom
-            r.fillRect(x + 6.0f, y + cardH - 2.5f, (cardW - 12.0f) * n.getRemainingFraction(now), 2.0f, AxsesTheme.withAlpha(accent, vis));
+            // Liquid progress bar along bottom
+            float progW = Math.max(4.0f, (cardW - 18.0f) * n.getRemainingFraction(now));
+            fillRoundedHorizontalGradient(r, x + 9.0f, y + cardH - 4.0f, progW, 2.4f, 1.2f,
+                    AxsesTheme.withAlpha(prim, vis), AxsesTheme.withAlpha(accent, vis));
 
-            fontManager.draw(r, n.getTitle(), x + 34.0f, y + 7.5f, AxsesTheme.withAlpha(accent, vis), 0.90f);
-            fontManager.draw(r, n.getMessage(), x + 34.0f, y + 20.5f, AxsesTheme.withAlpha(t.getTextColor(), vis), 0.85f);
+            fontManager.draw(r, n.getTitle(), x + 36.0f, y + 7.5f, AxsesTheme.withAlpha(0xFFFFFFFF, vis), 0.92f);
+            fontManager.draw(r, n.getMessage(), x + 36.0f, y + 21.0f, AxsesTheme.withAlpha(0xFFCBD5E1, vis), 0.84f);
 
-            currentBottom -= (cardH + 6.0f);
+            currentBottom -= (cardH + 7.0f);
         }
     }
 
     public static int blendArgb(int c1, int c2, float t) {
         float k = Math.max(0.0f, Math.min(1.0f, t));
-        int a1 = (c1 >>> 24) & 0xFF, r1 = (c1 >>> 16) & 0xFF, g1 = (c1 >>> 8) & 0xFF, b1 = c1 & 0xFF;
-        int a2 = (c2 >>> 24) & 0xFF, r2 = (c2 >>> 16) & 0xFF, g2 = (c2 >>> 8) & 0xFF, b2 = c2 & 0xFF;
+        int a1 = (c1 >>> 24) & 0xFF, r1 = (c1 >> 16) & 0xFF, g1 = (c1 >> 8) & 0xFF, b1 = c1 & 0xFF;
+        int a2 = (c2 >>> 24) & 0xFF, r2 = (c2 >> 16) & 0xFF, g2 = (c2 >> 8) & 0xFF, b2 = c2 & 0xFF;
         int a = Math.round(a1 + (a2 - a1) * k);
         int r = Math.round(r1 + (r2 - r1) * k);
         int g = Math.round(g1 + (g2 - g1) * k);
         int b = Math.round(b1 + (b2 - b1) * k);
-        return (a << 24) | (r << 16) | (g << 8) | b;
+        return ((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
     }
 }

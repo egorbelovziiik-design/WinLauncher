@@ -376,9 +376,61 @@ public interface RenderAdapter {
     default void drawNeonLine(float x1, float y1, float x2, float y2, float thickness, int coreArgb, int glowArgb) {
         int glowA = (glowArgb >>> 24) & 0xFF;
         if (glowA > 4) {
-            drawLine(x1, y1, x2, y2, thickness * 2.6f, ((glowA / 3) << 24) | (glowArgb & 0x00FFFFFF));
-            drawLine(x1, y1, x2, y2, thickness * 1.6f, ((glowA * 2 / 3) << 24) | (glowArgb & 0x00FFFFFF));
+            drawLine(x1, y1, x2, y2, thickness * 3.0f, ((glowA / 3) << 24) | (glowArgb & 0x00FFFFFF));
+            drawLine(x1, y1, x2, y2, thickness * 1.8f, ((glowA * 2 / 3) << 24) | (glowArgb & 0x00FFFFFF));
         }
         drawLine(x1, y1, x2, y2, thickness, coreArgb);
+    }
+
+    default void fillTriangle(float x1, float y1, float x2, float y2, float x3, float y3, int argb) {
+        if (((argb >>> 24) & 0xFF) == 0) return;
+        float sw = getScaledWidth();
+        float sh = getScaledHeight();
+        float minBx = Math.min(x1, Math.min(x2, x3));
+        float maxBx = Math.max(x1, Math.max(x2, x3));
+        float minBy = Math.min(y1, Math.min(y2, y3));
+        float maxBy = Math.max(y1, Math.max(y2, y3));
+        if (maxBx < 0f || minBx > sw || maxBy < 0f || minBy > sh) return;
+        if ((maxBx - minBx) > sw * 2.2f || (maxBy - minBy) > sh * 2.2f) return;
+
+        float s = beginHiDpiSubPixel();
+        try {
+            float ax = x1 * s, ay = y1 * s;
+            float bx = x2 * s, by = y2 * s;
+            float cx = x3 * s, cy = y3 * s;
+            if (ay > by) { float tx = ax; ax = bx; bx = tx; float ty = ay; ay = by; by = ty; }
+            if (by > cy) { float tx = bx; bx = cx; cx = tx; float ty = by; by = cy; cy = ty; }
+            if (ay > by) { float tx = ax; ax = bx; bx = tx; float ty = ay; ay = by; by = ty; }
+            float totalH = cy - ay;
+            if (totalH < 0.5f) return;
+
+            int yStart = Math.max(0, (int) Math.ceil(ay));
+            int yEnd = Math.min(Math.round(sh * s) - 1, (int) Math.floor(cy));
+            int maxPxW = Math.round(sw * s);
+            for (int y = yStart; y <= yEnd; y++) {
+                float py = y + 0.5f;
+                boolean secondHalf = py > by || Math.abs(by - ay) < 0.001f;
+                float segH = secondHalf ? (cy - by) : (by - ay);
+                if (segH < 0.001f) continue;
+                float alpha = (py - ay) / totalH;
+                float beta = secondHalf ? (py - by) / segH : (py - ay) / segH;
+                float lx = ax + (cx - ax) * alpha;
+                float rx = secondHalf ? (bx + (cx - bx) * beta) : (ax + (bx - ax) * beta);
+                if (lx > rx) { float t = lx; lx = rx; rx = t; }
+                int ix0 = Math.max(0, Math.round(lx));
+                int ix1 = Math.min(maxPxW, Math.round(rx));
+                if (ix1 > ix0) {
+                    fillRect(ix0, y, ix1 - ix0, 1, argb);
+                }
+            }
+        } finally {
+            endHiDpiSubPixel();
+        }
+    }
+
+    default void fillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int argb) {
+        if (((argb >>> 24) & 0xFF) == 0) return;
+        fillTriangle(x1, y1, x2, y2, x3, y3, argb);
+        fillTriangle(x1, y1, x3, y3, x4, y4, argb);
     }
 }

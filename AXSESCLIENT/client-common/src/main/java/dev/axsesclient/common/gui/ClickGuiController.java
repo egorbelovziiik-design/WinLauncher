@@ -134,40 +134,44 @@ public final class ClickGuiController {
         int accentCol = core.getThemeManager().filterColor(t.getAccentColor());
         float winRad = 20.0f;
 
-        // Multi-ring curved Celestial Vision glow halo + smoothly rounded 20px outer glass shell
-        RenderManager.drawSoftGlow(r, wx, wy, winW, winH, winRad, 4, primaryCol, 0.24f * openAnim);
-        r.fillRoundedRect(wx - 2.0f, wy - 2.0f, winW + 4.0f, winH + 4.0f, winRad + 2.0f, AxsesTheme.withAlpha(accentCol, 0.16f * openAnim));
-        r.drawShadow(wx, wy, winW, winH, winRad, t.getShadowIntensity(), 0x000000);
-        r.fillRoundedRect(wx, wy, winW, winH, winRad, AxsesTheme.withAlpha(t.getBackgroundColor(), 0.97f));
+        // Ambient floating Aurora bokeh orbs around the frosted glass shell
+        double bokehTime = (System.currentTimeMillis() % 18000L) / 1000.0;
+        for (int b = 0; b < 6; b++) {
+            float ox = wx + (winW * (0.14f + 0.16f * b)) + (float) Math.sin(bokehTime * 0.8 + b * 1.4) * 26.0f;
+            float oy = wy + (b % 2 == 0 ? 34.0f : winH - 36.0f) + (float) Math.cos(bokehTime * 0.7 + b) * 18.0f;
+            float br = 36.0f + (b % 3) * 14.0f;
+            int bCol = b % 2 == 0 ? primaryCol : accentCol;
+            r.fillRoundedRect(ox - br, oy - br, br * 2f, br * 2f, br, AxsesTheme.withAlpha(bCol, 0.09f * openAnim));
+        }
+
+        // Multi-ring curved Celestial Ultra glow halo + smoothly rounded 20px frosted glass shell
+        RenderManager.drawSoftGlow(r, wx, wy, winW, winH, winRad, 5, primaryCol, 0.34f * openAnim);
+        RenderManager.drawFrostedGlassPanel(r, wx, wy, winW, winH, winRad,
+                AxsesTheme.withAlpha(primaryCol, openAnim),
+                AxsesTheme.withAlpha(accentCol, openAnim),
+                0.97f * openAnim, 1.05f * openAnim);
 
         // Subtle curved side glow rails accentuating the rounded left & right walls of the Right-Shift GUI
-        r.fillGradientVertical(wx + 2.0f, wy + 28.0f, 2.0f, winH - 56.0f,
-                AxsesTheme.withAlpha(primaryCol, 0.65f * openAnim), AxsesTheme.withAlpha(accentCol, 0.65f * openAnim));
-        r.fillGradientVertical(wx + winW - 4.0f, wy + 28.0f, 2.0f, winH - 56.0f,
-                AxsesTheme.withAlpha(accentCol, 0.65f * openAnim), AxsesTheme.withAlpha(primaryCol, 0.65f * openAnim));
-        r.fillRect(wx + winRad, wy + 1.0f, winW - winRad * 2.0f, 1.0f, 0x2AFFFFFF);
-        RenderManager.drawHyperionContour(r, wx, wy, winW, winH, winRad, 1.6f,
-                AxsesTheme.withAlpha(primaryCol, 0.95f * openAnim),
-                AxsesTheme.withAlpha(accentCol, 0.96f * openAnim),
-                0.55f * openAnim);
+        r.fillGradientVertical(wx + 2.0f, wy + 28.0f, 2.2f, winH - 56.0f,
+                AxsesTheme.withAlpha(primaryCol, 0.78f * openAnim), AxsesTheme.withAlpha(accentCol, 0.78f * openAnim));
+        r.fillGradientVertical(wx + winW - 4.2f, wy + 28.0f, 2.2f, winH - 56.0f,
+                AxsesTheme.withAlpha(accentCol, 0.78f * openAnim), AxsesTheme.withAlpha(primaryCol, 0.78f * openAnim));
 
         // Floating Curved Top Header Capsule (inset cleanly inside rounded top corners)
         float hdrX = wx + 10.0f;
         float hdrY = wy + 8.0f;
         float hdrW = winW - 20.0f;
         float hdrH = 38.0f;
-        r.fillRoundedRect(hdrX, hdrY, hdrW, hdrH, 14.0f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.98f));
-        RenderManager.fillRoundedHorizontalGradient(r, hdrX + 12.0f, hdrY + 1.0f, hdrW - 24.0f, 2.0f, 1.0f, primaryCol, accentCol);
-        r.drawGradientRoundedOutline(hdrX, hdrY, hdrW, hdrH, 14.0f, 1.15f,
-                AxsesTheme.withAlpha(primaryCol, 0.50f), AxsesTheme.withAlpha(accentCol, 0.45f));
+        RenderManager.drawFrostedGlassPanel(r, hdrX, hdrY, hdrW, hdrH, 14.0f, primaryCol, accentCol, 0.96f, 0.55f);
+        RenderManager.fillRoundedHorizontalGradient(r, hdrX + 14.0f, hdrY + 1.2f, hdrW - 28.0f, 2.2f, 1.1f, primaryCol, accentCol);
 
         // Curved Brand Emblem + Title
         RenderManager.fillRoundedHorizontalGradient(r, hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f,
-                AxsesTheme.withAlpha(primaryCol, 0.65f), AxsesTheme.withAlpha(accentCol, 0.55f));
-        r.drawGradientRoundedOutline(hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f, 1.15f, primaryCol, accentCol);
-        core.getFontManager().drawCentered(r, "AX", hdrX + 21.0f, hdrY + 15.0f, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "AXSES 5.0", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
-        core.getFontManager().draw(r, "HYPERION", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.86f);
+                AxsesTheme.withAlpha(primaryCol, 0.92f), AxsesTheme.withAlpha(accentCol, 0.88f));
+        r.drawRoundedOutline(hdrX + 8.0f, hdrY + 7.0f, 26.0f, 24.0f, 8.5f, 1.1f, 0x88FFFFFF);
+        r.fillQuad(hdrX + 21.0f, hdrY + 13.0f, hdrX + 26.5f, hdrY + 19.0f, hdrX + 21.0f, hdrY + 25.0f, hdrX + 15.5f, hdrY + 19.0f, 0xFFFFFFFF);
+        core.getFontManager().draw(r, "AXSES 6.0", hdrX + 39.0f, hdrY + 9.5f, 0xFFFFFFFF, 0.95f);
+        core.getFontManager().draw(r, "CELESTIAL", hdrX + 39.0f, hdrY + 20.5f, accentCol, 0.86f);
 
         // Right-aligned Stadium-Pill Action Tabs
         String langLabel = i18n.isRussian() ? "RU" : "EN";

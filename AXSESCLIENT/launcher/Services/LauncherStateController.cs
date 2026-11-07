@@ -62,7 +62,7 @@ public sealed class LauncherStateController
         PopularMods = CuratedFabricModSpec.CreatePopularCatalog();
         Profiles = LoadJsonOrDefault(Path.Combine(dataRoot, "profiles", "profiles.json"), CreateDefaultProfiles);
 
-        var defaultCatalog = ModuleCatalogItem.CreateAll120Modules();
+        var defaultCatalog = ModuleCatalogItem.CreateAll124Modules();
         var loadedModules = LoadJsonOrDefault(Path.Combine(dataRoot, "configs", "launcher-modules.json"), () => defaultCatalog);
         Modules = MergeModuleCatalog(defaultCatalog, loadedModules);
 
@@ -98,7 +98,7 @@ public sealed class LauncherStateController
         ModInstaller.RefreshCatalogState(SelectedVersionSpec.MinecraftVersion, PopularMods);
         RefreshJavaStatus();
 
-        AppendConsole($"[AXSES v5.0] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count} • Хаб модов: {PopularMods.Count}");
+        AppendConsole($"[AXSES v6.0] Система готова • ОЗУ ПК: {MemorySnapshot.TotalPhysicalMb} МБ (выделено {Settings.AllocatedRamMb} МБ) • Модулей: {Modules.Count} • Хаб модов: {PopularMods.Count}");
         SaveAllState();
 
         // Automatically download & install missing Java 8 & Java 21 on Windows when AutoInstallJava is active

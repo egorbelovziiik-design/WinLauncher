@@ -211,7 +211,7 @@ public class AxsesCoreTest {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);
 
-        assertEquals(120, core.getModuleManager().getAll().size(), "Must register all 120 modules & GUI features");
+        assertEquals(124, core.getModuleManager().getAll().size(), "Must register all 124 modules & GUI features");
         assertEquals(14, core.getThemeManager().getAllThemes().size(), "Must register all 14 built-in themes");
 
         // Verify Russian search finds FastBridge, BedWars ESP, Contours, KillAura, Baritone, Spotify, FPS & Chat HUD Mover
@@ -440,7 +440,7 @@ public class AxsesCoreTest {
         assertTrue(Math.abs(fps.getPixelX(platform.scaledW) - startFpsX) > 50.0f, "Dragging in Chat must reposition HUD widget");
 
         // Verify Baritone external bridge sends #goto / #stop when Baritone mod is loaded
-        platform.loadedMods = java.util.Arrays.asList("axsesclient@5.0.0", "baritone@1.11.1", "sodium@0.6.5");
+        platform.loadedMods = java.util.Arrays.asList("axsesclient@6.0.0", "baritone@1.11.1", "sodium@0.6.5");
         Module baritone = core.getModuleManager().getById("baritone_bot");
         assertNotNull(baritone);
         baritone.setEnabled(true, platform);
@@ -487,5 +487,24 @@ public class AxsesCoreTest {
         int beforeBedWarsDraws = platform.drawCalls;
         core.onHudRender(platform);
         assertTrue(platform.drawCalls > beforeBedWarsDraws + 40, "BedWars ESP, Fireball Trajectory & Block Contour Pro must emit anti-aliased draw calls");
+
+        // Verify v6.0.0 CELESTIAL ULTRA modules (Custom Glass Hotbar, 3D Swing Animations, World Ambience 3D, Target Strafe 3D)
+        Module customHotbar = core.getModuleManager().getById("custom_hotbar");
+        Module swingAnim = core.getModuleManager().getById("swing_animations");
+        Module worldAmb = core.getModuleManager().getById("world_ambience");
+        Module targetStrafe = core.getModuleManager().getById("target_strafe");
+        assertNotNull(customHotbar);
+        assertNotNull(swingAnim);
+        assertNotNull(worldAmb);
+        assertNotNull(targetStrafe);
+        assertTrue(customHotbar.isEnabled(), "Custom Glass Hotbar must be enabled by default");
+        assertTrue(swingAnim.isEnabled(), "3D Swing Animations must be enabled by default");
+        assertTrue(worldAmb.isEnabled(), "World Ambience 3D must be enabled by default");
+        targetStrafe.setEnabled(true, platform);
+        core.onClientTick();
+        int beforeV6Draws = platform.drawCalls;
+        platform.fillQuad(20f, 20f, 40f, 22f, 38f, 38f, 18f, 36f, 0x8800F5D4);
+        core.onHudRender(platform);
+        assertTrue(platform.drawCalls > beforeV6Draws + 50, "v6.0 Celestial Ultra Glass Hotbar, Chams & 3D Ambience must emit rich draw calls");
     }
 }

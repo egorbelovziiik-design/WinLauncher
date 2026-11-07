@@ -33,7 +33,7 @@ import java.nio.file.Path;
 public final class AxsesCore {
     public static final String PRODUCT_NAME = "AXSESCLIENT";
     public static final String CODENAME = "HYPERION APEX";
-    public static final String VERSION = "5.0.0";
+    public static final String VERSION = "6.0.0";
 
     private static volatile AxsesCore instance;
 

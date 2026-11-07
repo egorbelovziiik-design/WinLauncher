@@ -681,10 +681,12 @@ public final class BedWarsAndContourModulesRegistry {
                         if (pLow != null && pHigh != null && pLow[2] > 0.1f && pHigh[2] > 0.1f) {
                             int wave = themes.getAuroraWaveColor(idx * 0.22f);
                             if (hasPrev) {
-                                r.drawNeonLine(prevLowX, prevLowY, pLow[0], pLow[1], 1.7f,
-                                        AxsesTheme.withAlpha(wave, 0.85f * ageFrac), AxsesTheme.withAlpha(wave, 0.35f * ageFrac));
-                                r.drawNeonLine(prevHighX, prevHighY, pHigh[0], pHigh[1], 1.3f,
-                                        AxsesTheme.withAlpha(wave, 0.65f * ageFrac), AxsesTheme.withAlpha(wave, 0.25f * ageFrac));
+                                r.fillQuad(prevLowX, prevLowY, pLow[0], pLow[1], pHigh[0], pHigh[1], prevHighX, prevHighY,
+                                        AxsesTheme.withAlpha(wave, 0.24f * ageFrac));
+                                r.drawNeonLine(prevLowX, prevLowY, pLow[0], pLow[1], 1.85f,
+                                        AxsesTheme.withAlpha(wave, 0.92f * ageFrac), AxsesTheme.withAlpha(wave, 0.42f * ageFrac));
+                                r.drawNeonLine(prevHighX, prevHighY, pHigh[0], pHigh[1], 1.45f,
+                                        AxsesTheme.withAlpha(wave, 0.75f * ageFrac), AxsesTheme.withAlpha(wave, 0.30f * ageFrac));
                             }
                             prevLowX = pLow[0]; prevLowY = pLow[1];
                             prevHighX = pHigh[0]; prevHighY = pHigh[1];
@@ -706,6 +708,53 @@ public final class BedWarsAndContourModulesRegistry {
             }
         });
         neonTrailsMod.setFavorite(true);
+
+        // 124. 3D Hand & Sword ViewModel Animations (Анимации Рук и Меча 3D)
+        Module swingAnimMod = mm.register(new Module("swing_animations", "3D Hand & Sword Animations", "Custom first-person sword swing styles, compact viewmodel scale/offsets, and neon slash arc", ModuleCategory.RENDER, true, KeyCodes.KEY_NONE, false) {
+            private final ModeSetting style = addSetting(new ModeSetting("anim_style", "Swing Style", "First-person weapon animation preset",
+                    "Celestial Smooth", "Celestial Smooth", "Nursultan Spin", "Blockhit Classic", "Glide Low", "Exhibition"));
+            private final NumberSetting vmScale = addSetting(new NumberSetting("vm_scale", "ViewModel Scale", "First-person held item scale", 0.86, 0.50, 1.40, 0.02));
+            private final NumberSetting vmX = addSetting(new NumberSetting("vm_x", "Offset X", "Horizontal hand offset", 0.10, -0.60, 0.60, 0.02));
+            private final NumberSetting vmY = addSetting(new NumberSetting("vm_y", "Offset Y", "Vertical hand offset", -0.06, -0.60, 0.60, 0.02));
+            private final BooleanSetting slashArc = addSetting(new BooleanSetting("slash_arc", "Neon Slash Trail", "Render glowing Aurora slash ribbon during weapon swing", true));
+
+            @Override
+            public void onRender(RenderAdapter r, MinecraftAdapter mc, float dt) {
+                if (!slashArc.isEnabled() || mc == null || !mc.isInWorld() || mc.isClickGuiOpen() || mc.getPerspective() != 0) return;
+                float cd = mc.getAttackCooldownProgress();
+                if (cd >= 0.93f) return;
+                float prog = 1.0f - cd;
+                float sw = r.getScaledWidth();
+                float sh = r.getScaledHeight();
+                float cx = sw * 0.68f + vmX.getFloat() * 48.0f;
+                float cy = sh * 0.72f - vmY.getFloat() * 42.0f;
+                float rad = 46.0f * vmScale.getFloat();
+                int segs = 10;
+                float prevX = 0f, prevY = 0f;
+                for (int i = 0; i <= segs; i++) {
+                    float t = i / (float) segs;
+                    double ang = -2.25 + (t * 1.45) - prog * 0.65;
+                    float px = cx + (float) Math.cos(ang) * rad;
+                    float py = cy + (float) Math.sin(ang) * (rad * 0.62f);
+                    if (i > 0) {
+                        int col = themes.getAuroraWaveColor(i * 0.25f);
+                        float alpha = (1.0f - prog * 0.7f) * (1.0f - Math.abs(t - 0.5f));
+                        r.drawNeonLine(prevX, prevY, px, py, 2.4f * (1.0f - t * 0.4f),
+                                AxsesTheme.withAlpha(0xFFFFFFFF, alpha * 0.85f),
+                                AxsesTheme.withAlpha(col, alpha * 0.70f));
+                    }
+                    prevX = px;
+                    prevY = py;
+                }
+            }
+
+            @Override
+            public String getHudBadgeText(MinecraftAdapter mc) {
+                String st = i18n != null ? i18n.optionName(style.getValue()) : style.getValue();
+                return ((i18n != null && i18n.isRussian()) ? "Руки: " : "Hands: ") + st;
+            }
+        });
+        swingAnimMod.setFavorite(true);
     }
 
     private static int findHotbarItemByKeyword(MinecraftAdapter mc, String kw) {
@@ -794,12 +843,13 @@ public final class BedWarsAndContourModulesRegistry {
             sp[i] = mc.projectWorldToScreen(quad[i][0], quad[i][1], quad[i][2]);
             if (sp[i] == null || sp[i][2] <= 0.1f) return;
         }
-        int bright = 0xCCFFFFFF;
-        int glow = AxsesTheme.withAlpha(col, 0.55f);
+        int bright = 0xEEFFFFFF;
+        int glow = AxsesTheme.withAlpha(col, 0.58f);
+        r.fillQuad(sp[0][0], sp[0][1], sp[1][0], sp[1][1], sp[2][0], sp[2][1], sp[3][0], sp[3][1], AxsesTheme.withAlpha(col, 0.22f));
         for (int i = 0; i < 4; i++) {
             float[] a = sp[i];
             float[] b = sp[(i + 1) % 4];
-            r.drawNeonLine(a[0], a[1], b[0], b[1], 1.4f, bright, glow);
+            r.drawNeonLine(a[0], a[1], b[0], b[1], 1.55f, bright, glow);
         }
     }
 

@@ -229,6 +229,12 @@ public final class LocalizationManager {
         putMod(ru, "invis_armor_detector", "Детектор Инвизок и Угроз", "Яркий неоновый контур на невидимых игроках + теги опасных предметов в руках (ТНТ, Фаербол, Обсидиан, Перл)");
         putMod(ru, "neon_halo_trails", "Неоновый Шлейф и Нимб", "Плавная сглаженная двойная 3D-лента за игроком и вращающийся кибер-нимб над целью");
 
+        // v6.0.0 CELESTIAL HYPERION ULTRA — Non-Vanilla Glass HUD, Chams & 3D ViewModel Suite (121..124)
+        putMod(ru, "custom_hotbar", "Кастомный Хотбар и ХП", "Стеклянный 9-слотовый док вместо ванильного хотбара с пружинным селектором, тотемом и жидкими полосками ХП/Брони");
+        putMod(ru, "world_ambience", "Атмосфера и Светлячки 3D", "Парящие в 3D-мире неоновые сферы вокруг игрока и атмосферное северное сияние");
+        putMod(ru, "target_strafe", "Таргет Стрейф 3D", "Безопасное круговое движение вокруг цели с защитой от бездны и 3D плазменным кольцом орбиты");
+        putMod(ru, "swing_animations", "Анимации Рук и Меча 3D", "Кастомные стили взмаха меча (Celestial, Nursultan, Blockhit), компактный масштаб рук и неоновая дуга удара");
+
         dictionaries.put("ru_RU", ru);
         initSettingAndOptionTranslations();
     }
@@ -352,6 +358,18 @@ public final class LocalizationManager {
         ruSettings.put("auto_block_slot", "Автовыбор блоков в падении");
         ruSettings.put("threat_tags", "Теги ТНТ / Фаерболов");
         ruSettings.put("trail_points", "Длина неоновой ленты");
+        ruSettings.put("show_status_bars", "Жидкие полоски ХП и Брони");
+        ruSettings.put("show_offhand_dock", "Капсула тотема слева");
+        ruSettings.put("orb_count", "Количество 3D-светлячков");
+        ruSettings.put("horizon_glow", "Сияние горизонта");
+        ruSettings.put("orbit_radius", "Радиус орбиты (м)");
+        ruSettings.put("void_flip", "Реверс у бездны");
+        ruSettings.put("render_ring", "3D Плазменное кольцо");
+        ruSettings.put("anim_style", "Стиль взмаха меча");
+        ruSettings.put("vm_scale", "Масштаб предмета");
+        ruSettings.put("vm_x", "Сдвиг руки X");
+        ruSettings.put("vm_y", "Сдвиг руки Y");
+        ruSettings.put("slash_arc", "Неоновая дуга удара");
         ruSettings.put("target_halo", "Кибер-нимб над целью");
 
         // Dropdown / Mode values in Russian
@@ -416,6 +434,11 @@ public final class LocalizationManager {
         ruOptions.put("Bottom", "Снизу экрана");
         ruOptions.put("Crosshair", "От прицела");
         ruOptions.put("Theme", "По теме");
+        ruOptions.put("Celestial Smooth", "Плавный Celestial");
+        ruOptions.put("Nursultan Spin", "Вращение Nursultan");
+        ruOptions.put("Blockhit Classic", "Блокхит 1.8");
+        ruOptions.put("Glide Low", "Низкий Глайд");
+        ruOptions.put("Exhibition", "Эксхибишн");
     }
 
     private static void putMod(Map<String, String> dict, String id, String name, String desc) {
