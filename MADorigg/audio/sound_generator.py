@@ -553,11 +553,196 @@ def build_sfx_library() -> Dict[str, np.ndarray]:
     return library
 
 
+
+# --------------------------------------------------------------------------- #
+# Gypsy / tsigane dance tune (the wallpaper song)
+# --------------------------------------------------------------------------- #
+
+GYPSY_BPM: float = 150.0
+D4: float = 293.66
+
+
+def _gypsy_violin(freq: float, duration: float) -> np.ndarray:
+    """Bowed string with vibrato - the lead voice of the tune."""
+    t = _t(duration)
+    vib = 0.006 * np.sin(2.0 * np.pi * 6.2 * t + 0.7)
+    phase = 2.0 * np.pi * np.cumsum(freq * (1.0 + vib)) / SR
+    body = (
+        np.sin(phase)
+        + 0.50 * np.sin(2.0 * phase)
+        + 0.30 * np.sin(3.0 * phase)
+        + 0.16 * np.sin(4.0 * phase)
+        + 0.09 * np.sin(5.0 * phase)
+    )
+    bow = _fft_filter(_noise(len(t)), low=2000.0, high=7000.0) * 0.05
+    env = np.minimum(1.0, t / 0.025) * np.clip((duration - t) / 0.045, 0.0, 1.0)
+    return _normalize((body * 0.55 + bow) * env, 0.8)
+
+
+def _gypsy_pluck(freq: float, duration: float) -> np.ndarray:
+    """Cimbalom / guitar string: bright, fast decaying harmonics."""
+    t = _t(duration)
+    phase = 2.0 * np.pi * freq * t
+    tone = np.zeros(len(t))
+    for k in range(1, 8):
+        tone += (0.62 ** (k - 1)) * np.sin(phase * k + 0.4 * k)
+    env = np.exp(-t * 7.5) * np.minimum(1.0, t / 0.004)
+    return _normalize(tone * env, 0.7)
+
+
+def _gypsy_bass(freq: float, duration: float) -> np.ndarray:
+    """Round double-bass thump on the downbeats."""
+    t = _t(duration)
+    phase = 2.0 * np.pi * freq * t
+    tone = np.sin(phase) + 0.35 * np.sin(2.0 * phase) + 0.12 * np.sin(3.0 * phase)
+    env = np.minimum(1.0, t / 0.008) * np.exp(-t * 3.2)
+    return _normalize(tone * env, 0.85)
+
+
+def _gypsy_tambourine(duration: float = 0.16) -> np.ndarray:
+    """Shaken jingles - the engine of the rhythm."""
+    t = _t(duration)
+    jingle = _fft_filter(_noise(len(t)), low=4500.0, high=12000.0)
+    body = _fft_filter(_noise(len(t)), low=220.0, high=1300.0) * 0.35
+    return _normalize((jingle + body) * np.exp(-t * 26.0), 0.7)
+
+
+def _gypsy_clap(duration: float = 0.14) -> np.ndarray:
+    """Sharp clap on beats two and four."""
+    t = _t(duration)
+    noise = _fft_filter(_noise(len(t)), low=900.0, high=4200.0)
+    env = np.exp(-t * 38.0) * np.minimum(1.0, t / 0.003)
+    return _normalize(noise * env, 0.7)
+
+
+def _gypsy_shout(duration: float = 0.5) -> np.ndarray:
+    """Crude formant-stacked shout: the 'ОПА!' accent."""
+    t = _t(duration)
+    f0 = 230.0 * np.exp(-t * 1.4) + 40.0
+    phase = 2.0 * np.pi * np.cumsum(f0) / SR
+    source = np.zeros(len(t))
+    for k in range(1, 14):
+        source += np.sin(k * phase) / k
+    out = (
+        _fft_filter(source, low=560.0, high=900.0)
+        + 0.6 * _fft_filter(source, low=1000.0, high=1400.0)
+        + 0.3 * _fft_filter(source, low=2200.0, high=2900.0)
+    )
+    env = np.minimum(1.0, t / 0.02) * np.exp(-t * 5.5)
+    return _normalize(out * env, 0.75)
+
+
+# D harmonic minor phrases (semitones above D5).
+_GYPSY_PHRASES: tuple = (
+    (0, 3, 5, 7, 8, 7, 5, 3),
+    (7, 8, 10, 12, 10, 8, 7, 5),
+    (12, 10, 8, 7, 5, 3, 2, 0),
+    (2, 0, -1, -1, 3, 2, 0, -1),
+)
+
+
+def generate_gypsy_theme(
+    bpm: float = GYPSY_BPM, bars: int = 12, seed: int = 777
+) -> np.ndarray:
+    """~20 s gypsy dance tune: violin lead, cimbalom, bass, tambourine, shouts."""
+    rng = np.random.default_rng(seed)
+    beat = 60.0 / bpm
+    bar_len = 4.0 * beat
+    total = bars * bar_len + 0.8
+    buffer = np.zeros(int(total * SR) + 1)
+
+    def add(signal: np.ndarray, at: float, gain: float = 1.0) -> None:
+        index = int(at * SR)
+        if index >= len(buffer):
+            return
+        end = min(len(buffer), index + len(signal))
+        buffer[index:end] += signal[: end - index] * gain
+
+    tambourine = _gypsy_tambourine()
+    clap = _gypsy_clap()
+    shout = _gypsy_shout()
+
+    # (bass root, third, fifth) semitones above D3 for Dm | Gm | A7 | Dm.
+    chords = ((0, 3, 7), (5, 8, 12), (7, 11, 14), (0, 3, 7))
+    roots = (146.83, 146.83, 196.0, 220.0)
+
+    for bar in range(bars):
+        start = bar * bar_len
+        prog = bar % 4
+        third, fifth = chords[prog][1], chords[prog][2]
+        root_semis = chords[prog][0]
+        bass_freq = roots[prog]
+
+        # Bass: "тык" on 1 and 3.
+        add(_gypsy_bass(bass_freq, beat * 0.9), start, 0.60)
+        add(_gypsy_bass(bass_freq, beat * 0.9), start + 2.0 * beat, 0.52)
+
+        # Cimbalom stabs: "дын" on 2 and 4, lighter offbeats between.
+        for when in (1.0, 3.0):
+            for semis in (third, fifth, third + 12):
+                add(
+                    _gypsy_pluck(_semitones(D4, semis), beat * 0.55),
+                    start + when * beat, 0.16,
+                )
+        for when in (0.5, 1.5, 2.5, 3.5):
+            for semis in (root_semis + 12, fifth + 12):
+                add(
+                    _gypsy_pluck(_semitones(D4, semis), beat * 0.32),
+                    start + when * beat, 0.10,
+                )
+
+        # Tambourine on every eighth, claps on 2 and 4.
+        for eighth in range(8):
+            add(
+                tambourine,
+                start + eighth * beat / 2.0,
+                0.22 if eighth % 2 == 0 else 0.12,
+            )
+        add(clap, start + beat, 0.42)
+        add(clap, start + 3.0 * beat, 0.42)
+
+        # Violin melody, eight notes per bar.
+        phrase = _GYPSY_PHRASES[prog]
+        for index, semis in enumerate(phrase):
+            if semis < 0:
+                continue
+            add(
+                _gypsy_violin(_semitones(587.33, semis), beat * 0.46),
+                start + index * beat / 2.0,
+                0.30,
+            )
+
+        # "ОПА!" at the end of every four-bar phrase.
+        if prog == 3:
+            add(shout, start + 3.5 * beat, 0.55)
+
+    # Final hit: long D minor chord + shout.
+    end = bars * bar_len
+    for semis in (0, 3, 7, 12):
+        add(_gypsy_violin(_semitones(D4, semis), 0.9), end, 0.20)
+    add(_gypsy_bass(73.42, 0.9), end, 0.6)
+    add(shout, end, 0.7)
+    add(tambourine, end, 0.35)
+
+    buffer += rng.standard_normal(len(buffer)) * 0.0012  # room hiss
+
+    fade = int(0.012 * SR)
+    buffer[:fade] *= np.linspace(0.0, 1.0, fade)
+    buffer[-fade:] *= np.linspace(1.0, 0.0, fade)
+    return _normalize(_soft_clip(buffer), 0.93)
+
+
+# The gypsy instruments double as one-shot effects.
+SFX_BUILDERS["clap"] = _gypsy_clap
+SFX_BUILDERS["tambourine"] = _gypsy_tambourine
+
+
 def generate_all_music() -> Dict[str, np.ndarray]:
     """Render the two music loops used by the show."""
     return {
         "battle_theme": generate_battle_theme(),
         "victory_theme": generate_victory_theme(),
+        "gypsy_theme": generate_gypsy_theme(),
     }
 
 

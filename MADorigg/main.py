@@ -58,6 +58,10 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="do not block Alt+Tab / Win / Alt+F4 (kiosk lock off)",
     )
     parser.add_argument(
+        "--classic", action="store_true",
+        help="run the old smiley battle instead of the wallpaper prank",
+    )
+    parser.add_argument(
         "--no-death", action="store_true",
         help="skip the fake 10-second crash screen",
     )
@@ -171,6 +175,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             require_escape_hold=kiosk.active,
         )
         ctx.skip_death = args.no_death
+        ctx.mode = "classic" if args.classic else "gypsy"
         BattleManager(ctx).run()
 
     except ScenarioAbort as exc:

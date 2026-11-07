@@ -113,6 +113,7 @@ class BattleContext:
         self.phase = "boot"
         self.winner: Optional[str] = None
         self.skip_death = False
+        self.mode = "gypsy"  # "gypsy" (wallpaper prank) or "classic" (battle)
 
         # Escape hatch + time effects.
         self.require_escape_hold = bool(require_escape_hold)
@@ -426,10 +427,14 @@ class BattleManager:
             phase_cleanup,
             phase_death,
             phase_finale,
+            phase_gypsy,
             phase_intro,
         )
 
-        acts = [phase_intro, phase_bosses, phase_battle, phase_finale]
+        if self.ctx.mode == "classic":
+            acts = [phase_intro, phase_bosses, phase_battle, phase_finale]
+        else:
+            acts = [phase_gypsy]
         if not self.ctx.skip_death:
             acts.append(phase_death)
         acts.append(phase_cleanup)

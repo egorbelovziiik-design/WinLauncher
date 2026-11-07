@@ -31,6 +31,8 @@ PHASE_INTRO_DURATION: Final[float] = 5.0
 PHASE_BOSSES_DURATION: Final[float] = 3.0
 PHASE_BATTLE_DURATION: Final[Tuple[float, float]] = (15.0, 22.0)
 PHASE_FINALE_DURATION: Final[float] = 5.0
+PHASE_GYPSY_DURATION: Final[float] = 20.0
+GYPSY_BPM: Final[float] = 150.0
 PHASE_DEATH_DURATION: Final[float] = 10.0
 PHASE_CLEANUP_DURATION: Final[float] = 4.0
 

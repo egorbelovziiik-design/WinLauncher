@@ -9,3 +9,4 @@ captures/
 frames/
 *.log
 .DS_Store
+docs/*.wav

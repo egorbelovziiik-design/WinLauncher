@@ -32,13 +32,11 @@ import pygame  # noqa: E402  (after env setup)
 import main as app  # noqa: E402
 
 PICKS = (
-    ("intro", 0.55, "INTRO / TITLE"),
-    ("bosses", 0.75, "BOSSES ENTER"),
-    ("battle", 0.25, "BATTLE"),
-    ("battle", 0.65, "BATTLE / ATTACKS"),
-    ("finale", 0.25, "MEGA ATTACK"),
-    ("finale", 0.70, "VICTORY"),
-    ("finale", 0.92, "CONFETTI"),
+    ("gypsy", 0.15, "WALLPAPER DANCE"),
+    ("gypsy", 0.45, "FLYING WINDOWS"),
+    ("gypsy", 0.80, "DANCE / OSD"),
+    ("death", 0.25, "FAKE BSOD"),
+    ("death", 0.85, "FAKE BSOD / 100%"),
     ("cleanup", 0.55, "CLEANUP"),
 )
 
@@ -52,7 +50,7 @@ def _group_by_phase(frames: list[Path]) -> dict[str, list[Path]]:
     return groups
 
 
-def build_montage(frames: list[Path], output: Path, columns: int = 4) -> None:
+def build_montage(frames: list[Path], output: Path, columns: int = 3) -> None:
     """Stitch one representative frame per phase into a preview image."""
     if not frames:
         raise SystemExit("No frames were captured - the show did not render.")
