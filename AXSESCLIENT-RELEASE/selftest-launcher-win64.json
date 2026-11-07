@@ -22,7 +22,7 @@
       "Category": "Memory",
       "Name": "Physical RAM \u0026 Allocated JVM Heap",
       "Passed": true,
-      "Detail": "PC Total: 16,378 MB \u2022 Free: 13,156 MB \u2022 Allocated JVM (-Xmx): 6,144 MB"
+      "Detail": "PC Total: 16,378 MB \u2022 Free: 13,222 MB \u2022 Allocated JVM (-Xmx): 6,144 MB"
     },
     {
       "Category": "Java",
@@ -40,13 +40,13 @@
       "Category": "Network",
       "Name": "Mojang Piston Meta",
       "Passed": true,
-      "Detail": "HTTP 200 (305 ms)"
+      "Detail": "HTTP 200 (381 ms)"
     },
     {
       "Category": "Network",
       "Name": "Fabric Meta API",
       "Passed": true,
-      "Detail": "HTTP 200 (88 ms)"
+      "Detail": "HTTP 200 (45 ms)"
     },
     {
       "Category": "Client JARs",
@@ -64,7 +64,7 @@
       "Category": "Client JARs",
       "Name": "Minecraft 1.21.11",
       "Passed": true,
-      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.11.jar verified (570 KB)"
+      "Detail": "State: NOT INSTALLED \u2022 Bundled AXSESCLIENT-1.21.11.jar verified (571 KB)"
     }
   ]
 }

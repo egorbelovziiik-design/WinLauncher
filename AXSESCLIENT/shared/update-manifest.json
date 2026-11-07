@@ -1,52 +1,52 @@
 {
-  "latestVersion": "4.0.0",
-  "codename": "APEX ARCHITECT",
-  "publishedAt": "2026-11-06T20:20:00Z",
+  "latestVersion": "5.0.0",
+  "codename": "HYPERION APEX",
+  "publishedAt": "2026-11-07T16:30:00Z",
   "changelog": [
-    "AXSESCLIENT v4.0.0 (APEX ARCHITECT) — 112 рабочих модулей, 14 тем оформления и встроенный в лаунчер Хаб популярных модов FPS + Baritone.",
-    "Перемещение HUD прямо в Чате (T): свободное перетаскивание любых виджетов ЛКМ с магнитной сеткой, блокировкой ПКМ и прямым кликом по кнопкам Spotify и Baritone.",
-    "Живой плеер Музыки и Spotify: асинхронное определение Spotify / медиасессии ОС, автоматическая остановка фоновой музыки Minecraft при воспроизведении и кнопки «Продолжить», «Пауза», «Стоп», «Пред./След.».",
-    "КиллАура v4: добавлены кинематические профили SnowGrim (СНГ), Grim AC, Matrix AC, Vulcan AC, Intave AC и Polar AC (Lissajous-связь осей + GCD-квантование мыши + коррекция стрейфа) вдобавок к FunTime / ReallyWorld / HolyWorld.",
-    "Хаб модов FPS и ИИ Baritone в лаунчере: установка в 1 клик Sodium, Lithium, FerriteCore, ImmediatelyFast, EntityCulling, Iris Shaders, ModernFix, Dynamic FPS, Mod Menu, Fabric API и Baritone (#mine / #goto + 3D маршрут)."
+    "AXSESCLIENT v5.0.0 (HYPERION APEX) — 120 рабочих модулей, субпиксельные сглаженные SDF-контуры без ступенек и полный пакет BedWars.",
+    "Субпиксельное сглаживание контуров Hyperion SDF: нативный физический HiDPI-режим (beginHiDpiSubPixel), Евклидово сглаживание углов 1.15px, двухцветные градиентные рамки UI, антиалиасинговые линии Лянга–Барски и 3D неоновые призмы.",
+    "ФастБридж Pro (BedWars): быстрая простройка блоками в режимах Ниндзя Игл (авто-присед ровно на краю над бездной), ГодБридж 75.6, Бризли и СейфБридж + авто-слот шерсти, стабилизатор угла 76° и 3D-контур следующего блока.",
+    "Новые модули для BedWars и PvP: Неоновый Контур Блока (Block Contour Pro), BedWars ESP Кроватей и Ресурсов, Защита от Фаерболов и ТНТ (3D-траектория + авто-отбитие), Авто-Инструмент и Меч, Авто-Клатч Блоками, Детектор Инвизок и Угроз, Неоновый Шлейф и Кибер-Нимб.",
+    "Сохранены и улучшены все функции v4.0: КиллАура v4 (SnowGrim/Grim/Matrix/Vulcan/Intave/Polar + FunTime/RW/HW), перемещение HUD в Чате (T), плеер Spotify с авто-стопом музыки Minecraft и Хаб модов FPS + Baritone."
   ],
   "artifacts": [
     {
       "id": "launcher-win-x64",
       "fileName": "AXSESCLIENT.exe",
-      "version": "4.0.0",
-      "sha256": "16c55f609aa65449e288e21a755e95acfbffd9d49e9ba4b3be8987b6b0431bdf",
-      "sizeBytes": 45593352
+      "version": "5.0.0",
+      "sha256": "de2f9dc45dca6ae5ee181a7258002acfa7702fbf2292d1e8407db47bfc4303ae",
+      "sizeBytes": 45593350
     },
     {
       "id": "installer-win-x64",
       "fileName": "AXSESCLIENT-Setup.exe",
-      "version": "4.0.0",
-      "sha256": "e14f2605533154817c9590b10f3acf5a8cad60232b0ec6abde3f4091191dd119",
-      "sizeBytes": 41931002
+      "version": "5.0.0",
+      "sha256": "8983a2fb429c43401797d126d5ff0e021411dfefe9ab9fad0f8f7ff6339560e7",
+      "sizeBytes": 42022566
     },
     {
       "id": "mod-1.16.5",
       "fileName": "AXSESCLIENT-1.16.5.jar",
-      "version": "4.0.0",
+      "version": "5.0.0",
       "minecraftVersion": "1.16.5",
-      "sha256": "feb5ca60137cbccfca31de844fef4eaf516ab07f1b4386c5da7ba5b59d443026",
-      "sizeBytes": 529405
+      "sha256": "fbd26b4c7c232940aed8e5cdc0ed923dec7758350eb533cdb731eddfae29c13c",
+      "sizeBytes": 576098
     },
     {
       "id": "mod-1.21.4",
       "fileName": "AXSESCLIENT-1.21.4.jar",
-      "version": "4.0.0",
+      "version": "5.0.0",
       "minecraftVersion": "1.21.4",
-      "sha256": "3831fca6ef79848435ee11f0a550b273629be6b6d020d0f6718c53a98020961f",
-      "sizeBytes": 537103
+      "sha256": "9ae4839221b595da5c46b2cd6671e85737e43cbeab33f45024ae15bec6f9d4e8",
+      "sizeBytes": 583310
     },
     {
       "id": "mod-1.21.11",
       "fileName": "AXSESCLIENT-1.21.11.jar",
-      "version": "4.0.0",
+      "version": "5.0.0",
       "minecraftVersion": "1.21.11",
-      "sha256": "f72961a8dd8b0bbc39b8dc7b9587384d7970d7d8cbfce0997c7a35ffdeced19c",
-      "sizeBytes": 538635
+      "sha256": "a436fcdc0ca56cd21f44c34606ca5ce9a6b93312c9b6741f979a6ad01dc648a3",
+      "sizeBytes": 584855
     }
   ]
 }
