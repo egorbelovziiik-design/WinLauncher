@@ -1,52 +1,52 @@
 {
-  "latestVersion": "5.0.0",
-  "codename": "HYPERION APEX",
-  "publishedAt": "2026-11-07T16:30:00Z",
+  "latestVersion": "6.0.0",
+  "codename": "CELESTIAL HYPERION ULTRA",
+  "publishedAt": "2026-11-07T20:15:00Z",
   "changelog": [
-    "AXSESCLIENT v5.0.0 (HYPERION APEX) — 120 рабочих модулей, субпиксельные сглаженные SDF-контуры без ступенек и полный пакет BedWars.",
-    "Субпиксельное сглаживание контуров Hyperion SDF: нативный физический HiDPI-режим (beginHiDpiSubPixel), Евклидово сглаживание углов 1.15px, двухцветные градиентные рамки UI, антиалиасинговые линии Лянга–Барски и 3D неоновые призмы.",
-    "ФастБридж Pro (BedWars): быстрая простройка блоками в режимах Ниндзя Игл (авто-присед ровно на краю над бездной), ГодБридж 75.6, Бризли и СейфБридж + авто-слот шерсти, стабилизатор угла 76° и 3D-контур следующего блока.",
-    "Новые модули для BedWars и PvP: Неоновый Контур Блока (Block Contour Pro), BedWars ESP Кроватей и Ресурсов, Защита от Фаерболов и ТНТ (3D-траектория + авто-отбитие), Авто-Инструмент и Меч, Авто-Клатч Блоками, Детектор Инвизок и Угроз, Неоновый Шлейф и Кибер-Нимб.",
-    "Сохранены и улучшены все функции v4.0: КиллАура v4 (SnowGrim/Grim/Matrix/Vulcan/Intave/Polar + FunTime/RW/HW), перемещение HUD в Чате (T), плеер Spotify с авто-стопом музыки Minecraft и Хаб модов FPS + Baritone."
+    "AXSESCLIENT v6.0.0 (CELESTIAL HYPERION ULTRA) — полный отказ от ванильного вида HUD/ESP: 124 рабочих модуля, матовое стекло Celestial Frosted Glass, неоновое свечение, объёмные 3D Chams и кастомный стеклянный хотбар.",
+    "Кастомный Стеклянный Хотбар и Щит (glass_hotbar_dock): заменяет ванильный нижний хотбар и сердечки на парящую 9-слотовую матовую док-панель с пружинным селектором, капсулой тотема во второй руке, жидкими неоновыми шкалами ХП/Щита и векторным гербом брони.",
+    "3D Volumetric Chams, 38-гранный конус ChinaHat, радар с сонарным лучом, 4-слотовый векторный HUD брони и объёмные призмы кроватей/блоков BedWars (fillTriangle / fillQuad / draw3dVolumetricPrism).",
+    "Анимации Рук и Меча 3D (viewmodel_animations: Celestial Smooth / Nursultan Spin / Blockhit 1.8 / Compact Minimal + неоновая дуга удара), Таргет Стрейф 3D (target_strafe с защитой от бездны и плазменным кольцом орбиты) и Атмосфера и Светлячки 3D (world_ambience).",
+    "Сохранены и улучшены все функции v5.0: ФастБридж Pro, BedWars ESP и Фаерболы, КиллАура v4 (SnowGrim / Grim / Matrix / Vulcan / Intave / Polar), перетаскивание HUD в Чате (T), живой плеер Spotify с авто-стопом музыки Minecraft и Хаб модов FPS + Baritone."
   ],
   "artifacts": [
     {
       "id": "launcher-win-x64",
       "fileName": "AXSESCLIENT.exe",
-      "version": "5.0.0",
-      "sha256": "de2f9dc45dca6ae5ee181a7258002acfa7702fbf2292d1e8407db47bfc4303ae",
-      "sizeBytes": 45593350
+      "version": "6.0.0",
+      "sha256": "77fb091c21c5fa79a21920385f05f1f599844ccf517fea1b3a02adedfeae0318",
+      "sizeBytes": 45593348
     },
     {
       "id": "installer-win-x64",
       "fileName": "AXSESCLIENT-Setup.exe",
-      "version": "5.0.0",
-      "sha256": "8983a2fb429c43401797d126d5ff0e021411dfefe9ab9fad0f8f7ff6339560e7",
-      "sizeBytes": 42022566
+      "version": "6.0.0",
+      "sha256": "9f0520093dbcb89d9360ba500bfa470702aa2855ec2791ca45c7bdda2e38f09d",
+      "sizeBytes": 42068265
     },
     {
       "id": "mod-1.16.5",
       "fileName": "AXSESCLIENT-1.16.5.jar",
-      "version": "5.0.0",
+      "version": "6.0.0",
       "minecraftVersion": "1.16.5",
-      "sha256": "fbd26b4c7c232940aed8e5cdc0ed923dec7758350eb533cdb731eddfae29c13c",
-      "sizeBytes": 576098
+      "sha256": "b7883f99924cacd7dc4b7745237f57c6a9fc32cd9188a67df2a869d97d829f2b",
+      "sizeBytes": 603585
     },
     {
       "id": "mod-1.21.4",
       "fileName": "AXSESCLIENT-1.21.4.jar",
-      "version": "5.0.0",
+      "version": "6.0.0",
       "minecraftVersion": "1.21.4",
-      "sha256": "9ae4839221b595da5c46b2cd6671e85737e43cbeab33f45024ae15bec6f9d4e8",
-      "sizeBytes": 583310
+      "sha256": "84dbf76a2e28f6f796d297d50913b094d3e7ab93d4b6c15eb26a00265f600e85",
+      "sizeBytes": 610778
     },
     {
       "id": "mod-1.21.11",
       "fileName": "AXSESCLIENT-1.21.11.jar",
-      "version": "5.0.0",
+      "version": "6.0.0",
       "minecraftVersion": "1.21.11",
-      "sha256": "a436fcdc0ca56cd21f44c34606ca5ce9a6b93312c9b6741f979a6ad01dc648a3",
-      "sizeBytes": 584855
+      "sha256": "a8e53dcfaa6f82d8443d9fd20e6c49736fed929b4858f7bae3d60ca3ab9a744c",
+      "sizeBytes": 612325
     }
   ]
 }
