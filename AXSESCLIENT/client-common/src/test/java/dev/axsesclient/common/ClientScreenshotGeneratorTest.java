@@ -403,7 +403,7 @@ public class ClientScreenshotGeneratorTest {
         }
 
         void paintFirstPersonViewModel(boolean holdingBlock) {
-            if (!chatOpen) {
+            if (!chatScreenOpen) {
                 // Left foreground (open corridor x=204..274): 3D Offhand Golden Totem of Undying with golden aura
                 float tx = 204f;
                 fillRoundedRect(tx - 6f, scaledH - 102f, 76f, 92f, 36f, 0x18FACC15);
