@@ -985,7 +985,9 @@ public final class VisualModulesRegistry {
                         float pw = nw + hw + 15.0f;
                         float ph = 15.0f;
                         float px = bx + (bw - pw) * 0.5f;
-                        boolean hatAbove = isLocked && mm.getById("china_hat") != null && mm.getById("china_hat").isEnabled();
+                        TargetEntityInfo activeTgt = state.getActiveTarget(3500L);
+                        boolean hatAbove = activeTgt != null && activeTgt.getEntityId() == ent.getEntityId()
+                                && mm.getById("china_hat") != null && mm.getById("china_hat").isEnabled();
                         float py = by - ph - (hatAbove ? 24.0f : 5.0f);
                         RenderManager.drawFrostedGlassPanel(r, px, py, pw, ph, 7.5f, secCol, baseCol, 0.95f, 0.62f);
                         fonts.draw(r, namePart, px + 6.0f, py + 3.8f, 0xFFF8FAFF, scale);
