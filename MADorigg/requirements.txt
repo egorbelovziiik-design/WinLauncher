@@ -1,0 +1,4 @@
+pygame==2.5.2
+pycaw==20240210
+comtypes==1.4.1
+numpy==1.26.4
