@@ -3,7 +3,9 @@ name: Build MADorigg.exe
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - arena/36dcf8a5-winlauncher
     paths:
       - "MADorigg/**"
       - ".github/workflows/madorigg-exe.yml"
