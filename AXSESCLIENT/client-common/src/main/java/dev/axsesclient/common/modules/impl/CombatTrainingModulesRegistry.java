@@ -541,7 +541,7 @@ public final class CombatTrainingModulesRegistry {
         Module registeredTargetHud = mm.getById("target_hud");
         registeredTargetHud.setFavorite(true);
 
-        HudElement targetHudElement = new HudElement("target_hud", "Target HUD", registeredTargetHud, 0.66f, 0.56f, 218f, 62f)
+        HudElement targetHudElement = new HudElement("target_hud", "Target HUD", registeredTargetHud, 0.51f, 0.36f, 234f, 66f)
                 .withCustomPainter(new HudElement.CustomHudPainter() {
                     private long lastFrameMs = System.currentTimeMillis();
 
@@ -565,7 +565,9 @@ public final class CombatTrainingModulesRegistry {
 
                         TargetEntityInfo target = state.getActiveTarget(Math.round(targetHudLingerRef.getDouble() * 1000.0));
                         boolean preview = false;
-                        if (target == null && (editorMode || (targetHudPreviewInGuiRef.isEnabled() && mc != null && mc.isClickGuiOpen()))) {
+                        if (target == null && (editorMode
+                                || (mc != null && mc.isHudEditorOpen())
+                                || (targetHudPreviewInGuiRef.isEnabled() && mc != null && mc.isClickGuiOpen()))) {
                             float demoWave = (float) (0.65 + 0.30 * Math.sin((now % 4000L) / 4000.0 * Math.PI * 2.0));
                             target = new TargetEntityInfo(
                                     -999,

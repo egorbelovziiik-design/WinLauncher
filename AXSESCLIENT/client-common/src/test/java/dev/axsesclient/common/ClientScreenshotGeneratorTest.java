@@ -403,42 +403,39 @@ public class ClientScreenshotGeneratorTest {
         }
 
         void paintFirstPersonViewModel(boolean holdingBlock) {
-            // Left foreground: 3D Offhand Golden Totem of Undying with subtle golden aura
-            fillRoundedRect(108f, scaledH - 108f, 76f, 96f, 38f, 0x16FACC15);
-            // Totem wings & sculpted golden body
-            fillQuad(114f, scaledH - 64f, 178f, scaledH - 72f, 174f, scaledH - 52f, 118f, scaledH - 46f, 0xFFD97706);
-            fillQuad(132f, scaledH - 92f, 162f, scaledH - 95f, 168f, scaledH - 18f, 126f, scaledH - 14f, 0xFFFACC15);
-            fillQuad(136f, scaledH - 88f, 158f, scaledH - 90f, 161f, scaledH - 58f, 134f, scaledH - 55f, 0xFFFDE047);
-            // Glowing Emerald Totem Eyes
-            fillRoundedRect(139f, scaledH - 77f, 6.5f, 5.5f, 1.5f, 0xFF10B981);
-            fillRoundedRect(150f, scaledH - 78f, 6.5f, 5.5f, 1.5f, 0xFF10B981);
-            drawLine(132f, scaledH - 92f, 162f, scaledH - 95f, 1.2f, 0xAAFFFFFF);
+            if (!chatOpen) {
+                // Left foreground (open corridor x=204..274): 3D Offhand Golden Totem of Undying with golden aura
+                float tx = 204f;
+                fillRoundedRect(tx - 6f, scaledH - 102f, 76f, 92f, 36f, 0x18FACC15);
+                fillQuad(tx, scaledH - 62f, tx + 64f, scaledH - 70f, tx + 60f, scaledH - 50f, tx + 4f, scaledH - 44f, 0xFFD97706);
+                fillQuad(tx + 18f, scaledH - 88f, tx + 48f, scaledH - 91f, tx + 54f, scaledH - 12f, tx + 12f, scaledH - 8f, 0xFFFACC15);
+                fillQuad(tx + 22f, scaledH - 84f, tx + 44f, scaledH - 86f, tx + 47f, scaledH - 54f, tx + 20f, scaledH - 51f, 0xFFFDE047);
+                fillRoundedRect(tx + 25f, scaledH - 73f, 6.5f, 5.5f, 1.5f, 0xFF10B981);
+                fillRoundedRect(tx + 36f, scaledH - 74f, 6.5f, 5.5f, 1.5f, 0xFF10B981);
+                drawLine(tx + 18f, scaledH - 88f, tx + 48f, scaledH - 91f, 1.2f, 0xAAFFFFFF);
+            }
 
             if (holdingBlock) {
-                // Right foreground: 3D Isometric Shaded Cyan BedWars Wool Block in hand
-                float bx = scaledW - 168f;
-                float by = scaledH - 86f;
-                fillRoundedRect(bx - 16f, by - 14f, 116f, 96f, 36f, 0x1800F5D4);
-                fillQuad(bx + 42f, by - 8f, bx + 92f, by + 14f, bx + 44f, by + 38f, bx - 4f, by + 16f, 0xFF38BDF8); // Top
-                fillQuad(bx - 4f, by + 16f, bx + 44f, by + 38f, bx + 40f, by + 92f, bx - 6f, by + 68f, 0xFF0284C7); // Left
-                fillQuad(bx + 44f, by + 38f, bx + 92f, by + 14f, bx + 86f, by + 68f, bx + 40f, by + 92f, 0xFF0369A1); // Right
+                // Right foreground (open corridor x=626..726): 3D Isometric Shaded Cyan BedWars Wool Block
+                float bx = 632f;
+                float by = scaledH - 88f;
+                fillRoundedRect(bx - 16f, by - 14f, 112f, 92f, 36f, 0x1800F5D4);
+                fillQuad(bx + 42f, by - 8f, bx + 90f, by + 14f, bx + 44f, by + 38f, bx - 4f, by + 16f, 0xFF38BDF8); // Top
+                fillQuad(bx - 4f, by + 16f, bx + 44f, by + 38f, bx + 40f, by + 90f, bx - 6f, by + 66f, 0xFF0284C7); // Left
+                fillQuad(bx + 44f, by + 38f, bx + 90f, by + 14f, bx + 84f, by + 66f, bx + 40f, by + 90f, 0xFF0369A1); // Right
                 drawNeonLine(bx - 4f, by + 16f, bx + 42f, by - 8f, 1.4f, 0xCCFFFFFF, 0x6600F5D4);
-                drawNeonLine(bx + 42f, by - 8f, bx + 92f, by + 14f, 1.4f, 0xCCFFFFFF, 0x6600F5D4);
+                drawNeonLine(bx + 42f, by - 8f, bx + 90f, by + 14f, 1.4f, 0xCCFFFFFF, 0x6600F5D4);
             } else {
-                // Right foreground: Custom Celestial Smooth 3D Enchanted Netherite-Diamond Blade
-                float sx = scaledW - 192f;
-                float sy = scaledH - 22f;
-                // Enchantment aura glow around blade
-                drawNeonLine(sx + 56f, sy - 26f, sx - 28f, sy - 134f, 9.5f, 0x24A855F7, 0x1800F5D4);
-                // 3D Dual-bevel Enchanted Blade (left lit bevel + right violet-glint bevel)
-                fillQuad(sx + 48f, sy - 34f, sx - 26f, sy - 132f, sx - 32f, sy - 138f, sx + 38f, sy - 42f, 0xFF67E8F9);
-                fillQuad(sx + 58f, sy - 26f, sx - 18f, sy - 124f, sx - 32f, sy - 138f, sx + 48f, sy - 34f, 0xFF312E81);
-                // Glowing Enchantment Glint Core Vein
-                drawNeonLine(sx + 48f, sy - 34f, sx - 29f, sy - 135f, 1.9f, 0xFFFFFFFF, 0xAA00F5D4);
-                // Sculpted Crossguard + Pommel
-                fillQuad(sx + 24f, sy - 24f, sx + 74f, sy - 52f, sx + 80f, sy - 42f, sx + 30f, sy - 14f, 0xFFFBBF24);
-                drawNeonLine(sx + 26f, sy - 20f, sx + 76f, sy - 48f, 1.4f, 0xFFFFFFFF, 0x88FACC15);
-                fillQuad(sx + 52f, sy - 28f, sx + 64f, sy - 35f, sx + 88f, sy - 2f, sx + 74f, sy + 6f, 0xFF451A03);
+                // Right foreground (open corridor x=626..726): Celestial Smooth 3D Enchanted Netherite-Diamond Blade
+                float sx = 656f;
+                float sy = scaledH - 18f;
+                drawNeonLine(sx + 52f, sy - 24f, sx - 28f, sy - 130f, 9.5f, 0x24A855F7, 0x1800F5D4);
+                fillQuad(sx + 44f, sy - 32f, sx - 26f, sy - 128f, sx - 32f, sy - 134f, sx + 34f, sy - 40f, 0xFF67E8F9);
+                fillQuad(sx + 54f, sy - 24f, sx - 18f, sy - 120f, sx - 32f, sy - 134f, sx + 44f, sy - 32f, 0xFF312E81);
+                drawNeonLine(sx + 44f, sy - 32f, sx - 29f, sy - 131f, 1.9f, 0xFFFFFFFF, 0xAA00F5D4);
+                fillQuad(sx + 20f, sy - 22f, sx + 70f, sy - 50f, sx + 76f, sy - 40f, sx + 26f, sy - 12f, 0xFFFBBF24);
+                drawNeonLine(sx + 22f, sy - 18f, sx + 72f, sy - 46f, 1.4f, 0xFFFFFFFF, 0x88FACC15);
+                fillQuad(sx + 48f, sy - 26f, sx + 60f, sy - 33f, sx + 84f, sy, sx + 70f, sy + 8f, 0xFF451A03);
             }
         }
 

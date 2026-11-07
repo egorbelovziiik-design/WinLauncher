@@ -78,38 +78,38 @@ public final class HudEditorController {
 
         // Top HUD Editor Toolbar (positioned in the clear central corridor below top HUD rows)
         boolean ru = core.getLocalizationManager().isRussian();
-        float barW = Math.min(sw - 16f, 548f);
-        float barX = (sw - barW) * 0.5f;
+        int prim = core.getThemeManager().filterColor(t.getPrimaryColor());
+        int acc = core.getThemeManager().filterColor(t.getAccentColor());
+        float barW = Math.min(sw - 16f, 514f);
+        float barX = (sw - barW) * 0.5f - 28f;
         float barY = 64f;
-        r.fillRoundedRect(barX, barY, barW, 24f, 6f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
-        r.drawRoundedOutline(barX, barY, barW, 24f, 6f, 1.0f, t.getPrimaryColor());
-        core.getFontManager().draw(r, ru ? "РЕДАКТОР HUD 4.0" : "AXSES HUD EDITOR", barX + 10f, barY + 8f, t.getAccentColor(), 0.80f);
-        drawToolBtn(r, barX + 118f, barY + 3f, 60f, 18f, hm.isGridSnapping() ? (ru ? "Сетка:ВКЛ" : "Grid:ON") : (ru ? "Сетка:ВЫКЛ" : "Grid:OFF"), mouseX, mouseY);
-        drawToolBtn(r, barX + 182f, barY + 3f, 82f, 18f, showDisabledWidgets ? (ru ? "Вид:Все" : "Show:All") : (ru ? "Вид:Актив" : "Show:Active"), mouseX, mouseY);
-        drawToolBtn(r, barX + 268f, barY + 3f, 70f, 18f, rp.getLabel().split(" ")[0], mouseX, mouseY);
-        drawToolBtn(r, barX + 342f, barY + 3f, 58f, 18f, ru ? "Пресет" : "Preset", mouseX, mouseY);
-        drawToolBtn(r, barX + 404f, barY + 3f, 52f, 18f, ru ? "Сброс" : "Reset", mouseX, mouseY);
-        drawToolBtn(r, barX + 460f, barY + 3f, 80f, 18f, ru ? "Сохранить" : "Save & GUI", mouseX, mouseY);
+        dev.axsesclient.common.render.RenderManager.drawFrostedGlassPanel(r, barX, barY, barW, 24f, 9f, prim, acc, 0.96f, 0.72f);
+        core.getFontManager().draw(r, ru ? "РЕДАКТОР HUD 6.0" : "HUD EDITOR 6.0", barX + 10f, barY + 8f, acc, 0.80f);
+        drawToolBtn(r, barX + 116f, barY + 3f, 58f, 18f, hm.isGridSnapping() ? (ru ? "Сетка:ВКЛ" : "Grid:ON") : (ru ? "Сетка:ВЫКЛ" : "Grid:OFF"), mouseX, mouseY);
+        drawToolBtn(r, barX + 177f, barY + 3f, 78f, 18f, showDisabledWidgets ? (ru ? "Вид:Все" : "Show:All") : (ru ? "Вид:Актив" : "Show:Active"), mouseX, mouseY);
+        drawToolBtn(r, barX + 258f, barY + 3f, 62f, 18f, rp.getLabel().split(" ")[0], mouseX, mouseY);
+        drawToolBtn(r, barX + 323f, barY + 3f, 56f, 18f, ru ? "Пресет" : "Preset", mouseX, mouseY);
+        drawToolBtn(r, barX + 382f, barY + 3f, 50f, 18f, ru ? "Сброс" : "Reset", mouseX, mouseY);
+        drawToolBtn(r, barX + 435f, barY + 3f, 72f, 18f, ru ? "Сохранить" : "Save & GUI", mouseX, mouseY);
 
-        // Selected Widget Inspector Dock at Bottom
+        // Selected Widget Inspector Dock right below top toolbar (keeps bottom Glass Hotbar 100% unobstructed)
         if (selectedElement != null) {
-            float dockW = Math.min(sw - 16f, 530f);
-            float dockX = (sw - dockW) * 0.5f;
-            float dockY = sh - 32f;
-            r.fillRoundedRect(dockX, dockY, dockW, 26f, 6f, AxsesTheme.withAlpha(t.getSurfaceColor(), 0.96f));
-            r.drawRoundedOutline(dockX, dockY, dockW, 26f, 6f, 1.0f, t.getAccentColor());
-            core.getFontManager().draw(r, selectedElement.getTitle(), dockX + 8f, dockY + 9f, t.getTextColor(), 0.78f);
+            float dockW = Math.min(sw - 16f, 514f);
+            float dockX = barX;
+            float dockY = barY + 29f;
+            dev.axsesclient.common.render.RenderManager.drawFrostedGlassPanel(r, dockX, dockY, dockW, 25f, 9f, acc, prim, 0.96f, 0.72f);
+            core.getFontManager().draw(r, selectedElement.getTitle(), dockX + 10f, dockY + 8.5f, t.getTextColor(), 0.78f);
 
-            drawToolBtn(r, dockX + 96f, dockY + 4f, 38f, 18f, "Sc-", mouseX, mouseY);
-            drawToolBtn(r, dockX + 137f, dockY + 4f, 38f, 18f, "Sc+", mouseX, mouseY);
-            drawToolBtn(r, dockX + 178f, dockY + 4f, 44f, 18f, selectedElement.isShowBackground() ? "BG:ON" : "BG:OFF", mouseX, mouseY);
-            drawToolBtn(r, dockX + 225f, dockY + 4f, 46f, 18f, selectedElement.isShowShadow() ? "Shd:ON" : "Shd:OFF", mouseX, mouseY);
-            drawToolBtn(r, dockX + 274f, dockY + 4f, 46f, 18f, selectedElement.isShowOutline() ? "Out:ON" : "Out:OFF", mouseX, mouseY);
-            drawToolBtn(r, dockX + 323f, dockY + 4f, 46f, 18f, selectedElement.getAlignment().name().substring(0, 1) + "-Align", mouseX, mouseY);
-            drawToolBtn(r, dockX + 372f, dockY + 4f, 44f, 18f, "Center", mouseX, mouseY);
+            drawToolBtn(r, dockX + 88f, dockY + 3.5f, 36f, 18f, "Sc-", mouseX, mouseY);
+            drawToolBtn(r, dockX + 127f, dockY + 3.5f, 36f, 18f, "Sc+", mouseX, mouseY);
+            drawToolBtn(r, dockX + 166f, dockY + 3.5f, 44f, 18f, selectedElement.isShowBackground() ? "BG:ON" : "BG:OFF", mouseX, mouseY);
+            drawToolBtn(r, dockX + 213f, dockY + 3.5f, 46f, 18f, selectedElement.isShowShadow() ? "Shd:ON" : "Shd:OFF", mouseX, mouseY);
+            drawToolBtn(r, dockX + 262f, dockY + 3.5f, 46f, 18f, selectedElement.isShowOutline() ? "Out:ON" : "Out:OFF", mouseX, mouseY);
+            drawToolBtn(r, dockX + 311f, dockY + 3.5f, 46f, 18f, selectedElement.getAlignment().name().substring(0, 1) + "-Align", mouseX, mouseY);
+            drawToolBtn(r, dockX + 360f, dockY + 3.5f, 44f, 18f, "Center", mouseX, mouseY);
             String grp = selectedElement.getGroupId().isEmpty() ? "Grp:-" : ("Grp:" + selectedElement.getGroupId());
-            drawToolBtn(r, dockX + 419f, dockY + 4f, 46f, 18f, grp, mouseX, mouseY);
-            drawToolBtn(r, dockX + 468f, dockY + 4f, 54f, 18f, selectedElement.isLocked() ? "Locked" : "Unlock", mouseX, mouseY);
+            drawToolBtn(r, dockX + 407f, dockY + 3.5f, 46f, 18f, grp, mouseX, mouseY);
+            drawToolBtn(r, dockX + 456f, dockY + 3.5f, 52f, 18f, selectedElement.isLocked() ? "Locked" : "Unlock", mouseX, mouseY);
         }
     }
 
@@ -121,43 +121,43 @@ public final class HudEditorController {
         int sw = mc != null ? mc.getScaledWidth() : 854;
         int sh = mc != null ? mc.getScaledHeight() : 480;
 
-        float barW = Math.min(sw - 16f, 548f);
-        float barX = (sw - barW) * 0.5f;
+        float barW = Math.min(sw - 16f, 514f);
+        float barX = (sw - barW) * 0.5f - 28f;
         float barY = 64f;
-        if (hit((float) mx, (float) my, barX + 118f, barY + 3f, 60f, 18f)) { hm.setGridSnapping(!hm.isGridSnapping()); return true; }
-        if (hit((float) mx, (float) my, barX + 182f, barY + 3f, 82f, 18f)) { showDisabledWidgets = !showDisabledWidgets; return true; }
-        if (hit((float) mx, (float) my, barX + 268f, barY + 3f, 70f, 18f)) { hm.cycleResolutionPreview(); return true; }
-        if (hit((float) mx, (float) my, barX + 342f, barY + 3f, 58f, 18f)) {
+        if (hit((float) mx, (float) my, barX + 116f, barY + 3f, 58f, 18f)) { hm.setGridSnapping(!hm.isGridSnapping()); return true; }
+        if (hit((float) mx, (float) my, barX + 177f, barY + 3f, 78f, 18f)) { showDisabledWidgets = !showDisabledWidgets; return true; }
+        if (hit((float) mx, (float) my, barX + 258f, barY + 3f, 62f, 18f)) { hm.cycleResolutionPreview(); return true; }
+        if (hit((float) mx, (float) my, barX + 323f, barY + 3f, 56f, 18f)) {
             String p = presetCycle[presetIdx % presetCycle.length];
             presetIdx++;
             hm.applyPreset(p, mc);
             core.getNotificationManager().push("HUD Preset", p, NotificationManager.Severity.SUCCESS);
             return true;
         }
-        if (hit((float) mx, (float) my, barX + 404f, barY + 3f, 52f, 18f)) { hm.resetAll(); return true; }
-        if (hit((float) mx, (float) my, barX + 460f, barY + 3f, 80f, 18f)) {
+        if (hit((float) mx, (float) my, barX + 382f, barY + 3f, 50f, 18f)) { hm.resetAll(); return true; }
+        if (hit((float) mx, (float) my, barX + 435f, barY + 3f, 72f, 18f)) {
             core.getConfigManager().saveActiveAsync();
             mc.openClickGui();
             return true;
         }
 
         if (selectedElement != null) {
-            float dockW = Math.min(sw - 16f, 530f);
-            float dockX = (sw - dockW) * 0.5f;
-            float dockY = sh - 32f;
-            if (hit((float) mx, (float) my, dockX + 96f, dockY + 4f, 38f, 18f)) { selectedElement.setScale(selectedElement.getScale() - 0.10f); return true; }
-            if (hit((float) mx, (float) my, dockX + 137f, dockY + 4f, 38f, 18f)) { selectedElement.setScale(selectedElement.getScale() + 0.10f); return true; }
-            if (hit((float) mx, (float) my, dockX + 178f, dockY + 4f, 44f, 18f)) { selectedElement.setShowBackground(!selectedElement.isShowBackground()); return true; }
-            if (hit((float) mx, (float) my, dockX + 225f, dockY + 4f, 46f, 18f)) { selectedElement.setShowShadow(!selectedElement.isShowShadow()); return true; }
-            if (hit((float) mx, (float) my, dockX + 274f, dockY + 4f, 46f, 18f)) { selectedElement.setShowOutline(!selectedElement.isShowOutline()); return true; }
-            if (hit((float) mx, (float) my, dockX + 323f, dockY + 4f, 46f, 18f)) { selectedElement.cycleAlignment(); return true; }
-            if (hit((float) mx, (float) my, dockX + 372f, dockY + 4f, 44f, 18f)) { hm.centerHorizontally(selectedElement); return true; }
-            if (hit((float) mx, (float) my, dockX + 419f, dockY + 4f, 46f, 18f)) {
+            float dockW = Math.min(sw - 16f, 514f);
+            float dockX = barX;
+            float dockY = barY + 29f;
+            if (hit((float) mx, (float) my, dockX + 88f, dockY + 3.5f, 36f, 18f)) { selectedElement.setScale(selectedElement.getScale() - 0.10f); return true; }
+            if (hit((float) mx, (float) my, dockX + 127f, dockY + 3.5f, 36f, 18f)) { selectedElement.setScale(selectedElement.getScale() + 0.10f); return true; }
+            if (hit((float) mx, (float) my, dockX + 166f, dockY + 3.5f, 44f, 18f)) { selectedElement.setShowBackground(!selectedElement.isShowBackground()); return true; }
+            if (hit((float) mx, (float) my, dockX + 213f, dockY + 3.5f, 46f, 18f)) { selectedElement.setShowShadow(!selectedElement.isShowShadow()); return true; }
+            if (hit((float) mx, (float) my, dockX + 262f, dockY + 3.5f, 46f, 18f)) { selectedElement.setShowOutline(!selectedElement.isShowOutline()); return true; }
+            if (hit((float) mx, (float) my, dockX + 311f, dockY + 3.5f, 46f, 18f)) { selectedElement.cycleAlignment(); return true; }
+            if (hit((float) mx, (float) my, dockX + 360f, dockY + 3.5f, 44f, 18f)) { hm.centerHorizontally(selectedElement); return true; }
+            if (hit((float) mx, (float) my, dockX + 407f, dockY + 3.5f, 46f, 18f)) {
                 String cur = selectedElement.getGroupId();
                 selectedElement.setGroupId(cur.isEmpty() ? "A" : ("A".equals(cur) ? "B" : ""));
                 return true;
             }
-            if (hit((float) mx, (float) my, dockX + 468f, dockY + 4f, 54f, 18f)) { selectedElement.setLocked(!selectedElement.isLocked()); return true; }
+            if (hit((float) mx, (float) my, dockX + 456f, dockY + 3.5f, 52f, 18f)) { selectedElement.setLocked(!selectedElement.isLocked()); return true; }
         }
 
         // Hit-test HUD elements (topmost first)

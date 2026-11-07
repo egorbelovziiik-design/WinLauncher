@@ -12,8 +12,8 @@ public final class LocalizationManager {
     public LocalizationManager() {
         Map<String, String> en = new HashMap<String, String>();
         en.put("gui.title", "AXSESCLIENT");
-        en.put("gui.subtitle", "HYPERION v5.0");
-        en.put("gui.search_placeholder", "Search 120 modules (FastBridge, KillAura, BedWars ESP, Contour, Spotify)...");
+        en.put("gui.subtitle", "CELESTIAL v6.0");
+        en.put("gui.search_placeholder", "Search 124 modules (Glass Hotbar, 3D Chams, KillAura, BedWars)...");
         en.put("gui.favorites", "Favorites");
         en.put("gui.hud_editor", "HUD Editor");
         en.put("gui.themes", "Themes");
@@ -55,8 +55,8 @@ public final class LocalizationManager {
 
         Map<String, String> ru = new HashMap<String, String>();
         ru.put("gui.title", "AXSESCLIENT");
-        ru.put("gui.subtitle", "HYPERION v5.0");
-        ru.put("gui.search_placeholder", "Поиск по 120 модулям (ФастБридж, BedWars, КиллАура, SnowGrim, Контуры)...");
+        ru.put("gui.subtitle", "CELESTIAL v6.0");
+        ru.put("gui.search_placeholder", "Поиск по 124 модулям (Стеклянный Хотбар, 3D Chams, КиллАура)...");
         ru.put("gui.favorites", "Избранное");
         ru.put("gui.hud_editor", "HUD");
         ru.put("gui.themes", "Темы");

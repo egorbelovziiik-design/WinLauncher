@@ -154,8 +154,8 @@ public final class AxsesMainMenuController {
 
         String hint1 = isRu ? "Правый Shift — меню GUI" : "Right Shift — ClickGUI";
         String hint2 = isRu ? "Открытый чат — двигать HUD" : "Open Chat — Drag HUD";
-        core.getFontManager().drawCentered(r, hint1, leftX + leftW * 0.5f, panelY + panelH - 36f, t.getMutedColor(), 0.78f);
-        core.getFontManager().drawCentered(r, hint2, leftX + leftW * 0.5f, panelY + panelH - 22f, acc, 0.78f);
+        core.getFontManager().drawCentered(r, hint1, leftX + leftW * 0.5f, panelY + panelH - 44f, t.getMutedColor(), 0.78f);
+        core.getFontManager().drawCentered(r, hint2, leftX + leftW * 0.5f, panelY + panelH - 30f, acc, 0.78f);
 
         // Right Column: 6 Sculpted 35-Year Tactile Action Buttons
         String[] labels = {

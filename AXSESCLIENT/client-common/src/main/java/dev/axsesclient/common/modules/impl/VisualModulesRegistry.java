@@ -985,7 +985,8 @@ public final class VisualModulesRegistry {
                         float pw = nw + hw + 15.0f;
                         float ph = 15.0f;
                         float px = bx + (bw - pw) * 0.5f;
-                        float py = by - ph - 4.5f;
+                        boolean hatAbove = isLocked && mm.getById("china_hat") != null && mm.getById("china_hat").isEnabled();
+                        float py = by - ph - (hatAbove ? 24.0f : 5.0f);
                         RenderManager.drawFrostedGlassPanel(r, px, py, pw, ph, 7.5f, secCol, baseCol, 0.95f, 0.62f);
                         fonts.draw(r, namePart, px + 6.0f, py + 3.8f, 0xFFF8FAFF, scale);
                         float chipX = px + pw - hw - 3.5f;
@@ -1531,7 +1532,7 @@ public final class VisualModulesRegistry {
                 if (locked != null && (curHits > lastHitCounter || (popups.isEmpty() && locked.getHurtTime() > 4))) {
                     lastHitCounter = curHits;
                     popups.addLast(new double[] {
-                            locked.getX() + 0.18, locked.getMaxY() + 0.62, locked.getZ(), -3.6, (double) now
+                            locked.getX() + 0.18, locked.getMaxY() + 0.90, locked.getZ(), -3.6, (double) now
                     });
                 }
 
@@ -1708,10 +1709,10 @@ public final class VisualModulesRegistry {
                         int prim = themeManager.filterColor(t.getPrimaryColor());
                         int acc = themeManager.filterColor(t.getAccentColor());
 
-                        float dockW = Math.max(198.0f, sw);
-                        float dockH = 24.5f;
-                        float totalH = hotbarShowStatus.isEnabled() ? 40.5f : dockH;
-                        float baseX = Math.max(34.0f, Math.min(px, r.getScaledWidth() - dockW - 6.0f));
+                        float dockW = Math.max(222.0f, sw);
+                        float dockH = 26.5f;
+                        float totalH = hotbarShowStatus.isEnabled() ? 42.5f : dockH;
+                        float baseX = Math.max(36.0f, Math.min(px, r.getScaledWidth() - dockW - 6.0f));
                         float baseY = Math.min(py, r.getScaledHeight() - totalH - 2.5f);
                         float dockY = baseY + (totalH - dockH);
 
@@ -1752,15 +1753,23 @@ public final class VisualModulesRegistry {
                             String hpTxt = String.format(Locale.ROOT, "❤ %.1f", Float.valueOf(hp));
                             fontManager.drawCentered(r, hpTxt, baseX + barW * 0.5f, barY + 2.6f, 0xFFFFFFFF, 0.80f);
 
-                            // Right Liquid Sapphire->Cyan Armor/Shield Capsule
+                            // Right Liquid Sapphire->Cyan Armor/Shield Capsule with crisp Vector Shield Crest
                             float rx = baseX + barW + 6.0f;
                             RenderManager.drawFrostedGlassPanel(r, rx, barY, barW, barH, 6.2f, prim, acc, opacity * 0.94f, 0.58f);
                             if (armRatio > 0.01f) {
                                 float armFillW = Math.max(8.0f, (barW - 2.4f) * Math.min(1.0f, armRatio));
                                 RenderManager.fillRoundedHorizontalGradient(r, rx + 1.2f, barY + 1.2f, armFillW, barH - 2.4f, 5.0f, prim, acc);
                             }
-                            String shTxt = String.format(Locale.ROOT, "🛡 %d%%", Integer.valueOf(Math.round(armRatio * 100f)));
-                            fontManager.drawCentered(r, shTxt, rx + barW * 0.5f, barY + 2.6f, 0xFFFFFFFF, 0.80f);
+                            String shTxt = String.format(Locale.ROOT, "%d%%", Integer.valueOf(Math.round(armRatio * 100f)));
+                            float shTextW = fontManager.width(r, shTxt, 0.80f);
+                            float shStartX = rx + (barW - (shTextW + 10.5f)) * 0.5f;
+                            float shCy = barY + barH * 0.5f;
+                            // Custom Vector Shield Crest
+                            r.fillQuad(shStartX + 3.6f, shCy - 3.6f, shStartX + 7.2f, shCy - 2.2f,
+                                    shStartX + 6.4f, shCy + 1.4f, shStartX + 3.6f, shCy + 3.8f, 0xE6FFFFFF);
+                            r.fillQuad(shStartX + 3.6f, shCy - 3.6f, shStartX + 3.6f, shCy + 3.8f,
+                                    shStartX + 0.8f, shCy + 1.4f, shStartX, shCy - 2.2f, 0xCCE2E8F0);
+                            fontManager.draw(r, shTxt, shStartX + 10.2f, barY + 2.6f, 0xFFFFFFFF, 0.80f);
                         }
 
                         // 2) Offhand Totem Frosted Capsule on Left
@@ -1768,23 +1777,23 @@ public final class VisualModulesRegistry {
                             ItemInfo off = (mc != null && mc.isInWorld()) ? mc.getOffHandItem() : null;
                             boolean hasOff = (off != null && !off.isEmpty()) || editorMode || mc == null || !mc.isInWorld();
                             if (hasOff) {
-                                float ox = baseX - 28.5f;
-                                RenderManager.drawFrostedGlassPanel(r, ox, dockY, 24.5f, dockH, 8.5f, 0xFFF59E0B, 0xFFFDE047, opacity * 0.95f, 0.72f);
+                                float ox = baseX - 30.0f;
+                                RenderManager.drawFrostedGlassPanel(r, ox, dockY, 26.0f, dockH, 9.0f, 0xFFF59E0B, 0xFFFDE047, opacity * 0.95f, 0.72f);
                                 String offId = (off != null && !off.isEmpty()) ? off.getItemId() : "minecraft:totem_of_undying";
-                                drawHotbarItemGlyph(r, offId, -1, ox + 12.2f, dockY + 11.8f, prim, acc);
+                                drawHotbarItemGlyph(r, offId, -1, ox + 13.0f, dockY + 13.2f, prim, acc);
                             }
                         }
 
                         // 3) 9-Slot Floating Frosted Obsidian-Glass Hotbar Dock
                         RenderManager.drawFrostedGlassPanel(r, baseX, dockY, dockW, dockH, 10.5f, prim, acc, opacity * 0.96f, selected ? 1.2f : 0.85f);
 
-                        float pad = 3.0f;
+                        float pad = 3.2f;
                         float slotStep = (dockW - pad * 2.0f) / 9.0f;
-                        float slotW = slotStep - 1.6f;
+                        float slotW = slotStep - 1.8f;
                         float slotH = dockH - 5.2f;
 
                         // Spring-interpolated glowing active selector capsule
-                        float selX = baseX + pad + smoothSlot * slotStep + 0.8f;
+                        float selX = baseX + pad + smoothSlot * slotStep + 0.9f;
                         float selY = dockY + 2.6f;
                         r.fillRoundedRect(selX - 1.8f, selY - 1.6f, slotW + 3.6f, slotH + 3.2f, 7.5f, AxsesTheme.withAlpha(acc, 0.30f));
                         RenderManager.fillRoundedHorizontalGradient(r, selX, selY, slotW, slotH, 6.2f,
@@ -1800,7 +1809,7 @@ public final class VisualModulesRegistry {
                         int[] demoCounts = { 1, 64, 12, 8, 1, 1, 1, 6, 32 };
 
                         for (int s = 0; s < 9; s++) {
-                            float sx = baseX + pad + s * slotStep + 0.8f;
+                            float sx = baseX + pad + s * slotStep + 0.9f;
                             float sy = dockY + 2.6f;
                             if (s != selSlot) {
                                 r.fillRoundedRect(sx, sy, slotW, slotH, 5.8f, 0x68090E22);
@@ -1818,16 +1827,19 @@ public final class VisualModulesRegistry {
                             }
 
                             if (itemId != null) {
-                                drawHotbarItemGlyph(r, itemId, s, sx + slotW * 0.5f, sy + slotH * 0.48f, prim, acc);
+                                drawHotbarItemGlyph(r, itemId, s, sx + slotW * 0.52f, sy + slotH * 0.46f, prim, acc);
                                 if (count > 1) {
                                     String cStr = String.valueOf(count);
-                                    float cw = fontManager.width(r, cStr, 0.72f);
-                                    fontManager.draw(r, cStr, sx + slotW - cw - 1.8f, sy + slotH - 7.0f, 0xFFFFFFFF, 0.72f);
+                                    float cw = fontManager.width(r, cStr, 0.68f);
+                                    float bx = sx + slotW - cw - 3.2f;
+                                    float by = sy + slotH - 7.8f;
+                                    r.fillRoundedRect(bx - 1.4f, by - 0.6f, cw + 2.8f, 7.2f, 3.0f, 0xCC050814);
+                                    fontManager.draw(r, cStr, bx, by + 0.4f, 0xFFFFFFFF, 0.68f);
                                 }
                             }
                             // Micro slot index top-left
-                            fontManager.draw(r, String.valueOf(s + 1), sx + 2.0f, sy + 1.5f,
-                                    s == selSlot ? 0xFFFFFFFF : 0x7894A3B8, 0.64f);
+                            fontManager.draw(r, String.valueOf(s + 1), sx + 2.0f, sy + 1.4f,
+                                    s == selSlot ? 0xFFFFFFFF : 0x7894A3B8, 0.62f);
                         }
                         return true;
                     }
