@@ -1018,7 +1018,8 @@ public class ClientScreenshotGeneratorTest {
             core.getModuleManager().getById("entity_esp").setEnabled(true, p);
             core.getModuleManager().getById("radar_hud").setEnabled(true, p);
 
-            // Simulate several bridging ticks so FastBridge places blocks & builds real blocks/sec telemetry + trail ribbon
+            // Simulate several bridging ticks at bridging pitch 75.6° so FastBridge places blocks & builds real blocks/sec telemetry + trail ribbon
+            p.pitch = 75.6f;
             for (int t = 0; t < 5; t++) {
                 p.playerZ = t * 0.22;
                 core.onClientTick();

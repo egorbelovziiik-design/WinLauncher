@@ -147,8 +147,8 @@ public final class BedWarsAndContourModulesRegistry {
                     fbPlaceTimestamps.removeFirst();
                 }
 
-                boolean movingBackwardOrLookingDown = mc.getPlayerPitch() >= 65.0f
-                        || (input != null && input.isKeyDown(KeyCodes.KEY_S));
+                boolean movingBackwardOrLookingDown = mc.getPlayerPitch() >= 62.0f
+                        || (input != null && (input.isKeyDown(KeyCodes.KEY_S) || input.isMouseButtonDown(1)));
                 if (!movingBackwardOrLookingDown) {
                     if (fbHoldingSneak[0]) {
                         mc.setSneakingKeyHeld(false);

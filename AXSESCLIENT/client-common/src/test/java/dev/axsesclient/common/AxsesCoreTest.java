@@ -458,6 +458,7 @@ public class AxsesCoreTest {
                 new ItemInfo("minecraft:red_wool", "Red Wool", 48, 0, 0)
         );
         platform.overEdge = true;
+        platform.pitch = 75.6f;
         platform.targetedBlockBox = new double[] { 128.0, 63.0, -256.0, 128.0, 63.0, -256.0, 129.0, 64.0, -255.0, 0.0, 0.0, 1.0 };
         platform.targetedBlockId = "minecraft:red_wool";
         Module fastBridge = core.getModuleManager().getById("fast_bridge");
