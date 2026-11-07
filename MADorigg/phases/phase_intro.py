@@ -57,6 +57,9 @@ def run(ctx: BattleContext) -> None:
         if t < 1.3 and t - last_beat >= 0.42:
             last_beat = t
             ctx.emit("kick", 0.75, cooldown=0.0)
+        if 0.25 <= t < 1.3 and not getattr(ctx, "_riser_played", False):
+            ctx._riser_played = True
+            ctx.emit("riser", 0.9, cooldown=0.0)
 
         # --- the drop --------------------------------------------------- #
         if not music_started and t >= 1.3:
@@ -79,6 +82,20 @@ def run(ctx: BattleContext) -> None:
 
         # --- draw -------------------------------------------------------- #
         ctx.bg.draw_intro(ctx.canvas, ctx.elapsed)
+
+        if 1.3 <= t <= 2.0:
+            k = (t - 1.3) / 0.7
+            radius = int(min(ctx.width, ctx.height) * (0.05 + 0.62 * k))
+            ring_width = max(1, int(ctx.fs(18) * (1.0 - k)))
+            pygame.draw.circle(
+                ctx.canvas, (255, 205, 170),
+                (ctx.width // 2, int(ctx.height * 0.44)), radius, ring_width,
+            )
+            pygame.draw.circle(
+                ctx.canvas, (120, 190, 255),
+                (ctx.width // 2, int(ctx.height * 0.44)),
+                max(1, int(radius * 0.72)), max(1, ring_width // 2),
+            )
 
         if t >= 1.3:
             local = t - 1.3

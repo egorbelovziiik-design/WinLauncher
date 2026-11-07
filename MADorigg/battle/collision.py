@@ -25,9 +25,9 @@ BUCKET_SIZE = 48.0
 def _spark_flash(ctx: "BattleContext", x: float, y: float) -> None:
     """Yellow impact burst used by every collision."""
     ctx.particles.emit(
-        x, y, 8,
-        ((255, 255, 190), (255, 235, 90), (255, 170, 40)),
-        speed=260.0, lifetime=0.35, size=3.0, gravity=180.0, glow=True,
+        x, y, 4,
+        ((255, 250, 170), (255, 225, 80), (255, 160, 40)),
+        speed=240.0, lifetime=0.3, size=2.6, gravity=190.0, glow=True,
     )
 
 
@@ -53,7 +53,7 @@ def resolve_soldier_combat(ctx: "BattleContext") -> None:
         for offset in (-1, 0, 1):
             match = None
             for blue in buckets.get(bucket_index + offset, ()):
-                if red.distance_to(blue) <= SOLDIER_ENGAGE_DISTANCE:
+                if red.distance_to(blue) <= SOLDIER_ENGAGE_DISTANCE * ctx.ui_scale:
                     match = blue
                     break
             if match is not None:
@@ -108,11 +108,33 @@ def resolve_projectiles(ctx: "BattleContext", dt: float) -> None:
             if not projectile.hits(soldier):
                 continue
 
+            hits = getattr(projectile, "_hits", 0)
+            if hits == 0:
+                # First casualty of each projectile gets a tiny bit of impact.
+                ctx.hitstop(0.05)
+                ctx.shake.trigger(4.0, 0.16)
+                if projectile.kind == "ice_beam":
+                    ctx.particles.ice_shatter(projectile.x, projectile.y, 0.8)
+                else:
+                    ctx.particles.fire_explosion(projectile.x, projectile.y, 0.7)
+            setattr(projectile, "_hits", hits + 1)
+
             if projectile.kind == "ice_beam":
+                # A single beam can only lock up so many soldiers at once.
+                frozen_total = getattr(projectile, "_freezes", 0)
+                if frozen_total >= 7:
+                    continue
+                setattr(projectile, "_freezes", frozen_total + 1)
                 soldier.freeze(ctx)
                 if ctx.audio is not None:
                     ctx.audio.play("ice", 0.4, cooldown=0.15)
             else:
+                # A fireball burns itself out after a handful of victims.
+                burned = getattr(projectile, "_burns", 0)
+                if burned >= 9:
+                    projectile.alive = False
+                    break
+                setattr(projectile, "_burns", burned + 1)
                 soldier.die(ctx, cause="burn")
                 ctx.particles.fire_explosion(soldier.x, soldier.y - 8.0, 0.55)
                 if ctx.audio is not None:

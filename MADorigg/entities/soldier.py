@@ -1,4 +1,8 @@
-"""20x20 stick-figure soldiers, drawn entirely with ``pygame.draw``."""
+"""Stick-figure soldiers, drawn entirely with ``pygame.draw``.
+
+Three unit archetypes spawn per side (scout / regular / brute) with different
+sizes, speeds and line weights, so the armies do not look like copy-paste.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 
 import pygame
 
-from config import BLUE_BRIGHT, RED_BRIGHT, SOLDIER_HEIGHT, SOLDIER_SPEED
+from config import SOLDIER_HEIGHT, SOLDIER_SPEED
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from battle.battle_manager import BattleContext
@@ -42,12 +46,32 @@ class Soldier:
         y: float,
         rng: Optional[random.Random] = None,
         speed: Optional[float] = None,
+        base_height: Optional[float] = None,
     ) -> None:
         self.side = side
         self.rng = rng or random.Random()
         self.x = float(x)
         self.y = float(y)
-        self.speed = float(speed if speed is not None else self.rng.uniform(*SOLDIER_SPEED))
+
+        # Scout / regular / brute.
+        roll = self.rng.random()
+        if roll < 0.18:
+            self.scale = 0.8
+            self.archetype = "scout"
+            speed_bonus = 1.25
+        elif roll > 0.85:
+            self.scale = 1.3
+            self.archetype = "brute"
+            speed_bonus = 0.72
+        else:
+            self.scale = 1.0
+            self.archetype = "regular"
+            speed_bonus = 1.0
+
+        base = float(base_height if base_height is not None else self.HEIGHT)
+        self.height = max(12, int(round(base * self.scale)))
+        base_speed = speed if speed is not None else self.rng.uniform(*SOLDIER_SPEED)
+        self.speed = float(base_speed * speed_bonus)
         self.direction = 1 if side == "red" else -1
         self.state = "running"
         self.anim_frame = 0
@@ -88,6 +112,11 @@ class Soldier:
             return FROZEN_LIMB
         return RED_LIMB if self.side == "red" else BLUE_LIMB
 
+    @property
+    def line_width(self) -> int:
+        """Limb thickness for the current archetype."""
+        return 3 if self.archetype == "brute" else 2
+
     def distance_to(self, other: "Soldier") -> float:
         """Euclidean distance to another soldier."""
         return math.hypot(self.x - other.x, self.y - other.y)
@@ -106,7 +135,7 @@ class Soldier:
             return
         self.state = "frozen"
         self.frozen_timer = 1.0
-        ctx.particles.ice_shatter(self.x, self.y - self.HEIGHT * 0.5, 0.5)
+        ctx.particles.ice_shatter(self.x, self.y - self.height * 0.5, 0.5)
 
     def die(self, ctx: "BattleContext", cause: str = "combat") -> None:
         """Start the death animation, emit particles and count the casualty."""
@@ -119,9 +148,9 @@ class Soldier:
             self.death_counted = True
             ctx.stats.record_death(self.side)
         if cause == "shatter":
-            ctx.particles.ice_shatter(self.x, self.y - self.HEIGHT * 0.5)
+            ctx.particles.ice_shatter(self.x, self.y - self.height * 0.5)
         else:
-            ctx.particles.spark(self.x, self.y - self.HEIGHT * 0.6, 5)
+            ctx.particles.spark(self.x, self.y - self.height * 0.6, 5)
 
     def kill(self) -> None:
         """Instantly remove the soldier without effects."""
@@ -134,7 +163,7 @@ class Soldier:
         """Advance animation, movement and the death timer."""
         self.age += dt
         self.anim_timer += dt
-        if self.anim_timer >= 0.11:
+        if self.anim_timer >= (0.09 if self.archetype == "scout" else 0.11):
             self.anim_timer = 0.0
             self.anim_frame ^= 1
         if self.flash > 0.0:
@@ -143,7 +172,6 @@ class Soldier:
         if self.state == "running":
             self.x += self.direction * self.speed * self.speed_boost * dt
             if self.x < -80 or self.x > ctx.width + 80:
-                # Soldiers never retreat: recycle them to the front.
                 self.x = max(-40.0, min(ctx.width + 40.0, self.x))
 
         elif self.state == "frozen":
@@ -174,13 +202,29 @@ class Soldier:
         sway = 1 if self.anim_frame == 0 else -1
         bob = 1 if self.anim_frame == 0 else 0
 
+        # Ground shadow (cheap, no alpha surface).
+        shadow_w = int(self.height * 0.55)
+        shadow_h = max(2, int(self.height * 0.16))
+        shadow_color = (30, 12, 12) if self.side == "red" else (10, 16, 34)
+        pygame.draw.ellipse(
+            surface, shadow_color,
+            (x - shadow_w // 2, y - shadow_h // 2, shadow_w, shadow_h),
+        )
+
         if self.state == "frozen":
-            ice = pygame.Surface((18, 26), pygame.SRCALPHA)
+            block_w = int(self.height * 0.8)
+            block_h = int(self.height * 1.3)
+            ice = pygame.Surface((block_w, block_h), pygame.SRCALPHA)
             pygame.draw.rect(ice, (170, 235, 255, 90), ice.get_rect(), border_radius=4)
             pygame.draw.rect(
                 ice, (235, 250, 255, 230), ice.get_rect(), width=1, border_radius=4
             )
-            surface.blit(ice, (x - 9 + sway, y - 24 + bob))
+            pygame.draw.line(
+                ice, (255, 255, 255, 160), (4, block_h - 6), (block_w - 6, 5), 1
+            )
+            surface.blit(
+                ice, (x - block_w // 2 + sway, y - block_h + block_h // 6 + bob)
+            )
 
         self._draw_figure(surface, x + sway, y - bob, sway)
 
@@ -188,45 +232,79 @@ class Soldier:
         """Draw head, torso, arms and legs of the stick figure."""
         body = self.color
         limb = self.limb_color
-        outline = (30, 0, 0) if self.side == "red" else (0, 10, 45)
+        outline = (35, 0, 0) if self.side == "red" else (0, 10, 45)
+        h = self.height
+        lw = self.line_width
 
-        head_center = (x, y - self.HEIGHT + 4)
-        head_radius = 4
+        head_radius = max(3, int(round(h * 0.2)))
+        head_center = (x, y - h + head_radius)
+        shoulder_y = y - int(h * 0.62)
+        hip_y = y - int(h * 0.3)
 
         # Torso.
-        pygame.draw.line(surface, body, (x, y - 12), (x, y - 5), 3)
+        pygame.draw.line(surface, body, (x, shoulder_y), (x, hip_y), lw)
 
         if self.state == "fighting":
             # Boxing pose: fists up, bouncing.
-            pygame.draw.line(surface, body, (x, y - 11), (x - 5, y - 14), 2)
-            pygame.draw.line(surface, body, (x, y - 11), (x + 5, y - 14), 2)
-            pygame.draw.circle(surface, limb, (x - 6, y - 15), 2)
-            pygame.draw.circle(surface, limb, (x + 6, y - 15), 2)
-            pygame.draw.line(surface, body, (x, y - 5), (x - 4, y), 2)
-            pygame.draw.line(surface, body, (x, y - 5), (x + 4, y), 2)
+            pygame.draw.line(surface, body, (x, shoulder_y), (x - int(h * 0.25), shoulder_y - int(h * 0.15)), lw)
+            pygame.draw.line(surface, body, (x, shoulder_y), (x + int(h * 0.25), shoulder_y - int(h * 0.15)), lw)
+            pygame.draw.circle(
+                surface, limb, (x - int(h * 0.28), shoulder_y - int(h * 0.18)), max(2, h // 10)
+            )
+            pygame.draw.circle(
+                surface, limb, (x + int(h * 0.28), shoulder_y - int(h * 0.18)), max(2, h // 10)
+            )
+            pygame.draw.line(surface, body, (x, hip_y), (x - int(h * 0.2), y), lw)
+            pygame.draw.line(surface, body, (x, hip_y), (x + int(h * 0.2), y), lw)
         else:
             # Running: arms and legs alternate with the animation frame.
-            pygame.draw.line(surface, body, (x, y - 10), (x - 4 * sway, y - 7), 2)
-            pygame.draw.line(surface, body, (x, y - 10), (x + 4 * sway, y - 7), 2)
-            pygame.draw.circle(surface, limb, (x - 5 * sway, y - 6), 2)
-            pygame.draw.circle(surface, limb, (x + 5 * sway, y - 6), 2)
-            pygame.draw.line(surface, body, (x, y - 5), (x - 3 * sway, y), 2)
-            pygame.draw.line(surface, body, (x, y - 5), (x + 3 * sway, y), 2)
+            arm_y = shoulder_y + int(h * 0.1)
+            pygame.draw.line(surface, body, (x, shoulder_y), (x - int(h * 0.18) * sway, arm_y), lw)
+            pygame.draw.line(surface, body, (x, shoulder_y), (x + int(h * 0.18) * sway, arm_y), lw)
+            pygame.draw.circle(
+                surface, limb, (x - int(h * 0.22) * sway, arm_y + int(h * 0.06)), max(2, h // 11)
+            )
+            pygame.draw.circle(
+                surface, limb, (x + int(h * 0.22) * sway, arm_y + int(h * 0.06)), max(2, h // 11)
+            )
+            pygame.draw.line(surface, body, (x, hip_y), (x - int(h * 0.16) * sway, y), lw)
+            pygame.draw.line(surface, body, (x, hip_y), (x + int(h * 0.16) * sway, y), lw)
 
         # Head.
         pygame.draw.circle(surface, body, head_center, head_radius)
         pygame.draw.circle(surface, outline, head_center, head_radius, 1)
 
         # Face.
+        eye_y = head_center[1] - max(1, head_radius // 3)
+        eye_dx = max(1, int(head_radius * 0.45))
         if self.side == "blue":
             pygame.draw.line(
-                surface, (10, 15, 30), (x - 3, y - 17), (x + 3, y - 17), 1
+                surface, (10, 15, 30),
+                (x - eye_dx - 1, eye_y), (x + eye_dx + 1, eye_y), 1,
             )
         else:
-            pygame.draw.circle(surface, (20, 0, 0), (x - 2, y - 17), 1)
-            pygame.draw.circle(surface, (20, 0, 0), (x + 2, y - 17), 1)
-            pygame.draw.line(surface, (20, 0, 0), (x - 3, y - 19), (x - 1, y - 18), 1)
-            pygame.draw.line(surface, (20, 0, 0), (x + 3, y - 19), (x + 1, y - 18), 1)
+            pygame.draw.circle(surface, (20, 0, 0), (x - eye_dx, eye_y), max(1, head_radius // 4))
+            pygame.draw.circle(surface, (20, 0, 0), (x + eye_dx, eye_y), max(1, head_radius // 4))
+            brow_y = eye_y - max(2, head_radius // 2)
+            pygame.draw.line(
+                surface, (20, 0, 0),
+                (x - eye_dx - 1, brow_y), (x - 1, brow_y + 1), 1,
+            )
+            pygame.draw.line(
+                surface, (20, 0, 0),
+                (x + eye_dx + 1, brow_y), (x + 1, brow_y + 1), 1,
+            )
+
+        # Brute shield / scout bandana accents.
+        if self.archetype == "brute":
+            pygame.draw.circle(surface, limb, head_center, head_radius, max(2, head_radius // 3))
+        elif self.archetype == "scout":
+            pygame.draw.line(
+                surface, limb,
+                (x - head_radius, head_center[1] - head_radius // 2),
+                (x + head_radius, head_center[1] - head_radius // 2),
+                2,
+            )
 
     def _draw_dying(self, surface: pygame.Surface) -> None:
         """Falling body followed by a fading cross marker."""
@@ -234,26 +312,29 @@ class Soldier:
         y = int(self.y)
         progress = min(1.0, self.death_timer / 1.0)
         fall = self.fall_offset
+        h = self.height
 
         if self.death_timer < 0.35:
             # Body tips over to the side.
             pygame.draw.circle(
-                surface, self.color, (x + int(6 * self.direction), y - 4 + int(fall)), 4
+                surface, self.color,
+                (x + int(h * 0.3) * self.direction, y - int(h * 0.2) + int(fall)),
+                max(3, int(h * 0.2)),
             )
             pygame.draw.line(
-                surface,
-                self.limb_color,
-                (x + int(3 * self.direction), y - 3 + int(fall)),
-                (x - int(6 * self.direction), y - 2 + int(fall)),
-                2,
+                surface, self.limb_color,
+                (x + int(h * 0.15) * self.direction, y - int(h * 0.15) + int(fall)),
+                (x - int(h * 0.3) * self.direction, y - int(h * 0.1) + int(fall)),
+                self.line_width,
             )
             return
 
         alpha = int(255 * max(0.0, 1.0 - (progress - 0.35) / 0.65))
         if alpha <= 0:
             return
-        marker = pygame.Surface((14, 14), pygame.SRCALPHA)
+        size = max(10, int(h * 0.7))
+        marker = pygame.Surface((size, size), pygame.SRCALPHA)
         color = (*self.limb_color, alpha)
-        pygame.draw.line(marker, color, (2, 2), (12, 12), 2)
-        pygame.draw.line(marker, color, (12, 2), (2, 12), 2)
-        surface.blit(marker, (x - 7, y - 10))
+        pygame.draw.line(marker, color, (2, 2), (size - 2, size - 2), 2)
+        pygame.draw.line(marker, color, (size - 2, 2), (2, size - 2), 2)
+        surface.blit(marker, (x - size // 2, y - size + 2))

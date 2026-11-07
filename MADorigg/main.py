@@ -6,7 +6,8 @@ Everything is restored in the ``finally`` block, even if the show crashes.
 
 Usage
 -----
-    python main.py                  # the real deal
+    python main.py                  # the real deal (kiosk lock on)
+    python main.py --no-lock        # allow Alt+Tab (safe mode)
     python main.py --windowed       # windowed (handy while developing)
     python main.py --no-audio --no-volume --time-scale 20    # fast dry run
 """
@@ -22,6 +23,7 @@ import logging
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -31,6 +33,7 @@ import config
 from audio.music_player import MusicPlayer
 from audio.volume_control import VolumeControl
 from battle.battle_manager import BattleContext, BattleManager, ScenarioAbort
+from battle.kiosk import KioskLock
 from visuals.screen import Screen
 
 LOG = logging.getLogger("madorigg")
@@ -50,6 +53,18 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="speed multiplier for the whole show (20 = fast dry run)",
     )
     parser.add_argument("--seed", type=int, default=None, help="deterministic random seed")
+    parser.add_argument(
+        "--no-lock", action="store_true",
+        help="do not block Alt+Tab / Win / Alt+F4 (kiosk lock off)",
+    )
+    parser.add_argument(
+        "--no-death", action="store_true",
+        help="skip the fake 10-second crash screen",
+    )
+    parser.add_argument(
+        "--limit", type=float, default=config.HARD_LIMIT_SECONDS,
+        help="hard safety stop after N seconds (default: %(default)s)",
+    )
     parser.add_argument("--self-delete", action="store_true", help="delete the .exe after the show")
     parser.add_argument("--capture", metavar="DIR", default=None, help="save PNG frames to DIR")
     parser.add_argument(
@@ -108,12 +123,38 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     screen: Optional[Screen] = None
     volume = VolumeControl(enabled=not args.no_volume)
     audio = MusicPlayer(enabled=not args.no_audio)
+    kiosk = KioskLock(enabled=False)
+    watchdog: Optional[threading.Timer] = None
     exit_code = 0
 
     try:
         screen = Screen(windowed=args.windowed)
         screen.open()
         screen.set_cursor_visible(False)
+
+        kiosk = KioskLock(screen.hwnd, enabled=not args.no_lock)
+        kiosk.start()
+
+        def _hard_stop() -> None:  # pragma: no cover - runs in a timer thread
+            LOG.error("Hard time limit of %.0f s reached - forcing exit", args.limit)
+            try:
+                kiosk.stop()
+            except Exception:
+                pass
+            try:
+                volume.restore_volume()
+            except Exception:
+                pass
+            try:
+                pygame.mouse.set_visible(True)
+            except Exception:
+                pass
+            os._exit(0)
+
+        if args.limit > 0:
+            watchdog = threading.Timer(float(args.limit), _hard_stop)
+            watchdog.daemon = True
+            watchdog.start()
 
         # Snapshot the system state *before* any audio is played.
         volume.save_volume()
@@ -127,7 +168,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             seed=args.seed,
             capture_dir=args.capture,
             capture_interval=args.capture_interval,
+            require_escape_hold=kiosk.active,
         )
+        ctx.skip_death = args.no_death
         BattleManager(ctx).run()
 
     except ScenarioAbort as exc:
@@ -141,6 +184,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # ------------------------------------------------------------------ #
         # CRITICAL: leave the machine exactly as we found it.
         # ------------------------------------------------------------------ #
+        if watchdog is not None:
+            watchdog.cancel()
+        try:
+            kiosk.stop()
+        except Exception:
+            pass
         try:
             volume.restore_volume()
         except Exception as exc:  # pragma: no cover - defensive

@@ -18,6 +18,28 @@ MEGA_TIME = 1.6
 VICTORY_TIME = 2.4
 
 
+def _draw_crowd(ctx: BattleContext, t: float) -> None:
+    """Dark silhouettes of the audience cheering along the bottom edge."""
+    count = 44
+    base = ctx.height + ctx.fs(6)
+    step = ctx.width / count
+    for index in range(count):
+        height = ctx.fs(24) + (index % 5) * ctx.fs(4)
+        bob = abs(math.sin(t * 3.1 + index * 0.7)) * ctx.fs(5)
+        x = (index + 0.5) * step + math.sin(t * 1.6 + index) * ctx.fs(3)
+        color = (26, 7, 9) if x < ctx.width * 0.5 else (7, 12, 28)
+        pygame.draw.ellipse(
+            ctx.canvas, color,
+            (int(x - height * 0.35), int(base - height - bob), int(height * 0.7), height),
+        )
+        # Raised hands.
+        pygame.draw.line(
+            ctx.canvas, color,
+            (int(x), int(base - height * 0.55 - bob)),
+            (int(x - height * 0.22), int(base - height * 1.05 - bob)), 2,
+        )
+
+
 def run(ctx: BattleContext) -> None:
     """Play the finale and set ``ctx.winner``."""
     winner = ctx.rng.choice(("red", "blue"))
@@ -93,6 +115,8 @@ def run(ctx: BattleContext) -> None:
             mega.update(dt, ctx)
             if mega.hit_applied and not loser_destroyed:
                 loser_destroyed = True
+                ctx.slowmo(0.4, 0.7)
+                ctx.hitstop(0.08)
                 if loser_boss is not None:
                     loser_boss.die(ctx)
                 ctx.armies[loser].kill_all(ctx, cause="burn")
@@ -131,10 +155,15 @@ def run(ctx: BattleContext) -> None:
                 winner_boss.y += (target_y - winner_boss.y) * min(1.0, dt * 3.0)
             firework_timer -= dt
             if firework_timer <= 0.0:
-                firework_timer = 0.2
+                firework_timer = 0.18
                 fx = ctx.rng.uniform(ctx.width * 0.1, ctx.width * 0.9)
-                fy = ctx.rng.uniform(ctx.height * 0.15, ctx.height * 0.6)
+                fy = ctx.rng.uniform(ctx.height * 0.12, ctx.height * 0.58)
                 ctx.particles.confetti(fx, fy, 26)
+                ctx.particles.emit(
+                    fx, fy, 26, config.CONFETTI_COLORS,
+                    speed=430.0, lifetime=1.1, size=3.0,
+                    gravity=150.0, drag=0.9, glow=True,
+                )
                 ctx.particles.spark(fx, fy, 10)
                 if ctx.rng.random() < 0.6:
                     ctx.emit("kick", 0.4, cooldown=0.05)
@@ -174,6 +203,9 @@ def run(ctx: BattleContext) -> None:
         for projectile in ctx.projectiles:
             projectile.draw(ctx.canvas, ctx)
         ctx.front.draw(ctx.canvas, ctx)
+
+        if victory_started:
+            _draw_crowd(ctx, ctx.elapsed)
 
         if victory_started:
             size = ctx.fs(96)

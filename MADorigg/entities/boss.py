@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 
 import pygame
 
+import config
 from config import (
     BLUE_BRIGHT,
     BLUE_PRIMARY,
@@ -64,6 +65,11 @@ class Boss:
         self.offset_x = 0.0
         self.offset_y = 0.0
         self.glow = 0.0
+        self.telegraph = 0.0
+        self.blink = False
+        self._blink_left = 0.0
+        self._blink_timer = self.rng.uniform(2.0, 5.0)
+        self.look = (0.0, 0.0)
         self._tmp: Optional[pygame.Surface] = None
         self._tmp_size = 0
 
@@ -96,6 +102,36 @@ class Boss:
             self.hurt_timer = max(0.0, self.hurt_timer - dt)
 
         self._update_motion()
+
+        # Blinking adds a surprising amount of life to a vector smiley.
+        self._blink_timer -= dt
+        if self._blink_timer <= 0.0 and not self.blink:
+            self.blink = True
+            self._blink_left = 0.12
+            self._blink_timer = self.rng.uniform(2.2, 6.0)
+        if self.blink:
+            self._blink_left -= dt
+            if self._blink_left <= 0.0:
+                self.blink = False
+
+        # Attack telegraph: the boss visibly charges up before firing.
+        if self.alive and self.auto_attack and self.state not in ("dead", "victory"):
+            remaining = self.attack_cooldown - self.attack_timer
+            self.telegraph = max(0.0, min(1.0, 1.0 - remaining / 0.7))
+            if self.telegraph > 0.25 and ctx.rng.random() < 0.55:
+                origin = (
+                    self.x + self.facing * self.size * 0.42,
+                    self.y + self.size * 0.12,
+                )
+                if self.side == "red":
+                    ctx.particles.embers(origin[0], origin[1], 1)
+                else:
+                    ctx.particles.emit(
+                        origin[0], origin[1], 1, config.ICE_COLORS,
+                        speed=60.0, lifetime=0.4, size=3.0, glow=True,
+                    )
+        else:
+            self.telegraph = 0.0
 
         projectile: Optional[Projectile] = None
         if self.alive and self.auto_attack and self.state not in ("dead", "victory"):
@@ -196,6 +232,33 @@ class Boss:
         if not self.alive or self.state == "dead":
             return
         size = int(max(8.0, self.size))
+        cx, cy = self.center
+
+        # Ground shadow + elemental aura behind the sprite.
+        aura = config.RED_BRIGHT if self.side == "red" else config.BLUE_BRIGHT
+        # Coloured pool of light on the arena floor under the boss.
+        ctx.bg.draw_boss_glow(
+            surface, self.x, ctx.ground_y - size * 0.05, aura, size * 0.5, 0.4
+        )
+        ctx.bg.draw_boss_glow(
+            surface, cx, cy, aura, size * 0.95,
+            intensity=0.55 + 0.35 * self.glow + 0.5 * self.telegraph,
+        )
+
+        # Victory halo rays.
+        if self.state == "victory":
+            rays = 16
+            for index in range(rays):
+                angle = self.t * 0.7 + index * math.tau / rays
+                inner = size * 0.62
+                outer = size * (0.74 + 0.06 * math.sin(self.t * 4.0 + index))
+                pygame.draw.line(
+                    surface, (255, 208, 90),
+                    (int(cx + math.cos(angle) * inner), int(cy + math.sin(angle) * inner)),
+                    (int(cx + math.cos(angle) * outer), int(cy + math.sin(angle) * outer)),
+                    max(2, int(size * 0.015)),
+                )
+
         canvas_size = int(size * 1.5)
         if self._tmp is None or self._tmp_size != canvas_size:
             self._tmp = pygame.Surface((canvas_size, canvas_size), pygame.SRCALPHA)
@@ -204,29 +267,55 @@ class Boss:
             self._tmp.fill((0, 0, 0, 0))
 
         centre = canvas_size // 2
-        self._draw_body(self._tmp, centre, centre, size, self.t)
+        self.look = self._look_towards(ctx)
+        self._draw_body(self._tmp, centre, centre, size, self.t, self.look)
 
         if abs(self.rotation) > 0.2:
             image = pygame.transform.rotozoom(self._tmp, self.rotation, 1.0)
         else:
             image = self._tmp
 
-        cx, cy = self.center
         surface.blit(image, image.get_rect(center=(int(cx), int(cy))))
 
+    def _look_towards(self, ctx: "BattleContext") -> Tuple[float, float]:
+        """Unit vector pointing at the enemy boss (drives the pupils)."""
+        enemy_side = "blue" if self.side == "red" else "red"
+        enemy = ctx.bosses.get(enemy_side)
+        if enemy is not None and enemy.alive:
+            target_x, target_y = enemy.center
+        else:
+            target_x, target_y = ctx.width * 0.5, ctx.ground_y - 40
+        dx, dy = target_x - self.x, target_y - self.y
+        length = math.hypot(dx, dy) or 1.0
+        return dx / length, dy / length
+
     def _draw_body(
-        self, surface: pygame.Surface, cx: float, cy: float, size: float, t: float
+        self,
+        surface: pygame.Surface,
+        cx: float,
+        cy: float,
+        size: float,
+        t: float,
+        look: Tuple[float, float] = (0.0, 0.0),
     ) -> None:
         """Dispatch to the red or blue face renderer."""
         if self.side == "red":
-            self._draw_red(surface, cx, cy, size, t)
+            self._draw_red(surface, cx, cy, size, t, look)
         else:
-            self._draw_blue(surface, cx, cy, size, t)
+            self._draw_blue(surface, cx, cy, size, t, look)
 
     # ------------------------------------------------------------------ #
     # Red boss
     # ------------------------------------------------------------------ #
-    def _draw_red(self, surface: pygame.Surface, cx: float, cy: float, size: float, t: float) -> None:
+    def _draw_red(
+        self,
+        surface: pygame.Surface,
+        cx: float,
+        cy: float,
+        size: float,
+        t: float,
+        look: Tuple[float, float] = (0.0, 0.0),
+    ) -> None:
         """Angry red smiley with burning eyes and a flaming mouth."""
         r = size * 0.5
         attacking = self.attack_anim > 0.0
@@ -252,14 +341,26 @@ class Boss:
         # Eyes.
         eye_w = r * 0.40
         eye_h = r * 0.30 * (0.45 if attacking else 1.0)
+        look_x, look_y = look
         for sign in (-1, 1):
             rect = pygame.Rect(0, 0, int(eye_w), max(4, int(eye_h)))
             rect.center = (int(cx + sign * r * 0.33), int(cy - r * 0.15))
-            pygame.draw.ellipse(surface, (255, 248, 235), rect)
-            pupil = max(2, int(r * 0.085))
-            pupil_x = rect.centerx + int(r * 0.05 * self.facing)
-            pygame.draw.circle(surface, (25, 0, 0), (pupil_x, rect.centery), pupil)
-            pygame.draw.circle(surface, (255, 255, 255), (pupil_x - 1, rect.centery - 2), max(1, pupil // 3))
+            if self.blink:
+                pygame.draw.line(
+                    surface, (60, 0, 0),
+                    (rect.left, rect.centery), (rect.right, rect.centery),
+                    max(2, int(r * 0.05)),
+                )
+            else:
+                pygame.draw.ellipse(surface, (255, 248, 235), rect)
+                pupil = max(2, int(r * 0.085))
+                pupil_x = rect.centerx + int(look_x * r * 0.07)
+                pupil_y = rect.centery + int(look_y * r * 0.05)
+                pygame.draw.circle(surface, (25, 0, 0), (pupil_x, pupil_y), pupil)
+                pygame.draw.circle(
+                    surface, (255, 255, 255),
+                    (pupil_x - 1, pupil_y - 2), max(1, pupil // 3),
+                )
 
             # Angry brows.
             inner = (cx + sign * r * 0.10, cy - r * 0.34)
@@ -316,6 +417,24 @@ class Boss:
                     ],
                 )
 
+        # Charging fire orb: the attack is always telegraphed.
+        if self.telegraph > 0.05:
+            power = self.telegraph
+            orb_x = cx + self.facing * (r * 0.95 + r * 0.12 * power)
+            orb_y = cy + r * 0.1
+            radius = max(3, int(r * 0.34 * power))
+            pygame.draw.circle(surface, (255, 120, 30), (int(orb_x), int(orb_y)), radius)
+            pygame.draw.circle(
+                surface, (255, 205, 90), (int(orb_x), int(orb_y)), max(1, int(radius * 0.6))
+            )
+            pygame.draw.circle(
+                surface, (255, 250, 220), (int(orb_x), int(orb_y)), max(1, int(radius * 0.28))
+            )
+            pygame.draw.circle(
+                surface, (255, 150, 60), (int(cx), int(cy)),
+                int(r * (1.02 + 0.06 * power)), max(1, int(r * 0.03)),
+            )
+
         if self.hurt_timer > 0.0:
             overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
             pygame.draw.circle(
@@ -326,7 +445,15 @@ class Boss:
     # ------------------------------------------------------------------ #
     # Blue boss
     # ------------------------------------------------------------------ #
-    def _draw_blue(self, surface: pygame.Surface, cx: float, cy: float, size: float, t: float) -> None:
+    def _draw_blue(
+        self,
+        surface: pygame.Surface,
+        cx: float,
+        cy: float,
+        size: float,
+        t: float,
+        look: Tuple[float, float] = (0.0, 0.0),
+    ) -> None:
         """Cool blue smiley with sunglasses, a smirk and a freezing aura."""
         r = size * 0.5
         cx, cy = float(cx), float(cy)
@@ -370,10 +497,14 @@ class Boss:
                 surface, (90, 140, 210), lens, width=max(1, int(r * 0.02)),
                 border_radius=max(2, int(r * 0.08)),
             )
+            glint_dx = int(look[0] * r * 0.05)
+            glint_dy = int(look[1] * r * 0.04)
             pygame.draw.line(
                 surface, (210, 240, 255),
-                (lens.x + max(2, int(lens_w * 0.15)), lens.bottom - max(2, int(lens_h * 0.2))),
-                (lens.x + max(3, int(lens_w * 0.55)), lens.y + max(2, int(lens_h * 0.2))),
+                (lens.x + max(2, int(lens_w * 0.15)) + glint_dx,
+                 lens.bottom - max(2, int(lens_h * 0.2)) + glint_dy),
+                (lens.x + max(3, int(lens_w * 0.55)) + glint_dx,
+                 lens.y + max(2, int(lens_h * 0.2)) + glint_dy),
                 max(2, int(r * 0.025)),
             )
             # Temple arm.
@@ -418,6 +549,24 @@ class Boss:
                     (int(hand_x - r * 0.35 * math.cos(angle)), int(hand_y + r * 0.35 * math.sin(angle))),
                     max(2, int(r * 0.02)),
                 )
+
+        # Charging ice orb (telegraph for the freezing beam).
+        if self.telegraph > 0.05:
+            power = self.telegraph
+            orb_x = cx - r * (0.95 + 0.12 * power)
+            orb_y = cy + r * 0.18
+            radius = max(3, int(r * 0.32 * power))
+            pygame.draw.circle(surface, (40, 110, 220), (int(orb_x), int(orb_y)), radius)
+            pygame.draw.circle(
+                surface, (140, 220, 255), (int(orb_x), int(orb_y)), max(1, int(radius * 0.6))
+            )
+            pygame.draw.circle(
+                surface, (250, 255, 255), (int(orb_x), int(orb_y)), max(1, int(radius * 0.28))
+            )
+            pygame.draw.circle(
+                surface, (120, 210, 255), (int(cx), int(cy)),
+                int(r * (1.02 + 0.06 * power)), max(1, int(r * 0.03)),
+            )
 
         if self.hurt_timer > 0.0:
             overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)

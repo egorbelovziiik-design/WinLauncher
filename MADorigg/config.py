@@ -31,6 +31,7 @@ PHASE_INTRO_DURATION: Final[float] = 5.0
 PHASE_BOSSES_DURATION: Final[float] = 3.0
 PHASE_BATTLE_DURATION: Final[Tuple[float, float]] = (15.0, 22.0)
 PHASE_FINALE_DURATION: Final[float] = 5.0
+PHASE_DEATH_DURATION: Final[float] = 10.0
 PHASE_CLEANUP_DURATION: Final[float] = 4.0
 
 # --------------------------------------------------------------------------- #
@@ -38,8 +39,8 @@ PHASE_CLEANUP_DURATION: Final[float] = 4.0
 # --------------------------------------------------------------------------- #
 SOLDIER_HEIGHT: Final[int] = 20
 SOLDIER_SPEED: Final[Tuple[float, float]] = (110.0, 210.0)
-SOLDIER_SPAWN_INTERVAL: Final[float] = 0.6
-SOLDIER_SPAWN_BATCH: Final[Tuple[int, int]] = (4, 7)
+SOLDIER_SPAWN_INTERVAL: Final[float] = 0.5
+SOLDIER_SPAWN_BATCH: Final[Tuple[int, int]] = (6, 10)
 MAX_SOLDIERS: Final[int] = 120  # per side
 SOLDIER_ENGAGE_DISTANCE: Final[float] = 15.0
 GROUND_RATIO: Final[float] = 0.86
@@ -66,7 +67,12 @@ PROJECTILE_LIFETIME: Final[float] = 4.0
 # Particles / effects
 # --------------------------------------------------------------------------- #
 MAX_PARTICLES: Final[int] = 1000
-FRONT_LINE_LIMIT: Final[float] = 0.8
+FRONT_LINE_LIMIT: Final[float] = 0.85
+ESCAPE_HOLD_SECONDS: Final[float] = 2.0
+HARD_LIMIT_SECONDS: Final[float] = 180.0
+HITSTOP_SECONDS: Final[float] = 0.07
+SLOWMO_FACTOR: Final[float] = 0.35
+SLOWMO_SECONDS: Final[float] = 0.6
 GLITCH_INTERVAL: Final[Tuple[float, float]] = (5.0, 8.0)
 VIGNETTE_STRENGTH: Final[float] = 0.75
 

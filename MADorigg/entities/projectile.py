@@ -169,18 +169,20 @@ class Projectile:
         length = int(self.length)
         flicker = 1.0 + 0.12 * math.sin(t * 40.0)
 
-        beam = pygame.Surface((max(4, length), 44), pygame.SRCALPHA)
-        for half in range(16, 0, -1):
-            ratio = (16 - half) / 16.0
-            alpha = int(14 + 86 * ratio ** 1.3)
+        beam = pygame.Surface((max(4, length), 30), pygame.SRCALPHA)
+        for half in range(11, 0, -1):
+            ratio = (11 - half) / 11.0
+            alpha = int(12 + 80 * ratio ** 1.3)
             pygame.draw.rect(
-                beam, (110, 205, 255, alpha), (0, 22 - half, max(4, length), half * 2)
+                beam, (90, 195, 255, alpha), (0, 15 - half, max(4, length), half * 2)
             )
         pygame.draw.rect(
-            beam, (225, 248, 255, 190), (0, 20, max(4, length), max(2, int(5 * flicker)))
+            beam, (170, 235, 255, 210), (0, 13, max(4, length), max(2, int(4 * flicker)))
         )
-        beam.set_alpha(235)
-        surface.blit(beam, (x, y - 22))
+        pygame.draw.rect(
+            beam, (240, 252, 255, 235), (0, 14, max(4, length), 1)
+        )
+        surface.blit(beam, (x, y - 15))
 
         # Crystals drifting along the ray.
         for index in range(5):

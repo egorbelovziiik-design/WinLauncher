@@ -36,6 +36,8 @@ def run(ctx: BattleContext) -> None:
             break
         dt = ctx.begin_frame()
         t = ctx.elapsed - start
+        ctx.battle_elapsed = t
+        ctx.wave = 1 + int(t // 4.0)
 
         # --- reinforcements ------------------------------------------- #
         if t >= next_spawn:
@@ -52,6 +54,8 @@ def run(ctx: BattleContext) -> None:
             projectile = boss.update(dt, ctx)
             if projectile is not None:
                 ctx.projectiles.append(projectile)
+                ctx.shake.trigger(2.5, 0.12)
+                ctx.emit("whoosh", 0.5, cooldown=0.08)
 
         # --- soldiers & fighting --------------------------------------- #
         ctx.armies["red"].update(dt, ctx)
@@ -73,7 +77,7 @@ def run(ctx: BattleContext) -> None:
                 ctx.particles.smoke(
                     ctx.rng.uniform(ctx.width * 0.25, ctx.width * 0.75),
                     ctx.ground_y - ctx.rng.uniform(0, 40),
-                    ctx.rng.randint(2, 5),
+                    ctx.rng.randint(1, 3),
                 )
 
         # --- random glitch + shake ------------------------------------- #

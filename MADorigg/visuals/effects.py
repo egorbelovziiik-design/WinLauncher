@@ -37,7 +37,7 @@ class Flash:
         """Current overlay opacity (0-255)."""
         if not self.active or self.duration <= 0:
             return 0
-        return int(255 * (1.0 - self.age / self.duration))
+        return int(235 * (1.0 - self.age / self.duration))
 
     def trigger(self, color: Color = (255, 255, 255), duration: float = 0.3) -> None:
         """Start (or restart) a flash."""
@@ -150,23 +150,21 @@ class Glitch:
             return
 
         # --- RGB channel split ------------------------------------------ #
-        split = int(max(2, 12 * self.intensity * strength))
+        split = int(max(2, 9 * self.intensity * strength))
         red = source.copy()
-        red.fill((255, 40, 40), special_flags=pygame.BLEND_MULT)
+        red.fill((120, 0, 0), special_flags=pygame.BLEND_MULT)
         blue = source.copy()
-        blue.fill((40, 90, 255), special_flags=pygame.BLEND_MULT)
-        red.set_alpha(120)
-        blue.set_alpha(120)
-        surface.blit(red, (split, 0), special_flags=pygame.BLEND_RGBA_ADD)
-        surface.blit(blue, (-split, 0), special_flags=pygame.BLEND_RGBA_ADD)
+        blue.fill((0, 30, 120), special_flags=pygame.BLEND_MULT)
+        surface.blit(red, (split, 0), special_flags=pygame.BLEND_ADD)
+        surface.blit(blue, (-split, 0), special_flags=pygame.BLEND_ADD)
 
         # --- torn horizontal bands -------------------------------------- #
         # Strips are drawn *over* the untouched frame, so the screen never
         # gets black holes - it just looks like the picture slipped.
-        bands = int(4 + 6 * self.intensity)
-        max_shift = int(26 * self.intensity)
+        bands = int(3 + 3 * self.intensity)
+        max_shift = int(18 * self.intensity)
         for _ in range(bands):
-            band_height = rng.randint(3, max(4, int(height * 0.05)))
+            band_height = rng.randint(2, max(3, int(height * 0.014)))
             y = rng.randint(0, max(0, height - band_height))
             shift = rng.randint(-max_shift, max_shift)
             rect = pygame.Rect(0, y, width, band_height)

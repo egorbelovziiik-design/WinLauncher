@@ -256,6 +256,59 @@ def generate_ice(duration: float = 0.8) -> np.ndarray:
     return _normalize(shimmer * 0.5 + cracks + air, 0.85)
 
 
+def generate_riser(duration: float = 1.7) -> np.ndarray:
+    """Rising noise + tone sweep that builds tension before the drop."""
+    t = _t(duration)
+    envelope = np.clip(t / duration, 0.0, 1.0) ** 2.0
+    sine = np.sin(2.0 * np.pi * np.cumsum(_sweep(110.0, 1500.0, t)) / SR)
+    noise = _noise(len(t))
+    chunks = 8
+    band = np.zeros(len(t))
+    for index in range(chunks):
+        start = int(len(t) * index / chunks)
+        end = int(len(t) * (index + 1) / chunks)
+        if end - start < 32:
+            continue
+        centre = 260.0 * (1.0 + 9.0 * index / chunks)
+        band[start:end] = _fft_filter(noise[start:end], low=centre, high=centre * 2.2)
+    ticks = np.zeros(len(t))
+    period = 0.16
+    when = 0.0
+    while when < duration:
+        index = int(when * SR)
+        click = _decay(_t(0.05)[: max(1, int(0.05 * SR))], 60.0)
+        end = min(len(ticks), index + len(click))
+        if end > index:
+            ticks[index:end] += click[: end - index] * (when / duration)
+        when += period
+        period = max(0.035, period * 0.82)
+    signal = sine * envelope * 0.42 + band * envelope * 0.55 + ticks * 0.35
+    return _normalize(signal, 0.9)
+
+
+def generate_powerdown(duration: float = 1.5) -> np.ndarray:
+    """Falling power-down sweep used when the fake crash screen appears."""
+    t = _t(duration)
+    remaining = np.clip(1.0 - t / duration, 0.0, 1.0)
+    freq = 900.0 * np.exp(-t * 2.4) + 42.0
+    phase = 2.0 * np.pi * np.cumsum(freq) / SR
+    tone = np.sin(phase) * remaining ** 1.4
+    air = _fft_filter(_noise(len(t)), high=2200.0) * remaining * 0.3
+    hum = np.sin(2.0 * np.pi * 50.0 * t) * remaining * 0.22
+    click = np.zeros(len(t))
+    length = min(240, len(t))
+    click[:length] = _noise(length) * np.linspace(1.0, 0.0, length) * 0.6
+    return _normalize(tone * 0.7 + air + hum + click, 0.9)
+
+
+def generate_beep(duration: float = 0.16) -> np.ndarray:
+    """Short motherboard-style beep."""
+    t = _t(duration)
+    tone = np.sin(2.0 * np.pi * 880.0 * t) + 0.3 * np.sin(2.0 * np.pi * 1760.0 * t)
+    envelope = np.minimum(1.0, t / 0.006) * np.clip((duration - t) / 0.05, 0.0, 1.0)
+    return _normalize(tone * envelope, 0.7)
+
+
 def generate_siren(duration: float = 1.4) -> np.ndarray:
     """Air-raid siren used by the intro build-up."""
     t = _t(duration)
@@ -397,6 +450,17 @@ def generate_battle_theme(
         # --- pad --------------------------------------------------------- #
         add(_pad_chord(chords[bar % 4], 4.0 * beat), bar_start, 0.16)
 
+        # --- lead octave shimmer ----------------------------------------- #
+        for eighth, semis in enumerate(melody):
+            at = bar_start + eighth * beat / 2.0
+            add(_lead_note(_semitones(880.0, semis), beat * 0.3), at, 0.11)
+
+        # --- tom fill + sub drop at the end of every 4-bar phrase --------- #
+        if bar % 4 == 3:
+            for index, offset in enumerate((3.0, 3.25, 3.5, 3.75)):
+                add(generate_bass(120.0 - index * 14.0, 0.14), bar_start + offset * beat, 0.42)
+            add(generate_bass(41.0, 0.6), bar_start + 3.5 * beat, 0.5)
+
     # A couple of crowd screams for flavour.
     add(generate_scream(0.5), 2.0 * beat, 0.18)
     add(generate_scream(0.45), (4.0 * 6 + 2.0) * beat, 0.16)
@@ -472,6 +536,9 @@ SFX_BUILDERS: Dict[str, Callable[[], np.ndarray]] = {
     "crowd": generate_crowd,
     "scream": generate_scream,
     "bass": generate_bass,
+    "riser": generate_riser,
+    "powerdown": generate_powerdown,
+    "beep": generate_beep,
 }
 
 

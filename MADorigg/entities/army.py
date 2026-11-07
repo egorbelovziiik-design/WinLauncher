@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 import pygame
 
-from config import MAX_SOLDIERS, SOLDIER_SPAWN_BATCH
+from config import MAX_SOLDIERS, SOLDIER_HEIGHT, SOLDIER_SPAWN_BATCH
 from .soldier import Soldier
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
@@ -25,6 +25,7 @@ class Army:
         self.rng: random.Random = ctx.rng
         self.soldiers: List[Soldier] = []
         self.spawn_count = 0
+        self.unit_height = SOLDIER_HEIGHT * ctx.ui_scale
 
     # ------------------------------------------------------------------ #
     # Queries
@@ -63,20 +64,30 @@ class Army:
             return 0
 
         ground_y = ctx.ground_y
+        front_x = ctx.front.x
         for index in range(count):
-            if self.side == "red":
+            # Roughly half the wave joins the melee near the front line
+            # instead of marching in from the screen edge.
+            if self.rng.random() < 0.45:
+                if self.side == "red":
+                    x = front_x - self.rng.uniform(40.0, 260.0)
+                else:
+                    x = front_x + self.rng.uniform(40.0, 260.0)
+            elif self.side == "red":
                 x = -self.rng.uniform(10.0, 170.0)
             else:
                 x = ctx.width + self.rng.uniform(10.0, 170.0)
             y = ground_y + self.rng.uniform(-26.0, 26.0)
             y = max(ctx.ground_y - 40.0, min(ctx.height - 6.0, y))
-            self.soldiers.append(Soldier(self.side, x, y, self.rng))
+            self.soldiers.append(
+                Soldier(self.side, x, y, self.rng, base_height=self.unit_height)
+            )
             self.spawn_count += 1
         return count
 
     def spawn_at(self, x: float, y: float) -> Soldier:
         """Spawn a single soldier at an explicit position (used by the finale)."""
-        soldier = Soldier(self.side, x, y, self.rng)
+        soldier = Soldier(self.side, x, y, self.rng, base_height=self.unit_height)
         self.soldiers.append(soldier)
         self.spawn_count += 1
         return soldier

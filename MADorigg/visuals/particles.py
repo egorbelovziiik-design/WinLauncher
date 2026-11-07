@@ -98,8 +98,8 @@ class Particle:
         radius = self.size * (0.25 + 0.75 * k) if self.shrink else self.size
         px, py = int(self.x), int(self.y)
         if self.glow:
-            halo = _scale(color, 0.4)
-            pygame.draw.circle(surface, halo, (px, py), max(1, int(radius * 2.1)))
+            halo = _scale(color, 0.72)
+            pygame.draw.circle(surface, halo, (px, py), max(1, int(radius * 1.7)))
         pygame.draw.circle(surface, color, (px, py), max(1, int(radius)))
 
 
@@ -196,12 +196,12 @@ class ParticleSystem:
     # ------------------------------------------------------------------ #
     def fire_explosion(self, x: float, y: float, power: float = 1.0) -> None:
         """30-ish fire particles + a little smoke."""
-        count = int(30 * power)
+        count = int(22 * power)
         self.emit(
-            x, y, count, FIRE_COLORS, speed=340 * power, lifetime=0.75,
-            size=6.0, gravity=-140.0, drag=1.2, glow=True, jitter=6.0,
+            x, y, count, FIRE_COLORS, speed=340 * power, lifetime=0.7,
+            size=5.0, gravity=-140.0, drag=1.2, glow=True, jitter=6.0,
         )
-        self.smoke(x, y, count=max(3, count // 4))
+        self.smoke(x, y, count=max(2, count // 6))
 
     def ice_shatter(self, x: float, y: float, power: float = 1.0) -> None:
         """20-ish frozen shards flying outwards."""

@@ -77,6 +77,19 @@ class BackgroundRenderer:
             flip=True,
         )
         self._floor = self._build_floor()
+        # Twinkling starfield (normalised coordinates, radius, phase, speed).
+        self._radial_cache: dict = {}
+        self._glow_cache: dict = {}
+        self._stars = [
+            (
+                self.rng.random(),
+                self.rng.random() * 0.72,
+                self.rng.choice((1, 1, 1, 2)),
+                self.rng.uniform(0.0, math.tau),
+                self.rng.uniform(0.8, 3.2),
+            )
+            for _ in range(150)
+        ]
 
     # ------------------------------------------------------------------ #
     # Static caches
@@ -148,6 +161,19 @@ class BackgroundRenderer:
                 )
             surface.blit(aura, (seam - 120, 0))
 
+        # Twinkling stars.
+        for fx, fy, radius, phase, speed in self._stars:
+            twinkle = 0.45 + 0.55 * math.sin(t * speed + phase)
+            if twinkle <= 0.05:
+                continue
+            if fx < 0.5:
+                color = (int(210 * twinkle), int(95 * twinkle), int(85 * twinkle))
+            else:
+                color = (int(120 * twinkle), int(170 * twinkle), int(255 * twinkle))
+            pygame.draw.circle(
+                surface, color, (int(fx * self.width), int(fy * self.height)), radius
+            )
+
         # Horizon line.
         horizon = int(self.height * 0.78)
         pygame.draw.line(surface, (255, 90, 60), (0, horizon), (self.half_width, horizon), 2)
@@ -165,6 +191,51 @@ class BackgroundRenderer:
             pygame.draw.line(
                 surface, (20, 40, 90), (int(x + 200), horizon + 2), (int(x + 380), horizon + 2), 2
             )
+
+    def _radial(self, color: Color) -> pygame.Surface:
+        """Soft radial gradient sprite (128 px) cached per tint colour."""
+        cached = self._radial_cache.get(color)
+        if cached is not None:
+            return cached
+        size = 128
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+        steps = 18
+        for index in range(steps, 0, -1):
+            radius = max(2, int(size / 2 * index / steps))
+            alpha = int(150 * (1.0 - index / steps) ** 1.4) + 3
+            pygame.draw.circle(
+                surf, (*color, alpha), (size // 2, size // 2), radius
+            )
+        self._radial_cache[color] = surf
+        return surf
+
+    def draw_boss_glow(
+        self,
+        surface: pygame.Surface,
+        x: float,
+        y: float,
+        color: Color,
+        radius: float,
+        intensity: float = 1.0,
+    ) -> None:
+        """Soft additive-ish glow behind a boss (cached, no black rings)."""
+        if intensity <= 0.02 or radius < 6:
+            return
+        intensity = min(1.6, intensity)
+        tint = (
+            max(0, min(255, int(color[0] * 0.55 * intensity))),
+            max(0, min(255, int(color[1] * 0.55 * intensity))),
+            max(0, min(255, int(color[2] * 0.55 * intensity))),
+        )
+        diameter = max(16, (int(radius * 2.0) // 32) * 32)
+        key = (tint, diameter)
+        glow = self._glow_cache.get(key)
+        if glow is None:
+            if len(self._glow_cache) > 96:
+                self._glow_cache.clear()
+            glow = pygame.transform.smoothscale(self._radial(tint), (diameter, diameter))
+            self._glow_cache[key] = glow
+        surface.blit(glow, (int(x - diameter / 2), int(y - diameter / 2)))
 
     def draw_floor(self, surface: pygame.Surface, t: float) -> None:
         """Draw the darkened ground band with a moving highlight."""
@@ -227,9 +298,11 @@ class BackgroundRenderer:
                                  int((sy + end_y) / 2)), (int(end_x), int(end_y))]
             pygame.draw.lines(surface, (170, 200, 255), False, branch, 2)
 
-        # Impact glow on the floor.
+        # Impact glow on the floor (only when the bolt ends inside the frame).
+        last_x, last_y = points[-1]
+        inside = 0 <= last_x < self.width and last_y < self.height - 12
         glow_radius = int(40 * intensity)
-        if glow_radius > 2:
+        if inside and glow_radius > 2:
             glow = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
             pygame.draw.circle(
                 glow, (*color, 70), (glow_radius, glow_radius), glow_radius

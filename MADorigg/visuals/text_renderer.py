@@ -159,11 +159,11 @@ class TextRenderer:
 
         red = self.render(label, size, (255, 40, 60)).copy()
         blue = self.render(label, size, (60, 120, 255)).copy()
-        red.set_alpha(150)
-        blue.set_alpha(150)
+        red.set_alpha(110)
+        blue.set_alpha(110)
 
-        wobble = int(math.sin(t * 27.0) * amplitude * 0.4)
-        dx = int(self.rng.uniform(-amplitude, amplitude) * jitter) + wobble
+        wobble = int(math.sin(t * 27.0) * amplitude * 0.25)
+        dx = int(self.rng.uniform(-amplitude, amplitude) * jitter * 0.4) + wobble
         dy = int(self.rng.uniform(-2, 2) * jitter)
         surface.blit(red, (rect.x - abs(dx), rect.y + dy))
         surface.blit(blue, (rect.x + abs(dx), rect.y - dy))
@@ -178,7 +178,10 @@ class TextRenderer:
                     strip = base.subsurface(pygame.Rect(0, slice_y, base.get_width(), slice_h)).copy()
                 except ValueError:  # pragma: no cover - degenerate slice
                     continue
-                surface.blit(strip, (rect.x + self.rng.randint(-12, 12), rect.y + slice_y))
+                surface.blit(
+                    strip,
+                    (rect.x + self.rng.randint(-6, 6), rect.y + slice_y),
+                )
 
         surface.blit(base, rect)
         return rect
@@ -205,7 +208,17 @@ class TextRenderer:
         rect = scaled.get_rect(center=center)
 
         if glitch:
-            self.draw_glitch(surface, text, size, center, t, color, amplitude=amplitude)
+            # Chromatic ghosts scaled to match the pulsing base text.
+            offset = max(2, int(amplitude * 0.7))
+            for ghost_color, dx in (
+                ((255, 45, 70), -offset),
+                ((60, 120, 255), offset),
+            ):
+                ghost = pygame.transform.rotozoom(
+                    self.render(label, size, ghost_color), 0.0, max(0.2, scale)
+                )
+                ghost.set_alpha(120)
+                surface.blit(ghost, (rect.x + dx, rect.y))
 
         shadow = pygame.transform.rotozoom(self.render(label, size, BLACK), 0.0, max(0.2, scale))
         shadow.set_alpha(200)

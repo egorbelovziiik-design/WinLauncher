@@ -103,16 +103,6 @@ def run(ctx: BattleContext) -> None:
         red.draw(ctx.canvas, ctx)
         blue.draw(ctx.canvas, ctx)
 
-        # Boss name plates.
-        ctx.text.draw(
-            ctx.canvas, "RED", ctx.fs(38), (int(red_home), int(boss_y + boss_size * 0.95)),
-            config.RED_BRIGHT, anchor="center",
-        )
-        ctx.text.draw(
-            ctx.canvas, "BLUE", ctx.fs(38), (int(blue_home), int(boss_y + boss_size * 0.95)),
-            config.BLUE_BRIGHT, anchor="center",
-        )
-
         # Pulsing banner.
         if t > 1.9:
             local = min(1.0, (t - 1.9) / 0.3)
@@ -125,7 +115,7 @@ def run(ctx: BattleContext) -> None:
                 ctx.elapsed,
                 color=config.GOLD,
                 glitch=True,
-                amplitude=4,
+                amplitude=3,
             )
 
         ctx.particles.update(dt)

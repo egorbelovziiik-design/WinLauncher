@@ -133,6 +133,11 @@ class Screen:
     # Presentation
     # ------------------------------------------------------------------ #
     @property
+    def hwnd(self) -> Optional[int]:
+        """Native window handle (``None`` outside Windows)."""
+        return self._hwnd
+
+    @property
     def size(self) -> Tuple[int, int]:
         """Current window size in pixels."""
         if self.surface is None:
