@@ -58,6 +58,19 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish to release (latest build)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: madorigg-latest
+          name: MADorigg — Windows build (latest)
+          body: |
+            Автосборка **MADorigg.exe** (Windows 10/11, one-file, без консоли).
+
+            Запуск: двойной клик, либо `MADorigg.exe --no-volume` / `--windowed`.
+            Выход в любой момент: `Esc` или `Alt+F4` — громкость восстанавливается.
+          files: MADorigg/dist/MADorigg.exe
+          fail_on_unmatched_files: true
+
       - name: Attach to release (tags only)
         if: startsWith(github.ref, 'refs/tags/madorigg-v')
         uses: softprops/action-gh-release@v2
