@@ -10,6 +10,8 @@ public final class PerformanceProfiler {
     private final float[] clickGuiCostsUs = new float[SAMPLE_WINDOW];
     private int cursor = 0;
     private int filled = 0;
+    private int hudCursor = 0, hudFilled = 0;
+    private int guiCursor = 0, guiFilled = 0;
 
     private long startupBeginNanos = System.nanoTime();
     private long startupDurationMs = 0L;
@@ -37,13 +39,15 @@ public final class PerformanceProfiler {
     }
 
     public void recordHudRenderNanos(long nanos) {
-        int idx = (cursor - 1 + SAMPLE_WINDOW) % SAMPLE_WINDOW;
-        hudCostsUs[idx] = nanos / 1000.0f;
+        hudCostsUs[hudCursor] = Math.max(0L, nanos) / 1000.0f;
+        hudCursor = (hudCursor + 1) % SAMPLE_WINDOW;
+        if (hudFilled < SAMPLE_WINDOW) hudFilled++;
     }
 
     public void recordClickGuiRenderNanos(long nanos) {
-        int idx = (cursor - 1 + SAMPLE_WINDOW) % SAMPLE_WINDOW;
-        clickGuiCostsUs[idx] = nanos / 1000.0f;
+        clickGuiCostsUs[guiCursor] = Math.max(0L, nanos) / 1000.0f;
+        guiCursor = (guiCursor + 1) % SAMPLE_WINDOW;
+        if (guiFilled < SAMPLE_WINDOW) guiFilled++;
     }
 
     public float getAverageFrameTimeMs() {
@@ -63,30 +67,22 @@ public final class PerformanceProfiler {
         }
         float[] copy = Arrays.copyOf(frameTimesMs, filled);
         Arrays.sort(copy);
-        int idx = Math.min(filled - 1, Math.max(0, (int) Math.floor(filled * 0.95)));
+        int idx = Math.min(filled - 1, Math.max(0, (int) Math.ceil(filled * 0.95) - 1));
         return copy[idx];
     }
 
     public float getAverageHudCostUs() {
-        if (filled == 0) {
-            return 0.0f;
-        }
+        if (hudFilled == 0) return 0.0f;
         float sum = 0.0f;
-        for (int i = 0; i < filled; i++) {
-            sum += hudCostsUs[i];
-        }
-        return sum / filled;
+        for (int i = 0; i < hudFilled; i++) sum += hudCostsUs[i];
+        return sum / hudFilled;
     }
 
     public float getAverageClickGuiCostUs() {
-        if (filled == 0) {
-            return 0.0f;
-        }
+        if (guiFilled == 0) return 0.0f;
         float sum = 0.0f;
-        for (int i = 0; i < filled; i++) {
-            sum += clickGuiCostsUs[i];
-        }
-        return sum / filled;
+        for (int i = 0; i < guiFilled; i++) sum += clickGuiCostsUs[i];
+        return sum / guiFilled;
     }
 
     public long getUsedMemoryMb() {

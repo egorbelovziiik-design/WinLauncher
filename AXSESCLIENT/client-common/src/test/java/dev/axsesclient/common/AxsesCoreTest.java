@@ -338,6 +338,90 @@ public class AxsesCoreTest {
     }
 
     @Test
+    public void pendingSaveIsBoundToItsProfileAndSnapshot(@TempDir Path tempDir) throws Exception {
+        MockPlatform platform = new MockPlatform(tempDir);
+        AxsesCore core = new AxsesCore(tempDir, platform, platform);
+        Module module = core.getModuleManager().getById("fullbright");
+        assertTrue(core.getConfigManager().save("one"));
+        module.setEnabled(true, platform);
+        core.getConfigManager().saveActiveAsync();
+        // Mutations after scheduling must not leak into the queued snapshot.
+        module.setEnabled(false, platform);
+        assertTrue(core.getConfigManager().save("two"));
+        assertEquals("two", core.getConfigManager().getActiveProfile());
+        assertTrue(core.getConfigManager().load("one", platform));
+        assertTrue(module.isEnabled());
+        assertTrue(core.getConfigManager().load("two", platform));
+        assertFalse(module.isEnabled());
+        core.shutdown();
+    }
+
+    @Test
+    public void recoveryPreservesGoodBackupAcrossRepeatedCorruption(@TempDir Path tempDir) throws Exception {
+        MockPlatform platform = new MockPlatform(tempDir);
+        AxsesCore core = new AxsesCore(tempDir, platform, platform);
+        Module module = core.getModuleManager().getById("fullbright");
+        module.setEnabled(true, platform);
+        assertTrue(core.getConfigManager().save("competitive"));
+        assertTrue(core.getConfigManager().save("competitive"));
+        Path dir = tempDir.resolve("axsesclient");
+        Path cfg = dir.resolve("configs/competitive.json");
+        Path backup = dir.resolve("backups/competitive.lastgood.bak");
+        byte[] originalBackup = Files.readAllBytes(backup);
+        Files.write(cfg, "{bad".getBytes(StandardCharsets.UTF_8));
+        assertFalse(core.getConfigManager().load("competitive", platform));
+        assertArrayEquals(originalBackup, Files.readAllBytes(backup));
+        Files.write(cfg, "{bad again".getBytes(StandardCharsets.UTF_8));
+        assertFalse(core.getConfigManager().load("competitive", platform));
+        assertArrayEquals(originalBackup, Files.readAllBytes(backup));
+        assertTrue(module.isEnabled());
+    }
+
+    @Test
+    public void unsupportedOrCorruptProfileIsNeverOverwrittenOnShutdown(@TempDir Path tempDir) throws Exception {
+        MockPlatform platform = new MockPlatform(tempDir);
+        AxsesCore core = new AxsesCore(tempDir, platform, platform);
+        Path cfg = tempDir.resolve("axsesclient/configs/future.json");
+        byte[] future = "{\"schemaVersion\":999,\"valuable\":true}".getBytes(StandardCharsets.UTF_8);
+        Files.write(cfg, future);
+        assertFalse(core.getConfigManager().load("future", platform));
+        assertFalse(core.getConfigManager().save("future"));
+        assertArrayEquals(future, Files.readAllBytes(cfg));
+
+        Path active = tempDir.resolve("axsesclient/configs/default.json");
+        byte[] damaged = "{broken".getBytes(StandardCharsets.UTF_8);
+        Files.write(active, damaged);
+        assertFalse(core.getConfigManager().load("default", platform));
+        core.getConfigManager().saveActiveAsync();
+        core.shutdown();
+        assertArrayEquals(damaged, Files.readAllBytes(active));
+    }
+
+    @Test
+    public void rejectedImportRestoresPreviousInMemoryState(@TempDir Path tempDir) throws Exception {
+        MockPlatform platform = new MockPlatform(tempDir);
+        AxsesCore core = new AxsesCore(tempDir, platform, platform);
+        core.getThemeManager().setActiveTheme("axses-cyber");
+        Path invalid = tempDir.resolve("bad-import.json");
+        Files.write(invalid, "{\"schemaVersion\":1,\"activeThemeId\":\"axses-dark\",\"guiX\":\"bad\"}".getBytes(StandardCharsets.UTF_8));
+        assertFalse(core.getConfigManager().importConfig(invalid, "imported", platform));
+        assertEquals("axses-cyber", core.getThemeManager().getActiveThemeId());
+        assertEquals("default", core.getConfigManager().getActiveProfile());
+        assertFalse(Files.exists(tempDir.resolve("axsesclient/configs/imported.json")));
+    }
+
+    @Test
+    public void profilerUsesActualRenderSamples() {
+        dev.axsesclient.common.perf.PerformanceProfiler profiler = new dev.axsesclient.common.perf.PerformanceProfiler();
+        profiler.recordHudRenderNanos(10_000L);
+        profiler.recordHudRenderNanos(30_000L);
+        profiler.recordClickGuiRenderNanos(100_000L);
+        for (int i = 0; i < 140; i++) profiler.recordFrame();
+        assertEquals(20.0f, profiler.getAverageHudCostUs(), 0.01f);
+        assertEquals(100.0f, profiler.getAverageClickGuiCostUs(), 0.01f);
+    }
+
+    @Test
     public void settingsValidationAndMultiplayerFairPlayRestrictionsWork(@TempDir Path tempDir) {
         MockPlatform platform = new MockPlatform(tempDir);
         AxsesCore core = new AxsesCore(tempDir, platform, platform);

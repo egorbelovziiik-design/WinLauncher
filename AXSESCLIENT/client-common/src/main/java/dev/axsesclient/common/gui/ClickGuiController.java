@@ -135,7 +135,7 @@ public final class ClickGuiController {
         float winRad = 20.0f;
 
         // Ambient floating Aurora bokeh orbs around the frosted glass shell
-        double bokehTime = (System.currentTimeMillis() % 18000L) / 1000.0;
+        double bokehTime = core.getAnimationManager().isReducedMotion() ? 0.0 : (System.currentTimeMillis() % 18000L) / 1000.0;
         for (int b = 0; b < 6; b++) {
             float ox = wx + (winW * (0.14f + 0.16f * b)) + (float) Math.sin(bokehTime * 0.8 + b * 1.4) * 26.0f;
             float oy = wy + (b % 2 == 0 ? 34.0f : winH - 36.0f) + (float) Math.cos(bokehTime * 0.7 + b) * 18.0f;
@@ -185,29 +185,34 @@ public final class ClickGuiController {
         lastLangW = langW;
         drawHeaderPill(r, rightCursor, pillY, langW, pillH, langLabel, false, true, mx, my);
 
-        float hudW = Math.max(42.0f, core.getFontManager().width(r, i18n.tr("gui.hud_editor"), 1.0f) + 16.0f);
+        boolean compactHeader = winW < 610.0f;
+        String hudLabel = compactHeader ? "HUD" : i18n.tr("gui.hud_editor");
+        String diagLabel = compactHeader ? "INFO" : i18n.tr("gui.diag");
+        String cfgLabel = compactHeader ? "CFG" : i18n.tr("gui.configs");
+        String themeLabel = compactHeader ? (i18n.isRussian() ? "ТЕМЫ" : "THEMES") : i18n.tr("gui.themes");
+        float hudW = Math.max(38.0f, core.getFontManager().width(r, hudLabel, 1.0f) + 16.0f);
         rightCursor -= (hudW + 4.0f);
         lastHudX = rightCursor;
         lastHudW = hudW;
-        drawHeaderPill(r, rightCursor, pillY, hudW, pillH, i18n.tr("gui.hud_editor"), false, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, hudW, pillH, hudLabel, false, false, mx, my);
 
-        float diagW = Math.max(44.0f, core.getFontManager().width(r, i18n.tr("gui.diag"), 1.0f) + 16.0f);
+        float diagW = Math.max(44.0f, core.getFontManager().width(r, diagLabel, 1.0f) + 16.0f);
         rightCursor -= (diagW + 4.0f);
         lastDiagX = rightCursor;
         lastDiagW = diagW;
-        drawHeaderPill(r, rightCursor, pillY, diagW, pillH, i18n.tr("gui.diag"), activeView == TopView.COMPATIBILITY, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, diagW, pillH, diagLabel, activeView == TopView.COMPATIBILITY, false, mx, my);
 
-        float cfgW = Math.max(54.0f, core.getFontManager().width(r, i18n.tr("gui.configs"), 1.0f) + 16.0f);
+        float cfgW = Math.max(compactHeader ? 38.0f : 54.0f, core.getFontManager().width(r, cfgLabel, 1.0f) + 16.0f);
         rightCursor -= (cfgW + 4.0f);
         lastCfgX = rightCursor;
         lastCfgW = cfgW;
-        drawHeaderPill(r, rightCursor, pillY, cfgW, pillH, i18n.tr("gui.configs"), activeView == TopView.CONFIGS, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, cfgW, pillH, cfgLabel, activeView == TopView.CONFIGS, false, mx, my);
 
-        float thmW = Math.max(48.0f, core.getFontManager().width(r, i18n.tr("gui.themes"), 1.0f) + 16.0f);
+        float thmW = Math.max(48.0f, core.getFontManager().width(r, themeLabel, 1.0f) + 16.0f);
         rightCursor -= (thmW + 4.0f);
         lastThmX = rightCursor;
         lastThmW = thmW;
-        drawHeaderPill(r, rightCursor, pillY, thmW, pillH, i18n.tr("gui.themes"), activeView == TopView.THEMES, false, mx, my);
+        drawHeaderPill(r, rightCursor, pillY, thmW, pillH, themeLabel, activeView == TopView.THEMES, false, mx, my);
 
         float favW = 26.0f;
         rightCursor -= (favW + 4.0f);
@@ -217,7 +222,7 @@ public final class ClickGuiController {
         // Stadium-Pill Search Box between Brand & Tabs
         float sx = hdrX + 98.0f;
         float sy = pillY;
-        float searchW = Math.max(96.0f, rightCursor - sx - 8.0f);
+        float searchW = Math.max(0.0f, rightCursor - sx - 8.0f);
         lastSearchX = sx;
         lastSearchW = searchW;
         float shBox = pillH;
@@ -263,8 +268,6 @@ public final class ClickGuiController {
             String glyph = i < catIcons.length ? catIcons[i] : "• ";
             String catTitle = glyph + i18n.tr(cat.getTranslationKey());
             float textY = cy + (catRowH - 2.0f - 8.0f) * 0.5f;
-            core.getFontManager().draw(r, catTitle, sideX + 13.0f, textY, sel ? 0xFFFFFFFF : t.getMutedColor(), 0.95f);
-
             List<Module> inCat = core.getModuleManager().getByCategory(cat);
             int enCount = 0;
             for (int k = 0; k < inCat.size(); k++) {
@@ -272,6 +275,7 @@ public final class ClickGuiController {
             }
             String cnt = enCount > 0 ? (enCount + "/" + inCat.size()) : String.valueOf(inCat.size());
             float cntW = core.getFontManager().width(r, cnt, 0.90f);
+            core.getFontManager().draw(r, trimToWidth(r, catTitle, sideW - cntW - 32.0f), sideX + 13.0f, textY, sel ? 0xFFFFFFFF : t.getMutedColor(), 0.95f);
             core.getFontManager().draw(r, cnt, sideX + sideW - 12.0f - cntW, textY + 0.5f,
                     enCount > 0 ? accentCol : AxsesTheme.withAlpha(t.getMutedColor(), 0.70f), 0.90f);
 
@@ -886,13 +890,13 @@ public final class ClickGuiController {
         for (int i = 0; i < Math.min(6, profiles.size()); i++) {
             String prof = profiles.get(i);
             if (isInside(mx, my, x + w - 122.0f, py + 4.0f, 54.0f, 18.0f)) {
-                core.getConfigManager().load(prof, mc);
-                core.getNotificationManager().push("AXSES", prof, NotificationManager.Severity.SUCCESS);
+                boolean loaded = core.getConfigManager().load(prof, mc);
+                if (loaded) core.getNotificationManager().push("AXSES", prof, NotificationManager.Severity.SUCCESS);
                 return true;
             }
             if (isInside(mx, my, x + w - 62.0f, py + 4.0f, 54.0f, 18.0f)) {
-                core.getConfigManager().save(prof);
-                core.getNotificationManager().push("AXSES", prof, NotificationManager.Severity.SUCCESS);
+                boolean saved = core.getConfigManager().save(prof);
+                if (saved) core.getNotificationManager().push("AXSES", prof, NotificationManager.Severity.SUCCESS);
                 return true;
             }
             py += 30.0f;

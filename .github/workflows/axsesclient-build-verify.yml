@@ -461,7 +461,7 @@ jobs:
 
   publish-github-release:
     name: Publish Verified Assets to GitHub Release (axsesclient-v6.0.0)
-    if: ${{ always() && (contains(github.event.head_commit.message, '[publish-release]') || inputs.publish_only_run_id != '' || needs.windows-launcher-and-installer.result == 'success') }}
+    if: ${{ always() && (contains(github.event.head_commit.message, '[publish-release]') || inputs.publish_only_run_id != '') }}
     needs: [windows-launcher-and-installer]
     runs-on: ubuntu-latest
     timeout-minutes: 10
